@@ -12,6 +12,10 @@
  *
  * How it runs. The spec starts the app's own Vite dev server on a free port, so it needs no build and no preview server, and drives
  * `/play/loop` in whichever browser Playwright launches. Run it with `npx playwright test e2e/loop.spec.ts`.
+ *
+ * Under the policy. The dev server leaves out the meta CSP of ARCHITECTURE §12, which every built document carries. With ES_E2E_ORIGIN
+ * set to the address of `vite preview` (after `npm run build`), the spec drives the built site instead, and the origin test also fails
+ * on any message of the browser that a policy refused something. The one test that imports the sources from the dev server is skipped.
  */
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -25,10 +29,15 @@ import type { LoopAction } from '../packages/play/loop/types'
 
 const root = path.resolve(import.meta.dirname, '..')
 
-let server: ViteDevServer
+let server: ViteDevServer | null = null
 let origin = ''
+const built = (process.env.ES_E2E_ORIGIN ?? '') !== ''
 
 base.beforeAll(async () => {
+  if (built) {
+    origin = (process.env.ES_E2E_ORIGIN ?? '').replace(/\/$/, '')
+    return
+  }
   server = await createServer({ root, logLevel: 'error', server: { port: 0, host: '127.0.0.1', strictPort: false } })
   await server.listen()
   const url = server.resolvedUrls?.local[0]
@@ -37,7 +46,7 @@ base.beforeAll(async () => {
 }, 120_000)
 
 base.afterAll(async () => {
-  await server.close()
+  await server?.close()
 })
 
 const test = base
@@ -197,15 +206,21 @@ test.describe('reduced motion', () => {
 test.describe('the page keeps to its origin', () => {
   test('no request leaves it while a level is played', async ({ page }) => {
     const away: string[] = []
+    const refused: string[] = []
     page.on('request', (request) => {
       const url = request.url()
       if (!url.startsWith(origin) && !url.startsWith('data:') && !url.startsWith('blob:')) away.push(url)
+    })
+    // The browser says in its console that a policy refused a script, a style, a font or a request.
+    page.on('console', (message) => {
+      if (/content security policy|refused to/i.test(message.text())) refused.push(message.text())
     })
     await open(page, 'first-2-slot')
     await playToTheEnd(page)
     await debriefButton(page).click()
     await expect(page.getByRole('heading', { level: 3 }).first()).toBeVisible()
     expect(away).toEqual([])
+    expect(refused).toEqual([])
   })
 })
 
@@ -224,6 +239,7 @@ test.describe('determinism and the poster', () => {
   ]
 
   test('the same seed and the same actions give the same state hash in the browser as under Node', async ({ page }) => {
+    test.skip(built, 'the page imports the sources, which only the dev server serves')
     let run = startRun(loopSession, { game: 'loop', level: 'first-4-par', seed: 1 })
     for (const action of actions) run = applyAction(loopSession, run, action)
     const expected = stateHash(run.state)

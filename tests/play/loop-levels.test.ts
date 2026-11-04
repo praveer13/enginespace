@@ -8,7 +8,7 @@
  * passes. A visitor cannot see how long a table will stay, so the order they tap tickets in must not matter (engine.ts, `hang`), and
  * the tests below hold the pass mark between the best partial strategy and any play that uses both tools.
  *
- * Numbers measured by this file [measured 2026-11-04 at fca64e9, Bun 1.3.14 on Linux 6.12.63]:
+ * Numbers measured by this file [measured 2026-11-04 at a5907b1, Bun 1.3.14 on Linux 6.12.63]:
  *   first-4-par: 159 of the first 400 seeds in band (39.8%); seed 1 is the first; par is 98 ticks, refill alone 141, overlap alone 162,
  *   firing the rail as a set 255, and the house has 12 binned plates;
  *   first-1-fill, first-2-slot and first-3-gap: 114 of 400 (28.5%), seed 1 the first;
@@ -16,7 +16,7 @@
  *   refill alone at most 0.714, overlap alone at most 0.854, neither at most 0.561.
  * And what the order of the tickets would cost if a table's appetite followed its ticket's number instead of the order they are hung in
  * (a scratch copy of `hang` with that one line changed, same seeds, tickets tapped in a seeded order, both tools on) [measured 2026-11-04
- * at fca64e9]: a minimum of 0.723, a tenth percentile of 0.797 and a median of 0.990, so 104 of the 150 seeds reach the pass mark of 0.9 by
+ * at a5907b1]: a minimum of 0.723, a tenth percentile of 0.797 and a median of 0.990, so 104 of the 150 seeds reach the pass mark of 0.9 by
  * luck of the order, where this file requires all 150.
  */
 import { describe, expect, test } from 'bun:test'

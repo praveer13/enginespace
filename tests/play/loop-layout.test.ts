@@ -7,7 +7,7 @@
  * <svg> out of its markup, so what is compared is what the page paints and not a second copy of the code. The rest hold the layout to
  * its promises: it paints with token roles and nothing else, it stays in its frame and under its cap, and its window moves by whole fires.
  *
- * Measured by the first group of the cap test [measured 2026-11-04 at fca64e9]: at most 281 marks in 236 frames of the four levels, in
+ * Measured by the first group of the cap test [measured 2026-11-04 at a5907b1]: at most 281 marks in 236 frames of the four levels, in
  * both orientations and with overlap on and off, against the cap of 2,000. The two posters are 78 and 57 marks, and 9,545 and 7,205 bytes.
  */
 import { describe, expect, test } from 'bun:test'
