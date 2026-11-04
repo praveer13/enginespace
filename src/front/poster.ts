@@ -34,6 +34,6 @@ export function passDrawing(view: LoopView, orientation: Orientation): SvgNode {
 
 /**
  * The 2D drawing's measures that the front page lines its own objects up with, in the frame's units (packages/play/loop/layout.ts,
- * landscape): the frame's size, the middle of the rail's bar, and where the lamp's pool over the rail begins.
+ * landscape): the frame's size, the middle of the rail's bar, and where the bar begins, which is where the page's rail hands over.
  */
-export const LANDSCAPE_FRAME = { width: 720, height: 348, railMiddle: 14, railStart: 366 } as const
+export const LANDSCAPE_FRAME = { width: 720, height: 348, railMiddle: 14, railStart: 372 } as const

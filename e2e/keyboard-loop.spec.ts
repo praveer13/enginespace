@@ -77,9 +77,11 @@ for (const width of PR_WIDTHS) {
       await page.keyboard.press('Enter')
       await expect(front.game(page)).toHaveAttribute('data-started', '')
       // Six tickets wait and four clips are free: each press takes the first of those that still wait, so two are left at the end.
+      // The printer's strip shows the first three of them, and says how many wait in all.
       for (const left of [5, 4, 3, 2]) {
         await page.keyboard.press('Digit1')
-        await expect(page.locator('[data-loop-controls] ul li')).toHaveCount(left)
+        await expect(page.locator('[data-waiting]')).toHaveAttribute('data-waiting', String(left))
+        await expect(page.locator('[data-loop-controls] ul li')).toHaveCount(Math.min(left, 3))
       }
       await page.keyboard.press('Period')
       await expect(front.outcome(page)).toHaveText(FIRE_IS_IN)

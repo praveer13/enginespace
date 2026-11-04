@@ -5,10 +5,13 @@
  * index.html links this sheet, so it styles the static HTML before any script runs: the page's own chunk loads its styles too late
  * for a first paint.
  *
- * Two layouts, one document. Below 80rem the page stacks: the printer and its order ticket over the pass, then the deck. From 80rem the
- * pass fills the first viewport and the printer stands in front of it, where the camera puts the scene's own printer: anchors.ts
- * computes the landmarks as plain numbers on the pass (`--pass-*`), and the rules below turn them into lengths with container units,
- * so the objects stay on the scene's rail at any size of the box.
+ * Two layouts, one document. Below 80rem the page stacks: the order ticket on its rail, then the printer with its tape, its strip of
+ * waiting tickets and the bell, then the pass, then the deck, so on a phone the scene, a ticket to hang and the bell share the first
+ * screen. From 80rem the pass fills the first viewport and the objects stand in front of it: the printer at the rail's left end with
+ * its tape and strip hanging from its mouth, and the order ticket on the rail beside it. anchors.ts computes the scene's landmarks as
+ * plain numbers on the pass (`--pass-*`), and the rules below turn them into lengths with container units, so the objects stay on the
+ * scene's rail at any size of the box. The 3D scene is drawn on a canvas wider than the pass, so its middle, the camera's, moves right
+ * by `--scene-shift`, and the printer's column at the left covers nothing of the line.
  */
 
 /* The front page runs edge to edge: the shell's main gives up its measure and its gutters here, and the page keeps its own. */
@@ -31,41 +34,306 @@
 /* ---------------------------------------------------------------------------------------------- the printer */
 
 /*
- * The printer's housing: deep stainless, brushed, its top edge lit by the tubes, the menu link printed on its face in paper white. The
- * face stays deep steel under the print, so the link keeps the declared pair, paper-white on deep steel (tokens.ts).
+ * The printer's housing: deep stainless, brushed, the menu link printed on its face in paper white (the declared pair, paper-white on
+ * deep steel, tokens.ts). Its mouth is the dark slot along its foot, with the tear bar's teeth over it: the tape comes out there.
  */
 .es-front-printer {
   position: relative;
   z-index: 3;
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
   justify-content: space-between;
-  gap: var(--es-space-3);
-  min-height: 3.5rem;
-  padding: var(--es-space-3) var(--es-space-4) 1.4rem;
-  border-radius: 10px 10px 4px 4px;
+  gap: var(--es-space-2);
+  padding: var(--es-space-3) var(--es-space-3) 1.35rem;
+  border: 1px solid var(--es-paper-ink);
+  border-radius: 8px 8px 3px 3px;
   background-color: var(--es-surface-3);
   background-image: var(--es-texture-brushed);
   background-size: 100% 360px;
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--es-paper) 30%, transparent),
-    inset 0 -2px 0 color-mix(in srgb, var(--es-paper-ink) 40%, transparent),
-    var(--es-shadow-lift);
+  box-shadow: var(--es-shadow-lift);
   color: var(--es-paper);
 }
 
-.es-front-printer__menu {
+.es-front-printer .es-front-printer__menu {
   color: var(--es-paper);
+  font-size: 0.8125rem;
 }
 
-/* The mouth the paper comes out of. */
+.es-front-printer .es-front-printer__menu .es-menu-link__term {
+  font-size: 0.8125rem;
+}
+
+/* What the strip does not show yet: printed small on the housing, as the scene's printer counts what is still inside it. */
+.es-front-printer__more {
+  color: var(--es-paper);
+  font-family: var(--es-font-ticket);
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  letter-spacing: var(--es-font-ticket-tracking);
+  font-weight: var(--es-font-ticket-weight);
+  text-transform: uppercase;
+}
+
+/* The mouth: a dark slot, and the tear bar's teeth along its upper lip. */
 .es-front-printer__mouth {
   position: absolute;
-  inset: auto 1.25rem 0.55rem;
-  height: 0.35rem;
-  border-radius: 2px;
+  inset: auto 0.6rem 0.45rem;
+  height: 0.4rem;
+  border-radius: 1px;
   background-color: var(--es-paper-ink);
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--es-paper) 22%, transparent);
+}
+
+.es-front-printer__mouth::before {
+  content: '';
+  position: absolute;
+  inset: -0.3rem 0 auto;
+  height: 0.3rem;
+  background: conic-gradient(from 135deg at 50% 100%, var(--es-surface-2) 90deg, transparent 0) 0 0 / 0.45rem 100% repeat-x;
+}
+
+/* ---------------------------------------------------------------------------------------------- the printer's tape */
+
+/*
+ * The tape: the live readout, printed in the printer's dots on the same bond paper as the tickets, stamped once in the ribbon's red
+ * with what its figures are. Each figure keeps its own tag for a screen reader; on the tape the stamp says it for all of them.
+ */
+.es-front-tape {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: var(--es-space-2);
+  padding: var(--es-space-3);
+  background-color: var(--es-paper);
+  color: var(--es-paper-ink);
+  filter: drop-shadow(0 1px 1px color-mix(in srgb, var(--es-text-1) 20%, transparent)) drop-shadow(0 6px 8px color-mix(in srgb, var(--es-text-1) 18%, transparent));
+  font-family: var(--es-font-ticket);
+  font-weight: var(--es-font-ticket-weight);
+  letter-spacing: var(--es-font-ticket-tracking);
+}
+
+.es-front-tape .es-readout__tag {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.es-front-tape .es-readout {
+  font-size: 0.9375rem;
+}
+
+.es-front-tape__stamp {
+  justify-self: start;
+  margin: 0;
+  padding: 0.1rem 0.4rem 0;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  color: var(--es-paper-ink-2);
+  font-family: var(--es-font-body);
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.es-front-tape__lines {
+  display: grid;
+  gap: 0.2rem var(--es-space-4);
+  margin: 0;
+}
+
+.es-front-tape__line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 var(--es-space-2);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.es-front-tape__line dt {
+  text-transform: uppercase;
+}
+
+.es-front-tape__line dd {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 0.15rem 0.4rem;
+  margin: 0 0 0 auto;
+  text-align: right;
+}
+
+.es-front-tape__line[data-tone='ink-2'] {
+  color: var(--es-paper-ink-2);
+}
+
+.es-front-term {
+  color: var(--es-text-2);
+}
+
+.es-front-tape__line[data-tone='ink-2'] .es-front-term {
+  color: var(--es-paper-ink-2);
+}
+
+.es-front-tape__of {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+
+/* The stations: a pip for each clip, lit in the line's colour, or an open ring of deep steel. */
+.es-front-pips {
+  display: inline-flex;
+  align-self: center;
+  gap: 0.2rem;
+}
+
+.es-front-pips__pip {
+  width: 0.7rem;
+  height: 0.7rem;
+  border: 2px solid var(--es-surface-3);
+  border-radius: var(--es-radius-round);
+  background-color: var(--es-paper);
+}
+
+.es-front-pips__pip[data-lit] {
+  border-color: var(--es-cat-green-edge);
+  background-color: var(--es-lane-gpu);
+}
+
+/* The next fire, under the perforation: what the bell will do, before it is rung. */
+.es-front-tape__next {
+  display: grid;
+  gap: 0.2rem;
+  padding-top: var(--es-space-2);
+  border-top: 2px dotted var(--es-paper-rule);
+}
+
+.es-front-tape__head {
+  margin: 0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.es-front-tape__preview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem var(--es-space-2);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.es-front-tape__stations,
+.es-front-tape__fill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* The next fire's stations are the control that fills them: pressing them hangs the next ticket. */
+.es-front-tape__fill {
+  min-height: 2.25rem;
+  margin: -0.25rem -0.4rem;
+  padding: 0.25rem 0.4rem;
+  border: 0;
+  border-radius: 2px;
+  background: none;
+  color: inherit;
+  font-family: var(--es-font-ticket);
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color var(--es-dur-quick) var(--es-ease-settle);
+}
+
+.es-front-tape__fill:hover {
+  background-color: color-mix(in srgb, var(--es-paper-rule) 35%, var(--es-paper));
+}
+
+.es-front-tape__fill:focus-visible {
+  outline: 2px solid var(--es-focus);
+  outline-offset: 1px;
+}
+
+.es-front-tape__ticks {
+  margin-left: auto;
+}
+
+/* ---------------------------------------------------------------------------------------------- the strip of waiting tickets */
+
+/*
+ * The strip: the tickets the printer has fed, joined at their perforations, the next one at the strip's end. Each is a button that
+ * hangs it; one tab stop, and the arrows move along them (Controls.tsx).
+ */
+.es-front-strip {
+  position: relative;
+  z-index: 1;
+}
+
+.es-front-strip__list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-front-strip__list .es-ticket__sheet {
+  filter: drop-shadow(0 1px 1px color-mix(in srgb, var(--es-text-1) 20%, transparent)) drop-shadow(0 5px 6px color-mix(in srgb, var(--es-text-1) 16%, transparent));
+}
+
+.es-front-strip__list .es-ticket[data-size] .es-ticket__paper {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 var(--es-space-2);
+  padding: 0.5rem 0.65rem 0.45rem;
+}
+
+.es-front-strip__list .es-ticket[data-size] .es-ticket__head {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 0.9375rem;
+}
+
+.es-front-strip__list .es-ticket[data-size] .es-ticket-line {
+  color: var(--es-paper-ink-2);
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+}
+
+.es-front-strip__list .es-ticket[data-size][data-state='disabled'] .es-ticket-line {
+  color: var(--es-text-3);
+}
+
+.es-front-strip > p {
+  margin: 0;
+  color: var(--es-text-1);
+  font-size: 0.9375rem;
+  line-height: 1.35;
+}
+
+.es-front-strip__list button {
+  user-select: none;
+}
+
+/* ---------------------------------------------------------------------------------------------- the bell */
+
+/* The bell sits by the strip; its count is the tape's, so the tape alone prints it. */
+.es-front-bell .es-bell__count {
+  display: none;
 }
 
 /* ---------------------------------------------------------------------------------------------- the rail */
@@ -103,9 +371,7 @@
     var(--es-surface-3) 45%,
     color-mix(in srgb, var(--es-surface-3) 80%, var(--es-paper-ink)) 100%
   );
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--es-paper) 35%, transparent),
-    0 2px 3px color-mix(in srgb, var(--es-text-1) 40%, transparent);
+  box-shadow: 0 2px 3px color-mix(in srgb, var(--es-text-1) 40%, transparent);
   pointer-events: none;
 }
 
@@ -122,10 +388,10 @@
 }
 
 .es-front-ticket .es-ticket__title {
-  margin: var(--es-space-2) 0 var(--es-space-4);
+  margin: 0 0 var(--es-space-4);
   font-family: var(--es-font-display);
   /* As large as the paper allows, and on the pass no taller than its box allows: it is the first viewport's largest text. */
-  font-size: clamp(3rem, min(21cqi, 13cqh), 6rem);
+  font-size: clamp(2.5rem, min(19cqi, 13cqh), 6rem);
   line-height: var(--es-font-display-leading);
   letter-spacing: var(--es-font-display-tracking);
   font-weight: var(--es-font-display-weight);
@@ -143,6 +409,7 @@
   margin: 0;
   font-size: 1rem;
   line-height: 1.5;
+  text-wrap: pretty;
 }
 
 .es-front-promise + .es-front-promise {
@@ -158,24 +425,11 @@
   transform: translateY(0.45rem);
 }
 
-/* The printer's tape: the live lines, printed under a perforation. */
-.es-front-tape {
-  display: grid;
-  gap: 0.15rem;
-  padding-top: var(--es-space-3);
-  border-top: 2px dotted var(--es-paper-rule);
-}
-
-.es-front-tape .es-ticket-line {
-  font-size: 1rem;
-  text-transform: uppercase;
-}
-
-.es-front-term {
-  color: var(--es-text-2);
-}
-
 /* ---------------------------------------------------------------------------------------------- the pass and its drawing */
+
+.es-front-pass {
+  position: relative;
+}
 
 .es-front-pass__stage {
   position: relative;
@@ -190,10 +444,20 @@
   border-radius: 0;
 }
 
+
+/*
+ * The 2D pass lies on the house's own brushed steel, the page's ground, which shows through the drawing's beds: the stage paints no
+ * ground of its own, so the largest thing the first paint draws stays the heading (a picture on the stage would be counted instead).
+ */
+.es-front-stage.es-stage,
+.es-front-stage--flat,
+.es-front-stage .es-stage__twin {
+  background: none;
+}
+
 .es-front-stage--flat {
   position: relative;
   overflow: hidden;
-  background-color: var(--es-surface-0);
 }
 
 .es-front-drawing {
@@ -208,17 +472,13 @@
   height: 100%;
 }
 
-/* The page's printer is the printer, and its waiting tickets lie on the deck: the drawing's own are left out. */
+/* The page's printer is the printer, and its waiting tickets hang from it: the drawing's own are left out. */
 .es-front-drawing [data-part='printer'] {
   display: none;
 }
 
-/* A dragged ticket: the pass takes it. A dashed edge in the lamp's filament, over the scene, never a glow. */
-.es-front-pass {
-  position: relative;
-}
-
-.es-front-service[data-dragging] .es-front-pass::after {
+/* A dragged ticket: the pass takes it. A dashed edge in the lamp's filament round the pass, never a glow. */
+.es-front-service[data-dragging] .es-front-pass__stage::after {
   content: '';
   position: absolute;
   inset: var(--es-space-3);
@@ -228,48 +488,119 @@
   pointer-events: none;
 }
 
-/* The view's own switches: 2D or 3D, the keys, and undo. */
-.es-front-pass__tools {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--es-space-2) var(--es-space-3);
-  padding: var(--es-space-3) var(--front-gutter) 0;
-}
-
 /* ---------------------------------------------------------------------------------------------- stacked: below 80rem */
 
-.es-front-order {
-  position: relative;
+/*
+ * The pass's objects in a column: the order ticket on its rail; the printer, its strip of tickets fed out to the right and the bell,
+ * along the pass's edge; the pass itself; and the printer's tape under it, its lines in two columns where they fit.
+ */
+.es-front-pass {
   display: grid;
-  justify-items: start;
-  padding: var(--es-space-6) var(--front-gutter) var(--es-space-8);
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'order order order'
+    'printer strip bell'
+    'hint hint hint'
+    'stage stage stage'
+    'tape tape tape';
+  align-items: start;
 }
 
-.es-front-order .es-front-printer {
-  width: min(100%, 34rem);
+/* The order ticket on its rail. */
+.es-front-order {
+  position: relative;
+  grid-area: order;
+  display: grid;
+  justify-items: start;
+  padding: var(--es-space-6) var(--front-gutter) var(--es-space-4);
 }
 
 .es-front-order .es-front-rail {
-  top: calc(var(--es-space-6) + 3.5rem - 0.4rem);
+  top: calc(var(--es-space-6) - 0.35rem);
   width: 100%;
   height: 0.7rem;
 }
 
 .es-front-order .es-front-ticket {
-  width: min(calc(100% - 2rem), 31rem);
+  width: min(100%, 34rem);
   max-width: none;
-  margin: -0.35rem 0 0 1rem;
+  margin: 0;
 }
 
 .es-front-order .es-front-grip {
-  top: calc(var(--es-space-6) + 3.5rem - 0.85rem);
-  left: calc(var(--front-gutter) + 1rem + min(calc(100% - 2 * var(--front-gutter) - 2rem), 31rem) / 2 - 1.125rem);
+  top: calc(var(--es-space-6) - 0.8rem);
+  left: calc(var(--front-gutter) + min(calc(100% - 2 * var(--front-gutter)), 34rem) / 2 - 1.125rem);
+}
+
+.es-front-expo {
+  display: contents;
+}
+
+.es-front-expo > .es-front-printer {
+  grid-area: printer;
+  align-self: stretch;
+  width: 8rem;
+  min-height: 4rem;
+  margin: 0 0 var(--es-space-4) var(--front-gutter);
+}
+
+/* The strip's tickets sit in the row; what the strip says (the rail is full, nothing waits) prints on a line of its own under it. */
+.es-front-expo > .es-front-strip {
+  display: contents;
+}
+
+.es-front-strip > ul {
+  grid-area: strip;
+  align-self: center;
+  margin: 0 var(--es-space-2) var(--es-space-4);
+}
+
+.es-front-strip > p {
+  grid-area: hint;
+  margin: calc(-1 * var(--es-space-2)) var(--front-gutter) var(--es-space-3);
+}
+
+.es-front-expo > .es-front-bell {
+  grid-area: bell;
+  align-self: center;
+  margin: 0 var(--front-gutter) var(--es-space-4) 0;
+}
+
+.es-front-expo > .es-front-tape {
+  grid-area: tape;
+  margin: var(--es-space-4) var(--front-gutter) var(--es-space-2);
+}
+
+.es-front-strip__list {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.25rem;
+}
+
+.es-front-strip__list .es-ticket[data-size] .es-ticket__paper {
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0.55rem 0.2rem 0.45rem;
+}
+
+.es-front-strip__list .es-ticket[data-size] .es-ticket__head {
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.es-front-tape__lines {
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+}
+
+.es-front-bell .es-bell[data-size] .es-bell__button {
+  width: 4rem;
+  height: 3.5rem;
 }
 
 .es-front-pass__stage {
-  aspect-ratio: 16 / 10;
-  max-height: 70svh;
+  grid-area: stage;
+  width: 100%;
+  height: clamp(18rem, 48svh, 30rem);
   border-block: 1px solid var(--es-edge);
 }
 
@@ -282,11 +613,30 @@
   display: none;
 }
 
-@media (max-width: 479px) {
+@media (min-width: 48rem) {
+  .es-front-expo > .es-front-printer {
+    width: 10rem;
+  }
+
   .es-front-pass__stage {
-    aspect-ratio: auto;
-    height: max(18.75rem, 58svh);
-    max-height: none;
+    height: auto;
+    aspect-ratio: 16 / 10;
+    max-height: 70svh;
+  }
+}
+
+@media (max-width: 29.99rem) {
+  /* The pass takes what the first screen has left under the order ticket and the printer's row, and the strip's line when it has one. */
+  .es-front-pass__stage {
+    height: clamp(18rem, calc(100svh - 32rem), 26rem);
+  }
+
+  .es-front-pass:has(.es-front-strip > p) .es-front-pass__stage {
+    height: clamp(18rem, calc(100svh - 33.75rem), 26rem);
+  }
+
+  .es-front-printer__more {
+    display: none;
   }
 
   .es-front-drawing__frame[data-orientation='landscape'] {
@@ -297,9 +647,58 @@
     display: block;
   }
 
-  .es-front-printer {
-    flex-direction: column;
-    gap: var(--es-space-1);
+  .es-front-order {
+    padding-bottom: var(--es-space-3);
+  }
+
+  .es-front-ticket[data-hole] .es-ticket__paper {
+    padding-top: 1.6rem;
+  }
+
+  /* Two lines, as large as the paper allows: the heading stays the first screen's largest text (its largest contentful paint). */
+  .es-front-ticket .es-ticket__title {
+    margin-bottom: var(--es-space-2);
+    font-size: clamp(3.25rem, 16cqi, 3.75rem);
+  }
+
+  .es-front-promise {
+    font-size: 0.9375rem;
+    line-height: 1.35;
+  }
+
+  .es-front-promise + .es-front-promise {
+    margin-top: var(--es-space-1);
+  }
+
+  .es-front-ticket .es-ticket__stub {
+    padding-top: var(--es-space-3);
+  }
+
+  .es-front-ticket .es-stub__pull {
+    min-height: 2.75rem;
+    padding-block: 0.7rem 0.6rem;
+  }
+
+  .es-front-expo > .es-front-printer {
+    width: 6.75rem;
+    min-height: 3.75rem;
+    margin-bottom: var(--es-space-3);
+    padding: var(--es-space-2) var(--es-space-2) 1.2rem;
+  }
+
+  .es-front-strip > ul,
+  .es-front-expo > .es-front-bell {
+    margin-bottom: var(--es-space-3);
+  }
+
+  .es-front-printer .es-front-printer__menu,
+  .es-front-printer .es-front-printer__menu .es-menu-link__term {
+    font-size: 0.6875rem;
+  }
+
+  .es-front-bell .es-bell[data-size] .es-bell__button {
+    width: 3.25rem;
+    height: 3rem;
   }
 }
 
@@ -310,19 +709,21 @@
     /* The landmarks as lengths. The box is a size container, so a child resolves cqw and cqh against it. */
     --rail-mid: calc(var(--pass-rail-y) * 100cqh);
     --rail-thick: max(0.55rem, calc(var(--pass-rail-h) * 100cqh));
-    --cover-right: calc(50cqw + var(--pass-cover-right) * 50cqh);
-    --expo-left: calc(50cqw + var(--pass-expo-left) * 50cqh);
-    /* As wide as a third of the pass, and never over the tape that names the scene's CPU lane. */
-    --order-w: clamp(20rem, min(33cqw, calc(var(--expo-left) - 0.75rem - var(--front-gutter))), 34rem);
-    /* The order stands in the gutter, or further right where the scene's printer and its strip reach past it. */
-    --order-right: max(calc(var(--front-gutter) + var(--order-w)), calc(var(--cover-right) + 1.25rem));
-    --order-left: calc(var(--order-right) - var(--order-w));
-    --printer-top: max(0.5rem, calc(var(--pass-printer-top) * 100cqh - 0.75rem));
+    /* The scene's middle moves right by this much, and the printer's column takes the room it leaves at the left. */
+    --scene-shift: clamp(0rem, 15cqw, 13rem);
+    --col-left: var(--front-gutter);
+    --col-w: 15rem;
+    --expo-left: calc(var(--scene-shift) + 50cqw + var(--pass-expo-left) * 50cqh);
+    /* The order ticket hangs beside the printer, as wide as the pass leaves it, and never over the tape naming the CPU lane. */
+    --order-left: calc(var(--col-left) + var(--col-w) + 1.25rem);
+    --order-w: clamp(18rem, calc(var(--expo-left) - 1rem - var(--order-left)), 30rem);
+    --order-right: calc(var(--order-left) + var(--order-w));
     /* The 2D drawing, on the right, with its rail on the rail's line: as wide as the pass leaves it, and no taller than the pass. */
     --draw-w: min(calc(100cqw - var(--order-right) - 2.5rem - var(--front-gutter)), calc((100cqh - var(--rail-mid) - 2rem) * 720 / 334), 82rem);
     --draw-left: calc(100cqw - var(--front-gutter) - var(--draw-w));
     position: relative;
-    height: clamp(34rem, calc(100svh - 11.5rem), 60rem);
+    display: block;
+    height: clamp(32rem, calc(100svh - 13.5rem), 56rem);
     container-type: size;
     overflow: hidden;
     border-bottom: 1px solid var(--es-edge);
@@ -332,50 +733,25 @@
     display: contents;
   }
 
-  .es-front-order .es-front-printer {
-    position: absolute;
-    left: var(--order-left);
-    top: var(--printer-top);
-    width: var(--order-w);
-    height: calc(var(--rail-mid) - var(--printer-top));
-    min-height: 0;
-  }
-
   .es-front-order .es-front-rail {
     top: calc(var(--rail-mid) - var(--rail-thick) / 2);
+    left: calc(var(--col-left) + var(--col-w) - 0.5rem);
     height: var(--rail-thick);
     /* In 2D the rail runs on to the drawing's own; in 3D the scene's rail takes over where the order ends. */
-    width: calc(var(--draw-left) + var(--draw-w) * 366 / 720);
+    width: calc(var(--draw-left) + var(--draw-w) * 372 / 720 - var(--col-left) - var(--col-w) + 0.5rem);
   }
 
   .es-front-service[data-view='3d'] .es-front-order .es-front-rail {
-    width: var(--order-right);
+    width: calc(var(--order-right) - var(--col-left) - var(--col-w) + 0.5rem);
   }
 
   .es-front-order .es-front-ticket {
     position: absolute;
     z-index: 2;
-    left: calc(var(--order-left) + 1rem);
+    left: var(--order-left);
     top: calc(var(--rail-mid) - 0.5rem);
-    width: calc(var(--order-w) - 2rem);
+    width: var(--order-w);
     margin: 0;
-  }
-
-  .es-front-pass__tools {
-    position: absolute;
-    right: var(--front-gutter);
-    bottom: var(--es-space-4);
-    z-index: 6;
-    justify-content: flex-end;
-    padding: var(--es-space-2) var(--es-space-3);
-    border-radius: var(--es-radius-plate);
-    background-color: color-mix(in srgb, var(--es-surface-1) 88%, transparent);
-    box-shadow: var(--es-shadow-plate);
-  }
-
-  /* The paper hangs at least to the foot of the scene's strip of tickets, so none of it shows below. */
-  .es-front-order .es-front-ticket .es-ticket__paper {
-    min-height: calc((var(--pass-strip-bottom) - var(--pass-rail-y)) * 100cqh + 1.5rem);
   }
 
   .es-front-order .es-front-grip {
@@ -383,12 +759,134 @@
     top: calc(var(--rail-mid) - 0.95rem);
   }
 
+  /* The printer's column: the housing over the rail's left end, and out of its mouth the tape, then the strip with the bell beside it. */
+  .es-front-expo {
+    position: absolute;
+    z-index: 3;
+    left: var(--col-left);
+    top: 0.5rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'printer printer'
+      'tape tape'
+      'strip bell';
+    align-items: start;
+    gap: 0;
+    width: var(--col-w);
+    padding: 0;
+  }
+
+  .es-front-expo > .es-front-printer {
+    width: 100%;
+    height: calc(var(--rail-mid) - 0.5rem + 0.9rem);
+    min-height: 3.5rem;
+    margin: 0;
+  }
+
+  .es-front-expo > .es-front-tape {
+    width: calc(100% - 0.8rem);
+    margin: -0.55rem auto 0;
+    padding: var(--es-space-4) 0.6rem var(--es-space-3);
+  }
+
+  .es-front-expo .es-front-tape__lines {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 0.1rem;
+  }
+
+  /* In the column the tape's words print small, so most lines keep their figure on the same line. */
+  .es-front-expo :is(.es-front-tape__line, .es-front-tape__head, .es-front-tape__preview) {
+    font-size: 0.6875rem;
+    line-height: 1.3;
+  }
+
+  .es-front-expo .es-front-tape__line {
+    column-gap: 0.375rem;
+  }
+
+
+
+  .es-front-expo > .es-front-strip {
+    display: flex;
+    flex-direction: column;
+    grid-area: strip;
+    margin: 0 0 0 0.4rem;
+  }
+
+  .es-front-strip > ul {
+    margin: 0;
+  }
+
+  .es-front-strip > p {
+    margin: 0;
+  }
+
+  .es-front-expo .es-front-strip__list {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .es-front-expo .es-front-strip__list .es-ticket[data-size] .es-ticket__paper {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0 var(--es-space-2);
+    padding: 0.5rem 0.65rem 0.45rem;
+  }
+
+  .es-front-expo .es-front-strip__list .es-ticket[data-size] .es-ticket__head {
+    font-size: 0.875rem;
+  }
+
+  /* The strip curls a little as it hangs, each ticket joined to the last at its perforation. */
+  .es-front-expo .es-front-strip__list li + li .es-ticket__paper {
+    border-top: 2px dotted var(--es-paper-rule);
+  }
+
+  .es-front-expo .es-front-strip__list li:nth-child(odd) {
+    transform: translateX(-0.12rem) rotate(-0.4deg);
+  }
+
+  .es-front-expo .es-front-strip__list li:nth-child(even) {
+    transform: translateX(0.12rem) rotate(0.35deg);
+  }
+
+  .es-front-expo .es-front-strip > p {
+    padding: var(--es-space-2) 0 0;
+    font-size: 0.875rem;
+  }
+
+  .es-front-expo > .es-front-bell {
+    grid-area: bell;
+    align-self: start;
+    margin: var(--es-space-3) 0 0 var(--es-space-2);
+  }
+
+  .es-front-expo .es-front-bell .es-bell[data-size] .es-bell__button {
+    width: 4rem;
+    height: 3.5rem;
+  }
+
   .es-front-pass__stage {
     position: absolute;
     inset: 0;
+    height: auto;
     aspect-ratio: auto;
     max-height: none;
     border: 0;
+  }
+
+  /* What the Stage says about the 3D view (data saver, a lost context) prints at the pass's right, clear of the printer's column. */
+  .es-front-stage .es-stage__note {
+    top: calc(var(--rail-mid) + 1.5rem);
+    left: auto;
+    right: var(--front-gutter);
+    max-width: 26rem;
+  }
+
+  /* The 3D pass, drawn wider than its box: the camera's middle sits `--scene-shift` right of the pass's. */
+  .es-front-pass__stage .es-stage__scene {
+    width: calc(100% + 2 * var(--scene-shift));
   }
 
   /* The 2D drawing, on the right: its rail's bar (14 of its 348 units down) on the rail's line. */
@@ -407,7 +905,7 @@
 
 /* ---------------------------------------------------------------------------------------------- the deck */
 
-/* The pass's front edge: a brushed shelf with a rolled lip, where the waiting tickets lie with the bell and the switches. */
+/* The pass's front edge: a brushed shelf with a rolled lip, where the level's prompt and the switches lie. */
 .es-front-deck {
   position: relative;
   display: grid;
@@ -431,6 +929,18 @@
   z-index: 6;
 }
 
+.es-front-deck__prompt {
+  margin: 0;
+}
+
+.es-front-deck__switches,
+.es-front-deck__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-3) var(--es-space-4);
+}
+
 .es-front-deck__over {
   display: flex;
   flex-wrap: wrap;
@@ -447,56 +957,22 @@
   text-transform: uppercase;
 }
 
-.es-front-deck [data-loop-controls] ul button {
-  user-select: none;
-}
-
 @media (min-width: 80rem) {
   .es-front-deck {
+    grid-template-columns: minmax(0, 40rem) auto auto;
+    justify-content: space-between;
     align-items: center;
     padding-block: var(--es-space-6) var(--es-space-4);
   }
 
-  .es-front-deck [data-loop-controls] ul .es-ticket__paper {
-    padding: 0.6rem 0.65rem 0.55rem;
-  }
-
-  .es-front-deck [data-loop-controls] ul .es-ticket__head {
-    margin-bottom: var(--es-space-1);
-    padding-bottom: var(--es-space-1);
-  }
-
-  /* The rail's hint hangs under the tickets, so the deck keeps its height whatever it says. */
-  .es-front-deck [data-loop-controls] > section {
-    position: relative;
-  }
-
-  .es-front-deck [data-loop-controls] > section > p {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    margin: var(--es-space-1) 0 0;
-    font-size: 0.9375rem;
-    white-space: nowrap;
-  }
-
-  /* The controls in one line along the edge: what to do, the tickets, then the bell and the switches. */
-  .es-front-deck [data-loop-controls] {
-    display: grid;
-    grid-template-columns: minmax(15rem, 25rem) minmax(0, 1fr) auto;
-    align-items: center;
-    gap: var(--es-space-4) var(--es-space-8);
-  }
-
-  .es-front-deck [data-loop-prompt] {
+  .es-front-deck__prompt {
     font-size: 1rem;
     line-height: 1.45;
   }
 
-  .es-front-deck [data-loop-controls] ul {
-    grid-template-columns: repeat(6, minmax(0, 6.5rem));
+  .es-front-deck__over {
+    grid-column: 1 / -1;
   }
-
 }
 
 /* The ticket being carried onto the pass. */
@@ -657,7 +1133,7 @@
   }
 }
 
-/* The menu: the course map's teaser, stamped on the stainless board of the house, every module in a row with its hours. */
+/* The menu: the course map's teaser, on a flat sheet of the house's brushed steel, every module with its hours. */
 .es-front-menu {
   padding: var(--es-space-12) var(--front-gutter);
 }
@@ -668,38 +1144,13 @@
   gap: var(--es-space-6);
   max-width: var(--front-measure);
   margin: 0 auto;
-  padding: clamp(1.5rem, 4vw, 3rem);
+  padding: clamp(1.25rem, 4vw, 3rem);
   border: 1px solid var(--es-edge);
   border-radius: var(--es-radius-plate);
   background-color: var(--es-surface-1);
-  background-image: var(--es-texture-sheen), var(--es-texture-brushed);
-  background-size:
-    100% auto,
-    100% 720px;
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--es-paper) 60%, transparent),
-    var(--es-shadow-lift);
-}
-
-/* Four rivets hold the board to the wall. */
-.es-front-menu__board::before,
-.es-front-menu__board::after {
-  content: '';
-  position: absolute;
-  top: 0.8rem;
-  width: 0.55rem;
-  height: 0.55rem;
-  border-radius: var(--es-radius-round);
-  background: radial-gradient(circle at 35% 35%, var(--es-surface-1), var(--es-surface-3) 80%);
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--es-paper) 55%, transparent);
-}
-
-.es-front-menu__board::before {
-  left: 0.8rem;
-}
-
-.es-front-menu__board::after {
-  right: 0.8rem;
+  background-image: var(--es-texture-brushed);
+  background-size: 100% 720px;
+  box-shadow: var(--es-shadow-paper);
 }
 
 .es-front-menu__title {
@@ -797,10 +1248,84 @@
   letter-spacing: 0.04em;
 }
 
+/*
+ * A narrow menu prints each module as a block: its id and its hours on the first line, the course under them at the paper's full
+ * width, and where it runs under that. The column heads stay for a screen reader, and each cell prints its own name.
+ */
 @media (max-width: 47.99rem) {
-  .es-front-menu__table thead th:nth-child(3),
+  .es-front-menu__table,
+  .es-front-menu__table tbody,
+  .es-front-menu__table tfoot {
+    display: block;
+  }
+
+  .es-front-menu__table thead th {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .es-front-menu__table tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'id hours'
+      'course course'
+      'lanes lanes';
+    gap: 0.15rem var(--es-space-3);
+    padding: var(--es-space-3) 0;
+    border-bottom: 1px dotted var(--es-edge);
+  }
+
+  .es-front-menu__table tfoot tr {
+    grid-template-areas: 'id hours';
+    border-bottom: 0;
+  }
+
+  .es-front-menu__table :is(th, td) {
+    width: auto;
+    padding: 0;
+    border-bottom: 0;
+  }
+
+  .es-front-menu__id {
+    grid-area: id;
+  }
+
+  .es-front-menu__course {
+    grid-area: course;
+  }
+
   .es-front-menu__lanes {
-    display: none;
+    grid-area: lanes;
+    white-space: normal;
+  }
+
+  .es-front-menu__hours {
+    grid-area: hours;
+    display: inline-flex;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: 0.4rem;
+  }
+
+  .es-front-menu__table tfoot th {
+    grid-area: id;
+  }
+
+  .es-front-menu__table td[data-label]::before {
+    content: attr(data-label);
+    margin-right: 0.4rem;
+    color: var(--es-text-2);
+    font-family: var(--es-font-body);
+    font-size: 0.8125rem;
+    font-weight: 400;
+    letter-spacing: 0.02em;
   }
 }
 

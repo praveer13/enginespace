@@ -107,6 +107,9 @@ export const front = {
 export async function playToTheDebrief(page: Page): Promise<void> {
   const game = front.game(page)
   const overlap = page.getByRole('switch')
+  // The later levels have the overlap switch, which the front page loads with its own chunk: wait for it there.
+  const level = (await game.getAttribute('data-level')) ?? ''
+  if (level === 'first-3-gap' || level === 'first-4-par') await expect(overlap).toBeVisible()
   if ((await overlap.count()) > 0 && (await overlap.getAttribute('aria-checked')) !== 'true') {
     await game.focus()
     await page.keyboard.press('KeyO')

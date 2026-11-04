@@ -17,7 +17,7 @@ import { CSP_META } from '../../scripts/pages/csp'
 import { inspect, policyProblems } from '../../scripts/pages/document'
 import { isFrontPage, preloadsFor, SHELL_MARK } from '../../scripts/pages/front-shell'
 import { renderPosters } from '../../scripts/posters'
-import { DECK, HERO, NEXT, ORDER } from '../../src/front/copy'
+import { DECK, HERO, NEXT, ORDER, TAPE } from '../../src/front/copy'
 import { POSTER_LEVEL, POSTER_SEED } from '../../src/front/poster'
 import { renderFrontShell } from '../../src/front/shell'
 import { LOOP } from '../../packages/play/loop/entry'
@@ -52,8 +52,22 @@ describe('the shell, rendered', () => {
     expect(textOf(printer)).toContain('Open the menu')
   })
 
+  test('prints no row above the heading: the order ticket opens on its headline', () => {
+    const ticket = shell.slice(shell.indexOf('class="es-ticket es-front-ticket"'), shell.indexOf('</h1>'))
+    expect(ticket).not.toContain('es-ticket__head')
+  })
+
+  test('prints the printer\'s tape from the first paint: the fire\'s number, the ticks per step, the stations and the next fire, stamped synthetic', () => {
+    const tape = shell.slice(shell.indexOf('class="es-front-tape"'), shell.indexOf('data-loop-controls'))
+    expect(tape).toContain(`aria-label="${TAPE.name.replaceAll("'", '&#x27;')}"`)
+    expect(textOf(tape)).toContain(TAPE.stamp)
+    for (const line of ['fire', 'ticks', 'busy', 'dark']) expect(tape).toContain(`data-line="${line}"`)
+    expect(textOf(tape)).toContain(TAPE.next)
+    expect(tape).toContain('data-tag="synthetic"')
+  })
+
   test('inlines the poster in both orientations, byte for byte the posters of scripts/posters.ts, in the pass\'s box', () => {
-    const box = shell.slice(shell.indexOf('class="es-front-pass__stage"'), shell.indexOf('class="es-front-pass__tools"'))
+    const box = shell.slice(shell.indexOf('class="es-front-pass__stage"'), shell.indexOf('class="es-front-deck"'))
     const posters = renderPosters()
     expect(svgsIn(box)).toEqual(posters.map((poster) => poster.svg.trimEnd()))
     expect(box).toContain('data-front-poster=""')
@@ -61,10 +75,20 @@ describe('the shell, rendered', () => {
     expect(box).toContain('data-orientation="portrait"')
   })
 
-  test('holds the deck with its six waiting tickets and the bell, and says why the game needs scripts', () => {
+  test('holds the printer\'s strip with the first three of the six waiting tickets, says the rest are inside, and has the bell beside it', () => {
+    const expo = shell.slice(shell.indexOf('class="es-front-expo"'), shell.indexOf('class="es-front-pass__stage"'))
+    expect([...expo.matchAll(/aria-label="Hang ticket No\. \d+ on the rail"/g)].map((match) => match[0])).toEqual(
+      ['01', '02', '03'].map((no) => `aria-label="Hang ticket No. ${no} on the rail"`),
+    )
+    expect(expo).toContain('data-waiting="6"')
+    expect(textOf(expo)).toContain(DECK.more)
+    expect(expo).toContain('Ring the bell')
+  })
+
+  test('holds the deck with the level\'s prompt and its switches, and says why the game needs scripts', () => {
     const deck = shell.slice(shell.indexOf('class="es-front-deck"'))
-    expect([...deck.matchAll(/aria-label="Hang ticket No\. \d+ on the rail"/g)]).toHaveLength(6)
-    expect(deck).toContain('Ring the bell')
+    expect(deck).toContain('data-loop-prompt')
+    expect(deck).toContain('aria-keyshortcuts="Space"')
     expect(deck).toContain(`<noscript><p class="es-front-deck__noscript">${DECK.noScript}</p></noscript>`)
   })
 

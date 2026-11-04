@@ -230,15 +230,38 @@ describe('the mirror table', () => {
     expect(markup).toMatch(/<caption id="[^"]+"[^>]*>Every step so far<\/caption>/)
     expect(count(markup, /<th scope="col"/g)).toBe(3)
     expect(count(markup, /<th scope="row"/g)).toBe(3)
-    expect(markup).toContain('class="es-ticket"')
+    expect(markup).toMatch(/class="es-ticket[ "]/)
     expect(markup).toContain('Mirror')
+  })
+
+  test('prints the ticket\'s name on its foot line, under the table, and not as a row above it', () => {
+    const markup = table({ head: 'Mirror · the night so far' })
+    expect(markup).not.toContain('es-ticket__head')
+    expect(markup.indexOf('es-ticket__foot')).toBeGreaterThan(markup.indexOf('</table>'))
+    expect(markup).toMatch(/class="es-ticket__foot"><span>Mirror · the night so far<\/span>/)
+  })
+
+  test('keeps the table\'s roles on its elements, and gives every cell its column\'s name, for a row printed as a block', () => {
+    const markup = table({ columns: [...columns.slice(0, 2), { key: 'busy', head: 'GPU busy', label: 'GPU busy, synthetic ticks', numeric: true }] })
+    expect(markup).toContain('<table id="mirror-1" role="table"')
+    expect(count(markup, /role="columnheader"/g)).toBe(3)
+    expect(count(markup, /role="rowheader"/g)).toBe(3)
+    expect(count(markup, /role="cell"/g)).toBe(6)
+    expect(count(markup, /data-label="slots"/g)).toBe(3)
+    expect(count(markup, /data-label="GPU busy, synthetic ticks"/g)).toBe(3)
+  })
+
+  test('marks the selected row by its print, bold and underlined, and never by a stripe down its side', () => {
+    const markup = table({ selectedId: 's1' })
+    expect(markup).not.toMatch(/border-l-\d/)
+    expect(markup).toMatch(/<th scope="row" class="[^"]*font-bold underline[^"]*"[^>]*>Step 1/)
   })
 
   test('numeric columns align right, and a missing cell is empty and not "undefined"', () => {
     const markup = table()
-    expect(markup).toMatch(/<th scope="col" class="[^"]*text-right[^"]*">slots<\/th>/)
+    expect(markup).toMatch(/<th scope="col" class="[^"]*text-right[^"]*"[^>]*>slots<\/th>/)
     expect(markup).not.toContain('undefined')
-    expect(markup).toMatch(/<td class="[^"]*text-right[^"]*"><\/td>/)
+    expect(markup).toMatch(/<td class="[^"]*text-right[^"]*"[^>]*><\/td>/)
   })
 
   test('a scroll region on a narrow screen is labelled by the caption and can take focus', () => {

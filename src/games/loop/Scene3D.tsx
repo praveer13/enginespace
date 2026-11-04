@@ -2,21 +2,20 @@ import { useFrame } from '@react-three/fiber'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { PointLight, type Group } from 'three'
 import type { LoopView } from '@es/play/loop/types'
-import { StationLight } from '@/design/components/StationLight'
 import { BlockGrid } from '@/scene/BlockGrid'
 import type { Vec3 } from '@/scene/camera-rig'
 import { CameraRig } from '@/scene/CameraRig'
 import { Fixtures } from '@/scene/Fixtures'
 import { useHold, useKit } from '@/scene/kit'
 import type { LabelSpec } from '@/scene/labels'
-import { Fluorescent, HeatLamps } from '@/scene/Lights'
+import { Fluorescent, HeatLamps, PilotLights } from '@/scene/Lights'
 import { roleColor } from '@/scene/materials'
 import { SceneCanvas } from '@/scene/SceneCanvas'
 import { SelectionMarker } from '@/scene/SelectionMarker'
 import { SheetInstances, type Sheet } from '@/scene/SheetInstances'
 import { SpanInstances } from '@/scene/SpanInstances'
 import { TimeTicks, TimeTrack } from '@/scene/TimeAxis'
-import { changeOf, sceneLayout, TRACK_ORIGIN, type Anchor, type Change, type TicketSheet } from './scene-layout'
+import { changeOf, sceneLayout, TRACK_ORIGIN, type Anchor, type Change, type LoopSceneLayout, type TicketSheet } from './scene-layout'
 import { LOOP_PRESETS } from './scene-presets'
 import './scene3d.css'
 
@@ -27,13 +26,14 @@ import './scene3d.css'
  *
  * Motion has one grammar: everything moves on the bell. A fire rung slides the night back down the pass (TimeTrack), extrudes the new
  * fire with its plates out of the present, sends a ticket whose table has asked for the check off its clip, brings the fired rail's
- * tickets down from the rail, and lights or darkens the line's stations. Between bells only the printer feeds: a ticket hung moves
- * from the strip to its clip and the strip steps out by one ticket, in the printer's line steps. Under reduced motion every change
- * cuts, and nothing moves without input.
+ * tickets down from the rail, and lights or darkens the line's stations: a pilot lens over each clip's row, lit where the fire cooked
+ * a course and dark where its clip rode empty, with their glow on the head of the line. Between bells only the printer feeds: a
+ * ticket hung moves from the strip to its clip and the strip steps out by one ticket, in the printer's line steps. Under reduced
+ * motion every change cuts, and nothing moves without input.
  *
  * Draw calls, whatever the night: the steel (1) and the lamps' shades (1), the lamps' glowing housings (1), the paper (1), the tape
- * (1), the slabs and phases (1), the places (1), the clock's ticks (1) and the filament round the fire on the line (1). The shot under
- * the lamps leaves the shades and housings out, because it looks down through them.
+ * (1), the slabs and phases (1), the places (1), the clock's ticks (1), the filament round the fire on the line (1), and the stations'
+ * lit and dark lenses (2). The shot under the lamps leaves the shades and housings out, because it looks down through them.
  */
 
 export interface Scene3DProps {
@@ -42,6 +42,8 @@ export interface Scene3DProps {
   preset: string
   /** A waiting ticket picked in the scene: hang it, as tapping it in the controls does. */
   onHang?: (req: number) => void
+  /** Draw the printer and its strip of waiting tickets. A page that holds the printer itself (the front page) leaves them out. */
+  printer?: boolean
 }
 
 /** The night recedes into the steel's own grey from this far beyond what the camera looks at [estimated]. */
@@ -50,8 +52,8 @@ const FOG = { near: 3, far: 15 }
 const LAMP_POWER = 1.7
 /** The brush's tile on this pass: finer than the kit's default, because the camera stands at the counter [estimated]. */
 const STEEL_GRAIN = 0.9
-/** The line's glow while it cooks: a point light in its lane colour over the present [estimated]. */
-const STATION_GLOW = { intensity: 1.1, distance: 3, decay: 2 }
+/** The stations' glow with every station lit: a point light in the line's colour over the head of the line [estimated]. */
+const STATION_GLOW = { intensity: 2.6, distance: 3.6, decay: 2 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* What moved                                                                                                         */
@@ -192,15 +194,16 @@ function SheetFrame({ name, offset }: { name: string; offset: Vec3 }) {
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /**
- * The line's stations glow while the line cooks at the expo's clock and go dark in a bubble: a light in the line's lane colour over
- * where the line meets the pass, brought up or down on the bell (cut under reduced motion). The light stays in the scene at zero, so a
- * change never recompiles a material.
+ * The line's stations: their lenses lit where the latest fire cooked a course, and a light in the line's colour over the head of the
+ * line that burns as brightly as the share of stations lit, brought up or down on the bell (cut under reduced motion). The light stays
+ * in the scene at zero, so a change never recompiles a material.
  */
-function Stations({ lit, at, change }: { lit: boolean; at: Vec3; change: Change }) {
+function Stations({ stations, change }: { stations: LoopSceneLayout['stations']; change: Change }) {
   const kit = useKit()
   const light = useMemo(() => new PointLight(roleColor(kit.tokens, 'lane-gpu'), 0, STATION_GLOW.distance, STATION_GLOW.decay), [kit.tokens])
   useEffect(() => () => light.dispose(), [light])
-  const goal = lit ? STATION_GLOW.intensity : 0
+  const share = stations.lit.length === 0 ? 0 : stations.lit.filter(Boolean).length / stations.lit.length
+  const goal = STATION_GLOW.intensity * share
   const ms = kit.reducedMotion ? 0 : kit.tokens.motion.bellMs
   // A new goal on the bell ramps the light to it; anything else (a cut, reduced motion, the first frame) sets it at once.
   const [ramp, setRamp] = useState<{ goal: number; change: Change; ramping: boolean }>({ goal, change, ramping: false })
@@ -222,14 +225,19 @@ function Stations({ lit, at, change }: { lit: boolean; at: Vec3; change: Change 
     light.intensity = mix(from.current.intensity, ramp.goal, kit.ease(t))
     if (t >= 1) setRamp((current) => (current === ramp ? { ...current, ramping: false } : current))
   }, -1)
-  return <primitive object={light} position={at} />
+  return (
+    <>
+      <primitive object={light} position={stations.at} />
+      <PilotLights pilots={stations.pilots} role="lane-gpu" name="stations" />
+    </>
+  )
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* The labels                                                                                                         */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-function labelContent(anchor: Anchor, lit: boolean): ReactNode {
+function labelContent(anchor: Anchor, lit: readonly boolean[]): ReactNode {
   switch (anchor.kind) {
     case 'ticket':
       return (
@@ -239,7 +247,20 @@ function labelContent(anchor: Anchor, lit: boolean): ReactNode {
         </span>
       )
     case 'station':
-      return <StationLight lit={lit} label="the line" size="sm" className="es-loop-label__station" />
+      // The stations as the pass reads them: a pip for each, lit or an open ring, and how many are lit in words.
+      return (
+        <span className="es-loop-label__stations" data-lit={lit.filter(Boolean).length} data-of={lit.length}>
+          <span className="es-loop-label__pips" aria-hidden="true">
+            {lit.map((on, slot) => (
+              <span key={slot} className="es-loop-label__pip" data-lit={on || undefined} />
+            ))}
+          </span>
+          <span className="es-loop-label__station-words">
+            <span>stations</span>
+            <span className="es-loop-label__station-count">{anchor.text}</span>
+          </span>
+        </span>
+      )
     default:
       return anchor.text
   }
@@ -256,7 +277,7 @@ const HIDDEN: Readonly<Record<string, ReadonlySet<Anchor['kind']>>> = {
   lamps: new Set(['ticket', 'fired', 'waiting', 'more', 'empty', 'axis-far', 'station']),
 }
 
-function labelsOf(anchors: readonly Anchor[], lit: boolean, preset: string): LabelSpec[] {
+function labelsOf(anchors: readonly Anchor[], lit: readonly boolean[], preset: string): LabelSpec[] {
   const hidden = HIDDEN[preset]
   return anchors.filter((anchor) => !hidden?.has(anchor.kind)).map((anchor) => ({
     id: anchor.id,
@@ -273,8 +294,8 @@ function labelsOf(anchors: readonly Anchor[], lit: boolean, preset: string): Lab
 /* The scene                                                                                                          */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-export default function Scene3D({ view, preset, onHang }: Scene3DProps) {
-  const layout = useMemo(() => sceneLayout(view), [view])
+export default function Scene3D({ view, preset, onHang, printer = true }: Scene3DProps) {
+  const layout = useMemo(() => sceneLayout(view, { printer }), [view, printer])
   const change = useChange(view)
   const labels = useMemo(() => labelsOf(layout.anchors, layout.stations.lit, preset), [layout.anchors, layout.stations.lit, preset])
   const axisX = layout.lanes.gpuLeft + layout.lanes.gpuWidth + 0.16
@@ -284,7 +305,7 @@ export default function Scene3D({ view, preset, onHang }: Scene3DProps) {
       <CameraRig presets={LOOP_PRESETS} preset={preset} />
       <Fluorescent />
       <HeatLamps lamps={layout.lamps} power={LAMP_POWER} housings={preset !== 'lamps'} />
-      <Stations lit={layout.stations.lit} at={layout.stations.at} change={change} />
+      <Stations stations={layout.stations} change={change} />
       <Fixtures parts={layout.fixtures} grain={STEEL_GRAIN} />
       {preset === 'lamps' ? null : <Fixtures parts={layout.overhead} grain={STEEL_GRAIN} />}
       <Tickets sheets={layout.tickets} change={change} onPick={onHang} />

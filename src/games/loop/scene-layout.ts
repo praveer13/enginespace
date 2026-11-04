@@ -19,7 +19,9 @@
  *     empty place (an open groove) or a binned plate (hollow). Dark stretches between fires are bubbles, drawn as outlines on the dark
  *     bed. On the expo's lane each fire has its plan (writing the call) and its read (reading the plates back); a fire with kernel
  *     launches adds a comb, one tooth per call, which collapses into one short replay slab when the fire hits a captured graph size.
- *   - The stations: the line glows in its lane colour while it cooks at the expo's clock, and goes dark in a bubble.
+ *   - The stations: a steel bar over the head of the line, just beyond the pass, with a pilot lens for each clip's row. A lens is lit
+ *     in the line's colour where the latest fire cooked a course, and dark where its clip rode empty, so a fire rung with two of four
+ *     clips hung leaves half the line dark, and a full rail lights it end to end. Their glow washes the head of the line.
  *
  * Every colour is a token role (src/design/tokens.ts) and every word or number is a DOM label anchored here (D-021, GAMES.md §2.6
  * rule 7). The layout's lengths are scene units [estimated], set by projecting these landmarks into the presets of scene-presets.ts.
@@ -27,11 +29,11 @@
 import type { ColorRoleName } from '@/design/tokens'
 import type { Vec3 } from '@/scene/camera-rig'
 import type { FixturePart } from '@/scene/fixture-geometry'
-import type { LampSpec } from '@/scene/Lights'
+import type { LampSpec, PilotSpec } from '@/scene/Lights'
 import type { CellDatum, MarkBox, MarkForm, SpanDatum } from '@/scene/marks'
 import type { Sheet } from '@/scene/SheetInstances'
 import { axisTicks, trackZ, type TimeWindow } from '@/scene/time-axis'
-import { DETAIL_FIRES, ticketNo } from '@es/play/loop/layout'
+import { DETAIL_FIRES, stationsOf, ticketNo } from '@es/play/loop/layout'
 import type { ClipView, FireView, LoopView, PlaceView } from '@es/play/loop/types'
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -69,6 +71,12 @@ export const FIRED_TICKET = { w: 0.32, h: 0.4 }
 const WAITING = { w: 0.42, h: 0.34, curl: 0.3, gap: 0.008 }
 const LAMP = { y: 2.42, z: 0.45 }
 const GANTRY = { y: 3.05, z: 0.78 }
+/**
+ * The stations' bar: over the head of the line, just beyond the pass's back edge, high enough that the night's slabs slide under
+ * it and low enough that the rail's tickets never hang in front of it, in either framing [estimated, by projecting both].
+ */
+export const STATION_BAR = { y: 0.3, z: -0.5, h: 0.1, d: 0.06 }
+const PILOT = { w: 0.44, h: 0.07, d: 0.02 }
 
 /** The marks' heights: a fire's slab, a place on it, an empty place's groove, a dark stretch's outline, the expo's two phases. */
 const SLAB_H = 0.07
@@ -140,8 +148,11 @@ export interface LoopSceneLayout {
   readonly tickets: readonly TicketSheet[]
   readonly tapes: readonly Sheet[]
   readonly anchors: readonly Anchor[]
-  /** The line's stations: lit while the line cooks at the expo's clock, dark in a bubble, and where their glow comes from. */
-  readonly stations: { readonly lit: boolean; readonly at: Vec3 }
+  /**
+   * The line's stations: one for each clip, lit where the latest fire cooked a course (`stationsOf`); their pilot lenses on the bar;
+   * and where their glow comes from.
+   */
+  readonly stations: { readonly lit: readonly boolean[]; readonly pilots: readonly PilotSpec[]; readonly at: Vec3 }
   /** Waiting tickets the strip does not show: still in the printer. */
   readonly inPrinter: number
 }
@@ -236,7 +247,8 @@ export function stripSheets(slots: number, waiting: readonly number[]): TicketSh
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 const PLACE_FORMS: Readonly<Record<PlaceView['state'], MarkForm>> = { plate: 'solid', empty: 'groove', binned: 'hollow' }
-const PLACE_ROLE: Readonly<Record<PlaceView['state'], ColorRoleName>> = { plate: 'cat-white', empty: 'lane-idle', binned: 'status-bad' }
+/** An empty place is a dark station's well (the deep steel of `surface-3`), so a half-hung fire reads half dark from any shot. */
+const PLACE_ROLE: Readonly<Record<PlaceView['state'], ColorRoleName>> = { plate: 'cat-white', empty: 'surface-3', binned: 'status-bad' }
 
 /** The marks of the fires in the window: slabs, the dark stretches before them, and their places. */
 function lineMarks(view: LoopView, window: TimeWindow, lanes: Lanes) {
@@ -331,7 +343,7 @@ function expoMarks(view: LoopView, window: TimeWindow, lanes: Lanes): { spans: S
 /* The steel and the light                                                                                            */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-function fixturesFor(slots: number, fired: boolean): { fixtures: FixturePart[]; overhead: FixturePart[]; lamps: LampSpec[]; extent: { left: number; right: number } } {
+function fixturesFor(slots: number, fired: boolean, printer = true): { fixtures: FixturePart[]; overhead: FixturePart[]; lamps: LampSpec[]; extent: { left: number; right: number } } {
   const lanes = lanesFor(slots)
   const [px, py, pz] = printerAt(slots)
   const lastClip = clipX(slots - 1)
@@ -364,12 +376,20 @@ function fixturesFor(slots: number, fired: boolean): { fixtures: FixturePart[]; 
     // The rail, with its clips, held off the left post by the printer's bracket and off the right post by its own.
     { kind: 'box', center: [(railLeft + railRight) / 2, RAIL.y, RAIL.z], size: [railRight - railLeft, 0.05, 0.06], tone: 'deep' },
     { kind: 'box', center: [(railRight + postRight) / 2, RAIL.y, (RAIL.z + GANTRY.z) / 2], size: [postRight - railRight + 0.03, 0.035, RAIL.z - GANTRY.z + 0.04], tone: 'shaded' },
-    { kind: 'box', center: [(postLeft + px) / 2, py, (pz + GANTRY.z) / 2], size: [px - postLeft, 0.035, Math.abs(pz - GANTRY.z) + 0.04], tone: 'shaded' },
-    // The printer: its housing, its lid and the dark mouth the strip comes out of.
-    { kind: 'box', center: [px, py, pz], size: [PRINTER.w, PRINTER.h, PRINTER.d], tone: 'deep' },
-    { kind: 'box', center: [px, py + PRINTER.h / 2 + 0.02, pz - 0.03], size: [PRINTER.w - 0.04, 0.04, PRINTER.d - 0.1], tone: 'shaded' },
-    { kind: 'box', center: [px, py - PRINTER.h / 2 + 0.005, pz + PRINTER.d / 2 - 0.08], size: [PRINTER.w - 0.08, 0.012, 0.06], tone: 'shaded' },
+    // The stations' bar over the head of the line, on a post at each end.
+    { kind: 'box', center: [lanes.gpuX, STATION_BAR.y, STATION_BAR.z], size: [lanes.gpuWidth + 0.12, STATION_BAR.h, STATION_BAR.d], tone: 'deep' },
+    { kind: 'rod', base: [lanes.gpuLeft - 0.08, PASS.top, STATION_BAR.z], height: STATION_BAR.y - PASS.top, radius: 0.014, tone: 'shaded' },
+    { kind: 'rod', base: [lanes.gpuLeft + lanes.gpuWidth + 0.08, PASS.top, STATION_BAR.z], height: STATION_BAR.y - PASS.top, radius: 0.014, tone: 'shaded' },
   ]
+  if (printer) {
+    fixtures.push(
+      { kind: 'box', center: [(postLeft + px) / 2, py, (pz + GANTRY.z) / 2], size: [px - postLeft, 0.035, Math.abs(pz - GANTRY.z) + 0.04], tone: 'shaded' },
+      // The printer: its housing, its lid and the dark mouth the strip comes out of.
+      { kind: 'box', center: [px, py, pz], size: [PRINTER.w, PRINTER.h, PRINTER.d], tone: 'deep' },
+      { kind: 'box', center: [px, py + PRINTER.h / 2 + 0.02, pz - 0.03], size: [PRINTER.w - 0.04, 0.04, PRINTER.d - 0.1], tone: 'shaded' },
+      { kind: 'box', center: [px, py - PRINTER.h / 2 + 0.005, pz + PRINTER.d / 2 - 0.08], size: [PRINTER.w - 0.08, 0.012, 0.06], tone: 'shaded' },
+    )
+  }
   for (let slot = 0; slot < slots; slot++) {
     fixtures.push({ kind: 'box', center: [clipX(slot), RAIL.y - 0.03, RAIL.z + 0.035], size: [0.09, 0.075, 0.035], tone: 'shaded' })
   }
@@ -405,7 +425,13 @@ function fixturesFor(slots: number, fired: boolean): { fixtures: FixturePart[]; 
 /** Labels that need a desktop's room: the clock's numbers [estimated]. */
 const ROOMY = 560
 
-export function sceneLayout(view: LoopView): LoopSceneLayout {
+/** What a page may leave out of the scene: the printer and its strip, when the page holds a printer of its own (the front page). */
+export interface SceneOptions {
+  readonly printer?: boolean
+}
+
+export function sceneLayout(view: LoopView, options: SceneOptions = {}): LoopSceneLayout {
+  const printer = options.printer ?? true
   const slots = view.slots
   const lanes = lanesFor(slots)
   const now = view.clockUs
@@ -413,7 +439,7 @@ export function sceneLayout(view: LoopView): LoopSceneLayout {
   const line = lineMarks(view, window, lanes)
   const expo = expoMarks(view, window, lanes)
   const fired = view.firedRail !== null
-  const { fixtures, overhead, lamps } = fixturesFor(slots, fired)
+  const { fixtures, overhead, lamps } = fixturesFor(slots, fired, printer)
 
   // The paper: the rail's tickets, the fired rail's, and the printer's strip.
   const tickets: TicketSheet[] = []
@@ -433,14 +459,14 @@ export function sceneLayout(view: LoopView): LoopSceneLayout {
     tickets.push(sheet)
     anchors.push({ id: `fired-${clip.req}`, kind: 'fired', at: sheet.center, frame: `sheet:${sheet.id}`, text: ticketNo(clip.req) })
   })
-  const strip = stripSheets(slots, view.waiting)
+  const strip = printer ? stripSheets(slots, view.waiting) : []
   for (const sheet of strip) {
     tickets.push(sheet)
     anchors.push({ id: `waiting-${sheet.req}`, kind: 'waiting', at: sheet.center, frame: `sheet:${sheet.id}`, text: ticketNo(sheet.req) })
   }
   const inPrinter = Math.max(0, view.waiting.length - strip.length)
   const [px, py, pz] = printerAt(slots)
-  if (inPrinter > 0) anchors.push({ id: 'more', kind: 'more', at: [px, py + 0.02, pz + PRINTER.d / 2 + 0.01], text: `+${inPrinter}` })
+  if (printer && inPrinter > 0) anchors.push({ id: 'more', kind: 'more', at: [px, py + 0.02, pz + PRINTER.d / 2 + 0.01], text: `+${inPrinter}` })
 
   // Masking tape on the pass in front of each lane, where the expo reads it.
   const tapeY = PASS.top + 0.004
@@ -469,9 +495,13 @@ export function sceneLayout(view: LoopView): LoopSceneLayout {
     anchors.push({ id: 'axis-far', kind: 'axis-far', at: [axisX + 0.06, 0.32, trackZ(far, { unitsPerTime: UNITS_PER_TICK })], frame: 'track', text: 'ticks · synthetic', place: 'above', minWidth: ROOMY })
   }
 
-  // The stations: the line's glow comes from where the line meets the pass, and its pilot light sits on the pass under the line's tape.
-  const stationsAt: Vec3 = [lanes.gpuX, PASS.top + 0.5, PASS.back + 0.15]
-  anchors.push({ id: 'station', kind: 'station', at: [lanes.gpuX, tapeY, tapeZ + 0.55], text: view.lineLit ? 'busy' : 'dark' })
+  // The stations: a pilot lens on the bar for each clip's row, their glow from just over the bar, and their count on the pass under the
+  // line's tape (the DOM says how many are lit; the light is never the only carrier).
+  const lit = stationsOf(view)
+  const pilots: PilotSpec[] = lit.map((on, slot) => ({ id: `station-${slot}`, at: [clipX(slot), STATION_BAR.y, STATION_BAR.z + STATION_BAR.d / 2 + PILOT.d / 2], size: [PILOT.w, PILOT.h, PILOT.d], lit: on }))
+  const stationsAt: Vec3 = [lanes.gpuX, STATION_BAR.y + 0.32, STATION_BAR.z + 0.28]
+  const litCount = lit.filter(Boolean).length
+  anchors.push({ id: 'station', kind: 'station', at: [lanes.gpuX, tapeY, tapeZ + 0.55], text: `${litCount} of ${slots} lit` })
 
   return {
     slots,
@@ -487,7 +517,7 @@ export function sceneLayout(view: LoopView): LoopSceneLayout {
     tickets,
     tapes,
     anchors,
-    stations: { lit: view.lineLit, at: stationsAt },
+    stations: { lit, pilots, at: stationsAt },
     inPrinter,
   }
 }

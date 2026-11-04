@@ -294,7 +294,7 @@ async function playThrough(page: Page): Promise<number> {
   const service = page.locator('section.es-front-service')
   const tickets = page.locator('[data-loop-controls] ul button:not([disabled])')
   const bell = page.getByRole('button', { name: /Ring the bell/ })
-  const overlap = page.locator('[data-loop-controls]').getByRole('switch')
+  const overlap = service.getByRole('switch')
   const debrief = page.getByRole('button', { name: 'See the debrief' }).first()
   const next = page.getByRole('button', { name: /^Next:/ })
   let taps = 0

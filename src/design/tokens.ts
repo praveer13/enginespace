@@ -217,7 +217,7 @@ const OTHERS = {
   'dur-feed': { kind: 'duration', value: '420ms', note: 'The printer feeding one ticket line.' },
   'dur-settle': { kind: 'duration', value: '640ms', note: 'A course sliding down the pass and coming to rest.' },
   'ease-settle': { kind: 'easing', value: 'cubic-bezier(0.16, 1, 0.3, 1)', note: 'Exponential ease-out: fast away, long rest.' },
-  'ease-strike': { kind: 'easing', value: 'cubic-bezier(0.25, 1.4, 0.4, 1)', note: 'The bell: a hard strike that rings past and settles.' },
+  'ease-strike': { kind: 'easing', value: 'cubic-bezier(0.19, 1, 0.22, 1)', note: 'The bell: a hard strike that settles exponentially, with no overshoot.' },
   'ease-feed': { kind: 'easing', value: 'steps(6, end)', note: 'The printer advances in line steps, never a glide.' },
 
   // Radii: sheet metal and paper.

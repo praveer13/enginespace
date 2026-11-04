@@ -29,10 +29,11 @@ const ATTRIBUTES: Readonly<Record<string, string>> = {
   fontSize: 'font-size',
   fontWeight: 'font-weight',
   fillOpacity: 'fill-opacity',
+  strokeOpacity: 'stroke-opacity',
   dominantBaseline: 'dominant-baseline',
 }
 /** Attributes that are camelCase in SVG itself. */
-const NATIVE_CAMEL = ['viewBox', 'preserveAspectRatio']
+const NATIVE_CAMEL = ['viewBox', 'preserveAspectRatio', 'stdDeviation']
 
 const attributeName = (name: string): string => {
   const mapped = ATTRIBUTES[name]

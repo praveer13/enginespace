@@ -8,6 +8,9 @@ import { PrintingDots } from './PrintingDots'
  * a perforated stub below for the action it asks for. It is the surface reading text sits on (D-047). A ticket can be
  * a container (article, section) or the thing you pick up (`as="button"`, as the front page's tickets are).
  *
+ * A ticket with a stamped headline prints its table and its time on the foot line, under the body, and not as a row above
+ * the headline: the headline leads the paper.
+ *
  * States: default; under the lamp (`lamp`: the present); loading (the printer is still printing it); error (a line
  * printed in the red second colour); empty (a blank ticket); disabled (faded ribbon). A button ticket also lifts
  * under the hand, and presses down.
@@ -21,6 +24,8 @@ export interface TicketProps extends Omit<HTMLAttributes<HTMLElement>, 'title'> 
   head?: ReactNode
   /** The head line, right: the table, the time. */
   meta?: ReactNode
+  /** The printed foot line under the body, above the stub: what the head line says, on a ticket whose headline leads. */
+  foot?: readonly [ReactNode, ReactNode?]
   /** The stamped headline. */
   title?: ReactNode
   titleAs?: 'h1' | 'h2' | 'h3' | 'h4' | 'p'
@@ -49,6 +54,7 @@ export function Ticket({
   as: Element = 'article',
   head,
   meta,
+  foot,
   title,
   titleAs = 'h3',
   stub,
@@ -99,6 +105,12 @@ export function Ticket({
           ) : (
             <Box className="es-ticket__body">{children}</Box>
           )}
+          {foot ? (
+            <Box className="es-ticket__foot">
+              <span>{foot[0]}</span>
+              {foot[1] === undefined ? null : <span>{foot[1]}</span>}
+            </Box>
+          ) : null}
           {state === 'loading' ? (
             <Box className="es-ticket__printing" role="status">
               <PrintingDots />

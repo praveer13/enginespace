@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import type { LoopView } from '@es/play/loop/types'
 import { PrinterTape, type PrinterTapeLine } from '@/design/components/PrinterTape'
 import { Readout } from '@/design/components/Readout'
+import { stepClockOf } from './readout'
 
 /*
  * The printer tape (GAMES.md §2.6, "Service"; D-048): the live readout. It prints the fire's number, the ticks the step took and
@@ -20,12 +21,18 @@ const pair = (kitchen: string, engine: string): ReactNode => (
   </>
 )
 
+/** The step clock, or "not yet" before the first fire. */
+function stepTicksLine(view: LoopView): ReactNode {
+  const clock = stepClockOf(view)
+  return clock === null ? <span>not yet</span> : <Readout value={clock} unit="ticks" tag="synthetic" size="sm" />
+}
+
 function linesOf(view: LoopView): PrinterTapeLine[] {
   const c = view.counters
   const ticks = (value: number) => <Readout value={value} unit="ticks" tag="synthetic" size="sm" />
   return [
     { id: 'fire', label: pair('fire', 'step'), value: <Readout value={view.step} pad={4} tag="synthetic" size="sm" /> },
-    { id: 'step-ticks', label: 'ticks per step', value: view.stepTicks === null ? <span>not yet</span> : ticks(view.stepTicks) },
+    { id: 'step-ticks', label: 'ticks per step', value: stepTicksLine(view) },
     {
       id: 'clock',
       label: view.par === null ? 'clock' : pair('clock', 'against par'),

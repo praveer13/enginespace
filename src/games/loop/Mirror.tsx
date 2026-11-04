@@ -55,9 +55,9 @@ const head = (term: string, unit: string) => (
 const COLUMNS: readonly MirrorColumn[] = [
   { key: 'step', head: 'Step' },
   { key: 'slots', head: 'Slots' },
-  { key: 'busy', head: head('GPU busy', 'ticks, synthetic'), numeric: true },
-  { key: 'bubble', head: head('Bubble', 'ticks, synthetic'), numeric: true },
-  { key: 'ghost', head: head('Ghost tokens', 'synthetic'), numeric: true },
+  { key: 'busy', head: head('GPU busy', 'ticks, synthetic'), label: 'GPU busy, synthetic ticks', numeric: true },
+  { key: 'bubble', head: head('Bubble', 'ticks, synthetic'), label: 'Bubble, synthetic ticks', numeric: true },
+  { key: 'ghost', head: head('Ghost tokens', 'synthetic'), label: 'Ghost tokens, synthetic', numeric: true },
 ]
 
 function rowOf(fire: FireView, lamp: boolean): MirrorRow {

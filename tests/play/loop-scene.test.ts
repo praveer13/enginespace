@@ -10,7 +10,7 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { askOf, hang, initState, setOverlap, step } from '@es/play/loop/engine'
 import { buildLevel, LEVEL_IDS } from '@es/play/loop/levels'
-import { ticketNo } from '@es/play/loop/layout'
+import { stationsOf, ticketNo } from '@es/play/loop/layout'
 import { loopView } from '@es/play/loop/session'
 import type { LoopState, LoopView } from '@es/play/loop/types'
 import { COLOR_ROLE_NAMES } from '@/design/tokens'
@@ -20,10 +20,14 @@ import {
   COMB_TEETH,
   HISTORY_TICKS,
   lanesFor,
+  PASS,
+  RAIL,
   sceneLayout,
   SLOT_PITCH,
   STRIP_TICKETS,
   stripSheets,
+  TICKET,
+  TRACK_Y,
   UNITS_PER_TICK,
   type LoopSceneLayout,
 } from '@/games/loop/scene-layout'
@@ -159,16 +163,44 @@ describe('the rail, the fired rail and the printer', () => {
     const fired = layout.tickets.filter((sheet) => sheet.kind === 'fired')
     expect(fired.map((sheet) => sheet.req)).toEqual((view.firedRail ?? []).flatMap((clip) => (clip.req === null ? [] : [clip.req])))
     expect(layout.onLine).not.toBeNull()
-    expect(layout.stations.lit).toBe(view.lineLit)
+    expect(layout.stations.lit).toEqual(stationsOf(view))
     expect(view.lineLit).toBe(true)
   })
 
-  test('without overlap the stations are dark between bells; with it they glow while the line cooks', () => {
-    const off = loopView(step(fill(initState(level('first-1-fill')))))
-    expect(sceneLayout(off).stations.lit).toBe(false)
-    expect(sceneLayout(off).anchors.find((anchor) => anchor.kind === 'station')?.text).toBe('dark')
-    const on = loopView(step(fill(setOverlap(initState(level('first-3-gap')), true))))
-    expect(sceneLayout(on).anchors.find((anchor) => anchor.kind === 'station')?.text).toBe('busy')
+  test('the stations light where the latest fire cooked a course and sit dark where its clip rode empty: half a rail fired leaves half the line dark, a full rail lights it end to end', () => {
+    const before = loopView(fill(initState(level('first-1-fill')), 2))
+    expect(sceneLayout(before).stations.lit).toEqual([false, false, false, false])
+    const half = loopView(step(fill(initState(level('first-1-fill')), 2)))
+    const halfLayout = sceneLayout(half)
+    expect(halfLayout.stations.lit).toEqual([true, true, false, false])
+    expect(halfLayout.stations.pilots.map((pilot) => pilot.lit)).toEqual([true, true, false, false])
+    expect(halfLayout.stations.pilots.map((pilot) => pilot.at[0])).toEqual([0, 1, 2, 3].map(clipX))
+    expect(halfLayout.anchors.find((anchor) => anchor.kind === 'station')?.text).toBe('2 of 4 lit')
+    // An empty place is a dark station's well, in the deep steel's role; a plate is the paper's white.
+    const roles = placesOf(halfLayout, 0).map((place) => place.role)
+    expect(roles).toEqual(['cat-white', 'cat-white', 'surface-3', 'surface-3'])
+    const full = sceneLayout(loopView(step(fill(initState(level('first-1-fill'))))))
+    expect(full.stations.lit).toEqual([true, true, true, true])
+    expect(full.anchors.find((anchor) => anchor.kind === 'station')?.text).toBe('4 of 4 lit')
+  })
+
+  test('the stations\' bar stands beyond the pass, over the line\'s head, above every slab and below every hung ticket', () => {
+    const layout = sceneLayout(loopView(step(fill(initState(level('first-1-fill'))))))
+    for (const pilot of layout.stations.pilots) {
+      expect(pilot.at[2]).toBeLessThan(PASS.back)
+      expect(pilot.at[1] - pilot.size[1] / 2).toBeGreaterThan(Math.max(...layout.places.map((place) => (place.y ?? 0) + place.height)) + TRACK_Y)
+      expect(pilot.at[1] + pilot.size[1] / 2).toBeLessThan(RAIL.y - TICKET.h)
+    }
+  })
+
+  test('a page that holds the printer itself leaves the scene\'s printer and its strip out', () => {
+    const view = loopView(initState(level('first-1-fill')))
+    const kept = sceneLayout(view)
+    const left = sceneLayout(view, { printer: false })
+    expect(kept.tickets.some((sheet) => sheet.kind === 'waiting')).toBe(true)
+    expect(left.tickets.some((sheet) => sheet.kind === 'waiting')).toBe(false)
+    expect(left.anchors.some((anchor) => anchor.kind === 'waiting' || anchor.kind === 'more')).toBe(false)
+    expect(left.fixtures.length).toBeLessThan(kept.fixtures.length)
   })
 })
 

@@ -38,11 +38,7 @@ const AUDITED_IN_3D = (route: string) => HAS_3D(route) && (NIGHTLY || route === 
  * Defects that this spec found and that no task has fixed yet, keyed by `<route> at <width>`. A test that is listed here is expected to
  * fail, and Playwright fails it when it passes: whoever fixes the page deletes the entry, which is how a known defect leaves the list.
  */
-const KNOWN_CLIPPED: Record<string, string> = {
-  '/ at 360':
-    "the front page's menu board (src/front/front.css, .es-front-menu__board) is a grid whose one column is as wide as its table, 383 px on a 360 px phone [measured 2026-11-04 at bac1d04], so the heading, the lede and the hours column are cut off at the board's right edge. W0-T25's finish review owns the front page's look at a phone's width.",
-  '/ at 320': "the same board, wider than the phone by more: see '/ at 360'.",
-}
+const KNOWN_CLIPPED: Record<string, string> = {}
 
 const IMPACTS = new Set(['serious', 'critical'])
 const summary = (violation: Result) => `${violation.id} [${violation.impact}] ${violation.help}: ${violation.nodes.slice(0, 4).map((node) => node.target.join(' ')).join(' ; ')}`
