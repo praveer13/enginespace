@@ -103,7 +103,7 @@ const COLORS = {
 
   // Lanes (GAMES.md §2.6, Service and The Tape).
   'lane-cpu': ref('lane', 'cat-blue', "The expo's lane: the CPU writing the next call and reading the plates back."),
-  'lane-gpu': ref('lane', 'cat-green', "The line's stations: the GPU cooking. A lit stretch is the GPU busy."),
+  'lane-gpu': ref('lane', 'cat-green', "The line (the GPU) as a category beside the expo's lane: a code, never a state. A lit station burns in the lamp."),
   'lane-sync': ref('lane', 'cat-yellow', '"Heard!": a sync, where the hands that asked wait for the line.'),
   'lane-copy': ref('lane', 'cat-brown', 'The dumbwaiter: copies between host and device.'),
   'lane-idle': ref('lane', 'cat-white', 'Stations dark: a bubble, drawn hollow.'),

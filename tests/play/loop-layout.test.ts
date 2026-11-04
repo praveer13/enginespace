@@ -16,7 +16,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { ROLES } from '@/design/tokens'
 import { svgToReact } from '@/games/loop/svg'
 import { View2D } from '@/games/loop/View2D'
-import { initState } from '@es/play/loop/engine'
+import { hang, initState, step } from '@es/play/loop/engine'
 import { DETAIL_FIRES, MARK_CAP, MIRROR_TICKS, PAINTS, STRIP, WINDOW_TICKS, frameSvg, layoutFrame, layoutStrip, markCount, ticketNo, windowOf } from '@es/play/loop/layout'
 import type { Frame, Mark, Orientation } from '@es/play/loop/layout'
 import { firesOfRun } from '@es/play/loop/compare'
@@ -26,7 +26,7 @@ import { countMarks, escapeText, svgMarkup } from '@es/play/loop/svg'
 import type { SvgNode } from '@es/play/loop/svg'
 import type { FireView, LoopView, PlaceView } from '@es/play/loop/types'
 import { POSTER_LEVEL, POSTER_SEED, renderPosters, stalePosters } from '../../scripts/posters'
-import { fakeRun, handLevel, statesOfHouseNight } from './loop-support'
+import { fakeRun, handLevel, houseNight, statesOfHouseNight } from './loop-support'
 
 const ORIENTATIONS: readonly Orientation[] = ['landscape', 'portrait']
 const first = loopView(initState(buildLevel(POSTER_LEVEL, POSTER_SEED)))
@@ -149,8 +149,8 @@ describe('the 2D view stays at or under 2,000 SVG marks in its default window', 
     // Fires older than the last 48 are slabs, so what is left of the places is at most those of 48 fires.
     expect(DETAIL_FIRES).toBe(48)
     expect(marksOf(wide, 'rect')).toBeLessThan(MARK_CAP)
-    // The axis thins out for a long window: at most 16 intervals, never a tick every 5.
-    expect(wide.layers.find((layer) => layer.part === 'axis')?.marks.length).toBeLessThanOrEqual(40)
+    // The night's tape stamps the clock only where the last stamp leaves room, so a long window never crowds it.
+    expect(wide.layers.find((layer) => layer.part === 'clock')?.marks.length).toBeLessThanOrEqual(40)
     // A night so long that even slabs pass the cap is cut to its last fires.
     const huge = longNight(3000, 0)
     const cut = layoutFrame(huge, { windowTicks: 21000 })
@@ -192,8 +192,74 @@ describe('the drawing paints with token roles and nothing else', () => {
       }
     }
     for (const name of used) expect([name, Object.hasOwn(ROLES, name)]).toEqual([name, true])
-    // The drawing uses most of the roles it declares: the lamp, the lanes, the plates, the ink of a binned plate and the dots of the printer.
-    for (const name of ['lamp', 'lamp-ring', 'lane-gpu', 'lane-cpu', 'lane-sync', 'paper', 'surface-3', 'font-numeric']) expect(used.has(name)).toBe(true)
+    // The drawing uses most of the roles it declares: the lamp, the expo's boards, the paper of the plates and the tape, the ribbon's
+    // red of a binned plate and the stamp, the deep steel of the wells, the masking tape and its marker, and the dots of the printer.
+    for (const name of ['lamp', 'lane-cpu', 'lane-sync', 'paper', 'paper-ink-2', 'surface-3', 'tape', 'tape-ink', 'font-numeric', 'font-label']) expect(used.has(name)).toBe(true)
+  })
+
+  test('no state takes a code colour, and the amber stays on the pass: the line has no green, and the lamp lights only its pool', () => {
+    for (const overlap of [false, true]) {
+      for (const state of statesOfHouseNight(buildLevel('first-4-par', 1), { overlap })) {
+        for (const orientation of ORIENTATIONS) {
+          const frame = layoutFrame(loopView(state), { orientation })
+          for (const layer of frame.layers) {
+            for (const mark of layer.marks) {
+              const paints = mark.kind === 'text' ? [mark.fill] : [mark.fill, mark.stroke]
+              // The code colours mark only what a board is: the expo's plan and read. Nothing on the line, and no state, takes one.
+              expect(paints.some((paint) => paint === 'lane-gpu')).toBe(false)
+              if (paints.some((paint) => paint === 'lane-cpu' || paint === 'lane-sync')) expect(layer.part).toBe('cpu')
+              if (paints.some((paint) => paint === 'lamp')) expect(layer.part).toBe('lamp')
+            }
+          }
+        }
+      }
+    }
+  })
+})
+
+describe('the line is the kitchen\'s own surfaces', () => {
+  /** The marks of one layer of a frame. */
+  const marksOf = (frame: Frame, part: string): readonly Mark[] => frame.layers.find((layer) => layer.part === part)?.marks ?? []
+  const texts = (marks: readonly Mark[]) => marks.flatMap((mark) => (mark.kind === 'text' ? [mark.text] : []))
+
+  test('a ticket holds a hotel pan in its clip\'s well, labelled with its number in marker on masking tape; an empty clip leaves an open groove', () => {
+    // Two tickets hung and fired: a pan for each, in the first two wells, and the other two clips rode empty.
+    let state = initState(buildLevel(POSTER_LEVEL, POSTER_SEED))
+    for (const req of state.waiting.slice(0, 2)) state = hang(state, req)
+    const view = loopView(step(state))
+    const line = marksOf(layoutFrame(view), 'gpu')
+    const tape = line.filter((mark) => mark.kind === 'rect' && mark.fill === 'tape')
+    expect(tape).toHaveLength(2)
+    const words = line.filter((mark) => mark.kind === 'text' && mark.face === 'label')
+    expect(texts(words)).toEqual([ticketNo(0), ticketNo(1)])
+    // Two plates on the pans, and two open grooves where the clips rode empty, each as long as the fire cooked.
+    const fire = view.fires[0]
+    const plates = line.filter((mark) => mark.kind === 'rect' && mark.fill === 'paper' && mark.stroke === 'paper-rule' && mark.width === 0.75)
+    const grooves = line.filter((mark) => mark.kind === 'rect' && mark.fill === 'surface-3' && mark.stroke === 'surface-2')
+    expect([plates.length, grooves.length]).toEqual([2, 2])
+    for (const place of [...plates, ...grooves]) if (place.kind === 'rect') expect(place.w).toBeCloseTo((fire.endUs - fire.startUs) * 8 - 4)
+  })
+
+  test('the clock is the night\'s tape: a strip of paper stamped in red that the ticks are synthetic, and the clock in dots at each fire', () => {
+    const view = loopView(houseNight(buildLevel(POSTER_LEVEL, POSTER_SEED), { overlap: false }))
+    for (const orientation of ORIENTATIONS) {
+      const clock = marksOf(layoutFrame(view, { orientation }), 'clock')
+      expect(clock[0]).toMatchObject({ kind: 'rect', fill: 'paper' })
+      const stamp = clock.filter((mark) => mark.kind === 'text' && mark.fill === 'paper-ink-2')
+      expect(texts(stamp).join(' ')).toMatch(/TICKS.*SYNTHETIC/)
+      const stamps = clock.filter((mark) => mark.kind === 'text' && mark.face === 'numeric')
+      expect(texts(stamps)[0]).toBe('0')
+      for (const text of texts(stamps).slice(1)) expect(view.fires.map((fire) => String(fire.startUs))).toContain(text)
+      // A tape, not an axis: no tick marks, only the perforation along its edge.
+      expect(clock.filter((mark) => mark.kind === 'line')).toHaveLength(1)
+    }
+  })
+
+  test('no legend: the drawing names its lanes on tape and lets its objects say what they are', () => {
+    const markup = svgMarkup(frameSvg(layoutFrame(first)))
+    for (const word of ['PLATE', 'EMPTY', 'BINNED', 'PLAN', 'READ']) expect(markup).not.toContain(`>${word}</text>`)
+    expect(markup).toContain('>THE LINE · GPU</text>')
+    expect(markup).toContain('>THE EXPO · CPU</text>')
   })
 })
 

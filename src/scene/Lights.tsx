@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
-import { BoxGeometry, BufferAttribute, BufferGeometry, DirectionalLight, HemisphereLight, Matrix4, MeshStandardMaterial, SphereGeometry, SpotLight, TorusGeometry, type InstancedMesh } from 'three'
-import type { ColorRoleName } from '@/design/tokens'
+import { BufferAttribute, BufferGeometry, CylinderGeometry, DirectionalLight, HemisphereLight, Matrix4, MeshStandardMaterial, SphereGeometry, SpotLight, TorusGeometry, type InstancedMesh } from 'three'
 import type { Vec3 } from './camera-rig'
 import { useKit } from './kit'
 import { roleColor } from './materials'
@@ -14,8 +13,8 @@ import { roleColor } from './materials'
  *                present alone: GAMES.md §2.6's one heat lamp. The shades themselves are steel fixtures (Fixtures.tsx).
  *   Fluorescent  the tubes' cool white: a hemisphere light from the ceiling with the steel's bounce from below, and one
  *                soft key from above and behind the camera, so the marks have a lit top and shaded sides.
- *   PilotLights  a row of pilot lenses in a code role, such as the line's stations: a lit lens glows in its role, emissive, so
- *                bloom catches it at T2 and up; a dark one is deep steel. Lit and dark are two instanced draws, whatever the count.
+ *   HeatElements a heat element for each of the line's stations: a lit one burns in the lamp's glow, emissive, so bloom
+ *                catches it at T2 and up; a dark one is cold deep steel. Lit and dark are two instanced draws, whatever the count.
  *
  * Intensities start from scene-tokens.ts's MATERIAL_PARAMS [estimated]; `power` scales a scene's whole rig.
  */
@@ -153,64 +152,60 @@ export function Fluorescent({ power = 1, from = TUBES_FROM }: { power?: number; 
   )
 }
 
-/** One pilot lens: its centre, its size, and whether it is lit. */
-export interface PilotSpec {
+/** One station's heat element: a tube lying across the scene (x), its centre, its length and its diameter, and whether it burns. */
+export interface ElementSpec {
   readonly id: string
   readonly at: Vec3
-  readonly size: Vec3
+  readonly length: number
+  readonly diameter: number
   readonly lit: boolean
 }
 
-/** How brightly a lit pilot burns over its role [estimated]: enough that it reads as a light on the steel and bloom catches it. */
-const PILOT_GLOW = 2.4
-
-function placeBoxes(mesh: InstancedMesh | null, pilots: readonly PilotSpec[]) {
+function placeTubes(mesh: InstancedMesh | null, elements: readonly ElementSpec[]) {
   if (!mesh) return
   const matrix = new Matrix4()
-  pilots.forEach((pilot, i) => {
-    matrix.makeScale(...pilot.size)
-    matrix.setPosition(...pilot.at)
+  elements.forEach((element, i) => {
+    matrix.makeScale(element.length, element.diameter, element.diameter)
+    matrix.setPosition(...element.at)
     mesh.setMatrixAt(i, matrix)
   })
-  mesh.count = pilots.length
+  mesh.count = elements.length
   mesh.instanceMatrix.needsUpdate = true
   mesh.computeBoundingSphere()
 }
 
 /**
- * Pilot lights (the contract's "the line's stations glow"): each lens glows in `role` when lit, and is a dark steel lens when not. The
- * state is also a place in the row, and every count about it is DOM (GAMES.md §2.6, rule 7), so the light is never the only carrier.
+ * Heat elements, one for each of the line's stations: a tube burning in the heat lamp's own glow when its station is lit (the kit's
+ * lamp material, emissive, so bloom catches it at T2 and up) and cold deep steel when it is dark. Heat is the world's one active
+ * light, so a lit station takes the lamp's amber and no code colour. The state is also a place in the row, and every count about it
+ * is DOM (GAMES.md §2.6, rule 7), so the glow is never the only carrier. Lit and dark are two instanced draws, whatever the count.
  */
-export function PilotLights({ pilots, role, name = 'pilots' }: { pilots: readonly PilotSpec[]; role: ColorRoleName; name?: string }) {
+export function HeatElements({ elements, name = 'elements' }: { elements: readonly ElementSpec[]; name?: string }) {
   const kit = useKit()
-  const geometry = useMemo(() => new BoxGeometry(1, 1, 1), [])
-  const glow = useMemo(() => {
-    const colour = roleColor(kit.tokens, role)
-    return new MeshStandardMaterial({ name: `${name}-lit`, color: colour, emissive: colour, emissiveIntensity: PILOT_GLOW, roughness: 0.35, metalness: 0 })
-  }, [kit.tokens, role, name])
-  const dark = useMemo(() => new MeshStandardMaterial({ name: `${name}-dark`, color: roleColor(kit.tokens, 'surface-3'), roughness: 0.45, metalness: 0.3 }), [kit.tokens, name])
+  // A unit tube along x: one long, one across.
+  const geometry = useMemo(() => new CylinderGeometry(0.5, 0.5, 1, 18, 1).rotateZ(Math.PI / 2), [])
+  const cold = useMemo(() => new MeshStandardMaterial({ name: `${name}-cold`, color: roleColor(kit.tokens, 'surface-3'), roughness: 0.4, metalness: 0.6 }), [kit.tokens, name])
   useEffect(
     () => () => {
       geometry.dispose()
-      glow.dispose()
-      dark.dispose()
+      cold.dispose()
     },
-    [geometry, glow, dark],
+    [geometry, cold],
   )
   const litMesh = useRef<InstancedMesh>(null)
   const darkMesh = useRef<InstancedMesh>(null)
-  const lit = useMemo(() => pilots.filter((pilot) => pilot.lit), [pilots])
-  const unlit = useMemo(() => pilots.filter((pilot) => !pilot.lit), [pilots])
+  const lit = useMemo(() => elements.filter((element) => element.lit), [elements])
+  const unlit = useMemo(() => elements.filter((element) => !element.lit), [elements])
   useLayoutEffect(() => {
-    placeBoxes(litMesh.current, lit)
-    placeBoxes(darkMesh.current, unlit)
+    placeTubes(litMesh.current, lit)
+    placeTubes(darkMesh.current, unlit)
     kit.invalidate()
   }, [lit, unlit, kit])
-  const capacity = Math.max(1, pilots.length)
+  const capacity = Math.max(1, elements.length)
   return (
     <>
-      <instancedMesh ref={litMesh} name={`${name}-lit`} args={[geometry, glow, capacity]} raycast={() => null} />
-      <instancedMesh ref={darkMesh} name={`${name}-dark`} args={[geometry, dark, capacity]} raycast={() => null} />
+      <instancedMesh ref={litMesh} name={`${name}-lit`} args={[geometry, kit.materials.lamp, capacity]} raycast={() => null} />
+      <instancedMesh ref={darkMesh} name={`${name}-dark`} args={[geometry, cold, capacity]} raycast={() => null} />
     </>
   )
 }

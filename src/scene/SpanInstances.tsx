@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { MarkInstances } from './MarkInstances'
+import { MarkInstances, type MarkMaterial } from './MarkInstances'
 import { spanBox, type SpanDatum } from './marks'
 import { useTrack } from './track'
 
@@ -14,11 +14,13 @@ export interface SpanInstancesProps {
   unitsPerTime?: number
   onPick?: (id: string) => void
   name?: string
+  /** What the slabs are made of (MarkInstances): the code's marks by default, or the pass's steel. */
+  material?: MarkMaterial
 }
 
-export function SpanInstances({ spans, unitsPerTime, onPick, name = 'spans' }: SpanInstancesProps) {
+export function SpanInstances({ spans, unitsPerTime, onPick, name = 'spans', material }: SpanInstancesProps) {
   const track = useTrack()
   const scale = unitsPerTime ?? track?.unitsPerTime ?? 1
   const boxes = useMemo(() => spans.map((span) => spanBox(span, { unitsPerTime: scale })), [spans, scale])
-  return <MarkInstances boxes={boxes} onPick={onPick} name={name} />
+  return <MarkInstances boxes={boxes} onPick={onPick} name={name} material={material} />
 }

@@ -187,7 +187,8 @@
   gap: 0.3rem;
 }
 
-/* The stations: a pip for each clip, lit in the line's colour, or an open ring of deep steel. */
+/* The stations, as the printer prints them: a dot for each clip, struck solid in the ribbon's black where the station burns, and an
+   open ring where it sits dark. The ribbon has two inks and no lamp, so the tape marks a state by shape alone. */
 .es-front-pips {
   display: inline-flex;
   align-self: center;
@@ -197,14 +198,13 @@
 .es-front-pips__pip {
   width: 0.7rem;
   height: 0.7rem;
-  border: 2px solid var(--es-surface-3);
+  border: 2px solid var(--es-paper-ink);
   border-radius: var(--es-radius-round);
   background-color: var(--es-paper);
 }
 
 .es-front-pips__pip[data-lit] {
-  border-color: var(--es-cat-green-edge);
-  background-color: var(--es-lane-gpu);
+  background-color: var(--es-paper-ink);
 }
 
 /* The next fire, under the perforation: what the bell will do, before it is rung. */
@@ -229,6 +229,12 @@
   gap: 0.25rem var(--es-space-2);
   font-size: 0.75rem;
   text-transform: uppercase;
+}
+
+/* Once the level is over the rail fires no more, and the line under the perforation says so in the ribbon's red, where to go next. */
+.es-front-tape__closed {
+  margin: 0;
+  color: var(--es-paper-ink-2);
 }
 
 .es-front-tape__stations,

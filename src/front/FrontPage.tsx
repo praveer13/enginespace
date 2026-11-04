@@ -539,7 +539,8 @@ function Pips({ lit }: { lit: readonly boolean[] }) {
  * run's last level, the clock against par. The tape prints what the beat is about; the mirror below prints every counter. Under the
  * perforation is the next fire as the rail stands: the stations it will light and the ticks per step the tape will print once it is
  * rung, so a fire is read before it is committed. Those stations are also the control that fills them: pressing them hangs the next
- * ticket on the first free clip. Every figure is the synthetic world's, and the tape is stamped so.
+ * ticket on the first free clip. Once the level is over there is no next fire on this rail, and the tape says so rather than
+ * previewing one the bell will not ring. Every figure is the synthetic world's, and the tape is stamped so.
  */
 function PassTape({ view, next, onFill }: { view: LoopView; next: LoopView | null; onFill: (() => void) | null }) {
   const c = view.counters
@@ -599,16 +600,22 @@ function PassTape({ view, next, onFill }: { view: LoopView; next: LoopView | nul
       </dl>
       <div className="es-front-tape__next" data-part="next">
         <p className="es-front-tape__head">{TAPE.next}</p>
-        <div className="es-front-tape__preview">
-          {onFill ? (
-            <button type="button" className="es-front-tape__fill" onClick={onFill} aria-label={`${TAPE.fill}: ${hungCount} ${TAPE.of} ${view.slots} ${TAPE.hung}`}>
-              {stations}
-            </button>
-          ) : (
-            <span className="es-front-tape__stations">{stations}</span>
-          )}
-          <span className="es-front-tape__ticks">{nextClock === null ? (hungCount === 0 ? TAPE.nothingHung : TAPE.notYet) : ticks(nextClock)}</span>
-        </div>
+        {view.done ? (
+          <p className="es-front-tape__preview es-front-tape__closed" data-state="over">
+            {TAPE.levelOver}
+          </p>
+        ) : (
+          <div className="es-front-tape__preview">
+            {onFill ? (
+              <button type="button" className="es-front-tape__fill" onClick={onFill} aria-label={`${TAPE.fill}: ${hungCount} ${TAPE.of} ${view.slots} ${TAPE.hung}`}>
+                {stations}
+              </button>
+            ) : (
+              <span className="es-front-tape__stations">{stations}</span>
+            )}
+            <span className="es-front-tape__ticks">{nextClock === null ? (hungCount === 0 ? TAPE.nothingHung : TAPE.notYet) : ticks(nextClock)}</span>
+          </div>
+        )}
       </div>
     </div>
   )
