@@ -10,8 +10,9 @@ name: Nightly
 #                        settles the one seed-count knob that every suite reads.
 #   browsers     W0-T21  the cross-browser determinism hash, full axe at the nightly widths on every route, keyboard walks of
 #                        every game, and reduced-motion emulation (§10.1, §11.2). W0-T21 owns the nightly sweep.
-#   lab-profile  W0-T20  the LCP, INP and CLS lab profile, from e2e/perf.spec.ts (§11.1).
 #   reports      W3-T13  link rot. The claim-expiry report runs now: verify:claims and verify:pins list what is past its TTL.
+#
+# lab-profile is built (W0-T20): it runs e2e/perf.spec.ts, the LCP, CLS and INP lab profile of §11.1, and fails above the gates.
 
 on:
   schedule:
@@ -38,11 +39,37 @@ jobs:
     steps:
       - run: "echo 'pending: W0-T21'"
 
+  # The spec builds the site itself and serves it gzipped through the network and CPU throttle of §11.1, so the job needs Node, the
+  # dependencies and Chromium, and not Bun. ES_LAB_PROFILE switches the spec on: in CI it skips itself without it, so a pull request
+  # does not pay for it. The lab numbers are in the log, and test-results/lab-profile.json keeps them with the host and the SHA.
   lab-profile:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - run: "echo 'pending: W0-T20'"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+
+      - name: LCP, CLS and INP under the mobile lab profile
+        env:
+          ES_LAB_PROFILE: '1'
+        run: npx playwright test e2e/perf.spec.ts
+
+      - name: Keep the numbers
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: lab-profile
+          path: test-results/lab-profile.json
+          if-no-files-found: ignore
 
   # Claims and pins past their TTL never fail a gate (§4.4): the gates print them, and this job keeps the log.
   reports:
