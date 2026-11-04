@@ -1,0 +1,2 @@
+# The builds of labs/forge, which verify:labs compares byte for byte: binary, with no line-ending conversion on any platform.
+*.wasm binary

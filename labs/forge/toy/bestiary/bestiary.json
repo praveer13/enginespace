@@ -1,0 +1,20 @@
+{
+  "lab": "toy",
+  "members": [
+    {
+      "id": "fifo",
+      "feature": "bestiary-fifo",
+      "mistake": "first in, first out: a hit leaves the key where it came in, so the rotation dumps by arrival and not by use",
+      "fails": { "hits": "fail", "recency": "fail", "churn": "fail" },
+      "passes": ["fill", "dump"]
+    },
+    {
+      "id": "spin",
+      "feature": "bestiary-spin",
+      "mistake": "a hit on the front key never finishes: the walk that moves the key to the back skips the front and waits for a step that never comes",
+      "fails": { "hits": "timeout" },
+      "passes": ["fill", "dump"],
+      "only": ["fill", "hits", "dump"]
+    }
+  ]
+}
