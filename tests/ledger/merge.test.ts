@@ -4,7 +4,8 @@
  * check 2 ("merging in any order gives identical ledgers"); import.test.ts has the rest, with import and undo.
  *
  * The seeds draw ledgers from a small pool of ids, so two ledgers share some ids with the same content and some with other
- * content. A test that counts those first proves that the laws below are not vacuous.
+ * content. A test that counts those first proves that the laws below are not vacuous. How many seeds there are is the knob of
+ * tests/seeds.ts: 200 on a pull request, 10,000 in the nightly run.
  */
 import { describe, expect, test } from 'bun:test'
 import {
@@ -22,9 +23,10 @@ import {
   sameLedger,
 } from '@es/ledger'
 import type { Ledger, LedgerEvent, ReceiptRecord, WorkingRecord } from '@es/ledger'
+import { seeds } from '../seeds'
 import { copy, EXAMPLES, randomLedger } from './support'
 
-const SEEDS = Array.from({ length: 200 }, (_, index) => index + 1)
+const SEEDS = seeds(1)
 const text = (ledger: Ledger) => canonicalJson(normalizeLedger(ledger))
 const ack = (id: string, over: Partial<LedgerEvent> = {}): LedgerEvent => ({ ...copy(EXAMPLES.ack), id, tz: 0, day: '2026-11-04', at: '2026-11-04T08:00:00.000Z', ...over }) as LedgerEvent
 
@@ -170,7 +172,7 @@ describe('the join of ledgers', () => {
     expect(receiptsShared).toBeGreaterThan(50)
   })
 
-  test('over 200 seeds it is commutative, associative and idempotent', () => {
+  test(`over ${SEEDS.length} seeds it is commutative, associative and idempotent`, () => {
     for (const seed of SEEDS) {
       const a = randomLedger(seed * 3, 10)
       const b = randomLedger(seed * 3 + 1, 10)
@@ -183,7 +185,7 @@ describe('the join of ledgers', () => {
     }
   })
 
-  test('over 200 seeds, four ledgers merged in any of the 24 orders are one ledger', () => {
+  test(`over ${SEEDS.length} seeds, four ledgers merged in any of the 24 orders are one ledger`, () => {
     const orders = permutations([0, 1, 2, 3])
     expect(orders).toHaveLength(24)
     for (const seed of SEEDS) {

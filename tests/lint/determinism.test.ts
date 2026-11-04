@@ -10,7 +10,7 @@ import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { BANNED_GLOBALS, BANNED_MATH, inScope, lintSource, lintTree } from '../../scripts/verify-determinism'
-import { ALLOWED, BANNED, GATE_ONLY } from './cases'
+import { ALLOWED, BANNED, GATE_ONLY, UNBANNED_MATH } from './cases'
 
 const root = path.resolve(import.meta.dirname, '../..')
 const fixture = path.join(root, 'tests/fixtures/lint/determinism')
@@ -46,6 +46,7 @@ describe('verify:determinism, run as a process', () => {
       'packages/play/performance-now.ts',
       'packages/sim/alias.ts',
       'packages/sim/exponent-operator.ts',
+      'packages/sim/math-log2.ts',
       'packages/sim/math-pow.ts',
       'packages/sim/math-random.ts',
       'packages/sim/sort-without-comparator.ts',
@@ -63,7 +64,7 @@ describe('the fixture tree, in process', () => {
   const { files, findings } = lintTree(fixture)
 
   test('reads the two packages and every file in them', () => {
-    expect(files.length).toBe(10)
+    expect(files.length).toBe(11)
     expect(files.every(inScope)).toBe(true)
   })
 
@@ -77,6 +78,7 @@ describe('the fixture tree, in process', () => {
       'packages/play/performance-now.ts': 1,
       'packages/sim/alias.ts': 1, // the alias itself: the gate does not wait for M.random()
       'packages/sim/exponent-operator.ts': 1,
+      'packages/sim/math-log2.ts': 1,
       'packages/sim/math-pow.ts': 1,
       'packages/sim/math-random.ts': 1,
       'packages/sim/sort-without-comparator.ts': 1,
@@ -132,5 +134,87 @@ describe('the ban list against ARCHITECTURE §5.1', () => {
   test('bans the clock, entropy and DOM globals that §5.1 and the tracker name, and globalThis, which reaches them', () => {
     expect(Object.keys(BANNED_GLOBALS).sort()).toEqual(['Date', 'crypto', 'document', 'globalThis', 'performance', 'window'])
     expect(architecture).toContain('It bans `**`, `Date`, `performance` and `crypto`.')
+  })
+})
+
+describe('the Math list against ECMA-262', () => {
+  /**
+   * The functions that ECMA-262 does not precisely specify: the note that opens "Function Properties of the Math Object" in the
+   * `es2026` tag of tc39/ecma262 (spec.html, SHA-256 032ecc740356b38f6846338d8c44536291a134a6ce60e651f935befb239cfc1a, read
+   * 2026-11-04) names these 23, in this order, and the `es2025` tag's note names the same 23. Each but `pow` and `random` has
+   * "an implementation-approximated Number value" in the steps of its clause, `pow` defers to Number::exponentiate, which says the
+   * same, and `random` is "implementation-defined". They are typed out here so that the test needs no network.
+   */
+  const NOT_PRECISELY_SPECIFIED = [
+    'acos',
+    'acosh',
+    'asin',
+    'asinh',
+    'atan',
+    'atanh',
+    'atan2',
+    'cbrt',
+    'cos',
+    'cosh',
+    'exp',
+    'expm1',
+    'hypot',
+    'log',
+    'log1p',
+    'log2',
+    'log10',
+    'pow',
+    'random',
+    'sin',
+    'sinh',
+    'tan',
+    'tanh',
+  ]
+
+  test('bans every function that the standard does not precisely specify, and no other', () => {
+    expect([...BANNED_MATH]).toEqual(NOT_PRECISELY_SPECIFIED)
+  })
+
+  test('allows none of them', () => {
+    expect(UNBANNED_MATH.filter((name) => NOT_PRECISELY_SPECIFIED.includes(name))).toEqual([])
+  })
+
+  test('judges every function of the Math object that this engine has, so a function that a later engine adds must be decided on', () => {
+    const functions = Object.getOwnPropertyNames(Math).filter((name) => typeof (Math as unknown as Record<string, unknown>)[name] === 'function')
+    const judged: readonly string[] = [...BANNED_MATH, ...UNBANNED_MATH]
+    expect(functions.length).toBeGreaterThan(30)
+    expect(functions.filter((name) => !judged.includes(name))).toEqual([])
+  })
+
+  /** tests/lint/math-engines.ts under one engine: a digest of each function's results over 20,000 fixed inputs. */
+  function digests(command: string): { engine: string; inputs: number; digests: Record<string, string> } {
+    const run = spawnSync(command, [path.join(root, 'tests/lint/math-engines.ts')], { encoding: 'utf8' })
+    if (run.status !== 0) throw new Error(`${command} tests/lint/math-engines.ts exited with ${run.status}: ${run.stderr}${run.error ?? ''}`)
+    return JSON.parse(run.stdout)
+  }
+
+  test('allows only functions that are exact: Bun (JavaScriptCore) and Node (V8) return the same bits from each of them', () => {
+    const bun = digests(process.execPath)
+    const node = digests('node')
+    expect([bun.engine.split(' ')[0], node.engine.split(' ')[0]]).toEqual(['bun', 'node'])
+    expect(bun.inputs).toBe(node.inputs)
+    // Node 22 has not got f16round, and sumPrecise takes an iterable: the comparison covers the ES2022 functions.
+    const compared = UNBANNED_MATH.filter((name) => name in node.digests)
+    expect(compared.length).toBeGreaterThanOrEqual(12)
+    for (const name of compared) expect([name, bun.digests[name]]).toEqual([name, node.digests[name]])
+  })
+
+  test('has a digest of every banned function but random, so that the counts in §5.1 can be measured again', () => {
+    const { digests: found } = digests(process.execPath)
+    for (const name of BANNED_MATH.filter((member) => member !== 'random')) expect(found[name], name).toMatch(/^[0-9a-f]{16}$/)
+    expect(found.exponentiation).toMatch(/^[0-9a-f]{16}$/)
+  })
+
+  test('is named in §5.1 with the standard it comes from, the tag that was read and the date', () => {
+    const architecture = readFileSync(path.join(root, 'docs/ARCHITECTURE.md'), 'utf8')
+    const section = /### 5\.1 Rules[\s\S]*?### 5\.2/.exec(architecture)?.[0] ?? ''
+    expect(section).toContain('ECMA-262')
+    expect(section).toContain('es2026')
+    expect(section).toContain('2026-11-04')
   })
 })

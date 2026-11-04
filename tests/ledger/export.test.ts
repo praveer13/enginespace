@@ -17,6 +17,7 @@ import {
 } from '@es/ledger'
 import type { ExportFile, Ledger } from '@es/ledger'
 import { backticked, between, read, tableRows } from '../ci/support'
+import { seeds } from '../seeds'
 import { copy, EXAMPLES, randomLedger, rngOf } from './support'
 
 const ledger: Ledger = {
@@ -90,7 +91,7 @@ describe('building and writing an export', () => {
 
 describe('reading an export', () => {
   test('a file that was written reads back to the same ledger and the same bytes', () => {
-    for (let seed = 1; seed <= 200; seed += 1) {
+    for (const seed of seeds(1)) {
       const written = text(randomLedger(seed, 12))
       const parsed = parseExport(written)
       if (!parsed.ok) throw new Error(`seed ${seed}: ${parsed.detail}`)

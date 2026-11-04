@@ -55,7 +55,8 @@ import {
 } from '../../packages/sim/spec'
 import type { ChainResult, Dist, PairBand } from '../../packages/sim/spec'
 import { MODELS, renderFixture } from '../../scripts/vectors'
-import { SEED_COUNT, scripted, seeds } from './spec-support'
+import { SEED_COUNT, seeds } from '../seeds'
+import { scripted } from './spec-support'
 
 const root = path.resolve(import.meta.dirname, '../..')
 

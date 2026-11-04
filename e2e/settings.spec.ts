@@ -121,6 +121,26 @@ async function open(page: Page, route: string) {
   await page.evaluate(() => document.fonts.ready)
 }
 
+/**
+ * How long a page may take to be ready on a machine that other work shares. The Settings page asks the browser what it can draw before
+ * the main thread is free again, and a software renderer takes seconds to start for that when the machine is busy [measured 2026-11-04
+ * at c80dfad: 5 to 8.5 s after a reload on a host at a load average of 12 to 20, against 20 ms with WebGL out of the way]. With ten
+ * workers on twenty threads (a load average of 65, W0-report §2) an assertion that follows a load and has Playwright's 10 s fails
+ * for that alone. So a wait that comes after a load is for the page's state, and it is given this long to arrive: it returns the
+ * moment the state is there, and a page that is really broken still fails, a little later.
+ */
+const BOOT = 45_000
+
+/**
+ * Reloads, and waits for what a reload brings back before anything is asked of the page: the main thread is free again (`evaluate`
+ * waits for it, and the faces are in), and the page's own heading is drawn. Nothing here waits for a time to pass.
+ */
+async function reload(page: Page, heading = 'Settings') {
+  await page.reload()
+  await page.evaluate(() => document.fonts.ready)
+  await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible({ timeout: BOOT })
+}
+
 /** The group of plates with this name, and the plates in it. */
 const group = (page: Page, name: string) => page.getByRole('group', { name })
 const plate = (page: Page, groupName: string, label: string | RegExp) => group(page, groupName).getByRole('button', { name: label })
@@ -240,9 +260,8 @@ test.describe('settings persist in `working` (accept 1)', () => {
       'settings:game-keys': false,
     })
 
-    await page.reload()
-    await page.evaluate(() => document.fonts.ready)
-    await expect(plate(page, 'Reduced motion', 'Reduce motion')).toHaveAttribute('aria-pressed', 'true')
+    await reload(page)
+    await expect(plate(page, 'Reduced motion', 'Reduce motion')).toHaveAttribute('aria-pressed', 'true', { timeout: BOOT })
     await expect(switchNamed(page, 'Draw the games in 3D')).toHaveAttribute('aria-checked', 'false')
     await expect(plate(page, 'Quality cap', /Tier 2/)).toHaveAttribute('aria-pressed', 'true')
     await expect(switchNamed(page, 'Game keys')).toHaveAttribute('aria-checked', 'false')
@@ -276,9 +295,9 @@ test.describe('settings persist in `working` (accept 1)', () => {
     await switchNamed(page, 'Game keys').click()
     await expect.poll(() => settingsRecord(page)).toEqual({ 'settings:reduced-motion': 'reduce', 'settings:game-keys': false })
     await page.evaluate(() => localStorage.removeItem('es:settings'))
-    await page.reload()
-    await expect(plate(page, 'Reduced motion', 'Reduce motion')).toHaveAttribute('aria-pressed', 'true')
-    await expect(switchNamed(page, 'Game keys')).toHaveAttribute('aria-checked', 'false')
+    await reload(page)
+    await expect(plate(page, 'Reduced motion', 'Reduce motion')).toHaveAttribute('aria-pressed', 'true', { timeout: BOOT })
+    await expect(switchNamed(page, 'Game keys')).toHaveAttribute('aria-checked', 'false', { timeout: BOOT })
     expect(await motionAttribute(page)).toBe('reduce')
     expect(JSON.parse((await copy(page)) ?? 'null')).toMatchObject({ 'settings:reduced-motion': 'reduce', 'settings:game-keys': false })
   })
@@ -305,8 +324,8 @@ test.describe('settings persist in `working` (accept 1)', () => {
           }
         }),
     )
-    await page.reload()
-    await expect(plate(page, 'Reduced motion', 'Follow my system')).toHaveAttribute('aria-pressed', 'true')
+    await reload(page)
+    await expect(plate(page, 'Reduced motion', 'Follow my system')).toHaveAttribute('aria-pressed', 'true', { timeout: BOOT })
     expect(await motionAttribute(page)).toBeNull()
     expect(await copy(page)).toBeNull()
   })
@@ -1028,8 +1047,8 @@ test.describe('a tab that has gone read-only (A§7.4)', () => {
           }
         }),
     )
-    await page.reload()
-    await expect(page.getByRole('alert').filter({ hasText: 'Reload to update' })).toBeVisible()
+    await reload(page)
+    await expect(page.getByRole('alert').filter({ hasText: 'Reload to update' })).toBeVisible({ timeout: BOOT })
 
     await plate(page, 'Reduced motion', 'Reduce motion').click()
     await expect(page.getByRole('alert').filter({ hasText: /Not saved:/ })).toBeVisible()

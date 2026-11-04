@@ -1,6 +1,6 @@
 # enginespace: build tracker
 
-**Status:** proposed backlog, with all 120 tasks `todo`. **Date:** 2026-11-03. **Source:** [ARCHITECTURE.md](ARCHITECTURE.md) (cited as A§n) and [DECISIONS.md](DECISIONS.md) (D-nnn, O-n). Credit rules come from `docs/ASSESSMENT.md`, written in parallel. The look is The Pass (D-047): W0-T05 applies its direction contract, and W0-T25 documents the built world in DESIGN.md.
+**Status:** proposed backlog. W0's 24 tasks are built: 23 are done and W0-T25 is in review, because its first check waits on the owner, and `wave-0` waits for the owner's review ([waves/W0-report.md](waves/W0-report.md)). The other 96 tasks are `todo`. **Date:** 2026-11-03. **Source:** [ARCHITECTURE.md](ARCHITECTURE.md) (cited as A§n) and [DECISIONS.md](DECISIONS.md) (D-nnn, O-n). Credit rules come from `docs/ASSESSMENT.md`, written in parallel. The look is The Pass (D-047): W0-T05 applies its direction contract, and W0-T25 documents the built world in DESIGN.md.
 
 ## How to read this page
 
@@ -83,7 +83,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
 - The TR2 spike (W0-T13) has passed.
 - The finish review has returned its verdict, and DESIGN.md and `.impeccable/design.json` describe the built world (W0-T25).
 
-#### [ ] W0-T01 · Scaffold the app · M · sonnet · deps: —
+#### [x] W0-T01 · Scaffold the app · M · sonnet · deps: —
 - **Goal:** An empty, complete app on kernelspace's toolchain, with every route stubbed.
 - **Read:** A§2, A§3.1, A§14; D-014, D-032; kernelspace's `package.json`, `vite.config.ts`, `tsconfig*.json` and `eslint.config.js` at d478f91 (`git show`).
 - **Files:**
@@ -100,7 +100,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   3. Every route in A§3.1 renders a stub whose `<h1>` names it, and `/nope` renders the 404 page.
   4. `dist/.vite/manifest.json` exists, and `three` appears only in a `three-vendor` chunk.
 
-#### [ ] W0-T02 · Vendor kernelspace at d478f91 · S · sonnet · deps: W0-T01
+#### [x] W0-T02 · Vendor kernelspace at d478f91 · S · sonnet · deps: W0-T01
 - **Goal:** A§13's files under `vendor/kernelspace/`, unchanged, with VENDOR.md and a drift script (D-031).
 - **Read:** A§13; statespace's VENDOR approach (`git -C ../statespace show HEAD:vendor/kernelspace/VENDOR.md`).
 - **Files:**
@@ -115,7 +115,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   3. kernelspace's physics step vectors and FSRS reference vectors reproduce through the vendored code.
   4. `verify:vendor` is wired into the gate registry.
 
-#### [ ] W0-T03 · Package boundaries and the determinism lint · S · sonnet · deps: W0-T01
+#### [x] W0-T03 · Package boundaries and the determinism lint · S · sonnet · deps: W0-T01
 - **Goal:** Package skeletons, with purity enforced by `tsconfig.pure.json`, ESLint and two gates (D-017, A§2.3, A§5.1).
 - **Files:**
   - `packages/{sim,play,ledger,schema,verify}/index.ts`;
@@ -128,7 +128,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   2. A fixture page that imports `three` statically fails `verify:boundaries`.
   3. `tsc -p tsconfig.pure.json` fails on a fixture that references `document`.
 
-#### [ ] W0-T04 · CI workflows and the gate registry · M · sonnet · deps: W0-T01
+#### [x] W0-T04 · CI workflows and the gate registry · M · sonnet · deps: W0-T01
 - **Goal:** `ci.yml`, `deploy.yml`, `nightly.yml` and `labs.yml` per A§10, and a gate registry in which an unbuilt gate prints `pending: <task>` and exits 0 (kernelspace's pattern).
 - **Read:** A§10; kernelspace's `.github/workflows/{ci,deploy,nightly,labs}.yml` (`git show`).
 - **Files:** `.github/workflows/*.yml`; `scripts/verify.ts` (gate name → script or pending task id); `package.json` scripts `verify:*` and `verify:all`.
@@ -139,7 +139,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   4. On failure, `nightly.yml` opens or updates one `nightly-failure` issue.
   5. A test parses every workflow file with js-yaml.
 
-#### [ ] W0-T05 · The design system: The Pass's tokens, faces and first components · L · sonnet · deps: W0-T01
+#### [x] W0-T05 · The design system: The Pass's tokens, faces and first components · L · sonnet · deps: W0-T01
 - **Goal:** The token roles that every page and scene needs, carrying The Pass's values from the first commit (D-047), with no placeholder phase. The roles reach CSS custom properties, Tailwind and scene materials, the faces are self-hosted, and `src/design/components/` starts with the world's first atoms. This task merges the former W0-T05 (the token contract) and W0-T06 (applying the identity), so there is no W0-T06.
 - **Read:** the direction contract in `.impeccable/surfaces/src-front-frontpage-tsx.md` (read it, and never copy it into source, comments or any shipped file); impeccable's `reference/new-work.md` §4 (Commit the world) and §6 (Build with full commitment); D-047, D-048 and D-033; A§6.4 and A§11.2; GAMES.md §2.6.
 - **Files:**
@@ -167,14 +167,14 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   6. A test greps `src/`, `public/` and `index.html` for the direction contract's block labels (`THESIS:`, `OWN-WORLD:`, `STORY:`, `FIRST VIEWPORT:`, `FORM:`, `FINISH:`) and finds none.
   7. `Readout` renders a tick count with its synthetic label, and a number passed without a tag fails to type-check (test).
 
-#### [ ] W0-T07 · Schemas: content, claims, lock and KC · S · sonnet · deps: W0-T03
+#### [x] W0-T07 · Schemas: content, claims, lock and KC · S · sonnet · deps: W0-T03
 - **Goal:** zod schemas for lesson and module front matter, the eight block types, claims, `course.lock.json` entries and the KC graph, plus the ref grammar (A§4.2-A§4.5).
 - **Files:** `packages/schema/{content,claims,lock,kc,refs}.ts`; `tests/schema/*.test.ts` with valid and invalid fixtures.
 - **Accept:**
   1. Each schema rejects unknown keys and accepts A§4.2's examples, which are copied into fixtures.
   2. Every ref example in A§4.5 parses, and a malformed ref fails.
 
-#### [ ] W0-T08 · Content compiler v0 and the content gates · M · sonnet · deps: W0-T07
+#### [x] W0-T08 · Content compiler v0 and the content gates · M · sonnet · deps: W0-T07
 - **Goal:** Compile `content/` into `src/content/generated/` and `public/md/` + `llms.txt`, with a Vite plugin for dev, plus `verify:content`, `verify:claims` and `verify:numbers` (A§4, D-016).
 - **Files:**
   - `scripts/content/{build,parse,directives,prose,vite-plugin}.ts`;
@@ -190,7 +190,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   4. No compiled prose contains an HTML string (a test scans the JSON).
   5. Under `npm run dev`, editing a lesson hot-reloads it.
 
-#### [ ] W0-T09 · Content renderer and page shells · M · sonnet · deps: W0-T08
+#### [x] W0-T09 · Content renderer and page shells · M · sonnet · deps: W0-T08
 - **Goal:** A React renderer for the token tree and the blocks, with claim chips, tag chips, and the module and lesson pages. Blocks whose features are not built yet render a placeholder naming the task that builds them.
 - **Files:** `src/content/render/{Prose,Blocks,ClaimChip,TagChip}.tsx`, `src/content/load.ts` (`import.meta.glob`, lazy), `src/pages/{Module,Lesson}.tsx`.
 - **Accept:**
@@ -198,7 +198,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   2. A claim chip shows the value, unit, source title and `verifiedAt`, and "stale since" past its TTL (unit test with a fixed today).
   3. Headings form a valid outline (axe, W0-T21).
 
-#### [ ] W0-T10 · Ledger core · M · sonnet · deps: W0-T07
+#### [x] W0-T10 · Ledger core · M · sonnet · deps: W0-T07
 - **Goal:** `packages/ledger` per A§7: the envelope and kinds, ids, a strict codec, merge, a memory store, a store-agnostic conformance suite and the provenance enum (D-024).
 - **Read:** A§7; the shape of kernelspace's `src/lib/ledger/store-conformance.ts` (`git show`).
 - **Files:** `packages/ledger/{types,ids,codec,merge,memory-store,conformance,provenance}.ts`; `tests/ledger/*.test.ts`.
@@ -208,7 +208,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   3. The codec rejects unknown kinds, malformed refs and scores outside [0, 1].
   4. No event carries a weight (test).
 
-#### [ ] W0-T11 · Ledger in the browser · M · sonnet · deps: W0-T10
+#### [x] W0-T11 · Ledger in the browser · M · sonnet · deps: W0-T10
 - **Goal:** The IndexedDB store (A§7.1's stores), the outbox, BroadcastChannel sync, the schema guard, the persistence request, export and import with undo, and `useEvidence()`.
 - **Files:** `src/evidence/{idb-store,outbox,channel,guard,export,import,useEvidence}.ts`; `e2e/ledger-conformance.spec.ts`.
 - **Accept:**
@@ -217,7 +217,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   3. A database with a newer `schemaVersion` puts the app in read-only mode with a reload prompt.
   4. Export, clear, then import (merge) round-trips to byte-identical canonical JSON.
 
-#### [ ] W0-T12 · Sim core: rng, time, workload, physics and host cards · M · sonnet · deps: W0-T02, W0-T03
+#### [x] W0-T12 · Sim core: rng, time, workload, physics and host cards · M · sonnet · deps: W0-T02, W0-T03
 - **Goal:** `packages/sim/{core,physics,host,workload}` per A§5.2.
 - **Files:**
   - the four modules;
@@ -231,7 +231,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   4. The table generator reproduces the committed table.
   5. The host presets carry [estimated] and a card line.
 
-#### [ ] W0-T13 · Sim: the step-loop model v0, the TR2 spike · L · sonnet · deps: W0-T12
+#### [x] W0-T13 · Sim: the step-loop model v0, the TR2 spike · L · sonnet · deps: W0-T12
 - **Goal:** `runStepLoop` per A§5.3, with:
   - async scheduling on and off;
   - graphs on and off, with capture sizes and padding;
@@ -252,7 +252,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   5. The card's "Ignores" list contains S5's list (kernelspace s5.md §3.5) plus host variance.
   6. If checks 1-4 cannot all be met, stop and report to the owner. No W0 task builds on a workaround.
 
-#### [ ] W0-T14 · Game framework core · M · sonnet · deps: W0-T03, W0-T10
+#### [x] W0-T14 · Game framework core · M · sonnet · deps: W0-T03, W0-T10
 - **Goal:** The session contract, the registry (with each game's display name and subtitle, D-049), the action log and replay grader, the announcer, the keyboard map and help dialog, the mirror kit, the Play → Debrief → Compose → In production → Build this shell, and `verify:games` (A§6.3, A§6.8, A§6.9).
 - **Files:** `packages/play/{types,registry,replay}.ts`; `src/games/kit/{GameShell,LiveRegion,KeysDialog,MirrorTable,ViewSwitch}.tsx` and `useGameInput.ts`; `src/games/registry.ts`; `scripts/verify-games.ts`; `tests/play/*.test.ts`.
 - **Accept:**
@@ -261,7 +261,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   3. Keys are bound on the container and ignored inside text inputs and on controls that use the key natively, such as `Space` on a focused button (unit test; A§6.8).
   4. Ten messages within 100 ms produce one announcement (fake timers).
 
-#### [ ] W0-T15 · Scene kit v0 · L · sonnet · deps: W0-T05, W0-T14
+#### [x] W0-T15 · Scene kit v0 · L · sonnet · deps: W0-T05, W0-T14
 - **Goal:** `src/scene` per A§6.4-A§6.7: Stage, tiers and the Governor, the context-loss fallback, CameraRig, SpanInstances, BlockGrid, LabelLayer, TimeAxis, Selection, PostFX (lazy, tier 2 and up), reduced motion, and a test hook that exposes `renderer.info` in test builds. No drei (D-021).
 - **Files:** `src/scene/*.ts(x)`, `src/scene/postfx/*.ts`, `e2e/scene-kit.spec.ts`, `src/pages/Design.tsx` (the specimen section only).
 - **Accept:**
@@ -272,7 +272,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   5. The `postfx` chunk is absent from the network log at T1 and present at T2 (forced tiers).
   6. `verify:boundaries` passes.
 
-#### [ ] W0-T16 · Service (`loop`): session, 2D view, mirror and poster · M · sonnet · deps: W0-T13, W0-T14
+#### [x] W0-T16 · Service (`loop`): session, 2D view, mirror and poster · M · sonnet · deps: W0-T13, W0-T14
 - **Goal:** `packages/play/loop` (session, the front-page levels `first-1-fill` to `first-4-par`, `layout.ts`) and `src/games/loop/{Game,View2D,Mirror,Controls,Debrief}.tsx`; `scripts/posters.ts` renders the practice seed's SVG from `layout.ts` (A§6.11). The session carries GAMES.md §3's synthetic tick card (`TICK_CARD`), manual admission (`admit`), and static and continuous batching over `packages/sim/steploop` (D-043).
 - **Read:** GAMES.md §3.1 and §2.6 (Service's objects and First service's copy); D-043, D-048, D-049.
 - **Accept:**
@@ -282,7 +282,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   4. The 2D view stays at or under 2,000 SVG marks in its default window.
   5. `verify:games` passes for `loop`.
 
-#### [ ] W0-T17 · Service (`loop`): the 3D scene · L · sonnet · deps: W0-T15, W0-T16
+#### [x] W0-T17 · Service (`loop`): the 3D scene · L · sonnet · deps: W0-T15, W0-T16
 - **Goal:** `src/games/loop/Scene3D.tsx`, built from scene-kit primitives (A§6.1, `loop` row):
   - CPU and GPU tracks along time, with batch slots across the width;
   - the bay, which the front page plays in: the tray of slots, the waiting requests beside it and, with overlap on, the second tray (GAMES.md §3, D-043);
@@ -298,7 +298,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   4. The screenshot artifact is non-blank (pixel sampling).
   5. All text is DOM, and no material uses a literal colour.
 
-#### [ ] W0-T18 · The front page · M · sonnet · deps: W0-T09, W0-T16, W0-T17
+#### [x] W0-T18 · The front page · M · sonnet · deps: W0-T09, W0-T16, W0-T17
 - **Goal:** A§6.11 in full:
   - The static shell in `index.html` holds the heading, the promise and the inline poster, in a reserved box.
   - Hydration makes the 2D Loop playable.
@@ -313,7 +313,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   4. With `saveData` emulated or tier 0 forced, the 3D chunks are never requested.
   5. `verify:numbers` passes on the page copy.
 
-#### [ ] W0-T19 · Static routes, meta CSP, 404 and base path · S · sonnet · deps: W0-T01, W0-T09
+#### [x] W0-T19 · Static routes, meta CSP, 404 and base path · S · sonnet · deps: W0-T01, W0-T09
 - **Goal:**
   - `scripts/prepare-pages.ts` writes `dist/<route>/index.html` for every route it can enumerate, each with its own title and description, plus `404.html`.
   - A Vite plugin adds A§12's meta CSP.
@@ -323,7 +323,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   2. The CSP meta is the first element after `<meta charset>` in every document, and contains no `'unsafe-eval'`.
   3. Adding a route that cannot be enumerated fails `verify:routes`.
 
-#### [ ] W0-T20 · Budget gates · M · sonnet · deps: W0-T04, W0-T18
+#### [x] W0-T20 · Budget gates · M · sonnet · deps: W0-T04, W0-T18
 - **Goal:**
   - `scripts/verify-bundle.ts` walks the manifest's closures for A§11.1's budgets: entry, the front page's first-paint closure, CSS, other routes, `three-vendor`, scenes, `postfx`, workers and lesson JSON.
   - `e2e/perf.spec.ts` runs the nightly lab profile (4× CPU, 1.6 Mbit/s, 150 ms RTT) and prints LCP, CLS and INP for lever presses.
@@ -332,7 +332,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   2. The PR records the measured front-page numbers with the build SHA [measured].
   3. The perf spec runs locally and prints its three numbers.
 
-#### [ ] W0-T21 · Playwright e2e, axe, screenshots and network isolation · M · sonnet · deps: W0-T18, W0-T19
+#### [x] W0-T21 · Playwright e2e, axe, screenshots and network isolation · M · sonnet · deps: W0-T18, W0-T19
 - **Goal:** `playwright.config.ts` (Chromium, 360×800 default, `vite preview`); `e2e/{a11y,keyboard-loop,network,screenshots,reduced-motion}.spec.ts`; `ci.yml`'s e2e-smoke job and the nightly sweep.
 - **Accept:**
   1. axe finds 0 serious or critical violations on `/`, `/map`, `/m/tr2`, `/m/tr2/l0-sample`, `/play/loop`, `/settings`, `/design` and `/evidence`, at 360 and 1280 px.
@@ -341,7 +341,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   4. 2D screenshots of `/` at 360 and 1280 px compare within tolerance. The 3D screenshot is an artifact checked non-blank.
   5. The SwiftShader flags that Playwright 1.63's Chromium needs are recorded in the config with a comment [measured].
 
-#### [ ] W0-T22 · Settings, evidence v0 and the design page · M · sonnet · deps: W0-T05, W0-T11, W0-T15
+#### [x] W0-T22 · Settings, evidence v0 and the design page · M · sonnet · deps: W0-T05, W0-T11, W0-T15
 - **Goal:**
   - `/settings`: 3D on or off, the tier cap, a reduced-motion override, and export, import and reset.
   - `/evidence` v0: event counts by kind and module, with export and import.
@@ -351,13 +351,13 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   2. Reset asks for confirmation and offers an export first.
   3. `/design` lists exactly the roles in `tokens.ts` (test).
 
-#### [ ] W0-T23 · Repo docs for agents · S · sonnet · deps: W0-T04
+#### [x] W0-T23 · Repo docs for agents · S · sonnet · deps: W0-T04
 - **Goal:** `README.md` (what the course is, how to run it, the lanes) and `AGENTS.md` (this tracker's agent brief, how to run the gates, the read-only rule for the sibling repos, pins and tags).
 - **Accept:**
   1. AGENTS.md carries every rule of the agent brief above.
   2. README's commands run as written on a clean clone.
 
-#### [ ] W0-T25 · Finish review and DESIGN.md (impeccable) · M · opus · deps: W0-T21, W0-T22
+#### [=] W0-T25 · Finish review and DESIGN.md (impeccable) · M · opus · deps: W0-T21, W0-T22
 - **Goal:** Discharge the direction contract's FINISH line (D-047): impeccable's finish review of the built front page and its world, the review's verdict, DESIGN.md and `.impeccable/design.json` written by impeccable's documenter from the built world, and provenance on every shipping raster.
 - **Read:** the surface brief, `.impeccable/surfaces/src-front-frontpage-tsx.md`; impeccable's `reference/new-work.md` §7 (Inspect and finish) and `reference/document.md`; PRODUCT.md; D-047 to D-049; GAMES.md §2.6.
 - **Files:**
@@ -381,7 +381,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   5. `npm run lint`, `npm run typecheck`, `bun test`, `npm run build`, `verify:tokens` and W0-T21's e2e specs pass after the fixes.
   6. D-047's record notes the verdict and its date.
 
-#### [ ] W0-T24 · W0 exit review · S · opus · deps: all of W0
+#### [x] W0-T24 · W0 exit review · S · opus · deps: all of W0
 - **Goal:** Review W0 against ARCHITECTURE and DECISIONS, and close W0's open decisions.
 - **Accept:**
   1. `docs/waves/W0-report.md` records:

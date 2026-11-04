@@ -28,7 +28,33 @@ const NO_INNER_HTML = [
 
 // 2. The determinism bans (ARCHITECTURE §5.1). scripts/verify-determinism.ts holds the same list, and adds the alias checks
 // that only an AST walk can make.
-const MATH_BANNED = ['exp', 'log', 'pow', 'sin', 'cos', 'tan', 'atan2', 'cbrt', 'hypot', 'random']
+// ECMA-262's note on the Math object's functions lists the ones it does not precisely specify (each engine uses its own maths
+// library), and Math.random is unseeded: the same 23, in the note's order, as BANNED_MATH in scripts/verify-determinism.ts.
+const MATH_BANNED = [
+  'acos',
+  'acosh',
+  'asin',
+  'asinh',
+  'atan',
+  'atanh',
+  'atan2',
+  'cbrt',
+  'cos',
+  'cosh',
+  'exp',
+  'expm1',
+  'hypot',
+  'log',
+  'log1p',
+  'log2',
+  'log10',
+  'pow',
+  'random',
+  'sin',
+  'sinh',
+  'tan',
+  'tanh',
+]
 const mathMessage = (name) =>
   name === 'random'
     ? 'Math.random is unseeded: draw from the seeded rng (D-017, ARCHITECTURE §5.1).'

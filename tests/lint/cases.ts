@@ -12,8 +12,13 @@ export interface Case {
   code: string
 }
 
-/** Math members that A§5.1 does not ban: the arithmetic, rounding and integer helpers that its models use. */
-export const UNBANNED_MATH = ['abs', 'ceil', 'clz32', 'floor', 'fround', 'imul', 'max', 'min', 'round', 'sign', 'sqrt', 'trunc'] as const
+/**
+ * Math members that A§5.1 does not ban: the arithmetic, rounding and integer helpers that its models use. ECMA-262 specifies each of
+ * them exactly (sqrt as the correctly rounded root), so every engine returns the same bits. `f16round` (ES2025) and `sumPrecise`
+ * (ES2026) are exact too. Between them and BANNED_MATH they are every function of the Math object, which
+ * tests/lint/determinism.test.ts checks against the engine that runs the tests.
+ */
+export const UNBANNED_MATH = ['abs', 'ceil', 'clz32', 'f16round', 'floor', 'fround', 'imul', 'max', 'min', 'round', 'sign', 'sqrt', 'sumPrecise', 'trunc'] as const
 
 /** What both layers must flag: the bans of ARCHITECTURE §5.1, written the ways code writes them. */
 export const BANNED: Case[] = [

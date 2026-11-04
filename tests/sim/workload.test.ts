@@ -26,6 +26,7 @@ import {
 } from '../../packages/sim/workload'
 import type { Dist, ReqSpec, SliceId, TraceSlice, Workload, WorkloadSpec } from '../../packages/sim/workload'
 import { MODELS, renderFixture } from '../../scripts/vectors'
+import { SEED_COUNT, seeds } from '../seeds'
 
 const root = path.resolve(import.meta.dirname, '../..')
 const TRACES = 'vendor/kernelspace/public/traces'
@@ -260,8 +261,8 @@ function expectWellFormed(w: Workload, spec: WorkloadSpec): void {
 }
 
 describe('every workload', () => {
-  test('is well formed for 200 seeds and a spec that uses every feature: dense ids, ordered integer times, lengths of at least 1, shared prefixes inside their prompts', () => {
-    for (let seed = 1; seed <= 200; seed++) expectWellFormed(genWorkload(seed, busy), busy)
+  test(`is well formed for ${SEED_COUNT} seeds and a spec that uses every feature: dense ids, ordered integer times, lengths of at least 1, shared prefixes inside their prompts`, () => {
+    for (const seed of seeds(1)) expectWellFormed(genWorkload(seed, busy), busy)
     for (const seed of [0, 0xffffffff]) expectWellFormed(genWorkload(seed, busy), busy)
   })
 

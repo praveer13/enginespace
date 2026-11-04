@@ -26,6 +26,7 @@ import type { GpuCard, GpuWork, Span, StepLoopConfig, TickGpuCard } from '../../
 import { checkDependency, placeLaunch, placeReadback, timelineBuilder } from '../../packages/sim/steploop/events'
 import { bubblesBefore } from '../../packages/sim/steploop/metrics'
 import { genWorkload } from '../../packages/sim/workload'
+import { seeds } from '../seeds'
 import { FOREVER, HARNESS, TRAY, burstTimeline, checkInvariants, config, handWorkload, referenceBatches, req, scenario } from './steploop-support'
 
 const tick = (cfg: StepLoopConfig, w = handWorkload([{ output: 1 }]), horizonUs: Us = FOREVER) => runStepLoop(w, cfg, TICK_CARD, TICK_CARD, { horizonUs })
@@ -683,8 +684,10 @@ describe('where the phases fall', () => {
 // ---------------------------------------------------------------------------------------------------------------------------
 // Two oracles that do not share the loop's code
 
-describe('against the oracles, over 200 seeds of requests that are all due at once', () => {
-  const SEEDS = Array.from({ length: 200 }, (_, i) => i + 1)
+// 200 seeds on a PR, 10,000 nightly (ARCHITECTURE §5.10) [estimated]: tests/seeds.ts has the knob.
+const SEEDS = seeds(1)
+
+describe(`against the oracles, over ${SEEDS.length} seeds of requests that are all due at once`, () => {
 
   test('every span of a run is the one a recurrence over the steps\' costs gives: the lanes, to the µs', () => {
     let waited = 0

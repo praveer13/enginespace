@@ -29,6 +29,7 @@ import {
   undoAction,
 } from '@es/play'
 import type { AnySession, GameAction, StoredRun } from '@es/play'
+import { SEED_COUNT, seeds } from '../seeds'
 import { PRACTICE_SEED, TOY, toySession, type ToyAction } from './support'
 
 const BEGIN = { game: 'toy', level: 'pile', seed: PRACTICE_SEED } as const
@@ -45,8 +46,8 @@ function randomRun(seed: number) {
 }
 
 describe('a recorded log regrades to the same score', () => {
-  test('over 200 seeds the replay equals the live run: state, grade, debrief and hash', () => {
-    for (let seed = 0; seed < 200; seed++) {
+  test(`over ${SEED_COUNT} seeds the replay equals the live run: state, grade, debrief and hash`, () => {
+    for (const seed of seeds()) {
       const live = randomRun(seed)
       const finished = finishRun(toySession, live)
       expect(finished).not.toBeNull()
@@ -311,7 +312,7 @@ describe('refs and hashes', () => {
 
 describe('determinism', () => {
   test('the same seed and the same actions give the same state hash every time', () => {
-    for (let seed = 0; seed < 200; seed++) {
+    for (const seed of seeds()) {
       const a = randomRun(seed)
       const b = randomRun(seed)
       expect(stateHash(b.state)).toBe(stateHash(a.state))

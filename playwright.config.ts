@@ -10,6 +10,7 @@ import { defineConfig } from '@playwright/test'
  * Every run starts with a fresh build and `vite preview` over it, as `npm run build && npm run preview` would, and the specs of the
  * `smoke` project reach it through `baseURL`. The specs that earlier tasks wrote (front, loop, loop-scene, scene-kit, settings and
  * ledger-conformance: the `features` project) build or serve the site themselves, with the test hooks on, and do not need that server.
+ * route-change and stale-chunk (the W1 carry-over) are in the `features` project too, and do use it.
  *
  * Environment, all of it optional:
  *   ES_CHROMIUM       the path of a Chromium to run in place of the one that Playwright installed, for a host where that one cannot start.

@@ -3,8 +3,9 @@
  *
  * packages/sim and packages/play must give the same bytes for the same seed in Bun, Chromium, Firefox and WebKit. This
  * walks the TypeScript AST of every file in those two packages, so comments and strings never trip it, and fails on:
- *   - Math.exp, log, pow, sin, cos, tan, atan2, cbrt and hypot, whose last bit can differ between engines (ECMA-262 leaves
- *     their results implementation-approximated), and Math.random, which is unseeded;
+ *   - the 22 Math functions whose results ECMA-262 leaves implementation-approximated, so that their last bit can differ between
+ *     engines (exp, log, pow, the trigonometric and hyperbolic functions and their inverses, cbrt, hypot, expm1, log1p, log2 and
+ *     log10: BANNED_MATH has them all), and Math.random, which is unseeded;
  *   - the clock and entropy globals Date, performance and crypto, the DOM globals window and document, and globalThis,
  *     which reaches all of them;
  *   - `**` and `**=`, which are Math.pow;
@@ -30,8 +31,38 @@ export interface Finding {
   message: string
 }
 
-/** The Math members that A§5.1 bans: the engine-dependent ones, and the unseeded one. */
-export const BANNED_MATH = ['exp', 'log', 'pow', 'sin', 'cos', 'tan', 'atan2', 'cbrt', 'hypot', 'random'] as const
+/**
+ * The Math members that A§5.1 bans: the engine-dependent ones, and the unseeded one. The list is the note that opens "Function
+ * Properties of the Math Object" in ECMA-262 (the es2026 tag, read 2026-11-04), in its order: the functions that the standard does
+ * not precisely specify, whose results each engine takes from its own maths library. `random` is in it, and is unseeded besides.
+ * Everything else the object has is exact (abs, ceil, clz32, floor, fround, imul, max, min, round, sign, sqrt, trunc, and ES2025's
+ * f16round and ES2026's sumPrecise), and stays allowed. tests/lint/determinism.test.ts holds this list to the note.
+ */
+export const BANNED_MATH = [
+  'acos',
+  'acosh',
+  'asin',
+  'asinh',
+  'atan',
+  'atanh',
+  'atan2',
+  'cbrt',
+  'cos',
+  'cosh',
+  'exp',
+  'expm1',
+  'hypot',
+  'log',
+  'log1p',
+  'log2',
+  'log10',
+  'pow',
+  'random',
+  'sin',
+  'sinh',
+  'tan',
+  'tanh',
+] as const
 const BANNED_MATH_SET: ReadonlySet<string> = new Set(BANNED_MATH)
 
 const CLOCK = 'reads the clock: time is integer µs and arrives as a parameter'

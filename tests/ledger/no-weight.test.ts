@@ -15,9 +15,10 @@ import path from 'node:path'
 import { buildExport, canonicalJson, decodeEvent, GRADED_KINDS, KINDS, PROVENANCE_WEIGHTS, serializeExport, weightOf } from '@es/ledger'
 import type { Kind, Ledger, LedgerEvent } from '@es/ledger'
 import { root } from '../ci/support'
+import { seeds } from '../seeds'
 import { copy, EXAMPLES, randomLedger } from './support'
 
-const SEEDS = Array.from({ length: 200 }, (_, index) => index + 1)
+const SEEDS = seeds(1)
 
 /** A name that says what an event is worth. (`exportedAt` has an "xp" in it, so the short names must start the member's name.) */
 const WEIGHTY = /weight|^xp|credit|^points?|multiplier|worth/i
@@ -49,7 +50,7 @@ describe('no event carries a weight', () => {
     for (const kind of KINDS) expect([...eventMembers(EXAMPLES[kind])].filter((name) => WEIGHTY.test(name))).toEqual([])
   })
 
-  test('not one of the events of 200 seeds, nor any member of an export of them', () => {
+  test(`not one of the events of ${SEEDS.length} seeds, nor any member of an export of them`, () => {
     const kinds = new Set<Kind>()
     for (const seed of SEEDS) {
       const ledger = randomLedger(seed, 10)

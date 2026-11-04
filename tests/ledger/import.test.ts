@@ -6,7 +6,8 @@
  * plan's one transaction is committed and the store's own rules do the work. The two must agree with each other: the plan says
  * what the ledger becomes, and the store, which knows nothing of the plan, has to arrive there.
  *
- * The seeds draw from a small pool of ids, so a file and a ledger share ids, with the same content and with other content.
+ * The seeds draw from a small pool of ids, so a file and a ledger share ids, with the same content and with other content. How many
+ * seeds there are is the knob of tests/seeds.ts: 200 on a pull request, 10,000 in the nightly run.
  */
 import { describe, expect, test } from 'bun:test'
 import {
@@ -24,9 +25,10 @@ import {
   serializeExport,
 } from '@es/ledger'
 import type { Checkpoint, ImportMode, Ledger, LedgerEvent, ReceiptRecord, Resolvers } from '@es/ledger'
+import { seeds } from '../seeds'
 import { copy, EXAMPLES, importInto, randomLedger, snapshot, undoIn } from './support'
 
-const SEEDS = Array.from({ length: 200 }, (_, index) => index + 1)
+const SEEDS = seeds(1)
 const NOW = '2026-11-10T08:00:00.000Z'
 const ctx = (id = 'cp-1') => ({ checkpointId: id, at: NOW })
 // A store holds one event per id, so it is seeded with the ledger in normal form.
@@ -42,7 +44,7 @@ const EARLY = '2026-11-04T07:00:00.000Z'
 const LATE = '2026-11-04T09:00:00.000Z'
 
 describe('a double import gives the ledger of a single import', () => {
-  test.each(['merge', 'replace'] as ImportMode[])('%s, over 200 seeds, on ledgers', (mode) => {
+  test.each(['merge', 'replace'] as ImportMode[])(`%s, over ${SEEDS.length} seeds, on ledgers`, (mode) => {
     let changed = 0
     for (const seed of SEEDS) {
       const { current, file } = pair(seed)
@@ -60,7 +62,7 @@ describe('a double import gives the ledger of a single import', () => {
     expect(changed).toBeGreaterThan(150)
   })
 
-  test.each(['merge', 'replace'] as ImportMode[])('%s, over 200 seeds, on a store', async (mode) => {
+  test.each(['merge', 'replace'] as ImportMode[])(`%s, over ${SEEDS.length} seeds, on a store`, async (mode) => {
     for (const seed of SEEDS) {
       const { current, file } = pair(seed)
       const store = fresh(current)
@@ -93,7 +95,7 @@ describe('a double import gives the ledger of a single import', () => {
 })
 
 describe('merging in any order gives the same ledger', () => {
-  test('on ledgers, three files imported in all six orders, over 200 seeds', () => {
+  test(`on ledgers, three files imported in all six orders, over ${SEEDS.length} seeds`, () => {
     for (const seed of SEEDS) {
       const current = randomLedger(seed * 4, 8)
       const files = [1, 2, 3].map((n) => randomLedger(seed * 4 + n, 8))
@@ -105,7 +107,7 @@ describe('merging in any order gives the same ledger', () => {
     }
   })
 
-  test('on a store, the same three files in all six orders, over 200 seeds', async () => {
+  test(`on a store, the same three files in all six orders, over ${SEEDS.length} seeds`, async () => {
     for (const seed of SEEDS) {
       const current = randomLedger(seed * 4, 8)
       const files = [1, 2, 3].map((n) => randomLedger(seed * 4 + n, 8))
@@ -132,7 +134,7 @@ describe('merging in any order gives the same ledger', () => {
 })
 
 describe('replace-then-undo gives the ledger back', () => {
-  test.each(['merge', 'replace'] as ImportMode[])('%s then undo, over 200 seeds, on ledgers', (mode) => {
+  test.each(['merge', 'replace'] as ImportMode[])(`%s then undo, over ${SEEDS.length} seeds, on ledgers`, (mode) => {
     for (const seed of SEEDS) {
       const { current, file } = pair(seed)
       const plan = planImport(current, file, mode, ctx())
@@ -147,7 +149,7 @@ describe('replace-then-undo gives the ledger back', () => {
     }
   })
 
-  test.each(['merge', 'replace'] as ImportMode[])('%s then undo, over 200 seeds, on a store', async (mode) => {
+  test.each(['merge', 'replace'] as ImportMode[])(`%s then undo, over ${SEEDS.length} seeds, on a store`, async (mode) => {
     for (const seed of SEEDS) {
       const { current, file } = pair(seed)
       const store = fresh(current)
@@ -167,7 +169,7 @@ describe('replace-then-undo gives the ledger back', () => {
     }
   })
 
-  test('two replaces are undone one after the other, newest first, over 200 seeds', async () => {
+  test(`two replaces are undone one after the other, newest first, over ${SEEDS.length} seeds`, async () => {
     for (const seed of SEEDS) {
       const { current, file } = pair(seed)
       const other = randomLedger(seed * 2 + 7, 10)
@@ -187,7 +189,7 @@ describe('replace-then-undo gives the ledger back', () => {
     }
   })
 
-  test('what was written after the import stays, over 200 seeds', async () => {
+  test(`what was written after the import stays, over ${SEEDS.length} seeds`, async () => {
     for (const seed of SEEDS) {
       const { current, file } = pair(seed)
       for (const mode of ['merge', 'replace'] as ImportMode[]) {

@@ -5,7 +5,7 @@
  *     page's first-paint closure and its CSS, another route, a scene, post-processing, a worker and a lesson, what each is held to,
  *     and what makes a row fail, warn or wait. A test changes one thing in the miniature and looks at one row.
  *   - The command runs on a build on disk, with real gzip, for its exit status and its usage.
- *   - The real app is built, and the gate must agree with a count of its own: the entry's gzip size, the front page's closure, and
+ *   - The real app is built, and the gate must agree with a count of its own: the entry's closure, the front page's closure, and
  *     index.html, which has to load and preload exactly the files that the closure counts. The test does not hold the real build to
  *     the budgets: that is verify:bundle in CI, so a budget that a later task spends does not fail the unit tests of every other task.
  */
@@ -282,10 +282,12 @@ describe('the miniature', () => {
     ])
   })
 
-  test('holds the entry to its own file: 36,000 B against a gate of 110 KB and a target of 100 KB', () => {
+  test('holds the entry and what it imports statically to a gate of 110 KB and a target of 100 KB: 96,000 B', () => {
+    // index.html 36,000 + react 60,000. Front, the pages and the course index are lazy, and so they are not in it.
     const row = rowOf(report, 'entry')
-    expect([row.status, row.bytes, row.gate, row.target]).toEqual(['ok', 36_000, 110, 100])
-    expect(row.parts.map((part) => part.file)).toEqual([fileOf('index.html')])
+    expect([row.status, row.bytes, row.gate, row.target]).toEqual(['ok', 96_000, 110, 100])
+    expect(filesIn(row)).toEqual([fileOf('index.html'), fileOf('_react-vendor.js')].sort())
+    expect(row.detail).toBe(`${fileOf('index.html')} with the chunks it imports statically (react-vendor)`)
     expect([BUDGETS.entry.gate, BUDGETS.entry.target]).toEqual([110, 100])
   })
 
@@ -351,11 +353,39 @@ describe('the miniature', () => {
 
 describe('a gate and a target', () => {
   test('the entry is ok up to its target, warns above it, and fails one byte above its gate', () => {
-    const entryAt = (bytes: number) => statusOf(run({ specs: sized('index.html', bytes) }), 'entry')
+    // The entry's closure is its own file and react-vendor's 60,000 B, so the file is what is left of the figure.
+    const entryAt = (closure: number) => statusOf(run({ specs: sized('index.html', closure - 60_000) }), 'entry')
     expect(entryAt(100 * KB)).toBe('ok')
     expect(entryAt(100 * KB + 1)).toBe('warn')
     expect(entryAt(110 * KB)).toBe('warn')
     expect(entryAt(110 * KB + 1)).toBe('FAIL')
+  })
+
+  test('the entry row counts what the entry imports, so a vendor chunk that grows fails it while the entry file stays small', () => {
+    // This is the case the row was moved for: React and ReactDOM sit in react-vendor, and the entry's own file is 36,000 B.
+    const grown = run({ specs: sized('_react-vendor.js', 75 * KB) })
+    expect([rowOf(grown, 'entry').status, rowOf(grown, 'entry').bytes]).toEqual(['FAIL', 36_000 + 75 * KB])
+    expect(rowOf(grown, 'entry').bytes).toBeGreaterThan(110 * KB)
+    // A row that fails lists its files, largest first, so the cause is on the screen.
+    expect(rowOf(grown, 'entry').parts.map((part) => part.file)).toEqual([fileOf('_react-vendor.js'), fileOf('index.html')])
+    // The same 36,000 B file alone would have passed every limit.
+    expect(statusOf(run({ specs: { '_react-vendor.js': { ...APP['_react-vendor.js'], bytes: 1 } } }), 'entry')).toBe('ok')
+  })
+
+  test('the entry row follows static imports only: a lazy chunk, however large, is not in it', () => {
+    const lazy = run({ specs: sized(FRONT, 500 * KB) })
+    expect(rowOf(lazy, 'entry').bytes).toBe(96_000)
+    expect(statusOf(lazy, 'entry')).toBe('ok')
+    // And a chunk the entry imports statically joins it, whatever it is called.
+    const imported = run({ specs: { index: { bytes: 20_000, name: 'chart' }, 'index.html': { ...APP['index.html'], imports: ['_react-vendor.js', 'index'] } } })
+    expect(rowOf(imported, 'entry').bytes).toBe(116_000)
+    expect(rowOf(imported, 'entry').detail).toContain('(react-vendor, chart)')
+  })
+
+  test('an entry that imports nothing is its own file alone', () => {
+    const alone = run({ specs: { 'index.html': { ...APP['index.html'], imports: [] } } })
+    expect(rowOf(alone, 'entry').bytes).toBe(36_000)
+    expect(rowOf(alone, 'entry').detail).toBe(fileOf('index.html'))
   })
 
   test('a run fails when any row fails, and not for a row that only warns', () => {
@@ -600,10 +630,10 @@ describe('the lines', () => {
 
   test('say the verdict, the figure in KB and in bytes, how far it sits from its gate and its target, and what it measured', () => {
     const line = lineOf(rowOf(report, 'entry'), 12)
-    expect(line.startsWith('ok   entry chunk')).toBe(true)
-    expect(line).toContain('36.0 KB')
-    expect(line).toContain('36,000 B')
-    expect(line).toContain('[gate 110 KB, 74,000 B under; target 100 KB, 64,000 B under]')
+    expect(line.startsWith('ok   entry closure')).toBe(true)
+    expect(line).toContain('96.0 KB')
+    expect(line).toContain('96,000 B')
+    expect(line).toContain('[gate 110 KB, 14,000 B under; target 100 KB, 4,000 B under]')
     expect(line).toContain(fileOf('index.html'))
   })
 
@@ -674,7 +704,7 @@ describe('the command', () => {
     const { status, lines } = command(['--root', dir])
     expect(status).toBe(0)
     expect(lines[0]).toContain('gzip by node:zlib')
-    expect(lines.some((line) => line.startsWith('ok   entry chunk'))).toBe(true)
+    expect(lines.some((line) => line.startsWith('ok   entry closure'))).toBe(true)
     expect(lines.some((line) => line.startsWith('ok   route /map'))).toBe(true)
     expect(lines.some((line) => line.startsWith('skip receipt.worker'))).toBe(true)
     expect(lines.at(-1)).toMatch(/^verify:bundle passed: \d+ budgets gated, 0 over a target, \d+ skipped$/)
@@ -685,7 +715,7 @@ describe('the command', () => {
     const { lines } = command(['--root', dir])
     const bytes = gzipSync(readFileSync(path.join(dir, 'dist/assets/index.js'))).length
     expect(bytes).toBeGreaterThan(5_000)
-    expect(lines.find((line) => line.startsWith('ok   entry chunk'))).toContain(`${bytes.toLocaleString('en-US')} B`)
+    expect(lines.find((line) => line.startsWith('ok   entry closure'))).toContain(`${bytes.toLocaleString('en-US')} B`)
     // The document's first-paint files, under /enginespace/, are the closure's, so there is nothing to warn about.
     expect(lines.some((line) => line.includes('document preloads'))).toBe(false)
     expect(lines.find((line) => line.startsWith('info fonts preloaded'))).toContain('1 face, 0.1 KB (100 B)')
@@ -695,7 +725,7 @@ describe('the command', () => {
     const { dir } = treeOnDisk(120_000)
     const { status, lines } = command(['--root', dir])
     expect(status).toBe(1)
-    const line = lines.find((candidate) => candidate.startsWith('FAIL entry chunk')) ?? ''
+    const line = lines.find((candidate) => candidate.startsWith('FAIL entry closure')) ?? ''
     expect(line).toMatch(/\[gate 110 KB, [\d,]+ B over; target 100 KB, [\d,]+ B over\]/)
     expect(lines.at(-1)).toMatch(/^verify:bundle failed: \d+ problems?/)
   })
@@ -758,7 +788,7 @@ describe('the command', () => {
     writeFileSync(path.join(dir, 'dist/assets/index.js'), noise(120_000, 9))
     const failed = start()
     expect(failed.status).toBe(1)
-    expect(failed.stdout).toContain('FAIL entry chunk')
+    expect(failed.stdout).toContain('FAIL entry closure')
   })
 })
 
@@ -785,8 +815,21 @@ describe('the real build', () => {
 
   const gzipOf = (file: string): number => gzipSync(readFileSync(path.join(dist, file))).length
 
-  test("measures the entry as the gzip size of the entry's file", () => {
-    expect(rowOf(report, 'entry').bytes).toBe(gzipOf(manifest['index.html'].file))
+  test("measures the entry as the gzip size of the files it reaches by static imports, react-vendor among them", () => {
+    const seen = new Set<string>()
+    const visit = (key: string) => {
+      if (seen.has(key)) return
+      seen.add(key)
+      for (const imported of manifest[key].imports ?? []) visit(imported)
+    }
+    visit('index.html')
+    const files = [...new Set([...seen].map((key) => manifest[key].file))]
+    expect(files.length).toBeGreaterThanOrEqual(2)
+    expect(files.some((file) => /\/react-vendor-/.test(file))).toBe(true)
+    expect(rowOf(report, 'entry').bytes).toBe(files.reduce((total, file) => total + gzipOf(file), 0))
+    // It is more than the entry's own file, which is what the row used to measure.
+    expect(rowOf(report, 'entry').bytes).toBeGreaterThan(gzipOf(manifest['index.html'].file))
+    expect(filesIn(rowOf(report, 'entry'))).toEqual([...files].sort())
   })
 
   test('has a row for every budget of ARCHITECTURE §11.1 that the app already has, and none for a page or a game that went missing', () => {

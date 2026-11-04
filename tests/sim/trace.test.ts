@@ -80,7 +80,7 @@ function expectRecovers(run: StepLoopRun, trace: EsTrace, ctx: string): Attribut
   return attributions
 }
 
-describe('check 1: over 200 seeds of synthetic traces', () => {
+describe(`check 1: over ${SEEDS.length} seeds of synthetic traces`, () => {
   test('GPU-busy + CPU-gap + both-idle equals every step window exactly in integer ns, and attribute recovers the run\'s own per-µs truth', () => {
     const covered = { windows: 0, gap: 0, idle: 0, overlap: 0, copyOnly: 0, graphHits: 0 }
     const worlds = new Set<string>()
@@ -209,7 +209,7 @@ function base(wanted: (run: StepLoopRun, world: string) => boolean): { seed: num
 }
 
 describe('check 2: traceChecks passes synthetic traces', () => {
-  test('passes the traces of 200 seeds under every jitter, with a verdict for each of the five checks', () => {
+  test(`passes the traces of ${SEEDS.length} seeds under every jitter, with a verdict for each of the five checks`, () => {
     const jitters = [DEFAULT_JITTER, CLEAN_JITTER, ROUGH]
     for (const seed of SEEDS) {
       const { run } = runOf(seed)
@@ -417,7 +417,7 @@ describe('check 2: traceChecks fails constructed defects, and only the check eac
 // Check 3: the encoding
 
 describe('check 3: the encoding round-trips exactly', () => {
-  test('decode(encode(t)) is t for 200 seeds, column type for column type, and encode(decode(s)) is s', () => {
+  test(`decode(encode(t)) is t for ${SEEDS.length} seeds, column type for column type, and encode(decode(s)) is s`, () => {
     // Six kernels a forward keeps the texts short: the codec is what is under test, and the generator's size is not.
     const small: JitterSpec = { ...DEFAULT_JITTER, kernelsPerForward: 6 }
     for (const seed of SEEDS.slice(0, 120)) {

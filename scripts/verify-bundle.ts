@@ -19,8 +19,11 @@
  *   - A closure is a chunk and everything it imports statically, over the manifest's `imports`. A dynamic import is not followed:
  *     it is a lazy chunk with a row of its own, or it loads on demand.
  *
- * The rows (each is [estimated] until W0-T24 freezes it in DECISIONS, D-023). A gate fails the run above it. A target only warns.
- *   entry          the entry chunk's own file.                                                  gate 110, target 100
+ * The rows (each is [estimated] until W0-T24 froze it in DECISIONS, D-023). A gate fails the run above it. A target only warns.
+ *   entry          the entry chunk and what it imports statically, JavaScript only: its own     gate 110, target 100
+ *                  file and react-vendor (React, ReactDOM and the stores), which every page loads before its own code. A§11.1 derived
+ *                  the figure from kernelspace's entry, a single file that carried React, so the row counts that closure and not the
+ *                  entry's own file (D-023, the W1 carry-over).
  *   front page     the JavaScript of the entry, the front page's chunk and the course index,    gate 150, target 130
  *                  with their static imports (A§6.10: "the entry, the `front` route, The Loop's 2D view, the step-loop core and
  *                  the content index"). The index is a lazy chunk, but the page's loader awaits it before it paints.
@@ -264,9 +267,16 @@ export function checkBundle(input: Input): Report {
     rows.push({ id, status, label, bytes: null, gate: null, target: null, detail, parts: [] })
   }
 
-  /* The entry. */
-  const entryChunk = manifest[entry]
-  measured('entry', 'entry chunk', sizeOf([entryChunk.file]), BUDGETS.entry, entryChunk.file)
+  /* The entry: its own file and what it imports statically (react-vendor), which every page loads before its own code. */
+  const entryKeys = closureOf(manifest, [entry])
+  const entryImports = entryKeys.filter((key) => key !== entry).map((key) => manifest[key].name ?? key)
+  measured(
+    'entry',
+    'entry closure',
+    sizeOf(filesOf(manifest, entryKeys).js),
+    BUDGETS.entry,
+    `${manifest[entry].file}${entryImports.length === 0 ? '' : ` with the chunks it imports statically (${entryImports.join(', ')})`}`,
+  )
 
   /* The pages of the route table. */
   const pageKeys = new Map<string, string>()
