@@ -52,7 +52,22 @@ export interface StageProps<P extends object> {
   tierCap?: Tier
   /** For the lease and the test hook. Default: a generated id. */
   id?: string
+  /**
+   * Open this Stage's scene when it scrolls well into view while the Stage holding the page's lease is out of view: on a page with
+   * two scenes, the one being read is the live one. Off by default; the button in the Stage's note always opens it too.
+   */
+  openInView?: boolean
   className?: string
+}
+
+/** How much of a Stage must be in view before `openInView` takes the lease [estimated]. */
+const IN_VIEW = 0.5
+
+/** Whether any part of an element lies inside the viewport. */
+function inViewport(element: Element | null): boolean {
+  if (!element) return false
+  const box = element.getBoundingClientRect()
+  return box.bottom > 0 && box.right > 0 && box.top < window.innerHeight && box.left < window.innerWidth
 }
 
 /** A§6.7's words. */
@@ -184,7 +199,7 @@ class SceneBoundary extends Component<{ onError: (error: unknown) => void; child
   }
 }
 
-export function Stage<P extends object>({ view2d, scene: Scene, sceneProps, announce, onFallback, onStats, onTier, prefer2d = false, tierCap = 3, id, className }: StageProps<P>) {
+export function Stage<P extends object>({ view2d, scene: Scene, sceneProps, announce, onFallback, onStats, onTier, prefer2d = false, tierCap = 3, id, openInView = false, className }: StageProps<P>) {
   const generated = useId()
   const stageId = id ?? `stage-${generated.replace(/[^a-zA-Z0-9]/g, '')}`
   const tokens = useSceneTokens()
@@ -200,6 +215,21 @@ export function Stage<P extends object>({ view2d, scene: Scene, sceneProps, anno
   const wants = device.known && device.tier >= 1 && !state.permanent && !state.chose2d && (!saveData || state.requested)
   const lease = useLease(stageId, wants)
   const mounted = wants && lease.held && state.failure === null
+  const box = useRef<HTMLDivElement>(null)
+  const { holder, take } = lease
+  useEffect(() => {
+    const element = box.current
+    if (!openInView || !wants || !element || typeof IntersectionObserver !== 'function' || holder === stageId) return
+    const sight = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.intersectionRatio < IN_VIEW || holder === null) return
+        if (!inViewport(document.querySelector(`[data-stage="${CSS.escape(holder)}"]`))) take()
+      },
+      { threshold: [IN_VIEW] },
+    )
+    sight.observe(element)
+    return () => sight.disconnect()
+  }, [openInView, wants, holder, stageId, take])
   // A scene that leaves takes what it had drawn with it. This adjusts state while rendering, the pattern for state that follows a value.
   const [wasMounted, setWasMounted] = useState(mounted)
   if (wasMounted !== mounted) {
@@ -322,6 +352,7 @@ export function Stage<P extends object>({ view2d, scene: Scene, sceneProps, anno
 
   return (
     <div
+      ref={box}
       className={clsx('es-stage', className)}
       data-stage={stageId}
       data-stage-phase={phase}

@@ -204,6 +204,21 @@ describe('the app build', () => {
     expect(chunksHolding(app, 'node_modules/three/examples/jsm/postprocessing/')).toEqual([postfx?.file])
   })
 
+  test("keeps scene kit v1's props in a scene-kit chunk that no page loads first, with the three addons they use (vite.config.ts)", () => {
+    const [kitKey, kit] = chunkNamed(app, 'scene-kit') ?? []
+    expect(kit).toBeDefined()
+    // Only the props are in it: not three, not React, not the kit's core.
+    const sources = app.sources.get(kit?.file ?? '') ?? []
+    expect(sources.filter((source) => !source.includes('src/scene/props/') && !source.startsWith(THREE_ADDONS))).toEqual([])
+    // Their addon (BufferGeometryUtils) rides with them, and no page's first chunk loads them.
+    expect(chunksHolding(app, `${THREE_ADDONS}utils/`)).toEqual([kit?.file])
+    for (const page of readdirSync(path.join(root, 'src/pages')).filter((file) => file.endsWith('.tsx'))) {
+      const [key] = Object.entries(app.manifest).find(([, chunk]) => chunk.name === page.replace('.tsx', '') && chunk.isDynamicEntry) ?? []
+      if (key) expect(staticClosure(app, key).has(kitKey ?? 'no scene-kit chunk'), page).toBe(false)
+    }
+    expect(staticClosure(app, entryKeyOf(app)).has(kitKey ?? 'no scene-kit chunk')).toBe(false)
+  })
+
   test('puts React in react-vendor, which the entry imports', () => {
     const [vendorKey, vendor] = chunkNamed(app, 'react-vendor') ?? []
     expect(vendor).toBeDefined()

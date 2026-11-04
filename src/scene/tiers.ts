@@ -11,6 +11,11 @@
  * [measured 2026-11-04, three 0.185.1, `gzip -9`], over the 25 KB the `postfx` chunk may weigh (A§11.1). T3 uses the same
  * FXAA as T2, folded into the final pass, until that budget is revisited.
  *
+ * The shadow column departs from A§6.6 too, which keeps real-time shadow maps off at T1 and T2 and allows one light at T3:
+ * scene kit v1 (W1) gives the heat lamps soft shadow maps from T2, three lights at T2 (a pass's three lamps) and four at T3
+ * [estimated], because a kitchen whose props cast nothing reads as grey geometry. T1 keeps none: its props sit on baked occlusion
+ * and contact shadows. A scene casts only when it asks (`<SceneCanvas shadows>`), and A§6.6's row is to follow.
+ *
  * This file imports nothing from three, so a page can ask for the tier before the 3D chunks load.
  */
 import { useSyncExternalStore } from 'react'
@@ -33,7 +38,7 @@ export interface TierLimits {
   readonly fpsCap: number
   /** The frame time the governor holds the tier to, in ms: 1,000 ÷ the cap [derived]. */
   readonly frameBudgetMs: number
-  /** Shadow-casting lights the tier allows (A§6.6: off at T1 and T2, at most one at T3). */
+  /** Shadow-casting lights the tier allows: none at T1, the heat lamps from T2 (scene kit v1, departing from A§6.6). */
   readonly shadowLights: number
 }
 
@@ -41,8 +46,8 @@ export interface TierLimits {
 export const TIERS: Readonly<Record<Tier, TierLimits>> = {
   0: { view: '2d', dprCap: 1, antialias: 'none', postPasses: 0, maxInstances: 0, fpsCap: 0, frameBudgetMs: 0, shadowLights: 0 },
   1: { view: '3d', dprCap: 1, antialias: 'none', postPasses: 0, maxInstances: 10_000, fpsCap: 30, frameBudgetMs: 1000 / 30, shadowLights: 0 },
-  2: { view: '3d', dprCap: 1.5, antialias: 'fxaa', postPasses: 1, maxInstances: 30_000, fpsCap: 60, frameBudgetMs: 1000 / 60, shadowLights: 0 },
-  3: { view: '3d', dprCap: 2, antialias: 'fxaa', postPasses: 2, maxInstances: 50_000, fpsCap: 60, frameBudgetMs: 1000 / 60, shadowLights: 1 },
+  2: { view: '3d', dprCap: 1.5, antialias: 'fxaa', postPasses: 1, maxInstances: 30_000, fpsCap: 60, frameBudgetMs: 1000 / 60, shadowLights: 3 },
+  3: { view: '3d', dprCap: 2, antialias: 'fxaa', postPasses: 2, maxInstances: 50_000, fpsCap: 60, frameBudgetMs: 1000 / 60, shadowLights: 4 },
 }
 
 /** What the device says about itself. Each field is read once, from the browser, by `probeDevice`. */
