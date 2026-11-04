@@ -27,7 +27,7 @@
 /* The page's name, stamped on a plate, at the size a lesson's title takes. */
 .es-page__title {
   margin: 0;
-  font-size: clamp(2rem, 1.2rem + 3.4vw, 3.75rem);
+  font-size: var(--es-size-page);
   line-height: 0.95;
   overflow-wrap: anywhere;
 }
@@ -215,7 +215,7 @@
 .es-xfer__title {
   margin: 0;
   font-family: var(--es-font-heading);
-  font-size: 1.625rem;
+  font-size: var(--es-size-large);
   line-height: 1;
   letter-spacing: 0.03em;
   font-weight: 800;
@@ -358,7 +358,7 @@
 
 .es-ledger__id {
   color: var(--es-text-2);
-  font-size: 0.8125rem;
+  font-size: var(--es-size-caption);
   font-weight: 400;
 }
 

@@ -65,6 +65,7 @@ const COLORS = {
   tape: hex('material', '#e6d6ad', 'Masking tape, torn off the roll: labels on pans and objects.'),
   'tape-ink': hex('material', '#1a1a1c', 'Marker on masking tape.'),
   'light-fluorescent': hex('material', '#eef4f8', "The tubes' cool white: the scene's ambient light."),
+  glint: hex('material', '#ffffff', "The tubes' glint on steel: white, only ever laid on at part strength as a bevel, a sheen or a lit edge. Never a surface."),
 
   // Text on steel and paper.
   'text-1': hex('text', '#17191d', 'Primary text on steel and paper.'),
@@ -156,6 +157,12 @@ interface SpaceValue {
   value: `${number}rem`
   note: string
 }
+/** A step of the type-size ramp: a rem, or a clamp() for a fluid size. Every `font-size` in the system is one of these, or a documented one-off. */
+interface SizeValue {
+  kind: 'size'
+  value: string
+  note: string
+}
 export interface FontValue {
   kind: 'font'
   /** The self-hosted face first (src/design/fonts.css), then fallbacks. A generic family is never first. */
@@ -189,7 +196,7 @@ const OTHERS = {
   },
   'shadow-plate': {
     kind: 'shadow',
-    value: 'inset 0 1px 0 rgb(255 255 255 / 0.7), inset 0 -1px 0 rgb(23 25 29 / 0.12), 0 1px 2px rgb(23 25 29 / 0.3)',
+    value: 'inset 0 1px 0 color-mix(in srgb, var(--es-glint) 70%, transparent), inset 0 -1px 0 rgb(23 25 29 / 0.12), 0 1px 2px rgb(23 25 29 / 0.3)',
     note: 'A stamped steel plate: lit top edge, shaded foot.',
   },
   'shadow-press': {
@@ -199,7 +206,7 @@ const OTHERS = {
   },
   'shadow-shelf': {
     kind: 'shadow',
-    value: '0 1px 0 rgb(255 255 255 / 0.55), 0 6px 12px -6px rgb(23 25 29 / 0.35)',
+    value: '0 1px 0 color-mix(in srgb, var(--es-glint) 55%, transparent), 0 6px 12px -6px rgb(23 25 29 / 0.35)',
     note: "The board's lip over the ground.",
   },
 
@@ -207,7 +214,7 @@ const OTHERS = {
   'texture-brushed': { kind: 'texture', value: BRUSHED_GRAIN, note: 'The brush streaks of stainless steel, over any surface role.' },
   'texture-sheen': {
     kind: 'texture',
-    value: 'linear-gradient(180deg, rgb(255 255 255 / 0.36), rgb(255 255 255 / 0) 24rem)',
+    value: 'linear-gradient(180deg, color-mix(in srgb, var(--es-glint) 36%, transparent), transparent 24rem)',
     note: 'The fluorescent tubes reflected along the top of the steel.',
   },
 
@@ -222,7 +229,9 @@ const OTHERS = {
 
   // Radii: sheet metal and paper.
   'radius-paper': { kind: 'radius', value: '0px', note: 'Paper is cut square.' },
+  'radius-trim': { kind: 'radius', value: '2px', note: 'The fine edge of a small part: a lever, a stamp, a bar, a slot.' },
   'radius-plate': { kind: 'radius', value: '3px', note: 'A stamped plate or a sheet-metal edge.' },
+  'radius-shoulder': { kind: 'radius', value: '8px', note: "The shoulder of a large sheet-metal part: the printer's housing, a clip's heel." },
   'radius-pan': { kind: 'radius', value: '10px', note: "A hotel pan's drawn corners." },
   'radius-round': { kind: 'radius', value: '999px', note: 'A light, a bell, a rivet.' },
 
@@ -308,14 +317,32 @@ const OTHERS = {
     case: 'none',
     note: 'Marker on masking tape.',
   },
-} as const satisfies Record<string, ShadowValue | TextureValue | DurationValue | EasingValue | RadiusValue | SpaceValue | FontValue>
+
+  // The size ramp: the sizes the type roles above leave to a component's own lines. Every `font-size` is a step of it, or a
+  // documented one-off with its reason beside it. The mono and label roles are `size-print`, the body and ticket roles are
+  // `size-body`, and the numeric role is `size-plate`.
+  'size-micro': { kind: 'size', value: '0.6875rem', note: 'Fine print: a stamp on the printer, a stage label at its floor.' },
+  'size-stamp': { kind: 'size', value: '0.75rem', note: 'A stamp or a tape head: a provenance tag, a line of tape.' },
+  'size-caption': { kind: 'size', value: '0.8125rem', note: 'A caption or a state word: under the bell, beside a light, on a rail clip.' },
+  'size-note': { kind: 'size', value: '0.875rem', note: "A note: a table's heading, a switch's stamped word, a menu term." },
+  'size-print': { kind: 'size', value: '0.9375rem', note: "The printer's line: a ticket's head and foot, a hint, an error. The mono and label size." },
+  'size-base': { kind: 'size', value: '1rem', note: 'The root size: a kick-plate link, a menu link, a small heading.' },
+  'size-body': { kind: 'size', value: '1.0625rem', note: 'Reading: the body and ticket size.' },
+  'size-plate': { kind: 'size', value: '1.125rem', note: 'Plate lettering and counts: a button, a board link, the numeric size.' },
+  'size-title': { kind: 'size', value: '1.25rem', note: 'A title: h3, and a course term.' },
+  'size-action': { kind: 'size', value: '1.375rem', note: "The primary action: the stub's label at its widest, a large plate button." },
+  'size-large': { kind: 'size', value: '1.5rem', note: 'Large: a big readout, a kit title, a panel title.' },
+  'size-count': { kind: 'size', value: 'clamp(2rem, 1.4rem + 2.4vw, 3rem)', note: 'The biggest count: an extra-large readout.' },
+  'size-page': { kind: 'size', value: 'clamp(2rem, 1.2rem + 3.4vw, 3.75rem)', note: "A page's title, on every page that is not the front page." },
+  'size-course': { kind: 'size', value: 'clamp(2.5rem, 1.8rem + 3vw, 4.5rem)', note: "A course's title on the front page: the sections' marquee." },
+} as const satisfies Record<string, ShadowValue | TextureValue | DurationValue | EasingValue | RadiusValue | SpaceValue | FontValue | SizeValue>
 
 /** Every role: name to definition. */
 export const ROLES = { ...COLORS, ...OTHERS }
 export type RoleName = keyof typeof ROLES
 export type ColorRoleName = keyof typeof COLORS
 export type RoleKind = (typeof ROLES)[RoleName]['kind']
-export type Role = ColorValue | ShadowValue | TextureValue | DurationValue | EasingValue | RadiusValue | SpaceValue | FontValue
+export type Role = ColorValue | ShadowValue | TextureValue | DurationValue | EasingValue | RadiusValue | SpaceValue | SizeValue | FontValue
 
 export const ROLE_NAMES = Object.keys(ROLES) as RoleName[]
 export const COLOR_ROLE_NAMES = Object.keys(COLORS) as ColorRoleName[]
@@ -338,6 +365,7 @@ export const ROLE_GROUPS = [
   { id: 'radius', title: 'Radii', kinds: ['radius'] },
   { id: 'space', title: 'Spacing', kinds: ['space'] },
   { id: 'type', title: 'Type', kinds: ['font'] },
+  { id: 'size', title: 'Type sizes', kinds: ['size'] },
 ] as const
 
 export type RoleGroupId = (typeof ROLE_GROUPS)[number]['id']
@@ -497,6 +525,9 @@ export function tailwindKey(name: RoleName): { section: string; key: string } {
       return { section: 'spacing', key: name.replace(/^space-/, '') }
     case 'font':
       return { section: 'fontFamily', key: name.replace(/^font-/, '') }
+    case 'size':
+      // Whole name as the key (`text-size-print`): Tailwind's own `text-sm` and the rest keep their meaning.
+      return { section: 'fontSize', key: name }
   }
 }
 

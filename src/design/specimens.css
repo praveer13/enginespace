@@ -21,7 +21,7 @@
 
 .es-spec__intro p {
   margin: 0;
-  font-size: 1.1875rem;
+  font-size: var(--es-size-plate);
   line-height: 1.55;
 }
 
@@ -35,7 +35,7 @@
   margin: 0;
   padding-bottom: var(--es-space-3);
   border-bottom: 1px solid var(--es-edge);
-  box-shadow: 0 1px 0 rgb(255 255 255 / 0.6);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--es-glint) 60%, transparent);
 }
 
 .es-spec__section > p {
@@ -56,7 +56,7 @@
   padding-bottom: var(--es-space-2);
   border-bottom: 2px dotted var(--es-paper-rule);
   font-family: var(--es-font-ticket);
-  font-size: 1.125rem;
+  font-size: var(--es-size-plate);
   letter-spacing: 0.05em;
   font-weight: 900;
   text-transform: uppercase;
@@ -78,15 +78,20 @@
   align-items: start;
 }
 
-.es-spec__role:is([data-kind='font'], [data-kind='space']) {
+.es-spec__role:is([data-kind='font'], [data-kind='space'], [data-kind='size']) {
   grid-template-columns: minmax(0, 1fr);
+}
+
+/* A taller neighbour in the row must not stretch the gap between a step's sample and its name. */
+.es-spec__role[data-kind='size'] {
+  align-content: start;
 }
 
 .es-spec__role-text {
   display: grid;
   gap: 0.1rem;
   min-width: 0;
-  font-size: 0.9375rem;
+  font-size: var(--es-size-print);
   line-height: 1.4;
 }
 
@@ -112,7 +117,7 @@
 
 .es-spec__role code,
 .es-spec__pair code {
-  font-size: 0.875rem;
+  font-size: var(--es-size-note);
   overflow-wrap: anywhere;
 }
 
@@ -147,7 +152,7 @@
   height: 2.6rem;
   margin-top: 0.4rem;
   border: 2px solid;
-  border-radius: 7px;
+  border-radius: var(--es-radius-shoulder);
   box-shadow: 0 2px 3px rgb(23 25 29 / 0.25);
 }
 
@@ -173,9 +178,28 @@
   align-items: center;
   min-height: 3rem;
   overflow: hidden;
-  font-size: 2rem;
+  font-size: 2rem; /* impeccable-disable-line design-system-font-size -- a specimen shows its face at display size */
   line-height: 1;
   white-space: nowrap;
+}
+
+/* A step of the size ramp, in the reading face at its own size. The fluid steps top out at 72px, so the sample is clipped there. */
+.es-spec__size {
+  display: block;
+  max-height: 4.75rem;
+  overflow: hidden;
+  font-family: var(--es-font-body);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Side by side, the samples stand on one line, so that the names under them line up across a row. */
+@media (min-width: 48rem) {
+  .es-spec__size {
+    display: flex;
+    align-items: flex-end;
+    height: 4.75rem;
+  }
 }
 
 .es-spec__shadow {
@@ -286,27 +310,27 @@
   height: 2.75rem;
   border-radius: var(--es-radius-plate);
   box-shadow: inset 0 0 0 1px var(--es-paper-rule);
-  font-size: 1.125rem;
+  font-size: var(--es-size-plate);
   font-weight: 700;
 }
 
 .es-spec__pair-mark {
   width: 1.25rem;
   height: 1.25rem;
-  border-radius: 2px;
+  border-radius: var(--es-radius-trim);
 }
 
 .es-spec__pair-text {
   grid-area: text;
   display: grid;
   min-width: 0;
-  font-size: 0.9375rem;
+  font-size: var(--es-size-print);
   line-height: 1.35;
 }
 
 .es-spec__pair-use {
   color: var(--es-text-2);
-  font-size: 0.875rem;
+  font-size: var(--es-size-note);
 }
 
 .es-spec__pair-ratios {
@@ -325,7 +349,7 @@
 
 .es-spec__pair-scheme {
   color: var(--es-text-2);
-  font-size: 0.8125rem;
+  font-size: var(--es-size-caption);
 }
 
 /* ---------------------------------------------------------------------------------------------- components */
@@ -343,7 +367,7 @@
 .es-spec__component-title {
   margin: 0;
   font-family: var(--es-font-heading);
-  font-size: 1.625rem;
+  font-size: var(--es-size-large);
   line-height: 1;
   letter-spacing: 0.03em;
   font-weight: 800;
@@ -410,7 +434,7 @@
 .es-spec__state-label {
   color: var(--es-text-2);
   font-family: var(--es-font-ticket);
-  font-size: 0.8125rem;
+  font-size: var(--es-size-caption);
   line-height: 1.3;
   letter-spacing: 0.04em;
   font-weight: 900;
@@ -482,7 +506,7 @@
 .es-spec__motion-title {
   margin: 0;
   font-family: var(--es-font-heading);
-  font-size: 1.625rem;
+  font-size: var(--es-size-large);
   line-height: 1;
   letter-spacing: 0.03em;
   font-weight: 800;
@@ -498,7 +522,7 @@
   display: grid;
   gap: var(--es-space-1);
   margin: 0;
-  font-size: 0.9375rem;
+  font-size: var(--es-size-print);
 }
 
 .es-spec__motion-facts > div {

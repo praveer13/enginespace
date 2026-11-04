@@ -5,9 +5,10 @@ import { Icon } from './Glyph'
 import { PrintingDots } from './PrintingDots'
 
 /*
- * An equipment toggle: a lever in a stainless plate stamped OFF and ON, with a pilot light that burns green when the
- * lever is up. It is a real switch (Radix's, so the role, keys and state are the platform's). The state is the lever's
- * side, the stamped word and the light, never the light alone.
+ * An equipment toggle: a lever in a stainless plate stamped OFF and ON, with a pilot light that burns the heat lamp's
+ * amber when the lever is up (a switch that is on is an active state, and amber is the only one). It is a real switch
+ * (Radix's, so the role, keys and state are the platform's). The state is the lever's side, the stamped word and the
+ * light, never the light alone.
  *
  * States: off, on, hover (the lever catches the tubes), focus (the heat lamp), active (the lever under the thumb),
  * disabled (no power: the plate dulls), loading (switching: the printer's dots by the label, the lever held), error (a

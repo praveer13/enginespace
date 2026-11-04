@@ -20,6 +20,7 @@ import { TapeLabel } from '@/design/components/TapeLabel'
 import { TextLink } from '@/design/components/TextLink'
 import { Ticket, TicketLine } from '@/design/components/Ticket'
 import { Toggle } from '@/design/components/Toggle'
+import { SLOT_MARKS, slotOf, type ColorRoleName, type Slot } from '@/design/tokens'
 
 const render = (element: ReactElement, location = '/map') =>
   renderToString(createElement(StaticRouter, { location }, element)).replaceAll('<!-- -->', '')
@@ -120,6 +121,38 @@ describe('StationLight and Bell', () => {
     expect(render(h(StationLight, { lit: true, label: 'Station 1' }))).toContain('>busy<')
     expect(render(h(StationLight, { lit: false, label: 'Station 2' }))).toContain('>dark<')
     expect(render(h(StationLight, { lit: false, fault: true, label: 'Station 3' }))).toContain('>fault<')
+  })
+
+  test('a station names its lane with a category mark beside its name, lit or dark, and never in its lens', () => {
+    for (const lit of [true, false]) {
+      const html = render(h(StationLight, { lit, lane: 'gpu', label: 'The line' }))
+      // The line is the GPU lane, and the GPU lane is the green board, whose glyph is a square.
+      expect(html).toContain('data-glyph="square"')
+      expect(html).toContain('color:var(--es-cat-green)')
+      expect(html).toContain('data-lane="gpu"')
+      expect(html).toMatch(/<span class="es-station__label"><svg[^>]*class="es-station__lane"[^>]*>.*<\/svg>The line<\/span>/)
+      // The lens carries the state alone: no colour rides the element for it to burn in.
+      expect(html).not.toContain('--es-station-light')
+      expect(html).not.toContain('--es-lane-')
+    }
+    expect(render(h(StationLight, { lit: true, lane: 'cpu', label: 'The expo' }))).toContain('data-glyph="circle"')
+  })
+
+  test('every lane draws the mark of the slot that tokens.ts gives it', () => {
+    for (const lane of ['cpu', 'gpu', 'sync', 'copy'] as const) {
+      const slot = slotOf(`lane-${lane}` as ColorRoleName)
+      expect(slot, lane).toBeDefined()
+      const html = render(h(StationLight, { lit: true, lane, label: lane }))
+      expect(html, lane).toContain(`data-glyph="${SLOT_MARKS[slot as Slot].glyph}"`)
+      expect(html, lane).toContain(`color:var(--es-cat-${slot})`)
+      expect(html, lane).toContain(`stroke="var(--es-cat-${slot}-edge)"`)
+    }
+  })
+
+  test('a station with no lane has no mark', () => {
+    const html = render(h(StationLight, { lit: true, label: 'Station 1' }))
+    expect(html).not.toContain('es-station__lane')
+    expect(html).not.toContain('data-glyph')
   })
 
   test('the bell is a named button when it fires the step, and its count is tagged', () => {

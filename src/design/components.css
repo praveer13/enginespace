@@ -58,15 +58,15 @@
   }
 
   .es-readout[data-size='sm'] {
-    font-size: 0.9375rem;
+    font-size: var(--es-size-print);
   }
 
   .es-readout[data-size='lg'] {
-    font-size: 1.5rem;
+    font-size: var(--es-size-large);
   }
 
   .es-readout[data-size='xl'] {
-    font-size: clamp(2rem, 1.4rem + 2.4vw, 3rem);
+    font-size: var(--es-size-count);
     line-height: 1;
   }
 
@@ -87,9 +87,9 @@
     align-self: center;
     padding: 0.05rem 0.3rem 0;
     border: 1px solid currentColor;
-    border-radius: 2px;
+    border-radius: var(--es-radius-trim);
     font-family: var(--es-font-body);
-    font-size: 0.75rem;
+    font-size: var(--es-size-stamp);
     line-height: 1.35;
     font-weight: 700;
     letter-spacing: 0.06em;
@@ -130,8 +130,8 @@
     padding: 0.28em 0.85em 0.2em;
     background-color: var(--es-tape);
     background-image:
-      repeating-linear-gradient(90deg, rgb(255 255 255 / 0.12) 0 1px, transparent 1px 4px),
-      linear-gradient(180deg, rgb(255 255 255 / 0.28), rgb(255 255 255 / 0) 65%);
+      repeating-linear-gradient(90deg, color-mix(in srgb, var(--es-glint) 12%, transparent) 0 1px, transparent 1px 4px),
+      linear-gradient(180deg, color-mix(in srgb, var(--es-glint) 28%, transparent), transparent 65%);
     box-shadow: inset 0 -1px 0 rgb(23 25 29 / 0.1);
     color: var(--es-tape-ink);
     font-family: var(--es-font-label);
@@ -143,7 +143,7 @@
     /* Torn ends: an authored jagged edge at each end of the strip. */
     mask-image:
       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 6 24' preserveAspectRatio='none'%3E%3Cpath d='M6 0V24H0L2 21.5 0.4 18.5 2.6 15 0 12 2.2 9 0.3 6 2.4 3 0 0Z'/%3E%3C/svg%3E"),
-      linear-gradient(#000, #000),
+      linear-gradient(#000, #000), /* impeccable-disable-line design-system-color -- a mask reads alpha only: this black is not a colour */
       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 6 24' preserveAspectRatio='none'%3E%3Cpath d='M0 0V24H6L3.8 21 5.7 18 3.4 15 6 12 3.9 9 5.6 6 3.5 3 6 0Z'/%3E%3C/svg%3E");
     mask-size:
       6px 100%,
@@ -166,7 +166,7 @@
 
   .es-tape[data-size='sm'] {
     padding: 0.18em 0.65em 0.12em;
-    font-size: 0.8125rem;
+    font-size: var(--es-size-caption);
   }
 
   .es-tape__glyph {
@@ -225,7 +225,7 @@
 
   .es-ticket[data-hole] .es-ticket__paper {
     padding-top: 2rem;
-    mask-image: radial-gradient(circle at 50% 0.9rem, transparent 0.4rem, #000 calc(0.4rem + 0.6px));
+    mask-image: radial-gradient(circle at 50% 0.9rem, transparent 0.4rem, #000 calc(0.4rem + 0.6px)); /* impeccable-disable-line design-system-color -- a mask reads alpha only: this black is not a colour */
   }
 
   /* Under the heat lamp: the pool of light on the steel around it, and the paper warmed at its top. */
@@ -257,7 +257,7 @@
     padding-bottom: var(--es-space-2);
     border-bottom: 2px dotted var(--es-paper-rule);
     font-family: var(--es-font-ticket);
-    font-size: 0.9375rem;
+    font-size: var(--es-size-print);
     line-height: 1.3;
     letter-spacing: var(--es-font-ticket-tracking);
     font-weight: var(--es-font-ticket-weight);
@@ -293,7 +293,7 @@
     border-top: 2px dotted var(--es-paper-rule);
     color: var(--es-text-2);
     font-family: var(--es-font-ticket);
-    font-size: 0.9375rem;
+    font-size: var(--es-size-print);
     line-height: 1.3;
     letter-spacing: var(--es-font-ticket-tracking);
     font-weight: var(--es-font-ticket-weight);
@@ -341,7 +341,7 @@
   .es-ticket[data-size='compact'] .es-ticket__head {
     flex-wrap: wrap;
     column-gap: 0.6ch;
-    font-size: clamp(0.6875rem, 0.55rem + 0.6vw, 0.8125rem);
+    font-size: clamp(var(--es-size-micro), 0.55rem + 0.6vw, var(--es-size-caption));
   }
 
   .es-ticket[data-size='compact'] .es-ticket__head {
@@ -361,7 +361,7 @@
     gap: var(--es-space-2);
     margin-top: var(--es-space-3);
     font-family: var(--es-font-ticket);
-    font-size: 0.9375rem;
+    font-size: var(--es-size-print);
     font-weight: 900;
     color: var(--es-text-2);
   }
@@ -375,7 +375,7 @@
     border-top: 2px dotted var(--es-paper-ink-2);
     color: var(--es-paper-ink-2);
     font-family: var(--es-font-ticket);
-    font-size: 0.9375rem;
+    font-size: var(--es-size-print);
     line-height: 1.4;
     font-weight: 900;
   }
@@ -393,7 +393,7 @@
     text-align: center;
     color: var(--es-text-2);
     font-family: var(--es-font-ticket);
-    font-size: 0.9375rem;
+    font-size: var(--es-size-print);
     font-weight: 900;
     background-image: repeating-linear-gradient(180deg, transparent 0 1.6rem, color-mix(in srgb, var(--es-paper-rule) 70%, transparent) 1.6rem calc(1.6rem + 1px));
   }
@@ -451,7 +451,7 @@
 
   @container (max-width: 17rem) {
     .es-stub__pull {
-      font-size: 1.125rem;
+      font-size: var(--es-size-plate);
       padding-inline: var(--es-space-4);
     }
   }
@@ -472,7 +472,7 @@
     background-position: 3px 0;
     color: var(--es-paper-ink-2);
     font-family: var(--es-font-ticket);
-    font-size: 1.375rem;
+    font-size: var(--es-size-action);
     line-height: 1.1;
     letter-spacing: 0.04em;
     font-weight: 900;
@@ -543,7 +543,7 @@
     background-color: var(--es-paper);
     color: var(--es-paper-ink-2);
     font-family: var(--es-font-body);
-    font-size: 0.9375rem;
+    font-size: var(--es-size-print);
     line-height: 1.45;
   }
 
@@ -626,10 +626,10 @@
     width: 2.25rem;
     height: 1.6rem;
     margin: -0.55rem 0 -0.65rem;
-    border-radius: 3px 3px 7px 7px;
+    border-radius: var(--es-radius-plate) var(--es-radius-plate) var(--es-radius-shoulder) var(--es-radius-shoulder);
     background: linear-gradient(180deg, color-mix(in srgb, var(--es-surface-3) 75%, var(--es-surface-1)) 0%, var(--es-surface-3) 45%, color-mix(in srgb, var(--es-surface-3) 80%, var(--es-paper-ink)) 100%);
     box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.35),
+      inset 0 1px 0 color-mix(in srgb, var(--es-glint) 35%, transparent),
       0 2px 3px rgb(23 25 29 / 0.4);
   }
 
@@ -647,7 +647,7 @@
     border: 2px dashed var(--es-edge);
     color: var(--es-text-2);
     font-family: var(--es-font-ticket);
-    font-size: 0.8125rem;
+    font-size: var(--es-size-caption);
     line-height: 1.35;
     font-weight: 900;
     text-align: center;
@@ -686,14 +686,14 @@
     width: 100%;
     min-height: 3.25rem;
     padding: var(--es-space-2) var(--es-space-3) 1.35rem;
-    border-radius: 8px 8px 4px 4px;
+    border-radius: var(--es-radius-shoulder) var(--es-radius-shoulder) var(--es-radius-plate) var(--es-radius-plate);
     background-color: var(--es-surface-3);
     background-image:
-      linear-gradient(180deg, rgb(255 255 255 / 0.2), rgb(255 255 255 / 0) 45%),
+      linear-gradient(180deg, color-mix(in srgb, var(--es-glint) 20%, transparent), transparent 45%),
       var(--es-texture-brushed);
     background-size: auto, 100% 360px;
     box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.25),
+      inset 0 1px 0 color-mix(in srgb, var(--es-glint) 25%, transparent),
       0 2px 4px rgb(23 25 29 / 0.35),
       0 14px 20px -12px rgb(23 25 29 / 0.5);
     color: var(--es-paper);
@@ -703,9 +703,9 @@
     position: absolute;
     inset: auto 1.1rem 0.5rem;
     height: 0.3rem;
-    border-radius: 2px;
+    border-radius: var(--es-radius-trim);
     background-color: var(--es-paper-ink);
-    box-shadow: 0 1px 0 rgb(255 255 255 / 0.18);
+    box-shadow: 0 1px 0 color-mix(in srgb, var(--es-glint) 18%, transparent);
   }
 
   .es-printer__housing-items {
@@ -751,7 +751,7 @@
     gap: var(--es-space-3);
     margin: 0;
     font-family: var(--es-font-ticket);
-    font-size: 0.9375rem;
+    font-size: var(--es-size-print);
     line-height: 1.35;
     letter-spacing: var(--es-font-ticket-tracking);
     font-weight: 900;
@@ -864,7 +864,7 @@
     padding: 0.42rem;
     border-radius: var(--es-radius-pan);
     background-color: var(--es-surface-1);
-    background-image: linear-gradient(160deg, rgb(255 255 255 / 0.65), rgb(255 255 255 / 0) 45%, rgb(23 25 29 / 0.12));
+    background-image: linear-gradient(160deg, color-mix(in srgb, var(--es-glint) 65%, transparent), transparent 45%, rgb(23 25 29 / 0.12));
     box-shadow:
       inset 0 0 0 1px var(--es-edge),
       0 1px 2px rgb(23 25 29 / 0.28);
@@ -875,7 +875,7 @@
     display: block;
     width: 100%;
     height: 100%;
-    border-radius: calc(var(--es-radius-pan) - 4px);
+    border-radius: calc(var(--es-radius-pan) - 4px); /* impeccable-disable-line design-system-radius -- the well sits 4px tighter than the pan's rim (DESIGN.md, Shapes) */
     background-color: var(--es-surface-2);
     box-shadow:
       inset 0 2px 4px rgb(23 25 29 / 0.3),
@@ -948,11 +948,11 @@
     width: 1.25rem;
     height: 1rem;
     padding: 2px;
-    border-radius: 4px;
+    border-radius: var(--es-radius-plate);
   }
 
   .es-pan[data-size='sm'] .es-pan__well {
-    border-radius: 2px;
+    border-radius: var(--es-radius-trim);
   }
 
   .es-pan[data-size='sm'] .es-pan__mark {
@@ -1000,7 +1000,6 @@
   /* ---------------------------------------------------------------------------------------------- station light */
 
   .es-station {
-    --es-station-light: var(--es-lane-gpu);
     display: inline-flex;
     align-items: center;
     gap: var(--es-space-3);
@@ -1035,12 +1034,13 @@
     box-shadow: inset 0 2px 3px rgb(23 25 29 / 0.5);
   }
 
-  /* Lit: the lane's colour of the code, glowing, with a solid core. */
+  /* Lit: the heat lamp's amber, glowing, with a solid core and the filament's edge. Whatever lane the station is in, a lit lens is
+     never a code colour: the lane rides beside the name as a mark (.es-station__lane), and the lens says only whether it is on. */
   .es-station[data-state='lit'] .es-station__lens {
-    background: radial-gradient(circle at 38% 32%, color-mix(in srgb, var(--es-station-light) 35%, var(--es-paper)) 0 16%, var(--es-station-light) 52%, color-mix(in srgb, var(--es-station-light) 70%, var(--es-paper-ink)) 100%);
+    background: radial-gradient(circle at 38% 32%, color-mix(in srgb, var(--es-lamp) 35%, var(--es-paper)) 0 16%, var(--es-lamp) 52%, color-mix(in srgb, var(--es-lamp) 70%, var(--es-lamp-ring)) 100%);
     box-shadow:
-      inset 0 0 0 1px color-mix(in srgb, var(--es-station-light) 60%, var(--es-paper-ink)),
-      0 0 12px 2px color-mix(in srgb, var(--es-station-light) 55%, transparent);
+      inset 0 0 0 1px var(--es-lamp-ring),
+      0 0 12px 2px color-mix(in srgb, var(--es-lamp) 55%, transparent);
   }
 
   .es-station[data-state='fault'] .es-station__lens {
@@ -1070,9 +1070,18 @@
     font-weight: 700;
   }
 
+  /* The lane's category mark: its board colour and its drawn glyph, the same lit or dark. */
+  .es-station__lane {
+    display: inline-block;
+    width: 0.8em;
+    height: 0.8em;
+    margin-right: 0.35em;
+    vertical-align: -0.05em;
+  }
+
   .es-station__word {
     font-family: var(--es-font-ticket);
-    font-size: 0.8125rem;
+    font-size: var(--es-size-caption);
     font-weight: 900;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -1272,7 +1281,7 @@
 
   .es-bell__caption {
     font-family: var(--es-font-ticket);
-    font-size: 0.8125rem;
+    font-size: var(--es-size-caption);
     font-weight: 900;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -1283,7 +1292,7 @@
 
   .es-button {
     --plate: var(--es-surface-1);
-    --plate-light: rgb(255 255 255 / 0.55);
+    --plate-light: color-mix(in srgb, var(--es-glint) 55%, transparent);
     position: relative;
     display: inline-flex;
     align-items: center;
@@ -1294,12 +1303,12 @@
     border: 1px solid var(--es-edge);
     border-radius: var(--es-radius-plate);
     background-color: var(--plate);
-    background-image: linear-gradient(180deg, var(--plate-light), rgb(255 255 255 / 0) 58%), var(--es-texture-brushed);
+    background-image: linear-gradient(180deg, var(--plate-light), transparent 58%), var(--es-texture-brushed);
     background-size: auto, 100% 360px;
     box-shadow: var(--es-shadow-plate);
     color: var(--es-text-1);
     font-family: var(--es-font-display);
-    font-size: 1.125rem;
+    font-size: var(--es-size-plate);
     line-height: 1;
     letter-spacing: 0.07em;
     font-weight: 800;
@@ -1317,13 +1326,13 @@
   .es-button[data-size='sm'] {
     min-height: 2rem;
     padding: 0.4rem 0.8rem 0.3rem;
-    font-size: 0.9375rem;
+    font-size: var(--es-size-print);
   }
 
   .es-button[data-size='lg'] {
     min-height: 3.25rem;
     padding: 0.7rem 1.5rem 0.55rem;
-    font-size: 1.375rem;
+    font-size: var(--es-size-action);
   }
 
   .es-button__icon {
@@ -1341,7 +1350,7 @@
 
   .es-button:is(:active, [data-force='active']):not(:disabled, [aria-disabled='true']) {
     --plate: var(--es-surface-2);
-    --plate-light: rgb(255 255 255 / 0.15);
+    --plate-light: color-mix(in srgb, var(--es-glint) 15%, transparent);
     transform: translateY(1px);
     box-shadow: var(--es-shadow-press);
   }
@@ -1377,19 +1386,19 @@
   /* An ink plate: deep steel, the label stamped out in paper-white. */
   .es-button[data-variant='ink'] {
     --plate: var(--es-surface-3);
-    --plate-light: rgb(255 255 255 / 0.2);
+    --plate-light: color-mix(in srgb, var(--es-glint) 20%, transparent);
     border-color: var(--es-paper-ink);
     color: var(--es-paper);
   }
 
   .es-button[data-variant='ink']:is(:hover, [data-force='hover']):not(:disabled, [aria-disabled='true']) {
     --plate: var(--es-surface-3);
-    --plate-light: rgb(255 255 255 / 0.32);
+    --plate-light: color-mix(in srgb, var(--es-glint) 32%, transparent);
   }
 
   .es-button[data-variant='ink']:is(:active, [data-force='active']):not(:disabled, [aria-disabled='true']) {
     --plate: color-mix(in srgb, var(--es-surface-3) 80%, var(--es-paper-ink));
-    --plate-light: rgb(255 255 255 / 0.08);
+    --plate-light: color-mix(in srgb, var(--es-glint) 8%, transparent);
   }
 
   .es-button[data-variant='ink']:disabled {
@@ -1436,7 +1445,7 @@
     align-items: flex-start;
     gap: var(--es-space-2);
     color: var(--es-paper-ink-2);
-    font-size: 0.9375rem;
+    font-size: var(--es-size-print);
     line-height: 1.4;
   }
 
@@ -1450,7 +1459,7 @@
   /* ---------------------------------------------------------------------------------------------- text link */
 
   .es-link {
-    border-radius: 2px;
+    border-radius: var(--es-radius-trim);
     color: inherit;
     text-decoration-line: underline;
     text-decoration-thickness: 0.08em;
@@ -1508,7 +1517,7 @@
     background-size: auto, 100% 360px;
     box-shadow:
       inset 0 2px 3px rgb(23 25 29 / 0.25),
-      0 1px 0 rgb(255 255 255 / 0.6);
+      0 1px 0 color-mix(in srgb, var(--es-glint) 60%, transparent);
     cursor: pointer;
     touch-action: manipulation;
   }
@@ -1522,7 +1531,7 @@
     justify-content: flex-end;
     padding-right: 0.15rem;
     font-family: var(--es-font-display);
-    font-size: 0.875rem;
+    font-size: var(--es-size-note);
     letter-spacing: 0.1em;
     font-weight: 800;
     color: var(--es-text-2);
@@ -1551,11 +1560,11 @@
     display: block;
     width: 1.85rem;
     height: calc(100% - 6px);
-    border-radius: 2px;
+    border-radius: var(--es-radius-trim);
     background: linear-gradient(180deg, color-mix(in srgb, var(--es-surface-1) 50%, var(--es-paper)), var(--es-surface-2));
     box-shadow:
       inset 0 0 0 1px var(--es-edge),
-      inset 0 1px 0 rgb(255 255 255 / 0.75),
+      inset 0 1px 0 color-mix(in srgb, var(--es-glint) 75%, transparent),
       0 2px 3px rgb(23 25 29 / 0.4);
     transition: transform var(--es-dur-quick) var(--es-ease-settle);
   }
@@ -1564,7 +1573,7 @@
     transform: translateX(calc(5.25rem - 1.85rem - 8px));
   }
 
-  /* The pilot light, at the plate's end: dark when off, burning green when on. */
+  /* The pilot light, at the plate's end: dark when off, burning the heat lamp's amber when on. */
   .es-toggle__pilot {
     position: absolute;
     top: 50%;
@@ -1578,10 +1587,10 @@
   }
 
   .es-toggle__switch[data-state='checked'] .es-toggle__pilot {
-    background: radial-gradient(circle at 38% 32%, color-mix(in srgb, var(--es-cat-green) 35%, var(--es-paper)) 0 16%, var(--es-cat-green) 55%, var(--es-cat-green-edge) 100%);
+    background: radial-gradient(circle at 38% 32%, color-mix(in srgb, var(--es-lamp) 35%, var(--es-paper)) 0 16%, var(--es-lamp) 55%, color-mix(in srgb, var(--es-lamp) 70%, var(--es-lamp-ring)) 100%);
     box-shadow:
-      inset 0 0 0 1px var(--es-cat-green-edge),
-      0 0 8px 1px color-mix(in srgb, var(--es-cat-green) 55%, transparent);
+      inset 0 0 0 1px var(--es-lamp-ring),
+      0 0 8px 1px color-mix(in srgb, var(--es-lamp) 70%, transparent);
   }
 
   .es-toggle__switch:is(:hover, [data-force='hover']):not(:disabled) .es-toggle__lever {
@@ -1639,7 +1648,7 @@
 
   .es-toggle__hint {
     color: var(--es-text-2);
-    font-size: 0.9375rem;
+    font-size: var(--es-size-print);
   }
 
   .es-toggle__error {
@@ -1647,7 +1656,7 @@
     align-items: flex-start;
     gap: var(--es-space-2);
     color: var(--es-paper-ink-2);
-    font-size: 0.9375rem;
+    font-size: var(--es-size-print);
   }
 
   .es-toggle__error-mark {
@@ -1697,7 +1706,7 @@
     background: transparent;
     color: var(--es-paper-ink);
     font-family: var(--es-font-body);
-    font-size: 1.0625rem;
+    font-size: var(--es-size-body);
     outline: none;
   }
 
@@ -1713,7 +1722,7 @@
 
   .es-field[data-numeric] .es-field__input {
     font-family: var(--es-font-numeric);
-    font-size: 1.125rem;
+    font-size: var(--es-size-plate);
     letter-spacing: 0.04em;
     font-weight: 900;
   }
@@ -1748,7 +1757,7 @@
 
   .es-field__hint {
     color: var(--es-text-2);
-    font-size: 0.9375rem;
+    font-size: var(--es-size-print);
   }
 
   .es-field__error {
@@ -1756,7 +1765,7 @@
     align-items: flex-start;
     gap: var(--es-space-2);
     color: var(--es-paper-ink-2);
-    font-size: 0.9375rem;
+    font-size: var(--es-size-print);
     line-height: 1.4;
   }
 
@@ -1832,7 +1841,7 @@
       content: attr(data-label);
       color: var(--es-text-2);
       font-family: var(--es-font-body);
-      font-size: 0.875rem;
+      font-size: var(--es-size-note);
       font-weight: 700;
     }
 
@@ -1861,7 +1870,7 @@
   .es-board[data-variant='board'] {
     border-bottom: 1px solid var(--es-edge);
     background-color: var(--es-surface-1);
-    background-image: linear-gradient(180deg, rgb(255 255 255 / 0.5), rgb(255 255 255 / 0) 70%), var(--es-texture-brushed);
+    background-image: linear-gradient(180deg, color-mix(in srgb, var(--es-glint) 50%, transparent), transparent 70%), var(--es-texture-brushed);
     background-size: auto, 100% 720px;
     box-shadow: var(--es-shadow-shelf);
   }
@@ -1869,7 +1878,7 @@
   .es-board[data-variant='kickplate'] {
     border-top: 1px solid var(--es-paper-ink);
     background-color: var(--es-surface-3);
-    background-image: linear-gradient(180deg, rgb(255 255 255 / 0.16), rgb(255 255 255 / 0) 60%), var(--es-texture-brushed);
+    background-image: linear-gradient(180deg, color-mix(in srgb, var(--es-glint) 16%, transparent), transparent 60%), var(--es-texture-brushed);
     background-size: auto, 100% 720px;
     color: var(--es-paper);
   }
@@ -1888,7 +1897,7 @@
     background-size: 100% 360px;
     color: var(--es-text-1);
     font-family: var(--es-font-display);
-    font-size: 1.3125rem;
+    font-size: 1.3125rem; /* impeccable-disable-line design-system-font-size -- the house name is stamped at its own size (DESIGN.md, Plate lettering) */
     line-height: 1;
     letter-spacing: 0.1em;
     font-weight: 800;
@@ -1918,7 +1927,7 @@
     padding: 0 0.15rem;
     color: var(--es-text-2);
     font-family: var(--es-font-display);
-    font-size: 1.125rem;
+    font-size: var(--es-size-plate);
     line-height: 1;
     letter-spacing: 0.08em;
     font-weight: 800;
@@ -1956,14 +1965,14 @@
     position: absolute;
     inset: auto 0.1rem 0.35rem;
     height: 3px;
-    border-radius: 2px;
+    border-radius: var(--es-radius-trim);
     background-color: var(--es-lamp-ring);
   }
 
   .es-board[data-variant='kickplate'] .es-board__link {
     min-height: 2.5rem;
     color: var(--es-paper);
-    font-size: 1rem;
+    font-size: var(--es-size-base);
   }
 
   .es-board[data-variant='kickplate'] .es-board__link[aria-current='page']::after {
@@ -1983,7 +1992,7 @@
     gap: 0.15rem var(--es-space-2);
     color: inherit;
     font-family: var(--es-font-ticket);
-    font-size: 1rem;
+    font-size: var(--es-size-base);
     letter-spacing: 0.04em;
     font-weight: 900;
     text-decoration: none;
@@ -1998,7 +2007,7 @@
 
   .es-menu-link__term {
     font-family: var(--es-font-body);
-    font-size: 0.875rem;
+    font-size: var(--es-size-note);
     letter-spacing: 0;
     font-weight: 700;
     text-transform: none;
@@ -2050,6 +2059,19 @@
       padding-inline: var(--es-space-8);
     }
   }
+
+  /*
+   * Forced colours: the gradients that draw a lit lens are dropped, so each on state is a solid Highlight, which is where tokens.ts
+   * maps the lamp. The block sits in the layer, after the rules it overrides: outside the layer, Tailwind's build moves the layer's
+   * rules to its own place, behind it, and a rule of the same weight in front of them loses.
+   */
+  @media (forced-colors: active) {
+    .es-board__link[aria-current='page']::after,
+    .es-toggle__switch[data-state='checked'] .es-toggle__pilot,
+    .es-station[data-state='lit'] .es-station__lens {
+      background: Highlight;
+    }
+  }
 }
 
 /* Reduced motion: the printer's dots stand still at full ink. */
@@ -2070,10 +2092,5 @@
   .es-pan__rim,
   .es-station__bezel {
     border: 1px solid CanvasText;
-  }
-
-  .es-board__link[aria-current='page']::after,
-  .es-toggle__switch[data-state='checked'] .es-toggle__pilot {
-    background: Highlight;
   }
 }

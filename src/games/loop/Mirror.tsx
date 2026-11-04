@@ -33,7 +33,7 @@ function Slots({ places }: { places: readonly PlaceView[] }) {
             Slot {index + 1}: {WORD[place.state]}
             {place.req === null ? '' : `, ticket ${ticketNo(place.req)}`}
           </span>
-          <span aria-hidden="true" className={clsx('inline-flex h-6 min-w-7 items-center justify-center border-2 font-numeric text-[0.7rem] leading-none', look[place.state])}>
+          <span aria-hidden="true" className={clsx('inline-flex h-6 min-w-7 items-center justify-center border-2 font-numeric text-size-micro leading-none', look[place.state])}>
             {place.req === null ? '' : ticketNo(place.req)}
           </span>
         </li>

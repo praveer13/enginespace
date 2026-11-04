@@ -8,12 +8,20 @@
  *   - The type ramp, the radii and the spacing steps are the tokens' own values, role by role.
  *   - Every face it names is self-hosted: declared in src/design/fonts.css from a file under public/fonts/ that fonts.json pins.
  *   - .impeccable/design.json, the sidecar, exists and parses.
+ * W1's design carry-over (W0 finish finding F6) adds the other direction and the rest of what DESIGN.md says:
+ *   - Every literal colour, radius, spacing and type role in tokens.ts is a step of the front matter, so a role cannot move into the
+ *     system without its document.
+ *   - The size ramp (`--es-size-*`, which the front matter's type roles do not carry) is listed in the Typography section with its
+ *     values, and the sidecar's `typeScale` is the same list.
+ *   - The sidecar follows the tokens and the document: a tonal ramp for every colour, the shadows and the grain as the roles hold them,
+ *     and the narrative (rules, dos and don'ts) word for word.
  */
 import { describe, expect, test } from 'bun:test'
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { CORE_SCHEMA, load } from 'js-yaml'
 import postcss from 'postcss'
+import { ROLES, ROLE_NAMES, type RoleName } from '@/design/tokens'
 
 const root = path.resolve(import.meta.dirname, '../..')
 const read = (file: string) => readFileSync(path.join(root, file), 'utf8')
@@ -149,5 +157,100 @@ describe('every face DESIGN.md names is self-hosted', () => {
       expect(existsSync(path.join(root, 'public', url)), `${url} is not under public/fonts`).toBe(true)
       expect(pinned.has(path.basename(url)), `${url} is not pinned in public/fonts/fonts.json`).toBe(true)
     }
+  })
+})
+
+describe("DESIGN.md's scales hold every role of tokens.ts", () => {
+  const ofKind = (kind: string) => ROLE_NAMES.filter((name) => ROLES[name].kind === kind)
+
+  test('the front matter holds every colour role with a literal value, and no other colour', () => {
+    const literal = ROLE_NAMES.filter((name) => {
+      const role = ROLES[name]
+      return role.kind === 'color' && typeof role.value === 'string'
+    })
+    expect(Object.keys(fm.colors).sort()).toEqual([...literal].sort())
+  })
+
+  test('the rounded scale holds every radius role, the spacing scale every space role, and the type roles every font role', () => {
+    expect(Object.keys(fm.rounded).sort()).toEqual(ofKind('radius').map((name) => name.replace(/^radius-/, '')).sort())
+    expect(Object.keys(fm.spacing).sort()).toEqual(ofKind('space').map((name) => name.replace(/^space-/, '')).sort())
+    expect(Object.keys(fm.typography).sort()).toEqual(ofKind('font').map((name) => name.replace(/^font-/, '')).sort())
+  })
+})
+
+describe('the size ramp', () => {
+  const steps = ROLE_NAMES.filter((name) => ROLES[name].kind === 'size')
+  const stepValue = (name: RoleName) => (ROLES[name] as { value: string }).value
+  /** The Typography section's Hierarchy bullet that lists the ramp. */
+  const bullet = body.split('\n').find((line) => line.startsWith('- **Size ramp**')) ?? ''
+
+  test('tokens.ts has a ramp, and DESIGN.md names its tokens', () => {
+    expect(steps.length).toBeGreaterThan(8)
+    expect(bullet).toContain('`--es-size-*`')
+  })
+
+  test.each(steps)('%s is listed with its value in the Typography section', (name) => {
+    const step = name.replace(/^size-/, '')
+    expect(bullet, `${step} (${stepValue(name)})`).toContain(`${step} (${stepValue(name)}`)
+  })
+
+  test("the sidecar's typeScale is the ramp, step by step", () => {
+    const sidecar = JSON.parse(read('.impeccable/design.json')) as { extensions: { typeScale: { name: string; value: string; purpose: string }[] } }
+    expect(sidecar.extensions.typeScale).toEqual(steps.map((name) => ({ name, value: stepValue(name), purpose: ROLES[name].note })))
+  })
+})
+
+describe('the sidecar follows the tokens and the document', () => {
+  type Sidecar = {
+    extensions: {
+      colorMeta: Record<string, { canonical: string; tonalRamp: string[] }>
+      shadows: { name: string; value: string }[]
+      textures: { name: string; value: string }[]
+    }
+    narrative: { rules: { name: string; body: string }[]; dos: string[]; donts: string[]; keyCharacteristics: string[] }
+  }
+  const sidecar = JSON.parse(read('.impeccable/design.json')) as Sidecar
+
+  test('every colour of the front matter has its tonal ramp, under its own canonical value', () => {
+    expect(Object.keys(sidecar.extensions.colorMeta)).toEqual(Object.keys(fm.colors))
+    for (const [name, value] of Object.entries(fm.colors)) {
+      expect(sidecar.extensions.colorMeta[name].canonical.toLowerCase(), name).toBe(value.toLowerCase())
+      expect(sidecar.extensions.colorMeta[name].tonalRamp, name).toHaveLength(8)
+    }
+  })
+
+  test('its shadows and its grain are the roles of tokens.ts, as written there', () => {
+    for (const shadow of sidecar.extensions.shadows) {
+      if (shadow.name in ROLES) expect(shadow.value, shadow.name).toBe((ROLES[shadow.name as RoleName] as { value: string }).value)
+    }
+    for (const texture of sidecar.extensions.textures) {
+      if (texture.name === 'texture-sheen') expect(texture.value).toBe((ROLES['texture-sheen'] as { value: string }).value)
+    }
+    expect(sidecar.extensions.shadows.filter((shadow) => shadow.name in ROLES).length).toBe(5)
+  })
+
+  test("its narrative carries DESIGN.md's named rules, key characteristics, dos and don'ts word for word", () => {
+    const rules = [...body.matchAll(/^\*\*(The .+? Rule)\.\*\* (.*)$/gm)].map((match) => ({ name: match[1], body: match[2] }))
+    expect(sidecar.narrative.rules.map(({ name, body: text }) => ({ name, body: text }))).toEqual(rules)
+    const bulletsUnder = (heading: string) => {
+      const lines = body.split('\n')
+      const from = lines.findIndex((line) => line.trim() === heading)
+      const found: string[] = []
+      for (const line of lines.slice(from + 1)) {
+        if (line.startsWith('- ')) found.push(line.slice(2))
+        else if (line.startsWith('#')) break
+      }
+      return found
+    }
+    expect(sidecar.narrative.dos).toEqual(bulletsUnder('### Do:'))
+    expect(sidecar.narrative.donts).toEqual(bulletsUnder("### Don't:"))
+    const characteristics = body.split('\n')
+    const from = characteristics.findIndex((line) => line.startsWith('**Key Characteristics:**'))
+    const kept: string[] = []
+    for (const line of characteristics.slice(from + 1)) {
+      if (line.startsWith('- ')) kept.push(line.slice(2))
+      else if (line.trim() === '' && kept.length > 0) break
+    }
+    expect(sidecar.narrative.keyCharacteristics).toEqual(kept)
   })
 })

@@ -49,7 +49,7 @@
 /* The page's name, stamped on a plate: the display face at a size that holds a lesson's title. */
 .es-doc__title {
   margin: 0;
-  font-size: clamp(2rem, 1.2rem + 3.4vw, 3.75rem);
+  font-size: var(--es-size-page);
   line-height: 0.95;
   overflow-wrap: anywhere;
 }
@@ -150,7 +150,7 @@
 }
 
 .es-c-block .es-ticket__body h4 {
-  font-size: 1rem;
+  font-size: var(--es-size-base);
   line-height: 1.4;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -190,7 +190,7 @@
   overflow-x: auto;
   border-block: 2px dotted var(--es-paper-rule);
   background-color: color-mix(in srgb, var(--es-paper-rule) 26%, var(--es-paper));
-  font-size: 0.875rem;
+  font-size: var(--es-size-note);
   line-height: 1.5;
   tab-size: 4;
 }
@@ -289,7 +289,7 @@
 
 .es-claim__trace {
   max-inline-size: 13rem;
-  font-size: 0.75rem;
+  font-size: var(--es-size-stamp);
   line-height: 1.35;
   color: var(--es-text-2);
   overflow-wrap: anywhere;

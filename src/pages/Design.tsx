@@ -62,7 +62,7 @@ export function Component() {
       <section aria-labelledby="roles" className="es-spec__section">
         <h2 id="roles">Roles</h2>
         {ROLE_GROUPS.map((group) => (
-          <RoleGroup key={group.id} title={group.title} names={rolesIn(group.id)} />
+          <RoleGroup key={group.id} id={group.id} title={group.title} names={rolesIn(group.id)} />
         ))}
       </section>
 
@@ -104,16 +104,24 @@ export function Component() {
 
 // ------------------------------------------------------------------------------------------------ roles
 
-function RoleGroup({ title, names }: { title: string; names: RoleName[] }) {
+/**
+ * A group named by its own heading, and not a region: a region is a landmark, and a landmark needs a name that no other landmark on the
+ * page has (the page's own "Motion" section is one, which is what axe's landmark-unique found). Fourteen lists of roles are not places
+ * to navigate by landmark, and the headings already are.
+ */
+function RoleGroup({ id, title, names }: { id: string; title: string; names: RoleName[] }) {
+  const headingId = `roles-${id}`
   return (
-    <section className="es-spec__group" aria-label={title}>
-      <h3 className="es-spec__group-title">{title}</h3>
+    <div className="es-spec__group" role="group" aria-labelledby={headingId}>
+      <h3 className="es-spec__group-title" id={headingId}>
+        {title}
+      </h3>
       <ul className="es-spec__roles">
         {names.map((name) => (
           <RoleEntry key={name} name={name} />
         ))}
       </ul>
-    </section>
+    </div>
   )
 }
 
@@ -211,6 +219,12 @@ function RoleSample({ name }: { name: RoleName }) {
       </span>
     )
   }
+  if (role.kind === 'size')
+    return (
+      <span className="es-spec__size" style={{ fontSize: variable }} aria-hidden="true">
+        Aa
+      </span>
+    )
   if (role.kind === 'shadow') return <span className="es-spec__shadow" style={{ boxShadow: variable }} aria-hidden="true" />
   if (role.kind === 'texture')
     return <span className="es-spec__swatch es-spec__swatch--texture" style={{ backgroundImage: variable }} aria-hidden="true" />
@@ -536,15 +550,21 @@ function ComponentSpecimens() {
         </State>
       </Specimen>
 
-      <Specimen title="Station light" about="A station's pilot light: lit in its lane's colour while it cooks, an open dark ring while it waits.">
-        <State label="busy, the line">
+      <Specimen
+        title="Station light"
+        about="A station's pilot light: it burns the heat lamp's amber while it cooks and is an open dark ring while it waits. The lane it belongs to is a mark beside its name, the same lit or dark."
+      >
+        <State label="busy">
           <StationLight lit label="Station 1" />
         </State>
-        <State label="busy, the expo">
+        <State label="busy, in the line's lane">
+          <StationLight lit lane="gpu" label="The line" />
+        </State>
+        <State label="busy, in the expo's lane">
           <StationLight lit lane="cpu" label="The expo" words={{ lit: 'writing', dark: 'idle', fault: 'fault' }} />
         </State>
-        <State label="dark">
-          <StationLight lit={false} label="Station 2" />
+        <State label="dark, the lane's mark stays">
+          <StationLight lit={false} lane="gpu" label="The line" />
         </State>
         <State label="fault">
           <StationLight lit={false} fault label="Station 3" />
@@ -630,7 +650,7 @@ function ComponentSpecimens() {
         </State>
       </Specimen>
 
-      <Specimen title="Toggle" about="An equipment switch: the lever, the stamped word, and a pilot light that burns green when it is on.">
+      <Specimen title="Toggle" about="An equipment switch: the lever, the stamped word, and a pilot light that burns the heat lamp's amber when it is on.">
         <State label="live">
           <Toggle label="Write the next call during this fire" hint="overlap (async scheduling)" checked={overlap} onCheckedChange={setOverlap} />
         </State>

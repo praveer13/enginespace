@@ -19,6 +19,7 @@
   --es-tape: #e6d6ad;
   --es-tape-ink: #1a1a1c;
   --es-light-fluorescent: #eef4f8;
+  --es-glint: #ffffff;
   --es-text-1: #17191d;
   --es-text-2: #3b4148;
   --es-text-3: #4b525a;
@@ -63,11 +64,11 @@
   --es-probability-observed: var(--es-cat-white);
   --es-shadow-paper: 0 1px 1px rgb(23 25 29 / 0.16), 0 8px 18px -8px rgb(23 25 29 / 0.38);
   --es-shadow-lift: 0 2px 3px rgb(23 25 29 / 0.16), 0 16px 28px -12px rgb(23 25 29 / 0.42);
-  --es-shadow-plate: inset 0 1px 0 rgb(255 255 255 / 0.7), inset 0 -1px 0 rgb(23 25 29 / 0.12), 0 1px 2px rgb(23 25 29 / 0.3);
+  --es-shadow-plate: inset 0 1px 0 color-mix(in srgb, var(--es-glint) 70%, transparent), inset 0 -1px 0 rgb(23 25 29 / 0.12), 0 1px 2px rgb(23 25 29 / 0.3);
   --es-shadow-press: inset 0 2px 4px rgb(23 25 29 / 0.32), inset 0 0 0 1px rgb(23 25 29 / 0.08);
-  --es-shadow-shelf: 0 1px 0 rgb(255 255 255 / 0.55), 0 6px 12px -6px rgb(23 25 29 / 0.35);
+  --es-shadow-shelf: 0 1px 0 color-mix(in srgb, var(--es-glint) 55%, transparent), 0 6px 12px -6px rgb(23 25 29 / 0.35);
   --es-texture-brushed: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='720' height='720'%3E%3Cfilter id='l' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0016 0.92' numOctaves='3' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1.25 0 0 0 -0.56'/%3E%3C/filter%3E%3Cfilter id='d' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0022 0.7' numOctaves='2' seed='29' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.16 0 0 0 0 0.18 0 0 0 0 0.2 0 1.1 0 0 -0.5'/%3E%3C/filter%3E%3Crect width='720' height='720' filter='url(%23l)'/%3E%3Crect width='720' height='720' filter='url(%23d)'/%3E%3C/svg%3E");
-  --es-texture-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.36), rgb(255 255 255 / 0) 24rem);
+  --es-texture-sheen: linear-gradient(180deg, color-mix(in srgb, var(--es-glint) 36%, transparent), transparent 24rem);
   --es-dur-quick: 120ms;
   --es-dur-bell: 240ms;
   --es-dur-feed: 420ms;
@@ -76,7 +77,9 @@
   --es-ease-strike: cubic-bezier(0.19, 1, 0.22, 1);
   --es-ease-feed: steps(6, end);
   --es-radius-paper: 0px;
+  --es-radius-trim: 2px;
   --es-radius-plate: 3px;
+  --es-radius-shoulder: 8px;
   --es-radius-pan: 10px;
   --es-radius-round: 999px;
   --es-space-1: 0.25rem;
@@ -130,6 +133,20 @@
   --es-font-label-tracking: 0.02em;
   --es-font-label-weight: 400;
   --es-font-label-case: none;
+  --es-size-micro: 0.6875rem;
+  --es-size-stamp: 0.75rem;
+  --es-size-caption: 0.8125rem;
+  --es-size-note: 0.875rem;
+  --es-size-print: 0.9375rem;
+  --es-size-base: 1rem;
+  --es-size-body: 1.0625rem;
+  --es-size-plate: 1.125rem;
+  --es-size-title: 1.25rem;
+  --es-size-action: 1.375rem;
+  --es-size-large: 1.5rem;
+  --es-size-count: clamp(2rem, 1.4rem + 2.4vw, 3rem);
+  --es-size-page: clamp(2rem, 1.2rem + 3.4vw, 3.75rem);
+  --es-size-course: clamp(2.5rem, 1.8rem + 3vw, 4.5rem);
 }
 
 /* More contrast */
