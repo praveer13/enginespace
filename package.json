@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "typecheck": "tsc -b",
-    "test": "bun test"
+    "test": "bun test",
+    "verify:boundaries": "bun scripts/verify-boundaries.ts",
+    "verify:determinism": "bun scripts/verify-determinism.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "1.1.15",
