@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { contentPlugin } from './scripts/content/vite-plugin'
+import { metaCsp } from './scripts/pages/csp'
 
 const root = path.dirname(fileURLToPath(import.meta.url))
 
@@ -27,7 +28,8 @@ export default defineConfig({
   // GitHub Pages serves the site at /enginespace/ until a custom domain exists (O-1); local dev and previews use "/".
   base: process.env.VITE_BASE || '/',
   // The content compiler (ARCHITECTURE §4.1): it compiles content/ at the start of a build and of the dev server, and again when a lesson changes.
-  plugins: [react(), contentPlugin()],
+  // The meta CSP (§12) goes into every document of a build, right behind its <meta charset>.
+  plugins: [react(), contentPlugin(), metaCsp()],
   build: {
     // verify:bundle walks dist/.vite/manifest.json to measure each route's static JS and CSS closure.
     manifest: true,
