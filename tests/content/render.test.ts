@@ -13,14 +13,14 @@ import { createElement as h, type ReactElement } from 'react'
 import { renderToString } from 'react-dom/server'
 import { StaticRouter } from 'react-router'
 import { BLOCK_TYPES } from '@es/schema'
-import type { Claim, CompiledBlock, CompiledLesson, CompiledModule, ContentIndex, ProseFlow, ProseInline } from '@es/schema'
-import { Blocks } from '@/content/render/Blocks'
+import type { Claim, CompiledBlock, CompiledCard, CompiledLesson, CompiledModule, ContentIndex, ProseFlow, ProseInline } from '@es/schema'
+import { Blocks, NotionalMachineView } from '@/content/render/Blocks'
 import { renderEnv } from '@/content/render/model'
 import { PageNotice } from '@/content/render/Page'
 import { Prose } from '@/content/render/Prose'
 import { LessonView } from '@/pages/Lesson'
 import { ModuleView } from '@/pages/Module'
-import { compile, output } from './support.ts'
+import { compile, output, sampleCard } from './support.ts'
 
 const TODAY = '2026-11-04'
 
@@ -70,11 +70,11 @@ describe('/m/tr2/l0-sample', () => {
 
   test('draws a ticket for each block, with a head line that names the lesson, and a section\'s heading as its stamped title', () => {
     const tickets = opening(html, 'section').filter((tag) => attribute(tag, 'data-block') !== undefined)
-    // Two prose blocks (one of them in two tickets), the six other blocks, and the closing ticket.
-    expect(tickets.length).toBe(11)
+    // Two prose blocks (one of them in two tickets), the seven other blocks (the sample has two cards), and the closing ticket.
+    expect(tickets.length).toBe(12)
     for (const tag of tickets) expect(tag).toContain('class="es-ticket es-c-block"')
     // The lesson's id is on every head line for the eye, and hidden from assistive tech, which has the page's name once.
-    expect(html.match(/<div class="es-ticket__head"><span><span aria-hidden="true">tr2\.l0<\/span><\/span>/g)?.length).toBe(11)
+    expect(html.match(/<div class="es-ticket__head"><span><span aria-hidden="true">tr2\.l0<\/span><\/span>/g)?.length).toBe(12)
     expect(html).toContain('<h2 class="es-ticket__title">The bubble</h2>')
   })
 
@@ -95,9 +95,9 @@ describe('/m/tr2/l0-sample', () => {
     expect(html).toContain('href="/labs/tr3.profile"')
   })
 
-  test('a block that is complete carries no placeholder: prose, the warning card and the figure', () => {
+  test('a block that is complete carries no placeholder: prose, the two cards (the warning, and the notional-machine card that prints while it loads) and the figure', () => {
     const complete = opening(html, 'section').filter((tag) => ['prose', 'card', 'figure'].includes(attribute(tag, 'data-block') ?? ''))
-    expect(complete.length).toBe(5)
+    expect(complete.length).toBe(6)
     for (const tag of complete) expect(tag).not.toContain('data-placeholder')
   })
 
@@ -459,7 +459,7 @@ describe('the blocks, one at a time', () => {
     expect(drawnBlocks(lab('tr8.replay', 'F'))).toContain('stage · s2')
   })
 
-  test('cards: a warning and an isomorphism are drawn in full, and the cards kept in their own files wait for their tasks', () => {
+  test('cards: a warning and an isomorphism are drawn in full, a notional-machine card is printed when it loads, and the other cards kept in their own files wait for their tasks', () => {
     const iso = drawnBlocks({ type: 'card', kind: 'isomorphism', title: 'A queue', body: 'A ring buffer is a queue.', breaks: 'Eviction has no ring.' })
     expect(iso).toContain('<h2 class="es-ticket__title">A queue</h2>')
     expect(iso).toContain('where it breaks')
@@ -468,7 +468,8 @@ describe('the blocks, one at a time', () => {
     // No title falls back to the kind's name.
     expect(drawnBlocks({ type: 'card', kind: 'warning', body: 'Careful.' })).toContain('<h2 class="es-ticket__title">Warning</h2>')
     const kept = (kind: 'notional-machine' | 'in-production' | 'build-this' | 'change') => placeholders(drawnBlocks({ type: 'card', kind, id: 'trace-room-steploop' }))
-    expect(kept('notional-machine')).toEqual({ card: 'W1-T07' })
+    // A notional-machine card is no placeholder: it prints while it loads, and the next test draws it once it has.
+    expect(kept('notional-machine')).toEqual({})
     expect(kept('in-production')).toEqual({ card: 'W1-T13' })
     expect(kept('build-this')).toEqual({ card: 'W1-T13' })
     expect(kept('change')).toEqual({ card: 'W3-T06' })
@@ -484,5 +485,74 @@ describe('the blocks, one at a time', () => {
 
   test('no blocks, no tickets', () => {
     expect(drawnBlocks()).toBe('')
+  })
+})
+
+describe('a notional-machine card (W1-T07)', () => {
+  const fixture = compile({ 'content/cards/fixture-world.md': sampleCard() })
+  const card = JSON.parse(output(fixture, 'src/content/generated/cards/fixture-world.json')) as CompiledCard
+  const env = renderEnv([], claims, TODAY)
+  const html = render(h(NotionalMachineView, { card, env, scope: 'tr2.l1' }))
+
+  test('is one ticket, titled by its kind, with the card\'s id on its head line and no placeholder', () => {
+    const tickets = opening(html, 'section')
+    expect(tickets.length).toBe(1)
+    expect(attribute(tickets[0], 'data-block')).toBe('card')
+    expect(attribute(tickets[0], 'data-kind')).toBe('notional-machine')
+    expect(attribute(tickets[0], 'data-placeholder')).toBeUndefined()
+    expect(html).toContain('<h2 class="es-ticket__title">Notional machine</h2>')
+    expect(html).toContain('<div class="es-ticket__head"><span><span aria-hidden="true">tr2.l1</span></span><span>fixture-world</span></div>')
+  })
+
+  test('prints the card\'s name and its few words, then its three parts under tape, in order, one level under the ticket\'s title', () => {
+    expect(html).toContain('<p class="es-c-card__name">A fixture world</p>')
+    expect(html).toContain('<p>A world for a test.</p>')
+    expect(levels(html)).toEqual([2, 3, 3, 3])
+    const parts = [...html.matchAll(/<h3 class="es-c-part" data-part="(\w+)"><span class="es-tape"[^>]*><span class="es-tape__text">([^<]+)<\/span><\/span><\/h3>/g)].map((match) => [match[1], match[2]])
+    expect(parts).toEqual([
+      ['models', 'Models'],
+      ['ignores', 'Ignores'],
+      ['calibrated', 'Calibrated against'],
+    ])
+    const at = (word: string) => html.indexOf(word)
+    expect(at('Models')).toBeLessThan(at('The CPU&#x27;s work'))
+    expect(at('The CPU&#x27;s work')).toBeLessThan(at('Ignores'))
+    expect(at('Ignores')).toBeLessThan(at('Everything else.'))
+    expect(at('Everything else.')).toBeLessThan(at('Calibrated against'))
+    expect(at('Calibrated against')).toBeLessThan(at('Nothing yet.'))
+  })
+
+  test('draws each claim a rule cites as a chip with its source, so no rule is a bare assertion', () => {
+    expect(html).toContain('data-claim="sample.world.host-step-us"')
+    expect(html).toContain('verified <time dateTime="2026-11-04">2026-11-04</time>')
+    expect(html).not.toContain('no such claim')
+    expect(html).not.toContain('the claims did not load')
+  })
+
+  test('says which world it is and where it stands, on tape', () => {
+    expect(html).toContain('world · fixture')
+    expect(html).toContain('status · draft')
+  })
+
+  test('a claim the page could not load is named, and says so', () => {
+    const lost = render(h(NotionalMachineView, { card, env: renderEnv([], null, TODAY), scope: 'tr2.l1' }))
+    expect(lost).toContain('data-state="unavailable"')
+    expect(lost).toContain('the claims did not load')
+  })
+
+  test('while the card loads, its block is a ticket that is still printing, with the same title and head line', () => {
+    const loading = drawnBlocks({ type: 'card', kind: 'notional-machine', id: 'fixture-world' })
+    expect(loading).toContain('data-state="loading"')
+    expect(loading).toContain('aria-busy="true"')
+    expect(loading).toContain('Printing the card')
+    expect(loading).toContain('<h2 class="es-ticket__title">Notional machine</h2>')
+    expect(loading).toContain('fixture-world</span></div>')
+    expect(placeholders(loading)).toEqual({})
+  })
+
+  test('the card parts the page prints are the parts the schema names, in its order', async () => {
+    const { CARD_PARTS } = await import('@es/schema')
+    const printed = [...html.matchAll(/data-part="\w+"><span class="es-tape"[^>]*><span class="es-tape__text">([^<]+)</g)].map((match) => match[1])
+    expect(printed).toEqual([...CARD_PARTS])
   })
 })

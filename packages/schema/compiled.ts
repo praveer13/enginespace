@@ -1,6 +1,6 @@
 /**
- * What the content compiler writes (ARCHITECTURE §4.1 and §4.6, D-016): the course index, one JSON per module and per lesson,
- * and the claims file. The renderer reads these and nothing in `content/`, and `scripts/content/build.ts` validates each output
+ * What the content compiler writes (ARCHITECTURE §4.1 and §4.6, D-016): the course index, one JSON per module, per lesson and per
+ * card, and the claims file. The renderer reads these and nothing in `content/`, and `scripts/content/build.ts` validates each output
  * against the schema here before it writes it, so a compiler bug fails the build instead of reaching a page.
  *
  * Prose is a restricted token tree. Its nodes are the ones A§4.1 lists: paragraph, heading, list, table and code at block
@@ -14,7 +14,7 @@ import { z } from 'zod'
 import { CLAIM_TAGS, claimSchema } from './claims'
 import type { ClaimTag } from './claims'
 import { nonBlank, sha256Hex } from './common'
-import { blockSchema, lessonFrontMatterSchema, moduleFrontMatterSchema, STATUSES } from './content'
+import { blockSchema, cardFrontMatterSchema, lessonFrontMatterSchema, moduleFrontMatterSchema, STATUSES } from './content'
 import type { Block } from './content'
 import { gameIdSchema, lessonIdSchema, moduleIdSchema, prereqSchema } from './refs'
 
@@ -124,6 +124,20 @@ export const compiledModuleSchema = moduleFrontMatterSchema.extend({
   blocks: z.array(compiledBlockSchema),
 })
 
+/**
+ * A notional-machine card, compiled (A§5.9): its front matter, then its words as the same prose token tree that a lesson has.
+ * `intro` is what comes before the first part, and may be empty. The three parts follow in `CARD_PARTS` order, and each holds
+ * something: `models`, `ignores` and `calibrated` (the part "Calibrated against").
+ */
+export const compiledCardSchema = cardFrontMatterSchema.extend({
+  /** A SHA-256 over the card's authored fields, its words and the claims it cites, as a lesson's is. */
+  rev: sha256Hex,
+  intro: z.array(proseFlowSchema),
+  models: z.array(proseFlowSchema).min(1),
+  ignores: z.array(proseFlowSchema).min(1),
+  calibrated: z.array(proseFlowSchema).min(1),
+})
+
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* The index and the claims file                                                                                      */
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -168,6 +182,7 @@ export const claimsOutputSchema = z.strictObject({ claims: z.array(claimSchema) 
 
 export type CompiledLesson = z.infer<typeof compiledLessonSchema>
 export type CompiledModule = z.infer<typeof compiledModuleSchema>
+export type CompiledCard = z.infer<typeof compiledCardSchema>
 export type IndexLesson = z.infer<typeof indexLessonSchema>
 export type IndexModule = z.infer<typeof indexModuleSchema>
 export type ContentIndex = z.infer<typeof contentIndexSchema>

@@ -9,7 +9,7 @@
 import { describe, expect, test } from 'bun:test'
 import { z } from 'zod'
 import { claimSchema, claimsFileSchema } from '@es/schema/claims'
-import { blockBodySchemas, blockSchema, lessonFrontMatterSchema, moduleFrontMatterSchema } from '@es/schema/content'
+import { blockBodySchemas, blockSchema, cardFrontMatterSchema, lessonFrontMatterSchema, moduleFrontMatterSchema } from '@es/schema/content'
 import { kcGraphSchema, kcSchema } from '@es/schema/kc'
 import { lockEntrySchema, lockFileSchema } from '@es/schema/lock'
 import { refSchema } from '@es/schema/refs'
@@ -17,6 +17,7 @@ import { refSchema } from '@es/schema/refs'
 const schemas: [string, z.ZodType][] = [
   ['lesson front matter', lessonFrontMatterSchema],
   ['module front matter', moduleFrontMatterSchema],
+  ['card front matter', cardFrontMatterSchema],
   ['a block', blockSchema],
   ...Object.entries(blockBodySchemas).map(([name, schema]): [string, z.ZodType] => [`a ${name} body`, schema]),
   ['a claim', claimSchema],

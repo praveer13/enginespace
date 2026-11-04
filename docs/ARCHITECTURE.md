@@ -319,7 +319,7 @@ KCs come from a ref→KC map at read time and are never stored (kernelspace's ru
 | Output | Where | Size target |
 |---|---|---|
 | Course index: modules, lessons, titles, routes and hours | `src/content/generated/index.json`, in the entry closure | ≤ 6 KB gz [estimated] |
-| One JSON per lesson and per module | `src/content/generated/{lessons,modules}/*.json`, one lazy chunk each through `import.meta.glob` | ≤ 40 KB gz each [estimated] |
+| One JSON per lesson, per module and per card | `src/content/generated/{lessons,modules,cards}/*.json`, one lazy chunk each through `import.meta.glob` | ≤ 40 KB gz each [estimated] |
 | Learner's-agent export, with keys and answers stripped | `public/md/<module>/<lesson>.md`, `public/llms.txt` | — |
 | Claims for `/about` and the claim chips | `public/claims.json` (lazy) | — |
 | Search index (W3) | `public/search.json` (lazy) | ≤ 20 KB gz [estimated] |

@@ -17,7 +17,7 @@ import { gzipSync } from 'node:zlib'
 import { claimsOutputSchema, compiledLessonSchema, compiledModuleSchema, contentIndexSchema } from '@es/schema'
 import type { ProseFlow, ProseInline } from '@es/schema'
 import { BUDGETS, canonicalJson, compileContent, writeOutputs } from '../../scripts/content/build.ts'
-import { CLAIM_COUNT, CLAIMS, compile, COURSE, errors, KCS, LESSON, lineOf, MODULE, output, project, read, repo, report, swap, tempDir, where } from './support.ts'
+import { CARD_COUNT, CARD_IDS, CLAIM_COUNT, CLAIMS, compile, COURSE, errors, KCS, LESSON, lineOf, MODULE, output, project, read, repo, report, sampleCard, swap, tempDir, where } from './support.ts'
 import type { Edit } from './support.ts'
 
 const LESSON_JSON = 'src/content/generated/lessons/tr2.l0-sample.json'
@@ -26,6 +26,8 @@ const INDEX_JSON = 'src/content/generated/index.json'
 
 const lesson = read(LESSON)
 const sample = compile()
+/** The files the sample writes: the index, the claims, the export of the module and its lesson, their JSON, and one JSON for each card. */
+const OUTPUT_COUNT = 7 + CARD_COUNT
 
 describe('the sample content compiles', () => {
   test('without a diagnostic of any kind', () => {
@@ -34,15 +36,18 @@ describe('the sample content compiles', () => {
   })
 
   test('to the outputs of A§4.6', () => {
-    expect(sample.outputs.map((o) => o.path).sort()).toEqual([
-      'public/claims.json',
-      'public/llms.txt',
-      'public/md/tr2/index.md',
-      'public/md/tr2/l0-sample.md',
-      'src/content/generated/index.json',
-      'src/content/generated/lessons/tr2.l0-sample.json',
-      'src/content/generated/modules/tr2.json',
-    ])
+    expect(sample.outputs.map((o) => o.path).sort()).toEqual(
+      [
+        'public/claims.json',
+        'public/llms.txt',
+        'public/md/tr2/index.md',
+        'public/md/tr2/l0-sample.md',
+        ...CARD_IDS.map((id) => `src/content/generated/cards/${id}.json`),
+        'src/content/generated/index.json',
+        'src/content/generated/lessons/tr2.l0-sample.json',
+        'src/content/generated/modules/tr2.json',
+      ].sort(),
+    )
   })
 
   test('twice to the same bytes', () => {
@@ -73,7 +78,7 @@ describe('check 1: the CLI writes index.json within 6 KB gz, and every output va
   test('it exits 0 and says what it wrote', () => {
     expect(first.err).toBe('')
     expect(first.status).toBe(0)
-    expect(first.out).toBe(`content: 1 module, 1 lesson, ${CLAIM_COUNT} claims: wrote 7 files, 0 unchanged, removed 0\n`)
+    expect(first.out).toBe(`content: 1 module, 1 lesson, ${CLAIM_COUNT} claims: wrote ${OUTPUT_COUNT} files, 0 unchanged, removed 0\n`)
   })
 
   test('index.json is at most 6 KB gz [estimated]', () => {
@@ -101,7 +106,7 @@ describe('check 1: the CLI writes index.json within 6 KB gz, and every output va
 
   test('a second run changes nothing', () => {
     const second = run(root)
-    expect(second.out).toBe(`content: 1 module, 1 lesson, ${CLAIM_COUNT} claims: wrote 0 files, 7 unchanged, removed 0\n`)
+    expect(second.out).toBe(`content: 1 module, 1 lesson, ${CLAIM_COUNT} claims: wrote 0 files, ${OUTPUT_COUNT} unchanged, removed 0\n`)
   })
 
   test('it removes what it no longer writes, and only inside the folders it owns', () => {
@@ -405,7 +410,7 @@ describe('ids, refs and links', () => {
   test('a card in a file of its own passes once the file exists', () => {
     const edit = swap('kind: warning\ntitle: A model\nbody: The browser world is a model, and the real engine is the judge.', 'kind: notional-machine\nid: no-such-card')
     expect(where(compile({ [LESSON]: edit }))).toEqual([`${LESSON}:${lineOf(edit(lesson), 'id: no-such-card')} unknown-card`])
-    expect(where(compile({ [LESSON]: edit, 'content/cards/no-such-card.md': '---\nid: no-such-card\n---\n' }))).toEqual([])
+    expect(where(compile({ [LESSON]: edit, 'content/cards/no-such-card.md': sampleCard('no-such-card') }))).toEqual([])
   })
 
   test('a mended directive stops its lesson from failing the comparison with its blocks', () => {
@@ -615,7 +620,7 @@ describe('the compiled tree of the sample', () => {
   })
 
   test('the prose and the directives keep the order of the file', () => {
-    expect(lessonJson.blocks.map((b) => b.type)).toEqual(['prose', 'predict', 'game', 'item', 'trace', 'lab', 'card', 'figure', 'prose'])
+    expect(lessonJson.blocks.map((b) => b.type)).toEqual(['prose', 'predict', 'game', 'item', 'trace', 'lab', 'card', 'card', 'figure', 'prose'])
   })
 
   test('claims, tags and references are nodes, and the tags are chips and not text', () => {
@@ -631,7 +636,7 @@ describe('compileContent on the repo itself', () => {
   test('passes, so CI\'s compile step and the gates pass', () => {
     const result = compileContent({ root: repo })
     expect(report(result)).toBe('')
-    expect(result.outputs.length).toBe(7)
+    expect(result.outputs.length).toBe(OUTPUT_COUNT)
   })
 
 })

@@ -372,6 +372,16 @@
   border-top: 2px dotted var(--es-paper-rule);
 }
 
+/* A notional-machine card: its name in the printer's bold, then its three parts, each under a strip of tape and a perforation. */
+.es-c-card__name {
+  font-weight: 700;
+}
+
+.es-c-block .es-ticket__body h3.es-c-part {
+  padding-top: var(--es-space-4);
+  border-top: 2px dotted var(--es-paper-rule);
+}
+
 .es-c-figure {
   display: grid;
   gap: var(--es-space-2);

@@ -35,6 +35,13 @@ function claimsInRepo(dir = path.join(repo, 'content/claims')): number {
 }
 export const CLAIM_COUNT = claimsInRepo()
 
+/** The ids of the cards in the repo's `content/cards/`, sorted: a card is a `.md` file there, and its name is its id. */
+export const CARD_IDS: readonly string[] = readdirSync(path.join(repo, 'content/cards'))
+  .filter((name) => name.endsWith('.md') && !/^readme\.md$/i.test(name))
+  .map((name) => name.slice(0, -3))
+  .sort()
+export const CARD_COUNT = CARD_IDS.length
+
 const scratch: string[] = []
 afterAll(() => {
   for (const dir of scratch) rmSync(dir, { recursive: true, force: true })
@@ -71,6 +78,32 @@ export function project(edits: Record<string, Edit> = {}): string {
     writeFileSync(abs, after)
   }
   return root
+}
+
+/** A card that compiles, for a test that needs one more than the repo has. Its one rule cites a claim of the sample. */
+export function sampleCard(id = 'fixture-world'): string {
+  return `---
+id: ${id}
+kind: notional-machine
+title: A fixture world
+world: fixture
+status: draft
+---
+
+A world for a test.
+
+## Models
+
+- The CPU's work for one step takes {{claim:sample.world.host-step-us}} in the sample world.
+
+## Ignores
+
+- Everything else.
+
+## Calibrated against
+
+- Nothing yet.
+`
 }
 
 /** `text.replace(from, to)`, and an error when `from` is not in the text. */

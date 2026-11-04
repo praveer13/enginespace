@@ -13,13 +13,14 @@
  *   content/modules/<id>/module.md and lessons/*.md
  *   content/claims/**.yaml        the dated, sourced facts
  *   content/kc/graph.yaml         the KC ids that lessons and predictions name (optional until W1-T03)
- *   content/cards/*.md            the cards that blocks and modules name
+ *   content/cards/*.md            the notional-machine cards that blocks and modules name (A§5.9)
  *   course.lock.json              the pins that modules and claims name (optional until W1-T01)
  *
  * What it writes:
  *   src/content/generated/index.json              the course index, in the entry's closure (6 KB gz [estimated])
  *   src/content/generated/modules/<id>.json       one per written module
  *   src/content/generated/lessons/<id>.<slug>.json  one per lesson (40 KB gz each [estimated])
+ *   src/content/generated/cards/<id>.json         one per card (40 KB gz each [estimated])
  *   public/md/<module>/<slug>.md, index.md and public/llms.txt   the learner's agent's export
  *   public/claims.json                            every claim, for the chips and the about page
  *
@@ -33,6 +34,7 @@ import { claimSchema } from '../../packages/schema/claims.ts'
 import type { Claim } from '../../packages/schema/claims.ts'
 import {
   claimsOutputSchema,
+  compiledCardSchema,
   compiledLessonSchema,
   compiledModuleSchema,
   contentIndexSchema,
@@ -46,6 +48,8 @@ import { courseSchema } from '../../packages/schema/course.ts'
 import type { Course } from '../../packages/schema/course.ts'
 import { kcGraphSchema } from '../../packages/schema/kc.ts'
 import { kcIdSchema } from '../../packages/schema/refs.ts'
+import { compileCard } from './cards.ts'
+import type { CardResult } from './cards.ts'
 import { blockLinks, blockMarkdown, blockMinutes, compileDirective, GAME_IDS, LAB_IDS, textFields, unknownGame, unknownKcs, unknownLab } from './directives.ts'
 import type { DirectiveBlock, LinkEnv, LinkProblem } from './directives.ts'
 import { formatDiagnostic, isRecord, loadYaml, locate, parseContentFile, problem, schemaDiagnostics } from './parse.ts'
@@ -83,6 +87,8 @@ export interface CompileResult {
   claims: ClaimRecord[]
   /** The keys of `course.lock.json`, or null when the file does not exist. */
   lockKeys: ReadonlySet<string> | null
+  /** The ids of the cards that compiled (a card with a problem of its own is left out), which `verify:games` holds a game's card to. */
+  cards: ReadonlySet<string>
   stats: { modules: number; lessons: number; claims: number }
 }
 
@@ -204,6 +210,25 @@ function loadLockKeys(root: string): Set<string> | null {
   return keys
 }
 
+interface Cards {
+  /** The file name of every card, without `.md`: what a block or a module may name. */
+  stems: Set<string>
+  /** The cards that compiled, by id. */
+  compiled: Map<string, CardResult>
+}
+
+/** Compiles `content/cards/*.md`. A `README.md` there is not a card. */
+function loadCards(root: string, claimIds: ReadonlySet<string>, out: Diagnostic[]): Cards {
+  const cards: Cards = { stems: new Set(), compiled: new Map() }
+  for (const abs of walk(path.join(root, 'content/cards'), (name) => name.endsWith('.md') && !/^readme\.md$/i.test(name))) {
+    const file = rel(root, abs)
+    cards.stems.add(path.basename(abs, '.md'))
+    const card = compileCard(file, readFileSync(abs, 'utf8'), claimIds, out)
+    if (card !== null) cards.compiled.set(card.front.id, card)
+  }
+  return cards
+}
+
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Compiling a module and its lessons                                                                                 */
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -322,6 +347,13 @@ function revOf(front: object, blocks: readonly CompiledBlock[], cited: ReadonlyS
   delete authored.status
   delete authored.minutes
   return sha256(canonicalJson({ front: authored, blocks, claims: citedClaims(cited, sources) }))
+}
+
+/** A card's `rev`, as a lesson's is: the authored fields, the words and the claims it cites. `status` stays out, as it does for a lesson. */
+function revOfCard(card: CardResult, sources: Sources): string {
+  const authored: Record<string, unknown> = { ...card.front }
+  delete authored.status
+  return sha256(canonicalJson({ front: authored, words: card.words, claims: citedClaims(card.cited, sources) }))
 }
 
 const orderOf = (slug: string): number => Number.parseInt(/^l(\d+)/.exec(slug)?.[1] ?? '0', 10)
@@ -601,8 +633,8 @@ function llmsText(course: Course, modules: ReadonlyMap<string, ModuleResult>): s
 /* The whole compile                                                                                                  */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** The index, the module and lesson JSON, and the export. */
-function buildOutputs(course: Course, modules: ReadonlyMap<string, ModuleResult>, sources: Sources, out: Diagnostic[]): Output[] {
+/** The index, the module, lesson and card JSON, and the export. */
+function buildOutputs(course: Course, modules: ReadonlyMap<string, ModuleResult>, cards: ReadonlyMap<string, CardResult>, sources: Sources, out: Diagnostic[]): Output[] {
   const outputs: Output[] = []
   const sizes: { path: string; source: string; budget: number }[] = []
   const emit = (file: string, text: string, source?: string, budget?: number) => {
@@ -659,6 +691,11 @@ function buildOutputs(course: Course, modules: ReadonlyMap<string, ModuleResult>
     }
   }
 
+  for (const [id, card] of cards) {
+    const compiled = checked(compiledCardSchema, { ...card.front, rev: revOfCard(card, sources), ...card.words }, `card ${id}`, card.file)
+    if (compiled !== undefined) emit(`src/content/generated/cards/${id}.json`, json(compiled), card.file, BUDGETS.page)
+  }
+
   const index = checked<ContentIndex>(contentIndexSchema, { totalHours: course.modules.reduce((sum, module) => sum + module.hours, 0), modules: indexModules }, 'course index', 'content/course.yaml')
   if (index !== undefined) emit('src/content/generated/index.json', json(index), 'content/course.yaml', BUDGETS.index)
   emit('public/llms.txt', llmsText(course, modules))
@@ -681,18 +718,21 @@ export function compileContent({ root }: { root: string }): CompileResult {
   const claims = loadClaims(root, out)
   const kcs = loadKcs(root, out)
   const lockKeys = loadLockKeys(root)
-  const cards = new Set(walk(path.join(root, 'content/cards'), (name) => name.endsWith('.md')).map((abs) => path.basename(abs, '.md')))
+  const claimIds: ReadonlySet<string> = new Set(claims.keys())
+  const cards = loadCards(root, claimIds, out)
   const sources: Sources = {
     root,
     course,
     claims,
-    claimIds: new Set(claims.keys()),
+    claimIds,
     lockKeys,
     links: {
       games: new Set(GAME_IDS),
       labs: new Set(LAB_IDS),
       kcs,
-      cards,
+      // A card file counts for a link even when it has a problem of its own, so one mistake in a card is reported once.
+      cards: cards.stems,
+      cardKinds: new Map([...cards.compiled].map(([id, card]) => [id, card.front.kind])),
       figureExists: (src) => existsSync(path.join(root, 'public', src)),
     },
   }
@@ -707,11 +747,11 @@ export function compileContent({ root }: { root: string }): CompileResult {
 
   const stats = { modules: modules.size, lessons: [...modules.values()].reduce((sum, module) => sum + module.lessons.length, 0), claims: claims.size }
   const records = [...claims.values()]
-  const outputs = course === null ? [] : buildOutputs(course, modules, sources, out)
+  const outputs = course === null ? [] : buildOutputs(course, modules, cards.compiled, sources, out)
   // By file, then by line, so that a run reads like a walk through the content. An open tag and its close tag are one finding.
   out.sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : a.line - b.line))
   const diagnostics = out.filter((d, i) => d.code !== 'html' || !out.slice(0, i).some((earlier) => earlier.code === 'html' && earlier.file === d.file && earlier.line === d.line))
-  return { diagnostics, outputs: hasError(diagnostics) ? [] : outputs, claims: records, lockKeys, stats }
+  return { diagnostics, outputs: hasError(diagnostics) ? [] : outputs, claims: records, lockKeys, cards: new Set(cards.compiled.keys()), stats }
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */

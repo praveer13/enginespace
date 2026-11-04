@@ -6,7 +6,7 @@
  *
  * Nothing here touches the DOM, Vite or React, and nothing reads the clock: `today` is always a parameter.
  */
-import type { Claim, CompiledBlock, IndexLesson, IndexModule, ProseFlow, ProseInline } from '@es/schema'
+import type { Claim, CompiledBlock, CompiledCard, IndexLesson, IndexModule, ProseFlow, ProseInline } from '@es/schema'
 import type { ReadoutUnit } from '@/design/components/Readout'
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -110,6 +110,11 @@ export function citedClaimIds(blocks: readonly CompiledBlock[]): ReadonlySet<str
   }
   for (const block of blocks) if (block.type === 'prose') flow(block.body)
   return ids
+}
+
+/** Every claim id that a card's words cite, so that a card fetches the claims file only when it needs it. */
+export function cardClaimIds(card: CompiledCard): ReadonlySet<string> {
+  return citedClaimIds([{ type: 'prose', body: [...card.intro, ...card.models, ...card.ignores, ...card.calibrated] }])
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -290,7 +295,6 @@ export const PENDING = {
   predict: { task: 'W1-T13', what: 'the prediction box' },
   item: { task: 'W1-T04', what: 'the item set' },
   trace: { task: 'W1-T09', what: 'the trace viewer' },
-  'notional-machine': { task: 'W1-T07', what: 'the notional-machine card' },
   'in-production': { task: 'W1-T13', what: 'the In-production card' },
   'build-this': { task: 'W1-T13', what: 'the Build-this card' },
   change: { task: 'W3-T06', what: 'the change card' },
