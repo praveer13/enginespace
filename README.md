@@ -118,7 +118,7 @@ Working in a git worktree, or with a coding agent? Read [AGENTS.md](AGENTS.md) f
 | [docs/DECISIONS.md](docs/DECISIONS.md) | the decision log and the owner's open questions |
 | [docs/TRACKER.md](docs/TRACKER.md) | the build tasks, wave by wave |
 | [research/](research/) | the dated upstream research behind the pins and claims |
-| [src/](src/) | the app: the shell, the route table (`src/routes.tsx`) and one stub page per route |
+| [src/](src/) | the app: the shell, the route table (`src/routes.tsx`), a page for each route (most are stubs until their tasks land), and `src/content/`, which loads the compiled content and draws the module and lesson pages as tickets, tape labels and the printer's tape |
 | [content/](content/) | the course's words and data: `course.yaml` (the modules and their hours), `modules/<id>/` (a `module.md` and its `lessons/`), `claims/` (dated, sourced facts) and `kc/graph.yaml`. `scripts/content/` compiles them (ARCHITECTURE §4) |
 | [packages/](packages/) | the five internal packages (`sim`, `play`, `ledger`, `schema`, `verify`), skeletons until their tasks land. `sim` and `play` compile without the DOM (`tsconfig.pure.json`) and obey the determinism lint. ESLint and `verify:boundaries` fence what each package may import |
 | [scripts/](scripts/) | the gate registry (`verify.ts`), the gate scripts it runs, and the content compiler (`scripts/content/`) |

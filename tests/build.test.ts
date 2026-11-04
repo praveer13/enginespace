@@ -81,6 +81,9 @@ function staticClosure(b: Build, key: string, seen = new Set<string>()): Set<str
 const chunksHolding = (b: Build, ...prefixes: string[]) =>
   [...b.sources].filter(([, paths]) => paths.some((p) => prefixes.some((prefix) => p.startsWith(prefix)))).map(([file]) => file)
 
+/** Where the content compiler writes the course index and each module and lesson (ARCHITECTURE §4.6). */
+const CONTENT = 'src/content/generated/'
+
 const THREE_CORE = 'node_modules/three/build/'
 const R3F = 'node_modules/@react-three/fiber/'
 const THREE_ADDONS = 'node_modules/three/examples/jsm/'
@@ -128,7 +131,39 @@ describe('the app build', () => {
     const lazy = Object.entries(app.manifest)
       .filter(([, chunk]) => chunk.isDynamicEntry)
       .map(([key]) => key)
-    expect(lazy.sort()).toEqual(pages.sort())
+    // The compiled content is lazy too, but it is not a page: the next test holds it to account.
+    expect(lazy.filter((key) => !key.startsWith(CONTENT)).sort()).toEqual(pages.sort())
+  })
+
+  test('makes the course index, and each module and lesson, a lazy chunk of its own that the entry never loads (ARCHITECTURE §4.6)', () => {
+    // The build compiled content/ into src/content/generated/ before it bundled anything, so the folder is what the chunks must match.
+    const compiled = (folder: string): string[] =>
+      readdirSync(path.join(root, CONTENT, folder))
+        .filter((file) => file.endsWith('.json'))
+        .map((file) => `${CONTENT}${folder}${file}`)
+    const expected = [`${CONTENT}index.json`, ...compiled('modules/'), ...compiled('lessons/')]
+    const content = Object.entries(app.manifest).filter(([key]) => key.startsWith(CONTENT))
+    expect(content.map(([key]) => key).sort()).toEqual(expected.sort())
+    expect(content.length).toBeGreaterThanOrEqual(3) // the index, and the sample module and lesson
+    const loadedFirst = new Set([...staticClosure(app, entryKeyOf(app))].map((key) => app.manifest[key].file))
+    for (const [, chunk] of content) {
+      expect(chunk.isDynamicEntry).toBe(true)
+      expect(loadedFirst.has(chunk.file)).toBe(false)
+    }
+  })
+
+  test('ships none of Tailwind\'s typography, which would bring its own greys into the first-paint CSS', () => {
+    // The word "prose" is a block type of the content, so it is all over src/content, and Tailwind makes a class of every word
+    // it finds: tailwind.config.ts blocklists it. `.es-prose`, the design system's own class, is not Tailwind's.
+    const assets = path.join(app.outDir, 'assets')
+    const css = readdirSync(assets)
+      .filter((file) => file.endsWith('.css'))
+      .map((file) => readFileSync(path.join(assets, file), 'utf8'))
+      .join('\n')
+    expect(css.length).toBeGreaterThan(0)
+    expect(css).not.toContain('--tw-prose')
+    expect(css).not.toMatch(/\.prose[\s{,:.[>)]/)
+    expect(css).toContain('.es-prose')
   })
 
   test('puts React in react-vendor, which the entry imports', () => {

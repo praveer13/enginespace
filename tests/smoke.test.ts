@@ -119,8 +119,9 @@ describe('routes against ARCHITECTURE §3.1', () => {
   const stubs: Record<string, { h1: string; shows?: string; title?: string }> = {
     '/': { h1: 'Front page', title: 'enginespace' },
     '/map': { h1: 'Course map' },
-    '/m/:module': { h1: 'Module', shows: 'Module id: tr2' },
-    '/m/:module/:lesson': { h1: 'Lesson', shows: 'Module id: tr2, lesson id: l0-sample' },
+    // The module and lesson pages load their content in the browser (W0-T09), so the server renders the ticket that is still printing.
+    '/m/:module': { h1: 'Module', shows: 'Printing the module' },
+    '/m/:module/:lesson': { h1: 'Lesson', shows: 'tr2 / l0-sample' },
     '/play': { h1: 'Games' },
     '/play/:game': { h1: 'Game', shows: 'Game id: loop' },
     '/labs/:lab': { h1: 'Lab', shows: 'Lab id: tr8.replay' },
