@@ -79,25 +79,24 @@ describe('/m/tr2/l0-sample', () => {
   })
 
   test('a block whose feature is not built yet says which task builds it, and holds its action down', () => {
-    expect(placeholders(html)).toEqual({ predict: 'W1-T13', game: 'W1-T13', item: 'W1-T04', trace: 'W1-T09', lab: 'W2-T23' })
+    expect(placeholders(html)).toEqual({ predict: 'W1-T13', game: 'W1-T13', trace: 'W1-T09', lab: 'W2-T23' })
     for (const [what, task] of [
       ['the prediction box', 'W1-T13'],
       ['the game', 'W1-T13'],
-      ['the item set', 'W1-T04'],
       ['the trace viewer', 'W1-T09'],
       ['the lab', 'W2-T23'],
     ]) {
       expect(html).toContain(`Not built yet: ${what}`)
       expect(html).toContain(`<span class="es-ticket-line__note">${task}</span>`)
     }
-    // The prediction, the game, the items and the trace each have a stub that is held down. The lab's stub is a link.
-    expect(html.match(/<button type="button" class="es-stub__pull"[^>]*disabled=""/g)?.length).toBe(4)
+    // The prediction, the game and the trace each have a stub that is held down. The lab's stub is a link, and the item set is built.
+    expect(html.match(/<button type="button" class="es-stub__pull"[^>]*disabled=""/g)?.length).toBe(3)
     expect(html).toContain('href="/labs/tr3.profile"')
   })
 
-  test('a block that is complete carries no placeholder: prose, the two cards (the warning, and the notional-machine card that prints while it loads) and the figure', () => {
-    const complete = opening(html, 'section').filter((tag) => ['prose', 'card', 'figure'].includes(attribute(tag, 'data-block') ?? ''))
-    expect(complete.length).toBe(6)
+  test('a block that is complete carries no placeholder: prose, the item set, the two cards (the warning, and the notional-machine card that prints while it loads) and the figure', () => {
+    const complete = opening(html, 'section').filter((tag) => ['prose', 'item', 'card', 'figure'].includes(attribute(tag, 'data-block') ?? ''))
+    expect(complete.length).toBe(7)
     for (const tag of complete) expect(tag).not.toContain('data-placeholder')
   })
 
@@ -475,12 +474,28 @@ describe('the blocks, one at a time', () => {
     expect(kept('change')).toEqual({ card: 'W3-T06' })
   })
 
-  test('an item block prints its family, its count and its level', () => {
-    const html = drawnBlocks({ type: 'item', family: 'tr2.graph-hit', level: 1, count: 5 })
+  test('an item block of a family that is built waits for the learner: its count, its level and its stub, and no seed yet', () => {
+    const html = drawnBlocks({ type: 'item', family: 'tr2.bubble-width', level: 1, count: 5 })
     expect(html).toContain('<span class="es-ticket-line__qty">5x</span>')
-    expect(html).toContain('tr2.graph-hit')
+    expect(html).toContain('tr2.bubble-width')
     expect(html).toContain('level 1')
-    expect(placeholders(html)).toEqual({ item: 'W1-T04' })
+    expect(html).toContain('data-phase="idle"')
+    expect(html).toContain('Start items')
+    expect(html).not.toContain('data-seed')
+    expect(placeholders(html)).toEqual({})
+  })
+
+  test('an item block of a family that no task has built yet says so, and holds its stub down', () => {
+    const html = drawnBlocks({ type: 'item', family: 'tr2.graph-hit', level: 1, count: 5 })
+    expect(html).toContain('data-phase="unbuilt"')
+    expect(html).toContain('Not built yet: the generator for tr2.graph-hit')
+    expect(html).toMatch(/<button type="button" class="es-stub__pull"[^>]*disabled=""/)
+  })
+
+  test('an item block at a level its family does not offer says which levels it does', () => {
+    const html = drawnBlocks({ type: 'item', family: 'tr2.bubble-width', level: 0, count: 3 })
+    expect(html).toContain('data-phase="idle"')
+    expect(drawnBlocks({ type: 'item', family: 'tr2.bubble-width', level: 3, count: 3 })).toContain('data-phase="idle"')
   })
 
   test('no blocks, no tickets', () => {

@@ -13,8 +13,8 @@
 import { CORE_SCHEMA, load, YAMLException } from 'js-yaml'
 import type { z } from 'zod'
 
-/** Which gate reports a diagnostic: `verify:content`, `verify:claims`, `verify:numbers` or `verify:kc` (W1-T03, which reads the KC graph with these helpers). */
-export type Gate = 'content' | 'claims' | 'numbers' | 'kc'
+/** Which gate reports a diagnostic: `verify:content`, `verify:claims`, `verify:numbers`, `verify:kc` (W1-T03, which reads the KC graph with these helpers) or `verify:items` (W1-T04). */
+export type Gate = 'content' | 'claims' | 'numbers' | 'kc' | 'items'
 
 export interface Diagnostic {
   gate: Gate

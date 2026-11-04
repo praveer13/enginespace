@@ -1,0 +1,435 @@
+/*
+ * The item block's layout (W1-T04): how a ticket that is filled in sets its question, its numbers, its slip, its plates and its
+ * reveal. The components of src/design/components draw the ticket, the field, the plates, the stub and the readouts themselves,
+ * and this file only places them and styles what they do not own: a printed line of givens, a tick box, the verdict. Every
+ * colour, face, duration and space is a token role (src/design/tokens.css) or arithmetic on one, and the design system is not
+ * edited. Plain CSS outside Tailwind's layers, like src/content/render/content.css: it loads with the pages that use it.
+ *
+ * The heat lamp falls on the ticket that waits for an answer, and nowhere inside it: the lamp is the ticket's own (Ticket's
+ * `lamp`), and a verdict is ribbon black with a drawn tick or ribbon red with a drawn strike, never a board colour (Only Code).
+ */
+
+/* ---------------------------------------------------------------------------------------------- the question */
+
+/* "Item 1 of 3", and the level, on a line of the printer's dots. It takes focus when a ticket comes up. */
+.es-item__count {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--es-space-1) var(--es-space-4);
+  margin: 0 0 var(--es-space-3);
+  font-family: var(--es-font-ticket);
+  font-size: 0.9375rem;
+  line-height: 1.3;
+  letter-spacing: var(--es-font-ticket-tracking);
+  font-weight: var(--es-font-ticket-weight);
+  text-transform: uppercase;
+  color: var(--es-text-2);
+}
+
+.es-item__count:focus-visible {
+  outline: 2px solid var(--es-focus);
+  outline-offset: 2px;
+}
+
+.es-item__stem {
+  max-width: 68ch;
+  text-wrap: pretty;
+}
+
+/* A number inside a sentence is a small readout, level with the words around it. */
+.es-item__num {
+  vertical-align: baseline;
+  margin-inline: 0.1em;
+}
+
+.es-item__unit {
+  font-family: var(--es-font-numeric);
+  font-weight: var(--es-font-numeric-weight);
+}
+
+/* The scenario's numbers, printed as the order lines of a ticket: the label, a dotted leader, the figure and its tag. */
+.es-item__givens {
+  display: grid;
+  gap: var(--es-space-1);
+}
+
+.es-item__given {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--es-space-2);
+}
+
+.es-item__given dt {
+  display: flex;
+  flex: 1 1 12rem;
+  align-items: baseline;
+  gap: var(--es-space-2);
+  color: var(--es-text-2);
+  font-size: 0.9375rem;
+  line-height: 1.4;
+}
+
+.es-item__given dt::after {
+  content: '';
+  flex: 1 1 1rem;
+  min-width: 1rem;
+  border-bottom: 2px dotted var(--es-paper-rule);
+  transform: translateY(-0.2em);
+}
+
+.es-item__given dd {
+  margin: 0;
+  margin-left: auto;
+  font-family: var(--es-font-ticket);
+  font-weight: var(--es-font-ticket-weight);
+}
+
+/* Steps shown before the question: a whole example, or the words of the first step. */
+.es-item__worked,
+.es-item__steps {
+  display: grid;
+  gap: var(--es-space-2);
+  justify-items: start;
+  padding-top: var(--es-space-3);
+  border-top: 2px dotted var(--es-paper-rule);
+}
+
+.es-item__worked ol,
+.es-item__steps ol {
+  display: grid;
+  gap: var(--es-space-2);
+  margin: 0;
+  padding-left: 1.4em;
+  list-style: decimal;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+/* ---------------------------------------------------------------------------------------------- the slip and the lines */
+
+.es-item__slip {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--es-space-3);
+  margin-top: var(--es-space-4);
+}
+
+.es-item__slip .es-field {
+  max-width: 24rem;
+}
+
+/* One option of a choice: a printed line with a tick box. The radio is the real control, and it sits under the box. */
+.es-item__choice {
+  display: grid;
+  gap: var(--es-space-1);
+  min-width: 0;
+  margin: var(--es-space-4) 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.es-item__choice legend {
+  padding: 0;
+  margin-bottom: var(--es-space-2);
+}
+
+.es-item__option label {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--es-space-3);
+  min-height: 2.75rem;
+  padding: 0.6rem 0;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.es-item__option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+}
+
+.es-item__tick {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-top: 0.1rem;
+  border: 2px solid var(--es-edge);
+  background-color: var(--es-paper);
+  color: var(--es-paper-ink);
+  transition: border-color var(--es-dur-quick) var(--es-ease-settle);
+}
+
+.es-item__tick svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  visibility: hidden;
+  stroke-width: 3;
+}
+
+.es-item__option input:checked + .es-item__tick {
+  border-color: var(--es-paper-ink);
+}
+
+.es-item__option input:checked + .es-item__tick svg {
+  visibility: visible;
+}
+
+.es-item__option label:hover .es-item__tick {
+  border-color: var(--es-text-1);
+}
+
+.es-item__option input:focus-visible + .es-item__tick {
+  outline: 2px solid var(--es-focus);
+  outline-offset: 2px;
+  box-shadow: 0 -3px 12px 1px color-mix(in srgb, var(--es-lamp) 70%, transparent);
+}
+
+.es-item__option-text {
+  min-width: 0;
+  line-height: 1.45;
+}
+
+.es-item__choice:disabled label {
+  cursor: default;
+}
+
+.es-item__choice:disabled .es-item__tick {
+  border-style: dashed;
+}
+
+/* What an option says once the ticket is checked, under its own line. */
+.es-item__why {
+  margin: 0 0 var(--es-space-2) calc(1.5rem + var(--es-space-3));
+  color: var(--es-text-2);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.es-item__option[data-key] .es-item__why {
+  color: var(--es-paper-ink);
+}
+
+.es-item__mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  margin-right: 0.5em;
+  font-weight: 700;
+  color: var(--es-paper-ink);
+}
+
+.es-item__mark[data-tone='bad'] {
+  color: var(--es-paper-ink-2);
+}
+
+.es-item__mark svg {
+  width: 1.05em;
+  height: 1.05em;
+}
+
+/* Said before the answer is checked: three stamped plates, one pressed in. */
+.es-item__sure {
+  display: grid;
+  gap: var(--es-space-2);
+  margin-top: var(--es-space-4);
+}
+
+.es-item__sure-label {
+  font-family: var(--es-font-ticket);
+  font-size: 0.9375rem;
+  line-height: 1.3;
+  letter-spacing: var(--es-font-ticket-tracking);
+  font-weight: var(--es-font-ticket-weight);
+  text-transform: uppercase;
+  color: var(--es-text-2);
+}
+
+.es-item__plates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2);
+}
+
+.es-item__plates .es-button {
+  flex: 1 1 0;
+  min-width: 5.5rem;
+  max-width: 9rem;
+  padding-inline: 0.5rem;
+}
+
+/* ---------------------------------------------------------------------------------------------- the reveal */
+
+/* Below the perforation, and fed out of the printer in steps. Under reduced motion every duration is 0, and it is there at once. */
+.es-item__reveal {
+  display: grid;
+  gap: var(--es-space-3);
+  margin-top: var(--es-space-6);
+  padding-top: var(--es-space-4);
+  border-top: 2px dotted var(--es-paper-rule);
+  animation: es-item-feed var(--es-dur-feed) var(--es-ease-feed) both;
+}
+
+@keyframes es-item-feed {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* The system's rule for reduced motion lets an animation run for a thousandth of a second, which is a frame of a reveal that is clipped. A reveal has no feed at all. */
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion='full']) .es-item__reveal {
+    animation: none;
+  }
+}
+
+:root[data-motion='reduce'] .es-item__reveal {
+  animation: none;
+}
+
+.es-item__verdict {
+  display: flex;
+  align-items: center;
+  gap: var(--es-space-2);
+  margin: 0;
+  font-family: var(--es-font-heading);
+  font-size: 1.75rem;
+  line-height: 1;
+  letter-spacing: var(--es-font-heading-tracking);
+  font-weight: var(--es-font-heading-weight);
+  text-transform: var(--es-font-heading-case);
+  color: var(--es-paper-ink);
+}
+
+.es-item__reveal[data-ok='false'] .es-item__verdict {
+  color: var(--es-paper-ink-2);
+}
+
+.es-item__verdict svg {
+  flex: none;
+  width: 1.15em;
+  height: 1.15em;
+  stroke-width: 3;
+}
+
+.es-item__verdict:focus-visible {
+  outline: 2px solid var(--es-focus);
+  outline-offset: 4px;
+}
+
+/* "you wrote" and "the key", on two lines of the printer's dots. */
+.es-item__keys {
+  display: grid;
+  gap: var(--es-space-1);
+  margin: 0;
+}
+
+.es-item__keys > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--es-space-3);
+}
+
+.es-item__keys dt {
+  min-width: 6.5rem;
+  color: var(--es-text-2);
+  font-size: 0.9375rem;
+}
+
+.es-item__keys dd {
+  margin: 0;
+}
+
+.es-item__yours {
+  font-family: var(--es-font-numeric);
+  font-size: 0.9375rem;
+  line-height: 1.2;
+  letter-spacing: var(--es-font-numeric-tracking);
+  font-weight: var(--es-font-numeric-weight);
+  font-variant-numeric: tabular-nums;
+}
+
+.es-item__diagnosis {
+  max-width: 68ch;
+  font-weight: 700;
+}
+
+.es-item__said {
+  font-family: var(--es-font-numeric);
+  font-size: 0.9375rem;
+  line-height: 1.2;
+  letter-spacing: var(--es-font-numeric-tracking);
+  font-weight: var(--es-font-numeric-weight);
+  text-transform: uppercase;
+}
+
+/*
+ * A number that a sentence restates is not stamped again: its provenance was printed where it came onto the ticket, in the givens,
+ * and the stamp stays for assistive tech. A derived number keeps its quiet stamp, because it is new.
+ */
+.es-item__steps .es-readout__tag[data-tag='synthetic'],
+.es-item__why .es-readout__tag[data-tag='synthetic'],
+.es-item__diagnosis .es-readout__tag[data-tag='synthetic'] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* A note the ticket prints in the second ink, as a field prints its error. */
+.es-item__problem {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--es-space-2);
+  margin: var(--es-space-3) 0 0;
+  color: var(--es-paper-ink-2);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
+.es-item__problem svg {
+  flex: none;
+  width: 1.1em;
+  height: 1.1em;
+  margin-top: 0.15em;
+}
+
+/* ---------------------------------------------------------------------------------------------- the tally */
+
+.es-item__tally {
+  display: grid;
+  gap: var(--es-space-3);
+}
+
+/* The tally's headline is the verdict's, at the heading role's own size: the heading face, in ribbon black. */
+.es-item__tally .es-item__verdict {
+  font-size: var(--es-font-heading-size);
+}
+
+/* The block's own list rules beat the lesson's (content.css styles every ol of a ticket's body), so this names the whole path. */
+.es-c-block .es-ticket__body .es-item__lines {
+  display: grid;
+  gap: var(--es-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-c-block .es-ticket__body .es-item__lines li + li {
+  margin-top: 0;
+}
