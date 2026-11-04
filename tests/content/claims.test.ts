@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process'
 import path from 'node:path'
 import { compileContent } from '../../scripts/content/build.ts'
 import { agrees, claimProblems, evaluate, FormulaError } from '../../scripts/verify-claims.ts'
-import { CLAIMS, compile, errors, LESSON, lineOf, project, read, repo, swap, where } from './support.ts'
+import { CLAIM_COUNT, CLAIMS, compile, errors, LESSON, lineOf, project, read, repo, swap, where } from './support.ts'
 import type { Edit } from './support.ts'
 
 const TODAY = '2026-11-04'
@@ -117,7 +117,8 @@ describe('the sample claims', () => {
 
   test('are each a line in the compiled file, with the line of their first key', () => {
     const result = compile()
-    expect(result.claims.map((r) => `${r.claim.id} ${r.file}:${r.line}`)).toEqual([
+    // The sample's own claims, in the file's order; the claims of other files (each game's) come after them or before, and are the games' to test.
+    expect(result.claims.filter((r) => r.file === CLAIMS).map((r) => `${r.claim.id} ${r.file}:${r.line}`)).toEqual([
       `vllm.release.requires-python ${CLAIMS}:${lineOf(claims, '- id: vllm.release.requires-python')}`,
       `sample.world.host-step-us ${CLAIMS}:${lineOf(claims, '- id: sample.world.host-step-us')}`,
       `sample.world.decode-step-us ${CLAIMS}:${lineOf(claims, '- id: sample.world.decode-step-us')}`,
@@ -201,7 +202,7 @@ describe('dates, pins and age', () => {
 
   test('the 365-day claims are stale a year on', () => {
     const found = problems({}, '2027-11-05')
-    expect(found.map((d) => d.code)).toEqual(['stale-claim', 'stale-claim', 'stale-claim', 'stale-claim'])
+    expect(found.map((d) => d.code)).toEqual(Array.from({ length: CLAIM_COUNT }, () => 'stale-claim'))
   })
 })
 
@@ -239,7 +240,7 @@ describe('the claims files themselves', () => {
 
   test('claims in a nested folder are read too', () => {
     const result = compile({ 'content/claims/hardware/h100.yaml': claims.replace(/sample\./g, 'hw.').replace('vllm.release.requires-python', 'hw.release.python') })
-    expect(result.stats.claims).toBe(8)
+    expect(result.stats.claims).toBe(CLAIM_COUNT + 4)
   })
 })
 
@@ -253,7 +254,7 @@ describe('the gate as a command', () => {
     const result = run(repo, '--today', TODAY)
     expect(result.status).toBe(0)
     expect(result.out).toContain('warning pins-unchecked')
-    expect(result.out).toContain('verify:claims passed: 1 module, 1 lesson, 4 claims, 1 warning')
+    expect(result.out).toContain(`verify:claims passed: 1 module, 1 lesson, ${CLAIM_COUNT} claims, 1 warning`)
   })
 
   test('lists a stale claim and still exits 0', () => {

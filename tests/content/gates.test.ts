@@ -6,7 +6,7 @@ import { describe, expect, test } from 'bun:test'
 import { spawnSync } from 'node:child_process'
 import path from 'node:path'
 import { GATES } from '../../scripts/verify.ts'
-import { CLAIMS, COURSE, LESSON, lineOf, project, read, repo, swap } from './support.ts'
+import { CLAIM_COUNT, CLAIMS, COURSE, LESSON, lineOf, project, read, repo, swap } from './support.ts'
 import type { Edit } from './support.ts'
 
 function run(script: string, ...args: string[]) {
@@ -23,7 +23,7 @@ describe('through the registry', () => {
       const result = run('scripts/verify.ts', name)
       expect(result.status).toBe(0)
       expect(result.out).toContain(`$ bun scripts/verify-${name}.ts`)
-      expect(result.out).toContain(`verify:${name} passed: 1 module, 1 lesson, 4 claims`)
+      expect(result.out).toContain(`verify:${name} passed: 1 module, 1 lesson, ${CLAIM_COUNT} claims`)
       expect(result.out).not.toContain('pending')
     })
   }
@@ -81,7 +81,7 @@ describe('each gate prints its own problems and passes on the others\'', () => {
     const result = gate('content', root)
     expect(result.status).toBe(0)
     expect(result.out).toContain('warning minutes-drift')
-    expect(result.out).toMatch(/verify:content passed: 1 module, 1 lesson, 4 claims, 1 warning\n$/)
+    expect(result.out).toContain(`verify:content passed: 1 module, 1 lesson, ${CLAIM_COUNT} claims, 1 warning\n`)
   })
 
   test('has one error for a tree with no course.yaml', () => {

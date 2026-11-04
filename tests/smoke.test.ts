@@ -123,7 +123,7 @@ describe('routes against ARCHITECTURE §3.1', () => {
     '/m/:module': { h1: 'Module', shows: 'Printing the module' },
     '/m/:module/:lesson': { h1: 'Lesson', shows: 'tr2 / l0-sample' },
     '/play': { h1: 'Games' },
-    '/play/:game': { h1: 'Game', shows: 'Game id: loop' },
+    '/play/:game': { h1: 'Play Service', shows: 'Loading Service', title: 'Game · enginespace' },
     '/labs/:lab': { h1: 'Lab', shows: 'Lab id: tr8.replay' },
     '/trace-room': { h1: 'The Trace Room' },
     '/trace-room/:trace': { h1: 'The Trace Room', shows: 'Trace id: sample' },

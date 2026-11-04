@@ -22,6 +22,8 @@ afterAll(() => rmSync(scratch, { recursive: true, force: true }))
 interface ManifestEntry {
   file: string
   name?: string
+  /** The source file of the chunk's entry module, when the chunk has one. */
+  src?: string
   isEntry?: boolean
   isDynamicEntry?: boolean
   imports?: string[]
@@ -36,9 +38,13 @@ interface Build {
   sources: Map<string, string[]>
 }
 
-/** "../../x/node_modules/three/build/three.core.js" becomes "node_modules/three/build/three.core.js". */
+/**
+ * "../../x/node_modules/three/build/three.core.js" becomes "node_modules/three/build/three.core.js". The path is cut at the first
+ * `node_modules/`, so a package's own copy of a dependency keeps its place: "node_modules/a/node_modules/b/index.mjs" is a different file
+ * from "node_modules/b/index.mjs", as it is when two versions of `b` are installed (Radix's dialog nests its own react-slot, for example).
+ */
 function fromNodeModules(source: string): string {
-  const at = source.lastIndexOf('node_modules/')
+  const at = source.indexOf('node_modules/')
   return at < 0 ? source : source.slice(at)
 }
 
@@ -124,15 +130,27 @@ describe('the app build', () => {
     expectThreeIsolated(app)
   })
 
-  test('makes every page but the 404 page its own lazy chunk', () => {
+  test('makes every page but the 404 page its own lazy chunk, and lazy nothing but pages and the games they load', () => {
     const pages = readdirSync(path.join(root, 'src/pages'))
       .filter((file) => file.endsWith('.tsx') && file !== 'NotFound.tsx')
       .map((file) => `src/pages/${file}`)
-    const lazy = Object.entries(app.manifest)
-      .filter(([, chunk]) => chunk.isDynamicEntry)
-      .map(([key]) => key)
+    const loadedFirst = staticClosure(app, entryKeyOf(app))
+    for (const page of pages) {
+      // A page's chunk is keyed by its source path, unless a lazy chunk that the page loads shares code with it: then Rollup keeps that
+      // code in the page's chunk and the key becomes the chunk's file. So the page is found by the module it holds.
+      const holder = [...app.sources].find(([, paths]) => paths.some((source) => source.endsWith(`/${page}`)))?.[0]
+      expect(holder, page).toBeDefined()
+      const [key, chunk] = Object.entries(app.manifest).find(([, candidate]) => candidate.file === holder) ?? []
+      expect(chunk?.isDynamicEntry, page).toBe(true)
+      expect(loadedFirst.has(key ?? ''), page).toBe(false)
+    }
+    // A lazy chunk with a source path is a page, or a part of a game that a page loads on demand: its component (src/games/<id>/Game.tsx)
+    // and the parts that component loads in turn (its debrief, and later its 3D scene), which stay in src/games/<id>/.
     // The compiled content is lazy too, but it is not a page: the next test holds it to account.
-    expect(lazy.filter((key) => !key.startsWith(CONTENT)).sort()).toEqual(pages.sort())
+    const named = Object.entries(app.manifest)
+      .filter(([key, chunk]) => chunk.isDynamicEntry && chunk.src !== undefined && !key.startsWith(CONTENT))
+      .map(([key]) => key)
+    expect(named.filter((key) => !pages.includes(key) && !/^src\/games\/[^/]+\/[A-Za-z0-9]+\.tsx$/.test(key))).toEqual([])
   })
 
   test('makes the course index, and each module and lesson, a lazy chunk of its own that the entry never loads (ARCHITECTURE §4.6)', () => {

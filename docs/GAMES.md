@@ -522,7 +522,7 @@ Graded levels drop the live readouts: the learner chooses the configuration from
 
 | Level | Module | New idea | Seed and band | Kind |
 |---|---|---|---|---|
-| `first-1-fill` … `first-3-gap` | front page | batching, an empty slot, the gap | pinned practice seed; ≥ 1 EOS within 3 steps | practice |
+| `first-1-fill` … `first-3-gap` | front page | batching, an empty slot, the gap | pinned practice seed; the shortest of the first four requests asks for 2 or 3 tokens, so one stops within 3 steps and not in the first (W0-T16) | practice |
 | `first-4-par` | front page | both tools against par | pinned first; "New numbers" draws in band (below) | practice |
 | `async` | TR2 | async scheduling on or off, on both cost cards | pinned | practice |
 | `graphs` · stage `comb` | TR2 | eager launches against a graph replay (small model) | pinned | practice |
@@ -549,6 +549,13 @@ All counts on the model's clock:
 - launches and eager steps.
 
 The front page shows its counters while it runs and ticks against par at the end, and it records nothing.
+
+**As built (W0-T16).** The levels of §3.1 are `packages/play/loop/levels.ts`, and each is a practice level on pinned seed 1, the first seed that its band accepts from 0.
+- **Openings.** Beats 2 and 3 open where the visitor would be after the beat before. The house hangs the first four tickets, first come first served, and rings the bell once for `first-2-slot` and twice for `first-3-gap`, with overlap off and the clips refilled, and then leaves the bell unrung. `first-1-fill` and `first-4-par` open on the empty rail.
+- **What ends a level.** `first-1-fill`: one fire read back. `first-2-slot`: a ticket has ended, its clip has been dealt with and the next fire is read back. `first-3-gap`: a binned plate (a ghost token) has been read back. `first-4-par`: every ticket served. A level also ends when every ticket is served.
+- **A table's appetite is settled when its ticket is hung.** The expo cannot see how many courses a table will want, and a ticket's number says nothing about it. So the k-th ticket hung is served by the k-th length of the seed's workload, whatever its number, and the order in which a visitor taps tickets cannot change the night: only whether a clip is refilled and whether overlap is on can. The tickets are exchangeable, so this is the same experiment as drawing every length beforehand. Without it, doing everything right scores a median of 0.99 and a minimum of 0.723 over the first 150 in-band seeds, by luck of the order [measured 2026-11-04 at a5907b1, with a scratch copy of the engine that takes a table's length from its ticket's number]; with it, both tools score 1 on every one of them [measured 2026-11-04 at a5907b1].
+- **Score.** Each level scores what its beat is about, as a count against the house's (§2.1): the places filled in the first fire (`first-1-fill`), the places filled in the fire after the first ticket ends (`first-2-slot`), the dark ticks the line sat through, house over mine (`first-3-gap`), and par over the clock (`first-4-par`). The pass mark is 0.9 [estimated]. Over the first 150 in-band seeds the best a visitor does without both tools is 0.714 with refill alone, 0.854 with overlap alone and 0.561 with neither [measured 2026-11-04 at a5907b1], so the mark separates them from both tools with room to spare.
+- **Bands.** `first-4-par` is the band above: 159 of the first 400 seeds are in it, 39.8%, against a floor of 20% [measured 2026-11-04 at a5907b1; `verify:games` prints it]. The three beats before it share one band, the shortest of the first four requests asking for 2 or 3 tokens, which 114 of the first 400 seeds meet, 28.5% [measured 2026-11-04 at a5907b1].
 
 Proposed pass bars (ASSESSMENT.md decides):
 
@@ -618,7 +625,8 @@ All [estimated].
 #### Simulation API
 
 ```ts
-// packages/play/loop/session.ts (sketch), over packages/sim/steploop (ARCHITECTURE §5.3)
+// packages/play/loop/session.ts (W0-T16 built the front-page part of this sketch: the four `first-` levels, `admit`, `run`, and the `async` and `batching` levers;
+// the rest arrives with W1-T13), over packages/sim/steploop (ARCHITECTURE §5.3)
 export type LoopLevelId =
   | 'first-1-fill' | 'first-2-slot' | 'first-3-gap' | 'first-4-par'      // front page
   | 'async' | 'graphs' | 'keys' | 'mrv2' | 'close'                        // TR2 (W1-T13); 'graphs' has stages comb, sizes, modes
@@ -632,6 +640,7 @@ export type LoopAction =
 export interface LoopCounters {
   usefulTokens: number; ghostTokens: number; paddedTokens: number
   gpuBusyUs: Us; bubbleUs: Us; bubbles: number; launches: number; eagerSteps: number; clockUs: Us
+  emptyClipSteps: number                               // W0-T16: places the line paid for and nobody ate ("clip paid for, empty"); the front page's own
 }
 export function loopLevel(id: LoopLevelId, seed: Seed): LoopLevel
 export function loopReduce(s: LoopState, a: LoopAction): LoopState
