@@ -11,3 +11,6 @@ src/content/generated/
 .impeccable/config.local.json
 .impeccable/review/
 .impeccable/build/
+.claude/
+bun.lock
+bun.lockb

@@ -1,0 +1,42 @@
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "types": ["vite/client"],
+    "skipLibCheck": true,
+
+    "paths": {
+      "@/*": ["./src/*"],
+      "@es/sim": ["./packages/sim"],
+      "@es/sim/*": ["./packages/sim/*"],
+      "@es/play": ["./packages/play"],
+      "@es/play/*": ["./packages/play/*"],
+      "@es/ledger": ["./packages/ledger"],
+      "@es/ledger/*": ["./packages/ledger/*"],
+      "@es/schema": ["./packages/schema"],
+      "@es/schema/*": ["./packages/schema/*"],
+      "@es/verify": ["./packages/verify"],
+      "@es/verify/*": ["./packages/verify/*"]
+    },
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
+  },
+  "include": ["src", "packages/ledger", "packages/schema", "packages/verify"]
+}

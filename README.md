@@ -73,6 +73,22 @@ The site needs no account, and nothing you do leaves your device unless you expo
 
 The course pins one vLLM minor and one SGLang minor and re-pins them each quarter. The proposed edition-1 pins are vLLM v0.33.0 and SGLang v0.5.23, with nano-vllm, Mini-SGLang and "Inside vLLM" (commit `42172ad`) pinned as reading targets. Every number in the course is a claim with a source, a date and an expiry, and a number that moves raises a change card.
 
+## Run it
+
+The site is one Vite app (React 19, TypeScript, Tailwind) with one `package.json` and one lockfile. `npm` installs and builds, and [Bun](https://bun.sh) runs the tests and the scripts. The pinned toolchain is Node 24 and Bun 1.3.14 (ARCHITECTURE §10.3, read from kernelspace's CI [measured 2026-11-03]).
+
+```sh
+npm ci              # install the exact pins in package-lock.json
+npm run dev         # the dev server, with hot reload
+npm run lint        # ESLint
+npm run typecheck   # tsc -b: the app, the Node-side configs, and the pure packages (no DOM)
+npm test            # bun test: the unit and build tests in tests/
+npm run build       # typecheck, then vite build into dist/, with dist/.vite/manifest.json
+npm run preview     # serve dist/
+```
+
+Every dependency is pinned to an exact version, with no `^` and no `~`, and the pins are ARCHITECTURE §14's table. A test compares `package.json` with that table. GitHub Pages serves the site under `/enginespace/` until a custom domain is chosen, so the deploy builds with `VITE_BASE=/enginespace/ npm run build`.
+
 ## What is in this repository
 
 | Path | What |
@@ -87,6 +103,10 @@ The course pins one vLLM minor and one SGLang minor and re-pins them each quarte
 | [docs/DECISIONS.md](docs/DECISIONS.md) | the decision log and the owner's open questions |
 | [docs/TRACKER.md](docs/TRACKER.md) | the build tasks, wave by wave |
 | [research/](research/) | the dated upstream research behind the pins and claims |
+| [src/](src/) | the app: the shell, the route table (`src/routes.tsx`) and one stub page per route |
+| [packages/](packages/) | the pure internal packages. `sim` and `play` compile without the DOM (`tsconfig.pure.json`); `ledger`, `schema` and `verify` are added with their first code |
+| [tests/](tests/) | the Bun tests: the dependency pins, the routes, the configuration and the build's chunking |
+| `package.json`, `vite.config.ts`, `tsconfig*.json`, `eslint.config.js`, `tailwind.config.ts` | the toolchain, on kernelspace's versions |
 
 ## The family
 
