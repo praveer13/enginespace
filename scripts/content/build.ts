@@ -12,12 +12,13 @@
  *   content/course.yaml           the modules in order, with their titles and hours
  *   content/modules/<id>/module.md and lessons/*.md
  *   content/claims/**.yaml        the dated, sourced facts
- *   content/kc/graph.yaml         the KC ids that lessons and predictions name (optional until W1-T03)
+ *   content/kc/graph.yaml         the KCs: the ids that lessons and predictions name, and what the map shows (optional until W1-T03)
  *   content/cards/*.md            the notional-machine cards that blocks and modules name (A§5.9)
  *   course.lock.json              the pins that modules and claims name (optional until W1-T01)
  *
  * What it writes:
  *   src/content/generated/index.json              the course index, in the entry's closure (6 KB gz [estimated])
+ *   src/content/generated/map.json                what the map and the module pages read: prerequisites, artifacts, KCs and refs
  *   src/content/generated/modules/<id>.json       one per written module
  *   src/content/generated/lessons/<id>.<slug>.json  one per lesson (40 KB gz each [estimated])
  *   src/content/generated/cards/<id>.json         one per card (40 KB gz each [estimated])
@@ -38,16 +39,18 @@ import {
   compiledLessonSchema,
   compiledModuleSchema,
   contentIndexSchema,
+  courseMapSchema,
   lessonRoute,
   moduleRoute,
 } from '../../packages/schema/compiled.ts'
-import type { CompiledBlock, ContentIndex, IndexLesson, IndexModule } from '../../packages/schema/compiled.ts'
+import type { CompiledBlock, ContentIndex, CourseMap, IndexLesson, IndexModule } from '../../packages/schema/compiled.ts'
 import { lessonFrontMatterSchema, moduleFrontMatterSchema } from '../../packages/schema/content.ts'
 import type { LessonFrontMatter, ModuleFrontMatter } from '../../packages/schema/content.ts'
 import { courseSchema } from '../../packages/schema/course.ts'
 import type { Course } from '../../packages/schema/course.ts'
 import { kcGraphSchema } from '../../packages/schema/kc.ts'
-import { kcIdSchema } from '../../packages/schema/refs.ts'
+import type { Kc } from '../../packages/schema/kc.ts'
+import { kcIdSchema, moduleOfKc } from '../../packages/schema/refs.ts'
 import { compileCard } from './cards.ts'
 import type { CardResult } from './cards.ts'
 import { blockLinks, blockMarkdown, blockMinutes, compileDirective, GAME_IDS, LAB_IDS, textFields, unknownGame, unknownKcs, unknownLab } from './directives.ts'
@@ -62,7 +65,7 @@ import type { ProseContext } from './prose.ts'
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /** The size caps of A§4.6 and A§11.1, in gzipped bytes [estimated]. */
-export const BUDGETS = { index: 6 * 1024, page: 40 * 1024 } as const
+export const BUDGETS = { index: 6 * 1024, page: 40 * 1024, map: 12 * 1024 } as const
 
 /** A lesson whose own reading time is further than this from its declared minutes earns a warning (A§4.2) [estimated]. */
 export const MINUTES_TOLERANCE = 0.2
@@ -178,14 +181,15 @@ function loadClaims(root: string, out: Diagnostic[]): Map<string, ClaimRecord> {
   return claims
 }
 
-function loadKcs(root: string, out: Diagnostic[]): Set<string> {
+/** The KC ids that lessons name, which are read even from a graph that fails its schema, and the graph itself once it passes. */
+function loadKcs(root: string, out: Diagnostic[]): { ids: Set<string>; graph: Kc[] } {
   const file = 'content/kc/graph.yaml'
   const abs = path.join(root, file)
   const ids = new Set<string>()
-  if (!existsSync(abs)) return ids
+  if (!existsSync(abs)) return { ids, graph: [] }
   const text = readFileSync(abs, 'utf8')
   const loaded = loadYaml(text, file, 1, 'content', out)
-  if (!loaded.ok) return ids
+  if (!loaded.ok) return { ids, graph: [] }
   const parsed = kcGraphSchema.safeParse(loaded.value)
   if (!parsed.success) out.push(...schemaDiagnostics(parsed.error.issues, { file, text, firstLine: 1, gate: 'content', subject: 'a KC' }))
   if (Array.isArray(loaded.value)) {
@@ -193,7 +197,7 @@ function loadKcs(root: string, out: Diagnostic[]): Set<string> {
       if (isRecord(entry) && kcIdSchema.safeParse(entry.id).success) ids.add(entry.id as string)
     }
   }
-  return ids
+  return { ids, graph: parsed.success ? parsed.data : [] }
 }
 
 function loadLockKeys(root: string): Set<string> | null {
@@ -236,6 +240,8 @@ function loadCards(root: string, claimIds: ReadonlySet<string>, out: Diagnostic[
 interface Sources {
   root: string
   course: Course | null
+  /** The KC graph, or an empty list while content/kc/graph.yaml is absent or fails its schema (which is reported). */
+  kcGraph: readonly Kc[]
   claims: ReadonlyMap<string, ClaimRecord>
   claimIds: ReadonlySet<string>
   lockKeys: ReadonlySet<string> | null
@@ -633,7 +639,45 @@ function llmsText(course: Course, modules: ReadonlyMap<string, ModuleResult>): s
 /* The whole compile                                                                                                  */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** The index, the module, lesson and card JSON, and the export. */
+/**
+ * What the map and the module pages read (ARCHITECTURE §3.1). A module that is written gives its own prerequisites, artifacts and
+ * labs; one that is not gives what `course.yaml` holds, and no labs. The KCs come from the graph, and the refs from the predictions
+ * of every lesson: `predict:tr2.l3#tr2.l3.p1` is evidence for the KCs that the block names.
+ */
+function buildMap(course: Course, modules: ReadonlyMap<string, ModuleResult>, graph: readonly Kc[]): CourseMap {
+  const kcs = graph.map((kc) => ({
+    id: kc.id,
+    module: moduleOfKc(kc.id),
+    description: kc.description,
+    requires: kc.requires,
+    ...(kc.threshold === true ? { threshold: true } : {}),
+    ...(kc.planned === undefined ? {} : { planned: kc.planned }),
+  }))
+  const refs: Record<string, string[]> = {}
+  for (const module of modules.values()) {
+    for (const lesson of module.lessons) {
+      for (const block of lesson.body.blocks) {
+        if (block.type === 'predict') refs[`predict:${lesson.front.id}#${block.id}`] = [...block.kcs]
+      }
+    }
+  }
+  return {
+    modules: course.modules.map((entry) => {
+      const written = modules.get(entry.id)?.front
+      return {
+        id: entry.id,
+        prereqs: written?.prereqs ?? entry.prereqs ?? [],
+        artifacts: written?.artifacts ?? entry.artifacts ?? [],
+        labs: written?.labs ?? [],
+        kcs: kcs.filter((kc) => kc.module === entry.id).map((kc) => kc.id),
+      }
+    }),
+    kcs,
+    refs,
+  }
+}
+
+/** The index, the map, the module, lesson and card JSON, and the export. */
 function buildOutputs(course: Course, modules: ReadonlyMap<string, ModuleResult>, cards: ReadonlyMap<string, CardResult>, sources: Sources, out: Diagnostic[]): Output[] {
   const outputs: Output[] = []
   const sizes: { path: string; source: string; budget: number }[] = []
@@ -698,6 +742,8 @@ function buildOutputs(course: Course, modules: ReadonlyMap<string, ModuleResult>
 
   const index = checked<ContentIndex>(contentIndexSchema, { totalHours: course.modules.reduce((sum, module) => sum + module.hours, 0), modules: indexModules }, 'course index', 'content/course.yaml')
   if (index !== undefined) emit('src/content/generated/index.json', json(index), 'content/course.yaml', BUDGETS.index)
+  const courseMap = checked<CourseMap>(courseMapSchema, buildMap(course, modules, sources.kcGraph), 'course map', 'content/course.yaml')
+  if (courseMap !== undefined) emit('src/content/generated/map.json', json(courseMap), 'content/course.yaml', BUDGETS.map)
   emit('public/llms.txt', llmsText(course, modules))
 
   const claims = [...sources.claims.values()].map((record) => record.claim).sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
@@ -723,13 +769,14 @@ export function compileContent({ root }: { root: string }): CompileResult {
   const sources: Sources = {
     root,
     course,
+    kcGraph: kcs.graph,
     claims,
     claimIds,
     lockKeys,
     links: {
       games: new Set(GAME_IDS),
       labs: new Set(LAB_IDS),
-      kcs,
+      kcs: kcs.ids,
       // A card file counts for a link even when it has a problem of its own, so one mistake in a card is reported once.
       cards: cards.stems,
       cardKinds: new Map([...cards.compiled].map(([id, card]) => [id, card.front.kind])),

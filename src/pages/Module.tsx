@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useParams } from 'react-router'
-import type { Claim, CompiledModule, IndexLesson, IndexModule } from '@es/schema'
+import type { Claim, CompiledModule, IndexLesson, IndexModule, MapKc } from '@es/schema'
 import { PrinterTape, type PrinterTapeLine } from '@/design/components/PrinterTape'
 import { Readout } from '@/design/components/Readout'
 import { Stub } from '@/design/components/Stub'
@@ -8,16 +8,21 @@ import { TapeLabel } from '@/design/components/TapeLabel'
 import { TextLink } from '@/design/components/TextLink'
 import { Ticket, TicketLine } from '@/design/components/Ticket'
 import { useClaims, useDocumentTitle, useIndex, useModule } from '@/content/load'
+import { useMap } from '@/content/load-map'
 import { Blocks } from '@/content/render/Blocks'
 import { citedClaimIds, decimals, laneName, renderEnv, titled, todayIso } from '@/content/render/model'
 import { Columns, LinkRow, PageHeader, PageNotice, RefLink, Scope } from '@/content/render/Page'
 import '@/content/render/content.css'
+import { Kcs, Loop } from '@/map/ModuleProgress'
+import type { ModuleProgress } from '@/progress/derive'
+import { useProgress } from '@/progress/useProgress'
 
 /*
  * /m/:module (ARCHITECTURE §3.1): a module's page. Its title, the printer's tape of facts, the module's own words, what you
- * will be able to do, and its lessons as tickets, each with a stub that opens it. A module that `course.yaml` names and
- * nobody has written yet ("planned") shows what the index knows of it. W1-T06 adds the loop and the evidence.
- * `ModuleView` is the page once it has its content, and takes everything it shows as props.
+ * will be able to do, the loop it runs and what you hold of it, and its lessons as tickets, each with a stub that opens it. A module
+ * that `course.yaml` names and nobody has written yet ("planned") shows what the index knows of it.
+ * The loop and the evidence (W1-T06) are derived from the learner's events and the compiled map each time the page draws, and are
+ * never stored (src/progress). `ModuleView` is the page once it has its content, and takes everything it shows as props.
  */
 
 export function Component() {
@@ -27,6 +32,8 @@ export function Component() {
   const loaded = module.status === 'ready' ? module.value : null
   const cites = loaded !== null && citedClaimIds(loaded.blocks).size > 0
   const claims = useClaims(cites)
+  const map = useMap()
+  const { ready, progress } = useProgress(map.status === 'ready' ? map.value : null)
   const [today] = useState(todayIso)
   const entry = index.status === 'ready' ? index.value.modules.find((candidate) => candidate.id === id) : undefined
   const title = loaded?.title ?? entry?.title ?? null
@@ -35,13 +42,26 @@ export function Component() {
   if (module.status === 'error' || (index.status === 'error' && loaded === null)) {
     return <PageNotice kind="failed" title="The module did not load" ticket={id} message="The module would not print. Check your connection and reload the page." />
   }
-  if (module.status === 'loading' || index.status === 'loading' || (cites && claims.status === 'loading')) {
+  if (module.status === 'loading' || index.status === 'loading' || map.status === 'loading' || (cites && claims.status === 'loading')) {
     return <PageNotice kind="loading" title="Module" ticket={id} what="module" />
   }
   if (loaded === null && entry === undefined) {
     return <PageNotice kind="missing" title="Module not found" ticket={id} message={`No module called ${id}.`} back={{ to: '/map', label: 'Course map' }} />
   }
-  return <ModuleView id={id} module={loaded} entry={entry} claims={claims.status === 'ready' ? claims.value : null} today={today} />
+  // A map that did not load leaves the loop and the evidence out; the rest of the page does not need it.
+  const kcs = map.status === 'ready' ? map.value.kcs.filter((kc) => kc.module === id) : undefined
+  return (
+    <ModuleView
+      id={id}
+      module={loaded}
+      entry={entry}
+      claims={claims.status === 'ready' ? claims.value : null}
+      today={today}
+      kcs={kcs}
+      progress={progress?.modules.get(id)}
+      ready={ready}
+    />
+  )
 }
 
 export interface ModuleViewProps {
@@ -53,6 +73,12 @@ export interface ModuleViewProps {
   /** The claims by id, or null when they did not load: each chip then says so. */
   claims: ReadonlyMap<string, Claim> | null
   today: string
+  /** The module's KCs from the compiled map. Undefined when the map did not load, and the page then shows neither the loop nor the evidence. */
+  kcs?: readonly MapKc[]
+  /** What the learner's ledger holds of the module, derived. Undefined until it has been. */
+  progress?: ModuleProgress
+  /** True once the ledger has been read. Until then the page says so, and does not say the learner has done nothing. */
+  ready?: boolean
 }
 
 /** Hours, printed through the readout. They are [estimated] (docs/PLAN.md §4). */
@@ -60,7 +86,7 @@ function hoursReadout(hours: number) {
   return <Readout value={hours} digits={decimals(hours)} tag="estimated" size="sm" />
 }
 
-export function ModuleView({ id, module, entry, claims, today }: ModuleViewProps) {
+export function ModuleView({ id, module, entry, claims, today, kcs, progress, ready = false }: ModuleViewProps) {
   const env = useMemo(() => renderEnv(module?.blocks ?? [], claims, today), [module, claims, today])
   const title = module?.title ?? entry?.title ?? id
   const status = module?.status ?? entry?.status ?? 'planned'
@@ -77,6 +103,22 @@ export function ModuleView({ id, module, entry, claims, today }: ModuleViewProps
     if (laneHours !== undefined) lines.push({ id: `lane-${lane}`, label: `${laneName(lane)} (${lane})`, value: hoursReadout(laneHours) })
   }
   lines.push({ id: 'status', label: 'status', value: status, tone: status === 'live' ? 'ink' : 'ink-2' })
+  if (kcs !== undefined && kcs.length > 0) {
+    const counts = progress?.counts
+    const held = ready && counts !== undefined
+    lines.push({
+      id: 'earned',
+      label: 'earned',
+      value: held ? (
+        <>
+          <Readout value={counts.earned} tag="measured" size="sm" /> of {counts.total}
+        </>
+      ) : (
+        'reading your ledger'
+      ),
+    })
+    lines.push({ id: 'kept', label: 'kept', value: held ? <Readout value={counts.kept} tag="measured" size="sm" /> : 'reading your ledger' })
+  }
   if (prereqs.length > 0) {
     lines.push({
       id: 'prereqs',
@@ -132,8 +174,10 @@ export function ModuleView({ id, module, entry, claims, today }: ModuleViewProps
                 ))}
               </ol>
             </Ticket>
+            {kcs === undefined ? null : <Loop module={module.id} games={games} labs={labs} progress={progress} ready={ready} />}
           </>
         )}
+        {kcs === undefined || kcs.length === 0 ? null : <Kcs module={id} kcs={kcs} progress={progress} ready={ready} />}
         <Lessons lessons={entry?.lessons ?? null} scope={id} />
         {module === null ? null : <Artifacts artifacts={module.artifacts} scope={module.id} />}
       </Columns>

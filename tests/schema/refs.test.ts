@@ -22,6 +22,8 @@ import {
   lessonIdSchema,
   lockKeySchema,
   moduleIdSchema,
+  moduleOfKc,
+  moduleOfRef,
   parseRef,
   predictIdSchema,
   prereqSchema,
@@ -310,5 +312,35 @@ describe('the identifiers agree with the architecture', () => {
     expect(refs.size).toBeGreaterThan(20)
     expect(refused(ksRefSchema, [...refs])).toEqual([])
     expect(refused(kcRefSchema, [...refs])).toEqual([])
+  })
+})
+
+describe('the module that a KC or a ref belongs to', () => {
+  const none = () => undefined
+
+  test('a KC belongs to the module it begins with, and the capstone is cap', () => {
+    expect(moduleOfKc('tr2.async-overlap')).toBe('tr2')
+    expect(moduleOfKc('tr5a.pool-sizing')).toBe('tr5a')
+    expect(moduleOfKc('cap.attribution')).toBe('capstone')
+  })
+
+  test('a ref belongs to the module its lesson, family, lab, stage or KC begins with', () => {
+    const refs: [string, string][] = [
+      ['predict:tr2.l3#tr2.l3.p1', 'tr2'],
+      ['item:gen/tr2.bubble-width/a', 'tr2'],
+      ['lab:tr8.replay', 'tr8'],
+      ['prove:tr3.profile', 'tr3'],
+      ['challenge:tr8.replay.s2', 'tr8'],
+      ['receipt:tr8.replay.s2', 'tr8'],
+      ['review:tr6.exactness', 'tr6'],
+      ['review:cap.attribution', 'capstone'],
+    ]
+    for (const [ref, module] of refs) expect(moduleOfRef(ref, none), ref).toBe(module)
+  })
+
+  test('a game belongs to the module the registry gives, and a ref that names no module belongs to none', () => {
+    expect(moduleOfRef('play:loop/close', (game) => (game === 'loop' ? 'tr2' : undefined))).toBe('tr2')
+    expect(moduleOfRef('play:pool/evict', none)).toBeNull()
+    for (const ref of ['lab:hybrid-kv', 'trace:t1/a', 'screen:welcome', 'change:c1', 'not a ref', '']) expect(moduleOfRef(ref, none), ref).toBeNull()
   })
 })

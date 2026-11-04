@@ -81,7 +81,8 @@ export const lessonFrontMatterSchema = z
   })
 
 /** A module's graded artifact: a Build card names it, and the map counts it (A§4.2). */
-const artifactSchema = z.strictObject({ id: dottedIdSchema, lane, title: nonBlank })
+export const artifactSchema = z.strictObject({ id: dottedIdSchema, lane, title: nonBlank })
+export type Artifact = z.infer<typeof artifactSchema>
 
 const hours = z.number().positive()
 

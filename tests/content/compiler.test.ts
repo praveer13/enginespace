@@ -26,8 +26,8 @@ const INDEX_JSON = 'src/content/generated/index.json'
 
 const lesson = read(LESSON)
 const sample = compile()
-/** The files the sample writes: the index, the claims, the export of the module and its lesson, their JSON, and one JSON for each card. */
-const OUTPUT_COUNT = 7 + CARD_COUNT
+/** The files the sample writes: the index, the map, the claims, the export of the module and its lesson, their JSON, and one JSON for each card. */
+const OUTPUT_COUNT = 8 + CARD_COUNT
 
 describe('the sample content compiles', () => {
   test('without a diagnostic of any kind', () => {
@@ -45,6 +45,7 @@ describe('the sample content compiles', () => {
         ...CARD_IDS.map((id) => `src/content/generated/cards/${id}.json`),
         'src/content/generated/index.json',
         'src/content/generated/lessons/tr2.l0-sample.json',
+        'src/content/generated/map.json',
         'src/content/generated/modules/tr2.json',
       ].sort(),
     )
@@ -359,7 +360,11 @@ describe('check 2: each of these fails with file:line', () => {
 
 describe('ids, refs and links', () => {
   /** course.yaml without TR7, so that a module of that name is one the course does not have. */
-  const withoutTr7 = swap('  - id: tr7\n    title: Contribute honestly\n    hours: 6 # [estimated]\n    hours_by_lane: { B: 2, F: 4 } # [estimated]\n', '')
+  const withoutTr7 = (text: string) => {
+    const without = text.replace(/ {2}- id: tr7\n(?: {4,}.*\n)+/, '')
+    if (without === text) throw new Error('course.yaml has no TR7 to take out')
+    return without
+  }
   const cases: [string, Record<string, Edit>, string[]][] = [
     ['a lesson id that does not match its file', { [LESSON]: swap('id: tr2.l0\n', 'id: tr2.l3\n') }, [`${LESSON}:2 id-mismatch`]],
     ['a lesson whose id and module disagree', { [LESSON]: swap('module: tr2', 'module: tr1') }, [`${LESSON}:2 schema`]],
