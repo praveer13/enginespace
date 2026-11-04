@@ -11,6 +11,7 @@ The dated, sourced facts that content cites as `{{claim:id}}` (ARCHITECTURE §4.
 | `readings.yaml` | The reading targets of TR1: "Inside vLLM" at commit 42172ad, nano-vllm and Mini-SGLang |
 | `loop.yaml` | Service (`loop`)'s synthetic world and its real anchor (W0-T16) |
 | `sample.yaml` | The sample lesson's claims (W0-T08) |
+| `worlds/` | What the notional-machine cards cite beyond the files above (W1-T07): `engines.yaml`, ten more facts about vLLM and SGLang at the pins (vLLM's engine-core process, its abort status, its stop check, the bonus token of speculation and its sampling constraints, the profiler's trace files and the Nsight Systems option for graphs; SGLang's three components, their IPC and its goodput duration), and `references.yaml`, the speculative-decoding paper, the S-LoRA paper, Little's law and the Perfetto trace format. An id here starts with its world (`spec`, `kv`, `bench`, `trace`) when its source is not an engine's |
 
 An id reads `<area>.<topic>.<attribute>`, and the area is the engine or the reading target: `vllm`, `sglang`, `inside-vllm`, `nano-vllm` or `mini-sglang`. The `pin` of a claim is that engine's key in `course.lock.json`, so a moved pin raises a change card for every claim that names it (ARCHITECTURE §4.4). `npm run verify:pins` checks the lockfile, and `npm run verify:claims` checks that each `pin` names one of its keys.
 

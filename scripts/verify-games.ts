@@ -15,7 +15,9 @@
  *     the count of GAMES.md §3's prototype] at least 20% are in band [estimated floor, kernelspace's EPLB figure] (GAMES.md §2.1).
  *     The measured share is printed;
  *   - KCs and claims that exist, once the KC graph (W1-T03) and the claims files (W0-T08) exist. Until then these two checks
- *     print a note and pass, as an unbuilt gate does (scripts/verify.ts).
+ *     print a note and pass, as an unbuilt gate does (scripts/verify.ts);
+ *   - a card that the content compiler accepts: three parts, claims that exist, a source for each rule (W1-T07, scripts/content/cards.ts).
+ *     A card file that is there and does not compile is as good as missing, and `verify:content` says what is wrong with it.
  *
  * Not checked yet, and said so in the task's report: the keyboard and reduced-motion e2e walks (W0-T21 and each game's task
  * decide their spec names), the cross-browser determinism hash (nightly, §5.10), and ASSESSMENT §4.1's blind-strategy bound for
@@ -35,6 +37,7 @@ import { GAMES, COMMON_KEYS, keyProblems, stateHash } from '../packages/play'
 import type { AnySession, GameEntry } from '../packages/play'
 import { claimIdSchema, gameIdSchema, kcIdSchema, levelIdSchema, moduleIdSchema, slugSchema } from '../packages/schema/refs'
 import { GAME_COMPONENTS } from '../src/games/registry'
+import { compileContent } from './content/build.ts'
 
 /** The share of the first seeds that a level's band must accept, at least [estimated, kernelspace's EPLB floor], and how many are tried [estimated]. */
 export const BAND_FLOOR = 0.2
@@ -50,6 +53,8 @@ export interface Files {
 export interface World {
   claimIds?: ReadonlySet<string>
   kcIds?: ReadonlySet<string>
+  /** The ids of the cards that compile (`compileContent`): a card file whose id is not here is there and unusable. */
+  cardIds?: ReadonlySet<string>
 }
 
 export interface GateInput {
@@ -263,6 +268,10 @@ export async function checkGames(input: GateInput): Promise<Report> {
     add(entry.id, checkEntry(entry))
     if (!componentIds.includes(entry.id)) add(entry.id, ['it has no component in src/games/registry.ts'])
     add(entry.id, checkFiles(entry, files))
+    // A card that is missing was reported by checkFiles. One that is there and does not compile is not a card yet.
+    if (world.cardIds && !blank(entry.card) && files.exists(`content/cards/${entry.card}.md`) && !world.cardIds.has(entry.card)) {
+      add(entry.id, [`the notional-machine card content/cards/${entry.card}.md does not compile: it needs three parts, claims that exist and a source for each rule (A§5.9). Run verify:content for the lines`])
+    }
     if (world.kcIds) for (const kc of entry.kcs ?? []) if (!world.kcIds.has(kc)) add(entry.id, [`the KC "${kc}" is not in content/kc/graph.yaml`])
     if (world.claimIds) for (const claim of entry.claims ?? []) if (!world.claimIds.has(claim)) add(entry.id, [`the claim "${claim}" is not in content/claims`])
 
@@ -303,11 +312,15 @@ function idsIn(root: string, files: string[]): Set<string> | undefined {
   return ids
 }
 
-/** The claim and KC ids of a checkout. A claims file or the KC graph that does not exist yet leaves its set undefined. */
+/**
+ * The claim, KC and card ids of a checkout. A claims file or the KC graph that does not exist yet leaves its set undefined. The
+ * cards are the ones the content compiler accepts, so the gate and `verify:content` agree on what a card is.
+ */
 export function worldAt(root: string): World {
   const claimsDir = path.join(root, 'content/claims')
   const claimFiles = existsSync(claimsDir) ? readdirSync(claimsDir).filter((name) => /\.ya?ml$/.test(name)).map((name) => `content/claims/${name}`) : []
-  return { claimIds: idsIn(root, claimFiles), kcIds: idsIn(root, ['content/kc/graph.yaml']) }
+  const cardIds = existsSync(path.join(root, 'content/cards')) ? compileContent({ root }).cards : undefined
+  return { claimIds: idsIn(root, claimFiles), kcIds: idsIn(root, ['content/kc/graph.yaml']), cardIds }
 }
 
 export async function main(root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')): Promise<number> {

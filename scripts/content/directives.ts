@@ -113,6 +113,8 @@ export interface LinkEnv {
   kcs: ReadonlySet<string>
   /** The stems of `content/cards/*.md`. */
   cards: ReadonlySet<string>
+  /** The kind that each card that compiled says it is (its front matter's `kind`), by id. A card with a problem of its own has none. */
+  cardKinds: ReadonlyMap<string, string>
   /** Whether a figure's file exists, given its `src`. */
   figureExists(src: string): boolean
 }
@@ -149,11 +151,17 @@ export function blockLinks(block: DirectiveBlock, env: LinkEnv): LinkProblem[] {
       return unknownGame(block.id, env, ['id'])
     case 'lab':
       return unknownLab(block.id, env, ['id'])
-    case 'card':
-      if ((FILE_CARDS as readonly string[]).includes(block.kind) && 'id' in block && !env.cards.has(block.id)) {
+    case 'card': {
+      if (!(FILE_CARDS as readonly string[]).includes(block.kind) || !('id' in block)) return []
+      if (!env.cards.has(block.id)) {
         return [{ code: 'unknown-card', path: ['id'], message: `no card "${block.id}": a ${block.kind} card is the file content/cards/${block.id}.md` }]
       }
+      const found = env.cardKinds.get(block.id)
+      if (found !== undefined && found !== block.kind) {
+        return [{ code: 'card-kind', path: ['kind'], message: `the card "${block.id}" is a ${found} card, and this block says ${block.kind}` }]
+      }
       return []
+    }
     case 'figure':
       return env.figureExists(block.src) ? [] : [{ code: 'missing-file', path: ['src'], message: `no file public/${block.src}: a figure's src is a path under public/` }]
     default:

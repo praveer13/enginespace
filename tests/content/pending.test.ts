@@ -19,7 +19,6 @@ describe('the features that are not built yet', () => {
     predict: { in: 'body', words: /prediction first/ },
     item: { in: 'heading', words: /item block/ },
     trace: { in: 'heading', words: /Trace viewer/ },
-    'notional-machine': { in: 'heading', words: /Notional-machine cards/ },
     'in-production': { in: 'body', words: /In-production card/ },
     'build-this': { in: 'body', words: /Build-this card/ },
     change: { in: 'heading', words: /Change cards/ },

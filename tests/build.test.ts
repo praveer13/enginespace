@@ -155,16 +155,16 @@ describe('the app build', () => {
     expect(named.filter((key) => !pages.includes(key) && !onDemand.test(key))).toEqual([])
   })
 
-  test('makes the course index, and each module and lesson, a lazy chunk of its own that the entry never loads (ARCHITECTURE §4.6)', () => {
+  test('makes the course index, and each module, lesson and card, a lazy chunk of its own that the entry never loads (ARCHITECTURE §4.6)', () => {
     // The build compiled content/ into src/content/generated/ before it bundled anything, so the folder is what the chunks must match.
     const compiled = (folder: string): string[] =>
       readdirSync(path.join(root, CONTENT, folder))
         .filter((file) => file.endsWith('.json'))
         .map((file) => `${CONTENT}${folder}${file}`)
-    const expected = [`${CONTENT}index.json`, ...compiled('modules/'), ...compiled('lessons/')]
+    const expected = [`${CONTENT}index.json`, ...compiled('modules/'), ...compiled('lessons/'), ...compiled('cards/')]
     const content = Object.entries(app.manifest).filter(([key]) => key.startsWith(CONTENT))
     expect(content.map(([key]) => key).sort()).toEqual(expected.sort())
-    expect(content.length).toBeGreaterThanOrEqual(3) // the index, and the sample module and lesson
+    expect(content.length).toBeGreaterThanOrEqual(4) // the index, the sample module and lesson, and a card
     const loadedFirst = new Set([...staticClosure(app, entryKeyOf(app))].map((key) => app.manifest[key].file))
     for (const [, chunk] of content) {
       expect(chunk.isDynamicEntry).toBe(true)

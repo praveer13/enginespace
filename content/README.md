@@ -22,9 +22,9 @@ npm run verify:kc              # the KC graph: a DAG, and a graded reference or 
 | `claims/**/*.yaml` | dated, sourced facts, each a list of claims |
 | `kc/graph.yaml` | the knowledge components (KCs) that lessons and predictions name, with the edges between them (see "The KC graph") |
 | `kc/kernelspace.json` | the ids of kernelspace's KCs at the vendored pin, which the `ks:` edges of the graph may name. `scripts/kc/kernelspace.ts` writes and checks it |
-| `cards/<id>.md` | the cards that a block or a module's `worlds` names |
+| `cards/<id>.md` | the notional-machine cards that a `card` block or a module's `worlds` names |
 
-A figure's `src` is a path under `public/`, such as `figures/tr2/bubble.svg`.
+A figure's `src` is a path under `public/`, such as `figures/tr2/bubble.svg`. A card's compiled JSON is written to `src/content/generated/cards/<id>.json`, one lazy chunk each, like a lesson's.
 
 ## A lesson
 
@@ -36,6 +36,42 @@ Front matter, then Markdown with `:::name … :::` directives (ARCHITECTURE §4.
 - **Links out of a block.** A `game` names a game of ARCHITECTURE §6.1, a `lab` names a lab of §9.2, a KC is in `kc/graph.yaml`, a card that lives in a file is in `cards/`, and a figure's file is under `public/`.
 - **Minutes.** The compiler adds up the words at a reading speed and what each block takes (`scripts/content/directives.ts`), and warns when `minutes` is further from the sum than a fifth.
 - **`rev`** is added by the compiler: a SHA-256 over the authored fields, the blocks and the claims the page cites. It does not change when the Markdown is rewrapped, and it leaves out `status` and `minutes`.
+
+## A card
+
+Every world that the site draws has a notional-machine card: what it models, what it ignores and what it was calibrated against (ARCHITECTURE §5.9, D-012). A card is prose and nothing else: the front matter below, a few words, and three parts under `##` headings, in this order.
+
+```md
+---
+id: spec                         # the file's name, without .md
+kind: notional-machine           # the only kind that has a file format so far
+title: The speculative-decoding verifier
+world: spec                      # the module of packages/sim that the card describes
+status: draft                    # draft | review | live
+---
+
+A few words on what the world is, and which engines it follows.
+
+## Models
+1. A rule of the world, then the claims it comes from. {{claim:vllm.spec.fly-lossy}}
+
+## Ignores
+- What the world leaves out.
+
+## Calibrated against
+- What it was checked against, or "nothing yet".
+```
+
+The compiler holds a card to these rules, and `verify:content` reports each break as `file:line`:
+
+- The three parts are all there, once each and in order, and none is empty.
+- The card cites at least one claim, and every claim it cites exists.
+- Each rule of Models, a list item, names its source: a claim for a fact about an engine or a paper, or the decision or the design section that makes the rule the course's own (`D-044`, `A§5.3`, `WORLD §2.6`, `GAMES.md §3.1`, `ASSESSMENT §6.2`).
+- The words go through the prose gates: no HTML, and a number is a claim, a tag or an identifier in backticks.
+
+Put each rule's claims at the end of its item, after the last full stop. A claim is drawn as a slip that interrupts the line, so a slip in the middle of a sentence breaks it. A number that the sentence needs is the exception, and it stays where it is.
+
+A card is named by the model that exports its id (ARCHITECTURE §5.1): `trace-room-steploop`, `trace-room-trace` and `trace-room-bench` for the models of W0-T13, W1-T08 and W1-T31, and the world's own name (`spec`, `lifecycle`, `kv`) for the rest. A `card` block draws a card as a ticket (`kind: notional-machine`, `id: spec`), and `verify:games` fails a registered game whose card file is missing, or is there and does not compile.
 
 ## Numbers
 

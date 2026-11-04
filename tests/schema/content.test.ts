@@ -13,6 +13,8 @@ import {
   BLOCK_TYPES,
   blockBodySchemas,
   blockSchema,
+  CARD_PARTS,
+  cardFrontMatterSchema,
   DIRECTIVES,
   isDirective,
   lessonFrontMatterSchema,
@@ -266,6 +268,51 @@ describe('module front matter', () => {
 
   test('takes a module with no worlds, prerequisites or pins', () => {
     expect(moduleFrontMatterSchema.safeParse({ ...module_, worlds: [], prereqs: [], pins: [] }).success).toBe(true)
+  })
+})
+
+describe('card front matter (A§5.9, W1-T07)', () => {
+  const card = { id: 'trace-room-steploop', kind: 'notional-machine', title: 'The engine step loop', world: 'steploop', status: 'draft' }
+
+  test('takes the front matter of the step-loop card that W0-T13 wrote', () => {
+    expect(problems(cardFrontMatterSchema, card)).toEqual([])
+    expect(problems(cardFrontMatterSchema, splitContent(read('content/cards/trace-room-steploop.md')).frontMatter)).toEqual([])
+  })
+
+  test('has five keys, all required, and the card block names it by the same id', () => {
+    expect(keyRoles(cardFrontMatterSchema, card)).toEqual({ required: ['id', 'kind', 'status', 'title', 'world'], optional: [] })
+    expect(problems(blockBodySchemas.card, { kind: 'notional-machine', id: card.id })).toEqual([])
+  })
+
+  test('refuses an unknown key, and a rev, which the compiler adds', () => {
+    expect(problems(cardFrontMatterSchema, { ...card, speed: 3 })).toEqual(['(root): unrecognized_keys[speed]'])
+    expect(problems(cardFrontMatterSchema, { ...card, rev: 'a'.repeat(64) })).toEqual(['(root): unrecognized_keys[rev]'])
+  })
+
+  const cases: [string, Path, unknown, string[]][] = [
+    ['an id in capitals', ['id'], 'Trace-Room', ['id: invalid_format']],
+    ['an id with a dot', ['id'], 'trace.room', ['id: invalid_format']],
+    ['a kind with no file format yet', ['kind'], 'in-production', ['kind: invalid_value']],
+    ['a kind that is not a card', ['kind'], 'lesson', ['kind: invalid_value']],
+    ['a blank title', ['title'], '  ', ['title: invalid_format']],
+    ['a world with a space in it', ['world'], 'step loop', ['world: invalid_format']],
+    ['a status that is not draft, review or live', ['status'], 'done', ['status: invalid_value']],
+  ]
+  for (const [name, path, to, expected] of cases) {
+    test(`refuses ${name}`, () => expect(problems(cardFrontMatterSchema, withKey(card, path, to))).toEqual(expected))
+  }
+
+  test('says why a kind is refused: the other cards kept in a file arrive with the tasks that decide their format', () => {
+    expect(messages(cardFrontMatterSchema, withKey(card, ['kind'], 'build-this'))).toEqual([
+      'must be notional-machine: the other cards kept in a file arrive with W1-T13 (In-production, Build-this) and W3-T06 (change)',
+    ])
+  })
+
+  test('has three parts, in the order of A§5.9', () => {
+    expect([...CARD_PARTS]).toEqual(['Models', 'Ignores', 'Calibrated against'])
+    const section = between(architecture, '### 5.9 Notional-machine cards', '### 5.10')
+    const named = [...section.matchAll(/- \*\*"([^"]+)"\*\*/g)].map((match) => match[1])
+    expect(named).toEqual([...CARD_PARTS])
   })
 })
 

@@ -8,6 +8,7 @@ import { z } from 'zod'
 import {
   claimsOutputSchema,
   compiledBlockSchema,
+  compiledCardSchema,
   compiledLessonSchema,
   compiledModuleSchema,
   contentIndexSchema,
@@ -25,6 +26,7 @@ const result = compileContent({ root: path.resolve(import.meta.dirname, '../..')
 const output = (file: string) => JSON.parse(result.outputs.find((o) => o.path === file)?.text ?? 'null') as Record<string, unknown>
 
 const lesson = output('src/content/generated/lessons/tr2.l0-sample.json')
+const card = output('src/content/generated/cards/trace-room-steploop.json')
 const module_ = output('src/content/generated/modules/tr2.json')
 const index = output('src/content/generated/index.json')
 const claims = output('public/claims.json')
@@ -33,6 +35,7 @@ const course = yaml(read('content/course.yaml'))
 describe('the repo\'s sample outputs', () => {
   test('are valid, and are what the schemas parse them to', () => {
     expect(compiledLessonSchema.parse(lesson)).toEqual(lesson as never)
+    expect(compiledCardSchema.parse(card)).toEqual(card as never)
     expect(compiledModuleSchema.parse(module_)).toEqual(module_ as never)
     expect(contentIndexSchema.parse(index)).toEqual(index as never)
     expect(claimsOutputSchema.parse(claims)).toEqual(claims as never)
@@ -43,6 +46,7 @@ describe('the repo\'s sample outputs', () => {
 describe('every object rejects an unknown key', () => {
   const subjects: [string, z.ZodType, unknown][] = [
     ['a compiled lesson', compiledLessonSchema, lesson],
+    ['a compiled card', compiledCardSchema, card],
     ['a compiled module', compiledModuleSchema, module_],
     ['the index', contentIndexSchema, index],
     ['the claims file', claimsOutputSchema, claims],
@@ -158,6 +162,26 @@ describe('compiled lessons and modules', () => {
   })
 })
 
+describe('compiled cards', () => {
+  test('carry a rev that is a SHA-256, and the front matter of the file', () => {
+    expect(problems(compiledCardSchema, withKey(card, ['rev'], 'abc'))).toEqual(['rev: invalid_format'])
+    expect(problems(compiledCardSchema, withKey(card, ['rev'], undefined))).toEqual(['rev: invalid_type'])
+    expect(problems(compiledCardSchema, withKey(card, ['kind'], 'in-production'))).toEqual(['kind: invalid_value'])
+    expect(problems(compiledCardSchema, withKey(card, ['world'], 'Step Loop'))).toEqual(['world: invalid_format'])
+  })
+
+  test('hold something in each of the three parts, and may have no intro', () => {
+    for (const part of ['models', 'ignores', 'calibrated']) expect(problems(compiledCardSchema, withKey(card, [part], []))).toEqual([`${part}: too_small`])
+    expect(problems(compiledCardSchema, withKey(card, ['intro'], []))).toEqual([])
+    expect(problems(compiledCardSchema, withKey(card, ['intro'], undefined))).toEqual(['intro: invalid_type'])
+  })
+
+  test('hold prose and nothing that could carry HTML', () => {
+    expect(problems(compiledCardSchema, withKey(card, ['models'], [{ type: 'html', html: '<b>x</b>' }])).length).toBeGreaterThan(0)
+    expect(problems(compiledCardSchema, withKey(card, ['ignores'], [{ type: 'heading', depth: 1, children: [text] }])).length).toBeGreaterThan(0)
+  })
+})
+
 describe('course.yaml', () => {
   const module = { id: 'tr2', title: 'The step loop', hours: 10, hours_by_lane: { B: 10 } }
 
@@ -179,6 +203,7 @@ describe('course.yaml', () => {
 describe('JSON Schema export (D-030)', () => {
   const schemas: [string, z.ZodType][] = [
     ['a compiled lesson', compiledLessonSchema],
+    ['a compiled card', compiledCardSchema],
     ['a compiled module', compiledModuleSchema],
     ['the index', contentIndexSchema],
     ['the claims file', claimsOutputSchema],

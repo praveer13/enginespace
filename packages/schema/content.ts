@@ -1,6 +1,7 @@
 /**
  * Lessons and modules (ARCHITECTURE §4.2 and §4.3, D-016): the front matter of `lesson` and `module.md` files, and the eight
- * block types.
+ * block types. A card kept in its own file (`content/cards/<id>.md`, §5.9) has front matter and three parts of its own, which
+ * sit at the end of this file beside the `card` block that names it.
  *
  * A content file is Markdown with YAML front matter and container directives (`:::predict … :::`). The compiler splits a file
  * into its front matter, its prose and its directives, parses the YAML of each with js-yaml's `CORE_SCHEMA`, and validates:
@@ -259,6 +260,31 @@ function cards<Extra extends z.ZodRawShape>(extra: Extra) {
 
 export const cardBodySchema = cards({})
 
+/**
+ * The three parts of a notional-machine card, in the order a card has them (A§5.9): the rules the world follows, each with
+ * its source; what the world leaves out; and what it was checked against, or "nothing yet". They are the card's `##` headings.
+ */
+export const CARD_PARTS = ['Models', 'Ignores', 'Calibrated against'] as const
+export type CardPart = (typeof CARD_PARTS)[number]
+
+/**
+ * The front matter of a card kept in its own file, `content/cards/<id>.md` (A§4.3, A§5.9). The file's name is the card's id.
+ * Like a lesson's, the card's `rev` is added by the compiler, so an authored one is refused.
+ *
+ * Only the notional-machine card has a format so far. The In-production and Build-this cards arrive with W1-T13 and the change
+ * card with W3-T06, and each brings its own front matter and parts, so a file of another kind is refused until then.
+ */
+export const cardFrontMatterSchema = z.strictObject({
+  id: slugSchema,
+  kind: z.literal('notional-machine', {
+    error: 'must be notional-machine: the other cards kept in a file arrive with W1-T13 (In-production, Build-this) and W3-T06 (change)',
+  }),
+  title: nonBlank,
+  /** The model in `packages/sim` that the card describes, by its module name: `steploop`, `kv`, `spec` (A§5.2). */
+  world: slugSchema,
+  status,
+})
+
 /** The block types: prose, which is the Markdown between directives, and the seven directives. The cap is eight (A§4.3). */
 export const DIRECTIVES = ['predict', 'item', 'game', 'trace', 'lab', 'card', 'figure'] as const
 export const BLOCK_TYPES = ['prose', ...DIRECTIVES] as const
@@ -303,4 +329,5 @@ export const blockSchema = z.discriminatedUnion(
 
 export type LessonFrontMatter = z.infer<typeof lessonFrontMatterSchema>
 export type ModuleFrontMatter = z.infer<typeof moduleFrontMatterSchema>
+export type CardFrontMatter = z.infer<typeof cardFrontMatterSchema>
 export type Block = z.infer<typeof blockSchema>

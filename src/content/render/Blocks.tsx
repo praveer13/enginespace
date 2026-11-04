@@ -1,13 +1,13 @@
-import type { ReactNode } from 'react'
-import type { CompiledBlock } from '@es/schema'
-import { publicUrl } from '../load'
+import { Fragment, type ReactNode } from 'react'
+import type { CompiledBlock, CompiledCard } from '@es/schema'
+import { publicUrl, useCard, useClaims } from '../load'
 import { Icon } from '@/design/components/Glyph'
 import { Readout } from '@/design/components/Readout'
 import { Stub } from '@/design/components/Stub'
 import { TapeLabel } from '@/design/components/TapeLabel'
-import { Ticket, TicketLine } from '@/design/components/Ticket'
+import { Ticket, TicketLine, type TicketState } from '@/design/components/Ticket'
 import './content.css'
-import { decimals, laneName, PENDING, pendingGame, pendingLab, readoutUnit, sections, type Pending, type RenderEnv } from './model'
+import { cardClaimIds, decimals, laneName, PENDING, pendingGame, pendingLab, readoutUnit, sections, type Pending, type RenderEnv } from './model'
 import { Scope } from './Page'
 import { Inline, Prose } from './Prose'
 
@@ -16,10 +16,10 @@ import { Inline, Prose } from './Prose'
  * block. A prose block breaks into a ticket for each `##` section, with the heading as the ticket's stamped title. Every
  * other block is one ticket, headed by the page's id and its own, titled by its kind, with its facts on tape labels.
  *
- * Prose, a warning, an isomorphism and a figure are complete. A block whose feature a later task builds (a prediction, an
- * item set, a game, a trace, a lab page, a card kept in its own file) prints what it is told, then a red line naming the
- * task that builds the rest, and a stub for the action it will have, held down. A feature task replaces its block's
- * placeholder below and leaves the others alone.
+ * Prose, a warning, an isomorphism, a notional-machine card and a figure are complete. A block whose feature a later task
+ * builds (a prediction, an item set, a game, a trace, a lab page, the other cards kept in their own files) prints what it is
+ * told, then a red line naming the task that builds the rest, and a stub for the action it will have, held down. A feature
+ * task replaces its block's placeholder below and leaves the others alone.
  */
 
 export interface BlocksProps {
@@ -50,7 +50,7 @@ function BlockTicket({ block, env, scope }: { block: CompiledBlock; env: RenderE
     case 'lab':
       return <LabTicket block={block} scope={scope} />
     case 'card':
-      return <CardTicket block={block} scope={scope} />
+      return <CardTicket block={block} env={env} scope={scope} />
     case 'figure':
       return <FigureTicket block={block} scope={scope} />
   }
@@ -73,10 +73,15 @@ interface FrameProps {
   /** The task that builds what this ticket stands in for, when it is a placeholder. */
   pending?: string
   stub?: ReactNode
+  /** The ticket's state: a block that waits for a file prints as loading, and one that did not load as an error or as blank. */
+  state?: TicketState
+  loadingLabel?: string
+  error?: ReactNode
+  empty?: ReactNode
   children?: ReactNode
 }
 
-function Frame({ block, kind, scope, meta, title, anchor, pending, stub, children }: FrameProps) {
+function Frame({ block, kind, scope, meta, title, anchor, pending, stub, state, loadingLabel, error, empty, children }: FrameProps) {
   return (
     <Ticket
       as="section"
@@ -91,6 +96,10 @@ function Frame({ block, kind, scope, meta, title, anchor, pending, stub, childre
       title={title}
       titleAs="h2"
       stub={stub}
+      state={state}
+      loadingLabel={loadingLabel}
+      error={error}
+      empty={empty}
     >
       {children}
     </Ticket>
@@ -248,7 +257,7 @@ const CARD_TITLES = {
   warning: 'Warning',
 } as const
 
-function CardTicket({ block, scope }: { block: Of<'card'>; scope: string }) {
+function CardTicket({ block, env, scope }: { block: Of<'card'>; env: RenderEnv; scope: string }) {
   switch (block.kind) {
     case 'warning':
       return (
@@ -271,8 +280,10 @@ function CardTicket({ block, scope }: { block: Of<'card'>; scope: string }) {
           </p>
         </Frame>
       )
+    case 'notional-machine':
+      return <NotionalMachine id={block.id} env={env} scope={scope} />
     default: {
-      // The other four are cards kept in their own files, which the compiler does not write out yet.
+      // The other three are cards kept in their own files, whose formats a later task decides (the compiler refuses a file of another kind).
       const pending = PENDING[block.kind]
       return (
         <Frame block="card" kind={block.kind} scope={scope} meta={block.id} title={CARD_TITLES[block.kind]} pending={pending.task}>
@@ -282,6 +293,57 @@ function CardTicket({ block, scope }: { block: Of<'card'>; scope: string }) {
       )
     }
   }
+}
+
+/**
+ * A world's notional-machine card (A§5.9, D-012), loaded from the file the compiler wrote and drawn as one ticket: the card's
+ * name and its few words, then its three parts, each under a strip of tape. Every claim in it is a chip with its source, so a
+ * rule is never a bare assertion. The card is a lazy chunk, and so are the claims when the page has not fetched them yet.
+ */
+function NotionalMachine({ id, env, scope }: { id: string; env: RenderEnv; scope: string }) {
+  const card = useCard(id)
+  const loaded = card.status === 'ready' ? card.value : null
+  const needsClaims = loaded !== null && env.claims === null && cardClaimIds(loaded).size > 0
+  const claims = useClaims(needsClaims)
+  const frame = { block: 'card', kind: 'notional-machine', scope, meta: id, title: CARD_TITLES['notional-machine'] } as const
+
+  if (card.status === 'error') {
+    return <Frame {...frame} state="error" error="The card would not print. Check your connection and reload the page." />
+  }
+  if (card.status === 'loading' || (needsClaims && claims.status === 'loading')) {
+    return <Frame {...frame} state="loading" loadingLabel="Printing the card" />
+  }
+  if (loaded === null) return <Frame {...frame} state="empty" empty={`No card called ${id}.`} />
+  return <NotionalMachineView card={loaded} env={claims.status === 'ready' ? { ...env, claims: claims.value } : env} scope={scope} />
+}
+
+/** The parts of a card, in order, with the field of the compiled card that holds each (`CARD_PARTS` in packages/schema). */
+const CARD_PARTS = [
+  ['Models', 'models'],
+  ['Ignores', 'ignores'],
+  ['Calibrated against', 'calibrated'],
+] as const
+
+/** A compiled card on its ticket. `NotionalMachine` loads the card and the claims it needs; this draws them. */
+export function NotionalMachineView({ card, env, scope }: { card: CompiledCard; env: RenderEnv; scope: string }) {
+  // A card's headings are its three parts and nothing deeper, so the page's heading ids are not the card's to make.
+  return (
+    <Frame block="card" kind="notional-machine" scope={scope} meta={card.id} title={CARD_TITLES['notional-machine']}>
+      <p className="es-c-card__name">{card.title}</p>
+      <Prose body={card.intro} env={env} />
+      {CARD_PARTS.map(([part, field]) => (
+        <Fragment key={part}>
+          <h3 className="es-c-part" data-part={field}>
+            <TapeLabel size="sm" tilt="none">
+              {part}
+            </TapeLabel>
+          </h3>
+          <Prose body={card[field]} env={env} />
+        </Fragment>
+      ))}
+      <Tapes label="About this card" items={[`world · ${card.world}`, `status · ${card.status}`]} />
+    </Frame>
+  )
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */

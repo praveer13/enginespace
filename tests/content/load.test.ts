@@ -8,7 +8,7 @@
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
-import { loadClaims, loadIndex, loadLesson, loadModule, publicUrl } from '@/content/load'
+import { loadCard, loadClaims, loadIndex, loadLesson, loadModule, publicUrl } from '@/content/load'
 
 const source = readFileSync(path.resolve(import.meta.dirname, '../../src/content/load.ts'), 'utf8')
 
@@ -16,12 +16,12 @@ describe('the loader, outside Vite', () => {
   test('imports without evaluating a glob, because every glob sits inside a function', () => {
     const code = source.split('\n').filter((line) => !/^\s*(\*|\/\/|\/\*)/.test(line))
     const globs = code.filter((line) => line.includes('import.meta.glob'))
-    expect(globs.length).toBe(3)
+    expect(globs.length).toBe(4)
     for (const line of globs) expect(line).toMatch(/^const \w+ = \(\) => import\.meta\.glob/)
   })
 
   test('a load that cannot run is a rejected promise, never a throw', async () => {
-    for (const load of [() => loadIndex(), () => loadModule('tr2'), () => loadLesson('tr2', 'l0-sample')]) {
+    for (const load of [() => loadIndex(), () => loadModule('tr2'), () => loadLesson('tr2', 'l0-sample'), () => loadCard('trace-room-steploop')]) {
       let promise: Promise<unknown> | undefined
       expect(() => {
         promise = load()

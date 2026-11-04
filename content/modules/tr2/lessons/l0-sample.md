@@ -84,6 +84,11 @@ title: A model
 body: The browser world is a model, and the real engine is the judge.
 :::
 
+:::card
+kind: notional-machine
+id: trace-room-steploop
+:::
+
 :::figure
 src: figures/tr2/l0-sample.svg
 alt: Two steps on a CPU lane and a GPU lane
