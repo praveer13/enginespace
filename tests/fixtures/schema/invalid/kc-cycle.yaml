@@ -1,0 +1,13 @@
+# tr1.a requires tr1.b, which requires tr1.c, which requires tr1.a.
+- id: tr1.a
+  description: You can do a.
+  requires: [tr1.b]
+- id: tr1.b
+  description: You can do b.
+  requires: [tr1.c]
+- id: tr1.c
+  description: You can do c.
+  requires: [tr1.a]
+- id: tr1.d
+  description: You can do d, which needs nothing in the cycle.
+  requires: [tr1.a, ks:t5.kv-capacity]

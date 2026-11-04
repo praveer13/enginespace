@@ -1,0 +1,47 @@
+# Claims for the schema tests. The sources are example.com pages (RFC 2606) and the facts are made up for the tests: none of
+# this says anything about a real engine. Dates are bare YAML dates, so a loader must keep them as strings (CORE_SCHEMA).
+- id: example.engine.async-default
+  value: "on"
+  text: The example engine turns async scheduling on by default.
+  tag: measured
+  source:
+    url: https://example.com/engine/docs/scheduler
+    title: Example engine scheduler docs
+    quote: Async scheduling is enabled by default.
+    accessed: 2026-11-03
+  verifiedAt: 2026-11-03
+  ttlDays: 90
+  pin: example-engine
+
+- id: example.engine.step-count
+  value: 12
+  unit: steps
+  text: The example engine runs 12 steps in its sample loop.
+  tag: measured
+  source:
+    url: https://example.com/engine/docs/sample-loop
+    title: Example engine sample loop
+    quote: The sample loop runs for twelve steps.
+    accessed: 2026-11-03
+  verifiedAt: 2026-11-03
+  ttlDays: 365
+
+- id: example.engine.double-step-count
+  value: 24
+  unit: steps
+  text: Two sample loops run 24 steps.
+  tag: derived
+  derived:
+    formula: 2 * example.engine.step-count
+    inputs: [example.engine.step-count]
+  verifiedAt: 2026-11-03
+  ttlDays: 365
+
+- id: example.world.practice-requests
+  value: 64
+  unit: requests
+  text: The synthetic practice workload has 64 requests.
+  tag: estimated
+  synthetic: true
+  verifiedAt: 2026-11-03
+  ttlDays: 365
