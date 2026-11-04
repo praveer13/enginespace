@@ -1,0 +1,267 @@
+{
+  "schema": "enginespace/fonts@1",
+  "about": "The self-hosted faces of The Pass (D-047, D-050), each pinned by SHA-256 with its source: a Fontsource package at an exact version, fetched once from its jsDelivr mirror on 2026-11-03 with the User-Agent below, Latin subset. Two files are derived with the pinned fonttools below, as each transform says. src/design/fonts.css declares exactly these files, and tests/design/fonts.test.ts checks every hash, every licence file and NOTICE.",
+  "fetched": "2026-11-03",
+  "userAgent": "Mozilla/5.0 (X11; Linux x86_64)",
+  "tools": {
+    "fonttools": "4.60.1",
+    "brotli": "1.1.0",
+    "uv": "0.10.2",
+    "env": "SOURCE_DATE_EPOCH=1793664000",
+    "run": "uv run --no-project --with fonttools==4.60.1 --with brotli==1.1.0 fonttools <args>"
+  },
+  "faces": [
+    {
+      "family": "Big Shoulders Display",
+      "roles": [
+        "font-display",
+        "font-heading"
+      ],
+      "file": "big-shoulders-display-latin-800-normal.woff2",
+      "weight": "800",
+      "style": "normal",
+      "unicodeRange": null,
+      "sha256": "088f423f09136bc96b5a7cc7232d671a1ad06a5ff1cf90cd1e24a8d9809d471c",
+      "bytes": 14556,
+      "source": {
+        "package": "@fontsource/big-shoulders-display",
+        "version": "5.3.0",
+        "path": "files/big-shoulders-display-latin-800-normal.woff2",
+        "url": "https://cdn.jsdelivr.net/npm/@fontsource/big-shoulders-display@5.3.0/files/big-shoulders-display-latin-800-normal.woff2",
+        "sha256": "088f423f09136bc96b5a7cc7232d671a1ad06a5ff1cf90cd1e24a8d9809d471c"
+      },
+      "transform": null,
+      "licence": {
+        "id": "OFL-1.1",
+        "file": "OFL-BigShouldersDisplay.txt",
+        "copyright": "Copyright 2019 The Big Shoulders Project Authors (https://github.com/xotypeco/big_shoulders)",
+        "source": "https://cdn.jsdelivr.net/npm/@fontsource/big-shoulders-display@5.3.0/LICENSE",
+        "sha256": "18aabf190848725e2576eefb5c29ba06aac1029d02132252a7f312eac2e50cf3"
+      }
+    },
+    {
+      "family": "Doto",
+      "roles": [
+        "font-numeric",
+        "font-ticket"
+      ],
+      "file": "doto-latin-round-900.woff2",
+      "weight": "900",
+      "style": "normal",
+      "unicodeRange": null,
+      "sha256": "79d28001247ac606c447996c6dcd2851737fb8f3e685ec3ec89c92ca9fbda667",
+      "bytes": 3984,
+      "source": {
+        "package": "@fontsource-variable/doto",
+        "version": "5.3.0",
+        "path": "files/doto-latin-full-normal.woff2",
+        "url": "https://cdn.jsdelivr.net/npm/@fontsource-variable/doto@5.3.0/files/doto-latin-full-normal.woff2",
+        "sha256": "b565f9b6af8d9d1aa9d33b12fb1691ab1974c388cd2c7713aa284fb88a2a5a02"
+      },
+      "transform": [
+        "varLib.instancer doto-latin-full-normal.woff2 ROND=100 wght=900 -o doto-latin-round-900.woff2"
+      ],
+      "licence": {
+        "id": "OFL-1.1",
+        "file": "OFL-Doto.txt",
+        "copyright": "Copyright 2024-2024 The Doto Project Authors (https://github.com/oliverlalan/Doto)",
+        "source": "https://cdn.jsdelivr.net/npm/@fontsource-variable/doto@5.3.0/LICENSE",
+        "sha256": "33cbb094aa3c5d82a2f2f80ae4c0310e6a4aedf54eac49c52662d5f77ee7265f"
+      }
+    },
+    {
+      "family": "Handjet",
+      "roles": [
+        "font-numeric",
+        "font-ticket"
+      ],
+      "file": "handjet-latin-micro-300.woff2",
+      "weight": "300",
+      "style": "normal",
+      "unicodeRange": "U+00B5, U+00B1",
+      "sha256": "8b725d50b9b56a4ba44f777ce18b8a59d6d5b23af4771858d9f116bab8d35e45",
+      "bytes": 824,
+      "source": {
+        "package": "@fontsource-variable/handjet",
+        "version": "5.3.0",
+        "path": "files/handjet-latin-full-normal.woff2",
+        "url": "https://cdn.jsdelivr.net/npm/@fontsource-variable/handjet@5.3.0/files/handjet-latin-full-normal.woff2",
+        "sha256": "a003586f13615b4a95675dc8f5d409164fe87b2be6210143366b50922be5f193"
+      },
+      "transform": [
+        "varLib.instancer handjet-latin-full-normal.woff2 ELSH=2 ELGR=1 wght=300 -o handjet-300.woff2",
+        "subset handjet-300.woff2 --unicodes=U+00B5,U+00B1 --flavor=woff2 --layout-features= --no-hinting --output-file=handjet-latin-micro-300.woff2"
+      ],
+      "licence": {
+        "id": "OFL-1.1",
+        "file": "OFL-Handjet.txt",
+        "copyright": "Copyright 2018 The Handjet Project Authors (https://github.com/rosettatype/Handjet/)",
+        "source": "https://cdn.jsdelivr.net/npm/@fontsource-variable/handjet@5.3.0/LICENSE",
+        "sha256": "33da8fa576faeeb46d111ad12328e30b07ab059b13d6a0f77c562b5e6ce8e3ee"
+      }
+    },
+    {
+      "family": "Permanent Marker",
+      "roles": [
+        "font-label"
+      ],
+      "file": "permanent-marker-latin-400-normal.woff2",
+      "weight": "400",
+      "style": "normal",
+      "unicodeRange": null,
+      "sha256": "4884fec2c73aa52a2461073c1b87d1ceb80f400520391b43f97ca7d3c39eeb24",
+      "bytes": 29564,
+      "source": {
+        "package": "@fontsource/permanent-marker",
+        "version": "5.3.0",
+        "path": "files/permanent-marker-latin-400-normal.woff2",
+        "url": "https://cdn.jsdelivr.net/npm/@fontsource/permanent-marker@5.3.0/files/permanent-marker-latin-400-normal.woff2",
+        "sha256": "4884fec2c73aa52a2461073c1b87d1ceb80f400520391b43f97ca7d3c39eeb24"
+      },
+      "transform": null,
+      "licence": {
+        "id": "Apache-2.0",
+        "file": "LICENSE-PermanentMarker.txt",
+        "copyright": "Copyright (c) 2010 by Font Diner, Inc. All rights reserved.",
+        "source": "https://cdn.jsdelivr.net/npm/@fontsource/permanent-marker@5.3.0/LICENSE",
+        "sha256": "044195cfd809d76ea2aaf1c8e3dd80b9fd9447227efc05e51fc906c4a451d451"
+      }
+    },
+    {
+      "family": "Atkinson Hyperlegible",
+      "roles": [
+        "font-body",
+        "font-mono"
+      ],
+      "file": "atkinson-hyperlegible-latin-400-normal.woff2",
+      "weight": "400",
+      "style": "normal",
+      "unicodeRange": null,
+      "sha256": "d64ba838ef5472bba248620ec4fd8b5aa7cf0db2908e0bb230600caf279ba7bc",
+      "bytes": 17208,
+      "source": {
+        "package": "@fontsource/atkinson-hyperlegible",
+        "version": "5.3.0",
+        "path": "files/atkinson-hyperlegible-latin-400-normal.woff2",
+        "url": "https://cdn.jsdelivr.net/npm/@fontsource/atkinson-hyperlegible@5.3.0/files/atkinson-hyperlegible-latin-400-normal.woff2",
+        "sha256": "d64ba838ef5472bba248620ec4fd8b5aa7cf0db2908e0bb230600caf279ba7bc"
+      },
+      "transform": null,
+      "licence": {
+        "id": "OFL-1.1",
+        "file": "OFL-AtkinsonHyperlegible.txt",
+        "copyright": "Copyright 2020 Braille Institute of America, Inc.",
+        "source": "https://cdn.jsdelivr.net/npm/@fontsource/atkinson-hyperlegible@5.3.0/LICENSE",
+        "sha256": "e137caeef2ff7c04fbf87078ad09cf3dcba8a3a58a4aa4e2f399d42c50bc4b18"
+      }
+    },
+    {
+      "family": "Atkinson Hyperlegible",
+      "roles": [
+        "font-body"
+      ],
+      "file": "atkinson-hyperlegible-latin-700-normal.woff2",
+      "weight": "700",
+      "style": "normal",
+      "unicodeRange": null,
+      "sha256": "140e2bd25a7315c8a062508391426b0d8c3297400c947b8d847be28f73a199f0",
+      "bytes": 17524,
+      "source": {
+        "package": "@fontsource/atkinson-hyperlegible",
+        "version": "5.3.0",
+        "path": "files/atkinson-hyperlegible-latin-700-normal.woff2",
+        "url": "https://cdn.jsdelivr.net/npm/@fontsource/atkinson-hyperlegible@5.3.0/files/atkinson-hyperlegible-latin-700-normal.woff2",
+        "sha256": "140e2bd25a7315c8a062508391426b0d8c3297400c947b8d847be28f73a199f0"
+      },
+      "transform": null,
+      "licence": {
+        "id": "OFL-1.1",
+        "file": "OFL-AtkinsonHyperlegible.txt",
+        "copyright": "Copyright 2020 Braille Institute of America, Inc.",
+        "source": "https://cdn.jsdelivr.net/npm/@fontsource/atkinson-hyperlegible@5.3.0/LICENSE",
+        "sha256": "e137caeef2ff7c04fbf87078ad09cf3dcba8a3a58a4aa4e2f399d42c50bc4b18"
+      }
+    },
+    {
+      "family": "Atkinson Hyperlegible",
+      "roles": [
+        "font-body"
+      ],
+      "file": "atkinson-hyperlegible-latin-400-italic.woff2",
+      "weight": "400",
+      "style": "italic",
+      "unicodeRange": null,
+      "sha256": "bc8825fd435d4aa8e31449937826d583a7daaae15a83832c91b38375131ebf08",
+      "bytes": 18292,
+      "source": {
+        "package": "@fontsource/atkinson-hyperlegible",
+        "version": "5.3.0",
+        "path": "files/atkinson-hyperlegible-latin-400-italic.woff2",
+        "url": "https://cdn.jsdelivr.net/npm/@fontsource/atkinson-hyperlegible@5.3.0/files/atkinson-hyperlegible-latin-400-italic.woff2",
+        "sha256": "bc8825fd435d4aa8e31449937826d583a7daaae15a83832c91b38375131ebf08"
+      },
+      "transform": null,
+      "licence": {
+        "id": "OFL-1.1",
+        "file": "OFL-AtkinsonHyperlegible.txt",
+        "copyright": "Copyright 2020 Braille Institute of America, Inc.",
+        "source": "https://cdn.jsdelivr.net/npm/@fontsource/atkinson-hyperlegible@5.3.0/LICENSE",
+        "sha256": "e137caeef2ff7c04fbf87078ad09cf3dcba8a3a58a4aa4e2f399d42c50bc4b18"
+      }
+    },
+    {
+      "family": "Atkinson Hyperlegible",
+      "roles": [
+        "font-body"
+      ],
+      "file": "atkinson-hyperlegible-latin-700-italic.woff2",
+      "weight": "700",
+      "style": "italic",
+      "unicodeRange": null,
+      "sha256": "73e0c9e1e284128dda599558f7c15bd5f3c056442c31dfae950528a16b3835cf",
+      "bytes": 18484,
+      "source": {
+        "package": "@fontsource/atkinson-hyperlegible",
+        "version": "5.3.0",
+        "path": "files/atkinson-hyperlegible-latin-700-italic.woff2",
+        "url": "https://cdn.jsdelivr.net/npm/@fontsource/atkinson-hyperlegible@5.3.0/files/atkinson-hyperlegible-latin-700-italic.woff2",
+        "sha256": "73e0c9e1e284128dda599558f7c15bd5f3c056442c31dfae950528a16b3835cf"
+      },
+      "transform": null,
+      "licence": {
+        "id": "OFL-1.1",
+        "file": "OFL-AtkinsonHyperlegible.txt",
+        "copyright": "Copyright 2020 Braille Institute of America, Inc.",
+        "source": "https://cdn.jsdelivr.net/npm/@fontsource/atkinson-hyperlegible@5.3.0/LICENSE",
+        "sha256": "e137caeef2ff7c04fbf87078ad09cf3dcba8a3a58a4aa4e2f399d42c50bc4b18"
+      }
+    },
+    {
+      "family": "Atkinson Hyperlegible Mono",
+      "roles": [
+        "font-mono"
+      ],
+      "file": "atkinson-hyperlegible-mono-latin-wght-normal.woff2",
+      "weight": "200 800",
+      "style": "normal",
+      "unicodeRange": null,
+      "sha256": "2706b1ee4f452e744ea91f7e4908cbde9c5d35521bf5ffffc71a382a2de89613",
+      "bytes": 17752,
+      "source": {
+        "package": "@fontsource-variable/atkinson-hyperlegible-mono",
+        "version": "5.3.0",
+        "path": "files/atkinson-hyperlegible-mono-latin-wght-normal.woff2",
+        "url": "https://cdn.jsdelivr.net/npm/@fontsource-variable/atkinson-hyperlegible-mono@5.3.0/files/atkinson-hyperlegible-mono-latin-wght-normal.woff2",
+        "sha256": "2706b1ee4f452e744ea91f7e4908cbde9c5d35521bf5ffffc71a382a2de89613"
+      },
+      "transform": null,
+      "licence": {
+        "id": "OFL-1.1",
+        "file": "OFL-AtkinsonHyperlegibleMono.txt",
+        "copyright": "Copyright 2020-2024 The Atkinson Hyperlegible Mono Project Authors (https://github.com/googlefonts/atkinson-hyperlegible-next-mono)",
+        "source": "https://cdn.jsdelivr.net/npm/@fontsource-variable/atkinson-hyperlegible-mono@5.3.0/LICENSE",
+        "sha256": "05327050630a640eb824c8fcb7de8b2e605600d8863e4f531ca7c348239916c6"
+      }
+    }
+  ]
+}

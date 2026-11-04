@@ -1,0 +1,86 @@
+/*
+ * The faces of The Pass, self-hosted (D-033, D-050): one per kitchen object.
+ *   Big Shoulders Display   stamped equipment plates and signage: display and headings
+ *   Doto                    the impact printer's dot matrix: numerals, ticket lines, the printer tape
+ *   Handjet                 two dot-matrix glyphs Doto lacks, µ and ±, so a microsecond stays in dots
+ *   Permanent Marker        marker on masking tape: labels
+ *   Atkinson Hyperlegible   long reading, drawn for legibility
+ *   Atkinson Hyperlegible Mono   code and identifiers
+ *
+ * public/fonts/fonts.json pins every file by SHA-256 with its source package and version, and its licence file sits
+ * beside it; NOTICE carries each licence. Every url() here is on the site's own origin: no font request leaves it.
+ * A single-weight face is declared across the weight range so the browser never fakes a bold.
+ */
+
+@font-face {
+  font-family: 'Big Shoulders Display';
+  src: url('/fonts/big-shoulders-display-latin-800-normal.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Doto';
+  src: url('/fonts/doto-latin-round-900.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Handjet';
+  src: url('/fonts/handjet-latin-micro-300.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+00B5, U+00B1;
+}
+
+@font-face {
+  font-family: 'Permanent Marker';
+  src: url('/fonts/permanent-marker-latin-400-normal.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  src: url('/fonts/atkinson-hyperlegible-latin-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  src: url('/fonts/atkinson-hyperlegible-latin-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  src: url('/fonts/atkinson-hyperlegible-latin-400-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Atkinson Hyperlegible';
+  src: url('/fonts/atkinson-hyperlegible-latin-700-italic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Atkinson Hyperlegible Mono';
+  src: url('/fonts/atkinson-hyperlegible-mono-latin-wght-normal.woff2') format('woff2');
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}

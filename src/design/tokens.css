@@ -1,0 +1,173 @@
+/*
+ * Generated from src/design/tokens.ts by `bun scripts/verify-tokens.ts --write`. Edit tokens.ts, never this file:
+ * scripts/verify-tokens.ts fails when the two disagree.
+ */
+
+:root {
+  color-scheme: light;
+  --es-surface-0: #ccd1d4;
+  --es-surface-1: #dde1e4;
+  --es-surface-2: #b2b9be;
+  --es-surface-3: #59616a;
+  --es-edge: #5f666d;
+  --es-paper: #fafaf6;
+  --es-paper-ink: #1d1b22;
+  --es-paper-ink-2: #a30f1a;
+  --es-paper-rule: #bcb9b1;
+  --es-lamp: #ffb547;
+  --es-lamp-ring: #9a3d00;
+  --es-tape: #e6d6ad;
+  --es-tape-ink: #1a1a1c;
+  --es-light-fluorescent: #eef4f8;
+  --es-text-1: #17191d;
+  --es-text-2: #3b4148;
+  --es-text-3: #4b525a;
+  --es-focus: var(--es-lamp-ring);
+  --es-cat-red: #c8102e;
+  --es-cat-red-edge: #9b0d1a;
+  --es-cat-red-ink: var(--es-paper);
+  --es-cat-blue: #1b5faa;
+  --es-cat-blue-edge: #18509a;
+  --es-cat-blue-ink: var(--es-paper);
+  --es-cat-yellow: #f5c400;
+  --es-cat-yellow-edge: #685000;
+  --es-cat-yellow-ink: var(--es-paper-ink);
+  --es-cat-green: #237a37;
+  --es-cat-green-edge: #185e2c;
+  --es-cat-green-ink: var(--es-paper);
+  --es-cat-white: #f3f3ef;
+  --es-cat-white-edge: #5f666d;
+  --es-cat-white-ink: var(--es-paper-ink);
+  --es-cat-brown: #7b4a26;
+  --es-cat-brown-edge: #5a361b;
+  --es-cat-brown-ink: var(--es-paper);
+  --es-status-ok: var(--es-cat-green-edge);
+  --es-status-warn: var(--es-cat-yellow-edge);
+  --es-status-bad: var(--es-paper-ink-2);
+  --es-status-info: var(--es-cat-blue-edge);
+  --es-lane-cpu: var(--es-cat-blue);
+  --es-lane-gpu: var(--es-cat-green);
+  --es-lane-sync: var(--es-cat-yellow);
+  --es-lane-copy: var(--es-cat-brown);
+  --es-lane-idle: var(--es-cat-white);
+  --es-memory-free: var(--es-cat-white);
+  --es-memory-used: var(--es-cat-blue);
+  --es-memory-cached: var(--es-cat-yellow);
+  --es-memory-shared: var(--es-cat-green);
+  --es-memory-adapter: var(--es-cat-brown);
+  --es-memory-evicted: var(--es-cat-red);
+  --es-probability-target: var(--es-cat-blue);
+  --es-probability-draft: var(--es-cat-yellow);
+  --es-probability-overlap: var(--es-cat-green);
+  --es-probability-residual: var(--es-cat-red);
+  --es-probability-observed: var(--es-cat-white);
+  --es-shadow-paper: 0 1px 1px rgb(23 25 29 / 0.16), 0 8px 18px -8px rgb(23 25 29 / 0.38);
+  --es-shadow-lift: 0 2px 3px rgb(23 25 29 / 0.16), 0 16px 28px -12px rgb(23 25 29 / 0.42);
+  --es-shadow-plate: inset 0 1px 0 rgb(255 255 255 / 0.7), inset 0 -1px 0 rgb(23 25 29 / 0.12), 0 1px 2px rgb(23 25 29 / 0.3);
+  --es-shadow-press: inset 0 2px 4px rgb(23 25 29 / 0.32), inset 0 0 0 1px rgb(23 25 29 / 0.08);
+  --es-shadow-shelf: 0 1px 0 rgb(255 255 255 / 0.55), 0 6px 12px -6px rgb(23 25 29 / 0.35);
+  --es-texture-brushed: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='720' height='720'%3E%3Cfilter id='l' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0016 0.92' numOctaves='3' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1.25 0 0 0 -0.56'/%3E%3C/filter%3E%3Cfilter id='d' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0022 0.7' numOctaves='2' seed='29' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.16 0 0 0 0 0.18 0 0 0 0 0.2 0 1.1 0 0 -0.5'/%3E%3C/filter%3E%3Crect width='720' height='720' filter='url(%23l)'/%3E%3Crect width='720' height='720' filter='url(%23d)'/%3E%3C/svg%3E");
+  --es-texture-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.36), rgb(255 255 255 / 0) 24rem);
+  --es-dur-quick: 120ms;
+  --es-dur-bell: 240ms;
+  --es-dur-feed: 420ms;
+  --es-dur-settle: 640ms;
+  --es-ease-settle: cubic-bezier(0.16, 1, 0.3, 1);
+  --es-ease-strike: cubic-bezier(0.25, 1.4, 0.4, 1);
+  --es-ease-feed: steps(6, end);
+  --es-radius-paper: 0px;
+  --es-radius-plate: 3px;
+  --es-radius-pan: 10px;
+  --es-radius-round: 999px;
+  --es-space-1: 0.25rem;
+  --es-space-2: 0.5rem;
+  --es-space-3: 0.75rem;
+  --es-space-4: 1rem;
+  --es-space-6: 1.5rem;
+  --es-space-8: 2rem;
+  --es-space-12: 3rem;
+  --es-space-16: 4rem;
+  --es-space-24: 6rem;
+  --es-font-display: 'Big Shoulders Display', sans-serif;
+  --es-font-display-size: clamp(2.75rem, 1.5rem + 5vw, 6rem);
+  --es-font-display-leading: 0.88;
+  --es-font-display-tracking: 0.004em;
+  --es-font-display-weight: 800;
+  --es-font-display-case: uppercase;
+  --es-font-heading: 'Big Shoulders Display', sans-serif;
+  --es-font-heading-size: clamp(1.75rem, 1.35rem + 1.6vw, 2.5rem);
+  --es-font-heading-leading: 0.95;
+  --es-font-heading-tracking: 0.01em;
+  --es-font-heading-weight: 800;
+  --es-font-heading-case: uppercase;
+  --es-font-body: 'Atkinson Hyperlegible', sans-serif;
+  --es-font-body-size: 1.0625rem;
+  --es-font-body-leading: 1.6;
+  --es-font-body-tracking: 0em;
+  --es-font-body-weight: 400;
+  --es-font-body-case: none;
+  --es-font-mono: 'Atkinson Hyperlegible Mono', 'Atkinson Hyperlegible', monospace;
+  --es-font-mono-size: 0.9375rem;
+  --es-font-mono-leading: 1.55;
+  --es-font-mono-tracking: 0em;
+  --es-font-mono-weight: 400;
+  --es-font-mono-case: none;
+  --es-font-numeric: 'Doto', 'Handjet', monospace;
+  --es-font-numeric-size: 1.125rem;
+  --es-font-numeric-leading: 1.2;
+  --es-font-numeric-tracking: 0.02em;
+  --es-font-numeric-weight: 900;
+  --es-font-numeric-case: none;
+  --es-font-ticket: 'Doto', 'Handjet', monospace;
+  --es-font-ticket-size: 1.0625rem;
+  --es-font-ticket-leading: 1.45;
+  --es-font-ticket-tracking: 0.02em;
+  --es-font-ticket-weight: 900;
+  --es-font-ticket-case: none;
+  --es-font-label: 'Permanent Marker', cursive;
+  --es-font-label-size: 0.9375rem;
+  --es-font-label-leading: 1.2;
+  --es-font-label-tracking: 0.02em;
+  --es-font-label-weight: 400;
+  --es-font-label-case: none;
+}
+
+/* More contrast */
+@media (prefers-contrast: more) {
+  :root {
+    --es-surface-2: #c3c9cd;
+    --es-text-2: #272b30;
+    --es-text-3: #30353b;
+    --es-edge: #3f454b;
+    --es-paper-rule: #77746d;
+    --es-lamp-ring: #7a2f00;
+    --es-cat-white-edge: #3f454b;
+  }
+}
+
+/* Reduced motion: every duration is 0. Settings can force either answer with data-motion on the root (W0-T22). */
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion='full']) {
+    --es-dur-quick: 0ms;
+    --es-dur-bell: 0ms;
+    --es-dur-feed: 0ms;
+    --es-dur-settle: 0ms;
+  }
+}
+:root[data-motion='reduce'] {
+  --es-dur-quick: 0ms;
+  --es-dur-bell: 0ms;
+  --es-dur-feed: 0ms;
+  --es-dur-settle: 0ms;
+}
+
+/* Forced colours: the system palette replaces the world; rings and edges follow it. */
+@media (forced-colors: active) {
+  :root {
+    --es-focus: Highlight;
+    --es-lamp-ring: Highlight;
+    --es-lamp: Highlight;
+    --es-edge: CanvasText;
+    --es-paper-rule: GrayText;
+  }
+}

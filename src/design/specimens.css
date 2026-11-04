@@ -1,0 +1,431 @@
+/*
+ * The /design page's layout: the roles printed on spec tickets, the contrast pairs, and the components standing on the
+ * steel in each of their states. Loaded with that page only, as its own stylesheet, so it is plain CSS outside
+ * Tailwind's layers.
+ */
+
+.es-spec {
+  display: grid;
+  gap: var(--es-space-16);
+}
+
+.es-spec__intro {
+  display: grid;
+  gap: var(--es-space-6);
+  padding-top: var(--es-space-4);
+}
+
+.es-spec__intro h1 {
+  margin: 0;
+}
+
+.es-spec__intro p {
+  margin: 0;
+  font-size: 1.1875rem;
+  line-height: 1.55;
+}
+
+.es-spec__section {
+  display: grid;
+  gap: var(--es-space-8);
+}
+
+/* A section's plate, over a machined groove in the steel. */
+.es-spec__section > h2 {
+  margin: 0;
+  padding-bottom: var(--es-space-3);
+  border-bottom: 1px solid var(--es-edge);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.6);
+}
+
+.es-spec__section > p {
+  margin: calc(-1 * var(--es-space-4)) 0 0;
+}
+
+/* ---------------------------------------------------------------------------------------------- roles */
+
+.es-spec__group {
+  padding: var(--es-space-6) var(--es-space-6) var(--es-space-4);
+  background-color: var(--es-paper);
+  color: var(--es-paper-ink);
+  box-shadow: var(--es-shadow-paper);
+}
+
+.es-spec__group-title {
+  margin: 0 0 var(--es-space-6);
+  padding-bottom: var(--es-space-2);
+  border-bottom: 2px dotted var(--es-paper-rule);
+  font-family: var(--es-font-ticket);
+  font-size: 1.125rem;
+  letter-spacing: 0.05em;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.es-spec__roles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  gap: var(--es-space-6) var(--es-space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-spec__role {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr);
+  gap: var(--es-space-3);
+  align-items: start;
+}
+
+.es-spec__role:is([data-kind='font'], [data-kind='space']) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.es-spec__role-text {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+}
+
+.es-spec__role-name {
+  font-weight: 700;
+  color: var(--es-paper-ink);
+}
+
+.es-spec__role-var,
+.es-spec__role-value,
+.es-spec__role-scheme {
+  color: var(--es-text-2);
+}
+
+.es-spec__role-scheme {
+  display: block;
+}
+
+.es-spec__role-note {
+  margin-top: 0.2rem;
+  color: var(--es-text-2);
+}
+
+.es-spec__role code,
+.es-spec__pair code {
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.es-spec__long-value {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Samples, each drawn as its object. */
+.es-spec__swatch {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: var(--es-radius-plate);
+  box-shadow:
+    inset 0 0 0 1px var(--es-edge),
+    0 1px 2px rgb(23 25 29 / 0.25);
+}
+
+.es-spec__swatch--texture {
+  background-color: var(--es-surface-1);
+  background-size: 360px 360px;
+}
+
+/* A cutting board: the code's colour, its edge, its hanging hole and its glyph. */
+.es-spec__board {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 2.6rem;
+  margin-top: 0.4rem;
+  border: 2px solid;
+  border-radius: 7px;
+  box-shadow: 0 2px 3px rgb(23 25 29 / 0.25);
+}
+
+.es-spec__board::before {
+  content: '';
+  position: absolute;
+  top: 0.3rem;
+  right: 0.35rem;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: var(--es-radius-round);
+  background-color: var(--es-paper);
+  box-shadow: inset 0 1px 1px rgb(23 25 29 / 0.35);
+}
+
+.es-spec__board-glyph {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.es-spec__type {
+  display: flex;
+  align-items: center;
+  min-height: 3rem;
+  overflow: hidden;
+  font-size: 2rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.es-spec__shadow {
+  width: 3.5rem;
+  height: 2.5rem;
+  margin-top: 0.4rem;
+  background-color: var(--es-paper);
+}
+
+.es-spec__radius {
+  width: 3.5rem;
+  height: 2.75rem;
+  border: 2px solid var(--es-edge);
+  background-color: var(--es-surface-1);
+}
+
+.es-spec__space {
+  display: block;
+  height: 0.75rem;
+  margin-top: 0.4rem;
+  background-color: var(--es-surface-3);
+}
+
+.es-spec__easing {
+  width: 3.5rem;
+  height: 4.25rem;
+  overflow: visible;
+}
+
+.es-spec__easing-axes {
+  fill: none;
+  stroke: var(--es-paper-rule);
+  stroke-width: 1.5;
+}
+
+.es-spec__easing-curve {
+  fill: none;
+  stroke: var(--es-paper-ink);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* A duration as a run along a track: it plays once when the role is pointed at. */
+.es-spec__duration {
+  position: relative;
+  display: block;
+  width: 3.5rem;
+  height: 0.75rem;
+  margin-top: 0.6rem;
+  border-radius: var(--es-radius-round);
+  background-color: var(--es-surface-1);
+  box-shadow: inset 0 0 0 1px var(--es-edge);
+}
+
+.es-spec__duration > span {
+  position: absolute;
+  top: 0.125rem;
+  left: 0.125rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--es-radius-round);
+  background-color: var(--es-paper-ink);
+}
+
+.es-spec__role:hover .es-spec__duration > span {
+  animation-name: es-spec-run;
+  animation-timing-function: var(--es-ease-settle);
+  animation-fill-mode: both;
+}
+
+@keyframes es-spec-run {
+  to {
+    transform: translateX(2.75rem);
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------- contrast */
+
+.es-spec__pairs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+  gap: 0 var(--es-space-8);
+  margin: 0;
+  padding: var(--es-space-4) var(--es-space-6);
+  background-color: var(--es-paper);
+  color: var(--es-paper-ink);
+  box-shadow: var(--es-shadow-paper);
+  list-style: none;
+}
+
+.es-spec__pair {
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr);
+  grid-template-areas:
+    'sample text'
+    'sample ratios';
+  gap: 0.2rem var(--es-space-3);
+  padding: var(--es-space-3) 0;
+  border-bottom: 1px dotted var(--es-paper-rule);
+}
+
+.es-spec__pair-sample {
+  grid-area: sample;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--es-radius-plate);
+  box-shadow: inset 0 0 0 1px var(--es-paper-rule);
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.es-spec__pair-mark {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 2px;
+}
+
+.es-spec__pair-text {
+  grid-area: text;
+  display: grid;
+  min-width: 0;
+  font-size: 0.9375rem;
+  line-height: 1.35;
+}
+
+.es-spec__pair-use {
+  color: var(--es-text-2);
+  font-size: 0.875rem;
+}
+
+.es-spec__pair-ratios {
+  grid-area: ratios;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem var(--es-space-4);
+}
+
+.es-spec__pair-ratio {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--es-space-2);
+}
+
+.es-spec__pair-scheme {
+  color: var(--es-text-2);
+  font-size: 0.8125rem;
+}
+
+/* ---------------------------------------------------------------------------------------------- components */
+
+.es-spec__components {
+  display: grid;
+  gap: var(--es-space-16);
+}
+
+.es-spec__component {
+  display: grid;
+  gap: var(--es-space-3);
+}
+
+.es-spec__component-title {
+  margin: 0;
+  font-family: var(--es-font-heading);
+  font-size: 1.625rem;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.es-spec__component-about {
+  margin: 0;
+  color: var(--es-text-2);
+}
+
+.es-spec__states {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+  gap: var(--es-space-8) var(--es-space-6);
+  align-items: start;
+  padding-top: var(--es-space-4);
+}
+
+.es-spec__component[data-wide] .es-spec__states {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+}
+
+.es-spec__state {
+  display: grid;
+  gap: var(--es-space-3);
+  align-content: start;
+  min-width: 0;
+  margin: 0;
+}
+
+.es-spec__state[data-span] {
+  grid-column: 1 / -1;
+}
+
+.es-spec__state-stage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  min-height: 3.5rem;
+  min-width: 0;
+  padding: var(--es-space-3) var(--es-space-2);
+}
+
+.es-spec__state-stage > .es-ticket,
+.es-spec__state-stage > .es-stub,
+.es-spec__state-stage > .es-rail,
+.es-spec__state-stage > .es-printer,
+.es-spec__state-stage > .es-board {
+  flex: 1;
+}
+
+.es-spec__state-stage > .es-board {
+  border: 1px solid var(--es-edge);
+}
+
+.es-spec__state[data-ground='paper'] .es-spec__state-stage {
+  padding: var(--es-space-4);
+  background-color: var(--es-paper);
+  color: var(--es-paper-ink);
+  box-shadow: var(--es-shadow-paper);
+}
+
+.es-spec__state-label {
+  color: var(--es-text-2);
+  font-family: var(--es-font-ticket);
+  font-size: 0.8125rem;
+  line-height: 1.3;
+  letter-spacing: 0.04em;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.es-spec__pan-row {
+  display: grid;
+  grid-template-columns: repeat(16, minmax(0, 1fr));
+  gap: 3px;
+  width: min(100%, 22.5rem);
+}
+
+.es-spec__pan-row .es-pan[data-size='sm'] .es-pan__rim {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 5 / 4;
+}

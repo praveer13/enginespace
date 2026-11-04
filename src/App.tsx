@@ -1,5 +1,8 @@
 import { useEffect, type ReactNode } from 'react'
-import { Link, NavLink, Outlet, isRouteErrorResponse, useMatches, useRouteError } from 'react-router'
+import { Outlet, isRouteErrorResponse, useMatches, useRouteError } from 'react-router'
+import { Board } from '@/design/components/Board'
+import { Button } from '@/design/components/Button'
+import { TapeLabel } from '@/design/components/TapeLabel'
 
 /** What a route's `handle` carries: the text of the page's `<title>`. */
 export interface RouteHandle {
@@ -22,34 +25,24 @@ const FOOTER_LINKS = [
   { to: '/design', label: 'Design' },
 ]
 
-// Structure only: the shell chooses no colours, fonts or visual style. The design system arrives with W0-T05 (D-047).
+const BRAND = { to: '/', label: 'enginespace' }
+
+// The shell is The Pass's board above the page and its kick-plate below (W0-T05, D-047): every style comes from the
+// design system's components and token roles.
 function Shell({ children }: { children: ReactNode }) {
   return (
     <>
-      <a href="#main" className="sr-only focus:not-sr-only">
-        Skip to main content
+      <a href="#main" className="es-skip">
+        <TapeLabel tilt="none">Skip to main content</TapeLabel>
       </a>
       <header>
-        <nav aria-label="Primary" className="flex flex-wrap gap-x-4 gap-y-2 p-4">
-          <Link to="/">enginespace</Link>
-          {PRIMARY_LINKS.map(({ to, label }) => (
-            <NavLink key={to} to={to}>
-              {label}
-            </NavLink>
-          ))}
-        </nav>
+        <Board label="Primary" brand={BRAND} links={PRIMARY_LINKS} />
       </header>
-      <main id="main" tabIndex={-1} className="p-4">
+      <main id="main" tabIndex={-1} className="es-shell__main">
         {children}
       </main>
       <footer>
-        <nav aria-label="Footer" className="flex flex-wrap gap-x-4 gap-y-2 p-4">
-          {FOOTER_LINKS.map(({ to, label }) => (
-            <NavLink key={to} to={to}>
-              {label}
-            </NavLink>
-          ))}
-        </nav>
+        <Board label="Footer" links={FOOTER_LINKS} variant="kickplate" />
       </footer>
     </>
   )
@@ -84,18 +77,12 @@ export function AppLoading() {
 /** The root route's error boundary, for example a route chunk that fails to load. */
 export function AppError() {
   const error = useRouteError()
-  const message = isRouteErrorResponse(error)
-    ? `${error.status} ${error.statusText}`
-    : error instanceof Error
-      ? error.message
-      : 'Unknown error'
+  const message = isRouteErrorResponse(error) ? `${error.status} ${error.statusText}` : error instanceof Error ? error.message : 'Unknown error'
   return (
     <Shell>
       <h1>Something went wrong</h1>
       <p>{message}</p>
-      <button type="button" onClick={() => window.location.reload()}>
-        Reload
-      </button>
+      <Button onClick={() => window.location.reload()}>Reload</Button>
     </Shell>
   )
 }

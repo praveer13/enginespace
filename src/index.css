@@ -1,3 +1,12 @@
+/*
+ * The stylesheet entry: the design system (its tokens, faces, ground and components, src/design), then Tailwind's
+ * layers. The design system's `@layer` rules join Tailwind's base and components layers.
+ */
+@import './design/tokens.css';
+@import './design/fonts.css';
+@import './design/base.css';
+@import './design/components.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
