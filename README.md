@@ -87,6 +87,13 @@ npm run build       # typecheck, then vite build into dist/, with dist/.vite/man
 npm run preview     # serve dist/
 ```
 
+Two gates check the packages beyond what lint and the type checker do:
+
+```sh
+npm run verify:determinism   # packages/sim and packages/play: no clock, no entropy, no engine-dependent Math (ARCHITECTURE §5.1)
+npm run verify:boundaries    # the import fences of ARCHITECTURE §2.3, and no static path from src/main.tsx to three
+```
+
 Every dependency is pinned to an exact version, with no `^` and no `~`, and the pins are ARCHITECTURE §14's table. A test compares `package.json` with that table. GitHub Pages serves the site under `/enginespace/` until a custom domain is chosen, so the deploy builds with `VITE_BASE=/enginespace/ npm run build`.
 
 ## What is in this repository
@@ -104,8 +111,8 @@ Every dependency is pinned to an exact version, with no `^` and no `~`, and the 
 | [docs/TRACKER.md](docs/TRACKER.md) | the build tasks, wave by wave |
 | [research/](research/) | the dated upstream research behind the pins and claims |
 | [src/](src/) | the app: the shell, the route table (`src/routes.tsx`) and one stub page per route |
-| [packages/](packages/) | the pure internal packages. `sim` and `play` compile without the DOM (`tsconfig.pure.json`); `ledger`, `schema` and `verify` are added with their first code |
-| [tests/](tests/) | the Bun tests: the dependency pins, the routes, the configuration and the build's chunking |
+| [packages/](packages/) | the five internal packages (`sim`, `play`, `ledger`, `schema`, `verify`), skeletons until their tasks land. `sim` and `play` compile without the DOM (`tsconfig.pure.json`) and obey the determinism lint. ESLint and `verify:boundaries` fence what each package may import |
+| [tests/](tests/) | the Bun tests: the dependency pins, the routes, the configuration, the build's chunking, and the lint fences and gates (`tests/lint`, with their bad files in `tests/fixtures/lint`) |
 | `package.json`, `vite.config.ts`, `tsconfig*.json`, `eslint.config.js`, `tailwind.config.ts` | the toolchain, on kernelspace's versions |
 
 ## The family
