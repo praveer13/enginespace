@@ -5,10 +5,12 @@
  * The poster is `scripts/posters.ts`: the practice seed of the first level as a view, laid out and written as SVG text. The 2D view is
  * `View2D`, which draws the same tree as React elements. The first group renders the real component on the server and cuts the
  * <svg> out of its markup, so what is compared is what the page paints and not a second copy of the code. The rest hold the layout to
- * its promises: it paints with token roles and nothing else, it stays in its frame and under its cap, and its window moves by whole fires.
+ * its promises: it paints with token roles and nothing else, it stays in its frame and under its cap, its window moves by whole fires,
+ * and it is drawn in the kitchen's own surfaces: no state in a code colour, amber only on the pass, and no legend.
  *
- * Measured by the first group of the cap test [measured 2026-11-04 at a5907b1]: at most 281 marks in 236 frames of the four levels, in
- * both orientations and with overlap on and off, against the cap of 2,000. The two posters are 78 and 57 marks, and 9,545 and 7,205 bytes.
+ * Measured by the first group of the cap test [measured 2026-11-04 at 8046843]: at most 306 marks in 236 frames of the four levels, in
+ * both orientations and with overlap on and off, against the cap of 2,000. The two posters are 69 and 70 marks, and 8,806 and 8,963 bytes
+ * (`bun scripts/posters.ts`).
  */
 import { describe, expect, test } from 'bun:test'
 import { createElement as h } from 'react'
