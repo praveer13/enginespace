@@ -45,11 +45,11 @@ describe('verify:games for loop', () => {
 })
 
 describe('the registry\'s record of Service', () => {
-  test('is D-049\'s: the display name over its subtitle, the id `loop`, TR2 first and TR6 after it, and no 3D scene yet', () => {
+  test('is D-049\'s: the display name over its subtitle, the id `loop`, TR2 first and TR6 after it, and its 3D scene (W0-T17)', () => {
     expect([LOOP.id, LOOP.title, LOOP.subtitle]).toEqual(['loop', 'Service', 'the step loop'])
     expect(LOOP.modules).toEqual(['tr2', 'tr6'])
-    expect(LOOP.has3d).toBe(false)
-    expect(existsSync(path.join(root, 'src/games/loop/Scene3D.tsx'))).toBe(false)
+    expect(LOOP.has3d).toBe(true)
+    expect(existsSync(path.join(root, 'src/games/loop/Scene3D.tsx'))).toBe(true)
     expect(GAMES.get('loop')).toBe(LOOP)
     expect(Object.keys(GAME_COMPONENTS)).toEqual(['loop'])
   })

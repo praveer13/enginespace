@@ -27,7 +27,7 @@ const FACE_AXES: ReadonlyArray<[number, number]> = [
   [0, 1],
 ]
 
-function boxPart(center: Vec3, size: Vec3): BufferGeometry {
+function boxPart(center: Vec3, size: Vec3, tile: number): BufferGeometry {
   const geometry = new BoxGeometry(size[0], size[1], size[2])
   geometry.translate(center[0], center[1], center[2])
   const position = geometry.getAttribute('position')
@@ -38,24 +38,24 @@ function boxPart(center: Vec3, size: Vec3): BufferGeometry {
     const [along, across] = size[a] >= size[b] ? [a, b] : [b, a]
     for (let corner = 0; corner < 4; corner++) {
       const i = face * 4 + corner
-      uv.setXY(i, position.getComponent(i, along) / STEEL_TILE, position.getComponent(i, across) / STEEL_TILE)
+      uv.setXY(i, position.getComponent(i, along) / tile, position.getComponent(i, across) / tile)
     }
   }
   return geometry
 }
 
-function shadePart(center: Vec3, mouth: number, crown: number, height: number): BufferGeometry {
+function shadePart(center: Vec3, mouth: number, crown: number, height: number, tile: number): BufferGeometry {
   // Open at the mouth (below), capped at the crown (above).
   const geometry = new CylinderGeometry(crown, mouth, height, 28, 1, false)
   geometry.translate(center[0], center[1] + height / 2, center[2])
-  scaleUv(geometry, (Math.PI * (mouth + crown)) / STEEL_TILE, height / STEEL_TILE)
+  scaleUv(geometry, (Math.PI * (mouth + crown)) / tile, height / tile)
   return geometry
 }
 
-function rodPart(base: Vec3, height: number, radius: number): BufferGeometry {
+function rodPart(base: Vec3, height: number, radius: number, tile: number): BufferGeometry {
   const geometry = new CylinderGeometry(radius, radius, height, 10, 1, true)
   geometry.translate(base[0], base[1] + height / 2, base[2])
-  scaleUv(geometry, (Math.PI * 2 * radius) / STEEL_TILE, height / STEEL_TILE)
+  scaleUv(geometry, (Math.PI * 2 * radius) / tile, height / tile)
   return geometry
 }
 
@@ -99,11 +99,18 @@ function merge(parts: readonly BufferGeometry[]): BufferGeometry {
   return merged
 }
 
-/** The fixtures as one geometry, each part tinted by its tone's role colour. */
-export function buildFixtures(parts: readonly FixturePart[], toneColor: (tone: SteelTone) => Color): BufferGeometry {
+/**
+ * The fixtures as one geometry, each part tinted by its tone's role colour. `tile` is the world size one tile of the brushed grain
+ * covers: a scene that brings its steel close to the camera passes a smaller one, so the brush strokes stay fine up close.
+ */
+export function buildFixtures(parts: readonly FixturePart[], toneColor: (tone: SteelTone) => Color, tile: number = STEEL_TILE): BufferGeometry {
   const geometries = parts.map((part) => {
     const geometry =
-      part.kind === 'box' ? boxPart(part.center, part.size) : part.kind === 'shade' ? shadePart(part.center, part.mouth, part.crown, part.height) : rodPart(part.base, part.height, part.radius)
+      part.kind === 'box'
+        ? boxPart(part.center, part.size, tile)
+        : part.kind === 'shade'
+          ? shadePart(part.center, part.mouth, part.crown, part.height, tile)
+          : rodPart(part.base, part.height, part.radius, tile)
     const { r, g, b } = toneColor(part.tone)
     const count = geometry.getAttribute('position').count
     const colors = new Float32Array(count * 3)

@@ -1,0 +1,113 @@
+/*
+ * Service's 3D scene, its page layer: the print on its tickets, the marker on its tape, the clock's numbers and the stations' light,
+ * all DOM over the canvas (D-021). Every colour, face and shadow is a token role (src/design/tokens.css); this file names none of its
+ * own. The scene's box is a size container, so print scales with the pass and not with the window.
+ */
+
+.es-loop-scene {
+  container-type: size;
+}
+
+.es-loop-label {
+  color: var(--es-paper-ink);
+  font-family: var(--es-font-ticket);
+  font-weight: var(--es-font-ticket-weight);
+  letter-spacing: var(--es-font-ticket-tracking);
+  line-height: 1;
+  text-align: center;
+}
+
+/* A ticket on the rail: its number printed large in the printer's dots, and a fresh ticket's "new" in the ribbon's red. */
+.es-loop-label__ticket {
+  display: grid;
+  justify-items: center;
+  gap: 0.2em;
+}
+
+.es-loop-label__no {
+  font-size: clamp(0.8125rem, 2.3cqi, 1.75rem);
+  letter-spacing: 0.04em;
+}
+
+@container (min-width: 36rem) {
+  .es-loop-label--ticket .es-loop-label__no::before {
+    content: 'No. ';
+    font-size: 0.55em;
+    vertical-align: 0.35em;
+  }
+}
+
+.es-loop-label__sub {
+  color: var(--es-paper-ink-2);
+  font-size: clamp(0.625rem, 1.15cqi, 0.875rem);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* The fired rail's tickets and the printer's strip print smaller: they are further off, and the strip's paper is narrower. */
+.es-loop-label--fired {
+  font-size: clamp(0.6875rem, 1.6cqi, 1.125rem);
+}
+
+.es-loop-label--waiting {
+  font-size: clamp(0.6875rem, 1.75cqi, 1.25rem);
+}
+
+/* What is still in the printer, printed on its dark housing. */
+.es-loop-label--more {
+  color: var(--es-paper);
+  font-size: clamp(0.6875rem, 1.6cqi, 1.125rem);
+}
+
+/* A clip with nothing hung: paid for, and empty. A strip of paper in the ribbon's red, its edge dashed like a torn-off stub. */
+.es-loop-label--empty {
+  padding: 0.25em 0.45em;
+  border: 1px dashed var(--es-paper-rule);
+  background-color: var(--es-paper);
+  box-shadow: var(--es-shadow-paper);
+  color: var(--es-paper-ink-2);
+  font-size: clamp(0.625rem, 1.3cqi, 0.9375rem);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* Marker on masking tape. */
+.es-loop-label--tape {
+  color: var(--es-tape-ink);
+  font-family: var(--es-font-label);
+  font-weight: var(--es-font-label-weight);
+  letter-spacing: var(--es-font-label-tracking);
+  font-size: clamp(0.6875rem, 1.6cqi, 1.0625rem);
+}
+
+/* The clock along the line, in the numeral face, and what its numbers are. */
+.es-loop-label--tick {
+  color: var(--es-text-2);
+  font-family: var(--es-font-numeric);
+  font-weight: var(--es-font-numeric-weight);
+  font-size: clamp(0.6875rem, 1.45cqi, 1rem);
+}
+
+.es-loop-label--axis {
+  color: var(--es-text-2);
+  font-family: var(--es-font-body);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  font-size: clamp(0.6875rem, 1.3cqi, 0.9375rem);
+}
+
+/* The line's stations: the design system's pilot light, on a plate of steel so it reads over the line's counter. */
+.es-loop-label--station {
+  padding: 0.3em 0.55em;
+  border-radius: var(--es-radius-plate);
+  background-color: var(--es-surface-1);
+  box-shadow: var(--es-shadow-plate);
+  font-size: clamp(0.6875rem, 1.3cqi, 0.9375rem);
+}
+
+.es-loop-label--calls {
+  color: var(--es-text-1);
+  font-family: var(--es-font-numeric);
+  font-weight: var(--es-font-numeric-weight);
+  font-size: clamp(0.6875rem, 1.3cqi, 0.9375rem);
+}

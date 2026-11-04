@@ -59,13 +59,17 @@ describe('the page names the game as D-049 says, and opens on the first level', 
     expect(render(h(Game, { level: 'constructor' }))).toContain('Fill the rail · practice')
   })
 
-  test('has Play and Debrief and no other stage, a view switch only if it had a 3D scene, and the keys button', () => {
+  test('has Play and Debrief and no other stage, the view switch of a game with a 3D scene, and the keys button', () => {
     const markup = render(h(Game, null))
     expect(markup).toContain('>Play</button>')
     expect(markup).toContain('>Debrief</button>')
     expect(markup).not.toContain('>Compose<')
-    expect(markup).not.toContain('3D view')
     expect(markup).toContain('>Keys</button>')
+    // The first paint is the 2D view: until the browser has been asked what it can draw, the 3D button waits, disabled (W0-T17).
+    expect(markup).toMatch(/<div role="group" aria-label="View"[^>]*>.*aria-pressed="true" aria-keyshortcuts="V">2D view<\/button>/)
+    expect(markup).toMatch(/aria-pressed="false" aria-keyshortcuts="V" disabled="">3D view<\/button>/)
+    expect(markup).toContain('data-surface="2d"')
+    expect(markup).not.toContain('Camera on the pass')
   })
 
   test('keeps the notional-machine card to hand, in its three parts, with the tick costs as synthetic Readouts', () => {

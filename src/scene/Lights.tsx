@@ -71,7 +71,8 @@ function glowGeometry(rim: LampRim): BufferGeometry {
   return glow
 }
 
-export function HeatLamps({ lamps, power = 1, rim = DEFAULT_RIM }: { lamps: readonly LampSpec[]; power?: number; rim?: LampRim }) {
+/** `housings: false` keeps the lamps' light and leaves out their glowing elements: for a shot that looks down through them. */
+export function HeatLamps({ lamps, power = 1, rim = DEFAULT_RIM, housings = true }: { lamps: readonly LampSpec[]; power?: number; rim?: LampRim; housings?: boolean }) {
   const kit = useKit()
   const params = kit.tokens.materials.heatLamp
   const lights = useMemo(
@@ -113,7 +114,7 @@ export function HeatLamps({ lamps, power = 1, rim = DEFAULT_RIM }: { lamps: read
           <primitive object={light.target} />
         </group>
       ))}
-      <instancedMesh ref={bulbs} name="lamp-bulbs" args={[bulb, kit.materials.lamp, Math.max(1, lamps.length)]} raycast={() => null} />
+      <instancedMesh ref={bulbs} name="lamp-bulbs" args={[bulb, kit.materials.lamp, Math.max(1, lamps.length)]} raycast={() => null} visible={housings} />
     </>
   )
 }
