@@ -7,7 +7,8 @@
 // `physics` (the S5 step card and its fitted rows), `host` (the host card's presets) and `workload` (seeded request streams).
 // W0-T13 adds `steploop`, the engine's step loop (v0, the TR2 spike). W1-T08 adds `trace`, `trace@1` with its synthetic traces,
 // attribution and structural checks. W1-T31 adds `bench`, the benchmark generator: arrivals, the coarse server and the statistics
-// of a log. W1-T10 adds `forge`, the oracles of the forge labs. The rest follow, each in a folder of its own.
+// of a log. W1-T10 adds `forge`, the oracles of the forge labs. W1-T26 adds `spec`, the exact rejection sampler. The rest follow, each in
+// a folder of its own.
 export * from './core'
 export * from './physics'
 export * from './host'
@@ -16,3 +17,7 @@ export * from './steploop'
 export * from './trace'
 export * from './bench'
 export * from './forge'
+export * from './spec'
+// `Dist` is a token-count distribution in `workload` and a probability distribution in `spec` (ARCHITECTURE §5.5). This barrel keeps
+// the older meaning: import the probability one from '@es/sim/spec'.
+export type { Dist } from './workload'

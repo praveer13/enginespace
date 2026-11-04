@@ -110,6 +110,7 @@ function tree(options: { fixture?: boolean } = {}): string {
     copyFileSync(path.join(root, rel), path.join(dir, rel))
   }
   put('packages/sim/core/exp-quantiles.ts')
+  put('packages/sim/spec/critical.ts')
   for (const id of SLICE_IDS) put(`${TRACES}/${id}.json`)
   if (options.fixture !== false) for (const model of MODELS) put(model.file)
   return dir
@@ -126,9 +127,9 @@ describe('bun scripts/vectors.ts', () => {
     expect(run.stderr).toBe('')
     expect(run.status).toBe(0)
     // However many models are registered, each one's fixture is checked: the count follows the registry, and the registry holds the models built so far.
-    expect(MODELS.map((model) => model.model)).toEqual(expect.arrayContaining(['workload', 'steploop', 'trace']))
+    expect(MODELS.map((model) => model.model)).toEqual(expect.arrayContaining(['workload', 'steploop', 'trace', 'spec']))
     const vectorCount = MODELS.reduce((total, model) => total + model.cases(root).length, 0)
-    expect(run.stdout).toContain(`${MODELS.length} model(s), ${vectorCount} vector(s) and the exponential table match`)
+    expect(run.stdout).toContain(`${MODELS.length} model(s), ${vectorCount} vector(s) and the generated tables match`)
   })
 
   test('--check fails when one output moves by one digit, and names the vector', () => {

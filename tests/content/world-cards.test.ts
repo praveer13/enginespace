@@ -31,7 +31,7 @@ const WORLDS: Record<string, { world: string; builtBy: string; built: boolean }>
   'trace-room-steploop': { world: 'steploop', builtBy: 'W0-T13', built: true },
   lifecycle: { world: 'lifecycle', builtBy: 'W1-T16', built: false },
   kv: { world: 'kv', builtBy: 'W1-T21', built: false },
-  spec: { world: 'spec', builtBy: 'W1-T26', built: false },
+  spec: { world: 'spec', builtBy: 'W1-T26', built: true },
   'trace-room-bench': { world: 'bench', builtBy: 'W1-T31', built: true },
   'trace-room-trace': { world: 'trace', builtBy: 'W1-T08', built: true },
 }

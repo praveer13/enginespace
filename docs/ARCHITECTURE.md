@@ -447,16 +447,21 @@ export function kvOps(seed: Seed, spec: KvSpec, n: number): readonly KvOp[]
 ### 5.5 The speculation sampler
 
 ```ts
-export interface Dist { weights: readonly number[]; total: number }   // integer weights, total = 2^16
+export interface Dist { weights: readonly number[]; total: number }   // integer weights; p and q share one total, 2^16 in the course's worlds
 export function verifyChain(p: readonly Dist[], q: readonly Dist[], draft: readonly number[], r: Rng): ChainResult
 export function chiSquare(counts: readonly number[], p: Dist): { stat: number; df: number }
-export const CRITICAL: Readonly<Record<'1e-3' | '1e-4', readonly number[]>> // by df; generated table
-export function expectedTokensPerRound(alphaPermille: number, gamma: number): number  // (1 − α^(γ+1)) / (1 − α)
+export const CRITICAL: Readonly<Record<'1e-3' | '1e-4', readonly number[]>> // ⌈1000 × the critical value⌉ by df, 0 to 255; generated table
+export function expectedTokensPerRound(alphaPermille: number, gamma: number): number  // 1 + α + … + α^γ = (1 − α^(γ+1)) / (1 − α)
 ```
 
 - **The accept step is exact in integers.** Draw `u` uniformly from `[0, q_x)` and accept when `u < p_x`. That accepts with probability min(1, p_x / q_x) with no floating point.
 - **On rejection,** resample from the residual `r_x = max(0, p_x − q_x)` by its integer total.
+- **A round** walks the drafts in order and stops at the first rejection. `ChainResult` holds each visited step (token, coin, accepted), the drafts accepted, how the round ended (`recovered` or `bonus`, with its draw and the draw's range) and the tokens emitted, which are the accepted drafts and one more.
 - **Exactness.** The output distribution equals p, and the chi-square test checks it on fresh seeds (§8.3).
+  - `chiSquare` pools the tokens whose expected count is under 5 (upstream's rule, claim vllm.spec.chi-square.min-expected [estimated]) and leaves out the tokens of weight 0. A draw of one of those is an infinite statistic, since p rules it out.
+  - `CRITICAL[level][df]` is the least integer c with P(χ² > c ÷ 1000) ≤ the level, for df from 0 to 255 [estimated], so a test that rejects above c ÷ 1000 rejects an exact sampler no more often than its level. `scripts/tables/chi-square-critical.ts` writes it, and `scripts/vectors.ts --check` regenerates it.
+  - The test follows no more than one distribution per seed (the first emitted token against p[0]), so the lab's error rate is the two seeds' and nothing more.
+- **The bestiary** (`packages/sim/spec/bestiary.ts`) holds the six wrong samplers of TR6 §5, each a rule set for the same loop. Five of them move the output distribution by an amount that 20,000 draws [estimated] show. The boundary-inclusive comparison of SGLang PR #35798 does not: with integer coins it moves each affected token's probability by 1 ÷ 2^16 [derived]. The statistic sees it only through the tokens it lets past a target that rules them out, which is the sparse band's case, and the accept step shows it on every case if it is looked at exhaustively: for each token, exactly min(p_x, q_x) of the q_x coins must accept (`acceptStepViolations`). The measured rates are in `tests/sim/spec-rates.test.ts`.
 - **The acceptance-length formula** and its repeated-product powers are kernelspace's `push-luck.ts` model (Leviathan, Kalman and Matias 2023).
 - Draft trees are a stretch level, labelled as one. Edition 1 verifies chains.
 
