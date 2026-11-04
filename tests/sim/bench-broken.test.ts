@@ -594,27 +594,30 @@ describe('determinism', () => {
 // ---------------------------------------------------------------------------------------------------------------------------
 // The claims a debrief cites
 
-describe('the claims that ground the flaws (content/claims/broken-bench.yaml)', () => {
+describe('the claims that ground the flaws (content/claims)', () => {
   const result = compileContent({ root })
   const claims = new Map(result.claims.map((r) => [r.claim.id, r.claim]))
   const fileClaims = result.claims.filter((r) => r.file.endsWith('broken-bench.yaml')).map((r) => r.claim)
+  const cited = new Set(ALL.flatMap((flaw) => FLAW_CLAIMS[flaw]))
 
-  it('every flaw but the control cites at least two, each of them in the claims file', () => {
+  it('every flaw but the control cites at least two, each of them a claim of the registry', () => {
     for (const flaw of ALL) {
       if (flaw === 'none') expect(FLAW_CLAIMS[flaw]).toEqual([])
       else expect(FLAW_CLAIMS[flaw].length, flaw).toBeGreaterThanOrEqual(2)
+      expect(new Set(FLAW_CLAIMS[flaw]).size).toBe(FLAW_CLAIMS[flaw].length)
       for (const id of FLAW_CLAIMS[flaw]) expect(claims.has(id), `${flaw}: ${id}`).toBe(true)
     }
     expect(casesOf('closed-loop', 1)[0].claimIds).toEqual(FLAW_CLAIMS['closed-loop'])
   })
 
-  it('the claims file holds those and no others, each named for its flaw', () => {
-    const cited = new Set(ALL.flatMap((flaw) => FLAW_CLAIMS[flaw]))
-    expect(new Set(fileClaims.map((c) => c.id))).toEqual(cited)
-    for (const flaw of ALL) for (const id of FLAW_CLAIMS[flaw]) expect(id.startsWith(`broken-bench.${flaw}.`), id).toBe(true)
+  it('the corpus\'s own claims file holds claims that a flaw cites and no others, and a claim is cited by what it grounds', () => {
+    expect(fileClaims.length).toBeGreaterThan(10)
+    for (const claim of fileClaims) expect(cited.has(claim.id), claim.id).toBe(true)
+    // The control grounds nothing, and the other ten each have a tool, a paper or a rule behind them.
+    expect(ALL.filter((flaw) => FLAW_CLAIMS[flaw].length === 0)).toEqual(['none'])
   })
 
-  it('each is sourced: a URL, the source\'s words, the day they were read, a TTL, and a pin for a tool\'s version', () => {
+  it('each of the corpus\'s is sourced: a URL, the source\'s words, the day they were read, a TTL, and a pin for a tool\'s version', () => {
     for (const claim of fileClaims) {
       if (claim.tag === 'derived') {
         expect(claim.derived?.inputs.length).toBeGreaterThanOrEqual(1)
@@ -628,13 +631,19 @@ describe('the claims that ground the flaws (content/claims/broken-bench.yaml)', 
       expect(claim.ttlDays).toBeGreaterThan(0)
       if (claim.source!.url.includes('/vllm-project/vllm/')) expect(claim.pin, claim.id).toBe('vllm')
       if (claim.source!.url.includes('/sgl-project/sglang/')) expect(claim.pin, claim.id).toBe('sglang')
-      // A tool's file is cited at a tag or a commit, never at a branch.
-      expect(claim.source!.url.includes('/blob/main/') || claim.source!.url.includes('/blob/master/'), claim.id).toBe(false)
+    }
+  })
+
+  it('every claim a flaw cites is read at a tag, a commit or a paper\'s page, never at a branch that moves', () => {
+    for (const id of cited) {
+      const source = claims.get(id)?.source
+      if (source === undefined) continue
+      expect(/\/blob\/(main|master)\/|\/tree\/(main|master)\//.test(source.url), id).toBe(false)
     }
   })
 
   it('the numbers the vendor reports and this course has not reproduced are marked unverified', () => {
-    expect(claims.get('broken-bench.client-bottleneck.sglang-bench-2500-requests')?.tag).toBe('unverified')
+    expect(claims.get('sglang.bench.rust-client-2500-requests')?.tag).toBe('unverified')
   })
 })
 

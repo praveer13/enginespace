@@ -36,35 +36,22 @@ export { BENCH_MIN_ROWS_FOR_P99, BENCH_WARMUP_ROWS, benchWarmupRows } from './br
 export { BROKEN_CORRECTED_ROWS } from './broken-kits'
 
 /**
- * The claims that ground each flaw in a real tool or paper (content/claims/broken-bench.yaml, read 2026-11-04): what a debrief cites. The
- * control has none. A flaw with no instance in a tool's code or documentation says what it is grounded in instead, in the claim's text.
+ * The claims that ground each flaw in a real tool or paper (content/claims/vllm/bench.yaml and sglang/bench.yaml, W1-T01, and
+ * content/claims/broken-bench.yaml, read 2026-11-04): what a debrief cites. The control has none. A flaw that no tool commits says what
+ * it is grounded in instead, in the claim's text: `mean-as-tail` in the tool's report layout, and `too-few-samples` in the guide's own
+ * ten-prompt example and kernelspace's rule.
  */
 export const FLAW_CLAIMS: Readonly<Record<BenchFlaw, readonly string[]>> = {
-  'closed-loop': [
-    'broken-bench.closed-loop.vllm-request-rate-default',
-    'broken-bench.closed-loop.vllm-max-throughput-pattern',
-    'broken-bench.closed-loop.vllm-rate-below-requested',
-    'broken-bench.closed-loop.schroeder-definition',
-  ],
-  'coordinated-omission': [
-    'broken-bench.coordinated-omission.wrk2-from-should-have',
-    'broken-bench.coordinated-omission.wrk2-stall-corrected-p99',
-    'broken-bench.coordinated-omission.wrk2-stall-uncorrected-p99',
-    'broken-bench.coordinated-omission.wrk2-stall-ratio',
-  ],
-  'client-queue-hidden': [
-    'broken-bench.client-queue-hidden.vllm-semaphore-start-time',
-    'broken-bench.client-queue-hidden.vllm-e2el-including-client-queue',
-    'broken-bench.client-queue-hidden.sglang-semaphore',
-    'broken-bench.client-queue-hidden.sglang-timer-inside',
-  ],
-  'warm-up-counted': ['broken-bench.warm-up-counted.vllm-num-warmups-default', 'broken-bench.warm-up-counted.kernelspace-rule'],
-  'warm-cache': ['broken-bench.warm-cache.vllm-prefix-cache-reuse', 'broken-bench.warm-cache.sglang-flush-cache'],
-  'capped-output': ['broken-bench.capped-output.vllm-max-tokens-is-output-len', 'broken-bench.capped-output.vllm-sharegpt-output-len'],
-  'too-few-samples': ['broken-bench.too-few-samples.vllm-guide-ten-prompts', 'broken-bench.too-few-samples.kernelspace-rule'],
-  'mean-as-tail': ['broken-bench.mean-as-tail.vllm-metric-percentiles-default', 'broken-bench.mean-as-tail.vllm-guide-mean-median-p99'],
-  'client-bottleneck': ['broken-bench.client-bottleneck.sglang-bench-client-sets-throughput', 'broken-bench.client-bottleneck.sglang-bench-2500-requests'],
-  'replay-without-timestamps': ['broken-bench.replay-without-timestamps.vllm-self-timed-default', 'broken-bench.replay-without-timestamps.vllm-burstgpt-lengths-only'],
+  'closed-loop': ['vllm.bench.request-rate-default', 'vllm.bench.max-concurrency-closed-loop', 'vllm.bench.max-concurrency-recommended', 'bench.schroeder.closed-vs-open'],
+  'coordinated-omission': ['bench.wrk2.from-should-have', 'bench.wrk2.stall-corrected-p99', 'bench.wrk2.stall-uncorrected-p99', 'bench.wrk2.stall-ratio'],
+  'client-queue-hidden': ['vllm.bench.client-queue-time', 'vllm.bench.e2el-including-client-queue', 'sglang.bench.max-concurrency-semaphore', 'sglang.bench.timer-inside-request'],
+  'warm-up-counted': ['vllm.bench.num-warmups-default', 'sglang.bench.warmup-default', 'bench.kernelspace.warm-up-rule'],
+  'warm-cache': ['vllm.bench.prefix-cache-reuse', 'sglang.bench.flush-cache-after-warmup'],
+  'capped-output': ['vllm.bench.max-tokens-is-output-len', 'vllm.bench.sharegpt-output-len'],
+  'too-few-samples': ['vllm.bench.guide-ten-prompts', 'bench.kernelspace.samples-rule'],
+  'mean-as-tail': ['vllm.bench.metric-percentiles-default', 'vllm.bench.guide-mean-median-p99'],
+  'client-bottleneck': ['sglang.bench.rust-client-sets-throughput', 'sglang.bench.rust-client-2500-requests'],
+  'replay-without-timestamps': ['vllm.bench.self-timed-default', 'vllm.bench.burstgpt-lengths-only'],
   none: [],
 }
 
