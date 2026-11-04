@@ -1,0 +1,342 @@
+# The real-world instance of each flaw in the broken-benchmark corpus (W1-T32; GAMES.md §11, ARCHITECTURE §5.6): what a debrief cites when it names a flaw.
+# Each quote is the source's own words, read on 2026-11-04 with the generic User-Agent "Mozilla/5.0 (X11; Linux x86_64)" from the file its URL names, at the tag or commit
+# the URL names: vLLM v0.33.0 and SGLang v0.5.23 (the proposed pins, D-035), wrk2 at 44a94c1, kernelspace at d478f91, and a paper. A #L anchor says which lines hold
+# the quote, and a quote that runs over several lines is written on one. Facts about an engine's tool belong to a pin and are re-read at the quarterly re-pin, so their TTL is
+# 90 days; a paper, and a README at a commit, do not move, so theirs is 365 [estimated]. A quote of a Python help string is the string as the tool prints it:
+# the source writes it as adjacent literals. The control case has no flaw and no claim.
+
+- id: broken-bench.closed-loop.vllm-request-rate-default
+  value: 'inf'
+  unit: requests per second
+  text: 'In `vllm bench serve` the default of `--request-rate` is infinity, and its help says that with an infinite rate all the requests are sent at time 0. Only a finite rate makes the tool draw Poisson or gamma arrival times.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/benchmarks/serve.py#L1746-L1753
+    title: 'vLLM v0.33.0, vllm/benchmarks/serve.py, the --request-rate argument'
+    quote: 'Number of requests per second. If this is inf, then all the requests are sent at time 0. Otherwise, we use Poisson process or gamma distribution to synthesize the request arrival times.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: broken-bench.closed-loop.vllm-max-throughput-pattern
+  value: '--request-rate=inf with --max-concurrency set'
+  text: 'vLLM''s benchmarking guide calls an infinite request rate with a limit on concurrency, `--request-rate=inf --max-concurrency=N`, the most commonly used configuration for production benchmarking. It describes users who send as fast as they can, behind a gateway that holds the concurrent connections at the limit.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/benchmarking/cli.md#L805-L810
+    title: 'vLLM v0.33.0, docs/benchmarking/cli.md, load patterns (the pattern and its limit)'
+    quote: 'is the most commonly used configuration for production benchmarking.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: broken-bench.closed-loop.vllm-rate-below-requested
+  value: 'the actual request rate may be lower than specified'
+  text: 'In `vllm bench serve`, `--max-concurrency` limits how many requests run at once, and the tool''s own help says that used with `--request-rate` the actual request rate may be lower than specified if the server is not processing requests fast enough to keep up.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/benchmarks/serve.py#L1679-L1689
+    title: 'vLLM v0.33.0, vllm/benchmarks/serve.py, the --max-concurrency argument'
+    quote: 'This means that when used in combination, the actual request rate may be lower than specified with --request-rate, if the server is not processing requests fast enough to keep up.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: broken-bench.closed-loop.schroeder-definition
+  value: 'new arrivals are triggered only by completions'
+  text: 'Schroeder, Wierman and Harchol-Balter separate two kinds of workload generator. In a closed system model new job arrivals are triggered only by job completions, followed by think time, and in an open system model new jobs arrive independently of completions.'
+  tag: measured
+  source:
+    url: https://www.usenix.org/legacy/event/nsdi06/tech/schroeder.html
+    title: 'Schroeder, Wierman and Harchol-Balter, Open Versus Closed: A Cautionary Tale, NSDI 2006, abstract'
+    quote: 'Workload generators may be classified as based on a closed system model, where new job arrivals are only triggered by job completions (followed by think time), or an open system model, where new jobs arrive independently of job completions.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: broken-bench.coordinated-omission.wrk2-from-should-have
+  value: 'latency from when the request should have been sent'
+  text: 'wrk2 measures a request''s latency from the time its transmission should have occurred under the constant throughput set for the run, and not from the time it was actually sent. Its author built it that way to avoid what he calls coordinated omission.'
+  tag: measured
+  source:
+    url: https://github.com/giltene/wrk2/blob/44a94c17d8e6a0bac8559b53da76848e430cb7a7/README.md#L326-L331
+    title: 'wrk2 README (giltene/wrk2 at 44a94c1), the model chosen for avoiding Coordinated Omission'
+    quote: 'Rather than measure response latency from the time that the actual transmission of a request occurred, wrk2 measures response latency from the time the transmission *should* have occurred according to the constant throughput configured for the run.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: broken-bench.coordinated-omission.wrk2-stall-corrected-p99
+  value: 1270
+  unit: ms
+  text: 'In the second example of wrk2''s README, a 1.4 second pause of the httpd server, the recorded latency distribution, timed from when each request should have been sent, shows a 99th percentile of 1.27 s. These are the author''s figures from his own run, which this course has not reproduced.'
+  tag: measured
+  source:
+    url: https://github.com/giltene/wrk2/blob/44a94c17d8e6a0bac8559b53da76848e430cb7a7/README.md#L585-L604
+    title: 'wrk2 README, Example 2 (a 1.4 second pause), recorded latency'
+    quote: '99.000% 1.27s'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: broken-bench.coordinated-omission.wrk2-stall-uncorrected-p99
+  value: 6.04
+  unit: ms
+  text: 'In the same example, the uncorrected distribution, measured without taking delayed starts into account, shows a 99th percentile of 6.04 ms for the same run. These are the author''s figures, which this course has not reproduced.'
+  tag: measured
+  source:
+    url: https://github.com/giltene/wrk2/blob/44a94c17d8e6a0bac8559b53da76848e430cb7a7/README.md#L660-L666
+    title: 'wrk2 README, Example 2 (a 1.4 second pause), uncorrected latency'
+    quote: '99.000% 6.04ms'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: broken-bench.coordinated-omission.wrk2-stall-ratio
+  value: 210.3
+  unit: x
+  text: 'Counted from when each request was due, wrk2''s 99th percentile in its 1.4 second pause example is about 210 times the uncorrected one, which the README rounds to 200 times.'
+  tag: derived
+  derived:
+    formula: broken-bench.coordinated-omission.wrk2-stall-corrected-p99 / broken-bench.coordinated-omission.wrk2-stall-uncorrected-p99
+    inputs: [broken-bench.coordinated-omission.wrk2-stall-corrected-p99, broken-bench.coordinated-omission.wrk2-stall-uncorrected-p99]
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: broken-bench.client-queue-hidden.vllm-semaphore-start-time
+  value: 'client_queue_time'
+  text: 'In `vllm bench serve` a request waits for the concurrency semaphore before its request function runs, and the start time kept for it is the time it was sent. The wait for the semaphore is recorded apart, as `client_queue_time`.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/benchmarks/serve.py#L1001-L1017
+    title: 'vLLM v0.33.0, vllm/benchmarks/serve.py, limited_request_func'
+    quote: '# Preserve start_time as the time the request was sent. It is used by # throughput calculations; record client-side semaphore delay separately.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: broken-bench.client-queue-hidden.vllm-e2el-including-client-queue
+  value: 'e2el_including_client_queue'
+  text: 'vLLM''s benchmarking guide says that with a concurrency limit, `client_queue_time` reports the time spent waiting for the client''s limit, and that with a finite request rate `e2el_including_client_queue` reports schedule-relative end-to-end latency.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/benchmarking/cli.md#L775
+    title: 'vLLM v0.33.0, docs/benchmarking/cli.md, load pattern control parameters'
+    quote: 'With a finite `--request-rate`, `e2el_including_client_queue` reports schedule-relative end-to-end latency; it is omitted for `--request-rate=inf`, where all requests arrive at benchmark start.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: broken-bench.client-queue-hidden.sglang-semaphore
+  value: 'async with semaphore'
+  text: 'SGLang''s `bench_serving` limits concurrency with a semaphore, and calls the request function only from inside `async with semaphore`.'
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/benchmark/serving.py#L1432-L1438
+    title: 'SGLang v0.5.23, python/sglang/benchmark/serving.py, limited_request_func'
+    quote: 'async with semaphore: return await request_func(request_func_input=request_func_input, pbar=pbar)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: broken-bench.client-queue-hidden.sglang-timer-inside
+  value: 'st = time.perf_counter()'
+  text: 'The request function of SGLang''s default backend starts its timer with `st = time.perf_counter()` as it begins, and measures the time to first token from it, so the wait for the semaphore that precedes the function is in no latency it reports.'
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/benchmark/serving.py#L735
+    title: 'SGLang v0.5.23, python/sglang/benchmark/serving.py, async_request_sglang_generate'
+    quote: 'ttft = 0.0 st = time.perf_counter() output.start_time = st'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: broken-bench.warm-up-counted.vllm-num-warmups-default
+  value: 0
+  unit: requests
+  text: '`vllm bench serve` sends no warm-up requests unless it is asked to: the default of `--num-warmups` is 0.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/benchmarks/serve.py#L1781-L1785
+    title: 'vLLM v0.33.0, vllm/benchmarks/serve.py, the --num-warmups argument'
+    quote: '"--num-warmups", type=int, default=0, help="Number of warmup requests.",'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: broken-bench.warm-up-counted.kernelspace-rule
+  value: 'warm up, then measure a steady-state window'
+  text: 'kernelspace''s T7.L2 teaches that a benchmark that includes the first minutes measures the cold start and not the system: warm until the first-token p50 stabilizes, then measure a steady-state window and report it.'
+  tag: measured
+  source:
+    url: https://github.com/praveer13/kernelspace/blob/d478f91a0af590f03fcfd76ee73149fa70b28e51/public/lessons-md/t7.l2.md#L16
+    title: 'kernelspace T7.L2, Benchmarking Methodology, rule 2 (at d478f91)'
+    quote: 'A benchmark that includes the first minutes measures the cold start, not the system.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: broken-bench.warm-cache.vllm-prefix-cache-reuse
+  value: 'can reuse prompts left in the prefix cache'
+  text: 'vLLM''s benchmarking guide warns that repeating `vllm bench serve` against the same server can reuse prompts left in the prefix cache and inflate throughput, and that the random dataset is reproducible for a fixed `--seed`, which defaults to 0.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/benchmarking/cli.md#L133-L139
+    title: 'vLLM v0.33.0, docs/benchmarking/cli.md, the warning after the first example'
+    quote: 'Repeating `vllm bench serve` against the same server can reuse prompts left in the prefix cache and inflate throughput.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: broken-bench.warm-cache.sglang-flush-cache
+  value: '--flush-cache'
+  text: 'SGLang''s `bench_serving` flushes the server''s prefix cache after its warm-up only when it is given `--flush-cache` or runs in SGLang''s CI (`SGLANG_IS_IN_CI`). Otherwise it does not flush the cache.'
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/benchmark/serving.py#L1516-L1523
+    title: 'SGLang v0.5.23, python/sglang/benchmark/serving.py, the flush after warm-up'
+    quote: 'should_flush_cache = ( "sglang" in backend and _get_bool_env_var("SGLANG_IS_IN_CI") ) or flush_cache'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: broken-bench.capped-output.vllm-max-tokens-is-output-len
+  value: 'max_tokens = output_len'
+  text: 'In `vllm bench serve` each request to a completions endpoint carries `max_tokens` equal to the `output_len` of its dataset sample, so that length is the most its reply can have.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/benchmarks/lib/endpoint_request_func.py#L232
+    title: 'vLLM v0.33.0, vllm/benchmarks/lib/endpoint_request_func.py, async_request_openai_completions'
+    quote: '"max_tokens": request_func_input.output_len,'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: broken-bench.capped-output.vllm-sharegpt-output-len
+  value: '--sharegpt-output-len'
+  text: 'In vLLM v0.33.0 `--sharegpt-output-len` gives every request of the ShareGPT dataset one output length, in place of the lengths in the dataset.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/benchmarks/datasets/datasets.py#L1682-L1686
+    title: 'vLLM v0.33.0, vllm/benchmarks/datasets/datasets.py, the ShareGPT options'
+    quote: 'Output length for each request. Overrides the output length from the ShareGPT dataset.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: broken-bench.too-few-samples.vllm-guide-ten-prompts
+  value: 79.49
+  unit: ms
+  text: 'The first example in vLLM''s benchmarking guide runs ten prompts (`--num-prompts 10`), and its sample output, which begins `Successful requests: 10`, prints a `P99 TTFT (ms)` line of 79.49.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/benchmarking/cli.md#L103-L121
+    title: 'vLLM v0.33.0, docs/benchmarking/cli.md, the first example and its output'
+    quote: 'P99 TTFT (ms): 79.49'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: broken-bench.too-few-samples.kernelspace-rule
+  value: 'a p99 needs samples'
+  text: 'kernelspace''s T7.L2 teaches that percentiles need samples: a p99 computed from 20 requests is astrology, and each step of a sweep should hold hundreds of requests.'
+  tag: measured
+  source:
+    url: https://github.com/praveer13/kernelspace/blob/d478f91a0af590f03fcfd76ee73149fa70b28e51/public/lessons-md/t7.l2.md#L20
+    title: 'kernelspace T7.L2, Benchmarking Methodology, rule 3 (at d478f91)'
+    quote: 'A p99 computed from 20 requests is astrology.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: broken-bench.mean-as-tail.vllm-metric-percentiles-default
+  value: 99
+  unit: percentile
+  text: 'In `vllm bench serve` the one percentile reported by default is the 99th: `--metric-percentiles` defaults to 99.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/benchmarks/serve.py#L1859-L1865
+    title: 'vLLM v0.33.0, vllm/benchmarks/serve.py, the --metric-percentiles argument'
+    quote: 'Default value is "99".'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: broken-bench.mean-as-tail.vllm-guide-mean-median-p99
+  value: 'mean, median, p99'
+  text: 'In vLLM''s benchmarking guide the sample output lists the time to first token on three consecutive lines, as a mean (71.54 ms), a median (73.88 ms) and a 99th percentile (79.49 ms), in that order.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/benchmarking/cli.md#L118-L120
+    title: 'vLLM v0.33.0, docs/benchmarking/cli.md, the first example''s output'
+    quote: 'Mean TTFT (ms): 71.54 Median TTFT (ms): 73.88 P99 TTFT (ms): 79.49'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: broken-bench.client-bottleneck.sglang-bench-client-sets-throughput
+  value: 'the client, not the server, sets the measured throughput'
+  text: 'The README of SGLang''s Rust benchmark client says that its Python predecessor drives every request and parses every response on one asyncio thread, and that past some request count the client, not the server, sets the measured throughput, so that the benchmark reports the client''s limit.'
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/rust/sglang-bench/README.md#L9-L11
+    title: 'SGLang v0.5.23, rust/sglang-bench/README.md, Why'
+    quote: 'past some point the client, not the server, sets the measured throughput, and the benchmark reports the client''s limit.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: broken-bench.client-bottleneck.sglang-bench-2500-requests
+  value: '106.8 s with the Python client, 13.2 s with the Rust client'
+  text: 'The same README reports, for a mock server at concurrency 256 with 96 output tokens per request, a run of 2,500 requests that took 106.8 s with the Python client and 13.2 s with the Rust client. These are the authors'' figures from one host, and the README says to treat them as a direction and not a specification. This course has not reproduced them.'
+  tag: unverified
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/rust/sglang-bench/README.md#L21
+    title: 'SGLang v0.5.23, rust/sglang-bench/README.md, the measured table'
+    quote: '| 2500 | 106.8 s, 2.2k tok/s | 13.2 s, 18.2k tok/s |'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: broken-bench.replay-without-timestamps.vllm-self-timed-default
+  value: 'False except for timed_trace'
+  text: 'In `vllm bench serve` the trace''s own timing is used only with `--self-timed`, which defaults to False except for `--dataset-name=timed_trace`. When it is off, the user''s generation rates are used and the timing in the trace is ignored.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/benchmarks/serve.py#L1838-L1845
+    title: 'vLLM v0.33.0, vllm/benchmarks/serve.py, the --self-timed argument'
+    quote: 'When unset, defaults to False, except for --dataset-name=timed_trace where it defaults to True. Use --no-self-timed to force off. When off, user defined generation rates are used and in trace timing info is ignored.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: broken-bench.replay-without-timestamps.vllm-burstgpt-lengths-only
+  value: 'two token counts by column position'
+  text: 'In vLLM v0.33.0 the `burstgpt` dataset samples rows of the CSV at random under a seed, and reads from each row only its two token counts, by column position (`data[i][2]` and `data[i][3]`). The class does not read the Timestamp column. Read from the source and not run.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/benchmarks/datasets/datasets.py#L3039-L3067
+    title: 'vLLM v0.33.0, vllm/benchmarks/datasets/datasets.py, BurstGPTDataset'
+    quote: 'input_len = int(data[i][2]) output_len = int(data[i][3])'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
