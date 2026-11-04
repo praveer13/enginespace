@@ -8,8 +8,8 @@
  *
  *   LCP  ≤ 2.5 s  (target 1.5 s)  cold loads of `/`, three of them, and the median is the number.
  *   CLS  ≤ 0.1    (target 0)      the same loads, which run on until the 2D pass has swapped to the 3D one, so the swap is in it.
- *   INP  ≤ 200 ms (target 100 ms) one more load, and then a player taps through the front page's four levels: the tickets, the bell
- *                                 and the overlap switch, with "Start service" and "Next" between them.
+ *   INP  ≤ 200 ms (target 100 ms) a player taps through the front page's four levels: the tickets, the bell and the overlap switch,
+ *                                 with "Start service" and "Next" between them. Three players, and the median is the number.
  *
  * What it measures, and what it cannot:
  *   - The site is the production build (no test hooks, so no forced tier), built here into a temporary folder, or the folder that
@@ -67,8 +67,13 @@ const PROFILE = {
 const GATES = { lcpMs: 2500, cls: 0.1, inpMs: 200 } as const
 const TARGETS = { lcpMs: 1500, cls: 0, inpMs: 100 } as const
 
-/** Cold loads that make the LCP and CLS of a run; the median of the LCPs is the number [estimated]. */
-const LOADS = 3
+/**
+ * Cold loads that make the LCP and CLS of a run, and players that make its INP; the median is the number [estimated]. A lab run
+ * shares its machine with whatever else runs on it, and one load or one play that met a busy moment says more about the machine.
+ * ES_PERF_LOADS and ES_PERF_PLAYS say how many (1 gives a quick look, and the median of one is that one).
+ */
+const LOADS = Number(process.env.ES_PERF_LOADS ?? 3)
+const PLAYS = Number(process.env.ES_PERF_PLAYS ?? 3)
 /** The pause before each tap of the player, in ms [estimated]: a person reads the screen between presses. */
 const THINK_MS = 300
 /** How long the swap to 3D may take under the profile before the run gives up on it, in ms [estimated]. */
@@ -216,6 +221,14 @@ interface Load {
   afterLcp: Transfer
 }
 
+interface Play extends Inp {
+  taps: number
+  level: string | null
+  swapped: boolean
+  /** The ten longest interactions, each with where its time went. */
+  longest: { name: string; target: string; latency: number; inputDelay: number; processing: number; presentation: number }[]
+}
+
 async function swapTo3d(page: Page): Promise<number | null> {
   try {
     const handle = await page.waitForFunction(
@@ -306,19 +319,30 @@ async function playThrough(page: Page): Promise<number> {
   throw new Error(`the player did not reach the end of the last level in 400 turns (${taps} taps)`)
 }
 
+/** One cold load, and a player's tap through the four levels on it, measured. */
+async function playOnce(browser: Browser): Promise<Play> {
+  const { context, page } = await labPage(browser)
+  try {
+    await page.goto(`${site.origin}/`, { waitUntil: 'load' })
+    const swapped = (await swapTo3d(page)) !== null
+    await page.waitForTimeout(1000)
+    const taps = await playThrough(page)
+    await page.waitForTimeout(500)
+    const raw = (await page.evaluate(() => window.__vitals?.())) as Raw
+    const longest = interactionsOf(raw.events)
+      .slice(0, 10)
+      .map(({ event, latency }) => ({ name: event.name, target: event.target, latency, ...phasesOf(event) }))
+    return { ...interactionToNextPaint(raw.events, raw.interactionCount), taps, swapped, level: await page.locator('section.es-front-service').getAttribute('data-level'), longest }
+  } finally {
+    await context.close()
+  }
+}
+
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* The record                                                                                                          */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-interface PlayResult extends Inp {
-  taps: number
-  level: string | null
-  swapped: boolean
-  /** The ten longest interactions, each with where its time went. */
-  longest: { name: string; target: string; latency: number; inputDelay: number; processing: number; presentation: number }[]
-}
-
-const results: { loads: Load[]; inp: PlayResult | null; version: string } = { loads: [], inp: null, version: '' }
+const results: { loads: Load[]; plays: Play[]; version: string } = { loads: [], plays: [], version: '' }
 
 const checkout = (): string => {
   try {
@@ -364,10 +388,15 @@ base.afterAll(() => {
       )
     }
   }
-  const inp = results.inp
-  if (inp) {
+  const plays = results.plays
+  if (plays.length > 0) {
+    const values = plays.map((play) => play.ms ?? 0)
+    const inp = median(values)
+    // The play whose INP is nearest the median says where the time went.
+    const typical = plays.reduce((best, play) => (Math.abs((play.ms ?? 0) - inp) < Math.abs((best.ms ?? 0) - inp) ? play : best))
+    const shown = (play: Play) => (play.ms === null ? 'under 16 ms' : Math.round(play.ms).toLocaleString('en-US'))
     lines.push(
-      `  INP  ${(inp.ms === null ? 'under 16 ms' : ms(inp.ms)).padStart(9)}  ${inp.interactions} interactions from ${inp.taps} taps over four levels${inp.worst ? `; the longest is ${inp.worst.event.name} on ${inp.worst.event.target || 'an element that has since left the page'}, ${phaseLine(inp.worst.event)}` : ''}; ${inp.ms === null ? 'within the target' : verdict(inp.ms, GATES.inpMs, TARGETS.inpMs)} (gate ${ms(GATES.inpMs)}, target ${ms(TARGETS.inpMs)})`,
+      `  INP  ${(inp === 0 ? 'under 16 ms' : ms(inp)).padStart(9)}  median of ${plays.map(shown).join(', ')}, each from ${typical.interactions} interactions of ${typical.taps} taps over four levels${typical.worst ? `; in the middle play the longest is ${typical.worst.event.name} on ${typical.worst.event.target || 'an element that has since left the page'}, ${phaseLine(typical.worst.event)}` : ''}; ${inp === 0 ? 'within the target' : verdict(inp, GATES.inpMs, TARGETS.inpMs)} (gate ${ms(GATES.inpMs)}, target ${ms(TARGETS.inpMs)})`,
     )
   }
   console.log(lines.join('\n'))
@@ -400,25 +429,12 @@ base.describe('the front page under the mobile lab profile', () => {
   })
 
   base('INP of the lever presses of the four levels', async ({ browser }) => {
-    base.setTimeout(SWAP_TIMEOUT_MS + 300_000)
-    const { context, page } = await labPage(browser)
-    try {
-      await page.goto(`${site.origin}/`, { waitUntil: 'load' })
-      const swapped = (await swapTo3d(page)) !== null
-      await page.waitForTimeout(1000)
-      const taps = await playThrough(page)
-      await page.waitForTimeout(500)
-      const raw = (await page.evaluate(() => window.__vitals?.())) as Raw
-      const inp = interactionToNextPaint(raw.events, raw.interactionCount)
-      const longest = interactionsOf(raw.events)
-        .slice(0, 10)
-        .map(({ event, latency }) => ({ name: event.name, target: event.target, latency, ...phasesOf(event) }))
-      results.inp = { ...inp, taps, swapped, level: await page.locator('section.es-front-service').getAttribute('data-level'), longest }
-      expect(swapped, 'the levers were pressed with the 3D pass live').toBe(true)
-      expect(inp.interactions, 'the browser counted the taps as interactions').toBeGreaterThan(taps / 2)
-      expect(inp.ms ?? 0, 'INP').toBeLessThanOrEqual(GATES.inpMs)
-    } finally {
-      await context.close()
+    base.setTimeout(PLAYS * (SWAP_TIMEOUT_MS + 300_000))
+    for (let play = 0; play < PLAYS; play++) results.plays.push(await playOnce(browser))
+    for (const play of results.plays) {
+      expect(play.swapped, 'the levers were pressed with the 3D pass live').toBe(true)
+      expect(play.interactions, 'the browser counted the taps as interactions').toBeGreaterThan(play.taps / 2)
     }
+    expect(median(results.plays.map((play) => play.ms ?? 0)), 'INP, the median of the plays').toBeLessThanOrEqual(GATES.inpMs)
   })
 })
