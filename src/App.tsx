@@ -3,6 +3,7 @@ import { Outlet, isRouteErrorResponse, useMatches, useRouteError } from 'react-r
 import { Board } from '@/design/components/Board'
 import { Button } from '@/design/components/Button'
 import { TapeLabel } from '@/design/components/TapeLabel'
+import { EvidenceNotice } from '@/evidence/EvidenceNotice'
 
 /** What a route's `handle` carries: the text of the page's `<title>`. */
 export interface RouteHandle {
@@ -39,6 +40,7 @@ function Shell({ children }: { children: ReactNode }) {
         <Board label="Primary" brand={BRAND} links={PRIMARY_LINKS} />
       </header>
       <main id="main" tabIndex={-1} className="es-shell__main">
+        <EvidenceNotice />
         {children}
       </main>
       <footer>
