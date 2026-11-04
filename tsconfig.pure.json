@@ -36,5 +36,10 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["packages/sim", "packages/play"]
+  /*
+   * The vendored rng.ts, which packages/sim re-exports, calls `crypto` in freshSeed(), and this program has no ambient types.
+   * VENDOR.md names the shim that declares it (for that one call, and nothing else here may use it: the determinism lint
+   * bans `crypto` in both packages).
+   */
+  "include": ["packages/sim", "packages/play", "vendor/kernelspace/shims/ambient.d.ts"]
 }

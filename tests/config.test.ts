@@ -69,7 +69,8 @@ describe('the TypeScript projects', () => {
     const pure = tsconfig('tsconfig.pure.json')
     expect(pure.compilerOptions?.lib).toEqual(['ES2022'])
     expect(pure.compilerOptions?.types).toEqual([])
-    expect(pure.include).toEqual(['packages/sim', 'packages/play'])
+    // The third entry is the one-line shim that declares `crypto` for the vendored rng.ts's freshSeed() (VENDOR.md, W0-T12).
+    expect(pure.include).toEqual(['packages/sim', 'packages/play', 'vendor/kernelspace/shims/ambient.d.ts'])
   })
 
   test('the app project has the DOM, and covers src and the packages that run in the browser or a worker', () => {
