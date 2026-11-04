@@ -95,8 +95,11 @@ npm run verify:determinism   # packages/sim and packages/play: no clock, no entr
 npm run verify:boundaries    # the import fences of ARCHITECTURE §2.3, and no static path from src/main.tsx to three
 npm run verify:content       # content/: schemas, ids, links and sizes, each problem with its file and line (verify:claims and verify:numbers check the facts and the tags)
 npm run verify:routes        # the route table, prepare-pages and the e2e route list agree: a route that cannot be enumerated fails (ARCHITECTURE §3.2)
+npm run verify:bundle        # after npm run build: each budget of ARCHITECTURE §11.1 against dist/.vite/manifest.json, with its gzip size, how far it is from its gate and its target
 bun scripts/verify.ts list   # each gate with its stage, whether it is live or pending, and the task that builds it
 ```
+
+`verify:bundle` walks the manifest of the build: the entry chunk, the front page's first-paint closure and its CSS, every other route, `three-vendor`, each scene, `postfx`, the workers and each lesson's JSON. It prints each figure in gzip KB and in bytes (one file at a time, by Bun's `gzipSync` at its default level, which comes out a little above the sizes that Vite's log prints), and fails above any gate. A target only warns. The page-load budgets need a browser, and they are the nightly lab profile, `npx playwright test e2e/perf.spec.ts`: Chromium with the CPU slowed 4×, a link of 1.6 Mbit/s and 150 ms of round trip [estimated, ARCHITECTURE §11.1], printing the front page's LCP, CLS and INP for lever presses. The file's header says what it can and cannot measure, and `ES_CHROMIUM=<path to chrome>` runs it with another Chromium build.
 
 The lessons, claims and knowledge components live in `content/`. `bun scripts/content/build.ts` compiles them into `src/content/generated/` (git-ignored), `public/md/`, `public/llms.txt` and `public/claims.json` (ARCHITECTURE §4), and `npm run dev` and `npm run build` run the same compiler, so an edit to a lesson reloads it in the dev server.
 
@@ -126,7 +129,7 @@ Working in a git worktree, or with a coding agent? Read [AGENTS.md](AGENTS.md) f
 | [vendor/](vendor/) | files copied from kernelspace at d478f91 and never edited in place; `vendor/kernelspace/VENDOR.md` lists each one's SHA-256 (ARCHITECTURE §13) |
 | [NOTICE](NOTICE) | the third-party notices that travel with the vendored files |
 | [.github/workflows/](.github/workflows/) | CI: `ci.yml` for pull requests, `deploy.yml`, `nightly.yml` and `labs.yml` (ARCHITECTURE §10.1) |
-| [tests/](tests/) | the Bun tests: the dependency pins, the routes, the configuration, the build's chunking, the lint fences and gates (`tests/lint`, with their bad files in `tests/fixtures/lint`), the CI workflows and the gate registry (`tests/ci`), the content compiler and its gates (`tests/content`), the vendored code (`tests/vendor`), and these documents (`tests/docs`) |
+| [tests/](tests/) | the Bun tests: the dependency pins, the routes, the configuration, the build's chunking, the lint fences and gates (`tests/lint`, with their bad files in `tests/fixtures/lint`), the CI workflows and the gate registry (`tests/ci`), the budget gate and the lab profile's arithmetic (`tests/bundle`), the content compiler and its gates (`tests/content`), the vendored code (`tests/vendor`), and these documents (`tests/docs`) |
 | `package.json`, `vite.config.ts`, `tsconfig*.json`, `eslint.config.js`, `tailwind.config.ts` | the toolchain, on kernelspace's versions |
 
 ## The family
