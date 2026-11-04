@@ -17,7 +17,7 @@
  * (scripts/tables/exp-quantiles.ts).
  *
  * Adding a model: give it a `VectorModel` in MODELS, whose cases are JSON inputs and a function from them to the model's
- * output. `workload` (W0-T12) and `steploop` (W0-T13) were added this way.
+ * output. `workload` (W0-T12), `steploop` (W0-T13) and `trace` (W1-T08) were added this way.
  */
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -28,6 +28,8 @@ import type { RunnerPresetId } from '../packages/sim/host'
 import type { PhysicsRowKey } from '../packages/sim/physics'
 import { TICK_CARD, defaultCaptureSizes, runStepLoop, s5Card } from '../packages/sim/steploop'
 import type { GpuCard, S5HostTerm, StepLoopConfig, StepLoopRun } from '../packages/sim/steploop'
+import { CLEAN_JITTER, DEFAULT_JITTER, attributeSteps, encodeTrace, traceChecks, traceFromRun, traceToJson } from '../packages/sim/trace'
+import type { Attribution, JitterSpec } from '../packages/sim/trace'
 import { genWorkload, parseSlice, replayWorkload } from '../packages/sim/workload'
 import type { LengthPlan, ReplaySpec, SliceId, TraceSlice, Workload, WorkloadSpec } from '../packages/sim/workload'
 import { checkTable } from './tables/exp-quantiles'
@@ -377,7 +379,146 @@ const steploop: VectorModel = {
     Object.entries(steploopInputs).map(([name, input]) => ({ name, input, run: () => steploopOutput(runSteploop(root, input), input.output) })),
 }
 
-export const MODELS: readonly VectorModel[] = [workload, steploop]
+// ---------------------------------------------------------------------------------------------------------------------------
+// trace
+
+/**
+ * A synthetic trace as a fixture writes it: the step-loop run it is made from (every argument of `runStepLoop`, as a step-loop vector
+ * spells them), the seed and the jitter of `traceFromRun`, and what the vector records of the trace.
+ */
+type TraceInput = {
+  readonly run: Omit<SteploopInput, 'output'>
+  readonly seed: number
+  readonly jitter: JitterSpec
+  /**
+   * `full`: the trace in columns, the verdict of every check and the partition of every step window. `digest`: its counts, the
+   * SHA-256 of its canonical text, the verdicts, the partition summed over its windows, and its first two windows in full.
+   */
+  readonly output: 'full' | 'digest'
+}
+
+/** A step-loop vector's run, under another horizon. */
+const cut = (input: SteploopInput, horizonUs: number): Omit<SteploopInput, 'output'> => ({
+  workload: input.workload,
+  config: input.config,
+  host: input.host,
+  gpu: input.gpu,
+  horizonUs,
+})
+const whole = (input: SteploopInput): Omit<SteploopInput, 'output'> => cut(input, input.horizonUs)
+
+const stepInput = (name: string): SteploopInput => {
+  const input = steploopInputs[name]
+  if (input === undefined) throw new Error(`there is no step-loop vector named "${name}"`)
+  return input
+}
+const PRACTICE_SYNC = stepInput('practice seed: the front page\'s world with 4 slots and no overlap, where a step takes 7 ticks')
+const PRACTICE_ASYNC = stepInput('practice seed: the same world with overlap (async scheduling), where the gaps close and one ghost token follows each stop')
+const H100_EAGER = stepInput('70B on H100 at TP 4, a decode batch of 64: the host term on the CPU lane (D-044), eager launches, no overlap')
+const H100_OVERLAP_GRAPHS = stepInput('70B on H100 at TP 4, a decode batch of 64: the host term on the CPU lane, graphs on, overlap')
+const POISSON_V1 = stepInput('70B on H100 at TP 4, Poisson arrivals at 8 a second on the V1 runner, overlap and graphs on')
+const SPARSE_V1 = stepInput('70B on H100 at TP 4, Poisson arrivals at 1 a second: the engine idles between requests, and an idle GPU beside an idle CPU is no bubble')
+const CHUNKED = stepInput('70B on H100 at TP 4, chunked prefill: prompts of 600 to 1,500 tokens through a 512-token budget')
+
+/** Three kernels a forward, so that a trace recorded whole stays short enough to read. */
+const SHORT: JitterSpec = { ...DEFAULT_JITTER, kernelsPerForward: 3 }
+const ROUGH: JitterSpec = { kernelsPerForward: 7, spreadPermille: 900, copyPermille: 100, launchGapPermille: 900, cpuNoiseNs: 250 }
+
+const traceInputs: Record<string, TraceInput> = {
+  'practice seed, no overlap, cut after 40 ticks, 3 kernels a forward: the whole trace, where each forward has the gap before it in its window': {
+    run: cut(PRACTICE_SYNC, 40),
+    seed: 1,
+    jitter: SHORT,
+    output: 'full',
+  },
+  'practice seed with overlap, cut after 40 ticks, clean jitter: the whole trace, where the forwards run back to back and no window has a gap': {
+    run: cut(PRACTICE_ASYNC, 40),
+    seed: 2,
+    jitter: { ...CLEAN_JITTER, kernelsPerForward: 3 },
+    output: 'full',
+  },
+  '70B on H100 at TP 4, a decode batch of 64, eager launches, no overlap: every step waits on its launch calls': {
+    run: whole(H100_EAGER),
+    seed: 3,
+    jitter: DEFAULT_JITTER,
+    output: 'digest',
+  },
+  '70B on H100 at TP 4, a decode batch of 64, graphs on, overlap: one replay call a step': {
+    run: whole(H100_OVERLAP_GRAPHS),
+    seed: 4,
+    jitter: DEFAULT_JITTER,
+    output: 'digest',
+  },
+  '70B on H100 at TP 4, Poisson arrivals on the V1 runner, overlap and graphs on, the roughest jitter': {
+    run: whole(POISSON_V1),
+    seed: 5,
+    jitter: ROUGH,
+    output: 'digest',
+  },
+  'the same run under seed 0 and the default jitter': {
+    run: whole(POISSON_V1),
+    seed: 0,
+    jitter: DEFAULT_JITTER,
+    output: 'digest',
+  },
+  '70B on H100 at TP 4, Poisson arrivals at 1 a second: the engine idles between requests, and the windows hold both-idle time': {
+    run: whole(SPARSE_V1),
+    seed: 6,
+    jitter: DEFAULT_JITTER,
+    output: 'digest',
+  },
+  'the Poisson run cut at 2 s: the horizon cuts the last spans, and a step whose forward it cut away has no window': {
+    run: cut(POISSON_V1, 2_000_000),
+    seed: 7,
+    jitter: DEFAULT_JITTER,
+    output: 'digest',
+  },
+  '70B on H100 at TP 4, chunked prefill: prompts of 600 to 1,500 tokens through a 512-token budget': {
+    run: whole(CHUNKED),
+    seed: 8,
+    jitter: DEFAULT_JITTER,
+    output: 'digest',
+  },
+}
+
+/** The partition of every window of a trace added up. */
+function totals(windows: readonly Attribution[]) {
+  const sum = (pick: (a: Attribution) => number) => windows.reduce((total, a) => total + pick(a), 0)
+  return {
+    windows: windows.length,
+    windowNs: sum((a) => a.windowNs),
+    gpuBusyNs: sum((a) => a.gpuBusyNs),
+    kernelNs: sum((a) => a.kernelNs),
+    copyOnlyNs: sum((a) => a.copyOnlyNs),
+    cpuGapNs: sum((a) => a.cpuGapNs),
+    bothIdleNs: sum((a) => a.bothIdleNs),
+    overlapNs: sum((a) => a.overlapNs),
+  }
+}
+
+function traceOutput(root: string, input: TraceInput): unknown {
+  const trace = traceFromRun(runSteploop(root, { ...input.run, output: 'digest' }), input.seed, input.jitter)
+  const windows = attributeSteps(trace)
+  const checks = traceChecks(trace)
+  if (input.output === 'full') return { trace: traceToJson(trace), checks, windows }
+  return {
+    counts: { spans: trace.spans.track.length, strings: trace.strings.length, tracks: trace.tracks.length, flows: trace.flows.length, marks: trace.marks.length },
+    sha256: sha256(encodeTrace(trace)),
+    checks: checks.map(({ id, pass, checked }) => ({ id, pass, checked })),
+    totals: totals(windows),
+    first: windows.slice(0, 2),
+  }
+}
+
+const trace: VectorModel = {
+  model: 'trace',
+  file: `${FIXTURE_DIR}/trace.json`,
+  header:
+    'Golden vectors for packages/sim/trace (ARCHITECTURE section 5.10): each maps its input, a step-loop run with the seed and the jitter of traceFromRun, to the synthetic trace it gives, with the SHA-256 of that output\'s canonical JSON. A short trace is recorded whole: its columns, the verdict of every check and the partition of every step window. A longer one is recorded as its counts, the SHA-256 of its canonical text, the verdicts, the partition summed over its windows and its first two windows. Regenerate only with `bun scripts/vectors.ts --write`, and review the diff like code.',
+  cases: (root) => Object.entries(traceInputs).map(([name, input]) => ({ name, input, run: () => traceOutput(root, input) })),
+}
+
+export const MODELS: readonly VectorModel[] = [workload, steploop, trace]
 
 // ---------------------------------------------------------------------------------------------------------------------------
 // fixtures
