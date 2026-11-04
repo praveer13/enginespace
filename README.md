@@ -93,8 +93,11 @@ The gates that check more than lint, the type checker and the tests live in one 
 npm run verify:all           # every gate; each pending one names the task that builds it
 npm run verify:determinism   # packages/sim and packages/play: no clock, no entropy, no engine-dependent Math (ARCHITECTURE §5.1)
 npm run verify:boundaries    # the import fences of ARCHITECTURE §2.3, and no static path from src/main.tsx to three
+npm run verify:content       # content/: schemas, ids, links and sizes, each problem with its file and line (verify:claims and verify:numbers check the facts and the tags)
 bun scripts/verify.ts list   # each gate with its stage, whether it is live or pending, and the task that builds it
 ```
+
+The lessons, claims and knowledge components live in `content/`. `bun scripts/content/build.ts` compiles them into `src/content/generated/` (git-ignored), `public/md/`, `public/llms.txt` and `public/claims.json` (ARCHITECTURE §4), and `npm run dev` and `npm run build` run the same compiler, so an edit to a lesson reloads it in the dev server.
 
 Every dependency is pinned to an exact version, with no `^` and no `~`, and the pins are ARCHITECTURE §14's table. A test compares `package.json` with that table. GitHub Pages serves the site under `/enginespace/` until a custom domain is chosen, so the deploy builds with `VITE_BASE=/enginespace/ npm run build`.
 
@@ -116,12 +119,13 @@ Working in a git worktree, or with a coding agent? Read [AGENTS.md](AGENTS.md) f
 | [docs/TRACKER.md](docs/TRACKER.md) | the build tasks, wave by wave |
 | [research/](research/) | the dated upstream research behind the pins and claims |
 | [src/](src/) | the app: the shell, the route table (`src/routes.tsx`) and one stub page per route |
+| [content/](content/) | the course's words and data: `course.yaml` (the modules and their hours), `modules/<id>/` (a `module.md` and its `lessons/`), `claims/` (dated, sourced facts) and `kc/graph.yaml`. `scripts/content/` compiles them (ARCHITECTURE §4) |
 | [packages/](packages/) | the five internal packages (`sim`, `play`, `ledger`, `schema`, `verify`), skeletons until their tasks land. `sim` and `play` compile without the DOM (`tsconfig.pure.json`) and obey the determinism lint. ESLint and `verify:boundaries` fence what each package may import |
-| [scripts/](scripts/) | the gate registry (`verify.ts`) and the gate scripts it runs |
+| [scripts/](scripts/) | the gate registry (`verify.ts`), the gate scripts it runs, and the content compiler (`scripts/content/`) |
 | [vendor/](vendor/) | files copied from kernelspace at d478f91 and never edited in place; `vendor/kernelspace/VENDOR.md` lists each one's SHA-256 (ARCHITECTURE §13) |
 | [NOTICE](NOTICE) | the third-party notices that travel with the vendored files |
 | [.github/workflows/](.github/workflows/) | CI: `ci.yml` for pull requests, `deploy.yml`, `nightly.yml` and `labs.yml` (ARCHITECTURE §10.1) |
-| [tests/](tests/) | the Bun tests: the dependency pins, the routes, the configuration, the build's chunking, the lint fences and gates (`tests/lint`, with their bad files in `tests/fixtures/lint`), the CI workflows and the gate registry (`tests/ci`), the vendored code (`tests/vendor`), and these documents (`tests/docs`) |
+| [tests/](tests/) | the Bun tests: the dependency pins, the routes, the configuration, the build's chunking, the lint fences and gates (`tests/lint`, with their bad files in `tests/fixtures/lint`), the CI workflows and the gate registry (`tests/ci`), the content compiler and its gates (`tests/content`), the vendored code (`tests/vendor`), and these documents (`tests/docs`) |
 | `package.json`, `vite.config.ts`, `tsconfig*.json`, `eslint.config.js`, `tailwind.config.ts` | the toolchain, on kernelspace's versions |
 
 ## The family

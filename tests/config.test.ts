@@ -79,7 +79,7 @@ describe('the TypeScript projects', () => {
     expect(app.include).toEqual(['src', 'packages/ledger', 'packages/schema', 'packages/verify'])
   })
 
-  test('the node project covers the Vite and Tailwind configs', () => {
-    expect(tsconfig('tsconfig.node.json').include).toEqual(['vite.config.ts', 'tailwind.config.ts'])
+  test('the node project covers the Vite and Tailwind configs, and the js-yaml declaration that the content compiler in them needs', () => {
+    expect(tsconfig('tsconfig.node.json').include).toEqual(['vite.config.ts', 'tailwind.config.ts', 'src/types/js-yaml.d.ts'])
   })
 })

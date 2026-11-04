@@ -1,0 +1,48 @@
+# Sample claims for content/modules/tr2/lessons/l0-sample.md, one of each kind the registry holds (ARCHITECTURE §4.4): a fact
+# read from a source, a number derived from other claims, and numbers from the course's own synthetic world. TR2's real content
+# (W1-T15) replaces them. Dates are YYYY-MM-DD, and a TTL is in days [estimated]: ARCHITECTURE §4.4 gives 90 for versions.
+
+# Read from a source. The quote is the source's own text, which a reader can find again.
+- id: vllm.release.requires-python
+  value: "<3.15,>=3.11"
+  text: vLLM 0.33.0 declares the Pythons it supports as 3.11 or newer and older than 3.15.
+  tag: measured
+  source:
+    url: https://pypi.org/pypi/vllm/0.33.0/json
+    title: vllm 0.33.0 on PyPI (JSON API)
+    quote: '"requires_python":"<3.15,>=3.11"'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+# Synthetic: a number of the course's invented world. It says nothing about a real engine, and the site labels it so.
+- id: sample.world.host-step-us
+  value: 300
+  unit: us
+  text: In the sample world, the CPU's work for one step takes 300 microseconds.
+  tag: estimated
+  synthetic: true
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: sample.world.decode-step-us
+  value: 2100
+  unit: us
+  text: In the sample world, a decode step takes 2,100 microseconds on the GPU.
+  tag: estimated
+  synthetic: true
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+# Derived: verify:claims recomputes it from its inputs.
+- id: sample.world.decode-step-ms
+  value: 2.1
+  unit: ms
+  text: In the sample world, a decode step takes 2.1 milliseconds, which is its microseconds divided by a thousand.
+  tag: derived
+  derived:
+    formula: sample.world.decode-step-us / 1000
+    inputs: [sample.world.decode-step-us]
+  verifiedAt: 2026-11-04
+  ttlDays: 365
