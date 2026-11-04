@@ -5,8 +5,9 @@
 //
 // W0-T12 adds the four modules every model builds on: `core` (time, seeds, the generator, canonical JSON, integer statistics),
 // `physics` (the S5 step card and its fitted rows), `host` (the host card's presets) and `workload` (seeded request streams).
-// The step-loop model (W0-T13) and the rest follow, each in a folder of its own.
+// W0-T13 adds `steploop`, the engine's step loop (v0, the TR2 spike). The rest follow, each in a folder of its own.
 export * from './core'
 export * from './physics'
 export * from './host'
 export * from './workload'
+export * from './steploop'
