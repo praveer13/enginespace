@@ -14,6 +14,8 @@
  * This file imports nothing from three, so a page can ask for the tier before the 3D chunks load.
  */
 import { useSyncExternalStore } from 'react'
+import { limitsFor } from '@/settings/rules'
+import { useSettings } from '@/settings/useSettings'
 
 export type Tier = 0 | 1 | 2 | 3
 export const TIER_IDS: readonly Tier[] = [0, 1, 2, 3]
@@ -236,9 +238,13 @@ function subscribeTier(listener: () => void) {
  * The tier this device starts at, and why. Until the browser has been asked (on the server, and in the first renders
  * on the client) it says `known: false` and tier 0, so every view paints its 2D first. It asks once per page, and
  * decides again on `refreshDeviceTier()`.
+ *
+ * The learner's settings ("3D off" and the tier cap, src/settings) apply to every caller, so no view passes them on and none
+ * can forget to: a caller's own `choice` can only lower what they allow, and a change in Settings is decided again at once.
  */
 export function useDeviceTier(choice: Partial<TierChoice> = {}): DeviceTier {
-  const full: TierChoice = { ...DEFAULT_CHOICE, ...choice }
+  const limits = limitsFor(useSettings(), { prefer2d: choice.prefer2d, tierCap: choice.cap })
+  const full: TierChoice = { ...DEFAULT_CHOICE, ...choice, prefer2d: limits.prefer2d, cap: limits.cap }
   const key = `${full.prefer2d}|${full.cap}|${full.lostContexts}`
   return useSyncExternalStore(
     subscribeTier,

@@ -3,6 +3,8 @@ import { Component, Suspense, useCallback, useEffect, useId, useMemo, useReducer
 import { Button } from '@/design/components/Button'
 import { Icon } from '@/design/components/Glyph'
 import { useSceneTokens } from '@/design/scene-tokens'
+import { limitsFor } from '@/settings/rules'
+import { useSettings } from '@/settings/useSettings'
 import { useLease } from './lease'
 import { StageContext, type FrameStats, type StageFailure, type StageRuntime } from './stage-runtime'
 import { countLostContext, refreshDeviceTier, unavailableReason, useDeviceTier, type Tier } from './tiers'
@@ -40,9 +42,13 @@ export interface StageProps<P extends object> {
   onStats?: (stats: FrameStats) => void
   /** The tier the scene runs at, whenever it changes. */
   onTier?: (tier: Tier) => void
-  /** Settings: 3D off (W0-T22). */
+  /**
+   * Keep this Stage in its 2D view. The learner's own settings ("3D off", the tier cap; src/settings) apply to every Stage without
+   * being passed, and these two props are what a game may ask on top of them: either side can hold the 3D view back, and neither
+   * can raise what the other holds.
+   */
   prefer2d?: boolean
-  /** Settings: the tier cap (W0-T22). */
+  /** The highest tier this Stage may run at; the lower of this and the learner's cap holds. */
   tierCap?: Tier
   /** For the lease and the test hook. Default: a generated id. */
   id?: string
@@ -86,6 +92,7 @@ type Action =
   | { type: 'offer-2d' }
   | { type: 'choose-2d' }
   | { type: 'tier'; tier: Tier }
+  | { type: 'unmounted' }
 
 const INITIAL: State = {
   attempt: 0,
@@ -122,6 +129,10 @@ function reduce(state: State, action: Action): State {
       return { ...state, chose2d: true, offer2d: false, live: false, twinGone: false, settled: false }
     case 'tier':
       return { ...state, tier: action.tier }
+    case 'unmounted':
+      // The scene is gone (3D turned off, a second Stage took the lease): the next one starts from nothing, and the 2D twin stays until
+      // its first frame is drawn. Without this a scene that comes back would find itself "live" and take the twin away from under it.
+      return state.live || state.twinGone || state.settled ? { ...state, live: false, twinGone: false, settled: false } : state
   }
 }
 
@@ -177,6 +188,9 @@ export function Stage<P extends object>({ view2d, scene: Scene, sceneProps, anno
   const generated = useId()
   const stageId = id ?? `stage-${generated.replace(/[^a-zA-Z0-9]/g, '')}`
   const tokens = useSceneTokens()
+  // The learner's settings join the game's own asks, and a change applies live: the tier is decided again at once. The device
+  // tier applies them itself (tiers.ts), and the governor's ceiling is the same rule's answer.
+  const { cap } = limitsFor(useSettings(), { prefer2d, tierCap })
   const device = useDeviceTier({ prefer2d, cap: tierCap })
   const [state, dispatch] = useReducer(reduce, INITIAL)
   const [voice] = useState(createVoice)
@@ -186,6 +200,12 @@ export function Stage<P extends object>({ view2d, scene: Scene, sceneProps, anno
   const wants = device.known && device.tier >= 1 && !state.permanent && !state.chose2d && (!saveData || state.requested)
   const lease = useLease(stageId, wants)
   const mounted = wants && lease.held && state.failure === null
+  // A scene that leaves takes what it had drawn with it. This adjusts state while rendering, the pattern for state that follows a value.
+  const [wasMounted, setWasMounted] = useState(mounted)
+  if (wasMounted !== mounted) {
+    setWasMounted(mounted)
+    if (!mounted) dispatch({ type: 'unmounted' })
+  }
 
   // The callbacks a scene reaches through the runtime, kept current without re-creating the runtime.
   const props = useRef({ announce, onFallback, onStats, onTier })
@@ -218,7 +238,7 @@ export function Stage<P extends object>({ view2d, scene: Scene, sceneProps, anno
     () => ({
       id: stageId,
       tier,
-      cap: tierCap,
+      cap,
       governed: device.reason !== 'forced',
       reducedMotion: tokens.motion.reduced,
       contrastMore: tokens.contrastMore,
@@ -250,7 +270,7 @@ export function Stage<P extends object>({ view2d, scene: Scene, sceneProps, anno
       offer2d: () => dispatch({ type: 'offer-2d' }),
       frameStats: (stats) => props.current.onStats?.(stats),
     }),
-    [stageId, tier, tierCap, device.reason, tokens.motion.reduced, tokens.contrastMore, tokens.forcedColors, say],
+    [stageId, tier, cap, device.reason, tokens.motion.reduced, tokens.contrastMore, tokens.forcedColors, say],
   )
 
   useEffect(() => {

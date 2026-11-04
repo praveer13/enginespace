@@ -17,6 +17,8 @@ import { TextLink } from '@/design/components/TextLink'
 import { Ticket, TicketLine } from '@/design/components/Ticket'
 import { Toggle } from '@/design/components/Toggle'
 import { SceneSpecimen } from '@/scene/SceneSpecimen'
+import { effectiveMotion } from '@/settings/rules'
+import { useSettings, useSystemReducedMotion } from '@/settings/useSettings'
 import {
   cssVar,
   fontVar,
@@ -37,8 +39,9 @@ import {
 
 /*
  * /design: the design system's own page (ARCHITECTURE §3.1). It lists every token role in src/design/tokens.ts with its
- * value, the declared contrast pairs with their ratios, and every component in each of its states. W0-T15 adds the
- * scene-kit specimens and W0-T22 the rest. Every value here is read from tokens.ts, never written into this page.
+ * value, the declared contrast pairs with their ratios, every component in each of its states, the motion roles at work, and
+ * the scene kit on one pass. Each motion and each scene stands beside its 2D twin: the curve a motion draws, the SVG a scene
+ * falls back to. Every value here is read from tokens.ts, never written into this page.
  */
 
 const ICON_NAMES: IconName[] = ['arrow', 'alert', 'check', 'lock', 'pin', 'hash', 'external', 'strike']
@@ -75,6 +78,16 @@ export function Component() {
       <section aria-labelledby="components" className="es-spec__section">
         <h2 id="components">Components</h2>
         <ComponentSpecimens />
+      </section>
+
+      <section aria-labelledby="motion" className="es-spec__section">
+        <h2 id="motion">Motion</h2>
+        <p className="es-prose">
+          Everything on the pass moves on the bell, and between bells only the printer feeds. Ring it, and each of the four motions below runs once with
+          its own duration and its own easing, so the quick press is done before the course has left the pass. Nothing moves until you ring. Beside each
+          is its twin: the curve it follows, which is all there is to see when motion is reduced.
+        </p>
+        <MotionBoard />
       </section>
 
       <section aria-labelledby="scene-kit" className="es-spec__section">
@@ -707,6 +720,101 @@ function ComponentSpecimens() {
           </State>
         ))}
       </Specimen>
+    </div>
+  )
+}
+
+// ------------------------------------------------------------------------------------------------ motion
+
+/** The four motions the roles name, in the order of their durations (tokens.ts: "Motion"). */
+const MOTIONS = [
+  { id: 'press', title: 'A press', about: 'A hand on a plate or a hover over a ticket: the system answers at once.', duration: 'dur-quick', easing: 'ease-settle' },
+  { id: 'strike', title: 'The bell strike', about: 'One step. The plunger drops, and the dome rings past its mark and settles.', duration: 'dur-bell', easing: 'ease-strike' },
+  { id: 'feed', title: "The printer's feed", about: 'One ticket line. The printer advances in steps and never glides.', duration: 'dur-feed', easing: 'ease-feed' },
+  { id: 'course', title: 'A course down the pass', about: 'A plate sliding to its place and coming to rest: fast away, long rest.', duration: 'dur-settle', easing: 'ease-settle' },
+] as const satisfies readonly { id: string; title: string; about: string; duration: RoleName; easing: RoleName }[]
+
+/** A role's value as a number of milliseconds: `240ms` is 240. */
+function milliseconds(name: RoleName): number {
+  const role = roleOf(name)
+  return role.kind === 'duration' ? Number.parseFloat(role.value) : 0
+}
+
+/** An easing role's value, as the stylesheet writes it: `cubic-bezier(…)` or `steps(…)`. */
+function curveOf(name: RoleName): string {
+  const role = roleOf(name)
+  return role.kind === 'easing' ? role.value : ''
+}
+
+/** What motion is on this page right now, and who decides: the same answer the document and the scenes follow. */
+function MotionStatus() {
+  const settings = useSettings()
+  const motion = effectiveMotion(settings.motion, useSystemReducedMotion())
+  return (
+    <p className="es-spec__motion-status" data-motion-status={motion.reduced ? 'reduced' : 'full'}>
+      Motion on this page is <strong>{motion.reduced ? 'reduced' : 'full'}</strong>:{' '}
+      {motion.source === 'settings' ? 'you chose it in Settings' : motion.reduced ? 'your system asks for it' : 'your system does not ask for less'}.{' '}
+      <TextLink to="/settings">Change it in Settings</TextLink>
+    </p>
+  )
+}
+
+function MotionBoard() {
+  const [rung, setRung] = useState(0)
+  const motion = effectiveMotion(useSettings().motion, useSystemReducedMotion())
+  return (
+    <div className="es-spec__motions">
+      <div className="es-spec__motion-deck">
+        <Button variant="ink" onClick={() => setRung((count) => count + 1)}>
+          Ring the bell
+        </Button>
+        <MotionStatus />
+        <p role="status" className="sr-only">
+          {rung === 0 ? '' : motion.reduced ? 'Motion is reduced, so the four motions went straight to their end.' : 'The four motions ran.'}
+        </p>
+      </div>
+      <ul className="es-spec__motion-list" aria-label="The four motions">
+        {MOTIONS.map((entry) => (
+          <li key={entry.id} className="es-spec__motion" data-motion-row={entry.id}>
+            <div className="es-spec__motion-head">
+              <h3 className="es-spec__motion-title">{entry.title}</h3>
+              <p className="es-spec__motion-about">{entry.about}</p>
+              <dl className="es-spec__motion-facts">
+                <div>
+                  <dt>duration</dt>
+                  <dd>
+                    <code>{entry.duration}</code> <Readout value={milliseconds(entry.duration)} unit="ms" tag="estimated" size="sm" />
+                  </dd>
+                </div>
+                <div>
+                  <dt>easing</dt>
+                  <dd>
+                    <code>{entry.easing}</code> <code className="es-spec__motion-curve-value">{curveOf(entry.easing)}</code>
+                  </dd>
+                </div>
+              </dl>
+            </div>
+            <figure className="es-spec__motion-live">
+              <div className="es-spec__motion-stage" data-ran={rung > 0 || undefined}>
+                <span className="es-spec__motion-track" aria-hidden="true">
+                  <span
+                    key={rung}
+                    className="es-spec__motion-puck"
+                    style={{ animationDuration: `var(${cssVar(entry.duration)})`, animationTimingFunction: `var(${cssVar(entry.easing)})` }}
+                  />
+                </span>
+              </div>
+              <figcaption className="es-spec__state-label">live: rings with the bell</figcaption>
+            </figure>
+            <figure className="es-spec__motion-twin">
+              <div className="es-spec__motion-stage" data-ground="paper">
+                <EasingCurve value={curveOf(entry.easing)} />
+              </div>
+              <figcaption className="es-spec__state-label">2D twin: the curve, progress against time</figcaption>
+            </figure>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }

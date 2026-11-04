@@ -4,6 +4,8 @@ import type { GameAction, GameFace, GameMode, KeyBinding, Phase, RunResult, Sess
 import type { Seed } from '@es/sim/core'
 import { Button } from '@/design/components/Button'
 import { TapeLabel } from '@/design/components/TapeLabel'
+import { shellLimits } from '@/settings/rules'
+import { useSettings } from '@/settings/useSettings'
 import { KeysDialog } from './KeysDialog'
 import { LiveRegion } from './LiveRegion'
 import { useGameInput } from './useGameInput'
@@ -56,9 +58,9 @@ export interface GameShellProps<Level, State, Action extends GameAction, View, S
   rev?: string
   /** The game's heading: 2 on its own page, 3 inside a lesson. */
   headingLevel?: 2 | 3
-  /** Settings can turn the keys off (WCAG 2.1.4). */
+  /** Whether the keys are bound. The learner's setting ("Game keys", WCAG 2.1.4) turns them off in every game; this can only turn them off as well. */
   shortcuts?: boolean
-  /** Whether the tier, the setting and the browser allow 3D. A game without a scene never has it. */
+  /** Whether the tier and the browser allow 3D. The learner's setting ("3D off") is read here too. A game without a scene never has it. */
   allow3d?: boolean
   /** Said beside the disabled 3D button when `allow3d` is false. */
   unavailable3d?: string
@@ -115,7 +117,10 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
   const [keysOpen, setKeysOpen] = useState(false)
   const [chosenView, setChosenView] = useState<GameView>(props.defaultView ?? '2d')
 
-  const can3d = game.has3d && props.scene3d !== undefined && (props.allow3d ?? true)
+  // The learner's settings reach every game through the shell, so no game passes them on: 3D off turns the 3D view off, and the
+  // keys setting turns the keys off, live. A game's own props can only ask for less.
+  const limits = shellLimits(useSettings(), props)
+  const can3d = game.has3d && props.scene3d !== undefined && limits.allow3d
   const view: GameView = can3d ? (props.view ?? chosenView) : '2d'
 
   // The stages this game has, and which of them the learner can open now.
@@ -164,7 +169,7 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
   const keymap = useMemo(() => keymapOf(game), [game])
   const container = useGameInput({
     keys: keymap,
-    enabled: props.shortcuts ?? true,
+    enabled: limits.keys,
     onCommand: (binding: KeyBinding) => {
       if (binding.id === 'view') {
         if (!can3d) return false
@@ -276,7 +281,7 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
             {levelTitle ? `${levelTitle} · ` : ''}
             {mode === 'practice' ? 'practice' : 'graded'}
           </TapeLabel>
-          {game.has3d ? <ViewSwitch view={view} onViewChange={switchView} available3d={can3d} unavailableReason={props.unavailable3d} /> : null}
+          {game.has3d ? <ViewSwitch view={view} onViewChange={switchView} available3d={can3d} unavailableReason={limits.unavailable3d} /> : null}
           <KeysDialog keys={keymap} open={keysOpen} onOpenChange={setKeysOpen}>
             <Button size="sm" variant="quiet">
               Keys

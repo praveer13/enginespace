@@ -332,8 +332,10 @@
   }
 
   /* States */
+  /* Still printing: the print is faint. It is faint in the quiet text role, which holds 4.5:1 on paper (axe fails a ticket
+     that fades its text with opacity, which blends it down to about 2:1). */
   .es-ticket[data-state='loading'] .es-ticket__body {
-    opacity: 0.4;
+    color: var(--es-text-3);
   }
 
   .es-ticket__printing {
