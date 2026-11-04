@@ -1,0 +1,972 @@
+{
+  "header": "Golden vectors for packages/sim/lifecycle (ARCHITECTURE section 5.8, 5.10): each maps its input, a scenario of the Engine Floor's map level with the seed and the jitter of its synthetic trace, to the request's path and the trace it gives, with the SHA-256 of that output's canonical JSON. The path is every stage with its places, mechanism and citation (file, symbol, line and quote at the engine's pinned commit). A short path is recorded whole, with the trace in columns and the verdict of every check; a longer one as its stage ids, the SHA-256 of the whole path, its counts, the SHA-256 of the trace's canonical text and the verdicts. Regenerate only with `bun scripts/vectors.ts --write`, and review the diff like code.",
+  "model": "lifecycle",
+  "vectors": [
+    {
+      "name": "nano-vllm, one rank: the whole path and the whole trace, where the request crosses no process and no thread",
+      "input": {
+        "jitter": {"gapNs":0,"spreadPermille":0},
+        "output": "full",
+        "scenario": {"abort":false,"engine":"nano-vllm","n":1,"prefixHit":false,"streaming":false,"tp":1},
+        "seed": 1
+      },
+      "sha256": "7ab251d9b5cb0280239b3724c805eb6fba4c15ed4feae799e1bb3875126c6749",
+      "output": {
+        "checks": [
+          {
+            "checked": 1,
+            "detail": "14 spans on 3 tracks, 5 flows and 2 marks",
+            "failed": 0,
+            "id": "structure",
+            "pass": true,
+            "spans": [],
+            "title": "The columns are consistent"
+          },
+          {
+            "checked": 16,
+            "detail": "14 spans start at or after 0 and last a non-negative time, and 2 step marks strictly increase",
+            "failed": 0,
+            "id": "T2",
+            "pass": true,
+            "spans": [],
+            "title": "Time runs forward"
+          },
+          {
+            "checked": 4,
+            "detail": "4 kernel and copy spans, and none overlaps another on its stream",
+            "failed": 0,
+            "id": "T3",
+            "pass": true,
+            "spans": [],
+            "title": "One stream runs one thing at a time"
+          },
+          {
+            "checked": 4,
+            "detail": "4 kernel and copy spans, and each has a CUDA API span with its correlation id that starts no later than it",
+            "failed": 0,
+            "id": "T4",
+            "pass": true,
+            "spans": [],
+            "title": "Every kernel has a launch before it"
+          },
+          {
+            "checked": 2,
+            "detail": "2 kernels, and each lies inside one of 1 step windows",
+            "failed": 0,
+            "id": "T5",
+            "pass": true,
+            "spans": [],
+            "title": "Step marks contain their kernels"
+          }
+        ],
+        "facts": {"byMechanism":{"call":4,"collective":0,"d2h":1,"h2d":1,"ipc":0,"launch":2,"queue":1,"shm":0,"sync":1},"gpus":1,"processHops":0,"stages":10},
+        "path": [
+          {
+            "from": {"device":"host","process":"main","rank":0,"thread":"main"},
+            "id": "nano.tokenize",
+            "label": "tokenize the prompt (`LLMEngine.add_request`)",
+            "mechanism": "call",
+            "source": {
+              "line": 45,
+              "path": "nanovllm/engine/llm_engine.py",
+              "quote": "prompt = self.tokenizer.encode(prompt)",
+              "ref": "bb823b3e06983d71485a8e1f23715ebd87d98ef8",
+              "repo": "GeeeekExplorer/nano-vllm",
+              "symbol": "LLMEngine.add_request"
+            },
+            "to": {"device":"host","process":"main","rank":0,"thread":"main"}
+          },
+          {
+            "from": {"device":"host","process":"main","rank":0,"thread":"main"},
+            "id": "nano.waiting-queue",
+            "label": "the scheduler's `waiting` deque",
+            "mechanism": "queue",
+            "source": {
+              "line": 23,
+              "path": "nanovllm/engine/scheduler.py",
+              "quote": "self.waiting.append(seq)",
+              "ref": "bb823b3e06983d71485a8e1f23715ebd87d98ef8",
+              "repo": "GeeeekExplorer/nano-vllm",
+              "symbol": "Scheduler.add"
+            },
+            "state": "WAITING",
+            "to": {"device":"host","process":"main","rank":0,"thread":"main"}
+          },
+          {
+            "from": {"device":"host","process":"main","rank":0,"thread":"main"},
+            "id": "nano.schedule",
+            "label": "`Scheduler.schedule`: a prefill step",
+            "mechanism": "call",
+            "source": {
+              "line": 49,
+              "path": "nanovllm/engine/scheduler.py",
+              "quote": "seq.status = SequenceStatus.RUNNING",
+              "ref": "bb823b3e06983d71485a8e1f23715ebd87d98ef8",
+              "repo": "GeeeekExplorer/nano-vllm",
+              "symbol": "Scheduler.schedule"
+            },
+            "state": "RUNNING",
+            "to": {"device":"host","process":"main","rank":0,"thread":"main"}
+          },
+          {
+            "from": {"device":"host","process":"main","rank":0,"thread":"main"},
+            "id": "nano.h2d",
+            "label": "step inputs to the GPU (`prepare_prefill`)",
+            "mechanism": "h2d",
+            "source": {
+              "line": 164,
+              "path": "nanovllm/engine/model_runner.py",
+              "quote": "input_ids = torch.tensor(input_ids, dtype=torch.int64, pin_memory=True).cuda(non_blocking=True)",
+              "ref": "bb823b3e06983d71485a8e1f23715ebd87d98ef8",
+              "repo": "GeeeekExplorer/nano-vllm",
+              "symbol": "ModelRunner.prepare_prefill"
+            },
+            "to": {"device":"gpu","process":"main","rank":0,"thread":"cuda-stream"}
+          },
+          {
+            "from": {"device":"gpu","process":"main","rank":0,"thread":"cuda-stream"},
+            "id": "nano.forward",
+            "label": "the forward pass (`run_model`)",
+            "mechanism": "launch",
+            "source": {
+              "line": 198,
+              "path": "nanovllm/engine/model_runner.py",
+              "quote": "return self.model.compute_logits(self.model(input_ids, positions))",
+              "ref": "bb823b3e06983d71485a8e1f23715ebd87d98ef8",
+              "repo": "GeeeekExplorer/nano-vllm",
+              "symbol": "ModelRunner.run_model"
+            },
+            "to": {"device":"gpu","process":"main","rank":0,"thread":"cuda-stream"}
+          },
+          {
+            "from": {"device":"gpu","process":"main","rank":0,"thread":"cuda-stream"},
+            "id": "nano.sample",
+            "label": "sampling (`Sampler`)",
+            "mechanism": "launch",
+            "source": {
+              "line": 218,
+              "path": "nanovllm/engine/model_runner.py",
+              "quote": "self.sampler(logits, temperatures)",
+              "ref": "bb823b3e06983d71485a8e1f23715ebd87d98ef8",
+              "repo": "GeeeekExplorer/nano-vllm",
+              "symbol": "ModelRunner.run"
+            },
+            "to": {"device":"gpu","process":"main","rank":0,"thread":"cuda-stream"}
+          },
+          {
+            "from": {"device":"gpu","process":"main","rank":0,"thread":"cuda-stream"},
+            "id": "nano.d2h",
+            "label": "sampled ids to the host (`.tolist()`)",
+            "mechanism": "d2h",
+            "source": {
+              "line": 218,
+              "path": "nanovllm/engine/model_runner.py",
+              "quote": ".tolist() if self.rank == 0 else None",
+              "ref": "bb823b3e06983d71485a8e1f23715ebd87d98ef8",
+              "repo": "GeeeekExplorer/nano-vllm",
+              "symbol": "ModelRunner.run"
+            },
+            "to": {"device":"host","process":"main","rank":0,"thread":"main"}
+          },
+          {
+            "from": {"device":"host","process":"main","rank":0,"thread":"main"},
+            "id": "nano.sync",
+            "label": "`.tolist()` returns when the copy has landed",
+            "mechanism": "sync",
+            "source": {
+              "line": 218,
+              "path": "nanovllm/engine/model_runner.py",
+              "quote": "token_ids = self.sampler(logits, temperatures).tolist()",
+              "ref": "bb823b3e06983d71485a8e1f23715ebd87d98ef8",
+              "repo": "GeeeekExplorer/nano-vllm",
+              "symbol": "ModelRunner.run"
+            },
+            "to": {"device":"host","process":"main","rank":0,"thread":"main"}
+          },
+          {
+            "from": {"device":"host","process":"main","rank":0,"thread":"main"},
+            "id": "nano.postprocess",
+            "label": "`Scheduler.postprocess`",
+            "mechanism": "call",
+            "source": {
+              "line": 53,
+              "path": "nanovllm/engine/llm_engine.py",
+              "quote": "self.scheduler.postprocess(seqs, token_ids, is_prefill)",
+              "ref": "bb823b3e06983d71485a8e1f23715ebd87d98ef8",
+              "repo": "GeeeekExplorer/nano-vllm",
+              "symbol": "LLMEngine.step"
+            },
+            "to": {"device":"host","process":"main","rank":0,"thread":"main"}
+          },
+          {
+            "from": {"device":"host","process":"main","rank":0,"thread":"main"},
+            "id": "nano.detokenize",
+            "label": "decode the output (`tokenizer.decode`)",
+            "mechanism": "call",
+            "source": {
+              "line": 89,
+              "path": "nanovllm/engine/llm_engine.py",
+              "quote": "self.tokenizer.decode(token_ids)",
+              "ref": "bb823b3e06983d71485a8e1f23715ebd87d98ef8",
+              "repo": "GeeeekExplorer/nano-vllm",
+              "symbol": "LLMEngine.generate"
+            },
+            "to": {"device":"host","process":"main","rank":0,"thread":"main"}
+          }
+        ],
+        "trace": {
+          "flows": [
+            {"from":3,"kind":"copy","to":5},
+            {"from":4,"kind":"launch","to":8},
+            {"from":6,"kind":"launch","to":9},
+            {"from":7,"kind":"copy","to":10},
+            {"from":10,"kind":"sync","to":11}
+          ],
+          "marks": [{"name":21,"tNs":0},{"name":21,"tNs":12279120}],
+          "meta": {"source":"synthetic","synthetic":true},
+          "schema": "enginespace/trace@1",
+          "spans": {
+            "cat": [2,4,2,8,12,8,12,8,14,14,8,18,2,2],
+            "corr": [-1,-1,-1,0,1,0,2,3,1,2,3,-1,-1,-1],
+            "durNs": [60000,8000,60000,4000,4000,15000,4000,4000,6000000,6000000,12000,12119,60000,60000],
+            "name": [1,3,5,7,11,10,11,7,13,15,16,17,19,20],
+            "startNs": [0,60000,68000,128000,132000,132000,136000,140000,147000,6147000,12147000,12147001,12159120,12219120],
+            "track": [0,0,0,1,1,2,1,1,2,2,2,0,0,0]
+          },
+          "strings": [
+            "main · main",
+            "nano.tokenize",
+            "call",
+            "nano.waiting-queue",
+            "queue",
+            "nano.schedule",
+            "main · CUDA API",
+            "cudaMemcpyAsync",
+            "copy",
+            "GPU 0 · main",
+            "nano.h2d",
+            "cudaLaunchKernel",
+            "launch",
+            "nano.forward",
+            "kernel",
+            "nano.sample",
+            "nano.d2h",
+            "nano.sync",
+            "sync",
+            "nano.postprocess",
+            "nano.detokenize",
+            "step"
+          ],
+          "tracks": [{"id":0,"kind":"cpu-thread","name":0},{"id":1,"kind":"cuda-api","name":6},{"id":2,"kind":"gpu-stream","name":9}]
+        }
+      }
+    },
+    {
+      "name": "nano-vllm, two ranks, a prefix hit: a worker process for rank 1, a shared-memory broadcast and a gather to rank 0",
+      "input": {
+        "jitter": {"gapNs":20000,"spreadPermille":300},
+        "output": "digest",
+        "scenario": {"abort":false,"engine":"nano-vllm","n":1,"prefixHit":true,"streaming":false,"tp":2},
+        "seed": 2
+      },
+      "sha256": "c78dae4af73dd81b5ec29fa36e0836e66368ff8a4a3691a7828be10815fc203f",
+      "output": {
+        "checks": [
+          {"checked":1,"id":"structure","pass":true},
+          {"checked":21,"id":"T2","pass":true},
+          {"checked":5,"id":"T3","pass":true},
+          {"checked":5,"id":"T4","pass":true},
+          {"checked":3,"id":"T5","pass":true}
+        ],
+        "counts": {"flows":6,"marks":2,"spans":19,"tracks":6},
+        "facts": {"byMechanism":{"call":6,"collective":1,"d2h":1,"h2d":1,"ipc":0,"launch":2,"queue":1,"shm":1,"sync":1},"gpus":2,"processHops":1,"stages":14},
+        "ids": [
+          "nano.tokenize",
+          "nano.waiting-queue",
+          "nano.schedule",
+          "nano.prefix-hit",
+          "nano.broadcast",
+          "nano.worker-loop",
+          "nano.h2d",
+          "nano.forward",
+          "nano.gather",
+          "nano.sample",
+          "nano.d2h",
+          "nano.sync",
+          "nano.postprocess",
+          "nano.detokenize"
+        ],
+        "pathSha256": "d0873551fa557c342cfb02427c13340106f1dad78c660c0763b2acd6b6f3654f",
+        "traceSha256": "85ca727b5ecb1018d39a0bb87f8732e3901cac2121ef90bb00e12c6d3aafdcf7"
+      }
+    },
+    {
+      "name": "Mini-SGLang, one rank, streaming: API server, tokenizer, scheduler, detokenizer, and the overlap loop's sync in the next turn",
+      "input": {
+        "jitter": {"gapNs":20000,"spreadPermille":300},
+        "output": "digest",
+        "scenario": {"abort":false,"engine":"mini-sglang","n":1,"prefixHit":false,"streaming":true,"tp":1},
+        "seed": 3
+      },
+      "sha256": "5aeb6dbffadadf818a4aa9e6e00cdbb59eaf375988425f4c11bea762a459854e",
+      "output": {
+        "checks": [
+          {"checked":1,"id":"structure","pass":true},
+          {"checked":23,"id":"T2","pass":true},
+          {"checked":4,"id":"T3","pass":true},
+          {"checked":4,"id":"T4","pass":true},
+          {"checked":2,"id":"T5","pass":true}
+        ],
+        "counts": {"flows":5,"marks":2,"spans":21,"tracks":8},
+        "facts": {"byMechanism":{"call":4,"collective":0,"d2h":1,"h2d":1,"ipc":6,"launch":2,"queue":2,"shm":0,"sync":1},"gpus":1,"processHops":6,"stages":17},
+        "ids": [
+          "mini.http-request",
+          "mini.tokenize-msg",
+          "mini.tokenize",
+          "mini.to-scheduler",
+          "mini.waiting-queue",
+          "mini.schedule",
+          "mini.h2d",
+          "mini.forward",
+          "mini.sample",
+          "mini.d2h",
+          "mini.sync",
+          "mini.process-result",
+          "mini.to-detokenizer",
+          "mini.detokenize",
+          "mini.to-frontend",
+          "mini.ack-mailbox",
+          "mini.sse-chunk"
+        ],
+        "pathSha256": "fed248141f2c447d3dba70d6746d9c743c7177eb324ed050b4649adf5148b326",
+        "traceSha256": "8b5c92ca822b8cff1217c1a3aed0c042573b8b6dd6490fe5bfffe074eb21d3f8"
+      }
+    },
+    {
+      "name": "Mini-SGLang, two ranks, streaming, an abort: rank 0 publishes to rank 1, and the abort goes back through the tokenizer",
+      "input": {
+        "jitter": {"gapNs":20000,"spreadPermille":300},
+        "output": "digest",
+        "scenario": {"abort":true,"engine":"mini-sglang","n":1,"prefixHit":false,"streaming":true,"tp":2},
+        "seed": 4
+      },
+      "sha256": "80807a5753bbd55b299f90922e1fd314b8e90b865be2c50fcc0bc01217db6130",
+      "output": {
+        "checks": [
+          {"checked":1,"id":"structure","pass":true},
+          {"checked":30,"id":"T2","pass":true},
+          {"checked":5,"id":"T3","pass":true},
+          {"checked":5,"id":"T4","pass":true},
+          {"checked":3,"id":"T5","pass":true}
+        ],
+        "counts": {"flows":6,"marks":2,"spans":28,"tracks":11},
+        "facts": {"byMechanism":{"call":5,"collective":1,"d2h":1,"h2d":1,"ipc":10,"launch":2,"queue":2,"shm":0,"sync":1},"gpus":2,"processHops":10,"stages":23},
+        "ids": [
+          "mini.http-request",
+          "mini.tokenize-msg",
+          "mini.tokenize",
+          "mini.to-scheduler",
+          "mini.to-rank1",
+          "mini.waiting-queue",
+          "mini.schedule",
+          "mini.h2d",
+          "mini.forward",
+          "mini.all-reduce",
+          "mini.sample",
+          "mini.d2h",
+          "mini.sync",
+          "mini.process-result",
+          "mini.to-detokenizer",
+          "mini.detokenize",
+          "mini.to-frontend",
+          "mini.ack-mailbox",
+          "mini.sse-chunk",
+          "mini.disconnect",
+          "mini.abort-msg",
+          "mini.abort-forward",
+          "mini.abort-req"
+        ],
+        "pathSha256": "d916243db695e2103be7e338ef650b2f898bbeee0e2973133b44662e834c0760",
+        "traceSha256": "e2632a899de16efb725f473e3bd502647ed0069e6b3689af4b157e47a56a401c"
+      }
+    },
+    {
+      "name": "Mini-SGLang, one rank, not streaming, a prefix hit",
+      "input": {
+        "jitter": {"gapNs":20000,"spreadPermille":300},
+        "output": "digest",
+        "scenario": {"abort":false,"engine":"mini-sglang","n":1,"prefixHit":true,"streaming":false,"tp":1},
+        "seed": 5
+      },
+      "sha256": "ea07b3415d2cf2d609e92f5635821e79317c94bf0bb3beecde9af65fb8cd36a1",
+      "output": {
+        "checks": [
+          {"checked":1,"id":"structure","pass":true},
+          {"checked":24,"id":"T2","pass":true},
+          {"checked":4,"id":"T3","pass":true},
+          {"checked":4,"id":"T4","pass":true},
+          {"checked":2,"id":"T5","pass":true}
+        ],
+        "counts": {"flows":5,"marks":2,"spans":22,"tracks":8},
+        "facts": {"byMechanism":{"call":5,"collective":0,"d2h":1,"h2d":1,"ipc":6,"launch":2,"queue":2,"shm":0,"sync":1},"gpus":1,"processHops":6,"stages":18},
+        "ids": [
+          "mini.http-request",
+          "mini.tokenize-msg",
+          "mini.tokenize",
+          "mini.to-scheduler",
+          "mini.waiting-queue",
+          "mini.schedule",
+          "mini.prefix-hit",
+          "mini.h2d",
+          "mini.forward",
+          "mini.sample",
+          "mini.d2h",
+          "mini.sync",
+          "mini.process-result",
+          "mini.to-detokenizer",
+          "mini.detokenize",
+          "mini.to-frontend",
+          "mini.ack-mailbox",
+          "mini.full-response"
+        ],
+        "pathSha256": "6798460173e9f0b3bc4c67ada42a9c527ca1d2f5f2416016cc7b959515905535",
+        "traceSha256": "300e90753e4fd18728091597f3c60a94074f3f5ccb401d22a65cc8f957fecfc1"
+      }
+    },
+    {
+      "name": "vLLM at 42172ad, one rank, streaming: a blocking step, a `.tolist()` that waits, no batch queue",
+      "input": {
+        "jitter": {"gapNs":20000,"spreadPermille":300},
+        "output": "digest",
+        "scenario": {"abort":false,"engine":"inside-vllm","n":1,"prefixHit":false,"streaming":true,"tp":1},
+        "seed": 6
+      },
+      "sha256": "18d564805fc93aac993555dd14073771faede9f4c50a3a2548508225b6e42729",
+      "output": {
+        "checks": [
+          {"checked":1,"id":"structure","pass":true},
+          {"checked":27,"id":"T2","pass":true},
+          {"checked":4,"id":"T3","pass":true},
+          {"checked":4,"id":"T4","pass":true},
+          {"checked":2,"id":"T5","pass":true}
+        ],
+        "counts": {"flows":5,"marks":2,"spans":25,"tracks":9},
+        "facts": {"byMechanism":{"call":7,"collective":0,"d2h":1,"h2d":1,"ipc":4,"launch":2,"queue":5,"shm":0,"sync":1},"gpus":1,"processHops":4,"stages":21},
+        "ids": [
+          "inside.http-request",
+          "inside.tokenize",
+          "inside.process-inputs",
+          "inside.zmq-add",
+          "inside.input-queue",
+          "inside.add-request",
+          "inside.waiting-queue",
+          "inside.schedule",
+          "inside.execute-model",
+          "inside.h2d",
+          "inside.forward",
+          "inside.sample",
+          "inside.d2h",
+          "inside.sync",
+          "inside.update-from-output",
+          "inside.output-queue",
+          "inside.zmq-out",
+          "inside.outputs-queue",
+          "inside.process-outputs",
+          "inside.collector",
+          "inside.sse-chunk"
+        ],
+        "pathSha256": "f8485f95152ae77a5d022a227289ddff7f8d5f78bb013a9f23da28c6e8c923ab",
+        "traceSha256": "068172c72592ccb498afb95044ecea570b51e7f72265111056f3e8a5268caa9c"
+      }
+    },
+    {
+      "name": "vLLM at 42172ad, two ranks, n = 2, an abort that waits in the input queue behind the step",
+      "input": {
+        "jitter": {"gapNs":20000,"spreadPermille":300},
+        "output": "digest",
+        "scenario": {"abort":true,"engine":"inside-vllm","n":2,"prefixHit":false,"streaming":true,"tp":2},
+        "seed": 7
+      },
+      "sha256": "113d589045876c7eb5d3cc689ea8ef516eb8d33dc3810788164a49c743dab5ef",
+      "output": {
+        "checks": [
+          {"checked":1,"id":"structure","pass":true},
+          {"checked":38,"id":"T2","pass":true},
+          {"checked":5,"id":"T3","pass":true},
+          {"checked":5,"id":"T4","pass":true},
+          {"checked":3,"id":"T5","pass":true}
+        ],
+        "counts": {"flows":6,"marks":2,"spans":36,"tracks":13},
+        "facts": {"byMechanism":{"call":11,"collective":1,"d2h":1,"h2d":1,"ipc":6,"launch":2,"queue":6,"shm":2,"sync":1},"gpus":2,"processHops":8,"stages":31},
+        "ids": [
+          "inside.http-request",
+          "inside.tokenize",
+          "inside.process-inputs",
+          "inside.fan-out",
+          "inside.zmq-add",
+          "inside.input-queue",
+          "inside.add-request",
+          "inside.waiting-queue",
+          "inside.schedule",
+          "inside.rpc-broadcast",
+          "inside.worker-execute",
+          "inside.h2d",
+          "inside.forward",
+          "inside.all-reduce",
+          "inside.sample",
+          "inside.d2h",
+          "inside.sync",
+          "inside.response-mq",
+          "inside.update-from-output",
+          "inside.output-queue",
+          "inside.zmq-out",
+          "inside.outputs-queue",
+          "inside.process-outputs",
+          "inside.collector",
+          "inside.sse-chunk",
+          "inside.disconnect",
+          "inside.abort-request",
+          "inside.abort-zmq",
+          "inside.abort-input-queue",
+          "inside.abort-requests",
+          "inside.finish-aborted"
+        ],
+        "pathSha256": "a2c6910906c17b38a9513e14695a7748f2d095d0cb5d47ec7777e1bc213fac78",
+        "traceSha256": "fd355d5a7cd77308128c3ec3f0133ce077befa0d2e0d982e558526e66f98f8f2"
+      }
+    },
+    {
+      "name": "vLLM v0.33.0, one rank, streaming: the batch queue, a copy on its own stream and an event to wait on",
+      "input": {
+        "jitter": {"gapNs":20000,"spreadPermille":300},
+        "output": "digest",
+        "scenario": {"abort":false,"engine":"vllm","n":1,"prefixHit":false,"streaming":true,"tp":1},
+        "seed": 8
+      },
+      "sha256": "ad78cb792af0e3f2ee295ce93950012bd1d198f76f5585bef71360b59d5955cb",
+      "output": {
+        "checks": [
+          {"checked":1,"id":"structure","pass":true},
+          {"checked":28,"id":"T2","pass":true},
+          {"checked":4,"id":"T3","pass":true},
+          {"checked":4,"id":"T4","pass":true},
+          {"checked":2,"id":"T5","pass":true}
+        ],
+        "counts": {"flows":5,"marks":2,"spans":26,"tracks":9},
+        "facts": {"byMechanism":{"call":7,"collective":0,"d2h":1,"h2d":1,"ipc":4,"launch":2,"queue":6,"shm":0,"sync":1},"gpus":1,"processHops":4,"stages":22},
+        "ids": [
+          "vllm.http-request",
+          "vllm.render",
+          "vllm.process-inputs",
+          "vllm.zmq-add",
+          "vllm.input-queue",
+          "vllm.add-request",
+          "vllm.waiting-queue",
+          "vllm.schedule",
+          "vllm.execute-model",
+          "vllm.h2d",
+          "vllm.forward",
+          "vllm.sample",
+          "vllm.d2h",
+          "vllm.batch-queue",
+          "vllm.copy-sync",
+          "vllm.update-from-output",
+          "vllm.output-queue",
+          "vllm.zmq-out",
+          "vllm.outputs-queue",
+          "vllm.process-outputs",
+          "vllm.collector",
+          "vllm.sse-chunk"
+        ],
+        "pathSha256": "abdaa4cc7ac3df2b7d7452c9c3eb12d8dcb8e501b78ea965bd89ee40b94e6888",
+        "traceSha256": "956990bdc38b0aee360061565425ef06de128f933bd532e70e3af6c3ff2175d4"
+      }
+    },
+    {
+      "name": "vLLM v0.33.0, two ranks, a prefix hit, n = 2: workers, shared-memory queues both ways and the output thread of worker 0",
+      "input": {
+        "jitter": {"gapNs":20000,"spreadPermille":300},
+        "output": "digest",
+        "scenario": {"abort":false,"engine":"vllm","n":2,"prefixHit":true,"streaming":true,"tp":2},
+        "seed": 9
+      },
+      "sha256": "8a8215fd46bfcf19bc02f314a77089fcf9551d3d2ee49166d3281d9e6ebf44ad",
+      "output": {
+        "checks": [
+          {"checked":1,"id":"structure","pass":true},
+          {"checked":34,"id":"T2","pass":true},
+          {"checked":5,"id":"T3","pass":true},
+          {"checked":5,"id":"T4","pass":true},
+          {"checked":3,"id":"T5","pass":true}
+        ],
+        "counts": {"flows":6,"marks":2,"spans":32,"tracks":14},
+        "facts": {"byMechanism":{"call":9,"collective":1,"d2h":1,"h2d":1,"ipc":4,"launch":2,"queue":6,"shm":2,"sync":1},"gpus":2,"processHops":6,"stages":27},
+        "ids": [
+          "vllm.http-request",
+          "vllm.render",
+          "vllm.process-inputs",
+          "vllm.fan-out",
+          "vllm.zmq-add",
+          "vllm.input-queue",
+          "vllm.add-request",
+          "vllm.waiting-queue",
+          "vllm.schedule",
+          "vllm.prefix-hit",
+          "vllm.rpc-broadcast",
+          "vllm.worker-execute",
+          "vllm.h2d",
+          "vllm.forward",
+          "vllm.all-reduce",
+          "vllm.sample",
+          "vllm.d2h",
+          "vllm.async-output-queue",
+          "vllm.copy-sync",
+          "vllm.response-mq",
+          "vllm.update-from-output",
+          "vllm.output-queue",
+          "vllm.zmq-out",
+          "vllm.outputs-queue",
+          "vllm.process-outputs",
+          "vllm.collector",
+          "vllm.sse-chunk"
+        ],
+        "pathSha256": "a1b770a104687059d9d8b4b165c322e94e9f3cf6d7f57b81c396fa81b8444d18",
+        "traceSha256": "1e3d6afeafdf179bcf765a437aa71f4a4e70a811c8d2b3d95e9adc1ec32ef672"
+      }
+    },
+    {
+      "name": "vLLM v0.33.0, one rank, streaming, an abort: its own queue, drained before the step updates the scheduler",
+      "input": {
+        "jitter": {"gapNs":20000,"spreadPermille":300},
+        "output": "digest",
+        "scenario": {"abort":true,"engine":"vllm","n":1,"prefixHit":false,"streaming":true,"tp":1},
+        "seed": 10
+      },
+      "sha256": "1e66fe541da8f0adec11285aea5f885ac1abb4719f04fa167283d7a00e1fa962",
+      "output": {
+        "checks": [
+          {"checked":1,"id":"structure","pass":true},
+          {"checked":34,"id":"T2","pass":true},
+          {"checked":4,"id":"T3","pass":true},
+          {"checked":4,"id":"T4","pass":true},
+          {"checked":2,"id":"T5","pass":true}
+        ],
+        "counts": {"flows":5,"marks":2,"spans":32,"tracks":9},
+        "facts": {"byMechanism":{"call":10,"collective":0,"d2h":1,"h2d":1,"ipc":6,"launch":2,"queue":7,"shm":0,"sync":1},"gpus":1,"processHops":6,"stages":28},
+        "ids": [
+          "vllm.http-request",
+          "vllm.render",
+          "vllm.process-inputs",
+          "vllm.zmq-add",
+          "vllm.input-queue",
+          "vllm.add-request",
+          "vllm.waiting-queue",
+          "vllm.schedule",
+          "vllm.execute-model",
+          "vllm.h2d",
+          "vllm.forward",
+          "vllm.sample",
+          "vllm.d2h",
+          "vllm.batch-queue",
+          "vllm.copy-sync",
+          "vllm.update-from-output",
+          "vllm.output-queue",
+          "vllm.zmq-out",
+          "vllm.outputs-queue",
+          "vllm.process-outputs",
+          "vllm.collector",
+          "vllm.sse-chunk",
+          "vllm.disconnect",
+          "vllm.abort-request",
+          "vllm.abort-zmq",
+          "vllm.aborts-queue",
+          "vllm.process-aborts",
+          "vllm.finish-aborted"
+        ],
+        "pathSha256": "46861a6950205697b91158317c2e8cd9f97ce1d3596e28032ca66a417081df9a",
+        "traceSha256": "eeb41673cb560ba8226c1f93712965b75e298fb0ac97089f633d71a4d464408f"
+      }
+    },
+    {
+      "name": "vLLM v0.33.0, one rank, not streaming",
+      "input": {
+        "jitter": {"gapNs":0,"spreadPermille":0},
+        "output": "digest",
+        "scenario": {"abort":false,"engine":"vllm","n":1,"prefixHit":false,"streaming":false,"tp":1},
+        "seed": 11
+      },
+      "sha256": "5659e160aaf0fd023ccf8f13c3b02f8de8d9b0f3043b9a7ea6c983bb0c3d2f85",
+      "output": {
+        "checks": [
+          {"checked":1,"id":"structure","pass":true},
+          {"checked":28,"id":"T2","pass":true},
+          {"checked":4,"id":"T3","pass":true},
+          {"checked":4,"id":"T4","pass":true},
+          {"checked":2,"id":"T5","pass":true}
+        ],
+        "counts": {"flows":5,"marks":2,"spans":26,"tracks":9},
+        "facts": {"byMechanism":{"call":7,"collective":0,"d2h":1,"h2d":1,"ipc":4,"launch":2,"queue":6,"shm":0,"sync":1},"gpus":1,"processHops":4,"stages":22},
+        "ids": [
+          "vllm.http-request",
+          "vllm.render",
+          "vllm.process-inputs",
+          "vllm.zmq-add",
+          "vllm.input-queue",
+          "vllm.add-request",
+          "vllm.waiting-queue",
+          "vllm.schedule",
+          "vllm.execute-model",
+          "vllm.h2d",
+          "vllm.forward",
+          "vllm.sample",
+          "vllm.d2h",
+          "vllm.batch-queue",
+          "vllm.copy-sync",
+          "vllm.update-from-output",
+          "vllm.output-queue",
+          "vllm.zmq-out",
+          "vllm.outputs-queue",
+          "vllm.process-outputs",
+          "vllm.collector",
+          "vllm.full-response"
+        ],
+        "pathSha256": "e243a67cf843066c9b7694b4aa0bc5be357cfe2e9f1487478afc8db631ad8fbc",
+        "traceSha256": "50b75f72fc39a2521d02689ba6906e77cafe57facc48585f3fe36899088e09f2"
+      }
+    },
+    {
+      "name": "SGLang v0.5.23, one rank, streaming: the tokenizer manager in the API server process, the overlap loop's result queue",
+      "input": {
+        "jitter": {"gapNs":20000,"spreadPermille":300},
+        "output": "digest",
+        "scenario": {"abort":false,"engine":"sglang","n":1,"prefixHit":false,"streaming":true,"tp":1},
+        "seed": 12
+      },
+      "sha256": "8f3364f0648c9e4d5352912d26f87c574f16ac4222e60b0c1a21c64dd66315c5",
+      "output": {
+        "checks": [
+          {"checked":1,"id":"structure","pass":true},
+          {"checked":25,"id":"T2","pass":true},
+          {"checked":4,"id":"T3","pass":true},
+          {"checked":4,"id":"T4","pass":true},
+          {"checked":2,"id":"T5","pass":true}
+        ],
+        "counts": {"flows":5,"marks":2,"spans":23,"tracks":7},
+        "facts": {"byMechanism":{"call":6,"collective":0,"d2h":1,"h2d":1,"ipc":5,"launch":2,"queue":3,"shm":0,"sync":1},"gpus":1,"processHops":5,"stages":19},
+        "ids": [
+          "sglang.http-request",
+          "sglang.handle-request",
+          "sglang.tokenize",
+          "sglang.dispatch",
+          "sglang.waiting-queue",
+          "sglang.schedule",
+          "sglang.run-batch",
+          "sglang.h2d",
+          "sglang.forward",
+          "sglang.sample",
+          "sglang.d2h",
+          "sglang.result-queue",
+          "sglang.copy-sync",
+          "sglang.process-result",
+          "sglang.stream-output",
+          "sglang.detokenize",
+          "sglang.detokenizer-send",
+          "sglang.handle-loop",
+          "sglang.sse-chunk"
+        ],
+        "pathSha256": "bd6f760fb8f23fe26feb96acc5b958a90fe174917042497e2457a2dee3022ed6",
+        "traceSha256": "8f3f359034145d85e87a4d90cfa498950c350322bd315f3dec23505312dcd011"
+      }
+    },
+    {
+      "name": "SGLang v0.5.23, two ranks, a prefix hit, n = 2: a broadcast to rank 1, and a warm-up of the shared prefix",
+      "input": {
+        "jitter": {"gapNs":20000,"spreadPermille":300},
+        "output": "digest",
+        "scenario": {"abort":false,"engine":"sglang","n":2,"prefixHit":true,"streaming":true,"tp":2},
+        "seed": 13
+      },
+      "sha256": "8c44b14af61e4225779705a72b558ff35d0c089ccec80afd3158c79f18778d8e",
+      "output": {
+        "checks": [
+          {"checked":1,"id":"structure","pass":true},
+          {"checked":30,"id":"T2","pass":true},
+          {"checked":5,"id":"T3","pass":true},
+          {"checked":5,"id":"T4","pass":true},
+          {"checked":3,"id":"T5","pass":true}
+        ],
+        "counts": {"flows":6,"marks":2,"spans":28,"tracks":10},
+        "facts": {"byMechanism":{"call":8,"collective":1,"d2h":1,"h2d":1,"ipc":6,"launch":2,"queue":3,"shm":0,"sync":1},"gpus":2,"processHops":6,"stages":23},
+        "ids": [
+          "sglang.http-request",
+          "sglang.handle-request",
+          "sglang.tokenize-batch",
+          "sglang.n-warmup",
+          "sglang.dispatch",
+          "sglang.broadcast",
+          "sglang.waiting-queue",
+          "sglang.schedule",
+          "sglang.prefix-hit",
+          "sglang.run-batch",
+          "sglang.h2d",
+          "sglang.forward",
+          "sglang.all-reduce",
+          "sglang.sample",
+          "sglang.d2h",
+          "sglang.result-queue",
+          "sglang.copy-sync",
+          "sglang.process-result",
+          "sglang.stream-output",
+          "sglang.detokenize",
+          "sglang.detokenizer-send",
+          "sglang.handle-loop",
+          "sglang.sse-chunk"
+        ],
+        "pathSha256": "0826dcce7a473c7f834753600d177b0f10bd4a92e6f9b3e6440fcca3f5db1d84",
+        "traceSha256": "c30a390ca84083d224ba018bd545a50421ecd6ca16aea9125a40a79705a75d11"
+      }
+    },
+    {
+      "name": "SGLang v0.5.23, one rank, streaming, an abort: the response's background task, then the scheduler marks the running request",
+      "input": {
+        "jitter": {"gapNs":20000,"spreadPermille":300},
+        "output": "digest",
+        "scenario": {"abort":true,"engine":"sglang","n":1,"prefixHit":false,"streaming":true,"tp":1},
+        "seed": 14
+      },
+      "sha256": "fb9898d68027038759a01b9e9a8f4b89cad11a8cb886551899a9529e968f626a",
+      "output": {
+        "checks": [
+          {"checked":1,"id":"structure","pass":true},
+          {"checked":29,"id":"T2","pass":true},
+          {"checked":4,"id":"T3","pass":true},
+          {"checked":4,"id":"T4","pass":true},
+          {"checked":2,"id":"T5","pass":true}
+        ],
+        "counts": {"flows":5,"marks":2,"spans":27,"tracks":7},
+        "facts": {"byMechanism":{"call":8,"collective":0,"d2h":1,"h2d":1,"ipc":7,"launch":2,"queue":3,"shm":0,"sync":1},"gpus":1,"processHops":7,"stages":23},
+        "ids": [
+          "sglang.http-request",
+          "sglang.handle-request",
+          "sglang.tokenize",
+          "sglang.dispatch",
+          "sglang.waiting-queue",
+          "sglang.schedule",
+          "sglang.run-batch",
+          "sglang.h2d",
+          "sglang.forward",
+          "sglang.sample",
+          "sglang.d2h",
+          "sglang.result-queue",
+          "sglang.copy-sync",
+          "sglang.process-result",
+          "sglang.stream-output",
+          "sglang.detokenize",
+          "sglang.detokenizer-send",
+          "sglang.handle-loop",
+          "sglang.sse-chunk",
+          "sglang.disconnect",
+          "sglang.abort-request",
+          "sglang.abort-dispatch",
+          "sglang.abort-release"
+        ],
+        "pathSha256": "bf310f367b34f636457f8ec760a899175fe7c6c9d43ab429fef94c453b598084",
+        "traceSha256": "46ba8c6986d4fd924a0b75b31bad82a5b15560663f74253a215571f82d942dab"
+      }
+    },
+    {
+      "name": "SGLang v0.5.23, one rank, not streaming, under seed 0 and the widest jitter",
+      "input": {
+        "jitter": {"gapNs":100000,"spreadPermille":900},
+        "output": "digest",
+        "scenario": {"abort":false,"engine":"sglang","n":1,"prefixHit":false,"streaming":false,"tp":1},
+        "seed": 0
+      },
+      "sha256": "19cd0cf8ad682bcdfa218953a5967d2adfacfde93584e81646bdf8e232d3e6a7",
+      "output": {
+        "checks": [
+          {"checked":1,"id":"structure","pass":true},
+          {"checked":25,"id":"T2","pass":true},
+          {"checked":4,"id":"T3","pass":true},
+          {"checked":4,"id":"T4","pass":true},
+          {"checked":2,"id":"T5","pass":true}
+        ],
+        "counts": {"flows":5,"marks":2,"spans":23,"tracks":7},
+        "facts": {"byMechanism":{"call":6,"collective":0,"d2h":1,"h2d":1,"ipc":5,"launch":2,"queue":3,"shm":0,"sync":1},"gpus":1,"processHops":5,"stages":19},
+        "ids": [
+          "sglang.http-request",
+          "sglang.handle-request",
+          "sglang.tokenize",
+          "sglang.dispatch",
+          "sglang.waiting-queue",
+          "sglang.schedule",
+          "sglang.run-batch",
+          "sglang.h2d",
+          "sglang.forward",
+          "sglang.sample",
+          "sglang.d2h",
+          "sglang.result-queue",
+          "sglang.copy-sync",
+          "sglang.process-result",
+          "sglang.stream-output",
+          "sglang.detokenize",
+          "sglang.detokenizer-send",
+          "sglang.handle-loop",
+          "sglang.full-response"
+        ],
+        "pathSha256": "d6df4539e6b8f3300adc7916734f014c12c611408c2222077ee9ab1052f83b14",
+        "traceSha256": "ebac11ed02481146f58c9e735707f4060017b5e29a9103c510d1b0670f6ab510"
+      }
+    },
+    {
+      "name": "vLLM v0.33.0, two ranks, streaming, under the largest seed",
+      "input": {
+        "jitter": {"gapNs":20000,"spreadPermille":300},
+        "output": "digest",
+        "scenario": {"abort":false,"engine":"vllm","n":1,"prefixHit":false,"streaming":true,"tp":2},
+        "seed": 4294967295
+      },
+      "sha256": "f0c45b7b240b221dc732690244ff7c40da71b943a22f905dee4ff86c757e95d4",
+      "output": {
+        "checks": [
+          {"checked":1,"id":"structure","pass":true},
+          {"checked":32,"id":"T2","pass":true},
+          {"checked":5,"id":"T3","pass":true},
+          {"checked":5,"id":"T4","pass":true},
+          {"checked":3,"id":"T5","pass":true}
+        ],
+        "counts": {"flows":6,"marks":2,"spans":30,"tracks":14},
+        "facts": {"byMechanism":{"call":7,"collective":1,"d2h":1,"h2d":1,"ipc":4,"launch":2,"queue":6,"shm":2,"sync":1},"gpus":2,"processHops":6,"stages":25},
+        "ids": [
+          "vllm.http-request",
+          "vllm.render",
+          "vllm.process-inputs",
+          "vllm.zmq-add",
+          "vllm.input-queue",
+          "vllm.add-request",
+          "vllm.waiting-queue",
+          "vllm.schedule",
+          "vllm.rpc-broadcast",
+          "vllm.worker-execute",
+          "vllm.h2d",
+          "vllm.forward",
+          "vllm.all-reduce",
+          "vllm.sample",
+          "vllm.d2h",
+          "vllm.async-output-queue",
+          "vllm.copy-sync",
+          "vllm.response-mq",
+          "vllm.update-from-output",
+          "vllm.output-queue",
+          "vllm.zmq-out",
+          "vllm.outputs-queue",
+          "vllm.process-outputs",
+          "vllm.collector",
+          "vllm.sse-chunk"
+        ],
+        "pathSha256": "9b7b77d24e8581d080e6e40d940e9fb59e17e0b2cf3be83bfa5e8d080763ecc3",
+        "traceSha256": "386998a9273747cc154dfc632a3f0e08b708bc29c07d040314b067ce76d4127f"
+      }
+    }
+  ]
+}

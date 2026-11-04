@@ -1,0 +1,200 @@
+# What the lifecycle card cites beyond the claims of the engines' own files: how the small engines and the pinned ones put a tensor-parallel
+# rank in another process, how an abort reaches a running request, and what an `n` of two does (W1-T16; ARCHITECTURE §4.4, §5.8, §5.9).
+# Each fact was read on 2026-11-04 from the file its URL names, at the tag or the commit the URL names (course.lock.json: vllm, sglang,
+# nano-vllm, mini-sglang, inside-vllm), and each quote is that file's own text on the lines the anchor names. The unpacked tarballs, checked
+# against the pinned commit with `git get-tar-commit-id`, are what tests/sim/lifecycle-sources.test.ts reads the model's stages against.
+# A fact that belongs to a pin is re-read at the quarterly re-pin, so its TTL is 90 days. PyTorch's documentation of a released version
+# does not change, and keeps a year.
+
+# --- nano-vllm (commit bb823b3e06983d71485a8e1f23715ebd87d98ef8) -----------------------------------------------------------------------
+
+- id: nano-vllm.tp-worker-process
+  value: one process for each rank above 0
+  text: With tensor_parallel_size above 1, nano-vllm's LLMEngine starts a process for each rank above 0, which runs a ModelRunner, and gives each an Event. Rank 0's ModelRunner stays in the caller's process, so the first tensor-parallel level of The Engine Floor has a second process.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/llm_engine.py#L25-L31
+    title: nano-vllm at bb823b3, nanovllm/engine/llm_engine.py, LLMEngine.__init__
+    quote: 'process = ctx.Process(target=ModelRunner, args=(config, i, event))'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.tp-shared-memory
+  value: a shared-memory buffer and an Event
+  text: Rank 0's ModelRunner hands each call to the other ranks through a shared-memory buffer named nanovllm. It pickles the method name and its arguments into the buffer and sets an Event for each worker, and a worker's loop waits on its Event and runs the call it reads.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/model_runner.py#L61-L83
+    title: nano-vllm at bb823b3, nanovllm/engine/model_runner.py, ModelRunner.loop, read_shm and write_shm
+    quote: 'self.shm.buf[4:n+4] = data'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.logits-gather
+  value: dist.gather to rank 0
+  text: At tensor-parallel size above 1, nano-vllm's LM head gathers the ranks' logits to rank 0 with dist.gather, and only rank 0 concatenates them.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/layers/embed_head.py#L61-L66
+    title: nano-vllm at bb823b3, nanovllm/layers/embed_head.py, ParallelLMHead.forward
+    quote: 'dist.gather(logits, all_logits, 0)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.rank0-samples
+  value: rank 0 samples and copies the ids with .tolist()
+  text: Only rank 0 samples in nano-vllm, and it turns the sampled ids into a Python list with .tolist() in the same line, which is a copy of a CUDA tensor to the host.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/model_runner.py#L214-L220
+    title: nano-vllm at bb823b3, nanovllm/engine/model_runner.py, ModelRunner.run
+    quote: 'token_ids = self.sampler(logits, temperatures).tolist() if self.rank == 0 else None'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: nano-vllm
+
+# --- PyTorch 2.14, the version the pinned engines require -------------------------------------------------------------------------------
+
+- id: lifecycle.torch.copy-synchronizes
+  value: a copy between the CPU and the GPU synchronizes
+  text: PyTorch performs the synchronization that a copy between the CPU and the GPU needs, when the current stream is the default one. A blocking copy of a CUDA tensor to the host, such as .tolist(), therefore returns once the data is there, and it is an implicit wait for the GPU work before it.
+  tag: measured
+  source:
+    url: https://docs.pytorch.org/docs/2.14/notes/cuda.html#asynchronous-execution
+    title: PyTorch 2.14 documentation, CUDA semantics, Asynchronous execution
+    quote: 'PyTorch automatically performs necessary synchronization when copying data between CPU and GPU or between two GPUs.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+# --- vLLM v0.33.0 (commit 4ba787ec9959e566d3b587a796dff07673324da5) -------------------------------------------------------------------------
+
+- id: vllm.executor.rpc-broadcast
+  value: rpc_broadcast_mq
+  text: With more than one rank the engine core's executor is MultiprocExecutor, and its collective_rpc enqueues a call, which is the method, its arguments and the output rank, on a queue named rpc_broadcast_mq.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/executor/multiproc_executor.py#L492
+    title: vLLM v0.33.0, vllm/v1/executor/multiproc_executor.py, MultiprocExecutor.collective_rpc
+    quote: 'self.rpc_broadcast_mq.enqueue((send_method, args, kwargs, output_rank))'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.executor.message-queue-shm
+  value: shared memory for readers on the same host
+  text: vLLM's MessageQueue class, in shm_broadcast.py, reaches its readers on the same host through shared memory.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/distributed/device_communicators/shm_broadcast.py#L495-L500
+    title: vLLM v0.33.0, vllm/distributed/device_communicators/shm_broadcast.py, MessageQueue
+    quote: 'n_local_reader,  # number of local readers through shared memory'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.async-output.copy-stream
+  value: a copy stream that waits for the main stream
+  text: Model Runner V2 copies the sampled ids to host memory on a separate copy stream, after that stream has waited for the main stream, so that the ids are complete.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu/async_utils.py#L137-L141
+    title: vLLM v0.33.0, vllm/v1/worker/gpu/async_utils.py, AsyncOutput.__init__
+    quote: 'copy_stream.wait_stream(main_stream)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.async-output.event-sync
+  value: copy_event.synchronize()
+  text: AsyncOutput.get_output waits on the copy's event with copy_event.synchronize() before it reads the sampled ids, so the host blocks there until the copy has landed.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu/async_utils.py#L174-L176
+    title: vLLM v0.33.0, vllm/v1/worker/gpu/async_utils.py, AsyncOutput.get_output
+    quote: 'self.copy_event.synchronize()'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+# --- vLLM at 42172ad (Inside vLLM) ------------------------------------------------------------------------------------------------------
+
+- id: inside-vllm.abort-input-queue
+  value: the input queue
+  text: At the commit the post reads, EngineCoreProc._handle_client_request handles an ABORT request in the same dispatch as an ADD, so an abort reaches the busy loop on the same input queue as a new request, behind the requests before it. Searching the file for aborts_queue finds nothing, where the pinned engine has a queue of its own for aborts.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/42172ad18fbc22c89d0063184e4570cc84186e16/vllm/v1/engine/core.py#L735-L744
+    title: vLLM at 42172ad, vllm/v1/engine/core.py, EngineCoreProc._handle_client_request
+    quote: 'self.abort_requests(request)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: inside-vllm
+
+# --- SGLang v0.5.23 (commit 297e54fd105e974cdf401e5b4d20253a22c16f90) ---------------------------------------------------------------------
+
+- id: sglang.parallel-sampling.warmup
+  value: a prefix request first
+  text: When a request asks for n samples, SGLang's tokenizer manager first sends the shared prompt as a request of its own with max_new_tokens set to 0, so that its prefix is cached, waits for it, and then sends the n sample requests.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/tokenizer_manager.py#L2126-L2183
+    title: SGLang v0.5.23, srt/managers/tokenizer_manager.py, TokenizerManager._handle_batch_request
+    quote: '# Cache the common prefix for parallel sampling'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.tp.request-broadcast
+  value: rank 0 receives, and broadcasts
+  text: In SGLang the scheduler at tensor-parallel rank 0 receives the requests, which come from the tokenizer manager, and broadcasts them to all the other tensor-parallel ranks.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/scheduler_components/request_receiver.py#L80-L86
+    title: SGLang v0.5.23, srt/managers/scheduler_components/request_receiver.py, SchedulerRequestReceiver.recv_requests
+    quote: 'Receive results at tp_rank = 0 and broadcast it to all other TP ranks.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.abort.running-request
+  value: to_finish, one more forward
+  text: An abort that reaches SGLang's scheduler while a request is running does not free it at once. The scheduler sets the request's to_finish, the request runs one more forward pass, and the existing finishing code then cleans up its KV allocation.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/scheduler.py#L5798-L5812
+    title: SGLang v0.5.23, srt/managers/scheduler.py, Scheduler.abort_request
+    quote: '# Abort method 3: set `to_finish`'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+# --- Mini-SGLang (commit 9a91cfafe754aa85daee49998176275667eb58f2) -------------------------------------------------------------------------
+
+- id: mini-sglang.n-ignored
+  value: n is accepted and not used
+  text: Mini-SGLang's request model has an n field that defaults to 1. Searching api_server.py for a use of req.n finds none, and the chat handler builds one TokenizeMsg for each request, so a request for more than one sample is served as one.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/server/api_server.py#L64-L310
+    title: Mini-SGLang at 9a91cfa, python/minisgl/server/api_server.py, OpenAICompletionRequest
+    quote: 'n: int = 1'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: mini-sglang
