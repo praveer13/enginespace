@@ -101,7 +101,7 @@ describe('the workload goldens (tests/fixtures/sim/workload.json)', () => {
 const scratch: string[] = []
 afterAll(() => scratch.forEach((dir) => rmSync(dir, { recursive: true, force: true })))
 
-/** A tree with what `vectors.ts --root` reads: the fixture, the generated table and the vendored slices. */
+/** A tree with what `vectors.ts --root` reads: the fixtures, the generated table and the vendored slices. */
 function tree(options: { fixture?: boolean } = {}): string {
   const dir = mkdtempSync(path.join(tmpdir(), 'enginespace-vectors-'))
   scratch.push(dir)
@@ -111,7 +111,10 @@ function tree(options: { fixture?: boolean } = {}): string {
   }
   put('packages/sim/core/exp-quantiles.ts')
   for (const id of SLICE_IDS) put(`${TRACES}/${id}.json`)
-  if (options.fixture !== false) put('tests/fixtures/sim/workload.json')
+  if (options.fixture !== false) {
+    put('tests/fixtures/sim/workload.json')
+    put('tests/fixtures/sim/steploop.json')
+  }
   return dir
 }
 
@@ -125,7 +128,7 @@ describe('bun scripts/vectors.ts', () => {
     const run = vectors('--check')
     expect(run.stderr).toBe('')
     expect(run.status).toBe(0)
-    expect(run.stdout).toContain('1 model(s), 10 vector(s) and the exponential table match')
+    expect(run.stdout).toContain('2 model(s), 24 vector(s) and the exponential table match')
   })
 
   test('--check fails when one output moves by one digit, and names the vector', () => {
@@ -169,10 +172,10 @@ describe('bun scripts/vectors.ts', () => {
     expect(missing.stderr).toContain('tests/fixtures/sim/workload.json is missing')
 
     const stray = tree()
-    writeFileSync(path.join(stray, 'tests/fixtures/sim/steploop.json'), '{}')
+    writeFileSync(path.join(stray, 'tests/fixtures/sim/not-a-model.json'), '{}')
     const strayRun = vectors('--check', '--root', stray)
     expect(strayRun.status).toBe(1)
-    expect(strayRun.stderr).toContain('tests/fixtures/sim/steploop.json is a fixture no model owns')
+    expect(strayRun.stderr).toContain('tests/fixtures/sim/not-a-model.json is a fixture no model owns')
 
     const stale = tree()
     const table = path.join(stale, 'packages/sim/core/exp-quantiles.ts')

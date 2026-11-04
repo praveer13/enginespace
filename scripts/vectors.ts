@@ -17,12 +17,17 @@
  * (scripts/tables/exp-quantiles.ts).
  *
  * Adding a model: give it a `VectorModel` in MODELS, whose cases are JSON inputs and a function from them to the model's
- * output. W0-T13 adds `steploop` this way.
+ * output. `workload` (W0-T12) and `steploop` (W0-T13) were added this way.
  */
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { canonicalJson } from '../packages/sim/core/json'
+import { HOST_PRESETS } from '../packages/sim/host'
+import type { RunnerPresetId } from '../packages/sim/host'
+import type { PhysicsRowKey } from '../packages/sim/physics'
+import { TICK_CARD, defaultCaptureSizes, runStepLoop, s5Card } from '../packages/sim/steploop'
+import type { GpuCard, S5HostTerm, StepLoopConfig, StepLoopRun } from '../packages/sim/steploop'
 import { genWorkload, parseSlice, replayWorkload } from '../packages/sim/workload'
 import type { LengthPlan, ReplaySpec, SliceId, TraceSlice, Workload, WorkloadSpec } from '../packages/sim/workload'
 import { checkTable } from './tables/exp-quantiles'
@@ -169,7 +174,210 @@ const workload: VectorModel = {
   cases: (root) => Object.entries(workloadInputs).map(([name, input]) => ({ name, input, run: () => runWorkload(root, input) })),
 }
 
-export const MODELS: readonly VectorModel[] = [workload]
+// ---------------------------------------------------------------------------------------------------------------------------
+// steploop
+
+/**
+ * A step-loop run as a fixture writes it: every argument of `runStepLoop`, with the workload spelled out as above, the host card
+ * and the S5 row named, and the capture sizes given as vLLM's default list up to a maximum, so the fixture stays readable.
+ */
+type SteploopInput = {
+  readonly workload: WorkloadInput
+  readonly config: Omit<StepLoopConfig, 'graphs'> & {
+    readonly graphs: { readonly mode: 'NONE' } | { readonly mode: 'FULL'; readonly captureSizes: { readonly defaultMax: number } }
+  }
+  readonly host: 'tick' | RunnerPresetId
+  readonly gpu: { readonly card: 'tick' } | { readonly card: 's5'; readonly row: PhysicsRowKey; readonly tp: number; readonly hostTerm: S5HostTerm }
+  readonly horizonUs: number
+  /** `full`: the whole run. `digest`: its summary and violations, with the SHA-256 of its lanes, its steps and its requests. */
+  readonly output: 'full' | 'digest'
+}
+
+/** One of the generated workloads above, by its name. */
+function generated(name: string): WorkloadInput {
+  const input = workloadInputs[name]
+  if (input === undefined || input.fn !== 'genWorkload') throw new Error(`there is no generated workload named "${name}"`)
+  return input
+}
+
+const PRACTICE = generated('front page: a burst of 12, outputs from a heavy-tailed menu')
+const DECODE_BATCH = generated('a decode batch of 64 requests due at once')
+const POISSON = generated('Poisson arrivals at 8 requests a second, uniform lengths')
+/** Ten requests a second apart on average, each short enough to finish long before the next. */
+const SPARSE: WorkloadInput = {
+  fn: 'genWorkload',
+  seed: 11,
+  spec: {
+    requests: 10,
+    arrivals: { kind: 'poisson', ratePerSMilli: 1000 },
+    lengths: { kind: 'dists', prompt: { kind: 'uniform', lo: 32, hi: 128 }, output: { kind: 'uniform', lo: 4, hi: 16 } },
+  },
+}
+
+/** The front page's tray: 4 slots, and a budget that never binds. */
+const TRAY = { maxNumSeqs: 4, maxBatchedTokens: 2048, chunkedPrefill: true, inputIds: 'device' } as const
+/** The harness S5's rows were fitted on: 64 sequences and an 8,192-token budget (WORLD §4.2). */
+const HARNESS = { maxNumSeqs: 64, maxBatchedTokens: 8192, chunkedPrefill: true, inputIds: 'device' } as const
+const H100_TP4 = { card: 's5', row: 'h100-vllm-0-10-2-fp8', tp: 4 } as const
+const EAGER = { mode: 'NONE' } as const
+const GRAPHS = { mode: 'FULL', captureSizes: { defaultMax: 512 } } as const
+const FOREVER = 600_000_000
+
+const steploopInputs: Record<string, SteploopInput> = {
+  'practice seed: the front page\'s world with 4 slots and no overlap, where a step takes 7 ticks': {
+    workload: PRACTICE,
+    config: { ...TRAY, asyncScheduling: false, graphs: EAGER },
+    host: 'tick',
+    gpu: { card: 'tick' },
+    horizonUs: FOREVER,
+    output: 'full',
+  },
+  'practice seed: the same world with overlap (async scheduling), where the gaps close and one ghost token follows each stop': {
+    workload: PRACTICE,
+    config: { ...TRAY, asyncScheduling: true, graphs: EAGER },
+    host: 'tick',
+    gpu: { card: 'tick' },
+    horizonUs: FOREVER,
+    output: 'full',
+  },
+  'practice seed: overlap with the CPU writing the input ids from the host reads tokens before they are sampled': {
+    workload: PRACTICE,
+    config: { ...TRAY, inputIds: 'host', asyncScheduling: true, graphs: EAGER },
+    host: 'tick',
+    gpu: { card: 'tick' },
+    horizonUs: FOREVER,
+    output: 'full',
+  },
+  'practice seed: static batching, which admits nothing while any request of the batch is live, with no overlap': {
+    workload: PRACTICE,
+    config: { ...TRAY, batching: 'static', asyncScheduling: false, graphs: EAGER },
+    host: 'tick',
+    gpu: { card: 'tick' },
+    horizonUs: FOREVER,
+    output: 'full',
+  },
+  'practice seed: static batching with overlap, which the front page calls overlap alone': {
+    workload: PRACTICE,
+    config: { ...TRAY, batching: 'static', asyncScheduling: true, graphs: EAGER },
+    host: 'tick',
+    gpu: { card: 'tick' },
+    horizonUs: FOREVER,
+    output: 'full',
+  },
+  '70B on H100 at TP 4, a decode batch of 64: S5 as fitted, eager launches, no overlap': {
+    workload: DECODE_BATCH,
+    config: { ...HARNESS, asyncScheduling: false, graphs: EAGER },
+    host: 'mrv2',
+    gpu: { ...H100_TP4, hostTerm: 'in-gpu' },
+    horizonUs: FOREVER,
+    output: 'digest',
+  },
+  '70B on H100 at TP 4, a decode batch of 64: the host term on the CPU lane (D-044), eager launches, no overlap': {
+    workload: DECODE_BATCH,
+    config: { ...HARNESS, asyncScheduling: false, graphs: EAGER },
+    host: 'mrv2',
+    gpu: { ...H100_TP4, hostTerm: 'on-cpu' },
+    horizonUs: FOREVER,
+    output: 'digest',
+  },
+  '70B on H100 at TP 4, a decode batch of 64: the host term on the CPU lane, eager launches, overlap': {
+    workload: DECODE_BATCH,
+    config: { ...HARNESS, asyncScheduling: true, graphs: EAGER },
+    host: 'mrv2',
+    gpu: { ...H100_TP4, hostTerm: 'on-cpu' },
+    horizonUs: FOREVER,
+    output: 'digest',
+  },
+  '70B on H100 at TP 4, a decode batch of 64: the host term on the CPU lane, graphs on (vLLM\'s sizes up to 512), no overlap': {
+    workload: DECODE_BATCH,
+    config: { ...HARNESS, asyncScheduling: false, graphs: GRAPHS },
+    host: 'mrv2',
+    gpu: { ...H100_TP4, hostTerm: 'on-cpu' },
+    horizonUs: FOREVER,
+    output: 'digest',
+  },
+  '70B on H100 at TP 4, a decode batch of 64: the host term on the CPU lane, graphs on, overlap': {
+    workload: DECODE_BATCH,
+    config: { ...HARNESS, asyncScheduling: true, graphs: GRAPHS },
+    host: 'mrv2',
+    gpu: { ...H100_TP4, hostTerm: 'on-cpu' },
+    horizonUs: FOREVER,
+    output: 'digest',
+  },
+  '70B on H100 at TP 4, Poisson arrivals at 8 a second on the V1 runner, overlap and graphs on': {
+    workload: POISSON,
+    config: { ...HARNESS, asyncScheduling: true, graphs: GRAPHS },
+    host: 'v1',
+    gpu: { ...H100_TP4, hostTerm: 'on-cpu' },
+    horizonUs: FOREVER,
+    output: 'digest',
+  },
+  '70B on H100 at TP 4, Poisson arrivals at 1 a second: the engine idles between requests, and an idle GPU beside an idle CPU is no bubble': {
+    workload: SPARSE,
+    config: { ...HARNESS, asyncScheduling: false, graphs: EAGER },
+    host: 'v1',
+    gpu: { ...H100_TP4, hostTerm: 'on-cpu' },
+    horizonUs: FOREVER,
+    output: 'digest',
+  },
+  'the same run cut at 2 s: the clock stops, spans are cut, and steps in flight are never read back': {
+    workload: POISSON,
+    config: { ...HARNESS, asyncScheduling: true, graphs: GRAPHS },
+    host: 'v1',
+    gpu: { ...H100_TP4, hostTerm: 'on-cpu' },
+    horizonUs: 2_000_000,
+    output: 'digest',
+  },
+  '70B on H100 at TP 4, chunked prefill: prompts of 600 to 1,500 tokens through a 512-token budget': {
+    workload: {
+      fn: 'genWorkload',
+      seed: 9,
+      spec: {
+        requests: 12,
+        arrivals: { kind: 'poisson', ratePerSMilli: 20000 },
+        lengths: { kind: 'dists', prompt: { kind: 'uniform', lo: 600, hi: 1500 }, output: { kind: 'uniform', lo: 4, hi: 16 } },
+      },
+    },
+    config: { maxNumSeqs: 8, maxBatchedTokens: 512, chunkedPrefill: true, inputIds: 'device', asyncScheduling: true, graphs: GRAPHS },
+    host: 'mrv2',
+    gpu: { ...H100_TP4, hostTerm: 'on-cpu' },
+    horizonUs: FOREVER,
+    output: 'digest',
+  },
+}
+
+function runSteploop(root: string, input: SteploopInput): StepLoopRun {
+  const { graphs } = input.config
+  const config: StepLoopConfig = {
+    ...input.config,
+    graphs: graphs.mode === 'NONE' ? { mode: 'NONE', captureSizes: [] } : { mode: 'FULL', captureSizes: defaultCaptureSizes(graphs.captureSizes.defaultMax) },
+  }
+  const host = input.host === 'tick' ? TICK_CARD : HOST_PRESETS[input.host].card
+  const gpu: GpuCard = input.gpu.card === 'tick' ? TICK_CARD : s5Card(input.gpu.row, input.gpu.tp, input.gpu.hostTerm)
+  return runStepLoop(runWorkload(root, input.workload), config, host, gpu, { horizonUs: input.horizonUs })
+}
+
+/** What a vector records of a run: all of it, or its summary and violations with the SHA-256 of each part. */
+function steploopOutput(run: StepLoopRun, output: SteploopInput['output']): unknown {
+  if (output === 'full') return run
+  return {
+    summary: run.summary,
+    violations: run.violations,
+    steps: run.steps.length,
+    sha256: { lanes: sha256(canonicalJson(run.lanes)), steps: sha256(canonicalJson(run.steps)), reqs: sha256(canonicalJson(run.reqs)) },
+  }
+}
+
+const steploop: VectorModel = {
+  model: 'steploop',
+  file: `${FIXTURE_DIR}/steploop.json`,
+  header:
+    'Golden vectors for packages/sim/steploop (ARCHITECTURE section 5.10): each maps its input, a workload with a configuration, a host card, a GPU card and a horizon, to the run it gives, with the SHA-256 of that run\'s canonical JSON. A run of the front page\'s world is recorded whole: its lanes\' spans, its steps, its requests, its summary and its violations. A longer run is recorded as its summary and violations with the SHA-256 of its lanes, steps and requests. Regenerate only with `bun scripts/vectors.ts --write`, and review the diff like code.',
+  cases: (root) =>
+    Object.entries(steploopInputs).map(([name, input]) => ({ name, input, run: () => steploopOutput(runSteploop(root, input), input.output) })),
+}
+
+export const MODELS: readonly VectorModel[] = [workload, steploop]
 
 // ---------------------------------------------------------------------------------------------------------------------------
 // fixtures
