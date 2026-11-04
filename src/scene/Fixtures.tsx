@@ -10,9 +10,10 @@ import { roleColor } from './materials'
 
 const TONE_ROLE = { bright: 'surface-1', shaded: 'surface-2', deep: 'surface-3' } as const satisfies Record<SteelTone, string>
 
-export function Fixtures({ parts }: { parts: readonly FixturePart[] }) {
+/** `grain`: the world size one tile of the brush covers (fixture-geometry.ts's STEEL_TILE by default); smaller is finer. */
+export function Fixtures({ parts, grain }: { parts: readonly FixturePart[]; grain?: number }) {
   const kit = useKit()
-  const geometry = useMemo(() => buildFixtures(parts, (tone) => roleColor(kit.tokens, TONE_ROLE[tone])), [parts, kit.tokens])
+  const geometry = useMemo(() => buildFixtures(parts, (tone) => roleColor(kit.tokens, TONE_ROLE[tone]), grain), [parts, kit.tokens, grain])
   useEffect(() => () => geometry.dispose(), [geometry])
   return <mesh name="fixtures" geometry={geometry} material={kit.materials.stainless} raycast={() => null} />
 }

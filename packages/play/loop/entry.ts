@@ -14,8 +14,8 @@ export const LOOP: GameEntry = {
   modules: ['tr2', 'tr6'],
   title: 'Service',
   subtitle: 'the step loop',
-  // W0-T17 builds Scene3D.tsx and sets this to true.
-  has3d: false,
+  // The 3D scene is src/games/loop/Scene3D.tsx (W0-T17).
+  has3d: true,
   kcs: ['tr2.bubble', 'tr2.async-overlap'],
   keys: [{ id: 'overlap', code: 'KeyO', label: 'O', description: 'Write the next call during this fire (overlap)' }],
   levels: [

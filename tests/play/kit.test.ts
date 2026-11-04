@@ -158,10 +158,13 @@ describe('the view switch', () => {
     expect(markup).not.toMatch(/disabled=""[^>]*>3D view/)
   })
 
-  test('in 3D the scene is drawn inside a wrapper hidden from assistive technology, and the 2D view is not drawn', () => {
+  test('in 3D the scene is drawn inside a labelled group that the drawing note describes, and the 2D view is not drawn', () => {
+    // The group is not hidden: the scene's Stage hides its own canvas, and keeps its 2D first paint, its notes and their buttons
+    // where assistive technology can reach them (W0-T17). A focusable control must never sit inside a hidden box.
     const markup = shell({ game: TOY_3D, scene3d: scene, defaultView: '3d' })
     expect(markup).toContain('data-view="3d"')
-    expect(markup).toContain('<div data-surface="3d" aria-hidden="true"><canvas></canvas></div>')
+    expect(markup).toMatch(/<p id="([^"]+)" class="sr-only">This view is a drawing\. The table below lists everything it shows\.<\/p><div data-surface="3d" role="group" aria-label="3D view" aria-describedby="\1"><canvas><\/canvas><\/div>/)
+    expect(markup).not.toContain('data-surface="3d" aria-hidden')
     expect(markup).not.toContain('data-slot="view2d"')
   })
 

@@ -73,6 +73,7 @@ export interface GameShellProps<Level, State, Action extends GameAction, View, S
   /** A key the shell does not take itself. Return true when the command was handled. A `step-back` left unhandled undoes. */
   onCommand?: (command: string, run: RunApi<Action, View, Score, Ask>) => boolean | void
   view2d: (run: RunApi<Action, View, Score, Ask>) => ReactNode
+  /** The 3D view: a Stage (src/scene), which paints the 2D view first and hides its own canvas from assistive technology (A§6.9). */
   scene3d?: (run: RunApi<Action, View, Score, Ask>) => ReactNode
   controls: (run: RunApi<Action, View, Score, Ask>) => ReactNode
   mirror: (run: RunApi<Action, View, Score, Ask>) => ReactNode
@@ -216,7 +217,9 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
               This view is a drawing. The table below lists everything it shows.
             </p>
             {view === '3d' && props.scene3d ? (
-              <div data-surface="3d" aria-hidden="true">
+              // The scene's own box hides its canvas (the Stage marks it aria-hidden, A§6.9). Around it stay what a reader needs: the
+              // 2D view the Stage paints first or falls back to, and its notes and their buttons, which must never sit in a hidden box.
+              <div data-surface="3d" role="group" aria-label="3D view" aria-describedby={noteId}>
                 {props.scene3d(api)}
               </div>
             ) : (

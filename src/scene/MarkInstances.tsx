@@ -37,6 +37,11 @@ export function MarkInstances({ boxes, onPick, name = 'marks' }: MarkInstancesPr
   const mesh = useRef<InstancedMesh>(null)
   const ids = useMemo(() => boxes.map((box) => box.id), [boxes])
   const sweep = useRef<{ boxes: readonly MarkBox[]; from: number; indices: number[]; active: boolean }>({ boxes: [], from: Number.NaN, indices: [], active: false })
+  // A new list of boxes asks for the whole buffer to reach the GPU, and until three has uploaded it, a sweep must not narrow the upload
+  // to the marks it reaches: a mark the sweep does not reach but whose index changed would keep its old matrix on the GPU (W0-T17 found
+  // one drawn as a unit cube at the track's origin). The flag clears on the upload itself, not on the next frame, because a frame-rate
+  // cap can skip the render that would have sent it.
+  const wholeUpload = useRef(false)
 
   useLayoutEffect(() => {
     const instanced = mesh.current
@@ -59,6 +64,10 @@ export function MarkInstances({ boxes, onPick, name = 'marks' }: MarkInstancesPr
     instanced.count = boxes.length
     instanced.instanceMatrix.clearUpdateRanges()
     instanced.instanceMatrix.needsUpdate = true
+    instanced.instanceMatrix.onUpload(() => {
+      wholeUpload.current = false
+    })
+    wholeUpload.current = true
     forms.needsUpdate = true
     if (instanced.instanceColor) instanced.instanceColor.needsUpdate = true
     instanced.computeBoundingSphere()
@@ -84,10 +93,11 @@ export function MarkInstances({ boxes, onPick, name = 'marks' }: MarkInstancesPr
     }
     const clip = moving ? track.presentZ() : Number.POSITIVE_INFINITY
     const matrices = instanced.instanceMatrix.array as Float32Array
-    instanced.instanceMatrix.clearUpdateRanges()
+    const whole = wholeUpload.current
+    if (!whole) instanced.instanceMatrix.clearUpdateRanges()
     for (const i of sweep.current.indices) {
       writeMatrix(boxes[i], matrices, i * 16, clip)
-      instanced.instanceMatrix.addUpdateRange(i * 16, 16)
+      if (!whole) instanced.instanceMatrix.addUpdateRange(i * 16, 16)
     }
     instanced.instanceMatrix.needsUpdate = true
     if (!moving) sweep.current = { ...sweep.current, active: false }

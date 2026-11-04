@@ -11,7 +11,7 @@
  * levers speak of `admit`, `run`, `async` and `batching`, never of tickets.
  */
 import type { Seed, Us } from '@es/sim/core'
-import type { Span } from '@es/sim/steploop'
+import type { GraphResult, Span } from '@es/sim/steploop'
 import type { ReqRecord, StepRecord } from '@es/sim/steploop/metrics'
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -166,6 +166,14 @@ export interface FireView {
   readonly ghosts: number
   /** Still on the line: its plates have not been read back. */
   readonly onLine: boolean
+  /**
+   * The expo's launch calls for this fire, from the sim's record: one per kernel on an eager fire, one for a graph replay. The tick card
+   * launches no kernels, so the front page's fires have none; TR2's levels (W1-T13) have them, and the 3D scene draws them as a comb.
+   * The session's view sets it; a fire drawn from a finished run's step stats (compare.ts) has no count to give.
+   */
+  readonly launches?: number
+  /** Whether the fire replayed a captured graph: `off` with graphs off, `hit` when its size was captured, `miss` when not. */
+  readonly graph?: GraphResult
 }
 
 export interface ClipView {

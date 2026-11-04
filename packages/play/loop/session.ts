@@ -95,6 +95,8 @@ export function loopView(s: LoopState): LoopView {
       bubbleUs: stats[index].bubbleUs,
       ghosts: stats[index].ghostSeqs,
       onLine: index >= s.reads,
+      launches: fire.record.launches,
+      graph: fire.record.graph,
     }
   })
   const clip = (req: number | null, fresh: boolean): ClipView => ({ req, fresh })
