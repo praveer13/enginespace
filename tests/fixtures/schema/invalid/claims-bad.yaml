@@ -1,0 +1,64 @@
+# One mistake per claim.
+- id: example.no-source
+  value: 1
+  text: A measured claim with no source.
+  tag: measured
+  verifiedAt: 2026-11-03
+  ttlDays: 90
+- id: example.derived-without-recipe
+  value: 2
+  text: A derived claim with no derived block.
+  tag: derived
+  verifiedAt: 2026-11-03
+  ttlDays: 90
+- id: example.recipe-on-a-measured-claim
+  value: 3
+  text: A measured claim that carries a derived block.
+  tag: measured
+  source: { url: https://example.com/x, title: X, quote: x, accessed: 2026-11-03 }
+  derived: { formula: 1 + 2, inputs: [example.no-source] }
+  verifiedAt: 2026-11-03
+  ttlDays: 90
+- id: example.http-source
+  value: 4
+  text: A claim whose source is not https.
+  tag: measured
+  source: { url: "http://example.com/x", title: X, quote: x, accessed: 2026-11-03 }
+  verifiedAt: 2026-11-03
+  ttlDays: 90
+- id: example.bad-date
+  value: 5
+  text: A claim verified on a day that does not exist.
+  tag: measured
+  source: { url: https://example.com/x, title: X, quote: x, accessed: 2026-11-03 }
+  verifiedAt: 2026-02-30
+  ttlDays: 90
+- id: example.zero-ttl
+  value: 6
+  text: A claim that is never fresh.
+  tag: measured
+  source: { url: https://example.com/x, title: X, quote: x, accessed: 2026-11-03 }
+  verifiedAt: 2026-11-03
+  ttlDays: 0
+- id: Example.Upper
+  value: 7
+  text: A claim with an uppercase id.
+  tag: estimated
+  synthetic: true
+  verifiedAt: 2026-11-03
+  ttlDays: 90
+- id: example.unknown-tag
+  value: 8
+  text: A claim with a tag that is not one of the four.
+  tag: guessed
+  synthetic: true
+  verifiedAt: 2026-11-03
+  ttlDays: 90
+- id: example.unknown-key
+  value: 9
+  text: A claim with a key the schema does not know.
+  tag: estimated
+  synthetic: true
+  verifiedAt: 2026-11-03
+  ttlDays: 90
+  confidence: high

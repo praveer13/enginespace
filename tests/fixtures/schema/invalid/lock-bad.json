@@ -1,0 +1,26 @@
+{
+  "schema": "enginespace/lock@2",
+  "entries": [
+    {
+      "key": "vllm",
+      "kind": "pypi",
+      "name": "vllm",
+      "url": "https://pypi.org/project/vllm/",
+      "checkedAt": "2026-11-03",
+      "ttlDays": 90,
+      "notes": "no version and no commit"
+    },
+    {
+      "key": "sglang",
+      "kind": "tarball",
+      "name": "sglang",
+      "commit": "4ba787ec",
+      "url": "http://example.com/vllm.tar",
+      "sha256": "ABC",
+      "checkedAt": "2026-13-01",
+      "ttlDays": -1,
+      "notes": "",
+      "maintainer": "someone"
+    }
+  ]
+}

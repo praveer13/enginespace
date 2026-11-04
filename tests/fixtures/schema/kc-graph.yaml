@@ -1,0 +1,40 @@
+# Fixture for the schema tests: TR0's proposed KCs (curriculum/TR0-pytorch-for-rust.md §1), each described by the skill that
+# section names. The confusable pair and the threshold flag are added to exercise the schema. W2-T18 writes the real graph.
+- id: tr0.tensor-metadata
+  description: You can read a tensor as a buffer plus shape, strides, an offset, a dtype and a device.
+  requires: [ks:t0.stride-traversal, ks:t0.data-layout]
+  threshold: true
+
+- id: tr0.view-vs-copy
+  description: You can predict the strides of a slice, a transpose and a permute, and say which operations are views and which copy.
+  requires: [tr0.tensor-metadata]
+  confusable: [tr0.broadcast-stride-zero]
+
+- id: tr0.broadcast-stride-zero
+  description: You can say why an expand moves no data, and what its stride is.
+  requires: [tr0.view-vs-copy]
+  confusable: [tr0.view-vs-copy]
+
+- id: tr0.hidden-syncs
+  description: You can spot the calls that wait for the GPU, such as .item() and .tolist(), in engine code.
+  requires: [tr0.tensor-metadata]
+  planned: W2-T18
+
+- id: tr0.module-as-struct
+  description: You can read an nn.Module as a struct whose forward is a method.
+
+- id: tr0.decoder-forward
+  description: You can read a Qwen3 decoder layer line by line, from the embedding to the final projection.
+  requires: [ks:t5.forward-pass-costs, ks:t5.gqa-kv-heads, tr0.module-as-struct]
+
+- id: tr0.kv-cache-contract
+  description: You can write a cached forward pass whose next-token logits equal a full recompute.
+  requires: [ks:t5.why-kv-cache, tr0.decoder-forward]
+
+- id: tr0.triton-program-model
+  description: You can say which elements each Triton program touches.
+  requires: [ks:t4.compute-grid, tr0.tensor-metadata]
+
+- id: tr0.triton-masks
+  description: You can say why a masked load and store guard the edges of a tile.
+  requires: [tr0.triton-program-model]
