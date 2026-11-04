@@ -1,0 +1,256 @@
+/*
+ * Service (`loop`) in a browser: the walks that `verify:games` lists for every game and cannot run itself (A§6.2, A§6.8, A§6.9, GAMES.md §2.5).
+ *
+ *   1. A keyboard-only walk plays all four levels to their debriefs: the tickets are reached by Tab, hung with Enter, focus follows to
+ *      the next ticket and then to the bell, `.` rings the bell, `O` flips overlap, Space toggles Auto, `,` undoes, `?` opens the keys
+ *      and Escape gives focus back, and "Next" moves on with focus kept in the game.
+ *   2. Reduced motion: nothing animates, Auto is off until it is asked for, and the game still plays.
+ *   3. Nothing leaves the origin (ARCHITECTURE §1, I1).
+ *   4. The same seed and the same actions give the same state hash in the browser as under Node (A§5.10: the nightly job runs this in
+ *      every browser the config lists, and the hash it compares is `stateHash`).
+ *   5. The picture is the poster: the 2D view's first frame, in the page, is the SVG that scripts/posters.ts wrote.
+ *
+ * How it runs. The spec starts the app's own Vite dev server on a free port, so it needs no build and no preview server, and drives
+ * `/play/loop` in whichever browser Playwright launches. Run it with `npx playwright test e2e/loop.spec.ts`.
+ */
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
+import { test as base, expect } from '@playwright/test'
+import type { Page } from '@playwright/test'
+import { createServer } from 'vite'
+import type { ViteDevServer } from 'vite'
+import { applyAction, startRun, stateHash } from '../packages/play'
+import { loopSession } from '../packages/play/loop/session'
+import type { LoopAction } from '../packages/play/loop/types'
+
+const root = path.resolve(import.meta.dirname, '..')
+
+let server: ViteDevServer
+let origin = ''
+
+base.beforeAll(async () => {
+  server = await createServer({ root, logLevel: 'error', server: { port: 0, host: '127.0.0.1', strictPort: false } })
+  await server.listen()
+  const url = server.resolvedUrls?.local[0]
+  if (url === undefined) throw new Error('the dev server has no address')
+  origin = url.replace(/\/$/, '')
+}, 120_000)
+
+base.afterAll(async () => {
+  await server.close()
+})
+
+const test = base
+
+const bell = (page: Page) => page.getByRole('button', { name: /Ring the bell/ })
+const debriefButton = (page: Page) => page.getByRole('button', { name: 'See the debrief' })
+const enabledTickets = (page: Page) => page.locator('[data-loop-controls] ul button:not([disabled])')
+const game = (page: Page) => page.locator('section[data-game="loop"]')
+const outcome = (page: Page) => page.locator('[data-live="outcome"]')
+const activeName = (page: Page) =>
+  page.evaluate(() => {
+    const element = document.activeElement
+    return element === null ? '' : (element.getAttribute('aria-label') ?? element.textContent?.trim() ?? element.tagName)
+  })
+
+async function open(page: Page, level: string) {
+  await page.goto(`${origin}/play/loop?level=${level}`, { waitUntil: 'networkidle' })
+  await page.evaluate(() => document.fonts.ready)
+  await expect(game(page)).toBeVisible()
+}
+
+/** Presses Tab until the focused control is named like `name`, and fails after `limit` presses. */
+async function tabTo(page: Page, name: RegExp, limit = 30) {
+  for (let i = 0; i < limit; i++) {
+    await page.keyboard.press('Tab')
+    if (name.test(await activeName(page))) return
+  }
+  throw new Error(`Tab never reached a control named ${name}`)
+}
+
+/** Plays a level to the end with the keys alone: Enter on a ticket hangs it, and Enter on the bell rings it. */
+async function playToTheEnd(page: Page) {
+  for (let turn = 0; turn < 300; turn++) {
+    if ((await debriefButton(page).count()) > 0) return
+    const tickets = enabledTickets(page)
+    if ((await tickets.count()) > 0) {
+      await tickets.first().focus()
+      await page.keyboard.press('Enter')
+    } else {
+      await bell(page).focus()
+      await page.keyboard.press('Enter')
+    }
+  }
+  throw new Error('the level did not end in 300 turns')
+}
+
+test.describe('a keyboard-only walk', () => {
+  test('reaches the tickets by Tab, hangs them with Enter, and focus follows to the next ticket and then to the bell', async ({ page }) => {
+    await open(page, 'first-1-fill')
+    await tabTo(page, /^Hang ticket No\. 01 on the rail$/)
+    for (const next of ['02', '03', '04']) {
+      await page.keyboard.press('Enter')
+      await expect.poll(() => activeName(page)).toBe(`Hang ticket No. ${next} on the rail`)
+    }
+    await page.keyboard.press('Enter')
+    await expect.poll(() => activeName(page)).toBe('Ring the bell: fire the next step')
+    // The rail is full, so the waiting tickets are disabled and the page says why.
+    await expect(page.getByText('Every clip is hung: ring the bell.')).toBeVisible()
+    await page.keyboard.press('Enter')
+    await expect(outcome(page)).toHaveText('The run is over. The debrief is ready.')
+    await expect(page.locator('[data-live="line"]')).toContainText('Fire 1 rung: 4 plates.')
+  })
+
+  test('the keys of the game: `.` rings, `,` undoes, `O` flips overlap, Space toggles Auto, and `?` shows them all', async ({ page }) => {
+    await open(page, 'first-3-gap')
+    await game(page).focus()
+    // Overlap is a switch that the key flips, and the live region says so.
+    await page.keyboard.press('KeyO')
+    await expect(page.getByRole('switch')).toHaveAttribute('aria-checked', 'true')
+    await expect(page.locator('[data-live="line"]')).toContainText('Overlap on')
+    await page.keyboard.press('Period')
+    await expect(page.locator('[data-live="line"]')).toContainText('Fire 3 rung')
+    // The comma takes the move back: the bell has been rung once, and the run is as it was.
+    await page.keyboard.press('Comma')
+    await expect(page.locator('[data-live="line"]')).toContainText('Undid the last move.')
+    await expect(page.locator('[data-loop-controls] .es-bell__count .es-readout__value')).toHaveText('0002')
+    // Space starts Auto from the game, and a second Space stops it.
+    await page.keyboard.press('Space')
+    await expect(page.getByRole('button', { name: 'Auto' })).toHaveAttribute('aria-pressed', 'true')
+    await page.keyboard.press('Space')
+    await expect(page.getByRole('button', { name: 'Auto' })).toHaveAttribute('aria-pressed', 'false')
+    // `?` lists every key, the common ones and Service's own, and Escape gives focus back to the button that opened it.
+    await page.keyboard.press('Shift+Slash')
+    const keys = page.getByRole('dialog')
+    await expect(keys).toBeVisible()
+    await expect(keys.locator('kbd')).toHaveText(['Space', '.', ',', '[', ']', 'C', 'V', '?', 'O'])
+    await page.keyboard.press('Escape')
+    await expect(keys).toBeHidden()
+    await expect.poll(() => activeName(page)).toBe('Keys')
+  })
+
+  test('a native key wins: Space on the focused Auto button presses the button, once', async ({ page }) => {
+    await open(page, 'first-1-fill')
+    for (let i = 0; i < 2; i++) {
+      await enabledTickets(page).first().focus()
+      await page.keyboard.press('Enter')
+    }
+    await page.getByRole('button', { name: 'Auto' }).focus()
+    await page.keyboard.press('Space')
+    await expect(page.getByRole('button', { name: 'Auto' })).toHaveAttribute('aria-pressed', 'false')
+    // Auto ran one fire, and the level (one fire) is over, so it had nothing more to do.
+    await expect(outcome(page)).toHaveText('The run is over. The debrief is ready.')
+  })
+
+  test('plays all four levels to their debriefs, and Next keeps focus in the game', async ({ page }) => {
+    test.setTimeout(120_000)
+    await open(page, 'first-1-fill')
+    const titles = ['A clip empties', 'Mind the gap', 'Your turn']
+    for (const [index, title] of ['Fill the rail', ...titles].entries()) {
+      await expect(page.locator('[data-game="loop"] .es-tape').first()).toContainText(`${title} · practice`)
+      if (index >= 2) await page.getByRole('switch').focus().then(() => page.keyboard.press('Space'))
+      await playToTheEnd(page)
+      await debriefButton(page).focus()
+      await page.keyboard.press('Enter')
+      await expect(page.getByRole('heading', { level: 3 }).first()).toHaveText(/^(WELL FIRED|FIRE IT AGAIN)\.$/i)
+      if (index < 3) {
+        await page.getByRole('button', { name: `Next: ${titles[index]}` }).focus()
+        await page.keyboard.press('Enter')
+        await expect.poll(() => page.evaluate(() => document.activeElement?.getAttribute('data-game'))).toBe('loop')
+      }
+    }
+    // The last debrief is the end card: par against the clock, the night served three ways, and the way on.
+    await expect(page.getByText('The same night, served three ways')).toBeVisible()
+    await expect(page.getByText('The real engine', { exact: true })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Open the course map' })).toHaveAttribute('href', '/map')
+    await expect(page.getByRole('button', { name: 'New numbers' })).toBeVisible()
+  })
+})
+
+test.describe('reduced motion', () => {
+  test.use({ reducedMotion: 'reduce' })
+
+  test('nothing animates, Auto is off until asked for, and the game plays and pauses at a decision', async ({ page }) => {
+    await open(page, 'first-4-par')
+    expect(await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(true)
+    await expect(page.getByRole('button', { name: 'Auto' })).toHaveAttribute('aria-pressed', 'false')
+    for (let i = 0; i < 4; i++) {
+      await enabledTickets(page).first().focus()
+      await page.keyboard.press('Enter')
+    }
+    await game(page).focus()
+    await page.keyboard.press('KeyO')
+    await bell(page).focus()
+    await page.keyboard.press('Enter')
+    // The bell's strike and the printer's feed are CSS animations: under reduced motion they are 1 ms long, so none is still running.
+    await expect.poll(() => page.evaluate(() => document.getAnimations().filter((animation) => animation.playState === 'running').length)).toBe(0)
+    expect(await page.evaluate(() => getComputedStyle(document.querySelector('.es-bell__body') as Element).animationDuration)).toBe('0.001s')
+    // Auto was not on by itself: the clock has moved once, by the one ring.
+    await expect(page.locator('[data-loop-controls] .es-bell__count .es-readout__value')).toHaveText('0001')
+    await page.getByRole('button', { name: 'Auto' }).focus()
+    await page.keyboard.press('Enter')
+    await expect(page.locator('[data-live="line"]')).toContainText('A clip is open and a ticket waits.', { timeout: 15_000 })
+    await expect(page.getByRole('button', { name: 'Auto' })).toHaveAttribute('aria-pressed', 'false')
+  })
+})
+
+test.describe('the page keeps to its origin', () => {
+  test('no request leaves it while a level is played', async ({ page }) => {
+    const away: string[] = []
+    page.on('request', (request) => {
+      const url = request.url()
+      if (!url.startsWith(origin) && !url.startsWith('data:') && !url.startsWith('blob:')) away.push(url)
+    })
+    await open(page, 'first-2-slot')
+    await playToTheEnd(page)
+    await debriefButton(page).click()
+    await expect(page.getByRole('heading', { level: 3 }).first()).toBeVisible()
+    expect(away).toEqual([])
+  })
+})
+
+test.describe('determinism and the poster', () => {
+  const actions: LoopAction[] = [
+    { t: 'admit', req: 0 },
+    { t: 'admit', req: 1 },
+    { t: 'admit', req: 2 },
+    { t: 'admit', req: 3 },
+    { t: 'lever', name: 'async', value: true },
+    { t: 'run', until: 'step' },
+    { t: 'run', until: 'step' },
+    { t: 'run', until: 'decision' },
+    { t: 'admit', req: 4 },
+    { t: 'run', until: 'step' },
+  ]
+
+  test('the same seed and the same actions give the same state hash in the browser as under Node', async ({ page }) => {
+    let run = startRun(loopSession, { game: 'loop', level: 'first-4-par', seed: 1 })
+    for (const action of actions) run = applyAction(loopSession, run, action)
+    const expected = stateHash(run.state)
+    await open(page, 'first-1-fill')
+    // The page imports the same modules from the dev server and runs the same actions. The script is a string, so that nothing in
+    // Playwright's transform of this file touches the imports.
+    const inBrowser = await page.evaluate(`(async () => {
+      const play = await import('/packages/play/index.ts')
+      const { loopSession } = await import('/packages/play/loop/session.ts')
+      let run = play.startRun(loopSession, { game: 'loop', level: 'first-4-par', seed: 1 })
+      for (const action of ${JSON.stringify(actions)}) run = play.applyAction(loopSession, run, action)
+      return play.stateHash(run.state)
+    })()`)
+    expect(inBrowser).toBe(expected)
+    expect(expected).toMatch(/^[0-9a-f]{8}$/)
+  })
+
+  test('the 2D view\'s first frame is the poster: the page\'s drawing is the SVG that scripts/posters.ts wrote', async ({ page }) => {
+    await open(page, 'first-1-fill')
+    const drawn = await page.locator('[data-loop-view] svg').evaluate((element) => ({
+      label: element.getAttribute('aria-label'),
+      marks: element.querySelectorAll('rect, circle, line, path, polygon, text').length,
+      parts: [...element.querySelectorAll('g[data-part]')].map((g) => g.getAttribute('data-part')),
+    }))
+    const poster = readFileSync(path.join(root, 'public/posters/loop-first-frame-landscape.svg'), 'utf8')
+    expect(poster).toContain(`aria-label="${drawn.label?.replace(/'/g, '&#x27;')}"`)
+    expect(poster.match(/<(rect|circle|line|path|polygon|text)[ >]/g)).toHaveLength(drawn.marks)
+    expect([...poster.matchAll(/<g data-part="([a-z]+)">/g)].map((match) => match[1])).toEqual(drawn.parts as string[])
+  })
+})

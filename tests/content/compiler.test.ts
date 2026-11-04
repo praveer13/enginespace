@@ -17,7 +17,7 @@ import { gzipSync } from 'node:zlib'
 import { claimsOutputSchema, compiledLessonSchema, compiledModuleSchema, contentIndexSchema } from '@es/schema'
 import type { ProseFlow, ProseInline } from '@es/schema'
 import { BUDGETS, canonicalJson, compileContent, writeOutputs } from '../../scripts/content/build.ts'
-import { CLAIMS, compile, COURSE, errors, KCS, LESSON, lineOf, MODULE, output, project, read, repo, report, swap, tempDir, where } from './support.ts'
+import { CLAIM_COUNT, CLAIMS, compile, COURSE, errors, KCS, LESSON, lineOf, MODULE, output, project, read, repo, report, swap, tempDir, where } from './support.ts'
 import type { Edit } from './support.ts'
 
 const LESSON_JSON = 'src/content/generated/lessons/tr2.l0-sample.json'
@@ -30,7 +30,7 @@ const sample = compile()
 describe('the sample content compiles', () => {
   test('without a diagnostic of any kind', () => {
     expect(report(sample)).toBe('')
-    expect(sample.stats).toEqual({ modules: 1, lessons: 1, claims: 4 })
+    expect(sample.stats).toEqual({ modules: 1, lessons: 1, claims: CLAIM_COUNT })
   })
 
   test('to the outputs of A§4.6', () => {
@@ -73,7 +73,7 @@ describe('check 1: the CLI writes index.json within 6 KB gz, and every output va
   test('it exits 0 and says what it wrote', () => {
     expect(first.err).toBe('')
     expect(first.status).toBe(0)
-    expect(first.out).toBe('content: 1 module, 1 lesson, 4 claims: wrote 7 files, 0 unchanged, removed 0\n')
+    expect(first.out).toBe(`content: 1 module, 1 lesson, ${CLAIM_COUNT} claims: wrote 7 files, 0 unchanged, removed 0\n`)
   })
 
   test('index.json is at most 6 KB gz [estimated]', () => {
@@ -88,7 +88,7 @@ describe('check 1: the CLI writes index.json within 6 KB gz, and every output va
     ])
     expect(compiledModuleSchema.parse(JSON.parse(read(MODULE_JSON, root))).id).toBe('tr2')
     expect(compiledLessonSchema.parse(JSON.parse(read(LESSON_JSON, root))).id).toBe('tr2.l0')
-    expect(claimsOutputSchema.parse(JSON.parse(read('public/claims.json', root))).claims).toHaveLength(4)
+    expect(claimsOutputSchema.parse(JSON.parse(read('public/claims.json', root))).claims).toHaveLength(CLAIM_COUNT)
   })
 
   test('every JSON output is compact and ends in one newline', () => {
@@ -101,7 +101,7 @@ describe('check 1: the CLI writes index.json within 6 KB gz, and every output va
 
   test('a second run changes nothing', () => {
     const second = run(root)
-    expect(second.out).toBe('content: 1 module, 1 lesson, 4 claims: wrote 0 files, 7 unchanged, removed 0\n')
+    expect(second.out).toBe(`content: 1 module, 1 lesson, ${CLAIM_COUNT} claims: wrote 0 files, 7 unchanged, removed 0\n`)
   })
 
   test('it removes what it no longer writes, and only inside the folders it owns', () => {

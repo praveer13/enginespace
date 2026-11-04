@@ -7,8 +7,9 @@
  * records and not the games. `src/games/registry.ts` maps the same ids to the lazy components (kernelspace's PLAY_REGISTRY
  * pattern), and `verify:games` fails when the two disagree.
  *
- * A game joins by adding its entry to `GAMES` below. W0-T16 adds `loop`, the first.
+ * A game joins by adding its entry to `GAMES` below. W0-T16 added `loop`, the first.
  */
+import { LOOP } from './loop/entry'
 import { regrade } from './replay'
 import type { Regrade } from './replay'
 import type { GameEntry, KeyBinding, LevelEntry, StoredRun } from './types'
@@ -86,8 +87,8 @@ export function createRegistry(games: readonly GameEntry[]): GameRegistry {
   return { games: list, has: (id) => byId.has(id), get: (id) => byId.get(id) }
 }
 
-/** Every game of the course. Each game's task adds its entry here (W0-T16: `loop`). */
-export const GAMES: GameRegistry = createRegistry([])
+/** Every game of the course. Each game's task adds its entry here: `loop` is the first (W0-T16). */
+export const GAMES: GameRegistry = createRegistry([LOOP])
 
 /** The level of a game with this id, or undefined. */
 export const levelOf = (game: GameEntry, id: string): LevelEntry | undefined => game.levels.find((level) => level.id === id)

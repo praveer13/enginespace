@@ -1,4 +1,4 @@
-import type { ComponentType, LazyExoticComponent } from 'react'
+import { lazy, type ComponentType, type LazyExoticComponent } from 'react'
 import { GAMES } from '@es/play'
 import type { GameEntry, GameMode, GameRegistry, RunResult } from '@es/play'
 
@@ -29,8 +29,10 @@ export interface GameProps {
 
 export type GameComponent = LazyExoticComponent<ComponentType<GameProps>>
 
-/** The lazy component of each game, by id: `loop: lazy(() => import('./loop/Game'))`, which W0-T16 adds as the first. */
-export const GAME_COMPONENTS: Readonly<Record<string, GameComponent>> = {}
+/** The lazy component of each game, by id. Each game's task adds its own: `loop` is the first (W0-T16). */
+export const GAME_COMPONENTS: Readonly<Record<string, GameComponent>> = {
+  loop: lazy(() => import('./loop/Game')),
+}
 
 export type GameResolution = { kind: 'game'; id: string; entry: GameEntry; Component: GameComponent } | { kind: 'unknown'; id: string }
 

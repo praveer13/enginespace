@@ -1,0 +1,127 @@
+# The claims that Service (`loop`), the front page's game, shows (GAMES.md §3 "Claims shown", D-043, D-048). Its world is synthetic, and
+# its end card carries one real number pair. Dates are YYYY-MM-DD, and a TTL is in days [estimated]: ARCHITECTURE §4.4 gives 90 for
+# versions and 365 for papers.
+
+# The front page's synthetic world: the tick card (packages/sim/steploop `TICK_CARD`). Every figure is a design parameter, a world of the
+# model's own invention. tests/play/loop.test.ts holds each to the card in code.
+- id: loop.world.plan-ticks
+  value: 2
+  unit: ticks
+  text: In the front page's synthetic world, the expo plans a fire (schedule and prepare) in 2 ticks of the CPU's time.
+  tag: estimated
+  synthetic: true
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: loop.world.forward-ticks
+  value: 4
+  unit: ticks
+  text: In the front page's synthetic world, the line cooks a fire (the GPU's forward) in 4 ticks, whether it holds one ticket or four.
+  tag: estimated
+  synthetic: true
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: loop.world.admit-ticks
+  value: 1
+  unit: ticks
+  text: In the front page's synthetic world, a fire that hangs a ticket for the first time (an admission) takes 1 tick more on the line.
+  tag: estimated
+  synthetic: true
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: loop.world.read-ticks
+  value: 1
+  unit: ticks
+  text: In the front page's synthetic world, the expo reads a fire back (sample, stop check and detokenize) in 1 tick of the CPU's time.
+  tag: estimated
+  synthetic: true
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: loop.world.clips
+  value: 4
+  unit: clips
+  text: In the front page's synthetic world, the rail has 4 clips, one for each batch slot.
+  tag: estimated
+  synthetic: true
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+# Derived: verify:claims recomputes each from its inputs. Without overlap a step is plan, cook and read one after another; with overlap the
+# next call is written during the fire, so the step takes as long as the slower of the line (4) and the expo (3).
+- id: loop.world.step-ticks-serial
+  value: 7
+  unit: ticks
+  text: Without overlap, a step in the front page's world takes 7 ticks, which is its plan, its fire and its read added up, and the line is busy for 4 of them.
+  tag: derived
+  derived:
+    formula: loop.world.plan-ticks + loop.world.forward-ticks + loop.world.read-ticks
+    inputs: [loop.world.plan-ticks, loop.world.forward-ticks, loop.world.read-ticks]
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: loop.world.step-ticks-overlap
+  value: 4
+  unit: ticks
+  text: With overlap, a step in the front page's world takes 4 ticks, the larger of the line's 4 and the expo's 3 (its plan and its read).
+  tag: derived
+  derived:
+    formula: max(loop.world.forward-ticks, loop.world.plan-ticks + loop.world.read-ticks)
+    inputs: [loop.world.forward-ticks, loop.world.plan-ticks, loop.world.read-ticks]
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+# The real anchor on the end card: two published benchmark rows, and what they imply. The rows are InferenceX's official results for
+# Llama-3.3-70B-Instruct-FP8 on H100s under vLLM at tensor-parallel 4, 1,024 tokens in and 1,024 out, published 2025-10-29. The values
+# are read from the API's own response, which is pinned by its query and by the sha256 of its body (kernelspace's
+# src/data/physics/points/ATTRIBUTION.md at d478f91 records both). Read 2026-11-04: the response is 1,026,817 bytes with sha256
+# d2ce48fdbd84936994d68bb28413f0e842da3b01a2c7a0958e4041699dc19792, and rows 41187 and 41821 hold the quoted members verbatim.
+- id: loop.anchor.tpot-conc-4
+  value: 11.776
+  unit: ms
+  text: On 4 H100 GPUs running Llama-3.3-70B-Instruct in FP8 under vLLM (tensor-parallel 4, 1,024 tokens in and out), InferenceX measured a mean time per output token of 11.776 milliseconds at a concurrency of 4.
+  tag: measured
+  source:
+    url: https://inferencex.semianalysis.com/api/v1/benchmarks?model=Llama-3.3-70B-Instruct-FP8&date=2025-10-29&exact=true
+    title: InferenceX official results, Llama-3.3-70B-Instruct-FP8, 2025-10-29 (row 41187; mean_tpot in seconds)
+    quote: '"mean_tpot":0.011776147370379336'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: loop.anchor.tpot-conc-64
+  value: 19.515
+  unit: ms
+  text: On the same setup, InferenceX measured a mean time per output token of 19.515 milliseconds at a concurrency of 64.
+  tag: measured
+  source:
+    url: https://inferencex.semianalysis.com/api/v1/benchmarks?model=Llama-3.3-70B-Instruct-FP8&date=2025-10-29&exact=true
+    title: InferenceX official results, Llama-3.3-70B-Instruct-FP8, 2025-10-29 (row 41821; mean_tpot in seconds)
+    quote: '"mean_tpot":0.01951460483344175'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: loop.anchor.tpot-ratio
+  value: 1.66
+  unit: x
+  text: Raising concurrency from 4 to 64 stretched each token by a factor of 1.66, its time per output token at 64 over its time at 4.
+  tag: derived
+  derived:
+    formula: loop.anchor.tpot-conc-64 / loop.anchor.tpot-conc-4
+    inputs: [loop.anchor.tpot-conc-64, loop.anchor.tpot-conc-4]
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: loop.anchor.tput-ratio
+  value: 9.7
+  unit: x
+  text: Tokens per second, estimated as concurrency over time per output token, rose about 9.7 times from a concurrency of 4 to 64.
+  tag: derived
+  derived:
+    formula: (64 / loop.anchor.tpot-conc-64) / (4 / loop.anchor.tpot-conc-4)
+    inputs: [loop.anchor.tpot-conc-64, loop.anchor.tpot-conc-4]
+  verifiedAt: 2026-11-04
+  ttlDays: 365

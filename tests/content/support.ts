@@ -5,7 +5,7 @@
  * Every test that changes content changes a copy. Nothing here writes into the repository.
  */
 import { afterAll } from 'bun:test'
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { compileContent } from '../../scripts/content/build.ts'
@@ -19,6 +19,16 @@ export const MODULE = 'content/modules/tr2/module.md'
 export const CLAIMS = 'content/claims/sample.yaml'
 export const COURSE = 'content/course.yaml'
 export const KCS = 'content/kc/graph.yaml'
+
+/** The claims in the repo's `content/claims/`: the sample's, and the ones each game cites (Service's, W0-T16). A claim is a `- id:` at the start of a line. */
+function claimsInRepo(dir = path.join(repo, 'content/claims')): number {
+  return readdirSync(dir, { withFileTypes: true }).reduce((sum, entry) => {
+    const file = path.join(dir, entry.name)
+    if (entry.isDirectory()) return sum + claimsInRepo(file)
+    return sum + (/\.ya?ml$/.test(entry.name) ? (readFileSync(file, 'utf8').match(/^- id: /gm)?.length ?? 0) : 0)
+  }, 0)
+}
+export const CLAIM_COUNT = claimsInRepo()
 
 const scratch: string[] = []
 afterAll(() => {
