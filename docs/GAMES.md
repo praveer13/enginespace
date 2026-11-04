@@ -836,7 +836,7 @@ These rules hold in every engine. What differs is the engine's architecture, whi
 | Level | Engine (pinned by `course.lock.json`) | New idea | Kind |
 |---|---|---|---|
 | `nano` | nano-vllm | offline `LLM.generate`, one process: the step as calls; copies to and from the GPU | practice |
-| `nano-tp` | nano-vllm, TP 2 | a worker process for rank 1 [unverified until W1-T16 reads the pin] | practice |
+| `nano-tp` | nano-vllm, TP 2 | a worker process for rank 1, joined by shared memory (W1-T16 read it at the pin on 2026-11-04: claims `nano-vllm.tp-worker-process`, `nano-vllm.tp-shared-memory`) | practice |
 | `mini` | Mini-SGLang | API server, tokenizer, scheduler per rank, detokenizer; ZMQ for control and NCCL for tensors | practice |
 | `inside` | vLLM at 42172ad | `AsyncLLM`, ZMQ, the engine core's input and output threads and queues, detokenizing in the frontend | practice |
 | `vllm` | vLLM, pinned minor | async scheduling, so the step is planned one ahead with in-flight placeholders; the V2 runner by default | practice |
