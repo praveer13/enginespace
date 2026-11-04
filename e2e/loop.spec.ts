@@ -243,12 +243,15 @@ test.describe('determinism and the poster', () => {
 
   test('the 2D view\'s first frame is the poster: the page\'s drawing is the SVG that scripts/posters.ts wrote', async ({ page }) => {
     await open(page, 'first-1-fill')
+    // Below 480 px the view draws the portrait layout, and above it the landscape one (GAMES.md §2.3).
+    const orientation = (page.viewportSize()?.width ?? 1280) < 480 ? 'portrait' : 'landscape'
+    await expect(page.locator('[data-loop-view]')).toHaveAttribute('data-orientation', orientation)
     const drawn = await page.locator('[data-loop-view] svg').evaluate((element) => ({
       label: element.getAttribute('aria-label'),
       marks: element.querySelectorAll('rect, circle, line, path, polygon, text').length,
       parts: [...element.querySelectorAll('g[data-part]')].map((g) => g.getAttribute('data-part')),
     }))
-    const poster = readFileSync(path.join(root, 'public/posters/loop-first-frame-landscape.svg'), 'utf8')
+    const poster = readFileSync(path.join(root, `public/posters/loop-first-frame-${orientation}.svg`), 'utf8')
     expect(poster).toContain(`aria-label="${drawn.label?.replace(/'/g, '&#x27;')}"`)
     expect(poster.match(/<(rect|circle|line|path|polygon|text)[ >]/g)).toHaveLength(drawn.marks)
     expect([...poster.matchAll(/<g data-part="([a-z]+)">/g)].map((match) => match[1])).toEqual(drawn.parts as string[])
