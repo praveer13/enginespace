@@ -2,9 +2,9 @@ name: Labs
 
 # The lab toolchains (ARCHITECTURE §10.1). They run only on a change that can affect a lab, a schema or the receipt rules, and
 # they need the Rust and Python toolchains that the fast gate does not install.
-#   forge   lane B: Rust to wasm. cargo test, then verify:labs. As in kernelspace's verify-labs, that gate builds the reference
-#           and the bestiary for wasm itself and checks them through the host the site uses: the reference passes, and the
-#           bestiary fails. W1-T10 builds that gate.
+#   forge   lane B: Rust to wasm. cargo test against the reference, then verify:labs. As in kernelspace's verify-labs, that gate
+#           builds the template, the reference and the bestiary for wasm itself and checks them through the host the site uses: the
+#           template traps, the reference passes, and the bestiary fails. W1-T10 builds that gate.
 #   grader  the local grader: uv sync from the lockfile, its unittest suite on the CPU, verify:schema and verify:vectors, and the
 #           receipt fixtures (the fixtures pass and the forgeries fail).
 #
@@ -101,7 +101,9 @@ jobs:
             cargo-${{ runner.os }}-${{ env.RUST_TOOLCHAIN }}-
 
       - run: npm ci
-      - run: cargo test --manifest-path labs/forge/Cargo.toml --workspace
+      # A lab's own checks are red on the template a learner receives, because the file they edit holds todo!(). They run here against the
+      # reference solution (--features reference), which verify:labs builds as well; verify:labs also checks that the template traps.
+      - run: cargo test --manifest-path labs/forge/Cargo.toml --workspace --features reference
       - run: bun run verify:labs
 
   grader:

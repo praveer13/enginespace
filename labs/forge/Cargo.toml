@@ -1,0 +1,13 @@
+# The forge labs' workspace (ARCHITECTURE §9.2, D-025): the Rust crates that the learner builds to wasm32-unknown-unknown and drops on /labs/<lab>.
+# `kit` is kslab, byte for byte as vendor/kernelspace/labs/kit holds it (tests/forge/kit.test.ts and verify:labs compare the two), and
+# every lab is a crate beside it that depends on it by path, so the zip that W1-T11 packs has the same shape as this folder.
+[workspace]
+members = ["kit", "toy"]
+resolver = "2"
+
+# Profiles belong to the workspace root. A release build is what the learner drops on the site; the choices here keep it small and make
+# two builds of one source the same bytes, which is what lets verify:labs name the module it graded by its SHA-256.
+[profile.release]
+opt-level = 2
+debug = false
+codegen-units = 1

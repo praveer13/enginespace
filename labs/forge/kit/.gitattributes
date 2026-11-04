@@ -1,0 +1,3 @@
+# kslab is a byte copy of vendor/kernelspace/labs/kit (VENDOR.md, section 13 of ARCHITECTURE.md): no line-ending conversion on any platform,
+# so that tests/forge/kit.test.ts and verify:labs can compare its hashes with the vendored files' everywhere.
+* -text

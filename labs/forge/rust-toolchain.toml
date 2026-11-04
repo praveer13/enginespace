@@ -1,0 +1,6 @@
+# Rust 1.96.0 with the wasm32 target, as ARCHITECTURE §10.3 pins it and labs.yml installs it. A learner who runs cargo in this folder gets
+# the same compiler that the checks were written and verified against, and rustup installs the target for them if it is missing.
+[toolchain]
+channel = "1.96.0"
+profile = "minimal"
+targets = ["wasm32-unknown-unknown"]

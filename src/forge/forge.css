@@ -1,0 +1,294 @@
+/*
+ * A forge lab's page (W1-T10): the module slip, the checks printed on paper, and the printer's tape beside them. The heading and the
+ * panels come from panels.css, and this file places what only a forge lab has. Every colour, face, space and shadow is a token role
+ * (src/design/tokens.css), and the design system is not edited. Amber appears in three places: the slip's own lamp, the dashed
+ * filament round it while a file is dragged over it, and the first check that did not pass.
+ */
+
+/* ---------------------------------------------------------------------------------------------- the page's three places */
+
+/*
+ * The slip you hand in, the tape that prints the run, and the checks. On a wide screen the slip and the checks run down the left and the
+ * tape stands beside them, held in place as the checks scroll. On a phone the order is the order of the work: the slip first, so that the
+ * one thing to do is in the first screen, then what the run printed, then the checks. Before a file the tape has nothing to say, and on
+ * a phone it is left out.
+ */
+.es-forge-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-12);
+  align-items: start;
+}
+
+.es-forge-slip,
+.es-forge-run,
+.es-forge-tape {
+  min-width: 0;
+}
+
+.es-forge-layout[data-step='idle'] .es-forge-tape {
+  display: none;
+}
+
+@media (min-width: 64rem) {
+  .es-forge-layout {
+    grid-template-columns: minmax(0, 44rem) minmax(0, 20rem);
+    grid-template-areas:
+      'slip tape'
+      'checks tape';
+    column-gap: var(--es-space-16);
+    row-gap: var(--es-space-16);
+  }
+
+  .es-forge-slip {
+    grid-area: slip;
+  }
+
+  .es-forge-run {
+    grid-area: checks;
+  }
+
+  .es-forge-layout[data-step='idle'] .es-forge-tape {
+    display: block;
+  }
+
+  .es-forge-tape {
+    grid-area: tape;
+    position: sticky;
+    top: var(--es-space-6);
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------- the slip, and the drop */
+
+/* The drop target is as wide as the slip, so that the filament and the pool of light round it hug the paper. */
+.es-forge-drop {
+  position: relative;
+  isolation: isolate;
+  max-width: 36rem;
+}
+
+/* While a file is over the slip: the lamp's filament drawn dashed round it, and the pool of light behind. */
+.es-forge-drop[data-over]::before {
+  content: '';
+  position: absolute;
+  inset: -2.5rem -2.25rem 0;
+  z-index: -1;
+  background: radial-gradient(
+    48% 38% at 50% 40%,
+    color-mix(in srgb, var(--es-lamp) 82%, transparent) 0%,
+    color-mix(in srgb, var(--es-lamp) 42%, transparent) 50%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+.es-forge-drop[data-over]::after {
+  content: '';
+  position: absolute;
+  inset: -0.5rem;
+  border: 2px dashed var(--es-lamp-ring);
+  pointer-events: none;
+}
+
+.es-forge-file {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--es-space-1) var(--es-space-3);
+  margin: 0;
+}
+
+/* A file's name is an identifier, so it is set in the code face. */
+.es-forge-file__name {
+  font-family: var(--es-font-mono);
+  font-size: var(--es-font-mono-size);
+  overflow-wrap: anywhere;
+}
+
+/* The hash on masking tape: the tape names the digits, which stay in the code face, because marker is no hand to read hex in. */
+.es-forge-hash {
+  display: grid;
+  justify-items: start;
+  gap: var(--es-space-2);
+}
+
+.es-forge-hash__digits {
+  max-width: 34ch;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+/* The build command, printed on the slip. It wraps and never scrolls sideways, because a line that is hard to read is hard to copy. */
+.es-forge-cmd {
+  margin: 0;
+  padding: var(--es-space-3);
+  border: 1px dotted var(--es-paper-rule);
+  background-color: color-mix(in srgb, var(--es-paper-rule) 24%, var(--es-paper));
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.es-forge-hint {
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+
+/* ---------------------------------------------------------------------------------------------- the checks, printed */
+
+.es-forge-checks {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-forge-check {
+  display: grid;
+  grid-template-columns: 2ch minmax(0, 1fr) auto;
+  grid-template-areas:
+    'n label result'
+    '. detail detail';
+  align-items: baseline;
+  column-gap: var(--es-space-3);
+  row-gap: var(--es-space-1);
+  padding: var(--es-space-3) var(--es-space-2);
+  border-bottom: 2px dotted var(--es-paper-rule);
+}
+
+.es-forge-check:last-child {
+  border-bottom: 0;
+}
+
+/* The first check that is not green is the present: the paper warmed under the lamp. */
+.es-forge-check[data-lamp] {
+  background-image: linear-gradient(180deg, color-mix(in srgb, var(--es-lamp) 30%, var(--es-paper)), var(--es-paper) 92%);
+}
+
+/* A check's number, as the printer numbers a line. */
+.es-forge-check__n {
+  grid-area: n;
+  font-family: var(--es-font-ticket);
+  font-size: 0.9375rem;
+  font-weight: var(--es-font-ticket-weight);
+  letter-spacing: var(--es-font-ticket-tracking);
+  line-height: 1.5;
+  color: var(--es-text-2);
+}
+
+.es-forge-check__label {
+  grid-area: label;
+  margin: 0;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+/* Words in the printer's dots: a status, a quiet "not run". */
+.es-forge-check__result {
+  grid-area: result;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--es-space-1);
+  font-family: var(--es-font-ticket);
+  font-size: 0.9375rem;
+  font-weight: var(--es-font-ticket-weight);
+  letter-spacing: var(--es-font-ticket-tracking);
+  line-height: 1.5;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.es-forge-check__result:is([data-status='fail'], [data-status='trap'], [data-status='timeout']) {
+  color: var(--es-paper-ink-2);
+}
+
+.es-forge-check__mark {
+  flex: none;
+  width: 1.15em;
+  height: 1.15em;
+}
+
+.es-forge-check__quiet {
+  color: var(--es-text-3);
+}
+
+/* What the run found, under the line, across its whole width. */
+.es-forge-check__detail {
+  grid-area: detail;
+  display: grid;
+  gap: var(--es-space-1);
+  min-width: 0;
+}
+
+.es-forge-check__detail > p {
+  margin: 0;
+}
+
+.es-forge-check__msg {
+  overflow-wrap: anywhere;
+}
+
+.es-forge-check__note,
+.es-forge-check__seed {
+  color: var(--es-text-2);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
+/* Seeds and counts print in the dot matrix, with tabular figures. */
+.es-forge-seed {
+  font-family: var(--es-font-numeric);
+  font-weight: var(--es-font-numeric-weight);
+  letter-spacing: var(--es-font-numeric-tracking);
+  font-variant-numeric: tabular-nums;
+}
+
+.es-forge-trace {
+  margin-top: var(--es-space-1);
+  font-size: 0.9375rem;
+}
+
+.es-forge-trace > summary {
+  min-height: 1.5rem;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.es-forge-trace > pre {
+  max-height: 10rem;
+  margin: var(--es-space-2) 0 0;
+  padding: var(--es-space-3);
+  overflow: auto;
+  border: 1px dotted var(--es-paper-rule);
+  background-color: color-mix(in srgb, var(--es-paper-rule) 24%, var(--es-paper));
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.es-forge-again {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2) var(--es-space-6);
+  margin-top: var(--es-space-4);
+}
+
+/* ---------------------------------------------------------------------------------------------- beside the checks */
+
+.es-forge-recorded {
+  max-width: 34ch;
+  margin: var(--es-space-4) 0 0;
+  color: var(--es-text-2);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.es-forge-recorded:empty {
+  display: none;
+}
+
+.es-forge-recorded[data-kind='failed'] {
+  color: var(--es-paper-ink-2);
+}

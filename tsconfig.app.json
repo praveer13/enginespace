@@ -22,6 +22,12 @@
       "@es/verify/*": ["./packages/verify/*"]
     },
 
+    /*
+     * The vendored Forge host (src/forge wraps it) imports two ledger types from a module that this repository does not have. The
+     * shim stands in for it, and rootDirs makes the relative import find the shim (vendor/kernelspace/VENDOR.md, "Type shims").
+     */
+    "rootDirs": ["./vendor/kernelspace/src", "./vendor/kernelspace/shims/src"],
+
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
