@@ -114,11 +114,22 @@ describe('the workflows', () => {
   })
 
   test("ci.yml's e2e-smoke job installs Chromium, runs the smoke project, and keeps the report whatever the result", () => {
-    expect(runs(smoke.steps)).toEqual(['npm ci', "npx playwright install --with-deps chromium", 'npx playwright test --project=smoke'])
+    expect(runs(smoke.steps)).toEqual(['npm ci', "npx playwright install --with-deps chromium", 'npx playwright test --project=smoke --shard="$SHARD/4"'])
+    expect(smoke.steps?.find((step) => step.name === 'Run the smoke specs')?.env).toEqual({ SHARD: '${{ matrix.shard }}' })
     const upload = smoke.steps?.find((step) => step.uses?.startsWith('actions/upload-artifact@'))
     expect(upload?.if).toBe('${{ !cancelled() }}')
     expect(String(upload?.with?.path)).toContain('playwright-report')
     expect(String(upload?.with?.path)).toContain('test-results')
+  })
+
+  test("ci.yml's e2e-smoke job runs four shards that cover the smoke project once, test by test, and keeps each shard's report", () => {
+    const matrix = (smoke as { strategy?: { 'fail-fast'?: boolean; matrix?: { shard?: number[] } } }).strategy
+    expect(matrix?.matrix?.shard).toEqual([1, 2, 3, 4])
+    expect(matrix?.['fail-fast']).toBe(false)
+    const upload = smoke.steps?.find((step) => step.uses?.startsWith('actions/upload-artifact@'))
+    expect(String(upload?.with?.name)).toBe('e2e-smoke-${{ matrix.shard }}')
+    // Five spec files over four shards would split unevenly by file; the smoke project spreads its tests one by one instead.
+    expect(config).toContain("{ name: 'smoke', testMatch: SMOKE, fullyParallel: true")
   })
 
   test("nightly.yml's browsers job sets the sweep, builds with Bun on the path, and runs every project in the three browsers", () => {
