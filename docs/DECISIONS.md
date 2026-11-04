@@ -1,6 +1,6 @@
 # enginespace: decision log
 
-**Status:** D-001 to D-006 are the owner's decisions of 2026-11-03. D-007 to D-013 restate the product record the owner confirmed the same day (`PRODUCT.md`). D-014 to D-042 are **proposed** by [ARCHITECTURE.md](ARCHITECTURE.md) and wait for the owner's review. D-043 to D-046 are **proposed** by the design review of 2026-11-03, which settled contradictions between the design files; they wait for the owner too. The open owner questions, O-1 to O-11, and the course-design questions, Q-1 to Q-12, are at the end. **Date:** 2026-11-03.
+**Status:** D-001 to D-006 are the owner's decisions of 2026-11-03. D-007 to D-013 restate the product record the owner confirmed the same day (`PRODUCT.md`). D-014 to D-042 are **proposed** by [ARCHITECTURE.md](ARCHITECTURE.md) and wait for the owner's review. D-043 to D-046 are **proposed** by the design review of 2026-11-03, which settled contradictions between the design files; they wait for the owner too. D-047 records the visual world the owner chose on 2026-11-03, and D-048 and D-049 are **proposed** by the art direction that followed it. The open owner questions, O-1 to O-11, and the course-design questions, Q-1 to Q-12, are at the end. **Date:** 2026-11-03.
 
 **How to read a record.** Each record carries six fields:
 - **Decision**, in one or two sentences.
@@ -29,7 +29,7 @@
 | D-003 | The stack: Vite, React 19, TypeScript, Three.js through react-three-fiber, Tailwind and bun tests, served statically on GitHub Pages with zero servers. | owner-decided 2026-11-03 |
 | D-004 | The front page opens on a playable 3D scene of the step loop ("Play first"). | owner-decided 2026-11-03 |
 | D-005 | The course has interactive games, several of them impressive 3D, and each game's rule is the concept it teaches. | owner-decided 2026-11-03 |
-| D-006 | The visual identity is chosen separately; the architecture and backlog choose no colours, fonts or visual style. | owner-decided 2026-11-03 |
+| D-006 | The visual identity is chosen separately; the architecture and backlog choose no colours, fonts or visual style. | owner-decided 2026-11-03; superseded in part by D-047 |
 | D-007 | The name is enginespace; the repo is `praveer13/enginespace`, private for now; the course is a kernelspace specialization. | owner-confirmed 2026-11-03 |
 | D-008 | The learner is a kernelspace graduate; T5 L1-L10 is a hard prerequisite; the course is Rust-first and teaches only enough PyTorch to read the engines. | owner-confirmed 2026-11-03 |
 | D-009 | Zero servers and nothing collected: no telemetry and no accounts; progress stays on the device and can be exported. | owner-confirmed 2026-11-03 |
@@ -70,6 +70,9 @@
 | D-044 | On the "70B on H100" card, S5's per-sequence host term t_seq runs on the CPU lane, not inside the GPU step, so host work is counted once; hiding it is labelled an extrapolation. | proposed (design review); the owner confirms |
 | D-045 | The KV pool has one page size: KV groups unify to it as vLLM's hybrid manager does, and adapters take S-LoRA's page count. ARCHITECTURE §5.4's mixed `pageUnits` is dropped. | proposed (design review) |
 | D-046 | Same-machine output comparisons (TR1's instrumented fork, TR6's speculative runs) use ASSESSMENT §5.7's tie-aware identity, not strict token identity. | proposed (design review) |
+| D-047 | The visual identity is The Pass, a restaurant line kitchen and its expo pass. The direction contract in the front page's surface brief sets token values, faces and scene materials, and DESIGN.md is written from the built world at the end of W0. | owner-decided 2026-11-03 |
+| D-048 | The front page runs on GAMES.md's synthetic ticks and prints them as ticks, labelled synthetic. µs on the model's clock start with TR2's levels (W1-T13). | proposed (art direction) |
+| D-049 | Every game gets an in-world display name in kitchen vocabulary, with its engine concept as a subtitle. Ids stay as they are. | proposed (art direction) |
 
 ---
 
@@ -126,7 +129,7 @@
 
 ### D-006 · The visual identity is chosen separately
 
-- **Status:** owner-decided 2026-11-03.
+- **Status:** owner-decided 2026-11-03. Superseded in part by D-047 (2026-11-03): the "no visual choices yet" phase ends, and token values, faces and scene materials follow The Pass's direction contract.
 - **Decision:** The visual identity is being chosen separately. This architecture and backlog choose no colours, fonts or visual style. They describe scenes, objects, cameras and interactions only.
 - **Context:** The parallel design work under `impeccable` writes DESIGN.md and its tokens.
 - **Alternatives:** none.
@@ -635,6 +638,89 @@ Each record settles a contradiction between two design files that a build task w
 - **Alternatives:** strict token identity, which fails honest runs [design]; teacher-forced agreement alone, which cannot show on one machine that instrumentation or speculation changed nothing [design].
 - **Consequences:** ARCHITECTURE §8.5 rule 7 and §9.6; TRACKER W2-T34 and W2-T35; GAMES.md §10's GPU lane.
 - **Revisit when:** W2-T12's fixtures measure honest divergence rates.
+
+---
+
+## The art direction, 2026-11-03
+
+D-047 is the owner's choice of visual world. D-048 and D-049 follow from it: one settles a clash the choice exposed, and the other names the games in the new world.
+
+### D-047 · The visual identity is The Pass
+
+- **Status:** owner-decided 2026-11-03, in impeccable's direction round (seed reference `seed:631f6361e61b6b7b`).
+- **Decision:**
+  - The course's visual world is The Pass, a restaurant line kitchen and its expo pass. Continuous batching is a line kitchen, and the learner is the expediter who fires each step.
+  - The direction contract recorded in the front page's surface brief, `.impeccable/surfaces/src-front-frontpage-tsx.md` (its "Direction contract" section), is the authority on the world: its materials, its type voices and the front page's first viewport. Token values, faces and scene materials follow it.
+  - DESIGN.md and `.impeccable/design.json` are written at the end of W0 by impeccable's documenter, from the built world (W0-T25). So W0-T06 no longer waits for DESIGN.md: it merges into W0-T05, and no W0 task waits for DESIGN.md.
+- **Context:**
+  - D-006 kept the architecture and backlog free of visual choices while the identity was chosen separately. W0-T05 was to wire placeholder values (CSS system colours and system font stacks), and W0-T06 was blocked until DESIGN.md landed.
+  - On 2026-11-03 impeccable ran its direction round for the front page, a Persuade surface. The owner chose The Pass, impeccable's own pick and the first candidate on its ordered list, over the direction the roll assigned (the surface brief, FORM).
+  - For a new world, impeccable writes DESIGN.md only at the finish, from what was built: a rulebook written before the build "gets defended against reality instead of describing it" (impeccable `reference/new-work.md` §5).
+  - No comp exists for this direction, so the build is code-led. The contract's FIRST VIEWPORT and its signature interaction carry the ambition, and the finish review audits them in behaviour (new-work §6 and §7).
+- **Alternatives:**
+  - the roll's assigned direction, Race Control (motorsport live-timing graphics), and the six catalog worlds the round declined, all from the round's hand of 2026-11-03 (impeccable's local state, not committed);
+  - the category standard, a dark GPU-render landing page over a row of feature cards, which the contract's THESIS refuses.
+- **Consequences:**
+  - It supersedes D-006's "no visual choices yet". ARCHITECTURE, GAMES.md and TRACKER still pick no colour or face; the design system does, from the contract.
+  - W0-T05 and W0-T06 merge into W0-T05: the design system applies The Pass's values directly, with no placeholder phase, and `verify:tokens` fails on any placeholder.
+  - W0-T25, "Finish review and DESIGN.md (impeccable)", runs between W0-T21 and W0-T24. It discharges the contract's FINISH line: the finish review, its verdict, DESIGN.md, and provenance for every shipping raster.
+  - GAMES.md §2.6 carries the world into every game. D-048 sets the front page's clock, and D-049 names the games.
+  - The agent brief's "Look" rule (TRACKER) now points at the token roles and components in `src/design` and at GAMES.md §2.6.
+  - Where an earlier text still says that DESIGN.md decides a look (D-019's restated test 5, A§6.2's test 5, A§6.5's bloom, A§14's font and icon packages), read: the contract decides, W0-T05 applies it, and W0-T25 documents it in DESIGN.md.
+  - The contract stays in the surface brief. It never enters source, comments or any shipped file (new-work §5), and W0-T05 adds a test for that.
+- **Revisit when:** the finish review returns `rebuild` twice, or the owner changes the world.
+
+### D-048 · The front page's clock is synthetic ticks
+
+- **Status:** proposed (art direction, 2026-11-03).
+- **Decision:**
+  - The front page runs on GAMES.md §3.1's synthetic tick card and prints its clock in ticks, labelled synthetic. The printer tape shows the step number, the ticks the step took and the stations busy. No µs figure appears on the front page.
+  - µs on the model's clock appear from TR2's levels onward (W1-T13), where `steploop` runs its cost cards in integer µs (GAMES.md §3.2).
+  - This settles the critic's open item on the front page's clock.
+- **Context:**
+  - The direction contract's FIRST VIEWPORT had the printer tape show microseconds per step. GAMES.md §3.1, A§6.11 and W0-T16 run the front page on synthetic ticks, and D-012 requires demonstration data to be labelled synthetic. The critic's review of the direction left the clash open.
+  - The tick card has no scale to µs, so a µs figure on the front page would be invented. The round's own card for The Pass named the risk: kitchen time runs in minutes, so microseconds would have to ride on the printer's timestamps.
+- **Alternatives:**
+  - µs on the front page through a tick-to-µs scale [design]: an invented number in front of every visitor;
+  - the "70B on H100" card's µs on the front page [design]: it would bring TR2's cost cards and their [estimated] host terms into a run that D-043 keeps to one idea;
+  - no clock on the tape [design]: it would lose the arithmetic the run teaches, a step of 7 ticks without overlap against 4 with it (synthetic; GAMES.md §3.1).
+- **Consequences:**
+  - The surface brief's FIRST VIEWPORT now reads ticks, labelled synthetic.
+  - W0-T16's counters and mirror and W0-T18's page copy show ticks with the synthetic label. W0-T05's `Readout` component carries the label.
+  - W1-T13 switches the tape to µs on the model's clock for TR2's levels, with each cost card's tags.
+- **Revisit when:** the owner's reference traces (W2-T21) give a measured anchor the front page could show honestly, or the owner asks for µs there.
+
+### D-049 · Every game has an in-world display name
+
+- **Status:** proposed (art direction, 2026-11-03).
+- **Decision:**
+  - Every game gets a display name in kitchen vocabulary, shown over its engine concept as a subtitle:
+
+    | Id | Display name | Subtitle | Working name |
+    |---|---|---|---|
+    | `loop` | Service | the step loop | The Loop |
+    | `shape-shifter` | Sheet Pan | tensor views and copies | Shape Shifter |
+    | `engine-floor` | Back of House | a request's lifecycle | The Engine Floor |
+    | `gap-hunt` | The Tape | trace attribution | Gap Hunt |
+    | `dispatch` | Line Check | attention backend selection | Dispatch |
+    | `pool` | The Reach-In | hybrid KV pages and adapters | The Pool |
+    | `switchyard` | The Dumbwaiter | KV offload, connector and events | The Switchyard |
+    | `verifier` | The Tasting | speculative decoding's verifier | The Verifier |
+    | `broken-bench` | The Inspection | benchmark methodology | Broken Bench |
+
+  - Ids stay as they are: game ids, level ids, actions, ledger refs, KCs, claims, routes and file names.
+  - The working names stay as the design docs' shorthand. On screen, the display name leads, over its subtitle, and the working name is not shown.
+- **Context:** In D-047's world the front page's game is a service, and the surface brief's Unresolved list asked for its name to change to match. The working names were chosen before the world was. Three of them carry metaphors the kitchen would contradict: a railway yard, an engine-room floor and a courtroom. The learner must still leave with the engine's terms, so the concept rides along as a subtitle.
+- **Alternatives:**
+  - keep the working names [design]: three metaphors that fight the kitchen;
+  - rename the ids [design]: game and level ids sit in URLs (`/play/<id>`), in ledger refs (`play:<game>/<level>`, A§4.5) and in action logs, so renaming them would churn stored evidence for no learner gain;
+  - kitchen names with no subtitle [design]: the learner would remember the kitchen and not the engine.
+- **Consequences:**
+  - GAMES.md §0 gains a display-name column, and §2.6 gives each game's kitchen objects, cameras and materials.
+  - ARCHITECTURE §6.1 and TRACKER's game tasks carry the display names.
+  - W0-T14's registry records each game's display name and subtitle, and `verify:games` fails a game without them.
+  - Copy pairs the two vocabularies: the kitchen word names the object, and the engine term names the concept. The engine term leads wherever the learner will meet it again (GAMES.md §2.6).
+- **Revisit when:** a learner test shows that a display name misleads about its concept, or the owner renames a game.
 
 ---
 

@@ -5,10 +5,10 @@
 **What this file owns.** It designs every game: the rule, the levels and seeds, scoring, the scenes, the 2D paths, the budgets and the pure session APIs. Three neighbours own the rest:
 - [ARCHITECTURE.md](ARCHITECTURE.md) §5-§6 owns the framework the games run on: `packages/sim`, `packages/play`, the scene kit, device tiers, input, accessibility mechanics and bundle budgets. This file uses its game ids and its kit, and §13 lists every place where it proposes a change.
 - ASSESSMENT.md (written in parallel) owns credit: provenance weights and final pass bars. The pass conditions below are the games' proposals to it.
-- DESIGN.md owns the look (D-006). This file describes scenes, objects, cameras and interactions only. Where a state must stand out it says *emphasis*, and DESIGN.md decides what emphasis looks like.
+- The look is The Pass, a restaurant line kitchen and its expo pass (D-047). Its direction contract sits in the front page's surface brief, `.impeccable/surfaces/src-front-frontpage-tsx.md`; the design system applies it (W0-T05), and DESIGN.md documents it at the end of W0 (W0-T25). This file describes scenes, objects, cameras and interactions, and §2.6 names them in the kitchen. Where a state must stand out it says *emphasis*, and the design system decides what emphasis looks like.
 
 **Sources.**
-- `PRODUCT.md` (owner-confirmed 2026-11-03), [DECISIONS.md](DECISIONS.md) D-001 to D-046.
+- `PRODUCT.md` (owner-confirmed 2026-11-03), [DECISIONS.md](DECISIONS.md) D-001 to D-049.
 - kernelspace `SPECIALIZATIONS.md` §2, §3.5, §4 and §7 (untracked, dated 2026-10-24).
 - kernelspace at `origin/master` d478f91 (2026-10-30): `PLAN-100X.md` §5.4; `docs/100x-evidence/research/games-3d.md`; the plays (`src/lib/world/{play,sched,eplb,tiling}.ts`, `src/lib/world/bands/*`, `src/components/play/*`, `src/components/three/View3D.tsx`); the Fleet exercises (`src/lib/world/fleet-ex/*`); the S5 card (`src/lib/world/physics/{card,types,table}.ts`) and its InferenceX points.
 - statespace at 7b6938c (2026-10-27): its receipts and its "no game layer" stance (`docs/WORLD.md`, `docs/EVIDENCE.md`), as a structural precedent.
@@ -29,17 +29,19 @@ A table whose numbers share one tag says so in its header or caption.
 
 Nine games: six in 3D, three in 2D. The Loop is one game that the front page opens and TR2 continues, so a visitor's first minute and TR2's graded levels run the same model.
 
-| Id | Game | Module | The rule (= the concept) | View | Graded levels (fresh seeds) | Size |
-|---|---|---|---|---|---|---|
-| `loop` | **The Loop** | front page; TR2; TR6's mask lane | Adding a request to a decode step costs the GPU little, so the loop wins by keeping every slot live and never making the GPU wait for the CPU. CUDA graphs pad each step to a captured size or fall back to launches. | 3D, flagship | TR2: capture sizes, modes, "close the bubbles"; TR6: mask lane | L + L |
-| `shape-shifter` | **Shape Shifter** | TR0 | A tensor is a buffer plus shape and strides: views move nothing, a copy moves everything. | 3D | fewest copies; grid coverage | M |
-| `engine-floor` | **The Engine Floor** | TR1 | Data crosses a boundary only through the mechanism that crosses it: a queue between threads, IPC between processes, a copy between host and GPU, a sync before reading an async result. | 3D | the lifecycle map, span-checked | M |
-| `gap-hunt` | **Gap Hunt** | TR3; capstone | A GPU gap is an empty launch queue, and every ns of a step belongs to exactly one category. | 2D | attribution of synthetic, then pinned, traces | M |
-| `dispatch` | **Dispatch** | TR4 | The engine takes the first backend in its order whose support covers the model and GPU. | 2D | backend picks on fresh feature cards | S |
-| `pool` | **The Pool** | TR5a | One page pool serves every KV group and every adapter. A prefix hit counts only where every group holds it. | 3D, flagship | eviction, adapters, the full manager | L |
-| `switchyard` | **The Switchyard** | TR5b | A block may be read only after its load lands, freed only after its save completes, and every move is published in an order a consumer can replay. | 3D | yard master; event conformance | M |
-| `verifier` | **The Verifier** | TR6 | Accept a draft with probability min(1, p/q) and recover from (p − q)⁺, and the output is p exactly. | 3D, flagship | make it exact; the chain; how long a draft | M |
-| `broken-bench` | **Broken Bench** | TR8 | Latency counts from when a request was due, and a percentile is only as good as its sample. | 2D (optional 3D opener) | the court: five mixed cases | M (+S) |
+| Id | Display name (D-049) | Game | Module | The rule (= the concept) | View | Graded levels (fresh seeds) | Size |
+|---|---|---|---|---|---|---|---|
+| `loop` | **Service** · *the step loop* | **The Loop** | front page; TR2; TR6's mask lane | Adding a request to a decode step costs the GPU little, so the loop wins by keeping every slot live and never making the GPU wait for the CPU. CUDA graphs pad each step to a captured size or fall back to launches. | 3D, flagship | TR2: capture sizes, modes, "close the bubbles"; TR6: mask lane | L + L |
+| `shape-shifter` | **Sheet Pan** · *tensor views and copies* | **Shape Shifter** | TR0 | A tensor is a buffer plus shape and strides: views move nothing, a copy moves everything. | 3D | fewest copies; grid coverage | M |
+| `engine-floor` | **Back of House** · *a request's lifecycle* | **The Engine Floor** | TR1 | Data crosses a boundary only through the mechanism that crosses it: a queue between threads, IPC between processes, a copy between host and GPU, a sync before reading an async result. | 3D | the lifecycle map, span-checked | M |
+| `gap-hunt` | **The Tape** · *trace attribution* | **Gap Hunt** | TR3; capstone | A GPU gap is an empty launch queue, and every ns of a step belongs to exactly one category. | 2D | attribution of synthetic, then pinned, traces | M |
+| `dispatch` | **Line Check** · *attention backend selection* | **Dispatch** | TR4 | The engine takes the first backend in its order whose support covers the model and GPU. | 2D | backend picks on fresh feature cards | S |
+| `pool` | **The Reach-In** · *hybrid KV pages and adapters* | **The Pool** | TR5a | One page pool serves every KV group and every adapter. A prefix hit counts only where every group holds it. | 3D, flagship | eviction, adapters, the full manager | L |
+| `switchyard` | **The Dumbwaiter** · *KV offload, connector and events* | **The Switchyard** | TR5b | A block may be read only after its load lands, freed only after its save completes, and every move is published in an order a consumer can replay. | 3D | yard master; event conformance | M |
+| `verifier` | **The Tasting** · *speculative decoding's verifier* | **The Verifier** | TR6 | Accept a draft with probability min(1, p/q) and recover from (p − q)⁺, and the output is p exactly. | 3D, flagship | make it exact; the chain; how long a draft | M |
+| `broken-bench` | **The Inspection** · *benchmark methodology* | **Broken Bench** | TR8 | Latency counts from when a request was due, and a percentile is only as good as its sample. | 2D (optional 3D opener) | the court: five mixed cases | M (+S) |
+
+A learner sees the display name, over its subtitle (D-049; §2.6 puts each game in the kitchen). The Game column keeps the working names, which the design docs use as shorthand, and no id changes.
 
 TR7 and the capstone have no game of their own (§12). Six course games across TR1-TR8 is the brief's floor; this roster has eight in that range, three of them flagship 3D. Each flagship has one moment that carries its idea and stops a scroll:
 - **The Loop:** the GPU lane's gaps close as the second tray appears.
@@ -110,7 +112,7 @@ Every object is a data mark drawn from `packages/play/<id>/layout.ts`. No object
 Rules for objects:
 - **Every state has a shape or glyph besides colour** (WCAG 1.4.1): a live cell is solid, an empty slot is an open groove, a ghost token is a hollow cell, a cached page carries a hash glyph, a pinned page a pin glyph.
 - **All text is DOM** through `LabelLayer`; nothing is written in the canvas (D-021).
-- **One material per object kind**, instanced, no image textures. Per-instance data carries a role index that DESIGN.md's tokens resolve (ARCHITECTURE §6.4).
+- **One material per object kind**, instanced, no image textures. Per-instance data carries a role index that the design tokens resolve (W0-T05; ARCHITECTURE §6.4).
 
 #### Camera grammar
 
@@ -188,7 +190,255 @@ export interface Session<Level, State, Action, View, Score> {
 }
 ```
 
-`verify:games` (ARCHITECTURE §6.2) fails a game without: a 2D view, a mirror, a debrief, a card, a keyboard map, KCs, claims that exist, a practice seed in band, band acceptance ≥ 20%, a keyboard-only e2e walk, a reduced-motion e2e walk, and a determinism test (same seed and actions, same state hash in Bun and three browsers).
+`verify:games` (ARCHITECTURE §6.2) fails a game without: a 2D view, a mirror, a debrief, a card, a keyboard map, KCs, claims that exist, a practice seed in band, band acceptance ≥ 20%, a keyboard-only e2e walk, a reduced-motion e2e walk, a determinism test (same seed and actions, same state hash in Bun and three browsers), and a display name with its subtitle (D-049).
+
+### 2.6 The Pass: every game in the kitchen
+
+D-047 set the course's visual world: **The Pass**, a restaurant line kitchen and its expo pass, chosen by the owner on 2026-11-03. Its direction contract sits in the front page's surface brief, `.impeccable/surfaces/src-front-frontpage-tsx.md`: continuous batching is a line kitchen, and the learner is the expediter who fires each step. This section carries that world into every game. Each game gets a display name in kitchen vocabulary over its engine concept (D-049), and one vocabulary maps every sim element to a kitchen object. Each game's block then gives its scene, cameras and materials, and what must stay legible.
+
+**The rules do not change.** The rule is still the concept (§1). Every rule, count, level, band, score, pass bar, invariant, id, action and claim in §3-§11 stays as written. The kitchen names the marks those sections draw and adds none. Where a kitchen reading and a rule disagree, the rule wins and the reading is rewritten.
+
+#### How the kitchen applies
+
+1. **A name, never a prop.** Each kitchen object is the §2.3 mark it names, drawn from `layout.ts` by the same kit primitive. Nothing is added for atmosphere: no cooks, food, flames, steam or knives, and no photoreal equipment (D-019's test 5; §2.3, "no object is decoration"). A plate is a cell named and shaped as a plate, not a picture of food.
+2. **Two vocabularies, one meaning.** The kitchen word names the object, and the engine term names the concept. A label gives both the first time an object appears in a level ("fire · step"). The engine term leads wherever the learner will meet it again: the mirror's column heads, the debrief, the In-production and Build-this cards, items, Keep, claims and the Markdown export. The live line follows the labels.
+3. **Ids stay** (D-049). Game ids, level ids, actions, ledger refs, KCs, claims, routes and file names keep their engine names. The display name and its subtitle are copy in the game registry (W0-T14).
+4. **Materials come from roles.** Every surface and scene material is a token role from `src/design/tokens.ts`, resolved by `scene-tokens.ts` (W0-T05). The design system realises the contract's materials: brushed stainless, ticket paper with its two inks, the heat lamp, masking tape and the categorical code. This section only says which object takes which. No colour value, font name or image texture appears here or in a scene (§2.3).
+5. **One heat lamp.** The contract's active state falls only on *the present*: the place the learner's next decision acts on. Each block below names its present. History, ghosts and the debrief never take it.
+6. **The code is categorical, and never alone.** The contract's categorical code is the only colour code, and every category also has a glyph or a shape (§2.3; WCAG 1.4.1).
+7. **Numbers stay DOM.** Every count, tick, µs, ns, probability, id and percentage is DOM text in `LabelLayer`, the mirror, the tape or the controls, set in the numeral role. None is painted in a canvas or baked into a material (D-021). Tickets, tape labels and the printer tape are DOM elements anchored to their marks.
+8. **The clock says what it is.** Ticks are labelled synthetic wherever they appear (D-048). µs on the model's clock start with TR2's levels, and a trace's ns carry their trace's source (§6).
+
+#### Vocabulary
+
+| Sim element | Kitchen object | How it reads |
+|---|---|---|
+| Request | a **ticket** | One table's order. Each output token is one course, and the expo cannot see how many courses a table will want. |
+| Admission (prefill) | **hanging a ticket** | The ticket's order lines, its prompt, are prepped in the fire it joins: on the front page, 1 more tick of cooking (synthetic). |
+| Batch slot | a **clip on the rail** | The rail has a fixed number of clips, 4 on the front page [estimated] (D-043). A clip without a ticket is paid for and empty. |
+| Waiting queue | **tickets curling out of the printer** | Orders not yet on the rail, fed in from the left. The expo hangs the next one. |
+| GPU lane | **the line's stations** | Cooking. A lit stretch is the GPU busy, and its length is the cook time. |
+| CPU lane | **the expediter's ticket work** | Writing the next call (schedule and prepare), then reading the plates back (sample, stop check, detokenize). |
+| Bubble | **stations dark while the expo writes** | The GPU waits on the CPU. |
+| Step | **one fire, rung by the bell** | Every live clip sends one course. A fire takes the line about as long for one ticket as for four, so an empty clip is a course the line paid for and nobody ate. |
+| Static batching | **firing the rail as a set** | No ticket hangs until every clip has cleared. |
+| Overlap (async scheduling) | **the next call, written during this fire**, on a second rail | The expo writes fire N+1 while fire N cooks, so the line need not go dark. |
+| Ghost token | a **binned plate** | Writing ahead, the expo fires one more course for a table that has just asked for the check, and it is binned. A set menu (a `max_tokens` stop) never gets one. |
+| Launch comb | **calling each dish** | With no drilled routine, the expo calls every dish to the line one by one, one tooth per call. |
+| Graph replay | **one word fires a drilled routine** | The line has drilled this fire's size, so one call starts it all, and the comb collapses into one short slab. |
+| Capture sizes and padding | the **mold rack** | One ring mold per drilled size, smallest first. A fire drops into the smallest mold that holds it, and the mold's empty places are padding. Above the largest mold, the expo calls each dish. |
+| Grammar mask (TR6) | the **allergy card** | Before a course is chosen, the expo strikes the dishes the table may not have. The card is written during the fire, and if it is not done when the fire ends, the line waits. |
+| Token out | **a plate down the pass** | One per live clip per fire. Useful tokens are plates that reached a table. |
+| KV page | a **hotel pan in the reach-in** | One block's prepped mise, for every layer of a group. A pan keeps its slot for life, and its masking-tape label carries its hash and its group. |
+| KV group | a **station's code** on a pan's tape | Each group is one of the line's stations, its layers grouped so that the group's block fills one pan. A full-attention station keeps all its pans; a sliding-window station keeps only those of its last W tokens, its **hold window**. |
+| Free queue | **the rotation** | The pans nobody holds, in eviction order, the next to be dumped on the left. A labelled pan still holds its mise; a bare pan holds none. |
+| Adapter | a **recipe kit** | A variant's own mise, in pans from the same reach-in, not side by side. A kit stays while any ticket using it is on the rail. |
+| Prefix hit | **shared mise** | A ticket whose order opens like an earlier one starts from that one's pans, in whole pans, and only as far as every station still holds them. |
+| Eviction | **dumping a pan** | Only a labelled pan nobody holds, from the head of the rotation. Its mise is gone, and the next ticket that needs it re-preps it (recomputed tokens). |
+| Preemption | **pulling a ticket** | Its pans go back, and it fires again later. |
+| Request lifecycle | the **host stand**, the **ticket window**, the **dumbwaiter** and **"Heard!"** | Where a ticket enters the house (the API server); the only way between floors (IPC); down to the line and back (host-to-GPU and GPU-to-host copies); and the call-back that must come before anyone reads what the line made (a sync). Between two pairs of hands on one floor, a ticket waits on a **spike** (a queue). |
+| KV tiers | the **reach-in**, the **cooler** and the **basement** | GPU, CPU and disk, a floor each. A peer is the **sister kitchen**. |
+| KV transfer | the **dumbwaiter's car** | A pan in the car cannot be cooked from until the car lands, and the floor it left keeps its copy until the trip is done. |
+| KV events | **pan calls** | Every pan in or out is called out to the front of house with its number, so the board at the host stand can be rebuilt from the calls alone. |
+| Draft | **the commis's plates** | A junior cook plates the next γ courses ahead of the chef. q is how often the commis plates each dish. |
+| Target p | **the chef's tasting** | How often the chef herself would send each dish: what the pass must serve, exactly. |
+| Accept | **keeping a commis plate** | A plate of dish x is kept with probability min(1, p(x)/q(x)). |
+| Residual | **re-plating** | At the first plate sent back, the chef re-plates from the dishes the commis under-plates, (p − q)⁺, and bins the rest of the run. If every plate is kept, she plates one more course herself (the bonus token). |
+| Open loop | **walk-ins** | Guests arrive when they arrive, whatever the kitchen is doing. |
+| Closed loop | **a fixed set of tables** | A table orders again only after its last plate lands, so when the kitchen stalls, nobody new orders. |
+| Coordinated omission | **the inspector's stopwatch that pauses when the kitchen is slammed** | The worst waits never reach the log. Latency counts from when the guest was due. |
+| Backend dispatch | **which station's equipment takes the dish** | The house checks its equipment in a fixed order, and the first piece that covers every requirement takes the dish. |
+| Tensor, view, copy | **a sheet pan, relabelled or re-plated** | The label (shape, strides, offset) says how to read the pan. A relabel moves nothing; a re-plate moves every portion. |
+| Trace | **the night's tape** | The printer's record of every call, cook and wait, with its time. |
+| Reference policy (the ghost) | **the house run** | The same night, worked by the house's standard. Only the debrief reads it; on the front page, its count is par. |
+
+#### Service (`loop`)
+
+*The step loop.* Working name The Loop (§3), on the front page, in TR2 and in TR6's mask lane. The front-page run, "First loop" (§3.1), is billed **First service**, TR2's levels are **the full service**, and the course map, where the run ends, is **the menu**.
+
+- **The present:** the pass, meaning the rail, the fired rail and the fire being called.
+- **Scene** (§3, "3D scene"). On the front page, the contract's FIRST VIEWPORT places these objects.
+  - **The bay is the pass,** at the near end. The tray of slots is **the rail** above it, one clip per slot. The waiting requests are **tickets curling out of the printer** at the rail's left end. With overlap on, the second tray is **the fired rail**: it holds the fire on the line while the expo fills the rail for the next one. In TR2 the rack of molds is **the mold rack** beside the pass, and the dispatcher's pick is the mold the fire drops into.
+  - **The lanes run from the pass into the night.** The CPU lane, on the left, is **the expo's lane**: plan slabs are the expo writing the call, and read slabs are the expo reading the plates back. The GPU lane, on the right, is **the line**: each fire is a lit slab, as long as its cook time and as wide as the rail. TR2's copy lane is **the dumbwaiter's lane**, and TR6's mask lane is **the allergy card**, written on the expo's side during the fire.
+  - **Places.** Each fire carries one place per clip: a **plate** (a live slot), an **empty place** (an open groove, paid for and empty), a **binned plate** (hollow: the ghost token) and, in TR2, an **empty mold place** (marked as padding). A clip's places line up along the night.
+  - **Dark stretches** on the line are the bubbles.
+  - **Combs** are the expo calling each dish, one tooth per call. A graph replay is **one word** and one short slab. Piecewise mode is a comb with fewer teeth: the routine is drilled in pieces, and the expo calls the dishes between them.
+  - **The bell** is the step mark. Everything moves on it; between bells only the printer feeds, and only while the clock runs. While the loop waits for a decision, nothing moves (§3).
+  - **The printer tape** is the live readout (DOM): the fire's number, the ticks it took, labelled synthetic, and the stations busy (D-048). In TR2 it shows µs on the model's clock and the graph hit.
+  - **Compare** sets three services of the same night side by side: firing the rail as a set (static batching), refilling clips (continuous), and refilling while the next call is written during the fire (overlap).
+- **First service's copy** (§3.1's beats). Beat 1 reads "Tap a ticket to hang it on the rail" (put a request in the batch). Beat 2's counter reads "clip paid for, empty". Beat 3's switch reads "Write the next call during this fire", with "overlap (async scheduling)" beside it.
+- **TR2's levels in the kitchen** (§3.2):
+  - `async`: the expo writes during the fire, on both cost cards, which keep their names because they are claims;
+  - `graphs` · `comb`: calling each dish against one word;
+  - `graphs` · `sizes`: which routines the line drills before service, within the time it has to drill them, with vLLM's ladder beside SGLang's buckets;
+  - `graphs` · `modes`: how much of each fire is drilled;
+  - `keys`: routines drilled per count of recipe kits, whose space comes out of the reach-in before its pans are counted (graph memory is reserved before the KV cache is sized);
+  - `mrv2`: the V2 runner, where the line sets up its next fire from the rail itself (input preparation on the GPU);
+  - `close`: everything, on fresh seeds;
+  - `mask` (TR6): does the allergy card fit inside the fire?
+- **Cameras** (§3's presets):
+  - **Over the shoulder** (along time; Establish): from behind the expo, across the pass and down the night, about 25° up. The front page opens here.
+  - **Side of the pass** (side; Compare, orthographic): fires as lengths and dark stretches as gaps. `first-4-par` ends here, with the three services stacked.
+  - **Under the lamps** (top): straight down on the rail and the fires, where empty clips and empty places are easy to count.
+- **Materials.** The pass, the rail, the lanes and the mold rack are stainless. Tickets, the printer tape and every label are ticket paper with its inks (DOM). The line's lit fires take the `gpu` lane role, the expo's lane `cpu`, the dumbwaiter's lane `copy` and dark stretches `idle`. Places differ by shape first: solid, open groove, hollow, marked. The heat lamp falls on the pass alone.
+- **Moment** (§0's flagship moment): the dark stretches close as the fired rail appears, and the line lights end to end.
+- **Must stay legible at 390 px:** each place's shape; the dark stretches; ticket numbers, as DOM labels on the tickets; and the tape's counters, all DOM: plates, binned plates, empty mold places, busy and dark ticks (or µs), calls and eager fires.
+
+#### Sheet Pan (`shape-shifter`)
+
+*Tensor views and copies.* Working name Shape Shifter (§4), in TR0.
+
+- **The present:** the pan the next operation acts on.
+- **Scene** (§4, "3D scene"):
+  - The tensor's block of cells is **a speed rack of sheet pans**, and each cell is **a portion**. A rank-2 tensor is one pan of rows and columns; a rank-3 tensor is a rack of pans.
+  - The buffer strip below is **the bench row**: every portion in one line along the bench, in the order it was portioned. A portion's place on the row is its address.
+  - The stride thread is **butcher's twine**, run through the portions in the order the label says to read them, touching the bench row at each portion's place.
+  - Shape, strides and offset are **the pan's tape label** (DOM).
+  - A view (`view`, `transpose`, `permute`, `expand`, slicing) is **a relabel**: new tape, the twine re-tied, and nothing on the bench moved. A copy (`contiguous()`, or a `reshape` the strides cannot express) is **a re-plate**: a new bench row is laid, and every portion travels to it.
+  - `expand` (stride 0) is **one portion read in several places**: the twine passes it more than once, so writing to it writes them all.
+  - In `grid`, the program tiles are **the cutter's stamps** over the pan. Each stamp is one program over a BLOCK of portions, and a stamp place that falls off the pan's edge is a masked lane, drawn hollow.
+- **Cameras:** **Three-quarter** (Establish: the rack above the bench), **One pan** (Focus: one slice) and **Before and after** (Compare: start against target).
+- **Materials.** Pans, rack and bench are stainless. Portions are cells, and the ones a re-plate moves take emphasis while they travel. The twine is a line mark (`Links`, `Rails`), and the label is masking tape (DOM). Masked places are hollow. The heat lamp falls on the pan under the next operation.
+- **Must stay legible:** the label's shape and strides (DOM), which portions move and which stay, the masked places, and the counts of copies, portions moved and operations (DOM).
+
+#### Back of House (`engine-floor`)
+
+*A request's lifecycle.* Working name The Engine Floor (§5), in TR1.
+
+- **The present:** the end of the laid path, where the next hand-off starts.
+- **Scene** (§5, "3D scene"):
+  - The process platforms, stacked in height, are **the floors of the house**: the dining room and **the host stand** at the top (the client and the API server), **the pass** in the middle (the engine core, where the expo works), **the cooks' floors** below (the workers, one cook per rank) and **the line** at the bottom (the GPU deck), whose burners are the streams.
+  - Threads are **pairs of hands**, each in its own spot on a floor.
+  - A queue between threads is **a spike**: one pair of hands spikes the ticket, and the next pulls it.
+  - IPC is **the ticket window** between floors, and shared memory is **the window shelf** both floors reach.
+  - A copy is **the dumbwaiter**, down to the line (host to device) or up from it (device to host). A kernel launch is **calling a dish** to the line, as in Service.
+  - A sync is **"Heard!"**: the hands that asked stop until the line calls back, and read nothing the line made before it.
+  - TP ranks are **twin cooks**, their floors one behind the other in depth, each cooking half of every dish; a collective is **passing halves across** between them.
+  - The capsule is **the ticket** itself. It travels the path the learner laid and waits, visibly, on spikes.
+  - The tray of stage tiles holds **hand-off cards**, each with its mechanism's glyph and its engine label, such as "spike · `input_queue` (engine core)".
+  - Tokenizing is **writing the order in kitchen shorthand** at the host stand, and detokenizing is **naming each plate** on its way out.
+  - The debrief lays **two houses' floor plans** side by side, the learner's engine against the other, with the differences given emphasis.
+- **Cameras:** **Cutaway** (Establish: the house at three-quarters, floor by floor), **One floor** (Focus, one per platform) and **Follow the ticket** (Follow: opt-in, and off under reduced motion).
+- **Materials.** Floors, the pass and the line are stainless. The ticket and every label are ticket paper (DOM). Each hand-off kind has its glyph: spike, window, shelf, dumbwaiter, call, "Heard!" and halves. Floors differ by height, never by colour alone. The heat lamp falls on the end of the laid path.
+- **Must stay legible:** floor and hands names (DOM), every hand-off's glyph, and where the ticket stands. The mirror's stage table keeps mechanism, from, to and source in engine terms.
+
+#### The Tape (`gap-hunt`)
+
+*Trace attribution.* Working name Gap Hunt (§6), in TR3 and the capstone; 2D. The Trace Room keeps its name: it is where the tapes are kept.
+
+- **The present:** the focused event.
+- **Board** (§6, "2D design"):
+  - A trace is **the night's tape**. A synthetic tape says so, and a pinned tape carries its GPU, engine pin, date and SHA-256.
+  - The tracks: the CPU main thread is **the expo's lane**, its Python frames stacked as nested calls; CUDA API calls are **the calls**; GPU streams are **the line**; and copies are **the dumbwaiter**.
+  - Step marks are **bells**, and a window runs from one bell to the next.
+  - The categories: kernel is **cooking**; copy-only is **the dumbwaiter running with nothing cooking**; CPU-gap is **dark while the expo writes**; and both-idle is **everyone waiting**, on I/O or another process. Overlap, reported beside the partition, is **the expo writing while the line cooks**.
+  - The unaccounted counter, **unaccounted ns on the tape**, sits at the top and must reach 0.
+  - A gap's cause is **what held the line**: the expo's work covering most of the time from the gap's start to the call that ended it, or a "Heard!" (a blocking sync) ending at or after the gap's start, which drained the line's calls.
+  - Correlation links join **a call to its dish**.
+  - On phones the tape becomes **a list** of the window's events, with category radios.
+- **Camera:** none (2D). Zoom and pan run the tape back and forth.
+- **Materials.** The tape is ticket paper. Each category takes the categorical code and its own fill pattern, and dark stretches take the `idle` role. The heat lamp falls on the focused event alone.
+- **Must stay legible:** every span's category (pattern and code), the unaccounted counter, the window's ns, the cause mark and the bells. The counter and the mirror carry every number as DOM, and the canvas writes none of its own. At 360 px, list mode carries everything.
+
+#### Line Check (`dispatch`)
+
+*Attention backend selection.* Working name Dispatch (§7), in TR4; 2D.
+
+- **The present:** the row the check has reached.
+- **Board** (§7, "2D design"):
+  - The feature card is **the dish's spec**: GPU architecture, head dim, KV dtype, MLA, sliding window, speculative decoding and page size. They stay in engine terms, because they are what the engine reads.
+  - The rule table is **the line-check sheet**: the house's attention equipment in priority order, one row per backend, each listing what it can take.
+  - The walk is **the line check**, row by row. The first piece of equipment whose row covers every line of the spec takes the dish. A wrong prediction stops the check at the first requirement that ruled the predicted piece out.
+  - The CUDA-graph consequence is **whether the line can drill a routine on that equipment**: always, only when every ticket sends the same number of courses in a fire, only when each sends exactly one, or never (`ALWAYS`, `UNIFORM_BATCH`, `UNIFORM_SINGLE_TOKEN_DECODE`, `NEVER`). It links to Service's `graphs` · `modes`.
+- **Camera:** none (2D).
+- **Materials.** The sheet and the spec are ticket paper (DOM tables). A row's verdict is a glyph, covers or excluded, beside its text. The heat lamp falls on the row under check.
+- **Must stay legible:** the whole sheet as a DOM table, read as stacked rows at 390 px, with the excluding requirement named in words.
+
+#### The Reach-In (`pool`)
+
+*Hybrid KV pages and adapters.* Working name The Pool (§8), in TR5a.
+
+- **The present:** the candidates of the open ask, the pans or tickets the learner can pick now.
+- **Scene** (§8, "3D scene"):
+  - The rack is **the reach-in**: a hotel pan in every slot, in rows of 16, each in its slot for its whole life. A pan's state is its form plus its tape. Free is **a bare pan**, an empty frame with no tape. Cached is a frame whose tape is still on, with the hash glyph: the mise is still there, but nobody holds it. In use is **a full pan** (solid), its tape carrying its station's group glyph. Adapter is a full pan whose tape carries the pin glyph: **a recipe kit's pan**.
+  - Focus on a pan **fans it into its layers**, one slice per layer of its group, with padding layers hollow: one pan serves every layer of its group.
+  - Requests are **tickets laid along the pass** in front of the reach-in, each a ruler with one segment per block. Above each ticket runs **one twine per station** to that station's pans, drawn on Focus only.
+  - The sliding window is **the station's hold window**, a frame along the ticket. A segment that leaves it drops its twine, and its pan keeps its tape but is no longer held.
+  - The free line is **the rotation**, along the reach-in's base, in eviction order, with the next pan to be dumped on the left.
+  - An adapter's pages are **a recipe kit's pans**, joined by their own twine and never drawn side by side, because unified paging stores them apart.
+  - A prefix hit is **shared mise**: as far as every station still holds the pans, in whole pans, and nothing when the full-attention station's first pan is gone.
+  - The actions: admit is **hanging a ticket**, evict is **dumping a pan** from the head of the rotation, preempt is **pulling a ticket**, and prefetch is **bringing a recipe kit in** before its ticket hangs.
+  - The slot baseline is **the kit shelf**: at the pins, vLLM and SGLang keep kits on a shelf of fixed slots, apart from the reach-in (D-042). The `adapters` debrief and the In-production card show it.
+- **Cameras:** **Front of the reach-in** (Establish: the rack, with the tickets below), **One pan** or **One ticket's twine** (Focus), **One station** (ARCHITECTURE §6.1's per-group filter: only that station's tapes and twine) and **From above** (Top: the rack as a grid).
+- **Motion.** Pans never move, because a moving pan would misteach copying (§8). Twine draws, and a pan changes state where it sits.
+- **Materials.** The reach-in, its rack and its pans are stainless. Labels are masking tape and marker (DOM). Pan states take the memory roles (free, used, cached, shared, adapter, evicted) on top of their forms, and stations take the categorical code with their glyphs. The heat lamp falls on the open ask's candidates.
+- **Moment** (§0's flagship moment): a pan fans into the layers it serves while twine reaches across the reach-in to it.
+- **Must stay legible at 390 px:** each pan's glyph on its tape (16 columns, about 20 px each), the rotation's order (DOM), and the counts, all DOM: recomputed tokens (re-prepped), hit tokens (shared mise), completed tickets, preemptions, kit stall steps and evictions.
+
+#### The Dumbwaiter (`switchyard`)
+
+*KV offload, connector and events.* Working name The Switchyard (§9), in TR5b.
+
+- **The present:** the ticket whose controls are open.
+- **Scene** (§9, "3D scene"):
+  - The three decks are **three floors**: **the reach-in** on the line at the top (the GPU, with The Reach-In's rack), **the cooler** below (CPU) and **the basement** at the bottom (disk). A peer is **the sister kitchen**, whose pans arrive in the same car.
+  - Transfers are **the dumbwaiter's car**, running between floors; its fill shows the pans landed.
+  - The layer column is **the build**: the dish assembled layer by layer beside the line. It shows how far cooking has reached and which layers' mise has landed, and cooking stops at a layer whose mise is still in the car.
+  - Requests waiting for remote KV wait on **the waiting spike** (`WAITING_FOR_REMOTE_KVS`).
+  - A page being saved carries **a lock tag**, the lock glyph: its copy is still riding down, so it may not be dumped.
+  - Events are **pan calls**, each with its number, called out to the front of house along the call line: stored, removed and all cleared (`BlockStored`, `BlockRemoved`, `AllBlocksCleared`).
+  - The consumer's board is **the board at the host stand**: the front of house's picture of this kitchen's mise, rebuilt from the calls alone. After a gap in the calls, it replays from the buffer.
+  - A violation sends out **a wrong plate**: cooking from a pan still in the car, dumping a pan whose copy has not landed, or cooking from a spoiled pan. A spoiled pan from storage can spoil a later ticket too.
+  - A failed load is **a spoiled pan**: the ticket is cut back to its last good pan, and the spoiled pan and every later one are dumped and re-prepped.
+  - Each step is a bell, as in Service: the car advances once per step, and the build climbs until it reaches a layer whose mise is missing.
+- **Cameras:** **The shaft** (Establish: the floors and the car), **The build** and **The board** (Focus) and **The shaft from the side** (Side: the car's progress).
+- **Materials.** Floors and the car are stainless, and pans are as in The Reach-In. Calls and the board are ticket paper (DOM), with their numbers. Lock tags carry the lock glyph. A violation takes the `bad` status role with its glyph. The heat lamp falls on the open ticket.
+- **Must stay legible:** lock tags, the car's fill count (DOM), the layer the build has reached, and the board's mismatch count (DOM).
+
+#### The Tasting (`verifier`)
+
+*Speculative decoding's verifier.* Working name The Verifier (§10), in TR6.
+
+- **The present:** the row being tasted.
+- **Scene** (§10, "3D scene"):
+  - The rows into depth are **the commis's run**: one row per course the commis plated ahead (1 to γ), then **the chef's extra course**, the bonus row.
+  - Each row's skyline spans **the six dishes** of the vocabulary. Each dish's column stacks an **agreed** base, min(p, q). Where the commis plates the dish more often than the chef would, an **over-plated** cap, q − p, sits on top; where the chef would send it more often, an **under-plated** well, p − q, sits beside it.
+  - A drafted token is **a commis plate set down** on its dish's column at a seeded height in [0, q(x)). In the agreed base it is kept; in the over-plated cap it is sent back. On a send-back, a second plate drops into the row's under-plated wells: **the chef re-plates**.
+  - The verifier's walk is **the chef tasting down the run**. She stops at the first plate sent back, and the later rows are binned.
+  - The output skyline at the front is **what went out**, per dish, settling exactly onto the chef's tasting as plates accumulate.
+  - The TV meter is **the distance from the chef's tasting**, exact (DOM).
+  - In `greedy-ngram`, temperature 0 is **the chef always sending her favourite**, and the n-gram draft is **a commis copying the night's recent plates**, with no idea how often (q is one-hot). `mutants` is **five tasting rules to audit**, and `gamma` is **how many courses the commis should plate ahead**.
+- **Cameras:** **Over the run** (Establish: three-quarters over the rows), **One course** (Focus: one row, front-on) and **Walk with the chef** (Follow: opt-in).
+- **Materials.** The rows sit on the stainless pass. The agreed base, the over-plated cap and the under-plated well take the `overlap`, `draft` and `residual` probability roles, each with its own pattern. What went out takes `observed`, and the chef's tasting `target`. Commis plates are markers, told apart from the segments by shape. The heat lamp falls on the row being tasted.
+- **Moment** (§0's flagship moment): the commis's plates drop through the rows into depth, and what went out settles exactly onto the chef's tasting.
+- **Must stay legible:** which segment each plate landed in (kept or sent back, by shape), the distance meter (DOM, an exact fraction), and each dish's output against the chef's tasting (the mirror).
+
+#### The Inspection (`broken-bench`)
+
+*Benchmark methodology.* Working name Broken Bench (§11), in TR8; 2D, with an optional 3D opener. The court is **the hearing**.
+
+- **The present:** the selected row of the log.
+- **Board** (§11, "2D design"):
+  - A case is **an inspection report**: a claim about a kitchen's times, its setup and the stopwatch log.
+  - The log's rows are **each order's times**: due (when the guest was due to order), sent (when the order was taken), first plate and done.
+  - Per-client timelines are **each table's timeline**, and the histogram carries the percentile marker.
+  - The flaws, in the kitchen:
+    - closed loop past capacity: **a fixed set of tables**, so the rush never arrives;
+    - coordinated omission: **the inspector's stopwatch, paused while the kitchen is slammed**;
+    - client queue hidden: **a stopwatch started when a seat frees**, not when the guest joined the line;
+    - warm-up counted: **the first tables timed while the ovens heat**;
+    - warm cache: **every guest ordering what is already prepped**;
+    - capped output: **only the first few courses timed**;
+    - too few samples: **a "p99" from a handful of tables**;
+    - mean reported as a tail: **the average reported as the worst case**;
+    - client bottleneck: **the inspector's own runner, the slowest link**;
+    - "replay" that ignores timestamps: **last Friday re-run at a steady pace** instead of its rush;
+    - none: **a fair inspection**, the control.
+  - The reveal recomputes from the rows (from due times, the warm-up cut and the bootstrap) and shows the arithmetic.
+- **The 3D opener, `rain-and-relay`: walk-ins and tables.** In the open-loop arena, walk-ins reach the door at their due times. During a stall the door shuts and they queue outside, so the queue's height is the honest latency. In the closed-loop arena, one lane per table runs into depth, and a table orders again only after its last plate lands. During the stall every table freezes, and the orders never placed appear as ghost outlines at their due times, counted.
+- **Cameras** (the opener only): **The door** (Establish) and **Side** (Compare).
+- **Materials.** The report and the log are ticket paper (DOM tables). Due and sent ticks differ by glyph. In the opener, guests are markers and the ghost outlines are hollow. The heat lamp falls on the selected row.
+- **Must stay legible:** every row's due, sent, first-plate and done times (DOM), the percentile marker with its value, and the interval. On phones, everything is a list.
 
 ---
 
@@ -1357,6 +1607,7 @@ Read 2026-11-03 unless a date is given.
 
 **Course and family**
 - `PRODUCT.md`; [ARCHITECTURE.md](ARCHITECTURE.md); [DECISIONS.md](DECISIONS.md); [research/upstream-sglang.md](../research/upstream-sglang.md) (rows O1-O5, G1-G6, H1-H2, P1-P4, T1-T9, M1-M3, D1-D5); [research/upstream-vllm.md](../research/upstream-vllm.md) (rows R5, M7, M9, G1, G7, K1, K2, K6-K8, S2, S3, B1, B2, P1, T1), cited as "research vllm …".
+- The front page's surface brief, `.impeccable/surfaces/src-front-frontpage-tsx.md` (2026-11-03), whose direction contract §2.6 follows (D-047).
 - kernelspace `SPECIALIZATIONS.md` (2026-10-24), §2, §3.5, §4, §7, §9.
 - kernelspace at d478f91 (2026-10-30):
   - `PLAN-100X.md` §5.4.0, §7.3, §10;

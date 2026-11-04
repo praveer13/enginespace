@@ -41,7 +41,7 @@ FIRST VIEWPORT:
 - **The headline:** "Fire the next step.", printed large on a ticket clipped to the rail.
 - **The primary action:** "Start service", printed on that ticket's tear-off stub.
 - **The menu link:** on the printer.
-- **Live readout:** the printer tape shows the step number, microseconds per step, and stations busy.
+- **Live readout:** the printer tape shows the step number, the step clock in ticks per step (labelled synthetic, not microseconds; D-048), and stations busy.
 
 FORM:
 - **Chosen form:** The Pass, the kitchen expo line. It was candidate 1 on my ordered list, the IMPECCABLE'S PICK card; the owner chose it over the roll's candidate 3.
@@ -62,4 +62,4 @@ The first service. A visitor fires two tickets; the stations sit half dark and t
 ## Unresolved
 
 - **Faces:** the exact faces (sourced and self-hosted) are chosen at build time.
-- **Game name:** the front-page game is "The Loop" in the architecture draft. In this world it is a service, and its name changes to match.
+- **Game name:** chosen: the front-page game (`loop`) is "Service", subtitled "the step loop" (D-049), and its front-page run is "First service".
