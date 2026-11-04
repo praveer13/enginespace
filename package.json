@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "typecheck": "tsc -b",
     "test": "bun test",
+    "e2e": "playwright test",
     "verify:all": "bun scripts/verify.ts all",
     "verify:content": "bun scripts/verify.ts content",
     "verify:claims": "bun scripts/verify.ts claims",

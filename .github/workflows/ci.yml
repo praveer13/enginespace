@@ -4,12 +4,13 @@ name: CI
 #   fast-gate  lint, typecheck, the content compile, every verify:* gate that scripts/verify.ts registers, the build, and the
 #              gate that reads the build (verify:bundle), then export freshness.
 #   tests      bun test: units, golden vectors, seeded properties and bestiaries.
-#   e2e-smoke  Playwright against vite preview. Reserved for W0-T21, which adds playwright.config.ts and the specs.
+#   e2e-smoke  Playwright's Chromium against vite preview: axe on eight routes at 360 and 1280 px, the keyboard walk of the front-page
+#              game, the network check, the screenshots and reduced motion (W0-T21). The specs that earlier tasks wrote run in
+#              nightly.yml: they take longer than a pull request should wait for.
 #
 # A gate whose script is not built yet prints "pending: <task>" and exits 0 (kernelspace's pattern, scripts/verify.ts), so this
 # file does not change when a task lands its gate. The content compile and the export freshness check switch on the same way,
-# by file; e2e-smoke is the one job that its task replaces. Run the gates locally with `bun run verify:all`. labs.yml runs the
-# one gate that needs the Rust toolchain (verify:labs).
+# by file. Run the gates locally with `bun run verify:all`. labs.yml runs the one gate that needs the Rust toolchain (verify:labs).
 #
 # The job timeouts are backstops [estimated], set well above the targets of §10.2 and §10.1: under 5 minutes for the fast gate
 # [estimated] and under 6 for e2e-smoke [estimated].
@@ -109,11 +110,41 @@ jobs:
       # bunfig.toml roots `bun test` at tests/, so Playwright's specs in e2e/ never run here.
       - run: bun run test
 
-  # Reserved for W0-T21. §10.1 gives this job Playwright's Chromium against `vite preview`, axe on the pull-request routes, a
-  # keyboard walk of the front-page game, the network-isolation check, and screenshots uploaded as artifacts. W0-T21 replaces
-  # this step once playwright.config.ts and e2e/ exist.
+  # §10.1: Playwright's Chromium against `vite preview`, with axe on the pull-request routes, a keyboard walk of the front-page game,
+  # the network-isolation check, and the screenshots uploaded as artifacts. playwright.config.ts builds the site and serves it, so the
+  # test step is also the build; its `smoke` project is the five specs of W0-T21 (e2e/a11y, keyboard-loop, network, screenshots and
+  # reduced-motion). The report, the traces, the actual and diff of a screenshot that failed, and the 3D captures are kept as an
+  # artifact, whatever the result. A screenshot baseline is a Linux rendering: when a runner draws the page a little differently, the
+  # artifact has the `-actual.png` to copy over the baseline in e2e/screenshots.spec.ts-snapshots/.
   e2e-smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - run: "echo 'pending: W0-T21'"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # The browser is the revision that the locked @playwright/test pins, with the system libraries it needs.
+      - name: Install Playwright's Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run the smoke specs
+        run: npx playwright test --project=smoke
+
+      - name: Keep the report, the screenshots and the traces
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-smoke
+          path: |
+            playwright-report
+            test-results
+          retention-days: 14
+          if-no-files-found: ignore

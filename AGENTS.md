@@ -57,7 +57,7 @@ npm run build         # tsc -b, then vite build into dist/
 npm run verify:all    # every verify:* gate
 ```
 
-npm installs and builds, and Bun runs the tests and the scripts, so Bun must be on your PATH. `package-lock.json` is the only lockfile, and Bun's are git-ignored. `bunfig.toml` roots `bun test` at `tests/`, so Playwright specs never run as Bun tests.
+npm installs and builds, and Bun runs the tests and the scripts, so Bun must be on your PATH. `package-lock.json` is the only lockfile, and Bun's are git-ignored. `bunfig.toml` roots `bun test` at `tests/`, so Playwright specs never run as Bun tests: `npm run e2e` runs them (after `npx playwright install chromium`, once), and `npx playwright test --project=smoke` runs the subset that CI's e2e-smoke job runs. `playwright.config.ts` builds the site and serves it with `vite preview` itself, and reads `ES_CHROMIUM` for a host whose installed Chromium cannot start.
 
 `scripts/verify.ts` is the gate registry. It holds every gate of A§10.2, and `package.json` reaches each one as `verify:<gate>`.
 - `npm run verify:<gate>` runs one gate. `bun scripts/verify.ts all --stage source` runs one stage. A `source` gate reads the working tree, a `build` gate reads `dist/` and so runs after `npm run build`, and a `toolchain` gate needs the pinned Rust toolchain, which only `labs.yml` has. `bun scripts/verify.ts list` prints each gate's stage, whether it is live or pending, and the task that builds it.

@@ -85,6 +85,7 @@ npm run typecheck   # tsc -b: the app, the Node-side configs, and the pure packa
 npm test            # bun test: the unit and build tests in tests/
 npm run build       # typecheck, then vite build into dist/, with dist/.vite/manifest.json
 npm run preview     # serve dist/
+npm run e2e         # Playwright's specs in e2e/ (axe, the keyboard walk, the network check, the screenshots): builds, serves with vite preview, runs; npx playwright install chromium first
 ```
 
 The gates that check more than lint, the type checker and the tests live in one registry, `scripts/verify.ts`, and CI runs the same ones on every pull request (ARCHITECTURE §10.2). A gate whose script is not built yet prints `pending: <task>` and exits 0, so the run passes while the site is half built.

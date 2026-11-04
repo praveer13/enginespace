@@ -528,9 +528,11 @@
   line-height: 1.6;
 }
 
-/* The night so far: the mirror, and the debrief when a level ends. */
+/* The night so far: the mirror, and the debrief when a level ends. Its one column may shrink below what is in it: an implicit track is
+   as wide as the widest thing inside, and the debrief's tables are wider than a phone, which cut the debrief off at 360 px. */
 .es-front-night {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--es-space-6);
   max-width: var(--front-measure);
   margin: 0 auto;
