@@ -25,7 +25,7 @@
 }
 
 .es-loop-label__no {
-  font-size: clamp(0.8125rem, 2.3cqi, 1.75rem);
+  font-size: clamp(var(--es-size-caption), 2.3cqi, 1.75rem);
   letter-spacing: 0.04em;
 }
 
@@ -39,24 +39,24 @@
 
 .es-loop-label__sub {
   color: var(--es-paper-ink-2);
-  font-size: clamp(0.625rem, 1.15cqi, 0.875rem);
+  font-size: clamp(0.625rem, 1.15cqi, 0.875rem); /* impeccable-disable-line design-system-font-size -- the sub-line's floor sits under micro, so it stays smaller than its ticket number */
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 /* The fired rail's tickets and the printer's strip print smaller: they are further off, and the strip's paper is narrower. */
 .es-loop-label--fired {
-  font-size: clamp(0.6875rem, 1.6cqi, 1.125rem);
+  font-size: clamp(var(--es-size-micro), 1.6cqi, var(--es-size-plate));
 }
 
 .es-loop-label--waiting {
-  font-size: clamp(0.6875rem, 1.75cqi, 1.25rem);
+  font-size: clamp(var(--es-size-micro), 1.75cqi, var(--es-size-title));
 }
 
 /* What is still in the printer, printed on its dark housing. */
 .es-loop-label--more {
   color: var(--es-paper);
-  font-size: clamp(0.6875rem, 1.6cqi, 1.125rem);
+  font-size: clamp(var(--es-size-micro), 1.6cqi, var(--es-size-plate));
 }
 
 /* A clip with nothing hung: paid for, and empty. A strip of paper in the ribbon's red, its edge dashed like a torn-off stub. */
@@ -66,7 +66,7 @@
   background-color: var(--es-paper);
   box-shadow: var(--es-shadow-paper);
   color: var(--es-paper-ink-2);
-  font-size: clamp(0.625rem, 1.3cqi, 0.9375rem);
+  font-size: clamp(0.625rem, 1.3cqi, 0.9375rem); /* impeccable-disable-line design-system-font-size -- an empty clip's stub floors under micro, so four fit side by side */
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -75,7 +75,7 @@
 @container (max-width: 30rem) {
   .es-loop-label--empty {
     padding: 0.15em 0.25em;
-    font-size: 0.5625rem;
+    font-size: 0.5625rem; /* impeccable-disable-line design-system-font-size -- the narrow frame's stub, smaller still (the comment above) */
     letter-spacing: 0.02em;
   }
 }
@@ -86,7 +86,7 @@
   font-family: var(--es-font-label);
   font-weight: var(--es-font-label-weight);
   letter-spacing: var(--es-font-label-tracking);
-  font-size: clamp(0.6875rem, 1.6cqi, 1.0625rem);
+  font-size: clamp(var(--es-size-micro), 1.6cqi, var(--es-size-body));
 }
 
 /* The clock along the line, in the numeral face, and what its numbers are. */
@@ -94,7 +94,7 @@
   color: var(--es-text-2);
   font-family: var(--es-font-numeric);
   font-weight: var(--es-font-numeric-weight);
-  font-size: clamp(0.6875rem, 1.45cqi, 1rem);
+  font-size: clamp(var(--es-size-micro), 1.45cqi, var(--es-size-base));
 }
 
 .es-loop-label--axis {
@@ -102,7 +102,7 @@
   font-family: var(--es-font-body);
   font-weight: 400;
   letter-spacing: 0.02em;
-  font-size: clamp(0.6875rem, 1.3cqi, 0.9375rem);
+  font-size: clamp(var(--es-size-micro), 1.3cqi, var(--es-size-print));
 }
 
 /* The line's stations, as the pass reads them: a pip for each, burning in the heat lamp's amber with its filament's edge or an open
@@ -112,7 +112,7 @@
   border: 1px solid var(--es-edge);
   border-radius: var(--es-radius-plate);
   background-color: var(--es-surface-1);
-  font-size: clamp(0.6875rem, 1.3cqi, 0.9375rem);
+  font-size: clamp(var(--es-size-micro), 1.3cqi, var(--es-size-print));
 }
 
 .es-loop-label__stations {
@@ -154,5 +154,5 @@
   color: var(--es-text-1);
   font-family: var(--es-font-numeric);
   font-weight: var(--es-font-numeric-weight);
-  font-size: clamp(0.6875rem, 1.3cqi, 0.9375rem);
+  font-size: clamp(var(--es-size-micro), 1.3cqi, var(--es-size-print));
 }

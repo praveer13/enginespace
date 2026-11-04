@@ -264,7 +264,7 @@
 .es-kit__fires-title {
   margin: 0;
   font-family: var(--es-font-heading);
-  font-size: 1.5rem;
+  font-size: var(--es-size-large);
   line-height: 1;
   letter-spacing: 0.03em;
   font-weight: 800;
@@ -339,7 +339,7 @@
   font-family: var(--es-font-ticket);
   font-weight: var(--es-font-ticket-weight);
   letter-spacing: 0.04em;
-  font-size: 0.8125rem;
+  font-size: var(--es-size-caption);
   line-height: 1;
 }
 
@@ -348,21 +348,21 @@
   font-family: var(--es-font-label);
   font-weight: var(--es-font-label-weight);
   letter-spacing: var(--es-font-label-tracking);
-  font-size: 0.875rem;
+  font-size: var(--es-size-note);
 }
 
 .es-kit-label--tick {
   color: var(--es-text-2);
   font-family: var(--es-font-numeric);
   font-weight: var(--es-font-numeric-weight);
-  font-size: 0.875rem;
+  font-size: var(--es-size-note);
 }
 
 .es-kit-label--legend {
   padding: 0.15rem 0.35rem;
   background-color: var(--es-paper);
   box-shadow: var(--es-shadow-paper);
-  font-size: 0.75rem;
+  font-size: var(--es-size-stamp);
   text-transform: uppercase;
 }
 
@@ -401,7 +401,7 @@
 .es-twin__axis-name {
   fill: var(--es-text-2);
   font-family: var(--es-font-body);
-  font-size: 13px;
+  font-size: 13px; /* impeccable-disable-line design-system-font-size -- SVG user units: the twin's text is placed in viewBox coordinates */
 }
 
 .es-twin__cpu {
@@ -463,7 +463,7 @@
   fill: var(--es-text-2);
   font-family: var(--es-font-numeric);
   font-weight: var(--es-font-numeric-weight);
-  font-size: 14px;
+  font-size: 14px; /* impeccable-disable-line design-system-font-size -- SVG user units: the twin's text is placed in viewBox coordinates */
 }
 
 .es-twin__present {

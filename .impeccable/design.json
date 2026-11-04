@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-04T20:39:13+00:00",
+  "generatedAt": "2026-11-04T22:04:22+00:00",
   "title": "Design System: enginespace",
   "extensions": {
     "colorMeta": {
@@ -226,6 +226,22 @@
           "#a0a6aa",
           "#c4cace",
           "#e9eff3"
+        ]
+      },
+      "glint": {
+        "role": "neutral",
+        "displayName": "Tube Glint",
+        "canonical": "#ffffff",
+        "oklch": "oklch(100.0% 0.000 0.0)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
         ]
       },
       "text-1": {
@@ -501,6 +517,78 @@
         "purpose": "Masking-tape labels on pans and objects, and an engine term written beside a kitchen word."
       }
     },
+    "typeScale": [
+      {
+        "name": "size-micro",
+        "value": "0.6875rem",
+        "purpose": "Fine print: a stamp on the printer, a stage label at its floor."
+      },
+      {
+        "name": "size-stamp",
+        "value": "0.75rem",
+        "purpose": "A stamp or a tape head: a provenance tag, a line of tape."
+      },
+      {
+        "name": "size-caption",
+        "value": "0.8125rem",
+        "purpose": "A caption or a state word: under the bell, beside a light, on a rail clip."
+      },
+      {
+        "name": "size-note",
+        "value": "0.875rem",
+        "purpose": "A note: a table's heading, a switch's stamped word, a menu term."
+      },
+      {
+        "name": "size-print",
+        "value": "0.9375rem",
+        "purpose": "The printer's line: a ticket's head and foot, a hint, an error. The mono and label size."
+      },
+      {
+        "name": "size-base",
+        "value": "1rem",
+        "purpose": "The root size: a kick-plate link, a menu link, a small heading."
+      },
+      {
+        "name": "size-body",
+        "value": "1.0625rem",
+        "purpose": "Reading: the body and ticket size."
+      },
+      {
+        "name": "size-plate",
+        "value": "1.125rem",
+        "purpose": "Plate lettering and counts: a button, a board link, the numeric size."
+      },
+      {
+        "name": "size-title",
+        "value": "1.25rem",
+        "purpose": "A title: h3, and a course term."
+      },
+      {
+        "name": "size-action",
+        "value": "1.375rem",
+        "purpose": "The primary action: the stub's label at its widest, a large plate button."
+      },
+      {
+        "name": "size-large",
+        "value": "1.5rem",
+        "purpose": "Large: a big readout, a kit title, a panel title."
+      },
+      {
+        "name": "size-count",
+        "value": "clamp(2rem, 1.4rem + 2.4vw, 3rem)",
+        "purpose": "The biggest count: an extra-large readout."
+      },
+      {
+        "name": "size-page",
+        "value": "clamp(2rem, 1.2rem + 3.4vw, 3.75rem)",
+        "purpose": "A page's title, on every page that is not the front page."
+      },
+      {
+        "name": "size-course",
+        "value": "clamp(2.5rem, 1.8rem + 3vw, 4.5rem)",
+        "purpose": "A course's title on the front page: the sections' marquee."
+      }
+    ],
     "shadows": [
       {
         "name": "shadow-paper",
@@ -514,7 +602,7 @@
       },
       {
         "name": "shadow-plate",
-        "value": "inset 0 1px 0 rgb(255 255 255 / 0.7), inset 0 -1px 0 rgb(23 25 29 / 0.12), 0 1px 2px rgb(23 25 29 / 0.3)",
+        "value": "inset 0 1px 0 color-mix(in srgb, var(--es-glint) 70%, transparent), inset 0 -1px 0 rgb(23 25 29 / 0.12), 0 1px 2px rgb(23 25 29 / 0.3)",
         "purpose": "A stamped steel plate at rest."
       },
       {
@@ -524,7 +612,7 @@
       },
       {
         "name": "shadow-shelf",
-        "value": "0 1px 0 rgb(255 255 255 / 0.55), 0 6px 12px -6px rgb(23 25 29 / 0.35)",
+        "value": "0 1px 0 color-mix(in srgb, var(--es-glint) 55%, transparent), 0 6px 12px -6px rgb(23 25 29 / 0.35)",
         "purpose": "The board's lip over the ground."
       },
       {
@@ -541,7 +629,7 @@
       },
       {
         "name": "texture-sheen",
-        "value": "linear-gradient(180deg, rgb(255 255 255 / 0.36), rgb(255 255 255 / 0) 24rem)",
+        "value": "linear-gradient(180deg, color-mix(in srgb, var(--es-glint) 36%, transparent), transparent 24rem)",
         "purpose": "The fluorescent tubes reflected along the top of the page's steel."
       }
     ],
@@ -726,7 +814,7 @@
       "refersTo": "button-plate",
       "description": "The default button: a stamped steel plate you press.",
       "html": "<button class=\"ds-btn-plate\">Open the menu</button>",
-      "css": ".ds-btn-plate { display: inline-flex; align-items: center; justify-content: center; min-height: 2.75rem; padding: 0.55rem 1.15rem 0.45rem; border: 1px solid var(--es-edge); border-radius: var(--es-radius-plate); background-color: var(--es-surface-1); background-image: linear-gradient(180deg, rgb(255 255 255 / 0.55), rgb(255 255 255 / 0) 58%), var(--es-texture-brushed); background-size: auto, 100% 360px; box-shadow: var(--es-shadow-plate); color: var(--es-text-1); font-family: var(--es-font-display); font-size: 1.125rem; line-height: 1; letter-spacing: 0.07em; font-weight: 800; text-transform: uppercase; cursor: pointer; transition: background-color var(--es-dur-quick) var(--es-ease-settle), box-shadow var(--es-dur-quick) var(--es-ease-settle), transform var(--es-dur-quick) var(--es-ease-settle); } .ds-btn-plate:hover { background-color: color-mix(in srgb, var(--es-surface-1) 55%, var(--es-paper)); box-shadow: var(--es-shadow-plate), 0 6px 12px -6px rgb(23 25 29 / 0.4); } .ds-btn-plate:active { background-color: var(--es-surface-2); transform: translateY(1px); box-shadow: var(--es-shadow-press); } .ds-btn-plate:focus-visible { outline: 2px solid var(--es-focus); outline-offset: 2px; box-shadow: var(--es-shadow-plate), 0 -3px 14px 1px color-mix(in srgb, var(--es-lamp) 70%, transparent); }"
+      "css": ".ds-btn-plate { display: inline-flex; align-items: center; justify-content: center; min-height: 2.75rem; padding: 0.55rem 1.15rem 0.45rem; border: 1px solid var(--es-edge); border-radius: var(--es-radius-plate); background-color: var(--es-surface-1); background-image: linear-gradient(180deg, color-mix(in srgb, var(--es-glint) 55%, transparent), transparent 58%), var(--es-texture-brushed); background-size: auto, 100% 360px; box-shadow: var(--es-shadow-plate); color: var(--es-text-1); font-family: var(--es-font-display); font-size: var(--es-size-plate); line-height: 1; letter-spacing: 0.07em; font-weight: 800; text-transform: uppercase; cursor: pointer; transition: background-color var(--es-dur-quick) var(--es-ease-settle), box-shadow var(--es-dur-quick) var(--es-ease-settle), transform var(--es-dur-quick) var(--es-ease-settle); } .ds-btn-plate:hover { background-color: color-mix(in srgb, var(--es-surface-1) 55%, var(--es-paper)); box-shadow: var(--es-shadow-plate), 0 6px 12px -6px rgb(23 25 29 / 0.4); } .ds-btn-plate:active { background-color: var(--es-surface-2); transform: translateY(1px); box-shadow: var(--es-shadow-press); } .ds-btn-plate:focus-visible { outline: 2px solid var(--es-focus); outline-offset: 2px; box-shadow: var(--es-shadow-plate), 0 -3px 14px 1px color-mix(in srgb, var(--es-lamp) 70%, transparent); }"
     },
     {
       "name": "Ink Plate Button",
@@ -734,7 +822,7 @@
       "refersTo": "button-ink",
       "description": "A deep-steel plate with the label stamped out in paper white.",
       "html": "<button class=\"ds-btn-ink\">Ring the bell</button>",
-      "css": ".ds-btn-ink { display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0.55rem 1.15rem 0.45rem; border: 1px solid var(--es-paper-ink); border-radius: var(--es-radius-plate); background-color: var(--es-surface-3); background-image: linear-gradient(180deg, rgb(255 255 255 / 0.2), rgb(255 255 255 / 0) 58%), var(--es-texture-brushed); background-size: auto, 100% 360px; box-shadow: var(--es-shadow-plate); color: var(--es-paper); font-family: var(--es-font-display); font-size: 1.125rem; line-height: 1; letter-spacing: 0.07em; font-weight: 800; text-transform: uppercase; cursor: pointer; transition: transform var(--es-dur-quick) var(--es-ease-settle); } .ds-btn-ink:hover { background-image: linear-gradient(180deg, rgb(255 255 255 / 0.32), rgb(255 255 255 / 0) 58%), var(--es-texture-brushed); } .ds-btn-ink:active { transform: translateY(1px); box-shadow: var(--es-shadow-press); } .ds-btn-ink:focus-visible { outline: 2px solid var(--es-focus); outline-offset: 2px; box-shadow: 0 -3px 14px 1px color-mix(in srgb, var(--es-lamp) 70%, transparent); }"
+      "css": ".ds-btn-ink { display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0.55rem 1.15rem 0.45rem; border: 1px solid var(--es-paper-ink); border-radius: var(--es-radius-plate); background-color: var(--es-surface-3); background-image: linear-gradient(180deg, color-mix(in srgb, var(--es-glint) 20%, transparent), transparent 58%), var(--es-texture-brushed); background-size: auto, 100% 360px; box-shadow: var(--es-shadow-plate); color: var(--es-paper); font-family: var(--es-font-display); font-size: var(--es-size-plate); line-height: 1; letter-spacing: 0.07em; font-weight: 800; text-transform: uppercase; cursor: pointer; transition: transform var(--es-dur-quick) var(--es-ease-settle); } .ds-btn-ink:hover { background-image: linear-gradient(180deg, color-mix(in srgb, var(--es-glint) 32%, transparent), transparent 58%), var(--es-texture-brushed); } .ds-btn-ink:active { transform: translateY(1px); box-shadow: var(--es-shadow-press); } .ds-btn-ink:focus-visible { outline: 2px solid var(--es-focus); outline-offset: 2px; box-shadow: 0 -3px 14px 1px color-mix(in srgb, var(--es-lamp) 70%, transparent); }"
     },
     {
       "name": "Tear-off Stub",
@@ -742,7 +830,7 @@
       "refersTo": "stub",
       "description": "The primary action, printed in ribbon red on a ticket's perforated stub.",
       "html": "<button class=\"ds-stub\"><span>Start service</span><svg viewBox=\"0 0 24 24\" width=\"1.15em\" height=\"1.15em\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 12h15m-6-6 6 6-6 6\"/></svg></button>",
-      "css": ".ds-stub { --perforation: var(--es-paper-rule); display: flex; align-items: center; justify-content: space-between; gap: var(--es-space-3); width: 20rem; min-height: 3.5rem; padding: 1.15rem var(--es-space-6) 1rem; border: 0; border-radius: 0; background-color: var(--es-paper); background-image: radial-gradient(circle at 50% 50%, var(--perforation) 0 1.7px, transparent 2.2px); background-size: 10px 7px; background-repeat: repeat-x; background-position: 3px 0; box-shadow: var(--es-shadow-paper); color: var(--es-paper-ink-2); font-family: var(--es-font-ticket); font-size: 1.375rem; line-height: 1.1; letter-spacing: 0.04em; font-weight: 900; text-transform: uppercase; cursor: pointer; transform-origin: 0 0; transition: transform var(--es-dur-quick) var(--es-ease-settle), box-shadow var(--es-dur-quick) var(--es-ease-settle); } .ds-stub svg { transition: transform var(--es-dur-quick) var(--es-ease-settle); } .ds-stub:hover { --perforation: var(--es-edge); transform: rotate(-0.8deg) translateY(1px); } .ds-stub:hover svg { transform: translateX(3px); } .ds-stub:active { transform: translateY(2px); box-shadow: var(--es-shadow-press); } .ds-stub:focus-visible { outline: 2px solid var(--es-focus); outline-offset: -5px; background-color: color-mix(in srgb, var(--es-lamp) 32%, var(--es-paper)); }"
+      "css": ".ds-stub { --perforation: var(--es-paper-rule); display: flex; align-items: center; justify-content: space-between; gap: var(--es-space-3); width: 20rem; min-height: 3.5rem; padding: 1.15rem var(--es-space-6) 1rem; border: 0; border-radius: 0; background-color: var(--es-paper); background-image: radial-gradient(circle at 50% 50%, var(--perforation) 0 1.7px, transparent 2.2px); background-size: 10px 7px; background-repeat: repeat-x; background-position: 3px 0; box-shadow: var(--es-shadow-paper); color: var(--es-paper-ink-2); font-family: var(--es-font-ticket); font-size: var(--es-size-action); line-height: 1.1; letter-spacing: 0.04em; font-weight: 900; text-transform: uppercase; cursor: pointer; transform-origin: 0 0; transition: transform var(--es-dur-quick) var(--es-ease-settle), box-shadow var(--es-dur-quick) var(--es-ease-settle); } .ds-stub svg { transition: transform var(--es-dur-quick) var(--es-ease-settle); } .ds-stub:hover { --perforation: var(--es-edge); transform: rotate(-0.8deg) translateY(1px); } .ds-stub:hover svg { transform: translateX(3px); } .ds-stub:active { transform: translateY(2px); box-shadow: var(--es-shadow-press); } .ds-stub:focus-visible { outline: 2px solid var(--es-focus); outline-offset: -5px; background-color: color-mix(in srgb, var(--es-lamp) 32%, var(--es-paper)); }"
     },
     {
       "name": "Ticket",
@@ -750,7 +838,7 @@
       "refersTo": "ticket",
       "description": "Impact-printer paper: the container for everything you read. Shown under the heat lamp.",
       "html": "<div class=\"ds-ticket-wrap\"><article class=\"ds-ticket\"><div class=\"ds-ticket-head\"><span>TABLE 4</span><span>19:42</span></div><h3 class=\"ds-ticket-title\">Fire the next step.</h3><p class=\"ds-ticket-body\">Every bell is one step of an LLM engine's loop.</p><div class=\"ds-ticket-line\"><span>2</span><span>decode</span><span style=\"margin-left:auto\">48 ticks</span></div></article></div>",
-      "css": ".ds-ticket-wrap { position: relative; isolation: isolate; max-width: 24rem; padding: 2.5rem 2.25rem 0; } .ds-ticket-wrap::before { content: ''; position: absolute; inset: 0; z-index: -1; background: radial-gradient(48% 38% at 50% 40%, color-mix(in srgb, var(--es-lamp) 82%, transparent) 0%, color-mix(in srgb, var(--es-lamp) 42%, transparent) 50%, transparent 100%); } .ds-ticket { padding: var(--es-space-6) var(--es-space-6) var(--es-space-4); border-radius: 0; background-color: var(--es-paper); background-image: linear-gradient(180deg, color-mix(in srgb, var(--es-lamp) 26%, var(--es-paper)), var(--es-paper) 55%); color: var(--es-paper-ink); filter: drop-shadow(0 1px 1px rgb(23 25 29 / 0.22)) drop-shadow(0 9px 10px rgb(23 25 29 / 0.2)); transition: transform var(--es-dur-quick) var(--es-ease-settle); } .ds-ticket:hover { transform: translateY(-3px) rotate(-0.5deg); } .ds-ticket-head { display: flex; justify-content: space-between; margin-bottom: var(--es-space-3); padding-bottom: var(--es-space-2); border-bottom: 2px dotted var(--es-paper-rule); font-family: var(--es-font-ticket); font-size: 0.9375rem; line-height: 1.3; letter-spacing: 0.02em; font-weight: 900; } .ds-ticket-title { margin: 0 0 var(--es-space-3); font-family: var(--es-font-heading); font-size: var(--es-font-heading-size); line-height: 0.95; letter-spacing: 0.01em; font-weight: 800; text-transform: uppercase; } .ds-ticket-body { margin: 0 0 var(--es-space-3); font-family: var(--es-font-body); font-size: 1.0625rem; line-height: 1.6; } .ds-ticket-line { display: flex; gap: 1ch; font-family: var(--es-font-ticket); font-size: 1.0625rem; line-height: 1.45; letter-spacing: 0.02em; font-weight: 900; }"
+      "css": ".ds-ticket-wrap { position: relative; isolation: isolate; max-width: 24rem; padding: 2.5rem 2.25rem 0; } .ds-ticket-wrap::before { content: ''; position: absolute; inset: 0; z-index: -1; background: radial-gradient(48% 38% at 50% 40%, color-mix(in srgb, var(--es-lamp) 82%, transparent) 0%, color-mix(in srgb, var(--es-lamp) 42%, transparent) 50%, transparent 100%); } .ds-ticket { padding: var(--es-space-6) var(--es-space-6) var(--es-space-4); border-radius: 0; background-color: var(--es-paper); background-image: linear-gradient(180deg, color-mix(in srgb, var(--es-lamp) 26%, var(--es-paper)), var(--es-paper) 55%); color: var(--es-paper-ink); filter: drop-shadow(0 1px 1px rgb(23 25 29 / 0.22)) drop-shadow(0 9px 10px rgb(23 25 29 / 0.2)); transition: transform var(--es-dur-quick) var(--es-ease-settle); } .ds-ticket:hover { transform: translateY(-3px) rotate(-0.5deg); } .ds-ticket-head { display: flex; justify-content: space-between; margin-bottom: var(--es-space-3); padding-bottom: var(--es-space-2); border-bottom: 2px dotted var(--es-paper-rule); font-family: var(--es-font-ticket); font-size: var(--es-size-print); line-height: 1.3; letter-spacing: 0.02em; font-weight: 900; } .ds-ticket-title { margin: 0 0 var(--es-space-3); font-family: var(--es-font-heading); font-size: var(--es-font-heading-size); line-height: 0.95; letter-spacing: 0.01em; font-weight: 800; text-transform: uppercase; } .ds-ticket-body { margin: 0 0 var(--es-space-3); font-family: var(--es-font-body); font-size: var(--es-size-body); line-height: 1.6; } .ds-ticket-line { display: flex; gap: 1ch; font-family: var(--es-font-ticket); font-size: var(--es-size-body); line-height: 1.45; letter-spacing: 0.02em; font-weight: 900; }"
     },
     {
       "name": "Field",
@@ -758,7 +846,7 @@
       "refersTo": "field",
       "description": "Masking tape over a paper slip: the label is the tape, the input is the slip.",
       "html": "<label class=\"ds-field\"><span class=\"ds-tape\">Seed</span><span class=\"ds-field-slip\"><input class=\"ds-field-input\" placeholder=\"631f6361\"></span></label>",
-      "css": ".ds-field { display: grid; justify-items: start; gap: var(--es-space-2); width: 100%; max-width: 28rem; } .ds-field .ds-tape { position: relative; z-index: 1; margin: 0 0 -0.9rem 0.6rem; display: inline-flex; padding: 0.28em 0.85em 0.2em; background-color: var(--es-tape); color: var(--es-tape-ink); font-family: var(--es-font-label); font-size: 0.9375rem; line-height: 1.2; letter-spacing: 0.02em; transform: rotate(-1.2deg); } .ds-field-slip { display: flex; width: 100%; padding: 0.7rem var(--es-space-3) 0; border-bottom: 2px solid var(--es-edge); background-color: var(--es-paper); box-shadow: var(--es-shadow-paper); transition: border-color var(--es-dur-quick) var(--es-ease-settle); } .ds-field-slip:hover { border-bottom-color: var(--es-text-1); } .ds-field-slip:focus-within { border-bottom-color: var(--es-lamp-ring); outline: 2px solid var(--es-focus); outline-offset: 2px; box-shadow: var(--es-shadow-paper), 0 -3px 14px 1px color-mix(in srgb, var(--es-lamp) 70%, transparent); } .ds-field-input { flex: 1; height: 2.75rem; padding: 0; border: 0; background: transparent; color: var(--es-paper-ink); font-family: var(--es-font-body); font-size: 1.0625rem; outline: none; } .ds-field-input::placeholder { color: var(--es-text-3); opacity: 1; }"
+      "css": ".ds-field { display: grid; justify-items: start; gap: var(--es-space-2); width: 100%; max-width: 28rem; } .ds-field .ds-tape { position: relative; z-index: 1; margin: 0 0 -0.9rem 0.6rem; display: inline-flex; padding: 0.28em 0.85em 0.2em; background-color: var(--es-tape); color: var(--es-tape-ink); font-family: var(--es-font-label); font-size: var(--es-size-print); line-height: 1.2; letter-spacing: 0.02em; transform: rotate(-1.2deg); } .ds-field-slip { display: flex; width: 100%; padding: 0.7rem var(--es-space-3) 0; border-bottom: 2px solid var(--es-edge); background-color: var(--es-paper); box-shadow: var(--es-shadow-paper); transition: border-color var(--es-dur-quick) var(--es-ease-settle); } .ds-field-slip:hover { border-bottom-color: var(--es-text-1); } .ds-field-slip:focus-within { border-bottom-color: var(--es-lamp-ring); outline: 2px solid var(--es-focus); outline-offset: 2px; box-shadow: var(--es-shadow-paper), 0 -3px 14px 1px color-mix(in srgb, var(--es-lamp) 70%, transparent); } .ds-field-input { flex: 1; height: 2.75rem; padding: 0; border: 0; background: transparent; color: var(--es-paper-ink); font-family: var(--es-font-body); font-size: var(--es-size-body); outline: none; } .ds-field-input::placeholder { color: var(--es-text-3); opacity: 1; }"
     },
     {
       "name": "Board Navigation",
@@ -766,7 +854,7 @@
       "refersTo": "board",
       "description": "The board across the top: the name plate and stamped links; the current page sits under the lamp.",
       "html": "<nav class=\"ds-board\"><a class=\"ds-board-plate\" href=\"#\">enginespace</a><a class=\"ds-board-link\" href=\"#\" aria-current=\"page\">Service</a><a class=\"ds-board-link\" href=\"#\">Menu</a><a class=\"ds-board-link\" href=\"#\">Settings</a></nav>",
-      "css": ".ds-board { position: relative; z-index: 0; overflow: clip; display: flex; flex-wrap: wrap; align-items: center; gap: var(--es-space-2) var(--es-space-6); padding: var(--es-space-3) var(--es-space-4); border-bottom: 1px solid var(--es-edge); background-color: var(--es-surface-1); background-image: linear-gradient(180deg, rgb(255 255 255 / 0.5), rgb(255 255 255 / 0) 70%), var(--es-texture-brushed); background-size: auto, 100% 720px; box-shadow: var(--es-shadow-shelf); } .ds-board-plate { display: inline-flex; align-items: center; min-height: 2.5rem; padding: 0.3rem 0.95rem 0.2rem; border: 1px solid var(--es-edge); border-radius: var(--es-radius-plate); background-color: var(--es-surface-2); background-image: var(--es-texture-brushed); background-size: 100% 360px; color: var(--es-text-1); font-family: var(--es-font-display); font-size: 1.3125rem; line-height: 1; letter-spacing: 0.1em; font-weight: 800; text-decoration: none; text-transform: uppercase; } .ds-board-plate:hover { background-color: var(--es-surface-1); } .ds-board-link { position: relative; display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 0.15rem; color: var(--es-text-2); font-family: var(--es-font-display); font-size: 1.125rem; line-height: 1; letter-spacing: 0.08em; font-weight: 800; text-decoration: none; text-transform: uppercase; } .ds-board-link:hover { color: var(--es-text-1); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 0.35em; } .ds-board-link:focus-visible { outline: 2px solid var(--es-focus); outline-offset: 2px; } .ds-board-link[aria-current='page'] { color: var(--es-text-1); } .ds-board-link[aria-current='page']::before { content: ''; position: absolute; inset: -0.9rem -1rem -0.25rem; z-index: -1; background: radial-gradient(65% 85% at 50% 0%, color-mix(in srgb, var(--es-lamp) 80%, transparent), transparent 78%); } .ds-board-link[aria-current='page']::after { content: ''; position: absolute; inset: auto 0.1rem 0.35rem; height: 3px; border-radius: 2px; background-color: var(--es-lamp-ring); }"
+      "css": ".ds-board { position: relative; z-index: 0; overflow: clip; display: flex; flex-wrap: wrap; align-items: center; gap: var(--es-space-2) var(--es-space-6); padding: var(--es-space-3) var(--es-space-4); border-bottom: 1px solid var(--es-edge); background-color: var(--es-surface-1); background-image: linear-gradient(180deg, color-mix(in srgb, var(--es-glint) 50%, transparent), transparent 70%), var(--es-texture-brushed); background-size: auto, 100% 720px; box-shadow: var(--es-shadow-shelf); } .ds-board-plate { display: inline-flex; align-items: center; min-height: 2.5rem; padding: 0.3rem 0.95rem 0.2rem; border: 1px solid var(--es-edge); border-radius: var(--es-radius-plate); background-color: var(--es-surface-2); background-image: var(--es-texture-brushed); background-size: 100% 360px; color: var(--es-text-1); font-family: var(--es-font-display); font-size: 1.3125rem; line-height: 1; letter-spacing: 0.1em; font-weight: 800; text-decoration: none; text-transform: uppercase; } .ds-board-plate:hover { background-color: var(--es-surface-1); } .ds-board-link { position: relative; display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 0.15rem; color: var(--es-text-2); font-family: var(--es-font-display); font-size: var(--es-size-plate); line-height: 1; letter-spacing: 0.08em; font-weight: 800; text-decoration: none; text-transform: uppercase; } .ds-board-link:hover { color: var(--es-text-1); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 0.35em; } .ds-board-link:focus-visible { outline: 2px solid var(--es-focus); outline-offset: 2px; } .ds-board-link[aria-current='page'] { color: var(--es-text-1); } .ds-board-link[aria-current='page']::before { content: ''; position: absolute; inset: -0.9rem -1rem -0.25rem; z-index: -1; background: radial-gradient(65% 85% at 50% 0%, color-mix(in srgb, var(--es-lamp) 80%, transparent), transparent 78%); } .ds-board-link[aria-current='page']::after { content: ''; position: absolute; inset: auto 0.1rem 0.35rem; height: 3px; border-radius: var(--es-radius-trim); background-color: var(--es-lamp-ring); }"
     },
     {
       "name": "Tape Label",
@@ -774,7 +862,7 @@
       "refersTo": "tape-label",
       "description": "Marker on torn masking tape: a label stuck on a pan or an object.",
       "html": "<span class=\"ds-tape-label\">block 12</span>",
-      "css": ".ds-tape-label { display: inline-flex; align-items: center; padding: 0.28em 0.85em 0.2em; background-color: var(--es-tape); background-image: repeating-linear-gradient(90deg, rgb(255 255 255 / 0.12) 0 1px, transparent 1px 4px), linear-gradient(180deg, rgb(255 255 255 / 0.28), rgb(255 255 255 / 0) 65%); box-shadow: inset 0 -1px 0 rgb(23 25 29 / 0.1); color: var(--es-tape-ink); font-family: var(--es-font-label); font-size: 0.9375rem; line-height: 1.2; letter-spacing: 0.02em; transform: rotate(-1.2deg); mask-image: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 6 24' preserveAspectRatio='none'%3E%3Cpath d='M6 0V24H0L2 21.5 0.4 18.5 2.6 15 0 12 2.2 9 0.3 6 2.4 3 0 0Z'/%3E%3C/svg%3E\"), linear-gradient(#000, #000), url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 6 24' preserveAspectRatio='none'%3E%3Cpath d='M0 0V24H6L3.8 21 5.7 18 3.4 15 6 12 3.9 9 5.6 6 3.5 3 6 0Z'/%3E%3C/svg%3E\"); mask-size: 6px 100%, calc(100% - 12px) 100%, 6px 100%; mask-position: left center, center, right center; mask-repeat: no-repeat; }"
+      "css": ".ds-tape-label { display: inline-flex; align-items: center; padding: 0.28em 0.85em 0.2em; background-color: var(--es-tape); background-image: repeating-linear-gradient(90deg, color-mix(in srgb, var(--es-glint) 12%, transparent) 0 1px, transparent 1px 4px), linear-gradient(180deg, color-mix(in srgb, var(--es-glint) 28%, transparent), transparent 65%); box-shadow: inset 0 -1px 0 rgb(23 25 29 / 0.1); color: var(--es-tape-ink); font-family: var(--es-font-label); font-size: var(--es-size-print); line-height: 1.2; letter-spacing: 0.02em; transform: rotate(-1.2deg); mask-image: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 6 24' preserveAspectRatio='none'%3E%3Cpath d='M6 0V24H0L2 21.5 0.4 18.5 2.6 15 0 12 2.2 9 0.3 6 2.4 3 0 0Z'/%3E%3C/svg%3E\"), linear-gradient(#000, #000), url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 6 24' preserveAspectRatio='none'%3E%3Cpath d='M0 0V24H6L3.8 21 5.7 18 3.4 15 6 12 3.9 9 5.6 6 3.5 3 6 0Z'/%3E%3C/svg%3E\"); mask-size: 6px 100%, calc(100% - 12px) 100%, 6px 100%; mask-position: left center, center, right center; mask-repeat: no-repeat; }"
     },
     {
       "name": "Readout",
@@ -782,7 +870,7 @@
       "refersTo": "readout",
       "description": "A dot-matrix number with its unit and provenance stamp.",
       "html": "<span class=\"ds-readout\"><span>48</span><span class=\"ds-readout-unit\">ticks/step</span><span class=\"ds-readout-tag\">synthetic</span></span>",
-      "css": ".ds-readout { display: inline-flex; flex-wrap: wrap; align-items: baseline; column-gap: 0.4em; font-family: var(--es-font-numeric); font-size: 1.5rem; line-height: 1.2; letter-spacing: 0.02em; font-weight: 900; font-variant-numeric: tabular-nums; color: var(--es-text-1); } .ds-readout-unit { font-size: 0.8em; } .ds-readout-tag { align-self: center; padding: 0.05rem 0.3rem 0; border: 1px solid currentColor; border-radius: 2px; font-family: var(--es-font-body); font-size: 0.75rem; line-height: 1.35; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--es-paper-ink-2); }"
+      "css": ".ds-readout { display: inline-flex; flex-wrap: wrap; align-items: baseline; column-gap: 0.4em; font-family: var(--es-font-numeric); font-size: var(--es-size-large); line-height: 1.2; letter-spacing: 0.02em; font-weight: 900; font-variant-numeric: tabular-nums; color: var(--es-text-1); } .ds-readout-unit { font-size: 0.8em; } .ds-readout-tag { align-self: center; padding: 0.05rem 0.3rem 0; border: 1px solid currentColor; border-radius: var(--es-radius-trim); font-family: var(--es-font-body); font-size: var(--es-size-stamp); line-height: 1.35; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--es-paper-ink-2); }"
     },
     {
       "name": "Hotel Pan",
@@ -790,7 +878,7 @@
       "refersTo": "pan",
       "description": "A KV block: a steel rim round a well filled with its memory state's board colour. Pans never move; shown in the used state.",
       "html": "<button class=\"ds-pan\" aria-label=\"Block 12, used\"><span class=\"ds-pan-well\"></span></button>",
-      "css": ".ds-pan { display: block; width: 4.75rem; height: 3.4rem; padding: 0.42rem; border: 0; border-radius: var(--es-radius-pan); background-color: var(--es-surface-1); background-image: linear-gradient(160deg, rgb(255 255 255 / 0.65), rgb(255 255 255 / 0) 45%, rgb(23 25 29 / 0.12)); box-shadow: inset 0 0 0 1px var(--es-edge), 0 1px 2px rgb(23 25 29 / 0.28); cursor: pointer; transition: box-shadow var(--es-dur-quick) var(--es-ease-settle); } .ds-pan-well { display: block; width: 100%; height: 100%; border-radius: calc(var(--es-radius-pan) - 4px); background: var(--es-memory-used); box-shadow: inset 0 2px 4px rgb(23 25 29 / 0.3), inset 0 0 0 1.5px var(--es-cat-blue-edge); } .ds-pan:hover { box-shadow: inset 0 0 0 2px var(--es-text-1), 0 1px 2px rgb(23 25 29 / 0.28); } .ds-pan:focus-visible { outline: 2px solid var(--es-lamp-ring); outline-offset: 2px; box-shadow: inset 0 0 0 1px var(--es-edge), 0 -3px 12px 1px color-mix(in srgb, var(--es-lamp) 75%, transparent); }"
+      "css": ".ds-pan { display: block; width: 4.75rem; height: 3.4rem; padding: 0.42rem; border: 0; border-radius: var(--es-radius-pan); background-color: var(--es-surface-1); background-image: linear-gradient(160deg, color-mix(in srgb, var(--es-glint) 65%, transparent), transparent 45%, rgb(23 25 29 / 0.12)); box-shadow: inset 0 0 0 1px var(--es-edge), 0 1px 2px rgb(23 25 29 / 0.28); cursor: pointer; transition: box-shadow var(--es-dur-quick) var(--es-ease-settle); } .ds-pan-well { display: block; width: 100%; height: 100%; border-radius: calc(var(--es-radius-pan) - 4px); background: var(--es-memory-used); box-shadow: inset 0 2px 4px rgb(23 25 29 / 0.3), inset 0 0 0 1.5px var(--es-cat-blue-edge); } .ds-pan:hover { box-shadow: inset 0 0 0 2px var(--es-text-1), 0 1px 2px rgb(23 25 29 / 0.28); } .ds-pan:focus-visible { outline: 2px solid var(--es-lamp-ring); outline-offset: 2px; box-shadow: inset 0 0 0 1px var(--es-edge), 0 -3px 12px 1px color-mix(in srgb, var(--es-lamp) 75%, transparent); }"
     }
   ],
   "narrative": {
@@ -799,7 +887,7 @@
     "keyCharacteristics": [
       "Brushed stainless ground with a generated grain texture and a fluorescent sheen, never a flat fill.",
       "Ticket paper cut square (0px) for everything you read; sheet metal at 3px; hotel pans at 10px.",
-      "Heat-lamp amber appears only where the present is: the active ticket, the current page, the focused control, the lit station.",
+      "Heat-lamp amber appears only where the present is: the active ticket, the current page, the focused control, the lit station and the switch that is on.",
       "One face per kitchen object: Big Shoulders Display, Doto, Permanent Marker, Atkinson Hyperlegible and its Mono, all self-hosted.",
       "The HACCP board colours are the only categorical code, and every category also carries a drawn shape.",
       "Motion runs on the bell (240ms) and the printer's stepped feed; nothing drifts between bells."
@@ -807,7 +895,7 @@
     "rules": [
       {
         "name": "The One Lamp Rule",
-        "body": "Amber marks the present, the place the next decision acts on, and nowhere else. A lit station on the line burns in the lamp's amber, not in a code colour.",
+        "body": "Amber marks the present, the place the next decision acts on, and nowhere else. A lit station on the line and a switch that is on burn in the lamp's amber, not in a code colour. A lane's colour may say which lane a light belongs to, as a category mark beside it, and never whether it is on.",
         "section": "colors"
       },
       {
@@ -831,6 +919,11 @@
         "section": "typography"
       },
       {
+        "name": "The Ramp Rule",
+        "body": "A size is a step of the ramp: `font-size` takes a `--es-size-*` token or a type role's own size, and a size outside the ramp is a one-off that keeps a one-line comment saying why.",
+        "section": "typography"
+      },
+      {
         "name": "The Paper Lifts Rule",
         "body": "Under the hand, paper rises (translateY(-3px), a slight turn, a deeper drop-shadow) and plates brighten; on press, both go down 1-2px into the press shadow.",
         "section": "elevation"
@@ -843,16 +936,18 @@
     ],
     "dos": [
       "**Do** take every colour, face, shadow, radius and duration from a token role in src/design/tokens.ts; tokens.css is generated from it and verify-tokens fails when they disagree.",
-      "**Do** keep amber for the present alone: the ticket under the lamp, the current page, the focused control, a lit station on the line.",
+      "**Do** keep amber for the present alone: the ticket under the lamp, the current page, the focused control, a lit station on the line, a switch that is on.",
       "**Do** print every number in Doto with tabular figures and its provenance tag; the front page's readouts are synthetic ticks.",
       "**Do** give every category its board colour and its drawn glyph, and carry yellow and white marks on their edge colour.",
       "**Do** put the brushed grain (texture-brushed) on the ground and on stainless panels, plates and housings, sized to the full width so no tile edge shows.",
       "**Do** move on the bell: the quick duration (120ms) for the hand, the bell (240ms) for a step, the feed (420ms, steps(6, end)) for the printer, the settle (640ms) for a course coming to rest, all 0 under reduced motion.",
-      "**Do** draw focus as the 2px filament ring at 2px offset with the lamp's glow above it."
+      "**Do** draw focus as the 2px filament ring at 2px offset with the lamp's glow above it.",
+      "**Do** give every `font-size` a step of the size ramp and every radius a step of the rounded scale; a deliberate one-off keeps a one-line comment saying why."
     ],
     "donts": [
       "**Don't** add a dark scheme; the line is lit by its tubes, and the system ships light and more-contrast only.",
       "**Don't** colour anything for decoration, or give a lane, a state or a status a colour outside the six boards and the ribbon red.",
+      "**Don't** light an on state in a board colour: a switch or a station that is on burns in the lamp's amber, and a lane's colour only says which lane.",
       "**Don't** move a hotel pan; a moving pan would misteach copying.",
       "**Don't** round paper, or set a ticket's body in the dot matrix; Doto is for print lines and numbers, Atkinson for reading.",
       "**Don't** fade text with opacity to show a state; use the quiet text role, which keeps 4.5:1.",

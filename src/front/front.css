@@ -46,7 +46,7 @@
   gap: var(--es-space-2);
   padding: var(--es-space-3) var(--es-space-3) 1.35rem;
   border: 1px solid var(--es-paper-ink);
-  border-radius: 8px 8px 3px 3px;
+  border-radius: var(--es-radius-shoulder) var(--es-radius-shoulder) var(--es-radius-plate) var(--es-radius-plate);
   background-color: var(--es-surface-3);
   background-image: var(--es-texture-brushed);
   background-size: 100% 360px;
@@ -56,18 +56,18 @@
 
 .es-front-printer .es-front-printer__menu {
   color: var(--es-paper);
-  font-size: 0.8125rem;
+  font-size: var(--es-size-caption);
 }
 
 .es-front-printer .es-front-printer__menu .es-menu-link__term {
-  font-size: 0.8125rem;
+  font-size: var(--es-size-caption);
 }
 
 /* What the strip does not show yet: printed small on the housing, as the scene's printer counts what is still inside it. */
 .es-front-printer__more {
   color: var(--es-paper);
   font-family: var(--es-font-ticket);
-  font-size: 0.6875rem;
+  font-size: var(--es-size-micro);
   line-height: 1.2;
   letter-spacing: var(--es-font-ticket-tracking);
   font-weight: var(--es-font-ticket-weight);
@@ -79,7 +79,7 @@
   position: absolute;
   inset: auto 0.6rem 0.45rem;
   height: 0.4rem;
-  border-radius: 1px;
+  border-radius: var(--es-radius-trim);
   background-color: var(--es-paper-ink);
 }
 
@@ -129,10 +129,10 @@
   margin: 0;
   padding: 0.1rem 0.4rem 0;
   border: 1px solid currentColor;
-  border-radius: 2px;
+  border-radius: var(--es-radius-trim);
   color: var(--es-paper-ink-2);
   font-family: var(--es-font-body);
-  font-size: 0.6875rem;
+  font-size: var(--es-size-micro);
   line-height: 1.4;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -151,7 +151,7 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 0 var(--es-space-2);
-  font-size: 0.75rem;
+  font-size: var(--es-size-stamp);
   line-height: 1.35;
 }
 
@@ -217,7 +217,7 @@
 
 .es-front-tape__head {
   margin: 0;
-  font-size: 0.75rem;
+  font-size: var(--es-size-stamp);
   text-transform: uppercase;
 }
 
@@ -227,7 +227,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.25rem var(--es-space-2);
-  font-size: 0.75rem;
+  font-size: var(--es-size-stamp);
   text-transform: uppercase;
 }
 
@@ -250,7 +250,7 @@
   margin: -0.25rem -0.4rem;
   padding: 0.25rem 0.4rem;
   border: 0;
-  border-radius: 2px;
+  border-radius: var(--es-radius-trim);
   background: none;
   color: inherit;
   font-family: var(--es-font-ticket);
@@ -316,7 +316,7 @@
 
 .es-front-strip__list .es-ticket[data-size] .es-ticket-line {
   color: var(--es-paper-ink-2);
-  font-size: 0.8125rem;
+  font-size: var(--es-size-caption);
   text-transform: uppercase;
 }
 
@@ -351,7 +351,7 @@
   left: 0;
   z-index: 4;
   display: block;
-  border-radius: 2px;
+  border-radius: var(--es-radius-trim);
   background: linear-gradient(
     180deg,
     color-mix(in srgb, var(--es-surface-3) 55%, var(--es-surface-1)) 0%,
@@ -370,7 +370,7 @@
   display: block;
   width: 2.25rem;
   height: 1.6rem;
-  border-radius: 3px 3px 7px 7px;
+  border-radius: var(--es-radius-plate) var(--es-radius-plate) var(--es-radius-shoulder) var(--es-radius-shoulder);
   background: linear-gradient(
     180deg,
     color-mix(in srgb, var(--es-surface-3) 75%, var(--es-surface-1)) 0%,
@@ -413,7 +413,7 @@
 .es-front-promise {
   max-width: 40ch;
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--es-size-base);
   line-height: 1.5;
   text-wrap: pretty;
 }
@@ -590,7 +590,7 @@
 }
 
 .es-front-strip__list .es-ticket[data-size] .es-ticket__head {
-  font-size: 0.75rem;
+  font-size: var(--es-size-stamp);
   white-space: nowrap;
 }
 
@@ -664,7 +664,7 @@
   /* Two lines, as large as the paper allows: the heading stays the first screen's largest text (its largest contentful paint). */
   .es-front-ticket .es-ticket__title {
     margin-bottom: var(--es-space-2);
-    font-size: clamp(3.25rem, 16cqi, 3.75rem);
+    font-size: clamp(3.25rem, 16cqi, 3.75rem); /* impeccable-disable-line design-system-font-size -- the headline's phone size, as the comment above says */
   }
 
   .es-front-promise {
@@ -699,7 +699,7 @@
 
   .es-front-printer .es-front-printer__menu,
   .es-front-printer .es-front-printer__menu .es-menu-link__term {
-    font-size: 0.6875rem;
+    font-size: var(--es-size-micro);
   }
 
   .es-front-bell .es-bell[data-size] .es-bell__button {
@@ -803,7 +803,7 @@
 
   /* In the column the tape's words print small, so most lines keep their figure on the same line. */
   .es-front-expo :is(.es-front-tape__line, .es-front-tape__head, .es-front-tape__preview) {
-    font-size: 0.6875rem;
+    font-size: var(--es-size-micro);
     line-height: 1.3;
   }
 
@@ -841,7 +841,7 @@
   }
 
   .es-front-expo .es-front-strip__list .es-ticket[data-size] .es-ticket__head {
-    font-size: 0.875rem;
+    font-size: var(--es-size-note);
   }
 
   /* The strip curls a little as it hangs, each ticket joined to the last at its perforation. */
@@ -859,7 +859,7 @@
 
   .es-front-expo .es-front-strip > p {
     padding: var(--es-space-2) 0 0;
-    font-size: 0.875rem;
+    font-size: var(--es-size-note);
   }
 
   .es-front-expo > .es-front-bell {
@@ -972,7 +972,7 @@
   }
 
   .es-front-deck__prompt {
-    font-size: 1rem;
+    font-size: var(--es-size-base);
     line-height: 1.45;
   }
 
@@ -1080,7 +1080,7 @@
 
 .es-front-dishes .es-ticket__title {
   font-family: var(--es-font-display);
-  font-size: clamp(2.5rem, 1.8rem + 3vw, 4.5rem);
+  font-size: var(--es-size-course);
   line-height: var(--es-font-display-leading);
 }
 
@@ -1100,14 +1100,14 @@
 
 .es-front-dish__modules {
   font-family: var(--es-font-numeric);
-  font-size: 1.25rem;
+  font-size: var(--es-size-title);
   line-height: 1.3;
   letter-spacing: var(--es-font-numeric-tracking);
   font-weight: var(--es-font-numeric-weight);
 }
 
 .es-front-dish__outcome {
-  font-size: clamp(1.125rem, 1rem + 0.45vw, 1.375rem);
+  font-size: clamp(var(--es-size-plate), 1rem + 0.45vw, var(--es-size-action));
   line-height: 1.45;
   text-wrap: pretty;
 }
@@ -1115,7 +1115,7 @@
 .es-front-dish__games {
   color: var(--es-paper-ink-2);
   font-family: var(--es-font-ticket);
-  font-size: 1rem;
+  font-size: var(--es-size-base);
   line-height: 1.35;
   letter-spacing: var(--es-font-ticket-tracking);
   font-weight: var(--es-font-ticket-weight);
@@ -1166,7 +1166,7 @@
   gap: var(--es-space-2) var(--es-space-4);
   margin: 0;
   font-family: var(--es-font-display);
-  font-size: clamp(2.5rem, 1.8rem + 3vw, 4.5rem);
+  font-size: var(--es-size-course);
   line-height: var(--es-font-display-leading);
   letter-spacing: 0.02em;
   font-weight: var(--es-font-display-weight);
@@ -1176,7 +1176,7 @@
 .es-front-menu__term {
   color: var(--es-text-2);
   font-family: var(--es-font-label);
-  font-size: 1.25rem;
+  font-size: var(--es-size-title);
   letter-spacing: var(--es-font-label-tracking);
   font-weight: var(--es-font-label-weight);
   text-transform: none;
@@ -1198,7 +1198,7 @@
 .es-front-menu__table thead th {
   padding-top: 0;
   color: var(--es-text-2);
-  font-size: 0.875rem;
+  font-size: var(--es-size-note);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1329,7 +1329,7 @@
     margin-right: 0.4rem;
     color: var(--es-text-2);
     font-family: var(--es-font-body);
-    font-size: 0.8125rem;
+    font-size: var(--es-size-caption);
     font-weight: 400;
     letter-spacing: 0.02em;
   }
@@ -1345,7 +1345,7 @@
 
 .es-front-next__ticket .es-ticket__title {
   font-family: var(--es-font-display);
-  font-size: clamp(2.25rem, 1.6rem + 2.6vw, 3.75rem);
+  font-size: clamp(2.25rem, 1.6rem + 2.6vw, 3.75rem); /* impeccable-disable-line design-system-font-size -- the next ticket's title, a step under a course title */
   line-height: var(--es-font-display-leading);
 }
 

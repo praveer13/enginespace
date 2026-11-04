@@ -85,6 +85,60 @@ describe('/design', () => {
   })
 })
 
+describe('/design: landmarks, and what the lights say', () => {
+  let html = ''
+  let text = ''
+  beforeAll(async () => {
+    html = await render('/design')
+    text = decode(html)
+  })
+
+  /** The regions the page has: each section, nav or aside with a name, by what axe reads, the role and the name. */
+  function landmarks(markup: string): string[] {
+    const named = (id: string) => decode(new RegExp(`id="${id}"[^>]*>(.*?)</`, 's').exec(markup)?.[1] ?? '').replace(/<[^>]+>/g, '').trim()
+    return [...markup.matchAll(/<(section|nav|aside)\b([^>]*)>/g)].flatMap(([, tag, attributes]) => {
+      const label = /aria-label="([^"]*)"/.exec(attributes)?.[1]
+      const by = /aria-labelledby="([^"]*)"/.exec(attributes)?.[1]
+      const name = label !== undefined ? decode(label) : by !== undefined ? named(by) : undefined
+      return name === undefined ? [] : [`${tag === 'nav' ? 'navigation' : 'region'}: ${name}`]
+    })
+  }
+
+  test('no two landmarks share a role and a name (axe: landmark-unique)', () => {
+    const found = landmarks(html)
+    expect(found.length).toBeGreaterThan(10)
+    const twice = found.filter((landmark, index) => found.indexOf(landmark) !== index)
+    expect(twice).toEqual([])
+  })
+
+  test('the roles of a group are a group named by its heading, and not a region that the page\'s own "Motion" section could echo', () => {
+    expect(html).toContain('<div class="es-spec__group" role="group" aria-labelledby="roles-motion"><h3 class="es-spec__group-title" id="roles-motion">Motion</h3>')
+    expect(landmarks(html)).toContain('region: Motion')
+    expect(landmarks(html).filter((landmark) => landmark === 'region: Motion')).toHaveLength(1)
+  })
+
+  test('the toggle and the station light say that a light that is on burns the heat lamp, and a lane is a mark beside it', () => {
+    expect(text).toContain("a pilot light that burns the heat lamp's amber when it is on")
+    expect(text).toContain("it burns the heat lamp's amber while it cooks")
+    expect(text).toContain("dark, the lane's mark stays")
+    expect(text).not.toContain('burns green')
+    expect(text).not.toContain("lit in its lane's colour")
+    // The marks of the lanes shown: the line's is the green board's square, the expo's the blue board's circle.
+    const station = html.slice(html.indexOf('aria-label="Station light"'), html.indexOf('aria-label="Bell"'))
+    expect(station).toContain('data-lane="gpu"')
+    expect(station).toContain('data-glyph="square"')
+    expect(station).toContain('data-lane="cpu"')
+    expect(station).toContain('data-glyph="circle"')
+  })
+
+  test('the size ramp is listed under its own heading, each step drawn at its size', () => {
+    expect(html).toContain('id="roles-size">Type sizes</h3>')
+    const entry = /data-role="size-caption"[\s\S]*?<\/li>/.exec(html)?.[0] ?? ''
+    expect(entry).toContain('font-size:var(--es-size-caption)')
+    expect(decode(entry)).toContain('0.8125rem')
+  })
+})
+
 describe('/design: motion', () => {
   let html = ''
   let text = ''
