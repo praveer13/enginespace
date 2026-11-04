@@ -22,7 +22,7 @@ import { expect, open, quiet, settled3d, test, withSettings } from './support/si
 
 /**
  * The share of the pixels of a baseline that may differ: 1% [estimated], about six times as much as two browser modes differed by under
- * the config's flags (0.16% of the pixels at 360 px and 0.09% at 1280 px [measured 2026-11-04], the edges of letters). It is the one
+ * the config's flags (0.16% of the pixels at 360 px and 0.09% at 1280 px [measured 2026-11-04 at bac1d04], the edges of letters). It is the one
  * number to change if a runner draws the page a little differently.
  */
 const TOLERANCE = 0.01

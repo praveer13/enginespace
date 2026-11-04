@@ -40,7 +40,7 @@ const AUDITED_IN_3D = (route: string) => HAS_3D(route) && (NIGHTLY || route === 
  */
 const KNOWN_CLIPPED: Record<string, string> = {
   '/ at 360':
-    "the front page's menu board (src/front/front.css, .es-front-menu__board) is a grid whose one column is as wide as its table, 383 px on a 360 px phone [measured 2026-11-04], so the heading, the lede and the hours column are cut off at the board's right edge. W0-T25's finish review owns the front page's look at a phone's width.",
+    "the front page's menu board (src/front/front.css, .es-front-menu__board) is a grid whose one column is as wide as its table, 383 px on a 360 px phone [measured 2026-11-04 at bac1d04], so the heading, the lede and the hours column are cut off at the board's right edge. W0-T25's finish review owns the front page's look at a phone's width.",
   '/ at 320': "the same board, wider than the phone by more: see '/ at 360'.",
 }
 

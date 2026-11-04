@@ -30,8 +30,8 @@ const CI = Boolean(process.env.CI)
 /**
  * The pull-request subset (A§10.1's "e2e-smoke"): what W0-T21 adds, and what a pull request must keep green. The specs that earlier
  * tasks wrote carry their own acceptance checks, each with a test build of its own: six specs and 119 tests took 7.7 minutes with two
- * workers on a 20-core laptop, under a load average of about 15 from other work [measured 2026-11-04]. They run in the nightly sweep,
- * and not on every pull request.
+ * workers on a 20-core laptop, under a load average of about 15 from other work [measured 2026-11-04 at 0a5ccf2 with this task's
+ * files, before the rebase onto W0-T20]. They run in the nightly sweep, and not on every pull request.
  */
 const SMOKE = ['a11y', 'keyboard-loop', 'network', 'screenshots', 'reduced-motion'].map((name) => `**/${name}.spec.ts`)
 /** W0-T20's lab profile: a measurement, which nightly.yml's lab-profile job runs on its own. */
@@ -40,7 +40,7 @@ const LAB = '**/perf.spec.ts'
 /*
  * The flags of the browser, and what each is for. Both were measured, so that nobody has to guess.
  *
- * [measured 2026-11-04 on the repository at 0a5ccf2 and this task's changes, with Playwright 1.63.0 driving Chrome for Testing
+ * [measured 2026-11-04 at bac1d04, with Playwright 1.63.0 driving Chrome for Testing
  * 149.0.7827.55, as chromium_headless_shell-1228 (what `headless: true` launches) and as chromium-1228 (the full browser, which
  * Playwright runs in the new headless mode). Not measured: the Chromium that Playwright 1.63.0 itself pins, revision 1243 (Chrome for
  * Testing 153.0.8010.12), which the machine did not have. e2e/screenshots.spec.ts asks of whatever Chromium runs it the two questions
