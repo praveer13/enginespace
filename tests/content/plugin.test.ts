@@ -12,6 +12,7 @@ import { spawn, spawnSync } from 'node:child_process'
 import type { ChildProcess } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
+import { stripVTControlCharacters } from 'node:util'
 import { contentPlugin, DEBOUNCE_MS } from '../../scripts/content/vite-plugin.ts'
 import { LESSON, lineOf, project, read, repo, swap } from './support.ts'
 import type { Edit } from './support.ts'
@@ -256,10 +257,11 @@ async function freePort(): Promise<number> {
   return port
 }
 
-async function until(done: () => boolean, what: string, ms = 10_000): Promise<void> {
+/** `what` may be a function, so that the message says what was true when the wait gave up, not when it began. */
+async function until(done: () => boolean, what: string | (() => string), ms = 10_000): Promise<void> {
   const start = Date.now()
   while (!done()) {
-    if (Date.now() - start > ms) throw new Error(`gave up waiting for ${what}`)
+    if (Date.now() - start > ms) throw new Error(`gave up waiting for ${typeof what === 'function' ? what() : what}`)
     await Bun.sleep(25)
   }
 }
@@ -268,12 +270,20 @@ describe('a real dev server: check 5, editing a lesson hot-reloads it', () => {
   test('serves the compiled lesson, reloads on an edit, shows an error with its line, and reloads when it is mended', async () => {
     const root = app()
     const port = await freePort()
-    const server = spawn('node', [vite, '--config', 'vite.config.ts', '--port', String(port), '--strictPort', '--host', '127.0.0.1'], { cwd: root })
+    const server = spawn('node', [vite, '--config', 'vite.config.ts', '--port', String(port), '--strictPort', '--host', '127.0.0.1'], {
+      cwd: root,
+      env: { ...process.env, NO_COLOR: '1' },
+    })
     children.push(server)
     let log = ''
+    let exited: number | null | undefined
     server.stdout.on('data', (chunk) => (log += chunk))
     server.stderr.on('data', (chunk) => (log += chunk))
-    await until(() => log.includes('Local:'), `the server to start (log: ${log})`)
+    server.on('exit', (code) => (exited = code))
+    // The banner is read without colour codes: picocolors colours output whenever CI is set, which splits "Local" from its colon.
+    // A cold start on a pull request's two-core runner is far slower than on a laptop.
+    await until(() => stripVTControlCharacters(log).includes('Local:') || exited !== undefined, () => `the server to start (log: ${log})`, 45_000)
+    expect(exited, `the dev server exited before it was ready:\n${log}`).toBeUndefined()
 
     const base = `http://127.0.0.1:${port}`
     // ?import is how the page asks for a JSON module, and what puts it in the module graph, so that a change to it is a reload.
@@ -311,5 +321,5 @@ describe('a real dev server: check 5, editing a lesson hot-reloads it', () => {
 
     socket.close()
     server.kill()
-  }, 60_000)
+  }, 120_000)
 })

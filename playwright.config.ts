@@ -102,7 +102,8 @@ export default defineConfig({
   snapshotPathTemplate: '{snapshotDir}/{testFileDir}/{testFileName}-snapshots/{arg}{ext}',
   reporter: CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   projects: [
-    { name: 'smoke', testMatch: SMOKE, use: chromium },
+    // fullyParallel, so that ci.yml's shards split the smoke specs test by test and not file by file (five files, four shards).
+    { name: 'smoke', testMatch: SMOKE, fullyParallel: true, use: chromium },
     // Every other spec: the ones that earlier tasks wrote, and whatever a later task adds.
     { name: 'features', testIgnore: [...SMOKE, LAB], use: chromium },
     // The lab profile is a number to be read and not a flake to be retried: a failure is a budget that was exceeded, and a second try
