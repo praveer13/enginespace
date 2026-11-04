@@ -4,6 +4,10 @@ name: Nightly
 # workflow needs these jobs. When one fails, the report job opens one nightly-failure issue, or comments on the one that is
 # open, with a link to the run (kernelspace's pattern).
 #
+# It is off on the schedule until the owner sets the repository variable NIGHTLY_ENABLED to 'true' (D-052): on a private
+# repository every run spends the account's Actions minutes, and the browsers job alone can take up to 90 of them. A run
+# started by hand always runs.
+#
 # Most jobs are reserved. Each prints "pending: <task>" and passes until its owning task replaces the step, because the
 # check needs code that does not exist yet:
 #   properties   W0-T10  the seeded properties at their nightly seed count (§5.10). The first task with seeded property tests
@@ -31,6 +35,7 @@ concurrency:
 
 jobs:
   properties:
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.NIGHTLY_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -40,6 +45,7 @@ jobs:
   # take the determinism hash alone. The sweep is long, because it audits every document at three widths and runs the 3D specs on a
   # software renderer: the timeout is a backstop [estimated], and the pull-request run (ci.yml's e2e-smoke) is what is kept short.
   browsers:
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.NIGHTLY_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
@@ -83,6 +89,7 @@ jobs:
   # dependencies and Chromium, and not Bun. ES_LAB_PROFILE switches the spec on: in CI it skips itself without it, so a pull request
   # does not pay for it. The lab numbers are in the log, and test-results/lab-profile.json keeps them with the host and the SHA.
   lab-profile:
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.NIGHTLY_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -113,6 +120,7 @@ jobs:
 
   # Claims and pins past their TTL never fail a gate (§4.4): the gates print them, and this job keeps the log.
   reports:
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.NIGHTLY_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

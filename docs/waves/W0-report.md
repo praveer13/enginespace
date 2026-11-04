@@ -195,7 +195,7 @@ The finish reviewer's "ceiling" also listed world devices the front page leaves 
 
 ### 6.5 The detector, rerun with its path
 
-`impeccable detect --json` ran over `src/front`, `src/design`, `src/games/loop`, `src/games/kit`, `src/scene`, `src/content/render` and `index.html`, in `/home/praveern/workplace/enginespace/.worktrees/t24-exit` at `0512837` (the `wave-0` tip's tree) [measured]:
+`impeccable detect --json` ran over `src/front`, `src/design`, `src/games/loop`, `src/games/kit`, `src/scene`, `src/content/render` and `index.html`, in the task's worktree (`.worktrees/t24-exit`) at `0512837` (the `wave-0` tip's tree) [measured]:
 - it found 0 non-advisory findings, and 0 of any kind with `--no-design-system`. That matches the fix rounds' empty records, since DESIGN.md did not exist when they ran;
 - it found 105 advisory findings, all from the design-system rules that DESIGN.md switched on: 74 `design-system-font-size`, 19 `design-system-radius` and 12 `design-system-color`. The colours are white or black highlights inside `src/design` (bevels, sheens), which the literal-colour rule allows there but DESIGN.md does not document.
 

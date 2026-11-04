@@ -289,6 +289,15 @@ describe('nightly.yml (acceptance 4)', () => {
     expect(condition).toContain("github.event_name == 'schedule'")
     expect(condition).toContain('github.event.repository.default_branch')
   })
+
+  test('the schedule spends no Actions minutes until the owner sets NIGHTLY_ENABLED, and a run by hand always runs (D-052)', () => {
+    const checks = jobsOf('nightly.yml')
+      .map(([name]) => name)
+      .filter((name) => name !== 'report')
+    for (const name of checks) {
+      expect(workflow('nightly.yml').jobs?.[name]?.if).toBe("${{ github.event_name == 'workflow_dispatch' || vars.NIGHTLY_ENABLED == 'true' }}")
+    }
+  })
 })
 
 describe('labs.yml (§10.1)', () => {

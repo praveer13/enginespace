@@ -1,6 +1,6 @@
 # enginespace: decision log
 
-**Status:** D-001 to D-006 are the owner's decisions of 2026-11-03. D-007 to D-013 restate the product record the owner confirmed the same day (`PRODUCT.md`). D-014 to D-042 are **proposed** by [ARCHITECTURE.md](ARCHITECTURE.md) and wait for the owner's review. D-043 to D-046 are **proposed** by the design review of 2026-11-03, which settled contradictions between the design files; they wait for the owner too. D-047 records the visual world the owner chose on 2026-11-03, and D-048 and D-049 are **proposed** by the art direction that followed it. D-050 is **proposed** by the design system's build (W0-T05), and D-051 by the settings page (W0-T22). The W0 exit review (W0-T24, 2026-11-04) froze D-023's budgets, recorded D-040's spike result and D-047's finish verdict, and carried O-7, O-8 and O-9 over; its record is [docs/waves/W0-report.md](waves/W0-report.md). The open owner questions, O-1 to O-11, and the course-design questions, Q-1 to Q-12, are at the end. **Date:** 2026-11-03, updated 2026-11-04.
+**Status:** D-001 to D-006 are the owner's decisions of 2026-11-03. D-007 to D-013 restate the product record the owner confirmed the same day (`PRODUCT.md`). D-014 to D-042 are **proposed** by [ARCHITECTURE.md](ARCHITECTURE.md) and wait for the owner's review. D-043 to D-046 are **proposed** by the design review of 2026-11-03, which settled contradictions between the design files; they wait for the owner too. D-047 records the visual world the owner chose on 2026-11-03, and D-048 and D-049 are **proposed** by the art direction that followed it. D-050 is **proposed** by the design system's build (W0-T05), D-051 by the settings page (W0-T22), and D-052 by the W0 wave PR. The W0 exit review (W0-T24, 2026-11-04) froze D-023's budgets, recorded D-040's spike result and D-047's finish verdict, and carried O-7, O-8 and O-9 over; its record is [docs/waves/W0-report.md](waves/W0-report.md). The open owner questions, O-1 to O-11, and the course-design questions, Q-1 to Q-12, are at the end. **Date:** 2026-11-03, updated 2026-11-04.
 
 **How to read a record.** Each record carries six fields:
 - **Decision**, in one or two sentences.
@@ -75,6 +75,7 @@
 | D-049 | Every game gets an in-world display name in kitchen vocabulary, with its engine concept as a subtitle. Ids stay as they are. | proposed (art direction) |
 | D-050 | The design system ships one light scheme, the line under its tubes, with a more-contrast variant and no dark scheme. Its faces are Big Shoulders Display, Doto (with Handjet's µ and ±), Permanent Marker, Atkinson Hyperlegible and Atkinson Hyperlegible Mono, self-hosted from Fontsource 5.3.0 and pinned by SHA-256. | proposed (W0-T05) |
 | D-051 | A learner's settings are recorded in the ledger's `working` store, one key each, and a copy in `localStorage` lets every page honour them from its first paint without opening the ledger. | proposed (W0-T22) |
+| D-052 | The nightly workflow runs on its schedule only when the repository variable `NIGHTLY_ENABLED` is `'true'`; a run started by hand always runs. | proposed (W0 wave PR) |
 
 ---
 
@@ -824,6 +825,21 @@ D-051 records how W0-T22 keeps the learner's settings, which A§7.1 puts in `wor
   - If the browser blocks site data, nothing persists anyway: IndexedDB falls back to memory (A§7.4) and `localStorage` is unreadable. A change then applies in the tab that made it until that tab reloads.
   - A change the ledger refuses (a tab that has gone read-only) is shown at its control and applied nowhere, so the record and the copy never part.
 - **Revisit when:** the ledger can be read before the first paint at no cost, or a browser stops offering `localStorage` to a first-party page.
+
+## The nightly schedule, 2026-11-04
+
+D-052 records how the W0 wave PR keeps the nightly from spending Actions minutes while the repository is private (O-2).
+
+### D-052 · The nightly runs on its schedule only when the owner turns it on
+
+- **Status:** proposed (the W0 wave PR, 2026-11-04).
+- **Decision:** every job of `nightly.yml` except `report` carries `if: ${{ github.event_name == 'workflow_dispatch' || vars.NIGHTLY_ENABLED == 'true' }}`. Until the owner sets the repository variable `NIGHTLY_ENABLED` to `'true'`, the 03:17 UTC schedule starts a run whose jobs are all skipped, and `report` files nothing because no job failed. A run started by hand from the Actions tab always runs every job.
+- **Context:** the repository is private (O-2), so every run spends the account's Actions minutes. The `browsers` job alone has a 90-minute timeout and installs three browsers, and the four jobs together can approach 160 minutes a night [derived from the job timeouts], which is more than a free plan's monthly allowance over a month. A scheduled workflow only runs from the default branch, so nothing ran before `wave-0` merged.
+- **Alternatives:**
+  - Leave the schedule on [design]: the cost lands on the owner's bill without a decision.
+  - Drop the schedule until the repo is public [design]: `tests/ci/workflows.test.ts` pins the slot of A§10.1, and the slot should not move when the gate opens.
+- **Consequences:** the checks the nightly owns (the full browser sweep, the lab profile, the TTL reports) run only by hand until the owner opts in. The pull-request gate (`ci.yml`) is unchanged. `deploy.yml` follows the same pattern with `PAGES_ENABLED` (O-2).
+- **Revisit when:** the repo goes public, where Actions minutes cost nothing, or the owner sets the variable.
 
 ---
 
