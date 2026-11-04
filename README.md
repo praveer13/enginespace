@@ -41,9 +41,9 @@ ML engineers who already run vLLM can take it too, but it is not designed around
 - **Local:** CPU work on your laptop (TR0's forward pass), graded by the local grader.
 - **GPU:** labs on your own or a rented GPU, graded by the local grader. Its receipt is bound to a challenge your browser issued, and the browser re-checks it from the raw traces and logs.
 
-**The games.** Nine games, one for every module except TR7, six of them in 3D, each 3D game with a 2D path, keyboard control and reduced motion. Their working names: The Loop (the step loop, on the front page), Shape Shifter (tensor layouts), The Engine Floor (a request's lifecycle), Gap Hunt (trace attribution), Dispatch (attention backends), The Pool (hybrid KV and adapter pages), The Switchyard (KV tiers and the connector), The Verifier (the rejection sampler) and Broken Bench (benchmark methodology).
+**The games.** Nine games, one for every module except TR7 and the capstone, six of them in 3D, each 3D game with a 2D path, keyboard control and reduced motion. The learner sees each game's kitchen name (the look is The Pass, D-047) over its engine concept (D-049): Service (the step loop, on the front page), Sheet Pan (tensor views and copies), Back of House (a request's lifecycle), The Tape (trace attribution), Line Check (attention backend selection), The Reach-In (hybrid KV pages and adapters), The Dumbwaiter (KV offload, connector and events), The Tasting (speculative decoding's verifier) and The Inspection (benchmark methodology). The design docs keep the working names as shorthand (The Loop, Shape Shifter, The Engine Floor, Gap Hunt, Dispatch, The Pool, The Switchyard, The Verifier and Broken Bench), and [docs/GAMES.md](docs/GAMES.md) §0 maps the display names, the working names and the ids.
 
-**The world.** The Trace Room puts a seeded step-loop simulator beside real engine traces captured by the owner, pinned by SHA-256 and dated. Every simulated world says what it models and what it ignores, and the real engine is the final judge.
+**The world.** The Trace Room puts a seeded step-loop simulator beside real engine traces that the owner captures on real GPUs, pinned by SHA-256 and dated. The owner has not captured any yet (2026-11-03), so until then the room shows traces labelled synthetic. Every simulated world says what it models and what it ignores, and the real engine is the final judge.
 
 **The currency is evidence.** Credit comes from checks you cannot fake by typing a number: fresh seeds, references on your own machine, and performance evidence that must agree with itself and with physics. Clicks earn nothing. No LLM grades anything, and no server is involved.
 
@@ -75,7 +75,7 @@ The course pins one vLLM minor and one SGLang minor and re-pins them each quarte
 
 ## Run it
 
-The site is one Vite app (React 19, TypeScript, Tailwind) with one `package.json` and one lockfile. `npm` installs and builds, and [Bun](https://bun.sh) runs the tests and the scripts. The pinned toolchain is Node 24 and Bun 1.3.14 (ARCHITECTURE §10.3, read from kernelspace's CI [measured 2026-11-03]).
+The site is one Vite app (React 19, TypeScript, Tailwind) with one `package.json` and one lockfile. `npm` installs and builds, and [Bun](https://bun.sh) runs the tests and the scripts, so install both. The pinned toolchain is Node 24 and Bun 1.3.14 (ARCHITECTURE §10.3, read from kernelspace's CI [measured 2026-11-03]).
 
 ```sh
 npm ci              # install the exact pins in package-lock.json
@@ -87,20 +87,25 @@ npm run build       # typecheck, then vite build into dist/, with dist/.vite/man
 npm run preview     # serve dist/
 ```
 
-Two gates check the packages beyond what lint and the type checker do:
+The gates that check more than lint, the type checker and the tests live in one registry, `scripts/verify.ts`, and CI runs the same ones on every pull request (ARCHITECTURE §10.2). A gate whose script is not built yet prints `pending: <task>` and exits 0, so the run passes while the site is half built.
 
 ```sh
+npm run verify:all           # every gate; each pending one names the task that builds it
 npm run verify:determinism   # packages/sim and packages/play: no clock, no entropy, no engine-dependent Math (ARCHITECTURE §5.1)
 npm run verify:boundaries    # the import fences of ARCHITECTURE §2.3, and no static path from src/main.tsx to three
+bun scripts/verify.ts list   # each gate with its stage, whether it is live or pending, and the task that builds it
 ```
 
 Every dependency is pinned to an exact version, with no `^` and no `~`, and the pins are ARCHITECTURE §14's table. A test compares `package.json` with that table. GitHub Pages serves the site under `/enginespace/` until a custom domain is chosen, so the deploy builds with `VITE_BASE=/enginespace/ npm run build`.
+
+Working in a git worktree, or with a coding agent? Read [AGENTS.md](AGENTS.md) first. In a worktree, `node_modules` is hard-linked from the main checkout instead of installed (its rule 2), so `npm ci` is not the first step there.
 
 ## What is in this repository
 
 | Path | What |
 |---|---|
 | [PRODUCT.md](PRODUCT.md) | the product record, confirmed by the owner on 2026-11-03 |
+| [AGENTS.md](AGENTS.md) | the rules for the coding agents that build the repository: the tracker's agent brief, worktrees and merging, the gates, the sibling repos, pins and tags |
 | [docs/PLAN.md](docs/PLAN.md) | the master plan: structure, loop, grading and world in brief, cost, upkeep, build waves, risks, open decisions |
 | [curriculum/](curriculum/) | one design file per module and the capstone |
 | [docs/ASSESSMENT.md](docs/ASSESSMENT.md) | the grading model: browser checks, the local grader and its receipts, consistency checks, Prove-it, cheating, what is never graded |
@@ -112,7 +117,11 @@ Every dependency is pinned to an exact version, with no `^` and no `~`, and the 
 | [research/](research/) | the dated upstream research behind the pins and claims |
 | [src/](src/) | the app: the shell, the route table (`src/routes.tsx`) and one stub page per route |
 | [packages/](packages/) | the five internal packages (`sim`, `play`, `ledger`, `schema`, `verify`), skeletons until their tasks land. `sim` and `play` compile without the DOM (`tsconfig.pure.json`) and obey the determinism lint. ESLint and `verify:boundaries` fence what each package may import |
-| [tests/](tests/) | the Bun tests: the dependency pins, the routes, the configuration, the build's chunking, and the lint fences and gates (`tests/lint`, with their bad files in `tests/fixtures/lint`) |
+| [scripts/](scripts/) | the gate registry (`verify.ts`) and the gate scripts it runs |
+| [vendor/](vendor/) | files copied from kernelspace at d478f91 and never edited in place; `vendor/kernelspace/VENDOR.md` lists each one's SHA-256 (ARCHITECTURE §13) |
+| [NOTICE](NOTICE) | the third-party notices that travel with the vendored files |
+| [.github/workflows/](.github/workflows/) | CI: `ci.yml` for pull requests, `deploy.yml`, `nightly.yml` and `labs.yml` (ARCHITECTURE §10.1) |
+| [tests/](tests/) | the Bun tests: the dependency pins, the routes, the configuration, the build's chunking, the lint fences and gates (`tests/lint`, with their bad files in `tests/fixtures/lint`), the CI workflows and the gate registry (`tests/ci`), the vendored code (`tests/vendor`), and these documents (`tests/docs`) |
 | `package.json`, `vite.config.ts`, `tsconfig*.json`, `eslint.config.js`, `tailwind.config.ts` | the toolchain, on kernelspace's versions |
 
 ## The family
