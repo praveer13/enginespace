@@ -1,0 +1,32 @@
+{
+  "schema": "enginespace/labs-manifest@1",
+  "files": [
+    {
+      "name": "enginespace-toy.zip",
+      "kind": "forge-lab",
+      "lab": "toy",
+      "bytes": 65522,
+      "sha256": "794f0a5e1819c3d0c4567e1777267803d580005b1b21f2a2593aee2f3a4627c6",
+      "root": "enginespace-toy",
+      "members": [
+        { "path": ".claude/hooks/es-guard.sh", "bytes": 4346, "sha256": "7aab3e5a4badb7169908247838862e81982a0eb8a663324df57889c815ca31fd" },
+        { "path": ".claude/output-styles/enginespace-socratic.md", "bytes": 3377, "sha256": "c2db126ca21a3c3343295f31e3b619d1e51f55e955dec8b57a5b1891979521ec" },
+        { "path": ".claude/settings.json", "bytes": 682, "sha256": "095a3e257b92eb2c3771b73e3fa101821558c3ace9ce34f5b6a83b14f6803ad2" },
+        { "path": ".gitignore", "bytes": 8, "sha256": "b53ee26e6ff1da219b0563333a76d2c9ec19eec713d6ee54e11a1edacb0e9f3d" },
+        { "path": "AGENTS.md", "bytes": 5887, "sha256": "6ec7c0c2b91f34b564fb97f9bfc2ad355bbf18d9ac79e9cd1f835f262696c213" },
+        { "path": "CLAUDE.md", "bytes": 11, "sha256": "336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49" },
+        { "path": "Cargo.lock", "bytes": 222, "sha256": "fd828d94baedb6b9350dd9b4413eb0547659c720b806cc430a40a6a38a62013e" },
+        { "path": "Cargo.toml", "bytes": 327, "sha256": "34702822d5201086e3c7078de5528a2a0f6af24b5d1cf279584ddcc1fae386bb" },
+        { "path": "NOTICE", "bytes": 1479, "sha256": "09e2835e85b85eb1c008ed7eece504ef46e8a0b1c7f7a75a6982acfca3b96bed" },
+        { "path": "README.md", "bytes": 4345, "sha256": "62e4b7c7070c9e0517f046c62ee477e5c5a5c96db72b92d9613aa703024dd8a1" },
+        { "path": "kit/Cargo.toml", "bytes": 181, "sha256": "af7d3d7e8d90a6198e1f9d31046cafac3217cb958b3a3a0574bbd6fb81b81b3d" },
+        { "path": "kit/src/lib.rs", "bytes": 22049, "sha256": "faf92453c85299f0eb62e1e04c4a002d92f4da821e6dbeb4318b15ecfe0cbe69" },
+        { "path": "rust-toolchain.toml", "bytes": 357, "sha256": "3662ca6ffee9aaa50095c41e12233e852d275743b8219213d91f2beb03c7690d" },
+        { "path": "toy/Cargo.toml", "bytes": 1146, "sha256": "0a157a4f61cdd6370d50c9e75e9007d29fd0250c1f164d5f2c848fe9930ef123" },
+        { "path": "toy/src/lib.rs", "bytes": 13975, "sha256": "157fe330f8e4889212c59437a10a8fecde5287525518a5160b33680313826da2" },
+        { "path": "toy/src/rotation.rs", "bytes": 1883, "sha256": "5ff1bee7804a2dfc435590892018f887862ee636f544af5640f4d3711121167e" },
+        { "path": "toy/tests/checks.rs", "bytes": 2855, "sha256": "83643f810f7b392535c60828f1734a96190b54d993256ab6e5804d64d15056ed" }
+      ]
+    }
+  ]
+}
