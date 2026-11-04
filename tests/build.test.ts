@@ -145,12 +145,14 @@ describe('the app build', () => {
       expect(loadedFirst.has(key ?? ''), page).toBe(false)
     }
     // A lazy chunk with a source path is a page, or a part of a game that a page loads on demand: its component (src/games/<id>/Game.tsx)
-    // and the parts that component loads in turn (its debrief, and later its 3D scene), which stay in src/games/<id>/.
+    // and the parts that component loads in turn (its debrief, and later its 3D scene), which stay in src/games/<id>/; or a part of
+    // the scene kit that a scene loads on demand (src/scene/postfx, W0-T15), or one of three's addons (OrbitControls).
     // The compiled content is lazy too, but it is not a page: the next test holds it to account.
     const named = Object.entries(app.manifest)
       .filter(([key, chunk]) => chunk.isDynamicEntry && chunk.src !== undefined && !key.startsWith(CONTENT))
       .map(([key]) => key)
-    expect(named.filter((key) => !pages.includes(key) && !/^src\/games\/[^/]+\/[A-Za-z0-9]+\.tsx$/.test(key))).toEqual([])
+    const onDemand = /^(src\/games\/[^/]+\/[A-Za-z0-9]+\.tsx|src\/scene\/[\w/-]+\.tsx?|node_modules\/three\/examples\/jsm\/[\w/-]+\.js)$/
+    expect(named.filter((key) => !pages.includes(key) && !onDemand.test(key))).toEqual([])
   })
 
   test('makes the course index, and each module and lesson, a lazy chunk of its own that the entry never loads (ARCHITECTURE §4.6)', () => {
@@ -182,6 +184,21 @@ describe('the app build', () => {
     expect(css).not.toContain('--tw-prose')
     expect(css).not.toMatch(/\.prose[\s{,:.[>)]/)
     expect(css).toContain('.es-prose')
+  })
+
+  test("keeps the scene kit's 3D out of every page's first chunk: the scene and postfx load on demand (W0-T15)", () => {
+    const [postfxKey, postfx] = chunkNamed(app, 'postfx') ?? []
+    const [designKey] = chunkNamed(app, 'Design') ?? []
+    const [sceneKey, scene] = chunkNamed(app, 'SpecimenScene3D') ?? []
+    expect(postfx?.isDynamicEntry).toBe(true)
+    expect(scene?.isDynamicEntry).toBe(true)
+    const designFirst = staticClosure(app, designKey ?? 'no Design chunk')
+    expect(designFirst.has(postfxKey ?? 'no postfx chunk')).toBe(false)
+    expect(designFirst.has(sceneKey ?? 'no scene chunk')).toBe(false)
+    const [vendorKey] = chunkNamed(app, 'three-vendor') ?? []
+    expect(designFirst.has(vendorKey ?? 'no three-vendor chunk')).toBe(false)
+    // three's post-processing addons live in the postfx chunk and nowhere else.
+    expect(chunksHolding(app, 'node_modules/three/examples/jsm/postprocessing/')).toEqual([postfx?.file])
   })
 
   test('puts React in react-vendor, which the entry imports', () => {

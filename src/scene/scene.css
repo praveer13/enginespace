@@ -1,0 +1,472 @@
+/*
+ * The scene kit's page layer: the Stage's box, the canvas, the labels over it, the notes the Stage prints, the selection
+ * list, and the /design specimen. Every colour, face, shadow and duration is a token role (src/design/tokens.css); this
+ * file names none of its own.
+ */
+
+/* ---------------------------------------------------------------------------------------------- the stage */
+
+.es-stage {
+  position: relative;
+  display: grid;
+  grid-template: 'view' minmax(0, 1fr) / minmax(0, 1fr);
+  overflow: hidden;
+  border-radius: var(--es-radius-plate);
+  background-color: var(--es-surface-0);
+  isolation: isolate;
+}
+
+.es-stage > .es-stage__twin,
+.es-stage > .es-stage__scene {
+  grid-area: view;
+  min-width: 0;
+  min-height: 0;
+}
+
+.es-stage__twin {
+  z-index: 1;
+  display: grid;
+  background-color: var(--es-surface-0);
+  transition: opacity var(--es-dur-settle) var(--es-ease-settle);
+}
+
+.es-stage__twin > * {
+  width: 100%;
+  height: 100%;
+}
+
+.es-stage__twin[data-leaving] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.es-stage__scene {
+  position: relative;
+  opacity: 0;
+  transition: opacity var(--es-dur-settle) var(--es-ease-settle);
+}
+
+.es-stage[data-stage-phase='live'] .es-stage__scene {
+  opacity: 1;
+}
+
+/* A note the Stage prints in its box: a strip of ticket paper at the top edge, with the ribbon's red mark. */
+.es-stage__note {
+  position: absolute;
+  z-index: 3;
+  top: var(--es-space-3);
+  left: var(--es-space-3);
+  right: var(--es-space-3);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2) var(--es-space-3);
+  width: fit-content;
+  max-width: calc(100% - 2 * var(--es-space-3));
+  margin: 0;
+  padding: var(--es-space-2) var(--es-space-3);
+  background-color: var(--es-paper);
+  box-shadow: var(--es-shadow-paper);
+  color: var(--es-paper-ink);
+  font-size: 0.9375rem;
+  line-height: 1.35;
+}
+
+.es-stage__note-mark {
+  flex: none;
+  width: 1.1em;
+  height: 1.1em;
+  color: var(--es-paper-ink-2);
+}
+
+.es-scene {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.es-scene__canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: pan-y;
+}
+
+/* ---------------------------------------------------------------------------------------------- labels */
+
+.es-labels {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.es-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  white-space: nowrap;
+  will-change: transform;
+}
+
+/* ---------------------------------------------------------------------------------------------- camera buttons */
+
+.es-camera-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2);
+}
+
+/* ---------------------------------------------------------------------------------------------- the selection list */
+
+.es-selection {
+  display: grid;
+  margin: 0;
+  padding: var(--es-space-1);
+  list-style: none;
+  background-color: var(--es-paper);
+  box-shadow: var(--es-shadow-paper);
+  color: var(--es-paper-ink);
+}
+
+.es-selection__option {
+  display: block;
+  min-height: 2.25rem;
+  padding: var(--es-space-2) var(--es-space-3);
+  border-bottom: 1px dotted var(--es-paper-rule);
+  cursor: pointer;
+  outline-offset: -2px;
+}
+
+.es-selection__option:last-child {
+  border-bottom: 0;
+}
+
+.es-selection__option:hover {
+  background-color: var(--es-surface-1);
+}
+
+/* The selected fire is under the lamp: the active state's amber, and its filament as the edge. */
+.es-selection__option[data-selected] {
+  background-color: var(--es-lamp);
+  box-shadow: inset 3px 0 0 var(--es-lamp-ring);
+}
+
+/* ---------------------------------------------------------------------------------------------- the specimen */
+
+.es-kit {
+  display: grid;
+  gap: var(--es-space-8);
+}
+
+.es-kit__views {
+  display: grid;
+  gap: var(--es-space-6);
+  align-items: start;
+}
+
+@media (min-width: 64rem) {
+  .es-kit__views {
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  }
+}
+
+.es-kit__view {
+  display: grid;
+  gap: var(--es-space-3);
+  min-width: 0;
+  margin: 0;
+}
+
+/* The 3D view sits in a stainless bezel, as the pass does in its frame. */
+.es-kit__stage {
+  aspect-ratio: 16 / 10;
+  border: 1px solid var(--es-edge);
+  box-shadow: var(--es-shadow-shelf);
+}
+
+@media (max-width: 40rem) {
+  .es-kit__stage {
+    aspect-ratio: 4 / 5;
+  }
+}
+
+.es-kit__twin {
+  padding: var(--es-space-2);
+  background-color: var(--es-paper);
+  box-shadow: var(--es-shadow-paper);
+}
+
+.es-kit__twin > svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.es-kit__caption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2) var(--es-space-3);
+  color: var(--es-text-2);
+  font-size: 0.9375rem;
+  line-height: 1.4;
+}
+
+/* The controls: a stainless panel under the pass, each control on its own plate. */
+.es-kit__deck {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-4) var(--es-space-8);
+  padding: var(--es-space-6);
+  border: 1px solid var(--es-edge);
+  border-radius: var(--es-radius-plate);
+  background-color: var(--es-surface-1);
+  background-image: var(--es-texture-sheen), var(--es-texture-brushed);
+  background-size: 100% auto, 100% 720px;
+  box-shadow: var(--es-shadow-plate);
+}
+
+.es-kit__clips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2);
+}
+
+.es-kit__readouts {
+  display: grid;
+  gap: var(--es-space-8);
+  align-items: start;
+}
+
+@media (min-width: 48rem) {
+  .es-kit__readouts {
+    grid-template-columns: minmax(0, 20rem) minmax(0, 20rem) minmax(0, 1fr);
+  }
+}
+
+.es-kit__word {
+  font-family: var(--es-font-ticket);
+  font-weight: var(--es-font-ticket-weight);
+  letter-spacing: var(--es-font-ticket-tracking);
+}
+
+.es-kit__fires {
+  display: grid;
+  gap: var(--es-space-2);
+  min-width: 0;
+}
+
+.es-kit__fires-title {
+  margin: 0;
+  font-family: var(--es-font-heading);
+  font-size: 1.5rem;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.es-kit__fires-note {
+  margin: 0 0 var(--es-space-2);
+  color: var(--es-text-2);
+  font-size: 0.9375rem;
+}
+
+.es-kit__list {
+  max-height: 22rem;
+  overflow-y: auto;
+}
+
+.es-kit__fire {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--es-space-3);
+}
+
+.es-kit__fire-name {
+  font-family: var(--es-font-ticket);
+  font-weight: var(--es-font-ticket-weight);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.es-kit__fire-facts {
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.es-kit__part-list {
+  display: grid;
+  gap: var(--es-space-3) var(--es-space-8);
+  margin: 0;
+}
+
+@media (min-width: 48rem) {
+  .es-kit__part-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.es-kit__part {
+  display: grid;
+  grid-template-columns: minmax(8.5rem, auto) minmax(0, 1fr);
+  gap: var(--es-space-3);
+  padding-bottom: var(--es-space-3);
+  border-bottom: 1px dotted var(--es-paper-rule);
+}
+
+.es-kit__part dt {
+  font-family: var(--es-font-ticket);
+  font-weight: var(--es-font-ticket-weight);
+  letter-spacing: 0.03em;
+}
+
+.es-kit__part dd {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
+/* The specimen's scene labels: printed on tickets, written in marker on tape, the clock in dots. */
+.es-kit-label {
+  color: var(--es-paper-ink);
+  font-family: var(--es-font-ticket);
+  font-weight: var(--es-font-ticket-weight);
+  letter-spacing: 0.04em;
+  font-size: 0.8125rem;
+  line-height: 1;
+}
+
+.es-kit-label--lane {
+  color: var(--es-tape-ink);
+  font-family: var(--es-font-label);
+  font-weight: var(--es-font-label-weight);
+  letter-spacing: var(--es-font-label-tracking);
+  font-size: 0.875rem;
+}
+
+.es-kit-label--tick {
+  color: var(--es-text-2);
+  font-family: var(--es-font-numeric);
+  font-weight: var(--es-font-numeric-weight);
+  font-size: 0.875rem;
+}
+
+.es-kit-label--legend {
+  padding: 0.15rem 0.35rem;
+  background-color: var(--es-paper);
+  box-shadow: var(--es-shadow-paper);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+/* ---------------------------------------------------------------------------------------------- the 2D twin */
+
+.es-twin {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.es-twin__ground {
+  fill: var(--es-paper);
+}
+
+.es-stage .es-twin__ground {
+  fill: var(--es-surface-1);
+}
+
+.es-twin__bed {
+  fill: var(--es-surface-2);
+  opacity: 0.55;
+}
+
+.es-twin__lane-name,
+.es-twin__legend-label,
+.es-twin__present-name {
+  fill: var(--es-text-1);
+  font-family: var(--es-font-ticket);
+  font-weight: var(--es-font-ticket-weight);
+  font-size: 15px;
+  letter-spacing: 0.02em;
+}
+
+.es-twin__lane-term,
+.es-twin__axis-name {
+  fill: var(--es-text-2);
+  font-family: var(--es-font-body);
+  font-size: 13px;
+}
+
+.es-twin__cpu {
+  fill: var(--es-lane-cpu);
+}
+
+.es-twin__slab {
+  fill: var(--es-lane-gpu);
+}
+
+.es-twin__fire {
+  cursor: pointer;
+}
+
+.es-twin__place[data-form='plate'] {
+  fill: var(--es-cat-white);
+  stroke: var(--es-cat-white-edge);
+  stroke-width: 1;
+}
+
+.es-twin__place[data-form='binned'] {
+  fill: none;
+  stroke: var(--es-status-bad);
+  stroke-width: 2;
+}
+
+.es-twin__place[data-form='empty'] {
+  fill: var(--es-surface-3);
+  stroke: var(--es-cat-white);
+  stroke-width: 1.5;
+  opacity: 0.9;
+}
+
+.es-twin__density {
+  fill: var(--es-cat-white);
+  opacity: 0.85;
+}
+
+.es-twin__dark {
+  fill: none;
+  stroke: var(--es-edge);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+
+.es-twin__selected {
+  fill: none;
+  stroke: var(--es-focus);
+  stroke-width: 3;
+}
+
+.es-twin__axis,
+.es-twin__tick {
+  stroke: var(--es-edge);
+  stroke-width: 1.5;
+}
+
+.es-twin__tick-label {
+  fill: var(--es-text-2);
+  font-family: var(--es-font-numeric);
+  font-weight: var(--es-font-numeric-weight);
+  font-size: 14px;
+}
+
+.es-twin__present {
+  stroke: var(--es-lamp-ring);
+  stroke-width: 2;
+}
