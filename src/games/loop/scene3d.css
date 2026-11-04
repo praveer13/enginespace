@@ -105,8 +105,8 @@
   font-size: clamp(0.6875rem, 1.3cqi, 0.9375rem);
 }
 
-/* The line's stations, as the pass reads them: a pip for each, lit in the line's colour or an open ring of deep steel, and the
-   count in the printer's dots, on a slip of steel so it reads over the counter. */
+/* The line's stations, as the pass reads them: a pip for each, burning in the heat lamp's amber with its filament's edge or an open
+   ring of cold steel, and the count in the printer's dots, on a slip of steel so it reads over the counter. */
 .es-loop-label--station {
   padding: 0.35em 0.6em;
   border: 1px solid var(--es-edge);
@@ -135,9 +135,8 @@
 }
 
 .es-loop-label__pip[data-lit] {
-  border-color: var(--es-cat-green-edge);
-  background-color: var(--es-lane-gpu);
-  box-shadow: 0 0 0.6em 0.1em color-mix(in srgb, var(--es-lane-gpu) 60%, transparent);
+  border-color: var(--es-lamp-ring);
+  background: radial-gradient(circle at 42% 36%, color-mix(in srgb, var(--es-lamp) 55%, var(--es-paper)) 0 16%, var(--es-lamp) 42%, color-mix(in srgb, var(--es-lamp) 70%, var(--es-lamp-ring)) 100%);
 }
 
 .es-loop-label__station-words {

@@ -2,8 +2,9 @@
  * W0-T17: Service's 3D layout (src/games/loop/scene-layout.ts), which the scene draws and nothing else decides. Every mark is held to the
  * session's view of the night: one place per clip per fire in the form the view says, the dark stretches where the line waited, the
  * rail's tickets on their clips, the fired rail only while a fire is on the line, the printer's strip, the comb that collapses on a
- * graph hit, and the stations' light. Then the presets, the motion grammar's reading of a change, the instance budget over whole
- * nights, and the acceptance check that no material takes a literal colour and no word is printed in the canvas.
+ * graph hit, and the stations' heat and the light they throw. Then the presets, the motion grammar's reading of a change, the
+ * instance budget over whole nights, and the acceptance check that no material takes a literal colour, no state takes a code colour,
+ * and no word is printed in the canvas.
  */
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
@@ -18,12 +19,17 @@ import {
   changeOf,
   clipX,
   COMB_TEETH,
+  GLOW,
   HISTORY_TICKS,
   lanesFor,
+  MAX_GLOWS,
   PASS,
   RAIL,
+  SLAB_ROLE,
   sceneLayout,
   SLOT_PITCH,
+  STATION_BAR,
+  stationGlows,
   STRIP_TICKETS,
   stripSheets,
   TICKET,
@@ -48,13 +54,14 @@ describe('the line draws the view', () => {
   const view = loopView(night)
   const layout = sceneLayout(view)
 
-  test('every fire in the window is a lit slab as wide as the rail, with one place per clip in the form the view says', () => {
+  test('every fire in the window is a slab of the line\'s steel as wide as the rail, with one place per clip in the form the view says', () => {
     const shown = view.fires.filter((fire) => fire.endUs > layout.window.start)
     expect(shown.length).toBeGreaterThan(0)
     const form = { plate: 'solid', empty: 'groove', binned: 'hollow' } as const
     for (const fire of shown) {
-      const slab = layout.spans.find((span) => span.id === `fire-${fire.index}`)
-      expect(slab).toMatchObject({ start: fire.startUs, end: fire.endUs, width: view.slots * SLOT_PITCH, role: 'lane-gpu' })
+      const slab = layout.slabs.find((span) => span.id === `fire-${fire.index}`)
+      expect(slab).toMatchObject({ start: fire.startUs, end: fire.endUs, width: view.slots * SLOT_PITCH, role: SLAB_ROLE })
+      expect(layout.spans.some((span) => span.id === `fire-${fire.index}`)).toBe(false)
       const places = placesOf(layout, fire.index)
       expect(places.map((place) => place.form)).toEqual(fire.places.map((place) => form[place.state]))
       // A clip's places line up along the night, behind its clip on the rail.
@@ -89,7 +96,9 @@ describe('the line draws the view', () => {
 
   test('every colour a mark takes is a token role, and the steel takes only its three tones', () => {
     const roles = new Set<string>(COLOR_ROLE_NAMES)
-    for (const mark of [...layout.spans, ...layout.places]) expect(roles.has(mark.role)).toBe(true)
+    for (const mark of [...layout.slabs, ...layout.spans, ...layout.places]) expect(roles.has(mark.role)).toBe(true)
+    // A fire's slab is a sheet of the line's steel, one of the steel's tones: its state is carried by the stations' heat, never by a code colour.
+    expect(['surface-1', 'surface-2', 'surface-3']).toContain(SLAB_ROLE)
     expect(roles.has(layout.onLine?.role ?? 'lamp-ring')).toBe(true)
     for (const part of [...layout.fixtures, ...layout.overhead]) expect(['bright', 'shaded', 'deep']).toContain(part.tone)
   })
@@ -173,23 +182,52 @@ describe('the rail, the fired rail and the printer', () => {
     const half = loopView(step(fill(initState(level('first-1-fill')), 2)))
     const halfLayout = sceneLayout(half)
     expect(halfLayout.stations.lit).toEqual([true, true, false, false])
-    expect(halfLayout.stations.pilots.map((pilot) => pilot.lit)).toEqual([true, true, false, false])
-    expect(halfLayout.stations.pilots.map((pilot) => pilot.at[0])).toEqual([0, 1, 2, 3].map(clipX))
+    expect(halfLayout.stations.elements.map((element) => element.lit)).toEqual([true, true, false, false])
+    expect(halfLayout.stations.elements.map((element) => element.at[0])).toEqual([0, 1, 2, 3].map(clipX))
+    // On a laptop each burning station throws its light down its own row: the half that burns is lit, the half that rode empty
+    // stays dark. On a phone the line's one light, over the line's middle, burns half as bright as a full fire's.
+    expect(stationGlows(halfLayout.stations.lit, MAX_GLOWS.laptop).map((glow) => glow.share)).toEqual([1, 1, 0, 0])
+    expect(stationGlows(halfLayout.stations.lit, MAX_GLOWS.laptop).map((glow) => glow.at[0])).toEqual([0, 1, 2, 3].map(clipX))
+    const [phone] = stationGlows(halfLayout.stations.lit, MAX_GLOWS.phone)
+    expect(phone.share).toBe(0.5)
+    expect(phone.at[0]).toBeCloseTo((clipX(0) + clipX(3)) / 2)
     expect(halfLayout.anchors.find((anchor) => anchor.kind === 'station')?.text).toBe('2 of 4 lit')
     // An empty place is a dark station's well, in the deep steel's role; a plate is the paper's white.
     const roles = placesOf(halfLayout, 0).map((place) => place.role)
     expect(roles).toEqual(['cat-white', 'cat-white', 'surface-3', 'surface-3'])
     const full = sceneLayout(loopView(step(fill(initState(level('first-1-fill'))))))
     expect(full.stations.lit).toEqual([true, true, true, true])
+    expect(stationGlows(full.stations.lit, MAX_GLOWS.laptop).map((glow) => glow.share)).toEqual([1, 1, 1, 1])
+    const [line] = stationGlows(full.stations.lit, MAX_GLOWS.phone)
+    expect(line.share).toBe(1)
+    expect(line.at[0]).toBeCloseTo((clipX(0) + clipX(3)) / 2)
     expect(full.anchors.find((anchor) => anchor.kind === 'station')?.text).toBe('4 of 4 lit')
+  })
+
+  test('the stations\' lights hang beyond the bar, down the line; their number is the rail\'s and the tier\'s, never what burns', () => {
+    for (const glow of stationGlows([true, false, true, false], MAX_GLOWS.laptop)) {
+      expect(glow.at[2]).toBeLessThan(STATION_BAR.z)
+      expect(glow.at).toEqual([glow.at[0], GLOW.y, GLOW.z])
+    }
+    for (const max of [MAX_GLOWS.phone, MAX_GLOWS.laptop]) {
+      expect(stationGlows([false, false, false, false], max)).toHaveLength(max)
+      expect(stationGlows([true, true, true, true], max)).toHaveLength(max)
+    }
+    // Eight clips share a laptop's lights, neighbours together: each over its pair's middle, as bright as the share of the pair that burns.
+    const eight = stationGlows([true, true, false, true, false, false, false, false], MAX_GLOWS.laptop)
+    expect(eight.map((glow) => glow.share)).toEqual([1, 0.5, 0, 0])
+    expect(eight[0].at[0]).toBeCloseTo((clipX(0) + clipX(1)) / 2)
+    expect(eight[1].at[0]).toBeCloseTo((clipX(2) + clipX(3)) / 2)
+    // What burns never moves a light: the places are the rail's.
+    expect(stationGlows([false, true, true, true, true, true, true, false], MAX_GLOWS.laptop).map((glow) => glow.at)).toEqual(eight.map((glow) => glow.at))
   })
 
   test('the stations\' bar stands beyond the pass, over the line\'s head, above every slab and below every hung ticket', () => {
     const layout = sceneLayout(loopView(step(fill(initState(level('first-1-fill'))))))
-    for (const pilot of layout.stations.pilots) {
-      expect(pilot.at[2]).toBeLessThan(PASS.back)
-      expect(pilot.at[1] - pilot.size[1] / 2).toBeGreaterThan(Math.max(...layout.places.map((place) => (place.y ?? 0) + place.height)) + TRACK_Y)
-      expect(pilot.at[1] + pilot.size[1] / 2).toBeLessThan(RAIL.y - TICKET.h)
+    for (const element of layout.stations.elements) {
+      expect(element.at[2]).toBeLessThan(PASS.back)
+      expect(element.at[1] - element.diameter / 2).toBeGreaterThan(Math.max(...layout.places.map((place) => (place.y ?? 0) + place.height)) + TRACK_Y)
+      expect(element.at[1] + element.diameter / 2).toBeLessThan(RAIL.y - TICKET.h)
     }
   })
 
@@ -282,7 +320,7 @@ describe('the budget (TRACKER W0-T17, accept 2; GAMES.md §3, Budget)', () => {
     for (const id of LEVEL_IDS) {
       for (const state of statesOfHouseNight(level(id), { overlap: id === 'first-3-gap' || id === 'first-4-par' })) {
         const layout = sceneLayout(loopView(state))
-        most = Math.max(most, layout.spans.length + layout.places.length + layout.tickets.length + layout.tapes.length + layout.lamps.length)
+        most = Math.max(most, layout.slabs.length + layout.spans.length + layout.places.length + layout.tickets.length + layout.tapes.length + layout.lamps.length)
         states += 1
       }
     }
@@ -301,7 +339,16 @@ describe('the acceptance check on colour and text (TRACKER W0-T17, accept 5)', (
       expect(text, file).not.toMatch(/\b(?:rgba?|hsla?|oklch)\(/)
       expect(text, file).not.toMatch(/new Color\(|\.setHex\(|\.setRGB\(|\.setHSL\(/)
     }
-    expect(sources[0][1]).toMatch(/roleColor\(kit\.tokens, 'lane-gpu'\)/)
+    expect(sources[0][1]).toMatch(/roleColor\(kit\.tokens, 'lamp'\)/)
+  })
+
+  test('no state takes a code colour: the stations burn in the heat lamp\'s amber, and the line\'s slabs are its steel', () => {
+    // The HACCP colours are the categorical code and only that (GAMES.md §2.6, rule 6): the line's lane colour, or any green, never
+    // marks a station lit or a fire cooked.
+    for (const [file, text] of sources) expect(text, file).not.toMatch(/'lane-gpu'|cat-green/)
+    const lights = readFileSync(path.join(root, 'src/scene/Lights.tsx'), 'utf8')
+    expect(lights).toMatch(/kit\.materials\.lamp/)
+    for (const css of ['src/games/loop/scene3d.css', 'src/front/front.css']) expect(readFileSync(path.join(root, css), 'utf8'), css).not.toMatch(/lane-gpu|cat-green/)
   })
 
   test('nothing is written in the canvas: no text geometry, no canvas texture, and every word goes through the label layer', () => {

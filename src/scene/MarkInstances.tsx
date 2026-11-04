@@ -17,14 +17,21 @@ import { useTrack } from './track'
  * the pass. Only the marks a sweep reaches are rewritten, and only while it sweeps.
  */
 
+/**
+ * What the marks are made of: `marks`, the code's coloured marks with their forms drawn in the shader; or `steel`, the pass's own
+ * brushed stainless tinted by a steel role, with a pressed lip and no form (materials.ts).
+ */
+export type MarkMaterial = 'marks' | 'steel'
+
 export interface MarkInstancesProps {
   boxes: readonly MarkBox[]
   /** A pick on a mark: its id. The DOM list takes focus from here (selection.ts). */
   onPick?: (id: string) => void
   name?: string
+  material?: MarkMaterial
 }
 
-export function MarkInstances({ boxes, onPick, name = 'marks' }: MarkInstancesProps) {
+export function MarkInstances({ boxes, onPick, name = 'marks', material = 'marks' }: MarkInstancesProps) {
   const kit = useKit()
   const track = useTrack()
   const capacity = capacityFor(boxes.length)
@@ -112,5 +119,5 @@ export function MarkInstances({ boxes, onPick, name = 'marks' }: MarkInstancesPr
       }
     : undefined
 
-  return <instancedMesh ref={mesh} name={name} args={[geometry, kit.materials.marks, capacity]} onClick={pick} />
+  return <instancedMesh ref={mesh} name={name} args={[geometry, material === 'steel' ? kit.materials.steelMarks : kit.materials.marks, capacity]} onClick={pick} />
 }

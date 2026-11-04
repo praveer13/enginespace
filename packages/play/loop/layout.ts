@@ -6,34 +6,41 @@
  * (rule 9, D-047). A role becomes `var(--es-<role>)` in the SVG, so the drawing changes with the design system and carries no
  * literal colour or face. tests/play/loop-layout.test.ts checks that every role used exists.
  *
- * The drawing, in the kitchen's objects (GAMES.md §2.6), built from the world's own surfaces and not a chart's:
+ * The drawing is the kitchen itself, seen from above (GAMES.md §2.6), built from the world's own surfaces and nothing a chart has:
  *   - the printer, at the left, with the waiting tickets curling out of it;
  *   - the rail, a steel bar with a clip for each slot, a paper ticket hung on every taken clip and a red-printed stub on every
  *     empty one; and, when a fire is on the line, the fired rail beneath it, which holds that fire while the expo fills the rail for
  *     the next one;
  *   - the heat lamp's amber, pooled over the pass (the rail, the fired rail and the fire being called) while the night is open, as
- *     light with no edge and nowhere else;
- *   - the expo's lane (CPU), a bed of steel with a slab for each plan and for each read;
- *   - the line (GPU), a bed of deep steel with a lit slab for each fire, with a place for every clip, a plate (solid, with the
- *     ticket's number), an empty place (an open groove, dark) or a binned plate (hollow, struck through); dark stretches between
- *     fires are the bubbles;
- *   - the line's stations, a pilot light at the head of each clip's row: lit where the latest fire cooked a course, dark where its
- *     clip rode empty;
- *   - the lanes' names on masking tape in marker, and every other word and number in the printer's dots.
- * The state of a place, and of a station, is its shape before its colour (WCAG 1.4.1).
+ *     light with no edge and nowhere else: the drawing's only amber;
+ *   - the night's tape, a strip of the printer's paper laid along the lanes, where the printer stamped the clock at each fire in its
+ *     dots, under its red stamp saying the ticks are synthetic;
+ *   - the expo's lane (CPU), a steel shelf with a rolled lip, where the expo's boards lie: a plan for each fire and a read;
+ *   - the line (GPU), a steel counter with a recessed well for each clip's station. A ticket on the rail holds a hotel pan in its
+ *     clip's well, its KV block, from the fire that first cooks it to the fire that serves its last course, with its number in
+ *     marker on a strip of masking tape across the pan's lip. Every fire puts one place in every well: a plate on the ticket's pan
+ *     (solid paper), an empty place where the clip rode empty (an open groove, dark) or a binned plate (hollow, struck through in
+ *     the ribbon's red). A fire's length along the line is its cook time; a dark stretch between fires, the bubble, shades the whole
+ *     line, its length printed on it;
+ *   - the line's stations, a mark at the head of each well in the printer tape's shapes: solid where the latest fire cooked a course,
+ *     an open ring where its clip rode empty.
+ * Masking tape and marker name the lanes and the pans, and every number is in the printer's dots. A state is a shape before it is a
+ * colour (WCAG 1.4.1), and no code colour marks a state: the code colours mark only what a board is.
  *
  * Time runs along the lanes: left to right in landscape, and top to bottom in portrait, where a phone's height shows history
  * (GAMES.md §2.3, "Portrait framing"). The lanes show a window of the night's last ticks, and it moves by whole fires, so under
- * reduced motion history steps and does not scroll. Fires older than the last 48 [estimated] lose their places and stay as slabs, and
- * a hard cap of 2,000 marks backs that up (A§6.4): a window too long for it loses its numbers, then its places, then its oldest fires.
+ * reduced motion history steps and does not scroll. Fires older than the last 48 [estimated] lose their places and keep their pans,
+ * and a hard cap of 2,000 marks backs that up (A§6.4): a window too long for it loses its numbers, then its places, then its oldest
+ * fires.
  *
- * Every number the drawing writes is a ticket's number or an axis label. The counters are DOM, in the printer tape and the mirror.
+ * Every number the drawing writes is a ticket's number, a stamp of the clock or a dark stretch's length. The counters are DOM, in
+ * the printer tape and the mirror.
  */
 import type { Us } from '@es/sim/core'
 import type { Span } from '@es/sim/steploop'
 import { countMarks, num } from './svg'
 import type { SvgNode } from './svg'
-import type { ClipView, FireView, LoopView, PlaceView } from './types'
+import type { ClipView, FireView, LoopView } from './types'
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Marks                                                                                                              */
@@ -51,14 +58,11 @@ export type Paint =
   | 'paper-ink-2'
   | 'paper-rule'
   | 'lamp'
-  | 'lamp-ring'
   | 'text-1'
-  | 'text-2'
   | 'lane-cpu'
   | 'lane-gpu'
   | 'lane-sync'
   | 'cat-blue-edge'
-  | 'cat-green-edge'
   | 'cat-yellow-edge'
   | 'tape'
   | 'tape-ink'
@@ -74,14 +78,11 @@ export const PAINTS: readonly Paint[] = [
   'paper-ink-2',
   'paper-rule',
   'lamp',
-  'lamp-ring',
   'text-1',
-  'text-2',
   'lane-cpu',
   'lane-gpu',
   'lane-sync',
   'cat-blue-edge',
-  'cat-green-edge',
   'cat-yellow-edge',
   'tape',
   'tape-ink',
@@ -235,6 +236,11 @@ interface Geometry {
   readonly textSize: number
   /** The pass: the counter under the rail, where the lamps' amber pools. */
   readonly pass: { readonly y: number; readonly h: number }
+  /**
+   * The night's tape: across the lanes from `a` to `b`, beginning `head` (along time, in the frame's units) where its red stamp is
+   * printed, and running to the lanes' end.
+   */
+  readonly clock: { readonly a: number; readonly b: number; readonly head: number }
 }
 
 const LANDSCAPE: Geometry = {
@@ -255,6 +261,7 @@ const LANDSCAPE: Geometry = {
   numberSize: 12,
   textSize: 12,
   pass: { y: 92, h: 46 },
+  clock: { a: 142, b: 156, head: 4 },
 }
 
 const PORTRAIT: Geometry = {
@@ -275,12 +282,13 @@ const PORTRAIT: Geometry = {
   numberSize: 11,
   textSize: 11,
   pass: { y: 116, h: 56 },
+  clock: { a: 4, b: 42, head: 176 },
 }
 
 const geometryOf = (orientation: Orientation): Geometry => (orientation === 'portrait' ? PORTRAIT : LANDSCAPE)
 
-/** Ticks between marks on the axis: 5 for the default windows, and wider for a longer one, so the axis never has more than 16 marks. */
-const axisStep = (windowTicks: number): number => [5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000].find((step) => windowTicks / step <= 16) ?? 10000
+/** How wide the printer's dots set a number on the night's tape, in the frame's units [estimated]: Doto's figures at its size. */
+const stampWidth = (text: string, size: number): number => text.length * size * 0.62
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Drawing                                                                                                            */
@@ -365,38 +373,125 @@ function tapeAt(p: Painter, x: number, y: number, w: number, h: number, words: s
   p.text(x + w / 2, y + h / 2 + 0.5, words, { size, fill: 'tape-ink', face: 'label', middle: true })
 }
 
-/** A bed of steel: the lane's channel, lit along its upper edge by the tubes and shaded along its lower one. */
-function bedAt(p: Painter, r: { x: number; y: number; w: number; h: number }, fill: Paint, opacity: number) {
-  p.rect(r.x, r.y, r.w, r.h, { fill, opacity })
-  p.line(r.x, r.y + 0.5, r.x + r.w, r.y + 0.5, { stroke: 'paper', width: 1, strokeOpacity: 0.7 })
-  p.line(r.x, r.y + r.h - 0.5, r.x + r.w, r.y + r.h - 0.5, { stroke: 'surface-3', width: 1 })
+/** A rectangle in the frame's units. */
+interface Box {
+  readonly x: number
+  readonly y: number
+  readonly w: number
+  readonly h: number
 }
 
-/** A station's pilot light: lit, a solid lens in the line's colour with its glow; dark, an open ring of deep steel. */
-function stationAt(p: Painter, cx: number, cy: number, lit: boolean) {
-  if (lit) {
-    p.circle(cx, cy, 8, { fill: 'lane-gpu', opacity: 0.32 })
-    p.circle(cx, cy, 5, { fill: 'lane-gpu', stroke: 'cat-green-edge', width: 1.2 })
-    p.circle(cx - 1.5, cy - 1.5, 1.4, { fill: 'paper', opacity: 0.85 })
+/** A box shrunk by `along` at both of its ends along the lanes and by `across` at both of its sides. */
+function inset(p: Painter, r: Box, along: number, across: number): Box {
+  return p.landscape ? { x: r.x + along, y: r.y + across, w: r.w - 2 * along, h: r.h - 2 * across } : { x: r.x + across, y: r.y + along, w: r.w - 2 * across, h: r.h - 2 * along }
+}
+
+/** The shorter side of a box: a platter's ends are round to it. */
+const narrow = (r: Box): number => Math.min(r.w, r.h)
+
+/**
+ * The expo's shelf: brushed steel lit along its back edge by the tubes, with its rolled lip along the front (the bottom in landscape,
+ * the right in portrait), where the expo's boards lie.
+ */
+function shelfAt(p: Painter, r: Box) {
+  const lip = 4
+  p.rect(r.x, r.y, r.w, r.h, { fill: 'surface-1', opacity: 0.62 })
+  if (p.landscape) {
+    p.rect(r.x, r.y + r.h - lip, r.w, lip, { fill: 'surface-2', opacity: 0.95 })
+    p.line(r.x, r.y + 0.5, r.x + r.w, r.y + 0.5, { stroke: 'paper', width: 1, strokeOpacity: 0.85 })
+    p.line(r.x, r.y + r.h - 0.5, r.x + r.w, r.y + r.h - 0.5, { stroke: 'surface-3', width: 1 })
   } else {
-    p.circle(cx, cy, 5, { fill: 'surface-2', stroke: 'surface-3', width: 2 })
+    p.rect(r.x + r.w - lip, r.y, lip, r.h, { fill: 'surface-2', opacity: 0.95 })
+    p.line(r.x + 0.5, r.y, r.x + 0.5, r.y + r.h, { stroke: 'paper', width: 1, strokeOpacity: 0.85 })
+    p.line(r.x + r.w - 0.5, r.y, r.x + r.w - 0.5, r.y + r.h, { stroke: 'surface-3', width: 1 })
   }
 }
 
-function binnedAt(p: Painter, x: number, y: number, w: number, h: number, req: number | null, g: Geometry, detail: Detail) {
-  p.rect(x, y, w, h, { fill: 'none', stroke: 'paper', width: 2, dash: '4 3' })
-  p.line(x + 3, y + 3, x + w - 3, y + h - 3, { stroke: 'paper', width: 2 })
-  p.line(x + w - 3, y + 3, x + 3, y + h - 3, { stroke: 'paper', width: 2 })
-  if (detail === 'full' && req !== null && w >= 26) p.text(x + w / 2, y + h / 2, ticketNo(req), { size: g.numberSize - 1, fill: 'paper', face: 'numeric', middle: true })
+/**
+ * A station's well in the line's counter: a recessed channel of deep steel, its far edge in shadow and its near lip catching the
+ * tubes, so it reads as a cut in the counter and not a bar laid on it.
+ */
+function wellAt(p: Painter, r: Box) {
+  p.rect(r.x, r.y, r.w, r.h, { fill: 'surface-3', opacity: 0.36, rx: 5 })
+  if (p.landscape) {
+    p.line(r.x + 4, r.y + 1, r.x + r.w - 4, r.y + 1, { stroke: 'paper-ink', width: 2, strokeOpacity: 0.4 })
+    p.line(r.x + 4, r.y + r.h - 0.5, r.x + r.w - 4, r.y + r.h - 0.5, { stroke: 'paper', width: 1, strokeOpacity: 0.85 })
+  } else {
+    p.line(r.x + 1, r.y + 4, r.x + 1, r.y + r.h - 4, { stroke: 'paper-ink', width: 2, strokeOpacity: 0.4 })
+    p.line(r.x + r.w - 0.5, r.y + 4, r.x + r.w - 0.5, r.y + r.h - 4, { stroke: 'paper', width: 1, strokeOpacity: 0.85 })
+  }
 }
 
-function placeAt(p: Painter, x: number, y: number, w: number, h: number, place: PlaceView, g: Geometry, detail: Detail) {
-  if (place.state === 'empty') p.rect(x, y, w, h, { fill: 'surface-3', rx: 2 })
-  else if (place.state === 'binned') binnedAt(p, x, y, w, h, place.req, g, detail)
-  else {
-    p.rect(x, y, w, h, { fill: 'paper', stroke: 'cat-green-edge', width: 1.5, rx: 2 })
-    if (detail === 'full' && place.req !== null && w >= 22 && h >= 14) p.text(x + w / 2, y + h / 2, ticketNo(place.req), { size: g.numberSize, fill: 'paper-ink', face: 'numeric', middle: true })
+/** A hotel pan in a well: its drawn steel rim with the edge's line, and its floor a shade lower. */
+function panAt(p: Painter, r: Box) {
+  p.rect(r.x, r.y, r.w, r.h, { fill: 'surface-1', stroke: 'edge', width: 1, rx: 3.5 })
+  const floor = inset(p, r, 2.5, 2.5)
+  if (floor.w > 0 && floor.h > 0) p.rect(floor.x, floor.y, floor.w, floor.h, { fill: 'surface-2', rx: 2 })
+}
+
+/**
+ * The strip of masking tape across a pan's lip at its start, with the ticket's number in marker: the kitchen's own label on the
+ * kitchen's own container. In landscape it sits across the pan's near lip; in portrait across its top end.
+ */
+function panTapeAt(p: Painter, g: Geometry, r: Box, req: number) {
+  const size = g.numberSize - 1.5
+  const w = 21
+  const h = 12.5
+  const x = p.landscape ? r.x + 3 : r.x + (r.w - w) / 2
+  const y = p.landscape ? r.y + r.h - h + 2 : r.y - 2
+  p.rect(x, y, w, h, { fill: 'tape' })
+  p.text(x + w / 2, y + h / 2 + 0.5, ticketNo(req), { size, fill: 'tape-ink', face: 'label', middle: true })
+}
+
+/** A plate on its ticket's pan: a white platter as long as the fire cooked, with the ring of its well inside the rim. */
+function plateAt(p: Painter, r: Box, detail: Detail) {
+  p.rect(r.x, r.y, r.w, r.h, { fill: 'paper', stroke: 'paper-rule', width: 0.75, rx: narrow(r) / 2 })
+  const ring = inset(p, r, 2.5, 2.5)
+  if (detail === 'full' && narrow(ring) >= 4) p.rect(ring.x, ring.y, ring.w, ring.h, { fill: 'none', stroke: 'paper-rule', width: 0.6, rx: narrow(ring) / 2 })
+}
+
+/** A binned plate: the platter's outline only, broken, and struck through in the ribbon's red, the colour of what must not be missed. */
+function binnedAt(p: Painter, r: Box) {
+  p.rect(r.x, r.y, r.w, r.h, { fill: 'none', stroke: 'paper-ink-2', width: 1.5, dash: '3 2', rx: narrow(r) / 2 })
+  p.line(r.x + 3, r.y + r.h - 3, r.x + r.w - 3, r.y + 3, { stroke: 'paper-ink-2', width: 1.5 })
+}
+
+/** An empty place: a clip that rode empty, its course paid for and nobody's. An open groove in the bare well, darker than the well. */
+function grooveAt(p: Painter, r: Box) {
+  p.rect(r.x, r.y, r.w, r.h, { fill: 'surface-3', opacity: 0.85, stroke: 'surface-2', width: 1, rx: Math.min(2.5, narrow(r) / 2) })
+}
+
+/**
+ * A station's mark at the head of its well, in the printer tape's own shapes: struck solid where the latest fire cooked a course, an
+ * open ring where its clip rode empty. The drawing has no lamp off the pass, so the state is a shape and never a colour.
+ */
+function stationAt(p: Painter, cx: number, cy: number, lit: boolean) {
+  if (lit) p.circle(cx, cy, 4.5, { fill: 'text-1' })
+  else p.circle(cx, cy, 4, { fill: 'none', stroke: 'text-1', width: 1.5 })
+}
+
+/** A ticket's run in one clip: the fires, oldest first, from its first in the window to its last. */
+interface Run {
+  readonly req: number
+  readonly from: FireView
+  readonly to: FireView
+}
+
+/** The runs in clip `slot` over the window's fires: a ticket's pan stays in its clip's well from its first course to its last. */
+function runsIn(fires: readonly FireView[], slot: number): Run[] {
+  const runs: Run[] = []
+  let open: { req: number; from: FireView; to: FireView } | null = null
+  for (const fire of fires) {
+    const req = fire.places[slot]?.req ?? null
+    if (open !== null && open.req === req) {
+      open.to = fire
+      continue
+    }
+    if (open !== null) runs.push(open)
+    open = req === null ? null : { req, from: fire, to: fire }
   }
+  if (open !== null) runs.push(open)
+  return runs
 }
 
 /** The window with only its last `limit` fires and their expo spans: the last resort when even slabs would pass the cap. */
@@ -448,106 +543,111 @@ function build(view: LoopView, orientation: Orientation, windowTicks: number, de
     else tapeAt(p, 2, g.firedY + 14, 54, 13, 'FIRED', 7.5)
   }
 
-  // The clock along the lanes: a tick every 5 ticks and a label every 10 for the default windows, in the printer's dots.
-  p.layer('axis')
-  const every = axisStep(windowTicks)
-  for (let at = Math.ceil(w.startUs / every) * every; at <= w.startUs + windowTicks; at += every) {
-    const along = at - w.startUs
-    const major = (at / every) % 2 === 0
+  // The night's tape along the lanes: the printer's paper, perforated along its edge, with its red stamp at the head, and the clock
+  // stamped in the printer's dots where the window begins and where each fire began, wherever the last stamp leaves room.
+  p.layer('clock')
+  const tape = { ...p.lane(0, windowTicks, g.clock.a, g.clock.b) }
+  const strip: Box = p.landscape ? { x: g.clock.head, y: tape.y, w: tape.x + tape.w - g.clock.head, h: tape.h } : { x: tape.x, y: g.clock.head, w: tape.w, h: tape.y + tape.h - g.clock.head }
+  p.rect(strip.x, strip.y, strip.w, strip.h, { fill: 'paper', stroke: 'paper-rule', width: 0.75 })
+  const stampSize = g.numberSize - 3
+  if (p.landscape) {
+    p.line(strip.x + 2, strip.y + 2, strip.x + strip.w - 2, strip.y + 2, { stroke: 'paper-rule', width: 1, dash: '1 3' })
+    p.text(strip.x + 4, strip.y + strip.h / 2 + 1, 'TICKS · SYNTHETIC', { size: stampSize - 1.5, anchor: 'start', fill: 'paper-ink-2', face: 'ticket', middle: true })
+  } else {
+    p.line(strip.x + 2, strip.y + 2, strip.x + 2, strip.y + strip.h - 2, { stroke: 'paper-rule', width: 1, dash: '1 3' })
+    p.text(strip.x + strip.w / 2 + 1, strip.y + 10, 'TICKS', { size: 8, fill: 'paper-ink-2', face: 'ticket', middle: true })
+    p.text(strip.x + strip.w / 2 + 1, strip.y + 21, 'SYNTHETIC', { size: 6.2, fill: 'paper-ink-2', face: 'ticket', middle: true })
+  }
+  const stamps = [w.startUs, ...w.fires.map((fire) => fire.startUs).filter((at) => at >= w.startUs)]
+  let free = Number.NEGATIVE_INFINITY
+  for (const at of stamps) {
+    const text = String(at)
+    const along = g.origin + t(at) * p.px
+    if (along < free) continue
     if (p.landscape) {
-      const x = g.origin + along * p.px
-      p.line(x, 150, x, 156, { stroke: 'edge', width: major ? 1.5 : 1 })
-      if (major) p.text(x, 146, String(at), { size: g.numberSize - 2, fill: 'text-2', face: 'numeric' })
+      p.text(along + 1.5, strip.y + strip.h / 2 + 1, text, { size: stampSize, anchor: 'start', fill: 'paper-ink', face: 'numeric', middle: true })
+      free = along + 1.5 + stampWidth(text, stampSize) + 4
     } else {
-      const y = g.origin + along * p.px
-      p.line(36, y, 42, y, { stroke: 'edge', width: major ? 1.5 : 1 })
-      if (major) p.text(32, y, String(at), { size: g.numberSize - 1, anchor: 'end', fill: 'text-2', face: 'numeric', middle: true })
+      p.text(strip.x + 6, along + 4, text, { size: stampSize, anchor: 'start', fill: 'paper-ink', face: 'numeric', middle: true })
+      free = along + stampSize + 3
     }
   }
 
-  // The expo's lane: a bed of steel, with a slab for each plan and each read.
+  // The expo's lane: its shelf, and a board on it for each plan and each read.
   p.layer('cpu')
-  bedAt(p, p.lane(0, windowTicks, g.cpu.a, g.cpu.b), 'surface-2', 0.6)
+  shelfAt(p, p.lane(0, windowTicks, g.cpu.a, g.cpu.b))
   for (const span of w.cpu) {
     if (span.kind !== 'schedule' && span.kind !== 'sync') continue
-    const r = p.lane(t(span.startUs), t(span.endUs), g.cpu.a + g.cpu.pad, g.cpu.b - g.cpu.pad)
+    const r = p.lane(t(span.startUs), t(span.endUs), g.cpu.a + g.cpu.pad, g.cpu.b - g.cpu.pad - 4)
     if (r.w <= 0 || r.h <= 0) continue
-    p.rect(r.x, r.y, r.w, r.h, span.kind === 'schedule' ? { fill: 'lane-cpu', stroke: 'cat-blue-edge', width: 1 } : { fill: 'lane-sync', stroke: 'cat-yellow-edge', width: 1 })
+    p.rect(r.x, r.y, r.w, r.h, span.kind === 'schedule' ? { fill: 'lane-cpu', stroke: 'cat-blue-edge', width: 1, rx: 1.5 } : { fill: 'lane-sync', stroke: 'cat-yellow-edge', width: 1, rx: 1.5 })
   }
 
-  // The line: a bed of deep steel, dark between fires, a lit slab for each fire with a place for every clip, and the lamp's
-  // filament round the fire on the line.
+  // The line: its counter, a well for each clip's station, a pan in a well for each ticket's stay, a place in every well for every
+  // fire, and the dark stretches shading the whole line where it waited.
   p.layer('gpu')
-  const gpuBed = p.lane(0, windowTicks, g.gpu.a, g.gpu.b)
-  p.rect(gpuBed.x, gpuBed.y, gpuBed.w, gpuBed.h, { fill: 'surface-3', opacity: 0.84 })
-  if (p.landscape) p.line(gpuBed.x, gpuBed.y + 0.5, gpuBed.x + gpuBed.w, gpuBed.y + 0.5, { stroke: 'paper', width: 1, strokeOpacity: 0.55 })
-  else p.line(gpuBed.x + 0.5, gpuBed.y, gpuBed.x + 0.5, gpuBed.y + gpuBed.h, { stroke: 'paper', width: 1, strokeOpacity: 0.55 })
-  // A seam between each station's row, as the line's counter is welded from one channel per station.
-  for (let j = 1; j < view.slots; j++) {
-    const at = g.gpu.first + j * g.gpu.pitch - (g.gpu.pitch - g.gpu.row) / 2
-    const seam = p.lane(0, windowTicks, at, at)
-    if (p.landscape) p.line(seam.x, at, seam.x + seam.w, at, { stroke: 'surface-2', width: 1, strokeOpacity: 0.45 })
-    else p.line(at, seam.y, at, seam.y + seam.h, { stroke: 'surface-2', width: 1, strokeOpacity: 0.45 })
+  const counter = p.lane(0, windowTicks, g.gpu.a, g.gpu.b)
+  p.rect(counter.x, counter.y, counter.w, counter.h, { fill: 'surface-1', opacity: 0.62 })
+  if (p.landscape) {
+    p.line(counter.x, counter.y + 0.5, counter.x + counter.w, counter.y + 0.5, { stroke: 'paper', width: 1, strokeOpacity: 0.85 })
+    p.line(counter.x, counter.y + counter.h - 0.5, counter.x + counter.w, counter.y + counter.h - 0.5, { stroke: 'surface-3', width: 1 })
+  } else {
+    p.line(counter.x + 0.5, counter.y, counter.x + 0.5, counter.y + counter.h, { stroke: 'paper', width: 1, strokeOpacity: 0.85 })
+    p.line(counter.x + counter.w - 0.5, counter.y, counter.x + counter.w - 0.5, counter.y + counter.h, { stroke: 'surface-3', width: 1 })
   }
-  const rowsEnd = g.gpu.first + (view.slots - 1) * g.gpu.pitch + g.gpu.row
+  const rowOf = (slot: number) => g.gpu.first + slot * g.gpu.pitch
+  for (let slot = 0; slot < view.slots; slot++) wellAt(p, p.lane(0, windowTicks, rowOf(slot) - 1, rowOf(slot) + g.gpu.row + 1))
   const detailFrom = w.fires.length - DETAIL_FIRES
-  w.fires.forEach((fire, i) => {
-    const t0 = t(fire.startUs)
-    const t1 = t(fire.endUs)
-    if (t1 <= t0) return
-    const slab = p.lane(t0, t1, g.gpu.first - 3, rowsEnd + 3)
-    p.rect(slab.x, slab.y, slab.w, slab.h, { fill: 'lane-gpu', stroke: 'cat-green-edge', width: 1 })
-    if (detail !== 'slabs' && i >= detailFrom) {
-      fire.places.forEach((place, j) => {
-        const cell = p.lane(t0, t1, g.gpu.first + j * g.gpu.pitch, g.gpu.first + j * g.gpu.pitch + g.gpu.row)
-        placeAt(p, cell.x + 2, cell.y, cell.w - 4, cell.h, place, g, detail)
-      })
+  const labels: { box: Box; req: number }[] = []
+  for (let slot = 0; slot < view.slots; slot++) {
+    for (const run of runsIn(w.fires, slot)) {
+      const pan = inset(p, p.lane(t(run.from.startUs), t(run.to.endUs), rowOf(slot) + 1, rowOf(slot) + g.gpu.row - 1), 0.75, 0)
+      if (pan.w <= 0 || pan.h <= 0) continue
+      panAt(p, pan)
+      if (detail === 'full' && (p.landscape ? pan.w : pan.h) >= 22) labels.push({ box: pan, req: run.req })
     }
-    if (fire.onLine) p.rect(slab.x - 1.5, slab.y - 1.5, slab.w + 3, slab.h + 3, { fill: 'none', stroke: 'lamp-ring', width: 2.5, rx: 2 })
-    // The dark stretch before this fire is labelled with its length when it is wide enough to hold the label.
+  }
+  if (detail !== 'slabs') {
+    w.fires.forEach((fire, i) => {
+      if (i < detailFrom) return
+      const t0 = t(fire.startUs)
+      const t1 = t(fire.endUs)
+      if (t1 <= t0) return
+      fire.places.forEach((place, slot) => {
+        const cell = inset(p, p.lane(t0, t1, rowOf(slot), rowOf(slot) + g.gpu.row), 2, place.state === 'empty' ? 4 : 5)
+        if (cell.w <= 0 || cell.h <= 0) return
+        if (place.state === 'plate') plateAt(p, cell, detail)
+        else if (place.state === 'binned') binnedAt(p, cell)
+        else grooveAt(p, cell)
+      })
+    })
+  }
+  for (const label of labels) panTapeAt(p, g, label.box, label.req)
+  w.fires.forEach((fire, i) => {
     const before = w.fires[i - 1]
-    if (before !== undefined && fire.bubbleUs > 0 && detail === 'full') {
-      const mid = p.lane(t(before.endUs), t0, g.gpu.a, g.gpu.b)
-      if (mid.w * mid.h > 0 && (p.landscape ? mid.w : mid.h) >= 14) {
-        p.text(mid.x + mid.w / 2, mid.y + mid.h / 2, String(fire.bubbleUs), { size: g.numberSize - 1, fill: 'paper', face: 'numeric', middle: true })
-      }
+    if (before === undefined || fire.startUs <= before.endUs) return
+    const dark = p.lane(t(before.endUs), t(fire.startUs), g.gpu.a + 1, g.gpu.b - 1)
+    if (dark.w <= 0 || dark.h <= 0) return
+    p.rect(dark.x, dark.y, dark.w, dark.h, { fill: 'surface-3', opacity: 0.55 })
+    if (detail === 'full' && fire.bubbleUs > 0 && (p.landscape ? dark.w : dark.h) >= 14) {
+      p.text(dark.x + dark.w / 2, dark.y + dark.h / 2, String(fire.bubbleUs), { size: g.numberSize, fill: 'paper', face: 'numeric', middle: true })
     }
   })
 
-  // The line's stations: a pilot light at the head of each clip's row, lit where the latest fire cooked a course.
+  // The line's stations: a mark at the head of each well, solid where the latest fire cooked a course.
   p.layer('stations')
   stationsOf(view).forEach((lit, j) => {
-    const across = g.gpu.first + j * g.gpu.pitch + g.gpu.row / 2
+    const across = rowOf(j) + g.gpu.row / 2
     if (p.landscape) stationAt(p, g.origin - 8, across, lit)
     else stationAt(p, across, g.origin - 10, lit)
   })
 
-  // The lanes' names on masking tape, and what the marks are, printed in the printer's dots.
+  // The lanes' names, on masking tape in marker.
   p.layer('labels')
-  const small = g.textSize - 3
   if (p.landscape) {
-    // Two lines that end short of the axis's first number, as the portrait prints them, so the caption never runs into the "0".
-    p.text(g.origin - 8, 147, 'TICKS', { size: small, anchor: 'end', fill: 'text-2', face: 'ticket' })
-    p.text(g.origin - 8, 157, 'SYNTHETIC', { size: small - 1, anchor: 'end', fill: 'text-2', face: 'ticket' })
-    tapeAt(p, 2, g.cpu.a + 2, 82, 15, 'THE EXPO · CPU', 8)
-    p.rect(4, g.cpu.a + 25, 9, 6, { fill: 'lane-cpu', stroke: 'cat-blue-edge', width: 1 })
-    p.text(16, g.cpu.a + 28, 'PLAN', { size: small, anchor: 'start', fill: 'text-1', face: 'ticket', middle: true })
-    p.rect(46, g.cpu.a + 25, 9, 6, { fill: 'lane-sync', stroke: 'cat-yellow-edge', width: 1 })
-    p.text(58, g.cpu.a + 28, 'READ', { size: small, anchor: 'start', fill: 'text-1', face: 'ticket', middle: true })
-    tapeAt(p, 2, g.gpu.a + 4, 76, 15, 'THE LINE · GPU', 8)
-    const legend = [
-      { place: { state: 'plate', req: null }, word: 'PLATE' },
-      { place: { state: 'empty', req: null }, word: 'EMPTY' },
-      { place: { state: 'binned', req: null }, word: 'BINNED' },
-    ] as const
-    legend.forEach(({ place, word }, i) => {
-      const y = g.gpu.a + 30 + i * 21
-      placeAt(p, 4, y, 18, 12, place, g, 'cells')
-      p.text(26, y + 6, word, { size: small, anchor: 'start', fill: 'text-1', face: 'ticket', middle: true })
-    })
+    tapeAt(p, 2, g.cpu.a + 2, 86, 16, 'THE EXPO · CPU', 9)
+    tapeAt(p, 2, g.gpu.a + 4, 80, 16, 'THE LINE · GPU', 9)
   } else {
-    p.text(42, g.origin - 26, 'TICKS', { size: 7, anchor: 'end', fill: 'text-2', face: 'ticket' })
-    p.text(42, g.origin - 16, 'SYNTHETIC', { size: 6.5, anchor: 'end', fill: 'text-2', face: 'ticket' })
     tapeAt(p, g.cpu.a, g.origin - 36, g.cpu.b - g.cpu.a, 13, 'EXPO · CPU', 7)
     tapeAt(p, g.gpu.a + 40, g.origin - 36, g.gpu.b - g.gpu.a - 80, 13, 'THE LINE · GPU', 8)
   }

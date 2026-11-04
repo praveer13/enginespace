@@ -41,6 +41,8 @@ export const TAPE = {
   notYet: 'not yet',
   /** The next fire's line before a ticket is on the rail: there is nothing to fire. */
   nothingHung: 'hang a ticket',
+  /** The next fire's line once the level is over: the bell rings no more on this rail, so there is no fire to preview. */
+  levelOver: 'none · level over: see the debrief',
   /** The next fire's stations are also the control that fills them: it hangs the next ticket in line on the first free clip. */
   fill: 'Hang the next ticket on the rail',
   /** After the count of clips taken, in the control's name. */

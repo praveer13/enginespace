@@ -8,9 +8,13 @@
  *              per vertex (the fixtures' bright and deep steel), so all the steel in a scene is one draw.
  *   paper      bond paper: matte, with the tooth and fibres of the sheet in its normal map.
  *   tape       masking tape: the crepe's ridges across the strip.
- *   lamp       the heat lamp's housing glow, emissive in the lamp role: what bloom catches at T2 and up.
+ *   lamp       the heat lamp's housing glow, emissive in the lamp role: what bloom catches at T2 and up. A lit station's
+ *              element on the line burns in the same glow, because heat is the world's one active light.
  *   marks      the instanced marks of SpanInstances and BlockGrid, coloured per instance from a role, with each form drawn
  *              in the shader: solid, hollow (a rim, see-through), groove (a dark recess inside a rim), marked (hatched).
+ *   steelMarks instanced marks made of the pass's own steel: the brushed, anisotropic stainless, tinted per instance from a
+ *              steel role, with a pressed lip round the top face, so a slab on the line is a sheet of the line's steel and
+ *              catches the lamps and the stations as the counter does.
  *
  * Physical parameters (roughness, metalness, anisotropy) are scene-tokens.ts's MATERIAL_PARAMS, [estimated].
  */
@@ -53,6 +57,7 @@ export interface KitMaterials {
   readonly tape: MeshStandardMaterial
   readonly lamp: MeshStandardMaterial
   readonly marks: MeshStandardMaterial
+  readonly steelMarks: MeshPhysicalMaterial
   /** Re-reads the colours from the roles (a change of contrast preference). */
   update(tokens: SceneTokens): void
   dispose(): void
@@ -93,6 +98,59 @@ function texture(bytes: Uint8Array, anisotropy: number, repeat: [number, number]
   map.repeat.set(repeat[0], repeat[1])
   map.needsUpdate = true
   return map
+}
+
+/** The pressed lip round a steel mark's top face, in world units, and how much darker the sheet inside it is [estimated]. */
+export const STEEL_LIP = { width: 0.035, floor: 0.78 } as const
+
+/**
+ * A steel mark's top face: a lip pressed round its edge, the floor inside it a shade lower, as a sheet pan's rim catches the light
+ * its floor does not. Its sides stay the steel's own.
+ */
+function patchSteelMarks(material: MeshPhysicalMaterial) {
+  material.customProgramCacheKey = () => 'es-steel-marks-v1'
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.uLip = { value: STEEL_LIP.width }
+    shader.uniforms.uFloor = { value: STEEL_LIP.floor }
+    shader.vertexShader = shader.vertexShader
+      .replace(
+        '#include <common>',
+        `#include <common>
+varying vec3 vFaceNormal;
+varying vec2 vFaceUv;
+varying vec3 vBoxScale;`,
+      )
+      .replace(
+        '#include <begin_vertex>',
+        `#include <begin_vertex>
+vFaceNormal = normal;
+vFaceUv = uv;
+#ifdef USE_INSTANCING
+vBoxScale = vec3(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz), length(instanceMatrix[2].xyz));
+#else
+vBoxScale = vec3(1.0);
+#endif`,
+      )
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        '#include <common>',
+        `#include <common>
+uniform float uLip;
+uniform float uFloor;
+varying vec3 vFaceNormal;
+varying vec2 vFaceUv;
+varying vec3 vBoxScale;`,
+      )
+      .replace(
+        '#include <color_fragment>',
+        `#include <color_fragment>
+if (vFaceNormal.y > 0.5) {
+  vec2 edge = min(vFaceUv, 1.0 - vFaceUv) * vBoxScale.xz;
+  float lip = min(uLip, 0.3 * min(vBoxScale.x, vBoxScale.z));
+  if (min(edge.x, edge.y) > lip) diffuseColor.rgb *= uFloor;
+}`,
+      )
+  }
 }
 
 /** The mark shader's forms (marks.ts's MARK_FORMS): 0 solid, 1 hollow, 2 groove, 3 marked. */
@@ -204,6 +262,22 @@ export function createMaterials(tokens: SceneTokens, tier: Tier, maxAnisotropy: 
   })
   const marks = new MeshStandardMaterial({ name: 'marks', color: UNTINTED(), roughness: 0.62, metalness: 0, side: DoubleSide })
   patchMarks(marks)
+  // The same brushed stainless as the fixtures, its tint per instance from a steel role. A unit box's faces take the grain's tile
+  // once, which on a slab as wide as the rail is about the counter's own tile (STEEL_TILE).
+  const steelMarks = new MeshPhysicalMaterial({
+    name: 'steel-marks',
+    color: UNTINTED(),
+    metalness: steelParams.metalness,
+    roughness: 1,
+    roughnessMap: steelRoughness,
+    normalMap: steelNormal,
+    normalScale: new Vector2(0.9, 0.9),
+    anisotropy: steelParams.anisotropy,
+    anisotropyRotation: steelParams.anisotropyRotation + Math.PI / 2,
+    clearcoat: tier >= 2 ? steelParams.clearcoat : 0,
+    clearcoatRoughness: steelParams.clearcoatRoughness,
+  })
+  patchSteelMarks(steelMarks)
 
   const update = (next: SceneTokens) => {
     paper.color.set(next.materials.paper.color)
@@ -219,9 +293,10 @@ export function createMaterials(tokens: SceneTokens, tier: Tier, maxAnisotropy: 
     tape,
     lamp,
     marks,
+    steelMarks,
     update,
     dispose() {
-      for (const material of [stainless, paper, tape, lamp, marks]) material.dispose()
+      for (const material of [stainless, paper, tape, lamp, marks, steelMarks]) material.dispose()
       for (const map of textures) map.dispose()
     },
   }

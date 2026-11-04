@@ -8,14 +8,14 @@ import { CameraRig } from '@/scene/CameraRig'
 import { Fixtures } from '@/scene/Fixtures'
 import { useHold, useKit } from '@/scene/kit'
 import type { LabelSpec } from '@/scene/labels'
-import { Fluorescent, HeatLamps, PilotLights } from '@/scene/Lights'
+import { Fluorescent, HeatElements, HeatLamps } from '@/scene/Lights'
 import { roleColor } from '@/scene/materials'
 import { SceneCanvas } from '@/scene/SceneCanvas'
 import { SelectionMarker } from '@/scene/SelectionMarker'
 import { SheetInstances, type Sheet } from '@/scene/SheetInstances'
 import { SpanInstances } from '@/scene/SpanInstances'
 import { TimeTicks, TimeTrack } from '@/scene/TimeAxis'
-import { changeOf, sceneLayout, TRACK_ORIGIN, type Anchor, type Change, type LoopSceneLayout, type TicketSheet } from './scene-layout'
+import { changeOf, MAX_GLOWS, sceneLayout, stationGlows, TRACK_ORIGIN, type Anchor, type Change, type LoopSceneLayout, type TicketSheet } from './scene-layout'
 import { LOOP_PRESETS } from './scene-presets'
 import './scene3d.css'
 
@@ -25,15 +25,16 @@ import './scene3d.css'
  * with every mark placed by scene-layout.ts from the session's view, so it draws the night and decides nothing.
  *
  * Motion has one grammar: everything moves on the bell. A fire rung slides the night back down the pass (TimeTrack), extrudes the new
- * fire with its plates out of the present, sends a ticket whose table has asked for the check off its clip, brings the fired rail's
- * tickets down from the rail, and lights or darkens the line's stations: a pilot lens over each clip's row, lit where the fire cooked
- * a course and dark where its clip rode empty, with their glow on the head of the line. Between bells only the printer feeds: a
- * ticket hung moves from the strip to its clip and the strip steps out by one ticket, in the printer's line steps. Under reduced
- * motion every change cuts, and nothing moves without input.
+ * fire's slab of steel with its plates out of the present, sends a ticket whose table has asked for the check off its clip, brings the
+ * fired rail's tickets down from the rail, and lights or darkens the line's stations: a heat element over each clip's row, burning
+ * where the fire cooked a course and cold where its clip rode empty, each burning one throwing its warm light down its stretch of
+ * the line. Between bells only the printer feeds: a ticket hung moves from the strip to its clip and the strip steps out by one
+ * ticket, in the printer's line steps. Under reduced motion every change cuts, and nothing moves without input.
  *
  * Draw calls, whatever the night: the steel (1) and the lamps' shades (1), the lamps' glowing housings (1), the paper (1), the tape
- * (1), the slabs and phases (1), the places (1), the clock's ticks (1), the filament round the fire on the line (1), and the stations'
- * lit and dark lenses (2). The shot under the lamps leaves the shades and housings out, because it looks down through them.
+ * (1), the fires' slabs of steel (1), the expo's phases and the dark stretches (1), the places (1), the clock's ticks (1), the
+ * filament round the fire on the line (1), and the stations' burning and cold elements (2). The shot under the lamps leaves the
+ * shades and housings out, because it looks down through them.
  */
 
 export interface Scene3DProps {
@@ -52,8 +53,11 @@ const FOG = { near: 3, far: 15 }
 const LAMP_POWER = 1.7
 /** The brush's tile on this pass: finer than the kit's default, because the camera stands at the counter [estimated]. */
 const STEEL_GRAIN = 0.9
-/** The stations' glow with every station lit: a point light in the line's colour over the head of the line [estimated]. */
-const STATION_GLOW = { intensity: 2.6, distance: 3.6, decay: 2 }
+/**
+ * A burning station's light, with every station under it lit: a point light in the heat lamp's colour, hung just behind the stations'
+ * bar (scene-layout.ts's GLOW), reaching over the line from the pass's back edge out past the bar [estimated].
+ */
+const STATION_GLOW = { intensity: 4.5, distance: 4, decay: 2 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* What moved                                                                                                         */
@@ -194,41 +198,59 @@ function SheetFrame({ name, offset }: { name: string; offset: Vec3 }) {
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /**
- * The line's stations: their lenses lit where the latest fire cooked a course, and a light in the line's colour over the head of the
- * line that burns as brightly as the share of stations lit, brought up or down on the bell (cut under reduced motion). The light stays
- * in the scene at zero, so a change never recompiles a material.
+ * The line's stations: their heat elements, burning where the latest fire cooked a course, and the warm light the burning stations
+ * throw down the line (`stationGlows`: a light for each station on a laptop, one for the line on a phone), as bright as the share
+ * that burns, brought up or down on the bell (cut under reduced motion). The lights stay in the scene at zero, in places that depend
+ * on the rail and the tier alone, so a fire never recompiles a material and never moves a light.
  */
 function Stations({ stations, change }: { stations: LoopSceneLayout['stations']; change: Change }) {
   const kit = useKit()
-  const light = useMemo(() => new PointLight(roleColor(kit.tokens, 'lane-gpu'), 0, STATION_GLOW.distance, STATION_GLOW.decay), [kit.tokens])
-  useEffect(() => () => light.dispose(), [light])
-  const share = stations.lit.length === 0 ? 0 : stations.lit.filter(Boolean).length / stations.lit.length
-  const goal = STATION_GLOW.intensity * share
+  const glows = useMemo(() => stationGlows(stations.lit, kit.tier >= 2 ? MAX_GLOWS.laptop : MAX_GLOWS.phone), [stations.lit, kit.tier])
+  const count = glows.length
+  const lights = useMemo(
+    () => Array.from({ length: count }, () => new PointLight(roleColor(kit.tokens, 'lamp'), 0, STATION_GLOW.distance, STATION_GLOW.decay)),
+    [kit.tokens, count],
+  )
+  useEffect(
+    () => () => {
+      for (const light of lights) light.dispose()
+    },
+    [lights],
+  )
+  const goals = useMemo(() => glows.map((glow) => STATION_GLOW.intensity * glow.share), [glows])
+  const goalKey = goals.join(',')
   const ms = kit.reducedMotion ? 0 : kit.tokens.motion.bellMs
-  // A new goal on the bell ramps the light to it; anything else (a cut, reduced motion, the first frame) sets it at once.
-  const [ramp, setRamp] = useState<{ goal: number; change: Change; ramping: boolean }>({ goal, change, ramping: false })
-  if (ramp.goal !== goal || ramp.change !== change) {
-    setRamp({ goal, change, ramping: ramp.goal !== goal && change.kind === 'bell' && ms > 0 })
+  // A new goal on the bell ramps the lights to it; anything else (a cut, reduced motion, the first frame) sets them at once.
+  const [ramp, setRamp] = useState<{ key: string; goals: readonly number[]; change: Change; ramping: boolean }>({ key: goalKey, goals, change, ramping: false })
+  if (ramp.key !== goalKey || ramp.change !== change) {
+    setRamp({ key: goalKey, goals, change, ramping: ramp.key !== goalKey && change.kind === 'bell' && ms > 0 })
   }
   useHold(ramp.ramping)
-  const from = useRef<{ at: number; intensity: number } | null>(null)
+  const from = useRef<{ at: number; intensities: readonly number[] } | null>(null)
   useLayoutEffect(() => {
     from.current = null
     if (ramp.ramping) return
-    light.intensity = ramp.goal
+    lights.forEach((light, i) => {
+      light.intensity = ramp.goals[i] ?? 0
+    })
     kit.invalidate()
-  }, [ramp, light, kit])
+  }, [ramp, lights, kit])
   useFrame(() => {
     if (!ramp.ramping) return
-    from.current ??= { at: performance.now(), intensity: light.intensity }
+    from.current ??= { at: performance.now(), intensities: lights.map((light) => light.intensity) }
     const t = Math.min(1, (performance.now() - from.current.at) / ms)
-    light.intensity = mix(from.current.intensity, ramp.goal, kit.ease(t))
+    const started = from.current.intensities
+    lights.forEach((light, i) => {
+      light.intensity = mix(started[i] ?? 0, ramp.goals[i] ?? 0, kit.ease(t))
+    })
     if (t >= 1) setRamp((current) => (current === ramp ? { ...current, ramping: false } : current))
   }, -1)
   return (
     <>
-      <primitive object={light} position={stations.at} />
-      <PilotLights pilots={stations.pilots} role="lane-gpu" name="stations" />
+      {lights.map((light, i) => (
+        <primitive key={glows[i]?.id ?? i} object={light} position={glows[i]?.at ?? [0, 0, 0]} />
+      ))}
+      <HeatElements elements={stations.elements} name="stations" />
     </>
   )
 }
@@ -312,6 +334,7 @@ export default function Scene3D({ view, preset, onHang, printer = true }: Scene3
       <SheetInstances kind="tape" sheets={layout.tapes} name="tape" />
       <group position={TRACK_ORIGIN}>
         <TimeTrack now={layout.window.now} unitsPerTime={layout.unitsPerTime}>
+          <SpanInstances spans={layout.slabs} name="slabs" material="steel" />
           <SpanInstances spans={layout.spans} name="spans" />
           <BlockGrid cells={layout.places} name="places" />
           <TimeTicks window={layout.window} x={axisX} maxTicks={6} />

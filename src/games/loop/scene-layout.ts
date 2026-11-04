@@ -15,13 +15,15 @@
  *   - The printer, at the rail's left end, and the waiting tickets curling out of it in a strip, the next one at the strip's end. When a
  *     ticket is hung its sheet moves from the strip to its clip, and when more wait than the strip shows, the printer feeds one more.
  *   - The expo's lane (the CPU) on the left and the line (the GPU) on the right, both running from the pass into the night. On the line
- *     each fire is a lit slab as wide as the rail, as long as its cook time, with a place for every clip on top: a plate (solid), an
- *     empty place (an open groove) or a binned plate (hollow). Dark stretches between fires are bubbles, drawn as outlines on the dark
- *     bed. On the expo's lane each fire has its plan (writing the call) and its read (reading the plates back); a fire with kernel
- *     launches adds a comb, one tooth per call, which collapses into one short replay slab when the fire hits a captured graph size.
- *   - The stations: a steel bar over the head of the line, just beyond the pass, with a pilot lens for each clip's row. A lens is lit
- *     in the line's colour where the latest fire cooked a course, and dark where its clip rode empty, so a fire rung with two of four
- *     clips hung leaves half the line dark, and a full rail lights it end to end. Their glow washes the head of the line.
+ *     each fire is a slab of the line's own steel, as wide as the rail and as long as its cook time, with a place for every clip on
+ *     top: a plate (solid), an empty place (an open groove) or a binned plate (hollow). Dark stretches between fires are bubbles, drawn
+ *     as outlines on the dark bed. On the expo's lane each fire has its plan (writing the call) and its read (reading the plates back);
+ *     a fire with kernel launches adds a comb, one tooth per call, which collapses into one short replay slab when the fire hits a
+ *     captured graph size.
+ *   - The stations: a steel bar over the head of the line, just beyond the pass, with a heat element for each clip's row. An element
+ *     burns where the latest fire cooked a course and is cold where its clip rode empty, and each burning one throws its warm light
+ *     down its stretch of the line, so a fire rung with two of four clips hung leaves half the line dark, and a full rail lights it
+ *     end to end. Heat is the world's one active light: a lit station burns in the lamp's amber, and no code colour marks a state.
  *
  * Every colour is a token role (src/design/tokens.ts) and every word or number is a DOM label anchored here (D-021, GAMES.md §2.6
  * rule 7). The layout's lengths are scene units [estimated], set by projecting these landmarks into the presets of scene-presets.ts.
@@ -29,7 +31,7 @@
 import type { ColorRoleName } from '@/design/tokens'
 import type { Vec3 } from '@/scene/camera-rig'
 import type { FixturePart } from '@/scene/fixture-geometry'
-import type { LampSpec, PilotSpec } from '@/scene/Lights'
+import type { ElementSpec, LampSpec } from '@/scene/Lights'
 import type { CellDatum, MarkBox, MarkForm, SpanDatum } from '@/scene/marks'
 import type { Sheet } from '@/scene/SheetInstances'
 import { axisTicks, trackZ, type TimeWindow } from '@/scene/time-axis'
@@ -72,11 +74,23 @@ const WAITING = { w: 0.42, h: 0.34, curl: 0.3, gap: 0.008 }
 const LAMP = { y: 2.42, z: 0.45 }
 const GANTRY = { y: 3.05, z: 0.78 }
 /**
- * The stations' bar: over the head of the line, just beyond the pass's back edge, high enough that the night's slabs slide under
- * it and low enough that the rail's tickets never hang in front of it, in either framing [estimated, by projecting both].
+ * The stations' bar: out on the line, a stretch beyond the pass's back edge, so a station that burns lights the line between the pass
+ * and itself; high enough that the night's slabs slide under it, and low and near enough that the rail's tickets never hang in front
+ * of it, in either framing [estimated, by projecting both].
  */
-export const STATION_BAR = { y: 0.3, z: -0.5, h: 0.1, d: 0.06 }
-const PILOT = { w: 0.44, h: 0.07, d: 0.02 }
+export const STATION_BAR = { y: 0.3, z: -1.25, h: 0.1, d: 0.06 }
+/** A station's heat element: a tube on the bar's face, across its clip's row [estimated]. */
+export const ELEMENT = { length: 0.46, diameter: 0.05 }
+/**
+ * Where a burning station throws its light: over its row, just behind the bar and a little above it, so the warmth falls on the line
+ * from the pass's back edge out past the bar, and on the fire coming off the pass [estimated, by looking at both framings].
+ */
+export const GLOW = { y: 0.5, z: -1.5 }
+/**
+ * The most lights the stations throw, by tier: every light costs every lit pixel of the steel, so a laptop (T2 and up) gives a station
+ * a light of its own up to four, and a phone (T1) gives the line one, hung over the stations that burn [estimated].
+ */
+export const MAX_GLOWS = { phone: 1, laptop: 4 } as const
 
 /** The marks' heights: a fire's slab, a place on it, an empty place's groove, a dark stretch's outline, the expo's two phases. */
 const SLAB_H = 0.07
@@ -135,7 +149,9 @@ export interface LoopSceneLayout {
   /** The clock at the present, and the earliest tick drawn. */
   readonly window: TimeWindow
   readonly lanes: Lanes
-  /** Marks on the clock (the track's frame, which sits at the present on the pass). */
+  /** Marks on the clock (the track's frame, which sits at the present on the pass): the fires' slabs, drawn in the line's steel. */
+  readonly slabs: readonly SpanDatum[]
+  /** The rest of the spans on the clock, in the code: the expo's plans, reads and combs, and the line's dark stretches. */
   readonly spans: readonly SpanDatum[]
   readonly places: readonly CellDatum[]
   /** The fire on the line, framed in the lamp's filament: the present's newest course, cooking. Null when nothing is on the line. */
@@ -149,12 +165,19 @@ export interface LoopSceneLayout {
   readonly tapes: readonly Sheet[]
   readonly anchors: readonly Anchor[]
   /**
-   * The line's stations: one for each clip, lit where the latest fire cooked a course (`stationsOf`); their pilot lenses on the bar;
-   * and where their glow comes from.
+   * The line's stations: one for each clip, lit where the latest fire cooked a course (`stationsOf`), and their heat elements on the
+   * bar. The light the burning ones throw down the line is `stationGlows` of them, at the scene's tier.
    */
-  readonly stations: { readonly lit: readonly boolean[]; readonly pilots: readonly PilotSpec[]; readonly at: Vec3 }
+  readonly stations: { readonly lit: readonly boolean[]; readonly elements: readonly ElementSpec[] }
   /** Waiting tickets the strip does not show: still in the printer. */
   readonly inPrinter: number
+}
+
+/** A light the stations throw down the line: where it hangs, and the share of its stations that burn, from 0 (dark) to 1. */
+export interface StationGlow {
+  readonly id: string
+  readonly at: Vec3
+  readonly share: number
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -174,6 +197,23 @@ export const clipX = (slot: number): number => LINE_LEFT + (slot + 0.5) * SLOT_P
 export function printerAt(slots: number): Vec3 {
   const lanes = lanesFor(slots)
   return [lanes.cpuX - CPU_WIDTH / 2 - PRINTER.gap - PRINTER.w / 2, RAIL.y + 0.04, RAIL.z - 0.04]
+}
+
+/**
+ * The lights over the line's stations, `max` at most: one for each station, or, on a rail with more clips than that, one for each
+ * run of neighbouring stations, hung over the run's middle and as bright as the share of the run that burns. Where a light is a
+ * station's own, a fire rung half full leaves half the line dark; where one is shared, its stations' elements still say which burn.
+ * The count and the places depend on the rail and the tier alone, never on what burns, so a fire changes a light's brightness and
+ * nothing else (a change of count would recompile every material in the scene).
+ */
+export function stationGlows(lit: readonly boolean[], max: number): StationGlow[] {
+  const count = Math.max(1, Math.min(lit.length, max))
+  return Array.from({ length: count }, (_, k) => {
+    const from = Math.floor((k * lit.length) / count)
+    const to = Math.floor(((k + 1) * lit.length) / count)
+    const burning = lit.slice(from, to).filter(Boolean).length
+    return { id: `glow-${k}`, at: [(clipX(from) + clipX(to - 1)) / 2, GLOW.y, GLOW.z], share: burning / Math.max(1, to - from) }
+  })
 }
 
 /** A small, fixed lean for a sheet, so a row of paper never looks stamped out: from its number, never from a random draw. */
@@ -249,9 +289,12 @@ export function stripSheets(slots: number, waiting: readonly number[]): TicketSh
 const PLACE_FORMS: Readonly<Record<PlaceView['state'], MarkForm>> = { plate: 'solid', empty: 'groove', binned: 'hollow' }
 /** An empty place is a dark station's well (the deep steel of `surface-3`), so a half-hung fire reads half dark from any shot. */
 const PLACE_ROLE: Readonly<Record<PlaceView['state'], ColorRoleName>> = { plate: 'cat-white', empty: 'surface-3', binned: 'status-bad' }
+/** A fire's slab is a sheet of the line's steel, in its shaded tone, so its white plates and dark wells read on it [estimated]. */
+export const SLAB_ROLE: ColorRoleName = 'surface-2'
 
-/** The marks of the fires in the window: slabs, the dark stretches before them, and their places. */
+/** The marks of the fires in the window: slabs of steel, the dark stretches before them, and their places. */
 function lineMarks(view: LoopView, window: TimeWindow, lanes: Lanes) {
+  const slabs: SpanDatum[] = []
   const spans: SpanDatum[] = []
   const places: CellDatum[] = []
   const unitsPerTime = UNITS_PER_TICK
@@ -260,7 +303,7 @@ function lineMarks(view: LoopView, window: TimeWindow, lanes: Lanes) {
   let onLine: MarkBox | null = null
   shown.forEach((fire, i) => {
     const before: FireView | undefined = view.fires[fire.index - 1]
-    spans.push({ id: `fire-${fire.index}`, lane: lanes.gpuX, start: fire.startUs, end: fire.endUs, width: lanes.gpuWidth, height: SLAB_H, base: 0, role: 'lane-gpu' })
+    slabs.push({ id: `fire-${fire.index}`, lane: lanes.gpuX, start: fire.startUs, end: fire.endUs, width: lanes.gpuWidth, height: SLAB_H, base: 0, role: SLAB_ROLE })
     if (before !== undefined && fire.startUs > before.endUs) {
       spans.push({
         id: `dark-${fire.index}`,
@@ -300,7 +343,7 @@ function lineMarks(view: LoopView, window: TimeWindow, lanes: Lanes) {
       onLine = { id: `on-line-${fire.index}`, center: [lanes.gpuX, (SLAB_H + PLACE_H) / 2, (z0 + z1) / 2], size: [lanes.gpuWidth, SLAB_H + PLACE_H, z1 - z0], role: 'lamp-ring', form: 'solid' }
     }
   })
-  return { spans, places, onLine: onLine as MarkBox | null }
+  return { slabs, spans, places, onLine: onLine as MarkBox | null }
 }
 
 /** The expo's lane: a plan slab and a read slab for each fire, and a fire's launch calls as a comb, or its replay as one slab. */
@@ -495,11 +538,16 @@ export function sceneLayout(view: LoopView, options: SceneOptions = {}): LoopSce
     anchors.push({ id: 'axis-far', kind: 'axis-far', at: [axisX + 0.06, 0.32, trackZ(far, { unitsPerTime: UNITS_PER_TICK })], frame: 'track', text: 'ticks · synthetic', place: 'above', minWidth: ROOMY })
   }
 
-  // The stations: a pilot lens on the bar for each clip's row, their glow from just over the bar, and their count on the pass under the
-  // line's tape (the DOM says how many are lit; the light is never the only carrier).
+  // The stations: a heat element on the bar's face for each clip's row, the light the burning ones throw down the line, and their
+  // count on the pass under the line's tape (the DOM says how many are lit; the light is never the only carrier).
   const lit = stationsOf(view)
-  const pilots: PilotSpec[] = lit.map((on, slot) => ({ id: `station-${slot}`, at: [clipX(slot), STATION_BAR.y, STATION_BAR.z + STATION_BAR.d / 2 + PILOT.d / 2], size: [PILOT.w, PILOT.h, PILOT.d], lit: on }))
-  const stationsAt: Vec3 = [lanes.gpuX, STATION_BAR.y + 0.32, STATION_BAR.z + 0.28]
+  const elements: ElementSpec[] = lit.map((on, slot) => ({
+    id: `station-${slot}`,
+    at: [clipX(slot), STATION_BAR.y, STATION_BAR.z + STATION_BAR.d / 2 + ELEMENT.diameter / 2 + 0.008],
+    length: ELEMENT.length,
+    diameter: ELEMENT.diameter,
+    lit: on,
+  }))
   const litCount = lit.filter(Boolean).length
   anchors.push({ id: 'station', kind: 'station', at: [lanes.gpuX, tapeY, tapeZ + 0.55], text: `${litCount} of ${slots} lit` })
 
@@ -508,6 +556,7 @@ export function sceneLayout(view: LoopView, options: SceneOptions = {}): LoopSce
     unitsPerTime: UNITS_PER_TICK,
     window,
     lanes,
+    slabs: line.slabs,
     spans: [...line.spans, ...expo.spans],
     places: line.places,
     onLine: line.onLine,
@@ -517,7 +566,7 @@ export function sceneLayout(view: LoopView, options: SceneOptions = {}): LoopSce
     tickets,
     tapes,
     anchors,
-    stations: { lit, pilots, at: stationsAt },
+    stations: { lit, elements },
     inPrinter,
   }
 }
