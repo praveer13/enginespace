@@ -780,7 +780,9 @@ describe('the levers do what the lessons say', () => {
       ) inBand++
     }
     expect(inBand / candidates).toBeGreaterThanOrEqual(0.2)
-    // Seed 1, the practice seed, is one of them (the goldens above).
+    // [measured 2026-11-04 at 12b50d0] 159 of the 400 candidates, 39.8%, are in band on this menu of output lengths. GAMES.md reports
+    // 80% for a scratch prototype that was not kept [estimated]. Its menu and rules are not recorded, so the two are not compared.
+    // Seed 1, the practice seed, is one of them (the goldens in steploop.test.ts).
   })
 
   test('overlap never takes longer per token once the pipeline is full: on a long decode batch the step interval is max(GPU, CPU), not their sum', () => {

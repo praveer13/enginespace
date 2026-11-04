@@ -7,7 +7,10 @@
  *      raises no violation; a constructed read-before-sample configuration raises one.
  *   3. On a decode-only workload, async never adds bubble µs, and an exact capture-size hit makes the launch cost `graphReplayUs`.
  *   4. A 100-step run of 64 requests takes under 20 ms under Bun on the dev host. The test measures it, in this process and in a
- *      fresh one, and writes the numbers down when ES_PERF_REPORT=1.
+ *      fresh one, and writes the numbers down when ES_PERF_REPORT=1. The numbers [measured 2026-11-04 at 12b50d0, Bun 1.3.14 on
+ *      Linux 6.12.63 and a 13th Gen Intel Core i5-13600KF, the dev host]: 0.5 ms for a run once warm (the median of 40 calls, the
+ *      fastest 0.18 ms), and 2.8 ms for the first call in a fresh process (the median of 5 processes, the slowest 5.0 ms), for graphs
+ *      on or off and overlap on or off, on the 70B card with the host term on the CPU lane and the MRV2 host card.
  *   5. The notional-machine card's "Ignores" list contains S5's list (kernelspace s5.md §3.5) plus host variance.
  *
  * tests/fixtures/sim/steploop.json maps inputs to the run each gives, with the SHA-256 of its canonical JSON. It is written only by
