@@ -213,9 +213,14 @@ describe('the app built for GitHub Pages, with VITE_BASE=/enginespace/', () => {
   test('loads every script, stylesheet and preload from under /enginespace/', () => {
     const pages = build('pages', [], { VITE_BASE: '/enginespace/' })
     const html = readFileSync(path.join(pages.outDir, 'index.html'), 'utf8')
-    const urls = [...html.matchAll(/(?:src|href)="([^"]+)"/g)].map((match) => match[1]).filter((url) => !url.startsWith('data:'))
+    const urls = [...html.matchAll(/<(?:script|link)\b[^>]*\b(?:src|href)="([^"]+)"/g)].map((match) => match[1]).filter((url) => !url.startsWith('data:'))
     expect(urls.length).toBeGreaterThanOrEqual(2) // at least the entry script and the stylesheet
-    expect(urls.filter((url) => !url.startsWith('/enginespace/assets/'))).toEqual([])
+    // The built chunks, and the faces the front page preloads from public/fonts (W0-T18).
+    expect(urls.filter((url) => !url.startsWith('/enginespace/assets/') && !url.startsWith('/enginespace/fonts/'))).toEqual([])
+    // The front page's static shell links every page under the base too, or to an anchor of its own (W0-T18).
+    const links = [...html.matchAll(/<a\b[^>]*\bhref="([^"]+)"/g)].map((match) => match[1])
+    expect(links.length).toBeGreaterThan(5)
+    expect(links.filter((url) => !url.startsWith('/enginespace/') && !url.startsWith('#'))).toEqual([])
     // The router's basename comes from the same base, so the links agree with the files.
     const entry = readFileSync(path.join(pages.outDir, pages.manifest['index.html'].file), 'utf8')
     expect(entry).toContain('"/enginespace/"')

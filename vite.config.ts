@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { contentPlugin } from './scripts/content/vite-plugin'
 import { metaCsp } from './scripts/pages/csp'
+import { frontShell } from './scripts/pages/front-shell'
 
 const root = path.dirname(fileURLToPath(import.meta.url))
 
@@ -29,7 +30,8 @@ export default defineConfig({
   base: process.env.VITE_BASE || '/',
   // The content compiler (ARCHITECTURE §4.1): it compiles content/ at the start of a build and of the dev server, and again when a lesson changes.
   // The meta CSP (§12) goes into every document of a build, right behind its <meta charset>.
-  plugins: [react(), contentPlugin(), metaCsp()],
+  // The front page's static shell (§6.11) is the app rendered once at `/`, written into index.html's root (W0-T18).
+  plugins: [react(), contentPlugin(), metaCsp(), frontShell()],
   build: {
     // verify:bundle walks dist/.vite/manifest.json to measure each route's static JS and CSS closure.
     manifest: true,
