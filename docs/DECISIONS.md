@@ -1,6 +1,6 @@
 # enginespace: decision log
 
-**Status:** D-001 to D-006 are the owner's decisions of 2026-11-03. D-007 to D-013 restate the product record the owner confirmed the same day (`PRODUCT.md`). D-014 to D-042 are **proposed** by [ARCHITECTURE.md](ARCHITECTURE.md) and wait for the owner's review. D-043 to D-046 are **proposed** by the design review of 2026-11-03, which settled contradictions between the design files; they wait for the owner too. D-047 records the visual world the owner chose on 2026-11-03, and D-048 and D-049 are **proposed** by the art direction that followed it. D-050 is **proposed** by the design system's build (W0-T05). The open owner questions, O-1 to O-11, and the course-design questions, Q-1 to Q-12, are at the end. **Date:** 2026-11-03.
+**Status:** D-001 to D-006 are the owner's decisions of 2026-11-03. D-007 to D-013 restate the product record the owner confirmed the same day (`PRODUCT.md`). D-014 to D-042 are **proposed** by [ARCHITECTURE.md](ARCHITECTURE.md) and wait for the owner's review. D-043 to D-046 are **proposed** by the design review of 2026-11-03, which settled contradictions between the design files; they wait for the owner too. D-047 records the visual world the owner chose on 2026-11-03, and D-048 and D-049 are **proposed** by the art direction that followed it. D-050 is **proposed** by the design system's build (W0-T05), and D-051 by the settings page (W0-T22). The open owner questions, O-1 to O-11, and the course-design questions, Q-1 to Q-12, are at the end. **Date:** 2026-11-03.
 
 **How to read a record.** Each record carries six fields:
 - **Decision**, in one or two sentences.
@@ -74,6 +74,7 @@
 | D-048 | The front page runs on GAMES.md's synthetic ticks and prints them as ticks, labelled synthetic. µs on the model's clock start with TR2's levels (W1-T13). | proposed (art direction) |
 | D-049 | Every game gets an in-world display name in kitchen vocabulary, with its engine concept as a subtitle. Ids stay as they are. | proposed (art direction) |
 | D-050 | The design system ships one light scheme, the line under its tubes, with a more-contrast variant and no dark scheme. Its faces are Big Shoulders Display, Doto (with Handjet's µ and ±), Permanent Marker, Atkinson Hyperlegible and Atkinson Hyperlegible Mono, self-hosted from Fontsource 5.3.0 and pinned by SHA-256. | proposed (W0-T05) |
+| D-051 | A learner's settings are recorded in the ledger's `working` store, one key each, and a copy in `localStorage` lets every page honour them from its first paint without opening the ledger. | proposed (W0-T22) |
 
 ---
 
@@ -762,6 +763,34 @@ D-050 records what W0-T05 decided while applying D-047's contract: the colour sc
   - `useSceneTokens()` re-reads on `prefers-color-scheme` as the tracker asks, though no scheme answers it yet.
   - W0-T25 documents these faces and schemes in DESIGN.md.
 - **Revisit when:** the owner asks for a dark scheme; a learner test shows the dot-matrix numerals misread; or a pinned face's licence or source changes.
+
+---
+
+## The settings, 2026-11-04
+
+D-051 records how W0-T22 keeps the learner's settings, which A§7.1 puts in `working` and D-038 keeps the front page from reading.
+
+### D-051 · Settings are recorded in `working`, with a copy in localStorage for the first paint
+
+- **Status:** proposed (W0-T22, 2026-11-04).
+- **Decision:**
+  - **The record.** Each setting is one `working` record (A§7.1): `settings:3d`, `settings:tier-cap`, `settings:reduced-motion` and `settings:game-keys`. A setting that was never chosen has no record and takes its default. A record that is missing, from another build or edited by hand is read as the default, and never stops a page from drawing.
+  - **The copy.** The same choices sit in `localStorage` under `es:settings`, so that every page can read them synchronously, before it opens the ledger, and so that a change made in one tab reaches the others through the `storage` event. It is a cache and never the record: the Settings page, which opens the ledger, takes `working` as the truth and rewrites the copy to match, and Reset erases both.
+  - **The document.** The root's `data-motion` attribute carries the reduced-motion override (`reduce` or `full`, absent while the system decides). `tokens.css`, `base.css` and the scene tokens already obey it, and `src/main.tsx` sets it before the first render.
+  - **The readers.** The Stage, the game shell and the device-tier hook read the settings themselves, so no game passes them on. A game's own asks (`prefer2d`, `tierCap`, `allow3d`, `shortcuts`) can only hold a view or a key back further than the learner's settings do.
+  - **A fourth setting.** "Game keys" turns every game's keys off (WCAG 2.1.4; GAMES.md §2.3 says "Shortcuts can be turned off in Settings"). The tracker's list for `/settings` names three; the game shell's `shortcuts` prop and `useGameInput`'s `enabled` already waited for it.
+- **Context:**
+  - The front page writes nothing and never opens IndexedDB (D-038; `useEvidence` says so), and its first paint must not flash 3D or motion at a learner who turned them off (A§6.9; A§6.6, where "the learner chose 2D" is a T0 reason). So its first paint cannot read `working`, and the settings need a store that a page can read at once.
+  - The site already keeps two per-viewer conveniences in browser storage, both behind `try`/`catch` (the reload-once flag and the count of lost WebGL contexts, in `sessionStorage`).
+- **Alternatives:**
+  - `working` alone, read when the ledger opens [design]: the front page would open IndexedDB for every visitor, which D-038 and the first-paint budget (D-023) avoid, and a learner who chose reduced motion would see one load's worth of animation on every page.
+  - `localStorage` alone [design]: A§7.1 puts settings in `working`, where Reset, the ledger's tab sync and the schema guard already apply, and a copy alone has none of them.
+  - A cookie [design]: nothing is served, so a cookie would only carry a setting to a server that does not exist, against D-009's "nothing collected".
+- **Consequences:**
+  - `src/settings/` holds the model, the store and the rules, `src/pages/Settings.tsx` writes both, and the Stage, the game shell and `useDeviceTier` (so every game and the front page) read the store. The entry carries the model and the store, which the first render needs, and grew by 1,005 B gz [measured 2026-11-04 with `gzip -9`: the entry chunk is 35,668 B at fac1415 and 36,673 B at bf46468]; the rules and the views load with the pages that use them. The routes that read the store stay under A§11.1's 200 KB gz for a route other than the front page, excluding 3D: `/settings` is 166,238 B, `/evidence` 159,080 B and `/design` 151,616 B (148,005 B at fac1415), each the entry's closure and the route's own static imports, JavaScript and CSS [measured 2026-11-04 with `gzip -9` at bf46468].
+  - If the browser blocks site data, nothing persists anyway: IndexedDB falls back to memory (A§7.4) and `localStorage` is unreadable. A change then applies in the tab that made it until that tab reloads.
+  - A change the ledger refuses (a tab that has gone read-only) is shown at its control and applied nowhere, so the record and the copy never part.
+- **Revisit when:** the ledger can be read before the first paint at no cost, or a browser stops offering `localStorage` to a first-party page.
 
 ---
 

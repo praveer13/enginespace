@@ -1,0 +1,388 @@
+/*
+ * The layout of the pages of panels (W0-T22): /settings and /evidence. A stamped heading, panels down the left, and the printer's
+ * tape beside them on a wide screen. The controls stand on a stainless deck, as the scene kit's specimen sets its own, and what
+ * is read sits on ticket paper. The components of src/design/components draw the switches, plates, tickets and tape themselves,
+ * and this file only places them. Every colour, face, space, radius and shadow is a token role (src/design/tokens.css), and the
+ * design system is not edited.
+ *
+ * Plain CSS outside Tailwind's layers, like src/content/render/content.css: it loads with the pages that use it.
+ */
+
+/* ---------------------------------------------------------------------------------------------- the page */
+
+.es-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-12);
+}
+
+.es-page__header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-3);
+  justify-items: start;
+  padding-top: var(--es-space-4);
+}
+
+/* The page's name, stamped on a plate, at the size a lesson's title takes. */
+.es-page__title {
+  margin: 0;
+  font-size: clamp(2rem, 1.2rem + 3.4vw, 3.75rem);
+  line-height: 0.95;
+  overflow-wrap: anywhere;
+}
+
+.es-page__lead {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: 1.125rem;
+  line-height: 1.55;
+}
+
+/* The panels, and the printer's tape. The tape follows the panels in the page, and stands beside them on a wide screen. */
+.es-page__columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-12);
+  align-items: start;
+}
+
+.es-page__main,
+.es-page__side {
+  min-width: 0;
+}
+
+.es-page__main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-16);
+}
+
+/* On a narrow screen the tape heads the page, as the printer feeds above the tickets: a summary first, then the panels. Nothing in it
+   takes focus, so the order of the page and the order of the tab stops stay the same. */
+.es-page__side {
+  order: -1;
+}
+
+@media (min-width: 64rem) {
+  .es-page__side {
+    order: 0;
+  }
+
+  .es-page__columns {
+    grid-template-columns: minmax(0, 44rem) minmax(0, 20rem);
+    column-gap: var(--es-space-16);
+  }
+
+  .es-page__main {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .es-page__side {
+    grid-column: 2;
+    grid-row: 1;
+    position: sticky;
+    top: var(--es-space-6);
+  }
+}
+
+/* A line of the tape keeps its label whole. A value too long for the rest of the line drops under it, flush right. */
+.es-page .es-printer__line {
+  flex-wrap: wrap;
+}
+
+.es-page .es-printer__line dt {
+  flex: none;
+  white-space: nowrap;
+}
+
+.es-page .es-printer__line dd {
+  margin-left: auto;
+  text-align: right;
+}
+
+/* ---------------------------------------------------------------------------------------------- a panel and its deck */
+
+.es-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-4);
+  min-width: 0;
+}
+
+/* A panel's plate, over a machined groove in the steel. */
+.es-panel__title {
+  margin: 0;
+  padding-bottom: var(--es-space-3);
+  border-bottom: 1px solid var(--es-edge);
+}
+
+.es-panel__lead {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--es-text-2);
+}
+
+/* The controls stand on stainless: a panel of brushed steel with its own edge, as the scene kit's specimen sets its deck. */
+.es-deck {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-8);
+  min-width: 0;
+  padding: var(--es-space-6);
+  border: 1px solid var(--es-edge);
+  border-radius: var(--es-radius-plate);
+  background-color: var(--es-surface-1);
+  background-image: var(--es-texture-sheen), var(--es-texture-brushed);
+  background-size: 100% auto, 100% 720px;
+  box-shadow: var(--es-shadow-plate);
+  color: var(--es-text-1);
+}
+
+/* At phone width the deck gives its paper the room: tickets printed on it are the widest thing on the page. */
+@media (max-width: 40rem) {
+  .es-deck {
+    padding: var(--es-space-4);
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------- a choice among a few */
+
+.es-choice {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-3);
+  min-width: 0;
+}
+
+.es-choice__label {
+  font-weight: 700;
+}
+
+.es-choice__plates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2) var(--es-space-3);
+}
+
+.es-choice__hint {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.es-choice__error {
+  display: flex;
+  align-items: baseline;
+  gap: var(--es-space-2);
+  margin: 0;
+  color: var(--es-paper-ink-2);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
+.es-choice__error-mark {
+  flex: none;
+  width: 1em;
+  height: 1em;
+  align-self: center;
+}
+
+/* ---------------------------------------------------------------------------------------------- export, import and reset */
+
+/* Export and import share one deck, one above the other, so that what Import prints has the width of a ticket. */
+.es-xfers {
+  gap: var(--es-space-8);
+}
+
+.es-xfers > .es-xfer + .es-xfer {
+  padding-top: var(--es-space-8);
+  border-top: 1px solid var(--es-edge);
+}
+
+.es-xfer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-4);
+  align-content: start;
+  min-width: 0;
+}
+
+.es-xfer__title {
+  margin: 0;
+  font-family: var(--es-font-heading);
+  font-size: 1.625rem;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.es-xfer__about,
+.es-xfer__note,
+.es-xfer__undo p,
+.es-xfer__first p {
+  max-width: 56ch;
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.es-xfer__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-4) var(--es-space-8);
+}
+
+/* What a step printed or said stays on the page, so a screen reader hears it where it is. */
+.es-xfer__status {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-3);
+  min-width: 0;
+}
+
+.es-xfer__status:empty {
+  display: none;
+}
+
+.es-xfer__status > p {
+  margin: 0;
+  font-weight: 700;
+}
+
+/* The import's preview and the reset's ticket: the lines print in the ticket's own dots. */
+.es-xfer__made {
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+.es-xfer__lines {
+  display: grid;
+  gap: var(--es-space-1);
+}
+
+.es-xfer__first,
+.es-xfer__undo {
+  display: grid;
+  gap: var(--es-space-3);
+  justify-items: start;
+}
+
+.es-xfer__undo {
+  padding-top: var(--es-space-4);
+  border-top: 1px solid var(--es-edge);
+}
+
+/* ---------------------------------------------------------------------------------------------- the ledger's counts */
+
+.es-ledger-ticket .es-ticket__paper {
+  padding-inline: var(--es-space-4);
+}
+
+@media (min-width: 40rem) {
+  .es-ledger-ticket .es-ticket__paper {
+    padding-inline: var(--es-space-6);
+  }
+}
+
+.es-ledger {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--es-font-body);
+}
+
+.es-ledger th,
+.es-ledger td {
+  padding: var(--es-space-3) var(--es-space-2);
+  border-bottom: 1px dotted var(--es-paper-rule);
+  text-align: left;
+  vertical-align: top;
+}
+
+.es-ledger thead th {
+  padding-block: 0 var(--es-space-2);
+  border-bottom: 2px dotted var(--es-paper-rule);
+  font-family: var(--es-font-ticket);
+  font-size: 0.9375rem;
+  font-weight: var(--es-font-ticket-weight);
+  letter-spacing: var(--es-font-ticket-tracking);
+  text-transform: uppercase;
+}
+
+.es-ledger tbody th {
+  font-weight: 400;
+}
+
+.es-ledger tfoot th,
+.es-ledger tfoot td {
+  border-bottom: 0;
+  border-top: 2px dotted var(--es-paper-rule);
+  font-family: var(--es-font-ticket);
+  font-weight: var(--es-font-ticket-weight);
+  letter-spacing: var(--es-font-ticket-tracking);
+  text-transform: uppercase;
+}
+
+.es-ledger .es-ledger__n {
+  width: 1%;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.es-ledger .es-readout {
+  flex-wrap: nowrap;
+}
+
+.es-ledger__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--es-space-1) var(--es-space-2);
+  font-weight: 700;
+}
+
+/* A module's id is a link in a table: a target of at least 24 px each way, whatever the type size (WCAG 2.5.8). */
+.es-ledger__name a {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 1.5rem;
+  min-inline-size: 1.5rem;
+}
+
+.es-ledger__id {
+  color: var(--es-text-2);
+  font-size: 0.8125rem;
+  font-weight: 400;
+}
+
+.es-ledger__what {
+  display: block;
+  max-width: 52ch;
+  color: var(--es-text-2);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
+.es-ledger__tape {
+  align-self: center;
+}
+
+/* A kind or a module with nothing yet is quiet. */
+.es-ledger tr[data-empty] .es-ledger .es-readout {
+  flex-wrap: nowrap;
+}
+
+.es-ledger__name {
+  font-weight: 400;
+}
+
+.es-ledger__none {
+  color: var(--es-text-3);
+}

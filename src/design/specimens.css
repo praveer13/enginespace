@@ -429,3 +429,167 @@
   height: auto;
   aspect-ratio: 5 / 4;
 }
+
+/* ---------------------------------------------------------------------------------------------- motion */
+
+/* The four motions of the roles, each as a row: what it is, a plate running down a runner when the bell rings, and its twin. */
+.es-spec__motions {
+  display: grid;
+  gap: var(--es-space-8);
+}
+
+.es-spec__motion-deck {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-3) var(--es-space-8);
+}
+
+.es-spec__motion-status {
+  margin: 0;
+  max-width: 62ch;
+}
+
+.es-spec__motion-list {
+  display: grid;
+  gap: var(--es-space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-spec__motion {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-4) var(--es-space-8);
+  padding-top: var(--es-space-6);
+  border-top: 1px solid var(--es-edge);
+}
+
+@media (min-width: 64rem) {
+  .es-spec__motion {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.3fr) minmax(0, 0.8fr);
+    align-items: start;
+  }
+}
+
+.es-spec__motion-head {
+  display: grid;
+  gap: var(--es-space-2);
+  min-width: 0;
+}
+
+.es-spec__motion-title {
+  margin: 0;
+  font-family: var(--es-font-heading);
+  font-size: 1.625rem;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.es-spec__motion-about {
+  margin: 0;
+  color: var(--es-text-2);
+}
+
+.es-spec__motion-facts {
+  display: grid;
+  gap: var(--es-space-1);
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+.es-spec__motion-facts > div {
+  display: grid;
+  grid-template-columns: 5rem minmax(0, 1fr);
+  gap: 0 var(--es-space-2);
+  align-items: baseline;
+}
+
+.es-spec__motion-facts dt {
+  color: var(--es-text-2);
+}
+
+.es-spec__motion-facts dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--es-space-2);
+  margin: 0;
+  min-width: 0;
+}
+
+.es-spec__motion-curve-value {
+  color: var(--es-text-2);
+  overflow-wrap: anywhere;
+}
+
+.es-spec__motion-live,
+.es-spec__motion-twin {
+  display: grid;
+  gap: var(--es-space-3);
+  min-width: 0;
+  margin: 0;
+}
+
+.es-spec__motion-stage {
+  display: grid;
+  align-content: center;
+  min-height: 4.5rem;
+  min-width: 0;
+  padding: var(--es-space-3) var(--es-space-2);
+}
+
+.es-spec__motion-stage[data-ground='paper'] {
+  justify-items: center;
+  padding: var(--es-space-4);
+  background-color: var(--es-paper);
+  color: var(--es-paper-ink);
+  box-shadow: var(--es-shadow-paper);
+}
+
+.es-spec__motion-stage .es-spec__easing {
+  width: 5rem;
+  height: 6rem;
+}
+
+/* The pass: a stainless runner, and the plate that slides down it. */
+.es-spec__motion-track {
+  position: relative;
+  display: block;
+  height: 2.25rem;
+  border-radius: var(--es-radius-round);
+  background-color: var(--es-surface-2);
+  box-shadow: inset 0 0 0 1px var(--es-edge);
+}
+
+.es-spec__motion-puck {
+  position: absolute;
+  top: 0.25rem;
+  inset-inline-start: 0.25rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--es-radius-round);
+  background-color: var(--es-surface-3);
+  box-shadow: var(--es-shadow-plate);
+  animation-name: es-spec-motion-run;
+  animation-fill-mode: both;
+  animation-iteration-count: 1;
+}
+
+/* Until the bell has rung, the plate waits at the start of the runner; after it, it rests at the end. */
+.es-spec__motion-stage:not([data-ran]) .es-spec__motion-puck {
+  animation: none;
+}
+
+@keyframes es-spec-motion-run {
+  from {
+    inset-inline-start: 0.25rem;
+  }
+
+  to {
+    inset-inline-start: calc(100% - 2rem);
+  }
+}

@@ -4,6 +4,12 @@ import { createBrowserRouter } from 'react-router'
 import { RouterProvider } from 'react-router/dom'
 import './index.css'
 import { routes } from './routes'
+import { startSettings } from './settings/store'
+
+// The learner's settings reach the document before anything is drawn: reduced motion is a CSS and scene concern from the first
+// paint, and must not flash its animations at a learner who turned it on (ARCHITECTURE §6.9). The store reads a copy that
+// sits in localStorage, so the front page need not open the ledger to honour them (src/settings/model.ts says why).
+startSettings()
 
 /*
  * A deploy replaces the hashed chunks under an open tab, so a lazy route import can 404 ("Failed to
