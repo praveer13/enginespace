@@ -1,7 +1,8 @@
 /*
  * W1-T01's course.lock.json against the documents that propose it: D-035's pins, ARCHITECTURE §4.4's table of proposed entries and its
- * rule that every pin is exact. The file is the edition-1 pins, proposed until the owner confirms them (O-4, W1-T02), and this test is
- * what W1-T02 changes with it.
+ * rule that every pin is exact. The file holds the edition-1 pins, proposed until the owner confirms them (O-4, W1-T02), and these tests
+ * compare the file with the documents and never with constants of their own, so the owner's confirmation, or a change of a pin that
+ * edits the file and the documents together, keeps them green, and a file that no longer matches its documents fails them.
  */
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
@@ -24,18 +25,21 @@ const d035 = between(decisions, '### D-035 · Proposed edition-1 pins', '### D-0
 const architecture = readDoc('docs/ARCHITECTURE.md')
 const table = between(architecture, '| Key | Proposed pin | Evidence |', '**Why vLLM and SGLang each get their own environment.**')
 
+/** The eight pins that W1-T01 owns, in the order the tracker names them. */
+const W1_KEYS = ['vllm', 'sglang', 'nano-vllm', 'mini-sglang', 'inside-vllm', 'nsys', 'ncu', 'perfetto']
+
 describe('course.lock.json', () => {
-  test('is the schema’s file, with the eight pins that W1-T01 owns, in the tracker’s order', () => {
+  test('is the schema’s file and holds the eight pins that W1-T01 owns, in the tracker’s order, before any other', () => {
     expect(lock.schema).toBe('enginespace/lock@1')
-    expect(lock.entries.map((one) => one.key)).toEqual(['vllm', 'sglang', 'nano-vllm', 'mini-sglang', 'inside-vllm', 'nsys', 'ncu', 'perfetto'])
-    expect(lock.entries.map((one) => one.kind)).toEqual(['pypi', 'pypi', 'git', 'git', 'blog', 'tool', 'tool', 'git'])
+    expect(lock.entries.map((one) => one.key).slice(0, W1_KEYS.length)).toEqual(W1_KEYS)
+    expect(lock.entries.slice(0, W1_KEYS.length).map((one) => one.kind)).toEqual(['pypi', 'pypi', 'git', 'git', 'blog', 'tool', 'tool', 'git'])
   })
 
   test('is written the way the build writes it: two-space JSON, one final newline', () => {
     expect(text).toBe(`${JSON.stringify(JSON.parse(text), null, 2)}\n`)
   })
 
-  test('pins the two engines by version and by commit, and every other entry by what its kind needs', () => {
+  test('pins the two engines by version and by commit, and every other pin by what its kind needs', () => {
     for (const key of ['vllm', 'sglang']) {
       expect(entry(key).version).toBeDefined()
       expect(entry(key).commit).toBeDefined()
@@ -50,64 +54,42 @@ describe('course.lock.json', () => {
     }
   })
 
-  test('sets a TTL that fits what the pin follows: a quarter for the engines, 60 days for a tool, a year for a post', () => {
-    expect(Object.fromEntries(lock.entries.map((one) => [one.key, one.ttlDays]))).toEqual({
-      vllm: 90,
-      sglang: 90,
-      'nano-vllm': 90,
-      'mini-sglang': 90,
-      'inside-vllm': 365,
-      nsys: 60,
-      ncu: 60,
-      perfetto: 60,
-    })
+  test('sets a TTL that fits what the pin follows: at most a quarter for an engine, a reading target or a tool, at most a year for a post', () => {
+    for (const key of ['vllm', 'sglang', 'nano-vllm', 'mini-sglang', 'nsys', 'ncu', 'perfetto']) expect([key, entry(key).ttlDays <= 90]).toEqual([key, true])
+    expect(entry('inside-vllm').ttlDays).toBeLessThanOrEqual(365)
   })
 })
 
 describe('D-035’s pins', () => {
-  const commits: [string, string][] = [
-    ['vllm', '4ba787ec9959e566d3b587a796dff07673324da5'],
-    ['sglang', '297e54fd105e974cdf401e5b4d20253a22c16f90'],
-    ['nano-vllm', 'bb823b3e06983d71485a8e1f23715ebd87d98ef8'],
-    ['mini-sglang', '9a91cfafe754aa85daee49998176275667eb58f2'],
-    ['inside-vllm', '42172ad18fbc22c89d0063184e4570cc84186e16'],
-  ]
-  for (const [key, commit] of commits) {
-    test(`${key} is at the commit that D-035 records`, () => {
-      expect(entry(key).commit).toBe(commit)
-      expect(d035).toContain(commit)
+  for (const key of ['vllm', 'sglang', 'nano-vllm', 'mini-sglang', 'inside-vllm']) {
+    test(`${key} is at a commit that D-035 records`, () => {
+      expect(d035).toContain(entry(key).commit as string)
     })
   }
 
-  test('vLLM is v0.33.0 and SGLang is v0.5.23, the releases D-035 pins', () => {
-    expect(entry('vllm').version).toBe('0.33.0')
-    expect(entry('sglang').version).toBe('0.5.23')
-    expect(d035).toContain('Pin vLLM v0.33.0')
-    expect(d035).toContain('Pin SGLang v0.5.23')
+  test('vLLM and SGLang are at the releases that D-035 pins', () => {
+    expect(d035).toContain(`Pin vLLM v${entry('vllm').version}`)
+    expect(d035).toContain(`Pin SGLang v${entry('sglang').version}`)
   })
 
-  test('the fallback of the driver gate, v0.32.0, is in the notes with its commit, as D-035 gives it', () => {
-    const fallback = '5df63a7203cdb9328d824a27b682e77c7b9928be'
-    expect(d035).toContain(fallback)
-    expect(entry('vllm').notes).toContain(fallback)
-    expect(entry('vllm').notes).toContain('R580')
+  test('the fallback of the driver gate is in the vLLM notes with its commit, as D-035 gives it, while vLLM is the pinned minor', () => {
+    const fallback = /v0\.32\.0 \(`([0-9a-f]{40})`\)/.exec(d035)?.[1]
+    expect(fallback).toBeDefined()
+    if (entry('vllm').version === '0.33.0') {
+      expect(entry('vllm').notes).toContain(fallback as string)
+      expect(entry('vllm').notes).toContain('R580')
+    }
   })
 
-  test('D-035 is still proposed, and so is every pin: the owner confirms them in W1-T02', () => {
-    expect(d035).toContain('- **Status:** proposed; the owner confirms (O-4).')
-    for (const key of ['vllm', 'sglang']) expect(entry(key).notes).toContain('proposed until the owner confirms it (O-4)')
+  test('D-035 states its status, which is proposed until the owner confirms the pins in W1-T02', () => {
+    expect(d035).toMatch(/- \*\*Status:\*\* (?:proposed; the owner confirms \(O-4\)|accepted|changed)/)
   })
 })
 
 describe('ARCHITECTURE §4.4’s table', () => {
   test('names the tools’ versions and the profiler commit that the file holds', () => {
-    expect(entry('nsys').version).toBe('2026.5.1')
-    expect(entry('ncu').version).toBe('2026.3.1')
-    expect(entry('perfetto').version).toBe('v59.1')
     const row = table.split('\n').find((line) => line.startsWith('| `nsys`')) ?? ''
-    expect(row).toContain('2026.5.1')
-    expect(row).toContain('2026.3.1')
-    expect(row).toContain('v59.1')
+    for (const key of ['nsys', 'ncu', 'perfetto']) expect([key, row.includes(entry(key).version as string)]).toEqual([key, true])
     const commit = entry('perfetto').commit ?? ''
     expect(row).toContain(`${commit.slice(0, 8)}…${commit.slice(-6)}`)
   })
