@@ -16,6 +16,7 @@ import { TapeLabel } from '@/design/components/TapeLabel'
 import { TextLink } from '@/design/components/TextLink'
 import { Ticket, TicketLine } from '@/design/components/Ticket'
 import { Toggle } from '@/design/components/Toggle'
+import { SceneSpecimen } from '@/scene/SceneSpecimen'
 import {
   cssVar,
   fontVar,
@@ -74,6 +75,15 @@ export function Component() {
       <section aria-labelledby="components" className="es-spec__section">
         <h2 id="components">Components</h2>
         <ComponentSpecimens />
+      </section>
+
+      <section aria-labelledby="scene-kit" className="es-spec__section">
+        <h2 id="scene-kit">Scene kit</h2>
+        <p className="es-prose">
+          The parts every 3D game is built from, on one pass: the step-loop model&apos;s own run of a short service, drawn in brushed steel under the heat
+          lamps, beside its 2D twin. Ring the bell, turn overlap on, switch to the long night, and the tapes print what this browser measures.
+        </p>
+        <SceneSpecimen />
       </section>
     </div>
   )
