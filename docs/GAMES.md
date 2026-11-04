@@ -176,19 +176,23 @@ D-019 keeps kernelspace's tests 1, 3, 4, 6 and 7 required, restates 5, and makes
 Every game is a pure session in `packages/play/<id>`, as ARCHITECTURE §6.3 lays out. This file uses one shape:
 
 ```ts
-// packages/play/core/session.ts: the shape every game follows (sketch)
-export interface Session<Level, State, Action, View, Score> {
-  level(id: string, seed: Seed): Level        // setup(seed), the band, the prediction to commit, KCs, card id
+// packages/play/types.ts: the shape every game follows (W0-T14 built it from this sketch, and added inBand, grade and Ask)
+export interface Session<Level, State, Action, View, Score, Ask = unknown> {
+  level(id: string, seed: Seed): Level        // setup(seed), the prediction to commit, KCs, card id; throws for a level the game lacks
+  inBand(id: string, seed: Seed): boolean     // the band (§2.1): the naive strategy loses and the reference passes
   init(level: Level): State
-  ask(s: State): unknown | null               // the pending decision, or null when the next step applies by itself
+  ask(s: State): Ask | null                   // the pending decision, or null when the next step applies by itself
   reduce(s: State, a: Action): State          // pure; throws on an illegal action unless the game allows unsafe moves (§9)
   view(s: State): View                        // what the 3D scene, the 2D view and the mirror all render
   done(s: State): boolean
   score(s: State): Score                      // counts only
-  ghost(level: Level): State                  // the reference run; read only by the debrief
+  ghost(level: Level): State                  // the reference run; read only by the debrief and the grade
+  grade(mine: State, ghost: State): Grade     // { score in [0, 1], ok }: min(1, mine ÷ ghost) for counts where more is better (§2.1)
   debrief(mine: State, ghost: State): Debrief // the sentence and the turn or lever it names
 }
 ```
+
+A run is `{seed, level, actions[], rev}`, and `replay` in `packages/play/replay.ts` grades it from the log alone. The shell around the views is `src/games/kit`.
 
 `verify:games` (ARCHITECTURE §6.2) fails a game without: a 2D view, a mirror, a debrief, a card, a keyboard map, KCs, claims that exist, a practice seed in band, band acceptance ≥ 20%, a keyboard-only e2e walk, a reduced-motion e2e walk, a determinism test (same seed and actions, same state hash in Bun and three browsers), and a display name with its subtitle (D-049).
 
