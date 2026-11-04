@@ -14,3 +14,8 @@ src/content/generated/
 .claude/
 bun.lock
 bun.lockb
+# What the content compiler writes into public/ (ARCHITECTURE §4.6). claims.json is never committed. The Markdown export, public/md/ and
+# public/llms.txt, is committed once W1-T35 adds its freshness check: that task removes these two lines.
+public/claims.json
+public/md/
+public/llms.txt

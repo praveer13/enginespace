@@ -1,0 +1,12 @@
+# The knowledge-component graph (ARCHITECTURE §4.5). This file holds the two KCs of the sample lesson in
+# content/modules/tr2/lessons/l0-sample.md, worded from curriculum/TR2-the-step-loop.md §1 and §4. W1-T03 writes the course's
+# graph around them and checks that every KC has an item, a game level or a lab check behind it.
+- id: tr2.bubble
+  description: You can say why the GPU idles between engine steps when the CPU's work for the next step is not ready.
+  requires: [ks:t0.wait-bars]
+  planned: W1-T14
+
+- id: tr2.async-overlap
+  description: You can say which CPU work async scheduling plans behind the running step, and what it still leaves on the critical path.
+  requires: [tr2.bubble]
+  planned: W1-T14

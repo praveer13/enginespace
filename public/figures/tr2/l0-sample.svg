@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 96" width="360" height="96" fill="none" stroke="currentColor" stroke-width="2">
+  <title>Two steps on a CPU lane and a GPU lane, with an open gap on the GPU lane between them</title>
+  <rect x="8" y="12" width="80" height="24"/>
+  <rect x="184" y="12" width="80" height="24"/>
+  <rect x="96" y="60" width="88" height="24"/>
+  <rect x="272" y="60" width="80" height="24"/>
+  <rect x="184" y="60" width="88" height="24" stroke-dasharray="4 4"/>
+</svg>

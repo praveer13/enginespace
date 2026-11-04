@@ -63,6 +63,7 @@ npm installs and builds, and Bun runs the tests and the scripts, so Bun must be 
 - `npm run verify:<gate>` runs one gate. `bun scripts/verify.ts all --stage source` runs one stage. A `source` gate reads the working tree, a `build` gate reads `dist/` and so runs after `npm run build`, and a `toolchain` gate needs the pinned Rust toolchain, which only `labs.yml` has. `bun scripts/verify.ts list` prints each gate's stage, whether it is live or pending, and the task that builds it.
 - A gate whose script is not built yet prints `pending: <task>` and exits 0, so `verify:all` passes while a wave is half built. A task builds its gate by creating the script that the registry already names, and nothing else changes. `tests/ci/verify.test.ts` fails on a `scripts/verify-*.ts` file that no gate runs, and on a `verify:*` script in `package.json` that goes around the registry.
 - The exit status is 0 when no gate that ran failed, 1 when one failed, and 2 for a usage error.
+- `bun scripts/content/build.ts` compiles `content/` into `src/content/generated/`, `public/md/`, `public/llms.txt` and `public/claims.json`. `npm run dev` and `npm run build` run the same compiler, and the three content gates (`verify:content`, `verify:claims` and `verify:numbers`) run it without writing. A problem names the file and the line, and any error stops the build.
 
 Lint and the gates enforce the repository's mechanical conventions, so a break shows on the first run:
 - `packages/sim` and `packages/play` are pure and deterministic (A§5.1, D-017): no clock, no entropy, no engine-dependent `Math`, and no DOM, because they compile with `tsconfig.pure.json`. An `eslint-disable` comment has no effect in them.
@@ -93,7 +94,7 @@ The last file is untracked in kernelspace's checkout, so `git show` cannot reach
 - [estimated]: a judgment or a design target. Every budget is one.
 - [unverified]: not checked against a primary source. It is never load-bearing until a named task checks it.
 
-Identifiers (D-014, W0-T13, `receipt@1`), counts of named things, list numbering and thresholds that a standard defines go untagged. In content, facts live in claims with a source, a date and a TTL (A§4.4), and `verify:claims` and `verify:numbers` check them once W0-T08 builds them.
+Identifiers (D-014, W0-T13, `receipt@1`), counts of named things, list numbering and thresholds that a standard defines go untagged. In content, facts live in claims with a source, a date and a TTL (A§4.4), and `verify:claims` and `verify:numbers` check them.
 
 **Pins.**
 - **npm packages** are exact: no `^`, no `~`, and the versions of A§14. `tests/smoke.test.ts` compares `package.json` and `package-lock.json` with that table. A package it does not list needs a DECISIONS record first (rule 6).

@@ -1,0 +1,52 @@
+# The course: its modules in the order a learner meets them, with their hours (ARCHITECTURE §2.2, §3.1, §15).
+#
+# A module appears here before it is written, so the index and the map can list TR0 to the capstone from the first day. A
+# written module's module.md repeats its title and hours, and verify:content holds the two to the same values.
+#
+# Hours are [estimated] (docs/PLAN.md §4), split by lane: B is the browser, including a forge lab written on the laptop and
+# graded in the tab; L is the laptop's CPU; F is a GPU. The total, 91 hours, is [derived] by adding them up.
+modules:
+  - id: tr0
+    title: PyTorch for the Rust-first, and reading Triton
+    hours: 7 # [estimated]
+    hours_by_lane: { B: 4, L: 3 } # [estimated]
+  - id: tr1
+    title: Read the engines
+    hours: 10 # [estimated]
+    hours_by_lane: { B: 7.5, F: 2.5 } # [estimated]
+  - id: tr2
+    title: The step loop
+    hours: 10 # [estimated]
+    hours_by_lane: { B: 10 } # [estimated]
+  - id: tr3
+    title: Profile a real engine
+    hours: 12 # [estimated]
+    hours_by_lane: { B: 5, F: 7 } # [estimated]
+  - id: tr4
+    title: Attention backends as a consumer
+    hours: 7 # [estimated]
+    hours_by_lane: { B: 2.5, F: 4.5 } # [estimated]
+  - id: tr5a
+    title: Hybrid KV groups, and adapter pages in one pool
+    hours: 6 # [estimated]
+    hours_by_lane: { B: 6 } # [estimated]
+  - id: tr5b
+    title: Offload, the connector's engine side, and the event publisher
+    hours: 8 # [estimated]
+    hours_by_lane: { B: 5, F: 3 } # [estimated]
+  - id: tr6
+    title: Speculation and structure
+    hours: 8 # [estimated]
+    hours_by_lane: { B: 6, F: 2 } # [estimated]
+  - id: tr7
+    title: Contribute honestly
+    hours: 6 # [estimated]
+    hours_by_lane: { B: 2, F: 4 } # [estimated]
+  - id: tr8
+    title: Benchmark like you mean it
+    hours: 5 # [estimated]
+    hours_by_lane: { B: 3.5, F: 1.5 } # [estimated]
+  - id: capstone
+    title: Reproduce a commit pair's delta, attribute it, explain it, price it
+    hours: 12 # [estimated]
+    hours_by_lane: { B: 2, F: 10 } # [estimated]
