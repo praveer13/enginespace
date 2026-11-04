@@ -1,0 +1,94 @@
+enginespace: third-party notices
+
+enginespace vendors files from kernelspace, in vendor/kernelspace/. This file carries
+the notices that come with them, in two sections: kernelspace, and ts-fsrs, whose memory
+model one of kernelspace's files transcribes. The licence of enginespace's own code and
+content is the owner's decision (O-3) and is not stated here.
+
+============================================================================
+kernelspace
+============================================================================
+
+The files under vendor/kernelspace/ are copied, byte for byte, from kernelspace at commit
+d478f91a0af590f03fcfd76ee73149fa70b28e51 (committed 2026-10-30). The page
+vendor/kernelspace/VENDOR.md lists each one with its SHA-256 and the terms it is under.
+
+kernelspace's code, tests, fixtures and configuration are under the MIT License below. It
+is vendor/kernelspace/LICENSE, word for word.
+
+MIT License
+
+Copyright (c) 2026 the kernelspace authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Some vendored files are under other terms:
+
+- vendor/kernelspace/public/traces/README.md is kernelspace's documentation, which
+  kernelspace puts under Creative Commons Attribution 4.0 International
+  (https://creativecommons.org/licenses/by/4.0/).
+- vendor/kernelspace/public/traces/burstgpt-v2-busiest-hour.json and
+  burstgpt-v2-busiest-minute.json are slices of BurstGPT v2.0, under CC BY 4.0. They are
+  attributed to the BurstGPT authors (KDD 2025) and the HPMLL/BurstGPT project
+  (https://github.com/HPMLL/BurstGPT). They are samples with clamped token counts, and the
+  README beside them says how each was cut.
+- vendor/kernelspace/public/traces/kimi-conversation.json is the first ten minutes of the
+  Kimi conversation trace of Mooncake (FAST'25), under the Apache License 2.0. It is
+  attributed to the Mooncake authors (https://github.com/kvcache-ai/Mooncake), and its
+  token counts are scaled and clamped as the README beside it says.
+- vendor/kernelspace/src/lib/learner/fsrs.ts and
+  vendor/kernelspace/tests/fixtures/fsrs/reference-vectors.json come from ts-fsrs, below.
+
+============================================================================
+ts-fsrs
+============================================================================
+
+This is kernelspace's own notice for ts-fsrs, from vendor/kernelspace/NOTICE, word for
+word. The paths in it are kernelspace's, so here they sit under vendor/kernelspace/.
+
+src/lib/learner/fsrs.ts transcribes the memory model of ts-fsrs 5.4.2
+(https://github.com/open-spaced-repetition/ts-fsrs), and
+tests/fixtures/fsrs/reference-vectors.json is that library's output. ts-fsrs is
+distributed under the MIT License, reproduced below from its npm package
+(version 5.4.2, file LICENSE, SHA-256
+8b83a73dd2894ff553d6de6113064b3ad9dfad3f839837b61f3b183881131d01).
+
+----------------------------------------------------------------------------
+
+MIT License
+
+Copyright (c) 2026 Open Spaced Repetition
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

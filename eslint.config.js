@@ -78,7 +78,7 @@ const fence = (name, ...patterns) => ({
 })
 
 export default defineConfig([
-  globalIgnores(['dist', 'coverage', 'playwright-report', 'test-results', 'src/content/generated', '.claude', '.worktrees']),
+  globalIgnores(['dist', 'coverage', 'playwright-report', 'test-results', 'src/content/generated', '.claude', '.worktrees', 'vendor']),
   {
     files: ['**/*.{js,mjs,ts,tsx}'],
     extends: [js.configs.recommended, tseslint.configs.recommended],

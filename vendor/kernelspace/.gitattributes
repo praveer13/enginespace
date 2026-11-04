@@ -1,0 +1,3 @@
+# The bytes here are the bytes of the pinned kernelspace commit, and nothing else (VENDOR.md, rule 1).
+# No line-ending conversion on any platform, so the SHA-256 values in VENDOR.md hold everywhere.
+* -text
