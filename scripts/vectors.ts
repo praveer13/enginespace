@@ -14,10 +14,10 @@
  *
  * `--check` fails on: a fixture that is missing, or whose bytes differ from what the models write now (naming the vectors that
  * moved); a fixture in tests/fixtures/sim/ that no model owns; and a committed table that is not what its generator writes
- * (scripts/tables/exp-quantiles.ts).
+ * (scripts/tables/exp-quantiles.ts and scripts/tables/chi-square-critical.ts).
  *
  * Adding a model: give it a `VectorModel` in MODELS, whose cases are JSON inputs and a function from them to the model's
- * output. `workload` (W0-T12), `steploop` (W0-T13), `trace` (W1-T08) and `bench` (W1-T31) were added this way.
+ * output. `workload` (W0-T12), `steploop` (W0-T13), `trace` (W1-T08), `bench` (W1-T31) and `spec` (W1-T26) were added this way.
  */
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -25,15 +25,19 @@ import path from 'node:path'
 import { runBench, summarize } from '../packages/sim/bench'
 import type { ArrivalSpec, BenchRun, BenchSpec, OpenArrivals, ServerModel } from '../packages/sim/bench'
 import { canonicalJson } from '../packages/sim/core/json'
+import { rngFor } from '../packages/sim/core/rng'
 import { HOST_PRESETS } from '../packages/sim/host'
 import type { RunnerPresetId } from '../packages/sim/host'
 import type { PhysicsRowKey } from '../packages/sim/physics'
+import { BESTIARY, FINE_BAND, REFERENCE, SPARSE_BAND, SPEC_BAND, chiSquare, dist, drawCase, expectedTokensPerRound, labTest, verifyChain } from '../packages/sim/spec'
+import type { PairBand } from '../packages/sim/spec'
 import { TICK_CARD, defaultCaptureSizes, runStepLoop, s5Card } from '../packages/sim/steploop'
 import type { GpuCard, S5HostTerm, StepLoopConfig, StepLoopRun } from '../packages/sim/steploop'
 import { CLEAN_JITTER, DEFAULT_JITTER, attributeSteps, encodeTrace, traceChecks, traceFromRun, traceToJson } from '../packages/sim/trace'
 import type { Attribution, JitterSpec } from '../packages/sim/trace'
 import { genWorkload, parseSlice, replayWorkload } from '../packages/sim/workload'
 import type { LengthPlan, ReplaySpec, SliceId, TraceSlice, Workload, WorkloadSpec } from '../packages/sim/workload'
+import { checkCritical } from './tables/chi-square-critical'
 import { checkTable } from './tables/exp-quantiles'
 
 const repoRoot = path.resolve(import.meta.dirname, '..')
@@ -692,7 +696,133 @@ const bench: VectorModel = {
   cases: (root) => Object.entries(benchInputs).map(([name, input]) => ({ name, input, run: () => benchOutput(root, input) })),
 }
 
-export const MODELS: readonly VectorModel[] = [workload, steploop, trace, bench]
+
+// ---------------------------------------------------------------------------------------------------------------------------
+// spec
+
+/** A distribution as a fixture writes it: its weights, whose sum is the total. */
+type WeightsInput = { readonly weights: readonly number[] }
+type BandName = 'spec' | 'sparse' | 'fine'
+const BANDS: Readonly<Record<BandName, PairBand>> = { spec: SPEC_BAND, sparse: SPARSE_BAND, fine: FINE_BAND }
+type CaseInput = { readonly seed: number; readonly gamma: number; readonly band: BandName }
+
+type SpecInput =
+  | { readonly fn: 'verifyChain'; readonly seed: number; readonly p: readonly WeightsInput[]; readonly q: readonly WeightsInput[]; readonly draft: readonly number[] }
+  | ({ readonly fn: 'drawCase' } & CaseInput)
+  | { readonly fn: 'chiSquare'; readonly counts: readonly number[]; readonly p: WeightsInput }
+  | { readonly fn: 'expectedTokensPerRound'; readonly cases: readonly (readonly [number, number])[] }
+  | { readonly fn: 'labTest'; readonly member: string; readonly case: CaseInput; readonly seeds: readonly number[]; readonly draws: number }
+
+const w = (...weights: number[]): WeightsInput => ({ weights })
+
+const specInputs: Record<string, SpecInput> = {
+  'one draft that p accepts whatever the coin, then the bonus token from the next target': {
+    fn: 'verifyChain',
+    seed: 1,
+    p: [w(32768, 16384, 16384, 0), w(8192, 8192, 16384, 32768)],
+    q: [w(16384, 16384, 16384, 16384)],
+    draft: [0],
+  },
+  'one draft that p rules out, so it is rejected whatever the coin, and the residual (p − q)⁺ is all on token 0': {
+    fn: 'verifyChain',
+    seed: 2,
+    p: [w(32768, 16384, 16384, 0), w(8192, 8192, 16384, 32768)],
+    q: [w(16384, 16384, 16384, 16384)],
+    draft: [3],
+  },
+  'three drafts: the first accepted, the second rejected by its coin, and the third never visited': {
+    fn: 'verifyChain',
+    seed: 11,
+    p: [w(20480, 20480, 12288, 12288), w(8192, 24576, 8192, 24576), w(16384, 16384, 16384, 16384), w(4096, 4096, 4096, 53248)],
+    q: [w(8192, 8192, 24576, 24576), w(24576, 8192, 24576, 8192), w(16384, 16384, 16384, 16384)],
+    draft: [0, 2, 1],
+  },
+  'three drafts that p accepts whatever the coins, then the bonus token': {
+    fn: 'verifyChain',
+    seed: 4,
+    p: [w(32768, 16384, 16384, 0), w(0, 32768, 16384, 16384), w(16384, 16384, 32768, 0), w(0, 0, 0, 65536)],
+    q: [w(16384, 16384, 16384, 16384), w(16384, 16384, 16384, 16384), w(16384, 16384, 16384, 16384)],
+    draft: [0, 1, 2],
+  },
+  'an n-gram draft, whose q is one-hot: it is accepted with probability p(x), and a rejection recovers from p without x': {
+    fn: 'verifyChain',
+    seed: 5,
+    p: [w(8192, 16384, 40960, 0), w(16384, 16384, 16384, 16384)],
+    q: [w(0, 0, 65536, 0)],
+    draft: [2],
+  },
+  'no drafts: the bonus token alone, drawn from p': {
+    fn: 'verifyChain',
+    seed: 6,
+    p: [w(1024, 2048, 4096, 58368)],
+    q: [],
+    draft: [],
+  },
+  'the Verifier\'s band, one draft, seed 1': { fn: 'drawCase', seed: 1, gamma: 1, band: 'spec' },
+  'the Verifier\'s band, three drafts, seed 2': { fn: 'drawCase', seed: 2, gamma: 3, band: 'spec' },
+  'the sparse band, two drafts, seed 3': { fn: 'drawCase', seed: 3, gamma: 2, band: 'sparse' },
+  'the fine band, one draft, seed 4': { fn: 'drawCase', seed: 4, gamma: 1, band: 'fine' },
+  'counts 30, 20 and 50 against 25, 25 and 50 expected: a statistic of 2 on 2 degrees of freedom': {
+    fn: 'chiSquare',
+    counts: [30, 20, 50],
+    p: w(16384, 16384, 32768),
+  },
+  'a token whose expected count is under 5 is pooled, and the pool under 5 joins the smallest token': {
+    fn: 'chiSquare',
+    counts: [5050, 4940, 10],
+    p: w(32768, 32760, 8),
+  },
+  'a token that p rules out was drawn: the statistic is infinite, which the fixture writes as null': {
+    fn: 'chiSquare',
+    counts: [4000, 5990, 10],
+    p: w(26214, 39322, 0),
+  },
+  'tokens per round at α = 0, 0.5, 0.65, 0.9 and 1 for draft lengths 0 to 8': {
+    fn: 'expectedTokensPerRound',
+    cases: [0, 500, 650, 900, 1000].flatMap((alpha) => [0, 1, 2, 4, 8].map((gamma) => [alpha, gamma] as const)),
+  },
+  ...Object.fromEntries(
+    ['reference', ...BESTIARY.map((member) => member.id)].map((member) => [
+      `the lab's check on ${member === 'reference' ? 'the exact sampler' : `the "${member}" member`}: two seeds of 20,000 draws, a chain of two drafts, the Verifier's band`,
+      { fn: 'labTest', member, case: { seed: 7, gamma: 2, band: 'spec' }, seeds: [101, 102], draws: 20_000 } satisfies SpecInput,
+    ]),
+  ),
+}
+
+/** A fixture holds JSON, which has no Infinity: a statistic that is infinite is written as null. */
+const finite = (x: number): number | null => (Number.isFinite(x) ? x : null)
+
+function runSpec(input: SpecInput): unknown {
+  switch (input.fn) {
+    case 'verifyChain':
+      return verifyChain(input.p.map((d) => dist(d.weights)), input.q.map((d) => dist(d.weights)), input.draft, rngFor(input.seed, 'vectors/spec'))
+    case 'drawCase':
+      return drawCase(input.seed, input.gamma, BANDS[input.band])
+    case 'chiSquare': {
+      const { stat, df } = chiSquare(input.counts, dist(input.p.weights))
+      return { stat: finite(stat), df }
+    }
+    case 'expectedTokensPerRound':
+      return input.cases.map(([alphaPermille, gamma]) => expectedTokensPerRound(alphaPermille, gamma))
+    case 'labTest': {
+      const { p, q } = drawCase(input.case.seed, input.case.gamma, BANDS[input.case.band])
+      const member = [REFERENCE, ...BESTIARY].find((m) => m.id === input.member)
+      if (member === undefined) throw new Error(`there is no sampler named "${input.member}"`)
+      const result = labTest(input.seeds, p, q, member.verify, '1e-4', input.draws)
+      return { rejected: result.rejected, tests: result.tests.map((t) => ({ ...t, stat: finite(t.stat) })) }
+    }
+  }
+}
+
+const spec: VectorModel = {
+  model: 'spec',
+  file: `${FIXTURE_DIR}/spec.json`,
+  header:
+    'Golden vectors for packages/sim/spec (ARCHITECTURE section 5.10): each maps its input to what the model gives for it, with the SHA-256 of that output\'s canonical JSON. They pin the exact verifier on hand-made distributions (every draw of its stream: the coin, the residual draw, the bonus draw), the seeded cases of the three bands, the chi-square statistic with its pooling, the acceptance-length model, and the lab\'s check on the exact sampler and on each member of the bestiary. Regenerate only with `bun scripts/vectors.ts --write`, and review the diff like code.',
+  cases: () => Object.entries(specInputs).map(([name, input]) => ({ name, input, run: () => runSpec(input) })),
+}
+
+export const MODELS: readonly VectorModel[] = [workload, steploop, trace, bench, spec]
 
 // ---------------------------------------------------------------------------------------------------------------------------
 // fixtures
@@ -789,8 +919,7 @@ export function check(root: string = repoRoot, models: readonly VectorModel[] = 
       if (name.endsWith('.json') && !owned.has(rel)) problems.push(`${rel} is a fixture no model owns: register the model in scripts/vectors.ts, or delete the file`)
     }
   }
-  const table = checkTable(root)
-  if (table) problems.push(table)
+  for (const problem of [checkTable(root), checkCritical(root)]) if (problem) problems.push(problem)
   return problems
 }
 
@@ -832,7 +961,7 @@ export function main(argv: readonly string[]): number {
     return 1
   }
   const count = MODELS.reduce((total, model) => total + model.cases(root).length, 0)
-  console.log(`vectors: ${MODELS.length} model(s), ${count} vector(s) and the exponential table match what the code writes`)
+  console.log(`vectors: ${MODELS.length} model(s), ${count} vector(s) and the generated tables match what the code writes`)
   return 0
 }
 
