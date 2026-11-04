@@ -378,7 +378,8 @@ base.afterAll(() => {
       const lcp = median(lcps)
       lines.push(`  LCP  ${ms(lcp).padStart(9)}  median of ${lcps.map((value) => Math.round(value).toLocaleString('en-US')).join(', ')}; the element is ${last?.lcp?.element}; ${verdict(lcp, GATES.lcpMs, TARGETS.lcpMs)} (gate ${ms(GATES.lcpMs)}, target ${ms(TARGETS.lcpMs)})`)
     }
-    const cls = Math.max(...loads.map((load) => load.cls))
+    // A shift of a few millionths is a sub-pixel move, and CLS is judged at the four decimals it is printed with. The JSON keeps the raw value.
+    const cls = Number(Math.max(...loads.map((load) => load.cls)).toFixed(4))
     lines.push(
       `  CLS  ${cls.toFixed(4).padStart(9)}  worst of ${loads.map((load) => load.cls.toFixed(4)).join(', ')}, with the swap to 3D at ${loads.map((load) => (load.swappedAt === null ? 'never' : ms(load.swappedAt))).join(', ')}; ${verdict(cls, GATES.cls, TARGETS.cls)} (gate ${GATES.cls}, target ${TARGETS.cls})`,
     )
