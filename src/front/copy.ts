@@ -9,9 +9,6 @@
  */
 
 export const HERO = {
-  /** The printed head line of the order ticket: the course, and the run (GAMES.md §2.6: "First service"). */
-  head: 'Engine internals',
-  meta: 'First service',
   headline: 'Fire the next step.',
   /** Two short paragraphs, so the heading stays the largest text of the first viewport (its largest contentful paint). */
   promise: [
@@ -20,18 +17,34 @@ export const HERO = {
   ],
   /** The primary action, on the order ticket's tear-off stub. */
   start: 'Start service',
-  notYet: 'not yet',
 } as const
 
-/** The printer's live lines: the kitchen word, then the engine term (D-048: ticks, labelled synthetic, never µs). */
-export const READOUT = {
+/**
+ * The printer's tape, the live readout (D-048: ticks, labelled synthetic, never µs): the last fire as it was cooked, and the next one
+ * as the rail stands, before the bell. The kitchen word, then the engine term.
+ */
+export const TAPE = {
+  /** The tape's name for a screen reader, and its stamp: every figure on it is the synthetic world's. */
+  name: "The printer's tape, in synthetic ticks",
+  stamp: 'synthetic ticks',
+  next: 'next fire',
   fire: { kitchen: 'fire', engine: 'step' },
   ticksPerStep: { kitchen: 'ticks per step', engine: null },
-  busy: { kitchen: 'stations busy', engine: 'GPU busy' },
-  dark: { kitchen: 'dark stretches', engine: 'bubble' },
+  busy: { kitchen: 'stations busy', engine: 'batch' },
+  dark: { kitchen: 'dark stations', engine: 'empty slots' },
+  bubble: { kitchen: 'dark stretches', engine: 'bubble' },
   clock: { kitchen: 'clock', engine: null },
   /** Printed between the clock and par, on the run's last level. */
   againstPar: 'against',
+  /** Between a count of stations and the rail's clips. */
+  of: 'of',
+  notYet: 'not yet',
+  /** The next fire's line before a ticket is on the rail: there is nothing to fire. */
+  nothingHung: 'hang a ticket',
+  /** The next fire's stations are also the control that fills them: it hangs the next ticket in line on the first free clip. */
+  fill: 'Hang the next ticket on the rail',
+  /** After the count of clips taken, in the control's name. */
+  hung: 'hung',
 } as const
 
 export const DECK = {
@@ -44,6 +57,8 @@ export const DECK = {
   noScript: 'Service runs in your browser, so playing it needs JavaScript. The drawing above is its first frame.',
   /** What dropping a ticket on the pass does, for the drag's own announcement. */
   dropHere: 'Drop it on the pass to hang it on the rail.',
+  /** On the printer's housing, when it holds more tickets than its strip shows. */
+  more: 'More tickets inside',
 } as const
 
 export const NIGHT = {
@@ -63,8 +78,8 @@ export interface Dish {
 
 export const ORDER = {
   title: 'The order',
-  head: 'Table: you',
-  meta: 'Four things to do',
+  /** The ticket's foot line, printed under the four dishes: the table, and what it ordered. */
+  foot: ['Table: you', 'Four things to do'],
   lede: 'By the end you will do these on vLLM and SGLang. Each is proved by checks you cannot fake: fresh seeds in your browser, then receipts from your own GPU.',
   dishes: [
     {
@@ -109,7 +124,8 @@ export const MENU = {
 } as const
 
 export const NEXT = {
-  head: 'Next ticket',
+  /** The ticket's foot line, before its module's id. */
+  foot: 'Next ticket',
   title: 'Read the engines',
   body: 'Trace one request through vLLM and SGLang, from the API server to the model runner. You map it in the browser first, then follow your own map through a nano-vllm fork on a GPU.',
   hours: 'hours',
@@ -126,6 +142,6 @@ export function frontCopy(): string[] {
     else if (Array.isArray(value)) value.forEach(walk)
     else if (value !== null && typeof value === 'object') Object.values(value).forEach(walk)
   }
-  walk([HERO, READOUT, DECK, NIGHT, ORDER, MENU, NEXT])
+  walk([HERO, TAPE, DECK, NIGHT, ORDER, MENU, NEXT])
   return out
 }

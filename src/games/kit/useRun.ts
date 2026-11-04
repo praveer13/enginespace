@@ -69,6 +69,11 @@ export interface RunHandle<Action extends GameAction, View, Score, Ask> extends 
   readonly outcome: RunOutcome<View> | null
   /** The turn's line, for `LiveRegion`. */
   readonly announcement: Announcement | null
+  /**
+   * The view an action would lead to, without taking it: the session's own reducer on the run's state, so a control can say what it
+   * will do before it is pressed. Null when the session refuses the action. Nothing is recorded.
+   */
+  preview(action: Action): View | null
 }
 
 interface RunState<State> {
@@ -108,6 +113,16 @@ export function useRun<Level, State, Action extends GameAction, View, Score, Ask
   const turns = run.record.actions.length
 
   const dispatch = useCallback((action: Action) => step({ kind: 'apply', action }), [])
+  const preview = useCallback(
+    (action: Action): View | null => {
+      try {
+        return session.view(session.reduce(run.state, action))
+      } catch {
+        return null
+      }
+    },
+    [session, run.state],
+  )
   const undo = useCallback(() => {
     if (mode !== 'practice') return
     step({ kind: 'undo' })
@@ -150,5 +165,6 @@ export function useRun<Level, State, Action extends GameAction, View, Score, Ask
     setAutoplay: announcer.setAutoplay,
     outcome,
     announcement,
+    preview,
   }
 }

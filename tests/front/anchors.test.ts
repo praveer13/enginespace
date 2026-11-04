@@ -1,8 +1,9 @@
 /*
- * The front page hangs its printer and its order ticket on the 3D pass by numbers (src/front/anchors.ts): for a perspective shot with a
- * fixed vertical field of view, a point's height is a fixed fraction of the box and its distance from the centre line a fixed multiple
- * of the box's height. These tests hold that arithmetic to three's own camera, at several shapes of the box, and the numbers to the
- * scene: the rail between the printer and the first clip, the strip under the printer, the clips in order.
+ * The front page hangs its order ticket on the 3D pass by numbers (src/front/anchors.ts): for a perspective shot with a fixed vertical
+ * field of view, a point's height is a fixed fraction of the box and its distance from the centre line a fixed multiple of the box's
+ * height. These tests hold that arithmetic to three's own camera, at several shapes of the box, and the numbers to the scene: the rail
+ * between the printer and the first clip, the strip under the printer, the clips in order; and the page's layout to them, with the
+ * scene moved right to leave the printer's column clear.
  *
  * They also hold the 2D drawing's measures that front.css lines the rail up with (poster.ts) to the layout that draws them.
  */
@@ -14,7 +15,7 @@ import { frameSvg, layoutFrame } from '@es/play/loop/layout'
 import type { SvgNode } from '@es/play/loop/svg'
 import type { Vec3 } from '@/scene/camera-rig'
 import { DEFAULT_PRESET, LOOP_PRESETS } from '@/games/loop/scene-presets'
-import { clipX, RAIL, stripSheets } from '@/games/loop/scene-layout'
+import { clipX, RAIL, stripSheets, TICKET } from '@/games/loop/scene-layout'
 import { anchorProperties, fromTop, passAnchors, projector, sheetCorners } from '@/front/anchors'
 import { LANDSCAPE_FRAME, posterView } from '@/front/poster'
 
@@ -108,18 +109,24 @@ describe('the anchors fit the scene', () => {
     for (let i = 1; i < anchors.clips.length; i++) expect(anchors.clips[i]).toBeGreaterThan(anchors.clips[i - 1])
   })
 
-  test('at every shape of the box, the order covers the scene\'s printer and stops short of the expo\'s tape and the first clip', () => {
-    // front.css: the order is a third of the pass wide, short of the expo's tape, within 20rem and 34rem; it stands in the gutter,
-    // or right of the printer's cover.
+  test('at every shape of the box, the printer\'s column stands at the left, the order beside it stops short of the expo\'s tape, and the scene keeps its last clip', () => {
+    // front.css: the 3D pass is drawn on a canvas wider than its box, so the scene's middle moves right by --scene-shift; the printer's
+    // column takes the gutter and 15rem; the order hangs beside it, short of the expo's tape, within 18rem and 30rem.
+    const rem = 16
+    const clamp = (low: number, value: number, high: number) => Math.min(Math.max(low, value), high)
+    const ticketHalf = (clipX(1) - clipX(0)) === 0 ? 0 : ((anchors.clips[1] - anchors.clips[0]) / (clipX(1) - clipX(0))) * (TICKET.w / 2)
     for (const [width, height] of BOXES) {
-      const rem = 16
-      const x = (c: number) => width / 2 + (c * height) / 2
-      const gutter = Math.min(Math.max(16, 0.032 * width), 2.75 * rem)
-      const orderW = Math.min(Math.max(20 * rem, Math.min(0.33 * width, x(anchors.expoLeft) - 0.75 * rem - gutter)), 34 * rem)
-      const orderRight = Math.max(gutter + orderW, x(anchors.coverRight) + 1.25 * rem)
-      expect(orderRight - orderW).toBeLessThanOrEqual(x(anchors.coverLeft))
-      expect(orderRight).toBeLessThanOrEqual(x(anchors.expoLeft))
-      expect(orderRight).toBeLessThan(x(anchors.clipLeft))
+      const shift = clamp(0, 0.15 * width, 13 * rem)
+      const x = (c: number) => shift + width / 2 + (c * height) / 2
+      const gutter = clamp(rem, 0.032 * width, 2.75 * rem)
+      const column = 15 * rem
+      const orderLeft = gutter + column + 1.25 * rem
+      const orderW = clamp(18 * rem, x(anchors.expoLeft) - rem - orderLeft, 30 * rem)
+      expect(orderLeft).toBeGreaterThan(gutter + column)
+      expect(orderLeft + orderW).toBeLessThanOrEqual(x(anchors.expoLeft))
+      expect(orderLeft + orderW).toBeLessThan(x(anchors.clipLeft))
+      // The last clip's ticket is still inside the pass after the shift.
+      expect(x(anchors.clips[anchors.clips.length - 1] + ticketHalf)).toBeLessThan(width)
     }
   })
 
@@ -136,13 +143,23 @@ describe('the 2D drawing\'s measures that the rail lines up with', () => {
   const layers = frameSvg(layoutFrame(posterView(), { orientation: 'landscape' })).children as SvgNode[]
   const layer = (part: string) => layers.find((node) => node.attrs['data-part'] === part)
 
-  test('the landscape frame is 720 × 348, its rail\'s bar has its middle 14 down, and the lamp\'s pool starts at 366', () => {
+  test('the landscape frame is 720 × 348, its rail\'s bar has its middle 14 down and starts at 372, where the page\'s rail hands over', () => {
     const svg = frameSvg(layoutFrame(posterView(), { orientation: 'landscape' }))
     expect(svg.attrs.viewBox).toBe(`0 0 ${LANDSCAPE_FRAME.width} ${LANDSCAPE_FRAME.height}`)
     const bar = (layer('rail')?.children as SvgNode[])[0]
     expect(Number(bar.attrs.y) + Number(bar.attrs.height) / 2).toBe(LANDSCAPE_FRAME.railMiddle)
+    expect(Number(bar.attrs.x)).toBe(LANDSCAPE_FRAME.railStart)
+  })
+
+  test('the lamp\'s amber pools on the pass under the rail, as soft light, and nowhere else in the drawing', () => {
     const pool = (layer('lamp')?.children as SvgNode[])[0]
-    expect(Number(pool.attrs.x)).toBe(LANDSCAPE_FRAME.railStart)
+    const pass = (layer('pass')?.children as SvgNode[])[0]
+    expect(pool.attrs.fill).toBe('var(--es-lamp)')
+    expect(String(pool.attrs.filter)).toMatch(/^url\(#es-lamp-pool-landscape\)$/)
+    expect(Number(pool.attrs.y)).toBeGreaterThanOrEqual(Number(pass.attrs.y))
+    expect(Number(pool.attrs.y) + Number(pool.attrs.height)).toBeLessThanOrEqual(Number(pass.attrs.y) + Number(pass.attrs.height))
+    const lamps = layers.flatMap((node) => (node.children as SvgNode[] | undefined) ?? []).filter((mark) => mark.attrs.fill === 'var(--es-lamp)')
+    expect(lamps).toEqual([pool])
   })
 
   test('front.css uses the same numbers', () => {

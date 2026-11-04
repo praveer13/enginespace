@@ -73,7 +73,7 @@
   --es-dur-feed: 420ms;
   --es-dur-settle: 640ms;
   --es-ease-settle: cubic-bezier(0.16, 1, 0.3, 1);
-  --es-ease-strike: cubic-bezier(0.25, 1.4, 0.4, 1);
+  --es-ease-strike: cubic-bezier(0.19, 1, 0.22, 1);
   --es-ease-feed: steps(6, end);
   --es-radius-paper: 0px;
   --es-radius-plate: 3px;

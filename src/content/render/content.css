@@ -188,7 +188,7 @@
 .es-c-block .es-ticket__body pre {
   padding: var(--es-space-3) var(--es-space-4);
   overflow-x: auto;
-  border-inline-start: 3px solid var(--es-edge);
+  border-block: 2px dotted var(--es-paper-rule);
   background-color: color-mix(in srgb, var(--es-paper-rule) 26%, var(--es-paper));
   font-size: 0.875rem;
   line-height: 1.5;

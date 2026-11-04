@@ -282,6 +282,23 @@
     line-height: var(--es-font-body-leading);
   }
 
+  /* The foot line: the table and the time, printed under the body, as the head line is on a ticket with no headline. */
+  .es-ticket__foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--es-space-1) var(--es-space-4);
+    margin-top: var(--es-space-4);
+    padding-top: var(--es-space-2);
+    border-top: 2px dotted var(--es-paper-rule);
+    color: var(--es-text-2);
+    font-family: var(--es-font-ticket);
+    font-size: 0.9375rem;
+    line-height: 1.3;
+    letter-spacing: var(--es-font-ticket-tracking);
+    font-weight: var(--es-font-ticket-weight);
+  }
+
   .es-ticket__body > * + * {
     margin-top: var(--es-space-3);
   }
@@ -1750,6 +1767,84 @@
     margin-top: 0.15em;
   }
 
+  /* ---------------------------------------------------------------------------------------------- the mirror's table */
+
+  /*
+   * The mirror kit's table (src/games/kit/MirrorTable.tsx), on its ticket. The ticket is a size container. Wide, the table is a
+   * table. Narrow, each row prints as a block of its own: the row's header first, then each cell after its column's name (the
+   * cell's `data-label`), wrapping as words do, so nothing is cut off at the paper's edge. The column heads stay in the document
+   * for a screen reader, and the table's roles are written on its elements, so it reads as a table in either layout.
+   */
+  .es-mirror {
+    container-type: inline-size;
+  }
+
+  .es-mirror__region {
+    overflow-x: auto;
+  }
+
+  @container (max-width: 36rem) {
+    .es-mirror__region {
+      overflow-x: visible;
+    }
+
+    .es-mirror__table,
+    .es-mirror__table caption,
+    .es-mirror__table tbody {
+      display: block;
+    }
+
+    .es-mirror__table caption {
+      text-wrap: pretty;
+    }
+
+    /* The column heads, for a screen reader only: each cell prints its own. Each head is a box of 1 px, so none reaches past the paper. */
+    .es-mirror__table thead th {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .es-mirror__table tbody tr {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: var(--es-space-1) var(--es-space-4);
+      padding: var(--es-space-3) var(--es-space-2);
+    }
+
+    .es-mirror__table tbody :is(th, td) {
+      display: inline-flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0 0.45em;
+      min-width: 0;
+      padding: 0;
+      text-align: left;
+    }
+
+    .es-mirror__table tbody td::before {
+      content: attr(data-label);
+      color: var(--es-text-2);
+      font-family: var(--es-font-body);
+      font-size: 0.875rem;
+      font-weight: 700;
+    }
+
+    .es-mirror__table tbody tr[data-lamp] td::before {
+      color: var(--es-paper-ink);
+    }
+
+    .es-mirror__table tbody tr[data-empty] td::before {
+      content: none;
+    }
+  }
+
   /* ---------------------------------------------------------------------------------------------- the board and the kick-plate */
 
   .es-board {
@@ -1779,20 +1874,18 @@
     color: var(--es-paper);
   }
 
-  /* The house's nameplate: stamped steel, riveted at both ends. */
+  /* The house's name, stamped into a flat plate of brushed steel: the grain and one edge, and no drawn hardware. */
   .es-board__plate {
     position: relative;
     display: inline-flex;
     align-items: center;
     min-height: 2.5rem;
-    padding: 0.3rem 1.6rem 0.2rem;
+    padding: 0.3rem 0.95rem 0.2rem;
+    border: 1px solid var(--es-edge);
     border-radius: var(--es-radius-plate);
     background-color: var(--es-surface-2);
-    background-image: linear-gradient(180deg, rgb(255 255 255 / 0.55), rgb(255 255 255 / 0) 60%), var(--es-texture-brushed);
-    background-size: auto, 100% 360px;
-    box-shadow:
-      inset 0 0 0 1px var(--es-edge),
-      var(--es-shadow-plate);
+    background-image: var(--es-texture-brushed);
+    background-size: 100% 360px;
     color: var(--es-text-1);
     font-family: var(--es-font-display);
     font-size: 1.3125rem;
@@ -1801,27 +1894,6 @@
     font-weight: 800;
     text-decoration: none;
     text-transform: uppercase;
-  }
-
-  .es-board__plate::before,
-  .es-board__plate::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    width: 0.4rem;
-    height: 0.4rem;
-    margin-top: -0.2rem;
-    border-radius: var(--es-radius-round);
-    background: radial-gradient(circle at 35% 35%, var(--es-surface-1), var(--es-surface-3) 80%);
-    box-shadow: 0 1px 0 rgb(255 255 255 / 0.55);
-  }
-
-  .es-board__plate::before {
-    left: 0.55rem;
-  }
-
-  .es-board__plate::after {
-    right: 0.55rem;
   }
 
   .es-board__plate:is(:hover, [data-force='hover']) {

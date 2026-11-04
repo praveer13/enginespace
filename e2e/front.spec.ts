@@ -244,20 +244,44 @@ test.describe('the pass is one object', () => {
     console.log(`the scene's rail at ${sceneRailY.toFixed(1)} px, the page's at ${pageRailY.toFixed(1)} px`)
     expect(Math.abs(sceneRailY - pageRailY)).toBeLessThan(3)
 
-    // The order ticket hides the scene's strip of waiting tickets behind it, so the pass has one printer, and leaves the tape that
-    // names the CPU lane in the clear. The scene's labels are DOM (D-021), so their boxes are measured, not guessed.
+    // The pass has one printer, the page's: the scene draws no printer and no strip of waiting tickets of its own here. The printer's
+    // column and the order ticket beside it leave the tape that names the CPU lane in the clear, and the scene keeps its last clip in
+    // the pass. The scene's labels are DOM (D-021), so their boxes are measured, not guessed.
+    await expect(page.locator('[data-stage="front"] .es-loop-label--waiting')).toHaveCount(0)
     const ticket = await page.locator('.es-front-ticket').boundingBox()
-    const strip = await page.locator('[data-stage="front"] .es-loop-label--waiting').evaluateAll((labels) => labels.map((label) => label.getBoundingClientRect().toJSON() as DOMRect))
+    const column = await page.locator('.es-front-expo').boundingBox()
     const expo = await page.locator('[data-stage="front"] .es-loop-label--tape').first().boundingBox()
-    if (ticket === null || expo === null) throw new Error('nothing to measure')
-    expect(strip.length).toBeGreaterThan(0)
-    for (const label of strip) {
-      expect(label.left).toBeGreaterThanOrEqual(ticket.x)
-      expect(label.right).toBeLessThanOrEqual(ticket.x + ticket.width)
-      expect(label.bottom).toBeLessThanOrEqual(ticket.y + ticket.height)
-    }
-    console.log(`the order ticket ends at ${(ticket.x + ticket.width).toFixed(1)} px; the CPU lane's tape starts at ${expo.x.toFixed(1)} px`)
+    const lastClip = await page.locator('[data-stage="front"] .es-loop-label--empty').last().boundingBox()
+    if (ticket === null || column === null || expo === null || lastClip === null) throw new Error('nothing to measure')
+    console.log(`the printer's column ends at ${(column.x + column.width).toFixed(1)} px, the order ticket at ${(ticket.x + ticket.width).toFixed(1)} px; the CPU lane's tape starts at ${expo.x.toFixed(1)} px`)
+    expect(column.x + column.width).toBeLessThanOrEqual(ticket.x)
     expect(ticket.x + ticket.width).toBeLessThanOrEqual(expo.x)
+    expect(lastClip.x + lastClip.width).toBeLessThanOrEqual(1440)
+  })
+
+  test('the stations light with the fire: half a rail leaves half the line dark and the tape prints the dark stations, a full rail lights it end to end', async ({ page }) => {
+    test.setTimeout(120_000)
+    for (const [hung, lit] of [
+      [2, '2 of 4 lit'],
+      [4, '4 of 4 lit'],
+    ] as const) {
+      await page.goto(`${ORIGIN}/?es-tier=2`)
+      await mounted(page)
+      await swapped(page)
+      await page.getByRole('button', { name: 'Start service' }).click()
+      for (let n = 0; n < hung; n++) await waiting(page).first().click()
+      // Before the bell the tape prints the next fire: the stations it will light, of the rail's four, and the step it will take.
+      const tape = page.locator('.es-front-tape')
+      const figures = (where: string) => tape.locator(`${where} data`)
+      await expect(figures('.es-front-tape__next')).toHaveText([String(hung), '4', '8'])
+      await page.getByRole('button', { name: /Ring the bell/ }).click()
+      // After it, the fire as the line cooked it: its ticks per step, the stations it lit, and the ones it left dark, in the red.
+      await expect(figures('[data-line="ticks"]')).toHaveText(['8'])
+      await expect(figures('[data-line="busy"]')).toHaveText([String(hung), '4'])
+      await expect(figures('[data-line="dark"]')).toHaveText([String(4 - hung)])
+      await expect(tape.locator('[data-line="dark"]')).toHaveAttribute('data-tone', hung < 4 ? 'ink-2' : 'ink')
+      await expect(page.locator('[data-stage="front"] .es-loop-label__stations')).toContainText(lit)
+    }
   })
 })
 

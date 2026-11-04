@@ -71,6 +71,15 @@
   text-transform: uppercase;
 }
 
+/* In a phone's narrow frame the clips stand close together: the stubs print tighter, so four fit side by side. */
+@container (max-width: 30rem) {
+  .es-loop-label--empty {
+    padding: 0.15em 0.25em;
+    font-size: 0.5625rem;
+    letter-spacing: 0.02em;
+  }
+}
+
 /* Marker on masking tape. */
 .es-loop-label--tape {
   color: var(--es-tape-ink);
@@ -96,13 +105,50 @@
   font-size: clamp(0.6875rem, 1.3cqi, 0.9375rem);
 }
 
-/* The line's stations: the design system's pilot light, on a plate of steel so it reads over the line's counter. */
+/* The line's stations, as the pass reads them: a pip for each, lit in the line's colour or an open ring of deep steel, and the
+   count in the printer's dots, on a slip of steel so it reads over the counter. */
 .es-loop-label--station {
-  padding: 0.3em 0.55em;
+  padding: 0.35em 0.6em;
+  border: 1px solid var(--es-edge);
   border-radius: var(--es-radius-plate);
   background-color: var(--es-surface-1);
-  box-shadow: var(--es-shadow-plate);
   font-size: clamp(0.6875rem, 1.3cqi, 0.9375rem);
+}
+
+.es-loop-label__stations {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+}
+
+.es-loop-label__pips {
+  display: inline-flex;
+  gap: 0.3em;
+}
+
+.es-loop-label__pip {
+  width: 0.85em;
+  height: 0.85em;
+  border: 2px solid var(--es-surface-3);
+  border-radius: var(--es-radius-round);
+  background-color: var(--es-surface-2);
+}
+
+.es-loop-label__pip[data-lit] {
+  border-color: var(--es-cat-green-edge);
+  background-color: var(--es-lane-gpu);
+  box-shadow: 0 0 0.6em 0.1em color-mix(in srgb, var(--es-lane-gpu) 60%, transparent);
+}
+
+.es-loop-label__station-words {
+  display: grid;
+  text-align: left;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.es-loop-label__station-count {
+  color: var(--es-text-2);
 }
 
 .es-loop-label--calls {
