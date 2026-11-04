@@ -1,10 +1,10 @@
 /*
- * The compiler knows the games and the labs because it has been told, and the data it ships with (content/course.yaml, the sample
- * KCs) is copied from the plan. These tests read the documents themselves, so a roster, a title or an hour that drifts from
- * ARCHITECTURE.md, PLAN.md or the curriculum fails here and not in a lesson.
+ * The compiler knows the games and the labs because it has been told, and the data it ships with (content/course.yaml) is copied
+ * from the plan. These tests read the documents themselves, so a roster, a title or an hour that drifts from ARCHITECTURE.md,
+ * PLAN.md or the curriculum fails here and not in a lesson. The KC graph is held to the curriculum in tests/kc/graph.test.ts.
  */
 import { describe, expect, test } from 'bun:test'
-import { courseSchema, kcGraphSchema } from '@es/schema'
+import { courseSchema } from '@es/schema'
 import { GAME_IDS, LAB_IDS } from '../../scripts/content/directives.ts'
 import { loadYaml, parseContentFile } from '../../scripts/content/parse.ts'
 import type { Diagnostic } from '../../scripts/content/parse.ts'
@@ -94,26 +94,6 @@ describe('content/course.yaml', () => {
     const hourLines = text.split('\n').filter((line) => /^\s+hours(_by_lane)?:/.test(line))
     expect(hourLines.length).toBe(course.modules.length * 2)
     expect(hourLines.filter((line) => !line.includes('# [estimated]'))).toEqual([])
-  })
-})
-
-describe('the sample KCs', () => {
-  const graph = kcGraphSchema.parse(yaml('content/kc/graph.yaml'))
-  const curriculum = read('curriculum/TR2-the-step-loop.md')
-
-  test('are two of TR2\'s proposed KCs, with the edges the curriculum gives them or fewer', () => {
-    expect(graph.map((kc) => kc.id)).toEqual(['tr2.bubble', 'tr2.async-overlap'])
-    const rows = tableRows(between(curriculum, '| KC | Requires |', '## 2. What it builds on'))
-    const requires = new Map(rows.map(([kc, needs]) => [backticked(kc)[0], backticked(needs)]))
-    for (const kc of graph) {
-      expect(requires.has(kc.id)).toBe(true)
-      for (const edge of kc.requires) expect(requires.get(kc.id)).toContain(edge)
-    }
-  })
-
-  test('wait for the task that adds their first item', () => {
-    expect(graph.every((kc) => kc.planned === 'W1-T14')).toBe(true)
-    expect(read('docs/TRACKER.md')).toContain('#### [ ] W1-T14 · TR2\'s graded task and item families')
   })
 })
 
