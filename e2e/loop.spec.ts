@@ -128,14 +128,15 @@ test.describe('a keyboard-only walk', () => {
     await expect(page.getByRole('button', { name: 'Auto' })).toHaveAttribute('aria-pressed', 'true')
     await page.keyboard.press('Space')
     await expect(page.getByRole('button', { name: 'Auto' })).toHaveAttribute('aria-pressed', 'false')
-    // `?` lists every key, the common ones and Service's own, and Escape gives focus back to the button that opened it.
+    // `?` lists every key, the common ones and Service's own, and Escape gives focus back to where the learner pressed it: the
+    // game, so its keys work again at once (KeysDialog; the Keys button gets focus back when it opened the list).
     await page.keyboard.press('Shift+Slash')
     const keys = page.getByRole('dialog')
     await expect(keys).toBeVisible()
     await expect(keys.locator('kbd')).toHaveText(['Space', '.', ',', '[', ']', 'C', 'V', '?', 'O'])
     await page.keyboard.press('Escape')
     await expect(keys).toBeHidden()
-    await expect.poll(() => activeName(page)).toBe('Keys')
+    await expect.poll(() => page.evaluate(() => document.activeElement?.getAttribute('data-game'))).toBe('loop')
   })
 
   test('a native key wins: Space on the focused Auto button presses the button, once', async ({ page }) => {
