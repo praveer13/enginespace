@@ -17,11 +17,13 @@
  * (scripts/tables/exp-quantiles.ts).
  *
  * Adding a model: give it a `VectorModel` in MODELS, whose cases are JSON inputs and a function from them to the model's
- * output. `workload` (W0-T12), `steploop` (W0-T13) and `trace` (W1-T08) were added this way.
+ * output. `workload` (W0-T12), `steploop` (W0-T13), `trace` (W1-T08) and `bench` (W1-T31) were added this way.
  */
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
+import { runBench, summarize } from '../packages/sim/bench'
+import type { ArrivalSpec, BenchRun, BenchSpec, OpenArrivals, ServerModel } from '../packages/sim/bench'
 import { canonicalJson } from '../packages/sim/core/json'
 import { HOST_PRESETS } from '../packages/sim/host'
 import type { RunnerPresetId } from '../packages/sim/host'
@@ -518,7 +520,179 @@ const trace: VectorModel = {
   cases: (root) => Object.entries(traceInputs).map(([name, input]) => ({ name, input, run: () => traceOutput(root, input) })),
 }
 
-export const MODELS: readonly VectorModel[] = [workload, steploop, trace]
+// ---------------------------------------------------------------------------------------------------------------------------
+// bench
+
+/** An arrival schedule as a fixture writes it: a replayed slice is named by its file. */
+type OpenArrivalsInput = Exclude<OpenArrivals, { kind: 'replay' }> | { readonly kind: 'replay'; readonly slice: SliceId; readonly speedPermille: number }
+type ArrivalInput = OpenArrivalsInput | { readonly kind: 'closed'; readonly clients: number; readonly thinkUs: number; readonly schedule?: OpenArrivalsInput }
+
+/**
+ * A benchmark as a fixture writes it: every argument of `runBench`, with the server's GPU card named (the tick card, or an S5 row
+ * at a tensor-parallel degree) and a replayed slice named by its file. `output` is `full` (the log's rows, with the summary) or
+ * `digest` (the summary, with the SHA-256 of the rows).
+ */
+type BenchInput = {
+  readonly seed: number
+  readonly spec: Omit<BenchSpec, 'arrivals'> & { readonly arrivals: ArrivalInput }
+  readonly server: Omit<ServerModel, 'gpu'> & { readonly gpu: { readonly card: 'tick' } | { readonly card: 's5'; readonly row: PhysicsRowKey; readonly tp: number; readonly hostTerm: S5HostTerm } }
+  readonly summary: { readonly bootstrap: number; readonly seed: number }
+  readonly output: 'full' | 'digest'
+}
+
+const S5_SERVER = {
+  maxNumSeqs: 64,
+  maxBatchedTokens: 8192,
+  chunkedPrefill: true,
+  gpu: { card: 's5', row: 'h100-vllm-0-10-2-fp8', tp: 4, hostTerm: 'in-gpu' },
+} as const
+const LLM_LENGTHS = { kind: 'dists', prompt: { kind: 'uniform', lo: 128, hi: 512 }, output: { kind: 'uniform', lo: 64, hi: 192 } } as const
+/** 8 requests a second for 60 s with a 10 s warm-up: about 400 measured requests, a server a quarter full. */
+const S5_BENCH = {
+  lengths: LLM_LENGTHS,
+  requests: 1000,
+  warmupUs: 10_000_000,
+  durationUs: 60_000_000,
+  slo: { ttftUs: 500_000, tpotUs: 50_000 },
+} as const
+const S5_POISSON = { kind: 'poisson', ratePerSMilli: 8000 } as const
+const STALL_AT_30S = [{ atUs: 30_000_000, forUs: 5_000_000 }] as const
+const TICK_SERVER = { maxNumSeqs: 4, maxBatchedTokens: 2048, chunkedPrefill: true, gpu: { card: 'tick' } } as const
+const TICK_BENCH = {
+  lengths: { kind: 'dists', prompt: { kind: 'uniform', lo: 1, hi: 3 }, output: { kind: 'uniform', lo: 2, hi: 12 } },
+  requests: 12,
+  warmupUs: 0,
+  durationUs: 400,
+  slo: { ttftUs: 30, tpotUs: 8 },
+} as const
+/** A Poisson process with a mean gap of 20 ticks, in requests a second ×1,000 (a tick is a µs of the model's clock). */
+const TICK_POISSON = { kind: 'poisson', ratePerSMilli: 50_000_000 } as const
+
+const benchInputs: Record<string, BenchInput> = {
+  'tick world: 12 requests with Poisson arrivals, an open loop, so every send is on its due time': {
+    seed: 21,
+    spec: { ...TICK_BENCH, arrivals: TICK_POISSON },
+    server: TICK_SERVER,
+    summary: { bootstrap: 200, seed: 1 },
+    output: 'full',
+  },
+  'tick world: the same schedule through 2 closed-loop clients, whose sends slip behind their due times': {
+    seed: 21,
+    spec: { ...TICK_BENCH, arrivals: { kind: 'closed', clients: 2, thinkUs: 0, schedule: TICK_POISSON } },
+    server: TICK_SERVER,
+    summary: { bootstrap: 200, seed: 1 },
+    output: 'full',
+  },
+  '70B on H100 at TP 4: Poisson arrivals at 8 a second, an open loop': {
+    seed: 31,
+    spec: { ...S5_BENCH, arrivals: S5_POISSON },
+    server: S5_SERVER,
+    summary: { bootstrap: 1000, seed: 2 },
+    output: 'digest',
+  },
+  '70B on H100 at TP 4: the same schedule with the server frozen for 5 s at 30 s, an open loop': {
+    seed: 31,
+    spec: { ...S5_BENCH, arrivals: S5_POISSON },
+    server: { ...S5_SERVER, stalls: STALL_AT_30S },
+    summary: { bootstrap: 1000, seed: 2 },
+    output: 'digest',
+  },
+  '70B on H100 at TP 4: the same frozen server seen through 24 closed-loop clients, which hide the stall from their own timers': {
+    seed: 31,
+    spec: { ...S5_BENCH, arrivals: { kind: 'closed', clients: 24, thinkUs: 0, schedule: S5_POISSON } },
+    server: { ...S5_SERVER, stalls: STALL_AT_30S },
+    summary: { bootstrap: 1000, seed: 2 },
+    output: 'digest',
+  },
+  '70B on H100 at TP 4: 64 closed-loop clients with no schedule, which keep the server just full': {
+    seed: 32,
+    spec: { ...S5_BENCH, arrivals: { kind: 'closed', clients: 64, thinkUs: 0 } },
+    server: S5_SERVER,
+    summary: { bootstrap: 1000, seed: 2 },
+    output: 'digest',
+  },
+  '70B on H100 at TP 4: every request due at 0 behind 16 clients, the shape of `--request-rate inf --max-concurrency 16`': {
+    seed: 33,
+    spec: { ...S5_BENCH, requests: 200, warmupUs: 0, durationUs: 60_000_000, arrivals: { kind: 'closed', clients: 16, thinkUs: 0, schedule: { kind: 'burst' } } },
+    server: S5_SERVER,
+    summary: { bootstrap: 1000, seed: 2 },
+    output: 'digest',
+  },
+  '70B on H100 at TP 4: a replay of the BurstGPT minute at 8 times its pace': {
+    seed: 34,
+    spec: {
+      requests: 480,
+      warmupUs: 0,
+      durationUs: 60_000_000,
+      slo: { ttftUs: 2_000_000, tpotUs: 100_000 },
+      arrivals: { kind: 'replay', slice: 'burstgpt-v2-busiest-minute', speedPermille: 8000 },
+    },
+    server: S5_SERVER,
+    summary: { bootstrap: 1000, seed: 2 },
+    output: 'digest',
+  },
+  '70B on H100 at TP 4: a cold start for the first 20 s at 3 times the step time, with the warm-up counted': {
+    seed: 35,
+    spec: { ...S5_BENCH, warmupUs: 0, arrivals: S5_POISSON },
+    server: { ...S5_SERVER, cold: { untilUs: 20_000_000, slowdownPermille: 3000 } },
+    summary: { bootstrap: 1000, seed: 2 },
+    output: 'digest',
+  },
+  '70B on H100 at TP 4: replies cut at 16 tokens': {
+    seed: 36,
+    spec: { ...S5_BENCH, outputCap: 16, arrivals: S5_POISSON },
+    server: S5_SERVER,
+    summary: { bootstrap: 1000, seed: 2 },
+    output: 'digest',
+  },
+  '70B on H100 at TP 4: prompts left in the prefix cache by a previous run': {
+    seed: 37,
+    spec: { ...S5_BENCH, prefixWarm: true, arrivals: S5_POISSON },
+    server: S5_SERVER,
+    summary: { bootstrap: 1000, seed: 2 },
+    output: 'digest',
+  },
+  '70B on H100 at TP 4: a client that spends 150 ms of CPU on every send, against a schedule of one every 125 ms': {
+    seed: 38,
+    spec: { ...S5_BENCH, clientCostUs: 150_000, arrivals: S5_POISSON },
+    server: S5_SERVER,
+    summary: { bootstrap: 1000, seed: 2 },
+    output: 'digest',
+  },
+}
+
+function openArrivals(root: string, a: OpenArrivalsInput): OpenArrivals {
+  return a.kind === 'replay' ? { kind: 'replay', slice: loadSlice(root, a.slice), speedPermille: a.speedPermille } : a
+}
+
+function benchArrivals(root: string, a: ArrivalInput): ArrivalSpec {
+  if (a.kind !== 'closed') return openArrivals(root, a)
+  return { kind: 'closed', clients: a.clients, thinkUs: a.thinkUs, ...(a.schedule === undefined ? {} : { schedule: openArrivals(root, a.schedule) }) }
+}
+
+function runBenchInput(root: string, input: BenchInput): BenchRun {
+  const spec: BenchSpec = { ...input.spec, arrivals: benchArrivals(root, input.spec.arrivals) }
+  const gpu: GpuCard = input.server.gpu.card === 'tick' ? TICK_CARD : s5Card(input.server.gpu.row, input.server.gpu.tp, input.server.gpu.hostTerm)
+  return runBench(input.seed, spec, { ...input.server, gpu })
+}
+
+function benchOutput(root: string, input: BenchInput): unknown {
+  const run = runBenchInput(root, input)
+  const summary = summarize(run, input.summary)
+  const common = { summary, steps: run.steps, endUs: run.endUs, gpuBusyUs: run.gpuBusyUs }
+  if (input.output === 'full') return { ...common, rows: run.rows }
+  return { ...common, rows: { count: run.rows.length, sha256: sha256(canonicalJson(run.rows)) } }
+}
+
+const bench: VectorModel = {
+  model: 'bench',
+  file: `${FIXTURE_DIR}/bench.json`,
+  header:
+    'Golden vectors for packages/sim/bench (ARCHITECTURE section 5.10): each maps its input, a benchmark spec with a seed, a server and the summary options, to the client\'s log and its summary, with the SHA-256 of that output\'s canonical JSON. A run on the front page\'s tick world is recorded whole: its rows and its summary. A longer run is recorded as its summary with the count and the SHA-256 of its rows. Regenerate only with `bun scripts/vectors.ts --write`, and review the diff like code.',
+  cases: (root) => Object.entries(benchInputs).map(([name, input]) => ({ name, input, run: () => benchOutput(root, input) })),
+}
+
+export const MODELS: readonly VectorModel[] = [workload, steploop, trace, bench]
 
 // ---------------------------------------------------------------------------------------------------------------------------
 // fixtures
