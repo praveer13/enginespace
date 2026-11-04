@@ -117,7 +117,8 @@ describe('routes against ARCHITECTURE §3.1', () => {
    * page name and the site name unless the route says otherwise.
    */
   const stubs: Record<string, { h1: string; shows?: string; title?: string }> = {
-    '/': { h1: 'Front page', title: 'enginespace' },
+    // The front page's heading is printed on its order ticket (W0-T18).
+    '/': { h1: 'Fire the next step.', title: 'enginespace' },
     '/map': { h1: 'Course map' },
     // The module and lesson pages load their content in the browser (W0-T09), so the server renders the ticket that is still printing.
     '/m/:module': { h1: 'Module', shows: 'Printing the module' },
@@ -163,7 +164,8 @@ describe('routes against ARCHITECTURE §3.1', () => {
     return html.replaceAll('<!-- -->', '')
   }
 
-  const h1sIn = (html: string) => [...html.matchAll(/<h1[^>]*>(.*?)<\/h1>/gs)].map((match) => match[1])
+  /** The text of every <h1>, without the markup inside it. */
+  const h1sIn = (html: string) => [...html.matchAll(/<h1[^>]*>(.*?)<\/h1>/gs)].map((match) => match[1].replace(/<[^>]+>/g, ''))
   /** The title App puts in document.title for a URL: the `handle` of the deepest route that names one. */
   const titleOf = (url: string) =>
     matchRoutes(routes, url)

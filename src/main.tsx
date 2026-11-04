@@ -45,9 +45,26 @@ const router = createBrowserRouter(routes, { basename: import.meta.env.BASE_URL 
 
 const container = document.getElementById('root')
 if (!container) throw new Error('index.html lost its #root element')
+const root = container
 
-createRoot(container).render(
-  <StrictMode>
-    <RouterProvider router={router} />
-  </StrictMode>,
-)
+/*
+ * React takes the root once the first page's route has loaded, its chunk and its loader, and not before. Until then the static shell
+ * that the document holds stays on screen (the front page's, W0-T18, or the one prepare-pages wrote for the route), rather than a
+ * loading line in its place, so the page that replaces it arrives whole and moves nothing.
+ */
+function mount() {
+  createRoot(root).render(
+    <StrictMode>
+      <RouterProvider router={router} />
+    </StrictMode>,
+  )
+}
+
+if (router.state.initialized) mount()
+else {
+  const stop = router.subscribe((state) => {
+    if (!state.initialized) return
+    stop()
+    mount()
+  })
+}

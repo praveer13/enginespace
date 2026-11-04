@@ -118,7 +118,8 @@ describe('acceptance 1: every route-table entry gets an index.html with a distin
     for (const file of htmlFilesUnder(dist)) {
       const urls = [...readFile(dist, file).matchAll(/<(?:script|link)\b[^>]*\b(?:src|href)="([^"]+)"/g)].map((match) => match[1]).filter((url) => !url.startsWith('data:'))
       expect(urls.length).toBeGreaterThanOrEqual(2)
-      expect([file, urls.filter((url) => !url.startsWith(`${BASE}assets/`))]).toEqual([file, []])
+      // The built chunks, and the faces that index.html preloads from public/fonts (W0-T18).
+      expect([file, urls.filter((url) => !url.startsWith(`${BASE}assets/`) && !url.startsWith(`${BASE}fonts/`))]).toEqual([file, []])
     }
   })
 })
