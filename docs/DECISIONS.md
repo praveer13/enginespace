@@ -1,6 +1,6 @@
 # enginespace: decision log
 
-**Status:** D-001 to D-006 are the owner's decisions of 2026-11-03. D-007 to D-013 restate the product record the owner confirmed the same day (`PRODUCT.md`). D-014 to D-042 are **proposed** by [ARCHITECTURE.md](ARCHITECTURE.md) and wait for the owner's review. D-043 to D-046 are **proposed** by the design review of 2026-11-03, which settled contradictions between the design files; they wait for the owner too. D-047 records the visual world the owner chose on 2026-11-03, and D-048 and D-049 are **proposed** by the art direction that followed it. D-050 is **proposed** by the design system's build (W0-T05), and D-051 by the settings page (W0-T22). The open owner questions, O-1 to O-11, and the course-design questions, Q-1 to Q-12, are at the end. **Date:** 2026-11-03.
+**Status:** D-001 to D-006 are the owner's decisions of 2026-11-03. D-007 to D-013 restate the product record the owner confirmed the same day (`PRODUCT.md`). D-014 to D-042 are **proposed** by [ARCHITECTURE.md](ARCHITECTURE.md) and wait for the owner's review. D-043 to D-046 are **proposed** by the design review of 2026-11-03, which settled contradictions between the design files; they wait for the owner too. D-047 records the visual world the owner chose on 2026-11-03, and D-048 and D-049 are **proposed** by the art direction that followed it. D-050 is **proposed** by the design system's build (W0-T05), and D-051 by the settings page (W0-T22). The W0 exit review (W0-T24, 2026-11-04) froze D-023's budgets, recorded D-040's spike result and D-047's finish verdict, and carried O-7, O-8 and O-9 over; its record is [docs/waves/W0-report.md](waves/W0-report.md). The open owner questions, O-1 to O-11, and the course-design questions, Q-1 to Q-12, are at the end. **Date:** 2026-11-03, updated 2026-11-04.
 
 **How to read a record.** Each record carries six fields:
 - **Decision**, in one or two sentences.
@@ -46,7 +46,7 @@
 | D-020 | Edition 1 uses WebGL2 only, with no WebGPU path. | proposed |
 | D-021 | No game engine, no drei and no in-canvas text; post-processing comes from three's own addons. | proposed |
 | D-022 | Device tiers come from local hints and a frame-time governor, not detect-gpu. | proposed |
-| D-023 | A first-paint JavaScript budget, and a front page that paints a 2D step loop first and upgrades to 3D after LCP. | proposed |
+| D-023 | A first-paint JavaScript budget, and a front page that paints a 2D step loop first and upgrades to 3D after LCP. | proposed; budgets frozen 2026-11-04 (W0-T24) |
 | D-024 | The evidence ledger is re-implemented on kernelspace's envelope; provenance weights come from ASSESSMENT.md and apply at read time. | proposed |
 | D-025 | Browser-lane builds are Rust → wasm on kernelspace's kslab ABI v2, graded by host-driven property tests whose oracle sits outside the learner's code. | proposed |
 | D-026 | The local grader is Python, with one locked environment per engine. | proposed |
@@ -63,14 +63,14 @@
 | D-037 | The Keep stage ships in W1: Today, on kernelspace's vendored FSRS. | proposed |
 | D-038 | A front-page run is practice and earns no credit. | proposed |
 | D-039 | W1 ships the browser parts of TR1, TR6 and TR8; their GPU parts ship with W2. | proposed |
-| D-040 | The 2026-10-24 pre-build gates: the TR2 spike becomes W0-T13's acceptance; the pick form is not a gate for this repo unless the owner says otherwise (O-7). | proposed |
+| D-040 | The 2026-10-24 pre-build gates: the TR2 spike becomes W0-T13's acceptance; the pick form is not a gate for this repo unless the owner says otherwise (O-7). | proposed; the spike passed (W0-T13, recorded 2026-11-04) |
 | D-041 | Dispatch keys follow the pinned default runner, MRV2's `BatchExecutionDescriptor`; `has_lora` is taught as MRV1's legacy key. This corrects the catalog. | proposed |
 | D-042 | Adapter pages in the KV pool are taught as S-LoRA's design, built by the learner. Upstream vLLM and SGLang use adapter slots at the pins. This corrects the catalog's framing. | proposed |
 | D-043 | The front page plays GAMES.md §3.1's "First loop": the visitor batches requests by hand, refills, and turns on overlap; CUDA graphs stay in TR2's levels. | proposed (design review); the owner confirms with O-11 |
 | D-044 | On the "70B on H100" card, S5's per-sequence host term t_seq runs on the CPU lane, not inside the GPU step, so host work is counted once; hiding it is labelled an extrapolation. | proposed (design review); the owner confirms |
 | D-045 | The KV pool has one page size: KV groups unify to it as vLLM's hybrid manager does, and adapters take S-LoRA's page count. ARCHITECTURE §5.4's mixed `pageUnits` is dropped. | proposed (design review) |
 | D-046 | Same-machine output comparisons (TR1's instrumented fork, TR6's speculative runs) use ASSESSMENT §5.7's tie-aware identity, not strict token identity. | proposed (design review) |
-| D-047 | The visual identity is The Pass, a restaurant line kitchen and its expo pass. The direction contract in the front page's surface brief sets token values, faces and scene materials, and DESIGN.md is written from the built world at the end of W0. | owner-decided 2026-11-03 |
+| D-047 | The visual identity is The Pass, a restaurant line kitchen and its expo pass. The direction contract in the front page's surface brief sets token values, faces and scene materials, and DESIGN.md is written from the built world at the end of W0. | owner-decided 2026-11-03; finish verdict `fix` on 2026-11-04 (W0-T25), with the owner |
 | D-048 | The front page runs on GAMES.md's synthetic ticks and prints them as ticks, labelled synthetic. µs on the model's clock start with TR2's levels (W1-T13). | proposed (art direction) |
 | D-049 | Every game gets an in-world display name in kitchen vocabulary, with its engine concept as a subtitle. Ids stay as they are. | proposed (art direction) |
 | D-050 | The design system ships one light scheme, the line under its tubes, with a more-contrast variant and no dark scheme. Its faces are Big Shoulders Display, Doto (with Handjet's µ and ±), Permanent Marker, Atkinson Hyperlegible and Atkinson Hyperlegible Mono, self-hosted from Fontsource 5.3.0 and pinned by SHA-256. | proposed (W0-T05) |
@@ -323,7 +323,7 @@
 
 ### D-023 · First-paint budget and a 2D-first front page
 
-- **Status:** proposed.
+- **Status:** proposed. Its budgets were frozen on 2026-11-04 by the W0 exit review (W0-T24), below.
 - **Decision:**
   - The front page's static HTML holds the poster (an SVG of The Loop's first frame from the same layout code) and the heading.
   - The entry closure makes the 2D Loop playable.
@@ -350,7 +350,14 @@
     - The front page's closure is 410 B under its gate, so any growth in the entry, the front page's chunks or what they share fails `verify:bundle`. If A§11.1's 150 KB meant JavaScript and CSS together, the closure is 164,775 B and 14,775 B over it.
     - INP is mostly input delay and presentation, not handlers. The flags decide how long a frame takes to present: with `--use-angle=swiftshader`, which composites through SwiftShader's GL, the same page read an INP of 400 to 600 ms [measured 2026-11-04 at 0a5ccf2: the GPU process in `SwapBuffers` for up to 450 ms while the main thread idled]. The lab profile uses `--enable-unsafe-swiftshader` alone, and any other spec that times something should too.
     - These are one machine's numbers. The nightly runner's first runs calibrate the gates before they freeze.
-- **Revisit when:** W0-T24 has measured the budgets.
+  - **Frozen by the W0 exit review (W0-T24), 2026-11-04.** Every gate and target of A§11.1 stands as written, and each stays [estimated] as a design target. From this date a change to one is a new record here, with the measurement that justifies it. `verify:bundle` and the lab profile measure them as W0-T20 built them ("How the gate counts", above), and [docs/waves/W0-report.md](waves/W0-report.md) §3 holds the figures at the wave's tip, `0512837` [measured 2026-11-04]. The review settled these points:
+    - **The front page's first-paint closure is JavaScript.** A§6.10 lists only modules (the entry, the front route, the 2D Loop, the step-loop core and the content index), A§11.1's basis adds up JavaScript (React and ReactDOM, the router, the shell, the 2D game and the sim), and A§11.1 gives first-paint CSS a row of its own. At the tip the closure is 148,747 B, 1,253 B under its gate, and its CSS is 16,637 B [measured 2026-11-04 at 0512837]. The two together, 165,384 B, are printed without a verdict.
+    - **The thin margin is a rule for W1.** A task that touches the entry, `src/front`, `packages/play/loop` or the code they share runs `verify:bundle` and states its delta in its PR. A change that must go over the gate comes here as a new record, never as a quiet raise. The router accounts for much of the squeeze: about 31 KB gz against A§11.1's 15 KB basis [derived by W0-T01, 2026-11-03].
+    - **The entry row measures the entry's own file, as gated.** A§11.1 derived its 110 KB from kernelspace's entry, which carried React. Here React, ReactDOM and the stores sit in `react-vendor`, so the entry file is 37,331 B while its static closure is 99,559 B [measured 2026-11-04 at 0512837]. The closure rows contain it, so nothing grows unchecked. The review recommends moving the 110 KB gate onto the entry's static closure, which changes only that row of `verify:bundle` (the report, §8).
+    - **`postfx` stays at 25 KB, so tier 3 antialiases with FXAA.** three's `SMAAPass` alone is 35,631 B gz [measured 2026-11-04 by W0-T15, `gzip -9`], so `src/scene/tiers.ts` uses FXAA at T3 in place of A§6.6's SMAA. A§6.6's row is to follow.
+    - **Not measured at the freeze:** the two workers, which have no source yet; frame time p95 on the reference laptop and phone, the first 3D frame and post-processing GPU time, which are by hand on devices that O-9 has not named; GPU memory per scene, since `renderer.info` counts objects, not bytes; and main-thread tasks over 50 ms during play, which need the nightly trace.
+    - **The lab gates are one desktop's numbers:** LCP 896 ms, INP 120 ms and CLS 0 at `0512837` [measured 2026-11-04]. If the nightly runner misses a gate that this host meets, look at the profile first (its flags, the runner's cores), and record what changes here.
+- **Revisit when:** a change must take a budget over its gate; the first three nightly lab-profile runs on GitHub's runner have reported; or the owner names the reference devices (O-9), which turns the by-hand targets into checks. Until 2026-11-04 the trigger was "W0-T24 has measured the budgets".
 
 ### D-024 · The evidence ledger
 
@@ -569,12 +576,16 @@
 
 ### D-040 · The 2026-10-24 pre-build gates
 
-- **Status:** proposed; the owner confirms (O-7).
+- **Status:** proposed; the owner confirms (O-7). The spike passed on 2026-11-04 (below).
 - **Decision:**
   - The 8 h TR2 spike named by the 2026-10-24 next-build tie-break becomes the acceptance of W0-T13, the step-loop model. If it fails, W0 stops and the owner is asked.
   - The opt-in pick form is not a gate for this repo, because the owner decided on 2026-11-03 to build.
 - **Context:** The tie-break's session record (2026-10-24) put two gates before any build: ship the pick form, then run the TR2 spike. kernelspace's `SPECIALIZATIONS.md` §9 still lists Fleet Ops first and its n ≥ 30 demand gate.
 - **Consequences:** No W0 task waits for demand data.
+- **Outcome, 2026-11-04 (W0-T13; recorded by W0-T24).** The spike passed. W0-T13 met all five of its checks, so its sixth, "stop and report to the owner", never fired, and no W0 task builds on a workaround. At the wave's tip, `0512837`, the evidence still holds [measured 2026-11-04, Bun 1.3.14 on the dev host]:
+  - the 87 tests of `tests/sim/steploop*.test.ts` pass, and the golden vectors reproduce byte for byte;
+  - a 100-step run of 64 requests takes 2.75 to 2.90 ms on a fresh process's first call and about 0.5 ms warm, against the 20 ms bound.
+  The front page's levels run on the model, and `verify:games` finds 40% of the first 400 seeds in `first-4-par`'s band [measured 2026-11-04 at 0512837]. The pick form's half of this record still waits on O-7. The W0 report has the detail ([docs/waves/W0-report.md](waves/W0-report.md) §5).
 
 ### D-041 · Dispatch keys follow the pinned default runner
 
@@ -686,6 +697,12 @@ D-047 is the owner's choice of visual world. D-048 and D-049 follow from it: one
   - The agent brief's "Look" rule (TRACKER) now points at the token roles and components in `src/design` and at GAMES.md §2.6.
   - Where an earlier text still says that DESIGN.md decides a look (D-019's restated test 5, A§6.2's test 5, A§6.5's bloom, A§14's font and icon packages), read: the contract decides, W0-T05 applies it, and W0-T25 documents it in DESIGN.md.
   - The contract stays in the surface brief. It never enters source, comments or any shipped file (new-work §5), and W0-T05 adds a test for that.
+- **Finish, 2026-11-04 (W0-T25; recorded by W0-T24).** impeccable's finish review of the front page ran three times: one full review, then a verdict pass after each of two fix rounds, which is the limit for an unattended finish.
+  - **The verdict.** The final disposition is `fix`, in the reviewer's own word, at its scope: the front page at 1440 and 390 px.
+  - **Its open findings.** Two stay open. The 2D view's wells still read as a lane chart, and no fired 2D state was captured (its fix 5). The detector's record named no scanned path (its fix 8), which the W0 report's §6.5 now answers.
+  - **Two more, outside its captures.** W0-T24 confirmed both in the built site. The front page's overlap switch lights its pilot lamp in board green when it is on, and the game page's 2D view lights "The line" in the GPU lane's green. Each is a code colour marking a state, against DESIGN.md's One Lamp rule.
+  - **DESIGN.md.** DESIGN.md and `.impeccable/design.json` were written from the built world (`3e9d078`), and they leave both lights out of the rules.
+  - **What waits on the owner.** W0-T25's first check, "ship, or the owner chose to ship with the open findings listed", waits on the owner ([docs/waves/W0-report.md](waves/W0-report.md) §6).
 - **Revisit when:** the finish review returns `rebuild` twice, or the owner changes the world.
 
 ### D-048 · The front page's clock is synthetic ticks
@@ -820,11 +837,16 @@ D-051 records how W0-T22 keeps the learner's settings, which A§7.1 puts in `wor
 | O-4 | Confirm the edition-1 pins (D-035), including the R580 driver gate on the owner's GPUs and on the rental hosts | vLLM v0.33.0 (v0.32.0 if the gate fails), SGLang v0.5.23 | W1-T02 |
 | O-5 | Reference traces: which GPUs, how many, and the owner's GPU spend | 6-10 traces on a 4090 and an H100 [estimated], as the catalog's TR3 artifact says | W2-T21 |
 | O-6 | The capstone's three commit pairs with a known delta | none; the capstone waits | W3-T01 |
-| O-7 | Whether the 2026-10-24 pick-form gate still applies (D-040) | It does not gate this repo | W0-T24 |
-| O-8 | Owner review capacity per week for W0-W3 | kernelspace's 10 h/week cap (PLAN-100X OD11) | W0-T24 |
-| O-9 | The reference laptop and phone for frame-time checks | The owner's own devices, named in W0-T24's record | W0-T24 |
+| O-7 | Whether the 2026-10-24 pick-form gate still applies (D-040) | It does not gate this repo | W0-T24; carried over to the `wave-0` merge |
+| O-8 | Owner review capacity per week for W0-W3 | kernelspace's 10 h/week cap (PLAN-100X OD11) | W0-T24; carried over to the `wave-0` merge |
+| O-9 | The reference laptop and phone for frame-time checks | The owner's own devices, named in W0-T24's record | W0-T24; carried over to W1-T38 |
 | O-10 | Whether grader-attested correctness counts at full weight. ASSESSMENT.md owns this; it is listed here because it is the owner's call. | Full weight when every browser-runnable check also passes | W2-T08 |
 | O-11 | Whether D-004 is met by a front page that is playable in 2D from the first paint and becomes 3D within seconds on a capable device (D-023) | Yes | W0-T18 |
+
+**Carried over by the W0 exit review (W0-T24, 2026-11-04).** The owner has answered none of O-7, O-8 and O-9, so each keeps its default and moves to a later deadline ([docs/waves/W0-report.md](waves/W0-report.md) §7.3):
+- **O-7.** W0 ran on the default, and no W0 task waited for demand data. W1 starts after W0-T24, so the answer is needed by the `wave-0` merge.
+- **O-8.** W0's PR adds 74,824 lines outside the lockfile, the vendored copies, the fonts, the screenshot baselines, the test fixtures and the posters: 39,658 of code and 32,453 of tests [measured 2026-11-04, `main` 4249418 to `wave-0` 0512837]. 18 of its 19 S and M tasks went over the tracker's line bounds, by 1.2 to 8 times [derived]. A 10-hour week cannot read that line by line, so the answer shapes how W1 is sized and reviewed.
+- **O-9.** No file this review could read names the owner's laptop or phone, and the review does not invent them. The lab profile ran on the owner's dev desktop, which is neither (the report, §2), so A§11.1's by-hand frame-time budgets are unmeasured. The answer is needed by W1-T38, the next exit that checks frame time by hand.
 
 ## Course-design questions
 
