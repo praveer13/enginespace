@@ -6,6 +6,7 @@ import { Button } from '@/design/components/Button'
 import { TapeLabel } from '@/design/components/TapeLabel'
 import { shellLimits } from '@/settings/rules'
 import { useSettings } from '@/settings/useSettings'
+import { focusIsLost } from './focus'
 import { KeysDialog } from './KeysDialog'
 import { LiveRegion } from './LiveRegion'
 import { useGameInput } from './useGameInput'
@@ -204,8 +205,7 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
   useEffect(() => {
     const swapped = shownView.current !== view
     shownView.current = view
-    const lost = document.activeElement === null || document.activeElement === document.body
-    if (swapped && lost) container.current?.focus({ preventScroll: true })
+    if (swapped && focusIsLost()) container.current?.focus({ preventScroll: true })
   }, [view, container])
   useEffect(() => {
     if (restarted) container.current?.focus({ preventScroll: true })

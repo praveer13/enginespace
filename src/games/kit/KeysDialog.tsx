@@ -1,5 +1,5 @@
 import * as Dialog from '@radix-ui/react-dialog'
-import { Fragment, type ReactNode } from 'react'
+import { Fragment, useRef, type ReactNode } from 'react'
 import { COMMON_KEYS } from '@es/play'
 import type { KeyBinding } from '@es/play'
 import { Button } from '@/design/components/Button'
@@ -7,8 +7,8 @@ import { Ticket } from '@/design/components/Ticket'
 
 /*
  * The help dialog (ARCHITECTURE §6.8): every key the game answers to, the ones common to every game and then the game's own.
- * It is a Radix dialog, so it traps focus, closes on Escape and gives focus back to whatever opened it: the Keys button, or
- * the place the learner was when they pressed `?`. The list sits on a ticket, the surface read text is printed on (D-047).
+ * It is a Radix dialog, so it traps focus and closes on Escape. It gives focus back to whatever had it when the list opened: the Keys
+ * button, or the place the learner was when they pressed `?`. The list sits on a ticket, the surface read text is printed on (D-047).
  */
 
 /** The keys as a list: the key cap, then what it does. Exported for the tests, which cannot open a portal. */
@@ -46,17 +46,32 @@ export interface KeysDialogProps {
   keys: readonly KeyBinding[]
   open: boolean
   onOpenChange: (open: boolean) => void
-  /** The button that opens it. */
-  children: ReactNode
+  /** The button that opens it, when the dialog owns it. A page that renders its own button opens the dialog through `open`. */
+  children?: ReactNode
 }
 
 export function KeysDialog({ keys, open, onOpenChange, children }: KeysDialogProps) {
+  const opener = useRef<HTMLElement | null>(null)
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Trigger asChild>{children}</Dialog.Trigger>
+      {children === undefined ? null : <Dialog.Trigger asChild>{children}</Dialog.Trigger>}
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-40 bg-surface-3 opacity-70" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[calc(100vh-2rem)] w-[min(34rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto">
+        <Dialog.Content
+          className="fixed left-1/2 top-1/2 z-50 max-h-[calc(100vh-2rem)] w-[min(34rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto"
+          onOpenAutoFocus={() => {
+            const active = document.activeElement
+            opener.current = active instanceof HTMLElement && active !== document.body ? active : null
+          }}
+          onCloseAutoFocus={(event) => {
+            const back = opener.current
+            opener.current = null
+            // Radix's own default focuses its trigger, which a page with its own button does not have.
+            if (back === null || !back.isConnected) return
+            event.preventDefault()
+            back.focus({ preventScroll: true })
+          }}
+        >
           <Ticket
             as="div"
             width="full"

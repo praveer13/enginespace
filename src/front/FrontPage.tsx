@@ -17,6 +17,7 @@ import { TextLink } from '@/design/components/TextLink'
 import { Ticket, TicketLine } from '@/design/components/Ticket'
 import { formatReadout } from '@/design/format'
 import type { KeysDialogProps } from '@/games/kit/KeysDialog'
+import { focusIsLost } from '@/games/kit/focus'
 import { LiveRegion } from '@/games/kit/LiveRegion'
 import { useGameInput } from '@/games/kit/useGameInput'
 import { useRun } from '@/games/kit/useRun'
@@ -311,8 +312,7 @@ function ServiceRun({ level, seed, refocus, next, onNext, onRestart, view: shown
 
   // A ticket hung by its key takes its button with it: put focus back on the game, so its keys still work.
   useEffect(() => {
-    const lost = document.activeElement === null || document.activeElement === document.body
-    if (lost && run.turns > 0) container.current?.focus({ preventScroll: true })
+    if (focusIsLost() && run.turns > 0) container.current?.focus({ preventScroll: true })
   }, [view, run.turns, container])
 
   // A new level or a fresh run, after a move of the learner's: back to the pass, with focus on the first ticket that waits.
@@ -426,15 +426,14 @@ function ServiceRun({ level, seed, refocus, next, onNext, onRestart, view: shown
           </div>
           <div className="es-front-deck__tools">
             <ViewSwitch view={mount3d ? '3d' : '2d'} onViewChange={switchView} available3d={can3d} unavailableReason={unavailable3d} />
+            {/* One button from the first paint, so the one the learner pressed is the one focus comes back to. The dialog's code
+                loads beside it, the first time it is asked for or once the page has settled. */}
+            <KeysButton onClick={openKeys} />
             {keysWanted || settled ? (
-              <Suspense fallback={<KeysButton onClick={openKeys} />}>
-                <KeysDialog keys={SHOWN_KEYS} open={keysOpen} onOpenChange={setKeysOpen}>
-                  <KeysButton />
-                </KeysDialog>
+              <Suspense fallback={null}>
+                <KeysDialog keys={SHOWN_KEYS} open={keysOpen} onOpenChange={setKeysOpen} />
               </Suspense>
-            ) : (
-              <KeysButton onClick={openKeys} />
-            )}
+            ) : null}
             <Button size="sm" variant="quiet" disabled={!run.canUndo} aria-keyshortcuts="," onClick={undo}>
               {DECK.undo}
             </Button>
