@@ -185,12 +185,12 @@ describe('the rail, the fired rail and the printer', () => {
     expect(halfLayout.stations.elements.map((element) => element.lit)).toEqual([true, true, false, false])
     expect(halfLayout.stations.elements.map((element) => element.at[0])).toEqual([0, 1, 2, 3].map(clipX))
     // On a laptop each burning station throws its light down its own row: the half that burns is lit, the half that rode empty
-    // stays dark. On a phone the line's one light hangs over the half that burns, half as bright as a full fire's.
+    // stays dark. On a phone the line's one light, over the line's middle, burns half as bright as a full fire's.
     expect(stationGlows(halfLayout.stations.lit, MAX_GLOWS.laptop).map((glow) => glow.share)).toEqual([1, 1, 0, 0])
     expect(stationGlows(halfLayout.stations.lit, MAX_GLOWS.laptop).map((glow) => glow.at[0])).toEqual([0, 1, 2, 3].map(clipX))
     const [phone] = stationGlows(halfLayout.stations.lit, MAX_GLOWS.phone)
     expect(phone.share).toBe(0.5)
-    expect(phone.at[0]).toBeCloseTo((clipX(0) + clipX(1)) / 2)
+    expect(phone.at[0]).toBeCloseTo((clipX(0) + clipX(3)) / 2)
     expect(halfLayout.anchors.find((anchor) => anchor.kind === 'station')?.text).toBe('2 of 4 lit')
     // An empty place is a dark station's well, in the deep steel's role; a plate is the paper's white.
     const roles = placesOf(halfLayout, 0).map((place) => place.role)
@@ -213,12 +213,13 @@ describe('the rail, the fired rail and the printer', () => {
       expect(stationGlows([false, false, false, false], max)).toHaveLength(max)
       expect(stationGlows([true, true, true, true], max)).toHaveLength(max)
     }
-    // Eight clips share a laptop's lights, neighbours together: each leans to the stations of its pair that burn, as bright as their share.
+    // Eight clips share a laptop's lights, neighbours together: each over its pair's middle, as bright as the share of the pair that burns.
     const eight = stationGlows([true, true, false, true, false, false, false, false], MAX_GLOWS.laptop)
     expect(eight.map((glow) => glow.share)).toEqual([1, 0.5, 0, 0])
     expect(eight[0].at[0]).toBeCloseTo((clipX(0) + clipX(1)) / 2)
-    expect(eight[1].at[0]).toBeCloseTo(clipX(3))
-    expect(eight[2].at[0]).toBeCloseTo((clipX(4) + clipX(5)) / 2)
+    expect(eight[1].at[0]).toBeCloseTo((clipX(2) + clipX(3)) / 2)
+    // What burns never moves a light: the places are the rail's.
+    expect(stationGlows([false, true, true, true, true, true, true, false], MAX_GLOWS.laptop).map((glow) => glow.at)).toEqual(eight.map((glow) => glow.at))
   })
 
   test('the stations\' bar stands beyond the pass, over the line\'s head, above every slab and below every hung ticket', () => {

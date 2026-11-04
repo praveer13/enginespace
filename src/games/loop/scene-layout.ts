@@ -201,19 +201,18 @@ export function printerAt(slots: number): Vec3 {
 
 /**
  * The lights over the line's stations, `max` at most: one for each station, or, on a rail with more clips than that, one for each
- * run of neighbouring stations. Each hangs over the stations of its run that burn (over the run's middle when none does), as bright
- * as the share of the run that burns, so a light shared by a half-lit run leans to the burning half. The count depends on the rail
- * and the tier alone, never on what burns, so a fire changes a light's brightness and place and never the number of lights (which
- * would recompile every material in the scene).
+ * run of neighbouring stations, hung over the run's middle and as bright as the share of the run that burns. Where a light is a
+ * station's own, a fire rung half full leaves half the line dark; where one is shared, its stations' elements still say which burn.
+ * The count and the places depend on the rail and the tier alone, never on what burns, so a fire changes a light's brightness and
+ * nothing else (a change of count would recompile every material in the scene).
  */
 export function stationGlows(lit: readonly boolean[], max: number): StationGlow[] {
   const count = Math.max(1, Math.min(lit.length, max))
   return Array.from({ length: count }, (_, k) => {
     const from = Math.floor((k * lit.length) / count)
     const to = Math.floor(((k + 1) * lit.length) / count)
-    const burning = lit.slice(from, to).flatMap((on, i) => (on ? [clipX(from + i)] : []))
-    const x = burning.length > 0 ? burning.reduce((sum, at) => sum + at, 0) / burning.length : (clipX(from) + clipX(to - 1)) / 2
-    return { id: `glow-${k}`, at: [x, GLOW.y, GLOW.z], share: burning.length / Math.max(1, to - from) }
+    const burning = lit.slice(from, to).filter(Boolean).length
+    return { id: `glow-${k}`, at: [(clipX(from) + clipX(to - 1)) / 2, GLOW.y, GLOW.z], share: burning / Math.max(1, to - from) }
   })
 }
 

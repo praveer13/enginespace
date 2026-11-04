@@ -200,8 +200,8 @@ function SheetFrame({ name, offset }: { name: string; offset: Vec3 }) {
 /**
  * The line's stations: their heat elements, burning where the latest fire cooked a course, and the warm light the burning stations
  * throw down the line (`stationGlows`: a light for each station on a laptop, one for the line on a phone), as bright as the share
- * that burns, brought up or down on the bell (cut under reduced motion). The lights stay in the scene at zero, and their number
- * depends on the rail and the tier alone, so a fire never recompiles a material.
+ * that burns, brought up or down on the bell (cut under reduced motion). The lights stay in the scene at zero, in places that depend
+ * on the rail and the tier alone, so a fire never recompiles a material and never moves a light.
  */
 function Stations({ stations, change }: { stations: LoopSceneLayout['stations']; change: Change }) {
   const kit = useKit()
