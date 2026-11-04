@@ -333,7 +333,23 @@
   - kernelspace measured its three plus R3F chunk at 238-242.4 KB gz and its whole-app entry at 115.7 KB gz (its `verify-bundle.ts` and games-3d research).
   - Blocking first paint on a roughly 280 KB scene would make the "Play first" page slow on phones.
 - **Alternatives:** 3D in the first paint, which is slow on phones; or a static image with a "Play" button, which is not play-first [design].
-- **Consequences:** ARCHITECTURE §6.10, §6.11 and §11.1. These budgets are [estimated] until W0-T20 measures them and W0-T24 freezes them here.
+- **Consequences:**
+  - ARCHITECTURE §6.10, §6.11 and §11.1. These budgets are [estimated] until W0-T24 freezes them here. W0-T20 built the gate (`verify:bundle`, `scripts/verify-bundle.ts`) and the nightly lab profile (`e2e/perf.spec.ts`), and measured the front page with them (below). The gates, the targets and the lab profile's parameters named below are A§11.1's [estimated] figures.
+  - **How the gate counts.** A size is gzip by `gzipSync` at its default level under Bun 1.3.14, one file at a time, in KB of 1,000 B. That is a little above the sizes in Vite's log, which Node compresses [measured 2026-11-04 at 0786abb: the entry chunk is 37,316 B under Bun and 36,910 B under Node], and D-051's route figures are `gzip -9` of an earlier build, so they do not compare with these. The front page's closure row is JavaScript: the entry, the front page's chunk and the course index that its loader awaits, with their static imports. A§11.1 gives CSS a row of its own. Another route's row counts JavaScript and CSS together, and a scene's row counts its chunk, its CSS and the chunks that only 3D reaches.
+  - **Measured 2026-11-04 at 5a69685** (the bundle is byte for byte the wave tip 0a5ccf2's, which the files of W0-T20 do not touch) [measured]:
+    - the entry chunk is 37,316 B (gate 110 KB, target 100 KB);
+    - the front page's first-paint JavaScript is 149,590 B (gate 150 KB, so 410 B under it; target 130 KB, so 19,590 B over it), its CSS is 15,185 B (gate 30 KB, target 20 KB), its document is 8,165 B and its three preloaded fonts are 35,748 B;
+    - the other routes run from 114,905 B (`/today`) to 177,663 B (`/play/loop`, with its game), against 200 KB; `/settings` is 171,018 B, `/evidence` 163,816 B and `/design` 157,356 B;
+    - `three-vendor` is 238,603 B (gate 245 KB), `scene-loop` 15,432 B (gate 40 KB), `postfx` 5,469 B (gate 25 KB) and the lesson JSON 1,994 B (gate 40 KB); the workers have no source yet;
+    - the site is 2,067,796 B in 79 files.
+  - **The lab profile, measured 2026-11-04 at 5a69685** with Chrome for Testing 149.0.7827.55 from Playwright's cache, on an i5-13600KF with 20 threads that other processes kept at a load of 13 to 17; the CPU 4× slower, 1.6 Mbit/s, 150 ms of round trip, 360 × 800 at 2× with touch, gzip over HTTP [measured]:
+    - LCP is 888 ms, the median of three cold loads (888, 896 and 884 ms; gate 2,500 ms, target 1,500 ms). The heading is the largest paint, and 7 requests and 71.7 KB had come over the link by then;
+    - CLS is 0 in all three loads, with the 3D pass swapped in at 4.3 to 5.5 s (gate 0.1);
+    - INP is 152 ms, the median of three plays of 57 taps over the four levels (144, 152 and 176 ms; gate 200 ms, target 100 ms). In the middle play the longest interaction was 67 ms of input delay, 7 ms of handlers and 78 ms to present.
+  - **For W0-T24.**
+    - The front page's closure is 410 B under its gate, so any growth in the entry, the front page's chunks or what they share fails `verify:bundle`. If A§11.1's 150 KB meant JavaScript and CSS together, the closure is 164,775 B and 14,775 B over it.
+    - INP is mostly input delay and presentation, not handlers. The flags decide how long a frame takes to present: with `--use-angle=swiftshader`, which composites through SwiftShader's GL, the same page read an INP of 400 to 600 ms [measured 2026-11-04 at 0a5ccf2: the GPU process in `SwapBuffers` for up to 450 ms while the main thread idled]. The lab profile uses `--enable-unsafe-swiftshader` alone, and any other spec that times something should too.
+    - These are one machine's numbers. The nightly runner's first runs calibrate the gates before they freeze.
 - **Revisit when:** W0-T24 has measured the budgets.
 
 ### D-024 · The evidence ledger
