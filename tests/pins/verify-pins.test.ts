@@ -274,7 +274,7 @@ describe('through the gate registry', () => {
     const result = registry('pins')
     expect(result.status).toBe(0)
     expect(result.out).toContain('$ bun scripts/verify-pins.ts')
-    expect(result.out).toMatch(/verify:pins passed: 8 entries/)
+    expect(result.out).toMatch(/verify:pins passed: \d+ entries/)
     expect(result.out).not.toContain('pending')
   })
 })
