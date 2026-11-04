@@ -1,0 +1,93 @@
+# enginespace
+
+**Open vLLM and keep reading.** enginespace is the Engine Internals specialisation of [kernelspace](https://github.com/praveer13/kernelspace): a zero-server, browser-first course that goes one layer down from kernelspace's serving tracks, from the serving system into the engine itself.
+
+> **Status: design.** The course design is written and under the owner's review (2026-11-03). The site and the games are being built, the browser-only modules first. Nothing here is live yet.
+
+## What it is
+
+You play the engine before you read it. In a seeded world, you are the scheduler, the KV allocator, the profiler and the verifier, and each game's rule is the concept it teaches. Then you prove the same skill on the real [vLLM](https://github.com/vllm-project/vllm) and [SGLang](https://github.com/sgl-project/sglang), on your own GPU or a rented one, with a local grader whose receipts your browser checks, with no server anywhere.
+
+The course makes four promises:
+1. **Trace one request** through vLLM and SGLang.
+2. **Attribute every microsecond** of a token's latency (TPOT).
+3. **Benchmark the engine honestly.**
+4. **Land one upstream contribution** backed by evidence.
+
+## Who it is for
+
+A backend engineer who has finished kernelspace's serving track, T5 (lessons T5.L1-T5.L10), which is a hard prerequisite. You are Rust-first, so the course teaches enough PyTorch to read vLLM and SGLang, and no more. You study alone, on a laptop with the site open, and run GPU work on a local GPU or a rented one (RunPod, Modal, Lambda and similar).
+
+ML engineers who already run vLLM can take it too, but it is not designed around them.
+
+## What you will be able to do
+
+1. Trace a request from the API server to the model runner, naming every queue, copy and sync.
+2. Split a TPOT into kernels, CPU gaps and overlap, and test one fix for it.
+3. Implement a hybrid KV manager with adapter pages, the engine side of the KV connector and event contracts, and an exact rejection sampler.
+4. Benchmark open loop with confidence intervals, and land one upstream artifact under the project's AI-disclosure rules.
+
+## How it works
+
+**The loop.** Every module runs Predict → Play → Build → Prove → Keep, kernelspace's learning loop:
+- **Predict:** commit a number before the reveal.
+- **Play:** play the mechanism by hand in the seeded world, then read the debrief against a hidden reference.
+- **Build:** make it real, in Rust graded in your browser, or on the real engine graded by the local grader.
+- **Prove:** defend it on fresh seeds with your coding agent closed.
+- **Keep:** retrieve it later in Today, a 10-12-minute review [estimated] regenerated on fresh seeds.
+
+**Three lanes.**
+- **Browser:** lessons, games, items and the Rust forge labs, graded in the tab on seeds drawn when you start.
+- **Local:** CPU work on your laptop (TR0's forward pass), graded by the local grader.
+- **GPU:** labs on your own or a rented GPU, graded by the local grader. Its receipt is bound to a challenge your browser issued, and the browser re-checks it from the raw traces and logs.
+
+**The games.** Nine games, one for every module except TR7, six of them in 3D, each 3D game with a 2D path, keyboard control and reduced motion. Their working names: The Loop (the step loop, on the front page), Shape Shifter (tensor layouts), The Engine Floor (a request's lifecycle), Gap Hunt (trace attribution), Dispatch (attention backends), The Pool (hybrid KV and adapter pages), The Switchyard (KV tiers and the connector), The Verifier (the rejection sampler) and Broken Bench (benchmark methodology).
+
+**The world.** The Trace Room puts a seeded step-loop simulator beside real engine traces captured by the owner, pinned by SHA-256 and dated. Every simulated world says what it models and what it ignores, and the real engine is the final judge.
+
+**The currency is evidence.** Credit comes from checks you cannot fake by typing a number: fresh seeds, references on your own machine, and performance evidence that must agree with itself and with physics. Clicks earn nothing. No LLM grades anything, and no server is involved.
+
+## The modules
+
+| Module | | Hours |
+|---|---|---|
+| [TR0](curriculum/TR0-pytorch-for-rust.md) | PyTorch for the Rust-first, and reading Triton | 7 |
+| [TR1](curriculum/TR1-read-the-engines.md) | Read the engines: nano-vllm, Mini-SGLang and "Inside vLLM", mapped onto the pins | 10 |
+| [TR2](curriculum/TR2-the-step-loop.md) | The step loop: async scheduling, the MRV2 delta, CUDA graphs and their dispatch keys | 10 |
+| [TR3](curriculum/TR3-profile-a-real-engine.md) | Profile a real engine: the torch profiler, Perfetto and nsys graph traces | 12 |
+| [TR4](curriculum/TR4-backends-as-a-consumer.md) | Attention backends as a consumer: FlashAttention 2, 3 and 4, FlashInfer and FlashMLA | 7 |
+| [TR5a](curriculum/TR5a-hybrid-kv-and-adapter-pages.md) | Hybrid KV groups, and adapter pages in one pool | 6 |
+| [TR5b](curriculum/TR5b-offload-connector-events.md) | Offload, the KV connector's engine side, and the event publisher | 8 |
+| [TR6](curriculum/TR6-speculation-and-structure.md) | Speculation and structure: the exact rejection sampler, proposers, and the grammar mask's overlap | 8 |
+| [TR7](curriculum/TR7-contribute-honestly.md) | Contribute honestly: reproduce a published number, and file it under each project's rules | 6 |
+| [TR8](curriculum/TR8-benchmark-like-you-mean-it.md) | Benchmark like you mean it: open loop, coordinated omission, warm-up, and intervals on p99 | 5 |
+| [Capstone](curriculum/CAPSTONE.md) | Reproduce a commit pair's delta, attribute it, explain it, and price it | 12 |
+
+About 91 hours in all [estimated]; the hours in the table are estimates too. The browser parts of TR1, TR2, TR5a, TR6 and TR8 need no GPU and ship first.
+
+## What it costs
+
+The site needs no account, and nothing you do leaves your device unless you export it. The GPU half needs about 35 hours on an RTX 4090-class GPU and 6-8 hours on an H100 [estimated]: roughly $24-54 at RunPod's prices as read on 2026-11-03 [derived], or nothing on your own GPU. GPU work needs an NVIDIA driver of R580 or newer for the pinned vLLM's CUDA 13 wheels [measured from vLLM's install docs at v0.33.0, 2026-11-03]. Details, sources and alternatives are in [docs/PLAN.md](docs/PLAN.md) §10.
+
+## The pins
+
+The course pins one vLLM minor and one SGLang minor and re-pins them each quarter. The proposed edition-1 pins are vLLM v0.33.0 and SGLang v0.5.23, with nano-vllm, Mini-SGLang and "Inside vLLM" (commit `42172ad`) pinned as reading targets. Every number in the course is a claim with a source, a date and an expiry, and a number that moves raises a change card.
+
+## What is in this repository
+
+| Path | What |
+|---|---|
+| [PRODUCT.md](PRODUCT.md) | the product record, confirmed by the owner on 2026-11-03 |
+| [docs/PLAN.md](docs/PLAN.md) | the master plan: structure, loop, grading and world in brief, cost, upkeep, build waves, risks, open decisions |
+| [curriculum/](curriculum/) | one design file per module and the capstone |
+| [docs/ASSESSMENT.md](docs/ASSESSMENT.md) | the grading model: browser checks, the local grader and its receipts, consistency checks, Prove-it, cheating, what is never graded |
+| [docs/WORLD.md](docs/WORLD.md) | the Trace Room: the seeded engine world, the trace corpus, calibration, the notional-machine cards |
+| [docs/GAMES.md](docs/GAMES.md) | the games |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | the site, the simulation package, the game framework, the grader, CI and budgets |
+| [docs/DECISIONS.md](docs/DECISIONS.md) | the decision log and the owner's open questions |
+| [docs/TRACKER.md](docs/TRACKER.md) | the build tasks, wave by wave |
+| [research/](research/) | the dated upstream research behind the pins and claims |
+
+## The family
+
+enginespace is a kernelspace specialisation, and it refers to kernelspace's lessons, labs and plays by their ids, such as T5.L7 and lab 06. [statespace](https://github.com/praveer13/statespace) is a sibling course by the same owner. The licences are still to be decided; kernelspace uses MIT for code and CC BY 4.0 for content.

@@ -1,0 +1,13 @@
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+.worktrees/
+src/content/generated/
+.vite/
+*.log
+.DS_Store
+.impeccable/config.local.json
+.impeccable/review/
+.impeccable/build/
