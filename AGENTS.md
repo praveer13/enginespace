@@ -20,7 +20,7 @@ This file is for the agents that build the repository. The agent kit in the lab 
    - Change only the files the task lists, plus tests.
    - If another file must change, say so in the PR and keep the change minimal.
    - Never edit `vendor/`.
-5. **Sibling repos are read-only.** Read kernelspace (`/home/praveern/workplace/kernelspace`) and statespace only with `git -C <repo> show`, `ls-tree` and `grep`. Never add, commit or push there.
+5. **Sibling repos are read-only.** Read kernelspace (the sibling checkout `../kernelspace`) and statespace only with `git -C <repo> show`, `ls-tree` and `grep`. Never add, commit or push there.
 6. **Dependencies.** Add none without a DECISIONS record and an exact pin (A§14). Use no `^` and no `~`.
 7. **Numbers.** Tag every number in content and docs as [measured], [derived], [estimated] or [unverified], and date every upstream fact. In content, put facts in claims (A§4.4). Never invent a fact. If one cannot be sourced, mark it [unverified] and list it in the PR.
 8. **Web requests.** Send a generic User-Agent, and never send the owner's name or email in a header, URL or payload. The site itself makes no third-party request.

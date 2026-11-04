@@ -324,7 +324,7 @@ Run each against the new tag. Expected values are those at `v0.33.0`. Any differ
 
 **Network rules followed.** Anonymous HTTPS only, with the User-Agent `Mozilla/5.0 (X11; Linux x86_64)`. I verified the outgoing request headers: `Host`, that User-Agent and `Accept: */*`, nothing else. There were no cookies, no auth, no `.curlrc` or `.netrc`, and no proxy variables. I did not use the `gh` CLI. GitHub REST: 2 core calls (release `v0.29.0`, the nano-vllm tree) of 60 per hour; the `/rate_limit` endpoint was used to check quota; 16 search calls (1 count query, then 8 page requests for the first week and 7 for the second) under the separate 10 per minute search bucket, paced at 8 s. Everything else was `github.com` pages and tarballs, `raw.githubusercontent.com`, `pypi.org`, `docs.vllm.ai` and `vllm.ai`.
 
-**Raw pulls (untrusted data, kept outside the repo):** `/tmp/claude-1000/-home-praveern-workplace-kernelspace/9aec8729-7b99-4ce5-a558-6d7551419c0c/scratchpad/enginespace-research/vllm/raw/`. Tarballs were extracted into their own directories and only read (grep, sed, cat); nothing from them was executed.
+**Raw pulls (untrusted data, kept outside the repo):** a scratch directory outside the repo, not kept. Tarballs were extracted into their own directories and only read (grep, sed, cat); nothing from them was executed.
 
 | Pull | sha256 | Bytes |
 |---|---|---|
