@@ -1,0 +1,216 @@
+# vLLM at the pin: speculative decoding, the rejection sampler's exactness and the structured-output mask (W1-T01; TR6, D-041).
+#
+# TR6 owns speculation and the grammar mask's overlap with the forward. Read on 2026-11-04 at v0.33.0
+# (commit 4ba787ec9959e566d3b587a796dff07673324da5).
+
+- id: vllm.spec.methods
+  value: 'ngram, draft_model, suffix, eagle, mtp and more'
+  text: At v0.33.0 the speculative method is one of ngram, draft_model, suffix, custom_class, the eagle family (eagle, eagle3, extract_hidden_states, dflash and a long list of model-specific mtp names), ngram_gpu or dspark.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/speculative.py#L68-L82
+    title: vLLM v0.33.0, vllm/config/speculative.py, SpeculativeMethod
+    quote: 'SpeculativeMethod = Literal['
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.medusa-removed
+  value: removed in v0.33.0
+  text: Medusa and the MLP speculator were removed in v0.33.0 (pull request 61701).
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/releases/tag/v0.33.0rc3
+    title: vLLM v0.33.0 release notes (kept on the v0.33.0rc3 release; the tag is the v0.33.0 commit)
+    quote: 'Medusa and the MLP speculator were removed (#61701).'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+  pin: vllm
+
+- id: vllm.spec.rejection-methods
+  value: 'standard, synthetic, block, fly'
+  text: rejection_sample_method is one of standard, synthetic, block and fly, and standard is the default. Standard is probabilistic rejection sampling, synthetic accepts drafts with a decaying probability set by a target rate, block verifies the drafts jointly as a block, and fly is lossy.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/speculative.py#L562-L569
+    title: vLLM v0.33.0, vllm/config/speculative.py, rejection_sample_method
+    quote: "'standard' uses probabilistic"
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.rejection-sampler.exact
+  value: arXiv 2211.17192
+  text: The MRV1 RejectionSampler's docstring says its implementation strictly follows the algorithm of arXiv 2211.17192. It names three kinds of token, accepted, recovered and bonus, and the output tokens are their sum.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/sample/rejection_sampler.py#L50-L70
+    title: vLLM v0.33.0, vllm/v1/sample/rejection_sampler.py, RejectionSampler
+    quote: 'The implementation strictly follows the algorithm described in https://arxiv.org/abs/2211.17192.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.rejection-sampler.mrv2-location
+  value: vllm/v1/worker/gpu/spec_decode/rejection_sampler.py
+  text: MRV2, the default runner, has its own RejectionSampler class in vllm/v1/worker/gpu/spec_decode/rejection_sampler.py, which calls rejection_sample from rejection_sampler_utils.py. The MRV1 file above is not the code that the default runner executes.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu/spec_decode/rejection_sampler.py#L147
+    title: vLLM v0.33.0, vllm/v1/worker/gpu/spec_decode/rejection_sampler.py
+    quote: 'class RejectionSampler:'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.fly-lossy
+  value: lossy
+  text: FLy is an approximate verification policy that vLLM ships as an option. Its documentation says it is intentionally lossy, does not preserve the target distribution, and may degrade model outputs.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/features/speculative_decoding/fly.md#L6
+    title: vLLM v0.33.0, docs/features/speculative_decoding/fly.md
+    quote: 'FLy is intentionally lossy. Unlike standard speculative decoding, it does not preserve the target distribution and may degrade model outputs.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.chi-square.threshold
+  value: df + 10 * sqrt(2 * df)
+  text: vLLM's own test of its rejection sampler compares the chi-squared statistic of the sampled tokens with a threshold of df + 10 * sqrt(2 * df), about 10 sigma under the normal approximation, which its docstring says effectively disallows false positives.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/tests/v1/spec_decode/test_rejection_sampler_utils.py#L243-L253
+    title: vLLM v0.33.0, tests/v1/spec_decode/test_rejection_sampler_utils.py, _assert_distribution_match
+    quote: 'The threshold is set at df + 10*sqrt(2*df), which corresponds to ~10 sigma under the chi-squared distribution''s normal approximation, effectively disallowing false positives.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.chi-square.min-expected
+  value: 5
+  unit: expected count
+  text: The test merges every token whose expected count is under 5 into a single other bin before it computes the statistic, to keep the chi-squared noise down.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/tests/v1/spec_decode/test_rejection_sampler_utils.py#L236-L253
+    title: vLLM v0.33.0, tests/v1/spec_decode/test_rejection_sampler_utils.py, _assert_distribution_match
+    quote: 'Tokens with expected count < min_expected are merged into a single "other" bin to minimize chi-squared noise.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.custom-class
+  value: speculative_config.model is a module path
+  text: A custom proposer is configured with method custom_class and a speculative_config.model that holds a module path such as my_module.MyCustomProposer. The class is instantiated with the vLLM config and must expose a callable propose method.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/spec_decode/custom_class_proposer.py#L12-L21
+    title: vLLM v0.33.0, vllm/v1/spec_decode/custom_class_proposer.py, create_custom_proposer
+    quote: 'The returned object must expose a callable ``propose`` method.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.custom-class-mrv1
+  value: MRV1
+  text: At v0.33.0 the speculative methods suffix and custom_class are still on MRV2's list of unsupported features, so a custom proposer runs on the deprecated MRV1.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/vllm.py#L3066-L3068
+    title: vLLM v0.33.0, vllm/config/vllm.py, _get_v2_model_runner_unsupported_features
+    quote: 'if speculative_config.method in ("suffix", "custom_class"):'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+# --- The structured-output mask ------------------------------------------------------------------------------------------------------
+
+- id: vllm.mask.overlap
+  value: computed while the forward runs
+  text: In EngineCore.step the CPU builds the grammar bitmask after execute_model has launched the forward without blocking, so the mask is computed while the GPU runs. sample_tokens then applies it.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/core.py#L678-L686
+    title: vLLM v0.33.0, vllm/v1/engine/core.py, EngineCore.step
+    quote: 'grammar_output = self.scheduler.get_grammar_bitmask(scheduler_output)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mask.deferred-sampling
+  value: deferred under async scheduling
+  text: Under async scheduling a step whose structured-output requests are still waiting for the previous step's tokens cannot sample at once. step_with_batch_queue defers its sampling until it has processed the model output of the prior step.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/core.py#L747-L760
+    title: vLLM v0.33.0, vllm/v1/engine/core.py, EngineCore.step_with_batch_queue
+    quote: 'We need to defer sampling until we have processed the model output'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mask.fill-parallel-threshold
+  value: 128
+  unit: structured requests
+  text: The bitmask is filled serially while a step holds up to 128 structured-output requests. Above that, the fill can run in tasks of 16 rows on a thread pool of at most 8 threads.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/structured_output/__init__.py#L79-L87
+    title: vLLM v0.33.0, vllm/v1/structured_output/__init__.py, StructuredOutputManager
+    quote: 'self.fill_bitmask_parallel_threshold = 128'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mask.grammar-compile-async
+  value: thread pool
+  text: Grammar compilation is asynchronous at v0.33.0 unless the executor backend is external_launcher. The structured-output manager submits the grammar build to a thread pool and gives the request a future in place of a grammar, and the request waits in WAITING_FOR_STRUCTURED_OUTPUT_GRAMMAR until the scheduler sees the compiled grammar.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/structured_output/__init__.py#L71-L197
+    title: vLLM v0.33.0, vllm/v1/structured_output/__init__.py, StructuredOutputManager.grammar_init
+    quote: 'grammar = self.executor.submit(self._create_grammar, request)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mask.backends
+  value: 'auto, xgrammar, guidance, outlines, lm-format-enforcer'
+  text: The structured-output backend is one of auto, xgrammar, guidance, outlines and lm-format-enforcer at v0.33.0, and auto is the default. With auto, vLLM chooses a backend per request.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/structured_outputs.py#L14-L16
+    title: vLLM v0.33.0, vllm/config/structured_outputs.py, StructuredOutputsBackend
+    quote: '"auto", "xgrammar", "guidance", "outlines", "lm-format-enforcer"'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mask.lmfe-deprecated
+  value: removal in v0.35.0
+  text: The v0.33.0 notes deprecate the LM Format Enforcer backend. It becomes opt-in in v0.34.0 and is removed in v0.35.0.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/releases/tag/v0.33.0rc3
+    title: vLLM v0.33.0 release notes (kept on the v0.33.0rc3 release; the tag is the v0.33.0 commit)
+    quote: 'the LM Format Enforcer structured-output backend (opt-in in v0.34.0, removal in v0.35.0, #63423)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm

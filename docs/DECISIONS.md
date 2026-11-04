@@ -500,7 +500,7 @@
 
 - **Status:** proposed.
 - **Decision:**
-  - TR5b owns a minimal KV connector contract and event schema, `kv-events@1`, mirroring the pinned vLLM version's KV event shapes [unverified until W1-T01 checks the pin].
+  - TR5b owns a minimal KV connector contract and event schema, `kv-events@1`, mirroring the pinned vLLM version's KV event shapes. W1-T01 read them at v0.33.0 on 2026-11-04 (claims `vllm.kv-events.*`; ARCHITECTURE §5.4 lists the fields), and both engines already carry the adapter, as `lora_name`.
   - When The Wire's WR3 ships the Switchyard's contract, enginespace reconciles with it.
 - **Context:**
   - Catalog §4 makes WR3 the owner of the connector contract and event schema. TR5b implements the engine side. The citing course owns a minimal version when the owner course has not shipped.

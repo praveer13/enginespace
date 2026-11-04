@@ -1,0 +1,83 @@
+# vLLM at the pin: the release itself and what it needs from the host (W1-T01; D-035, O-4).
+#
+# course.lock.json (key vllm) pins v0.33.0 at the commit 4ba787ec9959e566d3b587a796dff07673324da5. These claims are the evidence for D-035's
+# driver gate: the v0.33.0 wheels need CUDA 13.0, which needs a host driver of R580 or newer. The sample claim vllm.release.requires-python
+# (content/claims/sample.yaml) is the Python range of the same release. Read on 2026-11-04.
+
+- id: vllm.release.github-date
+  value: '2026-11-01'
+  text: GitHub shows vLLM v0.33.0 as tagged on 2026-11-01, at 09:21 UTC. The final release object carries a one-line stub, and the notes sit on the release object of v0.33.0rc3, which points at the same commit.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/releases/tag/v0.33.0
+    title: vLLM v0.33.0 release page
+    quote: 'tagged this 01 Nov 09:21'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+  pin: vllm
+
+- id: vllm.release.pypi-upload
+  value: '2026-11-02'
+  text: vLLM 0.33.0 was uploaded to PyPI on 2026-11-02, at 10:12 UTC, the day after its tag. PyPI listed no newer release on 2026-11-04.
+  tag: measured
+  source:
+    url: https://pypi.org/pypi/vllm/0.33.0/json
+    title: vllm 0.33.0 on PyPI (JSON API)
+    quote: '"upload_time_iso_8601":"2026-11-02T10:12:56.222396Z"'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+  pin: vllm
+
+- id: vllm.release.torch-pin
+  value: torch==2.14.0
+  text: vLLM 0.33.0 pins PyTorch exactly, torch==2.14.0. SGLang 0.5.23 pins torch==2.14.1, so the two engines cannot share one Python environment.
+  tag: measured
+  source:
+    url: https://pypi.org/pypi/vllm/0.33.0/json
+    title: vllm 0.33.0 on PyPI (JSON API)
+    quote: '"torch==2.14.0"'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.release.xgrammar-pin
+  value: xgrammar==0.2.8
+  text: vLLM 0.33.0 pins the xgrammar grammar engine at 0.2.8 on x86_64 and aarch64, where SGLang 0.5.23 pins 0.2.7.
+  tag: measured
+  source:
+    url: https://pypi.org/pypi/vllm/0.33.0/json
+    title: vllm 0.33.0 on PyPI (JSON API)
+    quote: '"xgrammar==0.2.8;'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.release.cuda-13-only
+  value: CUDA 13.0 only
+  text: From v0.33.0 the release wheels and images are built for CUDA 13.0 only. The CUDA 12.9 wheels and the -cu129 images are no longer published, and v0.32.0 was the last minor that had them.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/releases/tag/v0.33.0rc3
+    title: vLLM v0.33.0 release notes (kept on the v0.33.0rc3 release; the tag is the v0.33.0 commit)
+    quote: 'CUDA 12.9 dropped: release wheels and images are CUDA 13.0 only.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.release.driver-r580
+  value: R580
+  text: A CUDA 13 image needs an R580 or newer host driver. The compatibility mode for older drivers covers R535 and R570 hosts and only supports select professional and datacenter GPUs, so a GeForce card such as an RTX 4090 should not count on it [estimated].
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/getting_started/installation/gpu.cuda.inc.md#L344-L346
+    title: vLLM v0.33.0, docs/getting_started/installation/gpu.cuda.inc.md (older CUDA drivers)
+    quote: 'because CUDA 13 requires an R580 or newer driver.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm

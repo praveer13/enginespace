@@ -281,15 +281,15 @@ The cap is eight types, enforced by `verify:content`.
 - An expired claim never fails CI. The page shows "stale since <date>" and the weekly watcher lists it.
 - A changed pin raises change cards for every claim tied to it (§10.1).
 
-**`course.lock.json`** is the course lockfile (catalog §7). Each entry is `{key, kind: pypi|git|blog|dataset|model|container, name, version|commit, url, sha256?, checkedAt, ttlDays, notes}`. The site build and the grader kit read the same file. Edition 1's proposed entries (O-4, D-035):
+**`course.lock.json`** is the course lockfile (catalog §7). Each entry is `{key, kind: pypi|git|blog|dataset|model|container|tool, name, version|commit, url, sha256?, checkedAt, ttlDays, notes}`. A vendor tool with no repository to pin a commit of, such as Nsight Systems, has the kind `tool` and is pinned by its version. The site build and the grader kit read the same file, and `verify:pins` checks its entries. Edition 1's proposed entries (O-4, D-035), as W1-T01 wrote them into the file on 2026-11-04:
 
 | Key | Proposed pin | Evidence |
 |---|---|---|
 | `vllm` | v0.33.0, commit `4ba787ec…324da5`. It was tagged on GitHub on 2026-11-01 and uploaded to PyPI on 2026-11-02. The fallback is v0.32.0, commit `5df63a72…28be` (vllm §3). | [measured] PyPI JSON. Requires Python ≥3.11,<3.15 and pins `torch==2.14.0`, `transformers>=5.16.1,<5.21.0`, `flashinfer-python==0.7.2.post1` and `xgrammar==0.2.8` [measured]. Wheels are CUDA 13.0 only, which needs a host driver of R580 or newer (vllm R4); no x.y.1 patch exists for 0.28-0.33 (vllm R1, R3) |
 | `sglang` | v0.5.23, sha `297e54fd…6f90`. It was uploaded to PyPI on 2026-10-30 and released on GitHub on 2026-11-02 (sglang R1). | [measured] release feed. `pyproject.toml` pins `torch==2.14.1`, `transformers==5.19.0`, `flashinfer_python[cu13]==0.7.2` and `xgrammar==0.2.7` [measured]. The NVIDIA image is CUDA 13 only (sglang R5) |
 | `inside-vllm` | commit `42172ad18fbc22c89d0063184e4570cc84186e16` (pre-MRV2) | catalog §3.5, checked 2026-10-24; full sha from vllm §3 |
-| `nano-vllm`, `mini-sglang` | proposed `bb823b3e…98ef8` and `9a91cfaf…58f2`; neither repo has tags. W1-T01 confirms them. | vllm §3; sglang §4 |
-| `nsys`, `ncu`, `perfetto` | proposed 2026.5.1, 2026.3.1 and v59.1 | sglang §4 [measured 2026-11-03] |
+| `nano-vllm`, `mini-sglang` | `bb823b3e…98ef8` and `9a91cfaf…58f2`; neither repo has tags. W1-T01 confirmed on 2026-11-04 that each is still the last commit on `main`. | vllm §3; sglang §4; the commit feeds [measured 2026-11-04] |
+| `nsys`, `ncu`, `perfetto` | 2026.5.1 and 2026.3.1 (kind `tool`), and v59.1, commit `1e9c61e9…10cf6d` | sglang §4 [measured 2026-11-03]; on 2026-11-04 NVIDIA's download page offered nsys 2026.6.1 and its documentation header read ncu v2026.4.0, so W1-T02 re-checks both [measured] |
 | `qwen3-0.6b` | Hugging Face revision to be pinned by W2-T16 | — |
 | `burstgpt-v2` | source asset SHA-256 `a4d068a7…dda1f4`, CC BY 4.0 | kernelspace's `public/traces/README.md` |
 
@@ -437,7 +437,11 @@ export function kvOps(seed: Seed, spec: KvSpec, n: number): readonly KvOp[]
 - **Groups.** A full-attention group keeps every block. A sliding group frees blocks that fall behind its window. A state group holds a fixed number of pages per request. Adapter pages are shared by every request that uses the adapter.
 - **All or nothing.** An operation either succeeds or leaves the state untouched, lab 02's rule.
 - **Prefix caching.** Block hashes chain over the parent hash, the token ids and the extra keys (the adapter id).
-- **Events.** The model emits `BlockStored`, `BlockRemoved` and `AllBlocksCleared` in the shape of the pinned vLLM version's KV events [unverified until W1-T01 checks the pin].
+- **Events.** The model emits `BlockStored`, `BlockRemoved` and `AllBlocksCleared` in the shape of vLLM v0.33.0's KV events, which W1-T01 read at the pin on 2026-11-04 (claims `vllm.kv-events.*`):
+  - An event is a tagged map whose `type` is the class name, and a batch is the array `[ts, events, data_parallel_rank]`. SGLang v0.5.23 encodes its events the same way and says so (`sglang.kv-events.encoding`).
+  - `BlockStored` has seven fields without a default: `block_hashes`, `parent_block_hash`, `token_ids`, `block_size`, `lora_id` (deprecated), `medium` and `lora_name`. Its eight optional fields are `extra_keys`, `group_idx`, `kv_cache_spec_kind`, `kv_cache_spec_sliding_window`, `locality`, `ownership`, `session_id` and `lookahead_token_ids`.
+  - `BlockRemoved` has `block_hashes`, `medium` and the optional `group_idx`, `locality` and `ownership`. `AllBlocksCleared` has no fields, and the block pool emits it only when a reset finds no block in use.
+  - The adapter is already in the shape: both engines carry it as `lora_name` (`vllm.kv-events.adapter-field`, `sglang.kv-events.adapter-field`), and the adapter is part of the block hash through `extra_keys` (`vllm.kv-hash.lora-extra-key`).
 - **Invariants.** Pages are conserved; reference counts never go below zero; a block table's length matches its group's rule; every stored or removed block is published exactly once.
 
 ### 5.5 The speculation sampler

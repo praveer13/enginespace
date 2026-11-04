@@ -1,0 +1,88 @@
+{
+  "schema": "enginespace/lock@1",
+  "entries": [
+    {
+      "key": "vllm",
+      "kind": "pypi",
+      "name": "vllm",
+      "version": "0.33.0",
+      "commit": "4ba787ec9959e566d3b587a796dff07673324da5",
+      "url": "https://pypi.org/project/vllm/0.33.0/",
+      "checkedAt": "2026-11-04",
+      "ttlDays": 90,
+      "notes": "D-035's pin, proposed until the owner confirms it (O-4). The tag v0.33.0 points at this commit. It was tagged on GitHub on 2026-11-01 and uploaded to PyPI on 2026-11-02 [measured 2026-11-04]. PyPI's metadata requires Python >=3.11,<3.15 and pins torch==2.14.0, transformers>=5.16.1,<5.21.0, flashinfer-python==0.7.2.post1 and xgrammar==0.2.8 [measured]. The wheels and images are CUDA 13.0 only, which needs a host driver of R580 or newer. Driver gate: if the capture GPUs or the rental hosts run an older driver, pin v0.32.0 (5df63a7203cdb9328d824a27b682e77c7b9928be, the last minor with CUDA 12.9 builds) instead. Patch gate: no v0.33.1 tag existed on 2026-11-04 [measured]; take one if it exists on the day the traces are captured. content/claims/vllm/ cites this pin."
+    },
+    {
+      "key": "sglang",
+      "kind": "pypi",
+      "name": "sglang",
+      "version": "0.5.23",
+      "commit": "297e54fd105e974cdf401e5b4d20253a22c16f90",
+      "url": "https://pypi.org/project/sglang/0.5.23/",
+      "checkedAt": "2026-11-04",
+      "ttlDays": 90,
+      "notes": "D-035's pin, proposed until the owner confirms it (O-4). The tag v0.5.23 points at this commit. It was uploaded to PyPI on 2026-10-30 and released on GitHub on 2026-11-02 [measured 2026-11-04]. PyPI's metadata requires Python >=3.11 and pins torch==2.14.1, transformers==5.19.0, flashinfer_python[cu13]==0.7.2 and xgrammar==0.2.7 [measured], so SGLang cannot share an environment with vLLM (A§9.2). The NVIDIA image, lmsysorg/sglang:v0.5.23, is CUDA 13 only. No newer tag existed on 2026-11-04 [measured]. content/claims/sglang/ cites this pin."
+    },
+    {
+      "key": "nano-vllm",
+      "kind": "git",
+      "name": "nano-vllm",
+      "commit": "bb823b3e06983d71485a8e1f23715ebd87d98ef8",
+      "url": "https://github.com/GeeeekExplorer/nano-vllm",
+      "checkedAt": "2026-11-04",
+      "ttlDays": 90,
+      "notes": "A reading target (D-011). The repository has no releases and no tags. This is the last commit on main, 'Merge pull request #218 from GeeeekExplorer/chunked-prefill-refactor' of 2026-04-26 [measured 2026-11-04]; A§4.4 proposed it and W1-T01 confirms it. It requires Python >=3.10,<3.13 and an unpinned flash-attn; whether a flash-attn build exists for torch 2.14 and CUDA 13 is [unverified] (W2-T34 tests it). content/claims/readings.yaml cites this pin."
+    },
+    {
+      "key": "mini-sglang",
+      "kind": "git",
+      "name": "mini-sglang",
+      "commit": "9a91cfafe754aa85daee49998176275667eb58f2",
+      "url": "https://github.com/sgl-project/mini-sglang",
+      "checkedAt": "2026-11-04",
+      "ttlDays": 90,
+      "notes": "A reading target (D-011). The repository has no releases and no tags. This is the last commit on main, '[Fix] Stabilize decode batch request order across TP ranks (#113)' of 2026-05-17 [measured 2026-11-04]; A§4.4 proposed it and W1-T01 confirms it. Its pyproject requires Python >=3.10, torch<2.10.0 and transformers>=4.56.0,<=4.57.3, so it needs an environment of its own beside the engines' torch 2.14 [measured], and it runs on Linux only. content/claims/readings.yaml cites this pin."
+    },
+    {
+      "key": "inside-vllm",
+      "kind": "blog",
+      "name": "Inside vLLM",
+      "commit": "42172ad18fbc22c89d0063184e4570cc84186e16",
+      "url": "https://vllm.ai/blog/2025-09-05-anatomy-of-vllm",
+      "checkedAt": "2026-11-04",
+      "ttlDays": 365,
+      "notes": "A reading target (D-011). The pin is the vLLM commit that the post says its analysis is based on (dated 2025-08-09), not a revision of the post, which is dated 2025-09-05 [measured 2026-11-04]. It predates Model Runner V2 and the CUDA-graph dispatcher. content/claims/readings.yaml lists the statements of the post that v0.33.0 has overtaken."
+    },
+    {
+      "key": "nsys",
+      "kind": "tool",
+      "name": "Nsight Systems",
+      "version": "2026.5.1",
+      "url": "https://developer.nvidia.com/nsight-systems/get-started",
+      "checkedAt": "2026-11-04",
+      "ttlDays": 60,
+      "notes": "The version that A§4.4 proposed and whose documentation the TR3 commands were checked against (the user guide's header read v2026.5 on 2026-11-04). NVIDIA publishes no commit for it, so the pin is its version. The vendor's download page called 2026.6.1 current on 2026-11-04 [measured], so the owner decides at W1-T02 whether to move to it."
+    },
+    {
+      "key": "ncu",
+      "kind": "tool",
+      "name": "Nsight Compute",
+      "version": "2026.3.1",
+      "url": "https://developer.nvidia.com/tools-overview/nsight-compute/get-started",
+      "checkedAt": "2026-11-04",
+      "ttlDays": 60,
+      "notes": "The version that A§4.4 proposed, listed as '2026.3 Update 1' and dated 2026-09-16 on the vendor's download page [measured 2026-11-04]. NVIDIA publishes no commit for it, so the pin is its version. The documentation site's header already read v2026.4.0 on 2026-11-04 while the download page still offered 2026.3, so the owner should re-check at W1-T02. Counter access on rented GPUs is [unverified]; no graded artifact depends on it."
+    },
+    {
+      "key": "perfetto",
+      "kind": "git",
+      "name": "Perfetto",
+      "version": "v59.1",
+      "commit": "1e9c61e9844affd7dccd3d42d9ea9f3a3d10cf6d",
+      "url": "https://github.com/google/perfetto",
+      "checkedAt": "2026-11-04",
+      "ttlDays": 60,
+      "notes": "The tag v59.1, the newest tag on 2026-11-04 [measured]. The tag is annotated, and this is the commit it points to. The hosted UI at ui.perfetto.dev reported its stable channel as v59.1-79997ada9 on that day, a different commit from the tag's, so a learner who opens a trace in the hosted UI may see a build that is not this commit [measured]."
+    }
+  ]
+}

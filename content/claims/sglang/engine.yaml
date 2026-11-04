@@ -1,0 +1,195 @@
+# SGLang at the pin: the release, the overlap scheduler and the scheduler's defaults (W1-T01; D-035, D-041).
+#
+# Every claim here was read on 2026-11-04 from the file the source URL names, at the tag the URL names. The pin is v0.5.23, the commit
+# 297e54fd105e974cdf401e5b4d20253a22c16f90 (course.lock.json, key sglang). Paths under python/sglang/srt/ are shortened in titles to srt/.
+# TTLs are in days: 90 for a fact that belongs to the pin and 365 for release history (ARCHITECTURE §4.4).
+
+- id: sglang.release.github-date
+  value: '2026-11-02'
+  text: GitHub shows SGLang v0.5.23 as released on 2026-11-02, at 22:14 UTC. PyPI had it three days earlier.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/releases/tag/v0.5.23
+    title: SGLang v0.5.23 release page
+    quote: 'released this 02 Nov 22:14'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+  pin: sglang
+
+- id: sglang.release.pypi-upload
+  value: '2026-10-30'
+  text: SGLang 0.5.23 was uploaded to PyPI on 2026-10-30, at 01:34 UTC. PyPI listed no newer release on 2026-11-04.
+  tag: measured
+  source:
+    url: https://pypi.org/pypi/sglang/0.5.23/json
+    title: sglang 0.5.23 on PyPI (JSON API)
+    quote: '"upload_time_iso_8601":"2026-10-30T01:34:33.194841Z"'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+  pin: sglang
+
+- id: sglang.release.requires-python
+  value: '>=3.11'
+  text: SGLang 0.5.23 declares Python 3.11 or newer, where vLLM 0.33.0 declares 3.11 or newer and older than 3.15.
+  tag: measured
+  source:
+    url: https://pypi.org/pypi/sglang/0.5.23/json
+    title: sglang 0.5.23 on PyPI (JSON API)
+    quote: '"requires_python":">=3.11"'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.release.torch-pin
+  value: torch==2.14.1
+  text: SGLang 0.5.23 pins PyTorch exactly, torch==2.14.1, one patch release above vLLM 0.33.0's torch==2.14.0.
+  tag: measured
+  source:
+    url: https://pypi.org/pypi/sglang/0.5.23/json
+    title: sglang 0.5.23 on PyPI (JSON API)
+    quote: '"torch==2.14.1"'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.release.xgrammar-pin
+  value: xgrammar==0.2.7
+  text: SGLang 0.5.23 pins the xgrammar grammar engine at 0.2.7, one patch release below vLLM 0.33.0's 0.2.8.
+  tag: measured
+  source:
+    url: https://pypi.org/pypi/sglang/0.5.23/json
+    title: sglang 0.5.23 on PyPI (JSON API)
+    quote: '"xgrammar==0.2.7"'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+# --- The overlap scheduler -----------------------------------------------------------------------------------------------------------
+
+- id: sglang.overlap.default
+  value: 'on'
+  text: SGLang's overlap scheduler is on by default at v0.5.23, and --disable-overlap-schedule turns it off. It overlaps the CPU scheduler with the GPU model worker.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/arg_groups/fields/schedule.py#L193-L199
+    title: SGLang v0.5.23, srt/arg_groups/fields/schedule.py, disable_overlap_schedule
+    quote: 'Disable the overlap scheduler, which overlaps the CPU scheduler with GPU model worker.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.overlap.loop
+  value: 'launch batch N, then process batch N-1'
+  text: In event_loop_overlap the scheduler launches the current batch, appends its result to a result_queue, and then processes the result of the batch before it. The CPU work on one batch's results therefore runs while the GPU computes the next.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/scheduler.py#L2061-L2120
+    title: SGLang v0.5.23, srt/managers/scheduler.py, Scheduler.event_loop_overlap
+    quote: 'A scheduler loop that overlaps the CPU processing and GPU computation.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.overlap.consecutive-prefill
+  value: overlap off between two prefills
+  text: The scheduler can turn overlap off for two consecutive prefill batches, to improve the time to first token of the first batch. The cost is a little throughput, so the switch is an environment variable, SGLANG_DISABLE_CONSECUTIVE_PREFILL_OVERLAP.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/scheduler.py#L2136-L2156
+    title: SGLang v0.5.23, srt/managers/scheduler.py, Scheduler.is_disable_overlap_for_batch
+    quote: 'For two consecutive prefill batches, we disable overlap to improve the TTFT of the first batch.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.overlap.consecutive-prefill-default
+  value: 'false'
+  text: SGLANG_DISABLE_CONSECUTIVE_PREFILL_OVERLAP is false by default, so overlap stays on between two consecutive prefill batches unless it is set.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/environ.py#L693
+    title: SGLang v0.5.23, srt/environ.py, SGLANG_DISABLE_CONSECUTIVE_PREFILL_OVERLAP
+    quote: 'SGLANG_DISABLE_CONSECUTIVE_PREFILL_OVERLAP = EnvBool(False)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+# --- Scheduler defaults --------------------------------------------------------------------------------------------------------------
+
+- id: sglang.sched.policy-default
+  value: fcfs
+  text: SGLang's default schedule policy is fcfs. The other choices include lpm, random, dfs-weight, lof, priority, routing-key, hrrn and shortest-prefill-first.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/arg_groups/fields/schedule.py#L86-L102
+    title: SGLang v0.5.23, srt/arg_groups/fields/schedule.py, schedule_policy
+    quote: '] = "fcfs"'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.sched.max-prefill-tokens
+  value: 16384
+  unit: tokens
+  text: max_prefill_tokens, the most tokens in one prefill batch, defaults to 16,384 at v0.5.23. The real bound is the larger of this value and the model's context length.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/arg_groups/fields/schedule.py#L71-L81
+    title: SGLang v0.5.23, srt/arg_groups/fields/schedule.py, max_prefill_tokens
+    quote: '] = 16384'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.sched.continuous-decode-steps
+  value: 1
+  unit: steps
+  text: num_continuous_decode_steps defaults to 1, so the scheduler runs one decode step at a time. A larger value cuts scheduling overhead and may raise the time to first token.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/arg_groups/fields/schedule.py#L200-L203
+    title: SGLang v0.5.23, srt/arg_groups/fields/schedule.py, num_continuous_decode_steps
+    quote: 'The default value is 1, meaning only run one decoding step at a time.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.sched.chunked-prefill-size.small
+  value: 4096
+  unit: tokens
+  text: On a card with 20 GiB to under 35 GiB of memory, which the source lists as A10, 4090 and 5090, and when the user sets nothing, SGLang chunks prefill at 4,096 tokens at v0.5.23.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/arg_groups/memory_hook.py#L101-L112
+    title: SGLang v0.5.23, srt/arg_groups/memory_hook.py, handle_gpu_memory_settings
+    quote: '# (chunked_prefill_size 4k, max_bs 48 if tp < 4 else 160)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.sched.chunked-prefill-size.large
+  value: 8192
+  unit: tokens
+  text: On a card with 60 GiB to under 90 GiB of memory, which the source lists as H100 and A100, SGLang chunks prefill at 8,192 tokens by default at v0.5.23.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/arg_groups/memory_hook.py#L132-L140
+    title: SGLang v0.5.23, srt/arg_groups/memory_hook.py, handle_gpu_memory_settings
+    quote: '# (chunked_prefill_size 8k, max_bs 256 if tp < 4 else 512)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
