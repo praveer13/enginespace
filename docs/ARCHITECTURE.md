@@ -1061,7 +1061,8 @@ TypeScript writes `schemas/vectors/*.json`, Python's tests read them, and `labs.
 **Screenshots.**
 - Static pages and 2D views compare with a small tolerance, using self-hosted fonts on a fixed runner image.
 - 3D scenes are captured as artifacts and checked for "rendered and not blank" by sampling pixels, never by pixel diff. SwiftShader output is not a reference.
-- Headless Chromium on a runner renders WebGL through SwiftShader. Newer Chromium builds may need `--use-angle=swiftshader --enable-unsafe-swiftshader` [unverified for Playwright 1.63's Chromium; W0-T21 checks].
+- Headless Chromium on a runner renders WebGL through SwiftShader. [measured 2026-11-04 at bac1d04, with Playwright 1.63.0 driving Chrome for Testing 149.0.7827.55] Playwright adds `--enable-unsafe-swiftshader` itself, and WebGL2 exists with no flag. `--use-angle=swiftshader` is what makes the page read the renderer as capable and draw its 3D pass, because the headless shell otherwise fails a context request that refuses a major performance caveat, and the site then stays in 2D. `playwright.config.ts` holds the flag and the measurement. The Chromium that Playwright 1.63.0 pins, Chrome for Testing 153.0.8010.12, was not on the measuring machine [unverified], so the first run on a runner prints the build and renderer it ran on (e2e/screenshots.spec.ts).
+- Screenshot text is drawn with `--font-render-hinting=none`, which cut the difference between two headless modes from about 1.5% of the pixels to about 0.1% [measured 2026-11-04 at bac1d04, the front page's 2D pass at 360 and 1280 px].
 
 ### 10.2 Gates
 
@@ -1295,7 +1296,7 @@ Hours are the catalog's [estimated] figures; the total is about 91 h.
 - **Extension points move.** The proposer, connector and profiler hooks in vLLM and SGLang can change between minors. Each GPU lab keeps a per-pin shim in `labs/gpu/<lab>/starter/`, and the quarterly re-pin carries that cost (catalog §9 puts Engine Internals' upkeep at about 10 h a quarter [estimated]; PLAN.md §11 estimates 14-25 h [estimated], counting the trace re-capture and the host-card refit).
 - **The Wire has not shipped.** TR5b owns a minimal connector contract and `kv-events@1` until WR3 ships, then reconciles (D-034).
 - **Unverified mechanics:**
-  - the SwiftShader flags for Playwright 1.63's Chromium (W0-T21);
+  - the SwiftShader flags on the Chromium that Playwright 1.63.0 pins, Chrome for Testing 153.0.8010.12: they were measured on 149.0.7827.55, and the first CI run of W0-T21's e2e suite prints the build (§10.1);
   - official engine images at the pinned tags (W2-T11);
   - GitHub Pages on a private repository, which needs a paid GitHub plan (O-2);
   - WebKit's 7-day storage rule (§7.5).
