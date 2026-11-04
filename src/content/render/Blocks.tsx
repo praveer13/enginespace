@@ -1,6 +1,7 @@
 import { Fragment, type ReactNode } from 'react'
 import type { CompiledBlock, CompiledCard } from '@es/schema'
 import { publicUrl, useCard, useClaims } from '../load'
+import { ItemBlock } from '@/items/ItemBlock'
 import { Icon } from '@/design/components/Glyph'
 import { Readout } from '@/design/components/Readout'
 import { Stub } from '@/design/components/Stub'
@@ -16,10 +17,10 @@ import { Inline, Prose } from './Prose'
  * block. A prose block breaks into a ticket for each `##` section, with the heading as the ticket's stamped title. Every
  * other block is one ticket, headed by the page's id and its own, titled by its kind, with its facts on tape labels.
  *
- * Prose, a warning, an isomorphism, a notional-machine card and a figure are complete. A block whose feature a later task
- * builds (a prediction, an item set, a game, a trace, a lab page, the other cards kept in their own files) prints what it is
- * told, then a red line naming the task that builds the rest, and a stub for the action it will have, held down. A feature
- * task replaces its block's placeholder below and leaves the others alone.
+ * Prose, a warning, an isomorphism, a notional-machine card, a figure and an item set (src/items, W1-T04) are complete. A
+ * block whose feature a later task builds (a prediction, a game, a trace, a lab page, the other cards kept in their own
+ * files) prints what it is told, then a red line naming the task that builds the rest, and a stub for the action it will
+ * have, held down. A feature task replaces its block's placeholder below and leaves the others alone.
  */
 
 export interface BlocksProps {
@@ -42,7 +43,7 @@ function BlockTicket({ block, env, scope }: { block: CompiledBlock; env: RenderE
     case 'predict':
       return <PredictTicket block={block} scope={scope} />
     case 'item':
-      return <ItemTicket block={block} scope={scope} />
+      return <ItemBlock block={block} scope={scope} />
     case 'game':
       return <GameTicket block={block} scope={scope} />
     case 'trace':
@@ -190,23 +191,8 @@ function PredictTicket({ block, scope }: { block: Of<'predict'>; scope: string }
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* item, game, trace                                                                                                  */
+/* game, trace                                                                                                        */
 /* ------------------------------------------------------------------------------------------------------------------ */
-
-function ItemTicket({ block, scope }: { block: Of<'item'>; scope: string }) {
-  const pending = PENDING.item
-  return (
-    <Frame block="item" scope={scope} meta={block.family} title="Items" pending={pending.task} stub={<Stub disabled>Start items</Stub>}>
-      <p className="es-c-line">
-        <TicketLine qty={`${block.count}x`} note={`level ${block.level}`}>
-          {block.family}
-        </TicketLine>
-      </p>
-      <p>Drawn on fresh seeds when you start.</p>
-      <PendingLine {...pending} />
-    </Frame>
-  )
-}
 
 function GameTicket({ block, scope }: { block: Of<'game'>; scope: string }) {
   const pending = pendingGame(block.id)

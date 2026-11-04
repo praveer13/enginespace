@@ -17,7 +17,6 @@ describe('the features that are not built yet', () => {
   /** Each feature, the words of the tracker that say which task builds it, and where those words are. */
   const features: Record<keyof typeof PENDING, { in: 'heading' | 'body'; words: RegExp }> = {
     predict: { in: 'body', words: /prediction first/ },
-    item: { in: 'heading', words: /item block/ },
     trace: { in: 'heading', words: /Trace viewer/ },
     'in-production': { in: 'body', words: /In-production card/ },
     'build-this': { in: 'body', words: /Build-this card/ },
