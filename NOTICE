@@ -2,8 +2,9 @@ enginespace: third-party notices
 
 enginespace vendors files from kernelspace, in vendor/kernelspace/. This file carries
 the notices that come with them, in two sections: kernelspace, and ts-fsrs, whose memory
-model one of kernelspace's files transcribes. The licence of enginespace's own code and
-content is the owner's decision (O-3) and is not stated here.
+model one of kernelspace's files transcribes. A third section, Fonts, carries the licences
+of the faces the site self-hosts in public/fonts/. The licence of enginespace's own code
+and content is the owner's decision (O-3) and is not stated here.
 
 ============================================================================
 kernelspace
@@ -92,3 +93,53 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+============================================================================
+Fonts
+============================================================================
+
+The site self-hosts its faces in public/fonts/ and requests none from anywhere else
+(D-033, D-050). Each was fetched once, on 2026-11-03, from a Fontsource npm package at an
+exact version through its jsDelivr mirror, in its Latin subset; public/fonts/fonts.json
+pins every file and its source by SHA-256. Two files are Modified Versions, made with
+fontTools 4.60.1 as fonts.json records. The licence beside each face is the LICENSE file
+its package ships, unchanged.
+
+Big Shoulders Display
+  File:      public/fonts/big-shoulders-display-latin-800-normal.woff2
+  Source:    @fontsource/big-shoulders-display 5.3.0
+  Copyright 2019 The Big Shoulders Project Authors (https://github.com/xotypeco/big_shoulders)
+  Licence:   SIL Open Font License, Version 1.1 (public/fonts/OFL-BigShouldersDisplay.txt)
+
+Doto
+  File:      public/fonts/doto-latin-round-900.woff2, a Modified Version: the variable
+             font instanced at ROND 100 and weight 900
+  Source:    @fontsource-variable/doto 5.3.0
+  Copyright 2024-2024 The Doto Project Authors (https://github.com/oliverlalan/Doto)
+  Licence:   SIL Open Font License, Version 1.1 (public/fonts/OFL-Doto.txt)
+
+Handjet
+  File:      public/fonts/handjet-latin-micro-300.woff2, a Modified Version: the variable
+             font instanced at ELSH 2, ELGR 1 and weight 300, and subset to U+00B5 and
+             U+00B1
+  Source:    @fontsource-variable/handjet 5.3.0
+  Copyright 2018 The Handjet Project Authors (https://github.com/rosettatype/Handjet/)
+  Licence:   SIL Open Font License, Version 1.1 (public/fonts/OFL-Handjet.txt)
+
+Permanent Marker
+  File:      public/fonts/permanent-marker-latin-400-normal.woff2
+  Source:    @fontsource/permanent-marker 5.3.0
+  Copyright (c) 2010 by Font Diner, Inc. All rights reserved.
+  Licence:   Apache License, Version 2.0 (public/fonts/LICENSE-PermanentMarker.txt)
+
+Atkinson Hyperlegible
+  Files:     public/fonts/atkinson-hyperlegible-latin-{400,700}-{normal,italic}.woff2
+  Source:    @fontsource/atkinson-hyperlegible 5.3.0
+  Copyright 2020 Braille Institute of America, Inc.
+  Licence:   SIL Open Font License, Version 1.1 (public/fonts/OFL-AtkinsonHyperlegible.txt)
+
+Atkinson Hyperlegible Mono
+  File:      public/fonts/atkinson-hyperlegible-mono-latin-wght-normal.woff2
+  Source:    @fontsource-variable/atkinson-hyperlegible-mono 5.3.0
+  Copyright 2020-2024 The Atkinson Hyperlegible Mono Project Authors (https://github.com/googlefonts/atkinson-hyperlegible-next-mono)
+  Licence:   SIL Open Font License, Version 1.1 (public/fonts/OFL-AtkinsonHyperlegibleMono.txt)

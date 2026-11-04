@@ -1,6 +1,6 @@
 # enginespace: decision log
 
-**Status:** D-001 to D-006 are the owner's decisions of 2026-11-03. D-007 to D-013 restate the product record the owner confirmed the same day (`PRODUCT.md`). D-014 to D-042 are **proposed** by [ARCHITECTURE.md](ARCHITECTURE.md) and wait for the owner's review. D-043 to D-046 are **proposed** by the design review of 2026-11-03, which settled contradictions between the design files; they wait for the owner too. D-047 records the visual world the owner chose on 2026-11-03, and D-048 and D-049 are **proposed** by the art direction that followed it. The open owner questions, O-1 to O-11, and the course-design questions, Q-1 to Q-12, are at the end. **Date:** 2026-11-03.
+**Status:** D-001 to D-006 are the owner's decisions of 2026-11-03. D-007 to D-013 restate the product record the owner confirmed the same day (`PRODUCT.md`). D-014 to D-042 are **proposed** by [ARCHITECTURE.md](ARCHITECTURE.md) and wait for the owner's review. D-043 to D-046 are **proposed** by the design review of 2026-11-03, which settled contradictions between the design files; they wait for the owner too. D-047 records the visual world the owner chose on 2026-11-03, and D-048 and D-049 are **proposed** by the art direction that followed it. D-050 is **proposed** by the design system's build (W0-T05). The open owner questions, O-1 to O-11, and the course-design questions, Q-1 to Q-12, are at the end. **Date:** 2026-11-03.
 
 **How to read a record.** Each record carries six fields:
 - **Decision**, in one or two sentences.
@@ -73,6 +73,7 @@
 | D-047 | The visual identity is The Pass, a restaurant line kitchen and its expo pass. The direction contract in the front page's surface brief sets token values, faces and scene materials, and DESIGN.md is written from the built world at the end of W0. | owner-decided 2026-11-03 |
 | D-048 | The front page runs on GAMES.md's synthetic ticks and prints them as ticks, labelled synthetic. µs on the model's clock start with TR2's levels (W1-T13). | proposed (art direction) |
 | D-049 | Every game gets an in-world display name in kitchen vocabulary, with its engine concept as a subtitle. Ids stay as they are. | proposed (art direction) |
+| D-050 | The design system ships one light scheme, the line under its tubes, with a more-contrast variant and no dark scheme. Its faces are Big Shoulders Display, Doto (with Handjet's µ and ±), Permanent Marker, Atkinson Hyperlegible and Atkinson Hyperlegible Mono, self-hosted from Fontsource 5.3.0 and pinned by SHA-256. | proposed (W0-T05) |
 
 ---
 
@@ -721,6 +722,46 @@ D-047 is the owner's choice of visual world. D-048 and D-049 follow from it: one
   - W0-T14's registry records each game's display name and subtitle, and `verify:games` fails a game without them.
   - Copy pairs the two vocabularies: the kitchen word names the object, and the engine term names the concept. The engine term leads wherever the learner will meet it again (GAMES.md §2.6).
 - **Revisit when:** a learner test shows that a display name misleads about its concept, or the owner renames a game.
+
+---
+
+## The design system, 2026-11-03
+
+D-050 records what W0-T05 decided while applying D-047's contract: the colour schemes the system ships, and the faces.
+
+### D-050 · One light scheme, and the faces of The Pass
+
+- **Status:** proposed (W0-T05, 2026-11-03).
+- **Decision:**
+  - **One light scheme.** The system ships the scene the contract describes, a bright line under fluorescent tubes and heat lamps, and its `prefers-contrast: more` variant, which darkens the quiet text, the edges and the lamp's filament. It ships no dark scheme. Every declared pair meets ARCHITECTURE §11.2 in both schemes (`verify:tokens`).
+  - **The faces,** one per object of the kitchen:
+
+    | Role | Face | The object |
+    |---|---|---|
+    | display, heading | Big Shoulders Display, weight 800 | stamped equipment plates and signage: a heavy condensed grotesk |
+    | numeric, ticket | Doto, instanced with round dots at weight 900; Handjet for the two glyphs Doto lacks, µ and ± | the kitchen printer's impact dot matrix |
+    | label | Permanent Marker | marker on masking tape |
+    | body | Atkinson Hyperlegible, 400 and 700, upright and italic | long reading, in a face drawn for legibility that tells l, I and 1 and O and 0 apart |
+    | mono | Atkinson Hyperlegible Mono | code and identifiers |
+
+  - **Self-hosted, pinned, and not dependencies.** Each file was fetched once, on 2026-11-03, from a Fontsource npm package at version 5.3.0 through its jsDelivr mirror, with a generic User-Agent, in its Latin subset. `public/fonts/fonts.json` pins every file and its source by SHA-256. Doto and Handjet are Modified Versions made with fontTools 4.60.1 (the transforms are in `fonts.json`, and they rebuild byte for byte under `SOURCE_DATE_EPOCH`). No font package enters `package.json`, so ARCHITECTURE §14 gains no row. The nine files weigh 138,188 bytes in all [measured 2026-11-03, from the byte counts `fonts.json` pins]; a page downloads only the faces it sets.
+  - **The licences:** SIL Open Font License 1.1 for all but Permanent Marker, which is under the Apache License 2.0. Each licence file sits beside its face in `public/fonts/`, and NOTICE carries each one.
+- **Context:**
+  - D-047's contract names the materials and the type voices, and its surface brief left the exact faces to the build ("chosen at build time"). W0-T05 asked whether a dark scheme earns its place, and to record why if not.
+  - The physical scene decides light or dark (impeccable `reference/new-work.md` §4): the learner looks at a bright line, steel under tubes, white tickets under heat lamps. A dark kitchen is a different place, after service with the lights down, not this one dimmed.
+  - Atkinson Hyperlegible Next and Atkinson Hyperlegible Mono have no micro sign (U+00B5) [measured 2026-11-03, from the character maps of their Fontsource 5.3.0 Latin files]. The course writes µs in nearly every lesson, so the reading face is the original Atkinson Hyperlegible, which has it. Doto has no µ or ± either, so an 824-byte subset of Handjet [measured 2026-11-03, `fonts.json`], another dot-matrix face, carries those two glyphs under `unicode-range` and the numerals stay in dots.
+- **Alternatives:**
+  - a dark scheme [design]: it would double every declared pair and every scene material, and invent a second world the contract does not describe. WCAG 2.2 AA asks for contrast, not a dark mode, and readers who set `prefers-contrast: more` get the darker variant;
+  - for the display face, the category's condensed defaults (Anton, Oswald, Bebas Neue) and four more grotesks weighed side by side (Sofia Sans Extra Condensed, Barlow Condensed, League Gothic, Antonio) [design]: Big Shoulders Display reads most like a stamped plate at 800;
+  - for the dots, Handjet alone, which is more legible small but reads as an inkjet coder or an LCD rather than an impact printer, and Bitcount, which is a pixel face, not dots [design];
+  - for the marker, Shantell Sans, Kalam, Gochi Hand and Just Another Hand [design]: Permanent Marker is the felt-tip capitals of a prep label;
+  - for reading, Atkinson Hyperlegible Next (no µ), Public Sans and Libre Franklin [design].
+- **Consequences:**
+  - `src/design/tokens.ts` carries the roles and values, `tokens.css` is generated from it, and `verify:tokens` fails on a placeholder, on drift between the two, on a font role that does not start with a self-hosted face, and on a pair below its threshold.
+  - Doto prints a period as a block of four dots, as a dot-matrix printer does. A Readout prints at 15 px or larger [estimated], so a decimal point reads as one.
+  - `useSceneTokens()` re-reads on `prefers-color-scheme` as the tracker asks, though no scheme answers it yet.
+  - W0-T25 documents these faces and schemes in DESIGN.md.
+- **Revisit when:** the owner asks for a dark scheme; a learner test shows the dot-matrix numerals misread; or a pinned face's licence or source changes.
 
 ---
 
