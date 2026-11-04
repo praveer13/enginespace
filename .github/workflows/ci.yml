@@ -1,0 +1,119 @@
+name: CI
+
+# The pull-request gates (ARCHITECTURE §10.1). Three jobs run side by side:
+#   fast-gate  lint, typecheck, the content compile, every verify:* gate that scripts/verify.ts registers, the build, and the
+#              gate that reads the build (verify:bundle), then export freshness.
+#   tests      bun test: units, golden vectors, seeded properties and bestiaries.
+#   e2e-smoke  Playwright against vite preview. Reserved for W0-T21, which adds playwright.config.ts and the specs.
+#
+# A gate whose script is not built yet prints "pending: <task>" and exits 0 (kernelspace's pattern, scripts/verify.ts), so this
+# file does not change when a task lands its gate. The content compile and the export freshness check switch on the same way,
+# by file; e2e-smoke is the one job that its task replaces. Run the gates locally with `bun run verify:all`. labs.yml runs the
+# one gate that needs the Rust toolchain (verify:labs).
+#
+# The job timeouts are backstops [estimated], set well above the targets of §10.2 and §10.1: under 5 minutes for the fast gate
+# [estimated] and under 6 for e2e-smoke [estimated].
+#
+# Actions are pinned by full commit SHA with the release in the comment, as ARCHITECTURE §10.3 lists them. A bump is a
+# reviewed change to that table and to every workflow, and tests/ci/workflows.test.ts compares the two.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fast-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      # The scripts run under Bun, pinned as in kernelspace's workflows.
+      - name: Set up pinned Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.14
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+
+      # §4.1: in CI, `bun scripts/content/build.ts` runs the compiler that the dev server runs as a Vite plugin.
+      - name: Compile the content
+        run: |
+          if [ -f scripts/content/build.ts ]; then
+            bun scripts/content/build.ts
+          else
+            echo 'pending: W0-T08'
+          fi
+
+      # Every gate that reads only the working tree. Its pending ones name their task.
+      - name: Source gates
+        run: bun run verify:all --stage source
+
+      - run: npm run build
+
+      # The gates that read dist/ (verify:bundle).
+      - name: Build gates
+        run: bun run verify:all --stage build
+
+      # §4.6: the Markdown export is committed, and the build above rewrote it, so a difference means the committed export is
+      # stale. The check starts once W1-T35 commits public/llms.txt; until then the export is not tracked and nothing is stale.
+      - name: Export freshness
+        run: |
+          if ! git ls-files --error-unmatch public/llms.txt > /dev/null 2>&1; then
+            echo 'pending: W1-T35'
+            exit 0
+          fi
+          if [ -n "$(git status --porcelain --untracked-files=all -- public/md public/llms.txt)" ]; then
+            git status --short --untracked-files=all -- public/md public/llms.txt
+            echo '::error title=Export freshness::the committed Markdown export is stale: run bun scripts/content/build.ts and commit public/md and public/llms.txt'
+            exit 1
+          fi
+
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      # The suite runs under Bun, pinned as in the fast gate.
+      - name: Set up pinned Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.14
+
+      - run: npm ci
+
+      # bunfig.toml roots `bun test` at tests/, so Playwright's specs in e2e/ never run here.
+      - run: bun run test
+
+  # Reserved for W0-T21. §10.1 gives this job Playwright's Chromium against `vite preview`, axe on the pull-request routes, a
+  # keyboard walk of the front-page game, the network-isolation check, and screenshots uploaded as artifacts. W0-T21 replaces
+  # this step once playwright.config.ts and e2e/ exist.
+  e2e-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - run: "echo 'pending: W0-T21'"
