@@ -1,0 +1,460 @@
+{
+  "header": "Golden vectors for packages/sim/workload (ARCHITECTURE section 5.10): each maps its input to the workload it generates, with the SHA-256 of that workload's canonical JSON. Regenerate only with `bun scripts/vectors.ts --write`, and review the diff like code.",
+  "model": "workload",
+  "vectors": [
+    {
+      "name": "front page: a burst of 12, outputs from a heavy-tailed menu",
+      "input": {
+        "fn": "genWorkload",
+        "seed": 1,
+        "spec": {
+          "arrivals": {"kind":"burst"},
+          "lengths": {"kind":"dists","output":{"kind":"menu","values":[1,2,3,4,6,8,12,16],"weights":[24,20,16,12,10,8,6,4]},"prompt":{"kind":"const","value":1}},
+          "requests": 12
+        }
+      },
+      "sha256": "5158063844d714c822e6d288340684a088309b7ab1d02af7b6f0e98985482973",
+      "output": {
+        "origin": {"kind":"synthetic"},
+        "reqs": [
+          {"adapter":null,"dueUs":0,"id":0,"outputTokens":4,"prefixGroup":null,"prefixTokens":0,"promptTokens":1,"structured":false},
+          {"adapter":null,"dueUs":0,"id":1,"outputTokens":3,"prefixGroup":null,"prefixTokens":0,"promptTokens":1,"structured":false},
+          {"adapter":null,"dueUs":0,"id":2,"outputTokens":3,"prefixGroup":null,"prefixTokens":0,"promptTokens":1,"structured":false},
+          {"adapter":null,"dueUs":0,"id":3,"outputTokens":12,"prefixGroup":null,"prefixTokens":0,"promptTokens":1,"structured":false},
+          {"adapter":null,"dueUs":0,"id":4,"outputTokens":12,"prefixGroup":null,"prefixTokens":0,"promptTokens":1,"structured":false},
+          {"adapter":null,"dueUs":0,"id":5,"outputTokens":3,"prefixGroup":null,"prefixTokens":0,"promptTokens":1,"structured":false},
+          {"adapter":null,"dueUs":0,"id":6,"outputTokens":3,"prefixGroup":null,"prefixTokens":0,"promptTokens":1,"structured":false},
+          {"adapter":null,"dueUs":0,"id":7,"outputTokens":2,"prefixGroup":null,"prefixTokens":0,"promptTokens":1,"structured":false},
+          {"adapter":null,"dueUs":0,"id":8,"outputTokens":12,"prefixGroup":null,"prefixTokens":0,"promptTokens":1,"structured":false},
+          {"adapter":null,"dueUs":0,"id":9,"outputTokens":1,"prefixGroup":null,"prefixTokens":0,"promptTokens":1,"structured":false},
+          {"adapter":null,"dueUs":0,"id":10,"outputTokens":4,"prefixGroup":null,"prefixTokens":0,"promptTokens":1,"structured":false},
+          {"adapter":null,"dueUs":0,"id":11,"outputTokens":6,"prefixGroup":null,"prefixTokens":0,"promptTokens":1,"structured":false}
+        ],
+        "seed": 1
+      }
+    },
+    {
+      "name": "a decode batch of 64 requests due at once",
+      "input": {
+        "fn": "genWorkload",
+        "seed": 2,
+        "spec": {
+          "arrivals": {"atUs":1000,"kind":"burst"},
+          "lengths": {"kind":"dists","output":{"hi":64,"kind":"uniform","lo":8},"prompt":{"kind":"const","value":16}},
+          "requests": 64
+        }
+      },
+      "sha256": "1045bffffc0e62d5a24d02466bd2ea8c775084822975bafcafeda994e31eb4c2",
+      "output": {
+        "origin": {"kind":"synthetic"},
+        "reqs": [
+          {"adapter":null,"dueUs":1000,"id":0,"outputTokens":11,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":1,"outputTokens":13,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":2,"outputTokens":14,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":3,"outputTokens":27,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":4,"outputTokens":11,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":5,"outputTokens":64,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":6,"outputTokens":32,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":7,"outputTokens":51,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":8,"outputTokens":57,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":9,"outputTokens":38,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":10,"outputTokens":40,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":11,"outputTokens":46,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":12,"outputTokens":22,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":13,"outputTokens":38,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":14,"outputTokens":54,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":15,"outputTokens":56,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":16,"outputTokens":54,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":17,"outputTokens":49,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":18,"outputTokens":38,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":19,"outputTokens":58,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":20,"outputTokens":10,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":21,"outputTokens":62,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":22,"outputTokens":35,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":23,"outputTokens":64,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":24,"outputTokens":51,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":25,"outputTokens":25,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":26,"outputTokens":44,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":27,"outputTokens":29,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":28,"outputTokens":28,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":29,"outputTokens":54,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":30,"outputTokens":12,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":31,"outputTokens":51,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":32,"outputTokens":33,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":33,"outputTokens":59,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":34,"outputTokens":19,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":35,"outputTokens":14,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":36,"outputTokens":49,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":37,"outputTokens":34,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":38,"outputTokens":24,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":39,"outputTokens":15,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":40,"outputTokens":24,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":41,"outputTokens":48,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":42,"outputTokens":47,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":43,"outputTokens":55,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":44,"outputTokens":36,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":45,"outputTokens":62,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":46,"outputTokens":47,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":47,"outputTokens":48,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":48,"outputTokens":10,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":49,"outputTokens":43,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":50,"outputTokens":61,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":51,"outputTokens":46,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":52,"outputTokens":17,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":53,"outputTokens":60,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":54,"outputTokens":20,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":55,"outputTokens":26,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":56,"outputTokens":25,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":57,"outputTokens":62,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":58,"outputTokens":49,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":59,"outputTokens":20,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":60,"outputTokens":29,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":61,"outputTokens":13,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":62,"outputTokens":48,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false},
+          {"adapter":null,"dueUs":1000,"id":63,"outputTokens":55,"prefixGroup":null,"prefixTokens":0,"promptTokens":16,"structured":false}
+        ],
+        "seed": 2
+      }
+    },
+    {
+      "name": "Poisson arrivals at 8 requests a second, uniform lengths",
+      "input": {
+        "fn": "genWorkload",
+        "seed": 3,
+        "spec": {
+          "arrivals": {"kind":"poisson","ratePerSMilli":8000},
+          "lengths": {"kind":"dists","output":{"hi":96,"kind":"uniform","lo":4},"prompt":{"hi":512,"kind":"uniform","lo":32}},
+          "requests": 24
+        }
+      },
+      "sha256": "a561b1d553702bbb6f7342d91411064271e117625dca69c6185601d2377e4348",
+      "output": {
+        "origin": {"kind":"synthetic"},
+        "reqs": [
+          {"adapter":null,"dueUs":115179,"id":0,"outputTokens":39,"prefixGroup":null,"prefixTokens":0,"promptTokens":283,"structured":false},
+          {"adapter":null,"dueUs":458858,"id":1,"outputTokens":45,"prefixGroup":null,"prefixTokens":0,"promptTokens":367,"structured":false},
+          {"adapter":null,"dueUs":482950,"id":2,"outputTokens":4,"prefixGroup":null,"prefixTokens":0,"promptTokens":101,"structured":false},
+          {"adapter":null,"dueUs":944557,"id":3,"outputTokens":58,"prefixGroup":null,"prefixTokens":0,"promptTokens":43,"structured":false},
+          {"adapter":null,"dueUs":966011,"id":4,"outputTokens":61,"prefixGroup":null,"prefixTokens":0,"promptTokens":224,"structured":false},
+          {"adapter":null,"dueUs":975059,"id":5,"outputTokens":47,"prefixGroup":null,"prefixTokens":0,"promptTokens":501,"structured":false},
+          {"adapter":null,"dueUs":1045577,"id":6,"outputTokens":65,"prefixGroup":null,"prefixTokens":0,"promptTokens":252,"structured":false},
+          {"adapter":null,"dueUs":1100009,"id":7,"outputTokens":32,"prefixGroup":null,"prefixTokens":0,"promptTokens":173,"structured":false},
+          {"adapter":null,"dueUs":1170741,"id":8,"outputTokens":66,"prefixGroup":null,"prefixTokens":0,"promptTokens":207,"structured":false},
+          {"adapter":null,"dueUs":1216430,"id":9,"outputTokens":17,"prefixGroup":null,"prefixTokens":0,"promptTokens":203,"structured":false},
+          {"adapter":null,"dueUs":1699369,"id":10,"outputTokens":26,"prefixGroup":null,"prefixTokens":0,"promptTokens":475,"structured":false},
+          {"adapter":null,"dueUs":1797111,"id":11,"outputTokens":70,"prefixGroup":null,"prefixTokens":0,"promptTokens":211,"structured":false},
+          {"adapter":null,"dueUs":1798646,"id":12,"outputTokens":68,"prefixGroup":null,"prefixTokens":0,"promptTokens":296,"structured":false},
+          {"adapter":null,"dueUs":2152251,"id":13,"outputTokens":24,"prefixGroup":null,"prefixTokens":0,"promptTokens":415,"structured":false},
+          {"adapter":null,"dueUs":2160252,"id":14,"outputTokens":10,"prefixGroup":null,"prefixTokens":0,"promptTokens":510,"structured":false},
+          {"adapter":null,"dueUs":2260691,"id":15,"outputTokens":50,"prefixGroup":null,"prefixTokens":0,"promptTokens":227,"structured":false},
+          {"adapter":null,"dueUs":2298043,"id":16,"outputTokens":40,"prefixGroup":null,"prefixTokens":0,"promptTokens":92,"structured":false},
+          {"adapter":null,"dueUs":2559447,"id":17,"outputTokens":93,"prefixGroup":null,"prefixTokens":0,"promptTokens":428,"structured":false},
+          {"adapter":null,"dueUs":2610711,"id":18,"outputTokens":42,"prefixGroup":null,"prefixTokens":0,"promptTokens":70,"structured":false},
+          {"adapter":null,"dueUs":2749080,"id":19,"outputTokens":67,"prefixGroup":null,"prefixTokens":0,"promptTokens":330,"structured":false},
+          {"adapter":null,"dueUs":2893113,"id":20,"outputTokens":42,"prefixGroup":null,"prefixTokens":0,"promptTokens":42,"structured":false},
+          {"adapter":null,"dueUs":2927697,"id":21,"outputTokens":25,"prefixGroup":null,"prefixTokens":0,"promptTokens":326,"structured":false},
+          {"adapter":null,"dueUs":3063145,"id":22,"outputTokens":11,"prefixGroup":null,"prefixTokens":0,"promptTokens":141,"structured":false},
+          {"adapter":null,"dueUs":3131325,"id":23,"outputTokens":27,"prefixGroup":null,"prefixTokens":0,"promptTokens":399,"structured":false}
+        ],
+        "seed": 3
+      }
+    },
+    {
+      "name": "the same spec under seed 0",
+      "input": {
+        "fn": "genWorkload",
+        "seed": 0,
+        "spec": {
+          "arrivals": {"kind":"poisson","ratePerSMilli":8000},
+          "lengths": {"kind":"dists","output":{"hi":96,"kind":"uniform","lo":4},"prompt":{"hi":512,"kind":"uniform","lo":32}},
+          "requests": 24
+        }
+      },
+      "sha256": "62c77dc4fc05d5aaadc607ed5471b85ed84dbf3ca26ee4bde06da417d22b5ffe",
+      "output": {
+        "origin": {"kind":"synthetic"},
+        "reqs": [
+          {"adapter":null,"dueUs":47281,"id":0,"outputTokens":69,"prefixGroup":null,"prefixTokens":0,"promptTokens":476,"structured":false},
+          {"adapter":null,"dueUs":219352,"id":1,"outputTokens":76,"prefixGroup":null,"prefixTokens":0,"promptTokens":377,"structured":false},
+          {"adapter":null,"dueUs":553836,"id":2,"outputTokens":79,"prefixGroup":null,"prefixTokens":0,"promptTokens":339,"structured":false},
+          {"adapter":null,"dueUs":795198,"id":3,"outputTokens":77,"prefixGroup":null,"prefixTokens":0,"promptTokens":458,"structured":false},
+          {"adapter":null,"dueUs":849630,"id":4,"outputTokens":56,"prefixGroup":null,"prefixTokens":0,"promptTokens":424,"structured":false},
+          {"adapter":null,"dueUs":1125696,"id":5,"outputTokens":59,"prefixGroup":null,"prefixTokens":0,"promptTokens":46,"structured":false},
+          {"adapter":null,"dueUs":1225050,"id":6,"outputTokens":69,"prefixGroup":null,"prefixTokens":0,"promptTokens":247,"structured":false},
+          {"adapter":null,"dueUs":1352127,"id":7,"outputTokens":51,"prefixGroup":null,"prefixTokens":0,"promptTokens":390,"structured":false},
+          {"adapter":null,"dueUs":1385113,"id":8,"outputTokens":75,"prefixGroup":null,"prefixTokens":0,"promptTokens":137,"structured":false},
+          {"adapter":null,"dueUs":1540463,"id":9,"outputTokens":25,"prefixGroup":null,"prefixTokens":0,"promptTokens":114,"structured":false},
+          {"adapter":null,"dueUs":1659695,"id":10,"outputTokens":60,"prefixGroup":null,"prefixTokens":0,"promptTokens":317,"structured":false},
+          {"adapter":null,"dueUs":1780842,"id":11,"outputTokens":38,"prefixGroup":null,"prefixTokens":0,"promptTokens":504,"structured":false},
+          {"adapter":null,"dueUs":1809302,"id":12,"outputTokens":81,"prefixGroup":null,"prefixTokens":0,"promptTokens":326,"structured":false},
+          {"adapter":null,"dueUs":1907044,"id":13,"outputTokens":10,"prefixGroup":null,"prefixTokens":0,"promptTokens":92,"structured":false},
+          {"adapter":null,"dueUs":2017705,"id":14,"outputTokens":38,"prefixGroup":null,"prefixTokens":0,"promptTokens":176,"structured":false},
+          {"adapter":null,"dueUs":2210219,"id":15,"outputTokens":48,"prefixGroup":null,"prefixTokens":0,"promptTokens":354,"structured":false},
+          {"adapter":null,"dueUs":2230664,"id":16,"outputTokens":73,"prefixGroup":null,"prefixTokens":0,"promptTokens":315,"structured":false},
+          {"adapter":null,"dueUs":2597325,"id":17,"outputTokens":80,"prefixGroup":null,"prefixTokens":0,"promptTokens":419,"structured":false},
+          {"adapter":null,"dueUs":2674000,"id":18,"outputTokens":87,"prefixGroup":null,"prefixTokens":0,"promptTokens":93,"structured":false},
+          {"adapter":null,"dueUs":2991904,"id":19,"outputTokens":62,"prefixGroup":null,"prefixTokens":0,"promptTokens":95,"structured":false},
+          {"adapter":null,"dueUs":3245642,"id":20,"outputTokens":22,"prefixGroup":null,"prefixTokens":0,"promptTokens":434,"structured":false},
+          {"adapter":null,"dueUs":3252995,"id":21,"outputTokens":49,"prefixGroup":null,"prefixTokens":0,"promptTokens":397,"structured":false},
+          {"adapter":null,"dueUs":3277087,"id":22,"outputTokens":82,"prefixGroup":null,"prefixTokens":0,"promptTokens":286,"structured":false},
+          {"adapter":null,"dueUs":3503398,"id":23,"outputTokens":29,"prefixGroup":null,"prefixTokens":0,"promptTokens":351,"structured":false}
+        ],
+        "seed": 0
+      }
+    },
+    {
+      "name": "the same spec under seed 0xffffffff",
+      "input": {
+        "fn": "genWorkload",
+        "seed": 4294967295,
+        "spec": {
+          "arrivals": {"kind":"poisson","ratePerSMilli":8000},
+          "lengths": {"kind":"dists","output":{"hi":96,"kind":"uniform","lo":4},"prompt":{"hi":512,"kind":"uniform","lo":32}},
+          "requests": 24
+        }
+      },
+      "sha256": "341dbed7e7520ddafacc86db79c84fd018d00eb03580a13aedbf1d8843d61995",
+      "output": {
+        "origin": {"kind":"synthetic"},
+        "reqs": [
+          {"adapter":null,"dueUs":200146,"id":0,"outputTokens":15,"prefixGroup":null,"prefixTokens":0,"promptTokens":299,"structured":false},
+          {"adapter":null,"dueUs":220446,"id":1,"outputTokens":70,"prefixGroup":null,"prefixTokens":0,"promptTokens":249,"structured":false},
+          {"adapter":null,"dueUs":224226,"id":2,"outputTokens":81,"prefixGroup":null,"prefixTokens":0,"promptTokens":374,"structured":false},
+          {"adapter":null,"dueUs":696045,"id":3,"outputTokens":17,"prefixGroup":null,"prefixTokens":0,"promptTokens":443,"structured":false},
+          {"adapter":null,"dueUs":760899,"id":4,"outputTokens":54,"prefixGroup":null,"prefixTokens":0,"promptTokens":40,"structured":false},
+          {"adapter":null,"dueUs":805188,"id":5,"outputTokens":90,"prefixGroup":null,"prefixTokens":0,"promptTokens":202,"structured":false},
+          {"adapter":null,"dueUs":812024,"id":6,"outputTokens":58,"prefixGroup":null,"prefixTokens":0,"promptTokens":433,"structured":false},
+          {"adapter":null,"dueUs":1143010,"id":7,"outputTokens":5,"prefixGroup":null,"prefixTokens":0,"promptTokens":388,"structured":false},
+          {"adapter":null,"dueUs":1319512,"id":8,"outputTokens":36,"prefixGroup":null,"prefixTokens":0,"promptTokens":214,"structured":false},
+          {"adapter":null,"dueUs":1934176,"id":9,"outputTokens":7,"prefixGroup":null,"prefixTokens":0,"promptTokens":181,"structured":false},
+          {"adapter":null,"dueUs":1988608,"id":10,"outputTokens":72,"prefixGroup":null,"prefixTokens":0,"promptTokens":289,"structured":false},
+          {"adapter":null,"dueUs":2029463,"id":11,"outputTokens":79,"prefixGroup":null,"prefixTokens":0,"promptTokens":381,"structured":false},
+          {"adapter":null,"dueUs":2126938,"id":12,"outputTokens":46,"prefixGroup":null,"prefixTokens":0,"promptTokens":96,"structured":false},
+          {"adapter":null,"dueUs":2197027,"id":13,"outputTokens":27,"prefixGroup":null,"prefixTokens":0,"promptTokens":380,"structured":false},
+          {"adapter":null,"dueUs":2354082,"id":14,"outputTokens":52,"prefixGroup":null,"prefixTokens":0,"promptTokens":212,"structured":false},
+          {"adapter":null,"dueUs":2397503,"id":15,"outputTokens":28,"prefixGroup":null,"prefixTokens":0,"promptTokens":44,"structured":false},
+          {"adapter":null,"dueUs":2413014,"id":16,"outputTokens":73,"prefixGroup":null,"prefixTokens":0,"promptTokens":257,"structured":false},
+          {"adapter":null,"dueUs":2468012,"id":17,"outputTokens":66,"prefixGroup":null,"prefixTokens":0,"promptTokens":149,"structured":false},
+          {"adapter":null,"dueUs":2519829,"id":18,"outputTokens":49,"prefixGroup":null,"prefixTokens":0,"promptTokens":261,"structured":false},
+          {"adapter":null,"dueUs":2534102,"id":19,"outputTokens":74,"prefixGroup":null,"prefixTokens":0,"promptTokens":406,"structured":false},
+          {"adapter":null,"dueUs":2678912,"id":20,"outputTokens":96,"prefixGroup":null,"prefixTokens":0,"promptTokens":428,"structured":false},
+          {"adapter":null,"dueUs":2812215,"id":21,"outputTokens":26,"prefixGroup":null,"prefixTokens":0,"promptTokens":450,"structured":false},
+          {"adapter":null,"dueUs":3041547,"id":22,"outputTokens":75,"prefixGroup":null,"prefixTokens":0,"promptTokens":429,"structured":false},
+          {"adapter":null,"dueUs":3343438,"id":23,"outputTokens":65,"prefixGroup":null,"prefixTokens":0,"promptTokens":484,"structured":false}
+        ],
+        "seed": 4294967295
+      }
+    },
+    {
+      "name": "even arrivals every 500 µs from 250 µs",
+      "input": {
+        "fn": "genWorkload",
+        "seed": 4,
+        "spec": {
+          "arrivals": {"gapUs":500,"kind":"even","startUs":250},
+          "lengths": {"kind":"dists","output":{"kind":"const","value":32},"prompt":{"kind":"menu","values":[8,64,512],"weights":[6,3,1]}},
+          "requests": 8
+        }
+      },
+      "sha256": "087530df44356955f1685e411cad90d6be75832c7b1da63ec78940055e498e2f",
+      "output": {
+        "origin": {"kind":"synthetic"},
+        "reqs": [
+          {"adapter":null,"dueUs":250,"id":0,"outputTokens":32,"prefixGroup":null,"prefixTokens":0,"promptTokens":8,"structured":false},
+          {"adapter":null,"dueUs":750,"id":1,"outputTokens":32,"prefixGroup":null,"prefixTokens":0,"promptTokens":8,"structured":false},
+          {"adapter":null,"dueUs":1250,"id":2,"outputTokens":32,"prefixGroup":null,"prefixTokens":0,"promptTokens":8,"structured":false},
+          {"adapter":null,"dueUs":1750,"id":3,"outputTokens":32,"prefixGroup":null,"prefixTokens":0,"promptTokens":8,"structured":false},
+          {"adapter":null,"dueUs":2250,"id":4,"outputTokens":32,"prefixGroup":null,"prefixTokens":0,"promptTokens":8,"structured":false},
+          {"adapter":null,"dueUs":2750,"id":5,"outputTokens":32,"prefixGroup":null,"prefixTokens":0,"promptTokens":8,"structured":false},
+          {"adapter":null,"dueUs":3250,"id":6,"outputTokens":32,"prefixGroup":null,"prefixTokens":0,"promptTokens":512,"structured":false},
+          {"adapter":null,"dueUs":3750,"id":7,"outputTokens":32,"prefixGroup":null,"prefixTokens":0,"promptTokens":512,"structured":false}
+        ],
+        "seed": 4
+      }
+    },
+    {
+      "name": "Poisson arrivals at 20 a second, with prefix groups, adapters and grammars",
+      "input": {
+        "fn": "genWorkload",
+        "seed": 5,
+        "spec": {
+          "adapters": {"count":3,"sharePermille":500,"weights":[5,3,1]},
+          "arrivals": {"kind":"poisson","ratePerSMilli":20000},
+          "lengths": {"kind":"dists","output":{"hi":48,"kind":"uniform","lo":4},"prompt":{"hi":256,"kind":"uniform","lo":32}},
+          "prefix": {"groups":4,"prefixTokens":64,"sharePermille":700},
+          "requests": 32,
+          "structuredPermille": 250
+        }
+      },
+      "sha256": "a6bdba750470a2a9d8f3612c24b8d235618cf45df7f527afff021484942f20d9",
+      "output": {
+        "origin": {"kind":"synthetic"},
+        "reqs": [
+          {"adapter":null,"dueUs":98959,"id":0,"outputTokens":7,"prefixGroup":2,"prefixTokens":64,"promptTokens":231,"structured":false},
+          {"adapter":0,"dueUs":138701,"id":1,"outputTokens":36,"prefixGroup":2,"prefixTokens":64,"promptTokens":106,"structured":false},
+          {"adapter":0,"dueUs":160474,"id":2,"outputTokens":45,"prefixGroup":null,"prefixTokens":0,"promptTokens":237,"structured":false},
+          {"adapter":null,"dueUs":174826,"id":3,"outputTokens":44,"prefixGroup":2,"prefixTokens":64,"promptTokens":137,"structured":false},
+          {"adapter":null,"dueUs":370383,"id":4,"outputTokens":27,"prefixGroup":2,"prefixTokens":64,"promptTokens":82,"structured":false},
+          {"adapter":null,"dueUs":403739,"id":5,"outputTokens":40,"prefixGroup":null,"prefixTokens":0,"promptTokens":143,"structured":true},
+          {"adapter":0,"dueUs":452327,"id":6,"outputTokens":47,"prefixGroup":3,"prefixTokens":64,"promptTokens":255,"structured":false},
+          {"adapter":1,"dueUs":549210,"id":7,"outputTokens":37,"prefixGroup":0,"prefixTokens":43,"promptTokens":43,"structured":false},
+          {"adapter":0,"dueUs":573537,"id":8,"outputTokens":14,"prefixGroup":null,"prefixTokens":0,"promptTokens":241,"structured":false},
+          {"adapter":0,"dueUs":617096,"id":9,"outputTokens":15,"prefixGroup":0,"prefixTokens":52,"promptTokens":52,"structured":false},
+          {"adapter":null,"dueUs":673791,"id":10,"outputTokens":37,"prefixGroup":null,"prefixTokens":0,"promptTokens":137,"structured":false},
+          {"adapter":null,"dueUs":674011,"id":11,"outputTokens":13,"prefixGroup":2,"prefixTokens":64,"promptTokens":181,"structured":false},
+          {"adapter":0,"dueUs":734981,"id":12,"outputTokens":32,"prefixGroup":0,"prefixTokens":64,"promptTokens":89,"structured":true},
+          {"adapter":0,"dueUs":955281,"id":13,"outputTokens":40,"prefixGroup":2,"prefixTokens":64,"promptTokens":137,"structured":false},
+          {"adapter":null,"dueUs":966542,"id":14,"outputTokens":11,"prefixGroup":3,"prefixTokens":64,"promptTokens":90,"structured":false},
+          {"adapter":null,"dueUs":1001248,"id":15,"outputTokens":20,"prefixGroup":2,"prefixTokens":64,"promptTokens":247,"structured":false},
+          {"adapter":1,"dueUs":1004553,"id":16,"outputTokens":31,"prefixGroup":2,"prefixTokens":64,"promptTokens":180,"structured":false},
+          {"adapter":1,"dueUs":1058301,"id":17,"outputTokens":47,"prefixGroup":0,"prefixTokens":64,"promptTokens":227,"structured":false},
+          {"adapter":null,"dueUs":1067466,"id":18,"outputTokens":13,"prefixGroup":0,"prefixTokens":64,"promptTokens":169,"structured":false},
+          {"adapter":null,"dueUs":1067834,"id":19,"outputTokens":12,"prefixGroup":3,"prefixTokens":64,"promptTokens":85,"structured":false},
+          {"adapter":null,"dueUs":1078790,"id":20,"outputTokens":15,"prefixGroup":0,"prefixTokens":64,"promptTokens":104,"structured":false},
+          {"adapter":null,"dueUs":1122233,"id":21,"outputTokens":47,"prefixGroup":null,"prefixTokens":0,"promptTokens":207,"structured":false},
+          {"adapter":null,"dueUs":1178928,"id":22,"outputTokens":5,"prefixGroup":1,"prefixTokens":64,"promptTokens":124,"structured":false},
+          {"adapter":null,"dueUs":1329404,"id":23,"outputTokens":38,"prefixGroup":null,"prefixTokens":0,"promptTokens":66,"structured":false},
+          {"adapter":null,"dueUs":1497502,"id":24,"outputTokens":15,"prefixGroup":0,"prefixTokens":64,"promptTokens":71,"structured":true},
+          {"adapter":null,"dueUs":1567110,"id":25,"outputTokens":22,"prefixGroup":null,"prefixTokens":0,"promptTokens":157,"structured":false},
+          {"adapter":2,"dueUs":1570834,"id":26,"outputTokens":24,"prefixGroup":null,"prefixTokens":0,"promptTokens":66,"structured":true},
+          {"adapter":0,"dueUs":1586906,"id":27,"outputTokens":36,"prefixGroup":1,"prefixTokens":64,"promptTokens":111,"structured":false},
+          {"adapter":1,"dueUs":1611552,"id":28,"outputTokens":21,"prefixGroup":3,"prefixTokens":64,"promptTokens":202,"structured":false},
+          {"adapter":null,"dueUs":1664873,"id":29,"outputTokens":19,"prefixGroup":null,"prefixTokens":0,"promptTokens":248,"structured":true},
+          {"adapter":null,"dueUs":1686797,"id":30,"outputTokens":28,"prefixGroup":1,"prefixTokens":64,"promptTokens":253,"structured":true},
+          {"adapter":null,"dueUs":1713984,"id":31,"outputTokens":17,"prefixGroup":2,"prefixTokens":38,"promptTokens":38,"structured":true}
+        ],
+        "seed": 5
+      }
+    },
+    {
+      "name": "lengths resampled from the BurstGPT minute, under Poisson arrivals",
+      "input": {
+        "fn": "genWorkload",
+        "seed": 6,
+        "spec": {"arrivals":{"kind":"poisson","ratePerSMilli":4000},"lengths":{"kind":"rows","slice":"burstgpt-v2-busiest-minute"},"requests":16}
+      },
+      "sha256": "c16b4ec3a77bced1dee597ffe41b8030ec0fdfce9e7b10381abe5205e56a4184",
+      "output": {
+        "origin": {
+          "credit": {
+            "attribution": "BurstGPT authors (KDD 2025), HPMLL/BurstGPT",
+            "id": "burstgpt-v2-busiest-minute",
+            "license": "CC-BY-4.0",
+            "note": "Token/timing metadata only. Busiest aligned 60-second bin; evenly spaced to 40 rows; 1 real second = 1 simulator tick; prompt tokens clamped to 8..4096 and response tokens to 1..256. This is a sample of the minute, not the whole minute: sampling.sourceRowsInWindow is the number of requests the minute holds. No prompt text, session id, model, or user data is included.",
+            "source": "https://github.com/HPMLL/BurstGPT/releases/download/v2.0/BurstGPT_without_fails_1.csv",
+            "sourceRevision": "v2.0"
+          },
+          "kind": "slice",
+          "use": "lengths"
+        },
+        "reqs": [
+          {"adapter":null,"dueUs":75031,"id":0,"outputTokens":1,"prefixGroup":null,"prefixTokens":0,"promptTokens":169,"structured":false},
+          {"adapter":null,"dueUs":743999,"id":1,"outputTokens":1,"prefixGroup":null,"prefixTokens":0,"promptTokens":193,"structured":false},
+          {"adapter":null,"dueUs":818374,"id":2,"outputTokens":1,"prefixGroup":null,"prefixTokens":0,"promptTokens":274,"structured":false},
+          {"adapter":null,"dueUs":892093,"id":3,"outputTokens":1,"prefixGroup":null,"prefixTokens":0,"promptTokens":263,"structured":false},
+          {"adapter":null,"dueUs":1320548,"id":4,"outputTokens":4,"prefixGroup":null,"prefixTokens":0,"promptTokens":185,"structured":false},
+          {"adapter":null,"dueUs":2011752,"id":5,"outputTokens":4,"prefixGroup":null,"prefixTokens":0,"promptTokens":171,"structured":false},
+          {"adapter":null,"dueUs":2666922,"id":6,"outputTokens":1,"prefixGroup":null,"prefixTokens":0,"promptTokens":263,"structured":false},
+          {"adapter":null,"dueUs":2707236,"id":7,"outputTokens":1,"prefixGroup":null,"prefixTokens":0,"promptTokens":263,"structured":false},
+          {"adapter":null,"dueUs":2739646,"id":8,"outputTokens":1,"prefixGroup":null,"prefixTokens":0,"promptTokens":169,"structured":false},
+          {"adapter":null,"dueUs":3193767,"id":9,"outputTokens":4,"prefixGroup":null,"prefixTokens":0,"promptTokens":185,"structured":false},
+          {"adapter":null,"dueUs":4041404,"id":10,"outputTokens":4,"prefixGroup":null,"prefixTokens":0,"promptTokens":198,"structured":false},
+          {"adapter":null,"dueUs":4074928,"id":11,"outputTokens":1,"prefixGroup":null,"prefixTokens":0,"promptTokens":211,"structured":false},
+          {"adapter":null,"dueUs":4098060,"id":12,"outputTokens":1,"prefixGroup":null,"prefixTokens":0,"promptTokens":211,"structured":false},
+          {"adapter":null,"dueUs":4260127,"id":13,"outputTokens":4,"prefixGroup":null,"prefixTokens":0,"promptTokens":238,"structured":false},
+          {"adapter":null,"dueUs":4631850,"id":14,"outputTokens":1,"prefixGroup":null,"prefixTokens":0,"promptTokens":262,"structured":false},
+          {"adapter":null,"dueUs":4798629,"id":15,"outputTokens":4,"prefixGroup":null,"prefixTokens":0,"promptTokens":212,"structured":false}
+        ],
+        "seed": 6
+      }
+    },
+    {
+      "name": "a replay of the BurstGPT minute at 8 times its pace, with adapters",
+      "input": {
+        "fn": "replayWorkload",
+        "seed": 7,
+        "spec": {"adapters":{"count":2,"sharePermille":400},"requests":24,"slice":"burstgpt-v2-busiest-minute","speedPermille":8000}
+      },
+      "sha256": "93a70e74e7d74bc67ea951f3cd91cd9ea110e32654d74bd5e13e5c45fd085fe2",
+      "output": {
+        "origin": {
+          "credit": {
+            "attribution": "BurstGPT authors (KDD 2025), HPMLL/BurstGPT",
+            "id": "burstgpt-v2-busiest-minute",
+            "license": "CC-BY-4.0",
+            "note": "Token/timing metadata only. Busiest aligned 60-second bin; evenly spaced to 40 rows; 1 real second = 1 simulator tick; prompt tokens clamped to 8..4096 and response tokens to 1..256. This is a sample of the minute, not the whole minute: sampling.sourceRowsInWindow is the number of requests the minute holds. No prompt text, session id, model, or user data is included.",
+            "source": "https://github.com/HPMLL/BurstGPT/releases/download/v2.0/BurstGPT_without_fails_1.csv",
+            "sourceRevision": "v2.0"
+          },
+          "kind": "slice",
+          "use": "replay"
+        },
+        "reqs": [
+          {"adapter":0,"dueUs":0,"id":0,"outputTokens":1,"prefixGroup":null,"prefixTokens":0,"promptTokens":263,"structured":false},
+          {"adapter":1,"dueUs":125000,"id":1,"outputTokens":1,"prefixGroup":null,"prefixTokens":0,"promptTokens":274,"structured":false},
+          {"adapter":1,"dueUs":375000,"id":2,"outputTokens":4,"prefixGroup":null,"prefixTokens":0,"promptTokens":238,"structured":false},
+          {"adapter":null,"dueUs":500000,"id":3,"outputTokens":4,"prefixGroup":null,"prefixTokens":0,"promptTokens":226,"structured":false},
+          {"adapter":null,"dueUs":750000,"id":4,"outputTokens":1,"prefixGroup":null,"prefixTokens":0,"promptTokens":274,"structured":false},
+          {"adapter":0,"dueUs":875000,"id":5,"outputTokens":4,"prefixGroup":null,"prefixTokens":0,"promptTokens":197,"structured":false},
+          {"adapter":null,"dueUs":1000000,"id":6,"outputTokens":1,"prefixGroup":null,"prefixTokens":0,"promptTokens":263,"structured":false},
+          {"adapter":null,"dueUs":1250000,"id":7,"outputTokens":4,"prefixGroup":null,"prefixTokens":0,"promptTokens":212,"structured":false},
+          {"adapter":1,"dueUs":1375000,"id":8,"outputTokens":1,"prefixGroup":null,"prefixTokens":0,"promptTokens":169,"structured":false},
+          {"adapter":0,"dueUs":1625000,"id":9,"outputTokens":4,"prefixGroup":null,"prefixTokens":0,"promptTokens":185,"structured":false},
+          {"adapter":null,"dueUs":1750000,"id":10,"outputTokens":1,"prefixGroup":null,"prefixTokens":0,"promptTokens":346,"structured":false},
+          {"adapter":1,"dueUs":2000000,"id":11,"outputTokens":1,"prefixGroup":null,"prefixTokens":0,"promptTokens":263,"structured":false},
+          {"adapter":null,"dueUs":2250000,"id":12,"outputTokens":4,"prefixGroup":null,"prefixTokens":0,"promptTokens":171,"structured":false},
+          {"adapter":null,"dueUs":2375000,"id":13,"outputTokens":1,"prefixGroup":null,"prefixTokens":0,"promptTokens":255,"structured":false},
+          {"adapter":1,"dueUs":2625000,"id":14,"outputTokens":1,"prefixGroup":null,"prefixTokens":0,"promptTokens":263,"structured":false},
+          {"adapter":1,"dueUs":2750000,"id":15,"outputTokens":4,"prefixGroup":null,"prefixTokens":0,"promptTokens":692,"structured":false},
+          {"adapter":null,"dueUs":3000000,"id":16,"outputTokens":1,"prefixGroup":null,"prefixTokens":0,"promptTokens":270,"structured":false},
+          {"adapter":null,"dueUs":3125000,"id":17,"outputTokens":1,"prefixGroup":null,"prefixTokens":0,"promptTokens":262,"structured":false},
+          {"adapter":null,"dueUs":3250000,"id":18,"outputTokens":1,"prefixGroup":null,"prefixTokens":0,"promptTokens":211,"structured":false},
+          {"adapter":null,"dueUs":3375000,"id":19,"outputTokens":1,"prefixGroup":null,"prefixTokens":0,"promptTokens":211,"structured":false},
+          {"adapter":null,"dueUs":3625000,"id":20,"outputTokens":4,"prefixGroup":null,"prefixTokens":0,"promptTokens":171,"structured":false},
+          {"adapter":1,"dueUs":3750000,"id":21,"outputTokens":1,"prefixGroup":null,"prefixTokens":0,"promptTokens":263,"structured":false},
+          {"adapter":0,"dueUs":4375000,"id":22,"outputTokens":1,"prefixGroup":null,"prefixTokens":0,"promptTokens":211,"structured":false},
+          {"adapter":0,"dueUs":4500000,"id":23,"outputTokens":4,"prefixGroup":null,"prefixTokens":0,"promptTokens":185,"structured":false}
+        ],
+        "seed": 7
+      }
+    },
+    {
+      "name": "a replay of the Kimi conversation trace at 100 times its pace",
+      "input": {"fn":"replayWorkload","seed":8,"spec":{"requests":16,"slice":"kimi-conversation","speedPermille":100000,"structuredPermille":100}},
+      "sha256": "2755d374380fa3e1ca0f4ee496b0dcc30ff4b41a7fd98eaef733238b446593d6",
+      "output": {
+        "origin": {
+          "credit": {
+            "attribution": "Mooncake authors, kvcache-ai/Mooncake",
+            "id": "kimi-conversation-fast25-first-10m",
+            "license": "Apache-2.0",
+            "note": "prompts/12 clamped to 64..1536, outputs/4 clamped to 8..256, 667ms real = 1 tick",
+            "source": "https://raw.githubusercontent.com/kvcache-ai/Mooncake/b82b9f86ceb67bb809339b9088085f34329683bb/FAST25-release/traces/conversation_trace.jsonl",
+            "sourceRevision": "b82b9f86ceb67bb809339b9088085f34329683bb"
+          },
+          "kind": "slice",
+          "use": "replay"
+        },
+        "reqs": [
+          {"adapter":null,"dueUs":0,"id":0,"outputTokens":125,"prefixGroup":null,"prefixTokens":0,"promptTokens":563,"structured":false},
+          {"adapter":null,"dueUs":0,"id":1,"outputTokens":122,"prefixGroup":null,"prefixTokens":0,"promptTokens":610,"structured":false},
+          {"adapter":null,"dueUs":0,"id":2,"outputTokens":198,"prefixGroup":null,"prefixTokens":0,"promptTokens":603,"structured":false},
+          {"adapter":null,"dueUs":0,"id":3,"outputTokens":79,"prefixGroup":null,"prefixTokens":0,"promptTokens":191,"structured":false},
+          {"adapter":null,"dueUs":0,"id":4,"outputTokens":8,"prefixGroup":null,"prefixTokens":0,"promptTokens":563,"structured":false},
+          {"adapter":null,"dueUs":0,"id":5,"outputTokens":43,"prefixGroup":null,"prefixTokens":0,"promptTokens":403,"structured":false},
+          {"adapter":null,"dueUs":0,"id":6,"outputTokens":113,"prefixGroup":null,"prefixTokens":0,"promptTokens":1536,"structured":false},
+          {"adapter":null,"dueUs":0,"id":7,"outputTokens":114,"prefixGroup":null,"prefixTokens":0,"promptTokens":1536,"structured":false},
+          {"adapter":null,"dueUs":0,"id":8,"outputTokens":100,"prefixGroup":null,"prefixTokens":0,"promptTokens":875,"structured":false},
+          {"adapter":null,"dueUs":0,"id":9,"outputTokens":152,"prefixGroup":null,"prefixTokens":0,"promptTokens":1454,"structured":false},
+          {"adapter":null,"dueUs":26680,"id":10,"outputTokens":18,"prefixGroup":null,"prefixTokens":0,"promptTokens":1129,"structured":false},
+          {"adapter":null,"dueUs":26680,"id":11,"outputTokens":100,"prefixGroup":null,"prefixTokens":0,"promptTokens":1536,"structured":false},
+          {"adapter":null,"dueUs":26680,"id":12,"outputTokens":137,"prefixGroup":null,"prefixTokens":0,"promptTokens":527,"structured":false},
+          {"adapter":null,"dueUs":26680,"id":13,"outputTokens":88,"prefixGroup":null,"prefixTokens":0,"promptTokens":168,"structured":false},
+          {"adapter":null,"dueUs":26680,"id":14,"outputTokens":8,"prefixGroup":null,"prefixTokens":0,"promptTokens":610,"structured":false},
+          {"adapter":null,"dueUs":26680,"id":15,"outputTokens":36,"prefixGroup":null,"prefixTokens":0,"promptTokens":785,"structured":false}
+        ],
+        "seed": 8
+      }
+    }
+  ]
+}
