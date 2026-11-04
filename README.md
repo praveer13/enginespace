@@ -94,12 +94,13 @@ npm run verify:all           # every gate; each pending one names the task that 
 npm run verify:determinism   # packages/sim and packages/play: no clock, no entropy, no engine-dependent Math (ARCHITECTURE §5.1)
 npm run verify:boundaries    # the import fences of ARCHITECTURE §2.3, and no static path from src/main.tsx to three
 npm run verify:content       # content/: schemas, ids, links and sizes, each problem with its file and line (verify:claims and verify:numbers check the facts and the tags)
+npm run verify:routes        # the route table, prepare-pages and the e2e route list agree: a route that cannot be enumerated fails (ARCHITECTURE §3.2)
 bun scripts/verify.ts list   # each gate with its stage, whether it is live or pending, and the task that builds it
 ```
 
 The lessons, claims and knowledge components live in `content/`. `bun scripts/content/build.ts` compiles them into `src/content/generated/` (git-ignored), `public/md/`, `public/llms.txt` and `public/claims.json` (ARCHITECTURE §4), and `npm run dev` and `npm run build` run the same compiler, so an edit to a lesson reloads it in the dev server.
 
-Every dependency is pinned to an exact version, with no `^` and no `~`, and the pins are ARCHITECTURE §14's table. A test compares `package.json` with that table. GitHub Pages serves the site under `/enginespace/` until a custom domain is chosen, so the deploy builds with `VITE_BASE=/enginespace/ npm run build`.
+Every dependency is pinned to an exact version, with no `^` and no `~`, and the pins are ARCHITECTURE §14's table. A test compares `package.json` with that table. GitHub Pages serves the site under `/enginespace/` until a custom domain is chosen, so the deploy builds with `VITE_BASE=/enginespace/ npm run build`, and then runs `bun scripts/prepare-pages.ts` under the same base. Pages has no rewrite rules, so that script writes a document for every route it can enumerate (the route table, the course index, the game registry and the lab list), each with its own title, description and static shell, and a `404.html` that boots the app for every other address (ARCHITECTURE §3.2). Every document carries the meta CSP of ARCHITECTURE §12, which the build adds as the first element after `<meta charset>`, and the script fails unless each one does.
 
 Working in a git worktree, or with a coding agent? Read [AGENTS.md](AGENTS.md) first. In a worktree, `node_modules` is hard-linked from the main checkout instead of installed (its rule 2), so `npm ci` is not the first step there.
 
@@ -121,7 +122,7 @@ Working in a git worktree, or with a coding agent? Read [AGENTS.md](AGENTS.md) f
 | [src/](src/) | the app: the shell, the route table (`src/routes.tsx`), a page for each route (most are stubs until their tasks land), and `src/content/`, which loads the compiled content and draws the module and lesson pages as tickets, tape labels and the printer's tape |
 | [content/](content/) | the course's words and data: `course.yaml` (the modules and their hours), `modules/<id>/` (a `module.md` and its `lessons/`), `claims/` (dated, sourced facts) and `kc/graph.yaml`. `scripts/content/` compiles them (ARCHITECTURE §4) |
 | [packages/](packages/) | the five internal packages (`sim`, `play`, `ledger`, `schema`, `verify`), skeletons until their tasks land. `sim` and `play` compile without the DOM (`tsconfig.pure.json`) and obey the determinism lint. ESLint and `verify:boundaries` fence what each package may import |
-| [scripts/](scripts/) | the gate registry (`verify.ts`), the gate scripts it runs, and the content compiler (`scripts/content/`) |
+| [scripts/](scripts/) | the gate registry (`verify.ts`), the gate scripts it runs, the content compiler (`scripts/content/`), and the build's page tooling: `prepare-pages.ts` and the meta CSP, the plan of documents and the document rewriter in `scripts/pages/` |
 | [vendor/](vendor/) | files copied from kernelspace at d478f91 and never edited in place; `vendor/kernelspace/VENDOR.md` lists each one's SHA-256 (ARCHITECTURE §13) |
 | [NOTICE](NOTICE) | the third-party notices that travel with the vendored files |
 | [.github/workflows/](.github/workflows/) | CI: `ci.yml` for pull requests, `deploy.yml`, `nightly.yml` and `labs.yml` (ARCHITECTURE §10.1) |
