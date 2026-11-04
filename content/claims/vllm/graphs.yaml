@@ -1,0 +1,283 @@
+# vLLM at the pin: CUDA-graph modes, capture sizes, the dispatch keys of both runners, and the graph memory (W1-T01; D-041).
+#
+# D-041 teaches the dispatch key as data for each runner: MRV2's seven-field BatchExecutionDescriptor is the default runner's key, MRV1's
+# BatchDescriptor (which holds has_lora) is the legacy example, and the published design doc's four-field tuple is stale. The claims below
+# are the facts behind that sentence. Read on 2026-11-04 at v0.33.0 (commit 4ba787ec9959e566d3b587a796dff07673324da5).
+
+- id: vllm.cudagraph.modes
+  value: 'NONE, PIECEWISE, FULL, FULL_DECODE_ONLY, FULL_AND_PIECEWISE'
+  text: At v0.33.0 CUDAGraphMode has five members. NONE, PIECEWISE and FULL are single modes, and FULL_DECODE_ONLY and FULL_AND_PIECEWISE are dual modes, a pair of one mode for decode batches and one for the rest.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/compilation.py#L53-L63
+    title: vLLM v0.33.0, vllm/config/compilation.py, CUDAGraphMode
+    quote: 'FULL_AND_PIECEWISE = (FULL, PIECEWISE)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.default-mode
+  value: FULL_AND_PIECEWISE
+  text: The default optimization level at v0.33.0 is -O2, which captures FULL_AND_PIECEWISE graphs, a full graph for uniform decode batches and piecewise graphs for the rest. -O1 gives PIECEWISE graphs and -O0 gives none.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/optimization_levels.md#L7-L10
+    title: vLLM v0.33.0, docs/design/optimization_levels.md
+    quote: '`-O2`: Default optimization. Additional compilation ranges, additional fusions, FULL_AND_PIECEWISE cudagraphs.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.pooling-piecewise
+  value: PIECEWISE
+  text: The CUDA-graph design document says that the default mode is FULL_AND_PIECEWISE where piecewise compilation is available, and that pooling models stay on PIECEWISE.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/cuda_graphs.md#L48
+    title: vLLM v0.33.0, docs/design/cuda_graphs.md (Defaults)
+    quote: 'for pooling models, it''s still `PIECEWISE`'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.mode-downgrade
+  value: 'a requested mode may be downgraded'
+  text: Not every attention backend can replay every mode, so vLLM downgrades a requested mode to the closest one the backend supports. A backend that supports graphs only for uniform decode turns FULL into FULL_AND_PIECEWISE when piecewise compilation is on, and into FULL_DECODE_ONLY otherwise.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/cuda_graphs.md#L55-L56
+    title: vLLM v0.33.0, docs/design/cuda_graphs.md (CudagraphModes)
+    quote: 'We automatically "downgrade" modes to the closest supported mode.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.capture-sizes
+  value: '1, 2, 4, then 8 to 248 by 8, then by 16'
+  text: When cudagraph_capture_sizes is unset, vLLM captures the sizes 1, 2 and 4, then 8 to 248 in steps of 8, then 256 up to the maximum in steps of 16.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/compilation.py#L695-L711
+    title: vLLM v0.33.0, vllm/config/compilation.py, max_cudagraph_capture_size
+    quote: '[1, 2, 4] + list(range(8, 256, 8)) + list( range(256, max_cudagraph_capture_size + 1, 16))'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.padding
+  value: padded up to a captured size
+  text: A batch replays a graph captured for a padded shape. The dispatch key's num_tokens can be the padded token length, so the tokens that the padding adds are computed and wasted.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/cuda_graphs.md#L91
+    title: vLLM v0.33.0, docs/design/cuda_graphs.md (BatchDescriptor)
+    quote: 'where `num_tokens` can be the padded token length'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.max-capture-size
+  value: 512
+  unit: tokens
+  text: If the maximum capture size is not set, vLLM caps it at 512 tokens by default at v0.33.0, which avoids running out of memory when max_num_seqs is small.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/compilation.py#L706-L710
+    title: vLLM v0.33.0, vllm/config/compilation.py, max_cudagraph_capture_size
+    quote: 'max_cudagraph_capture_size is capped at 512 by default,'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.max-capture-size-blackwell
+  value: 1024
+  unit: tokens
+  text: On data-center Blackwell GPUs the default cap on the capture size is 1,024 tokens instead.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/compilation.py#L706-L710
+    title: vLLM v0.33.0, vllm/config/compilation.py, max_cudagraph_capture_size
+    quote: 'or 1024 on data center Blackwell GPUs.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.mrv1-key
+  value: 5
+  unit: fields
+  text: MRV1 dispatches CUDA graphs on a frozen dataclass, BatchDescriptor, with five fields, num_tokens, num_reqs, uniform, has_lora and num_active_loras. This is the path where has_lora is a dispatch key. num_reqs is None for piecewise keys.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/forward_context.py#L29-L57
+    title: vLLM v0.33.0, vllm/forward_context.py, BatchDescriptor
+    quote: 'has_lora: bool = False'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.mrv1-dispatch
+  value: 'FULL, then PIECEWISE, then NONE'
+  text: MRV1's CudagraphDispatcher.dispatch looks for a FULL key with the exact request count, then for a PIECEWISE key with the request count relaxed to None, and otherwise runs eagerly. A batch above the largest captured size runs eagerly.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/cudagraph_dispatcher.py#L272-L322
+    title: vLLM v0.33.0, vllm/v1/cudagraph_dispatcher.py, CudagraphDispatcher.dispatch
+    quote: 'batch_desc_to_check = replace(batch_desc, num_reqs=None, uniform=False)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.mrv2-key
+  value: 7
+  unit: fields
+  text: MRV2, the default runner, dispatches on a frozen dataclass, BatchExecutionDescriptor, with seven fields, cg_mode, num_tokens, num_reqs, uniform_token_count, max_query_len, num_active_loras and num_ubatches. It has no has_lora field, and LoRA shows only as num_active_loras above 0.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu/cudagraph_utils.py#L70-L85
+    title: vLLM v0.33.0, vllm/v1/worker/gpu/cudagraph_utils.py, BatchExecutionDescriptor
+    quote: 'Describes the shape of the batch and CG mode to run; this is used to make shape matches between the capture and runtime.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.mrv2-dispatch
+  value: first compatible descriptor
+  text: MRV2's CudaGraphManager.dispatch looks up the padded token count and the effective adapter case among its captured descriptors, returns the first one that is compatible with the batch, and otherwise returns a descriptor whose mode is NONE.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu/cudagraph_utils.py#L523-L553
+    title: vLLM v0.33.0, vllm/v1/worker/gpu/cudagraph_utils.py, CudaGraphManager.dispatch
+    quote: 'Find matching cudagraph descriptor from priority-ordered candidates.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.design-doc-key
+  value: 4
+  unit: fields
+  text: The published CUDA-graph design document shows BatchDescriptor as a NamedTuple of four fields, num_tokens, num_reqs, uniform and has_lora. That matches neither runner's code at v0.33.0, so the document is stale on the key.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/cuda_graphs.md#L83-L89
+    title: vLLM v0.33.0, docs/design/cuda_graphs.md (BatchDescriptor)
+    quote: 'class BatchDescriptor(NamedTuple):'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.lora-specialize
+  value: 'true'
+  text: With cudagraph_specialize_lora on, which is the default, vLLM captures separate graphs for batches with and without active LoRA adapters, at the cost of a longer start and slightly more memory.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/compilation.py#L663-L670
+    title: vLLM v0.33.0, vllm/config/compilation.py, cudagraph_specialize_lora
+    quote: 'cudagraph_specialize_lora: bool = True'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.lora-count-specialize
+  value: 'false'
+  text: A second switch, specialize_active_lora, is off by default. When it is on, vLLM captures separate graphs for different counts of active adapters, in powers of 2 up to max_loras, which can help variable LoRA use at the cost of start time and memory.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/lora.py#L67-L73
+    title: vLLM v0.33.0, vllm/config/lora.py, specialize_active_lora
+    quote: 'separate cuda graphs will be captured for different counts of active LoRAs (powers of 2 up to max_loras)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.memory-before-kv
+  value: profiled before the KV cache is allocated
+  text: MRV2 estimates the memory that CUDA-graph capture will need while the engine is still profiling, before the real KV cache is allocated, so that the worker can reserve headroom for the graphs.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu/cudagraph_utils.py#L922-L928
+    title: vLLM v0.33.0, vllm/v1/worker/gpu/cudagraph_utils.py, profile_cudagraph_memory
+    quote: 'Called during memory profiling, *before* the real KV cache is allocated,'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.memory-subtracted
+  value: requested - non-KV - graph estimate
+  text: In Worker.determine_available_memory the memory that the KV cache may take is the requested memory minus the profiled non-KV memory minus the CUDA-graph estimate. This is the line where the graphs reduce the KV cache.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu_worker.py#L753-L757
+    title: vLLM v0.33.0, vllm/v1/worker/gpu_worker.py, Worker.determine_available_memory
+    quote: '- cudagraph_memory_estimate_applied'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.memory-estimate-default
+  value: 'true'
+  text: The graph estimate is applied by default. VLLM_MEMORY_PROFILER_ESTIMATE_CUDAGRAPHS is on unless it is set to 0, so a capture's memory is not available to KV blocks.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/envs.py#L329
+    title: vLLM v0.33.0, vllm/envs.py, VLLM_MEMORY_PROFILER_ESTIMATE_CUDAGRAPHS
+    quote: 'VLLM_MEMORY_PROFILER_ESTIMATE_CUDAGRAPHS: bool = True'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.memory-profiling-default-since
+  value: v0.21.0
+  text: The worker's log message says that CUDA-graph memory profiling is enabled and has been the default since v0.21.0. MRV2 added its own profiler in v0.29.0.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu_worker.py#L787-L789
+    title: vLLM v0.33.0, vllm/v1/worker/gpu_worker.py, Worker.determine_available_memory
+    quote: 'CUDA graph memory profiling is enabled (default since'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.memory-profiling-since
+  value: v0.29.0
+  text: MRV2 gained its own CUDA-graph memory profiling for KV-cache auto-sizing in v0.29.0 (pull request 53306).
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/releases/tag/v0.29.0
+    title: vLLM v0.29.0 release notes
+    quote: 'MRV2 also gained CUDA graph memory profiling for KV cache auto-sizing (#53306)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+  pin: vllm
+
+- id: vllm.cudagraph.breakable-off
+  value: 'false'
+  text: A breakable, torch.compile-free CUDA-graph capture exists behind VLLM_USE_BREAKABLE_CUDAGRAPH, which is off by default at v0.33.0. It is not a sixth CUDAGraphMode.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/envs.py#L182
+    title: vLLM v0.33.0, vllm/envs.py, VLLM_USE_BREAKABLE_CUDAGRAPH
+    quote: 'VLLM_USE_BREAKABLE_CUDAGRAPH: bool = False'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm

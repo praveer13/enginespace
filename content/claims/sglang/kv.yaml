@@ -1,0 +1,248 @@
+# SGLang at the pin: adapter slots, the KV events and the radix cache (W1-T01; D-034, D-042).
+#
+# D-042: at the pins neither engine pages adapters in the KV pool, and SGLang uses a fixed-slot LoRAMemoryPool. D-034: both engines publish
+# BlockStored, BlockRemoved and AllBlocksCleared over ZMQ, and kv-events@1 mirrors the pinned shapes. Read on 2026-11-04 at v0.5.23
+# (commit 297e54fd105e974cdf401e5b4d20253a22c16f90). Paths under python/sglang/srt/ are shortened in titles to srt/.
+
+# --- Adapter slots --------------------------------------------------------------------------------------------------------------------
+
+- id: sglang.lora.max-loras-per-batch
+  value: 8
+  unit: slots
+  text: SGLang's LoRAMemoryPool has max_loras_per_batch slots, which default to 8 at v0.5.23. The count includes a base-only request.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/arg_groups/fields/lora.py#L66-L69
+    title: SGLang v0.5.23, srt/arg_groups/fields/lora.py, max_loras_per_batch
+    quote: 'Maximum number of adapters for a running batch, include base-only request.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.lora.pool
+  value: a fixed-slot pool
+  text: SGLang keeps adapters in LoRAMemoryPool, a pool of max_loras_per_batch buffer slots that maps each slot to an adapter or to an empty marker. It is not a page pool shared with the KV cache.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/lora/mem_pool.py#L131-L132
+    title: SGLang v0.5.23, srt/lora/mem_pool.py, LoRAMemoryPool
+    quote: 'Class for memory pool management of lora modules'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.lora.slot-search
+  value: empty slot first, then evict
+  text: To place an adapter the pool takes an empty slot first. When the pool is full it picks a victim among the adapters that the current batch does not need and that are not pinned, by the eviction policy, and prefers evicting a real adapter to evicting the base model.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/lora/mem_pool.py#L792-L843
+    title: SGLang v0.5.23, srt/lora/mem_pool.py, LoRAMemoryPool.prepare_lora_batch
+    quote: '2. Memory pool is full, need to evict using policy'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.lora.eviction-default
+  value: lru
+  text: The adapter eviction policy is lru by default, with fifo as the other choice.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/arg_groups/fields/lora.py#L70-L76
+    title: SGLang v0.5.23, srt/arg_groups/fields/lora.py, lora_eviction_policy
+    quote: "'lru': Least Recently Used (default, better cache efficiency)."
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.lora.cpu-cap
+  value: max_loaded_loras >= max_loras_per_batch
+  text: max_loaded_loras, when it is set, limits how many adapters stay loaded in CPU memory, and it must be at least max_loras_per_batch.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/arg_groups/fields/lora.py#L62-L65
+    title: SGLang v0.5.23, srt/arg_groups/fields/lora.py, max_loaded_loras
+    quote: 'The value must be greater than or equal to `--max-loras-per-batch`.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+# --- KV events -----------------------------------------------------------------------------------------------------------------------
+
+- id: sglang.kv-events.encoding
+  value: tagged msgpack maps
+  text: SGLang encodes a KV event as a tagged msgpack map. The key type carries the class name, every other key is a field name, and an optional field left at None is omitted, so adding an optional field never changes the shape that an older consumer sees.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/disaggregation/kv_events.py#L243-L258
+    title: SGLang v0.5.23, srt/disaggregation/kv_events.py, KVCacheEvent
+    quote: 'Events are tagged msgpack maps: ``type`` carries the class name and every other key is a field name.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.kv-events.same-encoding-as-vllm
+  value: one code path for both engines
+  text: SGLang's source says its encoding is the one vLLM uses for its KVCacheEvent, so that a consumer such as Dynamo decodes both engines with one code path.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/disaggregation/kv_events.py#L254-L255
+    title: SGLang v0.5.23, srt/disaggregation/kv_events.py, KVCacheEvent
+    quote: 'This is the same encoding vLLM uses for its ``KVCacheEvent``, so a consumer such as Dynamo decodes both engines with one code path.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.kv-events.batch
+  value: '[ts, events, attn_dp_rank]'
+  text: A SGLang event batch is a positional array of a timestamp, a list of events and an optional attention data-parallel rank. vLLM's batch has the same first two entries and calls the third data_parallel_rank.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/disaggregation/kv_events.py#L257
+    title: SGLang v0.5.23, srt/disaggregation/kv_events.py, EventBatch
+    quote: '``EventBatch`` stays a positional array ``[ts, events, attn_dp_rank]``.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.kv-events.block-stored
+  value: 9
+  unit: fields
+  text: SGLang's BlockStored has 9 fields, block_hashes, parent_block_hash, token_ids, block_size, lora_id, and the optional medium, cache_salt, session_id and lora_name. It has no group index, no extra_keys and no cache-spec fields, which vLLM's has.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/disaggregation/kv_events.py#L279-L295
+    title: SGLang v0.5.23, srt/disaggregation/kv_events.py, BlockStored
+    quote: 'class BlockStored(KVCacheEvent):'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.kv-events.block-removed
+  value: 2
+  unit: fields
+  text: SGLang's BlockRemoved has 2 fields, block_hashes and the optional medium. AllBlocksCleared has none.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/disaggregation/kv_events.py#L298-L304
+    title: SGLang v0.5.23, srt/disaggregation/kv_events.py, BlockRemoved
+    quote: 'class BlockRemoved(KVCacheEvent):'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.kv-events.adapter-field
+  value: lora_name, cache_salt
+  text: The adapter is part of SGLang's event shape. The adapter's public name rides in lora_name, and the published block hashes are opaque ids that are scoped to the internal cache namespace, which includes the adapter load. A request's cache_salt is published too, so a consumer indexes the emitted hashes and does not recompute them.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/disaggregation/kv_events.py#L286-L295
+    title: SGLang v0.5.23, srt/disaggregation/kv_events.py, BlockStored
+    quote: 'Public adapter name for router lookup. Published hashes are opaque IDs'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.kv-events.lora-ids-since
+  value: v0.5.23
+  text: SGLang v0.5.23 began to publish opaque LoRA block ids and adapter names in its KV events (pull request 42817), so an event consumer written for an earlier release gets no adapter name.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/releases/tag/v0.5.23
+    title: SGLang v0.5.23 release notes
+    quote: '[KV events] Publish opaque LoRA block IDs and adapter names: #42817'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+  pin: sglang
+
+- id: sglang.kv-events.publisher-defaults
+  value: tcp://*:5557
+  text: SGLang's KV event publisher is null by default. With zmq it binds tcp://*:5557, keeps the last 10,000 batches for replay, and has a high-water mark of 100,000, the same numbers as vLLM's. A replay endpoint lets a consumer re-fetch batches it missed.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/disaggregation/kv_events.py#L684-L712
+    title: SGLang v0.5.23, srt/disaggregation/kv_events.py, KVEventsConfig
+    quote: 'endpoint: str = "tcp://*:5557"'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.kv-events.dynamo-format
+  value: dynamo
+  text: The format option is default or dynamo. The dynamo format is the one the Dynamo KV router reads, where block hashes also depend on extra_key and cache_salt and BlockStored has lora_name.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/disaggregation/kv_events.py#L723-L727
+    title: SGLang v0.5.23, srt/disaggregation/kv_events.py, KVEventsConfig.format
+    quote: '"dynamo" is the format the Dynamo KV router reads:'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+# --- The radix cache -----------------------------------------------------------------------------------------------------------------
+
+- id: sglang.radix.rust-core-default
+  value: rust
+  text: The radix tree's core is the Rust one by default at v0.5.23, selected by SGLANG_UNIFIED_RADIX_TREE_CORE_BACKEND, and the Python core remains a switch away.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/environ.py#L741
+    title: SGLang v0.5.23, srt/environ.py, SGLANG_UNIFIED_RADIX_TREE_CORE_BACKEND
+    quote: 'SGLANG_UNIFIED_RADIX_TREE_CORE_BACKEND = EnvStr("rust")'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.radix.rust-core-fallback
+  value: conditional
+  text: The Rust core is conditional. The registry falls back to Python for session-aware caching, for unsupported components, for custom component overrides, on non-Linux platforms, for PyTorch outside 2.11 to 2.14, on devices other than CPU and CUDA, and when the extension or its toolchain is missing. A trace may therefore come from the Python core.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/rust/sglang-radix-tree/README.md#L7-L19
+    title: SGLang v0.5.23, rust/sglang-radix-tree/README.md (Usage)
+    quote: 'Rust is the default tree core.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.radix.unified-cache
+  value: Full, SWA and Mamba on one tree
+  text: The Rust core serves the Unified Radix Cache, one tree that covers full attention, sliding-window attention and Mamba components. It implements the tree side only, match and insert walks, the node arena, locks and eviction walks, and Python keeps the physical KV allocation.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/rust/sglang-radix-tree/README.md#L3
+    title: SGLang v0.5.23, rust/sglang-radix-tree/README.md
+    quote: 'Rust tree core for the Unified Radix Cache, covering Full attention, sliding window attention, and Mamba components.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.radix.legacy-classes-removed
+  value: removed in v0.5.21
+  text: SGLang v0.5.21 removed the legacy radix cache classes. Code that imports SWARadixCache, MambaRadixCache or HiRadixCache has to move to UnifiedRadixCache, and the experimental C++ radix tree is gone.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/releases/tag/v0.5.21
+    title: SGLang v0.5.21 release notes
+    quote: 'Legacy radix cache implementations are removed.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+  pin: sglang

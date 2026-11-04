@@ -20,6 +20,11 @@ export const CLAIMS = 'content/claims/sample.yaml'
 export const COURSE = 'content/course.yaml'
 export const KCS = 'content/kc/graph.yaml'
 
+/** The keys of the repo's `course.lock.json` (W1-T01): what a claim's `pin` and a module's `pins` may name. */
+export const LOCK_KEYS: ReadonlySet<string> = new Set(
+  (JSON.parse(readFileSync(path.join(repo, 'course.lock.json'), 'utf8')) as { entries: { key: string }[] }).entries.map((entry) => entry.key),
+)
+
 /** The claims in the repo's `content/claims/`: the sample's, and the ones each game cites (Service's, W0-T16). A claim is a `- id:` at the start of a line. */
 function claimsInRepo(dir = path.join(repo, 'content/claims')): number {
   return readdirSync(dir, { withFileTypes: true }).reduce((sum, entry) => {

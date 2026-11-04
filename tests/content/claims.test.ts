@@ -7,16 +7,20 @@ import { spawnSync } from 'node:child_process'
 import path from 'node:path'
 import { compileContent } from '../../scripts/content/build.ts'
 import { agrees, claimProblems, evaluate, FormulaError } from '../../scripts/verify-claims.ts'
-import { CLAIM_COUNT, CLAIMS, compile, errors, LESSON, lineOf, project, read, repo, swap, where } from './support.ts'
+import { CLAIM_COUNT, CLAIMS, compile, errors, LESSON, lineOf, LOCK_KEYS, project, read, repo, swap, where } from './support.ts'
 import type { Edit } from './support.ts'
 
 const TODAY = '2026-11-04'
 const claims = read(CLAIMS)
 
-/** Compiles a copy with the edit and returns what verify:claims finds in it on `today`, as `line code`. */
-function problems(edits: Record<string, Edit>, today = TODAY, lock: ReadonlySet<string> | null = new Set(['vllm', 'sglang'])) {
+/**
+ * Compiles a copy with the edit and returns what verify:claims finds in it on `today`. The lock is the repo's own (W1-T01), so every
+ * claim's pin is one of its keys unless a test passes another set. `only` narrows the claims to the sample file's, for a test whose
+ * expectation counts the sample's claims and not the upstream ones that W1-T01 added.
+ */
+function problems(edits: Record<string, Edit>, today = TODAY, lock: ReadonlySet<string> | null = LOCK_KEYS, only?: string) {
   const result = compileContent({ root: project(edits) })
-  return claimProblems(result.claims, lock, today)
+  return claimProblems(only === undefined ? result.claims : result.claims.filter((record) => record.file === only), lock, today)
 }
 const summary = (found: ReturnType<typeof problems>) => found.map((d) => `${d.severity} ${d.line} ${d.code}`)
 
@@ -107,12 +111,15 @@ describe('a value agrees with a computed number to the precision it is written i
 })
 
 describe('the sample claims', () => {
-  test('pass, with one warning that pins cannot be checked yet', () => {
-    expect(summary(problems({}, TODAY, null))).toEqual([`warning ${lineOf(claims, '- id: vllm.release.requires-python')} pins-unchecked`])
+  test('pass, with one warning that pins cannot be checked when there is no lock', () => {
+    // The warning sits on the first claim that has a pin, in the order the compiler reads the files.
+    const firstPinned = compile().claims.find((record) => record.claim.pin !== undefined)
+    expect(summary(problems({}, TODAY, null))).toEqual([`warning ${firstPinned?.line} pins-unchecked`])
   })
 
   test('pass cleanly once the lock has the pin', () => {
     expect(problems({})).toEqual([])
+    expect(problems({}, TODAY, LOCK_KEYS, CLAIMS)).toEqual([])
   })
 
   test('are each a line in the compiled file, with the line of their first key', () => {
@@ -188,13 +195,16 @@ describe('dates, pins and age', () => {
   })
 
   test('a pin that the lock does not have is an error', () => {
-    expect(summary(problems({}, TODAY, new Set(['sglang'])))).toEqual([`error ${first} unknown-pin`])
+    expect(summary(problems({}, TODAY, new Set(['sglang']), CLAIMS))).toEqual([`error ${first} unknown-pin`])
+    // Every upstream claim of W1-T01 names a pin too, so a lock with only sglang fails all the others' pins as well.
+    expect(problems({}, TODAY, new Set(['sglang'])).filter((found) => found.code === 'unknown-pin').length).toBeGreaterThan(100)
   })
 
   test('a claim past its TTL is a warning that names the day it went stale, and never an error', () => {
     // 90 days after 2026-11-04 is 2027-02-02.
     expect(problems({}, '2027-02-02')).toEqual([])
-    const stale = problems({}, '2027-02-03')
+    // The sample's claim is the only one of its file that is stale then. The upstream claims have the same 90 days, so they are stale too.
+    const stale = problems({}, '2027-02-03', LOCK_KEYS, CLAIMS)
     expect(summary(stale)).toEqual([`warning ${first} stale-claim`])
     expect(stale[0].message).toBe('vllm.release.requires-python: stale since 2027-02-02 (checked 2026-11-04, good for 90 days)')
     expect(errors({ diagnostics: stale, outputs: [], claims: [], lockKeys: null, stats: { modules: 0, lessons: 0, claims: 0 } })).toEqual([])
@@ -250,8 +260,16 @@ describe('the gate as a command', () => {
     return { status: result.status, out: result.stdout, err: result.stderr }
   }
 
-  test('passes on the repo, and prints a warning about pins', () => {
+  test('passes on the repo, whose lock has every pin, with no warning', () => {
     const result = run(repo, '--today', TODAY)
+    expect(result.status).toBe(0)
+    expect(result.out).not.toContain('pins-unchecked')
+    expect(result.out).toBe(`verify:claims passed: 1 module, 1 lesson, ${CLAIM_COUNT} claims\n`)
+  })
+
+  test('prints a warning about pins in a tree that has no lockfile', () => {
+    // project() copies content/ and leaves course.lock.json behind.
+    const result = run(project(), '--today', TODAY)
     expect(result.status).toBe(0)
     expect(result.out).toContain('warning pins-unchecked')
     expect(result.out).toContain(`verify:claims passed: 1 module, 1 lesson, ${CLAIM_COUNT} claims, 1 warning`)

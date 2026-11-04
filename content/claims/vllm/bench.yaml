@@ -1,0 +1,188 @@
+# vLLM at the pin: `vllm bench serve`, its defaults and its traps (W1-T01; TR8, W1-T32).
+#
+# TR8's broken-benchmark corpus cites these as the real-world instance of each flaw: a request rate of infinity, a capped closed loop that
+# calls itself a rate, no warm-up, and a prefix cache that remembers the last run. The tool is vllm/benchmarks/serve.py at v0.33.0
+# (commit 4ba787ec9959e566d3b587a796dff07673324da5), read on 2026-11-04.
+
+- id: vllm.bench.request-rate-default
+  value: inf
+  text: vllm bench serve defaults --request-rate to infinity, and with an infinite rate all the requests are sent at time 0. That is a burst, not a rate.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/benchmarks/serve.py#L1745-L1753
+    title: vLLM v0.33.0, vllm/benchmarks/serve.py, --request-rate
+    quote: 'then all the requests are sent at time 0.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.bench.arrivals
+  value: Poisson, or gamma with --burstiness
+  text: With a finite rate the tool draws arrival gaps from a gamma distribution. A --burstiness of 1, the default, makes the gaps exponential, which is a Poisson process, a value below 1 is burstier and a value above 1 is more uniform.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/benchmarks/serve.py#L1754-L1765
+    title: vLLM v0.33.0, vllm/benchmarks/serve.py, --burstiness
+    quote: 'Default value is 1, which follows Poisson process.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.bench.arrival-rescale
+  value: rescaled to N / rate
+  text: Without a ramp-up strategy the tool rescales its random arrival offsets so that the last one equals the number of requests divided by the rate, which stabilizes the throughput across seeds. The realized arrival process is therefore not exactly Poisson.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/benchmarks/serve.py#L513-L526
+    title: vLLM v0.33.0, vllm/benchmarks/serve.py, get_request
+    quote: 'normalize_factor = target_total_delay_s / delay_ts[-1]'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.bench.max-concurrency-default
+  value: none
+  text: --max-concurrency is unset by default, so nothing caps the requests in flight.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/benchmarks/serve.py#L1678-L1690
+    title: vLLM v0.33.0, vllm/benchmarks/serve.py, --max-concurrency
+    quote: '"--max-concurrency",'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.bench.max-concurrency-closed-loop
+  value: a semaphore
+  text: --max-concurrency is an asyncio semaphore around each request, so with it set the run is a capped closed loop. The tool's own help says that the actual request rate may then be lower than the one requested, if the server does not keep up.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/benchmarks/serve.py#L1679-L1689
+    title: vLLM v0.33.0, vllm/benchmarks/serve.py, --max-concurrency
+    quote: 'actual request rate may be lower than specified with --request-rate,'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.bench.client-queue-time
+  value: client_queue_time
+  text: The time a request waits at the semaphore is recorded apart as client_queue_time, the gap between its arrival and its send. The request's start_time stays the moment it was sent, which is the time that throughput is computed from.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/benchmarks/serve.py#L1014-L1016
+    title: vLLM v0.33.0, vllm/benchmarks/serve.py, limited_request_func
+    quote: 'record client-side semaphore delay separately.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.bench.max-concurrency-recommended
+  value: 'an infinite rate with a maximum concurrency'
+  text: vLLM's benchmarking guide calls a request rate of infinity with a maximum concurrency, its Maximum Throughput pattern, the most commonly used configuration for production benchmarking.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/benchmarking/cli.md#L805
+    title: vLLM v0.33.0, docs/benchmarking/cli.md (load patterns)
+    quote: 'is the most commonly used configuration for production benchmarking.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.bench.num-warmups-default
+  value: 0
+  unit: requests
+  text: --num-warmups defaults to 0 at v0.33.0, so a run counts its first, cold requests unless the user asks for warm-ups.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/benchmarks/serve.py#L1781-L1785
+    title: vLLM v0.33.0, vllm/benchmarks/serve.py, --num-warmups
+    quote: 'help="Number of warmup requests.",'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.bench.metric-percentiles-default
+  value: '99'
+  text: --metric-percentiles defaults to the 99th percentile alone. A run that does not ask for more reports the tail and no median.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/benchmarks/serve.py#L1858-L1866
+    title: vLLM v0.33.0, vllm/benchmarks/serve.py, --metric-percentiles
+    quote: 'Default value is "99".'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.bench.percentile-metrics-default
+  value: 'ttft,tpot,itl'
+  text: --percentile-metrics defaults to ttft, tpot and itl for generative models, and to e2el for pooling models.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/benchmarks/serve.py#L1847-L1857
+    title: vLLM v0.33.0, vllm/benchmarks/serve.py, --percentile-metrics
+    quote: 'If not specified, defaults to "ttft,tpot,itl" for generative models'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.bench.seed-default
+  value: 0
+  text: The benchmark's --seed defaults to 0, so two runs of the same random dataset draw the same prompts.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/benchmarks/datasets/datasets.py#L1585
+    title: vLLM v0.33.0, vllm/benchmarks/datasets/datasets.py, --seed
+    quote: 'parser.add_argument("--seed", type=int, default=0)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.bench.prefix-cache-reuse
+  value: repeat runs can inflate throughput
+  text: vLLM's own benchmarking guide warns that repeating vllm bench serve against the same server can reuse prompts left in the prefix cache and inflate throughput. It suggests varying --seed, restarting or resetting the server, or using vllm bench sweep serve, which resets the caches between runs.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/benchmarking/cli.md#L132-L139
+    title: vLLM v0.33.0, docs/benchmarking/cli.md (warning)
+    quote: 'Repeating `vllm bench serve` against the same server can reuse prompts left in the prefix cache and inflate throughput.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.bench.tpot-definition
+  value: (latency - TTFT) / (output_len - 1)
+  text: The tool computes a request's time per output token as its latency minus its time to first token, over the output length minus 1, and only for output lengths above 1. A one-token response counts as 0 for goodput.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/benchmarks/serve.py#L654-L660
+    title: vLLM v0.33.0, vllm/benchmarks/serve.py, calculate_metrics
+    quote: 'tpot = latency_minus_ttft / (output_len - 1)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.bench.goodput-units
+  value: ms
+  text: --goodput takes KEY:VALUE pairs in milliseconds, with the keys ttft, tpot and e2el, and it can take several. The help text points to the DistServe paper for the definition.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/benchmarks/serve.py#L1867-L1878
+    title: vLLM v0.33.0, vllm/benchmarks/serve.py, --goodput
+    quote: 'pairs, where the key is a metric name, and the value is in'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm

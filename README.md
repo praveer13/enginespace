@@ -71,7 +71,7 @@ The site needs no account, and nothing you do leaves your device unless you expo
 
 ## The pins
 
-The course pins one vLLM minor and one SGLang minor and re-pins them each quarter. The proposed edition-1 pins are vLLM v0.33.0 and SGLang v0.5.23, with nano-vllm, Mini-SGLang and "Inside vLLM" (commit `42172ad`) pinned as reading targets. Every number in the course is a claim with a source, a date and an expiry, and a number that moves raises a change card.
+The course pins one vLLM minor and one SGLang minor and re-pins them each quarter. The proposed edition-1 pins are vLLM v0.33.0 and SGLang v0.5.23, with nano-vllm, Mini-SGLang and "Inside vLLM" (commit `42172ad`) pinned as reading targets. Every number in the course is a claim with a source, a date and an expiry, and a number that moves raises a change card. [course.lock.json](course.lock.json) holds the pins, by commit or by version (ARCHITECTURE §4.4), and the engines' claims in [content/claims/](content/claims/README.md) cite the files at those pins.
 
 ## Run it
 
@@ -95,6 +95,7 @@ npm run verify:all           # every gate; each pending one names the task that 
 npm run verify:determinism   # packages/sim and packages/play: no clock, no entropy, no engine-dependent Math (ARCHITECTURE §5.1)
 npm run verify:boundaries    # the import fences of ARCHITECTURE §2.3, and no static path from src/main.tsx to three
 npm run verify:content       # content/: schemas, ids, links and sizes, each problem with its file and line (verify:claims and verify:numbers check the facts and the tags)
+npm run verify:pins          # course.lock.json: its schema, what each kind of entry is pinned by, and a pin past its TTL as a warning (ARCHITECTURE §4.4)
 npm run verify:routes        # the route table, prepare-pages and the e2e route list agree: a route that cannot be enumerated fails (ARCHITECTURE §3.2)
 npm run verify:bundle        # after npm run build: each budget of ARCHITECTURE §11.1 against dist/.vite/manifest.json, with its gzip size, how far it is from its gate and its target
 bun scripts/verify.ts list   # each gate with its stage, whether it is live or pending, and the task that builds it
@@ -123,8 +124,9 @@ Working in a git worktree, or with a coding agent? Read [AGENTS.md](AGENTS.md) f
 | [docs/DECISIONS.md](docs/DECISIONS.md) | the decision log and the owner's open questions |
 | [docs/TRACKER.md](docs/TRACKER.md) | the build tasks, wave by wave |
 | [research/](research/) | the dated upstream research behind the pins and claims |
+| [course.lock.json](course.lock.json) | the course lockfile: the pinned engines, reading targets and profilers, proposed until the owner confirms them (ARCHITECTURE §4.4, D-035) |
 | [src/](src/) | the app: the shell, the route table (`src/routes.tsx`), a page for each route (some are stubs until their tasks land), `src/content/`, which loads the compiled content and draws the module and lesson pages as tickets, tape labels and the printer's tape, `src/settings/`, the learner's settings and the store that every page reads (D-051), and `src/evidence/`, the ledger in the browser with the pages that count it, export it and import it |
-| [content/](content/) | the course's words and data: `course.yaml` (the modules and their hours), `modules/<id>/` (a `module.md` and its `lessons/`), `claims/` (dated, sourced facts) and `kc/graph.yaml`. `scripts/content/` compiles them (ARCHITECTURE §4) |
+| [content/](content/) | the course's words and data: `course.yaml` (the modules and their hours), `modules/<id>/` (a `module.md` and its `lessons/`), `claims/` (dated, sourced facts, with a [README](content/claims/README.md) on how the upstream ones were read) and `kc/graph.yaml`. `scripts/content/` compiles them (ARCHITECTURE §4) |
 | [packages/](packages/) | the five internal packages (`sim`, `play`, `ledger`, `schema`, `verify`), skeletons until their tasks land. `sim` and `play` compile without the DOM (`tsconfig.pure.json`) and obey the determinism lint. ESLint and `verify:boundaries` fence what each package may import |
 | [scripts/](scripts/) | the gate registry (`verify.ts`), the gate scripts it runs, the content compiler (`scripts/content/`), and the build's page tooling: `prepare-pages.ts` and the meta CSP, the plan of documents and the document rewriter in `scripts/pages/` |
 | [vendor/](vendor/) | files copied from kernelspace at d478f91 and never edited in place; `vendor/kernelspace/VENDOR.md` lists each one's SHA-256 (ARCHITECTURE §13) |

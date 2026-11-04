@@ -1,0 +1,137 @@
+# SGLang at the pin: CUDA-graph backends, the buckets a graph is keyed by, and the card-dependent maximum (W1-T01; D-041).
+#
+# D-041 says SGLang keys its graphs by padded batch size or token count from bucket lists, not by a descriptor. Read on 2026-11-04 at v0.5.23
+# (commit 297e54fd105e974cdf401e5b4d20253a22c16f90). Paths under python/sglang/srt/ are shortened in titles to srt/.
+
+- id: sglang.cudagraph.backends
+  value: 'full, breakable, disabled'
+  text: SGLang configures CUDA graphs per phase, decode and prefill, and each phase uses one backend from full, breakable and disabled.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/model_executor/cuda_graph_config.py#L40-L66
+    title: SGLang v0.5.23, srt/model_executor/cuda_graph_config.py, Backend
+    quote: 'ALL = (FULL, BREAKABLE, DISABLED)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.cudagraph.decode-default
+  value: full
+  text: The default decode backend is full.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/model_executor/cuda_graph_config.py#L149-L151
+    title: SGLang v0.5.23, srt/model_executor/cuda_graph_config.py, CudaGraphConfig
+    quote: 'default_factory=lambda: PhaseConfig(backend=Backend.FULL)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.cudagraph.prefill-default
+  value: breakable on CUDA
+  text: The default prefill backend is breakable (BCG) on CUDA, and no graph on other platforms.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/model_executor/cuda_graph_config.py#L119-L123
+    title: SGLang v0.5.23, srt/model_executor/cuda_graph_config.py, default_prefill_backend
+    quote: 'Enable BCG by default on CUDA; other platforms remain opt-in.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.cudagraph.tc-piecewise-removed
+  value: removed in v0.5.22
+  text: The tc_piecewise prefill graph backend was removed in v0.5.22. Passing it, or a tc_compiler setting, now raises an error, and CUDA keeps breakable as the default prefill backend.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/releases/tag/v0.5.22
+    title: SGLang v0.5.22 release notes
+    quote: 'The tc_piecewise prefill CUDA graph backend is removed.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+  pin: sglang
+
+- id: sglang.cudagraph.decode-buckets
+  value: keyed by padded batch size
+  text: Without speculative decoding, SGLang captures its decode graphs at the batch sizes 1, 2, 4, 8 and 12, then 16 to 256 in steps of 8, then 272 to 496 in steps of 16, then 512 up to the maximum in steps of 32. A batch is padded up to the next captured size, and the maximum is added to the list if it is missing.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/arg_groups/cuda_graph_hook.py#L500-L532
+    title: SGLang v0.5.23, srt/arg_groups/cuda_graph_hook.py, generate_decode_cuda_graph_batch_sizes
+    quote: '[1, 2, 4, 8, 12]'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.cudagraph.prefill-buckets
+  value: keyed by padded token count
+  text: SGLang keys its prefill graphs by the padded token count, not by batch size. The buckets run from 4 to 32 in steps of 4, 48 to 256 in steps of 16, 288 to 512 in steps of 32, 576 to 1,024 in steps of 64, 1,280 to 4,096 in steps of 256, and then in steps of 512 up to the maximum.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/arg_groups/cuda_graph_hook.py#L480-L497
+    title: SGLang v0.5.23, srt/arg_groups/cuda_graph_hook.py, generate_prefill_cuda_graph_batch_sizes
+    quote: 'list(range(4, 33, 4))'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.cudagraph.prefill-max-default
+  value: 2048
+  unit: tokens
+  text: The default maximum for the prefill graph buckets is 2,048 tokens.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/arg_groups/cuda_graph_hook.py#L324-L328
+    title: SGLang v0.5.23, srt/arg_groups/cuda_graph_hook.py
+    quote: 'max_bs = cfg.cuda_graph_config.prefill.max_bs or 2048'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.cudagraph.decode-max-bs.small
+  value: 48
+  unit: requests
+  text: On a card with 20 GiB to under 35 GiB of memory, which the source lists as A10, 4090 and 5090, the decode graphs stop at a batch of 48 at tensor-parallel sizes under 4, and at 160 from tensor-parallel size 4. A decode batch above 48 should therefore run eagerly on such a card [derived, not run].
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/arg_groups/memory_hook.py#L101-L117
+    title: SGLang v0.5.23, srt/arg_groups/memory_hook.py, handle_gpu_memory_settings
+    quote: 'decode_cuda_graph_config.max_bs = 48'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.cudagraph.decode-max-bs.large
+  value: 256
+  unit: requests
+  text: On a card with 60 GiB to under 90 GiB of memory, which the source lists as H100 and A100, the decode graphs stop at a batch of 256 at tensor-parallel sizes under 4, and at 512 from tensor-parallel size 4.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/arg_groups/memory_hook.py#L132-L145
+    title: SGLang v0.5.23, srt/arg_groups/memory_hook.py, handle_gpu_memory_settings
+    quote: 'decode_cuda_graph_config.max_bs = 256'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.cudagraph.decode-max-bs.rtx5090-comment
+  value: eager decode at batch 32 and above
+  text: A comment in the source, written for the 32 GB RTX 5090, says the previous cap forced eager decode at a batch of 32 or more and collapsed high-concurrency throughput against vLLM.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/arg_groups/memory_hook.py#L104-L106
+    title: SGLang v0.5.23, srt/arg_groups/memory_hook.py, handle_gpu_memory_settings
+    quote: 'the previous cap forced eager decode at bs>=32 and'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang

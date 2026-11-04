@@ -12,10 +12,10 @@ import { gitSha, httpsUrl, isoDate, nonBlank, sha256Hex } from './common'
 import { lockKeySchema } from './refs'
 
 /**
- * What an entry pins, from A§4.4. A profiler such as `nsys` has no kind of its own in that list; the task that pins it
- * (W1-T01) either picks one of these or adds one here.
+ * What an entry pins, from A§4.4. A profiler such as `nsys` is a vendor download with no repository to take a commit from, so it
+ * has a kind of its own, `tool`, and is pinned by its version (W1-T01).
  */
-export const LOCK_KINDS = ['pypi', 'git', 'blog', 'dataset', 'model', 'container'] as const
+export const LOCK_KINDS = ['pypi', 'git', 'blog', 'dataset', 'model', 'container', 'tool'] as const
 
 export const lockEntrySchema = z
   .strictObject({

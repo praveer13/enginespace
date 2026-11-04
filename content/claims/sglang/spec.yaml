@@ -1,0 +1,150 @@
+# SGLang at the pin: speculative decoding and the grammar mask's overlap (W1-T01; TR6).
+#
+# TR6 owns speculation and the overlap of the grammar mask with the forward, and SGLang is the second engine that the answer key reads.
+# Read on 2026-11-04 at v0.5.23 (commit 297e54fd105e974cdf401e5b4d20253a22c16f90). Paths under python/sglang/srt/ are shortened in titles
+# to srt/.
+
+- id: sglang.spec.algorithms
+  value: 'EAGLE, EAGLE3, NEXTN, STANDALONE, NGRAM, DFLASH, DSPARK, UNO'
+  text: The built-in --speculative-algorithm values at v0.5.23 are EAGLE, EAGLE3, NEXTN, STANDALONE, NGRAM, DFLASH, DSPARK and UNO, and any name registered with SpeculativeAlgorithm.register. MTP runs through the EAGLE workers.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/arg_groups/fields/spec.py#L31-L34
+    title: SGLang v0.5.23, srt/arg_groups/fields/spec.py, speculative_algorithm
+    quote: 'Speculative algorithm. Builtins: EAGLE, EAGLE3, NEXTN, STANDALONE, NGRAM, DFLASH, DSPARK, UNO.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.spec.v2-workers
+  value: V2 workers, overlap on
+  text: Speculative decoding runs the V2 speculative workers, such as EAGLEWorkerV2 and StandaloneWorkerV2, with the overlap scheduler on by default. --disable-overlap-schedule falls back to the synchronous path.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/docs/docs/advanced_features/speculative_decoding.mdx#L774-L776
+    title: SGLang v0.5.23, docs/docs/advanced_features/speculative_decoding.mdx (V2, overlap scheduler)
+    quote: 'Speculative decoding runs the V2 speculative workers'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.spec.v2-only
+  value: SGLANG_ENABLE_SPEC_V2 is gone
+  text: The environment variable SGLANG_ENABLE_SPEC_V2 was removed in v0.5.21, so there is one speculative path, the V2 workers.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/releases/tag/v0.5.21
+    title: SGLang v0.5.21 release notes
+    quote: 'SGLANG_ENABLE_SPEC_V2 is gone'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+  pin: sglang
+
+- id: sglang.spec.overlap-topk
+  value: --speculative-eagle-topk 1
+  text: The overlap scheduler supports only --speculative-eagle-topk 1 for speculative decoding. A run that omits the flag may be auto-tuned to a topk above 1, which is incompatible with overlap and may not raise an error at once.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/docs/docs/advanced_features/speculative_decoding.mdx#L779-L781
+    title: SGLang v0.5.23, docs/docs/advanced_features/speculative_decoding.mdx (V2, overlap scheduler)
+    quote: 'The overlap scheduler currently only supports `--speculative-eagle-topk 1`'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.spec.ngram-no-overlap
+  value: disables overlap
+  text: NGRAM speculation disables the overlap scheduler and mixed chunked prefill, and it works on CUDA only.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/docs/docs/advanced_features/speculative_decoding.mdx#L874-L876
+    title: SGLang v0.5.23, docs/docs/advanced_features/speculative_decoding.mdx (Ngram)
+    quote: 'It disables the overlap scheduler and mixed chunked prefill.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.spec.rejection-sampling-flag
+  value: 'false'
+  text: --speculative-use-rejection-sampling is a flag that is off by default and needs topk 1.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/arg_groups/fields/spec.py#L117-L119
+    title: SGLang v0.5.23, srt/arg_groups/fields/spec.py, speculative_use_rejection_sampling
+    quote: 'Use rejection sampling for speculative decoding (requires topk=1).'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.spec.block-verification-flag
+  value: 'false'
+  text: --speculative-use-block-verification is a second verifier, also off by default. It applies to EAGLE, EAGLE3 and NEXTN at topk 1, and to sampled DFLASH and DSPARK drafts.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/arg_groups/fields/spec.py#L120-L124
+    title: SGLang v0.5.23, srt/arg_groups/fields/spec.py, speculative_use_block_verification
+    quote: '"Use block verification for EAGLE/EAGLE3/NEXTN (requires topk=1) or for "'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.spec.pr-35798
+  value: coin <= cumulative probability
+  text: SGLang pull request 35798, opened on 2026-08-21, fixed an exactness bug in TreeSpeculativeSamplingTargetOnly. It drew its coins from [0, 1) but chose the target CDF bucket with coin <= cumulative_probability, which at coin == 0 accepts a draft token whose target probability is zero.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/pull/35798
+    title: SGLang pull request 35798, Fix CDF boundary handling in TreeSpeculativeSamplingTargetOnly
+    quote: 'TreeSpeculativeSamplingTargetOnly draws coins from [0, 1) but selects a target CDF bucket with coin <= cumulative_probability.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+  pin: sglang
+
+- id: sglang.spec.pr-35798-fix
+  value: coin < cumulative probability, and mass above 0
+  text: The fix is in the v0.5.23 source. A draft token is accepted only if its target probability is above 0, and the bucket test uses the half-open comparison coin < prob_acc / threshold_acc.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/kernels/jit/include/sgl_kernel/speculative/sampling.cuh#L80-L81
+    title: SGLang v0.5.23, kernels/jit/include/sgl_kernel/speculative/sampling.cuh
+    quote: 'const bool has_target_mass = target_prob_single > DType(0);'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+# --- The grammar mask ----------------------------------------------------------------------------------------------------------------
+
+- id: sglang.mask.delayed-sampling
+  value: sample after the last batch is processed
+  text: Without speculation SGLang delays the current batch's sampling until the last batch has been processed, because the sample depends on that result, a grammar being the example. The scheduler runs the sample after it processes the last batch.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/scheduler.py#L2125-L2128
+    title: SGLang v0.5.23, srt/managers/scheduler.py, Scheduler.event_loop_overlap
+    quote: 'It depends on the result of the last batch (e.g., grammar), so we run it after the last batch is processed.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.mask.grammar-barrier
+  value: EAGLE, STANDALONE, DFLASH family
+  text: With EAGLE, STANDALONE and the DFLASH family the worker advances the grammar state machine inside verify() through the scheduler's grammar barrier, so that the CPU's grammar work hides under the GPU's draft and verify. NGRAM drafts from a host corpus lookup and stays synchronous by design.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/speculative/spec_info.py#L166-L172
+    title: SGLang v0.5.23, srt/speculative/spec_info.py, supports_grammar_overlap
+    quote: 'Whether the worker advances the grammar FSM inside verify() (via the'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
