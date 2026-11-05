@@ -848,7 +848,7 @@ The B-lane builds are Rust crates on kernelspace's `kslab` ABI v2 (vendored unch
 
 | Lab | Module | The learner writes | The host checks |
 |---|---|---|---|
-| `hybrid-kv` | TR5a | A hybrid KV manager with adapter pages, extending lab 02's optional `adapter_unified_paging` check | §5.4's invariants and results on seeded op streams, against `kvReference` |
+| `hybrid-kv` | TR5a | A hybrid KV manager with adapter pages, extending lab 02's optional `adapter_unified_paging` check | Six checks, one for each stage s1-s6 of TR5a §5. Each plays a script whose replies are known and then a seeded stream, and `kvJudge` judges every operation against `kvReference`: its reply, the hit, atomicity, §5.4's eight invariants on the state the module reports after the operation, and its events. The module reports its state through `ks_invoke` queries (`packages/sim/forge/kv-wire.ts`). |
 | `rejection-sampler` | TR6 | The verify step: accept or reject, then residual resampling | Four exact checks first (every coin of the accept step, the residual, every draw of the walk over the weights, and rounds in which no coin matters), then chi-square on fresh seeds: 2 independent seeds × 20,000 draws at α = 1e-4 [estimated], so an exact sampler fails falsely with probability about 2 × 10⁻⁴ [derived]. Nightly runs measure the false-fail rate and each bestiary member's detection rate. |
 | `kv-publisher` | TR5b | The engine-side event publisher | `kv-events@1` conformance: the reference consumer's view equals the truth after every op; ordering; reset semantics |
 

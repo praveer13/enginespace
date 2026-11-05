@@ -9,7 +9,7 @@
  *   - With the reference solution written into the learner's file, `cargo test` is green, and the module it builds is a credited run
  *     in the host the site uses: every check passes on fresh seeds, the module is named for the lab and not `<lab>@reference`.
  *
- * It runs for every lab of the registry that is listed in LABS below (W1-T27 added the rejection-sampler's).
+ * It runs for every lab of the registry that is listed in LABS below (W1-T27 added the rejection-sampler's, and W1-T22 hybrid-kv's).
  *
  * These need the pinned compiler with the wasm32 target (scripts/labs/toolchain.ts finds it, as verify:labs does), so they are skipped
  * where there is none: ci.yml's tests job has no Rust, and a machine with it runs them. Nothing here downloads anything.
@@ -46,6 +46,7 @@ afterAll(() => rmSync(scratch, { recursive: true, force: true }))
 const LABS = [
   { id: 'toy', learner: 'toy/src/rotation.rs', reference: 'labs/forge/toy/reference/rotation.rs', tests: 6 },
   { id: 'rejection-sampler', learner: 'rejection-sampler/src/verify.rs', reference: 'labs/forge/rejection-sampler/reference/verify.rs', tests: 6 },
+  { id: 'hybrid-kv', learner: 'hybrid-kv/src/manager.rs', reference: 'labs/forge/hybrid-kv/reference/manager.rs', tests: 13 },
 ] as const
 
 /** A lab's zip, unpacked as a learner would unpack it. */

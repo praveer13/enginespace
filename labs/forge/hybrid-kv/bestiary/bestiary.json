@@ -1,0 +1,143 @@
+{
+  "lab": "hybrid-kv",
+  "members": [
+    {
+      "id": "leaky-free",
+      "feature": "bestiary-leaky-free",
+      "mistake": "a free that leaks: the last page of every free is never let go, so it stays held by a request that is gone and the pool loses a page each time",
+      "fails": {
+        "one_group": "fail",
+        "sliding": "fail",
+        "state": "fail",
+        "hit_all_groups": "fail",
+        "adapter_pages": "fail",
+        "gauntlet": "fail"
+      },
+      "passes": []
+    },
+    {
+      "id": "non-atomic-admit",
+      "feature": "bestiary-non-atomic-admit",
+      "mistake": "an admit that takes pages before it fails: the groups are served in turn, and one that does not fit refuses with the pages of the groups before it already taken",
+      "fails": {
+        "sliding": "fail",
+        "gauntlet": "fail"
+      },
+      "passes": [
+        "one_group",
+        "adapter_pages"
+      ]
+    },
+    {
+      "id": "window-off-by-one",
+      "feature": "bestiary-window-off-by-one",
+      "mistake": "a window one token too long: a sliding group lets go of each block a token late and holds a page too many",
+      "fails": {
+        "sliding": "fail",
+        "gauntlet": "fail"
+      },
+      "passes": [
+        "one_group",
+        "state",
+        "adapter_pages"
+      ]
+    },
+    {
+      "id": "window-short",
+      "feature": "bestiary-window-short",
+      "mistake": "a window one token too short: a sliding group lets go of a block while the next token still reads it",
+      "fails": {
+        "sliding": "fail",
+        "gauntlet": "fail"
+      },
+      "passes": [
+        "one_group",
+        "state",
+        "adapter_pages"
+      ]
+    },
+    {
+      "id": "double-counted",
+      "feature": "bestiary-double-counted",
+      "mistake": "an adapter charged twice: a load takes twice the pages it asked for",
+      "fails": {
+        "adapter_pages": "fail",
+        "gauntlet": "fail"
+      },
+      "passes": [
+        "one_group",
+        "sliding",
+        "state",
+        "hit_all_groups"
+      ]
+    },
+    {
+      "id": "union-hit",
+      "feature": "bestiary-union-hit",
+      "mistake": "a prefix hit that is the union of the groups: the longest hit of any one group, in place of the longest that every group holds",
+      "fails": {
+        "hit_all_groups": "fail",
+        "gauntlet": "fail"
+      },
+      "passes": [
+        "one_group",
+        "adapter_pages"
+      ]
+    },
+    {
+      "id": "published-twice",
+      "feature": "bestiary-published-twice",
+      "mistake": "an event published twice: every stored run is announced two times, so a consumer counts each block twice",
+      "fails": {
+        "one_group": "fail",
+        "sliding": "fail",
+        "state": "fail",
+        "hit_all_groups": "fail",
+        "adapter_pages": "fail",
+        "gauntlet": "fail"
+      },
+      "passes": []
+    },
+    {
+      "id": "free-forward",
+      "feature": "bestiary-free-forward",
+      "mistake": "blocks let go head first: a request gives its pages back first block first, so the head of a prefix is dumped before its tail",
+      "fails": {
+        "one_group": "fail",
+        "sliding": "fail",
+        "hit_all_groups": "fail",
+        "gauntlet": "fail"
+      },
+      "passes": []
+    },
+    {
+      "id": "unhashed-back",
+      "feature": "bestiary-unhashed-back",
+      "mistake": "a page with no hash sent to the back of the queue: it is reused after the cached pages, so the next allocation dumps a cached block before a bare page",
+      "fails": {
+        "one_group": "fail",
+        "sliding": "fail",
+        "state": "fail",
+        "hit_all_groups": "fail",
+        "adapter_pages": "fail",
+        "gauntlet": "fail"
+      },
+      "passes": []
+    },
+    {
+      "id": "reset-while-running",
+      "feature": "bestiary-reset-while-running",
+      "mistake": "a reset accepted while a request runs: it forgets every cached block under the feet of the request that holds them",
+      "fails": {
+        "gauntlet": "fail"
+      },
+      "passes": [
+        "one_group",
+        "sliding",
+        "state",
+        "hit_all_groups",
+        "adapter_pages"
+      ]
+    }
+  ]
+}
