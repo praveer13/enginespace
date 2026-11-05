@@ -23,14 +23,26 @@ import type { VerifierRun } from './types'
  * carries it, so that the colour is never the only way to tell the plates apart (WCAG 1.4.1).
  */
 
-function Key({ run, scaffold, meter }: { run: VerifierRun; scaffold: boolean; meter: boolean }) {
+/**
+ * The key. Under the 3D scene (`scene`) it also names the objects the drawing does not have: the chef's dispenser, which holds her stack
+ * and the ring of what went out, the commis's stack on the left, and the plates that wait upside down, unplated.
+ */
+function Key({ run, scaffold, meter, scene = false }: { run: VerifierRun; scaffold: boolean; meter: boolean; scene?: boolean }) {
   const { view } = run
   const rows = view.rows.length > 0
   const hasOut = meter && view.rows.some((row) => row.out !== null)
+  const chef = scene ? 'the chef · p, in her dispenser' : null
   return (
     <ul className="es-vf-key" aria-label="What the plates are">
       {rows && scaffold ? (
         <>
+          {scene ? (
+            <li>
+              <TapeLabel size="sm" tilt="none">
+                the commis · q, on the left
+              </TapeLabel>
+            </li>
+          ) : null}
           <li>
             <TapeLabel size="sm" slot="green" tilt="none">
               agreed · min(p, q)
@@ -56,7 +68,7 @@ function Key({ run, scaffold, meter }: { run: VerifierRun; scaffold: boolean; me
           </li>
           <li>
             <TapeLabel size="sm" slot="blue" tilt="none">
-              the chef · p
+              {chef ?? 'the chef · p'}
             </TapeLabel>
           </li>
         </>
@@ -72,19 +84,26 @@ function Key({ run, scaffold, meter }: { run: VerifierRun; scaffold: boolean; me
               sent back
             </TapeLabel>
           </li>
+          {scene ? (
+            <li>
+              <TapeLabel size="sm" tilt="none">
+                upside down · not plated
+              </TapeLabel>
+            </li>
+          ) : null}
         </>
       )}
       {rows && scaffold ? (
         <li>
           <TapeLabel size="sm" slot="blue" tilt="none">
-            the chef&apos;s tasting · p
+            {chef ?? "the chef's tasting · p"}
           </TapeLabel>
         </li>
       ) : null}
       {hasOut ? (
         <li>
           <TapeLabel size="sm" slot="white" tilt="none">
-            what went out
+            {scene ? 'what went out · the ring' : 'what went out'}
           </TapeLabel>
         </li>
       ) : null}
@@ -92,7 +111,11 @@ function Key({ run, scaffold, meter }: { run: VerifierRun; scaffold: boolean; me
   )
 }
 
-export function View2D({ run }: { run: VerifierRun }) {
+/**
+ * The view, or one part of it: `drawing` alone fills a box (the 3D Stage's first paint and fallback), and `notes` are the key and the
+ * figures under it, which stand under the 3D scene as they stand under the drawing.
+ */
+export function View2D({ run, part = 'whole' }: { run: VerifierRun; part?: 'whole' | 'drawing' | 'notes' }) {
   const { view } = run
   const orientation = useOrientation()
   const scaffold = showScaffold(run)
@@ -105,9 +128,30 @@ export function View2D({ run }: { run: VerifierRun }) {
   const rounds = view.counters.rounds
   // A tap on a dish's column in the drawing focuses that dish's weight, while there is a recipe to sculpt: pointer and keyboard meet in
   // the field (GAMES.md §2.3, "Picks focus the DOM control"). The targets are for a pointer only, and the fields are the keyboard's way.
-  const taps = view.ask?.kind === 'recipe' ? frame.columns : undefined
+  const taps = view.ask?.kind === 'recipe' && part === 'whole' ? frame.columns : undefined
+  const notes = (
+    <>
+      <Key run={run} scaffold={scaffold} meter={meter} scene={part === 'notes'} />
+      <div className="es-vf-under">
+        {view.meter !== null && meter ? (
+          <StationLight lit={view.meter.exact} label="What goes out is her tasting" words={{ lit: 'exact', dark: 'not yet', fault: 'fault' }} size="sm" />
+        ) : null}
+        {rounds > 0 ? (
+          <span className="es-vf-under__count">
+            <Readout value={rounds} tag="synthetic" size="sm" /> <span>rounds drawn</span>
+          </span>
+        ) : null}
+        {view.meter !== null && meter ? (
+          <span className="es-vf-under__count">
+            <span>Distance from her tasting</span> <Fraction value={view.meter.tv} size="sm" />
+          </span>
+        ) : null}
+      </div>
+    </>
+  )
+  if (part === 'notes') return <div className="es-vf-view">{notes}</div>
   return (
-    <div className="es-vf-view" data-verifier-view="" data-orientation={orientation}>
+    <div className="es-vf-view" data-verifier-view="" data-orientation={orientation} data-part={part}>
       <div className="es-vf-drawing">
         {drawing}
         {taps === undefined ? null : (
@@ -124,22 +168,7 @@ export function View2D({ run }: { run: VerifierRun }) {
           </div>
         )}
       </div>
-      <Key run={run} scaffold={scaffold} meter={meter} />
-      <div className="es-vf-under">
-        {view.meter !== null && meter ? (
-          <StationLight lit={view.meter.exact} label="What goes out is her tasting" words={{ lit: 'exact', dark: 'not yet', fault: 'fault' }} size="sm" />
-        ) : null}
-        {rounds > 0 ? (
-          <span className="es-vf-under__count">
-            <Readout value={rounds} tag="synthetic" size="sm" /> <span>rounds drawn</span>
-          </span>
-        ) : null}
-        {view.meter !== null && meter ? (
-          <span className="es-vf-under__count">
-            <span>Distance from her tasting</span> <Fraction value={view.meter.tv} size="sm" />
-          </span>
-        ) : null}
-      </div>
+      {part === 'whole' ? notes : null}
     </div>
   )
 }

@@ -9,7 +9,7 @@ related_targets: ["src/games/verifier","packages/play/verifier"]
 
 ## Scope
 
-- **Surface:** the game page `/play/verifier`, in Operate mode: a whole game view inside the established world. GAMES.md §10 and §2.6 and A§6 specify it, so there is no concept roll. The 2D view is the first paint and the 3D-off path (the 3D scene is W1-T29), and it is a first-class rendering of the same kitchen.
+- **Surface:** the game page `/play/verifier`, in Operate mode: a whole game view inside the established world. GAMES.md §10 and §2.6 and A§6 specify it, so there is no concept roll. On a device whose tier draws 3D the view is the 3D scene (W1-T29), the pass at the tasting built from scene kit v1; the 2D view is the first paint, the fallback and the 3D-off path, and it is a first-class rendering of the same kitchen.
 - **Visitor:** a kernelspace graduate who has met speculative decoding in T5.L8 and wants to see why the verifier's output is the target's, exactly.
 - **Task:** predict how many of the commis's plates the chef keeps; sculpt the re-plating until what goes out is the chef's tasting; predict a round's courses; name the bug in five tasting rules; choose how far ahead the commis should plate.
 - **Proof:** every mark and every number comes out of the pure session. The distance from the chef's tasting is an exact fraction in rationals, so no pass is a sample's luck.
@@ -17,36 +17,40 @@ related_targets: ["src/games/verifier","packages/play/verifier"]
   - the PRODUCT.md constraints (zero servers, nothing collected);
   - completable by keyboard, with reduced motion, and no sideways scroll at 390 px;
   - a graded run hides the live meter and the decomposition, takes one submission and has no undo;
-  - every probability is a count of plates out of sixty-four, synthetic.
+  - every probability is a count of plates out of sixty-four, synthetic;
+  - the 3D scene holds D-023's frozen budgets (its chunk at most 40 KB gz, at most 100 draw calls), carries no text of its own, and cuts every change under reduced motion.
 
 ## Direction contract
 
-THESIS: The Tasting is the pass at the moment of tasting. Each dish has two stacks of plates side by side, the commis's and the chef's, and the plates they share. It refuses a bar chart in a game frame: grey bars, a tick axis and a swatch legend.
+THESIS: The Tasting is the pass at the moment of tasting. Each dish has two stacks of plates side by side, the commis's and the chef's, and the plates they share; a run of courses stands in rows behind the first. It refuses a bar chart in a game frame: grey bars, a tick axis and a swatch legend, flat or in 3D.
 
 OWN-WORLD:
-- **Surfaces:** brushed stainless, with the pass as the counter the stacks stand on, and the heat lamp over the row being tasted.
-- **Marks:** each dish is a pair of plate stacks. The shared plates are the agreed board green, the commis's extra plates are hatched in the draft yellow, and the chef's extra plates are the residual red.
-- **The chef and the output:** the chef's tasting is a blue outline, and what went out is a hollow white outline over it.
-- **Sent-back plates:** the ribbon's red strike, as in Service.
-- **Print:** dish names on masking tape in marker, counts and the exact distance in the printer's dots.
+- **Surfaces:** brushed stainless: the pass, a tasting bench as deep as the run, the chef's wire plate dispensers and the bell; subway tile, the hood and a cold line behind, falling into a haze of deep steel; heat lamps over the course being tasted.
+- **Marks:** each dish is a pair of stacks of edge-banded tasting plates, the commis's standing free and the chef's in her dispenser, its foot in the target blue. A plate's edge is its part: agreed board green, the commis's extra in the draft yellow, the chef's extra in the residual red. A graded run's stacks are plain, the commis's yellow and the chef's blue.
+- **The draws:** a drafted plate is a plate of the commis's stack pulled out at its coin's height, level and toward the chef when kept, tipped away when sent back.
+- **What went out:** a white enamel ring on the chef's dispenser, at the height served.
+- **Print:** dish and stack names on masking tape in marker, counts on paper tags in the printer's dots, all DOM.
 
-STORY: The learner comes to see that the chef keeps every plate she and the commis agree on, sends back only the commis's extra, and re-plates from exactly what the commis under-plated. Nothing else puts out her tasting. They predict, sculpt, and watch the outline settle onto her line, then find the same rule hiding in five rules that look right.
+STORY: The learner comes to see that the chef keeps every plate she and the commis agree on, sends back only the commis's extra, and re-plates from exactly what the commis under-plated. Nothing else puts out her tasting. They predict, sculpt and draw rounds: on each bell the commis's plates drop into the stacks down the run, and the rings settle onto the tops of her stacks. Then they find the same rule hiding in five rules that look right.
 
 FIRST VIEWPORT:
-- **At 1440 px:** under the game's plate and its stage buttons, two columns. On the left, 3fr: the six dishes' pairs of plate stacks on the pass, each under its tape name and a dot-matrix count tag, with the lamp over the row, then the prompt and the six dish weight fields. On the right, 2fr: the printer's tape with the exact distance, over the mirror table.
-- **At 390 px:** one column in that order. The stacks come first, narrower, and the prompt and the weight fields sit directly under them.
-- **The primary action:** the weight fields and "Submit", in the level's own words.
+- **At 1440 px:** under the game's plate and its stage buttons, two columns. On the left, 3fr: the scene's box, over the run: the pass across its lower half with the six dishes' pairs of stacks under three heat lamps, any later courses in rows behind, the line under its hood beyond, the dish names on tape along the pass's edge; under the box the camera's plates, then the prompt and the six dish weight fields. On the right, 2fr: the printer's tape with the exact distance, over the mirror table.
+- **At 390 px:** one column in that order. The scene comes first at about half the screen's height, the pass seen from higher so the six pairs fit across, and the prompt and the weight fields sit directly under it.
+- **The primary action:** the weight fields and "Submit", in the level's own words; in the predicting levels the prediction and Commit, then the draws.
 
-FORM: The Pass, as GAMES.md §2.6 and DESIGN.md specify it: stainless for the pass, tickets for what is read, the printer's tape for the readout, tape labels for names and plates for controls. Stacks of plates stand in for the skyline's bars. seed: none (specified surface, no roll)
+FORM: The Pass, as GAMES.md §2.6 and DESIGN.md specify it: stainless for the pass, tickets for what is read, the printer's tape for the readout, tape labels for names and plates for controls; in 3D, scene kit v1's room and props with the Tasting's own plates, dispensers and rings made the kit's way. Stacks of plates stand in for the skyline's bars. seed: none (specified surface, no roll)
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 
 ## Memorable moment
 
-The outline settling. The learner sets the last weight, and the hollow outline over each dish drops onto the top of the chef's stack, all six at once, and the distance reads zero as a fraction.
+The bell. Rounds are drawn and the bell on the pass strikes: the commis's plates drop into their stacks down the run, a kept plate sliding out toward the chef and a sent-back one tipping away, and the white rings settle onto the tops of her stacks, all six at once, while the tape prints the distance as a fraction. In the 2D view it is the outline settling: the learner sets the last weight, and the hollow outline over each dish drops onto the top of the chef's stack.
 
 ## Unresolved
 
-- **The 3D scene** is W1-T29: it reads the same layout, and its drafted tokens drop through the rows into depth.
 - **The Build-this card** points at the `rejection-sampler` forge lab (W1-T27), which is not built yet, so the debrief names the lab and does not link it.
 - **Dish names:** GAMES.md §10 says "the six dishes of the vocabulary" and names none. The game's six are soup, salad, fish, steak, pasta and tart, and the mirror gives each its token number beside it.
+- **The heat lamps in a run:** GAMES.md §2.6 puts the lamp on "the row being tasted". A round's walk starts at the first course, so in `chain` the 3D lamps hang over the front course, where every round begins; the 2D view pools its amber over every draft row.
+- **Walk with the chef** (Follow) is a framing the learner chooses, low along the pass, and does not move on its own: the scene moves only on a bell or the learner's input.
+- **The chef's re-plating** (GAMES.md §2.6: "a second plate drops into the row's under-plated wells") is not drawn in 3D as a plate of its own: the session's view gives no re-plated dish for a sent-back plate, and the scene's chunk stands 296 B under its frozen 40 KB gate [measured 2026-11-05, W1-T29]. What she re-plates shows in what went out (the rings) and in the mirror.
+- **A pick in 3D** is a dish's tape on the pass's edge, which hands focus to its weight; the 2D drawing's tap target is the dish's whole column.

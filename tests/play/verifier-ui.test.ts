@@ -45,13 +45,14 @@ describe('the page names the game as D-049 says, and opens on the first level', 
     expect(render(h(Game, { level: 'constructor' }))).toContain('What the chef keeps · practice')
   })
 
-  test('has Play and Debrief, the keys button, no view switch (the game has no 3D scene yet), and the six levels in a rail', () => {
+  test('has Play and Debrief, the keys button, the view switch on 2D until the device is known to draw 3D, and the six levels in a rail', () => {
     const markup = render(h(Game, null))
     expect(markup).toContain('>Play</button>')
     expect(markup).toContain('>Debrief</button>')
     expect(markup).toContain('>Keys</button>')
-    expect(markup).not.toContain('aria-label="View"')
-    expect(markup).not.toContain('3D view')
+    // On the server no device is known, so the page paints the 2D view and the 3D button waits (W1-T29's scene opens once the tier draws it).
+    expect(markup).toMatch(/<div role="group" aria-label="View"[^>]*>.*aria-pressed="true" aria-keyshortcuts="V">2D view<\/button>/)
+    expect(markup).toMatch(/aria-pressed="false" aria-keyshortcuts="V" disabled="">3D view<\/button>/)
     expect(markup).toContain('data-surface="2d"')
     const rail = markup.slice(markup.indexOf('aria-label="Levels of The Tasting"'))
     for (const title of ['What the chef keeps', 'Make it exact', 'A run of plates', 'The favourite and the copier', 'Five rules to audit', 'How far ahead']) expect(rail).toContain(title)
@@ -397,7 +398,9 @@ describe('the source keeps the rules of the house', () => {
   test('the game keeps its state in the session: no component of the page imports the generator or a clock', () => {
     for (const file of files.filter((f) => f.startsWith('src/'))) {
       const text = readFileSync(path.join(root, file), 'utf8')
-      expect([file, /Math\.random|Date\.now|performance\.now/.test(text)]).toEqual([file, false])
+      expect([file, /Math\.random|Date\.now/.test(text)]).toEqual([file, false])
+      // The 3D scene times its motion on the frame clock, as every scene of the kit does (src/scene/props/motion.ts); nothing else reads one.
+      if (file !== 'src/games/verifier/Scene3D.tsx') expect([file, /performance\.now/.test(text)]).toEqual([file, false])
     }
   })
 

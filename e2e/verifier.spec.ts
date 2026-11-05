@@ -287,6 +287,9 @@ test.describe('the keys of the game', () => {
     await expect(page.getByLabel('Recipe weight for soup', { exact: true })).toHaveValue('0')
     await page.keyboard.press('ArrowRight')
     expect(await activeName(page)).toBe('Recipe weight for salad')
+    // The tap targets are the 2D drawing's (the 3D scene's own pick is its dish's tape, e2e/verifier-scene.spec.ts): on a device that draws
+    // 3D the page opens on the scene, so the drawing is asked for first.
+    if ((await page.locator('section[data-game="verifier"]').getAttribute('data-view')) === '3d') await page.getByRole('button', { name: '2D view' }).click()
     await page.locator('[data-tap="2"]').click()
     expect(await activeName(page)).toBe('Recipe weight for fish')
     // A plate with a thumb on it adds one, and never goes below none.

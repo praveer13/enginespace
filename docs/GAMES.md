@@ -1401,6 +1401,11 @@ The output is distributed exactly as p, "without changing the distribution" (Lev
 - Draw calls ≤ 16 at T2 and ≤ 12 at T1. Triangles ≤ 30k and ≤ 12k. Instances ≤ 2.5k and ≤ 1k; markers beyond 200 aggregate into the output skyline.
 - Frame: p95 ≤ 16.7 ms at T2, scene render ≤ 4 ms; p95 ≤ 33.3 ms at T1. Batch draws update counts without animating, so a 20,000-draw run costs no frames.
 - `scene-verifier` ≤ 25 KB gz.
+- **Measured** [measured 2026-11-05 over wave-1 at 99c90af with W1-T29's files; the bundle by `verify:bundle`, the draws by `renderer.info` through the scene's test hook]:
+  - `scene-verifier` (its chunk and the chunks only 3D reaches, the scene kit's props among them) is 39,704 B gz: 296 B under A§11.1's frozen 40 KB gate (D-023) and 14,704 B over this list's 25 KB target, which predates scene kit v1. The chunks it shares with every dressed scene are 34,030 B of it, and its own chunk is 5,674 B [derived from 11,159 + 22,871]; the print over it is styled by the game's own stylesheet.
+  - Every level played with its draws on `/play/verifier` (e2e/verifier-scene.spec.ts) draws at most 14 scene draw calls at T1 (14 in the frame) and 37 at T2 (51 in the frame with bloom and the final pass), against A§11.1's 100. It draws at most 146 instances at either tier, and at most 227,144 triangles at T1 and 880,592 at T2, both in `chain`'s run of four courses.
+  - T1's draw calls are within this list's target; T2's draw calls and both tiers' triangles are over it: the heat lamps' shadow passes, and every plate of every stack turned with its own edge. The draws stay under the frozen gate.
+  - A draw moves the scene once, on the bell, whatever its size: the new rounds' plates drop and the rings settle, in about a second [derived from the drop's 300 ms, its stagger of 70 ms a course and 16 ms a round, and the settle's 640 ms after a 160 ms wait, all estimated], and a hundred rounds took one move of 9 frames at T1. Under reduced motion a draw cuts to its end. A 20,000-round run is one move a draw, never one a round.
 
 **Simulation API.**
 

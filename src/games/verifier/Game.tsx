@@ -1,20 +1,34 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, useCallback, useEffect, useRef, useState } from 'react'
 import { drawInBand, levelOf } from '@es/play'
 import type { GameMode } from '@es/play'
 import { VERIFIER } from '@es/play/verifier/entry'
 import { verifierSession } from '@es/play/verifier/session'
 import type { Seed } from '@es/sim/core'
 import { GameShell } from '@/games/kit/GameShell'
+import type { GameView } from '@/games/kit/ViewSwitch'
 import type { GameProps } from '@/games/registry'
+import { CameraButtons } from '@/scene/CameraButtons'
+import { Stage } from '@/scene/Stage'
+import { unavailableReason, useDeviceTier } from '@/scene/tiers'
 import { WorldCard } from './Card'
 import { Controls } from './Controls'
 import { Debrief } from './Debrief'
 import { LevelRail } from './LevelRail'
 import { Mirror } from './Mirror'
-import { showDraws } from './rules'
+import { showDraws, showMeter, showScaffold } from './rules'
+import type { Scene3DProps } from './Scene3D'
+import { DEFAULT_PRESET, TASTING_SHOTS } from './scene-shots'
 import type { VerifierRun } from './types'
 import { View2D } from './View2D'
 import './verifier.css'
+
+// The 3D scene is its own chunk over three's (A§6.10): the Stage loads it only on a device whose tier draws 3D.
+const Scene3D = lazy(() => import('./Scene3D'))
+
+/** The scene as the Stage mounts it, inside the Stage's canvas box. */
+function TastingScene(props: Scene3DProps) {
+  return <Scene3D {...props} />
+}
 
 /*
  * The Tasting, speculative decoding's verifier (`verifier`, D-049). Its page is Play → Debrief, around the 2D view, the controls and the
@@ -25,7 +39,9 @@ import './verifier.css'
  * band (GAMES.md §2.1), with no undo and no live meter. Whether a page records the run is its own business: a lesson passes `onFinish`
  * for a graded run (D-038), and the game's page passes nothing.
  *
- * The game has no 3D scene yet (W1-T29), so the 2D view is the whole game: the first paint and the 3D-off path are the same drawing.
+ * The 3D view (W1-T29) is the pass where the chef tastes, in a Stage that paints the 2D drawing first and keeps it as the fallback (A§6.7). It opens
+ * on its own on a device whose tier draws 3D, and `V` or the switch swaps the two views; the session lives in the shell, above both, so a
+ * swap keeps every weight and every round. The camera's preset lives here too: `C` and the preset buttons move it, in 3D only.
  *
  * The debrief is imported here and not behind React.lazy, as Service's is, because it prints fractions with the same `Fraction` as the 2D
  * view and the mirror. As a chunk of its own it would import that module from this game's chunk, which would then export a binding this
@@ -71,6 +87,33 @@ function command(name: string, run: VerifierRun): boolean {
   return false
 }
 
+/**
+ * The scene's box: about a pass's 16:10 beside the mirror; on a phone a little taller than wide, the same shape from 320 to 479 px, so the
+ * portrait shot keeps the whole course in it, at least 300 px and at most 60% of the screen's height [estimated].
+ */
+const STAGE_BOX = 'h-[clamp(18rem,min(56svh,34vw),32rem)] max-[479px]:h-[clamp(18.75rem,112vw,60svh)]'
+
+/**
+ * The 3D view's box: the Stage, with the 2D drawing as its first paint and its fallback, and the scene behind it; the key and the figures
+ * stand under it, as they stand under the drawing. A dish picked in the scene while there is a recipe hands focus to its weight.
+ */
+function TastingStage({ run, preset }: { run: VerifierRun; preset: string }) {
+  const onPick = useCallback((dish: number) => document.querySelector<HTMLInputElement>(`[data-vf-dish="${dish}"]`)?.focus(), [])
+  return (
+    <div className="flex flex-col gap-3">
+      <Stage
+        id="verifier"
+        className={`${STAGE_BOX} border border-edge shadow-shelf`}
+        view2d={<View2D run={run} part="drawing" />}
+        scene={TastingScene}
+        sceneProps={{ view: run.view, shots: TASTING_SHOTS, preset, scaffold: showScaffold(run), outcome: showMeter(run), onPick }}
+        announce={run.announce}
+      />
+      <View2D run={run} part="notes" />
+    </div>
+  )
+}
+
 export default function Game({ level, mode, placement = 'page', rev, onFinish }: GameProps) {
   const [asked, setAsked] = useState({ level, mode })
   const [attempt, setAttempt] = useState<Attempt>(() => startOf(known(level), mode))
@@ -91,6 +134,15 @@ export default function Game({ level, mode, placement = 'page', rev, onFinish }:
     setAttempt(next)
   }
 
+  // 3D opens by itself where the device draws it, and a learner's own choice of view wins from then on. Under `saveData` the Stage
+  // waits to be asked, so the page opens on the 2D view there.
+  const device = useDeviceTier()
+  const draws3d = device.known && device.tier >= 1
+  const [chosenView, setChosenView] = useState<GameView | null>(null)
+  const view: GameView = chosenView ?? (draws3d && device.hints?.saveData !== true ? '3d' : '2d')
+  const unavailable3d = device.known && !draws3d ? unavailableReason(device.reason) : undefined
+  const [preset, setPreset] = useState<string>(DEFAULT_PRESET)
+
   const entry = levelOf(VERIFIER, attempt.level) ?? VERIFIER.levels[0]
   const at = VERIFIER.levels.findIndex((candidate) => candidate.id === entry.id)
   const after = VERIFIER.levels[at + 1] ?? null
@@ -106,23 +158,38 @@ export default function Game({ level, mode, placement = 'page', rev, onFinish }:
       rev={rev}
       headingLevel={placement === 'embed' ? 3 : 2}
       onFinish={onFinish}
-      onCommand={(name, run) => command(name, run)}
+      onCommand={(name, run) => {
+        if (name !== 'camera') return command(name, run)
+        if (view !== '3d') return false
+        const next = TASTING_SHOTS[(TASTING_SHOTS.findIndex((shot) => shot.id === preset) + 1) % TASTING_SHOTS.length]
+        setPreset(next.id)
+        run.announce(`Camera: ${next.label}.`)
+        return true
+      }}
+      allow3d={draws3d}
+      unavailable3d={unavailable3d}
+      view={view}
+      onViewChange={setChosenView}
       view2d={(run) => <View2D run={run} />}
+      scene3d={(run) => <TastingStage run={run} preset={preset} />}
       controls={(run) => (
-        <Controls
-          run={run}
-          rail={
-            <LevelRail
-              levels={VERIFIER.levels}
-              current={entry.id}
-              mode={attempt.mode}
-              done={run.done}
-              onLevel={(id) => go(practice(id))}
-              onGraded={() => go(graded(entry.id))}
-              onPractice={() => go(practice(entry.id))}
-            />
-          }
-        />
+        <>
+          {view === '3d' ? <CameraButtons presets={TASTING_SHOTS} value={preset} onChange={setPreset} label="Camera on the pass" /> : null}
+          <Controls
+            run={run}
+            rail={
+              <LevelRail
+                levels={VERIFIER.levels}
+                current={entry.id}
+                mode={attempt.mode}
+                done={run.done}
+                onLevel={(id) => go(practice(id))}
+                onGraded={() => go(graded(entry.id))}
+                onPractice={() => go(practice(entry.id))}
+              />
+            }
+          />
+        </>
       )}
       mirror={(run) => <Mirror run={run} />}
       debrief={(run, outcome) => (

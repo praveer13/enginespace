@@ -19,6 +19,14 @@
   height: auto;
 }
 
+/* The drawing alone, as the 3D view's first paint and its fallback: it fits the scene's box. */
+.es-vf-view[data-part='drawing'],
+.es-vf-view[data-part='drawing'] > .es-vf-drawing,
+.es-vf-view[data-part='drawing'] > .es-vf-drawing > svg {
+  height: 100%;
+  min-height: 0;
+}
+
 /* A target over each dish's column of the drawing, for a pointer: it hands focus to the dish's weight. */
 .es-vf-taps {
   position: absolute;
@@ -286,4 +294,40 @@
 /* The title of the next level can be longer than the stub's line at 320 px (WCAG 1.4.10): the label wraps beside its arrow. */
 [data-verifier-debrief] .es-stub__label {
   white-space: normal;
+}
+
+/*
+ * The 3D scene's print (Scene3D.tsx): the dishes' and the courses' names on their tape and the stacks' counts on paper tags, all DOM over
+ * the canvas (D-021). The scene's box is a size container, so print scales with the pass and not with the window.
+ */
+.es-vf-scene {
+  container-type: size;
+}
+
+.es-vf-label {
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Marker on masking tape: the tape is in the scene, stuck where the kitchen sticks it; the words ride on it. */
+.es-vf-label--tape {
+  color: var(--es-tape-ink);
+  font-family: var(--es-font-label);
+  font-weight: var(--es-font-label-weight);
+  letter-spacing: var(--es-font-label-tracking);
+  font-size: clamp(0.5625rem, 1cqi, var(--es-size-print)); /* impeccable-disable-line design-system-font-size -- marker on a strip of tape a few centimetres wide on a phone */
+}
+
+/* A stack's count, printed in the printer's dots on a paper tag lying on the counter in front of it. */
+.es-vf-label--count {
+  padding: 0.2em 0.35em 0.15em;
+  border: 1px solid var(--es-paper-rule);
+  background-color: var(--es-paper);
+  box-shadow: var(--es-shadow-paper);
+  color: var(--es-paper-ink);
+  font-family: var(--es-font-numeric);
+  font-weight: var(--es-font-numeric-weight);
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(var(--es-size-micro), 1.15cqi, var(--es-size-print));
 }
