@@ -6,12 +6,17 @@
  * for a first paint.
  *
  * Two layouts, one document. Below 80rem the page stacks: the order ticket on its rail, then the printer with its tape, its strip of
- * waiting tickets and the bell, then the pass, then the deck, so on a phone the scene, a ticket to hang and the bell share the first
- * screen. From 80rem the pass fills the first viewport and the objects stand in front of it: the printer at the rail's left end with
- * its tape and strip hanging from its mouth, and the order ticket on the rail beside it. anchors.ts computes the scene's landmarks as
- * plain numbers on the pass (`--pass-*`), and the rules below turn them into lengths with container units, so the objects stay on the
- * scene's rail at any size of the box. The front page's own shot stands left of the rail's middle, so the clips fall right of the order
- * ticket and the printer's column covers only the pass's left end.
+ * waiting tickets and the bell, then the pass, then the deck. On a phone the pass is the first screen's ground, and the order ticket
+ * hangs over its top, so the scene, a ticket to hang and the bell share the first screen. From 80rem the pass fills the first viewport
+ * and the objects stand in front of it: the printer at the rail's left end with its tape and strip hanging from its mouth, and the
+ * order ticket on the rail beside it. anchors.ts computes the scene's landmarks as plain numbers on the pass (`--pass-*`), and the rules
+ * below turn them into lengths with container units, so the objects stay on the scene's rail at any size of the box. The front page's
+ * shot shifts its picture right from 80rem, so the whole line and the lit pass stand clear of the order ticket, which stops short of
+ * the line's first station.
+ *
+ * The 2D drawing is the same picture as the 3D scene's (packages/play/loop/layout.ts, through the same shot). Its frame is the shot's
+ * full height and 2.4 heights wide (as wide as it is tall on a phone), its centre the camera's. It is placed where the scene's lens puts
+ * its picture, and its room is drawn past the frame, so it fills the box.
  */
 
 /* The front page runs edge to edge: the shell's main gives up its measure and its gutters here, and the page keeps its own. */
@@ -34,8 +39,9 @@
 /* ---------------------------------------------------------------------------------------------- the printer */
 
 /*
- * The printer's housing: deep stainless, brushed, the menu link printed on its face in paper white (the declared pair, paper-white on
- * deep steel, tokens.ts). Its mouth is the dark slot along its foot, with the tear bar's teeth over it: the tape comes out there.
+ * The kitchen printer: its body is drawn (FrontPage.tsx, PrinterBody), a powder-coated housing on its feet with its lid over the roll,
+ * the roll in its smoked window, its feed button, and its mouth with the tear bar's teeth at its foot, where the tape comes out. The
+ * menu link is printed on its lid in paper white (the declared pair, paper-white on deep steel, tokens.ts).
  */
 .es-front-printer {
   position: relative;
@@ -44,14 +50,99 @@
   flex-direction: column;
   justify-content: space-between;
   gap: var(--es-space-2);
-  padding: var(--es-space-3) var(--es-space-3) 1.35rem;
-  border: 1px solid var(--es-paper-ink);
-  border-radius: var(--es-radius-shoulder) var(--es-radius-shoulder) var(--es-radius-plate) var(--es-radius-plate);
-  background-color: var(--es-surface-3);
-  background-image: var(--es-texture-brushed);
-  background-size: 100% 360px;
-  box-shadow: var(--es-shadow-lift);
+  padding: var(--es-space-3) var(--es-space-3) 2.1rem;
+  filter: drop-shadow(0 2px 2px color-mix(in srgb, var(--es-text-1) 28%, transparent)) drop-shadow(0 12px 14px color-mix(in srgb, var(--es-text-1) 26%, transparent));
   color: var(--es-paper);
+}
+
+.es-front-printer > :not(.es-front-printer__body) {
+  position: relative;
+  z-index: 1;
+}
+
+.es-front-printer__body {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.es-front-printer__shell {
+  fill: var(--es-surface-3);
+  stroke: var(--es-paper-ink);
+  stroke-width: 1;
+}
+
+.es-front-printer__lid {
+  fill: color-mix(in srgb, var(--es-surface-3) 84%, var(--es-surface-1));
+}
+
+.es-front-printer__glint {
+  stroke: color-mix(in srgb, var(--es-glint) 55%, transparent);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.es-front-printer__seam {
+  stroke: var(--es-paper-ink);
+  stroke-width: 1.5;
+}
+
+.es-front-printer__window {
+  fill: color-mix(in srgb, var(--es-paper-ink) 78%, var(--es-surface-3));
+  stroke: var(--es-paper-ink);
+  stroke-width: 1;
+}
+
+.es-front-printer__roll {
+  fill: color-mix(in srgb, var(--es-paper) 82%, var(--es-surface-3));
+}
+
+.es-front-printer__core {
+  stroke: var(--es-paper-rule);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+
+.es-front-printer__button {
+  fill: var(--es-surface-2);
+  stroke: var(--es-paper-ink);
+  stroke-width: 1;
+}
+
+.es-front-printer__led {
+  fill: var(--es-surface-1);
+}
+
+.es-front-printer__mouth {
+  fill: var(--es-paper-ink);
+}
+
+.es-front-printer__tooth {
+  fill: var(--es-surface-2);
+}
+
+.es-front-printer__foot {
+  fill: var(--es-paper-ink);
+}
+
+/* On a small housing the menu takes the whole lid: the window, the roll and the lamp are left out. */
+@media (max-width: 47.99rem) {
+  .es-front-printer__window,
+  .es-front-printer__roll,
+  .es-front-printer__core,
+  .es-front-printer__led {
+    display: none;
+  }
+}
+
+/* What the printer still holds is printed on its body, left of the roll's window. */
+@media (min-width: 48rem) {
+  .es-front-printer .es-front-printer__more {
+    max-width: 55%;
+  }
 }
 
 .es-front-printer .es-front-printer__menu {
@@ -72,23 +163,6 @@
   letter-spacing: var(--es-font-ticket-tracking);
   font-weight: var(--es-font-ticket-weight);
   text-transform: uppercase;
-}
-
-/* The mouth: a dark slot, and the tear bar's teeth along its upper lip. */
-.es-front-printer__mouth {
-  position: absolute;
-  inset: auto 0.6rem 0.45rem;
-  height: 0.4rem;
-  border-radius: var(--es-radius-trim);
-  background-color: var(--es-paper-ink);
-}
-
-.es-front-printer__mouth::before {
-  content: '';
-  position: absolute;
-  inset: -0.3rem 0 auto;
-  height: 0.3rem;
-  background: conic-gradient(from 135deg at 50% 100%, var(--es-surface-2) 90deg, transparent 0) 0 0 / 0.45rem 100% repeat-x;
 }
 
 /* ---------------------------------------------------------------------------------------------- the printer's tape */
@@ -441,6 +515,7 @@
 
 .es-front-pass__stage {
   position: relative;
+  container-type: size;
 }
 
 .es-front-stage {
@@ -478,11 +553,7 @@
   display: block;
   width: 100%;
   height: 100%;
-}
-
-/* The page's printer is the printer, and its waiting tickets hang from it: the drawing's own are left out. */
-.es-front-drawing [data-part='printer'] {
-  display: none;
+  overflow: visible;
 }
 
 /* A dragged ticket: the pass takes it. A dashed edge in the lamp's filament round the pass, never a glow. */
@@ -612,9 +683,13 @@
   border-block: 1px solid var(--es-edge);
 }
 
+/* The drawing's frame: the shot's full height, 2.4 heights wide, its centre the box's, as the scene's camera stands under the stack. */
 .es-front-drawing__frame {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  top: 0;
+  left: calc(50cqw - 120cqh);
+  width: 240cqh;
+  height: 100cqh;
 }
 
 .es-front-drawing__frame[data-orientation='portrait'] {
@@ -634,13 +709,32 @@
 }
 
 @media (max-width: 29.99rem) {
-  /* The pass takes what the first screen has left under the order ticket and the printer's row, and the strip's line when it has one. */
-  .es-front-pass__stage {
-    height: clamp(18rem, calc(100svh - 32rem), 26rem);
+  /*
+   * The pass is the first screen's ground: the scene fills what the screen has under the board, less the printer's row, and the
+   * order ticket hangs over its top from the rail. The scene's phone shot frames the kitchen in the box's lower half, under the
+   * ticket, so the rail with its tickets, the line and the pass with its plates all stand in the first screen.
+   */
+  .es-front-pass {
+    --stage-h: clamp(30rem, calc(100svh - 12rem), 44rem);
+
+    position: relative;
   }
 
-  .es-front-pass:has(.es-front-strip > p) .es-front-pass__stage {
-    height: clamp(18rem, calc(100svh - 33.75rem), 26rem);
+  .es-front-pass__stage {
+    /* Out of the grid: an absolutely placed grid item with a named area would take that area as its containing block. */
+    grid-area: auto;
+    position: absolute;
+    inset: 0 0 auto;
+    z-index: 0;
+    height: var(--stage-h);
+    border-block: 0;
+    border-bottom: 1px solid var(--es-edge);
+  }
+
+  .es-front-order {
+    z-index: 2;
+    align-content: start;
+    min-height: var(--stage-h);
   }
 
   .es-front-printer__more {
@@ -651,8 +745,12 @@
     display: none;
   }
 
+  /* The phone's frame: the shot's full height and as wide, moved down half a box height as the scene's lens is. */
   .es-front-drawing__frame[data-orientation='portrait'] {
     display: block;
+    top: 25cqh;
+    left: calc(50cqw - 50cqh);
+    width: 100cqh;
   }
 
   .es-front-order {
@@ -721,15 +819,13 @@
        tickets a hand can hang and a bell a hand can ring. */
     --col-left: var(--front-gutter);
     --col-w: 21rem;
-    /* Where the scene's first clip holds its ticket: the order ticket hangs beside the printer and stops short of it. */
-    --clip-left: calc(50cqw + var(--pass-clip-left) * 50cqh);
+    /* Where the line's first station begins: the order ticket hangs beside the printer and stops short of it, so the whole line shows. */
+    --line-left: calc(50cqw + var(--pass-line-left) * 50cqh);
+    /* Where the scene's rail begins: the page's rail runs from the printer to it. */
+    --rail-left: calc(50cqw + var(--pass-rail-left) * 50cqh);
     --order-left: calc(var(--col-left) + var(--col-w) + 1.25rem);
-    --order-w: clamp(18rem, calc(var(--clip-left) - 1.25rem - var(--order-left)), 30rem);
+    --order-w: clamp(18rem, calc(var(--line-left) - 1.25rem - var(--order-left)), 30rem);
     --order-right: calc(var(--order-left) + var(--order-w));
-    /* The 2D drawing, on the right, with its rail on the rail's line: as wide as the pass leaves it, and inside the pass above the
-       rail's line (153.5 of its 300 units) and below it. */
-    --draw-w: min(calc(100cqw - var(--order-right) - 2.5rem - var(--front-gutter)), calc((100cqh - var(--rail-mid) - 2rem) * 720 / 146.5), calc((var(--rail-mid) - 0.75rem) * 720 / 153.5), 82rem);
-    --draw-left: calc(100cqw - var(--front-gutter) - var(--draw-w));
     position: relative;
     display: block;
     height: clamp(32rem, calc(100svh - 13.5rem), 56rem);
@@ -742,16 +838,12 @@
     display: contents;
   }
 
-  /* The rail comes out from behind the printer's column. In 2D it runs on to the drawing's own; in 3D the scene's rail takes over where the order ends. */
+  /* The rail comes out from behind the printer's column and runs to where the picture's rail begins, in 2D as in 3D. */
   .es-front-order .es-front-rail {
     top: calc(var(--rail-mid) - var(--rail-thick) / 2);
     left: calc(var(--col-left) + var(--col-w));
     height: var(--rail-thick);
-    width: calc(var(--draw-left) + var(--draw-w) * 214 / 720 - var(--col-left) - var(--col-w));
-  }
-
-  .es-front-service[data-view='3d'] .es-front-order .es-front-rail {
-    width: calc(var(--order-right) - var(--col-left) - var(--col-w));
+    width: calc(var(--rail-left) + 0.25rem - var(--col-left) - var(--col-w));
   }
 
   .es-front-order .es-front-ticket {
@@ -911,17 +1003,9 @@
     max-width: 26rem;
   }
 
-  /* The 2D drawing, on the right: its rail's bar (153.5 of its 300 units down) on the rail's line. */
+  /* The 2D drawing where the scene's shifted lens puts its picture: its centre right of the box's by the lens's shift. */
   .es-front-drawing__frame[data-orientation='landscape'] {
-    position: absolute;
-    left: var(--draw-left);
-    top: calc(var(--rail-mid) - var(--draw-w) * 153.5 / 720);
-    width: var(--draw-w);
-    height: auto;
-  }
-
-  .es-front-drawing__frame[data-orientation='landscape'] > svg {
-    height: auto;
+    left: calc(50cqw + (var(--pass-shift) - 2.4) * 50cqh);
   }
 }
 

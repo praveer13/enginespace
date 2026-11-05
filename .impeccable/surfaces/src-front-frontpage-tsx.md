@@ -55,6 +55,15 @@ FORM:
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 
+## The roll behind FORM's seed
+
+The seed reference in FORM is the one impeccable's concept roll printed for this direction round. Its roll output is local runtime state, which git never holds (`.impeccable/questions/`, written by impeccable): the main checkout keeps it as `.impeccable/questions/roll.json` and `.impeccable/questions/seeds/631f6361e61b6b7b.json`. The record never enters a committed file, since it holds the raw seed key. What it says:
+
+- **The roll:** `seed:631f6361e61b6b7b`, scope `direction`, mode `persuade`, source `api`, pool revision `c3b204a1eed6`, hand `96d5b1c56c6d4dfb3d5c09ccdbdd4579`, re-roll 0, written 2026-11-03 20:05 (local time).
+- **The worlds it dealt** (the six catalog worlds the round declined, D-047): `medium-native-hypercard-stack-shoebox`, `signals-instruments-darkroom-safelight-bay`, `digital-design-canon-mondo-tech-utopian-spread`, `pop-culture-shelf-lowbrow-gallery-panel`, `cinema-cinematography-editing-hand-processed-film-bloom`, `dream-surreal-impossible-worlds-alphabet-storm`.
+- **The seed's record:** round 0 of that hand, the same six dealt, recorded by the agent at 21:33 the same evening.
+- **The check:** `impeccable concept-seed --check-seed seed:631f6361e61b6b7b` exits 0 (SEED KNOWN) in a checkout that holds the record, and 1 (SEED UNKNOWN) in a worktree that does not, which is what a capture worktree is. The check reads the record's presence, so the roll output above is what corroborates it.
+
 ## Memorable moment
 
 The first service. A visitor fires two tickets; the stations sit half dark and the printer shows the bubble. They fill the rail, and the line lights end to end.

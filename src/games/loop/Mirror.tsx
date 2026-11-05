@@ -102,7 +102,8 @@ function rowsOf(view: LoopView): MirrorRow[] {
   return rows
 }
 
-const num = (value: number) => <span className="font-numeric">{formatReadout(value)}</span>
+/** A figure inside a sentence: the reading face's own tabular figures, so a zero reads as a zero beside the words around it. */
+const num = (value: number) => <span className="tabular-nums">{formatReadout(value)}</span>
 
 export function Mirror({ run }: { run: LoopRun }) {
   const { view } = run

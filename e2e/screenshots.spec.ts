@@ -81,8 +81,10 @@ test.describe('the 2D pass of the front page after a fire (W0 finding F1)', () =
       await page.evaluate(() => window.scrollTo(0, 0))
       await quiet(page)
       await page.evaluate(() => document.fonts.ready)
-      // The pass, drawn from above after the fire: two pans in their wells, two plates on the pass, and the two clips that rode empty.
-      await expect(page.locator('[data-front-poster] [data-part="plates"] circle[fill="var(--es-paper)"]')).toHaveCount(2)
+      // The pass after the fire, as the scene draws it: two plates on the pass, each glazed with its rim round its well, and the two
+      // places whose clips rode empty.
+      await expect(page.locator('[data-front-poster] [data-part="plates"] ellipse[fill="var(--es-paper)"]')).toHaveCount(4)
+      await expect(page.locator('[data-front-poster] [data-part="plates"] ellipse[stroke-dasharray]')).toHaveCount(2)
       await expect(page).toHaveScreenshot(`front-fired-${width}.png`, { maxDiffPixelRatio: TOLERANCE })
     })
   }

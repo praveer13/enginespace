@@ -150,8 +150,11 @@ export const PROP_PARAMS = {
   shadow: { opacity: 0.62 },
   cone: { opacity: 0.24 },
   steam: { opacity: 0.45 },
-  /** A heat lamp over the pass, in metres and candela: a warm pool about a plate and a half across on the steel below. */
-  lamp: { intensity: 5.5, distance: 2.2, angle: 0.5, penumbra: 0.8, decay: 2, shadowRadius: 5, shadowMap: 1024 },
+  /**
+   * A heat lamp over the pass, in metres and candela: a cone tight enough that its warm pool, about two plates across, lands on the
+   * steel under it and nowhere else, and `pool`, the strength of that pool's scatter off the brushed steel (props/materials.ts).
+   */
+  lamp: { intensity: 5.5, distance: 2.2, angle: 0.27, penumbra: 0.6, decay: 2, shadowRadius: 5, shadowMap: 1024, pool: 0.7 },
 } as const
 
 /**

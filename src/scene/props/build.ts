@@ -144,16 +144,26 @@ function worktop(m: Maker, spec: WorktopSpec) {
   m.shadow([0, 0, 0], [w, d], { radius: 0.05, soft: 0.16, strength: 0.75 })
 }
 
+/** The heated shelf under a pass: its bars' top below the counter's top, where warm plates stand (Service's kitchen.ts, SHELF). */
+export const SHELF_DROP = 0.37
+
 function pass(m: Maker, spec: PassSpec) {
   const { width: w, depth: d, height: h, strip } = spec
-  // The counter shelf, its front edge rolled down round a rod, and the heated lower shelf with its warm plate inset.
+  // The counter shelf, its front edge rolled down round a rod.
   m.add(block([w, 0.035, d], 0.01, [0, h - 0.035, 0]), 'steel')
   m.add(rod([-w / 2 + 0.014, h - 0.02, d / 2 - 0.008], [w / 2 - 0.014, h - 0.02, d / 2 - 0.008], 0.02, 18), 'steel')
-  const lower = h - 0.4
-  m.add(block([w - 0.06, 0.03, d - 0.06], 0.01, [0, lower, 0]), 'shaded')
-  m.add(block([w - 0.22, 0.006, d - 0.2], 0.003, [0, lower + 0.03, 0]), 'deep')
-  // The heated shelf's element, showing as a warm line along its front lip.
-  m.glow(block([w - 0.24, 0.006, 0.008], 0.003, [0, lower + 0.031, (d - 0.2) / 2 + 0.008]), CHANNEL.strip, 0.5)
+  // The heated shelf under it: a sheet tray with a rolled front lip and an upstand at the back, and on it the rack's round bars, a
+  // hand's width apart along the pass, which the plate stacks stand on. Every edge is turned; the bars give the shelf its grain.
+  const bar = 0.0075
+  const tray = h - SHELF_DROP - 2 * bar
+  m.add(block([w - 0.06, 0.018, d - 0.06], 0.007, [0, tray - 0.018, 0]), 'steel')
+  m.add(rod([-w / 2 + 0.035, tray + 0.002, d / 2 - 0.032], [w / 2 - 0.035, tray + 0.002, d / 2 - 0.032], 0.011, 14), 'steel')
+  m.add(block([w - 0.08, 0.045, 0.012], 0.005, [0, tray - 0.004, -d / 2 + 0.04]), 'shaded')
+  const bars = Math.max(6, Math.round((d - 0.12) / 0.045))
+  for (let i = 0; i < bars; i++) {
+    const z = -d / 2 + 0.06 + ((d - 0.12) * i) / (bars - 1)
+    m.add(rod([-w / 2 + 0.05, tray + bar, z], [w / 2 - 0.05, tray + bar, z], bar, 8), 'steel')
+  }
   m.add(block([w - 0.04, 0.06, 0.02], 0.008, [0, h - 0.1, d / 2 - 0.035]), 'shaded')
   for (const [x, z] of [
     [-w / 2 + 0.04, -d / 2 + 0.04],
@@ -375,25 +385,26 @@ function pan(m: Maker, spec: PanSpec) {
   m.shadow([0, 0, 0], [w - 0.03, d - 0.03], { radius: 0.03, soft: 0.025, strength: 0.85 })
 }
 
-/** A dinner plate's turned profile, glazed: well, rim and lip on top, the foot ring under it. */
+/** A dinner plate's turned profile, glazed: a deep well, a rim that rises about 19 mm to a rolled bead, and the foot ring under it. */
 export function plateProfile(): Vec2[] {
-  // Counter-clockwise round the section: out under the foot, up and over the rim, back in across the well.
+  // Counter-clockwise round the section: out under the foot, up and over the rim's bead, back in across the well.
   return [
     [0, 0.003],
-    [0.066, 0.0034],
-    [0.068, 0],
-    [0.0735, 0],
-    [0.076, 0.0036],
-    [0.098, 0.0048],
-    [0.123, 0.0142],
-    [0.1338, 0.0184],
-    [0.1356, 0.0205],
-    [0.1345, 0.0222],
-    [0.131, 0.021],
-    [0.122, 0.0175],
-    [0.099, 0.009],
-    [0.088, 0.0065],
-    [0, 0.0065],
+    [0.064, 0.0034],
+    [0.066, 0],
+    [0.0745, 0],
+    [0.077, 0.004],
+    [0.1, 0.0065],
+    [0.124, 0.0165],
+    [0.1345, 0.0208],
+    [0.1366, 0.0232],
+    [0.1352, 0.0256],
+    [0.1316, 0.0263],
+    [0.1262, 0.0249],
+    [0.118, 0.0207],
+    [0.1, 0.0118],
+    [0.088, 0.0079],
+    [0, 0.0076],
   ]
 }
 
@@ -423,7 +434,8 @@ export function stackProfile(count: number): Vec2[] {
 
 function plateStack(m: Maker, spec: PlateStackSpec) {
   m.add(lathe(stackProfile(spec.count), 32), 'ceramic')
-  m.shadow([0, 0, 0], [0.24, 0.24], { radius: 0.12, soft: 0.03, strength: 0.8 })
+  // Its shadow reaches past the rims, so the stack stands on the bars and never floats over them.
+  m.shadow([0, 0, 0], [0.29, 0.29], { radius: 0.145, soft: 0.04, strength: 0.9 })
 }
 
 /** The cabinet every station stands in: its body on short legs, its control panel, its knobs and its pilot. */
@@ -432,7 +444,7 @@ function stationBody(m: Maker, spec: StationSpec, knobs: number, cabinetTop = sp
   m.add(block([w - 0.004, cabinetTop - 0.11, d - 0.03], 0.012, [0, 0.11, -0.015]), 'steel')
   m.add(block([w, 0.11, 0.05], 0.012, [0, h - 0.14, d / 2 - 0.035]), 'shaded')
   for (let k = 0; k < knobs; k++) knob(m, -w / 2 + (w * (k + 0.5)) / knobs, h - 0.085, d / 2 - 0.01)
-  m.glow(place(lathe([[0, 0], [0.006, 0], [0.006, 0.004], [0.004, 0.006], [0, 0.006]], 12), [w / 2 - 0.03, h - 0.115, d / 2 - 0.01], [Math.PI / 2, 0, 0]), channel, 1)
+  m.glow(place(lathe([[0, 0], [0.009, 0], [0.009, 0.004], [0.006, 0.007], [0, 0.007]], 12), [w / 2 - 0.03, h - 0.115, d / 2 - 0.01], [Math.PI / 2, 0, 0]), channel, 1)
   for (const x of [-w / 2 + 0.04, w / 2 - 0.04]) for (const z of [-d / 2 + 0.05, d / 2 - 0.06]) leg(m, x, z, 0.12, 0.022)
   m.shadow([0, 0, -0.015], [w, d - 0.03], { radius: 0.03, soft: 0.14, strength: 0.85 })
 }
@@ -440,9 +452,11 @@ function stationBody(m: Maker, spec: StationSpec, knobs: number, cabinetTop = sp
 function griddle(m: Maker, spec: StationSpec) {
   const { width: w, depth: d, height: h, channel } = spec
   stationBody(m, spec, Math.max(2, Math.round(w / 0.3)))
-  // The plate, its splashes, and the trough at its front; the plate's edge burns when the station is lit.
+  // The plate, its splashes, and the trough at its front. Lit, the plate's heat zone burns dull amber and its front edge bright; dark,
+  // both are cold steel, so the station's own heat says whether it cooks.
   m.add(block([w - 0.03, 0.022, d - 0.12], 0.004, [0, h - 0.03, -0.03]), 'griddle')
-  m.glow(block([w - 0.06, 0.004, 0.006], 0.002, [0, h - 0.012, d / 2 - 0.085]), channel, 0.9)
+  m.glow(block([w * 0.72, 0.002, (d - 0.12) * 0.7], 0.001, [0, h - 0.0085, -0.035]), channel, 0.26)
+  m.glow(block([w - 0.06, 0.006, 0.008], 0.002, [0, h - 0.012, d / 2 - 0.085]), channel, 0.9)
   m.add(block([w, 0.13, 0.016], 0.006, [0, h - 0.01, -d / 2 + 0.03]), 'steel')
   for (const x of [-w / 2 + 0.008, w / 2 - 0.008]) m.add(block([0.016, 0.07, d - 0.12], 0.006, [x, h - 0.01, -0.03]), 'steel')
   const trough = sweep(straightPath(w - 0.04, 1), uSection(0.028, 0.018, 0.0015, -0.004))
@@ -460,8 +474,10 @@ function burners(m: Maker, spec: StationSpec) {
     [w / 4, d / 4 - 0.06],
   ] as const
   for (const [x, z] of cells) {
-    // A bowl, the burner's head and cap in iron, the ring of flame between them glowing when lit, and the grate over it.
+    // A bowl, the burner's head and cap in iron, the ring of flame between them glowing when lit, and the grate over it. Lit, the bowl
+    // under the grate glows with its flame; dark, it is cold steel.
     m.add(place(lathe([[0.106, 0.014], [0.11, 0.012], [0.105, 0.004], [0.09, 0], [0, 0]], 28), [x, h - 0.012, z]), 'shaded')
+    m.glow(place(lathe([[0, 0.0025], [0.088, 0.0025], [0.089, 0.004], [0, 0.004]], 28), [x, h - 0.012, z]), channel, 0.3)
     m.add(place(lathe([[0, 0.012], [0.034, 0.012], [0.036, 0.024], [0.032, 0.03], [0, 0.03]], 24), [x, h - 0.012, z]), 'iron')
     m.glow(place(lathe([[0.031, 0.024], [0.041, 0.022], [0.042, 0.026], [0.033, 0.03]], 28), [x, h - 0.012, z]), channel, 1)
     m.add(place(lathe([[0, 0.033], [0.026, 0.033], [0.027, 0.038], [0.02, 0.041], [0, 0.041]], 20), [x, h - 0.012, z]), 'iron')
@@ -500,7 +516,8 @@ function fryer(m: Maker, spec: StationSpec) {
       [0, -depth],
     ])
     m.add(place(well, [x, h - 0.006, wz]), 'steel')
-    m.add(place(cap(insetPath(path, 0.001), 0, true, 3), [x, h - 0.075, wz]), 'oil')
+    // The oil: dull amber while the station burns, cold steel while it stands dark.
+    m.glow(place(cap(insetPath(path, 0.001), 0, true, 3), [x, h - 0.075, wz]), channel, 0.2)
     // The element's loops lie at the oil's surface and burn when the station is lit.
     const reach = (d - 0.3) / 2
     for (const dx of [-0.035, 0.035]) {

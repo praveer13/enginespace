@@ -1,13 +1,12 @@
 import type { ThreeEvent } from '@react-three/fiber'
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { BoxGeometry, Matrix4, PointLight, type InstancedMesh } from 'three'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { BoxGeometry, Matrix4, type InstancedMesh } from 'three'
 import type { LoopView } from '@es/play/loop/types'
 import { CameraRig } from '@/scene/CameraRig'
 import { useHold, useKit } from '@/scene/kit'
 import type { LabelSpec } from '@/scene/labels'
 import { Fluorescent } from '@/scene/Lights'
-import { roleColor } from '@/scene/materials'
-import { ALWAYS_LIT, Kitchen, LampLights, litMask, Plates, PrinterFeed, RailClips, ServiceBell, StaticSet, Steam, Tickets, useMotionLoop } from '@/scene/props'
+import { ALWAYS_LIT, Kitchen, LampLights, litMask, Plates, PrinterFeed, RailClips, ServiceBell, StaticSet, Steam, Tickets } from '@/scene/props'
 import { SceneCanvas } from '@/scene/SceneCanvas'
 import { SheetInstances } from '@/scene/SheetInstances'
 import { changeOf, serviceKitchen, serviceScene, type Anchor, type Change, type ServiceKitchen, type ServiceScene } from './scene-layout'
@@ -20,17 +19,20 @@ import './scene3d.css'
  * chunk of its own, loaded by the Stage that the game (and the front page) hold.
  *
  * One moment carries the game, on the bell: the bell strikes; if the fire waited on the expo (no overlap), the line drops dark for
- * the bell's length, the dark stretch; then every station with a ticket burns in the lamp's amber and the empty ones stay cold, one
- * plate per live clip slides onto the pass while the last fire's plates are carried out, a binned plate goes into the bin, and a
- * finished ticket is spiked. With overlap the fired rail takes a copy of each ticket and the line never goes dark. Between bells the
- * kitchen is still; a ticket hung is carried to its clip, and the printer feeds the next. Under reduced motion every change cuts.
+ * the bell's length, the dark stretch; then every station with a ticket burns, each by its own heat element (its burners' bowls, its
+ * griddle's plate, its fryer's oil, in the lamp's amber), and the empty ones stay cold steel; one plate per live clip slides onto the
+ * pass while the last fire's plates are carried out, a binned plate goes into the bin, and a finished ticket is spiked. With overlap
+ * the fired rail takes a copy of each ticket and the line never goes dark. Between bells the kitchen is still; a ticket hung is carried
+ * to its clip, and the printer feeds the next. Under reduced motion every change cuts.
+ *
+ * The heat lamps' amber falls on the pass alone: three tight cones, each pooling on the steel under its lamp, and no light of the
+ * line's own that could wash the tile or the stations beside a burning one. The room falls into haze beyond the line.
  *
  * Draw calls at T1: the static set's metal, glaze, tile, floor and glow (5), the contact shadows (1), the tickets (1), the clips (1,
  * and 1 more for the fired rail), the printer's paper (1), the plates (1), the bell's dome and plunger (2) and the tape (1). T2 adds
- * the lamps' cones and the steam (2) and each shadow-casting lamp's pass over what casts. A whole night of first-4-par draws in at most
- * 14 scene draw calls at T1 and 42 at T2 (56 in the frame with bloom and the final pass), read from renderer.info by
- * e2e/loop-scene.spec.ts against A§11.1's 100, and verify:bundle counts this chunk with the kit's chunks it reaches at 38,009 B gz
- * against the 40 KB gate [measured 2026-11-04 on wave-1 at f823a04 with this scene].
+ * the lamps' cones and the steam (2) and each shadow-casting lamp's pass over what casts. The measured figures, read from
+ * renderer.info by e2e/loop-scene.spec.ts against A§11.1's 100, and this chunk's size as verify:bundle counts it against the 40 KB
+ * gate, are in GAMES.md §3, "Budget".
  */
 
 export interface Scene3DProps {
@@ -43,12 +45,13 @@ export interface Scene3DProps {
   printer?: boolean
 }
 
-/** The haze the room falls into, from this far beyond what the camera looks at to this far [estimated]: the back wall softens. */
-const HAZE = { near: 1.4, far: 8.5 }
+/**
+ * The haze the room falls into, from this far beyond what the camera looks at to this far [estimated]: it begins at the line, so the
+ * stations keep their heat and the tile, the hood and the room's far corners soften into it.
+ */
+const HAZE = { near: 0.4, far: 5.6 }
 /** The heat lamps' light over the pass, as a share of the kit's [estimated]: enough to pool amber on the steel and leave the glaze white. */
 const LAMP_POWER = 0.6
-/** A burning station's warm light down the line, at full share [estimated]: a candela figure for a point light in metres. */
-const GLOW = { intensity: 2.2, distance: 2.6, decay: 2 }
 /** The fewest milliseconds between two dark dips of the line: 3 a second at most (WCAG 2.3.1). */
 const DIP_GAP_MS = 334
 
@@ -97,65 +100,6 @@ function useMoment(view: LoopView, scene: ServiceScene): Moment {
   // The frames stay on while the line is dark, so the scene is never taken for still in the middle of its moment.
   useHold(moment.dark)
   return moment
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-/* The line's light                                                                                                   */
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/**
- * The warm light the burning stations throw down the line: one light for each station on a laptop (four at most), one for the
- * whole line on a phone, each as bright as the share of its stations that burn. The count depends on the tier and the line alone,
- * so a fire changes a light's brightness and never recompiles a material. Brought up or down over the bell's length; cut under
- * reduced motion.
- */
-function LineLight({ kitchen, lit }: { kitchen: ServiceKitchen; lit: readonly boolean[] }) {
-  const kit = useKit()
-  const count = Math.max(1, Math.min(kit.tier >= 2 ? 4 : 1, kitchen.stations.length))
-  const groups = useMemo(
-    () =>
-      Array.from({ length: count }, (_, g) => {
-        const members = kitchen.stations.map((_, s) => s).filter((s) => Math.floor((s * count) / kitchen.stations.length) === g)
-        const at = members.map((s) => kitchen.stations[s].glow)
-        const x = at.reduce((sum, p) => sum + p[0], 0) / at.length
-        return { members, at: [x, at[0][1], at[0][2]] as [number, number, number] }
-      }),
-    [count, kitchen.stations],
-  )
-  const lights = useMemo(() => groups.map(() => new PointLight(roleColor(kit.tokens, 'lamp'), 0, GLOW.distance, GLOW.decay)), [groups, kit.tokens])
-  useEffect(() => () => lights.forEach((light) => light.dispose()), [lights])
-  const goals = groups.map((group) => (GLOW.intensity * group.members.filter((s) => lit[s]).length) / group.members.length)
-  // A new goal ramps the lights to it over the bell's length; new lights (the first frame, another tier) start at their goal.
-  const ramp = useRef<{ lights: readonly PointLight[]; from: number[]; to: number[]; start: number } | null>(null)
-  const ms = kit.reducedMotion ? 0 : kit.tokens.motion.bellMs
-  const step = useCallback(
-    (now: number) => {
-      const run = ramp.current
-      if (!run) return false
-      const t = ms > 0 ? Math.min(1, (now - run.start) / ms) : 1
-      run.lights.forEach((light, i) => {
-        light.intensity = run.from[i] + (run.to[i] - run.from[i]) * kit.ease(t)
-      })
-      return t < 1
-    },
-    [ms, kit],
-  )
-  const wake = useMotionLoop(step)
-  const key = goals.join(',')
-  useLayoutEffect(() => {
-    const to = key.split(',').map(Number)
-    const fresh = ramp.current?.lights !== lights
-    ramp.current = { lights, from: fresh ? to : lights.map((light) => light.intensity), to, start: performance.now() }
-    if (step(performance.now())) wake()
-    kit.invalidate()
-  }, [key, lights, step, wake, kit])
-  return (
-    <>
-      {lights.map((light, i) => (
-        <primitive key={i} object={light} position={groups[i].at} />
-      ))}
-    </>
-  )
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -242,7 +186,8 @@ function Service({ view, kitchen, scene, preset, onHang }: { view: LoopView; kit
   return (
     <Kitchen lit={mask}>
       <StaticSet items={kitchen.items} name="service" />
-      <LampLights lamps={kitchen.lights} power={LAMP_POWER} cones={preset !== 'lamps'} />
+      {/* The lamps' light lands on the pass as pools on the steel; no cone hangs in the air over the line to tint it. */}
+      <LampLights lamps={kitchen.lights} power={LAMP_POWER} cones={false} />
       <RailClips at={kitchen.rail.at} clips={scene.clips} />
       {kitchen.fired ? <RailClips at={kitchen.fired.at} clips={scene.clips} name="fired-clips" /> : null}
       <Tickets tickets={tickets} />
@@ -250,7 +195,6 @@ function Service({ view, kitchen, scene, preset, onHang }: { view: LoopView; kit
       <ServiceBell at={kitchen.bell} strike={view.step} />
       <Plates plates={plates} />
       <Steam emitters={steam} puff={moment.dark ? -moment.bells : moment.bells} />
-      <LineLight kitchen={kitchen} lit={lit} />
       {HIDDEN[preset]?.has('tape') ? null : <SheetInstances kind="tape" sheets={kitchen.tapes} name="tape" />}
       {onHang && scene.picks.length > 0 ? <Picks picks={scene.picks} onPick={onHang} /> : null}
     </Kitchen>

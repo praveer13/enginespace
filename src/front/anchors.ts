@@ -1,24 +1,24 @@
 /*
  * Where the 3D pass puts its landmarks on the screen (TRACKER W0-T18), so the front page can hang its own objects on them.
  *
- * On a wide screen the page's printer and its order ticket stand in front of the 3D pass: the ticket's clip sits on the scene's rail,
- * left of the clips the game hangs its tickets on, and the printer covers the pass's left end. The objects are DOM, placed by CSS, so
- * they are where they belong before any script runs and whichever view (2D or 3D) is behind them.
+ * On a wide screen the page's printer and its order ticket stand in front of the 3D pass at its left: the ticket's clip sits on the
+ * scene's rail, and the ticket stops short of the line's first station, so the whole line and the lit pass stand clear of it. The
+ * objects are DOM, placed by CSS, so they are where they belong before any script runs and whichever view (2D or 3D) is behind them.
  *
- * The front page's shot (scene-presets.ts, `FRONT_PRESETS`) is a perspective camera with a fixed vertical field of view. Such a camera
- * puts a point at a height that is a fixed fraction of the box, whatever the box's width, and at a distance from the box's centre line
- * that is a fixed multiple of the box's height. So each landmark is two numbers, c and d, and CSS places it with container units on
- * the pass's box:
+ * The front page's wide shot (scene-presets.ts, `FRONT_PRESETS`; packages/play/loop/kitchen.ts, `SHOTS.front.wide`) is a perspective
+ * camera with a fixed vertical field of view and a lens shifted to the right. Such a camera puts a point at a height that is a fixed
+ * fraction of the box, whatever the box's width, and at a distance from the box's centre line that is a fixed multiple of the box's
+ * height. So each landmark is two numbers, c and d, and CSS places it with container units on the pass's box:
  *
  *     x = 50cqw + c × 50cqh        y = (1 − d) × 50cqh
  *
- * `passAnchors` computes them from the shot and the scene's layout (scene-layout.ts). The page reads `PASS_ANCHORS`, the same numbers
- * written out, so the first paint carries no scene layout; tests/front/anchors.test.ts holds the two equal, and every number to three's
- * own projection. Below 80rem the page stacks its objects above the pass instead (front.css), and below 480 px the scene takes its
- * portrait framing.
+ * where c already holds the shift. `passAnchors` computes them from the shot and the kitchen's plan (packages/play/loop/kitchen.ts).
+ * The page reads `PASS_ANCHORS`, the same numbers written out, so the first paint carries no projection; tests/front/anchors.test.ts
+ * holds the two equal, and every number to three's own projection. Below 80rem the page stacks its objects above the pass instead
+ * (front.css), and below 480 px the scene takes its portrait framing.
  */
-import { DEFAULT_FOV, type CameraPreset, type Vec3 } from '@/scene/camera-rig'
-import { clipX, RAIL, TICKET } from '@/games/loop/scene-layout'
+import { clipX, LINE, lineOf, RAIL, railLength, TICKET } from '@es/play/loop/kitchen'
+import { DEFAULT_FOV, framingFor, WIDE_WIDTH, type CameraPreset, type Vec3 } from '@/scene/camera-rig'
 import { FRONT_PRESETS } from '@/games/loop/scene-presets'
 
 const sub = (a: Vec3, b: Vec3): Vec3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
@@ -35,58 +35,79 @@ export interface Projected {
   readonly d: number
 }
 
-/** The projection of a perspective preset, looking from its position at its target with up kept up (camera-rig.ts). */
-export function projector(preset: CameraPreset): (point: Vec3) => Projected {
-  const forward = unit(sub(preset.target, preset.position))
+/**
+ * The projection of a perspective preset in a canvas `width` px wide (its wide framing by default), looking from its position at its
+ * target with up kept up (camera-rig.ts), its lens shifted as the framing says.
+ */
+export function projector(preset: CameraPreset, width = WIDE_WIDTH): (point: Vec3) => Projected {
+  const framing = framingFor(preset, width)
+  const forward = unit(sub(framing.target, framing.position))
   const right = unit(cross(forward, [0, 1, 0]))
   const up = cross(right, forward)
-  const k = Math.tan(((preset.fov ?? DEFAULT_FOV) * Math.PI) / 360)
+  const k = Math.tan(((framing.fov ?? DEFAULT_FOV) * Math.PI) / 360)
+  const [sx, sy] = framing.shift
   return (point) => {
-    const v = sub(point, preset.position)
+    const v = sub(point, framing.position)
     const depth = dot(v, forward)
-    return { c: dot(v, right) / (depth * k), d: dot(v, up) / (depth * k) }
+    return { c: dot(v, right) / (depth * k) + sx, d: dot(v, up) / (depth * k) - sy }
   }
 }
 
 /** A point's height in the box, as a fraction from its top. */
 export const fromTop = (d: number): number => (1 - d) / 2
 
-/** What the page lines its objects up with, in the front page's shot. Every x is a `c` and every height a fraction from the top. */
+/** What the page lines its objects up with, in the front page's wide shot. Every x is a `c` and every height a fraction from the top. */
 export interface PassAnchors {
   /** The middle of the rail's channel. */
   readonly railY: number
   /** The rail's thickness, as a fraction of the box's height. */
   readonly railH: number
-  /** The left edge of the first clip's ticket: what the page's order ticket must stop short of. */
+  /** Where the rail begins at its left end: the page's rail runs to it. */
+  readonly railLeft: number
+  /** The left edge of the first clip's ticket. */
   readonly clipLeft: number
   /** The middle of each clip on the rail: where a ticket dropped on the 3D pass is hung. */
   readonly clips: readonly number[]
+  /** The left edge of the line's first station: what the page's order ticket must stop short of, so the whole line shows. */
+  readonly lineLeft: number
+  /** The picture's centre, right of the box's centre (the lens's shift): where the 2D drawing's centre stands. */
+  readonly shift: number
 }
 
 const round = (value: number): number => Math.round(value * 10_000) / 10_000
 
-/** The anchors of the front page's shot over a rail of `slots` clips (the front page's levels have four). */
+/** The anchors of the front page's wide shot over a rail of `slots` clips (the front page's levels have four). */
 export function passAnchors(slots = 4): PassAnchors {
-  const project = projector(FRONT_PRESETS[0])
+  const [preset] = FRONT_PRESETS
+  const project = projector(preset)
   const railAt = (x: number, y: number) => project([x, y, RAIL.z])
   const left = clipX(0, slots) - TICKET.width
   const mid = railAt(left, RAIL.y - 0.0175)
+  const line = lineOf(slots)
+  // The first station's top front corner, at its splashes' height: the leftmost a station reaches on screen.
+  const corner = project([line.x(0) - line.width / 2, LINE.height + 0.06, LINE.z + LINE.depth / 2])
   return {
     railY: round(fromTop(mid.d)),
     railH: round(fromTop(railAt(left, RAIL.y - 0.035).d) - fromTop(railAt(left, RAIL.y).d)),
+    railLeft: round(railAt(-railLength(slots) / 2, RAIL.y).c),
     clipLeft: round(railAt(clipX(0, slots) - TICKET.width / 2, RAIL.y).c),
     clips: Array.from({ length: slots }, (_, slot) => round(railAt(clipX(slot, slots), RAIL.y).c)),
+    lineLeft: round(corner.c),
+    shift: round(framingFor(preset, WIDE_WIDTH).shift[0]),
   }
 }
 
 /** `passAnchors()`, written out: what the first paint uses. tests/front/anchors.test.ts fails when the two differ. */
-export const PASS_ANCHORS: PassAnchors = { railY: 0.3332, railH: 0.0203, clipLeft: 0.2633, clips: [0.3111, 0.7419, 1.1727, 1.6035] }
+export const PASS_ANCHORS: PassAnchors = { railY: 0.3253, railH: 0.0163, railLeft: 0.3828, clipLeft: 0.5938, clips: [0.6321, 0.9774, 1.3226, 1.6679], lineLeft: 0.3511, shift: 1.15 }
 
 /** The anchors as the custom properties front.css reads on the pass's box: plain numbers, which CSS multiplies by container units. */
 export function anchorProperties(anchors: PassAnchors): Record<string, string> {
   return {
     '--pass-rail-y': String(anchors.railY),
     '--pass-rail-h': String(anchors.railH),
+    '--pass-rail-left': String(anchors.railLeft),
     '--pass-clip-left': String(anchors.clipLeft),
+    '--pass-line-left': String(anchors.lineLeft),
+    '--pass-shift': String(anchors.shift),
   }
 }
