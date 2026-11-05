@@ -27,7 +27,7 @@ const indexFiles = () => import.meta.glob<ContentIndex>('./generated/index.json'
 const asks = new Map<string, Promise<unknown>>()
 
 /** One load per name, shared by everyone who asks, and forgotten if it fails. A `make` that throws is a failed load, not a throw. */
-function once<T>(name: string, make: () => Promise<T>): Promise<T> {
+export function once<T>(name: string, make: () => Promise<T>): Promise<T> {
   const known = asks.get(name) as Promise<T> | undefined
   if (known !== undefined) return known
   const ask = new Promise<T>((resolve) => resolve(make()))
@@ -39,7 +39,7 @@ function once<T>(name: string, make: () => Promise<T>): Promise<T> {
 }
 
 /** The file for `name` from a glob's table, or null when the compiler wrote none: a module or lesson that does not exist. */
-function pick<T>(files: Record<string, () => Promise<T>>, path: string): Promise<T | null> {
+export function pick<T>(files: Record<string, () => Promise<T>>, path: string): Promise<T | null> {
   const load = Object.hasOwn(files, path) ? files[path] : undefined
   return load === undefined ? Promise.resolve(null) : load()
 }
@@ -92,7 +92,7 @@ export type Loaded<T> = { status: 'loading' } | { status: 'ready'; value: T } | 
 const LOADING: Loaded<never> = { status: 'loading' }
 
 /** A kind of content, and how to ask for one of it by name. A source is a module-level constant, so an effect can depend on it. */
-interface Source<T> {
+export interface Source<T> {
   ask: (name: string) => Promise<T>
 }
 
@@ -106,7 +106,7 @@ const CLAIMS: Source<ReadonlyMap<string, Claim>> = { ask: () => loadClaims() }
  * The answer to `source.ask(name)`: loading until it comes, then ready or an error. A new name starts a new load, and the
  * answer to an old one is dropped. A null name asks for nothing and stays loading.
  */
-function useSource<T>(source: Source<T>, name: string | null): Loaded<T> {
+export function useSource<T>(source: Source<T>, name: string | null): Loaded<T> {
   const [answer, setAnswer] = useState<{ source: Source<T>; name: string; loaded: Loaded<T> } | null>(null)
   useEffect(() => {
     if (name === null) return

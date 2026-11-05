@@ -19,44 +19,10 @@
  */
 import { GRADED_KINDS, KINDS } from '@es/ledger'
 import type { Kind, LedgerEvent } from '@es/ledger'
-import { moduleIdSchema, parseRef } from '@es/schema'
+import { moduleOfRef } from '@es/schema/refs'
 
-/** The module an id of the form `<module>.<rest>` begins with, or null. */
-function moduleIn(id: string): string | null {
-  const dot = id.indexOf('.')
-  if (dot < 0) return null
-  const head = id.slice(0, dot)
-  return moduleIdSchema.safeParse(head).success ? head : null
-}
-
-/**
- * The module a ref belongs to, or null when it names none. `gameModule` gives a game's home module: the page passes the game
- * registry's, and a test passes its own.
- */
-export function moduleOfRef(ref: string, gameModule: (game: string) => string | undefined): string | null {
-  const parsed = parseRef(ref)
-  if (parsed === null) return null
-  switch (parsed.kind) {
-    case 'predict':
-      return moduleIn(parsed.lesson)
-    case 'item':
-      return moduleIn(parsed.family)
-    case 'play':
-      return gameModule(parsed.game) ?? null
-    case 'lab':
-    case 'prove':
-      return moduleIn(parsed.lab)
-    case 'challenge':
-    case 'receipt':
-      return moduleIn(parsed.stage)
-    case 'review':
-      return parsed.kc.startsWith('cap.') ? 'capstone' : moduleIn(parsed.kc)
-    case 'trace':
-    case 'screen':
-    case 'change':
-      return null
-  }
-}
+/** Which module a ref belongs to is the ref grammar's to say (packages/schema/refs.ts), and the map and the module pages ask the same function. */
+export { moduleOfRef }
 
 /** Events of each kind, and their number. */
 export interface Tally {
