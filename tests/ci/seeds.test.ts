@@ -118,8 +118,10 @@ describe("nightly.yml's properties job", () => {
 /** The lines of a test file that make a list of 200 seeds, or loop over 200 of them, by hand. */
 export function hardCodedSeedCounts(source: string): { line: number; text: string }[] {
   const forms = [
-    // const SEEDS = Array.from({ length: 200 }, …), or Array.from({ length: 200 }, (_, seed) => …): a list of 200 on a line about seeds
-    (text: string) => /Array\.from\(\s*\{\s*length:\s*200\s*\}/.test(text) && /seed/i.test(text),
+    // const SEEDS = Array.from({ length: 200 }, …) or Array.from({ length: 200 }, (_, seed) => …): a list of 200 on a line about seeds,
+    // and a list of 200 consecutive integers (`(_, i) => i`, `(_, i) => i + 1`) under any name, which a property uses as its seeds
+    (text: string) =>
+      /Array\.from\(\s*\{\s*length:\s*200\s*\}/.test(text) && (/seed/i.test(text) || /\(\s*_\s*,\s*(\w+)\s*\)\s*=>\s*\1(?:\s*\+\s*1)?\s*\)/.test(text)),
     // for (let seed = 1; seed <= 200; seed++), and `< 200`
     (text: string) => /\bfor\s*\(\s*(?:let|var)\s+seed\s*=\s*\d+\s*;\s*seed\s*<=?\s*200\s*;/.test(text),
   ]
@@ -132,11 +134,14 @@ describe('every seeded property takes its seeds from the knob', () => {
     expect(found('const SEEDS = Array.from({ length: 200 }, (_, index) => index + 1)')).toBe(1)
     expect(found('const seeds = Array.from({length: 200}, (_, i) => i)')).toBe(1)
     expect(found('const ledgers = Array.from({ length: 200 }, (_, seed) => randomLedger(seed, 10))')).toBe(1)
+    expect(found('const MANY = Array.from({ length: 200 }, (_, i) => i + 1)')).toBe(1)
+    expect(found('const ids = Array.from({ length: 200 }, (_, n) => n)')).toBe(1)
     expect(found('    for (let seed = 1; seed <= 200; seed += 1) {')).toBe(1)
     expect(found('for (let seed = 0; seed < 200; seed++) expect(f(seed)).toBe(1)')).toBe(1)
     expect(found('const SEEDS = seeds(1)\nfor (const seed of SEEDS.slice(0, 40)) {}\nfor (let i = 0; i < 200; i++) draw()')).toBe(0)
     expect(found('expect(response.status).toBe(200)')).toBe(0)
-    expect(found('const items = Array.from({ length: 200 }, (_, i) => i)')).toBe(0)
+    expect(found('const items = Array.from({ length: 200 }, (_, i) => `request ${i}`)')).toBe(0)
+    expect(found('const sample = Array.from({ length: 200 }, () => below(rng, 100_000))')).toBe(0)
   })
 
   test('finds none in the tests of this tree: they read the knob', () => {

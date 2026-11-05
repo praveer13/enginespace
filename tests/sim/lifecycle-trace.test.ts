@@ -28,10 +28,12 @@ import {
 import type { EngineId, Scenario } from '../../packages/sim/lifecycle'
 import { CAT_COPY, CAT_KERNEL, CAT_SYNC, STEP_MARK, attributeSteps, cloneTrace, decodeTrace, encodeTrace, spanView, traceChecks, validateTrace } from '../../packages/sim/trace'
 import type { EsTrace } from '../../packages/sim/trace'
+import { seeds } from '../seeds'
 
 const ALL = scenarios()
 const SEEDS = Array.from({ length: 24 }, (_, i) => i + 1)
-const MANY = Array.from({ length: 200 }, (_, i) => i + 1)
+/** 200 seeds on a PR, 10,000 nightly (ARCHITECTURE §5.10) [estimated]: tests/seeds.ts has the knob. */
+const MANY = seeds(1)
 const failing = (t: EsTrace): string[] => traceChecks(t).filter((c) => !c.pass).map((c) => c.id)
 
 /** The longest path of an engine: the scenario with the most stages. */
@@ -58,7 +60,7 @@ describe('check 2: traceChecks passes the synthetic traces', () => {
     expect(copies).toBeGreaterThanOrEqual(ALL.length * SEEDS.length * 2)
   })
 
-  test('of the longest path of each engine, under 200 seeds, and under the widest jitter', () => {
+  test(`of the longest path of each engine, under ${MANY.length} seeds, and under the widest jitter`, () => {
     const widest = { spreadPermille: 900, gapNs: 100_000 }
     for (const id of ENGINE_IDS) {
       const sc = longest(id)
