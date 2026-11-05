@@ -124,6 +124,7 @@ enginespace/
     front/              the front page: static-shell hydration, The Loop in 2D, the 3D upgrade
     games/<id>/         View2D.tsx  Scene3D.tsx  Mirror.tsx  Controls.tsx  Debrief.tsx
     scene/              the scene kit (§6.4): Stage, tiers, governor, primitives, post-FX, fallback
+    trace/              the trace viewer (W1-T09): Canvas2D lanes, marks and a DOM mirror over a trace@1 (§5.7, GAMES.md §2.6)
     design/             tokens.css  tokens.ts (role list)  scene-tokens.ts  components/
     content/            renderer for the compiled content; generated/ (git-ignored, built)
     evidence/           IndexedDB store, BroadcastChannel, export and import, provenance weights
