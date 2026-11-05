@@ -8,7 +8,8 @@ import { Ticket } from '@/design/components/Ticket'
  * In production (GAMES.md §11 "Core loop", step 6): the flags of the real tools that would have produced a number the court admits. They
  * are cited as claims, each with its source and the day it was read, because an upstream fact belongs to a pin and not to this page
  * (AGENTS.md, "Pins"): a finite `--request-rate` draws the arrivals open-loop, `--max-concurrency` records the wait for a permit as
- * `client_queue_time`, and SGLang's `--goodput` counts the requests that meet every objective.
+ * `client_queue_time`, and SGLang's `--goodput` counts the requests that meet every objective. Each flag's claims are a ledger, as the
+ * ruling's real-world instances are (bench.css): a line for each, its figure beside its source.
  */
 
 const FLAGS = [
@@ -46,7 +47,7 @@ export function Production() {
               <code>{item.flag}</code>
             </p>
             <p>{item.says}</p>
-            <ul className="es-bench-instances">
+            <ul className="es-bench-instances es-bench-ledger">
               {item.claims.map((id) => (
                 <li key={id}>
                   <ClaimChip id={id} env={env} />

@@ -16,10 +16,11 @@ import type { BenchRun } from './types'
  * On a wide screen the inspector's clipboard stands above the tail, in this column, beside the pass. On a narrow one the 2D view holds it
  * (View2D.tsx draws the same form), and bench.css shows the one that fits.
  *
- * Column heads are the engine's terms, and the figures are synthetic (D-048): the summary says so once. The kit prints a narrow table as
- * a block for each row, with each cell under its column's name, so the tail has three short cells and a row is one line. The lamp falls
- * on the selected order, which is the present. In a graded attempt nothing says where the p99 sits: the summary says how many orders were
- * measured, and the rule is the learner's to apply.
+ * Column heads are the engine's terms, and the figures are synthetic (D-048): the summary says so once. The tail's three cells are short,
+ * so where the kit would print a narrow table as a block for each row, with a name before each cell, the tail keeps its column heads in
+ * one line over the rows and prints each order on one line (bench.css, "the tail"): on a phone the desk stays within reach under it. The
+ * lamp falls on the selected order, which is the present. In a graded attempt nothing says where the p99 sits: the summary says how many
+ * orders were measured, and the rule is the learner's to apply.
  */
 
 const head = (term: string, unit: string) => (
@@ -79,6 +80,7 @@ export function Mirror({ run, desk }: { run: BenchRun; desk: DeskApi | null }) {
       <Clipboard className="es-bench-clip--aside" scene={view.scene} caseNo={view.caseNo} cases={view.cases} />
       <MirrorTable
         id={run.mirrorId}
+        className="es-bench-tail"
         head="Mirror · the tail"
         caption="The slowest orders under the desk's stopwatch and cut, ranked from the slowest"
         summary={
