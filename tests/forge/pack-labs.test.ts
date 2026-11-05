@@ -274,7 +274,11 @@ describe('what a zip holds', () => {
     )
     const lock = text(member(archive, 'Cargo.lock'))
     expect([...lock.matchAll(/^name = "([^"]+)"$/gm)].map((m) => m[1])).toEqual(['kslab', 'toy'])
-    expect(lock).toBe(read('labs/forge/Cargo.lock'))
+    // The repository's lock holds every lab's crate; the zip's is its preamble and the blocks of the kit and this crate, as cargo wrote them.
+    const repository = read('labs/forge/Cargo.lock')
+    const [preamble, ...blocks] = lock.trimEnd().split(/\n\n(?=\[\[package\]\])/)
+    expect(repository.startsWith(preamble)).toBe(true)
+    for (const block of blocks) expect(repository).toContain(block)
     expect(lock).not.toContain('source = ')
   })
 

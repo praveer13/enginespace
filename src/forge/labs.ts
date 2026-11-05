@@ -4,7 +4,7 @@
  * to ids.ts.
  */
 
-import { TOY_CHECKS } from '@es/sim'
+import { REJECTION_SAMPLER_CHECKS, TOY_CHECKS } from '@es/sim'
 import type { HostLab } from './invoke'
 
 export interface ForgeLab extends HostLab {
@@ -28,5 +28,14 @@ export const FORGE_LABS: Readonly<Record<string, ForgeLab>> = {
     crate: 'toy',
     wasm: 'toy.wasm',
     checks: TOY_CHECKS,
+  },
+  'rejection-sampler': {
+    id: 'rejection-sampler',
+    title: 'Keep or Re-plate',
+    engineTerm: "speculative decoding's exact verifier, a rejection sampler",
+    lead: "The commis plates a run of courses ahead of you, and you are the chef at the pass: keep a plate with probability min(1, p/q), and at the first one you send back, re-plate from the dishes the commis under-plates, (p − q)⁺. If every plate is kept you plate one more course yourself, and what goes out must be exactly what you would have plated alone.",
+    crate: 'rejection-sampler',
+    wasm: 'rejection_sampler.wasm',
+    checks: REJECTION_SAMPLER_CHECKS,
   },
 }

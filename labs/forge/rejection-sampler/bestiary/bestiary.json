@@ -1,0 +1,49 @@
+{
+  "lab": "rejection-sampler",
+  "members": [
+    {
+      "id": "accept-if-p-over-q",
+      "feature": "bestiary-accept-if-p-over-q",
+      "mistake": "accept when p > q: the plate is kept exactly when p is bigger than q at its dish, with no coin, so a plate whose q is at least its p is always sent back",
+      "fails": { "accept": "fail", "round": "fail" },
+      "passes": ["residual", "pick"],
+      "only": ["accept", "residual", "pick", "round"]
+    },
+    {
+      "id": "resample-from-p",
+      "feature": "bestiary-resample-from-p",
+      "mistake": "accept with p/q but resample from p: a plate that is sent back is replaced by a dish picked from p itself and not from the residual (p - q)+",
+      "fails": { "round": "fail", "exact": "fail" },
+      "passes": ["accept", "residual", "pick"]
+    },
+    {
+      "id": "resample-from-q",
+      "feature": "bestiary-resample-from-q",
+      "mistake": "resample from q: a plate that is sent back is replaced by a dish picked from the commis's own q and not from the residual (p - q)+",
+      "fails": { "round": "fail", "exact": "fail" },
+      "passes": ["accept", "residual", "pick"]
+    },
+    {
+      "id": "residual-off-by-one",
+      "feature": "bestiary-residual-off-by-one",
+      "mistake": "an off-by-one in the residual: the excess of each dish is written one place along, wrapping at the end of the vocabulary, so the dish that replaces a plate is the one after the right one",
+      "fails": { "residual": "fail", "round": "fail", "exact": "fail" },
+      "passes": ["accept", "pick"]
+    },
+    {
+      "id": "boundary-inclusive",
+      "feature": "bestiary-boundary-inclusive",
+      "mistake": "the boundary-inclusive comparison of SGLang PR #35798: <= where < is right, in the accept step and in the walk over the weights, so one coin too many is kept and a draw that lands on a boundary goes to the dish before it",
+      "fails": { "accept": "fail", "pick": "fail" },
+      "passes": ["residual"],
+      "only": ["accept", "residual", "pick"]
+    },
+    {
+      "id": "fly-lossy",
+      "feature": "bestiary-fly-lossy",
+      "mistake": "a FLy-style lossy rule: a plate that is sent back at a flat target is kept anyway when the next plate would be kept, so the output drifts from p toward q",
+      "fails": { "round": "fail", "exact": "fail" },
+      "passes": ["accept", "residual", "pick"]
+    }
+  ]
+}
