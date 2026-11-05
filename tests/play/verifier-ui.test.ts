@@ -276,6 +276,16 @@ describe('the debrief says what the run did and what the arithmetic says', () =>
     }
   })
 
+  test('each ticket\'s stamped headline leads its paper: what the head line said is printed on the foot line, under the body', () => {
+    const markup = debrief(house('exact', 0))
+    expect(markup).not.toContain('es-ticket__head')
+    const feet = [...markup.matchAll(/<div class="es-ticket__foot"><span>([^<]*)<\/span><span>([^<]*)<\/span><\/div>/g)].map((match) => [match[1], match[2]])
+    expect(feet).toEqual([
+      ['Debrief', 'Make it exact'],
+      ['The real engines', 'not this world'],
+    ])
+  })
+
   test('a wrong recipe is not, and the debrief lays the learner\'s recipe against the house\'s, and each wrong rule\'s exact distance with its decimal', () => {
     const level = buildLevel('exact', 0)
     const markup = debrief(stateAfter(level, { t: 'preset', from: 'p' }, { t: 'submit' }))

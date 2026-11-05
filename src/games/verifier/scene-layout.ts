@@ -5,22 +5,25 @@
  *
  *   - The room is Service's: floor, tile on two walls, the hood over a cold line, a speed rack, and the pass, here as deep as the run.
  *     Its light, baked into the tile and the floor, is full over the line and dims toward the corners and over the hood.
- *   - Each dish of a course has the commis's stack of plates on its left and the chef's on its right, in her wire dispenser. A plate's
- *     edge is its part (`Band`): in a practice run the plates both stacks share are the overlap's, the commis's extra the draft's and
- *     the chef's extra the residual's; a graded run's stacks are plain, the commis's the draft's and the chef's the target's.
- *   - A drafted plate is the commis's plate at its coin's height, pulled out of his stack: toward the chef when she keeps it, away
- *     from her when she sends it back. Of the latest rounds, one plate for each place.
+ *   - Each dish of a course has the commis's stack of plates on its left and the chef's on its right, in her wire dispenser, whose
+ *     foot is the target's blue. A plate's edge band is its part (`Band`): in a practice run the plates both stacks share are the
+ *     overlap's, the commis's extra the draft's and the chef's extra the residual's; a graded run's stacks are plain, the commis's the
+ *     draft's and the chef's the target's.
+ *   - A drafted plate is the commis's plate at its coin's height, pulled out of his stack: level and toward the chef and the expo when
+ *     she keeps it, tipped away from her when she sends it back. Of the latest rounds, one plate for each place.
  *   - What went out is a ring on the chef's dispenser at the height served.
  *   - `gamma` lays a run of eight stacks across the pass: the plates the walk keeps if it gets that far, and the rest it sends back.
  *     The courses the commis plates stand upright; the rest wait upside down, unplated.
  *   - Three heat lamps hang over where a round begins (the front course), or over `gamma`'s plated run.
+ *   - A run's courses are named on tape at the pass's left end, which runs on past the soup for them (scene-plan.ts); a single
+ *     course's counts are on one paper tag a dish, hung from the pass's edge under its tape: the commis's plates, then the chef's.
  *
  * Every word and number is a DOM label anchored here (D-021, GAMES.md §2.6 rule 7).
  */
 import type { RowView, VerifierView } from '@es/play/verifier/types'
 import type { RoomLight } from '@/scene/props/set'
 import type { PropSpec } from '@/scene/props/specs'
-import { columnX, FRONT, FULL, PAIR, PLATE, roomOf, rowZ, stackHeight, TOP, type Plan, type Vec3 } from './scene-plan'
+import { columnX, FRONT, FULL, NAMES, PAIR, PLATE, roomOf, rowZ, stackHeight, TOP, type Plan, type Vec3 } from './scene-plan'
 
 export type Band = 'probability-overlap' | 'probability-draft' | 'probability-residual' | 'probability-target'
 
@@ -63,12 +66,14 @@ export interface Tape {
   readonly text: string
 }
 
-export type AnchorKind = 'tape' | 'count'
+/** A dish's name on the pass's edge, a course's name, and a dish's counts hung under its tape. */
+export type AnchorKind = 'tape' | 'row' | 'count'
 
 export interface Anchor {
   readonly id: string
   readonly kind: AnchorKind
   readonly at: Vec3
+  /** A tape's words, or a tag's two counts: the commis's plates, then the chef's. */
   readonly text: string
 }
 
@@ -112,7 +117,8 @@ export interface SceneFlags {
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 const CEILING = 2.95
-const HOOD = { top: 2.38, height: 0.48, depth: 1.05 } as const
+/** The hood over the line: its top, its skirt's height and its depth from the wall [estimated]. */
+const HOOD = { top: 2.38, height: 0.34, depth: 1.05 } as const
 const LINE = { depth: 0.8, height: 0.9, width: 0.58 } as const
 const STATIONS = ['griddle', 'burners', 'fryer', 'burners', 'griddle'] as const
 
@@ -126,8 +132,10 @@ export function tastingKitchen(plan: Plan, lamps: TastingScene['lamps']): Tastin
     { kind: 'tile-wall', id: 'wall', at: [0, 0, wallZ], width: 14, height: 3.1 },
     { kind: 'tile-wall', id: 'side', at: [sideX, 0, wallZ / 2 + 0.6], yaw: Math.PI / 2, width: 1.6 - wallZ, height: 3.1 },
     { kind: 'hood', id: 'hood', at: [0, HOOD.top, wallZ], width: lineWidth + 0.4, depth: HOOD.depth, height: HOOD.height },
+    // The hood's lip: a drawn steel bar along its skirt's foot, so the skirt reads as formed sheet over the line and not as a slab.
+    { kind: 'rail', id: 'lip', at: [0, HOOD.top - HOOD.height + 0.035, wallZ + HOOD.depth + 0.013], length: lineWidth + 0.4 },
     ...STATIONS.map((kind, s): PropSpec => ({ kind, id: `station-${s}`, at: [(s + 0.5 - STATIONS.length / 2) * LINE.width, 0, lineZ], width: LINE.width - 0.01, depth: LINE.depth, height: LINE.height, channel: s })),
-    { kind: 'pass', id: 'pass', at: [0, 0, FRONT - plan.depth / 2], width: plan.width, depth: plan.depth, height: TOP, strip: 0 },
+    { kind: 'pass', id: 'pass', at: [plan.x, 0, FRONT - plan.depth / 2], width: plan.width, depth: plan.depth, height: TOP, strip: 0 },
     { kind: 'bell-base', id: 'bell', at: bell },
     ...lamps.map(([x, z], i): PropSpec => ({ kind: 'heat-lamp', id: `lamp-${i}`, at: [x, CEILING, z], drop: CEILING - plan.mouth - 0.2015, hang: 'cord' })),
   ]
@@ -206,10 +214,9 @@ export function tastingScene(view: VerifierView, plan: Plan, flags: SceneFlags):
       }
       dispensers.push(chef)
       rings.push({ id: `ring${r}-${d}`, at: chef, out: flags.outcome && row.out !== null ? row.out[d] : null })
-      if (single) {
-        anchors.push({ id: `count-q${d}`, kind: 'count', at: [commis[0], TOP, FRONT - 0.075], text: String(q) })
-        anchors.push({ id: `count-p${d}`, kind: 'count', at: [chef[0], TOP, FRONT - 0.075], text: String(p) })
-      }
+      // A dish's counts on one paper tag, the commis's then the chef's, hung from the pass's edge under the dish's tape: the counter in
+      // front of a pair has no room for a tag in front of the tape from a phone's height or level with the counter.
+      if (single) anchors.push({ id: `count-${d}`, kind: 'count', at: [columnX(plan, d), TOP - 0.2, FRONT + 0.03], text: `${q} · ${p}` })
     })
     for (const m of row.markers) {
       const q = row.q?.[m.token] ?? 0
@@ -227,7 +234,8 @@ export function tastingScene(view: VerifierView, plan: Plan, flags: SceneFlags):
         round: Math.max(m.round, markers.get(id)?.round ?? -1),
       })
     }
-    if (!single) tapes.push({ id: `row-${r}`, center: [-plan.width / 2 + 0.16, TOP + 0.0009, z + 0.02], size: [0.21, 0.042], rotation: [-Math.PI / 2, 0, 0.05 - r * 0.025], text: row.kind === 'bonus' ? "chef's extra" : row.label })
+    // A course's name on the strip left of the soup, each a step further left into depth, so a far name stands clear of the stacks in front.
+    if (!single) tapes.push({ id: `row-${r}`, center: [plan.x - plan.width / 2 + NAMES - r * 0.06, TOP + 0.0009, z + 0.02], size: [0.3, 0.045], rotation: [-Math.PI / 2, 0, 0.04 - r * 0.02], text: row.kind === 'bonus' ? "chef's extra" : row.label })
   })
   return {
     ...keep(stacks, dispensers),
@@ -241,8 +249,8 @@ export function tastingScene(view: VerifierView, plan: Plan, flags: SceneFlags):
   }
 }
 
-/** The words on each strip of tape, anchored at its middle. */
-const tapeAnchors = (tapes: readonly Tape[]): Anchor[] => tapes.map((tape) => ({ id: `tape-${tape.id}`, kind: 'tape', at: tape.center, text: tape.text }))
+/** The words on each strip of tape, anchored at its middle: a dish's, or a course's. */
+const tapeAnchors = (tapes: readonly Tape[]): Anchor[] => tapes.map((tape) => ({ id: `tape-${tape.id}`, kind: tape.id[0] === 'r' ? 'row' : 'tape', at: tape.center, text: tape.text }))
 
 /** `gamma`: a stack of sixty-four for each position of the run, the plates the walk keeps if it gets that far, then the rest. */
 function gammaScene(view: VerifierView, plan: Plan): TastingScene {

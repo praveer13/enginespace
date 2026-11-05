@@ -1751,6 +1751,15 @@
     font-size: var(--es-size-plate);
     letter-spacing: 0.04em;
     font-weight: 900;
+    /* A number is printed on the slip and typed, never spun: the browser's spinner is no part of a slip. */
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+
+  .es-field[data-numeric] .es-field__input::-webkit-outer-spin-button,
+  .es-field[data-numeric] .es-field__input::-webkit-inner-spin-button {
+    margin: 0;
+    -webkit-appearance: none;
   }
 
   .es-field__slip:is(:hover, [data-force='hover']) {

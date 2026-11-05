@@ -2,14 +2,17 @@
  * W1-T28: the 2D view is a first-class rendering of the same kitchen, never a chart (GAMES.md §10 "2D path", §2.6 "The Tasting"; W0's finish
  * review rejected a 2D view made of grey lane bars, a tick axis and a swatch legend). These tests hold the drawing to that:
  *   - it paints with token roles and nothing else, and amber only as the lamp's pool, over the row being tasted;
- *   - it draws the plates the mirror lists, a mark for each plate, so that a stack is a count;
+ *   - it draws the plates the mirror lists, a mark for each plate, so that a stack is a count, and each one as a plate: seen edge on, with
+ *     rounded ends, the glaze of its rim and a gap under it, the stack in its contact shadow on the pass and the chef's in her wire
+ *     dispenser, its foot in the target blue (W1's finish review, round 1: a stack drawn as one solid bar is a bar chart);
  *   - it has no axis and no legend of its own: the text it writes is a dish's plates on a paper tag, and names on masking tape;
  *   - it stays in its frame and under the cap of 2,000 marks (A§6.4), in both orientations, with the decomposition on and off;
  *   - the SVG is what the page paints: the React view writes the markup that `frameSvg` writes.
  *
- * Measured by the cap test [measured 2026-11-04 on this task's branch]: at most 637 marks (a run of three drafts and the chef's extra
- * course, landscape, decomposition on) in 156 frames of the six levels, in both orientations, with and without the decomposition and
- * in every state of the house's runs, against the cap of 2,000.
+ * Measured by the cap test [measured 2026-11-05 on the branch of W1's finish fixes for The Tasting, round 1, over wave-1 at 905b782]: at
+ * most 1,199 marks (a run of three drafts and the chef's extra course, landscape, decomposition on, with every plate's rim, the
+ * dispensers and the stacks' shadows) in 156 frames of the six levels, in both orientations, with and without the decomposition and in
+ * every state of the house's runs, against the cap of 2,000. W1-T28's flat stacks drew at most 637.
  */
 import { describe, expect, test } from 'bun:test'
 import { createElement as h } from 'react'
@@ -180,13 +183,64 @@ describe('it draws the plates the mirror lists', () => {
   })
 })
 
+describe('the stacks are plates, not bars (W1\'s finish review, round 1)', () => {
+  const rects = (frame: Frame, part: string) => marksOf(frame, part).filter((mark): mark is Extract<Mark, { kind: 'rect' }> => mark.kind === 'rect')
+  const lines = (frame: Frame, part: string) => marksOf(frame, part).filter((mark): mark is Extract<Mark, { kind: 'line' }> => mark.kind === 'line')
+
+  test('every plate is seen edge on: rounded ends, a rim of glaze along its top, and a gap of at least a third of a plate under it', () => {
+    for (const [id, seed] of PRACTICE) {
+      for (const orientation of ORIENTATIONS) {
+        // `gamma` plates nothing before a draft length is picked.
+        const view = viewOf(id === 'gamma' ? stateAfter(buildLevel(id, seed), { t: 'gamma', k: 3 }) : stateAfter(buildLevel(id, seed)))
+        const frame = frameOf(view, orientation)
+        const plates = rects(frame, 'stacks').filter((mark) => mark.fill !== 'none')
+        const rims = lines(frame, 'stacks').filter((mark) => mark.stroke === 'paper')
+        expect([id, orientation, plates.length > 0, rims.length]).toEqual([id, orientation, true, plates.length])
+        for (const plate of plates) expect([id, plate.rx !== undefined && plate.rx >= Math.min(plate.h / 2, 2.6) - 0.01]).toEqual([id, true])
+        // One plate's pitch on a stack: the plate and the gap of shade under it, never so thin that the stack reads as a bar.
+        const ys = [...new Set(plates.filter((mark) => mark.x === plates[0].x).map((mark) => mark.y))].sort((a, b) => a - b)
+        if (ys.length > 1) expect([id, orientation, ys[1] - ys[0] >= 2.6]).toEqual([id, orientation, true])
+      }
+    }
+  })
+
+  test('the chef\'s stacks stand in her wire dispensers, two posts and a bar each, the foot in the target blue, one for each dish of each course', () => {
+    const view = viewOf(stateAfter(buildLevel('chain', 1), { t: 'commit', prediction: 2400 }))
+    const frame = layoutFrame(view, { orientation: 'landscape' })
+    const feet = rects(frame, 'wire').filter((mark) => mark.fill === 'probability-target')
+    expect(feet).toHaveLength(view.rows.length * 6)
+    expect(lines(frame, 'wire').filter((mark) => mark.stroke === 'surface-3')).toHaveLength(view.rows.length * 6 * 2)
+    // No outline round her stack: the wire is what holds it, and it stands a few plates over what she holds, not over the whole row.
+    expect(rects(frame, 'stacks').filter((mark) => mark.fill === 'none')).toEqual([])
+    const plates = rects(frame, 'stacks').filter((mark) => mark.fill !== 'none')
+    const ys = [...new Set(plates.filter((mark) => mark.x === plates[0].x).map((mark) => mark.y))].sort((a, b) => a - b)
+    const unit = ys[1] - ys[0]
+    const posts = lines(frame, 'wire').filter((mark) => mark.stroke === 'surface-3')
+    view.rows.forEach((row, r) =>
+      row.p.forEach((p, dish) => {
+        const post = posts[(r * 6 + dish) * 2]
+        expect([r, dish, Math.abs(post.y1 - post.y2) <= (p + 3) * unit + 0.5]).toEqual([r, dish, true])
+      }),
+    )
+  })
+
+  test('every stack that has a plate stands in its contact shadow on the pass, in the deep steel, soft and a little wider than the stack', () => {
+    const view = viewOf(stateAfter(buildLevel('exact', 0)))
+    const frame = layoutFrame(view, { orientation: 'landscape' })
+    const row = view.rows[0]
+    const stacks = row.p.filter((p) => p > 0).length + (row.q ?? []).filter((q) => q > 0).length
+    const shadows = rects(frame, 'pass').filter((mark) => mark.fill === 'surface-3' && mark.opacity !== undefined && mark.opacity < 0.5)
+    expect(shadows).toHaveLength(stacks)
+  })
+})
+
 describe('no axis, no legend, no chart', () => {
   test('the layers are the kitchen\'s objects, and none is an axis, a gridline or a legend', () => {
     const names = new Set<string>()
     for (const [id, seed] of PRACTICE) {
       for (const state of statesOf(id, seed)) for (const layer of frameOf(viewOf(state), 'landscape').layers) names.add(layer.part)
     }
-    expect([...names].sort()).toEqual(['counts', 'lamp', 'names', 'out', 'pass', 'plates', 'round', 'stacks'])
+    expect([...names].sort()).toEqual(['counts', 'lamp', 'names', 'out', 'pass', 'plates', 'round', 'stacks', 'wire'])
   })
 
   test('the text it writes is a dish\'s plates, a position\'s acceptance on its tag, or a name on masking tape: digits, or capitals', () => {
@@ -241,7 +295,7 @@ describe('it stays in its frame and under the cap (A§6.4)', () => {
       }
     }
     expect(frames).toBeGreaterThan(100)
-    expect(most).toBeLessThan(1000)
+    expect(most).toBeLessThan(1400)
   })
 
   test('a frame is a function of its view and options: the same ones always give the same frame', () => {

@@ -297,8 +297,9 @@
 }
 
 /*
- * The 3D scene's print (Scene3D.tsx): the dishes' and the courses' names on their tape and the stacks' counts on paper tags, all DOM over
- * the canvas (D-021). The scene's box is a size container, so print scales with the pass and not with the window.
+ * The 3D scene's print (Scene3D.tsx): the dishes' and the courses' names in marker on masking tape, and the dishes' counts on paper tags in
+ * the printer's dots, all DOM over the canvas (D-021). The scene's box is a size container, so print scales with the pass and not with
+ * the window, and never below the size ramp's smallest step, whatever the box.
  */
 .es-vf-scene {
   container-type: size;
@@ -310,16 +311,14 @@
   white-space: nowrap;
 }
 
-/* Marker on masking tape: the tape is in the scene, stuck where the kitchen sticks it; the words ride on it. */
-.es-vf-label--tape {
-  color: var(--es-tape-ink);
-  font-family: var(--es-font-label);
-  font-weight: var(--es-font-label-weight);
-  letter-spacing: var(--es-font-label-tracking);
-  font-size: clamp(0.5625rem, 1cqi, var(--es-size-print)); /* impeccable-disable-line design-system-font-size -- marker on a strip of tape a few centimetres wide on a phone */
+/* Marker on masking tape: the design system's tape (.es-tape), torn off at the size of the print, every word on its own strip. */
+.es-vf-label.es-tape {
+  padding: 0.22em 0.65em 0.16em;
+  font-size: clamp(var(--es-size-micro), 1.8cqi, var(--es-size-caption));
+  line-height: 1.15;
 }
 
-/* A stack's count, printed in the printer's dots on a paper tag lying on the counter in front of it. */
+/* A dish's counts, the commis's plates and then the chef's, on one paper tag in the printer's dots. */
 .es-vf-label--count {
   padding: 0.2em 0.35em 0.15em;
   border: 1px solid var(--es-paper-rule);
@@ -330,4 +329,18 @@
   font-weight: var(--es-font-numeric-weight);
   font-variant-numeric: tabular-nums;
   font-size: clamp(var(--es-size-micro), 1.15cqi, var(--es-size-print));
+}
+
+/* In a box narrower than the camera's portrait width (camera-rig.ts, 480 px), the strip of the courses' names stands outside the box. */
+@container (max-width: 479.98px) {
+  .es-vf-label--row {
+    display: none;
+  }
+}
+
+/* At a small phone's width, six names side by side keep their size and give up some of their tape. */
+@container (max-width: 299.98px) {
+  .es-vf-label.es-tape {
+    padding-inline: 0.4em;
+  }
 }

@@ -82,7 +82,7 @@ function Engines({ level }: { level: VerifierView['level'] }) {
       </>
     )
   return (
-    <Ticket as="section" width="full" hole={false} head="The real engines" meta="not this world" titleAs="h3" title="Where the engines stand">
+    <Ticket as="section" width="full" hole={false} titleAs="h3" title="Where the engines stand" foot={['The real engines', 'not this world']}>
       <p>{body}</p>
       <p className="text-text-2">
         Next, build it: <TextLink to="/labs/rejection-sampler">the rejection-sampler lab</TextLink> drives your own sampler with seeded p, q and drafts and tests its output with the chi-square on twenty thousand rounds.
@@ -282,10 +282,9 @@ export function Debrief({ run, outcome, next, onNext, onPracticeAgain, onNewNumb
         as="section"
         width="full"
         hole={false}
-        head="Debrief"
-        meta={view.title}
         titleAs="h3"
         title={grade.ok ? 'Well tasted.' : 'Taste it again.'}
+        foot={['Debrief', view.title]}
         stub={next === null ? <Stub to="/map">Open the course map</Stub> : <Stub onClick={onNext}>{`Next: ${next.title}`}</Stub>}
       >
         <p className="es-type-body">{debrief.sentence}</p>

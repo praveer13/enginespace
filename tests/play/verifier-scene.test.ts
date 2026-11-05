@@ -17,7 +17,7 @@ import { framingFor } from '@/scene/camera-rig'
 import { buildProp } from '@/scene/props/build'
 import { paletteFrom } from '@/scene/props/palette'
 import { changeOf, ringHeight, tastingKitchen, tastingScene, type Band } from '@/games/verifier/scene-layout'
-import { columnX, FRONT, FULL, PAIR, planOf, PLATE, presetsOf, rowZ, stackHeight, TOP, type Plan } from '@/games/verifier/scene-plan'
+import { columnX, FRONT, FULL, NAMES, PAIR, planOf, PLATE, presetsOf, rowZ, stackHeight, TOP, type Plan } from '@/games/verifier/scene-plan'
 import { DEFAULT_PRESET, TASTING_SHOTS } from '@/games/verifier/scene-shots'
 import { runOf, sculptActions } from './verifier-support'
 
@@ -38,6 +38,10 @@ describe('the plan: the pass, its courses and the room, in metres', () => {
     const run = planOf('rows', 5)
     expect(rowZ(4)).toBeLessThan(rowZ(0))
     expect(run.back).toBeLessThan(rowZ(4) - PLATE.r)
+    // Over a run the pass runs on to the left of the soup, for the courses' names, and its right end stays where a course's does.
+    expect(run.width).toBeCloseTo(one.width + NAMES)
+    expect(run.x - run.width / 2).toBeCloseTo(one.x - one.width / 2 - NAMES)
+    expect(run.x + run.width / 2).toBeCloseTo(one.x + one.width / 2)
     // Over a run the lamps hang higher, so that the courses behind stand clear of them.
     expect(run.mouth).toBeGreaterThan(one.mouth)
     const gamma = planOf('gamma', 0)
@@ -82,6 +86,50 @@ describe('the plan: the pass, its courses and the room, in metres', () => {
   })
 })
 
+describe('the framings of W1\'s finish review, round 1', () => {
+  const at = (plan: Plan, id: string, width: number, height: number, point: readonly number[]) => {
+    const framing = framingFor(presetsOf(plan, TASTING_SHOTS).find((preset) => preset.id === id) ?? presetsOf(plan, TASTING_SHOTS)[0], width)
+    return project(framing.position, framing.target, framing.fov, width / height, point)
+  }
+
+  test('on a phone, over the run, the pass\'s front edge stands at the foot of the box, so no floor shows under it', () => {
+    for (const plan of [planOf('rows', 1), planOf('rows', 4), planOf('rows', 5), planOf('gamma', 1)]) {
+      for (const [width, height] of [
+        [358, 437],
+        [288, 358],
+      ]) {
+        const [, y] = at(plan, 'run', width, height, [0, TOP - 0.03, FRONT + 0.017])
+        // In the box's lowest fifth, with the tags hung under the tape still in it.
+        expect([plan.kind, plan.rows, width, y < -0.6 && y > -0.92]).toEqual([plan.kind, plan.rows, width, true])
+      }
+    }
+  })
+
+  test('over a run, at 1440, the hood stands above the box: its lower edge projects over the top', () => {
+    for (const rows of [2, 3, 4, 5]) {
+      const plan = planOf('rows', rows)
+      const hood = tastingKitchen(plan, []).items.find((item) => item.kind === 'hood')
+      if (hood?.kind !== 'hood') throw new Error('no hood')
+      const [, y] = at(plan, 'run', 715, 490, [0, hood.at[1] - hood.height, hood.at[2] + hood.depth])
+      expect([rows, y > 1]).toEqual([rows, true])
+    }
+  })
+
+  test('on a phone, each dish\'s tag stands clear of the next one\'s, hung under the tape', () => {
+    const view = viewOf('overlap', 0)
+    const plan = planFor(view)
+    const tags = sceneOf(view).anchors.filter((anchor) => anchor.kind === 'count')
+    for (const [width, height] of [
+      [358, 437],
+      [715, 490],
+    ]) {
+      const xs = tags.map((tag) => ((at(plan, 'run', width, height, tag.at)[0] + 1) / 2) * width)
+      // A tag of two counts in the printer's dots is about 45 px wide at its smallest print [estimated from the face's metrics].
+      for (let d = 1; d < xs.length; d++) expect([width, d, xs[d] - xs[d - 1] > 48]).toEqual([width, d, true])
+    }
+  })
+})
+
 /** Where a point lands in a perspective camera's view, as three draws it: x and y from -1 to 1. */
 function project(position: readonly number[], target: readonly number[], fov: number, aspect: number, point: readonly number[]): [number, number] {
   const f = target.map((t, i) => t - position[i])
@@ -104,6 +152,13 @@ describe('the room: scene kit v1\'s props, laid out for the plan', () => {
 
   test('a whole room: floor, tile on two walls, the hood over a line of five cold stations, the pass, the bell and three heat lamps', () => {
     for (const kind of ['floor', 'hood', 'pass', 'bell-base']) expect(kinds).toContain(kind)
+    // The hood's lip runs along its skirt's foot, the kit's drawn bar.
+    const hood = kitchen.items.find((item) => item.kind === 'hood')
+    const lip = kitchen.items.find((item) => item.id === 'lip')
+    if (hood?.kind !== 'hood' || lip?.kind !== 'rail') throw new Error('no hood and lip')
+    expect(lip.length).toBeCloseTo(hood.width)
+    expect(lip.at[1]).toBeCloseTo(hood.at[1] - hood.height + 0.035)
+    expect(lip.at[2]).toBeGreaterThan(hood.at[2] + hood.depth)
     expect(kinds.filter((kind) => kind === 'tile-wall')).toHaveLength(2)
     expect(kinds.filter((kind) => kind === 'griddle' || kind === 'burners' || kind === 'fryer')).toHaveLength(5)
     expect(kinds.filter((kind) => kind === 'heat-lamp')).toHaveLength(3)
@@ -120,7 +175,8 @@ describe('the room: scene kit v1\'s props, laid out for the plan', () => {
     for (const item of kitchen.items) {
       const built = buildProp(item, palette)
       expect(built.parts.length, item.id).toBeGreaterThan(0)
-      if (!['floor', 'tile-wall', 'hood', 'heat-lamp'].includes(item.kind)) expect(built.footprints.length, item.id).toBeGreaterThan(0)
+      // What hangs (the hood, its lip, the lamps) and what is the room itself casts no contact shadow.
+      if (!['floor', 'tile-wall', 'hood', 'rail', 'heat-lamp'].includes(item.kind)) expect(built.footprints.length, item.id).toBeGreaterThan(0)
     }
   })
 
@@ -179,10 +235,37 @@ describe('the tasting: each dish\'s two stacks, as the view says', () => {
     const view = viewOf('overlap', 0)
     const scene = sceneOf(view)
     expect(scene.anchors.filter((anchor) => anchor.kind === 'tape' && anchor.id.startsWith('tape-col-')).map((anchor) => anchor.text)).toEqual([...DISHES])
-    const counts = scene.anchors.filter((anchor) => anchor.kind === 'count').map((anchor) => anchor.text)
-    expect(counts).toEqual(view.rows[0].p.flatMap((p, d) => [String(view.rows[0].q?.[d] ?? 0), String(p)]))
+    // One paper tag a dish, the commis's plates and then the chef's, hung from the pass's edge under the dish's tape, so that no tag
+    // stands between a tape and its stacks, from any height (W1's finish review, round 1: at 390 px the tags met the tape).
+    const counts = scene.anchors.filter((anchor) => anchor.kind === 'count')
+    expect(counts.map((anchor) => anchor.text)).toEqual(view.rows[0].p.map((p, d) => `${view.rows[0].q?.[d] ?? 0} · ${p}`))
+    counts.forEach((anchor, d) => {
+      const tape = scene.anchors.find((candidate) => candidate.id === `tape-col-${d}`)
+      expect(anchor.at[0]).toBeCloseTo(columnX(planFor(view), d))
+      expect(anchor.at[1]).toBeLessThan((tape?.at[1] ?? 0) - 0.1)
+      expect(anchor.at[2]).toBeGreaterThanOrEqual(FRONT)
+    })
     // A run's courses print no counts on the pass: the mirror carries them.
     expect(sceneOf(S.view(runOf('chain', 1))).anchors.some((anchor) => anchor.kind === 'count')).toBe(false)
+  })
+
+  test('a run\'s courses are named on the strip of the pass left of the soup, each name a step further left into depth, clear of its stacks', () => {
+    for (const seed of [0, 1, 2, 3]) {
+      const view = S.view(runOf('chain', seed))
+      const plan = planFor(view)
+      const scene = sceneOf(view)
+      const rows = scene.anchors.filter((anchor) => anchor.kind === 'row')
+      expect(rows).toHaveLength(view.rows.length)
+      rows.forEach((anchor, r) => {
+        const tape = scene.tapes.find((candidate) => `tape-${candidate.id}` === anchor.id)
+        if (!tape) throw new Error(anchor.id)
+        // On the pass, and its tape clear of the soup's commis stack.
+        expect(tape.center[0] - tape.size[0] / 2).toBeGreaterThanOrEqual(plan.x - plan.width / 2)
+        expect(tape.center[0] + tape.size[0] / 2).toBeLessThan(columnX(plan, 0) - PAIR - PLATE.r)
+        expect(anchor.at[2]).toBeCloseTo(rowZ(r) + 0.02)
+        if (r > 0) expect(anchor.at[0]).toBeLessThan(rows[r - 1].at[0])
+      })
+    }
   })
 })
 
