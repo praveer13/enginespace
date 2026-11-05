@@ -90,9 +90,11 @@ export interface GameShellProps<Level, State, Action extends GameAction, View, S
   card?: ReactNode
   /**
    * The view leads the page: under the game's name, the view with the controls beside it and its switches (the view, the keys, the
-   * stages) under it, then the mirror across the width. Off, the view and the controls share a column beside the mirror.
+   * stages) under it, then the mirror across the width. Off, the view and the controls share a column beside the mirror. `sticky` keeps
+   * the switches with the view on every screen, and keeps the 3D view in sight on a wide one while the controls beside it run on, so
+   * what a control far down the column sends plays where it is seen.
    */
-  stage?: boolean
+  stage?: boolean | 'sticky'
   /**
    * The game's own row of choices under its name, such as its levels and its attempt. With `stage` off the stages and the Keys button
    * join that row, and the tape that names the level and the mode is left out, because the row shows both; with `stage` on the row
@@ -354,6 +356,8 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
   )
   // The play stage of a game that sets something beside its controls lays its two columns out to flow on their own (`beside`).
   const flow = props.stage === true && phase === 'play' && props.beside !== undefined
+  // A view that keeps its switches with it, and stays in sight in 3D on a wide screen (`stage="sticky"`).
+  const sticky = props.stage === 'sticky'
   const panelNode = (
     <div
       ref={panel}
@@ -416,11 +420,15 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
         </div>
       ) : props.stage && phase === 'play' ? (
         // The view leads, and the controls stand beside it, so a hand on them never loses sight of the scene. The view's switches
-        // stand under it on a wide screen; on a narrow one they follow the controls, which come first after the view.
+        // stand under it on a wide screen; on a narrow one they follow the controls, which come first after the view. A sticky view
+        // keeps its switches under it everywhere, and in 3D its column stays in sight while the controls run on down the page.
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:grid-rows-[auto_1fr] lg:items-start">
-          <div className="flex min-w-0 flex-col gap-4">{viewNode}</div>
+          <div className={`flex min-w-0 flex-col gap-4${sticky ? ` lg:row-span-2${view === '3d' ? ' lg:sticky lg:top-4' : ''}` : ''}`}>
+            {viewNode}
+            {sticky ? toolbar : null}
+          </div>
           <div className="flex min-w-0 flex-col gap-4 lg:col-start-2 lg:row-span-2 lg:row-start-1">{playControls}</div>
-          <div className="min-w-0 lg:col-start-1 lg:row-start-2">{toolbar}</div>
+          {sticky ? null : <div className="min-w-0 lg:col-start-1 lg:row-start-2">{toolbar}</div>}
         </div>
       ) : props.stage ? (
         toolbar

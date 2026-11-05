@@ -15,7 +15,7 @@ import { SceneCanvas } from '@/scene/SceneCanvas'
 import { SheetInstances } from '@/scene/SheetInstances'
 import type { HouseItem, HouseProp, Pose } from './scene-layout'
 import type { SceneModel } from './scene-presets'
-import { carGeometries, customOf } from './scene-props'
+import { carGeometries, customOf, OWN } from './scene-props'
 import { playOf, presetFor, routeOf, type Chit, type Hop, type Play, type Route } from './scene-route'
 import type { CameraStop } from './scene-stops'
 import './scene3d.css'
@@ -29,14 +29,18 @@ import './scene3d.css'
  * One moment carries the game, on the bell: pulling the stub sends the ticket along the stages the run got through that it had not stood
  * past before, one stage to the bell, each a hop through the hand-off that crosses it (through a window into the chute and out at another
  * floor's, into the dumbwaiter's car and down its shaft, onto the line's rail while its station burns, onto a spike, past the gate), and at
- * the first stage that does not hold it balks and stands. The chit of each stage it passes inks as it goes, and a camera that follows the ticket moves with
- * it from storey to storey. Between runs the house is still; under reduced motion every change cuts.
+ * the first stage that does not hold it balks and stands. The chit of each stage it passes inks as it goes, and the camera that follows the
+ * ticket (the stop a run takes from the cutaway) moves with it from hands to hands. Between runs the house is still; under reduced motion
+ * every change cuts.
  *
- * The one lamp: of the house's lamps only the present's is lit (its bulb by the kitchen's glow mask, its light on the deck under it); on the
- * line the present's station burns instead, and a station burns while the ticket cooks on it. Nothing else glows but the hood's tubes.
+ * The one lamp: of the house's lamps only the present's is lit: its bulb's glow round its shade's lip, by the kitchen's glow mask, its cone
+ * of light at T2, and its warm light on the steel under it, which brightens the steel's own sheen and streak rather than laying a colour on
+ * it (the kit's pools, as on Service's pass). On the line the present's station burns instead, and a station burns while the ticket cooks
+ * on it. Nothing else glows but the canopy's white tubes. The room falls away past the house into a haze of deep steel.
  *
  * Draw calls at T1: the house's set (metal, ceramic, tile, floor, glow: 5), the laid hand-offs' set (1 or 2), the contact shadows (1), the
- * ticket (1), the dumbwaiter's car (1) and the line's tape (1). T2 adds the lit lamp's cone and its shadow pass over what casts, bloom and the final pass. The measured figures, read from
+ * ticket (1), the dumbwaiter's car (1) and the line's tape (1); the rooms' furniture and the kitchen round the house merge into the house's
+ * set. T2 adds the lit lamp's cone and its shadow pass over what casts, bloom and the final pass. The measured figures, read from
  * renderer.info by e2e/engine-floor-scene.spec.ts against A§11.1's 100, and the chunk's size as verify:bundle counts it against the
  * 40 KB gate, are in GAMES.md §5, "Budget".
  */
@@ -50,9 +54,12 @@ export interface Scene3DProps {
 }
 
 /** The haze the room falls into past what the camera looks at, from this far to this far [estimated], in deep steel. */
-const HAZE = { near: 0.6, far: 4.2, color: 'surface-3' } as const
-/** The present lamp's light, as a share of the kit's [estimated]: an amber pool on its deck under a lamp hung low. */
-const LAMP_POWER = 1
+const HAZE = { near: 0.3, far: 3.2, color: 'surface-3' } as const
+/**
+ * The present lamp's light, as a share of the kit's [estimated]: a lamp hung low over a counter warms the steel's sheen softly round the
+ * ticket rather than clipping to a disc.
+ */
+const LAMP_POWER = 0.45
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* The ticket and the dumbwaiter's car                                                                                */
@@ -145,28 +152,34 @@ function Mover({ route, shaft, play, passed, onHop }: { route: Route; shaft: num
 /* The labels                                                                                                         */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** A chit's numbers, each with what the run has found of it so far: ink for one it passed, pencil for one it has not, red where it stopped. */
+/**
+ * A chit: a slip of ticket paper pinned where its hand-off is, its numbers each with what the run has found of it so far: ink for one it
+ * passed, pencil for one it has not, red where it stopped.
+ */
 function chitContent(chit: Chit, passed: number, playing: boolean): ReactNode {
-  return chit.stages.map(({ n, state }) => {
-    const shown: LaidView['state'] = playing && n > passed && state !== 'pending' ? 'pending' : state
-    return (
-      <span key={n} className="es-floor-chit__n" data-state={shown}>
-        {n}
-      </span>
-    )
-  })
+  return (
+    <span>
+      {chit.stages.map(({ n, state }) => {
+        const shown: LaidView['state'] = playing && n > passed && state !== 'pending' ? 'pending' : state
+        return (
+          <span key={n} className="es-floor-chit__n" data-state={shown}>
+            {n}
+          </span>
+        )
+      })}
+    </span>
+  )
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* The scene                                                                                                          */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-const OWN = new Set<HouseItem['kind']>(['deck', 'partition', 'shaft', 'post', 'gate', 'shelf'])
 const isOwn = (item: HouseItem): item is HouseProp => OWN.has(item.kind)
 const asSpec = (item: HouseItem): PropSpec => (isOwn(item) ? customOf(item) : item)
 
 /** The house and what moves in it, inside the canvas, where the kit is. */
-function House3D({ model, route, stop, play, passed, storey, cook, onHop }: { model: SceneModel; route: Route; stop: CameraStop; play: Play | null; passed: number; storey: number; cook: number | null; onHop: (k: number) => void }) {
+function House3D({ model, route, stop, play, passed, spot, cook, onHop }: { model: SceneModel; route: Route; stop: CameraStop; play: Play | null; passed: number; spot: string; cook: number | null; onHop: (k: number) => void }) {
   const { house, present } = model
   const items = useMemo(() => house.items.map(asSpec), [house])
   const strips = useMemo(() => model.tapes.flatMap((tape) => (tape.strip ? [{ id: tape.id, ...tape.strip }] : [])), [model.tapes])
@@ -178,13 +191,13 @@ function House3D({ model, route, stop, play, passed, storey, cook, onHop }: { mo
   const lamps = useMemo(() => (present?.lamp ? [{ id: present.key, at: present.lamp.at, target: present.lamp.target }] : []), [present])
   return (
     <>
-      <CameraRig presets={model.presets} preset={presetFor(model, stop, storey)} parallax={0.05} />
+      <CameraRig presets={model.presets} preset={presetFor(model, stop, spot)} parallax={0.05} />
       <Fluorescent power={0.85} />
       <Kitchen lit={mask}>
         <StaticSet items={items} room={house.room} name="house" />
         {hands.specs.length > 0 ? <StaticSet items={hands.specs} occlusion={{ radius: 0.06 }} name="handoffs" /> : null}
         <LampLights lamps={lamps} power={LAMP_POWER} />
-        <Mover route={route} shaft={house.shaft?.x ?? null} play={play} passed={passed} onHop={onHop} />
+        <Mover route={route} shaft={house.shaft.x} play={play} passed={passed} onHop={onHop} />
       </Kitchen>
       <SheetInstances kind="tape" sheets={strips} name="tape" />
     </>
@@ -212,7 +225,7 @@ export default function Scene3D({ view, model, stop }: Scene3DProps) {
   }, [])
   const current = play !== null && hop >= 0 ? play.hops[hop] : null
   const passed = play === null ? view.reached : play.base + Math.min(Math.max(hop, 0), play.held)
-  const storey = current !== null && current.storey >= 0 ? current.storey : (route.storeys[passed] ?? 0)
+  const spot = current?.spot || route.spots[passed] || ''
 
   const labels = useMemo<LabelSpec[]>(
     () => [
@@ -237,7 +250,7 @@ export default function Scene3D({ view, model, stop }: Scene3DProps) {
 
   return (
     <SceneCanvas labels={labels} fog={HAZE} exposure={1} environmentIntensity={0.75} shadows className="es-floor-scene">
-      <House3D model={model} route={route} stop={stop} play={play} passed={passed} storey={storey} cook={current?.cook ?? null} onHop={onHop} />
+      <House3D model={model} route={route} stop={stop} play={play} passed={passed} spot={spot} cook={current?.cook ?? null} onHop={onHop} />
     </SceneCanvas>
   )
 }

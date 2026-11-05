@@ -145,6 +145,21 @@ describe('the slots', () => {
     expect(count(markup, /data-stage="/g)).toBe(1)
   })
 
+  test('a sticky stage keeps the view\'s switches under it everywhere, and its column spans the controls\' rows on a wide screen, so it can stay in sight', () => {
+    const plain = shell({ stage: true })
+    // The plain stage: the switches stand in a cell of their own, after the controls.
+    expect(plain.indexOf('aria-label="Stages of this game"')).toBeGreaterThan(plain.indexOf('data-slot="controls"'))
+    expect(plain).toContain('lg:col-start-1 lg:row-start-2')
+    const markup = shell({ stage: 'sticky' })
+    // One order for a narrow screen and for the keyboard: the view, its switches, the controls, the mirror.
+    const at = ['data-slot="view2d"', 'aria-label="Stages of this game"', 'data-slot="controls"', 'data-slot="mirror"'].map((text) => markup.indexOf(text))
+    expect(at.every((index, i) => index > -1 && (i === 0 || index > at[i - 1]))).toBe(true)
+    expect(markup).not.toContain('lg:col-start-1 lg:row-start-2')
+    expect(markup).toMatch(/class="flex min-w-0 flex-col gap-4 lg:row-span-2">/)
+    // The 2D view does not stick: a drawing can be taller than the screen. (The 3D view's column takes `lg:sticky lg:top-4`.)
+    expect(markup).not.toContain('lg:sticky')
+  })
+
   test('the mirror\'s id is the one the shell gives the run, so a view can point at its table', () => {
     const markup = shell()
     const mirrorId = /data-mirror-id="([^"]+)"/.exec(markup)?.[1]

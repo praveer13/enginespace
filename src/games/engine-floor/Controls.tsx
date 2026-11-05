@@ -76,7 +76,10 @@ function Prediction({ controls }: { controls: FloorControls }) {
   )
 }
 
-/** The order: the scenario, the pin it is read at, and the prediction. */
+/**
+ * The order: the scenario, the pin it is read at, and the prediction. Its stamped headline leads the paper, with no head line over it
+ * (DESIGN.md, Tickets): the pin prints on the foot line.
+ */
 export function OrderTicket({ controls }: { controls: FloorControls }) {
   const { view, commit, pick } = controls
   const pin = view.pin
@@ -85,11 +88,9 @@ export function OrderTicket({ controls }: { controls: FloorControls }) {
       as="section"
       width="full"
       hole={false}
-      head="Order"
-      meta={pin.title}
       titleAs="h3"
       title={view.title}
-      foot={[`${pin.repo} at ${pin.ref.slice(0, 7)}`, `read ${pin.readOn}`]}
+      foot={[`${pin.title} · ${pin.repo} at ${pin.ref.slice(0, 7)}`, `read ${pin.readOn}`]}
       stub={view.step === 'predict' ? <Stub disabled={pick === null} onClick={commit}>Commit the prediction</Stub> : undefined}
       data-floor-order=""
       // The request, as the card says it: the engine and the five things about it, for a test or a script that reads the page.
