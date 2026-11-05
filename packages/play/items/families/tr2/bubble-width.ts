@@ -2,7 +2,8 @@
  * `tr2.bubble-width`: how long the GPU sits idle between two engine steps, with async scheduling off and on (TR2; KCs `tr2.bubble`
  * and `tr2.async-overlap`). It is W1-T04's reference family: the smallest one that uses every part of the framework (variants and
  * levels, a band, a numeric answer with diagnoses, a choice with a why on every option, a worked solution and a strategy of its own
- * for the blind-strategy gate). ARCHITECTURE §4.2 and the sample lesson name it, and W1-T14 refines it with the step-loop model's keys.
+ * for the blind-strategy gate). ARCHITECTURE §4.2 and the sample lesson name it. W1-T14 holds its keys to the step loop v1: the tests run the loop
+ * on each scene's three times and find the key as the gap between two forwards, with async scheduling off and on.
  *
  * The world is the course's own, and every number in it is synthetic. A step has a CPU part and a GPU part:
  *   plan     the CPU's work before the forward (schedule and prepare), in µs;

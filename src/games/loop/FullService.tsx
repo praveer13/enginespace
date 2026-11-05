@@ -1,8 +1,11 @@
 import { lazy, useCallback, useMemo, useRef, useState, type ReactNode } from 'react'
-import { levelOf } from '@es/play'
+import { drawInBand, levelOf } from '@es/play'
+import type { GameMode } from '@es/play'
 import { FULL_SERVICE, LOOP } from '@es/play/loop/entry'
 import { MODES } from '@es/play/loop/full/levels'
 import { fullSession } from '@es/play/loop/full/session'
+import type { Seed } from '@es/sim/core'
+import { Button } from '@/design/components/Button'
 import type { GameView } from '@/games/kit/ViewSwitch'
 import { GameShell } from '@/games/kit/GameShell'
 import type { GameProps } from '@/games/registry'
@@ -106,15 +109,65 @@ function FullStage({ run, preset }: { run: FullRun; preset: string }) {
   )
 }
 
-export interface FullServiceProps extends Pick<GameProps, 'placement' | 'rev' | 'onFinish'> {
+/**
+ * A run of the full service: a level, whether it is practice or graded, and the seed. Practice plays the level's pinned seed with undo.
+ * A graded run is a seed drawn when it starts (`crypto.getRandomValues`), through the level's band, with no undo (ASSESSMENT §4.3).
+ */
+interface Attempt {
+  readonly level: string
+  readonly mode: GameMode
+  readonly seed: Seed
+}
+
+const fresh = (): Seed => crypto.getRandomValues(new Uint32Array(1))[0]
+const practiceOf = (id: string): Attempt => ({ level: id, mode: 'practice', seed: levelOf(LOOP, id)?.practiceSeed ?? 0 })
+const gradedOf = (id: string): Attempt => ({ level: id, mode: 'graded', seed: drawInBand(fullSession, id, fresh()) })
+const startOf = (id: string, mode: GameMode | undefined): Attempt => (mode === 'graded' && levelOf(LOOP, id)?.graded === true ? gradedOf(id) : practiceOf(id))
+
+/** The way into a graded run of a level that can be graded, and back to practice. Nothing locks (ARCHITECTURE I9): every level is open. */
+function GradedBar({ graded, mode, done, onGraded, onPractice }: { graded: boolean; mode: GameMode; done: boolean; onGraded: () => void; onPractice: () => void }) {
+  if (!graded) return null
+  return (
+    <div className="es-full-mode flex flex-col gap-2" data-full-mode={mode}>
+      {mode === 'graded' && !done ? (
+        <>
+          <p className="text-text-2">A graded run: fresh numbers drawn now, no undo, one night, and the live readouts wait for it.</p>
+          <div>
+            <Button size="sm" variant="quiet" onClick={onPractice}>
+              Back to practice
+            </Button>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="text-text-2">This level can be graded, on fresh numbers.</p>
+          <div>
+            <Button size="sm" onClick={onGraded}>
+              Start a graded run
+            </Button>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+export interface FullServiceProps extends Pick<GameProps, 'placement' | 'rev' | 'onFinish' | 'mode'> {
   level: string
   /** The page's row of levels, above the shell's stage. */
   docket?: ReactNode
   onLevel: (id: string) => void
 }
 
-export default function FullService({ level, placement = 'page', rev, onFinish, docket, onLevel }: FullServiceProps) {
+export default function FullService({ level, mode, placement = 'page', rev, onFinish, docket, onLevel }: FullServiceProps) {
   const entry = levelOf(LOOP, level) ?? FULL_SERVICE[0]
+  const [asked, setAsked] = useState({ level, mode })
+  const [attempt, setAttempt] = useState<Attempt>(() => startOf(entry.id, mode))
+  // A page that opens another level of the game, or asks for a graded run, gets it. (Adjusting state when a prop changes: React re-renders at once.)
+  if (level !== asked.level || mode !== asked.mode) {
+    setAsked({ level, mode })
+    setAttempt(startOf(levelOf(LOOP, level)?.id ?? FULL_SERVICE[0].id, mode))
+  }
   const toggleAuto: AutoToggleRef = useRef(null)
   const device = useDeviceTier()
   const draws3d = device.known && device.tier >= 1
@@ -134,8 +187,8 @@ export default function FullService({ level, placement = 'page', rev, onFinish, 
       session={fullSession}
       level={entry.id}
       levelTitle={entry.title}
-      seed={entry.practiceSeed}
-      mode="practice"
+      seed={attempt.level === entry.id ? attempt.seed : entry.practiceSeed}
+      mode={attempt.level === entry.id ? attempt.mode : 'practice'}
       rev={rev}
       headingLevel={placement === 'embed' ? 3 : 2}
       onFinish={onFinish}
@@ -181,6 +234,13 @@ export default function FullService({ level, placement = 'page', rev, onFinish, 
       controls={(run) => (
         <>
           {view === '3d' ? <CameraButtons presets={LOOP_PRESETS} value={preset} onChange={setPreset} label="Camera on the pass" /> : null}
+          <GradedBar
+            graded={entry.graded}
+            mode={run.mode}
+            done={run.done}
+            onGraded={() => setAttempt(gradedOf(entry.id))}
+            onPractice={() => setAttempt(practiceOf(entry.id))}
+          />
           <FullControls run={run} toggleAutoRef={toggleAuto} />
         </>
       )}
@@ -188,7 +248,14 @@ export default function FullService({ level, placement = 'page', rev, onFinish, 
       beside={(run) => <FullTape view={run.view} />}
       stage
       debrief={(run, outcome) => (
-        <FullDebrief run={run} outcome={outcome} next={after === null ? null : { id: after.id, title: after.title }} onNext={onNext} />
+        <FullDebrief
+          run={run}
+          outcome={outcome}
+          next={after === null ? null : { id: after.id, title: after.title }}
+          onNext={onNext}
+          onGraded={entry.graded ? () => setAttempt(gradedOf(entry.id)) : null}
+          onPractice={run.mode === 'graded' ? () => setAttempt(practiceOf(entry.id)) : null}
+        />
       )}
       compose={(run) => <Compose run={run} />}
       production={(run) => <Production level={run.view.level} />}

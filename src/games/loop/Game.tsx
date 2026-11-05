@@ -92,7 +92,7 @@ const ring = (run: LoopRun): boolean => {
   return true
 }
 
-export default function Game({ level, placement = 'page', rev, onFinish }: GameProps) {
+export default function Game({ level, mode, placement = 'page', rev, onFinish }: GameProps) {
   const known = (id: string | undefined) => (id === KEYS.id ? KEYS.id : (LOOP.levels.find((entry) => entry.id === id)?.id ?? LOOP.levels[0].id))
   const [asked, setAsked] = useState(level)
   const [levelId, setLevelId] = useState(() => known(level))
@@ -154,7 +154,7 @@ export default function Game({ level, placement = 'page', rev, onFinish }: GameP
   if (isFull(levelId)) {
     return (
       <Suspense fallback={<p role="status">Setting up the full service…</p>}>
-        <FullService level={levelId} placement={placement} rev={rev} onFinish={onFinish} docket={docket} onLevel={open} />
+        <FullService level={levelId} mode={mode} placement={placement} rev={rev} onFinish={onFinish} docket={docket} onLevel={open} />
       </Suspense>
     )
   }

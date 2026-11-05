@@ -17,13 +17,16 @@ export const FIRST_SERVICE: readonly LevelEntry[] = [
 ]
 
 /**
- * TR2's levels and TR6's mask lane, "the full service" (GAMES.md §3.2; W1-T13): practice levels on µs of the model's clock, each a few
- * stages that `[` and `]` move between. `keys` waits for the owner's dispatcher tables (Q-10) and `close` is W1-T14's.
+ * TR2's levels and TR6's mask lane, "the full service" (GAMES.md §3.2; W1-T13, W1-T14): levels on µs of the model's clock, some of them a few
+ * stages that `[` and `]` move between. `keys` waits for the owner's dispatcher tables (Q-10). `close` is TR2's graded level (W1-T14): one
+ * night a seed, served once with a configuration chosen from the cards, and graded against the house's (ASSESSMENT §4.3). Its pinned
+ * practice seed is an in-band one with a drilled routine in its house (tests/play/loop-close.test.ts checks that it is in band).
  */
 export const FULL_SERVICE: readonly LevelEntry[] = [
   { id: 'async', title: 'Write during the fire', graded: false, practiceSeed: 0, stages: ['70b', 'small'] },
   { id: 'graphs', title: 'Drilled routines', graded: false, practiceSeed: 0, stages: ['comb', 'sizes', 'modes'] },
   { id: 'mrv2', title: 'The V2 runner', graded: false, practiceSeed: 0, stages: ['small', '70b'] },
+  { id: 'close', title: 'Close the bubbles', graded: true, practiceSeed: 16, stages: ['close'] },
   { id: 'mask', title: 'The allergy card', graded: false, practiceSeed: 0, stages: ['mask'] },
 ]
 
@@ -38,7 +41,8 @@ export const LOOP: GameEntry = {
   subtitle: 'the step loop',
   // The 3D scene is src/games/loop/Scene3D.tsx (W0-T17).
   has3d: true,
-  kcs: ['tr2.bubble', 'tr2.async-overlap'],
+  // The knowledge components the game exercises: the graded `close` earns the ones its levers are about (W1-T14; KC graph, `planned: W1-T14`).
+  kcs: ['tr2.bubble', 'tr2.async-overlap', 'tr2.mrv2-delta', 'tr2.graph-modes', 'tr2.graph-memory'],
   keys: [
     { id: 'overlap', code: 'KeyO', label: 'O', description: 'Write the next call during this fire (overlap)' },
     { id: 'graph-mode', code: 'KeyG', label: 'G', description: 'Cycle the CUDA-graph mode (the full service)' },

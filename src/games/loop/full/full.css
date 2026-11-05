@@ -112,6 +112,63 @@
   padding-left: var(--es-space-4);
 }
 
+/*
+ * `close`'s four cards under the view (CloseCards.tsx): a slip each, in a grid of two columns on a wide page and one on a phone. A slip is a list of
+ * rows, each a label and the figures it names, which wrap under the label when the slip is narrow.
+ */
+.es-close-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: var(--es-space-4);
+}
+
+.es-close-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-2);
+  margin: 0;
+}
+
+.es-close-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--es-space-1) var(--es-space-3);
+}
+
+.es-close-row dt {
+  flex: 1 1 9rem;
+}
+
+.es-close-row dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: var(--es-space-1) var(--es-space-2);
+  margin: 0;
+  text-align: right;
+}
+
+/* A figure of a pair, the V2 runner's or the legacy runner's, with its name before it. */
+.es-close-pair {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--es-space-2);
+}
+
+/* A sentence in a row's figures: it reads left to right and takes the row's width. */
+.es-close-words {
+  flex: 1 1 100%;
+  text-align: left;
+}
+
+/* The way into a graded run, above the controls: a line of words and one button. */
+.es-full-mode {
+  padding-bottom: var(--es-space-2);
+}
+
 /* In production: a setting, what it says, and its claims as a ledger under it. */
 .es-full-production {
   display: flex;

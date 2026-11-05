@@ -9,6 +9,7 @@
  * Nights are cached by their stage and levers, because the reducer, the view and the grade all ask for the same night; a cache hit is
  * the same object, and a run is a pure function of its arguments, so the cache changes no result.
  */
+import { divRound } from '@es/sim/core'
 import type { Us } from '@es/sim/core'
 import { hostPreset } from '@es/sim/host'
 import type { HostCard } from '@es/sim/host'
@@ -19,7 +20,7 @@ import type { Workload, WorkloadSpec } from '@es/sim/workload'
 import type { ClipView, KitchenView, PlaceView } from '../types'
 import { captureCost, priceOf, priceTable } from './sizes'
 import type { PriceTable } from './sizes'
-import type { CardId, FullCounters, FullFire, Levers, StageWorld } from './types'
+import type { CardId, FullCounters, FullFire, HostDraw, Levers, StageWorld } from './types'
 
 /** A time no night of these levels reaches: no horizon cuts a run [estimated, the longest night is a few seconds of the model's clock]. */
 export const NIGHT_HORIZON_US: Us = 1_000_000_000
@@ -27,12 +28,15 @@ export const NIGHT_HORIZON_US: Us = 1_000_000_000
 /** The "70B on H100" card at tensor-parallel degree 4, its host term on the CPU lane (D-044, proposed), and the small-model napkin. */
 export const CARDS: Readonly<Record<CardId, GpuCard>> = Object.freeze({ '70b': s5Card('h100-vllm-0-10-2-fp8', 4), small: SMALL_CARD })
 
-/** A night's tickets: short chats, every one due at once (a burst), each asking for `outputs` courses [estimated]. A share of them carries a grammar. */
-export function workloadSpec(requests: number, structuredPermille: number, outputs: readonly [number, number] = [12, 28]): WorkloadSpec {
+/** The prompts of the practice stages' tickets, in tokens, uniform between the two [estimated]: short chats. `close` draws its own. */
+export const PRACTICE_PROMPTS: readonly [number, number] = [8, 32]
+
+/** A night's tickets: every one due at once (a burst), each with a prompt between two lengths and asking for `outputs` courses [estimated]. A share of them carries a grammar. */
+export function workloadSpec(requests: number, structuredPermille: number, outputs: readonly [number, number] = [12, 28], prompts: readonly [number, number] = PRACTICE_PROMPTS): WorkloadSpec {
   return {
     requests,
     arrivals: { kind: 'burst' },
-    lengths: { kind: 'dists', prompt: { kind: 'uniform', lo: 8, hi: 32 }, output: { kind: 'uniform', lo: outputs[0], hi: outputs[1] } },
+    lengths: { kind: 'dists', prompt: { kind: 'uniform', lo: prompts[0], hi: prompts[1] }, output: { kind: 'uniform', lo: outputs[0], hi: outputs[1] } },
     ...(structuredPermille > 0 ? { structuredPermille } : {}),
   }
 }
@@ -55,9 +59,29 @@ export function servingMode(stage: StageWorld, levers: Levers): { mode: GraphMod
   return { mode: null, changes: [...resolved.changes, `${resolved.mode}'s routines take more memory than the reach-in can spare tonight, so the KV cache would not hold the night`] }
 }
 
-/** The host card for a runner, with the stage's own price of a bitmask row where it has one (the `mask` level's grammar). */
+/**
+ * A runner's preset as a seed's host draw leaves it (`close`): the schedule, prepare, sync and sample phases scaled by the draw's share,
+ * and the launch of one kernel, the kernels a layer launches and a graph replay the draw's own. Every field stays an integer.
+ */
+export function drawnHost(preset: HostCard, draw: HostDraw): HostCard {
+  const scale = (us: Us): Us => divRound(us * draw.scalePermille, 1000)
+  return {
+    ...preset,
+    scheduleBaseUs: scale(preset.scheduleBaseUs),
+    schedulePerSeqUs: scale(preset.schedulePerSeqUs),
+    prepPerTokenUs: scale(preset.prepPerTokenUs),
+    syncUs: scale(preset.syncUs),
+    samplePerSeqUs: scale(preset.samplePerSeqUs),
+    launchPerKernelUs: draw.launchUs,
+    kernelsPerLayer: draw.kernels,
+    graphReplayUs: draw.replayUs,
+  }
+}
+
+/** The host card for a runner: the preset, or the seed's draw of it, with the stage's own price of a bitmask row where it has one (the `mask` level's grammar). */
 export function hostOf(stage: StageWorld, runner: 'mrv2' | 'v1'): HostCard {
-  const card = hostPreset(runner).card
+  const preset = hostPreset(runner).card
+  const card = stage.host === null ? preset : drawnHost(preset, stage.host)
   return stage.maskRowUs === card.maskPerSeqUs ? card : { ...card, maskPerSeqUs: stage.maskRowUs }
 }
 
@@ -78,7 +102,7 @@ export function configOf(stage: StageWorld, levers: Levers, mode: GraphModeId): 
     maxBatchedTokens: stage.budget,
     chunkedPrefill: true,
     asyncScheduling: levers.async,
-    inputIds: 'device',
+    inputIds: levers.inputIds,
     graphs: { mode, captureSizes: mode === 'NONE' ? [] : levers.captureSizes },
     runner: levers.runner,
     ...(stage.structuredPermille > 0 ? { structured: { overlap: levers.maskOverlap } } : {}),
@@ -103,6 +127,11 @@ export interface Night {
   /** The night's metric: the clock, or the capture cost. */
   readonly metric: number
   readonly tpotP50Us: Us | null
+  /** Tokens that reached a ticket, and the µs the line sat dark between fires while the expo was busy: both of the whole night. */
+  readonly usefulTokens: number
+  readonly bubbleUs: Us
+  /** Dependency violations the run raised: a fire that read a token before it was sampled (ARCHITECTURE §5.3). */
+  readonly violations: number
   /** Requests of the night, in order of their tickets; the histogram world's are its clips. */
   readonly requests: number
   /** The fire each request first rides, for the waiting tickets. */
@@ -143,7 +172,7 @@ const nights = new Map<string, Night | null>()
 
 /** The night of `stage` served with `levers`, or null when the engine refuses the configuration (a mode the backend cannot run). */
 export function nightOf(stage: StageWorld, levers: Levers): Night | null {
-  const key = `${stage.id}|${stage.workloadSeed}|${stage.slots}|${stage.budget}|${stage.card}|${stage.support}|${stage.maskRowUs}|${stage.structuredPermille}|${stage.requests}|${stage.outputs.join('-')}|${stage.graphBudget}|${stage.sizes === null ? '' : stage.sizes.batches.join(',') + '/' + stage.sizes.context}|${JSON.stringify(levers)}`
+  const key = `${stage.id}|${stage.workloadSeed}|${stage.slots}|${stage.budget}|${stage.card}|${stage.support}|${stage.maskRowUs}|${stage.structuredPermille}|${stage.requests}|${stage.outputs.join('-')}|${stage.prompts.join('-')}|${JSON.stringify(stage.host)}|${stage.graphBudget}|${stage.sizes === null ? '' : stage.sizes.batches.join(',') + '/' + stage.sizes.context}|${JSON.stringify(levers)}`
   const hit = nights.get(key)
   if (hit !== undefined) return hit
   const night = stage.sizes === null ? stepNight(stage, levers) : histogramNightOf(stage, levers)
@@ -180,7 +209,7 @@ function stepNight(stage: StageWorld, levers: Levers): Night | null {
   if (mode === null || stage.workloadSeed === null) return null
   const card = CARDS[stage.card]
   const host = hostOf(stage, levers.runner)
-  const workload: Workload = genWorkload(stage.workloadSeed, workloadSpec(stage.requests, stage.structuredPermille, stage.outputs))
+  const workload: Workload = genWorkload(stage.workloadSeed, workloadSpec(stage.requests, stage.structuredPermille, stage.outputs, stage.prompts))
   const run: StepLoopRun = runStepLoop(workload, configOf(stage, levers, mode), host, card, { horizonUs: NIGHT_HORIZON_US, rows: true })
   const rows = run.steps.map((step) => step.reqs ?? [])
   const clips = clipsOf(rows, stage.slots)
@@ -218,6 +247,9 @@ function stepNight(stage: StageWorld, levers: Levers): Night | null {
     clockUs: run.summary.clockUs,
     metric: run.summary.clockUs,
     tpotP50Us: run.summary.tpotP50Us,
+    usefulTokens: run.summary.usefulTokens,
+    bubbleUs: run.summary.bubbleUs,
+    violations: run.violations.length,
     requests: run.reqs.length,
     firstFire,
   }
@@ -277,7 +309,19 @@ function histogramNightOf(stage: StageWorld, levers: Levers): Night {
       readUs: t,
     }
   })
-  return { fires, cpu, gpu, clockUs: t, metric: captureCost(table, sizes, world.batches), tpotP50Us: null, requests: stage.slots, firstFire: new Array<number>(stage.slots).fill(0) }
+  return {
+    fires,
+    cpu,
+    gpu,
+    clockUs: t,
+    metric: captureCost(table, sizes, world.batches),
+    tpotP50Us: null,
+    usefulTokens: 0,
+    bubbleUs: fires.reduce((sum, fire) => sum + fire.bubbleUs, 0),
+    violations: 0,
+    requests: stage.slots,
+    firstFire: new Array<number>(stage.slots).fill(0),
+  }
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */

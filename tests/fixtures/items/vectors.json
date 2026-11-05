@@ -173,6 +173,352 @@
           "sha256": "7a13951afa7ed5e28e74fce697f1316def8ee6554f9c747645e21e815e8a4d38"
         }
       ]
+    },
+    "tr2.graph-hit": {
+      "version": 1,
+      "cases": [
+        {
+          "seed": 0,
+          "level": 0,
+          "variant": "hit-or-miss",
+          "rev": "0bb72aee",
+          "sha256": "0b15b7b5382de8bdcad7bc0f08ed146006db5a202ff3c4325b16049b24ea02ad"
+        },
+        {
+          "seed": 1,
+          "level": 0,
+          "variant": "launch-saved",
+          "rev": "4f7329a2",
+          "sha256": "fdceb7649f960d239d44f9632db8d6364fc7c4dbb64de5f5466ae0c82d102f13"
+        },
+        {
+          "seed": 2,
+          "level": 0,
+          "variant": "launch-saved",
+          "rev": "c86429c4",
+          "sha256": "0c3e3e45d09a7db9316b42e1d7f79a9cceabd18b247211113fd5c2383f48ae8d"
+        },
+        {
+          "seed": 3,
+          "level": 0,
+          "variant": "launch-saved",
+          "rev": "92cd9946",
+          "sha256": "58f982392085794eb1c87d63432a6708a8bafbc4e3dc978ac8282df6208e8001"
+        },
+        {
+          "seed": 2654435769,
+          "level": 0,
+          "variant": "launch-saved",
+          "rev": "5e6f6399",
+          "sha256": "fbe0f6684d65df8535d163a319aa5446448a653352be3ed9a2e7451bbf2d36f9"
+        },
+        {
+          "seed": 4294967295,
+          "level": 0,
+          "variant": "launch-saved",
+          "rev": "f3dadf7b",
+          "sha256": "05c58ae9d2114c849bbebaf029bedbe2231de377a19dc9db144d83d79a60879d"
+        },
+        {
+          "seed": 0,
+          "level": 1,
+          "variant": "hit-or-miss",
+          "rev": "ca0f672c",
+          "sha256": "9b2ddd6653544ffb06206e485e242c7b6fb4bea3f85f8535a70fb5447f816c4c"
+        },
+        {
+          "seed": 1,
+          "level": 1,
+          "variant": "launch-saved",
+          "rev": "3c4e1eba",
+          "sha256": "4d894925f42a802cac241afc2faa4f497121232915811c21a49c6fd07f69cc0b"
+        },
+        {
+          "seed": 2,
+          "level": 1,
+          "variant": "hit-or-miss",
+          "rev": "ff0934ef",
+          "sha256": "5f3ea88c2d58033628bf24a2b8e36d2ba275fb18d1dee7eebb20808934748483"
+        },
+        {
+          "seed": 3,
+          "level": 1,
+          "variant": "launch-saved",
+          "rev": "d5df87a7",
+          "sha256": "094a2c1b1fcb84bf013c68f00f4160321f3761d78b3ac51abd074f56212d3680"
+        },
+        {
+          "seed": 2654435769,
+          "level": 1,
+          "variant": "hit-or-miss",
+          "rev": "19545d5d",
+          "sha256": "243aa560c5b2773e761b0f387df7eb7828972939b3e276600b7b7a717911359a"
+        },
+        {
+          "seed": 4294967295,
+          "level": 1,
+          "variant": "hit-or-miss",
+          "rev": "05d9790d",
+          "sha256": "a6badf82e34a18c3308694440675fb6f7674c8f6108e3ac38f905d729188082d"
+        },
+        {
+          "seed": 0,
+          "level": 2,
+          "variant": "launch-saved",
+          "rev": "7a107cfd",
+          "sha256": "174d384e884e7253171ea58a250c20511194182b21746bbe7906e1ededee11d7"
+        },
+        {
+          "seed": 1,
+          "level": 2,
+          "variant": "launch-saved",
+          "rev": "2847960a",
+          "sha256": "768e8a39582418a4d5d9835fd4b18f877219909cdb6c33b4c86e78fa21db1098"
+        },
+        {
+          "seed": 2,
+          "level": 2,
+          "variant": "launch-saved",
+          "rev": "7bb0e2f3",
+          "sha256": "be8420f93605d153adf0a0c7c49e41b6f8d3d18d1af7d22a82346a8769914b75"
+        },
+        {
+          "seed": 3,
+          "level": 2,
+          "variant": "hit-or-miss",
+          "rev": "560863d4",
+          "sha256": "42be58fe3110b5e788308b2f041ea9f6750501db474aad1a5e517751d9faa28f"
+        },
+        {
+          "seed": 2654435769,
+          "level": 2,
+          "variant": "launch-saved",
+          "rev": "81e7bb55",
+          "sha256": "67dff89cda0ab775da43f10aed082e31479905b6e3815ba1ac6152e146b30ae5"
+        },
+        {
+          "seed": 4294967295,
+          "level": 2,
+          "variant": "hit-or-miss",
+          "rev": "e0131ffe",
+          "sha256": "737cc345f862c9675332e91b6936aa46ff6e0d40eeeeaa0006e8bca972ffe576"
+        },
+        {
+          "seed": 0,
+          "level": 3,
+          "variant": "launch-saved",
+          "rev": "cc5cabf0",
+          "sha256": "6759175c5ad7ceaaca355ee474da3fcd3ecbe0dc7ac5bea47ebd15213331dfdf"
+        },
+        {
+          "seed": 1,
+          "level": 3,
+          "variant": "launch-saved",
+          "rev": "ac862b3b",
+          "sha256": "f5f5098eb2c84ffb947bae64a2293e6852c3e8b0e0a212efe78ec14e2c21ae97"
+        },
+        {
+          "seed": 2,
+          "level": 3,
+          "variant": "launch-saved",
+          "rev": "11f2e53c",
+          "sha256": "e1d4d7e7f4ad1237144a1cde77d994f97f5787844e367ac536cb63be6e0cd912"
+        },
+        {
+          "seed": 3,
+          "level": 3,
+          "variant": "launch-saved",
+          "rev": "6675d558",
+          "sha256": "efb38aedebc4027cd04ab7ac5274e3c2205431d76e72a765343a85f187b65495"
+        },
+        {
+          "seed": 2654435769,
+          "level": 3,
+          "variant": "hit-or-miss",
+          "rev": "f0828cba",
+          "sha256": "9f6c27565c286d04277263d701359b5563b2551d12fc84ef2109b877595a2e8e"
+        },
+        {
+          "seed": 4294967295,
+          "level": 3,
+          "variant": "launch-saved",
+          "rev": "aa0e95e9",
+          "sha256": "f7297e20b8ef355289593a46b44f63c67d2c707124365fa7e2dd3206116fa4f7"
+        }
+      ]
+    },
+    "tr2.padding-waste": {
+      "version": 1,
+      "cases": [
+        {
+          "seed": 0,
+          "level": 0,
+          "variant": "padded-size",
+          "rev": "26a3bbb8",
+          "sha256": "b607cd3f531a309e07a81be76e1cdd12a7f856ef4b7d0aef654493689f6eb531"
+        },
+        {
+          "seed": 1,
+          "level": 0,
+          "variant": "night-waste",
+          "rev": "128fce8e",
+          "sha256": "a62be37ad71885390c17de1caa62c20d2ec031b4b19f00ff1c1f0a3aa0312b71"
+        },
+        {
+          "seed": 2,
+          "level": 0,
+          "variant": "padded-size",
+          "rev": "1fc9c162",
+          "sha256": "bb0e9706f9f8c27f758df4c4014dce9d362a67d32606f210e0f640ec57fac325"
+        },
+        {
+          "seed": 3,
+          "level": 0,
+          "variant": "night-waste",
+          "rev": "c31f78ae",
+          "sha256": "0a71bee545c1aa952d0de485cabf659a46b4fefc819b8b85e4ea08c27055b55c"
+        },
+        {
+          "seed": 2654435769,
+          "level": 0,
+          "variant": "night-waste",
+          "rev": "d75926ee",
+          "sha256": "243fc6ba6bce6f6e56475afe84a13391ba79c557524a4b10e7edb90fa373d42a"
+        },
+        {
+          "seed": 4294967295,
+          "level": 0,
+          "variant": "night-waste",
+          "rev": "5597cbb8",
+          "sha256": "657df38b2a743c506478526e87b6e53fae8c0d9d9709b8ea6166058dd18cbc17"
+        },
+        {
+          "seed": 0,
+          "level": 1,
+          "variant": "night-waste",
+          "rev": "e902ac51",
+          "sha256": "52438d0462112e39c661ce962b1f6d1baf590c16df96bfcde0983e824feaeee4"
+        },
+        {
+          "seed": 1,
+          "level": 1,
+          "variant": "night-waste",
+          "rev": "0a905076",
+          "sha256": "415b839960e10bc690ab06f017d4eaeab35b43b40c05c7f3a8ee48da92e18c1f"
+        },
+        {
+          "seed": 2,
+          "level": 1,
+          "variant": "padded-size",
+          "rev": "7ca7849d",
+          "sha256": "787cd92e77612fbab91e6e7131f6cbab6bdb1a0cce67a0385f9a33d3bbf9c78d"
+        },
+        {
+          "seed": 3,
+          "level": 1,
+          "variant": "padded-size",
+          "rev": "110d28ea",
+          "sha256": "72e6832361358b5480126a7b014bc18bc96e6c97ff211fcd46014ff43b6cac3d"
+        },
+        {
+          "seed": 2654435769,
+          "level": 1,
+          "variant": "padded-size",
+          "rev": "ccfd4d9c",
+          "sha256": "475487815313a4de28cad7afa3f91702c6e141bd491c9d798483803396a99e63"
+        },
+        {
+          "seed": 4294967295,
+          "level": 1,
+          "variant": "night-waste",
+          "rev": "5b709fcc",
+          "sha256": "eaf31e63a0fd6362554be25213efc7210a8db43dc61b91d530d9213491ad8b87"
+        },
+        {
+          "seed": 0,
+          "level": 2,
+          "variant": "night-waste",
+          "rev": "b0decdcf",
+          "sha256": "c6b6cfab928d48d5d07f030303c63f3a7e0fdcca37d60ad96ef7f8a9bc635045"
+        },
+        {
+          "seed": 1,
+          "level": 2,
+          "variant": "night-waste",
+          "rev": "edb395fa",
+          "sha256": "b9c93457e7720c4e642afd76738cb44c77a750b7c127c15e42a221f294c3a60f"
+        },
+        {
+          "seed": 2,
+          "level": 2,
+          "variant": "choose-sizes",
+          "rev": "a9798b4e",
+          "sha256": "a2a76a20cec7dec7172a57d275dfdc9904648aca6d63dc4d4a7d617454d7a088"
+        },
+        {
+          "seed": 3,
+          "level": 2,
+          "variant": "choose-sizes",
+          "rev": "fe44dfc8",
+          "sha256": "13b1014afebaa47ff98ba923a2d783aa4f8a6d262199b27e5e14753095b1a704"
+        },
+        {
+          "seed": 2654435769,
+          "level": 2,
+          "variant": "choose-sizes",
+          "rev": "aa1b0f4a",
+          "sha256": "df9b1de0921d6a2c16ef5526ae4ff8179cefaf40772a80fd58ccd2984bc74fdb"
+        },
+        {
+          "seed": 4294967295,
+          "level": 2,
+          "variant": "night-waste",
+          "rev": "b1427c9d",
+          "sha256": "f78c94d0052b1cd89721b10165962830fd294361d5246d56a16ed85a747ca995"
+        },
+        {
+          "seed": 0,
+          "level": 3,
+          "variant": "night-waste",
+          "rev": "3f495d93",
+          "sha256": "afd4f0a5ada25b883244a60b83ad461359b57570a696297f3cc43daa2249ad3a"
+        },
+        {
+          "seed": 1,
+          "level": 3,
+          "variant": "night-waste",
+          "rev": "710c6cbc",
+          "sha256": "e49f9eb4bc5ccf33a170c95b7b84b51af08bb59c8b0ce498a860f727af5a54c6"
+        },
+        {
+          "seed": 2,
+          "level": 3,
+          "variant": "night-waste",
+          "rev": "d5d8e1ab",
+          "sha256": "384861f3214fcec24116112fe001fc0ee0f51d2699322d1dd152e8a02abec3cf"
+        },
+        {
+          "seed": 3,
+          "level": 3,
+          "variant": "padded-size",
+          "rev": "befe9eac",
+          "sha256": "d616940dabd36bee6183a1787e4a0c6499639d6f74a696f03dd83f2e8976b235"
+        },
+        {
+          "seed": 2654435769,
+          "level": 3,
+          "variant": "night-waste",
+          "rev": "e69df149",
+          "sha256": "b33a56fc209cb5114ea5e00e247f3200acce9d47f4b31bb8b3fde5a102c54f5f"
+        },
+        {
+          "seed": 4294967295,
+          "level": 3,
+          "variant": "padded-size",
+          "rev": "d83b6ed2",
+          "sha256": "e6712c575588f638ca10ed15221c12bd6cdddad7caee9220d35dafbdcd6ebd2d"
+        }
+      ]
     }
   }
 }

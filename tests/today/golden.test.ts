@@ -18,13 +18,22 @@ import path from 'node:path'
 import { deriveCards, dueCards, nextDueDay } from '../../src/items/today/cards'
 import type { Card } from '../../src/items/today/cards'
 import { addDays, daysBetween } from '../../src/items/today/days'
-import { appKcsOfRef } from '../../src/items/today/kcs'
+import { kcsOfRef, sourcesOf } from '../../src/items/today/kcs'
+import type { KcsOfRef } from '../../src/items/today/kcs'
 import { intervalDays, nextMemory } from '../../vendor/kernelspace/src/lib/learner/fsrs'
 import type { MemoryState } from '../../vendor/kernelspace/shims/src/lib/learner/types'
 import { A, B, C, D, DAYS, day, F, G, H, KCS, START, STEPS, writeAll } from './ledger-30'
 import { TestLedger } from './support'
 
 const FIXTURE = path.resolve(import.meta.dirname, '../fixtures/today/due-30.json')
+
+/**
+ * The map the script is written against: this build's, with Service held to the two ideas that its graded run of day 5 was written for. The
+ * game exercises more ideas as its levels are built (W1-T14's `close` names three more), and the month's golden is about the schedule that a
+ * ledger produces, so it does not move with the registry. tests/today/kcs.test.ts holds the build's own map.
+ */
+const sources = sourcesOf()
+const appKcsOfRef: KcsOfRef = (ref) => kcsOfRef(ref, { ...sources, game: (game) => (game === 'loop' ? [C, D] : sources.game(game)) })
 
 interface DayRow {
   day: string

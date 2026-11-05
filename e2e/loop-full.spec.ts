@@ -3,6 +3,8 @@
  *
  *   1. Every level can be won by keyboard: the prediction called, the lever set, the night served and the debrief opened, with no pointer,
  *      on the level's practice seed. The keys are the game's (`O`, `G`, `M`, `[` and `]`) and Tab, the arrows and Enter.
+ *      W1-T14's graded `close` is one of them: its levers are the switches, the mode and the ladder of sizes, its closed book hides the mode a
+ *      lever resolves to and the memory the routines take until the night is served, and a graded run draws its seed when it starts.
  *   And the 3D bar's budget (D-023, frozen): a whole night of a TR2 level draws in at most 100 calls, read from the scene's own
  *   `renderer.info`, at T1 and at T2, with the mold rack, the comb and the padding on the pass.
  *   (3. `scene-loop` at most 40 KB gz is verify:bundle's; the task's result records the measured size.)
@@ -21,6 +23,7 @@ import path from 'node:path'
 import { test as base, expect } from '@playwright/test'
 import type { Locator, Page } from '@playwright/test'
 import { build } from 'vite'
+import { FULL_SERVICE } from '../packages/play/loop/entry'
 import { buildFullLevel, MODES } from '../packages/play/loop/full/levels'
 import type { FullLevelId } from '../packages/play/loop/full/types'
 import type { FrameStats } from '../src/scene/stage-runtime'
@@ -150,10 +153,11 @@ async function debrief(page: Page) {
   await expect(page.locator('[data-full-debrief]')).toContainText('Well served.')
 }
 
-/** Cycles the graph mode with `G` until the panel asks for `mode`. */
+/** Cycles the graph mode with `G` until the panel asks for `mode`. (`FULL` is the start of `FULL_DECODE_ONLY`, so the plate's word is matched whole.) */
 async function mode(page: Page, wanted: string) {
   for (let i = 0; i < MODES.length; i++) {
-    if ((await page.locator('[data-full-levers] [role="radio"][aria-checked="true"]').textContent())?.startsWith(wanted)) return
+    const asked = (await page.locator('[data-full-levers] [role="radio"][aria-checked="true"]').textContent()) ?? ''
+    if (asked.split(' ')[0] === wanted) return
     await key(page, 'KeyG')
   }
   throw new Error(`G never reached ${wanted}`)
@@ -242,6 +246,83 @@ test.describe('acceptance check 1: every level can be won by keyboard (practice 
   test('keys waits behind its card for the owner\'s tables', async ({ page }) => {
     await page.goto(`${ORIGIN}/play/loop?level=keys&es-tier=0`)
     await expect(page.locator('[data-keys-waiting="waiting"]')).toContainText("Waiting for the owner's tables")
+  })
+})
+
+const CLOSE_SEED = FULL_SERVICE.find((level) => level.id === 'close')?.practiceSeed ?? 0
+
+/** Toggles the plates of the capture ladder from the keyboard: Tab to the roving plate, the arrows to a size, Enter to press or lift it. */
+async function pressSizes(page: Page, ladder: readonly number[], sizes: readonly number[]) {
+  await tabTo(page, page.locator('[aria-label="Capture sizes"] button[tabindex="0"]'))
+  let at = ladder.indexOf(Number(await page.evaluate(() => document.activeElement?.textContent)))
+  for (const size of sizes) {
+    const to = ladder.indexOf(size)
+    for (; at < to; at++) await page.keyboard.press('ArrowRight')
+    for (; at > to; at--) await page.keyboard.press('ArrowLeft')
+    await page.keyboard.press('Enter')
+  }
+}
+
+test.describe('W1-T14: `close`, the graded level', () => {
+  test('is won by keyboard on its practice seed: the prediction, the switches, the mode and the ladder, one night, and the debrief', async ({ page }) => {
+    test.setTimeout(240_000)
+    const [world] = buildFullLevel('close', CLOSE_SEED).stages
+    const ladder = world.ladder ?? []
+    await open(page, 'close', 0)
+    // Closed-book: the cards stand under the view, and the live readouts and the house's clock wait for the night.
+    await expect(page.locator('[data-close-cards]')).toBeVisible()
+    await expect(page.locator('[data-full-resolved]')).toHaveCount(0)
+    await expect(page.locator('[data-full-memory]')).toHaveCount(0)
+    await expect(game(page)).not.toContainText('against the house')
+    await call(page, world.answer)
+    await key(page, 'KeyO')
+    await expect(page.getByRole('switch', { name: /Write the next call during this fire/ })).toHaveAttribute('aria-checked', String(world.house.async))
+    await key(page, 'KeyM')
+    await expect(page.getByRole('switch', { name: /The V2 runner/ })).toHaveAttribute('aria-checked', String(world.house.runner === 'mrv2'))
+    await tabTo(page, page.getByRole('switch', { name: /The line fills the next call's input ids/ }))
+    await page.keyboard.press('Space')
+    await expect(page.getByRole('switch', { name: /The line fills the next call's input ids/ })).toHaveAttribute('aria-checked', String(world.house.inputIds === 'device'))
+    await mode(page, world.house.graphMode)
+    // The ladder: lift the engine's own sizes that the house does not drill, and press the house's.
+    await pressSizes(page, ladder, world.start.captureSizes.filter((size) => !world.house.captureSizes.includes(size)))
+    await pressSizes(page, ladder, world.house.captureSizes.filter((size) => !world.start.captureSizes.includes(size)))
+    for (const size of ladder) {
+      await expect(page.locator('[aria-label="Capture sizes"] button', { hasText: new RegExp(`^${size}$`) })).toHaveAttribute('aria-pressed', String(world.house.captureSizes.includes(size)))
+    }
+    // One ring serves the whole night, with no bell and no Auto.
+    await expect(page.getByRole('button', { name: 'Auto' })).toHaveCount(0)
+    await tabTo(page, page.getByRole('button', { name: 'Serve the night' }))
+    await page.keyboard.press('Enter')
+    await expect(page.locator('[data-full-verdict="pass"]')).toBeVisible({ timeout: 30_000 })
+    await expect(page.locator('[data-full-resolved]')).toHaveCount(1)
+    await expect(page.locator('[data-full-memory]')).toHaveCount(1)
+    await expect(game(page)).toContainText('against the house')
+    await debrief(page)
+    await expect(page.locator('[data-full-verdict-debrief]')).toContainText('The night meets the bar.')
+  })
+
+  test('a graded run draws its seed when it starts, has no undo, and serves one night that the debrief reads against the house', async ({ page }) => {
+    test.setTimeout(240_000)
+    await open(page, 'close', 0)
+    await expect(game(page)).toHaveAttribute('data-mode', 'practice')
+    await expect(page.getByRole('button', { name: 'Undo' })).toBeVisible()
+    await page.getByRole('button', { name: 'Start a graded run' }).click()
+    await expect(game(page)).toHaveAttribute('data-mode', 'graded')
+    await expect(page.locator('[data-full-mode="graded"]')).toContainText('A graded run: fresh numbers drawn now, no undo')
+    await expect(page.getByRole('button', { name: 'Undo' })).toHaveCount(0)
+    // The naive configuration, served: a night that fails the bar, whatever the draw.
+    await call(page, 50)
+    await tabTo(page, page.getByRole('button', { name: 'Serve the night' }))
+    await page.keyboard.press('Enter')
+    await expect(page.locator('[data-full-verdict]')).toBeVisible({ timeout: 30_000 })
+    await tabTo(page, page.getByRole('button', { name: 'See the debrief' }))
+    await page.keyboard.press('Enter')
+    await expect(page.locator('[data-full-debrief]')).toContainText('Serve it again.')
+    await expect(page.locator('[data-full-debrief]')).toContainText('The lever worth the most:')
+    await expect(page.locator('[data-full-config-table]')).toBeVisible()
+    await page.getByRole('button', { name: 'Another graded run' }).click()
+    await expect(game(page)).toHaveAttribute('data-mode', 'graded')
+    await expect(page.locator('[data-full-prediction="open"]')).toBeVisible()
   })
 })
 

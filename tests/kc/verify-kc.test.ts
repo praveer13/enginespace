@@ -478,19 +478,23 @@ describe('the files the gate reads beside the graph', () => {
 describe('as a process', () => {
   /**
    * The KCs that the real registry's games name, so that a tree of its own agrees with the real registry (verify:games' world). Service's
-   * two stay as they were when it was the only game: the first is planned, and the second requires it and is planned. Every other game's
-   * KCs join them, one entry each: a KC that a graded level earns carries nothing, and one that only practice levels reach carries
-   * `planned`, as the gate asks. A game registered later is added here without this file being touched (W1-T28 registered the second).
+   * first two stay as they were when it was the only game: the first is planned, and the second requires it and is planned (the gate warns
+   * that both are stale now that `close` is graded, and a warning is not a failure). Every other KC of every game joins them, one entry
+   * each: a KC that a graded level earns carries nothing, and one that only practice levels reach carries `planned`, as the gate asks. A game
+   * registered later is added here without this file being touched (W1-T28 registered the second; W1-T14 gave Service its graded level and three more KCs).
    */
   const loopKcs = graphOf(kc('tr2.bubble', PLANNED), kc('tr2.async-overlap', { requires: '[tr2.bubble]', ...PLANNED }))
   const LOOP_IDS = ['tr2.bubble', 'tr2.async-overlap']
   const others = new Map<string, { planned: boolean }>()
   for (const game of GAMES.games) {
-    if (game.id === 'loop') continue
     const earns = game.levels.some((level) => level.graded)
     // A KC is planned only while no game with a graded level names it.
     for (const id of game.kcs) if (!LOOP_IDS.includes(id)) others.set(id, { planned: !earns && (others.get(id)?.planned ?? true) })
   }
+  /** Service's KCs beyond the two above: the module of course.yaml that is missing in the tests that leave tr2 out names an error for each. */
+  const loopMore = [...others.keys()].filter((id) => id.startsWith('tr2.')).length
+  /** Whether Service's two KCs are earned: the gate sees a graded level of the game that names them. */
+  const loopEarns = GAMES.get('loop')?.levels.some((level) => level.graded) === true
   /** A graph, and then one entry for each KC of the other games. */
   const withGames = (graph: string): string => (others.size === 0 ? graph : `${graph}\n${graphOf(...[...others].map(([id, o]) => kc(id, o.planned ? PLANNED : {})))}`)
   // The gate counts the modules in the order the graph first names them, which is the order the games register in.
@@ -500,7 +504,7 @@ describe('as a process', () => {
     const ids = [...LOOP_IDS, ...others.keys()]
     // The gate lists the modules in the order the graph meets them, which is the order of the games in the registry.
     const byModule = [...new Set(ids.map((id) => id.split('.')[0]))].map((module) => `${module} ${ids.filter((id) => id.startsWith(`${module}.`)).length}`)
-    const earned = [...others.values()].filter((o) => !o.planned).length
+    const earned = (loopEarns ? LOOP_IDS.length : 0) + [...others.values()].filter((o) => !o.planned).length
     const planned = LOOP_IDS.length + [...others.values()].filter((o) => o.planned).length
     return `${ids.length} KCs (${byModule.join(', ')}), 0 thresholds, 0 confusable pairs, 0 kernelspace prerequisites; ${earned} with a graded reference, ${planned} planned`
   }
@@ -515,7 +519,8 @@ describe('as a process', () => {
     const { status, out } = gate(tree(withGames(loopKcs)))
     expect(status).toBe(0)
     expect(out).toContain(`verify:kc passed: ${counted()}`)
-    expect(out).toContain('note: games: loop has no graded level yet')
+    // A game says so while it has no graded level: Service did until W1-T14.
+    for (const game of GAMES.games) expect(out.includes(`note: games: ${game.id} has no graded level yet`), game.id).toBe(!game.levels.some((level) => level.graded))
     expect(out).toContain('note: items: packages/play/items does not exist yet (W1-T04)')
     expect(out).toContain('note: labs: lab checks are not a source yet')
   })
@@ -546,7 +551,7 @@ describe('as a process', () => {
 
   test('reads course.yaml, the tracker and the snapshot when the tree has them', () => {
     const graph = withGames(graphOf(kc('tr2.bubble', { requires: '[ks:t5.kv-capacity]', planned: 'W1-T14' }), kc('tr2.async-overlap', { requires: '[tr2.bubble]', planned: 'W1-T99' })))
-    // Course.yaml has tr1 and the modules of the other games' KCs, and not tr2: so the two errors about a module are Service's.
+    // Course.yaml has tr1 and the modules of the other games' KCs, and not tr2: so the errors about a module are Service's, one for each of its KCs.
     const module = (id: string) => `  - id: ${id}\n    title: Module ${id}\n    hours: 10\n    hours_by_lane: { B: 10 }\n`
     const dir = tree(graph, {
       'docs/TRACKER.md': '#### [ ] W1-T14 · TR2 · M · sonnet\n',
@@ -558,7 +563,8 @@ describe('as a process', () => {
     expect(out).toContain('error unknown-module: ')
     expect(out).toContain('error unknown-ks-kc: ')
     expect(out).toContain('error unknown-task: ')
-    expect(out).toMatch(/verify:kc failed: 4 errors in 1 file\n$/)
+    // The two of Service's that the graph still calls planned are stale now that `close` is graded, and the gate says so in two warnings.
+    expect(out).toMatch(new RegExp(`verify:kc failed: ${4 + loopMore} errors in 1 file(, \\d+ warnings?)?\\n$`))
   })
 
   test('a ks: edge with no snapshot fails, and a description that only speaks of a ks: id does not need one', () => {

@@ -486,9 +486,9 @@ describe('the blocks, one at a time', () => {
   })
 
   test('an item block of a family that no task has built yet says so, and holds its stub down', () => {
-    const html = drawnBlocks({ type: 'item', family: 'tr2.graph-hit', level: 1, count: 5 })
+    const html = drawnBlocks({ type: 'item', family: 'tr2.dispatch-key', level: 1, count: 5 })
     expect(html).toContain('data-phase="unbuilt"')
-    expect(html).toContain('Not built yet: the generator for tr2.graph-hit')
+    expect(html).toContain('Not built yet: the generator for tr2.dispatch-key')
     expect(html).toMatch(/<button type="button" class="es-stub__pull"[^>]*disabled=""/)
   })
 

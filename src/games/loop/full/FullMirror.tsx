@@ -4,6 +4,7 @@ import { ticketNo } from '@es/play/loop/layout'
 import type { FullFire, FullView } from '@es/play/loop/full/types'
 import { formatReadout } from '@/design/format'
 import { MirrorTable, type MirrorColumn, type MirrorRow } from '@/games/kit/MirrorTable'
+import { CloseCards } from './CloseCards'
 import type { FullRun } from './types'
 
 /*
@@ -143,7 +144,9 @@ export function FullMirror({ run }: { run: FullRun }) {
   const { view } = run
   const c = view.counters
   const capture = view.stage.metric === 'capture'
-  return (
+  // A closed-book stage keeps the house's clock to itself until its night is served.
+  const hidden = view.stage.sealed && !view.stage.closed
+  const table = (
     <MirrorTable
       className="min-w-0"
       id={run.mirrorId}
@@ -152,16 +155,22 @@ export function FullMirror({ run }: { run: FullRun }) {
       summary={
         <>
           {view.stage.title}. Fire {num(view.step)}
-          {view.nightFires === null ? '' : <> of {num(view.nightFires)}</>}. {capture ? 'Capture cost' : 'Clock'}{' '}
-          {num(capture ? c.captureUs : c.clockUs)} µs against the house's {num(view.stage.houseMetric)}. Plates {num(c.usefulTokens)}, binned{' '}
-          {num(c.ghostTokens)}, padded places {num(c.paddedTokens)}, calls {num(c.launches)}, dish by dish {num(c.eagerSteps)}. Line busy{' '}
-          {num(c.gpuBusyUs)} µs, dark {num(c.bubbleUs)} µs.{' '}
+          {view.nightFires === null ? '' : <> of {num(view.nightFires)}</>}. {capture ? 'Capture cost' : 'Clock'} {num(capture ? c.captureUs : c.clockUs)} µs
+          {hidden ? '' : <> against the house's {num(view.stage.houseMetric)}</>}. Plates {num(c.usefulTokens)}, binned {num(c.ghostTokens)}, padded places {num(c.paddedTokens)},
+          calls {num(c.launches)}, dish by dish {num(c.eagerSteps)}. Line busy {num(c.gpuBusyUs)} µs, dark {num(c.bubbleUs)} µs.{' '}
           {view.synthetic ? 'Every figure is synthetic.' : "The line's µs are derived from S5's fit; the expo's are estimated."}
         </>
       }
       columns={columnsOf(view)}
       rows={rowsOf(view)}
-      empty="No fire has been rung yet. Call the prediction, set the levers and ring the bell."
+      empty={view.stage.sealed ? 'No night has been served yet. Call the prediction, set the levers from the cards and serve the night.' : 'No fire has been rung yet. Call the prediction, set the levers and ring the bell.'}
     />
+  )
+  if (view.stage.cards === null) return table
+  return (
+    <div className="flex min-w-0 flex-col gap-6">
+      <CloseCards view={view} />
+      {table}
+    </div>
   )
 }

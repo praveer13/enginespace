@@ -9,7 +9,8 @@
 import { describe, expect, test } from 'bun:test'
 import { buildFullLevel, defaultLevers, FULL_LEVEL_IDS, inFullBand, MODES, stageInBand } from '@es/play/loop/full/levels'
 import { graphBytes, nightOf, resolvedMode, servingMode } from '@es/play/loop/full/night'
-import { meetsBar } from '@es/play/loop/full/session'
+import { FULL_SERVICE } from '@es/play/loop/entry'
+import { nightMeetsBar } from '@es/play/loop/full/session'
 import type { FullLevelId, Levers, StageWorld } from '@es/play/loop/full/types'
 import { seeds } from '../seeds'
 
@@ -20,17 +21,19 @@ const CHECKED = 50
 const inBand = (id: FullLevelId): number[] => SEEDS.filter((seed) => inFullBand(id, seed))
 const served = (stage: StageWorld, levers: Levers): boolean => {
   const night = nightOf(stage, levers)
-  return night !== null && meetsBar(stage, night.metric)
+  return night !== null && nightMeetsBar(stage, night)
 }
+/** A level's pinned practice seed: the registry's. */
+const practiceSeed = (id: FullLevelId): number => FULL_SERVICE.find((level) => level.id === id)?.practiceSeed ?? Number.NaN
 const pct = (part: number, whole: number) => `${((100 * part) / whole).toFixed(1)}%`
 
 describe('the bands (GAMES.md §2.1)', () => {
-  test.each(FULL_LEVEL_IDS.map((id) => [id]))('%s accepts at least the 20%% floor of the seeds, and seed 0, its practice seed', (id) => {
+  test.each(FULL_LEVEL_IDS.map((id) => [id]))('%s accepts at least the 20%% floor of the seeds, and its practice seed', (id) => {
     const accepted = inBand(id)
     console.log(`${id}: ${accepted.length} of ${SEEDS.length} seeds in band (${pct(accepted.length, SEEDS.length)})`)
     expect(accepted.length / SEEDS.length).toBeGreaterThanOrEqual(0.2)
     expect(accepted.length).toBeGreaterThanOrEqual(CHECKED)
-    expect(inFullBand(id, 0)).toBe(true)
+    expect(inFullBand(id, practiceSeed(id))).toBe(true)
   })
 })
 
@@ -135,6 +138,6 @@ describe('the worlds', () => {
 
   test('a level that the full service does not have is refused', () => {
     expect(() => buildFullLevel('keys', 0)).toThrow('the full service has no level "keys"')
-    expect(() => buildFullLevel('close', 0)).toThrow('the full service has no level "close"')
+    expect(() => buildFullLevel('no-such-level', 0)).toThrow('the full service has no level "no-such-level"')
   })
 })

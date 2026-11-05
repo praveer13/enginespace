@@ -112,7 +112,7 @@ describe('the registry\'s record of Service', () => {
     const full = session.level('graphs', 0)
     expect(session.view(session.init(full))).toEqual(fullSession.view(fullSession.init(fullSession.level('graphs', 0))))
     expect(() => session.level('keys', 0)).toThrow('Service has no level "keys"')
-    expect(() => session.level('close', 0)).toThrow('Service has no level "close"')
+    expect(() => session.level('no-such-level', 0)).toThrow('Service has no level "no-such-level"')
   })
 })
 

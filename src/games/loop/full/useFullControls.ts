@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react'
 import type { FullAction, FullView } from '@es/play/loop/full/types'
 import { formatReadout } from '@/design/format'
+import { verdictWords } from './tags'
 import type { FullRun } from './types'
 
 /*
@@ -34,7 +35,8 @@ export function fullChangeLine(before: FullView, after: FullView): string {
   }
   if (after.stage.served.length > before.stage.served.length) {
     const night = after.stage.served[after.stage.served.length - 1]
-    said.push(`The night is served in ${formatReadout(night.metric)} µs against the house's ${formatReadout(after.stage.houseMetric)}: ${night.ok ? 'it meets the bar' : 'it misses the bar'}.`)
+    if (after.stage.verdict !== null) said.push(`The night is served. ${verdictWords(after.stage.verdict)}`)
+    else said.push(`The night is served in ${formatReadout(night.metric)} µs against the house's ${formatReadout(after.stage.houseMetric)}: ${night.ok ? 'it meets the bar' : 'it misses the bar'}.`)
   }
   if (!before.done && after.done) said.push('Every stage is closed: the debrief is ready.')
   return said.join(' ')

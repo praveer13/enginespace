@@ -21,6 +21,10 @@ const BUILD: Readonly<Record<FullLevelId, { readonly title: string; readonly bod
     title: 'Set the runner, and read the step',
     body: 'Serve the small model with VLLM_USE_V2_MODEL_RUNNER=0 and without it, and compare the host time of a step in each trace: the share that input preparation on the GPU takes off the expo. TR3\'s lab profiles both, with W2.',
   },
+  close: {
+    title: 'Close the gap on a real engine',
+    body: "Serve the same small model on vLLM v0.33.0 with --no-async-scheduling and without, and with the capture sizes left to the engine and then set to the batch's own, and profile a step of each: the gap between two forwards is the dark stretch this level drew, and the graphs' memory is the cache that the engine reports it kept. TR3's lab runs the experiments (tr3.profile.s4 and tr3.profile.s5), with W2.",
+  },
   mask: {
     title: 'Time the allergy card',
     body: "Serve requests with a JSON schema and read where the bitmask's fill falls in the step's trace, against the forward. TR6's mask-overlap timeline (W1-T30) draws vLLM's and SGLang's answers on one axis.",

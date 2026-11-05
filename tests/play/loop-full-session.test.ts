@@ -7,6 +7,7 @@
 import { describe, expect, test } from 'bun:test'
 import { applyAction, finishRun, startRun, stateHash } from '@es/play'
 import { serviceSession } from '@es/play/loop/game'
+import { FULL_SERVICE } from '@es/play/loop/entry'
 import { buildFullLevel, FULL_LEVEL_IDS, NIGHTS_PER_STAGE } from '@es/play/loop/full/levels'
 import { nightOf } from '@es/play/loop/full/night'
 import { fullSession } from '@es/play/loop/full/session'
@@ -15,6 +16,8 @@ import { seeds } from '../seeds'
 
 const play = (state: FullState, ...actions: FullAction[]): FullState => actions.reduce((s, a) => fullSession.reduce(s, a), state)
 const start = (id: string, seed = 0): FullState => fullSession.init(fullSession.level(id, seed))
+/** A level's pinned practice seed: the registry's. */
+const practiceSeedOf = (id: string): number => FULL_SERVICE.find((level) => level.id === id)?.practiceSeed ?? 0
 /** The seeds a search for a night of a kind walks, from the knob (tests/seeds.ts); it stops at the first. */
 const SEEDS = seeds(0)
 
@@ -108,20 +111,20 @@ describe('closing the stages', () => {
 
 describe('the house, the grade and the debrief', () => {
   test.each(FULL_LEVEL_IDS.map((id) => [id]))('%s: the house finishes, passes its own bar with a score of 1, and is the same twice', (id) => {
-    const level = fullSession.level(id, 0)
+    const level = fullSession.level(id, practiceSeedOf(id))
     const ghost = fullSession.ghost(level)
     expect(fullSession.done(ghost)).toBe(true)
     expect(fullSession.grade(ghost, ghost)).toEqual({ score: 1, ok: true })
-    expect(stateHash(ghost)).toBe(stateHash(fullSession.ghost(fullSession.level(id, 0))))
+    expect(stateHash(ghost)).toBe(stateHash(fullSession.ghost(fullSession.level(id, practiceSeedOf(id)))))
     expect(fullSession.debrief(ghost, ghost).names).toBeNull()
   })
 
-  test.each(FULL_LEVEL_IDS.map((id) => [id]))('%s: a learner who serves the naive configuration three times fails, and the debrief names the lever', (id) => {
-    const level = fullSession.level(id, 0)
+  test.each(FULL_LEVEL_IDS.map((id) => [id]))('%s: a learner who serves the naive configuration until the stage closes fails, and the debrief names the lever', (id) => {
+    const level = fullSession.level(id, practiceSeedOf(id))
     let s = fullSession.init(level)
     for (const stage of level.stages) {
       s = play(s, { t: 'stage', to: stage.id }, { t: 'commit', prediction: 0 })
-      for (let night = 0; night < NIGHTS_PER_STAGE && !s.stages[s.at].served.some((n) => n.ok); night++) s = play(s, { t: 'run', until: 'decision' })
+      for (let night = 0; night < stage.nights && !s.stages[s.at].served.some((n) => n.ok); night++) s = play(s, { t: 'run', until: 'decision' })
     }
     expect(fullSession.done(s)).toBe(true)
     const grade = fullSession.grade(s, fullSession.ghost(level))
@@ -129,7 +132,9 @@ describe('the house, the grade and the debrief', () => {
     expect(grade.score).toBeLessThan(1)
     const debrief = fullSession.debrief(s, fullSession.ghost(level))
     const missed = level.stages.find((_, i) => !s.stages[i].served.some((n) => n.ok))!
-    expect(debrief.names).toEqual({ lever: missed.levers[0] })
+    // A practice stage names its lever; the graded stage weighs each lever from the configuration served, and names the one worth the most.
+    if (missed.bar === 'throughput') expect(['async', 'graphMode', 'capture', 'runner']).toContain((debrief.names as { lever: string }).lever)
+    else expect(debrief.names).toEqual({ lever: missed.levers[0] })
     expect(debrief.sentence).toContain(missed.title)
   })
 })
@@ -186,8 +191,8 @@ describe('the view: the kitchen of the night at the bell', () => {
 
 describe('the record', () => {
   test.each(FULL_LEVEL_IDS.map((id) => [id]))('%s: a run replays from its log through the game\'s one session to the same state', (id) => {
-    let run = startRun(serviceSession, { game: 'loop', level: id, seed: 0 })
-    const level = fullSession.level(id, 0)
+    let run = startRun(serviceSession, { game: 'loop', level: id, seed: practiceSeedOf(id) })
+    const level = fullSession.level(id, practiceSeedOf(id))
     for (const stage of level.stages) {
       for (const action of [{ t: 'stage', to: stage.id }, { t: 'commit', prediction: stage.answer }] as FullAction[]) run = applyAction(serviceSession, run, action)
       for (const lever of stage.levers) {
