@@ -17,7 +17,7 @@ import { framingFor } from '@/scene/camera-rig'
 import { buildProp } from '@/scene/props/build'
 import { paletteFrom } from '@/scene/props/palette'
 import { changeOf, ringHeight, tastingKitchen, tastingScene, type Band } from '@/games/verifier/scene-layout'
-import { columnX, FRONT, FULL, NAMES, PAIR, planOf, PLATE, presetsOf, rowZ, stackHeight, TOP, type Plan } from '@/games/verifier/scene-plan'
+import { columnX, FRONT, FULL, NAMES, PAIR, planOf, PLATE, presetsOf, ROW, rowZ, stackHeight, TOP, type Plan } from '@/games/verifier/scene-plan'
 import { DEFAULT_PRESET, TASTING_SHOTS } from '@/games/verifier/scene-shots'
 import { runOf, sculptActions } from './verifier-support'
 
@@ -92,8 +92,8 @@ describe('the framings of W1\'s finish review, round 1', () => {
     return project(framing.position, framing.target, framing.fov, width / height, point)
   }
 
-  test('on a phone, over the run, the pass\'s front edge stands at the foot of the box, so no floor shows under it', () => {
-    for (const plan of [planOf('rows', 1), planOf('rows', 4), planOf('rows', 5), planOf('gamma', 1)]) {
+  test('on a phone, over a run of courses, the pass\'s front edge stands at the foot of the box, so no floor shows under it', () => {
+    for (const plan of [planOf('rows', 4), planOf('rows', 5)]) {
       for (const [width, height] of [
         [358, 437],
         [288, 358],
@@ -126,6 +126,58 @@ describe('the framings of W1\'s finish review, round 1', () => {
       const xs = tags.map((tag) => ((at(plan, 'run', width, height, tag.at)[0] + 1) / 2) * width)
       // A tag of two counts in the printer's dots is about 45 px wide at its smallest print [estimated from the face's metrics].
       for (let d = 1; d < xs.length; d++) expect([width, d, xs[d] - xs[d - 1] > 48]).toEqual([width, d, true])
+    }
+  })
+})
+
+describe('the framings of W1\'s finish review, round 2', () => {
+  const at = (plan: Plan, id: string, width: number, height: number, point: readonly number[]) => {
+    const framing = framingFor(presetsOf(plan, TASTING_SHOTS).find((preset) => preset.id === id) ?? presetsOf(plan, TASTING_SHOTS)[0], width)
+    return project(framing.position, framing.target, framing.fov, width / height, point)
+  }
+
+  test('on a phone, over one course, the camera stands low and near: the pass in the box\'s lower half and the floor in front of it under the foot', () => {
+    // W1's finish review, round 2: from higher the wall and the lamps' cords took the top of the box and the pass its foot. Six pairs
+    // across a phone's box stand no taller from any height, so the camera comes down and in, and the room over the pass falls into haze.
+    for (const plan of [planOf('rows', 1), planOf('gamma', 1)]) {
+      for (const [width, height] of [
+        [358, 437],
+        [288, 358],
+        [447, 506],
+      ]) {
+        const [, edge] = at(plan, 'run', width, height, [0, TOP - 0.03, FRONT + 0.017])
+        const [, floor] = at(plan, 'run', width, height, [0, 0, FRONT])
+        expect([plan.kind, width, edge > -0.6 && edge < 0, floor < -1]).toEqual([plan.kind, width, true, true])
+      }
+    }
+  })
+
+  test('walking with the chef, every dish\'s tape on the pass\'s edge stands whole inside the box, at the page\'s boxes', () => {
+    // W1's finish review, round 2: the soup's tape at the far end of the pass stood half out of the box, a stray letter over the salad's.
+    // A tape is about 9 px a letter and 10 px of torn ends wide, and 22 px tall at most [estimated from the page's tapes, 37 to 53 px by
+    // 17 to 20 px at 390 and 1440 px].
+    for (const view of [viewOf('overlap', 0), S.view(runOf('chain', 1))]) {
+      const plan = planFor(view)
+      const tapes = sceneOf(view).anchors.filter((anchor) => anchor.kind === 'tape')
+      expect(tapes).toHaveLength(6)
+      for (const [width, height] of [
+        [715, 490],
+        [715, 512],
+        [715, 435],
+        [562, 348],
+        [704, 288],
+        [358, 437],
+        [447, 506],
+        [288, 358],
+      ]) {
+        for (const tape of tapes) {
+          const [nx, ny] = at(plan, 'walk', width, height, tape.at)
+          const x = ((nx + 1) / 2) * width
+          const y = ((1 - ny) / 2) * height
+          const half = (10 + 9 * tape.text.length) / 2
+          expect([view.level, width, height, tape.text, x - half > 0 && x + half < width && y - 11 > 0 && y + 11 < height]).toEqual([view.level, width, height, tape.text, true])
+        }
+      }
     }
   })
 })
@@ -180,9 +232,27 @@ describe('the room: scene kit v1\'s props, laid out for the plan', () => {
     }
   })
 
-  test('the room\'s light falls away from the line, and the stations stay cold: no amber but over the present', () => {
+  test('the room\'s light falls away behind the pass and up the wall over the line, and the stations stay cold: no amber but over the present', () => {
     expect(kitchen.room.dim).toBeLessThan(1)
-    expect(kitchen.room.beyond).toBeLessThan(plan.back)
+    // W1's finish review, round 2: an evenly lit tile wall stopped the room. It falls away from just over the line, and the floor seen
+    // under the pass, through its open shelf, from just behind it.
+    expect(kitchen.room.beyond).toBe(plan.back)
+    const hood = kitchen.items.find((item) => item.kind === 'hood')
+    if (hood?.kind !== 'hood') throw new Error('no hood')
+    expect(kitchen.room.above).toBeLessThan(hood.at[1] - hood.height - 0.5)
+  })
+
+  test('the lamps hang a little behind the course, so their light pools on its plates and not on the pass in front of them', () => {
+    // W1's finish review, round 2: from over the front course, brushed steel showed the lamps' light as a wash in front of it.
+    for (const [, z] of scene.lamps) {
+      expect(z).toBeLessThan(0)
+      expect(z).toBeGreaterThan(-ROW / 2)
+    }
+    // Over a run the shades hang higher, and the light still leaves at a course's height, so its pool is a course deep.
+    const run = planOf('rows', 4)
+    const runKitchen = tastingKitchen(run, scene.lamps)
+    for (const light of runKitchen.lights) expect(light.at[1]).toBeCloseTo(plan.mouth - 0.02)
+    expect(run.mouth).toBeGreaterThan(plan.mouth)
   })
 })
 
@@ -205,9 +275,14 @@ describe('the tasting: each dish\'s two stacks, as the view says', () => {
         expect(chef?.at).toEqual([columnX(planFor(view), d) + PAIR, TOP, 0])
       } else expect(chef).toBeUndefined()
     })
-    // A dispenser for every dish, and its bar a dozen plates over the tallest of her stacks.
+    // A dispenser for every dish, its wires a few plates over her stack and no taller (W1's finish review, round 2: wires a dozen plates
+    // over the tallest stack stood three times as tall as most, and the empty ones read as a forest of bare loops).
     expect(scene.dispensers).toHaveLength(6)
-    expect(scene.frame).toBeCloseTo(stackHeight(Math.max(...row.p) + 12))
+    scene.dispensers.forEach((dispenser, d) => {
+      expect(dispenser.at).toEqual([columnX(planFor(view), d) + PAIR, TOP, 0])
+      expect(dispenser.top).toBeCloseTo(stackHeight(Math.min(FULL, row.p[d] + 6)))
+      expect(dispenser.top).toBeGreaterThan(stackHeight(row.p[d]))
+    })
     // The plates both stacks share, counted over the course, are α's sixty-fourths: what `overlap` asks the learner to predict.
     const shared = scene.stacks.filter((stack) => stack.id.startsWith('q')).reduce((sum, stack) => sum + count(stack.bands, 'probability-overlap'), 0)
     expect(shared).toBe(keptPlates(buildLevel('overlap', 0)))
@@ -295,16 +370,21 @@ describe('the draws: the plates the latest rounds pulled, and the rings of what 
   })
 
   test('the rings stand at what went out, sampled from the rounds, and go to the counter where nothing of a dish went out', () => {
-    for (const [d, ring] of scene.rings.entries()) expect(ring.out).toBeCloseTo((view.rows[0].emitted[d] / view.rows[0].reached) * PLATES)
-    expect(ringHeight(0, scene.frame)).toBeCloseTo(0.005)
+    for (const [d, ring] of scene.rings.entries()) {
+      expect(ring.out).toBeCloseTo((view.rows[0].emitted[d] / view.rows[0].reached) * PLATES)
+      // Each ring rides its own dispenser's wires.
+      expect(ring.top).toBe(scene.dispensers[d].top)
+    }
+    const top = stackHeight(FULL)
+    expect(ringHeight(0, top)).toBeCloseTo(0.005)
     // The ring sits round the edge of the plate it reaches: within that plate's band, above the one under it.
     for (const plates of [1, 7, 29]) {
-      const h = ringHeight(plates, scene.frame)
+      const h = ringHeight(plates, top)
       expect(h).toBeGreaterThan(stackHeight(plates) - PLATE.pitch)
       expect(h).toBeLessThan(stackHeight(plates))
     }
-    // More than the bar holds stays under the bar; the mirror prints the figure.
-    expect(ringHeight(FULL, scene.frame)).toBeLessThan(scene.frame)
+    // More than the wires hold stays at their top; the mirror prints the figure.
+    for (const ring of scene.rings) expect(ringHeight(FULL, ring.top)).toBeLessThan(ring.top)
   })
 
   test('an exact recipe puts every ring at the top of the chef\'s stack, its plates exactly; a wrong one leaves some off it', () => {
