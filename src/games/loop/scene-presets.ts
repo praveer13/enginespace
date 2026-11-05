@@ -3,15 +3,19 @@
  * cycle them. They live apart from the scene's layout, and with no three in them, so the game's page holds the buttons and the key
  * before the 3D chunk loads, and the 2D view is never the lesser path to them.
  *
- *   Over the shoulder  along time (Establish): from behind the expo, across the pass and down the night, about 26° up, so the rail
- *                      hangs across the top third, the pass runs across the middle and the line goes off into the night beyond it.
- *                      The front page opens here.
- *   Side of the pass   Compare: an orthographic shot from the expo's side, where a fire is a length and a dark stretch a gap, with the
- *                      present on the right as in the 2D view.
- *   Under the lamps    top: down on the rail and the places, where empty clips and empty places are easy to count.
+ *   Over the shoulder  Establish: from behind the expo, over the pass and through it to the line, about 22° down, so the heat lamps
+ *                      hang at the top, the rail and its tickets run across the upper middle with the line burning beyond them, and
+ *                      the pass with its plates runs across the lower middle. The printer and its tickets stand at the left.
+ *   Side of the pass   Compare: orthographic, from the expo's left, along the pass: the rail over the fired rail, the plates in their
+ *                      row, the line's stations beyond, every length true whatever its depth.
+ *   Under the lamps    From just under the heat lamps, down on the rail and the plates: an empty clip and an empty place are easy
+ *                      to count.
  *
- * Every number here is a framing in scene units [estimated], set by projecting the layout's landmarks (the rail, the pass, the
- * printer) into a 16:10 canvas and a phone's portrait one. Below 480 px wide the portrait framing runs the night up the screen.
+ * The front page frames the same kitchen its own way (`FRONT_PRESETS`): the camera stands left of the rail's middle, so the clips
+ * fall right of the order ticket that the page hangs on the rail, and the page's printer covers the pass's left end.
+ *
+ * Every number is a framing in metres [estimated], set by projecting the layout's landmarks (scene-layout.ts) into a 16:10 canvas,
+ * the front page's pass and a phone's portrait canvas. Below 480 px wide the portrait framing stands closer and wider.
  */
 import type { CameraPreset } from '@/scene/camera-rig'
 
@@ -21,31 +25,47 @@ export const LOOP_PRESETS: readonly CameraPreset[] = [
     label: 'Over the shoulder',
     shot: 'establish',
     projection: 'perspective',
-    position: [-0.05, 3.0, 5.0],
-    target: [0.1, 0.35, -0.4],
-    fov: 40,
-    portrait: { position: [0.15, 5.3, 6.9], target: [0.15, 0.3, -2.0], fov: 48 },
+    position: [0, 2.4, 2.4],
+    target: [0, 1.1, -0.9],
+    fov: 36,
+    portrait: { position: [0, 2.3, 1.9], target: [0, 1, -0.6], fov: 50 },
   },
   {
     id: 'side',
     label: 'Side of the pass',
     shot: 'compare',
     projection: 'orthographic',
-    position: [-9.5, 7.4, -3.4],
-    target: [0.4, 0.2, -3.4],
-    viewHeight: 6.4,
-    portrait: { viewHeight: 12.5 },
+    position: [-3.6, 2.5, 2.8],
+    target: [0.2, 1.05, -0.45],
+    viewHeight: 2.3,
+    portrait: { viewHeight: 4.2 },
   },
   {
     id: 'lamps',
     label: 'Under the lamps',
     shot: 'top',
     projection: 'perspective',
-    position: [0.15, 11.5, 1.6],
-    target: [0.15, 0, -2.6],
-    fov: 40,
-    portrait: { position: [0.3, 15.5, 0.4], target: [0.3, 0, -3.4], fov: 46 },
+    position: [0, 1.78, 0.85],
+    target: [0, 0.95, -0.3],
+    fov: 56,
+    portrait: { position: [0, 1.82, 1.35], target: [0, 0.92, -0.3], fov: 62 },
   },
 ]
 
 export const DEFAULT_PRESET = LOOP_PRESETS[0].id
+
+/** The front page's one shot: over the shoulder, with the clips right of the page's order ticket (anchors.ts hangs it). */
+export const FRONT_PRESETS: readonly CameraPreset[] = [
+  {
+    id: 'front',
+    label: 'Over the shoulder',
+    shot: 'establish',
+    projection: 'perspective',
+    position: [-0.8, 2.25, 2.6],
+    target: [-0.8, 1.05, -0.7],
+    fov: 32,
+    portrait: { position: [0, 2.2, 1.6], target: [0, 1, -0.5], fov: 50 },
+  },
+]
+
+export const FRONT_PRESET = FRONT_PRESETS[0].id

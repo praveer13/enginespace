@@ -43,6 +43,8 @@ export interface HeatLampSpec extends Placed {
 export interface RailSpec extends Placed {
   readonly kind: 'rail'
   readonly length: number
+  /** A rail hung under another bar: two rods from its ends up this far, to the bar (Service's fired rail under the gantry). */
+  readonly hang?: number
 }
 
 /** The ticket printer standing on `at`: housing, paper roll and tear bar. Its paper's feed is dynamic (PrinterFeed in Tickets.tsx). */

@@ -86,6 +86,11 @@ export interface GameShellProps<Level, State, Action extends GameAction, View, S
   build?: (run: RunApi<Action, View, Score, Ask>, outcome: RunOutcome<View>) => ReactNode
   /** The world's notional-machine card: what it models and what it ignores (A§5.9). */
   card?: ReactNode
+  /**
+   * The view leads the page: under the game's name, the view with the controls beside it and its switches (the view, the keys, the
+   * stages) under it, then the mirror across the width. Off, the view and the controls share a column beside the mirror.
+   */
+  stage?: boolean
 }
 
 type ShellRunProps<L, S, A extends GameAction, V, C, K> = GameShellProps<L, S, A, V, C, K> & {
@@ -139,7 +144,11 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
     setPhase('play')
   }
 
+  // A swap the learner asked for (the switch, `V`) may take the focused control with it; a swap the device made (3D once the tier is
+  // known) moves no focus, so a page that opens on 3D never lights the whole game as focused.
+  const swapAsked = useRef(false)
   const switchView = (next: GameView) => {
+    swapAsked.current = true
     props.onViewChange?.(next)
     setChosenView(next)
     run.announce(next === '3d' ? '3D view.' : '2D view.')
@@ -205,7 +214,8 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
   useEffect(() => {
     const swapped = shownView.current !== view
     shownView.current = view
-    if (swapped && focusIsLost()) container.current?.focus({ preventScroll: true })
+    if (swapped && swapAsked.current && focusIsLost()) container.current?.focus({ preventScroll: true })
+    if (swapped) swapAsked.current = false
   }, [view, container])
   useEffect(() => {
     if (restarted) container.current?.focus({ preventScroll: true })
@@ -213,41 +223,55 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
 
   const Heading = props.headingLevel === 3 ? 'h3' : 'h2'
 
+  const viewNode: ReactNode = (
+    <>
+      <p id={noteId} className="sr-only">
+        This view is a drawing. The table below lists everything it shows.
+      </p>
+      {view === '3d' && props.scene3d ? (
+        // The scene's own box hides its canvas (the Stage marks it aria-hidden, A§6.9). Around it stay what a reader needs: the
+        // 2D view the Stage paints first or falls back to, and its notes and their buttons, which must never sit in a hidden box.
+        <div data-surface="3d" role="group" aria-label="3D view" aria-describedby={noteId}>
+          {props.scene3d(api)}
+        </div>
+      ) : (
+        <div data-surface="2d" role="group" aria-label="2D view" aria-describedby={noteId}>
+          {props.view2d(api)}
+        </div>
+      )}
+    </>
+  )
+
+  const playControls: ReactNode = (
+    <>
+      {props.controls(api)}
+      {mode === 'practice' ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <Button size="sm" disabled={!run.canUndo} aria-keyshortcuts="," onClick={undo}>
+            Undo
+          </Button>
+        </div>
+      ) : null}
+      {outcome ? (
+        <div data-end="" className="flex flex-wrap items-center gap-3">
+          <p>The run is over.</p>
+          <Button variant="ink" size="lg" onClick={() => goTo('debrief')}>
+            See the debrief
+          </Button>
+        </div>
+      ) : null}
+    </>
+  )
+
   function stagePanel(): ReactNode {
     if (phase === 'play') {
+      // With the view leading, the view and the controls stand above the stages, and the play panel holds the mirror.
+      if (props.stage) return <div className="min-w-0">{props.mirror(api)}</div>
       return (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start">
           <div className="flex min-w-0 flex-col gap-4">
-            <p id={noteId} className="sr-only">
-              This view is a drawing. The table below lists everything it shows.
-            </p>
-            {view === '3d' && props.scene3d ? (
-              // The scene's own box hides its canvas (the Stage marks it aria-hidden, A§6.9). Around it stay what a reader needs: the
-              // 2D view the Stage paints first or falls back to, and its notes and their buttons, which must never sit in a hidden box.
-              <div data-surface="3d" role="group" aria-label="3D view" aria-describedby={noteId}>
-                {props.scene3d(api)}
-              </div>
-            ) : (
-              <div data-surface="2d" role="group" aria-label="2D view" aria-describedby={noteId}>
-                {props.view2d(api)}
-              </div>
-            )}
-            {props.controls(api)}
-            {mode === 'practice' ? (
-              <div className="flex flex-wrap items-center gap-3">
-                <Button size="sm" disabled={!run.canUndo} aria-keyshortcuts="," onClick={undo}>
-                  Undo
-                </Button>
-              </div>
-            ) : null}
-            {outcome ? (
-              <div data-end="" className="flex flex-wrap items-center gap-3">
-                <p>The run is over.</p>
-                <Button variant="ink" size="lg" onClick={() => goTo('debrief')}>
-                  See the debrief
-                </Button>
-              </div>
-            ) : null}
+            {viewNode}
+            {playControls}
           </div>
           <div className="min-w-0">{props.mirror(api)}</div>
         </div>
@@ -258,6 +282,46 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
     return slot?.(api, outcome) ?? null
   }
 
+  const tools = (
+    <div className="flex flex-wrap items-center gap-3">
+      <TapeLabel size="sm">
+        {levelTitle ? `${levelTitle} · ` : ''}
+        {mode === 'practice' ? 'practice' : 'graded'}
+      </TapeLabel>
+      {game.has3d ? <ViewSwitch view={view} onViewChange={switchView} available3d={can3d} unavailableReason={limits.unavailable3d} /> : null}
+      <KeysDialog keys={keymap} open={keysOpen} onOpenChange={setKeysOpen}>
+        <Button size="sm" variant="quiet">
+          Keys
+        </Button>
+      </KeysDialog>
+    </div>
+  )
+  const nav = (
+    <nav aria-label="Stages of this game">
+      <ol className="flex flex-wrap gap-2">
+        {stages.map((stage) => (
+          <li key={stage}>
+            <Button
+              size="sm"
+              variant={stage === phase ? 'ink' : 'quiet'}
+              aria-current={stage === phase ? 'step' : undefined}
+              disabled={!reachable(stage)}
+              onClick={() => goTo(stage)}
+            >
+              {PHASE_NAMES[stage]}
+            </Button>
+          </li>
+        ))}
+      </ol>
+    </nav>
+  )
+  const toolbar = (
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      {tools}
+      {nav}
+    </div>
+  )
+
   return (
     <section
       ref={container}
@@ -267,7 +331,8 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
       data-phase={phase}
       data-mode={mode}
       data-view={view}
-      className="flex flex-col gap-6 outline-none"
+      // The game is focused only so its keys work; the lamp marks the control the keyboard is on, never the whole game.
+      className="flex flex-col gap-6 shadow-none outline-none"
     >
       <header className="flex flex-col gap-3">
         <div>
@@ -276,37 +341,22 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
           </Heading>
           <p className="es-type-body text-text-2">{game.subtitle}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <TapeLabel size="sm">
-            {levelTitle ? `${levelTitle} · ` : ''}
-            {mode === 'practice' ? 'practice' : 'graded'}
-          </TapeLabel>
-          {game.has3d ? <ViewSwitch view={view} onViewChange={switchView} available3d={can3d} unavailableReason={limits.unavailable3d} /> : null}
-          <KeysDialog keys={keymap} open={keysOpen} onOpenChange={setKeysOpen}>
-            <Button size="sm" variant="quiet">
-              Keys
-            </Button>
-          </KeysDialog>
-        </div>
+        {props.stage ? null : tools}
       </header>
 
-      <nav aria-label="Stages of this game">
-        <ol className="flex flex-wrap gap-2">
-          {stages.map((stage) => (
-            <li key={stage}>
-              <Button
-                size="sm"
-                variant={stage === phase ? 'ink' : 'quiet'}
-                aria-current={stage === phase ? 'step' : undefined}
-                disabled={!reachable(stage)}
-                onClick={() => goTo(stage)}
-              >
-                {PHASE_NAMES[stage]}
-              </Button>
-            </li>
-          ))}
-        </ol>
-      </nav>
+      {props.stage && phase === 'play' ? (
+        // The view leads, and the controls stand beside it, so a hand on them never loses sight of the scene. The view's switches
+        // stand under it on a wide screen; on a narrow one they follow the controls, which come first after the view.
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:grid-rows-[auto_1fr] lg:items-start">
+          <div className="flex min-w-0 flex-col gap-4">{viewNode}</div>
+          <div className="flex min-w-0 flex-col gap-4 lg:col-start-2 lg:row-span-2 lg:row-start-1">{playControls}</div>
+          <div className="min-w-0 lg:col-start-1 lg:row-start-2">{toolbar}</div>
+        </div>
+      ) : props.stage ? (
+        toolbar
+      ) : (
+        nav
+      )}
 
       <div ref={panel} tabIndex={-1} role="group" aria-label={PHASE_NAMES[phase]} data-stage={phase} className="outline-none">
         {stagePanel()}

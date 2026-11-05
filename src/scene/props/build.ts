@@ -258,11 +258,13 @@ function heatLamp(m: Maker, spec: HeatLampSpec) {
   )
 }
 
-function rail(m: Maker, length: number) {
+function rail(m: Maker, length: number, hang = 0) {
   // An extruded channel with a slot below for the tickets, and rounded end caps.
   m.add(block([length, RAIL.height, RAIL.depth], 0.006, [0, -RAIL.height, 0]), 'steel')
   m.add(block([length - 0.012, 0.004, 0.007], 0.002, [0, -RAIL.height - 0.0015, 0.003]), 'deep')
   for (const x of [-length / 2 - 0.004, length / 2 + 0.004]) m.add(block([0.012, RAIL.height + 0.006, RAIL.depth + 0.004], 0.005, [x, -RAIL.height - 0.003, 0]), 'deep')
+  // Hung under a bar: a rod up from each end.
+  if (hang > 0) for (const x of [-length / 2 + 0.03, length / 2 - 0.03]) m.add(rod([x, -0.006, 0], [x, hang, 0], 0.006, 10), 'steel')
 }
 
 function printer(m: Maker) {
@@ -620,7 +622,7 @@ const BUILDERS: { [K in PropSpec['kind']]: (m: Maker, spec: Extract<PropSpec, { 
   worktop,
   pass,
   'heat-lamp': heatLamp,
-  rail: (m, spec) => rail(m, spec.length),
+  rail: (m, spec) => rail(m, spec.length, spec.hang),
   printer: (m) => printer(m),
   'bell-base': (m) => bellBase(m),
   spike: (m) => spike(m),

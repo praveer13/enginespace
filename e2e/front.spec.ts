@@ -24,7 +24,7 @@ import path from 'node:path'
 import { test as base, expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { build } from 'vite'
-import { RAIL, clipX } from '../src/games/loop/scene-layout'
+import { RAIL, TICKET, clipX } from '../src/games/loop/scene-layout'
 import type { SceneHook } from '../src/scene/test-hook'
 
 interface Lcp {
@@ -234,7 +234,7 @@ test.describe('the pass is one object', () => {
     await swapped(page)
     const projected = await page.evaluate(
       ([x, y, z]) => (window.__esScene as SceneHook).probes.front.project([x, y, z]),
-      [clipX(0) - 0.5, RAIL.y, RAIL.z] as const,
+      [clipX(0, 4) - TICKET.width, RAIL.y - 0.0175, RAIL.z] as const,
     )
     const canvas = await page.locator('[data-stage="front"] canvas').boundingBox()
     const rail = await page.locator('.es-front-rail').boundingBox()
@@ -244,26 +244,26 @@ test.describe('the pass is one object', () => {
     console.log(`the scene's rail at ${sceneRailY.toFixed(1)} px, the page's at ${pageRailY.toFixed(1)} px`)
     expect(Math.abs(sceneRailY - pageRailY)).toBeLessThan(3)
 
-    // The pass has one printer, the page's: the scene draws no printer and no strip of waiting tickets of its own here. The printer's
-    // column and the order ticket beside it leave the tape that names the CPU lane in the clear, and the scene keeps its last clip in
-    // the pass. The scene's labels are DOM (D-021), so their boxes are measured, not guessed.
+    // The pass has one printer, the page's: the scene draws no printer and no tickets on the counter of its own here. The printer's
+    // column and the order ticket beside it leave the scene's first clip in the clear, and the scene keeps its last clip in the pass.
+    // The scene's labels are DOM (D-021), so their boxes are measured, not guessed.
     await expect(page.locator('[data-stage="front"] .es-loop-label--waiting')).toHaveCount(0)
     const ticket = await page.locator('.es-front-ticket').boundingBox()
     const column = await page.locator('.es-front-expo').boundingBox()
-    const expo = await page.locator('[data-stage="front"] .es-loop-label--tape').first().boundingBox()
+    const firstClip = await page.locator('[data-stage="front"] .es-loop-label--empty').first().boundingBox()
     const lastClip = await page.locator('[data-stage="front"] .es-loop-label--empty').last().boundingBox()
-    if (ticket === null || column === null || expo === null || lastClip === null) throw new Error('nothing to measure')
-    console.log(`the printer's column ends at ${(column.x + column.width).toFixed(1)} px, the order ticket at ${(ticket.x + ticket.width).toFixed(1)} px; the CPU lane's tape starts at ${expo.x.toFixed(1)} px`)
+    if (ticket === null || column === null || firstClip === null || lastClip === null) throw new Error('nothing to measure')
+    console.log(`the printer's column ends at ${(column.x + column.width).toFixed(1)} px, the order ticket at ${(ticket.x + ticket.width).toFixed(1)} px; the first clip's stub starts at ${firstClip.x.toFixed(1)} px`)
     expect(column.x + column.width).toBeLessThanOrEqual(ticket.x)
-    expect(ticket.x + ticket.width).toBeLessThanOrEqual(expo.x)
+    expect(ticket.x + ticket.width).toBeLessThanOrEqual(firstClip.x)
     expect(lastClip.x + lastClip.width).toBeLessThanOrEqual(1440)
   })
 
-  test('the stations light with the fire: half a rail leaves half the line dark and the tape prints the dark stations, a full rail lights it end to end', async ({ page }) => {
+  test('the stations light with the fire: half a rail leaves half the line dark and the tape prints the dark stations, a full rail lights it end to end (the scene\'s stations are tests/play/loop-scene.test.ts)', async ({ page }) => {
     test.setTimeout(120_000)
     for (const [hung, lit] of [
-      [2, '2 of 4 lit'],
-      [4, '4 of 4 lit'],
+      [2, 2],
+      [4, 4],
     ] as const) {
       await page.goto(`${ORIGIN}/?es-tier=2`)
       await mounted(page)
@@ -280,7 +280,8 @@ test.describe('the pass is one object', () => {
       await expect(figures('[data-line="busy"]')).toHaveText([String(hung), '4'])
       await expect(figures('[data-line="dark"]')).toHaveText([String(4 - hung)])
       await expect(tape.locator('[data-line="dark"]')).toHaveAttribute('data-tone', hung < 4 ? 'ink-2' : 'ink')
-      await expect(page.locator('[data-stage="front"] .es-loop-label__stations')).toContainText(lit)
+      // The pips on the tape print the stations the fire lit, solid, and the ones it left dark, open.
+      await expect(tape.locator('[data-line="busy"] .es-front-pips__pip[data-lit]')).toHaveCount(lit)
     }
   })
 })

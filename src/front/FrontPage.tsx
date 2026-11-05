@@ -28,17 +28,17 @@ import { useLoopControls, type AutoToggleRef } from '@/games/loop/useLoopControl
 import { Mirror } from '@/games/loop/Mirror'
 import { stepClockOf } from '@/games/loop/readout'
 import type { Scene3DProps } from '@/games/loop/Scene3D'
-import { DEFAULT_PRESET } from '@/games/loop/scene-presets'
+import { FRONT_PRESET } from '@/games/loop/scene-presets'
 import { svgToReact } from '@/games/loop/svg'
 import type { LoopRun } from '@/games/loop/types'
 import { useOrientation } from '@/games/loop/useOrientation'
 import { PORTRAIT_WIDTH } from '@/scene/camera-rig'
 import type { StageProps } from '@/scene/Stage'
 import { unavailableReason, useDeviceTier } from '@/scene/tiers'
-import { anchorProperties, passAnchors } from './anchors'
+import { anchorProperties, PASS_ANCHORS } from './anchors'
 import { DECK, HERO, MENU, NEXT, NIGHT, ORDER, TAPE } from './copy'
 import { decimalsOf, lanesOf, menuId, type FrontData } from './menu'
-import { ORIENTATIONS, passDrawing, posterView } from './poster'
+import { ORIENTATIONS, passDrawing } from './poster'
 import { readConnection, upgradeOf, useSettled } from './upgrade'
 
 /*
@@ -82,7 +82,7 @@ const Debrief = lazy(() => import('@/games/loop/Debrief').then((module) => ({ de
 /** The overlap switch: only the run's later levels have it, so it loads when the page has settled, before a level can ask for it. */
 const LoopOverlap = lazy(() => import('@/games/loop/LoopOverlap'))
 
-/** The page holds the printer, so the scene leaves its own out. */
+/** The page holds the printer and its tickets, so the scene leaves its own out, and frames the pass for the page (`FRONT_PRESET`). */
 function FrontScene(props: Scene3DProps) {
   return <Scene3D {...props} printer={false} />
 }
@@ -102,10 +102,10 @@ function useIsServer(): boolean {
   )
 }
 
-/** Where the scene's landmarks fall, once per page: the default shot over the run's first view. */
+/** Where the scene's landmarks fall, once per page: the front page's shot over its rail of four. */
 let anchorStyle: CSSProperties | null = null
 function passStyle(): CSSProperties {
-  anchorStyle ??= anchorProperties(passAnchors(posterView())) as CSSProperties
+  anchorStyle ??= anchorProperties(PASS_ANCHORS) as CSSProperties
   return anchorStyle
 }
 
@@ -403,7 +403,7 @@ function ServiceRun({ level, seed, refocus, next, onNext, onRestart, view: shown
           <div ref={stage} className="es-front-pass__stage" data-drop-target={drag.ghost === null ? undefined : ''}>
             {mount3d ? (
               <Suspense fallback={<div className="es-front-stage es-front-stage--flat">{drawing}</div>}>
-                <Stage id="front" className="es-front-stage" view2d={drawing} scene={FrontScene} sceneProps={{ view, preset: DEFAULT_PRESET, onHang }} announce={announce} />
+                <Stage id="front" className="es-front-stage" view2d={drawing} scene={FrontScene} sceneProps={{ view, preset: FRONT_PRESET, onHang }} announce={announce} />
               </Suspense>
             ) : (
               <div className="es-front-stage es-front-stage--flat">{drawing}</div>
@@ -748,9 +748,8 @@ function useTicketDrag({
 
 /**
  * The free clip nearest the pointer, across the pass. In the 2D drawing the rail's clips are its marks. In the 3D scene they are where
- * the camera's default shot puts them (anchors.ts), measured on the scene's own canvas, whose middle is the camera's (the front page
- * widens the canvas past the pass's box to move the scene clear of the printer). Null when neither can be measured, and the ticket
- * then takes the first free clip.
+ * the front page's shot puts them (anchors.ts), measured on the scene's own canvas, whose middle is the camera's. Null when neither
+ * can be measured, and the ticket then takes the first free clip.
  */
 function nearestFreeClip(stage: HTMLElement | null, view: LoopView, x: number, flat: boolean): number | null {
   const free = view.rail.flatMap((clip, slot) => (clip.req === null ? [slot] : []))
@@ -766,7 +765,7 @@ function nearestFreeClip(stage: HTMLElement | null, view: LoopView, x: number, f
   } else {
     const canvas = stage.querySelector('canvas')
     const box = (canvas ?? stage).getBoundingClientRect()
-    if (box.width >= PORTRAIT_WIDTH) centres = passAnchors(posterView()).clips.map((c) => box.left + box.width / 2 + (c * box.height) / 2)
+    if (box.width >= PORTRAIT_WIDTH) centres = PASS_ANCHORS.clips.map((c) => box.left + box.width / 2 + (c * box.height) / 2)
   }
   if (centres.length !== view.rail.length || centres.every((centre) => centre === 0)) return null
   return free.reduce((best, slot) => (Math.abs(centres[slot] - x) < Math.abs(centres[best] - x) ? slot : best), free[0])
