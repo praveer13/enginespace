@@ -157,17 +157,33 @@ describe('every seeded property takes its seeds from the knob', () => {
     expect(found('const seeds = Array.from({ length: 200 }, (_, seed) => seed) // not seeds')).toBe(0)
   })
 
-  test('finds none in the tests of this tree: they read the knob', () => {
-    const files = (readdirSync(path.join(root, 'tests'), { recursive: true }) as string[])
+  /** The TypeScript files under tests/ that a seeded property may be in: not the fixtures, and not the knob and its guard. */
+  const testFiles = () =>
+    (readdirSync(path.join(root, 'tests'), { recursive: true }) as string[])
       .map((file) => file.split(path.sep).join('/'))
       .filter((file) => file.endsWith('.ts') && !file.startsWith('fixtures/') && file !== 'seeds.ts' && file !== 'ci/seeds.test.ts')
+
+  test('finds none in the tests of this tree: they read the knob', () => {
+    const files = testFiles()
     expect(files.length).toBeGreaterThan(50)
     const problems = files.flatMap((file) =>
       hardCodedSeedCounts(readFileSync(path.join(root, 'tests', file), 'utf8')).map(({ line, text }) => `tests/${file}:${line}: ${text}`),
     )
     // A property runs 200 seeds on a pull request and 10,000 in the nightly run (A§5.10): `import { seeds } from '../seeds'` (tests/seeds.ts),
     // `const SEEDS = seeds(1)` and a title with `${SEEDS.length}` give it the count that the run asks for.
-    expect(problems, "seed counts written by hand: read the knob of tests/seeds.ts, so that the nightly run's 10,000 reach them").toEqual([])
+    expect(
+      problems,
+      "seed counts written by hand: read the knob of tests/seeds.ts (`import { seeds } from '../seeds'`), so that the nightly run's 10,000 reach them; a list of 200 that is not seeds says `// not seeds` on its line",
+    ).toEqual([])
+  })
+
+  test('has one reader of the variable, tests/seeds.ts: a suite with a copy of the knob would parse the count its own way', () => {
+    const reads = (source: string) => /process\.env(?:\.ES_PROPERTY_SEEDS|\[\s*['"]ES_PROPERTY_SEEDS['"]\s*\])/.test(source)
+    expect(reads('const n = Number(process.env.ES_PROPERTY_SEEDS)')).toBe(true)
+    expect(reads("const raw = process.env['ES_PROPERTY_SEEDS']")).toBe(true)
+    expect(reads('// the nightly run sets ES_PROPERTY_SEEDS=10000')).toBe(false)
+    expect(read('tests/seeds.ts')).toSatisfy(reads)
+    expect(testFiles().filter((file) => reads(readFileSync(path.join(root, 'tests', file), 'utf8'))), 'a suite that reads ES_PROPERTY_SEEDS itself: import { SEED_COUNT } from tests/seeds.ts').toEqual([])
   })
 
   test('has the suites of W0 on the knob', () => {

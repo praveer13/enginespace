@@ -11,19 +11,13 @@ import { below, between, chance, pick, rngFor } from '../../packages/sim/core/rn
 import type { Rng } from '../../packages/sim/core/rng'
 import { KV_PRESET_IDS, KV_PRESET_POOL, kvAdapterCatalog, kvAlignment, kvOps, kvPreset } from '../../packages/sim/kv'
 import type { KvGroupSpec, KvOp, KvOpsAdapter, KvPresetId, KvSpec } from '../../packages/sim/kv'
+import { SEED_COUNT } from '../seeds'
 
 /**
  * Seeds and operations per seed of the property tests: ARCHITECTURE §5.10's 200 seeds on a PR, and the tracker's 2,000 operations
- * [estimated]. The nightly job raises the seeds through ES_PROPERTY_SEEDS, as it does for every seeded property.
+ * [estimated]. The seeds are the knob of tests/seeds.ts, which the nightly job raises through ES_PROPERTY_SEEDS for every seeded property.
  */
-function seedCount(): number {
-  const raw = process.env.ES_PROPERTY_SEEDS
-  if (raw === undefined || raw === '') return 200
-  const n = Number(raw)
-  if (!Number.isSafeInteger(n) || n < 1) throw new RangeError(`ES_PROPERTY_SEEDS is a positive integer, got ${JSON.stringify(raw)}`)
-  return n
-}
-export const SEEDS = seedCount()
+export const SEEDS = SEED_COUNT
 export const OPS = 2000
 
 // ---------------------------------------------------------------------------------------------------------------------------
