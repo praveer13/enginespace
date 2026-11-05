@@ -293,7 +293,7 @@ describe('the miniature', () => {
     // index.html 36,000 + react 60,000 + Front 10,000 + session 9,000 + load 1,000 + the course index 600.
     const row = rowOf(report, 'front')
     expect(row.bytes).toBe(116_600)
-    expect([row.gate, row.target]).toEqual([151, 130])
+    expect([row.gate, row.target]).toEqual([152, 130])
     expect(filesIn(row)).toEqual(['index.html', '_react-vendor.js', FRONT, '_session.js', '_load.js', INDEX_JSON].map(fileOf).sort())
   })
 
@@ -366,12 +366,12 @@ describe('a gate and a target', () => {
     expect(warning.failed).toBe(0)
   })
 
-  test('the front page is held to 151 KB of JavaScript (D-053), 34,400 B above its 116,600 B', () => {
+  test('the front page is held to 152 KB of JavaScript (D-054), 35,400 B above its 116,600 B', () => {
     const grown = (extra: number) => statusOf(run({ specs: sized(FRONT, 10_000 + extra) }), 'front')
     expect(grown(13_400)).toBe('ok') // 130,000 B is the target itself
     expect(grown(13_401)).toBe('warn')
-    expect(grown(34_400)).toBe('warn') // 151,000 B is the gate itself
-    expect(grown(34_401)).toBe('FAIL')
+    expect(grown(35_400)).toBe('warn') // 152,000 B is the gate itself
+    expect(grown(35_401)).toBe('FAIL')
   })
 
   test('the front page CSS has a gate of its own: 40 KB of it fails the CSS row and not the closure row', () => {
@@ -722,7 +722,7 @@ describe('the command', () => {
 
   test('lists the files of a row that fails, largest first, so the cause is on the screen', () => {
     // The entry alone is under its gate, and the front page's closure (the entry and the page) is over its own.
-    const { dir } = treeOnDisk(100_000, 51_000)
+    const { dir } = treeOnDisk(100_000, 52_000)
     const { lines } = command(['--root', dir])
     const at = lines.findIndex((candidate) => candidate.startsWith('FAIL front page first-paint JS'))
     expect(at).toBeGreaterThan(0)

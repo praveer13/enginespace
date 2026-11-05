@@ -46,7 +46,7 @@
 | D-020 | Edition 1 uses WebGL2 only, with no WebGPU path. | proposed |
 | D-021 | No game engine, no drei and no in-canvas text; post-processing comes from three's own addons. | proposed |
 | D-022 | Device tiers come from local hints and a frame-time governor, not detect-gpu. | proposed |
-| D-023 | A first-paint JavaScript budget, and a front page that paints a 2D step loop first and upgrades to 3D after LCP. | proposed; budgets frozen 2026-11-04 (W0-T24); the front page's gate is 151 KB by D-053 |
+| D-023 | A first-paint JavaScript budget, and a front page that paints a 2D step loop first and upgrades to 3D after LCP. | proposed; budgets frozen 2026-11-04 (W0-T24); the front page's gate is 152 KB by D-054 |
 | D-024 | The evidence ledger is re-implemented on kernelspace's envelope; provenance weights come from ASSESSMENT.md and apply at read time. | proposed |
 | D-025 | Browser-lane builds are Rust → wasm on kernelspace's kslab ABI v2, graded by host-driven property tests whose oracle sits outside the learner's code. | proposed |
 | D-026 | The local grader is Python, with one locked environment per engine. | proposed |
@@ -77,6 +77,7 @@
 | D-051 | A learner's settings are recorded in the ledger's `working` store, one key each, and a copy in `localStorage` lets every page honour them from its first paint without opening the ledger. | proposed (W0-T22) |
 | D-052 | The nightly workflow runs on its schedule only when the repository variable `NIGHTLY_ENABLED` is `'true'`; a run started by hand always runs. | proposed (W0 wave PR) |
 | D-053 | The front page's first-paint gate is 151 KB: a second game that shares the run hook and the shell with Service splits the chunks that Service and the front page share, which costs about 870 B that the game cannot avoid. | proposed (W1-T28); the owner confirms |
+| D-054 | The front page's first-paint gate is 152 KB: a third game reaches some of the modules that the front page shares with the first two and not others, so Rollup splits them again, which costs the closure 585 B. | proposed (W1-T17); the owner confirms |
 
 ---
 
@@ -848,7 +849,7 @@ D-052 records how the W0 wave PR keeps the nightly from spending Actions minutes
 
 ## The first-paint gate, W1
 
-D-053 is the new record that D-023 asks for when a change must take a budget over its gate.
+D-053 is the new record that D-023 asks for when a change must take a budget over its gate, and D-054 is the next.
 
 ### D-053 · The front page's first-paint gate is 151 KB, for the second game
 
@@ -872,7 +873,30 @@ D-053 is the new record that D-023 asks for when a change must take a budget ove
   - A game that follows pays nothing for its record, and pays the split again only for a module that it reaches and the earlier games do not.
   - A lazy part of a game (its debrief, its 3D scene) that imports a module that only the game's own chunk uses makes Rollup export that module from the game's chunk, and a chunk that exports more than its game file does has no entry in the manifest, so `verify:bundle` reports the game as missing. The Tasting imports its debrief for that reason.
   - 334 B is the room that is left at 85d994f, about 17 chunk names.
-- **Revisit when:** a change takes the closure over 151 KB, or the route manifest leaves the entry.
+- **Revisit when:** a change takes the closure over 151 KB, or the route manifest leaves the entry. D-054 revisits it for the third game.
+
+### D-054 · The front page's first-paint gate is 152 KB, for the third game
+
+- **Status:** proposed (W1-T17, 2026-11-04); the owner confirms.
+- **Decision:** `verify:bundle` holds the front page's first-paint JavaScript to 152 KB gz, up from 151 KB (D-053). The target stays 130 KB, and no other gate changes.
+- **Context:** all [measured 2026-11-04], gzip under Bun 1.3.14 as the gate counts it, at the wave tip 5345384 and on this task's tree, which is the tip with Back of House's files.
+  - The tip alone: 150,707 B in 19 chunks, 293 B under the gate.
+  - With Back of House's record registered and not its game: 150,894 B in 20 chunks, 187 B more.
+  - With its game as well: 151,292 B in 22 chunks, 292 B over the gate and 708 B under the new one. The game costs the closure 585 B in all.
+  - It is Rollup's chunking again (D-053) and no code that the front page runs. A module goes into a chunk by the set of entries that reach it, and Back of House reaches some of the modules that the front page shares with the first two games and not others:
+    - Its session reaches `rng` and not `int`, which were one chunk of 2,391 B and are now 1,938 B and 503 B. That is the 187 B of the record.
+    - Its controls and debrief reach the readout, which was in the printer tape's chunk (2,384 B) and is now a chunk of 916 B beside the tape's 1,609 B.
+    - It does not reach Service's SVG converter and orientation hook, which The Tasting takes from Service (Back of House has copies of its own, and D-053 measured a copy at under 20 B). They were in the shell's shared chunk (11,495 B) and are now a chunk of 508 B beside it (11,078 B).
+    - The entry grew by 122 B and the Front page by 140 B, raw, for the names and the imports.
+  - The game's route, `/play/engine-floor`, is 173,515 B against 200 KB. `/play/verifier` is 178,490 B and `/play/loop` 188,384 B; D-053 gave 176,634 B and 186,142 B.
+- **Alternatives:**
+  - Pin the shared modules to chunks of their own with `manualChunks` (the shell's, the printer tape's with the readout, the integer core's): 151,833 B, 541 B more than the same tree without it. A manual chunk pulls in every static dependency that is not assigned elsewhere, and the shell's chunk grew to 13.2 KB [measured on this task's branch, before the gate moved].
+  - Reach the same modules as The Tasting [design]: Back of House could take the hook and the converter from Service and use an integer helper, so that its chunks are the games' before it. That would put the 508 B chunk back and not the other two, and a game should not import a helper for the chunk that it lands in. Not measured.
+  - D-053's two: `output.experimentalMinChunkSize`, which made the closure larger and merged the pages out of the manifest, and the preload map outside the entry, which is the owner's to schedule.
+- **Consequences:**
+  - ARCHITECTURE §6.10 and §11.1 carry 152 KB.
+  - A game that follows pays the split again for each module that it reaches and the games before it do not [derived from D-053 and this record]. 708 B is the room that is left at 5345384, and this game cost 585 B, so the next game may need a record of its own.
+- **Revisit when:** a change takes the closure over 152 KB, or the route manifest leaves the entry. Three games in, each has moved the closure by its chunking and by almost nothing of its own, so the owner may prefer to stop the games from moving it.
 
 ---
 
