@@ -1,6 +1,6 @@
 # labs/forge
 
-The forge labs: Rust crates that a learner builds to `wasm32-unknown-unknown` and drops on `/labs/<lab>`, which grades them in the tab (ARCHITECTURE §8.3, D-025). This file is for the people and the agents who write labs. The learner's own README is packed with each lab's zip (W1-T11).
+The forge labs: Rust crates that a learner builds to `wasm32-unknown-unknown` and drops on `/labs/<lab>`, which grades them in the tab (ARCHITECTURE §8.3, D-025). This file is for the people and the agents who write labs. The learner's own README is `README.template.md`, which the packer fills for each lab's zip ("Packing", below).
 
 ## What is here
 
@@ -9,6 +9,7 @@ The forge labs: Rust crates that a learner builds to `wasm32-unknown-unknown` an
 | `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml` | The workspace, its lockfile, and the toolchain pin: Rust 1.96.0 with the wasm32 target (ARCHITECTURE §10.3). The lockfile holds the crates of this folder and nothing fetched. |
 | `kit/` | `kslab`, kernelspace's lab kit, byte for byte as `vendor/kernelspace/labs/kit` holds it. `tests/forge/labs.test.ts` and `verify:labs` compare the two, so change the vendored copy through `vendor/kernelspace/VENDOR.md` and copy it here, and never edit `kit/`. |
 | `toy/` | The host's own practice lab, a rotation (an LRU free queue). It exists so that every state of the host can be shown with a real Rust build, and each real lab copies its shape. |
+| `README.template.md` | The learner's README, with `{{PLACEHOLDERS}}` that `scripts/pack-labs.ts` fills from the lab's entry in `src/forge/labs.ts` (its title, lead, checks and wasm). Nothing in it is the repository's business, because the learner cannot read the repository. |
 
 ## The shape of a lab
 
@@ -41,3 +42,30 @@ bun scripts/verify-labs.ts --write                                              
 `verify:labs` is the gate of `scripts/verify.ts` that needs the pinned Rust toolchain, so `labs.yml` runs it. It builds the template, the reference, the solved build and every bestiary member, and fails when the template does not trap in every check, when the reference or the solved build fails a check on fresh seeds, when a reference run would be recorded, when a bestiary member does not end every named check in its named status on at least 99% [estimated] of 50 [estimated] fresh-seed runs, when a check that never returns is not stopped at its limit, or when a committed build in `tests/fixtures/forge` is not what the source builds. A machine whose `rustup` holds the pinned compiler without the wasm32 target, and the same compiler under another name with it, builds with the second: the gate looks before it builds and never downloads.
 
 The builds in `tests/fixtures/forge` are what lets `bun test` check Rust's output without a Rust toolchain: the oracle, which is TypeScript, judges modules that were compiled from Rust, through the same worker. They are what the pinned compiler writes from this source, so `verify:labs` compares them byte for byte, and `--write` rewrites them when the source changes. If a compiler or a platform ever writes other bytes from the same source, the gate says which build differs. Write them on Linux with the pinned toolchain, as `labs.yml` runs it.
+
+## Packing: what a learner downloads
+
+```sh
+bun scripts/pack-labs.ts            # writes public/labs/enginespace-<lab>.zip for every lab of src/forge/labs.ts, and public/labs/manifest.json
+bun scripts/pack-labs.ts --check    # writes nothing; fails when the committed public/labs is not what the sources pack to
+```
+
+The site serves the zips as static files, and the repository is private, so the zips are committed and a source that changes without a repack fails `bun test`. Repack after any change under `labs/forge` or `labs/agent-kit`, and commit `public/labs`. The zips are reproducible (`scripts/labs/zip.ts` says how): the same sources give the same bytes on every machine, and `manifest.json` lists each zip's SHA-256 and size and, so that a change to a binary shows in a diff, the SHA-256 of every member.
+
+A zip is one folder, `enginespace-<lab>/`, and the folder is a Cargo workspace.
+
+| In the zip | From |
+|---|---|
+| `<crate>/Cargo.toml`, `src/`, `tests/` | the lab's crate, byte for byte. `reference/` and `bestiary/` are withheld, and so is anything built |
+| `kit/` | `labs/forge/kit`, which is the vendored kslab |
+| `Cargo.toml`, `Cargo.lock` | generated: the workspace of the kit and this one crate, with the release profile of `labs/forge/Cargo.toml`, and this lockfile's two packages |
+| `rust-toolchain.toml`, `.gitignore` | `labs/forge` |
+| `README.md` | `README.template.md` |
+| `AGENTS.md`, `CLAUDE.md`, `.claude/` | the agent kit, `labs/agent-kit`: kernelspace's, renamed and extended (`vendor/kernelspace/VENDOR.md`, D-031) |
+| `NOTICE` | kernelspace's MIT licence, for `kit/` and the agent kit |
+
+A new lab needs no change to the packer. Add the crate and its entry in `src/forge/labs.ts`, then run it. It finds the two files that matter by what they say: the harness is `<crate>/src/lib.rs` and must carry `DO NOT EDIT`, and the learner's file is the one `src/` file that opens with `//! TODO(you)`. The agent kit's guard protects those two (see below). A crate folder may hold `Cargo.toml`, `src/` and `tests/`, which ship, and `reference/`, `bestiary/` and `target/`, which do not. An entry of any other name stops the packer until `SHIPPED` or `WITHHELD` in `scripts/pack-labs.ts` says which it is, so a new kind of file is a decision and not an accident.
+
+**The guard.** `labs/agent-kit/hooks/es-guard.sh` is kernelspace's `ks-guard.sh` with the names changed and one flag added, `--harness`, which only changes what it says when it blocks. Every zip's `.claude/settings.json` runs it twice, once for the learner's file ("yours to write") and once for the harness ("stays as shipped"), and denies `Edit` on both. It is friction and not DRM, as in kernelspace: `ES_SOLO=0` turns it off. `tests/forge/guard.test.ts` unpacks the toy's zip, runs the hook commands that its `settings.json` names with the payloads Claude Code sends, and holds the hook to being the vendored one: the shipped file, without the blocks it marks `# >>> enginespace`, is the vendored file with the names changed.
+
+**The build.** `tests/forge/pack-build.test.ts` unpacks the toy's zip and builds it offline from its own lockfile. The module is the repository's template build byte for byte, the template's tests are red, and with the reference in the learner's file they are green and the host credits the module. It needs the pinned compiler, so it skips where there is none, and `labs.yml` does not run it yet.

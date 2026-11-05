@@ -293,7 +293,6 @@ const LAB_FRAMEWORK = 'W1-T10'
  */
 export const PENDING = {
   predict: { task: 'W1-T13', what: 'the prediction box' },
-  item: { task: 'W1-T04', what: 'the item set' },
   trace: { task: 'W1-T09', what: 'the trace viewer' },
   'in-production': { task: 'W1-T13', what: 'the In-production card' },
   'build-this': { task: 'W1-T13', what: 'the Build-this card' },

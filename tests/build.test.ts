@@ -148,12 +148,13 @@ describe('the app build', () => {
     // and the parts that component loads in turn (its debrief, and later its 3D scene), which stay in src/games/<id>/; or a part of
     // the scene kit that a scene loads on demand (src/scene/postfx, W0-T15), or one of three's addons (OrbitControls); or a forge lab's
     // page (src/forge/ForgeLabPage.tsx), which the Lab page loads on demand with its host and its oracle, so that the labs that have no
-    // forge never carry them (W1-T10).
+    // forge never carry them (W1-T10); or the attempt of an item block (src/items/Attempt.tsx, W1-T04), which a lesson loads when the
+    // learner starts one, and which brings the ledger.
     // The compiled content is lazy too, but it is not a page: the next test holds it to account.
     const named = Object.entries(app.manifest)
       .filter(([key, chunk]) => chunk.isDynamicEntry && chunk.src !== undefined && !key.startsWith(CONTENT))
       .map(([key]) => key)
-    const onDemand = /^(src\/games\/[^/]+\/[A-Za-z0-9]+\.tsx|src\/scene\/[\w/-]+\.tsx?|src\/forge\/ForgeLabPage\.tsx|node_modules\/three\/examples\/jsm\/[\w/-]+\.js)$/
+    const onDemand = /^(src\/games\/[^/]+\/[A-Za-z0-9]+\.tsx|src\/scene\/[\w/-]+\.tsx?|src\/forge\/ForgeLabPage\.tsx|src\/items\/[A-Za-z0-9]+\.tsx|node_modules\/three\/examples\/jsm\/[\w/-]+\.js)$/
     expect(named.filter((key) => !pages.includes(key) && !onDemand.test(key))).toEqual([])
   })
 

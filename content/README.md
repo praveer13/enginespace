@@ -73,6 +73,12 @@ Put each rule's claims at the end of its item, after the last full stop. A claim
 
 A card is named by the model that exports its id (ARCHITECTURE §5.1): `trace-room-steploop`, `trace-room-trace` and `trace-room-bench` for the models of W0-T13, W1-T08 and W1-T31, and the world's own name (`spec`, `lifecycle`, `kv`) for the rest. A `card` block draws a card as a ticket (`kind: notional-machine`, `id: spec`), and `verify:games` fails a registered game whose card file is missing, or is there and does not compile.
 
+## Items
+
+`:::item` names a generator family, a level from 0 to 3 and a count. The page draws a ticket that waits, and when the learner starts it reads fresh entropy, draws `count` seeds that make fair questions, and plays them one by one: an answer, a confidence tap that never gates, and a why on the reveal. Each answer is graded against a key that the family computes from the item, and is written to the ledger as an `item` event with its seed. The key and the solution are never in a file: the Markdown export, `llms.txt` and the compiled lessons hold the block's three fields and nothing of the items (`verify:items` reads them for it).
+
+A family is a `Gen` in `packages/play/items/` (ARCHITECTURE §8.2), registered in `registry.ts`. The `family` of a block must be a registered one, or the page says the generator is not built yet. The family says which levels it offers, so a block at another level says which levels it does. `verify:items` holds each family to its rules; `bun scripts/verify-items.ts --write` rewrites the golden vectors that pin what a seed means, after a change that moves it and a bump of the family's `version`.
+
 ## Numbers
 
 Every number is a claim or carries a tag (ARCHITECTURE §4.4). In prose, a digit run needs one of `[measured]`, `[derived]`, `[estimated]` or `[unverified]` in its sentence, written before the full stop. In a table, a tag in a column's header tags the column. The tag is the word in brackets and nothing else: the source and the date belong in a claim.

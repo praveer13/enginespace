@@ -17,7 +17,8 @@
  * (scripts/tables/exp-quantiles.ts and scripts/tables/chi-square-critical.ts).
  *
  * Adding a model: give it a `VectorModel` in MODELS, whose cases are JSON inputs and a function from them to the model's
- * output. `workload` (W0-T12), `steploop` (W0-T13), `trace` (W1-T08), `bench` (W1-T31) and `spec` (W1-T26) were added this way.
+ * output. `workload` (W0-T12), `steploop` (W0-T13), `trace` (W1-T08), `bench` (W1-T31), `spec` (W1-T26) and `lifecycle` (W1-T16) were
+ * added this way.
  */
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -28,6 +29,8 @@ import { canonicalJson } from '../packages/sim/core/json'
 import { rngFor } from '../packages/sim/core/rng'
 import { HOST_PRESETS } from '../packages/sim/host'
 import type { RunnerPresetId } from '../packages/sim/host'
+import { CLEAN_LIFECYCLE_JITTER, DEFAULT_LIFECYCLE_JITTER, lifecycleTrace, pathFacts, referencePath } from '../packages/sim/lifecycle'
+import type { LifecycleJitter, Scenario } from '../packages/sim/lifecycle'
 import type { PhysicsRowKey } from '../packages/sim/physics'
 import { BESTIARY, FINE_BAND, REFERENCE, SPARSE_BAND, SPEC_BAND, chiSquare, dist, drawCase, expectedTokensPerRound, labTest, verifyChain } from '../packages/sim/spec'
 import type { PairBand } from '../packages/sim/spec'
@@ -822,7 +825,147 @@ const spec: VectorModel = {
   cases: () => Object.entries(specInputs).map(([name, input]) => ({ name, input, run: () => runSpec(input) })),
 }
 
-export const MODELS: readonly VectorModel[] = [workload, steploop, trace, bench, spec]
+// ---------------------------------------------------------------------------------------------------------------------------
+// lifecycle
+
+/**
+ * A lifecycle vector's input: a scenario of the `map` level, the seed of its synthetic trace and the jitter. `full` records the path (every
+ * stage with its places and its citation) and the trace in columns; `digest` records the stage ids, the SHA-256 of the path's canonical JSON
+ * (so a moved citation, label or place shows), the counts of its mechanisms, the SHA-256 of the trace's canonical text and the verdicts.
+ */
+type LifecycleInput = {
+  readonly scenario: Scenario
+  readonly seed: number
+  readonly jitter: LifecycleJitter
+  readonly output: 'full' | 'digest'
+}
+
+const plain = (engine: Scenario['engine'], o: Partial<Omit<Scenario, 'engine'>> = {}): Scenario => ({ engine, streaming: true, tp: 1, abort: false, prefixHit: false, n: 1, ...o })
+
+const lifecycleInputs: Record<string, LifecycleInput> = {
+  'nano-vllm, one rank: the whole path and the whole trace, where the request crosses no process and no thread': {
+    scenario: plain('nano-vllm', { streaming: false }),
+    seed: 1,
+    jitter: CLEAN_LIFECYCLE_JITTER,
+    output: 'full',
+  },
+  'nano-vllm, two ranks, a prefix hit: a worker process for rank 1, a shared-memory broadcast and a gather to rank 0': {
+    scenario: plain('nano-vllm', { streaming: false, tp: 2, prefixHit: true }),
+    seed: 2,
+    jitter: DEFAULT_LIFECYCLE_JITTER,
+    output: 'digest',
+  },
+  'Mini-SGLang, one rank, streaming: API server, tokenizer, scheduler, detokenizer, and the overlap loop\'s sync in the next turn': {
+    scenario: plain('mini-sglang'),
+    seed: 3,
+    jitter: DEFAULT_LIFECYCLE_JITTER,
+    output: 'digest',
+  },
+  'Mini-SGLang, two ranks, streaming, an abort: rank 0 publishes to rank 1, and the abort goes back through the tokenizer': {
+    scenario: plain('mini-sglang', { tp: 2, abort: true }),
+    seed: 4,
+    jitter: DEFAULT_LIFECYCLE_JITTER,
+    output: 'digest',
+  },
+  'Mini-SGLang, one rank, not streaming, a prefix hit': {
+    scenario: plain('mini-sglang', { streaming: false, prefixHit: true }),
+    seed: 5,
+    jitter: DEFAULT_LIFECYCLE_JITTER,
+    output: 'digest',
+  },
+  'vLLM at 42172ad, one rank, streaming: a blocking step, a `.tolist()` that waits, no batch queue': {
+    scenario: plain('inside-vllm'),
+    seed: 6,
+    jitter: DEFAULT_LIFECYCLE_JITTER,
+    output: 'digest',
+  },
+  'vLLM at 42172ad, two ranks, n = 2, an abort that waits in the input queue behind the step': {
+    scenario: plain('inside-vllm', { tp: 2, n: 2, abort: true }),
+    seed: 7,
+    jitter: DEFAULT_LIFECYCLE_JITTER,
+    output: 'digest',
+  },
+  'vLLM v0.33.0, one rank, streaming: the batch queue, a copy on its own stream and an event to wait on': {
+    scenario: plain('vllm'),
+    seed: 8,
+    jitter: DEFAULT_LIFECYCLE_JITTER,
+    output: 'digest',
+  },
+  'vLLM v0.33.0, two ranks, a prefix hit, n = 2: workers, shared-memory queues both ways and the output thread of worker 0': {
+    scenario: plain('vllm', { tp: 2, prefixHit: true, n: 2 }),
+    seed: 9,
+    jitter: DEFAULT_LIFECYCLE_JITTER,
+    output: 'digest',
+  },
+  'vLLM v0.33.0, one rank, streaming, an abort: its own queue, drained before the step updates the scheduler': {
+    scenario: plain('vllm', { abort: true }),
+    seed: 10,
+    jitter: DEFAULT_LIFECYCLE_JITTER,
+    output: 'digest',
+  },
+  'vLLM v0.33.0, one rank, not streaming': {
+    scenario: plain('vllm', { streaming: false }),
+    seed: 11,
+    jitter: CLEAN_LIFECYCLE_JITTER,
+    output: 'digest',
+  },
+  'SGLang v0.5.23, one rank, streaming: the tokenizer manager in the API server process, the overlap loop\'s result queue': {
+    scenario: plain('sglang'),
+    seed: 12,
+    jitter: DEFAULT_LIFECYCLE_JITTER,
+    output: 'digest',
+  },
+  'SGLang v0.5.23, two ranks, a prefix hit, n = 2: a broadcast to rank 1, and a warm-up of the shared prefix': {
+    scenario: plain('sglang', { tp: 2, prefixHit: true, n: 2 }),
+    seed: 13,
+    jitter: DEFAULT_LIFECYCLE_JITTER,
+    output: 'digest',
+  },
+  'SGLang v0.5.23, one rank, streaming, an abort: the response\'s background task, then the scheduler marks the running request': {
+    scenario: plain('sglang', { abort: true }),
+    seed: 14,
+    jitter: DEFAULT_LIFECYCLE_JITTER,
+    output: 'digest',
+  },
+  'SGLang v0.5.23, one rank, not streaming, under seed 0 and the widest jitter': {
+    scenario: plain('sglang', { streaming: false }),
+    seed: 0,
+    jitter: { spreadPermille: 900, gapNs: 100_000 },
+    output: 'digest',
+  },
+  'vLLM v0.33.0, two ranks, streaming, under the largest seed': {
+    scenario: plain('vllm', { tp: 2 }),
+    seed: 0xffffffff,
+    jitter: DEFAULT_LIFECYCLE_JITTER,
+    output: 'digest',
+  },
+}
+
+function lifecycleOutput(input: LifecycleInput): unknown {
+  const path = referencePath(input.scenario)
+  const trace = lifecycleTrace(input.scenario, input.seed, input.jitter)
+  const checks = traceChecks(trace)
+  const facts = pathFacts(path)
+  if (input.output === 'full') return { path, facts, trace: traceToJson(trace), checks }
+  return {
+    ids: path.map((stage) => stage.id),
+    pathSha256: sha256(canonicalJson(path)),
+    facts,
+    counts: { spans: trace.spans.track.length, tracks: trace.tracks.length, flows: trace.flows.length, marks: trace.marks.length },
+    traceSha256: sha256(encodeTrace(trace)),
+    checks: checks.map(({ id, pass, checked }) => ({ id, pass, checked })),
+  }
+}
+
+const lifecycle: VectorModel = {
+  model: 'lifecycle',
+  file: `${FIXTURE_DIR}/lifecycle.json`,
+  header:
+    'Golden vectors for packages/sim/lifecycle (ARCHITECTURE section 5.8, 5.10): each maps its input, a scenario of the Engine Floor\'s map level with the seed and the jitter of its synthetic trace, to the request\'s path and the trace it gives, with the SHA-256 of that output\'s canonical JSON. The path is every stage with its places, mechanism and citation (file, symbol, line and quote at the engine\'s pinned commit). A short path is recorded whole, with the trace in columns and the verdict of every check; a longer one as its stage ids, the SHA-256 of the whole path, its counts, the SHA-256 of the trace\'s canonical text and the verdicts. Regenerate only with `bun scripts/vectors.ts --write`, and review the diff like code.',
+  cases: () => Object.entries(lifecycleInputs).map(([name, input]) => ({ name, input, run: () => lifecycleOutput(input) })),
+}
+
+export const MODELS: readonly VectorModel[] = [workload, steploop, trace, bench, spec, lifecycle]
 
 // ---------------------------------------------------------------------------------------------------------------------------
 // fixtures
