@@ -23,7 +23,7 @@ import { BENCH_FLAWS } from '@es/sim/bench/broken-types'
 import { REDRAWS, caseOf } from '@es/play/broken-bench/cases'
 import { LEVEL_IDS, buildLevel, casesOf, isLevelId, levelTitle, slotsOf } from '@es/play/broken-bench/levels'
 import type { Flaw } from '@es/play/broken-bench/types'
-import { BLIND_SEEDS, NIGHTLY_SEEDS, caseOf as corpusCase, casesOf as corpusCases, pct } from '../sim/bench-broken-support'
+import { BLIND_SEEDS, NIGHTLY_SEEDS, casesOf as corpusCases, drawnCases, pct } from '../sim/bench-broken-support'
 
 const root = path.resolve(import.meta.dirname, '../..')
 const report: string[] = []
@@ -173,7 +173,8 @@ describe('the blind-strategy bound (ASSESSMENT §4.1)', () => {
   function handedTheLabel(weights: ReadonlyMap<Flaw, number>): { rate: number; byFlaw: Map<Flaw, number> } {
     const byFlaw = new Map<Flaw, number>()
     if (BLIND_SEEDS >= NIGHTLY_SEEDS) {
-      const all = bestConstantPerLabel(Array.from({ length: BLIND_SEEDS }, (_, seed) => corpusCase(seed)).map((c) => ({ flaw: c.flaw, p99Us: c.answer.p99Us })))
+      // Five fields of each case, and not the cases: 10,000 of them with their logs were 6.7 GB (tests/seeds.ts).
+      const all = bestConstantPerLabel(drawnCases())
       for (const flaw of all.perFlaw) byFlaw.set(flaw.flaw, flaw.passedPermille / 1000)
     } else {
       for (const flaw of weights.keys()) {
