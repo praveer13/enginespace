@@ -5,11 +5,13 @@
  * It is the kitchen, drawn flat, and not a chart (GAMES.md §2.6 rule 1: a name, never a prop):
  *   - the pass, a counter of brushed steel that every stack stands on, lit along its back edge and shaded along its front, with the
  *     heat lamp's amber pooled over the row being tasted: the drawing's only amber;
- *   - for each dish, two stacks of plates side by side. The commis's stack on the left is q, and the chef's on the right is p. In a
- *     practice level the plates the stacks share are the agreed board green, the commis's extra plates on its stack are hatched in the
- *     draft yellow, and the extra plates on the chef's stack, which she would re-plate, are the residual red; the chef's stack is
- *     outlined in the target blue. Where a level does not show the decomposition, the commis's plates are all hatched and the chef's
- *     all blue, and the learner has to find the overlap and the excess themselves;
+ *   - for each dish, two stacks of plates side by side, each standing in its contact shadow on the pass. The commis's stack on the
+ *     left is q, and the chef's on the right is p, in her wire dispenser: two posts and a bar over her stack, its foot in the target
+ *     blue. Each plate is drawn as a plate seen edge on, with rounded ends and the glaze of its rim catching the light, and a gap
+ *     under it. In a practice level the plates the stacks share are the agreed board green, the commis's extra plates on its stack are
+ *     hatched in the draft yellow, and the extra plates on the chef's stack, which she would re-plate, are the residual red. Where a
+ *     level does not show the decomposition, the commis's plates are all hatched and the chef's all blue, and the learner has to find
+ *     the overlap and the excess themselves;
  *   - a drafted plate set down on a commis stack at a seeded height: a solid dot where it lands in the plates the chef keeps, and a
  *     struck-through ring in the ribbon's red where it lands in the extra, the Service drawing's binned plate;
  *   - what went out of the kitchen, per dish: a hollow ring and a dashed hairline at the height served, over the chef's stack, so that
@@ -117,7 +119,7 @@ export type Mark =
       readonly face: Face
     }
 
-/** Marks that belong together, drawn as one group: `part` names the object (`lamp`, `pass`, `stacks`, `plates`, `out`, `names`). */
+/** Marks that belong together, drawn as one group: `part` names the object (`lamp`, `pass`, `stacks`, `wire`, `plates`, `out`, `names`). */
 export interface Layer {
   readonly part: string
   readonly marks: readonly Mark[]
@@ -173,10 +175,15 @@ interface Geometry {
 
 /** The plot height of a row for each number of rows [estimated]: the frame stays about as tall whether it holds one row or five. */
 const PLOT_HEIGHT: Readonly<Record<number, number>> = { 1: 220, 2: 118, 3: 90, 4: 72, 5: 62 }
+/**
+ * The least a plate is given, in frame units [estimated]: room for the plate seen edge on, the glaze of its rim and the gap under it.
+ * Thinner than this a stack reads as a bar and not as plates, so a run of courses takes a taller row rather than thinner plates.
+ */
+const MIN_UNIT = 3.4
 
 const PASS = 7
 
-function geometryOf(orientation: Orientation, rows: number): Geometry {
+function geometryOf(orientation: Orientation, rows: number, maxPlates: number): Geometry {
   const landscape = orientation === 'landscape'
   const single = rows === 1
   const width = landscape ? 720 : 360
@@ -185,7 +192,7 @@ function geometryOf(orientation: Orientation, rows: number): Geometry {
   const cellW = (width - 2 * margin - gutter) / 6
   const stackW = landscape ? (single ? 40 : 32) : single ? 22 : 18
   const stackGap = landscape ? 8 : 4
-  const plotH = PLOT_HEIGHT[Math.min(rows, 5)] ?? 60
+  const plotH = Math.max(PLOT_HEIGHT[Math.min(rows, 5)] ?? 60, Math.ceil(Math.max(maxPlates, 24) * MIN_UNIT + 4))
   // In portrait a row's name goes above it, in a band of its own.
   const named = !landscape && !single ? 14 : 0
   return {
@@ -252,19 +259,25 @@ interface Scale {
 
 function scaleOf(g: Geometry, maxPlates: number): Scale {
   const unit = (g.plotH - 4) / Math.max(maxPlates, 24)
-  return { unit, gap: Math.min(1.4, unit * 0.28) }
+  return { unit, gap: Math.min(1.4, unit * 0.3) }
 }
 
-/** A run of `count` plates standing on `base`, as plates or as one slab. Returns the height it reaches. */
+/**
+ * A run of `count` plates standing on `base`, as plates or as one slab. A plate is seen edge on: its rounded ends, its part on its edge,
+ * the glaze of its rim catching the tubes' light along its top, and a gap of shade under it, where the plate below shows.
+ */
 function plateRun(p: Painter, s: Scale, detail: Detail, x: number, base: number, w: number, from: number, count: number, style: Style) {
   if (count <= 0) return
   if (detail === 'runs') {
     p.rect(x, base - (from + count) * s.unit, w, count * s.unit - s.gap * 0.5, { ...style, rx: 1 })
     return
   }
+  const h = Math.max(s.unit - s.gap, 0.8)
+  const rx = Math.min(h / 2, 2.6)
   for (let k = 0; k < count; k++) {
-    const y = base - (from + k + 1) * s.unit
-    p.rect(x, y + s.gap * 0.5, w, Math.max(s.unit - s.gap, 0.8), { ...style, rx: Math.min(1.6, (s.unit - s.gap) / 2) })
+    const y = base - (from + k + 1) * s.unit + s.gap * 0.5
+    p.rect(x, y, w, h, { ...style, rx })
+    p.line(x + rx, y + 0.5, x + w - rx, y + 0.5, { stroke: 'paper', width: Math.min(1, h * 0.32), strokeOpacity: 0.9 })
   }
 }
 
@@ -309,8 +322,34 @@ function stacksAt(p: Painter, g: Geometry, s: Scale, detail: Detail, row: RowVie
       } else {
         plateRun(p, s, detail, px, r.base, g.stackW, 0, pPlates, { fill: 'probability-target', stroke: 'cat-blue-edge', width: 0.6 })
       }
-      // The chef's stack is outlined in the target blue whatever its plates are: it is her tasting.
-      p.rect(px - 1, r.base - pPlates * s.unit - 1, g.stackW + 2, pPlates * s.unit + 1, { fill: 'none', stroke: 'cat-blue-edge', width: 1.4, rx: 1.5 })
+    }
+  })
+}
+
+/**
+ * The chef's wire dispensers, one round each of her stacks whatever its plates are, for it is her tasting: two posts of steel wire hugging
+ * the stack and the bar over them, a few plates taller than what she holds, and the dispenser's foot on the pass in the target blue.
+ */
+function wireAt(p: Painter, g: Geometry, s: Scale, row: RowView, r: RowGeometry) {
+  row.p.forEach((pPlates, dish) => {
+    const top = r.base - Math.min(g.plotH - 1, (pPlates + 3) * s.unit)
+    const left = r.pX(dish) - 2.4
+    const right = r.pX(dish) + g.stackW + 2.4
+    for (const x of [left, right]) p.line(x, r.base, x, top + 1.2, { stroke: 'surface-3', width: 0.9 })
+    p.rect(left, top, right - left, 1.4, { fill: 'surface-3', rx: 0.7 })
+    p.rect(left - 1.4, r.base - 1.6, right - left + 2.8, 3, { fill: 'probability-target', stroke: 'cat-blue-edge', width: 0.6, rx: 1.5 })
+  })
+}
+
+/** Each stack's contact shadow on the pass: a soft dark bed under its foot, a little wider than the stack, so no stack floats. */
+function shadowsAt(p: Painter, g: Geometry, row: RowView, r: RowGeometry) {
+  row.p.forEach((pPlates, dish) => {
+    const qPlates = row.q === null ? 0 : row.q[dish]
+    for (const [x, plates] of [
+      [r.qX(dish), qPlates],
+      [r.pX(dish), pPlates],
+    ] as const) {
+      if (plates > 0) p.rect(x - 2.5, r.base - 1, g.stackW + 5, 3.2, { fill: 'surface-3', opacity: 0.32, rx: 1.6 })
     }
   })
 }
@@ -357,10 +396,13 @@ function describe(view: VerifierView): string {
   return `${view.title}. ${rows === 1 ? 'One tasting' : `${rows} tastings`}, with the commis's stack of plates beside the chef's for each of ${view.dishes.length} dishes: ${view.dishes.join(', ')}. The table below lists every count the drawing shows.`
 }
 
+/** The most plates any stack of a view holds. */
+const mostPlates = (view: VerifierView): number => Math.max(...view.rows.flatMap((row) => [...row.p, ...(row.q ?? [])]))
+
 function build(view: VerifierView, g: Geometry, detail: Detail, options: Required<Pick<FrameOptions, 'scaffold' | 'outcome'>>): { layers: Layer[]; height: number } {
   const p = painter()
   const rows = view.rows
-  const maxPlates = Math.max(...rows.flatMap((row) => [...row.p, ...(row.q ?? [])]))
+  const maxPlates = mostPlates(view)
   const s = scaleOf(g, maxPlates)
   const named = g.width < 480 && !g.single ? 14 : 0
   const rowTop = (i: number) => g.top + g.header + i * g.pitch + named
@@ -376,6 +418,7 @@ function build(view: VerifierView, g: Geometry, detail: Detail, options: Require
     p.line(0, y + 0.5, g.width, y + 0.5, { stroke: 'paper', width: 1.5, strokeOpacity: 0.85 })
     p.line(0, y + PASS - 0.5, g.width, y + PASS - 0.5, { stroke: 'surface-3', width: 1 })
   })
+  rows.forEach((row, i) => shadowsAt(p, g, row, rowGeometry(g, rowTop(i))))
 
   // The heat lamp's amber pools over the row being tasted, and nowhere else: light with no edge.
   p.layer('lamp')
@@ -387,6 +430,9 @@ function build(view: VerifierView, g: Geometry, detail: Detail, options: Require
 
   p.layer('stacks')
   rows.forEach((row, i) => stacksAt(p, g, s, detail, row, rowGeometry(g, rowTop(i)), options.scaffold))
+
+  p.layer('wire')
+  rows.forEach((row, i) => wireAt(p, g, s, row, rowGeometry(g, rowTop(i))))
 
   p.layer('plates')
   rows.forEach((row, i) => markersAt(p, g, s, row, rowGeometry(g, rowTop(i))))
@@ -437,7 +483,7 @@ function build(view: VerifierView, g: Geometry, detail: Detail, options: Require
  */
 export function layoutFrame(view: VerifierView, options: FrameOptions = {}): Frame {
   const orientation = options.orientation ?? 'landscape'
-  const g = geometryOf(orientation, Math.max(view.rows.length, 1))
+  const g = geometryOf(orientation, Math.max(view.rows.length, 1), mostPlates(view))
   const settings = { scaffold: options.scaffold ?? true, outcome: options.outcome ?? true }
   let result = build(view, g, 'plates', settings)
   if (result.layers.reduce((n, l) => n + l.marks.length, 0) > MARK_CAP) result = build(view, g, 'runs', settings)
@@ -465,7 +511,8 @@ export function layoutGamma(view: VerifierView, options: FrameOptions = {}): Fra
   const margin = landscape ? 6 : 4
   const cell = (width - 2 * margin) / gamma.max
   const stackW = landscape ? 40 : 24
-  const plotH = landscape ? 176 : 150
+  // Room for each of sixty-four plates edge on, its rim and the gap under it, as on the pass of the other levels.
+  const plotH = Math.ceil(PLATES * MIN_UNIT + 4)
   const top = 22
   const base = top + plotH
   const unit = (plotH - 4) / PLATES
@@ -474,10 +521,13 @@ export function layoutGamma(view: VerifierView, options: FrameOptions = {}): Fra
   const ribbonTop = base + PASS + 46
   const height = ribbonTop + 58
 
+  const stackX = (j: number) => margin + j * cell + (cell - stackW) / 2
   p.layer('pass')
   p.rect(0, base, width, PASS, { fill: 'surface-1', opacity: 0.85 })
   p.line(0, base + 0.5, width, base + 0.5, { stroke: 'paper', width: 1.5, strokeOpacity: 0.85 })
   p.line(0, base + PASS - 0.5, width, base + PASS - 0.5, { stroke: 'surface-3', width: 1 })
+  // Each plated stack stands in its contact shadow on the pass.
+  for (let j = 0; j < Math.min(gamma.pick, gamma.max); j++) p.rect(stackX(j) - 2.5, base - 1, stackW + 5, 3.2, { fill: 'surface-3', opacity: 0.32, rx: 1.6 })
 
   p.layer('lamp')
   if (gamma.pick >= 1 && !view.done) {
@@ -487,20 +537,23 @@ export function layoutGamma(view: VerifierView, options: FrameOptions = {}): Fra
 
   p.layer('stacks')
   gamma.alphas.slice(0, gamma.max).forEach((alpha, j) => {
-    const x = margin + j * cell + (cell - stackW) / 2
+    const x = stackX(j)
     const kept = Math.round((alpha * PLATES) / 1000)
     const plated = j + 1 <= gamma.pick
+    const h = Math.max(unit - gap, 0.8)
+    const rx = Math.min(h / 2, 2.6)
     for (let k = 0; k < PLATES; k++) {
       const y = base - (k + 1) * unit + gap * 0.5
-      const h = Math.max(unit - gap, 0.8)
       if (plated) {
-        if (k < kept) p.rect(x, y, stackW, h, { fill: 'probability-overlap', stroke: 'cat-green-edge', width: 0.6, rx: 1 })
-        else p.rect(x, y, stackW, h, { fill: 'hatch-draft', stroke: 'cat-yellow-edge', width: 0.6, rx: 1 })
+        // A plate edge on, with its rim's glaze along its top, as on the pass of the other levels.
+        if (k < kept) p.rect(x, y, stackW, h, { fill: 'probability-overlap', stroke: 'cat-green-edge', width: 0.6, rx })
+        else p.rect(x, y, stackW, h, { fill: 'hatch-draft', stroke: 'cat-yellow-edge', width: 0.6, rx })
+        p.line(x + rx, y + 0.5, x + stackW - rx, y + 0.5, { stroke: 'paper', width: Math.min(1, h * 0.32), strokeOpacity: 0.9 })
       } else if (k < kept) {
         // No plate is set down beyond the run: the place is an outline, and the split of kept and sent back stays readable in it.
-        p.rect(x, y, stackW, h, { fill: 'none', stroke: 'cat-green-edge', width: 0.8, rx: 1 })
+        p.rect(x, y, stackW, h, { fill: 'none', stroke: 'cat-green-edge', width: 0.8, rx })
       } else {
-        p.rect(x, y, stackW, h, { fill: 'none', stroke: 'cat-yellow-edge', width: 0.6, dash: '2 1.5', rx: 1 })
+        p.rect(x, y, stackW, h, { fill: 'none', stroke: 'cat-yellow-edge', width: 0.6, dash: '2 1.5', rx })
       }
     }
   })

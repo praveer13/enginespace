@@ -337,7 +337,8 @@ test.describe('`gamma`: a run of stacks, the kept plates at the bottom whether a
     const level = buildLevel('gamma', 0)
     if (level.id !== 'gamma') throw new Error('gamma')
     // Position 2 is plated and upright; position 6 waits upside down. Each is sampled a hand over the counter and near its top, where its
-    // kept plates (the overlap's green) and its sent-back ones (the draft's yellow, which has far more red in it) stand.
+    // kept plates (the overlap's green) and its sent-back ones (the draft's yellow) stand. A plate's part is its edge band, between the
+    // glaze of its lip and its rim, so the sample is a pale tint: the yellow's has far more red than blue in it, the green's about as much.
     for (const position of [1, 5]) {
       const kept = Math.round((level.alphas[position] * 64) / 1000)
       expect(kept).toBeGreaterThan(20)
@@ -345,7 +346,8 @@ test.describe('`gamma`: a run of stacks, the kept plates at the bottom whether a
       const low = await colourAt(page, [columnX(plan, position), TOP + 0.06, 0.061])
       const high = await colourAt(page, [columnX(plan, position), TOP + 0.66, 0.061])
       console.log(`position ${position + 1}: low ${low.map(Math.round).join(',')}, high ${high.map(Math.round).join(',')}`)
-      expect(high[0] - low[0], `position ${position + 1}: the draft's yellow stands over the overlap's green`).toBeGreaterThan(40)
+      const warmth = ([red, , blue]: [number, number, number]) => red - blue
+      expect(warmth(high) - warmth(low), `position ${position + 1}: the draft's yellow stands over the overlap's green`).toBeGreaterThan(40)
     }
   })
 })
@@ -375,9 +377,12 @@ test.describe('the picture (A§10.1; GAMES.md §2.6 rule 7)', () => {
     await settle(page)
     const labels = stage(page).locator('.es-labels')
     for (const dish of ['soup', 'salad', 'fish', 'steak', 'pasta', 'tart']) await expect(labels.locator('.es-vf-label--tape', { hasText: dish })).toHaveCount(1)
+    // One paper tag a dish, hung under its tape: the commis's plates, then the chef's.
     const level = buildLevel('overlap', 0)
     const counts = await labels.locator('.es-vf-label--count').allTextContents()
-    expect(counts).toEqual(level.p[0].flatMap((p, d) => [String(level.q[0][d]), String(p)]))
+    expect(counts).toEqual(level.p[0].map((p, d) => `${level.q[0][d]} · ${p}`))
+    // Every name is marker on masking tape, at the size ramp's smallest step at least.
+    for (const size of await labels.locator('.es-vf-label.es-tape').evaluateAll((nodes) => nodes.map((node) => parseFloat(getComputedStyle(node).fontSize)))) expect(size).toBeGreaterThanOrEqual(11)
     await expect(stage(page).locator('.es-stage__scene')).toHaveAttribute('aria-hidden', 'true')
     expect(await stage(page).locator('canvas').evaluate((canvas) => canvas.textContent)).toBe('')
   })

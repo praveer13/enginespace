@@ -3,6 +3,7 @@ import { PHASES, PHASE_NAMES, keymapOf } from '@es/play'
 import type { GameAction, GameFace, GameMode, KeyBinding, Phase, RunResult, Session } from '@es/play'
 import type { Seed } from '@es/sim/core'
 import { Button } from '@/design/components/Button'
+import { Icon } from '@/design/components/Glyph'
 import { TapeLabel } from '@/design/components/TapeLabel'
 import { shellLimits } from '@/settings/rules'
 import { useSettings } from '@/settings/useSettings'
@@ -430,8 +431,12 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
       {flow ? null : panelNode}
 
       {props.card ? (
-        <details className="max-w-prose">
-          <summary className="cursor-pointer font-bold">What this world models</summary>
+        <details className="group max-w-prose">
+          {/* The browser's own disclosure triangle gives way to the system's drawn arrow, which turns down when the card is open. */}
+          <summary className="flex w-fit cursor-pointer list-none items-center gap-2 font-bold [&::-webkit-details-marker]:hidden">
+            <Icon name="arrow" className="flex-none text-text-2 transition-transform duration-quick ease-settle group-open:rotate-90" />
+            What this world models
+          </summary>
           <div className="mt-3">{props.card}</div>
         </details>
       ) : null}

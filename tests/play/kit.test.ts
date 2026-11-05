@@ -166,8 +166,15 @@ describe('the slots', () => {
   })
 
   test('the notional-machine card is kept to hand in a disclosure, and absent when the game gives none', () => {
-    expect(shell({ card: h('p', null, 'It models the pile.') })).toMatch(/<details[^>]*><summary[^>]*>What this world models<\/summary><div[^>]*><p>It models the pile\.<\/p>/)
+    expect(shell({ card: h('p', null, 'It models the pile.') })).toMatch(/<details[^>]*><summary[^>]*><svg[^>]*>.*?<\/svg>What this world models<\/summary><div[^>]*><p>It models the pile\.<\/p>/)
     expect(shell()).not.toContain('<details')
+  })
+
+  test('the disclosure is the system\'s own: a drawn arrow that turns when it opens, never the browser\'s triangle', () => {
+    const summary = /<summary([^>]*)>(.*?)<\/summary>/.exec(shell({ card: h('p', null, 'It models the pile.') }))
+    expect(summary?.[1]).toContain('list-none')
+    expect(summary?.[1]).toContain('[&amp;::-webkit-details-marker]:hidden')
+    expect(summary?.[2]).toMatch(/^<svg[^>]*class="[^"]*group-open:rotate-90[^>]*data-icon="arrow"/)
   })
 })
 
