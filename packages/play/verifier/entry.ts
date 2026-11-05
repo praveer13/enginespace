@@ -13,8 +13,8 @@ export const VERIFIER: GameEntry = {
   modules: ['tr6'],
   title: 'The Tasting',
   subtitle: "speculative decoding's verifier",
-  // The 3D scene is W1-T29: it sets this and adds src/games/verifier/Scene3D.tsx. Until then the 2D view is the whole game.
-  has3d: false,
+  // The pass where the chef tastes, in 3D (W1-T29, src/games/verifier/Scene3D.tsx), over the 2D view that paints first.
+  has3d: true,
   // The graded levels (`exact`, `chain`, `gamma`) earn these; `overlap`, `greedy-ngram` and `mutants` are practice.
   kcs: ['tr6.exact-acceptance', 'tr6.residual-recovery', 'tr6.acceptance-length'],
   keys: [

@@ -1,7 +1,7 @@
 /*
  * W1-T28 acceptance check 3: `verify:games` passes for `verifier`. The gate itself is run on this checkout; the rest hold the registry's
  * record of The Tasting to what the code does and to the content it names: its claims are in content/claims (in the folders that
- * W1-T01 sorted them into), its KCs are in the graph, its card is the speculation model's, its 3D scene is not built yet (W1-T29), and the
+ * W1-T01 sorted them into), its KCs are in the graph, its card is the speculation model's, its 3D scene (W1-T29) is a lazy chunk, and the
  * registry costs a page that lists games none of the sim.
  */
 import { describe, expect, setDefaultTimeout, test } from 'bun:test'
@@ -69,11 +69,11 @@ describe('verify:games for verifier', () => {
 })
 
 describe('the registry\'s record of The Tasting', () => {
-  test('is D-049\'s: the display name over its subtitle, the id `verifier`, TR6, and no 3D scene until W1-T29 builds it', () => {
+  test('is D-049\'s: the display name over its subtitle, the id `verifier`, TR6, and the 3D scene W1-T29 built', () => {
     expect([VERIFIER.id, VERIFIER.title, VERIFIER.subtitle]).toEqual(['verifier', 'The Tasting', "speculative decoding's verifier"])
     expect(VERIFIER.modules).toEqual(['tr6'])
-    expect(VERIFIER.has3d).toBe(false)
-    expect(existsSync(path.join(root, 'src/games/verifier/Scene3D.tsx'))).toBe(false)
+    expect(VERIFIER.has3d).toBe(true)
+    expect(existsSync(path.join(root, 'src/games/verifier/Scene3D.tsx'))).toBe(true)
     expect(GAMES.get('verifier')).toBe(VERIFIER)
     expect(GAMES.games.map((game) => game.id)).toContain('verifier')
     expect(Object.keys(GAME_COMPONENTS)).toContain('verifier')
@@ -131,9 +131,10 @@ describe('the registry\'s record of The Tasting', () => {
     expect(checkFiles(VERIFIER, filesAt(root))).toEqual([])
   })
 
-  test('Game.tsx never imports a 3D scene, and does render the four parts the gate looks for', () => {
+  test('Game.tsx loads its 3D scene only through import(), so the scene is its own chunk, and renders the parts the gate looks for', () => {
     const game = readFileSync(path.join(root, 'src/games/verifier/Game.tsx'), 'utf8')
-    expect(game).not.toMatch(/Scene3D/)
-    for (const part of ['View2D', 'Mirror', 'Debrief', 'Controls']) expect(game).toContain(`<${part}`)
+    expect(game).toContain("lazy(() => import('./Scene3D'))")
+    expect(game).not.toMatch(/^import (?!type )[^\n]*from '\.\/Scene3D'/m)
+    for (const part of ['View2D', 'Mirror', 'Debrief', 'Controls', 'Scene3D']) expect(game).toContain(`<${part}`)
   })
 })
