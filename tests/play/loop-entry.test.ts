@@ -3,7 +3,7 @@
  * record of Service to what the code does and to the content it names: its claims are the tick card's numbers, its KCs are in the
  * graph, its card is the step-loop model's, and the registry costs a page that lists games none of the sim.
  */
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, setDefaultTimeout, test } from 'bun:test'
 import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -15,6 +15,9 @@ import { TICK_CARD, STEPLOOP_CARD_ID } from '@es/sim/steploop'
 import { claimsFileSchema } from '@es/schema/claims'
 import { GAME_COMPONENTS } from '@/games/registry'
 import { checkGames, filesAt, worldAt } from '../../scripts/verify-games'
+
+// The gate measures every registered game's band on four hundred seeds a level, and the Reach-In's nights are simulations: it takes seconds, and several on a loaded host.
+setDefaultTimeout(120_000)
 
 const root = path.resolve(import.meta.dirname, '../..')
 const claims = claimsFileSchema.parse(load(readFileSync(path.join(root, 'content/claims/loop.yaml'), 'utf8'), { schema: CORE_SCHEMA }))

@@ -3,7 +3,7 @@
  * record of Back of House to what the code does and to the content it names: its claims are the card's, its KCs are in the graph, its
  * card is the lifecycle model's, and the registry costs a page that lists games none of the sim.
  */
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, setDefaultTimeout, test } from 'bun:test'
 import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
@@ -15,6 +15,9 @@ import { floorSession } from '@es/play/engine-floor/session'
 import { LIFECYCLE_CARD_ID } from '@es/sim/lifecycle'
 import { GAME_COMPONENTS, resolveGame } from '@/games/registry'
 import { checkGames, filesAt, worldAt } from '../../scripts/verify-games'
+
+// The gate measures every registered game's band on four hundred seeds a level, and the Reach-In's nights are simulations: it takes seconds, and several on a loaded host.
+setDefaultTimeout(120_000)
 
 const root = path.resolve(import.meta.dirname, '../..')
 

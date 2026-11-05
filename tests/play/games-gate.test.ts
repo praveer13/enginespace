@@ -6,7 +6,7 @@
  * it the toy of support.ts and a tree held in memory, take one part away at a time, and expect exactly that part to be named. The
  * last tests run the command line on this checkout, and through the gate registry.
  */
-import { afterAll, describe, expect, test } from 'bun:test'
+import { afterAll, describe, expect, setDefaultTimeout, test } from 'bun:test'
 import { spawnSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -15,6 +15,9 @@ import type { AnySession, GameEntry } from '@es/play'
 import { BAND_CANDIDATES, checkEntry, checkFiles, checkGames, checkSession, filesAt, readGameSource, worldAt } from '../../scripts/verify-games'
 import type { GateInput, Report } from '../../scripts/verify-games'
 import { GAME_TSX, PRACTICE_SEED, TOY, TOY_3D, memoryFiles, toyFiles, toySession } from './support'
+
+// The gate measures every registered game's band on four hundred seeds a level, and the Reach-In's nights are simulations: it takes seconds, and several on a loaded host.
+setDefaultTimeout(120_000)
 
 const root = path.resolve(import.meta.dirname, '../..')
 

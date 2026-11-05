@@ -4,7 +4,7 @@
  * W1-T01 sorted them into), its KCs are in the graph, its card is the speculation model's, its 3D scene is not built yet (W1-T29), and the
  * registry costs a page that lists games none of the sim.
  */
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, setDefaultTimeout, test } from 'bun:test'
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -16,6 +16,9 @@ import { verifierSession } from '@es/play/verifier/session'
 import { SPEC_CARD_ID } from '@es/sim/spec'
 import { GAME_COMPONENTS } from '@/games/registry'
 import { checkEntry, checkFiles, checkGames, filesAt, worldAt } from '../../scripts/verify-games'
+
+// The gate measures every registered game's band on four hundred seeds a level, and the Reach-In's nights are simulations: it takes seconds, and several on a loaded host.
+setDefaultTimeout(120_000)
 
 const root = path.resolve(import.meta.dirname, '../..')
 

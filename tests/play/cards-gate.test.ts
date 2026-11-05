@@ -6,7 +6,7 @@
  * and each fails the gate by its own message: no card id in the registry, no file, and a file that does not compile. The first
  * tests give the toy game of W0-T14 each of them. The last run the real registry against a copy of this checkout.
  */
-import { afterAll, describe, expect, test } from 'bun:test'
+import { afterAll, describe, expect, setDefaultTimeout, test } from 'bun:test'
 import { cpSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -14,6 +14,9 @@ import { GAMES } from '@es/play'
 import { checkGames, main, worldAt } from '../../scripts/verify-games'
 import type { GateInput, Report } from '../../scripts/verify-games'
 import { TOY, memoryFiles, toyFiles } from './support'
+
+// The gate measures every registered game's band on four hundred seeds a level, and the Reach-In's nights are simulations: it takes seconds, and several on a loaded host.
+setDefaultTimeout(120_000)
 
 const root = path.resolve(import.meta.dirname, '../..')
 

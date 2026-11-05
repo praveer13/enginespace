@@ -49,8 +49,8 @@ describe('the module a ref names', () => {
   })
 
   test('a game this build does not know names no module, and loses nothing', () => {
-    expect(moduleOfRef('play:pool/evict', homeOf)).toBeNull()
-    expect(moduleOfRef('play:pool/evict', (game) => (game === 'pool' ? 'tr5a' : undefined))).toBe('tr5a')
+    expect(moduleOfRef('play:switchyard/offload', homeOf)).toBeNull()
+    expect(moduleOfRef('play:switchyard/offload', (game) => (game === 'switchyard' ? 'tr5b' : undefined))).toBe('tr5b')
   })
 
   test('only a module id begins a family, a lesson or a KC: tr9 and a word are not modules', () => {

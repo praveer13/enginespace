@@ -98,10 +98,10 @@ describe('the games of a loop are links only where the game is built', () => {
   })
 
   test('a game that is not built is its name and the wave that brings it, and never a link', () => {
-    const html = render(h(Loop, { ...props, games: ['pool', 'shape-shifter'], progress: progressOf([]).modules.get('tr5a') }))
-    expect(html).not.toContain('href="/play/pool"')
+    const html = render(h(Loop, { ...props, games: ['gap-hunt', 'shape-shifter'], progress: progressOf([]).modules.get('tr5a') }))
+    expect(html).not.toContain('href="/play/gap-hunt"')
     expect(html).not.toContain('href="/play/shape-shifter"')
-    expect(textOf(html)).toContain('The Reach-In, arriving with W1')
+    expect(textOf(html)).toContain('The Tape, arriving with W2')
     expect(textOf(html)).toContain('Sheet Pan, arriving with W2')
   })
 

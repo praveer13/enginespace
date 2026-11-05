@@ -1,0 +1,489 @@
+/*
+ * The Reach-In's page layer (GAMES.md §2.6, §8): the cabinet of hotel pans, the rotation along its base, the pass in front of it, the kit
+ * shelf and the open ask. Every colour, face, radius, size and shadow is a token role (src/design/tokens.css); this file names none of its
+ * own. The cabinet is a size container, so the pans scale with the cabinet and not with the window: sixteen to a row at every width, about
+ * 20 px each on a phone (GAMES.md §8, "Legible at 390 px"). Pans never move, and nothing here animates.
+ */
+
+.es-reachin {
+  container-type: inline-size;
+  container-name: reachin;
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-6);
+}
+
+/* ---------------------------------------------------------------------------------------------- the levels */
+
+/* On a wide page the levels are listed, and the line that names the current one is only for a phone, where the list folds. */
+@media (min-width: 48rem) {
+  .es-levels__summary {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------- the cabinet */
+
+.es-reachin__cabinet {
+  display: grid;
+  gap: var(--es-space-3);
+  padding: var(--es-space-3);
+  border: 1px solid var(--es-edge);
+  border-radius: var(--es-radius-shoulder);
+  background-color: var(--es-surface-1);
+  background-image: linear-gradient(180deg, color-mix(in srgb, var(--es-glint) 50%, transparent), transparent 70%), var(--es-texture-brushed);
+  background-size: auto, 100% 720px;
+  box-shadow: var(--es-shadow-shelf);
+}
+
+.es-reachin__plate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2) var(--es-space-4);
+}
+
+/* The door's plate: stamped lettering, as the house's name is. */
+.es-reachin__name {
+  font-family: var(--es-font-display);
+  font-size: var(--es-size-title);
+  font-weight: var(--es-font-display-weight);
+  letter-spacing: 0.1em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.es-reachin__count {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--es-space-1) var(--es-space-3);
+  margin-left: auto;
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+}
+
+.es-reachin__rack,
+.es-reachin__strip {
+  display: grid;
+  grid-template-columns: repeat(var(--es-rack-cols, 16), minmax(0, 1fr));
+  gap: var(--es-rack-gap, 3px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@container reachin (min-width: 34rem) {
+  .es-reachin__rack,
+  .es-reachin__strip {
+    --es-rack-gap: 6px;
+  }
+}
+
+.es-reachin__cell {
+  position: relative;
+  min-width: 0;
+}
+
+/* The design system's small pan is a fixed 20 px; in the cabinet it fills its cell, at the same proportions. */
+.es-reachin__cell .es-pan {
+  display: grid;
+  width: 100%;
+}
+
+.es-reachin__cell .es-pan[data-size='sm'] .es-pan__rim {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 5 / 4;
+  padding: clamp(2px, 12%, 5px);
+  border-radius: var(--es-radius-plate);
+}
+
+.es-reachin__cell .es-pan[data-size='sm'] .es-pan__mark {
+  width: 56%;
+  height: 56%;
+}
+
+/* A pan that a ticket or a row is pointing at takes the hand's ring, as a pan under the pointer does. A pan that is a span has no hover of its own. */
+.es-reachin__cell .es-pan[data-force='hover'] .es-pan__rim {
+  box-shadow:
+    inset 0 0 0 2px var(--es-text-1),
+    0 1px 2px color-mix(in srgb, var(--es-paper-ink) 30%, transparent);
+}
+
+/* A cached pan that a waiting ticket starts from: shared mise, which still carries the hash. */
+.es-reachin__spoken {
+  position: absolute;
+  inset: 0;
+  width: 52%;
+  height: 52%;
+  margin: auto;
+  color: var(--es-cat-green-ink);
+  pointer-events: none;
+}
+
+/* The station that keeps a pan is drawn in marker at its corner: a circle for full attention, a square for a window, a hexagon for state. */
+.es-reachin__kind {
+  position: absolute;
+  right: 6%;
+  bottom: 9%;
+  width: clamp(6px, 34%, 13px);
+  height: auto;
+  aspect-ratio: 1;
+  color: var(--es-tape-ink);
+  filter: drop-shadow(0 0 1px var(--es-paper));
+  pointer-events: none;
+}
+
+.es-reachin__cell .es-pan[data-state='evicted'] {
+  opacity: 1;
+}
+
+/* The key to the drawing, made of the objects it names. */
+.es-reachin__key {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2) var(--es-space-6);
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+}
+
+.es-reachin__key ul {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-1) var(--es-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-reachin__key-item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--es-space-2);
+}
+
+.es-reachin__key-item .es-pan {
+  width: 1.5rem;
+}
+
+.es-reachin__key-item .es-pan[data-size='sm'] .es-pan__rim {
+  width: 100%;
+  height: 1.2rem;
+}
+
+.es-reachin__key-mark {
+  position: absolute;
+  left: 0.45rem;
+  top: 0.2rem;
+  width: 0.7rem;
+  height: 0.7rem;
+  color: var(--es-cat-yellow-edge);
+}
+
+.es-reachin__key-glyph {
+  width: 0.9rem;
+  height: 0.9rem;
+  color: var(--es-text-1);
+}
+
+/* ---------------------------------------------------------------------------------------------- the rotation */
+
+.es-reachin__rotation {
+  display: grid;
+  gap: var(--es-space-2);
+  padding: var(--es-space-3);
+  border: 1px solid var(--es-edge);
+  border-radius: var(--es-radius-plate);
+  background-color: var(--es-surface-2);
+  background-image: var(--es-texture-brushed);
+  background-size: 100% 360px;
+}
+
+.es-reachin__rotation-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2) var(--es-space-4);
+}
+
+.es-reachin__rotation-note {
+  color: var(--es-text-1);
+  font-size: var(--es-size-note);
+}
+
+/* ---------------------------------------------------------------------------------------------- the pass */
+
+.es-pass {
+  display: grid;
+  gap: var(--es-space-6);
+}
+
+.es-pass__lane {
+  display: grid;
+  align-content: start;
+  gap: var(--es-space-3);
+  min-width: 0;
+}
+
+.es-pass__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2) var(--es-space-4);
+}
+
+.es-pass__clips {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--es-space-2);
+  font-size: var(--es-size-note);
+}
+
+.es-pass__tickets,
+.es-shelf__kits {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr));
+  gap: var(--es-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-pass__empty,
+.es-pass__note,
+.es-shelf__note {
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+}
+
+.es-pass__note {
+  grid-column: 1 / -1;
+}
+
+/* A ticket's ruler: one row for each station, one segment for each block of the order. */
+.es-ruler {
+  display: grid;
+  gap: 3px;
+  margin-bottom: var(--es-space-2);
+}
+
+.es-ruler__row {
+  display: flex;
+  align-items: center;
+  gap: var(--es-space-1);
+}
+
+.es-ruler__glyph {
+  flex: none;
+  width: 0.7rem;
+  height: 0.7rem;
+  color: var(--es-paper-ink);
+}
+
+.es-ruler__segs {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(2px, 16px);
+  gap: 2px;
+  height: 0.8rem;
+  min-width: 0;
+}
+
+.es-ruler__seg {
+  display: block;
+  border-radius: var(--es-radius-trim);
+}
+
+/* Held: solid. Shared mise: dotted. To prep: a hollow, dashed outline. Let go: an open groove. */
+.es-ruler__seg[data-seg='held'] {
+  background: var(--es-memory-used);
+  box-shadow: inset 0 0 0 1px var(--es-cat-blue-edge);
+}
+
+.es-ruler__seg[data-seg='hit'] {
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--es-memory-shared) 45%, var(--es-paper)) 0 1px, transparent 1.4px) 0 0 / 4px 4px,
+    var(--es-memory-shared);
+  box-shadow: inset 0 0 0 1px var(--es-cat-green-edge);
+}
+
+.es-ruler__seg[data-seg='fresh'] {
+  background: transparent;
+  outline: 1px dashed var(--es-paper-ink);
+  outline-offset: -1px;
+}
+
+.es-ruler__seg[data-seg='let-go'] {
+  background: color-mix(in srgb, var(--es-surface-3) 22%, transparent);
+  box-shadow: inset 0 1px 2px color-mix(in srgb, var(--es-paper-ink) 40%, transparent);
+}
+
+/* ---------------------------------------------------------------------------------------------- the shelf */
+
+.es-shelf {
+  display: grid;
+  gap: var(--es-space-3);
+}
+
+/* ---------------------------------------------------------------------------------------------- the open ask */
+
+.es-ask-stack {
+  container-type: inline-size;
+  container-name: ask;
+  display: grid;
+  gap: var(--es-space-6);
+}
+
+.es-ask__body {
+  display: grid;
+  gap: var(--es-space-4);
+}
+
+.es-ask__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 11rem), 1fr));
+  gap: var(--es-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-ask__list--pans {
+  grid-template-columns: 1fr;
+  gap: 0;
+  max-height: 24rem;
+  overflow-y: auto;
+  border: 1px solid var(--es-paper-rule);
+}
+
+.es-ask__item {
+  min-width: 0;
+}
+
+.es-ask__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-3) var(--es-space-6);
+}
+
+.es-ask__count {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--es-space-2);
+}
+
+/* A pan on offer to be dumped: a row of the rotation, as a toggle. The row wraps on a phone, and its note takes the line under it. */
+.es-pick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-1) var(--es-space-3);
+  width: 100%;
+  min-height: 2.75rem;
+  padding: var(--es-space-1) var(--es-space-3);
+  border: 0;
+  border-bottom: 1px dotted var(--es-paper-rule);
+  background: var(--es-paper);
+  color: var(--es-paper-ink);
+  font-family: var(--es-font-body);
+  font-size: inherit;
+  line-height: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.es-pick[data-picked] {
+  background: var(--es-surface-1);
+  box-shadow: inset 0 0 0 1px var(--es-paper-ink);
+}
+
+.es-pick:hover {
+  background: var(--es-surface-1);
+}
+
+.es-pick__rank {
+  flex: none;
+  width: 1.75rem;
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+}
+
+.es-pick .es-pan {
+  flex: none;
+}
+
+.es-pick .es-tape {
+  flex: none;
+}
+
+.es-pick__station {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--es-space-1);
+  min-width: 3.5rem;
+  font-size: var(--es-size-note);
+}
+
+.es-pick__glyph {
+  width: 0.8rem;
+  height: 0.8rem;
+  color: var(--es-paper-ink);
+}
+
+.es-pick__tag {
+  flex: 1 1 11rem;
+  font-size: var(--es-size-note);
+}
+
+.es-pick__tag[data-tone='waiting'] {
+  color: var(--es-paper-ink-2);
+}
+
+.es-pick__tag[data-tone='free'],
+.es-pick__tag[data-tone='seated'] {
+  color: var(--es-text-2);
+}
+
+.es-ask__unit {
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+}
+
+/* The rotation's bare pans, drawn as one run at its head. */
+.es-reachin__bare {
+  grid-column: span 5;
+  display: flex;
+  align-items: center;
+  gap: var(--es-space-2);
+  color: var(--es-text-1);
+  font-size: var(--es-size-note);
+}
+
+.es-reachin__bare .es-pan {
+  flex: none;
+  width: 1.5rem;
+}
+
+.es-reachin__bare .es-pan[data-size='sm'] .es-pan__rim {
+  width: 100%;
+  height: 1.2rem;
+}
+
+/* The mirror's table of pans folds shut: it is long, and the lists and the ticket table say what the drawing shows. */
+.es-mirror-fold {
+  display: grid;
+  gap: var(--es-space-3);
+}
+
+.es-mirror-fold[open] .es-mirror__region {
+  max-height: 32rem;
+  overflow: auto;
+}

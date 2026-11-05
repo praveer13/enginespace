@@ -8,7 +8,7 @@
  * pattern), and `verify:games` fails when the two disagree.
  *
  * A game joins by adding its entry to `GAMES` below. W0-T16 added `loop`, the first, W1-T28 added `verifier`, W1-T17 added
- * `engine-floor`, and W1-T33 added `broken-bench`.
+ * `engine-floor`, W1-T33 added `broken-bench`, and W1-T23 added `pool`.
  *
  * The keys and `levelOf` are in keys.ts, and this module re-exports them. The front page reads those and no game's record besides
  * Service's, and its first-paint closure (D-023) is gated: with the keys in a module of their own and the call that makes `GAMES` marked
@@ -18,6 +18,7 @@ import { BROKEN_BENCH } from './broken-bench/entry'
 import { ENGINE_FLOOR } from './engine-floor/entry'
 import { levelOf } from './keys'
 import { LOOP } from './loop/entry'
+import { POOL } from './pool/entry'
 import { regrade } from './replay'
 import type { Regrade } from './replay'
 import type { GameEntry, StoredRun } from './types'
@@ -47,8 +48,8 @@ export function createRegistry(games: readonly GameEntry[]): GameRegistry {
   return { games: list, has: (id) => byId.has(id), get: (id) => byId.get(id) }
 }
 
-/** Every game of the course. Each game's task adds its entry here: `loop` is the first (W0-T16), `verifier` follows (W1-T28), then `engine-floor` (W1-T17) and `broken-bench` (W1-T33). */
-export const GAMES: GameRegistry = /* @__PURE__ */ createRegistry([LOOP, VERIFIER, ENGINE_FLOOR, BROKEN_BENCH])
+/** Every game of the course. Each game's task adds its entry here: `loop` is the first (W0-T16), `verifier` follows (W1-T28), then `engine-floor` (W1-T17), `broken-bench` (W1-T33) and `pool` (W1-T23). */
+export const GAMES: GameRegistry = /* @__PURE__ */ createRegistry([LOOP, VERIFIER, ENGINE_FLOOR, BROKEN_BENCH, POOL])
 
 /**
  * Grades a stored `play` run by its log: finds the game, loads its session and replays. A run of a game this build does not have,
