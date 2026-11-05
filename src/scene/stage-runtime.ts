@@ -18,6 +18,8 @@ export interface FrameStats {
   readonly triangles: number
   /** Instances the frame's instanced meshes drew. */
   readonly instances: number
+  /** Lights that cast a shadow map this frame (none where the tier or the scene has none). */
+  readonly shadows?: number
   readonly geometries: number
   readonly textures: number
   readonly programs: number

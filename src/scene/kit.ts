@@ -16,6 +16,13 @@ export interface Kit {
   readonly reducedMotion: boolean
   /** The design system's settle curve (`ease-settle`), for every move the kit animates. */
   readonly ease: (t: number) => number
+  /** The bell's strike curve (`ease-strike`): a hard strike that settles exponentially, with no overshoot. */
+  readonly strike: (t: number) => number
+  /**
+   * How many lights may cast real-time shadows in this scene: the tier's `shadowLights` when the scene asked for shadows
+   * (`<SceneCanvas shadows>`), else 0. Heat lamps cast in the order they are listed, up to this many.
+   */
+  readonly shadowLights: number
   /**
    * Keeps frames coming while something animates, at the tier's frame-rate cap, and returns the release. With nothing
    * held the loop draws only when something changes (`demand`). Under reduced motion nothing animates, so nothing holds.
@@ -23,6 +30,11 @@ export interface Kit {
   hold(): () => void
   /** Asks for one frame. */
   invalidate(): void
+  /**
+   * Holds every frame back while a part is still being made (a static set baking its occlusion), so the scene is never shown half
+   * built; returns the release. The first frame, and with it the swap from the 2D view, waits for it.
+   */
+  pending(): () => void
   /** Names an object whose space labels can be anchored in (`LabelSpec.frame`), such as the time track. */
   registerFrame(name: string, object: Object3D): () => void
   /** The camera's distance to what it looks at: the fog starts this far beyond it (the CameraRig sets it). */

@@ -563,6 +563,26 @@ describe('what a row waits for, and what fails it', () => {
     expect(flat.failed).toBe(0)
   })
 
+  test("scene kit v1's props are measured alone in a scene-kit row, held to a scene's 40 KB, and counted again in every scene that reaches them", () => {
+    const withKit = (bytes: number) =>
+      run({
+        specs: {
+          '_scene-kit.js': { bytes, name: 'scene-kit', imports: ['_three-vendor.js', '_react-vendor.js'] },
+          'src/games/loop/Scene3D.tsx': { ...APP['src/games/loop/Scene3D.tsx'], imports: [...(APP['src/games/loop/Scene3D.tsx'].imports ?? []), '_scene-kit.js'] },
+        },
+        tree: { sceneKit: true },
+      })
+    const fits = withKit(20 * KB)
+    expect(statusOf(fits, 'scene-kit')).toBe('ok')
+    expect(rowOf(fits, 'scene-kit').bytes).toBe(20 * KB)
+    expect(rowOf(fits, 'scene:loop').bytes).toBe((rowOf(run(), 'scene:loop').bytes ?? 0) + 20 * KB)
+    expect(statusOf(withKit(40 * KB + 1), 'scene-kit')).toBe('FAIL')
+    // The props in the tree with no chunk of their own cannot be measured.
+    expect(statusOf(run({ tree: { sceneKit: true } }), 'scene-kit')).toBe('FAIL')
+    // A tree without them has no row.
+    expect(run().rows.some((row) => row.id === 'scene-kit')).toBe(false)
+  })
+
   test('post-processing in the tree without a chunk fails', () => {
     const report = run({ specs: { 'src/scene/postfx/postfx.ts': null, '_TimeAxis.js': { ...APP['_TimeAxis.js'], dyn: [] } } })
     expect(statusOf(report, 'postfx')).toBe('FAIL')

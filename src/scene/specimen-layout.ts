@@ -15,7 +15,9 @@
  */
 import type { Workload, ReqSpec } from '@es/sim/workload'
 import { below, rngFor } from '@es/sim/core'
-import { runStepLoop, TICK_CARD, type StepLoopRun } from '@es/sim/steploop'
+import { TICK_CARD, type StepLoopRun } from '@es/sim/steploop'
+// The v0 loop, by path: the package's `runStepLoop` is v1, which the pages that draw this scene have no room for (packages/sim/steploop/run.ts).
+import { runStepLoop } from '@es/sim/steploop/run'
 import type { CameraPreset, Vec3 } from './camera-rig'
 import type { FixturePart } from './fixture-geometry'
 import type { LampSpec } from './Lights'

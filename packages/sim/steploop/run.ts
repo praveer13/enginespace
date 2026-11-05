@@ -10,11 +10,16 @@
 //     budget and a cap on running requests, and a prompt is cut into chunks to fit the budget when chunked prefill is on.
 //   - A captured CUDA graph is replayed when the step's token count, rounded up to the next captured size, was captured.
 //
+// This is v0, the loop the front page runs. It stays as the TR2 spike wrote it, and W1-T12's v1 loop is `./run-v1`: the graph modes
+// and dispatch keys, the mask, speculation and adapters. They are two files because the front page's first paint has a size budget
+// (`verify:bundle`, the front page's JS gate), and v1 weighs more than the budget has room for. The front page imports this file by
+// path; everything else imports `runStepLoop` from the package, which is v1. tests/sim/steploop-v1.test.ts holds the two to the same
+// spans, steps, requests and summary on every configuration that v0 can run.
+//
 // What v0 leaves out is in the notional-machine card's "Ignores" (content/cards/trace-room-steploop.md): the KV manager, so no
-// capacity limit and no preemption; the other graph modes and the dispatch keys; the structured-output mask; speculation; adapters.
-// Three host-card fields are not read. `detokPerTokenUs` and `ipcUs` are not, because detokenization and the hop to the frontend
-// run in another process, off the engine core's critical path (WORLD §2.1), and every latency here is the engine core's.
-// `maskPerSeqUs` is the mask's.
+// capacity limit and no preemption; and what v1 adds. Three host-card fields are not read. `detokPerTokenUs` and `ipcUs` are not,
+// because detokenization and the hop to the frontend run in another process, off the engine core's critical path (WORLD §2.1), and
+// every latency here is the engine core's. `maskPerSeqUs` is the mask's.
 //
 // What a step costs on the CPU lane, in the order the CPU does it, for a batch of `seqs` rows and `tokens` real tokens:
 //   schedule  scheduleBase + schedulePerSeq · seqs        (or the GPU card's own per-sequence host work, D-044)

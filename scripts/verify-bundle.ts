@@ -36,6 +36,9 @@
  *   three-vendor   the chunk's own file.                                                        gate 245
  *   scene-<id>     a scene's own chunk, the CSS it names, and the chunks it reaches that only    gate 40 each
  *                  3D code reaches: not the entry, not a page or a game, not `three-vendor` and not `postfx`.
+ *   scene-kit      scene kit v1's props (src/scene/props), the chunk every 3D game that dresses  gate 40
+ *                  its kitchen shares over three-vendor (vite.config.ts). Its own row measures it alone; a scene's row that
+ *                  reaches it counts it too.
  *   postfx         the chunk's own file.                                                        gate 25
  *   workers        `receipt.worker` and `forge.worker`: Vite lists no worker in the manifest,   gate 60 and 40
  *                  so the gate finds the bundle by name in dist/assets.
@@ -118,6 +121,8 @@ export interface Tree {
   workers: readonly string[]
   /** Whether the scene kit has post-processing (`src/scene/postfx/`). */
   postfx: boolean
+  /** Whether the scene kit has its props (`src/scene/props/`, scene kit v1). */
+  sceneKit?: boolean
 }
 
 /** index.html, the document of the front page. */
@@ -356,6 +361,13 @@ export function checkBundle(input: Input): Report {
     note(`scene:${source}`, 'FAIL', source, 'is in the tree and is not a lazy chunk of its own in the manifest, so its budget cannot be measured: is it imported lazily, and is it a Scene3D.tsx?')
   }
 
+  /* Scene kit v1's props: one chunk every dressed scene shares, measured alone. */
+  const kitKey = Object.keys(manifest).find((key) => manifest[key].name === 'scene-kit')
+  if (kitKey !== undefined) {
+    const files = filesOf(manifest, [kitKey])
+    measured('scene-kit', 'scene-kit (the props)', sizeOf([...files.js, ...files.css]), BUDGETS.scene, `${manifest[kitKey].file}: src/scene/props, which every scene that reaches it counts again`)
+  } else if (tree.sceneKit === true) note('scene-kit', 'FAIL', 'scene-kit', 'src/scene/props is in the tree and the manifest has no scene-kit chunk, so its budget cannot be measured (vite.config.ts manualChunks)')
+
   /* three-vendor and postfx. */
   if (threeKey !== undefined) measured('three-vendor', 'three-vendor', sizeOf([manifest[threeKey].file]), BUDGETS.threeVendor, `three and react-three-fiber, ${manifest[threeKey].file}`)
   else if (scenes.length > 0) note('three-vendor', 'FAIL', 'three-vendor', 'the build has 3D scenes and no three-vendor chunk: three has been bundled into something else (vite.config.ts manualChunks)')
@@ -455,6 +467,7 @@ export function readTree(root: string): Tree {
     ],
     workers: Object.keys(BUDGETS.workers).filter((name) => has(`src/workers/${name}.ts`)),
     postfx: has('src/scene/postfx'),
+    sceneKit: has('src/scene/props'),
   }
 }
 

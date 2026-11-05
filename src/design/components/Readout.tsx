@@ -32,6 +32,7 @@ export type ReadoutUnit =
   | 'GB'
   | 'x'
   | ':1'
+  | 'mm'
 
 interface ReadoutCommon {
   value: number

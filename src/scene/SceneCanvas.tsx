@@ -54,6 +54,11 @@ export interface SceneCanvasProps {
   environment?: boolean
   /** How strongly the environment lights the scene [estimated]. */
   environmentIntensity?: number
+  /**
+   * Real-time shadow maps, where the tier allows them (tiers.ts's `shadowLights`: none at T1). Off by default, so a scene that
+   * does not ask draws exactly as before. The lights that cast are the scene's to choose, through the kit's `shadowLights`.
+   */
+  shadows?: boolean
   className?: string
 }
 
@@ -208,7 +213,7 @@ class RootBoundary extends Component<{ onError: (error: unknown) => void; childr
   }
 }
 
-export function SceneCanvas({ children, labels = [], background = 'surface-0', fog = null, exposure = 1, environment = true, environmentIntensity = 0.9, className }: SceneCanvasProps) {
+export function SceneCanvas({ children, labels = [], background = 'surface-0', fog = null, exposure = 1, environment = true, environmentIntensity = 0.9, shadows = false, className }: SceneCanvasProps) {
   const runtime = useStageRuntime()
   const tokens = useSceneTokens()
   const host = useRef<HTMLDivElement>(null)
@@ -247,6 +252,7 @@ export function SceneCanvas({ children, labels = [], background = 'surface-0', f
           exposure={exposure}
           environment={environment}
           environmentIntensity={environmentIntensity}
+          shadows={shadows}
         >
           {children}
         </KitRoot>
@@ -272,6 +278,7 @@ interface KitRootProps {
   exposure: number
   environment: boolean
   environmentIntensity: number
+  shadows: boolean
   children: ReactNode
 }
 
@@ -284,8 +291,18 @@ function countInstances(scene: THREE.Scene): number {
   return total
 }
 
+/** Counts the lights that cast a shadow map, when the renderer draws shadow maps at all. */
+function countShadows(scene: THREE.Scene, gl: THREE.WebGLRenderer): number {
+  if (!gl.shadowMap.enabled) return 0
+  let total = 0
+  scene.traverseVisible((object) => {
+    if ((object as THREE.Light).isLight && object.castShadow) total += 1
+  })
+  return total
+}
+
 /** Everything inside the root: renderer settings, materials, light from the environment, post-processing and the loop. */
-function KitRoot({ runtime, tokens, paused, store, bridge, background, fog, exposure, environment, environmentIntensity, children }: KitRootProps) {
+function KitRoot({ runtime, tokens, paused, store, bridge, background, fog, exposure, environment, environmentIntensity, shadows, children }: KitRootProps) {
   const gl = useThree((state) => state.gl)
   const scene = useThree((state) => state.scene)
   const size = useThree((state) => state.size)
@@ -297,13 +314,16 @@ function KitRoot({ runtime, tokens, paused, store, bridge, background, fog, expo
 
   // The renderer: Khronos PBR Neutral tone mapping keeps the roles' colours true below the highlights, and the frame's
   // counts accumulate across passes until the loop resets them.
+  // Shadow maps only where the scene asked and the tier allows: PCF with a Vogel disk, softened by each light's own radius.
+  const shadowLights = shadows ? TIERS[tier].shadowLights : 0
   useLayoutEffect(() => {
     gl.toneMapping = THREE.NeutralToneMapping
     gl.toneMappingExposure = exposure
     gl.info.autoReset = false
-    gl.shadowMap.enabled = false
+    gl.shadowMap.enabled = shadowLights > 0
+    gl.shadowMap.type = THREE.PCFShadowMap
     invalidate()
-  }, [gl, exposure, invalidate])
+  }, [gl, exposure, shadowLights, invalidate])
 
   useEffect(() => {
     setDpr([1, TIERS[tier].dprCap])
@@ -399,11 +419,14 @@ function KitRoot({ runtime, tokens, paused, store, bridge, background, fog, expo
     if (!paused) invalidate()
   }, [paused, setFrameloop, invalidate])
 
+  // Parts still being made (a static set baking its occlusion): until they are done no frame is drawn, so the scene never shows half
+  // built, and the canvas keeps whatever it showed before.
+  const pendings = useRef(0)
   // When the loop stops, the scene is still: the Stage marks it settled (A§11.2's reduced-motion check reads that).
   useEffect(
     () =>
       addTail(() => {
-        if (holds.current === 0 && loading.current === 0) runtimeNow.current.settled()
+        if (holds.current === 0 && loading.current === 0 && pendings.current === 0) runtimeNow.current.settled()
       }),
     [],
   )
@@ -415,6 +438,8 @@ function KitRoot({ runtime, tokens, paused, store, bridge, background, fog, expo
       tier,
       reducedMotion: runtime.reducedMotion,
       ease: easingFrom(tokens.roles['ease-settle']),
+      strike: easingFrom(tokens.roles['ease-strike']),
+      shadowLights,
       hold() {
         holds.current += 1
         if (holds.current === 1) {
@@ -436,6 +461,16 @@ function KitRoot({ runtime, tokens, paused, store, bridge, background, fog, expo
         }
       },
       invalidate: () => invalidate(),
+      pending() {
+        pendings.current += 1
+        let released = false
+        return () => {
+          if (released) return
+          released = true
+          pendings.current -= 1
+          invalidate()
+        }
+      },
       registerFrame: (name, object) => store.registerFrame(name, object),
       focus(distance) {
         focusDistance.current = distance
@@ -445,7 +480,7 @@ function KitRoot({ runtime, tokens, paused, store, bridge, background, fog, expo
         }
       },
     }),
-    [tokens, materials, tier, runtime.reducedMotion, setFrameloop, invalidate, store, governor, scene, fogNear, fogFar],
+    [tokens, materials, tier, runtime.reducedMotion, shadowLights, setFrameloop, invalidate, store, governor, scene, fogNear, fogFar],
   )
 
   useEffect(() => {
@@ -458,6 +493,7 @@ function KitRoot({ runtime, tokens, paused, store, bridge, background, fog, expo
   const lastStats = useRef(Number.NEGATIVE_INFINITY)
 
   useFrame((state, delta) => {
+    if (pendings.current > 0) return
     const now = performance.now()
     const animating = holds.current > 0
     if (animating) {
@@ -495,6 +531,7 @@ function KitRoot({ runtime, tokens, paused, store, bridge, background, fog, expo
         calls: gl.info.render.calls,
         triangles: sceneCounts.triangles,
         instances: countInstances(state.scene),
+        shadows: countShadows(state.scene, gl),
         geometries: gl.info.memory.geometries,
         textures: gl.info.memory.textures,
         programs: gl.info.programs?.length ?? 0,
