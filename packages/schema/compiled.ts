@@ -14,9 +14,9 @@ import { z } from 'zod'
 import { CLAIM_TAGS, claimSchema } from './claims'
 import type { ClaimTag } from './claims'
 import { nonBlank, sha256Hex } from './common'
-import { blockSchema, cardFrontMatterSchema, lessonFrontMatterSchema, moduleFrontMatterSchema, STATUSES } from './content'
+import { artifactSchema, blockSchema, cardFrontMatterSchema, lessonFrontMatterSchema, moduleFrontMatterSchema, STATUSES } from './content'
 import type { Block } from './content'
-import { gameIdSchema, lessonIdSchema, moduleIdSchema, prereqSchema } from './refs'
+import { gameIdSchema, kcIdSchema, kcRefSchema, labIdSchema, lessonIdSchema, moduleIdSchema, prereqSchema, refSchema } from './refs'
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Prose                                                                                                              */
@@ -180,6 +180,48 @@ export const contentIndexSchema = z.strictObject({
 /** `public/claims.json`, for the claim chips and the about page. Claims are sorted by id. */
 export const claimsOutputSchema = z.strictObject({ claims: z.array(claimSchema) })
 
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* The course map                                                                                                     */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/**
+ * A module as the map and the module pages read it. It is kept out of the course index, which is in the front page's
+ * first-paint closure (A§4.6, A§6.10), so the front page pays nothing for it.
+ */
+export const mapModuleSchema = z.strictObject({
+  id: moduleIdSchema,
+  /** Kernelspace lessons and other modules it leans on: `module.md`'s once the module is written, `course.yaml`'s until then. */
+  prereqs: z.array(prereqSchema),
+  /** What it asks the learner to build and prove, with the lane each is worked in: the same rule. */
+  artifacts: z.array(artifactSchema),
+  /** The labs its page lists. A forge lab's events name no module in their ref, so this is how a lab finds its module. */
+  labs: z.array(labIdSchema),
+  /** Its KCs, in the order of the graph. */
+  kcs: z.array(kcIdSchema),
+})
+
+/** A KC as the module page lists it. `planned` is the task that will add its first graded reference, until W1-T38 (ARCHITECTURE §4.5). */
+export const mapKcSchema = z.strictObject({
+  id: kcIdSchema,
+  module: moduleIdSchema,
+  description: nonBlank,
+  requires: z.array(kcRefSchema),
+  threshold: z.boolean().optional(),
+  planned: z.string().optional(),
+})
+
+/**
+ * `src/content/generated/map.json`: what the course map and the module pages read to show a learner's evidence. The modules
+ * come with their prerequisites, artifacts, labs and KCs, the KCs with their edges, and `refs` with the KCs that content
+ * assigns to a ledger ref: a prediction's, from the lesson that asks it. The other refs get their KCs from the game
+ * registry, the item families and the labs (kernelspace's static ref map, ARCHITECTURE §4.5). Nothing about a learner is in it.
+ */
+export const courseMapSchema = z.strictObject({
+  modules: z.array(mapModuleSchema).min(1),
+  kcs: z.array(mapKcSchema),
+  refs: z.record(refSchema, z.array(kcIdSchema)),
+})
+
 export type CompiledLesson = z.infer<typeof compiledLessonSchema>
 export type CompiledModule = z.infer<typeof compiledModuleSchema>
 export type CompiledCard = z.infer<typeof compiledCardSchema>
@@ -187,3 +229,6 @@ export type IndexLesson = z.infer<typeof indexLessonSchema>
 export type IndexModule = z.infer<typeof indexModuleSchema>
 export type ContentIndex = z.infer<typeof contentIndexSchema>
 export type ClaimsOutput = z.infer<typeof claimsOutputSchema>
+export type MapModule = z.infer<typeof mapModuleSchema>
+export type MapKc = z.infer<typeof mapKcSchema>
+export type CourseMap = z.infer<typeof courseMapSchema>

@@ -76,6 +76,13 @@ export const claimIdSchema = pattern(CLAIM_ID, 'must be a claim id of dotted wor
 /** The lab a stage belongs to: `tr8.replay.s2` is a stage of `tr8.replay`. */
 export const labOfStage = (stage: string): string => stage.slice(0, stage.lastIndexOf('.'))
 
+/** The module a KC belongs to: `tr2.async-overlap` is `tr2`, and the capstone's KCs begin `cap.` (curriculum/CAPSTONE.md). */
+export function moduleOfKc(kc: string): string {
+  const dot = kc.indexOf('.')
+  const head = dot < 0 ? kc : kc.slice(0, dot)
+  return head === 'cap' ? 'capstone' : head
+}
+
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Ledger refs                                                                                                        */
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -144,6 +151,53 @@ export function parseRef(ref: string): ParsedRef | null {
     case 'screen':
     case 'change':
       return { kind, id: m[1] }
+  }
+}
+
+/** The module an id of the form `<module>.<rest>` begins with, or null. */
+function moduleIn(id: string): string | null {
+  const dot = id.indexOf('.')
+  if (dot < 0) return null
+  const head = id.slice(0, dot)
+  return moduleIdSchema.safeParse(head).success ? head : null
+}
+
+/**
+ * The module a ref belongs to, or null when it names none (ARCHITECTURE §4.5, §7.2). An event names its module through its ref, where
+ * the ref says one:
+ *
+ *   predict:<lesson>#<id>        the lesson's module            `tr2.l3` is tr2
+ *   item:gen/<family>/<variant>  the family's module            `tr2.bubble-width` is tr2
+ *   lab:<lab>, prove:<lab>       the lab's module, when it has one; a forge lab is a bare slug and names none
+ *   challenge:/receipt:<stage>   the stage's module             `tr8.replay.s2` is tr8
+ *   review:<kc>                  the KC's module                `cap.` KCs are the capstone's
+ *   play:<game>/<level>          the game's home module, the first its registry entry lists: `gameModule` gives it, because the
+ *                                registry is not this package's. A game that serves several modules (`loop` serves tr2 and tr6)
+ *                                counts under its home until a level can name its own.
+ *   trace:, screen:, change:     none: a trace belongs to every module that reads it, and an acknowledgement to the site
+ */
+export function moduleOfRef(ref: string, gameModule: (game: string) => string | undefined): string | null {
+  const parsed = parseRef(ref)
+  if (parsed === null) return null
+  switch (parsed.kind) {
+    case 'predict':
+      return moduleIn(parsed.lesson)
+    case 'item':
+      return moduleIn(parsed.family)
+    case 'play':
+      return gameModule(parsed.game) ?? null
+    case 'lab':
+    case 'prove':
+      return moduleIn(parsed.lab)
+    case 'challenge':
+    case 'receipt':
+      return moduleIn(parsed.stage)
+    case 'review':
+      return parsed.kc.startsWith('cap.') ? 'capstone' : moduleIn(parsed.kc)
+    case 'trace':
+    case 'screen':
+    case 'change':
+      return null
   }
 }
 

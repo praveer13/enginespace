@@ -13,7 +13,8 @@
  *   - the policy: the document that is served carries the meta CSP as the first element after `<meta charset>`, with `connect-src
  *     'self'` and no 'unsafe-eval' (§12), and the browser enforces it: a `fetch` to another origin is refused by the policy, and a
  *     navigation to another origin is refused by the net, and both are seen;
- *   - what the policy refuses today (KNOWN_REFUSALS) is exactly zod's probe, on exactly the two pages that load the ledger.
+ *   - what the policy refuses today (KNOWN_REFUSALS) is exactly zod's probe, on exactly the pages that load the ledger: /settings,
+ *     /evidence, the course map and the module pages (W1-T06 reads the learner's events there).
  */
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -130,7 +131,8 @@ test.describe('the policy', () => {
     // The policy: the request is refused inside the browser, before it is a request, and the page is told.
     const outcome = await page.evaluate(() => fetch('https://example.invalid/pixel').then(() => 'sent', (error: Error) => error.name))
     expect(outcome).toBe('TypeError')
-    await expect.poll(() => watch.refused).toEqual([expect.stringMatching(/^connect-src https:\/\/example\.invalid\/pixel @\/map$/)])
+    // The page also loads the ledger, so it refuses zod's probe as well (KNOWN_REFUSALS); the one refusal asked for here is the fetch.
+    await expect.poll(() => watch.refused.filter((what) => what.startsWith('connect-src'))).toEqual([expect.stringMatching(/^connect-src https:\/\/example\.invalid\/pixel @\/map$/)])
     expect(watch.strays, 'the policy stops it before the net').toEqual([])
     // The net: a navigation is not governed by `connect-src`, so only the route that refuses other origins sees it.
     await page.goto('https://example.invalid/page').catch(() => undefined)
@@ -139,7 +141,7 @@ test.describe('the policy', () => {
     watch.clear()
   })
 
-  test('what the policy refuses today is zod\'s probe, on the two pages that load the ledger, and nothing else', async ({ page, context, watch }) => {
+  test('what the policy refuses today is zod\'s probe, on the pages that load the ledger, and nothing else', async ({ page, context, watch }) => {
     await withSettings(context, { view3d: false })
     const seen: Record<string, string[]> = {}
     for (const route of PR_ROUTES) {
@@ -149,7 +151,7 @@ test.describe('the policy', () => {
       seen[route] = [...watch.refused]
     }
     const expected = Object.fromEntries(PR_ROUTES.map((route) => [route, KNOWN_REFUSALS.some((known) => known.pattern.test(`script-src eval @${route}`)) ? ['script-src eval @' + route] : []]))
-    // When this fails because /settings and /evidence refuse nothing, the probe is gone: delete KNOWN_REFUSALS' entry and this test.
+    // When this fails because the pages that load the ledger refuse nothing, the probe is gone: delete KNOWN_REFUSALS' entry and this test.
     expect(seen).toEqual(expected)
     watch.clear()
   })

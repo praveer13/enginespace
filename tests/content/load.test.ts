@@ -9,6 +9,7 @@ import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { loadCard, loadClaims, loadIndex, loadLesson, loadModule, publicUrl } from '@/content/load'
+import { loadMap } from '@/content/load-map'
 
 const source = readFileSync(path.resolve(import.meta.dirname, '../../src/content/load.ts'), 'utf8')
 
@@ -73,5 +74,32 @@ describe('the loader, outside Vite', () => {
   test('a path under public/ is joined to the site\'s base, whatever its leading slashes', () => {
     expect(publicUrl('figures/tr2/l0-sample.svg')).toBe('/figures/tr2/l0-sample.svg')
     expect(publicUrl('/claims.json')).toBe('/claims.json')
+  })
+})
+
+/*
+ * W1-T06: the compiled map has its own loader, beside load.ts and not in it. load.ts is in the front page's first-paint closure (the
+ * course index is loaded by the page's loader), and nothing the front page does reads the map, so its code stays out of that budget.
+ */
+describe('the map\'s loader, outside Vite', () => {
+  const mapSource = readFileSync(path.resolve(import.meta.dirname, '../../src/content/load-map.ts'), 'utf8')
+
+  test('is its own file, with its one glob inside a function, as load.ts\'s are', () => {
+    const code = mapSource.split('\n').filter((line) => !/^\s*(\*|\/\/|\/\*)/.test(line))
+    const globs = code.filter((line) => line.includes('import.meta.glob'))
+    expect(globs.length).toBe(1)
+    expect(globs[0]).toMatch(/^const \w+ = \(\) => import\.meta\.glob/)
+    expect(source).not.toContain('map.json')
+  })
+
+  test('a load that cannot run is a rejected promise, never a throw, and is not remembered', async () => {
+    let first: Promise<unknown> | undefined
+    expect(() => {
+      first = loadMap()
+    }).not.toThrow()
+    await expect(first).rejects.toBeInstanceOf(Error)
+    const second = loadMap()
+    expect(second).not.toBe(first)
+    await second.catch(() => undefined)
   })
 })

@@ -124,6 +124,7 @@ enginespace/
     front/              the front page: static-shell hydration, The Loop in 2D, the 3D upgrade
     games/<id>/         View2D.tsx  Scene3D.tsx  Mirror.tsx  Controls.tsx  Debrief.tsx
     scene/              the scene kit (§6.4): Stage, tiers, governor, primitives, post-FX, fallback
+    trace/              the trace viewer (W1-T09): Canvas2D lanes, marks and a DOM mirror over a trace@1 (§5.7, GAMES.md §2.6)
     design/             tokens.css  tokens.ts (role list)  scene-tokens.ts  components/
     content/            renderer for the compiled content; generated/ (git-ignored, built)
     evidence/           IndexedDB store, BroadcastChannel, export and import, provenance weights
@@ -319,6 +320,7 @@ KCs come from a ref→KC map at read time and are never stored (kernelspace's ru
 | Output | Where | Size target |
 |---|---|---|
 | Course index: modules, lessons, titles, routes and hours | `src/content/generated/index.json`, in the entry closure | ≤ 6 KB gz [estimated] |
+| Course map: each module's prerequisites, artifacts and KCs, each KC's description and edges, and the ref→KC table (§4.5) | `src/content/generated/map.json`, one lazy chunk read by `/map`, the module pages and the progress code; kept out of the index because the index is in the entry closure | ≤ 12 KB gz [estimated] |
 | One JSON per lesson, per module and per card | `src/content/generated/{lessons,modules,cards}/*.json`, one lazy chunk each through `import.meta.glob` | ≤ 40 KB gz each [estimated] |
 | Learner's-agent export, with keys and answers stripped | `public/md/<module>/<lesson>.md`, `public/llms.txt` | — |
 | Claims for `/about` and the claim chips | `public/claims.json` (lazy) | — |
@@ -420,31 +422,35 @@ export interface StepLoopRun {
 
 ```ts
 export interface KvGroupSpec { id: string; kind: 'full' | 'sliding' | 'state'
-                               layers: number; blockTokens: number; window?: number; statePages?: number }
+                               layers: number; padLayers?: number; blockTokens: number
+                               window?: number; statePages?: number; stateBytes?: number }
                                // one block of a group fills exactly one page (D-045); adapters are not groups
-export interface KvSpec { poolPages: number; pageBytes: number; paddingLayers: number
-                          groups: readonly KvGroupSpec[]; prefixCaching: boolean }
-export type KvOp =
-  | { op: 'admit'; req: number; tokens: number; adapter?: number }
-  | { op: 'append'; req: number; tokens: number } | { op: 'finish'; req: number }
+export interface KvSpec { poolPages: number; pageBytes: number; tokenBytes: number; paddingLayers: number
+                          groups: readonly KvGroupSpec[]; prefixCaching: boolean
+                          adapterSlots?: number }       // the engines' slots for adapters, in place of pages (D-042)
+export type KvOp =                                      // a token is an integer id below 2^32: blocks are hashed from them
+  | { op: 'admit'; req: number; prompt: readonly number[]; adapter?: number }
+  | { op: 'append'; req: number; tokens: readonly number[] } | { op: 'finish'; req: number }
   | { op: 'load-adapter'; adapter: number; pages: number } | { op: 'unload-adapter'; adapter: number }
   | { op: 'reset' }
 export function kvReference(spec: KvSpec): KvModel             // apply(op) → result; state(); events()
-export function kvInvariants(spec: KvSpec, s: KvState): readonly string[]
-export function kvOps(seed: Seed, spec: KvSpec, n: number): readonly KvOp[]
+export function kvInvariants(spec: KvSpec, s: KvState): readonly string[]   // each begins with the id of the check it fails
+export function kvOps(seed: Seed, spec: KvSpec, n: number, profile?: Partial<KvOpsProfile>): readonly KvOp[]
+export function kvJudge(spec: KvSpec, ops: readonly KvOp[], candidate: KvModel): KvJudgement | null
 ```
 
 - **One physical page pool with one page size** serves every group and every adapter (D-045). KV groups reach that size as vLLM's hybrid manager does at the pin: a preset groups layers, pads layers or inflates the attention block so each group's block is exactly one page, and the padding waste is reported (vllm K2). Adapters follow S-LoRA: an adapter takes ⌈adapter bytes ÷ page bytes⌉ pages of the same pool, stored non-contiguously, which is the `pages` of its `load-adapter` op.
 - **Putting adapters in that pool is the learner's design, not upstream's.** At the pins, vLLM keeps adapters in `max_loras` slots outside the KV pool, and SGLang in a fixed-slot `LoRAMemoryPool` (vllm K4; sglang X6). The model's In-production card says so, and the learner's allocator is compared against that slot baseline (D-042).
-- **Groups.** A full-attention group keeps every block. A sliding group frees blocks that fall behind its window. A state group holds a fixed number of pages per request. Adapter pages are shared by every request that uses the adapter.
-- **All or nothing.** An operation either succeeds or leaves the state untouched, lab 02's rule.
-- **Prefix caching.** Block hashes chain over the parent hash, the token ids and the extra keys (the adapter id).
+- **Groups.** A full-attention group keeps every block. A sliding group frees blocks that fall behind its window: for a request of L tokens it holds the blocks from ⌊max(0, L - W + 1) ÷ B⌋ on (`vllm.hybrid-kv.sliding-skipped-tokens`), which is 7 + 2 + 2 blocks for the design document's 112-token example [measured: `vllm.hybrid-kv.doc-example-blocks`, 2026-11-04]. A state group keeps its newest `statePages` blocks however long the request runs: the block that is full holds the state at its edge and is cached, and the newest holds the live state. Adapter pages are shared by every request that uses the adapter.
+- **All or nothing.** An operation either succeeds or leaves the state untouched, lab 02's rule. Each works out what it needs first and refuses when the pool cannot supply it: an admit needs its new blocks to fit once the cached blocks of its hit have left the queue, and an append counts the blocks that its windows let go.
+- **The free queue** holds the free and the cached pages in eviction order. An allocation takes the front, and a cached page that it takes loses its hash. A page nobody holds goes back to the back with a hash and to the front without one, a request's blocks last block first, and a hit takes its pages out of the queue and returns the ones it does not keep (`vllm.kv-pool.*`).
+- **Prefix caching.** Block hashes chain over the parent hash, the token ids and the extra keys (the adapter id). The hit is the longest prefix that every group holds, found as a fixed point with full attention first (`vllm.hybrid-kv.n-group-lookup`), rounded down to a multiple of the least common multiple of the groups' block sizes, and never reaching the last token of the prompt. A block that two requests compute separately is cached once.
 - **Events.** The model emits `BlockStored`, `BlockRemoved` and `AllBlocksCleared` in the shape of vLLM v0.33.0's KV events, which W1-T01 read at the pin on 2026-11-04 (claims `vllm.kv-events.*`):
-  - An event is a tagged map whose `type` is the class name, and a batch is the array `[ts, events, data_parallel_rank]`. SGLang v0.5.23 encodes its events the same way and says so (`sglang.kv-events.encoding`).
+  - An event is a tagged map whose `type` is the class name, and a batch is the array `[ts, events, data_parallel_rank]`, of which the model writes the first two, with `ts` the index of the operation. SGLang v0.5.23 encodes its events the same way and says so (`sglang.kv-events.encoding`).
   - `BlockStored` has seven fields without a default: `block_hashes`, `parent_block_hash`, `token_ids`, `block_size`, `lora_id` (deprecated), `medium` and `lora_name`. Its eight optional fields are `extra_keys`, `group_idx`, `kv_cache_spec_kind`, `kv_cache_spec_sliding_window`, `locality`, `ownership`, `session_id` and `lookahead_token_ids`.
   - `BlockRemoved` has `block_hashes`, `medium` and the optional `group_idx`, `locality` and `ownership`. `AllBlocksCleared` has no fields, and the block pool emits it only when a reset finds no block in use.
   - The adapter is already in the shape: both engines carry it as `lora_name` (`vllm.kv-events.adapter-field`, `sglang.kv-events.adapter-field`), and the adapter is part of the block hash through `extra_keys` (`vllm.kv-hash.lora-extra-key`).
-- **Invariants.** Pages are conserved; reference counts never go below zero; a block table's length matches its group's rule; every stored or removed block is published exactly once.
+- **Invariants.** Pages are conserved; reference counts never go below zero; a block table's length matches its group's rule; every stored or removed block is published exactly once. `kvInvariants` checks eight of them on a snapshot (`conservation`, `refcounts`, `tables`, `window`, `cache`, `queue`, `adapters`, `events`), and `kvJudge` adds the three that need a reference to compare with: `reply`, `hit` and `atomic`. The bestiary of TR5a §5 is a list of managers that each break one rule, and each must fail a named check.
 
 ### 5.5 The speculation sampler
 
@@ -478,7 +484,8 @@ export interface BenchSpec { arrivals: ArrivalSpec; requests: number; warmupUs: 
   outputCap?: number; prefixWarm?: boolean; clientCostUs?: Us; slo: { ttftUs: Us; tpotUs: Us } }
 export function runBench(seed: Seed, spec: BenchSpec, server: ServerModel): BenchRun
 export function summarize(run: BenchRun, o: { bootstrap: number; seed: Seed }): BenchSummary
-export function brokenBenchCase(seed: Seed): BrokenCase
+export function brokenBenchCase(seed: Seed, opts?: { flaw?: BenchFlaw }): BrokenCase     // packages/sim/bench/broken.ts
+export function correctBench(scene: BrokenScene, flaw: BenchFlaw): BrokenCorrection        // the corrected p99, from the scene alone
 ```
 
 - **The server** is the step-loop model run coarse: async on, its step times from the S5 card. TR8's knee and TR2's bubbles therefore come from one model.
@@ -490,9 +497,12 @@ export function brokenBenchCase(seed: Seed): BrokenCase
   - The 95% interval on p99 is a percentile bootstrap with a seeded resampler (B = 1,000 [estimated]).
   - Goodput at SLO counts the requests that meet both their TTFT and TPOT objectives, per second.
   - Little's law gives a residual: mean concurrency against throughput × mean latency.
-- **The broken-benchmark corpus** extends kernelspace's four flaws (closed loop, capped output, warm cache, counted warm-up) with coordinated omission, a client queue hidden by the harness's timer, too few samples for a p99, a mean reported as a tail, a client-side bottleneck, and a "replay" that ignores the trace's timestamps, plus a control case with no flaw: ten flaws and a control (GAMES.md §11). Prefix-cache carry-over between runs (vllm B3) is the warm-cache flaw's real-world instance.
-  - Each seed draws the answer first, then the flaw and the scene, so the flaw's label does not give the answer away. This is kernelspace's rule (D39 in its wave-3 spec).
-  - A blind-strategy test bounds how often a scene-blind guess passes.
+- **The broken-benchmark corpus** (`packages/sim/bench/broken*.ts`, W1-T32) extends kernelspace's four flaws (closed loop, capped output, warm cache, counted warm-up) with coordinated omission, a client queue hidden by the harness's timer, too few samples for a p99, a mean reported as a tail, a client-side bottleneck, and a "replay" that ignores the trace's timestamps, plus a control case with no flaw: ten flaws and a control (GAMES.md §11). Prefix-cache carry-over between runs (vllm B3) is the warm-cache flaw's real-world instance. Every claim is a p99 of the time to first token, timed from the due time (ASSESSMENT B5), so the corrected numbers compare across flaws. A case is a log of the coarse server and the claim of a harness that did one thing wrong; all of it is synthetic.
+  - **The draw.** The seed picks the flaw (`seed mod 11`: any eleven consecutive seeds hold each once, and a uniform graded seed draws each with probability 1/11), and then the answer, the corrected p99, from a log-spaced grid that does not depend on the flaw's mechanism. The scene is built to reach it. That is kernelspace's rule (D39 in its wave-3 spec) with the flaw drawn first, so a label names how to correct the number and at most the regime it falls in. Closed loop, client queue hidden, client bottleneck and capped output can only happen to a server past its capacity (answers from 5 s to 120 s), and so can the replay's burst (2 s to 60 s). A freeze, the cause of coordinated omission, falls on a server at any load (0.35 s to 60 s). The counted warm-up and the control stay under capacity (70 ms to 2 s, and the control to 3 s with a few long prompts). Warm cache, too few samples and mean as tail draw either, so their answers run from 70 ms or 0.12 s to 120 s. Every range is a design parameter [estimated]. The scene's server is S5's "70B on H100" at TP 4, inside its fitted box (prompts up to 8,192 tokens), and its capacity on each traffic is measured by a saturation run, not assumed.
+  - **The band.** The benchmark's own randomness is drawn again, never the answer, until the case keeps the band (`brokenBand`): the corrected p99 rests on at least 1,000 rows (ASSESSMENT B7), the flaw moves the number by 1.5 times or more (kernelspace's `BB_MIN_RATIO`; the control's claim is the corrected number), and the log shows the flaw: sends slip behind their due times for a freeze, a client queue and a client bottleneck, and the log is settled once the warm-up is out for the control and the counted warm-up (B8). A seed that no draw puts in band is returned flagged, and a session redraws from another seed (GAMES.md §2.1). Over seeds 0 to 9,999 the draw took 1.11 tries per case on average (23 at the most) and 3 seeds were out of band [measured 2026-11-04 by `ES_PROPERTY_SEEDS=10000 bun test tests/sim/bench-broken.test.ts`].
+  - **The corrected number** is `correctBench(scene, flaw)`, a function of what the learner sees and the flaw's name, so the debrief shows arithmetic the learner could have done. It is one of three: the log's rows timed from their due times (control, mean as tail, coordinated omission, client queue hidden), the rows without the first max(100, 2 × `max_num_seqs`) = 128 by due time (counted warm-up, B8), or the benchmark run again with the flaw taken out of its setup (the other six: a Poisson loop at the claimed rate, no cap, a cold cache, a client that keeps up, 1,500 rows [estimated] after the warm-up, the trace's own timestamps). A flaw that does not apply to a scene corrects nothing. `correctedInterval` gives the 95% bootstrap interval on the corrected p99 (B = 1,000 [estimated]).
+  - **Blind strategies.** `bestConstantPerLabel` is the share of cases that the best constant per flaw label passes within ±15% of the corrected p99, which ASSESSMENT §4.1 bounds at 15% [estimated]. On the cases of seeds 0 to 9,999 it is 10.2%, and between 6% and 15% for one flaw (15% for the counted warm-up) [measured, same run]. The constants are chosen on the cases they are judged on, so that is an upper bound that falls as the cases grow in number: 14.1% over the first 1,100 [measured 2026-11-04 by `bun test tests/sim/bench-broken.test.ts`]. A PR judges the constants chosen on half of 1,100 cases against the other half, 7.6% [measured, same run], and the nightly run judges the 10,000 cases in-sample.
+  - **The claims** a flaw's debrief cites are `FLAW_CLAIMS`: the tools' source and guides at the pins (vLLM v0.33.0, SGLang v0.5.23) in `content/claims/vllm/bench.yaml`, `sglang/bench.yaml` and `broken-bench.yaml`, wrk2's own example of a pause, Schroeder et al.'s open and closed models, and two rules of kernelspace's T7.L2.
 
 ### 5.7 The trace model
 
@@ -725,6 +735,7 @@ All tier values are [estimated] and start from games-3d.md's proposals: at most 
   - The entry chunk and the chunks it imports statically (`react-vendor`) are ≤ 110 KB gz together, with a target of ≤ 100 KB [estimated].
   - The front page's first-paint closure (entry, the `front` route, The Loop's 2D view, the step-loop core and the content index) is ≤ 150 KB gz [estimated], with a target of ≤ 130 KB.
   - kernelspace's whole-app entry measured 115.7 KB gz [measured at its d31a770, recorded in its `verify-bundle.ts`], which makes these figures reachable.
+  - Vite's modulepreload polyfill is off (`build.modulePreload.polyfill: false`, D-023's W1 note). Every browser since Firefox 115 and Safari 17 has `<link rel=modulepreload>`, and the polyfill cost 289 B gz of the front page's closure [measured 2026-11-04].
 
 ### 6.11 The front page: play first (D-004)
 

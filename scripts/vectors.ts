@@ -17,18 +17,20 @@
  * (scripts/tables/exp-quantiles.ts and scripts/tables/chi-square-critical.ts).
  *
  * Adding a model: give it a `VectorModel` in MODELS, whose cases are JSON inputs and a function from them to the model's
- * output. `workload` (W0-T12), `steploop` (W0-T13), `trace` (W1-T08), `bench` (W1-T31), `spec` (W1-T26), `lifecycle` (W1-T16) and
- * `steploop-v1` (W1-T12) were added this way.
+ * output. `workload` (W0-T12), `steploop` (W0-T13), `trace` (W1-T08), `bench` (W1-T31), `spec` (W1-T26), `lifecycle` (W1-T16),
+ * `steploop-v1` (W1-T12), `kv` (W1-T21) and `broken-bench` (W1-T32) were added this way.
  */
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
-import { runBench, summarize } from '../packages/sim/bench'
-import type { ArrivalSpec, BenchRun, BenchSpec, OpenArrivals, ServerModel } from '../packages/sim/bench'
+import { brokenBenchCase, brokenFlawOf, correctedInterval, runBench, summarize } from '../packages/sim/bench'
+import type { ArrivalSpec, BenchFlaw, BenchRun, BenchSpec, OpenArrivals, ServerModel } from '../packages/sim/bench'
 import { canonicalJson } from '../packages/sim/core/json'
 import { rngFor } from '../packages/sim/core/rng'
 import { HOST_PRESETS } from '../packages/sim/host'
 import type { RunnerPresetId } from '../packages/sim/host'
+import { kvAdapterCatalog, kvOps, kvPreset, kvReference } from '../packages/sim/kv'
+import type { KvOp, KvPresetId, KvResult } from '../packages/sim/kv'
 import { CLEAN_LIFECYCLE_JITTER, DEFAULT_LIFECYCLE_JITTER, lifecycleTrace, pathFacts, referencePath } from '../packages/sim/lifecycle'
 import type { LifecycleJitter, Scenario } from '../packages/sim/lifecycle'
 import type { PhysicsRowKey } from '../packages/sim/physics'
@@ -1315,6 +1317,177 @@ const lifecycleInputs: Record<string, LifecycleInput> = {
   },
 }
 
+// kv
+
+/** Tokens as a fixture writes them: a list, or inclusive ranges, so that a prompt of 112 tokens is one short line. */
+type TokenRanges = readonly number[] | readonly { readonly from: number; readonly to: number }[]
+
+/** An operation as a fixture writes it: the prompt and the appended tokens are `TokenRanges`. */
+type KvCaseOp =
+  | { readonly op: 'admit'; readonly req: number; readonly prompt: TokenRanges; readonly adapter?: number }
+  | { readonly op: 'append'; readonly req: number; readonly tokens: TokenRanges }
+  | Exclude<KvOp, { readonly op: 'admit' } | { readonly op: 'append' }>
+
+/**
+ * A case of the KV manager as a fixture writes it: a preset with its pool and options, and either the operations or a seeded stream of
+ * them (`kvOps`, with adapters of the given ranks). `full` records the replies, the events and the final state; `digest` records the
+ * counts of what happened and the SHA-256 of each of those.
+ */
+type KvInput = {
+  readonly preset: KvPresetId
+  readonly pool: number
+  readonly options?: { readonly prefixCaching?: boolean; readonly adapterSlots?: number }
+} & (
+  | { readonly ops: readonly KvCaseOp[]; readonly output: 'full' }
+  | { readonly stream: { readonly seed: number; readonly ops: number; readonly ranks: readonly number[]; readonly sessions: number; readonly maxRunning: number }; readonly output: 'digest' }
+)
+
+const range = (from: number, to: number) => [{ from, to }] as const
+const tokensOf = (t: TokenRanges): number[] => (t as readonly (number | { from: number; to: number })[]).flatMap((x) => (typeof x === 'number' ? [x] : Array.from({ length: x.to - x.from + 1 }, (_, i) => x.from + i)))
+
+function kvOpOf(op: KvCaseOp): KvOp {
+  if (op.op === 'admit') return op.adapter === undefined ? { op: 'admit', req: op.req, prompt: tokensOf(op.prompt) } : { op: 'admit', req: op.req, prompt: tokensOf(op.prompt), adapter: op.adapter }
+  if (op.op === 'append') return { op: 'append', req: op.req, tokens: tokensOf(op.tokens) }
+  return op
+}
+
+const kvInputs: Record<string, KvInput> = {
+  "two-kinds: the design document's request of 112 tokens holds 7 + 2 + 2 = 11 pages, publishes the blocks it filled, and gives its pages back": {
+    preset: 'two-kinds',
+    pool: 24,
+    ops: [
+      { op: 'admit', req: 0, prompt: range(1, 112) },
+      { op: 'finish', req: 0 },
+    ],
+    output: 'full',
+  },
+  'two-kinds: the same 112 tokens and one more hit 112 tokens in every group, and the hit takes the cached pages out of the queue': {
+    preset: 'two-kinds',
+    pool: 24,
+    ops: [
+      { op: 'admit', req: 0, prompt: range(1, 112) },
+      { op: 'finish', req: 0 },
+      { op: 'admit', req: 1, prompt: range(1, 113) },
+    ],
+    output: 'full',
+  },
+  'one-group: in a pool of 6 pages the next request evicts the oldest request\'s pages tail first, and each removal is published': {
+    preset: 'one-group',
+    pool: 6,
+    ops: [
+      { op: 'admit', req: 0, prompt: range(1, 48) },
+      { op: 'finish', req: 0 },
+      { op: 'admit', req: 1, prompt: range(101, 148) },
+      { op: 'finish', req: 1 },
+      { op: 'admit', req: 2, prompt: range(201, 248) },
+    ],
+    output: 'full',
+  },
+  'two-kinds: a decode of 40 tokens one at a time after a prompt of 20: the window moves, lets go of blocks and caches the blocks it fills': {
+    preset: 'two-kinds',
+    pool: 24,
+    ops: [{ op: 'admit', req: 0, prompt: range(1, 20) }, ...Array.from({ length: 40 }, (_, i): KvCaseOp => ({ op: 'append', req: 0, tokens: [21 + i] })), { op: 'finish', req: 0 }],
+    output: 'full',
+  },
+  'same-size: a request of 150 tokens holds 10 pages of the full group and 5 of each of the six sliding groups': {
+    preset: 'same-size',
+    pool: 48,
+    ops: [
+      { op: 'admit', req: 0, prompt: range(1, 150) },
+      { op: 'append', req: 0, tokens: range(151, 170) },
+      { op: 'finish', req: 0 },
+    ],
+    output: 'full',
+  },
+  'state: a request of 100 tokens keeps 2 blocks in each state group, and a longer one hits at the last edge, 96': {
+    preset: 'state',
+    pool: 24,
+    ops: [
+      { op: 'admit', req: 0, prompt: range(1, 100) },
+      { op: 'finish', req: 0 },
+      { op: 'admit', req: 1, prompt: range(1, 130) },
+    ],
+    output: 'full',
+  },
+  'two-kinds with adapters: load, serve, refuse an unload while one runs, unload, reset, and the reset leaves nothing to hit': {
+    preset: 'two-kinds',
+    pool: 40,
+    ops: [
+      { op: 'load-adapter', adapter: 0, pages: 4 },
+      { op: 'load-adapter', adapter: 1, pages: 7 },
+      { op: 'admit', req: 0, prompt: range(1, 40), adapter: 0 },
+      { op: 'admit', req: 1, prompt: range(1, 40), adapter: 1 },
+      { op: 'admit', req: 2, prompt: range(1, 40) },
+      { op: 'unload-adapter', adapter: 0 },
+      { op: 'finish', req: 0 },
+      { op: 'unload-adapter', adapter: 0 },
+      { op: 'finish', req: 1 },
+      { op: 'finish', req: 2 },
+      { op: 'reset' },
+      { op: 'admit', req: 3, prompt: range(1, 40) },
+    ],
+    output: 'full',
+  },
+  'two-kinds with 2 adapter slots: a third adapter has no slot until one is unloaded, and no slot takes a page': {
+    preset: 'two-kinds',
+    pool: 40,
+    options: { adapterSlots: 2 },
+    ops: [
+      { op: 'load-adapter', adapter: 0, pages: 4 },
+      { op: 'load-adapter', adapter: 1, pages: 7 },
+      { op: 'load-adapter', adapter: 2, pages: 26 },
+      { op: 'admit', req: 0, prompt: range(1, 40), adapter: 1 },
+      { op: 'unload-adapter', adapter: 0 },
+      { op: 'load-adapter', adapter: 2, pages: 26 },
+    ],
+    output: 'full',
+  },
+  'one-group without prefix caching: nothing is hashed or published, and the same prompt twice has no hit': {
+    preset: 'one-group',
+    pool: 6,
+    options: { prefixCaching: false },
+    ops: [
+      { op: 'admit', req: 0, prompt: range(1, 48) },
+      { op: 'finish', req: 0 },
+      { op: 'admit', req: 1, prompt: range(1, 48) },
+    ],
+    output: 'full',
+  },
+  'one-group: a seeded stream of 400 operations in a pool of 48 pages': { preset: 'one-group', pool: 48, stream: { seed: 41, ops: 400, ranks: [], sessions: 6, maxRunning: 4 }, output: 'digest' },
+  'two-kinds: a seeded stream of 400 operations with three adapters in a pool of 72 pages': {
+    preset: 'two-kinds',
+    pool: 72,
+    stream: { seed: 42, ops: 400, ranks: [8, 16, 64], sessions: 6, maxRunning: 4 },
+    output: 'digest',
+  },
+  'same-size: a seeded stream of 400 operations with three adapters in a pool of 144 pages': {
+    preset: 'same-size',
+    pool: 144,
+    stream: { seed: 43, ops: 400, ranks: [8, 16, 64], sessions: 8, maxRunning: 5 },
+    output: 'digest',
+  },
+  'state: a seeded stream of 400 operations with three adapters in a pool of 72 pages': {
+    preset: 'state',
+    pool: 72,
+    stream: { seed: 44, ops: 400, ranks: [8, 16, 64], sessions: 4, maxRunning: 3 },
+    output: 'digest',
+  },
+  'two-kinds with 2 adapter slots: a seeded stream of 400 operations': {
+    preset: 'two-kinds',
+    pool: 96,
+    options: { adapterSlots: 2 },
+    stream: { seed: 45, ops: 400, ranks: [8, 16, 64], sessions: 6, maxRunning: 4 },
+    output: 'digest',
+  },
+  'two-kinds without prefix caching: a seeded stream of 400 operations': {
+    preset: 'two-kinds',
+    pool: 96,
+    options: { prefixCaching: false },
+    stream: { seed: 46, ops: 400, ranks: [], sessions: 6, maxRunning: 4 },
+    output: 'digest',
+  },
+}
+
 function lifecycleOutput(input: LifecycleInput): unknown {
   const path = referencePath(input.scenario)
   const trace = lifecycleTrace(input.scenario, input.seed, input.jitter)
@@ -1339,7 +1512,110 @@ const lifecycle: VectorModel = {
   cases: () => Object.entries(lifecycleInputs).map(([name, input]) => ({ name, input, run: () => lifecycleOutput(input) })),
 }
 
-export const MODELS: readonly VectorModel[] = [workload, steploop, steploopV1, trace, bench, spec, lifecycle]
+
+function kvOutput(input: KvInput): unknown {
+  const spec = kvPreset(input.preset, input.pool, input.options ?? {})
+  const m = kvReference(spec)
+  const ops: readonly KvOp[] =
+    'ops' in input
+      ? input.ops.map(kvOpOf)
+      : kvOps(input.stream.seed, spec, input.stream.ops, {
+          adapters: kvAdapterCatalog(spec, input.stream.ranks).map((a) => ({ id: a.id, pages: a.pages })),
+          sessions: input.stream.sessions,
+          maxRunning: input.stream.maxRunning,
+        })
+  const results: KvResult[] = ops.map((op) => m.apply(op))
+  const events = m.events()
+  const state = m.state()
+  if (input.output === 'full') return { results, events, state }
+  const refused: Record<string, number> = {}
+  let hits = 0
+  let hitTokens = 0
+  let admitted = 0
+  results.forEach((r, i) => {
+    const op = ops[i]
+    if (!r.ok) refused[`${op.op}:${r.reason}`] = (refused[`${op.op}:${r.reason}`] ?? 0) + 1
+    else if (op.op === 'admit') {
+      admitted++
+      if ((r.hit ?? 0) > 0) hits++
+      hitTokens += r.hit ?? 0
+    }
+  })
+  let stored = 0
+  let removed = 0
+  let cleared = 0
+  for (const [, batch] of events) {
+    for (const e of batch) {
+      if (e.type === 'BlockStored') stored += e.block_hashes.length
+      else if (e.type === 'BlockRemoved') removed += e.block_hashes.length
+      else cleared++
+    }
+  }
+  return {
+    counts: { ops: ops.length, admitted, hits, hitTokens, stored, removed, cleared, refused, free: state.queue.length, running: state.requests.length, cached: state.cache.length },
+    ops: { sha256: sha256(canonicalJson(ops)) },
+    results: { count: results.length, sha256: sha256(canonicalJson(results)) },
+    events: { batches: events.length, sha256: sha256(canonicalJson(events)) },
+    state: { sha256: sha256(canonicalJson(state)) },
+  }
+}
+
+const kv: VectorModel = {
+  model: 'kv',
+  file: `${FIXTURE_DIR}/kv.json`,
+  header:
+    "Golden vectors for packages/sim/kv (ARCHITECTURE section 5.4 and 5.10): each maps its input, a preset with its pool and options and either the operations a manager is given or a seeded stream of them, to the manager's replies, the events it published and the state it ended in. A short case is recorded whole. A seeded stream is recorded as the counts of what happened and the SHA-256 of its operations, its replies, its events and its final state. Tokens in an input are inclusive ranges. Regenerate only with `bun scripts/vectors.ts --write`, and review the diff like code.",
+  cases: () => Object.entries(kvInputs).map(([name, input]) => ({ name, input, run: () => kvOutput(input) })),
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------
+// broken-bench
+
+/** A case of the broken-benchmark corpus as a fixture writes it: the seed, and the flaw when it is asked for by name rather than drawn. */
+type BrokenInput = { readonly seed: number; readonly flaw?: BenchFlaw }
+
+/** Seeds 0 to 21: every flaw twice, the second time on the next eleven seeds, whose answers and logs differ. */
+const brokenInputs: Record<string, BrokenInput> = Object.fromEntries(Array.from({ length: 22 }, (_, seed) => [`seed ${seed} draws ${brokenFlawOf(seed)}`, { seed }]))
+
+/** A case as its vector records it: everything the learner sees and the answer, with the log and the trace as a count and a SHA-256 of their canonical JSON. */
+function brokenOutput(input: BrokenInput): unknown {
+  const c = brokenBenchCase(input.seed, input.flaw === undefined ? {} : { flaw: input.flaw })
+  const { setup, server } = c.scene
+  const lengths = setup.lengths
+  const digest = (value: unknown, count: number) => ({ count, sha256: sha256(canonicalJson(value)) })
+  return {
+    flaw: c.flaw,
+    attempts: c.attempts,
+    band: c.band,
+    claimIds: c.claimIds,
+    claim: c.scene.claim,
+    answer: c.answer,
+    // The 95% bootstrap interval on the corrected p99 (B = 1,000): what a learner's own interval is judged against.
+    interval: correctedInterval(c.scene, c.flaw),
+    runSeed: c.scene.runSeed,
+    capacityPerSMilli: c.scene.capacityPerSMilli,
+    setup: { ...setup, ...(lengths !== undefined && lengths.kind === 'rows' ? { lengths: { kind: 'rows', slice: { id: lengths.slice.id, requests: digest(lengths.slice.requests, lengths.slice.requests.length) } } } : {}) },
+    server: {
+      maxNumSeqs: server.maxNumSeqs,
+      maxBatchedTokens: server.maxBatchedTokens,
+      chunkedPrefill: server.chunkedPrefill,
+      gpu: server.gpu.label,
+      ...(server.stalls === undefined ? {} : { stalls: server.stalls }),
+      ...(server.cold === undefined ? {} : { cold: server.cold }),
+    },
+    rows: digest(c.scene.rows, c.scene.rows.length),
+  }
+}
+
+const brokenBench: VectorModel = {
+  model: 'broken-bench',
+  file: `${FIXTURE_DIR}/broken-bench.json`,
+  header:
+    'Golden vectors for the broken-benchmark corpus of packages/sim/bench (ARCHITECTURE section 5.6, GAMES section 11): each maps a seed to the case it draws: the flaw, the band, the claim, the corrected answer and the interval on it, the harness\'s setup and the server, and the client\'s log as a count and the SHA-256 of its canonical JSON. Every flaw and the control appear twice, on seeds 0 to 21. Regenerate only with `bun scripts/vectors.ts --write`, and review the diff like code.',
+  cases: () => Object.entries(brokenInputs).map(([name, input]) => ({ name, input, run: () => brokenOutput(input) })),
+}
+
+export const MODELS: readonly VectorModel[] = [workload, steploop, steploopV1, trace, bench, spec, lifecycle, kv, brokenBench]
 
 // ---------------------------------------------------------------------------------------------------------------------------
 // fixtures
