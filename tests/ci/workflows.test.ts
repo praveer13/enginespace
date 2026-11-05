@@ -347,7 +347,7 @@ describe('reserved steps', () => {
     'W0-T01', 'W0-T02', 'W0-T03', 'W0-T04', 'W0-T05', 'W0-T07', 'W0-T08', 'W0-T09', 'W0-T10', 'W0-T11', 'W0-T12', 'W0-T13',
     'W0-T14', 'W0-T15', 'W0-T16', 'W0-T17', 'W0-T18', 'W0-T19', 'W0-T20', 'W0-T21', 'W0-T22', 'W0-T23', 'W0-T24', 'W0-T25',
     // W1, in wave-1.
-    'W1-T01', 'W1-T03', 'W1-T07', 'W1-T08', 'W1-T10', 'W1-T11', 'W1-T16', 'W1-T26', 'W1-T31',
+    'W1-T01', 'W1-T03', 'W1-T04', 'W1-T07', 'W1-T08', 'W1-T10', 'W1-T11', 'W1-T12', 'W1-T16', 'W1-T26', 'W1-T31',
   ]
 
   /** A reserved step is one whose whole command is the echo. A step that echoes it only where a file is missing (the content compile, the export check, the labs) switches on by file, and is not reserved. */

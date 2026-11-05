@@ -44,6 +44,7 @@ import { runStepLoop as runStepLoopV0 } from '../../packages/sim/steploop/run'
 import { genWorkload } from '../../packages/sim/workload'
 import type { Workload } from '../../packages/sim/workload'
 import { MODELS, renderFixture } from '../../scripts/vectors'
+import { SEED_COUNT, seeds } from '../seeds'
 import { FOREVER, HARNESS, TRAY, config, handWorkload, req, scenario } from './steploop-support'
 import { checkInvariantsV1, scenarioV1 } from './steploop-v1-support'
 
@@ -444,7 +445,7 @@ describe('graph modes inside a run (claims vllm.cudagraph.piecewise-partitions, 
   })
 
   test('the front page\'s v0 loop (packages/sim/steploop/run.ts) and the package\'s v1 loop agree on every configuration v0 can run, whole and cut: the same lanes, steps, requests, summary and violations, over 200 seeds', () => {
-    for (let seed = 1; seed <= 200; seed++) {
+    for (const seed of seeds(1)) {
       const s = scenario(seed)
       const rng = rngFor(seed, 'test/steploop-v1/v0-cut')
       const whole = runStepLoopV0(s.workload, s.cfg, s.host, s.gpu, { horizonUs: FOREVER })
@@ -457,8 +458,8 @@ describe('graph modes inside a run (claims vllm.cudagraph.piecewise-partitions, 
     }
   })
 
-  test('FULL under a runner is v0\'s rule: the same spans as without a runner, over 200 seeds of v0 scenarios, on both runners', () => {
-    for (let seed = 1; seed <= 200; seed++) {
+  test(`FULL under a runner is v0's rule: the same spans as without a runner, over ${SEED_COUNT} seeds of v0 scenarios, on both runners`, () => {
+    for (const seed of seeds(1)) {
       const s = scenario(seed)
       const a = runStepLoop(s.workload, s.cfg, s.host, s.gpu, { horizonUs: FOREVER })
       for (const runner of ['mrv2', 'v1'] as const) {
@@ -705,8 +706,9 @@ describe('the runner presets (D-041; claims vllm.mrv2.default-rule, vllm.mrv2.fa
 })
 
 // ---------------------------------------------------------------------------------------------------------------------------
-describe('check 1: properties over 200 seeds (ARCHITECTURE §5.10)', () => {
-  const SEEDS = Array.from({ length: 200 }, (_, i) => i + 1)
+describe(`check 1: properties over ${SEED_COUNT} seeds (ARCHITECTURE §5.10)`, () => {
+  // 200 seeds on a PR, 10,000 nightly [estimated]: tests/seeds.ts has the knob.
+  const SEEDS = seeds(1)
 
   test('GPU spans never overlap, busy time stays within the horizon, no step reads a token before it is sampled, and every other invariant holds, with the run whole and with it cut', () => {
     const seen = new Set<string>()

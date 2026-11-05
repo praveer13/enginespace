@@ -223,7 +223,8 @@ export function checkInvariantsV1(s: ScenarioV1, run: StepLoopRun, horizonUs: Us
   // Mask time: what the steps say is what the spans add up to, for the part of a fill that falls inside the horizon, step by step and in total.
   if (cfg.structured !== undefined) {
     const stepTotal = run.steps.reduce((total, step) => total + (step.maskUs ?? 0), 0)
-    expect(run.summary.maskUs, ctx).toBe(stepTotal)
+    // A run cut before its first step has no step to add up, and the summary leaves the total out: absent is zero. Seed 1005 of 10,000 is one.
+    expect(run.summary.maskUs ?? 0, ctx).toBe(stepTotal)
     const spanTotal = cpu.filter((span) => span.kind === 'mask').reduce((total, span) => total + span.endUs - span.startUs, 0)
     expect(spanTotal, ctx).toBe(stepTotal)
     for (const [k, step] of run.steps.entries()) {
@@ -282,8 +283,9 @@ export function checkInvariantsV1(s: ScenarioV1, run: StepLoopRun, horizonUs: Us
     expect(sp!.drafted <= sp!.rounds * cfg.spec.k, ctx).toBe(true)
     if (cfg.spec.alphaPermille === 0) expect(sp!.accepted, ctx).toBe(0)
     if (cfg.spec.alphaPermille === 1000) expect(sp!.accepted, ctx).toBe(sp!.drafted)
-    expect(run.summary.draftUs, ctx).toBe(run.steps.reduce((total, step) => total + (step.draftUs ?? 0), 0))
-    if (cfg.spec.draftCostPermille === 0) expect(run.summary.draftUs, ctx).toBe(0)
+    // Absent is zero here too (a run cut before its first step).
+    expect(run.summary.draftUs ?? 0, ctx).toBe(run.steps.reduce((total, step) => total + (step.draftUs ?? 0), 0))
+    if (cfg.spec.draftCostPermille === 0) expect(run.summary.draftUs ?? 0, ctx).toBe(0)
   }
 
   // The dependency check: input ids on the device read nothing before it is sampled.
