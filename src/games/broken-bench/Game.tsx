@@ -91,32 +91,38 @@ export default function Game({ level, mode = 'practice', placement = 'page', rev
     setAttempt({ mode: attempt.mode, seed: fresh(entry.id) })
   }
 
+  // The levels and the attempt, in one row under the game's name with its stages: the row says which level is open and how, so the shell
+  // prints no tape that says it again. A lesson that embeds the game picks the level itself, and the shell's tape names it there.
+  const docket =
+    placement === 'embed' ? undefined : (
+      <div className="es-bench-docket" data-bench-docket="">
+        <nav aria-label="Levels of the Inspection">
+          <ul>
+            {LEVELS.map((candidate) => (
+              <li key={candidate.id}>
+                <Button size="sm" variant={candidate.id === entry.id ? 'ink' : 'quiet'} aria-current={candidate.id === entry.id ? 'true' : undefined} onClick={() => open(candidate.id, attempt.mode)}>
+                  {candidate.title}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </nav>
+        <div role="group" aria-label="Attempt" className="es-bench-docket__mode">
+          <Button size="sm" variant={attempt.mode === 'practice' ? 'ink' : 'plate'} aria-pressed={attempt.mode === 'practice'} onClick={() => open(entry.id, 'practice')}>
+            Practice
+          </Button>
+          <Button size="sm" variant={attempt.mode === 'graded' ? 'ink' : 'plate'} aria-pressed={attempt.mode === 'graded'} onClick={() => open(entry.id, 'graded')}>
+            Graded attempt, fresh seed
+          </Button>
+        </div>
+      </div>
+    )
+
   return (
     <div className="flex flex-col gap-6" data-bench-page="">
-      {placement === 'embed' ? null : (
-        <div className="es-bench-docket" data-bench-docket="">
-          <nav aria-label="Levels of the Inspection">
-            <ul>
-              {LEVELS.map((candidate) => (
-                <li key={candidate.id}>
-                  <Button size="sm" variant={candidate.id === entry.id ? 'ink' : 'quiet'} aria-current={candidate.id === entry.id ? 'true' : undefined} onClick={() => open(candidate.id, attempt.mode)}>
-                    {candidate.title}
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          </nav>
-          <div role="group" aria-label="Attempt" className="es-bench-docket__mode">
-            <Button size="sm" variant={attempt.mode === 'practice' ? 'ink' : 'plate'} aria-pressed={attempt.mode === 'practice'} onClick={() => open(entry.id, 'practice')}>
-              Practice
-            </Button>
-            <Button size="sm" variant={attempt.mode === 'graded' ? 'ink' : 'plate'} aria-pressed={attempt.mode === 'graded'} onClick={() => open(entry.id, 'graded')}>
-              Graded attempt, fresh seed
-            </Button>
-          </div>
-        </div>
-      )}
       <GameShell
+        docket={docket}
+        mirrorFirst
         game={BROKEN_BENCH}
         session={benchSession}
         level={entry.id}

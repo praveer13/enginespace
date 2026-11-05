@@ -3,18 +3,21 @@
  * record of Back of House to what the code does and to the content it names: its claims are the card's, its KCs are in the graph, its
  * card is the lifecycle model's, and the registry costs a page that lists games none of the sim.
  */
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, setDefaultTimeout, test } from 'bun:test'
 import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 import { load, CORE_SCHEMA } from 'js-yaml'
 import { COMMON_KEYS, GAMES, keyProblems, keymapOf } from '@es/play'
 import { ENGINE_FLOOR } from '@es/play/engine-floor/entry'
-import { LEVEL_IDS, levelTitle } from '@es/play/engine-floor/levels'
+import { ALL_LEVEL_IDS, LEVEL_IDS, MAP_LEVEL, levelTitle } from '@es/play/engine-floor/levels'
 import { floorSession } from '@es/play/engine-floor/session'
 import { LIFECYCLE_CARD_ID } from '@es/sim/lifecycle'
 import { GAME_COMPONENTS, resolveGame } from '@/games/registry'
 import { checkGames, filesAt, worldAt } from '../../scripts/verify-games'
+
+// The gate measures every registered game's band on four hundred seeds a level, and the Reach-In's nights are simulations: it takes seconds, and several on a loaded host.
+setDefaultTimeout(120_000)
 
 const root = path.resolve(import.meta.dirname, '../..')
 
@@ -36,7 +39,7 @@ describe('verify:games for engine-floor', () => {
     expect(report.notes).toEqual([])
     const lines = report.lines.get('engine-floor') ?? []
     expect(lines[0]).toBe("Back of House · a request's lifecycle")
-    for (const id of LEVEL_IDS) expect(lines.some((line) => line.startsWith(`${id}: practice seed 0 in band; `))).toBe(true)
+    for (const id of ALL_LEVEL_IDS) expect(lines.some((line) => line.startsWith(`${id}: practice seed 0 in band; `))).toBe(true)
     expect(lines).toContain('keys: 8 common + 2 of its own')
   })
 
@@ -62,10 +65,10 @@ describe('the registry\'s record of Back of House', () => {
     expect(GAMES.games.filter((game) => game.id === 'engine-floor')).toHaveLength(1)
   })
 
-  test('has its levels in GAMES.md\'s order with their titles, all practice, each on a pinned seed that is the first the band accepts', () => {
-    expect(ENGINE_FLOOR.levels.map((level) => level.id)).toEqual([...LEVEL_IDS])
-    expect(ENGINE_FLOOR.levels.map((level) => level.title)).toEqual(LEVEL_IDS.map((id) => levelTitle(id)))
-    expect(ENGINE_FLOOR.levels.some((level) => level.graded)).toBe(false)
+  test('has its levels in GAMES.md\'s order with their titles, the seven practice levels and then the graded `map`, each on a pinned seed that is the first the band accepts', () => {
+    expect(ENGINE_FLOOR.levels.map((level) => level.id)).toEqual([...LEVEL_IDS, MAP_LEVEL])
+    expect(ENGINE_FLOOR.levels.map((level) => level.title)).toEqual(ALL_LEVEL_IDS.map((id) => levelTitle(id)))
+    expect(ENGINE_FLOOR.levels.filter((level) => level.graded).map((level) => level.id)).toEqual(['map'])
     for (const level of ENGINE_FLOOR.levels) {
       const first = Array.from({ length: 50 }, (_, seed) => seed).find((seed) => floorSession.inBand(level.id, seed))
       expect([level.id, level.practiceSeed]).toEqual([level.id, first])

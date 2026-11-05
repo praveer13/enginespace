@@ -43,7 +43,13 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 
 The ruling. The court reads the number the report should have had: on the histogram the claim's flag stands near the left, the corrected flag far to its right, and in the learner's own case the omitted waits are printed in red between each due tick and its sent tick.
 
+- **Built:** the ruling's exhibits stand beside it. The corrected run is a histogram sheet with the report's flag, the court's and the learner's, and a second sheet is the stretch of the learner's own log around its longest wait, each order's due tick, its wait in the ribbon's red and its sent tick, as on the Timeline sheet. A log that sent no order late has no such stretch.
+- **Adaptation, cited (finish review, round 1):** the histogram's ruler runs up the sheet, on the same logarithmic scale as the board's own histogram, so "near the left" and "far to its right" are drawn as low on the ruler and far above it. One ruler on both sheets keeps the corrected run comparable with what the learner read on the board.
+
 ## Unresolved
 
 - **The 3D opener** (`rain-and-relay`) is a stretch built after `court` ships; its camera presets and the kitchen words for its arenas are in GAMES.md §2.6.
 - **Pass bars** are the proposals of GAMES.md §11 and ASSESSMENT §4.3 [estimated]; the owner confirms them with the rest of ASSESSMENT.
+- **Raised with the documenter (finish review, round 1):**
+  - DESIGN.md's Ticket ("a Doto head line over a dotted rule, a heading-face title") puts a kicker over every titled ticket. This game drops the head line wherever a title follows and prints what it said on the foot line.
+  - DESIGN.md's Toggle lights a switch that is on in the lamp's amber. Here amber falls only on the selected order, so the desk's switch shows an inked pilot when it is on.

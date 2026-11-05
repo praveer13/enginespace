@@ -11,7 +11,8 @@ import { syntheticId, syntheticSeed } from '@/trace/ids'
 // had 145 B under its gate [measured 2026-11-04 by verify:bundle on wave-1 at 92b922f, with and without W1-T09]. Going over the gate is
 // the owner's call (D-023), and W2-T20, which ships the Trace Room, is the task that needs the viewer there. The two constants are fixed
 // when the app is built (MODE is the mode of `vite`, not NODE_ENV, which a test run sets for the build it makes), so a production build
-// holds none of it: no chunk, no preload name, nothing shared.
+// holds none of it on this route: no chunk, no preload name, nothing shared. (The viewer is in a production build all the same, as the lazy
+// chunk that the debrief of Back of House's graded map loads once a run is judged, W1-T19; no route's closure reaches it.)
 const SHOW_SPECIMEN = TEST_HOOKS || import.meta.env.MODE === 'development'
 const Specimen = SHOW_SPECIMEN ? lazy(() => import('@/trace/SpecimenPage')) : null
 

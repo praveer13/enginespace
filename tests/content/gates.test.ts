@@ -6,7 +6,7 @@ import { describe, expect, test } from 'bun:test'
 import { spawnSync } from 'node:child_process'
 import path from 'node:path'
 import { GATES } from '../../scripts/verify.ts'
-import { CLAIM_COUNT, CLAIMS, COURSE, LESSON, lineOf, project, read, repo, swap } from './support.ts'
+import { CLAIM_COUNT, CLAIMS, COURSE, LESSON, lineOf, project, read, REPO_COUNTS, repo, swap } from './support.ts'
 import type { Edit } from './support.ts'
 
 function run(script: string, ...args: string[]) {
@@ -23,7 +23,7 @@ describe('through the registry', () => {
       const result = run('scripts/verify.ts', name)
       expect(result.status).toBe(0)
       expect(result.out).toContain(`$ bun scripts/verify-${name}.ts`)
-      expect(result.out).toContain(`verify:${name} passed: 1 module, 1 lesson, ${CLAIM_COUNT} claims`)
+      expect(result.out).toContain(`verify:${name} passed: ${REPO_COUNTS}, ${CLAIM_COUNT} claims`)
       expect(result.out).not.toContain('pending')
     })
   }

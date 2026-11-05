@@ -17,6 +17,7 @@ import { Ticket } from '@/design/components/Ticket'
 import { Cite } from './Cite'
 import { Code } from './Code'
 import { svgToReact } from './svg'
+import { TapeCheck } from './TapeCheck'
 import type { FloorOutcome, FloorRun } from './types'
 import { useOrientation } from './useOrientation'
 
@@ -29,6 +30,10 @@ import { useOrientation } from './useOrientation'
  * The house run is the ghost: it is the engine's own path, which the page reads from the pinned lifecycle data. A learner whose
  * path held already has it, and one whose path did not sees the stage that failed beside the engine's. The counts are derived from
  * the stages (packages/play/engine-floor/facts.ts), so each is a Readout that says so.
+ *
+ * The graded `map` (W1-T19) adds two things to it. It says whether the scenario was passed, which is the whole path right on the one
+ * run, and it reads the path against the scenario's tape (TapeCheck.tsx): the table of `spanCheck` and the lifecycle trace in the trace
+ * viewer. A graded run's own way on is another fresh scenario, since the same one cannot be graded twice.
  */
 
 export interface DebriefProps {
@@ -37,6 +42,10 @@ export interface DebriefProps {
   /** The level after this one, or null on the last. */
   next: { id: string; title: string } | null
   onNext: () => void
+  /** A graded run on a fresh scenario, for a level that can be graded. Null or left out where it cannot. */
+  onGraded?: (() => void) | null
+  /** Back to the level in practice, for a graded run. */
+  onPractice?: (() => void) | null
 }
 
 /** The one true thing, in a sentence (GAMES.md §5, "Module and concept"). */
@@ -156,13 +165,21 @@ function Houses({ scenario }: { scenario: Scenario }) {
   )
 }
 
-export function Debrief({ run, outcome, next, onNext }: DebriefProps) {
+/** The ticket's title: how the run ended, in the words of the level that allows one run as well as of the ones that allow many. */
+function titleOf(run: FloorRun, ok: boolean): string {
+  if (ok) return 'Every hand-off held.'
+  return run.view.mistake === null && run.view.stop === null ? 'The path stopped short.' : 'A hand-off broke.'
+}
+
+export function Debrief({ run, outcome, next, onNext, onGraded = null, onPractice = null }: DebriefProps) {
   const { view } = run
   const { debrief, grade } = outcome
   const scenario = view.scenario
   const truth = factsOf(referenceOf(scenario), entryOf(scenario.engine)).boundariesOut
   const predicted = view.prediction
   const last = next === null
+  const graded = run.mode === 'graded'
+  const map = view.level === 'map'
 
   function newTray() {
     const entropy = crypto.getRandomValues(new Uint32Array(1))[0]
@@ -178,9 +195,11 @@ export function Debrief({ run, outcome, next, onNext }: DebriefProps) {
         head="Debrief"
         meta={view.title}
         titleAs="h3"
-        title={grade.ok ? 'Every hand-off held.' : 'A hand-off broke.'}
+        title={titleOf(run, grade.ok)}
         stub={
-          last ? (
+          graded && onGraded !== null ? (
+            <Stub onClick={onGraded}>Another fresh scenario</Stub>
+          ) : last ? (
             <Stub to="/map">Open the course map</Stub>
           ) : (
             <Stub onClick={onNext}>Next level</Stub>
@@ -190,6 +209,21 @@ export function Debrief({ run, outcome, next, onNext }: DebriefProps) {
         <p className="es-type-body">
           <Code>{debrief.sentence}</Code>
         </p>
+        {map ? (
+          <p className="max-w-prose" data-floor-graded={graded ? (grade.ok ? 'passed' : 'missed') : 'practice'}>
+            {graded ? (
+              <>
+                <strong>{grade.ok ? 'Passed.' : 'Not passed.'}</strong>{' '}
+                {grade.ok ? 'The whole path was right on its first run, and every stage matches a span of the tape, in order. ' : 'The level asks for the whole path, right on its first run. '}
+                It asks that of <Readout value={3} tag="estimated" size="sm" /> fresh scenarios, and each gets its own run.
+              </>
+            ) : (
+              <>
+                <strong>Practice.</strong> A pinned scenario with undo: it earns nothing. A graded run draws a fresh scenario and gives the path one run.
+              </>
+            )}
+          </p>
+        ) : null}
         {view.mistake !== null ? (
           <div className="flex flex-col gap-3" data-floor-first-wrong="">
             {view.mistake.expected === null ? null : <Cite title={`What ${ENGINE_NAMES[view.pin.engine]} does there`} note={view.mistake.expected} />}
@@ -211,12 +245,14 @@ export function Debrief({ run, outcome, next, onNext }: DebriefProps) {
             Runs: <span className="font-numeric">{view.runs}</span>
           </span>
         </p>
-        {last ? null : (
+        {last || graded ? null : (
           <p className="text-text-2" data-floor-next="">
             Next level: <strong className="text-text-1">{next.title}</strong>
           </p>
         )}
       </Ticket>
+
+      <TapeCheck view={view} />
 
       <Houses scenario={scenario} />
 
@@ -225,12 +261,30 @@ export function Debrief({ run, outcome, next, onNext }: DebriefProps) {
       </section>
 
       <div className="flex flex-wrap items-center gap-4">
-        <Button variant="plate" onClick={() => run.restart()}>
-          Play this level again
-        </Button>
-        <Button variant="ink" onClick={newTray}>
-          Shuffle the tray
-        </Button>
+        {graded ? (
+          <>
+            {onGraded === null ? null : (
+              <Button variant="ink" onClick={onGraded}>
+                Another fresh scenario
+              </Button>
+            )}
+            {onPractice === null ? null : (
+              <Button variant="plate" onClick={onPractice}>
+                Practice this level
+              </Button>
+            )}
+          </>
+        ) : (
+          <>
+            <Button variant="plate" onClick={() => run.restart()}>
+              Play this level again
+            </Button>
+            <Button variant="ink" onClick={newTray}>
+              {map ? 'Try another scenario' : 'Shuffle the tray'}
+            </Button>
+            {onGraded === null ? null : <Button onClick={onGraded}>Start a graded run</Button>}
+          </>
+        )}
         {last ? <TextLink to="/m/tr1">Open TR1</TextLink> : null}
       </div>
     </div>

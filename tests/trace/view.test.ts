@@ -219,3 +219,30 @@ describe('the specimen tapes', () => {
     expect(markup).not.toContain('Step <span')
   })
 })
+
+describe('a host\'s own line, and a tape with no marks ticket (W1-T19: Back of House shows a lifecycle tape)', () => {
+  const line = 'A synthetic tape: the lifecycle model’s path for this request. It is not a measurement of any engine.'
+
+  test('the line under the heading is the host\'s when it gives one, and the provenance\'s own when it does not', () => {
+    expect(render({ about: line })).toContain(`${line}</p>`)
+    expect(render({ about: line })).not.toContain('the step-loop model with seeded jitter')
+    expect(render()).toContain('A synthetic tape: the step-loop model with seeded jitter')
+  })
+
+  test('the figures still carry the tape\'s own provenance, whatever the host says: the ns are synthetic', () => {
+    const markup = render({ about: line, readOnly: true, marks: false })
+    expect(markup).toMatch(/data-trace-window="">.*In view.*data-tag="synthetic"/)
+    expect(markup).toContain('ns, synthetic')
+  })
+
+  test('the marks ticket is on the page by default and left out when the host says so, with the cursor\'s tape and the span table still there', () => {
+    expect(render()).toContain('data-trace-marks')
+    expect(render({ marks: true })).toContain('data-trace-marks')
+    const without = render({ marks: false, readOnly: true })
+    expect(without).not.toContain('data-trace-marks')
+    expect(without).not.toContain('Unaccounted in this step')
+    expect(without).not.toContain('Marks, in time order')
+    expect(without).toContain('data-cursor-row="true"')
+    expect(without).toContain('data-trace-tape')
+  })
+})

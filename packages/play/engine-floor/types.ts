@@ -19,9 +19,14 @@ import type { EngineId, Mechanism, Place, Scenario, SourceRef } from '@es/sim/li
 
 /**
  * The practice levels of GAMES.md §5, in the order of its difficulty line ("one process, then four, then threads and queues, then
- * async planning, then failure paths"). The graded `map` joins them with W1-T19.
+ * async planning, then failure paths"). Each lays one scenario of its own, and the seed draws only the tray.
  */
-export type FloorLevelId = 'nano' | 'nano-tp' | 'mini' | 'inside' | 'vllm' | 'sglang' | 'abort'
+export type PracticeLevelId = 'nano' | 'nano-tp' | 'mini' | 'inside' | 'vllm' | 'sglang' | 'abort'
+
+/** The graded level of GAMES.md §5 (W1-T19): a fresh scenario for each seed, one run, and the path checked against the scenario's lifecycle trace. */
+export type GradedLevelId = 'map'
+
+export type FloorLevelId = PracticeLevelId | GradedLevelId
 
 export interface FloorLevel {
   readonly id: FloorLevelId
@@ -35,7 +40,10 @@ export interface FloorLevel {
   readonly reference: readonly string[]
   /** The tray: the stage ids of the path and the distractors, in the seeded order. */
   readonly tray: readonly string[]
-  /** How many runs the level allows, or null for as many as the learner likes. A practice level never ends a run on a failure. */
+  /**
+   * How many runs the level allows, or null for as many as the learner likes. A practice level never ends a run on a failure; the graded
+   * `map` allows one, because its bar is the whole path right on its first run (ASSESSMENT §4.3).
+   */
   readonly attempts: number | null
 }
 
@@ -177,6 +185,45 @@ export interface PinView {
   readonly readOn: string
 }
 
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* The tape                                                                                                           */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/** One laid stage against the scenario's lifecycle trace: the span it matched, where that span is and how long it lasts, in ns of the synthetic tape. */
+export interface SpanRowView {
+  /** The place in the laid path. */
+  readonly index: number
+  readonly stage: string
+  /** The stage is the trace's stage span at this place. */
+  readonly matched: boolean
+  /** The stage the tape has at this place (what the trace's span here is named for), or null past the end of the tape. */
+  readonly tape: string | null
+  /** The span in the trace's columns, or null for a stage that matched none. */
+  readonly span: number | null
+  /** The track the span is on (the thread's or the GPU stream's own name), or null. */
+  readonly track: string | null
+  readonly startNs: number | null
+  readonly durNs: number | null
+}
+
+/**
+ * What `spanCheck` found of a finished graded run, as the debrief and the trace viewer need it (GAMES.md §5, "Scoring and pass"). The trace
+ * itself is not held here: it is `lifecycleTrace(scenario, seed)`, which any view can write again from the numbers below.
+ */
+export interface SpanCheckView {
+  /** The seed of the synthetic trace: the level's own. */
+  readonly seed: Seed
+  /** How many laid stages matched a stage span, in order, before the first that did not. */
+  readonly matched: number
+  /** The place in the laid path of the first stage that is not the trace's stage there, or null. */
+  readonly firstMismatch: number | null
+  /** How many stage spans the trace has. */
+  readonly spans: number
+  /** Every laid stage matched, and the path is the trace's whole path. */
+  readonly whole: boolean
+  readonly rows: readonly SpanRowView[]
+}
+
 /** What the scene, the 2D view and the mirror all draw. */
 export interface FloorView {
   readonly level: FloorLevelId
@@ -207,9 +254,21 @@ export interface FloorView {
   readonly canRun: boolean
   readonly canUnlay: boolean
   readonly runs: number
+  /** How many runs the level allows, or null for as many as the learner likes. */
+  readonly runsAllowed: number | null
   readonly done: boolean
-  /** How many stages the engine's path has [derived from the pinned lifecycle data]. */
+  /** The ticket is home: a run found the whole path, and it held. A level that allows few runs can be done without it. */
+  readonly served: boolean
+  /**
+   * The engine's path is still a secret. The graded `map` keeps the house's plan (every floor and lane of the path) and the path's length
+   * off the page until the run is judged, because either would tell a stage of the engine from a stage of another before the learner has.
+   * A view that draws the plan or the length waits for this to be false.
+   */
+  readonly sealed: boolean
+  /** How many stages the engine's path has [derived from the pinned lifecycle data]. Not to be shown while `sealed`. */
   readonly stages: number
+  /** The path against the scenario's lifecycle trace: only for the graded `map`, and only once its run is judged. */
+  readonly check: SpanCheckView | null
 }
 
 /** The counts of a run, which are counts of stages and nothing about time (GAMES.md §1, rule 3). */

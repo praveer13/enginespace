@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process'
 import path from 'node:path'
 import { compileContent } from '../../scripts/content/build.ts'
 import { agrees, claimProblems, evaluate, FormulaError } from '../../scripts/verify-claims.ts'
-import { CLAIM_COUNT, CLAIMS, compile, errors, LESSON, lineOf, LOCK_KEYS, project, read, repo, swap, where } from './support.ts'
+import { CLAIM_COUNT, CLAIMS, compile, errors, LESSON, lineOf, LOCK_KEYS, project, read, REPO_COUNTS, repo, swap, where } from './support.ts'
 import type { Edit } from './support.ts'
 
 const TODAY = '2026-11-04'
@@ -264,7 +264,7 @@ describe('the gate as a command', () => {
     const result = run(repo, '--today', TODAY)
     expect(result.status).toBe(0)
     expect(result.out).not.toContain('pins-unchecked')
-    expect(result.out).toBe(`verify:claims passed: 1 module, 1 lesson, ${CLAIM_COUNT} claims\n`)
+    expect(result.out).toBe(`verify:claims passed: ${REPO_COUNTS}, ${CLAIM_COUNT} claims\n`)
   })
 
   test('prints a warning about pins in a tree that has no lockfile', () => {

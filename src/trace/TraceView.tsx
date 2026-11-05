@@ -50,6 +50,14 @@ export interface TraceViewProps {
   onNotesChange?: (notes: Annotations) => void
   /** A tape to read: no marking, no tag plates, no label. */
   readOnly?: boolean
+  /**
+   * The line under the heading, in place of the one that the tape's provenance gives. For a synthetic tape that one names the step-loop
+   * model, so a host whose tape is another model's (Back of House's lifecycle tape) says what it is here. It must still say that the
+   * tape is synthetic and no measurement; the viewer cannot check it.
+   */
+  about?: string
+  /** Whether the marks ticket is on the page (default yes). A host with nothing to mark and no unaccounted counter to keep leaves it out. */
+  marks?: boolean
   /** Whether the keys are bound. The learner's setting ("Game keys", WCAG 2.1.4) turns them off as well. */
   shortcuts?: boolean
 }
@@ -61,7 +69,7 @@ export function TraceView(props: TraceViewProps) {
   return <Viewer key={props.traceId} {...props} />
 }
 
-function Viewer({ trace, traceId, title, headingLevel = 2, initialWindow, defaultNotes, onNotesChange, readOnly = false, shortcuts = true }: TraceViewProps) {
+function Viewer({ trace, traceId, title, headingLevel = 2, initialWindow, defaultNotes, onNotesChange, readOnly = false, about, marks = true, shortcuts = true }: TraceViewProps) {
   const index = useMemo(() => buildIndex(trace), [trace])
   const provenance = useMemo(() => provenanceOf(trace.meta), [trace])
   const [state, dispatch] = useReducer(
@@ -150,7 +158,7 @@ function Viewer({ trace, traceId, title, headingLevel = 2, initialWindow, defaul
           <Heading id={headingId} className="es-type-heading">
             {heading}
           </Heading>
-          <p className="es-type-body text-text-2">{provenance.line}</p>
+          <p className="es-type-body text-text-2">{about ?? provenance.line}</p>
         </div>
         <p className="es-trace__window" data-trace-window="">
           <span>In view</span>
@@ -166,16 +174,18 @@ function Viewer({ trace, traceId, title, headingLevel = 2, initialWindow, defaul
       <Tape index={index} state={state} dispatch={dispatch} rail={!readOnly} />
       <div className="es-trace__panels">
         <CursorTape index={index} cursor={state.cursor} tag={provenance.tag} source={provenance.source} />
-        <MarksTicket
-          index={index}
-          state={state}
-          readOnly={readOnly}
-          tag={provenance.tag}
-          source={provenance.source}
-          labelId={labelId}
-          dispatch={dispatch}
-          onLabelDone={() => container.current?.focus({ preventScroll: true })}
-        />
+        {marks ? (
+          <MarksTicket
+            index={index}
+            state={state}
+            readOnly={readOnly}
+            tag={provenance.tag}
+            source={provenance.source}
+            labelId={labelId}
+            dispatch={dispatch}
+            onLabelDone={() => container.current?.focus({ preventScroll: true })}
+          />
+        ) : null}
       </div>
       <SpanMirror index={index} win={state.mirrorWin} cursor={state.cursor} provenance={provenance.word} dispatch={dispatch} />
       <div aria-live="polite" aria-atomic="true" className="sr-only" data-live="line">

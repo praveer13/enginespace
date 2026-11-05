@@ -149,13 +149,15 @@ describe('the app build', () => {
     // the scene kit that a scene loads on demand (src/scene/postfx, W0-T15), or one of three's addons (OrbitControls); or a forge lab's
     // page (src/forge/ForgeLabPage.tsx), which the Lab page loads on demand with its host and its oracle, so that the labs that have no
     // forge never carry them (W1-T10); or the attempt of an item block (src/items/Attempt.tsx, W1-T04), which a lesson loads when the
-    // learner starts one, and which brings the ledger; or the rules of a route change (src/route-change.ts), which the root route loads
-    // after its first render so that the front page's first-paint closure does not carry them (D-023).
+    // learner starts one, and which brings the ledger; or the trace viewer (src/trace/TraceView.tsx, W1-T19), which the debrief of Back of
+    // House's graded map loads when the run has been judged, so that a learner who never gets there has not downloaded an instrument; or
+    // the rules of a route change (src/route-change.ts), which the root route loads after its first render so that the front page's
+    // first-paint closure does not carry them (D-023).
     // The compiled content is lazy too, but it is not a page: the next test holds it to account.
     const named = Object.entries(app.manifest)
       .filter(([key, chunk]) => chunk.isDynamicEntry && chunk.src !== undefined && !key.startsWith(CONTENT))
       .map(([key]) => key)
-    const onDemand = /^(src\/games\/[^/]+\/[A-Za-z0-9]+\.tsx|src\/scene\/[\w/-]+\.tsx?|src\/forge\/ForgeLabPage\.tsx|src\/items\/[A-Za-z0-9]+\.tsx|src\/route-change\.ts|node_modules\/three\/examples\/jsm\/[\w/-]+\.js)$/
+    const onDemand = /^(src\/games\/[^/]+\/[A-Za-z0-9]+\.tsx|src\/scene\/[\w/-]+\.tsx?|src\/forge\/ForgeLabPage\.tsx|src\/items\/[A-Za-z0-9]+\.tsx|src\/trace\/TraceView\.tsx|src\/route-change\.ts|node_modules\/three\/examples\/jsm\/[\w/-]+\.js)$/
     expect(named.filter((key) => !pages.includes(key) && !onDemand.test(key))).toEqual([])
   })
 

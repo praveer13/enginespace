@@ -34,7 +34,7 @@ export function Production() {
   const claims = useClaims(true)
   const env = useMemo(() => renderEnv([], claims.status === 'ready' ? claims.value : null, todayIso()), [claims])
   return (
-    <Ticket as="section" width="full" hole={false} head="In production" meta="the real tools" titleAs="h3" title="The flags that would have made it admissible">
+    <Ticket as="section" width="full" hole={false} titleAs="h3" title="The flags that would have made it admissible">
       <p>
         The browser world is a model, and the real tools are the judge. These are the flags that bear on the flaws you just met, as the tools stood at the pins on the day each claim was read.
       </p>

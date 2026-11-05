@@ -11,7 +11,7 @@ import { drawInBand, regrade, replay, stateHash } from '@es/play'
 import type { GameAction } from '@es/play'
 import { stopOfMistake } from '@es/play/engine-floor/engine'
 import { MAX_PREDICTION } from '@es/play/engine-floor/facts'
-import { LEVEL_IDS } from '@es/play/engine-floor/levels'
+import { ALL_LEVEL_IDS, LEVEL_IDS } from '@es/play/engine-floor/levels'
 import { floorAsk, floorDebrief, floorDone, floorGhost, floorGrade, floorInit, floorLevel, floorReduce, floorScore, floorSession, floorView } from '@es/play/engine-floor/session'
 import type { FloorAction, Mistake } from '@es/play/engine-floor/types'
 import { houseActions, laidTo, levelOf, played, ranTo, truthOf, walk } from './engine-floor-support'
@@ -36,9 +36,9 @@ const wrongAt = (level = vllm, index = 4): FloorAction[] => [
 ]
 
 describe('the contract (GAMES.md §2.5)', () => {
-  test('builds each level on its seed, and refuses a level it does not have (the graded `map` is W1-T19\'s)', () => {
-    for (const id of LEVEL_IDS) expect(floorLevel(id, 0).id).toBe(id)
-    for (const id of ['map', 'constructor', '', 'nano ']) {
+  test('builds each level on its seed, the graded `map` among them, and refuses a level it does not have', () => {
+    for (const id of ALL_LEVEL_IDS) expect(floorLevel(id, 0).id).toBe(id)
+    for (const id of ['constructor', '', 'nano ', 'Map']) {
       expect(() => floorLevel(id, 0)).toThrow(RangeError)
       expect(() => floorSession.inBand(id, 0)).toThrow(RangeError)
     }
