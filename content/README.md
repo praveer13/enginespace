@@ -24,7 +24,7 @@ npm run verify:kc              # the KC graph: a DAG, and a graded reference or 
 | `kc/kernelspace.json` | the ids of kernelspace's KCs at the vendored pin, which the `ks:` edges of the graph may name. `scripts/kc/kernelspace.ts` writes and checks it |
 | `cards/<id>.md` | the notional-machine cards that a `card` block or a module's `worlds` names |
 
-A figure's `src` is a path under `public/`, such as `figures/tr2/bubble.svg`. A card's compiled JSON is written to `src/content/generated/cards/<id>.json`, one lazy chunk each, like a lesson's.
+A figure's `src` is a path under `public/`, such as `figures/tr2/bubble.svg`. A figure that is drawn from a model has `origin: generated`, and a test holds its file to the function that draws it: `tests/content/tr5a-figures.ts` writes TR5a's four with `bun tests/content/tr5a-figures.ts`, and `tr5a-module.test.ts` fails on a file that is not what the model draws. A card's compiled JSON is written to `src/content/generated/cards/<id>.json`, one lazy chunk each, like a lesson's.
 
 ## A lesson
 

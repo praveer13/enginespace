@@ -211,7 +211,10 @@ describe('dates, pins and age', () => {
   })
 
   test('the 365-day claims are stale a year on', () => {
-    const found = problems({}, '2027-11-05')
+    // A claim goes stale the day after its TTL ends, so a year and a day after the latest day that any claim was checked, every claim is stale.
+    const latest = compileContent({ root: repo }).claims.map((record) => record.claim.verifiedAt).reduce((a, b) => (a > b ? a : b))
+    const yearOn = new Date(Date.parse(`${latest}T00:00:00Z`) + 366 * 24 * 3600 * 1000).toISOString().slice(0, 10)
+    const found = problems({}, yearOn)
     expect(found.map((d) => d.code)).toEqual(Array.from({ length: CLAIM_COUNT }, () => 'stale-claim'))
   })
 })

@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 140" width="360" height="140" fill="none" stroke="currentColor" stroke-width="1.5">
+  <title>The block tables of the design document's request in three groups, with the blocks each group keeps filled in</title>
+  <desc>Three rows of squares, one for each group, with a square for each of the request's seven blocks. The full group keeps all seven. Each sliding group has let go of the first five, drawn dashed and struck through, and keeps the last two. A kept square carries the page that holds it.</desc>
+  <g stroke="none" fill="currentColor" font-size="10" text-anchor="middle">
+    <text x="22" y="13">block</text>
+    <text x="70" y="13">0</text>
+    <text x="112" y="13">1</text>
+    <text x="154" y="13">2</text>
+    <text x="196" y="13">3</text>
+    <text x="238" y="13">4</text>
+    <text x="280" y="13">5</text>
+    <text x="322" y="13">6</text>
+  </g>
+  <g stroke="none" fill="currentColor" font-size="10">
+    <text x="4" y="39">full</text>
+    <text x="4" y="77">sliding</text>
+    <text x="4" y="115">sliding</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.16">
+    <rect x="52" y="22" width="36" height="26"/>
+    <rect x="94" y="22" width="36" height="26"/>
+    <rect x="136" y="22" width="36" height="26"/>
+    <rect x="178" y="22" width="36" height="26"/>
+    <rect x="220" y="22" width="36" height="26"/>
+    <rect x="262" y="22" width="36" height="26"/>
+    <rect x="304" y="22" width="36" height="26"/>
+    <rect x="262" y="60" width="36" height="26"/>
+    <rect x="304" y="60" width="36" height="26"/>
+    <rect x="262" y="98" width="36" height="26"/>
+    <rect x="304" y="98" width="36" height="26"/>
+  </g>
+  <g stroke-width="1" stroke-dasharray="3 3">
+    <rect x="52" y="60" width="36" height="26"/>
+    <rect x="94" y="60" width="36" height="26"/>
+    <rect x="136" y="60" width="36" height="26"/>
+    <rect x="178" y="60" width="36" height="26"/>
+    <rect x="220" y="60" width="36" height="26"/>
+    <rect x="52" y="98" width="36" height="26"/>
+    <rect x="94" y="98" width="36" height="26"/>
+    <rect x="136" y="98" width="36" height="26"/>
+    <rect x="178" y="98" width="36" height="26"/>
+    <rect x="220" y="98" width="36" height="26"/>
+  </g>
+  <g stroke-width="1">
+    <path d="M52 86L88 60M94 86L130 60M136 86L172 60M178 86L214 60M220 86L256 60M52 124L88 98M94 124L130 98M136 124L172 98M178 124L214 98M220 124L256 98"/>
+  </g>
+  <g stroke="none" fill="currentColor" font-size="10" text-anchor="middle">
+    <text x="70" y="39">p0</text>
+    <text x="112" y="39">p1</text>
+    <text x="154" y="39">p2</text>
+    <text x="196" y="39">p3</text>
+    <text x="238" y="39">p4</text>
+    <text x="280" y="39">p5</text>
+    <text x="322" y="39">p6</text>
+    <text x="280" y="77">p7</text>
+    <text x="322" y="77">p8</text>
+    <text x="280" y="115">p9</text>
+    <text x="322" y="115">p10</text>
+  </g>
+</svg>

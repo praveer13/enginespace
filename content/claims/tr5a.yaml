@@ -1,0 +1,441 @@
+# What TR5a's four lessons cite beyond the claims of vllm/kv.yaml, vllm/kv-manager.yaml, sglang/kv.yaml and worlds/references.yaml (W1-T25; curriculum/TR5a §8):
+# why a hybrid model needs several KV groups, how vLLM's planner brings the groups to one page size and what the padding costs, the one rule of the
+# hybrid coordinator that makes its lookup a loop, the shape of the adapter slots of both engines, what S-LoRA's paper says of its pages, and what
+# kernelspace's lab 02 already asks of a block manager. An id starts with its engine, or with `kv` when its source is not an engine's.
+#
+# Each quote was read on 2026-11-05 with the generic User-Agent "Mozilla/5.0 (X11; Linux x86_64)" from the file or page its anchor names, and
+# found verbatim inside the lines the anchor gives (a file at a tag is downloaded into a folder of its own and read as text, never run; the
+# paper's HTML page is turned into text by a script that reads it and runs nothing from it). The engines are read at the pins, vLLM v0.33.0 and
+# SGLang v0.5.23, so their TTL is the quarter that a pin lasts. S-LoRA is read at its v3 and kernelspace at d478f91, and a paper at a version or
+# a document at a commit does not move, so those carry a year [estimated].
+
+# --- Why one model needs several caches (lesson 1) -----------------------------------------------------------------------------------
+
+- id: vllm.hybrid-kv.hybrid-models
+  value: sliding window, Mamba and local chunked, each with full attention
+  text: vLLM's design document names three families of hybrid model, sliding-window attention with full attention (gpt-oss, Gemma 2 and 3, Ministral and cohere among them), Mamba with full attention (Bamba, Jamba, Minimax) and local chunked attention with full attention (Llama 4).
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/hybrid_kv_cache_manager.md#L8-L12
+    title: vLLM v0.33.0, docs/design/hybrid_kv_cache_manager.md (What is a hybrid model?)
+    quote: 'Sliding window attention (sw) + full attention (full): gpt-oss, Gemma 2/3, Ministral, cohere, etc.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.layer-ratios
+  value: Gemma3 5:1, Llama4 3:1
+  text: The planner's authors write that every open-source hybrid model they know follows an n to 1 pattern between its attention types, with Gemma 3 at 5 sliding-window layers to 1 full-attention layer and Llama 4 at 3 local layers to 1 full-attention layer. They wrote it on 2025-06-02, and the comment is still there at v0.33.0.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/kv_cache_planning.py#L513-L520
+    title: vLLM v0.33.0, vllm/v1/core/kv_cache_planning.py, _get_kv_cache_groups_uniform_page_size (a FIXME)
+    quote: 'types (e.g., Gemma3 5:1 between sw and full, LLaMA4 3:1 between local and'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.layer-slots
+  value: only the most recent window of tokens
+  text: A hybrid model's KV cache manager has to reserve slots for all tokens in a full-attention layer and only for the most recent window of tokens in a sliding-window layer, and it has to apply a prefix-cache rule for each kind of layer.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/hybrid_kv_cache_manager.md#L14-L21
+    title: vLLM v0.33.0, docs/design/hybrid_kv_cache_manager.md (What is a hybrid model?)
+    quote: 'reserve slots only for the most recent'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.no-ring-buffer
+  value: a ring of window blocks was not picked
+  text: The design document rejects the obvious design for a sliding window, a ring of window-sized blocks that new tokens overwrite in turn, because it is not compatible with prefix caching. vLLM allocates different blocks for different tokens instead, and frees the blocks that are outside the window.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/hybrid_kv_cache_manager.md#L177
+    title: vLLM v0.33.0, docs/design/hybrid_kv_cache_manager.md (Prefix caching, case 1)
+    quote: 'this naive implementation is not compatible with prefix caching so we didn''t pick this design'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.manager-per-spec
+  value: one manager class for each kind of cache spec
+  text: vLLM registers a manager class for each kind of KV cache spec. At v0.33.0 full attention has FullAttentionManager, a sliding window SlidingWindowManager, a Mamba layer MambaManager, chunked local attention ChunkedLocalAttentionManager and cross-attention CrossAttentionManager, and there are more.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/single_type_kv_cache_manager.py#L2656-L2730
+    title: vLLM v0.33.0, vllm/v1/core/single_type_kv_cache_manager.py, register_all_kvcache_specs
+    quote: 'MambaSpec, MambaManager, uniform_type_base_spec=MambaSpec'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.group-rules
+  value: one attention type in a group, one page size across groups
+  text: The design document gives a KV cache group two rules. The layers of a group are all of one attention type, so that they need the same number of blocks for a request and can share the same block ids. And every group has the same page size, because the memory pool has only one.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/hybrid_kv_cache_manager.md#L92-L95
+    title: vLLM v0.33.0, docs/design/hybrid_kv_cache_manager.md (Case 2)
+    quote: 'Identical page size across groups'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+# --- One pool, one page size (lesson 2) ------------------------------------------------------------------------------------------------
+
+- id: vllm.hybrid-kv.page-size-formula
+  value: layers x block size x kv hidden size
+  text: In the design document a block holds block_size tokens for the layers it serves, and the page size is the physical size of a block, the number of layers times the block size times the bytes that one token's KV takes in one layer. The number of layers in that product is not the model's total, but the number the block serves in the case at hand.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/hybrid_kv_cache_manager.md#L25-L34
+    title: vLLM v0.33.0, docs/design/hybrid_kv_cache_manager.md (Definitions)
+    quote: 'doesn''t mean the total number of layers in the model'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.small-groups
+  value: too many small groups
+  text: The document says that grouping layers as case 2 does, by the ratio between the attention types, would make Gemma-3-27b 26 sliding-window groups and 5 full-attention groups of 2 layers each, too many small groups, and that the allocation would still be inefficient. Its answer is to group by the smallest layer count among the attention types.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/hybrid_kv_cache_manager.md#L113
+    title: vLLM v0.33.0, docs/design/hybrid_kv_cache_manager.md (Case 3)
+    quote: 'approach in Case 2 will produce too many small groups'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.group-size-example
+  value: 12 sliding and 13 full, padded to 13 and 13
+  text: The planner's comment on its 1.5 rule names gpt-oss-20b with an EAGLE drafter, which has 12 sliding-window layers and 13 full-attention layers. The rule pads that model to a group of 13 sliding-window layers and a group of 13 full-attention layers, in place of 12 sliding-window layers and 24 full-attention layers.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/kv_cache_planning.py#L524-L533
+    title: vLLM v0.33.0, vllm/v1/core/kv_cache_planning.py, _get_kv_cache_groups_uniform_page_size (the 1.5 rule)
+    quote: 'with 12 sw + 13 full. We pad it to (13 sw, 13 full) instead of'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.group-size-known-gap
+  value: 10
+  unit: layers a group
+  text: The design document says its grouping heuristic will be updated if it gives a bad result for a new model, and names one it would serve badly, 20 full-attention layers with 30 sliding-window layers, where the group size should be 10 and not 20. The planner's own comment names the same model.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/hybrid_kv_cache_manager.md#L123
+    title: vLLM v0.33.0, docs/design/hybrid_kv_cache_manager.md (Case 3)
+    quote: 'e.g., 20 full + 30 sw, the group size should be 10 instead of 20'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.padding-warning
+  value: padding layers / the type's layers
+  text: When a type's layers do not fill its groups, the planner logs a warning that the padding may waste at most as much of the KV cache memory as the padding layers are of that type's real layers. The share is taken against one type's layers, and not against the layer slots of all the groups.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/kv_cache_planning.py#L535-L541
+    title: vLLM v0.33.0, vllm/v1/core/kv_cache_planning.py, _get_kv_cache_groups_uniform_page_size (the warning)
+    quote: 'Add %d padding layers, may waste at most %.2f%% KV cache memory'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.mamba-block-size-large
+  value: 400
+  unit: tokens
+  text: The design document warns that making a hybrid Mamba model's page sizes equal by growing the attention block can lead to an attention block of more than 400 tokens, which it calls too large. It describes another padding strategy and says that one is still work in progress.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/hybrid_kv_cache_manager.md#L143-L150
+    title: vLLM v0.33.0, docs/design/hybrid_kv_cache_manager.md (Case 4)
+    quote: 'This can lead to more than 400 `block_size` for attention layers, which is too large.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.kv-sharing
+  value: layers that share a cache get none of their own
+  text: Some models have a layer that uses the KV cache of another layer, Gemma-3n among them. The KV cache manager ignores every layer that shares and allocates cache only for the layers that need it, and the model runner applies the result to the layers that share.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/hybrid_kv_cache_manager.md#L152-L155
+    title: vLLM v0.33.0, docs/design/hybrid_kv_cache_manager.md (Case 5)
+    quote: 'ignores all layers with kv sharing and only allocates KV cache for layers that need kv cache'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.memory-layout
+  value: one buffer per layer of a group, shared by one layer from each group
+  text: For a model with n groups of m layers each, vLLM allocates m buffers, and each buffer is shared by n layers, one from each group. One logical block therefore maps to m pieces in the m buffers.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/hybrid_kv_cache_manager.md#L229-L241
+    title: vLLM v0.33.0, docs/design/hybrid_kv_cache_manager.md (Memory Layout)
+    quote: 'Each buffer is shared by n layers, one from each group.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+# --- A prefix hit must hold in every group (lesson 3) ----------------------------------------------------------------------------------
+
+- id: vllm.hybrid-kv.downward-closed
+  value: full attention is downward-closed
+  text: The hybrid coordinator's lookup treats full attention as downward-closed, so it looks up the cached blocks of a full-attention group once, and on the later passes of its loop only trims that group's hit to the candidate length. The other groups get no such shortcut, and are asked again on every pass.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/kv_cache_coordinator.py#L856-L901
+    title: vLLM v0.33.0, vllm/v1/core/kv_cache_coordinator.py, HybridKVCacheCoordinator.find_longest_cache_hit
+    quote: 'Full attention is downward-closed: we only need to look'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.upstream-hybrid-tests
+  value: groups of 2, 3 and 4
+  text: vLLM's own test of prefix caching on hybrid models, test_prefill_hybrid_model_combinations, runs the lookup on groups of 2, 3 and 4, with 0, 1 or 2 full-attention groups among them, two sliding-window groups with different window sizes, interleaved group ids, and Mamba beside the other types.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/tests/v1/core/test_prefix_caching.py#L2397-L2411
+    title: vLLM v0.33.0, tests/v1/core/test_prefix_caching.py, test_prefill_hybrid_model_combinations
+    quote: 'Varying number of groups (2, 3, or 4)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: sglang.radix.all-validators
+  value: the deepest node that every component accepts
+  text: SGLang's Rust tree core, which is the default core, takes as the best match the deepest node that all of the components' validators accept.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/rust/sglang-radix-tree/src/unified_tree_core.rs#L140-L143
+    title: SGLang v0.5.23, rust/sglang-radix-tree/src/unified_tree_core.rs, MatchResult.best_match_node_id
+    quote: 'Deepest node accepted by all component validators; anchors host->device load-back.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+# --- Adapters as pages, and upstream's slots (lesson 4) -----------------------------------------------------------------------------------
+
+- id: vllm.lora.stacked-max-rank
+  value: max_loras x max_lora_rank
+  text: Each LoRA layer in vLLM allocates the A and B matrices of all its slots at once, as zeros, as a stack that is max_loras deep and max_lora_rank wide, whatever the rank of the adapter that will sit in a slot.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/lora/layers/base_linear.py#L104-L152
+    title: vLLM v0.33.0, vllm/lora/layers/base_linear.py, BaseLinearLayerWithLoRA.create_lora_weights
+    quote: 'lora_a_out_size = lora_config.max_lora_rank'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.lora.cpu-lru
+  value: LRU caches of max_cpu_loras and max_loras
+  text: The LoRA model manager keeps its registered adapters, which max_cpu_loras caps, in an LRU cache of that capacity, and its active adapters, which max_loras caps, in a second LRU cache.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/lora/model_manager.py#L113-L119
+    title: vLLM v0.33.0, vllm/lora/model_manager.py, LoRAModelManager.__init__
+    quote: 'self._registered_adapters: AdapterLRUCache[LoRAModel] = AdapterLRUCache('
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.lora.layer-built-with-slots
+  value: create_lora_weights(max_loras, ...)
+  text: When vLLM wraps a module in a LoRA layer, it creates the layer's weights at once for max_loras slots, in the same call.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/lora/utils.py#L113-L130
+    title: vLLM v0.33.0, vllm/lora/utils.py, from_layer
+    quote: 'instance_layer.create_lora_weights(max_loras, lora_config, model_config)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.lora.slots-built-at-init
+  value: when the LoRA manager is built
+  text: The LoRA model manager creates its LoRA modules in its constructor, and not when an adapter is first requested.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/lora/model_manager.py#L167
+    title: vLLM v0.33.0, vllm/lora/model_manager.py, LoRAModelManager.__init__
+    quote: 'self._create_lora_modules()'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.lora.smaller-adapter-in-slot
+  value: the first rows and columns of its slot
+  text: An adapter whose rank is below max_lora_rank is copied into the first rows of its slot's stacked A matrix and the first columns of its B matrix, and the rest of the slot stays zero.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/lora/layers/base_linear.py#L165-L187
+    title: vLLM v0.33.0, vllm/lora/layers/base_linear.py, BaseLinearLayerWithLoRA.set_lora
+    quote: 'self.lora_a_stacked[0][index, 0, : lora_a.shape[0], : lora_a.shape[1]].copy_('
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: sglang.lora.slot-shape
+  value: (max_loras_per_batch, max_lora_dim x c, input_dim)
+  text: The shape of an adapter buffer in SGLang's pool has max_loras_per_batch slots as its first dimension, then a rank dimension that is max_lora_dim times a stacking factor, then the input dimension.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/lora/mem_pool.py#L408-L422
+    title: SGLang v0.5.23, srt/lora/mem_pool.py, LoRAMemoryPool._get_standard_shape
+    quote: 'return (self.max_loras_per_batch, max_lora_dim * c, input_dim)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.lora.buffers-max-rank
+  value: allocated at max_lora_rank
+  text: SGLang's pool allocates the buffer of each module as zeros, with the shape function called with the pool's max_lora_rank, so that every slot is as wide as the largest adapter the pool will accept.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/lora/mem_pool.py#L668-L682
+    title: SGLang v0.5.23, srt/lora/mem_pool.py, LoRAMemoryPool.init_buffers (init_buffer)
+    quote: '# Standard allocation for unambiguous modules'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.lora.rank-cap
+  value: rank at most max_lora_rank
+  text: SGLang's pool cannot support an adapter whose rank is above the pool's max_lora_rank, and refuses it.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/lora/mem_pool.py#L244-L249
+    title: SGLang v0.5.23, srt/lora/mem_pool.py, LoRAMemoryPool.can_support (_can_support)
+    quote: 'if config.r > self.max_lora_rank:'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: kv.slora.page-vector
+  value: a page is one vector of the hidden size
+  text: In S-LoRA's unified pool each page is one vector of the hidden size. A KV cache tensor with a sequence length of S uses up S pages, and a LoRA weight tensor of rank R takes up R pages.
+  tag: measured
+  source:
+    url: https://arxiv.org/html/2311.03285v3#S5.SS1
+    title: Sheng et al., S-LoRA, arXiv 2311.03285v3, section 5.1 (Unified Paging)
+    quote: 'Thus, a KV cache tensor with a sequence length of S uses up S pages, while a LoRA weight tensor of rank R takes up R pages.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 365
+
+- id: kv.slora.non-contiguous
+  value: interleaved and non-contiguous
+  text: S-LoRA stores KV caches and adapter weights in its pool interleaved and non-contiguously, which the authors say significantly reduces fragmentation and lets adapters of different ranks live beside KV caches that keep changing size.
+  tag: measured
+  source:
+    url: https://arxiv.org/html/2311.03285v3#S5.SS1
+    title: Sheng et al., S-LoRA, arXiv 2311.03285v3, section 5.1 (Unified Paging)
+    quote: 'where KV caches and adapter weights are stored interleaved and non-contiguously.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 365
+
+- id: kv.slora.static-pool
+  value: one buffer, everything but the weights and the activations
+  text: S-LoRA allocates one large buffer statically for its pool. The buffer takes all the space except what the base model's weights and the temporary activations occupy, and KV caches and adapter weights then share it.
+  tag: measured
+  source:
+    url: https://arxiv.org/html/2311.03285v3#S5.SS1
+    title: Sheng et al., S-LoRA, arXiv 2311.03285v3, section 5.1 (Unified Paging)
+    quote: 'This buffer uses all available space except for the space occupied by the base model weights and temporary activation tensors.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 365
+
+- id: kv.slora.cpu-catalog
+  value: all adapters in main memory
+  text: S-LoRA keeps all its adapters in main memory and fetches the adapters that the running queries use into GPU memory.
+  tag: measured
+  source:
+    url: https://arxiv.org/html/2311.03285v3
+    title: Sheng et al., S-LoRA, arXiv 2311.03285v3, abstract
+    quote: 'S-LoRA stores all adapters in the main memory and fetches the adapters used by the currently running queries to the GPU memory.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 365
+
+- id: kv.slora.prefetch-next-batch
+  value: predict the next batch from the waiting queue
+  text: While S-LoRA runs the current decoding batch, it predicts the adapters that the next batch needs from the waiting queue, and prefetches them into available memory, so that most of them are in place before the batch runs.
+  tag: measured
+  source:
+    url: https://arxiv.org/html/2311.03285v3#S5.SS2
+    title: Sheng et al., S-LoRA, arXiv 2311.03285v3, section 5.2 (Prefetching and Overlapping)
+    quote: 'While running the current decoding batch, we predict the adapters required for the next batch based on the current waiting queue.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 365
+
+- id: kv.slora.headline-results
+  value: up to 4 times
+  text: The S-LoRA paper reports a throughput up to 4 times that of HuggingFace PEFT and of vLLM with naive support of LoRA serving, and several orders of magnitude more adapters served. The comparison is the authors' own, against a vLLM with naive support of LoRA serving and not the pinned engine, and the course has not reproduced it.
+  tag: measured
+  source:
+    url: https://arxiv.org/html/2311.03285v3
+    title: Sheng et al., S-LoRA, arXiv 2311.03285v3, abstract
+    quote: 'S-LoRA can improve the throughput by up to 4 times and increase the number of served adapters by several orders of magnitude.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 365
+
+- id: kv.kernelspace.lab02-all-or-nothing
+  value: all or nothing
+  text: kernelspace's lab 02, the block manager, asks for every operation to be all or nothing. If the pool cannot satisfy an operation, the manager returns false and leaves all state untouched, because half-applied allocations are how production engines corrupt themselves.
+  tag: measured
+  source:
+    url: https://github.com/praveer13/kernelspace/blob/d478f91a0af590f03fcfd76ee73149fa70b28e51/labs/kv-block-manager/src/lib.rs#L22-L24
+    title: kernelspace labs/kv-block-manager/src/lib.rs, the model of lab 02 (at d478f91)
+    quote: 'All-or-nothing: if the pool can''t satisfy an operation, return'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 365
+
+- id: kv.kernelspace.lab02-adapter-check
+  value: adapter_unified_paging
+  text: kernelspace's lab 02 has an optional advanced check, adapter_unified_paging. It asks the manager to place adapter pages and sequence KV in the same finite pool, to fail atomically under pressure, and to reclaim each lifetime independently.
+  tag: measured
+  source:
+    url: https://github.com/praveer13/kernelspace/blob/d478f91a0af590f03fcfd76ee73149fa70b28e51/public/lessons-md/t6.l9.md#L145
+    title: kernelspace T6.L9, Multi-LoRA Serving, the closing paragraph (at d478f91)
+    quote: 'asks your manager to place adapter pages and sequence KV in the same finite pool, fail atomically under pressure, and reclaim each lifetime independently'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 365
