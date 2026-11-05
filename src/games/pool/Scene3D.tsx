@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { CanvasTexture, CatmullRomCurve3, Color, InstancedBufferAttribute, MeshStandardMaterial, Object3D, PlaneGeometry, TubeGeometry, Vector3, type BufferGeometry, type InstancedMesh, type Material } from 'three'
+import { CanvasTexture, Color, InstancedBufferAttribute, MeshStandardMaterial, Object3D, PlaneGeometry, type BufferGeometry, type InstancedMesh, type Material } from 'three'
 import type { PoolView } from '@es/play/pool/types'
 import type { SceneTokens } from '@/design/scene-tokens'
 import type { ColorRoleName } from '@/design/tokens'
@@ -7,14 +7,14 @@ import { CameraRig } from '@/scene/CameraRig'
 import { useKit } from '@/scene/kit'
 import { Fluorescent } from '@/scene/Lights'
 import { roleColor } from '@/scene/materials'
-import { ALWAYS_LIT, bakeOcclusion, block, cap, CHANNEL, Kitchen, LampLights, painted, panGeometries, RailClips, roundedRectPath, StaticSet, Tickets, tube, useMotionLoop, useProps } from '@/scene/props'
+import { ALWAYS_LIT, bakeOcclusion, cap, CHANNEL, Kitchen, LampLights, painted, panGeometries, RailClips, roundedRectPath, StaticSet, Tickets, tube, useMotionLoop, useProps } from '@/scene/props'
+import { progress } from '@/scene/props/motion'
 import { merged, type Vec3 } from '@/scene/props/shape'
 import type { PropSpec } from '@/scene/props/specs'
 import { SceneCanvas } from '@/scene/SceneCanvas'
 import { SheetInstances } from '@/scene/SheetInstances'
 import { cabinet } from './cabinet'
-import { nightOf, PAN, reachInOf, type Night, type ReachIn } from './scene-layout'
-import './scene3d.css'
+import { CELL, nightOf, PAN, reachInOf, TICKET, type Night, type ReachIn } from './scene-layout'
 
 /*
  * The Reach-In's 3D scene (`pool`; GAMES.md §2.6 "The Reach-In", §8 "3D scene"; scene kit v1): a reach-in prep cabinet in the middle of
@@ -24,18 +24,20 @@ import './scene3d.css'
  * The reach-in is this scene's own prop, made the kit's way (cabinet.ts, a `CustomSpec`): bevelled boxes and rods from shape.ts, in the
  * palette's tones, merged and baked with the room in the one static set. Its pans are one instanced draw, each in its slot for its whole
  * life: a pan never moves, and changes state where it sits (its mise, its tape and the marker glyph on it). The pan's own occlusion is
- * baked once on the pan.
+ * baked once on the pan. Its tape is the kit's masking tape (SheetInstances); the marker on it, the reach-in's own torn strip and the
+ * mise are drawn from one atlas, in one material. A pan's mise is food, the food of its memory role, drawn in grey and tinted by the
+ * role's colour, heaped in the middle and drawn up the pan's walls at its edge.
  *
  * One moment carries the game, when a decision hangs a ticket: it is carried over the rack to its clip on the line's rail, its twine, one
- * string per station, reaches across the reach-in to the pans it holds, and the pan at the head of its order fans into the layers of its
- * station on the settle duration, its padding layers in the bare pan's role. Between decisions the kitchen is still; under reduced
- * motion every change cuts. The heat lamps over the pass burn only while the present lies there, and the pans a dump would take ring in
- * the lamp's amber.
+ * string per station, reaches across the reach-in to the pans it holds, and the head pan's mise rises out of the pan in a splayed stack,
+ * a tray for each layer of its station, the padding layers hollow trays, on the settle duration. Between decisions the kitchen is still;
+ * under reduced motion every change cuts. The heat lamps hang low over the pass and burn only while the present lies there, pooling their
+ * amber on its steel under the waiting tickets, and the pans a dump would take ring in the lamp's amber.
  *
  * Draw calls at T1: the static set's metal, glaze, tile, floor and glow (5), the contact shadows (1), the tickets and the clips (2), the
- * pans, their mise and their tapes (3), the reach-in's tape (1), the lamp's rings (1), each string of twine (one per station on the
- * focus, one per landed kit) and the fan (1). T2 adds each shadow-casting lamp's pass over what casts. The measured figures, read from
- * renderer.info by e2e/pool-scene.spec.ts against A§11.1's 100, are in GAMES.md §8, "Budget".
+ * pans, their mise, the tapes and the marker on them (4), the lamp's rings (1), each string of twine (one per station on the focus, one
+ * per landed kit) and the fan (1). T2 adds each shadow-casting lamp's pass over what casts. The measured figures, read from renderer.info by
+ * e2e/pool-scene.spec.ts against A§11.1's 100, are in GAMES.md §8, "Budget".
  */
 
 export interface Scene3DProps {
@@ -50,72 +52,135 @@ export interface Scene3DProps {
 
 /** The most instances of a kind: the largest pool's pans [estimated over the levels' 288]. */
 const MOST = 512
+/** The heat lamps' light over the pass, as a share of the kit's [estimated]: they hang low, so less of it pools the same amber. */
+const LAMP_POWER = 0.22
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* The pans and what lies on them                                                                                     */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** A part in a colour and finish of its own, painted for the props' glaze: what a tone does, for a colour no tone has. */
-const glazed = (geometry: BufferGeometry, color = new Color(1, 1, 1), finish: Vec3 = [3.2, 0.25, 0]): BufferGeometry => painted({ geometry, surface: 'ceramic', color, finish })
+/**
+ * Butcher's twine along `points`, round a smooth curve through them, in jute's tan (the tape's, darkened, so it reads on the mise), painted
+ * for the props' glaze as a tone would be, for a colour no tone has.
+ */
+const twine = (points: readonly Vec3[], color: Color): BufferGeometry => painted({ geometry: tube(points, 0.0028, 5), surface: 'ceramic', color, finish: [4, 0, 0] })
 
-/** Butcher's twine along `points`, round a smooth curve through them, in jute's tan (the tape's, darkened, so it reads on the mise). */
-const twine = (points: readonly Vec3[], color: Color): BufferGeometry =>
-  glazed(new TubeGeometry(new CatmullRomCurve3(points.map((p) => new Vector3(...p))), points.length * 8, 0.0028, 5), color, [4, 0, 0])
+/** Where cell `cell` of the atlas starts, as an instance's `aCell`: a quarter of the atlas each way. */
+const cellAt = (cell: number): [number, number] => [(cell % 4) / 4, 0.75 - (cell >> 2) / 4]
 
 /**
- * The marker glyphs on the pans' tapes, an atlas of 4 × 2 cells (scene-layout.ts's CELL), drawn once in the tape's and the marker's roles:
- * a full-attention station's circle, a sliding window's square and a state station's hexagon, filled, as the 2D key draws them; and the
- * hash of a cached pan and a kit's pin, stroked from the 2D icons' own paths on their 24-unit grid (src/design/components/Glyph.tsx).
+ * The atlas, 4 × 4 cells of 128 × 64 px (scene-layout.ts's CELL and FOOD), drawn once from the roles. First the marker for the pans'
+ * tapes, on nothing: a full-attention station's circle, a sliding window's square and a state station's hexagon, filled, as the 2D key
+ * draws them; the hash of a cached pan and a kit's pin, stroked from the 2D icons' own paths on their 24-unit grid (Glyph.tsx). Then the
+ * reach-in's own strip of masking tape, torn at both ends, with its name in a marker scrawl that nobody needs to read, and a padding
+ * layer's tray, hollow. Then the mise of each memory role, as food drawn in grey for its role's colour to tint, each piece lit:
+ * blueberries for a held pan, corn kernels for a cached one, scallion rings for shared mise, and a recipe kit's sauce with a few bubbles
+ * in it. A dumped pan's mise is gone: its well is the hollow tray, in its role's red.
  */
-function glyphs(tokens: SceneTokens): CanvasTexture {
-  const canvas = document.createElement('canvas')
-  canvas.width = 512
-  canvas.height = 128
-  const g = canvas.getContext('2d') as CanvasRenderingContext2D
-  g.fillStyle = tokens.colors.tape
-  g.fillRect(0, 0, 512, 128)
-  g.fillStyle = g.strokeStyle = tokens.colors['tape-ink']
+function atlas(tokens: SceneTokens): CanvasTexture<OffscreenCanvas> {
+  const g = new OffscreenCanvas(512, 256).getContext('2d') as OffscreenCanvasRenderingContext2D
+  const { paper, tape } = tokens.colors
+  const ink = tokens.colors['tape-ink']
+  g.fillStyle = tape
+  g.beginPath()
+  for (let j = 0; j < 18; j++) g.lineTo(j < 9 ? 252 - ((j * 5) % 7) : 132 + ((j * 3) % 7), 64 + (j < 9 ? j : 17 - j) * 8)
+  g.fill()
+  g.fillStyle = g.strokeStyle = ink
   ;[40, 4, 6].forEach((sides, cell) => {
     g.beginPath()
     for (let k = 0; k < sides; k++) g.lineTo(64 + 128 * cell + 22 * Math.cos((2 * Math.PI * (k + cell / 2)) / sides), 32 + 22 * Math.sin((2 * Math.PI * (k + cell / 2)) / sides))
     g.fill()
   })
+  // The scrawl, drawn four times as wide as its cell and squeezed into it, as the strip is four times as long as a pan's tape.
+  g.setTransform(0.25, 0, 0, 1, 140, 98)
+  g.lineWidth = 3
+  g.beginPath()
+  for (let t = 0; t < 400; t++) g.lineTo(t - 14 * Math.sin(t / 5), 9 * Math.cos(t / 5) * Math.sin(t / 23 + 1))
+  g.stroke()
   g.lineWidth = 2.4
-  g.lineCap = g.lineJoin = 'round'
   ;['M9.5 4 7.5 20m9-16-2 16M4.5 9h15m-15 6h15', 'M9 3.5h6l-1 6 3.5 3H6.5l3.5-3ZM12 12.5v8'].forEach((d, k) => {
     g.setTransform(2.2, 0, 0, 2.2, 422 - 384 * k, 6 + 64 * k)
     g.stroke(new Path2D(d))
   })
-  const texture = new CanvasTexture(canvas)
+  g.resetTransform()
+  g.strokeStyle = paper
+  g.lineWidth = 12
+  g.strokeRect(262, 70, 116, 52)
+  // The food: [pieces, radius, squash, rings, how dark between them], each piece lit from the top left and kept inside its cell.
+  g.fillStyle = paper
+  g.fillRect(0, 128, 512, 64)
+  ;[[34, 9.5, 1, 0, 0.6], [110, 6, 0.7, 0, 0.4], [44, 8, 1, 1, 0.6], [7, 4, 1, 1, 0.25]].forEach(([n, r, squash, ring, dark], f) => {
+    const x = (f % 4) * 128
+    g.globalAlpha = dark
+    g.fillStyle = ink
+    g.fillRect(x, 128, 128, 64)
+    g.globalAlpha = 1
+    g.lineWidth = r / 2
+    for (let i = 0; i < n; i++) {
+      g.setTransform(1, 0, 0, squash, x + 10 + 108 * ((0.5 + i * 0.7548777) % 1), 138 + 44 * ((0.5 + i * 0.5698403) % 1))
+      const shade = g.createRadialGradient(-r / 3, -r / 3, r / 9, 0, 0, r)
+      shade.addColorStop(0, paper)
+      shade.addColorStop(1, ink)
+      g.fillStyle = g.strokeStyle = shade
+      g.beginPath()
+      g.arc(0, 0, r, 0, 7)
+      if (ring) g.stroke()
+      else g.fill()
+    }
+    g.resetTransform()
+  })
+  const texture = new CanvasTexture(g.canvas)
   texture.colorSpace = 'srgb'
   return texture
 }
 
-/** The pans and everything on them, made once for a palette: one geometry each, and the tapes' material with its atlas. */
-function partsOf(palette: ReturnType<typeof useProps>['palette'], tokens: SceneTokens, crepe: MeshStandardMaterial['normalMap']) {
+/** Each instance takes its own cell of the atlas (its `aCell`): the material always has the atlas for its map. */
+const cells = (shader: { vertexShader: string }) => {
+  shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\nattribute vec2 aCell;').replace('#include <uv_vertex>', '#include <uv_vertex>\nvMapUv = vMapUv * 0.25 + aCell;')
+}
+
+/** A geometry with room for an atlas cell per instance. */
+const celled = (geometry: BufferGeometry): BufferGeometry => geometry.setAttribute('aCell', new InstancedBufferAttribute(new Float32Array(MOST * 2), 2))
+
+/**
+ * A pan's mise, at its rest below the rim: heaped a little over its middle and drawn up the pan's walls at its edge, a meniscus, with its
+ * cell of the atlas laid along the pan.
+ */
+function miseGeometry(): BufferGeometry {
+  const w = PAN.w - 0.02
+  const d = PAN.d - 0.02
+  const geometry = cap(roundedRectPath(w, d, 0.012, 3, 1), 0, true, 6)
+  const position = geometry.getAttribute('position')
+  const uv = geometry.getAttribute('uv')
+  for (let i = 0; i < position.count; i++) {
+    const s = 2 * Math.max(Math.abs(position.getX(i) / w), Math.abs(position.getZ(i) / d))
+    position.setY(i, 0.006 * (1 - s * s) + 0.005 * s ** 10)
+    uv.setXY(i, position.getZ(i) / d + 0.5, position.getX(i) / w + 0.5)
+  }
+  geometry.computeVertexNormals()
+  return celled(geometry)
+}
+
+/** The pans and everything on them, made once for a palette: one geometry each, and the atlas's material. */
+function partsOf(palette: ReturnType<typeof useProps>['palette'], tokens: SceneTokens) {
   // The kit's own hotel pan, its 1/3 drawn down to a 1/9 across, and its rim at the top's level.
   const pan = merged(panGeometries('1/3', PAN.h).map((g) => painted(palette.part(g.rotateY(Math.PI / 2).scale(PAN.w / 0.176, 1, PAN.d / 0.325).translate(0, -PAN.h, 0), 'steel')))) as BufferGeometry
   // The pan's own occlusion, baked once: the foot of its walls and the corners of its floor, dull where the room cannot reach.
   const [shade] = bakeOcclusion([pan], { radius: 0.05, voxel: 0.004, strength: 0.6 })
   const tint = pan.getAttribute('color')
   for (let i = 0; i < tint.count; i++) tint.setXYZ(i, tint.getX(i) * shade[i], tint.getY(i) * shade[i], tint.getZ(i) * shade[i])
-  const tape = new PlaneGeometry()
-  tape.setAttribute('aCell', new InstancedBufferAttribute(new Float32Array(MOST * 2), 2))
-  const material = new MeshStandardMaterial({ map: glyphs(tokens), normalMap: crepe, roughness: 0.8 })
-  // Each tape takes its glyph's cell of the atlas, as the kit's tickets take their print's.
-  material.onBeforeCompile = (shader) => {
-    shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nattribute vec2 aCell;')
-      .replace('#include <uv_vertex>', '#include <uv_vertex>\n#ifdef USE_MAP\nvMapUv = vMapUv * vec2(0.25, 0.5) + aCell;\n#endif')
-  }
+  const map = atlas(tokens)
+  // The food is shaded in its own drawing, with a little gloss; everything cuts out where its cell is empty.
+  const food = new MeshStandardMaterial({ map, roughness: 0.42, alphaTest: 0.5 })
+  food.onBeforeCompile = cells
   const parts = {
     pan,
-    mise: glazed(cap(roundedRectPath(PAN.w - 0.02, PAN.d - 0.02, 0.012, 3, 1), 0, true, 3)),
-    tape,
+    mise: miseGeometry(),
+    slices: miseGeometry(),
+    marker: celled(new PlaneGeometry()),
     ring: tube(roundedRectPath(PAN.w + 0.008, PAN.d + 0.008, 0.016, 4, 1).points.map(([x, z]) => [x, 0, z]), 0.0026, 6, undefined, true),
-    slice: glazed(block([PAN.w - 0.016, 0.2, 0.003], 0.0012, [0, 0, 0], 0, 1)),
   }
-  return { ...parts, material, dispose: () => [...Object.values(parts), material, material.map].forEach((item) => item?.dispose()) }
+  return { ...parts, food, dispose: () => [...Object.values(parts), food, map].forEach((item) => item.dispose()) }
 }
 
 interface Place {
@@ -141,14 +206,13 @@ function Instances({ geometry, material, places }: { geometry: BufferGeometry; m
       one.updateMatrix()
       instanced.setMatrixAt(i, one.matrix)
       if (p.role) instanced.setColorAt(i, roleColor(kit.tokens, p.role))
-      if (p.cell !== undefined) geometry.getAttribute('aCell').setXY(i, (p.cell % 4) / 4, 0.5 - (p.cell >> 2) / 2)
+      if (p.cell !== undefined) geometry.getAttribute('aCell').setXY(i, ...cellAt(p.cell))
     })
     instanced.count = places.length
     for (const attribute of [instanced.instanceMatrix, instanced.instanceColor, geometry.getAttribute('aCell')]) if (attribute) attribute.needsUpdate = true
-    instanced.computeBoundingSphere()
     kit.invalidate()
   }, [places, geometry, kit])
-  return <instancedMesh ref={mesh} args={[geometry, material, MOST]} />
+  return <instancedMesh ref={mesh} args={[geometry, material, MOST]} frustumCulled={false} />
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -159,13 +223,14 @@ const slice = new Object3D()
 
 /**
  * The kitchen and its night. The moment: when it changes (a decision moved the focus, or its pans), the focus's strings of twine grow
- * along their way from the ticket to its pans while the slices rise out of the head pan and fan, its padding layers in the bare pan's
- * role, on the settle duration; under reduced motion they are there at once. Until the moment changes again, nothing moves.
+ * along their way from the ticket to its pans while the head pan's mise rises out of it in a splayed stack, a tray of mise for each
+ * layer of its station, the padding layers last, on top, and hollow, on the settle duration; under reduced motion they are there
+ * at once. Until the moment changes again, nothing moves.
  */
 function Reach({ r, items, night }: { r: ReachIn; items: readonly PropSpec[]; night: Night }) {
   const kit = useKit()
   const { materials, palette } = useProps()
-  const parts = useMemo(() => partsOf(palette, kit.tokens, kit.materials.tape.normalMap), [palette, kit.tokens, kit.materials])
+  const parts = useMemo(() => partsOf(palette, kit.tokens), [palette, kit.tokens])
   useEffect(() => parts.dispose, [parts])
   const tan = useMemo(() => roleColor(kit.tokens, 'tape').multiplyScalar(0.55), [kit.tokens])
   const pans = useMemo(() => r.pans.map((at) => ({ at })), [r])
@@ -182,24 +247,26 @@ function Reach({ r, items, night }: { r: ReachIn; items: readonly PropSpec[]; ni
   const start = useRef(-1)
   const write = (now: number) => {
     if (start.current < 0) start.current = now
-    const ms = kit.reducedMotion ? 0 : kit.tokens.motion.settleMs
-    const t = ms > 0 ? Math.min(1, (now - start.current) / ms) : 1
+    const t = progress(now, start.current, kit.reducedMotion ? 0 : kit.tokens.motion.settleMs)
     const e = kit.ease(t)
     for (const geometry of geometries) geometry.setDrawRange(0, ((geometry.index?.count ?? 0) * e) | 0)
     const mesh = fanned.current
     const n = fan ? fan.layers + fan.pads : 0
+    const cell = parts.slices.getAttribute('aCell')
     for (let k = 0; fan && mesh && k < n; k++) {
-      // Rising out of the pan and fanning, the first layer in front.
-      slice.position.set(fan.at[0], fan.at[1], fan.at[2] + PAN.d / 2 - 0.026 - k * 0.0035)
-      slice.rotation.set(0, 0, (k - (n - 1) / 2) * 0.2 * e)
-      slice.scale.set(1, e, 1)
+      // Each layer rises out of the pan above the one before, turned a little further, so the stack splays like a fanned deck; the
+      // station's padding layers come last, at the top: trays with nothing in them, that the layers below show through.
+      const pad = k >= fan.layers
+      slice.position.set(fan.at[0], fan.at[1] + (k + 1) * 0.012 * e, fan.at[2])
+      slice.rotation.y = (k - n / 2) * 0.07 * e
       slice.updateMatrix()
       mesh.setMatrixAt(k, slice.matrix)
-      mesh.setColorAt(k, roleColor(kit.tokens, k < fan.layers ? fan.role : 'memory-free').multiplyScalar(k % 2 ? 0.84 : 1))
+      mesh.setColorAt(k, roleColor(kit.tokens, pad ? 'memory-free' : fan.role).multiplyScalar(k % 2 ? 0.7 : 1))
+      cell.setXY(k, ...cellAt(pad ? CELL.hollow : fan.cell))
     }
     if (mesh) {
       mesh.count = n
-      mesh.instanceMatrix.needsUpdate = true
+      mesh.instanceMatrix.needsUpdate = cell.needsUpdate = true
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
     }
     return t < 1
@@ -212,23 +279,23 @@ function Reach({ r, items, night }: { r: ReachIn; items: readonly PropSpec[]; ni
     // The moment starts again when its strings or its fan do, and on nothing else.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [geometries, fan])
-  const cast = kit.shadowLights > 0
   return (
     <>
-      <StaticSet items={items} room={r.light} name="reach-in" />
-      {/* The heat lamps' light over the pass, as a share of the kit's [estimated]: on only while the present lies there. */}
-      <LampLights lamps={r.lamps} power={night.lit ? 0.6 : 0} cones={false} />
-      <RailClips at={r.rail} clips={r.clips} />
-      <Tickets tickets={night.tickets} />
+      <StaticSet items={items} room={r.light} />
+      {/* The heat lamps' light, low over the pass: on only while the present lies there. */}
+      <LampLights lamps={r.lamps} power={night.lit ? LAMP_POWER : 0} cones={false} />
+      {/* The tickets, and the clips that grip them, larger than the kit's: the moment's paper reads across the reach-in. */}
+      <RailClips at={r.rail} clips={r.clips} scale={TICKET.scale} />
+      <Tickets tickets={night.tickets} scale={TICKET.scale} />
       <Instances geometry={parts.pan} material={materials.metal} places={pans} />
-      <Instances geometry={parts.mise} material={materials.ceramic} places={night.fills} />
-      <Instances geometry={parts.tape} material={parts.material} places={night.tapes} />
+      <Instances geometry={parts.mise} material={parts.food} places={night.fills} />
+      <SheetInstances kind="tape" sheets={night.sheets} />
+      <Instances geometry={parts.marker} material={parts.food} places={night.tapes} />
       <Instances geometry={parts.ring} material={kit.materials.lamp} places={night.rings} />
-      <SheetInstances kind="tape" sheets={night.words} />
       {[...kits, ...geometries].map((geometry, i) => (
-        <mesh key={i} geometry={geometry} material={materials.ceramic} castShadow={cast} />
+        <mesh key={i} geometry={geometry} material={materials.ceramic} />
       ))}
-      <instancedMesh ref={fanned} args={[parts.slice, materials.ceramic, 16]} castShadow={cast} frustumCulled={false} />
+      <instancedMesh ref={fanned} args={[parts.slices, parts.food, 32]} castShadow={kit.shadowLights > 0} frustumCulled={false} />
     </>
   )
 }
@@ -239,9 +306,9 @@ export default function Scene3D({ view, preset, station, chosen }: Scene3DProps)
   const items = useMemo((): PropSpec[] => [...r.items, { kind: 'custom', id: 'reach-in', at: [0, 0, -r.depth / 2], build: (m) => cabinet(m, r) }], [r])
   const night = useMemo(() => nightOf(view, r, { station: preset === 'station' ? station : null, chosen }), [view, r, preset, station, chosen])
   return (
-    <SceneCanvas labels={night.labels} fog={{ near: 1.4, far: 4.4, color: 'surface-3' }} exposure={1} environmentIntensity={0.75} shadows className="es-pool-scene">
+    <SceneCanvas labels={night.labels} fog={{ near: 0.4, far: 3.2, color: 'surface-3' }} environmentIntensity={0.55} shadows>
       <CameraRig presets={r.presets} preset={preset} parallax={0.04} />
-      <Fluorescent power={0.85} />
+      <Fluorescent />
       <Kitchen lit={night.lit ? ALWAYS_LIT : ALWAYS_LIT & ~(1 << CHANNEL.lamp)}>
         <Reach r={r} items={items} night={night} />
       </Kitchen>

@@ -52,7 +52,7 @@ function Predict({ run }: { run: PoolRun }) {
   const value = text.trim() === '' ? null : Number(text)
   const bad = value !== null && (!Number.isInteger(value) || value < 0)
   return (
-    <Ticket as="section" width="full" hole={false} head="Predict" meta="before you start" titleAs="h3" title="Say it first." data-pool-predict="">
+    <Ticket as="section" width="full" hole={false} titleAs="h3" title="Say it first." data-pool-predict="">
       <p>{predict.ask}</p>
       <Field
         label="Your answer"
@@ -317,7 +317,6 @@ function PrefetchAsk({ run }: AskProps) {
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 const HEADLINES = { admit: 'Hang a ticket.', evict: 'Dump the pans.', preempt: 'Pull a ticket.', prefetch: 'Bring a kit in.' } as const
-const TERMS = { admit: 'admit', evict: 'evict', preempt: 'preempt', prefetch: 'prefetch' } as const
 
 /** A key for the open ask, which changes whenever a new decision opens, or the prediction closes, so that focus can follow it. */
 function askKey(view: PoolView): string {
@@ -376,7 +375,7 @@ export function Controls({ run, dump, mode, onPoint }: AskProps) {
 
   if (run.done) {
     return (
-      <Ticket as="section" width="full" hole={false} head="The night" meta="over" titleAs="h3" title={view.incomplete ? 'Tickets left unserved.' : 'Every ticket is served.'}>
+      <Ticket as="section" width="full" hole={false} titleAs="h3" title={view.incomplete ? 'Tickets left unserved.' : 'Every ticket is served.'}>
         <p>{view.incomplete ? 'The night ran out of steps with tickets waiting.' : 'Open the debrief to see what the house would have done.'}</p>
       </Ticket>
     )
@@ -395,8 +394,6 @@ export function Controls({ run, dump, mode, onPoint }: AskProps) {
         width="full"
         hole={false}
         lamp={ask !== null}
-        head="The open ask"
-        meta={ask === null ? 'none' : TERMS[ask.kind]}
         titleAs="h3"
         title={ask === null ? 'Nothing to decide.' : HEADLINES[ask.kind]}
         aria-label="The open ask"

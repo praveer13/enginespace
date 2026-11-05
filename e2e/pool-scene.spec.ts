@@ -6,7 +6,8 @@
  *   2. Under reduced motion the threads update per op without layout jumps: each decision redraws the night at once, in a frame or two
  *      and not an animation, the scene's box does not move, and then no animation frame is asked for.
  *   And the rest of the scene's contract (A§6.8): `V` swaps 2D and 3D and keeps the night; `C` and the plates reach every preset, and One
- *   station draws only the station its buttons pick; the capture is not blank at 1440 and at 390 px; every word and number is DOM.
+ *   station draws only the station its buttons pick; the capture is not blank at 1440 and at 390 px; every number is DOM, the scene
+ *   carries no other word, and what the fan shows is said on the page.
  *   (The scene's chunk at most 40 KB gz is a build check, verify:bundle's gate; tests/play/pool-scene.test.ts holds the layout, the
  *   presets' framing and the text, and tests/design/literals.test.ts the colours.)
  *
@@ -303,7 +304,7 @@ test.describe('the views and the camera (A§6.8)', () => {
     expect({ kind: await askKind(page), list: await ask() }).toEqual(kept)
     // The scene draws the same night: a number for every ticket on the line and on the pass.
     const view = poolSession.view(states[4])
-    await expect(stage(page).locator('.es-labels .es-type-ticket:not(.es-pool-label--fan)')).toHaveCount(view.waiting.length + view.running.length)
+    await expect(stage(page).locator('.es-labels .es-type-ticket')).toHaveCount(view.waiting.length + view.running.length)
   })
 
   test('`C` cycles every preset and each plate reaches its own; One station draws only the station picked', async ({ page }) => {
@@ -372,22 +373,29 @@ test.describe('the picture (W1-T24)', () => {
     })
   }
 
-  test("all text is DOM: the tickets' numbers, the reach-in's tape and the fan's slip are page text over the canvas", async ({ page }) => {
+  test("all text is DOM: the tickets' numbers are page text over the canvas, the scene carries no other word, and the page says what the fan shows", async ({ page }) => {
     test.setTimeout(120_000)
     const { states, actions } = nightOfHouse('two-kinds')
     await open(page, 'two-kinds', 2)
     await settle(page)
     const labels = stage(page).locator('.es-labels')
     const first = poolSession.view(states[0])
-    for (const id of [...first.waiting, ...first.running]) await expect(labels.locator('.es-type-ticket:not(.es-pool-label--fan)', { hasText: first.tickets[id].no })).toHaveCount(1)
-    await expect(labels.getByText(/^the reach-in · KV page pool · next to go: /)).toHaveCount(1)
-    // The ticket hung first is the focus: its fan prints what one pan of its station holds.
+    for (const id of [...first.waiting, ...first.running]) await expect(labels.locator('.es-type-ticket', { hasText: first.tickets[id].no })).toHaveCount(1)
+    await expect(labels.locator('.es-label')).toHaveCount(first.waiting.length + first.running.length)
+    // Nothing is on the line yet, so there is no fan to speak of.
+    await expect(page.locator('[data-pool-fan]')).toHaveCount(0)
+    // The ticket hung first is the focus: its head pan fans into the layers of its station, and the page says which and how many.
     await act(page, actions[0])
     await settle(page)
     const view = poolSession.view(states[1])
-    const fan = nightOf(view, reachInOf(view.pans.length, view.cap), { station: null, chosen: [] }).labels.find((label) => label.id === 'fan')
-    expect(fan).toBeDefined()
-    await expect(labels.locator('.es-pool-label--fan')).toHaveText(String(fan?.content))
+    const fan = nightOf(view, reachInOf(view.pans.length, view.cap), { station: null, chosen: [] }).fan
+    const ticket = view.running[view.running.length - 1]
+    const station = view.stations.find((candidate) => candidate.layers === fan?.layers)
+    expect(fan).not.toBeNull()
+    await expect(page.locator('[data-pool-fan]')).toContainText(`No. ${view.tickets[ticket].no}`)
+    await expect(page.locator('[data-pool-fan]')).toContainText(`${station?.id}`)
+    await expect(page.locator('[data-pool-fan]')).toContainText(`all ${fan?.layers} of the station's layers`)
+    await expect(labels.locator('.es-label')).toHaveCount(view.waiting.length + view.running.length)
     // The labels ride over the canvas, which carries no text and is hidden from assistive technology with its box.
     await expect(stage(page).locator('.es-stage__scene')).toHaveAttribute('aria-hidden', 'true')
     expect(await stage(page).locator('canvas').evaluate((canvas) => canvas.textContent)).toBe('')
