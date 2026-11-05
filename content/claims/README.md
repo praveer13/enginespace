@@ -6,7 +6,7 @@ The dated, sourced facts that content cites as `{{claim:id}}` (ARCHITECTURE §4.
 
 | Path | What |
 |---|---|
-| `vllm/` | vLLM at the pin, v0.33.0, in six files: `release.yaml`, `engine.yaml` (the runner, the step loop, the scheduler, the defaults), `graphs.yaml`, `kv.yaml` (hybrid groups, adapter slots, the KV events), `spec.yaml` (speculation and the mask) and `bench.yaml` (`vllm bench serve`) |
+| `vllm/` | vLLM at the pin, v0.33.0, in seven files: `release.yaml`, `engine.yaml` (the runner, the step loop, the scheduler, the defaults), `graphs.yaml`, `kv.yaml` (hybrid groups, adapter slots, the KV events), `spec.yaml` (speculation and the mask), `bench.yaml` (`vllm bench serve`) and `steploop.yaml` (W1-T12: how the two runners dispatch CUDA graphs, how the capture sizes and the graph memory are chosen, and the scheduler's rules for drafts, adapters and the mask) |
 | `sglang/` | SGLang at the pin, v0.5.23, in `engine.yaml`, `graphs.yaml`, `kv.yaml`, `spec.yaml` and `bench.yaml` |
 | `readings.yaml` | The reading targets of TR1: "Inside vLLM" at commit 42172ad, nano-vllm and Mini-SGLang |
 | `loop.yaml` | Service (`loop`)'s synthetic world and its real anchor (W0-T16) |

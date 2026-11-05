@@ -51,7 +51,7 @@ The promise to the learner: every number on screen comes either from the model, 
 
 **Lanes.**
 - `cpu-main`: the engine core's busy-loop thread.
-- `cpu-mask`: the grammar bitmask fill, on helper threads.
+- `cpu-mask`: the grammar bitmask fill. W1-T12 draws it as `mask` spans on `cpu-main`, because the engine core's own thread fills the bitmask, and above 128 structured requests it waits for a pool of helper threads to finish (claims `vllm.mask.overlap`, `vllm.mask.fill-parallel-threshold`).
 - `gpu-compute`: the default stream, carrying the forward.
 - `gpu-copy`: the device-to-host copy of sampled ids, on its own stream as MRV2's `AsyncOutput` does (vllm TR1 notes).
 
@@ -117,7 +117,7 @@ vLLM v1's rules at v0.33.0 (vllm M8, M12), which kernelspace's lab 06 twin alrea
 
 Four phases at v0.33.0 (vllm O2):
 - **compile:** an asynchronous CPU task per new grammar, while the request waits;
-- **fill:** on `cpu-mask`, after the launch and so overlapping the forward, serially for up to 128 structured requests and otherwise in 16-row tasks on at most 8 threads when no speculative tokens are present [measured at v0.33.0];
+- **fill:** on the engine core's thread (`cpu-main`, see §2.1), after the launch and so overlapping the forward, serially for up to 128 structured requests and otherwise in 16-row tasks on at most 8 threads when no speculative tokens are present [measured at v0.33.0];
 - **apply:** inside sampling, at a cost per masked row;
 - **deferral:** with async scheduling, sampling for structured requests waits until the previous step's tokens are processed.
 

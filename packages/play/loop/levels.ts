@@ -13,7 +13,9 @@
  */
 import { assertSeed } from '@es/sim/core'
 import type { Seed, Us } from '@es/sim/core'
-import { TICK_CARD, runStepLoop } from '@es/sim/steploop'
+import { TICK_CARD } from '@es/sim/steploop'
+// The v0 loop, by path: the package's `runStepLoop` is v1, which the front page's first paint has no room for (packages/sim/steploop/run.ts).
+import { runStepLoop } from '@es/sim/steploop/run'
 import type { StepLoopConfig, StepLoopRun } from '@es/sim/steploop'
 import { genWorkload } from '@es/sim/workload'
 import type { Workload, WorkloadSpec } from '@es/sim/workload'

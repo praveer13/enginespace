@@ -657,7 +657,7 @@ export interface ExecDescriptor {      // MRV2's BatchExecutionDescriptor, the d
   cgMode: 'FULL' | 'PIECEWISE' | 'NONE'; numTokens: number; numReqs: number | null
   uniformTokenCount: number | null; maxQueryLen: number | null; numActiveLoras: number; numUbatches: number
 }
-export function loraCaptureCases(g: GraphConfig): number[]   // specializeLora: powers of two up to maxLoras (plus 0)
+export function loraCaptureCases(g: GraphConfig, runner?: 'mrv2' | 'v1'): number[]   // 0 and max_loras + 1 when specializeLora is on, plus the powers of two up to maxLoras when specializeActiveLora is; with specializeLora off, MRV2 captures 0 and max_loras + 1, and MRV1 captures max_loras + 1 alone
 export function dispatchV2(g: GraphConfig, numReqs: number, numTokens: number, uniformTokenCount: number | null,
                            activeLoras: number, maxQueryLen: number | null): ExecDescriptor
   // look up (padded tokens, the smallest captured adapter case ≥ activeLoras); the first compatible candidate, else NONE
@@ -669,14 +669,14 @@ export function optimalCaptureSizes(hist: readonly number[], budgetUs: Us, gpu: 
 #### Invariants the tests check
 
 - **Conservation.** Per lane, busy + idle = the clock, and no two spans overlap on one lane.
-- **Tokens.** Each finished request emitted exactly its output length. Useful tokens = Σ emitted, and ghost tokens arise only with overlap on and only for EOS stops. In the model a `max_tokens` stop produces none, because its length is known in advance. vLLM v0.33.0 tracks in-flight placeholder tokens (`async_scheduler.py`, `scheduler.py`), but whether it skips that extra step for every `max_tokens` stop is [unverified] until W1's `steploop` task reads the pin.
+- **Tokens.** Each finished request emitted exactly its output length. Useful tokens = Σ emitted, and ghost tokens arise only with overlap on and only for EOS stops. In the model a `max_tokens` stop produces none, because its length is known in advance. vLLM v0.33.0 tracks in-flight placeholder tokens (`async_scheduler.py`, `scheduler.py`), and it skips that extra step when the steps in flight are sure to reach `max_tokens` (claim `vllm.scheduler.skip-extra-step`, read by W1-T12). The loop at v1 does not tell the two stops apart yet: every workload length is an EOS stop, so a fixed-length run gets a ghost token that the real engine would not compute (the step-loop card's Ignores).
 - **Static batching** admits nothing while any slot of the current batch is live.
 - **Without overlap,** a step is plan + forward + read, and plan and read are idle on the GPU lane. With overlap, a step lasts at least max(CPU, GPU) and at most their sum.
 - **The reference** never leaves a slot free while a request waits.
 - **Dispatch.**
   - `dispatchV2` and `dispatchV1` each agree with a golden table of at least 5,000 cases. The tables are generated once at the pinned tag by an owner-run script, from `vllm/v1/worker/gpu/cudagraph_utils.py` (MRV2, the default) and `vllm/v1/cudagraph_dispatcher.py` (MRV1, legacy), and committed with their SHA-256.
   - `paddedSize(n) ≥ n`, equal exactly when n is captured, and null above the maximum, which dispatches as NONE.
-  - A batch's active-adapter count dispatches to the smallest captured adapter case at or above it, or to NONE when none is.
+  - A batch's active-adapter count dispatches to the smallest captured adapter case at or above it. When none is, MRV2 clamps to the largest case and MRV1 keeps the count, finds no key and runs eagerly (claims `vllm.cudagraph.mrv2-lora-clamp`, `vllm.cudagraph.mrv1-lora-effective`).
   - In MRV1, FULL requires a FULL key and PIECEWISE uses the relaxed key with `num_reqs` null and uniform false.
 - **The default list.** `defaultCaptureSizes(512)` has 51 sizes [derived], matching the pinned source.
 - **The DP ghost** is optimal against brute force on every histogram of ≤ 12 candidate sizes.

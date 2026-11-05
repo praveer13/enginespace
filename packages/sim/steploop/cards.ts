@@ -1,9 +1,11 @@
 // The cost cards a run prices its steps with (ARCHITECTURE §5.3, WORLD §2.11): what the GPU lane charges for a step.
 //
-// Two cards exist in v0:
-//   - the S5 card on one of kernelspace's three fitted rows, "70B on H100" and its siblings, whose step times are a fit (`s5Card`);
+// Two cards exist:
+//   - the S5 card on one of kernelspace's three fitted rows, "70B on H100" and its siblings, whose step times are a fit (`s5Card`),
+//     with its host term on the CPU lane unless a caller keeps it in the GPU step (D-044, proposed);
 //   - the front page's synthetic ticks (`TICK_CARD`), a world of the model's own invention (GAMES.md §3.1, D-043, D-048).
-// W1-T12 adds the small-model napkin card. The host card (`../host`) prices the CPU lane and is passed beside the GPU card.
+// The small-model napkin card (WORLD §2.11) waits for W1-T13, which is the first level to need it. The host card (`../host`) prices
+// the CPU lane and is passed beside the GPU card.
 
 import type { HostCard } from '../host/types'
 import { physicsRow, stepCard, stepSplit } from '../physics'
@@ -43,14 +45,30 @@ export const TICK_CARD: HostCard & TickGpuCard = Object.freeze({
 })
 
 /**
+ * D-044's status. The decision is proposed, and the owner confirms it before W1-T12 (DECISIONS D-044, Q-2); W1-T12 builds its default and
+ * every card that shows the choice says so. When the owner answers, this is the one place that changes: set `status` to `'accepted'`,
+ * or move `placement` to `'in-gpu'` if the owner keeps S5's term inside the GPU step.
+ */
+export const D044 = { id: 'D-044', status: 'proposed', placement: 'on-cpu' } as const
+
+/**
+ * Where S5's per-sequence host term runs unless a caller says otherwise: on the CPU lane, where async scheduling can hide it (D-044,
+ * proposed). Hiding it under the forward is an extrapolation beyond S5's additive fit, and the card says so.
+ */
+export const DEFAULT_HOST_TERM: S5HostTerm = D044.placement
+
+/**
  * kernelspace's S5 step card on the fitted row `key` at tensor-parallel degree `tp`. The step times are the fit's: they hold inside
  * the row's box and are an extrapolation outside it (WORLD §4.2), and the fit's split between terms is not a hardware fact.
- * `hostTerm` says where S5's `seqs × t_seq` runs, which D-044 proposes and the owner has not yet confirmed.
+ * `hostTerm` says where S5's `seqs × t_seq` runs: on the CPU lane by default, which D-044 proposes and the owner has not yet
+ * confirmed (`D044`), or inside the GPU step as S5 fitted it. Either way the term replaces the host card's per-sequence schedule and sample
+ * phases, so no host work is counted on both lanes.
  */
-export function s5Card(key: PhysicsRowKey, tp: number, hostTerm: S5HostTerm): S5GpuCard {
+export function s5Card(key: PhysicsRowKey, tp: number, hostTerm: S5HostTerm = DEFAULT_HOST_TERM): S5GpuCard {
   if (!Number.isSafeInteger(tp) || tp < 1) throw new RangeError(`tp must be an integer of at least 1, got ${tp}`)
   const row = physicsRow(key)
-  return Object.freeze({ kind: 's5', label: `${row.label} · TP ${tp}`, tag: 'derived', synthetic: false, spec: row.spec, tp, hostTerm })
+  const where = hostTerm === 'on-cpu' ? `host term on the CPU lane (${D044.id}, ${D044.status})` : 'host term inside the GPU step, as S5 fitted it'
+  return Object.freeze({ kind: 's5', label: `${row.label} · TP ${tp} · ${where}`, tag: 'derived', synthetic: false, spec: row.spec, tp, hostTerm })
 }
 
 /** The transformer layers a card's model has: with the host card's kernels per layer, how many launches an eager step makes. */
