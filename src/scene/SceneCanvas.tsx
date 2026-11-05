@@ -45,9 +45,10 @@ export interface SceneCanvasProps {
   background?: ColorRoleName
   /**
    * Fog from `near` to `far` scene units beyond the camera's focus (its preset's target), so the night recedes into the
-   * ground's colour at the far end of the line from every shot, near or far; null for none.
+   * ground's colour at the far end of the line from every shot, near or far; null for none. `color` gives the haze a role of its own
+   * where the room it fogs is the ground's own pale (a tiled kitchen), so that what lies far falls away from what lies near.
    */
-  fog?: { near: number; far: number } | null
+  fog?: { near: number; far: number; color?: ColorRoleName } | null
   /** Tone-mapping exposure [estimated]. */
   exposure?: number
   /** The kitchen the steel reflects (environment.ts). Default on. */
@@ -274,7 +275,7 @@ interface KitRootProps {
   store: LabelStore
   bridge: { current: Bridge }
   background: ColorRoleName
-  fog: { near: number; far: number } | null
+  fog: NonNullable<SceneCanvasProps['fog']> | null
   exposure: number
   environment: boolean
   environmentIntensity: number
@@ -351,13 +352,14 @@ function KitRoot({ runtime, tokens, paused, store, bridge, background, fog, expo
   }, [gl, scene, tokens, environment, environmentIntensity, invalidate])
   const fogNear = fog?.near ?? null
   const fogFar = fog?.far ?? null
+  const fogColor = fog?.color ?? background
   const focusDistance = useRef(0)
   useEffect(() => {
     const ground = roleColor(tokens, background)
     scene.background = ground
-    scene.fog = fogNear !== null && fogFar !== null ? new THREE.Fog(ground.clone(), focusDistance.current + fogNear, focusDistance.current + fogFar) : null
+    scene.fog = fogNear !== null && fogFar !== null ? new THREE.Fog(roleColor(tokens, fogColor), focusDistance.current + fogNear, focusDistance.current + fogFar) : null
     invalidate()
-  }, [scene, tokens, background, fogNear, fogFar, invalidate])
+  }, [scene, tokens, background, fogNear, fogFar, fogColor, invalidate])
 
   // Post-processing at T2 and up: the `postfx` chunk is imported here, and only here.
   const plan = postFxPlan(tier, { contrastMore: runtime.contrastMore, forcedColors: runtime.forcedColors })

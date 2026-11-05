@@ -112,6 +112,12 @@ describe('what the reader keeps', () => {
     const markup = '<svg viewBox="0 0 4 4"><defs><filter id="f"><feGaussianBlur stdDeviation="3"></feGaussianBlur></filter></defs><line x1="0" y1="1" x2="2" y2="3" stroke="var(--es-paper)" stroke-width="1.5" stroke-dasharray="2 3" data-part="rail"></line><text text-anchor="middle" font-size="12" dominant-baseline="middle" fill-opacity="0.5">a</text></svg>'
     expect(draw(markup)).toBe(markup)
   })
+
+  test("a frame's gradients are read and drawn back: the lamps' light on the pass and the side wall's shade (Service's finish review, round 2)", () => {
+    const markup = '<svg viewBox="0 0 4 4"><defs><radialGradient id="p"><stop offset="0" stop-color="var(--es-glint)" stop-opacity="0.5"></stop><stop offset="1" stop-color="var(--es-lamp)" stop-opacity="0"></stop></radialGradient><linearGradient id="w"><stop offset="0" stop-color="var(--es-surface-2)" stop-opacity="0.3"></stop></linearGradient></defs><ellipse cx="2" cy="2" rx="1" ry="1" fill="url(#p)"></ellipse></svg>'
+    expect(draw(markup)).toBe(markup)
+    expect(fileOf(POSTERS.loop.file)).toContain('<radialGradient id="es-loop-lamp-pool-landscape">')
+  })
 })
 
 describe('fetching a poster', () => {

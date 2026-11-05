@@ -12,6 +12,7 @@ import { bent, block, cap, lathe, matrixOf, place, rod, roundedBox, roundedRectP
 import {
   BELL,
   PAN_SIZES,
+  PLATE,
   PRINTER,
   RAIL,
   type FloorSpec,
@@ -406,6 +407,21 @@ export function plateProfile(): Vec2[] {
     [0.088, 0.0079],
     [0, 0.0076],
   ]
+}
+
+/**
+ * A plate's contact shadow on the steel it rests on, in two parts [estimated]: the contact, dark and tight, from under the rim to a
+ * centimetre and a half past it, so the plate sits on the counter and is never lifted off it by a lamp's light round it; and its shade,
+ * soft and wider, the plate's own shadow from the room's light, a ring of which shows round the plate from any shot.
+ */
+export const PLATE_SHADOWS = [
+  { radius: PLATE.radius + 0.004, soft: 0.016, strength: 1 },
+  { radius: PLATE.radius * 1.12, soft: 0.055, strength: 0.6 },
+] as const
+
+/** The footprints of a plate resting at `at`. */
+export function plateFootprints(at: Vec3): Footprint[] {
+  return PLATE_SHADOWS.map(({ radius, soft, strength }) => ({ center: at, size: [radius * 2, radius * 2], radius, soft, strength, yaw: 0 }))
 }
 
 /**

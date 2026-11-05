@@ -14,7 +14,8 @@
  *   - Plates: the last fire that has been read back, one plate under every clip that cooked a course. A binned plate goes into the
  *     bin, a full hotel pan at the pass's right end, and the bin keeps the last few. A finished ticket is spiked.
  *   - The line behind the pass: a station for each clip, burning in the lamp's amber where the latest fire cooked a course and
- *     cold where its clip rode empty (`stationsOf`). Tile, hood, floor and a speed rack make the room.
+ *     cold where its clip rode empty (`stationsOf`). Tile, hood, floor and a speed rack make the room, and the room's light, baked
+ *     into the tile and the floor, is full over the line and dims toward the room's corners, over the hood and into the wall's foot.
  *   - Three heat lamps over the pass, the bell at its front right.
  *
  * Every word and number is a DOM label anchored here (D-021, GAMES.md §2.6 rule 7); the tickets' print is texture.
@@ -22,6 +23,7 @@
 import { BAR, CEILING, clipX, FIRED, GRIP, HOOD, lampsOf, LINE, lineOf, MOUTH, PASS, passWidth, pitchOf, PLATE_Z, RAIL, railLength, SHELF, STATION_KINDS, TICKET, WALL_Z } from '@es/play/loop/kitchen'
 import { stationsOf, ticketNo } from '@es/play/loop/layout'
 import type { LoopView } from '@es/play/loop/types'
+import type { RoomLight } from '@/scene/props/set'
 import type { PropSpec, StationSpec, Vec3 } from '@/scene/props/specs'
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -68,6 +70,8 @@ export interface ServiceKitchen {
   /** The line's stations, in order: the clips each one cooks for, and where its steam rises. Each burns by its own heat element. */
   readonly stations: readonly { readonly clips: readonly number[]; readonly top: Vec3 }[]
   readonly tapes: readonly Tape[]
+  /** The room's light, baked into its tile and its floor (the static set's `room`). */
+  readonly room: RoomLight
 }
 
 export interface KitchenOptions {
@@ -144,6 +148,10 @@ export function serviceKitchen(slots: number, { printer, overlap }: KitchenOptio
       top: [station.at[0], LINE.height + 0.04, LINE.z - 0.02] as Vec3,
     })),
     tapes,
+    // Full over the middle half of the line, up to 40 cm under the hood's lip and back as far as the line, and easing down to a little
+    // over half of that two metres further to either side, 1.4 metres higher and two metres further back [estimated]: the far corner
+    // and the wall over the hood fall away, and the tile behind the line stays lit.
+    room: { x: 0, half: lineWidth / 4, above: HOOD.top - HOOD.height - 0.4, beyond: LINE.z, reach: [2, 1.4, 2], dim: 0.55 },
   }
 }
 

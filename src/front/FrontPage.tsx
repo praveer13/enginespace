@@ -509,34 +509,21 @@ function Pair({ words }: { words: { kitchen: string; engine: string | null } }) 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /**
- * The kitchen printer's body, drawn as the object it is, behind the menu link printed on its face: a powder-coated housing on two
- * feet, its lid over the roll with a seam and a lit top edge, the roll seen through the lid's smoked window, the feed button and its
- * lamp, and at its foot the mouth with the tear bar's teeth, where the tape comes out. It scales to the box the layout gives it; its
- * colours are classes of front.css, every one a token role.
+ * The kitchen printer's body, a box with volume behind the menu link printed on its cover: the cover facing the pass, its top receding
+ * above it and its right side falling back into shade, the roll in a recessed smoked window, the feed button standing proud under its
+ * lamp, and at the cover's foot the mouth with the tear bar's teeth, where the tape comes out. front.css shapes and lights each part
+ * from the printer's own box, so it keeps its form at every size, and every colour is a token role.
  */
 function PrinterBody() {
-  const teeth = useId()
   return (
-    <svg className="es-front-printer__body" aria-hidden="true" focusable="false">
-      <defs>
-        <pattern id={teeth} width="7" height="6" patternUnits="userSpaceOnUse">
-          <path className="es-front-printer__tooth" d="M0 0 L3.5 6 L7 0 Z" />
-        </pattern>
-      </defs>
-      <rect className="es-front-printer__foot" x="7%" y="94%" width="11%" height="6%" rx="2" />
-      <rect className="es-front-printer__foot" x="82%" y="94%" width="11%" height="6%" rx="2" />
-      <rect className="es-front-printer__shell" x="0.5" y="0.5" width="99%" height="94%" rx="10" />
-      <rect className="es-front-printer__lid" x="1.5%" y="2%" width="97%" height="40%" rx="8" />
-      <line className="es-front-printer__glint" x1="4%" y1="3.4%" x2="96%" y2="3.4%" />
-      <line className="es-front-printer__seam" x1="1.5%" y1="42%" x2="98.5%" y2="42%" />
-      <rect className="es-front-printer__window" x="60%" y="48%" width="22%" height="22%" rx="4" />
-      <rect className="es-front-printer__roll" x="62.5%" y="51%" width="17%" height="16%" rx="6" />
-      <line className="es-front-printer__core" x1="65%" y1="59%" x2="77%" y2="59%" />
-      <circle className="es-front-printer__led" cx="89%" cy="51%" r="2.5" />
-      <circle className="es-front-printer__button" cx="89%" cy="63%" r="7" />
-      <rect className="es-front-printer__mouth" x="5%" y="82%" width="90%" height="7%" rx="2" />
-      <rect fill={`url(#${teeth})`} x="5%" y="78%" width="90%" height="6" />
-    </svg>
+    <span className="es-front-printer__body" aria-hidden="true">
+      <span className="es-front-printer__lid" />
+      <span className="es-front-printer__side" />
+      <span className="es-front-printer__face" />
+      <span className="es-front-printer__window" />
+      <span className="es-front-printer__button" />
+      <span className="es-front-printer__mouth" />
+    </span>
   )
 }
 

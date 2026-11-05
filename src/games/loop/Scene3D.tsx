@@ -25,8 +25,10 @@ import './scene3d.css'
  * the fired rail takes a copy of each ticket and the line never goes dark. Between bells the kitchen is still; a ticket hung is carried
  * to its clip, and the printer feeds the next. Under reduced motion every change cuts.
  *
- * The heat lamps' amber falls on the pass alone: three tight cones, each pooling on the steel under its lamp, and no light of the
- * line's own that could wash the tile or the stations beside a burning one. The room falls into haze beyond the line.
+ * The heat lamps' amber falls on the pass alone: three tight cones, each warming the steel's own sheen and streak under its lamp, and
+ * no light of the line's own that could wash the tile or the stations beside a burning one. The room falls away beyond the line: its
+ * light, baked into the tile and the floor, is full over the line and dims toward its far corners and over the hood (scene-layout.ts),
+ * and it recedes into a haze of deep steel, darker than the pale tile it fogs.
  *
  * Draw calls at T1: the static set's metal, glaze, tile, floor and glow (5), the contact shadows (1), the tickets (1), the clips (1,
  * and 1 more for the fired rail), the printer's paper (1), the plates (1), the bell's dome and plunger (2) and the tape (1). T2 adds
@@ -46,10 +48,10 @@ export interface Scene3DProps {
 }
 
 /**
- * The haze the room falls into, from this far beyond what the camera looks at to this far [estimated]: it begins at the line, so the
- * stations keep their heat and the tile, the hood and the room's far corners soften into it.
+ * The haze the room falls into, from this far beyond what the camera looks at to this far [estimated], in deep steel: it begins at the
+ * line, so the stations keep their heat, and the wall behind them and the floor at its foot darken into it, away from the pale tile.
  */
-const HAZE = { near: 0.4, far: 5.6 }
+const HAZE = { near: 1, far: 3.6, color: 'surface-3' } as const
 /** The heat lamps' light over the pass, as a share of the kit's [estimated]: enough to pool amber on the steel and leave the glaze white. */
 const LAMP_POWER = 0.6
 /** The fewest milliseconds between two dark dips of the line: 3 a second at most (WCAG 2.3.1). */
@@ -185,7 +187,7 @@ function Service({ view, kitchen, scene, preset, onHang }: { view: LoopView; kit
   const mask = moment.dark ? ALWAYS_LIT : litMask(lit)
   return (
     <Kitchen lit={mask}>
-      <StaticSet items={kitchen.items} name="service" />
+      <StaticSet items={kitchen.items} room={kitchen.room} name="service" />
       {/* The lamps' light lands on the pass as pools on the steel; no cone hangs in the air over the line to tint it. */}
       <LampLights lamps={kitchen.lights} power={LAMP_POWER} cones={false} />
       <RailClips at={kitchen.rail.at} clips={scene.clips} />

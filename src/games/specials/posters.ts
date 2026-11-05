@@ -47,7 +47,7 @@ export interface PosterNode {
  * element never self-closing, and the five characters that React escapes written as entities. A file with anything else in it is not
  * read, so a poster that was changed under the board draws nothing and is not trusted.
  */
-const TAGS: ReadonlySet<string> = new Set(['svg', 'defs', 'filter', 'feGaussianBlur', 'g', 'rect', 'circle', 'ellipse', 'line', 'path', 'polygon', 'polyline', 'text', 'title', 'desc'])
+const TAGS: ReadonlySet<string> = new Set(['svg', 'defs', 'filter', 'feGaussianBlur', 'linearGradient', 'radialGradient', 'stop', 'g', 'rect', 'circle', 'ellipse', 'line', 'path', 'polygon', 'polyline', 'text', 'title', 'desc'])
 
 /** An attribute is a lowercase word (`x1` is one), or words joined by hyphens, or one of the three that SVG itself writes in camel case. */
 const ATTRIBUTE_NAME = /^(?:[a-z][a-z0-9]*(?:-[a-z][a-z0-9]*)*|viewBox|stdDeviation|preserveAspectRatio)$/

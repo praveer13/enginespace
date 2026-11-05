@@ -52,6 +52,21 @@ describe('the shell, rendered', () => {
     expect(textOf(printer)).toContain('Open the menu')
   })
 
+  test("draws the printer as a housing with volume, from the first paint: its cover, its top receding and its side in shade (the finish review, round 2)", () => {
+    const printer = /<div class="es-front-printer">([\s\S]*?)<\/div>/.exec(shell)?.[1] ?? ''
+    const parts = [...printer.matchAll(/class="es-front-printer__([a-z]+)"/g)].map((match) => match[1])
+    expect(parts).toEqual(expect.arrayContaining(['body', 'lid', 'side', 'face', 'window', 'button', 'mouth']))
+    expect(printer).toMatch(/class="es-menu-link es-front-printer__menu"/)
+    expect(printer).toMatch(/<span class="es-front-printer__body" aria-hidden="true">/)
+    // front.css cuts the top and the side from the printer's own box by its depth, and lights each face apart: a box, not a panel.
+    const css = readFileSync(path.join(root, 'src/front/front.css'), 'utf8')
+    const rule = (name: string) => new RegExp(`\\.es-front-printer__${name} \\{([^}]*)\\}`).exec(css)?.[1] ?? ''
+    expect(rule('lid')).toMatch(/clip-path: polygon\(0 100%, calc\(100% - var\(--printer-dx\)\) 100%, 100% 0, var\(--printer-dx\) 0\)/)
+    expect(rule('side')).toMatch(/clip-path: polygon\(0 var\(--printer-dy\), 100% 0, 100% calc\(100% - var\(--printer-dy\)\), 0 100%\)/)
+    for (const face of ['lid', 'side', 'face']) expect(rule(face)).toMatch(/background:\s+linear-gradient/)
+    expect(rule('face')).toMatch(/inset: var\(--printer-dy\) var\(--printer-dx\) 0 0/)
+  })
+
   test('prints no row above the heading: the order ticket opens on its headline', () => {
     const ticket = shell.slice(shell.indexOf('class="es-ticket es-front-ticket"'), shell.indexOf('</h1>'))
     expect(ticket).not.toContain('es-ticket__head')

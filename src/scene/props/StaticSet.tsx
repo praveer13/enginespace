@@ -3,7 +3,7 @@ import { useKit } from '../kit'
 import { useProps } from './context'
 import type { OcclusionOptions } from './occlusion'
 import type { Palette } from './palette'
-import { buildSetAsync, type BuiltSet } from './set'
+import { buildSetAsync, type BuiltSet, type RoomLight } from './set'
 import type { PropSpec } from './specs'
 
 /*
@@ -11,6 +11,8 @@ import type { PropSpec } from './specs'
  * steel, glaze, tile and floor draws in five calls whatever it holds. Ambient occlusion is baked once on the merged set when it is
  * built (occlusion.ts), every prop's footprint goes into the kitchen's contact shadows, and the glowing parts light by the kitchen's
  * mask (<Kitchen lit>): a fire that lights or darkens a station changes a uniform, never a geometry.
+ *
+ * A scene that lights its room (`room`, set.ts) has that light baked into the set's tile and floor with the occlusion.
  *
  * The set is built between frames, a few milliseconds at a time, and the scene draws nothing until it is done (kit.pending), so the
  * first frame shows the kitchen whole and a new set replaces the old one in a single frame. At T2 and up, where the scene asked for
@@ -21,6 +23,8 @@ export interface StaticSetProps {
   items: readonly PropSpec[]
   /** Leave occlusion out (`false`), or tune it. */
   occlusion?: OcclusionOptions | false
+  /** The room's light, baked into its tile and its floor; none lights the room evenly. Keep it the same object from render to render. */
+  room?: RoomLight | null
   name?: string
 }
 
@@ -30,7 +34,7 @@ interface Shown {
   readonly set: BuiltSet
 }
 
-export function StaticSet({ items, occlusion, name = 'set' }: StaticSetProps) {
+export function StaticSet({ items, occlusion, room = null, name = 'set' }: StaticSetProps) {
   const kit = useKit()
   const { materials, palette, shadows } = useProps()
   const [shown, setShown] = useState<Shown | null>(null)
@@ -45,7 +49,7 @@ export function StaticSet({ items, occlusion, name = 'set' }: StaticSetProps) {
   useEffect(() => {
     let cancelled = false
     held.current ??= pending.current()
-    buildSetAsync(items, palette, occlusion ?? {}, () => cancelled).then(
+    buildSetAsync(items, palette, occlusion ?? {}, room, () => cancelled).then(
       (set) => {
         if (set) setShown({ items, palette, set })
       },
@@ -60,7 +64,7 @@ export function StaticSet({ items, occlusion, name = 'set' }: StaticSetProps) {
     return () => {
       cancelled = true
     }
-  }, [items, palette, occlusion])
+  }, [items, palette, occlusion, room])
 
   // Once the new set is on screen: free the old one, put the footprints in, and let frames come.
   useEffect(() => {

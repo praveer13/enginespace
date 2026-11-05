@@ -31,6 +31,8 @@ const ATTRIBUTES: Readonly<Record<string, string>> = {
   fillOpacity: 'fill-opacity',
   strokeOpacity: 'stroke-opacity',
   dominantBaseline: 'dominant-baseline',
+  stopColor: 'stop-color',
+  stopOpacity: 'stop-opacity',
 }
 /** Attributes that are camelCase in SVG itself. */
 const NATIVE_CAMEL = ['viewBox', 'preserveAspectRatio', 'stdDeviation', 'patternUnits', 'patternTransform']

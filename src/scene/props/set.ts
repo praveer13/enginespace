@@ -2,13 +2,13 @@ import type { BufferGeometry } from 'three'
 import { buildProp, type Footprint } from './build'
 import { occlusionSteps, type OcclusionOptions } from './occlusion'
 import { CHANNEL, type Palette } from './palette'
-import { merged, painted, type Surface } from './shape'
+import { merged, painted, type Surface, type Vec3 } from './shape'
 import type { PropSpec } from './specs'
 
 /*
- * A static set's geometry (scene kit v1): every prop built, painted, merged by surface, and shaded once by its baked occlusion. The
- * work is a generator that yields between props, between surfaces and every few thousand vertices of the bake, so StaticSet.tsx
- * builds a whole kitchen between frames; `buildSet` runs it at once.
+ * A static set's geometry (scene kit v1): every prop built, painted, merged by surface, and shaded once by its baked occlusion and, where
+ * the scene lights its room, by the room's light. The work is a generator that yields between props, between surfaces and every few
+ * thousand vertices of the bake, so StaticSet.tsx builds a whole kitchen between frames; `buildSet` runs it at once.
  */
 
 /** The channels lit unless a scene says otherwise: the lamps' bulbs, the pass's heat strip and the hood's tubes. */
@@ -29,8 +29,33 @@ export interface BuiltSet {
 
 const ORDER: readonly Surface[] = ['metal', 'ceramic', 'tile', 'floor', 'glow']
 
+/**
+ * The room's light, baked into its tile and its floor [estimated]: full over the line, where the tubes and the hood's lights fall, and
+ * dimming toward `dim` of it to either side past `half` of the line's width, above the height `above` and back past the depth `beyond`,
+ * over `reach` metres across, up and back. A room lit so has depth: its far corners and the wall over the hood fall away from the line.
+ * A set without it is lit evenly.
+ */
+export interface RoomLight {
+  /** The middle of the lit line, across the room (x). */
+  readonly x: number
+  readonly half: number
+  readonly above: number
+  readonly beyond: number
+  readonly reach: Vec3
+  readonly dim: number
+}
+
+/** The share of the room's light at a point: 1 where the room is lit, easing down to `dim`. */
+export function roomShade(room: RoomLight, x: number, y: number, z: number): number {
+  const across = Math.max(0, Math.abs(x - room.x) - room.half) / room.reach[0]
+  const up = Math.max(0, y - room.above) / room.reach[1]
+  const back = Math.max(0, room.beyond - z) / room.reach[2]
+  const q = Math.min(1, Math.hypot(across, up, back))
+  return 1 - (1 - room.dim) * q * q * (3 - 2 * q)
+}
+
 /** The set's meshes, step by step: built, painted, merged by surface, then shaded by its baked occlusion (not the glowing parts). */
-export function* buildSteps(items: readonly PropSpec[], palette: Palette, occlusion: OcclusionOptions | false = {}): Generator<void, BuiltSet> {
+export function* buildSteps(items: readonly PropSpec[], palette: Palette, occlusion: OcclusionOptions | false = {}, room: RoomLight | null = null): Generator<void, BuiltSet> {
   const bySurface = new Map<Surface, BufferGeometry[]>()
   const footprints: Footprint[] = []
   for (const spec of items) {
@@ -67,6 +92,19 @@ export function* buildSteps(items: readonly PropSpec[], palette: Palette, occlus
       color.needsUpdate = true
     })
   }
+  // The room's light on its tile and its floor.
+  if (room) {
+    for (const { surface, geometry } of meshes) {
+      if (surface !== 'tile' && surface !== 'floor') continue
+      const color = geometry.getAttribute('color')
+      const at = geometry.getAttribute('position')
+      for (let v = 0; v < color.count; v++) {
+        const shade = roomShade(room, at.getX(v), at.getY(v), at.getZ(v))
+        color.setXYZ(v, color.getX(v) * shade, color.getY(v) * shade, color.getZ(v) * shade)
+      }
+      color.needsUpdate = true
+    }
+  }
   const vertices = meshes.reduce((sum, mesh) => sum + mesh.geometry.getAttribute('position').count, 0)
   return {
     meshes,
@@ -79,8 +117,8 @@ export function* buildSteps(items: readonly PropSpec[], palette: Palette, occlus
 }
 
 /** The set built and baked at once. */
-export function buildSet(items: readonly PropSpec[], palette: Palette, occlusion: OcclusionOptions | false = {}): BuiltSet {
-  const steps = buildSteps(items, palette, occlusion)
+export function buildSet(items: readonly PropSpec[], palette: Palette, occlusion: OcclusionOptions | false = {}, room: RoomLight | null = null): BuiltSet {
+  const steps = buildSteps(items, palette, occlusion, room)
   for (;;) {
     const next = steps.next()
     if (next.done) return next.value
@@ -94,8 +132,8 @@ const pause = () => new Promise<void>((resolve) => setTimeout(resolve, 0))
  * Runs the steps between tasks, each slice at most `sliceMs` long [estimated], until done or `cancelled()`. Resolves with the set,
  * or null when cancelled.
  */
-export async function buildSetAsync(items: readonly PropSpec[], palette: Palette, occlusion: OcclusionOptions | false, cancelled: () => boolean, sliceMs = 8): Promise<BuiltSet | null> {
-  const steps = buildSteps(items, palette, occlusion)
+export async function buildSetAsync(items: readonly PropSpec[], palette: Palette, occlusion: OcclusionOptions | false, room: RoomLight | null, cancelled: () => boolean, sliceMs = 8): Promise<BuiltSet | null> {
+  const steps = buildSteps(items, palette, occlusion, room)
   let slice = performance.now()
   for (;;) {
     const next = steps.next()

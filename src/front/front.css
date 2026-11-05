@@ -28,6 +28,10 @@
 .es-front {
   --front-gutter: clamp(1rem, 3.2vw, 2.75rem);
   --front-measure: 66rem;
+  /* The printer's box: the depth of its right side and of its top, and the band at its foot that holds the mouth (the printer, below). */
+  --printer-dx: 0.7rem;
+  --printer-dy: 0.55rem;
+  --printer-foot: 1.6rem;
   display: block;
 }
 
@@ -39,9 +43,13 @@
 /* ---------------------------------------------------------------------------------------------- the printer */
 
 /*
- * The kitchen printer: its body is drawn (FrontPage.tsx, PrinterBody), a powder-coated housing on its feet with its lid over the roll,
- * the roll in its smoked window, its feed button, and its mouth with the tear bar's teeth at its foot, where the tape comes out. The
- * menu link is printed on its lid in paper white (the declared pair, paper-white on deep steel, tokens.ts).
+ * The kitchen printer, a box with volume seen from the expo's side, above it and to its right (FrontPage.tsx, PrinterBody): its cover
+ * faces the pass, powder-coated deep steel lit at its rounded top edge and shading toward its foot; its top recedes above it, catching
+ * the tubes; its right side falls back into shade; the roll shows in a smoked, recessed window; the feed button stands proud under its
+ * lamp; and at the cover's foot the mouth is a dark slot with the tear bar's teeth, where the tape comes out. The three faces are
+ * clipped from the printer's own box by `--printer-dx` (the side's depth) and `--printer-dy` (the top's), set on the page for each
+ * layout, so the housing keeps its form at every size. The menu link is printed on the cover in paper white (the declared pair, paper-white on deep steel, tokens.ts),
+ * and the housing casts its shadow on what stands behind it.
  */
 .es-front-printer {
   position: relative;
@@ -50,7 +58,7 @@
   flex-direction: column;
   justify-content: space-between;
   gap: var(--es-space-2);
-  padding: var(--es-space-3) var(--es-space-3) 2.1rem;
+  padding: calc(var(--printer-dy) + var(--es-space-3)) calc(var(--printer-dx) + var(--es-space-3)) var(--printer-foot) var(--es-space-3);
   filter: drop-shadow(0 2px 2px color-mix(in srgb, var(--es-text-1) 28%, transparent)) drop-shadow(0 12px 14px color-mix(in srgb, var(--es-text-1) 26%, transparent));
   color: var(--es-paper);
 }
@@ -60,80 +68,120 @@
   z-index: 1;
 }
 
-.es-front-printer__body {
+.es-front-printer__body,
+.es-front-printer__body > span {
   position: absolute;
+  display: block;
+}
+
+.es-front-printer__body {
   inset: 0;
   z-index: 0;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
 }
 
-.es-front-printer__shell {
-  fill: var(--es-surface-3);
-  stroke: var(--es-paper-ink);
-  stroke-width: 1;
-}
-
+/* The top, receding: lit by the tubes, brightest along its rounded front edge. */
 .es-front-printer__lid {
-  fill: color-mix(in srgb, var(--es-surface-3) 84%, var(--es-surface-1));
+  inset: 0 0 auto;
+  height: var(--printer-dy);
+  clip-path: polygon(0 100%, calc(100% - var(--printer-dx)) 100%, 100% 0, var(--printer-dx) 0);
+  background: linear-gradient(0deg, color-mix(in srgb, var(--es-surface-3) 55%, var(--es-surface-1)), color-mix(in srgb, var(--es-surface-3) 80%, var(--es-surface-1)));
 }
 
-.es-front-printer__glint {
-  stroke: color-mix(in srgb, var(--es-glint) 55%, transparent);
-  stroke-width: 1.5;
-  stroke-linecap: round;
+/* The right side, falling back into shade toward its foot. */
+.es-front-printer__side {
+  inset: 0 0 0 auto;
+  width: var(--printer-dx);
+  clip-path: polygon(0 var(--printer-dy), 100% 0, 100% calc(100% - var(--printer-dy)), 0 100%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--es-surface-3) 82%, var(--es-paper-ink)), color-mix(in srgb, var(--es-surface-3) 42%, var(--es-paper-ink)));
 }
 
-.es-front-printer__seam {
-  stroke: var(--es-paper-ink);
-  stroke-width: 1.5;
+/* The cover: its rounded top edge catching the light, the powder coat shading toward its foot, and the seam over the mouth's base. */
+.es-front-printer__face {
+  inset: var(--printer-dy) var(--printer-dx) 0 0;
+  border-radius: var(--es-radius-trim) var(--es-radius-trim) var(--es-radius-plate) var(--es-radius-plate);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--es-glint) 24%, transparent), transparent 0.45rem),
+    linear-gradient(0deg, transparent calc(var(--printer-foot) - 0.15rem), color-mix(in srgb, var(--es-paper-ink) 70%, transparent) 0 calc(var(--printer-foot) - 0.05rem), transparent 0),
+    linear-gradient(180deg, color-mix(in srgb, var(--es-surface-3) 92%, var(--es-surface-1)), var(--es-surface-3) 55%, color-mix(in srgb, var(--es-surface-3) 72%, var(--es-paper-ink)));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--es-glint) 45%, transparent),
+    inset -1px 0 0 color-mix(in srgb, var(--es-paper-ink) 50%, transparent),
+    inset 0 -2px 0 color-mix(in srgb, var(--es-paper-ink) 60%, transparent);
 }
 
+/* The roll in a smoked window set into the cover: the glass recessed, the roll turned under it with its light across its middle. */
 .es-front-printer__window {
-  fill: color-mix(in srgb, var(--es-paper-ink) 78%, var(--es-surface-3));
-  stroke: var(--es-paper-ink);
-  stroke-width: 1;
+  top: calc(var(--printer-dy) + 38%);
+  right: calc(var(--printer-dx) + 11%);
+  width: 23%;
+  height: 34%;
+  overflow: hidden;
+  border-radius: var(--es-radius-shoulder);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--es-paper-ink) 88%, var(--es-surface-3)), color-mix(in srgb, var(--es-paper-ink) 62%, var(--es-surface-3)));
+  box-shadow:
+    inset 0 3px 4px var(--es-paper-ink),
+    0 1px 0 color-mix(in srgb, var(--es-glint) 30%, transparent);
 }
 
-.es-front-printer__roll {
-  fill: color-mix(in srgb, var(--es-paper) 82%, var(--es-surface-3));
+.es-front-printer__window::before,
+.es-front-printer__window::after {
+  content: '';
+  position: absolute;
 }
 
-.es-front-printer__core {
-  stroke: var(--es-paper-rule);
-  stroke-width: 1;
-  stroke-dasharray: 2 3;
+.es-front-printer__window::before {
+  inset: 22% 9% 14%;
+  border-radius: var(--es-radius-plate);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--es-paper) 45%, var(--es-surface-3)), color-mix(in srgb, var(--es-paper) 94%, var(--es-surface-3)) 42%, color-mix(in srgb, var(--es-paper) 55%, var(--es-surface-3)));
 }
 
+.es-front-printer__window::after {
+  inset: 0;
+  background: linear-gradient(115deg, transparent 32%, color-mix(in srgb, var(--es-glint) 20%, transparent) 44%, transparent 58%);
+}
+
+/* The feed button, standing proud of the cover, and its lamp over it (unlit: the printer feeds when a ticket is hung). */
 .es-front-printer__button {
-  fill: var(--es-surface-2);
-  stroke: var(--es-paper-ink);
-  stroke-width: 1;
+  top: calc(var(--printer-dy) + 44%);
+  right: calc(var(--printer-dx) + 4%);
+  width: 0.95rem;
+  height: 0.95rem;
+  border-radius: var(--es-radius-round);
+  background: radial-gradient(circle at 36% 30%, var(--es-surface-1), var(--es-surface-2) 52%, color-mix(in srgb, var(--es-surface-3) 60%, var(--es-paper-ink)));
+  box-shadow:
+    0 0 0 1px var(--es-paper-ink),
+    0 2px 2px color-mix(in srgb, var(--es-paper-ink) 70%, transparent);
 }
 
-.es-front-printer__led {
-  fill: var(--es-surface-1);
+.es-front-printer__button::before {
+  content: '';
+  position: absolute;
+  top: -0.6rem;
+  left: 50%;
+  width: 0.32rem;
+  height: 0.32rem;
+  border-radius: var(--es-radius-round);
+  background: var(--es-surface-2);
+  box-shadow: inset 0 1px 1px var(--es-paper-ink);
+  transform: translateX(-50%);
 }
 
+/* The mouth: a dark slot across the cover's foot, the tear bar's teeth along its top edge, its lower lip catching the light. */
 .es-front-printer__mouth {
-  fill: var(--es-paper-ink);
+  right: calc(var(--printer-dx) + 0.5rem);
+  bottom: 0.3rem;
+  left: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--es-radius-trim);
+  background: conic-gradient(from 135deg at 50% 0, transparent 0 90deg, var(--es-surface-1) 0) 0 0 / 7px 4px repeat-x, var(--es-paper-ink);
+  box-shadow:
+    inset 0 2px 3px var(--es-paper-ink),
+    0 1px 0 color-mix(in srgb, var(--es-glint) 35%, transparent);
 }
 
-.es-front-printer__tooth {
-  fill: var(--es-surface-2);
-}
-
-.es-front-printer__foot {
-  fill: var(--es-paper-ink);
-}
-
-/* On a small housing the menu takes the whole lid: the window, the roll and the lamp are left out. */
+/* On a small housing the menu takes the whole cover: the window and the button are left out, and the box is shallower. */
 @media (max-width: 47.99rem) {
-  .es-front-printer__window,
-  .es-front-printer__roll,
-  .es-front-printer__core,
-  .es-front-printer__led {
+  .es-front-printer__body > :is(.es-front-printer__window, .es-front-printer__button) {
     display: none;
   }
 }
@@ -785,11 +833,17 @@
     padding-block: 0.7rem 0.6rem;
   }
 
+  .es-front-expo {
+    --printer-dx: 0.4rem;
+    --printer-dy: 0.32rem;
+    --printer-foot: 1.15rem;
+  }
+
   .es-front-expo > .es-front-printer {
     width: 6.75rem;
     min-height: 3.75rem;
     margin-bottom: var(--es-space-3);
-    padding: var(--es-space-2) var(--es-space-2) 1.2rem;
+    padding: calc(var(--printer-dy) + var(--es-space-2)) calc(var(--printer-dx) + var(--es-space-2)) var(--printer-foot) var(--es-space-2);
   }
 
   .es-front-strip > ul,
@@ -862,6 +916,9 @@
 
   /* The printer's column: the housing over the rail's left end, and out of its mouth the tape, then the strip with the bell beside it. */
   .es-front-expo {
+    --printer-dx: 1rem;
+    --printer-dy: 0.8rem;
+    --printer-foot: 1.85rem;
     position: absolute;
     z-index: 3;
     left: var(--col-left);
@@ -878,17 +935,23 @@
     padding: 0;
   }
 
-  /* The housing is as tall as what is printed on it: the menu, and what it still holds. */
+  /* The housing is as tall as what is printed on it: the menu, and what it still holds. Its cover is the column's width, and its side
+     stands in the gap beside the column, so the tape hangs from the mouth at the column's own width. */
   .es-front-expo > .es-front-printer {
-    width: 100%;
-    min-height: 8.5rem;
+    width: calc(100% + var(--printer-dx));
+    min-height: 9.25rem;
     margin: 0;
-    padding: var(--es-space-4) var(--es-space-4) 1.75rem;
+    padding: calc(var(--printer-dy) + var(--es-space-4)) calc(var(--printer-dx) + var(--es-space-4)) var(--printer-foot) var(--es-space-4);
   }
 
-  /* The menu on the housing, printed at the size of the housing it is printed on. */
+  /* The menu on the housing, printed at the size of the housing it is printed on: its words on a line of their own, and the course
+     map's name with its arrow under them, clear of the roll's window. */
   .es-front-expo .es-front-printer .es-front-printer__menu {
     font-size: var(--es-size-action);
+  }
+
+  .es-front-expo .es-front-printer .es-front-printer__menu .es-menu-link__words {
+    flex-basis: 100%;
   }
 
   .es-front-expo .es-front-printer .es-front-printer__menu .es-menu-link__term {
@@ -899,6 +962,7 @@
     font-size: var(--es-size-stamp);
   }
 
+  /* The tape comes out of the mouth, as wide as it, under the cover. */
   .es-front-expo > .es-front-tape {
     width: calc(100% - 1rem);
     margin: -0.55rem auto 0;

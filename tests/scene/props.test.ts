@@ -2,20 +2,23 @@
  * Scene kit v1's props, with no WebGL: every builder makes real geometry in metres (finite, with unit normals, the size of the
  * equipment it is), nothing is an unbevelled box, a static set merges into one mesh per surface, the baked occlusion darkens a pan's
  * inside and the floor under a counter and leaves open floor alone, the glow channels light by a mask, the print atlas's cells
- * tile it, and the props import nothing that would drag them into a page's first paint.
+ * tile it, and the props import nothing that would drag them into a page's first paint. Service's finish review, round 2: the heat
+ * lamps light the steel and never paint it, a plate on the pass sits on the steel in its own contact shadow, and a room that lights
+ * itself falls away from its line.
  */
 import { describe, expect, test } from 'bun:test'
 import { readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
-import { Box3, BufferGeometry, Vector3 } from 'three'
+import { Box3, BufferGeometry, ShaderChunk, Vector3 } from 'three'
 import { staticSceneTokens } from '@/design/scene-tokens'
-import { buildProp, panGeometries, plateProfile } from '@/scene/props/build'
+import { buildProp, panGeometries, PLATE_SHADOWS, plateFootprints, plateProfile } from '@/scene/props/build'
+import { countSpotSpecular, POOL_FRAGMENT } from '@/scene/props/materials'
 import { bakeOcclusion } from '@/scene/props/occlusion'
 import { CHANNEL, paletteFrom } from '@/scene/props/palette'
 import { cellOffset, feedPath, ticketGeometry } from '@/scene/props/paper'
-import { ALWAYS_LIT, buildSet, litMask } from '@/scene/props/set'
+import { ALWAYS_LIT, buildSet, litMask, roomShade, type RoomLight } from '@/scene/props/set'
 import { lathe, roundedBox, roundedRectPath, sweep } from '@/scene/props/shape'
-import { PAN_SIZES, TICKET, type PropSpec } from '@/scene/props/specs'
+import { PAN_SIZES, PLATE, TICKET, type PropSpec } from '@/scene/props/specs'
 import { drawPrint, PRINT_CELLS, tileMaps, floorMaps } from '@/scene/props/surfaces'
 
 const root = path.resolve(import.meta.dirname, '../..')
@@ -186,6 +189,126 @@ describe('a static set', () => {
     expect(underCounter).toBeLessThan(open - 0.05)
     expect(open).toBeGreaterThan(0.95)
     set.dispose()
+  })
+})
+
+describe("the heat lamps light the steel, and never paint it (Service's finish review, round 2)", () => {
+  test("the counter's pool takes the lamps' own reflection off and brightens the steel's own sheen and streak in its place", () => {
+    // Only the steel's own specular, the lamps' reflection off it and the streak's lobe carry it: no colour of the steel's own is laid
+    // on as a decal, and no lines are hashed across it.
+    expect(POOL_FRAGMENT).toContain('vec3 esOwn = totalSpecular - esSpot;')
+    expect(POOL_FRAGMENT).toMatch(/uPoolColor \* esOwn \* \(esSheen \* [\d.]+ \+ esStreak \* esGrain \* [\d.]+\) - esSpot/)
+    expect(POOL_FRAGMENT).not.toMatch(/diffuseColor|fract\(sin/)
+    // The sheen follows the lamps' reflection, which saturates rather than clips.
+    expect(POOL_FRAGMENT).toContain('1.0 - exp(-')
+  })
+
+  test("the lamps' reflection is counted inside three's spot-light loop, once a light, and nowhere else", () => {
+    const chunk = countSpotSpecular(ShaderChunk.lights_fragment_begin)
+    const spot = chunk.indexOf('#if ( NUM_SPOT_LIGHTS > 0 )')
+    const directional = chunk.indexOf('#if ( NUM_DIR_LIGHTS > 0 )')
+    const before = chunk.indexOf('esBefore = reflectedLight.directSpecular;')
+    const counted = chunk.indexOf('esSpot += reflectedLight.directSpecular - esBefore;')
+    expect(chunk.startsWith('vec3 esSpot = vec3(0.0);')).toBe(true)
+    expect(spot).toBeGreaterThan(0)
+    expect(before).toBeGreaterThan(spot)
+    expect(counted).toBeGreaterThan(before)
+    expect(counted).toBeLessThan(directional)
+    expect(chunk.split('esSpot +=').length).toBe(2)
+    expect(() => countSpotSpecular('no lights here')).toThrow(/spot lights' loop/)
+  })
+})
+
+describe("a plate on the pass sits on the steel (Service's finish review, round 2)", () => {
+  test('its contact shadow is a dark ring tight about its rim, and its shade a softer one past it', () => {
+    const [contact, shade] = plateFootprints([0.2, 0.92, 0.02])
+    expect(PLATE_SHADOWS).toHaveLength(2)
+    expect(contact.center).toEqual([0.2, 0.92, 0.02])
+    // The contact starts under the rim and is gone within a couple of centimetres past it, at full strength.
+    expect(contact.radius).toBeGreaterThan(PLATE.radius)
+    expect(contact.radius + contact.soft).toBeLessThan(PLATE.radius + 0.025)
+    expect(contact.strength).toBe(1)
+    // The shade reaches further and is lighter.
+    expect(shade.radius + shade.soft).toBeGreaterThan(contact.radius + contact.soft + 0.03)
+    expect(shade.strength).toBeLessThan(contact.strength)
+    for (const footprint of [contact, shade]) expect(footprint.size).toEqual([footprint.radius * 2, footprint.radius * 2])
+  })
+
+  test("a plate's underside darkens where the counter hides it from the room, and its well's floor stays open", () => {
+    const plate = lathe(plateProfile(), 40)
+    const counter = new BufferGeometry().copy(roundedBox([0.4, 0.002, 0.4], 0.0005, 1)).translate(0, -0.001, 0)
+    const [shade] = bakeOcclusion([plate, counter], { radius: 0.026, voxel: 0.004, strength: 0.55 }, [true, false])
+    const position = plate.getAttribute('position')
+    const normal = plate.getAttribute('normal')
+    let under = 0
+    let underN = 0
+    let well = 0
+    let wellN = 0
+    for (let i = 0; i < position.count; i++) {
+      const r = Math.hypot(position.getX(i), position.getZ(i))
+      if (normal.getY(i) < -0.5 && r > 0.08 && r < 0.12) {
+        under += shade[i]
+        underN += 1
+      } else if (normal.getY(i) > 0.9 && r < 0.05) {
+        well += shade[i]
+        wellN += 1
+      }
+    }
+    expect(underN).toBeGreaterThan(0)
+    expect(wellN).toBeGreaterThan(0)
+    expect(under / underN).toBeLessThan(0.8)
+    expect(well / wellN).toBeGreaterThan(0.95)
+  })
+})
+
+describe("a room that lights itself falls away from its line (Service's finish review, round 2)", () => {
+  const room: RoomLight = { x: 0, half: 0.6, above: 1.5, beyond: -1.95, reach: [2, 1.4, 2], dim: 0.55 }
+
+  test('its light is full over the line and eases down to its dim toward the far corner, up the wall and back into it', () => {
+    expect(roomShade(room, 0, 1, -1.5)).toBe(1)
+    expect(roomShade(room, 0.5, 1.2, -1.9)).toBe(1)
+    const behind = roomShade(room, 0, 1, -2.36)
+    const corner = roomShade(room, -2.62, 1, -2.36)
+    const high = roomShade(room, 0, 2.6, -2.36)
+    expect(behind).toBeGreaterThan(0.95)
+    expect(corner).toBeLessThan(behind - 0.3)
+    expect(high).toBeLessThan(behind - 0.15)
+    expect(roomShade(room, -9, 9, -9)).toBeCloseTo(room.dim, 6)
+    // Monotone: further from the line is never lighter.
+    for (let x = 0; x < 3; x += 0.25) expect(roomShade(room, x + 0.25, 1, -2.36)).toBeLessThanOrEqual(roomShade(room, x, 1, -2.36))
+  })
+
+  test("a set baked with it darkens its tile toward the corner and leaves the tile behind the line lit; its steel is untouched", () => {
+    const items: PropSpec[] = [
+      { kind: 'tile-wall', id: 'wall', at: [0, 0, -2.36], width: 6, height: 3 },
+      { kind: 'pass', id: 'pass', at: [0, 0, 0], width: 2, depth: 0.6, height: 0.92, strip: 0 },
+    ]
+    const flat = buildSet(items, palette, false)
+    const lit = buildSet(items, palette, false, room)
+    const colourAt = (set: ReturnType<typeof buildSet>, surface: string, near: (p: Vector3) => boolean): number => {
+      const geometry = set.meshes.find((mesh) => mesh.surface === surface)?.geometry
+      if (!geometry) throw new Error(`no ${surface}`)
+      const position = geometry.getAttribute('position')
+      const color = geometry.getAttribute('color')
+      const p = new Vector3()
+      let sum = 0
+      let n = 0
+      for (let i = 0; i < position.count; i++) {
+        p.set(position.getX(i), position.getY(i), position.getZ(i))
+        if (near(p)) {
+          sum += color.getX(i)
+          n += 1
+        }
+      }
+      return sum / Math.max(1, n)
+    }
+    const behindLine = (p: Vector3) => Math.abs(p.x) < 0.3 && p.y > 0.6 && p.y < 1.3
+    const nearCorner = (p: Vector3) => p.x < -2.5 && p.y > 0.6 && p.y < 1.3
+    expect(colourAt(lit, 'tile', behindLine)).toBeGreaterThan(colourAt(flat, 'tile', behindLine) * 0.95)
+    expect(colourAt(lit, 'tile', nearCorner)).toBeLessThan(colourAt(flat, 'tile', nearCorner) * 0.7)
+    expect(colourAt(lit, 'metal', () => true)).toBeCloseTo(colourAt(flat, 'metal', () => true), 6)
+    flat.dispose()
+    lit.dispose()
   })
 })
 
