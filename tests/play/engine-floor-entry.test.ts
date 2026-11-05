@@ -56,11 +56,11 @@ describe('verify:games for engine-floor', () => {
 })
 
 describe('the registry\'s record of Back of House', () => {
-  test('is D-049\'s: the display name over its subtitle, the id `engine-floor`, TR1, and no 3D scene yet (W1-T18 builds it and turns `has3d` on)', () => {
+  test('is D-049\'s: the display name over its subtitle, the id `engine-floor`, TR1, and its 3D scene (W1-T18)', () => {
     expect([ENGINE_FLOOR.id, ENGINE_FLOOR.title, ENGINE_FLOOR.subtitle]).toEqual(['engine-floor', 'Back of House', "a request's lifecycle"])
     expect(ENGINE_FLOOR.modules).toEqual(['tr1'])
-    expect(ENGINE_FLOOR.has3d).toBe(false)
-    expect(existsSync(path.join(root, 'src/games/engine-floor/Scene3D.tsx'))).toBe(false)
+    expect(ENGINE_FLOOR.has3d).toBe(true)
+    expect(existsSync(path.join(root, 'src/games/engine-floor/Scene3D.tsx'))).toBe(true)
     expect(GAMES.get('engine-floor')).toBe(ENGINE_FLOOR)
     expect(GAMES.games.filter((game) => game.id === 'engine-floor')).toHaveLength(1)
   })

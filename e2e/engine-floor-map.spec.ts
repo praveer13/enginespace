@@ -27,6 +27,7 @@ import { test as base, expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { createServer } from 'vite'
 import type { ViteDevServer } from 'vite'
+import { withSettings } from './support/site'
 import { applyAction, startRun, stateHash } from '../packages/play'
 import { buildLevel, scenarioFor } from '../packages/play/engine-floor/levels'
 import { floorSession } from '../packages/play/engine-floor/session'
@@ -68,6 +69,8 @@ const entropyFor = (wanted: (sc: Scenario) => boolean): number => {
 const NANO = entropyFor((sc) => sc.engine === 'nano-vllm' && !sc.prefixHit)
 
 const game = (page: Page) => page.locator('section[data-game="engine-floor"]')
+/** The tape that names the level and its mode, under the view (the view leads the page, W1-T18). */
+const levelTape = (page: Page) => game(page).locator('.es-tape', { hasText: /· (practice|graded)$/ })
 const outcome = (page: Page) => page.locator('[data-live="outcome"]')
 const line = (page: Page) => page.locator('[data-live="line"]')
 const stage = (page: Page, id: string) => page.locator(`[data-floor-tray] [data-stage="${id}"]`)
@@ -92,6 +95,8 @@ async function open(page: Page, entropy: number | null = null) {
       return real(array as Uint32Array)
     }) as typeof crypto.getRandomValues
   }, entropy)
+  // These walks are the graded map and its 2D house: the 3D house (W1-T18) has its own spec, e2e/engine-floor-scene.spec.ts.
+  await withSettings(page.context(), { view3d: false })
   await page.goto(`${origin}/play/engine-floor?level=map`, { waitUntil: 'networkidle' })
   await page.evaluate(() => document.fonts.ready)
   await expect(game(page)).toBeVisible()
@@ -111,7 +116,7 @@ async function startGraded(page: Page) {
   await game(page).focus()
   await tabTo(page, /^Start a graded run$/)
   await page.keyboard.press('Enter')
-  await expect(game(page).locator('.es-tape').first()).toContainText('graded')
+  await expect(levelTape(page)).toContainText('graded')
   await expect.poll(() => page.evaluate(() => document.activeElement?.getAttribute('data-game'))).toBe('engine-floor')
 }
 
@@ -218,7 +223,7 @@ test.describe('a graded run by keyboard alone', () => {
     // The way on is another fresh scenario: a new graded run, not yet predicted, with focus kept in the game.
     await page.getByRole('button', { name: 'Another fresh scenario' }).first().focus()
     await page.keyboard.press('Enter')
-    await expect(game(page).locator('.es-tape').first()).toContainText('graded')
+    await expect(levelTape(page)).toContainText('graded')
     await expect(page.locator('[data-floor-tray] [data-stage]')).toHaveCount(0)
     await expect.poll(() => page.evaluate(() => document.activeElement?.getAttribute('data-game'))).toBe('engine-floor')
   })

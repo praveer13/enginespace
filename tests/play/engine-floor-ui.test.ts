@@ -57,15 +57,18 @@ describe('the page names the game as D-049 says, and opens on the first level', 
     expect(render(h(Game, { level: 'constructor' }))).toContain('nano-vllm · practice')
   })
 
-  test('has Play and Debrief and no other stage, the keys button, and no view switch: the game has no 3D scene yet, and its 2D view is the whole of it', () => {
+  test('has Play and Debrief and no other stage, the keys button, and the view switch of a game with a 3D scene (W1-T18), on the 2D view until the device is known', () => {
     const markup = render(h(Game, null))
     expect(markup).toContain('>Play</button>')
     expect(markup).toContain('>Debrief</button>')
     expect(markup).not.toContain('>Compose<')
     expect(markup).toContain('>Keys</button>')
-    expect(markup).not.toContain('aria-label="View"')
-    expect(markup).not.toContain('3D view')
+    // The server cannot know what the device draws, so the page paints the 2D house first, and the 3D view waits for the tier.
+    expect(markup).toMatch(/<div role="group" aria-label="View"[^>]*>.*aria-pressed="true" aria-keyshortcuts="V">2D view<\/button>/)
+    expect(markup).toMatch(/aria-pressed="false" aria-keyshortcuts="V" disabled="">3D view<\/button>/)
     expect(markup).toContain('data-surface="2d"')
+    // The camera's stops belong to the 3D view and are not offered on the 2D one.
+    expect(markup).not.toContain('aria-label="Camera on the house"')
   })
 
   test('keeps the notional-machine card to hand, in its three parts, and holds no number', () => {

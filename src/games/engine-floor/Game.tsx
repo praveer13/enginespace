@@ -1,18 +1,33 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, useEffect, useMemo, useRef, useState } from 'react'
 import { drawInBand, levelOf } from '@es/play'
 import type { GameMode } from '@es/play'
 import { ENGINE_FLOOR } from '@es/play/engine-floor/entry'
 import { floorSession } from '@es/play/engine-floor/session'
 import type { Seed } from '@es/sim/core'
 import { GameShell } from '@/games/kit/GameShell'
+import type { GameView } from '@/games/kit/ViewSwitch'
 import type { GameProps } from '@/games/registry'
+import { CameraButtons } from '@/scene/CameraButtons'
+import { Stage } from '@/scene/Stage'
+import { unavailableReason, useDeviceTier } from '@/scene/tiers'
 import { WorldCard } from './Card'
 import { Controls } from './Controls'
 import { Debrief } from './Debrief'
 import { GradedBar, LevelList } from './LevelRail'
 import { Mirror } from './Mirror'
+import type { Scene3DProps } from './Scene3D'
+import { sceneModelOf } from './scene-presets'
+import { DEFAULT_STOP, floorsOf, nextStop, stopsOf, type CameraStop } from './scene-stops'
 import type { FloorRun } from './types'
 import { View2D } from './View2D'
+
+// The 3D scene is its own chunk over three's (A§6.10): the Stage loads it only on a device whose tier draws 3D.
+const Scene3D = lazy(() => import('./Scene3D'))
+
+/** The scene as the Stage mounts it, inside the Stage's canvas box. */
+function FloorScene(props: Scene3DProps) {
+  return <Scene3D {...props} />
+}
 
 /*
  * Back of House (`engine-floor`, D-049: "Back of House", a request's lifecycle). Its page is Play → Debrief, around the 2D view, the
@@ -23,8 +38,12 @@ import { View2D } from './View2D'
  * its pinned seed, and a finished level offers the next. The last, `map`, can also be graded: a graded run draws a seed when it starts,
  * in band (GAMES.md §2.1), which is a fresh scenario of any of the five engines, with no undo and one run (W1-T19; ASSESSMENT §4.3).
  * Whether a page records the run is its own business: a lesson passes `onFinish` for a graded run (D-038), and the game's page passes
- * nothing. A game with a 3D scene joins its scene to this page with W1-T18. Until then the page is its 2D view, which is a first-class
- * path to the whole concept (A§6.2).
+ * nothing.
+ *
+ * The 3D view (W1-T18) is the house in cutaway, in a Stage that paints the 2D house first and keeps it as the fallback (A§6.7). It opens on
+ * its own on a device whose tier draws 3D, and leads the page with the controls beside it; `V` or the switch swaps the two views, and the
+ * session lives here, above both, so a swap keeps the prediction, the path and the runs. The camera's stop lives here too: `C` and the
+ * stop buttons move it, in 3D only. The 2D view stays a first-class path to the whole concept (A§6.2).
  *
  * The debrief is imported with the game and not on demand. It draws with the same parts as the 2D view, so a chunk of its own would take
  * them out of the game's chunk, and `verify:bundle` finds a game by the chunk that Game.tsx opens: that chunk must hold the game whole.
@@ -53,6 +72,15 @@ const run = (r: FloorRun): boolean => {
 }
 
 export default function Game({ level, mode, placement = 'page', rev, onFinish }: GameProps) {
+  // 3D opens by itself where the device draws it, and a learner's own choice of view wins from then on. Under `saveData` the Stage waits
+  // to be asked, so the page opens on the 2D view there.
+  const device = useDeviceTier()
+  const draws3d = device.known && device.tier >= 1
+  const [chosenView, setChosenView] = useState<GameView | null>(null)
+  const view: GameView = chosenView ?? (draws3d && device.hints?.saveData !== true ? '3d' : '2d')
+  const unavailable3d = device.known && !draws3d ? unavailableReason(device.reason) : undefined
+  const [stop, setStop] = useState<CameraStop>(DEFAULT_STOP)
+
   const [asked, setAsked] = useState({ level, mode })
   const [attempt, setAttempt] = useState<Attempt>(() => startOf(known(level), mode))
   // A page that opens another level of the game, or the same one in another mode, gets it. (Adjusting state when a prop changes: React re-renders at once.)
@@ -87,7 +115,11 @@ export default function Game({ level, mode, placement = 'page', rev, onFinish }:
       rev={rev}
       headingLevel={placement === 'embed' ? 3 : 2}
       onFinish={onFinish}
-      allow3d={false}
+      allow3d={draws3d}
+      unavailable3d={unavailable3d}
+      view={view}
+      onViewChange={setChosenView}
+      stage
       onCommand={(command, r) => {
         if (command === 'run' || command === 'step') return run(r)
         if (command === 'unlay') {
@@ -95,15 +127,27 @@ export default function Game({ level, mode, placement = 'page', rev, onFinish }:
           r.dispatch({ t: 'unlay' })
           return true
         }
+        if (command === 'camera') {
+          if (view !== '3d') return false
+          const stops = stopsOf(floorsOf(r.view))
+          const next = nextStop(stops, stop)
+          setStop(next)
+          r.announce(`Camera: ${stops.find((candidate) => candidate.id === next)?.label ?? 'Cutaway'}.`)
+          return true
+        }
         return false
       }}
       view2d={(r) => <View2D run={r} />}
+      scene3d={(r) => <FloorStage run={r} stop={stop} />}
       controls={(r) => (
-        <Controls
-          run={r}
-          top={<GradedBar entry={entry} mode={attempt.mode} done={r.done} onGraded={() => go(graded(entry.id))} onPractice={() => go(practice(entry.id))} />}
-          rail={<LevelList levels={ENGINE_FLOOR.levels} current={entry.id} onLevel={(id) => go(practice(id))} />}
-        />
+        <>
+          {view === '3d' ? <Stops run={r} stop={stop} onStop={setStop} /> : null}
+          <Controls
+            run={r}
+            top={<GradedBar entry={entry} mode={attempt.mode} done={r.done} onGraded={() => go(graded(entry.id))} onPractice={() => go(practice(entry.id))} />}
+            rail={<LevelList levels={ENGINE_FLOOR.levels} current={entry.id} onLevel={(id) => go(practice(id))} />}
+          />
+        </>
       )}
       mirror={(r) => <Mirror run={r} />}
       debrief={(r, outcome) => (
@@ -117,6 +161,43 @@ export default function Game({ level, mode, placement = 'page', rev, onFinish }:
         />
       )}
       card={<WorldCard />}
+    />
+  )
+}
+
+/** The camera's stops for the house the view stands in: the cutaway, one for each storey, and the ticket followed. */
+function Stops({ run, stop, onStop }: { run: FloorRun; stop: CameraStop; onStop: (stop: CameraStop) => void }) {
+  const stops = useMemo(() => stopsOf(floorsOf(run.view)), [run.view])
+  return <CameraButtons presets={stops} value={stops.some((candidate) => candidate.id === stop) ? stop : 'cutaway'} onChange={(id) => onStop(id as CameraStop)} label="Camera on the house" />
+}
+
+/**
+ * The 3D view's box: the Stage, with the 2D house as its first paint and its fallback (scrolling in the box where it runs longer than the
+ * box), and the scene behind it. The house is taller than it is wide, so the box is too, about the first screen's height: 70% of it at a
+ * laptop's width and 58% on a phone, at least 20rem [estimated].
+ */
+const STAGE_BOX = 'h-[clamp(20rem,min(70svh,52vw),48rem)] max-[479px]:h-[max(20rem,58svh)]'
+
+function FloorStage({ run, stop }: { run: FloorRun; stop: CameraStop }) {
+  // The scene's model is laid out here, from the view, and its house is kept while the plan stays the same (scene-presets.ts).
+  const [model, setModel] = useState(() => sceneModelOf(run.view))
+  const [seen, setSeen] = useState(run.view)
+  if (seen !== run.view) {
+    setSeen(run.view)
+    setModel(sceneModelOf(run.view, model))
+  }
+  return (
+    <Stage
+      id="engine-floor"
+      className={`${STAGE_BOX} border border-edge shadow-shelf`}
+      view2d={
+        <div className="h-full overflow-y-auto p-3">
+          <View2D run={run} />
+        </div>
+      }
+      scene={FloorScene}
+      sceneProps={{ view: run.view, model, stop }}
+      announce={run.announce}
     />
   )
 }
