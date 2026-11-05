@@ -15,6 +15,7 @@ import { SpecimenView2D } from './SpecimenView2D'
 import { Stage } from './Stage'
 import type { FrameStats } from './stage-runtime'
 import type { Tier } from './tiers'
+import './specimen.css'
 
 /*
  * The scene kit on /design (TRACKER W0-T15): one pass drawn by every part of the kit, beside its 2D twin, with the

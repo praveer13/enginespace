@@ -5,8 +5,9 @@
  *
  * For a prop of a later game (the reach-in, tasting spoons, the dumbwaiter's car): build it from shape.ts's helpers (a rounded box, a
  * lathe, a sweep round a rounded rectangle, a bent tube), colour it through the palette's tones, give its glowing parts a channel so
- * a mask lights it or leaves it dark in the lamp's amber, and give it a footprint for its contact shadow. A label goes on masking
- * tape in a slot (specs.ts's panTapeSlot), and its words are DOM.
+ * a mask lights it or leaves it dark in the lamp's amber, and give it a footprint for its contact shadow; list it in a <StaticSet> as
+ * a `custom` spec whose builder takes the kit's own maker (specs.ts's CustomSpec), so it merges with the kit's props. A label goes on
+ * masking tape in a slot (specs.ts's panTapeSlot), and its words are DOM.
  */
 export { Kitchen } from './Kitchen'
 export { useProps, type PropsKit, type ShadowRegistry } from './context'
@@ -15,7 +16,7 @@ export { ALWAYS_LIT, buildSet, litMask, roomShade, type RoomLight } from './set'
 export { RailClips, PrinterFeed, Tickets, type ClipPlace, type TicketPose } from './Tickets'
 export { LampLights, Plates, ServiceBell, Steam, STEAM, type LampLight, type PlatePlace } from './Service'
 export { cellOffset, CLIP_DROP, PRINTER_MOUTH, tearPose, ticketGeometry } from './paper'
-export { buildProp, insetPath, panGeometries, plateProfile, type Footprint } from './build'
+export { buildProp, insetPath, panGeometries, plateProfile, type Footprint, type PropMaker } from './build'
 export { CHANNEL, paletteFrom, type Palette, type Tone } from './palette'
 export { bent, block, cap, lathe, painted, rod, roundedBox, roundedRectPath, straightPath, sweep, tube, type Part, type Surface } from './shape'
 export { bakeOcclusion } from './occlusion'

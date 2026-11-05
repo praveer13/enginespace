@@ -24,6 +24,7 @@ import { test as base, expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { createServer } from 'vite'
 import type { ViteDevServer } from 'vite'
+import { withSettings } from './support/site'
 import { applyAction, startRun, stateHash } from '../packages/play'
 import { buildLevel } from '../packages/play/engine-floor/levels'
 import { floorSession } from '../packages/play/engine-floor/session'
@@ -64,6 +65,8 @@ const activeName = (page: Page) =>
   })
 
 async function open(page: Page, level: string) {
+  // These walks are the game and its 2D house: the 3D house (W1-T18) has its own spec, e2e/engine-floor-scene.spec.ts.
+  await withSettings(page.context(), { view3d: false })
   await page.goto(`${origin}/play/engine-floor?level=${level}`, { waitUntil: 'networkidle' })
   await page.evaluate(() => document.fonts.ready)
   await expect(game(page)).toBeVisible()
@@ -143,7 +146,7 @@ test.describe('a keyboard-only walk', () => {
     await page.getByRole('button', { name: 'Next level' }).focus()
     await page.keyboard.press('Enter')
     await expect.poll(() => page.evaluate(() => document.activeElement?.getAttribute('data-game'))).toBe('engine-floor')
-    await expect(page.locator('[data-game="engine-floor"] .es-tape').first()).toContainText('nano-vllm on two GPUs · practice')
+    await expect(page.locator('[data-game="engine-floor"] .es-tape', { hasText: /· (practice|graded)$/ })).toContainText('nano-vllm on two GPUs · practice')
   })
 
   test('the keys of the game: R runs, Backspace takes the last stage off, comma undoes, and ? shows them all', async ({ page }) => {

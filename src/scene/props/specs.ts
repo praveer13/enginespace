@@ -6,6 +6,8 @@
  * Every size is [estimated]: real line equipment's proportions, set on the /design specimens. Hotel pans take the Gastronorm sizes
  * (1/1 is 530 × 325 mm, 1/2 is 325 × 265 mm, 1/3 is 325 × 176 mm [unverified: EN 631-1, not checked against the standard]).
  */
+import type { PropMaker } from './build'
+
 export type Vec3 = readonly [number, number, number]
 
 interface Placed {
@@ -37,6 +39,8 @@ export interface HeatLampSpec extends Placed {
   readonly drop: number
   /** A cord with a little sag, or a rigid rod. */
   readonly hang: 'cord' | 'rod'
+  /** The glow channel its bulb follows: the lamps' own, always lit, unless a scene lights one lamp of many (Back of House). */
+  readonly channel?: number
 }
 
 /** A ticket rail's channel, `length` along x, its top at `at`. Its clips and tickets are dynamic (Tickets.tsx). */
@@ -128,7 +132,19 @@ export interface WorktopSpec extends Placed {
   readonly height: number
 }
 
+/**
+ * A game's own prop, made the kit's way: `build` adds its parts in tones, its glowing parts on channels and its footprints through the
+ * maker every prop above is built with (build.ts), in the prop's own space; the set places it at `at`, turned `yaw`, and merges it with
+ * the rest, so it shares their draws, their baked occlusion and their contact shadows. The function is the one thing here that is not
+ * data: a game's layout lists its props as data, and its scene, which may import three, turns them into this.
+ */
+export interface CustomSpec extends Placed {
+  readonly kind: 'custom'
+  readonly build: (maker: PropMaker) => void
+}
+
 export type PropSpec =
+  | CustomSpec
   | PassSpec
   | HeatLampSpec
   | RailSpec

@@ -1,5 +1,6 @@
 import type { MouseEvent } from 'react'
 import type { SpecimenLayout } from './specimen-layout'
+import './specimen.css'
 
 /*
  * The specimen's 2D twin (ARCHITECTURE §6.2: a first-class path, never a degraded one): the same layout as the 3D pass,

@@ -46,7 +46,11 @@ export interface Built {
   readonly footprints: Footprint[]
 }
 
-interface Maker {
+/**
+ * What a builder adds a prop's pieces through: a part in a tone, a glowing part on a channel, a footprint for its contact shadow. A game's
+ * own prop (specs.ts's `CustomSpec`) is built through the same one, which is what makes it the kit's way.
+ */
+export interface PropMaker {
   readonly palette: Palette
   readonly parts: Part[]
   readonly footprints: Footprint[]
@@ -54,6 +58,8 @@ interface Maker {
   glow(geometry: BufferGeometry, channel: number, strength?: number): void
   shadow(center: Vec3, size: readonly [number, number], options?: { radius?: number; soft?: number; strength?: number }): void
 }
+
+type Maker = PropMaker
 
 function maker(palette: Palette): Maker {
   const parts: Part[] = []
@@ -264,7 +270,7 @@ function heatLamp(m: Maker, spec: HeatLampSpec) {
       ),
       [0, shadeTop - 0.035, 0],
     ),
-    CHANNEL.lamp,
+    spec.channel ?? CHANNEL.lamp,
     1,
   )
 }
@@ -652,6 +658,7 @@ function speedRack(m: Maker, spec: SpeedRackSpec) {
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 const BUILDERS: { [K in PropSpec['kind']]: (m: Maker, spec: Extract<PropSpec, { kind: K }>) => void } = {
+  custom: (m, spec) => spec.build(m),
   worktop,
   pass,
   'heat-lamp': heatLamp,
