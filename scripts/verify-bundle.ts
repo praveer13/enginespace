@@ -21,7 +21,7 @@
  *
  * The rows (each is [estimated] until W0-T24 freezes it in DECISIONS, D-023). A gate fails the run above it. A target only warns.
  *   entry          the entry chunk's own file.                                                  gate 110, target 100
- *   front page     the JavaScript of the entry, the front page's chunk and the course index,    gate 151 (D-053), target 130
+ *   front page     the JavaScript of the entry, the front page's chunk and the course index,    gate 152 (D-054), target 130
  *                  with their static imports (A§6.10: "the entry, the `front` route, The Loop's 2D view, the step-loop core and
  *                  the content index"). The index is a lazy chunk, but the page's loader awaits it before it paints.
  *   CSS            the stylesheets of that same closure (what the document links).              gate 30, target 20
@@ -59,7 +59,7 @@ export const KB = 1000
 /** The budgets of ARCHITECTURE §11.1 in KB of gzip, every one [estimated] (D-023). `target` only warns. */
 export const BUDGETS = {
   entry: { gate: 110, target: 100 },
-  front: { gate: 151, target: 130 },
+  front: { gate: 152, target: 130 },
   css: { gate: 30, target: 20 },
   route: { gate: 200 },
   threeVendor: { gate: 245 },

@@ -7,12 +7,14 @@
  * records and not the games. `src/games/registry.ts` maps the same ids to the lazy components (kernelspace's PLAY_REGISTRY
  * pattern), and `verify:games` fails when the two disagree.
  *
- * A game joins by adding its entry to `GAMES` below. W0-T16 added `loop`, the first, and W1-T28 added `verifier`.
+ * A game joins by adding its entry to `GAMES` below. W0-T16 added `loop`, the first, W1-T28 added `verifier`, and W1-T17 added
+ * `engine-floor`.
  *
  * The keys and `levelOf` are in keys.ts, and this module re-exports them. The front page reads those and no game's record besides
  * Service's, and its first-paint closure (D-023) is gated: with the keys in a module of their own and the call that makes `GAMES` marked
  * pure, a build in which nothing reads `GAMES` leaves this module out of that closure, and every game added here costs it nothing.
  */
+import { ENGINE_FLOOR } from './engine-floor/entry'
 import { levelOf } from './keys'
 import { LOOP } from './loop/entry'
 import { regrade } from './replay'
@@ -44,8 +46,8 @@ export function createRegistry(games: readonly GameEntry[]): GameRegistry {
   return { games: list, has: (id) => byId.has(id), get: (id) => byId.get(id) }
 }
 
-/** Every game of the course. Each game's task adds its entry here: `loop` is the first (W0-T16), and `verifier` follows (W1-T28). */
-export const GAMES: GameRegistry = /* @__PURE__ */ createRegistry([LOOP, VERIFIER])
+/** Every game of the course. Each game's task adds its entry here: `loop` is the first (W0-T16), `verifier` follows (W1-T28), then `engine-floor` (W1-T17). */
+export const GAMES: GameRegistry = /* @__PURE__ */ createRegistry([LOOP, VERIFIER, ENGINE_FLOOR])
 
 /**
  * Grades a stored `play` run by its log: finds the game, loads its session and replays. A run of a game this build does not have,

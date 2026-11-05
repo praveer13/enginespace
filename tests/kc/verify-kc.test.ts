@@ -497,7 +497,8 @@ describe('as a process', () => {
   /** What the gate prints of a tree that is `loopKcs` and the other games' KCs: the count, the modules, and how many are earned and planned. */
   const counted = (): string => {
     const ids = [...LOOP_IDS, ...others.keys()]
-    const byModule = modulesOf(ids).map((module) => `${module} ${ids.filter((id) => id.startsWith(`${module}.`)).length}`)
+    // The gate lists the modules in the order the graph meets them, which is the order of the games in the registry.
+    const byModule = [...new Set(ids.map((id) => id.split('.')[0]))].map((module) => `${module} ${ids.filter((id) => id.startsWith(`${module}.`)).length}`)
     const earned = [...others.values()].filter((o) => !o.planned).length
     const planned = LOOP_IDS.length + [...others.values()].filter((o) => o.planned).length
     return `${ids.length} KCs (${byModule.join(', ')}), 0 thresholds, 0 confusable pairs, 0 kernelspace prerequisites; ${earned} with a graded reference, ${planned} planned`
@@ -548,7 +549,7 @@ describe('as a process', () => {
     const module = (id: string) => `  - id: ${id}\n    title: Module ${id}\n    hours: 10\n    hours_by_lane: { B: 10 }\n`
     const dir = tree(graph, {
       'docs/TRACKER.md': '#### [ ] W1-T14 · TR2 · M · sonnet\n',
-      'content/course.yaml': `modules:\n${['tr1', ...modulesOf(others.keys()).filter((id) => id !== 'tr2')].map(module).join('')}`,
+      'content/course.yaml': `modules:\n${[...new Set(['tr1', ...modulesOf(others.keys()).filter((id) => id !== 'tr2')])].map(module).join('')}`,
       'content/kc/kernelspace.json': renderSnapshot('a'.repeat(40), ['t0.wait-bars']),
     })
     const { status, out } = gate(dir)
