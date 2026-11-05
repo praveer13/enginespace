@@ -58,7 +58,7 @@
   position: relative;
   container-type: inline-size;
   min-width: 0;
-  padding: var(--es-space-6) var(--es-space-3) var(--es-space-3);
+  padding: var(--es-space-8) var(--es-space-3) var(--es-space-3);
   border-radius: var(--es-radius-shoulder);
   background-color: var(--es-surface-3);
   background-image:
@@ -68,29 +68,81 @@
   box-shadow: var(--es-shadow-lift);
 }
 
-/* The spring clip: a plate across the top of the board with a dark slot and two rivets. */
+/*
+ * The spring clip (Clipboard.tsx draws it): its plate riveted to the board's head, the barrel with the spring's wire round it, and the jaw
+ * over the top of the form. The tubes above cast its shadow down onto the paper and the steel: an offset, soft drop-shadow of the shape
+ * itself, in the ribbon's black at part strength. The jaw ends inside the form's top margin, above its head line.
+ */
 .es-bench-clip__spring {
   position: absolute;
+  z-index: 1;
   top: calc(var(--es-space-2) * -1);
   left: 50%;
   display: block;
-  width: 7rem;
-  height: 1.75rem;
+  width: 10rem;
+  height: 3.75rem;
+  overflow: visible;
   transform: translateX(-50%);
-  border: 1px solid var(--es-edge);
-  border-radius: var(--es-radius-plate);
-  background-color: var(--es-surface-2);
-  background-image: linear-gradient(180deg, color-mix(in srgb, var(--es-glint) 55%, transparent), transparent 55%);
-  box-shadow: var(--es-shadow-plate);
+  filter: drop-shadow(0 2px 1.5px color-mix(in srgb, var(--es-paper-ink) 45%, transparent)) drop-shadow(0 6px 5px color-mix(in srgb, var(--es-paper-ink) 22%, transparent));
 }
 
-.es-bench-clip__spring::before {
-  content: '';
-  position: absolute;
-  inset: 0.5rem 1.4rem;
-  border-radius: var(--es-radius-trim);
-  background-color: var(--es-paper-ink);
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--es-glint) 40%, transparent);
+.es-bench-spring__lit {
+  stop-color: color-mix(in srgb, var(--es-glint) 55%, var(--es-surface-1));
+}
+
+.es-bench-spring__mid {
+  stop-color: var(--es-surface-2);
+}
+
+.es-bench-spring__low {
+  stop-color: color-mix(in srgb, var(--es-surface-2) 50%, var(--es-surface-3));
+}
+
+.es-bench-spring__dark {
+  stop-color: var(--es-surface-3);
+}
+
+.es-bench-spring__glint {
+  stop-color: var(--es-paper);
+}
+
+.es-bench-spring__plate {
+  stroke: var(--es-edge);
+  stroke-width: 1;
+}
+
+.es-bench-spring__rivet,
+.es-bench-spring__barrel {
+  stroke: var(--es-surface-3);
+  stroke-width: 0.8;
+}
+
+/* The light along a stamped edge and the lip, and the shade in the jaw's pressed groove and under its rolled lip. */
+.es-bench-spring__ridge {
+  fill: none;
+  stroke: color-mix(in srgb, var(--es-glint) 65%, transparent);
+  stroke-width: 1;
+}
+
+.es-bench-spring__groove,
+.es-bench-spring__under {
+  fill: none;
+  stroke: color-mix(in srgb, var(--es-surface-3) 70%, transparent);
+  stroke-width: 1;
+}
+
+.es-bench-spring__wire {
+  fill: none;
+  stroke: var(--es-surface-3);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.es-bench-spring__shine {
+  fill: none;
+  stroke: color-mix(in srgb, var(--es-glint) 70%, transparent);
+  stroke-width: 0.7;
+  stroke-linecap: round;
 }
 
 .es-bench-form {
@@ -324,6 +376,7 @@
 
 .es-bench-tape__paper {
   position: relative;
+  isolation: isolate;
   width: calc(100% - 2rem);
   margin-top: -0.3rem;
   padding: var(--es-space-4) var(--es-space-3) var(--es-space-4);
@@ -385,7 +438,7 @@
   text-align: right;
 }
 
-.es-bench-tape__line:hover {
+.es-bench-tape__line:not([data-selected]):hover {
   background-color: color-mix(in srgb, var(--es-paper-rule) 35%, transparent);
 }
 
@@ -394,11 +447,36 @@
   color: var(--es-text-2);
 }
 
-/* The selected order is the present: it is under the lamp, with the filament's edge. */
+/*
+ * The selected order is the present, under the lamp as the order's ticket and the timeline's slip are (DESIGN.md, "The Edgeless Pool
+ * Rule"): an ellipse of light that fades out inside its own box, a little larger than the line, so the paper warms where it falls and no
+ * edge is drawn round it. The paper is its own stacking context and the pool sits at its back, under the print of every line, so the light
+ * spills onto the lines beside the selected one without dimming them. The filament's bar under its number is the hard edge, so the
+ * selection is a mark as well as a light.
+ */
 .es-bench-tape__line[data-selected] {
-  background-color: var(--es-lamp);
+  position: relative;
   color: var(--es-paper-ink);
-  outline: 1px solid var(--es-lamp-ring);
+}
+
+.es-bench-tape__line[data-selected]::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: -0.85rem calc(-1 * var(--es-space-3));
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--es-lamp) 82%, transparent) 0%,
+    color-mix(in srgb, var(--es-lamp) 60%, transparent) 42%,
+    color-mix(in srgb, var(--es-lamp) 24%, transparent) 74%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+.es-bench-tape__line[data-selected] > span:first-child {
+  text-decoration: underline 2px var(--es-lamp-ring);
+  text-underline-offset: 0.3em;
 }
 
 .es-bench-tape__line:focus-visible {
@@ -492,6 +570,24 @@
 .es-bench-desk > legend {
   margin-bottom: var(--es-space-3);
   padding: 0;
+}
+
+/*
+ * The stopwatch's switch keeps its pilot out of the lamp. Amber falls on the selected order and nowhere else on this board, so a switch
+ * that is on shows an inked lens, a solid dome of the ribbon's black catching the tubes, where an off switch shows a hollow steel ring;
+ * the lever's side and the stamped word say the same.
+ */
+.es-bench-desk .es-toggle__switch[data-state='checked'] .es-toggle__pilot {
+  background: radial-gradient(circle at 38% 32%, color-mix(in srgb, var(--es-glint) 55%, var(--es-paper-ink)) 0 18%, var(--es-paper-ink) 52%);
+  box-shadow:
+    inset 0 0 0 1px var(--es-paper-ink),
+    0 0 0 2px color-mix(in srgb, var(--es-paper-ink) 18%, transparent);
+}
+
+@media (forced-colors: active) {
+  .es-bench-desk .es-toggle__switch[data-state='checked'] .es-toggle__pilot {
+    background: CanvasText;
+  }
 }
 
 @media (min-width: 48rem) {
@@ -731,6 +827,135 @@
 
 .es-bench-instances > li {
   min-width: 0;
+}
+
+/*
+ * The real tools' instances of a flaw, as one ledger on a slip of paper: a line for each claim, its figure in one column and where it
+ * comes from in the next, every line on the same two columns and under the claim's own perforated rule. A figure that is a phrase is
+ * set as reading, in the body face, beside the numbers in their dots. The slip is a size container, and a narrow one sets the source
+ * under its figure.
+ */
+.es-bench-ledger-slip {
+  container-type: inline-size;
+  min-width: 0;
+  padding: var(--es-space-4) var(--es-space-6) var(--es-space-4);
+  background-color: var(--es-paper);
+  color: var(--es-paper-ink);
+  box-shadow: var(--es-shadow-paper);
+}
+
+.es-bench-ledger-slip > .es-bench-ruling__subhead {
+  margin-top: 0;
+}
+
+.es-bench-ledger {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+
+.es-bench-ledger .es-claim {
+  display: grid;
+  grid-template-columns: minmax(0, 12rem) minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--es-space-1) var(--es-space-4);
+  width: 100%;
+  margin: 0;
+  padding: var(--es-space-2) 0;
+  background: none;
+}
+
+.es-bench-ledger .es-claim__text {
+  font-family: var(--es-font-body);
+  font-size: var(--es-size-note);
+  line-height: 1.4;
+}
+
+.es-bench-ledger .es-claim__trace {
+  max-inline-size: none;
+  font-size: var(--es-size-caption);
+}
+
+@container (max-width: 26rem) {
+  .es-bench-ledger .es-claim {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------- the debrief */
+
+/*
+ * One column on a narrow screen, in the order of the reading: the verdict, then each ruling and its exhibits. From 64rem the debrief takes
+ * both columns. A single case sets its exhibits on the right beside the verdict and the ruling on the left; the middle row takes what the
+ * exhibits need beyond the verdict, so the ruling sits close under it. A court sets the verdict and its docket across the top and each
+ * ruling beside its own exhibits.
+ */
+.es-bench-debrief {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: var(--es-space-6);
+  min-width: 0;
+}
+
+.es-bench-spread,
+.es-bench-exhibits {
+  display: grid;
+  align-items: start;
+  gap: var(--es-space-6);
+  min-width: 0;
+}
+
+.es-bench-exhibit {
+  display: grid;
+  gap: var(--es-space-3);
+  min-width: 0;
+}
+
+.es-bench-court .es-ticket__body > p {
+  max-width: 68ch;
+}
+
+@media (min-width: 64rem) {
+  .es-bench-debrief {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: var(--es-space-8);
+  }
+
+  .es-bench-debrief > * {
+    grid-column: 1 / -1;
+  }
+
+  .es-bench-debrief[data-cases='one'] {
+    grid-template-rows: auto 1fr auto;
+  }
+
+  .es-bench-debrief[data-cases='one'] > .es-bench-court {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .es-bench-debrief[data-cases='one'] > .es-bench-spread {
+    display: contents;
+  }
+
+  .es-bench-debrief[data-cases='one'] .es-bench-ruling {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .es-bench-debrief[data-cases='one'] .es-bench-exhibits {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+
+  .es-bench-debrief[data-cases='one'] > .es-bench-debrief__after {
+    grid-row: 3;
+  }
+
+  .es-bench-debrief[data-cases='many'] .es-bench-spread {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: var(--es-space-8);
+  }
 }
 
 .es-bench-flagsets {
