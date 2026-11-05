@@ -5,7 +5,7 @@
     {
       "name": "seed 0 draws closed-loop",
       "input": {"seed":0},
-      "sha256": "da15c7ae8cf927baf59037feaa4668008eef8f7bec2ef2f4b2a4d9c9bc372207",
+      "sha256": "0a56466ca81c7bb3ca056e719dba6c8e3a0e040d4ef2feafbf92ae17b24be0ba",
       "output": {
         "answer": {"how":"rerun","n":1500,"p99Us":93020740,"targetUs":98065738},
         "attempts": 1,
@@ -17,7 +17,12 @@
         "interval": {"hiUs":93532365,"levelPermille":950,"loUs":92639647,"pointUs":93020740,"resamples":1000},
         "rows": {"count":1628,"sha256":"bbfbbf67cc279ee59a1df48324ad958ef51654777c6f863a151c23185f858664"},
         "runSeed": 0,
-        "server": {"chunkedPrefill":true,"gpu":"H100 SXM · vLLM 0.10.2 · FP8 · TP 4","maxBatchedTokens":8192,"maxNumSeqs":64},
+        "server": {
+          "chunkedPrefill": true,
+          "gpu": "H100 SXM · vLLM 0.10.2 · FP8 · TP 4 · host term inside the GPU step, as S5 fitted it",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64
+        },
         "setup": {
           "arrivals": {"clients":80,"kind":"closed","thinkUs":0},
           "durationUs": 1000000000000,
@@ -31,7 +36,7 @@
     {
       "name": "seed 1 draws coordinated-omission",
       "input": {"seed":1},
-      "sha256": "8fb52b8bdb3eb94e43c49b43fff63da3dbf04116024f6b44f11fb6edc88b1506",
+      "sha256": "2f40e31d44e8a32cb6f916fe6bd62b63e4b4c95307d1dd2604b3af26c833bda8",
       "output": {
         "answer": {"how":"rows","n":1000,"p99Us":9496295,"targetUs":10649233},
         "attempts": 1,
@@ -45,7 +50,7 @@
         "runSeed": 1,
         "server": {
           "chunkedPrefill": true,
-          "gpu": "H100 SXM · vLLM 0.10.2 · FP8 · TP 4",
+          "gpu": "H100 SXM · vLLM 0.10.2 · FP8 · TP 4 · host term inside the GPU step, as S5 fitted it",
           "maxBatchedTokens": 8192,
           "maxNumSeqs": 64,
           "stalls": [{"atUs":175820083,"forUs":11149233}]
@@ -63,7 +68,7 @@
     {
       "name": "seed 2 draws client-queue-hidden",
       "input": {"seed":2},
-      "sha256": "6d46699fddd76ff1a1a11d24d88edef2708967cb884d59a513935154b674a4d7",
+      "sha256": "485dfafd74dc0edcbf174b9ef412d447dd345e7da760e6f5385c717687433589",
       "output": {
         "answer": {"how":"rows","n":1500,"p99Us":8775017,"targetUs":7387277},
         "attempts": 1,
@@ -75,7 +80,12 @@
         "interval": {"hiUs":8942811,"levelPermille":950,"loUs":8670134,"pointUs":8775017,"resamples":1000},
         "rows": {"count":1628,"sha256":"9e76c93a12c1ca1e6071bfddb64f98765fc50e8d44ba6376cc08b2e02302d292"},
         "runSeed": 2,
-        "server": {"chunkedPrefill":true,"gpu":"H100 SXM · vLLM 0.10.2 · FP8 · TP 4","maxBatchedTokens":8192,"maxNumSeqs":64},
+        "server": {
+          "chunkedPrefill": true,
+          "gpu": "H100 SXM · vLLM 0.10.2 · FP8 · TP 4 · host term inside the GPU step, as S5 fitted it",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64
+        },
         "setup": {
           "arrivals": {"clients":64,"kind":"closed","schedule":{"kind":"poisson","ratePerSMilli":7532},"thinkUs":0},
           "durationUs": 219925115,
@@ -89,7 +99,7 @@
     {
       "name": "seed 3 draws warm-up-counted",
       "input": {"seed":3},
-      "sha256": "94a30e005eb537054b81d6a349e4700b1e5eea28ef7c1427c7a1c940edf98283",
+      "sha256": "46448fdcfffabdad18a9563e1a4b47d86e2e3d5e83123dd0074b753db3e2dfd5",
       "output": {
         "answer": {"how":"cut","n":1500,"p99Us":223506,"targetUs":215007},
         "attempts": 1,
@@ -104,7 +114,7 @@
         "server": {
           "chunkedPrefill": true,
           "cold": {"slowdownPermille":2500,"untilUs":4178194},
-          "gpu": "H100 SXM · vLLM 0.10.2 · FP8 · TP 4",
+          "gpu": "H100 SXM · vLLM 0.10.2 · FP8 · TP 4 · host term inside the GPU step, as S5 fitted it",
           "maxBatchedTokens": 8192,
           "maxNumSeqs": 64
         },
@@ -121,7 +131,7 @@
     {
       "name": "seed 4 draws warm-cache",
       "input": {"seed":4},
-      "sha256": "30acc72be649a01f8af2a5eb7d52b2d4f9f602b026c329dc43b6f6acca48f80e",
+      "sha256": "9632325283f2a3861172c7a350e36642f74c8469415f9a561b736b37000b4a73",
       "output": {
         "answer": {"how":"rerun","n":1000,"p99Us":1581497,"targetUs":1752232},
         "attempts": 1,
@@ -133,7 +143,12 @@
         "interval": {"hiUs":1710461,"levelPermille":950,"loUs":1423224,"pointUs":1581497,"resamples":1000},
         "rows": {"count":1128,"sha256":"b5d1e9e87da73d0fb01cb5ac2125db58dd956581658e5de2b5d0b354517c8f69"},
         "runSeed": 4,
-        "server": {"chunkedPrefill":true,"gpu":"H100 SXM · vLLM 0.10.2 · FP8 · TP 4","maxBatchedTokens":8192,"maxNumSeqs":64},
+        "server": {
+          "chunkedPrefill": true,
+          "gpu": "H100 SXM · vLLM 0.10.2 · FP8 · TP 4 · host term inside the GPU step, as S5 fitted it",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64
+        },
         "setup": {
           "arrivals": {"kind":"poisson","ratePerSMilli":2191},
           "durationUs": 552791937,
@@ -148,7 +163,7 @@
     {
       "name": "seed 5 draws capped-output",
       "input": {"seed":5},
-      "sha256": "e29dbb1a5b5f71f21d0c32a8eb76458ffd55f2657a14b7260b6a456ed070bebc",
+      "sha256": "e3ee7bd1fa6337aeac00c86bd3bc380003e04cceb5b577df16fd931456d44e81",
       "output": {
         "answer": {"how":"rerun","n":1000,"p99Us":36814669,"targetUs":35199948},
         "attempts": 1,
@@ -160,7 +175,12 @@
         "interval": {"hiUs":36909424,"levelPermille":950,"loUs":36419418,"pointUs":36814669,"resamples":1000},
         "rows": {"count":1128,"sha256":"d35c5fa85a8ec5941f7d250f878181eb3ed81d8eb08df26e5f1075cc88e5caed"},
         "runSeed": 5,
-        "server": {"chunkedPrefill":true,"gpu":"H100 SXM · vLLM 0.10.2 · FP8 · TP 4","maxBatchedTokens":8192,"maxNumSeqs":64},
+        "server": {
+          "chunkedPrefill": true,
+          "gpu": "H100 SXM · vLLM 0.10.2 · FP8 · TP 4 · host term inside the GPU step, as S5 fitted it",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64
+        },
         "setup": {
           "arrivals": {"kind":"poisson","ratePerSMilli":20551},
           "durationUs": 55988681,
@@ -175,7 +195,7 @@
     {
       "name": "seed 6 draws too-few-samples",
       "input": {"seed":6},
-      "sha256": "c6cacf7c65fd442ff4032a7cf0a839f410ea7e1598a95934f635e8157c3ece29",
+      "sha256": "2ffc6770358e86282950174f279f7d90104290fb04bea57ffd16b3b7942a2639",
       "output": {
         "answer": {"how":"rerun","n":1500,"p99Us":17475750,"targetUs":13266490},
         "attempts": 1,
@@ -187,7 +207,12 @@
         "interval": {"hiUs":17809972,"levelPermille":950,"loUs":17381892,"pointUs":17475750,"resamples":1000},
         "rows": {"count":61,"sha256":"888bcab2be8ac81ad0d8dc8bcd61c1aece50350e97ca25d0750293a7ba94d016"},
         "runSeed": 6,
-        "server": {"chunkedPrefill":true,"gpu":"H100 SXM · vLLM 0.10.2 · FP8 · TP 4","maxBatchedTokens":8192,"maxNumSeqs":64},
+        "server": {
+          "chunkedPrefill": true,
+          "gpu": "H100 SXM · vLLM 0.10.2 · FP8 · TP 4 · host term inside the GPU step, as S5 fitted it",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64
+        },
         "setup": {
           "arrivals": {"kind":"poisson","ratePerSMilli":13376},
           "durationUs": 4462122,
@@ -201,7 +226,7 @@
     {
       "name": "seed 7 draws mean-as-tail",
       "input": {"seed":7},
-      "sha256": "c293a3328b8a5cf3c03ae6a79663d235134d644cf104a86c2384b76e91906659",
+      "sha256": "b1a712eabe8136ea849db99962acf6728b7b9d96fcd0871f026dc4d2407ead5a",
       "output": {
         "answer": {"how":"rows","n":1250,"p99Us":26825100,"targetUs":27580080},
         "attempts": 1,
@@ -213,7 +238,12 @@
         "interval": {"hiUs":26860895,"levelPermille":950,"loUs":26592688,"pointUs":26825100,"resamples":1000},
         "rows": {"count":1378,"sha256":"20413fb10e3f3ba9d32ad8b88dca3d4e700bf30c70550228ed10bd81f69a0823"},
         "runSeed": 7,
-        "server": {"chunkedPrefill":true,"gpu":"H100 SXM · vLLM 0.10.2 · FP8 · TP 4","maxBatchedTokens":8192,"maxNumSeqs":64},
+        "server": {
+          "chunkedPrefill": true,
+          "gpu": "H100 SXM · vLLM 0.10.2 · FP8 · TP 4 · host term inside the GPU step, as S5 fitted it",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64
+        },
         "setup": {
           "arrivals": {"kind":"poisson","ratePerSMilli":35799},
           "durationUs": 38849099,
@@ -227,7 +257,7 @@
     {
       "name": "seed 8 draws client-bottleneck",
       "input": {"seed":8},
-      "sha256": "88e78b3539ea6c5f0d144c6250a215dacae726bd5262c073c74071c90a6cad35",
+      "sha256": "b1ff0d93bbf705fcd4fe360cf8aae94911ba74453e55cdc86c3a9740061ee783",
       "output": {
         "answer": {"how":"rerun","n":1000,"p99Us":4391331,"targetUs":5000000},
         "attempts": 1,
@@ -239,7 +269,12 @@
         "interval": {"hiUs":4421609,"levelPermille":950,"loUs":4352840,"pointUs":4391331,"resamples":1000},
         "rows": {"count":1128,"sha256":"409954feb3eb6e3f692349e452875514a5d6c1ec01d44aba4fdc169278341b0e"},
         "runSeed": 8,
-        "server": {"chunkedPrefill":true,"gpu":"H100 SXM · vLLM 0.10.2 · FP8 · TP 4","maxBatchedTokens":8192,"maxNumSeqs":64},
+        "server": {
+          "chunkedPrefill": true,
+          "gpu": "H100 SXM · vLLM 0.10.2 · FP8 · TP 4 · host term inside the GPU step, as S5 fitted it",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64
+        },
         "setup": {
           "arrivals": {"kind":"poisson","ratePerSMilli":12946},
           "clientCostUs": 128677,
@@ -254,7 +289,7 @@
     {
       "name": "seed 9 draws replay-without-timestamps",
       "input": {"seed":9},
-      "sha256": "2356d648bc47243c58f642f838b89a0abda7e310d15c69d63a616b18e89a3130",
+      "sha256": "0134120f68d0148c84e784c6485bc5c34c765b7e6fad1a300b1d6dedbbbd825a",
       "output": {
         "answer": {"how":"rerun","n":2105,"p99Us":36053808,"targetUs":35579426},
         "attempts": 1,
@@ -266,7 +301,12 @@
         "interval": {"hiUs":36146665,"levelPermille":950,"loUs":35845351,"pointUs":36053808,"resamples":1000},
         "rows": {"count":2233,"sha256":"16f74b9953f155bb989c3a221df7684a8c502c2d3e16d3efc9e45b14103cf11f"},
         "runSeed": 9,
-        "server": {"chunkedPrefill":true,"gpu":"H100 SXM · vLLM 0.10.2 · FP8 · TP 4","maxBatchedTokens":8192,"maxNumSeqs":64},
+        "server": {
+          "chunkedPrefill": true,
+          "gpu": "H100 SXM · vLLM 0.10.2 · FP8 · TP 4 · host term inside the GPU step, as S5 fitted it",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64
+        },
         "setup": {
           "arrivals": {"kind":"poisson","ratePerSMilli":13183},
           "durationUs": 174242962,
@@ -280,7 +320,7 @@
     {
       "name": "seed 10 draws none",
       "input": {"seed":10},
-      "sha256": "ed32243db46bd05f317504867b1876386e9623bd920a5e2d0d0c9d344bcfec7d",
+      "sha256": "9e61a6bc6ec4ed38a43f7821517673b1438840f791f01ed64d3d8ed425f3ce97",
       "output": {
         "answer": {"how":"rows","n":1200,"p99Us":440478,"targetUs":425697},
         "attempts": 1,
@@ -292,7 +332,12 @@
         "interval": {"hiUs":475796,"levelPermille":950,"loUs":410268,"pointUs":440478,"resamples":1000},
         "rows": {"count":1328,"sha256":"8dcdc5cbde7f693f5a14deb095a0d3dedb7537d5c125625da6e8d8032e58d8b7"},
         "runSeed": 10,
-        "server": {"chunkedPrefill":true,"gpu":"H100 SXM · vLLM 0.10.2 · FP8 · TP 4","maxBatchedTokens":8192,"maxNumSeqs":64},
+        "server": {
+          "chunkedPrefill": true,
+          "gpu": "H100 SXM · vLLM 0.10.2 · FP8 · TP 4 · host term inside the GPU step, as S5 fitted it",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64
+        },
         "setup": {
           "arrivals": {"kind":"poisson","ratePerSMilli":7680},
           "durationUs": 169759094,
@@ -306,7 +351,7 @@
     {
       "name": "seed 11 draws closed-loop",
       "input": {"seed":11},
-      "sha256": "4173f6aaad3beb917f82664dabfad7f6be9eef91b4b5f895f36ef65c37a5ccb7",
+      "sha256": "190fb3d7ef48471591f7b7280307881ac2bb071f75cee3e0728891879bd1e280",
       "output": {
         "answer": {"how":"rerun","n":1500,"p99Us":24425756,"targetUs":28959084},
         "attempts": 1,
@@ -318,7 +363,12 @@
         "interval": {"hiUs":24447554,"levelPermille":950,"loUs":24074902,"pointUs":24425756,"resamples":1000},
         "rows": {"count":1628,"sha256":"6dd6f94cc2c48721d83f4e57e1a38e0f6c8b50f07c00cb911cf5a9e2492a6cbb"},
         "runSeed": 11,
-        "server": {"chunkedPrefill":true,"gpu":"H100 SXM · vLLM 0.10.2 · FP8 · TP 4","maxBatchedTokens":8192,"maxNumSeqs":64},
+        "server": {
+          "chunkedPrefill": true,
+          "gpu": "H100 SXM · vLLM 0.10.2 · FP8 · TP 4 · host term inside the GPU step, as S5 fitted it",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64
+        },
         "setup": {
           "arrivals": {"clients":72,"kind":"closed","thinkUs":0},
           "durationUs": 1000000000000,
@@ -332,7 +382,7 @@
     {
       "name": "seed 12 draws coordinated-omission",
       "input": {"seed":12},
-      "sha256": "22c877f29b2d024c129cedc16d361deda681b78bb4a49d428feee3e342eccbc2",
+      "sha256": "31b8b2903933a85aa6be5f2a1f62cfc116187209ed0a65a3a863a54146d7930f",
       "output": {
         "answer": {"how":"rows","n":1000,"p99Us":35718640,"targetUs":36062086},
         "attempts": 1,
@@ -346,7 +396,7 @@
         "runSeed": 12,
         "server": {
           "chunkedPrefill": true,
-          "gpu": "H100 SXM · vLLM 0.10.2 · FP8 · TP 4",
+          "gpu": "H100 SXM · vLLM 0.10.2 · FP8 · TP 4 · host term inside the GPU step, as S5 fitted it",
           "maxBatchedTokens": 8192,
           "maxNumSeqs": 64,
           "stalls": [{"atUs":28130131,"forUs":36562086}]
@@ -364,7 +414,7 @@
     {
       "name": "seed 13 draws client-queue-hidden",
       "input": {"seed":13},
-      "sha256": "43dbad6c7212450d5836dfdd2186a308eec0bdaeca8a107fb4ad025f8e866281",
+      "sha256": "8e0500776f59435211cea6e9b08fd770372a275feefbfc78e8a20b47c6cbe08b",
       "output": {
         "answer": {"how":"rows","n":1250,"p99Us":9787690,"targetUs":13266490},
         "attempts": 1,
@@ -376,7 +426,12 @@
         "interval": {"hiUs":9840022,"levelPermille":950,"loUs":9733899,"pointUs":9787690,"resamples":1000},
         "rows": {"count":1378,"sha256":"7a4fb39eea449f971b475ee4f683bedf1cc1c3cc79d45674429c57842f5409ec"},
         "runSeed": 13,
-        "server": {"chunkedPrefill":true,"gpu":"H100 SXM · vLLM 0.10.2 · FP8 · TP 4","maxBatchedTokens":8192,"maxNumSeqs":64},
+        "server": {
+          "chunkedPrefill": true,
+          "gpu": "H100 SXM · vLLM 0.10.2 · FP8 · TP 4 · host term inside the GPU step, as S5 fitted it",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64
+        },
         "setup": {
           "arrivals": {"clients":72,"kind":"closed","schedule":{"kind":"poisson","ratePerSMilli":25755},"thinkUs":0},
           "durationUs": 56192192,
@@ -390,7 +445,7 @@
     {
       "name": "seed 14 draws warm-up-counted",
       "input": {"seed":14},
-      "sha256": "526d1ae9aa4d76074cb8a7c2bc1f927e7c44a275644035eb810484514ec355fd",
+      "sha256": "4d3a84cb54d62e8ab423b5b347f9566bd11a500863248353d03be6ba65e67c1c",
       "output": {
         "answer": {"how":"cut","n":1500,"p99Us":1394927,"targetUs":1668792},
         "attempts": 1,
@@ -405,7 +460,7 @@
         "server": {
           "chunkedPrefill": true,
           "cold": {"slowdownPermille":3000,"untilUs":32418749},
-          "gpu": "H100 SXM · vLLM 0.10.2 · FP8 · TP 4",
+          "gpu": "H100 SXM · vLLM 0.10.2 · FP8 · TP 4 · host term inside the GPU step, as S5 fitted it",
           "maxBatchedTokens": 8192,
           "maxNumSeqs": 64
         },
@@ -422,7 +477,7 @@
     {
       "name": "seed 15 draws warm-cache",
       "input": {"seed":15},
-      "sha256": "4d555a8b4347f6224262f28b6905b8a464ef080639e9cd15323291ec8ea6150f",
+      "sha256": "1513295acb65393acaf23b4e6c09a8e52578f6b0ba51013e974a0a1f02559c43",
       "output": {
         "answer": {"how":"rerun","n":1250,"p99Us":97669090,"targetUs":93395941},
         "attempts": 1,
@@ -434,7 +489,12 @@
         "interval": {"hiUs":97941432,"levelPermille":950,"loUs":97262632,"pointUs":97669090,"resamples":1000},
         "rows": {"count":1378,"sha256":"d4fac228516f912ce605992f55d1d4c92b8aaee9bb52bbe4a0e7fc9970bd49f0"},
         "runSeed": 15,
-        "server": {"chunkedPrefill":true,"gpu":"H100 SXM · vLLM 0.10.2 · FP8 · TP 4","maxBatchedTokens":8192,"maxNumSeqs":64},
+        "server": {
+          "chunkedPrefill": true,
+          "gpu": "H100 SXM · vLLM 0.10.2 · FP8 · TP 4 · host term inside the GPU step, as S5 fitted it",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64
+        },
         "setup": {
           "arrivals": {"kind":"poisson","ratePerSMilli":14489},
           "durationUs": 98821984,
@@ -449,7 +509,7 @@
     {
       "name": "seed 16 draws capped-output",
       "input": {"seed":16},
-      "sha256": "5baade9b845abb806fa882c0c9ee109cf05fdb8ae43ca80e0a8cdaa881103e51",
+      "sha256": "1ad12411c665af235d05a8a6e051bf11ba0e80d18d557611b6459e953f9688b1",
       "output": {
         "answer": {"how":"rerun","n":1500,"p99Us":12191839,"targetUs":13266490},
         "attempts": 1,
@@ -461,7 +521,12 @@
         "interval": {"hiUs":12219733,"levelPermille":950,"loUs":12144761,"pointUs":12191839,"resamples":1000},
         "rows": {"count":1628,"sha256":"31b389ca4523678ce88c4b71dff77ef653f8fb6a91132aa6bddde7858609dd5c"},
         "runSeed": 16,
-        "server": {"chunkedPrefill":true,"gpu":"H100 SXM · vLLM 0.10.2 · FP8 · TP 4","maxBatchedTokens":8192,"maxNumSeqs":64},
+        "server": {
+          "chunkedPrefill": true,
+          "gpu": "H100 SXM · vLLM 0.10.2 · FP8 · TP 4 · host term inside the GPU step, as S5 fitted it",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64
+        },
         "setup": {
           "arrivals": {"kind":"poisson","ratePerSMilli":24772},
           "durationUs": 65711807,
@@ -476,7 +541,7 @@
     {
       "name": "seed 17 draws too-few-samples",
       "input": {"seed":17},
-      "sha256": "5a17eb56df40f2a873507b45a66d671ca70aaf517f0ff51f046adc906adb1e0e",
+      "sha256": "71d9836e1d743bc1cdac3c8add7bffcbfaa9ce708e50e747f5d770c2e495fbee",
       "output": {
         "answer": {"how":"rerun","n":1500,"p99Us":207172,"targetUs":261947},
         "attempts": 1,
@@ -488,7 +553,12 @@
         "interval": {"hiUs":215001,"levelPermille":950,"loUs":188573,"pointUs":207172,"resamples":1000},
         "rows": {"count":86,"sha256":"5ede41b9fb73042c0a309e93820dcbe661c97e88d213a602af4075ebd2f652dc"},
         "runSeed": 17,
-        "server": {"chunkedPrefill":true,"gpu":"H100 SXM · vLLM 0.10.2 · FP8 · TP 4","maxBatchedTokens":8192,"maxNumSeqs":64},
+        "server": {
+          "chunkedPrefill": true,
+          "gpu": "H100 SXM · vLLM 0.10.2 · FP8 · TP 4 · host term inside the GPU step, as S5 fitted it",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64
+        },
         "setup": {
           "arrivals": {"kind":"poisson","ratePerSMilli":47944},
           "durationUs": 1868320,
@@ -502,7 +572,7 @@
     {
       "name": "seed 18 draws mean-as-tail",
       "input": {"seed":18},
-      "sha256": "784ab7002c854c1f9241e5c4d36d1543d22269ac34b46a219a605e074eab4cef",
+      "sha256": "9454b27bae7d4ba32b3424fc51c251857ee11a9372d8867974e77c75385b11d1",
       "output": {
         "answer": {"how":"rows","n":2250,"p99Us":78829233,"targetUs":80678925},
         "attempts": 1,
@@ -514,7 +584,12 @@
         "interval": {"hiUs":79052209,"levelPermille":950,"loUs":78280577,"pointUs":78829233,"resamples":1000},
         "rows": {"count":2378,"sha256":"2da0a6587cd7a89389871784607d4b385566d9f21225815e7fe2cdfe2db82d5d"},
         "runSeed": 18,
-        "server": {"chunkedPrefill":true,"gpu":"H100 SXM · vLLM 0.10.2 · FP8 · TP 4","maxBatchedTokens":8192,"maxNumSeqs":64},
+        "server": {
+          "chunkedPrefill": true,
+          "gpu": "H100 SXM · vLLM 0.10.2 · FP8 · TP 4 · host term inside the GPU step, as S5 fitted it",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64
+        },
         "setup": {
           "arrivals": {"kind":"poisson","ratePerSMilli":32708},
           "durationUs": 75343483,
@@ -528,7 +603,7 @@
     {
       "name": "seed 19 draws client-bottleneck",
       "input": {"seed":19},
-      "sha256": "c001e157f30f4a05816e8b6da5b4b8b1913233c04239ca7ba82d7d57b20c67cb",
+      "sha256": "438c9f85e60cd596a3ceee848ad603df45addd8b5a77e7d25af97e2cc2e95478",
       "output": {
         "answer": {"how":"rerun","n":1500,"p99Us":46371527,"targetUs":47171296},
         "attempts": 1,
@@ -540,7 +615,12 @@
         "interval": {"hiUs":46436364,"levelPermille":950,"loUs":46145992,"pointUs":46371527,"resamples":1000},
         "rows": {"count":1628,"sha256":"4347463aabfd02a9d99d284e9093d95471d7584f6364c289865d0ba905535101"},
         "runSeed": 19,
-        "server": {"chunkedPrefill":true,"gpu":"H100 SXM · vLLM 0.10.2 · FP8 · TP 4","maxBatchedTokens":8192,"maxNumSeqs":64},
+        "server": {
+          "chunkedPrefill": true,
+          "gpu": "H100 SXM · vLLM 0.10.2 · FP8 · TP 4 · host term inside the GPU step, as S5 fitted it",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64
+        },
         "setup": {
           "arrivals": {"kind":"poisson","ratePerSMilli":19421},
           "clientCostUs": 146109,
@@ -555,7 +635,7 @@
     {
       "name": "seed 20 draws replay-without-timestamps",
       "input": {"seed":20},
-      "sha256": "126e3ae322e6d4c1ffcf26b2cb2666fbd27d0f9f18425516bd97d619da67833f",
+      "sha256": "5d613ff507e871cbb326a7b2b9fd7222e254f108724d0fa9d5d69a591c30c2de",
       "output": {
         "answer": {"how":"rerun","n":1079,"p99Us":2811946,"targetUs":3102658},
         "attempts": 1,
@@ -567,7 +647,12 @@
         "interval": {"hiUs":2949411,"levelPermille":950,"loUs":2452835,"pointUs":2811946,"resamples":1000},
         "rows": {"count":1207,"sha256":"c8cb52b727f2074ced560916dae268d6c0178cafe7cebd40f9ce9f58fc361bb0"},
         "runSeed": 20,
-        "server": {"chunkedPrefill":true,"gpu":"H100 SXM · vLLM 0.10.2 · FP8 · TP 4","maxBatchedTokens":8192,"maxNumSeqs":64},
+        "server": {
+          "chunkedPrefill": true,
+          "gpu": "H100 SXM · vLLM 0.10.2 · FP8 · TP 4 · host term inside the GPU step, as S5 fitted it",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64
+        },
         "setup": {
           "arrivals": {"kind":"poisson","ratePerSMilli":2493},
           "durationUs": 487948032,
@@ -581,7 +666,7 @@
     {
       "name": "seed 21 draws none",
       "input": {"seed":21},
-      "sha256": "bef7227cc513b2272b597eac05f20844bea0e84211bd455ebb4ea8299d96615c",
+      "sha256": "fcc529348231d4ee8357c330371e8dbfb18c164db70d07ebf6867fcf955a3567",
       "output": {
         "answer": {"how":"rows","n":1300,"p99Us":2614365,"targetUs":2471270},
         "attempts": 1,
@@ -593,7 +678,12 @@
         "interval": {"hiUs":2704979,"levelPermille":950,"loUs":2511622,"pointUs":2614365,"resamples":1000},
         "rows": {"count":1428,"sha256":"51f476d455ef40088e06e24cc533adfea9ee9c2fb60bdf4e8bae9282b0aa797a"},
         "runSeed": 21,
-        "server": {"chunkedPrefill":true,"gpu":"H100 SXM · vLLM 0.10.2 · FP8 · TP 4","maxBatchedTokens":8192,"maxNumSeqs":64},
+        "server": {
+          "chunkedPrefill": true,
+          "gpu": "H100 SXM · vLLM 0.10.2 · FP8 · TP 4 · host term inside the GPU step, as S5 fitted it",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64
+        },
         "setup": {
           "arrivals": {"kind":"poisson","ratePerSMilli":38936},
           "durationUs": 37863596,
