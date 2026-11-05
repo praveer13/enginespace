@@ -78,7 +78,10 @@ describe('boardOf sorts the roster into what can be played and what is coming', 
       (id) => (id === 'engine-floor' ? fake : GAMES.get(id)),
       (id) => id === 'engine-floor' || resolveGame(id).kind === 'game',
     )
-    expect(later.open.map((line) => line.id)).toEqual(['engine-floor', 'loop'])
+    // The new game stands among the games that are built where its module puts it in the course: TR1 comes before Service's TR2.
+    const ids = later.open.map((line) => line.id)
+    expect(ids).toEqual(ROSTER.filter((candidate) => candidate.id === 'engine-floor' || resolveGame(candidate.id).kind === 'game').map((candidate) => candidate.id))
+    expect(ids.indexOf('engine-floor')).toBeLessThan(ids.indexOf('loop'))
     expect(later.arriving.map((line) => line.id)).not.toContain('engine-floor')
   })
 })
@@ -110,8 +113,11 @@ describe('the Play index', () => {
       expect(text.indexOf(entry.subtitle)).toBeGreaterThan(text.indexOf(entry.title))
       expect(line).toContain(`<h3 class="es-line__title">${entry.title}</h3>`)
       for (const module of entry.modules) expect(line).toContain(`href="/m/${module}"`)
-      expect(text).toContain(entry.has3d ? SPECIALS.view.d3 : SPECIALS.view.d2)
-      expect(text.includes(SPECIALS.view.twoToo)).toBe(entry.has3d)
+      // A game on the board says what its record says, and one that is arriving says what the roster says: The Tasting is built in 2D
+      // first, and its record has no 3D until its scene lands (W1-T29).
+      const has3d = (board().open.find((open) => open.id === entry.id) ?? entry).has3d
+      expect(text).toContain(has3d ? SPECIALS.view.d3 : SPECIALS.view.d2)
+      expect(text.includes(SPECIALS.view.twoToo)).toBe(has3d)
     }
   })
 

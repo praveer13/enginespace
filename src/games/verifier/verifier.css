@@ -1,0 +1,289 @@
+/*
+ * The Tasting's page (src/games/verifier): the few parts that no component of the design system draws. Every value is a token role
+ * (src/design/tokens.css), and every face is a role's: tests/design/literals.test.ts holds this file to it.
+ */
+
+.es-vf-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-3);
+}
+
+.es-vf-drawing {
+  position: relative;
+}
+
+.es-vf-drawing > svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* A target over each dish's column of the drawing, for a pointer: it hands focus to the dish's weight. */
+.es-vf-taps {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.es-vf-tap {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* The key: the masking tape that names the dishes, naming the plates, each with the drawn shape that carries its colour. */
+.es-vf-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2) var(--es-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-vf-under {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2) var(--es-space-6);
+}
+
+.es-vf-under__count {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--es-space-2);
+}
+
+/* The recipe: a column for each dish, as wide as the dish is in the drawing above it, so that a thumb finds the one it means. */
+.es-vf-recipe {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--es-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-vf-dish {
+  min-width: 0;
+}
+
+.es-vf-stepper {
+  display: grid;
+  align-content: start;
+  justify-items: stretch;
+  gap: var(--es-space-2);
+  min-width: 0;
+}
+
+.es-vf-stepper__label {
+  justify-self: center;
+}
+
+.es-vf-stepper[data-layout='row'] {
+  grid-template-columns: auto auto auto;
+  grid-template-areas:
+    'label label label'
+    'less field more';
+  align-items: center;
+}
+
+.es-vf-stepper[data-layout='row'] .es-vf-stepper__label {
+  grid-area: label;
+  justify-self: start;
+}
+
+.es-vf-step {
+  width: 100%;
+  min-width: 0;
+  padding-inline: 0;
+}
+
+.es-vf-stepper[data-layout='row'] .es-vf-step {
+  width: 2.75rem;
+}
+
+.es-vf-stepper[data-layout='row'] > .es-vf-step:first-of-type {
+  grid-area: more;
+}
+
+.es-vf-stepper[data-layout='row'] > .es-vf-step:last-of-type {
+  grid-area: less;
+}
+
+.es-vf-stepper[data-layout='row'] > .es-vf-slip {
+  grid-area: field;
+  width: 5rem;
+}
+
+/* The weight is typed on a slip of ticket paper in the printer's dots, like a field's. */
+.es-vf-slip {
+  display: flex;
+  background-color: var(--es-paper);
+  border-bottom: 2px solid var(--es-edge);
+  box-shadow: var(--es-shadow-paper);
+  color: var(--es-paper-ink);
+}
+
+.es-vf-slip input {
+  width: 100%;
+  min-width: 0;
+  height: 2.75rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--es-paper-ink);
+  font-family: var(--es-font-numeric);
+  font-size: var(--es-size-plate);
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-align: center;
+  outline: none;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.es-vf-slip input::-webkit-outer-spin-button,
+.es-vf-slip input::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.es-vf-slip input::placeholder {
+  color: var(--es-text-3);
+  opacity: 1;
+}
+
+.es-vf-slip input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.es-vf-slip:hover {
+  border-bottom-color: var(--es-text-1);
+}
+
+.es-vf-slip:focus-within {
+  border-bottom-color: var(--es-lamp-ring);
+  outline: 2px solid var(--es-focus);
+  outline-offset: 2px;
+  box-shadow:
+    var(--es-shadow-paper),
+    0 -3px 14px 1px color-mix(in srgb, var(--es-lamp) 70%, transparent);
+}
+
+.es-vf-draws {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2);
+}
+
+/* The five cards of the audit: a ticket each, in as many columns as fit. */
+.es-vf-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  gap: var(--es-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-vf-card__tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2);
+  margin-top: var(--es-space-3);
+}
+
+.es-vf-card__result {
+  margin-top: var(--es-space-2);
+  font-size: var(--es-size-note);
+}
+
+.es-vf-card__name {
+  display: grid;
+  gap: var(--es-space-1);
+  margin-top: var(--es-space-3);
+  font-weight: 700;
+}
+
+.es-vf-select {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0 var(--es-space-3);
+  border: 0;
+  border-bottom: 2px solid var(--es-edge);
+  border-radius: 0;
+  background-color: var(--es-paper);
+  box-shadow: var(--es-shadow-paper);
+  color: var(--es-paper-ink);
+  font-family: var(--es-font-body);
+  font-size: var(--es-size-print);
+  font-weight: 400;
+}
+
+.es-vf-select:focus-visible {
+  border-bottom-color: var(--es-lamp-ring);
+}
+
+/* The levels: a row of plates that wraps, with the way into a graded run under it. */
+.es-vf-rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-3);
+  padding-top: var(--es-space-4);
+  border-top: 1px dashed var(--es-edge);
+}
+
+.es-vf-levels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-vf-mode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2) var(--es-space-4);
+}
+
+@media (max-width: 30rem) {
+  .es-vf-recipe {
+    gap: var(--es-space-1);
+  }
+}
+
+/* Two facts of a debrief, each a name and its figure. */
+.es-vf-facts {
+  display: grid;
+  gap: var(--es-space-2);
+  margin: 0;
+}
+
+.es-vf-facts > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--es-space-1) var(--es-space-4);
+}
+
+.es-vf-facts dt {
+  font-weight: 700;
+}
+
+.es-vf-facts dd {
+  margin: 0;
+}
+
+/* The title of the next level can be longer than the stub's line at 320 px (WCAG 1.4.10): the label wraps beside its arrow. */
+[data-verifier-debrief] .es-stub__label {
+  white-space: normal;
+}

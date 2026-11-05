@@ -4,11 +4,13 @@
  * tracker's waves, and the registry's entries for the games that are built.
  */
 import { describe, expect, test } from 'bun:test'
+import { existsSync } from 'node:fs'
+import path from 'node:path'
 import { GAMES } from '@es/play'
 import { ROSTER, rosterEntry } from '@es/play/roster'
 import { GAME_TASKS } from '@/content/render/model'
 import { GAME_IDS } from '../../scripts/content/directives.ts'
-import { backticked, between, read, tableRows } from '../ci/support'
+import { backticked, between, read, root, tableRows } from '../ci/support'
 
 const COURSE_ORDER = ['tr0', 'tr1', 'tr2', 'tr3', 'tr4', 'tr5a', 'tr5b', 'tr6', 'tr7', 'tr8', 'capstone']
 
@@ -75,7 +77,10 @@ describe('the registry and the roster', () => {
     for (const game of GAMES.games) {
       const entry = rosterEntry(game.id)
       expect([game.id, entry === undefined]).toEqual([game.id, false])
-      expect([game.id, { title: entry?.title, subtitle: entry?.subtitle, has3d: entry?.has3d, modules: entry?.modules }]).toEqual([
+      // A game's 3D scene can be a later task than its session and its 2D view (W1-T28 builds The Tasting, and W1-T29 its scene), and
+      // verify:games holds `has3d` to the scene's file. So a game that is built has the roster's 3D from the day its scene is in the tree.
+      const scene = existsSync(path.join(root, 'src/games', game.id, 'Scene3D.tsx'))
+      expect([game.id, { title: entry?.title, subtitle: entry?.subtitle, has3d: entry?.has3d === true && scene, modules: entry?.modules }]).toEqual([
         game.id,
         { title: game.title, subtitle: game.subtitle, has3d: game.has3d, modules: game.modules },
       ])
