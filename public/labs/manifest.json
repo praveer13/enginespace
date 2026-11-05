@@ -2,6 +2,33 @@
   "schema": "enginespace/labs-manifest@1",
   "files": [
     {
+      "name": "enginespace-rejection-sampler.zip",
+      "kind": "forge-lab",
+      "lab": "rejection-sampler",
+      "bytes": 86137,
+      "sha256": "9450172c2dc0238ccd65d1cac2d20be5f8d98e43f58a550a1a26dcd5087bc184",
+      "root": "enginespace-rejection-sampler",
+      "members": [
+        { "path": ".claude/hooks/es-guard.sh", "bytes": 4346, "sha256": "7aab3e5a4badb7169908247838862e81982a0eb8a663324df57889c815ca31fd" },
+        { "path": ".claude/output-styles/enginespace-socratic.md", "bytes": 3377, "sha256": "c2db126ca21a3c3343295f31e3b619d1e51f55e955dec8b57a5b1891979521ec" },
+        { "path": ".claude/settings.json", "bytes": 734, "sha256": "4de258671f7d6652eb1aaf83de086a00c85af3ad03e109a7c235c40cdc329746" },
+        { "path": ".gitignore", "bytes": 8, "sha256": "b53ee26e6ff1da219b0563333a76d2c9ec19eec713d6ee54e11a1edacb0e9f3d" },
+        { "path": "AGENTS.md", "bytes": 6134, "sha256": "f3b4f63d1d9e07e1c9a84832bc8b029a3b9cdf122978afa3d73a957054f5f4ef" },
+        { "path": "CLAUDE.md", "bytes": 11, "sha256": "336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49" },
+        { "path": "Cargo.lock", "bytes": 236, "sha256": "3e608d4c7e2e6973ffc90d5f3bd6ef2c93258b7f3cc183eca008f45742c2db6b" },
+        { "path": "Cargo.toml", "bytes": 345, "sha256": "1e7144bdaf0096a6cdfaba2110be54856a488100e219251d671c0d2e23893728" },
+        { "path": "NOTICE", "bytes": 1493, "sha256": "10b633d606d9d81ad1af917fac3924a69a6d86da82e953f2876670b6dc812d34" },
+        { "path": "README.md", "bytes": 5361, "sha256": "089a359d03119926b4257ce888f9d5ad4670c64c8c3412ebfdef57892ec7dd12" },
+        { "path": "kit/Cargo.toml", "bytes": 181, "sha256": "af7d3d7e8d90a6198e1f9d31046cafac3217cb958b3a3a0574bbd6fb81b81b3d" },
+        { "path": "kit/src/lib.rs", "bytes": 22049, "sha256": "faf92453c85299f0eb62e1e04c4a002d92f4da821e6dbeb4318b15ecfe0cbe69" },
+        { "path": "rejection-sampler/Cargo.toml", "bytes": 1310, "sha256": "bb63233df5aa04cf2395fdd913e4bcf17b07b828bb3f709430c1a151a60844d6" },
+        { "path": "rejection-sampler/src/lib.rs", "bytes": 27353, "sha256": "a5aa2d8db28e796d4ef69d8ed4eeaa625f9ae4eaba003e1fd6f1d379f0255451" },
+        { "path": "rejection-sampler/src/verify.rs", "bytes": 4742, "sha256": "2724c681cd28293c2aa5dbc9393ae83fbe3c178f2352f7a6c2546f8710b014a4" },
+        { "path": "rejection-sampler/tests/checks.rs", "bytes": 5124, "sha256": "3d9bb504544c5f5e0d07dbf51c9496d844c16310c60e192c4b7ff63784010a30" },
+        { "path": "rust-toolchain.toml", "bytes": 357, "sha256": "3662ca6ffee9aaa50095c41e12233e852d275743b8219213d91f2beb03c7690d" }
+      ]
+    },
+    {
       "name": "enginespace-toy.zip",
       "kind": "forge-lab",
       "lab": "toy",

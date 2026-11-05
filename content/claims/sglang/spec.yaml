@@ -108,6 +108,19 @@
   ttlDays: 365
   pin: sglang
 
+- id: sglang.spec.pr-35798-interior
+  value: interior CDF boundaries go to the preceding bucket
+  text: The same pull request names a second effect of the inclusive comparison. A coin that lands exactly on an interior boundary of the CDF goes to the bucket before it and not to the next bucket that has positive mass.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/pull/35798
+    title: SGLang pull request 35798, Fix CDF boundary handling in TreeSpeculativeSamplingTargetOnly
+    quote: 'exact interior CDF boundaries land in the preceding bucket instead of the next positive-mass one.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+  pin: sglang
+
 - id: sglang.spec.pr-35798-fix
   value: coin < cumulative probability, and mass above 0
   text: The fix is in the v0.5.23 source. A draft token is accepted only if its target probability is above 0, and the bucket test uses the half-open comparison coin < prob_acc / threshold_acc.

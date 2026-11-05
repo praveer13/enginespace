@@ -1,0 +1,324 @@
+{
+  "start": "2026-10-05",
+  "days": 30,
+  "rows": [
+    {
+      "day": "2026-10-05",
+      "welcomeBack": false,
+      "due": [],
+      "next": null
+    },
+    {
+      "day": "2026-10-06",
+      "welcomeBack": false,
+      "due": [
+        "tr1.vllm-lifecycle"
+      ],
+      "next": "2026-10-07"
+    },
+    {
+      "day": "2026-10-07",
+      "welcomeBack": false,
+      "due": [
+        "tr2.bubble",
+        "tr1.five-mechanisms"
+      ],
+      "next": "2026-10-11"
+    },
+    {
+      "day": "2026-10-08",
+      "welcomeBack": false,
+      "due": [],
+      "next": "2026-10-09"
+    },
+    {
+      "day": "2026-10-09",
+      "welcomeBack": false,
+      "due": [
+        "tr2.bubble"
+      ],
+      "next": "2026-10-11"
+    },
+    {
+      "day": "2026-10-10",
+      "welcomeBack": false,
+      "due": [
+        "tr2.bubble"
+      ],
+      "next": "2026-10-11"
+    },
+    {
+      "day": "2026-10-11",
+      "welcomeBack": false,
+      "due": [
+        "tr2.graph-replay"
+      ],
+      "next": "2026-10-21"
+    },
+    {
+      "day": "2026-10-12",
+      "welcomeBack": false,
+      "due": [],
+      "next": "2026-10-21"
+    },
+    {
+      "day": "2026-10-13",
+      "welcomeBack": false,
+      "due": [],
+      "next": "2026-10-21"
+    },
+    {
+      "day": "2026-10-14",
+      "welcomeBack": false,
+      "due": [],
+      "next": "2026-10-21"
+    },
+    {
+      "day": "2026-10-15",
+      "welcomeBack": false,
+      "due": [],
+      "next": "2026-10-22"
+    },
+    {
+      "day": "2026-10-16",
+      "welcomeBack": false,
+      "due": [],
+      "next": "2026-10-17"
+    },
+    {
+      "day": "2026-10-17",
+      "welcomeBack": false,
+      "due": [
+        "tr5a.kv-groups"
+      ],
+      "next": "2026-10-18"
+    },
+    {
+      "day": "2026-10-18",
+      "welcomeBack": false,
+      "due": [
+        "tr5a.kv-groups",
+        "tr6.verify-shape"
+      ],
+      "next": "2026-10-22"
+    },
+    {
+      "day": "2026-10-19",
+      "welcomeBack": false,
+      "due": [
+        "tr5a.kv-groups",
+        "tr6.verify-shape"
+      ],
+      "next": "2026-10-22"
+    },
+    {
+      "day": "2026-10-20",
+      "welcomeBack": false,
+      "due": [
+        "tr5a.kv-groups",
+        "tr6.verify-shape"
+      ],
+      "next": "2026-10-22"
+    },
+    {
+      "day": "2026-10-21",
+      "welcomeBack": false,
+      "due": [
+        "tr5a.kv-groups",
+        "tr6.verify-shape"
+      ],
+      "next": "2026-10-22"
+    },
+    {
+      "day": "2026-10-22",
+      "welcomeBack": false,
+      "due": [
+        "tr5a.kv-groups",
+        "tr6.verify-shape",
+        "tr2.capture-padding"
+      ],
+      "next": "2026-11-02"
+    },
+    {
+      "day": "2026-10-23",
+      "welcomeBack": true,
+      "due": [
+        "tr2.capture-padding",
+        "tr5a.kv-groups",
+        "tr6.verify-shape"
+      ],
+      "next": "2026-11-02"
+    },
+    {
+      "day": "2026-10-24",
+      "welcomeBack": true,
+      "due": [
+        "tr2.capture-padding",
+        "tr5a.kv-groups",
+        "tr6.verify-shape"
+      ],
+      "next": "2026-11-02"
+    },
+    {
+      "day": "2026-10-25",
+      "welcomeBack": false,
+      "due": [
+        "tr6.verify-shape",
+        "tr5a.kv-groups",
+        "tr2.capture-padding"
+      ],
+      "next": "2026-11-02"
+    },
+    {
+      "day": "2026-10-26",
+      "welcomeBack": false,
+      "due": [
+        "tr6.verify-shape",
+        "tr5a.kv-groups",
+        "tr2.capture-padding"
+      ],
+      "next": "2026-11-02"
+    },
+    {
+      "day": "2026-10-27",
+      "welcomeBack": false,
+      "due": [
+        "tr5a.kv-groups",
+        "tr2.capture-padding"
+      ],
+      "next": "2026-11-11"
+    },
+    {
+      "day": "2026-10-28",
+      "welcomeBack": false,
+      "due": [
+        "tr5a.kv-groups"
+      ],
+      "next": "2026-11-11"
+    },
+    {
+      "day": "2026-10-29",
+      "welcomeBack": false,
+      "due": [],
+      "next": "2026-11-02"
+    },
+    {
+      "day": "2026-10-30",
+      "welcomeBack": false,
+      "due": [],
+      "next": "2026-11-02"
+    },
+    {
+      "day": "2026-10-31",
+      "welcomeBack": false,
+      "due": [],
+      "next": "2026-11-02"
+    },
+    {
+      "day": "2026-11-01",
+      "welcomeBack": false,
+      "due": [],
+      "next": "2026-11-10"
+    },
+    {
+      "day": "2026-11-02",
+      "welcomeBack": false,
+      "due": [],
+      "next": "2026-11-10"
+    },
+    {
+      "day": "2026-11-03",
+      "welcomeBack": false,
+      "due": [],
+      "next": "2026-11-10"
+    },
+    {
+      "day": "2026-11-04",
+      "welcomeBack": false,
+      "due": [],
+      "next": "2026-11-10"
+    }
+  ],
+  "cards": [
+    {
+      "kc": "tr1.five-mechanisms",
+      "earnedDay": "2026-10-05",
+      "lastDay": "2026-11-03",
+      "dueDay": "2027-01-21",
+      "reps": 8,
+      "lapses": 0,
+      "stability": 78.72424521,
+      "difficulty": 4.70078029
+    },
+    {
+      "kc": "tr1.vllm-lifecycle",
+      "earnedDay": "2026-10-05",
+      "lastDay": "2026-11-03",
+      "dueDay": "2027-02-17",
+      "reps": 7,
+      "lapses": 0,
+      "stability": 106.2654767,
+      "difficulty": 1.21983462
+    },
+    {
+      "kc": "tr2.async-overlap",
+      "earnedDay": "2026-10-05",
+      "lastDay": "2026-11-01",
+      "dueDay": "2027-04-12",
+      "reps": 6,
+      "lapses": 0,
+      "stability": 161.98375278,
+      "difficulty": 1
+    },
+    {
+      "kc": "tr2.bubble",
+      "earnedDay": "2026-10-05",
+      "lastDay": "2026-11-04",
+      "dueDay": "2026-12-29",
+      "reps": 8,
+      "lapses": 1,
+      "stability": 55.45665206,
+      "difficulty": 6.44787343
+    },
+    {
+      "kc": "tr2.capture-padding",
+      "earnedDay": "2026-10-14",
+      "lastDay": "2026-11-02",
+      "dueDay": "2027-02-04",
+      "reps": 3,
+      "lapses": 0,
+      "stability": 94.03437466,
+      "difficulty": 1
+    },
+    {
+      "kc": "tr2.graph-replay",
+      "earnedDay": "2026-10-09",
+      "lastDay": "2026-11-04",
+      "dueDay": "2027-01-22",
+      "reps": 6,
+      "lapses": 0,
+      "stability": 79.30445185,
+      "difficulty": 2.95324527
+    },
+    {
+      "kc": "tr5a.kv-groups",
+      "earnedDay": "2026-10-15",
+      "lastDay": "2026-10-31",
+      "dueDay": "2026-11-10",
+      "reps": 4,
+      "lapses": 1,
+      "stability": 9.78041368,
+      "difficulty": 7.37018264
+    },
+    {
+      "kc": "tr6.verify-shape",
+      "earnedDay": "2026-10-16",
+      "lastDay": "2026-11-01",
+      "dueDay": "2026-12-03",
+      "reps": 3,
+      "lapses": 0,
+      "stability": 31.67474023,
+      "difficulty": 4.743334
+    }
+  ]
+}
