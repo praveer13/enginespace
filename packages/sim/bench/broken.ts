@@ -55,7 +55,7 @@ export const FLAW_CLAIMS: Readonly<Record<BenchFlaw, readonly string[]>> = {
   none: [],
 }
 
-/** The flaw a seed draws: `BENCH_FLAWS[seed mod 11]`. A uniform 32-bit seed draws each with probability 1/11 to within 3 × 10⁻⁹ [derived: 2³² mod 11 = 4]. */
+/** The flaw a seed draws: `BENCH_FLAWS[seed mod 11]`. A uniform 32-bit seed draws each with probability 1/11 to within 2 × 10⁻¹⁰ [derived: 2³² mod 11 = 4, so four of the eleven flaws are one seed in 2³² likelier]. */
 export function brokenFlawOf(seed: Seed): BenchFlaw {
   assertSeed(seed)
   return BENCH_FLAWS[seed % BENCH_FLAWS.length]

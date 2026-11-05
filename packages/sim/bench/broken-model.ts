@@ -4,6 +4,11 @@
 // Nothing here is a fact about a real engine. The server is the step loop run coarse on kernelspace's S5 card ("70B on H100" at TP 4,
 // the harness S5's rows were fitted on, WORLD §4.2), the traffic is the corpus's own, and every number below that is not a count of
 // named things is a design parameter [estimated] unless it says where it was measured.
+//
+// The top-level calls of this file and of broken-kits.ts are marked `/* @__PURE__ */`. The front page imports the sim barrel, and the
+// bundler keeps a top-level call it cannot prove free of effects, with the modules that hold it, whether or not anything uses the result.
+// Without the marks the corpus added 1,270 B of gzipped JavaScript to the first paint, whose gate has 800 B to spare [measured 2026-11-04,
+// W1-T32: 150,457 B against 149,187 B; verify:bundle]. A new top-level call in these files needs the mark too.
 
 import { divRound } from '../core/int'
 import type { Rng } from '../core/rng'
@@ -20,7 +25,7 @@ import type { BenchSpec } from './types'
 export const SEC = 1_000_000
 
 /** The server of every case: 64 sequences, an 8,192-token budget and chunked prefill, priced by S5's H100 row at TP 4. Inside S5's fitted box (isl up to 8,192). */
-export const CORPUS_SERVER: ServerModel = s5Server('h100-vllm-0-10-2-fp8', 4)
+export const CORPUS_SERVER: ServerModel = /* @__PURE__ */ s5Server('h100-vllm-0-10-2-fp8', 4)
 
 /** The objectives a case's spec carries. A p99 claim never reads them, and goodput is not what the corpus asks about. */
 export const CORPUS_SLO = { ttftUs: 500_000, tpotUs: 50_000 } as const
@@ -32,7 +37,7 @@ export const CORPUS_SLO = { ttftUs: 500_000, tpotUs: 50_000 } as const
 export function benchWarmupRows(maxNumSeqs: number): number {
   return Math.max(100, 2 * maxNumSeqs)
 }
-export const BENCH_WARMUP_ROWS = benchWarmupRows(CORPUS_SERVER.maxNumSeqs)
+export const BENCH_WARMUP_ROWS = /* @__PURE__ */ benchWarmupRows(CORPUS_SERVER.maxNumSeqs)
 
 /** ASSESSMENT B7: a p99 needs at least 1,000 measured rows, so that at least 10 lie beyond it [derived]. */
 export const BENCH_MIN_ROWS_FOR_P99 = 1000
@@ -75,7 +80,7 @@ const SAT_RAMP_US = 15 * SEC
 const SAT_US = 60 * SEC
 const SAT_REQUESTS = 20_000
 
-const capacityMemo = new Map<string, number>()
+const capacityMemo = /* @__PURE__ */ new Map<string, number>()
 
 /**
  * What the server can finish a second on this traffic, times 1,000, from a closed loop of 96 clients with no think time: 64 requests

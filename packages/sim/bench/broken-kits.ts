@@ -73,21 +73,21 @@ export const BROKEN_CORRECTED_ROWS = 1500
  * A server past its capacity, whose p99 is the queue it built: 5 s to 120 s, in steps of 5%. Below 5 s the queue's own random walk
  * (about 1.5 s over a run of a thousand requests) decides the number, and the scene cannot be aimed.
  */
-export const OVERLOAD_GRID = logGrid(5 * SEC, 120 * SEC)
+export const OVERLOAD_GRID = /* @__PURE__ */ logGrid(5 * SEC, 120 * SEC)
 /** A freeze's reach: 0.35 s to 60 s. */
-export const STALL_GRID = logGrid(350_000, 60 * SEC)
+export const STALL_GRID = /* @__PURE__ */ logGrid(350_000, 60 * SEC)
 /** A light load, whose p99 is the longest prompts' prefill and what waits behind it: 70 ms to 2 s. */
-export const LIGHT_GRID = logGrid(70_000, 2 * SEC)
+export const LIGHT_GRID = /* @__PURE__ */ logGrid(70_000, 2 * SEC)
 /** A light load that mixes a few long prompts into short ones, so that the p99 is theirs: 0.12 s to 3 s, which the prompts up to S5's 8,192 reach at a load of 0.9. */
-export const MIX_GRID = logGrid(120_000, 3 * SEC)
+export const MIX_GRID = /* @__PURE__ */ logGrid(120_000, 3 * SEC)
 /** A burst's queue: 2 s to 60 s. */
-export const BURST_GRID = logGrid(2 * SEC, 60 * SEC)
+export const BURST_GRID = /* @__PURE__ */ logGrid(2 * SEC, 60 * SEC)
 
 // ---------------------------------------------------------------------------------------------------------------------------
 // Traffic
 
 /** The mixes of an overloaded case: prompts from a quarter of the top to the top, three tops, three reply lengths. The capacity of each is measured. */
-export const OVERLOAD_TRAFFIC: readonly Traffic[] = [512, 1024, 2048].flatMap((hi) =>
+export const OVERLOAD_TRAFFIC: readonly Traffic[] = /* @__PURE__ */ [512, 1024, 2048].flatMap((hi) =>
   [
     [32, 96],
     [64, 192],
@@ -102,7 +102,7 @@ const CAPPED_TRAFFIC: readonly Traffic[] = [
 ]
 
 /** The mixes of an overloaded warm-cache case: long prompts and short replies, which a warm cache makes cheap enough that the run that reuses it is not overloaded. */
-const CACHE_TRAFFIC: readonly Traffic[] = [2048, 4096, 8192].map((hi) => ({ promptLo: hi / 4, promptHi: hi, outLo: 8, outHi: 32 }))
+const CACHE_TRAFFIC: readonly Traffic[] = /* @__PURE__ */ [2048, 4096, 8192].map((hi) => ({ promptLo: hi / 4, promptHi: hi, outLo: 8, outHi: 32 }))
 
 /** The longest prompts of a light case, in tokens: S5's fitted box ends at a prompt of 8,192 (isl in its box). */
 const LIGHT_PROMPT_TOPS = [256, 384, 512, 768, 1024, 1536, 2048, 3072, 4096, 6144, 8192] as const
