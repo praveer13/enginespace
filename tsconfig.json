@@ -7,7 +7,7 @@
   ],
   "compilerOptions": {
     "paths": {
-      "@/*": ["./src/*"],
+      "@/*": ["./src/*", "./vendor/kernelspace/shims/src/*"],
       "@es/sim": ["./packages/sim"],
       "@es/sim/*": ["./packages/sim/*"],
       "@es/play": ["./packages/play"],

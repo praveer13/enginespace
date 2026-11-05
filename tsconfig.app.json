@@ -8,8 +8,13 @@
     "types": ["vite/client"],
     "skipLibCheck": true,
 
+    /*
+     * The vendored FSRS model (src/items/today wraps it) imports two types from a module that this repository does not have. The
+     * second target of `@/*` is the shim that stands in for it (vendor/kernelspace/VENDOR.md, "Type shims"). Anything under src/
+     * wins, so no file of ours can be shadowed by a shim.
+     */
     "paths": {
-      "@/*": ["./src/*"],
+      "@/*": ["./src/*", "./vendor/kernelspace/shims/src/*"],
       "@es/sim": ["./packages/sim"],
       "@es/sim/*": ["./packages/sim/*"],
       "@es/play": ["./packages/play"],

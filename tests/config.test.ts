@@ -48,7 +48,9 @@ describe('path aliases', () => {
   })
 
   test('tsconfig.json (for Bun and editors) and tsconfig.app.json map the same aliases to the same folders', () => {
-    const expected = { '@/*': ['./src/*'], ...packagePaths }
+    // The second target of `@/*` is the type shim of the vendored FSRS model (W1-T05; vendor/kernelspace/VENDOR.md, "Type shims"). Vite
+    // does not need it: the import it stands in for is a type, which is erased before Vite resolves anything.
+    const expected = { '@/*': ['./src/*', './vendor/kernelspace/shims/src/*'], ...packagePaths }
     expect(tsconfig('tsconfig.json').compilerOptions?.paths).toEqual(expected)
     expect(tsconfig('tsconfig.app.json').compilerOptions?.paths).toEqual(expected)
   })

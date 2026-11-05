@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import type { Ref } from 'react'
+import type { ReactNode, Ref } from 'react'
 import { answerItem, CONFIDENCE_NAMES, CONFIDENCES, LEVEL_NAMES, nextUnanswered, resultOf, startAttempt, tally } from '@es/play/items'
 import type { Answered, Attempt, Confidence, Gen, Item, Level, Response, Served } from '@es/play/items'
 import { Button } from '@/design/components/Button'
@@ -170,7 +170,7 @@ export default function AttemptView({ gen, level, entropy, scope, onRestart }: A
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /** The scenario's numbers, printed as lines under the question. */
-function Givens({ item }: { item: Item }) {
+export function Givens({ item }: { item: Item }) {
   if (item.givens.length === 0) return null
   return (
     <dl className="es-item__givens">
@@ -187,7 +187,7 @@ function Givens({ item }: { item: Item }) {
 }
 
 /** Steps shown before the question (levels 0 and 1): a whole solution with other numbers, or the words of the first step. */
-function Worked({ item }: { item: Item }) {
+export function Worked({ item }: { item: Item }) {
   return (
     <div className="es-item__worked">
       <TapeLabel size="sm" tilt="left">
@@ -216,7 +216,7 @@ interface QuestionProps {
 }
 
 /** The slip the learner writes on: a number in a tape-labelled field, or lines with a tick box each. */
-function Question({ item, text, pick, locked, problem, onText, onPick, onSubmit }: QuestionProps) {
+export function Question({ item, text, pick, locked, problem, onText, onPick, onSubmit }: QuestionProps) {
   const name = useId()
   const spec = item.answer
   if (spec.kind === 'numeric') {
@@ -296,7 +296,7 @@ function Question({ item, text, pick, locked, problem, onText, onPick, onSubmit 
 }
 
 /** How sure the learner is, said before the answer is checked: three stamped plates, one pressed in. Optional, and never a gate. */
-function SurePlates({ value, onChange }: { value: Confidence | null; onChange: (value: Confidence | null) => void }) {
+export function SurePlates({ value, onChange }: { value: Confidence | null; onChange: (value: Confidence | null) => void }) {
   const label = useId()
   return (
     <div className="es-item__sure">
@@ -324,7 +324,20 @@ function SurePlates({ value, onChange }: { value: Confidence | null; onChange: (
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /** What the ticket says once it is checked: the verdict, the key, what went wrong if a rule saw it, and the solution step by step. */
-function Reveal({ gen, item, answered, headingRef }: { gen: Gen; item: Item; answered: Answered; headingRef: Ref<HTMLHeadingElement> }) {
+export function Reveal({
+  gen,
+  item,
+  answered,
+  headingRef,
+  after,
+}: {
+  gen: Gen
+  item: Item
+  answered: Answered
+  headingRef: Ref<HTMLHeadingElement>
+  /** What the caller adds at the foot of the reveal, fed out with the rest: Today prints the day the idea comes back. */
+  after?: ReactNode
+}) {
   const ok = answered.grade.ok
   const steps = gen.solution(item)
   const spec = item.answer
@@ -382,12 +395,13 @@ function Reveal({ gen, item, answered, headingRef }: { gen: Gen; item: Item; ans
           </ol>
         </div>
       ) : null}
+      {after}
     </div>
   )
 }
 
 /** The note printed when the ledger would not take an answer. The ticket reads on; the learner is told, and knows what to do. */
-function Unsaved({ detail }: { detail: string }) {
+export function Unsaved({ detail }: { detail: string }) {
   return (
     <p className="es-item__problem" role="status">
       <Icon name="alert" />
