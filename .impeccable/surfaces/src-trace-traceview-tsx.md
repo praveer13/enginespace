@@ -9,7 +9,7 @@ related_targets: ["src/trace"]
 
 ## Scope
 
-- **Surface:** the trace viewer, the instrument of The Tape (`gap-hunt`, GAMES.md §2.6), in Operate mode. It is a component and not a page. Its first host is `/trace-room/:trace`; Gap Hunt (W2-T20) and the Engine Floor's graded map (W1-T19) embed it.
+- **Surface:** the trace viewer, the instrument of The Tape (`gap-hunt`, GAMES.md §2.6), in Operate mode. It is a component and not a page. Its first host is the Trace Room's specimen tape, `/trace-room/synthetic-<seed>`, which the dev server and test builds show until W2-T20 ships the Trace Room; Gap Hunt (W2-T20) and the Engine Floor's graded map (W1-T19) embed it.
 - **Visitor:** a kernelspace graduate, a backend engineer reading a trace to find where a step's time went. They know Perfetto and Chrome's trace viewer, so the affordances must be the familiar ones: zoom, pan, select, a list of what is in view.
 - **Action:** read the lanes, step from one event edge to the next, stamp a stretch of the tape with a category, label it, name the cause, and export the marks as evidence.
 - **Proof:** the tape draws a real `trace@1`. A synthetic one says so on its face; a captured one carries its GPU, engine pin, date and SHA-256. Every number is an integer ns read off the trace.

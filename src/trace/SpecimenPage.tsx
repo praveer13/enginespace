@@ -14,8 +14,9 @@ import { TraceView } from './TraceView'
  * writes nothing to the ledger (ARCHITECTURE §1, I2), and the task is named `read`. W2-T20 builds the Trace Room proper around
  * this viewer; until then, this is the one place it is on show.
  *
- * In a test build the address may carry `?spans=<n>` for a tape of that many spans, which is how the frame rate is measured on
- * 100,000 (W1-T09, accept 1). A production build has no such tape in it.
+ * The route mounts this page in the dev server and in test builds only, so that a production build holds none of the viewer
+ * (src/pages/TraceRoom.tsx gives the reason). In a test build the address may carry `?spans=<n>` for a tape of that many spans, which is how the frame rate is
+ * measured on 100,000 (W1-T09, accept 1); a production build has no such tape in it.
  */
 
 export default function Specimen({ id, seed }: { id: string; seed: number }) {
