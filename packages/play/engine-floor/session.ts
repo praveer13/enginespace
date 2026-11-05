@@ -14,6 +14,10 @@
  * first such stage found in any run is the one that counts, so a learner who runs a short path often and gets it right loses nothing,
  * and one who is told a stage did not hold keeps the score of that run however many times they fix it. A level is passed when no run
  * ever found a stage that did not hold.
+ *
+ * The graded `map` (W1-T19) is the same game with one run. Its bar is ASSESSMENT.md §4.3's: the whole path right on its first run, and
+ * every stage matched, in order, to a span of the scenario's synthetic lifecycle trace (`spanCheck`, spans.ts). It keeps the engine's path
+ * secret until the run is judged: its view is `sealed`, and it carries the check once the run is over.
  */
 import type { Seed } from '@es/sim/core'
 import { ENGINES, entryOf } from '@es/sim/lifecycle'
@@ -21,9 +25,15 @@ import type { Place, StageDef } from '@es/sim/lifecycle'
 import type { Debrief, Grade, Session } from '../types'
 import { runPath, stopOfMistake } from './engine'
 import { MAX_PREDICTION, boundariesOut } from './facts'
-import { buildLevel, inLevelBand, LEVEL_IDS } from './levels'
+import { ALL_LEVEL_IDS, MAP_LEVEL, buildLevel, inLevelBand } from './levels'
+import { checkViewOf } from './spans'
 import { referenceOf, stageIn } from './stages'
 import type { FloorAction, FloorAsk, FloorCounters, FloorLevel, FloorLevelId, FloorRun, FloorState, FloorView, LaidView, TileView } from './types'
+
+// GAMES.md §5's "Simulation API" lists these two with the session: the scenario a level lays on a seed, and the check of a path against a trace.
+export { scenarioFor } from './levels'
+export { spanCheck } from './spans'
+export type { SpanCheck } from './spans'
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* The contract                                                                                                       */
@@ -32,7 +42,7 @@ import type { FloorAction, FloorAsk, FloorCounters, FloorLevel, FloorLevelId, Fl
 /** The level `id` on `seed`. Throws for a level Back of House does not have. */
 export const floorLevel = (id: string, seed: Seed): FloorLevel => buildLevel(id, seed)
 
-const isLevelId = (id: string): id is FloorLevelId => (LEVEL_IDS as readonly string[]).includes(id)
+const isLevelId = (id: string): id is FloorLevelId => (ALL_LEVEL_IDS as readonly string[]).includes(id)
 
 /** Whether a seed makes the level a fair question (levels.ts, "The band"). */
 export function floorInBand(id: string, seed: Seed): boolean {
@@ -152,6 +162,9 @@ export function floorGhost(level: FloorLevel): FloorState {
 /* The view                                                                                                           */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
+/** The engine's path is a secret on the graded level until its run is judged: the plan of its house and its length would sort the tray. */
+const sealed = (s: FloorState, done: boolean): boolean => s.level.id === MAP_LEVEL && !done
+
 const tileOf = (stage: StageDef): TileView => ({ id: stage.id, mechanism: stage.mechanism, label: stage.label, from: stage.from, to: stage.to })
 
 /**
@@ -191,8 +204,13 @@ export function floorView(s: FloorState): FloorView {
     canRun: s.prediction !== null && !done && s.laid.length > s.ran,
     canUnlay: s.prediction !== null && !done && s.laid.length > 0,
     runs: s.runs,
+    runsAllowed: s.level.attempts,
     done,
+    served: s.served,
+    sealed: sealed(s, done),
     stages: s.level.reference.length,
+    // The tape is read once the run is judged, and not before: its spans are named for the stages, in the engine's order.
+    check: s.level.id === MAP_LEVEL && done ? checkViewOf(sc, s.level.seed, s.laid) : null,
   }
 }
 
@@ -215,11 +233,14 @@ export function floorScore(s: FloorState): FloorCounters {
 /**
  * The learner's run against the house's (GAMES.md §2.1, §5): the stages that held before the first that did not, over the engine's
  * stage count, capped at 1. The level is passed when the ticket came home and no run ever found a stage that did not hold. The bars of
- * credit are ASSESSMENT.md's (§4.3: for `map`, the whole path right on its first run); a practice level earns none.
+ * credit are ASSESSMENT.md's (§4.3: for `map`, the whole path right on its first run, every stage matched to a span in order); a practice
+ * level earns none.
  */
 export function floorGrade(mine: FloorState, ghost: FloorState): Grade {
   const stages = Math.max(ghost.level.reference.length, 1)
-  return { score: Math.min(1, survivedOf(mine) / stages), ok: mine.served && mine.mistake === null }
+  // The graded `map` also holds the path to its tape: every stage the span of the trace there, and no span left over (ASSESSMENT §4.3).
+  const traced = mine.level.id !== MAP_LEVEL || checkViewOf(mine.level.scenario, mine.level.seed, mine.laid).whole
+  return { score: Math.min(1, survivedOf(mine) / stages), ok: mine.served && mine.mistake === null && traced }
 }
 
 /**

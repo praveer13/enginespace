@@ -251,6 +251,9 @@ describe('the six checks of the lab', () => {
     expect(new Set(HYBRID_KV_CHECKS.map((c) => c.defaultSeed)).size).toBe(6)
   })
 
+  // 103 plans driven in-process. On a loaded machine this runs past bun's 5 s limit [measured 2026-11-04 over wave-1 d287a14, with W1-T19's
+  // files: 5.3 s alone at a load average of 38, and a timeout in a full run at 25 to 29 and in the merge gate at 36 to 43], so the test names
+  // its own limit, as the other long tests of the suite do.
   test('a right module passes every check, on fresh seeds', () => {
     for (const c of HYBRID_KV_CHECKS) {
       for (const seed of seeds(c.id === 'gauntlet' ? 3 : 20)) {
@@ -258,7 +261,7 @@ describe('the six checks of the lab', () => {
         expect(run.ok, `${c.id} on seed ${seed}: ${run.message}`).toBe(true)
       }
     }
-  })
+  }, 60_000)
 
   test('send batches of at most BATCH commands, and start every pool with init and the five state queries', () => {
     for (const c of HYBRID_KV_CHECKS) {

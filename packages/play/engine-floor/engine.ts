@@ -7,17 +7,19 @@
  *      mechanism is the kind that crosses the boundary between its two places (`stageFits`), and nothing reads what a device-to-host
  *      copy brought before a sync has waited for it (`walk`).
  *   2. It is the engine's next stage. A stage can be legal where the ticket stands and still not be the one the engine makes: a stage
- *      of another engine that starts in a place this one also has, or one of this engine's own that comes earlier or later in its path.
+ *      of another engine that starts in a place this one also has, one of this engine's own that comes earlier or later in its path, or
+ *      one of its own that its path makes only for another request (the graded level's tray holds every stage the engine has).
  *
  * The explanation of a stop comes from the stage's source (GAMES.md §5: "The reason names the rule, or cites the pinned source file and
  * symbol"): the sentence names the rule or says the stage is not the engine's next, and the stop carries the stage that was laid and the
  * stage the engine has in that place, each with the file, symbol, line and quote it is cited to.
  */
-import { FITS, RULES, boundaryOf, entryOf, legal, walk } from '@es/sim/lifecycle'
+import { ENGINES, FITS, RULES, boundaryOf, entryOf, legal, scenarios, walk } from '@es/sim/lifecycle'
 import type { EngineId, Rule, Scenario, StageDef } from '@es/sim/lifecycle'
 import { noteOf, ownerOf, referenceOf, stageIn } from './stages'
 import type { Failure, FloorRun, Mistake, Stop } from './types'
-import { placeName } from './words'
+import { REQUEST_FLAGS, placeName, requestWords } from './words'
+import type { RequestFlag } from './words'
 
 /** An engine in the words a sentence uses: no version, no commit, because a version is a number and a sentence carries none. */
 export const ENGINE_NAMES: Readonly<Record<EngineId, string>> = {
@@ -40,18 +42,47 @@ function ruleSentence(rule: Rule, at: StageDef['from'], stage: StageDef): string
   return `${named(stage)} goes from ${code(placeName(stage.from))} to ${code(placeName(stage.to))} by ${stage.mechanism}, and only ${FITS[gap].join(' or ')} crosses that. ${RULES[rule]}`
 }
 
+/**
+ * What a request must have for the engine to make a stage that this request's path does not have: for each flag, the one value that every
+ * request with the stage has, when the engine can be asked both. Empty for a stage that no scenario of the engine has. A client leaves
+ * mid-stream only from a streamed answer, so a stage that needs the one is not also said to need the other.
+ */
+export function needsOf(engine: EngineId, id: string): { readonly flag: RequestFlag; readonly value: Scenario[RequestFlag] }[] {
+  const having = scenarios(engine).filter((sc) => referenceOf(sc).some((stage) => stage.id === id))
+  const needs: { flag: RequestFlag; value: Scenario[RequestFlag] }[] = []
+  if (having.length === 0) return needs
+  for (const flag of REQUEST_FLAGS) {
+    const values = having.map((sc) => sc[flag]).filter((value, at, all) => all.indexOf(value) === at)
+    if (values.length === 1 && ENGINES[engine].supports[flag].length > 1) needs.push({ flag, value: values[0] })
+  }
+  const needing = (flag: RequestFlag, value: Scenario[RequestFlag]) => needs.some((need) => need.flag === flag && need.value === value)
+  return needs.filter((need) => !(need.flag === 'streaming' && need.value === true && needing('abort', true)) && !(need.flag === 'abort' && need.value === false && needing('streaming', false)))
+}
+
+/** The sentence for a stage of this engine that its path makes for another request: what the stage needs, and what this request has. */
+function otherRequestSentence(sc: Scenario, stage: StageDef): string {
+  const engine = ENGINE_NAMES[sc.engine]
+  const needs = needsOf(sc.engine, stage.id)
+  if (needs.length === 0) return `${named(stage)} is not a hand-off that ${engine} makes for this request.`
+  const asks = needs.map(({ flag, value }) => requestWords(flag, value)).join(' and ')
+  const has = needs.map(({ flag }) => requestWords(flag, sc[flag])).join(' and ')
+  return `${named(stage)} is a hand-off of ${engine}, but only for a request with ${asks}. This request has ${has}.`
+}
+
 /** The sentence for a stage that obeys the rules and is still not the engine's next. */
 function pathSentence(sc: Scenario, stage: StageDef, index: number): string {
   const reference = referenceOf(sc)
   const engine = ENGINE_NAMES[sc.engine]
+  const owner = ownerOf(stage.id)
+  const at = reference.findIndex((candidate) => candidate.id === stage.id)
+  // One of this engine's own that its path makes for another request (the graded tray holds them all): say what that request has.
+  if (owner === sc.engine && at < 0) return otherRequestSentence(sc, stage)
   if (reference[index] === undefined) {
     return `The request is already back where it began, so there is nothing more to lay: ${named(stage)} is a hand-off that ${engine} does not make here.`
   }
-  const owner = ownerOf(stage.id)
   if (owner !== undefined && owner !== sc.engine) {
     return `${named(stage)} is a stage of ${ENGINE_NAMES[owner]}. ${engine} does not make it here.`
   }
-  const at = reference.findIndex((candidate) => candidate.id === stage.id)
   if (at < 0) return `${named(stage)} is not a hand-off that ${engine} makes.`
   const where = at === 0 ? 'It opens the path.' : `It follows ${named(reference[at - 1])}.`
   return `${named(stage)} is a hand-off of ${engine}, but it comes ${at > index ? 'later' : 'earlier'} in the path. ${where}`

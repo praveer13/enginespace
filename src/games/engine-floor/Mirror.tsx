@@ -100,7 +100,7 @@ export function Mirror({ run }: { run: FloorRun }) {
         summary={
           <>
             {view.step === 'predict' ? 'The prediction is still to be written. ' : null}
-            {num(laid.length)} {laid.length === 1 ? 'stage' : 'stages'} laid, of the {num(view.stages)} in the engine&apos;s path. {num(view.reached)} held in the last run
+            {num(laid.length)} {laid.length === 1 ? 'stage' : 'stages'} laid{view.sealed ? '' : <>, of the {num(view.stages)} in the engine&apos;s path</>}. {num(view.reached)} held in the last run
             {view.stop === null ? '' : <>, and stage {num(view.stop.at + 1)} stopped the ticket</>}. The ticket stands at{' '}
             <code className="es-type-mono">{placeName(view.capsule)}</code>. Every figure is a count of stages in the model.
           </>
