@@ -127,6 +127,7 @@ export default function Game({ level, placement = 'page', rev, onFinish }: GameP
         </>
       )}
       mirror={(run) => <Mirror run={run} />}
+      stage
       debrief={(run, outcome) => (
         <Suspense fallback={<p role="status">Printing the debrief…</p>}>
           <Debrief run={run} outcome={outcome} next={after === null ? null : { id: after.id, title: after.title }} onNext={advance} />
@@ -139,8 +140,8 @@ export default function Game({ level, placement = 'page', rev, onFinish }: GameP
 
 /**
  * The 3D view's box: the Stage, with the 2D view as its first paint and its fallback, and the scene behind it. A waiting ticket picked in
- * the scene is hung, as a tap on it in the controls hangs it. The box keeps the 16:10 of a pass in landscape, and on a phone it is 55%
- * of the screen's height, at least 300 px (GAMES.md §3, "Controls", both [estimated]).
+ * the scene is hung, as a tap on it in the controls hangs it. The scene leads the page, the controls beside it: the box is about a pass's
+ * 16:10 in the first screen, and on a phone 55% of the screen's height, at least 300 px (GAMES.md §3, "Controls", all [estimated]).
  */
 function LoopStage({ run, preset }: { run: LoopRun; preset: string }) {
   const { dispatch, view } = run
@@ -153,7 +154,7 @@ function LoopStage({ run, preset }: { run: LoopRun; preset: string }) {
   return (
     <Stage
       id="loop"
-      className="aspect-[16/10] border border-edge shadow-shelf max-[479px]:aspect-auto max-[479px]:h-[max(18.75rem,55svh)]"
+      className="h-[clamp(20rem,min(62svh,46vw),46rem)] border border-edge shadow-shelf max-[479px]:h-[max(18.75rem,55svh)]"
       view2d={<View2D run={run} />}
       scene={LoopScene}
       sceneProps={{ view, preset, onHang }}

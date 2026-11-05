@@ -729,6 +729,32 @@
     animation: es-feed var(--es-dur-feed) var(--es-ease-feed) both;
   }
 
+  /* The provenance stamp at the tape's head, in the ribbon's red: printed once, so the lines under it print their figures alone. */
+  .es-printer__stamp {
+    width: fit-content;
+    margin: 0 0 var(--es-space-3);
+    padding: 0.1rem 0.4rem 0;
+    border: 1px solid currentColor;
+    border-radius: var(--es-radius-trim);
+    color: var(--es-paper-ink-2);
+    font-family: var(--es-font-body);
+    font-size: var(--es-size-micro);
+    line-height: 1.4;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* Under a stamp each figure's own tag is kept for a screen reader and left off the paper. */
+  .es-printer[data-stamped] .es-readout__tag {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
   @keyframes es-feed {
     from {
       transform: translateY(-1.5rem);

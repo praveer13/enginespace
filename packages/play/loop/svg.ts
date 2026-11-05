@@ -25,7 +25,7 @@ const ATTRIBUTES: Readonly<Record<string, string>> = {
   strokeDasharray: 'stroke-dasharray',
   strokeLinecap: 'stroke-linecap',
   textAnchor: 'text-anchor',
-  fontFamily: 'font-family',
+  fontFamily: 'font-family', // impeccable-disable-line design-system-font -- an attribute's name in this table, not a face
   fontSize: 'font-size',
   fontWeight: 'font-weight',
   fillOpacity: 'fill-opacity',

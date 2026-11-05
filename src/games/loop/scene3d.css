@@ -1,7 +1,7 @@
 /*
- * Service's 3D scene, its page layer: the print on its tickets, the marker on its tape, the clock's numbers and the stations' light,
- * all DOM over the canvas (D-021). Every colour, face and shadow is a token role (src/design/tokens.css); this file names none of its
- * own. The scene's box is a size container, so print scales with the pass and not with the window.
+ * Service's 3D scene, its page layer: the numbers printed on its tickets, a paid-for clip's empty stub, what the printer still holds,
+ * and the marker on its tape, all DOM over the canvas (D-021). Every colour, face and shadow is a token role (src/design/tokens.css);
+ * this file names none of its own. The scene's box is a size container, so print scales with the pass and not with the window.
  */
 
 .es-loop-scene {
@@ -17,142 +17,56 @@
   text-align: center;
 }
 
-/* A ticket on the rail: its number printed large in the printer's dots, and a fresh ticket's "new" in the ribbon's red. */
+/* A ticket's number, printed in the head the atlas leaves blank, and a fresh ticket's "new" in the ribbon's red under it. */
 .es-loop-label__ticket {
   display: grid;
   justify-items: center;
-  gap: 0.2em;
+  gap: 0.15em;
 }
 
 .es-loop-label__no {
-  font-size: clamp(var(--es-size-caption), 2.3cqi, 1.75rem);
-  letter-spacing: 0.04em;
-}
-
-@container (min-width: 36rem) {
-  .es-loop-label--ticket .es-loop-label__no::before {
-    content: 'No. ';
-    font-size: 0.55em;
-    vertical-align: 0.35em;
-  }
+  font-size: clamp(var(--es-size-micro), 1.25cqi, var(--es-size-plate));
 }
 
 .es-loop-label__sub {
   color: var(--es-paper-ink-2);
-  font-size: clamp(0.625rem, 1.15cqi, 0.875rem); /* impeccable-disable-line design-system-font-size -- the sub-line's floor sits under micro, so it stays smaller than its ticket number */
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-/* The fired rail's tickets and the printer's strip print smaller: they are further off, and the strip's paper is narrower. */
-.es-loop-label--fired {
-  font-size: clamp(var(--es-size-micro), 1.6cqi, var(--es-size-plate));
-}
-
-.es-loop-label--waiting {
-  font-size: clamp(var(--es-size-micro), 1.75cqi, var(--es-size-title));
-}
-
-/* What is still in the printer, printed on its dark housing. */
-.es-loop-label--more {
-  color: var(--es-paper);
-  font-size: clamp(var(--es-size-micro), 1.6cqi, var(--es-size-plate));
-}
-
-/* A clip with nothing hung: paid for, and empty. A strip of paper in the ribbon's red, its edge dashed like a torn-off stub. */
-.es-loop-label--empty {
-  padding: 0.25em 0.45em;
-  border: 1px dashed var(--es-paper-rule);
-  background-color: var(--es-paper);
-  box-shadow: var(--es-shadow-paper);
-  color: var(--es-paper-ink-2);
-  font-size: clamp(0.625rem, 1.3cqi, 0.9375rem); /* impeccable-disable-line design-system-font-size -- an empty clip's stub floors under micro, so four fit side by side */
+  font-size: clamp(0.5rem, 0.7cqi, var(--es-size-stamp)); /* impeccable-disable-line design-system-font-size -- the sub-line prints under its number on a ticket a few millimetres wide */
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
-/* In a phone's narrow frame the clips stand close together: the stubs print tighter, so four fit side by side. */
-@container (max-width: 30rem) {
-  .es-loop-label--empty {
-    padding: 0.15em 0.25em;
-    font-size: 0.5625rem; /* impeccable-disable-line design-system-font-size -- the narrow frame's stub, smaller still (the comment above) */
-    letter-spacing: 0.02em;
-  }
+/* The fired rail's copies and the counter's tickets are further off or lying flat: their numbers print smaller. */
+.es-loop-label--fired .es-loop-label__no,
+.es-loop-label--waiting .es-loop-label__no {
+  font-size: clamp(0.5625rem, 1cqi, var(--es-size-print)); /* impeccable-disable-line design-system-font-size -- a far ticket's number, a step under micro on a phone */
 }
 
-/* Marker on masking tape. */
+/* A clip with nothing hung: paid for, and empty. A strip of paper in the ribbon's red, its edge dashed like a torn-off stub. */
+.es-loop-label--empty {
+  padding: 0.25em 0.4em 0.2em;
+  border: 1px dashed var(--es-paper-rule);
+  background-color: var(--es-paper);
+  box-shadow: var(--es-shadow-paper);
+  color: var(--es-paper-ink-2);
+  font-size: clamp(0.5rem, 0.85cqi, var(--es-size-caption)); /* impeccable-disable-line design-system-font-size -- four stubs fit side by side under a phone's rail */
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* What is still in the printer, printed over its housing. */
+.es-loop-label--more {
+  padding: 0.2em 0.35em;
+  border-radius: var(--es-radius-trim);
+  background-color: var(--es-surface-3);
+  color: var(--es-paper);
+  font-size: clamp(var(--es-size-micro), 1cqi, var(--es-size-print));
+}
+
+/* Marker on masking tape: the tape is in the scene, stuck where the kitchen sticks it; the words ride on it. */
 .es-loop-label--tape {
   color: var(--es-tape-ink);
   font-family: var(--es-font-label);
   font-weight: var(--es-font-label-weight);
   letter-spacing: var(--es-font-label-tracking);
-  font-size: clamp(var(--es-size-micro), 1.6cqi, var(--es-size-body));
-}
-
-/* The clock along the line, in the numeral face, and what its numbers are. */
-.es-loop-label--tick {
-  color: var(--es-text-2);
-  font-family: var(--es-font-numeric);
-  font-weight: var(--es-font-numeric-weight);
-  font-size: clamp(var(--es-size-micro), 1.45cqi, var(--es-size-base));
-}
-
-.es-loop-label--axis {
-  color: var(--es-text-2);
-  font-family: var(--es-font-body);
-  font-weight: 400;
-  letter-spacing: 0.02em;
-  font-size: clamp(var(--es-size-micro), 1.3cqi, var(--es-size-print));
-}
-
-/* The line's stations, as the pass reads them: a pip for each, burning in the heat lamp's amber with its filament's edge or an open
-   ring of cold steel, and the count in the printer's dots, on a slip of steel so it reads over the counter. */
-.es-loop-label--station {
-  padding: 0.35em 0.6em;
-  border: 1px solid var(--es-edge);
-  border-radius: var(--es-radius-plate);
-  background-color: var(--es-surface-1);
-  font-size: clamp(var(--es-size-micro), 1.3cqi, var(--es-size-print));
-}
-
-.es-loop-label__stations {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6em;
-}
-
-.es-loop-label__pips {
-  display: inline-flex;
-  gap: 0.3em;
-}
-
-.es-loop-label__pip {
-  width: 0.85em;
-  height: 0.85em;
-  border: 2px solid var(--es-surface-3);
-  border-radius: var(--es-radius-round);
-  background-color: var(--es-surface-2);
-}
-
-.es-loop-label__pip[data-lit] {
-  border-color: var(--es-lamp-ring);
-  background: radial-gradient(circle at 42% 36%, color-mix(in srgb, var(--es-lamp) 55%, var(--es-paper)) 0 16%, var(--es-lamp) 42%, color-mix(in srgb, var(--es-lamp) 70%, var(--es-lamp-ring)) 100%);
-}
-
-.es-loop-label__station-words {
-  display: grid;
-  text-align: left;
-  line-height: 1.15;
-  text-transform: uppercase;
-}
-
-.es-loop-label__station-count {
-  color: var(--es-text-2);
-}
-
-.es-loop-label--calls {
-  color: var(--es-text-1);
-  font-family: var(--es-font-numeric);
-  font-weight: var(--es-font-numeric-weight);
-  font-size: clamp(var(--es-size-micro), 1.3cqi, var(--es-size-print));
+  font-size: clamp(0.5625rem, 0.95cqi, var(--es-size-print)); /* impeccable-disable-line design-system-font-size -- marker on a strip of tape a few centimetres wide on a phone */
 }

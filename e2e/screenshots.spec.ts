@@ -64,6 +64,30 @@ test.describe('the 2D pass of the front page', () => {
   }
 })
 
+test.describe('the 2D pass of the front page after a fire (W0 finding F1)', () => {
+  test.use({ reducedMotion: 'reduce' })
+
+  for (const width of PR_WIDTHS) {
+    test(`at ${width} px, two tickets hung and the bell rung, matches its baseline within ${TOLERANCE * 100}%`, async ({ page, context }) => {
+      test.skip(process.platform !== 'linux', 'the baselines are Linux Chromium renderings')
+      await withSettings(context, { view3d: false })
+      await page.setViewportSize({ width, height: 800 })
+      await open(page, '/')
+      await page.getByRole('button', { name: 'Start service' }).click()
+      // The strip feeds the next ticket as one is hung, so its first ticket is always the next in line.
+      for (const no of ['01', '02']) await page.getByRole('button', { name: `Hang ticket No. ${no} on the rail` }).click()
+      await page.getByRole('button', { name: /Ring the bell/ }).click()
+      await expect(page.locator('.es-front-tape [data-line="busy"] .es-front-pips__pip[data-lit]')).toHaveCount(2)
+      await page.evaluate(() => window.scrollTo(0, 0))
+      await quiet(page)
+      await page.evaluate(() => document.fonts.ready)
+      // The pass, drawn from above after the fire: two pans in their wells, two plates on the pass, and the two clips that rode empty.
+      await expect(page.locator('[data-front-poster] [data-part="plates"] circle[fill="var(--es-paper)"]')).toHaveCount(2)
+      await expect(page).toHaveScreenshot(`front-fired-${width}.png`, { maxDiffPixelRatio: TOLERANCE })
+    })
+  }
+})
+
 test.describe('the 3D pass of the front page', () => {
   for (const width of PR_WIDTHS) {
     test(`at ${width} px is drawn, not blank, and its capture is kept as an artifact`, async ({ page, context }, info) => {

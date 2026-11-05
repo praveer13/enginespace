@@ -23,7 +23,7 @@ export interface PosterFile {
 
 /** The poster of each game that has one, by id. Each game's task adds its own beside Service's, and its file to scripts/posters.ts. */
 export const POSTERS: Readonly<Record<string, PosterFile>> = Object.freeze({
-  loop: { file: 'loop-first-frame-landscape.svg', width: 720, height: 348 },
+  loop: { file: 'loop-first-frame-landscape.svg', width: 720, height: 300 },
 })
 
 /** Whether a game has a poster to draw. Only a game's own id counts: a name such as `constructor` is not one. */

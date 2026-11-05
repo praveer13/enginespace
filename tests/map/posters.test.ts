@@ -163,7 +163,7 @@ describe('the poster in its well', () => {
 
   test('the well has the shape of the drawing until the file has come, and holds the drawing once it has', async () => {
     forgetPosters()
-    expect(render(h(Poster, { id: 'loop' }))).toBe('<div class="es-poster" data-state="reading" style="aspect-ratio:720 / 348"></div>')
+    expect(render(h(Poster, { id: 'loop' }))).toBe('<div class="es-poster" data-state="reading" style="aspect-ratio:720 / 300"></div>')
     globalThis.fetch = (async () => new Response(fileOf(POSTERS.loop.file))) as typeof fetch
     await loadPoster(POSTERS.loop.file)
     const drawn = render(h(Poster, { id: 'loop' }))
