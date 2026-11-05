@@ -46,7 +46,7 @@
 | D-020 | Edition 1 uses WebGL2 only, with no WebGPU path. | proposed |
 | D-021 | No game engine, no drei and no in-canvas text; post-processing comes from three's own addons. | proposed |
 | D-022 | Device tiers come from local hints and a frame-time governor, not detect-gpu. | proposed |
-| D-023 | A first-paint JavaScript budget, and a front page that paints a 2D step loop first and upgrades to 3D after LCP. | proposed; budgets frozen 2026-11-04 (W0-T24); the front page's gate is 154 KB by D-055 |
+| D-023 | A first-paint JavaScript budget, and a front page that paints a 2D step loop first and upgrades to 3D after LCP. | proposed; budgets frozen 2026-11-04 (W0-T24); the front page's gate is 154 KB by D-055, the gate of `/today` and `/m/:module` is 210 KB by D-056, and every other route's is 201 KB by D-057 |
 | D-024 | The evidence ledger is re-implemented on kernelspace's envelope; provenance weights come from ASSESSMENT.md and apply at read time. | proposed |
 | D-025 | Browser-lane builds are Rust → wasm on kernelspace's kslab ABI v2, graded by host-driven property tests whose oracle sits outside the learner's code. | proposed |
 | D-026 | The local grader is Python, with one locked environment per engine. | proposed |
@@ -79,6 +79,8 @@
 | D-053 | The front page's first-paint gate is 151 KB: a second game that shares the run hook and the shell with Service splits the chunks that Service and the front page share, which costs about 870 B that the game cannot avoid. | proposed (W1-T28); the owner confirms |
 | D-054 | The front page's first-paint gate is 152 KB: a third game reaches some of the modules that the front page shares with the first two and not others, so Rollup splits them again, which costs the closure 585 B. | proposed (W1-T17); the owner confirms |
 | D-055 | The front page's first-paint gate is 154 KB: a fourth game, the first after The Loop to be built on the step loop's workload generator and cards, splits the chunk that The Loop's session shares with them, which costs the closure 2,098 B. | proposed (W1-T33); the owner confirms |
+| D-056 | The gate of `/today` and `/m/:module` is 210 KB, up from 200 KB: both carry the registry of item families, which is static, and TR6's five families cost each closure about 17.2 KB, which took both over their gate. | proposed (W1-T30); the owner confirms |
+| D-057 | Every other route's gate is 201 KB, up from 200 KB: each lesson and module adds its name to the loader's table, which every game route loads for its claims, and TR6's six names took `/play/broken-bench` 41 B over. | proposed (W1-T30); the owner confirms |
 
 ---
 
@@ -854,7 +856,7 @@ D-052 records how the W0 wave PR keeps the nightly from spending Actions minutes
 
 ## The first-paint gate, W1
 
-D-053 is the new record that D-023 asks for when a change must take a budget over its gate, D-054 is the next, and D-055 the one after.
+D-053 is the new record that D-023 asks for when a change must take a budget over its gate, D-054 is the next, and D-055 the one after. D-056 is the first for routes other than the front page, and D-057 the one after.
 
 ### D-053 · The front page's first-paint gate is 151 KB, for the second game
 
@@ -925,6 +927,44 @@ D-053 is the new record that D-023 asks for when a change must take a budget ove
   - A game that follows pays the split again only for a module that it reaches and the games before it do not [derived from D-053, D-054 and this record]. The next game built on the step loop reaches leaves that are now apart, and pays little. 590 B is the room that is left at f823a04.
   - A lazy part of a game (its debrief, its 3D scene) that imports a module that only the game's own chunk uses makes Rollup export that module from the game's chunk, and `verify:bundle` then reports the game as missing from the manifest. The Inspection imports its debrief for that reason, as The Tasting does.
 - **Revisit when:** a change takes the closure over 154 KB, or the route manifest leaves the entry. Four games in, the gate has moved three times by 4 KB in all (150 to 154 KB) for a front page whose own code has not grown, and the owner may prefer to end it with the route manifest of D-053 before a fifth game.
+
+### D-056 · The gate of `/today` and `/m/:module` is 210 KB, for the item bank
+
+- **Status:** proposed (W1-T30, 2026-11-05); the owner confirms.
+- **Decision:** `verify:bundle` holds the closure of `/today` and of `/m/:module`, JavaScript and CSS, to 210 KB gz, up from the 200 KB that every other route keeps (`ITEM_BANK_ROUTES` and `budgetOfRoute` in `scripts/verify-bundle.ts`). No other gate changes.
+- **Context:** all [measured 2026-11-05], gzip under Bun 1.3.14 as the gate counts it, at the wave tip cc298cc and on this task's tree, which is the tip with TR6's files.
+  - The registry of item families is static. `src/items/today/TodayView.tsx` reads `FAMILIES` when the page renders, and `src/items/ItemBlock.tsx` reads `familyById` for a lesson's `item` block, which `src/content/render/Blocks.tsx` imports, so the code of every family (its generator, its grader, and the words of its stems, its explanations and its worked steps) is in the closure of every page that renders blocks: the lesson page, the module page and Today.
+  - With the registry as the tip has it, three families of TR2: `/today` is 191,026 B, `/m/:module` 190,003 B and `/m/:module/:lesson` 147,661 B. On the tree before W1-T14's two families (e85c683, with the one family of `tr2.bubble-width`) `/today` was 183,917 B, so a family costs about 3.5 KB there too.
+  - With TR6's five: `/today` is 208,260 B (JavaScript 184.4 KB, CSS 23.8 KB), 8,260 B over 200 KB. `/m/:module` is 207,232 B, 7,232 B over. `/m/:module/:lesson` is 164,881 B, 35,119 B under. The three pages take about the same from the families, 17,234 B, 17,229 B and 17,220 B.
+  - What each family's removal takes out of `/today`: `tr6.mask-fits` 4,492 B, `tr6.exactness-test` 4,190 B, `tr6.verify-shape` 3,228 B, `tr6.which-runner` 2,819 B and `tr6.mask-phases` 2,744 B, which is 17,473 B, more than the 17,234 B of the five together, since gzip shares what the five have in common. A family costs a page about 3.4 KB, most of it its words: the five files hold about 33,000 characters of string literals [measured by counting them].
+  - The game routes carry no families. The five move them by 24 B (`/play/engine-floor`) and 21 B (`/play/broken-bench`), through Rollup's chunking, and they are 484 B and 171 B under 200 KB at this tip. This record leaves them alone, and a record for them is due before long.
+  - The lessons and the module of TR6 are lazy chunks, and are in no closure but for their names in the entry's preload map.
+- **Alternatives:**
+  - Cut the families to fit: 8,260 B is almost half of what the five cost. Every sentence of a family is a stem, the explanation of a wrong option or a worked step, which is what an item is for, and the next family that is registered meets the same wall, so the cut would only move the question to the task after this one. Not done.
+  - Load the families on demand: the registry is imported when Today or an item block needs it, and not with the page. `packages/play/items/index.ts` re-exports the registry, so the attempt's framework and the families are one chunk today, and `TodayView`, its session, `ItemBlock` and every test that reads `FAMILIES` from the index would change. It is the fix that ends the question, and it is the owner's to schedule, as D-053 says of the route manifest. Not measured.
+  - Make `TodayView` lazy in `src/pages/Today.tsx`, or the item block lazy in `Blocks.tsx`: the page's static closure would leave the families out, and a learner would download the same bytes right after. It meets the number and not the budget. For the module page, which has no item block, a lazy `ItemBlock` would also be a real saving, and it is the one change here that would end that page's part of the question. Not done.
+- **Consequences:**
+  - ARCHITECTURE §11.1 carries 210 KB for the two pages, and 200 KB for every other route.
+  - 1,740 B on `/today` and 2,768 B on `/m/:module` are the room that is left at cc298cc, which is less than one more family. The open tasks name eight more: two for TR1, two for TR2, one for TR5a and three for TR8, about 27 KB [derived: eight at 3.4 KB], which would take `/today` to about 235 KB. A gate that follows the item bank is a gate that moves with every family, so the registry should load on demand before the next family is registered.
+- **Revisit when:** a change takes either page over 210 KB, or the registry loads on demand, which puts the rows back to 200 KB.
+
+### D-057 · Every other route's gate is 201 KB, for the names of the lessons
+
+- **Status:** proposed (W1-T30, 2026-11-05); the owner confirms.
+- **Decision:** `verify:bundle` holds every route other than the front page, `/today` and `/m/:module` to 201 KB gz, up from 200 KB (`BUDGETS.route`). The target stays absent, and no other gate changes.
+- **Context:** all [measured 2026-11-05], gzip under Bun 1.3.14 as the gate counts it, at the wave tip ba7f1e6 built as it stands and on this task's tree, which is the tip with TR6's files.
+  - A game's page loads `src/content/load.ts` for the claims that its debrief cites, and `load.ts` holds the tables of every lesson, module and card in the same chunk, so each lesson and module adds its path and its chunk's name to the closure of every game route. TR6's six cost the chunk 163 B, from 1,747 B to 1,910 B, about 27 B each. The course index, which the front page awaits, took 302 B for the six, from 1,668 B to 1,970 B, about 50 B each.
+  - The tip alone: `/play/broken-bench` 199,891 B, 109 B under 200 KB, and `/play/engine-floor` 199,511 B, 489 B under; `/play/verifier` 196,742 B, `/play/loop` 196,898 B and `/play/pool` 193,873 B. The front page's first-paint JavaScript is 153,350 B, 650 B under its 154 KB.
+  - With TR6: `/play/broken-bench` 200,041 B, 41 B over (150 B more), and `/play/engine-floor` 199,518 B (7 B more). The front page is 153,805 B, 195 B under (455 B more).
+  - The lesson's file name is not the lever: shortening two of TR6's moved the game route by 7 B and the front page by 18 B, because gzip keeps what a name shares with the ones around it.
+- **Alternatives:**
+  - Split the claims out of `load.ts`, as `load-map.ts` already splits the map's tables, so that a game route loads the claims and not the lessons. It would take the 1.4 KB of tables off every game route and the per-lesson cost with it, and it adds a chunk to the front page, whose room is 195 B and a chunk costs a header and a name in the entry's preload map (D-053). Not measured, and the front page's gate would move with it.
+  - The route manifest outside the entry, which D-053 leaves to the owner, and which would take the names out of the closures altogether. Not done.
+  - Raise the game routes' gate alone: the gate is one row for every other route, and a second row for the games would be a second thing to follow.
+- **Consequences:**
+  - ARCHITECTURE §11.1 carries 201 KB. 959 B is the room that `/play/broken-bench` has left at ba7f1e6 with TR6, and 1,482 B for `/play/engine-floor`, about thirty more lessons at 27 B.
+  - The front page has 195 B left, which is the cost of three lessons (about 76 B each, 50 B in the index and 27 B in the table): the front page's gate will need D-053's record again, or the names will have to leave the first paint.
+- **Revisit when:** a change takes a route over 201 KB, or the claims or the route manifest leave the closure that the names are in.
 
 ---
 

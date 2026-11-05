@@ -24,7 +24,7 @@ npm run verify:kc              # the KC graph: a DAG, and a graded reference or 
 | `kc/kernelspace.json` | the ids of kernelspace's KCs at the vendored pin, which the `ks:` edges of the graph may name. `scripts/kc/kernelspace.ts` writes and checks it |
 | `cards/<id>.md` | the notional-machine cards that a `card` block or a module's `worlds` names |
 
-A figure's `src` is a path under `public/`, such as `figures/tr2/bubble.svg`. A figure that is drawn from a model has `origin: generated`, and a test holds its file to the function that draws it: `tests/content/tr5a-figures.ts` writes TR5a's four with `bun tests/content/tr5a-figures.ts`, and `tr5a-module.test.ts` fails on a file that is not what the model draws. A card's compiled JSON is written to `src/content/generated/cards/<id>.json`, one lazy chunk each, like a lesson's.
+A figure's `src` is a path under `public/`, such as `figures/tr2/bubble.svg`. A figure that is drawn from a model has `origin: generated`, and a test holds its file to the function that draws it: `tests/content/tr5a-figures.ts` writes TR5a's four with `bun tests/content/tr5a-figures.ts`, and `tr5a-module.test.ts` fails on a file that is not what the model draws. TR6's one figure, the mask timeline, is drawn the same way from the step loop: `tests/content/tr6-figure.ts` builds it, `bun tests/content/tr6-figure.ts --write` rewrites the file, and `tr6-module.test.ts` holds it byte for byte. A card's compiled JSON is written to `src/content/generated/cards/<id>.json`, one lazy chunk each, like a lesson's.
 
 ## A lesson
 
@@ -85,7 +85,7 @@ Every number is a claim or carries a tag (ARCHITECTURE §4.4). In prose, a digit
 
 A number does not need a tag in code, inside a reference, in an identifier (`H100`, `p99`, `tr2.l3`, `v0.33.0`, `§4.2`), or in an ISO date. Anything else does, including a version without its `v`, a size with its unit (`80GB`) and a year. When a number is a fact about an engine, make it a claim, give it a source with the source's own words, and cite it.
 
-A number that the course's own simulator gives is [measured], and its sentence or its table's caption says on what day and at which commit it was read. A test recomputes it from the generator and holds the lesson's text to the result, so that a change to the generator that moves the number fails on the lesson that printed it. `tests/content/tr8-module.test.ts` and `tests/content/tr8-demos.ts` are the pattern. The date and the commit go in the text and never inside the brackets, which hold the tag and nothing else.
+A number that the course's own simulator gives is [measured], and its sentence or its table's caption says on what day and at which commit it was read. A test recomputes it from the generator and holds the lesson's text to the result, so that a change to the generator that moves the number fails on the lesson that printed it. `tests/content/tr8-module.test.ts` and `tests/content/tr8-demos.ts` are the pattern, and `tests/content/tr6-module.test.ts` adds the two other things a module can owe: a prediction's reference answer, which a content file never stores (`PREDICTIONS` in `tests/content/tr6-demos.ts`), and a figure drawn from a model. The date and the commit go in the text and never inside the brackets, which hold the tag and nothing else.
 
 ## Claims
 

@@ -29,10 +29,14 @@
  *                  the content index"). The index is a lazy chunk, but the page's loader awaits it before it paints.
  *   CSS            the stylesheets of that same closure (what the document links).              gate 30, target 20
  *                  A§11.1 gives CSS its own row, so the closure row above counts JavaScript only.
- *   other routes   for every other lazy page of the route table, its chunk and the entry with    gate 200
+ *   other routes   for every other lazy page of the route table, its chunk and the entry with    gate 201 (D-057)
  *                  their static imports, JavaScript and CSS together, which is kernelspace's `/boot` and `/today` figure and the
  *                  way D-051 recorded the closures. A game's page counts its game's chunk too: that is what a learner downloads to
  *                  play. A scene, the lesson and module JSON are lazy and have rows of their own.
+ *   /today,        the same closure, for the two pages that carry the item bank and sit near       gate 210 (D-056)
+ *   /m/:module     the gate: Today reads the registry of families, and the content renderer reads it for an item block, so a
+ *                  page's closure grows by about 3.4 KB for each family that is registered (D-056 has the figures). The lesson
+ *                  page carries the registry too and is far under 200 KB, so it keeps the generic gate.
  *   three-vendor   the chunk's own file.                                                        gate 245
  *   scene-<id>     a scene's own chunk, the CSS it names, and the chunks it reaches that only    gate 40 each
  *                  3D code reaches: not the entry, not a page or a game, not `three-vendor` and not `postfx`.
@@ -64,7 +68,10 @@ export const BUDGETS = {
   entry: { gate: 110, target: 100 },
   front: { gate: 154, target: 130 },
   css: { gate: 30, target: 20 },
-  route: { gate: 200 },
+  /** D-057: 201 KB, up from 200 (kernelspace's `/boot` and `/today` figure), for the names that every lesson adds to the loader's table. */
+  route: { gate: 201 },
+  /** D-056: `/today` and the module page carry the registry of item families, which every family adds to (about 3.4 KB gz each); the other routes keep `route`. */
+  itemBank: { gate: 210 },
   threeVendor: { gate: 245 },
   scene: { gate: 40 },
   postfx: { gate: 25 },
@@ -204,6 +211,13 @@ function pageKeyOf(manifest: Manifest, entry: string, page: string): string | nu
   return new Set(hoisted).size === 1 ? hoisted[0] : null
 }
 
+/** The routes that carry the item bank and have the gate of D-056: Today and the module page. */
+export const ITEM_BANK_ROUTES: readonly string[] = ['/today', '/m/:module']
+
+/** The budget of a page that answers these patterns: the item bank's pages have the one of D-056, and every other page the generic route's. */
+export const budgetOfRoute = (patterns: readonly string[]): { readonly gate: number } =>
+  patterns.some((pattern) => ITEM_BANK_ROUTES.includes(pattern)) ? BUDGETS.itemBank : BUDGETS.route
+
 /** The lazy routes in `src/routes.tsx`: `{ path: 'map', lazy: () => import('./pages/Map') }`, and the index route for `/`. */
 export function routesIn(source: string): Route[] {
   const routes = [...source.matchAll(/\{\s*(?:index:\s*true|path:\s*'([^']*)')\s*,\s*lazy:\s*\(\)\s*=>\s*import\('\.\/pages\/(\w+)'\)/g)].map((match) => ({
@@ -327,7 +341,7 @@ export function checkBundle(input: Input): Report {
     for (const { id, label, extra } of variants) {
       const files = filesOf(manifest, closureOf(manifest, [entry, key, ...extra]))
       const parts = sizeOf([...files.js, ...files.css])
-      measured(`route:${id}`, `route ${label}`, parts, BUDGETS.route, `${page} page${extra.length > 0 ? ' and its game' : ''}, JavaScript ${kb(sum(parts.filter((part) => files.js.includes(part.file))))} and CSS ${kb(sum(parts.filter((part) => files.css.includes(part.file))))}`)
+      measured(`route:${id}`, `route ${label}`, parts, budgetOfRoute(routes), `${page} page${extra.length > 0 ? ' and its game' : ''}, JavaScript ${kb(sum(parts.filter((part) => files.js.includes(part.file))))} and CSS ${kb(sum(parts.filter((part) => files.css.includes(part.file))))}`)
     }
   }
 

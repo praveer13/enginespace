@@ -1,0 +1,562 @@
+# What TR6's lessons cite beyond the claims of vllm/spec.yaml, vllm/steploop.yaml, sglang/spec.yaml and worlds/ (W1-T30; curriculum/TR6 §8): how the pinned
+# engines' rejection samplers decide an accept and draw a replacement (so that the lessons can set the course's integer rule beside both runners' code), what
+# each proposer family needs, where the grammar mask is applied and when a step defers it, and the three papers and the one kernelspace lesson the reading
+# list stands on. An id starts with its engine, or with the world it belongs to (`spec`, `mask`) when its source is not an engine's.
+#
+# Each quote was read on 2026-11-05 with the generic User-Agent "Mozilla/5.0 (X11; Linux x86_64)". An engine file or document is read at the pinned tag,
+# vLLM v0.33.0 (commit 4ba787ec9959e566d3b587a796dff07673324da5) or SGLang v0.5.23 (commit 297e54fd105e974cdf401e5b4d20253a22c16f90): the tag's source
+# tarball was downloaded into a folder of its own, its commit was read back from the archive with `git get-tar-commit-id`, and the file was read as text
+# and never run. The quote is found verbatim inside the lines its anchor names, after a run of spaces is read as one. A paper is read on its arXiv page,
+# the abstract or, for DeepSeek-V3, the HTML version 2, and a document at a commit or a version does not move, so it carries a year [estimated].
+# The engines' files carry the quarter that a pin lasts.
+
+# --- The rejection samplers' accept tests --------------------------------------------------------------------------------------------
+
+- id: vllm.spec.mrv2.accept-test
+  value: p(x) > u * q(x)
+  text: MRV2, the default runner, accepts a drafted token x when the target's probability of x is greater than a draw u times the draft's probability of x. The comparison is strict, and the kernel does it in log space.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu/spec_decode/rejection_sampler_utils.py#L694-L697
+    title: vLLM v0.33.0, vllm/v1/worker/gpu/spec_decode/rejection_sampler_utils.py, the acceptance kernel
+    quote: 'Probability ratio test: p(x) > u * q(x)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.mrv2.coin-call
+  value: includes_zero=False
+  text: MRV2's acceptance kernel draws the coin u of every drafted token with the argument includes_zero set to False.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu/spec_decode/rejection_sampler_utils.py#L598
+    title: vLLM v0.33.0, vllm/v1/worker/gpu/spec_decode/rejection_sampler_utils.py, the acceptance kernel
+    quote: 'u = tl_rand32(step_seed, pos, includes_zero=False)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.mrv2.coin-floor
+  value: u = max(u, a minimum)
+  text: When includes_zero is False, the helper tl_rand32 raises a draw that falls below a minimum, _TL_RAND_MIN, up to that minimum, so that u is never exactly 0.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu/sample/gumbel.py#L66-L70
+    title: vLLM v0.33.0, vllm/v1/worker/gpu/sample/gumbel.py, tl_rand32
+    quote: 'u = tl.maximum(u, _TL_RAND_MIN)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.mrv1.accept-test
+  value: target_prob / draft_prob >= uniform_prob
+  text: MRV1's rejection sampler accepts a drafted token when the draft's probability of it is above 0 and the target's probability divided by the draft's is at least a uniform draw. The comparison includes its boundary.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/sample/rejection_sampler.py#L949-L951
+    title: vLLM v0.33.0, vllm/v1/sample/rejection_sampler.py, rejection_random_sample_kernel
+    quote: 'accepted = draft_prob > 0 and target_prob / draft_prob >= uniform_prob'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.mrv1.coin-float64
+  value: float64
+  text: MRV1 draws its uniform coins in float64 and not in float32, because with float32 there is, in its authors' words, a non-negligible chance that a coin is exactly 0.0.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/sample/rejection_sampler.py#L721-L725
+    title: vLLM v0.33.0, vllm/v1/sample/rejection_sampler.py, generate_uniform_probs
+    quote: 'uniform_prob is sampled to be exact 0.0 as reported in'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.mrv1.one-hot-accept
+  value: draft_prob = 1
+  text: When a drafted token comes with no draft probabilities, MRV1 takes the draft's probability of it to be 1, so the accept test reduces to the target's probability of the token being at least the coin.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/sample/rejection_sampler.py#L938-L951
+    title: vLLM v0.33.0, vllm/v1/sample/rejection_sampler.py, rejection_random_sample_kernel (NO_DRAFT_PROBS)
+    quote: 'draft_prob = 1'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.mrv1.ngram-no-draft-probs
+  value: draft_probs can be None
+  text: MRV1's rejection sampler takes the draft's probabilities as an optional argument, and its docstring says they are not provided for n-gram speculation.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/sample/rejection_sampler.py#L137-L140
+    title: vLLM v0.33.0, vllm/v1/sample/rejection_sampler.py, RejectionSampler.forward
+    quote: 'not provided, which is the case for ngram spec decode.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.draft-sample-greedy
+  value: greedy
+  text: vLLM's draft_sample_method defaults to greedy, where the draft always picks its argmax token and its probabilities are treated as one-hot during rejection sampling. The other setting, probabilistic, samples the draft stochastically and keeps its logits for the probability-ratio test, at the cost of more GPU memory.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/speculative.py#L634-L640
+    title: vLLM v0.33.0, vllm/config/speculative.py, SpeculativeConfig.draft_sample_method
+    quote: 'token, and the draft probabilities are treated as one-hot during rejection'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+# --- What a rejection is replaced by -------------------------------------------------------------------------------------------------
+
+- id: vllm.spec.mrv2.residual
+  value: r(x) = max(p(x) - q(x), 0)
+  text: MRV2 replaces a rejected token with one drawn from the residual r(x), the target's probability minus the draft's where that is positive. It computes the residual's logits in log space, because it draws with Gumbel noise.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu/spec_decode/rejection_sampler_utils.py#L937-L948
+    title: vLLM v0.33.0, vllm/v1/worker/gpu/spec_decode/rejection_sampler_utils.py, the resampling kernel
+    quote: 'r(x) = max(p(x) - q(x), 0)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.mrv2.one-hot-residual
+  value: p with the rejected token zeroed
+  text: With a one-hot draft, MRV2's residual is the target distribution with the probability of the rejected draft token zeroed out.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu/spec_decode/rejection_sampler_utils.py#L949-L961
+    title: vLLM v0.33.0, vllm/v1/worker/gpu/spec_decode/rejection_sampler_utils.py, the resampling kernel
+    quote: 'One-hot draft. The residual is just the target distribution with'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.mrv1.residual
+  value: max(target_prob - draft_prob, 0)
+  text: MRV1 draws the replacement for a rejected token from the target's probabilities minus the draft's, where positive. It does not divide by the sum first, because it takes an argmax over the residual scaled by random numbers.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/sample/rejection_sampler.py#L1117-L1144
+    title: vLLM v0.33.0, vllm/v1/sample/rejection_sampler.py, sample_recovered_tokens_kernel
+    quote: 'prob = tl.maximum(target_prob - draft_prob, 0.0)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.mrv1.residual-no-draft-probs
+  value: the target with the draft token masked out
+  text: When the draft has no probabilities, MRV1 draws the replacement from the target's probabilities with the rejected draft token masked out.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/sample/rejection_sampler.py#L1111-L1116
+    title: vLLM v0.33.0, vllm/v1/sample/rejection_sampler.py, sample_recovered_tokens_kernel (NO_DRAFT_PROBS)
+    quote: 'mask=(vocab_mask & (vocab_offset != draft_token_id)),'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.mrv2.greedy-accept
+  value: accept if and only if the draft is the target's argmax
+  text: At temperature 0, MRV2 accepts a drafted token if and only if it is the target's argmax.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu/spec_decode/rejection_sampler_utils.py#L599-L617
+    title: vLLM v0.33.0, vllm/v1/worker/gpu/spec_decode/rejection_sampler_utils.py, the acceptance kernel
+    quote: 'Greedy sampling. Accept IFF draft matches target argmax.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+# --- What each proposer needs --------------------------------------------------------------------------------------------------------
+
+- id: vllm.spec.where-it-pays
+  value: medium-to-low QPS, memory-bound
+  text: vLLM's speculative decoding guide says the technique reduces inter-token latency under medium-to-low QPS, memory-bound workloads.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/features/speculative_decoding/README.md#L3
+    title: vLLM v0.33.0, docs/features/speculative_decoding/README.md
+    quote: 'to reduce inter-token latency under medium-to-low QPS (queries per second), memory-bound workloads.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.model-based-vs-simple
+  value: model-based methods gain more
+  text: vLLM's guide groups EAGLE, MTP, draft models and PARD as the model-based methods, which give the best latency reduction, and n-gram and suffix decoding as the simpler ones, which give modest speedups without adding work at peak traffic.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/features/speculative_decoding/README.md#L9
+    title: vLLM v0.33.0, docs/features/speculative_decoding/README.md
+    quote: 'Model-based methods such as EAGLE, MTP, draft models and PARD'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.model-key-optional
+  value: ngram, ngram_gpu, suffix, mtp
+  text: In vLLM's speculative_config the model key names a draft model, an EAGLE head or an auxiliary model, and for ngram, ngram_gpu, suffix and mtp it can often be left out.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/features/speculative_decoding/README.md#L85
+    title: vLLM v0.33.0, docs/features/speculative_decoding/README.md, common keys
+    quote: 'For `ngram`, `ngram_gpu`, `suffix`, and `mtp`, this can often be omitted.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.draft-model-separate
+  value: a separate draft model
+  text: In vLLM's method table the draft-model method is the one that needs a separate draft model.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/features/speculative_decoding/README.md#L34
+    title: vLLM v0.33.0, docs/features/speculative_decoding/README.md, method selection at a glance
+    quote: 'Needs a separate draft model.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.ngram-prompt-lookup
+  value: matching n-grams in the prompt
+  text: The n-gram method proposes draft tokens by matching n-grams in the prompt.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/features/speculative_decoding/n_gram.md#L3-L4
+    title: vLLM v0.33.0, docs/features/speculative_decoding/n_gram.md
+    quote: 'matching n-grams in the prompt.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.suffix-differs
+  value: prompt and past generations, with frequency counts
+  text: Suffix decoding pattern-matches the last n generated tokens as n-gram does, but it matches against the prompt and the earlier generations, proposes the most likely continuations from frequency counts, and speculates an adaptive number of tokens for each request at each iteration.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/features/speculative_decoding/suffix.md#L5
+    title: vLLM v0.33.0, docs/features/speculative_decoding/suffix.md
+    quote: 'Unlike n-gram, Suffix Decoding'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.suffix-needs-arctic
+  value: Arctic Inference
+  text: Suffix decoding needs the Arctic Inference package installed alongside vLLM.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/features/speculative_decoding/suffix.md#L9-L10
+    title: vLLM v0.33.0, docs/features/speculative_decoding/suffix.md
+    quote: 'Suffix Decoding requires'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.mtp-native
+  value: the target model includes multi-token prediction
+  text: MTP is a speculative method for a target model that includes native multi-token prediction. Unlike the draft-model methods, it needs no separate draft model.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/features/speculative_decoding/mtp.md#L3-L5
+    title: vLLM v0.33.0, docs/features/speculative_decoding/mtp.md
+    quote: 'MTP is a speculative decoding method where the target model includes native'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.mtp-families
+  value: only families that support MTP in vLLM
+  text: MTP works only for the model families that support it in vLLM, and a model without MTP uses another method, such as EAGLE or a draft model.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/features/speculative_decoding/mtp.md#L72-L76
+    title: vLLM v0.33.0, docs/features/speculative_decoding/mtp.md, notes
+    quote: 'MTP only works for model families that support MTP in vLLM.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.eagle-passes-hidden
+  value: pass_hidden_states_to_model=True
+  text: At v0.33.0 vllm/v1/spec_decode/eagle.py is a 22-line subclass of the base proposer whose only job is to construct it with pass_hidden_states_to_model=True. The proposer's logic is in llm_base_proposer.py.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/spec_decode/eagle.py#L17-L22
+    title: vLLM v0.33.0, vllm/v1/spec_decode/eagle.py, EagleProposer
+    quote: 'pass_hidden_states_to_model=True,'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.hidden-states-to-draft
+  value: model_kwargs["hidden_states"]
+  text: When pass_hidden_states_to_model is set, the base proposer adds its stored hidden states to the inputs of the draft model on the first pass, next to the token ids and the positions.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/spec_decode/llm_base_proposer.py#L982-L983
+    title: vLLM v0.33.0, vllm/v1/spec_decode/llm_base_proposer.py, build_model_inputs_first_pass
+    quote: 'model_kwargs["hidden_states"] = self.hidden_states[:num_input_tokens]'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.draft-model-no-hidden
+  value: pass_hidden_states_to_model=False
+  text: The draft-model proposer constructs the same base proposer with pass_hidden_states_to_model=False, so a separate draft model is given tokens and positions and none of the target's hidden states.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/spec_decode/draft_model.py#L26-L31
+    title: vLLM v0.33.0, vllm/v1/spec_decode/draft_model.py, DraftModelProposer
+    quote: 'pass_hidden_states_to_model=False,'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.eagle3-aux-default
+  value: eagle3 heads use auxiliary hidden states by default
+  text: For the eagle3 method the proposer assumes that the head uses auxiliary hidden states, unless the head's eagle_config sets use_aux_hidden_state to False. Some heads, such as nvidia/gpt-oss-120b-Eagle3-v2, use the last layer's output as EAGLE-1 does.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/spec_decode/llm_base_proposer.py#L1674-L1688
+    title: vLLM v0.33.0, vllm/v1/spec_decode/llm_base_proposer.py, _get_eagle3_use_aux_hidden_state_from_config
+    quote: '# Assume that eagle3 heads use aux hidden states by default'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.use-eagle-covers-mtp
+  value: eagle, eagle3, mtp, dflash, dspark
+  text: In vLLM's speculative config, use_eagle() is true for the methods eagle, eagle3, mtp, dflash and dspark. A comment above it calls the name usually a stand-in for speculative decoding that uses the target model's hidden states.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/speculative.py#L2116-L2120
+    title: vLLM v0.33.0, vllm/config/speculative.py, SpeculativeConfig.use_eagle
+    quote: 'return self.method in ("eagle", "eagle3", "mtp", "dflash", "dspark")'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.mtp-names-deprecated
+  value: model-specific MTP names are deprecated aliases of mtp
+  text: A model-specific MTP method name, such as deepseek_mtp, is still accepted at v0.33.0. The config logs a warning that the name is deprecated and replaces it with mtp.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/speculative.py#L1246-L1250
+    title: vLLM v0.33.0, vllm/config/speculative.py, the method normalisation
+    quote: 'method `%s` is deprecated and replaced with mtp.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+# --- The grammar mask ----------------------------------------------------------------------------------------------------------------
+
+- id: vllm.mask.apply-in-place
+  value: applied to the logits in place
+  text: In MRV2 the grammar bitmask is applied to the logits in place, once the model has computed them and before the sampler runs.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu/model_runner.py#L1655-L1669
+    title: vLLM v0.33.0, vllm/v1/worker/gpu/model_runner.py, the sampling step
+    quote: 'Apply grammar bitmask to the logits in-place.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mask.pending-flag
+  value: pending_structured_output_tokens
+  text: When the async scheduler schedules a step, it sets pending_structured_output_tokens on that step if any of its structured-output requests still has output placeholders, which means a token of its own is in flight.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/sched/async_scheduler.py#L36-L38
+    title: vLLM v0.33.0, vllm/v1/core/sched/async_scheduler.py, AsyncScheduler._update_after_schedule
+    quote: 'request.use_structured_output and request.num_output_placeholders > 0'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mask.constraint-kinds
+  value: choice, regex, json, grammar, structural_tag
+  text: vLLM takes five kinds of structured-output constraint, a choice among strings, a regex, a JSON schema, a context-free grammar and a structural tag, and its xgrammar and guidance backends build the masks.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/features/structured_outputs.md#L45-L51
+    title: vLLM v0.33.0, docs/features/structured_outputs.md, online serving
+    quote: '`grammar`: the output will follow the context free grammar.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mask.backend-changes-tokens
+  value: a backend can change which tokens are allowed
+  text: vLLM's guide warns that changing the structured-output backend can change which tokens are allowed, and so the generated output, because the backends differ in what they support and in their regex syntax.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/features/structured_outputs.md#L35-L39
+    title: vLLM v0.33.0, docs/features/structured_outputs.md, migrating from LM Format Enforcer
+    quote: 'which tokens are allowed and therefore the generated output.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+# --- SGLang --------------------------------------------------------------------------------------------------------------------------
+
+- id: sglang.spec.eagle3-recommended
+  value: EAGLE-3
+  text: SGLang's speculative decoding guide names EAGLE-3, run with --speculative-algorithm EAGLE3, as its recommended choice for the best speed and quality.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/docs/docs/advanced_features/speculative_decoding.mdx#L28-L30
+    title: SGLang v0.5.23, docs/docs/advanced_features/speculative_decoding.mdx, quick guidance
+    quote: '**Best speed/quality (recommended)**: Use **EAGLE-3** with `--speculative-algorithm EAGLE3`.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.spec.mtp-through-eagle
+  value: MTP as speculative decoding, launched with EAGLE
+  text: SGLang supports MTP by using speculative decoding, and its MiMo example launches it with --speculative-algorithm EAGLE, so MTP runs through the EAGLE workers.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/docs/docs/advanced_features/speculative_decoding.mdx#L436-L446
+    title: SGLang v0.5.23, docs/docs/advanced_features/speculative_decoding.mdx, MTP
+    quote: '--speculative-algorithm EAGLE \'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.spec.ngram-no-extra-model
+  value: NGRAM, CUDA only
+  text: SGLang's guide names NGRAM, which is CUDA-only, as the choice when no extra model is available.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/docs/docs/advanced_features/speculative_decoding.mdx#L38
+    title: SGLang v0.5.23, docs/docs/advanced_features/speculative_decoding.mdx, quick guidance
+    quote: '**No extra model available**: Use **NGRAM**'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+# --- The papers and the kernelspace lesson the reading stands on -----------------------------------------------------------------------
+
+- id: spec.paper.eagle-feature-level
+  value: autoregression at the second-to-top-layer feature level
+  text: EAGLE drafts by autoregression at the feature level, the target's second-to-top layer, which its authors found more straightforward than autoregression at the token level.
+  tag: measured
+  source:
+    url: https://arxiv.org/abs/2401.15077
+    title: Li et al., EAGLE, Speculative Sampling Requires Rethinking Feature Uncertainty, arXiv 2401.15077, abstract
+    quote: 'autoregression at the feature (second-to-top-layer) level is more straightforward than at the token level.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 365
+
+- id: spec.paper.eagle3-fusion
+  value: direct token prediction and multi-layer feature fusion
+  text: EAGLE-3 gives up feature prediction for direct token prediction and replaces its reliance on the target's top-layer features with a fusion of features from several layers, which it trains with a technique it calls training-time test.
+  tag: measured
+  source:
+    url: https://arxiv.org/abs/2503.01840
+    title: Li et al., EAGLE-3, Scaling up Inference Acceleration of Large Language Models via Training-Time Test, arXiv 2503.01840, abstract
+    quote: 'we introduce EAGLE-3, which abandons feature prediction in favor of direct token prediction and replaces reliance on top-layer features with multi-layer feature fusion via a technique named training-time test.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 365
+
+- id: spec.paper.mtp-sequential
+  value: sequential modules that keep the causal chain
+  text: DeepSeek-V3's multi-token prediction predicts the additional tokens one after another, not in parallel from independent heads, and keeps the complete causal chain at each prediction depth.
+  tag: measured
+  source:
+    url: https://arxiv.org/html/2412.19437v2
+    title: DeepSeek-AI, DeepSeek-V3 Technical Report, arXiv 2412.19437v2, section 2.2
+    quote: 'we sequentially predict additional tokens and keep the complete causal chain at each prediction depth.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 365
+
+- id: spec.paper.mtp-speculative
+  value: the MTP modules can be repurposed for speculative decoding
+  text: DeepSeek-V3 trains its multi-token prediction modules to improve the main model, which can discard them at inference, and says it can also repurpose them for speculative decoding to cut generation latency.
+  tag: measured
+  source:
+    url: https://arxiv.org/html/2412.19437v2
+    title: DeepSeek-AI, DeepSeek-V3 Technical Report, arXiv 2412.19437v2, section 2.2 (MTP in inference)
+    quote: 'we can also repurpose these MTP modules for speculative decoding to further improve the generation latency.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 365
+
+- id: mask.paper.xgrammar-split
+  value: context-independent and context-dependent tokens
+  text: XGrammar splits the vocabulary into context-independent tokens, which it can precheck, and context-dependent tokens, which have to be interpreted at run time.
+  tag: measured
+  source:
+    url: https://arxiv.org/abs/2411.15100
+    title: Dong et al., XGrammar, Flexible and Efficient Structured Generation Engine for Large Language Models, arXiv 2411.15100, abstract
+    quote: 'dividing the vocabulary into context-independent tokens that can be prechecked and context-dependent tokens that need to be interpreted during runtime.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 365
+
+- id: mask.paper.xgrammar-overlap
+  value: grammar computation overlapped with GPU executions
+  text: XGrammar's authors co-design the grammar engine with the inference engine so that grammar computation overlaps with GPU executions.
+  tag: measured
+  source:
+    url: https://arxiv.org/abs/2411.15100
+    title: Dong et al., XGrammar, Flexible and Efficient Structured Generation Engine for Large Language Models, arXiv 2411.15100, abstract
+    quote: 'we co-design the grammar engine with LLM inference engine to overlap grammar computation with GPU executions.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 365
+
+- id: mask.kernelspace.token-mask
+  value: a token can span several grammar states
+  text: kernelspace's T6.L8 teaches that a BPE token can contain several grammar terminals and transitions in one model step, so a mask must consume the whole token's bytes from the current parser stack and cannot check a first character only.
+  tag: measured
+  source:
+    url: https://github.com/praveer13/kernelspace/blob/d478f91a0af590f03fcfd76ee73149fa70b28e51/public/lessons-md/t6.l8.md#L32
+    title: kernelspace at d478f91, public/lessons-md/t6.l8.md, "The token mask is not a string mask"
+    quote: 'A BPE token can contain `"tool","arguments":{` — several grammar terminals and transitions in one model step.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 365
