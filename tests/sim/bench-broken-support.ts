@@ -33,9 +33,9 @@ export function caseOf(seed: number): BrokenCase {
 /**
  * What the blind-strategy lines read of a case: its seed and flaw, the draws it took, its band and the corrected p99. A case holds its
  * whole log: this suite peaked at 6.7 GB with all 10,000 cases kept, about 0.7 MB a case [measured 2026-11-04 at b113802, at the nightly
- * size; the per-case figure is derived]. So the lines over every seed keep these five fields and let the case go; the suite peaks at
- * 713 MB [measured 2026-11-04 on the tree of this change]. The nightly job's runner has less memory than 6.7 GB if it is a standard
- * private-repository runner [unverified].
+ * size; the per-case figure is derived]. So the lines over every seed keep these five fields and let the case go; this suite and the
+ * Inspection's levels test (tests/play/broken-bench-levels.test.ts), which reads them too, peak at 776 MB together [measured 2026-11-04
+ * at 238a38c]. The nightly job's runner has less memory than 6.7 GB if it is a standard private-repository runner [unverified].
  */
 export interface Drawn {
   seed: number

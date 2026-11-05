@@ -18,8 +18,8 @@
  * few numbers that a check reads and let the thing they came from go. The broken-benchmark corpus kept every case it drew, with its
  * log: that suite alone peaked at 6.7 GB, about 0.7 MB a case [measured 2026-11-04 at b113802; the per-case figure is derived], and
  * the whole suite was killed by the host's out-of-memory killer at 13.7 GB after 28 minutes [measured 2026-11-04 at b113802].
- * tests/sim/bench-broken-support.ts now keeps five fields a case (`drawnCases`), and that suite peaks at 713 MB alone [measured
- * 2026-11-04 on the tree of this change].
+ * tests/sim/bench-broken-support.ts now keeps five fields a case (`drawnCases`), and the two suites that read the corpus
+ * (tests/sim/bench-broken.test.ts and tests/play/broken-bench-levels.test.ts) peak at 776 MB together [measured 2026-11-04 at 238a38c].
  */
 
 /** What a pull request runs [estimated, A§5.10]. */
