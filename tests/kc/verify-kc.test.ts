@@ -13,6 +13,7 @@ import { spawnSync } from 'node:child_process'
 import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { GAMES } from '@es/play'
 import type { GameEntry } from '@es/play'
 import { kcGraphSchema } from '@es/schema'
 import { loadYaml } from '../../scripts/content/parse.ts'
@@ -475,8 +476,33 @@ describe('the files the gate reads beside the graph', () => {
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 describe('as a process', () => {
-  /** The two KCs that the registry's only game names, so that a tree of its own agrees with the real registry (verify:games' world). */
+  /**
+   * The KCs that the real registry's games name, so that a tree of its own agrees with the real registry (verify:games' world). Service's
+   * two stay as they were when it was the only game: the first is planned, and the second requires it and is planned. Every other game's
+   * KCs join them, one entry each: a KC that a graded level earns carries nothing, and one that only practice levels reach carries
+   * `planned`, as the gate asks. A game registered later is added here without this file being touched (W1-T28 registered the second).
+   */
   const loopKcs = graphOf(kc('tr2.bubble', PLANNED), kc('tr2.async-overlap', { requires: '[tr2.bubble]', ...PLANNED }))
+  const LOOP_IDS = ['tr2.bubble', 'tr2.async-overlap']
+  const others = new Map<string, { planned: boolean }>()
+  for (const game of GAMES.games) {
+    if (game.id === 'loop') continue
+    const earns = game.levels.some((level) => level.graded)
+    // A KC is planned only while no game with a graded level names it.
+    for (const id of game.kcs) if (!LOOP_IDS.includes(id)) others.set(id, { planned: !earns && (others.get(id)?.planned ?? true) })
+  }
+  /** A graph, and then one entry for each KC of the other games. */
+  const withGames = (graph: string): string => (others.size === 0 ? graph : `${graph}\n${graphOf(...[...others].map(([id, o]) => kc(id, o.planned ? PLANNED : {})))}`)
+  const modulesOf = (ids: Iterable<string>): string[] => [...new Set([...ids].map((id) => id.split('.')[0]))].sort()
+  /** What the gate prints of a tree that is `loopKcs` and the other games' KCs: the count, the modules, and how many are earned and planned. */
+  const counted = (): string => {
+    const ids = [...LOOP_IDS, ...others.keys()]
+    const byModule = modulesOf(ids).map((module) => `${module} ${ids.filter((id) => id.startsWith(`${module}.`)).length}`)
+    const earned = [...others.values()].filter((o) => !o.planned).length
+    const planned = LOOP_IDS.length + [...others.values()].filter((o) => o.planned).length
+    return `${ids.length} KCs (${byModule.join(', ')}), 0 thresholds, 0 confusable pairs, 0 kernelspace prerequisites; ${earned} with a graded reference, ${planned} planned`
+  }
+  const plannedKcs = LOOP_IDS.length + [...others.values()].filter((o) => o.planned).length
   const gate = (dir: string, ...args: string[]) => {
     const result = spawnSync(process.execPath, [path.join(root, 'scripts/verify-kc.ts'), '--root', dir, ...args], { encoding: 'utf8' })
     return { status: result.status, out: result.stdout, err: result.stderr }
@@ -484,9 +510,9 @@ describe('as a process', () => {
   const tree = (graph: string, more: Record<string, string> = {}) => put(tempDir(), { 'content/kc/graph.yaml': graph, ...more })
 
   test('passes a graph that is fine, and prints what it counted and what it could not read yet', () => {
-    const { status, out } = gate(tree(loopKcs))
+    const { status, out } = gate(tree(withGames(loopKcs)))
     expect(status).toBe(0)
-    expect(out).toContain('verify:kc passed: 2 KCs (tr2 2), 0 thresholds, 0 confusable pairs, 0 kernelspace prerequisites; 0 with a graded reference, 2 planned')
+    expect(out).toContain(`verify:kc passed: ${counted()}`)
     expect(out).toContain('note: games: loop has no graded level yet')
     expect(out).toContain('note: items: packages/play/items does not exist yet (W1-T04)')
     expect(out).toContain('note: labs: lab checks are not a source yet')
@@ -508,19 +534,21 @@ describe('as a process', () => {
   })
 
   test('--final fails on the placeholders that remain, and the same tree passes without it', () => {
-    const dir = tree(loopKcs)
+    const dir = tree(withGames(loopKcs))
     const final = gate(dir, '--final')
     expect(final.status).toBe(1)
     expect(final.out).toContain('error planned-remaining')
-    expect(final.out).toMatch(/verify:kc failed: 2 errors in 1 file\n$/)
+    expect(final.out).toMatch(new RegExp(`verify:kc failed: ${plannedKcs} errors in 1 file\\n$`))
     expect(gate(dir).status).toBe(0)
   })
 
   test('reads course.yaml, the tracker and the snapshot when the tree has them', () => {
-    const graph = graphOf(kc('tr2.bubble', { requires: '[ks:t5.kv-capacity]', planned: 'W1-T14' }), kc('tr2.async-overlap', { requires: '[tr2.bubble]', planned: 'W1-T99' }))
+    const graph = withGames(graphOf(kc('tr2.bubble', { requires: '[ks:t5.kv-capacity]', planned: 'W1-T14' }), kc('tr2.async-overlap', { requires: '[tr2.bubble]', planned: 'W1-T99' })))
+    // Course.yaml has tr1 and the modules of the other games' KCs, and not tr2: so the two errors about a module are Service's.
+    const module = (id: string) => `  - id: ${id}\n    title: Module ${id}\n    hours: 10\n    hours_by_lane: { B: 10 }\n`
     const dir = tree(graph, {
       'docs/TRACKER.md': '#### [ ] W1-T14 · TR2 · M · sonnet\n',
-      'content/course.yaml': 'modules:\n  - id: tr1\n    title: Read the engines\n    hours: 10\n    hours_by_lane: { B: 10 }\n',
+      'content/course.yaml': `modules:\n${['tr1', ...modulesOf(others.keys()).filter((id) => id !== 'tr2')].map(module).join('')}`,
       'content/kc/kernelspace.json': renderSnapshot('a'.repeat(40), ['t0.wait-bars']),
     })
     const { status, out } = gate(dir)
@@ -538,7 +566,7 @@ describe('as a process', () => {
     expect(failed.out).toContain('content/kc/kernelspace.json:1: error ks-snapshot: content/kc/kernelspace.json does not exist, and the graph has ks: edges')
 
     const speech = '# see ks:t0.wait-bars\n- id: tr2.bubble\n  description: You can read ks:t0.wait-bars.\n  planned: W1-T14\n\n' + kc('tr2.async-overlap', PLANNED) + '\n'
-    expect(gate(tree(speech)).status).toBe(0)
+    expect(gate(tree(withGames(speech))).status).toBe(0)
   })
 
   test('a tree with no graph is one error, and a bad option is a usage error', () => {

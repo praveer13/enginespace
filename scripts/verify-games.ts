@@ -318,7 +318,13 @@ function idsIn(root: string, files: string[]): Set<string> | undefined {
  */
 export function worldAt(root: string): World {
   const claimsDir = path.join(root, 'content/claims')
-  const claimFiles = existsSync(claimsDir) ? readdirSync(claimsDir).filter((name) => /\.ya?ml$/.test(name)).map((name) => `content/claims/${name}`) : []
+  // The folders too: W1-T01 sorted the engines' claims into vllm/, sglang/ and worlds/, as the content compiler reads them (`content/claims/**.yaml`).
+  const claimFiles = existsSync(claimsDir)
+    ? (readdirSync(claimsDir, { recursive: true }) as string[])
+        .filter((name) => /\.ya?ml$/.test(name))
+        .sort()
+        .map((name) => `content/claims/${name}`)
+    : []
   const cardIds = existsSync(path.join(root, 'content/cards')) ? compileContent({ root }).cards : undefined
   return { claimIds: idsIn(root, claimFiles), kcIds: idsIn(root, ['content/kc/graph.yaml']), cardIds }
 }

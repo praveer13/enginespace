@@ -33,7 +33,7 @@ const ATTRIBUTES: Readonly<Record<string, string>> = {
   dominantBaseline: 'dominant-baseline',
 }
 /** Attributes that are camelCase in SVG itself. */
-const NATIVE_CAMEL = ['viewBox', 'preserveAspectRatio', 'stdDeviation']
+const NATIVE_CAMEL = ['viewBox', 'preserveAspectRatio', 'stdDeviation', 'patternUnits', 'patternTransform']
 
 const attributeName = (name: string): string => {
   const mapped = ATTRIBUTES[name]

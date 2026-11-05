@@ -731,7 +731,7 @@ All tier values are [estimated] and start from games-3d.md's proposals: at most 
   - Elsewhere, route chunks get `modulepreload` when a navigation link is hovered or focused.
 - **First-paint budget**, gated by `verify:bundle` from Vite's manifest (§11.1):
   - The entry chunk is ≤ 110 KB gz, with a target of ≤ 100 KB [estimated].
-  - The front page's first-paint closure (entry, the `front` route, The Loop's 2D view, the step-loop core and the content index) is ≤ 150 KB gz [estimated], with a target of ≤ 130 KB.
+  - The front page's first-paint closure (entry, the `front` route, The Loop's 2D view, the step-loop core and the content index) is ≤ 151 KB gz [estimated; 150 KB until D-053], with a target of ≤ 130 KB.
   - kernelspace's whole-app entry measured 115.7 KB gz [measured at its d31a770, recorded in its `verify-bundle.ts`], which makes these figures reachable.
   - Vite's modulepreload polyfill is off (`build.modulePreload.polyfill: false`, D-023's W1 note). Every browser since Firefox 115 and Safari 17 has `<link rel=modulepreload>`, and the polyfill cost 289 B gz of the front page's closure [measured 2026-11-04].
 
@@ -1135,7 +1135,7 @@ Every job sets `permissions: contents: read` unless it needs more, and uses `per
 | Budget | Gate | Target | Basis | Checked by |
 |---|---|---|---|---|
 | Entry chunk | ≤ 110 KB gz | ≤ 100 KB | [derived: kernelspace's larger app measured 115.7 KB] | `verify:bundle` (every PR) |
-| Front-page first-paint closure | ≤ 150 KB gz | ≤ 130 KB | [estimated: about 60 KB React and ReactDOM, 15 KB router, 50 KB shell, 2D game and sim] | `verify:bundle` |
+| Front-page first-paint closure | ≤ 151 KB gz (D-053) | ≤ 130 KB | [estimated: about 60 KB React and ReactDOM, 15 KB router, 50 KB shell, 2D game and sim] | `verify:bundle` |
 | CSS (first paint) | ≤ 30 KB gz | ≤ 20 KB | [estimated] | `verify:bundle` |
 | Any other route's closure, excluding 3D | ≤ 200 KB gz | — | kernelspace's `/boot` and `/today` gate [measured precedent] | `verify:bundle` |
 | `three-vendor` (three plus R3F) | ≤ 245 KB gz | — | [derived: kernelspace measured 238 to 242.4 KB] | `verify:bundle` |

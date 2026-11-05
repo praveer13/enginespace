@@ -46,7 +46,7 @@
 | D-020 | Edition 1 uses WebGL2 only, with no WebGPU path. | proposed |
 | D-021 | No game engine, no drei and no in-canvas text; post-processing comes from three's own addons. | proposed |
 | D-022 | Device tiers come from local hints and a frame-time governor, not detect-gpu. | proposed |
-| D-023 | A first-paint JavaScript budget, and a front page that paints a 2D step loop first and upgrades to 3D after LCP. | proposed; budgets frozen 2026-11-04 (W0-T24) |
+| D-023 | A first-paint JavaScript budget, and a front page that paints a 2D step loop first and upgrades to 3D after LCP. | proposed; budgets frozen 2026-11-04 (W0-T24); the front page's gate is 151 KB by D-053 |
 | D-024 | The evidence ledger is re-implemented on kernelspace's envelope; provenance weights come from ASSESSMENT.md and apply at read time. | proposed |
 | D-025 | Browser-lane builds are Rust → wasm on kernelspace's kslab ABI v2, graded by host-driven property tests whose oracle sits outside the learner's code. | proposed |
 | D-026 | The local grader is Python, with one locked environment per engine. | proposed |
@@ -76,6 +76,7 @@
 | D-050 | The design system ships one light scheme, the line under its tubes, with a more-contrast variant and no dark scheme. Its faces are Big Shoulders Display, Doto (with Handjet's µ and ±), Permanent Marker, Atkinson Hyperlegible and Atkinson Hyperlegible Mono, self-hosted from Fontsource 5.3.0 and pinned by SHA-256. | proposed (W0-T05) |
 | D-051 | A learner's settings are recorded in the ledger's `working` store, one key each, and a copy in `localStorage` lets every page honour them from its first paint without opening the ledger. | proposed (W0-T22) |
 | D-052 | The nightly workflow runs on its schedule only when the repository variable `NIGHTLY_ENABLED` is `'true'`; a run started by hand always runs. | proposed (W0 wave PR) |
+| D-053 | The front page's first-paint gate is 151 KB: a second game that shares the run hook and the shell with Service splits the chunks that Service and the front page share, which costs about 870 B that the game cannot avoid. | proposed (W1-T28); the owner confirms |
 
 ---
 
@@ -844,6 +845,34 @@ D-052 records how the W0 wave PR keeps the nightly from spending Actions minutes
   - Drop the schedule until the repo is public [design]: `tests/ci/workflows.test.ts` pins the slot of A§10.1, and the slot should not move when the gate opens.
 - **Consequences:** the checks the nightly owns (the full browser sweep, the lab profile, the TTL reports) run only by hand until the owner opts in. The pull-request gate (`ci.yml`) is unchanged. `deploy.yml` follows the same pattern with `PAGES_ENABLED` (O-2).
 - **Revisit when:** the repo goes public, where Actions minutes cost nothing, or the owner sets the variable.
+
+## The first-paint gate, W1
+
+D-053 is the new record that D-023 asks for when a change must take a budget over its gate.
+
+### D-053 · The front page's first-paint gate is 151 KB, for the second game
+
+- **Status:** proposed (W1-T28, 2026-11-04); the owner confirms.
+- **Decision:**
+  - `verify:bundle` holds the front page's first-paint JavaScript to 151 KB gz, up from 150 KB. The target stays 130 KB, and no other gate changes.
+  - `packages/play/keys.ts` holds the keys common to every game and `levelOf`, `registry.ts` re-exports them, and the call that makes `GAMES` is marked pure. A build in which nothing reads `GAMES` then leaves the registry out of the front page's closure, and with it the record of every game but Service's, which the front page reads from Service's own module.
+- **Context:** all [measured 2026-11-04 at 1f2219f], gzip under Bun 1.3.14 as the gate counts it.
+  - The wave tip alone: 149,572 B, 428 B under the gate.
+  - With The Tasting's record registered and not its game: 149,576 B. Registering a game costs the closure 4 B, because the keys are apart and `GAMES` is marked pure.
+  - With its game as well: 150,443 B, 443 B over the old gate and 557 B under the new one. Without the two changes to the registry the same tree is 151,007 B, 564 B more.
+  - At 85d994f, with the Play index (W1-T06) in: 149,798 B alone, and 150,666 B with the game, 868 B more and 334 B under the new gate.
+  - The game's 867 B are Rollup's chunking, and no code that the front page runs. A module goes into a chunk by the set of entries that reach it. The Tasting reaches the run hook, the live region, the view switch, the mirror table, the SVG helpers, the settings hook and the stats, which the front page and Service share, and it does not reach Service's own controls, card, tape and mirror. Those were one chunk of 13,059 B and are now two, of 4,832 B and 9,073 B. The settings hook and the stats take chunks of their own (520 B and 387 B), `int` joins `rng`, and the closure has 19 chunks against 17. A chunk costs its gzip header and the context it no longer shares, and a name of about 19 B in the entry's preload map (D-023's W1 note).
+  - The game's route, `/play/verifier`, is 176,634 B against 200 KB. `/play/loop` is 186,142 B, from 183,521 B, for the same reason.
+- **Alternatives:**
+  - Keep the game out of the split [design]: it reaches the shared modules through the shell (`GameShell`) and the run hook (`useRun`), which every game uses, so the split is the price of a second game. A copy of the one hook that it takes from Service moved the closure by under 20 B [measured under Node's gzip at the tip before this one].
+  - Merge small chunks with `output.experimentalMinChunkSize`: at 3,000, 6,000 and 12,000 B the closure was 152.9, 156.1 and 175.8 KB, and the pages were merged into shared chunks that the manifest no longer lists by name [measured on this task's branch before the keys were apart].
+  - Take the preload map out of the entry: a route manifest outside it, or the hover-and-focus preloading of A§6.10, which D-023's W1 note plans. It changes how every route loads, so it is the owner's to schedule. This record takes the 443 B that the game needed at 1f2219f and leaves 557 B there.
+- **Consequences:**
+  - ARCHITECTURE §6.10 and §11.1 carry 151 KB. GAMES.md §3, "Budget" ("fit ARCHITECTURE's 150 KB gz first-paint closure"), is the owner's to follow.
+  - A game that follows pays nothing for its record, and pays the split again only for a module that it reaches and the earlier games do not.
+  - A lazy part of a game (its debrief, its 3D scene) that imports a module that only the game's own chunk uses makes Rollup export that module from the game's chunk, and a chunk that exports more than its game file does has no entry in the manifest, so `verify:bundle` reports the game as missing. The Tasting imports its debrief for that reason.
+  - 334 B is the room that is left at 85d994f, about 17 chunk names.
+- **Revisit when:** a change takes the closure over 151 KB, or the route manifest leaves the entry.
 
 ---
 
