@@ -236,6 +236,8 @@ export interface PanView {
   readonly spokenFor: readonly number[]
   /** Its place in the rotation, 0 for the next to go, or null when it is held. */
   readonly rank: number | null
+  /** The block of its order that it holds (the number on its tape), counted from the head, 0; null for a bare pan and a kit's. */
+  readonly block: number | null
 }
 
 export interface StationView {

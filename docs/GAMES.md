@@ -1167,6 +1167,7 @@ You cannot save recomputed tokens without using the intersection rule, which is 
 - **Camera.** Establish (the rack with the shelf below), Focus (a page fan, or one request's threads), Top (the rack as a grid).
 - **Motion.** Threads draw in 200 ms [estimated], and a page changes state in place. Pages never move, because a moving page would misteach copying.
 - **Legible at 390 px:** each page's state glyph (the rack is 16 columns, about 20 px each), the free line's order (DOM), and the counts.
+- **As built** (W1-T24): the requests are the kit's tickets, waiting along the pass under its two heat lamps and hung on the line's rail over the reach-in's back, without the ruler's segments or the window's frame, which the 2D view draws. The threads are the focus's, the ticket hung last: one twine per station from its ticket to its pans in the order of its blocks, and the fan over the pan at the head of its order; both grow over the settle duration (640 ms), and appear whole under reduced motion. A landed kit's pans are pinned and strung. The free line's head is printed on the reach-in's tape (DOM). The cameras are Front of the reach-in, One station and From above: the Focus shots, and picks on the scene, are not built. Front of the reach-in looks down 30° at 1440 px and 68° on a phone, where no heat lamp's shade hangs over a pan or a ticket (tests/play/pool-scene.test.ts projects them at every pool size); on a phone the front row's pans are 18.7 px across up to 160 pans, 16.3 px at 208 and 13.1 px at 288, and 18.8 px From above up to 208 [derived: the presets projected into the 356 by 464 px canvas].
 
 **2D path.** The rack as a grid of glyph cells; rulers as rows with one sub-row per group; the free line as a list; the same controls. The mirror is a page table (id, state, group, hash, refs) and a request table (tokens, blocks per group, hit).
 
@@ -1174,6 +1175,11 @@ You cannot save recomputed tokens without using the intersection rule, which is 
 - Draw calls ≤ 20 at T2 and ≤ 14 at T1. Triangles ≤ 40k and ≤ 15k. Instances ≤ 3k and ≤ 1.5k: pages ≤ 512, fan slices ≤ 64, threads on Focus only.
 - Frame: p95 ≤ 16.7 ms at T2, scene render ≤ 5 ms; p95 ≤ 33.3 ms at T1. Threads aggregate first: at T1 only the focused request's threads draw.
 - `scene-pool` ≤ 35 KB gz.
+- **Measured** [measured 2026-11-05 over wave-1 at 905b782 with W1-T24's files; the bundle by `verify:bundle`, the draws by `renderer.info` through the scene's test hook, e2e/pool-scene.spec.ts]:
+  - `scene-pool` (its chunk, its CSS and the chunks only 3D reaches, the scene kit's props among them) is 39,918 B gz: 82 B under A§11.1's frozen 40 KB gate (D-023), and 4,918 B over this list's 35 KB target [derived]. The scene kit's props are 22,931 B of it, counted again for every scene that reaches them; the reach-in is the kit's `CustomSpec`, a game's own prop in the static set. `three-vendor` is byte for byte 99c90af's.
+  - The house's whole night on `adapters` draws at most 19 scene draw calls at T1 (19 in the frame) and 31 at T2 (45 in the frame with bloom and the final pass); on `same-size`, which has the most stations and so the most twine, 21 at T1 (21 in the frame) and 33 at T2 (47). That is against A§11.1's 100. It draws at most 510 instances on `adapters` and 665 on `same-size`, and at most 215,080 and 267,622 triangles at T1 and 302,872 and 356,462 at T2.
+  - The instances are within this list's targets. The draw calls and the triangles are over them at both tiers: the room, the pass, its lamps and the rail are scene kit v1's props, built of turned and swept parts, and at T2 the heat lamps cast shadow maps. The draws stay under the frozen gate.
+  - Under reduced motion each of the first ten decisions on `two-kinds` redraws the scene in at most 4 frames, nine of them move the twine, and the scene's box does not move; after them no animation frame is asked for.
 
 **Simulation API.**
 

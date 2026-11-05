@@ -13,8 +13,8 @@ export const POOL: GameEntry = {
   modules: ['tr5a'],
   title: 'The Reach-In',
   subtitle: 'hybrid KV pages and adapters',
-  // The 3D scene is W1-T24's: it adds src/games/pool/Scene3D.tsx and flips this.
-  has3d: false,
+  // The reach-in in 3D (W1-T24): src/games/pool/Scene3D.tsx.
+  has3d: true,
   // The graded `manager` level is the first graded reference for these two (content/kc/graph.yaml). The rest of TR5a's KCs wait for the lab.
   kcs: ['tr5a.kv-groups', 'tr5a.page-size-unification'],
   keys: [

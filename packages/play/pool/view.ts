@@ -104,15 +104,16 @@ function pansOf(state: PoolState, plans: ReadonlyMap<number, AdmitPlan>): PanVie
   for (const id of state.waiting) for (const page of plans.get(id)?.pages ?? []) spoken[page].push(id)
   return kv.pages.map((page: KvPage, id): PanView => {
     const common = { id, holders: holders[id], spokenFor: spoken[id], rank: rank[id] }
-    if (page.st === 'adapter') return { ...common, state: 'adapter', station: null, kit: page.adapter, refs: 0, hash: null, tape: `kit ${page.adapter + 1}` }
-    if (page.st === 'free') return { ...common, state: 'free', station: null, kit: null, refs: 0, hash: null, tape: null }
+    if (page.st === 'adapter') return { ...common, state: 'adapter', station: null, kit: page.adapter, refs: 0, hash: null, tape: `kit ${page.adapter + 1}`, block: null }
+    if (page.st === 'free') return { ...common, state: 'free', station: null, kit: null, refs: 0, hash: null, tape: null, block: null }
     const group = level.spec.groups[page.group]
     const label = page.hash === null ? undefined : labelOf(level, group.blockTokens, page.hash)
     const holder = holders[id][0]
     const own = holder === undefined ? null : level.tables[level.reqs[holder].table]
-    const tape = label !== undefined ? label.text : own === null ? null : `${own.letter}·${Math.max(blockOf[id], 0)}`
-    if (page.st === 'cached') return { ...common, state: spoken[id].length > 0 ? 'shared' : 'cached', station: page.group, kit: null, refs: 0, hash: page.hash, tape }
-    return { ...common, state: page.refs > 1 ? 'shared' : 'used', station: page.group, kit: null, refs: page.refs, hash: page.hash, tape }
+    const block = label !== undefined ? label.block : blockOf[id] >= 0 ? blockOf[id] : null
+    const tape = label !== undefined ? label.text : own === null ? null : `${own.letter}·${block ?? 0}`
+    if (page.st === 'cached') return { ...common, state: spoken[id].length > 0 ? 'shared' : 'cached', station: page.group, kit: null, refs: 0, hash: page.hash, tape, block }
+    return { ...common, state: page.refs > 1 ? 'shared' : 'used', station: page.group, kit: null, refs: page.refs, hash: page.hash, tape, block }
   })
 }
 
