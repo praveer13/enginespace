@@ -22,6 +22,7 @@ import { deskFor, deskKey, NO_SETTINGS, TAPE_ORDERS, tapeStart, type DeskSetting
 import Game from '@/games/broken-bench/Game'
 import { Mirror } from '@/games/broken-bench/Mirror'
 import { parseMs } from '@/games/broken-bench/parse'
+import { Production } from '@/games/broken-bench/Production'
 import { noteLines, setupLines } from '@/games/broken-bench/Setup'
 import { View2D } from '@/games/broken-bench/View2D'
 import { fakeRun, filing, outcomeOf, play, rightAnswer, runAfter } from './broken-bench-support'
@@ -38,22 +39,45 @@ const deskOf = (run: ReturnType<typeof fakeRun>, settings: DeskSettings = NO_SET
   return desk
 }
 
+/** The level the docket marks as open, and the attempt it marks as pressed (the docket comes before every other pressed button). */
+const docketOf = (markup: string) => ({
+  level: /aria-current="true">([^<]+)<\/button>/.exec(markup)?.[1] ?? null,
+  attempt: /aria-pressed="true">([^<]+)<\/button>/.exec(markup)?.[1] ?? null,
+})
+
 describe('the page names the game as D-049 says, and opens on the first level', () => {
-  test('the display name over its engine concept, the level and its mode on a tape label, and no working name', () => {
+  test('the display name over its engine concept, then one row of the levels, the attempt, the stages and the keys, and no working name', () => {
     const markup = render(h(Game, null))
     expect(markup).toMatch(/<h2 id="[^"]+" class="es-type-heading">The Inspection<\/h2><p class="es-type-body[^"]*">benchmark methodology<\/p>/)
-    expect(markup).toContain('From the due time · practice')
+    expect(docketOf(markup)).toEqual({ level: 'From the due time', attempt: 'Practice' })
+    // The row says the level and the mode, so no tape says them again; and the stages and the keys are in the same row, in the header.
+    expect(markup).not.toContain('From the due time · practice')
+    const header = markup.slice(markup.indexOf('<header'), markup.indexOf('</header>'))
+    for (const part of ['aria-label="Levels of the Inspection"', 'aria-label="Attempt"', 'aria-label="Stages of this game"', '>Keys</button>']) expect(header).toContain(part)
+    expect(header.indexOf('aria-label="Attempt"')).toBeLessThan(header.indexOf('aria-label="Stages of this game"'))
     expect(markup).toContain('data-game="broken-bench"')
     expect(markup).not.toContain('The Broken Bench')
-    expect(render(h(Game, { placement: 'embed' }))).toMatch(/<h3 id="[^"]+" class="es-type-heading">The Inspection<\/h3>/)
+    // A lesson that embeds the game has no docket, and the shell's tape names the level and the mode there.
+    const embedded = render(h(Game, { placement: 'embed' }))
+    expect(embedded).toMatch(/<h3 id="[^"]+" class="es-type-heading">The Inspection<\/h3>/)
+    expect(embedded).not.toContain('aria-label="Levels of the Inspection"')
+    expect(embedded).toContain('From the due time · practice')
   })
 
   test('opens the level it is given, and the first when the id is not one of its own', () => {
-    expect(render(h(Game, { level: 'court' }))).toContain('The court · practice')
-    expect(render(h(Game, { level: 'sure' }))).toContain('How sure · practice')
-    expect(render(h(Game, { level: 'warm' }))).toContain('The warm-up cut · practice')
-    expect(render(h(Game, { level: 'rain-and-relay' }))).toContain('From the due time · practice')
-    expect(render(h(Game, { level: 'constructor' }))).toContain('From the due time · practice')
+    expect(docketOf(render(h(Game, { level: 'court' }))).level).toBe('The court')
+    expect(docketOf(render(h(Game, { level: 'sure' }))).level).toBe('How sure')
+    expect(docketOf(render(h(Game, { level: 'warm' }))).level).toBe('The warm-up cut')
+    expect(docketOf(render(h(Game, { level: 'rain-and-relay' }))).level).toBe('From the due time')
+    expect(docketOf(render(h(Game, { level: 'constructor' }))).level).toBe('From the due time')
+  })
+
+  test('puts the tail between the pass and the desk, so a phone reads the evidence before the instruments', () => {
+    const markup = render(h(Game, null))
+    expect(markup.indexOf('data-bench-board')).toBeLessThan(markup.indexOf('data-mirror=""'))
+    expect(markup.indexOf('data-mirror=""')).toBeLessThan(markup.indexOf('data-bench-desk'))
+    expect(markup.indexOf('data-bench-desk')).toBeLessThan(markup.indexOf('data-bench-cite'))
+    expect(markup.indexOf('data-bench-cite')).toBeLessThan(markup.indexOf('data-bench-answer'))
   })
 
   test('has Play and Debrief, the keys button, no view switch (the game has no 3D scene yet), and the four levels in a docket', () => {
@@ -73,7 +97,7 @@ describe('the page names the game as D-049 says, and opens on the first level', 
 
   test('opens a graded attempt on a seed it draws, and the board hides the desk\'s p99 there', () => {
     const markup = render(h(Game, { mode: 'graded' }))
-    expect(markup).toContain('From the due time · graded')
+    expect(docketOf(markup)).toEqual({ level: 'From the due time', attempt: 'Graded attempt, fresh seed' })
     expect(markup).toContain('data-mode="graded"')
     expect(markup).not.toContain('At the desk')
     expect(markup).toContain('Count down from the slowest to the order at the p99')
@@ -96,8 +120,9 @@ describe('the 2D view is the evidence board', () => {
     expect(markup).toMatch(/aria-pressed="true">Histogram<\/button>/)
     expect(markup).toMatch(/aria-pressed="false">Rows<\/button>/)
     expect(markup).toMatch(/aria-pressed="false">Timeline<\/button>/)
-    expect(count(markup, /<svg /g)).toBe(1)
-    expect(markup).toContain('role="img"')
+    // One sheet, a drawing with a name; the clipboard's clip is a picture of an object, hidden from assistive technology.
+    expect(count(markup, /<svg [^>]*role="img"/g)).toBe(1)
+    expect(count(markup, /<svg class="es-bench-clip__spring"[^>]*aria-hidden="true"/g)).toBe(1)
   })
 
   test('says what the report said, what the desk reads and how many orders it measured, and the report\'s number is on a tape flag with its tag', () => {
@@ -289,6 +314,22 @@ describe('the clipboard is the report on trial, and not the answer', () => {
       expect([slot.flaw, /\b([A-Za-z]+) \1\b/i.exec(words)?.[0] ?? null]).toEqual([slot.flaw, null])
     }
   })
+
+  test('is held by a drawn spring clip: a plate with two rivets, the barrel with the spring wound round it, and the jaw, each board under its own ids', () => {
+    const scene = caseOf(slots[0]).scene
+    const markup = render(h('div', null, h(Clipboard, { scene, caseNo: 1, cases: 1 }), h(Clipboard, { scene, caseNo: 1, cases: 1 })))
+    const clip = markup.slice(markup.indexOf('<svg class="es-bench-clip__spring"'), markup.indexOf('</svg>') + 6)
+    expect(clip).toContain('aria-hidden="true"')
+    expect(count(clip, /class="es-bench-spring__rivet"/g)).toBe(2)
+    expect(count(clip, /class="es-bench-spring__plate"/g)).toBe(2)
+    expect(count(clip, /class="es-bench-spring__barrel"/g)).toBe(1)
+    expect(count(clip, /class="es-bench-spring__wire"/g)).toBe(1)
+    // Nothing on it is a literal colour: the gradients' stops take token roles by class.
+    expect(clip).not.toMatch(/#[0-9a-f]{3,8}\b(?!-)|rgb\(/i)
+    const ids = [...markup.matchAll(/<(?:linear|radial)Gradient id="([^"]+)"/g)].map((match) => match[1])
+    expect(ids).toHaveLength(6)
+    expect(new Set(ids).size).toBe(6)
+  })
 })
 
 describe('the debrief reads the rulings', () => {
@@ -321,6 +362,51 @@ describe('the debrief reads the rulings', () => {
     expect(words).toContain('You named a warm cache')
     expect(words).not.toContain('New numbers')
     expect(markup).toContain('href="/m/tr8"')
+  })
+
+  test('a single case sets its exhibits beside the verdict and the ruling: the corrected run, the learner\'s own waits in red, and the real tools in one ledger', () => {
+    const done = play('due', 0, rightAnswer)
+    expect(done.state.level.slots[0].flaw).toBe('coordinated-omission')
+    const run = fakeRun(done.state)
+    const markup = render(h(Debrief, { run, outcome: outcomeOf(done), next: { id: 'warm', title: 'The warm-up cut' }, onNext: noop, onNew: noop }))
+    expect(markup).toContain('data-cases="one"')
+    // The verdict first, then the ruling's words, then its exhibits: the order a phone reads them in.
+    expect(markup.indexOf('es-bench-court')).toBeLessThan(markup.indexOf('es-bench-ruling'))
+    expect(markup.indexOf('es-bench-ruling')).toBeLessThan(markup.indexOf('data-exhibits'))
+    const exhibits = markup.slice(markup.indexOf('data-exhibits'))
+    expect(exhibits).toContain('data-exhibit="run"')
+    expect(exhibits).toMatch(/<text[^>]*>THE CORRECTED RUN<\/text>/)
+    // The stretch of the learner's own log around its longest wait: due ticks, sent ticks, and the waits between them in the ribbon's red.
+    expect(exhibits).toContain('data-exhibit="waits"')
+    expect(exhibits).toMatch(/<text[^>]*>YOUR LOG, AROUND ITS LONGEST WAIT<\/text>/)
+    expect(exhibits).toMatch(/<path d="[^"]+" stroke="var\(--es-paper-ink-2\)"[^>]*stroke-dasharray/)
+    expect(text(exhibits)).toContain('Each red dash is an order\'s wait between its due tick and its sent tick, and the report\'s stopwatch, started at the send, timed none of it.')
+    expect(text(exhibits)).toMatch(/Order \d{4} waited [\d,.]+ ms synthetic/)
+    // No lamp falls on the debrief's stretch: nothing on it is the present.
+    expect(exhibits).not.toContain('var(--es-lamp)')
+    // The real tools as one ledger.
+    expect(exhibits).toContain('In the real tools')
+    expect(exhibits).toContain('es-bench-ledger')
+  })
+
+  test('a case whose log sent nothing late has no stretch of waits', () => {
+    const done = play('warm', 0, rightAnswer)
+    const markup = render(h(Debrief, { run: fakeRun(done.state), outcome: outcomeOf(done), next: null, onNext: noop, onNew: null }))
+    expect(markup).toContain('data-exhibit="run"')
+    expect(markup).not.toContain('data-exhibit="waits"')
+  })
+
+  test('no line of print stands over a title: the verdict, the ruling and In production lead with their headings', () => {
+    const done = play('due', 0, rightAnswer)
+    const markup = render(h(Debrief, { run: fakeRun(done.state), outcome: outcomeOf(done), next: null, onNext: noop, onNew: noop }))
+    expect(markup).not.toContain('es-ticket__head')
+    // The headings carry what the head lines said: the verdict says whether the ruling stood, and the ruling is the flaw's own name.
+    expect(markup).toMatch(/<h3 class="es-ticket__title">The ruling stands\.<\/h3>/)
+    expect(markup).toMatch(/<h3 class="es-ticket__title">Coordinated omission<\/h3>/)
+    expect(text(markup)).toContain('Every figure on this ruling is synthetic, unless it says otherwise')
+    const production = render(h(Production, null))
+    expect(production).toContain('The flags that would have made it admissible')
+    expect(production).not.toContain('es-ticket__head')
   })
 
   test('the court sets its five cases side by side in a docket, and reads each ruling', () => {

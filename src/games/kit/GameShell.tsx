@@ -23,7 +23,8 @@ import { ViewSwitch, type GameView } from './ViewSwitch'
  * A page that wants another frame around the views builds on `useRun` and the kit's other parts instead.
  *
  * What it adds around the slots:
- *   - the game's display name over its engine concept (D-049), its mode, the view switch and the Keys button;
+ *   - the game's display name over its engine concept (D-049), its mode (or the game's own docket, which shows it), the view switch and
+ *     the Keys button;
  *   - the stages. Debrief opens when the run is over, and the stages after it open once the debrief has been seen, because the
  *     debrief is where the hidden reference is read; Compose, In production and Build this appear only for a game that has them;
  *   - the keys: common to every game, bound on this container, with `V` and `?` handled here and the rest passed to `onCommand`;
@@ -91,6 +92,16 @@ export interface GameShellProps<Level, State, Action extends GameAction, View, S
    * stages) under it, then the mirror across the width. Off, the view and the controls share a column beside the mirror.
    */
   stage?: boolean
+  /**
+   * The game's own row of choices under its name, such as its levels and its attempt (with `stage` off). The stages and the Keys button
+   * join that row, and the tape that names the level and the mode is left out, because the row shows both.
+   */
+  docket?: ReactNode
+  /**
+   * The mirror before the controls (with `stage` off): on a narrow screen it stands between the view and the controls, and on a wide one
+   * beside them both, with the controls under the view.
+   */
+  mirrorFirst?: boolean
 }
 
 type ShellRunProps<L, S, A extends GameAction, V, C, K> = GameShellProps<L, S, A, V, C, K> & {
@@ -267,6 +278,15 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
     if (phase === 'play') {
       // With the view leading, the view and the controls stand above the stages, and the play panel holds the mirror.
       if (props.stage) return <div className="min-w-0">{props.mirror(api)}</div>
+      if (props.mirrorFirst) {
+        return (
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:grid-rows-[auto_1fr] lg:items-start">
+            <div className="flex min-w-0 flex-col gap-4">{viewNode}</div>
+            <div className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1">{props.mirror(api)}</div>
+            <div className="flex min-w-0 flex-col gap-4 lg:col-start-1 lg:row-start-2">{playControls}</div>
+          </div>
+        )
+      }
       return (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start">
           <div className="flex min-w-0 flex-col gap-4">
@@ -282,12 +302,15 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
     return slot?.(api, outcome) ?? null
   }
 
+  const docket = props.stage ? undefined : props.docket
   const tools = (
     <div className="flex flex-wrap items-center gap-3">
-      <TapeLabel size="sm">
-        {levelTitle ? `${levelTitle} · ` : ''}
-        {mode === 'practice' ? 'practice' : 'graded'}
-      </TapeLabel>
+      {docket === undefined ? (
+        <TapeLabel size="sm">
+          {levelTitle ? `${levelTitle} · ` : ''}
+          {mode === 'practice' ? 'practice' : 'graded'}
+        </TapeLabel>
+      ) : null}
       {game.has3d ? <ViewSwitch view={view} onViewChange={switchView} available3d={can3d} unavailableReason={limits.unavailable3d} /> : null}
       <KeysDialog keys={keymap} open={keysOpen} onOpenChange={setKeysOpen}>
         <Button size="sm" variant="quiet">
@@ -341,7 +364,18 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
           </Heading>
           <p className="es-type-body text-text-2">{game.subtitle}</p>
         </div>
-        {props.stage ? null : tools}
+        {props.stage ? null : docket === undefined ? (
+          tools
+        ) : (
+          // One row: the game's own choices, then the stages and the keys.
+          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+            {docket}
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+              {nav}
+              {tools}
+            </div>
+          </div>
+        )}
       </header>
 
       {props.stage && phase === 'play' ? (
@@ -354,9 +388,9 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
         </div>
       ) : props.stage ? (
         toolbar
-      ) : (
+      ) : docket === undefined ? (
         nav
-      )}
+      ) : null}
 
       <div ref={panel} tabIndex={-1} role="group" aria-label={PHASE_NAMES[phase]} data-stage={phase} className="outline-none">
         {stagePanel()}

@@ -18,7 +18,7 @@ import { rngFor } from '@es/sim/core'
 import { BENCH_FLAWS } from '@es/sim/bench/broken-types'
 import { caseOf } from '@es/play/broken-bench/cases'
 import { harnessDesk, latencyUs, readingOf } from '@es/play/broken-bench/desk'
-import { MARK_CAP, MAX_DOTS, PAINTS, edgeLabel, layoutHistogram, layoutTimeline, markCount, orderNo, sheetSvg, stretchStart } from '@es/play/broken-bench/layout'
+import { MARK_CAP, MAX_DOTS, PAINTS, WAIT_LEAD, edgeLabel, layoutHistogram, layoutTimeline, longestWait, markCount, orderNo, sheetSvg, stretchStart } from '@es/play/broken-bench/layout'
 import type { Mark, Orientation, Paint, Sheet } from '@es/play/broken-bench/layout'
 import { svgMarkup } from '@es/play/broken-bench/svg'
 import type { CaseSlot, SceneView } from '@es/play/broken-bench/types'
@@ -243,6 +243,36 @@ describe('the timeline', () => {
     const sheet = layoutTimeline({ rows: co.rows, selected: late })
     const dashed = marksOf(sheet, 'slips').filter((mark) => mark.kind === 'path' && mark.stroke === 'paper-ink-2' && mark.dash !== undefined)
     expect(dashed).toHaveLength(1)
+  })
+
+  test('a log has a longest wait exactly when it sent an order late, and it is the worst one the inspector\'s notes count', () => {
+    for (const [i, scene] of scenes.entries()) {
+      const wait = longestWait(scene.rows)
+      expect([slots[i].flaw, wait === null]).toEqual([slots[i].flaw, scene.facts.lateSends === 0])
+      if (wait !== null) expect([slots[i].flaw, wait.waitUs]).toEqual([slots[i].flaw, scene.facts.maxLateUs])
+    }
+  })
+
+  test('the debrief\'s stretch opens a few orders before the longest wait, holds it, lights no order, and carries its own name', () => {
+    const co = caseOf({ seed: 41, flaw: 'coordinated-omission' }).scene
+    const wait = longestWait(co.rows)
+    if (wait === null) throw new Error('a coordinated-omission log sends late')
+    co.rows.forEach((row, i) => {
+      expect(row.sentUs - row.dueUs).toBeLessThanOrEqual(wait.waitUs)
+      if (i < wait.id) expect(row.sentUs - row.dueUs).toBeLessThan(wait.waitUs)
+    })
+    expect(wait.from).toBe(Math.max(0, wait.id - WAIT_LEAD))
+    for (const orientation of ORIENTATIONS) {
+      const sheet = layoutTimeline({ orientation, rows: co.rows, selected: null, from: wait.from, caption: 'YOUR LOG, AROUND ITS LONGEST WAIT' })
+      const ids = marksOf(sheet, 'hits').map((mark) => (mark.kind === 'rect' ? mark.row : undefined))
+      expect(ids[0]).toBe(Math.min(wait.from, co.rows.length - 32))
+      expect(ids).toContain(wait.id)
+      expect(sheet.layers.some((layer) => layer.part === 'present')).toBe(false)
+      expect(marksOf(sheet, 'name').some((mark) => mark.kind === 'text' && mark.text === 'YOUR LOG, AROUND ITS LONGEST WAIT')).toBe(true)
+      // The key names the red wait in both orientations, beside the due and sent ticks.
+      const key = marksOf(sheet, 'key').flatMap((mark) => (mark.kind === 'text' ? [mark.text] : []))
+      expect([orientation, key]).toEqual([orientation, ['DUE', 'SENT', 'WAIT NEVER TIMED']])
+    }
   })
 
   test('every drawn order has its hit rectangle inside the sheet and as wide as its row', () => {

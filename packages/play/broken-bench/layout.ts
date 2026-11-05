@@ -1,7 +1,8 @@
 /**
  * The Inspection's sheets (A§6.3, GAMES.md §11 "2D design", §2.6 "The Inspection"): the log drawn as the inspector would pencil it on
  * graph paper pinned to the pass. A view and some settings go in; positioned marks come out, and `sheetSvg` writes them as SVG. The 2D
- * view paints them, and the debrief draws the corrected benchmark on the same sheet with the same function.
+ * view paints them, and the debrief draws the corrected benchmark and the learner's own log around its longest wait on the same sheets
+ * with the same functions.
  *
  * A mark is a rect, a line, a circle, a path or a piece of text, painted with a token role of src/design/tokens.ts and never a colour
  * (rule 9, D-047). A role becomes `var(--es-<role>)`, so the drawing changes with the design system and carries no literal colour or
@@ -15,7 +16,8 @@
  *     dashed line, and orders the cut leaves out are drawn hollow.
  *   - The `timeline` sheet is a stretch of the log, one slip to an order, in the order they came: a hollow notch where the order was
  *     due, a solid stub where it was sent, the wait between them in the ribbon's red (the wait a stopwatch that starts at the send never
- *     sees), the wait in the server as a hollow bar, and the reply as a solid one. The stretch follows the selected order.
+ *     sees), the wait in the server as a hollow bar, and the reply as a solid one. The stretch follows the selected order; the debrief's
+ *     opens a few orders before the longest wait, and no lamp falls on it.
  * A state is a shape before it is a colour (WCAG 1.4.1): hollow against solid, dashed against plain. Ribbon red marks what the report
  * left out, amber marks the selected order and nothing else, and nothing here is coloured for decoration.
  *
@@ -23,6 +25,7 @@
  * tail, the mirror and the controls.
  */
 import type { Us } from '@es/sim/core'
+import { ADHERENCE_TOLERANCE_US } from '@es/sim/bench/stats'
 import type { BenchRow } from '@es/sim/bench/types'
 import { BIN_EDGES_US, DECADE_EDGES_US, binsOf, placeOf } from './desk'
 import { countMarks, num } from './svg'
@@ -381,6 +384,10 @@ export interface TimelineOptions {
   readonly rows: readonly BenchRow[]
   /** The order the lamp falls on, by its place in the log. */
   readonly selected: number | null
+  /** The first order of the stretch, where it is not the stretch around the selection: the debrief's, on which no lamp falls. */
+  readonly from?: number
+  /** What the sheet is of, in the label on its tape. */
+  readonly caption?: string
 }
 
 interface TimelineGeometry {
@@ -407,11 +414,39 @@ export function stretchStart(count: number, selected: number | null, size: numbe
   return Math.max(0, Math.min(at - Math.floor(size / 2), count - size))
 }
 
+/** Orders the debrief's stretch shows before the longest wait, so that it opens on orders sent when they were due. */
+export const WAIT_LEAD = 4
+
+/** The order of a log that was sent the longest after it was due, and where the stretch that shows it opens. */
+export interface LongestWait {
+  /** The order, by its place in the log. */
+  readonly id: number
+  readonly waitUs: Us
+  /** The first order of the stretch: `WAIT_LEAD` orders before it, where the log has them. */
+  readonly from: number
+}
+
+/**
+ * The order sent the longest after it was due, or null when no order was sent later than ASSESSMENT B4's tolerance: such a log holds no wait
+ * that a stopwatch started at the send could have missed. The first of equal waits is the one, so a stall shows from its start.
+ */
+export function longestWait(rows: readonly BenchRow[]): LongestWait | null {
+  let at = -1
+  let most: Us = ADHERENCE_TOLERANCE_US
+  rows.forEach((row, i) => {
+    if (row.sentUs - row.dueUs > most) {
+      most = row.sentUs - row.dueUs
+      at = i
+    }
+  })
+  return at < 0 ? null : { id: at, waitUs: most, from: Math.max(0, at - WAIT_LEAD) }
+}
+
 /** A stretch of the log, one slip to an order, with the waits drawn where they happened. */
 export function layoutTimeline(o: TimelineOptions): Sheet {
   const orientation = o.orientation ?? 'landscape'
   const g = TIMELINE[orientation]
-  const first = stretchStart(o.rows.length, o.selected, g.slips)
+  const first = o.from === undefined ? stretchStart(o.rows.length, o.selected, g.slips) : Math.max(0, Math.min(o.from, o.rows.length - g.slips))
   const shown = o.rows.slice(first, first + g.slips)
   const t0 = Math.min(...shown.map((row) => row.dueUs))
   const t1 = Math.max(...shown.map((row) => row.doneUs))
@@ -496,10 +531,10 @@ export function layoutTimeline(o: TimelineOptions): Sheet {
     ...tapeLabel(g.x0 + 96, y, 'WAIT NEVER TIMED', 10),
     line(g.x0 + 210, y + 9, g.x0 + 232, y + 9, { stroke: 'paper-ink-2', width: 2, dash: '2.5 2' }),
   ]
-  layers.push({ part: 'key', marks: orientation === 'landscape' ? key : key.slice(0, 5) })
+  layers.push({ part: 'key', marks: key })
 
   layers.push({ part: 'pins', marks: pins(g.width) })
-  layers.push({ part: 'name', marks: tapeLabel(orientation === 'landscape' ? 44 : 38, 5, 'EACH ORDER, DUE TO DONE', 11) })
+  layers.push({ part: 'name', marks: tapeLabel(orientation === 'landscape' ? 44 : 38, 5, o.caption ?? 'EACH ORDER, DUE TO DONE', 11) })
 
   return {
     orientation,

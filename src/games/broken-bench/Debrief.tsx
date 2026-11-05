@@ -6,13 +6,18 @@ import { Readout } from '@/design/components/Readout'
 import { Stub } from '@/design/components/Stub'
 import { TextLink } from '@/design/components/TextLink'
 import { Ticket } from '@/design/components/Ticket'
-import { RulingTicket } from './Ruling'
+import { Exhibits, RulingTicket } from './Ruling'
 import type { BenchOutcome, BenchRun } from './types'
 
 /*
  * The Inspection's debrief (GAMES.md §11 "Core loop", §2.1): the court reads its rulings. One sentence says where the run went wrong, or
  * that it did not, and names the flaw worth the most; the docket sets the cases side by side; and each ruling is read out with the
- * arithmetic, the corrected benchmark run again on a sheet of graph paper, and the flaw's real-world instance as claims.
+ * arithmetic, beside its exhibits: the corrected benchmark run again on a sheet of graph paper, the learner's own log where the stopwatch
+ * lost time, and the flaw's real-world instance as claims.
+ *
+ * The page takes both columns on a wide screen (bench.css, "the debrief"): a single case sets its exhibits beside the verdict and the
+ * ruling, and the court sets its verdict and docket across the top and each ruling beside its own exhibits. On a narrow one it stacks in
+ * the order of the reading: the verdict, the ruling, its exhibits.
  *
  * The reference (the court's own recomputation) is read here and nowhere before: the view carries no ruling until the run is over, and
  * the court's number is never on the board while a case is open. In a graded attempt the pass is ASSESSMENT §4.3's [estimated]: the flaw,
@@ -99,15 +104,14 @@ export function Debrief({ run, outcome, next, onNext, onNew }: DebriefProps) {
   const last = next === null
 
   return (
-    <div className="flex max-w-3xl flex-col gap-6" data-bench-debrief="">
+    <div className="es-bench-debrief" data-bench-debrief="" data-cases={single ? 'one' : 'many'}>
       <Ticket
         as="section"
         width="full"
         hole={false}
-        head="Debrief"
-        meta={run.view.title}
         titleAs="h3"
         title={grade.ok ? (single ? 'The ruling stands.' : 'The court is satisfied.') : single ? 'The ruling falls.' : 'The court is not satisfied.'}
+        className="es-bench-court"
         stub={
           last ? (
             <Stub to="/m/tr8">Open TR8</Stub>
@@ -136,10 +140,13 @@ export function Debrief({ run, outcome, next, onNext, onNew }: DebriefProps) {
       </Ticket>
 
       {rulings.map((ruling) => (
-        <RulingTicket key={ruling.caseNo} ruling={ruling} cases={run.view.cases} />
+        <div key={ruling.caseNo} className="es-bench-spread" data-ruling={ruling.caseNo} data-right={ruling.right}>
+          <RulingTicket ruling={ruling} cases={run.view.cases} />
+          <Exhibits ruling={ruling} />
+        </div>
       ))}
 
-      <div className="flex flex-wrap items-center gap-4">
+      <div className="es-bench-debrief__after flex flex-wrap items-center gap-4">
         <Button variant="plate" onClick={() => run.restart()}>
           Play this level again
         </Button>

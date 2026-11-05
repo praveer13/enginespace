@@ -62,6 +62,19 @@ describe('the shell names the game as D-049 says: the display name over its engi
     expect(shell({ levelTitle: 'The pile' })).toContain('The pile · practice')
     expect(shell({ mode: 'graded' })).toMatch(/class="es-tape__text">graded</)
   })
+
+  test('a game\'s own docket takes the tape\'s place, and the stages and the keys join it in one row in the header', () => {
+    const markup = shell({ levelTitle: 'The pile', docket: h('div', { 'data-slot': 'docket' }) })
+    expect(markup).not.toContain('The pile · practice')
+    expect(markup).not.toContain('es-tape__text')
+    const header = markup.slice(markup.indexOf('<header'), markup.indexOf('</header>'))
+    expect(header.indexOf('data-slot="docket"')).toBeGreaterThan(header.indexOf('</h2>'))
+    expect(header.indexOf('data-slot="docket"')).toBeLessThan(header.indexOf('aria-label="Stages of this game"'))
+    expect(header).toContain('>Keys</button>')
+    expect(count(markup, /aria-label="Stages of this game"/g)).toBe(1)
+    // A game whose view leads keeps its own toolbar: the docket is for the shell's other layout.
+    expect(shell({ stage: true, docket: h('div', { 'data-slot': 'docket' }) })).not.toContain('data-slot="docket"')
+  })
 })
 
 describe('the stages', () => {
@@ -103,6 +116,15 @@ describe('the slots', () => {
     const markup = shell()
     for (const slot of ['view2d', 'controls', 'mirror']) expect(markup).toContain(`data-slot="${slot}"`)
     expect(markup).toMatch(/data-slot="view2d"[^>]*>target [1-9]</)
+  })
+
+  test('the controls follow the mirror when a game asks, so a narrow screen reads the view, the mirror and then the controls', () => {
+    const before = shell()
+    expect(before.indexOf('data-slot="controls"')).toBeLessThan(before.indexOf('data-slot="mirror"'))
+    const after = shell({ mirrorFirst: true })
+    expect(after.indexOf('data-slot="view2d"')).toBeLessThan(after.indexOf('data-slot="mirror"'))
+    expect(after.indexOf('data-slot="mirror"')).toBeLessThan(after.indexOf('data-slot="controls"'))
+    expect(after.indexOf('data-slot="controls"')).toBeLessThan(after.indexOf('>Undo</button>'))
   })
 
   test('the mirror\'s id is the one the shell gives the run, so a view can point at its table', () => {

@@ -19,6 +19,8 @@
  *   6. The same seed and the same actions give the same state hash in the browser as under Node (A§5.10).
  *   7. axe finds no serious or critical violation on the game's pages at 360 and 1280 px, and nothing is cut off at the right edge at 320
  *      (WCAG 1.4.10).
+ *   8. The first viewport holds the evidence: under one row of the levels, the attempt and the stages, the sheet and the claim at
+ *      1440 px and the claim at 390 px; and on a phone the tail comes before the desk.
  *
  * How it runs. The spec starts the app's own Vite dev server on a free port, so it needs no build and no preview server, and drives
  * `/play/broken-bench` in whichever browser Playwright launches. With ES_E2E_ORIGIN set to the address of a server that is already running
@@ -220,7 +222,9 @@ test.describe('a keyboard-only walk files a ruling on every level', () => {
     await page.getByRole('button', { name: 'Next: The warm-up cut' }).focus()
     await page.keyboard.press('Enter')
     await expect.poll(() => page.evaluate(() => document.activeElement?.getAttribute('data-game'))).toBe('broken-bench')
-    await expect(page.locator('[data-game="broken-bench"] .es-tape').first()).toContainText('The warm-up cut · practice')
+    // The docket in the game's header says which level is open and how: the warm-up cut, in practice.
+    await expect(page.getByRole('navigation', { name: 'Levels of the Inspection' }).locator('[aria-current="true"]')).toHaveText('The warm-up cut')
+    await expect(page.getByRole('group', { name: 'Attempt' }).getByRole('button', { name: 'Practice', exact: true })).toHaveAttribute('aria-pressed', 'true')
   })
 
   test('the ruling is not filed until a flaw is named and a p99 with a range that holds it is written, and Enter in a field does nothing before that', async ({ page }) => {
@@ -379,7 +383,8 @@ test.describe('a graded attempt', () => {
     await expect(page.locator('[data-mirror] .es-tape', { hasText: 'p99' })).toHaveCount(1)
     await queueSeeds(page, [2_718_281_828])
     await page.getByRole('button', { name: 'Graded attempt, fresh seed' }).click()
-    await expect(page.locator('[data-game="broken-bench"] .es-tape').first()).toContainText('From the due time · graded')
+    await expect(page.getByRole('button', { name: 'Graded attempt, fresh seed' })).toHaveAttribute('aria-pressed', 'true')
+    await expect(game(page)).toHaveAttribute('data-mode', 'graded')
     expect(await claimMs(page)).toBeCloseTo(claim, 6)
     await expect(page.getByText('At the desk')).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Undo' })).toHaveCount(0)
@@ -435,6 +440,39 @@ test.describe('a graded attempt', () => {
     await endWithTheDebrief(page, 'The ruling stands.')
     await expect(page.locator('[data-ruling] [data-line="number"] [data-ok="true"]')).toHaveCount(1)
     await expect(page.locator('[data-ruling] [data-line="range"] [data-ok="true"]')).toHaveCount(1)
+  })
+})
+
+test.describe('the first viewport', () => {
+  /** Where an element's box is on the page, which has not scrolled. */
+  const box = async (page: Page, selector: string) => {
+    const found = await page.locator(selector).first().boundingBox()
+    if (found === null) throw new Error(`${selector} is not drawn`)
+    return found
+  }
+
+  test('holds the evidence under one row of the levels, the attempt and the stages: the sheet and the claim at 1440 px, the claim at 390 px, and the tail before the desk', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await open(page, 'due')
+    const levels = await box(page, 'nav[aria-label="Levels of the Inspection"]')
+    const stages = await box(page, 'nav[aria-label="Stages of this game"]')
+    expect(Math.abs(levels.y - stages.y)).toBeLessThan(8)
+    await expect(page.locator('[data-game="broken-bench"] .es-tape', { hasText: 'practice' })).toHaveCount(0)
+    const sheet = await box(page, '[data-bench-board] .es-bench-sheet')
+    expect(sheet.y + sheet.height).toBeLessThanOrEqual(900)
+    const claim = await box(page, '.es-bench-clip--aside .es-bench-claim__value')
+    expect(claim.y + claim.height).toBeLessThanOrEqual(900)
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    await open(page, 'due')
+    const small = await box(page, '.es-bench-clip--inline .es-bench-claim__value')
+    expect(small.y + small.height).toBeLessThanOrEqual(844)
+    // One column, in the order of the work: the pass, then the tail, then the desk.
+    const pass = await box(page, '[data-bench-board] .es-bench-sheet')
+    const tail = await box(page, '[data-mirror=""]')
+    const desk = await box(page, '[data-bench-desk]')
+    expect(pass.y).toBeLessThan(tail.y)
+    expect(tail.y).toBeLessThan(desk.y)
   })
 })
 
