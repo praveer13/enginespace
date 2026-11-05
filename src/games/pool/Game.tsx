@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { drawInBand, levelOf } from '@es/play'
 import { POOL } from '@es/play/pool/entry'
 import { poolSession } from '@es/play/pool/session'
-import type { StationView } from '@es/play/pool/types'
+import type { PoolView, StationView } from '@es/play/pool/types'
 import { Button } from '@/design/components/Button'
 import { Glyph } from '@/design/components/Glyph'
 import { GameShell } from '@/games/kit/GameShell'
@@ -13,6 +13,7 @@ import { Stage } from '@/scene/Stage'
 import { unavailableReason, useDeviceTier } from '@/scene/tiers'
 import { WorldCard } from './Card'
 import { Controls } from './Controls'
+import { focusOf } from './focus'
 import { Mirror } from './Mirror'
 import type { Scene3DProps } from './Scene3D'
 import { DEFAULT_CAMERA, POOL_CAMERAS } from './scene-presets'
@@ -245,6 +246,7 @@ function PoolShell({ levelId, levelTitle, seed, mode, headingLevel, rev, onFinis
         <>
           {view === '3d' ? <Cameras preset={preset} onPreset={onPreset} stations={run.view.stations} station={station} onStation={setStation} /> : null}
           <Controls run={run} dump={dumpOf(run.view, chosen, setChosen)} mode={mode} onPoint={setPointed} />
+          {view === '3d' ? <FanNote view={run.view} station={preset === 'station' ? Math.min(station, run.view.stations.length - 1) : null} /> : null}
         </>
       )}
       mirror={(run) => <Mirror run={run} />}
@@ -275,6 +277,28 @@ function Cameras({ preset, onPreset, stations, station, onStation }: { preset: s
         </div>
       ) : null}
     </div>
+  )
+}
+
+/**
+ * What the fan over the focus's head pan shows, in words: the scene draws the pan opening into the layers of its station and prints
+ * nothing itself (GAMES.md §2.6 rule 7), so the page says which ticket, which station and how many layers, from the same focus the scene
+ * draws (focus.ts). Nothing while the line is empty.
+ */
+function FanNote({ view, station }: { view: PoolView; station: number | null }) {
+  const { ticket, group } = focusOf(view, station)
+  if (ticket === undefined || group === null) return null
+  return (
+    <p className="text-text-2" data-pool-fan="">
+      The fan: ticket No. <span className="font-numeric">{view.tickets[ticket].no}</span>, hung last, starts its order with a pan at <Glyph shape={stationGlyph(group)} /> {group.id}.
+      That one pan holds the block for all <span className="font-numeric">{group.layers}</span> of the station&apos;s layers
+      {group.padLayers > 0 ? (
+        <>
+          , and <span className="font-numeric">{group.padLayers}</span> padding layers drawn hollow
+        </>
+      ) : null}
+      : one page per block, for the whole group.
+    </p>
   )
 }
 

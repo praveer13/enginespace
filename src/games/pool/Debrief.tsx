@@ -112,8 +112,6 @@ export function Debrief({ run, outcome, next, onNext }: DebriefProps) {
         as="section"
         width="full"
         hole={false}
-        head="Debrief"
-        meta={view.title}
         titleAs="h3"
         title={grade.ok ? 'Well stocked.' : 'Stock it again.'}
         stub={last ? <Stub to="/map">Open the course map</Stub> : <Stub onClick={onNext}>Next level</Stub>}

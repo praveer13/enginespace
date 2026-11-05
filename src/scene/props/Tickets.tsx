@@ -40,7 +40,6 @@ interface Shown {
 const euler = new Euler()
 const poseOf = (at: Vec3, rotation: Vec3 = [0, 0, 0]): Pose => ({ position: new Vector3(...at), quaternion: new Quaternion().setFromEuler(euler.set(...rotation)) })
 const matrix = new Matrix4()
-const unit = new Vector3(1, 1, 1)
 const none = new Vector3(0, 0, 0)
 /** Where a label frame waits while its ticket is not yet out of the printer: far below the floor, so its label hides. */
 const away = new Vector3(0, -1000, 0)
@@ -62,10 +61,10 @@ function poseAt(shown: Shown, now: number, ease: (t: number) => number, into: { 
 }
 
 /**
- * The tickets, one instanced draw. Each ticket also moves a label frame named `ticket:<id>` (kit.registerFrame), so a DOM label
- * anchored in it rides on the paper as it travels and turns.
+ * The tickets, one instanced draw, each `scale` times the kit's ticket. Each ticket also moves a label frame named `ticket:<id>`
+ * (kit.registerFrame), at the same scale, so a DOM label anchored in it rides on the paper as it travels and turns.
  */
-export function Tickets({ tickets, name = 'tickets' }: { tickets: readonly TicketPose[]; name?: string }) {
+export function Tickets({ tickets, name = 'tickets', scale = 1 }: { tickets: readonly TicketPose[]; name?: string; scale?: number }) {
   const kit = useKit()
   const { materials } = useProps()
   const capacity = roomFor(tickets.length)
@@ -80,6 +79,7 @@ export function Tickets({ tickets, name = 'tickets' }: { tickets: readonly Ticke
   const order = useRef<string[]>([])
   const frames = useRef(new Map<string, { object: Object3D; release: () => void }>())
   const scratch = useMemo(() => ({ position: new Vector3(), quaternion: new Quaternion() }), [])
+  const size = useMemo(() => new Vector3(scale, scale, scale), [scale])
 
   const ease = kit.ease
   const write = useCallback(
@@ -91,9 +91,9 @@ export function Tickets({ tickets, name = 'tickets' }: { tickets: readonly Ticke
         const item = shown.current.get(id)
         if (!item) return
         const visible = poseAt(item, now, ease, scratch)
-        instanced.setMatrixAt(i, matrix.compose(scratch.position, scratch.quaternion, visible ? unit : none))
+        instanced.setMatrixAt(i, matrix.compose(scratch.position, scratch.quaternion, visible ? size : none))
         const frame = frames.current.get(id)
-        if (frame) frame.object.matrixWorld.compose(visible ? scratch.position : away, scratch.quaternion, unit)
+        if (frame) frame.object.matrixWorld.compose(visible ? scratch.position : away, scratch.quaternion, size)
         if (item.motion) {
           if (progress(now, item.motion.start, item.motion.ms, item.motion.delay) >= 1) item.motion = null
           else moving = true
@@ -102,7 +102,7 @@ export function Tickets({ tickets, name = 'tickets' }: { tickets: readonly Ticke
       instanced.instanceMatrix.needsUpdate = true
       return moving
     },
-    [ease, scratch],
+    [ease, scratch, size],
   )
   const wake = useMotionLoop(write)
 
@@ -168,8 +168,11 @@ export interface ClipPlace {
   readonly x: number
 }
 
-/** The rail's clips: a chrome ball each, rolling along the slot to its place on the settle curve when the rail is rearranged. */
-export function RailClips({ at, clips, name = 'clips' }: { at: Vec3; clips: readonly ClipPlace[]; name?: string }) {
+/**
+ * The rail's clips: a chrome ball each, `scale` times the kit's, rolling along the slot to its place on the settle curve when the rail is
+ * rearranged.
+ */
+export function RailClips({ at, clips, name = 'clips', scale = 1 }: { at: Vec3; clips: readonly ClipPlace[]; name?: string; scale?: number }) {
   const kit = useKit()
   const { materials, palette } = useProps()
   const capacity = roomFor(clips.length)
@@ -201,12 +204,12 @@ export function RailClips({ at, clips, name = 'clips' }: { at: Vec3; clips: read
         const t = reducedMotion ? 1 : progress(now, clip.start, settleMs)
         if (t < 1) moving = true
         place.set(ax + clip.from + (clip.x - clip.from) * ease(t), ay - CLIP_DROP, az + 0.003)
-        instanced.setMatrixAt(i, matrix.makeTranslation(place.x, place.y, place.z))
+        instanced.setMatrixAt(i, matrix.makeScale(scale, scale, scale).setPosition(place))
       })
       instanced.instanceMatrix.needsUpdate = true
       return moving
     },
-    [ease, reducedMotion, settleMs, ax, ay, az, place],
+    [ease, reducedMotion, settleMs, ax, ay, az, place, scale],
   )
   const wake = useMotionLoop(write)
 
