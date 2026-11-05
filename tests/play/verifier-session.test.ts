@@ -2,9 +2,9 @@
  * W1-T28, acceptance checks 1 to 3 as the pure session sees them (GAMES.md §2.5, §10): the reducer's rules, the draws, the reference, the
  * grades and the debriefs, and the replay that makes a log the grade.
  *
- *   - Only the exact residual reaches total-variation distance 0 in `exact` (acceptance check 2): on 200 seeds the residual passes and
- *     every other recipe fails, and the graded pass bar of ASSESSMENT §4.3 (`exact`: distance exactly 0; `chain`: within 1%; `gamma`: the
- *     exact draft length) is what `grade` computes.
+ *   - Only the exact residual reaches total-variation distance 0 in `exact` (acceptance check 2): on every seed of the run (200 on a
+ *     pull request, 10,000 nightly: tests/seeds.ts) the residual passes and every other recipe fails, and the graded pass bar of
+ *     ASSESSMENT §4.3 (`exact`: distance exactly 0; `chain`: within 1%; `gamma`: the exact draft length) is what `grade` computes.
  *   - A run is its log: replaying a log gives the state it made, and a tampered log is refused (A§6.3).
  *   - The view keeps the answer back until the level lets it be printed, and never holds a bigint.
  *   - A state is plain data, so it has a canonical JSON form and a hash that is the same in every runtime (A§5.10). The goldens below are
@@ -22,7 +22,7 @@ import { excessPlates, keptPlates, modelOf, recipeTv, sweepOfLevel, thousandths,
 import { DISHES, DRAW_CAP, GAMMA_MAX, MUTANT_IDS, PLATES } from '@es/play/verifier/types'
 import type { VerifierAction, VerifierLevelId } from '@es/play/verifier/types'
 import { houseActions, PRACTICE, sculpt, sculptActions, stateAfter, textOf } from './verifier-support'
-import { seeds } from '../sim/spec-support'
+import { SEED_COUNT, seeds } from '../seeds'
 
 const S = verifierSession
 
@@ -232,8 +232,8 @@ describe('rounds are drawn from the seed, one stream for each round', () => {
 })
 
 describe('only the exact residual reaches total-variation distance 0 in `exact` (acceptance check 2)', () => {
-  test('on 200 seeds the residual passes the level and nothing else does: not p, not q, not an even recipe, not the residual moved by one plate', () => {
-    for (const seed of seeds(0, 200)) {
+  test(`on ${SEED_COUNT} seeds the residual passes the level and nothing else does: not p, not q, not an even recipe, not the residual moved by one plate`, () => {
+    for (const seed of seeds()) {
       const level = buildLevel('exact', seed)
       const house = stateAfter(level, ...sculptActions(excessPlates(level)), { t: 'submit' })
       expect([seed, verifierGrade(house).ok, recipeTv(house)?.num]).toEqual([seed, true, 0n])

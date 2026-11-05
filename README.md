@@ -82,7 +82,7 @@ npm ci              # install the exact pins in package-lock.json
 npm run dev         # the dev server, with hot reload
 npm run lint        # ESLint
 npm run typecheck   # tsc -b: the app, the Node-side configs, and the pure packages (no DOM)
-npm test            # bun test: the unit and build tests in tests/
+npm test            # bun test: the unit and build tests in tests/; the nightly count of every seeded property is ES_PROPERTY_SEEDS=10000 bun test --parallel=2 --timeout 900000 (ARCHITECTURE §5.10)
 npm run build       # typecheck, then vite build into dist/, with dist/.vite/manifest.json
 npm run preview     # serve dist/
 npm run e2e         # Playwright's specs in e2e/ (axe, the keyboard walk, the network check, the screenshots): builds, serves with vite preview, runs; npx playwright install chromium first
@@ -103,7 +103,7 @@ npm run verify:labs          # builds every forge lab for wasm with Rust 1.96.0 
 bun scripts/verify.ts list   # each gate with its stage, whether it is live or pending, and the task that builds it
 ```
 
-`verify:bundle` walks the manifest of the build: the entry chunk, the front page's first-paint closure and its CSS, every other route, `three-vendor`, each scene, `postfx`, the workers and each lesson's JSON. It prints each figure in gzip KB and in bytes (one file at a time, by Bun's `gzipSync` at its default level, which comes out a little above the sizes that Vite's log prints), and fails above any gate. A target only warns. The page-load budgets need a browser, and they are the nightly lab profile, `npx playwright test e2e/perf.spec.ts`: Chromium with the CPU slowed 4×, a link of 1.6 Mbit/s and 150 ms of round trip [estimated, ARCHITECTURE §11.1], printing the front page's LCP, CLS and INP for lever presses. The file's header says what it can and cannot measure, and `ES_CHROMIUM=<path to chrome>` runs it with another Chromium build.
+`verify:bundle` walks the manifest of the build: the entry chunk with its static imports, the front page's first-paint closure and its CSS, every other route, `three-vendor`, each scene, `postfx`, the workers and each lesson's JSON. It prints each figure in gzip KB and in bytes (one file at a time, by Bun's `gzipSync` at its default level, which comes out a little above the sizes that Vite's log prints), and fails above any gate. A target only warns. The page-load budgets need a browser, and they are the nightly lab profile, `npx playwright test e2e/perf.spec.ts`: Chromium with the CPU slowed 4×, a link of 1.6 Mbit/s and 150 ms of round trip [estimated, ARCHITECTURE §11.1], printing the front page's LCP, CLS and INP for lever presses. The file's header says what it can and cannot measure, and `ES_CHROMIUM=<path to chrome>` runs it with another Chromium build.
 
 The lessons, claims and knowledge components live in `content/`. `bun scripts/content/build.ts` compiles them into `src/content/generated/` (git-ignored), `public/md/`, `public/llms.txt` and `public/claims.json` (ARCHITECTURE §4), and `npm run dev` and `npm run build` run the same compiler, so an edit to a lesson reloads it in the dev server.
 

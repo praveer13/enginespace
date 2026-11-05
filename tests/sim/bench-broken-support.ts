@@ -6,28 +6,11 @@
  */
 import { BENCH_FLAWS, brokenBenchCase } from '../../packages/sim/bench'
 import type { BenchFlaw, BrokenCase } from '../../packages/sim/bench'
+import { NIGHTLY_SEEDS, SEED_COUNT } from '../seeds'
 
-/*
- * The seed knob (ARCHITECTURE §5.10): a property runs 200 seeds on a PR and 10,000 in the nightly run [estimated], and reads the count from
- * the environment variable ES_PROPERTY_SEEDS. This block mirrors the knob that tests/sim/spec-support.ts mirrors, with the same name, default
- * and refusals, so that these suites reach the nightly count whichever of the shared file and this one is in wave-1 first.
- */
-export const PR_SEEDS = 200
-
-/** The seed count that a value of ES_PROPERTY_SEEDS asks for. Anything but a whole number of at least PR_SEEDS is an error. */
-export function seedCountFrom(value: string | undefined): number {
-  if (value === undefined || value === '') return PR_SEEDS
-  if (!/^[1-9]\d*$/.test(value)) throw new Error(`ES_PROPERTY_SEEDS must be a whole number of seeds, and it is "${value}"`)
-  const count = Number(value)
-  if (!Number.isSafeInteger(count) || count < PR_SEEDS) throw new Error(`ES_PROPERTY_SEEDS is ${value}, and a run has at least the ${PR_SEEDS} seeds of a pull request: the knob only raises the count`)
-  return count
-}
-
-/** The number of seeds this run gives every property. */
-export const SEED_COUNT = seedCountFrom(process.env['ES_PROPERTY_SEEDS'])
-
-/** The nightly count, from which the in-sample blind-strategy bound is judged: at fewer cases per flaw the best constant is chosen on too few to be a bound. */
-export const NIGHTLY_SEEDS = 10_000
+// The seed knob (ARCHITECTURE §5.10) is tests/seeds.ts: 200 seeds on a PR and 10,000 in the nightly run [estimated]. The in-sample
+// blind-strategy bound is judged from the nightly size, because at fewer cases per flaw the best constant is chosen on too few to be a bound.
+export { NIGHTLY_SEEDS, SEED_COUNT }
 
 /** How many cases the blind-strategy measure draws: the knob's count at the nightly size, and 1,100 (100 for each flaw) on a PR [estimated]. */
 export const BLIND_SEEDS = SEED_COUNT >= NIGHTLY_SEEDS ? SEED_COUNT : 1_100
@@ -45,6 +28,32 @@ export function caseOf(seed: number): BrokenCase {
     made.set(seed, c)
   }
   return c
+}
+
+/**
+ * What the blind-strategy lines read of a case: its seed and flaw, the draws it took, its band and the corrected p99. A case holds its
+ * whole log: this suite peaked at 6.7 GB with all 10,000 cases kept, about 0.7 MB a case [measured 2026-11-04 at b113802, at the nightly
+ * size; the per-case figure is derived]. So the lines over every seed keep these five fields and let the case go; this suite and the
+ * Inspection's levels test (tests/play/broken-bench-levels.test.ts), which reads them too, peak at 776 MB together [measured 2026-11-04
+ * at 238a38c]. The nightly job's runner has less memory than 6.7 GB if it is a standard private-repository runner [unverified].
+ */
+export interface Drawn {
+  seed: number
+  flaw: BenchFlaw
+  attempts: number
+  band: BrokenCase['band']
+  p99Us: number
+}
+
+let drawn: Drawn[] | undefined
+
+/** The cases of the seeds 0 … BLIND_SEEDS - 1 as `Drawn`, made once. A case that `caseOf` made already is not made again. */
+export function drawnCases(): Drawn[] {
+  drawn ??= Array.from({ length: BLIND_SEEDS }, (_, seed) => {
+    const c = made.get(seed) ?? brokenBenchCase(seed)
+    return { seed: c.seed, flaw: c.flaw, attempts: c.attempts, band: c.band, p99Us: c.answer.p99Us }
+  })
+  return drawn
 }
 
 /** The index of a flaw in `BENCH_FLAWS`, which is also the residue mod 11 of the seeds that draw it. */

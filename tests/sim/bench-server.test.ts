@@ -17,6 +17,7 @@ import { TICK_CARD, gpuCost, runStepLoop, s5Card } from '../../packages/sim/step
 import type { GpuCard, StepLoopConfig } from '../../packages/sim/steploop'
 import { genWorkload } from '../../packages/sim/workload'
 import type { ArrivalPlan, Dist, Workload } from '../../packages/sim/workload'
+import { seeds } from '../seeds'
 import { H100_TP4_GPU, ZERO_HOST } from './bench-support'
 
 const arrival = (key: number, atUs: Us, o: { prompt?: number; output: number; cached?: number }): ServerArrival => ({
@@ -122,9 +123,9 @@ function scenario(seed: number): Scenario {
   return { world, workload, model, cfg, gpu, arrivals: workload.reqs.map((r) => arrival(r.id, r.dueUs, { prompt: r.promptTokens, output: r.outputTokens })) }
 }
 
-const SEEDS = Array.from({ length: 200 }, (_, i) => i + 1)
+const SEEDS = seeds(1)
 
-describe('against runStepLoop with a host card of zeros and async scheduling on, over 200 seeds', () => {
+describe(`against runStepLoop with a host card of zeros and async scheduling on, over ${SEEDS.length} seeds`, () => {
   test('every request has the first and last token the step loop gives it, and the run has its steps, busy time and ghost tokens', () => {
     const worlds = new Set<World>()
     for (const seed of SEEDS) {

@@ -347,7 +347,9 @@ KCs come from a ref→KC map at read time and are never stored (kernelspace's ru
   - Time is integer µs (`type Us = number`), and every value stays below 2^53. Probabilities are integer weights (permille, or totals of 2^16).
   - Floating point is used only where kernelspace's S5 card uses it: +, −, ×, ÷, `max` and `Math.round` in a fixed order, which IEEE 754 makes identical in every engine.
 - **The determinism lint.** In `packages/sim/**` and `packages/play/**`:
-  - It bans `Math.exp`, `log`, `pow`, `sin`, `cos`, `tan`, `atan2`, `cbrt`, `hypot` and `random`.
+  - It bans `Math.exp`, `expm1`, `log`, `log1p`, `log2`, `log10`, `pow`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh`, `cbrt`, `hypot` and `random`.
+    - `random` is unseeded. The other 22 are the functions that ECMA-262 does not precisely specify: each engine computes them with its own maths library. The note that opens the standard's "Function Properties of the Math Object" lists them with `random`, and `**` is Number::exponentiate, which the standard leaves implementation-approximated like `pow` [measured 2026-11-04 from the `es2026` tag of tc39/ecma262; the `es2025` tag's note lists the same 23].
+    - They do differ in practice. Node 22.22.2 (V8) and Bun 1.3.14 (JavaScriptCore) return different bits from each of the 22 and from `**`, by up to 2 ulp, on from 13 (`atanh`) to 73,037 (`hypot`) of 200,000 inputs [measured 2026-11-04 on the dev host, by `tests/lint/math-engines.ts`]. They agree on the twelve that the standard specifies exactly, and those stay allowed: `abs`, `ceil`, `clz32`, `floor`, `fround`, `imul`, `max`, `min`, `round`, `sign`, `sqrt` (the correctly rounded root) and `trunc`. ES2025's `f16round` and ES2026's `sumPrecise` are exact in the standard too, and stay allowed.
   - It bans `**`, `Date`, `performance` and `crypto`.
   - It bans iteration over `Map` or `Set` where the order would reach output, unless the result is sorted.
   - It bans `Array.prototype.sort` without a comparator.
@@ -562,7 +564,7 @@ Every game, every graded task and the Trace Room show their card. `verify:games`
 |---|---|---|
 | Unit | Each function's contract, with worked examples taken from lesson text | `bun test`, on every PR |
 | Golden vectors | `tests/fixtures/sim/<model>.json` maps inputs to outputs and is regenerated only by `bun scripts/vectors.ts --write`. A diff is reviewed like code. The vendored S5 step vectors pass unchanged. | every PR |
-| Properties | Seeded random inputs: 200 seeds on PRs and 10,000 nightly [estimated]. The invariants are page conservation and refcounts (`kv`); disjoint kernels per stream, no read before sampling, and busy ≤ horizon (`steploop`); exactness under chi-square (`spec`); Little's law within tolerance on stable runs (`bench`); round-trips and checks that pass on synthetic traces (`trace`). | PR and nightly |
+| Properties | Seeded random inputs: 200 seeds on PRs and 10,000 nightly [estimated], through one knob, `ES_PROPERTY_SEEDS` (`tests/seeds.ts`), which `nightly.yml`'s `properties` job sets. The invariants are page conservation and refcounts (`kv`); disjoint kernels per stream, no read before sampling, and busy ≤ horizon (`steploop`); exactness under chi-square (`spec`); Little's law within tolerance on stable runs (`bench`); round-trips and checks that pass on synthetic traces (`trace`). | PR and nightly |
 | Bestiary | Known-wrong implementations must fail and the reference must pass. Examples: FCFS against the reference schedule; a sampler that accepts with p/q and skips the residual; a leaky KV manager; a publisher that drops `BlockRemoved`; a closed-loop benchmark presented as open loop. This is kernelspace's rule: "every pass bar is proven against FCFS, SJF and the reference". | every PR |
 | Bands and blind strategies | Graded seeds are drawn within difficulty bands. A scene-blind strategy, such as the best constant per label, must stay under the bound ASSESSMENT.md sets. | every PR (sampled), nightly (full) |
 | Cross-runtime | The SHA-256 of canonical JSON for N fixed seeds per model is the same in Bun, Chromium, Firefox and WebKit | nightly, Playwright |
@@ -598,10 +600,10 @@ The learner sees each game's display name over its subtitle (D-049); the Game co
 kernelspace's seven-test gate (`games-3d.md` §2.3; PLAN-100X §5.4.0) still applies, with one change made by the owner's decision D-005.
 
 - **Required:** tests 1 (intrinsic: winning means applying the concept), 3 (model-backed: every mark is computed by `packages/sim`), 4 (recurrence: used in at least 3 sessions, through levels, fresh seeds or later modules), 6 (load: pausable or turn-based, at most one new representation at a time, a 2D path, a DOM mirror and reduced motion) and 7 (debrief: a graded item or prediction names the concept).
-- **Test 5 (schematic) is restated:** no photoreal hardware and no decorative particles behind prose. The look comes from DESIGN.md.
+- **Test 5 (schematic) is restated:** no photoreal hardware and no decorative particles behind prose. The look is The Pass (D-047): the design system applies its direction contract, and DESIGN.md documents the built world.
 - **Test 2 (≥3 axes reasoned about together) becomes advisory** under D-005. Each 3D game names its axes in §6.1. A game whose third axis is weak keeps its 3D for attention, and its 2D view is a first-class path, never a degraded one.
 
-`verify:games` checks the mechanical part: a registered 2D view, mirror, debrief, card, keyboard map, KCs and sources for every game.
+`verify:games` checks the mechanical part: a display name and a subtitle (D-049), and a registered 2D view, mirror, debrief, card, keyboard map, KCs and sources, for every game.
 
 ### 6.3 Anatomy of a game
 
@@ -648,13 +650,13 @@ No drei (D-021). The kit implements its few helpers (adaptive DPR, a frame monit
 
 ### 6.5 Post-processing within a budget
 
-- **Source.** Effects come from three's own addons (`three/addons/postprocessing/`: `EffectComposer`, `RenderPass`, `UnrealBloomPass` at half resolution, `SMAAPass` or FXAA through `ShaderPass`, and `OutputPass`). They are locked to `three` 0.185.1 and add no dependency (D-021).
+- **Source.** Effects come from three's own addons (`three/addons/postprocessing/`: `EffectComposer`, `RenderPass`, `UnrealBloomPass` at half resolution, FXAA through `ShaderPass`, and `OutputPass`). They are locked to `three` 0.185.1 and add no dependency (D-021). `SMAAPass` is not used: it alone is 35,631 B gz [measured 2026-11-04 by W0-T15, three 0.185.1, `gzip -9`], over the `postfx` budget below (D-023).
 - **Loading.** The effects load in the `postfx` chunk, at tier 2 and above only.
 - **Budget:**
   - at most two full-screen passes beyond the scene render;
   - at most 2.0 ms of GPU time per frame at tier 3 on the reference laptop [estimated], checked by hand at each wave's exit, because CI runners have no GPU;
   - `postfx` ≤ 25 KB gz [estimated].
-- **When effects turn off.** Effects never change intensity faster than 3 Hz (WCAG 2.3.1). They switch off under `prefers-contrast: more` and when the tier drops below 2. Whether and where to use bloom at all is DESIGN.md's call; the kit only offers it within this budget.
+- **When effects turn off.** Effects never change intensity faster than 3 Hz (WCAG 2.3.1). They switch off under `prefers-contrast: more` and when the tier drops below 2. Whether and where to use bloom at all is the look's call (D-047): The Pass blooms only what glows, the heat lamps' housings (`src/scene/postfx/plan.ts`), and DESIGN.md says that glow belongs to light sources alone. The kit only offers bloom within this budget.
 
 ### 6.6 Device tiers and adaptive quality
 
@@ -662,7 +664,7 @@ No drei (D-021). The kit implements its few helpers (adaptive DPR, a frame monit
 |---|---|---|---|---|
 | View | 2D only | 3D | 3D | 3D |
 | DPR cap | — | 1.0 | 1.5 | 2.0 |
-| Antialiasing | — | none | FXAA | SMAA |
+| Antialiasing | — | none | FXAA | FXAA |
 | Post passes | — | 0 | ≤1 | ≤2 |
 | Instances per scene | — | ≤10k | ≤30k | ≤50k |
 | Animation cap | — | 30 fps | 60 fps | 60 fps |
@@ -730,7 +732,7 @@ All tier values are [estimated] and start from games-3d.md's proposals: at most 
   - On the front page, after LCP and on idle (`requestIdleCallback`, or after a 1.5 s timeout [estimated]), the `three-vendor` and `scene-loop` chunks are prefetched. This happens only at tier 1 or above, without `saveData`, and on a connection not reported as `2g`.
   - Elsewhere, route chunks get `modulepreload` when a navigation link is hovered or focused.
 - **First-paint budget**, gated by `verify:bundle` from Vite's manifest (§11.1):
-  - The entry chunk is ≤ 110 KB gz, with a target of ≤ 100 KB [estimated].
+  - The entry chunk and the chunks it imports statically (`react-vendor`) are ≤ 110 KB gz together, with a target of ≤ 100 KB [estimated].
   - The front page's first-paint closure (entry, the `front` route, The Loop's 2D view, the step-loop core and the content index) is ≤ 154 KB gz [estimated; 150 KB until D-053, 151 KB until D-054, 152 KB until D-055], with a target of ≤ 130 KB.
   - kernelspace's whole-app entry measured 115.7 KB gz [measured at its d31a770, recorded in its `verify-bundle.ts`], which makes these figures reachable.
   - Vite's modulepreload polyfill is off (`build.modulePreload.polyfill: false`, D-023's W1 note). Every browser since Firefox 115 and Safari 17 has `<link rel=modulepreload>`, and the polyfill cost 289 B gz of the front page's closure [measured 2026-11-04].
@@ -1093,7 +1095,7 @@ TypeScript writes `schemas/vectors/*.json`, Python's tests read them, and `labs.
 | `verify:numbers` | An untagged number in prose (§4.4) |
 | `verify:kc` | A cycle; an item, level or check without a KC |
 | `verify:items` | A non-deterministic generator; an out-of-band seed; a blind strategy above its bound |
-| `verify:games` | A game missing its 2D view, mirror, debrief, card, keyboard map, KCs or sources; a session importing the DOM |
+| `verify:games` | A game missing its display name or subtitle (D-049), 2D view, mirror, debrief, card, keyboard map, KCs or sources; a session importing the DOM |
 | `verify:determinism` | §5.1's lint; a changed golden vector without `--write` |
 | `verify:boundaries` | §2.3's import rules; a static path from the entry to `three` |
 | `verify:bundle` | §11.1's gated budgets |
@@ -1134,7 +1136,7 @@ Every job sets `permissions: contents: read` unless it needs more, and uses `per
 
 | Budget | Gate | Target | Basis | Checked by |
 |---|---|---|---|---|
-| Entry chunk | ≤ 110 KB gz | ≤ 100 KB | [derived: kernelspace's larger app measured 115.7 KB] | `verify:bundle` (every PR) |
+| Entry chunk and its static imports | ≤ 110 KB gz | ≤ 100 KB | [derived: kernelspace's larger app measured 115.7 KB, in one file that carried React; here React sits in `react-vendor`, so the row counts the entry and what it imports statically (D-023)] | `verify:bundle` (every PR) |
 | Front-page first-paint closure | ≤ 154 KB gz (D-055) | ≤ 130 KB | [estimated: about 60 KB React and ReactDOM, 15 KB router, 50 KB shell, 2D game and sim] | `verify:bundle` |
 | CSS (first paint) | ≤ 30 KB gz | ≤ 20 KB | [estimated] | `verify:bundle` |
 | Any other route's closure, excluding 3D | ≤ 200 KB gz | — | kernelspace's `/boot` and `/today` gate [measured precedent] | `verify:bundle` |
@@ -1269,7 +1271,9 @@ The kernelspace repo is only ever read, with `git show`, `git ls-tree` and `git 
 | `marked` | 18.0.6 (build-time only) |
 | `js-yaml` | 4.1.1 (build-time only; a local `.d.ts` declares the one function used) |
 
-**Not used** (D-021, D-022): `@react-three/drei`, `postprocessing`, `@react-three/postprocessing`, `detect-gpu`, `framer-motion`, MDX, any game engine, any analytics package. Icon and font packages are DESIGN.md's call; once chosen, they enter here with exact pins.
+**Not used** (D-021, D-022): `@react-three/drei`, `postprocessing`, `@react-three/postprocessing`, `detect-gpu`, `framer-motion`, MDX, any game engine, any analytics package.
+
+**Icons and faces.** No icon or font package is used: the faces are self-hosted files, pinned by SHA-256 in `public/fonts/fonts.json` and not dependencies (D-050), and the icons are drawn in `src/design`. A later icon or font package needs a DECISIONS entry and an exact pin here.
 
 **Python** (grader core; the engine envs are locked by `uv.lock`)
 

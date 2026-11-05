@@ -7,9 +7,9 @@
  *   T2  everything else.
  *   T3  never a starting tier: only the governor reaches it.
  *
- * The anti-aliasing column departs from A§6.6 at T3, which names SMAA: three's SMAAPass alone is 35,631 bytes gzipped
- * [measured 2026-11-04, three 0.185.1, `gzip -9`], over the 25 KB the `postfx` chunk may weigh (A§11.1). T3 uses the same
- * FXAA as T2, folded into the final pass, until that budget is revisited.
+ * The anti-aliasing column is FXAA at T2 and at T3. A§6.6 first named SMAA at T3, and D-023 records the change: three's SMAAPass alone
+ * is 35,631 bytes gzipped [measured 2026-11-04, three 0.185.1, `gzip -9`], over the 25 KB the `postfx` chunk may weigh (A§11.1), so T3
+ * uses the same FXAA as T2, folded into the final pass, until that budget is revisited.
  *
  * The shadow column departs from A§6.6 too, which keeps real-time shadow maps off at T1 and T2 and allows one light at T3:
  * scene kit v1 (W1) gives the heat lamps soft shadow maps from T2, three lights at T2 (a pass's three lamps) and four at T3

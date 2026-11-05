@@ -38,7 +38,7 @@ import type { AcceptRule } from '@es/play/verifier/exact'
 import { ONE, ZERO, add, compare, div, equals, fracText, mul, ratio, roundedTimes, sub, sum, toFrac, toNumber } from '@es/play/verifier/ratio'
 import { exactBand, mutantsBand } from '@es/play/verifier/levels'
 import { MUTANT_IDS } from '@es/play/verifier/types'
-import { seeds } from '../sim/spec-support'
+import { SEED_COUNT, seeds } from '../seeds'
 
 const root = path.resolve(import.meta.dirname, '../..')
 const pairs = (count: number, first = 0) => seeds(first, count).map((seed) => drawPair(rngFor(seed, 'test/verifier/pair'), SPEC_BAND))
@@ -125,7 +125,7 @@ describe('the exact residual is exact', () => {
   })
 
   test('a recipe that is a multiple of the residual is exact too, because the recipe is normalised', () => {
-    for (const { p, q } of pairs(200)) {
+    for (const { p, q } of pairs(SEED_COUNT)) {
       const excess = excessWeights(p, q)
       for (const k of [1, 2, 3]) {
         const scaled = excess.map((w) => (w / 1024) * k)
@@ -177,7 +177,7 @@ describe('only the exact residual reaches distance 0 (acceptance check 2)', () =
   })
 
   test('on the real pairs, moving any one weight of the residual by one plate in either direction leaves a bias', () => {
-    for (const { p, q } of pairs(200)) {
+    for (const { p, q } of pairs(SEED_COUNT)) {
       const w = excessWeights(p, q).map((x) => x / 1024)
       for (let token = 0; token < w.length; token++) {
         for (const delta of [-1, 1]) {
@@ -226,7 +226,7 @@ describe('only the exact residual reaches distance 0 (acceptance check 2)', () =
 
 describe('the n-gram draft and the greedy rule', () => {
   test('`ngramCase` is the exact rule on a one-hot q: kept with probability p(x), re-plated from p without x', () => {
-    for (const { p } of pairs(200)) {
+    for (const { p } of pairs(SEED_COUNT)) {
       for (let x = 0; x < p.weights.length; x++) {
         if (p.weights[x] === p.total) continue
         const q = oneHot(p.weights.length, x, p.total)

@@ -134,7 +134,7 @@ describe('the 2D view stays far under 2,000 SVG marks', () => {
     ]
     const list: FireView[] = Array.from({ length: 3000 }, (_, index) => ({ index, startUs: 2 + index * 7, endUs: 6 + index * 7, places, admits: 0, bubbleUs: 3, ghosts: 1, onLine: false }))
     const base = loopView(initState(buildLevel('first-4-par', 1)))
-    const long: LoopView = { ...base, fires: list, clockUs: 7 * 3000 + 2, step: 3000, waiting: Array.from({ length: 200 }, (_, i) => i) }
+    const long: LoopView = { ...base, fires: list, clockUs: 7 * 3000 + 2, step: 3000, waiting: Array.from({ length: 200 }, (_, i) => i) } // not seeds: 200 requests in the queue
     for (const orientation of ORIENTATIONS) expect(markCount(layoutFrame(long, { orientation }))).toBeLessThan(200)
   })
 })

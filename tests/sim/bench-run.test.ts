@@ -16,6 +16,7 @@ import type { BenchRow, BenchSpec, ServerModel } from '../../packages/sim/bench'
 import { TICK_CARD } from '../../packages/sim/steploop'
 import { SLICE_IDS, genWorkload, originLabel, parseSlice, replayWorkload } from '../../packages/sim/workload'
 import type { ArrivalPlan, TraceSlice } from '../../packages/sim/workload'
+import { seeds } from '../seeds'
 import { LLM_SPEC, S5_SERVER, SEC, STALL, inFlightMax, poisson } from './bench-support'
 
 const root = path.resolve(import.meta.dirname, '../..')
@@ -50,12 +51,12 @@ function scheduleOf(spec: BenchSpec): ArrivalPlan {
   throw new Error(`not an open synthetic spec: ${a.kind}`)
 }
 
-const SEEDS = Array.from({ length: 200 }, (_, i) => i + 1)
+const SEEDS = seeds(1)
 
 // ---------------------------------------------------------------------------------------------------------------------------
 // The open loop
 
-describe('an open loop, over 200 seeds [estimated]', () => {
+describe(`an open loop, over ${SEEDS.length} seeds [estimated]`, () => {
   test('sends every request on its due time, and the due times, lengths and cap are the workload module\'s', () => {
     let rowsTotal = 0
     for (const seed of SEEDS) {
@@ -231,7 +232,7 @@ describe('check 1: on the same server, a closed loop shows coordinated omission 
 // ---------------------------------------------------------------------------------------------------------------------------
 // The closed loop
 
-describe('a closed loop, over 200 seeds [estimated]', () => {
+describe(`a closed loop, over ${SEEDS.length} seeds [estimated]`, () => {
   function closedSpec(seed: number): BenchSpec {
     const rng = rngFor(seed, 'test/bench/closed')
     const base = tickSpec(seed)

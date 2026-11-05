@@ -26,6 +26,7 @@ import {
   ttftUs,
 } from '../../packages/sim/bench'
 import type { BenchRow } from '../../packages/sim/bench'
+import { SEED_COUNT, seeds } from '../seeds'
 import { ascending, binomialCdf, exactCoverage } from './bench-support'
 
 /** A row, with the parts a statistic reads. The prompt length is 10 whatever it is. */
@@ -92,8 +93,8 @@ describe('percentiles by nearest rank', () => {
     expect(latencyPercentiles([])).toBeNull()
   })
 
-  test('is monotone: p50 ≤ p90 ≤ p99 ≤ max, over 200 seeded samples', () => {
-    for (let seed = 1; seed <= 200; seed++) {
+  test(`is monotone: p50 ≤ p90 ≤ p99 ≤ max, over ${SEED_COUNT} seeded samples`, () => {
+    for (const seed of seeds(1)) {
       const rng = rngFor(seed, 'test/bench/percentiles')
       const xs = Array.from({ length: between(rng, 1, 500) }, () => below(rng, 10_000))
       const p = latencyPercentiles(xs)!
@@ -177,8 +178,8 @@ describe('the percentile bootstrap', () => {
     expect(bootstrapInterval(sample, 990, { resamples: 401, seed: 9 })).not.toEqual(a)
   })
 
-  test('brackets the point estimate, which is the nearest-rank percentile of the sample, over 200 seeds', () => {
-    for (let seed = 1; seed <= 200; seed++) {
+  test(`brackets the point estimate, which is the nearest-rank percentile of the sample, over ${SEED_COUNT} seeds`, () => {
+    for (const seed of seeds(1)) {
       const rng = rngFor(seed, 'test/bench/sample')
       const n = between(rng, 1, 400)
       const sample = Array.from({ length: n }, () => below(rng, 10_000))

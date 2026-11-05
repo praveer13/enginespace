@@ -69,6 +69,7 @@ Lint and the gates enforce the repository's mechanical conventions, so a break s
 - `packages/sim` and `packages/play` are pure and deterministic (A§5.1, D-017): no clock, no entropy, no engine-dependent `Math`, and no DOM, because they compile with `tsconfig.pure.json`. An `eslint-disable` comment has no effect in them.
 - Imports follow the fences of A§2.3. Only `src/scene/**` and each game's `Scene3D.tsx` import `three` or `@react-three/fiber`, and only behind `React.lazy`.
 - `dangerouslySetInnerHTML` is banned everywhere.
+- A seeded property takes its seed count from `tests/seeds.ts` and never from a number of its own: 200 seeds on a pull request and 10,000 in the nightly run (A§5.10). `tests/ci/seeds.test.ts` fails on a list of 200 seeds written by hand.
 
 ## Sibling repos are read-only
 

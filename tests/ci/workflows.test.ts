@@ -9,7 +9,8 @@
  *   - nightly.yml opens or updates one nightly-failure issue when a job fails (acceptance 4);
  *   - every gate of the registry runs in some workflow, and the fast gate runs them in the order that works: the source
  *     gates, the build, then the gates that read it;
- *   - a step that is reserved for a later task says "pending: <task>", with a task that TRACKER.md has.
+ *   - a step that is reserved for a later task says "pending: <task>", with a task that TRACKER.md has and that has not merged: a
+ *     reserved step whose task has landed is a check that nobody built (nightly.yml's `properties` printed W0-T10's for a wave).
  * What these tests cannot see is the syntax of expressions, the contexts they read and the shell in `run`. `actionlint`, with
  * shellcheck on the PATH, checks those over .github/workflows. It is not a dependency, so run it by hand when a workflow changes.
  */
@@ -333,5 +334,57 @@ describe('reserved steps', () => {
     const reserved = [...sources].flatMap(([file, source]) => [...source.matchAll(/echo ['"]pending: ([^'"]+)['"]/g)].map((match) => ({ file, task: match[1] })))
     expect(reserved.length).toBeGreaterThan(8)
     expect(reserved.filter(({ task }) => !tasks.has(task))).toEqual([])
+  })
+
+  /**
+   * The tasks that have merged into their wave branch. Add a task here when it lands: a reserved step that still names it fails the
+   * test below, and the task's own change replaces the step. W0-T06 is not here because it merged into W0-T05 (D-047) and has no
+   * heading in TRACKER.md. The status markers of TRACKER.md follow this list, not the other way round: the exit review sets them, so a
+   * task can be here a while before its `[x]`, and none may have its `[x]` or `[=]` before it is here (the last test of this block).
+   */
+  const MERGED = [
+    // W0, in wave-0.
+    'W0-T01', 'W0-T02', 'W0-T03', 'W0-T04', 'W0-T05', 'W0-T07', 'W0-T08', 'W0-T09', 'W0-T10', 'W0-T11', 'W0-T12', 'W0-T13',
+    'W0-T14', 'W0-T15', 'W0-T16', 'W0-T17', 'W0-T18', 'W0-T19', 'W0-T20', 'W0-T21', 'W0-T22', 'W0-T23', 'W0-T24', 'W0-T25',
+    // W1, in wave-1.
+    'W1-T01', 'W1-T03', 'W1-T04', 'W1-T05', 'W1-T06', 'W1-T07', 'W1-T08', 'W1-T09', 'W1-T10', 'W1-T11', 'W1-T12', 'W1-T16', 'W1-T17', 'W1-T21',
+    'W1-T22', 'W1-T26', 'W1-T27', 'W1-T28', 'W1-T31', 'W1-T32', 'W1-T33',
+  ]
+
+  /** A reserved step is one whose whole command is the echo. A step that echoes it only where a file is missing (the content compile, the export check, the labs) switches on by file, and is not reserved. */
+  const reservedIn = (text: string) =>
+    Object.entries((load(text) as Workflow).jobs ?? {}).flatMap(([job, { steps = [] }]) =>
+      steps.flatMap((step) => {
+        const task = /^echo ['"]pending: (W\d-T\d\d)['"]$/.exec(step.run?.trim() ?? '')?.[1]
+        return task === undefined ? [] : [{ job, task }]
+      }),
+    )
+
+  test('none names a task that has merged: the task has landed, and its step is a check that nobody built', () => {
+    const reserved = [...sources].flatMap(([file, source]) => reservedIn(source).map(({ job, task }) => ({ file, job, task })))
+    // The link-rot report waits for W3-T13, and the grader's receipt fixtures for W2-T08.
+    expect(reserved.map(({ task }) => task).sort()).toEqual(expect.arrayContaining(['W2-T08', 'W3-T13']))
+    expect(reserved.filter(({ task }) => MERGED.includes(task)).map(({ file, job, task }) => `${file}/${job} still prints "pending: ${task}", and ${task} has merged: build the step`)).toEqual([])
+  })
+
+  test('would find one: a job whose only step prints the pending line of a merged task', () => {
+    const stale = "jobs:\n  properties:\n    steps:\n      - run: \"echo 'pending: W0-T10'\"\n  reports:\n    steps:\n      - run: |\n          if [ -f scripts/content/build.ts ]; then bun scripts/content/build.ts; else echo 'pending: W0-T08'; fi\n      - run: \"echo 'pending: W3-T13'\"\n"
+    expect(reservedIn(stale)).toEqual([
+      { job: 'properties', task: 'W0-T10' },
+      { job: 'reports', task: 'W3-T13' },
+    ])
+    expect(reservedIn(stale).filter(({ task }) => MERGED.includes(task))).toEqual([{ job: 'properties', task: 'W0-T10' }])
+  })
+
+  test('the list names tasks that TRACKER.md has, once each', () => {
+    const tasks = trackerTasks()
+    expect(MERGED.filter((task) => !tasks.has(task))).toEqual([])
+    expect(new Set(MERGED).size).toBe(MERGED.length)
+  })
+
+  test('has every task that TRACKER.md marks done or in review', () => {
+    const marked = [...read('docs/TRACKER.md').matchAll(/^#### \[([x=])\] (W\d-T\d\d) · /gm)].map((match) => match[2])
+    expect(marked.length).toBeGreaterThan(20)
+    expect(marked.filter((task) => !MERGED.includes(task))).toEqual([])
   })
 })

@@ -15,16 +15,17 @@ import { askOf, avoidableEmpties, countersOf, freshState, hang, hungCount, initS
 import { buildLevel, frontPageWorkload, simNight } from '@es/play/loop/levels'
 import { loopReduce, loopSession, loopView } from '@es/play/loop/session'
 import type { LoopAction, LoopState } from '@es/play/loop/types'
+import { seeds } from '../seeds'
 import { handLevel, houseNight, shuffledNight, simOf } from './loop-support'
 
 /** The lanes of a state as `[step, kind, start, end]` rows, the way the sim's tests write them. */
 const rows = (spans: readonly { step: number; kind: string; startUs: number; endUs: number }[]) => spans.map((s) => [s.step, s.kind, s.startUs, s.endUs])
 
-/** 200 seeds on a PR, 10,000 nightly (A§5.10) [estimated]. */
-const SEEDS = Array.from({ length: 200 }, (_, i) => i)
+/** 200 seeds on a PR, 10,000 nightly (A§5.10) [estimated]: tests/seeds.ts has the knob. */
+const SEEDS = seeds(0)
 
 describe('the visitor\'s loop is the sim\'s loop', () => {
-  test('the house\'s night equals runStepLoop\'s over 200 seeds: lanes, fires, tickets and summary, under every switch', () => {
+  test(`the house's night equals runStepLoop's over ${SEEDS.length} seeds: lanes, fires, tickets and summary, under every switch`, () => {
     for (const seed of SEEDS) {
       const level = buildLevel('first-4-par', seed)
       for (const batching of ['continuous', 'static'] as const) {

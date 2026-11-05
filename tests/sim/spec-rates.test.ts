@@ -59,7 +59,8 @@ import {
   runChain,
 } from '../../packages/sim/spec'
 import type { Dist, Member, PairBand } from '../../packages/sim/spec'
-import { SEED_COUNT, labSeeds } from './spec-support'
+import { SEED_COUNT } from '../seeds'
+import { labSeeds } from './spec-support'
 
 const TRIALS = SEED_COUNT
 const REPORT = process.env['ES_SPEC_REPORT'] === '1'

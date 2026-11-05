@@ -33,6 +33,7 @@ import { genWorkload } from '../../packages/sim/workload'
 import type { WorkloadSpec } from '../../packages/sim/workload'
 import { findKernelspace, readVendorMd } from '../../scripts/vendor-drift'
 import { MODELS, renderFixture } from '../../scripts/vectors'
+import { seeds } from '../seeds'
 import { EAGER, FOREVER, HARNESS, bubblesByStep, checkInvariants, config, handWorkload, scenario } from './steploop-support'
 
 const root = path.resolve(import.meta.dirname, '../..')
@@ -213,10 +214,10 @@ describe('check 1: the practice seed\'s goldens (tests/fixtures/sim/steploop.jso
 // ---------------------------------------------------------------------------------------------------------------------------
 // Check 2: 200 seeds
 
-/** 200 seeds on a PR, 10,000 nightly (ARCHITECTURE §5.10) [estimated]. */
-const SEEDS = Array.from({ length: 200 }, (_, i) => i + 1)
+/** 200 seeds on a PR, 10,000 nightly (ARCHITECTURE §5.10) [estimated]: tests/seeds.ts has the knob. */
+const SEEDS = seeds(1)
 
-describe('check 2: over 200 seeds', () => {
+describe(`check 2: over ${SEEDS.length} seeds`, () => {
   test('GPU spans never overlap, busy time stays within the horizon, and every other invariant holds, with the run whole and with it cut', () => {
     const lanes = new Set<string>()
     let steps = 0
@@ -282,7 +283,7 @@ describe('check 2: over 200 seeds', () => {
 // Check 3: a decode-only workload
 
 describe('check 3: a decode-only workload', () => {
-  test('async scheduling never adds bubble µs, over 200 seeds', () => {
+  test(`async scheduling never adds bubble µs, over ${SEEDS.length} seeds`, () => {
     let closed = 0
     for (const seed of SEEDS) {
       const s = scenario(seed, 'decode-only')

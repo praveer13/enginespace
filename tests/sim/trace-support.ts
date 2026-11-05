@@ -12,11 +12,12 @@ import { runStepLoop } from '../../packages/sim/steploop'
 import type { StepLoopRun } from '../../packages/sim/steploop'
 import { CAT_COPY, CAT_KERNEL, spanCount, spanView, traceBuilder } from '../../packages/sim/trace'
 import type { EsTrace, JitterSpec, StepWindow, TraceSpanView } from '../../packages/sim/trace'
+import { seeds } from '../seeds'
 import { FOREVER, scenario } from './steploop-support'
 import type { Scenario } from './steploop-support'
 
-/** 200 seeds on a PR, 10,000 nightly (ARCHITECTURE §5.10) [estimated]. */
-export const SEEDS = Array.from({ length: 200 }, (_, i) => i + 1)
+/** 200 seeds on a PR, 10,000 nightly (ARCHITECTURE §5.10) [estimated]: tests/seeds.ts has the knob. */
+export const SEEDS = seeds(1)
 
 /** The widest jitter the spec allows: one kernel or two hundred, kernels far from their shares, mostly idle launch frames, boundaries moving as far as they may. */
 export const ROUGH: JitterSpec = { kernelsPerForward: 7, spreadPermille: 900, copyPermille: 100, launchGapPermille: 900, cpuNoiseNs: 250 }

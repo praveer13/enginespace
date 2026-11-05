@@ -1,5 +1,5 @@
-import { useEffect, type ReactNode } from 'react'
-import { Outlet, isRouteErrorResponse, useMatches, useRouteError } from 'react-router'
+import { useEffect, useLayoutEffect, type ReactNode } from 'react'
+import { Outlet, isRouteErrorResponse, useLocation, useMatches, useNavigationType, useRouteError } from 'react-router'
 import { Board } from '@/design/components/Board'
 import { Button } from '@/design/components/Button'
 import { TapeLabel } from '@/design/components/TapeLabel'
@@ -50,7 +50,13 @@ function Shell({ children }: { children: ReactNode }) {
   )
 }
 
-/** The root route: the shell around whichever page matched, and the document title that page's route names. */
+/**
+ * The root route: the shell around whichever page matched, and the document title that page's route names.
+ *
+ * It also tells src/route-change.ts after every render where the router is, so that a client-side navigation gives focus, the
+ * scroll and a screen reader what a page load does (focus on the main landmark, the page's title in a live region, the scroll at the
+ * top or where Back left it). That is a chunk of its own, because the front page's first-paint closure has no room for it (D-023).
+ */
 export default function App() {
   const title = useMatches()
     .map((match) => (match.handle as RouteHandle | undefined)?.title)
@@ -59,6 +65,12 @@ export default function App() {
   useEffect(() => {
     if (title) document.title = title
   }, [title])
+
+  const { pathname, hash } = useLocation()
+  const back = useNavigationType() === 'POP'
+  useLayoutEffect(() => {
+    void import('./route-change').then((change) => change.arrive({ pathname, hash, back, title }))
+  }, [pathname, hash, back, title])
 
   return (
     <Shell>

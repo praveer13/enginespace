@@ -43,6 +43,9 @@ base.beforeAll(async () => {
   const url = server.resolvedUrls?.local[0]
   if (url === undefined) throw new Error('the dev server has no address')
   origin = url.replace(/\/$/, '')
+  // A dev server transforms the module graph of a page on the first request for it, and on a machine that other work shares that takes
+  // longer than any one wait of a test should have to cover. So the graph is transformed here, where there are two minutes to do it.
+  await Promise.all(['/src/main.tsx', '/src/pages/Game.tsx', '/src/games/loop/Game.tsx'].map((entry) => server?.warmupRequest(entry)))
 }, 120_000)
 
 base.afterAll(async () => {
@@ -50,6 +53,17 @@ base.afterAll(async () => {
 })
 
 const test = base
+
+/**
+ * How long a page may take to be ready on a machine that other work shares. The dev server serves a page's modules as it is asked for
+ * them, and the page asks the browser what it can draw before the main thread is free again (src/scene/tiers.ts opens a WebGL context),
+ * which a software renderer takes seconds to answer when the machine is busy [measured 2026-11-04 at c80dfad on the Settings page, which
+ * asks the same: 5 to 8.5 s on a host at a load average of 12 to 20]. With ten workers on twenty threads (a load average of 65, W0-report
+ * §2) the 10 s that Playwright gives an assertion were not always enough for the game to appear (W0-report §4.3). A wait that comes after
+ * a load is for the page's state, and it is given this long to arrive: it returns the moment the state is there, and a page that is
+ * really broken still fails, a little later.
+ */
+const BOOT = 45_000
 
 const bell = (page: Page) => page.getByRole('button', { name: /Ring the bell/ })
 const debriefButton = (page: Page) => page.getByRole('button', { name: 'See the debrief' })
@@ -62,10 +76,14 @@ const activeName = (page: Page) =>
     return element === null ? '' : (element.getAttribute('aria-label') ?? element.textContent?.trim() ?? element.tagName)
   })
 
+/**
+ * Opens a level and waits for the page's state, not for the network to be quiet (a quiet network is a time, half a second of it, and a
+ * dev server under load has longer pauses than that between one module and the next): the game is drawn, and the faces are in.
+ */
 async function open(page: Page, level: string) {
-  await page.goto(`${origin}/play/loop?level=${level}`, { waitUntil: 'networkidle' })
+  await page.goto(`${origin}/play/loop?level=${level}`, { waitUntil: 'domcontentloaded' })
+  await expect(game(page)).toBeVisible({ timeout: BOOT })
   await page.evaluate(() => document.fonts.ready)
-  await expect(game(page)).toBeVisible()
 }
 
 /** Presses Tab until the focused control is named like `name`, and fails after `limit` presses. */

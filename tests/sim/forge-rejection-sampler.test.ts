@@ -15,7 +15,7 @@ import { BESTIARY, REFERENCE, flatPosition } from '../../packages/sim/spec'
 import { ENUMERATION_BATCH, EXACT_DRAFTS, REJECTION_SAMPLER_CHECKS, ROUNDS_PER_CASE, ROUND_DRAFTS, acceptProbes, exactCase, exactSeeds } from '../../packages/sim/forge'
 import type { CheckPlan } from '../../packages/sim/forge'
 import { drive, emulate } from './rejection-sampler-support'
-import { SEED_COUNT, seeds } from './spec-support'
+import { SEED_COUNT, seeds } from '../seeds'
 
 setDefaultTimeout(60_000)
 
