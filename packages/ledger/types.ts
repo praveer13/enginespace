@@ -182,8 +182,10 @@ export interface ProveData {
 
 /**
  * `trace:<trace>/<task>`: the spans the learner marked, and the attribution error that the task computed against the truth
- * (A§7.2). The marks are free JSON within a budget, and the error is a number of at least 0: the trace viewer (W1-T09) owns their
- * shape and unit, and tightens this type when it writes the first event.
+ * (A§7.2). The marks are free JSON within a budget, and the error is a number of at least 0. The trace viewer (W1-T09) settled their
+ * shape: entries `{kind: 'range', fromNs, toNs, category, label?}` and `{kind: 'cause', span}`, written by `exportMarks` and read back
+ * strictly by `importMarks` in src/trace/marks.ts. This codec still checks only that they are bounded JSON; the first task that writes
+ * the event (W2-T20) may tighten it to those two shapes.
  */
 export interface TraceMarkData {
   marks: Json[]

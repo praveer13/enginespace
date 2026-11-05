@@ -1,0 +1,256 @@
+/*
+ * The trace viewer, in The Pass's materials (DESIGN.md): a strip of bond paper on brushed stainless, with the lane names on masking
+ * tape in a steel gutter, and the plates, tickets and printer tape of the design system around it. Every colour, face, radius,
+ * shadow and duration is a token role (tokens.css). The canvas draws the paper's dots and holes (paint.ts); this file lays out the
+ * DOM over it and around it.
+ */
+
+.es-trace {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-4);
+  outline: none;
+}
+
+/* ---------------------------------------------------------------------------------------------- the head */
+
+.es-trace__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--es-space-3) var(--es-space-6);
+}
+
+.es-trace__window {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--es-space-1) var(--es-space-3);
+  margin: 0;
+  color: var(--es-text-1);
+}
+
+/* ---------------------------------------------------------------------------------------------- the plates */
+
+/* A raised sheet of brushed steel that the plates sit on: the menu board of the design system. */
+.es-trace__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2) var(--es-space-6);
+  padding: var(--es-space-2) var(--es-space-3);
+  border: 1px solid var(--es-edge);
+  border-radius: var(--es-radius-plate);
+  background-color: var(--es-surface-1);
+  background-image: var(--es-texture-brushed);
+  background-size: 100% 360px;
+  box-shadow: var(--es-shadow-paper);
+}
+
+.es-trace__group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-1) var(--es-space-2);
+}
+
+.es-trace__bar .es-button svg {
+  flex: none;
+}
+
+@media (pointer: coarse) {
+  .es-trace__bar .es-button {
+    min-height: 2.75rem;
+  }
+}
+
+@container (max-width: 40rem) {
+  .es-trace__bar {
+    gap: var(--es-space-2) var(--es-space-3);
+  }
+
+  .es-trace__bar .es-button {
+    padding: 0.3rem 0.55rem 0.2rem;
+    font-size: 0.8125rem;
+    letter-spacing: 0.05em;
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------- the tape */
+
+.es-trace__tape {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--es-edge);
+  border-radius: var(--es-radius-plate);
+  background-color: var(--es-surface-2);
+  background-image: var(--es-texture-brushed);
+  background-size: 100% 360px;
+  box-shadow: var(--es-shadow-lift);
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  /* A sideways drag pans the tape; a vertical one still scrolls the page. */
+  touch-action: pan-y;
+  outline: none;
+}
+
+.es-trace__tape:active {
+  cursor: grabbing;
+}
+
+.es-trace__canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+}
+
+/* The lane names stand in the gutter at the left of the paper, or above their lanes when the paper takes the whole width. */
+.es-trace__lanes {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.es-trace__lane {
+  position: absolute;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--es-space-1);
+  padding: 0 var(--es-space-3);
+  color: var(--es-text-2);
+  font-size: 0.8125rem;
+  line-height: 1.25;
+}
+
+/* The engine's term under the kitchen's word: two lines at most, so a lane's name never reaches the next lane's. */
+.es-trace__lane-name {
+  display: -webkit-box;
+  max-width: 100%;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-size: 0.75rem;
+  line-height: 1.25;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.es-trace__tape[data-stacked] .es-trace__lane {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  align-content: flex-start;
+  gap: var(--es-space-1) var(--es-space-2);
+  padding-top: 0.2rem;
+  color: var(--es-text-2);
+}
+
+/* The numbers and the tape stuck on it sit over the paper itself. */
+.es-trace__plot {
+  position: absolute;
+  top: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.es-trace__tick {
+  position: absolute;
+  transform: translateX(-50%);
+  color: var(--es-paper-ink);
+  font-family: var(--es-font-numeric);
+  font-size: 0.8125rem;
+  font-weight: var(--es-font-numeric-weight);
+  line-height: 1;
+  letter-spacing: var(--es-font-numeric-tracking);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.es-trace__mark {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  overflow: hidden;
+  padding: 0 0.5rem 3px 0.4rem;
+  color: var(--es-tape-ink);
+  font-family: var(--es-font-label);
+  font-size: 0.8125rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.es-trace__mark svg {
+  flex: none;
+}
+
+.es-trace__mark-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.es-trace__cause {
+  position: absolute;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------------------------------------- the panels under it */
+
+.es-trace__panels {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-4);
+  align-items: start;
+}
+
+@container (min-width: 56rem) {
+  .es-trace__panels {
+    grid-template-columns: minmax(0, 24rem) minmax(0, 1fr);
+  }
+}
+
+.es-trace__panels .es-printer {
+  margin: 0;
+}
+
+.es-trace__lane-row {
+  font-family: var(--es-font-display);
+  font-size: 1.0625rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.es-trace__lane-row > span {
+  font-family: var(--es-font-body);
+  font-size: 0.9375rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.es-trace__spans [data-lane-row] {
+  border-bottom: 1px dotted var(--es-paper-rule);
+}
+
+.es-trace__spans button[data-row-button],
+.es-trace__marks button[data-mark-button] {
+  min-height: 1.5rem;
+  padding: 0 0.15rem;
+  border-radius: var(--es-radius-plate);
+}
+
+.es-trace__spans tr[data-cursor-row] button[data-row-button] {
+  text-decoration-thickness: 2px;
+}
