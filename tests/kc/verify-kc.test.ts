@@ -493,7 +493,8 @@ describe('as a process', () => {
   }
   /** A graph, and then one entry for each KC of the other games. */
   const withGames = (graph: string): string => (others.size === 0 ? graph : `${graph}\n${graphOf(...[...others].map(([id, o]) => kc(id, o.planned ? PLANNED : {})))}`)
-  const modulesOf = (ids: Iterable<string>): string[] => [...new Set([...ids].map((id) => id.split('.')[0]))].sort()
+  // The gate counts the modules in the order the graph first names them, which is the order the games register in.
+  const modulesOf = (ids: Iterable<string>): string[] => [...new Set([...ids].map((id) => id.split('.')[0]))]
   /** What the gate prints of a tree that is `loopKcs` and the other games' KCs: the count, the modules, and how many are earned and planned. */
   const counted = (): string => {
     const ids = [...LOOP_IDS, ...others.keys()]

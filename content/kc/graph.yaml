@@ -148,12 +148,10 @@
   description: You can say why a model that mixes full attention, sliding windows and recurrent state needs several KV caches, and what each group keeps for a request.
   requires: [ks:t5.attention-variants, ks:t5.kv-bytes-per-token]
   threshold: true
-  planned: W1-T23 # the graded `manager` level
 
 - id: tr5a.page-size-unification
   description: You can say how groups whose bytes per token differ are made to fit one page size (by grouping layers, padding or a larger attention block), and where the waste goes.
   requires: [tr5a.kv-groups, ks:t1.internal-frag]
-  planned: W1-T23 # the graded `manager` level
 
 - id: tr5a.hit-intersection
   description: You can work out the longest prefix hit when every KV group must hold it, and say why the answer is an intersection and not a union.
