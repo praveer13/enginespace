@@ -124,6 +124,8 @@ export function hardCodedSeedCounts(source: string): { line: number; text: strin
       /Array\.from\(\s*\{\s*length:\s*200\s*\}/.test(text) && (/seed/i.test(text) || /\(\s*_\s*,\s*(\w+)\s*\)\s*=>\s*\1(?:\s*\+\s*1)?\s*\)/.test(text)),
     // for (let seed = 1; seed <= 200; seed++), and `< 200`
     (text: string) => /\bfor\s*\(\s*(?:let|var)\s+seed\s*=\s*\d+\s*;\s*seed\s*<=?\s*200\s*;/.test(text),
+    // seeds(0, 200): the knob's own helper, given the pull request's count, which is a list of 200 that the nightly run leaves alone
+    (text: string) => /\bseeds\(\s*\d+\s*,\s*200\s*\)/.test(text),
   ]
   return source.split('\n').flatMap((text, index) => (forms.some((form) => form(text)) ? [{ line: index + 1, text: text.trim() }] : []))
 }
@@ -138,7 +140,10 @@ describe('every seeded property takes its seeds from the knob', () => {
     expect(found('const ids = Array.from({ length: 200 }, (_, n) => n)')).toBe(1)
     expect(found('    for (let seed = 1; seed <= 200; seed += 1) {')).toBe(1)
     expect(found('for (let seed = 0; seed < 200; seed++) expect(f(seed)).toBe(1)')).toBe(1)
+    expect(found('for (const seed of seeds(0, 200)) {')).toBe(1)
+    expect(found('const pairs = seeds(1, 200).map(drawPair)')).toBe(1)
     expect(found('const SEEDS = seeds(1)\nfor (const seed of SEEDS.slice(0, 40)) {}\nfor (let i = 0; i < 200; i++) draw()')).toBe(0)
+    expect(found('const few = seeds(0, 40)\nconst some = seeds(first, count)\nconst more = seeds(77, 2000)')).toBe(0)
     expect(found('expect(response.status).toBe(200)')).toBe(0)
     expect(found('const items = Array.from({ length: 200 }, (_, i) => `request ${i}`)')).toBe(0)
     expect(found('const sample = Array.from({ length: 200 }, () => below(rng, 100_000))')).toBe(0)
