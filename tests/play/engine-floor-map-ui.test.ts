@@ -32,13 +32,14 @@ import { GradedBar, LevelList } from '@/games/engine-floor/LevelRail'
 import { Mirror } from '@/games/engine-floor/Mirror'
 import { View2D } from '@/games/engine-floor/View2D'
 import type { FloorOutcome } from '@/games/engine-floor/types'
+import { seeds } from '../seeds'
 import { fakeRun, truthOf, walk } from './engine-floor-support'
 
 const render = (element: ReactElement) => renderToStaticMarkup(h(StaticRouter, { location: '/play/engine-floor' }, element))
 const count = (markup: string, pattern: RegExp) => markup.match(pattern)?.length ?? 0
 
 /** A map level whose engine is vLLM, so that the text the tests look for is known: the first seed from 0 that draws it. */
-const SEED = Array.from({ length: 200 }, (_, seed) => seed).find((seed) => buildLevel(MAP_LEVEL, seed).scenario.engine === 'vllm' && buildLevel(MAP_LEVEL, seed).scenario.tp === 1) as number
+const SEED = seeds(0).find((seed) => buildLevel(MAP_LEVEL, seed).scenario.engine === 'vllm' && buildLevel(MAP_LEVEL, seed).scenario.tp === 1) as number
 const level: FloorLevel = buildLevel(MAP_LEVEL, SEED)
 const ids = level.reference
 
