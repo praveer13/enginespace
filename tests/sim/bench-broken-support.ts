@@ -30,6 +30,32 @@ export function caseOf(seed: number): BrokenCase {
   return c
 }
 
+/**
+ * What the blind-strategy lines read of a case: its seed and flaw, the draws it took, its band and the corrected p99. A case holds its
+ * whole log: this suite peaked at 6.7 GB with all 10,000 cases kept, about 0.7 MB a case [measured 2026-11-04 at b113802, at the nightly
+ * size; the per-case figure is derived]. So the lines over every seed keep these five fields and let the case go; the suite peaks at
+ * 713 MB [measured 2026-11-04 on the tree of this change]. The nightly job's runner has less memory than 6.7 GB if it is a standard
+ * private-repository runner [unverified].
+ */
+export interface Drawn {
+  seed: number
+  flaw: BenchFlaw
+  attempts: number
+  band: BrokenCase['band']
+  p99Us: number
+}
+
+let drawn: Drawn[] | undefined
+
+/** The cases of the seeds 0 … BLIND_SEEDS - 1 as `Drawn`, made once. A case that `caseOf` made already is not made again. */
+export function drawnCases(): Drawn[] {
+  drawn ??= Array.from({ length: BLIND_SEEDS }, (_, seed) => {
+    const c = made.get(seed) ?? brokenBenchCase(seed)
+    return { seed: c.seed, flaw: c.flaw, attempts: c.attempts, band: c.band, p99Us: c.answer.p99Us }
+  })
+  return drawn
+}
+
 /** The index of a flaw in `BENCH_FLAWS`, which is also the residue mod 11 of the seeds that draw it. */
 export const flawIndex = (flaw: BenchFlaw): number => BENCH_FLAWS.indexOf(flaw)
 

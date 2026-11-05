@@ -44,7 +44,7 @@ import { BURST_GRID, LIGHT_GRID, MIX_GRID, OVERLOAD_GRID, STALL_GRID } from '../
 import { canonicalJson, rngFor } from '../../packages/sim/core'
 import { replayWorkload } from '../../packages/sim/workload'
 import { inFlightMax } from './bench-support'
-import { BLIND_SEEDS, NIGHTLY_SEEDS, PER_FLAW, SEED_COUNT, caseOf, casesOf, nearestRankOf, pct } from './bench-broken-support'
+import { BLIND_SEEDS, NIGHTLY_SEEDS, PER_FLAW, SEED_COUNT, casesOf, drawnCases, nearestRankOf, pct } from './bench-broken-support'
 
 const root = path.resolve(import.meta.dirname, '../..')
 const report: string[] = []
@@ -95,7 +95,7 @@ describe('the draw of a flaw (acceptance check 1)', () => {
   })
 
   it('the cases that are drawn, BLIND_SEEDS of them, hold each flaw 1/11 ± 3 points of the time, and a case has the flaw its seed draws', () => {
-    const cases = Array.from({ length: BLIND_SEEDS }, (_, seed) => caseOf(seed))
+    const cases = drawnCases()
     const shares = ALL.map((flaw) => cases.filter((c) => c.flaw === flaw).length / cases.length)
     say(`  flaw shares over ${cases.length} seeds: ${ALL.map((flaw, i) => `${flaw} ${(100 * shares[i]).toFixed(2)}%`).join(', ')} (1/11 is 9.09%)`)
     for (const [i, flaw] of ALL.entries()) expect(Math.abs(shares[i] - 1 / 11), flaw).toBeLessThan(0.03)
@@ -123,7 +123,7 @@ describe('the draw of a flaw (acceptance check 1)', () => {
 
 describe('every case is a fair question: the band', () => {
   it(`keeps the band on all but a few cases, within ${BROKEN_MAX_ATTEMPTS} draws of the benchmark's own randomness, and says why when it does not`, () => {
-    const cases = Array.from({ length: BLIND_SEEDS }, (_, seed) => caseOf(seed))
+    const cases = drawnCases()
     const out = cases.filter((c) => !c.band.ok)
     const attempts = cases.map((c) => c.attempts)
     say(
@@ -531,7 +531,7 @@ describe('the answer is drawn first, and the flaw\'s label does not name it (acc
   })
 
   it('the best constant per flaw label passes under 15% of the cases, chosen on half the cases and judged on the other', () => {
-    const cases = Array.from({ length: BLIND_SEEDS }, (_, seed) => caseOf(seed)).map((c) => ({ flaw: c.flaw, p99Us: c.answer.p99Us }))
+    const cases = drawnCases()
     // Judge on odd positions the constant chosen on even ones. Within one flaw the cases are in seed order, which is not an order of the answer.
     const train = cases.filter((_, i) => i % 2 === 0)
     const test = cases.filter((_, i) => i % 2 === 1)
@@ -564,12 +564,12 @@ describe('the answer is drawn first, and the flaw\'s label does not name it (acc
       say(`  (the in-sample bound is judged at ES_PROPERTY_SEEDS=${NIGHTLY_SEEDS}, not at ${BLIND_SEEDS}: with 100 cases of a flaw the best of its windows is chosen on too few to be a bound)`)
       return
     }
-    const all = bestConstantPerLabel(Array.from({ length: BLIND_SEEDS }, (_, seed) => caseOf(seed)).map((c) => ({ flaw: c.flaw, p99Us: c.answer.p99Us })))
+    const all = bestConstantPerLabel(drawnCases())
     expect(all.passedPermille).toBeLessThan(150)
   })
 
   it('a scene-blind answer to the flaw alone passes about 1 case in 11: always saying the same flaw is right on a case with that flaw, and nothing else', () => {
-    const cases = Array.from({ length: BLIND_SEEDS }, (_, seed) => caseOf(seed))
+    const cases = drawnCases()
     for (const flaw of ALL) {
       const right = cases.filter((c) => c.flaw === flaw).length / cases.length
       expect(right, flaw).toBeLessThan(1 / 11 + 0.03)

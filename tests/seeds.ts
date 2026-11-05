@@ -13,6 +13,13 @@
  *
  * A property that is too slow to run over every seed, such as one on a store, may take a prefix of them (`SEEDS.slice(0, 40)`), which
  * the nightly count leaves as it is. tests/ci/seeds.test.ts holds the suites to all of this, and reads nightly.yml and A§5.10.
+ *
+ * The nightly job runs the whole suite in one process, so what a property keeps for each seed adds up over 10,000 of them. Keep the
+ * few numbers that a check reads and let the thing they came from go. The broken-benchmark corpus kept every case it drew, with its
+ * log: that suite alone peaked at 6.7 GB, about 0.7 MB a case [measured 2026-11-04 at b113802; the per-case figure is derived], and
+ * the whole suite was killed by the host's out-of-memory killer at 13.7 GB after 28 minutes [measured 2026-11-04 at b113802].
+ * tests/sim/bench-broken-support.ts now keeps five fields a case (`drawnCases`), and that suite peaks at 713 MB alone [measured
+ * 2026-11-04 on the tree of this change].
  */
 
 /** What a pull request runs [estimated, A§5.10]. */
