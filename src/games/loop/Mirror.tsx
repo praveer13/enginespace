@@ -108,9 +108,14 @@ export function Mirror({ run }: { run: LoopRun }) {
   const { view } = run
   const c = view.counters
   return (
-    <div className="flex flex-col gap-6">
-      <Tape view={view} />
+    // On a wide screen the table stands under the view and the tape under the controls, in the play's two columns; on a narrow one the
+    // tape comes first.
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:items-start">
+      <div className="min-w-0 lg:col-start-2 lg:row-start-1">
+        <Tape view={view} />
+      </div>
       <MirrorTable
+        className="min-w-0 lg:col-start-1 lg:row-start-1"
         id={run.mirrorId}
         head="Mirror · the night so far"
         caption="Every fire in the window: its slots, how long the line was busy, the dark stretch before it, and its binned plates"

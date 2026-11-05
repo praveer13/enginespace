@@ -65,9 +65,18 @@ function patched(chunk: string, find: string, replace: string): string {
   return chunk.replace(find, replace)
 }
 
+/**
+ * The brightest a lit surface may come out, in linear units [estimated]: white after the tone curve, a few times bloom's threshold,
+ * and far below what a half-float target holds (65,504). The specular peak of a polished part at three's least roughness reaches tens
+ * of thousands [estimated]: unclamped, it overflowed the composer's half-float target at some sizes of the canvas (Service's 870 by
+ * 557 px at T2) and bloom's blur spread the overflow over the whole frame, which drew black; clamped at 4,096, bloom spread it into a
+ * white haze over a corner of the frame [both measured 2026-11-04]. At this cap a glint blooms as a glint.
+ */
+const RADIANCE_CAP = '#include <opaque_fragment>\ngl_FragColor.rgb = min(gl_FragColor.rgb, vec3(16.0));'
+
 /** Adds the per-vertex finish to a physical material: roughness, the grain (normal map and anisotropy) and metalness. */
 function patchFinish(material: MeshPhysicalMaterial) {
-  material.customProgramCacheKey = () => 'es-prop-metal-v1'
+  material.customProgramCacheKey = () => 'es-prop-metal-v2'
   material.onBeforeCompile = (shader) => {
     shader.vertexShader = patched(shader.vertexShader, '#include <common>', '#include <common>\nattribute vec3 aFinish;\nvarying vec3 vFinish;')
     shader.vertexShader = patched(shader.vertexShader, '#include <begin_vertex>', '#include <begin_vertex>\nvFinish = aFinish;')
@@ -80,20 +89,20 @@ function patchFinish(material: MeshPhysicalMaterial) {
       '#include <lights_physical_fragment>',
       patched(ShaderChunk.lights_physical_fragment, 'vec2 anisotropyV = anisotropyVector;', 'vec2 anisotropyV = anisotropyVector * vFinish.y;'),
     )
-    shader.fragmentShader = fragment
+    shader.fragmentShader = patched(fragment, '#include <opaque_fragment>', RADIANCE_CAP)
   }
 }
 
 /** The glaze's per-vertex sheen: roughness and clearcoat scaled, so bakelite, oil and paper share its draw. */
 function patchSheen(material: MeshPhysicalMaterial) {
-  material.customProgramCacheKey = () => 'es-prop-ceramic-v1'
+  material.customProgramCacheKey = () => 'es-prop-ceramic-v2'
   material.onBeforeCompile = (shader) => {
     shader.vertexShader = patched(shader.vertexShader, '#include <common>', '#include <common>\nattribute vec3 aFinish;\nvarying vec3 vFinish;')
     shader.vertexShader = patched(shader.vertexShader, '#include <begin_vertex>', '#include <begin_vertex>\nvFinish = aFinish;')
     let fragment = patched(shader.fragmentShader, '#include <common>', '#include <common>\nvarying vec3 vFinish;')
     fragment = patched(fragment, '#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = clamp(roughnessFactor * vFinish.x, 0.0, 1.0);')
     fragment = patched(fragment, '#include <lights_physical_fragment>', patched(ShaderChunk.lights_physical_fragment, 'material.clearcoat = clearcoat;', 'material.clearcoat = clearcoat * vFinish.y;'))
-    shader.fragmentShader = fragment
+    shader.fragmentShader = patched(fragment, '#include <opaque_fragment>', RADIANCE_CAP)
   }
 }
 
@@ -396,8 +405,10 @@ export function createPropMaterials(source: MaterialSource, maxAnisotropy: numbe
     transparent: true,
     depthWrite: false,
     fog: true,
+    // A constant nudge only: the quad already lies 1.5 mm above its surface. An offset that grows with the slope (a factor) pulled a
+    // plate's shadow through the plate's own well, a few millimetres above it, at a grazing view, and darkened the glaze.
     polygonOffset: true,
-    polygonOffsetFactor: -2,
+    polygonOffsetFactor: 0,
     polygonOffsetUnits: -4,
   })
   const cone = new ShaderMaterial({

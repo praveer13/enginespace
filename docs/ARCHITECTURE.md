@@ -733,7 +733,7 @@ All tier values are [estimated] and start from games-3d.md's proposals: at most 
   - Elsewhere, route chunks get `modulepreload` when a navigation link is hovered or focused.
 - **First-paint budget**, gated by `verify:bundle` from Vite's manifest (§11.1):
   - The entry chunk and the chunks it imports statically (`react-vendor`) are ≤ 110 KB gz together, with a target of ≤ 100 KB [estimated].
-  - The front page's first-paint closure (entry, the `front` route, The Loop's 2D view, the step-loop core and the content index) is ≤ 152 KB gz [estimated; 150 KB until D-053, 151 KB until D-054], with a target of ≤ 130 KB.
+  - The front page's first-paint closure (entry, the `front` route, The Loop's 2D view, the step-loop core and the content index) is ≤ 154 KB gz [estimated; 150 KB until D-053, 151 KB until D-054, 152 KB until D-055], with a target of ≤ 130 KB.
   - kernelspace's whole-app entry measured 115.7 KB gz [measured at its d31a770, recorded in its `verify-bundle.ts`], which makes these figures reachable.
   - Vite's modulepreload polyfill is off (`build.modulePreload.polyfill: false`, D-023's W1 note). Every browser since Firefox 115 and Safari 17 has `<link rel=modulepreload>`, and the polyfill cost 289 B gz of the front page's closure [measured 2026-11-04].
 
@@ -850,7 +850,7 @@ The B-lane builds are Rust crates on kernelspace's `kslab` ABI v2 (vendored unch
 
 | Lab | Module | The learner writes | The host checks |
 |---|---|---|---|
-| `hybrid-kv` | TR5a | A hybrid KV manager with adapter pages, extending lab 02's optional `adapter_unified_paging` check | §5.4's invariants and results on seeded op streams, against `kvReference` |
+| `hybrid-kv` | TR5a | A hybrid KV manager with adapter pages, extending lab 02's optional `adapter_unified_paging` check | Six checks, one for each stage s1-s6 of TR5a §5. Each plays a script whose replies are known and then a seeded stream, and `kvJudge` judges every operation against `kvReference`: its reply, the hit, atomicity, §5.4's eight invariants on the state the module reports after the operation, and its events. The module reports its state through `ks_invoke` queries (`packages/sim/forge/kv-wire.ts`). |
 | `rejection-sampler` | TR6 | The verify step: accept or reject, then residual resampling | Four exact checks first (every coin of the accept step, the residual, every draw of the walk over the weights, and rounds in which no coin matters), then chi-square on fresh seeds: 2 independent seeds × 20,000 draws at α = 1e-4 [estimated], so an exact sampler fails falsely with probability about 2 × 10⁻⁴ [derived]. Nightly runs measure the false-fail rate and each bestiary member's detection rate. |
 | `kv-publisher` | TR5b | The engine-side event publisher | `kv-events@1` conformance: the reference consumer's view equals the truth after every op; ordering; reset semantics |
 
@@ -1137,7 +1137,7 @@ Every job sets `permissions: contents: read` unless it needs more, and uses `per
 | Budget | Gate | Target | Basis | Checked by |
 |---|---|---|---|---|
 | Entry chunk and its static imports | ≤ 110 KB gz | ≤ 100 KB | [derived: kernelspace's larger app measured 115.7 KB, in one file that carried React; here React sits in `react-vendor`, so the row counts the entry and what it imports statically (D-023)] | `verify:bundle` (every PR) |
-| Front-page first-paint closure | ≤ 152 KB gz (D-054) | ≤ 130 KB | [estimated: about 60 KB React and ReactDOM, 15 KB router, 50 KB shell, 2D game and sim] | `verify:bundle` |
+| Front-page first-paint closure | ≤ 154 KB gz (D-055) | ≤ 130 KB | [estimated: about 60 KB React and ReactDOM, 15 KB router, 50 KB shell, 2D game and sim] | `verify:bundle` |
 | CSS (first paint) | ≤ 30 KB gz | ≤ 20 KB | [estimated] | `verify:bundle` |
 | Any other route's closure, excluding 3D | ≤ 200 KB gz | — | kernelspace's `/boot` and `/today` gate [measured precedent] | `verify:bundle` |
 | `three-vendor` (three plus R3F) | ≤ 245 KB gz | — | [derived: kernelspace measured 238 to 242.4 KB] | `verify:bundle` |

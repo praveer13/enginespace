@@ -1,574 +1,340 @@
 /*
- * Service's 3D layout (ARCHITECTURE §6.3, §6.4; GAMES.md §3 "3D scene", §2.6 "Service"): the view of the night turned into the
- * positioned primitives the scene kit draws. It is a pure function of `LoopView`, the same view the 2D view, the poster and the mirror
- * draw, so the scene adds nothing the session did not compute and decides nothing. It holds no three (the bundle keeps three behind
- * the scene's lazy chunk) and is tested under Bun.
+ * Service's kitchen (GAMES.md §2.6 "Service", §3 "3D scene"; scene kit v1): the view of the night turned into the props the scene
+ * draws. A pure function of `LoopView`, the same view the 2D view, the poster and the mirror draw, so the scene adds nothing the
+ * session did not compute and decides nothing. No three here: it is tested under Bun, and only the scene's lazy chunk holds it.
  *
- * The world, from the expo's side outward (+z is toward the camera, the night runs down -z):
+ * The room, in metres with y up and +z toward the expo, every length [estimated] on the kit's own proportions:
  *
- *   - The pass: a stainless counter across the middle, under three heat lamps. The present sits on it, just under the rail, so the
- *     newest fire and its plates lie under the lamps, and at every bell the night slides back down the pass and off into the line.
- *   - The rail: a stainless bar above the pass with one clip per slot, every taken clip with its ticket. Each clip hangs right in front
- *     of its own row of places, so a ticket's courses line up along the night behind it.
- *   - The fired rail: with overlap on, a second, lower rail behind the first that holds the fire on the line while the expo writes the
- *     next call on the rail (GAMES.md §2.6). It is there only while a fire is on the line.
- *   - The printer, at the rail's left end, and the waiting tickets curling out of it in a strip, the next one at the strip's end. When a
- *     ticket is hung its sheet moves from the strip to its clip, and when more wait than the strip shows, the printer feeds one more.
- *   - The expo's lane (the CPU) on the left and the line (the GPU) on the right, both running from the pass into the night. On the line
- *     each fire is a slab of the line's own steel, as wide as the rail and as long as its cook time, with a place for every clip on
- *     top: a plate (solid), an empty place (an open groove) or a binned plate (hollow). Dark stretches between fires are bubbles, drawn
- *     as outlines on the dark bed. On the expo's lane each fire has its plan (writing the call) and its read (reading the plates back);
- *     a fire with kernel launches adds a comb, one tooth per call, which collapses into one short replay slab when the fire hits a
- *     captured graph size.
- *   - The stations: a steel bar over the head of the line, just beyond the pass, with a heat element for each clip's row. An element
- *     burns where the latest fire cooked a course and is cold where its clip rode empty, and each burning one throws its warm light
- *     down its stretch of the line, so a fire rung with two of four clips hung leaves half the line dark, and a full rail lights it
- *     end to end. Heat is the world's one active light: a lit station burns in the lamp's amber, and no code colour marks a state.
+ *   - The pass: a counter with a gantry over its back edge, and the rail hung under the gantry's bar, one clip per slot. Every
+ *     taken clip holds its ticket, printed from the atlas, with its number in the DOM.
+ *   - The fired rail, on levels that have the overlap switch: a second rail hung lower under the same bar, which holds the fire on
+ *     the line while the expo writes the next call on the rail. Each of its tickets is a copy that came down from the rail.
+ *   - The printer at the pass's left end (on Service's own page; the front page holds a printer of its own), and the tickets it has
+ *     fed lying on the counter in front of it, the next in line first. Hanging one carries it to its clip.
+ *   - Plates: the last fire that has been read back, one plate under every clip that cooked a course. A binned plate goes into the
+ *     bin, a full hotel pan at the pass's right end, and the bin keeps the last few. A finished ticket is spiked.
+ *   - The line behind the pass: a station for each clip, burning in the lamp's amber where the latest fire cooked a course and
+ *     cold where its clip rode empty (`stationsOf`). Tile, hood, floor and a speed rack make the room.
+ *   - Three heat lamps over the pass, the bell at its front right.
  *
- * Every colour is a token role (src/design/tokens.ts) and every word or number is a DOM label anchored here (D-021, GAMES.md §2.6
- * rule 7). The layout's lengths are scene units [estimated], set by projecting these landmarks into the presets of scene-presets.ts.
+ * Every word and number is a DOM label anchored here (D-021, GAMES.md §2.6 rule 7); the tickets' print is texture.
  */
-import type { ColorRoleName } from '@/design/tokens'
-import type { Vec3 } from '@/scene/camera-rig'
-import type { FixturePart } from '@/scene/fixture-geometry'
-import type { ElementSpec, LampSpec } from '@/scene/Lights'
-import type { CellDatum, MarkBox, MarkForm, SpanDatum } from '@/scene/marks'
-import type { Sheet } from '@/scene/SheetInstances'
-import { axisTicks, trackZ, type TimeWindow } from '@/scene/time-axis'
-import { DETAIL_FIRES, stationsOf, ticketNo } from '@es/play/loop/layout'
-import type { ClipView, FireView, LoopView, PlaceView } from '@es/play/loop/types'
+import { stationsOf, ticketNo } from '@es/play/loop/layout'
+import type { LoopView } from '@es/play/loop/types'
+import type { PropSpec, StationSpec, Vec3 } from '@/scene/props/specs'
 
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* The world's measures                                                                                               */
+/* The measures                                                                                                       */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** The distance between two clips, and between two slot rows on the line. */
-export const SLOT_PITCH = 0.6
-/** Scene units per tick of the synthetic clock along the night: a 4-tick fire is about two thirds of a unit deep. */
-export const UNITS_PER_TICK = 0.17
-/** The ticks of history the scene draws behind the present: the night beyond it is lost in the fog anyway. */
-export const HISTORY_TICKS = 120
-/** The waiting tickets the printer's strip shows; the rest are still in the printer, and a label counts them. */
-export const STRIP_TICKETS = 5
-/** Above this many launch calls in one fire, the comb shows this many teeth and a label gives the count (GAMES.md §3, Budget). */
-export const COMB_TEETH = 64
+/** The pass: its counter's top, its depth, and how high the gantry's bar stands over it. */
+export const PASS = { top: 0.92, depth: 0.6, gantry: 0.62 } as const
+/** The rail's top (it hangs under the gantry's bar) and how far back over the counter it runs. */
+export const RAIL = { y: PASS.top + PASS.gantry - 0.008, z: -PASS.depth / 2 + 0.06 } as const
+/** The gantry's bar, which the fired rail hangs from, and how far below the rail the fired rail runs. */
+const BAR = { y: PASS.top + PASS.gantry + 0.012, z: -PASS.depth / 2 + 0.035 }
+export const FIRED = { y: RAIL.y - 0.24, z: BAR.z } as const
+/** A ticket off the printer (the kit's TICKET), and how far below the rail's top its clip grips it (the kit's CLIP_DROP). */
+export const TICKET = { width: 0.08, height: 0.12 } as const
+const GRIP = 0.035 + 0.0035 + 0.004
+/** Where a plate rests on the counter, and the line's side of the counter it slides in from. */
+const PLATE_Z = 0.02
+const ENTER_Z = -PASS.depth / 2 - 0.02
+/** The line: its stations' centre line, depth and height; the wall behind it; the heat lamps' ceiling and the mouth of their shades. */
+const LINE = { z: -1.95, depth: 0.8, height: 0.9 }
+const WALL_Z = -2.36
+const CEILING = 2.95
+const MOUTH = 1.86
+/** Tickets the counter shows in front of the printer, finished tickets the spike shows, and binned plates the bin shows. */
+export const COUNTER_TICKETS = 5
+const SPIKED = 6
+const BINNED = 5
+const STATION_KINDS = ['griddle', 'burners', 'fryer', 'burners', 'griddle', 'fryer'] as const
 
-/** The line's left edge. */
-const LINE_LEFT = -0.3
-const LANE_GAP = 0.34
-const CPU_WIDTH = 0.5
-const PRINTER = { w: 0.56, h: 0.4, d: 0.48, gap: 0.24 }
-
-/** The pass: its top, its front edge (the expo's side) and its back edge, where the line's counter begins. */
-export const PASS = { top: 0.1, front: 2.3, back: -0.42, thick: 0.12 }
-/** Where the present lies on the pass: just behind the rail, under the lamps. */
-export const PRESENT_Z = 0.86
-/** How far the line's counter and the lane beds run into the night. */
-const LINE_LENGTH = 26
-
-export const RAIL = { y: 2.2, z: 1.2 }
-export const TICKET = { w: 0.42, h: 0.56 }
-export const FIRED_RAIL = { y: 1.3, z: 0.6 }
-export const FIRED_TICKET = { w: 0.32, h: 0.4 }
-const WAITING = { w: 0.42, h: 0.34, curl: 0.3, gap: 0.008 }
-const LAMP = { y: 2.42, z: 0.45 }
-const GANTRY = { y: 3.05, z: 0.78 }
-/**
- * The stations' bar: out on the line, a stretch beyond the pass's back edge, so a station that burns lights the line between the pass
- * and itself; high enough that the night's slabs slide under it, and low and near enough that the rail's tickets never hang in front
- * of it, in either framing [estimated, by projecting both].
- */
-export const STATION_BAR = { y: 0.3, z: -1.25, h: 0.1, d: 0.06 }
-/** A station's heat element: a tube on the bar's face, across its clip's row [estimated]. */
-export const ELEMENT = { length: 0.46, diameter: 0.05 }
-/**
- * Where a burning station throws its light: over its row, just behind the bar and a little above it, so the warmth falls on the line
- * from the pass's back edge out past the bar, and on the fire coming off the pass [estimated, by looking at both framings].
- */
-export const GLOW = { y: 0.5, z: -1.5 }
-/**
- * The most lights the stations throw, by tier: every light costs every lit pixel of the steel, so a laptop (T2 and up) gives a station
- * a light of its own up to four, and a phone (T1) gives the line one, hung over the stations that burn [estimated].
- */
-export const MAX_GLOWS = { phone: 1, laptop: 4 } as const
-
-/** The marks' heights: a fire's slab, a place on it, an empty place's groove, a dark stretch's outline, the expo's two phases. */
-const SLAB_H = 0.07
-const PLACE_H = 0.042
-const GROOVE_H = 0.012
-const DARK_H = 0.016
-const PLAN_H = 0.06
-const READ_H = 0.034
-const TOOTH_H = 0.12
-const REPLAY_H = 0.09
-/** A place is a square a little narrower than its row, so the fire's lit slab shows around it. */
-const PLACE_SHARE = 0.62
-/** The track group's floor: the lane beds' top above the pass. */
-export const TRACK_Y = PASS.top + 0.006
+/** The distance between two clips: a ticket's width and a plate's apart, for a front-page rail; closer on a longer rail. */
+export const pitchOf = (slots: number): number => Math.max(0.12, Math.min(0.36, 1.44 / slots))
+/** The middle of clip `slot`, across the pass. Clip 0 is nearest the printer, at the left. */
+export const clipX = (slot: number, slots: number): number => (slot + 0.5 - slots / 2) * pitchOf(slots)
+/** The pass's width: room for the printer and its tickets at the left, the clips, and the bin, the bell and the spike at the right. */
+export const passWidth = (slots: number): number => Math.max(2.6, slots * pitchOf(slots) + 1.2)
+/** A ticket's print: its cell of the atlas, from its number. */
+export const cellOf = (req: number): number => (req * 5) % 8
+/** A small, fixed lean for a ticket or a plate, from its number, so a row never looks stamped out. */
+const lean = (n: number, amount: number): number => (((n * 37) % 11) / 11 - 0.5) * amount
 
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* The layout's shape                                                                                                 */
+/* The kitchen: what stands still                                                                                     */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-export type TicketKind = 'rail' | 'fired' | 'waiting'
-
-/** A ticket's sheet of paper: a request on the rail, on the fired rail, or waiting in the printer's strip. */
-export interface TicketSheet extends Sheet {
-  readonly kind: TicketKind
-  readonly req: number
+export interface Tape {
+  readonly id: string
+  readonly center: Vec3
+  readonly size: readonly [number, number]
+  readonly rotation: Vec3
+  readonly text: string
 }
 
-export type AnchorKind = 'ticket' | 'fired' | 'waiting' | 'more' | 'empty' | 'tape' | 'tick' | 'axis' | 'axis-far' | 'station' | 'calls'
+export interface ServiceKitchen {
+  readonly slots: number
+  /** The static set: every prop that never moves. */
+  readonly items: readonly PropSpec[]
+  readonly rail: { readonly at: Vec3; readonly length: number }
+  readonly fired: { readonly at: Vec3; readonly length: number } | null
+  readonly printer: { readonly at: Vec3; readonly yaw: number } | null
+  readonly bell: Vec3
+  readonly spike: Vec3
+  readonly bin: Vec3 | null
+  /** The heat lamps' light: from each bulb to the counter under it. */
+  readonly lights: readonly { readonly id: string; readonly at: Vec3; readonly target: Vec3 }[]
+  /** The line's stations, in order: the clips each one cooks for, where its steam rises, and where its warm light hangs. */
+  readonly stations: readonly { readonly clips: readonly number[]; readonly top: Vec3; readonly glow: Vec3 }[]
+  readonly tapes: readonly Tape[]
+}
+
+export interface KitchenOptions {
+  /** Draw the printer and the tickets it has fed: a page that holds the printer itself (the front page) leaves them out. */
+  readonly printer: boolean
+  /** The level has the overlap switch: hang the fired rail and set the bin on the pass. */
+  readonly overlap: boolean
+}
+
+/** The kitchen for a rail of `slots` clips: a function of the level's shape alone, so a fire never rebuilds it. */
+export function serviceKitchen(slots: number, { printer, overlap }: KitchenOptions): ServiceKitchen {
+  const width = passWidth(slots)
+  const railLength = slots * pitchOf(slots) + 0.16
+  const top = PASS.top
+  const count = Math.min(slots, STATION_KINDS.length)
+  const stationWidth = Math.min(0.58, 2.4 / count)
+  const lineWidth = count * stationWidth
+  const stationX = (s: number) => (s + 0.5 - count / 2) * stationWidth
+  const stations: StationSpec[] = Array.from({ length: count }, (_, s) => ({
+    kind: STATION_KINDS[s],
+    id: `station-${s}`,
+    at: [stationX(s), 0, LINE.z],
+    width: stationWidth - 0.01,
+    depth: LINE.depth,
+    height: LINE.height,
+    channel: s,
+  }))
+  const spread = Math.min(0.55, (slots * pitchOf(slots)) / 3)
+  const drop = CEILING - MOUTH - 0.2015
+  const lamps = [-spread, 0, spread].map((x, i) => ({ id: `lamp-${i}`, x }))
+  const printerAt: Vec3 = [-width / 2 + 0.26, top, -0.12]
+  const bell: Vec3 = [width / 2 - 0.46, top, 0.21]
+  const spike: Vec3 = [width / 2 - 0.22, top, 0.17]
+  const bin: Vec3 | null = overlap ? [width / 2 - 0.325, top, -0.1] : null
+  const rail = { at: [0, RAIL.y, RAIL.z] as Vec3, length: railLength }
+  const fired = overlap ? { at: [0, FIRED.y, FIRED.z] as Vec3, length: railLength } : null
+  const items: PropSpec[] = [
+    { kind: 'floor', id: 'floor', at: [0, 0, -0.6], width: 14, depth: 8 },
+    { kind: 'tile-wall', id: 'wall', at: [0, 0, WALL_Z], width: 14, height: 3.1 },
+    // The room's corner on the left, so the kitchen never ends in the haze beside the line.
+    { kind: 'tile-wall', id: 'side', at: [-width / 2 - 1.3, 0, -0.5], yaw: Math.PI / 2, width: 3.8, height: 3.1 },
+    { kind: 'hood', id: 'hood', at: [0, 2.5, WALL_Z], width: lineWidth + 0.4, depth: 1, height: 0.46 },
+    ...stations,
+    { kind: 'speed-rack', id: 'rack', at: [width / 2 + 0.75, 0, -1.35], yaw: -0.5, height: 1.72, shelves: 9, pans: [0, 1, 2, 4, 5, 7] },
+    { kind: 'pass', id: 'pass', at: [0, 0, 0], width, depth: PASS.depth, height: top, strip: 0, gantry: PASS.gantry },
+    { kind: 'rail', id: 'rail', at: rail.at, length: railLength },
+    { kind: 'bell-base', id: 'bell', at: bell },
+    { kind: 'spike', id: 'spike', at: spike },
+    { kind: 'plate-stack', id: 'stack-l', at: [-width / 2 + 0.75, top - 0.37, 0], count: 6 },
+    { kind: 'plate-stack', id: 'stack-r', at: [width / 2 - 0.75, top - 0.37, 0], count: 5 },
+    ...lamps.map((lamp) => ({ kind: 'heat-lamp' as const, id: lamp.id, at: [lamp.x, CEILING, 0.04] as Vec3, drop, hang: 'cord' as const })),
+  ]
+  if (printer) items.push({ kind: 'printer', id: 'printer', at: printerAt, yaw: 0.18 })
+  if (fired) items.push({ kind: 'rail', id: 'fired', at: fired.at, length: railLength, hang: BAR.y - FIRED.y })
+  if (bin) items.push({ kind: 'pan', id: 'bin', at: bin, size: '1/1', depth: 0.1 })
+
+  const tapes: Tape[] = [
+    // The line's name on the tile over its last station, and the expo's on the pass's rolled front edge, where each one stands: one
+    // high and far, one low and near, so the two never meet on any screen.
+    { id: 'line', center: [stationX(count - 1), 1.24, WALL_Z + 0.004], size: [0.6, 0.07], rotation: [0, 0, 0.02], text: 'the line · gpu' },
+    { id: 'expo', center: [0.15, top - 0.03, PASS.depth / 2 + 0.016], size: [0.42, 0.05], rotation: [-0.45, 0, -0.015], text: 'the expo · cpu' },
+  ]
+  if (bin) tapes.push({ id: 'bin', center: [bin[0], top + 0.094, bin[2] + 0.1625 + 0.0035], size: [0.12, 0.024], rotation: [-0.12, 0, 0.03], text: 'binned · ghost' })
+  return {
+    slots,
+    items,
+    rail,
+    fired,
+    printer: printer ? { at: printerAt, yaw: 0.18 } : null,
+    bell,
+    spike,
+    bin,
+    lights: lamps.map((lamp) => ({ id: lamp.id, at: [lamp.x, MOUTH - 0.02, 0.04] as Vec3, target: [lamp.x, top, PLATE_Z] as Vec3 })),
+    stations: stations.map((station, s) => ({
+      clips: Array.from({ length: slots }, (_, k) => k).filter((k) => Math.floor((k * count) / slots) === s),
+      top: [station.at[0], LINE.height + 0.04, LINE.z - 0.02] as Vec3,
+      glow: [station.at[0], 1.3, LINE.z + 0.55] as Vec3,
+    })),
+    tapes,
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* The night: what moves                                                                                              */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/** A ticket's place: hung by the middle of its top edge, turned, its print's cell, and where a new one comes from. */
+export interface TicketPlace {
+  readonly id: string
+  readonly at: Vec3
+  readonly rotation: Vec3
+  readonly cell: number
+  readonly from?: { readonly at: Vec3; readonly rotation?: Vec3; readonly delay?: number }
+  readonly arc?: number
+}
+
+export interface PlateSpot {
+  readonly id: string
+  readonly at: Vec3
+  readonly enter?: Vec3
+  readonly leave?: Vec3
+}
+
+export type AnchorKind = 'ticket' | 'fired' | 'waiting' | 'empty' | 'more' | 'tape'
 
 /** A label's anchor and its words: DOM over the canvas, never print in it. */
 export interface Anchor {
   readonly id: string
   readonly kind: AnchorKind
   readonly at: Vec3
-  /** `track` for a point on the clock, `sheet:<id>` for print that rides on a moving ticket, or none for the world. */
+  /** `ticket:<id>` for print that rides on a ticket as it moves, or none for the world. */
   readonly frame?: string
   readonly text: string
-  /** A second, smaller line: a fresh ticket's "new". */
+  /** A fresh ticket's "new". */
   readonly sub?: string
   readonly place?: 'center' | 'above' | 'below' | 'left' | 'right'
   /** Hidden in a canvas narrower than this, in CSS px. */
   readonly minWidth?: number
 }
 
-export interface Lanes {
-  readonly cpuX: number
-  readonly cpuWidth: number
-  readonly gpuLeft: number
-  readonly gpuX: number
-  readonly gpuWidth: number
-}
-
-export interface LoopSceneLayout {
-  readonly slots: number
-  readonly unitsPerTime: number
-  /** The clock at the present, and the earliest tick drawn. */
-  readonly window: TimeWindow
-  readonly lanes: Lanes
-  /** Marks on the clock (the track's frame, which sits at the present on the pass): the fires' slabs, drawn in the line's steel. */
-  readonly slabs: readonly SpanDatum[]
-  /** The rest of the spans on the clock, in the code: the expo's plans, reads and combs, and the line's dark stretches. */
-  readonly spans: readonly SpanDatum[]
-  readonly places: readonly CellDatum[]
-  /** The fire on the line, framed in the lamp's filament: the present's newest course, cooking. Null when nothing is on the line. */
-  readonly onLine: MarkBox | null
-  /** The steel. */
-  readonly fixtures: readonly FixturePart[]
-  /** The lamps' shades and the arm they hang from: over the present, so a shot looking straight down leaves them out. */
-  readonly overhead: readonly FixturePart[]
-  readonly lamps: readonly LampSpec[]
-  readonly tickets: readonly TicketSheet[]
-  readonly tapes: readonly Sheet[]
+export interface ServiceScene {
+  readonly tickets: readonly TicketPlace[]
+  /** The chrome balls in the rail's slot, and in the fired rail's: one per clip, at its x from the rail's middle. */
+  readonly clips: readonly { readonly id: string; readonly x: number }[]
+  /** Which stations burn, in order: a station burns where the latest fire cooked a course in one of its clips. */
+  readonly lit: readonly boolean[]
+  /** The plates of the last fire read back, on the pass, and the bin's. */
+  readonly plates: readonly PlateSpot[]
+  /** Whether the latest fire waited on the expo before it cooked: the line sat dark (the bubble). */
+  readonly bubble: boolean
   readonly anchors: readonly Anchor[]
-  /**
-   * The line's stations: one for each clip, lit where the latest fire cooked a course (`stationsOf`), and their heat elements on the
-   * bar. The light the burning ones throw down the line is `stationGlows` of them, at the scene's tier.
-   */
-  readonly stations: { readonly lit: readonly boolean[]; readonly elements: readonly ElementSpec[] }
-  /** Waiting tickets the strip does not show: still in the printer. */
-  readonly inPrinter: number
+  /** The tickets on the counter, as boxes a pick can hit: a pick hangs the ticket. */
+  readonly picks: readonly { readonly req: number; readonly center: Vec3 }[]
+  /** Bumped each time the printer feeds a ticket onto the counter, and the print of the one it feeds. */
+  readonly feed: number
+  readonly feedCell: number
 }
 
-/** A light the stations throw down the line: where it hangs, and the share of its stations that burn, from 0 (dark) to 1. */
-export interface StationGlow {
-  readonly id: string
-  readonly at: Vec3
-  readonly share: number
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-/* Where things are                                                                                                   */
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-export function lanesFor(slots: number): Lanes {
-  const gpuWidth = slots * SLOT_PITCH
-  const cpuX = LINE_LEFT - LANE_GAP - CPU_WIDTH / 2
-  return { cpuX, cpuWidth: CPU_WIDTH, gpuLeft: LINE_LEFT, gpuX: LINE_LEFT + gpuWidth / 2, gpuWidth }
-}
-
-/** The centre of clip `slot` across the scene, which is also the centre of its row of places on the line. */
-export const clipX = (slot: number): number => LINE_LEFT + (slot + 0.5) * SLOT_PITCH
-
-/** The printer's centre: at the rail's left end, beyond the expo's lane. */
-export function printerAt(slots: number): Vec3 {
-  const lanes = lanesFor(slots)
-  return [lanes.cpuX - CPU_WIDTH / 2 - PRINTER.gap - PRINTER.w / 2, RAIL.y + 0.04, RAIL.z - 0.04]
-}
+/** Where a ticket held by clip `slot` of a rail at `at` hangs from. */
+const onClip = (at: Vec3, slot: number, slots: number): Vec3 => [at[0] + clipX(slot, slots), at[1] - GRIP, at[2] + 0.012]
+const hungFrom = (req: number): Vec3 => [-0.05, 0, lean(req, 0.07)]
 
 /**
- * The lights over the line's stations, `max` at most: one for each station, or, on a rail with more clips than that, one for each
- * run of neighbouring stations, hung over the run's middle and as bright as the share of the run that burns. Where a light is a
- * station's own, a fire rung half full leaves half the line dark; where one is shared, its stations' elements still say which burn.
- * The count and the places depend on the rail and the tier alone, never on what burns, so a fire changes a light's brightness and
- * nothing else (a change of count would recompile every material in the scene).
+ * Where a ticket lying flat must be held for its middle to land on (x, z) when it is turned `turn` in its own plane: a ticket hangs
+ * from the middle of its top edge, so a flat one reaches half its length toward the expo from there.
  */
-export function stationGlows(lit: readonly boolean[], max: number): StationGlow[] {
-  const count = Math.max(1, Math.min(lit.length, max))
-  return Array.from({ length: count }, (_, k) => {
-    const from = Math.floor((k * lit.length) / count)
-    const to = Math.floor(((k + 1) * lit.length) / count)
-    const burning = lit.slice(from, to).filter(Boolean).length
-    return { id: `glow-${k}`, at: [(clipX(from) + clipX(to - 1)) / 2, GLOW.y, GLOW.z], share: burning / Math.max(1, to - from) }
-  })
+function lying(x: number, y: number, z: number, turn: number): Vec3 {
+  const half = TICKET.height / 2
+  return [x - half * Math.sin(turn), y, z - half * Math.cos(turn)]
 }
 
-/** A small, fixed lean for a sheet, so a row of paper never looks stamped out: from its number, never from a random draw. */
-const lean = (n: number, amount: number): number => ((((n * 37) % 11) / 11 - 0.5) * amount)
-
-/**
- * A sheet hanging by its top edge from a clip at (x, y, z), its foot swung toward the expo by `tilt` radians so its face turns up to a
- * camera behind the expo: the centre sits half a sheet down the tilted sheet from the clip.
- */
-function hanging(x: number, y: number, z: number, height: number, tilt: number): Vec3 {
-  return [x, y - (height / 2) * Math.cos(tilt), z + (height / 2) * Math.sin(tilt)]
-}
-
-/** A rail ticket's sheet, hanging from clip `slot`. */
-function railSheet(slot: number, clip: ClipView & { req: number }): TicketSheet {
-  const tilt = 0.2
-  return {
-    id: `t${clip.req}`,
-    kind: 'rail',
-    req: clip.req,
-    center: hanging(clipX(slot), RAIL.y - 0.035, RAIL.z + 0.04, TICKET.h, tilt),
-    size: [TICKET.w, TICKET.h],
-    rotation: [-tilt, 0, lean(clip.req, 0.07)],
-  }
-}
-
-function firedSheet(slot: number, req: number): TicketSheet {
-  const tilt = 0.16
-  return {
-    id: `f${req}`,
-    kind: 'fired',
-    req,
-    center: hanging(clipX(slot), FIRED_RAIL.y - 0.03, FIRED_RAIL.z + 0.035, FIRED_TICKET.h, tilt),
-    size: [FIRED_TICKET.w, FIRED_TICKET.h],
-    rotation: [-tilt, 0, lean(req + 3, 0.06)],
-  }
-}
-
-/**
- * The printer's strip: the waiting tickets, joined at their perforations, hanging out of the printer's mouth and curling toward the
- * expo. Segment 0 is at the mouth; the strip's free end holds the next ticket in line, so hanging it tears off the end, and when more
- * wait inside, the printer feeds the strip out by one ticket.
- */
-export function stripSheets(slots: number, waiting: readonly number[]): TicketSheet[] {
-  const shown = waiting.slice(0, STRIP_TICKETS)
-  const [px, py, pz] = printerAt(slots)
-  let y = py - PRINTER.h / 2 - 0.02
-  let z = pz + PRINTER.d / 2 - 0.08
-  const sheets: TicketSheet[] = []
-  for (let segment = 0; segment < shown.length; segment++) {
-    const phi = WAITING.curl * segment
-    const dy = -Math.cos(phi)
-    const dz = Math.sin(phi)
-    const req = shown[shown.length - 1 - segment]
-    sheets.push({
-      id: `t${req}`,
-      kind: 'waiting',
-      req,
-      center: [px + lean(req, 0.05), y + (dy * WAITING.h) / 2, z + (dz * WAITING.h) / 2],
-      size: [WAITING.w, WAITING.h],
-      rotation: [-phi, 0, lean(req + 1, 0.05)],
-    })
-    y += dy * (WAITING.h + WAITING.gap)
-    z += dz * (WAITING.h + WAITING.gap)
-  }
-  return sheets
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-/* The night                                                                                                          */
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-const PLACE_FORMS: Readonly<Record<PlaceView['state'], MarkForm>> = { plate: 'solid', empty: 'groove', binned: 'hollow' }
-/** An empty place is a dark station's well (the deep steel of `surface-3`), so a half-hung fire reads half dark from any shot. */
-const PLACE_ROLE: Readonly<Record<PlaceView['state'], ColorRoleName>> = { plate: 'cat-white', empty: 'surface-3', binned: 'status-bad' }
-/** A fire's slab is a sheet of the line's steel, in its shaded tone, so its white plates and dark wells read on it [estimated]. */
-export const SLAB_ROLE: ColorRoleName = 'surface-2'
-
-/** The marks of the fires in the window: slabs of steel, the dark stretches before them, and their places. */
-function lineMarks(view: LoopView, window: TimeWindow, lanes: Lanes) {
-  const slabs: SpanDatum[] = []
-  const spans: SpanDatum[] = []
-  const places: CellDatum[] = []
-  const unitsPerTime = UNITS_PER_TICK
-  const shown = view.fires.filter((fire) => fire.endUs > window.start)
-  const detailFrom = shown.length - DETAIL_FIRES
-  let onLine: MarkBox | null = null
-  shown.forEach((fire, i) => {
-    const before: FireView | undefined = view.fires[fire.index - 1]
-    slabs.push({ id: `fire-${fire.index}`, lane: lanes.gpuX, start: fire.startUs, end: fire.endUs, width: lanes.gpuWidth, height: SLAB_H, base: 0, role: SLAB_ROLE })
-    if (before !== undefined && fire.startUs > before.endUs) {
-      spans.push({
-        id: `dark-${fire.index}`,
-        lane: lanes.gpuX,
-        start: before.endUs,
-        end: fire.startUs,
-        width: lanes.gpuWidth,
-        height: DARK_H,
-        base: 0,
-        role: 'lane-idle',
-        form: 'hollow',
-      })
-    }
-    const z0 = trackZ(fire.startUs, { unitsPerTime })
-    const z1 = trackZ(fire.endUs, { unitsPerTime })
-    if (i >= detailFrom) {
-      const side = SLOT_PITCH * PLACE_SHARE
-      const inset = Math.min(0.05, (z1 - z0) / 6)
-      const depth = Math.max(0.004, Math.min(z1 - z0 - 2 * inset, side))
-      fire.places.forEach((place, slot) => {
-        const form = PLACE_FORMS[place.state]
-        places.push({
-          id: `fire-${fire.index}/place-${slot}`,
-          x: clipX(slot),
-          z: (z0 + z1) / 2,
-          y: SLAB_H,
-          width: side,
-          depth,
-          height: form === 'groove' ? GROOVE_H : PLACE_H,
-          role: PLACE_ROLE[place.state],
-          form,
-        })
-      })
-    }
-    // The fire the line is cooking, at the present: the lamp's filament frames its slab and its places.
-    if (fire.onLine) {
-      onLine = { id: `on-line-${fire.index}`, center: [lanes.gpuX, (SLAB_H + PLACE_H) / 2, (z0 + z1) / 2], size: [lanes.gpuWidth, SLAB_H + PLACE_H, z1 - z0], role: 'lamp-ring', form: 'solid' }
-    }
-  })
-  return { slabs, spans, places, onLine: onLine as MarkBox | null }
-}
-
-/** The expo's lane: a plan slab and a read slab for each fire, and a fire's launch calls as a comb, or its replay as one slab. */
-function expoMarks(view: LoopView, window: TimeWindow, lanes: Lanes): { spans: SpanDatum[]; anchors: Anchor[] } {
-  const spans: SpanDatum[] = []
+export function serviceScene(view: LoopView, kitchen: ServiceKitchen): ServiceScene {
+  const { slots, rail, fired, printer } = kitchen
+  const top = PASS.top
+  const tickets: TicketPlace[] = []
   const anchors: Anchor[] = []
-  const width = lanes.cpuWidth * 0.84
-  const fireAt = new Map(view.fires.map((fire) => [fire.index, fire]))
-  for (const span of view.cpu) {
-    if (span.endUs <= window.start) continue
-    const id = `cpu-${span.step}-${span.kind}`
-    if (span.kind === 'schedule' || span.kind === 'prepare') {
-      spans.push({ id, lane: lanes.cpuX, start: span.startUs, end: span.endUs, width, height: PLAN_H, base: 0, role: 'lane-cpu' })
-    } else if (span.kind === 'sync' || span.kind === 'sample') {
-      spans.push({ id, lane: lanes.cpuX, start: span.startUs, end: span.endUs, width, height: READ_H, base: 0, role: 'lane-sync' })
-    } else if (span.kind === 'launch') {
-      const fire = fireAt.get(span.step)
-      const calls = fire?.launches ?? 0
-      if (fire?.graph === 'hit') {
-        // One word fires a drilled routine: the comb collapses into one short slab.
-        spans.push({ id: `${id}-replay`, lane: lanes.cpuX, start: span.startUs, end: span.endUs, width, height: REPLAY_H, base: 0, role: 'lane-cpu', form: 'marked' })
-      } else if (calls > 0) {
-        // Calling each dish: one tooth per launch call, evenly through the launch phase.
-        const teeth = Math.min(calls, COMB_TEETH)
-        const pitch = (span.endUs - span.startUs) / teeth
-        for (let tooth = 0; tooth < teeth; tooth++) {
-          const start = span.startUs + tooth * pitch
-          spans.push({ id: `${id}-tooth-${tooth}`, lane: lanes.cpuX, start, end: start + pitch / 2, width, height: TOOTH_H, base: 0, role: 'lane-cpu' })
-        }
-        if (calls > COMB_TEETH) {
-          anchors.push({ id: `calls-${span.step}`, kind: 'calls', at: [lanes.cpuX - lanes.cpuWidth / 2 - 0.06, 0, trackZ((span.startUs + span.endUs) / 2, { unitsPerTime: UNITS_PER_TICK })], frame: 'track', text: `${calls} calls`, place: 'left' })
-        }
-      }
-    }
-  }
-  return { spans, anchors }
-}
+  const label = (id: string, req: number, kind: AnchorKind, sub?: string): Anchor => ({ id: `no-${id}`, kind, at: [0, -0.026, 0.003], frame: `ticket:${id}`, text: ticketNo(req), sub, minWidth: kind === 'fired' ? 520 : undefined })
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-/* The steel and the light                                                                                            */
-/* ------------------------------------------------------------------------------------------------------------------ */
+  // The tickets the printer has fed, on the counter in front of it; the rest are still inside it.
+  const shown = printer ? view.waiting.slice(0, COUNTER_TICKETS) : []
+  const tear = printer ? tearPose(printer.at, printer.yaw) : null
+  const counter = (i: number, req: number): Vec3 => lying(-passWidth(slots) / 2 + 0.11 + i * 0.096, top + 0.0007 + i * 0.0003, 0.1, lean(req, 0.5))
+  shown.forEach((req, i) => {
+    const turn = lean(req, 0.5)
+    tickets.push({ id: `t${req}`, at: counter(i, req), rotation: [-Math.PI / 2, 0, turn], cell: cellOf(req), from: tear ? { ...tear, delay: 420 } : undefined, arc: 0.05 })
+    anchors.push(label(`t${req}`, req, 'waiting'))
+  })
+  const inPrinter = view.waiting.length - shown.length
+  if (printer && inPrinter > 0) anchors.push({ id: 'more', kind: 'more', at: [printer.at[0], top + 0.17, printer.at[2]], text: `+${inPrinter}`, place: 'above' })
 
-function fixturesFor(slots: number, fired: boolean, printer = true): { fixtures: FixturePart[]; overhead: FixturePart[]; lamps: LampSpec[]; extent: { left: number; right: number } } {
-  const lanes = lanesFor(slots)
-  const [px, py, pz] = printerAt(slots)
-  const lastClip = clipX(slots - 1)
-  // The gantry stands just outside the printer and the rail; the counter runs on past it, out of a wide frame.
-  const left = px - PRINTER.w / 2 - 0.55
-  const right = lastClip + SLOT_PITCH / 2 + 0.75
-  const width = right - left + 2.4
-  const mid = (left + right) / 2
-  const railLeft = px + PRINTER.w / 2 - 0.02
-  const railRight = lastClip + SLOT_PITCH / 2 + 0.18
-  const postLeft = left + 0.16
-  const postRight = right - 0.16
-  const passDepth = PASS.front - PASS.back
-  const fixtures: FixturePart[] = [
-    // The pass: the counter, its rolled front edge and the apron below it.
-    { kind: 'box', center: [mid, PASS.top - PASS.thick / 2, (PASS.front + PASS.back) / 2], size: [width, PASS.thick, passDepth], tone: 'bright' },
-    { kind: 'box', center: [mid, PASS.top - 0.005, PASS.front + 0.02], size: [width, 0.05, 0.06], tone: 'bright' },
-    { kind: 'box', center: [mid, PASS.top - 0.32, PASS.front + 0.035], size: [width, 0.6, 0.03], tone: 'shaded' },
-    // The line's counter behind it, and a seam where the pass ends.
-    { kind: 'box', center: [mid, PASS.top - PASS.thick / 2 - 0.004, PASS.back - LINE_LENGTH / 2], size: [width + 3, PASS.thick, LINE_LENGTH], tone: 'shaded' },
-    { kind: 'box', center: [mid, PASS.top - 0.002, PASS.back], size: [width, 0.008, 0.035], tone: 'deep' },
-    // The lane beds, inset along the pass and down the line: the expo's in shaded steel, the line's in deep steel, so a lit fire
-    // stands out on it and a dark stretch shows the dark bed.
-    { kind: 'box', center: [lanes.cpuX, PASS.top + 0.002, PRESENT_Z + 0.06 - (LINE_LENGTH + PRESENT_Z) / 2], size: [lanes.cpuWidth + 0.1, 0.006, LINE_LENGTH + PRESENT_Z + 0.12], tone: 'shaded' },
-    { kind: 'box', center: [lanes.gpuX, PASS.top + 0.002, PRESENT_Z + 0.06 - (LINE_LENGTH + PRESENT_Z) / 2], size: [lanes.gpuWidth + 0.1, 0.006, LINE_LENGTH + PRESENT_Z + 0.12], tone: 'deep' },
-    // The gantry: two posts off the pass and a beam the lamps hang from.
-    { kind: 'rod', base: [postLeft, PASS.top, GANTRY.z], height: GANTRY.y - PASS.top, radius: 0.03, tone: 'shaded' },
-    { kind: 'rod', base: [postRight, PASS.top, GANTRY.z], height: GANTRY.y - PASS.top, radius: 0.03, tone: 'shaded' },
-    { kind: 'box', center: [(postLeft + postRight) / 2, GANTRY.y + 0.03, GANTRY.z], size: [postRight - postLeft + 0.12, 0.07, 0.09], tone: 'deep' },
-    // The rail, with its clips, held off the left post by the printer's bracket and off the right post by its own.
-    { kind: 'box', center: [(railLeft + railRight) / 2, RAIL.y, RAIL.z], size: [railRight - railLeft, 0.05, 0.06], tone: 'deep' },
-    { kind: 'box', center: [(railRight + postRight) / 2, RAIL.y, (RAIL.z + GANTRY.z) / 2], size: [postRight - railRight + 0.03, 0.035, RAIL.z - GANTRY.z + 0.04], tone: 'shaded' },
-    // The stations' bar over the head of the line, on a post at each end.
-    { kind: 'box', center: [lanes.gpuX, STATION_BAR.y, STATION_BAR.z], size: [lanes.gpuWidth + 0.12, STATION_BAR.h, STATION_BAR.d], tone: 'deep' },
-    { kind: 'rod', base: [lanes.gpuLeft - 0.08, PASS.top, STATION_BAR.z], height: STATION_BAR.y - PASS.top, radius: 0.014, tone: 'shaded' },
-    { kind: 'rod', base: [lanes.gpuLeft + lanes.gpuWidth + 0.08, PASS.top, STATION_BAR.z], height: STATION_BAR.y - PASS.top, radius: 0.014, tone: 'shaded' },
-  ]
-  if (printer) {
-    fixtures.push(
-      { kind: 'box', center: [(postLeft + px) / 2, py, (pz + GANTRY.z) / 2], size: [px - postLeft, 0.035, Math.abs(pz - GANTRY.z) + 0.04], tone: 'shaded' },
-      // The printer: its housing, its lid and the dark mouth the strip comes out of.
-      { kind: 'box', center: [px, py, pz], size: [PRINTER.w, PRINTER.h, PRINTER.d], tone: 'deep' },
-      { kind: 'box', center: [px, py + PRINTER.h / 2 + 0.02, pz - 0.03], size: [PRINTER.w - 0.04, 0.04, PRINTER.d - 0.1], tone: 'shaded' },
-      { kind: 'box', center: [px, py - PRINTER.h / 2 + 0.005, pz + PRINTER.d / 2 - 0.08], size: [PRINTER.w - 0.08, 0.012, 0.06], tone: 'shaded' },
-    )
-  }
-  for (let slot = 0; slot < slots; slot++) {
-    fixtures.push({ kind: 'box', center: [clipX(slot), RAIL.y - 0.03, RAIL.z + 0.035], size: [0.09, 0.075, 0.035], tone: 'shaded' })
-  }
-  if (fired) {
-    const firedLeft = lanes.gpuLeft - 0.12
-    const firedRight = lastClip + SLOT_PITCH / 2 + 0.1
-    fixtures.push({ kind: 'box', center: [(firedLeft + firedRight) / 2, FIRED_RAIL.y, FIRED_RAIL.z], size: [firedRight - firedLeft, 0.04, 0.05], tone: 'deep' })
-    // It hangs from the gantry's beam on two rods.
-    for (const x of [firedLeft + 0.06, firedRight - 0.06]) {
-      fixtures.push({ kind: 'rod', base: [x, FIRED_RAIL.y, FIRED_RAIL.z], height: GANTRY.y - FIRED_RAIL.y, radius: 0.012, tone: 'shaded' })
-    }
-    for (let slot = 0; slot < slots; slot++) {
-      fixtures.push({ kind: 'box', center: [clipX(slot), FIRED_RAIL.y - 0.025, FIRED_RAIL.z + 0.03], size: [0.07, 0.06, 0.03], tone: 'shaded' })
-    }
-  }
-  // Three heat lamps over the present: one over the expo's lane, two over the line, between its rows so a top shot sees past them.
-  const lampXs = [lanes.cpuX, lanes.gpuLeft + SLOT_PITCH, lanes.gpuLeft + 3 * SLOT_PITCH]
-  const lamps: LampSpec[] = lampXs.map((x, i) => ({ id: `lamp-${i}`, at: [x, LAMP.y, LAMP.z], target: [x, PASS.top, PRESENT_Z - 0.28] }))
-  const overhead: FixturePart[] = []
-  for (const lamp of lamps) {
-    overhead.push({ kind: 'shade', center: [lamp.at[0], lamp.at[1] - 0.05, lamp.at[2]], mouth: 0.2, crown: 0.07, height: 0.26, tone: 'deep' })
-    overhead.push({ kind: 'rod', base: [lamp.at[0], lamp.at[1] + 0.2, lamp.at[2]], height: GANTRY.y - lamp.at[1] - 0.2, radius: 0.012, tone: 'shaded' })
-  }
-  // The lamps' stems meet an arm under the beam, which sits nearer the expo.
-  overhead.push({ kind: 'box', center: [(lampXs[0] + lampXs[2]) / 2, GANTRY.y - 0.02, (GANTRY.z + LAMP.z) / 2], size: [lampXs[2] - lampXs[0] + 0.14, 0.03, GANTRY.z - LAMP.z + 0.04], tone: 'shaded' })
-  return { fixtures, overhead, lamps, extent: { left, right } }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-/* The layout                                                                                                         */
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/** Labels that need a desktop's room: the clock's numbers [estimated]. */
-const ROOMY = 560
-
-/** What a page may leave out of the scene: the printer and its strip, when the page holds a printer of its own (the front page). */
-export interface SceneOptions {
-  readonly printer?: boolean
-}
-
-export function sceneLayout(view: LoopView, options: SceneOptions = {}): LoopSceneLayout {
-  const printer = options.printer ?? true
-  const slots = view.slots
-  const lanes = lanesFor(slots)
-  const now = view.clockUs
-  const window: TimeWindow = { start: Math.max(0, now - HISTORY_TICKS), now }
-  const line = lineMarks(view, window, lanes)
-  const expo = expoMarks(view, window, lanes)
-  const fired = view.firedRail !== null
-  const { fixtures, overhead, lamps } = fixturesFor(slots, fired, printer)
-
-  // The paper: the rail's tickets, the fired rail's, and the printer's strip.
-  const tickets: TicketSheet[] = []
-  const anchors: Anchor[] = [...expo.anchors]
+  // The rail: a ticket in every taken clip, its number in the DOM; an empty clip shows its stub.
+  const enterLeft: Vec3 = [rail.at[0] - rail.length / 2 - 0.12, rail.at[1] - 0.05, rail.at[2] + 0.2]
   view.rail.forEach((clip, slot) => {
     if (clip.req === null) {
-      anchors.push({ id: `empty-${slot}`, kind: 'empty', at: [clipX(slot), RAIL.y - 0.16, RAIL.z + 0.04], text: 'empty' })
+      anchors.push({ id: `empty-${slot}`, kind: 'empty', at: [rail.at[0] + clipX(slot, slots), rail.at[1] - GRIP - 0.05, rail.at[2] + 0.012], text: 'empty' })
       return
     }
-    const sheet = railSheet(slot, { ...clip, req: clip.req })
-    tickets.push(sheet)
-    anchors.push({ id: `ticket-${clip.req}`, kind: 'ticket', at: [sheet.center[0], sheet.center[1] + 0.06, sheet.center[2]], frame: `sheet:${sheet.id}`, text: ticketNo(clip.req), sub: clip.fresh ? 'new' : undefined })
+    const id = `t${clip.req}`
+    tickets.push({ id, at: onClip(rail.at, slot, slots), rotation: hungFrom(clip.req), cell: cellOf(clip.req), from: tear ?? { at: enterLeft, rotation: [-0.6, 0, 0.3] }, arc: 0.06 })
+    anchors.push(label(id, clip.req, 'ticket', clip.fresh ? 'new' : undefined))
   })
-  view.firedRail?.forEach((clip, slot) => {
-    if (clip.req === null) return
-    const sheet = firedSheet(slot, clip.req)
-    tickets.push(sheet)
-    anchors.push({ id: `fired-${clip.req}`, kind: 'fired', at: sheet.center, frame: `sheet:${sheet.id}`, text: ticketNo(clip.req) })
+
+  // The fired rail: a copy of each ticket of the fire on the line, come down from its clip on the rail.
+  if (fired && view.firedRail) {
+    view.firedRail.forEach((clip, slot) => {
+      if (clip.req === null) return
+      const id = `f${clip.req}`
+      tickets.push({ id, at: onClip(fired.at, slot, slots), rotation: hungFrom(clip.req + 3), cell: cellOf(clip.req + 1), from: { at: onClip(rail.at, slot, slots), rotation: hungFrom(clip.req) } })
+      anchors.push(label(id, clip.req, 'fired'))
+    })
+  }
+
+  // Finished tickets, spiked: every ticket that has been in a fire and is on neither rail nor waiting, the latest on top.
+  const last = new Map<number, number>()
+  for (const fire of view.fires) for (const place of fire.places) if (place.req !== null) last.set(place.req, fire.index)
+  const live = new Set([...view.rail, ...(view.firedRail ?? [])].flatMap((clip) => (clip.req === null ? [] : [clip.req])))
+  const done = [...last].filter(([req]) => !live.has(req) && !view.waiting.includes(req)).sort((a, b) => a[1] - b[1] || a[0] - b[0])
+  done.slice(-SPIKED).forEach(([req], k) => {
+    const turn = ((req * 53) % 17) / 17 - 0.5
+    tickets.push({ id: `t${req}`, at: lying(kitchen.spike[0], kitchen.spike[1] + 0.026 + k * 0.0022, kitchen.spike[2], turn), rotation: [-Math.PI / 2, 0, turn], cell: cellOf(req), arc: 0.14 })
   })
-  const strip = printer ? stripSheets(slots, view.waiting) : []
-  for (const sheet of strip) {
-    tickets.push(sheet)
-    anchors.push({ id: `waiting-${sheet.req}`, kind: 'waiting', at: sheet.center, frame: `sheet:${sheet.id}`, text: ticketNo(sheet.req) })
-  }
-  const inPrinter = Math.max(0, view.waiting.length - strip.length)
-  const [px, py, pz] = printerAt(slots)
-  if (printer && inPrinter > 0) anchors.push({ id: 'more', kind: 'more', at: [px, py + 0.02, pz + PRINTER.d / 2 + 0.01], text: `+${inPrinter}` })
 
-  // Masking tape on the pass in front of each lane, where the expo reads it.
-  const tapeY = PASS.top + 0.004
-  const tapeZ = PRESENT_Z + 0.5
-  const tapes: Sheet[] = [
-    { id: 'tape-cpu', center: [lanes.cpuX, tapeY, tapeZ], size: [0.62, 0.11], rotation: [-Math.PI / 2, 0, 0.02] },
-    { id: 'tape-gpu', center: [lanes.gpuX, tapeY, tapeZ], size: [0.78, 0.11], rotation: [-Math.PI / 2, 0, -0.015] },
-  ]
-  anchors.push({ id: 'tape-cpu', kind: 'tape', at: [lanes.cpuX, tapeY, tapeZ], text: 'the expo · cpu' })
-  anchors.push({ id: 'tape-gpu', kind: 'tape', at: [lanes.gpuX, tapeY, tapeZ], text: 'the line · gpu' })
-
-  // The clock along the line's right edge, in synthetic ticks (D-048). The tick at the present itself would sit under the rail.
-  const axisX = lanes.gpuLeft + lanes.gpuWidth + 0.16
-  const ticks = axisTicks(window, 6)
-  const step = ticks.length > 1 ? ticks[1] - ticks[0] : 0
-  for (const t of ticks) {
-    if (step === 0 || now - t < step * 0.6) continue
-    anchors.push({ id: `tick-${t}`, kind: 'tick', at: [axisX + 0.06, 0, trackZ(t, { unitsPerTime: UNITS_PER_TICK })], frame: 'track', text: String(t), place: 'right', minWidth: ROOMY })
-  }
-  // What the clock counts: on the pass where the axis starts, ending at the line's right edge so it stays in a narrow frame; and, for
-  // the side shot, at the axis's far end, where that shot reads the clock from.
-  const lineRight = lanes.gpuLeft + lanes.gpuWidth
-  anchors.push({ id: 'axis', kind: 'axis', at: [lineRight, PASS.top, PRESENT_Z + 0.24], text: 'ticks · synthetic', place: 'left', minWidth: ROOMY })
-  const far = ticks.find((t) => step > 0 && now - t >= step * 0.6)
-  if (far !== undefined) {
-    anchors.push({ id: 'axis-far', kind: 'axis-far', at: [axisX + 0.06, 0.32, trackZ(far, { unitsPerTime: UNITS_PER_TICK })], frame: 'track', text: 'ticks · synthetic', place: 'above', minWidth: ROOMY })
+  // The plates of the last fire read back: one under every clip that cooked a course; a binned plate goes into the bin.
+  const served = [...view.fires].reverse().find((fire) => !fire.onLine)
+  const plates: PlateSpot[] = []
+  served?.places.forEach((place, slot) => {
+    if (place.state !== 'plate') return
+    const x = clipX(slot, slots)
+    plates.push({ id: `p${served.index}-${slot}`, at: [x, top, PLATE_Z], enter: [x, top, ENTER_Z], leave: [x + 0.25, top + 0.45, 1.6] })
+  })
+  if (kitchen.bin) {
+    const [bx, , bz] = kitchen.bin
+    const binned = view.fires.filter((fire) => !fire.onLine).flatMap((fire) => fire.places.flatMap((place, slot) => (place.state === 'binned' ? [{ fire: fire.index, slot }] : [])))
+    binned.slice(-BINNED).forEach(({ fire, slot }, j) => {
+      plates.push({ id: `b${fire}-${slot}`, at: [bx + lean(fire + slot, 0.08), top + 0.002 + j * 0.0105, bz + lean(fire * 3 + slot, 0.05)], enter: [clipX(slot, slots), top, ENTER_Z] })
+    })
   }
 
-  // The stations: a heat element on the bar's face for each clip's row, the light the burning ones throw down the line, and their
-  // count on the pass under the line's tape (the DOM says how many are lit; the light is never the only carrier).
   const lit = stationsOf(view)
-  const elements: ElementSpec[] = lit.map((on, slot) => ({
-    id: `station-${slot}`,
-    at: [clipX(slot), STATION_BAR.y, STATION_BAR.z + STATION_BAR.d / 2 + ELEMENT.diameter / 2 + 0.008],
-    length: ELEMENT.length,
-    diameter: ELEMENT.diameter,
-    lit: on,
-  }))
-  const litCount = lit.filter(Boolean).length
-  anchors.push({ id: 'station', kind: 'station', at: [lanes.gpuX, tapeY, tapeZ + 0.55], text: `${litCount} of ${slots} lit` })
-
+  const latest = view.fires[view.fires.length - 1]
+  const balls = Array.from({ length: slots }, (_, slot) => ({ id: `clip-${slot}`, x: clipX(slot, slots) }))
+  const feedReq = shown.length > 0 ? Math.max(...shown) : -1
   return {
-    slots,
-    unitsPerTime: UNITS_PER_TICK,
-    window,
-    lanes,
-    slabs: line.slabs,
-    spans: [...line.spans, ...expo.spans],
-    places: line.places,
-    onLine: line.onLine,
-    fixtures,
-    overhead,
-    lamps,
     tickets,
-    tapes,
-    anchors,
-    stations: { lit, elements },
-    inPrinter,
+    clips: balls,
+    lit: kitchen.stations.map((station) => station.clips.some((slot) => lit[slot])),
+    plates,
+    bubble: latest !== undefined && latest.bubbleUs > 0,
+    anchors: [...anchors, ...kitchen.tapes.map((tape): Anchor => ({ id: `tape-${tape.id}`, kind: 'tape', at: tape.center, text: tape.text, minWidth: tape.id === 'bin' ? 520 : undefined }))],
+    picks: shown.map((req, i) => {
+      const at = counter(i, req)
+      const turn = lean(req, 0.5)
+      return { req, center: [at[0] + (TICKET.height / 2) * Math.sin(turn), top + 0.004, at[2] + (TICKET.height / 2) * Math.cos(turn)] as Vec3 }
+    }),
+    feed: feedReq + 1,
+    feedCell: cellOf(Math.max(0, feedReq)),
   }
+}
+
+/** Where a ticket just torn off the printer at `at`, turned `yaw`, starts from: hanging from its mouth (the kit's `tearPose`). */
+function tearPose(at: Vec3, yaw: number): { at: Vec3; rotation: Vec3 } {
+  // The kit's PRINTER_MOUTH: just behind the tear bar, from the printer's base.
+  const [mx, my, mz] = [0, 0.15 * 0.72 + 0.014, 0.22 * 0.4]
+  const c = Math.cos(yaw)
+  const s = Math.sin(yaw)
+  return { at: [at[0] + mx * c + mz * s, at[1] + my, at[2] - mx * s + mz * c], rotation: [-0.5, yaw, 0] }
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -576,16 +342,13 @@ export function sceneLayout(view: LoopView, options: SceneOptions = {}): LoopSce
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /** How the latest change moves: on the bell, as the printer's feed, or as a cut (a new level, an undo, the first frame). */
-export type Change = { readonly key: number; readonly kind: 'bell' | 'feed' | 'cut' }
+export type Change = 'bell' | 'feed' | 'cut'
 
 /** Reads what a new view changed from the one before: a fire rung is the bell, a ticket hung between bells is the printer. */
-export function changeOf(before: LoopView | null, after: LoopView): Change['kind'] {
+export function changeOf(before: LoopView | null, after: LoopView): Change {
   if (before === null || before.level !== after.level) return 'cut'
   if (after.step > before.step) return 'bell'
   if (after.step < before.step || after.waiting.length > before.waiting.length) return 'cut'
   if (after.waiting.length < before.waiting.length) return 'feed'
   return 'cut'
 }
-
-/** The present's frame in the world: the track group sits here, so the clock's `now` lands on the pass under the rail. */
-export const TRACK_ORIGIN: Vec3 = [0, TRACK_Y, PRESENT_Z]

@@ -1,10 +1,10 @@
 /*
- * W0-T17: Service's 3D layout (src/games/loop/scene-layout.ts), which the scene draws and nothing else decides. Every mark is held to the
- * session's view of the night: one place per clip per fire in the form the view says, the dark stretches where the line waited, the
- * rail's tickets on their clips, the fired rail only while a fire is on the line, the printer's strip, the comb that collapses on a
- * graph hit, and the stations' heat and the light they throw. Then the presets, the motion grammar's reading of a change, the
- * instance budget over whole nights, and the acceptance check that no material takes a literal colour, no state takes a code colour,
- * and no word is printed in the canvas.
+ * Service's 3D layout (src/games/loop/scene-layout.ts), which the scene draws with scene kit v1's props and nothing else decides. The
+ * kitchen is held to its shape (the room, the pass and its gantry, the rail, the line's stations, the lamps, the printer only where the
+ * page asks, the fired rail and the bin only where the level has overlap), and the night to the session's view: the tickets on their
+ * clips, the copies on the fired rail, the counter's tickets and the printer's feed, the plates of the last fire read back, the bin,
+ * the spike, the stations' heat and the bubble. Then the presets, the tapes that must never meet, the motion grammar's reading of a
+ * change, the instance budget, and the acceptance checks on colour and text.
  */
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
@@ -14,31 +14,14 @@ import { buildLevel, LEVEL_IDS } from '@es/play/loop/levels'
 import { stationsOf, ticketNo } from '@es/play/loop/layout'
 import { loopView } from '@es/play/loop/session'
 import type { LoopState, LoopView } from '@es/play/loop/types'
-import { COLOR_ROLE_NAMES } from '@/design/tokens'
-import {
-  changeOf,
-  clipX,
-  COMB_TEETH,
-  GLOW,
-  HISTORY_TICKS,
-  lanesFor,
-  MAX_GLOWS,
-  PASS,
-  RAIL,
-  SLAB_ROLE,
-  sceneLayout,
-  SLOT_PITCH,
-  STATION_BAR,
-  stationGlows,
-  STRIP_TICKETS,
-  stripSheets,
-  TICKET,
-  TRACK_Y,
-  UNITS_PER_TICK,
-  type LoopSceneLayout,
-} from '@/games/loop/scene-layout'
-import { DEFAULT_PRESET, LOOP_PRESETS } from '@/games/loop/scene-presets'
-import { handLevel, houseNight, statesOfHouseNight } from './loop-support'
+import { staticSceneTokens } from '@/design/scene-tokens'
+import { framingFor, type CameraPreset, type Vec3 } from '@/scene/camera-rig'
+import { buildProp } from '@/scene/props/build'
+import { paletteFrom } from '@/scene/props/palette'
+import { PLATE, TICKET as KIT_TICKET } from '@/scene/props/specs'
+import { changeOf, clipX, COUNTER_TICKETS, FIRED, PASS, passWidth, pitchOf, RAIL, serviceKitchen, serviceScene, TICKET, type ServiceKitchen } from '@/games/loop/scene-layout'
+import { DEFAULT_PRESET, FRONT_PRESET, FRONT_PRESETS, LOOP_PRESETS } from '@/games/loop/scene-presets'
+import { statesOfHouseNight } from './loop-support'
 
 const root = path.resolve(import.meta.dirname, '../..')
 const level = (id: (typeof LEVEL_IDS)[number], seed = 1) => buildLevel(id, seed)
@@ -47,234 +30,225 @@ const fill = (s: LoopState, n = Number.POSITIVE_INFINITY): LoopState => {
   for (let i = 0; i < n && askOf(state) !== null; i++) state = hang(state, state.waiting[0])
   return state
 }
-const placesOf = (layout: LoopSceneLayout, fire: number) => layout.places.filter((place) => place.id.startsWith(`fire-${fire}/`))
+const kitchenOf = (view: LoopView, printer = true): ServiceKitchen => serviceKitchen(view.slots, { printer, overlap: view.overlapAvailable })
+const sceneOf = (view: LoopView, printer = true) => serviceScene(view, kitchenOf(view, printer))
 
-describe('the line draws the view', () => {
-  const night = houseNight(handLevel([3, 1, 5, 2, 7, 4, 2, 6]), { overlap: true })
-  const view = loopView(night)
-  const layout = sceneLayout(view)
+describe('the kitchen: the room the night is served in', () => {
+  const view = loopView(initState(level('first-1-fill')))
+  const kitchen = kitchenOf(view)
+  const kinds = kitchen.items.map((item) => item.kind)
 
-  test('every fire in the window is a slab of the line\'s steel as wide as the rail, with one place per clip in the form the view says', () => {
-    const shown = view.fires.filter((fire) => fire.endUs > layout.window.start)
-    expect(shown.length).toBeGreaterThan(0)
-    const form = { plate: 'solid', empty: 'groove', binned: 'hollow' } as const
-    for (const fire of shown) {
-      const slab = layout.slabs.find((span) => span.id === `fire-${fire.index}`)
-      expect(slab).toMatchObject({ start: fire.startUs, end: fire.endUs, width: view.slots * SLOT_PITCH, role: SLAB_ROLE })
-      expect(layout.spans.some((span) => span.id === `fire-${fire.index}`)).toBe(false)
-      const places = placesOf(layout, fire.index)
-      expect(places.map((place) => place.form)).toEqual(fire.places.map((place) => form[place.state]))
-      // A clip's places line up along the night, behind its clip on the rail.
-      places.forEach((place, slot) => expect(place.x).toBeCloseTo(clipX(slot)))
+  test('a whole room: floor, tile on two walls, the hood over the line, a speed rack, and the pass with its gantry, rail, bell and spike', () => {
+    for (const kind of ['floor', 'hood', 'speed-rack', 'pass', 'rail', 'bell-base', 'spike', 'plate-stack']) expect(kinds).toContain(kind)
+    expect(kinds.filter((kind) => kind === 'tile-wall')).toHaveLength(2)
+    const pass = kitchen.items.find((item) => item.kind === 'pass')
+    expect(pass).toMatchObject({ width: passWidth(4), depth: PASS.depth, height: PASS.top, gantry: PASS.gantry })
+    // The rail hangs under the gantry's bar, over the pass's back edge.
+    expect(kitchen.rail.at).toEqual([0, RAIL.y, RAIL.z])
+    expect(RAIL.y).toBeCloseTo(PASS.top + PASS.gantry - 0.008)
+    expect(RAIL.z).toBeLessThan(0)
+  })
+
+  test('three heat lamps hang over the clips from the ceiling, each lighting the counter under it', () => {
+    expect(kitchen.items.filter((item) => item.kind === 'heat-lamp')).toHaveLength(3)
+    expect(kitchen.lights).toHaveLength(3)
+    for (const light of kitchen.lights) {
+      expect(light.at[1]).toBeGreaterThan(RAIL.y)
+      expect(light.target[1]).toBe(PASS.top)
+      expect(Math.abs(light.at[0])).toBeLessThanOrEqual(clipX(3, 4))
     }
   })
 
-  test('a dark stretch lies exactly where the line waited between two fires, and nowhere else', () => {
-    for (const fire of view.fires.slice(1)) {
-      const before = view.fires[fire.index - 1]
-      const dark = layout.spans.find((span) => span.id === `dark-${fire.index}`)
-      if (fire.startUs > before.endUs && before.endUs >= layout.window.start) expect(dark).toMatchObject({ start: before.endUs, end: fire.startUs, role: 'lane-idle', form: 'hollow' })
-      else expect(dark).toBeUndefined()
+  test('the line has a station for each clip, each glowing on its own channel, in clip order; a long rail shares six stations', () => {
+    const stations = kitchen.items.filter((item) => item.kind === 'griddle' || item.kind === 'burners' || item.kind === 'fryer')
+    expect(stations.map((station) => ('channel' in station ? station.channel : -1))).toEqual([0, 1, 2, 3])
+    expect(kitchen.stations.map((station) => station.clips)).toEqual([[0], [1], [2], [3]])
+    for (let s = 1; s < stations.length; s++) expect(stations[s].at[0]).toBeGreaterThan(stations[s - 1].at[0])
+    // The line stands beyond the pass, against the back wall.
+    for (const station of stations) expect(station.at[2]).toBeLessThan(-PASS.depth)
+    const long = serviceKitchen(9, { printer: true, overlap: false })
+    expect(long.stations).toHaveLength(6)
+    expect(long.stations.flatMap((station) => station.clips)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8])
+  })
+
+  test('the printer stands at the pass\'s left end only where the page asks for it; the front page holds its own', () => {
+    expect(kinds).toContain('printer')
+    expect(kitchen.printer?.at[0]).toBeLessThan(clipX(0, 4) - 0.3)
+    const front = kitchenOf(view, false)
+    expect(front.items.some((item) => item.kind === 'printer')).toBe(false)
+    expect(front.printer).toBeNull()
+  })
+
+  test('the fired rail and the bin are there on a level with the overlap switch, and on no other', () => {
+    expect(kitchen.fired).toBeNull()
+    expect(kitchen.bin).toBeNull()
+    const gap = kitchenOf(loopView(initState(level('first-3-gap'))))
+    expect(gap.fired?.at).toEqual([0, FIRED.y, FIRED.z])
+    expect(gap.items.find((item) => item.id === 'fired')).toMatchObject({ kind: 'rail', hang: expect.any(Number) })
+    // It hangs on two rods from the gantry's bar, below the rail and its tickets.
+    expect(FIRED.y).toBeLessThan(RAIL.y - TICKET.height)
+    expect(gap.items.find((item) => item.id === 'bin')).toMatchObject({ kind: 'pan', size: '1/1' })
+  })
+
+  test('every prop builds with the kit, and what stands on the floor or the counter has a footprint for its contact shadow', () => {
+    const palette = paletteFrom(staticSceneTokens())
+    for (const item of kitchenOf(loopView(initState(level('first-3-gap')))).items) {
+      const built = buildProp(item, palette)
+      expect(built.parts.length, item.id).toBeGreaterThan(0)
+      // Nothing floats: the room, the hood, the lamps and the rails hang from it or bound it; everything else casts a contact shadow.
+      if (!['floor', 'tile-wall', 'hood', 'heat-lamp', 'rail'].includes(item.kind)) expect(built.footprints.length, item.id).toBeGreaterThan(0)
     }
   })
 
-  test('the expo lane has a plan and a read for each fire, in their lane roles', () => {
-    const plans = layout.spans.filter((span) => span.id.endsWith('-schedule'))
-    const reads = layout.spans.filter((span) => span.id.endsWith('-sync'))
-    expect(plans.length).toBe(view.cpu.filter((span) => span.kind === 'schedule' && span.endUs > layout.window.start).length)
-    expect(reads.length).toBe(view.cpu.filter((span) => span.kind === 'sync' && span.endUs > layout.window.start).length)
-    for (const plan of plans) expect(plan.role).toBe('lane-cpu')
-    for (const read of reads) expect(read.role).toBe('lane-sync')
-    for (const span of [...plans, ...reads]) expect(span.lane).toBe(lanesFor(view.slots).cpuX)
-  })
-
-  test('the window holds the last ticks of the night, and the clock is the present', () => {
-    expect(layout.window.now).toBe(view.clockUs)
-    expect(layout.window.start).toBe(Math.max(0, view.clockUs - HISTORY_TICKS))
-    expect(layout.unitsPerTime).toBe(UNITS_PER_TICK)
-  })
-
-  test('every colour a mark takes is a token role, and the steel takes only its three tones', () => {
-    const roles = new Set<string>(COLOR_ROLE_NAMES)
-    for (const mark of [...layout.slabs, ...layout.spans, ...layout.places]) expect(roles.has(mark.role)).toBe(true)
-    // A fire's slab is a sheet of the line's steel, one of the steel's tones: its state is carried by the stations' heat, never by a code colour.
-    expect(['surface-1', 'surface-2', 'surface-3']).toContain(SLAB_ROLE)
-    expect(roles.has(layout.onLine?.role ?? 'lamp-ring')).toBe(true)
-    for (const part of [...layout.fixtures, ...layout.overhead]) expect(['bright', 'shaded', 'deep']).toContain(part.tone)
-  })
-
-  test('three heat lamps hang over the present, their shades apart from the rest of the steel so a shot from above can leave them out', () => {
-    expect(layout.lamps).toHaveLength(3)
-    for (const lamp of layout.lamps) {
-      expect(lamp.at[1]).toBeGreaterThan(lamp.target[1])
-      expect(lamp.target[2]).toBeLessThan(lamp.at[2] + 0.5)
-    }
-    expect(layout.overhead.filter((part) => part.kind === 'shade')).toHaveLength(3)
-    expect(layout.fixtures.some((part) => part.kind === 'shade')).toBe(false)
-  })
-
-  test('the clock says what it counts twice, at the present for the shots down the night and at its far end for the side shot', () => {
-    expect(layout.anchors.filter((anchor) => anchor.text === 'ticks · synthetic').map((anchor) => anchor.kind).sort()).toEqual(['axis', 'axis-far'])
-    for (const tick of layout.anchors.filter((anchor) => anchor.kind === 'tick')) expect(Number(tick.text)).toBeLessThanOrEqual(view.clockUs)
+  test('the clips are a ticket and a plate apart on the front page\'s rail, and the rail runs past them all', () => {
+    expect(pitchOf(4)).toBe(0.36)
+    expect(pitchOf(4)).toBeGreaterThan(PLATE.radius * 2)
+    expect(clipX(0, 4)).toBeCloseTo(-0.54)
+    expect(clipX(3, 4)).toBeCloseTo(0.54)
+    expect(kitchen.rail.length).toBeGreaterThan(clipX(3, 4) - clipX(0, 4) + KIT_TICKET.width)
+    // The ticket here is the kit's own.
+    expect([TICKET.width, TICKET.height]).toEqual([KIT_TICKET.width, KIT_TICKET.height])
   })
 })
 
-describe('the rail, the fired rail and the printer', () => {
-  test('first service opens on an empty rail: every clip says empty, and the printer strip shows the tickets in line, the next at its end', () => {
+describe('the night on the pass', () => {
+  test('first service opens on an empty rail: every clip shows its empty stub, and the counter holds the tickets in line, the next first', () => {
     const view = loopView(initState(level('first-1-fill')))
-    const layout = sceneLayout(view)
-    expect(layout.tickets.filter((sheet) => sheet.kind === 'rail')).toEqual([])
-    expect(layout.anchors.filter((anchor) => anchor.kind === 'empty').map((anchor) => anchor.text)).toEqual(['empty', 'empty', 'empty', 'empty'])
-    const strip = layout.tickets.filter((sheet) => sheet.kind === 'waiting')
-    expect(strip).toHaveLength(Math.min(STRIP_TICKETS, view.waiting.length))
-    // The strip hangs and curls toward the expo: the lowest, nearest sheet is the next ticket in line.
-    const lowest = [...strip].sort((a, b) => a.center[1] - b.center[1])[0]
-    expect(lowest.req).toBe(view.waiting[0])
-    expect(layout.inPrinter).toBe(view.waiting.length - strip.length)
-    expect(layout.anchors.find((anchor) => anchor.kind === 'more')?.text).toBe(`+${layout.inPrinter}`)
+    const scene = sceneOf(view)
+    expect(scene.anchors.filter((anchor) => anchor.kind === 'empty')).toHaveLength(4)
+    expect(scene.anchors.filter((anchor) => anchor.kind === 'waiting').map((anchor) => anchor.text)).toEqual(view.waiting.slice(0, COUNTER_TICKETS).map(ticketNo))
+    const more = view.waiting.length - Math.min(COUNTER_TICKETS, view.waiting.length)
+    if (more > 0) expect(scene.anchors.find((anchor) => anchor.kind === 'more')?.text).toBe(`+${more}`)
+    // The tickets on the counter lie flat, face up, and a pick finds each one.
+    expect(scene.picks.map((pick) => pick.req)).toEqual(view.waiting.slice(0, COUNTER_TICKETS))
+    for (const ticket of scene.tickets) expect(ticket.rotation[0]).toBeCloseTo(-Math.PI / 2)
+    for (const pick of scene.picks) expect(pick.center[1]).toBeGreaterThan(PASS.top)
   })
 
-  test('a hung ticket keeps its sheet: the paper that left the strip is the paper on the clip, and it says new until it is fired', () => {
+  test('a hung ticket keeps its paper: the ticket that left the counter is the ticket on the clip, and it says new until it is fired', () => {
     const before = initState(level('first-1-fill'))
-    const after = hang(before, before.waiting[0])
-    const id = `t${before.waiting[0]}`
-    expect(sceneLayout(loopView(before)).tickets.find((sheet) => sheet.id === id)?.kind).toBe('waiting')
-    const layout = sceneLayout(loopView(after))
-    const sheet = layout.tickets.find((candidate) => candidate.id === id)
-    expect(sheet?.kind).toBe('rail')
-    expect(sheet?.center[0]).toBeCloseTo(clipX(0))
-    const label = layout.anchors.find((anchor) => anchor.id === `ticket-${before.waiting[0]}`)
-    expect(label).toMatchObject({ text: ticketNo(before.waiting[0]), sub: 'new', frame: `sheet:${id}` })
-    const fired = sceneLayout(loopView(step(fill(after))))
+    const req = before.waiting[0]
+    const after = hang(before, req)
+    const id = `t${req}`
+    const was = sceneOf(loopView(before)).tickets.find((ticket) => ticket.id === id)
+    const scene = sceneOf(loopView(after))
+    const now = scene.tickets.find((ticket) => ticket.id === id)
+    expect(was?.at[1]).toBeLessThan(PASS.top + 0.01)
+    expect(now?.at[0]).toBeCloseTo(clipX(0, 4))
+    expect(now?.at[1]).toBeGreaterThan(RAIL.y - 0.05)
+    expect(scene.anchors.find((anchor) => anchor.id === `no-${id}`)).toMatchObject({ kind: 'ticket', text: ticketNo(req), sub: 'new', frame: `ticket:${id}` })
+    const fired = sceneOf(loopView(step(fill(after))))
     expect(fired.anchors.filter((anchor) => anchor.kind === 'ticket').every((anchor) => anchor.sub === undefined)).toBe(true)
   })
 
-  test('the printer feeds the strip out by one ticket when one is hung and more wait inside it', () => {
+  test('the printer feeds when the counter takes a ticket out of it; a front page\'s scene has no counter', () => {
     const state = initState(level('first-4-par'))
-    expect(state.waiting.length).toBeGreaterThan(STRIP_TICKETS)
-    const before = stripSheets(4, state.waiting)
-    const after = stripSheets(4, hang(state, state.waiting[0]).waiting)
-    // Every ticket still in the strip moved one segment out: it now sits where the ticket ahead of it sat.
-    for (const sheet of after.slice(1)) {
-      const ahead = before.find((candidate) => candidate.req === sheet.req - 1)
-      expect(sheet.center[1]).toBeCloseTo(ahead?.center[1] ?? Number.NaN)
-    }
+    expect(state.waiting.length).toBeGreaterThan(COUNTER_TICKETS)
+    const before = sceneOf(loopView(state))
+    const after = sceneOf(loopView(hang(state, state.waiting[0])))
+    expect(after.feed).not.toBe(before.feed)
+    expect(sceneOf(loopView(state), false).tickets).toEqual([])
   })
 
-  test('the fired rail is there only while a fire is on the line, holding that fire\'s tickets', () => {
-    const off = step(fill(initState(level('first-3-gap'))))
-    expect(loopView(off).firedRail).toBeNull()
-    expect(sceneLayout(loopView(off)).tickets.some((sheet) => sheet.kind === 'fired')).toBe(false)
-    const on = step(fill(setOverlap(initState(level('first-3-gap')), true)))
-    const view = loopView(on)
+  test('the fired rail holds a copy of each ticket of the fire on the line, come down from its clip on the rail', () => {
+    const off = loopView(step(fill(initState(level('first-3-gap')))))
+    expect(off.firedRail).toBeNull()
+    expect(sceneOf(off).tickets.some((ticket) => ticket.id.startsWith('f'))).toBe(false)
+    const view = loopView(step(fill(setOverlap(initState(level('first-3-gap')), true))))
     expect(view.firedRail).not.toBeNull()
-    const layout = sceneLayout(view)
-    const fired = layout.tickets.filter((sheet) => sheet.kind === 'fired')
-    expect(fired.map((sheet) => sheet.req)).toEqual((view.firedRail ?? []).flatMap((clip) => (clip.req === null ? [] : [clip.req])))
-    expect(layout.onLine).not.toBeNull()
-    expect(layout.stations.lit).toEqual(stationsOf(view))
-    expect(view.lineLit).toBe(true)
+    const copies = sceneOf(view).tickets.filter((ticket) => ticket.id.startsWith('f'))
+    expect(copies.map((ticket) => Number(ticket.id.slice(1)))).toEqual((view.firedRail ?? []).flatMap((clip) => (clip.req === null ? [] : [clip.req])))
+    for (const copy of copies) {
+      expect(copy.at[1]).toBeLessThan(FIRED.y)
+      expect(copy.from?.at[1]).toBeGreaterThan(RAIL.y - 0.05)
+    }
   })
 
-  test('the stations light where the latest fire cooked a course and sit dark where its clip rode empty: half a rail fired leaves half the line dark, a full rail lights it end to end', () => {
-    const before = loopView(fill(initState(level('first-1-fill')), 2))
-    expect(sceneLayout(before).stations.lit).toEqual([false, false, false, false])
+  test('the plates are the last fire read back: one under each clip that cooked, sliding in from the line and carried out to the expo', () => {
     const half = loopView(step(fill(initState(level('first-1-fill')), 2)))
-    const halfLayout = sceneLayout(half)
-    expect(halfLayout.stations.lit).toEqual([true, true, false, false])
-    expect(halfLayout.stations.elements.map((element) => element.lit)).toEqual([true, true, false, false])
-    expect(halfLayout.stations.elements.map((element) => element.at[0])).toEqual([0, 1, 2, 3].map(clipX))
-    // On a laptop each burning station throws its light down its own row: the half that burns is lit, the half that rode empty
-    // stays dark. On a phone the line's one light, over the line's middle, burns half as bright as a full fire's.
-    expect(stationGlows(halfLayout.stations.lit, MAX_GLOWS.laptop).map((glow) => glow.share)).toEqual([1, 1, 0, 0])
-    expect(stationGlows(halfLayout.stations.lit, MAX_GLOWS.laptop).map((glow) => glow.at[0])).toEqual([0, 1, 2, 3].map(clipX))
-    const [phone] = stationGlows(halfLayout.stations.lit, MAX_GLOWS.phone)
-    expect(phone.share).toBe(0.5)
-    expect(phone.at[0]).toBeCloseTo((clipX(0) + clipX(3)) / 2)
-    expect(halfLayout.anchors.find((anchor) => anchor.kind === 'station')?.text).toBe('2 of 4 lit')
-    // An empty place is a dark station's well, in the deep steel's role; a plate is the paper's white.
-    const roles = placesOf(halfLayout, 0).map((place) => place.role)
-    expect(roles).toEqual(['cat-white', 'cat-white', 'surface-3', 'surface-3'])
-    const full = sceneLayout(loopView(step(fill(initState(level('first-1-fill'))))))
-    expect(full.stations.lit).toEqual([true, true, true, true])
-    expect(stationGlows(full.stations.lit, MAX_GLOWS.laptop).map((glow) => glow.share)).toEqual([1, 1, 1, 1])
-    const [line] = stationGlows(full.stations.lit, MAX_GLOWS.phone)
-    expect(line.share).toBe(1)
-    expect(line.at[0]).toBeCloseTo((clipX(0) + clipX(3)) / 2)
-    expect(full.anchors.find((anchor) => anchor.kind === 'station')?.text).toBe('4 of 4 lit')
+    const plates = sceneOf(half).plates
+    expect(plates.map((plate) => plate.at[0])).toEqual([clipX(0, 4), clipX(1, 4)])
+    for (const plate of plates) {
+      expect(plate.at[1]).toBe(PASS.top)
+      expect(plate.enter?.[2]).toBeLessThan(plate.at[2])
+      expect(plate.leave?.[2]).toBeGreaterThan(1)
+    }
+    // With overlap the fire on the line has not been read back: its courses are not on the pass yet.
+    const first = loopView(step(setOverlap(fill(initState(level('first-3-gap'))), true)))
+    const served = [...first.fires].reverse().find((fire) => !fire.onLine)
+    for (const plate of sceneOf(first).plates) expect(plate.id.startsWith(`p${served?.index}-`) || plate.id.startsWith('b')).toBe(true)
   })
 
-  test('the stations\' lights hang beyond the bar, down the line; their number is the rail\'s and the tier\'s, never what burns', () => {
-    for (const glow of stationGlows([true, false, true, false], MAX_GLOWS.laptop)) {
-      expect(glow.at[2]).toBeLessThan(STATION_BAR.z)
-      expect(glow.at).toEqual([glow.at[0], GLOW.y, GLOW.z])
+  test('a binned plate goes into the bin and stays there, the last few of the night', () => {
+    let night: LoopView | null = null
+    for (const state of statesOfHouseNight(level('first-4-par'), { overlap: true })) {
+      const view = loopView(state)
+      if (view.counters.ghostTokens >= 2) {
+        night = view
+        break
+      }
     }
-    for (const max of [MAX_GLOWS.phone, MAX_GLOWS.laptop]) {
-      expect(stationGlows([false, false, false, false], max)).toHaveLength(max)
-      expect(stationGlows([true, true, true, true], max)).toHaveLength(max)
-    }
-    // Eight clips share a laptop's lights, neighbours together: each over its pair's middle, as bright as the share of the pair that burns.
-    const eight = stationGlows([true, true, false, true, false, false, false, false], MAX_GLOWS.laptop)
-    expect(eight.map((glow) => glow.share)).toEqual([1, 0.5, 0, 0])
-    expect(eight[0].at[0]).toBeCloseTo((clipX(0) + clipX(1)) / 2)
-    expect(eight[1].at[0]).toBeCloseTo((clipX(2) + clipX(3)) / 2)
-    // What burns never moves a light: the places are the rail's.
-    expect(stationGlows([false, true, true, true, true, true, true, false], MAX_GLOWS.laptop).map((glow) => glow.at)).toEqual(eight.map((glow) => glow.at))
-  })
-
-  test('the stations\' bar stands beyond the pass, over the line\'s head, above every slab and below every hung ticket', () => {
-    const layout = sceneLayout(loopView(step(fill(initState(level('first-1-fill'))))))
-    for (const element of layout.stations.elements) {
-      expect(element.at[2]).toBeLessThan(PASS.back)
-      expect(element.at[1] - element.diameter / 2).toBeGreaterThan(Math.max(...layout.places.map((place) => (place.y ?? 0) + place.height)) + TRACK_Y)
-      expect(element.at[1] + element.diameter / 2).toBeLessThan(RAIL.y - TICKET.h)
+    if (night === null) throw new Error('no binned plates in the house\'s night')
+    const kitchen = kitchenOf(night)
+    const binned = serviceScene(night, kitchen).plates.filter((plate) => plate.id.startsWith('b'))
+    expect(binned.length).toBeGreaterThanOrEqual(1)
+    for (const plate of binned) {
+      expect(Math.abs(plate.at[0] - (kitchen.bin?.[0] ?? 0))).toBeLessThan(0.1)
+      expect(plate.leave).toBeUndefined()
     }
   })
 
-  test('a page that holds the printer itself leaves the scene\'s printer and its strip out', () => {
-    const view = loopView(initState(level('first-1-fill')))
-    const kept = sceneLayout(view)
-    const left = sceneLayout(view, { printer: false })
-    expect(kept.tickets.some((sheet) => sheet.kind === 'waiting')).toBe(true)
-    expect(left.tickets.some((sheet) => sheet.kind === 'waiting')).toBe(false)
-    expect(left.anchors.some((anchor) => anchor.kind === 'waiting' || anchor.kind === 'more')).toBe(false)
-    expect(left.fixtures.length).toBeLessThan(kept.fixtures.length)
+  test('a finished ticket is spiked, the latest on top', () => {
+    let state = initState(level('first-2-slot'))
+    for (let bells = 0; bells < 6; bells++) state = step(fill(state))
+    const view = loopView(state)
+    const kitchen = kitchenOf(view)
+    const spiked = sceneOf(view).tickets.filter((ticket) => Math.hypot(ticket.at[0] - kitchen.spike[0], ticket.at[2] - kitchen.spike[2]) < TICKET.height)
+    expect(spiked.length).toBeGreaterThan(0)
+    const live = new Set(view.rail.flatMap((clip) => (clip.req === null ? [] : [`t${clip.req}`])))
+    for (const ticket of spiked) expect(live.has(ticket.id)).toBe(false)
+    for (let k = 1; k < spiked.length; k++) expect(spiked[k].at[1]).toBeGreaterThan(spiked[k - 1].at[1])
+  })
+
+  test('the stations burn where the latest fire cooked a course: half a rail fired leaves half the line dark, a full rail lights it end to end', () => {
+    expect(sceneOf(loopView(fill(initState(level('first-1-fill')), 2))).lit).toEqual([false, false, false, false])
+    const half = loopView(step(fill(initState(level('first-1-fill')), 2)))
+    expect(sceneOf(half).lit).toEqual(stationsOf(half))
+    expect(sceneOf(half).lit).toEqual([true, true, false, false])
+    expect(sceneOf(loopView(step(fill(initState(level('first-1-fill')))))).lit).toEqual([true, true, true, true])
+  })
+
+  test('a fire that waited on the expo is the bubble, and with overlap the line stops waiting', () => {
+    const plain = loopView(step(fill(step(fill(initState(level('first-3-gap')))))))
+    expect(plain.fires[plain.fires.length - 1].bubbleUs).toBeGreaterThan(0)
+    expect(sceneOf(plain).bubble).toBe(true)
+    let state = setOverlap(fill(initState(level('first-4-par'))), true)
+    for (let bells = 0; bells < 3; bells++) state = step(fill(state))
+    const overlapped = loopView(state)
+    expect(overlapped.fires[overlapped.fires.length - 1].bubbleUs).toBe(0)
+    expect(sceneOf(overlapped).bubble).toBe(false)
   })
 })
 
-describe('the comb (GAMES.md §2.6: calling each dish against one word)', () => {
-  /** The view of a night with a launch phase on every fire, as TR2's levels will give it (W1-T13). */
-  function withLaunches(view: LoopView, launches: number, graph: 'off' | 'hit' | 'miss'): LoopView {
-    const cpu = view.cpu.flatMap((span) => (span.kind === 'schedule' ? [span, { step: span.step, kind: 'launch' as const, startUs: span.endUs - 1, endUs: span.endUs }] : [span]))
-    return { ...view, cpu, fires: view.fires.map((fire) => ({ ...fire, launches, graph })) }
+/** Where a point lands in a canvas `width` × `height` for a preset's framing at that width, in CSS px: three's projection, by hand. */
+function projectIn(preset: CameraPreset, point: Vec3, width: number, height: number): { x: number; y: number } {
+  const framing = framingFor(preset, width)
+  const [px, py, pz] = framing.position
+  const [tx, ty, tz] = framing.target
+  const length = Math.hypot(tx - px, ty - py, tz - pz)
+  const f = [(tx - px) / length, (ty - py) / length, (tz - pz) / length]
+  const across = Math.hypot(f[0], f[2])
+  const r = [-f[2] / across, 0, f[0] / across]
+  const u = [r[1] * f[2] - r[2] * f[1], r[2] * f[0] - r[0] * f[2], r[0] * f[1] - r[1] * f[0]]
+  const v = [point[0] - px, point[1] - py, point[2] - pz]
+  const dot = (a: number[]) => a[0] * v[0] + a[1] * v[1] + a[2] * v[2]
+  if (preset.projection === 'orthographic') {
+    const scale = height / framing.viewHeight
+    return { x: width / 2 + dot(r) * scale, y: height / 2 - dot(u) * scale }
   }
-  const base = loopView(houseNight(handLevel([2, 3, 2, 4]), { overlap: false }))
-
-  test('the front page launches nothing, so it draws no comb', () => {
-    expect(base.fires.every((fire) => fire.launches === 0 && fire.graph === 'off')).toBe(true)
-    expect(sceneLayout(base).spans.some((span) => span.id.includes('-launch'))).toBe(false)
-  })
-
-  test('an eager fire calls each dish: one tooth per launch, inside its launch phase, up to the cap and a label beyond it', () => {
-    const view = withLaunches(base, 12, 'off')
-    const layout = sceneLayout(view)
-    const teeth = layout.spans.filter((span) => span.id.startsWith('cpu-0-launch-tooth-'))
-    expect(teeth).toHaveLength(12)
-    const phase = view.cpu.find((span) => span.step === 0 && span.kind === 'launch')
-    for (const tooth of teeth) {
-      expect(tooth.start).toBeGreaterThanOrEqual(phase?.startUs ?? Number.NaN)
-      expect(tooth.end).toBeLessThanOrEqual(phase?.endUs ?? Number.NaN)
-    }
-    const many = sceneLayout(withLaunches(base, 300, 'miss'))
-    expect(many.spans.filter((span) => span.id.startsWith('cpu-0-launch-tooth-'))).toHaveLength(COMB_TEETH)
-    expect(many.anchors.find((anchor) => anchor.id === 'calls-0')?.text).toBe('300 calls')
-  })
-
-  test('a graph hit collapses the comb into one short replay slab', () => {
-    const layout = sceneLayout(withLaunches(base, 1, 'hit'))
-    expect(layout.spans.filter((span) => span.id.startsWith('cpu-0-launch'))).toEqual([expect.objectContaining({ id: 'cpu-0-launch-replay', form: 'marked', role: 'lane-cpu' })])
-  })
-})
+  const k = Math.tan((framing.fov * Math.PI) / 360) * dot(f)
+  return { x: width / 2 + (dot(r) / k) * (height / 2), y: height / 2 - (dot(u) / k) * (height / 2) }
+}
 
 describe('the camera presets (GAMES.md §2.6, Service, Cameras)', () => {
   test('three shots, a button each: over the shoulder (the default), the side of the pass in orthographic, and under the lamps', () => {
@@ -284,18 +258,81 @@ describe('the camera presets (GAMES.md §2.6, Service, Cameras)', () => {
       ['lamps', 'Under the lamps', 'top', 'perspective'],
     ])
     expect(DEFAULT_PRESET).toBe('shoulder')
-    for (const preset of LOOP_PRESETS) expect(preset.portrait).toBeDefined()
+    for (const preset of [...LOOP_PRESETS, ...FRONT_PRESETS]) expect(preset.portrait).toBeDefined()
   })
 
-  test('over the shoulder looks down the night at about 25 degrees, from behind the expo', () => {
-    const [shoulder] = LOOP_PRESETS
-    const [px, py, pz] = shoulder.position
-    const [tx, ty, tz] = shoulder.target
-    const degrees = (Math.atan2(py - ty, Math.hypot(px - tx, pz - tz)) * 180) / Math.PI
-    expect(degrees).toBeGreaterThan(22)
-    expect(degrees).toBeLessThan(30)
-    expect(pz).toBeGreaterThan(tz)
+  test('over the shoulder looks through the pass to the line from behind the expo, about 20 to 35 degrees down', () => {
+    for (const preset of [LOOP_PRESETS[0], FRONT_PRESETS[0]]) {
+      const [px, py, pz] = preset.position
+      const [tx, ty, tz] = preset.target
+      const degrees = (Math.atan2(py - ty, Math.hypot(px - tx, pz - tz)) * 180) / Math.PI
+      expect(degrees).toBeGreaterThan(18)
+      expect(degrees).toBeLessThan(36)
+      expect(pz).toBeGreaterThan(tz)
+    }
   })
+
+  test('the front page\'s shot looks straight down the pass, so the rail runs level across the page, and it sees every clip', () => {
+    const [front] = FRONT_PRESETS
+    expect(FRONT_PRESET).toBe('front')
+    expect(front.position[0]).toBe(front.target[0])
+    for (const [width, height] of [
+      [1440, 716],
+      [1280, 616],
+      [390, 332],
+    ] as const) {
+      const ends = [clipX(0, 4), clipX(3, 4)].map((x) => projectIn(front, [x, RAIL.y, RAIL.z], width, height))
+      expect(Math.abs(ends[0].y - ends[1].y)).toBeLessThan(0.5)
+      for (const end of ends) expect(end.x).toBeGreaterThan(0)
+      expect(ends[1].x + 10).toBeLessThan(width)
+    }
+  })
+
+  test('every shot keeps the four clips in the canvas, on a laptop and on a phone', () => {
+    for (const preset of LOOP_PRESETS) {
+      for (const [width, height] of [
+        [1216, 540],
+        [390, 464],
+      ] as const) {
+        for (const slot of [0, 3]) {
+          const at = projectIn(preset, [clipX(slot, 4), RAIL.y - 0.06, RAIL.z], width, height)
+          expect([preset.id, width, at.x > 0 && at.x < width && at.y > 0 && at.y < height]).toEqual([preset.id, width, true])
+        }
+      }
+    }
+  })
+})
+
+describe('the tapes that name the line and the expo never meet (W0 finding F5)', () => {
+  const kitchen = kitchenOf(loopView(initState(level('first-3-gap'))))
+  /** The box a tape's words can take on screen: the tape itself, and never less than a phone's smallest print of them. */
+  const box = (preset: CameraPreset, id: string, width: number, height: number) => {
+    const tape = kitchen.tapes.find((candidate) => candidate.id === id)
+    if (!tape) throw new Error(`no tape ${id}`)
+    const [cx, cy, cz] = tape.center
+    const [w, h] = tape.size
+    const corners = [-1, 1].flatMap((sx) => [-1, 1].map((sy) => projectIn(preset, [cx + (sx * w) / 2, cy + (sy * h) / 2, cz], width, height)))
+    const x0 = Math.min(...corners.map((c) => c.x))
+    const x1 = Math.max(...corners.map((c) => c.x))
+    const y0 = Math.min(...corners.map((c) => c.y))
+    const y1 = Math.max(...corners.map((c) => c.y))
+    const half = { x: Math.max((x1 - x0) / 2, 45), y: Math.max((y1 - y0) / 2, 9) }
+    return { x0: (x0 + x1) / 2 - half.x, x1: (x0 + x1) / 2 + half.x, y0: (y0 + y1) / 2 - half.y, y1: (y0 + y1) / 2 + half.y }
+  }
+  for (const [preset, width, height] of [
+    [LOOP_PRESETS[0], 390, 464],
+    [LOOP_PRESETS[0], 1216, 540],
+    [FRONT_PRESETS[0], 390, 332],
+    [FRONT_PRESETS[0], 1440, 716],
+  ] as const) {
+    test(`${preset.id} at ${width} × ${height}`, () => {
+      const line = box(preset, 'line', width, height)
+      const expo = box(preset, 'expo', width, height)
+      expect(line.y1 < expo.y0 || expo.y1 < line.y0 || line.x1 < expo.x0 || expo.x1 < line.x0).toBe(true)
+      // The line's name is high, on the tile over the line; the expo's is low, on the pass's front edge.
+      expect(line.y1).toBeLessThan(expo.y0)
+    })
+  }
 })
 
 describe('the motion grammar: everything moves on the bell, and between bells only the printer feeds', () => {
@@ -313,24 +350,24 @@ describe('the motion grammar: everything moves on the bell, and between bells on
   })
 })
 
-describe('the budget (TRACKER W0-T17, accept 2; GAMES.md §3, Budget)', () => {
-  test('over every state of every level\'s night, the scene stays far under its instance budget', () => {
+describe('the budget (GAMES.md §3, Budget)', () => {
+  test('over every state of every level\'s night, the moving props stay far under the instance budget', () => {
     let most = 0
     let states = 0
     for (const id of LEVEL_IDS) {
       for (const state of statesOfHouseNight(level(id), { overlap: id === 'first-3-gap' || id === 'first-4-par' })) {
-        const layout = sceneLayout(loopView(state))
-        most = Math.max(most, layout.slabs.length + layout.spans.length + layout.places.length + layout.tickets.length + layout.tapes.length + layout.lamps.length)
+        const scene = sceneOf(loopView(state))
+        most = Math.max(most, scene.tickets.length + scene.plates.length + scene.clips.length * 2 + scene.picks.length)
         states += 1
       }
     }
-    console.log(`3D marks: at most ${most} instances in ${states} states of the four levels`)
-    // GAMES.md §3's T1 budget is 2,500 instances [estimated]; the scene's draw calls are one per primitive, whatever the count.
+    console.log(`3D instances: at most ${most} tickets, plates, clips and picks in ${states} states of the four levels`)
+    // GAMES.md §3's T1 budget is 2,500 instances [estimated]; each kind is one instanced draw, whatever its count.
     expect(most).toBeLessThan(2500)
   })
 })
 
-describe('the acceptance check on colour and text (TRACKER W0-T17, accept 5)', () => {
+describe('the acceptance check on colour and text', () => {
   const sources = ['src/games/loop/Scene3D.tsx', 'src/games/loop/scene-layout.ts', 'src/games/loop/scene-presets.ts'].map((file) => [file, readFileSync(path.join(root, file), 'utf8')] as const)
 
   test('no material in the scene takes a literal colour: every colour is read from a token role', () => {
@@ -342,17 +379,16 @@ describe('the acceptance check on colour and text (TRACKER W0-T17, accept 5)', (
     expect(sources[0][1]).toMatch(/roleColor\(kit\.tokens, 'lamp'\)/)
   })
 
-  test('no state takes a code colour: the stations burn in the heat lamp\'s amber, and the line\'s slabs are its steel', () => {
-    // The HACCP colours are the categorical code and only that (GAMES.md §2.6, rule 6): the line's lane colour, or any green, never
-    // marks a station lit or a fire cooked.
+  test('no state takes a code colour: the stations burn in the heat lamp\'s amber through the kit\'s glow, never a lane\'s colour', () => {
     for (const [file, text] of sources) expect(text, file).not.toMatch(/'lane-gpu'|cat-green/)
-    const lights = readFileSync(path.join(root, 'src/scene/Lights.tsx'), 'utf8')
-    expect(lights).toMatch(/kit\.materials\.lamp/)
+    expect(sources[0][1]).toMatch(/litMask\(lit\)/)
     for (const css of ['src/games/loop/scene3d.css', 'src/front/front.css']) expect(readFileSync(path.join(root, css), 'utf8'), css).not.toMatch(/lane-gpu|cat-green/)
   })
 
-  test('nothing is written in the canvas: no text geometry, no canvas texture, and every word goes through the label layer', () => {
+  test('the scene is the kit\'s: no primitive of the W0 kit, nothing written in the canvas, and every word through the label layer', () => {
     const scene = sources[0][1]
+    expect(scene).not.toMatch(/BlockGrid|SpanInstances|TimeAxis|Fixtures|HeatElements|HeatLamps/)
+    expect(scene).toMatch(/<StaticSet items=\{kitchen\.items\}/)
     expect(scene).not.toMatch(/TextGeometry|CanvasTexture|getContext\(|fillText|from '@react-three\/drei'/)
     expect(scene).toMatch(/<SceneCanvas labels=\{labels\}/)
   })

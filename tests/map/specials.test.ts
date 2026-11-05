@@ -127,7 +127,7 @@ describe('the Play index', () => {
     expect(line).toContain('data-picture="poster"')
     // The poster is a file that the page fetches (tests/map/posters.test.ts), so the server draws its well in the shape of the drawing and waits.
     const well = elementFrom(line, '<div class="es-line__well"', 'div')
-    expect(well).toBe('<div class="es-line__well" data-picture="poster"><div class="es-poster" data-state="reading" style="aspect-ratio:720 / 348"></div></div>')
+    expect(well).toBe('<div class="es-line__well" data-picture="poster"><div class="es-poster" data-state="reading" style="aspect-ratio:720 / 300"></div></div>')
     expect(line).toContain('href="/m/tr2"')
     expect(line).toContain('href="/m/tr6"')
     expect(textOf(line)).toContain('also TR6')

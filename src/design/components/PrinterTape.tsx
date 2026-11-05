@@ -34,17 +34,23 @@ export interface PrinterTapeProps {
   live?: boolean
   /** What sits on the printer's housing: the menu link, on the front page. */
   housing?: ReactNode
+  /**
+   * The provenance stamp, printed once at the head of the tape ("synthetic ticks"): with it, the lines' figures keep their own tags
+   * for a screen reader, and the stamp says it once for the eye.
+   */
+  stamp?: ReactNode
   className?: string
 }
 
-export function PrinterTape({ lines, label, feed, state = 'default', error, empty, live = false, housing, className }: PrinterTapeProps) {
+export function PrinterTape({ lines, label, feed, state = 'default', error, empty, live = false, housing, stamp, className }: PrinterTapeProps) {
   return (
-    <figure className={clsx('es-printer', className)} data-state={state} aria-label={label} aria-busy={state === 'loading' || undefined}>
+    <figure className={clsx('es-printer', className)} data-state={state} data-stamped={stamp ? '' : undefined} aria-label={label} aria-busy={state === 'loading' || undefined}>
       <div className="es-printer__housing">
         <span className="es-printer__slot" aria-hidden="true" />
         {housing ? <div className="es-printer__housing-items">{housing}</div> : null}
       </div>
       <div className="es-printer__tape" aria-live={live ? 'polite' : undefined}>
+        {stamp ? <p className="es-printer__stamp">{stamp}</p> : null}
         <div className="es-printer__feed" key={feed ?? 'still'} data-feeding={feed !== undefined || undefined}>
           {state === 'loading' ? (
             <p className="es-printer__line es-printer__line--status" role="status">

@@ -4,7 +4,8 @@
  *   2. At most 100 draw calls at the practice seed, read from the scene's own `renderer.info` (A§11.1), at T1 and at T2.
  *   3. `V` swaps 2D and 3D and keeps the levers; `C` and the buttons reach every camera preset.
  *   4. The screenshot artifact is non-blank: the canvas's pixels are sampled, and the capture is kept as a test artifact.
- *   5. All text is DOM: the tickets' numbers and the clock's words are page text over the canvas.
+ *   5. All text is DOM: the tickets' numbers and the tapes' words are page text over the canvas.
+ *   And W0's finding F5: on a phone the tapes naming the line and the expo never meet.
  *   And the motion grammar under reduced motion: after a bell the scene settles and asks for no frame.
  *   (1. `scene-loop` at most 40 KB gz is a build check: the task's result records the measured size, and W0-T20's verify:bundle gates it.
  *    5's "no material uses a literal colour" is tests/play/loop-scene.test.ts and tests/design/literals.test.ts.)
@@ -23,8 +24,12 @@ import path from 'node:path'
 import { test as base, expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { build } from 'vite'
-import { stripSheets } from '../src/games/loop/scene-layout'
+import { initState } from '../packages/play/loop/engine'
+import { buildLevel } from '../packages/play/loop/levels'
+import { loopView } from '../packages/play/loop/session'
+import { serviceKitchen, serviceScene } from '../src/games/loop/scene-layout'
 import type { FrameStats } from '../src/scene/stage-runtime'
+import { pixelStats } from './support/pixels'
 import type { SceneHook } from '../src/scene/test-hook'
 
 declare global {
@@ -217,12 +222,14 @@ test.describe('the views and the camera (A§6.8)', () => {
 })
 
 test.describe('picks (A§6.8, GAMES.md §2.3): a pick on the scene is the same action as its DOM control', () => {
-  test('tapping the next ticket on the printer\'s strip hangs it on the rail', async ({ page }) => {
+  test('tapping the next ticket on the counter by the printer hangs it on the rail', async ({ page }) => {
     await open(page, 'first-1-fill', 2)
     await settle(page)
-    // Where the strip's last sheet hangs, from the same layout the scene draws: the next ticket in line, No. 01.
-    const [next] = stripSheets(4, [0, 1, 2, 3, 4, 5]).filter((sheet) => sheet.req === 0)
-    const at = await page.evaluate((point) => (window.__esScene as SceneHook).probes.loop.project(point), next.center as [number, number, number])
+    // Where the next ticket in line lies on the counter, No. 01, from the same layout the scene draws.
+    const view = loopView(initState(buildLevel('first-1-fill', 1)))
+    const [next] = serviceScene(view, serviceKitchen(view.slots, { printer: true, overlap: view.overlapAvailable })).picks
+    expect(next.req).toBe(0)
+    const at = await page.evaluate((point) => (window.__esScene as SceneHook).probes.loop.project(point), [...next.center] as [number, number, number])
     if (!at) throw new Error('the strip is behind the camera')
     const box = await stage(page).locator('canvas').boundingBox()
     if (!box) throw new Error('no canvas')
@@ -242,38 +249,16 @@ test.describe('the picture (TRACKER W0-T17, accepts 4 and 5)', () => {
     await page.keyboard.press('KeyO')
     await page.keyboard.press('Period')
     await settle(page)
-    // The test build keeps the drawn frame, so the canvas can be read back: a grid of samples, their distinct colours and spread.
-    const sampled = await page.evaluate(() => {
-      const canvas = document.querySelector<HTMLCanvasElement>('[data-stage="loop"] canvas')
-      if (!canvas) return null
-      const copy = document.createElement('canvas')
-      copy.width = canvas.width
-      copy.height = canvas.height
-      const context = copy.getContext('2d')
-      if (!context) return null
-      context.drawImage(canvas, 0, 0)
-      const { data, width, height } = context.getImageData(0, 0, copy.width, copy.height)
-      const colours = new Set<string>()
-      let sum = 0
-      let squares = 0
-      let n = 0
-      for (let y = 4; y < height; y += Math.max(1, Math.floor(height / 40))) {
-        for (let x = 4; x < width; x += Math.max(1, Math.floor(width / 60))) {
-          const i = (y * width + x) * 4
-          const luma = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]
-          colours.add(`${data[i] >> 3},${data[i + 1] >> 3},${data[i + 2] >> 3}`)
-          sum += luma
-          squares += luma * luma
-          n += 1
-        }
-      }
-      const mean = sum / n
-      return { samples: n, colours: colours.size, spread: Math.sqrt(Math.max(0, squares / n - mean * mean)), width, height }
-    })
-    expect(sampled).not.toBeNull()
-    if (sampled === null) return
+    // The canvas as the page composites it, the check e2e/screenshots.spec.ts makes of the front page: a grid of samples, their distinct
+    // colours and spread (e2e/support/pixels.ts). At this window the canvas is 870 by 557 px, a size at which a polished part's highlight
+    // once overflowed the half-float target and bloom drew the whole frame black [measured 2026-11-04] (src/scene/props/materials.ts,
+    // RADIANCE_CAP).
+    const canvas = stage(page).locator('canvas')
+    await page.addStyleTag({ content: '.es-labels { visibility: hidden !important; }' })
+    const sampled = await pixelStats(page.context(), await canvas.screenshot())
     expect(sampled.colours).toBeGreaterThan(40)
     expect(sampled.spread).toBeGreaterThan(12)
+    await page.addStyleTag({ content: '.es-labels { visibility: visible !important; }' })
     const shot = info.outputPath('loop-3d.png')
     await stage(page).screenshot({ path: shot })
     await info.attach('loop-3d', { path: shot, contentType: 'image/png' })
@@ -287,7 +272,7 @@ test.describe('the picture (TRACKER W0-T17, accepts 4 and 5)', () => {
     // first-2-slot opens with the house's four tickets hung: their numbers are print on paper, as DOM.
     for (const number of ['01', '02', '03', '04']) await expect(labels.locator('.es-loop-label--ticket', { hasText: number })).toHaveCount(1)
     await expect(labels.getByText('the line · gpu')).toHaveCount(1)
-    await expect(labels.getByText('ticks · synthetic')).toHaveCount(1)
+    await expect(labels.getByText('the expo · cpu')).toHaveCount(1)
     // The labels ride over the canvas, which carries no text and is hidden from assistive technology with its box.
     await expect(stage(page).locator('.es-stage__scene')).toHaveAttribute('aria-hidden', 'true')
     expect(await stage(page).locator('canvas').evaluate((canvas) => canvas.textContent)).toBe('')
@@ -358,6 +343,29 @@ test.describe('the night on the GPU is the night in the session (W0-T17)', () =>
     console.log(`played against fresh: ${off} of ${fresh.length / 3} samples differ`)
     expect(off).toBeLessThanOrEqual(Math.ceil(fresh.length / 3 / 200))
   })
+})
+
+test.describe('the tapes naming the line and the expo never meet on a phone (W0 finding F5)', () => {
+  test.use({ viewport: { width: 390, height: 844 } })
+
+  for (const route of ['/play/loop?level=first-3-gap&es-tier=1', '/?es-tier=1']) {
+    test(route, async ({ page }) => {
+      test.setTimeout(120_000)
+      await page.goto(`${ORIGIN}${route}`)
+      await page.evaluate(() => document.fonts.ready)
+      const id = route.startsWith('/play') ? 'loop' : 'front'
+      const box = page.locator(`[data-stage="${id}"]`)
+      await box.scrollIntoViewIfNeeded()
+      await expect(box).toHaveAttribute('data-stage-phase', 'live', { timeout: 60_000 })
+      await expect(box).toHaveAttribute('data-settled', 'true', { timeout: 60_000 })
+      const line = await box.locator('.es-loop-label--tape', { hasText: 'the line · gpu' }).boundingBox()
+      const expo = await box.locator('.es-loop-label--tape', { hasText: 'the expo · cpu' }).boundingBox()
+      if (line === null || expo === null) throw new Error('a tape is not drawn')
+      const apart = line.y + line.height <= expo.y || expo.y + expo.height <= line.y || line.x + line.width <= expo.x || expo.x + expo.width <= line.x
+      console.log(`${route} at 390 px: the line's tape at ${JSON.stringify(line)}, the expo's at ${JSON.stringify(expo)}`)
+      expect(apart).toBe(true)
+    })
+  }
 })
 
 test.describe('reduced motion (A§6.9): changes cut, and nothing moves without input', () => {

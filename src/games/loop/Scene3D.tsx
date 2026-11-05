@@ -1,40 +1,36 @@
-import { useFrame } from '@react-three/fiber'
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { PointLight, type Group } from 'three'
+import type { ThreeEvent } from '@react-three/fiber'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { BoxGeometry, Matrix4, PointLight, type InstancedMesh } from 'three'
 import type { LoopView } from '@es/play/loop/types'
-import { BlockGrid } from '@/scene/BlockGrid'
-import type { Vec3 } from '@/scene/camera-rig'
 import { CameraRig } from '@/scene/CameraRig'
-import { Fixtures } from '@/scene/Fixtures'
 import { useHold, useKit } from '@/scene/kit'
 import type { LabelSpec } from '@/scene/labels'
-import { Fluorescent, HeatElements, HeatLamps } from '@/scene/Lights'
+import { Fluorescent } from '@/scene/Lights'
 import { roleColor } from '@/scene/materials'
+import { ALWAYS_LIT, Kitchen, LampLights, litMask, Plates, PrinterFeed, RailClips, ServiceBell, StaticSet, Steam, Tickets, useMotionLoop } from '@/scene/props'
 import { SceneCanvas } from '@/scene/SceneCanvas'
-import { SelectionMarker } from '@/scene/SelectionMarker'
-import { SheetInstances, type Sheet } from '@/scene/SheetInstances'
-import { SpanInstances } from '@/scene/SpanInstances'
-import { TimeTicks, TimeTrack } from '@/scene/TimeAxis'
-import { changeOf, MAX_GLOWS, sceneLayout, stationGlows, TRACK_ORIGIN, type Anchor, type Change, type LoopSceneLayout, type TicketSheet } from './scene-layout'
-import { LOOP_PRESETS } from './scene-presets'
+import { SheetInstances } from '@/scene/SheetInstances'
+import { changeOf, serviceKitchen, serviceScene, type Anchor, type Change, type ServiceKitchen, type ServiceScene } from './scene-layout'
+import { FRONT_PRESETS, LOOP_PRESETS } from './scene-presets'
 import './scene3d.css'
 
 /*
- * Service's 3D scene (`loop`, TRACKER W0-T17; GAMES.md §3 "3D scene", §2.6 "Service"): the pass seen over the expediter's shoulder.
- * A lazy chunk of its own, loaded by the Stage that the game (and the front page) hold; built only from the scene kit's primitives,
- * with every mark placed by scene-layout.ts from the session's view, so it draws the night and decides nothing.
+ * Service's 3D scene (`loop`; GAMES.md §2.6 "Service", §3 "3D scene"; scene kit v1): the pass in the middle of service, drawn only
+ * from src/scene/props and laid out by scene-layout.ts from the session's view, so it draws the night and decides nothing. A lazy
+ * chunk of its own, loaded by the Stage that the game (and the front page) hold.
  *
- * Motion has one grammar: everything moves on the bell. A fire rung slides the night back down the pass (TimeTrack), extrudes the new
- * fire's slab of steel with its plates out of the present, sends a ticket whose table has asked for the check off its clip, brings the
- * fired rail's tickets down from the rail, and lights or darkens the line's stations: a heat element over each clip's row, burning
- * where the fire cooked a course and cold where its clip rode empty, each burning one throwing its warm light down its stretch of
- * the line. Between bells only the printer feeds: a ticket hung moves from the strip to its clip and the strip steps out by one
- * ticket, in the printer's line steps. Under reduced motion every change cuts, and nothing moves without input.
+ * One moment carries the game, on the bell: the bell strikes; if the fire waited on the expo (no overlap), the line drops dark for
+ * the bell's length, the dark stretch; then every station with a ticket burns in the lamp's amber and the empty ones stay cold, one
+ * plate per live clip slides onto the pass while the last fire's plates are carried out, a binned plate goes into the bin, and a
+ * finished ticket is spiked. With overlap the fired rail takes a copy of each ticket and the line never goes dark. Between bells the
+ * kitchen is still; a ticket hung is carried to its clip, and the printer feeds the next. Under reduced motion every change cuts.
  *
- * Draw calls, whatever the night: the steel (1) and the lamps' shades (1), the lamps' glowing housings (1), the paper (1), the tape
- * (1), the fires' slabs of steel (1), the expo's phases and the dark stretches (1), the places (1), the clock's ticks (1), the
- * filament round the fire on the line (1), and the stations' burning and cold elements (2). The shot under the lamps leaves the
- * shades and housings out, because it looks down through them.
+ * Draw calls at T1: the static set's metal, glaze, tile, floor and glow (5), the contact shadows (1), the tickets (1), the clips (1,
+ * and 1 more for the fired rail), the printer's paper (1), the plates (1), the bell's dome and plunger (2) and the tape (1). T2 adds
+ * the lamps' cones and the steam (2) and each shadow-casting lamp's pass over what casts. A whole night of first-4-par draws in at most
+ * 14 scene draw calls at T1 and 42 at T2 (56 in the frame with bloom and the final pass), read from renderer.info by
+ * e2e/loop-scene.spec.ts against A§11.1's 100, and verify:bundle counts this chunk with the kit's chunks it reaches at 38,009 B gz
+ * against the 40 KB gate [measured 2026-11-04 on wave-1 at f823a04 with this scene].
  */
 
 export interface Scene3DProps {
@@ -43,304 +39,233 @@ export interface Scene3DProps {
   preset: string
   /** A waiting ticket picked in the scene: hang it, as tapping it in the controls does. */
   onHang?: (req: number) => void
-  /** Draw the printer and its strip of waiting tickets. A page that holds the printer itself (the front page) leaves them out. */
+  /** Draw the printer and the tickets it has fed. A page that holds the printer itself (the front page) leaves them out. */
   printer?: boolean
 }
 
-/** The night recedes into the steel's own grey from this far beyond what the camera looks at [estimated]. */
-const FOG = { near: 3, far: 15 }
-/** The heat lamps hang higher over this pass than over the kit's specimen, so they burn brighter to pool the same amber [estimated]. */
-const LAMP_POWER = 1.7
-/** The brush's tile on this pass: finer than the kit's default, because the camera stands at the counter [estimated]. */
-const STEEL_GRAIN = 0.9
-/**
- * A burning station's light, with every station under it lit: a point light in the heat lamp's colour, hung just behind the stations'
- * bar (scene-layout.ts's GLOW), reaching over the line from the pass's back edge out past the bar [estimated].
- */
-const STATION_GLOW = { intensity: 4.5, distance: 4, decay: 2 }
+/** The haze the room falls into, from this far beyond what the camera looks at to this far [estimated]: the back wall softens. */
+const HAZE = { near: 1.4, far: 8.5 }
+/** The heat lamps' light over the pass, as a share of the kit's [estimated]: enough to pool amber on the steel and leave the glaze white. */
+const LAMP_POWER = 0.6
+/** A burning station's warm light down the line, at full share [estimated]: a candela figure for a point light in metres. */
+const GLOW = { intensity: 2.2, distance: 2.6, decay: 2 }
+/** The fewest milliseconds between two dark dips of the line: 3 a second at most (WCAG 2.3.1). */
+const DIP_GAP_MS = 334
 
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* What moved                                                                                                         */
+/* The moment                                                                                                         */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-function useChange(view: LoopView): Change {
-  const [seen, setSeen] = useState<{ view: LoopView; change: Change }>({ view, change: { key: 0, kind: 'cut' } })
-  if (seen.view !== view) {
-    const next = { view, change: { key: seen.change.key + 1, kind: changeOf(seen.view, view) } }
-    setSeen(next)
-    return next.change
-  }
-  return seen.change
+interface Moment {
+  readonly view: LoopView
+  readonly scene: ServiceScene
+  /** The scene before the change, which the line shows while it is dark. */
+  readonly before: ServiceScene
+  readonly change: Change
+  /** The line is dark: the fire waited on the expo, and the dip has not run out. */
+  readonly dark: boolean
+  /** The change that started the last dip, until DIP_GAP_MS have passed since: no other dip starts before then. -1 for none. */
+  readonly dipAt: number
+  readonly key: number
+  readonly bells: number
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-/* The paper                                                                                                          */
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-interface Pose {
-  readonly center: Vec3
-  readonly size: readonly [number, number]
-  readonly rotation: Vec3
-}
-
-const poseOf = (sheet: Sheet): Pose => ({ center: sheet.center, size: sheet.size, rotation: sheet.rotation ?? [0, 0, 0] })
-const mix = (a: number, b: number, t: number) => a + (b - a) * t
-const mix3 = (a: Vec3, b: Vec3, t: number): Vec3 => [mix(a[0], b[0], t), mix(a[1], b[1], t), mix(a[2], b[2], t)]
-const mixPose = (a: Pose, b: Pose, t: number): Pose => ({
-  center: mix3(a.center, b.center, t),
-  size: [mix(a.size[0], b.size[0], t), mix(a.size[1], b.size[1], t)],
-  rotation: mix3(a.rotation, b.rotation, t),
-})
-
-/** The printer advances in line steps, never a glide: the design system's `steps(6, end)`. */
-const feedSteps = (t: number) => (t >= 1 ? 1 : Math.floor(t * 6) / 6)
-
-/** One sheet as drawn this frame. */
-interface Shown extends Sheet {
-  readonly req: number
-  readonly kind: TicketSheet['kind'] | 'leaving'
-}
-
-/** A move from one pose to another, on its own curve. */
-interface Move {
-  readonly id: string
-  readonly req: number
-  readonly kind: Shown['kind']
-  readonly from: Pose
-  readonly to: Pose
-  readonly ease: (t: number) => number
-}
-
-/** The moves a new set of sheets asks for, from what is on screen now; null when the change cuts. */
-function planMoves(shown: readonly Shown[], sheets: readonly TicketSheet[], kind: Change['kind'], ease: (t: number) => number): Move[] | null {
-  if (kind === 'cut') return null
-  const bell = kind === 'bell'
-  const before = new Map(shown.map((sheet) => [sheet.id, sheet]))
-  const targets = new Set(sheets.map((sheet) => sheet.id))
-  const mouth = sheets.find((sheet) => sheet.kind === 'waiting')
-  const moves: Move[] = sheets.map((sheet) => {
-    const was = before.get(sheet.id)
-    // A fired-rail ticket comes down from its clip on the rail; a ticket new to the strip comes out of the printer's mouth.
-    const origin = was ?? before.get(`t${sheet.req}`) ?? (sheet.kind === 'waiting' ? mouth : undefined)
-    const from = origin && origin !== sheet ? poseOf(origin) : { ...poseOf(sheet), size: [sheet.size[0], 0.001] as const }
-    const stays = was?.kind === 'waiting' && sheet.kind === 'waiting'
-    return { id: sheet.id, req: sheet.req, kind: sheet.kind, from, to: poseOf(sheet), ease: !bell && stays ? feedSteps : ease }
-  })
-  // What left: a ticket whose table asked for the check drops off its clip, and a fired ticket read back goes back up to the rail.
-  for (const [id, was] of before) {
-    if (targets.has(id) || was.kind === 'leaving') continue
-    const from = poseOf(was)
-    const drop = was.kind === 'fired' ? 0.25 : -0.45
-    moves.push({ id, req: was.req, kind: 'leaving', from, to: { ...from, center: [from.center[0], from.center[1] + drop, from.center[2] - 0.1], size: [from.size[0] * 0.6, 0.001] }, ease })
-  }
-  return moves
-}
-
-const frameOf = (moves: readonly Move[], t: number): Shown[] => moves.map((move) => ({ id: move.id, req: move.req, kind: move.kind, ...mixPose(move.from, move.to, move.ease(t)) }))
-
-/**
- * The tickets: the rail's, the fired rail's and the printer's strip, as one instanced sheet of paper. A ticket keeps its sheet as it
- * moves, so the paper the visitor hangs is the paper that left the strip. Each sheet's print is a DOM label that rides on a frame
- * named after it, offset from where the sheet will come to rest by however far it still has to go.
- */
-function Tickets({ sheets, change, onPick }: { sheets: readonly TicketSheet[]; change: Change; onPick?: (req: number) => void }) {
+/** What the kitchen shows now: on a bell with a dark stretch, the line dark for the bell's length, then the fire's light and plates. */
+function useMoment(view: LoopView, scene: ServiceScene): Moment {
   const kit = useKit()
-  const [state, setState] = useState<{ sheets: readonly TicketSheet[]; change: Change; moves: readonly Move[] | null; shown: readonly Shown[] }>({ sheets, change, moves: null, shown: sheets })
-  if (state.sheets !== sheets || state.change !== change) {
-    // New sheets: plan the moves from what is on screen, and show their first frame now, so nothing jumps ahead of its move.
-    const ms = kit.reducedMotion ? 0 : change.kind === 'bell' ? kit.tokens.motion.settleMs : kit.tokens.motion.feedMs
-    const moves = ms > 0 ? planMoves(state.shown, sheets, change.kind, kit.ease) : null
-    setState({ sheets, change, moves, shown: moves ? frameOf(moves, 0) : sheets })
-  }
-  const { moves, shown } = state
-  useHold(moves !== null)
-  const startedAt = useRef<{ moves: readonly Move[]; at: number } | null>(null)
-  const targets = useMemo(() => new Map(sheets.map((sheet) => [sheet.id, sheet])), [sheets])
-
-  useFrame(() => {
-    if (moves === null) return
-    if (startedAt.current?.moves !== moves) startedAt.current = { moves, at: performance.now() }
-    const ms = change.kind === 'bell' ? kit.tokens.motion.settleMs : kit.tokens.motion.feedMs
-    const t = Math.min(1, (performance.now() - startedAt.current.at) / Math.max(1, ms))
-    setState((current) => (current.moves !== moves ? current : t >= 1 ? { ...current, moves: null, shown: current.sheets } : { ...current, shown: frameOf(moves, t) }))
-  }, -1)
-
-  const pick = onPick
-    ? (id: string) => {
-        const sheet = shown.find((candidate) => candidate.id === id)
-        if (sheet?.kind === 'waiting') onPick(sheet.req)
-      }
-    : undefined
-
-  return (
-    <>
-      <SheetInstances kind="paper" sheets={shown} curl={0.1} onPick={pick} name="tickets" />
-      {shown.map((sheet) => {
-        const target = targets.get(sheet.id)
-        if (!target || sheet.kind === 'leaving') return null
-        const offset: Vec3 = [sheet.center[0] - target.center[0], sheet.center[1] - target.center[1], sheet.center[2] - target.center[2]]
-        return <SheetFrame key={sheet.id} name={`sheet:${sheet.id}`} offset={offset} />
-      })}
-    </>
-  )
-}
-
-/** A label frame that carries a moving sheet's print: at rest it is the identity, so the print sits where its anchor says. */
-function SheetFrame({ name, offset }: { name: string; offset: Vec3 }) {
-  const kit = useKit()
-  const group = useRef<Group>(null)
-  useEffect(() => (group.current ? kit.registerFrame(name, group.current) : undefined), [kit, name])
-  return <group ref={group} position={offset} />
+  const bellMs = kit.reducedMotion ? 0 : kit.tokens.motion.bellMs
+  const [moment, setMoment] = useState<Moment>({ view, scene, before: scene, change: 'cut', dark: false, dipAt: -1, key: 0, bells: 0 })
+  if (moment.view !== view) {
+    const change = changeOf(moment.view, view)
+    const key = moment.key + 1
+    const dark = change === 'bell' && scene.bubble && bellMs > 0 && moment.dipAt < 0
+    setMoment({ view, scene, before: moment.scene, change, dark, dipAt: dark ? key : moment.dipAt, key, bells: moment.bells + (change === 'bell' ? 1 : 0) })
+  } else if (moment.scene !== scene) setMoment({ ...moment, scene })
+  // The dip runs out after the bell's length; another may start only DIP_GAP_MS after this one did.
+  const darkKey = moment.dark ? moment.key : -1
+  useEffect(() => {
+    if (darkKey < 0) return undefined
+    const timer = window.setTimeout(() => setMoment((now) => (now.key === darkKey ? { ...now, dark: false } : now)), bellMs)
+    return () => window.clearTimeout(timer)
+  }, [darkKey, bellMs])
+  const { dipAt } = moment
+  useEffect(() => {
+    if (dipAt < 0) return undefined
+    const timer = window.setTimeout(() => setMoment((now) => (now.dipAt === dipAt ? { ...now, dipAt: -1 } : now)), DIP_GAP_MS)
+    return () => window.clearTimeout(timer)
+  }, [dipAt])
+  // The frames stay on while the line is dark, so the scene is never taken for still in the middle of its moment.
+  useHold(moment.dark)
+  return moment
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* The stations                                                                                                       */
+/* The line's light                                                                                                   */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /**
- * The line's stations: their heat elements, burning where the latest fire cooked a course, and the warm light the burning stations
- * throw down the line (`stationGlows`: a light for each station on a laptop, one for the line on a phone), as bright as the share
- * that burns, brought up or down on the bell (cut under reduced motion). The lights stay in the scene at zero, in places that depend
- * on the rail and the tier alone, so a fire never recompiles a material and never moves a light.
+ * The warm light the burning stations throw down the line: one light for each station on a laptop (four at most), one for the
+ * whole line on a phone, each as bright as the share of its stations that burn. The count depends on the tier and the line alone,
+ * so a fire changes a light's brightness and never recompiles a material. Brought up or down over the bell's length; cut under
+ * reduced motion.
  */
-function Stations({ stations, change }: { stations: LoopSceneLayout['stations']; change: Change }) {
+function LineLight({ kitchen, lit }: { kitchen: ServiceKitchen; lit: readonly boolean[] }) {
   const kit = useKit()
-  const glows = useMemo(() => stationGlows(stations.lit, kit.tier >= 2 ? MAX_GLOWS.laptop : MAX_GLOWS.phone), [stations.lit, kit.tier])
-  const count = glows.length
-  const lights = useMemo(
-    () => Array.from({ length: count }, () => new PointLight(roleColor(kit.tokens, 'lamp'), 0, STATION_GLOW.distance, STATION_GLOW.decay)),
-    [kit.tokens, count],
+  const count = Math.max(1, Math.min(kit.tier >= 2 ? 4 : 1, kitchen.stations.length))
+  const groups = useMemo(
+    () =>
+      Array.from({ length: count }, (_, g) => {
+        const members = kitchen.stations.map((_, s) => s).filter((s) => Math.floor((s * count) / kitchen.stations.length) === g)
+        const at = members.map((s) => kitchen.stations[s].glow)
+        const x = at.reduce((sum, p) => sum + p[0], 0) / at.length
+        return { members, at: [x, at[0][1], at[0][2]] as [number, number, number] }
+      }),
+    [count, kitchen.stations],
   )
-  useEffect(
-    () => () => {
-      for (const light of lights) light.dispose()
-    },
-    [lights],
-  )
-  const goals = useMemo(() => glows.map((glow) => STATION_GLOW.intensity * glow.share), [glows])
-  const goalKey = goals.join(',')
+  const lights = useMemo(() => groups.map(() => new PointLight(roleColor(kit.tokens, 'lamp'), 0, GLOW.distance, GLOW.decay)), [groups, kit.tokens])
+  useEffect(() => () => lights.forEach((light) => light.dispose()), [lights])
+  const goals = groups.map((group) => (GLOW.intensity * group.members.filter((s) => lit[s]).length) / group.members.length)
+  // A new goal ramps the lights to it over the bell's length; new lights (the first frame, another tier) start at their goal.
+  const ramp = useRef<{ lights: readonly PointLight[]; from: number[]; to: number[]; start: number } | null>(null)
   const ms = kit.reducedMotion ? 0 : kit.tokens.motion.bellMs
-  // A new goal on the bell ramps the lights to it; anything else (a cut, reduced motion, the first frame) sets them at once.
-  const [ramp, setRamp] = useState<{ key: string; goals: readonly number[]; change: Change; ramping: boolean }>({ key: goalKey, goals, change, ramping: false })
-  if (ramp.key !== goalKey || ramp.change !== change) {
-    setRamp({ key: goalKey, goals, change, ramping: ramp.key !== goalKey && change.kind === 'bell' && ms > 0 })
-  }
-  useHold(ramp.ramping)
-  const from = useRef<{ at: number; intensities: readonly number[] } | null>(null)
+  const step = useCallback(
+    (now: number) => {
+      const run = ramp.current
+      if (!run) return false
+      const t = ms > 0 ? Math.min(1, (now - run.start) / ms) : 1
+      run.lights.forEach((light, i) => {
+        light.intensity = run.from[i] + (run.to[i] - run.from[i]) * kit.ease(t)
+      })
+      return t < 1
+    },
+    [ms, kit],
+  )
+  const wake = useMotionLoop(step)
+  const key = goals.join(',')
   useLayoutEffect(() => {
-    from.current = null
-    if (ramp.ramping) return
-    lights.forEach((light, i) => {
-      light.intensity = ramp.goals[i] ?? 0
-    })
+    const to = key.split(',').map(Number)
+    const fresh = ramp.current?.lights !== lights
+    ramp.current = { lights, from: fresh ? to : lights.map((light) => light.intensity), to, start: performance.now() }
+    if (step(performance.now())) wake()
     kit.invalidate()
-  }, [ramp, lights, kit])
-  useFrame(() => {
-    if (!ramp.ramping) return
-    from.current ??= { at: performance.now(), intensities: lights.map((light) => light.intensity) }
-    const t = Math.min(1, (performance.now() - from.current.at) / ms)
-    const started = from.current.intensities
-    lights.forEach((light, i) => {
-      light.intensity = mix(started[i] ?? 0, ramp.goals[i] ?? 0, kit.ease(t))
-    })
-    if (t >= 1) setRamp((current) => (current === ramp ? { ...current, ramping: false } : current))
-  }, -1)
+  }, [key, lights, step, wake, kit])
   return (
     <>
       {lights.map((light, i) => (
-        <primitive key={glows[i]?.id ?? i} object={light} position={glows[i]?.at ?? [0, 0, 0]} />
+        <primitive key={i} object={light} position={groups[i].at} />
       ))}
-      <HeatElements elements={stations.elements} name="stations" />
     </>
   )
+}
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* Picks                                                                                                              */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+const placeAt = new Matrix4()
+
+/** The tickets on the counter as boxes a pick can hit, drawn nowhere: a pick hangs the ticket, as tapping its button does. */
+function Picks({ picks, onPick }: { picks: ServiceScene['picks']; onPick: (req: number) => void }) {
+  const pickBox = useMemo(() => new BoxGeometry(0.1, 0.02, 0.14), [])
+  useEffect(() => () => pickBox.dispose(), [pickBox])
+  const mesh = useRef<InstancedMesh>(null)
+  useLayoutEffect(() => {
+    const instanced = mesh.current
+    if (!instanced) return
+    picks.forEach((pick, i) => instanced.setMatrixAt(i, placeAt.makeTranslation(...pick.center)))
+    instanced.count = picks.length
+    instanced.instanceMatrix.needsUpdate = true
+    instanced.computeBoundingSphere()
+  }, [picks])
+  const pick = (event: ThreeEvent<MouseEvent>) => {
+    const req = event.instanceId === undefined ? undefined : picks[event.instanceId]?.req
+    if (req === undefined) return
+    event.stopPropagation()
+    onPick(req)
+  }
+  return <instancedMesh ref={mesh} name="picks" args={[pickBox, undefined, 16]} visible={false} onClick={pick} />
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* The labels                                                                                                         */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-function labelContent(anchor: Anchor, lit: readonly boolean[]): ReactNode {
-  switch (anchor.kind) {
-    case 'ticket':
-      return (
-        <span className="es-loop-label__ticket">
-          <span className="es-loop-label__no">{anchor.text}</span>
-          {anchor.sub ? <span className="es-loop-label__sub">{anchor.sub}</span> : null}
-        </span>
-      )
-    case 'station':
-      // The stations as the pass reads them: a pip for each, lit or an open ring, and how many are lit in words.
-      return (
-        <span className="es-loop-label__stations" data-lit={lit.filter(Boolean).length} data-of={lit.length}>
-          <span className="es-loop-label__pips" aria-hidden="true">
-            {lit.map((on, slot) => (
-              <span key={slot} className="es-loop-label__pip" data-lit={on || undefined} />
-            ))}
-          </span>
-          <span className="es-loop-label__station-words">
-            <span>stations</span>
-            <span className="es-loop-label__station-count">{anchor.text}</span>
-          </span>
-        </span>
-      )
-    default:
-      return anchor.text
+function labelContent(anchor: Anchor): ReactNode {
+  if (anchor.kind === 'ticket' || anchor.kind === 'fired' || anchor.kind === 'waiting') {
+    return (
+      <span className="es-loop-label__ticket">
+        <span className="es-loop-label__no">{anchor.text}</span>
+        {anchor.sub ? <span className="es-loop-label__sub">{anchor.sub}</span> : null}
+      </span>
+    )
   }
+  return anchor.text
 }
 
 /**
- * Print that a shot cannot read: a ticket seen edge-on from the side or from above is a line, and its print a smudge. The clock's
- * caption sits at the present for the shots that look down the night, and at its far end for the side shot, where the present is the
- * frame's edge and the pass beyond it is out of shot.
+ * Print that a shot cannot read: from under the lamps the counter's tickets and the tapes are out of shot or edge-on. A tape whose print
+ * is hidden is not drawn either, so no blank strip of tape lies in the shot.
  */
 const HIDDEN: Readonly<Record<string, ReadonlySet<Anchor['kind']>>> = {
-  shoulder: new Set(['axis-far']),
-  side: new Set(['ticket', 'fired', 'waiting', 'more', 'empty', 'tape', 'station', 'axis']),
-  lamps: new Set(['ticket', 'fired', 'waiting', 'more', 'empty', 'axis-far', 'station']),
+  lamps: new Set(['waiting', 'more', 'tape']),
 }
 
-function labelsOf(anchors: readonly Anchor[], lit: readonly boolean[], preset: string): LabelSpec[] {
+function labelsOf(anchors: readonly Anchor[], preset: string): LabelSpec[] {
   const hidden = HIDDEN[preset]
-  return anchors.filter((anchor) => !hidden?.has(anchor.kind)).map((anchor) => ({
-    id: anchor.id,
-    at: anchor.at,
-    frame: anchor.frame,
-    place: anchor.place,
-    minWidth: anchor.minWidth,
-    className: `es-loop-label es-loop-label--${anchor.kind}`,
-    content: labelContent(anchor, lit),
-  }))
+  return anchors
+    .filter((anchor) => !hidden?.has(anchor.kind))
+    .map((anchor) => ({
+      id: anchor.id,
+      at: anchor.at,
+      frame: anchor.frame,
+      place: anchor.place,
+      minWidth: anchor.minWidth,
+      className: `es-loop-label es-loop-label--${anchor.kind}`,
+      content: labelContent(anchor),
+    }))
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* The scene                                                                                                          */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-export default function Scene3D({ view, preset, onHang, printer = true }: Scene3DProps) {
-  const layout = useMemo(() => sceneLayout(view, { printer }), [view, printer])
-  const change = useChange(view)
-  const labels = useMemo(() => labelsOf(layout.anchors, layout.stations.lit, preset), [layout.anchors, layout.stations.lit, preset])
-  const axisX = layout.lanes.gpuLeft + layout.lanes.gpuWidth + 0.16
-
+function Service({ view, kitchen, scene, preset, onHang }: { view: LoopView; kitchen: ServiceKitchen; scene: ServiceScene; preset: string; onHang?: (req: number) => void }) {
+  const moment = useMoment(view, scene)
+  const shown = moment.dark ? moment.before : moment.scene
+  const lit = moment.dark ? kitchen.stations.map(() => false) : shown.lit
+  // A cut (the first frame, a new level, an undo) moves nothing: nothing comes from anywhere, and nothing slides in.
+  const cut = moment.change === 'cut'
+  const tickets = useMemo(() => (cut ? shown.tickets.map((ticket) => ({ ...ticket, from: undefined })) : shown.tickets), [cut, shown.tickets])
+  const plates = useMemo(() => (cut ? shown.plates.map((plate) => ({ id: plate.id, at: plate.at })) : shown.plates), [cut, shown.plates])
+  const steam = useMemo(() => kitchen.stations.flatMap((station, s) => (lit[s] ? [station.top] : [])), [kitchen.stations, lit])
+  const mask = moment.dark ? ALWAYS_LIT : litMask(lit)
   return (
-    <SceneCanvas labels={labels} fog={FOG} exposure={1} environmentIntensity={0.85} className="es-loop-scene">
-      <CameraRig presets={LOOP_PRESETS} preset={preset} />
-      <Fluorescent />
-      <HeatLamps lamps={layout.lamps} power={LAMP_POWER} housings={preset !== 'lamps'} />
-      <Stations stations={layout.stations} change={change} />
-      <Fixtures parts={layout.fixtures} grain={STEEL_GRAIN} />
-      {preset === 'lamps' ? null : <Fixtures parts={layout.overhead} grain={STEEL_GRAIN} />}
-      <Tickets sheets={layout.tickets} change={change} onPick={onHang} />
-      <SheetInstances kind="tape" sheets={layout.tapes} name="tape" />
-      <group position={TRACK_ORIGIN}>
-        <TimeTrack now={layout.window.now} unitsPerTime={layout.unitsPerTime}>
-          <SpanInstances spans={layout.slabs} name="slabs" material="steel" />
-          <SpanInstances spans={layout.spans} name="spans" />
-          <BlockGrid cells={layout.places} name="places" />
-          <TimeTicks window={layout.window} x={axisX} maxTicks={6} />
-          <SelectionMarker box={layout.onLine} />
-        </TimeTrack>
-      </group>
+    <Kitchen lit={mask}>
+      <StaticSet items={kitchen.items} name="service" />
+      <LampLights lamps={kitchen.lights} power={LAMP_POWER} cones={preset !== 'lamps'} />
+      <RailClips at={kitchen.rail.at} clips={scene.clips} />
+      {kitchen.fired ? <RailClips at={kitchen.fired.at} clips={scene.clips} name="fired-clips" /> : null}
+      <Tickets tickets={tickets} />
+      {kitchen.printer ? <PrinterFeed at={kitchen.printer.at} yaw={kitchen.printer.yaw} feed={scene.feed} cell={scene.feedCell} /> : null}
+      <ServiceBell at={kitchen.bell} strike={view.step} />
+      <Plates plates={plates} />
+      <Steam emitters={steam} puff={moment.dark ? -moment.bells : moment.bells} />
+      <LineLight kitchen={kitchen} lit={lit} />
+      {HIDDEN[preset]?.has('tape') ? null : <SheetInstances kind="tape" sheets={kitchen.tapes} name="tape" />}
+      {onHang && scene.picks.length > 0 ? <Picks picks={scene.picks} onPick={onHang} /> : null}
+    </Kitchen>
+  )
+}
+
+export default function Scene3D({ view, preset, onHang, printer = true }: Scene3DProps) {
+  const kitchen = useMemo(() => serviceKitchen(view.slots, { printer, overlap: view.overlapAvailable }), [view.slots, printer, view.overlapAvailable])
+  const scene = useMemo(() => serviceScene(view, kitchen), [view, kitchen])
+  const labels = useMemo(() => labelsOf(scene.anchors, preset), [scene.anchors, preset])
+  return (
+    <SceneCanvas labels={labels} fog={HAZE} exposure={1} environmentIntensity={0.75} shadows className="es-loop-scene">
+      <CameraRig presets={printer ? LOOP_PRESETS : FRONT_PRESETS} preset={preset} parallax={0.05} />
+      <Fluorescent power={0.85} />
+      <Service view={view} kitchen={kitchen} scene={scene} preset={preset} onHang={onHang} />
     </SceneCanvas>
   )
 }

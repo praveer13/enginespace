@@ -1,0 +1,31 @@
+{
+ "about": "Seeds 0 to 9,999 whose first draw the corpus flags at the flaw its own seed picks: brokenBenchCase(seed) with band.ok false. Found by one scan. [measured 2026-11-04 on wave-1 at 5345384, packages/sim/bench; /tmp/claude-1000/-home-praveern-workplace-kernelspace/9aec8729-7b99-4ce5-a558-6d7551419c0c/scratchpad/scan-flagged.ts]",
+ "seconds": 133,
+ "tries": 11076,
+ "flagged": [
+  {
+   "seed": 4258,
+   "flaw": "coordinated-omission",
+   "reasons": [
+    "the flaw moves the number by 1.30 times, under 1.5"
+   ],
+   "attempts": 13
+  },
+  {
+   "seed": 6573,
+   "flaw": "too-few-samples",
+   "reasons": [
+    "the flaw moves the number by 1.12 times, under 1.5"
+   ],
+   "attempts": 1
+  },
+  {
+   "seed": 9158,
+   "flaw": "too-few-samples",
+   "reasons": [
+    "the flaw moves the number by 1.05 times, under 1.5"
+   ],
+   "attempts": 1
+  }
+ ]
+}

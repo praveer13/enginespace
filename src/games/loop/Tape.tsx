@@ -11,7 +11,8 @@ import { stepClockOf } from './readout'
  * every figure is a Readout that says so.
  *
  * It is DOM and it is independent of the view: the 2D view, the 3D scene and the mirror all draw the same night, and none of them
- * is the only place a number shows.
+ * is the only place a number shows. The tape is stamped "synthetic ticks" once at its head; each figure keeps its own tag for a
+ * screen reader.
  */
 
 /** The kitchen's word, then the engine's term (GAMES.md §2.6, rule 2). */
@@ -70,6 +71,7 @@ export function Tape({ view }: { view: LoopView }) {
       lines={linesOf(view)}
       feed={view.step}
       empty="Nothing printed yet"
+      stamp="synthetic ticks"
     />
   )
 }

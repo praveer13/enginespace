@@ -29,11 +29,12 @@ export interface GameProps {
 
 export type GameComponent = LazyExoticComponent<ComponentType<GameProps>>
 
-/** The lazy component of each game, by id. Each game's task adds its own: `loop` is the first (W0-T16), `verifier` follows (W1-T28), then `engine-floor` (W1-T17). */
+/** The lazy component of each game, by id. Each game's task adds its own: `loop` is the first (W0-T16), `verifier` follows (W1-T28), then `engine-floor` (W1-T17) and `broken-bench` (W1-T33). */
 export const GAME_COMPONENTS: Readonly<Record<string, GameComponent>> = {
   loop: lazy(() => import('./loop/Game')),
   verifier: lazy(() => import('./verifier/Game')),
   'engine-floor': lazy(() => import('./engine-floor/Game')),
+  'broken-bench': lazy(() => import('./broken-bench/Game')),
 }
 
 export type GameResolution = { kind: 'game'; id: string; entry: GameEntry; Component: GameComponent } | { kind: 'unknown'; id: string }

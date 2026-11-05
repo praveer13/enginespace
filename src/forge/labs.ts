@@ -4,7 +4,7 @@
  * to ids.ts.
  */
 
-import { REJECTION_SAMPLER_CHECKS, TOY_CHECKS } from '@es/sim'
+import { HYBRID_KV_CHECKS, REJECTION_SAMPLER_CHECKS, TOY_CHECKS } from '@es/sim'
 import type { HostLab } from './invoke'
 
 export interface ForgeLab extends HostLab {
@@ -37,5 +37,14 @@ export const FORGE_LABS: Readonly<Record<string, ForgeLab>> = {
     crate: 'rejection-sampler',
     wasm: 'rejection_sampler.wasm',
     checks: REJECTION_SAMPLER_CHECKS,
+  },
+  'hybrid-kv': {
+    id: 'hybrid-kv',
+    title: 'The Reach-In Manager',
+    engineTerm: "a hybrid KV cache manager over one page pool, with LoRA adapters in the same pool (vLLM's hybrid manager, and S-LoRA's unified paging)",
+    lead: "Run the reach-in for a line of several stations: one set of hotel pans serves every station's code and every recipe kit, and a ticket fires only when its pans and its kit are all in. Hang and pull tickets, dump the oldest pan, find the shared mise that every station still holds, and call every pan in and out.",
+    crate: 'hybrid-kv',
+    wasm: 'hybrid_kv.wasm',
+    checks: HYBRID_KV_CHECKS,
   },
 }

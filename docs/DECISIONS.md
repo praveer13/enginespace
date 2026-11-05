@@ -46,7 +46,7 @@
 | D-020 | Edition 1 uses WebGL2 only, with no WebGPU path. | proposed |
 | D-021 | No game engine, no drei and no in-canvas text; post-processing comes from three's own addons. | proposed |
 | D-022 | Device tiers come from local hints and a frame-time governor, not detect-gpu. | proposed |
-| D-023 | A first-paint JavaScript budget, and a front page that paints a 2D step loop first and upgrades to 3D after LCP. | proposed; budgets frozen 2026-11-04 (W0-T24); the front page's gate is 152 KB by D-054 |
+| D-023 | A first-paint JavaScript budget, and a front page that paints a 2D step loop first and upgrades to 3D after LCP. | proposed; budgets frozen 2026-11-04 (W0-T24); the front page's gate is 154 KB by D-055 |
 | D-024 | The evidence ledger is re-implemented on kernelspace's envelope; provenance weights come from ASSESSMENT.md and apply at read time. | proposed |
 | D-025 | Browser-lane builds are Rust → wasm on kernelspace's kslab ABI v2, graded by host-driven property tests whose oracle sits outside the learner's code. | proposed |
 | D-026 | The local grader is Python, with one locked environment per engine. | proposed |
@@ -78,6 +78,7 @@
 | D-052 | The nightly workflow runs on its schedule only when the repository variable `NIGHTLY_ENABLED` is `'true'`; a run started by hand always runs. | proposed (W0 wave PR) |
 | D-053 | The front page's first-paint gate is 151 KB: a second game that shares the run hook and the shell with Service splits the chunks that Service and the front page share, which costs about 870 B that the game cannot avoid. | proposed (W1-T28); the owner confirms |
 | D-054 | The front page's first-paint gate is 152 KB: a third game reaches some of the modules that the front page shares with the first two and not others, so Rollup splits them again, which costs the closure 585 B. | proposed (W1-T17); the owner confirms |
+| D-055 | The front page's first-paint gate is 154 KB: a fourth game, the first after The Loop to be built on the step loop's workload generator and cards, splits the chunk that The Loop's session shares with them, which costs the closure 2,098 B. | proposed (W1-T33); the owner confirms |
 
 ---
 
@@ -853,7 +854,7 @@ D-052 records how the W0 wave PR keeps the nightly from spending Actions minutes
 
 ## The first-paint gate, W1
 
-D-053 is the new record that D-023 asks for when a change must take a budget over its gate, and D-054 is the next.
+D-053 is the new record that D-023 asks for when a change must take a budget over its gate, D-054 is the next, and D-055 the one after.
 
 ### D-053 · The front page's first-paint gate is 151 KB, for the second game
 
@@ -900,7 +901,30 @@ D-053 is the new record that D-023 asks for when a change must take a budget ove
 - **Consequences:**
   - ARCHITECTURE §6.10 and §11.1 carry 152 KB.
   - A game that follows pays the split again for each module that it reaches and the games before it do not [derived from D-053 and this record]. 708 B is the room that is left at 5345384, and this game cost 585 B, so the next game may need a record of its own.
-- **Revisit when:** a change takes the closure over 152 KB, or the route manifest leaves the entry. Three games in, each has moved the closure by its chunking and by almost nothing of its own, so the owner may prefer to stop the games from moving it.
+- **Revisit when:** a change takes the closure over 152 KB, or the route manifest leaves the entry. Three games in, each has moved the closure by its chunking and by almost nothing of its own, so the owner may prefer to stop the games from moving it. D-055 revisits it for the fourth game.
+
+### D-055 · The front page's first-paint gate is 154 KB, for the fourth game
+
+- **Status:** proposed (W1-T33, 2026-11-04); the owner confirms.
+- **Decision:** `verify:bundle` holds the front page's first-paint JavaScript to 154 KB gz, up from 152 KB (D-054). The target stays 130 KB, and no other gate changes.
+- **Context:** all [measured 2026-11-04], gzip under Bun 1.3.14 as the gate counts it, at the wave tip f823a04 and on this task's tree, which is the tip with The Inspection's files.
+  - The tip alone: 151,312 B in 22 chunks, 688 B under the gate.
+  - With The Inspection's record registered and not its component: 153,281 B in 24 chunks, 1,969 B more.
+  - With its component as well: 153,410 B in 25 chunks, 129 B more. That is 1,410 B over the gate and 590 B under the new one. The game costs the closure 2,098 B in all, against 585 B (D-054) and 867 B (D-053) for the games before it.
+  - It is Rollup's chunking again (D-053, D-054), and no code that the front page runs, though some of it is code that the front page now carries. Most of the cost comes with the record and not the component, because the record carries the loader of the game's session. A module goes into a chunk by the set of entries that reach it. The Inspection is the first game after The Loop to be built on the step loop (the card says that its server is the step loop run coarse), so its session reaches the workload generator with its exponential table and the cards of the step loop's server, which the front page reaches through The Loop's session:
+    - The Loop's session chunk (10.1 KB gz: `play/loop/{engine,levels,session}`, `sim/core/exp*` and `sim/workload/*`) is now three: The Loop's own (5.2 KB), the exponential table with the workload generator (5.2 KB), and the cards (2.3 KB: the vendored card, `sim/physics/*` and `sim/steploop/cards`), which were in the `run` chunk (4.2 KB) with the step loop's events, metrics and run. That chunk is now 3.4 KB.
+    - The same modules cost 16.1 KB in four streams against 14.3 KB in two, 1.8 KB more. The cut is some of it: gzip loses what the pieces shared. The rest is code: the S5 card's rows (`sim/physics/rows`, 7.8 KB of source) were left out of the front page's closure because nothing it runs reads them, and the game's server reads them, so Rollup, which tree-shakes a module once for all of its readers, keeps them in the cards chunk that the front page loads.
+    - The SVG converter of The Loop takes a chunk of 0.1 KB, the entry grew by 178 B and the Front page by 100 B, raw, for the names and the imports.
+  - The game's route, `/play/broken-bench`, is 194,642 B against 200 KB, 5,358 B under it. `/play/loop` is 191,473 B, `/play/verifier` 179,710 B and `/play/engine-floor` 174,678 B; the tip alone gave 188,401 B, 178,502 B and 173,510 B. The routes of the other games grow because the chunks they share are more of them.
+- **Alternatives:**
+  - Pin the step loop's modules to a chunk of their own with `manualChunks`: a chunk of the workload and the cards took 0.9 KB of the 2.4 KB that the game cost at 5345384 and was not kept, since it changes how every game is chunked and D-054 measured the same kind of pin 541 B worse [measured on this task's branch before the rebase onto the third game].
+  - Reach the same modules as The Loop [design]: the session would import the Loop's engine, levels and session for the chunk it lands in, and a game should not (D-054). Not measured.
+  - D-053's two: `output.experimentalMinChunkSize`, which made the closure larger and merged the pages out of the manifest, and the preload map outside the entry, which is the owner's to schedule.
+- **Consequences:**
+  - ARCHITECTURE §6.10 and §11.1 carry 154 KB.
+  - A game that follows pays the split again only for a module that it reaches and the games before it do not [derived from D-053, D-054 and this record]. The next game built on the step loop reaches leaves that are now apart, and pays little. 590 B is the room that is left at f823a04.
+  - A lazy part of a game (its debrief, its 3D scene) that imports a module that only the game's own chunk uses makes Rollup export that module from the game's chunk, and `verify:bundle` then reports the game as missing from the manifest. The Inspection imports its debrief for that reason, as The Tasting does.
+- **Revisit when:** a change takes the closure over 154 KB, or the route manifest leaves the entry. Four games in, the gate has moved three times by 4 KB in all (150 to 154 KB) for a front page whose own code has not grown, and the owner may prefer to end it with the route manifest of D-053 before a fifth game.
 
 ---
 

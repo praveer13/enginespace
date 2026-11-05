@@ -1,0 +1,763 @@
+/*
+ * The Inspection's board (W1-T33; GAMES.md §11 "2D design", §2.6 "The Inspection"): how the evidence is set out on the pass. The
+ * components of src/design/components draw the ticket, the stub, the fields, the toggle and the tape label themselves; this file places
+ * them and draws the objects that only an inspection has: the clipboard with its clip, the printer's tape of the log, the sheet of graph
+ * paper, the checklist of violations and the answer slip. Every colour, face, size, space, radius and shadow is a token role
+ * (src/design/tokens.css) or arithmetic on one, and the design system is not edited. Amber appears in one place on the board: the
+ * selected order, which is the present, and nowhere else (DESIGN.md, "The One Lamp Rule").
+ *
+ * Plain CSS outside Tailwind's layers, like src/games/specials/specials.css: it loads with the game.
+ */
+
+/* ---------------------------------------------------------------------------------------------- the docket */
+
+.es-bench-docket {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--es-space-3) var(--es-space-6);
+}
+
+.es-bench-docket ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-1) var(--es-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-bench-docket__mode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2);
+}
+
+/* ---------------------------------------------------------------------------------------------- the board */
+
+.es-bench-board {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-6);
+  min-width: 0;
+}
+
+.es-bench-closed {
+  margin: 0;
+  padding: var(--es-space-6);
+  background-color: var(--es-paper);
+  color: var(--es-paper-ink);
+  box-shadow: var(--es-shadow-paper);
+}
+
+/* ---------------------------------------------------------------------------------------------- the clipboard */
+
+/* A steel board with a clip at its head, holding the form. The board is a size container, so the form sets itself to the room it has. */
+.es-bench-clip {
+  position: relative;
+  container-type: inline-size;
+  min-width: 0;
+  padding: var(--es-space-6) var(--es-space-3) var(--es-space-3);
+  border-radius: var(--es-radius-shoulder);
+  background-color: var(--es-surface-3);
+  background-image:
+    linear-gradient(180deg, color-mix(in srgb, var(--es-glint) 18%, transparent), transparent 40%),
+    var(--es-texture-brushed);
+  background-size: auto, 100% 720px;
+  box-shadow: var(--es-shadow-lift);
+}
+
+/* The spring clip: a plate across the top of the board with a dark slot and two rivets. */
+.es-bench-clip__spring {
+  position: absolute;
+  top: calc(var(--es-space-2) * -1);
+  left: 50%;
+  display: block;
+  width: 7rem;
+  height: 1.75rem;
+  transform: translateX(-50%);
+  border: 1px solid var(--es-edge);
+  border-radius: var(--es-radius-plate);
+  background-color: var(--es-surface-2);
+  background-image: linear-gradient(180deg, color-mix(in srgb, var(--es-glint) 55%, transparent), transparent 55%);
+  box-shadow: var(--es-shadow-plate);
+}
+
+.es-bench-clip__spring::before {
+  content: '';
+  position: absolute;
+  inset: 0.5rem 1.4rem;
+  border-radius: var(--es-radius-trim);
+  background-color: var(--es-paper-ink);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--es-glint) 40%, transparent);
+}
+
+.es-bench-form {
+  max-width: none;
+}
+
+.es-bench-report {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-6);
+  margin-bottom: var(--es-space-6);
+}
+
+@container (min-width: 38rem) {
+  .es-bench-report {
+    grid-template-columns: minmax(12rem, 15rem) minmax(0, 1fr);
+    gap: var(--es-space-8);
+  }
+}
+
+/* The claim, stamped large: it is the thing on trial. */
+.es-bench-claim {
+  display: grid;
+  align-content: start;
+  gap: var(--es-space-2);
+}
+
+.es-bench-claim__what {
+  margin: 0;
+  font-family: var(--es-font-ticket);
+  font-size: var(--es-size-print);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.es-bench-claim__basis {
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+  line-height: 1.4;
+}
+
+/* The lines of the form: the printer's terms in a column, and what each says beside it. */
+.es-bench-lines {
+  display: grid;
+  gap: var(--es-space-2);
+  margin: 0;
+}
+
+.es-bench-lines__line {
+  display: grid;
+  grid-template-columns: minmax(5.5rem, 8.5rem) minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--es-space-3);
+  padding-bottom: var(--es-space-2);
+  border-bottom: 2px dotted var(--es-paper-rule);
+}
+
+.es-bench-lines__line:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.es-bench-lines dt {
+  font-family: var(--es-font-ticket);
+  font-size: var(--es-size-caption);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--es-text-2);
+}
+
+.es-bench-lines dd {
+  margin: 0;
+  font-size: var(--es-size-note);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.es-bench-lines .font-numeric {
+  font-size: var(--es-size-print);
+}
+
+@container (max-width: 24rem) {
+  .es-bench-lines__line {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+}
+
+/*
+ * Two layouts in one document (DESIGN.md, "Layout"). The shell puts the mirror's column beside the board from 64rem, and below it before
+ * that. The form is drawn in both places, and the one that fits is shown: above the pass on a narrow screen, so that the report is read
+ * before the evidence, and beside it on a wide one, so that the report and the sheet are in the first screen together.
+ */
+.es-bench-clip--aside {
+  display: none;
+}
+
+@media (min-width: 64rem) {
+  .es-bench-clip--inline {
+    display: none;
+  }
+
+  .es-bench-clip--aside {
+    display: block;
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------- the pass and its sheets */
+
+.es-bench-pass {
+  display: grid;
+  gap: var(--es-space-3);
+  min-width: 0;
+}
+
+.es-bench-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2);
+}
+
+.es-bench-sheetbox {
+  min-width: 0;
+}
+
+/* Graph paper pinned to the steel: paper cut square, lifted off the pass. */
+.es-bench-sheet {
+  background-color: var(--es-paper);
+  box-shadow: var(--es-shadow-paper);
+}
+
+.es-bench-sheet svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.es-bench-sheetnote {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+  line-height: 1.5;
+}
+
+.es-bench-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-1) var(--es-space-6);
+  margin: 0;
+  font-size: var(--es-size-note);
+}
+
+.es-bench-glyph {
+  display: inline-block;
+  vertical-align: -0.12em;
+}
+
+/* The selected order's four times, on a small ticket under the lamp: the present. With none selected there is only a line that says how. */
+.es-bench-order[data-empty] {
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+}
+
+.es-bench-order__times {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: var(--es-space-2) var(--es-space-4);
+  margin: 0;
+}
+
+.es-bench-order__times > div {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.es-bench-order__times dt {
+  font-family: var(--es-font-ticket);
+  font-size: var(--es-size-caption);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--es-text-2);
+}
+
+.es-bench-order__times dd {
+  margin: 0;
+  font-size: var(--es-size-note);
+}
+
+.es-bench-order__times dd .font-numeric {
+  font-size: var(--es-size-plate);
+}
+
+/* ---------------------------------------------------------------------------------------------- the printer's tape of the log */
+
+.es-bench-tape {
+  display: grid;
+  justify-items: center;
+  width: 100%;
+  margin: 0;
+  container-type: inline-size;
+}
+
+.es-bench-tape__housing {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 1.75rem;
+  border-radius: var(--es-radius-shoulder) var(--es-radius-shoulder) var(--es-radius-plate) var(--es-radius-plate);
+  background-color: var(--es-surface-3);
+  background-image:
+    linear-gradient(180deg, color-mix(in srgb, var(--es-glint) 20%, transparent), transparent 45%),
+    var(--es-texture-brushed);
+  background-size: auto, 100% 360px;
+  box-shadow: var(--es-shadow-lift);
+}
+
+.es-bench-tape__slot {
+  position: absolute;
+  inset: auto 1.1rem 0.4rem;
+  height: 0.3rem;
+  border-radius: var(--es-radius-trim);
+  background-color: var(--es-paper-ink);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--es-glint) 18%, transparent);
+}
+
+.es-bench-tape__paper {
+  position: relative;
+  width: calc(100% - 2rem);
+  margin-top: -0.3rem;
+  padding: var(--es-space-4) var(--es-space-3) var(--es-space-4);
+  background-color: var(--es-paper);
+  color: var(--es-paper-ink);
+  box-shadow: var(--es-shadow-paper);
+}
+
+/* The head of the columns, in the printer's uppercase. */
+.es-bench-tape__heads,
+.es-bench-tape__line {
+  display: grid;
+  grid-template-columns: 3.4rem repeat(4, minmax(0, 1fr)) minmax(0, 1.5fr);
+  gap: var(--es-space-2);
+  align-items: baseline;
+}
+
+.es-bench-tape__heads {
+  margin: 0 0 var(--es-space-2);
+  padding-bottom: var(--es-space-2);
+  border-bottom: 2px dotted var(--es-paper-rule);
+  font-family: var(--es-font-ticket);
+  font-size: var(--es-size-micro);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--es-text-2);
+}
+
+.es-bench-tape__heads > span {
+  display: flex;
+  align-items: center;
+  gap: 0.2em;
+}
+
+.es-bench-tape__heads > span:nth-child(n + 2) {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.es-bench-tape__lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-bench-tape__line {
+  padding: 0.2rem var(--es-space-1);
+  font-family: var(--es-font-ticket);
+  font-size: var(--es-size-print);
+  font-weight: 900;
+  line-height: 1.45;
+  letter-spacing: var(--es-font-ticket-tracking);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.es-bench-tape__line > span:nth-child(n + 2) {
+  text-align: right;
+}
+
+.es-bench-tape__line:hover {
+  background-color: color-mix(in srgb, var(--es-paper-rule) 35%, transparent);
+}
+
+/* An order the cut leaves out is printed in the quiet ink. */
+.es-bench-tape__line[data-cut] {
+  color: var(--es-text-2);
+}
+
+/* The selected order is the present: it is under the lamp, with the filament's edge. */
+.es-bench-tape__line[data-selected] {
+  background-color: var(--es-lamp);
+  color: var(--es-paper-ink);
+  outline: 1px solid var(--es-lamp-ring);
+}
+
+.es-bench-tape__line:focus-visible {
+  outline: 2px solid var(--es-focus);
+  outline-offset: 1px;
+}
+
+.es-bench-tape__tear {
+  display: block;
+  height: 0.4rem;
+  margin: var(--es-space-3) calc(-1 * var(--es-space-3)) calc(-1 * var(--es-space-4));
+  background: conic-gradient(from -45deg at 50% 100%, var(--es-paper) 90deg, transparent 0) 0 0 / 0.75rem 100% repeat-x;
+  transform: translateY(0.4rem);
+}
+
+/* Narrow: each order prints as a block of its own, with a name beside each time. */
+@container (max-width: 34rem) {
+  .es-bench-tape__heads {
+    display: none;
+  }
+
+  .es-bench-tape__line {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 var(--es-space-4);
+    padding: var(--es-space-2) var(--es-space-1);
+    border-bottom: 2px dotted var(--es-paper-rule);
+  }
+
+  .es-bench-tape__line > span:nth-child(n + 2) {
+    text-align: left;
+  }
+
+  .es-bench-tape__line > span::before {
+    content: attr(data-label) ' ';
+    color: var(--es-text-2);
+    font-size: var(--es-size-micro);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .es-bench-tape__line > span:first-child,
+  .es-bench-tape__line > span:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .es-bench-tape__line > span:first-child {
+    font-size: var(--es-size-plate);
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------- the controls */
+
+.es-bench-controls {
+  display: grid;
+  gap: var(--es-space-8);
+  min-width: 0;
+}
+
+.es-bench-case {
+  display: grid;
+  gap: var(--es-space-3);
+  outline: none;
+}
+
+.es-bench-prompt {
+  max-width: 68ch;
+  margin: 0;
+  font-size: var(--es-size-body);
+  line-height: 1.6;
+}
+
+.es-bench-progress {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2);
+  font-size: var(--es-size-note);
+}
+
+/* The desk: the two instruments, side by side where there is room. */
+.es-bench-desk {
+  display: grid;
+  gap: var(--es-space-6);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.es-bench-desk > legend {
+  margin-bottom: var(--es-space-3);
+  padding: 0;
+}
+
+@media (min-width: 48rem) {
+  .es-bench-desk {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .es-bench-desk > legend {
+    grid-column: 1 / -1;
+  }
+}
+
+/* The checklist: the violations on the inspector's form, ruled on paper, one box to ink. */
+.es-bench-cite {
+  min-width: 0;
+  margin: 0;
+  padding: var(--es-space-4) var(--es-space-4) var(--es-space-2);
+  border: 0;
+  background-color: var(--es-paper);
+  color: var(--es-paper-ink);
+  box-shadow: var(--es-shadow-paper);
+}
+
+.es-bench-cite > legend {
+  padding: 0 var(--es-space-2);
+  font-family: var(--es-font-heading);
+  font-size: var(--es-size-title);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background-color: var(--es-paper);
+}
+
+.es-bench-cite__hint {
+  margin: 0 0 var(--es-space-3);
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+}
+
+.es-bench-cite__list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 40rem) {
+  .es-bench-cite__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--es-space-6);
+  }
+}
+
+.es-bench-cite__option {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+  align-items: start;
+  gap: var(--es-space-3);
+  min-height: 2.75rem;
+  padding: var(--es-space-2) var(--es-space-1);
+  border-bottom: 2px dotted var(--es-paper-rule);
+  cursor: pointer;
+}
+
+.es-bench-cite__option:hover {
+  background-color: color-mix(in srgb, var(--es-paper-rule) 30%, transparent);
+}
+
+.es-bench-cite__option:has(input:focus-visible) {
+  outline: 2px solid var(--es-focus);
+  outline-offset: 2px;
+}
+
+/* The box on the form, and the check inked in it: a drawn mark, not a colour. */
+.es-bench-cite__box {
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-top: 0.1rem;
+  border: 2px solid var(--es-paper-ink);
+  background-color: var(--es-paper);
+  color: var(--es-paper-ink);
+}
+
+.es-bench-cite__box svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  stroke-width: 3;
+}
+
+.es-bench-cite__words {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.es-bench-cite__term {
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.es-bench-cite__kitchen {
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+  line-height: 1.4;
+}
+
+.es-bench-cite__option[data-checked] .es-bench-cite__term {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.2em;
+}
+
+/* The answer slip. */
+.es-bench-answer {
+  display: grid;
+  gap: var(--es-space-6);
+  min-width: 0;
+}
+
+.es-bench-answer__lede {
+  max-width: 62ch;
+  margin: 0;
+}
+
+.es-bench-answer__fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-6);
+}
+
+.es-bench-answer__fields > * {
+  min-width: 0;
+}
+
+/* An input's own width would push a slip past its cell: it takes the slip's width and no more. */
+.es-bench-answer .es-field__input {
+  min-width: 0;
+  width: 100%;
+}
+
+@media (min-width: 40rem) {
+  .es-bench-answer__fields {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: var(--es-space-6);
+  }
+}
+
+.es-bench-answer__file {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-3) var(--es-space-6);
+}
+
+/* The stub is a size container, so it has no width of its own in a row: it is given one, as wide as the tear-off of a ticket. */
+.es-bench-answer__file .es-stub {
+  flex: 0 0 min(100%, 18rem);
+}
+
+.es-bench-answer__missing {
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+}
+
+/* ---------------------------------------------------------------------------------------------- the mirror */
+
+.es-bench-mirror {
+  display: grid;
+  gap: var(--es-space-6);
+  min-width: 0;
+}
+
+.es-bench-bins {
+  padding: var(--es-space-3) var(--es-space-4);
+  background-color: var(--es-paper);
+  color: var(--es-paper-ink);
+  box-shadow: var(--es-shadow-paper);
+}
+
+.es-bench-bins > summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.es-bench-bins[open] > summary {
+  margin-bottom: var(--es-space-3);
+}
+
+/* ---------------------------------------------------------------------------------------------- the rulings */
+
+.es-bench-ruling__kitchen {
+  margin: 0 0 var(--es-space-4);
+  color: var(--es-text-2);
+  font-style: italic;
+}
+
+.es-bench-ruling__subhead {
+  margin: var(--es-space-6) 0 var(--es-space-2);
+  font-size: var(--es-size-title);
+  font-weight: 700;
+}
+
+.es-bench-lines--ruling {
+  margin-bottom: var(--es-space-4);
+}
+
+.es-bench-verdict {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3em;
+  margin-right: var(--es-space-1);
+  font-weight: 700;
+}
+
+.es-bench-verdict__mark {
+  flex: none;
+  width: 1em;
+  height: 1em;
+  align-self: center;
+}
+
+.es-bench-verdict[data-ok='false'] {
+  color: var(--es-paper-ink-2);
+}
+
+.es-bench-instances {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+  align-items: start;
+  gap: var(--es-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-bench-instances > li {
+  min-width: 0;
+}
+
+.es-bench-flagsets {
+  display: grid;
+  gap: var(--es-space-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-bench-flagsets p {
+  margin: 0 0 var(--es-space-2);
+}
+
+.es-bench-score {
+  margin: 0 0 var(--es-space-4);
+}
+
+/* The title of the next level can be longer than the stub's line at 320 px (WCAG 1.4.10): the label wraps beside its arrow. */
+[data-bench-debrief] .es-stub__label {
+  white-space: normal;
+}
+
+/* ---------------------------------------------------------------------------------------------- two layouts, one document */
+
+@media (min-width: 64rem) {
+  .es-bench-board {
+    gap: var(--es-space-6);
+  }
+}
