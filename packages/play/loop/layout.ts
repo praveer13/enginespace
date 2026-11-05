@@ -29,10 +29,10 @@
  */
 import type { Us } from '@es/sim/core'
 import type { Span } from '@es/sim/steploop'
-import { clipX, FIRED, GRIP, HOOD, lampsOf, LINE, lineOf, MOUTH, PASS, passWidth, PLATE_R, PLATE_Z, RAIL, railLength, SHELF, SHOTS, STATION_KINDS, TICKET, viewOf, WALL_Z, type Shot } from './kitchen'
+import { clipX, FIRED, GRIP, HOOD, lampsOf, LINE, lineOf, MOUTH, PASS, passWidth, PLATE_R, PLATE_Z, plateRadius, RAIL, railLength, SHELF, SHOTS, STATION_KINDS, TICKET, viewOf, WALL_Z, type Shot } from './kitchen'
 import { countMarks, num } from './svg'
 import type { SvgNode } from './svg'
-import type { ClipView, FireView, LoopView } from './types'
+import type { ClipView, FireView, KitchenView } from './types'
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Marks                                                                                                              */
@@ -124,6 +124,10 @@ export interface FrameOptions {
   readonly orientation?: Orientation
   /** The front page's shot draws no printer, for the page holds its own; Service's page draws it. Default `loop`. */
   readonly shot?: ShotName
+  /** How the drawing's name reads the clock: synthetic ticks on the front page's levels, µs on the model's clock on TR2's (D-048). */
+  readonly clock?: string
+  /** More of the kitchen, drawn after the pass through the same lens: the full service's mold rack, comb and allergy card. */
+  readonly extra?: (draw: FrameDraw) => void
 }
 
 /** The most marks the 2D view draws (A§6.4, W0-T16). The plan draws a fixed set of marks per clip, far under it. */
@@ -137,7 +141,7 @@ export const ticketNo = (id: number): string => String(id + 1).padStart(2, '0')
  * or a binned plate), and dark where its clip rode empty or before any fire. A fire costs the line the same with one ticket as with
  * four, so a fire rung with two of four clips hung leaves half the line dark, and a full rail lights it end to end.
  */
-export function stationsOf(view: LoopView): boolean[] {
+export function stationsOf(view: KitchenView): boolean[] {
   const last = view.fires[view.fires.length - 1]
   return Array.from({ length: view.slots }, (_, slot) => last !== undefined && last.places[slot] !== undefined && last.places[slot].state !== 'empty')
 }
@@ -167,7 +171,7 @@ export interface Window {
  * plan of the oldest fire that still lets the night end inside the window, so it moves by whole fires and never cuts one in half; a
  * fire on the line whose cooking runs into the window from before it is kept.
  */
-export function windowOf(view: LoopView, windowTicks: number): Window {
+export function windowOf(view: KitchenView, windowTicks: number): Window {
   const end = view.clockUs
   let startUs: Us = 0
   if (end > windowTicks) {
@@ -213,7 +217,7 @@ function lensOf(shot: Shot, width: number, height: number) {
   return { at, per, disc }
 }
 
-type Lens = ReturnType<typeof lensOf>
+export type Lens = ReturnType<typeof lensOf>
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Drawing                                                                                                            */
@@ -242,7 +246,17 @@ function painter() {
   return { layers, layer, rect, line, circle, ellipse, poly, path, text, add }
 }
 
-type Painter = ReturnType<typeof painter>
+export type Painter = ReturnType<typeof painter>
+
+/** What a frame's `extra` draws with: its painter, its lens, the pass's width and the two quads every object of the kitchen is made of. */
+export interface FrameDraw {
+  readonly p: Painter
+  readonly lens: Lens
+  readonly width: number
+  readonly upright: typeof upright
+  readonly level: typeof level
+  readonly tape: typeof tape
+}
 
 /** An upright quad in the plane z = `z`, from x0 to x1 and y0 to y1, seen from the shot. */
 const upright = (lens: Lens, x0: number, x1: number, y0: number, y1: number, z: number): Pt[] => [lens.at(x0, y1, z), lens.at(x1, y1, z), lens.at(x1, y0, z), lens.at(x0, y0, z)]
@@ -406,7 +420,7 @@ function station(p: Painter, heat: Mark[], lens: Lens, kind: (typeof STATION_KIN
 }
 
 /** The line: a station for each clip, burning where the latest fire cooked a course; its heat in a layer of its own, the lamp's amber. */
-function theLine(p: Painter, lens: Lens, view: LoopView) {
+function theLine(p: Painter, lens: Lens, view: KitchenView) {
   const line = lineOf(view.slots)
   const clips = stationsOf(view)
   const heat: Mark[] = []
@@ -468,7 +482,7 @@ function clipsAt(p: Painter, lens: Lens, y: number, z: number, slots: number) {
 }
 
 /** The gantry over the pass, its rail and clips, and the fired rail under it while a fire is on the line. */
-function rails(p: Painter, lens: Lens, view: LoopView, width: number) {
+function rails(p: Painter, lens: Lens, view: KitchenView, width: number) {
   const slots = view.slots
   const length = railLength(slots)
   p.layer('gantry')
@@ -520,22 +534,22 @@ function lamps(p: Painter, lens: Lens, slots: number, ceiling: number) {
 }
 
 /** A plate on the pass, as the last fire left it: a plate with its rim and its shadow, a binned plate, or an empty place. */
-function plateAt(p: Painter, lens: Lens, x: number, state: 'plate' | 'empty' | 'binned') {
+function plateAt(p: Painter, lens: Lens, x: number, state: 'plate' | 'empty' | 'binned', r: number) {
   const y = PASS.top
   if (state === 'plate') {
-    const shadow = lens.disc(x, y, PLATE_Z + 0.012, PLATE_R * 1.1)
+    const shadow = lens.disc(x, y, PLATE_Z + 0.012, r * 1.1)
     p.ellipse(shadow, { fill: 'text-1', opacity: 0.24 })
-    p.ellipse(lens.disc(x, y + 0.022, PLATE_Z, PLATE_R), { fill: 'paper', stroke: 'paper-rule', width: 0.7 })
-    p.ellipse(lens.disc(x, y + 0.009, PLATE_Z, 0.09), { fill: 'paper', stroke: 'paper-rule', width: 0.55 })
+    p.ellipse(lens.disc(x, y + 0.022, PLATE_Z, r), { fill: 'paper', stroke: 'paper-rule', width: 0.7 })
+    p.ellipse(lens.disc(x, y + 0.009, PLATE_Z, (r * 0.09) / PLATE_R), { fill: 'paper', stroke: 'paper-rule', width: 0.55 })
   } else if (state === 'binned') {
-    const plate = lens.disc(x, y + 0.012, PLATE_Z, PLATE_R)
+    const plate = lens.disc(x, y + 0.012, PLATE_Z, r)
     p.ellipse(plate, { fill: 'none', stroke: 'paper-ink-2', width: 1.2, dash: '3 2' })
     p.line([plate.cx - plate.rx * 0.7, plate.cy + plate.ry * 0.7], [plate.cx + plate.rx * 0.7, plate.cy - plate.ry * 0.7], { stroke: 'paper-ink-2', width: 1.2 })
-  } else p.ellipse(lens.disc(x, y + 0.002, PLATE_Z, PLATE_R - 0.02), { fill: 'none', stroke: 'surface-3', width: 0.9, dash: '2 2.5' })
+  } else p.ellipse(lens.disc(x, y + 0.002, PLATE_Z, (r * (PLATE_R - 0.02)) / PLATE_R), { fill: 'none', stroke: 'surface-3', width: 0.9, dash: '2 2.5' })
 }
 
 /** The pass: its top under the lamps' pools, the plates, its rolled front edge and apron, its legs, and the heated shelf under it. */
-function thePass(p: Painter, lens: Lens, view: LoopView, width: number) {
+function thePass(p: Painter, lens: Lens, view: KitchenView, width: number) {
   const top = PASS.top
   const d = PASS.depth
   const half = width / 2
@@ -597,7 +611,7 @@ function thePass(p: Painter, lens: Lens, view: LoopView, width: number) {
   }
   p.layer('plates')
   const served = [...view.fires].reverse().find((fire) => !fire.onLine)
-  served?.places.forEach((place, slot) => plateAt(p, lens, clipX(slot, view.slots), place.state))
+  served?.places.forEach((place, slot) => plateAt(p, lens, clipX(slot, view.slots), place.state, plateRadius(view.slots)))
   // The rolled front edge, the apron under it, and the expo's name on tape on the edge.
   p.layer('edge')
   p.poly(upright(lens, -half, half, top - 0.04, top, d / 2), { fill: 'surface-2' })
@@ -622,7 +636,7 @@ function bellAndSpike(p: Painter, lens: Lens, width: number) {
 }
 
 /** The printer at the pass's left end, and the tickets it has fed lying on the counter in front of it, the next first. */
-function printerAt(p: Painter, lens: Lens, view: LoopView, width: number) {
+function printerAt(p: Painter, lens: Lens, view: KitchenView, width: number) {
   p.layer('printer')
   const top = PASS.top
   const [x, z] = [-width / 2 + 0.26, -0.12]
@@ -646,7 +660,7 @@ function printerAt(p: Painter, lens: Lens, view: LoopView, width: number) {
 }
 
 /** The drawing of a night through a shot. */
-function build(view: LoopView, shot: Shot, shotName: ShotName, orientation: Orientation): Layer[] {
+function build(view: KitchenView, shot: Shot, shotName: ShotName, orientation: Orientation, extra?: (draw: FrameDraw) => void): Layer[] {
   const size = FRAMES[orientation]
   const lens = lensOf(shot, size.width, size.height)
   const p = painter()
@@ -658,21 +672,22 @@ function build(view: LoopView, shot: Shot, shotName: ShotName, orientation: Orie
   rails(p, lens, view, width)
   lamps(p, lens, view.slots, 3.2)
   thePass(p, lens, view, width)
+  extra?.({ p, lens, width, upright, level, tape })
   bellAndSpike(p, lens, width)
   if (shotName === 'loop') printerAt(p, lens, view, width)
   return p.layers.filter((layer) => layer.marks.length > 0)
 }
 
 /** The sentence that names the drawing: the state it shows, for assistive technology and for the poster's alt text. */
-function describe(view: LoopView): string {
+function describe(view: KitchenView, clock = 'ticks, synthetic'): string {
   const hung = view.rail.filter((clip) => clip.req !== null).length
   const waiting = view.waiting.length
   const lit = stationsOf(view).filter(Boolean).length
-  return `${view.title}. The rail has ${view.slots} clips and ${hung} ${hung === 1 ? 'is' : 'are'} hung. ${waiting} ${waiting === 1 ? 'ticket waits' : 'tickets wait'}. ${view.step} ${view.step === 1 ? 'fire has' : 'fires have'} been rung, ${lit} of the line's stations burn, and the clock reads ${view.clockUs} ticks, synthetic.`
+  return `${view.title}. The rail has ${view.slots} clips and ${hung} ${hung === 1 ? 'is' : 'are'} hung. ${waiting} ${waiting === 1 ? 'ticket waits' : 'tickets wait'}. ${view.step} ${view.step === 1 ? 'fire has' : 'fires have'} been rung, ${lit} of the line's stations burn, and the clock reads ${view.clockUs} ${clock}.`
 }
 
 /** The frame of a view: its layers in drawing order. The same view and options always give the same frame. */
-export function layoutFrame(view: LoopView, options: FrameOptions = {}): Frame {
+export function layoutFrame(view: KitchenView, options: FrameOptions = {}): Frame {
   const orientation = options.orientation ?? 'landscape'
   const shotName = options.shot ?? 'loop'
   const shots = SHOTS[shotName]
@@ -680,7 +695,7 @@ export function layoutFrame(view: LoopView, options: FrameOptions = {}): Frame {
   // The frame is the shot's picture with its lens centred: a page that shifts the lens moves the frame instead (front.css).
   const chosen: Shot = orientation === 'portrait' ? shots.portrait : shots.base
   const shot: Shot = { position: chosen.position, target: chosen.target, k: chosen.k }
-  return { orientation, width: size.width, height: size.height, label: describe(view), layers: build(view, shot, shotName, orientation) }
+  return { orientation, width: size.width, height: size.height, label: describe(view, options.clock), layers: build(view, shot, shotName, orientation, options.extra) }
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */

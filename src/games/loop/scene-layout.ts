@@ -22,7 +22,7 @@
  */
 import { BAR, CEILING, clipX, FIRED, GRIP, HOOD, lampsOf, LINE, lineOf, MOUTH, PASS, passWidth, pitchOf, PLATE_Z, RAIL, railLength, SHELF, STATION_KINDS, TICKET, WALL_Z } from '@es/play/loop/kitchen'
 import { stationsOf, ticketNo } from '@es/play/loop/layout'
-import type { LoopView } from '@es/play/loop/types'
+import type { KitchenView } from '@es/play/loop/types'
 import type { RoomLight } from '@/scene/props/set'
 import type { PropSpec, StationSpec, Vec3 } from '@/scene/props/specs'
 
@@ -79,10 +79,12 @@ export interface KitchenOptions {
   readonly printer: boolean
   /** The level has the overlap switch: hang the fired rail and set the bin on the pass. */
   readonly overlap: boolean
+  /** The full service's tools are on the pass: their names go on tape on the counter's front edge, beside the expo's. */
+  readonly tools?: boolean
 }
 
 /** The kitchen for a rail of `slots` clips: a function of the level's shape alone, so a fire never rebuilds it. */
-export function serviceKitchen(slots: number, { printer, overlap }: KitchenOptions): ServiceKitchen {
+export function serviceKitchen(slots: number, { printer, overlap, tools = false }: KitchenOptions): ServiceKitchen {
   const width = passWidth(slots)
   const rails = railLength(slots)
   const top = PASS.top
@@ -133,6 +135,13 @@ export function serviceKitchen(slots: number, { printer, overlap }: KitchenOptio
     { id: 'expo', center: [0.15, top - 0.03, PASS.depth / 2 + 0.016], size: [0.42, 0.05], rotation: [-0.45, 0, -0.015], text: 'the expo · cpu' },
   ]
   if (bin) tapes.push({ id: 'bin', center: [bin[0], top + 0.094, bin[2] + 0.1625 + 0.0035], size: [0.12, 0.024], rotation: [-0.12, 0, 0.03], text: 'binned · ghost' })
+  if (tools) {
+    // The full service's tools, named on the front edge as the expo is: the comb at the left, the molds at the right (full/kitchen.ts).
+    tapes.push(
+      { id: 'comb', center: [-0.4, top - 0.03, PASS.depth / 2 + 0.016], size: [0.3, 0.05], rotation: [-0.45, 0, 0.012], text: 'comb · launches' },
+      { id: 'molds', center: [0.6, top - 0.03, PASS.depth / 2 + 0.016], size: [0.3, 0.05], rotation: [-0.45, 0, -0.01], text: 'molds · sizes' },
+    )
+  }
   return {
     slots,
     items,
@@ -176,7 +185,7 @@ export interface PlateSpot {
   readonly leave?: Vec3
 }
 
-export type AnchorKind = 'ticket' | 'fired' | 'waiting' | 'empty' | 'more' | 'tape'
+export type AnchorKind = 'ticket' | 'fired' | 'waiting' | 'empty' | 'more' | 'tape' | 'mold' | 'pick' | 'card'
 
 /** A label's anchor and its words: DOM over the canvas, never print in it. */
 export interface Anchor {
@@ -224,7 +233,7 @@ function lying(x: number, y: number, z: number, turn: number): Vec3 {
   return [x - half * Math.sin(turn), y, z - half * Math.cos(turn)]
 }
 
-export function serviceScene(view: LoopView, kitchen: ServiceKitchen): ServiceScene {
+export function serviceScene(view: KitchenView, kitchen: ServiceKitchen): ServiceScene {
   const { slots, rail, fired, printer } = kitchen
   const top = PASS.top
   const tickets: TicketPlace[] = []
@@ -329,7 +338,7 @@ function tearPose(at: Vec3, yaw: number): { at: Vec3; rotation: Vec3 } {
 export type Change = 'bell' | 'feed' | 'cut'
 
 /** Reads what a new view changed from the one before: a fire rung is the bell, a ticket hung between bells is the printer. */
-export function changeOf(before: LoopView | null, after: LoopView): Change {
+export function changeOf(before: KitchenView | null, after: KitchenView): Change {
   if (before === null || before.level !== after.level) return 'cut'
   if (after.step > before.step) return 'bell'
   if (after.step < before.step || after.waiting.length > before.waiting.length) return 'cut'

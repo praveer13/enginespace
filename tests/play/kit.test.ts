@@ -72,8 +72,12 @@ describe('the shell names the game as D-049 says: the display name over its engi
     expect(header.indexOf('data-slot="docket"')).toBeLessThan(header.indexOf('aria-label="Stages of this game"'))
     expect(header).toContain('>Keys</button>')
     expect(count(markup, /aria-label="Stages of this game"/g)).toBe(1)
-    // A game whose view leads keeps its own toolbar: the docket is for the shell's other layout.
-    expect(shell({ stage: true, docket: h('div', { 'data-slot': 'docket' }) })).not.toContain('data-slot="docket"')
+    // A game whose view leads keeps its own toolbar under the view: its docket stands alone under the name (Service's levels, W1-T13).
+    const staged = shell({ stage: true, docket: h('div', { 'data-slot': 'docket' }) })
+    const stagedHeader = staged.slice(staged.indexOf('<header'), staged.indexOf('</header>'))
+    expect(stagedHeader).toContain('data-slot="docket"')
+    expect(stagedHeader).not.toContain('aria-label="Stages of this game"')
+    expect(count(staged, /aria-label="Stages of this game"/g)).toBe(1)
   })
 })
 
@@ -125,6 +129,20 @@ describe('the slots', () => {
     expect(after.indexOf('data-slot="view2d"')).toBeLessThan(after.indexOf('data-slot="mirror"'))
     expect(after.indexOf('data-slot="mirror"')).toBeLessThan(after.indexOf('data-slot="controls"'))
     expect(after.indexOf('data-slot="controls"')).toBeLessThan(after.indexOf('>Undo</button>'))
+  })
+
+  test('with the view leading, what stands beside the controls follows them, and the mirror joins the grid under the view\'s switches', () => {
+    const plain = shell({ stage: true })
+    expect(plain).not.toContain('data-shell-column')
+    const markup = shell({ stage: true, beside: () => h('div', { 'data-slot': 'beside' }) })
+    // One order for a narrow screen and for the keyboard: the view, the controls, what stands beside them, the switches, the mirror.
+    const at = ['data-slot="view2d"', 'data-shell-column="controls"', 'data-slot="controls"', 'data-slot="beside"', 'aria-label="Stages of this game"', 'data-stage="play"', 'data-slot="mirror"'].map((text) => markup.indexOf(text))
+    expect(at.every((index, i) => index > -1 && (i === 0 || index > at[i - 1]))).toBe(true)
+    // On a wide screen the controls' column spans the view's row, the switches' and the mirror's, and only the mirror's row is flexible.
+    expect(markup).toContain('lg:grid-rows-[auto_auto_1fr]')
+    expect(markup).toMatch(/class="[^"]*lg:row-span-3[^"]*" data-shell-column="controls"/)
+    expect(markup).toMatch(/data-stage="play" class="min-w-0 outline-none lg:col-start-1 lg:row-start-3"/)
+    expect(count(markup, /data-stage="/g)).toBe(1)
   })
 
   test('the mirror\'s id is the one the shell gives the run, so a view can point at its table', () => {

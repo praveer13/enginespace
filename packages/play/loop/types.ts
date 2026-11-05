@@ -201,28 +201,20 @@ export interface LoopCounters {
   readonly emptyClipSteps: number
 }
 
-/** What the scene, the 2D view and the mirror all draw (GAMES.md §3: "lanes, slabs, cells, combs, the bay, counters"). */
-export interface LoopView {
-  readonly level: LoopLevelId
+/**
+ * What the kitchen draws, in the 2D view, the poster and the 3D scene: the rail and the fired rail, the waiting tickets, the fires and
+ * the lanes. The front page's view is one (`LoopView`), and the full service's is another (full/types.ts), so one kitchen draws both.
+ */
+export interface KitchenView {
+  readonly level: string
   readonly title: string
-  readonly prompt: string
-  /** The front page's clock is synthetic ticks, and every screen says so (D-048). */
-  readonly synthetic: true
   readonly slots: number
   /** The expo's clock now, and the lanes' extent. */
   readonly clockUs: Us
   /** Fires rung so far: the bell's count. */
   readonly step: number
-  readonly overlap: boolean
-  /** Whether the overlap switch is on the panel in this level. */
+  /** Whether the level writes the next call during the fire: the fired rail hangs. */
   readonly overlapAvailable: boolean
-  readonly batching: 'continuous' | 'static'
-  /** A decision is pending: a clip is free and a ticket waits. The heat lamp falls on the rail. */
-  readonly deciding: boolean
-  /** Hanging a ticket is allowed right now (static batching refuses while a fire's tickets are on the rail). */
-  readonly canHang: boolean
-  /** The bell can ring: something is hung, or something is on the line to read back. */
-  readonly canFire: boolean
   readonly done: boolean
   /** Tickets waiting, by id. */
   readonly waiting: readonly number[]
@@ -234,6 +226,25 @@ export interface LoopView {
   readonly cpu: readonly Span[]
   readonly gpu: readonly Span[]
   readonly fires: readonly FireView[]
+}
+
+/** What the scene, the 2D view and the mirror all draw (GAMES.md §3: "lanes, slabs, cells, combs, the bay, counters"). */
+export interface LoopView extends KitchenView {
+  readonly level: LoopLevelId
+  readonly title: string
+  readonly prompt: string
+  /** The front page's clock is synthetic ticks, and every screen says so (D-048). */
+  readonly synthetic: true
+  readonly overlap: boolean
+  /** Whether the overlap switch is on the panel in this level. */
+  readonly overlapAvailable: boolean
+  readonly batching: 'continuous' | 'static'
+  /** A decision is pending: a clip is free and a ticket waits. The heat lamp falls on the rail. */
+  readonly deciding: boolean
+  /** Hanging a ticket is allowed right now (static batching refuses while a fire's tickets are on the rail). */
+  readonly canHang: boolean
+  /** The bell can ring: something is hung, or something is on the line to read back. */
+  readonly canFire: boolean
   readonly counters: LoopCounters
   /** The reference's clock, as the target. Null when the level has no par. */
   readonly par: Us | null

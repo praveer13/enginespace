@@ -425,9 +425,9 @@ export const PLATE_SHADOWS = [
   { radius: PLATE.radius * 1.12, soft: 0.055, strength: 0.6 },
 ] as const
 
-/** The footprints of a plate resting at `at`. */
-export function plateFootprints(at: Vec3): Footprint[] {
-  return PLATE_SHADOWS.map(({ radius, soft, strength }) => ({ center: at, size: [radius * 2, radius * 2], radius, soft, strength, yaw: 0 }))
+/** The footprints of a plate resting at `at`, `scale` of a dinner plate. */
+export function plateFootprints(at: Vec3, scale = 1): Footprint[] {
+  return PLATE_SHADOWS.map(({ radius, soft, strength }) => ({ center: at, size: [radius * 2 * scale, radius * 2 * scale], radius: radius * scale, soft: soft * scale, strength, yaw: 0 }))
 }
 
 /**

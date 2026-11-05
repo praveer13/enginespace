@@ -21,7 +21,7 @@
  */
 import { describe, expect, test } from 'bun:test'
 import { applyAction, drawInBand, finishRun, levelOf, regrade, startRun, stateHash } from '@es/play'
-import { LOOP } from '@es/play/loop/entry'
+import { FIRST_SERVICE, LOOP } from '@es/play/loop/entry'
 import { askOf, countersOf, hang, initState, levelDone, measured, setOverlap, step } from '@es/play/loop/engine'
 import { LEVEL_IDS, PASS_SCORE, SLOTS, buildLevel, inParBand, levelTitle, services, simNight, frontPageWorkload } from '@es/play/loop/levels'
 import { loopDebrief, loopGhost, loopGrade, loopInBand, loopLevel, loopSession, loopView } from '@es/play/loop/session'
@@ -32,16 +32,18 @@ const CANDIDATES = 400
 const inBandSeeds = (id: LoopLevelId, from = 0, count = CANDIDATES) => Array.from({ length: count }, (_, i) => from + i).filter((seed) => loopInBand(id, seed))
 
 describe('the levels and their pinned practice seeds', () => {
-  test('the registry lists the four front-page levels, with the titles and the practice seeds the session pins', () => {
-    expect(LOOP.levels.map((level) => level.id)).toEqual([...LEVEL_IDS])
-    for (const entry of LOOP.levels) {
+  test('the registry lists the four front-page levels first, with the titles and the practice seeds the session pins', () => {
+    // The full service's levels follow them (W1-T13, tests/play/loop-full-levels.test.ts), and the front page walks these four alone.
+    expect(FIRST_SERVICE.map((level) => level.id)).toEqual([...LEVEL_IDS])
+    expect(LOOP.levels.slice(0, LEVEL_IDS.length)).toEqual([...FIRST_SERVICE])
+    for (const entry of FIRST_SERVICE) {
       expect(entry.title, entry.id).toBe(levelTitle(entry.id as LoopLevelId))
       expect(entry.graded, entry.id).toBe(false)
     }
   })
 
   test('each practice seed is the first seed from 0 that the level\'s band accepts (GAMES.md §2.1)', () => {
-    for (const entry of LOOP.levels) {
+    for (const entry of FIRST_SERVICE) {
       const first = inBandSeeds(entry.id as LoopLevelId, 0, 64)[0]
       expect([entry.id, entry.practiceSeed]).toEqual([entry.id, first])
     }

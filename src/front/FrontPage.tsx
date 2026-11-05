@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useId, useMemo, useRef, useStat
 import { useLoaderData } from 'react-router'
 import { keymapOf, levelOf } from '@es/play'
 import type { KeyBinding } from '@es/play'
-import { LOOP } from '@es/play/loop/entry'
+import { FIRST_SERVICE, FULL_SERVICE_KEYS, LOOP } from '@es/play/loop/entry'
 import { stationsOf, type Orientation } from '@es/play/loop/layout'
 import { loopSession } from '@es/play/loop/session'
 import type { LoopAction, LoopView } from '@es/play/loop/types'
@@ -118,10 +118,12 @@ const HANG_KEYS: readonly KeyBinding[] = Array.from({ length: 9 }, (_, i) => [
   { id: `hang-${i + 1}`, code: `Digit${i + 1}`, label: String(i + 1), description: 'Hang that waiting ticket' },
   { id: `hang-${i + 1}`, code: `Numpad${i + 1}`, label: String(i + 1), description: 'Hang that waiting ticket' },
 ]).flat()
-const KEYS: readonly KeyBinding[] = [...keymapOf(LOOP).filter((key) => key.id !== 'camera' && !key.id.startsWith('stage-')), ...HANG_KEYS]
+/** Service's keys that the front page's levels use: no camera presets, no stages, and none of the full service's own. */
+const OWN_KEYS = keymapOf(LOOP).filter((key) => key.id !== 'camera' && !key.id.startsWith('stage-') && !FULL_SERVICE_KEYS.includes(key.id))
+const KEYS: readonly KeyBinding[] = [...OWN_KEYS, ...HANG_KEYS]
 /** What the Keys dialog lists: the keys above, with the nine hanging keys on one line. */
 const SHOWN_KEYS: readonly KeyBinding[] = [
-  ...keymapOf(LOOP).filter((key) => key.id !== 'camera' && !key.id.startsWith('stage-')),
+  ...OWN_KEYS,
   { id: 'hang', code: 'Digit1', label: '1 to 9', description: 'Hang the waiting ticket at that place in the line' },
 ]
 
@@ -160,9 +162,10 @@ interface At {
  * chose about the view lives here, above it, and carries over from level to level.
  */
 function Service() {
-  const first = LOOP.levels[0]
+  const first = FIRST_SERVICE[0]
   const [at, setAt] = useState<At>({ level: first.id, seed: first.practiceSeed, count: 0, refocus: false })
-  const after = LOOP.levels[LOOP.levels.findIndex((level) => level.id === at.level) + 1] ?? null
+  // The front page walks "First service" alone: the full service's levels play on Service's own page.
+  const after = FIRST_SERVICE[FIRST_SERVICE.findIndex((level) => level.id === at.level) + 1] ?? null
 
   // The view: 3D on its own once the page has settled on a device that draws it (upgrade.ts), and the learner's choice from then on.
   const device = useDeviceTier()

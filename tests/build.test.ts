@@ -152,12 +152,14 @@ describe('the app build', () => {
     // learner starts one, and which brings the ledger; or the trace viewer (src/trace/TraceView.tsx, W1-T19), which the debrief of Back of
     // House's graded map loads when the run has been judged, so that a learner who never gets there has not downloaded an instrument; or
     // the rules of a route change (src/route-change.ts), which the root route loads after its first render so that the front page's
-    // first-paint closure does not carry them (D-023).
+    // first-paint closure does not carry them (D-023); or a game's whole session (packages/play/<id>/game.ts), which its registry entry
+    // loads for the replay grader when the game plays two sets of rules, as Service does since W1-T13 (the first service's and the full
+    // service's), so that a page that plays one of them never carries the other.
     // The compiled content is lazy too, but it is not a page: the next test holds it to account.
     const named = Object.entries(app.manifest)
       .filter(([key, chunk]) => chunk.isDynamicEntry && chunk.src !== undefined && !key.startsWith(CONTENT))
       .map(([key]) => key)
-    const onDemand = /^(src\/games\/[^/]+\/[A-Za-z0-9]+\.tsx|src\/scene\/[\w/-]+\.tsx?|src\/forge\/ForgeLabPage\.tsx|src\/items\/[A-Za-z0-9]+\.tsx|src\/trace\/TraceView\.tsx|src\/route-change\.ts|node_modules\/three\/examples\/jsm\/[\w/-]+\.js)$/
+    const onDemand = /^(packages\/play\/[^/]+\/game\.ts|src\/games\/[^/]+\/[A-Za-z0-9]+\.tsx|src\/scene\/[\w/-]+\.tsx?|src\/forge\/ForgeLabPage\.tsx|src\/items\/[A-Za-z0-9]+\.tsx|src\/trace\/TraceView\.tsx|src\/route-change\.ts|node_modules\/three\/examples\/jsm\/[\w/-]+\.js)$/
     expect(named.filter((key) => !pages.includes(key) && !onDemand.test(key))).toEqual([])
   })
 

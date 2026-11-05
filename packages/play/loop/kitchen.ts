@@ -44,6 +44,8 @@ export type StationKind = (typeof STATION_KINDS)[number]
 
 /** The distance between two clips: a ticket's width and a plate's apart, for a front-page rail; closer on a longer rail. */
 export const pitchOf = (slots: number): number => Math.max(0.12, Math.min(0.36, 1.44 / slots))
+/** A plate's rim on a rail of `slots` clips: a dinner plate while it fits between two clips, a smaller plate on a longer rail [estimated]. */
+export const plateRadius = (slots: number): number => Math.min(PLATE_R, pitchOf(slots) * 0.46)
 /** The middle of clip `slot`, across the pass. Clip 0 is nearest the printer, at the left. */
 export const clipX = (slot: number, slots: number): number => (slot + 0.5 - slots / 2) * pitchOf(slots)
 /** The pass's width: room for the printer and its tickets at the left, the clips, and the bin, the bell and the spike at the right. */

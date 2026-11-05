@@ -1,7 +1,8 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { levelOf } from '@es/play'
-import { LOOP } from '@es/play/loop/entry'
+import { FIRST_SERVICE, FULL_SERVICE, FULL_SERVICE_KEYS, LOOP } from '@es/play/loop/entry'
 import { loopSession } from '@es/play/loop/session'
+import { Button } from '@/design/components/Button'
 import type { GameView } from '@/games/kit/ViewSwitch'
 import { GameShell } from '@/games/kit/GameShell'
 import type { GameProps } from '@/games/registry'
@@ -21,6 +22,50 @@ import { View2D } from './View2D'
 const Debrief = lazy(() => import('./Debrief').then((module) => ({ default: module.Debrief })))
 // The 3D scene is its own chunk over three's (A§6.10): the Stage loads it only on a device whose tier draws 3D.
 const Scene3D = lazy(() => import('./Scene3D'))
+// The full service (TR2's levels and TR6's mask lane) is a chunk of its own: its rules are the step loop v1 and the cost cards, which the
+// first service and the front page never load. The `keys` level waits behind its card for the owner's dispatcher tables (Q-10).
+const FullService = lazy(() => import('./FullService'))
+const KeysWaiting = lazy(() => import('./KeysWaiting').then((module) => ({ default: module.KeysWaiting })))
+
+/** Service as the first service's shell shows it: its keys without the full service's own, which do nothing on these levels. */
+const FIRST_FACE = { ...LOOP, keys: LOOP.keys.filter((key) => !FULL_SERVICE_KEYS.includes(key.id)) }
+
+/** The level that waits for the owner's tables: on the docket, behind its card, and not a level of the session. */
+const KEYS = { id: 'keys', title: 'Keys' } as const
+const isFull = (id: string): boolean => FULL_SERVICE.some((level) => level.id === id)
+
+/** The row of Service's levels under its name: the first service's four, then the full service's, and the keys behind their card. */
+function Docket({ current, onOpen }: { current: string; onOpen: (id: string) => void }) {
+  const group = (name: string, levels: readonly { readonly id: string; readonly title: string }[], extra?: { id: string; title: string }) => (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="font-display text-size-note uppercase tracking-[0.08em] text-text-2">{name}</span>
+      <ul className="flex flex-wrap gap-1">
+        {[...levels, ...(extra ? [extra] : [])].map((level) => (
+          <li key={level.id}>
+            <Button
+              size="sm"
+              variant={level.id === current ? 'ink' : 'quiet'}
+              aria-current={level.id === current ? 'true' : undefined}
+              onClick={() => onOpen(level.id)}
+            >
+              {level.title}
+              {level.id === KEYS.id ? (
+                // Quieter than the name on the docket's plate; on the lit plate it takes the plate's own ink, as the name does.
+                <span className={`font-body normal-case tracking-normal ${level.id === current ? '' : 'text-text-2'}`}> · waiting</span>
+              ) : null}
+            </Button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+  return (
+    <nav aria-label="Levels of Service" className="flex flex-wrap items-start gap-x-8 gap-y-3" data-loop-docket="">
+      {group('First service', FIRST_SERVICE)}
+      {group('The full service', FULL_SERVICE, KEYS)}
+    </nav>
+  )
+}
 
 /** The scene as the Stage mounts it, inside the Stage's canvas box. */
 function LoopScene(props: Scene3DProps) {
@@ -48,7 +93,7 @@ const ring = (run: LoopRun): boolean => {
 }
 
 export default function Game({ level, placement = 'page', rev, onFinish }: GameProps) {
-  const known = (id: string | undefined) => LOOP.levels.find((entry) => entry.id === id)?.id ?? LOOP.levels[0].id
+  const known = (id: string | undefined) => (id === KEYS.id ? KEYS.id : (LOOP.levels.find((entry) => entry.id === id)?.id ?? LOOP.levels[0].id))
   const [asked, setAsked] = useState(level)
   const [levelId, setLevelId] = useState(() => known(level))
   // A page that opens another level of the game gets it. (Adjusting state when a prop changes: React re-renders at once.)
@@ -75,17 +120,48 @@ export default function Game({ level, placement = 'page', rev, onFinish }: GameP
   const [preset, setPreset] = useState(DEFAULT_PRESET)
 
   const entry = levelOf(LOOP, levelId) ?? LOOP.levels[0]
-  const at = LOOP.levels.findIndex((candidate) => candidate.id === entry.id)
-  const after = LOOP.levels[at + 1] ?? null
+  // The first service walks its own four levels: its last one ends on the end card, as on the front page.
+  const at = FIRST_SERVICE.findIndex((candidate) => candidate.id === entry.id)
+  const after = FIRST_SERVICE[at + 1] ?? null
   const advance = () => {
     if (after === null) return
     advanced.current = true
     setLevelId(after.id)
   }
+  const open = (id: string) => {
+    advanced.current = true
+    setLevelId(id)
+  }
+  // A lesson that embeds the game names its level; the page offers them all.
+  const docket = placement === 'embed' ? undefined : <Docket current={levelId} onOpen={open} />
+
+  if (levelId === KEYS.id) {
+    return (
+      <section data-game={LOOP.id} tabIndex={-1} aria-label={`${LOOP.title}: ${KEYS.title}`} className="flex flex-col gap-6 outline-none">
+        <header className="flex flex-col gap-3">
+          <div>
+            <h2 className="es-type-heading">{LOOP.title}</h2>
+            <p className="es-type-body text-text-2">{LOOP.subtitle}</p>
+          </div>
+          {docket}
+        </header>
+        <Suspense fallback={<p role="status">Fetching the card…</p>}>
+          <KeysWaiting />
+        </Suspense>
+      </section>
+    )
+  }
+  if (isFull(levelId)) {
+    return (
+      <Suspense fallback={<p role="status">Setting up the full service…</p>}>
+        <FullService level={levelId} placement={placement} rev={rev} onFinish={onFinish} docket={docket} onLevel={open} />
+      </Suspense>
+    )
+  }
 
   return (
     <GameShell
-      game={LOOP}
+      game={FIRST_FACE}
       session={loopSession}
       level={entry.id}
       levelTitle={entry.title}
@@ -94,6 +170,7 @@ export default function Game({ level, placement = 'page', rev, onFinish }: GameP
       rev={rev}
       headingLevel={placement === 'embed' ? 3 : 2}
       onFinish={onFinish}
+      docket={docket}
       onCommand={(command, run) => {
         if (command === 'step') return ring(run)
         if (command === 'overlap') {

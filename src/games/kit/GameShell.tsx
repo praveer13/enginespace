@@ -93,8 +93,9 @@ export interface GameShellProps<Level, State, Action extends GameAction, View, S
    */
   stage?: boolean
   /**
-   * The game's own row of choices under its name, such as its levels and its attempt (with `stage` off). The stages and the Keys button
-   * join that row, and the tape that names the level and the mode is left out, because the row shows both.
+   * The game's own row of choices under its name, such as its levels and its attempt. With `stage` off the stages and the Keys button
+   * join that row, and the tape that names the level and the mode is left out, because the row shows both; with `stage` on the row
+   * stands alone under the name, and the stages stay under the view.
    */
   docket?: ReactNode
   /**
@@ -102,6 +103,12 @@ export interface GameShellProps<Level, State, Action extends GameAction, View, S
    * beside them both, with the controls under the view.
    */
   mirrorFirst?: boolean
+  /**
+   * What stands under the controls in the play stage, with `stage` on: a game's tape, which its mirror then leaves out. Given, the mirror
+   * stands right under the view's switches on a wide screen, and the controls and this run down beside the view, the switches and the
+   * mirror, so a long column of controls never leaves a hole under the view. On a narrow screen it follows the controls.
+   */
+  beside?: (run: RunApi<Action, View, Score, Ask>) => ReactNode
 }
 
 type ShellRunProps<L, S, A extends GameAction, V, C, K> = GameShellProps<L, S, A, V, C, K> & {
@@ -344,6 +351,20 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
       {nav}
     </div>
   )
+  // The play stage of a game that sets something beside its controls lays its two columns out to flow on their own (`beside`).
+  const flow = props.stage === true && phase === 'play' && props.beside !== undefined
+  const panelNode = (
+    <div
+      ref={panel}
+      tabIndex={-1}
+      role="group"
+      aria-label={PHASE_NAMES[phase]}
+      data-stage={phase}
+      className={flow ? 'min-w-0 outline-none lg:col-start-1 lg:row-start-3' : 'outline-none'}
+    >
+      {stagePanel()}
+    </div>
+  )
 
   return (
     <section
@@ -364,7 +385,7 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
           </Heading>
           <p className="es-type-body text-text-2">{game.subtitle}</p>
         </div>
-        {props.stage ? null : docket === undefined ? (
+        {props.stage ? (props.docket ?? null) : docket === undefined ? (
           tools
         ) : (
           // One row: the game's own choices, then the stages and the keys.
@@ -378,7 +399,21 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
         )}
       </header>
 
-      {props.stage && phase === 'play' ? (
+      {flow && props.beside ? (
+        // As below, with the mirror in the grid too: the controls and what stands beside them span the view's row, its switches' and
+        // the mirror's, and only the mirror's row is flexible, so a column of controls longer than the view and its switches lengthens
+        // that row alone and the mirror stands right under the switches. The order on the page is the order on a narrow screen and the
+        // keyboard's: the view, the controls, what stands beside them, the view's switches, the mirror.
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:grid-rows-[auto_auto_1fr] lg:items-start">
+          <div className="flex min-w-0 flex-col gap-4">{viewNode}</div>
+          <div className="flex min-w-0 flex-col gap-6 lg:col-start-2 lg:row-span-3 lg:row-start-1" data-shell-column="controls">
+            <div className="flex min-w-0 flex-col gap-4">{playControls}</div>
+            <div className="min-w-0">{props.beside(api)}</div>
+          </div>
+          <div className="min-w-0 lg:col-start-1 lg:row-start-2">{toolbar}</div>
+          {panelNode}
+        </div>
+      ) : props.stage && phase === 'play' ? (
         // The view leads, and the controls stand beside it, so a hand on them never loses sight of the scene. The view's switches
         // stand under it on a wide screen; on a narrow one they follow the controls, which come first after the view.
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:grid-rows-[auto_1fr] lg:items-start">
@@ -392,9 +427,7 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
         nav
       ) : null}
 
-      <div ref={panel} tabIndex={-1} role="group" aria-label={PHASE_NAMES[phase]} data-stage={phase} className="outline-none">
-        {stagePanel()}
-      </div>
+      {flow ? null : panelNode}
 
       {props.card ? (
         <details className="max-w-prose">
