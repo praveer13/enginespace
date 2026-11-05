@@ -215,11 +215,12 @@ export function benchDebrief(mine: BenchState, ghost: BenchState): Debrief {
     if (cases > 1) {
       return { sentence: "Every ruling stood. In each case you named the flaw the log showed (or found none), applied the rule that corrects it, and wrote down a number and a range that the court's own recomputation agreed with.", names: null }
     }
+    // A single case's verdict is the ticket's heading ("The ruling stands."), so the sentence under it opens on what the learner did.
     return {
       sentence:
         mine.level.slots[0].flaw === 'none'
-          ? "The ruling stood. You found no flaw, checked the log from the due times, and wrote down the number the report already had, with a range that the court's own recomputation agreed with."
-          : `The ruling stood. You named ${FLAW_FACTS[mine.level.slots[0].flaw].phrase}, applied the rule that corrects it, and wrote down a number and a range that the court's own recomputation agreed with.`,
+          ? "You found no flaw, checked the log from the due times, and wrote down the number the report already had, with a range that the court's own recomputation agreed with."
+          : `You named ${FLAW_FACTS[mine.level.slots[0].flaw].phrase}, applied the rule that corrects it, and wrote down a number and a range that the court's own recomputation agreed with.`,
       names: null,
     }
   }

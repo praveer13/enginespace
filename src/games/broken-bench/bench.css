@@ -778,6 +778,55 @@
   margin-bottom: var(--es-space-3);
 }
 
+/*
+ * The tail, on a narrow ticket. The kit prints a narrow table's rows as blocks, each cell after its column's name, and at 390 px a rank,
+ * an order and a time wrap to two lines that way, seventeen of them between the pass and the desk. The tail's cells are short, so it keeps
+ * its column heads, in one line over the rows, and prints each order on one line under them: the rank (with the p99's tape in practice),
+ * the order, and the time ranged right, on the same three columns as the heads. The rows keep their perforated rule and the table keeps
+ * its roles, so a screen reader reads the same table.
+ */
+@container (max-width: 36rem) {
+  .es-bench-tail .es-mirror__table thead {
+    display: block;
+  }
+
+  .es-bench-tail .es-mirror__table :is(thead, tbody) tr {
+    display: grid;
+    grid-template-columns: minmax(5.5rem, 1fr) minmax(3.5rem, 0.8fr) minmax(0, 1.4fr);
+    align-items: baseline;
+    gap: 0 var(--es-space-3);
+    padding: var(--es-space-1) var(--es-space-2);
+  }
+
+  .es-bench-tail .es-mirror__table thead tr {
+    padding-bottom: var(--es-space-2);
+    border-bottom: 1px solid var(--es-edge);
+  }
+
+  .es-bench-tail .es-mirror__table thead th {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+    padding: 0;
+    text-align: left;
+  }
+
+  .es-bench-tail .es-mirror__table tbody :is(th, td) {
+    display: block;
+  }
+
+  .es-bench-tail .es-mirror__table :is(thead th, tbody td):last-child {
+    text-align: right;
+  }
+
+  .es-bench-tail .es-mirror__table tbody td::before {
+    content: none;
+  }
+}
+
 /* ---------------------------------------------------------------------------------------------- the rulings */
 
 .es-bench-ruling__kitchen {
@@ -831,9 +880,9 @@
 
 /*
  * The real tools' instances of a flaw, as one ledger on a slip of paper: a line for each claim, its figure in one column and where it
- * comes from in the next, every line on the same two columns and under the claim's own perforated rule. A figure that is a phrase is
- * set as reading, in the body face, beside the numbers in their dots. The slip is a size container, and a narrow one sets the source
- * under its figure.
+ * comes from in the next, every line on the same two columns and under the claim's own perforated rule. Every figure prints at one size,
+ * the print step: a number in its dots and a phrase in the reading face, never in the code face, so the lines keep one rhythm. The slip
+ * is a size container, and a narrow one sets the source under its figure.
  */
 .es-bench-ledger-slip {
   container-type: inline-size;
@@ -864,9 +913,14 @@
   background: none;
 }
 
+.es-bench-ledger .es-claim__value,
+.es-bench-ledger .es-readout {
+  font-size: var(--es-size-print);
+}
+
 .es-bench-ledger .es-claim__text {
   font-family: var(--es-font-body);
-  font-size: var(--es-size-note);
+  font-size: var(--es-size-print);
   line-height: 1.4;
 }
 
@@ -968,6 +1022,12 @@
 
 .es-bench-flagsets p {
   margin: 0 0 var(--es-space-2);
+}
+
+/* Each flag is a size container, so that on a narrow ticket its ledger sets a source under its figure, as the ruling's slip does. */
+.es-bench-flagsets > li {
+  container-type: inline-size;
+  min-width: 0;
 }
 
 .es-bench-score {

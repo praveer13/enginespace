@@ -259,6 +259,16 @@ describe('the mirror is the tail as a table', () => {
     expect(text(markup)).not.toContain('beyond it')
   })
 
+  test('is the tail\'s own ticket, which keeps its column heads over one line for each order on a narrow screen (bench.css)', () => {
+    const run = fakeRun(stateOf('due', 0))
+    const markup = render(h(Mirror, { run, desk: deskOf(run) }))
+    expect(count(markup, /<section class="es-ticket es-mirror es-bench-tail"/g)).toBe(1)
+    // The three columns, each with the engine's term, which the narrow tail prints once over the rows.
+    const head = markup.slice(markup.indexOf('<thead'), markup.indexOf('</thead>'))
+    expect(count(head, /role="columnheader"/g)).toBe(3)
+    for (const term of ['Rank', 'Order', 'To first token']) expect(text(head)).toContain(term)
+  })
+
   test('holds the inspector\'s clipboard beside the tail, and the counts behind the histogram as a table of nineteen bins', () => {
     const run = fakeRun(stateOf('due', 0))
     const markup = render(h(Mirror, { run, desk: deskOf(run) }))
@@ -404,9 +414,15 @@ describe('the debrief reads the rulings', () => {
     expect(markup).toMatch(/<h3 class="es-ticket__title">The ruling stands\.<\/h3>/)
     expect(markup).toMatch(/<h3 class="es-ticket__title">Coordinated omission<\/h3>/)
     expect(text(markup)).toContain('Every figure on this ruling is synthetic, unless it says otherwise')
+    // The words under a heading do not say it again: the verdict's sentence opens on what the learner did.
+    const verdict = markup.slice(markup.indexOf('es-bench-court'), markup.indexOf('data-ruling='))
+    expect(text(verdict)).toMatch(/The ruling stands\. You named coordinated omission, applied the rule that corrects it/)
+    expect(text(markup)).not.toMatch(/ruling stood/i)
     const production = render(h(Production, null))
     expect(production).toContain('The flags that would have made it admissible')
     expect(production).not.toContain('es-ticket__head')
+    // Each flag's claims are a ledger, as the ruling's real-world instances are: a line for each, its figure beside its source.
+    expect(count(production, /<ul class="es-bench-instances es-bench-ledger">/g)).toBe(3)
   })
 
   test('the court sets its five cases side by side in a docket, and reads each ruling', () => {

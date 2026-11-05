@@ -46,10 +46,16 @@ The ruling. The court reads the number the report should have had: on the histog
 - **Built:** the ruling's exhibits stand beside it. The corrected run is a histogram sheet with the report's flag, the court's and the learner's, and a second sheet is the stretch of the learner's own log around its longest wait, each order's due tick, its wait in the ribbon's red and its sent tick, as on the Timeline sheet. A log that sent no order late has no such stretch.
 - **Adaptation, cited (finish review, round 1):** the histogram's ruler runs up the sheet, on the same logarithmic scale as the board's own histogram, so "near the left" and "far to its right" are drawn as low on the ruler and far above it. One ruler on both sheets keeps the corrected run comparable with what the learner read on the board.
 
+## Adaptations (finish review, round 2)
+
+- **The tail on a phone.** At 390 px the tail keeps its column heads in one line over the rows and prints each order on one line under them, where the kit would print a block for each row with a name before each cell. The tail still stands between the pass and the desk, and the desk follows close enough under it to stay within reach.
+- **The real tools as one ledger.** The real tools' claims, on the ruling's slip and under each flag of In production, are set the same way: a line for each claim, its figure beside its source, every figure at the print step, and a phrase in the reading face, never in a large code face.
+- **No heading said twice.** The verdict's sentence opens on what the learner did, because the ticket's heading already says whether the ruling stands.
+
 ## Unresolved
 
 - **The 3D opener** (`rain-and-relay`) is a stretch built after `court` ships; its camera presets and the kitchen words for its arenas are in GAMES.md §2.6.
 - **Pass bars** are the proposals of GAMES.md §11 and ASSESSMENT §4.3 [estimated]; the owner confirms them with the rest of ASSESSMENT.
-- **Raised with the documenter (finish review, round 1):**
-  - DESIGN.md's Ticket ("a Doto head line over a dotted rule, a heading-face title") puts a kicker over every titled ticket. This game drops the head line wherever a title follows and prints what it said on the foot line.
+- **Raised with the documenter (finish review, round 1; still open after round 2):**
+  - DESIGN.md's Ticket ("a Doto head line over a dotted rule, a heading-face title") puts a kicker over every titled ticket. This game drops the head line wherever a title follows, In production's ticket included; where the head line said something the title does not, the foot line prints it.
   - DESIGN.md's Toggle lights a switch that is on in the lamp's amber. Here amber falls only on the selected order, so the desk's switch shows an inked pilot when it is on.

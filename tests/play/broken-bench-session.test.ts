@@ -219,6 +219,21 @@ describe('grade and debrief', () => {
     for (const id of LEVEL_IDS) expect(benchDebrief(benchGhost(benchLevel(id, 0)), benchGhost(benchLevel(id, 0))).sentence).not.toMatch(/\d/)
   })
 
+  test('a single case that stands opens its sentence on what the learner did, since the ticket\'s heading already says the ruling stands', () => {
+    // Seeds 0 and 1 deal each single-case level both of its flaws: `warm` and `sure` deal the fair inspection on seed 1.
+    const sentences = (['due', 'warm', 'sure'] as const).flatMap((id) =>
+      [0, 1].map((seed) => {
+        const ghost = benchGhost(benchLevel(id, seed))
+        return [id, seed, ghost.level.slots[0].flaw, benchDebrief(ghost, ghost).sentence] as const
+      }),
+    )
+    expect(sentences.filter(([, , flaw]) => flaw === 'none')).toHaveLength(2)
+    for (const [id, seed, flaw, sentence] of sentences) {
+      expect([id, seed, /^You (named|found no flaw)\b/.test(sentence)]).toEqual([id, seed, true])
+      expect([id, seed, flaw, /\bruling (stood|stands)\b/i.test(sentence)]).toEqual([id, seed, flaw, false])
+    }
+  })
+
   test('a number that is right with a range that is not names the range', () => {
     const level = benchLevel('sure', 0)
     const ghost = benchGhost(level)

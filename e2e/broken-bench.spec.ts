@@ -21,6 +21,8 @@
  *      (WCAG 1.4.10).
  *   8. The first viewport holds the evidence: under one row of the levels, the attempt and the stages, the sheet and the claim at
  *      1440 px and the claim at 390 px; and on a phone the tail comes before the desk.
+ *   9. The rows sheet lights the selected order as an edgeless pool on the tape's paper, with no fill, border or outline of its own, at
+ *      1440 and 390 px; and on a phone the tail prints each order on one line under its column heads, so the desk follows close under it.
  *
  * How it runs. The spec starts the app's own Vite dev server on a free port, so it needs no build and no preview server, and drives
  * `/play/broken-bench` in whichever browser Playwright launches. With ES_E2E_ORIGIN set to the address of a server that is already running
@@ -473,6 +475,61 @@ test.describe('the first viewport', () => {
     const desk = await box(page, '[data-bench-desk]')
     expect(pass.y).toBeLessThan(tail.y)
     expect(tail.y).toBeLessThan(desk.y)
+  })
+})
+
+test.describe('the tape and the tail', () => {
+  test('the rows sheet lights the selected order as an edgeless pool on the tape, with no fill, border or outline of its own', async ({ page }) => {
+    for (const [width, height] of [
+      [1440, 900],
+      [390, 844],
+    ] as const) {
+      await page.setViewportSize({ width, height })
+      await open(page, 'due')
+      await page.getByRole('button', { name: 'Rows', exact: true }).click()
+      await page.locator('.es-bench-tape__line[data-order="131"]').click()
+      const selected = page.locator('.es-bench-tape__line[aria-selected="true"]')
+      await expect(selected).toHaveAttribute('data-order', '131')
+      const lamp = await selected.evaluate((element) => {
+        const own = getComputedStyle(element)
+        const pool = getComputedStyle(element, '::before')
+        return { fill: own.backgroundColor, sides: [own.borderTopWidth, own.borderLeftWidth, own.borderRightWidth], outline: own.outlineStyle, pool: pool.backgroundImage }
+      })
+      // The light is the pool's alone: the line has no fill and no edge, and the pool fades to nothing inside its own box.
+      expect([width, lamp.fill]).toEqual([width, 'rgba(0, 0, 0, 0)'])
+      expect([width, lamp.sides]).toEqual([width, ['0px', '0px', '0px']])
+      expect([width, lamp.outline]).toEqual([width, 'none'])
+      expect([width, /^radial-gradient\(closest-side, /.test(lamp.pool), /rgba\(0, 0, 0, 0\) 100%\)$/.test(lamp.pool)]).toEqual([width, true, true])
+    }
+  })
+
+  test('on a phone the tail prints each order on one line under its column heads, so the desk follows close under it', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await open(page, 'due')
+    const tail = page.locator('[data-mirror=""]')
+    // The heads are printed once over the rows, and no longer kept as the one-pixel boxes the kit leaves for a screen reader.
+    const heads = await tail.locator('thead th').evaluateAll((cells) => cells.map((cell) => Math.round(cell.getBoundingClientRect().width)))
+    expect(heads).toHaveLength(3)
+    for (const width of heads) expect(width).toBeGreaterThan(24)
+    const rows = await tail.locator('tbody tr').evaluateAll((trs) =>
+      trs.map((tr) => {
+        const tops = [...tr.children].map((cell) => cell.getBoundingClientRect().top)
+        return { spread: Math.max(...tops) - Math.min(...tops), height: tr.getBoundingClientRect().height }
+      }),
+    )
+    expect(rows.length).toBeGreaterThanOrEqual(12)
+    // A row is one line of print: its cells stand side by side, and none is as tall as two lines.
+    const line = await tail.locator('tbody tr th').first().evaluate((cell) => parseFloat(getComputedStyle(cell).lineHeight))
+    for (const row of rows) {
+      expect(row.spread).toBeLessThanOrEqual(4)
+      expect(row.height).toBeLessThan(2 * line)
+    }
+    // No cell prints its column's name again, since the heads say it.
+    expect(await tail.locator('tbody td').first().evaluate((cell) => getComputedStyle(cell, '::before').content)).toBe('none')
+    const tailBox = await tail.boundingBox()
+    const desk = await page.locator('[data-bench-desk]').boundingBox()
+    if (tailBox === null || desk === null) throw new Error('the tail or the desk is not drawn')
+    expect(tailBox.y + tailBox.height).toBeLessThan(desk.y)
   })
 })
 
