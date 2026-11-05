@@ -3,3 +3,4 @@
 // src/forge/invoke.ts. `toy` is the host's own practice lab; each real lab adds its model and its checks here (W1-T22, W1-T27).
 export * from './plan'
 export * from './toy'
+export * from './rejection-sampler'

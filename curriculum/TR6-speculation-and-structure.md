@@ -98,7 +98,7 @@ The module counts as complete when the forge lab, The Verifier's graded levels, 
 
 **Compare like with like.** At v0.33.0 a `custom_class` proposer runs on MRV1, and on MRV1 async scheduling turns itself off for speculative methods outside EAGLE, n-gram-GPU, draft model, DSpark and DFlash (vllm M6, S4). A plain baseline on the default MRV2 with async scheduling on would fold two other changes into the "speedup". So s3's plain run uses the same runner and async setting as the speculative run, and the receipt records both.
 
-**A proposed extra check for the forge lab** (for W1-T27 to decide). If the lab's interface passes the uniform draw u in, as an integer in [0, q(x)), the host can enumerate every u for the accept step and require that exactly min(p(x), q(x)) of them accept. That makes the accept step's check exact, with no false fails; the residual draw stays under chi-square.
+**The extra check for the forge lab, as W1-T27 decided it.** The lab's interface passes the uniform draw u in, as an integer in [0, q(x)), so the host enumerates every u for the accept step and requires that exactly min(p(x), q(x)) of them accept. That makes the accept step's check exact, with no false fails. The walk over the weights gets the same look (each dish is picked by exactly its weight of the draws), and so do rounds in which no coin matters (a plate that p rules out is sent back for sure). The whole round stays under chi-square, which is the only check that can fail an exact sampler.
 
 ## 6. Game slots
 

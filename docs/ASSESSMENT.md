@@ -158,7 +158,7 @@ All are computed at read time from events and content; nothing is stored (kernel
 |---|---|
 | `hybrid-kv` (TR5a) | stages s1-s6 of [TR5a §5](../curriculum/TR5a-hybrid-kv-and-adapter-pages.md): per-group paging and hashing, sliding release, state pages, the N-group hit, adapter pages, and the invariants after every op of the gauntlet |
 | `kv-publisher` (TR5b) | stages s1-s6 of [TR5b §5](../curriculum/TR5b-offload-connector-events.md): the reference consumer's view equals the truth after every batch, with ordering, replay, reset, chunk repeats, adapter ids, and drops, duplicates, reorders and a restart |
-| `rejection-sampler` (TR6) | chi-square goodness of fit on two fresh seeds of 20,000 draws, α = 1e-4 each, neither rejecting (A§8.3) [estimated parameters]; the bestiary of [TR6 §5](../curriculum/TR6-speculation-and-structure.md) must each fail |
+| `rejection-sampler` (TR6) | `accept`, `residual`, `pick` and `round`, which are exact (every coin of the accept step, the residual, every draw of the walk over the weights, and rounds in which no coin matters), and `exact`, a chi-square goodness of fit on two fresh seeds of 20,000 draws, α = 1e-4 each, neither rejecting (A§8.3) [estimated parameters]; the bestiary of [TR6 §5](../curriculum/TR6-speculation-and-structure.md) must each fail |
 
 ### 4.6 Statistical checks and their error rates
 

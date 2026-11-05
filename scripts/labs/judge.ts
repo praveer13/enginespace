@@ -13,6 +13,7 @@
  * site uses. A judgement is a list of problems, empty when the build is as it should be.
  */
 
+import { hash32, splitmix32u } from '../../vendor/kernelspace/src/lib/rng'
 import type { ForgeHost, LoadedModule } from '../../src/forge/host'
 import { runLab, seedsOf, type LabRun } from '../../src/forge/invoke'
 import type { ForgeLab } from '../../src/forge/labs'
@@ -51,16 +52,28 @@ export function listProblems(lab: ForgeLab, module: LoadedModule): string[] {
 
 const statuses = (run: LabRun): string => run.checks.map((check) => `${check.id} ${check.status}`).join(', ')
 
+/**
+ * The seeds that a judgement's runs draw, when the caller gives none: a fixed stream for each lab, kind of build and bestiary member, so
+ * that a judgement is a function of the module and nothing else. A learner's run draws its seeds from entropy (invariant I3), and a gate
+ * that did the same would fail by chance as often as the lab's own statistical checks do: the rejection-sampler's chi-square rejects an
+ * exact sampler with probability about 2e-4 [derived], and a gate runs it hundreds of times. The seeds are still distinct from run to run
+ * and unseen by the module, which is what "fresh" asks of a run.
+ */
+export function gateSeeds(lab: ForgeLab, kind: Kind, member?: Member): () => number {
+  return splitmix32u(hash32(`verify-labs/${lab.id}/${kind}/${member?.id ?? ''}`))
+}
+
 /** Runs a build and says what is wrong with it. `bytes` is the module's file. */
 export async function judge(
   host: ForgeHost,
   lab: ForgeLab,
   kind: Kind,
   bytes: ArrayBuffer,
-  options: { runs: number; member?: Member; budgetMs?: number },
+  options: { runs: number; member?: Member; budgetMs?: number; draw?: () => number },
 ): Promise<Judgement> {
   const problems: string[] = []
   const budgetMs = options.budgetMs ?? CHECK_BUDGET_MS
+  const draw = options.draw ?? gateSeeds(lab, kind, options.member)
   let module: LoadedModule
   try {
     module = await host.load(bytes)
@@ -71,7 +84,7 @@ export async function judge(
   if (module.reference !== (kind === 'reference')) problems.push(kind === 'reference' ? 'the module is not named `@reference`' : 'the module is named `@reference`, and only the reference build is')
 
   if (kind === 'template') {
-    const run = await runLab(host, lab, module, { budgetMs })
+    const run = await runLab(host, lab, module, { budgetMs, draw })
     for (const check of run.checks) {
       if (check.status !== 'trap') problems.push(`${check.id}: ${check.status}, not trap (${check.msg})`)
       else if (!check.msg.startsWith('not implemented yet')) problems.push(`${check.id}: the trap does not say "not implemented yet" (${check.msg})`)
@@ -91,6 +104,7 @@ export async function judge(
       const started: Record<string, number> = {}
       const run = await runLab(host, lab, module, {
         budgetMs,
+        draw,
         ...(member.only === undefined ? {} : { only: member.only }),
         onProgress: (event) => {
           if (event.type === 'check-start') started[event.id] = performance.now()
@@ -121,7 +135,7 @@ export async function judge(
 
   // Reference and solved: a pass on every run, on fresh seeds, and the same on the seeds of the first run told again.
   const runs: LabRun[] = []
-  for (let n = 0; n < options.runs; n++) runs.push(await runLab(host, lab, module, { budgetMs }))
+  for (let n = 0; n < options.runs; n++) runs.push(await runLab(host, lab, module, { budgetMs, draw }))
   for (const [n, run] of runs.entries()) {
     const red = run.checks.filter((check) => check.status !== 'pass')
     if (red.length > 0) problems.push(`run ${n + 1} on fresh seeds: ${red.map((check) => `${check.id} ${check.status} (${check.msg})`).join('; ')}`)

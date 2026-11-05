@@ -31,7 +31,8 @@ describe('the registry', () => {
   test('every lab names a crate that is in the workspace, and the file it builds', () => {
     const workspace = read('labs/forge/Cargo.toml')
     const members = [...(/members\s*=\s*\[([^\]]*)\]/.exec(workspace)?.[1] ?? '').matchAll(/"([^"]+)"/g)].map((m) => m[1])
-    expect(members).toEqual(['kit', 'toy'])
+    // The kit and one crate for each lab: a lab that is added to the registry is added to the workspace too.
+    expect([...members].sort()).toEqual(['kit', ...Object.values(FORGE_LABS).map((lab) => lab.crate)].sort())
     for (const lab of Object.values(FORGE_LABS)) {
       expect(members).toContain(lab.crate)
       expect(lab.wasm).toBe(`${lab.crate.replaceAll('-', '_')}.wasm`)
@@ -129,9 +130,9 @@ describe('the workspace', () => {
     expect(pin.targets).toEqual(['wasm32-unknown-unknown'])
   })
 
-  test('the lockfile holds the two crates and no other, so that nothing is fetched', () => {
+  test('the lockfile holds the kit and the labs\' crates and no other, so that nothing is fetched', () => {
     const lock = read('labs/forge/Cargo.lock')
-    expect([...lock.matchAll(/^name = "([^"]+)"$/gm)].map((m) => m[1]).sort()).toEqual(['kslab', 'toy'])
+    expect([...lock.matchAll(/^name = "([^"]+)"$/gm)].map((m) => m[1]).sort()).toEqual(['kslab', ...Object.values(FORGE_LABS).map((lab) => lab.crate)].sort())
     expect(lock).not.toContain('source = ')
   })
 
