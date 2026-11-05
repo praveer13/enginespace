@@ -1,15 +1,17 @@
 /*
- * Service's 2D view (packages/play/loop/layout.ts): the poster SVG equals the 2D view's first frame (both from one pure function), the
- * view stays far under 2,000 SVG marks (A§6.3, A§6.11, GAMES.md §3 "2D path"), and it is the pass drawn from above in the world's own
- * materials (W0 finding F1): a station over each clip with a hotel pan in its well, paper tickets on the rail, the plates of the last
- * fire on the pass under the lamp's amber, and no lane, no axis and no legend.
+ * Service's 2D view (packages/play/loop/layout.ts): the poster SVG equals the front page's first frame and the 2D view draws the same
+ * pure function on Service's own page (both from one pure function), the view stays far under 2,000 SVG marks (A§6.3, A§6.11,
+ * GAMES.md §3 "2D path"), and it is the same kitchen as the 3D scene drawn flat at the scene's scale (the finish review's round 1, fix
+ * 7): the room and the hood, the line's stations burning or cold, the rail with paper tickets on its clips, the lamps and their pools
+ * on the pass, the plates of the last fire, the heated shelf with its plate stacks, and no lane, no axis and no legend.
  *
- * The poster is `scripts/posters.ts`: the practice seed of the first level as a view, laid out and written as SVG text. The 2D view is
- * `View2D`, which draws the same tree as React elements. The first group renders the real component on the server and cuts the <svg>
- * out of its markup, so what is compared is what the page paints and not a second copy of the code.
+ * The poster is `scripts/posters.ts`: the practice seed of the first level as a view, laid out through the front page's shot and
+ * written as SVG text. The 2D view is `View2D`, which draws Service's own shot as React elements. The first group renders the real
+ * component on the server and cuts the <svg> out of its markup, so what is compared is what the page paints and not a second copy of
+ * the code.
  *
- * Measured by the poster script [measured 2026-11-04 on this task's tree]: the two posters are 64 and 72 marks, and 8,069 and 8,925
- * bytes (`bun scripts/posters.ts`).
+ * Measured by the poster script [measured 2026-11-04 on this task's tree]: the two posters are 140 marks each and 20,746 and 20,744
+ * characters (`bun scripts/posters.ts`), 4,755 and 4,731 bytes under `gzip -9`.
  */
 import { describe, expect, test } from 'bun:test'
 import { createElement as h } from 'react'
@@ -18,8 +20,9 @@ import { ROLES } from '@/design/tokens'
 import { svgToReact } from '@/games/loop/svg'
 import { View2D } from '@/games/loop/View2D'
 import { hang, initState, setOverlap, step } from '@es/play/loop/engine'
-import { MARK_CAP, MIRROR_TICKS, PAINTS, STRIP, WINDOW_TICKS, frameSvg, layoutFrame, layoutStrip, markCount, ticketNo, windowOf } from '@es/play/loop/layout'
-import type { Frame, Mark, Orientation } from '@es/play/loop/layout'
+import { clipX, RAIL, SHOTS, viewOf } from '@es/play/loop/kitchen'
+import { FRAMES, MARK_CAP, MIRROR_TICKS, PAINTS, STRIP, WINDOW_TICKS, frameSvg, layoutFrame, layoutStrip, markCount, ticketNo, windowOf } from '@es/play/loop/layout'
+import type { Frame, Mark, Orientation, ShotName } from '@es/play/loop/layout'
 import { firesOfRun } from '@es/play/loop/compare'
 import { buildLevel, services } from '@es/play/loop/levels'
 import { loopView } from '@es/play/loop/session'
@@ -30,6 +33,7 @@ import { POSTER_LEVEL, POSTER_SEED, renderPosters, stalePosters } from '../../sc
 import { fakeRun, handLevel, houseNight, statesOfHouseNight } from './loop-support'
 
 const ORIENTATIONS: readonly Orientation[] = ['landscape', 'portrait']
+const SHOT_NAMES: readonly ShotName[] = ['front', 'loop']
 const first = loopView(initState(buildLevel(POSTER_LEVEL, POSTER_SEED)))
 
 /** The <svg> of a server-rendered page. */
@@ -45,43 +49,47 @@ const fill = (s: LoopState, n = Number.POSITIVE_INFINITY): LoopState => {
   for (let i = 0; i < n && state.waiting.length > 0 && state.tray.includes(null); i++) state = hang(state, state.waiting[0])
   return state
 }
+/** Half a rail fired: clips 0 and 1 hung and rung, so stations 0 and 1 burn and 2 and 3 stand dark. */
+const half = () => loopView(step(fill(initState(buildLevel(POSTER_LEVEL, POSTER_SEED)), 2)))
 
-describe('the poster is the 2D view\'s first frame', () => {
-  test('scripts/posters.ts draws the practice seed of the first level, in both orientations, as `layoutFrame` and `frameSvg` write it', () => {
+describe("the poster is the front page's first frame, and the 2D view draws the same code", () => {
+  test('scripts/posters.ts draws the practice seed of the first level, in both orientations, through the front shot', () => {
     expect([POSTER_LEVEL, POSTER_SEED]).toEqual(['first-1-fill', 1])
     const posters = renderPosters()
     expect(posters.map((poster) => poster.orientation)).toEqual(['landscape', 'portrait'])
     for (const poster of posters) {
-      expect(poster.svg).toBe(`${svgMarkup(frameSvg(layoutFrame(first, { orientation: poster.orientation })))}\n`)
+      expect(poster.svg).toBe(`${svgMarkup(frameSvg(layoutFrame(first, { orientation: poster.orientation, shot: 'front' })))}\n`)
       expect(poster.file).toBe(`loop-first-frame-${poster.orientation}.svg`)
     }
   })
 
-  test('the landscape poster is, byte for byte, the <svg> that View2D paints on its first render (which is landscape)', () => {
-    const [landscape] = renderPosters()
+  test("View2D paints, byte for byte, Service's own shot of the same night on its first render (which is landscape), covering its box", () => {
     const painted = renderToStaticMarkup(h(View2D, { run: fakeRun(initState(buildLevel(POSTER_LEVEL, POSTER_SEED))) }))
-    expect(svgIn(painted)).toBe(landscape.svg.trimEnd())
+    expect(svgIn(painted)).toBe(svgMarkup(frameSvg(layoutFrame(first, { orientation: 'landscape', shot: 'loop' }), { cover: true })))
+    expect(svgIn(painted)).toContain('preserveAspectRatio="xMidYMid slice"')
   })
 
   test('the portrait poster is the same tree in React: the markup the React side writes is the markup the script writes', () => {
     const [, portrait] = renderPosters()
-    const tree = frameSvg(layoutFrame(first, { orientation: 'portrait' }))
+    const tree = frameSvg(layoutFrame(first, { orientation: 'portrait', shot: 'front' }))
     expect(renderToStaticMarkup(svgToReact(tree) as never)).toBe(portrait.svg.trimEnd())
   })
 
-  test('the two renderers agree on every state of a night, in both orientations', () => {
+  test('the two renderers agree on every state of a night, in both orientations, through both shots', () => {
     const level = buildLevel('first-4-par', 1)
     let checked = 0
     for (const overlap of [false, true]) {
       for (const state of statesOfHouseNight(level, { overlap })) {
         for (const orientation of ORIENTATIONS) {
-          const tree = frameSvg(layoutFrame(loopView(state), { orientation }))
-          expect(renderToStaticMarkup(svgToReact(tree) as never)).toBe(svgMarkup(tree))
-          checked += 1
+          for (const shot of SHOT_NAMES) {
+            const tree = frameSvg(layoutFrame(loopView(state), { orientation, shot }))
+            expect(renderToStaticMarkup(svgToReact(tree) as never)).toBe(svgMarkup(tree))
+            checked += 1
+          }
         }
       }
     }
-    expect(checked).toBeGreaterThan(100)
+    expect(checked).toBeGreaterThan(200)
   })
 
   test('the poster is the same for every visitor: drawing it twice gives the same text', () => {
@@ -92,20 +100,25 @@ describe('the poster is the 2D view\'s first frame', () => {
     expect(stalePosters()).toEqual([])
   })
 
-  test('the first frame is the empty rail with the tickets waiting by the printer, every state of it a drawn mark the poster shows without script', () => {
+  test("the first frame is the empty rail, every clip's stub printed empty, and no printer: the front page holds its own", () => {
     const [landscape, portrait] = renderPosters()
     expect(landscape.svg).toContain('role="img"')
     expect(landscape.svg).toContain('aria-label="Fill the rail. The rail has 4 clips and 0 are hung. 6 tickets wait.')
-    // Landscape lays three of the six beside the printer and counts the rest; portrait has room for all six.
-    for (const no of ['01', '02', '03']) expect(landscape.svg).toContain(`>${no}</text>`)
-    expect(landscape.svg).toContain('>+3</text>')
-    for (const no of ['01', '02', '03', '04', '05', '06']) expect(portrait.svg).toContain(`>${no}</text>`)
-    for (const poster of [landscape, portrait]) expect(poster.svg.match(/>empty<\/text>/g)).toHaveLength(4)
+    for (const poster of [landscape, portrait]) {
+      expect(poster.svg.match(/>empty<\/text>/g)).toHaveLength(4)
+      expect(poster.svg).not.toContain('data-part="printer"')
+    }
+  })
+
+  test("Service's own shot draws the printer at the pass's left end, the tickets it has fed lying in front of it, and what it still holds", () => {
+    const frame = layoutFrame(first, { shot: 'loop' })
+    const printer = marksOf(frame, 'printer')
+    expect(texts(printer)).toEqual([...first.waiting.slice(0, 5).map(ticketNo), `+${first.waiting.length - 5}`])
   })
 })
 
 describe('the 2D view stays far under 2,000 SVG marks', () => {
-  test('across every state of a night on every level, in both orientations and with overlap on and off', () => {
+  test('across every state of a night on every level, in both orientations, through both shots, and with overlap on and off', () => {
     let most = 0
     let frames = 0
     for (const id of ['first-1-fill', 'first-2-slot', 'first-3-gap', 'first-4-par'] as const) {
@@ -114,18 +127,20 @@ describe('the 2D view stays far under 2,000 SVG marks', () => {
         if (overlap && buildLevel(id, 1).overlap === 'locked') continue
         for (const state of statesOfHouseNight(buildLevel(id, 1), { overlap })) {
           for (const orientation of ORIENTATIONS) {
-            most = Math.max(most, markCount(layoutFrame(loopView(state), { orientation })))
-            frames += 1
+            for (const shot of SHOT_NAMES) {
+              most = Math.max(most, markCount(layoutFrame(loopView(state), { orientation, shot })))
+              frames += 1
+            }
           }
         }
       }
     }
     console.log(`2D view marks: at most ${most} in ${frames} frames of the four levels (cap ${MARK_CAP})`)
-    expect(frames).toBeGreaterThan(200)
-    expect(most).toBeLessThanOrEqual(MARK_CAP / 10)
+    expect(frames).toBeGreaterThan(400)
+    expect(most).toBeLessThanOrEqual(MARK_CAP / 8)
   })
 
-  test('the plan draws the present, so a night of any length draws as few marks as its rail and its last fire', () => {
+  test('the drawing is of the present, so a night of any length draws as few marks as its rail and its last fire', () => {
     const places: PlaceView[] = [
       { state: 'plate', req: 1 },
       { state: 'binned', req: 2 },
@@ -135,7 +150,7 @@ describe('the 2D view stays far under 2,000 SVG marks', () => {
     const list: FireView[] = Array.from({ length: 3000 }, (_, index) => ({ index, startUs: 2 + index * 7, endUs: 6 + index * 7, places, admits: 0, bubbleUs: 3, ghosts: 1, onLine: false }))
     const base = loopView(initState(buildLevel('first-4-par', 1)))
     const long: LoopView = { ...base, fires: list, clockUs: 7 * 3000 + 2, step: 3000, waiting: Array.from({ length: 200 }, (_, i) => i) } // not seeds: 200 requests in the queue
-    for (const orientation of ORIENTATIONS) expect(markCount(layoutFrame(long, { orientation }))).toBeLessThan(200)
+    for (const orientation of ORIENTATIONS) for (const shot of SHOT_NAMES) expect(markCount(layoutFrame(long, { orientation, shot }))).toBeLessThan(250)
   })
 })
 
@@ -151,74 +166,103 @@ describe('the drawing paints with token roles and nothing else', () => {
     const used = new Set<string>()
     for (const state of statesOfHouseNight(level, { overlap: true })) {
       for (const orientation of ORIENTATIONS) {
-        const markup = svgMarkup(frameSvg(layoutFrame(loopView(state), { orientation })))
-        for (const [, name] of markup.matchAll(/var\(--es-([a-z0-9-]+)\)/g)) used.add(name)
-        expect(markup).not.toMatch(/#[0-9a-fA-F]{3,8}\b/)
-        expect(markup).not.toMatch(/\b(?:rgba?|hsla?|oklch|hwb|lab|lch)\(/i)
-        expect(markup).not.toMatch(/Doto|Handjet|Atkinson|Big Shoulders|Permanent Marker|sans-serif|monospace|Arial|Helvetica/)
-        // Every paint attribute is a custom property or `none`: nothing is a keyword colour.
-        for (const [, value] of markup.matchAll(/\b(?:fill|stroke)="([^"]*)"/g)) expect(value === 'none' || /^var\(--es-[a-z0-9-]+\)$/.test(value)).toBe(true)
+        for (const shot of SHOT_NAMES) {
+          const markup = svgMarkup(frameSvg(layoutFrame(loopView(state), { orientation, shot })))
+          for (const [, name] of markup.matchAll(/var\(--es-([a-z0-9-]+)\)/g)) used.add(name)
+          expect(markup).not.toMatch(/#[0-9a-fA-F]{3,8}\b/)
+          expect(markup).not.toMatch(/\b(?:rgba?|hsla?|oklch|hwb|lab|lch)\(/i)
+          expect(markup).not.toMatch(/Doto|Handjet|Atkinson|Big Shoulders|Permanent Marker|sans-serif|monospace|Arial|Helvetica/)
+          // Every paint attribute is a custom property or `none`: nothing is a keyword colour.
+          for (const [, value] of markup.matchAll(/\b(?:fill|stroke)="([^"]*)"/g)) expect(value === 'none' || /^var\(--es-[a-z0-9-]+\)$/.test(value)).toBe(true)
+        }
       }
     }
     for (const name of used) expect([name, Object.hasOwn(ROLES, name)]).toEqual([name, true])
-    // The drawing's materials: the lamp, the steel's three tones and its edge, the paper and its two inks and rule, the masking tape and
-    // its marker, and the printer's dots.
-    for (const name of ['lamp', 'surface-1', 'surface-2', 'surface-3', 'edge', 'paper', 'paper-ink', 'paper-ink-2', 'paper-rule', 'tape', 'tape-ink', 'font-numeric', 'font-ticket', 'font-label']) expect([name, used.has(name)]).toEqual([name, true])
+    // The drawing's materials: the lamp and its filament, the steel's four tones, the paper and its two inks and rule, the masking
+    // tape and its marker, and the printer's dots.
+    for (const name of ['lamp', 'lamp-ring', 'surface-0', 'surface-1', 'surface-2', 'surface-3', 'paper', 'paper-ink', 'paper-ink-2', 'paper-rule', 'tape', 'tape-ink', 'font-numeric', 'font-ticket', 'font-label']) expect([name, used.has(name)]).toEqual([name, true])
   })
 
-  test('no state takes a code colour, and the amber stays over the pass: the lamp lights only its pool', () => {
+  test("no state takes a code colour, and the amber stays where the present is: the lamps' pools on the pass, their mouths, and a burning station", () => {
+    const AMBER: ReadonlySet<string> = new Set(['pools', 'bulbs', 'heat'])
     for (const overlap of [false, true]) {
       for (const state of statesOfHouseNight(buildLevel('first-4-par', 1), { overlap })) {
         for (const orientation of ORIENTATIONS) {
-          for (const layer of layoutFrame(loopView(state), { orientation }).layers) {
-            for (const mark of layer.marks) {
-              const paints = mark.kind === 'text' ? [mark.fill] : [mark.fill, mark.stroke]
-              expect(paints.some((paint) => paint === 'lane-gpu')).toBe(false)
-              if (paints.some((paint) => paint === 'lamp')) expect(layer.part).toBe('lamp')
+          for (const shot of SHOT_NAMES) {
+            for (const layer of layoutFrame(loopView(state), { orientation, shot }).layers) {
+              for (const mark of layer.marks) {
+                const paints = mark.kind === 'text' ? [mark.fill] : [mark.fill, mark.stroke]
+                expect(paints.some((paint) => paint === 'lane-gpu')).toBe(false)
+                if (paints.some((paint) => paint === 'lamp')) expect([layer.part, AMBER.has(layer.part)]).toEqual([layer.part, true])
+              }
             }
           }
         }
       }
     }
   })
+
+  test("the pools are light with no edge, one under each lamp on the pass, and a dark station's frame has no heat", () => {
+    const frame = layoutFrame(first, { shot: 'front' })
+    const pools = marksOf(frame, 'pools')
+    expect(pools).toHaveLength(3)
+    for (const pool of pools) expect(pool).toMatchObject({ kind: 'ellipse', fill: 'lamp', soft: true })
+    expect(marksOf(frame, 'heat')).toEqual([])
+  })
 })
 
-describe('the pass from above, in its own materials (W0 finding F1)', () => {
-  test('a ticket on the rail holds a hotel pan in its station\'s well, a rim round a recessed floor with its number on tape; an empty clip leaves the well bare and dark', () => {
-    const view = loopView(step(fill(initState(buildLevel(POSTER_LEVEL, POSTER_SEED)), 2)))
-    const line = marksOf(layoutFrame(view), 'line')
-    // Two pans: each a rim of raised steel with its edge, a floor a shade down, the far wall's shadow and the near rim's light.
-    const rims = line.filter((mark) => mark.kind === 'rect' && mark.fill === 'surface-1' && mark.stroke === 'edge' && mark.rx === 6)
-    const floors = line.filter((mark) => mark.kind === 'rect' && mark.fill === 'surface-2' && mark.rx === 3)
-    expect([rims.length, floors.length]).toEqual([2, 2])
-    expect(line.filter((mark) => mark.kind === 'rect' && mark.fill === 'tape')).toHaveLength(2)
-    expect(texts(line.filter((mark) => mark.kind === 'text' && mark.face === 'label'))).toEqual([ticketNo(0), ticketNo(1)])
-    // The other two wells are bare: a dark hole in the counter.
-    expect(line.filter((mark) => mark.kind === 'rect' && mark.fill === 'surface-3' && mark.rx === 5)).toHaveLength(2)
+describe('the same kitchen as the scene, drawn flat in its own materials (the finish review, round 1)', () => {
+  test('the room has its tile, its floor and its haze, and the hood hangs over the line', () => {
+    const frame = layoutFrame(first, { shot: 'front' })
+    const room = marksOf(frame, 'room')
+    // The tile's grout and its joints, each one stroke; the haze a veil of the room's grey over the far wall.
+    expect(room.filter((mark) => mark.kind === 'path' && mark.stroke === 'paper-rule').length).toBeGreaterThanOrEqual(2)
+    expect(room.some((mark) => mark.kind === 'poly' && mark.fill === 'surface-0' && (mark.opacity ?? 1) < 1)).toBe(true)
+    expect(marksOf(frame, 'hood').length).toBeGreaterThan(2)
   })
 
-  test('the burners: a ring on every station, its core struck solid where the latest fire cooked a course and open where the clip rode empty', () => {
-    const view = loopView(step(fill(initState(buildLevel(POSTER_LEVEL, POSTER_SEED)), 2)))
-    const line = marksOf(layoutFrame(view), 'line')
-    expect(line.filter((mark) => mark.kind === 'circle' && mark.fill === 'text-1')).toHaveLength(2)
-    expect(line.filter((mark) => mark.kind === 'circle' && mark.fill === 'none' && mark.stroke === 'text-1')).toHaveLength(4)
+  test("the line's stations burn where the latest fire cooked a course: their pilots and heat in the lamp's amber, their burners' heads struck solid", () => {
+    const frame = layoutFrame(half(), { shot: 'front' })
+    const heat = marksOf(frame, 'heat')
+    // Stations 0 (the griddle) and 1 (the burners) burn: two pilots, the griddle's plate and edge, and the burners' four bowls.
+    expect(heat.filter((mark) => mark.kind === 'circle')).toHaveLength(2)
+    expect(heat.filter((mark) => mark.kind === 'ellipse' && mark.soft === true)).toHaveLength(5)
+    const line = marksOf(frame, 'line')
+    // Station 1's four heads are solid, station 3's four are open rings; stations 2 and 3 show open pilots.
+    expect(line.filter((mark) => mark.kind === 'ellipse' && mark.fill === 'paper-ink')).toHaveLength(4)
+    expect(line.filter((mark) => mark.kind === 'ellipse' && mark.fill === 'none' && mark.stroke === 'paper-ink')).toHaveLength(4)
+    expect(line.filter((mark) => mark.kind === 'circle' && mark.fill === 'none' && mark.stroke === 'surface-3')).toHaveLength(2)
   })
 
-  test('the plates of the last fire read back lie on the pass under their clips: a plate, an empty place\'s dark ring, a binned plate struck in red', () => {
-    const view = loopView(step(fill(initState(buildLevel(POSTER_LEVEL, POSTER_SEED)), 2)))
-    const plates = marksOf(layoutFrame(view), 'plates')
-    expect(plates.filter((mark) => mark.kind === 'circle' && mark.fill === 'paper')).toHaveLength(2)
-    expect(plates.filter((mark) => mark.kind === 'circle' && mark.stroke === 'surface-3' && mark.dash !== undefined)).toHaveLength(2)
+  test('a ticket on the rail is paper with its number printed; an empty clip shows a stub printed empty in the ribbon\'s red', () => {
+    const view = loopView(fill(initState(buildLevel(POSTER_LEVEL, POSTER_SEED)), 2))
+    const rail = marksOf(layoutFrame(view, { shot: 'front' }), 'rail')
+    expect(texts(rail.filter((mark) => mark.kind === 'text' && mark.face === 'numeric'))).toEqual([ticketNo(0), ticketNo(1)])
+    expect(rail.filter((mark) => mark.kind === 'text' && mark.text === 'empty' && mark.fill === 'paper-ink-2')).toHaveLength(2)
+    expect(rail.filter((mark) => mark.kind === 'poly' && mark.fill === 'paper')).toHaveLength(4)
+  })
+
+  test('the plates of the last fire lie on the pass under their clips: a plate with its rim and shadow, an empty place a dashed ring, a binned plate struck in red', () => {
+    const plates = marksOf(layoutFrame(half(), { shot: 'front' }), 'plates')
+    expect(plates.filter((mark) => mark.kind === 'ellipse' && mark.fill === 'paper')).toHaveLength(4)
+    expect(plates.filter((mark) => mark.kind === 'ellipse' && mark.fill === 'text-1')).toHaveLength(2)
+    expect(plates.filter((mark) => mark.kind === 'ellipse' && mark.stroke === 'surface-3' && mark.dash !== undefined)).toHaveLength(2)
     // A binned plate: a night with overlap, after a ticket has asked for the check.
     for (const state of statesOfHouseNight(buildLevel('first-4-par', 1), { overlap: true })) {
       const night = loopView(state)
       const served = [...night.fires].reverse().find((fire) => !fire.onLine)
       if (!served?.places.some((place) => place.state === 'binned')) continue
-      const binned = marksOf(layoutFrame(night), 'plates').filter((mark) => mark.kind === 'circle' && mark.stroke === 'paper-ink-2')
+      const binned = marksOf(layoutFrame(night), 'plates').filter((mark) => mark.kind === 'ellipse' && mark.stroke === 'paper-ink-2')
       expect(binned.length).toBe(served.places.filter((place) => place.state === 'binned').length)
       return
     }
-    throw new Error('no binned plate in the house\'s night')
+    throw new Error("no binned plate in the house's night")
+  })
+
+  test('the heated shelf under the pass has its bars, and its plate stacks stand on them with their shadows', () => {
+    const shelf = marksOf(layoutFrame(first, { shot: 'front' }), 'shelf')
+    expect(shelf.filter((mark) => mark.kind === 'path').length).toBeGreaterThanOrEqual(2)
+    expect(shelf.filter((mark) => mark.kind === 'ellipse' && mark.fill === 'text-1')).toHaveLength(2)
   })
 
   test('the fired rail is drawn only while a fire is on the line, a copy of each of its tickets on it', () => {
@@ -234,45 +278,55 @@ describe('the pass from above, in its own materials (W0 finding F1)', () => {
   test('no lane chart and no legend: no axis, no clock stamps, no bars along time; tape names the line and the expo', () => {
     const night = loopView(houseNight(buildLevel(POSTER_LEVEL, POSTER_SEED), { overlap: false }))
     for (const view of [first, night]) {
-      const frame = layoutFrame(view)
-      const markup = svgMarkup(frameSvg(frame))
-      for (const word of ['PLATE', 'EMPTY', 'BINNED', 'PLAN', 'READ', 'TICKS', 'SYNTHETIC']) expect(markup).not.toContain(`>${word}`)
-      expect(markup).toContain('>THE LINE · GPU</text>')
-      expect(markup).toContain('>THE EXPO · CPU</text>')
-      expect(frame.layers.map((layer) => layer.part)).not.toContain('clock')
-      // The only numbers drawn are tickets' numbers and the printer's count of what it still holds.
-      for (const text of texts(frame.layers.flatMap((layer) => layer.marks))) if (/\d/.test(text)) expect(text).toMatch(/^\+?\d{1,3}$/)
+      for (const shot of SHOT_NAMES) {
+        const frame = layoutFrame(view, { shot })
+        const markup = svgMarkup(frameSvg(frame))
+        for (const word of ['PLATE', 'EMPTY', 'BINNED', 'PLAN', 'READ', 'TICKS', 'SYNTHETIC']) expect(markup).not.toContain(`>${word}`)
+        expect(markup).toContain('>THE LINE · GPU</text>')
+        expect(markup).toContain('>THE EXPO · CPU</text>')
+        expect(frame.layers.map((layer) => layer.part)).not.toContain('clock')
+        // The only numbers drawn are tickets' numbers and the printer's count of what it still holds.
+        for (const text of texts(frame.layers.flatMap((layer) => layer.marks))) if (/\d/.test(text)) expect(text).toMatch(/^\+?\d{1,3}$/)
+      }
     }
   })
 })
 
-describe('the drawing stays inside its frame', () => {
-  const insideOf = (frame: Frame, mark: Mark): boolean => {
-    const within = (x: number, y: number, slack = 2) => x >= -slack && y >= -slack && x <= frame.width + slack && y <= frame.height + slack
-    switch (mark.kind) {
-      case 'rect':
-        return within(mark.x, mark.y) && within(mark.x + mark.w, mark.y + mark.h)
-      case 'line':
-        return within(mark.x1, mark.y1) && within(mark.x2, mark.y2)
-      case 'circle':
-        return within(mark.cx - mark.r, mark.cy - mark.r) && within(mark.cx + mark.r, mark.cy + mark.r)
-      case 'text':
-        return within(mark.x, mark.y, 0)
+describe('the frame', () => {
+  test("what a night is read by lies inside the frame (the room, the rail's ends and a plate's far rim may run past it), in both orientations and through both shots", () => {
+    const inside = (frame: Frame, mark: Mark): boolean => {
+      const within = (x: number, y: number, slack = 2) => x >= -slack && y >= -slack && x <= frame.width + slack && y <= frame.height + slack
+      switch (mark.kind) {
+        case 'rect':
+          return within(mark.x, mark.y) && within(mark.x + mark.w, mark.y + mark.h)
+        case 'circle':
+          return within(mark.cx - mark.r, mark.cy - mark.r) && within(mark.cx + mark.r, mark.cy + mark.r)
+        case 'ellipse':
+          return within(mark.cx - mark.rx, mark.cy - mark.ry) && within(mark.cx + mark.rx, mark.cy + mark.ry)
+        case 'text':
+          return within(mark.x, mark.y, 0)
+        case 'poly':
+          return mark.points.every(([x, y]) => within(x, y))
+        default:
+          return true
+      }
     }
-  }
-
-  test('every mark of every state of a night lies in the frame, in both orientations', () => {
     for (const overlap of [false, true]) {
       for (const state of statesOfHouseNight(buildLevel('first-4-par', 1), { overlap })) {
         for (const orientation of ORIENTATIONS) {
-          const frame = layoutFrame(loopView(state), { orientation })
-          for (const layer of frame.layers) for (const mark of layer.marks) expect([orientation, layer.part, mark, insideOf(frame, mark)]).toEqual([orientation, layer.part, mark, true])
+          for (const shot of SHOT_NAMES) {
+            const frame = layoutFrame(loopView(state), { orientation, shot })
+            // Every clip, every printed number and word on the rails, and the middle of every place on the pass.
+            const read = [...marksOf(frame, 'clips'), ...[...marksOf(frame, 'rail'), ...marksOf(frame, 'fired')].filter((mark) => mark.kind === 'text')]
+            for (const mark of read) expect([orientation, shot, mark, inside(frame, mark)]).toEqual([orientation, shot, mark, true])
+            for (const mark of marksOf(frame, 'plates')) if (mark.kind === 'ellipse') expect([orientation, shot, mark, inside(frame, { kind: 'text', x: mark.cx, y: mark.cy, text: '', size: 1, anchor: 'middle', fill: 'paper', face: 'ticket' })]).toEqual([orientation, shot, mark, true])
+          }
         }
       }
     }
   })
 
-  test('a frame is the box that the page reserves: its size is the viewBox\'s and never changes with the night, so nothing moves when it is drawn', () => {
+  test("a frame is the box that the page reserves: its size is the viewBox's and never changes with the night, so nothing moves when it is drawn", () => {
     for (const orientation of ORIENTATIONS) {
       const frame = layoutFrame(first, { orientation })
       const svg = svgMarkup(frameSvg(frame))
@@ -283,8 +337,15 @@ describe('the drawing stays inside its frame', () => {
         expect([later.width, later.height]).toEqual([frame.width, frame.height])
       }
     }
-    expect(layoutFrame(first, { orientation: 'portrait' }).width).toBe(360)
+    expect([layoutFrame(first, { orientation: 'portrait' }).width, layoutFrame(first, { orientation: 'portrait' }).height]).toEqual([FRAMES.portrait.width, FRAMES.portrait.height])
     expect(layoutFrame(first).width).toBe(720)
+  })
+
+  test("the drawing's rail is the scene's: through the loop shot each clip's mark is centred where the camera puts the clip", () => {
+    const frame = layoutFrame(first, { shot: 'loop' })
+    const see = viewOf(SHOTS.loop.base)
+    const centres = marksOf(frame, 'clips').map((mark) => (mark.kind === 'rect' ? mark.x + mark.w / 2 : Number.NaN))
+    centres.forEach((centre, slot) => expect(Math.abs(centre - (frame.width / 2 + see([clipX(slot, 4), RAIL.y, RAIL.z]).c * (frame.height / 2)))).toBeLessThan(0.6))
   })
 
   test('ticket numbers are the id plus one, two digits', () => {

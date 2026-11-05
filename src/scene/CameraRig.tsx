@@ -55,6 +55,10 @@ function place(camera: Camera, framing: Required<Framing>, width: number, height
     const perspective = camera as PerspectiveCamera
     perspective.fov = framing.fov
     perspective.aspect = aspect
+    // A shifted lens: the frustum's window slides, so the picture's centre stands `shift` half heights right and down of the box's.
+    const [sx, sy] = framing.shift
+    if (sx !== 0 || sy !== 0) perspective.setViewOffset(width, height, (-sx * height) / 2, (-sy * height) / 2, width, height)
+    else perspective.clearViewOffset()
     perspective.updateProjectionMatrix()
   } else {
     const orthographic = camera as OrthographicCamera
@@ -127,6 +131,7 @@ export function CameraRig({ presets, preset, orbit = false, parallax = 0 }: Came
       target: lerpVec(m.from.target, m.to.target, e),
       fov: lerp(m.from.fov, m.to.fov, e),
       viewHeight: lerp(m.from.viewHeight, m.to.viewHeight, e),
+      shift: [lerp(m.from.shift[0], m.to.shift[0], e), lerp(m.from.shift[1], m.to.shift[1], e)],
     }
     const camera = shown.current.preset?.projection === 'orthographic' ? cameras.orthographic : cameras.perspective
     lean.current.base = framing

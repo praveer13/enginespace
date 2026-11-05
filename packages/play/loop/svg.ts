@@ -57,7 +57,7 @@ export function svgMarkup(node: SvgNode): string {
 }
 
 /** The elements that are marks on the page: everything that draws, and nothing that only groups. */
-const DRAWN = ['rect', 'circle', 'line', 'path', 'polygon', 'text']
+const DRAWN = ['rect', 'circle', 'ellipse', 'line', 'path', 'polygon', 'text']
 
 /** How many marks a tree draws (A§6.4: the 2D view stays at or under 2,000 SVG marks in its default window). */
 export function countMarks(node: SvgNode): number {

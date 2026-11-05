@@ -14,9 +14,10 @@ import { buildLevel, LEVEL_IDS } from '@es/play/loop/levels'
 import { stationsOf, ticketNo } from '@es/play/loop/layout'
 import { loopView } from '@es/play/loop/session'
 import type { LoopState, LoopView } from '@es/play/loop/types'
+import { HOOD, SHELF, WALL_Z } from '@es/play/loop/kitchen'
 import { staticSceneTokens } from '@/design/scene-tokens'
 import { framingFor, type CameraPreset, type Vec3 } from '@/scene/camera-rig'
-import { buildProp } from '@/scene/props/build'
+import { buildProp, SHELF_DROP } from '@/scene/props/build'
 import { paletteFrom } from '@/scene/props/palette'
 import { PLATE, TICKET as KIT_TICKET } from '@/scene/props/specs'
 import { changeOf, clipX, COUNTER_TICKETS, FIRED, PASS, passWidth, pitchOf, RAIL, serviceKitchen, serviceScene, TICKET, type ServiceKitchen } from '@/games/loop/scene-layout'
@@ -88,6 +89,17 @@ describe('the kitchen: the room the night is served in', () => {
     // It hangs on two rods from the gantry's bar, below the rail and its tickets.
     expect(FIRED.y).toBeLessThan(RAIL.y - TICKET.height)
     expect(gap.items.find((item) => item.id === 'bin')).toMatchObject({ kind: 'pan', size: '1/1' })
+  })
+
+  test('the plate stacks stand on the heated shelf\'s bars under the counter, and the hood hangs low enough over the line to be seen', () => {
+    expect(SHELF.drop).toBe(SHELF_DROP)
+    for (const stack of kitchen.items.filter((item) => item.kind === 'plate-stack')) expect(stack.at[1]).toBeCloseTo(PASS.top - SHELF_DROP)
+    const hood = kitchen.items.find((item) => item.kind === 'hood')
+    expect(hood).toMatchObject({ at: [0, HOOD.top, WALL_Z], height: HOOD.height, depth: HOOD.depth })
+    // The front page's wide shot sees the hood's front edge over the lamps, and the line beyond the pass, at 1440 by 684.
+    const [front] = FRONT_PRESETS
+    const edge = projectIn(front, [0, HOOD.top - HOOD.height, WALL_Z + HOOD.depth], 1440, 684)
+    expect(edge.y).toBeGreaterThan(20)
   })
 
   test('every prop builds with the kit, and what stands on the floor or the counter has a footprint for its contact shadow', () => {
@@ -230,9 +242,10 @@ describe('the night on the pass', () => {
   })
 })
 
-/** Where a point lands in a canvas `width` × `height` for a preset's framing at that width, in CSS px: three's projection, by hand. */
+/** Where a point lands in a canvas `width` × `height` for a preset's framing at that width, in CSS px: three's projection, by hand, its lens shifted as the framing says. */
 function projectIn(preset: CameraPreset, point: Vec3, width: number, height: number): { x: number; y: number } {
   const framing = framingFor(preset, width)
+  const [sx, sy] = framing.shift
   const [px, py, pz] = framing.position
   const [tx, ty, tz] = framing.target
   const length = Math.hypot(tx - px, ty - py, tz - pz)
@@ -247,7 +260,7 @@ function projectIn(preset: CameraPreset, point: Vec3, width: number, height: num
     return { x: width / 2 + dot(r) * scale, y: height / 2 - dot(u) * scale }
   }
   const k = Math.tan((framing.fov * Math.PI) / 360) * dot(f)
-  return { x: width / 2 + (dot(r) / k) * (height / 2), y: height / 2 - (dot(u) / k) * (height / 2) }
+  return { x: width / 2 + (dot(r) / k + sx) * (height / 2), y: height / 2 - (dot(u) / k - sy) * (height / 2) }
 }
 
 describe('the camera presets (GAMES.md §2.6, Service, Cameras)', () => {
@@ -279,7 +292,8 @@ describe('the camera presets (GAMES.md §2.6, Service, Cameras)', () => {
     for (const [width, height] of [
       [1440, 716],
       [1280, 616],
-      [390, 332],
+      [1024, 640],
+      [390, 652],
     ] as const) {
       const ends = [clipX(0, 4), clipX(3, 4)].map((x) => projectIn(front, [x, RAIL.y, RAIL.z], width, height))
       expect(Math.abs(ends[0].y - ends[1].y)).toBeLessThan(0.5)
@@ -322,7 +336,8 @@ describe('the tapes that name the line and the expo never meet (W0 finding F5)',
   for (const [preset, width, height] of [
     [LOOP_PRESETS[0], 390, 464],
     [LOOP_PRESETS[0], 1216, 540],
-    [FRONT_PRESETS[0], 390, 332],
+    [FRONT_PRESETS[0], 390, 652],
+    [FRONT_PRESETS[0], 1024, 640],
     [FRONT_PRESETS[0], 1440, 716],
   ] as const) {
     test(`${preset.id} at ${width} × ${height}`, () => {
@@ -376,7 +391,9 @@ describe('the acceptance check on colour and text', () => {
       expect(text, file).not.toMatch(/\b(?:rgba?|hsla?|oklch)\(/)
       expect(text, file).not.toMatch(/new Color\(|\.setHex\(|\.setRGB\(|\.setHSL\(/)
     }
-    expect(sources[0][1]).toMatch(/roleColor\(kit\.tokens, 'lamp'\)/)
+    // The amber is the kit's: the lamps' light and the glow of the stations' own heat elements; the scene adds no light of the line's
+    // own that could wash the tile or a cold station beside a burning one.
+    expect(sources[0][1]).not.toMatch(/PointLight|SpotLight|roleColor/)
   })
 
   test('no state takes a code colour: the stations burn in the heat lamp\'s amber through the kit\'s glow, never a lane\'s colour', () => {

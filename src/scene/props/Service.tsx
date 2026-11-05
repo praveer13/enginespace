@@ -18,8 +18,8 @@ import { PLATE } from './specs'
  *   ServiceBell the bell's chrome dome and plunger: a strike drops the plunger and rings the dome on the bell duration and the strike
  *               curve, with an amber flash on the dome; never more than one flash in 333 ms, so it cannot flash above 3 Hz (WCAG
  *               2.3.1).
- *   LampLights  the heat lamps' warm spots, casting soft shadow maps from T2 where the scene asked, and the soft cone of light under
- *               each at T2.
+ *   LampLights  the heat lamps' warm spots, casting soft shadow maps from T2 where the scene asked, the soft-edged pool each throws
+ *               on the brushed steel under it, and, where a scene asks, the soft cone of light under each at T2.
  *   Steam       a few soft puffs rising off each lit station when a fire lands, at T2 only, and never under reduced motion.
  */
 
@@ -49,8 +49,8 @@ export function Plates({ plates, name = 'plates' }: { plates: readonly PlatePlac
   const { materials, palette, shadows } = useProps()
   const geometry = useMemo(() => {
     const plate = painted(palette.part(lathe(plateProfile(), 40), 'ceramic'))
-    // The plate's own occlusion: the foot ring and the well's edge, baked once.
-    const [shade] = bakeOcclusion([plate], { radius: 0.015, voxel: 0.004, strength: 0.22 })
+    // The plate's own occlusion: the foot ring, and the well's edge under the rim, baked once.
+    const [shade] = bakeOcclusion([plate], { radius: 0.02, voxel: 0.004, strength: 0.4 })
     const color = plate.getAttribute('color')
     for (let i = 0; i < color.count; i++) color.setXYZ(i, color.getX(i) * shade[i], color.getY(i) * shade[i], color.getZ(i) * shade[i])
     return plate
@@ -138,8 +138,13 @@ export function Plates({ plates, name = 'plates' }: { plates: readonly PlatePlac
   return <instancedMesh ref={mesh} name={name} args={[geometry, materials.ceramic, capacity]} castShadow={cast} receiveShadow={cast} frustumCulled={false} raycast={() => null} />
 }
 
+/** A plate's contact shadow reaches a little past its rim, so a ring of it shows round the plate from any shot. */
+const PLATE_SHADOW = PLATE.radius * 1.05
+
 function footprintsOf(shown: ReadonlyMap<string, PlateShown>): Footprint[] {
-  return [...shown.values()].filter((plate) => !plate.leaving).map((plate) => ({ center: [plate.at.x, plate.at.y, plate.at.z], size: [PLATE.radius * 1.7, PLATE.radius * 1.7], radius: PLATE.radius * 0.85, soft: 0.03, strength: 0.85, yaw: 0 }))
+  return [...shown.values()]
+    .filter((plate) => !plate.leaving)
+    .map((plate) => ({ center: [plate.at.x, plate.at.y, plate.at.z], size: [PLATE_SHADOW * 2, PLATE_SHADOW * 2], radius: PLATE_SHADOW, soft: 0.045, strength: 0.9, yaw: 0 }))
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -276,6 +281,17 @@ export function LampLights({ lamps, power = 1, cones = true, name = 'lamp-lights
     },
     [lights],
   )
+  // Each lamp's pool on the steel under it, as wide as its cone where it lands (materials.ts).
+  useLayoutEffect(() => {
+    const pools = lamps.map((lamp) => {
+      const height = lamp.at[1] - lamp.target[1]
+      return [lamp.target[0], lamp.target[2], height * Math.tan(params.angle)] as const
+    })
+    const lamp = lamps[0]
+    materials.setPools(pools, lamp?.target[1] ?? 0, new Color(color).multiplyScalar(params.pool * power), lamp ? lamp.at[1] - lamp.target[1] : 1)
+    kit.invalidate()
+    return () => materials.setPools([])
+  }, [lamps, materials, params, color, power, kit])
   const showCones = cones && kit.tier >= 2
   const coneGeometry = useMemo(() => new CylinderGeometry(CONE_TOP, 1, 1, 36, 1, true).translate(0, -0.5, 0), [])
   useEffect(() => () => coneGeometry.dispose(), [coneGeometry])

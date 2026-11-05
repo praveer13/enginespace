@@ -3,7 +3,7 @@
  * rig's presets and easing, the labels' projection, the selection model, the canvas lease, and the generated surface maps.
  */
 import { describe, expect, test } from 'bun:test'
-import { CAMERA_TRANSITION_MS, cubicBezier, easingFrom, framingFor, nextPreset, PORTRAIT_WIDTH, transitionMs, type CameraPreset } from '@/scene/camera-rig'
+import { CAMERA_TRANSITION_MS, cubicBezier, easingFrom, framingFor, nextPreset, PORTRAIT_WIDTH, transitionMs, WIDE_WIDTH, type CameraPreset } from '@/scene/camera-rig'
 import { labelTransform, ndcToScreen } from '@/scene/labels'
 import { createLease } from '@/scene/lease'
 import { capacityFor, cellBox, formIndex, gridPositions, MARK_FORMS, MIN_SPAN_DEPTH, spanBox, writeMatrices, writeMatrix } from '@/scene/marks'
@@ -114,10 +114,14 @@ describe('the camera rig', () => {
     expect(() => nextPreset([], 'a')).toThrow()
   })
 
-  test('below 480 px a preset takes its portrait framing', () => {
-    expect(framingFor(presets[0], 1200)).toEqual({ position: [0, 1, 2], target: [0, 0, 0], fov: 30, viewHeight: 10 })
+  test('below 480 px a preset takes its portrait framing, and from 1280 px its wide one', () => {
+    expect(framingFor(presets[0], 1200)).toEqual({ position: [0, 1, 2], target: [0, 0, 0], fov: 30, viewHeight: 10, shift: [0, 0] })
     expect(framingFor(presets[0], PORTRAIT_WIDTH - 1)).toMatchObject({ position: [0, 2, 4], fov: 40 })
     expect(framingFor(presets[2], 1200).fov).toBe(30) // about 30° when a preset says nothing (GAMES.md §2.3)
+    const wide: CameraPreset = { ...presets[0], wide: { shift: [1, 0] }, portrait: { shift: [0, 0.5] } }
+    expect(framingFor(wide, WIDE_WIDTH - 1).shift).toEqual([0, 0])
+    expect(framingFor(wide, WIDE_WIDTH)).toMatchObject({ position: [0, 1, 2], fov: 30, shift: [1, 0] })
+    expect(framingFor(wide, PORTRAIT_WIDTH - 1).shift).toEqual([0, 0.5])
   })
 
   test('a move takes at most 400 ms, and cuts under reduced motion and across projections', () => {

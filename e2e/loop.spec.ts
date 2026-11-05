@@ -8,7 +8,8 @@
  *   3. Nothing leaves the origin (ARCHITECTURE §1, I1).
  *   4. The same seed and the same actions give the same state hash in the browser as under Node (A§5.10: the nightly job runs this in
  *      every browser the config lists, and the hash it compares is `stateHash`).
- *   5. The picture is the poster: the 2D view's first frame, in the page, is the SVG that scripts/posters.ts wrote.
+ *   5. The picture is the pure drawing: the 2D view's first frame, in the page, is the SVG that packages/play/loop/layout.ts draws
+ *      through Service's own shot, the same code that scripts/posters.ts writes the front page's posters with.
  *
  * How it runs. The spec starts the app's own Vite dev server on a free port, so it needs no build and no preview server, and drives
  * `/play/loop` in whichever browser Playwright launches. Run it with `npx playwright test e2e/loop.spec.ts`.
@@ -17,14 +18,15 @@
  * set to the address of `vite preview` (after `npm run build`), the spec drives the built site instead, and the origin test also fails
  * on any message of the browser that a policy refused something. The one test that imports the sources from the dev server is skipped.
  */
-import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { test as base, expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { createServer } from 'vite'
 import type { ViteDevServer } from 'vite'
 import { applyAction, startRun, stateHash } from '../packages/play'
-import { loopSession } from '../packages/play/loop/session'
+import { frameSvg, layoutFrame } from '../packages/play/loop/layout'
+import { loopInit, loopLevel, loopSession, loopView } from '../packages/play/loop/session'
+import { svgMarkup } from '../packages/play/loop/svg'
 import type { LoopAction } from '../packages/play/loop/types'
 
 const root = path.resolve(import.meta.dirname, '..')
@@ -276,19 +278,19 @@ test.describe('determinism and the poster', () => {
     expect(expected).toMatch(/^[0-9a-f]{8}$/)
   })
 
-  test('the 2D view\'s first frame is the poster: the page\'s drawing is the SVG that scripts/posters.ts wrote', async ({ page }) => {
+  test('the 2D view\'s first frame is the pure drawing: the page\'s drawing is the SVG that layout.ts draws through Service\'s shot', async ({ page }) => {
     await open(page, 'first-1-fill')
-    // Below 480 px the view draws the portrait layout, and above it the landscape one (GAMES.md §2.3).
+    // Below 480 px the view draws the portrait shot, and above it the landscape one (GAMES.md §2.3).
     const orientation = (page.viewportSize()?.width ?? 1280) < 480 ? 'portrait' : 'landscape'
     await expect(page.locator('[data-loop-view]')).toHaveAttribute('data-orientation', orientation)
     const drawn = await page.locator('[data-loop-view] svg').evaluate((element) => ({
       label: element.getAttribute('aria-label'),
-      marks: element.querySelectorAll('rect, circle, line, path, polygon, text').length,
+      marks: element.querySelectorAll('rect, circle, ellipse, line, path, polygon, text').length,
       parts: [...element.querySelectorAll('g[data-part]')].map((g) => g.getAttribute('data-part')),
     }))
-    const poster = readFileSync(path.join(root, `public/posters/loop-first-frame-${orientation}.svg`), 'utf8')
-    expect(poster).toContain(`aria-label="${drawn.label?.replace(/'/g, '&#x27;')}"`)
-    expect(poster.match(/<(rect|circle|line|path|polygon|text)[ >]/g)).toHaveLength(drawn.marks)
-    expect([...poster.matchAll(/<g data-part="([a-z]+)">/g)].map((match) => match[1])).toEqual(drawn.parts as string[])
+    const markup = svgMarkup(frameSvg(layoutFrame(loopView(loopInit(loopLevel('first-1-fill', 1))), { orientation, shot: 'loop' }), { cover: true }))
+    expect(markup).toContain(`aria-label="${drawn.label?.replace(/'/g, '&#x27;')}"`)
+    expect(markup.match(/<(rect|circle|ellipse|line|path|polygon|text)[ >]/g)).toHaveLength(drawn.marks)
+    expect([...markup.matchAll(/<g data-part="([a-z-]+)">/g)].map((match) => match[1])).toEqual(drawn.parts as string[])
   })
 })

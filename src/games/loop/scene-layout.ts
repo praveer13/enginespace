@@ -19,6 +19,7 @@
  *
  * Every word and number is a DOM label anchored here (D-021, GAMES.md §2.6 rule 7); the tickets' print is texture.
  */
+import { BAR, CEILING, clipX, FIRED, GRIP, HOOD, lampsOf, LINE, lineOf, MOUTH, PASS, passWidth, pitchOf, PLATE_Z, RAIL, railLength, SHELF, STATION_KINDS, TICKET, WALL_Z } from '@es/play/loop/kitchen'
 import { stationsOf, ticketNo } from '@es/play/loop/layout'
 import type { LoopView } from '@es/play/loop/types'
 import type { PropSpec, StationSpec, Vec3 } from '@/scene/props/specs'
@@ -27,36 +28,14 @@ import type { PropSpec, StationSpec, Vec3 } from '@/scene/props/specs'
 /* The measures                                                                                                       */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** The pass: its counter's top, its depth, and how high the gantry's bar stands over it. */
-export const PASS = { top: 0.92, depth: 0.6, gantry: 0.62 } as const
-/** The rail's top (it hangs under the gantry's bar) and how far back over the counter it runs. */
-export const RAIL = { y: PASS.top + PASS.gantry - 0.008, z: -PASS.depth / 2 + 0.06 } as const
-/** The gantry's bar, which the fired rail hangs from, and how far below the rail the fired rail runs. */
-const BAR = { y: PASS.top + PASS.gantry + 0.012, z: -PASS.depth / 2 + 0.035 }
-export const FIRED = { y: RAIL.y - 0.24, z: BAR.z } as const
-/** A ticket off the printer (the kit's TICKET), and how far below the rail's top its clip grips it (the kit's CLIP_DROP). */
-export const TICKET = { width: 0.08, height: 0.12 } as const
-const GRIP = 0.035 + 0.0035 + 0.004
-/** Where a plate rests on the counter, and the line's side of the counter it slides in from. */
-const PLATE_Z = 0.02
+// The plan's measures are the kitchen's (packages/play/loop/kitchen.ts), which the 2D view draws from too.
+export { clipX, FIRED, PASS, passWidth, pitchOf, RAIL, TICKET }
+/** The line's side of the counter, which a plate slides in from. */
 const ENTER_Z = -PASS.depth / 2 - 0.02
-/** The line: its stations' centre line, depth and height; the wall behind it; the heat lamps' ceiling and the mouth of their shades. */
-const LINE = { z: -1.95, depth: 0.8, height: 0.9 }
-const WALL_Z = -2.36
-const CEILING = 2.95
-const MOUTH = 1.86
 /** Tickets the counter shows in front of the printer, finished tickets the spike shows, and binned plates the bin shows. */
 export const COUNTER_TICKETS = 5
 const SPIKED = 6
 const BINNED = 5
-const STATION_KINDS = ['griddle', 'burners', 'fryer', 'burners', 'griddle', 'fryer'] as const
-
-/** The distance between two clips: a ticket's width and a plate's apart, for a front-page rail; closer on a longer rail. */
-export const pitchOf = (slots: number): number => Math.max(0.12, Math.min(0.36, 1.44 / slots))
-/** The middle of clip `slot`, across the pass. Clip 0 is nearest the printer, at the left. */
-export const clipX = (slot: number, slots: number): number => (slot + 0.5 - slots / 2) * pitchOf(slots)
-/** The pass's width: room for the printer and its tickets at the left, the clips, and the bin, the bell and the spike at the right. */
-export const passWidth = (slots: number): number => Math.max(2.6, slots * pitchOf(slots) + 1.2)
 /** A ticket's print: its cell of the atlas, from its number. */
 export const cellOf = (req: number): number => (req * 5) % 8
 /** A small, fixed lean for a ticket or a plate, from its number, so a row never looks stamped out. */
@@ -86,8 +65,8 @@ export interface ServiceKitchen {
   readonly bin: Vec3 | null
   /** The heat lamps' light: from each bulb to the counter under it. */
   readonly lights: readonly { readonly id: string; readonly at: Vec3; readonly target: Vec3 }[]
-  /** The line's stations, in order: the clips each one cooks for, where its steam rises, and where its warm light hangs. */
-  readonly stations: readonly { readonly clips: readonly number[]; readonly top: Vec3; readonly glow: Vec3 }[]
+  /** The line's stations, in order: the clips each one cooks for, and where its steam rises. Each burns by its own heat element. */
+  readonly stations: readonly { readonly clips: readonly number[]; readonly top: Vec3 }[]
   readonly tapes: readonly Tape[]
 }
 
@@ -101,54 +80,52 @@ export interface KitchenOptions {
 /** The kitchen for a rail of `slots` clips: a function of the level's shape alone, so a fire never rebuilds it. */
 export function serviceKitchen(slots: number, { printer, overlap }: KitchenOptions): ServiceKitchen {
   const width = passWidth(slots)
-  const railLength = slots * pitchOf(slots) + 0.16
+  const rails = railLength(slots)
   const top = PASS.top
-  const count = Math.min(slots, STATION_KINDS.length)
-  const stationWidth = Math.min(0.58, 2.4 / count)
-  const lineWidth = count * stationWidth
-  const stationX = (s: number) => (s + 0.5 - count / 2) * stationWidth
-  const stations: StationSpec[] = Array.from({ length: count }, (_, s) => ({
+  const line = lineOf(slots)
+  const lineWidth = line.count * line.width
+  const stations: StationSpec[] = Array.from({ length: line.count }, (_, s) => ({
     kind: STATION_KINDS[s],
     id: `station-${s}`,
-    at: [stationX(s), 0, LINE.z],
-    width: stationWidth - 0.01,
+    at: [line.x(s), 0, LINE.z],
+    width: line.width - 0.01,
     depth: LINE.depth,
     height: LINE.height,
     channel: s,
   }))
-  const spread = Math.min(0.55, (slots * pitchOf(slots)) / 3)
   const drop = CEILING - MOUTH - 0.2015
-  const lamps = [-spread, 0, spread].map((x, i) => ({ id: `lamp-${i}`, x }))
+  const lamps = lampsOf(slots).map((x, i) => ({ id: `lamp-${i}`, x }))
   const printerAt: Vec3 = [-width / 2 + 0.26, top, -0.12]
   const bell: Vec3 = [width / 2 - 0.46, top, 0.21]
   const spike: Vec3 = [width / 2 - 0.22, top, 0.17]
   const bin: Vec3 | null = overlap ? [width / 2 - 0.325, top, -0.1] : null
-  const rail = { at: [0, RAIL.y, RAIL.z] as Vec3, length: railLength }
-  const fired = overlap ? { at: [0, FIRED.y, FIRED.z] as Vec3, length: railLength } : null
+  const rail = { at: [0, RAIL.y, RAIL.z] as Vec3, length: rails }
+  const fired = overlap ? { at: [0, FIRED.y, FIRED.z] as Vec3, length: rails } : null
   const items: PropSpec[] = [
     { kind: 'floor', id: 'floor', at: [0, 0, -0.6], width: 14, depth: 8 },
     { kind: 'tile-wall', id: 'wall', at: [0, 0, WALL_Z], width: 14, height: 3.1 },
     // The room's corner on the left, so the kitchen never ends in the haze beside the line.
     { kind: 'tile-wall', id: 'side', at: [-width / 2 - 1.3, 0, -0.5], yaw: Math.PI / 2, width: 3.8, height: 3.1 },
-    { kind: 'hood', id: 'hood', at: [0, 2.5, WALL_Z], width: lineWidth + 0.4, depth: 1, height: 0.46 },
+    { kind: 'hood', id: 'hood', at: [0, HOOD.top, WALL_Z], width: lineWidth + 0.4, depth: HOOD.depth, height: HOOD.height },
     ...stations,
     { kind: 'speed-rack', id: 'rack', at: [width / 2 + 0.75, 0, -1.35], yaw: -0.5, height: 1.72, shelves: 9, pans: [0, 1, 2, 4, 5, 7] },
     { kind: 'pass', id: 'pass', at: [0, 0, 0], width, depth: PASS.depth, height: top, strip: 0, gantry: PASS.gantry },
-    { kind: 'rail', id: 'rail', at: rail.at, length: railLength },
+    { kind: 'rail', id: 'rail', at: rail.at, length: rails },
     { kind: 'bell-base', id: 'bell', at: bell },
     { kind: 'spike', id: 'spike', at: spike },
-    { kind: 'plate-stack', id: 'stack-l', at: [-width / 2 + 0.75, top - 0.37, 0], count: 6 },
-    { kind: 'plate-stack', id: 'stack-r', at: [width / 2 - 0.75, top - 0.37, 0], count: 5 },
+    // Warm plates stacked on the heated shelf's bars under the counter.
+    { kind: 'plate-stack', id: 'stack-l', at: [-width / 2 + 0.75, top - SHELF.drop, 0], count: 6 },
+    { kind: 'plate-stack', id: 'stack-r', at: [width / 2 - 0.75, top - SHELF.drop, 0], count: 5 },
     ...lamps.map((lamp) => ({ kind: 'heat-lamp' as const, id: lamp.id, at: [lamp.x, CEILING, 0.04] as Vec3, drop, hang: 'cord' as const })),
   ]
   if (printer) items.push({ kind: 'printer', id: 'printer', at: printerAt, yaw: 0.18 })
-  if (fired) items.push({ kind: 'rail', id: 'fired', at: fired.at, length: railLength, hang: BAR.y - FIRED.y })
+  if (fired) items.push({ kind: 'rail', id: 'fired', at: fired.at, length: rails, hang: BAR.y - FIRED.y })
   if (bin) items.push({ kind: 'pan', id: 'bin', at: bin, size: '1/1', depth: 0.1 })
 
   const tapes: Tape[] = [
     // The line's name on the tile over its last station, and the expo's on the pass's rolled front edge, where each one stands: one
     // high and far, one low and near, so the two never meet on any screen.
-    { id: 'line', center: [stationX(count - 1), 1.24, WALL_Z + 0.004], size: [0.6, 0.07], rotation: [0, 0, 0.02], text: 'the line · gpu' },
+    { id: 'line', center: [line.x(line.count - 1), 1.24, WALL_Z + 0.004], size: [0.6, 0.07], rotation: [0, 0, 0.02], text: 'the line · gpu' },
     { id: 'expo', center: [0.15, top - 0.03, PASS.depth / 2 + 0.016], size: [0.42, 0.05], rotation: [-0.45, 0, -0.015], text: 'the expo · cpu' },
   ]
   if (bin) tapes.push({ id: 'bin', center: [bin[0], top + 0.094, bin[2] + 0.1625 + 0.0035], size: [0.12, 0.024], rotation: [-0.12, 0, 0.03], text: 'binned · ghost' })
@@ -163,9 +140,8 @@ export function serviceKitchen(slots: number, { printer, overlap }: KitchenOptio
     bin,
     lights: lamps.map((lamp) => ({ id: lamp.id, at: [lamp.x, MOUTH - 0.02, 0.04] as Vec3, target: [lamp.x, top, PLATE_Z] as Vec3 })),
     stations: stations.map((station, s) => ({
-      clips: Array.from({ length: slots }, (_, k) => k).filter((k) => Math.floor((k * count) / slots) === s),
+      clips: Array.from({ length: slots }, (_, k) => k).filter((k) => Math.floor((k * line.count) / slots) === s),
       top: [station.at[0], LINE.height + 0.04, LINE.z - 0.02] as Vec3,
-      glow: [station.at[0], 1.3, LINE.z + 0.55] as Vec3,
     })),
     tapes,
   }

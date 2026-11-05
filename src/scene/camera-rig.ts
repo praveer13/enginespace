@@ -6,7 +6,10 @@
  *   - A move animates over at most 400 ms [estimated] on the design system's settle curve, and cuts under reduced motion.
  *     A change of projection (perspective to the orthographic Compare shot) always cuts: there is no honest in-between.
  *   - Up stays up and nothing rolls; a preset is a position and a target, never an orientation.
- *   - Below 480 px wide, a preset's portrait framing runs the long axis into the screen (GAMES.md §2.3).
+ *   - Below 480 px wide, a preset's portrait framing runs the long axis into the screen (GAMES.md §2.3). From 1280 px a preset may
+ *     frame the scene its own way for a page whose objects stand at one side of the box (`wide`).
+ *   - A framing's `shift` moves the picture's centre off the box's centre (a lens shifted in its mount): the camera sees the same, and
+ *     the picture stands elsewhere in the box, so a page's own objects can stand beside it.
  */
 
 export type Vec3 = readonly [number, number, number]
@@ -20,6 +23,8 @@ export interface Framing {
   readonly fov?: number
   /** Orthographic: the world height the view shows. */
   readonly viewHeight?: number
+  /** The picture's centre, off the box's centre, in half box heights: right and down. A perspective framing's only. */
+  readonly shift?: readonly [number, number]
 }
 
 export interface CameraPreset extends Framing {
@@ -30,11 +35,15 @@ export interface CameraPreset extends Framing {
   readonly projection: 'perspective' | 'orthographic'
   /** The framing below `PORTRAIT_WIDTH`. */
   readonly portrait?: Partial<Framing>
+  /** The framing from `WIDE_WIDTH`. */
+  readonly wide?: Partial<Framing>
 }
 
 /** GAMES.md §2.3 [estimated]. */
 export const CAMERA_TRANSITION_MS = 400
 export const PORTRAIT_WIDTH = 480
+/** 80rem: where the front page stands its own objects in front of the pass (front.css). */
+export const WIDE_WIDTH = 1280
 export const DEFAULT_FOV = 30
 
 /** The preset after `current`, wrapping: what `C` does. An unknown id starts from the first. */
@@ -50,12 +59,13 @@ export function presetById(presets: readonly CameraPreset[], id: string): Camera
 
 /** The framing a preset takes in a canvas this wide. */
 export function framingFor(preset: CameraPreset, widthPx: number): Required<Framing> {
-  const portrait = widthPx > 0 && widthPx < PORTRAIT_WIDTH ? (preset.portrait ?? {}) : {}
+  const own = widthPx > 0 && widthPx < PORTRAIT_WIDTH ? (preset.portrait ?? {}) : widthPx >= WIDE_WIDTH ? (preset.wide ?? {}) : {}
   return {
-    position: portrait.position ?? preset.position,
-    target: portrait.target ?? preset.target,
-    fov: portrait.fov ?? preset.fov ?? DEFAULT_FOV,
-    viewHeight: portrait.viewHeight ?? preset.viewHeight ?? 10,
+    position: own.position ?? preset.position,
+    target: own.target ?? preset.target,
+    fov: own.fov ?? preset.fov ?? DEFAULT_FOV,
+    viewHeight: own.viewHeight ?? preset.viewHeight ?? 10,
+    shift: own.shift ?? preset.shift ?? [0, 0],
   }
 }
 

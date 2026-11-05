@@ -1,10 +1,10 @@
 /**
  * posters: renders Service's poster, the static picture the front page paints before any script runs (A§6.11, GAMES.md §3 "2D path").
  *
- * The poster is the 2D view's first frame, drawn by the same pure code: the practice seed of the front page's first level, as a
- * view (`loopView`), laid out (`layoutFrame`) and written as SVG (`frameSvg`). The 2D view renders the same tree as React elements,
- * and tests/play/loop-layout.test.ts requires the two to be the same markup. It has two orientations, because the lanes run along
- * a phone's height in portrait (GAMES.md §2.3): the page shows one of them by its width.
+ * The poster is the front page's 2D view's first frame, drawn by the same pure code: the practice seed of the front page's first
+ * level, as a view (`loopView`), laid out through the front page's shot (`layoutFrame`) and written as SVG (`frameSvg`). The page
+ * renders the same tree as React elements, and tests/front/shell.test.ts requires the two to be the same markup. It has two
+ * orientations, a laptop's and a phone's, whose camera stands back (GAMES.md §2.3): the page shows one of them by its width.
  *
  * The SVG paints with the design system's custom properties (`var(--es-lane-gpu)` and the rest) and nothing else, so it takes the
  * look of whatever page holds it: inlined in `index.html` (W0-T18), or opened alone it falls back to the browser's defaults.
@@ -39,7 +39,7 @@ export interface Poster {
 export function renderPosters(): Poster[] {
   const view = loopView(loopInit(loopLevel(POSTER_LEVEL, POSTER_SEED)))
   return (['landscape', 'portrait'] as const).map((orientation): Poster => {
-    const tree = frameSvg(layoutFrame(view, { orientation }))
+    const tree = frameSvg(layoutFrame(view, { orientation, shot: 'front' }))
     return { file: `loop-first-frame-${orientation}.svg`, orientation, svg: `${svgMarkup(tree)}\n`, marks: countMarks(tree) }
   })
 }

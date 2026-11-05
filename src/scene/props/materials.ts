@@ -3,7 +3,9 @@
  *
  *   metal     every metal of the line in one MeshPhysicalMaterial: brushed stainless, spun aluminium, chrome and cast iron differ
  *             per vertex by their finish (roughness, the brush's grain and anisotropy, metalness), on the kit's own brushed maps.
- *             The anisotropic lobe runs across the grain, so the highlights move along the steel as the camera does.
+ *             The anisotropic lobe runs across the grain, so the highlights move along the steel as the camera does. Under each heat
+ *             lamp the counter's top takes a soft-edged pool of the lamp's amber, broken by the brush's grain: brushed stainless
+ *             scatters a lamp's light about its spot, which a spot light's specular alone cannot show from the expo's low angle.
  *   ceramic   glazed ceramic: the plates, knobs and the fryer's oil, glossy with a clearcoat at T2.
  *   tile      the back wall's subway tile; floor, the sealed quarry tile; each with its generated normals and roughness.
  *   glow      what is lit: a station's element, a lamp's bulb, the heat strip, in the lamp's amber, each on its channel; a dark
@@ -34,6 +36,7 @@ import {
   UniformsUtils,
   UnsignedByteType,
   Vector2,
+  Vector3,
   type Material,
   type Texture,
 } from 'three'
@@ -52,6 +55,11 @@ export interface PropMaterials {
   readonly steam: ShaderMaterial
   /** Lights the glow channels in `mask` (bit n is channel n) and darkens the rest. */
   setLit(mask: number): void
+  /**
+   * The heat lamps' pools on the steel: each (x, z, radius) in metres, on the level surface at `y`, lit from `height` above it, in
+   * `color` (the lamp's, at the pool's strength). An empty list lifts them.
+   */
+  setPools(pools: readonly (readonly [number, number, number])[], y?: number, color?: Color, height?: number): void
   /** Asks for a redraw once the print's face has loaded (at once if it has); returns the unsubscribe. */
   onPrinted(redraw: () => void): () => void
   /** A metal of its own for one moving part, the same program as `metal`, whose emissive can flash amber (the bell's dome). */
@@ -74,13 +82,56 @@ function patched(chunk: string, find: string, replace: string): string {
  */
 const RADIANCE_CAP = '#include <opaque_fragment>\ngl_FragColor.rgb = min(gl_FragColor.rgb, vec3(16.0));'
 
-/** Adds the per-vertex finish to a physical material: roughness, the grain (normal map and anisotropy) and metalness. */
-function patchFinish(material: MeshPhysicalMaterial) {
-  material.customProgramCacheKey = () => 'es-prop-metal-v2'
+/** The heat lamps' pools, shared by every metal of one kitchen: each pool's (x, z, radius), the surface's height, the lamps' height over it, and the colour. */
+interface PoolUniforms {
+  uPools: { value: Vector3[] }
+  uPoolY: { value: number }
+  uPoolH: { value: number }
+  uPoolColor: { value: Color }
+}
+
+/**
+ * A lamp's light on the counter, on an upward face within a few centimetres of the pools' height: a soft pool under each lamp, hot in
+ * its middle and gone by its cone's edge, lit as the steel's own colour; and the brushed steel's streak across it, a lobe narrow along
+ * the brush and long across it, from the lamp to the eye, so it slides along the steel as the camera leans. Both are broken by the
+ * brush's fine lines. The pool's radius is the lamp's cone where it lands, so the amber stays on the pass.
+ */
+const POOL_VERTEX = `
+vec4 esWorld = vec4(transformed, 1.0);
+vec4 esUp = vec4(objectNormal, 0.0);
+#ifdef USE_INSTANCING
+esWorld = instanceMatrix * esWorld;
+esUp = instanceMatrix * esUp;
+#endif
+vPoolAt = (modelMatrix * esWorld).xyz;
+vPoolUp = normalize((modelMatrix * esUp).xyz).y;`
+
+const POOL_FRAGMENT = `
+float esFlat = smoothstep(0.7, 0.95, vPoolUp) * (1.0 - smoothstep(0.008, 0.03, abs(vPoolAt.y - uPoolY)));
+if (esFlat > 0.0) {
+  vec3 esEye = normalize(cameraPosition - vPoolAt);
+  vec3 esLit = vec3(0.0);
+  for (int i = 0; i < 3; i++) {
+    vec3 p = uPools[i];
+    if (p.z <= 0.0) continue;
+    float r = distance(vPoolAt.xz, p.xy) / p.z;
+    vec3 h = normalize(normalize(vec3(p.x, uPoolY + uPoolH, p.y) - vPoolAt) + esEye);
+    float streak = exp(-(h.x * h.x / 0.006 + h.z * h.z / 0.32) / (h.y * h.y)) * (1.0 - smoothstep(0.8, 1.5, r));
+    esLit += exp(-4.0 * r * r) * 0.55 * diffuseColor.rgb + streak * 1.6;
+  }
+  float esLines = 0.8 + 0.4 * fract(sin(floor(vPoolAt.z * 160.0) * 12.9898) * 43758.5453);
+  outgoingLight += uPoolColor * esLit * esFlat * esLines;
+}
+`
+
+/** Adds the per-vertex finish to a physical material: roughness, the grain (normal map and anisotropy) and metalness; and the lamps' pools. */
+function patchFinish(material: MeshPhysicalMaterial, pools: PoolUniforms) {
+  material.customProgramCacheKey = () => 'es-prop-metal-v3'
   material.onBeforeCompile = (shader) => {
-    shader.vertexShader = patched(shader.vertexShader, '#include <common>', '#include <common>\nattribute vec3 aFinish;\nvarying vec3 vFinish;')
-    shader.vertexShader = patched(shader.vertexShader, '#include <begin_vertex>', '#include <begin_vertex>\nvFinish = aFinish;')
-    let fragment = patched(shader.fragmentShader, '#include <common>', '#include <common>\nvarying vec3 vFinish;')
+    Object.assign(shader.uniforms, pools)
+    shader.vertexShader = patched(shader.vertexShader, '#include <common>', '#include <common>\nattribute vec3 aFinish;\nvarying vec3 vFinish;\nvarying vec3 vPoolAt;\nvarying float vPoolUp;')
+    shader.vertexShader = patched(shader.vertexShader, '#include <begin_vertex>', `#include <begin_vertex>\nvFinish = aFinish;${POOL_VERTEX}`)
+    let fragment = patched(shader.fragmentShader, '#include <common>', '#include <common>\nvarying vec3 vFinish;\nvarying vec3 vPoolAt;\nvarying float vPoolUp;\nuniform vec3 uPools[3];\nuniform float uPoolY;\nuniform float uPoolH;\nuniform vec3 uPoolColor;')
     fragment = patched(fragment, '#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = clamp(roughnessFactor * vFinish.x, 0.0, 1.0);')
     fragment = patched(fragment, '#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\nmetalnessFactor *= vFinish.z;')
     fragment = patched(fragment, '#include <normal_fragment_maps>', patched(ShaderChunk.normal_fragment_maps, 'mapN.xy *= normalScale;', 'mapN.xy *= normalScale * vFinish.y;'))
@@ -89,7 +140,7 @@ function patchFinish(material: MeshPhysicalMaterial) {
       '#include <lights_physical_fragment>',
       patched(ShaderChunk.lights_physical_fragment, 'vec2 anisotropyV = anisotropyVector;', 'vec2 anisotropyV = anisotropyVector * vFinish.y;'),
     )
-    shader.fragmentShader = patched(fragment, '#include <opaque_fragment>', RADIANCE_CAP)
+    shader.fragmentShader = patched(fragment, '#include <opaque_fragment>', `${POOL_FRAGMENT}${RADIANCE_CAP}`)
   }
 }
 
@@ -290,6 +341,7 @@ export function createPropMaterials(source: MaterialSource, maxAnisotropy: numbe
   const steel = source.base.stainless
   const owned: Texture[] = []
 
+  const pools: PoolUniforms = { uPools: { value: [new Vector3(), new Vector3(), new Vector3()] }, uPoolY: { value: 0 }, uPoolH: { value: 1 }, uPoolColor: { value: new Color(inputs.glow) } }
   const makeMetal = () => {
     const metal = new MeshPhysicalMaterial({
       name: 'prop-metal',
@@ -305,7 +357,7 @@ export function createPropMaterials(source: MaterialSource, maxAnisotropy: numbe
       clearcoat: t2 ? params.metal.clearcoat : 0,
       clearcoatRoughness: params.metal.clearcoatRoughness,
     })
-    patchFinish(metal)
+    patchFinish(metal, pools)
     return metal
   }
   const metal = makeMetal()
@@ -445,6 +497,15 @@ export function createPropMaterials(source: MaterialSource, maxAnisotropy: numbe
     steam,
     setLit(mask) {
       glowUniforms.uLit.value = mask | 0
+    },
+    setPools(list, y = 0, color, height = 1) {
+      pools.uPools.value.forEach((pool, i) => {
+        const [x, z, radius] = list[i] ?? [0, 0, 0]
+        pool.set(x, z, radius)
+      })
+      pools.uPoolY.value = y
+      pools.uPoolH.value = height
+      if (color) pools.uPoolColor.value.copy(color)
     },
     onPrinted(next) {
       redraw = next

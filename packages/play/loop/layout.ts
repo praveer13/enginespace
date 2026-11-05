@@ -1,27 +1,33 @@
 /**
  * Service's 2D view (A§6.3, GAMES.md §3 "2D path", §2.6 "Service"): a view of the night turned into positioned marks, which the 2D
- * view and the poster draw as SVG (`frameSvg`). It is the same kitchen the 3D scene draws (src/games/loop/scene-layout.ts), the pass
- * seen from above, in the world's own materials and nothing a chart has:
- *   - the line, at the top: a station for each clip, a steel top with a well cut in it and a burner. While a ticket holds the clip, a
- *     hotel pan stands in the well, its KV block, with a drawn rim and a recessed floor and the ticket's number in marker on a strip of
- *     masking tape across its rim; an empty clip leaves the well bare and dark. The burner is struck solid where the latest fire
- *     cooked a course and an open ring where its clip rode empty: the drawing has no lamp off the pass, so the state is a shape;
- *   - the fired rail, while a fire is on the line: a copy of each of that fire's tickets, which holds it while the expo writes the
- *     next call on the rail;
- *   - the rail, a steel bar with a clip for each slot, a paper ticket hung on every taken clip and a red-printed stub on every empty
- *     one;
- *   - the pass, under the heat lamp's amber pooled over the clips while the night is open, as light with no edge, the drawing's only
- *     amber; on it, the plates of the last fire read back, one under every clip that cooked a course, a binned plate hollow and
- *     struck through in the ribbon's red, and an empty place a dark ring;
- *   - the printer at the pass's left end and the tickets it has fed, the next in line first.
- * Masking tape and marker name the line and the expo. A state is a shape before it is a colour (WCAG 1.4.1), and no code colour marks
- * a state. Every number the drawing writes is a ticket's number; the counters are DOM, in the printer's tape and the mirror.
+ * view and the poster draw as SVG (`frameSvg`). It is the kitchen the 3D scene draws (src/games/loop/scene-layout.ts), on the same plan
+ * and through the same shot (kitchen.ts), drawn flat in the world's own materials and nothing a chart has, so the first paint, the view
+ * a phone without 3D keeps and the 3D scene are one picture at one scale:
+ *   - the room: subway tile on the back wall and the side wall, the quarry floor, and the hood over the line, softening into haze;
+ *   - the line: a station for each clip, its cabinet, its control panel with its knobs and its pilot, and on its top what it cooks on
+ *     (a griddle, four burners under their grates, a fryer's wells). Where the latest fire cooked a course the station burns: its pilot
+ *     and its heat glow in the lamp's amber, and its burners' heads struck solid. Where its clip rode empty it stands cold, its pilot an
+ *     open ring;
+ *   - the gantry over the pass, the rail hung from it with a clip for each slot, a paper ticket hung on every taken clip with its number
+ *     printed, and a stub printed "empty" in the ribbon's red on every empty one; while a fire is on the line, the fired rail under it;
+ *   - the three heat lamps on their cords, and under each its pool of amber on the pass's steel, light with no edge;
+ *   - the pass: its brushed top with the plates of the last fire read back, one under every clip that cooked a course, each with its
+ *     rim and its shadow, a binned plate hollow and struck through in the ribbon's red, an empty place a dashed ring; its rolled front
+ *     edge with the expo's name on masking tape, and under it the heated shelf's bars with the plate stacks warming on them;
+ *   - on Service's own page, the printer at the pass's left end and the tickets it has fed lying on the counter, the next first. The
+ *     front page holds a printer of its own, so its shot draws none.
+ * A state is a shape before it is a colour (WCAG 1.4.1), the lamp's amber marks only the pass's pools and a burning station, and no
+ * code colour marks a state. Every number the drawing writes is a ticket's number; the counters are DOM, in the printer's tape and the
+ * mirror.
  *
- * The frame has two orientations of the same plan: landscape, with the printer at the left of the rail, and portrait, for a phone,
- * with the printer on the pass's near side under it. A frame's size never changes with the night, so nothing moves when it is drawn.
+ * A frame is the shot's picture at a fixed size: the viewBox is the shot's full height and 2.4 heights wide in landscape (as wide as
+ * it is tall in portrait), its centre the camera's. The room is drawn past the viewBox on every side, so a page that shows the frame in a wider box,
+ * or with its lens shifted (the front page from 80rem, and its phone layout), lets it overflow into the box and finds the kitchen there.
+ * A frame's size never changes with the night, so nothing moves when it is drawn.
  */
 import type { Us } from '@es/sim/core'
 import type { Span } from '@es/sim/steploop'
+import { clipX, FIRED, GRIP, HOOD, lampsOf, LINE, lineOf, MOUTH, PASS, passWidth, PLATE_R, PLATE_Z, RAIL, railLength, SHELF, SHOTS, STATION_KINDS, TICKET, viewOf, WALL_Z, type Shot } from './kitchen'
 import { countMarks, num } from './svg'
 import type { SvgNode } from './svg'
 import type { ClipView, FireView, LoopView } from './types'
@@ -31,10 +37,26 @@ import type { ClipView, FireView, LoopView } from './types'
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /** The token roles the drawing paints with (src/design/tokens.ts). `none` is no paint. */
-export type Paint = 'none' | 'surface-1' | 'surface-2' | 'surface-3' | 'edge' | 'paper' | 'paper-ink' | 'paper-ink-2' | 'paper-rule' | 'lamp' | 'text-1' | 'lane-gpu' | 'tape' | 'tape-ink'
+export type Paint =
+  | 'none'
+  | 'surface-0'
+  | 'surface-1'
+  | 'surface-2'
+  | 'surface-3'
+  | 'edge'
+  | 'paper'
+  | 'paper-ink'
+  | 'paper-ink-2'
+  | 'paper-rule'
+  | 'lamp'
+  | 'lamp-ring'
+  | 'text-1'
+  | 'lane-gpu'
+  | 'tape'
+  | 'tape-ink'
 
 /** The roles above, as a list, for the test that checks them against the design system. */
-export const PAINTS: readonly Paint[] = ['surface-1', 'surface-2', 'surface-3', 'edge', 'paper', 'paper-ink', 'paper-ink-2', 'paper-rule', 'lamp', 'text-1', 'lane-gpu', 'tape', 'tape-ink']
+export const PAINTS: readonly Paint[] = ['surface-0', 'surface-1', 'surface-2', 'surface-3', 'edge', 'paper', 'paper-ink', 'paper-ink-2', 'paper-rule', 'lamp', 'lamp-ring', 'text-1', 'lane-gpu', 'tape', 'tape-ink']
 
 /** The faces the drawing sets text in: the printer's dots for numbers and print, and marker on masking tape. */
 export type Face = 'numeric' | 'ticket' | 'label'
@@ -46,21 +68,19 @@ interface Style {
   readonly dash?: string
   readonly opacity?: number
   readonly strokeOpacity?: number
+  /** Light, not a surface: the frame blurs it, so it has no edge (the heat lamps' pools, a station's heat). */
+  readonly soft?: boolean
 }
 
 export type Mark =
-  | ({
-      readonly kind: 'rect'
-      readonly x: number
-      readonly y: number
-      readonly w: number
-      readonly h: number
-      readonly rx?: number
-      /** Light, not a surface: the frame blurs it, so it has no edge (the heat lamp's pool). */
-      readonly soft?: boolean
-    } & Style)
+  | ({ readonly kind: 'rect'; readonly x: number; readonly y: number; readonly w: number; readonly h: number; readonly rx?: number } & Style)
   | ({ readonly kind: 'line'; readonly x1: number; readonly y1: number; readonly x2: number; readonly y2: number } & Style)
   | ({ readonly kind: 'circle'; readonly cx: number; readonly cy: number; readonly r: number } & Style)
+  | ({ readonly kind: 'ellipse'; readonly cx: number; readonly cy: number; readonly rx: number; readonly ry: number } & Style)
+  /** A polygon through its points. */
+  | ({ readonly kind: 'poly'; readonly points: readonly (readonly [number, number])[] } & Style)
+  /** Many straight strokes in one mark: tile joints, grates, bars. */
+  | ({ readonly kind: 'path'; readonly d: string } & Style)
   | {
       readonly kind: 'text'
       readonly x: number
@@ -72,13 +92,16 @@ export type Mark =
       readonly face: Face
     }
 
-/** Marks that belong together, drawn as one group: `part` names the object (`line`, `fired`, `rail`, `pass`, `printer`, `labels`). */
+/** Marks that belong together, drawn as one group: `part` names the object (`room`, `line`, `heat`, `rail`, `clips`, `pass`, ...). */
 export interface Layer {
   readonly part: string
   readonly marks: readonly Mark[]
 }
 
 export type Orientation = 'landscape' | 'portrait'
+
+/** Whose shot a frame is drawn through: the front page's, or Service's own page's (kitchen.ts, `SHOTS`). */
+export type ShotName = keyof typeof SHOTS
 
 export interface Frame {
   readonly orientation: Orientation
@@ -91,6 +114,8 @@ export interface Frame {
 
 export interface FrameOptions {
   readonly orientation?: Orientation
+  /** The front page's shot draws no printer, for the page holds its own; Service's page draws it. Default `loop`. */
+  readonly shot?: ShotName
 }
 
 /** The most marks the 2D view draws (A§6.4, W0-T16). The plan draws a fixed set of marks per clip, far under it. */
@@ -147,82 +172,40 @@ export function windowOf(view: LoopView, windowTicks: number): Window {
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* Geometry                                                                                                           */
+/* The frame and its lens                                                                                             */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** A rectangle in the frame's units. */
-interface Box {
-  readonly x: number
-  readonly y: number
-  readonly w: number
-  readonly h: number
+/** A frame's size in its own units: the shot's full height is 300 in landscape and 600 in portrait, and the frame 2.4 or 1 heights wide. */
+export const FRAMES: Readonly<Record<Orientation, { readonly width: number; readonly height: number }>> = {
+  landscape: { width: 720, height: 300 },
+  portrait: { width: 600, height: 600 },
 }
 
-interface Geometry {
-  readonly width: number
-  readonly height: number
-  /** The first clip's left edge, and the most room a clip takes along the rail. */
-  readonly railX: number
-  readonly pitch: number
-  /** The rows, from the line down to the expo: the line's top and depth, the two rails' bars, the pass and its rolled lip. */
-  readonly line: { readonly y: number; readonly h: number }
-  readonly firedY: number
-  readonly railY: number
-  readonly pass: { readonly y: number; readonly h: number }
-  readonly lip: number
-  readonly ticket: { readonly w: number; readonly h: number }
-  readonly copy: { readonly w: number; readonly h: number }
-  readonly plate: number
-  readonly printer: Box
-  /** The counter's tickets beside the printer: where the first lies, the distance between them, and how many show. */
-  readonly queue: { readonly x: number; readonly y: number; readonly pitch: number; readonly slots: number }
-  /** Where the masking tape goes: the line's name, the expo's, and the fired rail's. */
-  readonly tapes: { readonly line: Box; readonly expo: Box; readonly fired: Box }
-  readonly numberSize: number
-  readonly textSize: number
+type Pt = readonly [number, number]
+
+/** A frame coordinate as the drawing writes it: a tenth of a unit, a fraction of a pixel on any screen. */
+const tenth = (value: number): number => Math.round(value * 10) / 10
+
+/** A shot's projection into a frame: a point of the kitchen to frame units, and how many frame units a metre is there. */
+function lensOf(shot: Shot, width: number, height: number) {
+  const see = viewOf(shot)
+  const half = height / 2
+  const at = (x: number, y: number, z: number): Pt => {
+    const s = see([x, y, z])
+    return [tenth(width / 2 + s.c * half), tenth(half - s.d * half)]
+  }
+  const per = (x: number, y: number, z: number): number => half / (see([x, y, z]).depth * shot.k)
+  /** A level disc of radius `r` at (x, y, z), seen from the shot: an ellipse. */
+  const disc = (x: number, y: number, z: number, r: number) => {
+    const [cx] = at(x, y, z)
+    const far = at(x, y, z - r)[1]
+    const near = at(x, y, z + r)[1]
+    return { cx, cy: num((far + near) / 2), rx: num(r * per(x, y, z)), ry: num(Math.max(0.3, (near - far) / 2)) }
+  }
+  return { at, per, disc }
 }
 
-const LANDSCAPE: Geometry = {
-  width: 720,
-  height: 300,
-  railX: 214,
-  pitch: 124,
-  line: { y: 6, h: 78 },
-  firedY: 100,
-  railY: 150,
-  pass: { y: 214, h: 60 },
-  lip: 277,
-  ticket: { w: 30, h: 44 },
-  copy: { w: 22, h: 32 },
-  plate: 19,
-  printer: { x: 4, y: 134, w: 40, h: 58 },
-  queue: { x: 52, y: 144, pitch: 36, slots: 4 },
-  tapes: { line: { x: 78, y: 36, w: 128, h: 17 }, expo: { x: 78, y: 279, w: 128, h: 17 }, fired: { x: 118, y: 94, w: 88, h: 14 } },
-  numberSize: 12,
-  textSize: 11,
-}
-
-const PORTRAIT: Geometry = {
-  width: 360,
-  height: 360,
-  railX: 6,
-  pitch: 87,
-  line: { y: 4, h: 70 },
-  firedY: 104,
-  railY: 152,
-  pass: { y: 212, h: 58 },
-  lip: 272,
-  ticket: { w: 28, h: 40 },
-  copy: { w: 20, h: 28 },
-  plate: 17,
-  printer: { x: 6, y: 298, w: 34, h: 52 },
-  queue: { x: 48, y: 306, pitch: 34, slots: 8 },
-  tapes: { line: { x: 6, y: 80, w: 118, h: 15 }, expo: { x: 6, y: 278, w: 118, h: 15 }, fired: { x: 248, y: 80, w: 106, h: 15 } },
-  numberSize: 11,
-  textSize: 10,
-}
-
-const geometryOf = (orientation: Orientation): Geometry => (orientation === 'portrait' ? PORTRAIT : LANDSCAPE)
+type Lens = ReturnType<typeof lensOf>
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Drawing                                                                                                            */
@@ -236,158 +219,413 @@ function painter() {
     marks = []
     layers.push({ part, marks })
   }
-  const rect = (x: number, y: number, w: number, h: number, style: Style & { rx?: number; soft?: boolean } = {}) => void marks.push({ kind: 'rect', x: num(x), y: num(y), w: num(w), h: num(h), ...style })
-  const line = (x1: number, y1: number, x2: number, y2: number, style: Style) => void marks.push({ kind: 'line', x1: num(x1), y1: num(y1), x2: num(x2), y2: num(y2), ...style })
-  const circle = (cx: number, cy: number, r: number, style: Style) => void marks.push({ kind: 'circle', cx: num(cx), cy: num(cy), r, ...style })
-  const text = (x: number, y: number, label: string, size: number, fill: Paint, face: Face, anchor: 'start' | 'middle' = 'middle') =>
-    void marks.push({ kind: 'text', x: num(x), y: num(y), text: label, size, anchor, fill, face })
-  return { layers, layer, rect, line, circle, text }
+  const rect = (x: number, y: number, w: number, h: number, style: Style & { rx?: number } = {}) => void marks.push({ kind: 'rect', x: num(x), y: num(y), w: num(w), h: num(h), ...style })
+  const line = (a: Pt, b: Pt, style: Style) => void marks.push({ kind: 'line', x1: a[0], y1: a[1], x2: b[0], y2: b[1], ...style })
+  const circle = (cx: number, cy: number, r: number, style: Style) => void marks.push({ kind: 'circle', cx: num(cx), cy: num(cy), r: num(r), ...style })
+  const ellipse = (e: { cx: number; cy: number; rx: number; ry: number }, style: Style) => void marks.push({ kind: 'ellipse', ...e, ...style })
+  const poly = (points: readonly Pt[], style: Style) => void marks.push({ kind: 'poly', points, ...style })
+  // Each stroke a subpath: level strokes as `H`, upright ones as `V`, so a wall of tile joints stays short.
+  const path = (strokes: readonly (readonly [Pt, Pt])[], style: Style) => {
+    const d = strokes.map(([a, b]) => `M${a[0]} ${a[1]}${a[1] === b[1] ? `H${b[0]}` : a[0] === b[0] ? `V${b[1]}` : `L${b[0]} ${b[1]}`}`).join('')
+    if (d.length > 0) marks.push({ kind: 'path', d, ...style })
+  }
+  const text = (x: number, y: number, label: string, size: number, fill: Paint, face: Face) => void marks.push({ kind: 'text', x: num(x), y: num(y), text: label, size: num(size), anchor: 'middle', fill, face })
+  const add = (mark: Mark) => void marks.push(mark)
+  return { layers, layer, rect, line, circle, ellipse, poly, path, text, add }
 }
 
 type Painter = ReturnType<typeof painter>
 
-/** Brushed steel lit along its far edge by the tubes and shaded along its near one: a counter, a station's top, a rail's bar. */
-function steel(p: Painter, r: Box, rx = 0, opacity = 0.62) {
-  p.rect(r.x, r.y, r.w, r.h, { fill: 'surface-1', opacity, rx })
-  p.line(r.x + rx, r.y + 0.5, r.x + r.w - rx, r.y + 0.5, { stroke: 'paper', width: 1, strokeOpacity: 0.85 })
-  p.line(r.x + rx, r.y + r.h - 0.5, r.x + r.w - rx, r.y + r.h - 0.5, { stroke: 'surface-3', width: 1 })
+/** An upright quad in the plane z = `z`, from x0 to x1 and y0 to y1, seen from the shot. */
+const upright = (lens: Lens, x0: number, x1: number, y0: number, y1: number, z: number): Pt[] => [lens.at(x0, y1, z), lens.at(x1, y1, z), lens.at(x1, y0, z), lens.at(x0, y0, z)]
+/** A level quad at height y, from x0 to x1 and z0 to z1. */
+const level = (lens: Lens, x0: number, x1: number, y: number, z0: number, z1: number): Pt[] => [lens.at(x0, y, z0), lens.at(x1, y, z0), lens.at(x1, y, z1), lens.at(x0, y, z1)]
+
+/** A strip of masking tape across a point, `w` by `h` metres, its words in marker. */
+function tape(p: Painter, lens: Lens, x: number, y: number, z: number, w: number, h: number, words: string) {
+  p.poly(upright(lens, x - w / 2, x + w / 2, y - h / 2, y + h / 2, z), { fill: 'tape' })
+  const [cx, cy] = lens.at(x, y, z)
+  p.text(cx, cy + 0.4, words, h * 0.62 * lens.per(x, y, z), 'tape-ink', 'label')
 }
 
-/** A strip of masking tape with its words in marker: how the kitchen names a thing. */
-function tapeAt(p: Painter, r: Box, words: string, size: number) {
-  p.rect(r.x, r.y, r.w, r.h, { fill: 'tape' })
-  p.text(r.x + r.w / 2, r.y + r.h / 2 + 0.5, words, size, 'tape-ink', 'label')
+/** The room: tile on the back wall and the side wall, the floor, and the haze the far wall softens into. */
+function room(p: Painter, lens: Lens, side: number) {
+  p.layer('room')
+  const course = 0.075
+  const tile = 0.15
+  // The floor, from the wall to just short of the expo (nothing behind any shot's camera), its joints in rows and in runs to the wall.
+  const near = 1.5
+  p.poly(level(lens, -9, 9, 0, WALL_Z, near), { fill: 'surface-3' })
+  const rows: [Pt, Pt][] = []
+  for (let z = WALL_Z + 0.4; z < near; z += 0.4) rows.push([lens.at(-9, 0, z), lens.at(9, 0, z)])
+  for (let x = -4.2; x < 4.3; x += 0.6) rows.push([lens.at(x, 0, WALL_Z), lens.at(x, 0, near)])
+  p.path(rows, { stroke: 'surface-2', width: 0.5, strokeOpacity: 0.5 })
+  // The back wall's tile: a grout line under every course, and the joints as one dashed stroke along each course, half a tile over on
+  // every other course, a tile apart at the wall's middle height.
+  p.poly(upright(lens, -9, 9, 0, 3.1, WALL_Z), { fill: 'paper' })
+  const courses: [Pt, Pt][] = []
+  const joints: [Pt, Pt][] = []
+  for (let k = 1; k * course < 3.1; k++) {
+    const y = k * course
+    courses.push([lens.at(-9, y, WALL_Z), lens.at(9, y, WALL_Z)])
+    const [x0, ym] = lens.at(-9 + (k % 2) * (tile / 2), y - course / 2, WALL_Z)
+    joints.push([[x0, ym], [lens.at(9, y - course / 2, WALL_Z)[0], ym]])
+  }
+  p.path(courses, { stroke: 'paper-rule', width: 0.55 })
+  const period = tenth(tile * lens.per(0, 1.6, WALL_Z))
+  const height = tenth(course * lens.per(0, 1.6, WALL_Z))
+  p.path(joints, { stroke: 'paper-rule', width: height, dash: `0.5 ${tenth(period - 0.5)}` })
+  // The side wall at the left, receding toward the line, in the tubes' shadow.
+  const wall: Pt[] = [lens.at(side, 3.1, WALL_Z), lens.at(side, 3.1, near), lens.at(side, 0, near), lens.at(side, 0, WALL_Z)]
+  p.poly(wall, { fill: 'paper' })
+  const sideCourses: [Pt, Pt][] = []
+  for (let y = course * 2; y < 3.1; y += course * 2) sideCourses.push([lens.at(side, y, WALL_Z), lens.at(side, y, near)])
+  p.path(sideCourses, { stroke: 'paper-rule', width: 0.5 })
+  p.poly(wall, { fill: 'surface-2', opacity: 0.45 })
+  // The cove where the tile meets the floor.
+  p.line(lens.at(-9, 0.03, WALL_Z + 0.02), lens.at(9, 0.03, WALL_Z + 0.02), { stroke: 'surface-2', width: 1.2 })
+  // Haze: the far wall falls into the room's grey.
+  p.poly(upright(lens, -9, 9, 0, 3.1, WALL_Z), { fill: 'surface-0', opacity: 0.32 })
 }
 
-/** A paper ticket with its punched hole and its number, hanging with its top middle at (cx, y). */
-function ticketAt(p: Painter, cx: number, y: number, size: { w: number; h: number }, id: number, numberSize: number) {
-  p.rect(cx - size.w / 2, y, size.w, size.h, { fill: 'paper', stroke: 'paper-rule', width: 1 })
-  p.circle(cx, y + 5, 2.25, { fill: 'surface-3' })
-  p.text(cx, y + size.h * 0.6, ticketNo(id), numberSize, 'paper-ink', 'numeric')
+/** The hood over the line: its front skirt in brushed steel, panel seams, its rolled lower lip, and the canopy's top edge. */
+function hood(p: Painter, lens: Lens, half: number) {
+  p.layer('hood')
+  const front = WALL_Z + HOOD.depth
+  const bottom = HOOD.top - HOOD.height
+  p.poly(level(lens, -half, half, HOOD.top, WALL_Z, front), { fill: 'surface-2' })
+  p.poly(upright(lens, -half, half, bottom, HOOD.top, front), { fill: 'surface-1' })
+  const seams: [Pt, Pt][] = []
+  for (let x = -half + 0.6; x < half - 0.1; x += 0.6) seams.push([lens.at(x, bottom + 0.03, front), lens.at(x, HOOD.top, front)])
+  p.path(seams, { stroke: 'surface-2', width: 0.6 })
+  p.line(lens.at(-half, HOOD.top - 0.005, front), lens.at(half, HOOD.top - 0.005, front), { stroke: 'paper', width: 0.8, strokeOpacity: 0.9 })
+  p.poly(upright(lens, -half - 0.01, half + 0.01, bottom - 0.02, bottom + 0.03, front + 0.01), { fill: 'surface-2' })
+  p.poly(upright(lens, -half, half, 0, HOOD.top, front), { fill: 'surface-0', opacity: 0.16 })
 }
 
-/** A rail: a bar of polished steel with a clip for each slot, and what each clip holds. */
-function railAt(p: Painter, g: Geometry, y: number, clips: readonly ClipView[], pitch: number, size: { w: number; h: number }, numberSize: number, stubs: boolean) {
-  const width = clips.length * pitch
-  p.rect(g.railX, y, width, 7, { fill: 'surface-3', rx: 2 })
-  p.line(g.railX + 2, y + 1.5, g.railX + width - 2, y + 1.5, { stroke: 'paper', width: 1, strokeOpacity: 0.55 })
-  clips.forEach((clip, j) => {
-    const cx = g.railX + pitch / 2 + j * pitch
-    p.rect(cx - 5, y - 4, 10, 15, { fill: 'surface-2', stroke: 'surface-3', width: 1.5, rx: 2 })
-    if (clip.req !== null) ticketAt(p, cx, y + 12, size, clip.req, numberSize)
-    else if (stubs) {
+/** One station of the line: its cabinet, panel, knobs and pilot, its top and what it cooks on, burning or cold. */
+function station(p: Painter, heat: Mark[], lens: Lens, kind: (typeof STATION_KINDS)[number], cx: number, w: number, lit: boolean) {
+  const h = LINE.height
+  const x0 = cx - w / 2 + 0.006
+  const x1 = cx + w / 2 - 0.006
+  const zf = LINE.z + LINE.depth / 2 - 0.015
+  const zb = LINE.z - LINE.depth / 2 + 0.03
+  p.poly(upright(lens, x0, x1, 0.1, h - 0.14, zf - 0.02), { fill: 'surface-2', stroke: 'surface-3', width: 0.5 })
+  p.poly(upright(lens, x0, x1, h - 0.14, h - 0.03, zf + 0.01), { fill: 'surface-3' })
+  const knobs = kind === 'burners' ? 4 : 2
+  const r = Math.max(0.6, 0.02 * lens.per(cx, h - 0.085, zf))
+  for (let k = 0; k < knobs; k++) {
+    const [kx, ky] = lens.at(x0 + ((x1 - x0) * (k + 0.5)) / knobs - 0.02, h - 0.085, zf + 0.02)
+    p.circle(kx, ky, r, { fill: 'paper-ink' })
+  }
+  // The pilot: a lens burning in the lamp's amber while the station cooks, an open ring of deep steel while it stands dark.
+  const [px, py] = lens.at(x1 - 0.03, h - 0.085, zf + 0.02)
+  if (lit) heat.push({ kind: 'circle', cx: px, cy: py, r: num(r * 0.8), fill: 'lamp', stroke: 'lamp-ring', width: 0.5 })
+  else p.circle(px, py, r * 0.8, { fill: 'none', stroke: 'surface-3', width: 0.7 })
+  const top = level(lens, x0, x1, h, zb, zf)
+  p.poly(top, { fill: 'surface-2', stroke: 'surface-3', width: 0.4 })
+  p.poly(upright(lens, x0, x1, h, h + 0.12, zb), { fill: 'surface-1' })
+  // A burning station's whole top is warm with its heat: the lamp's amber laid over it, under its elements' own glow.
+  if (lit) heat.push({ kind: 'poly', points: top, fill: 'lamp', opacity: 0.42 })
+  const glow = (x: number, z: number, radius: number, strength: number) =>
+    heat.push({ kind: 'ellipse', ...lens.disc(x, h + 0.005, z, radius), fill: 'lamp', opacity: strength, soft: true })
+  const mid = LINE.z - 0.03
+  if (kind === 'griddle') {
+    p.poly(level(lens, x0 + 0.015, x1 - 0.015, h + 0.004, zb + 0.02, zf - 0.06), { fill: 'paper-ink', opacity: 0.86 })
+    // Its front edge: a bar burning in the lamp's amber while it cooks, a cold one while it stands dark.
+    const [e0, e1] = [lens.at(x0 + 0.02, h + 0.006, zf - 0.07), lens.at(x1 - 0.02, h + 0.006, zf - 0.07)]
+    if (lit) {
+      glow(cx, mid, w * 0.32, 0.7)
+      heat.push({ kind: 'line', x1: e0[0], y1: e0[1], x2: e1[0], y2: e1[1], stroke: 'lamp', width: 1.4 })
+    } else p.line(e0, e1, { stroke: 'surface-3', width: 1.4 })
+  } else if (kind === 'burners') {
+    const grates: [Pt, Pt][] = []
+    for (const [dx, dz] of [
+      [-w / 4, -LINE.depth / 4 + 0.02],
+      [w / 4, -LINE.depth / 4 + 0.02],
+      [-w / 4, LINE.depth / 4 - 0.06],
+      [w / 4, LINE.depth / 4 - 0.06],
+    ] as const) {
+      const bx = cx + dx
+      const bz = LINE.z + dz
+      p.ellipse(lens.disc(bx, h, bz, 0.105), { fill: 'surface-3' })
+      if (lit) glow(bx, bz, 0.095, 0.85)
+      // The burner's head: struck solid while it burns, an open ring while it is cold.
+      p.ellipse(lens.disc(bx, h + 0.02, bz, 0.036), lit ? { fill: 'paper-ink' } : { fill: 'none', stroke: 'paper-ink', width: 0.8 })
+      grates.push([lens.at(bx - 0.125, h + 0.036, bz), lens.at(bx + 0.125, h + 0.036, bz)], [lens.at(bx, h + 0.036, bz - 0.125), lens.at(bx, h + 0.036, bz + 0.125)])
+    }
+    p.path(grates, { stroke: 'paper-ink', width: 1 })
+  } else {
+    const ww = (x1 - x0 - 0.06) / 2
+    for (const k of [0, 1]) {
+      const wx = x0 + 0.03 + ww * (k + 0.5)
+      p.poly(level(lens, wx - ww / 2 + 0.012, wx + ww / 2 - 0.012, h, zb + 0.1, zf - 0.13), { fill: 'paper-ink', opacity: 0.9, stroke: 'surface-3', width: 0.6 })
+      if (lit) glow(wx, mid - 0.02, ww * 0.42, 0.75)
+      p.line(lens.at(wx, h + 0.04, zf - 0.14), lens.at(wx, h + 0.1, zf - 0.02), { stroke: 'surface-3', width: 0.9 })
+    }
+  }
+}
+
+/** The line: a station for each clip, burning where the latest fire cooked a course; its heat in a layer of its own, the lamp's amber. */
+function theLine(p: Painter, lens: Lens, view: LoopView) {
+  const line = lineOf(view.slots)
+  const clips = stationsOf(view)
+  const heat: Mark[] = []
+  p.layer('line')
+  for (let s = 0; s < line.count; s++) {
+    const lit = clips.some((on, slot) => on && Math.floor((slot * line.count) / view.slots) === s)
+    station(p, heat, lens, STATION_KINDS[s], line.x(s), line.width, lit)
+  }
+  p.layer('heat')
+  for (const mark of heat) p.add(mark)
+  // The line's name, on tape on the tile over its last station.
+  p.layer('labels-line')
+  tape(p, lens, line.x(line.count - 1), 1.24, WALL_Z + 0.01, 0.6, 0.07, 'THE LINE · GPU')
+}
+
+/** A ticket hung from its clip: paper with its punched hole, its number printed large, and two lines of dots under it. */
+function ticketAt(p: Painter, lens: Lens, x: number, y: number, z: number, id: number, scale = 1) {
+  const w = TICKET.width * scale
+  const h = TICKET.height * scale
+  p.poly(upright(lens, x - w / 2, x + w / 2, y - h, y, z), { fill: 'paper', stroke: 'paper-rule', width: 0.5 })
+  const per = lens.per(x, y, z)
+  const [hx, hy] = lens.at(x, y - 0.012 * scale, z)
+  p.circle(hx, hy, Math.max(0.5, 0.005 * scale * per), { fill: 'surface-3' })
+  const [nx, ny] = lens.at(x, y - h * 0.42, z)
+  p.text(nx, ny, ticketNo(id), w * 0.5 * per, 'paper-ink', 'numeric')
+  p.path(
+    [0.68, 0.8].map((t): [Pt, Pt] => [lens.at(x - w * 0.34, y - h * t, z), lens.at(x + w * (t > 0.7 ? 0.1 : 0.34), y - h * t, z)]),
+    { stroke: 'paper-rule', width: Math.max(0.6, 0.006 * scale * per), dash: '0.8 1.2' },
+  )
+}
+
+/** A rail's channel at (y, z), `length` long, and what each clip holds: a ticket, or (on the rail) a stub printed "empty". */
+function railAt(p: Painter, lens: Lens, y: number, z: number, length: number, clips: readonly ClipView[], slots: number, copies: boolean) {
+  p.poly(upright(lens, -length / 2, length / 2, y - 0.035, y, z + 0.013), { fill: 'surface-3' })
+  p.line(lens.at(-length / 2 + 0.01, y - 0.004, z + 0.014), lens.at(length / 2 - 0.01, y - 0.004, z + 0.014), { stroke: 'paper', width: 0.8, strokeOpacity: 0.6 })
+  p.line(lens.at(-length / 2 + 0.01, y - 0.033, z + 0.014), lens.at(length / 2 - 0.01, y - 0.033, z + 0.014), { stroke: 'paper-ink', width: 0.6 })
+  clips.forEach((clip, slot) => {
+    const x = clipX(slot, slots)
+    if (clip.req !== null) ticketAt(p, lens, x, y - GRIP, z + 0.012, clip.req, copies ? 0.85 : 1)
+    else if (!copies) {
       // Paid for, and empty: a stub of paper on the clip, printed in the ribbon's red.
-      const w = size.w + 12
-      p.rect(cx - w / 2, y + 12, w, size.h / 2, { fill: 'paper', stroke: 'paper-rule', width: 1, dash: '2 2' })
-      p.text(cx, y + 12 + size.h / 4 + 0.5, 'empty', g.textSize - 1, 'paper-ink-2', 'ticket')
+      const per = lens.per(x, y, z)
+      p.poly(upright(lens, x - 0.045, x + 0.045, y - GRIP - 0.055, y - GRIP, z + 0.012), { fill: 'paper', stroke: 'paper-rule', width: 0.5, dash: '1.5 1.2' })
+      const [ex, ey] = lens.at(x, y - GRIP - 0.0275, z + 0.012)
+      p.text(ex, ey, 'empty', 0.022 * per, 'paper-ink-2', 'ticket')
     }
   })
 }
 
-/**
- * A station of the line from above, over its clip: a steel top, a well cut in it and a burner. A ticket's hotel pan stands in the
- * well, a raised rim round a recessed floor, the far wall's shadow inside and the near rim catching the tubes, with the ticket's number
- * on tape across the rim; with the clip empty the well is a bare dark hole. The burner is solid while the station burns.
- */
-function stationAt(p: Painter, g: Geometry, cx: number, req: number | null, lit: boolean, pitch: number) {
-  const top: Box = { x: cx - (pitch - 12) / 2, y: g.line.y, w: pitch - 12, h: g.line.h }
-  steel(p, top, 3, 0.85)
-  p.rect(top.x, top.y, top.w, top.h, { fill: 'none', stroke: 'edge', width: 1, rx: 3 })
-  const well: Box = { x: top.x + 6, y: top.y + 8, w: top.w * 0.56, h: top.h - 16 }
-  if (req === null) {
-    p.rect(well.x, well.y, well.w, well.h, { fill: 'surface-3', opacity: 0.88, rx: 5 })
-  } else {
-    p.rect(well.x, well.y, well.w, well.h, { fill: 'surface-1', stroke: 'edge', width: 1, rx: 6 })
-    p.rect(well.x + 4, well.y + 4, well.w - 8, well.h - 8, { fill: 'surface-2', rx: 3 })
-    p.line(well.x + 7, well.y + 5, well.x + well.w - 7, well.y + 5, { stroke: 'paper-ink', width: 2, strokeOpacity: 0.32 })
-    p.line(well.x + 7, well.y + well.h - 4.5, well.x + well.w - 7, well.y + well.h - 4.5, { stroke: 'paper', width: 1, strokeOpacity: 0.9 })
-    const tape: Box = { x: well.x + well.w / 2 - 12, y: well.y + well.h - 10, w: 24, h: 12 }
-    tapeAt(p, tape, ticketNo(req), g.numberSize - 1.5)
+/** The rail's clips, one mark each, in a layer of their own: the page finds where to hang a dragged ticket by them. */
+function clipsAt(p: Painter, lens: Lens, y: number, z: number, slots: number) {
+  p.layer('clips')
+  for (let slot = 0; slot < slots; slot++) {
+    const x = clipX(slot, slots)
+    const [x0, y0] = lens.at(x - 0.015, y - 0.006, z + 0.016)
+    const [x1, y1] = lens.at(x + 0.015, y - GRIP - 0.006, z + 0.016)
+    p.rect(x0, y0, x1 - x0, y1 - y0, { fill: 'surface-2', stroke: 'surface-3', width: 0.6, rx: 0.6 })
   }
-  // The burner: its ring always, and its core struck solid while it burns.
-  const bx = top.x + top.w * 0.8
-  const by = top.y + top.h / 2
-  const r = Math.min(11, top.h * 0.16, top.w * 0.12)
-  p.circle(bx, by, r + 3, { fill: 'surface-2', stroke: 'surface-3', width: 1 })
-  p.circle(bx, by, r, { fill: 'none', stroke: 'text-1', width: 1.5 })
-  if (lit) p.circle(bx, by, r - 3.5, { fill: 'text-1' })
 }
 
-/** The last fire read back: the place under clip `slot`, on the pass. */
-function plateAt(p: Painter, cx: number, cy: number, r: number, state: 'plate' | 'empty' | 'binned') {
-  if (state === 'plate') {
-    p.circle(cx, cy, r, { fill: 'paper', stroke: 'paper-rule', width: 0.75 })
-    p.circle(cx, cy, r * 0.62, { fill: 'none', stroke: 'paper-rule', width: 0.6 })
-  } else if (state === 'binned') {
-    p.circle(cx, cy, r, { fill: 'none', stroke: 'paper-ink-2', width: 1.5, dash: '3 2' })
-    p.line(cx - r * 0.7, cy + r * 0.7, cx + r * 0.7, cy - r * 0.7, { stroke: 'paper-ink-2', width: 1.5 })
-  } else p.circle(cx, cy, r - 2, { fill: 'none', stroke: 'surface-3', width: 1.25, dash: '2 3' })
-}
-
-/** The drawing of a night. */
-function build(view: LoopView, orientation: Orientation): Layer[] {
-  const g = geometryOf(orientation)
-  const p = painter()
-  const pitch = Math.min(g.pitch, (g.width - 4 - g.railX) / view.slots)
-  const clipX = (slot: number) => g.railX + pitch / 2 + slot * pitch
-  const railRight = g.railX + view.slots * pitch
-  const lit = stationsOf(view)
-
-  // The line: a station over each clip, its well holding the ticket's pan, its burner solid where the latest fire cooked.
-  p.layer('line')
-  view.rail.forEach((clip, slot) => stationAt(p, g, clipX(slot), clip.req, lit[slot], pitch))
-
-  // The pass: the counter, the heat lamp's amber pooled over the clips while the night is open (light, not a box: one soft pool
-  // with no edge, which the frame blurs, and nowhere else), and on it the plates of the last fire read back.
-  p.layer('pass')
-  steel(p, { x: 0, y: g.pass.y, w: g.width, h: g.pass.h })
-  p.layer('lamp')
-  const poolLeft = Math.max(0, g.railX - 14)
-  if (!view.done) p.rect(poolLeft, g.pass.y + 3, Math.min(g.width, railRight + 8) - poolLeft, g.pass.h - 6, { fill: 'lamp', opacity: 0.5, rx: g.pass.h / 2, soft: true })
-  p.layer('plates')
-  const served = [...view.fires].reverse().find((fire) => !fire.onLine)
-  served?.places.forEach((place, slot) => plateAt(p, clipX(slot), g.pass.y + g.pass.h / 2, g.plate, place.state))
-  p.rect(0, g.lip, g.width, 3, { fill: 'surface-2' })
-  p.line(0, g.lip + 0.5, g.width, g.lip + 0.5, { stroke: 'paper', width: 1, strokeOpacity: 0.8 })
-
-  // The fired rail, while a fire is on the line, and the rail.
+/** The gantry over the pass, its rail and clips, and the fired rail under it while a fire is on the line. */
+function rails(p: Painter, lens: Lens, view: LoopView, width: number) {
+  const slots = view.slots
+  const length = railLength(slots)
+  p.layer('gantry')
+  const bar = PASS.top + PASS.gantry + 0.012
+  const bz = -PASS.depth / 2 + 0.035
+  for (const x of [-width / 2 + 0.035, width / 2 - 0.035]) p.line(lens.at(x, PASS.top, bz), lens.at(x, bar + 0.03, bz), { stroke: 'surface-2', width: Math.max(1, 0.03 * lens.per(x, 1.2, bz)) })
+  p.line(lens.at(-width / 2 + 0.02, bar, bz), lens.at(width / 2 - 0.02, bar, bz), { stroke: 'surface-1', width: Math.max(1.2, 0.034 * lens.per(0, bar, bz)) })
+  p.line(lens.at(-width / 2 + 0.02, bar + 0.012, bz), lens.at(width / 2 - 0.02, bar + 0.012, bz), { stroke: 'paper', width: 0.6, strokeOpacity: 0.7 })
   if (view.firedRail !== null) {
     p.layer('fired')
-    railAt(p, g, g.firedY, view.firedRail, pitch, g.copy, g.numberSize - 1, false)
-    tapeAt(p, g.tapes.fired, 'FIRED RAIL', g.textSize - 2.5)
+    for (const x of [-length / 2 + 0.03, length / 2 - 0.03]) p.line(lens.at(x, FIRED.y, FIRED.z), lens.at(x, bar, bz), { stroke: 'surface-2', width: 0.8 })
+    railAt(p, lens, FIRED.y, FIRED.z, length, view.firedRail, slots, true)
+    // Its name on tape stuck on the channel, between its first two clips, where every shot sees it.
+    const pitch = slots > 1 ? clipX(1, slots) - clipX(0, slots) : 0.3
+    tape(p, lens, clipX(0, slots) + pitch / 2, FIRED.y - 0.0175, FIRED.z + 0.016, Math.min(0.2, pitch - 0.06), 0.032, 'FIRED RAIL')
   }
   p.layer('rail')
-  railAt(p, g, g.railY, view.rail, pitch, g.ticket, g.numberSize, true)
+  railAt(p, lens, RAIL.y, RAIL.z, length, view.rail, slots, false)
+  clipsAt(p, lens, RAIL.y, RAIL.z, slots)
+}
 
-  // The printer, and the tickets it has fed beside it, the next in line first; what it still holds is counted on the strip's end.
+/** The three heat lamps on their cords: spun shades with a rolled lip, a little of their light under the mouth. */
+function lamps(p: Painter, lens: Lens, slots: number, ceiling: number) {
+  p.layer('lamps')
+  const z = 0.04
+  const glow: Mark[] = []
+  for (const x of lampsOf(slots)) {
+    const top = MOUTH + 0.2
+    p.line(lens.at(x, ceiling, z), lens.at(x, top, z), { stroke: 'paper-ink', width: 0.7 })
+    const per = lens.per(x, MOUTH + 0.1, z)
+    const profile: [number, number][] = [
+      [0.022, top],
+      [0.034, top - 0.035],
+      [0.055, top - 0.075],
+      [0.083, top - 0.11],
+      [0.112, MOUTH + 0.012],
+      [0.118, MOUTH],
+    ]
+    const left = profile.map(([r, y]) => lens.at(x - r, y, z))
+    const right = profile.map(([r, y]) => lens.at(x + r, y, z)).reverse()
+    p.poly([...left, ...right], { fill: 'surface-1', stroke: 'surface-3', width: 0.5 })
+    // The spun shade catches the tubes along one flank.
+    p.line(lens.at(x - 0.012, top - 0.01, z + 0.02), lens.at(x - 0.07, MOUTH + 0.02, z + 0.08), { stroke: 'paper', width: Math.max(0.8, 0.012 * per), strokeOpacity: 0.85 })
+    p.ellipse(lens.disc(x, MOUTH, z, 0.118), { fill: 'surface-2', stroke: 'surface-3', width: 0.6 })
+    glow.push({ kind: 'ellipse', ...lens.disc(x, MOUTH - 0.03, z, 0.09), fill: 'lamp', opacity: 0.5, soft: true })
+  }
+  p.layer('bulbs')
+  for (const mark of glow) p.add(mark)
+}
+
+/** A plate on the pass, as the last fire left it: a plate with its rim and its shadow, a binned plate, or an empty place. */
+function plateAt(p: Painter, lens: Lens, x: number, state: 'plate' | 'empty' | 'binned') {
+  const y = PASS.top
+  if (state === 'plate') {
+    const shadow = lens.disc(x, y, PLATE_Z + 0.012, PLATE_R * 1.1)
+    p.ellipse(shadow, { fill: 'text-1', opacity: 0.24 })
+    p.ellipse(lens.disc(x, y + 0.022, PLATE_Z, PLATE_R), { fill: 'paper', stroke: 'paper-rule', width: 0.7 })
+    p.ellipse(lens.disc(x, y + 0.009, PLATE_Z, 0.09), { fill: 'paper', stroke: 'paper-rule', width: 0.55 })
+  } else if (state === 'binned') {
+    const plate = lens.disc(x, y + 0.012, PLATE_Z, PLATE_R)
+    p.ellipse(plate, { fill: 'none', stroke: 'paper-ink-2', width: 1.2, dash: '3 2' })
+    p.line([plate.cx - plate.rx * 0.7, plate.cy + plate.ry * 0.7], [plate.cx + plate.rx * 0.7, plate.cy - plate.ry * 0.7], { stroke: 'paper-ink-2', width: 1.2 })
+  } else p.ellipse(lens.disc(x, y + 0.002, PLATE_Z, PLATE_R - 0.02), { fill: 'none', stroke: 'surface-3', width: 0.9, dash: '2 2.5' })
+}
+
+/** The pass: its top under the lamps' pools, the plates, its rolled front edge and apron, its legs, and the heated shelf under it. */
+function thePass(p: Painter, lens: Lens, view: LoopView, width: number) {
+  const top = PASS.top
+  const d = PASS.depth
+  const half = width / 2
+  const shelf = top - SHELF.drop
+  // Under the counter first: the heated shelf's tray and bars, the stacks of warm plates on them.
+  p.layer('shelf')
+  p.poly(level(lens, -half + 0.03, half - 0.03, shelf - 0.015, -d / 2 + 0.03, d / 2 - 0.03), { fill: 'surface-1' })
+  const bars: [Pt, Pt][] = []
+  const bars2: [Pt, Pt][] = []
+  for (let i = 0; i < 11; i++) {
+    const z = -d / 2 + 0.06 + ((d - 0.12) * i) / 10
+    bars.push([lens.at(-half + 0.05, shelf - 0.004, z), lens.at(half - 0.05, shelf - 0.004, z)])
+    bars2.push([lens.at(-half + 0.05, shelf, z - 0.004), lens.at(half - 0.05, shelf, z - 0.004)])
+  }
+  p.path(bars, { stroke: 'surface-3', width: 1.1, strokeOpacity: 0.7 })
+  p.path(bars2, { stroke: 'paper', width: 0.6, strokeOpacity: 0.85 })
+  for (const [x, count] of [
+    [-half + 0.75, 6],
+    [half - 0.75, 5],
+  ] as const) {
+    p.ellipse(lens.disc(x, shelf, 0.012, 0.15), { fill: 'text-1', opacity: 0.28 })
+    const stackTop = shelf + count * 0.0105 + 0.016
+    const base = lens.disc(x, shelf + 0.004, 0, PLATE_R)
+    const crown = lens.disc(x, stackTop, 0, PLATE_R)
+    p.poly([[base.cx - base.rx, base.cy], [crown.cx - crown.rx, crown.cy], [crown.cx + crown.rx, crown.cy], [base.cx + base.rx, base.cy]], { fill: 'paper' })
+    const rims: [Pt, Pt][] = []
+    for (let k = 1; k < count; k++) {
+      const ring = lens.disc(x, shelf + k * 0.0105 + 0.012, 0, PLATE_R)
+      rims.push([[ring.cx - ring.rx, ring.cy + ring.ry * 0.9], [ring.cx + ring.rx, ring.cy + ring.ry * 0.9]])
+    }
+    p.path(rims, { stroke: 'paper-rule', width: 0.5 })
+    p.ellipse(crown, { fill: 'paper', stroke: 'paper-rule', width: 0.6 })
+    p.ellipse(lens.disc(x, stackTop - 0.01, 0, 0.09), { fill: 'none', stroke: 'paper-rule', width: 0.5 })
+  }
+  p.line(lens.at(-half + 0.035, shelf - 0.01, d / 2 - 0.032), lens.at(half - 0.035, shelf - 0.01, d / 2 - 0.032), { stroke: 'surface-1', width: Math.max(1.4, 0.022 * lens.per(0, shelf, d / 2)) })
+  p.line(lens.at(-half + 0.035, shelf - 0.003, d / 2 - 0.022), lens.at(half - 0.035, shelf - 0.003, d / 2 - 0.022), { stroke: 'paper', width: 0.6, strokeOpacity: 0.8 })
+  // The front legs.
+  for (const x of [-half + 0.04, half - 0.04]) p.line(lens.at(x, 0.02, d / 2 - 0.04), lens.at(x, top - 0.04, d / 2 - 0.04), { stroke: 'surface-2', width: Math.max(1.2, 0.038 * lens.per(x, 0.5, d / 2)) })
+  // The counter: its brushed top lit along its back edge, the pools of the lamps' amber on it, and the plates.
+  p.layer('pass')
+  p.poly(level(lens, -half, half, top, -d / 2, d / 2), { fill: 'surface-1', stroke: 'surface-2', width: 0.5 })
+  p.line(lens.at(-half + 0.02, top, -d / 2 + 0.01), lens.at(half - 0.02, top, -d / 2 + 0.01), { stroke: 'paper', width: 0.9, strokeOpacity: 0.9 })
+  p.layer('pools')
+  for (const x of lampsOf(view.slots)) p.ellipse(lens.disc(x, top, PLATE_Z, 0.24), { fill: 'lamp', opacity: 0.62, soft: true })
+  p.layer('plates')
+  const served = [...view.fires].reverse().find((fire) => !fire.onLine)
+  served?.places.forEach((place, slot) => plateAt(p, lens, clipX(slot, view.slots), place.state))
+  // The rolled front edge, the apron under it, and the expo's name on tape on the edge.
+  p.layer('edge')
+  p.poly(upright(lens, -half, half, top - 0.04, top, d / 2), { fill: 'surface-2' })
+  p.line(lens.at(-half, top - 0.004, d / 2), lens.at(half, top - 0.004, d / 2), { stroke: 'paper', width: 1, strokeOpacity: 0.9 })
+  p.poly(upright(lens, -half + 0.02, half - 0.02, top - 0.1, top - 0.04, d / 2 - 0.025), { fill: 'surface-1', stroke: 'surface-2', width: 0.5 })
+  tape(p, lens, 0.15, top - 0.03, d / 2 + 0.006, 0.42, 0.05, 'THE EXPO · CPU')
+}
+
+/** The bell and the spike at the pass's right end. */
+function bellAndSpike(p: Painter, lens: Lens, width: number) {
+  p.layer('bell')
+  const top = PASS.top
+  const [bx, bz] = [width / 2 - 0.46, 0.21]
+  p.ellipse(lens.disc(bx, top, bz + 0.01, 0.055), { fill: 'text-1', opacity: 0.25 })
+  p.ellipse(lens.disc(bx, top + 0.012, bz, 0.045), { fill: 'surface-3' })
+  const dome = lens.disc(bx, top + 0.026, bz, 0.042)
+  const [, crown] = lens.at(bx, top + 0.063, bz)
+  p.poly([[dome.cx - dome.rx, dome.cy], [dome.cx - dome.rx * 0.6, crown + (dome.cy - crown) * 0.35], [dome.cx, crown], [dome.cx + dome.rx * 0.6, crown + (dome.cy - crown) * 0.35], [dome.cx + dome.rx, dome.cy]], { fill: 'surface-1', stroke: 'surface-3', width: 0.5 })
+  const [sx, sz] = [width / 2 - 0.22, 0.17]
+  p.ellipse(lens.disc(sx, top + 0.01, sz, 0.042), { fill: 'surface-3' })
+  p.line(lens.at(sx, top + 0.02, sz), lens.at(sx, top + 0.165, sz), { stroke: 'surface-2', width: 0.7 })
+}
+
+/** The printer at the pass's left end, and the tickets it has fed lying on the counter in front of it, the next first. */
+function printerAt(p: Painter, lens: Lens, view: LoopView, width: number) {
   p.layer('printer')
-  const { printer, queue } = g
-  p.rect(printer.x, printer.y, printer.w, printer.h, { fill: 'surface-3', rx: 3 })
-  p.rect(printer.x + printer.w - 6, printer.y + 8, 4, printer.h - 16, { fill: 'surface-1', rx: 1 })
-  const shown = view.waiting.length > queue.slots ? queue.slots - 1 : view.waiting.length
-  const size = { w: g.ticket.w - 4, h: g.ticket.h - 8 }
-  view.waiting.slice(0, shown).forEach((id, i) => ticketAt(p, queue.x + size.w / 2 + i * queue.pitch, queue.y, size, id, g.numberSize - 1))
-  if (view.waiting.length > shown) p.text(queue.x + size.w / 2 + shown * queue.pitch, queue.y + size.h * 0.6, `+${view.waiting.length - shown}`, g.numberSize, 'text-1', 'numeric')
+  const top = PASS.top
+  const [x, z] = [-width / 2 + 0.26, -0.12]
+  const [w, h, d] = [0.16, 0.15, 0.22]
+  p.ellipse(lens.disc(x, top, z + 0.01, 0.15), { fill: 'text-1', opacity: 0.22 })
+  p.poly(level(lens, x - w / 2, x + w / 2, top + h, z - d / 2, z + d / 2), { fill: 'surface-3' })
+  p.poly(upright(lens, x - w / 2, x + w / 2, top, top + h, z + d / 2), { fill: 'paper-ink', opacity: 0.85 })
+  p.ellipse(lens.disc(x, top + h + 0.002, z - 0.01, 0.038), { fill: 'paper', stroke: 'paper-rule', width: 0.5 })
+  p.line(lens.at(x - w / 2 + 0.01, top + h * 0.75, z + d / 2 + 0.002), lens.at(x + w / 2 - 0.01, top + h * 0.75, z + d / 2 + 0.002), { stroke: 'surface-1', width: 0.9 })
+  const shown = view.waiting.slice(0, 5)
+  shown.forEach((id, i) => {
+    const tx = -width / 2 + 0.11 + i * 0.096
+    p.poly(level(lens, tx - TICKET.width / 2, tx + TICKET.width / 2, top + 0.002, 0.04, 0.04 + TICKET.height), { fill: 'paper', stroke: 'paper-rule', width: 0.5 })
+    const [nx, ny] = lens.at(tx, top + 0.003, 0.075)
+    p.text(nx, ny, ticketNo(id), TICKET.width * 0.42 * lens.per(tx, top, 0.08), 'paper-ink', 'numeric')
+  })
+  if (view.waiting.length > shown.length) {
+    const [mx, my] = lens.at(x, top + h + 0.06, z)
+    p.text(mx, my, `+${view.waiting.length - shown.length}`, 0.05 * lens.per(x, top + h, z), 'text-1', 'numeric')
+  }
+}
 
-  // The line's name and the expo's, on masking tape in marker.
-  p.layer('labels')
-  tapeAt(p, g.tapes.line, 'THE LINE · GPU', g.textSize - 2)
-  tapeAt(p, g.tapes.expo, 'THE EXPO · CPU', g.textSize - 2)
-  return p.layers
+/** The drawing of a night through a shot. */
+function build(view: LoopView, shot: Shot, shotName: ShotName, size: { width: number; height: number }): Layer[] {
+  const lens = lensOf(shot, size.width, size.height)
+  const p = painter()
+  const width = passWidth(view.slots)
+  const line = lineOf(view.slots)
+  room(p, lens, -width / 2 - 1.3)
+  hood(p, lens, (line.count * line.width + 0.4) / 2)
+  theLine(p, lens, view)
+  rails(p, lens, view, width)
+  lamps(p, lens, view.slots, 3.2)
+  thePass(p, lens, view, width)
+  bellAndSpike(p, lens, width)
+  if (shotName === 'loop') printerAt(p, lens, view, width)
+  return p.layers.filter((layer) => layer.marks.length > 0)
 }
 
 /** The sentence that names the drawing: the state it shows, for assistive technology and for the poster's alt text. */
 function describe(view: LoopView): string {
   const hung = view.rail.filter((clip) => clip.req !== null).length
   const waiting = view.waiting.length
-  return `${view.title}. The rail has ${view.slots} clips and ${hung} ${hung === 1 ? 'is' : 'are'} hung. ${waiting} ${waiting === 1 ? 'ticket waits' : 'tickets wait'}. ${view.step} ${view.step === 1 ? 'fire has' : 'fires have'} been rung, and the clock reads ${view.clockUs} ticks, synthetic.`
+  const lit = stationsOf(view).filter(Boolean).length
+  return `${view.title}. The rail has ${view.slots} clips and ${hung} ${hung === 1 ? 'is' : 'are'} hung. ${waiting} ${waiting === 1 ? 'ticket waits' : 'tickets wait'}. ${view.step} ${view.step === 1 ? 'fire has' : 'fires have'} been rung, ${lit} of the line's stations burn, and the clock reads ${view.clockUs} ticks, synthetic.`
 }
 
 /** The frame of a view: its layers in drawing order. The same view and options always give the same frame. */
 export function layoutFrame(view: LoopView, options: FrameOptions = {}): Frame {
   const orientation = options.orientation ?? 'landscape'
-  const g = geometryOf(orientation)
-  return { orientation, width: g.width, height: g.height, label: describe(view), layers: build(view, orientation) }
+  const shotName = options.shot ?? 'loop'
+  const shots = SHOTS[shotName]
+  const size = FRAMES[orientation]
+  // The frame is the shot's picture with its lens centred: a page that shifts the lens moves the frame instead (front.css).
+  const chosen: Shot = orientation === 'portrait' ? shots.portrait : shots.base
+  const shot: Shot = { position: chosen.position, target: chosen.target, k: chosen.k }
+  return { orientation, width: size.width, height: size.height, label: describe(view), layers: build(view, shot, shotName, size) }
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -433,38 +671,34 @@ const FACE: Readonly<Record<Face, string>> = {
 }
 const paint = (role: Paint): string => (role === 'none' ? 'none' : `var(--es-${role})`)
 
-/** The blur a soft mark takes, in the frame's units [estimated]: the heat lamp's pool has no edge. */
-const SOFT_BLUR = 9
-/** The id of a frame's blur. The two orientations can share a page (the static HTML holds both), so each has its own. */
+/** The blur a soft mark takes, as a share of the frame's half height [estimated]: the lamps' pools and a station's heat have no edge. */
+const SOFT_BLUR = 0.045
+/** The id of a frame's blur. Two frames can share a page (the static HTML holds both), so each orientation has its own. */
 const softId = (orientation: Orientation): string => `es-lamp-pool-${orientation}`
 
 function markNode(mark: Mark, orientation: Orientation): SvgNode {
   const style = (s: Style): Record<string, string | number> => ({
     ...(s.fill === undefined ? {} : { fill: paint(s.fill) }),
     ...(s.stroke === undefined ? {} : { stroke: paint(s.stroke) }),
-    ...(s.width === undefined ? {} : { strokeWidth: s.width }),
+    ...(s.width === undefined ? {} : { strokeWidth: num(s.width) }),
     ...(s.dash === undefined ? {} : { strokeDasharray: s.dash }),
     ...(s.opacity === undefined ? {} : { fillOpacity: s.opacity }),
     ...(s.strokeOpacity === undefined ? {} : { strokeOpacity: s.strokeOpacity }),
+    ...(s.soft ? { filter: `url(#${softId(orientation)})` } : {}),
   })
   switch (mark.kind) {
     case 'rect':
-      return {
-        tag: 'rect',
-        attrs: {
-          x: mark.x,
-          y: mark.y,
-          width: mark.w,
-          height: mark.h,
-          ...(mark.rx === undefined ? {} : { rx: mark.rx }),
-          ...style(mark),
-          ...(mark.soft ? { filter: `url(#${softId(orientation)})` } : {}),
-        },
-      }
+      return { tag: 'rect', attrs: { x: mark.x, y: mark.y, width: mark.w, height: mark.h, ...(mark.rx === undefined ? {} : { rx: mark.rx }), ...style(mark) } }
     case 'line':
       return { tag: 'line', attrs: { x1: mark.x1, y1: mark.y1, x2: mark.x2, y2: mark.y2, ...style(mark) } }
     case 'circle':
       return { tag: 'circle', attrs: { cx: mark.cx, cy: mark.cy, r: mark.r, ...style(mark) } }
+    case 'ellipse':
+      return { tag: 'ellipse', attrs: { cx: mark.cx, cy: mark.cy, rx: mark.rx, ry: mark.ry, ...style(mark) } }
+    case 'poly':
+      return { tag: 'polygon', attrs: { points: mark.points.map(([x, y]) => `${x},${y}`).join(' '), ...style(mark) } }
+    case 'path':
+      return { tag: 'path', attrs: { d: mark.d, ...style(mark) } }
     case 'text':
       return {
         tag: 'text',
@@ -476,18 +710,19 @@ function markNode(mark: Mark, orientation: Orientation): SvgNode {
 
 /**
  * The SVG of a frame. The root is an image with the frame's label, and its box is the frame's own, so the browser reserves the
- * space before any style loads (CLS). A consumer sizes it with CSS (`width: 100%; height: auto`).
+ * space before any style loads (CLS). A consumer sizes it with CSS, and may let the room drawn past the viewBox show (`overflow`).
+ * `cover` fills whatever box holds it, at the frame's full height, cutting its sides (or its top and foot) to the box.
  */
-export function frameSvg(frame: Frame): SvgNode {
-  const soft = frame.layers.some((layer) => layer.marks.some((mark) => mark.kind === 'rect' && mark.soft === true))
+export function frameSvg(frame: Frame, options: { readonly cover?: boolean } = {}): SvgNode {
+  const soft = frame.layers.some((layer) => layer.marks.some((mark) => mark.kind !== 'text' && mark.soft === true))
   const blur: SvgNode = {
     tag: 'defs',
     attrs: {},
     children: [
       {
         tag: 'filter',
-        attrs: { id: softId(frame.orientation), x: '-20%', y: '-60%', width: '140%', height: '220%' },
-        children: [{ tag: 'feGaussianBlur', attrs: { stdDeviation: SOFT_BLUR } }],
+        attrs: { id: softId(frame.orientation), x: '-50%', y: '-80%', width: '200%', height: '260%' },
+        children: [{ tag: 'feGaussianBlur', attrs: { stdDeviation: num((frame.height / 2) * SOFT_BLUR) } }],
       },
     ],
   }
@@ -499,6 +734,7 @@ export function frameSvg(frame: Frame): SvgNode {
       viewBox: `0 0 ${frame.width} ${frame.height}`,
       width: frame.width,
       height: frame.height,
+      ...(options.cover ? { preserveAspectRatio: 'xMidYMid slice' } : {}),
       role: 'img',
       'aria-label': frame.label,
     },

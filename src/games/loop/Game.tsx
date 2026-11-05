@@ -118,7 +118,12 @@ export default function Game({ level, placement = 'page', rev, onFinish }: GameP
       unavailable3d={unavailable3d}
       view={view}
       onViewChange={setChosenView}
-      view2d={(run) => <View2D run={run} />}
+      view2d={(run) => (
+        // The 2D view in the box the scene would take, so it draws the kitchen at the scene's scale.
+        <div className={`${STAGE_BOX} overflow-hidden rounded-plate border border-edge bg-surface-0`}>
+          <View2D run={run} />
+        </div>
+      )}
       scene3d={(run) => <LoopStage run={run} preset={preset} />}
       controls={(run) => (
         <>
@@ -143,6 +148,9 @@ export default function Game({ level, placement = 'page', rev, onFinish }: GameP
  * the scene is hung, as a tap on it in the controls hangs it. The scene leads the page, the controls beside it: the box is about a pass's
  * 16:10 in the first screen, and on a phone 55% of the screen's height, at least 300 px (GAMES.md §3, "Controls", all [estimated]).
  */
+/** The scene's box: about a pass's 16:10 in the first screen, and on a phone 55% of the screen's height, at least 300 px [estimated]. */
+const STAGE_BOX = 'h-[clamp(20rem,min(62svh,46vw),46rem)] max-[479px]:h-[max(18.75rem,55svh)]'
+
 function LoopStage({ run, preset }: { run: LoopRun; preset: string }) {
   const { dispatch, view } = run
   const onHang = useCallback(
@@ -154,7 +162,7 @@ function LoopStage({ run, preset }: { run: LoopRun; preset: string }) {
   return (
     <Stage
       id="loop"
-      className="h-[clamp(20rem,min(62svh,46vw),46rem)] border border-edge shadow-shelf max-[479px]:h-[max(18.75rem,55svh)]"
+      className={`${STAGE_BOX} border border-edge shadow-shelf`}
       view2d={<View2D run={run} />}
       scene={LoopScene}
       sceneProps={{ view, preset, onHang }}

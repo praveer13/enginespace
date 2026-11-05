@@ -79,8 +79,9 @@ describe('the shapes', () => {
     const plate = lathe(plateProfile(), 32)
     sound(plate)
     const bounds = boundsOf(plate)
-    expect(bounds.max.x).toBeCloseTo(0.1356, 3)
-    expect(bounds.max.y).toBeCloseTo(0.0222, 3)
+    // A dinner plate: its rim's bead about 137 mm out and 26 mm up, a rim that stands well above its well.
+    expect(bounds.max.x).toBeCloseTo(0.1366, 3)
+    expect(bounds.max.y).toBeCloseTo(0.0263, 3)
     const ring = sweep(roundedRectPath(0.4, 0.2, 0.03), [
       [0, 0],
       [0, 0.1],

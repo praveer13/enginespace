@@ -158,8 +158,8 @@ export const PAN_SIZES: Readonly<Record<PanSize, readonly [number, number]>> = {
 /** A ticket off the printer: 80 mm wide [estimated: the common kitchen roll], 120 mm long. */
 export const TICKET = { width: 0.08, height: 0.12, thickness: 0.0006 } as const
 
-/** A dinner plate [estimated]. */
-export const PLATE = { radius: 0.135, height: 0.024 } as const
+/** A dinner plate [estimated]: to its rim's bead, and the bead's height. */
+export const PLATE = { radius: 0.136, height: 0.026 } as const
 
 /** The printer [estimated: a kitchen impact printer's housing]. */
 export const PRINTER = { width: 0.16, height: 0.15, depth: 0.22 } as const
