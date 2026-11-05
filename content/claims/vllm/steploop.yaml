@@ -1,0 +1,527 @@
+# vLLM at the pin: the rules that the step-loop model v1 encodes (W1-T12; ARCHITECTURE §5.3, WORLD §2.3 to §2.8, D-041, D-044).
+#
+# content/claims/vllm/graphs.yaml and engine.yaml hold the facts that W1-T01 read for TR2. These are the ones that W1-T12 needed on top
+# of them to write the dispatchers, the capture-size defaults, the graph modes' downgrades, the mask's cost and the speculative step as
+# code, so that every rule in packages/sim/steploop cites a claim in a comment. Read on 2026-11-04 at v0.33.0 (commit
+# 4ba787ec9959e566d3b587a796dff07673324da5), in the tag's source tarball, as text. Nothing in the tarball was run.
+
+# --- Graph modes ---------------------------------------------------------------------------------------------------------------------
+
+- id: vllm.cudagraph.mode-routines
+  value: 'decode mode and mixed mode'
+  text: A CUDAGraphMode is a single mode or a pair. FULL_DECODE_ONLY is the pair (FULL, NONE) and FULL_AND_PIECEWISE is (FULL, PIECEWISE). decode_mode() returns the first member and mixed_mode() the second, and a single mode is both of its own.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/compilation.py#L62-L69
+    title: vLLM v0.33.0, vllm/config/compilation.py, CUDAGraphMode.mixed_mode
+    quote: 'return CUDAGraphMode(self.value[1]) if self.separate_routine() else self'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.piecewise-attention-outside
+  value: attention stays outside the graph
+  text: PIECEWISE mode builds piecewise CUDA graphs only. It keeps the operations that cannot be captured, some attention operations among them, outside the graph.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/compilation.py#L620-L622
+    title: vLLM v0.33.0, vllm/config/compilation.py, CompilationConfig.cudagraph_mode
+    quote: 'incompatible ops (i.e. some attention ops) outside the cudagraph'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.piecewise-partitions
+  value: N+1 partitions
+  text: A graph with N operations that cannot be captured, attention among them, splits into N+1 partitions, and a piecewise capture wraps each partition in a CUDA graph of its own. A piecewise replay is therefore a run of N+1 graph launches with the N operations launched one by one between them.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/compilation.py#L675-L685
+    title: vLLM v0.33.0, vllm/config/compilation.py, CompilationConfig.use_inductor_graph_partition
+    quote: 'to each partition. For N+1 partitions, there would be N+1'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.downgrade-mixed
+  value: FULL becomes FULL_AND_PIECEWISE or FULL_DECODE_ONLY
+  text: When a mode captures full graphs for mixed batches and the attention backend does not support graphs for every batch, vLLM sets the mode to FULL_AND_PIECEWISE if attention is split out of the compiled graph, and to FULL_DECODE_ONLY if it is not. A backend that supports no graph at all raises an error.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/compilation.py#L1396-L1419
+    title: vLLM v0.33.0, vllm/config/compilation.py, CompilationConfig.resolve_cudagraph_mode_and_sizes
+    quote: 'msg += "; setting cudagraph_mode=FULL_AND_PIECEWISE"'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.downgrade-decode
+  value: FULL decode without backend support becomes PIECEWISE or NONE
+  text: When a mode captures full graphs for decode and the backend supports no graph (support level NEVER), vLLM sets the mode to PIECEWISE if attention is compiled piecewise, and to NONE if it is not.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/compilation.py#L1423-L1445
+    title: vLLM v0.33.0, vllm/config/compilation.py, CompilationConfig.resolve_cudagraph_mode_and_sizes
+    quote: '"; setting cudagraph_mode=PIECEWISE because "'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.downgrade-spec-decode
+  value: speculative decode needs UNIFORM_BATCH for a full graph
+  text: When the decode query length is above 1, as with speculative decoding, a mode with full decode graphs needs a backend whose support level is at least UNIFORM_BATCH. Below that, vLLM sets the mode to PIECEWISE if attention is split out, and to NONE if it is not.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/compilation.py#L1449-L1470
+    title: vLLM v0.33.0, vllm/config/compilation.py, CompilationConfig.resolve_cudagraph_mode_and_sizes
+    quote: 'and min_cg_support.value < AttentionCGSupport.UNIFORM_BATCH.value'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.backend-support-levels
+  value: 'ALWAYS, UNIFORM_BATCH, UNIFORM_SINGLE_TOKEN_DECODE, NEVER'
+  text: An attention backend has one of four graph support levels, from 3 down to 0. ALWAYS supports mixed prefill and decode batches, UNIFORM_BATCH supports batches whose requests share one query length (speculative decode), UNIFORM_SINGLE_TOKEN_DECODE supports decodes of one token, and NEVER supports no graph.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/attention/backend.py#L557-L568
+    title: vLLM v0.33.0, vllm/v1/attention/backend.py, AttentionCGSupport
+    quote: 'Cudagraph supported for batches the only contain query_len==1 decodes'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+# --- MRV2's dispatcher (the default runner) ------------------------------------------------------------------------------------------
+
+- id: vllm.cudagraph.mrv2-candidates
+  value: FULL candidates first, then PIECEWISE
+  text: MRV2's CudaGraphManager builds, once, a list of candidate descriptors for every token count and every captured adapter case. For each mode it takes the descriptors with the smallest captured token count at or above the batch's, the FULL ones before the PIECEWISE ones, and dispatch returns the first candidate that fits the batch.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu/cudagraph_utils.py#L255-L395
+    title: vLLM v0.33.0, vllm/v1/worker/gpu/cudagraph_utils.py, CudaGraphManager._init_candidates
+    quote: '"""Build priority-ordered candidate lists for each token count."""'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.mrv2-decode-descs
+  value: one FULL decode descriptor per rounded capture size
+  text: In a dual mode MRV2 captures a FULL decode descriptor for each capture size, with the size rounded up to a multiple of the decode query length and the request count that many divided by the length. It skips a size whose rounded token count is above max_num_seqs times the length, above the largest capture size, or needs more requests than max_num_seqs, and keeps descriptors that come out equal once.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu/cudagraph_utils.py#L317-L351
+    title: vLLM v0.33.0, vllm/v1/worker/gpu/cudagraph_utils.py, CudaGraphManager._init_candidates
+    quote: 'rounded_num_tokens = round_up(num_tokens, decode_query_len)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.mrv2-mixed-descs
+  value: one mixed descriptor per capture size
+  text: For the mixed mode MRV2 captures one descriptor per capture size. A PIECEWISE descriptor has no request count, and a FULL one has min(num_tokens, max_num_seqs) requests. Neither fixes a uniform token count or a query length.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu/cudagraph_utils.py#L353-L372
+    title: vLLM v0.33.0, vllm/v1/worker/gpu/cudagraph_utils.py, CudaGraphManager._init_candidates
+    quote: 'for PIECEWISE graphs there is no limit on requests when replaying'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.mrv2-compatible
+  value: six conditions
+  text: A descriptor fits a batch when its uniform token count is unset or equal to the batch's, its query-length bound is unset or at least the batch's (and the batch gave one), its request count is unset or at least the batch's, its token count is at least the batch's, and its adapter case and microbatch count equal the batch's.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu/cudagraph_utils.py#L113-L138
+    title: vLLM v0.33.0, vllm/v1/worker/gpu/cudagraph_utils.py, _is_compatible
+    quote: 'and desc.num_active_loras == num_active_loras'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.mrv2-lora-clamp
+  value: round up to a captured case, clamp at the largest
+  text: MRV2 maps a batch's active-adapter count to the smallest captured adapter case at or above it, and a count above the largest captured case to the largest. A count of 0, or any count when no adapter case was captured, stays as it is.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu/cudagraph_utils.py#L222-L228
+    title: vLLM v0.33.0, vllm/v1/worker/gpu/cudagraph_utils.py, CudaGraphManager._resolve_effective_loras
+    quote: '# Counts above the largest captured case clamp to it.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.mrv2-lora-cases
+  value: 0 plus the captured counts
+  text: With LoRA on, MRV2 captures the adapter case 0 and the counts that get_captured_lora_counts returns, if cudagraph_specialize_lora is on, which is the default. If it is off, MRV2 captures 0 and max_loras + 1. Without LoRA the only case is 0.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu/lora_utils.py#L20-L36
+    title: vLLM v0.33.0, vllm/v1/worker/gpu/lora_utils.py, get_lora_capture_cases
+    quote: 'return [0] + [c for c in captured if c > 0]'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.lora-counts
+  value: max_loras + 1 by default
+  text: get_captured_lora_counts returns only max_loras + 1 unless specialize_active_lora is on, which is off by default. When it is on, it returns the powers of 2 up to max_loras and max_loras + 1. By default the one adapter graph is therefore the one for max_loras + 1 active adapters.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/lora/utils.py#L55-L69
+    title: vLLM v0.33.0, vllm/lora/utils.py, get_captured_lora_counts
+    quote: 'When specialize=True: powers of 2 up to max_loras, plus max_loras + 1.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.mrv2-uniform-count
+  value: num_tokens == max_query_len * num_reqs
+  text: MRV2 calls a batch a uniform decode when every request has the same query length, that is when num_tokens equals max_query_len times num_reqs. The runner reports that length as the batch's uniform token count only when no request in the batch is still prefilling, except that a prefill chunk of one new token over existing context counts as a decode.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/utils.py#L958-L975
+    title: vLLM v0.33.0, vllm/v1/worker/utils.py, is_uniform_query_len
+    quote: 'return num_reqs > 0 and num_tokens == max_query_len * num_reqs'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.mrv2-prefill-query-len
+  value: None for a batch with a prefill
+  text: When a request in the batch is still prefilling, the MRV2 runner passes max_query_len to the dispatcher as None, so a descriptor that bounds the query length cannot match the batch.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu/model_runner.py#L1805-L1812
+    title: vLLM v0.33.0, vllm/v1/worker/gpu/model_runner.py, GPUModelRunner.execute_model
+    quote: 'Varlen decode graphs replay decodes only, and their bound'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.mrv2-active-loras
+  value: distinct adapters of the batch
+  text: The active-adapter count that MRV2 dispatches on is the number of distinct active adapters among the batch's requests. A dummy run, which captures a graph, uses max_loras + 1.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu/lora_utils.py#L39-L50
+    title: vLLM v0.33.0, vllm/v1/worker/gpu/lora_utils.py, get_num_active_loras_for_dispatch
+    quote: 'return len(lora_state.get_activate_loras(req_ids))'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+# --- MRV1's dispatcher (the legacy runner) -------------------------------------------------------------------------------------------
+
+- id: vllm.cudagraph.mrv1-padding-map
+  value: smallest captured size at or above the batch
+  text: MRV1 pads a batch of num_tokens up to the smallest captured size at or above it, through a table built from the sorted capture sizes. A batch above max_cudagraph_capture_size is sent to eager execution.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/cudagraph_dispatcher.py#L71-L90
+    title: vLLM v0.33.0, vllm/v1/cudagraph_dispatcher.py, CudagraphDispatcher._compute_bs_to_padded_graph_size
+    quote: '"""Pre-compute the mapping from batch size to padded graph size."""'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.mrv1-keys-mixed
+  value: one key per capture size and adapter case
+  text: For the mixed mode MRV1 registers one key per capture size and adapter case, with num_reqs set to min(padded tokens, max_num_seqs) and uniform false. A PIECEWISE key then drops num_reqs to None, and a FULL key keeps the exact count.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/cudagraph_dispatcher.py#L186-L201
+    title: vLLM v0.33.0, vllm/v1/cudagraph_dispatcher.py, CudagraphDispatcher.initialize_cudagraph_keys
+    quote: '# Only relax for PIECEWISE mode. FULL mode needs exact num_reqs'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.mrv1-keys-decode
+  value: FULL keys for uniform decode
+  text: When the decode mode is FULL and the mode has a decode routine of its own, MRV1 adds FULL keys for uniform decode at every capture size from the decode query length up to that length times max_num_seqs, with uniform true.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/cudagraph_dispatcher.py#L203-L225
+    title: vLLM v0.33.0, vllm/v1/cudagraph_dispatcher.py, CudagraphDispatcher.initialize_cudagraph_keys
+    quote: "# if decode cudagraph mode is FULL, and we don't already have mixed"
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.mrv1-uniform-reqs
+  value: padded tokens over the query length
+  text: A MRV1 key for a uniform decode has num_reqs equal to the padded token count divided by the decode query length, at most max_num_seqs, and the dispatcher asserts that the padded count is a multiple of that length.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/cudagraph_dispatcher.py#L136-L156
+    title: vLLM v0.33.0, vllm/v1/cudagraph_dispatcher.py, CudagraphDispatcher._create_padded_batch_descriptor
+    quote: 'num_reqs = min(num_tokens_padded // uniform_decode_query_len, max_num_seqs)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.mrv1-lora-cases
+  value: 0 plus the captured counts, or max_loras + 1 alone
+  text: MRV1's adapter cases are 0 alone when LoRA is off. With LoRA on and cudagraph_specialize_lora on, which is the default, they are 0 and the counts from get_captured_lora_counts. With cudagraph_specialize_lora off the only case is max_loras + 1, so no graph is captured for a batch without active adapters.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/cudagraph_dispatcher.py#L106-L129
+    title: vLLM v0.33.0, vllm/v1/cudagraph_dispatcher.py, CudagraphDispatcher._get_lora_cases
+    quote: '# Specialize: capture separate graphs for with and without LoRA'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.mrv1-lora-effective
+  value: round up to a captured count, or max_loras + 1
+  text: MRV1 rounds a batch's active-adapter count up to the smallest captured count when specialize_active_lora is on, and keeps it when no captured count is large enough. With specialize_active_lora off it uses max_loras + 1. A batch with no active adapter keeps 0.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/cudagraph_dispatcher.py#L281-L298
+    title: vLLM v0.33.0, vllm/v1/cudagraph_dispatcher.py, CudagraphDispatcher.dispatch
+    quote: '# Find the smallest captured `num_active_loras` that is >= the current'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.mrv1-uniform-decode
+  value: longest query == 1 + num_speculative_tokens
+  text: MRV1 treats a batch as a uniform decode when its longest query equals the uniform decode query length and num_tokens equals that length times num_reqs.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu_model_runner.py#L3620-L3637
+    title: vLLM v0.33.0, vllm/v1/worker/gpu_model_runner.py, GPUModelRunner._is_uniform_decode
+    quote: '(max_num_scheduled_tokens == uniform_decode_query_len)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.mrv1-active-loras
+  value: distinct adapters of the input batch
+  text: The active-adapter count that MRV1 dispatches on is the number of distinct adapters in its input batch, and has_lora is that count above 0.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu_model_runner.py#L3721-L3726
+    title: vLLM v0.33.0, vllm/v1/worker/gpu_model_runner.py, GPUModelRunner._determine_batch_execution_and_padding
+    quote: 'else len(self.input_batch.lora_id_to_lora_request)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.mrv1-batch-trim
+  value: only the requests scheduled this step stay
+  text: Before each step MRV1 removes from its persistent input batch every request the scheduler did not schedule in that step, whether it was preempted or is running and left out. The input batch that the adapter count reads is therefore the step's own rows, and the count is the same as MRV2's.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu_model_runner.py#L1231
+    title: vLLM v0.33.0, vllm/v1/worker/gpu_model_runner.py, GPUModelRunner._update_states
+    quote: 'unscheduled_req_ids = cached_req_ids - (scheduled_req_ids - resumed_req_ids)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.mrv1-query-len
+  value: 1 + num_speculative_tokens
+  text: MRV1's uniform decode query length is 1 plus the number of speculative tokens.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/cudagraph_dispatcher.py#L36
+    title: vLLM v0.33.0, vllm/v1/cudagraph_dispatcher.py, CudagraphDispatcher
+    quote: 'self.uniform_decode_query_len = 1 + self.vllm_config.num_speculative_tokens'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.mrv1-sizes-multiple
+  value: capture sizes rounded up to a multiple of the query length
+  text: With full decode graphs and a decode query length above 1, MRV1 rounds each capture size up to a multiple of that length, drops the ones above the largest size, and makes the largest the new maximum. MRV2 does not do this, because its manager rounds inside its own candidates.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/compilation.py#L1496-L1514
+    title: vLLM v0.33.0, vllm/config/compilation.py, CompilationConfig.resolve_cudagraph_mode_and_sizes
+    quote: '# MRV1 adjusts cudagraph sizes to be a multiple of uniform_decode_query_len'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+# --- Capture sizes and memory --------------------------------------------------------------------------------------------------------
+
+- id: vllm.cudagraph.default-max-formula
+  value: min(2 * max_num_seqs * query length, ceiling)
+  text: When the largest capture size is unset, vLLM sets it to the smaller of max_num_seqs times the decode query length times 2 and the platform ceiling, which is 512 tokens or 1,024 on data-centre Blackwell.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/vllm.py#L2398-L2410
+    title: vLLM v0.33.0, vllm/config/vllm.py, VllmConfig._set_cudagraph_sizes
+    quote: 'max_num_seqs * decode_query_len * 2, default_max_graph_size'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.sizes-budget-clamp
+  value: no larger than max_num_batched_tokens
+  text: The largest capture size is then cut to max_num_batched_tokens, and a capture size above that budget is dropped from a list the user gave.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/vllm.py#L2551-L2553
+    title: vLLM v0.33.0, vllm/config/vllm.py, VllmConfig._set_cudagraph_sizes
+    quote: 'max_cudagraph_capture_size = min(max_num_tokens, max_cudagraph_capture_size)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.default-sizes-budget
+  value: max_num_batched_tokens is appended if it fits
+  text: The default list also gets max_num_batched_tokens as a size, when that is within the largest capture size and not already on the list.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/vllm.py#L2592-L2597
+    title: vLLM v0.33.0, vllm/config/vllm.py, VllmConfig._set_cudagraph_sizes
+    quote: '# ensure max_num_tokens is captured if within max capture size'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.default-sizes-seqs
+  value: max_num_seqs is appended if it fits
+  text: Without speculative decoding the default list also gets max_num_seqs as a size, when that is within the largest capture size, so that a full decode batch is captured exactly.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/vllm.py#L2548-L2551
+    title: vLLM v0.33.0, vllm/config/vllm.py, VllmConfig._set_cudagraph_sizes
+    quote: 'uniform_decode_sizes = [max_num_seqs]'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cache.gpu-memory-utilization-default
+  value: 0.92
+  unit: share of card memory
+  text: vLLM may use 0.92 of a card's memory by default at v0.33.0. The weights, the activations, the CUDA graphs and the KV cache all come out of that share.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/cache.py#L215
+    title: vLLM v0.33.0, vllm/config/cache.py, gpu_memory_utilization
+    quote: 'gpu_memory_utilization: float = Field(default=0.92, gt=0, le=1)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.memory-profile-extrapolates
+  value: a memory delta per captured graph
+  text: The memory profile of MRV2's CUDA graphs captures only the largest FULL descriptors, records the memory that each captured graph took, and extrapolates the delta to the rest. The estimate is a sum over graphs, so each graph that is captured costs memory.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu/cudagraph_utils.py#L185-L188
+    title: vLLM v0.33.0, vllm/v1/worker/gpu/cudagraph_utils.py, CudaGraphManager.__init__
+    quote: "captured FULL graph's memory delta for extrapolation."
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+# --- The scheduler, speculation and the mask -----------------------------------------------------------------------------------------
+
+- id: vllm.scheduler.spec-drafts
+  value: a running request carries its drafts
+  text: The scheduler gives a running request every token it has that is not computed yet, its drafts included, which is 1 plus its drafts for a request in decode. The count is cut to what is left of the step's token budget, and the drafts are cut with it.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/sched/scheduler.py#L836-L849
+    title: vLLM v0.33.0, vllm/v1/core/sched/scheduler.py, Scheduler.schedule
+    quote: 'request.num_tokens_with_spec'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.scheduler.spec-pad
+  value: a new decode request is padded to 1 + num_spec_tokens
+  text: With speculative decoding the scheduler pads a request that is new to the running set and has one token to schedule to 1 plus num_spec_tokens, so that the decode batch stays uniform and keeps a full graph. It prefers to leave such a request out of the step than to schedule it unpadded when the budget is short.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/sched/scheduler.py#L1308-L1330
+    title: vLLM v0.33.0, vllm/v1/core/sched/scheduler.py, Scheduler.schedule
+    quote: 'padded_num_tokens = 1 + self.num_spec_tokens'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.scheduler.skip-extra-step
+  value: no extra step for a length-capped stop
+  text: Under async scheduling the scheduler does not schedule another step for a request when the steps in flight are sure to reach its max_tokens, so a stop at the length cap leaves no ghost token. A stop on EOS cannot be known in advance, and the request rides one more step.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/sched/scheduler.py#L799-L813
+    title: vLLM v0.33.0, vllm/v1/core/sched/scheduler.py, Scheduler.schedule
+    quote: 'Async scheduling: Avoid scheduling an extra step when we are sure that'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mask.fill-rows-per-request
+  value: 1 + num_speculative_tokens rows
+  text: The bitmask has a fixed-width block of rows for each structured request, one row for each speculative position and one for the next token. The parallel fill is used only when a step has more structured requests than the threshold and no speculative tokens are configured.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/structured_output/__init__.py#L408-L420
+    title: vLLM v0.33.0, vllm/v1/structured_output/__init__.py, StructuredOutputManager.grammar_bitmask
+    quote: 'Each request owns a fixed-width block of `mask_stride` rows.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+# --- The batch defaults of the largest tier -------------------------------------------------------------------------------------------
+
+- id: vllm.batch-defaults.xlarge.seqs
+  value: 1024
+  unit: sequences
+  text: On a card with 160 GiB or more max_num_seqs defaults to 1,024, for the server and for the offline class.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/engine/arg_utils.py#L2979-L2982
+    title: vLLM v0.33.0, vllm/engine/arg_utils.py, get_batch_defaults (160 GiB tier)
+    quote: 'UsageContext.OPENAI_API_SERVER: 1024,'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm

@@ -377,11 +377,11 @@ KCs come from a ref→KC map at read time and are never stored (kernelspace's ru
 export interface StepLoopConfig {
   maxNumSeqs: number; maxBatchedTokens: number; chunkedPrefill: boolean
   asyncScheduling: boolean
-  graphs: { mode: GraphModeId; captureSizes: readonly number[]; captured: readonly DispatchKey[] }
-  structured?: { sharePermille: number; overlap: boolean }     // requests with a grammar mask
-  spec?: { k: number; alphaPermille: number }                  // draft length, acceptance
-  lora?: { adapters: number; maxLoras: number }                // feeds the runner's adapter field: MRV2 num_active_loras; MRV1's legacy has_lora (D-041)
-  runner: RunnerPresetId                                       // e.g. 'v1' | 'mrv2': host-card presets from pinned claims
+  graphs: { mode: GraphModeId; captureSizes: readonly number[]; specializeLora?: boolean; specializeActiveLora?: boolean }   // the captured keys come from the runner's dispatcher
+  structured?: { overlap: boolean }                            // the mask on or off; which requests have a grammar is the workload's (ReqSpec.structured)
+  spec?: { k: number; alphaPermille: number; draftCostPermille: number; method?: SpecMethodId }   // draft length, acceptance, what a draft costs
+  lora?: { maxLoras: number }                                  // the cap on adapters; which request has which is the workload's; feeds the runner's adapter field: MRV2 num_active_loras; MRV1's legacy has_lora (D-041)
+  runner?: RunnerPresetId                                      // 'v1' | 'mrv2': picks the dispatcher; without it the loop keeps v0's padded-size rule
 }
 export interface HostCard {   // all integer µs; values are claims or [estimated] until fitted (below)
   scheduleBaseUs: Us; schedulePerSeqUs: Us; prepPerTokenUs: Us; launchPerKernelUs: Us
@@ -391,7 +391,7 @@ export interface HostCard {   // all integer µs; values are claims or [estimate
 export function runStepLoop(w: Workload, cfg: StepLoopConfig, host: HostCard, gpu: GpuCard,
                             opts: { horizonUs: Us }): StepLoopRun
 export interface StepLoopRun {
-  lanes: Timeline                 // spans on cpu-main, gpu-stream (and cpu-mask when overlapped)
+  lanes: Timeline                 // spans on cpu-main (the mask fill is a `mask` span there) and gpu-stream
   steps: readonly StepStat[]      // batch, padded size, graph hit or miss, gpu µs, bubble µs
   reqs: readonly ReqStat[]        // TTFT, TPOT, end-to-end, in µs
   summary: Summary                // GPU busy ‰, tokens/s ×1000, TPOT p50 and p99
@@ -403,7 +403,7 @@ export interface StepLoopRun {
 - **Launch.** Without graphs, launch costs kernels × `launchPerKernelUs`. With graphs it is one replay, but only when the step's dispatch key was captured. The key is per runner (D-041): for MRV2, the padded token count, the request count, the uniform token count, the maximum query length and the active-adapter case; for MRV1's legacy key, the padded token count, uniform decode or not, and `has_lora`. Otherwise the step falls back to eager or piecewise, as the pinned graph mode's data says.
 - **Async scheduling off.** The next step's schedule waits for this step's sampling.
 - **Async scheduling on.** The next step's schedule, prepare and launch overlap this step's GPU forward. The next step's input ids come from the device, not a host round trip. The model checks the dependency: a configuration that reads a token before it is sampled raises a `Violation`.
-- **The structured-output mask** runs on the CPU per masked request and must finish before sampling. With overlap on, it runs during the forward.
+- **The structured-output mask** runs on the engine core's thread per masked request and must finish before sampling. With overlap on, it runs during the forward.
 - **The GPU step time** is the S5 card's `us` for the step's load (`seqs`, `tokens`, `kvTokens`, `attnPairs`), at the padded batch size when a graph pads it, minus S5's per-sequence host term `seqs × t_seq`. That term runs on the CPU lane instead, where async scheduling can hide it, and on the 70B card it replaces the host card's per-sequence schedule and sample phases, so no host work is counted twice. Hiding it is an extrapolation beyond S5's additive fit, and the card says so (D-044).
 
 **Which engine the model follows.** At the pin:

@@ -4,22 +4,61 @@
 // hash and the Python grader (§9.8) unchanged. Times are integer µs (§5.1). The front page prices its steps in synthetic ticks on
 // the same integer clock, and its screens print them as ticks, never as µs (D-048).
 //
-// This is v0, the TR2 spike (W0-T13, D-040). It is the subset of §5.3's sketch that the spike's acceptance needs: async
-// scheduling on and off, a CUDA graph that is on or off with its capture sizes and padding, the dependency check, bubble
-// metrics, and TTFT and TPOT per request. W1-T12 adds the rest of the sketch (`structured`, `spec`, `lora`, `runner`, the other
-// graph modes and the dispatch keys), and widens `GraphModeId` and `SpanKind` when it does.
+// v0 was the TR2 spike (W0-T13, D-040): async scheduling on and off, a CUDA graph that is on or off with its capture sizes and
+// padding, the dependency check, bubble metrics, and TTFT and TPOT per request. W1-T12 is v1. It adds the rest of §5.3's sketch:
+// the runner (`runner`), the graph modes and the dispatch keys of both runners, adapters (`lora`), the structured-output mask
+// (`structured`) and the speculative step (`spec`). Every v1 field is optional, and a configuration without them runs exactly as in
+// v0: the same spans, the same numbers, and the same fields in the result (tests/fixtures/sim/steploop.json holds v0's goldens).
 
 import type { Permille, ReqId, Tag, Us } from '../core/types'
+import type { RunnerPresetId } from '../host/types'
 import type { CardSpec } from '../physics/card'
 
 // ---------------------------------------------------------------------------------------------------------------------------
 // What a run is given
 
 /**
- * The CUDA-graph modes v0 models (WORLD §2.5): none, and a full replay of a captured step. W1-T12 adds PIECEWISE,
- * FULL_DECODE_ONLY and FULL_AND_PIECEWISE.
+ * What a step runs as, once the dispatcher has decided (WORLD §2.5; claim vllm.cudagraph.mode-routines): eagerly, as a run of
+ * piecewise graphs with attention launched between them, or as one full graph.
  */
-export type GraphModeId = 'NONE' | 'FULL'
+export type CudaGraphMode = 'NONE' | 'PIECEWISE' | 'FULL'
+
+/**
+ * The five modes of vLLM's `CUDAGraphMode` (claim vllm.cudagraph.modes). The first three are single modes. FULL_DECODE_ONLY and
+ * FULL_AND_PIECEWISE are pairs, one mode for decode batches and one for the rest (`GRAPH_MODES` in ./graphs). Without a `runner`
+ * the loop models only NONE and FULL, as v0 did.
+ */
+export type GraphModeId = CudaGraphMode | 'FULL_DECODE_ONLY' | 'FULL_AND_PIECEWISE'
+
+/** The graph settings of a configuration: the mode, the sizes captured, and the two switches that decide which adapter cases are captured. */
+export interface GraphSettings {
+  readonly mode: GraphModeId
+  /** Ascending, positive and distinct: the token counts a graph was captured for (`defaultCaptureSizes` is vLLM's list). Ignored when `mode` is `'NONE'`. */
+  readonly captureSizes: readonly number[]
+  /** `cudagraph_specialize_lora`: capture graphs with and without active adapters. On by default at the pin (claim vllm.cudagraph.lora-specialize). */
+  readonly specializeLora?: boolean
+  /** `specialize_active_lora`: capture a graph per count of active adapters, in powers of 2. Off by default (claim vllm.cudagraph.lora-count-specialize). */
+  readonly specializeActiveLora?: boolean
+}
+
+/** The speculative methods of vLLM v0.33.0 that the model tells apart (claim vllm.spec.methods): what each does to the runner and to async scheduling. */
+export type SpecMethodId = 'ngram' | 'ngram_gpu' | 'draft_model' | 'suffix' | 'custom_class' | 'eagle' | 'eagle3' | 'mtp' | 'dflash' | 'dspark'
+
+/**
+ * Speculative decoding's step shape (WORLD §2.7; claims vllm.scheduler.spec-drafts, spec.paper.expected-tokens). Each decode row
+ * carries `1 + k` tokens: the sampled token and `k` drafts, which the verify step computes together. Each draft is accepted with
+ * probability `alphaPermille`, until the first that is not, and the round emits the accepted drafts and one more token of its own.
+ */
+export interface SpecSettings {
+  /** Drafts per round, at least 1. */
+  readonly k: number
+  /** The chance that a draft is accepted, as an integer out of 1,000. */
+  readonly alphaPermille: number
+  /** What drafting one token costs the GPU, as a share of a plain decode step of the same batch, out of 1,000. [estimated] until W2 measures it. */
+  readonly draftCostPermille: number
+  /** The method, which decides whether the V2 runner takes the configuration and whether async scheduling stays on (./runners). Default `'eagle'`. */
+  readonly method?: SpecMethodId
+}
 
 export interface StepLoopConfig {
   /** The cap on requests running at once (vLLM's `max_num_seqs`). At least 1. */
@@ -49,11 +88,23 @@ export interface StepLoopConfig {
    * previous step is still in flight, so the CPU reads a token before it is sampled and the run raises a `Violation`.
    */
   readonly inputIds: 'device' | 'host'
-  readonly graphs: {
-    readonly mode: GraphModeId
-    /** Ascending, positive and distinct: the token counts a graph was captured for (`defaultCaptureSizes` is vLLM's list). Ignored when `mode` is `'NONE'`. */
-    readonly captureSizes: readonly number[]
-  }
+  readonly graphs: GraphSettings
+  /**
+   * The runner whose dispatcher picks each step's graph (D-041): `'mrv2'`, the default runner at the pin, dispatches on a
+   * seven-field `BatchExecutionDescriptor` and `'v1'`, the legacy runner, on a five-field `BatchDescriptor` with `has_lora`.
+   * Without it the loop keeps v0's rule: a step replays a graph if its token count, padded to the smallest captured size, was
+   * captured, and the modes are NONE and FULL. With it every mode works, and `StepStat.mode` says what each step ran as.
+   */
+  readonly runner?: RunnerPresetId
+  /** Adapters (D-041, D-042). The workload says which request asks for which adapter, and the loop counts the distinct adapters of each step; `maxLoras` caps them in the running set, as the scheduler does (claim vllm.lora.admission-cap). */
+  readonly lora?: { readonly maxLoras: number }
+  /**
+   * The structured-output mask (WORLD §2.8). The workload says which requests carry a grammar. `overlap`: build a step's mask while
+   * its forward runs (claim vllm.mask.overlap), and not after the forward has ended. Either way a mask that needs the token a step
+   * still has in flight waits for that token (claim vllm.mask.deferred-sampling).
+   */
+  readonly structured?: { readonly overlap: boolean }
+  readonly spec?: SpecSettings
 }
 
 /** What the GPU card prices: one step's batch, after any padding. */
@@ -93,7 +144,8 @@ interface GpuCardBase {
 }
 
 /**
- * Where S5's per-sequence host term `seqs × t_seq` runs (D-044, proposed; the owner confirms it before W1-T12).
+ * Where S5's per-sequence host term `seqs × t_seq` runs (D-044, proposed; the owner confirms it before W1-T12, and until then
+ * `'on-cpu'` is the default of `s5Card`, with `D044` saying so).
  * `'in-gpu'`: inside the GPU step, as S5 fitted it. `'on-cpu'`: on the CPU lane, where async scheduling can hide it, which is an
  * extrapolation beyond S5's additive fit and which the notional-machine card says.
  */
@@ -123,15 +175,19 @@ export type GpuCard = S5GpuCard | TickGpuCard
 // ---------------------------------------------------------------------------------------------------------------------------
 // What a run returns
 
-/** The lanes v0 draws (§5.3). `cpu-mask` joins them with the structured-output mask (W1-T12). */
+/**
+ * The lanes the loop draws (§5.3). The structured-output mask is drawn on `cpu-main`, as a `mask` span, because vLLM's engine core
+ * thread fills it itself (claim vllm.mask.overlap): a lane of its own would show that thread idle while it works.
+ */
 export type LaneId = 'cpu-main' | 'gpu-stream'
 
 /**
- * What a span is. On `cpu-main`: `schedule`, `prepare` and `launch` (the step's CPU work before its forward), `sync` (the blocking
- * call that returns the sampled ids to the host) and `sample` (updating requests from them and checking stops). On `gpu-stream`:
- * `forward`. A phase that costs 0 leaves no span, and a wait leaves a gap, not a span.
+ * What a span is. On `cpu-main`: `schedule`, `prepare` and `launch` (the step's CPU work before its forward), `mask` (filling the
+ * structured-output bitmask), `sync` (the blocking call that returns the sampled ids to the host) and `sample` (updating requests
+ * from them and checking stops). On `gpu-stream`: `forward`, which holds the draft too when the step speculates. A phase that costs
+ * 0 leaves no span, and a wait leaves a gap, not a span.
  */
-export type SpanKind = 'schedule' | 'prepare' | 'launch' | 'sync' | 'sample' | 'forward'
+export type SpanKind = 'schedule' | 'prepare' | 'launch' | 'mask' | 'sync' | 'sample' | 'forward'
 
 export interface Span {
   /** The index of the step it belongs to, from 0 in launch order. */
@@ -164,10 +220,18 @@ export interface StepStat {
   /** Tokens the GPU computed: `tokens`, or the captured size that padded them. */
   readonly paddedTokens: number
   readonly graph: GraphResult
+  /** What the step ran as: `'FULL'` or `'PIECEWISE'` on a hit, else `'NONE'`. Present only when the configuration has a `runner`. */
+  readonly mode?: CudaGraphMode
   /** Length of the step's forward span (0 if the horizon cut it away). */
   readonly gpuUs: Us
   /** GPU idle time between the previous forward and this one, while `cpu-main` was busy: the GPU waiting on the CPU. 0 for the first step. */
   readonly bubbleUs: Us
+  /** Distinct adapters among the step's rows. Present only when the configuration has `lora`. */
+  readonly activeLoras?: number
+  /** CPU µs spent filling the step's bitmask, wherever the fill ran. Present only when the configuration has `structured`. */
+  readonly maskUs?: Us
+  /** GPU µs the step's drafts cost, inside its forward span. Present only when the configuration has `spec`. */
+  readonly draftUs?: Us
 }
 
 export interface ReqStat {
@@ -216,6 +280,26 @@ export interface Summary {
   readonly ttftP99Us: Us | null
   readonly tpotP50Us: Us | null
   readonly tpotP99Us: Us | null
+  /** CPU µs spent filling bitmasks, over the run. Present only when the configuration has `structured`. */
+  readonly maskUs?: Us
+  /** GPU µs the drafts cost, over the run. Present only when the configuration has `spec`. */
+  readonly draftUs?: Us
+  /** What speculation did. Present only when the configuration has `spec`. */
+  readonly spec?: SpecSummary
+}
+
+/** What the speculative rounds of a run did, counted when each step is read back. */
+export interface SpecSummary {
+  /** Decode rows read back, which are the rounds. A ghost row is not one. */
+  readonly rounds: number
+  /** Drafts those rounds carried. */
+  readonly drafted: number
+  /** Of those, the drafts the target accepted. */
+  readonly accepted: number
+  /** Tokens the rounds emitted, before a request's own length cut any of them off: the accepted drafts and one more per round. */
+  readonly emitted: number
+  /** What a round emits on average, 1 + α + … + α^k, as an integer out of 1,000 (claim spec.paper.expected-tokens): `emitted / rounds` approaches it. */
+  readonly expectedPerRoundMilli: number
 }
 
 /** A dependency broken: the CPU read tokens before the step that samples them returned (§5.3). Every graded level counts these (ASSESSMENT §4.3). */

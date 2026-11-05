@@ -1,0 +1,2152 @@
+{
+  "header": "Golden vectors for packages/sim/steploop at v1 (ARCHITECTURE section 5.10; W1-T12): each maps its input, a workload with a configuration that turns on a v1 feature (a runner and graph mode, adapters, the structured-output mask, speculation, or the 70B card with its host term on the CPU lane, D-044, proposed), a host card, a GPU card and a horizon, to the run it gives, with the SHA-256 of that run's canonical JSON. A run on the front page's tick card is recorded whole. A longer run is recorded as its summary and violations, the count of its steps by graph mode, and the SHA-256 of its lanes, steps and requests. tests/fixtures/sim/steploop.json holds the runs without a v1 field and is not touched by this file. Regenerate only with `bun scripts/vectors.ts --write`, and review the diff like code.",
+  "model": "steploop-v1",
+  "vectors": [
+    {
+      "name": "MRV2 PIECEWISE: every step replays the graph of its size, with attention launched between the pieces",
+      "input": {
+        "config": {
+          "asyncScheduling": true,
+          "chunkedPrefill": true,
+          "graphs": {
+            "captureSizes": [
+              1,
+              2,
+              4,
+              8,
+              16,
+              24,
+              32,
+              40,
+              48,
+              56,
+              64,
+              72,
+              80,
+              88,
+              96,
+              104,
+              112,
+              120,
+              128,
+              136,
+              144,
+              152,
+              160,
+              168,
+              176,
+              184,
+              192,
+              200,
+              208,
+              216,
+              224,
+              232,
+              240,
+              248,
+              256,
+              272,
+              288,
+              304,
+              320,
+              336,
+              352,
+              368,
+              384,
+              400,
+              416,
+              432,
+              448,
+              464,
+              480,
+              496,
+              512
+            ],
+            "mode": "PIECEWISE"
+          },
+          "inputIds": "device",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64,
+          "runner": "mrv2"
+        },
+        "gpu": {"card":"s5","hostTerm":"on-cpu","row":"h100-vllm-0-10-2-fp8","tp":4},
+        "horizonUs": 600000000,
+        "host": "mrv2",
+        "output": "digest",
+        "workload": {
+          "fn": "genWorkload",
+          "seed": 27,
+          "spec": {
+            "arrivals": {"kind":"poisson","ratePerSMilli":150000},
+            "lengths": {"kind":"dists","output":{"hi":48,"kind":"uniform","lo":16},"prompt":{"hi":96,"kind":"uniform","lo":16}},
+            "requests": 80
+          }
+        }
+      },
+      "sha256": "e53ed07a6b8d4c982a7c746b928f50f9a08878e00a46d909a1df0078fbcb52a8",
+      "output": {
+        "sha256": {
+          "lanes": "7dadde5290948530c8fa031887bccb0b37c60c94ef48af8e10f308c94a640a2f",
+          "reqs": "318075bba5c01dc454ccf8f6888ea92c17ae2098e83cd35c33791e143ad6d4b8",
+          "steps": "a4ac3ff556a56a89f4e2b6979ae718b8054b39c8da7f4cbeaf7251b0d1657e81"
+        },
+        "steps": 76,
+        "stepsByMode": {"PIECEWISE":76},
+        "summary": {
+          "bubbleUs": 0,
+          "bubbles": 0,
+          "clockUs": 1094224,
+          "eagerSteps": 0,
+          "finished": 80,
+          "ghostTokens": 80,
+          "gpuBusyPermille": 980,
+          "gpuBusyUs": 1072383,
+          "launches": 12236,
+          "paddedTokens": 296,
+          "steps": 76,
+          "tokensPerSMilli": 2291121,
+          "tpotP50Us": 15015,
+          "tpotP99Us": 17617,
+          "ttftP50Us": 45101,
+          "ttftP99Us": 144605,
+          "usefulTokens": 2507
+        },
+        "violations": []
+      }
+    },
+    {
+      "name": "MRV2 FULL: one full graph for every batch, decode or mixed",
+      "input": {
+        "config": {
+          "asyncScheduling": true,
+          "chunkedPrefill": true,
+          "graphs": {
+            "captureSizes": [
+              1,
+              2,
+              4,
+              8,
+              16,
+              24,
+              32,
+              40,
+              48,
+              56,
+              64,
+              72,
+              80,
+              88,
+              96,
+              104,
+              112,
+              120,
+              128,
+              136,
+              144,
+              152,
+              160,
+              168,
+              176,
+              184,
+              192,
+              200,
+              208,
+              216,
+              224,
+              232,
+              240,
+              248,
+              256,
+              272,
+              288,
+              304,
+              320,
+              336,
+              352,
+              368,
+              384,
+              400,
+              416,
+              432,
+              448,
+              464,
+              480,
+              496,
+              512
+            ],
+            "mode": "FULL"
+          },
+          "inputIds": "device",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64,
+          "runner": "mrv2"
+        },
+        "gpu": {"card":"s5","hostTerm":"on-cpu","row":"h100-vllm-0-10-2-fp8","tp":4},
+        "horizonUs": 600000000,
+        "host": "mrv2",
+        "output": "digest",
+        "workload": {
+          "fn": "genWorkload",
+          "seed": 27,
+          "spec": {
+            "arrivals": {"kind":"poisson","ratePerSMilli":150000},
+            "lengths": {"kind":"dists","output":{"hi":48,"kind":"uniform","lo":16},"prompt":{"hi":96,"kind":"uniform","lo":16}},
+            "requests": 80
+          }
+        }
+      },
+      "sha256": "96b148bbf9b3b941054c0908c265846d2af086f77774dbde563b5bf2c58bf301",
+      "output": {
+        "sha256": {
+          "lanes": "4bc986ddba17d3f5ea5b022e9266d30511c307272c553b31b3cea2952e5fcde9",
+          "reqs": "6bd038df41bc4ee5681de7968bddc7b6c945f10d4d084cbafab73c0885f3698d",
+          "steps": "62738d679fef9131cc47d877f4b29bf1cc3abff94a18d12a73227c74549f0c0d"
+        },
+        "steps": 76,
+        "stepsByMode": {"FULL":76},
+        "summary": {
+          "bubbleUs": 0,
+          "bubbles": 0,
+          "clockUs": 1087821,
+          "eagerSteps": 0,
+          "finished": 80,
+          "ghostTokens": 80,
+          "gpuBusyPermille": 983,
+          "gpuBusyUs": 1068860,
+          "launches": 76,
+          "paddedTokens": 256,
+          "steps": 76,
+          "tokensPerSMilli": 2304607,
+          "tpotP50Us": 14769,
+          "tpotP99Us": 17519,
+          "ttftP50Us": 42763,
+          "ttftP99Us": 138043,
+          "usefulTokens": 2507
+        },
+        "violations": []
+      }
+    },
+    {
+      "name": "MRV2 FULL_DECODE_ONLY: the decode steps replay a full graph and the steps with a prefill run eagerly",
+      "input": {
+        "config": {
+          "asyncScheduling": true,
+          "chunkedPrefill": true,
+          "graphs": {
+            "captureSizes": [
+              1,
+              2,
+              4,
+              8,
+              16,
+              24,
+              32,
+              40,
+              48,
+              56,
+              64,
+              72,
+              80,
+              88,
+              96,
+              104,
+              112,
+              120,
+              128,
+              136,
+              144,
+              152,
+              160,
+              168,
+              176,
+              184,
+              192,
+              200,
+              208,
+              216,
+              224,
+              232,
+              240,
+              248,
+              256,
+              272,
+              288,
+              304,
+              320,
+              336,
+              352,
+              368,
+              384,
+              400,
+              416,
+              432,
+              448,
+              464,
+              480,
+              496,
+              512
+            ],
+            "mode": "FULL_DECODE_ONLY"
+          },
+          "inputIds": "device",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64,
+          "runner": "mrv2"
+        },
+        "gpu": {"card":"s5","hostTerm":"on-cpu","row":"h100-vllm-0-10-2-fp8","tp":4},
+        "horizonUs": 600000000,
+        "host": "mrv2",
+        "output": "digest",
+        "workload": {
+          "fn": "genWorkload",
+          "seed": 27,
+          "spec": {
+            "arrivals": {"kind":"poisson","ratePerSMilli":150000},
+            "lengths": {"kind":"dists","output":{"hi":48,"kind":"uniform","lo":16},"prompt":{"hi":96,"kind":"uniform","lo":16}},
+            "requests": 80
+          }
+        }
+      },
+      "sha256": "42fb80f438b99debeafd05ef28a3921615a53ff83b1b6e74a500eac1e3436f2d",
+      "output": {
+        "sha256": {
+          "lanes": "1fb286666a38d263381e43ee73c61dc8e2616634ede0e1afbd593c9fc5ffbe00",
+          "reqs": "f477d003a2b39ed489b618d53647093bec2d0a2eab06de6a4c8905a73449c83f",
+          "steps": "c4ecdc2d8dff502001bd241413c0fc2cc1fcbf286fc5d1ac00362b3638ad4bcd"
+        },
+        "steps": 76,
+        "stepsByMode": {"FULL":42,"NONE":34},
+        "summary": {
+          "bubbleUs": 0,
+          "bubbles": 0,
+          "clockUs": 1094548,
+          "eagerSteps": 34,
+          "finished": 80,
+          "ghostTokens": 80,
+          "gpuBusyPermille": 977,
+          "gpuBusyUs": 1069857,
+          "launches": 32682,
+          "paddedTokens": 117,
+          "steps": 76,
+          "tokensPerSMilli": 2290443,
+          "tpotP50Us": 14703,
+          "tpotP99Us": 17633,
+          "ttftP50Us": 46183,
+          "ttftP99Us": 145412,
+          "usefulTokens": 2507
+        },
+        "violations": []
+      }
+    },
+    {
+      "name": "MRV2 FULL_AND_PIECEWISE, the default mode of vLLM: decode steps replay a full graph and the others piecewise graphs",
+      "input": {
+        "config": {
+          "asyncScheduling": true,
+          "chunkedPrefill": true,
+          "graphs": {
+            "captureSizes": [
+              1,
+              2,
+              4,
+              8,
+              16,
+              24,
+              32,
+              40,
+              48,
+              56,
+              64,
+              72,
+              80,
+              88,
+              96,
+              104,
+              112,
+              120,
+              128,
+              136,
+              144,
+              152,
+              160,
+              168,
+              176,
+              184,
+              192,
+              200,
+              208,
+              216,
+              224,
+              232,
+              240,
+              248,
+              256,
+              272,
+              288,
+              304,
+              320,
+              336,
+              352,
+              368,
+              384,
+              400,
+              416,
+              432,
+              448,
+              464,
+              480,
+              496,
+              512
+            ],
+            "mode": "FULL_AND_PIECEWISE"
+          },
+          "inputIds": "device",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64,
+          "runner": "mrv2"
+        },
+        "gpu": {"card":"s5","hostTerm":"on-cpu","row":"h100-vllm-0-10-2-fp8","tp":4},
+        "horizonUs": 600000000,
+        "host": "mrv2",
+        "output": "digest",
+        "workload": {
+          "fn": "genWorkload",
+          "seed": 27,
+          "spec": {
+            "arrivals": {"kind":"poisson","ratePerSMilli":150000},
+            "lengths": {"kind":"dists","output":{"hi":48,"kind":"uniform","lo":16},"prompt":{"hi":96,"kind":"uniform","lo":16}},
+            "requests": 80
+          }
+        }
+      },
+      "sha256": "c07d497d718a3898f31f7c8e2ad1b2ecb9be0d6299b9170924fec8cbdd394c5b",
+      "output": {
+        "sha256": {
+          "lanes": "1918442c2329b7990d4b5a91da797c4fe535885f7b3bc1bd062691588f610994",
+          "reqs": "318075bba5c01dc454ccf8f6888ea92c17ae2098e83cd35c33791e143ad6d4b8",
+          "steps": "798c77cd2e9fcac14bce774e3f6ffdf0e7326525ce0c0b28fc20fb5467770b44"
+        },
+        "steps": 76,
+        "stepsByMode": {"FULL":42,"PIECEWISE":34},
+        "summary": {
+          "bubbleUs": 0,
+          "bubbles": 0,
+          "clockUs": 1094224,
+          "eagerSteps": 0,
+          "finished": 80,
+          "ghostTokens": 80,
+          "gpuBusyPermille": 980,
+          "gpuBusyUs": 1072383,
+          "launches": 5516,
+          "paddedTokens": 296,
+          "steps": 76,
+          "tokensPerSMilli": 2291121,
+          "tpotP50Us": 15015,
+          "tpotP99Us": 17617,
+          "ttftP50Us": 45101,
+          "ttftP99Us": 144605,
+          "usefulTokens": 2507
+        },
+        "violations": []
+      }
+    },
+    {
+      "name": "MRV2 with graphs off, as a reference for the runs above",
+      "input": {
+        "config": {
+          "asyncScheduling": true,
+          "chunkedPrefill": true,
+          "graphs": {"captureSizes":[],"mode":"NONE"},
+          "inputIds": "device",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64,
+          "runner": "mrv2"
+        },
+        "gpu": {"card":"s5","hostTerm":"on-cpu","row":"h100-vllm-0-10-2-fp8","tp":4},
+        "horizonUs": 600000000,
+        "host": "mrv2",
+        "output": "digest",
+        "workload": {
+          "fn": "genWorkload",
+          "seed": 27,
+          "spec": {
+            "arrivals": {"kind":"poisson","ratePerSMilli":150000},
+            "lengths": {"kind":"dists","output":{"hi":48,"kind":"uniform","lo":16},"prompt":{"hi":96,"kind":"uniform","lo":16}},
+            "requests": 80
+          }
+        }
+      },
+      "sha256": "7a41cded2452e0bfda768ba362518e629b8d514298c33f47080afb0076477474",
+      "output": {
+        "sha256": {
+          "lanes": "90ae91cd81bf82cd879ade363c69999c3c8a006f6cc68f27e60907dc91b27967",
+          "reqs": "50e4212c023e7aa74244844a742ae7f5cdfddfd0611267665e46ad3a3640fc77",
+          "steps": "e62470c6f3f6d4c4c43238b85c19e6a060a0d88cd1ad52b91db749401587cf61"
+        },
+        "steps": 76,
+        "stepsByMode": {"NONE":76},
+        "summary": {
+          "bubbleUs": 0,
+          "bubbles": 0,
+          "clockUs": 1092389,
+          "eagerSteps": 76,
+          "finished": 80,
+          "ghostTokens": 80,
+          "gpuBusyPermille": 977,
+          "gpuBusyUs": 1067698,
+          "launches": 72960,
+          "paddedTokens": 0,
+          "steps": 76,
+          "tokensPerSMilli": 2294970,
+          "tpotP50Us": 14684,
+          "tpotP99Us": 17633,
+          "ttftP50Us": 46183,
+          "ttftP99Us": 145394,
+          "usefulTokens": 2507
+        },
+        "violations": []
+      }
+    },
+    {
+      "name": "MRV1 FULL_AND_PIECEWISE: the same workload through the legacy runner and its host card",
+      "input": {
+        "config": {
+          "asyncScheduling": true,
+          "chunkedPrefill": true,
+          "graphs": {
+            "captureSizes": [
+              1,
+              2,
+              4,
+              8,
+              16,
+              24,
+              32,
+              40,
+              48,
+              56,
+              64,
+              72,
+              80,
+              88,
+              96,
+              104,
+              112,
+              120,
+              128,
+              136,
+              144,
+              152,
+              160,
+              168,
+              176,
+              184,
+              192,
+              200,
+              208,
+              216,
+              224,
+              232,
+              240,
+              248,
+              256,
+              272,
+              288,
+              304,
+              320,
+              336,
+              352,
+              368,
+              384,
+              400,
+              416,
+              432,
+              448,
+              464,
+              480,
+              496,
+              512
+            ],
+            "mode": "FULL_AND_PIECEWISE"
+          },
+          "inputIds": "device",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64,
+          "runner": "v1"
+        },
+        "gpu": {"card":"s5","hostTerm":"on-cpu","row":"h100-vllm-0-10-2-fp8","tp":4},
+        "horizonUs": 600000000,
+        "host": "v1",
+        "output": "digest",
+        "workload": {
+          "fn": "genWorkload",
+          "seed": 27,
+          "spec": {
+            "arrivals": {"kind":"poisson","ratePerSMilli":150000},
+            "lengths": {"kind":"dists","output":{"hi":48,"kind":"uniform","lo":16},"prompt":{"hi":96,"kind":"uniform","lo":16}},
+            "requests": 80
+          }
+        }
+      },
+      "sha256": "9065230890628e500f60b103ac558fce40377de29a24bea788b33892a3ffdd40",
+      "output": {
+        "sha256": {
+          "lanes": "e7cf77fe0cf75c09aff40c31ef6d6926454d43a1687ec5fa3515bd891421d8c9",
+          "reqs": "84905d55ded75aed626c9b741d526a536a32805a45c7e30a553b97e9d61b7d95",
+          "steps": "62656d8468783d76b0f390c49e58c67394ea20076b8cdb8350cac978895a5a1e"
+        },
+        "steps": 76,
+        "stepsByMode": {"FULL":43,"PIECEWISE":33},
+        "summary": {
+          "bubbleUs": 0,
+          "bubbles": 0,
+          "clockUs": 1097691,
+          "eagerSteps": 0,
+          "finished": 80,
+          "ghostTokens": 80,
+          "gpuBusyPermille": 980,
+          "gpuBusyUs": 1075318,
+          "launches": 5356,
+          "paddedTokens": 288,
+          "steps": 76,
+          "tokensPerSMilli": 2283885,
+          "tpotP50Us": 15033,
+          "tpotP99Us": 17771,
+          "ttftP50Us": 46029,
+          "ttftP99Us": 148224,
+          "usefulTokens": 2507
+        },
+        "violations": []
+      }
+    },
+    {
+      "name": "MRV1 FULL_DECODE_ONLY",
+      "input": {
+        "config": {
+          "asyncScheduling": true,
+          "chunkedPrefill": true,
+          "graphs": {
+            "captureSizes": [
+              1,
+              2,
+              4,
+              8,
+              16,
+              24,
+              32,
+              40,
+              48,
+              56,
+              64,
+              72,
+              80,
+              88,
+              96,
+              104,
+              112,
+              120,
+              128,
+              136,
+              144,
+              152,
+              160,
+              168,
+              176,
+              184,
+              192,
+              200,
+              208,
+              216,
+              224,
+              232,
+              240,
+              248,
+              256,
+              272,
+              288,
+              304,
+              320,
+              336,
+              352,
+              368,
+              384,
+              400,
+              416,
+              432,
+              448,
+              464,
+              480,
+              496,
+              512
+            ],
+            "mode": "FULL_DECODE_ONLY"
+          },
+          "inputIds": "device",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64,
+          "runner": "v1"
+        },
+        "gpu": {"card":"s5","hostTerm":"on-cpu","row":"h100-vllm-0-10-2-fp8","tp":4},
+        "horizonUs": 600000000,
+        "host": "v1",
+        "output": "digest",
+        "workload": {
+          "fn": "genWorkload",
+          "seed": 27,
+          "spec": {
+            "arrivals": {"kind":"poisson","ratePerSMilli":150000},
+            "lengths": {"kind":"dists","output":{"hi":48,"kind":"uniform","lo":16},"prompt":{"hi":96,"kind":"uniform","lo":16}},
+            "requests": 80
+          }
+        }
+      },
+      "sha256": "fe104da1daca24930173e94d4fbcc78e42b26b86dca1a111e1a7e970800ad891",
+      "output": {
+        "sha256": {
+          "lanes": "92669cb4c6dbf947f22ff719db66ab933b745e33d03c39f2b614a2048da46788",
+          "reqs": "cbb3b1f7999111623732b3e43ac7d8def15d0e9348c6dd8a92900e3dada8e9d6",
+          "steps": "72d71d9a3b32bcf85ed7d33e694b10be33a9ffb82d61579cfca00311532fed5c"
+        },
+        "steps": 76,
+        "stepsByMode": {"FULL":42,"NONE":34},
+        "summary": {
+          "bubbleUs": 0,
+          "bubbles": 0,
+          "clockUs": 1094381,
+          "eagerSteps": 34,
+          "finished": 80,
+          "ghostTokens": 80,
+          "gpuBusyPermille": 977,
+          "gpuBusyUs": 1069158,
+          "launches": 32682,
+          "paddedTokens": 119,
+          "steps": 76,
+          "tokensPerSMilli": 2290793,
+          "tpotP50Us": 14699,
+          "tpotP99Us": 17599,
+          "ttftP50Us": 46715,
+          "ttftP99Us": 145248,
+          "usefulTokens": 2507
+        },
+        "violations": []
+      }
+    },
+    {
+      "name": "MRV2 FULL_AND_PIECEWISE with sizes 1 to 128 by powers of 2: the padding of a short list, and the batches above 128 that run eagerly",
+      "input": {
+        "config": {
+          "asyncScheduling": true,
+          "chunkedPrefill": true,
+          "graphs": {"captureSizes":[1,2,4,8,16,32,64,128],"mode":"FULL_AND_PIECEWISE"},
+          "inputIds": "device",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64,
+          "runner": "mrv2"
+        },
+        "gpu": {"card":"s5","hostTerm":"on-cpu","row":"h100-vllm-0-10-2-fp8","tp":4},
+        "horizonUs": 600000000,
+        "host": "mrv2",
+        "output": "digest",
+        "workload": {
+          "fn": "genWorkload",
+          "seed": 27,
+          "spec": {
+            "arrivals": {"kind":"poisson","ratePerSMilli":150000},
+            "lengths": {"kind":"dists","output":{"hi":48,"kind":"uniform","lo":16},"prompt":{"hi":96,"kind":"uniform","lo":16}},
+            "requests": 80
+          }
+        }
+      },
+      "sha256": "c4f2b3b832fd69214408c84539abf6f9b76096099ec2caa2dbb5c1a51c5d94d1",
+      "output": {
+        "sha256": {
+          "lanes": "96913554d74a074883dd8c8fa00984351098fd4b8a019f2e9ee9433d0d15786f",
+          "reqs": "ec4e34133bba297fb480830114390adba0bea7c1f285a2bcdded131cfc4b3682",
+          "steps": "8012671eea32ed40aff6294a23d8c53d6e61bbd31db810dada15859d3e7702b5"
+        },
+        "steps": 76,
+        "stepsByMode": {"FULL":42,"NONE":25,"PIECEWISE":9},
+        "summary": {
+          "bubbleUs": 0,
+          "bubbles": 0,
+          "clockUs": 1096690,
+          "eagerSteps": 25,
+          "finished": 80,
+          "ghostTokens": 80,
+          "gpuBusyPermille": 980,
+          "gpuBusyUs": 1074849,
+          "launches": 25491,
+          "paddedTokens": 524,
+          "steps": 76,
+          "tokensPerSMilli": 2285970,
+          "tpotP50Us": 14958,
+          "tpotP99Us": 17501,
+          "ttftP50Us": 44050,
+          "ttftP99Us": 143986,
+          "usefulTokens": 2507
+        },
+        "violations": []
+      }
+    },
+    {
+      "name": "the 4090 defaults of vLLM (256 sequences, 2,048 tokens) with the capture sizes vLLM makes for them",
+      "input": {
+        "config": {
+          "asyncScheduling": true,
+          "chunkedPrefill": true,
+          "graphs": {"captureSizes":{"vllm":{"maxBatchedTokens":2048,"maxNumSeqs":256}},"mode":"FULL_AND_PIECEWISE"},
+          "inputIds": "device",
+          "maxBatchedTokens": 2048,
+          "maxNumSeqs": 256,
+          "runner": "mrv2"
+        },
+        "gpu": {"card":"s5","hostTerm":"on-cpu","row":"h100-vllm-0-10-2-fp8","tp":4},
+        "horizonUs": 600000000,
+        "host": "mrv2",
+        "output": "digest",
+        "workload": {
+          "fn": "genWorkload",
+          "seed": 25,
+          "spec": {
+            "arrivals": {"kind":"burst"},
+            "lengths": {"kind":"dists","output":{"hi":40,"kind":"uniform","lo":8},"prompt":{"hi":200,"kind":"uniform","lo":16}},
+            "requests": 120
+          }
+        }
+      },
+      "sha256": "42a7c76fa8afa194bedd301b77c64f47e0836a8ec6bb2f0386998c29565f0762",
+      "output": {
+        "sha256": {
+          "lanes": "0f5bfe24f4f869df21149054474ef2fa66da48f3e783a7c4787eb5d5891c2339",
+          "reqs": "1522a8bf4cb08361bba6648414f35dd1d0aebbec5f1042f3dfc67e2c33cdf0ce",
+          "steps": "f82bc73346ec5f16affe9b58013d206078b2a7b5ebfc3d9f04dd50930ca323d0"
+        },
+        "steps": 45,
+        "stepsByMode": {"FULL":38,"NONE":7},
+        "summary": {
+          "bubbleUs": 0,
+          "bubbles": 0,
+          "clockUs": 1251116,
+          "eagerSteps": 7,
+          "finished": 120,
+          "ghostTokens": 120,
+          "gpuBusyPermille": 991,
+          "gpuBusyUs": 1239991,
+          "launches": 6758,
+          "paddedTokens": 92,
+          "steps": 45,
+          "tokensPerSMilli": 2408250,
+          "tpotP50Us": 25432,
+          "tpotP99Us": 69410,
+          "ttftP50Us": 466528,
+          "ttftP99Us": 751824,
+          "usefulTokens": 3013
+        },
+        "violations": []
+      }
+    },
+    {
+      "name": "the H100 defaults of vLLM (1,024 sequences, 8,192 tokens) with the capture sizes vLLM makes for them",
+      "input": {
+        "config": {
+          "asyncScheduling": true,
+          "chunkedPrefill": true,
+          "graphs": {"captureSizes":{"vllm":{"maxBatchedTokens":8192,"maxNumSeqs":1024}},"mode":"FULL_AND_PIECEWISE"},
+          "inputIds": "device",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 1024,
+          "runner": "mrv2"
+        },
+        "gpu": {"card":"s5","hostTerm":"on-cpu","row":"h100-vllm-0-10-2-fp8","tp":4},
+        "horizonUs": 600000000,
+        "host": "mrv2",
+        "output": "digest",
+        "workload": {
+          "fn": "genWorkload",
+          "seed": 25,
+          "spec": {
+            "arrivals": {"kind":"burst"},
+            "lengths": {"kind":"dists","output":{"hi":40,"kind":"uniform","lo":8},"prompt":{"hi":200,"kind":"uniform","lo":16}},
+            "requests": 120
+          }
+        }
+      },
+      "sha256": "d4712a07c45e0a564765fd3b3f33219a395a2498a57ab085e8ccc284f619d13d",
+      "output": {
+        "sha256": {
+          "lanes": "224f623bfcf24d916cc93b6fbfa1dd86597c882f887bccd3b8bb99ecc0fdb924",
+          "reqs": "44badf8a86655ea2b2af6d3335fb9afeca19d62077a1ccf4df3d966ebb49306f",
+          "steps": "eea5b86fa75118355c733c215e666a96d79d02103c43eb8761374b9bebd1c5ca"
+        },
+        "steps": 42,
+        "stepsByMode": {"FULL":40,"NONE":2},
+        "summary": {
+          "bubbleUs": 0,
+          "bubbles": 0,
+          "clockUs": 1251988,
+          "eagerSteps": 2,
+          "finished": 120,
+          "ghostTokens": 120,
+          "gpuBusyPermille": 979,
+          "gpuBusyUs": 1225095,
+          "launches": 1960,
+          "paddedTokens": 121,
+          "steps": 42,
+          "tokensPerSMilli": 2406573,
+          "tpotP50Us": 20928,
+          "tpotP99Us": 44551,
+          "ttftP50Us": 464952,
+          "ttftP99Us": 722696,
+          "usefulTokens": 3013
+        },
+        "violations": []
+      }
+    },
+    {
+      "name": "MRV2 with 4 adapters and a cap of 2: the graph for max_loras + 1 serves any batch with an adapter, and the graph of none the rest",
+      "input": {
+        "config": {
+          "asyncScheduling": true,
+          "chunkedPrefill": true,
+          "graphs": {
+            "captureSizes": [
+              1,
+              2,
+              4,
+              8,
+              16,
+              24,
+              32,
+              40,
+              48,
+              56,
+              64,
+              72,
+              80,
+              88,
+              96,
+              104,
+              112,
+              120,
+              128,
+              136,
+              144,
+              152,
+              160,
+              168,
+              176,
+              184,
+              192,
+              200,
+              208,
+              216,
+              224,
+              232,
+              240,
+              248,
+              256,
+              272,
+              288,
+              304,
+              320,
+              336,
+              352,
+              368,
+              384,
+              400,
+              416,
+              432,
+              448,
+              464,
+              480,
+              496,
+              512
+            ],
+            "mode": "FULL_AND_PIECEWISE"
+          },
+          "inputIds": "device",
+          "lora": {"maxLoras":2},
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64,
+          "runner": "mrv2"
+        },
+        "gpu": {"card":"s5","hostTerm":"on-cpu","row":"h100-vllm-0-10-2-fp8","tp":4},
+        "horizonUs": 600000000,
+        "host": "mrv2",
+        "output": "digest",
+        "workload": {
+          "fn": "genWorkload",
+          "seed": 28,
+          "spec": {
+            "adapters": {"count":4,"sharePermille":300},
+            "arrivals": {"kind":"poisson","ratePerSMilli":25000},
+            "lengths": {"kind":"dists","output":{"hi":24,"kind":"uniform","lo":8},"prompt":{"hi":64,"kind":"uniform","lo":16}},
+            "requests": 40
+          }
+        }
+      },
+      "sha256": "2a3c08185d7a18ea43473729622d89810fd56051fda593e1596f3502e4fcbeba",
+      "output": {
+        "sha256": {
+          "lanes": "ecadbe20b479fb42731ddaf4031b41d766b31c9861d6bcdee2bb5476666fe490",
+          "reqs": "e1b0cdddc3211a9230fb945e23f542f3de9ababbeae5e53c9f5d184e43d39d07",
+          "steps": "db471e20018555097dbdd1379259753897b082e077379565d5bfda3dcce8d85e"
+        },
+        "steps": 183,
+        "stepsByMode": {"FULL":146,"PIECEWISE":37},
+        "summary": {
+          "bubbleUs": 3245,
+          "bubbles": 1,
+          "clockUs": 2313393,
+          "eagerSteps": 0,
+          "finished": 40,
+          "ghostTokens": 40,
+          "gpuBusyPermille": 945,
+          "gpuBusyUs": 2185819,
+          "launches": 6103,
+          "paddedTokens": 264,
+          "steps": 183,
+          "tokensPerSMilli": 271463,
+          "tpotP50Us": 11950,
+          "tpotP99Us": 12146,
+          "ttftP50Us": 29066,
+          "ttftP99Us": 53624,
+          "usefulTokens": 628
+        },
+        "violations": []
+      }
+    },
+    {
+      "name": "MRV2 with cudagraph_specialize_lora off: it still captures the graphs without adapters, unlike MRV1",
+      "input": {
+        "config": {
+          "asyncScheduling": true,
+          "chunkedPrefill": true,
+          "graphs": {
+            "captureSizes": [
+              1,
+              2,
+              4,
+              8,
+              16,
+              24,
+              32,
+              40,
+              48,
+              56,
+              64,
+              72,
+              80,
+              88,
+              96,
+              104,
+              112,
+              120,
+              128,
+              136,
+              144,
+              152,
+              160,
+              168,
+              176,
+              184,
+              192,
+              200,
+              208,
+              216,
+              224,
+              232,
+              240,
+              248,
+              256,
+              272,
+              288,
+              304,
+              320,
+              336,
+              352,
+              368,
+              384,
+              400,
+              416,
+              432,
+              448,
+              464,
+              480,
+              496,
+              512
+            ],
+            "mode": "FULL_AND_PIECEWISE",
+            "specializeLora": false
+          },
+          "inputIds": "device",
+          "lora": {"maxLoras":2},
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64,
+          "runner": "mrv2"
+        },
+        "gpu": {"card":"s5","hostTerm":"on-cpu","row":"h100-vllm-0-10-2-fp8","tp":4},
+        "horizonUs": 600000000,
+        "host": "mrv2",
+        "output": "digest",
+        "workload": {
+          "fn": "genWorkload",
+          "seed": 28,
+          "spec": {
+            "adapters": {"count":4,"sharePermille":300},
+            "arrivals": {"kind":"poisson","ratePerSMilli":25000},
+            "lengths": {"kind":"dists","output":{"hi":24,"kind":"uniform","lo":8},"prompt":{"hi":64,"kind":"uniform","lo":16}},
+            "requests": 40
+          }
+        }
+      },
+      "sha256": "2a3c08185d7a18ea43473729622d89810fd56051fda593e1596f3502e4fcbeba",
+      "output": {
+        "sha256": {
+          "lanes": "ecadbe20b479fb42731ddaf4031b41d766b31c9861d6bcdee2bb5476666fe490",
+          "reqs": "e1b0cdddc3211a9230fb945e23f542f3de9ababbeae5e53c9f5d184e43d39d07",
+          "steps": "db471e20018555097dbdd1379259753897b082e077379565d5bfda3dcce8d85e"
+        },
+        "steps": 183,
+        "stepsByMode": {"FULL":146,"PIECEWISE":37},
+        "summary": {
+          "bubbleUs": 3245,
+          "bubbles": 1,
+          "clockUs": 2313393,
+          "eagerSteps": 0,
+          "finished": 40,
+          "ghostTokens": 40,
+          "gpuBusyPermille": 945,
+          "gpuBusyUs": 2185819,
+          "launches": 6103,
+          "paddedTokens": 264,
+          "steps": 183,
+          "tokensPerSMilli": 271463,
+          "tpotP50Us": 11950,
+          "tpotP99Us": 12146,
+          "ttftP50Us": 29066,
+          "ttftP99Us": 53624,
+          "usefulTokens": 628
+        },
+        "violations": []
+      }
+    },
+    {
+      "name": "MRV1 with the same adapters: has_lora is the key",
+      "input": {
+        "config": {
+          "asyncScheduling": true,
+          "chunkedPrefill": true,
+          "graphs": {
+            "captureSizes": [
+              1,
+              2,
+              4,
+              8,
+              16,
+              24,
+              32,
+              40,
+              48,
+              56,
+              64,
+              72,
+              80,
+              88,
+              96,
+              104,
+              112,
+              120,
+              128,
+              136,
+              144,
+              152,
+              160,
+              168,
+              176,
+              184,
+              192,
+              200,
+              208,
+              216,
+              224,
+              232,
+              240,
+              248,
+              256,
+              272,
+              288,
+              304,
+              320,
+              336,
+              352,
+              368,
+              384,
+              400,
+              416,
+              432,
+              448,
+              464,
+              480,
+              496,
+              512
+            ],
+            "mode": "FULL_AND_PIECEWISE"
+          },
+          "inputIds": "device",
+          "lora": {"maxLoras":2},
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64,
+          "runner": "v1"
+        },
+        "gpu": {"card":"s5","hostTerm":"on-cpu","row":"h100-vllm-0-10-2-fp8","tp":4},
+        "horizonUs": 600000000,
+        "host": "v1",
+        "output": "digest",
+        "workload": {
+          "fn": "genWorkload",
+          "seed": 28,
+          "spec": {
+            "adapters": {"count":4,"sharePermille":300},
+            "arrivals": {"kind":"poisson","ratePerSMilli":25000},
+            "lengths": {"kind":"dists","output":{"hi":24,"kind":"uniform","lo":8},"prompt":{"hi":64,"kind":"uniform","lo":16}},
+            "requests": 40
+          }
+        }
+      },
+      "sha256": "c0607dcb9eb06b949e5261a468afa02b0427a4f819f50fcc8e7f55e2aed03091",
+      "output": {
+        "sha256": {
+          "lanes": "2e8ede901aaf6d76ed328994fd92d7e8d8c35528f8b7c027eda1ffab7dee5492",
+          "reqs": "827538bebaa28754dc360d4a2dff2dd642851b6df713f3cb425bc90310c6994e",
+          "steps": "c27bc30db426b74fe10066fd396a3e0b8787701d591b44c278c22254b075595b"
+        },
+        "steps": 183,
+        "stepsByMode": {"FULL":146,"PIECEWISE":37},
+        "summary": {
+          "bubbleUs": 3597,
+          "bubbles": 1,
+          "clockUs": 2313818,
+          "eagerSteps": 0,
+          "finished": 40,
+          "ghostTokens": 40,
+          "gpuBusyPermille": 945,
+          "gpuBusyUs": 2185892,
+          "launches": 6103,
+          "paddedTokens": 268,
+          "steps": 183,
+          "tokensPerSMilli": 271413,
+          "tpotP50Us": 11950,
+          "tpotP99Us": 12146,
+          "ttftP50Us": 29141,
+          "ttftP99Us": 54049,
+          "usefulTokens": 628
+        },
+        "violations": []
+      }
+    },
+    {
+      "name": "MRV1 with cudagraph_specialize_lora off: only the max_loras + 1 graph exists, and a batch with no adapter runs eagerly",
+      "input": {
+        "config": {
+          "asyncScheduling": true,
+          "chunkedPrefill": true,
+          "graphs": {
+            "captureSizes": [
+              1,
+              2,
+              4,
+              8,
+              16,
+              24,
+              32,
+              40,
+              48,
+              56,
+              64,
+              72,
+              80,
+              88,
+              96,
+              104,
+              112,
+              120,
+              128,
+              136,
+              144,
+              152,
+              160,
+              168,
+              176,
+              184,
+              192,
+              200,
+              208,
+              216,
+              224,
+              232,
+              240,
+              248,
+              256,
+              272,
+              288,
+              304,
+              320,
+              336,
+              352,
+              368,
+              384,
+              400,
+              416,
+              432,
+              448,
+              464,
+              480,
+              496,
+              512
+            ],
+            "mode": "FULL_AND_PIECEWISE",
+            "specializeLora": false
+          },
+          "inputIds": "device",
+          "lora": {"maxLoras":2},
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64,
+          "runner": "v1"
+        },
+        "gpu": {"card":"s5","hostTerm":"on-cpu","row":"h100-vllm-0-10-2-fp8","tp":4},
+        "horizonUs": 600000000,
+        "host": "v1",
+        "output": "digest",
+        "workload": {
+          "fn": "genWorkload",
+          "seed": 28,
+          "spec": {
+            "adapters": {"count":4,"sharePermille":300},
+            "arrivals": {"kind":"poisson","ratePerSMilli":25000},
+            "lengths": {"kind":"dists","output":{"hi":24,"kind":"uniform","lo":8},"prompt":{"hi":64,"kind":"uniform","lo":16}},
+            "requests": 40
+          }
+        }
+      },
+      "sha256": "27f09de4bac0794400e9651225051642e84f3920cd161af152711399df130a8b",
+      "output": {
+        "sha256": {
+          "lanes": "c9cb8e9194d7ed4c83fbf9221fd9617066fdefe66e97e631443f254ab5401683",
+          "reqs": "0a2397669732d8a643dec84b0fabe484fcd0624aed4d247cfa0d6ec406528c83",
+          "steps": "c598512c9bfc27d75dd0cb239b42051d9fb1d3e3743b746038dc0838900852c4"
+        },
+        "steps": 182,
+        "stepsByMode": {"FULL":110,"NONE":45,"PIECEWISE":27},
+        "summary": {
+          "bubbleUs": 6946,
+          "bubbles": 2,
+          "clockUs": 2315914,
+          "eagerSteps": 45,
+          "finished": 40,
+          "ghostTokens": 40,
+          "gpuBusyPermille": 938,
+          "gpuBusyUs": 2172685,
+          "launches": 47657,
+          "paddedTokens": 186,
+          "steps": 182,
+          "tokensPerSMilli": 271167,
+          "tpotP50Us": 11940,
+          "tpotP99Us": 12139,
+          "ttftP50Us": 28286,
+          "ttftP99Us": 56164,
+          "usefulTokens": 628
+        },
+        "violations": []
+      }
+    },
+    {
+      "name": "mask on the tick card, overlapped, without async scheduling: each fill hides under its own forward",
+      "input": {
+        "config": {
+          "asyncScheduling": false,
+          "chunkedPrefill": true,
+          "graphs": {"captureSizes":[],"mode":"NONE"},
+          "inputIds": "device",
+          "maxBatchedTokens": 2048,
+          "maxNumSeqs": 4,
+          "runner": "mrv2",
+          "structured": {"overlap":true}
+        },
+        "gpu": {"card":"tick"},
+        "horizonUs": 600000000,
+        "host": {"card":"tick","maskPerSeqUs":1},
+        "output": "full",
+        "workload": {
+          "fn": "genWorkload",
+          "seed": 1,
+          "spec": {
+            "arrivals": {"kind":"burst"},
+            "lengths": {"kind":"dists","output":{"kind":"menu","values":[2,3,4,6],"weights":[3,3,2,1]},"prompt":{"kind":"const","value":1}},
+            "requests": 6,
+            "structuredPermille": 1000
+          }
+        }
+      },
+      "sha256": "72df590e621f70dc3716797db2904cb2929cf7ce673b16f976b4d9064c1c00f0",
+      "output": {
+        "horizonUs": 600000000,
+        "lanes": {
+          "cpu-main": [
+            {"endUs":2,"kind":"schedule","startUs":0,"step":0},
+            {"endUs":6,"kind":"mask","startUs":2,"step":0},
+            {"endUs":8,"kind":"sync","startUs":7,"step":0},
+            {"endUs":10,"kind":"schedule","startUs":8,"step":1},
+            {"endUs":14,"kind":"mask","startUs":10,"step":1},
+            {"endUs":15,"kind":"sync","startUs":14,"step":1},
+            {"endUs":17,"kind":"schedule","startUs":15,"step":2},
+            {"endUs":21,"kind":"mask","startUs":17,"step":2},
+            {"endUs":23,"kind":"sync","startUs":22,"step":2},
+            {"endUs":25,"kind":"schedule","startUs":23,"step":3},
+            {"endUs":28,"kind":"mask","startUs":25,"step":3},
+            {"endUs":30,"kind":"sync","startUs":29,"step":3},
+            {"endUs":32,"kind":"schedule","startUs":30,"step":4},
+            {"endUs":33,"kind":"mask","startUs":32,"step":4},
+            {"endUs":37,"kind":"sync","startUs":36,"step":4}
+          ],
+          "gpu-stream": [
+            {"endUs":7,"kind":"forward","startUs":2,"step":0},
+            {"endUs":14,"kind":"forward","startUs":10,"step":1},
+            {"endUs":22,"kind":"forward","startUs":17,"step":2},
+            {"endUs":29,"kind":"forward","startUs":25,"step":3},
+            {"endUs":36,"kind":"forward","startUs":32,"step":4}
+          ]
+        },
+        "reqs": [
+          {"dueUs":0,"e2eUs":30,"finished":true,"ghostTokens":0,"id":0,"tokens":4,"tpotUs":7,"ttftUs":8},
+          {"dueUs":0,"e2eUs":23,"finished":true,"ghostTokens":0,"id":1,"tokens":3,"tpotUs":8,"ttftUs":8},
+          {"dueUs":0,"e2eUs":15,"finished":true,"ghostTokens":0,"id":2,"tokens":2,"tpotUs":7,"ttftUs":8},
+          {"dueUs":0,"e2eUs":15,"finished":true,"ghostTokens":0,"id":3,"tokens":2,"tpotUs":7,"ttftUs":8},
+          {"dueUs":0,"e2eUs":30,"finished":true,"ghostTokens":0,"id":4,"tokens":2,"tpotUs":7,"ttftUs":23},
+          {"dueUs":0,"e2eUs":37,"finished":true,"ghostTokens":0,"id":5,"tokens":3,"tpotUs":7,"ttftUs":23}
+        ],
+        "steps": [
+          {"bubbleUs":0,"ghostSeqs":0,"gpuUs":5,"graph":"off","index":0,"maskUs":4,"mode":"NONE","paddedTokens":4,"prefillSeqs":4,"seqs":4,"tokens":4},
+          {"bubbleUs":3,"ghostSeqs":0,"gpuUs":4,"graph":"off","index":1,"maskUs":4,"mode":"NONE","paddedTokens":4,"prefillSeqs":0,"seqs":4,"tokens":4},
+          {"bubbleUs":3,"ghostSeqs":0,"gpuUs":5,"graph":"off","index":2,"maskUs":4,"mode":"NONE","paddedTokens":4,"prefillSeqs":2,"seqs":4,"tokens":4},
+          {"bubbleUs":3,"ghostSeqs":0,"gpuUs":4,"graph":"off","index":3,"maskUs":3,"mode":"NONE","paddedTokens":3,"prefillSeqs":0,"seqs":3,"tokens":3},
+          {"bubbleUs":3,"ghostSeqs":0,"gpuUs":4,"graph":"off","index":4,"maskUs":1,"mode":"NONE","paddedTokens":1,"prefillSeqs":0,"seqs":1,"tokens":1}
+        ],
+        "summary": {
+          "bubbleUs": 12,
+          "bubbles": 4,
+          "clockUs": 37,
+          "eagerSteps": 5,
+          "finished": 6,
+          "ghostTokens": 0,
+          "gpuBusyPermille": 595,
+          "gpuBusyUs": 22,
+          "launches": 0,
+          "maskUs": 16,
+          "paddedTokens": 0,
+          "steps": 5,
+          "tokensPerSMilli": 432432432,
+          "tpotP50Us": 7,
+          "tpotP99Us": 8,
+          "ttftP50Us": 8,
+          "ttftP99Us": 23,
+          "usefulTokens": 16
+        },
+        "violations": []
+      }
+    },
+    {
+      "name": "mask on the tick card, built after the forward: each fill sits on the critical path",
+      "input": {
+        "config": {
+          "asyncScheduling": false,
+          "chunkedPrefill": true,
+          "graphs": {"captureSizes":[],"mode":"NONE"},
+          "inputIds": "device",
+          "maxBatchedTokens": 2048,
+          "maxNumSeqs": 4,
+          "runner": "mrv2",
+          "structured": {"overlap":false}
+        },
+        "gpu": {"card":"tick"},
+        "horizonUs": 600000000,
+        "host": {"card":"tick","maskPerSeqUs":1},
+        "output": "full",
+        "workload": {
+          "fn": "genWorkload",
+          "seed": 1,
+          "spec": {
+            "arrivals": {"kind":"burst"},
+            "lengths": {"kind":"dists","output":{"kind":"menu","values":[2,3,4,6],"weights":[3,3,2,1]},"prompt":{"kind":"const","value":1}},
+            "requests": 6,
+            "structuredPermille": 1000
+          }
+        }
+      },
+      "sha256": "3ce8b0aaf507ff70e14947edb9419c76c5d590beb0a65bd90fb1d98d7940b15a",
+      "output": {
+        "horizonUs": 600000000,
+        "lanes": {
+          "cpu-main": [
+            {"endUs":2,"kind":"schedule","startUs":0,"step":0},
+            {"endUs":8,"kind":"sync","startUs":7,"step":0},
+            {"endUs":12,"kind":"mask","startUs":8,"step":0},
+            {"endUs":14,"kind":"schedule","startUs":12,"step":1},
+            {"endUs":19,"kind":"sync","startUs":18,"step":1},
+            {"endUs":23,"kind":"mask","startUs":19,"step":1},
+            {"endUs":25,"kind":"schedule","startUs":23,"step":2},
+            {"endUs":31,"kind":"sync","startUs":30,"step":2},
+            {"endUs":35,"kind":"mask","startUs":31,"step":2},
+            {"endUs":37,"kind":"schedule","startUs":35,"step":3},
+            {"endUs":42,"kind":"sync","startUs":41,"step":3},
+            {"endUs":45,"kind":"mask","startUs":42,"step":3},
+            {"endUs":47,"kind":"schedule","startUs":45,"step":4},
+            {"endUs":52,"kind":"sync","startUs":51,"step":4},
+            {"endUs":53,"kind":"mask","startUs":52,"step":4}
+          ],
+          "gpu-stream": [
+            {"endUs":7,"kind":"forward","startUs":2,"step":0},
+            {"endUs":18,"kind":"forward","startUs":14,"step":1},
+            {"endUs":30,"kind":"forward","startUs":25,"step":2},
+            {"endUs":41,"kind":"forward","startUs":37,"step":3},
+            {"endUs":51,"kind":"forward","startUs":47,"step":4}
+          ]
+        },
+        "reqs": [
+          {"dueUs":0,"e2eUs":45,"finished":true,"ghostTokens":0,"id":0,"tokens":4,"tpotUs":11,"ttftUs":12},
+          {"dueUs":0,"e2eUs":35,"finished":true,"ghostTokens":0,"id":1,"tokens":3,"tpotUs":12,"ttftUs":12},
+          {"dueUs":0,"e2eUs":23,"finished":true,"ghostTokens":0,"id":2,"tokens":2,"tpotUs":11,"ttftUs":12},
+          {"dueUs":0,"e2eUs":23,"finished":true,"ghostTokens":0,"id":3,"tokens":2,"tpotUs":11,"ttftUs":12},
+          {"dueUs":0,"e2eUs":45,"finished":true,"ghostTokens":0,"id":4,"tokens":2,"tpotUs":10,"ttftUs":35},
+          {"dueUs":0,"e2eUs":53,"finished":true,"ghostTokens":0,"id":5,"tokens":3,"tpotUs":9,"ttftUs":35}
+        ],
+        "steps": [
+          {"bubbleUs":0,"ghostSeqs":0,"gpuUs":5,"graph":"off","index":0,"maskUs":4,"mode":"NONE","paddedTokens":4,"prefillSeqs":4,"seqs":4,"tokens":4},
+          {"bubbleUs":7,"ghostSeqs":0,"gpuUs":4,"graph":"off","index":1,"maskUs":4,"mode":"NONE","paddedTokens":4,"prefillSeqs":0,"seqs":4,"tokens":4},
+          {"bubbleUs":7,"ghostSeqs":0,"gpuUs":5,"graph":"off","index":2,"maskUs":4,"mode":"NONE","paddedTokens":4,"prefillSeqs":2,"seqs":4,"tokens":4},
+          {"bubbleUs":7,"ghostSeqs":0,"gpuUs":4,"graph":"off","index":3,"maskUs":3,"mode":"NONE","paddedTokens":3,"prefillSeqs":0,"seqs":3,"tokens":3},
+          {"bubbleUs":6,"ghostSeqs":0,"gpuUs":4,"graph":"off","index":4,"maskUs":1,"mode":"NONE","paddedTokens":1,"prefillSeqs":0,"seqs":1,"tokens":1}
+        ],
+        "summary": {
+          "bubbleUs": 27,
+          "bubbles": 4,
+          "clockUs": 53,
+          "eagerSteps": 5,
+          "finished": 6,
+          "ghostTokens": 0,
+          "gpuBusyPermille": 415,
+          "gpuBusyUs": 22,
+          "launches": 0,
+          "maskUs": 16,
+          "paddedTokens": 0,
+          "steps": 5,
+          "tokensPerSMilli": 301886792,
+          "tpotP50Us": 11,
+          "tpotP99Us": 12,
+          "ttftP50Us": 12,
+          "ttftP99Us": 35,
+          "usefulTokens": 16
+        },
+        "violations": []
+      }
+    },
+    {
+      "name": "mask on the tick card, overlapped, with async scheduling: a fill waits for the token of the step before it",
+      "input": {
+        "config": {
+          "asyncScheduling": true,
+          "chunkedPrefill": true,
+          "graphs": {"captureSizes":[],"mode":"NONE"},
+          "inputIds": "device",
+          "maxBatchedTokens": 2048,
+          "maxNumSeqs": 4,
+          "runner": "mrv2",
+          "structured": {"overlap":true}
+        },
+        "gpu": {"card":"tick"},
+        "horizonUs": 600000000,
+        "host": {"card":"tick","maskPerSeqUs":1},
+        "output": "full",
+        "workload": {
+          "fn": "genWorkload",
+          "seed": 1,
+          "spec": {
+            "arrivals": {"kind":"burst"},
+            "lengths": {"kind":"dists","output":{"kind":"menu","values":[2,3,4,6],"weights":[3,3,2,1]},"prompt":{"kind":"const","value":1}},
+            "requests": 6,
+            "structuredPermille": 1000
+          }
+        }
+      },
+      "sha256": "f68975df592f01c5628c9dea239fa1b32ffb2990878e52eb8f866e3cb41b193e",
+      "output": {
+        "horizonUs": 600000000,
+        "lanes": {
+          "cpu-main": [
+            {"endUs":2,"kind":"schedule","startUs":0,"step":0},
+            {"endUs":6,"kind":"mask","startUs":2,"step":0},
+            {"endUs":8,"kind":"schedule","startUs":6,"step":1},
+            {"endUs":9,"kind":"sync","startUs":8,"step":0},
+            {"endUs":13,"kind":"mask","startUs":9,"step":1},
+            {"endUs":15,"kind":"schedule","startUs":13,"step":2},
+            {"endUs":16,"kind":"sync","startUs":15,"step":1},
+            {"endUs":18,"kind":"mask","startUs":16,"step":2},
+            {"endUs":20,"kind":"schedule","startUs":18,"step":3},
+            {"endUs":22,"kind":"mask","startUs":20,"step":3},
+            {"endUs":23,"kind":"sync","startUs":22,"step":2},
+            {"endUs":24,"kind":"mask","startUs":23,"step":3},
+            {"endUs":26,"kind":"schedule","startUs":24,"step":4},
+            {"endUs":27,"kind":"sync","startUs":26,"step":3},
+            {"endUs":29,"kind":"mask","startUs":27,"step":4},
+            {"endUs":31,"kind":"schedule","startUs":29,"step":5},
+            {"endUs":32,"kind":"sync","startUs":31,"step":4},
+            {"endUs":33,"kind":"mask","startUs":32,"step":5},
+            {"endUs":35,"kind":"schedule","startUs":33,"step":6},
+            {"endUs":36,"kind":"sync","startUs":35,"step":5},
+            {"endUs":40,"kind":"sync","startUs":39,"step":6}
+          ],
+          "gpu-stream": [
+            {"endUs":7,"kind":"forward","startUs":2,"step":0},
+            {"endUs":12,"kind":"forward","startUs":8,"step":1},
+            {"endUs":19,"kind":"forward","startUs":15,"step":2},
+            {"endUs":25,"kind":"forward","startUs":20,"step":3},
+            {"endUs":30,"kind":"forward","startUs":26,"step":4},
+            {"endUs":35,"kind":"forward","startUs":31,"step":5},
+            {"endUs":39,"kind":"forward","startUs":35,"step":6}
+          ]
+        },
+        "reqs": [
+          {"dueUs":0,"e2eUs":27,"finished":true,"ghostTokens":1,"id":0,"tokens":4,"tpotUs":6,"ttftUs":9},
+          {"dueUs":0,"e2eUs":23,"finished":true,"ghostTokens":1,"id":1,"tokens":3,"tpotUs":7,"ttftUs":9},
+          {"dueUs":0,"e2eUs":16,"finished":true,"ghostTokens":1,"id":2,"tokens":2,"tpotUs":7,"ttftUs":9},
+          {"dueUs":0,"e2eUs":16,"finished":true,"ghostTokens":1,"id":3,"tokens":2,"tpotUs":7,"ttftUs":9},
+          {"dueUs":0,"e2eUs":32,"finished":true,"ghostTokens":1,"id":4,"tokens":2,"tpotUs":5,"ttftUs":27},
+          {"dueUs":0,"e2eUs":36,"finished":true,"ghostTokens":1,"id":5,"tokens":3,"tpotUs":5,"ttftUs":27}
+        ],
+        "steps": [
+          {"bubbleUs":0,"ghostSeqs":0,"gpuUs":5,"graph":"off","index":0,"maskUs":4,"mode":"NONE","paddedTokens":4,"prefillSeqs":4,"seqs":4,"tokens":4},
+          {"bubbleUs":1,"ghostSeqs":0,"gpuUs":4,"graph":"off","index":1,"maskUs":4,"mode":"NONE","paddedTokens":4,"prefillSeqs":0,"seqs":4,"tokens":4},
+          {"bubbleUs":3,"ghostSeqs":2,"gpuUs":4,"graph":"off","index":2,"maskUs":2,"mode":"NONE","paddedTokens":4,"prefillSeqs":0,"seqs":4,"tokens":4},
+          {"bubbleUs":1,"ghostSeqs":1,"gpuUs":5,"graph":"off","index":3,"maskUs":3,"mode":"NONE","paddedTokens":4,"prefillSeqs":2,"seqs":4,"tokens":4},
+          {"bubbleUs":1,"ghostSeqs":1,"gpuUs":4,"graph":"off","index":4,"maskUs":2,"mode":"NONE","paddedTokens":3,"prefillSeqs":0,"seqs":3,"tokens":3},
+          {"bubbleUs":1,"ghostSeqs":1,"gpuUs":4,"graph":"off","index":5,"maskUs":1,"mode":"NONE","paddedTokens":2,"prefillSeqs":0,"seqs":2,"tokens":2},
+          {"bubbleUs":0,"ghostSeqs":1,"gpuUs":4,"graph":"off","index":6,"maskUs":0,"mode":"NONE","paddedTokens":1,"prefillSeqs":0,"seqs":1,"tokens":1}
+        ],
+        "summary": {
+          "bubbleUs": 7,
+          "bubbles": 5,
+          "clockUs": 40,
+          "eagerSteps": 7,
+          "finished": 6,
+          "ghostTokens": 6,
+          "gpuBusyPermille": 750,
+          "gpuBusyUs": 30,
+          "launches": 0,
+          "maskUs": 16,
+          "paddedTokens": 0,
+          "steps": 7,
+          "tokensPerSMilli": 400000000,
+          "tpotP50Us": 6,
+          "tpotP99Us": 7,
+          "ttftP50Us": 9,
+          "ttftP99Us": 27,
+          "usefulTokens": 16
+        },
+        "violations": []
+      }
+    },
+    {
+      "name": "mask on the 70B card, overlapped, with async scheduling and half the requests structured",
+      "input": {
+        "config": {
+          "asyncScheduling": true,
+          "chunkedPrefill": true,
+          "graphs": {"captureSizes":{"vllm":{"decodeQueryLen":1,"maxBatchedTokens":8192,"maxNumSeqs":64}},"mode":"FULL_AND_PIECEWISE"},
+          "inputIds": "device",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64,
+          "runner": "mrv2",
+          "structured": {"overlap":true}
+        },
+        "gpu": {"card":"s5","hostTerm":"on-cpu","row":"h100-vllm-0-10-2-fp8","tp":4},
+        "horizonUs": 600000000,
+        "host": "mrv2",
+        "output": "digest",
+        "workload": {
+          "fn": "genWorkload",
+          "seed": 23,
+          "spec": {
+            "arrivals": {"kind":"poisson","ratePerSMilli":50000},
+            "lengths": {"kind":"dists","output":{"hi":32,"kind":"uniform","lo":8},"prompt":{"hi":96,"kind":"uniform","lo":16}},
+            "requests": 40,
+            "structuredPermille": 500
+          }
+        }
+      },
+      "sha256": "e1d38479f2d04b90b9d2a2f536fcda653b9de051f3f85cfd30194a3defb89675",
+      "output": {
+        "sha256": {
+          "lanes": "2be636f60ba2c2a7d5a19edea76f4b04e42357fb11862348672f9da25af6eeed",
+          "reqs": "05ab3e468cdd5547ce08008c4c6320f50500cd87856e92143efa5dc44c3c51df",
+          "steps": "79404f4bcd4908a20bc336327d9fe0cdb72d71b22ce01363662cdd9875f69daf"
+        },
+        "steps": 99,
+        "stepsByMode": {"FULL":68,"NONE":5,"PIECEWISE":26},
+        "summary": {
+          "bubbleUs": 0,
+          "bubbles": 0,
+          "clockUs": 1236762,
+          "eagerSteps": 5,
+          "finished": 40,
+          "ghostTokens": 40,
+          "gpuBusyPermille": 986,
+          "gpuBusyUs": 1219540,
+          "launches": 9054,
+          "maskUs": 17920,
+          "paddedTokens": 240,
+          "steps": 99,
+          "tokensPerSMilli": 640382,
+          "tpotP50Us": 12498,
+          "tpotP99Us": 13126,
+          "ttftP50Us": 31692,
+          "ttftP99Us": 39342,
+          "usefulTokens": 792
+        },
+        "violations": []
+      }
+    },
+    {
+      "name": "mask on the 70B card, built after the forward, without async scheduling",
+      "input": {
+        "config": {
+          "asyncScheduling": false,
+          "chunkedPrefill": true,
+          "graphs": {"captureSizes":{"vllm":{"decodeQueryLen":1,"maxBatchedTokens":8192,"maxNumSeqs":64}},"mode":"FULL_AND_PIECEWISE"},
+          "inputIds": "device",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64,
+          "runner": "mrv2",
+          "structured": {"overlap":false}
+        },
+        "gpu": {"card":"s5","hostTerm":"on-cpu","row":"h100-vllm-0-10-2-fp8","tp":4},
+        "horizonUs": 600000000,
+        "host": "mrv2",
+        "output": "digest",
+        "workload": {
+          "fn": "genWorkload",
+          "seed": 23,
+          "spec": {
+            "arrivals": {"kind":"poisson","ratePerSMilli":50000},
+            "lengths": {"kind":"dists","output":{"hi":32,"kind":"uniform","lo":8},"prompt":{"hi":96,"kind":"uniform","lo":16}},
+            "requests": 40,
+            "structuredPermille": 500
+          }
+        }
+      },
+      "sha256": "4249127329a93209694778b7cd7c82271108a0ed02d25590b721817a0130ea70",
+      "output": {
+        "sha256": {
+          "lanes": "cffc45252663ae1c0c6cfd2ea229326c15746a1e66fb1f9a8fa509f9abca9782",
+          "reqs": "cde862237ee20111e5cad73d2bf745325cf76f511362d1176521c82e225a6e34",
+          "steps": "8455bd4520ced74c04c720585c303d63c11bb095d5190bced234d58183df7779"
+        },
+        "steps": 84,
+        "stepsByMode": {"FULL":54,"NONE":5,"PIECEWISE":25},
+        "summary": {
+          "bubbleUs": 186321,
+          "bubbles": 83,
+          "clockUs": 1244796,
+          "eagerSteps": 5,
+          "finished": 40,
+          "ghostTokens": 0,
+          "gpuBusyPermille": 836,
+          "gpuBusyUs": 1041213,
+          "launches": 8879,
+          "maskUs": 17920,
+          "paddedTokens": 197,
+          "steps": 84,
+          "tokensPerSMilli": 636249,
+          "tpotP50Us": 15528,
+          "tpotP99Us": 18147,
+          "ttftP50Us": 25371,
+          "ttftP99Us": 40496,
+          "usefulTokens": 792
+        },
+        "violations": []
+      }
+    },
+    {
+      "name": "speculation on the tick card with every draft accepted: a round emits 3 tokens, and the step carries 3",
+      "input": {
+        "config": {
+          "asyncScheduling": false,
+          "chunkedPrefill": true,
+          "graphs": {"captureSizes":[],"mode":"NONE"},
+          "inputIds": "device",
+          "maxBatchedTokens": 2048,
+          "maxNumSeqs": 4,
+          "runner": "mrv2",
+          "spec": {"alphaPermille":1000,"draftCostPermille":0,"k":2}
+        },
+        "gpu": {"card":"tick"},
+        "horizonUs": 600000000,
+        "host": "tick",
+        "output": "full",
+        "workload": {
+          "fn": "genWorkload",
+          "seed": 3,
+          "spec": {"arrivals":{"kind":"burst"},"lengths":{"kind":"dists","output":{"kind":"const","value":7},"prompt":{"kind":"const","value":1}},"requests":2}
+        }
+      },
+      "sha256": "3c07c6e5cb1f794d56d5d55dbb38501145c7015c2611f23652d2d1b33b301a62",
+      "output": {
+        "horizonUs": 600000000,
+        "lanes": {
+          "cpu-main": [
+            {"endUs":2,"kind":"schedule","startUs":0,"step":0},
+            {"endUs":8,"kind":"sync","startUs":7,"step":0},
+            {"endUs":10,"kind":"schedule","startUs":8,"step":1},
+            {"endUs":15,"kind":"sync","startUs":14,"step":1},
+            {"endUs":17,"kind":"schedule","startUs":15,"step":2},
+            {"endUs":22,"kind":"sync","startUs":21,"step":2}
+          ],
+          "gpu-stream": [
+            {"endUs":7,"kind":"forward","startUs":2,"step":0},
+            {"endUs":14,"kind":"forward","startUs":10,"step":1},
+            {"endUs":21,"kind":"forward","startUs":17,"step":2}
+          ]
+        },
+        "reqs": [
+          {"dueUs":0,"e2eUs":22,"finished":true,"ghostTokens":0,"id":0,"tokens":7,"tpotUs":2,"ttftUs":8},
+          {"dueUs":0,"e2eUs":22,"finished":true,"ghostTokens":0,"id":1,"tokens":7,"tpotUs":2,"ttftUs":8}
+        ],
+        "steps": [
+          {"bubbleUs":0,"draftUs":0,"ghostSeqs":0,"gpuUs":5,"graph":"off","index":0,"mode":"NONE","paddedTokens":2,"prefillSeqs":2,"seqs":2,"tokens":2},
+          {"bubbleUs":3,"draftUs":0,"ghostSeqs":0,"gpuUs":4,"graph":"off","index":1,"mode":"NONE","paddedTokens":6,"prefillSeqs":0,"seqs":2,"tokens":6},
+          {"bubbleUs":3,"draftUs":0,"ghostSeqs":0,"gpuUs":4,"graph":"off","index":2,"mode":"NONE","paddedTokens":6,"prefillSeqs":0,"seqs":2,"tokens":6}
+        ],
+        "summary": {
+          "bubbleUs": 6,
+          "bubbles": 2,
+          "clockUs": 22,
+          "draftUs": 0,
+          "eagerSteps": 3,
+          "finished": 2,
+          "ghostTokens": 0,
+          "gpuBusyPermille": 591,
+          "gpuBusyUs": 13,
+          "launches": 0,
+          "paddedTokens": 0,
+          "spec": {"accepted":8,"drafted":8,"emitted":12,"expectedPerRoundMilli":3000,"rounds":4},
+          "steps": 3,
+          "tokensPerSMilli": 636363636,
+          "tpotP50Us": 2,
+          "tpotP99Us": 2,
+          "ttftP50Us": 8,
+          "ttftP99Us": 8,
+          "usefulTokens": 14
+        },
+        "violations": []
+      }
+    },
+    {
+      "name": "speculation on the 70B card: 3 drafts, 70% accepted, a draft costs a tenth of a decode step, MRV2 and async",
+      "input": {
+        "config": {
+          "asyncScheduling": true,
+          "chunkedPrefill": true,
+          "graphs": {"captureSizes":{"vllm":{"decodeQueryLen":4,"maxBatchedTokens":8192,"maxNumSeqs":64}},"mode":"FULL_AND_PIECEWISE"},
+          "inputIds": "device",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64,
+          "runner": "mrv2",
+          "spec": {"alphaPermille":700,"draftCostPermille":100,"k":3}
+        },
+        "gpu": {"card":"s5","hostTerm":"on-cpu","row":"h100-vllm-0-10-2-fp8","tp":4},
+        "horizonUs": 600000000,
+        "host": "mrv2",
+        "output": "digest",
+        "workload": {
+          "fn": "genWorkload",
+          "seed": 24,
+          "spec": {
+            "arrivals": {"kind":"burst"},
+            "lengths": {"kind":"dists","output":{"hi":96,"kind":"uniform","lo":32},"prompt":{"hi":128,"kind":"uniform","lo":32}},
+            "requests": 32
+          }
+        }
+      },
+      "sha256": "d9416769b281b3989bc2ed89b70868538e29bae8cfe9567d2dc7015a47bb7c1e",
+      "output": {
+        "sha256": {
+          "lanes": "b8a4929748e027b82cbc21c819baa0133b058dd608655f64d97deb5955ef13d3",
+          "reqs": "8ca2acdc887ce6ea78824f26143315b88ee148d2bdd7f7f906752a1284c1cdbc",
+          "steps": "d7cabcd16fb9461cc5cb478628eb448b357696d4b9924f9cb6c32bce039dceeb"
+        },
+        "steps": 47,
+        "stepsByMode": {"FULL":46,"NONE":1},
+        "summary": {
+          "bubbleUs": 0,
+          "bubbles": 0,
+          "clockUs": 927469,
+          "draftUs": 166786,
+          "eagerSteps": 1,
+          "finished": 32,
+          "ghostTokens": 32,
+          "gpuBusyPermille": 986,
+          "gpuBusyUs": 914441,
+          "launches": 1006,
+          "paddedTokens": 40,
+          "spec": {"accepted":1240,"drafted":2586,"emitted":2102,"expectedPerRoundMilli":2533,"rounds":862},
+          "steps": 47,
+          "tokensPerSMilli": 2272852,
+          "tpotP50Us": 7304,
+          "tpotP99Us": 8678,
+          "ttftP50Us": 154492,
+          "ttftP99Us": 154492,
+          "usefulTokens": 2108
+        },
+        "violations": []
+      }
+    },
+    {
+      "name": "the same speculation on MRV1, which rounds its sizes up to multiples of 4",
+      "input": {
+        "config": {
+          "asyncScheduling": true,
+          "chunkedPrefill": true,
+          "graphs": {"captureSizes":{"vllm":{"decodeQueryLen":4,"maxBatchedTokens":8192,"maxNumSeqs":64,"roundForV1":true}},"mode":"FULL_AND_PIECEWISE"},
+          "inputIds": "device",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64,
+          "runner": "v1",
+          "spec": {"alphaPermille":700,"draftCostPermille":100,"k":3}
+        },
+        "gpu": {"card":"s5","hostTerm":"on-cpu","row":"h100-vllm-0-10-2-fp8","tp":4},
+        "horizonUs": 600000000,
+        "host": "v1",
+        "output": "digest",
+        "workload": {
+          "fn": "genWorkload",
+          "seed": 24,
+          "spec": {
+            "arrivals": {"kind":"burst"},
+            "lengths": {"kind":"dists","output":{"hi":96,"kind":"uniform","lo":32},"prompt":{"hi":128,"kind":"uniform","lo":32}},
+            "requests": 32
+          }
+        }
+      },
+      "sha256": "6ed1f060ede748991e5794d09bcc416aa330c8fa542af45913957514cd4021ad",
+      "output": {
+        "sha256": {
+          "lanes": "37f6300d336dad9de3e34264fb24b57c14ad60205bdee85cb99cc9ffea813a33",
+          "reqs": "ec47bab6b1400beef21ad46dcace100a2552ff45c50a8adf8512e73700a3fa9c",
+          "steps": "d7cabcd16fb9461cc5cb478628eb448b357696d4b9924f9cb6c32bce039dceeb"
+        },
+        "steps": 47,
+        "stepsByMode": {"FULL":46,"NONE":1},
+        "summary": {
+          "bubbleUs": 0,
+          "bubbles": 0,
+          "clockUs": 942941,
+          "draftUs": 166786,
+          "eagerSteps": 1,
+          "finished": 32,
+          "ghostTokens": 32,
+          "gpuBusyPermille": 970,
+          "gpuBusyUs": 914441,
+          "launches": 1006,
+          "paddedTokens": 40,
+          "spec": {"accepted":1240,"drafted":2586,"emitted":2102,"expectedPerRoundMilli":2533,"rounds":862},
+          "steps": 47,
+          "tokensPerSMilli": 2235559,
+          "tpotP50Us": 7304,
+          "tpotP99Us": 8678,
+          "ttftP50Us": 169964,
+          "ttftP99Us": 169964,
+          "usefulTokens": 2108
+        },
+        "violations": []
+      }
+    },
+    {
+      "name": "70B card, the host term on the CPU lane (D-044, proposed): the default, so async scheduling has something to hide",
+      "input": {
+        "config": {
+          "asyncScheduling": true,
+          "chunkedPrefill": true,
+          "graphs": {"captureSizes":{"vllm":{"decodeQueryLen":1,"maxBatchedTokens":8192,"maxNumSeqs":64}},"mode":"FULL_AND_PIECEWISE"},
+          "inputIds": "device",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64,
+          "runner": "mrv2"
+        },
+        "gpu": {"card":"s5","hostTerm":"on-cpu","row":"h100-vllm-0-10-2-fp8","tp":4},
+        "horizonUs": 600000000,
+        "host": "mrv2",
+        "output": "digest",
+        "workload": {
+          "fn": "genWorkload",
+          "seed": 21,
+          "spec": {
+            "arrivals": {"kind":"burst"},
+            "lengths": {"kind":"dists","output":{"hi":48,"kind":"uniform","lo":8},"prompt":{"hi":96,"kind":"uniform","lo":8}},
+            "requests": 64
+          }
+        }
+      },
+      "sha256": "191c36b58567bf57d3f3626698f21a1971859a1d221b6ca93b9a83309eb00ed2",
+      "output": {
+        "sha256": {
+          "lanes": "f72e7d8951dcdf54d0ca295faa26422b4c0a127f179ec2cd7363a889447a8289",
+          "reqs": "cbc5977bae5d086a5d1bfdd363bdabbbdd02a906ece510cbea943aa5823c484c",
+          "steps": "a7689a5ab31bdb62de5f7c7ed9f03f9a917674118da6a3c90f50656d214b8bc7"
+        },
+        "steps": 49,
+        "stepsByMode": {"FULL":48,"NONE":1},
+        "summary": {
+          "bubbleUs": 0,
+          "bubbles": 0,
+          "clockUs": 796034,
+          "eagerSteps": 1,
+          "finished": 64,
+          "ghostTokens": 64,
+          "gpuBusyPermille": 979,
+          "gpuBusyUs": 779521,
+          "launches": 1008,
+          "paddedTokens": 129,
+          "steps": 49,
+          "tokensPerSMilli": 2189605,
+          "tpotP50Us": 12726,
+          "tpotP99Us": 12927,
+          "ttftP50Us": 198364,
+          "ttftP99Us": 198364,
+          "usefulTokens": 1743
+        },
+        "violations": []
+      }
+    },
+    {
+      "name": "70B card, the host term inside the GPU step as S5 fitted it",
+      "input": {
+        "config": {
+          "asyncScheduling": true,
+          "chunkedPrefill": true,
+          "graphs": {"captureSizes":{"vllm":{"decodeQueryLen":1,"maxBatchedTokens":8192,"maxNumSeqs":64}},"mode":"FULL_AND_PIECEWISE"},
+          "inputIds": "device",
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64,
+          "runner": "mrv2"
+        },
+        "gpu": {"card":"s5","hostTerm":"in-gpu","row":"h100-vllm-0-10-2-fp8","tp":4},
+        "horizonUs": 600000000,
+        "host": "mrv2",
+        "output": "digest",
+        "workload": {
+          "fn": "genWorkload",
+          "seed": 21,
+          "spec": {
+            "arrivals": {"kind":"burst"},
+            "lengths": {"kind":"dists","output":{"hi":48,"kind":"uniform","lo":8},"prompt":{"hi":96,"kind":"uniform","lo":8}},
+            "requests": 64
+          }
+        }
+      },
+      "sha256": "c0e9e7a12c00ae3f6cc542fc0e1c3f193585c3e0b9cfcac56a2a691be69c12db",
+      "output": {
+        "sha256": {
+          "lanes": "93afcf5158d97b948ba0469b46712039d3d155e3318e36443ec532a752bb0bff",
+          "reqs": "77048a0124601afabd9063254026604ed19389326b19572a46cf71046235885d",
+          "steps": "8ae1341c86d73ba650a46fe7136a376ce4617de57842337df2db9da36d51f60e"
+        },
+        "steps": 49,
+        "stepsByMode": {"FULL":48,"NONE":1},
+        "summary": {
+          "bubbleUs": 0,
+          "bubbles": 0,
+          "clockUs": 902443,
+          "eagerSteps": 1,
+          "finished": 64,
+          "ghostTokens": 64,
+          "gpuBusyPermille": 986,
+          "gpuBusyUs": 889837,
+          "launches": 1008,
+          "paddedTokens": 129,
+          "steps": 49,
+          "tokensPerSMilli": 1931424,
+          "tpotP50Us": 15847,
+          "tpotP99Us": 16834,
+          "ttftP50Us": 198364,
+          "ttftP99Us": 198364,
+          "usefulTokens": 1743
+        },
+        "violations": []
+      }
+    },
+    {
+      "name": "everything on: MRV2, FULL_AND_PIECEWISE, adapters with a cap of 3, the mask overlapped, and speculation, with async scheduling",
+      "input": {
+        "config": {
+          "asyncScheduling": true,
+          "chunkedPrefill": true,
+          "graphs": {"captureSizes":{"vllm":{"decodeQueryLen":3,"maxBatchedTokens":8192,"maxNumSeqs":64}},"mode":"FULL_AND_PIECEWISE","specializeActiveLora":true},
+          "inputIds": "device",
+          "lora": {"maxLoras":3},
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64,
+          "runner": "mrv2",
+          "spec": {"alphaPermille":800,"draftCostPermille":50,"k":2},
+          "structured": {"overlap":true}
+        },
+        "gpu": {"card":"s5","hostTerm":"on-cpu","row":"h100-vllm-0-10-2-fp8","tp":4},
+        "horizonUs": 600000000,
+        "host": "mrv2",
+        "output": "digest",
+        "workload": {
+          "fn": "genWorkload",
+          "seed": 26,
+          "spec": {
+            "adapters": {"count":3,"sharePermille":600},
+            "arrivals": {"kind":"poisson","ratePerSMilli":80000},
+            "lengths": {"kind":"dists","output":{"hi":64,"kind":"uniform","lo":16},"prompt":{"hi":160,"kind":"uniform","lo":16}},
+            "requests": 48,
+            "structuredPermille": 400
+          }
+        }
+      },
+      "sha256": "6ed06f7be97bfee4e46cfaba5c2c2e343bf7b4a1e6bd5cbef507cc0c62c8ccf0",
+      "output": {
+        "sha256": {
+          "lanes": "cf00e9bb8fbe554b62f1ed746be14caf75cf5a90e2c29faf129982c0996948ec",
+          "reqs": "f1e72caee655093c71a615e3852824ed06ddb8443c7188d8377331fff216c70d",
+          "steps": "69a0de8ce7b813b8e27741d3e30c0a6dca19ecba6e993fefc22d1d3dac2546e4"
+        },
+        "steps": 63,
+        "stepsByMode": {"FULL":35,"NONE":2,"PIECEWISE":26},
+        "summary": {
+          "bubbleUs": 0,
+          "bubbles": 0,
+          "clockUs": 1039630,
+          "draftUs": 74293,
+          "eagerSteps": 2,
+          "finished": 48,
+          "ghostTokens": 48,
+          "gpuBusyPermille": 969,
+          "gpuBusyUs": 1007116,
+          "launches": 6141,
+          "maskUs": 44400,
+          "paddedTokens": 165,
+          "spec": {"accepted":1243,"drafted":1676,"emitted":2081,"expectedPerRoundMilli":2440,"rounds":838},
+          "steps": 63,
+          "tokensPerSMilli": 2004559,
+          "tpotP50Us": 7508,
+          "tpotP99Us": 9212,
+          "ttftP50Us": 46802,
+          "ttftP99Us": 96504,
+          "usefulTokens": 2084
+        },
+        "violations": []
+      }
+    }
+  ]
+}

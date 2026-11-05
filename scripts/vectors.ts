@@ -17,8 +17,8 @@
  * (scripts/tables/exp-quantiles.ts and scripts/tables/chi-square-critical.ts).
  *
  * Adding a model: give it a `VectorModel` in MODELS, whose cases are JSON inputs and a function from them to the model's
- * output. `workload` (W0-T12), `steploop` (W0-T13), `trace` (W1-T08), `bench` (W1-T31), `spec` (W1-T26) and `lifecycle` (W1-T16) were
- * added this way.
+ * output. `workload` (W0-T12), `steploop` (W0-T13), `trace` (W1-T08), `bench` (W1-T31), `spec` (W1-T26), `lifecycle` (W1-T16) and
+ * `steploop-v1` (W1-T12) were added this way.
  */
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -34,8 +34,8 @@ import type { LifecycleJitter, Scenario } from '../packages/sim/lifecycle'
 import type { PhysicsRowKey } from '../packages/sim/physics'
 import { BESTIARY, FINE_BAND, REFERENCE, SPARSE_BAND, SPEC_BAND, chiSquare, dist, drawCase, expectedTokensPerRound, labTest, verifyChain } from '../packages/sim/spec'
 import type { PairBand } from '../packages/sim/spec'
-import { TICK_CARD, defaultCaptureSizes, runStepLoop, s5Card } from '../packages/sim/steploop'
-import type { GpuCard, S5HostTerm, StepLoopConfig, StepLoopRun } from '../packages/sim/steploop'
+import { ENGINE_DEFAULTS, TICK_CARD, defaultCaptureSizes, mrv1RoundedSizes, runStepLoop, s5Card, vllmCaptureSizes } from '../packages/sim/steploop'
+import type { GpuCard, GraphSettings, S5HostTerm, StepLoopConfig, StepLoopRun } from '../packages/sim/steploop'
 import { CLEAN_JITTER, DEFAULT_JITTER, attributeSteps, encodeTrace, traceChecks, traceFromRun, traceToJson } from '../packages/sim/trace'
 import type { Attribution, JitterSpec } from '../packages/sim/trace'
 import { genWorkload, parseSlice, replayWorkload } from '../packages/sim/workload'
@@ -386,6 +386,380 @@ const steploop: VectorModel = {
     'Golden vectors for packages/sim/steploop (ARCHITECTURE section 5.10): each maps its input, a workload with a configuration, a host card, a GPU card and a horizon, to the run it gives, with the SHA-256 of that run\'s canonical JSON. A run of the front page\'s world is recorded whole: its lanes\' spans, its steps, its requests, its summary and its violations. A longer run is recorded as its summary and violations with the SHA-256 of its lanes, steps and requests. Regenerate only with `bun scripts/vectors.ts --write`, and review the diff like code.',
   cases: (root) =>
     Object.entries(steploopInputs).map(([name, input]) => ({ name, input, run: () => steploopOutput(runSteploop(root, input), input.output) })),
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------
+// steploop-v1
+
+/**
+ * A step-loop v1 run as a fixture writes it: the same arguments as a v0 vector, with the v1 fields of the configuration (a runner, graph
+ * modes, adapters, the mask, speculation), and the capture sizes either listed or named by vLLM's own rule for an engine's sequences and
+ * budget (`vllmCaptureSizes`). A v0 vector's fixture is untouched: tests/fixtures/sim/steploop.json holds the runs without any v1 field.
+ */
+type SteploopV1Input = {
+  readonly workload: WorkloadInput
+  readonly config: Omit<StepLoopConfig, 'graphs'> & {
+    readonly graphs: Omit<GraphSettings, 'captureSizes'> & {
+      readonly captureSizes: readonly number[] | { readonly vllm: { readonly maxNumSeqs: number; readonly maxBatchedTokens: number; readonly decodeQueryLen?: number; readonly roundForV1?: boolean } }
+    }
+  }
+  /** A runner's host card, or the tick card, which costs the mask nothing unless the vector gives it a price per row. */
+  readonly host: 'tick' | RunnerPresetId | { readonly card: 'tick'; readonly maskPerSeqUs: number }
+  readonly gpu: SteploopInput['gpu']
+  readonly horizonUs: number
+  /** `full`: the whole run. `digest`: its summary, violations, the steps counted by mode, and the SHA-256 of its lanes, steps and requests. */
+  readonly output: 'full' | 'digest'
+}
+
+/** The 70B on H100 at TP 4 with the host term on the CPU lane (D-044, proposed): the cost card of the vectors below unless one says otherwise. */
+const H100_TP4_CPU = { ...H100_TP4, hostTerm: 'on-cpu' } as const
+/** The engine of S5's harness: 64 sequences and an 8,192-token budget. */
+const HARNESS_ENGINE = { maxNumSeqs: 64, maxBatchedTokens: 8192 } as const
+/** Sixty-four requests at once with prompts of 8 to 96 tokens: the first steps prefill, and the rest decode. */
+const MIXED_BURST: WorkloadInput = {
+  fn: 'genWorkload',
+  seed: 21,
+  spec: { requests: 64, arrivals: { kind: 'burst' }, lengths: { kind: 'dists', prompt: { kind: 'uniform', lo: 8, hi: 96 }, output: { kind: 'uniform', lo: 8, hi: 48 } } },
+}
+/** A stream of 80 requests at 150 a second: most steps decode, and about every other one also runs a prompt of 16 to 96 tokens (a mixed batch). */
+const MIXED_STREAM: WorkloadInput = {
+  fn: 'genWorkload',
+  seed: 27,
+  spec: { requests: 80, arrivals: { kind: 'poisson', ratePerSMilli: 150_000 }, lengths: { kind: 'dists', prompt: { kind: 'uniform', lo: 16, hi: 96 }, output: { kind: 'uniform', lo: 16, hi: 48 } } },
+}
+/** A thin stream, 25 a second, in which a third of the requests ask for an adapter: many steps have no adapter in their batch. */
+const ADAPTER_SPARSE: WorkloadInput = {
+  fn: 'genWorkload',
+  seed: 28,
+  spec: {
+    requests: 40,
+    arrivals: { kind: 'poisson', ratePerSMilli: 25_000 },
+    lengths: { kind: 'dists', prompt: { kind: 'uniform', lo: 16, hi: 64 }, output: { kind: 'uniform', lo: 8, hi: 24 } },
+    adapters: { count: 4, sharePermille: 300 },
+  },
+}
+/** Poisson arrivals, half of the requests with a grammar. */
+const GRAMMAR_STREAM: WorkloadInput = {
+  fn: 'genWorkload',
+  seed: 23,
+  spec: {
+    requests: 40,
+    arrivals: { kind: 'poisson', ratePerSMilli: 50_000 },
+    lengths: { kind: 'dists', prompt: { kind: 'uniform', lo: 16, hi: 96 }, output: { kind: 'uniform', lo: 8, hi: 32 } },
+    structuredPermille: 500,
+  },
+}
+/** The front page's world: a burst of six short requests on four slots, and all of them with a grammar. */
+const TICK_GRAMMAR: WorkloadInput = {
+  fn: 'genWorkload',
+  seed: 1,
+  spec: {
+    requests: 6,
+    arrivals: { kind: 'burst' },
+    lengths: { kind: 'dists', prompt: { kind: 'const', value: 1 }, output: { kind: 'menu', values: [2, 3, 4, 6], weights: [3, 3, 2, 1] } },
+    structuredPermille: 1000,
+  },
+}
+/** A burst with long outputs, for speculation: many rounds to accept. */
+const LONG_BURST: WorkloadInput = {
+  fn: 'genWorkload',
+  seed: 24,
+  spec: { requests: 32, arrivals: { kind: 'burst' }, lengths: { kind: 'dists', prompt: { kind: 'uniform', lo: 32, hi: 128 }, output: { kind: 'uniform', lo: 32, hi: 96 } } },
+}
+/** One hundred and twenty requests at once, for the two engines' defaults. */
+const DEFAULTS_BURST: WorkloadInput = {
+  fn: 'genWorkload',
+  seed: 25,
+  spec: { requests: 120, arrivals: { kind: 'burst' }, lengths: { kind: 'dists', prompt: { kind: 'uniform', lo: 16, hi: 200 }, output: { kind: 'uniform', lo: 8, hi: 40 } } },
+}
+/** Everything at once: adapters, grammars, speculation. */
+const EVERYTHING: WorkloadInput = {
+  fn: 'genWorkload',
+  seed: 26,
+  spec: {
+    requests: 48,
+    arrivals: { kind: 'poisson', ratePerSMilli: 80_000 },
+    lengths: { kind: 'dists', prompt: { kind: 'uniform', lo: 16, hi: 160 }, output: { kind: 'uniform', lo: 16, hi: 64 } },
+    adapters: { count: 3, sharePermille: 600 },
+    structuredPermille: 400,
+  },
+}
+
+const V1_ENGINE = { maxNumSeqs: 64, maxBatchedTokens: 8192, chunkedPrefill: true, inputIds: 'device' } as const
+/** vLLM's list up to 512, which the harness's 64 sequences would not make but a larger engine does: room for batches with a prefill. */
+const LIST_512 = defaultCaptureSizes(512)
+const v1Sizes = (decodeQueryLen = 1, roundForV1 = false) => ({ vllm: { ...HARNESS_ENGINE, decodeQueryLen, ...(roundForV1 ? { roundForV1 } : {}) } }) as const
+
+const steploopV1Inputs: Record<string, SteploopV1Input> = {
+  // --- Graph modes and dispatch keys, on the MRV2 runner (the default) -------------------------------------------------------------
+  'MRV2 PIECEWISE: every step replays the graph of its size, with attention launched between the pieces': {
+    workload: MIXED_STREAM,
+    config: { ...V1_ENGINE, asyncScheduling: true, runner: 'mrv2', graphs: { mode: 'PIECEWISE', captureSizes: LIST_512 } },
+    host: 'mrv2',
+    gpu: H100_TP4_CPU,
+    horizonUs: FOREVER,
+    output: 'digest',
+  },
+  'MRV2 FULL: one full graph for every batch, decode or mixed': {
+    workload: MIXED_STREAM,
+    config: { ...V1_ENGINE, asyncScheduling: true, runner: 'mrv2', graphs: { mode: 'FULL', captureSizes: LIST_512 } },
+    host: 'mrv2',
+    gpu: H100_TP4_CPU,
+    horizonUs: FOREVER,
+    output: 'digest',
+  },
+  'MRV2 FULL_DECODE_ONLY: the decode steps replay a full graph and the steps with a prefill run eagerly': {
+    workload: MIXED_STREAM,
+    config: { ...V1_ENGINE, asyncScheduling: true, runner: 'mrv2', graphs: { mode: 'FULL_DECODE_ONLY', captureSizes: LIST_512 } },
+    host: 'mrv2',
+    gpu: H100_TP4_CPU,
+    horizonUs: FOREVER,
+    output: 'digest',
+  },
+  'MRV2 FULL_AND_PIECEWISE, the default mode of vLLM: decode steps replay a full graph and the others piecewise graphs': {
+    workload: MIXED_STREAM,
+    config: { ...V1_ENGINE, asyncScheduling: true, runner: 'mrv2', graphs: { mode: 'FULL_AND_PIECEWISE', captureSizes: LIST_512 } },
+    host: 'mrv2',
+    gpu: H100_TP4_CPU,
+    horizonUs: FOREVER,
+    output: 'digest',
+  },
+  'MRV2 with graphs off, as a reference for the runs above': {
+    workload: MIXED_STREAM,
+    config: { ...V1_ENGINE, asyncScheduling: true, runner: 'mrv2', graphs: { mode: 'NONE', captureSizes: [] } },
+    host: 'mrv2',
+    gpu: H100_TP4_CPU,
+    horizonUs: FOREVER,
+    output: 'digest',
+  },
+  // --- The legacy runner ----------------------------------------------------------------------------------------------------------
+  'MRV1 FULL_AND_PIECEWISE: the same workload through the legacy runner and its host card': {
+    workload: MIXED_STREAM,
+    config: { ...V1_ENGINE, asyncScheduling: true, runner: 'v1', graphs: { mode: 'FULL_AND_PIECEWISE', captureSizes: LIST_512 } },
+    host: 'v1',
+    gpu: H100_TP4_CPU,
+    horizonUs: FOREVER,
+    output: 'digest',
+  },
+  'MRV1 FULL_DECODE_ONLY': {
+    workload: MIXED_STREAM,
+    config: { ...V1_ENGINE, asyncScheduling: true, runner: 'v1', graphs: { mode: 'FULL_DECODE_ONLY', captureSizes: LIST_512 } },
+    host: 'v1',
+    gpu: H100_TP4_CPU,
+    horizonUs: FOREVER,
+    output: 'digest',
+  },
+  // --- Capture-size padding -------------------------------------------------------------------------------------------------------
+  'MRV2 FULL_AND_PIECEWISE with sizes 1 to 128 by powers of 2: the padding of a short list, and the batches above 128 that run eagerly': {
+    workload: MIXED_STREAM,
+    config: { ...V1_ENGINE, asyncScheduling: true, runner: 'mrv2', graphs: { mode: 'FULL_AND_PIECEWISE', captureSizes: [1, 2, 4, 8, 16, 32, 64, 128] } },
+    host: 'mrv2',
+    gpu: H100_TP4_CPU,
+    horizonUs: FOREVER,
+    output: 'digest',
+  },
+  // --- Per-GPU engine defaults ----------------------------------------------------------------------------------------------------
+  'the 4090 defaults of vLLM (256 sequences, 2,048 tokens) with the capture sizes vLLM makes for them': {
+    workload: DEFAULTS_BURST,
+    config: {
+      maxNumSeqs: ENGINE_DEFAULTS['rtx-4090'].vllm.seqs,
+      maxBatchedTokens: ENGINE_DEFAULTS['rtx-4090'].vllm.serverTokens,
+      chunkedPrefill: true,
+      inputIds: 'device',
+      asyncScheduling: true,
+      runner: 'mrv2',
+      graphs: { mode: 'FULL_AND_PIECEWISE', captureSizes: { vllm: { maxNumSeqs: ENGINE_DEFAULTS['rtx-4090'].vllm.seqs, maxBatchedTokens: ENGINE_DEFAULTS['rtx-4090'].vllm.serverTokens } } },
+    },
+    host: 'mrv2',
+    gpu: H100_TP4_CPU,
+    horizonUs: FOREVER,
+    output: 'digest',
+  },
+  'the H100 defaults of vLLM (1,024 sequences, 8,192 tokens) with the capture sizes vLLM makes for them': {
+    workload: DEFAULTS_BURST,
+    config: {
+      maxNumSeqs: ENGINE_DEFAULTS.h100.vllm.seqs,
+      maxBatchedTokens: ENGINE_DEFAULTS.h100.vllm.serverTokens,
+      chunkedPrefill: true,
+      inputIds: 'device',
+      asyncScheduling: true,
+      runner: 'mrv2',
+      graphs: { mode: 'FULL_AND_PIECEWISE', captureSizes: { vllm: { maxNumSeqs: ENGINE_DEFAULTS.h100.vllm.seqs, maxBatchedTokens: ENGINE_DEFAULTS.h100.vllm.serverTokens } } },
+    },
+    host: 'mrv2',
+    gpu: H100_TP4_CPU,
+    horizonUs: FOREVER,
+    output: 'digest',
+  },
+  // --- Adapters -------------------------------------------------------------------------------------------------------------------
+  'MRV2 with 4 adapters and a cap of 2: the graph for max_loras + 1 serves any batch with an adapter, and the graph of none the rest': {
+    workload: ADAPTER_SPARSE,
+    config: { ...V1_ENGINE, asyncScheduling: true, runner: 'mrv2', lora: { maxLoras: 2 }, graphs: { mode: 'FULL_AND_PIECEWISE', captureSizes: LIST_512 } },
+    host: 'mrv2',
+    gpu: H100_TP4_CPU,
+    horizonUs: FOREVER,
+    output: 'digest',
+  },
+  'MRV2 with cudagraph_specialize_lora off: it still captures the graphs without adapters, unlike MRV1': {
+    workload: ADAPTER_SPARSE,
+    config: { ...V1_ENGINE, asyncScheduling: true, runner: 'mrv2', lora: { maxLoras: 2 }, graphs: { mode: 'FULL_AND_PIECEWISE', captureSizes: LIST_512, specializeLora: false } },
+    host: 'mrv2',
+    gpu: H100_TP4_CPU,
+    horizonUs: FOREVER,
+    output: 'digest',
+  },
+  'MRV1 with the same adapters: has_lora is the key': {
+    workload: ADAPTER_SPARSE,
+    config: { ...V1_ENGINE, asyncScheduling: true, runner: 'v1', lora: { maxLoras: 2 }, graphs: { mode: 'FULL_AND_PIECEWISE', captureSizes: LIST_512 } },
+    host: 'v1',
+    gpu: H100_TP4_CPU,
+    horizonUs: FOREVER,
+    output: 'digest',
+  },
+  'MRV1 with cudagraph_specialize_lora off: only the max_loras + 1 graph exists, and a batch with no adapter runs eagerly': {
+    workload: ADAPTER_SPARSE,
+    config: { ...V1_ENGINE, asyncScheduling: true, runner: 'v1', lora: { maxLoras: 2 }, graphs: { mode: 'FULL_AND_PIECEWISE', captureSizes: LIST_512, specializeLora: false } },
+    host: 'v1',
+    gpu: H100_TP4_CPU,
+    horizonUs: FOREVER,
+    output: 'digest',
+  },
+  // --- The structured-output mask -------------------------------------------------------------------------------------------------
+  'mask on the tick card, overlapped, without async scheduling: each fill hides under its own forward': {
+    workload: TICK_GRAMMAR,
+    config: { ...TRAY, asyncScheduling: false, runner: 'mrv2', structured: { overlap: true }, graphs: { mode: 'NONE', captureSizes: [] } },
+    host: { card: 'tick', maskPerSeqUs: 1 },
+    gpu: { card: 'tick' },
+    horizonUs: FOREVER,
+    output: 'full',
+  },
+  'mask on the tick card, built after the forward: each fill sits on the critical path': {
+    workload: TICK_GRAMMAR,
+    config: { ...TRAY, asyncScheduling: false, runner: 'mrv2', structured: { overlap: false }, graphs: { mode: 'NONE', captureSizes: [] } },
+    host: { card: 'tick', maskPerSeqUs: 1 },
+    gpu: { card: 'tick' },
+    horizonUs: FOREVER,
+    output: 'full',
+  },
+  'mask on the tick card, overlapped, with async scheduling: a fill waits for the token of the step before it': {
+    workload: TICK_GRAMMAR,
+    config: { ...TRAY, asyncScheduling: true, runner: 'mrv2', structured: { overlap: true }, graphs: { mode: 'NONE', captureSizes: [] } },
+    host: { card: 'tick', maskPerSeqUs: 1 },
+    gpu: { card: 'tick' },
+    horizonUs: FOREVER,
+    output: 'full',
+  },
+  'mask on the 70B card, overlapped, with async scheduling and half the requests structured': {
+    workload: GRAMMAR_STREAM,
+    config: { ...V1_ENGINE, asyncScheduling: true, runner: 'mrv2', structured: { overlap: true }, graphs: { mode: 'FULL_AND_PIECEWISE', captureSizes: v1Sizes() } },
+    host: 'mrv2',
+    gpu: H100_TP4_CPU,
+    horizonUs: FOREVER,
+    output: 'digest',
+  },
+  'mask on the 70B card, built after the forward, without async scheduling': {
+    workload: GRAMMAR_STREAM,
+    config: { ...V1_ENGINE, asyncScheduling: false, runner: 'mrv2', structured: { overlap: false }, graphs: { mode: 'FULL_AND_PIECEWISE', captureSizes: v1Sizes() } },
+    host: 'mrv2',
+    gpu: H100_TP4_CPU,
+    horizonUs: FOREVER,
+    output: 'digest',
+  },
+  // --- Speculation ----------------------------------------------------------------------------------------------------------------
+  'speculation on the tick card with every draft accepted: a round emits 3 tokens, and the step carries 3': {
+    workload: { fn: 'genWorkload', seed: 3, spec: { requests: 2, arrivals: { kind: 'burst' }, lengths: { kind: 'dists', prompt: { kind: 'const', value: 1 }, output: { kind: 'const', value: 7 } } } },
+    config: { ...TRAY, asyncScheduling: false, runner: 'mrv2', spec: { k: 2, alphaPermille: 1000, draftCostPermille: 0 }, graphs: { mode: 'NONE', captureSizes: [] } },
+    host: 'tick',
+    gpu: { card: 'tick' },
+    horizonUs: FOREVER,
+    output: 'full',
+  },
+  'speculation on the 70B card: 3 drafts, 70% accepted, a draft costs a tenth of a decode step, MRV2 and async': {
+    workload: LONG_BURST,
+    config: { ...V1_ENGINE, asyncScheduling: true, runner: 'mrv2', spec: { k: 3, alphaPermille: 700, draftCostPermille: 100 }, graphs: { mode: 'FULL_AND_PIECEWISE', captureSizes: v1Sizes(4) } },
+    host: 'mrv2',
+    gpu: H100_TP4_CPU,
+    horizonUs: FOREVER,
+    output: 'digest',
+  },
+  'the same speculation on MRV1, which rounds its sizes up to multiples of 4': {
+    workload: LONG_BURST,
+    config: { ...V1_ENGINE, asyncScheduling: true, runner: 'v1', spec: { k: 3, alphaPermille: 700, draftCostPermille: 100 }, graphs: { mode: 'FULL_AND_PIECEWISE', captureSizes: v1Sizes(4, true) } },
+    host: 'v1',
+    gpu: H100_TP4_CPU,
+    horizonUs: FOREVER,
+    output: 'digest',
+  },
+  // --- D-044 ----------------------------------------------------------------------------------------------------------------------
+  '70B card, the host term on the CPU lane (D-044, proposed): the default, so async scheduling has something to hide': {
+    workload: MIXED_BURST,
+    config: { ...V1_ENGINE, asyncScheduling: true, runner: 'mrv2', graphs: { mode: 'FULL_AND_PIECEWISE', captureSizes: v1Sizes() } },
+    host: 'mrv2',
+    gpu: H100_TP4_CPU,
+    horizonUs: FOREVER,
+    output: 'digest',
+  },
+  '70B card, the host term inside the GPU step as S5 fitted it': {
+    workload: MIXED_BURST,
+    config: { ...V1_ENGINE, asyncScheduling: true, runner: 'mrv2', graphs: { mode: 'FULL_AND_PIECEWISE', captureSizes: v1Sizes() } },
+    host: 'mrv2',
+    gpu: { ...H100_TP4, hostTerm: 'in-gpu' },
+    horizonUs: FOREVER,
+    output: 'digest',
+  },
+  // --- All together -----------------------------------------------------------------------------------------------------------------
+  'everything on: MRV2, FULL_AND_PIECEWISE, adapters with a cap of 3, the mask overlapped, and speculation, with async scheduling': {
+    workload: EVERYTHING,
+    config: {
+      ...V1_ENGINE,
+      asyncScheduling: true,
+      runner: 'mrv2',
+      lora: { maxLoras: 3 },
+      structured: { overlap: true },
+      spec: { k: 2, alphaPermille: 800, draftCostPermille: 50 },
+      graphs: { mode: 'FULL_AND_PIECEWISE', captureSizes: v1Sizes(3), specializeActiveLora: true },
+    },
+    host: 'mrv2',
+    gpu: H100_TP4_CPU,
+    horizonUs: FOREVER,
+    output: 'digest',
+  },
+}
+
+function runSteploopV1(root: string, input: SteploopV1Input): StepLoopRun {
+  const { graphs } = input.config
+  let captureSizes: readonly number[]
+  if (Array.isArray(graphs.captureSizes)) captureSizes = graphs.captureSizes
+  else {
+    const { vllm } = graphs.captureSizes as { vllm: { maxNumSeqs: number; maxBatchedTokens: number; decodeQueryLen?: number; roundForV1?: boolean } }
+    captureSizes = vllmCaptureSizes(vllm)
+    if (vllm.roundForV1 === true) captureSizes = mrv1RoundedSizes(captureSizes, vllm.decodeQueryLen ?? 1)
+  }
+  const config: StepLoopConfig = { ...input.config, graphs: { ...graphs, captureSizes } }
+  const host = input.host === 'tick' ? TICK_CARD : typeof input.host === 'object' ? { ...TICK_CARD, maskPerSeqUs: input.host.maskPerSeqUs } : HOST_PRESETS[input.host].card
+  const gpu: GpuCard = input.gpu.card === 'tick' ? TICK_CARD : s5Card(input.gpu.row, input.gpu.tp, input.gpu.hostTerm)
+  return runStepLoop(runWorkload(root, input.workload), config, host, gpu, { horizonUs: input.horizonUs })
+}
+
+function steploopV1Output(run: StepLoopRun, output: SteploopV1Input['output']): unknown {
+  if (output === 'full') return run
+  const byMode: Record<string, number> = {}
+  for (const step of run.steps) byMode[step.mode ?? 'none'] = (byMode[step.mode ?? 'none'] ?? 0) + 1
+  return {
+    summary: run.summary,
+    violations: run.violations,
+    steps: run.steps.length,
+    stepsByMode: byMode,
+    sha256: { lanes: sha256(canonicalJson(run.lanes)), steps: sha256(canonicalJson(run.steps)), reqs: sha256(canonicalJson(run.reqs)) },
+  }
+}
+
+const steploopV1: VectorModel = {
+  model: 'steploop-v1',
+  file: `${FIXTURE_DIR}/steploop-v1.json`,
+  header:
+    'Golden vectors for packages/sim/steploop at v1 (ARCHITECTURE section 5.10; W1-T12): each maps its input, a workload with a configuration that turns on a v1 feature (a runner and graph mode, adapters, the structured-output mask, speculation, or the 70B card with its host term on the CPU lane, D-044, proposed), a host card, a GPU card and a horizon, to the run it gives, with the SHA-256 of that run\'s canonical JSON. A run on the front page\'s tick card is recorded whole. A longer run is recorded as its summary and violations, the count of its steps by graph mode, and the SHA-256 of its lanes, steps and requests. tests/fixtures/sim/steploop.json holds the runs without a v1 field and is not touched by this file. Regenerate only with `bun scripts/vectors.ts --write`, and review the diff like code.',
+  cases: (root) => Object.entries(steploopV1Inputs).map(([name, input]) => ({ name, input, run: () => steploopV1Output(runSteploopV1(root, input), input.output) })),
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------
@@ -965,7 +1339,7 @@ const lifecycle: VectorModel = {
   cases: () => Object.entries(lifecycleInputs).map(([name, input]) => ({ name, input, run: () => lifecycleOutput(input) })),
 }
 
-export const MODELS: readonly VectorModel[] = [workload, steploop, trace, bench, spec, lifecycle]
+export const MODELS: readonly VectorModel[] = [workload, steploop, steploopV1, trace, bench, spec, lifecycle]
 
 // ---------------------------------------------------------------------------------------------------------------------------
 // fixtures
