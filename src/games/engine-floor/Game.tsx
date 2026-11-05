@@ -43,7 +43,9 @@ function FloorScene(props: Scene3DProps) {
  * The 3D view (W1-T18) is the house in cutaway, in a Stage that paints the 2D house first and keeps it as the fallback (A§6.7). It opens on
  * its own on a device whose tier draws 3D, and leads the page with the controls beside it; `V` or the switch swaps the two views, and the
  * session lives here, above both, so a swap keeps the prediction, the path and the runs. The camera's stop lives here too: `C` and the
- * stop buttons move it, in 3D only. The 2D view stays a first-class path to the whole concept (A§6.2).
+ * stop buttons move it, in 3D only, and a run sent from the cutaway takes the follow. On a wide screen the 3D view and its switches stay
+ * in sight while the controls run on down the page (GameShell's sticky stage), so a run sent from the stub far down the column plays where
+ * it is seen. The 2D view stays a first-class path to the whole concept (A§6.2).
  *
  * The debrief is imported with the game and not on demand. It draws with the same parts as the 2D view, so a chunk of its own would take
  * them out of the game's chunk, and `verify:bundle` finds a game by the chunk that Game.tsx opens: that chunk must hold the game whole.
@@ -119,7 +121,7 @@ export default function Game({ level, mode, placement = 'page', rev, onFinish }:
       unavailable3d={unavailable3d}
       view={view}
       onViewChange={setChosenView}
-      stage
+      stage="sticky"
       onCommand={(command, r) => {
         if (command === 'run' || command === 'step') return run(r)
         if (command === 'unlay') {
@@ -138,7 +140,7 @@ export default function Game({ level, mode, placement = 'page', rev, onFinish }:
         return false
       }}
       view2d={(r) => <View2D run={r} />}
-      scene3d={(r) => <FloorStage run={r} stop={stop} />}
+      scene3d={(r) => <FloorStage run={r} stop={stop} onStop={setStop} />}
       controls={(r) => (
         <>
           {view === '3d' ? <Stops run={r} stop={stop} onStop={setStop} /> : null}
@@ -178,7 +180,7 @@ function Stops({ run, stop, onStop }: { run: FloorRun; stop: CameraStop; onStop:
  */
 const STAGE_BOX = 'h-[clamp(20rem,min(70svh,52vw),48rem)] max-[479px]:h-[max(20rem,58svh)]'
 
-function FloorStage({ run, stop }: { run: FloorRun; stop: CameraStop }) {
+function FloorStage({ run, stop, onStop }: { run: FloorRun; stop: CameraStop; onStop: (stop: CameraStop) => void }) {
   // The scene's model is laid out here, from the view, and its house is kept while the plan stays the same (scene-presets.ts).
   const [model, setModel] = useState(() => sceneModelOf(run.view))
   const [seen, setSeen] = useState(run.view)
@@ -186,6 +188,13 @@ function FloorStage({ run, stop }: { run: FloorRun; stop: CameraStop }) {
     setSeen(run.view)
     setModel(sceneModelOf(run.view, model))
   }
+  // A run sent from the cutaway takes the follow, close on the ticket, so its way and where it stops are seen (cut to, under reduced motion).
+  const runs = run.view.runs
+  const ran = useRef(runs)
+  useEffect(() => {
+    if (runs > ran.current && stop === 'cutaway') onStop('follow')
+    ran.current = runs
+  }, [runs, stop, onStop])
   return (
     <Stage
       id="engine-floor"

@@ -5,11 +5,12 @@
  *
  *   Cutaway            Establish: the whole house at three quarters, every storey's deck in view.
  *   One floor          Focus, one for each storey, named by its tape.
- *   Follow the ticket  Follow: the storey the ticket stands on, moving with it stop by stop while a run plays (opt-in; under reduced
- *                      motion it cuts from stop to stop as the ticket does).
+ *   Follow the ticket  Follow: close on the ticket's hands, moving with it stop by stop while a run plays. A run sent from the cutaway
+ *                      takes it (Game.tsx), so the ticket is seen on its way; under reduced motion it cuts from stop to stop.
  */
 import { housePlan, mapOfView, type Floor } from '@es/play/engine-floor/layout'
 import type { FloorView } from '@es/play/engine-floor/types'
+import { FLOOR_NAMES } from '@es/play/engine-floor/words'
 
 /** What the learner picks: the cutaway, one storey (by its place from the top, the line last), or the ticket's storey. */
 export type CameraStop = 'cutaway' | `floor:${number}` | 'follow'
@@ -19,12 +20,14 @@ export const DEFAULT_STOP: CameraStop = 'cutaway'
 /**
  * The house's floors for a view, as the 2D house plans them (packages/play/engine-floor/layout.ts): before the prediction only the floor the
  * request begins on, and a sealed view only the floors the route has reached. Processes from the top in the order the path first visits
- * them, the line (the GPU) last.
+ * them, and the line (the GPU) last, always: it is the kitchen the house stands in and says nothing of how many floors a token crosses.
+ * Its streams join it as the 2D house plans them.
  */
 export function floorsOf(view: FloorView): Floor[] {
   const map = mapOfView(view)
   const visited = [map.entry, map.capsule, ...map.stages.flatMap((stage) => [stage.from, stage.to]), ...(map.lamp === null ? [] : [map.lamp.place])]
-  return housePlan(map.revealed ? [...map.plan, ...visited] : visited)
+  const floors = housePlan(map.revealed ? [...map.plan, ...visited] : visited)
+  return floors.some((floor) => floor.kind === 'line') ? floors : [...floors, { kind: 'line', process: null, title: FLOOR_NAMES.line, lanes: [] }]
 }
 
 /** A floor's name on its button: its tape's words. */

@@ -8,8 +8,9 @@
  *      no animation frame is asked for.
  *   3. `V` keeps the session: the prediction, the laid path and what the run found are the same in 2D and back in 3D, and the scene draws
  *      the same route.
- *   And: `C` and the buttons reach every camera stop; the run's moment plays and then lets the frames go; the capture is not blank; all
- *   text is DOM; and axe finds nothing serious on the 3D view.
+ *   And: `C` and the buttons reach every camera stop; the run's moment plays and then lets the frames go; a run sent from the stub far down
+ *   the column plays in sight, the scene's column sticking on a wide screen and the camera taking the follow from the cutaway (the finish
+ *   review's round 1); the capture is not blank; all text is DOM; and axe finds nothing serious on the 3D view.
  *
  * How it runs, as e2e/loop-scene.spec.ts does: one test build with `VITE_ES_TEST_HOOKS=1` (it exposes `window.__esScene` and honours
  * `?es-tier=<0-3>`), served by `context.route` so no server runs, with any request off the origin failing the test. Chromium renders
@@ -119,7 +120,12 @@ async function home(page: Page) {
   })
 }
 
-/** Waits until the scene is drawn, the Stage says it is settled, and no frame has been drawn for half a second. */
+/**
+ * Waits until the scene is drawn, the Stage says it is settled, and no frame has been drawn for a second and a half. A software renderer
+ * on a loaded machine can take most of a second over one frame of the house, and the frame a change asks for after the one it is drawing
+ * comes only when that one is done: half a second of quiet could fall between the two [measured 2026-11-05: a late frame about 0.9 s
+ * after half a second's quiet, on SwiftShader under load].
+ */
 async function settle(page: Page) {
   await home(page)
   await expect(stage(page)).toHaveAttribute('data-stage-phase', 'live', { timeout: 60_000 })
@@ -133,7 +139,7 @@ async function settle(page: Page) {
         frames = now
         return still
       },
-      { intervals: [500], timeout: 60_000 },
+      { intervals: [1500], timeout: 60_000 },
     )
     .toBe(true)
 }
@@ -211,6 +217,30 @@ test.describe('the moment, on the bell (GAMES.md §5, "Motion")', () => {
     await expect(struck).toHaveCount(1)
     await expect(struck).toHaveText('14')
     await expect(stage(page).locator('.es-floor-chit__n[data-state="ran"]')).toHaveCount(13)
+  })
+
+  test('the stub pulled far down the column sends a run that is seen: the scene stays in sight on a wide screen, and the camera takes the follow from the cutaway', async ({ page }) => {
+    test.setTimeout(180_000)
+    await open(page, 'vllm', 2)
+    await settle(page)
+    await commit(page, 2)
+    await lay(page, reference('vllm').slice(0, 13))
+    await settle(page)
+    const stub = page.getByRole('button', { name: 'Run the path' })
+    await stub.scrollIntoViewIfNeeded()
+    expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(400)
+    // Scrolled to the stub, the 3D view is still whole in the viewport: its column sticks.
+    const box = await stage(page).boundingBox()
+    const height = page.viewportSize()?.height ?? 0
+    expect(box?.y ?? -1).toBeGreaterThanOrEqual(0)
+    expect((box?.y ?? 0) + (box?.height ?? Infinity)).toBeLessThanOrEqual(height)
+    await expect(camera(page).locator('button[aria-pressed="true"]')).toHaveText('Cutaway')
+    await stub.click()
+    await expect(camera(page).locator('button[aria-pressed="true"]')).toHaveText('Follow the ticket')
+    await expect(page.locator('[data-floor-path] li[data-state="ran"]')).toHaveCount(13)
+    // The run plays where it is seen: frames come while the ticket travels, and the house settles where it stopped.
+    await expect(stage(page)).not.toHaveAttribute('data-settled', 'true', { timeout: 10_000 })
+    await expect(stage(page)).toHaveAttribute('data-settled', 'true', { timeout: 60_000 })
   })
 })
 

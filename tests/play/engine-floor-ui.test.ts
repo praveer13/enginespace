@@ -104,7 +104,15 @@ describe('before the prediction: the drawing does not answer it, and the tray is
     expect(markup).toContain('The tray opens when the prediction is written down.')
     expect(markup).not.toContain('data-stage=')
     expect(markup).not.toContain('es-floor-tile')
-    expect(count(markup, /es-ticket__head/g)).toBe(2)
+    // The path's head line, and no card's: the order's headline leads its paper with no head line over it.
+    expect(count(markup, /es-ticket__head/g)).toBe(1)
+  })
+
+  test('the order\'s stamped headline leads its paper: no head line over it says "Order" or repeats the level, and the pin prints on its foot', () => {
+    const order = markup.slice(markup.indexOf('data-floor-order'))
+    expect(order.slice(0, order.indexOf('es-ticket__title'))).not.toContain('es-ticket__head')
+    expect(markup).not.toContain('>Order<')
+    expect(markup).toContain('vLLM v0.33.0 · vllm-project/vllm at 4ba787e')
   })
 
   test('the path says where the request begins and has its stub disabled', () => {
@@ -247,6 +255,8 @@ describe('the debrief: the first wrong stage, the prediction, and two houses sid
     const markup = render(h(Debrief, { run: fakeRun(state), outcome: outcomeOf(state), next: { id: 'nano-tp', title: 'nano-vllm on two GPUs' }, onNext: () => undefined }))
     expect(markup).toContain('Every hand-off held.')
     expect(markup).toContain('Every hand-off held on the first run')
+    // The verdict leads its paper: no head line over it says "Debrief" or names the level, which the level's tape names.
+    expect(markup.slice(0, markup.indexOf('Every hand-off held.'))).not.toContain('es-ticket__head')
     expect(markup).not.toContain('data-floor-first-wrong')
     expect(markup).toContain('It was right: the path has')
     expect(markup).toContain('Next level: <strong class="text-text-1">nano-vllm on two GPUs</strong>')

@@ -188,12 +188,11 @@ export function Debrief({ run, outcome, next, onNext, onGraded = null, onPractic
 
   return (
     <div className="flex max-w-3xl flex-col gap-6" data-floor-debrief="">
+      {/* The verdict's stamped headline leads the paper, with no head line over it (DESIGN.md, Tickets): the level's tape names the level. */}
       <Ticket
         as="section"
         width="full"
         hole={false}
-        head="Debrief"
-        meta={view.title}
         titleAs="h3"
         title={titleOf(run, grade.ok)}
         stub={
