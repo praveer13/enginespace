@@ -1,0 +1,157 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 171" width="360" height="171" fill="none" stroke="currentColor" stroke-width="0.75">
+  <title>The memory layout of the design document's request: a page is a row of pieces, one in each of the ten buffers that the layers of a group share with the other groups</title>
+  <desc>A grid with a row for each of the request's eleven pages and a column for each of ten buffers. The first seven rows are the full group's pages, the next two are the first sliding group's and the last two are the second sliding group's, each set apart by a bracket and a lighter shade. A page is one piece in each buffer, so one page id names ten pieces. A buffer holds one layer of each of the three groups.</desc>
+  <g stroke="none" fill="currentColor" font-size="10">
+    <text x="112" y="11">ten buffers, each shared by one layer</text>
+    <text x="112" y="22">of every group</text>
+  </g>
+  <g stroke="none" fill="currentColor" font-size="9" text-anchor="middle">
+    <text x="122" y="37">0</text>
+    <text x="144" y="37">1</text>
+    <text x="166" y="37">2</text>
+    <text x="188" y="37">3</text>
+    <text x="210" y="37">4</text>
+    <text x="232" y="37">5</text>
+    <text x="254" y="37">6</text>
+    <text x="276" y="37">7</text>
+    <text x="298" y="37">8</text>
+    <text x="320" y="37">9</text>
+  </g>
+  <g stroke="none" fill="currentColor" font-size="9" text-anchor="end">
+    <text x="106" y="50">p0</text>
+    <text x="106" y="61">p1</text>
+    <text x="106" y="72">p2</text>
+    <text x="106" y="83">p3</text>
+    <text x="106" y="94">p4</text>
+    <text x="106" y="105">p5</text>
+    <text x="106" y="116">p6</text>
+    <text x="106" y="127">p7</text>
+    <text x="106" y="138">p8</text>
+    <text x="106" y="149">p9</text>
+    <text x="106" y="160">p10</text>
+  </g>
+  <g stroke="none" fill="currentColor" font-size="10" text-anchor="end">
+    <text x="66" y="83">full</text>
+    <text x="66" y="132.5">sliding</text>
+    <text x="66" y="154.5">sliding</text>
+  </g>
+  <g stroke-width="1">
+    <path d="M72 42V118M72 119V140M72 141V162"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.5">
+    <rect x="112" y="42" width="20" height="10"/>
+    <rect x="134" y="42" width="20" height="10"/>
+    <rect x="156" y="42" width="20" height="10"/>
+    <rect x="178" y="42" width="20" height="10"/>
+    <rect x="200" y="42" width="20" height="10"/>
+    <rect x="222" y="42" width="20" height="10"/>
+    <rect x="244" y="42" width="20" height="10"/>
+    <rect x="266" y="42" width="20" height="10"/>
+    <rect x="288" y="42" width="20" height="10"/>
+    <rect x="310" y="42" width="20" height="10"/>
+    <rect x="112" y="53" width="20" height="10"/>
+    <rect x="134" y="53" width="20" height="10"/>
+    <rect x="156" y="53" width="20" height="10"/>
+    <rect x="178" y="53" width="20" height="10"/>
+    <rect x="200" y="53" width="20" height="10"/>
+    <rect x="222" y="53" width="20" height="10"/>
+    <rect x="244" y="53" width="20" height="10"/>
+    <rect x="266" y="53" width="20" height="10"/>
+    <rect x="288" y="53" width="20" height="10"/>
+    <rect x="310" y="53" width="20" height="10"/>
+    <rect x="112" y="64" width="20" height="10"/>
+    <rect x="134" y="64" width="20" height="10"/>
+    <rect x="156" y="64" width="20" height="10"/>
+    <rect x="178" y="64" width="20" height="10"/>
+    <rect x="200" y="64" width="20" height="10"/>
+    <rect x="222" y="64" width="20" height="10"/>
+    <rect x="244" y="64" width="20" height="10"/>
+    <rect x="266" y="64" width="20" height="10"/>
+    <rect x="288" y="64" width="20" height="10"/>
+    <rect x="310" y="64" width="20" height="10"/>
+    <rect x="112" y="75" width="20" height="10"/>
+    <rect x="134" y="75" width="20" height="10"/>
+    <rect x="156" y="75" width="20" height="10"/>
+    <rect x="178" y="75" width="20" height="10"/>
+    <rect x="200" y="75" width="20" height="10"/>
+    <rect x="222" y="75" width="20" height="10"/>
+    <rect x="244" y="75" width="20" height="10"/>
+    <rect x="266" y="75" width="20" height="10"/>
+    <rect x="288" y="75" width="20" height="10"/>
+    <rect x="310" y="75" width="20" height="10"/>
+    <rect x="112" y="86" width="20" height="10"/>
+    <rect x="134" y="86" width="20" height="10"/>
+    <rect x="156" y="86" width="20" height="10"/>
+    <rect x="178" y="86" width="20" height="10"/>
+    <rect x="200" y="86" width="20" height="10"/>
+    <rect x="222" y="86" width="20" height="10"/>
+    <rect x="244" y="86" width="20" height="10"/>
+    <rect x="266" y="86" width="20" height="10"/>
+    <rect x="288" y="86" width="20" height="10"/>
+    <rect x="310" y="86" width="20" height="10"/>
+    <rect x="112" y="97" width="20" height="10"/>
+    <rect x="134" y="97" width="20" height="10"/>
+    <rect x="156" y="97" width="20" height="10"/>
+    <rect x="178" y="97" width="20" height="10"/>
+    <rect x="200" y="97" width="20" height="10"/>
+    <rect x="222" y="97" width="20" height="10"/>
+    <rect x="244" y="97" width="20" height="10"/>
+    <rect x="266" y="97" width="20" height="10"/>
+    <rect x="288" y="97" width="20" height="10"/>
+    <rect x="310" y="97" width="20" height="10"/>
+    <rect x="112" y="108" width="20" height="10"/>
+    <rect x="134" y="108" width="20" height="10"/>
+    <rect x="156" y="108" width="20" height="10"/>
+    <rect x="178" y="108" width="20" height="10"/>
+    <rect x="200" y="108" width="20" height="10"/>
+    <rect x="222" y="108" width="20" height="10"/>
+    <rect x="244" y="108" width="20" height="10"/>
+    <rect x="266" y="108" width="20" height="10"/>
+    <rect x="288" y="108" width="20" height="10"/>
+    <rect x="310" y="108" width="20" height="10"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.28">
+    <rect x="112" y="119" width="20" height="10"/>
+    <rect x="134" y="119" width="20" height="10"/>
+    <rect x="156" y="119" width="20" height="10"/>
+    <rect x="178" y="119" width="20" height="10"/>
+    <rect x="200" y="119" width="20" height="10"/>
+    <rect x="222" y="119" width="20" height="10"/>
+    <rect x="244" y="119" width="20" height="10"/>
+    <rect x="266" y="119" width="20" height="10"/>
+    <rect x="288" y="119" width="20" height="10"/>
+    <rect x="310" y="119" width="20" height="10"/>
+    <rect x="112" y="130" width="20" height="10"/>
+    <rect x="134" y="130" width="20" height="10"/>
+    <rect x="156" y="130" width="20" height="10"/>
+    <rect x="178" y="130" width="20" height="10"/>
+    <rect x="200" y="130" width="20" height="10"/>
+    <rect x="222" y="130" width="20" height="10"/>
+    <rect x="244" y="130" width="20" height="10"/>
+    <rect x="266" y="130" width="20" height="10"/>
+    <rect x="288" y="130" width="20" height="10"/>
+    <rect x="310" y="130" width="20" height="10"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.12">
+    <rect x="112" y="141" width="20" height="10"/>
+    <rect x="134" y="141" width="20" height="10"/>
+    <rect x="156" y="141" width="20" height="10"/>
+    <rect x="178" y="141" width="20" height="10"/>
+    <rect x="200" y="141" width="20" height="10"/>
+    <rect x="222" y="141" width="20" height="10"/>
+    <rect x="244" y="141" width="20" height="10"/>
+    <rect x="266" y="141" width="20" height="10"/>
+    <rect x="288" y="141" width="20" height="10"/>
+    <rect x="310" y="141" width="20" height="10"/>
+    <rect x="112" y="152" width="20" height="10"/>
+    <rect x="134" y="152" width="20" height="10"/>
+    <rect x="156" y="152" width="20" height="10"/>
+    <rect x="178" y="152" width="20" height="10"/>
+    <rect x="200" y="152" width="20" height="10"/>
+    <rect x="222" y="152" width="20" height="10"/>
+    <rect x="244" y="152" width="20" height="10"/>
+    <rect x="266" y="152" width="20" height="10"/>
+    <rect x="288" y="152" width="20" height="10"/>
+    <rect x="310" y="152" width="20" height="10"/>
+  </g>
+</svg>
