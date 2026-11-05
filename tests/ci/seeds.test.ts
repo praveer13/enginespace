@@ -101,6 +101,8 @@ describe("nightly.yml's properties job", () => {
     expect(timeout).toBeGreaterThan(5_000)
     // A test cannot be given longer than the job has.
     expect(timeout).toBeLessThanOrEqual((properties['timeout-minutes'] ?? 0) * 60_000)
+    // The suite at this size took an hour in one process, so its files run in two (nightly.yml has the figures).
+    expect(suite, 'the files run in parallel: `--parallel=<workers>`').toMatch(/--parallel=[2-9]\b/)
     expect(properties.steps?.some((step) => step.uses?.startsWith('oven-sh/setup-bun@'))).toBe(true)
   })
 

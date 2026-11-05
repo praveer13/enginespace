@@ -82,7 +82,7 @@ npm ci              # install the exact pins in package-lock.json
 npm run dev         # the dev server, with hot reload
 npm run lint        # ESLint
 npm run typecheck   # tsc -b: the app, the Node-side configs, and the pure packages (no DOM)
-npm test            # bun test: the unit and build tests in tests/; the nightly count of every seeded property is ES_PROPERTY_SEEDS=10000 bun test --timeout 900000 (ARCHITECTURE §5.10)
+npm test            # bun test: the unit and build tests in tests/; the nightly count of every seeded property is ES_PROPERTY_SEEDS=10000 bun test --parallel=2 --timeout 900000 (ARCHITECTURE §5.10)
 npm run build       # typecheck, then vite build into dist/, with dist/.vite/manifest.json
 npm run preview     # serve dist/
 npm run e2e         # Playwright's specs in e2e/ (axe, the keyboard walk, the network check, the screenshots): builds, serves with vite preview, runs; npx playwright install chromium first
