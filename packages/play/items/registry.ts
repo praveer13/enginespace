@@ -6,10 +6,15 @@
 import { bubbleWidth } from './families/tr2/bubble-width'
 import { graphHit } from './families/tr2/graph-hit'
 import { paddingWaste } from './families/tr2/padding-waste'
+import { exactnessTest } from './families/tr6/exactness-test'
+import { maskFits } from './families/tr6/mask-fits'
+import { maskPhases } from './families/tr6/mask-phases'
+import { verifyShape } from './families/tr6/verify-shape'
+import { whichRunner } from './families/tr6/which-runner'
 import type { Gen } from './types'
 
-/** Every family, in module order. */
-export const FAMILIES: readonly Gen[] = [bubbleWidth, graphHit, paddingWaste]
+/** Every family, in module order and, within a module, in the order of its files (the order in which `verify:items` reads them). */
+export const FAMILIES: readonly Gen[] = [bubbleWidth, graphHit, paddingWaste, exactnessTest, maskFits, maskPhases, verifyShape, whichRunner]
 
 const BY_ID: ReadonlyMap<string, Gen> = new Map(FAMILIES.map((family) => [family.id, family]))
 

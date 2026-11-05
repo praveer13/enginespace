@@ -150,17 +150,20 @@ describe('a sample family passes verify:items', () => {
       'tr2.graph-hit v1: 2 variants',
       'tr2.padding-waste v1: 3 variants',
     ])
-    // Four levels of each family: W1-T14 measured the two it added on the same thousand banded seeds per level.
-    expect(lines.filter((line) => line.startsWith('  level'))).toHaveLength(4 * FAMILIES.length)
-    for (const line of lines.filter((candidate) => candidate.startsWith('  level'))) {
-      expect(line).toMatch(/band \d+\.\d% of 2000, 1000 banded seeds, best blind strategy \d+\.\d% of a bound of \d+\.\d%/)
-    }
+    // Each family's line is followed by a line for each of its levels, and every level line reports the band and the best blind strategy.
+    const levelLines = lines.filter((line) => line.startsWith('  level'))
+    const familyLines = lines.filter((line) => !line.startsWith('  level'))
+    expect(familyLines).toHaveLength(FAMILIES.length)
+    const levelsOffered = familyLines.reduce((sum, line) => sum + (line.match(/levels ([0-3 ]+)$/)?.[1].trim().split(' ').length ?? 0), 0)
+    expect(levelLines).toHaveLength(levelsOffered)
+    for (const line of levelLines) expect(line).toMatch(/band \d+\.\d% of 2000, 1000 banded seeds, best blind strategy \d+\.\d% of a bound of \d+\.\d%/)
   })
 
   test('as a process it prints the report, and exits 0', () => {
     const { status, out } = gate(root)
     expect(status).toBe(0)
-    expect(out).toMatch(/verify:items passed: 3 famil\w+, 8 variants; each measured on 1000 banded seeds per level \[estimated\]/)
+    const variants = FAMILIES.reduce((sum, family) => sum + family.variants.length, 0)
+    expect(out).toMatch(new RegExp(`verify:items passed: ${FAMILIES.length} famil(?:y|ys|ies), ${variants} variants; each measured on 1000 banded seeds per level \\[estimated\\]`))
   })
 
   test('a fair family written as a later task will write one passes in a tree of its own', async () => {

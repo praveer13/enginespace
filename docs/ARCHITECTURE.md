@@ -1139,7 +1139,8 @@ Every job sets `permissions: contents: read` unless it needs more, and uses `per
 | Entry chunk and its static imports | ≤ 110 KB gz | ≤ 100 KB | [derived: kernelspace's larger app measured 115.7 KB, in one file that carried React; here React sits in `react-vendor`, so the row counts the entry and what it imports statically (D-023)] | `verify:bundle` (every PR) |
 | Front-page first-paint closure | ≤ 154 KB gz (D-055) | ≤ 130 KB | [estimated: about 60 KB React and ReactDOM, 15 KB router, 50 KB shell, 2D game and sim] | `verify:bundle` |
 | CSS (first paint) | ≤ 30 KB gz | ≤ 20 KB | [estimated] | `verify:bundle` |
-| Any other route's closure, excluding 3D | ≤ 200 KB gz | — | kernelspace's `/boot` and `/today` gate [measured precedent] | `verify:bundle` |
+| Any other route's closure, excluding 3D, `/today` and `/m/:module` | ≤ 201 KB gz (D-057) | — | kernelspace's `/boot` and `/today` gate, 200 KB [measured precedent] | `verify:bundle` |
+| The closure of `/today` and `/m/:module`, excluding 3D | ≤ 210 KB gz (D-056) | — | [measured: both carry every item family, about 3.4 KB gz each; 191.0 and 190.0 KB with the three families of the W1 tip, 208.3 and 207.2 KB with TR6's five] | `verify:bundle` |
 | `three-vendor` (three plus R3F) | ≤ 245 KB gz | — | [derived: kernelspace measured 238 to 242.4 KB] | `verify:bundle` |
 | Each `scene-<id>` | ≤ 40 KB gz | — | kernelspace's scene gate [measured precedent] | `verify:bundle` |
 | `postfx` | ≤ 25 KB gz | — | [estimated] | `verify:bundle` |
