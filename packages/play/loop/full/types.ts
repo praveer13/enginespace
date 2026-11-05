@@ -20,24 +20,34 @@ import type { FireView, KitchenView, LoopCounters } from '../types'
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /**
- * TR2's levels that W1-T13 builds, and TR6's mask lane. `keys` waits for the owner's dispatcher tables (DISPATCH_TABLES, Q-10) and
- * `close` is W1-T14's, so neither is a level of the session yet.
+ * TR2's levels that W1-T13 builds, TR6's mask lane, and W1-T14's graded `close`. `keys` waits for the owner's dispatcher tables
+ * (DISPATCH_TABLES, Q-10), so it is not a level of the session yet.
  */
-export type FullLevelId = 'async' | 'graphs' | 'mrv2' | 'mask'
+export type FullLevelId = 'async' | 'graphs' | 'mrv2' | 'close' | 'mask'
 
-/** A level's stages, which `[` and `]` move between: a cost card each for `async` and `mrv2`, and the three of `graphs`. */
-export type StageId = '70b' | 'small' | 'comb' | 'sizes' | 'modes' | 'mask'
+/** A level's stages, which `[` and `]` move between: a cost card each for `async` and `mrv2`, the three of `graphs`, and the one of `close`. */
+export type StageId = '70b' | 'small' | 'comb' | 'sizes' | 'modes' | 'close' | 'mask'
 
 /** The cost cards (GAMES.md §3.2): "70B on H100", kernelspace's S5 fit, and the synthetic small-model napkin. */
 export type CardId = '70b' | 'small'
 
-/** The levers a stage can put on the panel, by vLLM's names for them (GAMES.md §3.2, "Compose and In production"). */
-export type LeverName = 'async' | 'graphMode' | 'capture' | 'runner' | 'maskOverlap'
+/**
+ * The levers a stage can put on the panel, by vLLM's names for them (GAMES.md §3.2, "Compose and In production"). `inputIds` is the model's
+ * own lever and no engine's flag (the dependency check of ARCHITECTURE §5.3): where the next call's input ids come from.
+ */
+export type LeverName = 'async' | 'inputIds' | 'graphMode' | 'capture' | 'runner' | 'maskOverlap'
 
 /** What a night is served with. Every stage carries all of them; a stage's panel shows its own. */
 export interface Levers {
   /** Async scheduling: the next call is written during this fire (`--no-async-scheduling` turns it off). */
   readonly async: boolean
+  /**
+   * Where the next call's input ids come from (`StepLoopConfig.inputIds`): `'device'`, the GPU fills them from the tokens it sampled, as MRV2's
+   * GPU-side input preparation does (claim vllm.mrv2.gpu-input-prep), or `'host'`, the expo reads each token back and writes it. With async
+   * scheduling on, `'host'` reads a token before it is sampled: the run raises a dependency violation, which the graded level scores 0
+   * (ASSESSMENT §4.3). Every stage but `close` serves with `'device'` and has no lever for it.
+   */
+  readonly inputIds: 'device' | 'host'
   /** `compilation_config.cudagraph_mode` as requested. The backend may downgrade it (`resolveGraphMode`). */
   readonly graphMode: GraphModeId
   /** `cudagraph_capture_sizes`, ascending: the molds on the rack. */
@@ -50,7 +60,7 @@ export interface Levers {
 
 /** A prediction to commit before the stage's first night (GAMES.md §3, "Predict"): a number in a unit, or one of a few choices. */
 export type Prediction =
-  | { readonly kind: 'number'; readonly question: string; readonly unit: 'µs' | 'calls' | 'fires'; readonly tolerancePermille: Permille }
+  | { readonly kind: 'number'; readonly question: string; readonly unit: 'µs' | 'calls' | 'fires' | '%'; readonly tolerancePermille: Permille }
   | { readonly kind: 'choice'; readonly question: string; readonly options: readonly string[] }
 
 /** The histogram world of `graphs` · `sizes`: fires of decode rows, the molds the rack can hold, and the ladder to pick them from. */
@@ -66,6 +76,18 @@ export interface SizesWorld {
   readonly molds: number
   /** Context each row reads, in tokens: the night's decodes are priced at it [estimated]. */
   readonly context: number
+}
+
+/**
+ * The host card a seed draws for `close` (W1-T14; "seeded workload and host-card draws"): the CPU's phase costs of both runners scaled by one
+ * share, and the three costs of launching that vary by platform, all [estimated] like every host µs. `scalePermille` multiplies the schedule,
+ * prepare, sync and sample phases of the runner's preset; the launch of one kernel, the kernels a layer launches and one graph replay replace its own.
+ */
+export interface HostDraw {
+  readonly scalePermille: Permille
+  readonly launchUs: Us
+  readonly kernels: number
+  readonly replayUs: Us
 }
 
 /** A stage of a level on its seed: its world and its answers. */
@@ -86,6 +108,26 @@ export interface StageWorld {
   readonly naiveFails: boolean
   /** What a night is judged by: the clock of the whole night, or (sizes) the capture cost of padding and eager calls. */
   readonly metric: 'clock' | 'capture'
+  /**
+   * How a night meets the bar. `'clock'`: its metric is at most the house's times (1000 + slack) / 1000. `'throughput'` (`close`, ASSESSMENT
+   * §4.3): zero dependency violations, and useful tokens per GPU-ms at least 97% of the house's. A night the engine refuses never meets either.
+   */
+  readonly bar: 'clock' | 'throughput'
+  /** Nights the stage serves before it closes unpassed: three for the practice stages, one for `close` (one run per seed, GAMES.md §3.2). */
+  readonly nights: number
+  /**
+   * The stage is closed-book (`close`): the learner chooses the configuration from the cards, the live readouts stay hidden until the night is
+   * served (the mode a lever resolves to, the memory the routines take), and the bell serves the whole night at once.
+   */
+  readonly sealed: boolean
+  /** The prompts' lengths, uniform between the two (the workload card's), in tokens [estimated]. */
+  readonly prompts: readonly [number, number]
+  /** The host card the seed drew, or null for the runners' presets as they stand. */
+  readonly host: HostDraw | null
+  /** The capture sizes the panel offers (`close`), ascending, or null where the stage's own `sizes` world offers them. */
+  readonly ladder: readonly number[] | null
+  /** The useful tokens of the house's night: the bar's denominator beside its clock. */
+  readonly houseTokens: number
   /** The bar: a night passes when its metric is at most the house's times (1000 + slack) / 1000 [estimated]. */
   readonly slackPermille: Permille
   readonly prediction: Prediction
@@ -115,6 +157,9 @@ export interface StageWorld {
   readonly houseMetric: number
 }
 
+/** A stage's world before its answers: everything but the prediction's answer and the house's night, which the model measures. */
+export type Draft = Omit<StageWorld, 'answer' | 'houseMetric' | 'houseTokens'>
+
 export interface FullLevel {
   readonly id: FullLevelId
   readonly seed: Seed
@@ -138,7 +183,7 @@ export interface FullLevel {
  */
 export type FullAction =
   | { readonly t: 'commit'; readonly prediction: number }
-  | { readonly t: 'lever'; readonly name: 'async' | 'graphMode' | 'runner' | 'maskOverlap'; readonly value: boolean | string }
+  | { readonly t: 'lever'; readonly name: 'async' | 'inputIds' | 'graphMode' | 'runner' | 'maskOverlap'; readonly value: boolean | string }
   | { readonly t: 'capture'; readonly sizes: readonly number[] }
   | { readonly t: 'run'; readonly until: 'step' | 'decision' }
   | { readonly t: 'stage'; readonly to: string }
@@ -150,11 +195,17 @@ export type FullAsk = { readonly kind: 'predict'; readonly stage: StageId } | { 
 /* State                                                                                                              */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** A night served to its end: what it was served with, its metric, and whether it met the bar. */
+/**
+ * A night served to its end: what it was served with, its metric, and whether it met the bar. A graded night also says the useful tokens it
+ * served and the dependency violations it raised; a night the engine would not start (`refused`) has neither, and never meets the bar.
+ */
 export interface Served {
   readonly levers: Levers
   readonly metric: number
   readonly ok: boolean
+  readonly tokens?: number
+  readonly violations?: number
+  readonly refused?: boolean
 }
 
 export interface StageState {
@@ -251,6 +302,69 @@ export interface StageView {
   readonly support: BackendSupport
   readonly sizes: SizesWorld | null
   readonly maskRowUs: Us
+  /** The stage is closed-book: its panel hides `resolved` and `memory` until the night is served, and its bell serves the whole night. */
+  readonly sealed: boolean
+  /** The capture sizes the panel offers, ascending: the stage's mold ladder, or the `close` ladder. */
+  readonly ladder: readonly number[] | null
+  /** Nights the stage serves before it closes. */
+  readonly nights: number
+  /** What the last night served came to against the bar, for a graded stage; null before a night is served and on a stage judged by its clock alone. */
+  readonly verdict: Verdict | null
+  /** The cards of a closed-book stage: its workload, its cost card, its host card, its backend and its memory. Null on the other stages. */
+  readonly cards: CloseCards | null
+}
+
+/** How a graded night came out against ASSESSMENT §4.3's bar. */
+export interface Verdict {
+  readonly kind: 'pass' | 'slow' | 'violation' | 'refused'
+  /** Useful tokens per GPU-ms against the house's, out of 1,000 [derived]; null where the night broke the dependency or was refused. */
+  readonly throughputPermille: number | null
+  /** The pass mark, out of 1,000. */
+  readonly barPermille: number
+  readonly violations: number
+  /** Why the engine would not start, in words, for a refused night. */
+  readonly reason: string | null
+}
+
+/** The host phases of one runner, as `close`'s host card prints them (all [estimated]). */
+export interface HostLines {
+  readonly scheduleBaseUs: Us
+  readonly schedulePerSeqUs: Us
+  readonly prepPerTokenUs: Us
+  readonly syncUs: Us
+  readonly samplePerSeqUs: Us
+}
+
+/**
+ * What `close` prints on its cards (GAMES.md §3.2: "the configuration is chosen from the cards before a single run"), all computed by the
+ * model and none of it a reading of a run: the workload, the cost card's fire times, tonight's host card, the backend and the memory.
+ */
+export interface CloseCards {
+  /** The workload card: a burst of tickets due at once. */
+  readonly requests: number
+  readonly prompts: readonly [number, number]
+  readonly outputs: readonly [number, number]
+  readonly slots: number
+  /** `max_num_batched_tokens`: a fire carries at most this many tokens, so the longest fire of a night carries them all. */
+  readonly budget: number
+  /** The cost card: the model's layers, the context a decode fire is priced at, and the line's µs for a decode fire of these many rows, and for a fire that fills the budget. */
+  readonly layers: number
+  readonly context: number
+  readonly decodeUs: readonly { readonly rows: number; readonly us: Us }[]
+  readonly fullBudgetUs: Us
+  /** Tonight's host card: the launches shared by both runners, and the phases of each. */
+  readonly launchUs: Us
+  readonly kernels: number
+  readonly replayUs: Us
+  readonly eagerLaunchUs: Us
+  readonly mrv2: HostLines
+  readonly v1: HostLines
+  /** The attention backend's graph support, and the room the cache has for routines beyond the rail's own pans, in bytes. */
+  readonly support: BackendSupport
+  readonly roomBytes: number
+  /** The graph memory model: bytes a routine takes besides its tokens', and for each token of its size. */
+  readonly graphBaseBytes: number
+  readonly graphTokenBytes: number
 }
 
 export interface FullView extends KitchenView {

@@ -95,7 +95,6 @@
   description: You can say why the GPU idles between engine steps when the CPU's work for the next step is not ready.
   requires: [ks:t0.wait-bars, tr2.step-calls]
   threshold: true
-  planned: W1-T14 # the `tr2.bubble-width` family, and the graded `close` level
 
 - id: tr2.async-overlap
   description: You can say which CPU work async scheduling plans behind the running step, and what it still leaves on the critical path.
@@ -103,32 +102,27 @@
   # Two cures for the same idle GPU: plan the next step during this one, or replay a captured graph (TR2 §0). And the V2 runner's own
   # account of itself reads like the same overlap (GAMES.md §3, claims).
   confusable: [tr2.graph-replay, tr2.mrv2-delta]
-  planned: W1-T14 # the `tr2.bubble-width` family, and `close`
 
 - id: tr2.mrv2-delta
   description: You can say what the V2 model runner changes about the step (state kept apart from per-step inputs, input preparation on the GPU), and when a configuration falls back to the older runner.
   requires: [tr2.async-overlap]
   confusable: [tr2.async-overlap]
-  planned: W1-T14 # `close`, whose levers include the runner
 
 - id: tr2.graph-replay
   description: You can say what one CUDA graph replay saves over launching the same kernels one by one, and why it holds only for the shapes that were captured.
   requires: [tr2.bubble]
   threshold: true
   confusable: [tr2.async-overlap]
-  planned: W1-T14 # the `tr2.graph-hit` family
 
 - id: tr2.capture-padding
   description: You can work out the size a batch is padded to under a list of captured sizes and what the padding wastes, and choose sizes for a given mix of batches.
   requires: [tr2.graph-replay]
-  planned: W1-T14 # the `tr2.padding-waste` family
 
 - id: tr2.graph-modes
   description: You can name the CUDA-graph modes an engine offers, say which one a workload and an attention backend need, and why the mode requested is not always the mode that runs.
   requires: [tr2.graph-replay]
   # The mode you ask for against the graph a batch replays: one is a setting, the other is looked up at each step (TR2 §1, items 6 and 7).
   confusable: [tr2.dispatch-keys]
-  planned: W1-T14 # `close`, whose levers include the graph mode
 
 - id: tr2.dispatch-keys
   description: You can say which fields of a batch's descriptor choose the CUDA graph that replays it, in the pinned runner and in the legacy one, and what runs when none matches.
@@ -139,7 +133,6 @@
 - id: tr2.graph-memory
   description: You can say why graph capture takes memory before the KV cache is sized, and correct a KV-capacity estimate for it.
   requires: [ks:t5.kv-capacity, tr2.graph-replay]
-  planned: W1-T14 # `close`, whose capture budget is memory (TR2 §5)
 
 # ---------------------------------------------------------------------------------------------------------------------------------
 # TR5a · Hybrid KV groups, and adapter pages in one pool

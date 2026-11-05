@@ -1,4 +1,4 @@
-import type { FullView } from '@es/play/loop/full/types'
+import type { FullView, Verdict } from '@es/play/loop/full/types'
 import type { NumberTag } from '@/design/components/Readout'
 
 /*
@@ -16,3 +16,17 @@ export function tagOf(view: Pick<FullView, 'synthetic'>, kind: FigureKind): Numb
 
 /** The tape's stamp: what the µs are, once, for the eye. */
 export const stampOf = (view: Pick<FullView, 'synthetic'>): string => (view.synthetic ? "the model's clock · synthetic" : "the model's clock · line derived, expo estimated")
+
+/** The verdict in a sentence for the live region and the screen reader: it carries no digit, because the figures are Readouts beside it. */
+export function verdictWords(verdict: Verdict): string {
+  switch (verdict.kind) {
+    case 'pass':
+      return 'The night meets the bar.'
+    case 'slow':
+      return 'The night serves too few tokens for each ms to meet the bar.'
+    case 'violation':
+      return 'A fire read a token before it was sampled: the night scores nothing.'
+    case 'refused':
+      return 'The engine would not start: the night scores nothing.'
+  }
+}

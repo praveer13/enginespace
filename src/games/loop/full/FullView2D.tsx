@@ -28,8 +28,12 @@ export function FullView2D({ run }: { run: FullRun }) {
         <span className="flex flex-wrap items-baseline gap-x-2">
           <span>{capture ? 'Capture cost' : 'Clock'}</span>
           <Readout value={capture ? view.counters.captureUs : view.clockUs} unit="µs" tag={tagOf(view, 'expo')} size="sm" />
-          <span>against the house</span>
-          <Readout value={view.stage.houseMetric} unit="µs" tag={tagOf(view, 'expo')} size="sm" />
+          {view.stage.sealed && !view.stage.closed ? null : (
+            <>
+              <span>against the house</span>
+              <Readout value={view.stage.houseMetric} unit="µs" tag={tagOf(view, 'expo')} size="sm" />
+            </>
+          )}
         </span>
       </div>
     </div>

@@ -17,7 +17,7 @@ import type { Kc } from '@es/schema'
 import { loadYaml } from '../../scripts/content/parse.ts'
 import { untaggedNumbers } from '../../scripts/content/prose.ts'
 import { GATES } from '../../scripts/verify.ts'
-import { checkKc, courseModules, gameReferences, trackerTasks } from '../../scripts/verify-kc.ts'
+import { checkKc, courseModules, gameReferences, itemReferences, trackerTasks } from '../../scripts/verify-kc.ts'
 import { parseSnapshot } from '../../scripts/kc/kernelspace.ts'
 import { between, read, root } from '../ci/support'
 
@@ -90,17 +90,21 @@ describe('2. every KC has a description, and a reference or a planned task', () 
     }
   })
 
-  test('the gate passes on it, with the real registry, course, tracker and kernelspace snapshot', () => {
+  test('the gate passes on it, with the real registry, item families, course, tracker and kernelspace snapshot', async () => {
     const snapshot = parseSnapshot(read('content/kc/kernelspace.json')).snapshot ?? null
     expect(snapshot).not.toBeNull()
-    const result = checkKc({ text, references: gameReferences(GAMES.games), modules: courseModules(root), tasks: trackerTasks(root), kernelspace: snapshot, final: false })
+    // The item families name KCs too (W1-T04's, and W1-T14's two for the capture): the gate reads them with the games.
+    const items = await itemReferences(root)
+    expect(items.diagnostics).toEqual([])
+    const result = checkKc({ text, references: [...gameReferences(GAMES.games), ...items.references], modules: courseModules(root), tasks: trackerTasks(root), kernelspace: snapshot, final: false })
     expect(result.diagnostics.filter((d) => d.severity === 'error')).toEqual([])
     expect(result.stats?.kcs).toBe(graph.length)
   })
 
-  test('a KC with no graded reference carries a task of W1 that comes before the exit review', () => {
+  test('a KC with no graded reference carries a task of W1 that comes before the exit review', async () => {
     const tasks = trackerTasks(root) as Set<string>
-    const referenced = new Set(gameReferences(GAMES.games).filter((reference) => reference.graded).flatMap((reference) => reference.kcs))
+    const items = await itemReferences(root)
+    const referenced = new Set([...gameReferences(GAMES.games), ...items.references].filter((reference) => reference.graded).flatMap((reference) => reference.kcs))
     for (const kc of graph) {
       if (referenced.has(kc.id)) continue
       const task = kc.planned ?? ''

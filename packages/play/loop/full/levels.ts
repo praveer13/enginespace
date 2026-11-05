@@ -22,17 +22,18 @@
  * A stage opens on its naive configuration, which fails the bar on every in-band seed (tests/play/loop-full-levels.test.ts), except
  * `modes`, which opens on the engine's default and whose naive configuration is to drill no routine at all.
  */
-import { assertSeed, below, rngFor } from '@es/sim/core'
+import { assertSeed, below, divRound, rngFor } from '@es/sim/core'
 import type { Seed } from '@es/sim/core'
 import { hostPreset } from '@es/sim/host'
 import { gpuLayers, sglangDecodeBuckets, vllmCaptureSizes } from '@es/sim/steploop'
 import type { BackendSupport, GraphModeId } from '@es/sim/steploop'
-import { CARDS, nightOf, servingMode, tableOf } from './night'
+import { closeDraft, CLOSE_COPY, darkPermille, HOUSE_DARK_PERMILLE, meetsThroughput, NAIVE_DARK_PERMILLE, withHouse } from './close'
+import { CARDS, nightOf, PRACTICE_PROMPTS, servingMode, tableOf } from './night'
 import type { Night } from './night'
 import { captureCost, histogramNight, optimalSizes } from './sizes'
-import type { CardId, FullLevel, FullLevelId, Levers, StageWorld } from './types'
+import type { CardId, Draft, FullLevel, FullLevelId, Levers, StageWorld } from './types'
 
-export const FULL_LEVEL_IDS: readonly FullLevelId[] = ['async', 'graphs', 'mrv2', 'mask']
+export const FULL_LEVEL_IDS: readonly FullLevelId[] = ['async', 'graphs', 'mrv2', 'close', 'mask']
 
 /** Clips on the rail and tickets in a night [estimated]: two waves, so the rail refills as tickets end. */
 export const FULL_SLOTS = 12
@@ -56,7 +57,7 @@ export const MODES_MAX_CAPTURE = 64
 
 /** The pinned engine's defaults for a rail and a budget: async on, FULL_AND_PIECEWISE, vLLM's own capture sizes, MRV2, the mask during the fire. */
 export function defaultLevers(slots: number, budget: number): Levers {
-  return { async: true, graphMode: 'FULL_AND_PIECEWISE', captureSizes: vllmCaptureSizes({ maxNumSeqs: slots, maxBatchedTokens: budget }), runner: 'mrv2', maskOverlap: true }
+  return { async: true, inputIds: 'device', graphMode: 'FULL_AND_PIECEWISE', captureSizes: vllmCaptureSizes({ maxNumSeqs: slots, maxBatchedTokens: budget }), runner: 'mrv2', maskOverlap: true }
 }
 
 /** The modes a learner can ask for, in the order the panel lists them. */
@@ -108,6 +109,7 @@ interface LevelDef {
  * the cards and the tape print every figure as a Readout.
  */
 const DEFS: Readonly<Record<FullLevelId, LevelDef>> = {
+  close: { title: CLOSE_COPY.title, prompt: CLOSE_COPY.prompt },
   async: {
     title: 'Write during the fire',
     prompt:
@@ -140,10 +142,11 @@ export const isFullLevel = (id: string): id is FullLevelId => isLevelId(id)
 
 const TITLES: Readonly<Record<CardId, string>> = { '70b': '70B on H100', small: 'Small model' }
 
-/** A stage's world before its answers: everything but the prediction's answer and the house's metric. */
-type Draft = Omit<StageWorld, 'answer' | 'houseMetric'>
-
-function base(id: StageWorld['id'], card: CardId, seed: Seed | null): Pick<Draft, 'id' | 'card' | 'slots' | 'budget' | 'workloadSeed' | 'requests' | 'outputs' | 'structuredPermille' | 'graphBudget' | 'support' | 'maskRowUs' | 'sizes' | 'naiveFails'> {
+function base(
+  id: StageWorld['id'],
+  card: CardId,
+  seed: Seed | null,
+): Pick<Draft, 'id' | 'card' | 'slots' | 'budget' | 'workloadSeed' | 'requests' | 'outputs' | 'structuredPermille' | 'graphBudget' | 'support' | 'maskRowUs' | 'sizes' | 'naiveFails' | 'bar' | 'nights' | 'sealed' | 'prompts' | 'host' | 'ladder'> {
   return {
     id,
     card,
@@ -158,6 +161,12 @@ function base(id: StageWorld['id'], card: CardId, seed: Seed | null): Pick<Draft
     maskRowUs: hostPreset('mrv2').card.maskPerSeqUs,
     sizes: null,
     naiveFails: true,
+    bar: 'clock',
+    nights: NIGHTS_PER_STAGE,
+    sealed: false,
+    prompts: PRACTICE_PROMPTS,
+    host: null,
+    ladder: null,
   }
 }
 
@@ -223,7 +232,7 @@ function sizesStage(seed: Seed): Draft {
     prediction: { kind: 'number', question: "With vLLM's own sizes cut to the rack's molds, how many of tonight's fires are called dish by dish?", unit: 'fires', tolerancePermille: 0 },
     sizes: world,
   }
-  const table = tableOf({ ...draft, answer: 0, houseMetric: 0 }, d)
+  const table = tableOf({ ...draft, answer: 0, houseMetric: 0, houseTokens: 0 }, d)
   return { ...draft, house: { ...d, captureSizes: optimalSizes(table, world.ladder, world.batches, SIZES.molds) } }
 }
 
@@ -322,6 +331,8 @@ function draftsOf(id: FullLevelId, seed: Seed): Draft[] {
       return [mrv2Stage('small', seed), mrv2Stage('70b', seed)]
     case 'mask':
       return [maskStage(seed)]
+    case 'close':
+      return [withHouse(closeDraft(seed))]
   }
 }
 
@@ -343,21 +354,24 @@ function answerOf(draft: Draft, house: Night, naive: Night): number {
       return draft.sizes!.batches.filter((batch) => batch > largest).length
     }
     case 'modes': {
-      const mode = servingMode({ ...draft, answer: 0, houseMetric: 0 }, { ...draft.house, graphMode: 'FULL' }).mode
+      const mode = servingMode({ ...draft, answer: 0, houseMetric: 0, houseTokens: 0 }, { ...draft.house, graphMode: 'FULL' }).mode
       return mode === null ? MODE_CHOICES.length - 1 : MODE_CHOICES.indexOf(mode)
     }
     case 'mask':
       return maskDraw(draft.workloadSeed ?? 0).late ? 1 : 0
+    case 'close':
+      // The share of the naive night that the line sits dark, in whole per cent.
+      return divRound(naive.bubbleUs * 100, naive.clockUs)
   }
 }
 
 /** A stage on its seed, with its answers. */
 function finish(draft: Draft): StageWorld {
-  const probe = { ...draft, answer: 0, houseMetric: 0 }
+  const probe = { ...draft, answer: 0, houseMetric: 0, houseTokens: 0 }
   const house = nightOf(probe, draft.house)
   const naive = nightOf(probe, draft.naive)
   if (house === null || naive === null) throw new Error(`internal: the ${draft.id} stage's house or naive night is refused`)
-  return { ...draft, answer: answerOf(draft, house, naive), houseMetric: house.metric }
+  return { ...draft, answer: answerOf(draft, house, naive), houseMetric: house.metric, houseTokens: house.usefulTokens }
 }
 
 /** The level `id` on `seed`. Throws for a level the full service does not have. */
@@ -382,6 +396,16 @@ export function stageInBand(stage: StageWorld): boolean {
   const house = nightOf(stage, stage.house)
   if (naive === null || house === null) return false
   if (stage.naiveFails && !atLeast(naive.metric, house.metric, NAIVE_MARGIN)) return false
+  if (stage.id === 'close') {
+    // GAMES.md §3.2: the naive night loses a fifth of its clock to dark stretches, and the house's closes them (at most three per cent),
+    // meets the bar by being the reference, and breaks no dependency.
+    if (darkPermille(naive) < NAIVE_DARK_PERMILLE || darkPermille(house) > HOUSE_DARK_PERMILLE || house.violations !== 0) return false
+    if (meetsThroughput(stage, naive.usefulTokens, naive.clockUs, naive.violations)) return false
+    // Drilling is worth its memory: where the house drills a routine, the same configuration with none misses the bar. Where it does not, the
+    // reach-in has no room for one and async scheduling alone closes the bubbles.
+    const bare = nightOf(stage, { ...stage.house, graphMode: 'NONE', captureSizes: [] })
+    return stage.house.graphMode === 'NONE' || (bare !== null && !meetsThroughput(stage, bare.usefulTokens, bare.clockUs, bare.violations))
+  }
   if (stage.id === 'sizes') {
     // GAMES.md §3.2: the default list cut to the budget costs ≥ 1.15 × the optimum, and the next-best set is ≥ 1% worse.
     const world = stage.sizes!

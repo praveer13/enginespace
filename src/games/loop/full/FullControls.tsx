@@ -13,6 +13,7 @@ import { formatReadout } from '@/design/format'
 import { tagOf } from './tags'
 import type { FullRun } from './types'
 import { useFullControls, type AutoToggleRef } from './useFullControls'
+import { NightVerdict } from './NightVerdict'
 
 export type { AutoToggleRef } from './useFullControls'
 
@@ -28,7 +29,7 @@ export type { AutoToggleRef } from './useFullControls'
  *   - the nights served, each against the house's.
  */
 
-const UNIT_WORD: Readonly<Record<Extract<Prediction, { kind: 'number' }>['unit'], string>> = { µs: 'µs', calls: 'calls', fires: 'fires' }
+const UNIT_WORD: Readonly<Record<Extract<Prediction, { kind: 'number' }>['unit'], string>> = { µs: 'µs', calls: 'calls', fires: 'fires', '%': 'per cent' }
 
 /** After the call the ticket prints it and its field goes, so focus moves on to the stage's first lever, or to the bell. */
 function focusNext() {
@@ -112,18 +113,23 @@ function PredictionTicket({ run }: { run: FullRun }) {
   )
 }
 
-/** The rack's ladder: a plate for each size from 1 to the rail's clips, pressed for a mold on the rack. The arrows walk it. */
-function Ladder({ run }: { run: FullRun }) {
+/**
+ * The rack's ladder: a plate for each size the stage offers, pressed for a mold on the rack. The arrows walk it. The mold rack of `graphs` ·
+ * `sizes` holds a few molds and shows vLLM's and SGLang's lists beside it; the ladder of `close` has no cap, because its budget is memory.
+ */
+function Ladder({ run, locked }: { run: FullRun; locked: boolean }) {
   const { view } = run
   const world = view.stage.sizes
+  const ladder = view.stage.ladder
   const [stop, setStop] = useState(0)
-  if (world === null) return null
+  if (ladder === null) return null
   const sizes = view.levers.captureSizes
+  const cap = world === null ? null : world.molds
   // A full rack refuses another mold and says so; no plate is disabled, so the arrows walk every size.
   const toggle = (size: number) => {
     const next = sizes.includes(size) ? sizes.filter((s) => s !== size) : [...sizes, size].sort((a, b) => a - b)
-    if (next.length > world.molds) {
-      run.announce(`The rack holds ${world.molds} molds: take one off first.`)
+    if (cap !== null && next.length > cap) {
+      run.announce(`The rack holds ${cap} molds: take one off first.`)
       return
     }
     run.dispatch({ t: 'capture', sizes: next })
@@ -132,17 +138,17 @@ function Ladder({ run }: { run: FullRun }) {
     const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key]
     if (step === undefined) return
     event.preventDefault()
-    const next = Math.max(0, Math.min(world.ladder.length - 1, stop + step))
+    const next = Math.max(0, Math.min(ladder.length - 1, stop + step))
     setStop(next)
     event.currentTarget.querySelectorAll<HTMLButtonElement>('button')[next]?.focus()
   }
   return (
-    <fieldset className="es-full-ladder" data-native-keys="arrows">
+    <fieldset className="es-full-ladder" data-native-keys="arrows" disabled={locked}>
       <legend>
-        The molds on the rack <span className="text-text-2">· capture sizes, at most {world.molds}: take one off to drill another</span>
+        The molds on the rack <span className="text-text-2">· capture sizes{cap === null ? ': each takes memory out of the reach-in' : `, at most ${cap}: take one off to drill another`}</span>
       </legend>
       <div role="group" aria-label="Capture sizes" onKeyDown={onKey} className="es-full-ladder__row">
-        {world.ladder.map((size, index) => {
+        {ladder.map((size, index) => {
           const on = sizes.includes(size)
           return (
             <Button
@@ -153,26 +159,29 @@ function Ladder({ run }: { run: FullRun }) {
               tabIndex={index === stop ? 0 : -1}
               onClick={() => toggle(size)}
               className="es-full-ladder__size"
-              data-vllm={world.vllmLadder.includes(size) || undefined}
-              data-sglang={world.sglangLadder.includes(size) || undefined}
+              data-vllm={world?.vllmLadder.includes(size) || undefined}
+              data-sglang={world?.sglangLadder.includes(size) || undefined}
             >
               <span className="font-numeric">{size}</span>
             </Button>
           )
         })}
       </div>
-      <p className="text-text-2">
-        vLLM's own list starts <span className="font-numeric">{world.vllmLadder.join(', ')}</span>; SGLang's decode buckets start <span className="font-numeric">{world.sglangLadder.join(', ')}</span>.
-      </p>
+      {world === null ? null : (
+        <p className="text-text-2">
+          vLLM's own list starts <span className="font-numeric">{world.vllmLadder.join(', ')}</span>; SGLang's decode buckets start <span className="font-numeric">{world.sglangLadder.join(', ')}</span>.
+        </p>
+      )}
     </fieldset>
   )
 }
 
-/** The mode's plates: what to ask for, and the mode the backend lets run (or the engine's refusal). */
-function Modes({ run }: { run: FullRun }) {
+/** The mode's plates: what to ask for, and the mode the backend lets run (or the engine's refusal). A closed-book stage tells neither until its night is served. */
+function Modes({ run, locked }: { run: FullRun; locked: boolean }) {
   const { view } = run
   const groupId = useId()
   const { resolved } = view.stage
+  const hidden = view.stage.sealed && !view.stage.closed
   return (
     <div className="es-full-modes" data-native-keys="arrows">
       <p id={groupId}>
@@ -180,18 +189,20 @@ function Modes({ run }: { run: FullRun }) {
       </p>
       <div role="radiogroup" aria-labelledby={groupId} className="es-full-modes__row">
         {MODES.map((mode) => (
-          <Button key={mode} size="sm" variant={view.levers.graphMode === mode ? 'ink' : 'plate'} role="radio" aria-checked={view.levers.graphMode === mode} aria-keyshortcuts="G" onClick={() => run.dispatch({ t: 'lever', name: 'graphMode', value: mode })}>
+          <Button key={mode} size="sm" variant={view.levers.graphMode === mode ? 'ink' : 'plate'} role="radio" aria-checked={view.levers.graphMode === mode} aria-keyshortcuts="G" disabled={locked} onClick={() => run.dispatch({ t: 'lever', name: 'graphMode', value: mode })}>
             {mode === 'NONE' ? 'NONE · call each dish' : mode}
           </Button>
         ))}
       </div>
-      <p className={clsx(resolved.mode === null ? 'text-paper-ink-2' : 'text-text-2')} data-full-resolved={resolved.mode ?? 'refused'}>
-        {resolved.mode === null
-          ? `It does not serve: ${resolved.changes[resolved.changes.length - 1]}.`
-          : resolved.mode === view.levers.graphMode
-            ? `Runs as ${resolved.mode} on this backend (support ${view.stage.support}).`
-            : `Runs as ${resolved.mode}: ${resolved.changes[resolved.changes.length - 1]}.`}
-      </p>
+      {hidden ? null : (
+        <p className={clsx(resolved.mode === null ? 'text-paper-ink-2' : 'text-text-2')} data-full-resolved={resolved.mode ?? 'refused'}>
+          {resolved.mode === null
+            ? `It does not serve: ${resolved.changes[resolved.changes.length - 1]}.`
+            : resolved.mode === view.levers.graphMode
+              ? `Runs as ${resolved.mode} on this backend (support ${view.stage.support}).`
+              : `Runs as ${resolved.mode}: ${resolved.changes[resolved.changes.length - 1]}.`}
+        </p>
+      )}
       {view.stage.memory === null ? null : (
         <p className="flex flex-wrap items-baseline gap-x-2" data-full-memory="">
           <span>The routines take</span>
@@ -205,23 +216,34 @@ function Modes({ run }: { run: FullRun }) {
   )
 }
 
-/** The stage's levers. */
+/** The stage's levers. A closed-book stage's levers lock once its night is served. */
 function Levers({ run }: { run: FullRun }) {
   const { view } = run
-  const set = (name: 'async' | 'runner' | 'maskOverlap', value: boolean | string) => run.dispatch({ t: 'lever', name, value })
+  const locked = view.stage.sealed && view.stage.closed
+  const set = (name: 'async' | 'runner' | 'maskOverlap' | 'inputIds', value: boolean | string) => run.dispatch({ t: 'lever', name, value })
   return (
     <div className="flex flex-col gap-4" data-full-levers="">
       {view.stage.levers.includes('async') ? (
-        <Toggle label="Write the next call during this fire" hint="async scheduling" checked={view.levers.async} onCheckedChange={(on) => set('async', on)} id="full-async" />
+        <Toggle label="Write the next call during this fire" hint="async scheduling" checked={view.levers.async} onCheckedChange={(on) => set('async', on)} id="full-async" disabled={locked} />
+      ) : null}
+      {view.stage.levers.includes('inputIds') ? (
+        <Toggle
+          label="The line fills the next call's input ids"
+          hint="MRV2 prepares them on the GPU; the model checks the dependency, and no flag in either engine names this switch"
+          checked={view.levers.inputIds === 'device'}
+          onCheckedChange={(on) => set('inputIds', on ? 'device' : 'host')}
+          id="full-input-ids"
+          disabled={locked}
+        />
       ) : null}
       {view.stage.levers.includes('runner') ? (
-        <Toggle label="The V2 runner" hint="MRV2 when on; the legacy V1 runner when off" checked={view.levers.runner === 'mrv2'} onCheckedChange={(on) => set('runner', on ? 'mrv2' : 'v1')} id="full-runner" />
+        <Toggle label="The V2 runner" hint="MRV2 when on; the legacy V1 runner when off" checked={view.levers.runner === 'mrv2'} onCheckedChange={(on) => set('runner', on ? 'mrv2' : 'v1')} id="full-runner" disabled={locked} />
       ) : null}
       {view.stage.levers.includes('maskOverlap') ? (
         <Toggle label="Write the allergy card during the fire" hint="the mask's overlap with the forward" checked={view.levers.maskOverlap} onCheckedChange={(on) => set('maskOverlap', on)} id="full-mask" />
       ) : null}
-      {view.stage.levers.includes('graphMode') ? <Modes run={run} /> : null}
-      {view.stage.levers.includes('capture') ? <Ladder run={run} /> : null}
+      {view.stage.levers.includes('graphMode') ? <Modes run={run} locked={locked} /> : null}
+      {view.stage.levers.includes('capture') ? <Ladder run={run} locked={locked} /> : null}
     </div>
   )
 }
@@ -287,24 +309,40 @@ export function FullControls({ run, toggleAutoRef }: { run: FullRun; toggleAutoR
       <p className="es-type-body max-w-prose" data-full-prompt="">
         {stage.prompt}
       </p>
-      <p className="es-full-card">
-        <span>{view.synthetic ? 'Small model, a synthetic napkin' : '70B on H100, S5\'s fit at TP 4'}</span>
-        <span className="text-text-2"> · the expo's µs estimated</span>
-      </p>
+      {stage.sealed ? (
+        <p className="es-full-card">
+          <span>{view.synthetic ? 'Small model, a synthetic napkin' : '70B on H100, S5\'s fit at TP 4'}</span>
+          <span className="text-text-2"> · the cards stand under the view; the live readouts wait for the night</span>
+        </p>
+      ) : (
+        <p className="es-full-card">
+          <span>{view.synthetic ? 'Small model, a synthetic napkin' : '70B on H100, S5\'s fit at TP 4'}</span>
+          <span className="text-text-2"> · the expo's µs estimated</span>
+        </p>
+      )}
       <PredictionTicket run={run} />
       <Levers run={run} />
-      <div className="flex flex-wrap items-center gap-4">
-        <Bell step={view.step} onRing={controls.ring} disabled={!view.canFire} size="lg" caption="fire" tag={tagOf(view, 'count')} />
-        <Button size="lg" variant="plate" aria-pressed={controls.auto} aria-keyshortcuts="Space" disabled={!view.canFire && !controls.auto} onClick={controls.toggleAuto}>
-          Auto
-        </Button>
-        <Button size="lg" variant="plate" disabled={!view.canFire} onClick={controls.serve}>
-          Serve the rest
-        </Button>
-      </div>
-      {awaiting ? <p className="text-text-2">Call the prediction first: the bell rings once it is called.</p> : null}
+      {stage.sealed ? (
+        <div className="flex flex-wrap items-center gap-4">
+          <Button size="lg" variant="ink" aria-keyshortcuts="." disabled={!view.canFire} onClick={controls.serve} data-full-serve="">
+            Serve the night
+          </Button>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-4">
+          <Bell step={view.step} onRing={controls.ring} disabled={!view.canFire} size="lg" caption="fire" tag={tagOf(view, 'count')} />
+          <Button size="lg" variant="plate" aria-pressed={controls.auto} aria-keyshortcuts="Space" disabled={!view.canFire && !controls.auto} onClick={controls.toggleAuto}>
+            Auto
+          </Button>
+          <Button size="lg" variant="plate" disabled={!view.canFire} onClick={controls.serve}>
+            Serve the rest
+          </Button>
+        </div>
+      )}
+      {awaiting ? <p className="text-text-2">{stage.sealed ? 'Call the prediction first: the night is served once it is called.' : 'Call the prediction first: the bell rings once it is called.'}</p> : null}
+      {stage.sealed && !stage.closed && !awaiting ? <p className="text-text-2">One night, served once, whole. Set the levers from the cards, then serve it.</p> : null}
       {stage.closed && !view.done ? <p>This stage is closed. {view.stages.some((s) => !s.closed) ? 'Go on to the next stage.' : ''}</p> : null}
-      <Nights view={view} />
+      {stage.sealed ? <NightVerdict view={view} /> : <Nights view={view} />}
     </div>
   )
 }

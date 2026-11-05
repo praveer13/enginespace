@@ -67,10 +67,10 @@ function outcomeOf(state: FullState): FullOutcome {
 }
 
 describe('the docket: Service\'s levels under its name', () => {
-  test('the first service\'s four, the full service\'s four, and the keys behind their card, waiting', () => {
+  test('the first service\'s four, the full service\'s five, and the keys behind their card, waiting', () => {
     const markup = render(h(Game, null))
     const docket = markup.slice(markup.indexOf('data-loop-docket'), markup.indexOf('</nav>', markup.indexOf('data-loop-docket')))
-    for (const title of ['First service', 'Fill the rail', 'Your turn', 'The full service', 'Write during the fire', 'Drilled routines', 'The V2 runner', 'The allergy card', 'Keys']) {
+    for (const title of ['First service', 'Fill the rail', 'Your turn', 'The full service', 'Write during the fire', 'Drilled routines', 'The V2 runner', 'Close the bubbles', 'The allergy card', 'Keys']) {
       expect(docket).toContain(title)
     }
     expect(docket).toContain('· waiting')

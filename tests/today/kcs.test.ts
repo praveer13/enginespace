@@ -9,6 +9,10 @@ import { toySum } from '../play/items-support.ts'
 
 const BUBBLE = 'tr2.bubble'
 const OVERLAP = 'tr2.async-overlap'
+// What Service's graded `close` earns besides those (W1-T14): the V2 runner, the graph modes, and the memory that graphs take.
+const MRV2 = 'tr2.mrv2-delta'
+const MODES = 'tr2.graph-modes'
+const MEMORY = 'tr2.graph-memory'
 
 describe('the ref-to-KC map of this build', () => {
   test('a review names its own KC', () => {
@@ -28,7 +32,7 @@ describe('the ref-to-KC map of this build', () => {
   })
 
   test('a game run names the KCs the game exercises', () => {
-    expect([...appKcsOfRef('play:loop/close')].sort()).toEqual([OVERLAP, BUBBLE])
+    expect([...appKcsOfRef('play:loop/close')].sort()).toEqual([OVERLAP, BUBBLE, MEMORY, MODES, MRV2])
     expect(appKcsOfRef('play:no-such-game/level')).toEqual([])
   })
 

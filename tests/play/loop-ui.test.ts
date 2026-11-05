@@ -55,7 +55,7 @@ describe('the page names the game as D-049 says, and opens on the first level', 
   test('opens the level it is given, and the first when the id is not one of its own', () => {
     expect(render(h(Game, { level: 'first-3-gap' }))).toContain('Mind the gap · practice')
     expect(render(h(Game, { level: 'first-4-par' }))).toContain('Your turn · practice')
-    expect(render(h(Game, { level: 'close' }))).toContain('Fill the rail · practice')
+    expect(render(h(Game, { level: 'no-such-level' }))).toContain('Fill the rail · practice')
     expect(render(h(Game, { level: 'constructor' }))).toContain('Fill the rail · practice')
   })
 

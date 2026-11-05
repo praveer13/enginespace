@@ -22,6 +22,8 @@ function linesOf(view: FullView): PrinterTapeLine[] {
   const us = (value: number, kind: 'line' | 'expo') => <Readout value={value} unit="µs" tag={tagOf(view, kind)} size="sm" />
   const count = (value: number) => <Readout value={value} tag={tagOf(view, 'count')} size="sm" />
   const capture = view.stage.metric === 'capture'
+  // A closed-book stage keeps the house's clock to itself until its night is served.
+  const hidden = view.stage.sealed && !view.stage.closed
   const lines: PrinterTapeLine[] = [
     {
       id: 'fire',
@@ -38,8 +40,10 @@ function linesOf(view: FullView): PrinterTapeLine[] {
     { id: 'step-us', label: pair('step time', 'between two fires'), value: view.stepUs === null ? <span>not yet</span> : us(view.stepUs, 'expo') },
     {
       id: 'clock',
-      label: pair(capture ? 'cost' : 'clock', 'against the house'),
-      value: (
+      label: pair(capture ? 'cost' : 'clock', hidden ? 'the night so far' : 'against the house'),
+      value: hidden ? (
+        us(capture ? c.captureUs : c.clockUs, 'expo')
+      ) : (
         <>
           {us(capture ? c.captureUs : c.clockUs, 'expo')} <span>against</span> {us(view.stage.houseMetric, 'expo')}
         </>
