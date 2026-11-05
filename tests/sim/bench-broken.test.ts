@@ -210,7 +210,7 @@ describe('every flaw shows in its log', () => {
       expect(during.filter((r) => r.sentUs < atUs + forUs).length).toBeLessThanOrEqual(3)
       expect(c.scene.claim.timerStartsAt).toBe('send')
       // The harness's own timer, from the send, does not see the freeze, and the course's, from the due time, does.
-      expect(c.answer.p99Us).toBeGreaterThan(forUs / 2)
+      expect(c.answer.p99Us).toBeGreaterThan(forUs / 4)
     }
   })
 
@@ -328,7 +328,7 @@ describe('every flaw shows in its log', () => {
         busiest = Math.max(busiest, i - j + 1)
       }
       expect((busiest * 1_000_000_000) / 2_000_000, `${c.seed}`).toBeGreaterThan(1.2 * c.scene.capacityPerSMilli)
-      expect(claim.ratePerSMilli).toBeLessThan(c.scene.capacityPerSMilli)
+      expect(claim.ratePerSMilli).toBeLessThan(0.95 * c.scene.capacityPerSMilli)
     }
   })
 

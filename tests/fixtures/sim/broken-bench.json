@@ -254,26 +254,26 @@
     {
       "name": "seed 9 draws replay-without-timestamps",
       "input": {"seed":9},
-      "sha256": "11f0e6f8ffe80a9cff1310aa2c6ebce18adabde8c8827bc7cf9746abacf6809e",
+      "sha256": "2356d648bc47243c58f642f838b89a0abda7e310d15c69d63a616b18e89a3130",
       "output": {
-        "answer": {"how":"rerun","n":1841,"p99Us":31035585,"targetUs":35579426},
+        "answer": {"how":"rerun","n":2105,"p99Us":36053808,"targetUs":35579426},
         "attempts": 1,
-        "band": {"ok":true,"ratioMilli":31729,"reasons":[]},
+        "band": {"ok":true,"ratioMilli":48635,"reasons":[]},
         "capacityPerSMilli": 15244,
-        "claim": {"metric":"ttft-p99","n":1841,"ratePerSMilli":13260,"timerStartsAt":"due","valueUs":978148},
+        "claim": {"metric":"ttft-p99","n":2105,"ratePerSMilli":13183,"timerStartsAt":"due","valueUs":741310},
         "claimIds": ["vllm.bench.self-timed-default","vllm.bench.burstgpt-lengths-only"],
         "flaw": "replay-without-timestamps",
-        "interval": {"hiUs":31123119,"levelPermille":950,"loUs":30836395,"pointUs":31035585,"resamples":1000},
-        "rows": {"count":1969,"sha256":"285f2e9c6d1c23dffea5eaf71edbd7d075b34a2779e951cf237eb75d7efa0aeb"},
+        "interval": {"hiUs":36146665,"levelPermille":950,"loUs":35845351,"pointUs":36053808,"resamples":1000},
+        "rows": {"count":2233,"sha256":"16f74b9953f155bb989c3a221df7684a8c502c2d3e16d3efc9e45b14103cf11f"},
         "runSeed": 9,
         "server": {"chunkedPrefill":true,"gpu":"H100 SXM · vLLM 0.10.2 · FP8 · TP 4","maxBatchedTokens":8192,"maxNumSeqs":64},
         "setup": {
-          "arrivals": {"kind":"poisson","ratePerSMilli":13260},
-          "durationUs": 151749796,
-          "lengths": {"kind":"rows","slice":{"id":"synthetic-burst","requests":{"count":1969,"sha256":"ff22cfd251b5cc597cd73befcbc8e61a6a44f95c0163b346ca81de163b2ba86c"}}},
-          "requests": 1969,
+          "arrivals": {"kind":"poisson","ratePerSMilli":13183},
+          "durationUs": 174242962,
+          "lengths": {"kind":"rows","slice":{"id":"synthetic-burst","requests":{"count":2233,"sha256":"22d50afdb07af6363b749a69552492e34fb284656970eaceb3e06b3403461cf1"}}},
+          "requests": 2233,
           "slo": {"tpotUs":50000,"ttftUs":500000},
-          "warmupUs": 9885685
+          "warmupUs": 9943425
         }
       }
     },
@@ -555,26 +555,26 @@
     {
       "name": "seed 20 draws replay-without-timestamps",
       "input": {"seed":20},
-      "sha256": "ede06a77cd2372a986a0d37e359646031a30a4940b9b5b6ee66ace61c2db4284",
+      "sha256": "126e3ae322e6d4c1ffcf26b2cb2666fbd27d0f9f18425516bd97d619da67833f",
       "output": {
-        "answer": {"how":"rerun","n":1084,"p99Us":2451667,"targetUs":3102658},
+        "answer": {"how":"rerun","n":1079,"p99Us":2811946,"targetUs":3102658},
         "attempts": 1,
-        "band": {"ok":true,"ratioMilli":9511,"reasons":[]},
+        "band": {"ok":true,"ratioMilli":13337,"reasons":[]},
         "capacityPerSMilli": 9889,
-        "claim": {"metric":"ttft-p99","n":1084,"ratePerSMilli":2478,"timerStartsAt":"due","valueUs":257784},
+        "claim": {"metric":"ttft-p99","n":1079,"ratePerSMilli":2493,"timerStartsAt":"due","valueUs":210839},
         "claimIds": ["vllm.bench.self-timed-default","vllm.bench.burstgpt-lengths-only"],
         "flaw": "replay-without-timestamps",
-        "interval": {"hiUs":2584380,"levelPermille":950,"loUs":2135554,"pointUs":2451667,"resamples":1000},
-        "rows": {"count":1212,"sha256":"0c1536f27c2da1e879fcde683e19528e19dc89e792cd38825d0244af5e1a426e"},
+        "interval": {"hiUs":2949411,"levelPermille":950,"loUs":2452835,"pointUs":2811946,"resamples":1000},
+        "rows": {"count":1207,"sha256":"c8cb52b727f2074ced560916dae268d6c0178cafe7cebd40f9ce9f58fc361bb0"},
         "runSeed": 20,
         "server": {"chunkedPrefill":true,"gpu":"H100 SXM · vLLM 0.10.2 · FP8 · TP 4","maxBatchedTokens":8192,"maxNumSeqs":64},
         "setup": {
-          "arrivals": {"kind":"poisson","ratePerSMilli":2478},
-          "durationUs": 492094989,
-          "lengths": {"kind":"rows","slice":{"id":"synthetic-burst","requests":{"count":1212,"sha256":"f87fa687966e04fd9ebaed565ddb563725bf0dd76ea32bb75c8bf2f6f9ba5014"}}},
-          "requests": 1212,
+          "arrivals": {"kind":"poisson","ratePerSMilli":2493},
+          "durationUs": 487948032,
+          "lengths": {"kind":"rows","slice":{"id":"synthetic-burst","requests":{"count":1207,"sha256":"58c835b99ec8668fc61a06c1b0b3c768f3f0500a9bd89b86aaebb50090a1e2f8"}}},
+          "requests": 1207,
           "slo": {"tpotUs":50000,"ttftUs":500000},
-          "warmupUs": 51761684
+          "warmupUs": 51450248
         }
       }
     },

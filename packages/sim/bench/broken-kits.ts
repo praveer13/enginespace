@@ -448,13 +448,14 @@ const replayWithoutTimestamps: Kit = (rng) => {
     targetUs,
     build(runSeed) {
       const capacity = capacityPerSMilli(traffic)
-      // A burst at `peak` times capacity that lasts d queues (peak − 1) × d seconds of work; the p99 of the waits in it is about 0.9 of the longest.
-      const burstUs = Math.max(1_000_000, Math.round((targetUs * 1.1) / (peak - 1)))
+      // A burst at `peak` times capacity that lasts d queues (peak − 1) × d seconds of work; the p99 of the waits in it is about 0.8 of the longest [estimated; read off 1,100 cases, 2026-11-04].
+      const burstUs = Math.max(1_000_000, Math.round((targetUs * 1.25) / (peak - 1)))
       // The calm stretch: rows enough that the trace has about 1,250, but not over 30 times the burst's, so that the burst is over 3% of the rows and the p99 is in it;
-      // and not under 300, so that the warm-up rows (the first 128, B8) are all calm.
+      // and not under 300, so that the warm-up rows (the first 128, B8) are all calm. And long enough that the trace's mean rate is under 90% of the capacity, so that
+      // the harness's Poisson run at the mean is no overload of its own: the burst is what it leaves out.
       const burstRows = (peak * capacity * burstUs) / 1_000_000_000
       const calmRows = Math.max(300, Math.min(30 * burstRows, 1250 - burstRows))
-      const calmUs = Math.round((calmRows * 1_000_000_000) / Math.round(calm * capacity))
+      const calmUs = Math.max(Math.round((calmRows * 1_000_000_000) / Math.round(calm * capacity)), Math.ceil((burstUs * (peak - 0.9)) / (0.9 - calm)))
       const slice = burstTrace(runSeed, traffic, Math.round(calm * capacity), Math.round(peak * capacity), calmUs, burstUs)
       const rows = slice.requests.length
       const durationUs = (slice.requests[rows - 1].t - slice.requests[0].t) * 1000
