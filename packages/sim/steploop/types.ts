@@ -170,7 +170,18 @@ export interface TickGpuCard extends GpuCardBase {
   readonly admitUs: Us
 }
 
-export type GpuCard = S5GpuCard | TickGpuCard
+/**
+ * The "small model" card (WORLD §2.11; GAMES.md §3.2): S5's form at the datasheet bound (η = 1 and no fixed terms, S5's `NAPKIN`)
+ * on a small model's shape. It is a napkin, not a fit, and a synthetic world: its shapes are round figures of the model's own, and a
+ * screen says synthetic (D-012). It says nothing about the host, so the host card prices every CPU phase, the per-sequence ones too.
+ */
+export interface NapkinGpuCard extends GpuCardBase {
+  readonly kind: 'napkin'
+  readonly spec: CardSpec
+  readonly tp: number
+}
+
+export type GpuCard = S5GpuCard | TickGpuCard | NapkinGpuCard
 
 // ---------------------------------------------------------------------------------------------------------------------------
 // What a run returns
@@ -232,6 +243,8 @@ export interface StepStat {
   readonly maskUs?: Us
   /** GPU µs the step's drafts cost, inside its forward span. Present only when the configuration has `spec`. */
   readonly draftUs?: Us
+  /** The requests of the step's rows, in row order: a row of a request that had already stopped is its ghost. Present only when the run was asked for them (`rows`). */
+  readonly reqs?: readonly ReqId[]
 }
 
 export interface ReqStat {

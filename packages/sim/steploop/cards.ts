@@ -1,16 +1,17 @@
 // The cost cards a run prices its steps with (ARCHITECTURE §5.3, WORLD §2.11): what the GPU lane charges for a step.
 //
-// Two cards exist:
+// Three cards exist:
 //   - the S5 card on one of kernelspace's three fitted rows, "70B on H100" and its siblings, whose step times are a fit (`s5Card`),
 //     with its host term on the CPU lane unless a caller keeps it in the GPU step (D-044, proposed);
+//   - the small-model napkin card of TR2's levels (`SMALL_CARD`, WORLD §2.11), S5's form at the datasheet bound on a small model,
+//     synthetic (W1-T13);
 //   - the front page's synthetic ticks (`TICK_CARD`), a world of the model's own invention (GAMES.md §3.1, D-043, D-048).
-// The small-model napkin card (WORLD §2.11) waits for W1-T13, which is the first level to need it. The host card (`../host`) prices
-// the CPU lane and is passed beside the GPU card.
+// The host card (`../host`) prices the CPU lane and is passed beside the GPU card.
 
 import type { HostCard } from '../host/types'
-import { physicsRow, stepCard, stepSplit } from '../physics'
+import { napkinSpec, physicsRow, stepCard, stepSplit } from '../physics'
 import type { PhysicsRowKey, StepLoad } from '../physics'
-import type { GpuCard, GpuCost, GpuWork, S5GpuCard, S5HostTerm, TickGpuCard } from './types'
+import type { GpuCard, GpuCost, GpuWork, NapkinGpuCard, S5GpuCard, S5HostTerm, TickGpuCard } from './types'
 
 /** The id of this model's notional-machine card, `content/cards/trace-room-steploop.md` (§5.9: each model exports its card id). */
 export const STEPLOOP_CARD_ID = 'trace-room-steploop'
@@ -71,6 +72,29 @@ export function s5Card(key: PhysicsRowKey, tp: number, hostTerm: S5HostTerm = DE
   return Object.freeze({ kind: 's5', label: `${row.label} · TP ${tp} · ${where}`, tag: 'derived', synthetic: false, spec: row.spec, tp, hostTerm })
 }
 
+/**
+ * The "small model" card of TR2's levels (WORLD §2.11, GAMES.md §3.2; W1-T13): S5's form at the datasheet bound, `NAPKIN`, on a small
+ * model and a 24 GB card. S5 has no small-model row, so this is a napkin and not a fit, and a world of the model's own: every shape is a
+ * round figure [estimated], and its screens say synthetic (D-012). A model of 0.6e9 parameters in 28 layers of width 1,024, with
+ * 16-bit weights (1.2e9 bytes [derived]) and a 16-bit K and V for every layer (2 · 28 · 1,024 · 2 = 114,688 bytes a token [derived]),
+ * on a card that reads 1e12 bytes and computes 1.6e14 operations a second, with 24e9 bytes. At these figures a decode step of 16 rows
+ * over 256 tokens of context costs 1,670 µs [derived, tests/sim/steploop-cards.test.ts]: the forward of a small model is short enough
+ * that the host's work per step is a large share of it, which is the regime TR2's levels need.
+ */
+export const SMALL_CARD: NapkinGpuCard = Object.freeze({
+  kind: 'napkin',
+  label: 'Small model on a 24 GB card · napkin (S5 at η = 1), synthetic',
+  tag: 'estimated',
+  synthetic: true,
+  spec: Object.freeze(
+    napkinSpec(
+      Object.freeze({ bwBps: 1_000_000_000_000, peakFlops: 160_000_000_000_000, hbmBytes: 24_000_000_000 }),
+      Object.freeze({ params: 600_000_000, layers: 28, hidden: 1024, kvBytesPerToken: 114_688, weightBytes: 1_200_000_000 }),
+    ),
+  ),
+  tp: 1,
+})
+
 /** The transformer layers a card's model has: with the host card's kernels per layer, how many launches an eager step makes. */
 export function gpuLayers(card: GpuCard): number {
   return card.kind === 'ticks' ? 0 : card.spec.model.layers
@@ -80,6 +104,8 @@ export function gpuLayers(card: GpuCard): number {
 export function gpuCost(card: GpuCard, work: GpuWork): GpuCost {
   if (card.kind === 'ticks') return { gpuUs: card.forwardUs + (work.prefillSeqs > 0 ? card.admitUs : 0), hostSeqUs: null }
   const load: StepLoad = { seqs: work.seqs, tokens: work.tokens, kvTokens: work.kvTokens, attnPairs: work.attnPairs }
+  // A napkin card says nothing about the host, so the host card prices the per-sequence phases (null).
+  if (card.kind === 'napkin') return { gpuUs: stepCard(card.spec, card.tp, load).us, hostSeqUs: null }
   if (card.hostTerm === 'in-gpu') return { gpuUs: stepCard(card.spec, card.tp, load).us, hostSeqUs: 0 }
   const split = stepSplit(card.spec, card.tp, load)
   return { gpuUs: split.gpuUs, hostSeqUs: split.hostSeqUs }

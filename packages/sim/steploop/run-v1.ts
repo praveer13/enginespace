@@ -164,6 +164,8 @@ interface StepRecordV1 extends StepRecord {
   /** CPU µs of the step's bitmask fills that fall inside the horizon, counted as each fill is placed. */
   maskUs?: Us
   draftUs?: Us
+  /** The requests of the step's rows, in row order, when the run was asked for them (`opts.rows`). */
+  reqs?: readonly number[]
 }
 
 /** A request as the scheduler sees it: the metrics' record, plus how far its prompt and its decodes have been scheduled. */
@@ -221,7 +223,7 @@ interface Flight {
  * lane (a `TICK_CARD` is both). The workload's lengths are the truth about each request, and the loop does not read them to
  * decide anything: a request ends when its last token is read back, which is why async scheduling computes one token past it.
  */
-export function runStepLoop(w: Workload, cfg: StepLoopConfig, host: HostCard, gpu: GpuCard, opts: { horizonUs: Us }): StepLoopRun {
+export function runStepLoop(w: Workload, cfg: StepLoopConfig, host: HostCard, gpu: GpuCard, opts: { horizonUs: Us; rows?: boolean }): StepLoopRun {
   const horizon = opts.horizonUs
   checkArguments(w, cfg, host, gpu, horizon)
 
@@ -478,6 +480,8 @@ export function runStepLoop(w: Workload, cfg: StepLoopConfig, host: HostCard, gp
       ...(maskOn ? { maskUs } : {}),
       // The drafts are part of the forward span, so the horizon can cut them with it.
       ...(spec === undefined ? {} : { draftUs: Math.min(draftUs, forward === null ? 0 : forward.endUs - forward.startUs) }),
+      // Which requests rode the step, for a view that hangs each on its clip (W1-T13's kitchen). Asked for, never by default.
+      ...(opts.rows === true ? { reqs: rows.map((row) => row.req.id) } : {}),
     }
     records.push(record)
     inflight.push({
@@ -575,6 +579,7 @@ export function runStepLoop(w: Workload, cfg: StepLoopConfig, host: HostCard, gp
       ...(r.activeLoras === undefined ? {} : { activeLoras: r.activeLoras }),
       ...(r.maskUs === undefined ? {} : { maskUs: r.maskUs }),
       ...(r.draftUs === undefined ? {} : { draftUs: r.draftUs }),
+      ...(r.reqs === undefined ? {} : { reqs: r.reqs }),
     }
   })
   const summary = {

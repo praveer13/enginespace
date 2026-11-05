@@ -46,7 +46,8 @@ interface PlateShown {
 
 const matrix = new Matrix4()
 
-export function Plates({ plates, name = 'plates' }: { plates: readonly PlatePlace[]; name?: string }) {
+/** The plates on the pass: dinner plates, or `scale` of one, smaller plates for a longer rail. */
+export function Plates({ plates, scale = 1, name = 'plates' }: { plates: readonly PlatePlace[]; scale?: number; name?: string }) {
   const kit = useKit()
   const { materials, palette, shadows } = useProps()
   const geometry = useMemo(() => {
@@ -86,7 +87,7 @@ export function Plates({ plates, name = 'plates' }: { plates: readonly PlatePlac
         }
         if (t < 1) moving = true
         scratch.lerpVectors(plate.from, plate.at, ease(t))
-        instanced.setMatrixAt(i, matrix.makeTranslation(scratch.x, scratch.y, scratch.z))
+        instanced.setMatrixAt(i, matrix.makeScale(scale, scale, scale).setPosition(scratch))
         // A plate on the pass drags its contact shadow along, both parts of it; one lifted away to the expo has none.
         if (!plate.leaving) {
           for (let part = 0; part < SHADOW_PARTS; part++) shadows.move(owner, grounded * SHADOW_PARTS + part, scratch.x, scratch.z)
@@ -96,12 +97,12 @@ export function Plates({ plates, name = 'plates' }: { plates: readonly PlatePlac
       }
       if (instanced.count !== i) {
         instanced.count = i
-        shadows.set(owner, footprintsOf(shown.current))
+        shadows.set(owner, footprintsOf(shown.current, scale))
       }
       instanced.instanceMatrix.needsUpdate = true
       return moving
     },
-    [ease, reducedMotion, settleMs, scratch, shadows, owner],
+    [ease, reducedMotion, settleMs, scratch, shadows, owner, scale],
   )
   const wake = useMotionLoop(write)
 
@@ -135,11 +136,11 @@ export function Plates({ plates, name = 'plates' }: { plates: readonly PlatePlac
     }
     leaves.current = new Map(plates.map((plate) => [plate.id, plate.leave]))
     shown.current = next
-    shadows.set(owner, footprintsOf(next))
+    shadows.set(owner, footprintsOf(next, scale))
     if (mesh.current) mesh.current.count = next.size
     if (write(now)) wake()
     kit.invalidate()
-  }, [plates, kit, ease, reducedMotion, settleMs, shadows, owner, wake, write])
+  }, [plates, kit, ease, reducedMotion, settleMs, shadows, owner, wake, write, scale])
   useEffect(() => () => shadows.remove(owner), [shadows, owner])
 
   const cast = kit.shadowLights > 0
@@ -149,8 +150,8 @@ export function Plates({ plates, name = 'plates' }: { plates: readonly PlatePlac
 /** Each plate on the pass drags both parts of its contact shadow (build.ts's PLATE_SHADOWS). */
 const SHADOW_PARTS = PLATE_SHADOWS.length
 
-function footprintsOf(shown: ReadonlyMap<string, PlateShown>): Footprint[] {
-  return [...shown.values()].filter((plate) => !plate.leaving).flatMap((plate) => plateFootprints([plate.at.x, plate.at.y, plate.at.z]))
+function footprintsOf(shown: ReadonlyMap<string, PlateShown>, scale: number): Footprint[] {
+  return [...shown.values()].filter((plate) => !plate.leaving).flatMap((plate) => plateFootprints([plate.at.x, plate.at.y, plate.at.z], scale))
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */

@@ -9,7 +9,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { load, CORE_SCHEMA } from 'js-yaml'
 import { COMMON_KEYS, GAMES, keyProblems, keymapOf } from '@es/play'
-import { LOOP } from '@es/play/loop/entry'
+import { FULL_SERVICE_KEYS, LOOP } from '@es/play/loop/entry'
 import { SLOTS } from '@es/play/loop/levels'
 import { TICK_CARD, STEPLOOP_CARD_ID } from '@es/sim/steploop'
 import { claimsFileSchema } from '@es/schema/claims'
@@ -35,7 +35,9 @@ describe('verify:games for loop', () => {
     const lines = report.lines.get('loop') ?? []
     expect(lines[0]).toBe('Service · the step loop')
     for (const id of ['first-1-fill', 'first-2-slot', 'first-3-gap', 'first-4-par']) expect(lines.some((line) => line.startsWith(`${id}: practice seed 1 in band; `))).toBe(true)
-    expect(lines).toContain('keys: 8 common + 1 of its own')
+    // The full service's levels (W1-T13): each in band on its pinned seed 0.
+    for (const id of ['async', 'graphs', 'mrv2', 'mask']) expect(lines.some((line) => line.startsWith(`${id}: practice seed 0 in band; `))).toBe(true)
+    expect(lines).toContain('keys: 8 common + 3 of its own')
   })
 
   test('`bun scripts/verify-games.ts` prints the measured acceptance of each band and passes', () => {
@@ -59,10 +61,17 @@ describe('the registry\'s record of Service', () => {
     expect(Object.keys(GAME_COMPONENTS)).toContain('loop')
   })
 
-  test('has one key of its own, `O` for overlap, that takes nothing the common keys have (GAMES.md §3, "Controls")', () => {
-    expect(LOOP.keys.map((key) => [key.id, key.code, key.label])).toEqual([['overlap', 'KeyO', 'O']])
+  test('has three keys of its own, `O` for overlap, `G` for the graph mode and `M` for the runner, that take nothing the common keys have (GAMES.md §3, "Controls")', () => {
+    expect(LOOP.keys.map((key) => [key.id, key.code, key.label])).toEqual([
+      ['overlap', 'KeyO', 'O'],
+      ['graph-mode', 'KeyG', 'G'],
+      ['runner', 'KeyM', 'M'],
+    ])
     expect(keyProblems(LOOP.keys)).toEqual([])
-    expect(keymapOf(LOOP).length).toBe(COMMON_KEYS.length + 1)
+    expect(keymapOf(LOOP).length).toBe(COMMON_KEYS.length + 3)
+    // `G` and `M` are the full service's alone: the first service, on the front page and on Service's page, neither binds nor lists them.
+    expect(FULL_SERVICE_KEYS).toEqual(['graph-mode', 'runner'])
+    expect(LOOP.keys.filter((key) => !FULL_SERVICE_KEYS.includes(key.id)).map((key) => key.id)).toEqual(['overlap'])
   })
 
   test('names the step-loop model\'s card, which exists and speaks of the tick card (A§5.9, D-048)', () => {
@@ -85,16 +94,25 @@ describe('the registry\'s record of Service', () => {
     const source = readFileSync(path.join(root, 'packages/play/loop/entry.ts'), 'utf8')
     expect(source).not.toMatch(/from '\.\/(session|levels|engine|layout)'/)
     expect(source).not.toMatch(/@es\/sim/)
-    expect(source.match(/import\('\.\/session'\)/g)).toHaveLength(1)
+    expect(source.match(/import\('\.\/game'\)/g)).toHaveLength(1)
     const registry = readFileSync(path.join(root, 'packages/play/registry.ts'), 'utf8')
     expect(registry).toContain("from './loop/entry'")
     expect(registry).not.toMatch(/from '\.\/loop\/(session|levels|engine|layout)'/)
   })
 
-  test('loads its session on demand, and the session is the one the page plays', async () => {
+  test('loads its session on demand: one session over both services, keyed by the level, whose rules are the ones each page plays', async () => {
     const session = await LOOP.session()
+    const { serviceSession } = await import('@es/play/loop/game')
     const { loopSession } = await import('@es/play/loop/session')
-    expect(session).toBe(loopSession)
+    const { fullSession } = await import('@es/play/loop/full/session')
+    expect(session).toBe(serviceSession)
+    const first = session.level('first-4-par', 1)
+    expect(first).toEqual(loopSession.level('first-4-par', 1))
+    expect(session.view(session.init(first))).toEqual(loopSession.view(loopSession.init(loopSession.level('first-4-par', 1))))
+    const full = session.level('graphs', 0)
+    expect(session.view(session.init(full))).toEqual(fullSession.view(fullSession.init(fullSession.level('graphs', 0))))
+    expect(() => session.level('keys', 0)).toThrow('Service has no level "keys"')
+    expect(() => session.level('close', 0)).toThrow('Service has no level "close"')
   })
 })
 

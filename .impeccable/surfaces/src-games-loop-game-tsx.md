@@ -2,28 +2,28 @@
 version: 1
 slug: "src-games-loop-game-tsx"
 primary_target: "src/games/loop/Game.tsx"
-related_targets: ["src/games/loop","src/pages/Game.tsx"]
+related_targets: ["src/games/loop","src/pages/Game.tsx","packages/play/loop"]
 ---
 
 # Service's own page: the pass in the middle of service
 
 ## Scope
 
-- **Surface:** `/play/loop`, Service (`loop`) on its own page: the 3D pass, its 2D twin (the same pass drawn from above), the controls, the printer's tape and the mirror. Experience mode: the game is the page.
-- **Player:** a kernelspace graduate who has met Service on the front page, or is sent here from TR2, and plays the four levels of "First service" (TR2's levels join later).
-- **Job:** hang tickets on the rail and ring the bell until the level's beat lands: fill the rail, refill a clip, close the dark stretches with overlap, match par.
-- **Proof:** the session is the sim's step loop on its synthetic tick card; every number is DOM, printed in dots and stamped synthetic once per tape; the mirror carries every figure the scene draws.
-- **Constraints:** The Pass (DESIGN.md) is inherited; One Lamp and Only Code hold; the scene draws from scene kit v1 only; numbers never enter the canvas; usable at 360 px, by keyboard and under reduced motion; D-023's frozen budgets (the scene chunk at most 40 KB gz, at most 100 draw calls).
+- **Surface:** `/play/loop`, Service (`loop`) on its own page: the 3D pass, its 2D twin (the same pass drawn from above), the controls, the printer's tape and the mirror. Experience mode: the game is the page. Two services play on it: "First service" (the front page's four levels, on synthetic ticks) and, since W1-T13, "the full service" (TR2's levels `async`, `graphs`, `mrv2` and TR6's `mask`, on µs of the model's clock), with `keys` behind an in-world card that waits for the owner's dispatcher tables (Q-10).
+- **Player:** a kernelspace graduate who has met Service on the front page, or is sent here from TR2 or TR6.
+- **Job:** First service: hang tickets and ring the bell until the beat lands. The full service: commit a prediction, set the engine's levers (async scheduling, the graph mode, the molds on the rack, the runner, the allergy card's overlap), and ring the bell through the night the sim serves with them until it matches the house's.
+- **Proof:** the session is the sim's step loop: the tick card on the front page's levels; on the full service, `runStepLoop` v1 on "70B on H100" (S5, derived) or the small-model napkin (synthetic), every µs tagged with its card; the mirror and the tape carry every figure the scene draws; Compose prints the vLLM and SGLang flags the levers compile to, and In production cites them as claims.
+- **Constraints:** The Pass (DESIGN.md) is inherited; One Lamp and Only Code hold; the scene draws from scene kit v1 only, and the full service's new objects (the mold rack, the comb, the allergy card) are built the kit's way; numbers never enter the canvas; usable at 360 px, by keyboard and under reduced motion; D-023's frozen budgets (the scene chunk at most 40 KB gz, at most 100 draw calls).
 
 ## Direction contract
 
-THESIS: Service's page is the pass in the middle of service, and the scene leads it: a real line under heat lamps where each bell is one step of the engine's loop, and the plates, the dark stations and the fired rail are the batch, the bubble and overlap. It refuses the category's game page: a small canvas in a card beside a stats sidebar, and a lane chart standing in for the world.
+THESIS: Service's page is the pass in the middle of service, and the scene leads it: a real line under heat lamps where each bell is one step of the engine's loop, and the plates, the dark stations, the fired rail, the comb, the mold rack and the allergy card are the batch, the bubble, overlap, the launch calls, the captured sizes and the mask. It refuses the category's game page: a small canvas in a card beside a stats sidebar, a settings form beside a chart, and a lane chart standing in for the world.
 
-OWN-WORLD: The Pass as built: the kit's room (subway tile, hood, quarry floor, haze), brushed and spun steel with moving highlights, glazed plates, bond tickets with dot print and curl, masking tape and marker for names; heat-lamp amber only over the pass and on a burning station; the 2D twin is the same pass from above in steel, paper and hotel pans; the tape stamped SYNTHETIC once; every number in Doto, in the DOM.
+OWN-WORLD: The Pass as built: the kit's room (subway tile, hood, quarry floor, haze), brushed and spun steel with moving highlights, glazed plates, ring molds of spun steel on a rack, a steel comb, bond tickets and the allergy card with dot print and curl, masking tape and marker for names; heat-lamp amber only on the present (the pass, a burning station, the mold the fire drops into); the 2D twin is the same pass in steel, paper and hotel pans; the tape stamped SYNTHETIC once on ticks, and on µs stamped with its card's tag; every number in Doto, in the DOM.
 
-STORY: The player hangs tickets and rings the bell. Each bell, the stations with a ticket burn and the empty ones stay dark, one plate per live clip slides onto the pass, and without overlap the line drops dark while the expo writes. They switch overlap on, see the fired rail hold the fire while the line stays lit, and read the tape to confirm it.
+STORY: On First service the player hangs tickets and rings the bell, and learns that the line earns by full clips and a fired rail. On the full service they call a number before the night, ring through it, and watch the expo's work come back to the pass: the line drops dark while the expo calls every dish, the comb folds into one word when the routine is drilled, a fire drops into the smallest mold that holds it with its padding showing, and the allergy card outlasts a short fire. They change one lever, serve again, and read the tape to see the night match the house's.
 
-FIRST VIEWPORT: At 1440 the 3D pass leads under the game's name, whole in the first screen: lamps at the top, the rail across the upper part with clips and tickets, the line glowing beyond, the pass and its plates across the lower middle, the printer and waiting tickets at the left. Beside it, the controls a hand needs without losing sight of the scene: camera plates, the prompt, 44 px paper tickets, the bell, Auto and the overlap switch. Under the scene, the view switch, the keys and the stages. Below: the mirror's table under the scene and the tape under the controls. At 390 the scene comes first, then the controls.
+FIRST VIEWPORT: At 1440 the 3D pass leads under the game's name, whole in the first screen, with the docket of levels above it. The pass carries the night: lamps at the top, the rail with its clips and tickets, the line glowing beyond, the plates across the lower middle, the printer at the left; on the full service the mold rack stands along the back of the pass behind the plates, each mold labelled with its size, the comb lies along the expo's edge, and on the mask level the allergy card lies in front of the expo. Beside it, the controls a hand needs: camera plates, the stage's tabs and prompt, the prediction (a dot-printed field or plates to choose, torn off with a stub), the levers (switches, mode plates, the rack's ladder of molds), the bell and Auto, and the tape under them. Under the scene, the view switch, the keys and the stages, then the mirror's table. At 390 the scene comes first, then the prediction, the levers and the bell, the tape, the switches and the mirror.
 
 FORM: Service's stage, the pass over the expediter's shoulder, specified by GAMES.md §2.6 and §3 and A§6; the first and only form on the list. seed: none (specified surface, no roll).
 
@@ -31,7 +31,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 
 ## Memorable moment
 
-The bell with overlap off: the line drops dark while the expo writes, then every hung clip's station burns amber and one plate per ticket slides onto the pass. With overlap on the fired rail takes the fire, and the line never goes dark.
+The bell with overlap off: the line drops dark while the expo writes, then every hung clip's station burns amber and one plate per ticket slides onto the pass. With overlap on the fired rail takes the fire, and the line never goes dark. On the full service, the comb: with no routine drilled its teeth stand tall for every call while the line waits; drilled, it folds flat into one word on the bell, the fire's mold lights, and the line lights at once.
 
 ## Adaptations (finish review, round 2)
 
@@ -39,7 +39,16 @@ The bell with overlap off: the line drops dark while the expo writes, then every
 - **The room falls away beyond the line.** Its light is baked into the tile and the floor, dimming toward the corners and over the hood, and its haze is deep steel.
 - **The plates sit on the steel.** Each plate on the pass has a dark contact ring at its rim and a softer shade past it, and its underside is occluded against the counter.
 
+## Adaptations (W1-T13, two looks at 1440 and 390)
+
+- **The controls fit beside the scene.** The first look found the full service's controls running far past the scene at 1440: the scene's box grew taller, the stage prompts were cut to what the stage asks, and the levers compacted. The second look still found the mold rack's column about 300 px past the view's switches, a hole under the scene, so the tape moved under the controls in their column and the mirror joined the grid under the switches, on the only flexible row: the mirror stands under the switches however long the controls run, and the page's order stays the keyboard's.
+- **The ladder walks every plate.** The rack's ladder never disables a plate: a mold past the rack's few is refused in words ("The rack holds 3 molds: take one off first."), so the arrows walk all twelve sizes. Calling the prediction and closing a stage move focus on to the next thing to press.
+- **The 2D twin names its molds.** Each mold on the 2D rack has its size stamped on the steel in front of it, the fire's mold on a chip in the lamp's light, as the 3D scene labels them.
+- **The waiting keys read on the lit plate.** "· waiting" on the docket takes the lit plate's own ink when the keys are open, where its quiet grey sank into the dark plate.
+
 ## Unresolved
 
 - GAMES.md §3's "3D scene" and "2D path" still describe lanes along time (a Gantt). This page draws the present instead (the rail, the fired rail, the last fire's plates, the stations), and the night's timeline lives in the tape and the mirror, and in the debrief's compare strips. The docs need the owner's amendment.
 - The steam over a lit station departs from GAMES.md §2.6 rule 1 (no steam), as scene kit v1 already noted.
+- The comb draws a tooth for each layer of the card's model, as tall as the calls that layer takes, where GAMES.md §3 says a tooth per call: the calls of an eager fire run to hundreds, and per call the comb could not show piecewise against eager. The count is DOM.
+- `keys` waits behind its card until the owner commits the dispatcher tables (Q-10); the card shows what the level will teach and the facts In production will cite.

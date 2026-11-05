@@ -1,15 +1,20 @@
 import type { ThreeEvent } from '@react-three/fiber'
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { BoxGeometry, Matrix4, type InstancedMesh } from 'three'
-import type { LoopView } from '@es/play/loop/types'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { BoxGeometry, Matrix4, Quaternion, Vector3, type InstancedMesh } from 'three'
+import { PLATE_R, plateRadius } from '@es/play/loop/kitchen'
+import type { KitchenView } from '@es/play/loop/types'
 import { CameraRig } from '@/scene/CameraRig'
 import { useHold, useKit } from '@/scene/kit'
 import type { LabelSpec } from '@/scene/labels'
 import { Fluorescent } from '@/scene/Lights'
-import { ALWAYS_LIT, Kitchen, LampLights, litMask, Plates, PrinterFeed, RailClips, ServiceBell, StaticSet, Steam, Tickets } from '@/scene/props'
+import { ALWAYS_LIT, block, Kitchen, LampLights, lathe, litMask, painted, Plates, PrinterFeed, RailClips, ServiceBell, StaticSet, Steam, Tickets, useMotionLoop, useProps, type Footprint } from '@/scene/props'
+import { roomFor } from '@/scene/props/context'
+import { progress } from '@/scene/props/motion'
+import type { Vec3 } from '@/scene/props/shape'
 import { SceneCanvas } from '@/scene/SceneCanvas'
 import { SheetInstances } from '@/scene/SheetInstances'
 import { changeOf, serviceKitchen, serviceScene, type Anchor, type Change, type ServiceKitchen, type ServiceScene } from './scene-layout'
+import type { FullScene, ToolPlace } from './full/scene'
 import { FRONT_PRESETS, LOOP_PRESETS } from './scene-presets'
 import './scene3d.css'
 
@@ -38,13 +43,15 @@ import './scene3d.css'
  */
 
 export interface Scene3DProps {
-  view: LoopView
+  view: KitchenView
   /** The camera preset's id (scene-presets.ts). The game holds it, so `C`, the buttons and a swap of views keep it. */
   preset: string
   /** A waiting ticket picked in the scene: hang it, as tapping it in the controls does. */
   onHang?: (req: number) => void
   /** Draw the printer and the tickets it has fed. A page that holds the printer itself (the front page) leaves them out. */
   printer?: boolean
+  /** The full service's tools on the pass: the mold rack and the padding's molds, the comb and the allergy card (full/scene.ts). */
+  full?: FullScene
 }
 
 /**
@@ -62,7 +69,7 @@ const DIP_GAP_MS = 334
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 interface Moment {
-  readonly view: LoopView
+  readonly view: KitchenView
   readonly scene: ServiceScene
   /** The scene before the change, which the line shows while it is dark. */
   readonly before: ServiceScene
@@ -76,7 +83,7 @@ interface Moment {
 }
 
 /** What the kitchen shows now: on a bell with a dark stretch, the line dark for the bell's length, then the fire's light and plates. */
-function useMoment(view: LoopView, scene: ServiceScene): Moment {
+function useMoment(view: KitchenView, scene: ServiceScene): Moment {
   const kit = useKit()
   const bellMs = kit.reducedMotion ? 0 : kit.tokens.motion.bellMs
   const [moment, setMoment] = useState<Moment>({ view, scene, before: scene, change: 'cut', dark: false, dipAt: -1, key: 0, bells: 0 })
@@ -172,16 +179,94 @@ function labelsOf(anchors: readonly Anchor[], preset: string): LabelSpec[] {
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
+/* The full service's tools                                                                                           */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/*
+ * The tools of the full service, built the scene kit's way (its lathe and rounded block, its palette and metal, its contact shadows and
+ * its motion loop): spun-steel ring molds, which stand on the mold rack, one per captured size, and on the pass in a fire's padded places;
+ * and the expo's steel comb, a spine and a tooth for each layer of the model, standing as tall as the calls that layer takes. Each kind is
+ * one instanced draw, on contact shadows that ./full/scene.ts lays out. A change grows or folds each instance to its new size on the bell's
+ * duration and curve, from where it stood, and cuts under reduced motion: the comb folding flat into one word is the moment a drilled
+ * routine fires. They live in Service's own chunk, not the kit's, so no other game's scene carries them.
+ */
+
+const toolMatrix = new Matrix4()
+const toolTurn = new Quaternion()
+const toolAt = new Vector3()
+const toolSize = new Vector3()
+
+/** A ring mold of radius 1 and height 1: a band of thin spun steel with a rolled top edge, turned [estimated]. */
+const RING: readonly (readonly [number, number])[] = [
+  [0.93, 0],
+  [1, 0],
+  [1, 0.86],
+  [1.02, 0.95],
+  [0.985, 1],
+  [0.93, 0.86],
+]
+
+/**
+ * Instanced tools of one kind: `ring` (a mold) or `bar` (a rounded bar: the comb's spine and teeth). `shadows` are the footprints the
+ * tools stand on, which the scene lays out with them.
+ */
+function Tools({ kind, places, shadows: footprints, name }: { kind: 'ring' | 'bar'; places: readonly ToolPlace[]; shadows: readonly Footprint[]; name: string }) {
+  const kit = useKit()
+  const { materials, palette, shadows } = useProps()
+  const geometry = useMemo(() => painted(palette.part(kind === 'ring' ? lathe(RING, 36) : block([1, 1, 1], 0.12, [0, 0.5, 0]), kind === 'ring' ? 'alu' : 'steel')), [palette, kind])
+  useEffect(() => () => geometry.dispose(), [geometry])
+  const mesh = useRef<InstancedMesh>(null)
+  // Where each instance's size changes from and since when, and the sizes the last frame drew: a change starts from where each stands.
+  const tween = useRef<{ from: readonly Vec3[]; start: number; drawn: readonly Vec3[] }>({ from: [], start: -Infinity, drawn: [] })
+  const { ease, reducedMotion } = kit
+  const bellMs = kit.tokens.motion.bellMs
+  const write = useCallback(
+    (now: number): boolean => {
+      const instanced = mesh.current
+      if (!instanced) return false
+      const t = tween.current
+      const done = reducedMotion ? 1 : progress(now, t.start, bellMs)
+      const e = ease(done)
+      t.drawn = places.map((place, i) => {
+        const to = place.size
+        const from = t.from[i] ?? to
+        const size: Vec3 = [from[0] + (to[0] - from[0]) * e, Math.max(1e-4, from[1] + (to[1] - from[1]) * e), from[2] + (to[2] - from[2]) * e]
+        instanced.setMatrixAt(i, toolMatrix.compose(toolAt.set(...place.at), toolTurn, toolSize.set(...size)))
+        return size
+      })
+      instanced.count = places.length
+      instanced.instanceMatrix.needsUpdate = true
+      return done < 1
+    },
+    [places, ease, reducedMotion, bellMs],
+  )
+  const wake = useMotionLoop(write)
+  useLayoutEffect(() => {
+    const now = performance.now()
+    tween.current = { ...tween.current, from: tween.current.drawn, start: now }
+    if (write(now)) wake()
+    kit.invalidate()
+  }, [write, wake, kit])
+  useEffect(() => shadows.set(name, footprints), [shadows, name, footprints])
+  useEffect(() => () => shadows.remove(name), [shadows, name])
+  return <instancedMesh ref={mesh} name={name} args={[geometry, materials.metal, roomFor(places.length)]} castShadow={kit.shadowLights > 0} frustumCulled={false} raycast={() => null} />
+}
+
+/* ------------------------------------------------------------------------------------------------------------------ */
 /* The scene                                                                                                          */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-function Service({ view, kitchen, scene, preset, onHang }: { view: LoopView; kitchen: ServiceKitchen; scene: ServiceScene; preset: string; onHang?: (req: number) => void }) {
+function Service({ view, kitchen, scene, preset, onHang, full }: { view: KitchenView; kitchen: ServiceKitchen; scene: ServiceScene; preset: string; onHang?: (req: number) => void; full?: FullScene }) {
   const moment = useMoment(view, scene)
   const shown = moment.dark ? moment.before : moment.scene
   const lit = moment.dark ? kitchen.stations.map(() => false) : shown.lit
   // A cut (the first frame, a new level, an undo) moves nothing: nothing comes from anywhere, and nothing slides in.
   const cut = moment.change === 'cut'
-  const tickets = useMemo(() => (cut ? shown.tickets.map((ticket) => ({ ...ticket, from: undefined })) : shown.tickets), [cut, shown.tickets])
+  const card = full?.card ?? null
+  const tickets = useMemo(() => {
+    const all = card ? [...shown.tickets, card.ticket] : shown.tickets
+    return cut ? all.map((ticket) => ({ ...ticket, from: undefined })) : all
+  }, [cut, shown.tickets, card])
   const plates = useMemo(() => (cut ? shown.plates.map((plate) => ({ id: plate.id, at: plate.at })) : shown.plates), [cut, shown.plates])
   const steam = useMemo(() => kitchen.stations.flatMap((station, s) => (lit[s] ? [station.top] : [])), [kitchen.stations, lit])
   const mask = moment.dark ? ALWAYS_LIT : litMask(lit)
@@ -195,7 +280,9 @@ function Service({ view, kitchen, scene, preset, onHang }: { view: LoopView; kit
       <Tickets tickets={tickets} />
       {kitchen.printer ? <PrinterFeed at={kitchen.printer.at} yaw={kitchen.printer.yaw} feed={scene.feed} cell={scene.feedCell} /> : null}
       <ServiceBell at={kitchen.bell} strike={view.step} />
-      <Plates plates={plates} />
+      <Plates plates={plates} scale={plateRadius(view.slots) / PLATE_R} />
+      {full ? <Tools kind="ring" places={full.molds} shadows={full.moldShadows} name="molds" /> : null}
+      {full ? <Tools kind="bar" places={full.comb} shadows={full.combShadows} name="comb" /> : null}
       <Steam emitters={steam} puff={moment.dark ? -moment.bells : moment.bells} />
       {HIDDEN[preset]?.has('tape') ? null : <SheetInstances kind="tape" sheets={kitchen.tapes} name="tape" />}
       {onHang && scene.picks.length > 0 ? <Picks picks={scene.picks} onPick={onHang} /> : null}
@@ -203,15 +290,16 @@ function Service({ view, kitchen, scene, preset, onHang }: { view: LoopView; kit
   )
 }
 
-export default function Scene3D({ view, preset, onHang, printer = true }: Scene3DProps) {
-  const kitchen = useMemo(() => serviceKitchen(view.slots, { printer, overlap: view.overlapAvailable }), [view.slots, printer, view.overlapAvailable])
+export default function Scene3D({ view, preset, onHang, printer = true, full }: Scene3DProps) {
+  const tools = full !== undefined
+  const kitchen = useMemo(() => serviceKitchen(view.slots, { printer, overlap: view.overlapAvailable, tools }), [view.slots, printer, view.overlapAvailable, tools])
   const scene = useMemo(() => serviceScene(view, kitchen), [view, kitchen])
-  const labels = useMemo(() => labelsOf(scene.anchors, preset), [scene.anchors, preset])
+  const labels = useMemo(() => labelsOf(full ? [...scene.anchors, ...full.anchors] : scene.anchors, preset), [scene.anchors, full, preset])
   return (
     <SceneCanvas labels={labels} fog={HAZE} exposure={1} environmentIntensity={0.75} shadows className="es-loop-scene">
       <CameraRig presets={printer ? LOOP_PRESETS : FRONT_PRESETS} preset={preset} parallax={0.05} />
       <Fluorescent power={0.85} />
-      <Service view={view} kitchen={kitchen} scene={scene} preset={preset} onHang={onHang} />
+      <Service view={view} kitchen={kitchen} scene={scene} preset={preset} onHang={onHang} full={full} />
     </SceneCanvas>
   )
 }

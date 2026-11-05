@@ -1,0 +1,164 @@
+/*
+ * The full service's controls and stages (src/games/loop/full): the few parts no component of the design system draws. Every value is
+ * a token role (src/design/tokens.css), and every face is a role's: tests/design/literals.test.ts holds this file to it.
+ */
+
+/* The stages of a level, as a row of plates under the controls' head. */
+.es-full-stages ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A stage served at the bar carries a dot of the lamp's filament beside its name: a shape as well as the word for a reader. */
+.es-full-stages__done {
+  display: inline-block;
+  width: var(--es-space-2);
+  height: var(--es-space-2);
+  margin-left: var(--es-space-2);
+  border: 2px solid var(--es-lamp-ring);
+  border-radius: var(--es-radius-round);
+}
+
+/* The cost card's line: printed small, under the prompt. */
+.es-full-card {
+  font-size: var(--es-size-note);
+}
+
+/* A called number or choice, in the printer's dots. */
+.es-full-said {
+  font-family: var(--es-font-numeric);
+  font-weight: var(--es-font-numeric-weight);
+  font-variant-numeric: tabular-nums;
+}
+
+.es-full-choices,
+.es-full-modes__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2);
+}
+
+.es-full-choices > p {
+  flex-basis: 100%;
+}
+
+.es-full-modes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-2);
+}
+
+/* The rack's ladder: a plate for each size, wrapping on a phone. */
+.es-full-ladder {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.es-full-ladder__row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(2.75rem, 1fr));
+  gap: var(--es-space-1);
+}
+
+.es-full-ladder__size {
+  min-width: 2.75rem;
+  padding-inline: var(--es-space-1);
+}
+
+.es-full-nights {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Compose's configuration: the engines' own lines, in the code face on a paper slip. */
+.es-full-config {
+  margin: 0;
+}
+
+.es-full-config figcaption {
+  font-family: var(--es-font-display);
+  font-weight: var(--es-font-display-weight);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.es-full-config pre {
+  overflow-x: auto;
+  margin: var(--es-space-1) 0 0;
+  padding: var(--es-space-3);
+  background: var(--es-surface-1);
+  border: 1px solid var(--es-edge);
+  border-radius: var(--es-radius-trim);
+  font-family: var(--es-font-mono);
+  font-size: var(--es-size-print);
+  line-height: var(--es-font-mono-leading);
+}
+
+.es-full-notes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-1);
+  margin: 0;
+  padding-left: var(--es-space-4);
+}
+
+/* In production: a setting, what it says, and its claims as a ledger under it. */
+.es-full-production {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-full-production__claims {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-2);
+  margin: var(--es-space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/*
+ * The full service's labels over Service's 3D pass (src/games/loop/Scene3D.tsx draws them as DOM, D-021): they load with the full
+ * service, so the scene's own chunk carries none of them. The scene's stylesheet loads after this one, so each names the label's base
+ * class too and wins over it in any order. Their print scales with the scene's box, a size container.
+ */
+
+/* The mold rack: each mold's size printed small on the steel in front of it, and the mold the fire dropped into under the lamp, its size
+   on a chip of the lamp's amber with the filament's edge (One Lamp: the present). */
+.es-loop-label.es-loop-label--mold {
+  color: var(--es-text-1);
+  font-family: var(--es-font-numeric);
+  font-size: clamp(0.5625rem, 0.9cqi, var(--es-size-caption)); /* impeccable-disable-line design-system-font-size -- a mold's size under a ring a few centimetres across */
+}
+
+.es-loop-label.es-loop-label--pick {
+  padding: 0.15em 0.4em 0.1em;
+  border: 1px solid var(--es-lamp-ring);
+  border-radius: var(--es-radius-round);
+  background-color: var(--es-lamp);
+  color: var(--es-paper-ink);
+  font-family: var(--es-font-numeric);
+  font-size: clamp(var(--es-size-micro), 1cqi, var(--es-size-print));
+}
+
+/* The allergy card's head, printed in the ribbon's red: never mistaken for an order. */
+.es-loop-label.es-loop-label--card {
+  color: var(--es-paper-ink-2);
+  font-size: clamp(0.5rem, 0.8cqi, var(--es-size-stamp)); /* impeccable-disable-line design-system-font-size -- the head of a card a few centimetres wide */
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
