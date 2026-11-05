@@ -1,6 +1,8 @@
 /**
  * Helpers for the content tests: a throw-away project made from the repo's own sample content, with edits applied, that the
- * compiler can run on; and readers for what it reports and writes.
+ * compiler can run on; and readers for what it reports and writes. The sample is one module (`SAMPLE_MODULE`) with the claims, the
+ * cards, the KCs and the course the repo has; the modules that are real content are left out of the copy, so that writing one does
+ * not change what a test of the compiler counts. The tests that run the gates on the repo itself count it with `REPO_COUNTS`.
  *
  * Every test that changes content changes a copy. Nothing here writes into the repository.
  */
@@ -19,6 +21,9 @@ export const MODULE = 'content/modules/tr2/module.md'
 export const CLAIMS = 'content/claims/sample.yaml'
 export const COURSE = 'content/course.yaml'
 export const KCS = 'content/kc/graph.yaml'
+
+/** The module the compiler tests copy and break: `LESSON` and `MODULE` are its files. Every other module of `content/modules/` is real content. */
+export const SAMPLE_MODULE = 'tr2'
 
 /** The keys of the repo's `course.lock.json` (W1-T01): what a claim's `pin` and a module's `pins` may name. */
 export const LOCK_KEYS: ReadonlySet<string> = new Set(
@@ -42,6 +47,28 @@ export const CARD_IDS: readonly string[] = readdirSync(path.join(repo, 'content/
   .sort()
 export const CARD_COUNT = CARD_IDS.length
 
+/** The modules of the repo's content, a folder of `content/modules/` with a `module.md`, and the lessons in them, the `.md` files of a `lessons/` folder. */
+function contentCounts(): { modules: number; lessons: number } {
+  const dir = path.join(repo, 'content/modules')
+  let modules = 0
+  let lessons = 0
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (!entry.isDirectory() || !existsSync(path.join(dir, entry.name, 'module.md'))) continue
+    modules += 1
+    const lessonDir = path.join(dir, entry.name, 'lessons')
+    if (existsSync(lessonDir)) lessons += readdirSync(lessonDir).filter((name) => name.endsWith('.md') && !/^readme\.md$/i.test(name)).length
+  }
+  return { modules, lessons }
+}
+export const REPO_MODULES = contentCounts().modules
+export const REPO_LESSONS = contentCounts().lessons
+
+const plural = (count: number, one: string, many: string): string => `${count} ${count === 1 ? one : many}`
+/** What the gates and the compiler print for the repo itself, as `2 modules, 5 lessons`. */
+export const REPO_COUNTS = `${plural(REPO_MODULES, 'module', 'modules')}, ${plural(REPO_LESSONS, 'lesson', 'lessons')}`
+/** The files the compiler writes for the repo: the index, the map, the claims and llms.txt, two for each module and each lesson (the export and the JSON), and one JSON for each card. */
+export const REPO_OUTPUT_COUNT = 4 + 2 * REPO_MODULES + 2 * REPO_LESSONS + CARD_COUNT
+
 const scratch: string[] = []
 afterAll(() => {
   for (const dir of scratch) rmSync(dir, { recursive: true, force: true })
@@ -58,12 +85,15 @@ export function tempDir(label = 'project'): string {
 export type Edit = string | ((text: string) => string) | null
 
 /**
- * A copy of the repo's `content/` and `public/figures/`, with each edit applied. A path that does not exist yet is created.
- * An edit that changes nothing throws, so a test that means to break a file cannot pass for want of the break.
+ * A copy of the repo's `content/` and `public/figures/`, with each edit applied, and with no module but the sample's. A path that
+ * does not exist yet is created. An edit that changes nothing throws, so a test that means to break a file cannot pass for want of
+ * the break.
  */
 export function project(edits: Record<string, Edit> = {}): string {
   const root = tempDir()
   cpSync(path.join(repo, 'content'), path.join(root, 'content'), { recursive: true })
+  const modules = path.join(root, 'content/modules')
+  for (const name of readdirSync(modules)) if (name !== SAMPLE_MODULE) rmSync(path.join(modules, name), { recursive: true, force: true })
   cpSync(path.join(repo, 'public/figures'), path.join(root, 'public/figures'), { recursive: true })
   for (const [file, edit] of Object.entries(edits)) {
     const abs = path.join(root, file)
