@@ -205,9 +205,14 @@ describe('every flaw shows in its log', () => {
       expect(slip.ok).toBe(false)
       expect(slip.lateRows).toBeGreaterThanOrEqual(5)
       expect(slip.maxLateUs).toBeGreaterThan(forUs / 3)
-      // Of the requests due while it is frozen, only the one the clients had room for is sent into it.
-      const during = rows.filter((r) => r.dueUs > atUs && r.dueUs < atUs + forUs)
-      expect(during.filter((r) => r.sentUs < atUs + forUs).length).toBeLessThanOrEqual(3)
+      // Nothing finishes while the engine is frozen, so no client frees up: the requests sent into the freeze are at most those of the clients that
+      // were idle (holding a request not yet due) when it began, which is the clients less the requests in flight at that moment.
+      const a = c.scene.setup.arrivals
+      if (a.kind !== 'closed') throw new Error('not a closed loop')
+      expect(rows.filter((r) => r.doneUs > atUs && r.doneUs < atUs + forUs), `${c.seed}: a request finished inside the freeze`).toEqual([])
+      const inFlightAtFreeze = rows.filter((r) => r.sentUs <= atUs && r.doneUs > atUs).length
+      const sentIntoFreeze = rows.filter((r) => r.sentUs > atUs && r.sentUs < atUs + forUs).length
+      expect(sentIntoFreeze, `${c.seed}: ${a.clients} clients, ${inFlightAtFreeze} in flight when the freeze began`).toBeLessThanOrEqual(a.clients - inFlightAtFreeze)
       expect(c.scene.claim.timerStartsAt).toBe('send')
       // The harness's own timer, from the send, does not see the freeze, and the course's, from the due time, does.
       expect(c.answer.p99Us).toBeGreaterThan(forUs / 4)
