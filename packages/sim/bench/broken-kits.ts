@@ -290,11 +290,14 @@ const coordinatedOmission: Kit = (rng) => {
       const rows = Math.max(1000, Math.ceil((rate * 3.5 * stallUs) / 1_000_000_000))
       const base = openSpec(runSeed, traffic, rate, rows)
       // The freeze starts when the schedule, in an open loop with the same requests, has its most requests in flight in the first part of the window,
-      // and the clients are one more than that. Spare clients would be sent into the freeze and show in the harness's own timer; with this many,
-      // the schedule is never held back before the freeze and is held back right after it starts.
+      // and the clients are one more than the most there were by then. Spare clients would be sent into the freeze and show in the harness's own
+      // timer; with this many, the schedule is never held back before the freeze and is held back right after it starts.
       const from = base.warmupUs + divRound((base.durationUs - base.warmupUs) * where, 1000)
-      const peak = inFlightPeak(runBench(runSeed, base, CORPUS_SERVER).rows, base.warmupUs, from)
-      const setup: BenchSpec = { ...base, arrivals: { kind: 'closed', clients: peak.count + 1, thinkUs: 0, schedule: poissonAt(rate) } }
+      const pilot = runBench(runSeed, base, CORPUS_SERVER).rows
+      const peak = inFlightPeak(pilot, base.warmupUs, from)
+      // More than the busiest moment before the freeze, the warm-up included, so that no send before it is held back.
+      const clients = inFlightPeak(pilot, 0, peak.atUs + 1).count + 1
+      const setup: BenchSpec = { ...base, arrivals: { kind: 'closed', clients, thinkUs: 0, schedule: poissonAt(rate) } }
       const server: ServerModel = { ...CORPUS_SERVER, stalls: [{ atUs: peak.atUs, forUs: stallUs }] }
       const run = runBench(runSeed, setup, server)
       return { setup, server, run, claim: p99Claim(run.rows, setup.warmupUs, 'send', rate), capacityPerSMilli: capacity }
