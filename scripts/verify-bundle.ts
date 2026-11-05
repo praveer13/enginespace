@@ -24,7 +24,7 @@
  *                  file and react-vendor (React, ReactDOM and the stores), which every page loads before its own code. A§11.1 derived
  *                  the figure from kernelspace's entry, a single file that carried React, so the row counts that closure and not the
  *                  entry's own file (D-023, the W1 carry-over).
- *   front page     the JavaScript of the entry, the front page's chunk and the course index,    gate 150, target 130
+ *   front page     the JavaScript of the entry, the front page's chunk and the course index,    gate 151 (D-053), target 130
  *                  with their static imports (A§6.10: "the entry, the `front` route, The Loop's 2D view, the step-loop core and
  *                  the content index"). The index is a lazy chunk, but the page's loader awaits it before it paints.
  *   CSS            the stylesheets of that same closure (what the document links).              gate 30, target 20
@@ -62,7 +62,7 @@ export const KB = 1000
 /** The budgets of ARCHITECTURE §11.1 in KB of gzip, every one [estimated] (D-023). `target` only warns. */
 export const BUDGETS = {
   entry: { gate: 110, target: 100 },
-  front: { gate: 150, target: 130 },
+  front: { gate: 151, target: 130 },
   css: { gate: 30, target: 20 },
   route: { gate: 200 },
   threeVendor: { gate: 245 },

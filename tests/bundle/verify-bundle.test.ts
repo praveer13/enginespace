@@ -295,7 +295,7 @@ describe('the miniature', () => {
     // index.html 36,000 + react 60,000 + Front 10,000 + session 9,000 + load 1,000 + the course index 600.
     const row = rowOf(report, 'front')
     expect(row.bytes).toBe(116_600)
-    expect([row.gate, row.target]).toEqual([150, 130])
+    expect([row.gate, row.target]).toEqual([151, 130])
     expect(filesIn(row)).toEqual(['index.html', '_react-vendor.js', FRONT, '_session.js', '_load.js', INDEX_JSON].map(fileOf).sort())
   })
 
@@ -396,12 +396,12 @@ describe('a gate and a target', () => {
     expect(warning.failed).toBe(0)
   })
 
-  test('the front page is held to 150 KB of JavaScript, 33,400 B above its 116,600 B', () => {
+  test('the front page is held to 151 KB of JavaScript (D-053), 34,400 B above its 116,600 B', () => {
     const grown = (extra: number) => statusOf(run({ specs: sized(FRONT, 10_000 + extra) }), 'front')
     expect(grown(13_400)).toBe('ok') // 130,000 B is the target itself
     expect(grown(13_401)).toBe('warn')
-    expect(grown(33_400)).toBe('warn') // 150,000 B is the gate itself
-    expect(grown(33_401)).toBe('FAIL')
+    expect(grown(34_400)).toBe('warn') // 151,000 B is the gate itself
+    expect(grown(34_401)).toBe('FAIL')
   })
 
   test('the front page CSS has a gate of its own: 40 KB of it fails the CSS row and not the closure row', () => {

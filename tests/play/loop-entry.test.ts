@@ -38,7 +38,9 @@ describe('verify:games for loop', () => {
   test('`bun scripts/verify-games.ts` prints the measured acceptance of each band and passes', () => {
     const result = spawnSync(process.execPath, ['scripts/verify-games.ts'], { cwd: root, encoding: 'utf8' })
     expect(result.status).toBe(0)
-    expect(result.stdout).toContain('verify-games: 1 game registered, 1 component')
+    // The count is the registry's, so that a game added later does not break this file (W1-T28 registered the second).
+    const games = GAMES.games.length
+    expect(result.stdout).toContain(`verify-games: ${games} game${games === 1 ? '' : 's'} registered, ${games} component${games === 1 ? '' : 's'}`)
     expect(result.stdout).toMatch(/first-4-par: practice seed 1 in band; \d+% of the first 400 seeds in band \(floor 20%\)/)
     expect(result.stdout).toContain('verify-games: ok')
   })
@@ -51,7 +53,7 @@ describe('the registry\'s record of Service', () => {
     expect(LOOP.has3d).toBe(true)
     expect(existsSync(path.join(root, 'src/games/loop/Scene3D.tsx'))).toBe(true)
     expect(GAMES.get('loop')).toBe(LOOP)
-    expect(Object.keys(GAME_COMPONENTS)).toEqual(['loop'])
+    expect(Object.keys(GAME_COMPONENTS)).toContain('loop')
   })
 
   test('has one key of its own, `O` for overlap, that takes nothing the common keys have (GAMES.md §3, "Controls")', () => {
