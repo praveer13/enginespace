@@ -115,7 +115,10 @@ describe("nightly.yml's properties job", () => {
   })
 })
 
-/** The lines of a test file that make a list of 200 seeds, or loop over 200 of them, by hand. */
+/**
+ * The lines of a test file that make a list of 200 seeds, or loop over 200 of them, by hand. A list of 200 that is not seeds (200 waiting
+ * requests, say) says so on its line with `// not seeds`, and is left alone: the form below that finds a bare run of integers cannot tell.
+ */
 export function hardCodedSeedCounts(source: string): { line: number; text: string }[] {
   const forms = [
     // const SEEDS = Array.from({ length: 200 }, …) or Array.from({ length: 200 }, (_, seed) => …): a list of 200 on a line about seeds,
@@ -127,7 +130,8 @@ export function hardCodedSeedCounts(source: string): { line: number; text: strin
     // seeds(0, 200): the knob's own helper, given the pull request's count, which is a list of 200 that the nightly run leaves alone
     (text: string) => /\bseeds\(\s*\d+\s*,\s*200\s*\)/.test(text),
   ]
-  return source.split('\n').flatMap((text, index) => (forms.some((form) => form(text)) ? [{ line: index + 1, text: text.trim() }] : []))
+  const notSeeds = (text: string) => /\/\/\s*not seeds\b/.test(text)
+  return source.split('\n').flatMap((text, index) => (!notSeeds(text) && forms.some((form) => form(text)) ? [{ line: index + 1, text: text.trim() }] : []))
 }
 
 describe('every seeded property takes its seeds from the knob', () => {
@@ -147,6 +151,10 @@ describe('every seeded property takes its seeds from the knob', () => {
     expect(found('expect(response.status).toBe(200)')).toBe(0)
     expect(found('const items = Array.from({ length: 200 }, (_, i) => `request ${i}`)')).toBe(0)
     expect(found('const sample = Array.from({ length: 200 }, () => below(rng, 100_000))')).toBe(0)
+    // A list of 200 that says on its line that it is not seeds is left alone, and the same list without the words is found.
+    expect(found('const queue = { waiting: Array.from({ length: 200 }, (_, i) => i) } // not seeds: 200 requests')).toBe(0)
+    expect(found('const queue = { waiting: Array.from({ length: 200 }, (_, i) => i) }')).toBe(1)
+    expect(found('const seeds = Array.from({ length: 200 }, (_, seed) => seed) // not seeds')).toBe(0)
   })
 
   test('finds none in the tests of this tree: they read the knob', () => {
