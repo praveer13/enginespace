@@ -66,13 +66,13 @@ describe('the page names the game as D-049 says, and opens on the first level', 
     expect(render(h(Game, { level: 'constructor' }))).toContain('One station · practice')
   })
 
-  test('has Play and Debrief, the keys button, no view switch (the game has no 3D scene yet), and the seven levels in a rail', () => {
+  test('has Play and Debrief, the keys button, the view switch with the 2D view first (W1-T24: 3D opens once the device is known to draw it), and the seven levels in a rail', () => {
     const markup = render(h(Game, null))
     expect(markup).toContain('>Play</button>')
     expect(markup).toContain('>Debrief</button>')
     expect(markup).toContain('>Keys</button>')
-    expect(markup).not.toContain('aria-label="View"')
-    expect(markup).not.toContain('3D view')
+    expect(markup).toContain('aria-label="View"')
+    expect(markup).not.toContain('data-surface="3d"')
     expect(markup).toContain('data-surface="2d"')
     const rail = markup.slice(markup.indexOf('aria-label="Levels of The Reach-In"'))
     for (const title of ['One station', 'Two kinds of station', 'Dump the right pans', 'One pan size', 'A station of state', 'Recipe kits', 'The whole manager']) expect(rail).toContain(title)

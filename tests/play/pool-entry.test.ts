@@ -1,8 +1,8 @@
 /*
  * W1-T23 acceptance check 3: `verify:games` passes for `pool`. The gate itself is run on this checkout; the rest hold the registry's record
  * of The Reach-In to what the code does and to the content it names: its claims are in content/claims (in the folders that W1-T01 sorted
- * them into), its KCs are in the graph and earned by a graded level, its card is the hybrid KV manager's, its 3D scene is not built yet
- * (W1-T24), and the registry costs a page that lists games none of the sim.
+ * them into), its KCs are in the graph and earned by a graded level, its card is the hybrid KV manager's, its 3D scene (W1-T24) is its own
+ * lazy chunk, and the registry costs a page that lists games none of the sim.
  */
 import { describe, expect, setDefaultTimeout, test } from 'bun:test'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
@@ -50,11 +50,11 @@ describe('verify:games for pool', () => {
 })
 
 describe('the registry\'s record of The Reach-In', () => {
-  test('is D-049\'s: the display name over its subtitle, the id `pool`, TR5a, and no 3D scene until W1-T24 builds it', () => {
+  test('is D-049\'s: the display name over its subtitle, the id `pool`, TR5a, and the 3D scene W1-T24 built', () => {
     expect([POOL.id, POOL.title, POOL.subtitle]).toEqual(['pool', 'The Reach-In', 'hybrid KV pages and adapters'])
     expect(POOL.modules).toEqual(['tr5a'])
-    expect(POOL.has3d).toBe(false)
-    expect(existsSync(path.join(root, 'src/games/pool/Scene3D.tsx'))).toBe(false)
+    expect(POOL.has3d).toBe(true)
+    expect(existsSync(path.join(root, 'src/games/pool/Scene3D.tsx'))).toBe(true)
     expect(GAMES.get('pool')).toBe(POOL)
     expect(Object.keys(GAME_COMPONENTS)).toContain('pool')
     // The two registries list the same games, whichever others are in them (verify:games fails when they do not).
@@ -116,9 +116,10 @@ describe('the registry\'s record of The Reach-In', () => {
     expect(checkFiles(POOL, filesAt(root))).toEqual([])
   })
 
-  test('Game.tsx never imports a 3D scene, and does render the four parts the gate looks for', () => {
+  test('Game.tsx reaches its 3D scene only through import(), and renders the five parts the gate looks for', () => {
     const game = readFileSync(path.join(root, 'src/games/pool/Game.tsx'), 'utf8')
-    expect(game).not.toMatch(/Scene3D/)
-    for (const part of ['View2D', 'Mirror', 'Debrief', 'Controls']) expect(game).toContain(`<${part}`)
+    expect(game).not.toMatch(/^import (?!type )[^\n]*Scene3D/m)
+    expect(game.match(/import\('\.\/Scene3D'\)/g)).toHaveLength(1)
+    for (const part of ['View2D', 'Mirror', 'Debrief', 'Controls', 'Scene3D']) expect(game).toContain(`<${part}`)
   })
 })

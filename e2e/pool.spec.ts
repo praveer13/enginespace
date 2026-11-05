@@ -65,6 +65,8 @@ const live = (page: Page) => page.locator('[data-live="line"]')
 const outcome = (page: Page) => page.locator('[data-live="outcome"]')
 const verdict = (page: Page) => page.locator('[data-pool-debrief] h3').first()
 const askKind = (page: Page) => page.locator('[data-pool-controls]').getAttribute('data-ask')
+/** The shell's tape naming the level and its mode: under the 3D scene in the stage layout, so not the page's first tape. */
+const levelTape = (page: Page) => page.locator('[data-game="pool"] .es-tape', { hasText: / · (practice|graded)$/ }).first()
 
 /** What a reader would call the focused control: its aria-label, its label, or its text. */
 const activeName = (page: Page) =>
@@ -285,7 +287,7 @@ test.describe('a keyboard-only walk wins levels', () => {
     await page.getByRole('button', { name: 'Next level' }).focus()
     await page.keyboard.press('Enter')
     await expect.poll(() => page.evaluate(() => document.activeElement?.getAttribute('data-game'))).toBe('pool')
-    await expect(page.locator('[data-game="pool"] .es-tape').first()).toContainText('Two kinds of station · practice')
+    await expect(levelTape(page)).toContainText('Two kinds of station · practice')
   })
 })
 
@@ -424,7 +426,7 @@ test.describe('a graded run', () => {
   test('hides the price of a dump, the shared mise a ticket would find and the undo, and says so', async ({ page }) => {
     await open(page, 'evict')
     await page.getByRole('button', { name: 'Graded', exact: true }).click()
-    await expect(page.locator('[data-game="pool"] .es-tape').first()).toContainText('Dump the right pans · graded')
+    await expect(levelTape(page)).toContainText('Dump the right pans · graded')
     await expect(page.getByRole('button', { name: 'Undo' })).toHaveCount(0)
     await awaitAsk(page, 'admit')
     await expect(game(page)).not.toContainText('shared mise 0')
@@ -459,7 +461,7 @@ test.describe('a graded run', () => {
     for (const action of houseActions(buildLevel('one-group', 2))) await take(page, action, { none: 'key', dump: 'key' })
     await endWithTheDebrief(page)
     await page.getByRole('button', { name: 'New numbers' }).click()
-    await expect(page.locator('[data-game="pool"] .es-tape').first()).toContainText('One station · practice')
+    await expect(levelTape(page)).toContainText('One station · practice')
     await awaitAsk(page, 'admit')
   })
 })
