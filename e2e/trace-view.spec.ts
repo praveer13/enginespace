@@ -43,9 +43,10 @@ const TYPES: Record<string, string> = {
 let dist = ''
 
 // No `--use-angle=swiftshader` here, unlike the specs of the 3D scenes: the tape is a 2D canvas, and with that flag Chromium rasterises it
-// through a software GL stack. [measured 2026-11-04: 90 frames of a pan over 100,000 spans took 10.15 s with it (8.4 fps) and 1.64 s
-// without it (53.6 fps), on this shared host, which had a load average of 21 on 20 cores.] Font hinting stays off so that glyphs do
-// not differ from one machine to the next.
+// through a software GL stack. [measured 2026-11-04 on W1-T09 over wave-1 5ffa2f9, in Chrome for Testing 153.0.8010.12 (the headless
+// shell), at a load average of 8.5 on 20 cores: 90 frames of a pan over 100,000 spans took 6.70 s with the flag (13.6 fps) and 1.57 s
+// without it (57.5 fps), and the canvas's own JavaScript cost 0.5 ms at p95 in both.] Font hinting stays off so that glyphs do not
+// differ from one machine to the next.
 base.use({
   launchOptions: { executablePath: process.env.ES_CHROMIUM || undefined, args: ['--font-render-hinting=none'] },
   viewport: { width: 1280, height: 900 },
@@ -524,6 +525,17 @@ async function zoomTo(page: Page, ns: number): Promise<void> {
   }
 }
 
+// What accept 1 came to [measured 2026-11-04 on W1-T09 over wave-1 5ffa2f9: this test alone, one worker, Chrome for Testing 153.0.8010.12
+// (the headless shell), Playwright 1.63.0, the specimen `synthetic-3` with 100,048 spans, a load average of 9.1 on 20 cores]. The browser
+// paces animation frames at 60 a second, so 60 fps is the most a run can show; the test holds the median frame to 30.
+//
+//   window                     in view   rects    fps   median frame   gap p95 / max      canvas draw p50 / p95
+//   about a step (2.5 ms)           55      37   60.0   59.9 fps       17.4 / 18.9 ms     0.20 / 0.40 ms
+//   about 600 ms                13,534   1,305   60.0   59.9 fps       17.7 / 20.6 ms     0.80 / 0.90 ms
+//   about 1.8 s                 27,146   2,611   56.9   59.9 fps       27.9 / 32.8 ms     1.20 / 1.40 ms
+//   the whole tape             100,048       6   59.0   59.9 fps       18.2 / 31.4 ms     2.10 / 2.40 ms
+//
+// Each run prints its own line, so a reader of the log can see the rate on their host.
 test.describe('panning a tape of 100,000 spans (accept 1)', () => {
   test('holds at least 30 fps, in a window of a step, of thousands of spans, and with every span in view', async ({ page }) => {
     test.setTimeout(180_000)
