@@ -39,11 +39,14 @@ jobs:
   # tests/seeds.ts, which reads ES_PROPERTY_SEEDS, so the job is the whole suite with that one number raised: a property that a later
   # task adds gets the nightly count by reading the knob, and tests/ci/seeds.test.ts fails on one that does not. Bun gives each test five
   # seconds, which is right for a pull request and wrong for one test that loops over 10,000 seeds, so the job gives each a quarter of
-  # an hour. The job's timeout is the backstop: 45 minutes [estimated], which D-052 counts.
+  # an hour. The whole suite took 1,634 s at 10,000 seeds on the dev host, which other work kept at a load average of 17 to 47 [measured
+  # 2026-11-04 at 7905f81: 4,583 tests pass, 142,972,564 expectations, 22 min 22 s of user time; tests/sim/spec-rates.test.ts alone takes
+  # 561 s, and its longest test 168 s]. A runner's core is slower than that host's [unverified], so the job has an hour [estimated] as a
+  # backstop, and D-052 counts it.
   properties:
     if: ${{ github.event_name == 'workflow_dispatch' || vars.NIGHTLY_ENABLED == 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     env:
       ES_PROPERTY_SEEDS: '10000'
     steps:
