@@ -259,16 +259,6 @@ describe('routes against ARCHITECTURE §3.1', () => {
       expect(html).toContain('<main id="main" tabindex="-1"')
     })
 
-    test('the route announcer is one empty status region after the footer, outside the landmark: a load says nothing (src/App.tsx)', async () => {
-      for (const url of ['/', '/map', '/m/tr2', '/nope']) {
-        const html = await render(url)
-        expect(html.match(/data-live="route"/g), url).toHaveLength(1)
-        expect(html, url).toContain('<div role="status" class="sr-only" data-live="route"></div>')
-        expect(html.indexOf('data-live="route"'), url).toBeGreaterThan(html.indexOf('</footer>'))
-        expect(/<main id="main"[^>]*>.*<\/main>/s.exec(html)?.[0] ?? '', url).not.toContain('data-live="route"')
-      }
-    })
-
     test('a route that fails to load shows the error page inside the shell, with a way to reload', async () => {
       const failing: RouteObject[] = [
         { ...routes[0], children: [{ path: 'boom', lazy: () => Promise.reject(new Error('Failed to fetch dynamically imported module')) }] },

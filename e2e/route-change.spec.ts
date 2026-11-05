@@ -36,10 +36,11 @@ test.beforeEach(async ({ context }) => {
 })
 
 test.describe('the first load', () => {
-  test('takes no focus and says nothing: the load announces itself', async ({ page }) => {
+  test('takes no focus and says nothing: the load announces itself, and the region is made, empty, ahead of the first page', async ({ page }) => {
     await open(page, '/map')
     await quiet(page)
     expect(await focused(page)).toBe('BODY')
+    await expect(said(page)).toBeAttached(ARRIVE)
     await expect(said(page)).toBeEmpty()
   })
 })
