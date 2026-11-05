@@ -16,14 +16,16 @@ import { z } from 'zod'
 
 const status = z.enum(['fail', 'trap', 'timeout'])
 const id = z.string().regex(/^[a-z][a-z0-9-]*$/)
+// A check's id may hold underscores, as kernelspace's do (`fork_shares`, `adapter_unified_paging`) and as the stages of `hybrid-kv` do.
+const checkId = z.string().regex(/^[a-z][a-z0-9_-]*$/)
 
 const memberSchema = z.strictObject({
   id,
   feature: z.string().regex(/^bestiary-[a-z0-9-]+$/),
   mistake: z.string().min(1),
-  fails: z.record(id, status).refine((fails) => Object.keys(fails).length > 0, 'a bestiary member must fail at least one named check'),
-  passes: z.array(id),
-  only: z.array(id).optional(),
+  fails: z.record(checkId, status).refine((fails) => Object.keys(fails).length > 0, 'a bestiary member must fail at least one named check'),
+  passes: z.array(checkId),
+  only: z.array(checkId).optional(),
 })
 
 const bestiarySchema = z.strictObject({ lab: id, members: z.array(memberSchema).min(1) })

@@ -2,6 +2,33 @@
   "schema": "enginespace/labs-manifest@1",
   "files": [
     {
+      "name": "enginespace-hybrid-kv.zip",
+      "kind": "forge-lab",
+      "lab": "hybrid-kv",
+      "bytes": 153564,
+      "sha256": "9bedd7b91a9f8113150e26f8685d2f1945a32fbe2e24e44974f132d45301fec5",
+      "root": "enginespace-hybrid-kv",
+      "members": [
+        { "path": ".claude/hooks/es-guard.sh", "bytes": 4346, "sha256": "7aab3e5a4badb7169908247838862e81982a0eb8a663324df57889c815ca31fd" },
+        { "path": ".claude/output-styles/enginespace-socratic.md", "bytes": 3377, "sha256": "c2db126ca21a3c3343295f31e3b619d1e51f55e955dec8b57a5b1891979521ec" },
+        { "path": ".claude/settings.json", "bytes": 704, "sha256": "040932c724a889280b8ed8b556a8cb188e627a72ef19fe56d8fbf76ce9813066" },
+        { "path": ".gitignore", "bytes": 8, "sha256": "b53ee26e6ff1da219b0563333a76d2c9ec19eec713d6ee54e11a1edacb0e9f3d" },
+        { "path": "AGENTS.md", "bytes": 6111, "sha256": "33981548793c67f399953a605571ec642f28b7eb17a2bac29783f78763b3a663" },
+        { "path": "CLAUDE.md", "bytes": 11, "sha256": "336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49" },
+        { "path": "Cargo.lock", "bytes": 228, "sha256": "f1403335c742d4a90a0500b41e991829b429ed1a6ae14fceff47fddbd9817a8c" },
+        { "path": "Cargo.toml", "bytes": 341, "sha256": "75dd42d84b7c9e9c3dfc5f7b4864efe387bc9ecb461ec37e07ec59cc143687ac" },
+        { "path": "NOTICE", "bytes": 1485, "sha256": "891530acbbc74eae586ec8d43829590729f3445f5ee77299e049abad2f3b27ea" },
+        { "path": "README.md", "bytes": 5749, "sha256": "e5fb9c3425a86f63457b68a0c517b373cc87506299e76b6ec91241923e3ec700" },
+        { "path": "hybrid-kv/Cargo.toml", "bytes": 1379, "sha256": "60b998c0269fe2c0583544481d176edd7475f979df078eba301644963723541e" },
+        { "path": "hybrid-kv/src/lib.rs", "bytes": 85674, "sha256": "e02b84771d2f212619f64da22197060d5fd617512ea78ea6274c9e46d864b22e" },
+        { "path": "hybrid-kv/src/manager.rs", "bytes": 14436, "sha256": "7944508fd4c053387df19280091cc4a927366e704134c78d0340efcf82c8b58e" },
+        { "path": "hybrid-kv/tests/checks.rs", "bytes": 4486, "sha256": "826334bc65aa76736edd32aeb1d43714b3c7c1b69b0321ff2abff2442bb1ca4f" },
+        { "path": "kit/Cargo.toml", "bytes": 181, "sha256": "af7d3d7e8d90a6198e1f9d31046cafac3217cb958b3a3a0574bbd6fb81b81b3d" },
+        { "path": "kit/src/lib.rs", "bytes": 22049, "sha256": "faf92453c85299f0eb62e1e04c4a002d92f4da821e6dbeb4318b15ecfe0cbe69" },
+        { "path": "rust-toolchain.toml", "bytes": 357, "sha256": "3662ca6ffee9aaa50095c41e12233e852d275743b8219213d91f2beb03c7690d" }
+      ]
+    },
+    {
       "name": "enginespace-rejection-sampler.zip",
       "kind": "forge-lab",
       "lab": "rejection-sampler",

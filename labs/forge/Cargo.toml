@@ -2,7 +2,7 @@
 # `kit` is kslab, byte for byte as vendor/kernelspace/labs/kit holds it (tests/forge/kit.test.ts and verify:labs compare the two), and
 # every lab is a crate beside it that depends on it by path, so the zip that W1-T11 packs has the same shape as this folder.
 [workspace]
-members = ["kit", "rejection-sampler", "toy"]
+members = ["kit", "hybrid-kv", "rejection-sampler", "toy"]
 resolver = "2"
 
 # Profiles belong to the workspace root. A release build is what the learner drops on the site; the choices here keep it small and make
