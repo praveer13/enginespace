@@ -45,6 +45,9 @@ export default defineConfig({
   build: {
     // verify:bundle walks dist/.vite/manifest.json to measure each route's static JS and CSS closure.
     manifest: true,
+    // No modulepreload polyfill in the entry (D-023, W1 note): every browser since Firefox 115 and Safari 17 has
+    // <link rel=modulepreload>, and an older one still loads each module, only without the preload. Vite's preload helper stays.
+    modulePreload: { polyfill: false },
     rollupOptions: {
       output: {
         manualChunks(id) {

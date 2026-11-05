@@ -358,6 +358,10 @@
     - **`postfx` stays at 25 KB, so tier 3 antialiases with FXAA.** three's `SMAAPass` alone is 35,631 B gz [measured 2026-11-04 by W0-T15, `gzip -9`], so `src/scene/tiers.ts` uses FXAA at T3 in place of A§6.6's SMAA. A§6.6's row is to follow.
     - **Not measured at the freeze:** the two workers, which have no source yet; frame time p95 on the reference laptop and phone, the first 3D frame and post-processing GPU time, which are by hand on devices that O-9 has not named; GPU memory per scene, since `renderer.info` counts objects, not bytes; and main-thread tasks over 50 ms during play, which need the nightly trace.
     - **The lab gates are one desktop's numbers:** LCP 896 ms, INP 120 ms and CLS 0 at `0512837` [measured 2026-11-04]. If the nightly runner misses a gate that this host meets, look at the profile first (its flags, the runner's cores), and record what changes here.
+  - **W1, 2026-11-04: the modulepreload polyfill is off.**
+    - Each lazy route adds its chunk names to the preload map that Vite keeps in the entry, about 19 B gz a name [measured by W1-T06]. When T12 merged, the front page's first-paint JavaScript was 149,870 B, 130 B under the gate [measured at 6076b2b].
+    - `build.modulePreload.polyfill: false` (vite.config.ts) takes the polyfill for browsers without `<link rel=modulepreload>` (Firefox before 115, Safari before 17) out of the entry: 149,581 B, 419 B under the gate [measured at 6076b2b]. Those browsers still load every module, and Vite's preload helper falls back to `rel=preload` for them. No gate changed.
+    - The 419 B are about 20 more chunk names, so the preload map, not the code, is now what fills the front page's closure. A route manifest outside the entry, or the hover-and-focus preloading of A§6.10, is the fix to plan before the gate is reached.
 - **Revisit when:** a change must take a budget over its gate; the first three nightly lab-profile runs on GitHub's runner have reported; or the owner names the reference devices (O-9), which turns the by-hand targets into checks. Until 2026-11-04 the trigger was "W0-T24 has measured the budgets".
 
 ### D-024 · The evidence ledger

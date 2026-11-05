@@ -723,6 +723,7 @@ All tier values are [estimated] and start from games-3d.md's proposals: at most 
   - The entry chunk is ≤ 110 KB gz, with a target of ≤ 100 KB [estimated].
   - The front page's first-paint closure (entry, the `front` route, The Loop's 2D view, the step-loop core and the content index) is ≤ 150 KB gz [estimated], with a target of ≤ 130 KB.
   - kernelspace's whole-app entry measured 115.7 KB gz [measured at its d31a770, recorded in its `verify-bundle.ts`], which makes these figures reachable.
+  - Vite's modulepreload polyfill is off (`build.modulePreload.polyfill: false`, D-023's W1 note). Every browser since Firefox 115 and Safari 17 has `<link rel=modulepreload>`, and the polyfill cost 289 B gz of the front page's closure [measured 2026-11-04].
 
 ### 6.11 The front page: play first (D-004)
 
