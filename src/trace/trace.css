@@ -73,7 +73,7 @@
 
   .es-trace__bar .es-button {
     padding: 0.3rem 0.55rem 0.2rem;
-    font-size: 0.8125rem;
+    font-size: var(--es-size-caption);
     letter-spacing: 0.05em;
   }
 }
@@ -126,7 +126,7 @@
   gap: var(--es-space-1);
   padding: 0 var(--es-space-3);
   color: var(--es-text-2);
-  font-size: 0.8125rem;
+  font-size: var(--es-size-caption);
   line-height: 1.25;
 }
 
@@ -136,7 +136,7 @@
   max-width: 100%;
   overflow: hidden;
   overflow-wrap: anywhere;
-  font-size: 0.75rem;
+  font-size: var(--es-size-stamp);
   line-height: 1.25;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -167,7 +167,7 @@
   transform: translateX(-50%);
   color: var(--es-paper-ink);
   font-family: var(--es-font-numeric);
-  font-size: 0.8125rem;
+  font-size: var(--es-size-caption);
   font-weight: var(--es-font-numeric-weight);
   line-height: 1;
   letter-spacing: var(--es-font-numeric-tracking);
@@ -184,7 +184,7 @@
   padding: 0 0.5rem 3px 0.4rem;
   color: var(--es-tape-ink);
   font-family: var(--es-font-label);
-  font-size: 0.8125rem;
+  font-size: var(--es-size-caption);
   line-height: 1;
   white-space: nowrap;
 }
@@ -226,7 +226,7 @@
 
 .es-trace__lane-row {
   font-family: var(--es-font-display);
-  font-size: 1.0625rem;
+  font-size: var(--es-size-body);
   font-weight: 800;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -234,7 +234,7 @@
 
 .es-trace__lane-row > span {
   font-family: var(--es-font-body);
-  font-size: 0.9375rem;
+  font-size: var(--es-size-print);
   font-weight: 400;
   letter-spacing: 0;
   text-transform: none;
