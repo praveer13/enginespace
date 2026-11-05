@@ -1104,7 +1104,7 @@ You cannot save recomputed tokens without using the intersection rule, which is 
 | `one-group` | full attention only | paging and prefix hashing (labs 02 and 07 recap) | practice |
 | `two-kinds` | 10 full + 20 sliding layers, block 16, window 32 | sliding frees; the doc's 112-token request holds 7 + 2 + 2 = 11 blocks [derived from the doc's example] | practice |
 | `evict` | the same, under pressure | eviction against the intersection rule | practice → **graded** |
-| `same-size` | Gemma-3-like: 52 sliding + 10 full → 7 groups, the last padded with 8 layers | page-size unification and padding waste | practice |
+| `same-size` | Gemma-3-like: 52 sliding + 10 full → 7 groups, 8 padding layers spread over the six sliding groups (the code at v0.33.0 spreads them; the design doc draws them in the last group) | page-size unification and padding waste | practice |
 | `state` | a Mamba-like state group | a fixed number of pages per request; attention blocks inflated to match | practice |
 | `adapters` | `two-kinds` + rank-8 and rank-64 adapters | unified paging; all-or-nothing admission; prefetch from the waiting queue; the debrief replays the seed with a fixed-slot baseline, the engines' design at the pins | **graded** |
 | `manager` | mixed | everything, fresh seeds | **graded** |
