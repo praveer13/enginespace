@@ -36,13 +36,15 @@ const root = path.resolve(import.meta.dirname, '../..')
  * zod, which the ledger's codec uses, asks once whether `new Function('')` works, to choose between a compiled and a plain way of
  * parsing (zod 4.3.5, core `allowsEval`, called when the first object schema is built). The policy has no 'unsafe-eval' (§12), so the
  * call throws, zod catches it and parses the plain way, and the browser reports one violation for the probe. It happens on the pages
- * that load the ledger, and on no other: /settings and /evidence, and since W1-T06 the course map and every module's page, which read the
- * learner's events to show what they hold. `z.config({ jitless: true })` ahead of the first schema would end it, and so would a policy
+ * that load the ledger, and on no other: /settings and /evidence, since W1-T05 /today, which reads the learner's events to see what is
+ * due, and since W1-T06 the course map and every module's page, which read the learner's events to show what they hold.
+ * `z.config({ jitless: true })` ahead of the first schema would end it, and so would a policy
  * that allows eval, which the site must never have: W0-T21 reports it and does not change the schemas.
- * e2e/network.spec.ts pins this list to those pages, so that the entry is deleted when the probe goes.
+ * e2e/network.spec.ts pins this list to the routes it visits (PR_ROUTES, which has no /today: e2e/today.spec.ts fails on any other
+ * refusal there), so that the entry is deleted when the probe goes.
  */
 export const KNOWN_REFUSALS: readonly { pattern: RegExp; why: string }[] = [
-  { pattern: /^script-src eval @\/(?:settings|evidence|map|m\/[a-z0-9]+)$/, why: "zod's probe of `new Function('')` on a page that loads the ledger" },
+  { pattern: /^script-src eval @\/(?:settings|evidence|today|map|m\/[a-z0-9]+)$/, why: "zod's probe of `new Function('')` on a page that loads the ledger" },
 ]
 
 export interface Watch {
