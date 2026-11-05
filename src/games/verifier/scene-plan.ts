@@ -80,11 +80,16 @@ export function roomOf(plan: Plan): { lineZ: number; wallZ: number; sideX: numbe
  * (scene-shots.ts, which the page holds, so its buttons stand before the scene loads):
  *   Over the run        Establish: from the expo's side of the pass and above it, the lamps at the top, the pass and its stacks across
  *                       the lower half, any later courses in rows behind, the line beyond. Over a run of courses, from higher and
- *                       closer, so the courses and their names fill the box and the hood stands above it. On a phone, from higher
- *                       still, so all six pairs fit, with the pass's front edge at the foot of the box and no floor under it.
+ *                       closer, so the courses and their names fill the box and the hood stands above it; on a phone, from higher
+ *                       still, so all six pairs fit. On a phone over one course, low and near, a little over the stacks: the pass
+ *                       and its stacks fill the box's lower half, the box's foot at the floor's line and the pass's open shelf in its
+ *                       shade, and the room over it falls into haze (its target stands back along the same line of sight, so the haze,
+ *                       measured from it, starts behind the line). Six pairs across a phone's box stand no taller than that, whatever
+ *                       the shot: the box is taller than wide.
  *   One course          Focus: the front course, front on and nearly level with the counter, so the stacks' heights and the rings
  *                       read against each other.
- *   Walk with the chef  Follow, which the learner chooses: low from the pass's right end, along the front course and down the run.
+ *   Walk with the chef  Follow, which the learner chooses: low from the pass's right end, along the front course and down the run,
+ *                       turned far enough down it that the soup's tape at its far end stands inside the box.
  */
 export function presetsOf(plan: Plan, shots: readonly Shot[]): CameraPreset[] {
   const deep = (plan.rows - 1) * ROW
@@ -97,7 +102,7 @@ export function presetsOf(plan: Plan, shots: readonly Shot[]): CameraPreset[] {
       projection: 'perspective',
       ...(plan.rows > 1
         ? { position: [-0.2, 3, 2 + deep * 0.15], target: [-0.2, 0.85, mid - 0.3], fov: 36, portrait: { position: [0, 3.8 + deep * 0.3, 2.4], target: [0, 1.1, mid - 0.2], fov: 40 } }
-        : { position: [-0.3, 2.02, 2.62], target: [0, 1.15, -0.24], fov: 34, portrait: { position: [-0.1, 3.4, 3.4], target: [0, 1.85, -0.2], fov: 40 } }),
+        : { position: [-0.3, 2.02, 2.62], target: [0, 1.15, -0.24], fov: 34, portrait: { position: [0, 2, 3.3], target: [0, 1.46, -0.26], fov: 48 } }),
     },
     course: {
       shot: 'focus',
@@ -110,10 +115,10 @@ export function presetsOf(plan: Plan, shots: readonly Shot[]): CameraPreset[] {
     walk: {
       shot: 'follow',
       projection: 'perspective',
-      position: [end + 0.42, 1.36, 0.82],
-      target: [-0.35, 1.0, mid - 0.1],
-      fov: 36,
-      portrait: { position: [end + 0.7, 1.6, 1.25], target: [-0.3, 1.0, mid - 0.15], fov: 48 },
+      position: [end + 0.5, 1.4, 0.8],
+      target: [-0.4, 1.0, mid - 0.1],
+      fov: 40,
+      portrait: { position: [end + 0.7, 1.6, 1.3], target: [-0.7, 1.0, mid], fov: 52 },
     },
   }
   return shots.map((shot) => ({ ...shot, ...framings[shot.id] }))

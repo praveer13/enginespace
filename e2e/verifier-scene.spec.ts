@@ -7,7 +7,8 @@
  *   2. The observed skyline updates in batches, not per draw: a hundred rounds drawn at once move the scene once, and it settles.
  *   3. Reduced motion shows each batch's final histogram: a draw cuts to its end, and then no animation frame is asked for.
  *   And the rest of the scene contract: `V` swaps 2D and 3D and keeps the run, `C` and the buttons reach every shot, the capture is not
- *   blank, all text is DOM, and a dish's tape picked on the pass hands focus to its weight.
+ *   blank, all text is DOM, every name stands whole inside the box in every shot, and a dish's tape picked on the pass hands focus to
+ *   its weight.
  *
  * How it runs, as e2e/loop-scene.spec.ts does: one test build with `VITE_ES_TEST_HOOKS=1` (it exposes `window.__esScene` and honours
  * `?es-tier=<0-3>`), served by `context.route` so no server runs, with any request off the origin failing the test. Chromium renders
@@ -286,6 +287,34 @@ test.describe('the views and the camera (A§6.8)', () => {
       await camera(page).getByRole('button', { name }).click()
       await expect(camera(page).getByRole('button', { name })).toHaveAttribute('aria-pressed', 'true')
       await settle(page)
+    }
+  })
+})
+
+test.describe('labels (W1\'s finish review, round 2): every name stands whole inside the box, in every shot', () => {
+  test('over the run, one course and walking with the chef, no tape or tag on the pass is cut by the box\'s edge', async ({ page }) => {
+    await open(page, 'chain', 2)
+    await settle(page)
+    await page.getByLabel('Courses per round').fill('2.4')
+    await page.keyboard.press('Enter')
+    await draw(page)
+    await settle(page)
+    for (const name of ['Over the run', 'One course', 'Walk with the chef']) {
+      await camera(page).getByRole('button', { name }).click()
+      await settle(page)
+      await frame(page)
+      const cut = await page.evaluate(() => {
+        const box = document.querySelector('[data-stage="verifier"] canvas')?.getBoundingClientRect()
+        if (!box) return ['no canvas']
+        return [...document.querySelectorAll<HTMLElement>('[data-stage="verifier"] .es-vf-label')]
+          .filter((label) => getComputedStyle(label).visibility !== 'hidden')
+          .filter((label) => {
+            const r = label.getBoundingClientRect()
+            return r.left < box.left - 0.5 || r.right > box.right + 0.5 || r.top < box.top - 0.5 || r.bottom > box.bottom + 0.5
+          })
+          .map((label) => label.textContent ?? '')
+      })
+      expect(cut, `${name}: names cut by the box's edge`).toEqual([])
     }
   })
 })
