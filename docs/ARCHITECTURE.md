@@ -418,31 +418,35 @@ export interface StepLoopRun {
 
 ```ts
 export interface KvGroupSpec { id: string; kind: 'full' | 'sliding' | 'state'
-                               layers: number; blockTokens: number; window?: number; statePages?: number }
+                               layers: number; padLayers?: number; blockTokens: number
+                               window?: number; statePages?: number; stateBytes?: number }
                                // one block of a group fills exactly one page (D-045); adapters are not groups
-export interface KvSpec { poolPages: number; pageBytes: number; paddingLayers: number
-                          groups: readonly KvGroupSpec[]; prefixCaching: boolean }
-export type KvOp =
-  | { op: 'admit'; req: number; tokens: number; adapter?: number }
-  | { op: 'append'; req: number; tokens: number } | { op: 'finish'; req: number }
+export interface KvSpec { poolPages: number; pageBytes: number; tokenBytes: number; paddingLayers: number
+                          groups: readonly KvGroupSpec[]; prefixCaching: boolean
+                          adapterSlots?: number }       // the engines' slots for adapters, in place of pages (D-042)
+export type KvOp =                                      // a token is an integer id below 2^32: blocks are hashed from them
+  | { op: 'admit'; req: number; prompt: readonly number[]; adapter?: number }
+  | { op: 'append'; req: number; tokens: readonly number[] } | { op: 'finish'; req: number }
   | { op: 'load-adapter'; adapter: number; pages: number } | { op: 'unload-adapter'; adapter: number }
   | { op: 'reset' }
 export function kvReference(spec: KvSpec): KvModel             // apply(op) → result; state(); events()
-export function kvInvariants(spec: KvSpec, s: KvState): readonly string[]
-export function kvOps(seed: Seed, spec: KvSpec, n: number): readonly KvOp[]
+export function kvInvariants(spec: KvSpec, s: KvState): readonly string[]   // each begins with the id of the check it fails
+export function kvOps(seed: Seed, spec: KvSpec, n: number, profile?: Partial<KvOpsProfile>): readonly KvOp[]
+export function kvJudge(spec: KvSpec, ops: readonly KvOp[], candidate: KvModel): KvJudgement | null
 ```
 
 - **One physical page pool with one page size** serves every group and every adapter (D-045). KV groups reach that size as vLLM's hybrid manager does at the pin: a preset groups layers, pads layers or inflates the attention block so each group's block is exactly one page, and the padding waste is reported (vllm K2). Adapters follow S-LoRA: an adapter takes ⌈adapter bytes ÷ page bytes⌉ pages of the same pool, stored non-contiguously, which is the `pages` of its `load-adapter` op.
 - **Putting adapters in that pool is the learner's design, not upstream's.** At the pins, vLLM keeps adapters in `max_loras` slots outside the KV pool, and SGLang in a fixed-slot `LoRAMemoryPool` (vllm K4; sglang X6). The model's In-production card says so, and the learner's allocator is compared against that slot baseline (D-042).
-- **Groups.** A full-attention group keeps every block. A sliding group frees blocks that fall behind its window. A state group holds a fixed number of pages per request. Adapter pages are shared by every request that uses the adapter.
-- **All or nothing.** An operation either succeeds or leaves the state untouched, lab 02's rule.
-- **Prefix caching.** Block hashes chain over the parent hash, the token ids and the extra keys (the adapter id).
+- **Groups.** A full-attention group keeps every block. A sliding group frees blocks that fall behind its window: for a request of L tokens it holds the blocks from ⌊max(0, L - W + 1) ÷ B⌋ on (`vllm.hybrid-kv.sliding-skipped-tokens`), which is 7 + 2 + 2 blocks for the design document's 112-token example [measured: `vllm.hybrid-kv.doc-example-blocks`, 2026-11-04]. A state group keeps its newest `statePages` blocks however long the request runs: the block that is full holds the state at its edge and is cached, and the newest holds the live state. Adapter pages are shared by every request that uses the adapter.
+- **All or nothing.** An operation either succeeds or leaves the state untouched, lab 02's rule. Each works out what it needs first and refuses when the pool cannot supply it: an admit needs its new blocks to fit once the cached blocks of its hit have left the queue, and an append counts the blocks that its windows let go.
+- **The free queue** holds the free and the cached pages in eviction order. An allocation takes the front, and a cached page that it takes loses its hash. A page nobody holds goes back to the back with a hash and to the front without one, a request's blocks last block first, and a hit takes its pages out of the queue and returns the ones it does not keep (`vllm.kv-pool.*`).
+- **Prefix caching.** Block hashes chain over the parent hash, the token ids and the extra keys (the adapter id). The hit is the longest prefix that every group holds, found as a fixed point with full attention first (`vllm.hybrid-kv.n-group-lookup`), rounded down to a multiple of the least common multiple of the groups' block sizes, and never reaching the last token of the prompt. A block that two requests compute separately is cached once.
 - **Events.** The model emits `BlockStored`, `BlockRemoved` and `AllBlocksCleared` in the shape of vLLM v0.33.0's KV events, which W1-T01 read at the pin on 2026-11-04 (claims `vllm.kv-events.*`):
-  - An event is a tagged map whose `type` is the class name, and a batch is the array `[ts, events, data_parallel_rank]`. SGLang v0.5.23 encodes its events the same way and says so (`sglang.kv-events.encoding`).
+  - An event is a tagged map whose `type` is the class name, and a batch is the array `[ts, events, data_parallel_rank]`, of which the model writes the first two, with `ts` the index of the operation. SGLang v0.5.23 encodes its events the same way and says so (`sglang.kv-events.encoding`).
   - `BlockStored` has seven fields without a default: `block_hashes`, `parent_block_hash`, `token_ids`, `block_size`, `lora_id` (deprecated), `medium` and `lora_name`. Its eight optional fields are `extra_keys`, `group_idx`, `kv_cache_spec_kind`, `kv_cache_spec_sliding_window`, `locality`, `ownership`, `session_id` and `lookahead_token_ids`.
   - `BlockRemoved` has `block_hashes`, `medium` and the optional `group_idx`, `locality` and `ownership`. `AllBlocksCleared` has no fields, and the block pool emits it only when a reset finds no block in use.
   - The adapter is already in the shape: both engines carry it as `lora_name` (`vllm.kv-events.adapter-field`, `sglang.kv-events.adapter-field`), and the adapter is part of the block hash through `extra_keys` (`vllm.kv-hash.lora-extra-key`).
-- **Invariants.** Pages are conserved; reference counts never go below zero; a block table's length matches its group's rule; every stored or removed block is published exactly once.
+- **Invariants.** Pages are conserved; reference counts never go below zero; a block table's length matches its group's rule; every stored or removed block is published exactly once. `kvInvariants` checks eight of them on a snapshot (`conservation`, `refcounts`, `tables`, `window`, `cache`, `queue`, `adapters`, `events`), and `kvJudge` adds the three that need a reference to compare with: `reply`, `hit` and `atomic`. The bestiary of TR5a §5 is a list of managers that each break one rule, and each must fail a named check.
 
 ### 5.5 The speculation sampler
 

@@ -1,0 +1,420 @@
+# vLLM at the pin: the rules of the block pool and the hybrid KV manager that the model in packages/sim/kv follows (W1-T21; ARCHITECTURE §5.4,
+# D-045). W1-T01's kv.yaml holds the facts about the hybrid groups, the adapters and the shape of the events; these are the rules under them
+# that the model needs and that no claim held: the order of the free queue, how a window lets go of blocks, how a hit is found for each
+# kind of group, how the layers are grouped and padded, and what an event carries. Each was read on 2026-11-04 from the file its URL names
+# at v0.33.0 (commit 4ba787ec9959e566d3b587a796dff07673324da5), downloaded from raw.githubusercontent.com with the User-Agent
+# `Mozilla/5.0 (X11; Linux x86_64)` and read as text. Every quote is found verbatim inside the lines of its anchor, and a quote is one
+# line of the source, because a source that splits a string across lines is quoted from one of its lines.
+
+# --- The free queue ------------------------------------------------------------------------------------------------------------------
+
+- id: vllm.kv-pool.free-order
+  value: unhashed to the front, hashed to the back
+  text: When the last holder of a block lets go, the pool puts a block with no hash at the front of the free queue, where it is reused first, and a block with a hash at the back, so that cached blocks leave in least-recently-used order. The blocks go in the order the caller gives.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/block_pool.py#L816-L849
+    title: vLLM v0.33.0, vllm/v1/core/block_pool.py, BlockPool.free_blocks
+    quote: 'FIFO reuse of cached blocks for LRU eviction behavior.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.kv-pool.free-reverse
+  value: last block first
+  text: A request's blocks are freed in reverse order, so that the tail blocks go back first and, among blocks with hashes, are evicted before the head of the same prefix.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/single_type_kv_cache_manager.py#L591-L599
+    title: vLLM v0.33.0, vllm/v1/core/single_type_kv_cache_manager.py, SingleTypeKVCacheManager.free
+    quote: 'Free blocks in reverse order so that the tail blocks are freed first.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.kv-pool.allocate-from-front
+  value: from the front of the free queue
+  text: New blocks come from the front of the free queue, and a block that is taken while it still has a hash loses the hash, which is an eviction.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/block_pool.py#L706-L740
+    title: vLLM v0.33.0, vllm/v1/core/block_pool.py, BlockPool.get_new_blocks
+    quote: 'ret: list[KVCacheBlock] = self.free_block_queue.popleft_n(num_blocks)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.kv-pool.touch
+  value: leaves the free queue
+  text: A request that hits a cached block touches it. If nobody else holds the block it is in the free queue as an eviction candidate, and the touch removes it from there, so it cannot be evicted while the request holds it.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/block_pool.py#L792-L810
+    title: vLLM v0.33.0, vllm/v1/core/block_pool.py, BlockPool.touch
+    quote: 'ref_cnt=0 means this block is in the free list (i.e. eviction'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.kv-pool.admission-counts-evictable
+  value: new blocks plus the cached blocks the hit takes
+  text: When the pool decides whether a request fits, a cached block of its prefix hit that sits in the free queue counts against the free capacity too, because touching it takes it out of the queue.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/single_type_kv_cache_manager.py#L256-L266
+    title: vLLM v0.33.0, vllm/v1/core/single_type_kv_cache_manager.py, SingleTypeKVCacheManager.get_num_blocks_to_allocate
+    quote: 'the allocated request, so we must count it in the free-capacity check.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.kv-pool.max-hit-length
+  value: the prompt length less 1
+  text: A prefix hit never covers the whole prompt. The manager caps it at the prompt's length less 1, so that the last token is computed and gives the logits, even if that recomputes a whole block.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/kv_cache_manager.py#L295-L302
+    title: vLLM v0.33.0, vllm/v1/core/kv_cache_manager.py, KVCacheManager.get_computed_blocks
+    quote: 'NOTE: When all tokens hit the cache, we must recompute the last token'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.kv-pool.skipped-freed-first
+  value: before the capacity check
+  text: vLLM frees the blocks that a sliding window has left behind before it checks whether the new blocks fit, and keeps them freed even when the request then cannot be scheduled. The allocation as a whole is not all or nothing.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/kv_cache_manager.py#L555-L568
+    title: vLLM v0.33.0, vllm/v1/core/kv_cache_manager.py, KVCacheManager.allocate_slots
+    quote: 'We can do this even if we cannot schedule this request due to'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.kv-pool.duplicate-keys
+  value: not de-duplicated
+  text: The block pool does not de-duplicate cached blocks. When a block becomes full it is cached without a check for an identical block already in the cache, so that allocated block ids never change and block tables stay append-only. Two requests that compute the same block leave two cached copies under one key.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/block_pool.py#L49-L53
+    title: vLLM v0.33.0, vllm/v1/core/block_pool.py, BlockHashToBlockMap
+    quote: "NOTE #1: We currently don't de-duplicate the blocks in the cache,"
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+# --- The window, and the hit of each kind of group -----------------------------------------------------------------------------------
+
+- id: vllm.hybrid-kv.sliding-skipped-tokens
+  value: max(0, computed - window + 1)
+  text: A sliding-window group skips the tokens before max(0, computed tokens - window + 1), which the next token no longer attends to. The manager frees the whole blocks among them, the number of skipped tokens divided by the block size and rounded down.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/single_type_kv_cache_manager.py#L1148-L1183
+    title: vLLM v0.33.0, vllm/v1/core/single_type_kv_cache_manager.py, SlidingWindowManager.get_num_skipped_tokens
+    quote: 'num_computed_tokens - self.sliding_window + 1 - self.extra_retained_tokens'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.sliding-hit-blocks
+  value: ceil((window - 1) / block size)
+  text: A prefix hit in a sliding-window group needs the blocks that the window covers before the edge of the hit, which are the ceiling of (window - 1) divided by the block size of them in a row.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/single_type_kv_cache_manager.py#L956-L966
+    title: vLLM v0.33.0, vllm/v1/core/single_type_kv_cache_manager.py, SlidingWindowManager._contiguous_blocks_for_hit
+    quote: 'blocks = cdiv(window_size - 1, block_size)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.sliding-hit-prefix
+  value: the cached run at the start
+  text: When no run of enough blocks is cached, a sliding-window group still hits on the cached run that starts at the first block, even if it is shorter than the window needs, because the window then reaches back to the start of the prompt.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/single_type_kv_cache_manager.py#L1040-L1044
+    title: vLLM v0.33.0, vllm/v1/core/single_type_kv_cache_manager.py, SlidingWindowManager.find_longest_cache_hit
+    quote: 'The first `num_contiguous_blocks` is a cache hit even if'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.mamba-hit
+  value: the last cached block
+  text: A Mamba group looks from the right for the last block that is cached and hits there, so a hit at a block's edge needs that one block, which holds the state at the edge, and no others.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/single_type_kv_cache_manager.py#L1522-L1546
+    title: vLLM v0.33.0, vllm/v1/core/single_type_kv_cache_manager.py, MambaManager.find_longest_cache_hit
+    quote: 'break  # we just need the last match - early stopping'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.mamba-align-only
+  value: align
+  text: Prefix caching with Mamba layers needs the cache mode align, in which the block size is aligned between the attention layers and the Mamba layers so that a hit lands on a block edge. A Mamba group asserts it when caching is on.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/single_type_kv_cache_manager.py#L1442-L1444
+    title: vLLM v0.33.0, vllm/v1/core/single_type_kv_cache_manager.py, MambaManager
+    quote: "Mamba prefix caching requires mamba_cache_mode='align'"
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.scheduler-block-size
+  value: the LCM of the groups' block sizes
+  text: The scheduler's block size, the granularity that scheduling works at, is the least common multiple of the block sizes of all the KV cache groups, and each group's block size divides it.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/single_type_kv_cache_manager.py#L88-L89
+    title: vLLM v0.33.0, vllm/v1/core/single_type_kv_cache_manager.py, SingleTypeKVCacheManager.__init__
+    quote: 'scheduler_block_size: The scheduling granularity (LCM of all group'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.hit-alignment
+  value: a multiple of the scheduler block size
+  text: A prefix hit is aligned to the scheduler block size, so the longest hit that every group can serve is rounded down to a multiple of the least common multiple of the groups' block sizes.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/kv_cache_coordinator.py#L777-L787
+    title: vLLM v0.33.0, vllm/v1/core/kv_cache_coordinator.py, HybridKVCacheCoordinator._align_cacheable
+    quote: 'Hits are ``scheduler_block_size``-aligned (see'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.full-attention-first
+  value: full attention first
+  text: The coordinator puts the full-attention groups first in its lookup, because their left-to-right scan gives a tighter first bound for the groups after them.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/kv_cache_coordinator.py#L756-L760
+    title: vLLM v0.33.0, vllm/v1/core/kv_cache_coordinator.py, HybridKVCacheCoordinator.verify_and_split_kv_cache_groups
+    quote: 'Put full attention first: its efficient left-to-right scan provides'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+# --- Grouping the layers -------------------------------------------------------------------------------------------------------------
+
+- id: vllm.hybrid-kv.group-size
+  value: the fewest layers of any type
+  text: The planner gives every KV cache group the same number of layers, and that number is the smallest layer count among the attention types, so that every group's block is the same size.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/kv_cache_planning.py#L521-L522
+    title: vLLM v0.33.0, vllm/v1/core/kv_cache_planning.py, _get_kv_cache_groups_uniform_page_size
+    quote: 'min_num_layers = min([len(layers) for layers in layer_buckets])'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.group-size-near
+  value: 1.5
+  unit: times the fewest
+  text: When the largest layer count is less than 1.5 times the smallest, the planner uses the largest as the group size, so that a draft model's extra layer pads one group by a layer instead of doubling the groups.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/kv_cache_planning.py#L524-L532
+    title: vLLM v0.33.0, vllm/v1/core/kv_cache_planning.py, _get_kv_cache_groups_uniform_page_size
+    quote: 'if max_num_layers < min_num_layers * 1.5:'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.layer-spread
+  value: layers[i::num_groups]
+  text: The layers of one type are spread over its groups, with group i taking every num_groups-th layer from layer i. A type whose layers do not divide evenly therefore gets groups that differ by one layer, and the padding is spread over the groups with them. The design document draws the padding in the last group.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/kv_cache_planning.py#L548-L555
+    title: vLLM v0.33.0, vllm/v1/core/kv_cache_planning.py, _get_kv_cache_groups_uniform_page_size
+    quote: 'To avoid this, we assign layers[i::num_groups] to the i-th group'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.padding-layers
+  value: group size - layers % group size
+  text: A type whose layer count is not a multiple of the group size is padded with the missing layers, and the planner logs how much KV cache memory the padding may waste.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/kv_cache_planning.py#L535-L541
+    title: vLLM v0.33.0, vllm/v1/core/kv_cache_planning.py, _get_kv_cache_groups_uniform_page_size
+    quote: 'num_padding_layers = group_size - len(layers) % group_size'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.page-unify
+  value: attention page >= state page, state padded to it
+  text: For a hybrid model with Mamba layers, vLLM makes the attention page at least as big as a Mamba layer's state page, and pads the state page up to the attention page, so that the groups have one page size.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/platforms/interface.py#L940-L947
+    title: vLLM v0.33.0, vllm/platforms/interface.py, Platform._align_hybrid_block_size
+    quote: 'size is >= the mamba page size, and pad the mamba page size to match.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.attn-block-inflate
+  value: the smallest multiple of the kernel block that holds the state
+  text: The attention block is made the smallest multiple of the kernel block size whose page, for a layer, is at least a Mamba layer's state page. The state page is then padded to exactly that size.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/platforms/interface.py#L1096-L1128
+    title: vLLM v0.33.0, vllm/platforms/interface.py, Platform._align_hybrid_block_size
+    quote: 'attn_block_size = kernel_block_alignment_size * cdiv('
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.doc-example-blocks
+  value: 11
+  unit: blocks
+  text: The design document's worked example, 10 full-attention and 20 sliding-window layers with 16-token blocks and a 32-token window, allocates 11 blocks to a request of 112 tokens, 7 for the full group and 2 for each of the two sliding groups.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/hybrid_kv_cache_manager.md#L73-L86
+    title: vLLM v0.33.0, docs/design/hybrid_kv_cache_manager.md (Case 2)
+    quote: 'we need to allocate 11 blocks (0-6 for full, 7-8 for sw group 1, 9-10 for sw group 2).'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.doc-gemma3-layers
+  value: 52 sliding and 10 full
+  text: The design document counts 52 sliding-window and 10 full-attention layers in Gemma-3-27b, and groups them by the smallest layer count, 10, into 7 groups.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/hybrid_kv_cache_manager.md#L113-L121
+    title: vLLM v0.33.0, docs/design/hybrid_kv_cache_manager.md (Case 3)
+    quote: 'Gemma-3-27b has 52 sliding window attention layers and 10 full attention layers.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+# --- What an event carries -----------------------------------------------------------------------------------------------------------
+
+- id: vllm.kv-events.spec-kind
+  value: full_attention, sliding_window, mamba
+  text: The cache-spec kinds that a stored block names are strings, among them full_attention, sliding_window and mamba.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/kv_cache_interface.py#L183-L194
+    title: vLLM v0.33.0, vllm/v1/kv_cache_interface.py, KVCacheSpecKind
+    quote: 'SLIDING_WINDOW = "sliding_window"'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.kv-events.spec-annotation
+  value: added by the manager
+  text: The block pool emits a stored block with its group index only, and the KV cache manager adds the group's cache-spec kind and sliding window to it when it hands the events out, so that a consumer can classify groups as it learns them.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/kv_cache_manager.py#L705-L730
+    title: vLLM v0.33.0, vllm/v1/core/kv_cache_manager.py, KVCacheManager.take_events
+    quote: 'Annotate here so BlockPool can keep emitting structural cache'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.kv-events.stored-content
+  value: one event for the blocks of one call
+  text: The block pool publishes one BlockStored for the new full blocks that one call caches in a group. It carries their hashes, the hash of the block before the first, and the token ids of the whole range of tokens.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/block_pool.py#L373-L403
+    title: vLLM v0.33.0, vllm/v1/core/block_pool.py, BlockPool._build_block_stored_event
+    quote: 'token_ids=request.all_token_ids[start_token_idx:end_token_idx],'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.kv-events.extra-keys
+  value: the bare adapter name
+  text: A stored block's extra keys are published untagged, with one entry for each block, which is an adapter's name without the lora tag that the block hash uses, or nothing for a block with no extra key.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/kv_cache_utils.py#L678-L704
+    title: vLLM v0.33.0, vllm/v1/core/kv_cache_utils.py, to_event_extra_keys
+    quote: 'External KV event consumers parse the pre-tagging shapes: bare LoRA names'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.kv-events.duplicates-published
+  value: one hash for each block cached
+  text: The loop that caches the new full blocks of a call adds the hash of each block to the BlockStored event, whether or not another block already holds the same key. So when two copies of a block are cached, both are published.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/block_pool.py#L277-L305
+    title: vLLM v0.33.0, vllm/v1/core/block_pool.py, BlockPool.cache_full_blocks
+    quote: 'new_hashes.append(maybe_convert_block_hash(block_hash))'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.kv-hash.sha256-default
+  value: sha256
+  text: vLLM defaults its prefix-cache block hashing to SHA-256, which yields bytes. The event type for a block hash is a union of bytes and int so that an integer hash from the older scheme still fits.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/kv_cache_utils.py#L54-L57
+    title: vLLM v0.33.0, vllm/v1/core/kv_cache_utils.py, ExternalBlockHash
+    quote: 'after we default block hashing to use sha256 bytes.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.kv-hash.chain
+  value: hash(parent, token ids, extra keys)
+  text: A block's hash is a hash of a tuple of the parent block's hash, the block's token ids and its extra keys, so a block is the same block only when every token before it and in it is the same. The first block's parent is a fixed seed.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/kv_cache_utils.py#L707-L737
+    title: vLLM v0.33.0, vllm/v1/core/kv_cache_utils.py, hash_block_tokens
+    quote: 'hash_function((parent_block_hash, curr_block_token_ids_tuple, extra_keys))'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
