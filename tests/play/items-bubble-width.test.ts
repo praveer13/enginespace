@@ -25,6 +25,9 @@ import {
 } from '@es/play/items'
 import type { Item, Level, Response } from '@es/play/items'
 import { bubbleWidth, bubbleModel } from '@es/play/items/families/tr2/bubble-width'
+import { runStepLoop, TICK_CARD } from '@es/sim/steploop'
+import type { StepLoopConfig } from '@es/sim/steploop'
+import { genWorkload } from '@es/sim/workload'
 import { itemProblems } from '../../scripts/verify-items.ts'
 import { keyOf, wrongOf } from './items-support.ts'
 
@@ -70,6 +73,48 @@ describe('the family', () => {
     // And where the CPU's work is the longer, the part that does not fit stays.
     expect(bubbleModel.gapOn(3, 2, 4)).toBe(1)
     expect(bubbleModel.gapOn(1, 1, 4)).toBe(0)
+  })
+})
+
+describe('the model, held to the step loop v1 (W1-T14)', () => {
+  // A scene's three times as the loop's cards give them: the plan is the schedule phase, the read is the sync phase, and the forward is the line's.
+  // One long request keeps one step in flight after another, so the steps in the middle of the run are the steady state that the family prices.
+  const gapsOf = (plan: number, read: number, forward: number, asyncScheduling: boolean): number[] => {
+    const card = { ...TICK_CARD, scheduleBaseUs: plan, syncUs: read, forwardUs: forward, admitUs: 0 }
+    const config: StepLoopConfig = { maxNumSeqs: 1, maxBatchedTokens: 2048, chunkedPrefill: true, asyncScheduling, inputIds: 'device', graphs: { mode: 'NONE', captureSizes: [] } }
+    const workload = genWorkload(1, { requests: 1, arrivals: { kind: 'burst' }, lengths: { kind: 'dists', prompt: { kind: 'const', value: 1 }, output: { kind: 'const', value: 14 } } })
+    return runStepLoop(workload, config, card, card, { horizonUs: 1_000_000_000 }).steps.slice(3, 9).map((step) => step.bubbleUs)
+  }
+
+  test('the GPU idles for all of the CPU\'s work with async scheduling off, and for what the forward cannot hide with it on: the keys of async-off and async-on', () => {
+    let checked = 0
+    for (const seed of SEEDS.slice(0, 80)) {
+      for (const variant of ['async-off', 'async-on'] as const) {
+        const item = bubbleWidth.make(seed, 2, variant)
+        const { plan, read, forward } = numbersOf(item, 'µs')
+        const key = item.answer.kind === 'numeric' ? item.answer.truth : Number.NaN
+        const gaps = gapsOf(plan, read, forward, variant === 'async-on')
+        expect(gaps).toEqual(gaps.map(() => key))
+        checked += 1
+      }
+    }
+    expect(checked).toBe(160)
+  })
+
+  test('the closed forms are the loop\'s step: the plan, the forward and the read in turn, or the longer of the forward and the CPU\'s work', () => {
+    for (const seed of SEEDS.slice(0, 60)) {
+      const item = bubbleWidth.make(seed, 2, 'async-on')
+      const { plan, read, forward } = numbersOf(item, 'µs')
+      const card = { ...TICK_CARD, scheduleBaseUs: plan, syncUs: read, forwardUs: forward, admitUs: 0 }
+      for (const asyncScheduling of [false, true]) {
+        const config: StepLoopConfig = { maxNumSeqs: 1, maxBatchedTokens: 2048, chunkedPrefill: true, asyncScheduling, inputIds: 'device', graphs: { mode: 'NONE', captureSizes: [] } }
+        const workload = genWorkload(1, { requests: 1, arrivals: { kind: 'burst' }, lengths: { kind: 'dists', prompt: { kind: 'const', value: 1 }, output: { kind: 'const', value: 14 } } })
+        const steps = runStepLoop(workload, config, card, card, { horizonUs: 1_000_000_000 }).steps
+        // The step time is the distance between two forwards' starts: the forward and the gap before the next.
+        const step = steps[5].gpuUs + steps[6].bubbleUs
+        expect(step).toBe(asyncScheduling ? bubbleModel.stepOn(plan, read, forward) : bubbleModel.stepOff(plan, read, forward))
+      }
+    }
   })
 })
 

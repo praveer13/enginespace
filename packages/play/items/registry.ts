@@ -4,10 +4,12 @@
  * task that builds it; `verify:kc` reads this folder for the families that assess each KC.
  */
 import { bubbleWidth } from './families/tr2/bubble-width'
+import { graphHit } from './families/tr2/graph-hit'
+import { paddingWaste } from './families/tr2/padding-waste'
 import type { Gen } from './types'
 
 /** Every family, in module order. */
-export const FAMILIES: readonly Gen[] = [bubbleWidth]
+export const FAMILIES: readonly Gen[] = [bubbleWidth, graphHit, paddingWaste]
 
 const BY_ID: ReadonlyMap<string, Gen> = new Map(FAMILIES.map((family) => [family.id, family]))
 

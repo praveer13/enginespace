@@ -138,21 +138,29 @@ const gate = (dir: string, ...args: string[]) => {
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 describe('a sample family passes verify:items', () => {
-  test('the reference family of this repository passes, with no error and nothing left unsaid', async () => {
+  test('the families of this repository pass, with no error and nothing left unsaid', async () => {
     const result = await checkTree(root)
     expect(result.diagnostics).toEqual([])
     expect(result.notes).toEqual([])
     expect(result.families.map((family) => family.id)).toEqual(FAMILIES.map((family) => family.id))
     const lines = summaryLines(result)
     expect(lines[0]).toContain('tr2.bubble-width v1: 3 variants (async-off, async-on, close-it), levels 0 1 2 3')
-    expect(lines.filter((line) => line.startsWith('  level'))).toHaveLength(4)
-    for (const line of lines.slice(1)) expect(line).toMatch(/band \d+\.\d% of 2000, 1000 banded seeds, best blind strategy \d+\.\d% of a bound of \d+\.\d%/)
+    expect(lines.filter((line) => /^tr2\./.test(line)).map((line) => line.replace(/ \(.*$/, ''))).toEqual([
+      'tr2.bubble-width v1: 3 variants',
+      'tr2.graph-hit v1: 2 variants',
+      'tr2.padding-waste v1: 3 variants',
+    ])
+    // Four levels of each family: W1-T14 measured the two it added on the same thousand banded seeds per level.
+    expect(lines.filter((line) => line.startsWith('  level'))).toHaveLength(4 * FAMILIES.length)
+    for (const line of lines.filter((candidate) => candidate.startsWith('  level'))) {
+      expect(line).toMatch(/band \d+\.\d% of 2000, 1000 banded seeds, best blind strategy \d+\.\d% of a bound of \d+\.\d%/)
+    }
   })
 
   test('as a process it prints the report, and exits 0', () => {
     const { status, out } = gate(root)
     expect(status).toBe(0)
-    expect(out).toContain('verify:items passed: 1 family, 3 variants; each measured on 1000 banded seeds per level [estimated]')
+    expect(out).toMatch(/verify:items passed: 3 famil\w+, 8 variants; each measured on 1000 banded seeds per level \[estimated\]/)
   })
 
   test('a fair family written as a later task will write one passes in a tree of its own', async () => {
