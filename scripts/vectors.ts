@@ -18,13 +18,13 @@
  *
  * Adding a model: give it a `VectorModel` in MODELS, whose cases are JSON inputs and a function from them to the model's
  * output. `workload` (W0-T12), `steploop` (W0-T13), `trace` (W1-T08), `bench` (W1-T31), `spec` (W1-T26), `lifecycle` (W1-T16),
- * `steploop-v1` (W1-T12) and `kv` (W1-T21) were added this way.
+ * `steploop-v1` (W1-T12), `kv` (W1-T21) and `broken-bench` (W1-T32) were added this way.
  */
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
-import { runBench, summarize } from '../packages/sim/bench'
-import type { ArrivalSpec, BenchRun, BenchSpec, OpenArrivals, ServerModel } from '../packages/sim/bench'
+import { brokenBenchCase, brokenFlawOf, correctedInterval, runBench, summarize } from '../packages/sim/bench'
+import type { ArrivalSpec, BenchFlaw, BenchRun, BenchSpec, OpenArrivals, ServerModel } from '../packages/sim/bench'
 import { canonicalJson } from '../packages/sim/core/json'
 import { rngFor } from '../packages/sim/core/rng'
 import { HOST_PRESETS } from '../packages/sim/host'
@@ -1568,7 +1568,54 @@ const kv: VectorModel = {
   cases: () => Object.entries(kvInputs).map(([name, input]) => ({ name, input, run: () => kvOutput(input) })),
 }
 
-export const MODELS: readonly VectorModel[] = [workload, steploop, steploopV1, trace, bench, spec, lifecycle, kv]
+// ---------------------------------------------------------------------------------------------------------------------------
+// broken-bench
+
+/** A case of the broken-benchmark corpus as a fixture writes it: the seed, and the flaw when it is asked for by name rather than drawn. */
+type BrokenInput = { readonly seed: number; readonly flaw?: BenchFlaw }
+
+/** Seeds 0 to 21: every flaw twice, the second time on the next eleven seeds, whose answers and logs differ. */
+const brokenInputs: Record<string, BrokenInput> = Object.fromEntries(Array.from({ length: 22 }, (_, seed) => [`seed ${seed} draws ${brokenFlawOf(seed)}`, { seed }]))
+
+/** A case as its vector records it: everything the learner sees and the answer, with the log and the trace as a count and a SHA-256 of their canonical JSON. */
+function brokenOutput(input: BrokenInput): unknown {
+  const c = brokenBenchCase(input.seed, input.flaw === undefined ? {} : { flaw: input.flaw })
+  const { setup, server } = c.scene
+  const lengths = setup.lengths
+  const digest = (value: unknown, count: number) => ({ count, sha256: sha256(canonicalJson(value)) })
+  return {
+    flaw: c.flaw,
+    attempts: c.attempts,
+    band: c.band,
+    claimIds: c.claimIds,
+    claim: c.scene.claim,
+    answer: c.answer,
+    // The 95% bootstrap interval on the corrected p99 (B = 1,000): what a learner's own interval is judged against.
+    interval: correctedInterval(c.scene, c.flaw),
+    runSeed: c.scene.runSeed,
+    capacityPerSMilli: c.scene.capacityPerSMilli,
+    setup: { ...setup, ...(lengths !== undefined && lengths.kind === 'rows' ? { lengths: { kind: 'rows', slice: { id: lengths.slice.id, requests: digest(lengths.slice.requests, lengths.slice.requests.length) } } } : {}) },
+    server: {
+      maxNumSeqs: server.maxNumSeqs,
+      maxBatchedTokens: server.maxBatchedTokens,
+      chunkedPrefill: server.chunkedPrefill,
+      gpu: server.gpu.label,
+      ...(server.stalls === undefined ? {} : { stalls: server.stalls }),
+      ...(server.cold === undefined ? {} : { cold: server.cold }),
+    },
+    rows: digest(c.scene.rows, c.scene.rows.length),
+  }
+}
+
+const brokenBench: VectorModel = {
+  model: 'broken-bench',
+  file: `${FIXTURE_DIR}/broken-bench.json`,
+  header:
+    'Golden vectors for the broken-benchmark corpus of packages/sim/bench (ARCHITECTURE section 5.6, GAMES section 11): each maps a seed to the case it draws: the flaw, the band, the claim, the corrected answer and the interval on it, the harness\'s setup and the server, and the client\'s log as a count and the SHA-256 of its canonical JSON. Every flaw and the control appear twice, on seeds 0 to 21. Regenerate only with `bun scripts/vectors.ts --write`, and review the diff like code.',
+  cases: () => Object.entries(brokenInputs).map(([name, input]) => ({ name, input, run: () => brokenOutput(input) })),
+}
+
+export const MODELS: readonly VectorModel[] = [workload, steploop, steploopV1, trace, bench, spec, lifecycle, kv, brokenBench]
 
 // ---------------------------------------------------------------------------------------------------------------------------
 // fixtures
