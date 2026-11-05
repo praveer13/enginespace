@@ -32,11 +32,12 @@ describe('the tier table (A§6.6)', () => {
     }
   })
 
-  test("A§6.6's numbers: DPR 1.0, 1.5, 2.0; instances 10k, 30k, 50k; 30 fps at T1 and 60 above; shadows only at T3", () => {
+  test("A§6.6's numbers: DPR 1.0, 1.5, 2.0; instances 10k, 30k, 50k; 30 fps at T1 and 60 above; shadows from T2 (scene kit v1)", () => {
     expect([TIERS[1].dprCap, TIERS[2].dprCap, TIERS[3].dprCap]).toEqual([1, 1.5, 2])
     expect([TIERS[1].maxInstances, TIERS[2].maxInstances, TIERS[3].maxInstances]).toEqual([10_000, 30_000, 50_000])
     expect([TIERS[1].fpsCap, TIERS[2].fpsCap, TIERS[3].fpsCap]).toEqual([30, 60, 60])
-    expect([TIERS[1].shadowLights, TIERS[2].shadowLights, TIERS[3].shadowLights]).toEqual([0, 0, 1])
+    // Scene kit v1 gives the heat lamps soft shadow maps from T2, departing from A§6.6's "off at T1 and T2" (tiers.ts).
+    expect([TIERS[1].shadowLights, TIERS[2].shadowLights, TIERS[3].shadowLights]).toEqual([0, 3, 4])
     expect(TIERS[1].frameBudgetMs).toBeCloseTo(1000 / 30)
     expect(TIERS[2].frameBudgetMs).toBeCloseTo(1000 / 60)
   })

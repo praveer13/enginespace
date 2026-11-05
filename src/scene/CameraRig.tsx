@@ -13,6 +13,11 @@ import { useKit } from './kit'
  * Free orbit is optional and never needed (WCAG 2.5.7): with `orbit`, three's OrbitControls load in their own chunk and
  * turn the camera about the preset's target by drag, with up kept up and the camera kept above the steel. Every view a drag
  * reaches has a preset button beside it.
+ *
+ * Parallax (scene kit v1) is a lean, not a move: with `parallax`, at T2 and up, a fine pointer over the canvas leans the camera a
+ * few centimetres toward itself about the preset's target, easing there on the settle duration's pace, so the steel's highlights
+ * slide as the reader looks around. It is off under reduced motion, for touch and a coarse pointer, and while orbit is on, and it
+ * holds frames only while it eases.
  */
 
 export interface CameraRigProps {
@@ -21,6 +26,21 @@ export interface CameraRigProps {
   preset: string
   /** Drag to orbit about the preset's target. Off by default. */
   orbit?: boolean
+  /** How far the camera leans toward a fine pointer, in world units at T2 and up; 0, the default, for none. */
+  parallax?: number
+}
+
+/** The lean's up and down, as a share of its side to side: a reader looks around more than up and down [estimated]. */
+const LEAN_UP = 0.55
+
+/** A framing with the camera leaned `lean` (each axis in [-1, 1]) times `amount` across and up its own view, about the same target. */
+function leaned(framing: Required<Framing>, lean: { x: number; y: number }, amount: number): Required<Framing> {
+  if (amount === 0 || (lean.x === 0 && lean.y === 0)) return framing
+  const forward = new Vector3(...framing.target).sub(new Vector3(...framing.position)).normalize()
+  const right = new Vector3().crossVectors(forward, new Vector3(0, 1, 0)).normalize()
+  const up = new Vector3().crossVectors(right, forward)
+  const at = new Vector3(...framing.position).addScaledVector(right, lean.x * amount).addScaledVector(up, lean.y * amount * LEAN_UP)
+  return { ...framing, position: [at.x, at.y, at.z] }
 }
 
 type Cameras = { perspective: PerspectiveCamera; orthographic: OrthographicCamera }
@@ -51,7 +71,7 @@ function place(camera: Camera, framing: Required<Framing>, width: number, height
   return Math.hypot(px - tx, py - ty, pz - tz)
 }
 
-export function CameraRig({ presets, preset, orbit = false }: CameraRigProps) {
+export function CameraRig({ presets, preset, orbit = false, parallax = 0 }: CameraRigProps) {
   const kit = useKit()
   const set = useThree((state) => state.set)
   const gl = useThree((state) => state.gl)
@@ -67,6 +87,9 @@ export function CameraRig({ presets, preset, orbit = false }: CameraRigProps) {
   })
   const shown = useRef<{ preset: CameraPreset | null; framing: Required<Framing> | null }>({ preset: null, framing: null })
   const move = useRef<{ from: Required<Framing>; to: Required<Framing>; startedAt: number; ms: number; release: (() => void) | null } | null>(null)
+  // The lean: where the pointer asks the camera to lean, where it leans now, and the hold that keeps frames coming while it eases.
+  const lean = useRef({ goal: { x: 0, y: 0 }, now: { x: 0, y: 0 }, release: null as (() => void) | null, base: null as Required<Framing> | null })
+  const leanAmount = parallax > 0 && kit.tier >= 2 && !kit.reducedMotion && !orbit ? parallax : 0
 
   useLayoutEffect(() => {
     const next = presetById(presets, preset)
@@ -82,11 +105,12 @@ export function CameraRig({ presets, preset, orbit = false }: CameraRigProps) {
     } else {
       move.current?.release?.()
       move.current = null
-      kit.focus(place(camera, framing, width, height))
+      lean.current.base = framing
+      kit.focus(place(camera, leaned(framing, lean.current.now, leanAmount), width, height))
       kit.invalidate()
     }
     set({ camera })
-  }, [presets, preset, width, height, cameras, kit, set])
+  }, [presets, preset, width, height, cameras, kit, set, leanAmount])
 
   useEffect(() => {
     const held = move
@@ -105,12 +129,74 @@ export function CameraRig({ presets, preset, orbit = false }: CameraRigProps) {
       viewHeight: lerp(m.from.viewHeight, m.to.viewHeight, e),
     }
     const camera = shown.current.preset?.projection === 'orthographic' ? cameras.orthographic : cameras.perspective
-    kit.focus(place(camera, framing, width, height))
+    lean.current.base = framing
+    kit.focus(place(camera, leaned(framing, lean.current.now, leanAmount), width, height))
     if (t >= 1) {
       m.release?.()
       move.current = null
     }
   }, -3)
+
+  // The pointer over the canvas sets the lean's goal; leaving the canvas brings it back to the preset.
+  useEffect(() => {
+    const host = gl.domElement.parentElement
+    const fine = typeof matchMedia === 'function' && matchMedia('(pointer: fine)').matches
+    const state = lean.current
+    const aim = (x: number, y: number) => {
+      if (state.goal.x === x && state.goal.y === y) return
+      state.goal = { x, y }
+      state.release ??= kit.hold()
+    }
+    if (!host || leanAmount === 0 || !fine) {
+      // No lean here: the layout effect above has already placed the camera on its preset, as a cut.
+      state.goal = { x: 0, y: 0 }
+      state.now = { x: 0, y: 0 }
+      state.release?.()
+      state.release = null
+      return
+    }
+    const onMove = (event: PointerEvent) => {
+      if (event.pointerType === 'touch') return
+      const box = host.getBoundingClientRect()
+      const x = ((event.clientX - box.left) / Math.max(1, box.width)) * 2 - 1
+      const y = 1 - ((event.clientY - box.top) / Math.max(1, box.height)) * 2
+      aim(Math.max(-1, Math.min(1, x)), Math.max(-1, Math.min(1, y)))
+    }
+    const onLeave = () => aim(0, 0)
+    host.addEventListener('pointermove', onMove)
+    host.addEventListener('pointerleave', onLeave)
+    return () => {
+      host.removeEventListener('pointermove', onMove)
+      host.removeEventListener('pointerleave', onLeave)
+    }
+  }, [gl, kit, leanAmount])
+  useEffect(() => {
+    const state = lean.current
+    return () => {
+      state.release?.()
+      state.release = null
+    }
+  }, [])
+
+  // The lean eases toward its goal on the settle duration's pace, and lets the frames go when it gets there.
+  useFrame((_, delta) => {
+    const state = lean.current
+    if (!state.release) return
+    const { goal, now } = state
+    const k = 1 - Math.exp((-delta * 1000) / Math.max(1, kit.tokens.motion.settleMs / 3))
+    now.x += (goal.x - now.x) * k
+    now.y += (goal.y - now.y) * k
+    const done = Math.abs(goal.x - now.x) < 1e-3 && Math.abs(goal.y - now.y) < 1e-3
+    if (done) state.now = { ...goal }
+    if (!move.current && state.base) {
+      const camera = shown.current.preset?.projection === 'orthographic' ? cameras.orthographic : cameras.perspective
+      kit.focus(place(camera, leaned(state.base, state.now, leanAmount), width, height))
+    }
+    if (done) {
+      state.release()
+      state.release = null
+    }
+  }, -2)
 
   // Optional orbit, in its own chunk.
   const targetKey = framingFor(presetById(presets, preset), width).target.join(',')

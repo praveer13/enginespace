@@ -24,6 +24,16 @@ const THREE_VENDOR = [/[\\/]node_modules[\\/]three[\\/]build[\\/]/, /[\\/]node_m
  */
 const REACT_VENDOR = /[\\/]node_modules[\\/](react|react-dom|scheduler|zustand|use-sync-external-store)[\\/]/
 
+/**
+ * Scene kit v1's props (src/scene/props): one chunk that every 3D game shares over three-vendor, measured by verify:bundle's
+ * scene-kit row. A manual chunk pulls in every static dependency not assigned elsewhere, so the two modules the props share with
+ * the rest of the app go in a small chunk of their own: the kit's context (kit.ts, which the kit's core imports too) and the props'
+ * pure data (specs.ts, which the design page's notes read). Without it, a scene that uses no prop, or a page's first paint, would
+ * load the props and three with them.
+ */
+const SCENE_KIT_DATA = /[\\/]src[\\/]scene[\\/](?:kit\.ts|props[\\/]specs\.ts)$/
+const SCENE_KIT = /[\\/]src[\\/]scene[\\/]props[\\/]/
+
 // https://vite.dev/config/
 export default defineConfig({
   // GitHub Pages serves the site at /enginespace/ until a custom domain exists (O-1); local dev and previews use "/".
@@ -40,6 +50,8 @@ export default defineConfig({
         manualChunks(id) {
           if (THREE_VENDOR.some((pattern) => pattern.test(id))) return 'three-vendor'
           if (REACT_VENDOR.test(id)) return 'react-vendor'
+          if (SCENE_KIT_DATA.test(id)) return 'scene-kit-data'
+          if (SCENE_KIT.test(id)) return 'scene-kit'
         },
       },
     },
