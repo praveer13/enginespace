@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { useId, type ReactNode } from 'react'
 import { ENGINE_NAMES } from '@es/play/engine-floor/engine'
 import type { FloorView, LaidView, TileView } from '@es/play/engine-floor/types'
 import { placeName } from '@es/play/engine-floor/words'
@@ -26,6 +26,10 @@ import './floor.css'
  *     runs it (R). When a run stopped, the ticket says where and why, from the stage's source, and offers to take the path back to it.
  * Backspace takes the last stage off. Nothing here is timed, and nothing locks: the tray waits behind the prediction and nowhere else.
  *
+ * The graded `map` (W1-T19) uses the same pieces with one difference in what they say: it allows one run, so the order names the engine
+ * (its title is the level's, not an engine's), the path says that the stub is final, and once the run has been judged the path can no
+ * longer be edited.
+ *
  * `useFloorControls` (useFloorControls.ts) holds the focus rules, and the pieces here draw it.
  */
 
@@ -33,6 +37,8 @@ import './floor.css'
 function scenarioLines(view: FloorView): { term: string; value: string }[] {
   const { scenario } = view
   return [
+    // A practice level is titled for its engine. The graded level is not, because its engine is drawn: the order says which.
+    ...(view.level === 'map' ? [{ term: 'engine', value: ENGINE_NAMES[scenario.engine] }] : []),
     { term: 'request', value: scenario.streaming ? 'streams its answer' : 'waits for the whole answer' },
     { term: 'ranks', value: scenario.tp === 1 ? 'one rank' : 'two ranks' },
     { term: 'samples', value: scenario.n === 1 ? 'one sample' : 'two samples' },
@@ -86,6 +92,13 @@ export function OrderTicket({ controls }: { controls: FloorControls }) {
       foot={[`${pin.repo} at ${pin.ref.slice(0, 7)}`, `read ${pin.readOn}`]}
       stub={view.step === 'predict' ? <Stub disabled={pick === null} onClick={commit}>Commit the prediction</Stub> : undefined}
       data-floor-order=""
+      // The request, as the card says it: the engine and the five things about it, for a test or a script that reads the page.
+      data-engine={view.scenario.engine}
+      data-streaming={view.scenario.streaming}
+      data-tp={view.scenario.tp}
+      data-abort={view.scenario.abort}
+      data-prefix-hit={view.scenario.prefixHit}
+      data-n={view.scenario.n}
     >
       {view.prediction === null ? null : (
         <p className="max-w-prose" data-floor-prompt="">
@@ -143,7 +156,13 @@ export function Tray({ controls }: { controls: FloorControls }) {
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <TapeLabel>The tray</TapeLabel>
           <span className="text-text-2">
-            {view.step === 'predict' ? 'The tray opens when the prediction is written down.' : 'The ticket is home. The stages left in the tray belong to other engines.'}
+            {view.step === 'predict'
+              ? 'The tray opens when the prediction is written down.'
+              : view.served
+                ? view.level === 'map'
+                  ? 'The ticket is home. The stages left in the tray are not on this request’s path.'
+                  : 'The ticket is home. The stages left in the tray belong to other engines.'
+                : 'The run is over, and the tray is closed.'}
           </span>
         </div>
       </section>
@@ -222,7 +241,7 @@ function PathRow({ stage, selected, controls }: { stage: LaidView; selected: boo
           {stage.state === 'ran' ? <Icon name="check" className="size-5" /> : stage.state === 'struck' ? <Icon name="strike" className="size-5" /> : null}
         </span>
       </button>
-      {selected ? (
+      {selected && !view.done ? (
         <div className="es-floor-row__tools" role="group" aria-label={`Stage ${stage.index + 1}`}>
           <Button size="sm" disabled={stage.index === 0} onClick={() => move(stage.index, -1)}>
             Move up
@@ -262,11 +281,13 @@ function StopNote({ controls }: { controls: FloorControls }) {
         <Cite title={`What ${ENGINE_NAMES[view.pin.engine]} does here`} note={stop.expected} />
       )}
       <Cite title="What was laid" note={stop.laid} />
-      <div>
-        <Button size="sm" onClick={() => takeBack(stop.at)}>
-          Take the path back to where it stopped
-        </Button>
-      </div>
+      {view.done ? null : (
+        <div>
+          <Button size="sm" onClick={() => takeBack(stop.at)}>
+            Take the path back to where it stopped
+          </Button>
+        </div>
+      )}
     </section>
   )
 }
@@ -308,18 +329,29 @@ export function PathTicket({ controls }: { controls: FloorControls }) {
           Take the last stage off
         </Button>
       </div>
+      {view.runsAllowed === 1 && !view.done ? (
+        <p className="text-text-2" data-floor-once="">
+          One run. The ticket goes once, and the level is over when it does, so lay every stage you mean to before you pull the stub.
+        </p>
+      ) : null}
       <StopNote controls={controls} />
     </Ticket>
   )
 }
 
-export function Controls({ run }: { run: FloorRun }) {
+/**
+ * The controls of the page. `top` is a line above the order, where the level says what mode it is in, and `rail` is what the page puts at
+ * the foot of them: the levels (LevelRail.tsx). Both are the page's, so the controls do not know the game's levels or its modes.
+ */
+export function Controls({ run, top, rail }: { run: FloorRun; top?: ReactNode; rail?: ReactNode }) {
   const controls = useFloorControls(run)
   return (
     <div className="flex flex-col gap-4" data-floor-controls="">
+      {top}
       <OrderTicket controls={controls} />
       <Tray controls={controls} />
       <PathTicket controls={controls} />
+      {rail}
     </div>
   )
 }

@@ -53,7 +53,7 @@ describe('the page names the game as D-049 says, and opens on the first level', 
   test('opens the level it is given, and the first when the id is not one of its own', () => {
     expect(render(h(Game, { level: 'abort' }))).toContain('vLLM, the client leaves · practice')
     expect(render(h(Game, { level: 'sglang' }))).toContain('SGLang at the pin · practice')
-    expect(render(h(Game, { level: 'map' }))).toContain('nano-vllm · practice')
+    expect(render(h(Game, { level: 'map' }))).toContain('The lifecycle map · practice')
     expect(render(h(Game, { level: 'constructor' }))).toContain('nano-vllm · practice')
   })
 

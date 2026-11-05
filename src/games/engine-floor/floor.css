@@ -166,3 +166,26 @@
     padding-left: 0;
   }
 }
+
+/* The graded bar: what mode the level is in, and the way into the other. It sits above the order on the level that can be graded. */
+.es-floor-mode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2) var(--es-space-4);
+}
+
+/* The levels: a row of plates that wraps, under the path. */
+.es-floor-rail {
+  padding-top: var(--es-space-4);
+  border-top: 1px dashed var(--es-edge);
+}
+
+.es-floor-levels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

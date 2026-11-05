@@ -12,8 +12,10 @@ export function changeLine(before: FloorView, after: FloorView): string {
   if (before.prediction === null && after.prediction !== null) return `Prediction written down: ${plural(after.prediction, 'process boundary', 'process boundaries')}. The tray is open.`
   if (after.runs > before.runs) {
     const stop = after.stop
-    if (stop !== null) return `The ticket stopped at stage ${stop.at + 1}, after ${plural(after.reached, 'stage that held', 'stages that held')}. ${plain(stop.sentence)}`
-    if (after.done) return 'The ticket is home: every hand-off held, and the request is back where it began.'
+    // A level that allows one run is over when it has had it, home or not.
+    const over = after.done && !after.served ? ' The level is over.' : ''
+    if (stop !== null) return `The ticket stopped at stage ${stop.at + 1}, after ${plural(after.reached, 'stage that held', 'stages that held')}. ${plain(stop.sentence)}${over}`
+    if (after.done) return after.served ? 'The ticket is home: every hand-off held, and the request is back where it began.' : `Every stage held, and the path ends before the request is back where it began.${over}`
     return `${plural(after.reached, 'stage held', 'stages held')}. The ticket stands at ${plain(after.capsule.process)} · ${plain(after.capsule.thread)}.`
   }
   if (after.laid.length > before.laid.length) {

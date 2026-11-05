@@ -6,7 +6,7 @@
  * Two vocabularies, one meaning (§2.6, rule 2): the kitchen word names the object and the engine's term names the concept. A tile gives
  * both ("spike · queue"), and the mirror, the debrief and the claims lead with the engine's.
  */
-import type { Mechanism, Place } from '@es/sim/lifecycle'
+import type { Mechanism, Place, Scenario } from '@es/sim/lifecycle'
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Hand-offs                                                                                                          */
@@ -114,4 +114,32 @@ export const placeKey = (p: Place): string => `${p.process}|${p.thread}|${p.devi
 export function placeName(p: Place): string {
   if (p.device === 'gpu') return `GPU of ${p.process}${p.rank > 0 ? ` (rank ${p.rank})` : ''}`
   return `${p.process} · ${p.thread}${p.rank > 0 ? ` (rank ${p.rank})` : ''}`
+}
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* What a request asks                                                                                                */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/** The five things about a request that the graded level varies besides the engine (GAMES.md §5: streaming × TP × abort × prefix hit × n). */
+export type RequestFlag = 'streaming' | 'tp' | 'abort' | 'prefixHit' | 'n'
+
+export const REQUEST_FLAGS: readonly RequestFlag[] = ['streaming', 'tp', 'abort', 'prefixHit', 'n']
+
+/**
+ * A value of a flag as a noun phrase that follows "a request with": the words a sentence uses to say what a stage needs and what this
+ * request has. They carry no digit, because a sentence carries none (the page's counts are Readouts that tag every number).
+ */
+export function requestWords(flag: RequestFlag, value: Scenario[RequestFlag]): string {
+  switch (flag) {
+    case 'streaming':
+      return value === true ? 'a streamed answer' : 'a whole answer, not streamed'
+    case 'tp':
+      return value === 2 ? 'two ranks' : 'one rank'
+    case 'abort':
+      return value === true ? 'a client that leaves mid-stream' : 'a client that stays to the end'
+    case 'prefixHit':
+      return value === true ? 'a prefix hit' : 'no prefix hit'
+    case 'n':
+      return value === 2 ? 'two samples' : 'one sample'
+  }
 }

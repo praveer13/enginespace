@@ -24,6 +24,9 @@
  * drawing moves when a stage is added: the house plan has a lane for every place of the engine's path, and the columns are sized for
  * the engine's whole path, so the map builds as the request moves and the page below it holds still.
  *
+ * The graded level never builds the house ahead of the route (its view is `sealed`, because the plan of the whole path would sort the
+ * tray): it draws the floors the route has reached, and the drawing grows with the route until the run is judged.
+ *
  * Every number the drawing writes is a stage's number. The counts are DOM, in the mirror and the controls.
  */
 import type { Mechanism, Place, Scenario } from '@es/sim/lifecycle'
@@ -187,9 +190,11 @@ export function mapOfView(view: FloorView): MapInput {
     capsule: view.capsule,
     // The lamp falls where the next hand-off starts: at the end of the laid path, or at the ticket when a stage stopped it.
     lamp: view.done ? null : { place: view.present, column: view.stop === null ? laid : view.reached },
-    plan: placesOf(referenceOf(view.scenario)),
-    revealed: view.prediction !== null,
-    stagesInPath: view.stages,
+    // A sealed path (the graded level, until its run is judged) gives the house no plan and the columns no length: the drawing grows with the
+    // route, because the floors and lanes of the whole path would sort the tray before a single stage is laid.
+    plan: view.sealed ? [] : placesOf(referenceOf(view.scenario)),
+    revealed: view.prediction !== null && !view.sealed,
+    stagesInPath: view.sealed ? laid : view.stages,
     label: `${view.title}. ${laid === 0 ? 'No stage is laid.' : `${laid} ${laid === 1 ? 'stage is' : 'stages are'} laid, and ${view.reached} held in the last run.`} The ticket stands at ${placeName(view.capsule)}.`,
   }
 }

@@ -6,7 +6,8 @@
  * Practice seeds are pinned here as plain numbers because this file may not import the levels (they import the sim). Each is the first
  * seed from 0 that the level's band accepts (GAMES.md §2.1), and tests/play/engine-floor-entry.test.ts checks that it still is.
  *
- * The 3D scene is W1-T18's (`has3d` turns true with it), and the graded `map` level is W1-T19's. Until then the game is its 2D view.
+ * The 3D scene is W1-T18's (`has3d` turns true with it). The graded `map` level is W1-T19's: its pinned practice seed is the first that the
+ * band accepts, like the others, and a graded run draws a fresh one when it starts.
  */
 import type { GameEntry } from '../types'
 
@@ -16,6 +17,7 @@ export const ENGINE_FLOOR: GameEntry = {
   title: 'Back of House',
   subtitle: "a request's lifecycle",
   has3d: false,
+  // The graded level, `map`, earns these: a fresh scenario of any of the five engines, with or without ranks, a prefix hit and an abort.
   kcs: ['tr1.five-mechanisms', 'tr1.small-engine-anatomy', 'tr1.vllm-lifecycle', 'tr1.sglang-lifecycle', 'tr1.abort-path'],
   keys: [
     { id: 'run', code: 'KeyR', label: 'R', description: 'Run the laid path' },
@@ -29,6 +31,7 @@ export const ENGINE_FLOOR: GameEntry = {
     { id: 'vllm', title: 'vLLM at the pin', graded: false, practiceSeed: 0 },
     { id: 'sglang', title: 'SGLang at the pin', graded: false, practiceSeed: 0 },
     { id: 'abort', title: 'vLLM, the client leaves', graded: false, practiceSeed: 0 },
+    { id: 'map', title: 'The lifecycle map', graded: true, practiceSeed: 0 },
   ],
   card: 'lifecycle',
   claims: [
