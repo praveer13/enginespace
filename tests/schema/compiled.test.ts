@@ -3,6 +3,7 @@
  * the renderer reads, so each rejects a key it does not know, and the prose tree holds no node that could carry HTML.
  */
 import { describe, expect, test } from 'bun:test'
+import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { z } from 'zod'
 import {
@@ -157,7 +158,11 @@ describe('compiled lessons and modules', () => {
 
   test('mark a module with no module.md as planned and give it no lessons', () => {
     const parsed = contentIndexSchema.parse(index)
-    expect(parsed.modules.filter((m) => m.status === 'planned').map((m) => m.id)).toEqual(['tr0', 'tr1', 'tr3', 'tr4', 'tr5a', 'tr5b', 'tr6', 'tr7', 'tr8', 'capstone'])
+    // A module is written when its folder has a module.md; each task that writes one takes it off this list.
+    const listed = (course as { modules: { id: string }[] }).modules.map((m) => m.id)
+    const written = (id: string) => existsSync(path.resolve(import.meta.dirname, '../../content/modules', id, 'module.md'))
+    expect(parsed.modules.filter((m) => m.status === 'planned').map((m) => m.id)).toEqual(listed.filter((id) => !written(id)))
+    expect(parsed.modules.filter((m) => m.status !== 'planned').map((m) => m.id)).toEqual(listed.filter(written))
     expect(parsed.modules.filter((m) => m.status === 'planned').every((m) => m.lessons.length === 0)).toBe(true)
   })
 })

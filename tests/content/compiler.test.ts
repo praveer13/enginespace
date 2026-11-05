@@ -17,7 +17,7 @@ import { gzipSync } from 'node:zlib'
 import { claimsOutputSchema, compiledLessonSchema, compiledModuleSchema, contentIndexSchema } from '@es/schema'
 import type { ProseFlow, ProseInline } from '@es/schema'
 import { BUDGETS, canonicalJson, compileContent, writeOutputs } from '../../scripts/content/build.ts'
-import { CARD_COUNT, CARD_IDS, CLAIM_COUNT, CLAIMS, compile, COURSE, errors, KCS, LESSON, lineOf, MODULE, output, project, read, repo, report, sampleCard, swap, tempDir, where } from './support.ts'
+import { CARD_COUNT, CARD_IDS, CLAIM_COUNT, CLAIMS, compile, COURSE, errors, KCS, LESSON, lineOf, MODULE, output, project, read, REPO_OUTPUT_COUNT, repo, report, sampleCard, swap, tempDir, where } from './support.ts'
 import type { Edit } from './support.ts'
 
 const LESSON_JSON = 'src/content/generated/lessons/tr2.l0-sample.json'
@@ -641,7 +641,6 @@ describe('compileContent on the repo itself', () => {
   test('passes, so CI\'s compile step and the gates pass', () => {
     const result = compileContent({ root: repo })
     expect(report(result)).toBe('')
-    expect(result.outputs.length).toBe(OUTPUT_COUNT)
+    expect(result.outputs.length).toBe(REPO_OUTPUT_COUNT)
   })
-
 })

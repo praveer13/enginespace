@@ -85,6 +85,8 @@ Every number is a claim or carries a tag (ARCHITECTURE §4.4). In prose, a digit
 
 A number does not need a tag in code, inside a reference, in an identifier (`H100`, `p99`, `tr2.l3`, `v0.33.0`, `§4.2`), or in an ISO date. Anything else does, including a version without its `v`, a size with its unit (`80GB`) and a year. When a number is a fact about an engine, make it a claim, give it a source with the source's own words, and cite it.
 
+A number that the course's own simulator gives is [measured], and its sentence or its table's caption says on what day and at which commit it was read. A test recomputes it from the generator and holds the lesson's text to the result, so that a change to the generator that moves the number fails on the lesson that printed it. `tests/content/tr8-module.test.ts` and `tests/content/tr8-demos.ts` are the pattern. The date and the commit go in the text and never inside the brackets, which hold the tag and nothing else.
+
 ## Claims
 
 A claim has an id of dotted words, a value, a sentence, a tag, a source with a quote and the day it was read, the day it was checked and a TTL in days (ARCHITECTURE §4.4). A synthetic claim, from the course's own invented world, needs no source and says `synthetic: true`. A derived claim carries `derived: {formula, inputs}`, and `verify:claims` recomputes it: the formula is arithmetic (`+ - * /`, parentheses, `ceil`, `floor`, `round`, `min`, `max`, `abs`) over the ids it lists. An old claim is reported as stale and never fails a build.
