@@ -1,6 +1,6 @@
 # enginespace: build tracker
 
-**Status:** proposed backlog. W0's 24 tasks are built: 23 are done and W0-T25 is in review, because its first check waits on the owner, and `wave-0` waits for the owner's review ([waves/W0-report.md](waves/W0-report.md)). The other 96 tasks are `todo`. **Date:** 2026-11-03. **Source:** [ARCHITECTURE.md](ARCHITECTURE.md) (cited as A§n) and [DECISIONS.md](DECISIONS.md) (D-nnn, O-n). Credit rules come from `docs/ASSESSMENT.md`, written in parallel. The look is The Pass (D-047): W0-T05 applies its direction contract, and W0-T25 documents the built world in DESIGN.md.
+**Status:** proposed backlog. W0's 24 tasks are built: 23 are done and W0-T25 is in review, because its first check waits on the owner, and `wave-0` waits for the owner's review ([waves/W0-report.md](waves/W0-report.md)). The other 96 tasks show `[ ]`: a wave's exit review sets its markers, and W1's tasks are merging into `wave-1` now. **Date:** 2026-11-03. **Source:** [ARCHITECTURE.md](ARCHITECTURE.md) (cited as A§n) and [DECISIONS.md](DECISIONS.md) (D-nnn, O-n). Credit rules come from `docs/ASSESSMENT.md`, written in parallel. The look is The Pass (D-047): W0-T05 applies its direction contract, and W0-T25 documents the built world in DESIGN.md.
 
 ## How to read this page
 
