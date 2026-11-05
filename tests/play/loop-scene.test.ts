@@ -4,7 +4,8 @@
  * page asks, the fired rail and the bin only where the level has overlap), and the night to the session's view: the tickets on their
  * clips, the copies on the fired rail, the counter's tickets and the printer's feed, the plates of the last fire read back, the bin,
  * the spike, the stations' heat and the bubble. Then the presets, the tapes that must never meet, the motion grammar's reading of a
- * change, the instance budget, and the acceptance checks on colour and text.
+ * change, the instance budget, and the acceptance checks on colour and text. Service's finish review, round 2: the room falls away
+ * beyond the line, its light baked into its tile and floor and its haze darker than the tile it fogs.
  */
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
@@ -14,7 +15,10 @@ import { buildLevel, LEVEL_IDS } from '@es/play/loop/levels'
 import { stationsOf, ticketNo } from '@es/play/loop/layout'
 import { loopView } from '@es/play/loop/session'
 import type { LoopState, LoopView } from '@es/play/loop/types'
-import { HOOD, SHELF, WALL_Z } from '@es/play/loop/kitchen'
+import { HOOD, LINE, SHELF, WALL_Z } from '@es/play/loop/kitchen'
+import { luminance, parseHex } from '@/design/contrast'
+import { resolveColor, type ColorRoleName } from '@/design/tokens'
+import { roomShade } from '@/scene/props/set'
 import { staticSceneTokens } from '@/design/scene-tokens'
 import { framingFor, type CameraPreset, type Vec3 } from '@/scene/camera-rig'
 import { buildProp, SHELF_DROP } from '@/scene/props/build'
@@ -262,6 +266,32 @@ function projectIn(preset: CameraPreset, point: Vec3, width: number, height: num
   const k = Math.tan((framing.fov * Math.PI) / 360) * dot(f)
   return { x: width / 2 + (dot(r) / k + sx) * (height / 2), y: height / 2 - (dot(u) / k - sy) * (height / 2) }
 }
+
+describe('the room falls away beyond the line (the finish review, round 2, fix 5)', () => {
+  test("its light is full over the line's middle and dims toward the far corner and over the hood, in tile and floor alike", () => {
+    const { room } = serviceKitchen(4, { printer: false, overlap: false })
+    expect(room.beyond).toBe(LINE.z)
+    expect(room.above).toBeLessThan(HOOD.top - HOOD.height)
+    expect(roomShade(room, 0, 1, WALL_Z)).toBeGreaterThan(0.95)
+    // The corner where the side wall meets the back wall, beside the line, and the wall over the hood.
+    expect(roomShade(room, -passWidth(4) / 2 - 1.3, 1, WALL_Z)).toBeLessThan(0.65)
+    expect(roomShade(room, 0, HOOD.top + 0.3, WALL_Z)).toBeLessThan(0.75)
+  })
+
+  test("the haze is a role of its own, darker than the pale tile it fogs, and it begins beyond what the camera looks at", () => {
+    const scene = readFileSync(path.join(root, 'src/games/loop/Scene3D.tsx'), 'utf8')
+    const haze = /const HAZE = \{ near: ([\d.]+), far: ([\d.]+), color: '([a-z0-9-]+)' \} as const/.exec(scene)
+    expect(haze).not.toBeNull()
+    const [, near, far, role] = haze ?? []
+    expect(Number(near)).toBeGreaterThan(0)
+    expect(Number(far)).toBeGreaterThan(Number(near))
+    expect(scene).toMatch(/fog=\{HAZE\}/)
+    const lum = (name: string) => luminance(parseHex(resolveColor(name as ColorRoleName)))
+    // The tile is paper white; the haze it falls into must be well darker, or nothing recedes.
+    expect(lum(role)).toBeLessThan(lum('paper') / 3)
+    expect(scene).toMatch(/<StaticSet items=\{kitchen\.items\} room=\{kitchen\.room\}/)
+  })
+})
 
 describe('the camera presets (GAMES.md §2.6, Service, Cameras)', () => {
   test('three shots, a button each: over the shoulder (the default), the side of the pass in orthographic, and under the lamps', () => {

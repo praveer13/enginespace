@@ -4,8 +4,8 @@
  *   metal     every metal of the line in one MeshPhysicalMaterial: brushed stainless, spun aluminium, chrome and cast iron differ
  *             per vertex by their finish (roughness, the brush's grain and anisotropy, metalness), on the kit's own brushed maps.
  *             The anisotropic lobe runs across the grain, so the highlights move along the steel as the camera does. Under each heat
- *             lamp the counter's top takes a soft-edged pool of the lamp's amber, broken by the brush's grain: brushed stainless
- *             scatters a lamp's light about its spot, which a spot light's specular alone cannot show from the expo's low angle.
+ *             lamp the counter's own sheen and streak brighten in the lamp's warm light and fall off softly, in place of the one
+ *             smooth lobe of the lamp's full amber that a spot light's specular draws off brushed steel, which read as a painted disc.
  *   ceramic   glazed ceramic: the plates, knobs and the fryer's oil, glossy with a clearcoat at T2.
  *   tile      the back wall's subway tile; floor, the sealed quarry tile; each with its generated normals and roughness.
  *   glow      what is lit: a station's element, a lamp's bulb, the heat strip, in the lamp's amber, each on its channel; a dark
@@ -91,10 +91,15 @@ interface PoolUniforms {
 }
 
 /**
- * A lamp's light on the counter, on an upward face within a few centimetres of the pools' height: a soft pool under each lamp, hot in
- * its middle and gone by its cone's edge, lit as the steel's own colour; and the brushed steel's streak across it, a lobe narrow along
- * the brush and long across it, from the lamp to the eye, so it slides along the steel as the camera leans. Both are broken by the
- * brush's fine lines. The pool's radius is the lamp's cone where it lands, so the amber stays on the pass.
+ * A lamp's light on the counter, on an upward face within a few centimetres of the pools' height. No colour is laid on the steel: the
+ * lamp brightens what the steel already reflects. The lamps' own reflection off the steel there (their spot lights' specular, which
+ * three draws as one smooth lobe in the lamp's full amber, bright enough to clip) is taken off, and the steel's own sheen (its specular
+ * without the lamps, with the grain and the highlights that the room and the tubes put there) is brightened and warmed in its place,
+ * as much as the lamps' reflection was strong: so the warm light keeps that reflection's footprint, its cone and penumbra, the way it
+ * leans as the camera moves and, from T2, the shadows that the plates cast in it, falling off softly. Over it lies the steel's streak,
+ * a lobe narrow along the brush and long across it from each lamp toward the eye, following the brush's lines (read from the steel's own
+ * roughness, so its smoother lines catch more of the lamp). A spot's size is the lamp's cone where it lands, so the warm light stays on
+ * the pass.
  */
 const POOL_VERTEX = `
 vec4 esWorld = vec4(transformed, 1.0);
@@ -106,27 +111,41 @@ esUp = instanceMatrix * esUp;
 vPoolAt = (modelMatrix * esWorld).xyz;
 vPoolUp = normalize((modelMatrix * esUp).xyz).y;`
 
-const POOL_FRAGMENT = `
+export const POOL_FRAGMENT = `
 float esFlat = smoothstep(0.7, 0.95, vPoolUp) * (1.0 - smoothstep(0.008, 0.03, abs(vPoolAt.y - uPoolY)));
-if (esFlat > 0.0) {
+if (esFlat > 0.0 && uPools[0].z > 0.0) {
+  vec3 esOwn = totalSpecular - esSpot;
   vec3 esEye = normalize(cameraPosition - vPoolAt);
-  vec3 esLit = vec3(0.0);
+  float esStreak = 0.0;
   for (int i = 0; i < 3; i++) {
     vec3 p = uPools[i];
     if (p.z <= 0.0) continue;
-    float r = distance(vPoolAt.xz, p.xy) / p.z;
+    vec2 d = (vPoolAt.xz - p.xy) / p.z;
     vec3 h = normalize(normalize(vec3(p.x, uPoolY + uPoolH, p.y) - vPoolAt) + esEye);
-    float streak = exp(-(h.x * h.x / 0.006 + h.z * h.z / 0.32) / (h.y * h.y)) * (1.0 - smoothstep(0.8, 1.5, r));
-    esLit += exp(-4.0 * r * r) * 0.55 * diffuseColor.rgb + streak * 1.6;
+    esStreak += exp(-(h.x * h.x / 0.003 + h.z * h.z / 0.35) / (h.y * h.y) - 0.5 * d.x * d.x - 0.1 * d.y * d.y);
   }
-  float esLines = 0.8 + 0.4 * fract(sin(floor(vPoolAt.z * 160.0) * 12.9898) * 43758.5453);
-  outgoingLight += uPoolColor * esLit * esFlat * esLines;
+  float esSheen = 1.0 - exp(-1.6 * dot(esSpot, vec3(0.2126, 0.7152, 0.0722)));
+  float esGrain = clamp(2.3 - 4.2 * roughnessFactor, 0.3, 1.5);
+  outgoingLight += esFlat * (uPoolColor * esOwn * (esSheen * 1.6 + esStreak * esGrain * 3.2) - esSpot);
 }
 `
 
+/**
+ * three's lights, with the specular each spot light adds counted into `esSpot`: the heat lamps' own reflection, which the counter's
+ * pool takes off and gives back as the steel's warmed sheen. Found by the spot loop's shadow line and its call, so a patch that no
+ * longer fits fails loudly.
+ */
+export function countSpotSpecular(chunk: string): string {
+  const shadowed = chunk.indexOf('vSpotLightCoord[ i ] ) : 1.0;')
+  const call = chunk.indexOf('RE_Direct(', shadowed)
+  const end = chunk.indexOf(';', call) + 1
+  if (shadowed < 0 || call < 0 || end <= 0) throw new Error("a prop material's patch no longer fits three's shader: the spot lights' loop")
+  return `vec3 esSpot = vec3(0.0);\nvec3 esBefore = vec3(0.0);\n${chunk.slice(0, call)}esBefore = reflectedLight.directSpecular;\n${chunk.slice(call, end)}\nesSpot += reflectedLight.directSpecular - esBefore;${chunk.slice(end)}`
+}
+
 /** Adds the per-vertex finish to a physical material: roughness, the grain (normal map and anisotropy) and metalness; and the lamps' pools. */
 function patchFinish(material: MeshPhysicalMaterial, pools: PoolUniforms) {
-  material.customProgramCacheKey = () => 'es-prop-metal-v3'
+  material.customProgramCacheKey = () => 'es-prop-metal-v5'
   material.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, pools)
     shader.vertexShader = patched(shader.vertexShader, '#include <common>', '#include <common>\nattribute vec3 aFinish;\nvarying vec3 vFinish;\nvarying vec3 vPoolAt;\nvarying float vPoolUp;')
@@ -140,6 +159,7 @@ function patchFinish(material: MeshPhysicalMaterial, pools: PoolUniforms) {
       '#include <lights_physical_fragment>',
       patched(ShaderChunk.lights_physical_fragment, 'vec2 anisotropyV = anisotropyVector;', 'vec2 anisotropyV = anisotropyVector * vFinish.y;'),
     )
+    fragment = patched(fragment, '#include <lights_fragment_begin>', countSpotSpecular(ShaderChunk.lights_fragment_begin))
     shader.fragmentShader = patched(fragment, '#include <opaque_fragment>', `${POOL_FRAGMENT}${RADIANCE_CAP}`)
   }
 }

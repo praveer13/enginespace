@@ -3,15 +3,18 @@
  * pure function on Service's own page (both from one pure function), the view stays far under 2,000 SVG marks (A§6.3, A§6.11,
  * GAMES.md §3 "2D path"), and it is the same kitchen as the 3D scene drawn flat at the scene's scale (the finish review's round 1, fix
  * 7): the room and the hood, the line's stations burning or cold, the rail with paper tickets on its clips, the lamps and their pools
- * on the pass, the plates of the last fire, the heated shelf with its plate stacks, and no lane, no axis and no legend.
+ * on the pass, the plates of the last fire, the heated shelf with its plate stacks, and no lane, no axis and no legend. Round 2: the
+ * pools are lit gradients on the pass's brushed steel and never a blur, and the side wall is tiled and shaded as the back wall is.
  *
  * The poster is `scripts/posters.ts`: the practice seed of the first level as a view, laid out through the front page's shot and
  * written as SVG text. The 2D view is `View2D`, which draws Service's own shot as React elements. The first group renders the real
  * component on the server and cuts the <svg> out of its markup, so what is compared is what the page paints and not a second copy of
  * the code.
  *
- * Measured by the poster script [measured 2026-11-04 on this task's tree]: the two posters are 140 marks each and 20,746 and 20,744
- * characters (`bun scripts/posters.ts`), 4,755 and 4,731 bytes under `gzip -9`.
+ * Measured by the poster script [measured 2026-11-05 on the finish review's round-2 tree, over wave-1 at cc1d29d]: the two posters are
+ * 142 and 141 marks and 30,324 and 21,952 characters (`bun scripts/posters.ts`), 7,129 and 5,226 bytes under `gzip -9`. The side
+ * wall's joints are most of the landscape poster's growth over round 1 (20,746 characters): a phone's portrait frame never shows that
+ * wall, so it draws none of them.
  */
 import { describe, expect, test } from 'bun:test'
 import { createElement as h } from 'react'
@@ -22,6 +25,7 @@ import { View2D } from '@/games/loop/View2D'
 import { hang, initState, setOverlap, step } from '@es/play/loop/engine'
 import { clipX, RAIL, SHOTS, viewOf } from '@es/play/loop/kitchen'
 import { FRAMES, MARK_CAP, MIRROR_TICKS, PAINTS, STRIP, WINDOW_TICKS, frameSvg, layoutFrame, layoutStrip, markCount, ticketNo, windowOf } from '@es/play/loop/layout'
+import type { Paint } from '@es/play/loop/layout'
 import type { Frame, Mark, Orientation, ShotName } from '@es/play/loop/layout'
 import { firesOfRun } from '@es/play/loop/compare'
 import { buildLevel, services } from '@es/play/loop/levels'
@@ -172,8 +176,14 @@ describe('the drawing paints with token roles and nothing else', () => {
           expect(markup).not.toMatch(/#[0-9a-fA-F]{3,8}\b/)
           expect(markup).not.toMatch(/\b(?:rgba?|hsla?|oklch|hwb|lab|lch)\(/i)
           expect(markup).not.toMatch(/Doto|Handjet|Atkinson|Big Shoulders|Permanent Marker|sans-serif|monospace|Arial|Helvetica/)
-          // Every paint attribute is a custom property or `none`: nothing is a keyword colour.
-          for (const [, value] of markup.matchAll(/\b(?:fill|stroke)="([^"]*)"/g)) expect(value === 'none' || /^var\(--es-[a-z0-9-]+\)$/.test(value)).toBe(true)
+          // Every paint attribute is a custom property, `none`, or one of the frame's own gradients, whose every stop is a custom
+          // property: nothing is a keyword colour.
+          const ids = new Set([...markup.matchAll(/<(?:radialGradient|linearGradient) id="([^"]+)"/g)].map((match) => match[1]))
+          for (const [, value] of markup.matchAll(/\b(?:fill|stroke)="([^"]*)"/g)) {
+            const gradient = /^url\(#(es-loop-[a-z-]+)\)$/.exec(value)?.[1]
+            expect(value === 'none' || /^var\(--es-[a-z0-9-]+\)$/.test(value) || (gradient !== undefined && ids.has(gradient))).toBe(true)
+          }
+          for (const [, value] of markup.matchAll(/\bstop-color="([^"]*)"/g)) expect(value).toMatch(/^var\(--es-[a-z0-9-]+\)$/)
         }
       }
     }
@@ -191,9 +201,9 @@ describe('the drawing paints with token roles and nothing else', () => {
           for (const shot of SHOT_NAMES) {
             for (const layer of layoutFrame(loopView(state), { orientation, shot }).layers) {
               for (const mark of layer.marks) {
-                const paints = mark.kind === 'text' ? [mark.fill] : [mark.fill, mark.stroke]
+                const paints: readonly (Paint | undefined)[] = mark.kind === 'text' ? [mark.fill] : [mark.fill, mark.stroke]
                 expect(paints.some((paint) => paint === 'lane-gpu')).toBe(false)
-                if (paints.some((paint) => paint === 'lamp')) expect([layer.part, AMBER.has(layer.part)]).toEqual([layer.part, true])
+                if (paints.some((paint) => paint === 'lamp' || paint === 'lamp-pool')) expect([layer.part, AMBER.has(layer.part)]).toEqual([layer.part, true])
               }
             }
           }
@@ -206,8 +216,24 @@ describe('the drawing paints with token roles and nothing else', () => {
     const frame = layoutFrame(first, { shot: 'front' })
     const pools = marksOf(frame, 'pools')
     expect(pools).toHaveLength(3)
-    for (const pool of pools) expect(pool).toMatchObject({ kind: 'ellipse', fill: 'lamp', soft: true })
+    // Each is a lit gradient laid on the pass, never a blur (the finish review's round 2, fix 2): longer toward the expo than a disc
+    // seen from the shot would be, as the brushed steel scatters the light across its grain.
+    for (const pool of pools) {
+      expect(pool).toMatchObject({ kind: 'ellipse', fill: 'lamp-pool' })
+      expect(pool.kind === 'ellipse' && pool.soft).toBeFalsy()
+    }
     expect(marksOf(frame, 'heat')).toEqual([])
+    const markup = svgMarkup(frameSvg(frame))
+    const gradient = /<radialGradient id="es-loop-lamp-pool-landscape">(.*?)<\/radialGradient>/.exec(markup)?.[1] ?? ''
+    const stops = [...gradient.matchAll(/<stop offset="([\d.]+)" stop-color="var\(--es-([a-z-]+)\)" stop-opacity="([\d.]+)">/g)].map((match) => [Number(match[1]), match[2], Number(match[3])] as const)
+    // White-hot at its middle, the lamp's amber out to nothing at its edge: light on the steel, with no edge of its own.
+    expect(stops[0]).toEqual([0, 'glint', stops[0][2]])
+    expect(stops.slice(1).every(([, role]) => role === 'lamp')).toBe(true)
+    expect(stops.at(-1)).toEqual([1, 'lamp', 0])
+    for (let i = 1; i < stops.length; i++) expect(stops[i][2]).toBeLessThanOrEqual(stops[i - 1][2])
+    expect(markup).not.toMatch(/data-part="pools"><ellipse[^>]*filter=/)
+    // The brushed top they lie on: its grain streaked along the pass.
+    expect(marksOf(frame, 'pass').filter((mark) => mark.kind === 'path' && mark.stroke === 'paper')).toHaveLength(1)
   })
 })
 
@@ -219,6 +245,25 @@ describe('the same kitchen as the scene, drawn flat in its own materials (the fi
     expect(room.filter((mark) => mark.kind === 'path' && mark.stroke === 'paper-rule').length).toBeGreaterThanOrEqual(2)
     expect(room.some((mark) => mark.kind === 'poly' && mark.fill === 'surface-0' && (mark.opacity ?? 1) < 1)).toBe(true)
     expect(marksOf(frame, 'hood').length).toBeGreaterThan(2)
+  })
+
+  test('the side wall is tiled as the back wall is, every course and its joints, and shades toward the far corner (round 2)', () => {
+    const strokes = (mark: Mark): number => (mark.kind === 'path' ? (mark.d.match(/[Mm]/g) ?? []).length : 0)
+    const landscape = marksOf(layoutFrame(first, { shot: 'front' }), 'room')
+    const grout = landscape.filter((mark) => mark.kind === 'path' && mark.stroke === 'paper-rule')
+    // The back wall's courses, its joints (one dashed stroke a course), the side wall's courses and the side wall's joints.
+    expect(grout).toHaveLength(4)
+    const [, , sideCourses, sideJoints] = grout
+    // A course every 75 mm up a wall 3.1 m high: 41 grout lines, not the sparse lines of a bare plane.
+    expect(strokes(sideCourses)).toBe(41)
+    // Hundreds of joints, a tile apart along every course the frame can show [measured 2026-11-05 at cc1d29d with this change: 692 in the landscape poster].
+    expect(strokes(sideJoints)).toBeGreaterThan(400)
+    expect(landscape.filter((mark) => mark.kind === 'poly' && mark.fill === 'wall-shade')).toHaveLength(1)
+    // A phone's frame never shows the side wall, so it draws its courses but none of its joints.
+    const portrait = marksOf(layoutFrame(first, { shot: 'front', orientation: 'portrait' }), 'room').filter((mark) => mark.kind === 'path' && mark.stroke === 'paper-rule')
+    expect(portrait).toHaveLength(3)
+    const shade = /<linearGradient id="es-loop-wall-shade-landscape">(.*?)<\/linearGradient>/.exec(svgMarkup(frameSvg(layoutFrame(first, { shot: 'front' }))))?.[1] ?? ''
+    expect([...shade.matchAll(/stop-color="var\(--es-([a-z0-9-]+)\)"/g)].map((match) => match[1])).toEqual(['surface-2', 'surface-3'])
   })
 
   test("the line's stations burn where the latest fire cooked a course: their pilots and heat in the lamp's amber, their burners' heads struck solid", () => {

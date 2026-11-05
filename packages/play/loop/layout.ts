@@ -3,14 +3,16 @@
  * view and the poster draw as SVG (`frameSvg`). It is the kitchen the 3D scene draws (src/games/loop/scene-layout.ts), on the same plan
  * and through the same shot (kitchen.ts), drawn flat in the world's own materials and nothing a chart has, so the first paint, the view
  * a phone without 3D keeps and the 3D scene are one picture at one scale:
- *   - the room: subway tile on the back wall and the side wall, the quarry floor, and the hood over the line, softening into haze;
+ *   - the room: subway tile on the back wall and the side wall, each with its grout and its joints, the side wall shading as it
+ *     recedes to the far corner, the quarry floor, and the hood over the line, softening into haze;
  *   - the line: a station for each clip, its cabinet, its control panel with its knobs and its pilot, and on its top what it cooks on
  *     (a griddle, four burners under their grates, a fryer's wells). Where the latest fire cooked a course the station burns: its pilot
  *     and its heat glow in the lamp's amber, and its burners' heads struck solid. Where its clip rode empty it stands cold, its pilot an
  *     open ring;
  *   - the gantry over the pass, the rail hung from it with a clip for each slot, a paper ticket hung on every taken clip with its number
  *     printed, and a stub printed "empty" in the ribbon's red on every empty one; while a fire is on the line, the fired rail under it;
- *   - the three heat lamps on their cords, and under each its pool of amber on the pass's steel, light with no edge;
+ *   - the three heat lamps on their cords, and under each its light on the pass's brushed steel: a gradient from a hot middle out to
+ *     nothing, longer across the brush than along it, never a blur;
  *   - the pass: its brushed top with the plates of the last fire read back, one under every clip that cooked a course, each with its
  *     rim and its shadow, a binned plate hollow and struck through in the ribbon's red, an empty place a dashed ring; its rolled front
  *     edge with the expo's name on masking tape, and under it the heated shelf's bars with the plate stacks warming on them;
@@ -36,9 +38,15 @@ import type { ClipView, FireView, LoopView } from './types'
 /* Marks                                                                                                              */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** The token roles the drawing paints with (src/design/tokens.ts). `none` is no paint. */
+/**
+ * The token roles the drawing paints with (src/design/tokens.ts). `none` is no paint, and `lamp-pool` and `wall-shade` are the frame's
+ * two gradients, each made of these roles (`GRADIENTS`): the lamps' light on the pass, and the side wall's shade.
+ */
 export type Paint =
   | 'none'
+  | 'lamp-pool'
+  | 'wall-shade'
+  | 'glint'
   | 'surface-0'
   | 'surface-1'
   | 'surface-2'
@@ -55,8 +63,8 @@ export type Paint =
   | 'tape'
   | 'tape-ink'
 
-/** The roles above, as a list, for the test that checks them against the design system. */
-export const PAINTS: readonly Paint[] = ['surface-0', 'surface-1', 'surface-2', 'surface-3', 'edge', 'paper', 'paper-ink', 'paper-ink-2', 'paper-rule', 'lamp', 'lamp-ring', 'text-1', 'lane-gpu', 'tape', 'tape-ink']
+/** The roles among those paints, as a list, for the test that checks them against the design system. */
+export const PAINTS: readonly Paint[] = ['glint', 'surface-0', 'surface-1', 'surface-2', 'surface-3', 'edge', 'paper', 'paper-ink', 'paper-ink-2', 'paper-rule', 'lamp', 'lamp-ring', 'text-1', 'lane-gpu', 'tape', 'tape-ink']
 
 /** The faces the drawing sets text in: the printer's dots for numbers and print, and marker on masking tape. */
 export type Face = 'numeric' | 'ticket' | 'label'
@@ -68,7 +76,7 @@ interface Style {
   readonly dash?: string
   readonly opacity?: number
   readonly strokeOpacity?: number
-  /** Light, not a surface: the frame blurs it, so it has no edge (the heat lamps' pools, a station's heat). */
+  /** Light, not a surface: the frame blurs it, so it has no edge (a station's heat, a lamp's mouth). */
   readonly soft?: boolean
 }
 
@@ -248,8 +256,19 @@ function tape(p: Painter, lens: Lens, x: number, y: number, z: number, w: number
   p.text(cx, cy + 0.4, words, h * 0.62 * lens.per(x, y, z), 'tape-ink', 'label')
 }
 
+/**
+ * Where a frame's room is drawn in detail: the part of the frame (and past it) that some page shows. A landscape frame is shown with its
+ * lens shifted right from 80rem, which brings a third of its width of room into a 2,560 px box at its left [derived from front.css's
+ * shift of 1.15 half heights and its box at most 56rem tall], and the detail runs a little past that; a portrait one is shown cropped to
+ * its middle, never past its sides.
+ */
+const SHOWN: Readonly<Record<Orientation, { readonly left: number; readonly right: number }>> = {
+  landscape: { left: -0.42, right: 1.02 },
+  portrait: { left: -0.02, right: 1.02 },
+}
+
 /** The room: tile on the back wall and the side wall, the floor, and the haze the far wall softens into. */
-function room(p: Painter, lens: Lens, side: number) {
+function room(p: Painter, lens: Lens, side: number, frame: { readonly orientation: Orientation; readonly width: number; readonly height: number }) {
   p.layer('room')
   const course = 0.075
   const tile = 0.15
@@ -275,13 +294,33 @@ function room(p: Painter, lens: Lens, side: number) {
   const period = tenth(tile * lens.per(0, 1.6, WALL_Z))
   const height = tenth(course * lens.per(0, 1.6, WALL_Z))
   p.path(joints, { stroke: 'paper-rule', width: height, dash: `0.5 ${tenth(period - 0.5)}` })
-  // The side wall at the left, receding toward the line, in the tubes' shadow.
+  // The side wall at the left, receding toward the line, tiled as the back wall is: a grout line under every course, and each course's
+  // joints a tile apart, half a tile over on every other course, drawn where a page can show them. A joint is too short to need more
+  // than whole units, which keeps the many of them small: each moves from where the last one ended. Then the tubes' shadow over the
+  // wall, deepening toward the far corner.
   const wall: Pt[] = [lens.at(side, 3.1, WALL_Z), lens.at(side, 3.1, near), lens.at(side, 0, near), lens.at(side, 0, WALL_Z)]
   p.poly(wall, { fill: 'paper' })
+  const shown = SHOWN[frame.orientation]
+  const seen = ([x, y]: Pt): boolean => x >= shown.left * frame.width && x <= shown.right * frame.width && y >= -0.05 * frame.height && y <= 1.05 * frame.height
+  const pair = (x: number, y: number): string => `${x}${y < 0 ? '' : ' '}${y}`
   const sideCourses: [Pt, Pt][] = []
-  for (let y = course * 2; y < 3.1; y += course * 2) sideCourses.push([lens.at(side, y, WALL_Z), lens.at(side, y, near)])
-  p.path(sideCourses, { stroke: 'paper-rule', width: 0.5 })
-  p.poly(wall, { fill: 'surface-2', opacity: 0.45 })
+  let sideJoints = ''
+  for (let k = 1; k * course < 3.1; k++) {
+    const y = k * course
+    sideCourses.push([lens.at(side, y, WALL_Z), lens.at(side, y, near)])
+    let pen: Pt | null = null
+    for (let z = WALL_Z + tile * (1 + (k % 2) / 2); z < near; z += tile) {
+      const a = lens.at(side, y - course, z)
+      const b = lens.at(side, y, z)
+      if (!seen(a) && !seen(b)) continue
+      const [ax, ay, bx, by] = [a[0], a[1], b[0], b[1]].map(Math.round)
+      sideJoints += `${pen === null ? `M${pair(ax, ay)}` : `m${pair(ax - pen[0], ay - pen[1])}`}l${pair(bx - ax, by - ay)}`
+      pen = [bx, by]
+    }
+  }
+  p.path(sideCourses, { stroke: 'paper-rule', width: 0.55 })
+  if (sideJoints.length > 0) p.add({ kind: 'path', d: sideJoints, stroke: 'paper-rule', width: 0.55 })
+  p.poly(wall, { fill: 'wall-shade' })
   // The cove where the tile meets the floor.
   p.line(lens.at(-9, 0.03, WALL_Z + 0.02), lens.at(9, 0.03, WALL_Z + 0.02), { stroke: 'surface-2', width: 1.2 })
   // Haze: the far wall falls into the room's grey.
@@ -535,12 +574,27 @@ function thePass(p: Painter, lens: Lens, view: LoopView, width: number) {
   p.line(lens.at(-half + 0.035, shelf - 0.003, d / 2 - 0.022), lens.at(half - 0.035, shelf - 0.003, d / 2 - 0.022), { stroke: 'paper', width: 0.6, strokeOpacity: 0.8 })
   // The front legs.
   for (const x of [-half + 0.04, half - 0.04]) p.line(lens.at(x, 0.02, d / 2 - 0.04), lens.at(x, top - 0.04, d / 2 - 0.04), { stroke: 'surface-2', width: Math.max(1.2, 0.038 * lens.per(x, 0.5, d / 2)) })
-  // The counter: its brushed top lit along its back edge, the pools of the lamps' amber on it, and the plates.
+  // The counter: its brushed top lit along its back edge, its grain streaked along the pass, the lamps' light on it, and the plates.
   p.layer('pass')
   p.poly(level(lens, -half, half, top, -d / 2, d / 2), { fill: 'surface-1', stroke: 'surface-2', width: 0.5 })
   p.line(lens.at(-half + 0.02, top, -d / 2 + 0.01), lens.at(half - 0.02, top, -d / 2 + 0.01), { stroke: 'paper', width: 0.9, strokeOpacity: 0.9 })
+  const grain: [Pt, Pt][] = []
+  for (let i = 1; i < 12; i++) {
+    const z = -d / 2 + (d * i) / 12
+    const short = ((i * 7) % 5) * 0.09
+    grain.push([lens.at(-half + 0.04 + short, top, z), lens.at(half - 0.04 - short * 0.7, top, z)])
+  }
+  p.path(grain, { stroke: 'paper', width: 0.5, strokeOpacity: 0.5 })
+  // Under each lamp, its light on the brushed steel: hot in the middle and gone by the edge, longer across the brush (toward the expo)
+  // than along it, as the steel scatters it. A gradient laid on as light, never a blur.
   p.layer('pools')
-  for (const x of lampsOf(view.slots)) p.ellipse(lens.disc(x, top, PLATE_Z, 0.24), { fill: 'lamp', opacity: 0.62, soft: true })
+  for (const x of lampsOf(view.slots)) {
+    const z = PLATE_Z + 0.02
+    const [cx] = lens.at(x, top, z)
+    const back = lens.at(x, top, z - 0.29)[1]
+    const front = lens.at(x, top, z + 0.29)[1]
+    p.ellipse({ cx, cy: num((back + front) / 2), rx: num(0.22 * lens.per(x, top, z)), ry: num((front - back) / 2) }, { fill: 'lamp-pool' })
+  }
   p.layer('plates')
   const served = [...view.fires].reverse().find((fire) => !fire.onLine)
   served?.places.forEach((place, slot) => plateAt(p, lens, clipX(slot, view.slots), place.state))
@@ -592,12 +646,13 @@ function printerAt(p: Painter, lens: Lens, view: LoopView, width: number) {
 }
 
 /** The drawing of a night through a shot. */
-function build(view: LoopView, shot: Shot, shotName: ShotName, size: { width: number; height: number }): Layer[] {
+function build(view: LoopView, shot: Shot, shotName: ShotName, orientation: Orientation): Layer[] {
+  const size = FRAMES[orientation]
   const lens = lensOf(shot, size.width, size.height)
   const p = painter()
   const width = passWidth(view.slots)
   const line = lineOf(view.slots)
-  room(p, lens, -width / 2 - 1.3)
+  room(p, lens, -width / 2 - 1.3, { orientation, ...size })
   hood(p, lens, (line.count * line.width + 0.4) / 2)
   theLine(p, lens, view)
   rails(p, lens, view, width)
@@ -625,7 +680,7 @@ export function layoutFrame(view: LoopView, options: FrameOptions = {}): Frame {
   // The frame is the shot's picture with its lens centred: a page that shifts the lens moves the frame instead (front.css).
   const chosen: Shot = orientation === 'portrait' ? shots.portrait : shots.base
   const shot: Shot = { position: chosen.position, target: chosen.target, k: chosen.k }
-  return { orientation, width: size.width, height: size.height, label: describe(view), layers: build(view, shot, shotName, size) }
+  return { orientation, width: size.width, height: size.height, label: describe(view), layers: build(view, shot, shotName, orientation) }
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -669,22 +724,46 @@ const FACE: Readonly<Record<Face, string>> = {
   ticket: 'var(--es-font-ticket)',
   label: 'var(--es-font-label)',
 }
-const paint = (role: Paint): string => (role === 'none' ? 'none' : `var(--es-${role})`)
+/**
+ * The frame's two gradients, each made of token roles [estimated stops]: the lamps' light on the pass, white-hot at its middle and the
+ * lamp's amber out to nothing at its edge, so the steel under it reads lit and no edge shows; and the side wall's shade, deepening from
+ * its near end at the frame's left to the far corner.
+ */
+const GRADIENTS = {
+  'lamp-pool': {
+    tag: 'radialGradient',
+    stops: [
+      [0, 'glint', 0.5],
+      [0.3, 'lamp', 0.46],
+      [0.62, 'lamp', 0.2],
+      [1, 'lamp', 0],
+    ],
+  },
+  'wall-shade': {
+    tag: 'linearGradient',
+    stops: [
+      [0, 'surface-2', 0.3],
+      [1, 'surface-3', 0.42],
+    ],
+  },
+} as const satisfies Readonly<Record<string, { readonly tag: string; readonly stops: readonly (readonly [number, Paint, number])[] }>>
 
-/** The blur a soft mark takes, as a share of the frame's half height [estimated]: the lamps' pools and a station's heat have no edge. */
+/** The id of a frame's blur or gradient. Two frames can share a page (the static HTML holds both), so each orientation has its own. */
+const idOf = (name: string, orientation: Orientation): string => `es-loop-${name}-${orientation}`
+const paint = (role: Paint, orientation: Orientation): string => (role === 'none' ? 'none' : role in GRADIENTS ? `url(#${idOf(role, orientation)})` : `var(--es-${role})`)
+
+/** The blur a soft mark takes, as a share of the frame's half height [estimated]: a station's heat and a lamp's mouth have no edge. */
 const SOFT_BLUR = 0.045
-/** The id of a frame's blur. Two frames can share a page (the static HTML holds both), so each orientation has its own. */
-const softId = (orientation: Orientation): string => `es-lamp-pool-${orientation}`
 
 function markNode(mark: Mark, orientation: Orientation): SvgNode {
   const style = (s: Style): Record<string, string | number> => ({
-    ...(s.fill === undefined ? {} : { fill: paint(s.fill) }),
-    ...(s.stroke === undefined ? {} : { stroke: paint(s.stroke) }),
+    ...(s.fill === undefined ? {} : { fill: paint(s.fill, orientation) }),
+    ...(s.stroke === undefined ? {} : { stroke: paint(s.stroke, orientation) }),
     ...(s.width === undefined ? {} : { strokeWidth: num(s.width) }),
     ...(s.dash === undefined ? {} : { strokeDasharray: s.dash }),
     ...(s.opacity === undefined ? {} : { fillOpacity: s.opacity }),
     ...(s.strokeOpacity === undefined ? {} : { strokeOpacity: s.strokeOpacity }),
-    ...(s.soft ? { filter: `url(#${softId(orientation)})` } : {}),
+    ...(s.soft ? { filter: `url(#${idOf('soft', orientation)})` } : {}),
   })
   switch (mark.kind) {
     case 'rect':
@@ -702,7 +781,7 @@ function markNode(mark: Mark, orientation: Orientation): SvgNode {
     case 'text':
       return {
         tag: 'text',
-        attrs: { x: mark.x, y: mark.y, fill: paint(mark.fill), fontFamily: FACE[mark.face], fontSize: mark.size, textAnchor: mark.anchor, dominantBaseline: 'central' },
+        attrs: { x: mark.x, y: mark.y, fill: paint(mark.fill, orientation), fontFamily: FACE[mark.face], fontSize: mark.size, textAnchor: mark.anchor, dominantBaseline: 'central' },
         children: [mark.text],
       }
   }
@@ -714,19 +793,22 @@ function markNode(mark: Mark, orientation: Orientation): SvgNode {
  * `cover` fills whatever box holds it, at the frame's full height, cutting its sides (or its top and foot) to the box.
  */
 export function frameSvg(frame: Frame, options: { readonly cover?: boolean } = {}): SvgNode {
-  const soft = frame.layers.some((layer) => layer.marks.some((mark) => mark.kind !== 'text' && mark.soft === true))
-  const blur: SvgNode = {
-    tag: 'defs',
-    attrs: {},
-    children: [
-      {
-        tag: 'filter',
-        attrs: { id: softId(frame.orientation), x: '-50%', y: '-80%', width: '200%', height: '260%' },
-        children: [{ tag: 'feGaussianBlur', attrs: { stdDeviation: num((frame.height / 2) * SOFT_BLUR) } }],
-      },
-    ],
+  const { orientation } = frame
+  // What the marks ask of the defs: the blur, and each gradient they paint with.
+  const used = new Set<string>(frame.layers.flatMap((layer) => layer.marks.flatMap((mark) => (mark.kind === 'text' ? [] : [mark.fill, mark.stroke, mark.soft ? 'soft' : undefined])).filter((name) => name !== undefined)))
+  const defs: SvgNode[] = []
+  if (used.has('soft')) {
+    defs.push({
+      tag: 'filter',
+      attrs: { id: idOf('soft', orientation), x: '-50%', y: '-80%', width: '200%', height: '260%' },
+      children: [{ tag: 'feGaussianBlur', attrs: { stdDeviation: num((frame.height / 2) * SOFT_BLUR) } }],
+    })
   }
-  const layers = frame.layers.map((layer): SvgNode => ({ tag: 'g', attrs: { 'data-part': layer.part }, children: layer.marks.map((mark) => markNode(mark, frame.orientation)) }))
+  for (const [name, gradient] of Object.entries(GRADIENTS)) {
+    if (!used.has(name)) continue
+    defs.push({ tag: gradient.tag, attrs: { id: idOf(name, orientation) }, children: gradient.stops.map(([offset, role, opacity]) => ({ tag: 'stop', attrs: { offset, stopColor: `var(--es-${role})`, stopOpacity: opacity } })) })
+  }
+  const layers = frame.layers.map((layer): SvgNode => ({ tag: 'g', attrs: { 'data-part': layer.part }, children: layer.marks.map((mark) => markNode(mark, orientation)) }))
   return {
     tag: 'svg',
     attrs: {
@@ -738,7 +820,7 @@ export function frameSvg(frame: Frame, options: { readonly cover?: boolean } = {
       role: 'img',
       'aria-label': frame.label,
     },
-    children: soft ? [blur, ...layers] : layers,
+    children: defs.length > 0 ? [{ tag: 'defs', attrs: {}, children: defs }, ...layers] : layers,
   }
 }
 

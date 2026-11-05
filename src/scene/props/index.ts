@@ -11,7 +11,7 @@
 export { Kitchen } from './Kitchen'
 export { useProps, type PropsKit, type ShadowRegistry } from './context'
 export { Prop, StaticSet } from './StaticSet'
-export { ALWAYS_LIT, buildSet, litMask } from './set'
+export { ALWAYS_LIT, buildSet, litMask, roomShade, type RoomLight } from './set'
 export { RailClips, PrinterFeed, Tickets, type ClipPlace, type TicketPose } from './Tickets'
 export { LampLights, Plates, ServiceBell, Steam, STEAM, type LampLight, type PlatePlace } from './Service'
 export { cellOffset, CLIP_DROP, PRINTER_MOUTH, tearPose, ticketGeometry } from './paper'

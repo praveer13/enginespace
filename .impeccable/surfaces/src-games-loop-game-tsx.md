@@ -33,6 +33,12 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 
 The bell with overlap off: the line drops dark while the expo writes, then every hung clip's station burns amber and one plate per ticket slides onto the pass. With overlap on the fired rail takes the fire, and the line never goes dark.
 
+## Adaptations (finish review, round 2)
+
+- **The lamps light the steel.** On the counter, three's own spot-light reflection (one smooth lobe in the lamp's full amber, clipped) is taken off, and the steel's own sheen and streak are brightened and warmed in its place, falling off softly. The 2D twin draws each pool as a lit gradient over the brushed top's grain.
+- **The room falls away beyond the line.** Its light is baked into the tile and the floor, dimming toward the corners and over the hood, and its haze is deep steel.
+- **The plates sit on the steel.** Each plate on the pass has a dark contact ring at its rim and a softer shade past it, and its underside is occluded against the counter.
+
 ## Unresolved
 
 - GAMES.md §3's "3D scene" and "2D path" still describe lanes along time (a Gantt). This page draws the present instead (the rail, the fired rail, the last fire's plates, the stations), and the night's timeline lives in the tape and the mirror, and in the debrief's compare strips. The docs need the owner's amendment.

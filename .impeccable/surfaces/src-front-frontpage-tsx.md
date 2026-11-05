@@ -68,6 +68,14 @@ The seed reference in FORM is the one impeccable's concept roll printed for this
 
 The first service. A visitor fires two tickets; the stations sit half dark and the printer shows the bubble. They fill the rail, and the line lights end to end.
 
+## Adaptations (finish review, round 2)
+
+- **The lamps light the steel.** Under each heat lamp the counter's own sheen and streak brighten in the lamp's warm light and fall off softly. They take the place of the smooth amber lobe that three draws for a spot light off brushed steel, which was bright enough to clip and read as a coloured decal. The 2D pass draws each pool as a lit gradient over the brushed top's grain, never as a blur.
+- **The room falls away.** The room's light is baked into its tile and its floor: full over the line, dimming toward the far corner and up the wall over the hood. The haze is deep steel, darker than the pale tile it fogs.
+- **The plates sit on the steel.** Each plate on the pass has a dark contact ring tight about its rim and a softer shade past it, over its underside's own occlusion against the counter, as the shelf's stacks have.
+- **The printer is a housing.** It is a box seen from the expo's side: the cover faces the pass with the menu link printed on it (from 80rem the link's words take a line of their own), its top recedes above it, its side falls back into shade, the roll shows in a recessed window, the feed button stands proud, and the mouth's teeth run along its foot. DESIGN.md's Printer ("rounded upper corners (8px 8px 3px 3px)") still describes the flat panel this replaces: raised with the documenter.
+- **The 2D side wall is tiled.** The 2D view tiles the side wall as it tiles the back wall, every course with its joints, and shades it toward the far corner.
+
 ## Unresolved
 
 - **Faces:** the exact faces (sourced and self-hosted) are chosen at build time.

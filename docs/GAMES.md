@@ -620,10 +620,10 @@ All [estimated].
 
 - **Aggregated first:** history cells, then comb teeth beyond 64 per step (shown as a count).
 - **Chunks:** `scene-loop` ≤ 35 KB gz. The front page's 2D game and sim fit ARCHITECTURE's 150 KB gz first-paint closure.
-- **Measured** [measured 2026-11-04 on wave-1 at cc0495c with the finish review's round-1 fixes; the bundle by `verify:bundle`, the draws by `renderer.info` through the scene's test hook]:
-  - `scene-loop` (its chunk, its CSS and the chunks only 3D reaches, the scene kit's props among them) is 38,366 B gz. That is 1,634 B under A§11.1's frozen 40 KB gate (D-023) and 3,366 B over this table's 35 KB target, which scene kit v1's props passed before these fixes.
-  - A whole night of `first-4-par` on `/play/loop` (e2e/loop-scene.spec.ts) draws at most 14 scene draw calls at T1 (14 in the frame) and 39 at T2 (53 in the frame with bloom and the final pass), against A§11.1's 100. It draws at most 44 instances at T1 and 76 at T2, and at most 105,452 and 402,828 triangles.
-  - The front page's pass at 1440 by 900, at T2 with half a rail fired, draws 30 scene draw calls (44 in the frame) [measured the same day on wave-1 at fd168df with these fixes, in a test build; the scene's code is the same at cc0495c].
+- **Measured** [measured 2026-11-05 over wave-1 at cc1d29d with the finish review's round-2 fixes; the bundle by `verify:bundle`, the draws by `renderer.info` through the scene's test hook]:
+  - `scene-loop` (its chunk, its CSS and the chunks only 3D reaches, the scene kit's props among them) is 38,971 B gz. That is 1,029 B under A§11.1's frozen 40 KB gate (D-023) and 3,971 B over this table's 35 KB target, which scene kit v1's props passed before the round-1 fixes. Round 2 added 605 B to it [derived from 38,366 B at cc1d29d before them]: the lamps' light taken off the counter and given back as the steel's sheen, the plates' contact and the room's light.
+  - A whole night of `first-4-par` on `/play/loop` (e2e/loop-scene.spec.ts) draws at most 14 scene draw calls at T1 (14 in the frame) and 39 at T2 (53 in the frame with bloom and the final pass), against A§11.1's 100. It draws at most 48 instances at T1 and 80 at T2, and at most 105,460 and 402,836 triangles: a plate's contact shadow is two soft quads in the one draw of every contact shadow, so round 2 added instances and no draw.
+  - The front page's pass at 1440 by 900, at T2 with half a rail fired, draws 30 scene draw calls (44 in the frame), in a test build.
   - T1's draw calls are within this table's target. T2's draw calls, and both tiers' triangles, are over it: the heat lamps' shadow passes and the props' turned and swept parts. The draws stay under the frozen gate.
 - **Timing:** interactive in 2D before LCP, and 3D visible about 2 s after LCP on the reference phone in ARCHITECTURE's mobile lab profile (a chunk of about 280 KB gz at 1.6 Mbit/s is about 1.4 s of transfer [derived], plus parse).
 
