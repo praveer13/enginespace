@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 170" width="360" height="170" fill="none" stroke="currentColor" stroke-width="1">
+  <title>Three engine steps with async scheduling off and on, drawn to one scale</title>
+  <desc>Two pairs of lanes, one pair for async scheduling off and one for on, with three steps in each. With it off, the GPU lane has an empty stretch, drawn dashed, between every two forwards, 764 and 764 microseconds, because the next step's schedule, prepare and launch wait for the last step to be read. With it on, the CPU lane writes each step's schedule, prepare and launch while the previous forward runs, the forwards follow one another with gaps of 0 and 0 microseconds, and the three steps end sooner.</desc>
+  <g stroke="none" fill="currentColor" font-size="9">
+    <text x="4" y="12">async scheduling off</text>
+    <text x="4" y="29">CPU</text>
+    <text x="4" y="57">GPU</text>
+    <text x="4" y="94">async scheduling on</text>
+    <text x="4" y="111">CPU</text>
+    <text x="4" y="139">GPU</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.14">
+    <rect x="46.00" y="16" width="26.30" height="18"/>
+    <rect x="72.30" y="16" width="1.24" height="18"/>
+    <rect x="73.54" y="16" width="1.55" height="18"/>
+    <rect x="148.58" y="16" width="26.30" height="18"/>
+    <rect x="174.88" y="16" width="1.24" height="18"/>
+    <rect x="176.12" y="16" width="1.55" height="18"/>
+    <rect x="251.26" y="16" width="26.30" height="18"/>
+    <rect x="277.57" y="16" width="1.24" height="18"/>
+    <rect x="278.81" y="16" width="1.55" height="18"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.34">
+    <rect x="138.27" y="16" width="1.03" height="18"/>
+    <rect x="139.30" y="16" width="9.28" height="18"/>
+    <rect x="240.95" y="16" width="1.03" height="18"/>
+    <rect x="241.98" y="16" width="9.28" height="18"/>
+    <rect x="343.69" y="16" width="1.03" height="18"/>
+    <rect x="344.72" y="16" width="9.28" height="18"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.55">
+    <rect x="75.09" y="44" width="63.18" height="18"/>
+    <rect x="177.67" y="44" width="63.28" height="18"/>
+    <rect x="280.35" y="44" width="63.33" height="18"/>
+  </g>
+  <g stroke-dasharray="3 3">
+    <rect x="138.27" y="44" width="39.40" height="18"/>
+    <rect x="240.95" y="44" width="39.40" height="18"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.14">
+    <rect x="46.00" y="98" width="26.30" height="18"/>
+    <rect x="72.30" y="98" width="1.24" height="18"/>
+    <rect x="73.54" y="98" width="1.55" height="18"/>
+    <rect x="136.87" y="98" width="26.30" height="18"/>
+    <rect x="163.18" y="98" width="1.24" height="18"/>
+    <rect x="164.41" y="98" width="1.55" height="18"/>
+    <rect x="200.05" y="98" width="26.30" height="18"/>
+    <rect x="226.35" y="98" width="1.24" height="18"/>
+    <rect x="227.59" y="98" width="1.55" height="18"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.34">
+    <rect x="189.74" y="98" width="1.03" height="18"/>
+    <rect x="190.77" y="98" width="9.28" height="18"/>
+    <rect x="253.02" y="98" width="1.03" height="18"/>
+    <rect x="254.05" y="98" width="9.28" height="18"/>
+    <rect x="316.35" y="98" width="1.03" height="18"/>
+    <rect x="317.38" y="98" width="9.28" height="18"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.55">
+    <rect x="126.56" y="126" width="63.18" height="18"/>
+    <rect x="189.74" y="126" width="63.28" height="18"/>
+    <rect x="253.02" y="126" width="63.33" height="18"/>
+  </g>
+  <g stroke-dasharray="3 3">
+
+  </g>
+  <g stroke="none" fill="currentColor" font-size="8">
+    <text x="46" y="157">one scale: light is schedule, prepare, launch;</text>
+    <text x="46" y="167">darker is sync, sample; darkest is the forward</text>
+  </g>
+</svg>

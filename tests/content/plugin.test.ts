@@ -14,7 +14,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync
 import path from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
 import { contentPlugin, DEBOUNCE_MS } from '../../scripts/content/vite-plugin.ts'
-import { LESSON, lineOf, project, read, repo, swap } from './support.ts'
+import { LESSON, lineOf, project, readSample, repo, swap } from './support.ts'
 import type { Edit } from './support.ts'
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -81,14 +81,14 @@ describe('the plugin in a build', () => {
     vite.buildStart()
     expect(existsSync(path.join(root, 'src/content/generated/index.json'))).toBe(true)
     expect(existsSync(path.join(root, 'public/md/tr2/l0-sample.md'))).toBe(true)
-    expect(vite.warnings).toEqual([expect.stringContaining(`${LESSON}:${lineOf(read(LESSON), 'minutes: 45')}: warning minutes-drift`)])
+    expect(vite.warnings).toEqual([expect.stringContaining(`${LESSON}:${lineOf(readSample(LESSON), 'minutes: 45')}: warning minutes-drift`)])
   })
 
   test('stops on an error, with every error and its file and line, and writes nothing', () => {
     const edit = swap('mode: practice', 'mode: practice\nspeed: 3')
     const root = project({ [LESSON]: edit })
     const vite = fakeVite(root, 'build')
-    expect(() => vite.buildStart()).toThrow(`the content has 1 error:\n${LESSON}:${lineOf(edit(read(LESSON)), 'speed: 3')}: error unknown-key:`)
+    expect(() => vite.buildStart()).toThrow(`the content has 1 error:\n${LESSON}:${lineOf(edit(readSample(LESSON)), 'speed: 3')}: error unknown-key:`)
     expect(existsSync(path.join(root, 'src'))).toBe(false)
   })
 })
@@ -240,7 +240,7 @@ describe('a real vite build', () => {
     const root = app({ [LESSON]: edit })
     const run = spawnSync('node', [vite, 'build', '--config', 'vite.config.ts', '--outDir', 'dist', '--emptyOutDir'], { cwd: root, encoding: 'utf8' })
     expect(run.status).not.toBe(0)
-    expect(run.stdout + run.stderr).toContain(`${LESSON}:${lineOf(edit(read(LESSON)), 'speed: 3')}: error unknown-key`)
+    expect(run.stdout + run.stderr).toContain(`${LESSON}:${lineOf(edit(readSample(LESSON)), 'speed: 3')}: error unknown-key`)
     expect(existsSync(path.join(root, 'dist'))).toBe(false)
   }, 60_000)
 })

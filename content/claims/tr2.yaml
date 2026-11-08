@@ -1,0 +1,894 @@
+# What TR2's seven lessons cite beyond the claims of vllm/engine.yaml, vllm/graphs.yaml, vllm/steploop.yaml, sglang/engine.yaml, sglang/graphs.yaml,
+# readings.yaml and loop.yaml (W1-T15; curriculum/TR2 §8): how one engine step is made of calls, what the scheduler's one token budget is and how a waiting
+# prompt is cut to it, how async scheduling plans on tokens that are not sampled yet, what Model Runner V2 changes about the runner and what its authors
+# report, what a CUDA graph is for and what each mode costs, which attention backends can replay which graphs, and how SGLang, Mini-SGLang and
+# TensorRT-LLM do the same things. An id starts with its engine (`vllm`, `sglang`, `mini-sglang`, `trtllm`), or with `loop` when its source is kernelspace's.
+#
+# Each quote was read on 2026-11-05 with the generic User-Agent "Mozilla/5.0 (X11; Linux x86_64)" from the file or page its anchor names, and found
+# verbatim inside the lines the anchor gives (a file at a tag or a commit is downloaded into a folder of its own and read as text, never run; a blog
+# post is turned into text by a script that reads it and runs nothing from it; kernelspace is read with `git show` at d478f91). The engines are read at
+# the pins, vLLM v0.33.0 and SGLang v0.5.23, so a claim that cites a file there lasts the quarter that a pin lasts. A post, a file at a commit that does not
+# move, and a fact about an older release carry a year [estimated]. TensorRT-LLM is not a pin of the course: it is read at the commit b96ba434 of its tag
+# v1.4.0rc2, and a claim about it carries no pin. A figure that a team measured and that the course has not repeated is `unverified`, and says so.
+#
+# Seven claims (vllm.step.execute-model-state, vllm.step.sample-if-none, vllm.executor.uni-default, vllm.executor.uni-inline,
+# vllm.executor.uni-blocking-output, vllm.mrv2.input-tensors and vllm.cudagraph.none-debugging) were written on 2026-11-08, when the lessons were checked
+# line by line against the source. Each quote was found in the lines of its anchor in the copy of the file that the first reading downloaded on 2026-11-05,
+# so for these seven `accessed` and `verifiedAt` are the day of that copy, which is the day the source was read, and no later.
+
+
+# --- Lesson 1: one step, five calls ------------------------------------------------------------------------------------------------------
+
+- id: vllm.step.two-phase
+  value: 'execute_model, then sample_tokens'
+  text: MRV2's model runner keeps the state of execute_model for the sample_tokens call that follows it, so one step is two calls into the runner.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu/model_runner.py#L360
+    title: vLLM v0.33.0, vllm/v1/worker/gpu/model_runner.py, GPUModelRunner (execute_model_state)
+    quote: '# For transferring state from execute_model to subsequent sample_tokens call.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.step.sample-if-none
+  value: 'sample_tokens when the result is empty'
+  text: EngineCore.step calls sample_tokens with the grammar output only when the result of the future is None, so when the runner leaves the sampling for a second call, the output of the step comes from that call.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/core.py#L684-L686
+    title: vLLM v0.33.0, vllm/v1/engine/core.py, EngineCore.step (the result of the future)
+    quote: 'if model_output is None:'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.step.execute-model-state
+  value: 'state first, then the inputs'
+  text: MRV2's execute_model first brings the request states up to date, by finishing and freeing requests, adding new ones and updating the others, and applies the staged block-table writes. It then prepares all the inputs and copies them to the input buffers, before it runs the model.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu/model_runner.py#L1775-L1866
+    title: vLLM v0.33.0, vllm/v1/worker/gpu/model_runner.py, GPUModelRunner.execute_model (the first half of a step)
+    quote: '# Update the request states.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.executor.uni-default
+  value: 'uni'
+  text: With one GPU the distributed executor backend defaults to uni, the single-process executor.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/parallel.py#L1098-L1099
+    title: vLLM v0.33.0, vllm/config/parallel.py, ParallelConfig (the default executor backend)
+    quote: 'self.distributed_executor_backend = "uni"'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.executor.uni-inline
+  value: 'the calling thread'
+  text: The single-process executor runs a call into the worker, execute_model among them, in the thread that makes the call. A non-blocking call returns a future for the output once the work has been launched, and does not wait for the GPU to finish it.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/executor/uniproc_executor.py#L108-L111
+    title: vLLM v0.33.0, vllm/v1/executor/uniproc_executor.py, UniProcExecutor.collective_rpc (a non-blocking call)
+    quote: 'return AsyncOutputFuture(result, single_value)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.executor.uni-blocking-output
+  value: 'get_output() before it returns'
+  text: In a blocking call, when the runner returns an async output, the single-process executor calls get_output() on it before it returns, so the call does not return until get_output() has.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/executor/uniproc_executor.py#L102-L106
+    title: vLLM v0.33.0, vllm/v1/executor/uniproc_executor.py, UniProcExecutor.collective_rpc (a blocking call)
+    quote: 'result = result.get_output()'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.v1.cpu-overhead-goal
+  value: 'near-zero CPU overhead'
+  text: vLLM's V1 guide lists, among what V1 aims to do, high performance with near-zero CPU overhead.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/usage/v1_guide.md#L20
+    title: vLLM v0.33.0, docs/usage/v1_guide.md, V1's aims
+    quote: 'Ensure **high performance** with near-zero CPU overhead.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: loop.kernelspace.scheduler-tax
+  value: 'a Python scheduler tax'
+  text: 'kernelspace''s T0.L6 names the Python scheduler tax: vLLM''s V0 loop spent visible milliseconds per iteration in Python bookkeeping, and the V1 rewrite exists because flame graphs showed that plateau.'
+  tag: measured
+  source:
+    url: https://github.com/praveer13/kernelspace/blob/d478f91a0af590f03fcfd76ee73149fa70b28e51/public/lessons-md/t0.l6.md#L81
+    title: kernelspace public/lessons-md/t0.l6.md, T0.L6, Reading a Flame Graph (and Making One), the cast of profiles (at d478f91)
+    quote: 'vLLM''s V0 loop spent visible milliseconds per iteration in Python bookkeeping'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 365
+
+
+# --- Lesson 2: one token budget ----------------------------------------------------------------------------------------------------------
+
+- id: vllm.scheduler.budget-default
+  value: 'max_num_batched_tokens'
+  text: The token budget of a scheduling step is max_num_scheduled_tokens, which is max_num_batched_tokens unless it is set.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/sched/scheduler.py#L139-L142
+    title: vLLM v0.33.0, vllm/v1/core/sched/scheduler.py, Scheduler.__init__ (max_num_scheduled_tokens)
+    quote: 'else self.scheduler_config.max_num_batched_tokens'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.scheduler.budget-meaning
+  value: 'tokens in one iteration'
+  text: The config documents max_num_batched_tokens as the maximum number of tokens that can be processed in a single iteration.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/scheduler.py#L49
+    title: vLLM v0.33.0, vllm/config/scheduler.py, SchedulerConfig.max_num_batched_tokens
+    quote: 'Maximum number of tokens that can be processed in a single iteration.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.scheduler.seqs-meaning
+  value: 'sequences in one iteration'
+  text: The config documents max_num_seqs as the maximum number of sequences to be processed in a single iteration.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/scheduler.py#L63
+    title: vLLM v0.33.0, vllm/config/scheduler.py, SchedulerConfig.max_num_seqs
+    quote: 'Maximum number of sequences to be processed in a single iteration.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.scheduler.chunk-to-budget
+  value: 'the smaller of need and budget'
+  text: When the scheduler takes a waiting request, the new tokens it gives it are the smaller of the tokens the request still needs and the token budget that is left, which is what cuts a long prompt into chunks.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/sched/scheduler.py#L1346
+    title: vLLM v0.33.0, vllm/v1/core/sched/scheduler.py, Scheduler.schedule (a waiting request)
+    quote: 'num_new_tokens = min(num_new_tokens, request_token_budget)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.scheduler.no-chunk-stop
+  value: 'stops the waiting loop'
+  text: With chunked prefill off, a waiting request whose new tokens do not fit the budget that is left ends the scheduling of waiting requests for that step.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/sched/scheduler.py#L1338-L1344
+    title: vLLM v0.33.0, vllm/v1/core/sched/scheduler.py, Scheduler.schedule (chunked prefill off)
+    quote: '# we can stop the scheduling here.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+
+# --- Lesson 3: async scheduling ----------------------------------------------------------------------------------------------------------
+
+- id: vllm.async-scheduling.placeholders-added
+  value: 'num_output_placeholders'
+  text: Under async scheduling, once a step is scheduled, the scheduler adds to each decode request's num_output_placeholders the tokens that the step will sample (and the draft tokens it carries), so that the next schedule call can plan on tokens that have not been sampled yet.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/sched/async_scheduler.py#L44-L46
+    title: vLLM v0.33.0, vllm/v1/core/sched/async_scheduler.py, AsyncScheduler._update_after_schedule
+    quote: 'request.num_output_placeholders += ('
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.async-scheduling.placeholders-resolved
+  value: 'placeholders resolved by the output'
+  text: When the output of a step comes back, the scheduler takes the tokens it returned off the request's placeholders.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/sched/scheduler.py#L2767-L2769
+    title: vLLM v0.33.0, vllm/v1/core/sched/scheduler.py, Scheduler._update_request_with_output
+    quote: 'request.num_output_placeholders -= num_new_tokens'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: loop.s5.t-seq
+  value: 61.1
+  unit: us
+  text: kernelspace's S5 step card puts the host work of its H100 FP8 row at 61.1 microseconds per running sequence per step, a fit under S5's additive form to vLLM 0.10.2 runs, and not a hardware fact.
+  tag: measured
+  source:
+    url: https://github.com/praveer13/kernelspace/blob/d478f91a0af590f03fcfd76ee73149fa70b28e51/docs/physics/report.json#L2972
+    title: kernelspace docs/physics/report.json, the claimValues of the fit (at d478f91)
+    quote: '"phys.h100-vllm-0-10-2-fp8.seq-us": 61.1,'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 365
+
+
+# --- Lesson 4: the MRV2 delta ------------------------------------------------------------------------------------------------------------
+
+- id: vllm.mrv2.input-tensors
+  value: 'contiguous input tensors for each step'
+  text: The MRV2 design document says that V1 introduced persistent batches to minimize CPU overhead during input preparation, because when requests are scheduled for a step the model runner must construct contiguous input tensors, such as block tables and per-request temperature values, to feed into the model, and building them from scratch each step is often very slow in Python.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/model_runner_v2.md#L17
+    title: vLLM v0.33.0, docs/design/model_runner_v2.md, Persistent Batch (background)
+    quote: 'When requests are scheduled for a step, the model runner must construct contiguous input tensors (for example, block tables and per-request temperature values) to feed into the model.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.v1-coupling
+  value: 'persistent state used as inputs'
+  text: The MRV2 design document says that V1 uses its persistent state tensors directly as model and sampler inputs, which imposes strict layout and ordering requirements, so a request that joins or finishes often means a reordering of the whole tensor.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/model_runner_v2.md#L23
+    title: vLLM v0.33.0, docs/design/model_runner_v2.md, Persistent Batch (problems with V1)
+    quote: 'V1 uses persistent state tensors directly as model and sampler inputs, which imposes strict layout and ordering requirements. When requests join or finish, this often requires complex tensor-wide reordering rather than simple row insertion/removal.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.decoupled-state
+  value: 'persistent state apart from per-step inputs'
+  text: MRV2 keeps its persistent state tensors apart from the per-step input tensors, and gathers each step's inputs from the state in the request order of the step.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/model_runner_v2.md#L33
+    title: vLLM v0.33.0, docs/design/model_runner_v2.md, Persistent Batch (MRV2's solution)
+    quote: 'MRV2 decouples persistent state tensors from per-step input tensors. Given request ordering for the step (usually determined by the attention backend), MRV2 gathers input tensors from persistent state.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.async-retrofit
+  value: 'async scheduling was retrofitted onto V1'
+  text: The MRV2 design document says that V1 was not designed with async scheduling in mind, and that its support needed retrofitted behavior and hacks.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/model_runner_v2.md#L47
+    title: vLLM v0.33.0, docs/design/model_runner_v2.md, Async-First
+    quote: 'V1 was not originally designed with async scheduling in mind, and support required retrofitted behavior and hacks.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.no-cpu-sync
+  value: 'a stream with no CPU synchronization points'
+  text: MRV2 assumes that the core model execution loop is a CUDA stream with no CPU synchronization points, and that the CPU entry points only queue work onto the stream.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/model_runner_v2.md#L47
+    title: vLLM v0.33.0, docs/design/model_runner_v2.md, Async-First
+    quote: 'MRV2 instead assumes the core model execution loop is a CUDA stream with no CPU synchronization points. CPU entrypoints queue work onto the stream.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.staged-write
+  value: 'StagedWriteTensor'
+  text: For large tensors such as block tables, MRV2 avoids a full CPU-to-GPU copy at every step. It keeps the tensor on the GPU, stages the differences on the CPU, packs and copies them, and launches one kernel to apply them.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/model_runner_v2.md#L106-L112
+    title: vLLM v0.33.0, docs/design/model_runner_v2.md, StagedWriteTensor
+    quote: 'For large tensors like block tables, MRV2 avoids full CPU-to-GPU copies each step by using `StagedWriteTensor`:'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.triton-sampler
+  value: 'sampling in Triton'
+  text: MRV2 reimplements sampling mostly in Triton, with a Gumbel sampling kernel that avoids materializing the softmax.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/model_runner_v2.md#L147-L151
+    title: vLLM v0.33.0, docs/design/model_runner_v2.md, Triton-Native Sampler
+    quote: 'MRV2 reimplements sampling mostly in Triton for better numeric/memory control and optimization.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.cuda-graph-manager
+  value: 'CUDAGraphManager'
+  text: MRV2 owns an explicit CUDAGraphManager that captures and launches full CUDA graphs through standard PyTorch APIs, where V1's graph handling was implicit.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/model_runner_v2.md#L188-L190
+    title: vLLM v0.33.0, docs/design/model_runner_v2.md, Explicit CUDA Graph Management
+    quote: 'MRV2 uses a `CUDAGraphManager` that explicitly captures and launches full CUDA graphs through standard PyTorch APIs.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.not-complete
+  value: 'not yet feature-complete'
+  text: The MRV2 design document, which ships with v0.33.0, still says that MRV2 is not yet feature-complete, not rigorously tested and has open design decisions.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/model_runner_v2.md#L7
+    title: vLLM v0.33.0, docs/design/model_runner_v2.md, Introduction
+    quote: 'While MRV2 is not yet feature-complete, not rigorously tested, and still has open design decisions, we believe it is a substantial improvement over V1.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.env-decides
+  value: 'the variable decides when it is set'
+  text: 'Two features need MRV2 and are checked first: HiSparse attention, which makes VLLM_USE_V2_MODEL_RUNNER=0 an error, and watermarking, which overrides it. Otherwise, when VLLM_USE_V2_MODEL_RUNNER is set, in either direction, its value decides the runner and the checks for Triton and for unsupported features are skipped. Unset, MRV2 is used unless Triton is missing or the configuration uses a feature MRV2 does not support, and then the engine warns and uses V1.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/vllm.py#L731-L766
+    title: vLLM v0.33.0, vllm/config/vllm.py, VllmConfig.use_v2_model_runner
+    quote: 'use_v2_model_runner = envs.VLLM_USE_V2_MODEL_RUNNER'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.blog-regime
+  value: 'a very small model on a powerful GPU'
+  text: The vLLM team's post on Model Runner V2 ran a very small model, Qwen3-0.6B, on one GB200 on purpose, so that host-side overhead would be proportionally large.
+  tag: measured
+  source:
+    url: https://vllm.ai/blog/2026-03-24-mrv2
+    title: 'vLLM blog, Model Runner V2: A Modular and Faster Core for vLLM (2026-03-24), Performance'
+    quote: 'intentionally choosing a small model so that host-side overhead would be proportionally large'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 365
+  pin: vllm
+
+- id: vllm.mrv2.blog-gain
+  value: 56
+  unit: '%'
+  text: In that setup the post reports a throughput increase of 56% for MRV2 over MRV1, from moving input preparation to the GPU. It is the vLLM team's own measurement on a GB200 and has not been checked here.
+  tag: unverified
+  source:
+    url: https://vllm.ai/blog/2026-03-24-mrv2
+    title: 'vLLM blog, Model Runner V2: A Modular and Faster Core for vLLM (2026-03-24), Performance'
+    quote: 'In this setup, MRV2 delivered a 56% throughput increase by offloading input preparation to GPU.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 365
+  pin: vllm
+
+- id: vllm.mrv2.blog-spec-tpot
+  value: 6.3
+  unit: '%'
+  text: The post also reports a mean time per output token 6.3% lower for MRV2 than for MRV1 on four GB200 with GLM-4.7-FP8 and MTP=1, which it ascribes to MRV2's zero-synchronization design. The figure is the team's own and has not been checked here.
+  tag: unverified
+  source:
+    url: https://vllm.ai/blog/2026-03-24-mrv2
+    title: 'vLLM blog, Model Runner V2: A Modular and Faster Core for vLLM (2026-03-24), Performance'
+    quote: 'We also measured gains for speculative decoding: 6.3% lower TPOT on 4×GB200 with GLM-4.7-FP8 and MTP=1.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 365
+  pin: vllm
+
+- id: vllm.mrv2.blog-limits
+  value: 'v0.18.0'
+  text: 'The post lists what MRV2 did not support as of v0.18.0: linear attention models, speculative methods other than Eagle, Eagle3 and MTP, EPLB and DBO, logits processors and LoRA. The pinned source has a different list.'
+  tag: measured
+  source:
+    url: https://vllm.ai/blog/2026-03-24-mrv2
+    title: 'vLLM blog, Model Runner V2: A Modular and Faster Core for vLLM (2026-03-24), Limitations and Current Status'
+    quote: 'As of v0.18.0, the following features are not supported:'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 365
+  pin: vllm
+
+
+# --- Lesson 5: CUDA graphs ---------------------------------------------------------------------------------------------------------------
+
+- id: vllm.cudagraph.purpose
+  value: 'to reduce CPU overheads'
+  text: vLLM's compile debugging guide says that vLLM applies CUDA graphs to reduce CPU overheads.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/debug_vllm_compile.md#L29
+    title: vLLM v0.33.0, docs/design/debug_vllm_compile.md, what vLLM does to a model
+    quote: 'vLLM applies CUDAGraphs to reduce CPU overheads.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.encoder-overhead
+  value: 'more significant when the batch is small'
+  text: In the note on its vision encoder's CUDA graphs, vLLM says that the encoder pays CUDA kernel launch overhead on the host side, that the overhead is more significant when the batch or the image is small, and that capturing the forward pass at several token budgets when the model is initialized, and replaying the right graph at run time, removes it.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/cuda_graphs_multimodal.md#L42-L44
+    title: vLLM v0.33.0, docs/design/cuda_graphs_multimodal.md, Motivation
+    quote: 'Vision encoder inference incurs CUDA kernel launch overhead on the host side. The overhead is more significant when the batch size is small or image size is small.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.none-debugging
+  value: 'good for debugging'
+  text: The CUDA-graph design document says that NONE turns CUDA graphs off and is good for debugging.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/cuda_graphs.md#L42
+    title: vLLM v0.33.0, docs/design/cuda_graphs.md, CudagraphModes (NONE)
+    quote: '`NONE` — turn CUDA Graphs off. Good for debugging.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.full-reuses-nonuniform
+  value: 'FULL has one graph per size'
+  text: In FULL mode vLLM captures full graphs for non-uniform batches only, and a uniform-decode batch reuses the graph of the non-uniform batch of the same batch size, since the two are compatible.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/cuda_graphs.md#L44
+    title: vLLM v0.33.0, docs/design/cuda_graphs.md, CudagraphModes (FULL)
+    quote: 'then uniform-decode batches reuse the CUDA Graph of non-uniform batch of the same batch_size'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.full-decode-only-use
+  value: 'saves the memory of the piecewise graphs'
+  text: The design document says FULL_DECODE_ONLY, which captures a full graph for uniform decode and none for prefill or mixed batches, suits the decode instances of a prefill and decode setup, and saves the memory that PIECEWISE graphs need.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/cuda_graphs.md#L45
+    title: vLLM v0.33.0, docs/design/cuda_graphs.md, CudagraphModes (FULL_DECODE_ONLY)
+    quote: 'suitable for decode instances in a P/D setup where prefill is not as important, this way we can save the memory needed for `PIECEWISE` CUDA Graphs'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.full-and-piecewise-cost
+  value: 'the most performant, and the most memory'
+  text: The design document calls FULL_AND_PIECEWISE, the default mode, generally the most performant setting, especially for low latency with small models or MoEs, and says it also requires the most memory and takes the longest to capture.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/cuda_graphs.md#L46
+    title: vLLM v0.33.0, docs/design/cuda_graphs.md, CudagraphModes (FULL_AND_PIECEWISE)
+    quote: 'generally the most performant setting, especially for low latency with small models or MoEs, but also requires the most memory and takes the longest to capture'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.mode-flag
+  value: '--compilation-config'
+  text: The CLI sets the mode as the uppercase name in the compilation config, as --compilation-config with a JSON object whose cudagraph_mode is one of NONE, PIECEWISE, FULL, FULL_DECODE_ONLY and FULL_AND_PIECEWISE.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/cuda_graphs.md#L193-L194
+    title: vLLM v0.33.0, docs/design/cuda_graphs.md, Usage guide
+    quote: 'Now the CLI is directly using the uppercase string of cudagraph_mode for compilation_config:'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: sglang.cudagraph.blog-definition
+  value: 'record once, replay'
+  text: SGLang's post on CUDA graphs says that repeatedly launching the many GPU operations of an inference step from the CPU can introduce noticeable overhead, and that a CUDA graph reduces it by recording the GPU work once and replaying it with much lower launch overhead.
+  tag: measured
+  source:
+    url: https://lmsys.org/blog/2026-08-17-advanced-cuda-graph/
+    title: LMSYS blog, Advanced CUDA Graph Techniques in SGLang (2026-08-17), Background
+    quote: 'CUDA Graph reduces this overhead by recording the GPU work once and replaying it with much lower launch overhead.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 365
+  pin: sglang
+
+- id: sglang.cudagraph.blog-flat-curve
+  value: 'a flat curve is launch-bound'
+  text: In its prefill benchmark on gpt-oss-120b, SGLang's post notes that every curve is flat across a 32 times range in prompt length, which it calls the signature of launch overhead rather than compute.
+  tag: measured
+  source:
+    url: https://lmsys.org/blog/2026-08-17-advanced-cuda-graph/
+    title: LMSYS blog, Advanced CUDA Graph Techniques in SGLang (2026-08-17), Prefill benchmark
+    quote: 'Every curve is flat across a 32× range in prompt length, which is the signature of launch overhead rather than compute.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 365
+  pin: sglang
+
+- id: sglang.cudagraph.blog-padded-tokens
+  value: 'padded tokens are real work'
+  text: SGLang's post says that a padded token is real work, an actual row in the captured batch that passes through the dense projections in the same matrix multiplications, and that an empty request slot is much cheaper.
+  tag: measured
+  source:
+    url: https://lmsys.org/blog/2026-08-17-advanced-cuda-graph/
+    title: LMSYS blog, Advanced CUDA Graph Techniques in SGLang (2026-08-17), What does the padding cost?
+    quote: 'Padded tokens are real work. They become actual rows in the captured batch and therefore pass through dense projections as part of the same GEMMs.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 365
+  pin: sglang
+
+- id: sglang.cudagraph.blog-ceiling
+  value: 'the ceiling matters more than the count'
+  text: 'SGLang''s post argues that the largest captured shape matters more than how many shapes are captured: a prefill above the ceiling runs eagerly and keeps the activation peak, while the graphs below it still take their memory.'
+  tag: measured
+  source:
+    url: https://lmsys.org/blog/2026-08-17-advanced-cuda-graph/
+    title: LMSYS blog, Advanced CUDA Graph Techniques in SGLang (2026-08-17), Capture through the chunked-prefill size
+    quote: 'This makes the capture ceiling more important than the number of captured shapes.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 365
+  pin: sglang
+
+- id: mini-sglang.graph.sizes
+  value: '1, 2, 4, then 8 up in steps of 8'
+  text: Mini-SGLang captures its decode graphs at the sizes 1, 2 and 4, then every multiple of 8 up to the largest, which is the shape of vLLM's own list below 256.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/engine/graph.py#L67
+    title: Mini-SGLang at 9a91cfa, python/minisgl/engine/graph.py, _determine_cuda_graph_bs
+    quote: 'return [1, 2, 4] + list(range(8, cuda_graph_max_bs + 1, 8))'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.graph.max-default
+  value: 256
+  unit: requests
+  text: Mini-SGLang's largest captured batch is 256 when more than 80 GiB of GPU memory are free (its comment says H200), and 160 otherwise, unless --cuda-graph-max-bs sets it.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/engine/graph.py#L59-L62
+    title: Mini-SGLang at 9a91cfa, python/minisgl/engine/graph.py, _determine_cuda_graph_bs
+    quote: 'if free_memory_gb > 80:  # H200'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.graph.static-buffers
+  value: 'one set of static buffers'
+  text: Mini-SGLang's graph runner allocates one set of static buffers at the largest captured batch size, for the input ids, the output locations, the positions and the logits, and every captured graph reads and writes them.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/engine/graph.py#L120
+    title: Mini-SGLang at 9a91cfa, python/minisgl/engine/graph.py, GraphRunner._capture_graphs
+    quote: 'self.buffer = GraphCaptureBuffer.init(self.max_graph_bs, vocab_size, self.device)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.graph.shared-pool
+  value: 'one memory pool'
+  text: Mini-SGLang captures its sizes from the largest down, and every graph after the first reuses the first graph's memory pool, to reduce the memory the graphs take.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/engine/graph.py#L122-L144
+    title: Mini-SGLang at 9a91cfa, python/minisgl/engine/graph.py, GraphRunner._capture_graphs
+    quote: 'pool = graph.pool()  # reuse cuda graph handle to reduce memory'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.graph.replay
+  value: 'copy in, replay, slice out'
+  text: A Mini-SGLang replay copies the batch into the static buffers, takes the graph captured for the batch's padded size, lets the attention backend prepare for the replay, replays the graph, and returns the first rows of the static logits, one for each real request.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/engine/graph.py#L152-L159
+    title: Mini-SGLang at 9a91cfa, python/minisgl/engine/graph.py, GraphRunner.replay
+    quote: 'g = self.graph_map[batch.padded_size]'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.graph.pad
+  value: 'the first captured size that holds the batch'
+  text: Mini-SGLang pads a decode batch to the first captured size that is at least as large, and fills the extra rows with a dummy request.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/engine/graph.py#L160-L166
+    title: Mini-SGLang at 9a91cfa, python/minisgl/engine/graph.py, GraphRunner.pad_batch
+    quote: 'padded_size = (  # choose the first available batch size'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.graph.decode-only
+  value: 'decode batches up to the largest size'
+  text: Mini-SGLang replays a graph only for a decode batch that is no larger than the largest captured size, and every other batch runs eagerly.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/engine/graph.py#L150
+    title: Mini-SGLang at 9a91cfa, python/minisgl/engine/graph.py, GraphRunner.can_use_cuda_graph
+    quote: 'return batch.is_decode and batch.size <= self.max_graph_bs'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: trtllm.cudagraph.one-call
+  value: 'one API call'
+  text: TensorRT-LLM's architecture overview says that capturing a sequence of CUDA operations as a single graph lets the entire sequence be launched with one API call, which minimizes CPU-GPU synchronization and driver overhead.
+  tag: measured
+  source:
+    url: https://github.com/NVIDIA/TensorRT-LLM/blob/b96ba434e8a05e2ab52d2082bd8d70b1d844739b/docs/source/developer-guide/overview.md#L52
+    title: TensorRT-LLM at b96ba43 (the tag v1.4.0rc2), docs/source/developer-guide/overview.md, Runtime Optimizations (CUDA Graph)
+    quote: 'By capturing a sequence of CUDA operations as a single graph, the entire sequence can be launched with one API call, minimizing CPU-GPU synchronization and driver overhead.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+
+- id: trtllm.cudagraph.padding
+  value: 'padded to the nearest larger size'
+  text: TensorRT-LLM pads a batch whose size does not match a captured graph to the nearest larger size for which a graph exists, and calls the computing of wasted tokens a minor overhead that is often a better trade-off than falling back to eager mode.
+  tag: measured
+  source:
+    url: https://github.com/NVIDIA/TensorRT-LLM/blob/b96ba434e8a05e2ab52d2082bd8d70b1d844739b/docs/source/developer-guide/overview.md#L54-L55
+    title: TensorRT-LLM at b96ba43 (the tag v1.4.0rc2), docs/source/developer-guide/overview.md, Runtime Optimizations (CUDA Graph)
+    quote: 'If an incoming batch''s size doesn''t match a captured graph, it''s padded to the nearest larger, supported size for which a graph exists.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+
+- id: trtllm.cudagraph.padding-gain
+  value: 22
+  unit: '%'
+  text: TensorRT-LLM's overview says that CUDA graph padding has shown up to a 22% end-to-end throughput increase on certain models and hardware. The overview gives no setup, and the figure has not been checked here.
+  tag: unverified
+  source:
+    url: https://github.com/NVIDIA/TensorRT-LLM/blob/b96ba434e8a05e2ab52d2082bd8d70b1d844739b/docs/source/developer-guide/overview.md#L54
+    title: TensorRT-LLM at b96ba43 (the tag v1.4.0rc2), docs/source/developer-guide/overview.md, Runtime Optimizations (CUDA Graph)
+    quote: 'up to a 22% end-to-end throughput increase on certain models and hardware'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+
+
+# --- Lesson 6: dispatch keys -------------------------------------------------------------------------------------------------------------
+
+- id: vllm.cudagraph.backend-fa3
+  value: 'ALWAYS'
+  text: In the design document's table, FlashAttention v3 has graph support ALWAYS, because it has a unified routine for both kinds of batch, so FULL mode is good.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/cuda_graphs.md#L178
+    title: vLLM v0.33.0, docs/design/cuda_graphs.md, CUDA Graphs Compatibility of Attention Backends
+    quote: '| FlashAttention v3 | `ALWAYS` | has unified routine for both batches, so `FULL` mode is good |'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.backend-fa2
+  value: 'UNIFORM_BATCH'
+  text: In the design document's table, FlashAttention v2 is listed as UNIFORM_BATCH. The comment says it is actually ALWAYS, and the listing is a workaround that makes it fall back to FULL_AND_PIECEWISE for performance reasons.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/cuda_graphs.md#L177
+    title: vLLM v0.33.0, docs/design/cuda_graphs.md, CUDA Graphs Compatibility of Attention Backends
+    quote: '| FlashAttention v2 | `UNIFORM_BATCH` | Actually `ALWAYS` but workaround to fallback to `FULL_AND_PIECEWISE` for performance reason |'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.backend-triton
+  value: 'ALWAYS'
+  text: In the design document's table, Triton Attention has graph support ALWAYS, and the document prefers FULL_AND_PIECEWISE for it, since it has different kernels for prefill or mixed batches and for pure decode batches.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/cuda_graphs.md#L179
+    title: vLLM v0.33.0, docs/design/cuda_graphs.md, CUDA Graphs Compatibility of Attention Backends
+    quote: '| Triton Attention | `ALWAYS` | prefer `FULL_AND_PIECEWISE` since it has different kernels for prefill/mixed and pure decode batches |'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.backend-flashinfer
+  value: 'UNIFORM_SINGLE_TOKEN_DECODE'
+  text: In the design document's table, FlashInfer has graph support UNIFORM_SINGLE_TOKEN_DECODE, and UNIFORM_BATCH when it uses TRTLLM attention on Blackwell.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/cuda_graphs.md#L181
+    title: vLLM v0.33.0, docs/design/cuda_graphs.md, CUDA Graphs Compatibility of Attention Backends
+    quote: '| FlashInfer | `UNIFORM_SINGLE_TOKEN_DECODE` | Will be set to `UNIFORM_BATCH` when using TRTLLM attention on Blackwell |'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.backend-mamba
+  value: 'UNIFORM_SINGLE_TOKEN_DECODE'
+  text: In the design document's table, Mamba attention has graph support UNIFORM_SINGLE_TOKEN_DECODE.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/cuda_graphs.md#L187
+    title: vLLM v0.33.0, docs/design/cuda_graphs.md, CUDA Graphs Compatibility of Attention Backends
+    quote: '| Mamba attention | `UNIFORM_SINGLE_TOKEN_DECODE` | |'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.backend-unlisted
+  value: 'NEVER'
+  text: The design document declares every attention backend that its table does not list as NEVER, with no graph support at all.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/cuda_graphs.md#L189
+    title: vLLM v0.33.0, docs/design/cuda_graphs.md, CUDA Graphs Compatibility of Attention Backends
+    quote: 'Unlisted backends are all declared as `NEVER`.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cudagraph.hybrid-minimum
+  value: 'the minimum of the backends'
+  text: For a model with several attention backends, such as a hybrid with Mamba layers, vLLM takes the minimum graph capability of all its backends as the model's, and downgrades the mode to the best fit.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/cuda_graphs.md#L169
+    title: vLLM v0.33.0, docs/design/cuda_graphs.md, CUDA Graphs Compatibility of Attention Backends
+    quote: 'we seek the minimum capability of all backends to determine the final capability of the model'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+
+# --- Lesson 7: the same loop elsewhere ---------------------------------------------------------------------------------------------------
+
+- id: sglang.cudagraph.config-flag
+  value: '--cuda-graph-config'
+  text: SGLang sets its CUDA graphs per phase through --cuda-graph-config, a JSON object, and the backends a phase may use are full, breakable and disabled. --cuda-graph-backend-decode and --cuda-graph-backend-prefill set one phase's backend.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/arg_groups/fields/exec_.py#L606-L625
+    title: SGLang v0.5.23, python/sglang/srt/arg_groups/fields/exec_.py, ExecGraph.cuda_graph_config
+    quote: 'Allowed backends per phase: full, breakable, disabled.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.cudagraph.disable-padding
+  value: 'disable_cuda_graph_padding'
+  text: SGLang has a switch, disable_cuda_graph_padding, that runs a batch without a graph whenever the batch would need padding, and still replays a graph for a batch whose size was captured.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/arg_groups/fields/exec_.py#L673
+    title: SGLang v0.5.23, python/sglang/srt/arg_groups/fields/exec_.py, ExecGraph.disable_cuda_graph_padding
+    quote: 'Disable cuda graph when padding is needed. Still uses cuda graph when padding is not needed.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.cudagraph.decode-sizes-flag
+  value: 'cuda_graph_bs_decode'
+  text: SGLang takes an explicit list of the batch sizes to capture for the decode graph, cuda_graph_bs_decode, and a largest decode batch to capture, cuda_graph_max_bs_decode.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/arg_groups/fields/exec_.py#L630-L642
+    title: SGLang v0.5.23, python/sglang/srt/arg_groups/fields/exec_.py, ExecGraph.cuda_graph_bs_decode
+    quote: 'Explicit list of batch sizes to capture for the decode cuda graph.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.cudagraph.disable-decode
+  value: 'disable_decode_cuda_graph'
+  text: SGLang can turn off the decode-phase graph alone, with disable_decode_cuda_graph, which is a convenience for setting the decode backend to disabled.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/arg_groups/fields/exec_.py#L668
+    title: SGLang v0.5.23, python/sglang/srt/arg_groups/fields/exec_.py, ExecGraph.disable_decode_cuda_graph
+    quote: 'Disable the decode-phase CUDA graph. Convenience for --cuda-graph-backend-decode=disabled.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.cudagraph.debug-flag
+  value: 'debug_cuda_graph'
+  text: SGLang has a debugging switch, debug_cuda_graph, off by default, that inserts graph breaks so that every operation runs eagerly while the step still goes through the capture and replay path.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/arg_groups/fields/exec_.py#L685
+    title: SGLang v0.5.23, python/sglang/srt/arg_groups/fields/exec_.py, ExecGraph.debug_cuda_graph
+    quote: 'When enabled, graph breaks are inserted so every operation runs eagerly while still going through the CUDA graph capture / replay path.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.cudagraph.profile-flag
+  value: 'enable_profile_cuda_graph'
+  text: SGLang can profile the capture of its graphs with enable_profile_cuda_graph, which is off by default.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/arg_groups/fields/exec_.py#L677
+    title: SGLang v0.5.23, python/sglang/srt/arg_groups/fields/exec_.py, ExecGraph.enable_profile_cuda_graph
+    quote: 'Enable profiling of cuda graph capture.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: trtllm.overlap.strategy
+  value: 'launch step n+1 without waiting for the results of step n'
+  text: TensorRT-LLM's Overlap Scheduler launches the GPU's work for the next step immediately, without waiting for the CPU to finish processing the results of the current step, so the CPU checks stop criteria and updates responses for one batch while the GPU executes the next.
+  tag: measured
+  source:
+    url: https://github.com/NVIDIA/TensorRT-LLM/blob/b96ba434e8a05e2ab52d2082bd8d70b1d844739b/docs/source/developer-guide/overview.md#L60
+    title: TensorRT-LLM at b96ba43 (the tag v1.4.0rc2), docs/source/developer-guide/overview.md, Runtime Optimizations (Overlap Scheduler)
+    quote: 'The key strategy is to launch the GPU''s work for the next step (n+1) immediately, without waiting for the CPU to finish processing the results of the current step (n).'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+
+- id: trtllm.overlap.extra-step
+  value: 'one extra decoding step'
+  text: TensorRT-LLM says the Overlap Scheduler introduces one extra decoding step into the pipeline, calls the throughput gain a significant trade-off, and enables it by default.
+  tag: measured
+  source:
+    url: https://github.com/NVIDIA/TensorRT-LLM/blob/b96ba434e8a05e2ab52d2082bd8d70b1d844739b/docs/source/developer-guide/overview.md#L75
+    title: TensorRT-LLM at b96ba43 (the tag v1.4.0rc2), docs/source/developer-guide/overview.md, Runtime Optimizations (Overlap Scheduler)
+    quote: 'While it introduces one extra decoding step into the pipeline, the resulting throughput gain is a significant trade-off. For this reason, the Overlap Scheduler is enabled by default in TensorRT LLM.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90

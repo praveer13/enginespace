@@ -6,7 +6,7 @@ import { describe, expect, test } from 'bun:test'
 import { spawnSync } from 'node:child_process'
 import path from 'node:path'
 import { GATES } from '../../scripts/verify.ts'
-import { CLAIM_COUNT, CLAIMS, COURSE, LESSON, lineOf, project, read, REPO_COUNTS, repo, swap } from './support.ts'
+import { CLAIM_COUNT, CLAIMS, COURSE, LESSON, lineOf, project, REPO_CLAIM_COUNT, REPO_COUNTS, repo, readSample, swap } from './support.ts'
 import type { Edit } from './support.ts'
 
 function run(script: string, ...args: string[]) {
@@ -23,7 +23,7 @@ describe('through the registry', () => {
       const result = run('scripts/verify.ts', name)
       expect(result.status).toBe(0)
       expect(result.out).toContain(`$ bun scripts/verify-${name}.ts`)
-      expect(result.out).toContain(`verify:${name} passed: ${REPO_COUNTS}, ${CLAIM_COUNT} claims`)
+      expect(result.out).toContain(`verify:${name} passed: ${REPO_COUNTS}, ${REPO_CLAIM_COUNT} claims`)
       expect(result.out).not.toContain('pending')
     })
   }
@@ -63,7 +63,7 @@ describe('each gate prints its own problems and passes on the others\'', () => {
     const root = project({ [LESSON]: swap('can hide behind', 'can hide behind [measured 2026-11-03]') })
     const result = gate('numbers', root)
     expect(result.status).toBe(1)
-    expect(result.out).toContain(`${LESSON}:${lineOf(read(LESSON), 'can hide behind')}: error bad-tag:`)
+    expect(result.out).toContain(`${LESSON}:${lineOf(readSample(LESSON), 'can hide behind')}: error bad-tag:`)
     expect(gate('content', root).status).toBe(0)
   })
 

@@ -21,14 +21,18 @@ import {
   proseInlineSchema,
 } from '@es/schema'
 import { compileContent } from '../../scripts/content/build.ts'
+import { compile } from '../content/support.ts'
 import { objectPaths, problems, read, where, withKey, yaml } from './support'
 
 const result = compileContent({ root: path.resolve(import.meta.dirname, '../..') })
 const output = (file: string) => JSON.parse(result.outputs.find((o) => o.path === file)?.text ?? 'null') as Record<string, unknown>
+// The sample course (tests/fixtures/sample-course): a lesson and a module that use every block, which the repo's real content may not.
+const sampleResult = compile()
+const sampleOutput = (file: string) => JSON.parse(sampleResult.outputs.find((o) => o.path === file)?.text ?? 'null') as Record<string, unknown>
 
-const lesson = output('src/content/generated/lessons/tr2.l0-sample.json')
+const lesson = sampleOutput('src/content/generated/lessons/tr2.l0-sample.json')
 const card = output('src/content/generated/cards/trace-room-steploop.json')
-const module_ = output('src/content/generated/modules/tr2.json')
+const module_ = sampleOutput('src/content/generated/modules/tr2.json')
 const index = output('src/content/generated/index.json')
 const claims = output('public/claims.json')
 const course = yaml(read('content/course.yaml'))

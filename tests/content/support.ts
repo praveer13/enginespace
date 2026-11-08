@@ -1,8 +1,10 @@
 /**
- * Helpers for the content tests: a throw-away project made from the repo's own sample content, with edits applied, that the
- * compiler can run on; and readers for what it reports and writes. The sample is one module (`SAMPLE_MODULE`) with the claims, the
- * cards, the KCs and the course the repo has; the modules that are real content are left out of the copy, so that writing one does
- * not change what a test of the compiler counts. The tests that run the gates on the repo itself count it with `REPO_COUNTS`.
+ * Helpers for the content tests: a throw-away project made from the sample course, with edits applied, that the compiler can run on;
+ * and readers for what it reports and writes. The sample course is one module (`SAMPLE_MODULE`), a lesson that uses every block, and
+ * its claims, kept in `tests/fixtures/sample-course/` (`SAMPLE_ROOT`) since W1-T15 replaced them in `content/` with TR2's real content.
+ * A project holds that module in place of every module of `content/modules/`, with the claims, the cards, the KCs and the course the
+ * repo has, so that writing a real module does not change what a test of the compiler counts. The tests that run the gates on the repo
+ * itself count it with `REPO_COUNTS`.
  *
  * Every test that changes content changes a copy. Nothing here writes into the repository.
  */
@@ -16,13 +18,18 @@ import { formatDiagnostic } from '../../scripts/content/parse.ts'
 import type { Diagnostic, Gate } from '../../scripts/content/parse.ts'
 
 export const repo = path.resolve(import.meta.dirname, '../..')
+/** The root of the sample course: a `content/` and a `public/` that hold what the compiler tests copy, in the repo's own layout. */
+export const SAMPLE_ROOT = path.join(repo, 'tests/fixtures/sample-course')
 export const LESSON = 'content/modules/tr2/lessons/l0-sample.md'
 export const MODULE = 'content/modules/tr2/module.md'
 export const CLAIMS = 'content/claims/sample.yaml'
 export const COURSE = 'content/course.yaml'
 export const KCS = 'content/kc/graph.yaml'
 
-/** The module the compiler tests copy and break: `LESSON` and `MODULE` are its files. Every other module of `content/modules/` is real content. */
+/**
+ * The module the compiler tests copy and break: `LESSON` and `MODULE` are its files, in the sample course. It has the id of TR2 because
+ * `content/course.yaml` has a place for no other, so a project holds the sample's `tr2` in place of the real one.
+ */
 export const SAMPLE_MODULE = 'tr2'
 
 /** The keys of the repo's `course.lock.json` (W1-T01): what a claim's `pin` and a module's `pins` may name. */
@@ -30,15 +37,18 @@ export const LOCK_KEYS: ReadonlySet<string> = new Set(
   (JSON.parse(readFileSync(path.join(repo, 'course.lock.json'), 'utf8')) as { entries: { key: string }[] }).entries.map((entry) => entry.key),
 )
 
-/** The claims in the repo's `content/claims/`: the sample's, and the ones each game cites (Service's, W0-T16). A claim is a `- id:` at the start of a line. */
-function claimsInRepo(dir = path.join(repo, 'content/claims')): number {
+/** The claims under `dir`, in the `.yaml` files of it and of the folders below. A claim is a `- id:` at the start of a line. */
+function claimsIn(dir: string): number {
   return readdirSync(dir, { withFileTypes: true }).reduce((sum, entry) => {
     const file = path.join(dir, entry.name)
-    if (entry.isDirectory()) return sum + claimsInRepo(file)
+    if (entry.isDirectory()) return sum + claimsIn(file)
     return sum + (/\.ya?ml$/.test(entry.name) ? (readFileSync(file, 'utf8').match(/^- id: /gm)?.length ?? 0) : 0)
   }, 0)
 }
-export const CLAIM_COUNT = claimsInRepo()
+/** The claims in the repo's `content/claims/`: the engines', the games' and each module's. */
+export const REPO_CLAIM_COUNT = claimsIn(path.join(repo, 'content/claims'))
+/** What a project holds: the repo's claims, and the four of the sample course. */
+export const CLAIM_COUNT = REPO_CLAIM_COUNT + claimsIn(path.join(SAMPLE_ROOT, 'content/claims'))
 
 /** The ids of the cards in the repo's `content/cards/`, sorted: a card is a `.md` file there, and its name is its id. */
 export const CARD_IDS: readonly string[] = readdirSync(path.join(repo, 'content/cards'))
@@ -85,16 +95,19 @@ export function tempDir(label = 'project'): string {
 export type Edit = string | ((text: string) => string) | null
 
 /**
- * A copy of the repo's `content/` and `public/figures/`, with each edit applied, and with no module but the sample's. A path that
- * does not exist yet is created. An edit that changes nothing throws, so a test that means to break a file cannot pass for want of
- * the break.
+ * A copy of the repo's `content/` and `public/figures/`, with the sample course in place of the repo's modules, and each edit applied. A
+ * path that does not exist yet is created. An edit that changes nothing throws, so a test that means to break a file cannot pass for want
+ * of the break.
  */
 export function project(edits: Record<string, Edit> = {}): string {
   const root = tempDir()
   cpSync(path.join(repo, 'content'), path.join(root, 'content'), { recursive: true })
   const modules = path.join(root, 'content/modules')
-  for (const name of readdirSync(modules)) if (name !== SAMPLE_MODULE) rmSync(path.join(modules, name), { recursive: true, force: true })
+  for (const name of readdirSync(modules)) rmSync(path.join(modules, name), { recursive: true, force: true })
   cpSync(path.join(repo, 'public/figures'), path.join(root, 'public/figures'), { recursive: true })
+  // The sample course: its module and lesson, its claims and its figure. It brings no card and no KC, and shares the repo's course.
+  cpSync(path.join(SAMPLE_ROOT, 'content'), path.join(root, 'content'), { recursive: true })
+  cpSync(path.join(SAMPLE_ROOT, 'public'), path.join(root, 'public'), { recursive: true })
   for (const [file, edit] of Object.entries(edits)) {
     const abs = path.join(root, file)
     if (edit === null) {
@@ -148,7 +161,10 @@ export const compile = (edits: Record<string, Edit> = {}): CompileResult => comp
 
 export const read = (relative: string, root = repo): string => readFileSync(path.join(root, relative), 'utf8')
 
-/** The 1-based line of the first line of `file` (in the repo's sample) that contains `needle`. */
+/** A file of the sample course, by its path in a project: `readSample(LESSON)` is the text that `project()` copies. */
+export const readSample = (relative: string): string => read(relative, SAMPLE_ROOT)
+
+/** The 1-based line of the first line of `text` that contains `needle`. */
 export function lineOf(text: string, needle: string): number {
   const index = text.split('\n').findIndex((line) => line.includes(needle))
   if (index < 0) throw new Error(`no line has "${needle}"`)
