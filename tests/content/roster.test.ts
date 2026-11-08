@@ -105,7 +105,8 @@ describe('the sample module', () => {
 
   test('is the module of the schema tests\' A§4.2 fixture, and its world is the card that W0-T13 wrote', () => {
     const fixture = front(read('tests/fixtures/schema/module-tr2.md'))
-    const sample = front(read('content/modules/tr2/module.md'))
+    // The sample course's module, which W1-T15 moved out of content/ when TR2's real module took its place there.
+    const sample = front(read('tests/fixtures/sample-course/content/modules/tr2/module.md'))
     expect(sample).toEqual(fixture)
     expect(read('content/cards/trace-room-steploop.md')).toContain('id: trace-room-steploop')
   })

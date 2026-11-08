@@ -1,6 +1,6 @@
 /*
- * W1-T04's acceptance checks, in Playwright's Chromium, on the sample lesson's item block (/m/tr2/l0-sample, family
- * tr2.bubble-width at level 2, three items an attempt):
+ * W1-T04's acceptance checks, in Playwright's Chromium, on the item block of TR2's third lesson (/m/tr2/l3-async-scheduling-closes-the-bubble,
+ * the exit check: family tr2.bubble-width at level 2, three items an attempt; W1-T15 moved it here from the sample lesson):
  *
  *   2. Two graded attempts draw different seeds. The block reads fresh entropy when the learner starts an attempt, so the three seeds
  *      of one attempt and the three of the next are six seeds, and each is on its ticket (data-seed, and the foot line).
@@ -27,7 +27,7 @@ import type { Item } from '../packages/play/items'
 import { clipped, expect, open, quiet, test } from './support/site'
 import type { Watch } from './support/site'
 
-const ROUTE = '/m/tr2/l0-sample'
+const ROUTE = '/m/tr2/l3-async-scheduling-closes-the-bubble'
 /** Seeds that make, at level 2 and in this order, async-off, async-on and close-it (found with the family's own band and variant draw). */
 const SEEDS = [1, 2, 4]
 
@@ -380,6 +380,17 @@ test.describe('the keyboard', () => {
   test('completes every ticket of an attempt, and asks for new numbers, with no pointer', async ({ page, watch }) => {
     await open(page, ROUTE)
     await page.evaluate((seeds) => void (window.__queue = seeds), SEEDS)
+    // The walk starts at the lesson's "Exit check" heading, which is what a reader who jumps to it by its anchor has focused. A lesson's
+    // claims each put a source link in the tab order before the block, so from the top of this page the block's first button is 95 presses
+    // away at 360 px [measured 2026-11-08 at b5fb81a with this task's tree], where the sample lesson's was within 40; from the heading it is
+    // one. The page's own keyboard walk is W1-T36's.
+    await page.locator('#exit-check').waitFor()
+    await page.evaluate(() => {
+      const heading = document.getElementById('exit-check')
+      if (heading === null) throw new Error('the lesson has no "Exit check" heading')
+      heading.tabIndex = -1
+      heading.focus()
+    })
     await tabTo(page, stub(page, 'Start items'))
     await page.keyboard.press('Enter')
     await expect(block(page)).toHaveAttribute('data-phase', 'asking')

@@ -15,7 +15,7 @@ import { compiledCardSchema, CARD_PARTS, cardFrontMatterSchema } from '@es/schem
 import type { CompiledCard, ProseFlow } from '@es/schema'
 import { canonicalJson } from '../../scripts/content/build.ts'
 import { splitCard, unsourcedRules } from '../../scripts/content/cards.ts'
-import { LESSON, CARD_COUNT, compile, errors, lineOf, output, read, sampleCard, swap, where } from './support.ts'
+import { LESSON, CARD_COUNT, compile, errors, lineOf, output, readSample, sampleCard, swap, where } from './support.ts'
 import type { Edit } from './support.ts'
 
 const FILE = 'content/cards/fixture-world.md'
@@ -364,7 +364,7 @@ describe('the prose gates apply to a card\'s words', () => {
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 describe('a block that names a card', () => {
-  const lesson = read(LESSON)
+  const lesson = readSample(LESSON)
   const WARNING = 'kind: warning\ntitle: A model\nbody: The browser world is a model, and the real engine is the judge.'
   const block = (kind: string, id: string) => swap(WARNING, `kind: ${kind}\nid: ${id}`)
 

@@ -17,14 +17,14 @@ import { gzipSync } from 'node:zlib'
 import { claimsOutputSchema, compiledLessonSchema, compiledModuleSchema, contentIndexSchema } from '@es/schema'
 import type { ProseFlow, ProseInline } from '@es/schema'
 import { BUDGETS, canonicalJson, compileContent, writeOutputs } from '../../scripts/content/build.ts'
-import { CARD_COUNT, CARD_IDS, CLAIM_COUNT, CLAIMS, compile, COURSE, errors, KCS, LESSON, lineOf, MODULE, output, project, read, REPO_OUTPUT_COUNT, repo, report, sampleCard, swap, tempDir, where } from './support.ts'
+import { CARD_COUNT, CARD_IDS, CLAIM_COUNT, CLAIMS, compile, COURSE, errors, KCS, LESSON, lineOf, MODULE, output, project, read, REPO_OUTPUT_COUNT, readSample, repo, report, sampleCard, swap, tempDir, where } from './support.ts'
 import type { Edit } from './support.ts'
 
 const LESSON_JSON = 'src/content/generated/lessons/tr2.l0-sample.json'
 const MODULE_JSON = 'src/content/generated/modules/tr2.json'
 const INDEX_JSON = 'src/content/generated/index.json'
 
-const lesson = read(LESSON)
+const lesson = readSample(LESSON)
 const sample = compile()
 /** The files the sample writes: the index, the map, the claims, the export of the module and its lesson, their JSON, and one JSON for each card. */
 const OUTPUT_COUNT = 8 + CARD_COUNT
@@ -375,7 +375,7 @@ describe('ids, refs and links', () => {
     ['two files for one lesson number', { 'content/modules/tr2/lessons/l0-other.md': lesson }, [`${LESSON}:1 duplicate-id`]],
     [
       'a module that course.yaml does not have',
-      { [COURSE]: withoutTr7, 'content/modules/tr7/module.md': read(MODULE).replace('id: tr2', 'id: tr7') },
+      { [COURSE]: withoutTr7, 'content/modules/tr7/module.md': readSample(MODULE).replace('id: tr2', 'id: tr7') },
       ['content/modules/tr7:1 unknown-module'],
     ],
     ['a module folder with no module.md', { [MODULE]: null }, ['content/modules/tr2:1 missing-file']],
@@ -383,12 +383,12 @@ describe('ids, refs and links', () => {
     [
       'a module whose hours differ from course.yaml',
       { [MODULE]: (text) => text.replace('hours: 10 ', 'hours: 12 ').replace('hours_by_lane: { B: 10 }', 'hours_by_lane: { B: 12 }') },
-      [`${MODULE}:${lineOf(read(MODULE), 'hours: 10')} hours-mismatch`, `${MODULE}:${lineOf(read(MODULE), 'hours_by_lane')} hours-mismatch`],
+      [`${MODULE}:${lineOf(readSample(MODULE), 'hours: 10')} hours-mismatch`, `${MODULE}:${lineOf(readSample(MODULE), 'hours_by_lane')} hours-mismatch`],
     ],
-    ['a module whose lanes differ from course.yaml', { [MODULE]: swap('lanes: [B]', 'lanes: [B, F]') }, [`${MODULE}:${lineOf(read(MODULE), 'lanes: [B]')} lanes-mismatch`]],
-    ['a module that needs a card that does not exist', { [MODULE]: swap('worlds: [trace-room-steploop]', 'worlds: [no-such-world]') }, [`${MODULE}:${lineOf(read(MODULE), 'worlds: [trace-room-steploop]')} unknown-card`]],
-    ['a module that depends on a module that does not exist', { [COURSE]: withoutTr7, [MODULE]: swap('prereqs: [', 'prereqs: [tr7, ') }, [`${MODULE}:${lineOf(read(MODULE), 'prereqs: [')} unknown-module`]],
-    ['a module that names a game that does not exist', { [MODULE]: swap('games: [loop]', 'games: [loop, nope]') }, [`${MODULE}:${lineOf(read(MODULE), 'games: [loop]')} unknown-game`]],
+    ['a module whose lanes differ from course.yaml', { [MODULE]: swap('lanes: [B]', 'lanes: [B, F]') }, [`${MODULE}:${lineOf(readSample(MODULE), 'lanes: [B]')} lanes-mismatch`]],
+    ['a module that needs a card that does not exist', { [MODULE]: swap('worlds: [trace-room-steploop]', 'worlds: [no-such-world]') }, [`${MODULE}:${lineOf(readSample(MODULE), 'worlds: [trace-room-steploop]')} unknown-card`]],
+    ['a module that depends on a module that does not exist', { [COURSE]: withoutTr7, [MODULE]: swap('prereqs: [', 'prereqs: [tr7, ') }, [`${MODULE}:${lineOf(readSample(MODULE), 'prereqs: [')} unknown-module`]],
+    ['a module that names a game that does not exist', { [MODULE]: swap('games: [loop]', 'games: [loop, nope]') }, [`${MODULE}:${lineOf(readSample(MODULE), 'games: [loop]')} unknown-game`]],
     ['a figure whose file is missing', { [LESSON]: swap('src: figures/tr2/l0-sample.svg', 'src: figures/tr2/missing.svg') }, [`${LESSON}:${lineOf(lesson, 'src: figures/tr2/l0-sample.svg')} missing-file`]],
     [
       'a card that lives in a file and has none',
@@ -398,7 +398,7 @@ describe('ids, refs and links', () => {
     ['a prediction that tests a KC the lesson does not list', { [LESSON]: swap('kcs: [tr2.async-overlap, tr2.bubble]', 'kcs: [tr2.bubble]') }, [`${LESSON}:${lineOf(lesson, 'kcs: [tr2.async-overlap, tr2.bubble]')} kc-mismatch`]],
     ['games that list a game no block uses', { [LESSON]: swap('games: [loop]', 'games: [loop, pool]') }, [`${LESSON}:${lineOf(lesson, 'games: [loop]')} games-mismatch`]],
     ['a block that uses a lab the lesson does not list', { [LESSON]: swap('labs: [tr3.profile]', 'labs: [hybrid-kv]') }, [`${LESSON}:${lineOf(lesson, 'labs: [tr3.profile]')} labs-mismatch`, `${LESSON}:${lineOf(lesson, 'labs: [tr3.profile]')} labs-mismatch`]],
-    ['a module in the lock that is missing, once the lock exists', { 'course.lock.json': JSON.stringify({ schema: 'enginespace/lock@1', entries: [{ key: 'sglang' }] }) }, [`${MODULE}:${lineOf(read(MODULE), 'pins: [vllm, sglang]')} unknown-pin`]],
+    ['a module in the lock that is missing, once the lock exists', { 'course.lock.json': JSON.stringify({ schema: 'enginespace/lock@1', entries: [{ key: 'sglang' }] }) }, [`${MODULE}:${lineOf(readSample(MODULE), 'pins: [vllm, sglang]')} unknown-pin`]],
   ]
   for (const [name, edits, expected] of cases) {
     test(name, () => {
@@ -441,11 +441,11 @@ describe('ids, refs and links', () => {
   })
 
   test('a duplicate claim names both places', () => {
-    const result = compile({ 'content/claims/more.yaml': read(CLAIMS) })
+    const result = compile({ 'content/claims/more.yaml': readSample(CLAIMS) })
     const ids = ['vllm.release.requires-python', 'sample.world.host-step-us', 'sample.world.decode-step-us', 'sample.world.decode-step-ms']
     // more.yaml is read first, so it holds the originals and sample.yaml the repeats.
-    expect(where(result, 'claims')).toEqual(ids.map((id) => `${CLAIMS}:${lineOf(read(CLAIMS), `- id: ${id}`)} duplicate-claim`))
-    expect(errors(result, 'claims')[0].message).toBe(`claim "${ids[0]}" is also defined at content/claims/more.yaml:${lineOf(read(CLAIMS), `- id: ${ids[0]}`)}`)
+    expect(where(result, 'claims')).toEqual(ids.map((id) => `${CLAIMS}:${lineOf(readSample(CLAIMS), `- id: ${id}`)} duplicate-claim`))
+    expect(errors(result, 'claims')[0].message).toBe(`claim "${ids[0]}" is also defined at content/claims/more.yaml:${lineOf(readSample(CLAIMS), `- id: ${ids[0]}`)}`)
   })
 })
 

@@ -905,7 +905,7 @@ describe('the real build', () => {
 
   test('has a row for every budget of ARCHITECTURE §11.1 that the app already has, and none for a page or a game that went missing', () => {
     const ids = report.rows.map((row) => row.id)
-    for (const id of ['entry', 'front', 'css', 'three-vendor', 'scene:loop', 'postfx', 'lesson:tr2.l0-sample']) expect(ids).toContain(id)
+    for (const id of ['entry', 'front', 'css', 'three-vendor', 'scene:loop', 'postfx', 'lesson:tr2.l3-async-scheduling-closes-the-bubble']) expect(ids).toContain(id)
     expect(statusOf(report, 'three-vendor')).not.toBe('skip')
     // A row for each lazy page but the front page's (the Trace Room is two routes and one page), the game page's for each game.
     const pages = new Set(routesIn(readFileSync(path.join(root, 'src/routes.tsx'), 'utf8')).filter((route) => route.pattern !== '/').map((route) => route.page))

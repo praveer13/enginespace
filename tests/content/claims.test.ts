@@ -7,11 +7,11 @@ import { spawnSync } from 'node:child_process'
 import path from 'node:path'
 import { compileContent } from '../../scripts/content/build.ts'
 import { agrees, claimProblems, evaluate, FormulaError } from '../../scripts/verify-claims.ts'
-import { CLAIM_COUNT, CLAIMS, compile, errors, LESSON, lineOf, LOCK_KEYS, project, read, REPO_COUNTS, repo, swap, where } from './support.ts'
+import { CLAIM_COUNT, CLAIMS, compile, errors, LESSON, lineOf, LOCK_KEYS, project, REPO_CLAIM_COUNT, REPO_COUNTS, repo, readSample, swap, where } from './support.ts'
 import type { Edit } from './support.ts'
 
 const TODAY = '2026-11-04'
-const claims = read(CLAIMS)
+const claims = readSample(CLAIMS)
 
 /**
  * Compiles a copy with the edit and returns what verify:claims finds in it on `today`. The lock is the repo's own (W1-T01), so every
@@ -248,7 +248,7 @@ describe('the claims files themselves', () => {
   test('one bad claim does not hide the others: the good ones still resolve, and only a reference to the bad one fails', () => {
     const result = compile({ [CLAIMS]: swap('ttlDays: 90', 'ttlDays: 0') })
     expect(where(result, 'claims')).toEqual([`${CLAIMS}:${lineOf(claims, 'ttlDays: 90')} schema`])
-    expect(where(result, 'content')).toEqual([`${LESSON}:${lineOf(read(LESSON), '{{claim:vllm.release.requires-python}}')} unknown-claim`])
+    expect(where(result, 'content')).toEqual([`${LESSON}:${lineOf(readSample(LESSON), '{{claim:vllm.release.requires-python}}')} unknown-claim`])
   })
 
   test('claims in a nested folder are read too', () => {
@@ -267,7 +267,7 @@ describe('the gate as a command', () => {
     const result = run(repo, '--today', TODAY)
     expect(result.status).toBe(0)
     expect(result.out).not.toContain('pins-unchecked')
-    expect(result.out).toBe(`verify:claims passed: ${REPO_COUNTS}, ${CLAIM_COUNT} claims\n`)
+    expect(result.out).toBe(`verify:claims passed: ${REPO_COUNTS}, ${REPO_CLAIM_COUNT} claims\n`)
   })
 
   test('prints a warning about pins in a tree that has no lockfile', () => {
@@ -281,7 +281,7 @@ describe('the gate as a command', () => {
   test('lists a stale claim and still exits 0', () => {
     const result = run(repo, '--today', '2027-03-01')
     expect(result.status).toBe(0)
-    expect(result.out).toContain('warning stale-claim: vllm.release.requires-python: stale since 2027-02-02')
+    expect(result.out).toContain('warning stale-claim: vllm.release.torch-pin: stale since 2027-02-02')
   })
 
   test('fails on a derived claim that does not recompute, with the file and the line', () => {

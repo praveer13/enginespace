@@ -1,6 +1,8 @@
-# Sample claims for content/modules/tr2/lessons/l0-sample.md, one of each kind the registry holds (ARCHITECTURE §4.4): a fact
-# read from a source, a number derived from other claims, and numbers from the course's own synthetic world. TR2's real content
-# (W1-T15) replaces them. Dates are YYYY-MM-DD, and a TTL is in days [estimated]: ARCHITECTURE §4.4 gives 90 for versions.
+# Sample claims for the sample lesson (tests/fixtures/sample-course/content/modules/tr2/lessons/l0-sample.md), one of each kind the
+# registry holds (ARCHITECTURE §4.4): a fact read from a source, a number derived from other claims, and numbers from the course's
+# own synthetic world. W0-T08 wrote them in content/claims/, and W1-T15 moved them here with the lesson when TR2's real content
+# replaced it: the content tests copy this folder into the projects that they compile and break (tests/content/support.ts).
+# Dates are YYYY-MM-DD, and a TTL is in days [estimated]: ARCHITECTURE §4.4 gives 90 for versions.
 
 # Read from a source. The quote is the source's own text, which a reader can find again.
 - id: vllm.release.requires-python

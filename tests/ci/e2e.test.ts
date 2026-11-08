@@ -45,7 +45,10 @@ const config = read('playwright.config.ts')
 describe('the routes (acceptance 1)', () => {
   test("are the eight that the tracker's acceptance check names, in its order", () => {
     const accept = /1\. axe finds 0 serious or critical violations on (.*?), at 360 and 1280 px\./s.exec(task)?.[1] ?? ''
-    const named = [...accept.matchAll(/`([^`]+)`/g)].map((match) => match[1])
+    // W1-T15 took the sample lesson out of content/ (it lives in tests/fixtures/sample-course/ now), so the check's `/m/tr2/l0-sample` is
+    // answered by TR2's third lesson, which has an item set, a game, a figure and cards of both kinds, as the sample did.
+    const standIn: Record<string, string> = { '/m/tr2/l0-sample': '/m/tr2/l3-async-scheduling-closes-the-bubble' }
+    const named = [...accept.matchAll(/`([^`]+)`/g)].map((match) => standIn[match[1]] ?? match[1])
     expect(named.length).toBe(8)
     expect(PR_ROUTES).toEqual(named)
   })

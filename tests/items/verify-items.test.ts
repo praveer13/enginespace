@@ -28,6 +28,7 @@ import {
 import { bubbleWidth } from '@es/play/items/families/tr2/bubble-width'
 import { FAMILIES, plain } from '@es/play/items'
 import type { Gen } from '@es/play/items'
+import { project } from '../content/support.ts'
 import { toySum } from '../play/items-support.ts'
 
 // The gate measures each family on a thousand banded seeds at four levels, which takes a second or two and several on a loaded host.
@@ -409,7 +410,10 @@ describe('withoutEntropy', () => {
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 describe('no key or solution appears in the Markdown export', () => {
-  const compiled = compileContent({ root })
+  // The sample course (tests/fixtures/sample-course) has the lesson that draws from the reference family. The real lessons are scanned by
+  // the gate on the repo itself, which verify:all runs.
+  const sampleRoot = project()
+  const compiled = compileContent({ root: sampleRoot })
   const exported = compiled.outputs.filter((output) => output.path.startsWith('public/md/') || output.path === 'public/llms.txt' || output.path.startsWith('src/content/generated/'))
 
   test('the sample lesson draws its items from the reference family, and the export names the block and nothing of its items', () => {
@@ -438,8 +442,8 @@ describe('no key or solution appears in the Markdown export', () => {
 
   test('the gate reads the export of a tree and fails a lesson that quotes a solution', async () => {
     const dir = await tree({}, true)
-    cpSync(path.join(root, 'content'), path.join(dir, 'content'), { recursive: true })
-    cpSync(path.join(root, 'public'), path.join(dir, 'public'), { recursive: true })
+    cpSync(path.join(sampleRoot, 'content'), path.join(dir, 'content'), { recursive: true })
+    cpSync(path.join(sampleRoot, 'public'), path.join(dir, 'public'), { recursive: true })
     const leak = 'Add the first number to the second to get the total of both.'
     const lesson = path.join(dir, 'content/modules/tr2/lessons/l0-sample.md')
     writeFileSync(lesson, `${readFileSync(lesson, 'utf8')}\n\n${leak}\n`)

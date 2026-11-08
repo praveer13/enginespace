@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 118" width="360" height="118" fill="none" stroke="currentColor" stroke-width="1">
+  <title>How the memory of a 24 GB card is divided, with the CUDA graphs ignored and with their estimate taken off before the KV cache is sized</title>
+  <desc>Two bars, each the whole card. In both, the weights and the activations come first, 3.2 GB together, and the last 1.9 GB are not requested, drawn dashed. In the first bar the rest, 18.9 GB, is the KV cache. In the second the graphs' estimate, 1.0 GB, is a mid-dark box before the cache, and the KV cache is 17.9 GB.</desc>
+  <g fill="currentColor" fill-opacity="0.55">
+    <rect x="28.00" y="28" width="16.20" height="22"/>
+    <rect x="44.20" y="28" width="27.00" height="22"/>
+    <rect x="28.00" y="76" width="16.20" height="22"/>
+    <rect x="44.20" y="76" width="27.00" height="22"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.34">
+    <rect x="71.20" y="76" width="13.00" height="22"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.12">
+    <rect x="71.20" y="28" width="254.88" height="22"/>
+    <rect x="84.20" y="76" width="241.88" height="22"/>
+  </g>
+  <g stroke-dasharray="3 3">
+    <rect x="326.08" y="28" width="25.92" height="22"/>
+    <rect x="326.08" y="76" width="25.92" height="22"/>
+  </g>
+  <g stroke="none" fill="currentColor" font-size="9">
+    <text x="28" y="23">the graphs ignored: KV cache 18.9 GB</text>
+    <text x="28" y="71">the graphs taken off first: KV cache 17.9 GB</text>
+  </g>
+  <g stroke="none" fill="currentColor" font-size="8">
+    <text x="28" y="112">dark: weights and activations · mid: graphs · light: KV cache · dashed: not requested</text>
+  </g>
+</svg>
