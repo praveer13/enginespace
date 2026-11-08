@@ -19,7 +19,7 @@ import { cellOffset, feedPath, ticketGeometry } from '@/scene/props/paper'
 import { ALWAYS_LIT, buildSet, litMask, roomShade, type RoomLight } from '@/scene/props/set'
 import { lathe, roundedBox, roundedRectPath, sweep } from '@/scene/props/shape'
 import { PAN_SIZES, PLATE, TICKET, type PropSpec } from '@/scene/props/specs'
-import { drawPrint, PRINT_CELLS, tileMaps, floorMaps } from '@/scene/props/surfaces'
+import { drawPrint, PRINT_CELLS, PRINT_SIZE, tileMaps, floorMaps } from '@/scene/props/surfaces'
 
 const root = path.resolve(import.meta.dirname, '../..')
 const palette = paletteFrom(staticSceneTokens())
@@ -307,8 +307,17 @@ describe("a room that lights itself falls away from its line (Service's finish r
     expect(colourAt(lit, 'tile', behindLine)).toBeGreaterThan(colourAt(flat, 'tile', behindLine) * 0.95)
     expect(colourAt(lit, 'tile', nearCorner)).toBeLessThan(colourAt(flat, 'tile', nearCorner) * 0.7)
     expect(colourAt(lit, 'metal', () => true)).toBeCloseTo(colourAt(flat, 'metal', () => true), 6)
+    // With a veil, what the light no longer reaches falls toward the haze's deep steel: the pale tile in the corner darkens less far than
+    // the light alone takes it, and stays darker than where the line is lit; the tile behind the line keeps its light.
+    const veiled = buildSet(items, palette, false, { ...room, veil: 1 })
+    const haze = palette.part(new BufferGeometry(), 'deep').color.r
+    expect(colourAt(veiled, 'tile', nearCorner)).toBeGreaterThan(colourAt(lit, 'tile', nearCorner))
+    expect(colourAt(veiled, 'tile', nearCorner)).toBeLessThan(colourAt(veiled, 'tile', behindLine) * 0.85)
+    expect(colourAt(veiled, 'tile', nearCorner)).toBeCloseTo(colourAt(lit, 'tile', nearCorner) + haze * (1 - roomShade(room, -2.9, 1, -2.36)), 1)
+    expect(colourAt(veiled, 'tile', behindLine)).toBeCloseTo(colourAt(lit, 'tile', behindLine), 2)
     flat.dispose()
     lit.dispose()
+    veiled.dispose()
   })
 })
 
@@ -320,8 +329,10 @@ describe('paper', () => {
     expect(bounds.max.y).toBeCloseTo(0, 5)
     expect(bounds.min.y).toBeCloseTo(-TICKET.height, 5)
     expect(bounds.max.x - bounds.min.x).toBeCloseTo(TICKET.width, 5)
-    // Thick, and curled forward at the foot.
+    // Thick, and curled forward at the foot; a scene may curl it further, as paper off a roll.
     expect(bounds.max.z - bounds.min.z).toBeGreaterThan(TICKET.thickness * 4)
+    const curled = boundsOf(ticketGeometry(TICKET.width, TICKET.height, TICKET.thickness, 0.3))
+    expect(curled.max.z - curled.min.z).toBeGreaterThan(bounds.max.z - bounds.min.z + TICKET.height * 0.1)
   })
 
   test("the printer's paper leaves its mouth forward and curls down", () => {
@@ -345,25 +356,33 @@ describe('paper', () => {
     expect(cellOffset(9)).toEqual(cellOffset(1))
   })
 
-  test('the atlas prints in the face it is given, and only in its two inks, on a canvas it is handed', () => {
+  test("the atlas prints in the impact printer's dots and only in its two inks, on a canvas it is handed, with no letter and no number", () => {
     const calls: string[] = []
+    const dots: { x: number; y: number; radius: number }[] = []
     const context = {
       fillStyle: '',
-      font: '',
-      textBaseline: '',
       fillRect: () => calls.push('rect'),
       beginPath: () => undefined,
-      arc: () => undefined,
-      fill: () => calls.push('dot'),
-      fillText: (text: string) => calls.push(`text:${text}`),
+      arc: (x: number, y: number, radius: number) => dots.push({ x, y, radius }),
+      fill: () => calls.push(`dot:${context.fillStyle}`),
     }
     const canvas = { getContext: () => context } as unknown as HTMLCanvasElement
-    drawPrint(canvas, { paper: 'paper', ink: 'ink', rule: 'rule', family: 'the-face' }, true)
+    // A context with no fillText or strokeText: printing a letter would throw.
+    drawPrint(canvas, { paper: 'paper', ink: 'ink', rule: 'rule' })
     expect(calls[0]).toBe('rect')
-    expect(calls.some((call) => call.startsWith('text:'))).toBe(true)
-    expect(context.font).toContain('the-face')
-    // No number a learner reads: the print is words of the kitchen.
-    expect(calls.filter((call) => call.startsWith('text:')).some((call) => /\d/.test(call))).toBe(false)
+    const inks = new Set(calls.slice(1))
+    expect(inks).toEqual(new Set(['dot:ink', 'dot:rule']))
+    // Every cell of the atlas carries its print, inside the cell.
+    const cell = { w: PRINT_SIZE.width / PRINT_CELLS.across, h: PRINT_SIZE.height / PRINT_CELLS.down }
+    const cells = new Set(dots.map((dot) => `${Math.floor(dot.x / cell.w)},${Math.floor(dot.y / cell.h)}`))
+    expect(cells.size).toBe(PRINT_CELLS.across * PRINT_CELLS.down)
+    for (const dot of dots) {
+      expect(dot.x % cell.w - dot.radius).toBeGreaterThan(0)
+      expect(dot.x % cell.w + dot.radius).toBeLessThan(cell.w)
+      expect(dot.y % cell.h + dot.radius).toBeLessThan(cell.h)
+    }
+    // The print's dots are large enough to read as dots at a ticket's size in a scene: about a 25th of a cell's width across.
+    expect(Math.max(...dots.map((dot) => dot.radius)) * 2).toBeGreaterThan(cell.w / 25)
   })
 })
 

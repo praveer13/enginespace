@@ -7,25 +7,27 @@
  *
  *   - The reach-in: a prep cabinet with reach-in doors, whose top is a cold rail of 1/9 hotel pans on adapter bars, sixteen to a row,
  *     each pan in its slot for its whole life (the scene's own prop, cabinet.ts). Pan 1 is at the back on the left, as in the 2D view.
- *     A pan holds mise, the food of its memory role, and a strip of torn masking tape with a marker glyph: its station's shape where a
- *     ticket holds it, the hash where it is cached, the pin where it is a recipe kit's; a bare pan holds neither. The slots a short last
- *     row leaves are covered. The reach-in's own strip of tape, scrawled in marker, lies along its front edge.
- *   - The line's rail: under the reach-in's overshelf at the back, a clip for each batch slot, and the tickets on the line hung on them.
- *   - The pass, across an aisle in front: the waiting tickets lie along it under two heat lamps hung low over it, which burn only while
- *     the present lies there (an admit, or the tickets a kit is wanted for), and pool their amber on its steel under the tickets.
- *   - The room: tile, the line's burners under their hood to the left, the floor, and the haze the room falls into.
+ *     A pan holds mise, the food of its memory role, below its rim; a bare pan holds none. Tape goes only where a cook would put it: on a
+ *     recipe kit's pans, with the kit's pin in marker, and on the pan at the head of the focus's order, whose fan carries its station's
+ *     glyph. The slots a short last row leaves are under one cover with a rolled lip. The reach-in's own strip of tape, scrawled in
+ *     marker, lies along its front edge.
+ *   - The line's rail: along the front edge of the reach-in's overshelf, a clip for each batch slot, and the tickets on the line hung on
+ *     them, tipped toward the expo and curling at the foot as paper off a roll does.
+ *   - The pass, across an aisle in front: the waiting tickets lie along its front half, and two heat lamps hang low over its back half,
+ *     under the line's rail, burning only while the present lies on the pass (an admit, or the tickets a kit is wanted for): each aims
+ *     forward and pools its amber on the steel under the tickets in front of it.
+ *   - The room: tile, the line's burners under their hood to the left, the floor, and the room's light falling away from the line and
+ *     the reach-in into the haze, across, up the wall and back.
  *
  * The present (GAMES.md §2.6 rule 5) is the open ask's candidates: the pans a dump would take ring in the lamp's amber, and so do the
  * tickets on the line that can be pulled; while a ticket can hang or a kit can be brought in, the pass burns under its lamps, where the
  * tickets wait. The focus is the ticket hung last: its twine, one string per station, runs from it to the pans it holds in the order of
  * its blocks, and the pan at the head of its order fans into the layers of its station.
  *
- * Every number is a DOM label anchored here (D-021, GAMES.md §2.6 rule 7): the tickets' numbers. The scene carries no other words; the
- * fan's meaning is the page's (Game.tsx), and the tickets' print, the glyphs and the tape's scrawl are texture.
+ * The scene carries no word and no number (D-021, GAMES.md §2.6 rule 7): a ticket's number is the page's, in the controls and the
+ * mirror; the fan's meaning is the page's too (Game.tsx); and the tickets' print, the glyphs and the tape's scrawl are texture.
  */
-import type { ColorRoleName } from '@/design/tokens'
 import type { CameraPreset } from '@/scene/camera-rig'
-import type { LabelSpec } from '@/scene/labels'
 import type { RoomLight } from '@/scene/props/set'
 import type { LampLight } from '@/scene/props/Service'
 import type { PropSpec, Vec3 } from '@/scene/props/specs'
@@ -46,26 +48,34 @@ export const PAN = { w: 0.108, d: 0.176, h: 0.065 } as const
 export const PITCH = { x: 0.114, z: 0.182 } as const
 /** The top's frame round the cold rail: in front, at the sides, and behind, where the overshelf's posts stand. */
 export const FRAME = { front: 0.07, side: 0.07, back: 0.17 } as const
-/** The mise in a pan: how far below the rim its edge lies, and how high it heaps in the middle; its crown, where a pan's tape lies. */
-export const MISE = { drop: 0.015, heap: 0.007 } as const
+/**
+ * The mise in a pan: how far below the rim its edge lies, so the pan's wall and rolled rim stand round it as a line of steel, and how
+ * high it heaps in the middle; its crown, where a kit pan's tape lies.
+ */
+export const MISE = { drop: 0.02, heap: 0.007 } as const
 export const CROWN = TOP - MISE.drop + MISE.heap
 /** A pan's tape: masking tape across the mise. */
 export const TAPE = { w: 0.074, d: 0.044 } as const
-/** The pass across the aisle: its top, its width, its depth and its middle. */
-export const PASS = { top: 0.94, width: 1.5, depth: 0.44, z: 0.72 } as const
-/** The line's rail under the overshelf: its top, the distance between clips, and how far under the top a clip grips a ticket. */
-export const RAIL = { y: 1.3, pitch: 0.15, grip: 0.045 } as const
+/** The pass across the aisle: its top, its width, its depth and its middle, and the line the waiting tickets lie along, in its front half. */
+export const PASS = { top: 0.94, width: 1.5, depth: 0.54, z: 0.77, line: 0.88 } as const
+/**
+ * The line's rail along the overshelf's front edge: its top, the distance between clips, how far under the top a clip grips a ticket,
+ * and how far out from the wall it runs (the overshelf is 0.25 deep), so that nothing over it hides a hung ticket from the front shot.
+ */
+export const RAIL = { y: 1.3, pitch: 0.16, grip: 0.045, out: 0.235 } as const
 /**
  * The tickets: the kit's, drawn `scale` times its size, so that a hung ticket's paper, its curl and its print read across the reach-in
- * at 1440 px; the clips grow with them. A ticket's length at that size, and the distance between two lying on the pass.
+ * at 1440 px, about 50 px tall in the front shot; the clips grow with them. A ticket's length at that size and the distance between two
+ * lying on the pass; and how one stands: a hung one tipped forward off its clip by `tilt` radians, and every one curled toward its face
+ * by `curl` of its length, as paper off a roll is.
  */
-export const TICKET = { scale: 1.6, height: 0.192, gap: 0.14 } as const
+export const TICKET = { scale: 1.85, height: 0.222, gap: 0.165, tilt: 0.32, curl: 0.24 } as const
 /**
- * The heat lamps over the pass: their x, the mouth of each shade, and the line under them, each on a rod from a ceiling out of every
- * shot (5 m up). They hang low over the pass's back half, so that from every preset their shades stand between the reach-in's front and
- * the waiting tickets (the tests project their shades), and each throws its light straight down on the tickets in front of it.
+ * The heat lamps over the pass: their x, the mouth of each shade, under the line's rail, and the line under them, each on a rod from a
+ * ceiling out of every shot (5 m up). They hang over the pass's back half, so that from every preset their shades stand over the pass and
+ * behind the waiting tickets (the tests project their shades), and each throws its light forward and down on the tickets in front of it.
  */
-const LAMP = { x: 0.2, mouth: 1.48, z: PASS.z - 0.14 } as const
+const LAMP = { x: 0.24, mouth: 1.2, z: 0.74 } as const
 
 /**
  * The presets' ids, as scene-presets.ts names them for the page's plates (a test holds the two lists equal). The scene does not import
@@ -74,10 +84,10 @@ const LAMP = { x: 0.2, mouth: 1.48, z: PASS.z - 0.14 } as const
 export const SHOTS = ['front', 'station', 'top'] as const
 
 /**
- * The atlas cells (Scene3D.tsx draws them): on the tapes, a station's kind, the hash of a cached pan, a kit's pin and the reach-in's
- * scrawl; the hollow tray of a padding layer; and the mise of each memory role, as food.
+ * The atlas cells (Scene3D.tsx draws them): a station's kind on its torn tape, for the head pan's fan; a kit's pin, for the kit's tape;
+ * the reach-in's own strip with its scrawl; a dumped pan's hollow well; and the mise of each memory role, as food.
  */
-export const CELL = { full: 0, sliding: 1, state: 2, hash: 3, pin: 4, scrawl: 5, hollow: 6 } as const
+export const CELL = { full: 0, sliding: 1, state: 2, pin: 4, scrawl: 5, hollow: 6 } as const
 export const FOOD: Readonly<Record<PanState, number>> = { free: CELL.hollow, used: 8, cached: 9, shared: 10, adapter: 11, evicted: CELL.hollow }
 
 /** A ticket's print: its cell of the kit's atlas, from its number. */
@@ -99,15 +109,15 @@ const shot = (elevation: number, fov: number, d: number, z: number, x = 0) => ({
 /**
  * The presets' framings for a reach-in `depth` deep [estimated], front then top, each wide then on a phone: each distance and target
  * follows the depth along a straight line or two, fitted to the nearest camera that holds, for every pool size of the levels, the rack's
- * corners, the rail's tickets, the waiting tickets and the heat lamps' mouths in its frame, and hides no pan, clip or waiting ticket behind
- * a shade; the tests project those landmarks through every preset at every pool size. Front of the reach-in looks down 53° at 1440 px,
- * stood to the left so that the line and its hood come into the frame beside the rack, and 52° on a phone, the rack across the width: the
- * lamps hang over the pass, and a lower shot would put their shades over the rack. From above looks down 76° (82°, stood back from the
+ * corners, the rail and its hung tickets clear of the overshelf, the waiting tickets, the pass's front lip and the heat lamps in its
+ * frame, with the lamps' shades over the pass and hiding no pan, hung ticket or waiting ticket; the tests project those landmarks through
+ * every preset at every pool size. Front of the reach-in looks down 53° at 1440 px, stood to the left so that the line and its hood come
+ * into the frame beside the rack, and 52° on a phone, the rack across the width. From above looks down 76° (82°, stood back from the
  * pass, which leaves it out of a phone's frame).
  */
 export const framings = (depth: number) => [
   // 53° and 52°
-  [shot(0.925, 30, Math.max(3.3, 1.95 + 1.45 * depth), 0.32 - 0.42 * depth, Math.max(-0.6, -0.04 - 0.36 * depth)), shot(0.9076, 40, Math.max(3.62, 1.4 + 1.17 * depth), Math.min(0.02, 0.85 - 0.57 * depth))],
+  [shot(0.925, 30, Math.max(3.86, 2.06 + 1.48 * depth), Math.min(0, 0.5 - 0.4 * depth), Math.max(-0.6, -0.04 - 0.36 * depth)), shot(0.9076, 40, Math.max(3.68, 1.78 + 0.96 * depth), Math.min(-0.06, 0.63 - 0.4 * depth))],
   // 76° and 82°
   [shot(1.3265, 32, Math.max(2.5 + 0.1 * depth, 1.84 * depth), -0.47 * depth), shot(1.4312, 44, Math.max(3.28 + 0.06 * depth, 1.263 * depth), -0.4 - 0.34 * depth)],
 ]
@@ -116,13 +126,12 @@ export const framings = (depth: number) => [
 /* The reach-in: what stands still for a level                                                                        */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** A strip of tape, or a pan's mise, as an instance: where it lies, how it is turned and sized, its atlas cell, and its role's colour. */
+/** A strip of tape, or a pan's mise, as an instance: where it lies, how it is turned and sized, and its atlas cell. */
 export interface Tape {
   readonly at: Vec3
   readonly rotation?: Vec3
   readonly scale?: Vec3
   readonly cell: number
-  readonly role?: ColorRoleName
 }
 
 export interface ReachIn {
@@ -151,7 +160,7 @@ export function reachInOf(pages: number, cap: number): ReachIn {
   const width = COLS * PITCH.x + 2 * FRAME.side
   const depth = rows * PITCH.z + FRAME.front + FRAME.back
   const back = -depth
-  const rail: Vec3 = [0, RAIL.y, back + 0.07]
+  const rail: Vec3 = [0, RAIL.y, back + RAIL.out]
   const lamps = [-LAMP.x, LAMP.x]
   const shots = framings(depth)
   return {
@@ -170,13 +179,13 @@ export function reachInOf(pages: number, cap: number): ReachIn {
       { kind: 'rail', id: 'rail', at: rail, length: cap * RAIL.pitch + 0.12 },
       ...lamps.map((x): PropSpec => ({ kind: 'heat-lamp', id: `lamp${x}`, at: [x, 5, LAMP.z], drop: 5 - LAMP.mouth - 0.2015, hang: 'rod' })),
     ],
-    lamps: lamps.map((x) => ({ id: `lamp${x}`, at: [x, LAMP.mouth - 0.02, LAMP.z], target: [x, PASS.top, PASS.z] })),
+    lamps: lamps.map((x) => ({ id: `lamp${x}`, at: [x, LAMP.mouth - 0.02, LAMP.z], target: [x, PASS.top, PASS.line] })),
     rail,
     clips: Array.from({ length: cap }, (_, k) => ({ id: `clip${k}`, x: clipX(k, cap) })),
     tape: { at: [-0.52, TOP + 0.0006, -FRAME.front / 2], rotation: [-Math.PI / 2, 0, 0.02], scale: [0.4, 0.05, 1], cell: CELL.scrawl },
-    // The room's light, baked into its tile and its floor: full over the line and the reach-in, and falling away to either side, up the
-    // wall over the overshelf and back toward the far corner, into the haze.
-    light: { x: -0.45, half: 0.75, above: 1.35, beyond: back, reach: [1.4, 0.9, 1.6], dim: 0.38 },
+    // The room's light, baked into its tile and its floor: full over the line and the reach-in's left, and falling away into the haze's
+    // deep steel across the room past the rack's right side, up the wall over the overshelf, and back toward the far corner.
+    light: { x: -0.6, half: 0.8, above: 1.3, beyond: back, reach: [1.1, 0.6, 1.2], dim: 0.3, veil: 0.8 },
     presets: SHOTS.map((id) => {
       const [wide, portrait] = shots[id === 'top' ? 1 : 0]
       return { id, label: id, shot: id === 'top' ? id : 'establish', projection: 'perspective', ...wide, portrait }
@@ -188,26 +197,29 @@ export function reachInOf(pages: number, cap: number): ReachIn {
 /* The night: what a decision changes                                                                                 */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** A ring of the lamp: round a pan a dump would take, flat on its rim, or round a ticket that can be pulled, upright on the rail. */
+/** A ring of the lamp: round a pan a dump would take, flat on its rim, or round a ticket that can be pulled, standing with it on the rail. */
 export interface Ring {
   readonly at: Vec3
   readonly rotation?: Vec3
   readonly scale?: Vec3
 }
 
-/** The fan over the focus's head pan: one slice for each layer of its station, its mise's cell and role, and its padding layers hollow. */
+/**
+ * The fan over the focus's head pan: a tray for each layer of its station, its padding layers' trays empty; the head pan's food, and the
+ * glyph of its station's kind on the tape stuck in the top tray.
+ */
 export interface Fan {
   readonly at: Vec3
   readonly layers: number
   readonly pads: number
-  readonly role: ColorRoleName
   readonly cell: number
+  readonly glyph: number
 }
 
 export interface Night {
-  /** Each held pan's mise: its food's cell and its role. */
+  /** Each held pan's mise: its food's cell. */
   readonly fills: readonly Tape[]
-  /** The pans' strips of masking tape (the kit's), and the marker on each, then the reach-in's own torn strip. */
+  /** The kits' pans' strips of masking tape (the kit's), and the marker on each, then the reach-in's own torn strip. */
   readonly sheets: readonly Sheet[]
   readonly tapes: readonly Tape[]
   /** The lamp's rings: round the pans a dump would take, and round the tickets on the line that can be pulled. */
@@ -219,11 +231,6 @@ export interface Night {
   readonly fan: Fan | null
   /** The pass's heat lamps burn: the present lies on the pass, the tickets that can hang or that want the kit to bring in. */
   readonly lit: boolean
-  /**
-   * The tickets' numbers (LabelLayer's specs): DOM over the canvas, never print in it, each riding on its ticket as it moves (its frame is
-   * `ticket:t<id>`), in the printer's face at the smallest step of the ramp.
-   */
-  readonly labels: readonly LabelSpec[]
   /** Changes whenever the focus's twine or its fan does: the moment plays again. */
   readonly moment: string
 }
@@ -239,8 +246,17 @@ function strand(from: Vec3, points: readonly Vec3[]): Vec3[] {
   return out
 }
 
+/**
+ * Where a hung ticket's foot is from the clip that grips it, down and toward the expo: its length tipped forward by the tilt, and its
+ * curl, which the kit draws as the foot's lift off the sheet's plane.
+ */
+export const FOOT = [
+  TICKET.curl * TICKET.height * Math.sin(TICKET.tilt) - TICKET.height * Math.cos(TICKET.tilt),
+  TICKET.height * Math.sin(TICKET.tilt) + TICKET.curl * TICKET.height * Math.cos(TICKET.tilt),
+] as const
+
 export interface NightOptions {
-  /** One station's tapes and twine only (the One station preset), by index, or every station's. */
+  /** One station's twine and fan only (the One station preset), by index, or every station's. */
   readonly station: number | null
   /** The pans chosen to be dumped, while an eviction is open. */
   readonly chosen: readonly number[]
@@ -254,13 +270,13 @@ export function nightOf(view: PoolView, r: ReachIn, { station, chosen }: NightOp
   const tapes: Tape[] = []
   for (const pan of pans) {
     if (pan.state === 'free') continue
-    fills.push({ at: top(pan.id, -MISE.heap), cell: FOOD[pan.state], role: `memory-${pan.state}` })
-    // A kit's pan belongs to no station, so One station hides its tape with every other station's.
-    const own = pan.station === null ? null : stations[pan.station]
-    if (station !== null && pan.station !== station) continue
+    fills.push({ at: top(pan.id, -MISE.heap), cell: FOOD[pan.state] })
+    // A kit's pans carry its tape, a degree or two off true, with the pin in marker on it. A kit's pan belongs to no station, so One
+    // station leaves its tape off with the other stations' marks.
+    if (pan.kit === null || station !== null) continue
     const rotation: Vec3 = [-Math.PI / 2, 0, lean(pan.id, 0.06)]
     sheets.push({ id: `${pan.id}`, center: top(pan.id, 0), size: [TAPE.w, TAPE.d], rotation })
-    tapes.push({ at: top(pan.id, 0.0004), rotation, scale: [TAPE.w, TAPE.d, 1], cell: own === null ? CELL.pin : pan.refs === 0 ? CELL.hash : CELL[own.kind] })
+    tapes.push({ at: top(pan.id, 0.0004), rotation, scale: [TAPE.w, TAPE.d, 1], cell: CELL.pin })
   }
   tapes.push(r.tape)
 
@@ -274,11 +290,12 @@ export function nightOf(view: PoolView, r: ReachIn, { station, chosen }: NightOp
     const turn = lean(id, 0.36)
     const x = (i - (view.waiting.length - 1) / 2) * TICKET.gap
     // A ticket hangs from the middle of its top edge, so one lying flat reaches half its length toward the expo from there.
-    poses.set(id, { id: `t${id}`, at: [x - reach * Math.sin(turn), PASS.top + 0.0007 + i * 0.0002, PASS.z - reach * Math.cos(turn)], rotation: [-Math.PI / 2, 0, turn], cell: cellOf(id), arc: 0.08 })
+    poses.set(id, { id: `t${id}`, at: [x - reach * Math.sin(turn), PASS.top + 0.0007 + i * 0.0002, PASS.line - reach * Math.cos(turn)], rotation: [-Math.PI / 2, 0, turn], cell: cellOf(id), arc: 0.08 })
   })
+  const hang = r.rail[2] + 0.012
   view.running.forEach((id, k) => {
-    poses.set(id, { id: `t${id}`, at: [clipX(k, cap), RAIL.y - RAIL.grip, r.rail[2] + 0.012], rotation: [-0.05, 0, lean(id, 0.07)], cell: cellOf(id), arc: 0.16 })
-    if (ask?.kind === 'preempt' && ask.candidates.includes(id)) rings.push({ at: [clipX(k, cap), RAIL.y - RAIL.grip - reach, r.rail[2] + 0.03], rotation: [Math.PI / 2, 0, 0], scale: [1.2, 1, 1.1] })
+    poses.set(id, { id: `t${id}`, at: [clipX(k, cap), RAIL.y - RAIL.grip, hang], rotation: [-TICKET.tilt, 0, lean(id, 0.07)], cell: cellOf(id), arc: 0.16 })
+    if (ask?.kind === 'preempt' && ask.candidates.includes(id)) rings.push({ at: [clipX(k, cap), RAIL.y - RAIL.grip + FOOT[0] / 2, hang + FOOT[1] / 2 + 0.01], rotation: [Math.PI / 2 - TICKET.tilt, 0, 0], scale: [1.45, 1, 1.35] })
   })
 
   // The focus, the ticket hung last: its pans at each station in the order of its blocks, its twine through them, its head pan's fan. The
@@ -291,9 +308,10 @@ export function nightOf(view: PoolView, r: ReachIn, { station, chosen }: NightOp
   )
   const head = tables.find((list) => list.length > 0)?.[0]
   const group = head?.station == null ? null : stations[head.station]
-  const twine = pose === undefined ? [] : tables.flatMap((list, g) => (list.length === 0 ? [] : [strand([pose.at[0] + (g - stations.length / 2) * 0.012, RAIL.y - RAIL.grip - TICKET.height + 0.006, pose.at[2] + 0.01], list.map((pan) => top(pan.id, 0.004)))]))
+  // Each string leaves the ticket's foot, where the paper curls toward the expo.
+  const twine = pose === undefined ? [] : tables.flatMap((list, g) => (list.length === 0 ? [] : [strand([pose.at[0] + (g - stations.length / 2) * 0.012, RAIL.y - RAIL.grip + FOOT[0] + 0.006, hang + FOOT[1]], list.map((pan) => top(pan.id, 0.004)))]))
   const fan: Fan | null =
-    head === undefined || group === null ? null : { at: top(head.id, -MISE.heap), layers: group.layers, pads: group.padLayers, role: `memory-${head.state}`, cell: FOOD[head.state] }
+    head === undefined || group === null ? null : { at: top(head.id, -MISE.heap), layers: group.layers, pads: group.padLayers, cell: FOOD[head.state], glyph: CELL[group.kind] }
 
   return {
     fills,
@@ -306,7 +324,6 @@ export function nightOf(view: PoolView, r: ReachIn, { station, chosen }: NightOp
     kits: station !== null ? [] : view.kits.flatMap((kit) => (kit.pageIds.length < 2 ? [] : [strand(top(kit.pageIds[0], 0.008), kit.pageIds.slice(1).map((id) => top(id, 0.008)))])),
     fan,
     lit: ask?.kind === 'admit' || ask?.kind === 'prefetch',
-    labels: [...poses.keys()].map((id) => ({ id: `no${id}`, at: [0, -0.024, 0.0012], frame: `ticket:t${id}`, className: 'es-type-ticket text-size-micro', content: view.tickets[id].no })),
-    moment: JSON.stringify([ticket, tables.map((list) => list.map((pan) => pan.id)), fan?.role]),
+    moment: JSON.stringify([ticket, tables.map((list) => list.map((pan) => pan.id)), fan?.cell]),
   }
 }

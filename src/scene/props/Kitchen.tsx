@@ -78,8 +78,6 @@ export function Kitchen({ lit = ALWAYS_LIT, children }: { lit?: number; children
   const tierClass = kit.tier >= 2 ? 2 : 1
   const materials = useMemo(() => createPropMaterials({ tokens, tier: tierClass, base }, gl.capabilities.getMaxAnisotropy()), [tokens, tierClass, base, gl])
   useEffect(() => () => materials.dispose(), [materials])
-  // The print redraws once its face has loaded, and asks for the frame that shows it.
-  useEffect(() => materials.onPrinted(() => kit.invalidate()), [materials, kit])
   const palette = useMemo(() => paletteFrom(tokens), [tokens])
   const [shadows] = useState(createShadowRegistry)
   useLayoutEffect(() => {

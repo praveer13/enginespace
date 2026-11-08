@@ -51,8 +51,11 @@ export interface SceneCanvasProps {
   fog?: { near: number; far: number; color?: ColorRoleName } | null
   /** Tone-mapping exposure [estimated]. */
   exposure?: number
-  /** The kitchen the steel reflects (environment.ts). Default on. */
-  environment?: boolean
+  /**
+   * The kitchen the steel reflects (environment.ts): its tubes and its heat lamps' glow (the default), its tubes alone (`'tubes'`, for a
+   * scene whose lamps burn only over the present, so its steel warms under them and nowhere else), or none.
+   */
+  environment?: boolean | 'tubes'
   /** How strongly the environment lights the scene [estimated]. */
   environmentIntensity?: number
   /**
@@ -277,7 +280,7 @@ interface KitRootProps {
   background: ColorRoleName
   fog: NonNullable<SceneCanvasProps['fog']> | null
   exposure: number
-  environment: boolean
+  environment: boolean | 'tubes'
   environmentIntensity: number
   shadows: boolean
   children: ReactNode
@@ -341,7 +344,7 @@ function KitRoot({ runtime, tokens, paused, store, bridge, background, fog, expo
   // The kitchen the steel reflects, the ground behind the line, and the fog the night recedes into.
   useEffect(() => {
     if (!environment) return
-    const kitchen = kitchenEnvironment(gl, tokens)
+    const kitchen = kitchenEnvironment(gl, tokens, environment === true)
     scene.environment = kitchen.target.texture
     scene.environmentIntensity = environmentIntensity
     invalidate()

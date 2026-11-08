@@ -3,14 +3,15 @@
  * boxes and rods in the palette's tones, and listed in the scene's static set as a `CustomSpec`, so that it is merged by surface and its
  * occlusion is baked with the room's. Three and the kit only, no React, so a test builds it with the kit's `buildProp`.
  */
-import { block, rod, type PropMaker } from '@/scene/props'
+import { block, rod, roundedRectPath, tube, type PropMaker } from '@/scene/props'
 import { COLS, FRAME, PITCH, RAIL, TOP, type ReachIn } from './scene-layout'
 
 /**
  * The reach-in, in its own space (its base's middle at the origin, its front toward +z): a cabinet with a reach-in door to each third and
- * a bar handle across each; its top a frame round the cold rail with the front edge rolled, the adapter bars the pans hang on, and a
- * bevelled lid over each slot a short last row leaves; and an overshelf on two posts at the back, under which the line's rail hangs.
- * The pass hides its foot from every shot, so it stands on its contact shadow.
+ * a bar handle across each; its top a frame round the cold rail with the front edge rolled, the adapter bars the pans hang on, and one
+ * cover over the slots a short last row leaves, a bevelled plate standing proud of the bars with a rolled lip all round it; and an
+ * overshelf on two posts at the back, under whose front edge the line's rail hangs. The pass hides its foot from every shot, so it stands
+ * on its contact shadow.
  */
 export function cabinet(m: PropMaker, { width: w, depth: d, rows, pans: { length: pages } }: ReachIn) {
   const half = w / 2
@@ -32,7 +33,13 @@ export function cabinet(m: PropMaker, { width: w, depth: d, rows, pans: { length
   }
   for (let c = 0; c <= COLS; c++) m.add(block([0.006, 0.012, gd], 0.002, [(c - COLS / 2) * PITCH.x, TOP - 0.012, gz], 0, 1), 'shaded')
   for (let row = 0; row <= rows; row++) m.add(block([COLS * PITCH.x, 0.012, 0.006], 0.002, [0, TOP - 0.012, -front + FRAME.back + row * PITCH.z], 0, 1), 'shaded')
-  for (let k = rows * COLS - pages; k > 0; k--) m.add(block([PITCH.x - 0.01, 0.012, PITCH.z - 0.01], 0.0045, [half - FRAME.side - (k - 0.5) * PITCH.x, TOP - 0.01, front - FRAME.front - PITCH.z / 2]), 'steel')
+  const open = (rows * COLS - pages) * PITCH.x
+  if (open > 0) {
+    const x = half - FRAME.side - open / 2
+    const z = front - FRAME.front - PITCH.z / 2
+    m.add(block([open - 0.01, 0.008, PITCH.z - 0.01], 0.003, [x, TOP - 0.003, z]), 'steel')
+    m.add(tube(roundedRectPath(open - 0.02, PITCH.z - 0.02, 0.012, 3).points.map(([px, pz]) => [x + px, TOP + 0.006, z + pz]), 0.0065, 8, undefined, true), 'steel')
+  }
   m.add(block([w, 0.032, 0.25], 0.008, [0, RAIL.y, -front + 0.125]), 'steel')
   m.shadow([0, 0, 0], [w, d], { radius: 0.05, soft: 0.16, strength: 0.8 })
 }

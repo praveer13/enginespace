@@ -4,7 +4,7 @@
  *   tile    the back wall's subway tile, 150 × 75 mm in running bond with 3 mm of grout [estimated]: each tile a glazed body with
  *           rounded edges standing proud of the grout, as height, normals, roughness (glaze against grout) and the grout's colour.
  *   floor   the sealed floor's square quarry tiles, 300 mm with 5 mm of grout [estimated], faintly mottled under the seal.
- *   print   the tickets' print: one atlas of order lines in the printer's dot-matrix face, eight tickets to a sheet, so every ticket
+ *   print   the tickets' print: one atlas of order lines in the impact printer's dots, eight tickets to a sheet, so every ticket
  *           in a scene shares one texture and picks its cell. The print is texture, generic and the same on every visit; every
  *           number a learner reads stays a DOM label (GAMES.md §2.6, rule 7).
  *
@@ -166,34 +166,19 @@ export function floorMaps(size: number, grout: number, roughness: number): Surfa
 export const PRINT_CELLS = { across: 4, down: 2 } as const
 export const PRINT_SIZE = { width: 512, height: 512 } as const
 
-/**
- * The order lines the atlas prints, one list per cell: kitchen words with no number a learner needs, so the print is the paper's
- * texture and never a readout. A dotted rule is `-`.
- */
-const ORDERS: readonly (readonly string[])[] = [
-  ['ORDER', '-', 'FIRE', 'COURSE', 'HOLD', '-', 'HEARD'],
-  ['TABLE', '-', 'ALL DAY', 'FIRE', 'ON THE FLY', '-', 'SERVICE'],
-  ['ORDER', '-', 'SEAT', 'PICK UP', '-', 'HEARD'],
-  ['FIRE', '-', 'COURSE', 'COURSE', 'HOLD', 'FIRE', '-', 'EXPO'],
-  ['TABLE', '-', 'PICK UP', 'ALL DAY', '-', 'SERVICE'],
-  ['ORDER', '-', 'ON THE FLY', 'FIRE', 'SEAT', '-', 'HEARD'],
-  ['RUSH', '-', 'FIRE', 'FIRE', 'HOLD', '-', 'EXPO'],
-  ['TABLE', '-', 'COURSE', 'PICK UP', 'HEARD', '-', 'SERVICE'],
-]
-
 export interface PrintInks {
   readonly paper: string
   readonly ink: string
   readonly rule: string
-  /** The printer's face: the ticket role's family, from the roles (never named here). */
-  readonly family: string
 }
 
 /**
- * Draws the atlas on a canvas: paper, then each cell's order lines in the dot-matrix face, the dotted rules between them, and a torn
- * edge's shadow of dots along the top. `withText` false draws the paper and rules only, for the moment before the face has loaded.
+ * Draws the atlas on a canvas: paper, then each cell's print as an impact printer leaves it, in dots: lines of words a few dots long,
+ * the dots round and large enough to read as dots at the size a scene draws a ticket, and the dotted rules between them in the rule's
+ * ink. It prints no letter and no number, so it is the paper's texture and never a readout (GAMES.md §2.6, rule 7), and it is drawn
+ * at once, with no face to wait for.
  */
-export function drawPrint(canvas: HTMLCanvasElement | OffscreenCanvas, inks: PrintInks, withText: boolean): void {
+export function drawPrint(canvas: HTMLCanvasElement | OffscreenCanvas, inks: PrintInks): void {
   const context = canvas.getContext('2d') as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null
   if (!context) return
   const { width, height } = PRINT_SIZE
@@ -201,31 +186,20 @@ export function drawPrint(canvas: HTMLCanvasElement | OffscreenCanvas, inks: Pri
   const ch = height / PRINT_CELLS.down
   context.fillStyle = inks.paper
   context.fillRect(0, 0, width, height)
-  ORDERS.forEach((lines, cellIndex) => {
-    const cx = (cellIndex % PRINT_CELLS.across) * cw
-    const cy = Math.floor(cellIndex / PRINT_CELLS.across) * ch
-    const margin = cw * 0.11
-    // The head is left blank: the ticket's number is a DOM label there (GAMES.md §2.6, rule 7).
-    let y = cy + ch * 0.3
-    const lineHeight = ch * 0.085
-    for (const line of lines) {
-      if (line === '-') {
-        context.fillStyle = inks.rule
-        for (let x = cx + margin; x < cx + cw - margin; x += 5) {
+  for (let cell = 0; cell < PRINT_CELLS.across * PRINT_CELLS.down; cell++) {
+    const cx = (cell % PRINT_CELLS.across) * cw + cw * 0.2
+    const cy = Math.floor(cell / PRINT_CELLS.across) * ch + ch * 0.17
+    // Nine lines a cell; the second and every fourth after it a dotted rule. A line's words end at a space, a dot left out.
+    for (let line = 0; line < 9; line++) {
+      const rule = line % 4 === 1
+      context.fillStyle = rule ? inks.rule : inks.ink
+      for (let k = 0, n = rule ? 15 : 3 + ((cell * 5 + line * 3) % 4); k < n; k++) {
+        if (rule || (cell + line + k * 2) % 5 < 4) {
           context.beginPath()
-          context.arc(x, y - lineHeight * 0.32, 1.1, 0, Math.PI * 2)
+          context.arc(cx + k * (rule ? 5 : 15), cy + line * ch * 0.085, rule ? 1.6 : 4.5, 0, 7)
           context.fill()
         }
-        y += lineHeight * 0.6
-        continue
       }
-      if (withText) {
-        context.fillStyle = inks.ink
-        context.font = `900 ${Math.round(lineHeight * 0.82)}px ${inks.family}`
-        context.textBaseline = 'alphabetic'
-        context.fillText(line, cx + margin, y, cw - 2 * margin)
-      }
-      y += lineHeight
     }
-  })
+  }
 }
