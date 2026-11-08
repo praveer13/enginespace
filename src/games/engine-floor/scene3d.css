@@ -1,6 +1,6 @@
 /*
- * Back of House's 3D scene, its page layer: the masking tape on each storey and over each pair of hands, and the paper chit each laid
- * hand-off carries with its stage numbers, all DOM over the canvas (D-021). Every colour, face and shadow is a token role
+ * Back of House's 3D scene, its page layer: the masking tape on each storey's deck and on the front of each pair of hands' furniture, and
+ * the paper chit each laid hand-off carries with its stage numbers, all DOM over the canvas (D-021). Every colour, face and shadow is a token role
  * (src/design/tokens.css); this file names none of its own. The scene's box is a size container, so print scales with the house.
  */
 
@@ -13,9 +13,12 @@
   font-size: clamp(var(--es-size-micro), 1.2cqi, var(--es-size-caption));
 }
 
-/* A pair of hands' tape wraps at its hyphens to about its rail's width, so the names of three threads on one floor never meet. */
+/*
+ * A pair of hands' tape wraps at its hyphens to a little less than a lane's width at the cutaway, so the names of three threads on one
+ * floor never meet, and a short name keeps to one line, which fits between the storey's tape and the chits over the furniture.
+ */
 .es-label.es-floor-scene-tape--hands {
-  max-width: 11cqi;
+  max-width: 14cqi;
   white-space: normal;
   text-align: center;
 }
@@ -26,7 +29,7 @@
   font-family: var(--es-font-label);
   font-weight: var(--es-font-label-weight);
   letter-spacing: var(--es-font-label-tracking);
-  font-size: clamp(var(--es-size-micro), 1.1cqi, var(--es-size-caption));
+  font-size: clamp(var(--es-size-micro), 1.2cqi, var(--es-size-caption));
 }
 
 /*
@@ -37,7 +40,7 @@
 .es-floor-chit {
   color: var(--es-paper-ink);
   font-family: var(--es-font-numeric);
-  font-size: clamp(var(--es-size-micro), 1.15cqi, var(--es-size-print));
+  font-size: clamp(var(--es-size-micro), 1.2cqi, var(--es-size-print));
   font-weight: var(--es-font-numeric-weight);
   font-variant-numeric: tabular-nums;
   letter-spacing: var(--es-font-numeric-tracking);

@@ -1,8 +1,9 @@
 /*
  * Back of House's own props (scene kit v1's way, src/scene/props/index.ts): the house's decks and its two walls (the partition with the
  * ticket windows, and the dumbwaiter's shaft), its rooms' furniture the kit has no prop for (the dining room's table with its chairs, the
- * host stand), the line's canopy, the glow of a lit lamp's bulb, and what a stage lays in it besides the kit's spike (the "Heard!" gate,
- * the window shelf). Each is built from shape.ts's rounded boxes, rods, lathes and sweeps, in the palette's tones, through the kit's own
+ * host stand with its book on its lectern, the order desk's printer's tape), the line's canopy, the glow of a lit lamp's bulb, and what a
+ * stage lays in it besides the kit's spike (the "Heard!" gate, the window shelf). Each is built from shape.ts's rounded boxes, rods,
+ * lathes and sweeps, in the palette's tones, through the kit's own
  * maker, with a footprint for its contact shadow where it stands; the static set merges them with the kit's props, so they share the
  * kit's draws and its baked occlusion. No unbevelled box and no bare plane. Every size is [estimated], on the kit's proportions.
  *
@@ -46,11 +47,10 @@ function post(m: PropMaker, x: number, z: number, top: number, radius = 0.018) {
   m.shadow([x, 0, z], [0.07, 0.07], { radius: 0.035, soft: 0.04, strength: 0.8 })
 }
 
-/** A storey's deck, `at` its top's centre: the slab, its rolled front edge, and the stiffener under it that the storey below sees. */
+/** A storey's deck, `at` its top's centre: the slab and its rolled front edge. */
 function deck(m: PropMaker, { width: w, depth: d, thick }: Of<'deck'>) {
   m.add(block([w, thick, d], 0.012, [0, -thick, 0]), 'steel')
   m.add(rod([-w / 2 + 0.014, -0.022, d / 2 - 0.006], [w / 2 - 0.014, -0.022, d / 2 - 0.006], 0.024, 16), 'steel')
-  m.add(block([w - 0.08, 0.03, 0.03], 0.008, [0, -thick - 0.03, d / 2 - 0.06]), 'shaded')
 }
 
 /**
@@ -98,10 +98,7 @@ function canopy(m: PropMaker, { width: w, depth: d, height: h }: Of<'canopy'>) {
     m.add(place(block([0.46, 0.012, 0.34], 0.005), [x, -0.16, 0.17], [0.8, 0, 0]), 'deep')
     for (let s = -0.2; s < 0.21; s += 0.05) m.add(place(block([0.03, 0.004, 0.32], 0.0015), [x + s, -0.15, 0.18], [0.8, 0, Math.round(s * 20) % 2 ? 0.6 : -0.6]), 'steel')
   }
-  for (const x of [-w / 4, w / 4]) {
-    m.glow(rod([x - w / 4 + 0.08, -h + 0.016, d + 0.018], [x + w / 4 - 0.08, -h + 0.016, d + 0.018], 0.012, 10), CHANNEL.tube)
-    for (const k of [-1, 1]) m.add(block([0.03, 0.03, 0.03], 0.006, [x + k * (w / 4 - 0.05), -h, d + 0.012]), 'shaded')
-  }
+  for (const x of [-w / 4, w / 4]) m.glow(rod([x - w / 4 + 0.08, -h + 0.016, d + 0.018], [x + w / 4 - 0.08, -h + 0.016, d + 0.018], 0.012, 10), CHANNEL.tube)
 }
 
 /** The dining room's table under its cloth, its pedestal on a turned foot, a plate set on it, and a chair at each end facing it. */
@@ -122,13 +119,26 @@ function table(m: PropMaker, { height: h }: Of<'table'>) {
   m.shadow([0, 0, 0], [0.74, 0.5], { radius: 0.05, soft: 0.1, strength: 0.7 })
 }
 
-/** The host stand: a closed counter of shaded steel under a brushed top, its kick set back, and the book of the night's covers open on it. */
+/**
+ * The host stand: a closed counter of brushed steel with two shaded panels let into its front, its kick set back, and at its right end
+ * the book of the night's covers, open on a lectern tipped toward the room, so its white pages read from across the house.
+ */
 function stand(m: PropMaker, { width: w, depth: d, height: h }: Of<'stand'>) {
-  m.add(block([w, h - 0.1, d - 0.04], 0.012, [0, 0.07, -0.02]), 'shaded')
+  m.add(block([w, h - 0.1, d - 0.04], 0.012, [0, 0.07, -0.02]), 'steel')
+  for (const k of [-1, 1]) m.add(block([w / 2 - 0.1, h - 0.24, 0.012], 0.004, [(k * w) / 4, 0.14, d / 2 - 0.034]), 'shaded')
   m.add(block([w - 0.06, 0.07, d - 0.1], 0.006, [0, 0, -0.04]), 'deep')
   m.add(block([w + 0.02, 0.03, d + 0.01], 0.008, [0, h - 0.03, 0]), 'steel')
-  m.add(block([0.3, 0.016, 0.21], 0.004, [w / 2 - 0.3, h, 0.03], 0.1), 'paper')
+  // The lectern, a wedge of deep steel tipped toward the room, and the open book on it, its spine sunk between its pages.
+  const x = w / 2 - 0.24
+  m.add(place(block([0.38, 0.12, 0.26], 0.01), [x, h, -0.08], [0.7, 0, 0]), 'deep')
+  for (const k of [-1, 1]) m.add(place(block([0.17, 0.012, 0.24], 0.003), [x + k * 0.088, h + 0.091, -0.004], [0.7, 0, k * 0.06]), 'paper')
   m.shadow([0, 0, 0], [w, d], { radius: 0.03, soft: 0.1, strength: 0.75 })
+}
+
+/** The order desk's printer's tape, `at` the desk's front edge: out of the printer's mouth just over it, and hanging over the edge. */
+function tape(m: PropMaker) {
+  m.add(block([0.076, 0.37, 0.002], 0.001, [0, -0.248, 0]), 'paper')
+  m.shadow([0, 0, 0], [0.08, 0.02], { strength: 0.4 })
 }
 
 /** A heat lamp's bulb glowing round its shade's lip, a turned ring: lit on the present's channel, and cold steel on every other lamp. */
@@ -148,7 +158,7 @@ function shelf(m: PropMaker) {
   for (const z of [-0.14, 0.14]) m.add(rod([0, 0.004, z], [0, -0.08, z + Math.sign(z) * 0.03], 0.006, 8), 'shaded')
 }
 
-const BUILD: Record<HouseProp['kind'], (m: PropMaker, p: never) => void> = { deck, partition, shaft, post: (m, p: Of<'post'>) => post(m, 0, 0, p.height, 0.022), canopy, table, stand, ring, gate, shelf }
+const BUILD: Record<HouseProp['kind'], (m: PropMaker, p: never) => void> = { deck, partition, shaft, post: (m, p: Of<'post'>) => post(m, 0, 0, p.height, 0.022), canopy, table, stand, ring, gate, shelf, tape }
 
 /** The house's own props, by kind: what the scene builds through `customOf` rather than hands to the kit as they are. */
 export const OWN = new Set(Object.keys(BUILD))
@@ -163,13 +173,6 @@ export function customOf(prop: HouseProp): CustomSpec {
  * front, where it is seen to ride, as geometries in its own space with its floor at y = 0, for the scene to paint and merge.
  */
 export function carGeometries() {
-  const w = 0.3
-  const d = 0.34
-  const h = 0.27
-  return [
-    block([w, 0.014, d], 0.005, [0, 0, 0]),
-    block([w, 0.014, d], 0.005, [0, h - 0.014, 0]),
-    block([w, h, 0.012], 0.004, [0, 0, -d / 2 + 0.006]),
-    block([0.012, h, d], 0.004, [w / 2 - 0.006, 0, 0]),
-  ]
+  // 0.3 wide, 0.34 deep and 0.27 tall: its floor, its roof, its back and its far side.
+  return [block([0.3, 0.014, 0.34], 0.005), block([0.3, 0.014, 0.34], 0.005, [0, 0.256, 0]), block([0.3, 0.27, 0.012], 0.004, [0, 0, -0.164]), block([0.012, 0.27, 0.34], 0.004, [0.144, 0, 0])]
 }

@@ -18,11 +18,14 @@ import type { House, HouseItem, Pose, Spot } from './scene-layout'
 import type { SceneModel } from './scene-presets'
 import type { CameraStop } from './scene-stops'
 
-/** A laid hand-off's chit: where it points, the side it sits on, and its stages in order with what the last run found of each. */
+/**
+ * A laid hand-off's chit: where it is pinned, the side it sits on (on its pin, or beside the ticket of the hands that work in place), and
+ * its stages in order with what the last run found of each.
+ */
 export interface Chit {
   readonly id: string
   readonly at: Vec3
-  readonly place: 'above' | 'left' | 'right'
+  readonly place: 'above' | 'center' | 'right'
   readonly stages: { readonly n: number; readonly state: LaidView['state'] }[]
 }
 
@@ -52,19 +55,22 @@ export interface Route {
   readonly hops: readonly Hop[]
 }
 
-const r3 = (v: number): number => Math.round(v * 1000) / 1000
-const v3 = (x: number, y: number, z: number): Vec3 => [r3(x), r3(y), r3(z)]
 const lean = (n: number, amount: number): number => (((n * 37) % 11) / 11 - 0.5) * amount
-const lift = (pose: Pose, dy: number): Pose => ({ at: v3(pose.at[0], pose.at[1] + dy, pose.at[2] + dy), rot: pose.rot })
-const upright = (x: number, y: number, z: number): Pose => ({ at: v3(x, y, z), rot: [0, 0, 0] })
+const lift = (pose: Pose, dy: number): Pose => ({ at: [pose.at[0], pose.at[1] + dy, pose.at[2] + dy], rot: pose.rot })
+const upright = (x: number, y: number, z: number): Pose => ({ at: [x, y, z], rot: [0, 0, 0] })
 
 /** How far out from the tile a spike or a gate stands on the surface the hands work at [estimated]: on its counter, its desk or its table. */
 const ON = -0.2
+/** A pair of hands' own spike stands this far right of them, and their gate as far left, either side of their lamp's light [estimated]. */
+const BESIDE = 0.3
+/** A ticket standing on a sill, at the gate or in the dumbwaiter's car: the middle of its top edge this far over its foot, its height. */
+const TALL = 0.205
 
 /**
  * The route of a view's laid path through its house: what each stage lays, its chit, and the ticket's way through it. Each chit is pinned
- * where its hand-off is: on the spike's point, over the gate's arm, on the sill of the window a ticket leaves by, on the landing of the
- * dumbwaiter's shaft at the floor it serves, and beside the ticket of the hands that work in place.
+ * where its hand-off is, at or over the surface it stands on and so clear of the names on the decks' and the furniture's fronts: over
+ * the spike's point and the gate's arm, on the sill of the window a ticket leaves by, on the landing of the dumbwaiter's shaft at the
+ * floor it serves, and beside the ticket of the hands that work in place.
  */
 export function routeOf(view: FloorView, house: House): Route {
   // The house is planned over every place a laid stage names, so each has its spot.
@@ -73,7 +79,7 @@ export function routeOf(view: FloorView, house: House): Route {
   const windows = house.windows ?? 0
   const landing = (storey: number) => house.shaft.landings[storey]
   // A window's sill, at its storey's work surface in the opening, and the chute behind the partition at the same height.
-  const sill = (storey: number, behind: number): Pose => upright(windows + 0.07 - behind, landing(storey) + 0.122, -0.16)
+  const sill = (storey: number, behind: number): Pose => upright(windows + 0.07 - behind, landing(storey) + TALL, -0.16)
   const props = new Map<string, HouseItem>()
   const chits = new Map<string, Chit>()
   const entry = spotOf(entryOf(view.scenario.engine))
@@ -86,10 +92,10 @@ export function routeOf(view: FloorView, house: House): Route {
     const b = spotOf(stage.to)
     const y = a.y
     let key = `${stage.mechanism}-${a.key}-${b.key}`
-    // Hands at work, and a call to the line: on the counter beside the hanging ticket of the hands that do it; a stage between streams
-    // over the line's counter.
-    let chit = a.gpu ? v3((a.x + b.x) / 2, y + 0.08, 0.2) : v3(a.x + 0.27, y + 0.04, a.stand.at[2] + 0.003)
-    let place: Chit['place'] = a.gpu ? 'above' : 'right'
+    // Hands at work, and a call to the line: over the counter beside the hanging ticket of the hands that do it, on the row of their
+    // spike's foot; a stage between streams over the line's counter.
+    const work: Vec3 = [a.x + 0.27, y + 0.06, ON]
+    let chit = a.gpu ? [(a.x + b.x) / 2, y + 0.08, 0.2] : work
     let prop: HouseItem | null = null
     let via: Pose[] = a.key === b.key ? [lift(b.stand, 0.02)] : []
     let after = b.stand
@@ -97,24 +103,22 @@ export function routeOf(view: FloorView, house: House): Route {
     switch (stage.mechanism) {
       case 'queue': {
         // A spike beside the hands, or between the two pairs of hands it joins; the ticket waits on it, and its chit on the point.
-        const x = a.key === b.key ? a.x + 0.26 : (a.x + b.x) / 2
+        const x = a.key === b.key ? a.x + BESIDE : (a.x + b.x) / 2
         const turn = lean(Math.round(x * 10), 0.6)
-        key = `spike-${a.storey}-${r3(x)}`
-        chit = v3(x, y + 0.17, ON)
-        place = 'above'
-        prop = { kind: 'spike', id: key, at: v3(x, y, ON) }
-        after = { at: v3(x - 0.06 * Math.sin(turn), y + 0.03, ON - 0.06 * Math.cos(turn)), rot: [-Math.PI / 2, 0, turn] }
+        key = `spike-${a.storey}-${x}`
+        chit = [x, y + 0.17, ON]
+        prop = { kind: 'spike', id: key, at: [x, y, ON] }
+        after = { at: [x - 0.06 * Math.sin(turn), y + 0.03, ON - 0.06 * Math.cos(turn)], rot: [-Math.PI / 2, 0, turn] }
         via = [lift(after, 0.06)]
         break
       }
       case 'sync': {
         // "Heard!": the gate beside the hands that wait; the ticket stops at it, then goes back on its rail.
-        const x = a.x - 0.26
+        const x = a.x - BESIDE
         key = `gate-${a.key}`
-        chit = v3(x, y + 0.21, ON)
-        place = 'above'
-        prop = { kind: 'gate', id: key, at: v3(x, y, ON) }
-        via = [upright(x + 0.07, y + 0.17, ON + 0.05)]
+        chit = [x, y + 0.21, ON]
+        prop = { kind: 'gate', id: key, at: [x, y, ON] }
+        via = [upright(x + 0.07, y + TALL + 0.01, ON + 0.05)]
         break
       }
       case 'ipc':
@@ -124,9 +128,8 @@ export function routeOf(view: FloorView, house: House): Route {
         const lo = Math.min(a.storey, b.storey)
         const hi = Math.max(a.storey, b.storey)
         key = `${stage.mechanism}-${lo}-${hi}`
-        chit = v3(windows + 0.1, landing(a.storey) + 0.01, -0.16)
-        place = 'above'
-        if (stage.mechanism === 'shm') prop = { kind: 'shelf', id: key, at: v3(windows + 0.09, landing(a.storey), -0.16) }
+        chit = [windows + 0.1, landing(a.storey) + 0.01, -0.16]
+        if (stage.mechanism === 'shm') prop = { kind: 'shelf', id: key, at: [windows + 0.09, landing(a.storey), -0.16] }
         via = [sill(a.storey, 0), sill(a.storey, 0.24), sill(b.storey, 0.24), sill(b.storey, 0)]
         break
       }
@@ -135,15 +138,15 @@ export function routeOf(view: FloorView, house: House): Route {
         // Into the dumbwaiter's car at one landing, and out at the other; the chit on the shaft's landing at the floor it serves.
         const host = stage.mechanism === 'h2d' ? a : b
         key = `copy-${host.storey}`
-        chit = v3(shaft, landing(host.storey) + 0.01, 0)
-        place = 'above'
-        via = [upright(shaft, landing(a.storey) + 0.2, -0.23), upright(shaft, landing(b.storey) + 0.2, -0.23)]
+        chit = [shaft, landing(host.storey) + 0.01, 0]
+        via = [upright(shaft, landing(a.storey) + TALL, -0.23), upright(shaft, landing(b.storey) + TALL, -0.23)]
         car = [cars[i], landing(a.storey), landing(b.storey), landing(b.storey)]
         break
       }
     }
     if (prop) props.set(prop.id, prop)
-    const group = chits.get(key) ?? { id: key, at: chit, place, stages: [] }
+    // On its pin: over a spike's point and the gate's arm, and on a sill, a landing or the line's counter.
+    const group = chits.get(key) ?? { id: key, at: chit as Vec3, place: chit === work ? 'right' : chit[1] > y + 0.1 ? 'above' : 'center', stages: [] }
     group.stages.push({ n: stage.index + 1, state: stage.state })
     chits.set(key, group)
     const poses = [stands[i], ...via, after]
@@ -178,7 +181,7 @@ export interface Play {
 /** A balk: from the ticket's stand, a short way toward the hand-off that did not hold, and back. It goes to no other hands. */
 export function balkOf(hop: Hop): Hop {
   const [from, next = from] = hop.poses
-  const nudge: Pose = { at: v3(...(from.at.map((v, k) => v + (next.at[k] - v) * BALK) as unknown as Vec3)), rot: from.rot }
+  const nudge: Pose = { at: from.at.map((v, k) => v + (next.at[k] - v) * BALK) as unknown as Vec3, rot: from.rot }
   return { stage: hop.stage, poses: [from, nudge, from], car: null, cook: null, spot: '', length: 0.2 }
 }
 
