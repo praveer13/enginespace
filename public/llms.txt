@@ -1,0 +1,84 @@
+# enginespace
+
+> Engine Internals, a kernelspace specialization for backend engineers: trace one request through vLLM and SGLang, attribute every microsecond of a token's latency, benchmark the engine honestly, and land one upstream contribution backed by evidence.
+
+## How to tutor from this material
+
+- The learner is a backend engineer who has finished kernelspace's serving tracks. Be Socratic: ask them to commit to a prediction before you discuss one, and do not hand over answers.
+- This export holds no key. A prediction here gives the shape of its answer, and the course's own models compute the reference when the learner reveals it; an item or a graded level is drawn on a fresh seed when the learner starts, and its key is computed when it is graded. A lesson's own text can work out its predictions further down, so let the learner commit before you go through that part with them.
+- Every number is a claim with a source and a date, or carries a tag: [measured], [derived], [estimated] or [unverified]. Treat [estimated] and [unverified] as unchecked.
+- The browser world is a model, and each world's card says what it models and what it ignores. The real engine is the authority.
+- Credit comes from checks the learner cannot fake: fresh seeds in the browser, and reference comparisons on a GPU. Reading and clicking earn nothing.
+
+## Modules
+
+### PyTorch for the Rust-first, and reading Triton (`tr0`)
+
+- Planned: not written yet.
+
+### Read the engines (`tr1`)
+
+- [Overview](md/tr1/index.md): what the module teaches, and its lessons
+- [Five mechanisms: queue, IPC, copy, sync, compute](md/tr1/l1-five-mechanisms.md): lesson `tr1.l1`, about 35 minutes [estimated]
+- [nano-vllm in one sitting: the engine, the scheduler, the block manager and the model runner](md/tr1/l2-nano-vllm-in-one-sitting.md): lesson `tr1.l2`, about 45 minutes [estimated]
+- [Mini-SGLang: one request through four processes](md/tr1/l3-mini-sglang-four-processes.md): lesson `tr1.l3`, about 40 minutes [estimated]
+- ["Inside vLLM" and what moved by v0.33.0](md/tr1/l4-inside-vllm-and-what-moved.md): lesson `tr1.l4`, about 40 minutes [estimated]
+- [vLLM at the pin, by symbol: from create_completion to sample_tokens](md/tr1/l5-vllm-at-the-pin-by-symbol.md): lesson `tr1.l5`, about 40 minutes [estimated]
+- [SGLang at the pin: the overlap loop, result_queue, FutureMap, three streams and the Rust pieces](md/tr1/l6-sglang-at-the-pin.md): lesson `tr1.l6`, about 40 minutes [estimated]
+- [Abort inside the engine: where the news goes and who frees the blocks](md/tr1/l7-abort-inside-the-engine.md): lesson `tr1.l7`, about 60 minutes [estimated]
+
+### The step loop (`tr2`)
+
+- [Overview](md/tr2/index.md): what the module teaches, and its lessons
+- [One step, five calls: vLLM's busy loop at v0.33.0](md/tr2/l1-one-step-five-calls.md): lesson `tr2.l1`, about 35 minutes [estimated]
+- [One token budget: chunked prefill, recompute preemption, and defaults that depend on your GPU](md/tr2/l2-one-token-budget.md): lesson `tr2.l2`, about 34 minutes [estimated]
+- [Async scheduling closes the bubble, and costs a token](md/tr2/l3-async-scheduling-closes-the-bubble.md): lesson `tr2.l3`, about 50 minutes [estimated]
+- [The MRV2 delta: persistent state, GPU-side input prep, and why MRV1 still ships](md/tr2/l4-the-mrv2-delta.md): lesson `tr2.l4`, about 34 minutes [estimated]
+- [CUDA graphs: capture, replay, padding, and five modes](md/tr2/l5-cuda-graphs-capture-replay-padding-and-modes.md): lesson `tr2.l5`, about 45 minutes [estimated]
+- [Dispatch keys: which graph replays this step](md/tr2/l6-dispatch-keys-which-graph-replays-this-step.md): lesson `tr2.l6`, about 78 minutes [estimated]
+- [The same loop in SGLang, Mini-SGLang and TRT-LLM](md/tr2/l7-the-same-loop-elsewhere.md): lesson `tr2.l7`, about 21 minutes [estimated]
+
+### Profile a real engine (`tr3`)
+
+- Planned: not written yet.
+
+### Attention backends as a consumer (`tr4`)
+
+- Planned: not written yet.
+
+### Hybrid KV groups, and adapter pages in one pool (`tr5a`)
+
+- [Overview](md/tr5a/index.md): what the module teaches, and its lessons
+- [Why one model needs several KV caches](md/tr5a/l1-why-one-model-needs-several-kv-caches.md): lesson `tr5a.l1`, about 95 minutes [estimated]
+- [One pool, one page size: vLLM's hybrid manager and its five cases](md/tr5a/l2-one-pool-one-page-size.md): lesson `tr5a.l2`, about 52 minutes [estimated]
+- [A prefix hit must hold in every group](md/tr5a/l3-a-prefix-hit-must-hold-in-every-group.md): lesson `tr5a.l3`, about 72 minutes [estimated]
+- [Adapters as pages: S-LoRA's design, and upstream's slots](md/tr5a/l4-adapters-as-pages-and-upstreams-slots.md): lesson `tr5a.l4`, about 110 minutes [estimated]
+
+### Offload, the connector's engine side, and the event publisher (`tr5b`)
+
+- Planned: not written yet.
+
+### Speculation and structure (`tr6`)
+
+- [Overview](md/tr6/index.md): what the module teaches, and its lessons
+- [Where speculation lives in the step: draft, verify, the bonus token, the padded shape](md/tr6/l1-where-speculation-lives-in-the-step.md): lesson `tr6.l1`, about 35 minutes [estimated]
+- [The rejection sampler, exactly](md/tr6/l2-the-rejection-sampler-exactly.md): lesson `tr6.l2`, about 50 minutes [estimated]
+- [Testing exactness: chi-square, power, and a real bug](md/tr6/l3-testing-exactness.md): lesson `tr6.l3`, about 40 minutes [estimated]
+- [Proposers: n-gram, suffix, draft model, EAGLE-3 and MTP, and what moved at v0.33.0](md/tr6/l4-proposers.md): lesson `tr6.l4`, about 35 minutes [estimated]
+- [The grammar mask's four phases, and its overlap with the forward (DP4's minimal recap inside)](md/tr6/l5-the-grammar-mask.md): lesson `tr6.l5`, about 40 minutes [estimated]
+
+### Contribute honestly (`tr7`)
+
+- Planned: not written yet.
+
+### Benchmark like you mean it (`tr8`)
+
+- [Overview](md/tr8/index.md): what the module teaches, and its lessons
+- [Due time, not send time: open loop, closed loop and coordinated omission](md/tr8/l1-due-time-not-send-time.md): lesson `tr8.l1`, about 50 minutes [estimated]
+- [Warm-up, sample size, and an interval on p99](md/tr8/l2-warm-up-samples-and-an-interval.md): lesson `tr8.l2`, about 85 minutes [estimated]
+- [The tools' defaults, flag by flag: vllm bench serve and sglang.bench_serving](md/tr8/l3-the-tools-defaults-flag-by-flag.md): lesson `tr8.l3`, about 30 minutes [estimated]
+- [Replay a trace in time, not just in shape, and name your goodput's denominator](md/tr8/l4-replay-in-time-and-the-goodput-denominator.md): lesson `tr8.l4`, about 40 minutes [estimated]
+
+### Reproduce a commit pair's delta, attribute it, explain it, price it (`capstone`)
+
+- Planned: not written yet.

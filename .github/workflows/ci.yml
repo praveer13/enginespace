@@ -72,13 +72,13 @@ jobs:
       - name: Build gates
         run: bun run verify:all --stage build
 
-      # §4.6: the Markdown export is committed, and the build above rewrote it, so a difference means the committed export is
-      # stale. The check starts once W1-T35 commits public/llms.txt; until then the export is not tracked and nothing is stale.
+      # §4.6: the Markdown export is committed (W1-T35), and the build above rewrote it, so a difference means the committed export is
+      # stale, and an export that the commit does not hold fails too. tests/content/export.test.ts runs this step on a stale tree.
       - name: Export freshness
         run: |
           if ! git ls-files --error-unmatch public/llms.txt > /dev/null 2>&1; then
-            echo 'pending: W1-T35'
-            exit 0
+            echo '::error title=Export freshness::the Markdown export is not committed: run bun scripts/content/build.ts and commit public/md and public/llms.txt'
+            exit 1
           fi
           if [ -n "$(git status --porcelain --untracked-files=all -- public/md public/llms.txt)" ]; then
             git status --short --untracked-files=all -- public/md public/llms.txt

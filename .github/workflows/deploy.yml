@@ -78,8 +78,8 @@ jobs:
       - name: Export freshness
         run: |
           if ! git ls-files --error-unmatch public/llms.txt > /dev/null 2>&1; then
-            echo 'pending: W1-T35'
-            exit 0
+            echo '::error title=Export freshness::the Markdown export is not committed: run bun scripts/content/build.ts and commit public/md and public/llms.txt'
+            exit 1
           fi
           if [ -n "$(git status --porcelain --untracked-files=all -- public/md public/llms.txt)" ]; then
             git status --short --untracked-files=all -- public/md public/llms.txt

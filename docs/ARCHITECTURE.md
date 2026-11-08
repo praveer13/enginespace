@@ -326,7 +326,7 @@ KCs come from a ref→KC map at read time and are never stored (kernelspace's ru
 | Claims for `/about` and the claim chips | `public/claims.json` (lazy) | — |
 | Search index (W3) | `public/search.json` (lazy) | ≤ 20 KB gz [estimated] |
 
-`src/content/generated/` is git-ignored: `npm run build` runs the compiler first. The Markdown export *is* committed, and CI fails when it is stale, as kernelspace's "Export freshness" step does.
+`src/content/generated/` is git-ignored: `npm run build` runs the compiler first. The Markdown export *is* committed, and CI fails when it is stale, as kernelspace's "Export freshness" step does (W1-T35). The step compares the tree after the build with the commit, and `tests/content/export.test.ts` compiles `content/` in memory and compares it, byte for byte, with the files the commit holds, so `bun test` and the merge gates fail on a stale export too. The same test holds the committed files to the rule that the export carries no key (I3): no sentence of an item family's solutions or whys, and no line that serializes a field named for a key. The export's links are relative, so it holds on any base (D-058).
 
 ### 4.7 Content gates
 
