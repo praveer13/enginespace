@@ -68,7 +68,7 @@ export function loadCard(id: string): Promise<CompiledCard | null> {
   return once(`card:${id}`, () => pick(cardFiles(), `./generated/cards/${id}.json`))
 }
 
-/** A path under `public/`, which the site serves at its base (`/` in development, `/enginespace/` on GitHub Pages). */
+/** A path under `public/`, which the site serves at its base (`/` in development and at enginespace.naigap.com, D-058; a subpath for a preview or a fork). */
 export const publicUrl = (path: string): string => `${import.meta.env.BASE_URL ?? '/'}${path.replace(/^\/+/, '')}`
 
 /** Every claim by id. */

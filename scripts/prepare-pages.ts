@@ -2,7 +2,8 @@
  * prepare-pages (ARCHITECTURE §3.2, W0-T19): turns the build in dist/ into a site that GitHub Pages serves with HTTP 200 on a
  * deep link. Pages has no rewrite rules, so an address answers 200 only where a file stands.
  *
- *   VITE_BASE=/enginespace/ bun scripts/prepare-pages.ts [--dist <dir>]
+ *   bun scripts/prepare-pages.ts [--dist <dir>]                             the deploy's call: the site is at the root of its origin (D-058)
+ *   VITE_BASE=/enginespace/ bun scripts/prepare-pages.ts [--dist <dir>]     a build made under a subpath, as a preview or a fork has
  *
  * It reads dist/index.html, the document that Vite built from index.html, and writes from it
  *   - dist/<route>/index.html for every route the plan can enumerate (scripts/pages/plan.ts): the route table's pages, each

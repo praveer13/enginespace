@@ -1,6 +1,6 @@
 # enginespace: decision log
 
-**Status:** D-001 to D-006 are the owner's decisions of 2026-11-03. D-007 to D-013 restate the product record the owner confirmed the same day (`PRODUCT.md`). D-014 to D-042 are **proposed** by [ARCHITECTURE.md](ARCHITECTURE.md) and wait for the owner's review. D-043 to D-046 are **proposed** by the design review of 2026-11-03, which settled contradictions between the design files; they wait for the owner too. D-047 records the visual world the owner chose on 2026-11-03, and D-048 and D-049 are **proposed** by the art direction that followed it. D-050 is **proposed** by the design system's build (W0-T05), D-051 by the settings page (W0-T22), and D-052 by the W0 wave PR. The W0 exit review (W0-T24, 2026-11-04) froze D-023's budgets, recorded D-040's spike result and D-047's finish verdict, and carried O-7, O-8 and O-9 over; its record is [docs/waves/W0-report.md](waves/W0-report.md). The open owner questions, O-1 to O-11, and the course-design questions, Q-1 to Q-12, are at the end. **Date:** 2026-11-03, updated 2026-11-04.
+**Status:** D-001 to D-006 are the owner's decisions of 2026-11-03. D-007 to D-013 restate the product record the owner confirmed the same day (`PRODUCT.md`). D-014 to D-042 are **proposed** by [ARCHITECTURE.md](ARCHITECTURE.md) and wait for the owner's review. D-043 to D-046 are **proposed** by the design review of 2026-11-03, which settled contradictions between the design files; they wait for the owner too. D-047 records the visual world the owner chose on 2026-11-03, and D-048 and D-049 are **proposed** by the art direction that followed it. D-050 is **proposed** by the design system's build (W0-T05), D-051 by the settings page (W0-T22), and D-052 by the W0 wave PR. The W0 exit review (W0-T24, 2026-11-04) froze D-023's budgets, recorded D-040's spike result and D-047's finish verdict, and carried O-7, O-8 and O-9 over; its record is [docs/waves/W0-report.md](waves/W0-report.md). D-058 records the owner's answer to O-1, the custom domain, on 2026-11-08. The open owner questions, O-2 to O-11, and the course-design questions, Q-1 to Q-12, are at the end. **Date:** 2026-11-03, updated 2026-11-08.
 
 **How to read a record.** Each record carries six fields:
 - **Decision**, in one or two sentences.
@@ -81,6 +81,7 @@
 | D-055 | The front page's first-paint gate is 154 KB: a fourth game, the first after The Loop to be built on the step loop's workload generator and cards, splits the chunk that The Loop's session shares with them, which costs the closure 2,098 B. | proposed (W1-T33); the owner confirms |
 | D-056 | The gate of `/today` and `/m/:module` is 210 KB, up from 200 KB: both carry the registry of item families, which is static, and TR6's five families cost each closure about 17.2 KB, which took both over their gate. | proposed (W1-T30); the owner confirms |
 | D-057 | Every other route's gate is 201 KB, up from 200 KB: each lesson and module adds its name to the loader's table, which every game route loads for its claims, and TR6's six names took `/play/broken-bench` 41 B over. | proposed (W1-T30); the owner confirms |
+| D-058 | The site is served at https://enginespace.naigap.com, at the root of that origin: the deploy builds with the default base `/`, `public/CNAME` names the domain, and `VITE_BASE` stays for a preview or a fork under a subpath. This answers O-1. | owner-decided 2026-11-08 |
 
 ---
 
@@ -225,7 +226,7 @@
 - **Context:**
   - statespace put engines and untrusted parsing on a second origin, because Pyodide's worker failed inside kernelspace's opaque-origin sandbox (statespace ARCHITECTURE §4.3, §5).
   - enginespace runs no Pyodide and no engine in the page, and renders no imported HTML.
-  - A second origin would also need a second custom domain, which is still undecided (O-1).
+  - The main origin is decided (`https://enginespace.naigap.com`, D-058), and a second origin would need a name of its own.
 - **Alternatives:** statespace's instrument origin; or kernelspace's sandboxed iframe for learner JavaScript, which is not needed because no learner JavaScript runs [design].
 - **Consequences:** ARCHITECTURE §2.1 and §12. There is one Pages site.
 - **Revisit when:** the course runs learner Python or JavaScript in the page, or renders imported rich content.
@@ -966,13 +967,42 @@ D-053 is the new record that D-023 asks for when a change must take a budget ove
   - The front page has 195 B left, which is the cost of three lessons (about 76 B each, 50 B in the index and 27 B in the table): the front page's gate will need D-053's record again, or the names will have to leave the first paint.
 - **Revisit when:** a change takes a route over 201 KB, or the claims or the route manifest leave the closure that the names are in.
 
+## The custom domain, 2026-11-08
+
+D-058 records the owner's answer to O-1, which leaves the table of open questions below.
+
+### D-058 · The site is served at https://enginespace.naigap.com
+
+- **Status:** owner-decided 2026-11-08.
+- **Decision:**
+  - The site's origin is `https://enginespace.naigap.com`, and the site sits at the root of it. The deploy builds and prepares with the default base `/`, so `deploy.yml` sets no `VITE_BASE`.
+  - `public/CNAME` holds the one line `enginespace.naigap.com`, as kernelspace's does.
+  - The base stays configurable for a preview or a fork that is served under a subpath: `VITE_BASE`, which `vite.config.ts` and `scripts/prepare-pages.ts` both read, and their tests for a subpath such as `/enginespace/` keep passing.
+- **Context:**
+  - O-1 asked for the custom domain. Its default was the project site, `praveer13.github.io/enginespace/`, built with `VITE_BASE=/enginespace/`.
+  - The owner answered on 2026-11-08 and added the DNS record that day, a CNAME from `enginespace.naigap.com` to `praveer13.github.io` [measured 2026-11-08 with `host`: `enginespace.naigap.com` is an alias for `praveer13.github.io`, which has four IPv4 addresses, 185.199.108.153 to 185.199.111.153]. GitHub's docs say that a subdomain's CNAME record points at `<user>.github.io`, without the repository's name [measured from "Managing a custom domain for your GitHub Pages site", https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site, 2026-11-08].
+  - kernelspace is served the same way. `kernelspace.naigap.com` is an alias for `praveer13.github.io` too [measured 2026-11-08 with `host`], its `public/CNAME` is the one line `kernelspace.naigap.com`, its `deploy.yml` says "Custom domain (kernelspace.naigap.com) is served from /", and its `vite.config.ts` reads the base from `VITE_BASE` [the last three measured at kernelspace d478f91, 2026-11-08].
+  - The same page of GitHub's docs says: "If you are publishing from a custom GitHub Actions workflow, no CNAME file is created, and any existing CNAME file is ignored and is not required." [measured 2026-11-08] `deploy.yml` is such a workflow, so `public/CNAME` does not bind the domain here. The custom-domain setting of the repository's Pages does, and setting it is the owner's step. The file stays because kernelspace has it and because it names the domain in the repository, where a test holds it equal to this record.
+  - Nothing in the build needs the origin as a string (checked 2026-11-08 at 72f163e). The meta CSP (§12) names only `'self'`, no document has a canonical link or an Open Graph tag, `prepare-pages` writes links relative to the base, and the content compiler writes `llms.txt` and the Markdown export with relative links.
+- **Alternatives:**
+  - Keep O-1's default, the project site under `/enginespace/`: it needs no DNS record and no custom-domain setting. Every address of it carries the repository's name, and the owner chose a domain beside kernelspace's instead.
+  - Write `VITE_BASE: /` into `deploy.yml` [design]: it repeats the default, and `tests/ci/workflows.test.ts` holds the deploy to setting none.
+  - A repository variable for the base, so that a fork could serve a subpath without editing the workflow [design]: it is one more setting for the owner to know, for a case the owner does not have. A fork edits `deploy.yml`.
+  - Add a `SITE_ORIGIN` constant now [design]: nothing would read it.
+- **Consequences:**
+  - `deploy.yml` builds and prepares with the base `/`, and its header gives the owner's steps to turn it on, in order. Enable Pages with the source "GitHub Actions" (O-2 is still open: Pages on a private repository needs a paid plan [unverified, 2026-11-03]). Set the custom domain to `enginespace.naigap.com` and enforce HTTPS; GitHub says that option can take up to 24 hours to become available [measured from the page above, 2026-11-08]. Then set the repository variable `PAGES_ENABLED` to `'true'`. No agent calls GitHub's API or changes the repository's settings.
+  - ARCHITECTURE §3.2, the README, PRODUCT.md, PLAN.md §14, TRACKER's W3-T16 and D-015 name the origin, and the comments of `vite.config.ts`, `src/main.tsx`, `src/content/load.ts` and `scripts/prepare-pages.ts` say that the base is `/` and a subpath is for a preview or a fork. The finished acceptance checks of W0-T04 and W0-T19 keep the `/enginespace/` they were built and tested under.
+  - `tests/ci/workflows.test.ts` holds `deploy.yml` to the default base. `tests/pages/custom-domain.test.ts` builds the site without `VITE_BASE`, prepares it as the deploy does, serves the result as Pages does, and holds `dist/CNAME`, `public/CNAME` and this record to the same domain. The subpath tests keep `/enginespace/`.
+  - The first thing that needs the site's absolute URL (a canonical link, an Open Graph tag, a sitemap, an absolute link in `llms.txt`) takes it from one constant, `SITE_ORIGIN = 'https://enginespace.naigap.com'`, beside `KERNELSPACE_ORIGIN` in `src/content/render/model.ts` or in a better home. The same test fails on a second spelling of the origin in code.
+  - D-015: the main origin is decided, and a second origin would need a name of its own.
+- **Revisit when:** the owner moves the site to another domain, a second origin is needed (D-015), or Pages publishes from a branch, where the custom-domain setting commits a `CNAME` file to the source branch [measured from the page above, 2026-11-08].
+
 ---
 
 ## Open owner questions
 
 | # | Question | Default until answered | Needed by |
 |---|---|---|---|
-| O-1 | The custom domain | `praveer13.github.io/enginespace/`, with `VITE_BASE=/enginespace/` | W3-T16 (launch) |
 | O-2 | When the repo goes public. GitHub Pages on a private repository needs a paid GitHub plan [unverified, 2026-11-03]. | Private, with the Pages plan to be confirmed by the owner | W0-T04 (deploy job) |
 | O-3 | The content licence, and the code licence | kernelspace's pair: MIT for code, CC BY 4.0 for content. Nothing is published until decided. | W3-T15 |
 | O-4 | Confirm the edition-1 pins (D-035), including the R580 driver gate on the owner's GPUs and on the rental hosts | vLLM v0.33.0 (v0.32.0 if the gate fails), SGLang v0.5.23 | W1-T02 |
@@ -983,6 +1013,8 @@ D-053 is the new record that D-023 asks for when a change must take a budget ove
 | O-9 | The reference laptop and phone for frame-time checks | The owner's own devices, named in W0-T24's record | W0-T24; carried over to W1-T38 |
 | O-10 | Whether grader-attested correctness counts at full weight. ASSESSMENT.md owns this; it is listed here because it is the owner's call. | Full weight when every browser-runnable check also passes | W2-T08 |
 | O-11 | Whether D-004 is met by a front page that is playable in 2D from the first paint and becomes 3D within seconds on a capable device (D-023) | Yes | W0-T18 |
+
+**Answered.** O-1, the custom domain, was answered by the owner on 2026-11-08, and its row has left the table: the site is served at `https://enginespace.naigap.com` (D-058).
 
 **Carried over by the W0 exit review (W0-T24, 2026-11-04).** The owner has answered none of O-7, O-8 and O-9, so each keeps its default and moves to a later deadline ([docs/waves/W0-report.md](waves/W0-report.md) §7.3):
 - **O-7.** W0 ran on the default, and no W0 task waited for demand data. W1 starts after W0-T24, so the answer is needed by the `wave-0` merge.

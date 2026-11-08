@@ -36,7 +36,8 @@ const SCENE_KIT = /[\\/]src[\\/]scene[\\/]props[\\/]/
 
 // https://vite.dev/config/
 export default defineConfig({
-  // GitHub Pages serves the site at /enginespace/ until a custom domain exists (O-1); local dev and previews use "/".
+  // The site is served at the root of https://enginespace.naigap.com (D-058), so the deploy builds with the default base "/", as local dev
+  // does. A preview or a fork that is served under a subpath builds with VITE_BASE=/that-path/, and prepare-pages reads the same variable.
   base: process.env.VITE_BASE || '/',
   // The content compiler (ARCHITECTURE §4.1): it compiles content/ at the start of a build and of the dev server, and again when a lesson changes.
   // The meta CSP (§12) goes into every document of a build, right behind its <meta charset>.

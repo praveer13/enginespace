@@ -4,7 +4,8 @@
  *
  * Three real `vite build`s run here, with the repo's own vite.config.ts, into temporary directories:
  *   - the app, as `npm run build` builds it;
- *   - the app again, as the GitHub Pages deploy builds it, under /enginespace/;
+ *   - the app again, as a preview or a fork builds it when it is served under a subpath, /enginespace/ (the deploy builds at the
+ *     root of the custom domain, D-058, as the first build does);
  *   - tests/fixtures/chunks, a miniature of the app with the one thing the app does not have yet: a lazy scene that
  *     imports three and R3F. It is what proves the manualChunks rule works before the first scene exists.
  * Each build writes source maps, and the maps say which package's code sits in which chunk.
@@ -232,7 +233,7 @@ describe('the app build', () => {
   })
 })
 
-describe('the app built for GitHub Pages, with VITE_BASE=/enginespace/', () => {
+describe('the app built under a subpath, with VITE_BASE=/enginespace/, as a preview or a fork on a project site is', () => {
   test('loads every script, stylesheet and preload from under /enginespace/', () => {
     const pages = build('pages', [], { VITE_BASE: '/enginespace/' })
     const html = readFileSync(path.join(pages.outDir, 'index.html'), 'utf8')
