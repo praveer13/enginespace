@@ -189,3 +189,12 @@
   padding: 0;
   list-style: none;
 }
+
+/*
+ * A stub's label stays on one line in the design system, and "Commit the prediction" is longer than the stub's line at 320 px
+ * (WCAG 1.4.10): the nightly sweep found it ending past the viewport. Here the label wraps beside its arrow, as the debriefs of the
+ * Inspection and the Tasting do for the title of the next level.
+ */
+[data-game='engine-floor'] .es-stub__label {
+  white-space: normal;
+}

@@ -163,7 +163,11 @@ export function Controls({ run, desk }: { run: BenchRun; desk: DeskApi | null })
 
   // The last ruling filed, the stub is gone: focus goes to the way on, so a keyboard is not left on nothing.
   useEffect(() => {
-    if (view.done) document.querySelector<HTMLElement>('[data-end] button')?.focus({ preventScroll: true })
+    if (!view.done) return
+    const way = document.querySelector<HTMLElement>('[data-end] button')
+    way?.focus({ preventScroll: true })
+    // It stands under the controls, which can be below the first screen: bring it into view, and move the page no more than that.
+    way?.scrollIntoView({ block: 'nearest' })
   }, [view.done])
 
   if (view.done || desk === null) {

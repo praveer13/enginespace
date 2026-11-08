@@ -11,12 +11,15 @@
  *     play the level to its debrief, and the bell's strike does not run.
  *   - A check that cannot fail proves nothing: the same scan and the same counter are run on a page that animates, and see it.
  *
- * The routes are the pull-request eight (e2e/routes.ts), or every document under ES_E2E_NIGHTLY=1 (A§10.1's nightly list).
+ * The routes are the pull-request eight and what W1 added (e2e/routes.ts: W1-T36's sixteen pages, and the pages of the full service's
+ * levels), or every document under ES_E2E_NIGHTLY=1 (A§10.1's nightly list). Every route that draws a 3D pass has its scene checked
+ * for frames: the front page, the design page, and each game with a scene (`HAS_3D` reads the registry), so a W1 scene is covered
+ * as the front page's is.
  */
 import type { Page } from '@playwright/test'
-import { PR_ROUTES } from './routes'
+import { PR_ROUTES, W1_LEVEL_PAGES, W1_ROUTES } from './routes'
 import { front, playToTheDebrief } from './support/front'
-import { documentRoutes, expect, HAS_3D, NIGHTLY, open, quiet, settled3d, test, withSettings } from './support/site'
+import { documentRoutes, expect, NIGHTLY, open, quiet, SCENE_IN_RUN, settled3d, test, withSettings } from './support/site'
 
 test.use({ reducedMotion: 'reduce' })
 
@@ -26,7 +29,7 @@ declare global {
   }
 }
 
-const ROUTES = NIGHTLY ? documentRoutes() : PR_ROUTES
+const ROUTES = [...(NIGHTLY ? documentRoutes() : [...PR_ROUTES, ...W1_ROUTES]), ...W1_LEVEL_PAGES]
 
 /** Puts a counter on `requestAnimationFrame`. Reading the count asks for no frame. */
 function installCounter() {
@@ -97,7 +100,7 @@ test.describe('at rest, nothing moves', () => {
 })
 
 test.describe('a 3D pass asks for no frame once it has settled', () => {
-  for (const route of ROUTES.filter(HAS_3D)) {
+  for (const route of ROUTES.filter(SCENE_IN_RUN)) {
     test(`${route}: a first frame is drawn, and then none is asked for`, async ({ page }) => {
       test.setTimeout(120_000)
       await countFrames(page)

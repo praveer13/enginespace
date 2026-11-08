@@ -302,7 +302,10 @@ export function Controls({ run, rail }: { run: VerifierRun; rail?: ReactNode }) 
     const was = shown.current
     shown.current = kind
     if (kind === null || was === null) return
-    container.current?.querySelector<HTMLElement>('[data-vf-autofocus]:not(:disabled)')?.focus({ preventScroll: true })
+    const next = container.current?.querySelector<HTMLElement>('[data-vf-autofocus]:not(:disabled)')
+    next?.focus({ preventScroll: true })
+    // The page moves no more than it takes to show the control: on a tall level the next decision opens below the first screen.
+    next?.scrollIntoView({ block: 'nearest' })
   }, [kind])
 
   // The run is over: focus goes to the way on, which the shell prints under the controls.
@@ -310,7 +313,11 @@ export function Controls({ run, rail }: { run: VerifierRun; rail?: ReactNode }) 
   useEffect(() => {
     if (ended.current === run.done) return
     ended.current = run.done
-    if (run.done) document.querySelector<HTMLElement>('[data-end] button')?.focus({ preventScroll: true })
+    if (!run.done) return
+    const way = document.querySelector<HTMLElement>('[data-end] button')
+    way?.focus({ preventScroll: true })
+    // It stands under the controls, which on a tall level are below the first screen: bring it into view, and move the page no more than that.
+    way?.scrollIntoView({ block: 'nearest' })
   }, [run.done])
 
   return (

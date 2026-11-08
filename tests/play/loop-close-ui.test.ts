@@ -123,6 +123,9 @@ describe('the controls of a closed-book stage', () => {
     expect(markup).not.toContain('>Auto<')
     expect(markup).not.toContain('Serve the rest')
     expect(markup).toContain('Call the prediction first: the night is served once it is called.')
+    // The closed book prints no comparison with the house before the night, and the level's own words do not say "against the house"
+    // either: e2e/loop-full.spec.ts looks for that phrase on the whole page, and finds it once the night is served (W1-T36).
+    expect(markup).not.toContain('against the house')
   })
 
   test('the rack takes any sizes of the ladder, with no cap and no list of the engines\' beside it', () => {
@@ -157,6 +160,9 @@ describe('the cards', () => {
     const markup = render(h(FullMirror, { run }))
     expect(markup).toContain('data-close-cards')
     for (const head of ["Tonight&#x27;s tickets", 'What the line charges', 'What the expo charges tonight', 'The backend and the reach-in']) expect(markup).toContain(head)
+    // The page is `h1` (Play Service) and `h2` (Service), so a card's heading is the next level, and none is skipped (axe's heading-order; W1-T36).
+    expect(markup.match(/<h3[ >]/g)).toHaveLength(4)
+    expect(markup).not.toMatch(/<h4[ >]/)
     for (const tag of ['synthetic', 'estimated', 'derived']) expect(markup).toContain(`data-tag="${tag}"`)
     expect(markup).toContain('Every kernel of a fire, one by one')
     expect(markup).toContain('The reach-in can spare for routines')

@@ -17,8 +17,9 @@ import { defineConfig } from '@playwright/test'
  *   ES_E2E_PORT       the port of `vite preview`, 4180. The server is never reused, because a stale one from another tree would be
  *                     tested in place of this build: a port that is taken is an error, and this gives a run its own.
  *   ES_E2E_ORIGIN     the address of a server that already serves a build (`http://127.0.0.1:4173`): then nothing is built or started.
- *   ES_E2E_NIGHTLY=1  the nightly sweep (nightly.yml): axe at 320, 360 and 1280 px on every document that prepare-pages writes, and the
- *                     cross-browser determinism hash in Firefox and WebKit. It builds with prepare-pages, which needs Bun.
+ *   ES_E2E_NIGHTLY=1  the nightly sweep (nightly.yml): axe at 320, 360 and 1280 px on every document that prepare-pages writes, the
+ *                     network check and the reduced-motion scan of each, a keyboard walk of every level of every game (walks.spec.ts), and
+ *                     the cross-browser determinism hash in Firefox and WebKit. It builds with prepare-pages, which needs Bun.
  * New screenshot baselines (the PNGs of e2e/screenshots.spec.ts-snapshots/, which a machine that draws a little differently can outdate):
  *   npx playwright test --project=smoke screenshots --update-snapshots
  */
@@ -29,12 +30,23 @@ const NIGHTLY = process.env.ES_E2E_NIGHTLY === '1'
 const CI = Boolean(process.env.CI)
 
 /**
- * The pull-request subset (A§10.1's "e2e-smoke"): what W0-T21 adds, and what a pull request must keep green. The specs that earlier
- * tasks wrote carry their own acceptance checks, each with a test build of its own: six specs and 119 tests took 7.7 minutes with two
- * workers on a 20-core laptop, under a load average of about 15 from other work [measured 2026-11-04 at 0a5ccf2 with this task's
+ * The pull-request subset (A§10.1's "e2e-smoke"): what W0-T21 adds, and what a pull request must keep green, and what W1-T36 adds for the
+ * pages, the games and the scenes that W1 built (walks.spec.ts is its keyboard walks, and e2e/routes.ts its routes). The specs that
+ * earlier tasks wrote carry their own acceptance checks, each with a test build of its own: six specs and 119 tests took 7.7 minutes with
+ * two workers on a 20-core laptop, under a load average of about 15 from other work [measured 2026-11-04 at 0a5ccf2 with this task's
  * files, before the rebase onto W0-T20]. They run in the nightly sweep, and not on every pull request.
+ *
+ * The names are listed in the order the files run in, because Playwright sorts the files by name and cuts the list of tests (a test is a
+ * unit: `fullyParallel`, below) into four runs of equal length for ci.yml's four shards. A file's name is therefore also where its tests
+ * fall, and the heavy ones must not sit side by side. The 193 tests of this list ran as four shards of 66, 61, 75 and 98 s, with two workers
+ * on a 20-core laptop under a load average of about 13 from other work [measured 2026-11-08 at df76ca9 with W1-T36's files]. The first
+ * arrangement of the same work (206 tests, a11y.spec.ts in width order, the walks sorting before keyboard-loop) cut as 102, 167, 210 and 105 s
+ * of test time, the sum of the tests' durations in each shard [measured 2026-11-08 at df76ca9], and the tests of W0-T21 alone as 47, 120, 42
+ * and 47 s [measured 2026-11-08 at df76ca9]. `walks` sorts last: a game played to its debrief at two widths is the heaviest test for its
+ * length, and the 3D checks of reduced-motion and screenshots, the next heaviest, sit before it. A spec that is added belongs where its name
+ * sorts to: run the shards (`npx playwright test --project=smoke --shard=<i>/4`) and look at the four times before it merges.
  */
-const SMOKE = ['a11y', 'keyboard-loop', 'network', 'screenshots', 'reduced-motion'].map((name) => `**/${name}.spec.ts`)
+const SMOKE = ['a11y', 'keyboard-loop', 'network', 'reduced-motion', 'screenshots', 'walks'].map((name) => `**/${name}.spec.ts`)
 /** W0-T20's lab profile: a measurement, which nightly.yml's lab-profile job runs on its own. */
 const LAB = '**/perf.spec.ts'
 
@@ -103,7 +115,7 @@ export default defineConfig({
   snapshotPathTemplate: '{snapshotDir}/{testFileDir}/{testFileName}-snapshots/{arg}{ext}',
   reporter: CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   projects: [
-    // fullyParallel, so that ci.yml's shards split the smoke specs test by test and not file by file (five files, four shards).
+    // fullyParallel, so that ci.yml's shards split the smoke specs test by test and not file by file (six files, four shards).
     { name: 'smoke', testMatch: SMOKE, fullyParallel: true, use: chromium },
     // Every other spec: the ones that earlier tasks wrote, and whatever a later task adds.
     { name: 'features', testIgnore: [...SMOKE, LAB], use: chromium },

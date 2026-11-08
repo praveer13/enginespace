@@ -18,9 +18,10 @@ name: Nightly
 #                        properties read one knob, ES_PROPERTY_SEEDS (tests/seeds.ts), and the job sets it.
 #   lab-profile  W0-T20  runs e2e/perf.spec.ts, the LCP, CLS and INP lab profile of §11.1, and fails above the gates.
 #   browsers     W0-T21  the sweep of playwright.config.ts under ES_E2E_NIGHTLY=1 (§10.1, §11.2): full axe at 320, 360 and 1280 px on
-#                        every document that prepare-pages writes, the reflow check, reduced motion on every one of them, the
-#                        keyboard walks, the specs that earlier tasks wrote, and the cross-browser determinism hash in Chromium,
-#                        Firefox and WebKit.
+#                        every document that prepare-pages writes, the reflow check, reduced motion and the network check on every
+#                        one of them, the keyboard walks (the front page's, and W1-T36's: every level of every game), the 3D passes
+#                        of every game audited and watched for frames, the specs that earlier tasks wrote, and the cross-browser
+#                        determinism hash in Chromium, Firefox and WebKit.
 
 on:
   schedule:

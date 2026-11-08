@@ -108,7 +108,7 @@ export function naiveLevers(slots: number, budget: number): Levers {
 export const CLOSE_COPY = {
   title: 'Close the bubbles',
   prompt:
-    "Tonight's tickets are all due at once. Choose the configuration from the cards before a single fire: whether the next call is written during the fire and where its ids come from, the runner, the drilled routines and the molds on the rack. One night is served, and it is judged against the house's.",
+    "Tonight's tickets are all due at once. Choose the configuration from the cards before a single fire: whether the next call is written during the fire and where its ids come from, the runner, the drilled routines and the molds on the rack. One night is served, and the house's own night is the bar it is judged by.",
   question: 'With nothing switched on (the legacy runner, the next call written after the fire, no routine drilled), what share of the night does the line sit dark?',
 } as const
 

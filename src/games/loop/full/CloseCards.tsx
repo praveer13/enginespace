@@ -49,7 +49,7 @@ function Pair({ mrv2, v1 }: { mrv2: ReactNode; v1: ReactNode }) {
 
 function Card({ head, title, children }: { head: string; title: string; children: ReactNode }) {
   return (
-    <Ticket as="section" width="full" hole={false} compact head={head} titleAs="h4" title={title}>
+    <Ticket as="section" width="full" hole={false} compact head={head} titleAs="h3" title={title}>
       <dl className="es-close-card">{children}</dl>
     </Ticket>
   )

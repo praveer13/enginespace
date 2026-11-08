@@ -14,7 +14,8 @@
  *   - the e2e route list names an address that no document answers.
  *
  * The e2e route list is `PR_ROUTES` in e2e/routes.ts, the paths that the pull-request subset of the specs visits (ARCHITECTURE §10.1,
- * §11.2: axe on eight routes). W0-T21 adds that file, and until it exists there is nothing to compare, which the output says.
+ * §11.2: axe on eight routes), with the routes that W1-T36 adds to them (`W1_ROUTES`, and the paths of `W1_LEVEL_PAGES`, a game's page
+ * opened on a level by `?level=`). W0-T21 adds that file, and until it exists there is nothing to compare, which the output says.
  * The gate needs no build: it reads the table and the sources, and prepare-pages checks the built files (the title, the policy,
  * the base) when it writes them; tests/pages runs a real build through it.
  *
@@ -65,16 +66,24 @@ export function checkRoutes({ routes, sources, e2e }: Input): Report {
   return { problems, pages: plan.pages, counts: countsOf(routes, plan.pages) }
 }
 
+const isPaths = (value: unknown): value is string[] => Array.isArray(value) && value.every((url) => typeof url === 'string')
+
 /** The paths of e2e/routes.ts, or null when the file is not there. It throws when the file does not keep the contract. */
 async function loadE2e(root: string): Promise<readonly string[] | null> {
   const file = path.join(root, 'e2e/routes.ts')
   if (!existsSync(file)) return null
-  const loaded = (await import(file)) as { PR_ROUTES?: unknown }
-  const urls = loaded.PR_ROUTES
-  if (!Array.isArray(urls) || !urls.every((url) => typeof url === 'string')) {
+  const loaded = (await import(file)) as { PR_ROUTES?: unknown; W1_ROUTES?: unknown; W1_LEVEL_PAGES?: unknown }
+  if (!isPaths(loaded.PR_ROUTES)) {
     throw new Error('e2e/routes.ts must export PR_ROUTES, an array of the paths that the pull-request specs visit, such as ["/", "/map", "/m/tr2"]')
   }
-  return urls as string[]
+  // W1's additions are optional, so that a tree from before W1-T36 still reads. A level page is a game's page opened on a level (`/play/loop?level=close`): its document is the game's.
+  const w1 = loaded.W1_ROUTES ?? []
+  const levelPages = loaded.W1_LEVEL_PAGES ?? []
+  if (!isPaths(w1) || !isPaths(levelPages)) throw new Error('e2e/routes.ts must export W1_ROUTES and W1_LEVEL_PAGES as arrays of paths')
+  const paths = [...loaded.PR_ROUTES, ...w1]
+  const documents = new Set(paths)
+  const levelDocuments = [...new Set(levelPages.map((page) => page.split('?')[0]))].filter((document) => !documents.has(document))
+  return [...paths, ...levelDocuments]
 }
 
 async function loadRoutes(file: string | null): Promise<readonly RouteObject[]> {

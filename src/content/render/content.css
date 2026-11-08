@@ -237,6 +237,15 @@
   white-space: nowrap;
 }
 
+/*
+ * In the tape a reference can be longer than the tape's line at 320 px (WCAG 1.4.10): `kernelspace t6.multi-lora-batching` does not fit
+ * beside the label of its line, and the printer's housing grew past the viewport to hold it, on every lesson that lists a long id (the
+ * nightly sweep found it on eight of the TR5a, TR6 and TR8 lessons). In the tape the chip may break after "kernelspace"; in prose it stays whole.
+ */
+.es-doc__side .es-ks {
+  white-space: normal;
+}
+
 /* ---------------------------------------------------------------------------------------------- tape, claims and tags */
 
 /* A tag the author typed: masking tape stuck on the sentence, level with the line. */

@@ -16,6 +16,7 @@ import { existsSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 import { test as base, expect } from '@playwright/test'
 import type { BrowserContext, Page } from '@playwright/test'
+import { GAMES } from '../../packages/play/registry'
 import { DEFAULT_SETTINGS, encodeMirror, MIRROR_KEY } from '../../src/settings/model'
 import type { Settings } from '../../src/settings/model'
 
@@ -212,8 +213,20 @@ export async function settled3d(page: Page, { rested = true, timeout = 60_000 }:
   await quiet(page)
 }
 
-/** The routes that draw a 3D pass on a device that can (A§3.1). A game with a 3D view adds its route here. */
-export const HAS_3D = (route: string): boolean => route === '/' || route === '/design' || route === '/play/loop'
+/** The pages of the games that have a 3D scene, from the registry: a game that adds one is checked without anyone adding it to a list. */
+const GAME_PAGES_3D: ReadonlySet<string> = new Set(GAMES.games.filter((game) => game.has3d).map((game) => `/play/${game.id}`))
+
+/** The routes that draw a 3D pass on a device that can (A§3.1): the front page, the design page, and the page of every game with a scene. A `?level=` does not change that. */
+export const HAS_3D = (route: string): boolean => {
+  const [pathname] = route.split('?')
+  return pathname === '/' || pathname === '/design' || GAME_PAGES_3D.has(pathname)
+}
+
+/**
+ * Whether a run looks at the 3D pass of a route. Every route that has one, except that a pull request takes one of the five levels of
+ * the full service, which share a scene: `graphs`, with the comb and the mold rack on the pass. The nightly sweep takes all five.
+ */
+export const SCENE_IN_RUN = (route: string): boolean => HAS_3D(route) && (NIGHTLY || !route.includes('?level=') || route.endsWith('?level=graphs'))
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Every document of a build                                                                                          */
@@ -250,8 +263,9 @@ export interface Clipped {
  * WCAG 1.4.10 (Reflow): at 320 px the page needs no sideways scroll, and nothing is cut off. A `scrollWidth` check (kernelspace's
  * a11y.mjs does that one) misses a page whose root clips, which is how this one found the debrief cut off at 360 px, so the second
  * half looks at the text itself: an element with words of its own, past the right edge, outside every box that scrolls sideways
- * (a table in a focusable region is allowed to). The 2D page only: a 3D scene's labels may lie past its own edge by design. `within` is
- * a selector for the part of the page to look at, for a check that is about one piece of it.
+ * (a table in a focusable region is allowed to) and outside every box that clips to a pixel (a live region for a reader). The 2D page only:
+ * a 3D scene's labels may lie past its own edge by design. `within` is a selector for the part of the page to look at, for a check that
+ * is about one piece of it.
  */
 export function clipped(page: Page, within = 'body'): Promise<Clipped> {
   return page.evaluate((selector) => {
@@ -262,6 +276,16 @@ export function clipped(page: Page, within = 'body'): Promise<Clipped> {
       }
       return false
     }
+    // Text inside a box that clips it to a pixel is not on the screen: a game's live region for a reader (`sr-only`) is such a box, and the
+    // line it holds is as long as the turn's announcement (1,600 px wide in the 3D view of the Reach-In, which says several things at once
+    // [measured 2026-11-08 at df76ca9, at 320 px]), so that its box ends past the edge although no pixel of it is drawn.
+    const inPixel = (element: Element) => {
+      for (let parent = element.parentElement; parent !== null && parent !== document.documentElement; parent = parent.parentElement) {
+        const rect = parent.getBoundingClientRect()
+        if (rect.width <= 1 && rect.height <= 1 && getComputedStyle(parent).overflowX !== 'visible') return true
+      }
+      return false
+    }
     const text: string[] = []
     for (const element of document.querySelector(selector)?.querySelectorAll('*') ?? []) {
       if (![...element.childNodes].some((node) => node.nodeType === Node.TEXT_NODE && (node.textContent ?? '').trim() !== '')) continue
@@ -269,7 +293,7 @@ export function clipped(page: Page, within = 'body'): Promise<Clipped> {
       const style = getComputedStyle(element)
       // Visually hidden text (a skip link before it is focused, a label for a reader) is a box of 1 px, or not drawn.
       if (box.width <= 1 || box.height <= 1 || style.visibility === 'hidden' || style.display === 'none') continue
-      if (box.right <= edge + 1 || inScroller(element)) continue
+      if (box.right <= edge + 1 || inScroller(element) || inPixel(element)) continue
       const name = `${element.tagName.toLowerCase()}${typeof element.className === 'string' && element.className !== '' ? `.${element.className.split(' ')[0]}` : ''}`
       text.push(`${name} ends at ${Math.round(box.right)} px, past the ${edge} px viewport: "${(element.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 40)}"`)
     }
