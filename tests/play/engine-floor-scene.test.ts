@@ -1,5 +1,5 @@
 /*
- * Back of House's 3D scene (W1-T18, and the finish review's round 1; GAMES.md §5 "3D scene", §2.6 "Back of House"), with no WebGL: the
+ * Back of House's 3D scene (W1-T18, and the finish review's rounds 1 and 2; GAMES.md §5 "3D scene", §2.6 "Back of House"), with no WebGL: the
  * house the page lays out of the view (src/games/engine-floor/scene-layout.ts), the route the laid stages make through it and the run the
  * scene plays (scene-route.ts), the camera's stops (scene-stops.ts, scene-presets.ts), and the house's own props made the kit's way
  * (scene-props.ts).
@@ -8,21 +8,26 @@
  *     and a spot for every place a laid stage names. It stands in a kitchen: the line, under its canopy, is there before the prediction,
  *     because it says nothing of how many floors a token crosses; the floors are not, and a sealed graded run builds only the floors its
  *     route has reached, as the 2D house does.
- *   - Each storey is a room, furnished by its floor's kind, and its hands work at that furniture's surface.
+ *   - Each storey is a room, furnished by its floor's kind so it reads at the cutaway's scale (the host stand's book on its lectern, the
+ *     order desk's printer and its tape, the pass's warm plates along its shelf), and its hands work at that furniture's surface.
  *   - The route is a chain of hops, each from the last stand through the hand-off that crosses it: a window and the chute behind the
  *     partition for IPC and shared memory, the dumbwaiter's car for a copy, the line's rail for a launch, a spike for a queue and the gate for
  *     a sync. Every laid stage has its number on one chit, and each chit is pinned where its hand-off is.
  *   - One lamp: every pair of hands has a lamp on a channel of its own, its bulb's glow round its lip on the same, and the present lights
- *     its own and no other.
+ *     its own and no other. Its light falls straight down onto the surface the hands work at, in front of their ticket, which hangs clear
+ *     of that surface and keeps its paper white.
+ *   - The names and the numbers keep to their own bands: a storey's tape on its deck's edge, a pair of hands' on the front of their
+ *     furniture, and every chit at or over the surface a hand-off stands on.
  *   - The run plays the hops a run added, one stage to the bell, and a balk where it stopped; nothing else moves, and under reduced motion
- *     nothing at all. The follow is close on the hands the ticket is at.
+ *     nothing at all. The follow is close on the hands the ticket is at, and a low house's cutaway is framed on its hands, so the ticket
+ *     under the lit lamp is tens of pixels tall on a laptop and on a phone.
  *   - The scene's own modules take only types from the page's, so the 3D chunk imports nothing the game's chunk holds (verify:bundle finds a
  *     game by its chunk's source).
  */
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
-import { Box3, Vector3 } from 'three'
+import { Box3, PerspectiveCamera, Vector3 } from 'three'
 import { MAP_LEVEL, trayFor } from '@es/play/engine-floor/levels'
 import { floorView } from '@es/play/engine-floor/session'
 import { referenceOf } from '@es/play/engine-floor/stages'
@@ -86,14 +91,15 @@ describe('the house: the 2D house\'s plan, in steel, in a kitchen', () => {
     expect(house.shaft.landings).toEqual(house.storeys.map((storey) => storey.top))
   })
 
-  test('pairs of hands stand a lane apart on their storey, inside the house\'s box, and each storey\'s stands under its own deck', () => {
+  test('pairs of hands stand a lane apart on their storey (streams a station apart), inside the house\'s box, and each storey\'s stands under its own deck', () => {
     for (const sc of ALL_SCENARIOS) {
       const house = houseOfView(laidView(levelFor(sc)))
       const { min, max } = house.box
       for (const spot of house.spots.values()) {
         expect(spot.x).toBeGreaterThan(min[0])
         expect(spot.x).toBeLessThan(max[0])
-        expect(spot.x / HOUSE.lane).toBeCloseTo(Math.round(spot.x / HOUSE.lane), 6)
+        const pitch = spot.gpu ? 1 : HOUSE.lane
+        expect(spot.x / pitch).toBeCloseTo(Math.round(spot.x / pitch), 6)
         const storey = house.storeys[spot.storey]
         const top = storey.line ? HOUSE.line : storey.y + HOUSE.pitch
         expect(spot.stand.at[1]).toBeGreaterThan(spot.y)
@@ -138,8 +144,8 @@ describe('the house: the 2D house\'s plan, in steel, in a kitchen', () => {
     expect(houseOfView(judged).storeys.map((storey) => storey.title)).toEqual(floorsOf(judged).map((floor) => floor.title))
   })
 
-  test('each storey is a room furnished by its floor\'s kind: set tables in the dining room, the host stand, the order desk and its printer, the pass and its plates, the cooks\' bench and its pan', () => {
-    const want = { dining: ['table'], host: ['stand'], desk: ['worktop', 'printer'], pass: ['pass', 'plate-stack'], cooks: ['worktop', 'pan'], kitchen: ['pass', 'plate-stack', 'printer'] }
+  test('each storey is a room furnished by its floor\'s kind: set tables in the dining room, the host stand, the order desk with its printer and its tape, the pass and its plates, the cooks\' bench and its pan', () => {
+    const want = { dining: ['table'], host: ['stand'], desk: ['worktop', 'printer', 'tape'], pass: ['pass', 'plate-stack'], cooks: ['worktop', 'pan'], kitchen: ['pass', 'plate-stack', 'printer'] }
     const seen = new Set<string>()
     for (const sc of ALL_SCENARIOS) {
       const house = houseOfView(laidView(levelFor(sc)))
@@ -148,12 +154,45 @@ describe('the house: the 2D house\'s plan, in steel, in a kitchen', () => {
         const kind = floorKindOfProcess(storey.process) as keyof typeof want
         seen.add(kind)
         // A storey's furniture stands on its deck, and what stands on the furniture stands on its top; the line's own ids say which storey.
-        const own = house.items.filter((item) => new RegExp(`^(?:counter|table|plate|plates|printer|pan)-${j}(?:-|$)`).test(item.id))
+        const own = house.items.filter((item) => new RegExp(`^(?:counter|table|plate|plates|printer|pan|tape)-${j}(?:-|$)`).test(item.id))
         for (const piece of want[kind]) expect(own.map((item) => item.kind), `${storey.title}`).toContain(piece)
         for (const item of own) expect([storey.y, storey.top, storey.top - 0.37].map((y) => Math.abs(y - item.at[1]) < 1e-6).some(Boolean), item.id).toBe(true)
+        // The pass's plates read at the cutaway's scale: a stack every half metre along its heated shelf, from end to end.
+        const stacks = own.filter((item) => item.kind === 'plate-stack').map((item) => item.at[0])
+        if (kind === 'pass' || kind === 'kitchen') {
+          const counter = own.find((item) => item.kind === 'pass')
+          const width = counter && 'width' in counter ? counter.width : 0
+          expect(stacks.length, storey.title).toBeGreaterThanOrEqual(Math.floor(width / 0.5) - 1)
+          stacks.slice(1).forEach((x, k) => expect(x - stacks[k]).toBeCloseTo(0.5, 6))
+        }
       })
     }
     expect([...seen].sort()).toEqual(Object.keys(want).sort())
+  })
+
+  test('each storey\'s place reads at the cutaway\'s scale: the host stand\'s book open on its lectern, and the order desk\'s tape hanging over its front edge', () => {
+    const vllm = houseOfView(laidView(levelOf('vllm')))
+    const stand = vllm.items.find((item) => item.kind === 'stand') as HouseItem
+    const top = stand.at[1] + ('height' in stand ? stand.height : 0)
+    // White pages over the stand's top, tipped toward the room, on a lectern of deep steel; the stand itself is brushed steel, panelled.
+    const parts = buildProp(asSpec(stand), palette).parts
+    // The stand's steel is metal, and its only glazed parts (the palette's paper) are the book's pages.
+    const pages = parts.filter((part) => part.surface === 'ceramic')
+    expect(pages.length).toBeGreaterThanOrEqual(2)
+    for (const page of pages) {
+      const box = new Box3().setFromBufferAttribute(page.geometry.getAttribute('position') as never)
+      expect(box.min.y).toBeGreaterThan(top - stand.at[1])
+      expect(box.max.y - box.min.y).toBeGreaterThan(0.1)
+    }
+    const mini = houseOfView(laidView(levelOf('mini')))
+    for (const tape of mini.items.filter((item) => item.kind === 'tape')) {
+      const box = boundsOf(tape)
+      const printer = mini.items.find((item) => item.kind === 'printer' && item.id === tape.id.replace('tape', 'printer')) as HouseItem
+      // From the printer's mouth over the desk, down over its front edge: a strip of paper longer than the printer is tall.
+      expect(box.max.y).toBeGreaterThan(printer.at[1] + 0.1)
+      expect(box.min.y).toBeLessThan(printer.at[1] - 0.2)
+      expect(Math.abs(box.getCenter(new Vector3()).x - printer.at[0])).toBeLessThan(0.01)
+    }
   })
 
   test('every prop builds the kit\'s way: real geometry in metres, and what stands on a floor, a deck or a counter casts a contact shadow', () => {
@@ -226,16 +265,60 @@ describe('the house: the 2D house\'s plan, in steel, in a kitchen', () => {
     expect(presentOf(done, houseOfView(done))).toBeNull()
   })
 
-  test('the room falls away from the house: its light is full over the house and dims toward its far corners and up over the hood', () => {
+  test('the room falls away from the house: its light is full over the line and dims toward its far corners and up the tile over the hood', () => {
     const house = houseOfView(laidView(levelOf('mini')))
     const { room, box } = house
     const middle = (box.min[0] + box.max[0]) / 2
     expect(roomShade(room, middle, 1, HOUSE.back)).toBe(1)
     expect(roomShade(room, middle - 8, 0.5, HOUSE.back)).toBeLessThan(0.5)
     expect(roomShade(room, middle, box.max[1], HOUSE.back)).toBeLessThan(0.6)
+    // Before the prediction, behind the floor the request begins on, the tile over the hood is darker than the tile behind the line, so the
+    // lit lamp and its white ticket stand out against it, and its top corners darker still.
+    const first = houseOfView(floorView(walk(levelOf('nano'))))
+    const spot = [...first.spots.values()][0]
+    const ticket = roomShade(first.room, spot.x, spot.y + 0.13, HOUSE.back)
+    expect(roomShade(first.room, first.room.x, 1.2, HOUSE.back)).toBe(1)
+    expect(ticket).toBeLessThan(0.75 * roomShade(first.room, spot.x, 1.2, HOUSE.back))
+    expect(roomShade(first.room, first.box.max[0], first.box.max[1], HOUSE.back)).toBeLessThan(ticket)
     // The floor and the wall reach past any framing: the room never ends in the void beside the house.
     const wall = house.items.find((item) => item.kind === 'tile-wall')
     expect(wall && 'width' in wall ? wall.width : 0).toBeGreaterThanOrEqual(20)
+  })
+
+  test('the one lamp\'s light falls straight down onto the surface its hands work at, in front of their ticket, which hangs clear of that surface', () => {
+    for (const sc of ALL_SCENARIOS) {
+      const house = houseOfView(laidView(levelFor(sc)))
+      for (const spot of house.spots.values()) {
+        if (spot.gpu || spot.lamp === null) continue
+        const { at, target } = spot.lamp
+        expect([target[0], target[2]]).toEqual([at[0], at[2]])
+        expect(target[1]).toBe(spot.y)
+        // The ticket hangs on the tile behind the light, its foot (a ticket 0.2 m long, Scene3D.tsx) clear of the surface under it.
+        expect(spot.stand.at[2]).toBeLessThan(at[2] - 0.1)
+        expect(spot.stand.at[1] - 0.2).toBeGreaterThan(spot.y)
+        expect(spot.stand.at[1]).toBeLessThan(at[1])
+      }
+    }
+  })
+
+  test('the names and the numbers keep to their own bands: a pair of hands\' tape on the front of their furniture, under its top and over the deck, and every chit at or over the surface its hand-off stands on', () => {
+    for (const sc of ALL_SCENARIOS) {
+      const view = laidView(levelFor(sc))
+      const house = houseOfView(view)
+      const tapes = tapesOf(house)
+      for (const spot of house.spots.values()) {
+        const tape = tapes.find((candidate) => candidate.id === `hands-${spot.key}`)
+        const storey = house.storeys[spot.storey]
+        expect(tape?.at[1]).toBeLessThan(spot.y)
+        expect(tape?.at[1]).toBeGreaterThan(storey.line ? 0 : storey.y)
+      }
+      const tops = house.storeys.map((storey) => storey.top)
+      for (const chit of routeOf(view, house).chits) {
+        expect(tops.some((top) => chit.at[1] >= top && chit.at[1] < top + 0.25), chit.id).toBe(true)
+        // A chit on a spike or the gate sits over its pin, a chit of hands at work beside their ticket, and the rest on their sill, landing or counter.
+        if (/^(?:spike|gate)-/.test(chit.id)) expect(chit.place).toBe('above')
+      }
+    }
   })
 
   test('its tapes name every storey in the kitchen\'s words with the engine\'s, and every pair of hands by its thread with the lane\'s code', () => {
@@ -417,6 +500,39 @@ describe('the camera\'s stops (GAMES.md §2.6, Cameras)', () => {
           expect(framing.position[1]).toBeGreaterThan(framing.target[1])
           expect(framing.target[1]).toBeGreaterThanOrEqual(house.box.min[1])
           expect(framing.target[1]).toBeLessThanOrEqual(house.box.max[1])
+        }
+      }
+    }
+  })
+
+  test('the ticket under the lit lamp is the first thing found: a low house\'s cutaway and the follow show it tens of pixels tall and whole, on a laptop and on a phone', () => {
+    // The stage's canvas: about 872 by 630 px at 1440 px, and 358 by 489 px on a phone of 390 by 844 (Game.tsx's STAGE_BOX) [derived].
+    const boxes = [[1440, 872, 630], [390, 358, 489]] as const
+    for (const id of ['nano', 'vllm'] as const) {
+      const view = floorView(walk(levelOf(id)))
+      const house = houseOfView(view)
+      const spot = presentOf(view, house) as NonNullable<ReturnType<typeof presentOf>>
+      for (const stop of ['cutaway', `follow:${spot.key}`]) {
+        const preset = presetsOf(house).find((candidate) => candidate.id === stop) as never
+        for (const [width, w, h] of boxes) {
+          const framing = framingFor(preset, width)
+          const camera = new PerspectiveCamera(framing.fov, w / h, 0.05, 200)
+          camera.position.set(...(framing.position as [number, number, number]))
+          camera.lookAt(...(framing.target as [number, number, number]))
+          camera.updateMatrixWorld()
+          const px = (x: number, y: number, z: number) => {
+            const v = new Vector3(x, y, z).project(camera)
+            return [((v.x + 1) / 2) * w, ((1 - v.y) / 2) * h]
+          }
+          const [, head] = px(spot.x, spot.stand.at[1], spot.stand.at[2])
+          const [left, foot] = px(spot.x - 0.05, spot.stand.at[1] - 0.2, spot.stand.at[2])
+          expect(foot - head, `${id} ${stop} at ${width}`).toBeGreaterThan(40)
+          for (const [x, y] of [px(spot.x, spot.lamp?.at[1] ?? 0, spot.lamp?.at[2] ?? 0), [left, foot]]) {
+            expect(x).toBeGreaterThan(0)
+            expect(x).toBeLessThan(w)
+            expect(y).toBeGreaterThan(0)
+            expect(y).toBeLessThan(h)
+          }
         }
       }
     }

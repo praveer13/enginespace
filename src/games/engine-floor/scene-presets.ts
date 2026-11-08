@@ -2,8 +2,9 @@
  * Back of House's camera framings (GAMES.md §2.6, "Back of House", Cameras; §5, "3D scene"; §2.3, "Camera grammar"), one for each stop
  * the page names (scene-stops.ts), fitted to the house the scene builds (scene-layout.ts):
  *
- *   Cutaway            Establish: the whole house at three quarters from the right and a little above, every storey in view, the line at
- *                      its foot and the two walls at its sides; before the prediction, the floor the request begins on over the line.
+ *   Cutaway            Establish: the whole house at three quarters from the right and a little above, every storey in view, the line's
+ *                      canopy and cooktops at its foot and the two walls at its sides; a low house (before the prediction, the floor the
+ *                      request begins on over the line) is framed on its hands, so the ticket under the lit lamp is the first thing found.
  *   One floor          Focus, one for each storey: the floor's room and its hands fill the frame, the walls at its ends; the line's is
  *                      taken from low enough to see up under the canopy.
  *   Follow the ticket  Follow: close on a pair of hands (or a stream), its ticket and its lamp in the middle, one for each; the scene names
@@ -36,14 +37,18 @@ function fit(center: Vec3, w: number, h: number, d: number, yaw: number, pitch: 
 }
 
 /**
- * The whole house, a little above and from the right. On a phone a low house (before the prediction, the first floor over the line) is
- * framed on its hands, its walls at the box's edges, and a little high, so the house fills the box and not the floor in front of it.
+ * The whole house, a little above and from the right, from the line's cooktops up: its storeys fill the box and the line's canopy and
+ * cooktops stand at its foot, the floor in front of it left to the haze. A low house (the floor the request begins on, over the line, as the house stands before
+ * the prediction, and nano-vllm's whole kitchen) is framed on its hands instead, whose first lane is at x = 0 on the first deck: on a
+ * laptop their lit lamp and the ticket under it in the upper middle of the box, the canopy's lip and the cooktops at its foot; on a phone
+ * the hands alone fill the box, their lamp at its top and their counter at its foot.
  */
 function cutaway(house: House, aspect: number): Fit {
   const { min, max } = house.box
-  const portrait = aspect < 1
-  const center: Vec3 = [(min[0] + max[0]) / 2 - (portrait ? 0.2 : 0), (min[1] + max[1]) / 2 + (portrait ? 0.2 : -0.05), (min[2] + max[2]) / 2]
-  return fit(center, (max[0] - min[0]) * (portrait ? 0.86 : 1), max[1] - min[1], max[2] - min[2], 0.42, 0.24, aspect, portrait ? 1.06 : 1.12)
+  const d = max[2] - min[2]
+  const z = (min[2] + max[2]) / 2
+  if (house.storeys.length < 3) return aspect < 1 ? fit([0.15, 2.66, z], 0.85, 1.3, d, 0.42, 0.28, aspect, 1.04) : fit([0.35, 2.42, z], 2.2, 1.85, d, 0.42, 0.28, aspect, 1.04)
+  return fit([(min[0] + max[0]) / 2, (0.9 + max[1]) / 2, z], max[0] - min[0], max[1] - 0.9, d, 0.42, 0.24, aspect, 1.1)
 }
 
 /** One storey: its room and its hands, or the line under its canopy. */
@@ -55,10 +60,13 @@ function storey(house: House, index: number, aspect: number): Fit {
   return fit(center, max[0] - min[0], height, max[2] - min[2], 0.32, line ? 0.1 : 0.2, aspect, aspect < 1 ? 1.04 : 1.1)
 }
 
-/** Close on a pair of hands or a stream: its ticket, its lamp and the surface they work at, a lane's width round them. */
+/**
+ * Close on a pair of hands or a stream: its ticket, its lamp and the surface they work at, with their tape on its front and the chits of
+ * their hand-offs either side; on a phone narrower, so the ticket is about as tall in the box as on a laptop's.
+ */
 function close(house: House, spot: Spot, aspect: number): Fit {
   const { min, max } = house.box
-  return fit([spot.x, spot.y + 0.12, (min[2] + max[2]) / 2], 1.6, 1.3, max[2] - min[2], 0.3, spot.gpu ? 0.08 : 0.16, aspect, 1.1)
+  return fit([spot.x, spot.y + 0.15, (min[2] + max[2]) / 2], aspect < 1 ? 1 : 1.6, 1.3, max[2] - min[2], 0.3, spot.gpu ? 0.08 : 0.16, aspect, 1.1)
 }
 
 const preset = (id: string, shot: CameraPreset['shot'], make: (aspect: number) => Fit): CameraPreset => ({

@@ -10,7 +10,8 @@
  *      the same route.
  *   And: `C` and the buttons reach every camera stop; the run's moment plays and then lets the frames go; a run sent from the stub far down
  *   the column plays in sight, the scene's column sticking on a wide screen and the camera taking the follow from the cutaway (the finish
- *   review's round 1); the capture is not blank; all text is DOM; and axe finds nothing serious on the 3D view.
+ *   review's round 1); the capture is not blank; all text is DOM; no chit and no tape covers a name at the cutaway of the widest and the
+ *   tallest houses (its round 2); and axe finds nothing serious on the 3D view.
  *
  * How it runs, as e2e/loop-scene.spec.ts does: one test build with `VITE_ES_TEST_HOOKS=1` (it exposes `window.__esScene` and honours
  * `?es-tier=<0-3>`), served by `context.route` so no server runs, with any request off the origin failing the test. Chromium renders
@@ -330,6 +331,46 @@ test.describe('the picture', () => {
     await expect(labels.locator('.es-floor-chit__n')).toHaveCount(9)
     await expect(stage(page).locator('.es-stage__scene')).toHaveAttribute('aria-hidden', 'true')
     expect(await stage(page).locator('canvas').evaluate((canvas) => canvas.textContent)).toBe('')
+  })
+
+  test('no label covers a name: at the cutaway of the widest house and the tallest, every tape\'s words are clear of every chit and every other tape (the finish review\'s round 2)', async ({ page }) => {
+    test.setTimeout(300_000)
+    /** Each name's words, and what every other label shows: a chit's slip, a tape's strip; then each pair of a name's words and another label that meet. */
+    const covered = () =>
+      stage(page).evaluate((root) => {
+        const seen = [...root.querySelectorAll<HTMLElement>('.es-label')].filter((label) => label.style.visibility === 'visible')
+        const box = (node: Element) => node.getBoundingClientRect()
+        const words = seen.flatMap((label) => {
+          const text = label.querySelector('.es-tape__text')
+          if (text) return [{ label, name: text.textContent ?? '', r: box(text) }]
+          if (!label.classList.contains('es-floor-scene-strip')) return []
+          const range = document.createRange()
+          range.selectNodeContents(label)
+          return [{ label, name: label.textContent ?? '', r: range.getBoundingClientRect() }]
+        })
+        const shown = seen.map((label) => ({ label, text: (label.textContent ?? '').trim(), r: box(label.querySelector('.es-tape, :scope > span') ?? label) }))
+        return words.flatMap((name) =>
+          shown
+            .filter((other) => other.label !== name.label && Math.min(name.r.right, other.r.right) > Math.max(name.r.left, other.r.left) && Math.min(name.r.bottom, other.r.bottom) > Math.max(name.r.top, other.r.top))
+            .map((other) => `${name.name} under ${other.text}`),
+        )
+      })
+    await open(page, 'vllm', 2)
+    await settle(page)
+    await commit(page, 2)
+    const path = reference('vllm')
+    await lay(page, path.slice(0, 10))
+    await settle(page)
+    expect(await covered()).toEqual([])
+    await lay(page, path.slice(10))
+    await settle(page)
+    expect(await covered()).toEqual([])
+    await open(page, 'mini', 2)
+    await settle(page)
+    await commit(page, 3)
+    await lay(page, reference('mini'))
+    await settle(page)
+    expect(await covered()).toEqual([])
   })
 
   test('axe finds no serious or critical violation on the 3D view', async ({ page }) => {
