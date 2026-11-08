@@ -223,7 +223,8 @@ describe('the ticket that closes a prep', () => {
 
 describe('the ticket being prepped', () => {
   const card: Card = { kc: BUBBLE, earnedDay: '2026-10-30', memory: firstMemory(3), lastDay: '2026-10-30', dueDay: '2026-11-01', reps: 1, lapses: 0 }
-  const props = { line: lines[0], index: 0, total: 2, entropy: 4242, met: new Set<string>(), card, today: DAY, last: false, onChecked: () => undefined, onNext: () => undefined }
+  // The page loads the family's code when the ticket comes up (src/items/families.ts, D-059) and gives it to the ticket.
+  const props = { line: lines[0], index: 0, total: 2, entropy: 4242, met: new Set<string>(), card, today: DAY, last: false, onChecked: () => undefined, onNext: () => undefined, gen: bubbleWidth }
   const html = render(h(Work, props))
   const drawn = drawForKc(bubbleWidth, BUBBLE, 2, 4242)
 

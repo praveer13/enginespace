@@ -1,6 +1,6 @@
 import { Readout } from '@/design/components/Readout'
 import { readoutUnit } from '@/content/render/model'
-import type { Part, Rich } from '@es/play/items'
+import type { Part, Rich } from '@es/play/items/types'
 
 /*
  * Rich text, drawn (packages/play/items/types.ts): a run of words is words, code is code, and a number is a readout in the

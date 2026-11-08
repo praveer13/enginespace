@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import type { LocalDay } from '@es/ledger'
-import { familyById, LEVEL_NAMES, seenKey } from '@es/play/items'
-import type { Answered, Confidence, Gen, Response } from '@es/play/items'
+// By path, not through the package's index, which brings the registry and every family's code with it (D-059).
+import { seenKey } from '@es/play/items/attempt'
+import type { Answered } from '@es/play/items/attempt'
+import { LEVEL_NAMES } from '@es/play/items/types'
+import type { Confidence, Gen, Response } from '@es/play/items/types'
 import { Stub } from '@/design/components/Stub'
 import { Ticket, TicketLine } from '@/design/components/Ticket'
 import { useEvidence } from '@/evidence/useEvidence'
@@ -26,7 +29,8 @@ import type { Line } from './session'
  * event with the FSRS grade (review.ts). The reveal then adds the one line the item block has no use for: the day the idea comes back.
  *
  * The component is keyed by the line's place in the list, so each ticket starts clean, and it takes its entropy from outside: the page
- * reads `crypto.getRandomValues` when it starts the prep and when it moves to the next ticket (ARCHITECTURE §8.2).
+ * reads `crypto.getRandomValues` when it starts the prep and when it moves to the next ticket (ARCHITECTURE §8.2). It takes the family's
+ * code from outside too: the page loads it when the ticket comes up (src/items/families.ts, D-059).
  */
 
 export interface WorkProps {
@@ -43,14 +47,13 @@ export interface WorkProps {
   last: boolean
   onChecked: (result: Result) => void
   onNext: () => void
-  /** The families the list was composed from. The registry's, unless a test says otherwise. */
-  families?: readonly Gen[]
+  /** The family that serves the line: its code, which draws, grades and explains the item. */
+  gen: Gen
 }
 
-export default function Work({ line, index, total, entropy, met, card, today, last, onChecked, onNext, families }: WorkProps) {
+export default function Work({ line, index, total, entropy, met, card, today, last, onChecked, onNext, gen }: WorkProps) {
   const evidence = useEvidence()
-  const gen = familyById(line.family, families)
-  if (gen === undefined) throw new Error(`no item family "${line.family}": the list was composed from the registry`)
+  if (gen.id !== line.family) throw new Error(`the line is served by the family "${line.family}", and the ticket was given "${gen.id}"`)
   // Drawn once, when the ticket comes up. A later change to what the learner has met (this very answer, once it is written) must not redraw it.
   const [drawn] = useState(() => drawForKc(gen, line.kc, line.level, entropy, met))
   const { item } = drawn

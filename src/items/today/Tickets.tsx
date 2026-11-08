@@ -19,8 +19,9 @@ import type { LineView } from './plan'
 
 const head = <span aria-hidden="true">Today</span>
 
-export function LoadingTicket() {
-  return <Ticket as="section" className="es-prep__ticket" width="wide" head={head} state="loading" loadingLabel={LOAD_LABEL} />
+/** A ticket still printing: while the ledger is read, or, with `label`, while the code of the family that serves the next ticket loads. */
+export function LoadingTicket({ label = LOAD_LABEL }: { label?: string }) {
+  return <Ticket as="section" className="es-prep__ticket" width="wide" head={head} state="loading" loadingLabel={label} />
 }
 
 /** What stands beside the list on a wide screen before the prep starts: a blank ticket where the first one will print. */

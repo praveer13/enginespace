@@ -21,7 +21,7 @@
  * A§4.3 names the other four blocks and what each carries, and no more. The `trace`, `lab`, `card` and `figure` shapes below
  * read that line and nothing else into it, so the task that first builds each block may extend them.
  */
-import { z } from 'zod'
+import { z } from './zod'
 import { nonBlank, uniqueList } from './common'
 import {
   dottedIdSchema,

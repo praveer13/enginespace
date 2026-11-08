@@ -242,6 +242,13 @@ export interface Gen {
   readonly blind?: readonly BlindStrategy[]
 }
 
+/**
+ * A family's face: what a page shows of it and plans with before its code is loaded (D-059). Today composes a prep from the faces, and an
+ * item block shows its waiting ticket from one; `make`, `band`, `grade` and `solution` load when an item is drawn. catalog.ts holds every
+ * family's, in the registry's order.
+ */
+export type GenFace = Pick<Gen, 'id' | 'version' | 'title' | 'kcs' | 'variants'>
+
 /** The ledger ref of an item's events (ARCHITECTURE §4.5). */
 export const itemRef = (family: string, variant: string): string => `item:gen/${family}/${variant}`
 

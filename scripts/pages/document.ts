@@ -5,7 +5,8 @@
  *   inspect   what a document has: its head elements in order, its title and description, its entry script, its roots, and any
  *             text outside the root;
  *   render    the document for one page, made from the document that Vite built from index.html: its own <title>, its own
- *             description and its own static shell in place of whatever sat inside <div id="root">;
+ *             description and its own static shell in place of whatever sat inside <div id="root">, with the preloads of its own
+ *             route's chunks beside the shell (D-059);
  *   problems  what is wrong with a document of the build under the policy, as sentences.
  *
  * Everything the module inserts it escapes itself. HTMLRewriter's setAttribute escapes quotes and not ampersands, so no text
@@ -163,12 +164,19 @@ export function shell(page: Pick<PageText, 'heading' | 'description'>, base: str
 const descriptionMeta = (description: string): string => `<meta name="description" content="${escapeHtml(description)}" />`
 
 /**
+ * The modulepreload links for the chunks of a route (`assets/x.js`, from the route table beside the entry), under `base`: the same links
+ * that the front page's document has for its own chunks (scripts/pages/front-shell.ts).
+ */
+export const preloadLinks = (files: readonly string[], base: string): string => files.map((file) => `<link rel="modulepreload" crossorigin href="${escapeHtml(`${base}${file}`)}">`).join('')
+
+/**
  * The document for `page`, from `template`, the document that Vite built from index.html. Everything but three things is the
  * template's own, byte for byte, which is how the policy stays ahead of every script and every asset keeps its hashed path:
- * the <title>, the description (added at the end of the head if the template has none), and the inside of <div id="root">.
+ * the <title>, the description (added at the end of the head if the template has none), and the inside of <div id="root">, which
+ * is the page's shell and the preloads of `preloads`, the chunks its route needs besides the entry's (D-059).
  * It throws when the template has no <title> or no root to fill.
  */
-export async function render(template: string, page: PageText, base: string): Promise<string> {
+export async function render(template: string, page: PageText, base: string, preloads: readonly string[] = []): Promise<string> {
   let titles = 0
   let roots = 0
   let described = false
@@ -196,7 +204,7 @@ export async function render(template: string, page: PageText, base: string): Pr
       .on('div#root', {
         element(el) {
           roots += 1
-          el.setInnerContent(shell(page, base), { html: true })
+          el.setInnerContent(`${shell(page, base)}${preloadLinks(preloads, base)}`, { html: true })
         },
       })
       .on('body', {

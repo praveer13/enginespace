@@ -13,11 +13,13 @@
  */
 import { assertSeed } from '@es/sim/core'
 import type { Seed, Us } from '@es/sim/core'
-import { TICK_CARD } from '@es/sim/steploop'
+import { TICK_CARD } from '@es/sim/steploop/cards'
 // The v0 loop, by path: the package's `runStepLoop` is v1, which the front page's first paint has no room for (packages/sim/steploop/run.ts).
 import { runStepLoop } from '@es/sim/steploop/run'
 import type { StepLoopConfig, StepLoopRun } from '@es/sim/steploop'
-import { genWorkload } from '@es/sim/workload'
+// The generator without the exponential table, by path: the front page's tickets come in a burst, and only a Poisson process reads the
+// table, which its first paint has no room for (packages/sim/workload/draw.ts, D-059).
+import { genFixedWorkload } from '@es/sim/workload/draw'
 import type { Workload, WorkloadSpec } from '@es/sim/workload'
 import type { LeverAccess, LoopGoal, LoopLevel, LoopLevelId } from './types'
 
@@ -104,7 +106,7 @@ const isLevelId = (id: string): id is LoopLevelId => Object.hasOwn(DEFS, id)
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /** The twelve tickets of a seed. */
-export const frontPageWorkload = (seed: Seed): Workload => genWorkload(seed, FRONT_PAGE_SPEC)
+export const frontPageWorkload = (seed: Seed): Workload => genFixedWorkload(seed, FRONT_PAGE_SPEC)
 
 /**
  * The sim's configuration for this world: the rail's clips, a token budget that never binds, and the two switches the front page

@@ -8,8 +8,9 @@
  * It reads dist/index.html, the document that Vite built from index.html, and writes from it
  *   - dist/<route>/index.html for every route the plan can enumerate (scripts/pages/plan.ts): the route table's pages, each
  *     module and lesson of the course index, each game of the registry, each lab of the lab list. Each document has its own
- *     <title>, description and static shell, and everything else of the template, the policy and the hashed assets included, as
- *     the build wrote it;
+ *     <title>, description and static shell, the preloads of its own route's chunks from the route table that the build writes beside
+ *     the entry (scripts/pages/route-table.ts, D-059), as the front page's document has its own, and everything else of the template,
+ *     the policy and the hashed assets included, as the build wrote it;
  *   - dist/404.html, the same template headed "Page not found". Pages serves it for every other address, the app boots from it, and
  *     the router shows the page that the address names, or its not-found page (kernelspace's prepare-pages pattern).
  * dist/index.html itself stays as built: the front page owns its shell (W0-T18).
@@ -26,6 +27,8 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import path from 'node:path'
 import { cspProblems, inlineScriptProblems, inspect, MARK, policyProblems, render } from './pages/document.ts'
 import type { Inspection } from './pages/document.ts'
+import { tableFileOf } from './pages/route-table.ts'
+import type { RouteTable } from './pages/route-table.ts'
 import { countsOf, planPages, summaryLines } from './pages/plan.ts'
 import type { Page } from './pages/plan.ts'
 import { loadSources, ROOT, SourcesError } from './pages/sources.ts'
@@ -80,6 +83,23 @@ function templateProblems(info: Inspection, base: string): string[] {
   return problems
 }
 
+/**
+ * The route table that the build wrote beside the entry (`assets/index-x.routes.json` for `assets/index-x.js`), or an empty one for a build
+ * that has none, whose documents then preload nothing of their own.
+ */
+function routeTableIn(dist: string, base: string, entry: string | null): RouteTable {
+  if (entry === null || !entry.startsWith(base)) return {}
+  const file = path.join(dist, tableFileOf(entry.slice(base.length)))
+  if (!existsSync(file)) return {}
+  return JSON.parse(readFileSync(file, 'utf8')) as RouteTable
+}
+
+/** The chunks a document preloads: those of its pattern's page (`/m/:module`), and those its own address adds (a game's, `/play/loop`). */
+export function preloadsOf(table: RouteTable, page: Pick<Page, 'pattern'> & { url: string | null }): string[] {
+  const keys = page.url === null || page.url === page.pattern ? [page.pattern] : [page.pattern, page.url]
+  return [...new Set(keys.flatMap((key) => (Object.hasOwn(table, key) ? table[key] : [])))]
+}
+
 /** The .html files under `dist`, as paths relative to it written with slashes. */
 function htmlFiles(dist: string): string[] {
   return (readdirSync(dist, { recursive: true }) as string[])
@@ -110,8 +130,10 @@ export async function preparePages({ dist: given, base: rawBase, pages }: Prepar
     throw new PrepareError([`${templatePath} does not exist: build first, with VITE_BASE=${base} npm run build`])
   }
   const template = readFileSync(templatePath, 'utf8')
-  const found = templateProblems(await inspect(template), base)
+  const info = await inspect(template)
+  const found = templateProblems(info, base)
   if (found.length > 0) throw new PrepareError(found)
+  const table = routeTableIn(dist, base, info.entry)
 
   // Render everything and look for a collision before the first write, so that a refused run leaves dist/ as it found it.
   const problems: string[] = []
@@ -122,7 +144,7 @@ export async function preparePages({ dist: given, base: rawBase, pages }: Prepar
     if (!target.startsWith(`${dist}${path.sep}`)) problems.push(`${entry.file} would leave dist/`)
     else if (existsSync(target) && !readFileSync(target, 'utf8').includes(MARK)) {
       problems.push(`${entry.file} is already in dist/ and prepare-pages did not write it (does public/ hold it?): move that file, or the route`)
-    } else documents.set(entry.file, await render(template, entry, base))
+    } else documents.set(entry.file, await render(template, entry, base, preloadsOf(table, entry)))
   }
   if (problems.length > 0) throw new PrepareError(problems)
 

@@ -316,8 +316,7 @@ function Reach({ r, items, night }: { r: ReachIn; items: readonly PropSpec[]; ni
     start.current = -1
     if (write(-1)) wake()
     kit.invalidate()
-    // The moment starts again when its strings or its fan do, and on nothing else.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the moment starts again when its strings or its fan do, and on nothing else
   }, [geometries, fan])
   const cast = kit.shadowLights > 0
   return (

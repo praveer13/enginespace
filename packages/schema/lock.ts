@@ -7,7 +7,7 @@
  * A§4.4 gives the entry and not the file around it. The file here follows the `enginespace/<name>@1` convention of the export,
  * the receipt and the bundle (A§7.5, A§9.6): a `schema` tag, then the entries.
  */
-import { z } from 'zod'
+import { z } from './zod'
 import { gitSha, httpsUrl, isoDate, nonBlank, sha256Hex } from './common'
 import { lockKeySchema } from './refs'
 

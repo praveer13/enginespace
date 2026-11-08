@@ -10,7 +10,7 @@
  * the file stays with `verify:kc` (W1-T03): that each KC has an item, a game level or a lab check behind it, whether
  * `confusable` is symmetric, and whether a `ks:` KC exists in kernelspace.
  */
-import { z } from 'zod'
+import { z } from './zod'
 import { nonBlank, uniqueList } from './common'
 import { kcIdSchema, kcRefSchema } from './refs'
 

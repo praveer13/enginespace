@@ -259,12 +259,13 @@ describe('check 2: the nominal 95% interval covers within [93%, 97%] over 2,000 
     expect(percent).toBeLessThanOrEqual(97)
   }, SLOW)
 
-  test('the median of an exponential distribution of mean 100,000 µs, from samples of 200 and 600 seeds: its median is 100,000 · ln 2', () => {
-    // A heavier tail than the uniform's. With 600 seeds the share covered has a standard error of 0.9 points, so the band is wider.
+  test('the median of an exponential distribution of mean 100,000 µs, from samples of 200: its median is 100,000 · ln 2', () => {
+    // A heavier tail than the uniform's, over the same 2,000 seeds and in the same band as the check asks (TRACKER W1-T31, ASSESSMENT
+    // §4.6) [measured 2026-11-08 on the wave-1 tip 72f163e for D-059: 93.7%, in 4.6 s]. W1-T31 had run it on 600 seeds in a band of [91.5%, 98%].
     const exponential = (rng: () => number): number => Math.round(-100_000 * Math.log(1 - rng() / 4294967296))
-    const percent = coverage(600, 200, 500, exponential, 100_000 * Math.LN2)
-    expect(percent).toBeGreaterThanOrEqual(91.5)
-    expect(percent).toBeLessThanOrEqual(98)
+    const percent = coverage(2000, 200, 500, exponential, 100_000 * Math.LN2)
+    expect(percent).toBeGreaterThanOrEqual(93)
+    expect(percent).toBeLessThanOrEqual(97)
   }, SLOW)
 
   // For a continuous distribution the interval is [x_(L), x_(U)], and L and U depend on the resampler's draws and not on the data. So

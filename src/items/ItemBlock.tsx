@@ -1,12 +1,16 @@
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useState, type ComponentProps } from 'react'
 import type { CompiledBlock } from '@es/schema'
-import { familyById, isLevel, LEVEL_NAMES, offeredAt } from '@es/play/items'
-import type { Gen, Level } from '@es/play/items'
+// By path, not through the package's index: the index brings the registry, and with it every family's code (D-059).
+import { faceById } from '@es/play/items/catalog'
+import { offeredAt } from '@es/play/items/draw'
+import { isLevel, LEVEL_NAMES } from '@es/play/items/types'
+import type { Gen, Level } from '@es/play/items/types'
 import { Icon } from '@/design/components/Glyph'
 import { Stub } from '@/design/components/Stub'
 import { TapeLabel } from '@/design/components/TapeLabel'
 import { TicketLine } from '@/design/components/Ticket'
 import { freshEntropy } from './answer'
+import { useFamily } from './families'
 import { Frame } from './Frame'
 
 /*
@@ -16,10 +20,19 @@ import { Frame } from './Frame'
  * seeds nobody drew before.
  *
  * The attempt itself (Attempt.tsx) is its own chunk. It brings the evidence ledger, which a page that only shows a ticket has no
- * use for, and the ledger is loaded when an attempt starts.
+ * use for, and the ledger is loaded when an attempt starts. So is the family's code: the waiting ticket is drawn from the family's face
+ * (packages/play/items/catalog.ts), and what makes and grades an item loads with the attempt (src/items/families.ts, D-059).
  */
 
 const Attempt = lazy(() => import('./Attempt'))
+
+type AttemptOfProps = Omit<ComponentProps<typeof Attempt>, 'gen'> & { family: string; families?: readonly Gen[] }
+
+/** An attempt at the family called `family`, once its code has loaded. Until then the Suspense boundary above shows the loading ticket. */
+function AttemptOf({ family, families, ...rest }: AttemptOfProps) {
+  const gen = useFamily(family, families)
+  return <Attempt gen={gen} {...rest} />
+}
 
 type Of<Type extends CompiledBlock['type']> = Extract<CompiledBlock, { type: Type }>
 
@@ -27,7 +40,7 @@ export interface ItemBlockProps {
   block: Of<'item'>
   /** The lesson or module the block belongs to, for the head line. */
   scope: string
-  /** The families to draw from. The registry's, unless a test says otherwise. */
+  /** The families to draw from, whole. The catalog's faces, with each family's code loaded when an attempt starts, unless a test gives its own. */
   families?: readonly Gen[]
 }
 
@@ -39,7 +52,7 @@ interface Run {
 
 export function ItemBlock({ block, scope, families }: ItemBlockProps) {
   const [run, setRun] = useState<Run | null>(null)
-  const gen = familyById(block.family, families)
+  const gen = faceById(block.family, families)
   const level: Level | null = isLevel(block.level) ? block.level : null
 
   if (gen === undefined || level === null) {
@@ -97,7 +110,7 @@ export function ItemBlock({ block, scope, families }: ItemBlockProps) {
 
   return (
     <Suspense fallback={<Frame scope={scope} family={block.family} phase="loading" state="loading" loadingLabel="Printing the items" />}>
-      <Attempt key={run.n} gen={gen} level={level} entropy={run.entropy} scope={scope} onRestart={start} />
+      <AttemptOf key={run.n} family={gen.id} {...(families === undefined ? {} : { families })} level={level} entropy={run.entropy} scope={scope} onRestart={start} />
     </Suspense>
   )
 }

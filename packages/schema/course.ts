@@ -12,7 +12,7 @@
  * The map shows every module's prerequisites and artifacts, written or not. A module that has no `module.md` yet keeps them
  * here, from its curriculum file, and its `module.md` takes over with the same keys once it is written (W1-T06).
  */
-import { z } from 'zod'
+import { z } from './zod'
 import { nonBlank, uniqueList } from './common'
 import { artifactSchema } from './content'
 import { moduleIdSchema, prereqSchema } from './refs'

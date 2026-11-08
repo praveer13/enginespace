@@ -10,6 +10,7 @@
 //   attempt    an attempt at a lesson's `item` block: its items, answers and results
 //   regrade    grading a stored answer again from its seed
 //   registry   the families
+//   catalog    the families' faces, which a page plans with before a family's code loads
 export * from './types'
 export * from './rich'
 export * from './draw'
@@ -18,3 +19,4 @@ export * from './blind'
 export * from './attempt'
 export * from './regrade'
 export * from './registry'
+export * from './catalog'

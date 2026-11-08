@@ -95,6 +95,27 @@ describe('preparePages', () => {
     expect(readFile(dist, '404.html')).toContain('<h1>Page not found</h1>')
   })
 
+  test("preloads in each document the chunks of its own route, from the route table beside the entry, as the front page's does (D-059)", async () => {
+    const table = { '/m/:module': ['assets/Module-x.js', 'assets/kit-k.js'], '/play/:game': ['assets/Game-g.js', 'assets/kit-k.js'], '/play/loop': ['assets/Game-s.js'] }
+    build(undefined, { 'assets/index-abc123.routes.json': JSON.stringify(table) })
+    await preparePages({ dist, base: BASE, pages: plan.pages })
+    const preloads = (file: string) => [...readFile(dist, file).matchAll(/<link rel="modulepreload" crossorigin href="([^"]+)">/g)].map((match) => match[1])
+    const vendor = `${BASE}assets/react-vendor-abc123.js`
+    expect(preloads('m/tr2/index.html')).toEqual([vendor, `${BASE}assets/Module-x.js`, `${BASE}assets/kit-k.js`])
+    expect(preloads('play/loop/index.html')).toEqual([vendor, `${BASE}assets/Game-g.js`, `${BASE}assets/kit-k.js`, `${BASE}assets/Game-s.js`])
+    // Inside the root, beside the shell: the app takes the root over once its route has loaded, as it does on the front page.
+    expect(readFile(dist, 'm/tr2/index.html')).toMatch(/<div id="root"><main>.*<\/main><link rel="modulepreload"/s)
+    // A page whose route has nothing of its own in the table, and the fallback, which stands for every other address, preload nothing more.
+    expect(preloads('about/index.html')).toEqual([vendor])
+    expect(preloads('404.html')).toEqual([vendor])
+  })
+
+  test('preloads nothing more in a build that has no route table', async () => {
+    build()
+    await preparePages({ dist, base: BASE, pages: plan.pages })
+    expect(readFile(dist, 'm/tr2/index.html').match(/rel="modulepreload"/g)).toHaveLength(1)
+  })
+
   test('keeps every asset at the path the build gave it, in every document', async () => {
     build()
     await preparePages({ dist, base: BASE, pages: plan.pages })

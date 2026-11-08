@@ -1,7 +1,10 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { ReactNode, Ref } from 'react'
-import { answerItem, CONFIDENCE_NAMES, CONFIDENCES, LEVEL_NAMES, nextUnanswered, resultOf, startAttempt, tally } from '@es/play/items'
-import type { Answered, Attempt, Confidence, Gen, Item, Level, Response, Served } from '@es/play/items'
+// By path, not through the package's index, which brings the registry and every family's code with it (D-059).
+import { answerItem, nextUnanswered, resultOf, startAttempt, tally } from '@es/play/items/attempt'
+import type { Answered, Attempt, Served } from '@es/play/items/attempt'
+import { CONFIDENCE_NAMES, CONFIDENCES, LEVEL_NAMES } from '@es/play/items/types'
+import type { Confidence, Gen, Item, Level, Response } from '@es/play/items/types'
 import { Button } from '@/design/components/Button'
 import { Field } from '@/design/components/Field'
 import { Icon } from '@/design/components/Glyph'

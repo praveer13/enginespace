@@ -10,7 +10,7 @@
  * The source files write `builds_on` and `hours_by_lane` in snake case, and the compiler copies authored fields as authored.
  * The fields the compiler adds are camel case, as the claims' `verifiedAt` and `ttlDays` are.
  */
-import { z } from 'zod'
+import { z } from './zod'
 import { CLAIM_TAGS, claimSchema } from './claims'
 import type { ClaimTag } from './claims'
 import { nonBlank, sha256Hex } from './common'

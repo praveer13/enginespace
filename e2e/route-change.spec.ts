@@ -45,6 +45,26 @@ test.describe('the first load', () => {
   })
 })
 
+test.describe('a link that is reached for (A§6.10, D-059)', () => {
+  /** The chunks the page has been asked to preload, by their paths. */
+  const preloaded = (page: Page) => page.evaluate(() => [...document.querySelectorAll<HTMLLinkElement>('link[rel="modulepreload"]')].map((link) => new URL(link.href).pathname))
+  const has = (paths: string[], page: string) => paths.some((path) => new RegExp(`/assets/${page}-[\\w-]+\\.js$`).test(path))
+
+  test("preloads the chunks of the route it opens, on hover and on focus, from the route table beside the entry, and opens nothing", async ({ page }) => {
+    await open(page, '/map')
+    await quiet(page)
+    expect(has(await preloaded(page), 'Settings'), 'nothing of /settings before a link to it is reached for').toBe(false)
+    await board(page, 'Footer', 'Settings').hover()
+    await expect.poll(async () => has(await preloaded(page), 'Settings'), { message: "a hover preloads the page's chunk", ...ARRIVE }).toBe(true)
+    // By keyboard: a focus on a link of the board does the same.
+    await board(page, 'Primary', 'Evidence').focus()
+    await expect.poll(async () => has(await preloaded(page), 'Evidence'), { message: "a focus preloads the page's chunk", ...ARRIVE }).toBe(true)
+    // A preload runs nothing: the page is where it was, and says nothing.
+    await expect(page).toHaveURL(/\/map$/)
+    await expect(said(page)).toBeEmpty()
+  })
+})
+
 test.describe('a link of the board', () => {
   test('moves focus to the main landmark and says the page it went to, with a mouse', async ({ page }) => {
     await open(page, '/map')

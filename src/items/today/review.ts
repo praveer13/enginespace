@@ -9,7 +9,7 @@
  * the provenance's weight, applied when the ledger is read. The event holds no key, no solution and no time.
  */
 import type { Confidence, Draft } from '@es/ledger'
-import type { Item } from '@es/play/items'
+import type { Item } from '@es/play/items/types'
 import { gradeOf } from './fsrs'
 import type { Rating } from './fsrs'
 

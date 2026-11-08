@@ -1,24 +1,38 @@
 /*
- * src/content/load.ts is the one place that reaches the compiled content (W0-T09). Its `import.meta.glob` calls are Vite's, so
+ * src/content/load.ts is where the app reaches the compiled content (W0-T09), with load-lessons.ts and load-map.ts beside it for the
+ * tables of the lessons, the modules and the cards, and the map's (D-059, W1-T06). Their `import.meta.glob` calls are Vite's, so
  * the real loads are checked in a browser (the pages are served from `vite preview` and `npm run dev`). What can be checked
- * here is what the server renderer needs of it: tests/smoke.test.ts renders every route, and each page imports this module,
- * so importing it must evaluate no glob, and a load that cannot run must fail as a rejected promise, which a page shows as
+ * here is what the server renderer needs of them: tests/smoke.test.ts renders every route, and each page imports these modules,
+ * so importing one must evaluate no glob, and a load that cannot run must fail as a rejected promise, which a page shows as
  * its "did not load" ticket, and not as an exception thrown at a caller.
  */
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
-import { loadCard, loadClaims, loadIndex, loadLesson, loadModule, publicUrl } from '@/content/load'
+import { loadClaims, loadIndex, publicUrl } from '@/content/load'
+import { loadCard, loadLesson, loadModule } from '@/content/load-lessons'
 import { loadMap } from '@/content/load-map'
 
 const source = readFileSync(path.resolve(import.meta.dirname, '../../src/content/load.ts'), 'utf8')
+const lessonsSource = readFileSync(path.resolve(import.meta.dirname, '../../src/content/load-lessons.ts'), 'utf8')
+const globsOf = (text: string) =>
+  text
+    .split('\n')
+    .filter((line) => !/^\s*(\*|\/\/|\/\*)/.test(line))
+    .filter((line) => line.includes('import.meta.glob'))
 
 describe('the loader, outside Vite', () => {
   test('imports without evaluating a glob, because every glob sits inside a function', () => {
-    const code = source.split('\n').filter((line) => !/^\s*(\*|\/\/|\/\*)/.test(line))
-    const globs = code.filter((line) => line.includes('import.meta.glob'))
+    const globs = [...globsOf(source), ...globsOf(lessonsSource)]
     expect(globs.length).toBe(4)
     for (const line of globs) expect(line).toMatch(/^const \w+ = \(\) => import\.meta\.glob/)
+  })
+
+  test("keeps the tables that grow with the course out of load.ts: the index is its one glob, and the lessons', modules' and cards' are in load-lessons.ts (D-059)", () => {
+    // load.ts is in the closure of the front page's first paint (its loader awaits the index) and of every game that cites a claim, and
+    // a glob's table names every file it can load. A lesson written later must not grow those pages.
+    expect(globsOf(source)).toEqual([expect.stringContaining("'./generated/index.json'")])
+    expect(globsOf(lessonsSource).map((line) => /'\.\/generated\/(\w+)\//.exec(line)?.[1])).toEqual(['lessons', 'modules', 'cards'])
   })
 
   test('a load that cannot run is a rejected promise, never a throw', async () => {

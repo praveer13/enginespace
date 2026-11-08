@@ -11,7 +11,7 @@
  * in proportion to its length and no more. A ledger import is a file the learner chose (A§7.5), and this keeps a hostile one
  * from stalling the tab.
  */
-import { z } from 'zod'
+import { z } from './zod'
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Identifiers                                                                                                        */

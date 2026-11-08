@@ -32,8 +32,8 @@
 
 import type { Us } from '../core/types'
 import type { HostCard } from '../host/types'
-import { stepLoad } from '../physics'
-import type { StepItem } from '../physics'
+import { stepLoad } from '../physics/load'
+import type { StepItem } from '../physics/load'
 import type { ReqSpec, Workload } from '../workload'
 import { gpuCost, gpuLayers } from './cards'
 import { checkDependency, placeLaunch, placeReadback, timelineBuilder } from './events'

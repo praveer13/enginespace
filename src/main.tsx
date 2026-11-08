@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { createBrowserRouter } from 'react-router'
 import { RouterProvider } from 'react-router/dom'
 import './index.css'
+import { preloadOnIntent } from './route-preload'
 import { routes } from './routes'
 import { startSettings } from './settings/store'
 
@@ -42,6 +43,10 @@ window.setTimeout(() => {
 
 // Vite's `base` sets BASE_URL: "/" at the root of https://enginespace.naigap.com (D-058), or the subpath that a preview or a fork builds under.
 const router = createBrowserRouter(routes, { basename: import.meta.env.BASE_URL })
+
+// A link that is hovered or focused preloads the chunks of the route it opens, from the route table that the build writes beside this
+// entry (ARCHITECTURE §6.10, D-059): this file is the entry, so the table is its own name with `.routes.json` for `.js`.
+if (import.meta.env.PROD) preloadOnIntent(routes, import.meta.env.BASE_URL, import.meta.url.replace(/\.js$/, '.routes.json'))
 
 const container = document.getElementById('root')
 if (!container) throw new Error('index.html lost its #root element')
