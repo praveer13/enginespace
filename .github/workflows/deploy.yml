@@ -3,11 +3,18 @@ name: Deploy to GitHub Pages
 # Publishes the site on every push to main: the fast gate and the tests, then the build, prepare-pages, and the Pages upload
 # and deploy (ARCHITECTURE §10.1, kernelspace's deploy).
 #
-# It is off until the owner answers O-2 (docs/DECISIONS.md): GitHub Pages on a private repository needs a paid GitHub plan
-# [unverified, 2026-11-03]. To turn it on, enable Pages with the source "GitHub Actions", then set the repository variable
-# PAGES_ENABLED to 'true'. While the variable is unset, both jobs are skipped.
+# The site is served at https://enginespace.naigap.com (D-058, the owner's answer to O-1), at the root of its own origin, so the
+# build and prepare-pages run with the default base "/" and this workflow sets no VITE_BASE. A preview or a fork that is served
+# under a subpath sets VITE_BASE for its own build, and prepare-pages reads the same variable (ARCHITECTURE §3.2).
 #
-# Until a custom domain exists (O-1) the site is served under /enginespace/, so the build sets VITE_BASE.
+# It is off until the owner answers O-2 (docs/DECISIONS.md): GitHub Pages on a private repository needs a paid GitHub plan
+# [unverified, 2026-11-03]. To turn it on, in this order:
+#   1. enable Pages with the source "GitHub Actions";
+#   2. set the custom domain to enginespace.naigap.com and enforce HTTPS (the DNS record, a CNAME to praveer13.github.io, is in
+#      place; GitHub says the HTTPS option can take up to 24 hours to become available [measured from GitHub's docs, 2026-11-08]);
+#   3. set the repository variable PAGES_ENABLED to 'true'.
+# While the variable is unset, both jobs are skipped. A deploy from an Actions workflow ignores public/CNAME [measured from
+# GitHub's docs, 2026-11-08], so step 2 is what binds the domain.
 #
 # Every command of ci.yml's fast gate and tests job runs here too, so a deploy is never less checked than a pull request
 # (tests/ci/workflows.test.ts compares the two).
@@ -61,11 +68,9 @@ jobs:
 
       - run: bun run test
 
-      # The deployed build, under the Pages base path.
+      # The deployed build, at the root of the custom domain: the default base "/".
       - name: Build for Pages
         run: npm run build
-        env:
-          VITE_BASE: /enginespace/
 
       - name: Build gates
         run: bun run verify:all --stage build
@@ -90,8 +95,6 @@ jobs:
           else
             echo 'pending: W0-T19'
           fi
-        env:
-          VITE_BASE: /enginespace/
 
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:

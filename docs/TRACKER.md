@@ -1139,7 +1139,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
 
 #### [ ] W3-T16 · Owner: launch · S · owner · deps: W3-T10, W3-T11, W3-T12, W3-T15
 - **Accept:**
-  1. Pages is enabled for the repo (O-2), and the domain is set (O-1).
+  1. Pages is enabled for the repo (O-2), its custom domain is `enginespace.naigap.com` with HTTPS enforced (D-058), and the repository variable `PAGES_ENABLED` is `'true'`.
   2. The repo visibility is the owner's choice.
   3. The edition-1 tag is pushed by the owner.
 

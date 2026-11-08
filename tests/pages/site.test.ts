@@ -1,6 +1,7 @@
 /*
- * W0-T19's acceptance checks 1 and 2 on a real build: `vite build` of this repository under the Pages base, then prepare-pages
- * on its dist/, then the files read back with an HTML parser that nothing in scripts/ uses (tests/pages/support.ts).
+ * W0-T19's acceptance checks 1 and 2 on a real build: `vite build` of this repository under a subpath base, /enginespace/, as a
+ * preview or a fork on a project site has it, then prepare-pages on its dist/, then the files read back with an HTML parser that
+ * nothing in scripts/ uses (tests/pages/support.ts). The deploy's own base, `/` (D-058), is tests/pages/custom-domain.test.ts's.
  *
  *   1. With VITE_BASE=/enginespace/, every route-table entry gets an index.html with a distinct <title>. A route with parameters
  *      gets one for each thing that fills them, so an entry whose source holds nothing yet (no game is registered, no trace

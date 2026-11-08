@@ -40,7 +40,7 @@ window.setTimeout(() => {
   }
 }, HEALTHY_AFTER_MS)
 
-// GitHub Pages serves the site under /enginespace/ until a custom domain exists (O-1); Vite's `base` sets BASE_URL.
+// Vite's `base` sets BASE_URL: "/" at the root of https://enginespace.naigap.com (D-058), or the subpath that a preview or a fork builds under.
 const router = createBrowserRouter(routes, { basename: import.meta.env.BASE_URL })
 
 const container = document.getElementById('root')

@@ -9,10 +9,10 @@ web
 ## Stack
 
 - **Site:** Vite, React 19 and TypeScript, with Three.js through react-three-fiber for the 3D games, styled with Tailwind. This is the same toolchain as kernelspace, so its patterns carry over. Tests run on bun.
-- **Hosting:** a static build on GitHub Pages, with no servers behind it.
+- **Hosting:** a static build on GitHub Pages, with no servers behind it. The site's origin is `https://enginespace.naigap.com`, which the owner chose on 2026-11-08 (D-058).
 - **Repo:** `praveer13/enginespace`, private for now.
 
-These were confirmed by the owner on 2026-11-03.
+The owner confirmed these on 2026-11-03, apart from the origin, which carries its own date.
 
 ## Users
 
@@ -80,7 +80,6 @@ The source specification is `kernelspace/SPECIALIZATIONS.md` §3.5 (an untracked
 - **Every number is a claim with a source, a date and a TTL.** A number that moves raises a change card.
 - **Upstream contributions** follow each project's rules. vLLM's guidelines say "Do not submit 'pure agent' PRs".
 - **Undecided:**
-  - the custom domain;
   - when the repo goes public;
   - the content licence (kernelspace uses MIT for code and CC BY 4.0 for content).
 

@@ -183,7 +183,7 @@ React Router 7.18.1 in library mode: `createBrowserRouter` with a `lazy` loader 
 
 ### 3.2 Static hosting
 
-- **Base path.** GitHub Pages serves the site at `/enginespace/` until a custom domain is chosen (O-1). Vite reads the base from `VITE_BASE`, as kernelspace does.
+- **Base path.** The site is served at the root of `https://enginespace.naigap.com` (D-058), so the deploy builds with the default base `/`. Vite reads the base from `VITE_BASE`, as kernelspace does, and `scripts/prepare-pages.ts` reads the same variable, so a preview or a fork that is served under a subpath, such as `/enginespace/` on a project site, builds and prepares under it. `public/CNAME` holds the domain. A deploy from an Actions workflow ignores that file [measured from GitHub's docs, "Managing a custom domain for your GitHub Pages site", 2026-11-08], so the owner sets the custom domain in the repository's Pages settings.
 - **Deep links return HTTP 200.** `scripts/prepare-pages.ts` writes `dist/<route>/index.html` for every route it can enumerate: the route table, the content index, the game registry and the lab list. Each document gets its own `<title>`, description and static shell. `404.html` is the SPA fallback (kernelspace's `prepare-pages.mjs` pattern).
 - **CSP.** Every document carries the meta CSP (§12).
 - **Stale chunks.** A deploy replaces hashed chunks under open tabs. A `vite:preloadError` handler reloads once, and a sessionStorage flag stops a loop (kernelspace's `src/main.tsx` pattern).

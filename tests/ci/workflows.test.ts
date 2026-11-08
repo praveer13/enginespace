@@ -5,7 +5,8 @@
  *   - every workflow file parses with js-yaml (acceptance 5), and a duplicate key is an error;
  *   - every action is pinned by full SHA with §10.3's release in the comment, jobs default to `contents: read`, only the
  *     jobs that need more widen it, and every checkout drops its credentials (acceptance 1);
- *   - deploy.yml builds under /enginespace/ on pushes to main only, behind PAGES_ENABLED (acceptance 3);
+ *   - deploy.yml builds at the root of the custom domain (the default base, D-058) on pushes to main only, behind PAGES_ENABLED
+ *     (acceptance 3);
  *   - nightly.yml opens or updates one nightly-failure issue when a job fails (acceptance 4);
  *   - every gate of the registry runs in some workflow, and the fast gate runs them in the order that works: the source
  *     gates, the build, then the gates that read it;
@@ -233,14 +234,30 @@ describe('deploy.yml (acceptance 3)', () => {
     ])
   })
 
-  test('builds under /enginespace/, and prepares the Pages directory under it too', () => {
+  test('builds and prepares the Pages directory at the root of the custom domain: nothing sets VITE_BASE, so the base is "/" (D-058)', () => {
     const steps = stepsOf('deploy.yml', 'build')
     for (const command of ['npm run build', 'scripts/prepare-pages.ts']) {
-      const step = steps.find((candidate) => candidate.run?.includes(command))
-      expect([command, step?.env]).toEqual([command, { VITE_BASE: '/enginespace/' }])
+      expect([command, steps.some((step) => step.run?.includes(command))]).toEqual([command, true])
     }
-    // Nothing else sees the Pages base: the gates run as they do in ci.yml.
-    expect(steps.filter((step) => step.env?.VITE_BASE !== undefined).length).toBe(2)
+    // No VITE_BASE at the top of the workflow, in a job or in a step: vite.config.ts and prepare-pages both take "/" when it is unset.
+    // A preview or a fork that is served under a subpath sets the variable in its own copy of the workflow.
+    const keysOf = (value: unknown): string[] =>
+      value !== null && typeof value === 'object' ? Object.entries(value).flatMap(([key, inner]) => [key, ...keysOf(inner)]) : []
+    expect(keysOf(workflow('deploy.yml'))).not.toContain('VITE_BASE')
+  })
+
+  test('says in its header that the site is served at https://enginespace.naigap.com, and gives the owner the steps that turn it on, in order', () => {
+    const source = sources.get('deploy.yml') ?? ''
+    // The comment block above `on:`, with the comment marks and the line breaks taken out.
+    const header = source.slice(0, source.indexOf('\non:')).replace(/\n#\s?/g, ' ')
+    expect(header).toContain('The site is served at https://enginespace.naigap.com')
+    const steps = [
+      'enable Pages with the source "GitHub Actions"',
+      'set the custom domain to enginespace.naigap.com and enforce HTTPS',
+      "set the repository variable PAGES_ENABLED to 'true'",
+    ].map((step) => [step, header.indexOf(step)] as const)
+    expect(steps.filter(([, at]) => at < 0).map(([step]) => step)).toEqual([])
+    expect(steps.map(([, at]) => at)).toEqual(steps.map(([, at]) => at).sort((a, b) => a - b))
   })
 
   test('uploads dist/ and deploys it to the github-pages environment, after the build', () => {

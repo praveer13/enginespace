@@ -118,21 +118,23 @@ export const fakeSources: Sources = {
   traces: ['synthetic-1'],
 }
 
-/** A real `vite build` of the repository with this base into `outDir`, as `npm run build` does after tsc. It throws with the log when the build fails. */
-export function viteBuild(outDir: string, base: string): void {
+/**
+ * A real `vite build` of the repository with this base into `outDir`, as `npm run build` does after tsc. A base of `undefined` leaves
+ * VITE_BASE unset, as the deploy does (D-058), whatever the environment of the test run holds. It throws with the log when the build fails.
+ */
+export function viteBuild(outDir: string, base: string | undefined): void {
   const vite = path.join(root, 'node_modules/vite/bin/vite.js')
-  const run = spawnSync('node', [vite, 'build', '--outDir', outDir, '--emptyOutDir'], {
-    cwd: root,
-    encoding: 'utf8',
-    env: { ...process.env, VITE_BASE: base },
-  })
+  const env: Record<string, string | undefined> = { ...process.env, VITE_BASE: base }
+  if (base === undefined) delete env.VITE_BASE
+  const run = spawnSync('node', [vite, 'build', '--outDir', outDir, '--emptyOutDir'], { cwd: root, encoding: 'utf8', env })
   if (run.status !== 0) throw new Error(`vite build exited with ${run.status}:\n${run.stdout}${run.stderr}`)
 }
 
 /**
- * A static server that answers as GitHub Pages does for a project site under `base` (O-1): a file is served as it is, a folder
- * with an index.html answers at its address with a trailing slash and redirects from the one without, and anything else gets
- * 404.html with the status 404. There are no rewrites, which is the whole reason for prepare-pages.
+ * A static server that answers as GitHub Pages does for a site under `base`: `/` on a custom domain (D-058), or the repository's path
+ * on a project site. A file is served as it is, a folder with an index.html answers at its address with a trailing slash and redirects
+ * from the one without, and anything else gets 404.html with the status 404. There are no rewrites, which is the whole reason for
+ * prepare-pages.
  */
 export function servePages(dist: string, base: string): { origin: string; stop: () => void } {
   const isFile = (file: string) => existsSync(file) && statSync(file).isFile()
