@@ -22,10 +22,11 @@
  *   src/content/generated/modules/<id>.json       one per written module
  *   src/content/generated/lessons/<id>.<slug>.json  one per lesson (40 KB gz each [estimated])
  *   src/content/generated/cards/<id>.json         one per card (40 KB gz each [estimated])
- *   public/md/<module>/<slug>.md, index.md and public/llms.txt   the learner's agent's export
+ *   public/md/<module>/<slug>.md, index.md and public/llms.txt   the learner's agent's export, which holds no key and is committed
  *   public/claims.json                            every claim, for the chips and the about page
  *
- * A source problem is a `Diagnostic` with a file and a line. Any error means no output is written.
+ * A source problem is a `Diagnostic` with a file and a line. Any error means no output is written. The export is the one output that
+ * the repository commits (W1-T35): CI's Export freshness step and tests/content/export.test.ts fail when it differs from this compile.
  */
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -615,7 +616,8 @@ function llmsText(course: Course, modules: ReadonlyMap<string, ModuleResult>): s
     '',
     '## How to tutor from this material',
     '',
-    '- The learner is a backend engineer who has finished kernelspace\'s serving tracks. Be Socratic: ask them to commit to a prediction before you discuss one, and do not hand over answers. The reference answers are computed by the course\'s own models when a prediction is revealed, so this export holds none.',
+    '- The learner is a backend engineer who has finished kernelspace\'s serving tracks. Be Socratic: ask them to commit to a prediction before you discuss one, and do not hand over answers.',
+    '- This export holds no key. A prediction here gives the shape of its answer, and the course\'s own models compute the reference when the learner reveals it; an item or a graded level is drawn on a fresh seed when the learner starts, and its key is computed when it is graded. A lesson\'s own text can work out its predictions further down, so let the learner commit before you go through that part with them.',
     '- Every number is a claim with a source and a date, or carries a tag: [measured], [derived], [estimated] or [unverified]. Treat [estimated] and [unverified] as unchecked.',
     '- The browser world is a model, and each world\'s card says what it models and what it ignores. The real engine is the authority.',
     '- Credit comes from checks the learner cannot fake: fresh seeds in the browser, and reference comparisons on a GPU. Reading and clicking earn nothing.',

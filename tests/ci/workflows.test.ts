@@ -349,7 +349,11 @@ describe('reserved steps', () => {
   test('each prints "pending: <task>" with a task that TRACKER.md has', () => {
     const tasks = trackerTasks()
     const reserved = [...sources].flatMap(([file, source]) => [...source.matchAll(/echo ['"]pending: ([^'"]+)['"]/g)].map((match) => ({ file, task: match[1] })))
-    expect(reserved.length).toBeGreaterThan(8)
+    // Seven are left [measured 2026-11-08 at the wave-1 tip 76eb3fd, with W1-T35's change]: the content compile of ci.yml and of deploy.yml
+    // (W0-T08), prepare-pages (W0-T19), the labs' two (W1-T10, W2-T02), the grader's receipt fixtures (W2-T08) and the link-rot report
+    // (W3-T13). The Export freshness step of both workflows had one more each, until W1-T35 built the check, so the count that stood here,
+    // more than eight, could not hold. The list is exact, so a step that is added or built changes it in the same commit.
+    expect(reserved.map(({ task }) => task).sort()).toEqual(['W0-T08', 'W0-T08', 'W0-T19', 'W1-T10', 'W2-T02', 'W2-T08', 'W3-T13'])
     expect(reserved.filter(({ task }) => !tasks.has(task))).toEqual([])
   })
 
@@ -365,10 +369,10 @@ describe('reserved steps', () => {
     'W0-T14', 'W0-T15', 'W0-T16', 'W0-T17', 'W0-T18', 'W0-T19', 'W0-T20', 'W0-T21', 'W0-T22', 'W0-T23', 'W0-T24', 'W0-T25',
     // W1, in wave-1.
     'W1-T01', 'W1-T03', 'W1-T04', 'W1-T05', 'W1-T06', 'W1-T07', 'W1-T08', 'W1-T09', 'W1-T10', 'W1-T11', 'W1-T12', 'W1-T16', 'W1-T17', 'W1-T21',
-    'W1-T22', 'W1-T26', 'W1-T27', 'W1-T28', 'W1-T31', 'W1-T32', 'W1-T33',
+    'W1-T22', 'W1-T26', 'W1-T27', 'W1-T28', 'W1-T31', 'W1-T32', 'W1-T33', 'W1-T35',
   ]
 
-  /** A reserved step is one whose whole command is the echo. A step that echoes it only where a file is missing (the content compile, the export check, the labs) switches on by file, and is not reserved. */
+  /** A reserved step is one whose whole command is the echo. A step that echoes it only where a file is missing (the content compile, prepare-pages, the labs) switches on by file, and is not reserved. */
   const reservedIn = (text: string) =>
     Object.entries((load(text) as Workflow).jobs ?? {}).flatMap(([job, { steps = [] }]) =>
       steps.flatMap((step) => {

@@ -1,0 +1,4 @@
+# The Markdown export is written by `bun scripts/content/build.ts` from content/ (ARCHITECTURE §4.6) and is committed so that CI can
+# tell when it is stale. A review reads the lessons in content/, and GitHub collapses these files in a diff.
+public/md/** linguist-generated=true
+public/llms.txt linguist-generated=true
