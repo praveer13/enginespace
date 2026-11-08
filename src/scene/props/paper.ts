@@ -64,12 +64,12 @@ const BLANK: readonly [number, number] = [0.04, 0.03]
  */
 export function ticketGeometry(width: number, height: number, thickness: number, curl = 0.16): BufferGeometry {
   const rows = 12
-  const columns = 2
+  const columns = 6
   const at = (i: number, j: number, back: boolean): Vec3 => {
     const t = j / rows
     const x = -width / 2 + (width * i) / columns
-    // The roll's set: the foot curls forward, a little more at its corners than its middle.
-    const cup = (Math.abs(x) / (width / 2)) ** 2 * 0.012 * t
+    // The roll's set: the foot curls forward, and the sheet cups across, its corners a little further forward than its middle.
+    const cup = (Math.abs(x) / (width / 2)) ** 2 * curl * height * 0.625 * t
     const z = curl * height * t * t + cup
     return [x, -height * t, back ? z - thickness : z]
   }

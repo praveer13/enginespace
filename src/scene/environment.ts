@@ -17,7 +17,11 @@ export interface KitchenEnvironment {
 const TUBE_GLOW = 5
 const LAMP_GLOW = 7
 
-export function kitchenEnvironment(renderer: WebGLRenderer, tokens: SceneTokens): KitchenEnvironment {
+/**
+ * The reflected kitchen, with the heat lamps' glow in it (`lamps`), or without: a scene whose lamps burn only while the present lies
+ * under them leaves it out, so that its steel warms under its lit lamps and nowhere else.
+ */
+export function kitchenEnvironment(renderer: WebGLRenderer, tokens: SceneTokens, lamps = true): KitchenEnvironment {
   const room = new Scene()
   const disposables: { dispose(): void }[] = []
   const box = (size: [number, number, number], at: [number, number, number], color: Color, back = false) => {
@@ -38,7 +42,7 @@ export function kitchenEnvironment(renderer: WebGLRenderer, tokens: SceneTokens)
   // A cross tube behind the expo, so the pass's top catches a long highlight.
   box([18, 0.12, 0.7], [0, 6.6, 7], roleColor(tokens, 'light-fluorescent').multiplyScalar(TUBE_GLOW * 0.8))
   // The heat lamps' glow, low and in front.
-  for (const x of [-2.2, 0, 2.2]) box([0.9, 0.3, 0.9], [x, 3.4, 1.2], roleColor(tokens, 'lamp').multiplyScalar(LAMP_GLOW))
+  if (lamps) for (const x of [-2.2, 0, 2.2]) box([0.9, 0.3, 0.9], [x, 3.4, 1.2], roleColor(tokens, 'lamp').multiplyScalar(LAMP_GLOW))
 
   const generator = new PMREMGenerator(renderer)
   const target = generator.fromScene(room, 0.035)

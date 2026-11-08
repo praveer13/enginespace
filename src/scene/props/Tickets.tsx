@@ -61,18 +61,19 @@ function poseAt(shown: Shown, now: number, ease: (t: number) => number, into: { 
 }
 
 /**
- * The tickets, one instanced draw, each `scale` times the kit's ticket. Each ticket also moves a label frame named `ticket:<id>`
- * (kit.registerFrame), at the same scale, so a DOM label anchored in it rides on the paper as it travels and turns.
+ * The tickets, one instanced draw, each `scale` times the kit's ticket, curled by `curl` of its length (paper.ts's ticketGeometry; the
+ * kit's own set when none is given). Each ticket also moves a label frame named `ticket:<id>` (kit.registerFrame), at the same scale, so
+ * a DOM label anchored in it rides on the paper as it travels and turns.
  */
-export function Tickets({ tickets, name = 'tickets', scale = 1 }: { tickets: readonly TicketPose[]; name?: string; scale?: number }) {
+export function Tickets({ tickets, name = 'tickets', scale = 1, curl }: { tickets: readonly TicketPose[]; name?: string; scale?: number; curl?: number }) {
   const kit = useKit()
   const { materials } = useProps()
   const capacity = roomFor(tickets.length)
   const geometry = useMemo(() => {
-    const sheet = ticketGeometry(TICKET.width, TICKET.height, TICKET.thickness)
+    const sheet = ticketGeometry(TICKET.width, TICKET.height, TICKET.thickness, curl)
     sheet.setAttribute('aCell', new InstancedBufferAttribute(new Float32Array(capacity * 2), 2))
     return sheet
-  }, [capacity])
+  }, [capacity, curl])
   useEffect(() => () => geometry.dispose(), [geometry])
   const mesh = useRef<InstancedMesh>(null)
   const shown = useRef(new Map<string, Shown>())

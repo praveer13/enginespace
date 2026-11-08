@@ -1,13 +1,14 @@
 /*
  * The Reach-In's 3D layout (src/games/pool/scene-layout.ts) and its own prop (src/games/pool/cabinet.ts), which the scene draws with
- * scene kit v1 and nothing else decides (W1-T24, and its first round of finish fixes). The reach-in is held to its shape: a hotel pan in
- * every slot, sixteen to a row, each in its place for its whole life whatever the night does, and a lid on every slot a short last row
- * leaves; the room, the line under its hood, the pass with its two lamps hung over it, the line's rail. The night is held to the session's
- * view: a pan's mise is the food of its state and its glyph follows its state, the One station filter keeps one station's tapes and
- * twine, the focus's twine runs through its pans in the order of its blocks, the fan has a tray for each layer of its station and the
- * page's words for it (focus.ts) agree with it, the lamp falls on the open ask's candidates and on nothing else, the scene carries no word
- * but the tickets' numbers, and the moment plays again only when the focus or its pans change. Then the presets, projected at every pool
- * size the levels have, at 1440 and at 390 px, and the acceptance checks on text and colour.
+ * scene kit v1 and nothing else decides (W1-T24, and two rounds of finish fixes). The reach-in is held to its shape: a hotel pan in every
+ * slot, sixteen to a row, each in its place for its whole life whatever the night does, and one cover with a rolled lip over the slots a
+ * short last row leaves; the room, the line under its hood, the pass with its two lamps hung low over it and under the line's rail, the
+ * line's rail along the overshelf's front edge. The night is held to the session's view: a pan's mise is the food of its state, tape lies
+ * only on a kit's pans (with its pin) and on the fan of the focus's head pan (with its station's glyph), the One station filter keeps one
+ * station's twine and fan, the focus's twine runs from its ticket's foot through its pans in the order of its blocks, the fan has a tray
+ * for each layer of its station and the page's words for it (focus.ts) agree with it, the lamp falls on the open ask's candidates and on
+ * nothing else, the scene carries no word and no number, and the moment plays again only when the focus or its pans change. Then the
+ * presets, projected at every pool size the levels have, at 1440 and at 390 px, and the acceptance checks on text and colour.
  */
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
@@ -22,7 +23,7 @@ import { paletteFrom } from '@/scene/props/palette'
 import { TICKET as KIT_TICKET, type Vec3 } from '@/scene/props/specs'
 import { cabinet } from '@/games/pool/cabinet'
 import { focusOf } from '@/games/pool/focus'
-import { CELL, COLS, CROWN, FOOD, nightOf, PAN, PASS, PITCH, RAIL, reachInOf, SHOTS, TICKET, TOP, type Night } from '@/games/pool/scene-layout'
+import { CELL, COLS, CROWN, FOOD, FOOT, FRAME, MISE, nightOf, PAN, PASS, PITCH, RAIL, reachInOf, SHOTS, TICKET, TOP, type Night } from '@/games/pool/scene-layout'
 import { POOL_CAMERAS } from '@/games/pool/scene-presets'
 import { playThrough, practiceOf } from './pool-support'
 
@@ -70,30 +71,43 @@ describe('the reach-in: a pan in every slot, each in its place for its whole lif
         const drawn = nightOf(v, r, { station: null, chosen: [] })
         const held = v.pans.filter((pan) => pan.state !== 'free')
         expect(drawn.fills).toHaveLength(held.length)
-        held.forEach((pan, i) => expect(same(drawn.fills[i].at, [r.pans[pan.id][0], TOP - 0.015, r.pans[pan.id][2]])).toBe(true))
-        // Each pan's strip of tape lies on its mise, and the marker on it just over the tape; the last marker is the reach-in's own strip.
+        // The mise lies below the rim, so the pan's wall and rim stand round it.
+        held.forEach((pan, i) => expect(same(drawn.fills[i].at, [r.pans[pan.id][0], TOP - MISE.drop, r.pans[pan.id][2]])).toBe(true))
+        expect(MISE.drop).toBeGreaterThan(MISE.heap)
+        // Each kit pan's strip of tape lies on its mise, and the marker on it just over the tape; the last marker is the reach-in's own strip.
         for (const sheet of drawn.sheets) expect(r.pans.some((p) => same([p[0], CROWN, p[2]], sheet.center))).toBe(true)
         for (const tape of drawn.tapes.slice(0, -1)) expect(r.pans.some((p) => same([p[0], CROWN + 0.0004, p[2]], tape.at))).toBe(true)
         expect(drawn.tapes[drawn.tapes.length - 1]).toBe(r.tape)
+        // The fan rises out of its head pan's own place.
+        if (drawn.fan) expect(r.pans.some((p) => same([p[0], TOP - MISE.drop, p[2]], drawn.fan?.at ?? [0, 0, 0]))).toBe(true)
       }
     }
   })
 
-  test("the room: tile, the line's burners under their hood, the pass with two heat lamps over it, the line's rail; every prop builds with the kit", () => {
+  test("the room: tile, the line's burners under their hood, the pass with two heat lamps over it and under the rail, the line's rail at the overshelf's front edge; every prop builds with the kit", () => {
     const r = reachInOf(104, 4)
     const kinds = r.items.map((item) => item.kind)
     for (const kind of ['floor', 'tile-wall', 'burners', 'hood', 'pass', 'rail']) expect(kinds).toContain(kind)
     expect(kinds.filter((kind) => kind === 'heat-lamp')).toHaveLength(2)
     expect(r.lamps).toHaveLength(2)
-    // Each lamp hangs over the pass, inside its top, and throws its light straight down on it, under the waiting tickets.
+    // Each lamp hangs over the pass's back half, inside its top, under the line's rail and clear over the waiting tickets, and throws its
+    // light forward and down on the line the tickets lie along, in the pass's front half.
     for (const lamp of r.lamps) {
       expect(lamp.target[1]).toBe(PASS.top)
       expect(lamp.target[0]).toBe(lamp.at[0])
       expect(Math.abs(lamp.at[0])).toBeLessThan(PASS.width / 2 - 0.12)
-      expect(Math.abs(lamp.at[2] - PASS.z)).toBeLessThan(PASS.depth / 2)
-      expect(Math.abs(lamp.target[2] - PASS.z)).toBeLessThan(TICKET.height / 2)
-      expect(lamp.at[1] - PASS.top).toBeGreaterThan(0.4)
+      expect(lamp.at[2]).toBeGreaterThan(PASS.z - PASS.depth / 2 + 0.12)
+      expect(lamp.at[2]).toBeLessThan(PASS.z)
+      expect(lamp.target[2]).toBe(PASS.line)
+      expect(PASS.line).toBeGreaterThan(PASS.z)
+      expect(PASS.line + TICKET.height / 2).toBeLessThan(PASS.z + PASS.depth / 2)
+      expect(lamp.at[1]).toBeLessThan(RAIL.y)
+      expect(lamp.at[1] - PASS.top).toBeGreaterThan(0.2)
     }
+    // The rail runs along the overshelf's front edge (the overshelf is 0.25 deep), where nothing over it hides the tickets it holds.
+    expect(r.rail[2] + r.depth).toBeCloseTo(RAIL.out, 9)
+    expect(RAIL.out).toBeGreaterThan(0.2)
+    expect(RAIL.out).toBeLessThan(0.25)
     // The hood hangs over the burners, to the reach-in's left.
     const burners = r.items.find((item) => item.kind === 'burners')
     const hood = r.items.find((item) => item.kind === 'hood')
@@ -102,6 +116,11 @@ describe('the reach-in: a pan in every slot, each in its place for its whole lif
     expect(hood.at[1] - hood.height).toBeGreaterThan(1.6)
     expect(hood.at[0] + hood.width / 2).toBeLessThan(-r.width / 2 + 0.1)
     expect(r.clips).toHaveLength(4)
+    // The room's light falls away to the right of the rack, and up the wall over the overshelf, into the haze.
+    expect(r.light.x + r.light.half + r.light.reach[0]).toBeLessThan(r.width / 2 + 0.5)
+    expect(r.light.above).toBeLessThan(RAIL.y + 0.1)
+    expect(r.light.dim).toBeLessThan(0.4)
+    expect(r.light.veil).toBeGreaterThan(0.5)
     const palette = paletteFrom(staticSceneTokens())
     for (const item of r.items) {
       const built = buildProp(item, palette)
@@ -111,9 +130,9 @@ describe('the reach-in: a pan in every slot, each in its place for its whole lif
     }
   })
 
-  test('the reach-in itself is a prop made the kit\'s way: built by the kit\'s maker in its tones, grounded by its footprint', () => {
+  test("the reach-in itself is a prop made the kit's way: built by the kit's maker in its tones, grounded by its footprint, its open slots under one cover with a lip", () => {
     const palette = paletteFrom(staticSceneTokens())
-    for (const pages of [44, 112, 288]) {
+    for (const pages of [44, 112, 288, 100]) {
       const r = reachInOf(pages, 4)
       const built = buildProp({ kind: 'custom', id: 'reach-in', at: [0, 0, -r.depth / 2], build: (m) => cabinet(m, r) }, palette)
       expect(built.parts.length).toBeGreaterThan(COLS + r.rows)
@@ -121,9 +140,10 @@ describe('the reach-in: a pan in every slot, each in its place for its whole lif
       expect(built.footprints).toHaveLength(1)
       // Its footprint lies under the whole cabinet, front at z = 0 and back at the wall.
       expect(built.footprints[0].center[2]).toBeCloseTo(-r.depth / 2)
-      // A short last row leaves slots open, and each takes a bevelled lid: one part more than a full row's cabinet for each.
+      // A short last row leaves slots open, and they take one cover and its rolled lip: two parts more than a full row's cabinet.
+      const open = r.rows * COLS - pages
       const full = buildProp({ kind: 'custom', id: 'reach-in', at: [0, 0, -r.depth / 2], build: (m) => cabinet(m, reachInOf(r.rows * COLS, 4)) }, palette)
-      expect(built.parts.length - full.parts.length).toBe(r.rows * COLS - pages)
+      expect(built.parts.length - full.parts.length).toBe(open > 0 ? 2 : 0)
       for (const part of built.parts) {
         part.geometry.computeBoundingBox()
         const box = part.geometry.boundingBox
@@ -131,57 +151,73 @@ describe('the reach-in: a pan in every slot, each in its place for its whole lif
         expect(box.max.z).toBeLessThanOrEqual(0.1)
         expect(box.min.z).toBeGreaterThanOrEqual(-r.depth - 0.01)
       }
+      if (open === 0) continue
+      // The cover spans the open slots of the front row, from the last pan's slot to the frame, and stands proud of the bars, its lip on top
+      // (the overshelf is the cabinet's last part).
+      const [cover, lip] = built.parts.slice(-3, -1).map((part) => part.geometry.boundingBox)
+      if (!cover || !lip) throw new Error('no cover')
+      const right = r.width / 2 - FRAME.side
+      expect(cover.max.x).toBeCloseTo(right, 1)
+      expect(cover.min.x).toBeCloseTo(right - open * PITCH.x, 1)
+      expect(cover.min.z).toBeGreaterThan(-FRAME.front - PITCH.z - 0.01)
+      expect(cover.max.y).toBeGreaterThan(TOP)
+      expect(lip.max.y).toBeGreaterThan(cover.max.y)
     }
   })
 })
 
 describe('the night on the pans', () => {
-  test("a pan's mise is the food of its memory role, and its tape carries its glyph: its station's kind where a ticket holds it, the hash where it is cached, the pin where it is a kit's", () => {
+  test("a pan's mise is the food of its memory role, and tape lies only on a kit's pans, with the kit's pin, and the reach-in's own strip", () => {
     let seen = 0
+    let pinned = 0
     for (const id of ['two-kinds', 'adapters', 'state', 'same-size'] as const) {
       for (const state of night(id)) {
         const v = view(state)
         const drawn = nightAt(state)
         const held = v.pans.filter((pan) => pan.state !== 'free')
-        expect(drawn.sheets).toHaveLength(held.length)
-        expect(drawn.tapes).toHaveLength(held.length + 1)
-        expect(drawn.tapes[held.length].cell).toBe(CELL.scrawl)
+        const kits = held.filter((pan) => pan.kit !== null)
         held.forEach((pan, i) => {
-          expect(drawn.fills[i].role).toBe(`memory-${pan.state}`)
           expect(drawn.fills[i].cell).toBe(FOOD[pan.state])
-          const cell = drawn.tapes[i].cell
-          if (pan.state === 'adapter') expect(cell).toBe(CELL.pin)
-          else if (pan.refs === 0) expect(cell).toBe(CELL.hash)
-          else expect(cell).toBe(CELL[v.stations[pan.station as number].kind])
           seen += 1
         })
+        expect(drawn.sheets).toHaveLength(kits.length)
+        expect(drawn.tapes).toHaveLength(kits.length + 1)
+        expect(drawn.sheets.map((sheet) => sheet.id)).toEqual(kits.map((pan) => `${pan.id}`))
+        for (const tape of drawn.tapes.slice(0, -1)) expect(tape.cell).toBe(CELL.pin)
+        expect(drawn.tapes[kits.length].cell).toBe(CELL.scrawl)
+        pinned += kits.length
       }
     }
     expect(seen).toBeGreaterThan(1000)
+    // The kits' level pins its pans.
+    expect(pinned).toBeGreaterThan(0)
   })
 
-  test('each memory role has its own food, and a dumped pan\'s well is the hollow tray', () => {
+  test("each memory role has its own food, and a dumped pan's well is the hollow tray", () => {
     const held = (['used', 'cached', 'shared', 'adapter'] as const).map((state) => FOOD[state])
     expect(new Set(held).size).toBe(4)
     for (const cell of held) expect(cell).toBeGreaterThanOrEqual(8)
     expect(FOOD.evicted).toBe(CELL.hollow)
   })
 
-  test('One station keeps that station\'s tapes and twine and no other\'s, and every pan\'s mise', () => {
-    const states = night('two-kinds')
-    const state = states[Math.floor(states.length / 2)]
-    const v = view(state)
-    for (let g = 0; g < v.stations.length; g++) {
-      const drawn = nightAt(state, { station: g })
-      const mine = v.pans.filter((pan) => pan.state !== 'free' && pan.station === g)
-      expect(drawn.sheets).toHaveLength(mine.length)
-      expect(drawn.tapes).toHaveLength(mine.length + 1)
-      expect(drawn.fills).toHaveLength(v.pans.filter((pan) => pan.state !== 'free').length)
-      expect(drawn.twine.length).toBeLessThanOrEqual(1)
+  test("One station keeps that station's twine and fan, no kit's tape, and every pan's mise", () => {
+    for (const id of ['two-kinds', 'adapters'] as const) {
+      const states = night(id)
+      const state = states[Math.floor(states.length / 2)]
+      const v = view(state)
+      for (let g = 0; g < v.stations.length; g++) {
+        const drawn = nightAt(state, { station: g })
+        expect(drawn.sheets).toHaveLength(0)
+        expect(drawn.tapes).toHaveLength(1)
+        expect(drawn.kits).toHaveLength(0)
+        expect(drawn.fills).toHaveLength(v.pans.filter((pan) => pan.state !== 'free').length)
+        expect(drawn.twine.length).toBeLessThanOrEqual(1)
+        if (drawn.fan) expect(drawn.fan.glyph).toBe(CELL[v.stations[g].kind])
+      }
     }
   })
 
-  test("the focus is the ticket hung last: one string per station runs from its clip through the pans it holds, in the order of their blocks", () => {
+  test("the focus is the ticket hung last: one string per station runs from its foot on the rail through the pans it holds, in the order of their blocks", () => {
     let strung = 0
     for (const id of ['two-kinds', 'same-size', 'state'] as const) {
       for (const state of night(id)) {
@@ -200,8 +236,10 @@ describe('the night on the pans', () => {
           .filter((list) => list.length > 0)
           .forEach((list, k) => {
             const string = drawn.twine[k]
-            // It leaves from the ticket's foot on the rail, then touches each pan's tape in turn, a sag between each two.
-            expect(string[0][1]).toBeCloseTo(RAIL.y - RAIL.grip - TICKET.height + 0.006)
+            // It leaves from the ticket's foot on the rail, tipped and curled toward the expo, then touches each pan's mise in turn, a sag
+            // between each two.
+            expect(string[0][1]).toBeCloseTo(RAIL.y - RAIL.grip + FOOT[0] + 0.006)
+            expect(string[0][2]).toBeCloseTo(r.rail[2] + 0.012 + FOOT[1])
             list.forEach((pan, j) => expect(same(string[2 + 2 * j], [r.pans[pan.id][0], CROWN + 0.004, r.pans[pan.id][2]])).toBe(true))
             strung += 1
           })
@@ -213,9 +251,13 @@ describe('the night on the pans', () => {
       }
     }
     expect(strung).toBeGreaterThan(50)
+    // The foot is below the clip and toward the expo, about a ticket's length from it.
+    expect(FOOT[0]).toBeLessThan(-TICKET.height * 0.8)
+    expect(FOOT[1]).toBeGreaterThan(0)
+    expect(Math.hypot(FOOT[0], FOOT[1])).toBeCloseTo(TICKET.height, 1)
   })
 
-  test('the head pan fans into the layers of its station, a tray for each, with its padding layers, and the page says the same', () => {
+  test("the head pan fans into the layers of its station, a tray for each, with its padding layers, its station's glyph on the top tray's tape, and the page says the same", () => {
     let fanned = 0
     let padded = 0
     for (const id of ['two-kinds', 'same-size'] as const) {
@@ -232,8 +274,8 @@ describe('the night on the pans', () => {
           }
           expect(focus.group?.layers).toBe(drawn.fan.layers)
           expect(focus.group?.padLayers).toBe(drawn.fan.pads)
-          expect(drawn.fan.role).toBe(`memory-${focus.head?.state}`)
           expect(drawn.fan.cell).toBe(FOOD[focus.head?.state ?? 'free'])
+          expect(drawn.fan.glyph).toBe(CELL[focus.group?.kind ?? 'full'])
           fanned += 1
           if (drawn.fan.pads > 0) padded += 1
         }
@@ -256,8 +298,8 @@ describe('the night on the pans', () => {
         const rail = drawn.rings.filter((ring) => ring.rotation !== undefined)
         expect(rack).toHaveLength(ask?.kind === 'evict' ? ask.need : 0)
         expect(rail).toHaveLength(ask?.kind === 'preempt' ? ask.candidates.length : 0)
-        // A pulled ticket's ring stands round it on the rail, where it hangs.
-        for (const ring of rail) expect(ring.at[1]).toBeCloseTo(RAIL.y - RAIL.grip - TICKET.height / 2)
+        // A pulled ticket's ring stands round it on the rail, where it hangs, half way down it.
+        for (const ring of rail) expect(ring.at[1]).toBeCloseTo(RAIL.y - RAIL.grip + FOOT[0] / 2)
         pulls += rail.length
         expect(drawn.lit).toBe(ask?.kind === 'admit' || ask?.kind === 'prefetch')
       }
@@ -278,7 +320,7 @@ describe('the night on the pans', () => {
     expect(joined).toBeGreaterThan(0)
   })
 
-  test("the moment plays again when the focus or its pans change, and not when a pan is chosen to be dumped", () => {
+  test('the moment plays again when the focus or its pans change, and not when a pan is chosen to be dumped', () => {
     const states = night('evict')
     const evicting = states.find((state) => view(state).ask?.kind === 'evict')
     if (!evicting) throw new Error('no eviction on the night')
@@ -289,23 +331,23 @@ describe('the night on the pans', () => {
     expect(moments.size).toBeGreaterThan(5)
   })
 
-  test('every ticket on the pass or the rail has its number as a DOM label riding on it, and the scene carries no other word', () => {
+  test('the scene carries no word and no number: no label rides on its canvas, and a ticket is paper and print, its number the page\'s', () => {
     for (const state of night('two-kinds')) {
-      const v = view(state)
       const drawn = nightAt(state)
-      for (const id of [...v.waiting, ...v.running]) {
-        const label = drawn.labels.find((l) => l.id === `no${id}`)
-        expect(label?.content).toBe(v.tickets[id].no)
-        expect(label?.frame).toBe(`ticket:t${id}`)
-      }
-      expect(drawn.labels).toHaveLength(v.waiting.length + v.running.length)
+      expect('labels' in drawn).toBe(false)
+      expect(drawn.tickets).toHaveLength(view(state).waiting.length + view(state).running.length)
     }
+    const scene = readFileSync(path.join(root, 'src/games/pool/Scene3D.tsx'), 'utf8')
+    expect(scene).not.toMatch(/labels=/)
+    expect(scene).not.toMatch(/LabelSpec|registerFrame/)
   })
 
   test("the tickets are the kit's, drawn larger by one scale, and lie on the pass far enough apart not to overlap", () => {
     expect(TICKET.height).toBeCloseTo(KIT_TICKET.height * TICKET.scale)
     expect(TICKET.gap).toBeGreaterThan(KIT_TICKET.width * TICKET.scale)
     expect(RAIL.pitch).toBeGreaterThan(KIT_TICKET.width * TICKET.scale)
+    // Eight waiting tickets, the most a level holds, lie inside the pass's width.
+    expect(7 * TICKET.gap + KIT_TICKET.width * TICKET.scale).toBeLessThan(PASS.width)
   })
 })
 
@@ -331,6 +373,27 @@ function projectIn(preset: CameraPreset, point: Vec3, width: number, height: num
   return { x: width / 2 + (dot(r) / k) * (height / 2), y: height / 2 - (dot(u) / k) * (height / 2) }
 }
 
+/** A hung ticket on clip `k` of four, from its clip to its foot: `t` of the way down it, in the scene. */
+const hung = (r: ReturnType<typeof reachInOf>, k: number, t: number): Vec3 => [(k - 1.5) * RAIL.pitch, RAIL.y - RAIL.grip + FOOT[0] * t, r.rail[2] + 0.012 + FOOT[1] * t]
+
+/** Whether the segment from `a` to `b` passes through the box from `lo` to `hi`. */
+function through(a: Vec3, b: Vec3, lo: Vec3, hi: Vec3): boolean {
+  let t0 = 0
+  let t1 = 1
+  for (let i = 0; i < 3; i++) {
+    const d = b[i] - a[i]
+    if (Math.abs(d) < 1e-12) {
+      if (a[i] < lo[i] || a[i] > hi[i]) return false
+      continue
+    }
+    const [u, w] = [(lo[i] - a[i]) / d, (hi[i] - a[i]) / d].sort((p, q) => p - q)
+    t0 = Math.max(t0, u)
+    t1 = Math.min(t1, w)
+    if (t0 > t1) return false
+  }
+  return t1 > 1e-6 && t0 < 1 - 1e-6
+}
+
 describe('the presets (A§6.1: front, per-group filter, top)', () => {
   test('the page\'s plates and the scene\'s presets are the same three, in the same order', () => {
     expect(reachInOf(104, 4).presets.map((preset) => preset.id)).toEqual(POOL_CAMERAS.map((camera) => camera.id))
@@ -341,7 +404,7 @@ describe('the presets (A§6.1: front, per-group filter, top)', () => {
   // 464 on a 390 by 844 phone [measured 2026-11-05 by e2e/pool-scene.spec.ts].
   const inside = (p: { x: number; y: number }, width: number, height: number) => p.x >= 0 && p.x <= width && p.y >= 0 && p.y <= height
   for (const [width, height] of CANVASES) {
-    test(`at ${width} by ${height} px, every preset holds the rack whole at every pool size, and the front one the rail's tickets, the pass's under its lamps, and the line's hood`, () => {
+    test(`at ${width} by ${height} px, every preset holds the rack whole at every pool size, and the front one the rail and its hung tickets, the pass's tickets and its front lip, its lamps, and the line's hood`, () => {
       for (const pages of POOLS) {
         const r = reachInOf(pages, 4)
         const half = r.width / 2
@@ -353,9 +416,14 @@ describe('the presets (A§6.1: front, per-group filter, top)', () => {
         const landmarks: Vec3[] = [
           [-0.3, RAIL.y + 0.02, r.rail[2]],
           [0.3, RAIL.y + 0.02, r.rail[2]],
+          // Each hung ticket's foot.
+          ...[0, 3].map((k) => hung(r, k, 1)),
           // The eighth waiting ticket at either end of the pass, and its far edge.
-          [-3.5 * TICKET.gap, PASS.top, PASS.z + TICKET.height / 2],
-          [3.5 * TICKET.gap, PASS.top, PASS.z + TICKET.height / 2],
+          [-3.5 * TICKET.gap, PASS.top, PASS.line + TICKET.height / 2],
+          [3.5 * TICKET.gap, PASS.top, PASS.line + TICKET.height / 2],
+          // The pass's rolled front lip, near either end.
+          [-PASS.width / 2 + 0.05, PASS.top - 0.04, PASS.z + PASS.depth / 2 + 0.012],
+          [PASS.width / 2 - 0.05, PASS.top - 0.04, PASS.z + PASS.depth / 2 + 0.012],
           // Each lamp's mouth, over the pass.
           ...r.lamps.map((lamp) => lamp.at),
         ]
@@ -405,12 +473,39 @@ describe('the presets (A§6.1: front, per-group filter, top)', () => {
             const corners: Vec3[] = [[0, 0], [-0.045, -0.08], [0.045, -0.08], [-0.045, 0.08], [0.045, 0.08]].map(([dx, dz]) => [pan[0] + dx, TOP, pan[2] + dz])
             expect(corners.some(hidden), `${preset.id} ${pages}: pan ${id + 1}`).toBe(false)
           }
-          for (let k = 0; k < 4; k++) {
-            const x = (k - 1.5) * RAIL.pitch
-            expect([-0.01, -0.06, -0.11].some((dy) => hidden([x, RAIL.y - RAIL.grip + dy, r.rail[2] + 0.012])), `${preset.id} ${pages}: clip ${k}`).toBe(false)
-          }
-          for (let i = 0; i < 8; i++) expect([-1, 0, 1].some((k) => hidden([(i - 3.5) * TICKET.gap, PASS.top, PASS.z + (k * TICKET.height) / 2])), `${preset.id} ${pages}: waiting ${i}`).toBe(false)
+          for (let k = 0; k < 4; k++) expect([0.05, 0.5, 0.95].some((t) => hidden(hung(r, k, t))), `${preset.id} ${pages}: clip ${k}`).toBe(false)
+          for (let i = 0; i < 8; i++) expect([-1, 0, 1].some((k) => hidden([(i - 3.5) * TICKET.gap, PASS.top, PASS.line + (k * TICKET.height) / 2])), `${preset.id} ${pages}: waiting ${i}`).toBe(false)
         }
+      }
+    })
+
+    test(`at ${width} by ${height} px, the front shot sees each lamp's shade over the pass, and every hung ticket whole, under the overshelf's front edge and not behind it`, () => {
+      for (const pages of POOLS) {
+        const r = reachInOf(pages, 4)
+        const front = r.presets[0]
+        const camera = framingFor(front, width).position
+        const P = (p: Vec3) => projectIn(front, p, width, height)
+        // The pass's top in the picture, and each shade's mouth, its sides and its front over it.
+        const pass = outline(
+          [
+            [-1, -1],
+            [1, -1],
+            [-1, 1],
+            [1, 1],
+          ].map(([sx, sz]) => P([(sx * PASS.width) / 2, PASS.top, PASS.z + (sz * PASS.depth) / 2])),
+        )
+        for (const lamp of r.lamps)
+          for (const [dx, dz] of [
+            [0, 0],
+            [0.1185, 0],
+            [-0.1185, 0],
+            [0, 0.1185],
+          ])
+            expect(within(pass, P([lamp.at[0] + dx, lamp.at[1] + 0.02, lamp.at[2] + dz])), `${pages}: lamp ${lamp.id} over the pass`).toBe(true)
+        // The overshelf: a slab 32 mm thick over the rail, from the wall 0.25 deep.
+        const lo: Vec3 = [-r.width / 2, RAIL.y, -r.depth]
+        const hi: Vec3 = [r.width / 2, RAIL.y + 0.032, -r.depth + 0.25]
+        for (let k = 0; k < 4; k++) for (const t of [0.05, 0.5, 1]) expect(through(hung(r, k, t), camera, lo, hi), `${pages}: hung ticket ${k} at ${t}`).toBe(false)
       }
     })
   }
@@ -426,6 +521,16 @@ describe('the presets (A§6.1: front, per-group filter, top)', () => {
       expect(top).toBeGreaterThan(17)
     }
   })
+
+  test('at 1440 px a hung ticket stands about 50 px tall in the front shot on the levels the reach-in is played most in, so its paper reads (finish review, round 2)', () => {
+    for (const pages of [104, 112, 160]) {
+      const r = reachInOf(pages, 4)
+      const ys = [0, 0.5, 1].map((t) => projectIn(r.presets[0], hung(r, 1, t), 870, 557).y)
+      const tall = Math.max(...ys) - Math.min(...ys)
+      expect(tall, `${pages}`).toBeGreaterThan(40)
+      expect(tall, `${pages}`).toBeLessThan(60)
+    }
+  })
 })
 
 describe('the acceptance checks on text, colour and size', () => {
@@ -433,6 +538,10 @@ describe('the acceptance checks on text, colour and size', () => {
 
   test('all text is DOM: the canvas prints nothing, the glyphs are shapes', () => {
     for (const source of sources) expect(source).not.toMatch(/fillText|strokeText|TextGeometry|FontLoader/)
+  })
+
+  test("the steel reflects the kitchen's tubes and not the heat lamps' glow, so it warms only under a lit lamp (One Lamp)", () => {
+    expect(sources[0]).toMatch(/<SceneCanvas [^>]*environment="tubes"/)
   })
 
   test('the scene reaches three only through the kit and its own lazy chunk, and the page holds it behind React.lazy', () => {
@@ -449,7 +558,7 @@ describe('the acceptance checks on text, colour and size', () => {
     for (const state of states) {
       const drawn = nightAt(state)
       const v = view(state)
-      most = Math.max(most, v.pans.length + drawn.fills.length + drawn.sheets.length + drawn.tapes.length + drawn.rings.length + 32 + drawn.tickets.length + v.cap)
+      most = Math.max(most, v.pans.length + drawn.fills.length + drawn.sheets.length + drawn.tapes.length + drawn.rings.length + 2 * 32 + drawn.tickets.length + v.cap)
     }
     expect(most).toBeLessThan(1500)
   })

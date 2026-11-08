@@ -7,7 +7,7 @@
  *      and not an animation, the scene's box does not move, and then no animation frame is asked for.
  *   And the rest of the scene's contract (A§6.8): `V` swaps 2D and 3D and keeps the night; `C` and the plates reach every preset, and One
  *   station draws only the station its buttons pick; the capture is not blank at 1440 and at 390 px; every number is DOM, the scene
- *   carries no other word, and what the fan shows is said on the page.
+ *   carries no word and no number of its own, and what the fan shows is said on the page.
  *   (The scene's chunk at most 40 KB gz is a build check, verify:bundle's gate; tests/play/pool-scene.test.ts holds the layout, the
  *   presets' framing and the text, and tests/design/literals.test.ts the colours.)
  *
@@ -289,6 +289,7 @@ test.describe('the views and the camera (A§6.8)', () => {
     const ask = () => page.evaluate(() => Array.from(document.querySelectorAll('[data-pool-controls] [data-ask-list] button')).map((button) => button.textContent?.trim().replace(/\s+/g, ' ')))
     const kept = { kind: await askKind(page), list: await ask() }
     expect(kept.list.length).toBeGreaterThan(0)
+    const drawn = (await frame(page)).instances
 
     await game(page).focus()
     await page.keyboard.press('KeyV')
@@ -302,9 +303,10 @@ test.describe('the views and the camera (A§6.8)', () => {
     await expect(game(page)).toHaveAttribute('data-view', '3d')
     await settle(page)
     expect({ kind: await askKind(page), list: await ask() }).toEqual(kept)
-    // The scene draws the same night: a number for every ticket on the line and on the pass.
+    // The scene draws the same night: every pan, its mise, the tickets on the line and on the pass, as many as before the swap.
     const view = poolSession.view(states[4])
-    await expect(stage(page).locator('.es-labels .es-type-ticket')).toHaveCount(view.waiting.length + view.running.length)
+    expect(view.waiting.length + view.running.length).toBeGreaterThan(0)
+    expect((await frame(page)).instances).toBe(drawn)
   })
 
   test('`C` cycles every preset and each plate reaches its own; One station draws only the station picked', async ({ page }) => {
@@ -316,7 +318,7 @@ test.describe('the views and the camera (A§6.8)', () => {
     await settle(page)
     const pressed = () => camera(page).locator('button[aria-pressed="true"]').textContent()
     expect(await pressed()).toBe(CAMERAS[0])
-    const whole = (await frame(page)).instances
+    const whole = (await frame(page)).sceneCalls
     for (const name of [...CAMERAS.slice(1), CAMERAS[0]]) {
       await game(page).focus()
       await page.keyboard.press('KeyC')
@@ -329,20 +331,20 @@ test.describe('the views and the camera (A§6.8)', () => {
       await expect(camera(page).getByRole('button', { name })).toHaveAttribute('aria-pressed', 'true')
       await settle(page)
     }
-    // One station: the page's buttons pick the station, and the scene draws its tapes alone.
+    // One station: the page's buttons pick the station, and the scene draws its twine alone: one string where every station's are three.
     await camera(page).getByRole('button', { name: 'One station' }).click()
     const stations = page.getByRole('group', { name: 'The station shown' }).getByRole('button')
     await expect(stations).toHaveCount(3)
     await expect(stations.first()).toHaveAttribute('aria-pressed', 'true')
     await settle(page)
-    const one = (await frame(page)).instances
+    const one = (await frame(page)).sceneCalls
     await stations.nth(1).click()
     await expect(stations.nth(1)).toHaveAttribute('aria-pressed', 'true')
     await settle(page)
-    const other = (await frame(page)).instances
+    const other = (await frame(page)).sceneCalls
     expect(one).toBeLessThan(whole)
     expect(other).toBeLessThan(whole)
-    console.log(`instances: ${whole} with every station's tapes, ${one} and ${other} with one station's`)
+    console.log(`draw calls: ${whole} with every station's twine, ${one} and ${other} with one station's`)
   })
 })
 
@@ -373,15 +375,16 @@ test.describe('the picture (W1-T24)', () => {
     })
   }
 
-  test("all text is DOM: the tickets' numbers are page text over the canvas, the scene carries no other word, and the page says what the fan shows", async ({ page }) => {
+  test("all text is DOM: the scene carries no word and no number, the tickets' numbers are the page's, and the page says what the fan shows", async ({ page }) => {
     test.setTimeout(120_000)
     const { states, actions } = nightOfHouse('two-kinds')
     await open(page, 'two-kinds', 2)
     await settle(page)
-    const labels = stage(page).locator('.es-labels')
+    const labels = stage(page).locator('.es-labels .es-label')
     const first = poolSession.view(states[0])
-    for (const id of [...first.waiting, ...first.running]) await expect(labels.locator('.es-type-ticket', { hasText: first.tickets[id].no })).toHaveCount(1)
-    await expect(labels.locator('.es-label')).toHaveCount(first.waiting.length + first.running.length)
+    // No label rides on the canvas; the tickets that can hang are named on the page, by their numbers, in the open ask's list.
+    await expect(labels).toHaveCount(0)
+    for (const id of first.waiting) await expect(page.locator('[data-pool-controls] [data-ask-list]')).toContainText(`No. ${first.tickets[id].no}`)
     // Nothing is on the line yet, so there is no fan to speak of.
     await expect(page.locator('[data-pool-fan]')).toHaveCount(0)
     // The ticket hung first is the focus: its head pan fans into the layers of its station, and the page says which and how many.
@@ -395,8 +398,8 @@ test.describe('the picture (W1-T24)', () => {
     await expect(page.locator('[data-pool-fan]')).toContainText(`No. ${view.tickets[ticket].no}`)
     await expect(page.locator('[data-pool-fan]')).toContainText(`${station?.id}`)
     await expect(page.locator('[data-pool-fan]')).toContainText(`all ${fan?.layers} of the station's layers`)
-    await expect(labels.locator('.es-label')).toHaveCount(view.waiting.length + view.running.length)
-    // The labels ride over the canvas, which carries no text and is hidden from assistive technology with its box.
+    await expect(labels).toHaveCount(0)
+    // The canvas carries no text, and is hidden from assistive technology with its box.
     await expect(stage(page).locator('.es-stage__scene')).toHaveAttribute('aria-hidden', 'true')
     expect(await stage(page).locator('canvas').evaluate((canvas) => canvas.textContent)).toBe('')
   })

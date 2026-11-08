@@ -60,8 +60,6 @@ export interface PropMaterials {
    * `color` (the lamp's, at the pool's strength). An empty list lifts them.
    */
   setPools(pools: readonly (readonly [number, number, number])[], y?: number, color?: Color, height?: number): void
-  /** Asks for a redraw once the print's face has loaded (at once if it has); returns the unsubscribe. */
-  onPrinted(redraw: () => void): () => void
   /** A metal of its own for one moving part, the same program as `metal`, whose emissive can flash amber (the bell's dome). */
   flashMetal(): MeshPhysicalMaterial
   dispose(): void
@@ -430,32 +428,17 @@ export function createPropMaterials(source: MaterialSource, maxAnisotropy: numbe
   const glow = new MeshStandardMaterial({ name: 'prop-glow', vertexColors: true, roughness: 0.45, metalness: 0.2, emissive: new Color(1, 1, 1), emissiveIntensity: params.glow.emissiveIntensity })
   patchGlow(glow, glowUniforms)
 
-  // The print atlas: paper and rules now, the dot-matrix face once it has loaded.
+  // The print atlas: paper, its print in the impact printer's dots and the dotted rules, drawn at once.
   const canvas = document.createElement('canvas')
   canvas.width = PRINT_SIZE.width
   canvas.height = PRINT_SIZE.height
-  const inks = { paper: inputs.paper, ink: inputs.ink, rule: tokens.colors['paper-rule'], family: tokens.roles['font-ticket'] }
-  drawPrint(canvas, inks, false)
+  drawPrint(canvas, { paper: inputs.paper, ink: inputs.ink, rule: tokens.colors['paper-rule'] })
   const print = new CanvasTexture(canvas)
   print.colorSpace = SRGBColorSpace
   print.anisotropy = anisotropy
   print.wrapS = RepeatWrapping
   print.wrapT = RepeatWrapping
   owned.push(print)
-  let alive = true
-  let printed = false
-  let redraw: (() => void) | null = null
-  const face = `900 24px ${inks.family}`
-  const fonts = typeof document !== 'undefined' ? document.fonts : undefined
-  void (fonts ? fonts.load(face) : Promise.resolve([]))
-    .catch(() => [])
-    .then(() => {
-      if (!alive) return
-      drawPrint(canvas, inks, true)
-      print.needsUpdate = true
-      printed = true
-      redraw?.()
-    })
   const paper = source.base.paper
   const ticket = new MeshStandardMaterial({
     name: 'prop-ticket',
@@ -527,13 +510,6 @@ export function createPropMaterials(source: MaterialSource, maxAnisotropy: numbe
       pools.uPoolH.value = height
       if (color) pools.uPoolColor.value.copy(color)
     },
-    onPrinted(next) {
-      redraw = next
-      if (printed) next()
-      return () => {
-        if (redraw === next) redraw = null
-      }
-    },
     flashMetal() {
       const material = makeMetal()
       material.emissive.set(inputs.glow)
@@ -542,7 +518,6 @@ export function createPropMaterials(source: MaterialSource, maxAnisotropy: numbe
       return material
     },
     dispose() {
-      alive = false
       for (const material of [...all, ...flashes]) material.dispose()
       for (const map of owned) map.dispose()
     },

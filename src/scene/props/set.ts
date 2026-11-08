@@ -33,7 +33,8 @@ const ORDER: readonly Surface[] = ['metal', 'ceramic', 'tile', 'floor', 'glow']
  * The room's light, baked into its tile and its floor [estimated]: full over the line, where the tubes and the hood's lights fall, and
  * dimming toward `dim` of it to either side past `half` of the line's width, above the height `above` and back past the depth `beyond`,
  * over `reach` metres across, up and back. A room lit so has depth: its far corners and the wall over the hood fall away from the line.
- * A set without it is lit evenly.
+ * Where its light falls away, `veil` of what it no longer lights is the haze's deep steel, so that a pale wall and a dark floor alike
+ * lose their contrast into the haze rather than only darkening; none leaves the dark alone. A set without it is lit evenly.
  */
 export interface RoomLight {
   /** The middle of the lit line, across the room (x). */
@@ -43,6 +44,7 @@ export interface RoomLight {
   readonly beyond: number
   readonly reach: Vec3
   readonly dim: number
+  readonly veil?: number
 }
 
 /** The share of the room's light at a point: 1 where the room is lit, easing down to `dim`. */
@@ -92,15 +94,16 @@ export function* buildSteps(items: readonly PropSpec[], palette: Palette, occlus
       color.needsUpdate = true
     })
   }
-  // The room's light on its tile and its floor.
+  // The room's light on its tile and its floor, falling away into the haze.
   if (room) {
     for (const { surface, geometry } of meshes) {
       if (surface !== 'tile' && surface !== 'floor') continue
       const color = geometry.getAttribute('color')
       const at = geometry.getAttribute('position')
+      const haze = palette.part(geometry, 'deep').color.clone().multiplyScalar(room.veil ?? 0)
       for (let v = 0; v < color.count; v++) {
         const shade = roomShade(room, at.getX(v), at.getY(v), at.getZ(v))
-        color.setXYZ(v, color.getX(v) * shade, color.getY(v) * shade, color.getZ(v) * shade)
+        color.setXYZ(v, color.getX(v) * shade + haze.r * (1 - shade), color.getY(v) * shade + haze.g * (1 - shade), color.getZ(v) * shade + haze.b * (1 - shade))
       }
       color.needsUpdate = true
     }
