@@ -16,7 +16,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { gzipSync } from 'node:zlib'
 import { leavesOf } from '../../scripts/pages/plan'
-import { BUDGETS, BundleError, budgetOfRoute, checkBundle, closureOf, filesOf, KB, lineOf, main, readInput, routesIn, summaryOf } from '../../scripts/verify-bundle'
+import { BUDGETS, BundleError, checkBundle, closureOf, filesOf, KB, lineOf, main, readInput, routesIn, summaryOf } from '../../scripts/verify-bundle'
 import type { Chunk, Document, Input, Manifest, Report, Row, Route, Tree } from '../../scripts/verify-bundle'
 import { routes as appRoutes } from '../../src/routes'
 
@@ -295,7 +295,7 @@ describe('the miniature', () => {
     // index.html 36,000 + react 60,000 + Front 10,000 + session 9,000 + load 1,000 + the course index 600.
     const row = rowOf(report, 'front')
     expect(row.bytes).toBe(116_600)
-    expect([row.gate, row.target]).toEqual([154, 130])
+    expect([row.gate, row.target]).toEqual([150, 130])
     expect(filesIn(row)).toEqual(['index.html', '_react-vendor.js', FRONT, '_session.js', '_load.js', INDEX_JSON].map(fileOf).sort())
   })
 
@@ -309,7 +309,7 @@ describe('the miniature', () => {
   test('counts for any other route the JavaScript and CSS of its page and the entry with their static imports', () => {
     // index.html 36,000 + react 60,000 + Map 500, and the CSS of the entry 15,000 and of the page 2,000.
     const row = rowOf(report, 'route:/map')
-    expect([row.bytes, row.gate]).toEqual([36_000 + 60_000 + 500 + 15_000 + 2_000, 201])
+    expect([row.bytes, row.gate]).toEqual([36_000 + 60_000 + 500 + 15_000 + 2_000, 200])
   })
 
   test("counts for a game's route the game's chunk as well, and not its scene", () => {
@@ -348,6 +348,36 @@ describe('the miniature', () => {
 
   test('summarises: the budgets gated, the rows over a target, the rows skipped', () => {
     expect(summaryOf(report)).toBe('verify:bundle passed: 10 budgets gated, 0 over a target, 2 skipped')
+  })
+})
+
+describe('what loads on demand (D-059)', () => {
+  const withParts = run({
+    specs: {
+      'src/games/loop/Game.tsx': { ...APP['src/games/loop/Game.tsx'], dyn: ['src/games/loop/Scene3D.tsx', 'src/games/loop/FullService.tsx'] },
+      'src/games/loop/FullService.tsx': { bytes: 30_000, name: 'FullService', dynamic: true, src: 'src/games/loop/FullService.tsx', imports: ['_session.js', '_rules.js'] },
+      '_rules.js': { bytes: 15_000, name: 'rules' },
+      'src/pages/Map.tsx': { ...APP['src/pages/Map.tsx'], dyn: ['src/forge/ForgeLabPage.tsx'] },
+      'src/forge/ForgeLabPage.tsx': { bytes: 7_000, name: 'ForgeLabPage', dynamic: true, src: 'src/forge/ForgeLabPage.tsx', imports: ['_react-vendor.js', '_rules.js'] },
+    },
+  })
+
+  test("prints a part of a game with its route, as the route's row would count it, and holds it to no gate", () => {
+    // The /play/loop row (index.html 36,000 + react 60,000 + Game page 800 + game 4,000 + session 9,000 + stage-runtime 6,000 + the entry's CSS 15,000)
+    // and the full service's 30,000 and its rules' 15,000.
+    const row = rowOf(withParts, 'on-demand:src/games/loop/FullService.tsx')
+    expect([row.status, row.label, row.gate, row.target]).toEqual(['info', 'route /play/loop with FullService', null, null])
+    expect(row.bytes).toBe(rowOf(withParts, 'route:/play/loop').bytes! + 45_000)
+  })
+
+  test('prints any other lazy part by what it adds to the entry, and leaves the scenes and the content to their own rows', () => {
+    const row = rowOf(withParts, 'on-demand:src/forge/ForgeLabPage.tsx')
+    expect([row.status, row.label, row.bytes]).toEqual(['info', 'on demand src/forge/ForgeLabPage.tsx', 22_000])
+    expect(withParts.rows.filter((candidate) => candidate.id.startsWith('on-demand:')).map((candidate) => candidate.id)).toEqual([
+      'on-demand:src/games/loop/FullService.tsx',
+      'on-demand:src/forge/ForgeLabPage.tsx',
+    ])
+    expect(withParts.failed).toBe(0)
   })
 })
 
@@ -396,12 +426,12 @@ describe('a gate and a target', () => {
     expect(warning.failed).toBe(0)
   })
 
-  test('the front page is held to 154 KB of JavaScript (D-055), 37,400 B above its 116,600 B', () => {
+  test('the front page is held to 150 KB of JavaScript, 33,400 B above its 116,600 B', () => {
     const grown = (extra: number) => statusOf(run({ specs: sized(FRONT, 10_000 + extra) }), 'front')
     expect(grown(13_400)).toBe('ok') // 130,000 B is the target itself
     expect(grown(13_401)).toBe('warn')
-    expect(grown(37_400)).toBe('warn') // 154,000 B is the gate itself
-    expect(grown(37_401)).toBe('FAIL')
+    expect(grown(33_400)).toBe('warn') // 150,000 B is the gate itself
+    expect(grown(33_401)).toBe('FAIL')
   })
 
   test('the front page CSS has a gate of its own: 40 KB of it fails the CSS row and not the closure row', () => {
@@ -410,14 +440,14 @@ describe('a gate and a target', () => {
     expect(statusOf(css, 'front')).toBe('ok')
   })
 
-  test('another route counts its CSS: 201 KB of JavaScript and CSS together is the gate (D-057)', () => {
+  test('another route counts its CSS: 200 KB of JavaScript and CSS together is the gate', () => {
     // Map is 113,500 B in the miniature, 500 of them its own chunk.
     const map = (bytes: number) => statusOf(run({ specs: sized('src/pages/Map.tsx', bytes) }), 'route:/map')
-    expect(map(201 * KB - 113_000)).toBe('ok')
-    expect(map(201 * KB - 113_000 + 1)).toBe('FAIL')
+    expect(map(200 * KB - 113_000)).toBe('ok')
+    expect(map(200 * KB - 113_000 + 1)).toBe('FAIL')
   })
 
-  test('the pages that carry the item bank have a gate of their own, 210 KB (D-056), and every other route keeps 201 KB (D-057)', () => {
+  test('every route but the front page has the one gate, 200 KB, Today and the module page as much as any (D-059)', () => {
     const withPage = (pattern: string, page: string, bytes: number) => ({
       specs: {
         'index.html': { ...APP['index.html'], dyn: [...(APP['index.html'].dyn ?? []), `src/pages/${page}.tsx`] },
@@ -429,16 +459,13 @@ describe('a gate and a target', () => {
     for (const [pattern, page] of [
       ['/today', 'Today'],
       ['/m/:module', 'Module'],
+      ['/m/:module/:lesson', 'Lesson'],
     ] as const) {
       const status = (bytes: number) => statusOf(run(withPage(pattern, page, bytes)), `route:${pattern}`)
-      expect([pattern, status(210 * KB - 111_000)]).toEqual([pattern, 'ok'])
-      expect([pattern, status(210 * KB - 111_000 + 1)]).toEqual([pattern, 'FAIL'])
-      expect(rowOf(run(withPage(pattern, page, 1_000)), `route:${pattern}`).gate).toBe(210)
+      expect([pattern, status(200 * KB - 111_000)]).toEqual([pattern, 'ok'])
+      expect([pattern, status(200 * KB - 111_000 + 1)]).toEqual([pattern, 'FAIL'])
+      expect(rowOf(run(withPage(pattern, page, 1_000)), `route:${pattern}`).gate).toBe(200)
     }
-    // Another page, and the lesson page that carries the registry too, keep the generic gate.
-    expect(rowOf(run(withPage('/m/:module/:lesson', 'Lesson', 1_000)), 'route:/m/:module/:lesson').gate).toBe(201)
-    expect(rowOf(run(), 'route:/map').gate).toBe(201)
-    expect([budgetOfRoute(['/today']).gate, budgetOfRoute(['/m/:module']).gate, budgetOfRoute(['/m/:module/:lesson']).gate, budgetOfRoute(['/map']).gate]).toEqual([210, 210, 201, 201])
   })
 
   test('a scene fails above 40 KB, and a chunk that only 3D reaches counts against every scene that reaches it, not against post-processing', () => {

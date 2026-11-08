@@ -56,6 +56,8 @@ export const tallyLine = (right: number, total: number): string => `${right} of 
 export const SAVE_FAILED = 'This answer was not saved.'
 
 export const LOAD_LABEL = 'Reading your ledger'
+/** What the ticket says while the code of the family that serves it loads (src/items/families.ts). */
+export const PRINT_LABEL = 'Printing the ticket'
 
 export const LINK_MAP = 'Open the course map'
 export const LINK_TR2 = 'Start with TR2'

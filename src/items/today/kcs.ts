@@ -14,12 +14,12 @@
  *   - lab:, prove:, receipt:   the KCs of a lab's checks are named by the lab tasks (W1-T10, W1-T22, W1-T27);
  *   - trace:, challenge:, screen:, change:   a trace belongs to every module that reads it, and the rest are not graded.
  *
- * What is known to the build is passed in as `KcSources`: the app builds them from the family registry and the game registry
+ * What is known to the build is passed in as `KcSources`: the app builds them from the families' faces (the catalog) and the game registry
  * (`sourcesOf`), and a test builds them from fixtures. The map's `refs`, once the page reads the map, add the other refs here and nowhere else.
  */
 import { GAMES } from '@es/play'
-import { FAMILIES } from '@es/play/items'
-import type { Gen } from '@es/play/items'
+import { CATALOG } from '@es/play/items/catalog'
+import type { GenFace } from '@es/play/items/types'
 import { parseRef } from '@es/schema/refs'
 
 export interface KcSources {
@@ -53,7 +53,7 @@ export function kcsOfRef(ref: string, sources: KcSources): readonly string[] {
 }
 
 /** The sources of this build: the item families and the games of the registries. */
-export function sourcesOf(families: readonly Gen[] = FAMILIES): KcSources {
+export function sourcesOf(families: readonly GenFace[] = CATALOG): KcSources {
   return {
     variant: (family, variant) => families.find((gen) => gen.id === family)?.variants.find((spec) => spec.id === variant)?.kcs ?? [],
     game: (game) => GAMES.get(game)?.kcs ?? [],

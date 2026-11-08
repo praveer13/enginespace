@@ -4,7 +4,7 @@
  * Each is a plain zod schema, so `z.toJSONSchema` exports it (D-030) and the grader's `jsonschema` can read the export.
  * Nothing here is public: index.ts does not re-export this file.
  */
-import { z } from 'zod'
+import { z } from './zod'
 
 /** Text that holds something besides whitespace. */
 export const nonBlank = z.string().regex(/\S/, 'must not be blank')

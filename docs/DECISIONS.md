@@ -1,6 +1,6 @@
 # enginespace: decision log
 
-**Status:** D-001 to D-006 are the owner's decisions of 2026-11-03. D-007 to D-013 restate the product record the owner confirmed the same day (`PRODUCT.md`). D-014 to D-042 are **proposed** by [ARCHITECTURE.md](ARCHITECTURE.md) and wait for the owner's review. D-043 to D-046 are **proposed** by the design review of 2026-11-03, which settled contradictions between the design files; they wait for the owner too. D-047 records the visual world the owner chose on 2026-11-03, and D-048 and D-049 are **proposed** by the art direction that followed it. D-050 is **proposed** by the design system's build (W0-T05), D-051 by the settings page (W0-T22), and D-052 by the W0 wave PR. The W0 exit review (W0-T24, 2026-11-04) froze D-023's budgets, recorded D-040's spike result and D-047's finish verdict, and carried O-7, O-8 and O-9 over; its record is [docs/waves/W0-report.md](waves/W0-report.md). D-058 records the owner's answer to O-1, the custom domain, on 2026-11-08. The open owner questions, O-2 to O-11, and the course-design questions, Q-1 to Q-12, are at the end. **Date:** 2026-11-03, updated 2026-11-08.
+**Status:** D-001 to D-006 are the owner's decisions of 2026-11-03. D-007 to D-013 restate the product record the owner confirmed the same day (`PRODUCT.md`). D-014 to D-042 are **proposed** by [ARCHITECTURE.md](ARCHITECTURE.md) and wait for the owner's review. D-043 to D-046 are **proposed** by the design review of 2026-11-03, which settled contradictions between the design files; they wait for the owner too. D-047 records the visual world the owner chose on 2026-11-03, and D-048 and D-049 are **proposed** by the art direction that followed it. D-050 is **proposed** by the design system's build (W0-T05), D-051 by the settings page (W0-T22), and D-052 by the W0 wave PR. The W0 exit review (W0-T24, 2026-11-04) froze D-023's budgets, recorded D-040's spike result and D-047's finish verdict, and carried O-7, O-8 and O-9 over; its record is [docs/waves/W0-report.md](waves/W0-report.md). D-058 records the owner's answer to O-1, the custom domain, on 2026-11-08. D-059 puts back D-023's budgets, which D-053 to D-057 had raised during W1, and supersedes those five, none of which was adopted. The open owner questions, O-2 to O-11, and the course-design questions, Q-1 to Q-12, are at the end. **Date:** 2026-11-03, updated 2026-11-08.
 
 **How to read a record.** Each record carries six fields:
 - **Decision**, in one or two sentences.
@@ -46,7 +46,7 @@
 | D-020 | Edition 1 uses WebGL2 only, with no WebGPU path. | proposed |
 | D-021 | No game engine, no drei and no in-canvas text; post-processing comes from three's own addons. | proposed |
 | D-022 | Device tiers come from local hints and a frame-time governor, not detect-gpu. | proposed |
-| D-023 | A first-paint JavaScript budget, and a front page that paints a 2D step loop first and upgrades to 3D after LCP. | proposed; budgets frozen 2026-11-04 (W0-T24); the front page's gate is 154 KB by D-055, the gate of `/today` and `/m/:module` is 210 KB by D-056, and every other route's is 201 KB by D-057 |
+| D-023 | A first-paint JavaScript budget, and a front page that paints a 2D step loop first and upgrades to 3D after LCP. | proposed; budgets frozen 2026-11-04 (W0-T24); raised during W1 by D-053 to D-057 and restored on 2026-11-08 by D-059: the front page's gate is 150 KB and every other route's 200 KB |
 | D-024 | The evidence ledger is re-implemented on kernelspace's envelope; provenance weights come from ASSESSMENT.md and apply at read time. | proposed |
 | D-025 | Browser-lane builds are Rust → wasm on kernelspace's kslab ABI v2, graded by host-driven property tests whose oracle sits outside the learner's code. | proposed |
 | D-026 | The local grader is Python, with one locked environment per engine. | proposed |
@@ -76,12 +76,13 @@
 | D-050 | The design system ships one light scheme, the line under its tubes, with a more-contrast variant and no dark scheme. Its faces are Big Shoulders Display, Doto (with Handjet's µ and ±), Permanent Marker, Atkinson Hyperlegible and Atkinson Hyperlegible Mono, self-hosted from Fontsource 5.3.0 and pinned by SHA-256. | proposed (W0-T05) |
 | D-051 | A learner's settings are recorded in the ledger's `working` store, one key each, and a copy in `localStorage` lets every page honour them from its first paint without opening the ledger. | proposed (W0-T22) |
 | D-052 | The nightly workflow runs on its schedule only when the repository variable `NIGHTLY_ENABLED` is `'true'`; a run started by hand always runs. | proposed (W0 wave PR) |
-| D-053 | The front page's first-paint gate is 151 KB: a second game that shares the run hook and the shell with Service splits the chunks that Service and the front page share, which costs about 870 B that the game cannot avoid. | proposed (W1-T28); the owner confirms |
-| D-054 | The front page's first-paint gate is 152 KB: a third game reaches some of the modules that the front page shares with the first two and not others, so Rollup splits them again, which costs the closure 585 B. | proposed (W1-T17); the owner confirms |
-| D-055 | The front page's first-paint gate is 154 KB: a fourth game, the first after The Loop to be built on the step loop's workload generator and cards, splits the chunk that The Loop's session shares with them, which costs the closure 2,098 B. | proposed (W1-T33); the owner confirms |
-| D-056 | The gate of `/today` and `/m/:module` is 210 KB, up from 200 KB: both carry the registry of item families, which is static, and TR6's five families cost each closure about 17.2 KB, which took both over their gate. | proposed (W1-T30); the owner confirms |
-| D-057 | Every other route's gate is 201 KB, up from 200 KB: each lesson and module adds its name to the loader's table, which every game route loads for its claims, and TR6's six names took `/play/broken-bench` 41 B over. | proposed (W1-T30); the owner confirms |
+| D-053 | The front page's first-paint gate is 151 KB: a second game that shares the run hook and the shell with Service splits the chunks that Service and the front page share, which costs about 870 B that the game cannot avoid. | superseded by D-059; not adopted |
+| D-054 | The front page's first-paint gate is 152 KB: a third game reaches some of the modules that the front page shares with the first two and not others, so Rollup splits them again, which costs the closure 585 B. | superseded by D-059; not adopted |
+| D-055 | The front page's first-paint gate is 154 KB: a fourth game, the first after The Loop to be built on the step loop's workload generator and cards, splits the chunk that The Loop's session shares with them, which costs the closure 2,098 B. | superseded by D-059; not adopted |
+| D-056 | The gate of `/today` and `/m/:module` is 210 KB, up from 200 KB: both carry the registry of item families, which is static, and TR6's five families cost each closure about 17.2 KB, which took both over their gate. | superseded by D-059; not adopted |
+| D-057 | Every other route's gate is 201 KB, up from 200 KB: each lesson and module adds its name to the loader's table, which every game route loads for its claims, and TR6's six names took `/play/broken-bench` 41 B over. | superseded by D-059; not adopted |
 | D-058 | The site is served at https://enginespace.naigap.com, at the root of that origin: the deploy builds with the default base `/`, `public/CNAME` names the domain, and `VITE_BASE` stays for a preview or a fork under a subpath. This answers O-1. | owner-decided 2026-11-08 |
+| D-059 | D-023's budgets stand: the front page's first-paint JavaScript at 150 KB and every other route at 200 KB, with no row of its own for any page. The build is fitted to them by the fixes D-053 to D-057 named (the preload map out of the entry, the item families on demand, the lessons' tables out of the content loader, a front page that carries what it runs) and by a game shell that loads its keys dialog when it is asked for. | proposed (W1 gates restore, 2026-11-08); supersedes D-053 to D-057 |
 
 ---
 
@@ -331,7 +332,7 @@
 
 ### D-023 · First-paint budget and a 2D-first front page
 
-- **Status:** proposed. Its budgets were frozen on 2026-11-04 by the W0 exit review (W0-T24), below.
+- **Status:** proposed. Its budgets were frozen on 2026-11-04 by the W0 exit review (W0-T24), below. D-053 to D-057 raised three of them during W1, and D-059 put them back on 2026-11-08.
 - **Decision:**
   - The front page's static HTML holds the poster (an SVG of The Loop's first frame from the same layout code) and the heading.
   - The entry closure makes the 2D Loop playable.
@@ -857,11 +858,11 @@ D-052 records how the W0 wave PR keeps the nightly from spending Actions minutes
 
 ## The first-paint gate, W1
 
-D-053 is the new record that D-023 asks for when a change must take a budget over its gate, D-054 is the next, and D-055 the one after. D-056 is the first for routes other than the front page, and D-057 the one after.
+D-053 is the new record that D-023 asks for when a change must take a budget over its gate, D-054 is the next, and D-055 the one after. D-056 is the first for routes other than the front page, and D-057 the one after. Each raised a gate where it should have stopped: D-023's budgets are frozen, and the owner's rule is that no gate is weakened. D-059 superseded all five on 2026-11-08, none of them adopted, and fitted the build to D-023's budgets; their text stays as it was written.
 
 ### D-053 · The front page's first-paint gate is 151 KB, for the second game
 
-- **Status:** proposed (W1-T28, 2026-11-04); the owner confirms.
+- **Status:** superseded by D-059; not adopted. Proposed (W1-T28, 2026-11-04).
 - **Decision:**
   - `verify:bundle` holds the front page's first-paint JavaScript to 151 KB gz, up from 150 KB. The target stays 130 KB, and no other gate changes.
   - `packages/play/keys.ts` holds the keys common to every game and `levelOf`, `registry.ts` re-exports them, and the call that makes `GAMES` is marked pure. A build in which nothing reads `GAMES` then leaves the registry out of the front page's closure, and with it the record of every game but Service's, which the front page reads from Service's own module.
@@ -885,7 +886,7 @@ D-053 is the new record that D-023 asks for when a change must take a budget ove
 
 ### D-054 · The front page's first-paint gate is 152 KB, for the third game
 
-- **Status:** proposed (W1-T17, 2026-11-04); the owner confirms.
+- **Status:** superseded by D-059; not adopted. Proposed (W1-T17, 2026-11-04).
 - **Decision:** `verify:bundle` holds the front page's first-paint JavaScript to 152 KB gz, up from 151 KB (D-053). The target stays 130 KB, and no other gate changes.
 - **Context:** all [measured 2026-11-04], gzip under Bun 1.3.14 as the gate counts it, at the wave tip 5345384 and on this task's tree, which is the tip with Back of House's files.
   - The tip alone: 150,707 B in 19 chunks, 293 B under the gate.
@@ -908,7 +909,7 @@ D-053 is the new record that D-023 asks for when a change must take a budget ove
 
 ### D-055 · The front page's first-paint gate is 154 KB, for the fourth game
 
-- **Status:** proposed (W1-T33, 2026-11-04); the owner confirms.
+- **Status:** superseded by D-059; not adopted. Proposed (W1-T33, 2026-11-04).
 - **Decision:** `verify:bundle` holds the front page's first-paint JavaScript to 154 KB gz, up from 152 KB (D-054). The target stays 130 KB, and no other gate changes.
 - **Context:** all [measured 2026-11-04], gzip under Bun 1.3.14 as the gate counts it, at the wave tip f823a04 and on this task's tree, which is the tip with The Inspection's files.
   - The tip alone: 151,312 B in 22 chunks, 688 B under the gate.
@@ -931,7 +932,7 @@ D-053 is the new record that D-023 asks for when a change must take a budget ove
 
 ### D-056 · The gate of `/today` and `/m/:module` is 210 KB, for the item bank
 
-- **Status:** proposed (W1-T30, 2026-11-05); the owner confirms.
+- **Status:** superseded by D-059; not adopted. Proposed (W1-T30, 2026-11-05).
 - **Decision:** `verify:bundle` holds the closure of `/today` and of `/m/:module`, JavaScript and CSS, to 210 KB gz, up from the 200 KB that every other route keeps (`ITEM_BANK_ROUTES` and `budgetOfRoute` in `scripts/verify-bundle.ts`). No other gate changes.
 - **Context:** all [measured 2026-11-05], gzip under Bun 1.3.14 as the gate counts it, at the wave tip cc298cc and on this task's tree, which is the tip with TR6's files.
   - The registry of item families is static. `src/items/today/TodayView.tsx` reads `FAMILIES` when the page renders, and `src/items/ItemBlock.tsx` reads `familyById` for a lesson's `item` block, which `src/content/render/Blocks.tsx` imports, so the code of every family (its generator, its grader, and the words of its stems, its explanations and its worked steps) is in the closure of every page that renders blocks: the lesson page, the module page and Today.
@@ -951,7 +952,7 @@ D-053 is the new record that D-023 asks for when a change must take a budget ove
 
 ### D-057 · Every other route's gate is 201 KB, for the names of the lessons
 
-- **Status:** proposed (W1-T30, 2026-11-05); the owner confirms.
+- **Status:** superseded by D-059; not adopted. Proposed (W1-T30, 2026-11-05).
 - **Decision:** `verify:bundle` holds every route other than the front page, `/today` and `/m/:module` to 201 KB gz, up from 200 KB (`BUDGETS.route`). The target stays absent, and no other gate changes.
 - **Context:** all [measured 2026-11-05], gzip under Bun 1.3.14 as the gate counts it, at the wave tip ba7f1e6 built as it stands and on this task's tree, which is the tip with TR6's files.
   - A game's page loads `src/content/load.ts` for the claims that its debrief cites, and `load.ts` holds the tables of every lesson, module and card in the same chunk, so each lesson and module adds its path and its chunk's name to the closure of every game route. TR6's six cost the chunk 163 B, from 1,747 B to 1,910 B, about 27 B each. The course index, which the front page awaits, took 302 B for the six, from 1,668 B to 1,970 B, about 50 B each.
@@ -996,6 +997,49 @@ D-058 records the owner's answer to O-1, which leaves the table of open question
   - The first thing that needs the site's absolute URL (a canonical link, an Open Graph tag, a sitemap, an absolute link in `llms.txt`) takes it from one constant, `SITE_ORIGIN = 'https://enginespace.naigap.com'`, beside `KERNELSPACE_ORIGIN` in `src/content/render/model.ts` or in a better home. The same test fails on a second spelling of the origin in code.
   - D-015: the main origin is decided, and a second origin would need a name of its own.
 - **Revisit when:** the owner moves the site to another domain, a second origin is needed (D-015), or Pages publishes from a branch, where the custom-domain setting commits a `CNAME` file to the source branch [measured from the page above, 2026-11-08].
+
+## The first-paint gate restored, 2026-11-08
+
+D-059 puts back the budgets that D-053 to D-057 raised during W1, and supersedes those five records.
+
+### D-059 · D-023's budgets stand, and the build fits them
+
+- **Status:** proposed (W1 gates restore, 2026-11-08). It puts back D-023's budgets as the W0 exit review froze them, which needs nothing of the owner; the owner confirms the changes made to fit them. It supersedes D-053 to D-057, none of which was adopted.
+- **Decision:**
+  - `verify:bundle` holds the build to D-023's budgets: the front page's first-paint JavaScript to 150 KB gz (target 130 KB), and every other route, `/today` and `/m/:module` among them, to 200 KB. The 210 KB row of D-056 and its routes (`ITEM_BANK_ROUTES`, `budgetOfRoute`) are gone. `tests/bundle/budgets.test.ts` holds `BUDGETS` to D-023's values and names D-023 when it fails, so a change to any budget fails a test; the merge guard refuses a gate that is raised or added.
+  - The build fits the budgets by the structural fixes that D-053 to D-057 named and left for the owner to schedule, and by one the build showed:
+    1. **The entry names no page's chunk** (D-023's W1 note, D-053, D-057). Vite gave each of the entry's lazy routes the list of every chunk the page needs (`__vite__mapDeps`), so every page carried the names of every page's chunks. The entry's lazy imports now keep no list but their stylesheets, and every other lazy import keeps only the chunks that its importer has not already loaded (`build.modulePreload.resolveDependencies`). The build writes a route table beside the entry instead (`<entry>.routes.json`, `scripts/pages/route-table.ts`): a link that is hovered or focused preloads its route's chunks from it, as A§6.10 asked (`src/route-preload.ts`), and each document that `prepare-pages` writes preloads its own route's, as the front page's document does.
+    2. **The item families load on demand** (D-056's "fix that ends the question"). Today and an item block plan with the families' faces (`packages/play/items/catalog.ts`) and load a family's code when they draw one of its items (`src/items/families.ts`), under the loading state of the ticket that is printing. The module page, which draws from no family, carries none.
+    3. **The lessons' tables leave the content loader** (D-057). `src/content/load-lessons.ts` holds the tables of the modules, the lessons and the cards, as `load-map.ts` holds the map's, so the front page and the games, which read only the index and the claims through `load.ts`, carry no lesson's name.
+    4. **The front page carries what it runs** (D-055). The tick card is apart from the two cards on S5's form (`packages/sim/steploop/s5.ts`), whose fitted rows only the full service and The Inspection read; the burst of the front page's levels is drawn without the exponential table, which only a Poisson process reads (`genFixedWorkload`, `packages/sim/workload/draw.ts`); and the front page's path into the step loop and the physics imports their files and not their barrels, through which Rollup had kept the fitted rows in the front page's chunks even once nothing on that path read them.
+    5. **The game shell loads its keys dialog when it is asked for**, as the front page's does: the Keys button is there from the first paint, and the dialog's code (Radix's dialog, its focus trap and scroll lock) loads on a hover or a focus of the button, its press, or `?`.
+- **Context:** all [measured 2026-11-08], gzip under Bun 1.3.14 as the gate counts it.
+  - At the wave-1 tip 72f163e the front page's first-paint JavaScript was 153,808 B, `/today` 208,489 B, `/m/:module` 207,463 B, `/play/broken-bench` 200,125 B and `/play/engine-floor` 199,951 B, as `es1-merge.sh` had measured on 2026-11-05. At the tip cb7bc29 they are 153,795 B, 208,494 B, 207,469 B, 200,123 B and 199,937 B: four rows over D-023's gates and one 63 B under.
+  - Each fix, applied in this order to a `vite build` of 72f163e, moved the rows by:
+    1. the lessons' tables out of `load.ts`: the front page −1,050 B, `/play/broken-bench` −1,039 B, `/today`, `/map`, `/evidence` and `/play` about −1,045 B each;
+    2. the cards on S5's form apart, and the imports by file: the front page −1,329 B and `/play/loop` −1,262 B; `/play/broken-bench` +432 B, which reads the rows and now has them in chunks of their own;
+    3. the burst without the exponential table: the front page −3,276 B and `/play/loop` −3,269 B;
+    4. the keys dialog on demand: every game's route −11,075 to −13,110 B;
+    5. the families on demand: `/today` −26,847 B, `/m/:module` −26,863 B and `/m/:module/:lesson` −26,893 B; the front page and the games' routes +183 to +242 B, because the pages that draw items no longer reach `sim/core/int` and Rollup gave it a chunk apart from `rng`;
+    6. no chunk in a lazy import's list that its importer has loaded: the front page −190 B, each scene −79 B, the other rows −15 to −322 B;
+    7. the entry without the routes' lists, with the route table and the preloader: every row −806 to −834 B. The lists were 1,178 B of the entry, and the preloader takes about 360 B of that back.
+  - On cb7bc29 with this record's tree, against D-023's gates: the entry's closure 99,153 B (10,847 B under 110 KB; 847 B under its target), the front page's first-paint JavaScript 147,337 B (2,663 B under 150 KB) and its CSS 18,469 B (11,531 B under 30 KB). The routes: `/today` 179,792 B (20,208 B under 200 KB), `/m/:module` 179,791 B (20,209 B), `/m/:module/:lesson` 137,326 B (62,674 B), `/map` 166,640 B (33,360 B), `/evidence` 166,419 B (33,581 B), `/settings` 174,733 B (25,267 B), `/design` 175,712 B (24,288 B), `/play` 134,587 B (65,413 B), `/play/broken-bench` 187,702 B (12,298 B), `/play/engine-floor` 186,153 B (13,847 B), `/play/verifier` 183,057 B (16,943 B), `/play/pool` 180,381 B (19,619 B), `/play/loop` 180,457 B (19,543 B), `/labs/:lab` 118,383 B (81,617 B), `/trace-room` 117,866 B (82,134 B), `/receipts` 117,801 B (82,199 B), `/about` 117,799 B (82,201 B) and `/changes` 117,800 B (82,200 B). The scenes are 39,559 B (`engine-floor`), 39,468 B (`loop`), 39,839 B (`pool`) and 39,564 B (`verifier`) against 40 KB. The route table is 1,426 B, read only when a link is reached for.
+  - Fourteen of the pages and the games' components have chunks four to six levels deep under their own, and five have none [measured on 9b13bed with this tree, the tip before cb7bc29], so a navigation without the routes' lists would wait for them one level at a time. The route table keeps them in one round: on a hover, a focus or a document's own preloads.
+- **Alternatives:**
+  - Keep the raised gates. D-023's budgets are frozen and the owner's rule is that no gate is weakened. Each record had named the fix that would have ended its raise.
+  - The Stage reads the reduced-motion, contrast and forced-colours preferences without the scene's tokens: −6.5 KB on the routes of Service, The Tasting and Back of House (−1.0 KB on The Reach-In's), but `scene-tokens` then counts in every scene's row, which took the four games' scenes over their frozen 40 KB (`scene-loop` 41,311 B, `scene-verifier` 41,408 B) [measured on 72f163e with fixes 1 to 3]. Not done.
+  - React Router's production build, which the package ships beside its development build and does not export: −600 B on every page [measured on 72f163e]. Not done: it is reached only by a path outside the package's exports, which a re-pin could move without a word.
+  - Merge small chunks: Rollup's `output.experimentalMinChunkSize` at 1,000 B took the front page +551 B and `/play/broken-bench` +1,143 B and merged three pages out of the manifest, and at 2,500 B the front page +3,486 B [measured on 72f163e with fixes 1 and 2]; one manual chunk for everything the front page shares took Rollup's dependencies of it along, the router among them, and the front page to 158,623 B [measured on 72f163e]. As D-053 and D-054 found.
+  - Make Today's view, or the item block, lazy (D-056): the page's row would leave the families out and a learner would download them all right after. Loading each family when it is drawn ends the cost instead.
+- **Consequences:**
+  - ARCHITECTURE §6.10 and §11.1 carry 150 KB and 200 KB again, and §6.10 says how a route's chunks are preloaded; §3.2, §4.6 and §8.2 say where the routes' preloads, the lessons' tables and the families' code are. GAMES.md §3 measures Service against the restored gates.
+  - A new family is a file, its place in the registry, its face in `catalog.ts` and its loader in `src/items/families.ts`: `tests/items/catalog.test.ts` fails until the four agree, and prints the face that is missing. A page that draws from it carries none of its code until it draws.
+  - A new lesson adds nothing to a game's route or to `load.ts`, which the front page and the games read. Its name goes into `load-lessons.ts`, which only the module and lesson pages load, and about 50 B into the course index, which the front page awaits (D-057's figure). A new route or game adds to the route table, and not to the entry.
+  - `verify:bundle` prints, without a verdict, what loads on demand that no row gates: each lazy part of a game with its route, and each other lazy part by what it adds to the entry. Service's full service is one: `route /play/loop with FullService` is 231,129 B, which would be 31,129 B over the 200 KB that every route has [measured on cb7bc29 with this tree]. Gating it, and fitting it, is the owner's to schedule.
+  - What D-053 changed in the code to soften its cost stays (the keys and `levelOf` apart from the games' registry, and the registry's `GAMES` marked pure): only the five records' gates are not adopted.
+  - The game pages' Keys button carries `aria-haspopup="dialog"` and `aria-expanded` itself, as Radix's trigger did.
+  - Restored with this record, from the W1 audit of weakened checks: zod builds every schema jitless (`packages/schema/zod.ts`), so it no longer asks for `new Function('')`, the policy refuses nothing on any page, and the e2e watch tolerates no refusal (`KNOWN_REFUSALS` is empty, where W1 had let zod's probe onto `/today`, `/map` and every module's page); the exponential median's coverage check runs 2,000 seeds in [93%, 97%] again, as TRACKER W1-T31 asks (93.7% [measured 2026-11-08 on 72f163e]); the e2e scene spec bounds the whole scene's instances, not the moving props alone; the build test admits `src/items/Attempt.tsx` and the families' files by name as lazy parts, and no other file of `src/items`; two lint suppressions give their reason.
+- **Revisit when:** a change cannot fit a gate. It comes to the owner as a new record, and the gate does not move.
 
 ---
 

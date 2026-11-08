@@ -20,23 +20,21 @@
  *     it is a lazy chunk with a row of its own, or it loads on demand.
  *
  * The rows (each is [estimated] until W0-T24 froze it in DECISIONS, D-023). A gate fails the run above it. A target only warns.
+ * The gates are D-023's as W0-T24 froze them, and tests/bundle/budgets.test.ts holds them there: W1 raised the front page's to 154 KB
+ * and the routes' to 201 and 210 KB (D-053 to D-057), and D-059 put them back and fitted the build to them instead.
  *   entry          the entry chunk and what it imports statically, JavaScript only: its own     gate 110, target 100
  *                  file and react-vendor (React, ReactDOM and the stores), which every page loads before its own code. A§11.1 derived
  *                  the figure from kernelspace's entry, a single file that carried React, so the row counts that closure and not the
  *                  entry's own file (D-023, the W1 carry-over).
- *   front page     the JavaScript of the entry, the front page's chunk and the course index,    gate 154 (D-055), target 130
+ *   front page     the JavaScript of the entry, the front page's chunk and the course index,    gate 150, target 130
  *                  with their static imports (A§6.10: "the entry, the `front` route, The Loop's 2D view, the step-loop core and
  *                  the content index"). The index is a lazy chunk, but the page's loader awaits it before it paints.
  *   CSS            the stylesheets of that same closure (what the document links).              gate 30, target 20
  *                  A§11.1 gives CSS its own row, so the closure row above counts JavaScript only.
- *   other routes   for every other lazy page of the route table, its chunk and the entry with    gate 201 (D-057)
+ *   other routes   for every other lazy page of the route table, its chunk and the entry with    gate 200
  *                  their static imports, JavaScript and CSS together, which is kernelspace's `/boot` and `/today` figure and the
  *                  way D-051 recorded the closures. A game's page counts its game's chunk too: that is what a learner downloads to
  *                  play. A scene, the lesson and module JSON are lazy and have rows of their own.
- *   /today,        the same closure, for the two pages that carry the item bank and sit near       gate 210 (D-056)
- *   /m/:module     the gate: Today reads the registry of families, and the content renderer reads it for an item block, so a
- *                  page's closure grows by about 3.4 KB for each family that is registered (D-056 has the figures). The lesson
- *                  page carries the registry too and is far under 200 KB, so it keeps the generic gate.
  *   three-vendor   the chunk's own file.                                                        gate 245
  *   scene-<id>     a scene's own chunk, the CSS it names, and the chunks it reaches that only    gate 40 each
  *                  3D code reaches: not the entry, not a page or a game, not `three-vendor` and not `postfx`.
@@ -50,7 +48,9 @@
  * A row waits for what it measures. A worker or post-processing whose source is not in the tree yet is skipped, and so is
  * three-vendor in a build with no 3D. A worker, a scene, a game or post-processing whose source is in the tree and has no chunk
  * fails, because its budget cannot be measured. The gate also prints, without a verdict: the document, the fonts it preloads, the
- * course index (A§4.6: 6 KB) and the size of the site against Pages' cap.
+ * course index (A§4.6: 6 KB), the route table beside the entry that a hovered or focused link reads (D-059), what loads on demand
+ * that no row holds (a lazy part of a game with its route, any other lazy part by what it adds to the entry; D-059), and the size of
+ * the site against Pages' cap.
  *
  * Exit status: 0 when no row fails, 1 when one does (or the build cannot be read), 2 for a usage error.
  */
@@ -66,12 +66,10 @@ export const KB = 1000
 /** The budgets of ARCHITECTURE §11.1 in KB of gzip, every one [estimated] (D-023). `target` only warns. */
 export const BUDGETS = {
   entry: { gate: 110, target: 100 },
-  front: { gate: 154, target: 130 },
+  front: { gate: 150, target: 130 },
   css: { gate: 30, target: 20 },
-  /** D-057: 201 KB, up from 200 (kernelspace's `/boot` and `/today` figure), for the names that every lesson adds to the loader's table. */
-  route: { gate: 201 },
-  /** D-056: `/today` and the module page carry the registry of item families, which every family adds to (about 3.4 KB gz each); the other routes keep `route`. */
-  itemBank: { gate: 210 },
+  /** Every route but the front page: kernelspace's `/boot` and `/today` gate, 200 KB. */
+  route: { gate: 200 },
   threeVendor: { gate: 245 },
   scene: { gate: 40 },
   postfx: { gate: 25 },
@@ -211,13 +209,6 @@ function pageKeyOf(manifest: Manifest, entry: string, page: string): string | nu
   return new Set(hoisted).size === 1 ? hoisted[0] : null
 }
 
-/** The routes that carry the item bank and have the gate of D-056: Today and the module page. */
-export const ITEM_BANK_ROUTES: readonly string[] = ['/today', '/m/:module']
-
-/** The budget of a page that answers these patterns: the item bank's pages have the one of D-056, and every other page the generic route's. */
-export const budgetOfRoute = (patterns: readonly string[]): { readonly gate: number } =>
-  patterns.some((pattern) => ITEM_BANK_ROUTES.includes(pattern)) ? BUDGETS.itemBank : BUDGETS.route
-
 /** The lazy routes in `src/routes.tsx`: `{ path: 'map', lazy: () => import('./pages/Map') }`, and the index route for `/`. */
 export function routesIn(source: string): Route[] {
   const routes = [...source.matchAll(/\{\s*(?:index:\s*true|path:\s*'([^']*)')\s*,\s*lazy:\s*\(\)\s*=>\s*import\('\.\/pages\/(\w+)'\)/g)].map((match) => ({
@@ -341,7 +332,32 @@ export function checkBundle(input: Input): Report {
     for (const { id, label, extra } of variants) {
       const files = filesOf(manifest, closureOf(manifest, [entry, key, ...extra]))
       const parts = sizeOf([...files.js, ...files.css])
-      measured(`route:${id}`, `route ${label}`, parts, budgetOfRoute(routes), `${page} page${extra.length > 0 ? ' and its game' : ''}, JavaScript ${kb(sum(parts.filter((part) => files.js.includes(part.file))))} and CSS ${kb(sum(parts.filter((part) => files.css.includes(part.file))))}`)
+      measured(`route:${id}`, `route ${label}`, parts, BUDGETS.route, `${page} page${extra.length > 0 ? ' and its game' : ''}, JavaScript ${kb(sum(parts.filter((part) => files.js.includes(part.file))))} and CSS ${kb(sum(parts.filter((part) => files.css.includes(part.file))))}`)
+    }
+  }
+
+  /*
+   * What loads on demand and no gate holds: printed, so that its size is in every report (D-059). A part of a game that its component loads
+   * (Service's full service, a debrief) is shown with its route, as the route's row would count it; any other lazy part (a forge lab's
+   * page, an item block's attempt, an item family, the keys dialog) by what it adds to the entry, which counts what it shares with the page
+   * that loads it as well. A page, a game, the scene kit's parts, the compiled content and three's addons have rows of their own, or are
+   * part of one.
+   */
+  const gamePage = pageKeys.get(GAME_PAGE)
+  const gameIdOf = new Map([...gameKeys].map(([id, key]) => [key, id]))
+  const entryLoaded = new Set(closureOf(manifest, [entry]))
+  for (const [key, chunk] of Object.entries(manifest)) {
+    const source = chunk.src
+    if (chunk.isDynamicEntry !== true || source === undefined || gameIdOf.has(key) || [...pageKeys.values()].includes(key)) continue
+    if (source.startsWith('src/scene/') || SCENE_SOURCE.test(source) || source.startsWith('src/content/generated/') || source.startsWith('node_modules/')) continue
+    const game = /^src\/games\/([^/]+)\//.exec(source)?.[1]
+    const gameKey = game === undefined ? undefined : gameKeys.get(game)
+    if (gameKey !== undefined && gamePage !== undefined) {
+      const files = filesOf(manifest, closureOf(manifest, [entry, gamePage, gameKey, key]))
+      measured(`on-demand:${source}`, `route /play/${game} with ${path.basename(source, '.tsx')}`, sizeOf([...files.js, ...files.css]), {}, `the route's closure with ${source}, which its game loads on demand`)
+    } else {
+      const files = filesOf(manifest, closureOf(manifest, [key]).filter((candidate) => !entryLoaded.has(candidate)))
+      measured(`on-demand:${source}`, `on demand ${source}`, sizeOf([...files.js, ...files.css]), {}, `${chunk.file} and what it adds to the entry`)
     }
   }
 
@@ -412,6 +428,9 @@ export function checkBundle(input: Input): Report {
   if (manifest[COURSE_INDEX] !== undefined) {
     measured('index', 'course index', sizeOf([manifest[COURSE_INDEX].file]), BUDGETS.index, `${manifest[COURSE_INDEX].file}, which the front page's loader awaits (counted in its closure)`)
   }
+  // The route table: what each route's page needs besides the entry, which a link that is hovered or focused reads (scripts/pages/route-table.ts).
+  const table = manifest[entry].file.replace(/\.js$/, '.routes.json')
+  if (input.assets.includes(path.basename(table))) measured('route-table', 'route table', sizeOf([table]), {}, `${table}, read when a link is hovered or focused, and by prepare-pages`)
 
   /* What the first paint also downloads. */
   const document = input.document

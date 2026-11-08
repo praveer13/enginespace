@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useId, useMemo, useRef, useState, type ComponentType, type ReactNode } from 'react'
 import { PHASES, PHASE_NAMES, keymapOf } from '@es/play'
 import type { GameAction, GameFace, GameMode, KeyBinding, Phase, RunResult, Session } from '@es/play'
 import type { Seed } from '@es/sim/core'
@@ -8,7 +8,7 @@ import { TapeLabel } from '@/design/components/TapeLabel'
 import { shellLimits } from '@/settings/rules'
 import { useSettings } from '@/settings/useSettings'
 import { focusIsLost } from './focus'
-import { KeysDialog } from './KeysDialog'
+import type { KeysDialogProps } from './KeysDialog'
 import { LiveRegion } from './LiveRegion'
 import { useGameInput } from './useGameInput'
 import { useRun, type RunCore, type RunOutcome } from './useRun'
@@ -34,6 +34,14 @@ import { ViewSwitch, type GameView } from './ViewSwitch'
  *
  * A slot only mounts while it is showing, so a lazy Compose or 3D scene loads when the learner reaches it.
  */
+
+/*
+ * The keys dialog's code, Radix's dialog with its focus trap and scroll lock, loads the first time the learner reaches for it: a hover
+ * or a focus on the Keys button, its press, or `?`. The button is there from the first paint, one element that opens the dialog
+ * through `open`, as the front page's is, so focus comes back to the button that was pressed (KeysDialog). A page that is played and
+ * never asked for its keys does not download the dialog (D-059).
+ */
+const KeysDialog = lazy(() => import('./KeysDialog').then((module) => ({ default: module.KeysDialog as ComponentType<KeysDialogProps> })))
 
 /** What every slot receives: the run, as the views and controls need it, and where the shell has the learner. */
 export type RunApi<Action extends GameAction, View, Score, Ask> = RunCore<Action, View, Score, Ask> & {
@@ -142,6 +150,13 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
   const [phase, setPhase] = useState<Phase>('play')
   const [debriefOpened, setDebriefOpened] = useState(false)
   const [keysOpen, setKeysOpen] = useState(false)
+  // The dialog's code is asked for once, the first time the learner reaches for it, and stays.
+  const [keysWanted, setKeysWanted] = useState(false)
+  const wantKeys = () => setKeysWanted(true)
+  const openKeys = () => {
+    setKeysWanted(true)
+    setKeysOpen(true)
+  }
   const [chosenView, setChosenView] = useState<GameView>(props.defaultView ?? '2d')
 
   // The learner's settings reach every game through the shell, so no game passes them on: 3D off turns the 3D view off, and the
@@ -208,7 +223,7 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
         return true
       }
       if (binding.id === 'help') {
-        setKeysOpen(true)
+        openKeys()
         return true
       }
       if (props.onCommand?.(binding.id, api) === true) return true
@@ -322,11 +337,14 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
         </TapeLabel>
       ) : null}
       {game.has3d ? <ViewSwitch view={view} onViewChange={switchView} available3d={can3d} unavailableReason={limits.unavailable3d} /> : null}
-      <KeysDialog keys={keymap} open={keysOpen} onOpenChange={setKeysOpen}>
-        <Button size="sm" variant="quiet">
-          Keys
-        </Button>
-      </KeysDialog>
+      <Button size="sm" variant="quiet" aria-haspopup="dialog" aria-expanded={keysOpen} onClick={openKeys} onPointerEnter={wantKeys} onFocus={wantKeys}>
+        Keys
+      </Button>
+      {keysWanted ? (
+        <Suspense fallback={null}>
+          <KeysDialog keys={keymap} open={keysOpen} onOpenChange={setKeysOpen} />
+        </Suspense>
+      ) : null}
     </div>
   )
   const nav = (

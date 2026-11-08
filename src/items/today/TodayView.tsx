@@ -1,11 +1,13 @@
-import { useCallback, useMemo, useState } from 'react'
-import { FAMILIES } from '@es/play/items'
-import type { Gen } from '@es/play/items'
+import { Suspense, useCallback, useMemo, useState, type ComponentProps } from 'react'
+// By path, not through the package's index, which brings the registry and every family's code with it (D-059).
+import { CATALOG } from '@es/play/items/catalog'
+import type { Gen } from '@es/play/items/types'
 import { Stub } from '@/design/components/Stub'
 import { useEvidence } from '@/evidence/useEvidence'
 import { freshEntropy } from '../answer'
+import { useFamily } from '../families'
 import { deriveCards } from './cards'
-import { MORE_PREP, START_AHEAD, START_PREP } from './copy'
+import { MORE_PREP, PRINT_LABEL, START_AHEAD, START_PREP } from './copy'
 import { seenKeys } from './draw'
 import { appKcsOfRef } from './kcs'
 import { lineViews, nextServableDay, planFor, servable, tally } from './plan'
@@ -31,6 +33,9 @@ import './today.css'
  *   work   a prep is started: the list folds to a strip on a phone and stands beside the ticket on a wide screen
  *   done   the list is finished: the tally, and what became of each idea
  *   rest   nothing is due that can be served; empty: nothing is earned to keep
+ *
+ * The list is composed from the families' faces (packages/play/items/catalog.ts), and the code of the family that serves a ticket loads
+ * when the ticket comes up, under the loading ticket (src/items/families.ts, D-059): the page carries no family's code of its own.
  */
 
 type Run =
@@ -38,11 +43,20 @@ type Run =
   | { readonly phase: 'done'; readonly session: Session; readonly results: readonly Result[] }
 
 export interface TodayViewProps {
-  /** The item families. The registry's, unless a test says otherwise. */
+  /** The item families, whole. The catalog's faces, with each family's code loaded when its ticket comes up, unless a test gives its own. */
   families?: readonly Gen[]
 }
 
-export function TodayView({ families = FAMILIES }: TodayViewProps) {
+type WorkOfProps = Omit<ComponentProps<typeof Work>, 'gen'> & { families?: readonly Gen[] }
+
+/** The ticket being prepped, once the code of the family that serves it has loaded. Until then the Suspense boundary shows the loading ticket. */
+function WorkOf({ families, ...rest }: WorkOfProps) {
+  const gen = useFamily(rest.line.family, families)
+  return <Work {...rest} gen={gen} />
+}
+
+export function TodayView({ families: given }: TodayViewProps) {
+  const families = given ?? CATALOG
   const evidence = useEvidence()
   const today = useLocalDay()
   const [run, setRun] = useState<Run | null>(null)
@@ -70,27 +84,28 @@ export function TodayView({ families = FAMILIES }: TodayViewProps) {
       <div className="es-prep" data-phase="work" data-layout="split">
         <PrepStrip marks={views.map(({ state, ok }) => ({ state, ...(ok === undefined ? {} : { ok }) }))} secondsLeft={nominalSeconds(session.lines.length - run.results.length)} />
         <PrepList day={session.day} mode={session.mode} lines={views} seconds={session.seconds} phase="work" />
-        <Work
-          key={index}
-          line={line}
-          index={index}
-          total={session.lines.length}
-          entropy={run.entropy}
-          met={met}
-          card={set.cards.get(line.kc)}
-          today={today}
-          last={index === session.lines.length - 1}
-          families={families}
-          onChecked={(result) => setRun((current) => (current?.phase === 'work' ? { ...current, results: [...current.results, result] } : current))}
-          onNext={() => {
-            // The entropy is read here and not inside the updater: React may call an updater twice, and a read of the browser's entropy is not a pure step.
-            const entropy = index === session.lines.length - 1 ? 0 : freshEntropy(1)[0]
-            setRun((current) => {
-              if (current?.phase !== 'work') return current
-              return index === current.session.lines.length - 1 ? { phase: 'done', session: current.session, results: current.results } : { ...current, index: index + 1, entropy }
-            })
-          }}
-        />
+        <Suspense key={index} fallback={<LoadingTicket label={PRINT_LABEL} />}>
+          <WorkOf
+            line={line}
+            index={index}
+            total={session.lines.length}
+            entropy={run.entropy}
+            met={met}
+            card={set.cards.get(line.kc)}
+            today={today}
+            last={index === session.lines.length - 1}
+            {...(given === undefined ? {} : { families: given })}
+            onChecked={(result) => setRun((current) => (current?.phase === 'work' ? { ...current, results: [...current.results, result] } : current))}
+            onNext={() => {
+              // The entropy is read here and not inside the updater: React may call an updater twice, and a read of the browser's entropy is not a pure step.
+              const entropy = index === session.lines.length - 1 ? 0 : freshEntropy(1)[0]
+              setRun((current) => {
+                if (current?.phase !== 'work') return current
+                return index === current.session.lines.length - 1 ? { phase: 'done', session: current.session, results: current.results } : { ...current, index: index + 1, entropy }
+              })
+            }}
+          />
+        </Suspense>
       </div>
     )
   }

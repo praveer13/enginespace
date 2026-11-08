@@ -5,6 +5,7 @@ import { defineConfig } from 'vite'
 import { contentPlugin } from './scripts/content/vite-plugin'
 import { metaCsp } from './scripts/pages/csp'
 import { frontShell } from './scripts/pages/front-shell'
+import { routeTable } from './scripts/pages/route-table'
 
 const root = path.dirname(fileURLToPath(import.meta.url))
 
@@ -34,6 +35,9 @@ const REACT_VENDOR = /[\\/]node_modules[\\/](react|react-dom|scheduler|zustand|u
 const SCENE_KIT_DATA = /[\\/]src[\\/]scene[\\/](?:kit\.ts|props[\\/]specs\.ts)$/
 const SCENE_KIT = /[\\/]src[\\/]scene[\\/]props[\\/]/
 
+/** What each lazy import preloads, and the route table beside the entry that preloads a route before it opens (D-059, A§6.10). */
+const routes = routeTable(root)
+
 // https://vite.dev/config/
 export default defineConfig({
   // The site is served at the root of https://enginespace.naigap.com (D-058), so the deploy builds with the default base "/", as local dev
@@ -42,13 +46,17 @@ export default defineConfig({
   // The content compiler (ARCHITECTURE §4.1): it compiles content/ at the start of a build and of the dev server, and again when a lesson changes.
   // The meta CSP (§12) goes into every document of a build, right behind its <meta charset>.
   // The front page's static shell (§6.11) is the app rendered once at `/`, written into index.html's root (W0-T18).
-  plugins: [react(), contentPlugin(), metaCsp(), frontShell()],
+  // The route table goes beside the entry, and the preload lists follow it (scripts/pages/route-table.ts).
+  plugins: [react(), contentPlugin(), metaCsp(), frontShell(), routes.plugin],
   build: {
     // verify:bundle walks dist/.vite/manifest.json to measure each route's static JS and CSS closure.
     manifest: true,
     // No modulepreload polyfill in the entry (D-023, W1 note): every browser since Firefox 115 and Safari 17 has
     // <link rel=modulepreload>, and an older one still loads each module, only without the preload. Vite's preload helper stays.
-    modulePreload: { polyfill: false },
+    // The entry's lazy imports, the route table's pages among them, keep no list of chunks: a route's chunks are preloaded from the route
+    // table beside the entry when a link to it is hovered or focused (src/route-preload.ts), and by the document of the route
+    // (prepare-pages). Any other lazy import keeps the chunks that its importer has not loaded (D-059, scripts/pages/route-table.ts).
+    modulePreload: { polyfill: false, resolveDependencies: routes.resolveDependencies },
     rollupOptions: {
       output: {
         manualChunks(id) {

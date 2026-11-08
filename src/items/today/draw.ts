@@ -1,20 +1,23 @@
 /*
  * Choosing and drawing an item for an idea (ARCHITECTURE §8.2, ASSESSMENT §8: "every item regenerated on a fresh seed").
  *
- * Which family and which level are decided when a session is composed, from the card alone, so that the prep list can name them
- * before anything is drawn. The seed is drawn later, when the ticket is printed: `drawForKc` takes the entropy from outside (src/items
+ * Which family and which level are decided when a session is composed, from the card and the families' faces alone (the catalog), so
+ * that the prep list can name them before anything is drawn, and before any family's code is loaded (D-059). The seed is drawn later, when the ticket is printed: `drawForKc` takes the entropy from outside (src/items
  * reads `crypto.getRandomValues` when the ticket comes up), and `drawInBand` turns it into a seed that makes a fair question and that
  * the learner has not met. So two sessions on the same card ask the same kind of question on different numbers, and nothing is looked up.
  */
 import { splitmix32u } from '@es/sim/core'
-import { drawInBand, FAMILIES, MAX_DRAWS, offeredAt, resolveVariant, seenKey, seenKeyOfRef } from '@es/play/items'
-import type { Gen, Item, Level } from '@es/play/items'
+// By path, not through the package's index, which brings the registry and every family's code with it (D-059).
+import { seenKey, seenKeyOfRef } from '@es/play/items/attempt'
+import { CATALOG } from '@es/play/items/catalog'
+import { drawInBand, MAX_DRAWS, offeredAt, resolveVariant } from '@es/play/items/draw'
+import type { Gen, GenFace, Item, Level } from '@es/play/items/types'
 import type { LedgerEvent } from '@es/ledger'
 import type { Card } from './cards'
 import { DRAW_ROUNDS, TRANSFER_STABILITY_DAYS } from './limits'
 
 /** The families that can serve `kc` at `level`: some variant that assesses it is offered there. */
-export function familiesAt(kc: string, level: Level, families: readonly Gen[] = FAMILIES): readonly Gen[] {
+export function familiesAt(kc: string, level: Level, families: readonly GenFace[] = CATALOG): readonly GenFace[] {
   return families.filter((gen) => offeredAt(gen, level).some((variant) => variant.kcs.includes(kc)))
 }
 
@@ -23,7 +26,7 @@ export function familiesAt(kc: string, level: Level, families: readonly Gen[] = 
  * offers one: transfer is the test of a skill that is settled. Where the family has nothing at that level, the other one; null when it
  * has neither, and then the idea cannot be served yet.
  */
-export function levelFor(card: Pick<Card, 'kc' | 'memory'>, families: readonly Gen[] = FAMILIES): Level | null {
+export function levelFor(card: Pick<Card, 'kc' | 'memory'>, families: readonly GenFace[] = CATALOG): Level | null {
   const wanted: Level[] = card.memory.stability >= TRANSFER_STABILITY_DAYS ? [3, 2] : [2, 3]
   return wanted.find((level) => familiesAt(card.kc, level, families).length > 0) ?? null
 }
@@ -32,7 +35,7 @@ export function levelFor(card: Pick<Card, 'kc' | 'memory'>, families: readonly G
  * The family that serves a card at a level. Where several can, they take turns by the number of reviews the card has had, which is
  * read from the ledger, so the choice is the same whenever it is made and no entropy is spent on it.
  */
-export function familyFor(card: Pick<Card, 'kc' | 'reps'>, level: Level, families: readonly Gen[] = FAMILIES): Gen | null {
+export function familyFor(card: Pick<Card, 'kc' | 'reps'>, level: Level, families: readonly GenFace[] = CATALOG): GenFace | null {
   const able = familiesAt(card.kc, level, families)
   return able.length === 0 ? null : able[card.reps % able.length]
 }
@@ -78,7 +81,7 @@ export function drawForKc(gen: Gen, kc: string, level: Level, entropy: number, s
  * only the KC, so a seed it carries counts as met for every variant of every family that assesses the KC: that refuses a seed a little
  * too often and never lets a repeat through. A seed has 2³² values, so neither is likely.
  */
-export function seenKeys(events: readonly LedgerEvent[], families: readonly Gen[] = FAMILIES): Set<string> {
+export function seenKeys(events: readonly LedgerEvent[], families: readonly GenFace[] = CATALOG): Set<string> {
   const seen = new Set<string>()
   for (const event of events) {
     if (event.kind === 'item' && event.seed !== undefined) {

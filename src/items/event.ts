@@ -1,5 +1,5 @@
 import type { Draft, Json } from '@es/ledger'
-import type { ItemResult } from '@es/play/items'
+import type { ItemResult } from '@es/play/items/attempt'
 
 /*
  * An answered item as the ledger takes it (ARCHITECTURE §7.2): an `item` event whose ref names the family and variant, whose

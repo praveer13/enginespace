@@ -17,7 +17,7 @@
  * and a token's checksum is not checked. The free JSON of an event (an answer, a reply, the marks) is bounded and checked, and
  * it is not copied: the decoded event holds the input's own object there.
  */
-import { z } from 'zod'
+import { z } from '@es/schema/zod'
 import { parseRef, stageIdSchema } from '@es/schema/refs'
 import type { RefKind } from '@es/schema/refs'
 import { dayOf, isIsoInstant, isLocalDay } from './ids'

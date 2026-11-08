@@ -20,7 +20,7 @@
  *
  * Every function takes a state and returns a new one. Nothing here reads a clock or draws a number.
  */
-import { TICK_CARD, gpuCost, gpuLayers } from '@es/sim/steploop'
+import { TICK_CARD, gpuCost, gpuLayers } from '@es/sim/steploop/cards'
 import type { Span, SpanKind } from '@es/sim/steploop'
 import { placeLaunch, placeReadback } from '@es/sim/steploop/events'
 import { finishRun } from '@es/sim/steploop/metrics'

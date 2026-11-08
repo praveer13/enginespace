@@ -15,8 +15,8 @@
  * as long as the session, and the session is capped.
  */
 import type { LocalDay } from '@es/ledger'
-import { FAMILIES } from '@es/play/items'
-import type { Gen, Level } from '@es/play/items'
+import { CATALOG } from '@es/play/items/catalog'
+import type { GenFace, Level } from '@es/play/items/types'
 import { aheadCards, dueCards } from './cards'
 import type { Card, CardSet } from './cards'
 import { familyFor, levelFor } from './draw'
@@ -47,8 +47,8 @@ export interface Session {
 export interface ComposeOptions {
   /** Serve the ideas that are not due, the nearest to fading first, instead of the ones that are. */
   readonly ahead?: boolean
-  /** The families to serve from. The registry's, unless a test says otherwise. */
-  readonly families?: readonly Gen[]
+  /** The families to serve from, by their faces. The catalog's, unless a test says otherwise. */
+  readonly families?: readonly GenFace[]
   /** The confusable set that each KC belongs to (the KCs of a set share a value). A KC in no set is absent. */
   readonly groupOf?: ReadonlyMap<string, string>
 }
@@ -110,7 +110,7 @@ export function interleaveConfusable<T extends { readonly kc: string }>(lines: r
   return out
 }
 
-function lineOf(card: Card, families: readonly Gen[]): Line | null {
+function lineOf(card: Card, families: readonly GenFace[]): Line | null {
   const level = levelFor(card, families)
   if (level === null) return null
   const gen = familyFor(card, level, families)
@@ -122,7 +122,7 @@ function lineOf(card: Card, families: readonly Gen[]): Line | null {
  * that are not due. The list may be empty: nothing is due, or nothing that is due can be served yet.
  */
 export function composeSession(set: CardSet, today: LocalDay, options: ComposeOptions = {}): Session {
-  const families = options.families ?? FAMILIES
+  const families = options.families ?? CATALOG
   const ahead = options.ahead === true
   const mode: SessionMode = ahead ? 'ahead' : set.welcomeBack ? 'welcome-back' : 'due'
   const wanted = ahead ? aheadCards(set, today) : dueCards(set, today)

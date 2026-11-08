@@ -152,7 +152,8 @@ function small(): EsTrace {
   return b.build({ source: 'synthetic', synthetic: true })
 }
 
-type Loose = Record<string, any> // eslint-disable-line @typescript-eslint/no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- each malformed case reaches into the parsed JSON at any depth and sets what the schema refuses
+type Loose = Record<string, any>
 
 const malformed: [string, (j: Loose) => void, RegExp][] = [
   ['an unknown top-level field', (j) => (j.extra = 1), /\$: unknown field "extra"/],

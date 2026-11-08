@@ -1,6 +1,7 @@
 import { Fragment, type ReactNode } from 'react'
 import type { CompiledBlock, CompiledCard } from '@es/schema'
-import { publicUrl, useCard, useClaims } from '../load'
+import { publicUrl, useClaims } from '../load'
+import { useCard } from '../load-lessons'
 import { ItemBlock } from '@/items/ItemBlock'
 import { Icon } from '@/design/components/Glyph'
 import { Readout } from '@/design/components/Readout'

@@ -31,21 +31,15 @@ const root = path.resolve(import.meta.dirname, '../..')
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /**
- * What the policy refuses today, and why that is not yet a failure. Anything else it refuses fails the spec that saw it.
+ * What the policy may refuse without failing a spec: nothing. Anything it refuses fails the spec that saw it.
  *
- * zod, which the ledger's codec uses, asks once whether `new Function('')` works, to choose between a compiled and a plain way of
- * parsing (zod 4.3.5, core `allowsEval`, called when the first object schema is built). The policy has no 'unsafe-eval' (§12), so the
- * call throws, zod catches it and parses the plain way, and the browser reports one violation for the probe. It happens on the pages
- * that load the ledger, and on no other: /settings and /evidence, since W1-T05 /today, which reads the learner's events to see what is
- * due, and since W1-T06 the course map and every module's page, which read the learner's events to show what they hold.
- * `z.config({ jitless: true })` ahead of the first schema would end it, and so would a policy
- * that allows eval, which the site must never have: W0-T21 reports it and does not change the schemas.
- * e2e/network.spec.ts pins this list to the routes it visits (PR_ROUTES, which has no /today: e2e/today.spec.ts fails on any other
- * refusal there), so that the entry is deleted when the probe goes.
+ * Until D-059 the list had one entry. zod, which the ledger's codec and every schema use, asked once whether `new Function('')` works, to
+ * choose between a compiled and a plain way of parsing (zod 4.3.5, core `allowsEval`, called when the first object schema is built); the
+ * policy has no 'unsafe-eval' (§12), so the browser reported one violation on every page that loads the ledger. The W0 exit review pinned
+ * it to /settings and /evidence, and W1 let it onto /today, the course map and every module's page as they came to read the learner's
+ * events. packages/schema/zod.ts now builds every schema jitless, so zod never asks, and no page refuses anything.
  */
-export const KNOWN_REFUSALS: readonly { pattern: RegExp; why: string }[] = [
-  { pattern: /^script-src eval @\/(?:settings|evidence|today|map|m\/[a-z0-9]+)$/, why: "zod's probe of `new Function('')` on a page that loads the ledger" },
-]
+export const KNOWN_REFUSALS: readonly { pattern: RegExp; why: string }[] = []
 
 export interface Watch {
   /** Requests to anywhere but the site's origin. Each was refused. */

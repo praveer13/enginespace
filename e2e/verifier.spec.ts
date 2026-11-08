@@ -410,6 +410,9 @@ test.describe('accessibility', () => {
 
   /** The audit: serious and critical findings fail, and so do the heading rules, whatever their impact. */
   async function audit(page: Page, label: string) {
+    // The stage buttons trade their colours over a short transition when the stage changes, and axe reads the colours as they stand
+    // at that moment: the audit waits for every transition to end, so that it judges the page at rest and not half-way between two stages.
+    await page.evaluate(() => Promise.all(document.getAnimations().filter((animation) => animation instanceof CSSTransition).map((transition) => transition.finished.catch(() => undefined))))
     const results = await new AxeBuilder({ page }).withTags(TAGS).analyze()
     expect(results.passes.length + results.violations.length, `${label}: the rules that axe ran`).toBeGreaterThan(20)
     const summary = (v: (typeof results.violations)[number]) => `${v.id} [${v.impact}] ${v.help}: ${v.nodes.slice(0, 3).map((node) => node.target.join(' ')).join(' ; ')}`

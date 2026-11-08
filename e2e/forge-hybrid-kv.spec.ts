@@ -16,21 +16,13 @@ import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import type { Page } from '@playwright/test'
-import { clipped, expect, open, quiet, test, type Watch } from './support/site'
+import { clipped, expect, open, quiet, test } from './support/site'
 
 const FIXTURES = path.resolve(import.meta.dirname, '../tests/fixtures/forge/hybrid-kv')
 const fixture = (name: string) => path.join(FIXTURES, `${name}.wasm`)
 const sha256 = (name: string) => createHash('sha256').update(readFileSync(fixture(name))).digest('hex')
 
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']
-const ZODS_PROBE = 'script-src eval @/labs/hybrid-kv'
-
-test.afterEach(({ watch }: { watch: Watch }) => {
-  // The ledger makes zod probe `new Function('')` once, and the page's policy refuses it: the known refusal, allowed on this page.
-  const rest = watch.refused.filter((what) => what !== ZODS_PROBE)
-  watch.refused.splice(0, watch.refused.length, ...rest)
-})
-
 const rows = (page: Page) => page.locator('.es-forge-check')
 const statusOf = async (page: Page): Promise<string[]> => (await rows(page).locator('.es-forge-check__result').allInnerTexts()).map((word) => word.trim().toLowerCase())
 const finished = (page: Page) => expect(rows(page).and(page.locator('[data-state="result"]'))).toHaveCount(6, { timeout: 60_000 })

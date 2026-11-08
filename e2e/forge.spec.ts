@@ -12,8 +12,8 @@
  *   6. An unfinished module traps with "not implemented yet"; a file that is not a lab module is refused with its reason.
  *   7. A drop works as a choice does, and the keyboard reaches the file chooser.
  *
- * The page loads the ledger, which makes zod probe `new Function('')` once, and the page's policy refuses that (the known refusal of
- * e2e/support/site.ts, which names /settings and /evidence). This spec says so for /labs/toy and nothing else.
+ * The page loads the ledger, and the policy refuses nothing on it: the schemas are built jitless (packages/schema/zod.ts, D-059), so zod
+ * does not probe `new Function('')`, and a refusal fails the spec (e2e/support/site.ts).
  *
  *   npx playwright test e2e/forge.spec.ts
  */
@@ -23,21 +23,13 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import type { Page } from '@playwright/test'
 import { buildLabModule } from '../tests/forge/wasm'
-import { clipped, expect, open, quiet, test, type Watch } from './support/site'
+import { clipped, expect, open, quiet, test } from './support/site'
 
 const FIXTURES = path.resolve(import.meta.dirname, '../tests/fixtures/forge/toy')
 const fixture = (name: string) => path.join(FIXTURES, `${name}.wasm`)
 const sha256 = (name: string) => createHash('sha256').update(readFileSync(fixture(name))).digest('hex')
 
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']
-const ZODS_PROBE = 'script-src eval @/labs/toy'
-
-test.afterEach(({ watch }: { watch: Watch }) => {
-  // The known probe is allowed on this page; anything else the policy refused stays on the list and fails the test.
-  const rest = watch.refused.filter((what) => what !== ZODS_PROBE)
-  watch.refused.splice(0, watch.refused.length, ...rest)
-})
-
 const rows = (page: Page) => page.locator('.es-forge-check')
 const statusOf = async (page: Page): Promise<string[]> => (await rows(page).locator('.es-forge-check__result').allInnerTexts()).map((word) => word.trim().toLowerCase())
 const finished = (page: Page) => expect(rows(page).and(page.locator('[data-state="result"]'))).toHaveCount(5, { timeout: 30_000 })

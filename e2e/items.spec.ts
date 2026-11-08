@@ -12,10 +12,10 @@
  * finds no serious or critical violation in any state, at a phone's width and a laptop's.
  *
  * How it runs. Through the config's `baseURL` (`vite preview` over a fresh build), under e2e/support/site.ts's watch: a request that
- * leaves the origin, a policy refusal and a page error all fail a test. One refusal is expected and known: the ledger loads when an
- * attempt starts, which is when zod probes `new Function('')` and the policy reports it (see KNOWN_REFUSALS in support/site.ts, which
- * lists the pages that load the ledger at once; this one loads it on the first pull of a stub). Where a test wants fixed seeds it
- * answers `crypto.getRandomValues` from a queue, which is what a page's own entropy is, and every other test draws its own.
+ * leaves the origin, a policy refusal and a page error all fail a test. The ledger loads when an attempt starts, and the policy refuses
+ * nothing then either: the schemas are built jitless, so zod does not probe `new Function('')` (packages/schema/zod.ts, D-059). Where a
+ * test wants fixed seeds it answers `crypto.getRandomValues` from a queue, which is what a page's own entropy is, and every other test
+ * draws its own.
  *
  *   npx playwright test e2e/items.spec.ts
  */
@@ -54,12 +54,12 @@ test.beforeEach(async ({ context }) => {
 })
 
 /**
- * The browser reports the policy's refusal in a task of its own, and the page's binding carries it to the test a moment later, so it
- * may arrive after the ticket is on screen. Each test ends by taking it in, and nothing else, so that the watch sees only what is new.
+ * The browser reports a refusal of the policy in a task of its own, and the page's binding carries it to the test a moment later, so one
+ * could arrive after the ticket is on screen. Each test ends by waiting that moment and finding none.
  */
 test.afterEach(async ({ page, watch }) => {
   await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 200))).catch(() => undefined)
-  await expectOnlyZodsProbe(watch)
+  await expectNoRefusal(watch)
 })
 
 const block = (page: Page): Locator => page.locator('section[data-block="item"]')
@@ -94,14 +94,12 @@ async function start(page: Page, watch: Watch, queue?: number[]): Promise<void> 
   if (queue !== undefined) await page.evaluate((seeds) => void (window.__queue = seeds), queue)
   await stub(page, 'Start items').click()
   await expect(block(page)).toHaveAttribute('data-phase', 'asking')
-  await expectOnlyZodsProbe(watch)
+  await expectNoRefusal(watch)
 }
 
-/** The one refusal that loading the ledger causes: zod's probe of `new Function('')` (see the note at the head of this file). */
-async function expectOnlyZodsProbe(watch: Watch): Promise<void> {
-  const unexpected = watch.refused.filter((what) => what !== `script-src eval @${ROUTE}`)
-  expect(unexpected, 'what the policy refused besides zod\'s probe').toEqual([])
-  watch.clear()
+/** Loading the ledger refuses nothing (see the note at the head of this file): the watch's list is empty when the attempt has started. */
+async function expectNoRefusal(watch: Watch): Promise<void> {
+  expect(watch.refused, 'what the policy refused when the ledger loaded').toEqual([])
 }
 
 const field = (page: Page): Locator => block(page).locator('input.es-field__input')
@@ -385,7 +383,7 @@ test.describe('the keyboard', () => {
     await tabTo(page, stub(page, 'Start items'))
     await page.keyboard.press('Enter')
     await expect(block(page)).toHaveAttribute('data-phase', 'asking')
-    await expectOnlyZodsProbe(watch)
+    await expectNoRefusal(watch)
     await expect(block(page).locator('h3.es-item__count')).toBeFocused()
 
     // Item 1, numeric: the slip is the next thing in the tab order, and Enter checks it.

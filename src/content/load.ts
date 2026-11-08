@@ -9,19 +9,21 @@
  *     cites a claim.
  *   - A load that fails is not remembered, so the next ask tries again.
  *
+ * This file holds the index, the claims and the helpers that every loader shares. The tables of the modules, the lessons and the cards
+ * are in load-lessons.ts, and the map's in load-map.ts (D-059): a glob's table names every file it can load, with its path and its
+ * chunk, so it grows with the course, and this file is in the closure of every page that reads the index or a claim, the front page's
+ * first paint and every game that cites a claim among them. Only the pages that show a module, a lesson or a card carry those tables.
+ *
  * The hooks start a load in an effect and never in render, so a page rendered on the server shows its loading state and a
  * hook can be used where no Vite exists.
  */
 import { useEffect, useState } from 'react'
-import type { Claim, ClaimsOutput, CompiledCard, CompiledLesson, CompiledModule, ContentIndex } from '@es/schema'
+import type { Claim, ClaimsOutput, ContentIndex } from '@es/schema'
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Loading                                                                                                            */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-const lessonFiles = () => import.meta.glob<CompiledLesson>('./generated/lessons/*.json', { import: 'default' })
-const moduleFiles = () => import.meta.glob<CompiledModule>('./generated/modules/*.json', { import: 'default' })
-const cardFiles = () => import.meta.glob<CompiledCard>('./generated/cards/*.json', { import: 'default' })
 const indexFiles = () => import.meta.glob<ContentIndex>('./generated/index.json', { import: 'default' })
 
 const asks = new Map<string, Promise<unknown>>()
@@ -53,21 +55,6 @@ export function loadIndex(): Promise<ContentIndex> {
   })
 }
 
-/** A module's page, or null when `id` has no `module.md` (a planned module, or no module at all). */
-export function loadModule(id: string): Promise<CompiledModule | null> {
-  return once(`module:${id}`, () => pick(moduleFiles(), `./generated/modules/${id}.json`))
-}
-
-/** A lesson's page, or null when there is none. `slug` is the last part of its route, such as `l0-sample`. */
-export function loadLesson(module: string, slug: string): Promise<CompiledLesson | null> {
-  return once(`lesson:${module}/${slug}`, () => pick(lessonFiles(), `./generated/lessons/${module}.${slug}.json`))
-}
-
-/** A notional-machine card (A§5.9), or null when `id` has no card. The compiler checks every card a block names, so null means a stale build. */
-export function loadCard(id: string): Promise<CompiledCard | null> {
-  return once(`card:${id}`, () => pick(cardFiles(), `./generated/cards/${id}.json`))
-}
-
 /** A path under `public/`, which the site serves at its base (`/` in development and at enginespace.naigap.com, D-058; a subpath for a preview or a fork). */
 export const publicUrl = (path: string): string => `${import.meta.env.BASE_URL ?? '/'}${path.replace(/^\/+/, '')}`
 
@@ -97,9 +84,6 @@ export interface Source<T> {
 }
 
 const INDEX: Source<ContentIndex> = { ask: () => loadIndex() }
-const MODULE: Source<CompiledModule | null> = { ask: (name) => loadModule(name) }
-const LESSON: Source<CompiledLesson | null> = { ask: (name) => loadLesson(...(name.split('/') as [string, string])) }
-const CARD: Source<CompiledCard | null> = { ask: (name) => loadCard(name) }
 const CLAIMS: Source<ReadonlyMap<string, Claim>> = { ask: () => loadClaims() }
 
 /**
@@ -126,10 +110,6 @@ export function useSource<T>(source: Source<T>, name: string | null): Loaded<T> 
 }
 
 export const useIndex = (): Loaded<ContentIndex> => useSource(INDEX, '')
-export const useModule = (id: string): Loaded<CompiledModule | null> => useSource(MODULE, id)
-export const useLesson = (module: string, slug: string): Loaded<CompiledLesson | null> => useSource(LESSON, `${module}/${slug}`)
-/** A card, loaded when the page shows the block that names it. */
-export const useCard = (id: string): Loaded<CompiledCard | null> => useSource(CARD, id)
 /** The claims file, fetched only when `wanted`. */
 export const useClaims = (wanted: boolean): Loaded<ReadonlyMap<string, Claim>> => useSource(CLAIMS, wanted ? 'claims' : null)
 

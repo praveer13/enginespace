@@ -13,7 +13,7 @@
  * synthetic claim, whose number comes from the course's own seeded world and says nothing about a real engine. Every other
  * claim names the page it was read from, the words it was read in, and the day it was read.
  */
-import { z } from 'zod'
+import { z } from './zod'
 import { httpsUrl, isoDate, nonBlank, uniqueList } from './common'
 import { claimIdSchema, lockKeySchema } from './refs'
 

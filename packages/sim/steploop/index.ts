@@ -8,6 +8,7 @@
 // page imports it by path, because its first paint has no room for v1 (see ./run), and the barrel's `runStepLoop` is v1.
 export * from './types'
 export * from './cards'
+export * from './s5'
 export * from './graphs'
 export * from './runners'
 export * from './engine-defaults'

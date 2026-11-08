@@ -15,6 +15,7 @@ import { spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { routesIn } from '../scripts/verify-bundle'
 
 const root = path.resolve(import.meta.dirname, '..')
 const scratch = mkdtempSync(path.join(tmpdir(), 'enginespace-build-'))
@@ -155,12 +156,15 @@ describe('the app build', () => {
     // the rules of a route change (src/route-change.ts), which the root route loads after its first render so that the front page's
     // first-paint closure does not carry them (D-023); or a game's whole session (packages/play/<id>/game.ts), which its registry entry
     // loads for the replay grader when the game plays two sets of rules, as Service does since W1-T13 (the first service's and the full
-    // service's), so that a page that plays one of them never carries the other.
+    // service's), so that a page that plays one of them never carries the other; or an item family's code
+    // (packages/play/items/families/<module>/<family>.ts), which Today and an item block load when they draw one of its items, so that a
+    // page carries no family it does not draw from (D-059).
     // The compiled content is lazy too, but it is not a page: the next test holds it to account.
     const named = Object.entries(app.manifest)
       .filter(([key, chunk]) => chunk.isDynamicEntry && chunk.src !== undefined && !key.startsWith(CONTENT))
       .map(([key]) => key)
-    const onDemand = /^(packages\/play\/[^/]+\/game\.ts|src\/games\/[^/]+\/[A-Za-z0-9]+\.tsx|src\/scene\/[\w/-]+\.tsx?|src\/forge\/ForgeLabPage\.tsx|src\/items\/[A-Za-z0-9]+\.tsx|src\/trace\/TraceView\.tsx|src\/route-change\.ts|node_modules\/three\/examples\/jsm\/[\w/-]+\.js)$/
+    const onDemand =
+      /^(packages\/play\/[^/]+\/game\.ts|packages\/play\/items\/families\/(?:tr[0-8][ab]?|capstone)\/[a-z0-9-]+\.ts|src\/games\/[^/]+\/[A-Za-z0-9]+\.tsx|src\/scene\/[\w/-]+\.tsx?|src\/forge\/ForgeLabPage\.tsx|src\/items\/Attempt\.tsx|src\/trace\/TraceView\.tsx|src\/route-change\.ts|node_modules\/three\/examples\/jsm\/[\w/-]+\.js)$/
     expect(named.filter((key) => !pages.includes(key) && !onDemand.test(key))).toEqual([])
   })
 
@@ -223,6 +227,38 @@ describe('the app build', () => {
       if (key) expect(staticClosure(app, key).has(kitKey ?? 'no scene-kit chunk'), page).toBe(false)
     }
     expect(staticClosure(app, entryKeyOf(app)).has(kitKey ?? 'no scene-kit chunk')).toBe(false)
+  })
+
+  test("lists no chunk of the pages in the entry, and puts the route table beside it, with each route's chunks (D-059, A§6.10)", () => {
+    const entry = app.manifest[entryKeyOf(app)].file
+    // The names Vite gives the lazy imports of a chunk to preload, in the table at its top (`__vite__mapDeps`).
+    const preloadNames = (file: string): string[] => {
+      const match = /__vite__mapDeps=\(i,m=__vite__mapDeps,d=\(m\.f\|\|\(m\.f=(\[[^\]]*\])/.exec(readFileSync(path.join(app.outDir, file), 'utf8'))
+      return match === null ? [] : (JSON.parse(match[1]) as string[])
+    }
+    // The pages' stylesheets stay, because a page must have its CSS before it renders; no page's chunk is named.
+    expect(preloadNames(entry).filter((name) => !name.endsWith('.css'))).toEqual([])
+    const table = JSON.parse(readFileSync(path.join(app.outDir, entry.replace(/\.js$/, '.routes.json')), 'utf8')) as Record<string, string[]>
+    const lazyRoutes = routesIn(readFileSync(path.join(root, 'src/routes.tsx'), 'utf8'))
+    expect(lazyRoutes.filter((route) => table[route.pattern] === undefined).map((route) => route.pattern)).toEqual([])
+    for (const files of Object.values(table)) for (const file of files) expect(existsSync(path.join(app.outDir, file)), file).toBe(true)
+    // A game's own chunks are under its address, for the game page's document and a link to it.
+    const service = Object.values(app.manifest).find((chunk) => chunk.src === 'src/games/loop/Game.tsx')?.file
+    expect(table['/play/loop']).toContain(service ?? 'no chunk for src/games/loop/Game.tsx')
+  })
+
+  test('lists no chunk in a lazy import that its importer has already loaded (D-059)', () => {
+    const keyOfFile = new Map(Object.entries(app.manifest).map(([key, chunk]) => [chunk.file, key]))
+    let checked = 0
+    for (const file of readdirSync(path.join(app.outDir, 'assets')).filter((name) => name.endsWith('.js')).map((name) => `assets/${name}`)) {
+      const match = /__vite__mapDeps=\(i,m=__vite__mapDeps,d=\(m\.f\|\|\(m\.f=(\[[^\]]*\])/.exec(readFileSync(path.join(app.outDir, file), 'utf8'))
+      const key = keyOfFile.get(file)
+      if (match === null || key === undefined) continue
+      const loaded = new Set([...staticClosure(app, key)].map((closureKey) => app.manifest[closureKey].file))
+      expect([file, (JSON.parse(match[1]) as string[]).filter((name) => loaded.has(name))]).toEqual([file, []])
+      checked += 1
+    }
+    expect(checked).toBeGreaterThan(3)
   })
 
   test('puts React in react-vendor, which the entry imports', () => {

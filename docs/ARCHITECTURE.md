@@ -184,7 +184,7 @@ React Router 7.18.1 in library mode: `createBrowserRouter` with a `lazy` loader 
 ### 3.2 Static hosting
 
 - **Base path.** The site is served at the root of `https://enginespace.naigap.com` (D-058), so the deploy builds with the default base `/`. Vite reads the base from `VITE_BASE`, as kernelspace does, and `scripts/prepare-pages.ts` reads the same variable, so a preview or a fork that is served under a subpath, such as `/enginespace/` on a project site, builds and prepares under it. `public/CNAME` holds the domain. A deploy from an Actions workflow ignores that file [measured from GitHub's docs, "Managing a custom domain for your GitHub Pages site", 2026-11-08], so the owner sets the custom domain in the repository's Pages settings.
-- **Deep links return HTTP 200.** `scripts/prepare-pages.ts` writes `dist/<route>/index.html` for every route it can enumerate: the route table, the content index, the game registry and the lab list. Each document gets its own `<title>`, description and static shell. `404.html` is the SPA fallback (kernelspace's `prepare-pages.mjs` pattern).
+- **Deep links return HTTP 200.** `scripts/prepare-pages.ts` writes `dist/<route>/index.html` for every route it can enumerate: the route table, the content index, the game registry and the lab list. Each document gets its own `<title>`, description and static shell, and the modulepreloads of its own route's chunks from the route table beside the entry (§6.10, D-059), as the front page's document has its own. `404.html` is the SPA fallback (kernelspace's `prepare-pages.mjs` pattern).
 - **CSP.** Every document carries the meta CSP (§12).
 - **Stale chunks.** A deploy replaces hashed chunks under open tabs. A `vite:preloadError` handler reloads once, and a sessionStorage flag stops a loop (kernelspace's `src/main.tsx` pattern).
 
@@ -321,7 +321,7 @@ KCs come from a ref→KC map at read time and are never stored (kernelspace's ru
 |---|---|---|
 | Course index: modules, lessons, titles, routes and hours | `src/content/generated/index.json`, in the entry closure | ≤ 6 KB gz [estimated] |
 | Course map: each module's prerequisites, artifacts and KCs, each KC's description and edges, and the ref→KC table (§4.5) | `src/content/generated/map.json`, one lazy chunk read by `/map`, the module pages and the progress code; kept out of the index because the index is in the entry closure | ≤ 12 KB gz [estimated] |
-| One JSON per lesson, per module and per card | `src/content/generated/{lessons,modules,cards}/*.json`, one lazy chunk each through `import.meta.glob` | ≤ 40 KB gz each [estimated] |
+| One JSON per lesson, per module and per card | `src/content/generated/{lessons,modules,cards}/*.json`, one lazy chunk each through `import.meta.glob`, whose tables sit in `src/content/load-lessons.ts`: the index and the claims, which the front page and the games read, are in `load.ts` without them (D-059) | ≤ 40 KB gz each [estimated] |
 | Learner's-agent export, with keys and answers stripped | `public/md/<module>/<lesson>.md`, `public/llms.txt` | — |
 | Claims for `/about` and the claim chips | `public/claims.json` (lazy) | — |
 | Search index (W3) | `public/search.json` (lazy) | ≤ 20 KB gz [estimated] |
@@ -730,10 +730,11 @@ All tier values are [estimated] and start from games-3d.md's proposals: at most 
   - Workers, lesson JSON and traces each load on demand.
 - **Prefetching.**
   - On the front page, after LCP and on idle (`requestIdleCallback`, or after a 1.5 s timeout [estimated]), the `three-vendor` and `scene-loop` chunks are prefetched. This happens only at tier 1 or above, without `saveData`, and on a connection not reported as `2g`.
-  - Elsewhere, route chunks get `modulepreload` when a navigation link is hovered or focused.
+  - Elsewhere, route chunks get `modulepreload` when a navigation link is hovered or focused (`src/route-preload.ts`, D-059). The build writes a route table beside the entry, `<entry>.routes.json`: for each pattern of the route table the chunks its page needs besides the entry's, and for each game its component's (`scripts/pages/route-table.ts`). A link reads it the first time one is hovered or focused, and each chunk is preloaded once; a modulepreload fetches a module and runs nothing. Each document that `prepare-pages` writes preloads its own route's chunks from the same table (§3.2).
+  - So the entry names no page's chunk. Vite gives each lazy import a list of the chunks it needs (`__vite__mapDeps`), and the entry's lists named every chunk of every page, about 19 B gz a name, on every page (D-023's W1 note). The entry's lazy imports keep no list but their stylesheets, and every other lazy import keeps only the chunks its importer has not already loaded (`build.modulePreload.resolveDependencies`, vite.config.ts).
 - **First-paint budget**, gated by `verify:bundle` from Vite's manifest (§11.1):
   - The entry chunk and the chunks it imports statically (`react-vendor`) are ≤ 110 KB gz together, with a target of ≤ 100 KB [estimated].
-  - The front page's first-paint closure (entry, the `front` route, The Loop's 2D view, the step-loop core and the content index) is ≤ 154 KB gz [estimated; 150 KB until D-053, 151 KB until D-054, 152 KB until D-055], with a target of ≤ 130 KB.
+  - The front page's first-paint closure (entry, the `front` route, The Loop's 2D view, the step-loop core and the content index) is ≤ 150 KB gz [estimated], with a target of ≤ 130 KB. D-053 to D-055 raised the gate during W1, and D-059 put it back and fitted the closure to it.
   - kernelspace's whole-app entry measured 115.7 KB gz [measured at its d31a770, recorded in its `verify-bundle.ts`], which makes these figures reachable.
   - Vite's modulepreload polyfill is off (`build.modulePreload.polyfill: false`, D-023's W1 note). Every browser since Firefox 115 and Safari 17 has `<link rel=modulepreload>`, and the polyfill cost 289 B gz of the front page's closure [measured 2026-11-04].
 
@@ -839,7 +840,7 @@ interface Graded { score: number /* [0,1] */; ok: boolean; provenance: Provenanc
 ### 8.2 Browser checks on fresh seeds
 
 - **The seed.** A graded attempt draws its seed with `crypto.getRandomValues` when it starts: unseen, though not secret (kernelspace S3). `band(seed)` rejects degenerate draws and draws again, and the reference answer is computed then by the pure model.
-- **Items.** A family is a pure `Gen {kcs, make(seed, level), grade(answer), solution}`, as in kernelspace's K1.
+- **Items.** A family is a pure `Gen {kcs, make(seed, level), grade(answer), solution}`, as in kernelspace's K1. A page plans with the families' faces (their ids, titles, KCs and variants, `packages/play/items/catalog.ts`) and loads a family's code when it draws one of its items (`src/items/families.ts`, D-059), so Today, a lesson and a module page carry no family they do not draw from.
 - **Graded game runs** are replayed from their action log at grade time (§6.3).
 - **Trace tasks** grade the learner's span marks against the trace model's ground truth, for synthetic traces, or against the owner's annotations, for pinned traces. Tolerances are in ns, as ASSESSMENT.md sets.
 - **No browser timing is ever graded** (catalog §7): `performance.now()` is coarsened, and wasm has no PMU.
@@ -1137,10 +1138,9 @@ Every job sets `permissions: contents: read` unless it needs more, and uses `per
 | Budget | Gate | Target | Basis | Checked by |
 |---|---|---|---|---|
 | Entry chunk and its static imports | ≤ 110 KB gz | ≤ 100 KB | [derived: kernelspace's larger app measured 115.7 KB, in one file that carried React; here React sits in `react-vendor`, so the row counts the entry and what it imports statically (D-023)] | `verify:bundle` (every PR) |
-| Front-page first-paint closure | ≤ 154 KB gz (D-055) | ≤ 130 KB | [estimated: about 60 KB React and ReactDOM, 15 KB router, 50 KB shell, 2D game and sim] | `verify:bundle` |
+| Front-page first-paint closure | ≤ 150 KB gz | ≤ 130 KB | [estimated: about 60 KB React and ReactDOM, 15 KB router, 50 KB shell, 2D game and sim] | `verify:bundle` |
 | CSS (first paint) | ≤ 30 KB gz | ≤ 20 KB | [estimated] | `verify:bundle` |
-| Any other route's closure, excluding 3D, `/today` and `/m/:module` | ≤ 201 KB gz (D-057) | — | kernelspace's `/boot` and `/today` gate, 200 KB [measured precedent] | `verify:bundle` |
-| The closure of `/today` and `/m/:module`, excluding 3D | ≤ 210 KB gz (D-056) | — | [measured: both carry every item family, about 3.4 KB gz each; 191.0 and 190.0 KB with the three families of the W1 tip, 208.3 and 207.2 KB with TR6's five] | `verify:bundle` |
+| Any other route's closure, excluding 3D | ≤ 200 KB gz | — | kernelspace's `/boot` and `/today` gate, 200 KB [measured precedent] | `verify:bundle` |
 | `three-vendor` (three plus R3F) | ≤ 245 KB gz | — | [derived: kernelspace measured 238 to 242.4 KB] | `verify:bundle` |
 | Each `scene-<id>` | ≤ 40 KB gz | — | kernelspace's scene gate [measured precedent] | `verify:bundle` |
 | `postfx` | ≤ 25 KB gz | — | [estimated] | `verify:bundle` |

@@ -155,6 +155,7 @@ test.describe('the draw-call budget at the practice seed (A§11.1)', () => {
       await game(page).focus()
       await page.keyboard.press('KeyO')
       let most: FrameStats | null = null
+      let instances = 0
       // The house's way: every free clip hung, then the bell, until every ticket is served.
       for (let turn = 0; turn < 80 && (await page.getByRole('button', { name: 'See the debrief' }).count()) === 0; turn++) {
         await hangAll(page)
@@ -162,11 +163,15 @@ test.describe('the draw-call budget at the practice seed (A§11.1)', () => {
         await settle(page)
         const stats = await frame(page)
         if (most === null || stats.sceneCalls > most.sceneCalls) most = stats
+        instances = Math.max(instances, stats.instances)
       }
       expect(await page.getByRole('button', { name: 'See the debrief' }).count()).toBe(1)
       if (most === null) throw new Error('no frame was drawn')
       expect(most.sceneCalls).toBeLessThanOrEqual(100)
       expect(most.calls).toBeLessThanOrEqual(100)
+      // The whole scene's instances, the kitchen's set and lamps with the moving props, against GAMES.md §3's budget for the tier (2,500 at
+      // T1, 6,000 at T2 [estimated]): tests/play/loop-scene.test.ts counts the moving props alone since scene kit v1 drew the rest (D-059).
+      expect(instances).toBeLessThanOrEqual(tier === 1 ? 2500 : 6000)
       console.log(`T${tier}: at most ${most.sceneCalls} scene draw calls (${most.calls} in the frame, passes ${most.passes.join(' + ')}), ${most.instances} instances, ${most.triangles} triangles`)
     })
   }
