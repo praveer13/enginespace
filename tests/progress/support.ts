@@ -31,11 +31,17 @@ export const MAP: Pick<CourseMap, 'modules' | 'kcs' | 'refs'> = {
   refs: { 'predict:tr2.l3#tr2.l3.p1': ['tr2.async-overlap'] },
 }
 
-/** The game `loop` exercises two KCs of TR2 and is TR2's; the family `tr2.bubble-width` assesses one; the lab `hybrid-kv` two of TR5a. */
+/**
+ * The game `loop` exercises two KCs of TR2 and is TR2's; the variant `async-off` of the family `tr2.bubble-width` assesses one of them and
+ * its variant `close-it` both; the lab `hybrid-kv` two of TR5a.
+ */
 export const SOURCES: KcSources = {
   refs: MAP.refs,
   game: (game) => (game === 'loop' ? ['tr2.bubble', 'tr2.async-overlap'] : []),
-  family: (family) => (family === 'tr2.bubble-width' ? ['tr2.bubble'] : []),
+  variant: (family, variant) => {
+    if (family !== 'tr2.bubble-width') return []
+    return variant === 'async-off' ? ['tr2.bubble'] : variant === 'close-it' ? ['tr2.bubble', 'tr2.async-overlap'] : []
+  },
   lab: (lab) => (lab === 'hybrid-kv' ? ['tr5a.kv-groups', 'tr5a.adapter-pages'] : []),
 }
 
