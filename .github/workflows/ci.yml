@@ -87,9 +87,12 @@ jobs:
             exit 1
           fi
 
+  # The suite outgrew a 15-minute backstop with W1: on PR #2's first run the runner had run 253 of the 268 test files, with no
+  # failure, when the job timed out after 841 s of tests [measured 2026-11-09, PR #2]. The laptop runs all 268 in 427 s [measured
+  # 2026-11-08 at 6418a20]. 30 minutes holds the whole suite until it is split across jobs (`bun test --shard`) or made faster.
   tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
