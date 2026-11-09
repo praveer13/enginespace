@@ -199,6 +199,14 @@ describe('served as GitHub Pages serves it', () => {
     }
   })
 
+  test('the third-party licences are a file at the root of the site, under the base, which the About page links (licensing#6)', async () => {
+    const response = await fetch(`${origin}${BASE}third-party-licenses.txt`)
+    const body = await response.text()
+    expect([response.status, response.headers.get('content-type')?.startsWith('text/plain')]).toEqual([200, true])
+    expect(body.startsWith('enginespace: third-party licences\n')).toBe(true)
+    expect(body).toBe(readFile(dist, 'third-party-licenses.txt'))
+  })
+
   test('the static assets are served from under the base', async () => {
     const entry = /<script type="module"[^>]*src="([^"]+)"/.exec(template)?.[1] ?? ''
     expect(entry.startsWith(`${BASE}assets/`)).toBe(true)

@@ -49,14 +49,18 @@
  * three-vendor in a build with no 3D. A worker, a scene, a game or post-processing whose source is in the tree and has no chunk
  * fails, because its budget cannot be measured. The gate also prints, without a verdict: the document, the fonts it preloads, the
  * course index (A§4.6: 6 KB), the route table beside the entry that a hovered or focused link reads (D-059), what loads on demand
- * that no row holds (a lazy part of a game with its route, any other lazy part by what it adds to the entry; D-059), and the size of
- * the site against Pages' cap.
+ * that no row holds (a lazy part of a game with its route, any other lazy part by what it adds to the entry; D-059), the size of
+ * the site against Pages' cap, and the third-party licences. The last is a check and holds no budget: dist/third-party-licenses.txt
+ * must name every npm package that a script of the build holds and carry NOTICE and the texts of LICENSES/, and a script of
+ * dist/assets that the licence plugin did not record (a worker) fails it (scripts/pages/third-party-licenses.ts, checkShipped).
  *
  * Exit status: 0 when no row fails, 1 when one does (or the build cannot be read), 2 for a usage error.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { gzipSync } from 'node:zlib'
+import { checkShipped, LICENCES_FILE, LICENSES_DIR, loadTexts, NOTICE_FILE, RECORD_FILE } from './pages/third-party-licenses.ts'
+import type { Shipped } from './pages/third-party-licenses.ts'
 
 export const ROOT = path.resolve(import.meta.dirname, '..')
 
@@ -140,6 +144,9 @@ export interface Document {
   fonts: readonly { file: string; bytes: number }[]
 }
 
+/** What the build carries of the third-party notices, and the tree's NOTICE; the scripts are `Input.assets`' .js files. */
+export type Licences = Omit<Shipped, 'scripts'>
+
 export interface Input {
   manifest: Manifest
   /** The gzip bytes of one file of dist/, named from dist/: `assets/index-x.js`. */
@@ -151,6 +158,8 @@ export interface Input {
   assets: readonly string[]
   /** Everything under dist/, which Pages would publish. */
   site: { files: number; bytes: number }
+  /** dist/third-party-licenses.txt and the record beside the manifest, and the tree's NOTICE. */
+  licences: Licences
 }
 
 /** The build cannot be read (a dangling import, no entry): the gate reports it and fails. */
@@ -447,6 +456,16 @@ export function checkBundle(input: Input): Report {
       if (stray.length > 0) note('document-stray', 'warn', 'document preloads', `index.html loads files outside the first-paint closure: ${stray.join(', ')}`)
     }
   }
+
+  /* The third-party notices: a check, with no budget. The licence file names every npm package that a script holds, and carries NOTICE and the texts of LICENSES/. */
+  const shipped = checkShipped({ ...input.licences, scripts: input.assets.filter((name) => name.endsWith('.js')).map((name) => `assets/${name}`) })
+  if (shipped.problems.length === 0) {
+    const texts = input.licences.texts.length === 0 ? '' : ` and ${plural(input.licences.texts.length, 'licence text')} of ${LICENSES_DIR}/`
+    measured('licences', 'third-party licences', sizeOf([LICENCES_FILE]), {}, `${plural(shipped.packages.length, 'package')} named in ${LICENCES_FILE}, which carries ${NOTICE_FILE}${texts}, and every script of the build is in ${RECORD_FILE}`)
+  } else {
+    shipped.problems.forEach((problem, at) => note(shipped.problems.length === 1 ? 'licences' : `licences:${at + 1}`, 'FAIL', 'third-party licences', problem))
+  }
+
   const site = input.site
   const over = site.bytes > BUDGETS.siteBytes
   note('site', over ? 'FAIL' : 'info', 'site size', `${(site.bytes / 1_000_000).toFixed(2)} MB raw (${grouped(site.bytes)} B) in ${plural(site.files, 'file')} under dist/; Pages publishes at most 1 GB${over ? ' and this is over' : ''}`)
@@ -567,6 +586,7 @@ export function readInput(root: string, dist: string): Input {
   }
   const htmlPath = path.join(dist, 'index.html')
   const routesPath = path.join(root, 'src/routes.tsx')
+  const textOf = (file: string): string | null => (existsSync(file) ? readFileSync(file, 'utf8') : null)
   if (!existsSync(routesPath)) throw new BundleError(`${routesPath} does not exist: the gate reads the route table from it`)
   return {
     manifest,
@@ -576,6 +596,7 @@ export function readInput(root: string, dist: string): Input {
     document: existsSync(htmlPath) ? documentIn(readFileSync(htmlPath, 'utf8'), gzip('index.html'), (file) => fileBytes(dist, file)) : null,
     assets: list(path.join(dist, 'assets')),
     site: walk(dist),
+    licences: { text: textOf(path.join(dist, LICENCES_FILE)), record: textOf(path.join(dist, RECORD_FILE)), notice: textOf(path.join(root, NOTICE_FILE)), texts: loadTexts(root) },
   }
 }
 

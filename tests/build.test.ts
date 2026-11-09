@@ -8,7 +8,8 @@
  *     root of the custom domain, D-058, as the first build does);
  *   - tests/fixtures/chunks, a miniature of the app with the one thing the app does not have yet: a lazy scene that
  *     imports three and R3F. It is what proves the manualChunks rule works before the first scene exists.
- * Each build writes source maps, and the maps say which package's code sits in which chunk.
+ * Each build writes source maps, and the maps say which package's code sits in which chunk. They are also the oracle for the third-party
+ * licences (scripts/pages/third-party-licenses.ts): the file that the build writes must name every package that the maps put in a chunk.
  */
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { spawnSync } from 'node:child_process'
@@ -261,6 +262,77 @@ describe('the app build', () => {
     expect(checked).toBeGreaterThan(3)
   })
 
+  describe('the third-party licences (licensing#6, scripts/pages/third-party-licenses.ts)', () => {
+    const textOf = (file: string): string => readFileSync(path.join(app.outDir, file), 'utf8')
+    const scriptsOf = (): string[] =>
+      readdirSync(path.join(app.outDir, 'assets'))
+        .filter((file) => file.endsWith('.js'))
+        .map((file) => `assets/${file}`)
+        .sort()
+
+    /** The package a file of node_modules belongs to, found by the nearest package.json that names one: not the way the plugin finds it. */
+    function packageOf(source: string): string {
+      for (let dir = path.dirname(path.join(root, source)); dir.startsWith(root); dir = path.dirname(dir)) {
+        const manifest = path.join(dir, 'package.json')
+        if (!existsSync(manifest)) continue
+        const { name, version } = JSON.parse(readFileSync(manifest, 'utf8')) as { name?: string; version?: string }
+        if (typeof name === 'string' && name !== '') return `${name}@${version ?? 'unknown'}`
+      }
+      throw new Error(`${source} is in no package`)
+    }
+
+    test('names every package whose code the source maps put in a chunk, with its licence text, and carries NOTICE and the texts of LICENSES/ after them', () => {
+      const inChunks = new Set<string>()
+      for (const sources of app.sources.values()) for (const source of sources.filter((candidate) => candidate.startsWith('node_modules/'))) inChunks.add(packageOf(source))
+      // React, three, R3F, Radix, zustand, zod and what they bring: dozens of packages, so a collector that found a few would not pass.
+      expect(inChunks.size).toBeGreaterThan(30)
+      for (const expected of ['react@', 'react-dom@', 'three@', '@react-three/fiber@', 'zustand@', 'zod@', 'react-router@', 'clsx@']) {
+        expect([...inChunks].some((id) => id.startsWith(expected)), expected).toBe(true)
+      }
+      const text = textOf('third-party-licenses.txt')
+      const headings = new Set(text.split('\n'))
+      expect([...inChunks].filter((id) => !headings.has(id)).sort()).toEqual([])
+      const notice = readFileSync(path.join(root, 'NOTICE'), 'utf8').trimEnd()
+      expect(text).toContain(notice)
+      // The texts that NOTICE points to follow it, so that the site gives a reader what the notice names (the Apache License 2.0).
+      const texts = readdirSync(path.join(root, 'LICENSES')).sort()
+      expect(texts).toContain('Apache-2.0.txt')
+      let from = text.indexOf(notice)
+      for (const file of texts) {
+        const at = text.indexOf(readFileSync(path.join(root, 'LICENSES', file), 'utf8').trimEnd(), from)
+        expect([file, at > from]).toEqual([file, true])
+        from = at
+      }
+    })
+
+    test('has the licence text under each heading: no section is a heading alone', () => {
+      const lines = textOf('third-party-licenses.txt').split('\n')
+      const rule = '='.repeat(76)
+      const sections = lines.flatMap((line, at) => (line === rule && lines[at + 3] === rule ? [at] : []))
+      // Each package is headed by a rule, its name and version, its licence, and a rule; the NOTICE has its own heading and rule.
+      expect(sections.length).toBeGreaterThan(30)
+      for (const at of sections) {
+        const next = sections.find((candidate) => candidate > at) ?? lines.length
+        const body = lines.slice(at + 4, next).join('\n').trim()
+        expect([lines[at + 1], body.length > 200]).toEqual([lines[at + 1], true])
+      }
+    })
+
+    test('records every script of the build, the forge worker\'s among them, and the packages of Tailwind\'s base CSS by hand', () => {
+      const record = JSON.parse(textOf('.vite/third-party.json')) as { chunks: Record<string, string[]>; alsoShips: string[] }
+      expect(Object.keys(record.chunks).sort()).toEqual(scriptsOf())
+      expect(scriptsOf().some((file) => /^assets\/forge\.worker-/.test(file))).toBe(true)
+      // Tailwind's base layer is in the stylesheet, so its licence ships though no script holds a module of it.
+      const css = readdirSync(path.join(app.outDir, 'assets'))
+        .filter((file) => file.endsWith('.css'))
+        .map((file) => textOf(`assets/${file}`))
+        .join('\n')
+      expect(css).toContain('--tw-border-spacing-x')
+      expect(record.alsoShips.map((id) => id.replace(/@[^@]+$/, ''))).toEqual(['tailwindcss'])
+      expect(textOf('third-party-licenses.txt')).toContain(`\n${record.alsoShips[0]}\n`)
+    })
+  })
+
   test('puts React in react-vendor, which the entry imports', () => {
     const [vendorKey, vendor] = chunkNamed(app, 'react-vendor') ?? []
     expect(vendor).toBeDefined()
@@ -284,6 +356,10 @@ describe('the app built under a subpath, with VITE_BASE=/enginespace/, as a prev
     // The router's basename comes from the same base, so the links agree with the files.
     const entry = readFileSync(path.join(pages.outDir, pages.manifest['index.html'].file), 'utf8')
     expect(entry).toContain('"/enginespace/"')
+    // The About page links the licence file under the base too, and the build wrote the file at the root of its folder.
+    const about = Object.values(pages.manifest).find((chunk) => chunk.src === 'src/pages/About.tsx')?.file ?? 'no chunk for src/pages/About.tsx'
+    expect(readFileSync(path.join(pages.outDir, about), 'utf8')).toContain('/enginespace/third-party-licenses.txt')
+    expect(existsSync(path.join(pages.outDir, 'third-party-licenses.txt'))).toBe(true)
   }, 120_000)
 })
 

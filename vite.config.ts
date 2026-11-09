@@ -6,6 +6,7 @@ import { contentPlugin } from './scripts/content/vite-plugin'
 import { metaCsp } from './scripts/pages/csp'
 import { frontShell } from './scripts/pages/front-shell'
 import { routeTable } from './scripts/pages/route-table'
+import { thirdPartyLicenses } from './scripts/pages/third-party-licenses'
 
 const root = path.dirname(fileURLToPath(import.meta.url))
 
@@ -38,6 +39,12 @@ const SCENE_KIT = /[\\/]src[\\/]scene[\\/]props[\\/]/
 /** What each lazy import preloads, and the route table beside the entry that preloads a route before it opens (D-059, A§6.10). */
 const routes = routeTable(root)
 
+/**
+ * The licences of the npm packages inside the scripts, and NOTICE after them, written to dist/third-party-licenses.txt (scripts/pages/third-party-licenses.ts).
+ * Tailwind's base CSS (preflight, the `--tw-*` defaults) is copied into the stylesheet, so its package is named here though no script holds a module of it.
+ */
+const licences = thirdPartyLicenses(root, { alsoShips: ['tailwindcss'] })
+
 // https://vite.dev/config/
 export default defineConfig({
   // The site is served at the root of https://enginespace.naigap.com (D-058), so the deploy builds with the default base "/", as local dev
@@ -47,7 +54,10 @@ export default defineConfig({
   // The meta CSP (§12) goes into every document of a build, right behind its <meta charset>.
   // The front page's static shell (§6.11) is the app rendered once at `/`, written into index.html's root (W0-T18).
   // The route table goes beside the entry, and the preload lists follow it (scripts/pages/route-table.ts).
-  plugins: [react(), contentPlugin(), metaCsp(), frontShell(), routes.plugin],
+  // The licence file at the site's root is written last, from the scripts that the build ended up with (scripts/pages/third-party-licenses.ts).
+  plugins: [react(), contentPlugin(), metaCsp(), frontShell(), routes.plugin, licences.plugin],
+  // A worker is bundled by a build of its own that the plugins above do not see, so the licence plugin has a second part for it.
+  worker: { plugins: () => [licences.workerPlugin] },
   build: {
     // verify:bundle walks dist/.vite/manifest.json to measure each route's static JS and CSS closure.
     manifest: true,
