@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode } from 'react'
+import { Fragment } from 'react'
 import type { CompiledBlock, CompiledCard } from '@es/schema'
 import { publicUrl, useClaims } from '../load'
 import { useCard } from '../load-lessons'
@@ -7,10 +7,11 @@ import { Icon } from '@/design/components/Glyph'
 import { Readout } from '@/design/components/Readout'
 import { Stub } from '@/design/components/Stub'
 import { TapeLabel } from '@/design/components/TapeLabel'
-import { Ticket, TicketLine, type TicketState } from '@/design/components/Ticket'
+import { TicketLine } from '@/design/components/Ticket'
 import './content.css'
-import { cardClaimIds, decimals, laneName, PENDING, pendingGame, pendingLab, readoutUnit, sections, type Pending, type RenderEnv } from './model'
-import { Scope } from './Page'
+import { Frame, PendingLine, Tapes, type Of } from './BlockFrame'
+import { GameBlock } from './GameBlock'
+import { cardClaimIds, decimals, laneName, PENDING, pendingLab, readoutUnit, sections, type RenderEnv } from './model'
 import { Inline, Prose } from './Prose'
 
 /*
@@ -18,10 +19,10 @@ import { Inline, Prose } from './Prose'
  * block. A prose block breaks into a ticket for each `##` section, with the heading as the ticket's stamped title. Every
  * other block is one ticket, headed by the page's id and its own, titled by its kind, with its facts on tape labels.
  *
- * Prose, a warning, an isomorphism, a notional-machine card, a figure and an item set (src/items, W1-T04) are complete. A
- * block whose feature a later task builds (a prediction, a game, a trace, a lab page, the other cards kept in their own
- * files) prints what it is told, then a red line naming the task that builds the rest, and a stub for the action it will
- * have, held down. A feature task replaces its block's placeholder below and leaves the others alone.
+ * Prose, a warning, an isomorphism, a notional-machine card, a figure, an item set (src/items, W1-T04) and a game (GameBlock.tsx,
+ * W1b-T01) are complete. A block whose feature a later task builds (a prediction, a trace, a lab page, the other cards kept in their own
+ * files, a game no task has built yet) prints what it is told, then a red line naming the task that builds the rest, and a stub for the
+ * action it will have, held down. A feature task replaces its block's placeholder below and leaves the others alone.
  */
 
 export interface BlocksProps {
@@ -29,15 +30,15 @@ export interface BlocksProps {
   env: RenderEnv
   /** The page the blocks belong to (a lesson or module id), printed on each ticket's head line. */
   scope: string
+  /** The page's content revision (A§4.2), which a game block's runs carry. */
+  rev?: string
 }
 
-export function Blocks({ blocks, env, scope }: BlocksProps) {
-  return blocks.map((block, at) => <BlockTicket key={at} block={block} env={env} scope={scope} />)
+export function Blocks({ blocks, env, scope, rev }: BlocksProps) {
+  return blocks.map((block, at) => <BlockTicket key={at} block={block} at={at} env={env} scope={scope} rev={rev} />)
 }
 
-type Of<Type extends CompiledBlock['type']> = Extract<CompiledBlock, { type: Type }>
-
-function BlockTicket({ block, env, scope }: { block: CompiledBlock; env: RenderEnv; scope: string }) {
+function BlockTicket({ block, at, env, scope, rev }: { block: CompiledBlock; at: number; env: RenderEnv; scope: string; rev?: string }) {
   switch (block.type) {
     case 'prose':
       return <ProseTickets block={block} env={env} scope={scope} />
@@ -46,7 +47,7 @@ function BlockTicket({ block, env, scope }: { block: CompiledBlock; env: RenderE
     case 'item':
       return <ItemBlock block={block} scope={scope} />
     case 'game':
-      return <GameTicket block={block} scope={scope} />
+      return <GameBlock block={block} scope={scope} at={at} rev={rev} />
     case 'trace':
       return <TraceTicket block={block} scope={scope} />
     case 'lab':
@@ -56,80 +57,6 @@ function BlockTicket({ block, env, scope }: { block: CompiledBlock; env: RenderE
     case 'figure':
       return <FigureTicket block={block} scope={scope} />
   }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-/* The ticket every block is printed on                                                                               */
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-interface FrameProps {
-  /** The block type, for tests and for the task that replaces a placeholder. */
-  block: CompiledBlock['type']
-  kind?: string
-  scope: string
-  /** The block's own id, on the right of the head line. */
-  meta?: string
-  title?: ReactNode
-  /** The anchor a link to this section jumps to. */
-  anchor?: string
-  /** The task that builds what this ticket stands in for, when it is a placeholder. */
-  pending?: string
-  stub?: ReactNode
-  /** The ticket's state: a block that waits for a file prints as loading, and one that did not load as an error or as blank. */
-  state?: TicketState
-  loadingLabel?: string
-  error?: ReactNode
-  empty?: ReactNode
-  children?: ReactNode
-}
-
-function Frame({ block, kind, scope, meta, title, anchor, pending, stub, state, loadingLabel, error, empty, children }: FrameProps) {
-  return (
-    <Ticket
-      as="section"
-      id={anchor}
-      className="es-c-block"
-      data-block={block}
-      data-kind={kind}
-      data-placeholder={pending}
-      width="wide"
-      head={<Scope id={scope} />}
-      meta={meta}
-      title={title}
-      titleAs="h2"
-      stub={stub}
-      state={state}
-      loadingLabel={loadingLabel}
-      error={error}
-      empty={empty}
-    >
-      {children}
-    </Ticket>
-  )
-}
-
-/** The facts of a block on strips of masking tape. */
-function Tapes({ label, items }: { label: string; items: readonly string[] }) {
-  return (
-    <ul className="es-c-tapes" aria-label={label}>
-      {items.map((item) => (
-        <TapeLabel key={item} as="li" size="sm" tilt="none">
-          {item}
-        </TapeLabel>
-      ))}
-    </ul>
-  )
-}
-
-/** The red line that says what is missing and which task builds it. */
-function PendingLine({ task, what }: Pending) {
-  return (
-    <p className="es-c-pending">
-      <TicketLine tone="ink-2" qty={<Icon name="lock" className="es-c-pending__mark" />} note={task}>
-        Not built yet: {what}
-      </TicketLine>
-    </p>
-  )
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -192,18 +119,8 @@ function PredictTicket({ block, scope }: { block: Of<'predict'>; scope: string }
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* game, trace                                                                                                        */
+/* trace (the game block is GameBlock.tsx)                                                                            */
 /* ------------------------------------------------------------------------------------------------------------------ */
-
-function GameTicket({ block, scope }: { block: Of<'game'>; scope: string }) {
-  const pending = pendingGame(block.id)
-  return (
-    <Frame block="game" scope={scope} meta={`${block.id} · ${block.level}`} title="Play" pending={pending.task} stub={<Stub disabled>Start level</Stub>}>
-      <Tapes label="About this game" items={[block.id, `level · ${block.level}`, block.mode]} />
-      <PendingLine {...pending} />
-    </Frame>
-  )
-}
 
 function TraceTicket({ block, scope }: { block: Of<'trace'>; scope: string }) {
   const pending = PENDING.trace

@@ -175,8 +175,10 @@ export default function FullService({ level, mode, placement = 'page', rev, onFi
   const view: GameView = chosenView ?? (draws3d && device.hints?.saveData !== true ? '3d' : '2d')
   const unavailable3d = device.known && !draws3d ? unavailableReason(device.reason) : undefined
   const [preset, setPreset] = useState(DEFAULT_PRESET)
+  // Inside a lesson the block names the level, so no other level is offered (W1b-T01).
+  const embedded = placement === 'embed'
   const at = FULL_SERVICE.findIndex((candidate) => candidate.id === entry.id)
-  const after = FULL_SERVICE[at + 1] ?? null
+  const after = embedded ? null : (FULL_SERVICE[at + 1] ?? null)
   const onNext = useCallback(() => {
     if (after !== null) onLevel(after.id)
   }, [after, onLevel])
@@ -190,7 +192,8 @@ export default function FullService({ level, mode, placement = 'page', rev, onFi
       seed={attempt.level === entry.id ? attempt.seed : entry.practiceSeed}
       mode={attempt.level === entry.id ? attempt.mode : 'practice'}
       rev={rev}
-      headingLevel={placement === 'embed' ? 3 : 2}
+      headingLevel={embedded ? 3 : 2}
+      embedded={embedded}
       onFinish={onFinish}
       docket={docket}
       onCommand={(command, run) => {

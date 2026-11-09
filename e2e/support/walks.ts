@@ -422,8 +422,9 @@ async function fileRuling(page: Page, walk: Walk, ruling: Ruling): Promise<void>
   await page.keyboard.press('Enter')
 }
 
-const benchLevelWalk = (level: 'due' | 'warm' | 'sure' | 'court'): Walker => async (page, walk) => {
-  const slots = benchLevel(level, practiceSeed('broken-bench', level)).slots
+/** The Inspection's level filed right, case by case: on its practice seed, or on the seed a graded run drew (e2e/lesson-games.spec.ts). */
+export const benchLevelWalk = (level: 'due' | 'warm' | 'sure' | 'court', seed = practiceSeed('broken-bench', level)): Walker => async (page, walk) => {
+  const slots = benchLevel(level, seed).slots
   for (const [at, slot] of slots.entries()) {
     if (at > 0) await expect.poll(() => activeName(page)).toBe(`The court, case ${at + 1} of ${slots.length}`)
     await fileRuling(page, walk, rightRuling(slot))

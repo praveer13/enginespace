@@ -41,7 +41,9 @@ function PoolScene(props: Scene3DProps) {
  *
  * The levels are GAMES.md §8's. Each is played in practice on its pinned seed, with undo and the price of a dump printed, and the graded
  * ones (`evict`, `adapters`, `manager`) can also be played as a graded run: a seed drawn when it starts, no undo, and no price printed
- * (ASSESSMENT §4.3). A graded run's result goes to a page that passes `onFinish`; this one records nothing itself.
+ * (ASSESSMENT §4.3); a page that opens a level graded (a lesson's graded block) starts it on a seed drawn then. A run's result goes to the
+ * page's `onFinish`, which the game's page and a lesson's block each give the recorder (src/games/kit/record.ts, W1b-T01). Inside a lesson
+ * the block names the level, so the row of levels and the next level are left out, and the way into a graded run and back stays.
  *
  * The 3D view (W1-T24) is the reach-in in the middle of service, in a Stage that paints the 2D view first and keeps it as the fallback
  * (A§6.7), and it leads the page: the shell's `stage` layout sets the controls beside it. It opens on its own on a device whose tier draws
@@ -59,23 +61,29 @@ function freshSeed(level: string): number {
   return drawInBand(poolSession, level, crypto.getRandomValues(new Uint32Array(1))[0])
 }
 
+/** The seed a graded run of a level starts on, drawn now; none for practice, or for a level that is not graded. */
+function drawFor(level: string, mode: PoolMode): { level: string; seed: number } | null {
+  return mode === 'graded' && levelOf(POOL, level)?.graded ? { level, seed: freshSeed(level) } : null
+}
+
 export default function Game({ level, mode: asked = 'practice', placement = 'page', rev, onFinish }: GameProps) {
   const known = (id: string | undefined) => POOL.levels.find((entry) => entry.id === id)?.id ?? POOL.levels[0].id
   const [prop, setProp] = useState({ level, mode: asked })
   const [levelId, setLevelId] = useState(() => known(level))
   const [mode, setMode] = useState<PoolMode>(asked)
-  // A graded run draws its seed when it starts; it is drawn in the handler that starts it, because a render reads no entropy.
-  const [drawn, setDrawn] = useState<{ level: string; seed: number } | null>(null)
+  // A graded run draws its seed when it starts: in the handler that starts it, or when a page opens the level graded.
+  const [drawn, setDrawn] = useState<{ level: string; seed: number } | null>(() => drawFor(known(level), asked))
   // A page that opens another level of the game gets it. (Adjusting state when a prop changes: React re-renders at once.)
   if (prop.level !== level || prop.mode !== asked) {
     setProp({ level, mode: asked })
     setLevelId(known(level))
     setMode(asked)
-    setDrawn(null)
+    setDrawn(drawFor(known(level), asked))
   }
+  const embedded = placement === 'embed'
   const entry = levelOf(POOL, levelId) ?? POOL.levels[0]
   const at = POOL.levels.findIndex((candidate) => candidate.id === entry.id)
-  const after = POOL.levels[at + 1] ?? null
+  const after = embedded ? null : (POOL.levels[at + 1] ?? null)
   const graded = mode === 'graded' && entry.graded
   const wide = useWide()
   const seed = graded ? (drawn !== null && drawn.level === entry.id ? drawn.seed : entry.practiceSeed) : entry.practiceSeed
@@ -92,72 +100,82 @@ export default function Game({ level, mode: asked = 'practice', placement = 'pag
     const target = levelOf(POOL, next) ?? POOL.levels[0]
     setLevelId(target.id)
     setMode(nextMode)
-    setDrawn(nextMode === 'graded' && target.graded ? { level: target.id, seed: freshSeed(target.id) } : null)
+    setDrawn(drawFor(target.id, nextMode))
   }
 
-  // Moving on replaces the page's content, and the button that was pressed goes with it: focus goes back to the game.
+  // Moving on replaces the page's content, and the button that was pressed goes with it: focus goes back to the game. This game's own,
+  // found from its box, since a lesson can hold two of it.
+  const host = useRef<HTMLDivElement>(null)
   const moved = useRef(false)
   useEffect(() => {
     if (!moved.current) return
     moved.current = false
-    document.querySelector<HTMLElement>(`[data-game="${POOL.id}"]`)?.focus({ preventScroll: true })
+    host.current?.querySelector<HTMLElement>('[data-game]')?.focus({ preventScroll: true })
   }, [levelId, mode])
 
+  // How to play a level that can be graded: practice, or a graded run on a seed drawn when it starts.
+  const modes = entry.graded ? (
+    <div role="group" aria-label="How to play this level" className="flex flex-wrap items-center gap-2">
+      {MODES.map((candidate) => (
+        <Button
+          key={candidate.mode}
+          size="sm"
+          variant={candidate.mode === (graded ? 'graded' : 'practice') ? 'ink' : 'plate'}
+          aria-pressed={candidate.mode === (graded ? 'graded' : 'practice')}
+          onClick={() => {
+            moved.current = true
+            choose(entry.id, candidate.mode)
+          }}
+        >
+          {candidate.label}
+        </Button>
+      ))}
+      <span className="text-text-2">{graded ? 'A fresh seed, no undo, and no price printed for a dump.' : 'The pinned seed, with undo and the price of each dump.'}</span>
+    </div>
+  ) : null
+
   return (
-    <div className="flex flex-col gap-6">
-      <nav aria-label="Levels of The Reach-In">
-        <details open={wide || undefined} className="es-levels">
-          <summary className="es-levels__summary cursor-pointer font-bold">
-            Level: {entry.title} · {graded ? 'graded' : 'practice'}
-          </summary>
-          <div className="flex flex-col gap-3 pt-3">
-            <ol className="flex flex-wrap gap-2">
-              {POOL.levels.map((candidate) => (
-                <li key={candidate.id}>
-                  <Button
-                    size="sm"
-                    variant={candidate.id === entry.id ? 'ink' : 'quiet'}
-                    aria-current={candidate.id === entry.id ? 'step' : undefined}
-                    onClick={() => {
-                      moved.current = true
-                      choose(candidate.id, 'practice')
-                    }}
-                  >
-                    {candidate.title}
-                    {candidate.graded ? <span className="sr-only"> (graded level)</span> : null}
-                  </Button>
-                </li>
-              ))}
-            </ol>
-            {entry.graded ? (
-              <div role="group" aria-label="How to play this level" className="flex flex-wrap items-center gap-2">
-                {MODES.map((candidate) => (
-                  <Button
-                    key={candidate.mode}
-                    size="sm"
-                    variant={candidate.mode === (graded ? 'graded' : 'practice') ? 'ink' : 'plate'}
-                    aria-pressed={candidate.mode === (graded ? 'graded' : 'practice')}
-                    onClick={() => {
-                      moved.current = true
-                      choose(entry.id, candidate.mode)
-                    }}
-                  >
-                    {candidate.label}
-                  </Button>
+    <div ref={host} className="flex flex-col gap-6">
+      {embedded ? (
+        modes
+      ) : (
+        <nav aria-label="Levels of The Reach-In">
+          <details open={wide || undefined} className="es-levels">
+            <summary className="es-levels__summary cursor-pointer font-bold">
+              Level: {entry.title} · {graded ? 'graded' : 'practice'}
+            </summary>
+            <div className="flex flex-col gap-3 pt-3">
+              <ol className="flex flex-wrap gap-2">
+                {POOL.levels.map((candidate) => (
+                  <li key={candidate.id}>
+                    <Button
+                      size="sm"
+                      variant={candidate.id === entry.id ? 'ink' : 'quiet'}
+                      aria-current={candidate.id === entry.id ? 'step' : undefined}
+                      onClick={() => {
+                        moved.current = true
+                        choose(candidate.id, 'practice')
+                      }}
+                    >
+                      {candidate.title}
+                      {candidate.graded ? <span className="sr-only"> (graded level)</span> : null}
+                    </Button>
+                  </li>
                 ))}
-                <span className="text-text-2">{graded ? 'A fresh seed, no undo, and no price printed for a dump.' : 'The pinned seed, with undo and the price of each dump.'}</span>
-              </div>
-            ) : null}
-          </div>
-        </details>
-      </nav>
+              </ol>
+              {modes}
+            </div>
+          </details>
+        </nav>
+      )}
       <PoolShell
         key={`${entry.id}|${graded ? 'graded' : 'practice'}`}
         levelId={entry.id}
         levelTitle={entry.title}
         seed={seed}
         mode={graded ? 'graded' : 'practice'}
-        headingLevel={placement === 'embed' ? 3 : 2}
+        headingLevel={embedded ? 3 : 2}
+        embedded={embedded}
         rev={rev}
         onFinish={onFinish}
         next={after === null ? null : { id: after.id, title: after.title }}
@@ -178,6 +196,8 @@ interface ShellProps {
   seed: number
   mode: PoolMode
   headingLevel: 2 | 3
+  /** Inside a lesson (GameShell's `embedded`). */
+  embedded: boolean
   rev: string | undefined
   onFinish: GameProps['onFinish']
   next: { id: string; title: string } | null
@@ -194,7 +214,7 @@ interface ShellProps {
 }
 
 /** One level's page. Its state (the pans chosen, the pointer) is the page's, and a new level starts it again. */
-function PoolShell({ levelId, levelTitle, seed, mode, headingLevel, rev, onFinish, next, onNext, scene }: ShellProps) {
+function PoolShell({ levelId, levelTitle, seed, mode, headingLevel, embedded, rev, onFinish, next, onNext, scene }: ShellProps) {
   const [pointed, setPointed] = useState<readonly number[]>([])
   const [chosen, setChosen] = useState<Chosen | null>(null)
   const [station, setStation] = useState(0)
@@ -210,6 +230,7 @@ function PoolShell({ levelId, levelTitle, seed, mode, headingLevel, rev, onFinis
       mode={mode}
       rev={rev}
       headingLevel={headingLevel}
+      embedded={embedded}
       onFinish={onFinish}
       onCommand={(command, run) => {
         const ask = run.view.ask

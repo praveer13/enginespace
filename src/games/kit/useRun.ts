@@ -31,10 +31,10 @@ export interface UseRunOptions<Level, State, Action extends GameAction, View, Sc
   /** The content revision, which the run record carries (A§4.2). */
   rev?: string
   /**
-   * Called when a run ends, with the record, grade and hash, for the ledger: once for each run, so a practice run that is undone
-   * and finished again reports again. A front-page run passes nothing, because it records nothing (D-038).
+   * Called when a run ends, with the record, grade and hash, and the run's mode, for the ledger: once for each run, so a practice run
+   * that is undone and finished again reports again. A front-page run passes nothing, because it records nothing (D-038).
    */
-  onFinish?: (result: RunResult) => void
+  onFinish?: (result: RunResult, mode: GameMode) => void
 }
 
 /** What a view, a control or a page gets from a run. */
@@ -145,8 +145,8 @@ export function useRun<Level, State, Action extends GameAction, View, Score, Ask
   useEffect(() => {
     if (outcome === null || reported.current === outcome.record) return
     reported.current = outcome.record
-    onFinish.current?.({ record: outcome.record, grade: outcome.grade, debrief: outcome.debrief, hash: outcome.hash })
-  }, [outcome])
+    onFinish.current?.({ record: outcome.record, grade: outcome.grade, debrief: outcome.debrief, hash: outcome.hash }, mode)
+  }, [outcome, mode])
 
   return {
     game,

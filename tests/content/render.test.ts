@@ -79,24 +79,24 @@ describe('/m/tr2/l0-sample', () => {
   })
 
   test('a block whose feature is not built yet says which task builds it, and holds its action down', () => {
-    expect(placeholders(html)).toEqual({ predict: 'W1-T13', game: 'W1-T13', trace: 'W1-T09', lab: 'W2-T23' })
+    expect(placeholders(html)).toEqual({ predict: 'W1-T13', trace: 'W1-T09', lab: 'W2-T23' })
     for (const [what, task] of [
       ['the prediction box', 'W1-T13'],
-      ['the game', 'W1-T13'],
       ['the trace viewer', 'W1-T09'],
       ['the lab', 'W2-T23'],
     ]) {
       expect(html).toContain(`Not built yet: ${what}`)
       expect(html).toContain(`<span class="es-ticket-line__note">${task}</span>`)
     }
-    // The prediction, the game and the trace each have a stub that is held down. The lab's stub is a link, and the item set is built.
-    expect(html.match(/<button type="button" class="es-stub__pull"[^>]*disabled=""/g)?.length).toBe(3)
+    // The prediction and the trace each have a stub that is held down. The lab's stub is a link, and the item set and the game are built.
+    expect(html.match(/<button type="button" class="es-stub__pull"[^>]*disabled=""/g)?.length).toBe(2)
     expect(html).toContain('href="/labs/tr3.profile"')
+    expect(html).not.toContain('Not built yet: the game')
   })
 
-  test('a block that is complete carries no placeholder: prose, the item set, the two cards (the warning, and the notional-machine card that prints while it loads) and the figure', () => {
-    const complete = opening(html, 'section').filter((tag) => ['prose', 'item', 'card', 'figure'].includes(attribute(tag, 'data-block') ?? ''))
-    expect(complete.length).toBe(7)
+  test('a block that is complete carries no placeholder: prose, the item set, the game, the two cards (the warning, and the notional-machine card that prints while it loads) and the figure', () => {
+    const complete = opening(html, 'section').filter((tag) => ['prose', 'item', 'game', 'card', 'figure'].includes(attribute(tag, 'data-block') ?? ''))
+    expect(complete.length).toBe(8)
     for (const tag of complete) expect(tag).not.toContain('data-placeholder')
   })
 
@@ -433,11 +433,38 @@ describe('the blocks, one at a time', () => {
     expect(html).toContain('<data class="es-readout__value" value="12.5">12.5%</data>')
   })
 
-  test('a game block names its task by the game, and a game the roster does not list falls back to the framework', () => {
-    const game = (id: string): CompiledBlock => ({ type: 'game', id, level: 'sizes', mode: 'graded' })
-    expect(placeholders(drawnBlocks(game('pool')))).toEqual({ game: 'W1-T23' })
-    expect(placeholders(drawnBlocks(game('not-a-game')))).toEqual({ game: 'W0-T14' })
-    expect(drawnBlocks(game('pool'))).toContain('graded')
+  test('a game block of a game that is built waits for the learner: its display name, its level and its mode, and the stub that starts it (W1b-T01)', () => {
+    const block: CompiledBlock = { type: 'game', id: 'pool', level: 'evict', mode: 'graded' }
+    const html = drawnBlocks(block)
+    expect(placeholders(html)).toEqual({})
+    const ticket = opening(html, 'section').find((tag) => attribute(tag, 'data-block') === 'game') ?? ''
+    expect([attribute(ticket, 'data-play'), attribute(ticket, 'data-mode'), attribute(ticket, 'data-phase')]).toEqual(['pool/evict', 'graded', 'waiting'])
+    // D-049: the display name over its engine concept, from the roster, which costs the lesson's first paint none of the game's code.
+    expect(html).toContain('<strong>The Reach-In</strong> · hybrid KV pages and adapters')
+    for (const fact of ['level · evict', 'graded']) expect(html).toContain(fact)
+    expect(html).toContain('Graded: new numbers drawn when you start, and no undo.')
+    // The stub is live, and the way to every level is the game's own page.
+    expect(html).toMatch(/<button type="button" class="es-stub__pull"><span class="es-stub__label">Start level<\/span>/)
+    expect(html).not.toMatch(/<button type="button" class="es-stub__pull"[^>]*disabled=""/)
+    expect(html).toContain('href="/play/pool?level=evict"')
+    // Nothing of the game is drawn until the learner starts it.
+    expect(html).not.toContain('data-game=')
+    expect(drawnBlocks({ type: 'game', id: 'loop', level: 'async', mode: 'practice' })).toContain('Practice, on the level’s own numbers, with undo.')
+  })
+
+  test('a game block of a game that no task has built yet names its open task and holds its stub down, and a name that is no game names no task', () => {
+    const game = (id: string): CompiledBlock => ({ type: 'game', id, level: 'yard', mode: 'graded' })
+    const waiting = drawnBlocks(game('switchyard'))
+    expect(placeholders(waiting)).toEqual({ game: 'W2-T30' })
+    expect(waiting).toContain('Not built yet: the game')
+    expect(waiting).toContain('<strong>The Dumbwaiter</strong>')
+    expect(waiting).toMatch(/<button type="button" class="es-stub__pull"[^>]*disabled=""/)
+    for (const id of ['not-a-game', 'constructor']) {
+      const none = drawnBlocks(game(id))
+      expect(placeholders(none)).toEqual({})
+      expect(none).toContain(`No game is called ${id}.`)
+      expect(none).not.toContain('es-stub')
+    }
   })
 
   test('a trace with no seed is a pinned trace, and one with a seed is labelled synthetic', () => {
