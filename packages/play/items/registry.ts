@@ -9,8 +9,14 @@ import { whatMoved } from './families/tr1/what-moved'
 import { whereDoesItRun } from './families/tr1/where-does-it-run'
 import { whichMechanism } from './families/tr1/which-mechanism'
 import { bubbleWidth } from './families/tr2/bubble-width'
+import { defaultBudget } from './families/tr2/default-budget'
+import { dispatchKey } from './families/tr2/dispatch-key'
 import { graphHit } from './families/tr2/graph-hit'
+import { kvAfterGraphs } from './families/tr2/kv-after-graphs'
 import { paddingWaste } from './families/tr2/padding-waste'
+import { preemptVictim } from './families/tr2/preempt-victim'
+import { runnerFallback } from './families/tr2/runner-fallback'
+import { stepOrder } from './families/tr2/step-order'
 import { exactnessTest } from './families/tr6/exactness-test'
 import { maskFits } from './families/tr6/mask-fits'
 import { maskPhases } from './families/tr6/mask-phases'
@@ -29,8 +35,14 @@ export const FAMILIES: readonly Gen[] = [
   whereDoesItRun,
   whichMechanism,
   bubbleWidth,
+  defaultBudget,
+  dispatchKey,
   graphHit,
+  kvAfterGraphs,
   paddingWaste,
+  preemptVictim,
+  runnerFallback,
+  stepOrder,
   exactnessTest,
   maskFits,
   maskPhases,

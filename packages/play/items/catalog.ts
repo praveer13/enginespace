@@ -78,6 +78,28 @@ export const CATALOG: readonly GenFace[] = [
     ],
   },
   {
+    id: 'tr2.default-budget',
+    version: 1,
+    title: 'Defaults that move with the card',
+    kcs: ['tr2.gpu-dependent-defaults'],
+    variants: [
+      { id: 'tier', title: 'The defaults a card starts with', kcs: ['tr2.gpu-dependent-defaults'], levels: [0, 1, 2, 3] },
+      { id: 'budget-left', title: 'The budget left for a prompt', kcs: ['tr2.gpu-dependent-defaults'], levels: [0, 1, 2, 3] },
+      { id: 'waiting', title: 'The requests still waiting', kcs: ['tr2.gpu-dependent-defaults'], levels: [1, 2, 3] },
+    ],
+  },
+  {
+    id: 'tr2.dispatch-key',
+    version: 1,
+    title: 'Dispatch keys',
+    kcs: ['tr2.dispatch-keys'],
+    variants: [
+      { id: 'which-graph', title: 'Which graph replays a step', kcs: ['tr2.dispatch-keys'], levels: [0, 1, 2, 3] },
+      { id: 'captured', title: 'The graphs captured at start-up', kcs: ['tr2.dispatch-keys'], levels: [0, 1, 2, 3] },
+      { id: 'fields', title: 'The fields of the key', kcs: ['tr2.dispatch-keys'], levels: [0, 1, 2, 3] },
+    ],
+  },
+  {
     id: 'tr2.graph-hit',
     version: 1,
     title: 'Graph hit',
@@ -85,6 +107,17 @@ export const CATALOG: readonly GenFace[] = [
     variants: [
       { id: 'hit-or-miss', title: 'What a step launches', kcs: ['tr2.graph-replay'], levels: [0, 1, 2, 3] },
       { id: 'launch-saved', title: 'The launch time a replay saves', kcs: ['tr2.graph-replay'], levels: [0, 1, 2, 3] },
+    ],
+  },
+  {
+    id: 'tr2.kv-after-graphs',
+    version: 1,
+    title: 'The KV cache after the graphs',
+    kcs: ['tr2.graph-memory'],
+    variants: [
+      { id: 'kv-tokens', title: 'The KV cache that is left', kcs: ['tr2.graph-memory'], levels: [0, 1, 2, 3] },
+      { id: 'graphs-cost', title: 'What the graphs cost the cache', kcs: ['tr2.graph-memory'], levels: [0, 1, 2, 3] },
+      { id: 'share', title: 'The share of the cache the graphs take', kcs: ['tr2.graph-memory'], levels: [1, 2, 3] },
     ],
   },
   {
@@ -96,6 +129,39 @@ export const CATALOG: readonly GenFace[] = [
       { id: 'padded-size', title: 'The size a step pads to', kcs: ['tr2.capture-padding'], levels: [0, 1, 2, 3] },
       { id: 'night-waste', title: 'The padding a night wastes', kcs: ['tr2.capture-padding'], levels: [0, 1, 2, 3] },
       { id: 'choose-sizes', title: 'Sizes that waste the least', kcs: ['tr2.capture-padding'], levels: [2, 3] },
+    ],
+  },
+  {
+    id: 'tr2.preempt-victim',
+    version: 1,
+    title: 'The victim, and the one budget',
+    kcs: ['tr2.one-budget'],
+    variants: [
+      { id: 'victim', title: 'Which request is preempted', kcs: ['tr2.one-budget'], levels: [0, 1, 2, 3] },
+      { id: 'restart', title: 'The tokens a victim computes again', kcs: ['tr2.one-budget'], levels: [1, 2, 3] },
+      { id: 'chunk', title: 'The prompt a step takes', kcs: ['tr2.one-budget'], levels: [0, 1, 2, 3] },
+    ],
+  },
+  {
+    id: 'tr2.runner-fallback',
+    version: 1,
+    title: 'The V2 runner, and when it falls back',
+    kcs: ['tr2.mrv2-delta'],
+    variants: [
+      { id: 'which-runner', title: 'Which runner serves a configuration', kcs: ['tr2.mrv2-delta'], levels: [0, 1, 2, 3] },
+      { id: 'phase', title: 'The phase a change of MRV2 shortens', kcs: ['tr2.mrv2-delta'], levels: [0, 1, 2, 3] },
+      { id: 'saves', title: 'The CPU work MRV2 takes off a step', kcs: ['tr2.mrv2-delta'], levels: [0, 1, 2, 3] },
+    ],
+  },
+  {
+    id: 'tr2.step-order',
+    version: 1,
+    title: 'One step, five calls',
+    kcs: ['tr2.step-calls', 'tr2.bubble'],
+    variants: [
+      { id: 'order', title: 'The order of the calls', kcs: ['tr2.step-calls'], levels: [2, 3] },
+      { id: 'role', title: 'What a call does and what it waits for', kcs: ['tr2.step-calls'], levels: [0, 1, 2, 3] },
+      { id: 'idle-before', title: "The GPU's idle time before a step", kcs: ['tr2.bubble'], levels: [0, 1, 2, 3] },
     ],
   },
   {
