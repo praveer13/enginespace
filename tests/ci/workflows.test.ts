@@ -20,11 +20,12 @@ import { readdirSync } from 'node:fs'
 import path from 'node:path'
 import { load } from 'js-yaml'
 import { GATE_NAMES, GATES } from '../../scripts/verify'
-import { backticked, between, read, root, tableRows, trackerTasks } from './support'
+import { BUN_FALLBACK, backticked, between, read, root, tableRows, trackerTasks } from './support'
 
 interface Step {
   name?: string
   id?: string
+  'continue-on-error'?: boolean
   uses?: string
   run?: string
   if?: string
@@ -67,7 +68,8 @@ const workflows = new Map(
 const workflow = (file: string) => workflows.get(file) as Workflow
 const jobsOf = (file: string) => Object.entries(workflow(file).jobs ?? {})
 const stepsOf = (file: string, job: string) => workflow(file).jobs?.[job]?.steps ?? []
-const runsOf = (file: string, job: string) => stepsOf(file, job).flatMap((step) => (step.run === undefined ? [] : [step.run.trim()]))
+const runsOf = (file: string, job: string) =>
+  stepsOf(file, job).flatMap((step) => (step.run === undefined || step.if === BUN_FALLBACK ? [] : [step.run.trim()]))
 const allSteps = () => files.flatMap((file) => jobsOf(file).flatMap(([job, { steps = [] }]) => steps.map((step) => ({ file, job, step }))))
 
 /** ARCHITECTURE §10.3: the actions with their SHAs and releases, and the tools with their versions. */
@@ -151,6 +153,28 @@ describe('the actions and tools (§10.3)', () => {
     expect(new Set(inputs('oven-sh/setup-bun', 'bun-version'))).toEqual(new Set([tool('Bun')]))
     expect(new Set(inputs('astral-sh/setup-uv', 'version'))).toEqual(new Set([tool('uv')]))
     expect(workflow('labs.yml').env?.RUST_TOOLCHAIN).toBe(tool('Rust'))
+  })
+
+  test("every Bun step falls back to npm's copy of the same release when GitHub's download fails (§10.3)", () => {
+    const fallback = 'npm install --global --no-audit --no-fund "bun@$BUN_VERSION" && test "$(bun --version)" = "$BUN_VERSION"'
+    const problems: string[] = []
+    let count = 0
+    for (const file of files) {
+      for (const [job, { steps = [] }] of jobsOf(file)) {
+        steps.forEach((step, index) => {
+          if (!step.uses?.startsWith('oven-sh/setup-bun@')) return
+          count += 1
+          const at = `${file}/${job}`
+          if (step.id !== 'bun' || step['continue-on-error'] !== true) problems.push(`${at}: setup-bun needs id: bun and continue-on-error: true`)
+          const next = steps[index + 1]
+          if (next?.if !== BUN_FALLBACK) return void problems.push(`${at}: the step after setup-bun is not the fallback that runs when it failed`)
+          if (next.env?.BUN_VERSION !== tool('Bun')) problems.push(`${at}: the fallback installs Bun ${next.env?.BUN_VERSION}, but §10.3 pins ${tool('Bun')}`)
+          if (next.run?.trim() !== fallback) problems.push(`${at}: the fallback runs "${next.run?.trim()}", not "${fallback}"`)
+        })
+      }
+    }
+    expect(count).toBeGreaterThan(0)
+    expect(problems).toEqual([])
   })
 })
 

@@ -1130,6 +1130,11 @@ Kernelspace's pattern applies: the scaffold reserves each gate, and it prints `p
 
 Every job sets `permissions: contents: read` unless it needs more, and uses `persist-credentials: false` on checkout (kernelspace's CI).
 
+Bun comes from `oven-sh/setup-bun`, which downloads the release from GitHub. That step may fail (`continue-on-error`). When it does, the next step installs the same release from npm, `npm install --global bun@<the pin>`, and fails unless `bun --version` prints the pin.
+- **Why:** on 2026-11-09, GitHub's release downloads answered HTTP 504 throughout a GitHub incident. Every job that needed Bun stopped at that step, the first deploys of `main` among them [measured 2026-11-09].
+- **Same build:** npm's `bun@1.3.14` reports `1.3.14+0d9b296af`, the build that GitHub's release ships [measured 2026-11-09].
+- **Enforced by:** `tests/ci/workflows.test.ts`, which holds every Bun step to this pair.
+
 ---
 
 ## 11. Budgets

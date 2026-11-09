@@ -14,7 +14,7 @@ import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { load } from 'js-yaml'
 import { PR_ROUTES, PR_WIDTHS, NIGHTLY_WIDTHS } from '../../e2e/routes'
-import { between, read, root, trackerTasks } from './support'
+import { BUN_FALLBACK, between, read, root, trackerTasks } from './support'
 
 interface Step {
   name?: string
@@ -37,7 +37,8 @@ const job = (file: string, name: string): Job => {
   if (found === undefined) throw new Error(`${file} has no job "${name}"`)
   return found
 }
-const runs = (steps: Step[] | undefined) => (steps ?? []).flatMap((step) => (step.run === undefined ? [] : [step.run.trim()]))
+const runs = (steps: Step[] | undefined) =>
+  (steps ?? []).flatMap((step) => (step.run === undefined || step.if === BUN_FALLBACK ? [] : [step.run.trim()]))
 
 const task = trackerTasks().get('W0-T21') ?? ''
 const config = read('playwright.config.ts')

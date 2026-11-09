@@ -78,9 +78,18 @@ jobs:
 
       # The scripts run under Bun, pinned as in ci.yml.
       - name: Set up pinned Bun
+        id: bun
+        continue-on-error: true
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.3.14
+
+      # A failed download from GitHub falls back to npm's copy of the same release (ARCHITECTURE §10.3).
+      - name: Set up pinned Bun from npm, when GitHub's download failed
+        if: steps.bun.outcome == 'failure'
+        env:
+          BUN_VERSION: 1.3.14
+        run: npm install --global --no-audit --no-fund "bun@$BUN_VERSION" && test "$(bun --version)" = "$BUN_VERSION"
 
       - name: Set up pinned Rust with the wasm32 target
         run: |
@@ -122,9 +131,18 @@ jobs:
           cache: npm
 
       - name: Set up pinned Bun
+        id: bun
+        continue-on-error: true
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.3.14
+
+      # A failed download from GitHub falls back to npm's copy of the same release (ARCHITECTURE §10.3).
+      - name: Set up pinned Bun from npm, when GitHub's download failed
+        if: steps.bun.outcome == 'failure'
+        env:
+          BUN_VERSION: 1.3.14
+        run: npm install --global --no-audit --no-fund "bun@$BUN_VERSION" && test "$(bun --version)" = "$BUN_VERSION"
 
       - name: Set up pinned uv
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
