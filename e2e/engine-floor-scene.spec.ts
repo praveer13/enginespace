@@ -11,7 +11,8 @@
  *   And: `C` and the buttons reach every camera stop; the run's moment plays and then lets the frames go; a run sent from the stub far down
  *   the column plays in sight, the scene's column sticking on a wide screen and the camera taking the follow from the cutaway (the finish
  *   review's round 1); the capture is not blank; all text is DOM; no chit and no tape covers a name at the cutaway of the widest and the
- *   tallest houses (its round 2); and axe finds nothing serious on the 3D view.
+ *   tallest houses (its round 2); the line's tape is cut to its words, and on a phone a pair of hands' tape shows where the camera is close
+ *   on those hands (W1b's round 1); and axe finds nothing serious on the 3D view.
  *
  * How it runs, as e2e/loop-scene.spec.ts does: one test build with `VITE_ES_TEST_HOOKS=1` (it exposes `window.__esScene` and honours
  * `?es-tier=<0-3>`), served by `context.route` so no server runs, with any request off the origin failing the test. Chromium renders
@@ -26,7 +27,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import AxeBuilder from '@axe-core/playwright'
 import { test as base, expect } from '@playwright/test'
-import type { Page } from '@playwright/test'
+import type { BrowserContext, Page } from '@playwright/test'
 import { build } from 'vite'
 import { buildLevel } from '../packages/play/engine-floor/levels'
 import type { FrameStats } from '../src/scene/stage-runtime'
@@ -168,6 +169,70 @@ async function lay(page: Page, ids: readonly string[]) {
 async function run(page: Page) {
   await home(page)
   await page.keyboard.press('KeyR')
+}
+
+/**
+ * Each name's words that some other label meets: every shown label's words (a tape's, or the line's strip's) against what every other
+ * shown label puts on the screen (a chit's slip, a tape's strip), as "<name> under <other>".
+ */
+function covered(page: Page): Promise<string[]> {
+  return stage(page).evaluate((root) => {
+    const seen = [...root.querySelectorAll<HTMLElement>('.es-label')].filter((label) => label.style.visibility === 'visible')
+    const box = (node: Element) => node.getBoundingClientRect()
+    const words = seen.flatMap((label) => {
+      const text = label.querySelector('.es-tape__text')
+      if (text) return [{ label, name: text.textContent ?? '', r: box(text) }]
+      if (!label.classList.contains('es-floor-scene-strip')) return []
+      const range = document.createRange()
+      range.selectNodeContents(label)
+      return [{ label, name: label.textContent ?? '', r: range.getBoundingClientRect() }]
+    })
+    const shown = seen.map((label) => ({ label, text: (label.textContent ?? '').trim(), r: box(label.querySelector('.es-tape, :scope > span') ?? label) }))
+    return words.flatMap((name) =>
+      shown
+        .filter((other) => other.label !== name.label && Math.min(name.r.right, other.r.right) > Math.max(name.r.left, other.r.left) && Math.min(name.r.bottom, other.r.bottom) > Math.max(name.r.top, other.r.top))
+        .map((other) => `${name.name} under ${other.text}`),
+    )
+  })
+}
+
+/** The words of the hands' tapes the scene shows, as a phone's canvas shows them (a tape it keeps for a wider one is hidden). */
+const handsShown = (page: Page) =>
+  stage(page)
+    .locator('.es-floor-scene-tape--hands')
+    .evaluateAll((labels) => labels.filter((label) => (label as HTMLElement).style.visibility === 'visible').map((label) => label.querySelector('.es-tape__text')?.textContent ?? ''))
+
+/**
+ * The box, in a capture's px, of its pixels in masking tape's colour (a warm yellow: red well over blue, and green over blue) inside a
+ * window of it, or null when there are none: decoded in a blank tab of the same browser, as e2e/support/pixels.ts does.
+ */
+async function warmBox(context: BrowserContext, png: Buffer, window: { x: number; y: number; width: number; height: number }) {
+  const tab = await context.newPage()
+  try {
+    return await tab.evaluate(
+      async ([base64, w]) => {
+        const bitmap = await createImageBitmap(await (await fetch(`data:image/png;base64,${base64}`)).blob())
+        const canvas = document.createElement('canvas')
+        canvas.width = bitmap.width
+        canvas.height = bitmap.height
+        const drawing = canvas.getContext('2d')
+        if (drawing === null) throw new Error('no 2D canvas to read the picture with')
+        drawing.drawImage(bitmap, 0, 0)
+        const { data } = drawing.getImageData(0, 0, canvas.width, canvas.height)
+        let [left, right, top, bottom] = [Infinity, -Infinity, Infinity, -Infinity]
+        for (let y = Math.max(0, Math.round(w.y)); y < Math.min(canvas.height, Math.round(w.y + w.height)); y++) {
+          for (let x = Math.max(0, Math.round(w.x)); x < Math.min(canvas.width, Math.round(w.x + w.width)); x++) {
+            const i = (y * canvas.width + x) * 4
+            if (data[i] > 110 && data[i] - data[i + 2] > 24 && data[i + 1] - data[i + 2] > 12) [left, right, top, bottom] = [Math.min(left, x), Math.max(right, x), Math.min(top, y), Math.max(bottom, y)]
+          }
+        }
+        return left === Infinity ? null : { left, right, top, bottom }
+      },
+      [png.toString('base64'), window] as const,
+    )
+  } finally {
+    await tab.close()
+  }
 }
 
 test.describe('the draw-call budget (A§11.1, D-023): at most 100', () => {
@@ -335,42 +400,53 @@ test.describe('the picture', () => {
 
   test('no label covers a name: at the cutaway of the widest house and the tallest, every tape\'s words are clear of every chit and every other tape (the finish review\'s round 2)', async ({ page }) => {
     test.setTimeout(300_000)
-    /** Each name's words, and what every other label shows: a chit's slip, a tape's strip; then each pair of a name's words and another label that meet. */
-    const covered = () =>
-      stage(page).evaluate((root) => {
-        const seen = [...root.querySelectorAll<HTMLElement>('.es-label')].filter((label) => label.style.visibility === 'visible')
-        const box = (node: Element) => node.getBoundingClientRect()
-        const words = seen.flatMap((label) => {
-          const text = label.querySelector('.es-tape__text')
-          if (text) return [{ label, name: text.textContent ?? '', r: box(text) }]
-          if (!label.classList.contains('es-floor-scene-strip')) return []
-          const range = document.createRange()
-          range.selectNodeContents(label)
-          return [{ label, name: label.textContent ?? '', r: range.getBoundingClientRect() }]
-        })
-        const shown = seen.map((label) => ({ label, text: (label.textContent ?? '').trim(), r: box(label.querySelector('.es-tape, :scope > span') ?? label) }))
-        return words.flatMap((name) =>
-          shown
-            .filter((other) => other.label !== name.label && Math.min(name.r.right, other.r.right) > Math.max(name.r.left, other.r.left) && Math.min(name.r.bottom, other.r.bottom) > Math.max(name.r.top, other.r.top))
-            .map((other) => `${name.name} under ${other.text}`),
-        )
-      })
     await open(page, 'vllm', 2)
     await settle(page)
     await commit(page, 2)
     const path = reference('vllm')
     await lay(page, path.slice(0, 10))
     await settle(page)
-    expect(await covered()).toEqual([])
+    expect(await covered(page)).toEqual([])
     await lay(page, path.slice(10))
     await settle(page)
-    expect(await covered()).toEqual([])
+    expect(await covered(page)).toEqual([])
     await open(page, 'mini', 2)
     await settle(page)
     await commit(page, 3)
     await lay(page, reference('mini'))
     await settle(page)
-    expect(await covered()).toEqual([])
+    expect(await covered(page)).toEqual([])
+  })
+
+  test('the line\'s tape is cut to its words: at a low house\'s cutaway and at a tall one\'s, its strip spans about the box of its words on the screen, with its words in its middle (the finish review\'s W1b round 1)', async ({ page }) => {
+    test.setTimeout(300_000)
+    /** The tape under the line's words, found by its warm colour in the canvas with the labels hidden, against the box of the words. */
+    const check = async (what: string) => {
+      const words = await stage(page).locator('.es-floor-scene-strip > span').boundingBox()
+      const canvas = await stage(page).locator('canvas').boundingBox()
+      if (!words || !canvas) throw new Error(`${what}: no words or no canvas`)
+      const hidden = await page.addStyleTag({ content: '.es-labels { visibility: hidden !important; }' })
+      const png = await stage(page).locator('canvas').screenshot()
+      await hidden.evaluate((node) => node.remove())
+      // A window round the words, half their size again on every side: the strip leans with the lip across it, and the decks' rolled
+      // edges, which catch a warm light of their own, stay outside it.
+      const [x, y] = [words.x - canvas.x, words.y - canvas.y]
+      const tape = await warmBox(page.context(), png, { x: x - words.width / 2, y: y - words.height / 2, width: 2 * words.width, height: 2 * words.height })
+      expect(tape, what).not.toBeNull()
+      const across = (tape?.right ?? 0) - (tape?.left ?? 0) + 1
+      console.log(`${what}: the line's words ${Math.round(words.width)} by ${Math.round(words.height)} px, their tape ${across} by ${(tape?.bottom ?? 0) - (tape?.top ?? 0) + 1} px`)
+      expect(across / words.width, what).toBeGreaterThan(0.75)
+      expect(across / words.width, what).toBeLessThan(1.35)
+      expect(Math.abs(((tape?.left ?? 0) + (tape?.right ?? 0)) / 2 - (x + words.width / 2)), what).toBeLessThan(words.width * 0.15)
+    }
+    await open(page, 'nano', 2)
+    await settle(page)
+    await check('the first view, a low house framed on its hands')
+    await open(page, 'vllm', 2)
+    await settle(page)
+    await commit(page, 2)
+    await settle(page)
+    await check('the cutaway of a tall house')
   })
 
   test('axe finds no serious or critical violation on the 3D view', async ({ page }) => {
@@ -383,6 +459,41 @@ test.describe('the picture', () => {
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']).analyze()
     const blocking = results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')
     expect(blocking.map((v) => `${v.id}: ${v.nodes.slice(0, 3).map((n) => n.target.join(' ')).join(' ; ')}`)).toEqual([])
+  })
+})
+
+test.describe('on a phone, 390 by 844 (the finish review\'s W1b round 1)', () => {
+  test.use({ viewport: { width: 390, height: 844 } })
+
+  test('a pair of hands\' tape shows where the camera is close on those hands, in the first view, the stopped state and the follow; a tall house\'s cutaway keeps them for a wider canvas; and no name is covered', async ({ page }) => {
+    test.setTimeout(300_000)
+    // The first view: a low house, its cutaway framed on its hands.
+    await open(page, 'nano', 1)
+    await settle(page)
+    expect(await handsShown(page)).toEqual(['main'])
+    // The stopped state: nano-vllm's path with the scheduler's queue left out, so the run stops at its second stage, followed from the cutaway.
+    await commit(page, 0)
+    const nano = reference('nano')
+    await lay(page, [nano[0], nano[2]])
+    await run(page)
+    await expect(stage(page).locator('.es-floor-chit__n[data-state="struck"]')).toHaveCount(1)
+    await settle(page)
+    await expect(camera(page).locator('button[aria-pressed="true"]')).toHaveText('Follow the ticket')
+    expect(await handsShown(page)).toEqual(['main'])
+    expect(await covered(page)).toEqual([])
+    // A tall house's cutaway is the whole house, where three would meet on a phone: its hands' tapes wait for a wider canvas. A run sent
+    // from it takes the follow, which shows the tape of the hands it follows, and no other.
+    await open(page, 'vllm', 1)
+    await settle(page)
+    await commit(page, 2)
+    await lay(page, reference('vllm').slice(0, 13))
+    await settle(page)
+    expect(await handsShown(page)).toEqual([])
+    await run(page)
+    await expect(page.locator('[data-floor-path] li[data-state="ran"]')).toHaveCount(13)
+    await settle(page)
+    expect(await handsShown(page)).toEqual(['main'])
+    expect(await covered(page)).toEqual([])
   })
 })
 

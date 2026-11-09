@@ -59,10 +59,10 @@ const BLANK: readonly [number, number] = [0.04, 0.03]
 
 /**
  * A ticket `width` × `height` and `thickness` thick, hanging from the middle of its top edge down -y, its face toward +z and its
- * foot curled toward the face by `curl` of its height. The face's UVs cover its atlas cell; its back and edges are blank paper.
+ * foot curled toward the face by `curl` of its height, in `rows` down it (more for a sheet a game bends further). The face's UVs cover
+ * its atlas cell; its back and edges are blank paper.
  */
-export function ticketGeometry(width: number, height: number, thickness: number, curl = 0.22): BufferGeometry {
-  const rows = 12
+export function ticketGeometry(width: number, height: number, thickness: number, curl = 0.22, rows = 12): BufferGeometry {
   const columns = 6
   const at = (i: number, j: number, back: boolean): Vec3 => {
     const t = j / rows

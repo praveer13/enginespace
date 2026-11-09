@@ -1,6 +1,7 @@
 /*
  * Back of House's route through its house (GAMES.md §5 "3D scene", §2.6 "Back of House"): what each laid stage adds to the house (a spike
- * for a queue, the "Heard!" gate for a sync, a shelf under a window for shared memory), the chit each hand-off carries with its
+ * for a queue, on a pedestal of its own between two host stands, the "Heard!" gate for a sync, a shelf under a window for shared memory),
+ * the chit each hand-off carries with its
  * stage numbers, and the ticket's way. After each stage the ticket stands somewhere (on its hands' rail, on a spike, on the line's rail),
  * and each stage is a hop from the last stand to the next through the hand-off that crosses it: onto a window's sill and through it into
  * the chute behind the partition, along it and out through the other floor's window, into the dumbwaiter's car at one landing and out at
@@ -63,7 +64,10 @@ const upright = (x: number, y: number, z: number): Pose => ({ at: [x, y, z], rot
 const ON = -0.2
 /** A pair of hands' own spike stands this far right of them, and their gate as far left, either side of their lamp's light [estimated]. */
 const BESIDE = 0.3
-/** A ticket standing on a sill, at the gate or in the dumbwaiter's car: the middle of its top edge this far over its foot, its height. */
+/**
+ * A ticket standing on a sill, at the gate or in the dumbwaiter's car: the middle of its top edge this far over the bottom of its rolled
+ * foot, its height (scene-props.ts's sheet: rolled from 0.165 m down round a curl of 32 mm, 3 mm thick) and a little more.
+ */
 const TALL = 0.205
 
 /**
@@ -110,6 +114,10 @@ export function routeOf(view: FloorView, house: House): Route {
         prop = { kind: 'spike', id: key, at: [x, y, ON] }
         after = { at: [x - 0.06 * Math.sin(turn), y + 0.03, ON - 0.06 * Math.cos(turn)], rot: [-Math.PI / 2, 0, turn] }
         via = [lift(after, 0.06)]
+        // Where each pair of hands works at a stand of its own (the host stand's), a spike between two stands stands on a pedestal.
+        const { y: floor, stand } = house.storeys[a.storey]
+        const id = `pedestal-${key}`
+        if (stand > 0 && ![...house.spots.values()].some((spot) => spot.storey === a.storey && Math.abs(spot.x - x) < stand)) props.set(id, { kind: 'pedestal', id, at: [x, floor, ON], height: y - floor })
         break
       }
       case 'sync': {
@@ -199,6 +207,13 @@ export function playOf(before: FloorView, view: FloorView, route: Route, bellMs:
   let t = 0
   return { base: before.reached, held: held.length, hops, ends: hops.map((hop) => (t += hopMs(bellMs, hop.length))) }
 }
+
+/**
+ * Whether a pair of hands' tape (by its id) shows on a phone as well (scene-layout.ts's `Tape`), where the camera is close on hands: in
+ * the follow, the tape of the hands it follows (`spot`); in a low house's cutaway, which is framed on its hands, theirs. In a wider
+ * framing on a phone three would meet, and in the follow another storey's would stand cut at the frame's edge.
+ */
+export const handsInView = (house: Pick<House, 'low'>, stop: CameraStop, spot: string, tape: string): boolean => (stop === 'follow' ? tape === `hands-${spot}` : stop === 'cutaway' && house.low)
 
 /** The camera rig's preset for a stop: the hands the ticket is at for the follow, and the cutaway for a stop the house no longer has. */
 export function presetFor({ presets }: Pick<SceneModel, 'presets'>, stop: CameraStop, spot: string): string {

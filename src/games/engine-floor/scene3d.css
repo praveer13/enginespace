@@ -15,21 +15,36 @@
 
 /*
  * A pair of hands' tape wraps at its hyphens to a little less than a lane's width at the cutaway, so the names of three threads on one
- * floor never meet, and a short name keeps to one line, which fits between the storey's tape and the chits over the furniture.
+ * floor never meet, and a short name keeps to one line, which fits between the storey's tape and the chits over the furniture. On a
+ * phone, where the tape shows only close on its hands, it keeps room for the longest piece of a name between two hyphens, and never
+ * breaks a word anywhere else.
  */
 .es-label.es-floor-scene-tape--hands {
-  max-width: 14cqi;
+  max-width: max(14cqi, 5.75rem);
   white-space: normal;
   text-align: center;
 }
 
-/* The line's name, in marker on its strip of masking tape on the canopy's lip: the tape is in the scene, the words ride on it. */
+.es-floor-scene-tape--hands .es-tape__text {
+  overflow-wrap: normal;
+}
+
+/*
+ * The line's name, in marker on its strip of masking tape on the canopy's lip: the tape is in the scene, the words ride on it, and the
+ * scene cuts the strip to the box of the words, which takes the small tape's margins (Scene3D.tsx's LineTape).
+ */
 .es-floor-scene-strip {
   color: var(--es-tape-ink);
   font-family: var(--es-font-label);
   font-weight: var(--es-font-label-weight);
   letter-spacing: var(--es-font-label-tracking);
   font-size: clamp(var(--es-size-micro), 1.2cqi, var(--es-size-caption));
+  line-height: var(--es-font-label-leading);
+}
+
+.es-floor-scene-strip > span {
+  display: block;
+  padding: 0.18em 0.65em 0.12em;
 }
 
 /*
