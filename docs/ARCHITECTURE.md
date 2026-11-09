@@ -100,6 +100,7 @@ enginespace/
   PRODUCT.md            product record (owner-confirmed 2026-11-03)
   DESIGN.md             visual identity and its tokens (written from the built world by impeccable's documenter, W0-T25)
   README.md  AGENTS.md  LICENSE  LICENSE-CONTENT  NOTICE    (licences: owner decision O-3)
+  LICENSES/             the licence texts that NOTICE points at: Apache-2.0.txt (D-060)
   course.lock.json      upstream pins, model revisions and dataset hashes (§4.4)
   package.json  package-lock.json  bunfig.toml  index.html  vite.config.ts
   tsconfig.json  tsconfig.app.json  tsconfig.node.json  tsconfig.pure.json
@@ -970,7 +971,7 @@ vLLM 0.33.0 and SGLang 0.5.23 pin different torch and xgrammar builds [measured]
 
 ### 9.3 Install, with uv or pip, and rented GPUs
 
-The site serves the kits as static files from `public/labs/`: a forge zip per lab, a GPU kit zip, and the grader wheel. A manifest gives every file's SHA-256 (W2-T10). The repo is private, so learners cannot clone it.
+The site serves the kits as static files from `public/labs/`: a forge zip per lab, a GPU kit zip, and the grader wheel. A manifest gives every file's SHA-256 (W2-T10). The repo is public (D-060), so a learner may clone it, and the kits still ship as static downloads (D-007).
 
 - **uv (recommended).** uv 0.10.2, statespace's pin. Python 3.12 is the proposed default; the grader declares `>=3.11,<3.15`, vLLM's range [measured].
   ```
@@ -1076,7 +1077,7 @@ TypeScript writes `schemas/vectors/*.json`, Python's tests read them, and `labs.
 | Workflow | Trigger | Jobs |
 |---|---|---|
 | `ci.yml` | pull request | **fast-gate:** `npm ci`, lint, `tsc -b`, the content compile, every `verify:*` in §10.2, build, `verify:bundle`, export freshness. **tests:** `bun test` (units, golden vectors, 200-seed properties, bestiaries). **e2e-smoke:** Playwright Chromium against `vite preview`, with axe at 360 and 1280 px on 8 routes and, from W1-T36, on the 16 pages and 5 level pages that W1 added (`e2e/routes.ts`), the reduced-motion scan of the same pages and a frame count of every 3D scene, a keyboard walk of the front-page game and of one level of each W1 game (`e2e/walks.spec.ts`), the network-isolation check and screenshots uploaded as artifacts, in four shards (target under 6 min each [estimated]; unsharded, the 78 specs did not finish in 15 min on a private repository's two-core runner [measured 2026-11-04, PR #1]). Playwright cuts the sorted list of tests into four runs of equal length, so a spec's file name is its place in the plan: W1-T36's 193 tests ran as four shards of 66, 61, 75 and 98 s on a 20-core laptop [measured 2026-11-08 at df76ca9], and a runner takes about 4 to 16 times as long per test [derived from PR #1's first run], so a shard is about 11 min of test time [estimated; no CI run has timed these tests] and the 6 min target is not met without more shards. |
-| `deploy.yml` | push to `main` | the fast gate and tests, then build, `prepare-pages`, `upload-pages-artifact` and `deploy-pages` (kernelspace's deploy) |
+| `deploy.yml` | push to `main`, and by hand | the fast gate and tests, then build, `prepare-pages`, `upload-pages-artifact` and `deploy-pages` (kernelspace's deploy) |
 | `nightly.yml` | 03:17 UTC [estimated slot], and by hand | 10,000-seed properties; the cross-browser determinism hash (Chromium, Firefox, WebKit); full axe at 320, 360 and 1280 px on every route; keyboard walks of every game, one for every level of the registry (`e2e/walks.spec.ts`, W1-T36); the network check and reduced-motion emulation (no animation frames after settle) on every document; the LCP, INP and CLS lab profile; claim-expiry and link-rot reports. On failure it opens or updates one issue, as kernelspace does. |
 | `labs.yml` | changes under `labs/**`, `schemas/**`, `packages/schema/**` or `packages/verify/**` | **forge:** Rust 1.96.0 with wasm32, `cargo test`, wasm builds of the reference and bestiary, `verify:labs` (the reference passes host checks; the bestiary fails). **grader:** `setup-uv`, `uv sync --locked`, `python -m unittest` (CPU), `verify:schema`, `verify:vectors`, receipt fixtures pass and forgeries fail. |
 | `upstream-watch.yml` (W3) | weekly | Compares PyPI and GitHub releases with `course.lock.json` and opens an issue with draft change cards. It never merges anything, and its requests send a generic User-Agent. |
@@ -1323,7 +1324,6 @@ Hours are the catalog's [estimated] figures; the total is about 91 h.
 - **Unverified mechanics:**
   - the SwiftShader flags on the Chromium that Playwright 1.63.0 pins, Chrome for Testing 153.0.8010.12: they were measured on 149.0.7827.55, and the first CI run of W0-T21's e2e suite prints the build (§10.1);
   - official engine images at the pinned tags (W2-T11);
-  - GitHub Pages on a private repository, which needs a paid GitHub plan (O-2);
   - WebKit's 7-day storage rule (§7.5).
 - **Unmeasured budgets.** Bundle budgets are estimates until W0-T20 measures them. W0-T24 freezes them in DECISIONS.
 - **Optional upgrades.** R3F 9.6.1 is behind 9.8.x and three 0.185.1 behind 0.186.x. Upgrading is optional and needs its own DECISIONS entry.

@@ -105,7 +105,7 @@ bun scripts/pack-labs.ts            # writes public/labs/enginespace-<lab>.zip f
 bun scripts/pack-labs.ts --check    # writes nothing; fails when the committed public/labs is not what the sources pack to
 ```
 
-The site serves the zips as static files, and the repository is private, so the zips are committed and a source that changes without a repack fails `bun test`. Repack after any change under `labs/forge` or `labs/agent-kit`, and commit `public/labs`. The zips are reproducible (`scripts/labs/zip.ts` says how): the same sources give the same bytes on every machine, and `manifest.json` lists each zip's SHA-256 and size and, so that a change to a binary shows in a diff, the SHA-256 of every member.
+The site serves the zips as static files, so the zips are committed and a source that changes without a repack fails `bun test`. Repack after any change under `labs/forge` or `labs/agent-kit`, and commit `public/labs`. The zips are reproducible (`scripts/labs/zip.ts` says how): the same sources give the same bytes on every machine, and `manifest.json` lists each zip's SHA-256 and size and, so that a change to a binary shows in a diff, the SHA-256 of every member.
 
 A zip is one folder, `enginespace-<lab>/`, and the folder is a Cargo workspace.
 

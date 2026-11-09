@@ -251,6 +251,7 @@ void main() {
   #include <fog_vertex>
 }`
 
+// The distance `d` is Inigo Quilez's sdRoundedBox (iquilezles.org/articles/distfunctions2d), with one radius for all four corners.
 const SHADOW_FRAGMENT = `
 uniform vec3 uColor;
 uniform float uOpacity;

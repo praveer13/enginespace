@@ -18,7 +18,7 @@
  * What never ships: the crate's reference/ and bestiary/ (the solution and the wrong modules), target/, and any build output. A crate
  * folder with an entry that is neither shipped nor withheld stops the packer, so a new kind of file is a decision and not an accident.
  *
- * The zips are committed (the site serves them as static files, and the repository is private), so they are reproducible: the same
+ * The zips are committed (the site serves them as static files), so they are reproducible: the same
  * sources give the same bytes on every machine (scripts/labs/zip.ts says how), and `--check` is the test that a source changed
  * without a repack. manifest.json lists each zip's SHA-256 and size and, for review (a zip is a binary blob in a diff), every member's.
  * It is the one manifest of public/labs: an entry of a kind this script does not write is kept as it is, so W2-T10's GPU kit and
