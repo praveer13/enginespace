@@ -1074,7 +1074,7 @@
       },
       {
         "name": "The Nothing Floats Rule",
-        "body": "Every prop in a scene stands on its contact shadow and its baked occlusion at every 3D tier; shadow maps, bloom, cones and steam are what a lower tier gives up, never the contact.",
+        "body": "Every prop in a scene stands on its contact shadow and its baked occlusion at every 3D tier; shadow maps, bloom and steam are what a lower tier gives up, never the contact.",
         "section": "elevation"
       },
       {

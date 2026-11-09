@@ -226,9 +226,12 @@ describe('the drawing paints with token roles and nothing else', () => {
     const markup = svgMarkup(frameSvg(frame))
     const gradient = /<radialGradient id="es-loop-lamp-pool-landscape">(.*?)<\/radialGradient>/.exec(markup)?.[1] ?? ''
     const stops = [...gradient.matchAll(/<stop offset="([\d.]+)" stop-color="var\(--es-([a-z-]+)\)" stop-opacity="([\d.]+)">/g)].map((match) => [Number(match[1]), match[2], Number(match[3])] as const)
-    // White-hot at its middle, the lamp's amber out to nothing at its edge: light on the steel, with no edge of its own.
-    expect(stops[0]).toEqual([0, 'glint', stops[0][2]])
-    expect(stops.slice(1).every(([, role]) => role === 'lamp')).toBe(true)
+    // The lamp's amber from its middle out to nothing at its edge, with no white-hot core: light on the steel, with no edge of its own,
+    // and low enough at its middle that the brushed grain under it shows through (W1b-T10, the 2D views carry the 3D scene's pool).
+    expect(stops.length).toBeGreaterThan(1)
+    expect(stops.every(([, role]) => role === 'lamp')).toBe(true)
+    expect(stops[0][0]).toBe(0)
+    expect(stops[0][2]).toBeLessThanOrEqual(0.35)
     expect(stops.at(-1)).toEqual([1, 'lamp', 0])
     for (let i = 1; i < stops.length; i++) expect(stops[i][2]).toBeLessThanOrEqual(stops[i - 1][2])
     expect(markup).not.toMatch(/data-part="pools"><ellipse[^>]*filter=/)

@@ -127,11 +127,6 @@ const CEILING = 2.95
 /** The hood over the line: its top, its skirt's height and its depth from the wall [estimated]. */
 const HOOD = { top: 2.38, height: 0.34, depth: 1.05 } as const
 const LINE = { depth: 0.8, height: 0.9, width: 0.58 } as const
-/**
- * Where the lamps' light leaves them [estimated]: a course's lamp mouth, whatever the run, so that its pool on the counter is about a
- * course deep. Over a run the shades hang higher (scene-plan.ts) and their light still leaves from here, a hand under them.
- */
-const LIGHT = 1.84
 const STATIONS = ['griddle', 'burners', 'fryer', 'burners', 'griddle'] as const
 
 export function tastingKitchen(plan: Plan, lamps: TastingScene['lamps']): TastingKitchen {
@@ -153,12 +148,14 @@ export function tastingKitchen(plan: Plan, lamps: TastingScene['lamps']): Tastin
   ]
   return {
     items,
-    lights: lamps.map(([x, z], i) => ({ id: `lamp-${i}`, at: [x, LIGHT, z], target: [x, TOP, z] })),
+    // Each lamp's light leaves its shade's mouth, over a run as over a course: its pool on the counter is the kit's spread, whatever its height.
+    lights: lamps.map(([x, z], i) => ({ id: `lamp-${i}`, at: [x, plan.mouth - 0.02, z], target: [x, TOP, z] })),
     bell,
-    // Full over the middle of the line and over the pass, easing toward the haze's deep steel two metres further out, a metre up the
-    // wall and half a metre behind the pass [estimated]: the wall over the line falls away into the haze and never stops the room, and
-    // the floor seen under the pass, through its open shelf, is in its shade.
-    room: { x: 0, half: lineWidth / 4, above: LINE.height + 0.25, beyond: plan.back, reach: [2, 1, 0.5], dim: 0.42 },
+    // Full over the middle of the line and over the pass, easing down to a quarter of that, veiled in the haze's deep steel, 1.6 metres
+    // further out, from a hand over the line's worktops to 80 cm up the wall, and half a metre behind the pass [estimated]: the wall over
+    // the line falls away into the haze before the hood and never stops the room, and the floor seen under the pass, through its open
+    // shelf, is in its shade.
+    room: { x: 0, half: lineWidth / 4, above: LINE.height + 0.1, beyond: plan.back, reach: [1.6, 0.8, 0.5], dim: 0.25, veil: 0.7 },
   }
 }
 

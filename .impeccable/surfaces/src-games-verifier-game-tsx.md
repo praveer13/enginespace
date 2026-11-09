@@ -65,6 +65,12 @@ The bell. Rounds are drawn and the bell on the pass strikes: the commis's plates
 - **The phone.** Over one course the camera comes down and in: the pass and its stacks stand in the box's lower half, the floor in front of the pass under the box's foot and the floor under its open shelf in its shade, and the line, the hood and the lamps over them in haze. The camera's target stands back along its line of sight, so the haze, measured from it, starts behind the line.
 - **The walk's names.** Walking with the chef, the camera turns a little further down the pass and widens, so that every dish's tape, the soup's at the far end too, stands whole inside the box at the page's boxes.
 
+## Adaptations (W1b-T10, the scene kit's haze, the lamp's pool and paper; two looks at 1440 and 390)
+
+- **The lamps' light is the kit's** (W1b-T10): no spot light, but under each lit lamp a cone of warm haze from inside its shade's lip down to the surface and an edgeless pool where it lands, at every tier, which brightens the steel and lays no colour of its own; paper lying in it stays white. A lit end on the cone's mouth drew a hard peach disc under each shade in the task's first look, so the mouth is dark and the shade's own bulb is its glow.
+- **One pool per lamp on the course being tasted:** each lamp's light leaves its shade's mouth, over a run as over one course, and pools on the front course's steel between its stacks, a lamp's width and gone before the next. Over a run the light used to leave a hand under the higher shades, and the first look showed its mouth's glow hanging in the air over the back courses.
+- **The room falls into haze** from a hand over the line's worktops: the wall over the line is the haze's deep steel well before the hood, and the hood's tubes are off over the cold line, so nothing white burns at the frame's top edge over the run.
+
 ## Unresolved
 
 - **The Build-this card** points at the `rejection-sampler` forge lab (W1-T27), which is not built yet, so the debrief names the lab and does not link it.

@@ -27,12 +27,13 @@ import type { Shot } from './scene-shots'
  * course after course into the run, to their places at their coins' heights, a kept one level and out toward the chef, a sent-back one
  * out the other way, tipping away from her as it lands; then the rings settle on the chef's dispensers to what went out, onto the tops
  * of her stacks as it becomes her tasting, so a run's first round leaves them off the tops and a thousand settle them there. The lamps'
- * amber pools on the course being tasted.
+ * light is the kit's, a cone of warm haze under each and an edgeless pool where it lands on the course being tasted, with no spot light,
+ * and the steel reflects the tubes and not the lamps' glow, so the amber lies on that course and nowhere else.
  * A change of the recipe settles the rings and drops nothing. Between bells the kitchen is still; under reduced motion every change cuts.
  *
- * Draw calls at T1: the room's metal, glaze, tile, floor and glow (5), the contact shadows (1), the tasting's glaze and wire (2), the
- * pulled plates (2, one a part), the rings (1), the bell's dome and plunger (2) and the tape (1). T2 adds each shadow-casting
- * lamp's pass over what casts. The measured figures, read from renderer.info by e2e/verifier-scene.spec.ts, and this chunk's size as
+ * Draw calls at every tier: the room's metal, glaze, tile, floor and glow (5), the contact shadows (1), the tasting's glaze and wire (2),
+ * the pulled plates (2, one a part), the rings (1), the bell's dome and plunger (2), the lamps' light while they burn (1) and the tape
+ * (1). T2 adds bloom and the final pass. The measured figures, read from renderer.info by e2e/verifier-scene.spec.ts, and this chunk's size as
  * verify:bundle counts it, are in GAMES.md §10, "Budget".
  */
 
@@ -59,8 +60,9 @@ const haze = (near: number, far: number) => ({ near, far, color: 'surface-3' as 
 const HAZE = haze(0.45, 3.1)
 const ONE_HAZE = haze(0.5, 1.7)
 const NEAR_HAZE = haze(1.3, 4.6)
-/** The heat lamps' light, as a share of the kit's [estimated]: amber pooled on the steel round the course being tasted. */
-const LAMP_POWER = 1.1
+/** The heat lamps' light, as a share of the kit's [estimated], and each lamp's pool along the pass and across it in metres: two dishes lit. */
+const LAMP_POWER = 0.7
+const POOL = [0.32, 0.22] as const
 /** No piece of the tasting is picked: the dishes' tape is. */
 const NO_PICK = () => null
 /** Turns round a stack [estimated]: enough that a stack of plates reads round at a phone's size. */
@@ -204,11 +206,10 @@ function TastingSet({ stacks, dispensers }: { stacks: readonly Stack[]; dispense
     kit.invalidate()
     return () => shadows.remove('tasting')
   }, [built, shadows, kit])
-  const cast = kit.shadowLights > 0
   return (
     <group name="tasting">
       {/* The glaze's draw and the wire's. */}
-      {[built.ceramic, built.metal].map((geometry, i) => geometry && <mesh key={i} geometry={geometry} material={i ? materials.metal : materials.ceramic} castShadow={cast} receiveShadow={cast} raycast={NO_PICK} />)}
+      {[built.ceramic, built.metal].map((geometry, i) => geometry && <mesh key={i} geometry={geometry} material={i ? materials.metal : materials.ceramic} raycast={NO_PICK} />)}
     </group>
   )
 }
@@ -359,7 +360,6 @@ function Moving({ markers, rings, change }: { markers: readonly Marker[]; rings:
     return () => shadows.remove('pulled')
   }, [markers, rings, change, reducedMotion, heightAt, kit, shadows, wake, write])
 
-  const cast = kit.shadowLights > 0
   return (
     <group name="moving">
       {parts.map((geometry, part) => (
@@ -369,8 +369,6 @@ function Moving({ markers, rings, change }: { markers: readonly Marker[]; rings:
             meshes.current[part] = mesh
           }}
           args={[geometry, materials.ceramic, roomFor(part < 2 ? markers.length : rings.length)]}
-          castShadow={cast}
-          receiveShadow={cast}
           frustumCulled={false}
           raycast={NO_PICK}
         />
@@ -411,11 +409,12 @@ function useChange(view: VerifierView): { change: Change; strikes: number } {
 function Tasting({ plan, scene, change, strikes, onPick }: { plan: Plan; scene: TastingScene; change: Change; strikes: number; onPick?: (dish: number) => void }) {
   // The room stands still: it is built again only for another plan, or lamps that hang elsewhere (the layout keeps each list one object).
   const kitchen = useMemo(() => tastingKitchen(plan, scene.lamps), [plan, scene.lamps])
-  const lit = scene.lit ? ALWAYS_LIT : ALWAYS_LIT & ~(1 << CHANNEL.lamp)
+  // The line is cold and its hood's tubes are off, so nothing white burns at the frame's top edge over the run; the lamps burn while the present has a place.
+  const lit = (scene.lit ? ALWAYS_LIT : ALWAYS_LIT & ~(1 << CHANNEL.lamp)) & ~(1 << CHANNEL.tube)
   return (
     <Kitchen lit={lit}>
       <StaticSet items={kitchen.items} room={kitchen.room} name="room" />
-      <LampLights lamps={scene.lit ? kitchen.lights : []} power={LAMP_POWER} cones={false} />
+      <LampLights lamps={scene.lit ? kitchen.lights : []} power={LAMP_POWER} spread={POOL} />
       <ServiceBell at={kitchen.bell} strike={strikes} />
       <TastingSet stacks={scene.stacks} dispensers={scene.dispensers} />
       <Moving markers={scene.markers} rings={scene.rings} change={change} />
@@ -433,7 +432,7 @@ export default function Scene3D({ view, shots, preset, scaffold, outcome, onPick
   const scene = useMemo(() => tastingScene(view, plan, { scaffold, outcome }), [view, plan, scaffold, outcome])
   const labels = useMemo(() => labelsOf(scene.anchors, preset), [scene.anchors, preset])
   return (
-    <SceneCanvas labels={labels} background="surface-3" fog={preset !== 'run' ? NEAR_HAZE : plan.rows > 1 ? HAZE : ONE_HAZE} environmentIntensity={0.75} shadows className="es-vf-scene">
+    <SceneCanvas labels={labels} background="surface-3" fog={preset !== 'run' ? NEAR_HAZE : plan.rows > 1 ? HAZE : ONE_HAZE} environment="tubes" environmentIntensity={0.75} className="es-vf-scene">
       <CameraRig presets={presets} preset={preset} parallax={0.05} />
       <Fluorescent power={0.85} />
       <Tasting plan={plan} scene={scene} change={change} strikes={strikes} onPick={onPick} />

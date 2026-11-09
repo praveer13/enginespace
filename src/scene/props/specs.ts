@@ -171,8 +171,11 @@ export const PAN_SIZES: Readonly<Record<PanSize, readonly [number, number]>> = {
   '1/3': [0.325, 0.176],
 }
 
-/** A ticket off the printer: 80 mm wide [estimated: the common kitchen roll], 120 mm long. */
-export const TICKET = { width: 0.08, height: 0.12, thickness: 0.0006 } as const
+/**
+ * A ticket off the printer: 80 mm wide [estimated: the common kitchen roll], 120 mm long, and a millimetre thick, many times a real
+ * sheet [estimated], so that its cut edge catches the light at the size a scene draws it.
+ */
+export const TICKET = { width: 0.08, height: 0.12, thickness: 0.001 } as const
 
 /** A dinner plate [estimated]: to its rim's bead, and the bead's height. */
 export const PLATE = { radius: 0.136, height: 0.026 } as const
