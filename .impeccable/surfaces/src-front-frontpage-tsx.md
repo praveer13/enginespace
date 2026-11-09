@@ -76,6 +76,10 @@ The first service. A visitor fires two tickets; the stations sit half dark and t
 - **The printer is a housing.** It is a box seen from the expo's side: the cover faces the pass with the menu link printed on it (from 80rem the link's words take a line of their own), its top recedes above it, its side falls back into shade, the roll shows in a recessed window, the feed button stands proud, and the mouth's teeth run along its foot. DESIGN.md's Printer ("rounded upper corners (8px 8px 3px 3px)") still describes the flat panel this replaces: raised with the documenter.
 - **The 2D side wall is tiled.** The 2D view tiles the side wall as it tiles the back wall, every course with its joints, and shades it toward the far corner.
 
+## Adaptations (W1b's finish review of Service, round 1)
+
+- **The printer fits a phone's first screen.** Below 30rem the housing is as short as what it carries: a foot that just holds the mouth, a narrower band over the menu, and the menu's lines set close, so the whole housing, its mouth included, stands above the fold of a 390 by 844 screen.
+
 ## Unresolved
 
 - **Faces:** the exact faces (sourced and self-hosted) are chosen at build time.

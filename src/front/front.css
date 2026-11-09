@@ -833,17 +833,21 @@
     padding-block: 0.7rem 0.6rem;
   }
 
+  /*
+   * The housing is as short as what it carries, so the whole of it, the mouth at its foot included, stands in a phone's first screen under
+   * the pass (W1b's finish review of Service, round 1): a foot that just holds the mouth, a band over the menu, and the menu's lines set close.
+   */
   .es-front-expo {
     --printer-dx: 0.4rem;
     --printer-dy: 0.32rem;
-    --printer-foot: 1.15rem;
+    --printer-foot: 1rem;
   }
 
   .es-front-expo > .es-front-printer {
     width: 6.75rem;
     min-height: 3.75rem;
     margin-bottom: var(--es-space-3);
-    padding: calc(var(--printer-dy) + var(--es-space-2)) calc(var(--printer-dx) + var(--es-space-2)) var(--printer-foot) var(--es-space-2);
+    padding: calc(var(--printer-dy) + var(--es-space-1)) calc(var(--printer-dx) + var(--es-space-2)) var(--printer-foot) var(--es-space-2);
   }
 
   .es-front-strip > ul,
@@ -854,6 +858,10 @@
   .es-front-printer .es-front-printer__menu,
   .es-front-printer .es-front-printer__menu .es-menu-link__term {
     font-size: var(--es-size-micro);
+  }
+
+  .es-front-printer .es-front-printer__menu {
+    line-height: 1.25;
   }
 
   .es-front-bell .es-bell[data-size] .es-bell__button {

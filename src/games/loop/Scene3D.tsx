@@ -1,13 +1,13 @@
 import type { ThreeEvent } from '@react-three/fiber'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { BoxGeometry, Matrix4, Quaternion, Vector3, type InstancedMesh } from 'three'
+import { BoxGeometry, CircleGeometry, Matrix4, Quaternion, ShaderMaterial, Vector3, type InstancedMesh } from 'three'
 import { PLATE_R, plateRadius } from '@es/play/loop/kitchen'
 import type { KitchenView } from '@es/play/loop/types'
 import { CameraRig } from '@/scene/CameraRig'
 import { useHold, useKit } from '@/scene/kit'
 import type { LabelSpec } from '@/scene/labels'
 import { Fluorescent } from '@/scene/Lights'
-import { ALWAYS_LIT, block, Kitchen, LampLights, lathe, litMask, painted, Plates, PrinterFeed, RailClips, ServiceBell, StaticSet, Steam, Tickets, useMotionLoop, useProps, type Footprint } from '@/scene/props'
+import { ALWAYS_LIT, block, Kitchen, LampLights, lathe, litMask, painted, Plates, PrinterFeed, RailClips, ServiceBell, StaticSet, Steam, Tickets, useMotionLoop, useProps, type Footprint, type LampLight } from '@/scene/props'
 import { roomFor } from '@/scene/props/context'
 import { progress } from '@/scene/props/motion'
 import type { Vec3 } from '@/scene/props/shape'
@@ -33,12 +33,13 @@ import './scene3d.css'
  * The heat lamps' amber falls on the pass alone, as the kit draws a lamp's light: under each lamp a cone of warm haze and the edgeless
  * pool where it lands on the steel, a lamp's width and gone before the next, and no light of the line's own that could wash the tile or
  * the stations beside a burning one. The steel reflects the kitchen's tubes, not the lamps' glow, so it warms under its lamps and nowhere
- * else. The room falls away beyond the line: its light, baked into the tile and the floor, is full behind the line's worktops and dims up
- * the tile to the hood and toward the far corners into the haze's deep steel (scene-layout.ts), and the far wall recedes into the haze.
+ * else; at T1 the steel in each pool is also warmed toward the amber (`PoolWarmth`). The room falls away beyond the line: its light, baked
+ * into the tile and the floor, is full behind the line's worktops and dims up the tile to the hood and toward the far corners (scene-layout.ts),
+ * the aisle between the pass and the line lies in shade, and the far wall and floor recede into a haze darker than any tile it covers.
  *
  * Draw calls at every tier: the static set's metal, glaze, tile, floor and glow (5), the contact shadows (1), the tickets (1), the clips
  * (1, and 1 more for the fired rail), the printer's paper (1), the plates (1), the bell's dome and plunger (2), the lamps' light (1) and
- * the tape (1). T2 adds the steam (1), bloom and the final pass. The measured figures, read from
+ * the tape (1). T1 adds the pools' warmth (1); T2 adds the steam (1), bloom and the final pass. The measured figures, read from
  * renderer.info by e2e/loop-scene.spec.ts against A§11.1's 100, and this chunk's size as verify:bundle counts it against the 40 KB
  * gate, are in GAMES.md §3, "Budget".
  */
@@ -56,16 +57,88 @@ export interface Scene3DProps {
 }
 
 /**
- * The haze the room falls into, from this far beyond what the camera looks at to this far [estimated], in deep steel: it begins at the
- * line, so the stations keep their heat, and the wall behind them and the floor at its foot darken into it, away from the pale tile.
+ * The haze the room falls into, from this far beyond what the camera looks at to this far [estimated], in the shadows' own ink: darker
+ * than every tile it covers, the floor's quarry tile as well as the wall's (W1b's finish review, round 1), so what recedes darkens and
+ * never lightens. It begins past the line's front, so the stations keep their heat, and the wall behind them and the floor at its foot
+ * darken into it.
  */
-const HAZE = { near: 0.8, far: 3, color: 'surface-3' } as const
+const HAZE = { near: 1, far: 3, color: 'text-1' } as const
 /** The heat lamps' light over the pass, as a share of the kit's [estimated]: enough to pool amber on the steel and leave the glaze white. */
 const LAMP_POWER = 0.5
 /** Each lamp's pool on the pass, along it and across it, in metres [estimated]: round a plate's place, and gone before the next lamp's. */
 const POOL = [0.3, 0.26] as const
 /** The fewest milliseconds between two dark dips of the line: 3 a second at most (WCAG 2.3.1). */
 const DIP_GAP_MS = 334
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* The lamps' amber on the steel at T1                                                                                */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/**
+ * What each lamp's light does to the steel in the middle of its pool at T1, channel by channel [estimated]: red up, blue down. At T1 the
+ * kit's light adds to the frame after the tone curve, where the lamp's amber laid on pale steel comes out a pale grey smudge (W1b's finish
+ * review, round 1), so there the steel under each pool is also warmed the way a warm light warms it: its own colour scaled toward the
+ * lamp's amber, most in the pool's middle and not at all at its rim. Scaling keeps the brushed grain's light and dark in the pool.
+ */
+const WARM = [1.14, 0.96, 0.76] as const
+const WARM_FRAGMENT = `uniform vec3 uWarm;
+varying float vR;
+void main() {
+  float w = 1.0 - smoothstep(0.0, 1.0, vR);
+  vec3 m = mix(vec3(1.0), uWarm, w * w);
+  gl_FragColor = vec4(m - m.b, m.b);
+}`
+const WARM_VERTEX = `varying float vR;
+void main() {
+  vR = length(position.xz);
+  gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
+}`
+/**
+ * The warmth's blend, by the values of three's constants so the three-vendor chunk is asked for nothing new: CustomBlending, its colour
+ * the frame's times the disc's colour plus the disc's alpha (DstColorFactor, SrcAlphaFactor), and the frame's alpha kept (ZeroFactor,
+ * OneFactor).
+ */
+const MULTIPLY = { blending: 5, blendSrc: 208, blendDst: 204, blendSrcAlpha: 200, blendDstAlpha: 201 } as const
+const poolAt = new Matrix4()
+const poolScale = new Matrix4()
+
+/**
+ * The warmth of the lamps' pools on the pass at T1: a disc a pool wide under each lamp, lying on the steel with the kit's pool and under
+ * paper, that multiplies what is drawn there by `WARM` (`MULTIPLY`, so the disc lays no colour of its own). One draw, at T1 only.
+ */
+function PoolWarmth({ lamps, spread }: { lamps: readonly LampLight[]; spread: readonly [number, number] }) {
+  const kit = useKit()
+  const geometry = useMemo(() => new CircleGeometry(1, 40).rotateX(-Math.PI / 2), [])
+  const material = useMemo(() => new ShaderMaterial({ uniforms: { uWarm: { value: new Vector3(...WARM) } }, vertexShader: WARM_VERTEX, fragmentShader: WARM_FRAGMENT, transparent: true, depthWrite: false, ...MULTIPLY }), [])
+  useEffect(
+    () => () => {
+      geometry.dispose()
+      material.dispose()
+    },
+    [geometry, material],
+  )
+  const mesh = useRef<InstancedMesh>(null)
+  useLayoutEffect(() => {
+    const instanced = mesh.current
+    if (instanced) {
+      lamps.forEach(({ target: [x, y, z] }, i) => instanced.setMatrixAt(i, poolAt.makeTranslation(x, y + 0.0005, z).multiply(poolScale.makeScale(spread[0], 1, spread[1]))))
+      instanced.count = lamps.length
+      instanced.instanceMatrix.needsUpdate = true
+    }
+    kit.invalidate()
+  }, [lamps, spread, kit])
+  return <instancedMesh ref={mesh} name="pool-warmth" args={[geometry, material, roomFor(lamps.length)]} renderOrder={1} frustumCulled={false} raycast={() => null} />
+}
+
+/** The aisle's shade on the floor (scene-layout.ts), drawn with the contact shadows: no prop casts it, so the kitchen lays it itself. */
+function AisleShade({ shade }: { shade: Footprint }) {
+  const { shadows } = useProps()
+  useEffect(() => {
+    shadows.set('aisle', [shade])
+    return () => shadows.remove('aisle')
+  }, [shadows, shade])
+  return null
+}
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* The moment                                                                                                         */
@@ -260,6 +333,7 @@ function Tools({ kind, places, shadows: footprints, name }: { kind: 'ring' | 'ba
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 function Service({ view, kitchen, scene, preset, onHang, full }: { view: KitchenView; kitchen: ServiceKitchen; scene: ServiceScene; preset: string; onHang?: (req: number) => void; full?: FullScene }) {
+  const kit = useKit()
   const moment = useMoment(view, scene)
   const shown = moment.dark ? moment.before : moment.scene
   const lit = moment.dark ? kitchen.stations.map(() => false) : shown.lit
@@ -276,7 +350,9 @@ function Service({ view, kitchen, scene, preset, onHang, full }: { view: Kitchen
   return (
     <Kitchen lit={mask}>
       <StaticSet items={kitchen.items} room={kitchen.room} name="service" />
+      <AisleShade shade={kitchen.aisle} />
       <LampLights lamps={kitchen.lights} power={LAMP_POWER} spread={POOL} />
+      {kit.tier < 2 ? <PoolWarmth lamps={kitchen.lights} spread={POOL} /> : null}
       <RailClips at={kitchen.rail.at} clips={scene.clips} />
       {kitchen.fired ? <RailClips at={kitchen.fired.at} clips={scene.clips} name="fired-clips" /> : null}
       <Tickets tickets={tickets} />

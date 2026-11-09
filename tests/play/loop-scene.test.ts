@@ -5,11 +5,13 @@
  * clips, the copies on the fired rail, the counter's tickets and the printer's feed, the plates of the last fire read back, the bin,
  * the spike, the stations' heat and the bubble. Then the presets, the tapes that must never meet, the motion grammar's reading of a
  * change, the instance budget, and the acceptance checks on colour and text. Service's finish review, round 2: the room falls away
- * beyond the line, its light baked into its tile and floor and its haze darker than the tile it fogs.
+ * beyond the line, its light baked into its tile and floor and its haze darker than the tile it fogs. W1b's round 1: the back wall falls
+ * toward a phone frame's sides, the haze is darker than the floor's tile too, the aisle lies in shade, and at T1 the pools warm the steel.
  */
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
+import { BufferGeometry, CustomBlending, DstColorFactor, OneFactor, SrcAlphaFactor, ZeroFactor } from 'three'
 import { askOf, hang, initState, setOverlap, step } from '@es/play/loop/engine'
 import { buildLevel, LEVEL_IDS } from '@es/play/loop/levels'
 import { stationsOf, ticketNo } from '@es/play/loop/layout'
@@ -290,6 +292,54 @@ describe('the room falls away beyond the line (the finish review, round 2, fix 5
     // The tile is paper white; the haze it falls into must be well darker, or nothing recedes.
     expect(lum(role)).toBeLessThan(lum('paper') / 3)
     expect(scene).toMatch(/<StaticSet items=\{kitchen\.items\} room=\{kitchen\.room\}/)
+  })
+})
+
+describe("the room darkens as it recedes (W1b's finish review of Service, round 1)", () => {
+  const kitchen = serviceKitchen(4, { printer: false, overlap: false })
+  const palette = paletteFrom(staticSceneTokens())
+  const scene = readFileSync(path.join(root, 'src/games/loop/Scene3D.tsx'), 'utf8')
+
+  test("the back wall takes under half its middle's light about 1.3 metres out, where a phone's frame and a laptop's right side end", () => {
+    // The front page's phone shot sees the back wall to about 1.4 metres either side of the line's middle at the height of the lamps'
+    // mouths, and its laptop shot to about 1.3 metres on its right [derived by hand from SHOTS.front and boxes of 390 and 1440 px].
+    const middle = roomShade(kitchen.room, 0, 1.3, WALL_Z)
+    for (const x of [-1.3, 1.3]) expect(roomShade(kitchen.room, x, 1.3, WALL_Z)).toBeLessThan(middle / 2)
+    // The tile behind the line's outer stations keeps most of the light, so the dark stations still stand against lit tile.
+    for (const x of [-0.87, 0.87]) expect(roomShade(kitchen.room, x, 1, WALL_Z)).toBeGreaterThan(0.6)
+  })
+
+  test("the haze is darker than every tile it covers, the floor's quarry tile as well as the wall's", () => {
+    const role = /const HAZE = \{ near: [\d.]+, far: [\d.]+, color: '([a-z0-9-]+)' \} as const/.exec(scene)?.[1] ?? 'paper'
+    // The floor's colour as the palette gives it, in linear light, as `luminance` reads a role.
+    const floor = palette.part(new BufferGeometry(), 'floor').color
+    expect(luminance(parseHex(resolveColor(role as ColorRoleName)))).toBeLessThan(0.2126 * floor.r + 0.7152 * floor.g + 0.0722 * floor.b)
+  })
+
+  test('the aisle between the pass and the line lies in shade, from under the pass to the line, so the floor darkens away from the expo', () => {
+    const { aisle } = kitchen
+    expect(aisle.center[1]).toBe(0)
+    expect(aisle.strength).toBe(1)
+    expect(aisle.size[0]).toBeGreaterThan(passWidth(4))
+    const [front, back] = [aisle.center[2] + aisle.size[1] / 2, aisle.center[2] - aisle.size[1] / 2]
+    expect(front).toBeGreaterThan(-PASS.depth / 2)
+    expect(front).toBeLessThan(0)
+    expect(back).toBeCloseTo(LINE.z + LINE.depth / 2)
+    expect(scene).toMatch(/<AisleShade shade=\{kitchen\.aisle\} \/>/)
+  })
+
+  test("at T1 the steel in each pool is warmed toward the lamp's amber by scaling its own colour, so its grain keeps its light and dark", () => {
+    const [r, g, b] = (/const WARM = \[([\d.]+), ([\d.]+), ([\d.]+)\] as const/.exec(scene) ?? []).slice(1).map(Number)
+    expect(r).toBeGreaterThan(1)
+    expect(g).toBeLessThan(r)
+    expect(b).toBeLessThan(g)
+    expect(b).toBeLessThan(1)
+    // A multiply, the frame's colour times the disc's colour plus its alpha, with the frame's alpha kept, so the disc lays no colour of its
+    // own; written by the values of three's constants, and drawn below T2 only.
+    const blend = (/const MULTIPLY = \{ blending: (\d+), blendSrc: (\d+), blendDst: (\d+), blendSrcAlpha: (\d+), blendDstAlpha: (\d+) \} as const/.exec(scene) ?? []).slice(1).map(Number)
+    expect(blend).toEqual([CustomBlending, DstColorFactor, SrcAlphaFactor, ZeroFactor, OneFactor])
+    expect(scene).toMatch(/depthWrite: false, \.\.\.MULTIPLY \}/)
+    expect(scene).toMatch(/kit\.tier < 2 \? <PoolWarmth lamps=\{kitchen\.lights\} spread=\{POOL\} \/> : null/)
   })
 })
 

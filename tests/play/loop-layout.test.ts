@@ -4,7 +4,8 @@
  * GAMES.md §3 "2D path"), and it is the same kitchen as the 3D scene drawn flat at the scene's scale (the finish review's round 1, fix
  * 7): the room and the hood, the line's stations burning or cold, the rail with paper tickets on its clips, the lamps and their pools
  * on the pass, the plates of the last fire, the heated shelf with its plate stacks, and no lane, no axis and no legend. Round 2: the
- * pools are lit gradients on the pass's brushed steel and never a blur, and the side wall is tiled and shaded as the back wall is.
+ * pools are light on the pass's brushed steel and never a blur, and the side wall is tiled and shaded as the back wall is. W1b's round 1:
+ * each pool is drawn on the steel, flat washes of the lamp's amber and the brushed lines the light catches, with no radial glow.
  *
  * The poster is `scripts/posters.ts`: the practice seed of the first level as a view, laid out through the front page's shot and
  * written as SVG text. The 2D view is `View2D`, which draws Service's own shot as React elements. The first group renders the real
@@ -203,7 +204,7 @@ describe('the drawing paints with token roles and nothing else', () => {
               for (const mark of layer.marks) {
                 const paints: readonly (Paint | undefined)[] = mark.kind === 'text' ? [mark.fill] : [mark.fill, mark.stroke]
                 expect(paints.some((paint) => paint === 'lane-gpu')).toBe(false)
-                if (paints.some((paint) => paint === 'lamp' || paint === 'lamp-pool')) expect([layer.part, AMBER.has(layer.part)]).toEqual([layer.part, true])
+                if (paints.some((paint) => paint === 'lamp' || paint === 'lamp-streak')) expect([layer.part, AMBER.has(layer.part)]).toEqual([layer.part, true])
               }
             }
           }
@@ -212,31 +213,56 @@ describe('the drawing paints with token roles and nothing else', () => {
     }
   })
 
-  test("the pools are light with no edge, one under each lamp on the pass, and a dark station's frame has no heat", () => {
-    const frame = layoutFrame(first, { shot: 'front' })
-    const pools = marksOf(frame, 'pools')
-    expect(pools).toHaveLength(3)
-    // Each is a lit gradient laid on the pass, never a blur (the finish review's round 2, fix 2): longer toward the expo than a disc
-    // seen from the shot would be, as the brushed steel scatters the light across its grain.
-    for (const pool of pools) {
-      expect(pool).toMatchObject({ kind: 'ellipse', fill: 'lamp-pool' })
-      expect(pool.kind === 'ellipse' && pool.soft).toBeFalsy()
+  test("the pools are drawn on the steel, one under each lamp and gone before the next, the grain showing through, and a dark station's frame has no heat", () => {
+    type Poly = Extract<Mark, { kind: 'poly' }>
+    type Rect = Extract<Mark, { kind: 'rect' }>
+    const span = (poly: Poly) => ({ min: Math.min(...poly.points.map(([x]) => x)), max: Math.max(...poly.points.map(([x]) => x)) })
+    for (const orientation of ORIENTATIONS) {
+      for (const shot of SHOT_NAMES) {
+        const frame = layoutFrame(first, { orientation, shot })
+        const pools = marksOf(frame, 'pools')
+        const markup = svgMarkup(frameSvg(frame))
+        // Never a blur and never a radial glow (W1b's finish review of Service, round 1, fix 1): flat washes, and the lines the light catches.
+        for (const mark of pools) expect(mark.kind !== 'text' && mark.soft).toBeFalsy()
+        expect(markup).not.toContain('radialGradient')
+        expect(markup).not.toMatch(/data-part="pools">(?:(?!<\/g>).)*filter=/)
+        // Under each lamp three flat washes of its amber in the counter's plane, one inside the next, faint enough together for the grain
+        // to show through them.
+        const washes = pools.filter((mark): mark is Poly => mark.kind === 'poly')
+        expect(washes).toHaveLength(9)
+        for (const wash of washes) expect(wash.fill).toBe('lamp')
+        const steps = [0, 1, 2].map((lamp) => washes.slice(lamp * 3, lamp * 3 + 3))
+        for (const step of steps) {
+          expect(step.reduce((sum, wash) => sum + (wash.opacity ?? 1), 0)).toBeLessThanOrEqual(0.2)
+          for (let i = 1; i < step.length; i++) {
+            expect(span(step[i]).min).toBeGreaterThan(span(step[i - 1]).min)
+            expect(span(step[i]).max).toBeLessThan(span(step[i - 1]).max)
+          }
+        }
+        const outer = steps.map((step) => span(step[0]))
+        // One for each lamp, in order along the pass, and each gone before the next lamp's pool begins.
+        for (let i = 1; i < outer.length; i++) expect(outer[i - 1].max).toBeLessThan(outer[i].min)
+        // The light the brushed lines catch: streaks on the counter's own grain lines, inside their pool, each fading out at both ends.
+        const grain = marksOf(frame, 'pass').filter((mark) => mark.kind === 'path' && mark.stroke === 'paper')
+        expect(grain).toHaveLength(1)
+        const lines = new Set([...(grain[0].kind === 'path' ? grain[0].d : '').matchAll(/M-?[\d.]+ (-?[\d.]+)/g)].map((match) => Number(match[1])))
+        const streaks = pools.filter((mark): mark is Rect => mark.kind === 'rect')
+        expect(streaks.length).toBeGreaterThanOrEqual(outer.length * 5)
+        for (const streak of streaks) {
+          expect(streak.fill).toBe('lamp-streak')
+          expect(streak.h).toBeLessThan(1)
+          expect(lines.has(Math.round((streak.y + streak.h / 2) * 10) / 10)).toBe(true)
+          // Within half a frame unit: the wash's outline is a polygon through points of the same ellipse.
+          expect(outer.some((wash) => streak.x >= wash.min - 0.5 && streak.x + streak.w <= wash.max + 0.5)).toBe(true)
+        }
+        const gradient = new RegExp(`<linearGradient id="es-loop-lamp-streak-${orientation}">(.*?)</linearGradient>`).exec(markup)?.[1] ?? ''
+        const stops = [...gradient.matchAll(/<stop offset="([\d.]+)" stop-color="var\(--es-([a-z-]+)\)" stop-opacity="([\d.]+)">/g)].map((match) => [Number(match[1]), match[2], Number(match[3])] as const)
+        expect(stops.every(([, role]) => role === 'lamp')).toBe(true)
+        expect(stops[0]).toEqual([0, 'lamp', 0])
+        expect(stops.at(-1)).toEqual([1, 'lamp', 0])
+      }
     }
-    expect(marksOf(frame, 'heat')).toEqual([])
-    const markup = svgMarkup(frameSvg(frame))
-    const gradient = /<radialGradient id="es-loop-lamp-pool-landscape">(.*?)<\/radialGradient>/.exec(markup)?.[1] ?? ''
-    const stops = [...gradient.matchAll(/<stop offset="([\d.]+)" stop-color="var\(--es-([a-z-]+)\)" stop-opacity="([\d.]+)">/g)].map((match) => [Number(match[1]), match[2], Number(match[3])] as const)
-    // The lamp's amber from its middle out to nothing at its edge, with no white-hot core: light on the steel, with no edge of its own,
-    // and low enough at its middle that the brushed grain under it shows through (W1b-T10, the 2D views carry the 3D scene's pool).
-    expect(stops.length).toBeGreaterThan(1)
-    expect(stops.every(([, role]) => role === 'lamp')).toBe(true)
-    expect(stops[0][0]).toBe(0)
-    expect(stops[0][2]).toBeLessThanOrEqual(0.35)
-    expect(stops.at(-1)).toEqual([1, 'lamp', 0])
-    for (let i = 1; i < stops.length; i++) expect(stops[i][2]).toBeLessThanOrEqual(stops[i - 1][2])
-    expect(markup).not.toMatch(/data-part="pools"><ellipse[^>]*filter=/)
-    // The brushed top they lie on: its grain streaked along the pass.
-    expect(marksOf(frame, 'pass').filter((mark) => mark.kind === 'path' && mark.stroke === 'paper')).toHaveLength(1)
+    expect(marksOf(layoutFrame(first, { shot: 'front' }), 'heat')).toEqual([])
   })
 })
 

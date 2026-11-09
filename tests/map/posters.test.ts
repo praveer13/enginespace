@@ -116,7 +116,7 @@ describe('what the reader keeps', () => {
   test("a frame's gradients are read and drawn back: the lamps' light on the pass and the side wall's shade (Service's finish review, round 2)", () => {
     const markup = '<svg viewBox="0 0 4 4"><defs><radialGradient id="p"><stop offset="0" stop-color="var(--es-glint)" stop-opacity="0.5"></stop><stop offset="1" stop-color="var(--es-lamp)" stop-opacity="0"></stop></radialGradient><linearGradient id="w"><stop offset="0" stop-color="var(--es-surface-2)" stop-opacity="0.3"></stop></linearGradient></defs><ellipse cx="2" cy="2" rx="1" ry="1" fill="url(#p)"></ellipse></svg>'
     expect(draw(markup)).toBe(markup)
-    expect(fileOf(POSTERS.loop.file)).toContain('<radialGradient id="es-loop-lamp-pool-landscape">')
+    expect(fileOf(POSTERS.loop.file)).toContain('<linearGradient id="es-loop-lamp-streak-landscape">')
   })
 })
 

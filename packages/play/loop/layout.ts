@@ -11,8 +11,8 @@
  *     open ring;
  *   - the gantry over the pass, the rail hung from it with a clip for each slot, a paper ticket hung on every taken clip with its number
  *     printed, and a stub printed "empty" in the ribbon's red on every empty one; while a fire is on the line, the fired rail under it;
- *   - the three heat lamps on their cords, and under each its light on the pass's brushed steel: a gradient from a hot middle out to
- *     nothing, longer across the brush than along it, never a blur;
+ *   - the three heat lamps on their cords, and under each its light where it lands on the pass's brushed steel, drawn as the steel takes
+ *     it and never as a blur: flat washes of the lamp's amber in the counter's plane, and the brushed lines the light catches (`lampPool`);
  *   - the pass: its brushed top with the plates of the last fire read back, one under every clip that cooked a course, each with its
  *     rim and its shadow, a binned plate hollow and struck through in the ribbon's red, an empty place a dashed ring; its rolled front
  *     edge with the expo's name on masking tape, and under it the heated shelf's bars with the plate stacks warming on them;
@@ -39,12 +39,12 @@ import type { ClipView, FireView, KitchenView } from './types'
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /**
- * The token roles the drawing paints with (src/design/tokens.ts). `none` is no paint, and `lamp-pool` and `wall-shade` are the frame's
- * two gradients, each made of these roles (`GRADIENTS`): the lamps' light on the pass, and the side wall's shade.
+ * The token roles the drawing paints with (src/design/tokens.ts). `none` is no paint, and `lamp-streak` and `wall-shade` are the frame's
+ * two gradients, each made of these roles (`GRADIENTS`): a brushed line catching the lamps' light on the pass, and the side wall's shade.
  */
 export type Paint =
   | 'none'
-  | 'lamp-pool'
+  | 'lamp-streak'
   | 'wall-shade'
   | 'glint'
   | 'surface-0'
@@ -548,6 +548,46 @@ function plateAt(p: Painter, lens: Lens, x: number, state: 'plate' | 'empty' | '
   } else p.ellipse(lens.disc(x, y + 0.002, PLATE_Z, (r * (PLATE_R - 0.02)) / PLATE_R), { fill: 'none', stroke: 'surface-3', width: 0.9, dash: '2 2.5' })
 }
 
+/**
+ * A lamp's pool on the pass, along the counter and across it from its middle, in metres, round a plate's place: as far as the 3D scene's
+ * pool shows, whose light fades out well inside its rim (src/games/loop/Scene3D.tsx, POOL), and gone before the next lamp's [estimated].
+ */
+const POOL = [0.21, 0.2] as const
+/** Where a level ellipse's outline is drawn through, across its depth, as shares of its half-depth: closer toward its ends, where it turns. */
+const RIM = [-1, -0.96, -0.86, -0.7, -0.5, -0.26, 0, 0.26, 0.5, 0.7, 0.86, 0.96, 1] as const
+
+/** A level ellipse at height `y` round (x, z), `a` across the pass and `b` along its depth, as the shot sees it, true to the perspective. */
+function levelEllipse(lens: Lens, x: number, y: number, z: number, a: number, b: number): Pt[] {
+  const side = (sign: number) => RIM.map((u): Pt => lens.at(x + sign * a * Math.sqrt(1 - u * u), y, z + b * u))
+  return [...side(1), ...side(-1).reverse().slice(1, -1)]
+}
+
+/**
+ * A heat lamp's light where it lands on the brushed steel at `x`, drawn as the steel takes it, never as a blur: three flat washes of the
+ * lamp's amber lying in the counter's plane, one inside the next, each a step fainter outward, through which the counter's grain runs
+ * on; and over them the brushed lines the light catches, on the grain's own lines, each a streak of the lamp's amber along the brush that
+ * fades out toward its ends, longest and brightest through the pool's middle and shorter and fainter toward its rim [estimated], so the
+ * pool is the steel lit.
+ */
+function lampPool(p: Painter, lens: Lens, x: number, top: number, depth: number) {
+  for (const [share, opacity] of [
+    [1, 0.045],
+    [0.72, 0.05],
+    [0.45, 0.06],
+  ] as const) {
+    p.poly(levelEllipse(lens, x, top, PLATE_Z, POOL[0] * share, POOL[1] * share), { fill: 'lamp', opacity })
+  }
+  for (let i = 1; i < 12; i++) {
+    const z = -depth / 2 + (depth * i) / 12
+    const t = (z - PLATE_Z) / POOL[1]
+    if (t * t >= 0.8) continue
+    const half = POOL[0] * Math.sqrt(1 - t * t)
+    const [x0, y] = lens.at(x - half, top, z)
+    const [x1] = lens.at(x + half, top, z)
+    p.rect(x0, y - 0.35, x1 - x0, 0.7, { fill: 'lamp-streak', opacity: num(0.9 - t * t) })
+  }
+}
+
 /** The pass: its top under the lamps' pools, the plates, its rolled front edge and apron, its legs, and the heated shelf under it. */
 function thePass(p: Painter, lens: Lens, view: KitchenView, width: number) {
   const top = PASS.top
@@ -599,16 +639,8 @@ function thePass(p: Painter, lens: Lens, view: KitchenView, width: number) {
     grain.push([lens.at(-half + 0.04 + short, top, z), lens.at(half - 0.04 - short * 0.7, top, z)])
   }
   p.path(grain, { stroke: 'paper', width: 0.5, strokeOpacity: 0.5 })
-  // Under each lamp, its light on the brushed steel: a warm lift in the middle, the grain showing through, and gone by the edge, longer
-  // across the brush (toward the expo) than along it, as the steel scatters it. A gradient laid on as light, never a blur.
   p.layer('pools')
-  for (const x of lampsOf(view.slots)) {
-    const z = PLATE_Z + 0.02
-    const [cx] = lens.at(x, top, z)
-    const back = lens.at(x, top, z - 0.29)[1]
-    const front = lens.at(x, top, z + 0.29)[1]
-    p.ellipse({ cx, cy: num((back + front) / 2), rx: num(0.22 * lens.per(x, top, z)), ry: num((front - back) / 2) }, { fill: 'lamp-pool' })
-  }
+  for (const x of lampsOf(view.slots)) lampPool(p, lens, x, top, d)
   p.layer('plates')
   const served = [...view.fires].reverse().find((fire) => !fire.onLine)
   served?.places.forEach((place, slot) => plateAt(p, lens, clipX(slot, view.slots), place.state, plateRadius(view.slots)))
@@ -740,16 +772,18 @@ const FACE: Readonly<Record<Face, string>> = {
   label: 'var(--es-font-label)',
 }
 /**
- * The frame's two gradients, each made of token roles [estimated stops]: the lamps' light on the pass, the lamp's amber as a low lift at
- * its middle, with no hot core, out to nothing at its edge, so the brushed grain under it shows through, the steel reads lit and no edge
- * shows (the 3D scene's pool, the scene kit's); and the side wall's shade, deepening from its near end at the frame's left to the far corner.
+ * The frame's two gradients, each made of token roles [estimated stops]: a brushed line catching a lamp's light (`lampPool`), the lamp's
+ * amber along the line from nothing at one end to its full strength through the middle and back to nothing, so a streak has no end of
+ * its own; and the side wall's shade, deepening from its near end at the frame's left to the far corner.
  */
 const GRADIENTS = {
-  'lamp-pool': {
-    tag: 'radialGradient',
+  'lamp-streak': {
+    tag: 'linearGradient',
     stops: [
-      [0, 'lamp', 0.3],
-      [0.45, 'lamp', 0.16],
+      [0, 'lamp', 0],
+      [0.32, 'lamp', 0.8],
+      [0.5, 'lamp', 1],
+      [0.68, 'lamp', 0.8],
       [1, 'lamp', 0],
     ],
   },

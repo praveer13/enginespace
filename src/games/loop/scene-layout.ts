@@ -16,6 +16,7 @@
  *   - The line behind the pass: a station for each clip, burning in the lamp's amber where the latest fire cooked a course and
  *     cold where its clip rode empty (`stationsOf`). Tile, hood, floor and a speed rack make the room, and the room's light, baked
  *     into the tile and the floor, is full behind the line's worktops and dims up the tile to the hood and toward the room's corners.
+ *     The aisle between the pass and the line lies in their shade.
  *   - Three heat lamps over the pass, the bell at its front right.
  *
  * Every word and number is a DOM label anchored here (D-021, GAMES.md §2.6 rule 7); the tickets' print is texture.
@@ -23,6 +24,7 @@
 import { BAR, CEILING, clipX, FIRED, GRIP, HOOD, lampsOf, LINE, lineOf, MOUTH, PASS, passWidth, pitchOf, PLATE_Z, RAIL, railLength, SHELF, STATION_KINDS, TICKET, WALL_Z } from '@es/play/loop/kitchen'
 import { stationsOf, ticketNo } from '@es/play/loop/layout'
 import type { KitchenView } from '@es/play/loop/types'
+import type { Footprint } from '@/scene/props/build'
 import type { RoomLight } from '@/scene/props/set'
 import type { PropSpec, StationSpec, Vec3 } from '@/scene/props/specs'
 
@@ -72,6 +74,12 @@ export interface ServiceKitchen {
   readonly tapes: readonly Tape[]
   /** The room's light, baked into its tile and its floor (the static set's `room`). */
   readonly room: RoomLight
+  /**
+   * The aisle between the pass and the line, in the shade of the pass and the hood: a soft shadow on its floor from under the pass's back
+   * edge to the line's front, as the contact shadows are drawn, so the floor darkens as it recedes from the expo rather than catching
+   * the tubes beyond the pass's own shadow [estimated].
+   */
+  readonly aisle: Footprint
 }
 
 export interface KitchenOptions {
@@ -142,6 +150,8 @@ export function serviceKitchen(slots: number, { printer, overlap, tools = false 
       { id: 'molds', center: [0.6, top - 0.03, PASS.depth / 2 + 0.016], size: [0.3, 0.05], rotation: [-0.45, 0, -0.01], text: 'molds · sizes' },
     )
   }
+  // The aisle's shade: from under the pass's back edge, where the pass's own shadow fades, back to the line's front.
+  const [aisleFront, aisleBack] = [-PASS.depth / 2 + 0.08, LINE.z + LINE.depth / 2]
   return {
     slots,
     items,
@@ -157,11 +167,13 @@ export function serviceKitchen(slots: number, { printer, overlap, tools = false 
       top: [station.at[0], LINE.height + 0.04, LINE.z - 0.02] as Vec3,
     })),
     tapes,
-    // Full over the middle half of the line, up to a hand over its worktops and back as far as the line, and easing down to a third of
-    // that 1.6 metres further to either side, up the tile to the hood's lip and nearly three metres further back, with what it no longer
-    // lights veiled in the haze's deep steel [estimated]: the tile behind the worktops stays lit, and the wall up to the hood and the far
-    // corners fall away into the haze.
-    room: { x: 0, half: lineWidth / 4, above: LINE.height + 0.15, beyond: LINE.z, reach: [1.6, 0.85, 2.8], dim: 0.3, veil: 0.7 },
+    // Full over the middle third of the line, up to a hand over its worktops and back as far as the line, and easing down to a third of
+    // that 1.2 metres further to either side, up the tile to the hood's lip and nearly three metres further back, with what it no longer
+    // lights veiled in deep steel [estimated]: the tile behind the worktops stays lit, and the wall up to the hood and toward the far
+    // corners falls away, so that the sides of a phone's frame, about 1.3 metres out on the back wall [derived from SHOTS.front], are under
+    // half the middle's light.
+    room: { x: 0, half: lineWidth / 6, above: LINE.height + 0.15, beyond: LINE.z, reach: [1.2, 0.85, 2.8], dim: 0.3, veil: 0.7 },
+    aisle: { center: [0, 0, (aisleFront + aisleBack) / 2], size: [width + 0.6, aisleFront - aisleBack], radius: 0.1, soft: 0.25, strength: 1, yaw: 0 },
   }
 }
 
