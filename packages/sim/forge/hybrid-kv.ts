@@ -293,8 +293,8 @@ function planOf(key: keyof typeof HYBRID_KV_SCRIPTS, what: string) {
 const EVERY = 'every reply, every page and every event as the reference has them'
 
 /**
- * The knowledge components that a check assesses (content/kc/graph.yaml). A lab check is not a source for `verify:kc` yet, so the graph
- * still says `planned: W1-T22` for these; the exit review wires them when it removes the placeholders.
+ * The knowledge components that a check assesses (content/kc/graph.yaml), which `verify:kc` reads through kcs.ts. The exit review
+ * (W1-T38) wired that source and removed the `planned: W1-T22` lines that these checks answer.
  */
 export const HYBRID_KV_KCS: Readonly<Record<string, readonly string[]>> = {
   sliding: ['tr5a.sliding-free', 'tr5a.all-or-nothing'],

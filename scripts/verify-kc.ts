@@ -13,7 +13,8 @@
  *   - a KC has no graded item, game level or lab check behind it and no `planned` task: it could never be earned (ASSESSMENT §3.3),
  *     because a practice level writes at most practice credit and the front page writes nothing (D-038);
  *   - `planned` names a task that docs/TRACKER.md does not have;
- *   - an item, game level or lab check names no KC, or a KC that is not in the graph (§10.2: "an item, level or check without a KC").
+ *   - an item, game level or lab check names no KC, or a KC that is not in the graph (§10.2: "an item, level or check without a KC");
+ *   - a lab's row of packages/sim/forge/kcs.ts names a check that the lab does not have.
  * It warns, and never fails, when a KC still says `planned` although a graded reference exists, and when a KC that four others lean on
  * is not flagged `threshold`.
  *
@@ -29,8 +30,9 @@
  *                for the game and not for each level, so a graded level makes the whole entry a reference.
  *   item         an exported object of packages/play/items/ with a `kcs` list and a `make` function, the Gen of A§8.2 (W1-T04),
  *                alone, in an array or in a record. Once the folder exists and holds none, the gate fails: W1-T04 wires its families.
- *   lab check    not read yet. The forge host (W1-T10) and the labs (W1-T22, W1-T27) say where a check names its KCs; until a task adds
- *                that source here, a KC that only a lab check covers carries `planned`.
+ *   lab check    a check of a graded forge lab, for the KCs that `LAB_CHECK_KCS` (packages/sim/forge/kcs.ts) maps it to, read under
+ *                `root` as the item families are. A lab is passed on seeds drawn at grade time (ASSESSMENT §4.5), so its checks are
+ *                graded. W1-T38 added this source when it removed the placeholders that the labs of W1-T22 and W1-T27 answer.
  *
  * `checkKc` is the whole gate over what it is given: the graph's text, the references, and the lists it checks names against. The
  * tests call it with a graph held in memory; the command line gives it this checkout.
@@ -154,6 +156,44 @@ export async function itemReferences(root: string): Promise<ItemSource> {
     )
   }
   const references = [...families.values()].map(({ id, kcs, file }): Reference => ({ kind: 'item', name: `item:gen/${id}`, file, kcs, graded: true }))
+  return { references, diagnostics, note: null }
+}
+
+/** Where the graded forge labs map their checks to KCs. */
+export const LABS_FILE = 'packages/sim/forge/kcs.ts'
+
+/** The labs' checks have the item families' shape: references, problems, and why there are none when the table is not there. */
+export type LabSource = ItemSource
+
+/**
+ * The checks of the graded forge labs under `root`, as references: one for each check that `LAB_CHECK_KCS` (LABS_FILE) maps to KCs, named
+ * `lab:<lab>/<check>`. A row that maps a check the lab does not have fails, so a renamed check cannot leave its KCs behind.
+ */
+export async function labReferences(root: string): Promise<LabSource> {
+  if (!existsSync(path.join(root, LABS_FILE))) {
+    return { references: [], diagnostics: [], note: `labs: ${LABS_FILE} does not exist, so no lab check names a KC` }
+  }
+  const fail = (code: string, message: string): LabSource => ({ references: [], diagnostics: [problem('kc', 'error', code, LABS_FILE, 1, message)], note: null })
+  let table: unknown
+  try {
+    table = ((await import(pathToFileURL(path.join(root, LABS_FILE)).href)) as Record<string, unknown>).LAB_CHECK_KCS
+  } catch (error) {
+    return fail('lab-import', `cannot be imported to read the labs' checks: ${error instanceof Error ? error.message : String(error)}`)
+  }
+  if (!isRecord(table)) return fail('lab-table', 'exports no LAB_CHECK_KCS: a record of the graded labs, each with its checks and the KCs of each check')
+  const references: Reference[] = []
+  const diagnostics: Diagnostic[] = []
+  for (const [lab, row] of Object.entries(table)) {
+    const checks = isRecord(row) && Array.isArray(row.checks) ? row.checks.map((check) => (isRecord(check) ? check.id : undefined)) : []
+    for (const [check, kcs] of Object.entries(isRecord(row) && isRecord(row.kcs) ? row.kcs : {})) {
+      if (!checks.includes(check)) {
+        diagnostics.push(problem('kc', 'error', 'lab-unknown-check', LABS_FILE, 1, `lab:${lab} maps the check "${check}" to KCs, and the lab has no such check`))
+        continue
+      }
+      const named = Array.isArray(kcs) ? kcs.filter((kc): kc is string => typeof kc === 'string') : []
+      references.push({ kind: 'check', name: `lab:${lab}/${check}`, file: LABS_FILE, kcs: named, graded: true })
+    }
+  }
   return { references, diagnostics, note: null }
 }
 
@@ -407,16 +447,17 @@ export async function main(argv: readonly string[]): Promise<number> {
 
   const snapshot = readKernelspace(root)
   const items = await itemReferences(root)
+  const labs = await labReferences(root)
   const result = checkKc({
     text,
-    references: [...gameReferences(GAMES.games), ...items.references],
+    references: [...gameReferences(GAMES.games), ...items.references, ...labs.references],
     modules: courseModules(root),
     tasks: trackerTasks(root),
     kernelspace: snapshot.snapshot,
     final,
   })
 
-  const diagnostics = [...result.diagnostics, ...snapshot.diagnostics, ...items.diagnostics]
+  const diagnostics = [...result.diagnostics, ...snapshot.diagnostics, ...items.diagnostics, ...labs.diagnostics]
   if (snapshot.absent && (result.stats?.kernelspaceKcs ?? 0) > 0) {
     diagnostics.push(problem('kc', 'error', 'ks-snapshot', SNAPSHOT_FILE, 1, `${SNAPSHOT_FILE} does not exist, and the graph has ks: edges: bun scripts/kc/kernelspace.ts print > ${SNAPSHOT_FILE} writes it`))
   }
@@ -425,7 +466,7 @@ export async function main(argv: readonly string[]): Promise<number> {
   const notes = [
     ...GAMES.games.filter((game) => !game.levels.some((level) => level.graded)).map((game) => `games: ${game.id} has no graded level yet, so it cannot earn its KCs`),
     ...(items.note === null ? [] : [items.note]),
-    'labs: lab checks are not a source yet (the forge host is W1-T10, the labs W1-T22 and W1-T27), so a KC that only a lab check covers carries planned',
+    ...(labs.note === null ? [] : [labs.note]),
   ]
   for (const note of notes) console.log(`note: ${note}`)
 

@@ -23,6 +23,7 @@ import {
   kvReference,
   kvOps,
   kvPreset,
+  LAB_CHECK_KCS,
   parseWireAdapters,
   parseWireCache,
   parseWireEvents,
@@ -457,8 +458,11 @@ describe('the knowledge components', () => {
       expect(HYBRID_KV_CHECKS.map((c) => c.id)).toContain(checkId)
       for (const kc of kcs) expect(ids.has(kc), `${checkId} names ${kc}`).toBe(true)
     }
-    // The graph plans these for this task.
-    const planned = [...graph.matchAll(/^- id: (\S+)[\s\S]*?planned: W1-T22/gm)]
-    expect(planned.length).toBeGreaterThan(0)
+    // The checks are these KCs' graded references, which verify:kc reads through LAB_CHECK_KCS (W1-T38), so the graph plans none of them.
+    expect(LAB_CHECK_KCS['hybrid-kv']?.kcs).toBe(HYBRID_KV_KCS)
+    const assessed = new Set(Object.values(HYBRID_KV_KCS).flat())
+    const entries = graph.split(/^- id: /m).slice(1).map((block) => ({ id: block.split('\n')[0].trim(), planned: /^ {2}planned: /m.test(block) }))
+    expect(entries.filter((entry) => assessed.has(entry.id)).map((entry) => entry.id).sort()).toEqual([...assessed].sort())
+    expect(entries.filter((entry) => entry.planned && assessed.has(entry.id)).map((entry) => entry.id)).toEqual([])
   })
 })
