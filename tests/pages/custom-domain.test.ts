@@ -12,11 +12,15 @@
  *      back to 404.html.
  *   4. Nothing in the build needs the site's origin as a string: the meta CSP names no host, and the code spells the origin nowhere
  *      or once, as one `SITE_ORIGIN` constant.
+ *   5. The third-party licences (licensing#6) stay at /third-party-licenses.txt: prepare-pages leaves the file as the build wrote it and
+ *      plans no document at its address, Pages serves it as a file and not as the fallback, and the meta CSP, which belongs to the
+ *      documents, does not touch it.
  */
 import { afterAll, beforeAll, describe, expect, spyOn, test } from 'bun:test'
 import { mkdtempSync, readdirSync, rmSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { matchRoutes } from 'react-router'
 import { CSP } from '../../scripts/pages/csp'
 import { planPages } from '../../scripts/pages/plan'
 import { loadSources } from '../../scripts/pages/sources'
@@ -35,10 +39,13 @@ const plan = planPages(routes, loadSources())
 
 let status = -1
 let output: string[] = []
+/** dist/third-party-licenses.txt as `vite build` wrote it, before prepare-pages ran. */
+let licencesAsBuilt = ''
 
 beforeAll(async () => {
   // VITE_BASE is unset for both, as in deploy.yml: the `env` of main() is what prepare-pages reads it from.
   viteBuild(dist, undefined)
+  licencesAsBuilt = readFile(dist, 'third-party-licenses.txt')
   const lines: string[] = []
   const log = spyOn(console, 'log').mockImplementation((...args: unknown[]) => void lines.push(args.join(' ')))
   try {
@@ -121,6 +128,57 @@ describe('served as GitHub Pages serves a custom domain', () => {
   test('serves CNAME as a file, as it serves any other', async () => {
     const response = await fetch(`${origin}/CNAME`)
     expect([response.status, await response.text()]).toEqual([200, `${DOMAIN}\n`])
+  })
+})
+
+describe('the third-party licences file', () => {
+  test('is at the root of dist/, and prepare-pages leaves it as the build wrote it', () => {
+    expect(licencesAsBuilt.startsWith('enginespace: third-party licences\n')).toBe(true)
+    expect(readFile(dist, 'third-party-licenses.txt')).toBe(licencesAsBuilt)
+  })
+
+  test('has no document at its address and none under it, and no .html file of the site is named for it', () => {
+    expect(plan.pages.filter((page) => `${page.file} ${page.url ?? ''}`.includes('third-party-licenses'))).toEqual([])
+    expect(htmlFilesUnder(dist).filter((file) => file.includes('third-party-licenses'))).toEqual([])
+    expect(output[0]).toContain(`all ${htmlFilesUnder(dist).length} .html files`)
+  })
+
+  test('is plain text: no meta CSP to put in it, and none of the .html files that the policy is checked in', () => {
+    expect(licencesAsBuilt).not.toContain('<meta')
+    expect(licencesAsBuilt).not.toContain('<!doctype')
+  })
+
+  describe('served as GitHub Pages serves it', () => {
+    let origin = ''
+    let stop = () => {}
+    beforeAll(() => {
+      ;({ origin, stop } = servePages(dist, '/'))
+    })
+    afterAll(() => stop())
+
+    test('answers 200 with the file itself, not with the fallback that an address without a file gets', async () => {
+      const response = await fetch(`${origin}/third-party-licenses.txt`)
+      const body = await response.text()
+      expect(response.status).toBe(200)
+      expect(response.headers.get('content-type') ?? '').toMatch(/^text\/plain/)
+      expect(body).toBe(licencesAsBuilt)
+      expect(body).not.toContain('<html')
+      // The same server answers an address with no file by the fallback, so the difference is the file.
+      const missing = await fetch(`${origin}/third-party-licenses.md`)
+      expect([missing.status, await titleOf(await missing.text())]).toEqual([404, 'Page not found · enginespace'])
+    })
+
+    test('has the packages of the build, the NOTICE of the repository and the Apache text that it points to', async () => {
+      const body = await (await fetch(`${origin}/third-party-licenses.txt`)).text()
+      for (const heading of ['react@', 'react-dom@', 'three@', 'zustand@']) expect(body, heading).toContain(`\n${heading}`)
+      expect(body).toContain(read('NOTICE').trimEnd())
+      expect(body.endsWith(`${read('LICENSES/Apache-2.0.txt').trimEnd()}\n`)).toBe(true)
+    })
+
+    test('is what the About page links: the address is the root, and no route of the app answers it', async () => {
+      expect(read('src/pages/About.tsx')).toContain("`${import.meta.env.BASE_URL ?? '/'}third-party-licenses.txt`")
+      expect(matchRoutes(routes, '/third-party-licenses.txt')?.at(-1)?.route.path).toBe('*')
+    })
   })
 })
 

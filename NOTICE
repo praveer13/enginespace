@@ -11,6 +11,13 @@ under, is in LICENSES/Apache-2.0.txt. The licence of enginespace's own code and 
 the owner's decision (O-3) and is not stated here: until it is decided, enginespace's own
 code and content are all rights reserved.
 
+The npm packages inside the site's scripts are not listed here. The build collects their
+licences into third-party-licenses.txt (scripts/pages/third-party-licenses.ts), which the
+site serves at /third-party-licenses.txt. That file carries this one after the packages,
+and then the texts of LICENSES/ that this one points to, so the notices below ship with
+the site. Some of those packages are published without a licence file, and
+third-party/notices.json keeps the text for each, with its source.
+
 ============================================================================
 kernelspace
 ============================================================================

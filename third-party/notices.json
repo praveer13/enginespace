@@ -1,0 +1,41 @@
+{
+  "schema": "enginespace/third-party-notices@1",
+  "about": "Licence texts for the npm packages whose releases ship no licence file, so that their notices travel with the copies of them in the site (scripts/pages/third-party-licenses.ts). The build uses a text only for a package that ships none of LICENSE, LICENCE, COPYING and NOTICE, and only at the version listed here: another version of such a package fails the build until its licence file is read again and listed. Each text is the licence file of the package's repository, byte for byte as raw.githubusercontent.com served it on the date below to the User-Agent below, and pinned by SHA-256. tests/pages/third-party-licenses.test.ts checks every hash, every package against package-lock.json and the licence that each package.json names.",
+  "fetched": "2026-11-08",
+  "userAgent": "Mozilla/5.0 (X11; Linux x86_64)",
+  "notices": [
+    {
+      "file": "radix-ui-primitives.txt",
+      "licence": "MIT",
+      "sha256": "0e80a2d229d2fd4fc7e8636142ec5d0ff0bc031f14c15b682e2ac01dfd5b5138",
+      "source": "https://raw.githubusercontent.com/radix-ui/primitives/eb3a2b7091293e27df8f9ba906632d8daa3d81a3/LICENSE",
+      "basis": "Radix Primitives is one repository with one LICENSE at its root, and these packages are published without it. [measured 2026-11-08] The text is that file at commit eb3a2b7091293e27df8f9ba906632d8daa3d81a3, the head of main that day, and it is byte for byte the LICENSE that @radix-ui/react-dialog 1.1.15, @radix-ui/react-slot 1.2.4 and @radix-ui/primitive 1.1.3 ship. [unverified] that the file was the same at the releases of these eight packages: the tags that were tried (@radix-ui/react-id@1.1.0 and @radix-ui/react-id@1.1.1) are not in the repository.",
+      "packages": [
+        "@radix-ui/react-compose-refs@1.1.2",
+        "@radix-ui/react-context@1.1.2",
+        "@radix-ui/react-id@1.1.1",
+        "@radix-ui/react-use-callback-ref@1.1.1",
+        "@radix-ui/react-use-escape-keydown@1.1.1",
+        "@radix-ui/react-use-layout-effect@1.1.1",
+        "@radix-ui/react-use-previous@1.1.1",
+        "@radix-ui/react-use-size@1.1.1"
+      ]
+    },
+    {
+      "file": "react-three-fiber.txt",
+      "licence": "MIT",
+      "sha256": "9c35b5de7b7493a707fffe4eb23bd2f7f449153c1911f7c6eefb4e591fd5349a",
+      "source": "https://raw.githubusercontent.com/pmndrs/react-three-fiber/2a528745e9aa7c9e6cca41e404b59d45cf0d0cc7/LICENSE",
+      "basis": "[measured 2026-11-08] The text is the LICENSE of the repository at commit 2a528745e9aa7c9e6cca41e404b59d45cf0d0cc7, which is the tag v9.6.1, the release that this package is. The same file is at tag v9.0.0 and at the head of the default branch.",
+      "packages": ["@react-three/fiber@9.6.1"]
+    },
+    {
+      "file": "react-remove-scroll-bar.txt",
+      "licence": "MIT",
+      "sha256": "a79aae0c0f21990d9d963bb3c5a79cdcea9a46f8523ba55c58d7fe776b6ebc84",
+      "source": "https://raw.githubusercontent.com/theKashey/react-remove-scroll-bar/8ca9ba5ea52de03308fe8ced94f7b159a44d28ff/LICENSE",
+      "basis": "[measured 2026-11-08] The text is the LICENSE of the repository at commit 8ca9ba5ea52de03308fe8ced94f7b159a44d28ff, the head of master that day. The package's own package.json names MIT and the same author. [unverified] that the file existed at the release: npm's record of the release names the commit b3b1287aad81def2e2ae707274b74531b61ddbaf, and raw.githubusercontent.com serves no file at that commit, not even README.md [measured 2026-11-08], so the licence could not be read at 2.3.8.",
+      "packages": ["react-remove-scroll-bar@2.3.8"]
+    }
+  ]
+}

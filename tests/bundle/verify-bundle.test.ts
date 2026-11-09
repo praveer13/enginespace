@@ -17,7 +17,7 @@ import path from 'node:path'
 import { gzipSync } from 'node:zlib'
 import { leavesOf } from '../../scripts/pages/plan'
 import { BUDGETS, BundleError, checkBundle, closureOf, filesOf, KB, lineOf, main, readInput, routesIn, summaryOf } from '../../scripts/verify-bundle'
-import type { Chunk, Document, Input, Manifest, Report, Row, Route, Tree } from '../../scripts/verify-bundle'
+import type { Chunk, Document, Input, Licences, Manifest, Report, Row, Route, Tree } from '../../scripts/verify-bundle'
 import { routes as appRoutes } from '../../src/routes'
 
 const root = path.resolve(import.meta.dirname, '../..')
@@ -125,6 +125,14 @@ const ROUTES: Route[] = [
 
 const TREE: Tree = { games: ['loop'], scenes: ['src/games/loop/Scene3D.tsx'], workers: [], postfx: true }
 
+/** The licence file of a build, in miniature: it names react, and ends with the tree's NOTICE, as the plugin writes one (scripts/pages/third-party-licenses.ts). */
+const RULE = '='.repeat(76)
+const MINI_NOTICE = 'enginespace: third-party notices\n\nThe miniature NOTICE.\n'
+const MINI_TEXTS = [{ file: 'LICENSES/Apache-2.0.txt', text: 'Apache License, miniature text' }]
+const MINI_LICENCES = `enginespace: third-party licences\n\n${RULE}\nreact@19.2.3\nLicence: MIT\n${RULE}\n\nMIT License, miniature text\n\n${RULE}\nNOTICE\n${RULE}\n\n${MINI_NOTICE}\n${RULE}\nLICENSES/Apache-2.0.txt\n${RULE}\n\nApache License, miniature text\n`
+/** The record that goes with it: every script of the build, and react inside the first. */
+const recordFor = (scripts: readonly string[]): string => JSON.stringify({ chunks: Object.fromEntries(scripts.map((script, at) => [script, at === 0 ? ['react@19.2.3'] : []])), alsoShips: [] })
+
 interface Variation {
   /** Specs to add or replace; a key set to null is removed. */
   specs?: Record<string, Spec | null>
@@ -135,6 +143,8 @@ interface Variation {
   extra?: Record<string, number>
   document?: Document | null
   site?: { files: number; bytes: number }
+  /** Changes to the licence file, the record and NOTICE that the miniature has by default. */
+  licences?: Partial<Licences>
 }
 
 /** The document that loads and preloads exactly the front page's first-paint closure of a manifest. */
@@ -158,7 +168,9 @@ function inputOf(variation: Variation = {}): Input {
     else specs[key] = spec
   }
   const { manifest, sizes } = manifestOf(specs)
+  sizes.set('third-party-licenses.txt', 5_300)
   for (const [file, bytes] of Object.entries(variation.extra ?? {})) sizes.set(file, bytes)
+  const assets = variation.assets ?? Object.values(manifest).map((chunk) => chunk.file.replace('assets/', ''))
   return {
     manifest,
     gzip: (file) => {
@@ -169,8 +181,15 @@ function inputOf(variation: Variation = {}): Input {
     routes: variation.routes ?? ROUTES,
     tree: { ...TREE, ...variation.tree },
     document: variation.document === undefined ? documentFor(manifest) : variation.document,
-    assets: variation.assets ?? Object.values(manifest).map((chunk) => chunk.file.replace('assets/', '')),
+    assets,
     site: variation.site ?? { files: 20, bytes: 2_000_000 },
+    licences: {
+      text: MINI_LICENCES,
+      record: recordFor(assets.filter((name) => name.endsWith('.js')).map((name) => `assets/${name}`)),
+      notice: MINI_NOTICE,
+      texts: MINI_TEXTS,
+      ...variation.licences,
+    },
   }
 }
 
@@ -278,6 +297,7 @@ describe('the miniature', () => {
       'index',
       'document',
       'fonts',
+      'licences',
       'site',
     ])
   })
@@ -696,6 +716,55 @@ describe('the document', () => {
   })
 })
 
+describe('the third-party licences (scripts/pages/third-party-licenses.ts)', () => {
+  test('are a row with no gate and no target: the licence file as served, and the packages it names', () => {
+    const row = rowOf(run(), 'licences')
+    expect([row.status, row.bytes, row.gate, row.target]).toEqual(['info', 5_300, null, null])
+    expect(row.parts).toEqual([{ file: 'third-party-licenses.txt', bytes: 5_300 }])
+    expect(row.detail).toBe('1 package named in third-party-licenses.txt, which carries NOTICE and 1 licence text of LICENSES/, and every script of the build is in .vite/third-party.json')
+    expect(lineOf(row, 20)).toContain('info third-party licences')
+  })
+
+  test('add no budget: the run has the gates it had, and a build that is right still passes', () => {
+    expect(summaryOf(run())).toBe('verify:bundle passed: 10 budgets gated, 0 over a target, 2 skipped')
+  })
+
+  test('fail a build with no licence file, naming it', () => {
+    const report = run({ licences: { text: null } })
+    expect(report.failed).toBe(1)
+    expect(rowOf(report, 'licences').status).toBe('FAIL')
+    expect(rowOf(report, 'licences').detail).toContain('dist/third-party-licenses.txt does not exist')
+  })
+
+  test('fail a build whose record names a package that the file has no section for', () => {
+    const report = run({ licences: { text: MINI_LICENCES.replace('\nreact@19.2.3\n', '\nsee react@19.2.3\n') } })
+    expect(report.failed).toBe(1)
+    expect(rowOf(report, 'licences').detail).toBe("dist/third-party-licenses.txt has no section for react@19.2.3, which the build's scripts hold")
+  })
+
+  test('fail a build with a script that the record does not hold: a worker that the licence plugin never saw', () => {
+    const report = run({ assets: [...Object.values(manifestOf(APP).manifest).map((chunk) => chunk.file.replace('assets/', '')), 'receipt.worker-Cx9a1_Zk.js'], extra: { 'assets/receipt.worker-Cx9a1_Zk.js': 1 }, tree: { workers: ['receipt.worker'] }, licences: { record: recordFor(Object.values(manifestOf(APP).manifest).map((chunk) => chunk.file)) } })
+    expect(report.failed).toBe(1)
+    expect(rowOf(report, 'licences').detail).toContain('dist/assets/receipt.worker-Cx9a1_Zk.js is a script of the build that the licence plugin never saw')
+  })
+
+  test("fail a file that does not carry the tree's NOTICE or a text of its LICENSES/", () => {
+    expect(rowOf(run({ licences: { notice: `${MINI_NOTICE}A line that was added after the build.\n` } }), 'licences').detail).toContain('does not carry NOTICE word for word')
+    expect(rowOf(run({ licences: { notice: null } }), 'licences').detail).toBe('NOTICE is missing from the tree, and the file must carry it')
+    const more = [...MINI_TEXTS, { file: 'LICENSES/MIT.txt', text: 'MIT, miniature text that the build did not carry' }]
+    expect(rowOf(run({ licences: { texts: more } }), 'licences').detail).toContain('does not carry LICENSES/MIT.txt word for word')
+  })
+
+  test('report each problem on a row of its own, so that none hides behind another', () => {
+    const report = run({ licences: { text: MINI_LICENCES.replace('\nreact@19.2.3\n', '\nx\n'), notice: null } })
+    expect(report.rows.filter((row) => row.id.startsWith('licences')).map((row) => [row.id, row.status])).toEqual([
+      ['licences:1', 'FAIL'],
+      ['licences:2', 'FAIL'],
+    ])
+    expect(report.failed).toBe(2)
+  })
+})
+
 describe('the lines', () => {
   const report = run()
 
@@ -747,6 +816,12 @@ function treeOnDisk(entryBytes: number, frontBytes = 200): { dir: string; dist: 
     'src/pages/Map.tsx': { file: 'assets/Map.js', name: 'Map', src: 'src/pages/Map.tsx', isDynamicEntry: true, imports: ['index.html'] },
   }
   writeFileSync(path.join(dist, '.vite/manifest.json'), JSON.stringify(manifest))
+  // The third-party licences of the build: the file, the record of its three scripts, and the tree's NOTICE (scripts/pages/third-party-licenses.ts).
+  writeFileSync(path.join(dir, 'NOTICE'), MINI_NOTICE)
+  mkdirSync(path.join(dir, 'LICENSES'), { recursive: true })
+  writeFileSync(path.join(dir, 'LICENSES/Apache-2.0.txt'), `${MINI_TEXTS[0].text}\n`)
+  writeFileSync(path.join(dist, 'third-party-licenses.txt'), MINI_LICENCES)
+  writeFileSync(path.join(dist, '.vite/third-party.json'), recordFor(['assets/Front.js', 'assets/Map.js', 'assets/index.js']))
   writeFileSync(path.join(dist, 'assets/index.js'), noise(entryBytes, 1))
   writeFileSync(path.join(dist, 'assets/Front.js'), noise(frontBytes, 2))
   writeFileSync(path.join(dist, 'assets/Map.js'), noise(200, 3))
@@ -811,6 +886,28 @@ describe('the command', () => {
       [(gzipSync(readFileSync(path.join(dir, 'dist/assets/index.js'))).length / 1000).toFixed(1), 'assets/index.js'],
       [(gzipSync(readFileSync(path.join(dir, 'dist/assets/Front.js'))).length / 1000).toFixed(1), 'assets/Front.js'],
     ])
+  })
+
+  test('exits 1 when the build has no licence file, and says so on a line of its own', () => {
+    const { dir, dist } = treeOnDisk(5_000)
+    rmSync(path.join(dist, 'third-party-licenses.txt'))
+    const { status, lines } = command(['--root', dir])
+    expect(status).toBe(1)
+    expect(lines.find((line) => line.startsWith('FAIL third-party licences'))).toContain('dist/third-party-licenses.txt does not exist')
+  })
+
+  test('exits 1 for a script of dist/assets that the record of the licence plugin does not hold', () => {
+    const { dir, dist } = treeOnDisk(5_000)
+    writeFileSync(path.join(dist, 'assets/forge.worker-aaaa.js'), noise(200, 7))
+    const { status, lines } = command(['--root', dir])
+    expect(status).toBe(1)
+    expect(lines.find((line) => line.startsWith('FAIL third-party licences'))).toContain('dist/assets/forge.worker-aaaa.js is a script of the build that the licence plugin never saw')
+  })
+
+  test('reads NOTICE from the tree it is given', () => {
+    const { dir } = treeOnDisk(5_000)
+    writeFileSync(path.join(dir, 'NOTICE'), 'a NOTICE that the build did not end with\n')
+    expect(command(['--root', dir]).lines.find((line) => line.startsWith('FAIL third-party licences'))).toContain('does not carry NOTICE word for word')
   })
 
   test('reads another build with --dist', () => {
@@ -941,6 +1038,14 @@ describe('the real build', () => {
     for (const row of report.rows.filter((candidate) => candidate.id.startsWith('route:'))) {
       expect(filesIn(row).join(), row.id).not.toMatch(/three-vendor|Scene3D|postfx/)
     }
+  })
+
+  test('finds the licence file of the build right: every package named, the worker\'s script in the record, NOTICE and LICENSES/ in it', () => {
+    const row = rowOf(report, 'licences')
+    expect(row.status).toBe('info')
+    expect(row.detail).toMatch(/^\d+ packages named in third-party-licenses\.txt, which carries NOTICE and 1 licence text of LICENSES\/, and every script of the build is in \.vite\/third-party\.json$/)
+    expect(row.bytes).toBe(gzipOf('third-party-licenses.txt'))
+    expect(report.rows.filter((candidate) => candidate.id.startsWith('licences')).map((candidate) => candidate.id)).toEqual(['licences'])
   })
 
   test('prints one line per row and ends with its verdict, and exits 1 exactly when a row fails', () => {
