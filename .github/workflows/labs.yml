@@ -11,6 +11,13 @@ name: Labs
 # A job switches on when its lab lands (labs/forge/Cargo.toml from W1-T10, labs/grader/pyproject.toml from W2-T02), and this
 # file does not change for that. Until then the detect job prints "pending: <task>" for the lab that is missing, and the job
 # for it is skipped.
+#
+# The workflow runs when a file that its gates read changes. verify:labs reads more than labs/: it imports the forge host and the
+# worker the site runs (src/forge, src/workers/forge.worker.ts), the models behind the labs' checks (packages/sim) and the vendored files
+# under those (vendor/kernelspace), it judges the builds with scripts/labs, and it compares the builds that tests/fixtures/forge
+# commits with the ones it makes. W1 left those out of the filter, so a change to the host or to a model could break a lab with no
+# labs job on the pull request (W1 report §12). tests/ci/workflows.test.ts walks the imports of scripts/verify-labs.ts and fails on
+# a file that this list does not cover, so a lab's new dependency adds its path here before it can merge.
 
 on:
   pull_request:
@@ -19,6 +26,13 @@ on:
       - 'schemas/**'
       - 'packages/schema/**'
       - 'packages/verify/**'
+      - 'packages/sim/**'
+      - 'src/forge/**'
+      - 'src/workers/forge.worker.ts'
+      - 'scripts/labs/**'
+      - 'scripts/verify-labs.ts'
+      - 'tests/fixtures/forge/**'
+      - 'vendor/kernelspace/**'
       - '.github/workflows/labs.yml'
   workflow_dispatch:
 

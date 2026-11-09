@@ -4,6 +4,7 @@
  */
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
+import { load } from 'js-yaml'
 
 export const root = path.resolve(import.meta.dirname, '../..')
 export const read = (relative: string) => readFileSync(path.join(root, relative), 'utf8')
@@ -51,4 +52,21 @@ export function trackerTasks(): Map<string, string> {
     tasks.set(id, tracker.slice(start, end))
   })
   return tasks
+}
+
+/**
+ * What ci.yml's `tests` job says about its shards: the numbers of its matrix, and the count that its command cuts the suite into. The
+ * command is `bun run test --shard="$SHARD/<count>"`, with SHARD set from the matrix. Any other shape throws here, so a change to the
+ * job is a change to these tests, and the tests that need the count never guess it.
+ */
+export function ciTestShards(): { matrix: number[]; count: number; command: string } {
+  interface Job {
+    strategy?: { matrix?: { shard?: number[] } }
+    steps?: { env?: Record<string, string>; run?: string }[]
+  }
+  const job = (load(read('.github/workflows/ci.yml')) as { jobs?: Record<string, Job> }).jobs?.tests
+  const command = job?.steps?.find((step) => step.env?.SHARD !== undefined)?.run?.trim() ?? ''
+  const count = Number(/^bun run test --shard="\$SHARD\/(\d+)"$/.exec(command)?.[1])
+  if (!Number.isInteger(count) || count < 2) throw new Error(`ci.yml's tests job does not run \`bun run test --shard="$SHARD/<count>"\`: "${command}"`)
+  return { matrix: job?.strategy?.matrix?.shard ?? [], count, command }
 }
