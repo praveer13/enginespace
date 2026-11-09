@@ -289,9 +289,11 @@ const coordinatedOmission: Kit = (rng) => {
       // Enough rows that the freeze is a minority of the window.
       const rows = Math.max(1000, Math.ceil((rate * 3.5 * stallUs) / 1_000_000_000))
       const base = openSpec(runSeed, traffic, rate, rows)
-      // The freeze starts when the schedule, in an open loop with the same requests, has its most requests in flight in the first part of the window,
-      // and the clients are one more than the most there were by then. Spare clients would be sent into the freeze and show in the harness's own
-      // timer; with this many, the schedule is never held back before the freeze and is held back right after it starts.
+      // The freeze starts when the schedule, in an open loop with the same requests, has its most requests in flight in the first part of the window
+      // after the warm-up, and the clients are one more than the most there were at any moment up to then, the warm-up included. So the schedule is
+      // never held back before the freeze and is held back right after it starts. One client is spare when the freeze begins, and more when the warm-up
+      // was busier than that moment. A spare client sends the request that falls due in the freeze into it, and the harness's own timer, from the send,
+      // shows the rest of the freeze; there are too few of them to reach the harness's p99, which tests/sim/bench-broken.test.ts checks.
       const from = base.warmupUs + divRound((base.durationUs - base.warmupUs) * where, 1000)
       const pilot = runBench(runSeed, base, CORPUS_SERVER).rows
       const peak = inFlightPeak(pilot, base.warmupUs, from)

@@ -194,8 +194,12 @@ describe('every flaw shows in its log', () => {
     }
   })
 
-  it('coordinated-omission: the server freezes, the sends right after fall behind their due times, and nothing before it does', () => {
-    for (const c of casesOf('coordinated-omission')) {
+  it('coordinated-omission: the server freezes, the sends right after fall behind their due times, nothing before it does, and too few are sent into it to show in the harness\'s p99', () => {
+    let most = 0
+    let spareMost = 0
+    let allowedLeast = Infinity
+    const cases = casesOf('coordinated-omission')
+    for (const c of cases) {
       const stalls = c.scene.server.stalls ?? []
       expect(stalls, `${c.seed}`).toHaveLength(1)
       const { atUs, forUs } = stalls[0]
@@ -205,18 +209,30 @@ describe('every flaw shows in its log', () => {
       expect(slip.ok).toBe(false)
       expect(slip.lateRows).toBeGreaterThanOrEqual(5)
       expect(slip.maxLateUs).toBeGreaterThan(forUs / 3)
-      // Nothing finishes while the engine is frozen, so no client frees up: the requests sent into the freeze are at most those of the clients that
-      // were idle (holding a request not yet due) when it began, which is the clients less the requests in flight at that moment.
-      const a = c.scene.setup.arrivals
-      if (a.kind !== 'closed') throw new Error('not a closed loop')
-      expect(rows.filter((r) => r.doneUs > atUs && r.doneUs < atUs + forUs), `${c.seed}: a request finished inside the freeze`).toEqual([])
-      const inFlightAtFreeze = rows.filter((r) => r.sentUs <= atUs && r.doneUs > atUs).length
-      const sentIntoFreeze = rows.filter((r) => r.sentUs > atUs && r.sentUs < atUs + forUs).length
-      expect(sentIntoFreeze, `${c.seed}: ${a.clients} clients, ${inFlightAtFreeze} in flight when the freeze began`).toBeLessThanOrEqual(a.clients - inFlightAtFreeze)
+      // The engine is frozen: no reply comes back inside the freeze, so a request sent into it waits out the rest of it, and the harness's own
+      // timer, which starts at the send, shows that wait. The kit leaves few clients to send one: the clients are one more than the most requests in
+      // flight at any moment before the freeze, the warm-up included, so one is spare when the freeze begins, and more when the warm-up was busier.
+      // There must be too few to reach the harness's p99. Of its n rows, n − ⌈0.99 n⌉ lie beyond the p99, and with no more than that many sent into
+      // the freeze they cannot raise the p99 above what the other rows give.
+      expect(
+        rows.filter((r) => (r.firstUs > atUs && r.firstUs < atUs + forUs) || (r.doneUs > atUs && r.doneUs < atUs + forUs)),
+        `${c.seed}: a reply came back inside the freeze`,
+      ).toEqual([])
+      const sentInto = rows.filter((r) => r.sentUs > atUs && r.sentUs < atUs + forUs)
+      expect(sentInto.every((r) => r.firstUs >= atUs + forUs), `${c.seed}: a request sent into the freeze was answered inside it`).toBe(true)
+      const n = c.scene.claim.n
+      const beyondP99 = n - Math.ceil((990 * n) / 1000)
+      expect(sentInto.length, `${c.seed}: ${sentInto.length} sent into the freeze, and ${beyondP99} of the ${n} rows lie beyond the p99`).toBeLessThanOrEqual(beyondP99)
       expect(c.scene.claim.timerStartsAt).toBe('send')
       // The harness's own timer, from the send, does not see the freeze, and the course's, from the due time, does.
       expect(c.answer.p99Us).toBeGreaterThan(forUs / 4)
+      const a = c.scene.setup.arrivals
+      if (a.kind !== 'closed') throw new Error('not a closed loop')
+      most = Math.max(most, sentInto.length)
+      spareMost = Math.max(spareMost, a.clients - rows.filter((r) => r.sentUs <= atUs && r.doneUs > atUs).length)
+      allowedLeast = Math.min(allowedLeast, beyondP99)
     }
+    say(`  coordinated omission, over ${cases.length} cases: sends into the freeze at most ${most}, where the rows beyond the p99 allow ${allowedLeast} at the fewest; clients spare when it began at most ${spareMost}`)
   })
 
   it('client-queue-hidden: a cap on the clients, a queue in the client that grows through the run, and a timer that starts after it', () => {
