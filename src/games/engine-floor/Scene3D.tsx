@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { BufferAttribute, Euler, Quaternion, Vector3, type Mesh } from 'three'
+import { useFrame } from '@react-three/fiber'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { BufferAttribute, Euler, Quaternion, Vector3, type Group, type Mesh } from 'three'
 import type { FloorView, LaidView } from '@es/play/engine-floor/types'
 import { TapeLabel } from '@/design/components/TapeLabel'
 import { CameraRig } from '@/scene/CameraRig'
@@ -7,16 +8,16 @@ import { useSceneTokens } from '@/design/scene-tokens'
 import { useKit } from '@/scene/kit'
 import type { LabelSpec } from '@/scene/labels'
 import { Fluorescent } from '@/scene/Lights'
-import { CHANNEL, cellOffset, Kitchen, LampLights, StaticSet, ticketGeometry, useMotionLoop, useProps, type LampLight } from '@/scene/props'
+import { CHANNEL, cellOffset, Kitchen, LampLights, StaticSet, useMotionLoop, useProps, type LampLight } from '@/scene/props'
 import { progress } from '@/scene/props/motion'
 import { merged, painted } from '@/scene/props/shape'
 import type { PropSpec } from '@/scene/props/specs'
 import { SceneCanvas } from '@/scene/SceneCanvas'
 import { SheetInstances } from '@/scene/SheetInstances'
-import type { HouseItem, HouseProp, Pose } from './scene-layout'
+import type { HouseItem, HouseProp, Pose, Tape } from './scene-layout'
 import type { SceneModel } from './scene-presets'
-import { carGeometries, customOf, OWN } from './scene-props'
-import { playOf, presetFor, routeOf, type Chit, type Hop, type Play, type Route } from './scene-route'
+import { carGeometries, customOf, OWN, ticketSheet } from './scene-props'
+import { handsInView, playOf, presetFor, routeOf, type Chit, type Hop, type Play, type Route } from './scene-route'
 import type { CameraStop } from './scene-stops'
 import './scene3d.css'
 
@@ -65,8 +66,8 @@ const POOL = [0.336, 0.21] as const
 /* The ticket and the dumbwaiter's car                                                                                */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** The ticket: a kitchen's [estimated], a slip a hand wide and twice as long, the print's own shape, thick enough that its edge catches light. */
-const SHEET = ticketGeometry(0.1, 0.2, 0.002)
+/** The ticket: a kitchen's slip, curled as the roll leaves it, its foot rolled forward so its back and its cut edge show (scene-props.ts). */
+const SHEET = ticketSheet()
 const [u, v] = cellOffset(3)
 SHEET.setAttribute('aCell', new BufferAttribute(new Float32Array(SHEET.getAttribute('position').count * 2).map((_, i) => (i % 2 ? v : u)), 2))
 
@@ -145,6 +146,45 @@ function Mover({ route, shaft, play, passed, onHop }: { route: Route; shaft: num
   )
 }
 
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* The line's tape                                                                                                    */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/** A sheet of tape a metre square at its group's origin, which the group places, turns and cuts to size. */
+const UNIT = [{ id: 'line', center: [0, 0, 0], size: [1, 1] }] as const
+
+/**
+ * The line's strip of masking tape on the canopy's lip, cut to its words wherever the camera stands. The words are DOM and keep their
+ * size on the screen, as every tape's in the house do, so on each frame drawn the strip is cut to the box of its words with the small
+ * tape's margins round them (scene3d.css): as many metres along the lip and up it as the box has pixels, at the pixels a metre of the lip
+ * makes there through the camera, and no more than the lip leaves it (scene-layout.ts's `Tape`).
+ */
+function LineTape({ strip, words }: { strip: NonNullable<Tape['strip']>; words: RefObject<HTMLElement | null> }) {
+  const group = useRef<Group>(null)
+  useFrame(({ camera, size }) => {
+    const sheet = group.current
+    const box = words.current
+    if (!sheet) return
+    sheet.visible = box !== null
+    if (!box) return
+    camera.updateMatrixWorld()
+    // The pixels a metre of the lip makes along it and up it, between two points either side of the strip's centre.
+    const [x, y, z] = strip.center
+    const pixels = (dx: number, dy: number) => {
+      a.set(x - dx, y - dy, z).project(camera)
+      b.set(x + dx, y + dy, z).project(camera)
+      return Math.hypot(((b.x - a.x) * size.width) / 2, ((b.y - a.y) * size.height) / 2) / Math.hypot(2 * dx, 2 * dy)
+    }
+    sheet.position.set(x, y, z)
+    sheet.rotation.set(...strip.rotation)
+    sheet.scale.set(Math.min(strip.size[0], box.offsetWidth / pixels(0.05, 0)), Math.min(strip.size[1], box.offsetHeight / pixels(0, 0.05)), 1)
+  })
+  return (
+    <group ref={group} visible={false}>
+      <SheetInstances kind="tape" sheets={UNIT} name="tape" />
+    </group>
+  )
+}
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* The labels                                                                                                         */
@@ -177,10 +217,11 @@ const isOwn = (item: HouseItem): item is HouseProp => OWN.has(item.kind)
 const asSpec = (item: HouseItem): PropSpec => (isOwn(item) ? customOf(item) : item)
 
 /** The house and what moves in it, inside the canvas, where the kit is. */
-function House3D({ model, route, stop, play, passed, spot, cook, onHop }: { model: SceneModel; route: Route; stop: CameraStop; play: Play | null; passed: number; spot: string; cook: number | null; onHop: (k: number) => void }) {
+function House3D(props: { model: SceneModel; route: Route; stop: CameraStop; play: Play | null; passed: number; spot: string; cook: number | null; onHop: (k: number) => void; words: RefObject<HTMLElement | null> }) {
+  const { model, route, stop, play, passed, spot, cook, onHop } = props
   const { house, present } = model
   const items = useMemo(() => house.items.map(asSpec), [house])
-  const strips = useMemo(() => model.tapes.flatMap((tape) => (tape.strip ? [{ id: tape.id, ...tape.strip }] : [])), [model.tapes])
+  const strip = model.tapes.find((tape) => tape.strip)?.strip
   // The laid hand-offs' set is rebuilt only when a stage adds or takes away a spike, a gate or a shelf.
   const handKey = route.props.map((prop) => prop.id).join()
   const [hands, setHands] = useState({ key: '', specs: [] as PropSpec[] })
@@ -197,7 +238,7 @@ function House3D({ model, route, stop, play, passed, spot, cook, onHop }: { mode
         <LampLights lamps={lamps} spread={POOL} />
         <Mover route={route} shaft={house.shaft.x} play={play} passed={passed} onHop={onHop} />
       </Kitchen>
-      <SheetInstances kind="tape" sheets={strips} name="tape" />
+      {strip ? <LineTape strip={strip} words={props.words} /> : null}
     </>
   )
 }
@@ -224,19 +265,22 @@ export default function Scene3D({ view, model, stop }: Scene3DProps) {
   const current = play !== null && hop >= 0 ? play.hops[hop] : null
   const passed = play === null ? view.reached : play.base + Math.min(Math.max(hop, 0), play.held)
   const spot = current?.spot || route.spots[passed] || ''
+  // The line's words, whose box the strip under them is cut to (LineTape).
+  const words = useRef<HTMLSpanElement>(null)
 
-  // The chits first and the tapes over them, so a name is never covered.
+  // The chits first and the tapes over them, so a name is never covered. A pair of hands' tape shows on a phone too where the camera is
+  // close on those hands.
   const labels = useMemo<LabelSpec[]>(
     () => [
       ...route.chits.map((chit) => ({ id: chit.id, at: chit.at, place: chit.place, className: 'es-floor-chit', content: chitContent(chit, passed, play !== null) })),
       ...tapes.map((tape) => ({
         id: tape.id,
         at: tape.at,
-        minWidth: tape.minWidth,
+        minWidth: tape.hands && handsInView(house, stop, spot, tape.id) ? undefined : tape.minWidth,
         place: tape.hands || tape.strip ? undefined : ('right' as const),
         className: tape.strip ? 'es-floor-scene-strip' : tape.hands ? 'es-floor-scene-tape es-floor-scene-tape--hands' : 'es-floor-scene-tape',
         content: tape.strip ? (
-          tape.text
+          <span ref={words}>{tape.text}</span>
         ) : (
           <TapeLabel size="sm" tilt="none" slot={tape.slot ?? undefined}>
             {tape.text}
@@ -244,12 +288,12 @@ export default function Scene3D({ view, model, stop }: Scene3DProps) {
         ),
       })),
     ],
-    [tapes, route.chits, passed, play],
+    [tapes, route.chits, passed, play, house, stop, spot],
   )
 
   return (
     <SceneCanvas labels={labels} fog={HAZE} exposure={1} environmentIntensity={0.75} className="es-floor-scene">
-      <House3D model={model} route={route} stop={stop} play={play} passed={passed} spot={spot} cook={current?.cook ?? null} onHop={onHop} />
+      <House3D model={model} route={route} stop={stop} play={play} passed={passed} spot={spot} cook={current?.cook ?? null} onHop={onHop} words={words} />
     </SceneCanvas>
   )
 }
