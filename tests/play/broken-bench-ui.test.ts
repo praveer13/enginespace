@@ -12,6 +12,7 @@ import { BENCH_FLAWS } from '@es/sim/bench/broken-types'
 import { caseOf } from '@es/play/broken-bench/cases'
 import { FLAW_FACTS } from '@es/play/broken-bench/flaws'
 import { slotsOf } from '@es/play/broken-bench/levels'
+import { TAIL_ROWS } from '@es/play/broken-bench/desk'
 import { benchLevel } from '@es/play/broken-bench/session'
 import type { BenchAction, BenchLevelId, BenchState, CaseSlot } from '@es/play/broken-bench/types'
 import { formatReadout } from '@/design/format'
@@ -241,6 +242,8 @@ describe('the mirror is the tail as a table', () => {
     const markup = render(h(Mirror, { run, desk }))
     expect(markup).toContain('data-mirror=""')
     expect(markup).toContain("The slowest orders under the desk&#x27;s stopwatch and cut, ranked from the slowest")
+    // The caption says how many lines the tail holds at most, which is the same for every log.
+    expect(text(markup)).toContain(`ranked from the slowest, up to ${formatReadout(TAIL_ROWS)} of them`)
     expect(count(markup, /<tr[^>]*role="row"/g)).toBe(desk.tail.length + 1)
     expect(count(markup, /data-row-button/g)).toBe(desk.tail.length)
     expect(markup).toContain('data-native-keys="ArrowUp ArrowDown Home End"')
@@ -257,6 +260,28 @@ describe('the mirror is the tail as a table', () => {
     expect(count(markup, /<span class="es-tape__text">p99<\/span>/g)).toBe(0)
     expect(text(markup)).toContain("Count down from the slowest to the order at the p99's rank.")
     expect(text(markup)).not.toContain('beyond it')
+  })
+
+  test('prints as many lines for every log, in practice and in a graded attempt, so that its length says nothing of where the p99 sits', () => {
+    const lengths = new Map<string, Set<number>>()
+    for (const [level, seed] of [['due', 0], ['due', 1], ['due', 343], ['warm', 0], ['warm', 1], ['sure', 0], ['sure', 1]] as const) {
+      for (const mode of ['practice', 'graded'] as const) {
+        const run = fakeRun(stateOf(level, seed), { mode })
+        // At the report's own settings, and with the stopwatch at the due time and the cut of the course's rule.
+        for (const settings of [NO_SETTINGS, { key: deskKey(run), clock: 'due', cut: 128 } satisfies DeskSettings]) {
+          const desk = deskOf(run, settings)
+          const markup = render(h(Mirror, { run, desk }))
+          const lines = count(markup, /data-row-button/g)
+          const orders = desk.reading.n
+          expect([level, seed, mode, lines]).toEqual([level, seed, mode, Math.min(orders, TAIL_ROWS)])
+          if (orders >= TAIL_ROWS) lengths.set('a log that fills the tail', (lengths.get('a log that fills the tail') ?? new Set<number>()).add(lines))
+          else lengths.set('a log of fewer orders', (lengths.get('a log of fewer orders') ?? new Set<number>()).add(lines))
+        }
+      }
+    }
+    // Every log that fills the tail has one length, whatever its p99's place, and the short logs are the only ones that print fewer.
+    expect([...(lengths.get('a log that fills the tail') ?? [])]).toEqual([TAIL_ROWS])
+    expect(Math.max(...(lengths.get('a log of fewer orders') ?? [0]))).toBeLessThan(TAIL_ROWS)
   })
 
   test('is the tail\'s own ticket, which keeps its column heads over one line for each order on a narrow screen (bench.css)', () => {

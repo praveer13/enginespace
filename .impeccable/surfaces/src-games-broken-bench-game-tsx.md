@@ -52,6 +52,10 @@ The ruling. The court reads the number the report should have had: on the histog
 - **The real tools as one ledger.** The real tools' claims, on the ruling's slip and under each flag of In production, are set the same way: a line for each claim, its figure beside its source, every figure at the print step, and a phrase in the reading face, never in a large code face.
 - **No heading said twice.** The verdict's sentence opens on what the learner did, because the ticket's heading already says whether the ruling stands.
 
+## Adaptations (W1b-T11)
+
+- **The tail lists as many orders for every log, in a box that scrolls.** A graded attempt does not say where the p99 sits, and a tail that ended a few lines under the p99 said it by its length. The tail now lists the slowest hundred orders, or all of them when the log is shorter, whatever the log, the stopwatch and the cut. A tail that long scrolls in a box of its own, about a dozen lines in view at rest, so that it takes no more of the page than it did, the desk follows within reach on a phone, and the steel scrollbar says that more follow. On the narrowest paper, 320 px, the time takes the room it needs and the rank and the order give theirs up, so that nothing scrolls sideways.
+
 ## Unresolved
 
 - **The 3D opener** (`rain-and-relay`) is a stretch built after `court` ships; its camera presets and the kitchen words for its arenas are in GAMES.md §2.6.

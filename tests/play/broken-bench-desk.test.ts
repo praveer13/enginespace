@@ -12,7 +12,7 @@ import { describe, expect, test } from 'bun:test'
 import { BENCH_FLAWS } from '@es/sim/bench/broken-types'
 import { BENCH_WARMUP_ROWS, benchWarmupRows } from '@es/sim/bench/broken-model'
 import { caseOf } from '@es/play/broken-bench/cases'
-import { BIN_EDGES_US, DECADE_EDGES_US, TAIL_BELOW, TAIL_MIN, binsOf, cutOf, harnessDesk, latencyUs, placeOf, readingOf, tailOf } from '@es/play/broken-bench/desk'
+import { BIN_EDGES_US, DECADE_EDGES_US, TAIL_ROWS, binsOf, cutOf, harnessDesk, latencyUs, placeOf, readingOf, tailOf } from '@es/play/broken-bench/desk'
 import { rulerOf } from '@es/play/broken-bench/layout'
 import type { CaseSlot } from '@es/play/broken-bench/types'
 
@@ -86,13 +86,14 @@ describe('the tail', () => {
     expect(flagged[0].latencyUs).toBe(reading.p99Us)
   })
 
-  test('shows the p99 and a few orders below it, at least a dozen lines when the log has them', () => {
+  test('lists the slowest hundred orders, or every order when the log has fewer, wherever the p99 sits', () => {
+    expect(TAIL_ROWS).toBe(100)
     const tail = tailOf(scene.rows, desk, reading)
-    expect(tail.length).toBe(Math.min(reading.n, Math.max(TAIL_MIN, reading.fromTop + TAIL_BELOW)))
+    expect(tail.length).toBe(Math.min(reading.n, TAIL_ROWS))
     expect(tail.length).toBeGreaterThan(reading.fromTop)
   })
 
-  test('has the p99 among its lines for every case and both clocks, and for a log far longer than the corpus\'s, where the tail grows to hold it', () => {
+  test('has the p99 among its lines for every case and both clocks, with lines under it', () => {
     for (const { rows, harnessCut } of scenes) {
       for (const clock of ['sent', 'due'] as const) {
         const set = { clock, cut: clock === 'due' ? 0 : harnessCut }
@@ -100,14 +101,24 @@ describe('the tail', () => {
         const lines = tailOf(rows, set, r)
         expect(lines.filter((line) => line.p99)).toHaveLength(1)
         expect(lines.find((line) => line.p99)?.latencyUs).toBe(r.p99Us)
+        expect(lines.length).toBeGreaterThan(r.fromTop)
       }
     }
-    const long = Array.from({ length: 12_000 }, (_, i) => ({ ...scene.rows[i % scene.rows.length], id: i }))
-    const r = readingOf(long, { clock: 'sent', cut: 0 })
-    const lines = tailOf(long, { clock: 'sent', cut: 0 }, r)
-    expect(r.fromTop).toBe(12_000 - Math.ceil(0.99 * 12_000) + 1)
-    expect(lines).toHaveLength(r.fromTop + TAIL_BELOW)
-    expect(lines.filter((line) => line.p99)).toHaveLength(1)
+  })
+
+  test('is as long for a log of any length: it does not grow to hold the p99, since a length that followed the p99\'s place would say where it sits', () => {
+    // Orders of the log's own times, repeated and numbered afresh: from a log of a few orders to one far longer than the corpus's.
+    for (const length of [1, 12, 99, 100, 101, 1_000, 6_628, 12_000]) {
+      const rows = Array.from({ length }, (_, i) => ({ ...scene.rows[i % scene.rows.length], id: i }))
+      for (const clock of ['sent', 'due'] as const) {
+        const set = { clock, cut: 0 }
+        const r = readingOf(rows, set)
+        const lines = tailOf(rows, set, r)
+        expect([length, clock, lines.length]).toEqual([length, clock, Math.min(length, TAIL_ROWS)])
+        // The place of the p99 is the rule's: wherever it falls the line count is the same, and beyond the tail it is not drawn.
+        expect([length, lines.filter((line) => line.p99).length]).toEqual([length, r.fromTop <= TAIL_ROWS ? 1 : 0])
+      }
+    }
   })
 
   test('carries each order\'s own times, and counts the clock it is set to', () => {
