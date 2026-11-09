@@ -7,7 +7,7 @@
  *   reading   a file is being read, hashed and loaded
  *   refused   the file is not a lab module, or is another lab's: nothing ran
  *   running   the checks run one at a time; `results` fills as each finishes
- *   done      the run is over; `recorded` says what became of it
+ *   done      the run is over; `recorded` says what became of it, and `readout` is the lab's readout, if it has one and the run earned it
  *
  * The state is a plain value, and ForgeView draws it, so a test draws any state without a worker.
  */
@@ -18,6 +18,7 @@ import { createHost, type ForgeHost, type LoadedModule } from './host'
 import { moduleProblem, RunAborted, runLab, seedsOf, type CheckResult, type LabRun, type SeedMode } from './invoke'
 import type { ForgeLab } from './labs'
 import { MAX_MODULE_BYTES } from './protocol'
+import { runSlotReadout, type ReadoutState } from './readout'
 import { labCheckDraft } from './record'
 import { browserPool } from './worker-pool'
 
@@ -42,7 +43,7 @@ export type ForgeState =
   | { step: 'reading'; file: FileFacts }
   | { step: 'refused'; file: FileFacts; message: string; sha256?: string }
   | { step: 'running'; file: FileFacts; module: LoadedModule; seeds: SeedMode; results: CheckResult[]; current: { index: number; id: string; seed?: number } | null }
-  | { step: 'done'; file: FileFacts; module: LoadedModule; run: LabRun; recorded: Recorded }
+  | { step: 'done'; file: FileFacts; module: LoadedModule; run: LabRun; recorded: Recorded; readout?: ReadoutState }
 
 /** What the hook needs of the ledger: `useEvidence().append`, narrowed to the one event it writes. */
 export type RecordRun = (draft: Draft<'lab-check'>) => Promise<{ ok: true; durable: boolean } | { ok: false; detail: string }>
@@ -93,11 +94,12 @@ export function useForge(lab: ForgeLab, record: RecordRun): Forge {
   const run = useCallback(
     async (file: FileFacts, module: LoadedModule, mode: SeedMode, replay?: Record<string, number>) => {
       const results: CheckResult[] = []
+      const signal = signalOf()
       setState({ step: 'running', file, module, seeds: mode, results, current: null })
       let finished: LabRun
       try {
         finished = await runLab(hostOf(), lab, module, {
-          signal: signalOf(),
+          signal,
           seeds: mode,
           ...(replay === undefined ? {} : { replay }),
           onProgress: (event) => {
@@ -115,20 +117,30 @@ export function useForge(lab: ForgeLab, record: RecordRun): Forge {
         return
       }
       const draft = labCheckDraft(finished)
+      let recorded: Recorded
       if (draft === null) {
         const why = finished.reference ? 'reference' : finished.seeds === 'replay' ? 'replay' : 'partial'
-        setState({ step: 'done', file, module, run: finished, recorded: { kind: 'none', why } })
-        return
+        recorded = { kind: 'none', why }
+        setState({ step: 'done', file, module, run: finished, recorded })
+      } else {
+        setState({ step: 'done', file, module, run: finished, recorded: { kind: 'pending' } })
+        try {
+          const written = await recorder.current(draft)
+          recorded = written.ok ? { kind: 'saved', durable: written.durable } : { kind: 'failed', detail: written.detail }
+        } catch (e) {
+          recorded = { kind: 'failed', detail: messageOf(e) }
+        }
+        setState({ step: 'done', file, module, run: finished, recorded })
       }
-      setState({ step: 'done', file, module, run: finished, recorded: { kind: 'pending' } })
-      let recorded: Recorded
-      try {
-        const written = await recorder.current(draft)
-        recorded = written.ok ? { kind: 'saved', durable: written.durable } : { kind: 'failed', detail: written.detail }
-      } catch (e) {
-        recorded = { kind: 'failed', detail: messageOf(e) }
-      }
-      setState({ step: 'done', file, module, run: finished, recorded })
+      // The lab's readout, once the run has earned it. It comes after the record is written, so that a learner who leaves loses nothing, and
+      // it holds the page as the run does (`busy`), so that a file chosen in the meantime is not lost to it.
+      const wanted = lab.readout
+      if (signal.aborted || wanted === undefined || !finished.checks.some((check) => check.id === wanted.after && check.status === 'pass')) return
+      setState({ step: 'done', file, module, run: finished, recorded, readout: { status: 'running' } })
+      const readout = await runSlotReadout(hostOf())
+      // The page went away while the night was being played: its worker was stopped under it, and what it says is not the module's.
+      if (signal.aborted) return
+      setState({ step: 'done', file, module, run: finished, recorded, readout })
     },
     [lab],
   )

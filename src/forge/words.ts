@@ -2,6 +2,7 @@
  * What the forge page says about a run, in words (ARCHITECTURE §8.3). Pure, so that a test reads the sentence a learner reads.
  */
 
+import type { SlotNight, SlotRow } from '@es/sim'
 import type { Recorded } from './useForge'
 
 /**
@@ -25,3 +26,26 @@ export function recordedSentence(recorded: Recorded, lab: string, passed = true)
       return `Not recorded: ${recorded.detail}`
   }
 }
+
+/* ---------------------------------------------------------------------------------------------------------------------------- */
+/* The slot readout of the hybrid-kv page (TR5a §5; SlotReadout.tsx)                                                             */
+/* ---------------------------------------------------------------------------------------------------------------------------- */
+
+const WORDS: Readonly<Record<number, string>> = { 1: 'one', 2: 'two' }
+export const slotWord = (slots: number): string => WORDS[slots] ?? String(slots)
+
+/** What a slot row is called, and what it is: the first count is vLLM's default for `max_loras` at the pin (vllm.lora.max-loras-default). */
+export function slotRow(slots: number, adapters: number): { name: string; what: string } {
+  const word = slotWord(slots)
+  const name = `${word.charAt(0).toUpperCase()}${word.slice(1)} ${slots === 1 ? 'slot' : 'slots'}`
+  if (slots === 1) return { name, what: "vLLM's default at the pin, outside the pool" }
+  return { name, what: slots === adapters ? 'one for each adapter, outside the pool' : 'outside the pool' }
+}
+
+/** The sentence a screen reader hears when the night has been played. */
+export function readoutSentence(night: SlotNight, yours: SlotRow): string {
+  const times = (n: number) => (n === 1 ? 'once' : `${n} times`)
+  const slots = night.slots.map((s) => `${slotRow(s.slots, night.adapters.length).name.toLowerCase()} admitted ${s.row.admitted} and loaded ${times(s.row.loads)}`)
+  return `Slot readout: of ${night.arrivals} requests, your module admitted ${yours.admitted} and loaded adapters ${times(yours.loads)}; ${slots.join('; ')}.`
+}
+
