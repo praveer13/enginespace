@@ -8,6 +8,12 @@ import path from 'node:path'
 export const root = path.resolve(import.meta.dirname, '../..')
 export const read = (relative: string) => readFileSync(path.join(root, relative), 'utf8')
 
+/**
+ * The `if` of the step that installs Bun from npm when setup-bun's download from GitHub failed (ARCHITECTURE §10.3). The tests
+ * that list a job's commands leave that step out: workflows.test.ts checks it on its own, after every setup-bun step.
+ */
+export const BUN_FALLBACK = "steps.bun.outcome == 'failure'"
+
 /** The text between two markers. A renamed heading throws instead of silently parsing nothing. */
 export function between(text: string, from: string, to: string): string {
   const start = text.indexOf(from)
