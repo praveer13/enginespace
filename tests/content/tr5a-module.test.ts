@@ -26,6 +26,7 @@ import type { CompiledBlock, ProseFlow, ProseInline } from '@es/schema'
 import { lockFileSchema } from '@es/schema/lock'
 import { offeredAt } from '../../packages/play/items/draw'
 import { familyById } from '../../packages/play/items/registry'
+import type { Level } from '../../packages/play/items/types'
 import { POOL } from '../../packages/play/pool/entry'
 import { buildLevel } from '../../packages/play/pool/levels'
 import { HYBRID_KV_CHECKS, HYBRID_KV_KCS } from '../../packages/sim/forge/hybrid-kv'
@@ -301,7 +302,7 @@ describe('what the lessons teach', () => {
       const byItems = new Set(
         lesson.blocks.flatMap((b) => {
           const gen = b.type === 'item' ? familyById(b.family) : undefined
-          return b.type === 'item' && gen !== undefined ? offeredAt(gen, b.level).flatMap((variant) => variant.kcs) : []
+          return b.type === 'item' && gen !== undefined ? offeredAt(gen, b.level as Level).flatMap((variant) => variant.kcs) : []
         }),
       )
       for (const kc of lesson.kcs) {
@@ -344,7 +345,7 @@ describe('what the lessons teach', () => {
         if (gen === undefined) continue
         // A block draws the variants its family offers at the block's level, and `blocks-held` is named by two lessons at two levels: the first
         // lesson's items are about a request and a model whose groups are given, and the second's about a model given by its layer counts.
-        const variants = offeredAt(gen, block.level)
+        const variants = offeredAt(gen, block.level as Level)
         expect([lesson.id, block.family, variants.length > 0]).toEqual([lesson.id, block.family, true])
         for (const kc of variants.flatMap((variant) => variant.kcs)) {
           expect([lesson.id, block.family, kc, lesson.kcs.includes(kc)]).toEqual([lesson.id, block.family, kc, true])
@@ -627,7 +628,7 @@ describe('lesson 2: how the layers become groups of one page size', () => {
   })
 
   test('the table of three models', () => {
-    const rows = MODELS.map(([full, sliding]) => ({ full, sliding, ...layoutOf(full, sliding) }))
+    const rows = MODELS.map(([full, sliding]) => layoutOf(full, sliding))
     const names = ['gpt-oss-20b with its drafter', 'Gemma-3-27b', "the document's counterexample"]
     rows.forEach((r, i) => {
       const share = (Math.round(r.wastePermille) / 10).toFixed(1)

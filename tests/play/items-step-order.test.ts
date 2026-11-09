@@ -192,7 +192,8 @@ describe('role: a call is described by its work and by what it waits for', () =>
       const item = stepOrder.make(seed, 3, 'role')
       if (item.answer.kind !== 'choice') throw new Error('a choice')
       expect(item.answer.options).toHaveLength(4)
-      expect(item.answer.options.some((option) => option.id === item.answer.correct)).toBe(true)
+      const { correct } = item.answer
+      expect(item.answer.options.some((option) => option.id === correct)).toBe(true)
       expect(namesOf(item.stem)).toEqual([String(item.params.call)])
       for (const option of item.answer.options) {
         if (option.id === item.answer.correct) expect(option.miss).toBeUndefined()

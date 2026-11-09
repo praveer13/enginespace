@@ -84,6 +84,7 @@
 | D-058 | The site is served at https://enginespace.naigap.com, at the root of that origin: the deploy builds with the default base `/`, `public/CNAME` names the domain, and `VITE_BASE` stays for a preview or a fork under a subpath. This answers O-1. | owner-decided 2026-11-08 |
 | D-059 | D-023's budgets stand: the front page's first-paint JavaScript at 150 KB and every other route at 200 KB, with no row of its own for any page. The build is fitted to them by the fixes D-053 to D-057 named (the preload map out of the entry, the item families on demand, the lessons' tables out of the content loader, a front page that carries what it runs) and by a game shell that loads its keys dialog when it is asked for. | proposed (W1 gates restore, 2026-11-08); supersedes D-053 to D-057; holds at the W1 exit |
 | D-060 | The repository `praveer13/enginespace` is public from 2026-11-08, and GitHub Pages is on, with the source GitHub Actions and the custom domain `enginespace.naigap.com`; `PAGES_ENABLED` is set when W1 is on its way to `main`. This answers O-2. O-3 stays open and its default, that nothing is published until decided, is superseded: until the owner answers it, enginespace's own code and content are all rights reserved. | owner-decided 2026-11-08 |
+| D-061 | `scripts/` and `tests/` are type-checked by `tsc -b` in `tsconfig.tools.json`, under the app's options, and the parts of Bun that they call are declared in `scripts/types/bun.d.ts` in place of `@types/bun`, which is not added. | proposed (W1b-T14) |
 
 ---
 
@@ -1094,6 +1095,35 @@ D-060 records the owner's answer to O-2, which leaves the table of open question
   - The kits still ship as static downloads (D-007), now by design: a learner may clone the repository, and the site serves the same zips. Whether to turn the nightly on (D-052) is still the owner's call.
   - `tests/docs/publication.test.ts` holds `LICENSES/Apache-2.0.txt` to apache.org's bytes, NOTICE to the pins at which the lessons, the claims and the lifecycle model quote the four projects, the three translated files to their headers, the documents to what this record says (the records that it names as pointing here do point here, it does not call history clean, it says that `main`'s tip is clean while its history is not, and it says how the first deploy went), and the tracked text files to the search above. `tests/docs/custom-domain.test.ts` expects O-1, O-2 and O-12 out of the table of open questions, and `tests/ci/workflows.test.ts` expects the deploy to run on a push to `main` and by hand.
 - **Revisit when:** the owner answers O-3 (LICENSE and LICENSE-CONTENT, NOTICE, README.md, PRODUCT.md and the NOTICE text of the lab zips in `scripts/pack-labs.ts` then change, and the zips are packed again), moves the site off GitHub Pages, or makes the repository private again.
+
+---
+
+## Scripts and tests are type-checked, 2026-11-09
+
+D-061 closes the item that W0's report left open and W1's carried: `scripts/` and `tests/` were linted and never type-checked.
+
+### D-061 · `scripts/` and `tests/` are type-checked, against a declaration of the parts of Bun that they call
+
+- **Status:** proposed (W1b-T14, 2026-11-09). It adds no dependency, so it needs nothing of the owner; the owner may still prefer `@types/bun` (Alternatives).
+- **Decision:**
+  - `npm run typecheck` (`tsc -b`) builds a fourth project, `tsconfig.tools.json`, that holds `scripts/` and `tests/`. It extends `tsconfig.app.json`, so the strictness is the app's (strict, no unused locals or parameters, erasable syntax only, verbatim module syntax), and it adds Node's types, the DOM lib and Vite's ambient types, since both folders import `src/` and the packages and the project reads those too.
+  - Two files are outside it: `tests/fixtures/design/readout-untagged.tsx` and `readout-ticks-not-synthetic.tsx`, which `tests/design/readout.test.ts` compiles and expects to fail. `tests/config.test.ts` holds the project's options and its two lists, and that every other TypeScript file under the two folders is in the program.
+  - `@types/bun` is not added. `scripts/types/bun.d.ts` declares `bun:test`, the `Bun` global (`sleep`, `file`, `serve`, `spawn`, `CryptoHasher`), `HTMLRewriter` and `import.meta.dir`, as far as the two folders call them, and a call to anything else is a type error that names it. A matcher takes `unknown` where Bun's own take the type of the value under test, so a test that passes at run time does not fail to compile for how it spells its expectation.
+  - Where the compiler is told to look away, the line says why. In `src/`, `packages/` and `scripts/` a cast through `unknown` has a comment on its lines, a `@ts` directive says why after it, and an `eslint-disable` says why after ` -- ` (so does any explicit `any`, which cannot be written without one); `tests/lint/casts.test.ts` holds it. Of the seven sites that gave no reason (W1-report §9.1, A21 and A22), six need no cast now: `MarkEntry` and `StoredAnswer` are JSON as the compiler reads JSON, the balk's point is built axis by axis, `Palette.colorOf` gives the glaze without the `null` geometry that a cast had passed, the camera rig's target never needed one, and Service's two sessions are assignable to `AnySession` as they are. The seventh, the vectors file that `verify:items --write` made, carries its reason, and so do four casts whose reason sat in a comment above them.
+- **Context:**
+  - W0's report (§8): "`scripts/` and `tests/` are linted but not type-checked, because no tsconfig covers them and Bun's types are not in A§14". W1's report (§12) carried it as inherited and still open, and W1b-T14 is the task.
+  - The first run over both folders, with the declaration as it stands, found 85 errors in 40 files [measured 2026-11-09 at cdffd3e]. Most were small: a literal checked as an object where a variable would not be, `readonly` where a callback wants a mutable tuple, a parameter property that `erasableSyntaxOnly` refuses, an optional value that a test then reads, a `Buffer` whose backing store is not known to be unshared. None changed what a test asserts. Two fixes touched what a fake does and not what it asserts: a store that the engine opens read-only now implements the rest of `LedgerStore` too (the spread that built it had copied fields and no methods), and a path that a test popped is read with `.at(-1)`.
+  - Bun's own typings take the type of the value under test: `toBe(expected: T)`, `toEqual(expected: T)`, `toStrictEqual(expected: T)` and `toContain(expected: T extends Iterable<infer U> ? U : T)` [measured 2026-11-09 from `packages/bun-types/test.d.ts` at the tag `bun-v1.3.14`, https://raw.githubusercontent.com/oven-sh/bun/bun-v1.3.14/packages/bun-types/test.d.ts].
+- **Alternatives:**
+  - `@types/bun`, pinned exactly [design]: it tracks Bun's releases, and it types the matchers by the value under test, which finds more and costs casts in tests that pass at run time. It is a dependency, and A§14 asks a record and an exact pin for one. If the owner wants it, A§14 and `package.json` take it and `scripts/types/bun.d.ts` goes.
+  - One project for each folder [design]: both import the app, so each would read it again, and `tests/` imports `scripts/` besides.
+  - Leaving the two fixtures in and excluding nothing: the type checker would fail on the two files that exist to make it fail.
+  - Leaving `tests/` out and checking `scripts/` alone: `scripts/` is what the gates run, and `tests/` is what holds the gates.
+- **Consequences:**
+  - `tsc -b` took about 9 to 11 s before and takes about 17 to 19 s now [measured 2026-11-09 at cdffd3e, and with this task's changes, wall-clock on a laptop that other jobs shared]. The fast gate's budget is under 5 minutes [estimated, A§10.2].
+  - The tests that were wrong for the compiler were mended in their types (a typed variable in place of a literal, `Level` where a block's level is a number, children in props where a component requires them), and `src/routes.tsx` types its table as routes that are not index routes, which every copy of the shell route needed.
+  - `e2e/` and `playwright.config.ts` are still not type-checked: under the same options they give 31 errors in 19 files [measured 2026-11-09 at cdffd3e], 20 of them from axe's copy of Playwright's `Page` type, which is not the specs' copy. That is a task of its own.
+- **Revisit when:** `@types/bun` is added to A§14, the suite calls a part of Bun that the declaration lacks and the declaration grows past what a file of types should be, or `e2e/` is brought into the check.
 
 ---
 

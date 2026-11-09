@@ -26,6 +26,7 @@ import { faceById } from '../../packages/play/items/catalog'
 import { offeredAt } from '../../packages/play/items/draw'
 import { startAttempt } from '../../packages/play/items/attempt'
 import { familyById } from '../../packages/play/items/registry'
+import type { Level } from '../../packages/play/items/types'
 import { MINUTES_TOLERANCE } from '../../scripts/content/build.ts'
 import {
   FINISHED_STATUSES,
@@ -215,8 +216,8 @@ describe('what the lessons teach', () => {
         if (gen === undefined) continue
         // The item block shows its ticket from the family's face, and an attempt of `count` items can be drawn: no placeholder is left.
         expect([lesson.id, block.family, faceById(block.family) !== undefined]).toEqual([lesson.id, block.family, true])
-        expect(offeredAt(gen, block.level).length).toBeGreaterThan(0)
-        const attempt = startAttempt(gen, block.level, Array.from({ length: block.count }, (_, at) => 0x5eed + 977 * at))
+        expect(offeredAt(gen, block.level as Level).length).toBeGreaterThan(0)
+        const attempt = startAttempt(gen, block.level as Level, Array.from({ length: block.count }, (_, at) => 0x5eed + 977 * at))
         expect(attempt.served).toHaveLength(block.count)
         expect(new Set(attempt.served.map((served) => served.seed)).size).toBe(block.count)
         // A family is named by several lessons, each of which teaches one of the KCs that it assesses.

@@ -138,7 +138,7 @@ function paint(geometry: BufferGeometry, per: number, colorOf: (point: number) =
   return geometry
 }
 
-const glazeOf = (palette: Palette): Color => palette.part(null as unknown as BufferGeometry, 'ceramic').color
+const glazeOf = (palette: Palette): Color => palette.colorOf('ceramic')
 
 /** A turned piece in the plates' satin glaze, painted as `paint` does. */
 const satin = (points: readonly Vec2[], segments: number, color: Color) => painted({ geometry: lathe(points, segments), surface: 'ceramic', color, finish: SATIN })

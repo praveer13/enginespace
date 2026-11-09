@@ -237,7 +237,8 @@ describe('phase: the model\'s mapping, held to the sim\'s host presets', () => {
       const phases = item.answer.options.map((option) => CHANGES.find((change) => change.id === option.id)?.phase)
       expect([...phases].sort()).toEqual(['prepare', 'sample', 'sync'])
       const asked = plain(item.stem).replace(/^.*shortens /, '').replace('?', '')
-      expect(CHANGES.find((change) => change.id === item.answer.correct)?.phase).toBe(asked)
+      const { correct } = item.answer
+      expect(CHANGES.find((change) => change.id === correct)?.phase).toBe(asked)
     }
   })
 })

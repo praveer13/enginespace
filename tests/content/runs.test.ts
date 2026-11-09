@@ -5,10 +5,13 @@
  */
 import { afterEach, describe, expect, test } from 'bun:test'
 import type { RunResult } from '@es/play'
+import type { LoopAction } from '@es/play/loop/types'
 import { blockRun, finishBlockRun, forgetBlockRuns, latestSeq, subscribeBlockRuns } from '@/content/render/runs'
 
+const run: LoopAction = { t: 'run', until: 'step' }
+
 const result = (seed: number): RunResult => ({
-  record: { game: 'loop', level: 'async', seed, actions: [{ t: 'run', until: 'step' }], rev: 'a1b2c3d4' },
+  record: { game: 'loop', level: 'async', seed, actions: [run], rev: 'a1b2c3d4' },
   grade: { score: 1, ok: true },
   debrief: { sentence: 'Well served.', names: null },
   hash: '0badf00d',

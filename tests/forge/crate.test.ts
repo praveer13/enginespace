@@ -21,6 +21,7 @@ import { checkLine, kitName, kitUrl, parseKits, type KitState, type LabKit } fro
 import { FORGE_LABS } from '../../src/forge/labs'
 import { FORGE_LAB_IDS } from '../../src/forge/ids'
 import { ForgeView } from '../../src/forge/ForgeView'
+import type { LoadedModule } from '../../src/forge/host'
 import type { ForgeState } from '../../src/forge/useForge'
 import { zipName } from '../../scripts/pack-labs'
 
@@ -153,7 +154,7 @@ describe('the crate on the page', () => {
     expect(crate(IDLE)).toBe(true)
     expect(crate({ step: 'reading', file })).toBe(true)
     expect(crate({ step: 'refused', file, message: 'no.' })).toBe(true)
-    const module = { sha256: 'b'.repeat(64), bytes: 7, lab: 'toy', reference: false, version: 1, list: { lab: 'toy', version: 1, abi: 2, checks: [] } }
+    const module: LoadedModule = { sha256: 'b'.repeat(64), bytes: 7, lab: 'toy', reference: false, version: 1, list: { lab: 'toy', version: 1, abi: 2, checks: [] } }
     expect(crate({ step: 'running', file, module, seeds: 'fresh', results: [], current: null })).toBe(false)
     expect(crate({ step: 'done', file, module, run: { lab: 'toy', reference: false, version: 1, wasmSha256: module.sha256, seeds: 'fresh', complete: true, checks: [] }, recorded: { kind: 'saved', durable: true } })).toBe(false)
     // And it comes after the slip in the page, so that the chooser stays in a phone's first screen.

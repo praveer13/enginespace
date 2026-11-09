@@ -13,8 +13,8 @@ import { fullSession } from './full/session'
 import { LEVEL_IDS } from './levels'
 import { loopSession } from './session'
 
-const FULL = fullSession as unknown as AnySession
-const FIRST = loopSession as unknown as AnySession
+const FULL: AnySession = fullSession
+const FIRST: AnySession = loopSession
 
 /** Which session a level's id belongs to; a level of neither throws. */
 function sessionOf(id: string): AnySession {

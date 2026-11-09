@@ -5,7 +5,7 @@
  */
 import { describe, expect, test } from 'bun:test'
 import { buildExport, LIMITS, serializeExport } from '@es/ledger'
-import type { CheckpointMeta } from '@es/ledger'
+import type { CheckpointMeta, LedgerEvent } from '@es/ledger'
 import { gzipBytes } from '@/evidence/export'
 import { pickCheckpoint, planFromText, readImportFile, REFUSAL_MESSAGES, refuse } from '@/evidence/import'
 import { copy, EXAMPLES, randomLedger, snapshot } from '../ledger/support'
@@ -13,7 +13,7 @@ import { MemoryStore } from '@es/ledger'
 
 const AT = '2026-11-04T09:30:00.000Z'
 const CONTEXT = { checkpointId: 'cp-1', at: '2026-11-10T08:00:00.000Z' }
-const fileOf = (events = [copy(EXAMPLES.play)], device = 'dev-b2') => serializeExport(buildExport({ ledger: { events, receipts: [] }, device, exportedAt: AT }))
+const fileOf = (events: LedgerEvent[] = [copy(EXAMPLES.play)], device = 'dev-b2') => serializeExport(buildExport({ ledger: { events, receipts: [] }, device, exportedAt: AT }))
 
 describe('readImportFile', () => {
   test('reads plain JSON', async () => {

@@ -89,6 +89,7 @@ enginespace is **one Vite app with one `package.json` and one lockfile**. Its pu
 - **One `node_modules`.** A worktree agent hard-links one tree (`cp -al`) and keeps its own `node_modules/.tmp`, where `tsc -b` keeps its build info.
 - **The boundaries still hold.**
   - Each package has its own `tsconfig`. `packages/sim` and `packages/play` compile with `lib: ["ES2022"]` and no DOM, so any DOM reference is a type error.
+  - `scripts/` and `tests/` compile together in `tsconfig.tools.json`, which extends the app's options and adds Node's types, so `tsc -b` checks them as it checks the app (W1b-T14). `@types/bun` is not on §14's list, so `scripts/types/bun.d.ts` declares the parts of Bun that they call, as `src/types/js-yaml.d.ts` does for js-yaml.
   - ESLint's `no-restricted-imports` fences each package.
   - `verify:boundaries` checks the import graph.
 - **The way out is cheap.** If a second app appears, such as an instrument origin or a TypeScript CLI, the packages already sit in `packages/` and become npm workspaces without any file moving.
@@ -103,7 +104,7 @@ enginespace/
   LICENSES/             the licence texts that NOTICE points at: Apache-2.0.txt (D-060)
   course.lock.json      upstream pins, model revisions and dataset hashes (§4.4)
   package.json  package-lock.json  bunfig.toml  index.html  vite.config.ts
-  tsconfig.json  tsconfig.app.json  tsconfig.node.json  tsconfig.pure.json
+  tsconfig.json  tsconfig.app.json  tsconfig.node.json  tsconfig.pure.json  tsconfig.tools.json
   eslint.config.js  tailwind.config.ts  postcss.config.js  playwright.config.ts
   docs/                 PLAN, ARCHITECTURE, ASSESSMENT, DECISIONS, TRACKER and the rest
   content/
@@ -136,7 +137,7 @@ enginespace/
   public/               fonts/ (self-hosted)  posters/  references/  traces/  labs/ (kits, wheel, manifest)
   labs/                 forge/ (Rust → wasm)  grader/ (Python)  envs/  gpu/  runners/  references/  agent-kit/  (§9.2)
   schemas/              committed JSON Schema exports and the shared vectors (rng, challenge, canonical JSON, hashing)
-  scripts/              content/  verify-*.ts  prepare-pages.ts  pack-labs.ts  export-schemas.ts  vendor-drift.ts  posters.ts
+  scripts/              content/  verify-*.ts  prepare-pages.ts  pack-labs.ts  export-schemas.ts  vendor-drift.ts  posters.ts  types/
   tests/                bun tests that mirror packages/ and src/ (pure code only)
   e2e/                  Playwright specs: axe, keyboard walks, screenshots, budgets, network isolation
   vendor/kernelspace/   files copied at d478f91, never edited in place; VENDOR.md (§13)

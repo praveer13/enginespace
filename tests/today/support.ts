@@ -24,7 +24,7 @@ export class TestLedger {
   write<K extends LedgerEvent['kind']>(day: string, draft: Draft<K> & { kind: K }, hour = 9): LedgerEvent {
     this.count += 1
     const at = `${day}T${String(hour).padStart(2, '0')}:${String(Math.floor(this.count / 60) % 60).padStart(2, '0')}:${String(this.count % 60).padStart(2, '0')}.000Z`
-    const event = stampEvent({ clock: { nowIso: () => at, tzOffsetMinutes: () => 0 }, newId: () => `ev-${String(this.count).padStart(4, '0')}`, dev: DEV }, draft)
+    const event = stampEvent<K>({ clock: { nowIso: () => at, tzOffsetMinutes: () => 0 }, newId: () => `ev-${String(this.count).padStart(4, '0')}`, dev: DEV }, draft)
     this.events.push(event)
     return event
   }

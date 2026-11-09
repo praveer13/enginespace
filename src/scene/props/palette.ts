@@ -62,6 +62,8 @@ export const CHANNEL = { lamp: 28, strip: 29, tube: 30 } as const
 export const MAX_STATIONS = 28
 
 export interface Palette {
+  /** The colour of a tone: the one `Color` that every part in that tone shares. */
+  colorOf(tone: Tone): Color
   /** A part in a tone: the surface it is drawn in, its colour and its numbers. */
   part(geometry: BufferGeometry, tone: Tone): Part
   /** A glowing part on a channel, `strength` of the full glow. Tube light takes the tubes' white; every other channel the lamp's amber. */
@@ -89,6 +91,7 @@ export function paletteFrom(tokens: SceneTokens): Palette {
   const tubeShare = params.tube.emissiveIntensity / params.glow.emissiveIntensity
   return {
     finishes,
+    colorOf,
     part(geometry, tone) {
       const spec = TONES[tone]
       return { geometry, surface: spec.surface, color: colorOf(tone), finish: typeof spec.finish === 'string' ? finishes[spec.finish] : spec.finish }

@@ -102,7 +102,7 @@ const compiledProseSchema = z.strictObject({ type: z.literal('prose'), body: z.a
 const directiveBlockSchema = blockSchema.refine((block) => block.type !== 'prose', { message: 'a compiled prose block has a body, not md' })
 
 // The refine keeps the source `Block` type, which still includes prose with `md`; the union below is the compiled set.
-export const compiledBlockSchema = z.union([compiledProseSchema, directiveBlockSchema]) as unknown as z.ZodType<CompiledBlock>
+export const compiledBlockSchema = z.union([compiledProseSchema, directiveBlockSchema]) as unknown as z.ZodType<CompiledBlock> // the union parses only CompiledBlock, and the refine leaves the type of the source Block, whose prose holds md
 
 /** A lesson's file name without `.md`: `l3-async-overlap`. It is the last part of the lesson's route, and the lesson's id is `<module>.l3`. */
 export const lessonSlugSchema = z.string().regex(/^l[0-9]+(?:-[a-z0-9]+)*$/, 'must be a lesson file name such as l3-async-overlap')

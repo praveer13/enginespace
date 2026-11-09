@@ -147,7 +147,8 @@ describe('the house: the 2D house\'s plan, in steel, in a kitchen', () => {
     const first = walk(level, { t: 'commit', prediction: 2 }, { t: 'lay', stage: level.reference[0] })
     const reached = houseOfView(floorView(first))
     expect(reached.storeys.length).toBeLessThan(houseOfView(laidView(levelFor(level.scenario))).storeys.length)
-    const judged = floorView(walk(level, ...[{ t: 'commit', prediction: 2 } as FloorAction, ...level.reference.map((stage): FloorAction => ({ t: 'lay', stage })), { t: 'run' }]))
+    const finish: FloorAction[] = [{ t: 'commit', prediction: 2 }, ...level.reference.map((stage): FloorAction => ({ t: 'lay', stage })), { t: 'run' }]
+    const judged = floorView(walk(level, ...finish))
     expect(judged.sealed).toBe(false)
     expect(houseOfView(judged).storeys.map((storey) => storey.title)).toEqual(floorsOf(judged).map((floor) => floor.title))
   })
@@ -322,7 +323,7 @@ describe('the house: the 2D house\'s plan, in steel, in a kitchen', () => {
       const hands = [...house.spots.values()].filter((spot) => !spot.gpu).map((spot) => spot.channel).sort((a, b) => a - b)
       for (const kind of ['heat-lamp', 'ring'] as const) {
         const lamps = house.items.filter((item) => item.kind === kind)
-        expect(lamps.map((lamp) => ('channel' in lamp ? lamp.channel : -1)).sort((a, b) => a - b)).toEqual(hands)
+        expect(lamps.map((lamp) => ('channel' in lamp ? (lamp.channel ?? -1) : -1)).sort((a, b) => a - b)).toEqual(hands)
       }
       // A station's channel is its place on the line, and no pair of hands shares one with a station.
       const stations = house.items.flatMap((item) => (['burners', 'griddle', 'fryer'].includes(item.kind) && 'channel' in item ? [item.channel] : []))
@@ -501,8 +502,8 @@ describe('the route: the ticket\'s way through the house', () => {
     const house = houseOfView(view)
     const route = routeOf(view, house)
     expect(route.cars[0]).toBe(HOUSE.counter)
-    const down = route.hops.find((hop, i) => view.laid[i].mechanism === 'h2d')
-    const up = route.hops.find((hop, i) => view.laid[i].mechanism === 'd2h')
+    const down = route.hops.find((_hop, i) => view.laid[i].mechanism === 'h2d')
+    const up = route.hops.find((_hop, i) => view.laid[i].mechanism === 'd2h')
     expect(down?.car?.at(-1)).toBe(HOUSE.counter)
     expect(up?.car?.[1]).toBe(HOUSE.counter)
     expect(up?.car?.at(-1)).toBe(house.storeys[house.spots.get(up?.spot ?? '')?.storey ?? 0].top)

@@ -258,7 +258,7 @@ export function poolExample(): { df: number; bins: number; pooledTokens: number;
   const counts = weights.map((w) => (draws * w) / 1000)
   const { df } = chiSquare(counts, { weights: [...weights], total: 1000 })
   const small = weights.filter((w) => w > 0 && (draws * w) / 1000 < 5)
-  return { df, bins: df + 1, pooledTokens: small.length, pooledExpected: small.reduce((a, w) => a + (draws * w) / 1000, 0), ruledOut: weights.filter((w) => w === 0).length }
+  return { df, bins: df + 1, pooledTokens: small.length, pooledExpected: small.reduce<number>((a, w) => a + (draws * w) / 1000, 0), ruledOut: weights.filter((w) => w === 0).length }
 }
 
 /** The lab's level and the false-fail it implies: `1 − (1 − 1e-4)^2` for two seeds, as parts in 10,000 (by repeated products, so no pow). */

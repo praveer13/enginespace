@@ -22,6 +22,7 @@ interface Step {
   uses?: string
   run?: string
   if?: string
+  env?: Record<string, string>
   with?: Record<string, unknown>
 }
 interface Job {

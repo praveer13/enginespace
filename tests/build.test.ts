@@ -449,7 +449,7 @@ describe('the app build', () => {
     const [vendorKey, vendor] = chunkNamed(app, 'react-vendor') ?? []
     expect(vendor).toBeDefined()
     expect(app.manifest[entryKeyOf(app)].imports).toContain(vendorKey)
-    expect(chunksHolding(app, 'node_modules/react/', 'node_modules/react-dom/')).toEqual([vendor.file])
+    expect(chunksHolding(app, 'node_modules/react/', 'node_modules/react-dom/')).toEqual([vendor!.file])
   })
 })
 
@@ -493,8 +493,8 @@ describe('a build with a lazy scene that imports three, R3F and a three addon', 
     expectThreeIsolated(fixture)
     const [vendorKey, vendor] = chunkNamed(fixture, 'three-vendor') ?? []
     expect(vendor).toBeDefined()
-    expect(chunksHolding(fixture, THREE_CORE)).toEqual([vendor.file])
-    expect(chunksHolding(fixture, R3F)).toEqual([vendor.file])
+    expect(chunksHolding(fixture, THREE_CORE)).toEqual([vendor!.file])
+    expect(chunksHolding(fixture, R3F)).toEqual([vendor!.file])
     expect(fixture.manifest['scene.ts'].imports).toContain(vendorKey)
   })
 
@@ -506,7 +506,7 @@ describe('a build with a lazy scene that imports three, R3F and a three addon', 
     const [, vendor] = chunkNamed(fixture, 'react-vendor') ?? []
     expect(vendor).toBeDefined()
     for (const name of ['react', 'react-dom', 'scheduler', 'zustand', 'use-sync-external-store']) {
-      expect(chunksHolding(fixture, `node_modules/${name}/`)).toEqual([vendor.file])
+      expect(chunksHolding(fixture, `node_modules/${name}/`)).toEqual([vendor!.file])
     }
   })
 })

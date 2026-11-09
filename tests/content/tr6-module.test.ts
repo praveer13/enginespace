@@ -267,7 +267,7 @@ describe('what the lessons teach', () => {
 
   test('the module names the two games that its lessons play, and every practice level of The Tasting is played in a lesson', () => {
     const used = new Set(lessons.flatMap((l) => l.lesson.blocks.flatMap((block) => (block.type === 'game' ? [block.id] : []))))
-    expect([...used].sort()).toEqual([...module_.games].sort())
+    expect([...used].sort()).toEqual([...module_.games!].sort())
     const practiced = new Set(
       lessons.flatMap((l) => l.lesson.blocks.flatMap((block) => (block.type === 'game' && block.id === 'verifier' && block.mode === 'practice' ? [block.level] : []))),
     )

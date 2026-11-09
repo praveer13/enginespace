@@ -394,7 +394,8 @@ export function modelResults(cases: DispatchCases, v1Sizes?: readonly (readonly 
 
 export interface TableMeta {
   readonly schema: typeof TABLE_SCHEMA
-  readonly pin: typeof PIN
+  /** The pin a table was made at, as its file says. `checkTable` compares it with `PIN`, so the type does not hold it to `PIN`'s own strings. */
+  readonly pin: Readonly<Record<keyof typeof PIN, string>>
   /** SHA-256 of `canonicalJson(cases)`: the cases that `results` answers. */
   readonly casesSha256: string
   /** The sentence the task asks for, with the date and who ran it. */
