@@ -36,6 +36,10 @@ export const TRANSFER_STABILITY_DAYS = 21
 
 /**
  * Rounds of the item framework's draw (`MAX_DRAWS` candidates each) that a ticket may spend before it is given up [estimated]. A family whose
- * variants assess different KCs refuses most candidates when one KC is asked for, and a second round makes a failure vanishingly rare.
+ * variants assess different KCs refuses most candidates when one KC is asked for, and a second round makes a failure vanishingly rare: when
+ * a fifth of the candidates are in band (the least `verify:items` allows) and one variant in six assesses the KC, a draw accepts 1 candidate
+ * in 30, a round fails about 1 time in 5,900 and both rounds about 1 time in 35 million [derived: (29/30)^256 and (29/30)^512]. A family that
+ * accepts less wants a third round or a wider band. Giving up spends every round, `DRAW_ROUNDS` x `MAX_DRAWS` = 512 band checks [derived],
+ * in the ticket's first render.
  */
-export const DRAW_ROUNDS = 8
+export const DRAW_ROUNDS = 2

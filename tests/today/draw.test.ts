@@ -3,9 +3,12 @@
  * the entropy decides and the learner has not met, and what counts as met. "Items regenerated on fresh seeds" (D-037; ASSESSMENT §8).
  */
 import { describe, expect, test } from 'bun:test'
-import { fixedSeeds, MAX_DRAWS, seenKey } from '@es/play/items'
+import { splitmix32u } from '@es/sim/core'
+import { fixedSeeds, MAX_DRAWS, resolveVariant, seenKey } from '@es/play/items'
+import type { Gen } from '@es/play/items'
 import { bubbleWidth } from '@es/play/items/families/tr2/bubble-width'
 import { drawForKc, seenKeys } from '../../src/items/today/draw'
+import { DRAW_ROUNDS } from '../../src/items/today/limits'
 import { TestLedger } from './support'
 import { toySum } from '../play/items-support.ts'
 
@@ -51,9 +54,45 @@ describe('drawing an item for an idea', () => {
     expect(again.item.kcs).toContain(BUBBLE)
   })
 
+  test('a first round that refuses every candidate is followed by a second, which still draws an item in band that the learner has not met', () => {
+    for (const entropy of ENTROPY.slice(0, 25)) {
+      // A round tries the entropy and then 255 values of its splitmix32 stream (`drawInBand`). Say the learner has met every one of them.
+      const stream = splitmix32u(entropy)
+      const firstRound = [entropy, ...Array.from({ length: MAX_DRAWS - 1 }, () => stream())]
+      const met = new Set(firstRound.map((seed) => seenKey(bubbleWidth.id, resolveVariant(bubbleWidth, seed, 2).id, seed)))
+      expect(met.size, `${entropy}`).toBe(MAX_DRAWS)
+      const drawn = drawForKc(bubbleWidth, BUBBLE, 2, entropy, met)
+      // The draw is the second round's: it has tried more candidates than a round holds and no more than two rounds do.
+      expect(drawn.tries, `${entropy}`).toBeGreaterThan(MAX_DRAWS)
+      expect(drawn.tries, `${entropy}`).toBeLessThanOrEqual(2 * MAX_DRAWS)
+      expect(firstRound).not.toContain(drawn.item.seed)
+      expect(drawn.item.kcs).toContain(BUBBLE)
+      expect(bubbleWidth.band(drawn.item.seed, 2)).toBe(true)
+      expect(drawn.item).toEqual(bubbleWidth.make(drawn.item.seed, 2))
+      // The second round is a function of the entropy, as the first is, and without the met seeds the same entropy draws in the first.
+      expect(drawForKc(bubbleWidth, BUBBLE, 2, entropy, met)).toEqual(drawn)
+      expect(drawForKc(bubbleWidth, BUBBLE, 2, entropy).tries).toBeLessThanOrEqual(MAX_DRAWS)
+    }
+  })
+
   test('gives up with a RangeError when no candidate serves: a KC no variant of the family assesses', () => {
     expect(() => drawForKc(bubbleWidth, 'tr2.graph-replay', 2, 1)).toThrow(RangeError)
     expect(MAX_DRAWS).toBe(256)
+  })
+
+  test('gives up only when every round is spent, which is DRAW_ROUNDS rounds of MAX_DRAWS band checks and no more', () => {
+    let checks = 0
+    const counted: Gen = {
+      ...bubbleWidth,
+      band: (seed, level) => {
+        checks += 1
+        return bubbleWidth.band(seed, level)
+      },
+    }
+    expect(() => drawForKc(counted, 'tr2.graph-replay', 2, 1)).toThrow(`no seed in band at level 2 in ${MAX_DRAWS} candidates`)
+    // limits.ts argues for two rounds. A change to the number is a change to that argument and to the cost of giving up, 512 band checks [derived] in the ticket's first render.
+    expect(DRAW_ROUNDS).toBe(2)
+    expect(checks).toBe(DRAW_ROUNDS * MAX_DRAWS)
   })
 
   test('draws from any family that the framework builds, a choice family included', () => {
