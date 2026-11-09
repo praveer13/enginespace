@@ -785,13 +785,20 @@
  * scrolls in a box of its own. The kit's region is the box. It is labelled and it is a tab stop, so a keyboard reaches it and scrolls it
  * with the arrow keys, and a row's button scrolls itself into view when focus reaches it. On a screen of ordinary height about a dozen
  * lines are in view at rest, and the steel scrollbar (base.css) says that more follow. The box is never taller than three quarters of the
- * screen, so that a phone held on its side can still be scrolled by a swipe that starts outside it. A tail shorter than the box, a log of
- * few orders, takes the room it needs.
+ * screen, and a little over half of it under a finger, so that the page can still be scrolled by a swipe that starts outside the box. A
+ * tail shorter than the box, a log of few orders, takes the room it needs.
  */
 .es-bench-tail .es-mirror__region {
   max-height: 40rem;
   max-height: min(40rem, 75svh);
   overflow-y: auto;
+}
+
+/* Under a finger the box is smaller, so that there is page above and below it to swipe. */
+@media (pointer: coarse) {
+  .es-bench-tail .es-mirror__region {
+    max-height: min(40rem, 55svh);
+  }
 }
 
 /*
@@ -844,16 +851,23 @@
 }
 
 /*
- * The tail's box, on the narrowest paper. At 320 px the ticket is 288 px across and the table 238, 223 where the box has a scrollbar of its
- * own, and the three columns above leave the time 54 px: a time of five digits does not fit. Where the paper used to let it run on past
- * the table's edge, the box would cut it off at its own and scroll sideways (WCAG 1.4.10). The time takes what it needs, and the rank and
- * the order give up their room, which they use little of: the rank is a number of three digits at most, and in practice the p99's tape
- * wraps under it.
+ * The tail's box, on narrow paper. The slowest orders of a log timed from the due time run to nine characters, 121,697.8 ms, and the number
+ * is 92 px wide in the dot face, which is the least the time's column can have [measured 2026-11-09 at 397331b]. The columns above give it
+ * what the rank and the order leave: 54 px on the 288 px of a 320 px phone, 64 px on a 360 px one where the box has a scrollbar of its own.
+ * Where the paper used to let a time run on past the table's edge, the box cuts it off at its own and scrolls sideways (WCAG 1.4.10). So
+ * on paper under 23.5 rem the time has its 6 rem first, and the order gives up a little of its room. Under 19 rem, a 320 px phone's, the rank
+ * gives up some too: it is a number of three digits at most, and in practice the p99's tape wraps under it.
  */
+@container (max-width: 23.5rem) {
+  .es-bench-tail .es-mirror__table :is(thead, tbody) tr {
+    grid-template-columns: minmax(4.5rem, 1fr) minmax(2.75rem, 0.8fr) minmax(6rem, 1.4fr);
+    gap: 0 var(--es-space-2);
+  }
+}
+
 @container (max-width: 19rem) {
   .es-bench-tail .es-mirror__table :is(thead, tbody) tr {
-    grid-template-columns: minmax(2.5rem, 1fr) minmax(3rem, 1fr) minmax(5.75rem, 1.2fr);
-    gap: 0 var(--es-space-2);
+    grid-template-columns: minmax(2.5rem, 1fr) minmax(2.75rem, 1fr) minmax(6rem, 1.2fr);
     padding-inline: var(--es-space-1);
   }
 }
