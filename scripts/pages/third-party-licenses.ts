@@ -32,8 +32,9 @@
  *     each, vite, and of the rest of Vite's own, so vite is listed like a package whose module reached a script. A module of that kind that
  *     INJECTED does not name fails the build, with its name: a helper that a new Vite or a new plugin writes in is a licence that nobody has read.
  *   - vite's LICENSE.md is 101,182 bytes [measured 2026-11-08, vite 7.3.0], and nearly all of it is the licences of the dependencies that are bundled
- *     into Vite's own build (its dev server, its config loader, its CSS tooling), which runs in Node and is not in the site. So the file gives the two parts of it that apply,
- *     Vite's own MIT licence and the Rollup plugins' (third-party/vite.txt, word for word), in place of the whole file. The entry in
+ *     into Vite's own build (its dev server, its config loader, its CSS tooling), which runs in Node and, but for the two helpers above, is not in the
+ *     site. So the file gives the two parts of it that apply, Vite's own MIT licence (the preload helper's) and the Rollup plugins' (the commonjs
+ *     helper's), from third-party/vite.txt, word for word, in place of the whole file. The entry in
  *     third-party/notices.json says which file it stands in for (`replaces`) and that file's SHA-256, and the build fails when the installed
  *     file is another one, and when vite is at another version than the entry's, until the file is read again and the entry is made for it.
  *   - Beside Vite's manifest the plugin writes `.vite/third-party.json`: each script of the build with the packages inside it. verify:bundle
@@ -232,9 +233,9 @@ export function packageRootOf(moduleId: string): string | null {
  *   - `vite/modulepreload-polyfill.js` (which vite.config.ts turns off), `vite/dynamic-import-helper.js` (the runtime of an import() with a
  *     variable in its path, from @rollup/plugin-dynamic-import-vars) and `vite/wasm-helper.js` (the loader of `.wasm?init`) are not in this
  *     site's scripts [measured 2026-11-08 at 6418a20]. They are named so that a build that does have one lists vite, as for the first two.
- * All are Vite's, as far as the site can tell: its package ships them, and the part of its licence file that is kept covers them, the Rollup
- * plugins' notice included. A virtual module that is not here fails the build (collect), and the way out is to find whose code it is and to
- * name the package here.
+ * All come with the vite package, as far as the site can tell: it ships them, and the part of its licence file that is kept covers them, the
+ * Rollup plugins' notice included. A virtual module that is not here fails the build (collect), and the way out is to find whose code it is and
+ * to name the package here.
  */
 export const INJECTED: Readonly<Record<string, string>> = {
   'commonjsHelpers.js': 'vite',
