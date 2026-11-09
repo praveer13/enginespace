@@ -8,7 +8,9 @@
  *
  *   - the front-page walk, with the 3D pass drawn (its chunks, three's, and the scene's own loads are all in the walk): the visitor
  *     plays the first level and reads its debrief; and again with the learner's "3D off", playing on to the last level;
- *   - each of the eight routes, and every link of the navigation and the footer, by the router: every lazy chunk of a page;
+ *   - each of the eight routes, W1's games and labs and the full service's richest level (e2e/routes.ts, W1-T36), and every link of the
+ *     navigation and the footer, by the router: every lazy chunk of a page; under ES_E2E_NIGHTLY=1, every document that prepare-pages
+ *     writes and the five levels of the full service, with each document's own meta CSP;
  *   - the faces: every font that loads is one of public/fonts/fonts.json's, from the origin (W0-T05's fifth check);
  *   - the policy: the document that is served carries the meta CSP as the first element after `<meta charset>`, with `connect-src
  *     'self'` and no 'unsafe-eval' (§12), and the browser enforces it: a `fetch` to another origin is refused by the policy, and a
@@ -18,11 +20,19 @@
  */
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
-import { PR_ROUTES } from './routes'
+import { PR_ROUTES, W1_LEVEL_PAGES, W1_ROUTES } from './routes'
 import { front, playToTheDebrief } from './support/front'
-import { expect, HAS_3D, KNOWN_REFUSALS, open, quiet, ready, settled3d, test, withSettings } from './support/site'
+import { documentRoutes, expect, HAS_3D, KNOWN_REFUSALS, NIGHTLY, open, quiet, ready, SCENE_IN_RUN, settled3d, test, withSettings } from './support/site'
 
 const root = path.resolve(import.meta.dirname, '..')
+/**
+ * The pages whose own visit is a network check. A pull request visits the eight, and of W1's the pages that load a game or a lab from its
+ * lazy chunks (the games, the labs, and the full service's richest level; every other page of W1 is visited by the axe and reduced-motion
+ * specs, and support/site.ts fails any test whose page reaches outside the origin, so they are watched all the same). The nightly sweep
+ * visits every document and the full service's five levels.
+ */
+const W1_LAZY = W1_ROUTES.filter((route) => route.startsWith('/play/') || route.startsWith('/labs/'))
+const ROUTES = NIGHTLY ? [...documentRoutes(), ...W1_LEVEL_PAGES] : [...PR_ROUTES, ...W1_LAZY, ...W1_LEVEL_PAGES.filter((page) => page.endsWith('?level=graphs'))]
 const FACES = (JSON.parse(readFileSync(path.join(root, 'public/fonts/fonts.json'), 'utf8')) as { faces: { family: string; file: string }[] }).faces
 
 test.describe('the front-page walk', () => {
@@ -61,13 +71,15 @@ test.describe('the front-page walk', () => {
 })
 
 test.describe('the routes', () => {
-  for (const route of PR_ROUTES) {
-    test(`${route} makes no request outside the origin`, async ({ page, watch }) => {
+  for (const route of ROUTES) {
+    test(`${route} makes no request outside the origin`, async ({ page, context, watch }) => {
       test.setTimeout(120_000)
+      // A level page whose scene this run does not look at (the full service's other levels) is visited in 2D, so it does not draw one for nothing.
+      if (HAS_3D(route) && !SCENE_IN_RUN(route)) await withSettings(context, { view3d: false })
       await open(page, route)
       await page.waitForLoadState('networkidle')
       // A 3D pass loads its chunks and draws a first frame: all of it is part of the visit.
-      if (HAS_3D(route)) await expect(page.locator('[data-stage][data-stage-phase="live"]').first()).toBeAttached({ timeout: 60_000 })
+      if (SCENE_IN_RUN(route)) await expect(page.locator('[data-stage][data-stage-phase="live"]').first()).toBeAttached({ timeout: 60_000 })
       expect(watch.requests.length, 'requests to the site').toBeGreaterThan(3)
     })
   }
@@ -108,7 +120,9 @@ test.describe('the faces', () => {
 })
 
 test.describe('the policy', () => {
-  for (const route of PR_ROUTES) {
+  // The document of a route carries the policy: a pull request looks at the pull request's eight (`vite preview` answers every address
+  // with the same index.html), and the nightly sweep at each document that prepare-pages writes, each with a head of its own.
+  for (const route of NIGHTLY ? documentRoutes() : PR_ROUTES) {
     test(`${route}: the document carries the meta CSP right after <meta charset>, with connect-src 'self' and no 'unsafe-eval'`, async ({ page }) => {
       await open(page, route)
       const head = await page.evaluate(() => ({

@@ -4,9 +4,10 @@ name: CI
 #   fast-gate  lint, typecheck, the content compile, every verify:* gate that scripts/verify.ts registers, the build, and the
 #              gate that reads the build (verify:bundle), then export freshness.
 #   tests      bun test: units, golden vectors, seeded properties and bestiaries.
-#   e2e-smoke  Playwright's Chromium against vite preview: axe on eight routes at 360 and 1280 px, the keyboard walk of the front-page
-#              game, the network check, the screenshots and reduced motion (W0-T21). The specs that earlier tasks wrote run in
-#              nightly.yml: they take longer than a pull request should wait for.
+#   e2e-smoke  Playwright's Chromium against vite preview: axe on the eight routes of W0-T21 and the sixteen pages and five level pages
+#              that W1 added (W1-T36) at 360 and 1280 px, the keyboard walks of the front-page game and of one level of each W1 game,
+#              the network check, the screenshots and reduced motion. The specs that earlier tasks wrote, and every level of every game,
+#              run in nightly.yml: they take longer than a pull request should wait for.
 #
 # A gate whose script is not built yet prints "pending: <task>" and exits 0 (kernelspace's pattern, scripts/verify.ts), so this
 # file does not change when a task lands its gate. The content compile and the export freshness check switch on the same way,
@@ -110,16 +111,21 @@ jobs:
       # bunfig.toml roots `bun test` at tests/, so Playwright's specs in e2e/ never run here.
       - run: bun run test
 
-  # §10.1: Playwright's Chromium against `vite preview`, with axe on the pull-request routes, a keyboard walk of the front-page game,
-  # the network-isolation check, and the screenshots uploaded as artifacts. playwright.config.ts builds the site and serves it, so the
-  # test step is also the build; its `smoke` project is the five specs of W0-T21 (e2e/a11y, keyboard-loop, network, screenshots and
-  # reduced-motion). The report, the traces, the actual and diff of a screenshot that failed, and the 3D captures are kept as an
-  # artifact, whatever the result. A screenshot baseline is a Linux rendering: when a runner draws the page a little differently, the
-  # artifact has the `-actual.png` to copy over the baseline in e2e/screenshots.spec.ts-snapshots/.
+  # §10.1: Playwright's Chromium against `vite preview`, with axe on the pull-request routes, the keyboard walks of the front-page game
+  # and of the games that W1 built, the network-isolation check, and the screenshots uploaded as artifacts. playwright.config.ts builds
+  # the site and serves it, so the test step is also the build; its `smoke` project is the five specs of W0-T21 (e2e/a11y, keyboard-loop,
+  # network, screenshots and reduced-motion) and W1-T36's keyboard walks (e2e/walks.spec.ts). The report, the traces, the actual and diff
+  # of a screenshot that failed, and the 3D captures are kept as an artifact, whatever the result. A screenshot baseline is a Linux
+  # rendering: when a runner draws the page a little differently, the artifact has the `-actual.png` to copy over the baseline in
+  # e2e/screenshots.spec.ts-snapshots/.
   #
   # The smoke project runs in four shards, one test at a time across them (its fullyParallel): a private repository's runner has two
   # cores, and SwiftShader draws on the CPU, so the 78 specs in one job did not finish in 15 minutes [measured 2026-11-04 on PR #1:
-  # 47 of 78 had run when the job timed out].
+  # 47 of 78 had run when the job timed out]. The cut is by count and the order is the files' names, so playwright.config.ts says where
+  # each file sorts and why; W1-T36's 193 tests ran as four shards of 66, 61, 75 and 98 s on a 20-core laptop [measured 2026-11-08 at
+  # df76ca9]. A runner took about 4 to 16 times as long per test as that laptop did [derived from the first CI run's log on 2026-11-04,
+  # PR #1, against the laptop's times on 2026-11-08], which puts a shard at about 11 minutes of test time [estimated: no CI run has
+  # timed W1-T36's tests], inside this job's backstop.
   e2e-smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 20

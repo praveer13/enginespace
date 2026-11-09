@@ -1,6 +1,8 @@
 /*
  * W0-T21, acceptance 1: axe finds no serious or critical violation on the eight routes of the pull-request subset, at 360 and at 1280
- * px (ARCHITECTURE §10.1 and §11.2; e2e/routes.ts lists them, and verify:routes holds the list to the route table).
+ * px (ARCHITECTURE §10.1 and §11.2; e2e/routes.ts lists them, and verify:routes holds the list to the route table). W1-T36 adds what W1
+ * built to the same audits: its sixteen pages (a module and its richest lesson for each of TR1, TR5a, TR6 and TR8, the Play index, the four
+ * other games, the two labs of the forge, and Today) and the pages of the full service's levels (`W1_ROUTES`, `W1_LEVEL_PAGES`).
  *
  * What a run is.
  *   - Axe checks WCAG 2.0, 2.1 and 2.2 at levels A and AA, and its best-practice rules besides (`wcag2a`, `wcag2aa`, `wcag21a`,
@@ -19,20 +21,21 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { AxeResults, Result } from 'axe-core'
 import type { Page } from '@playwright/test'
-import { NIGHTLY_WIDTHS, PR_ROUTES, PR_WIDTHS } from './routes'
-import { clipped, documentRoutes, expect, HAS_3D, NIGHTLY, open, quiet, settled3d, test, withSettings } from './support/site'
+import { NIGHTLY_WIDTHS, PR_ROUTES, PR_WIDTHS, W1_LEVEL_PAGES, W1_ROUTES } from './routes'
+import { clipped, documentRoutes, expect, NIGHTLY, open, quiet, SCENE_IN_RUN, settled3d, test, withSettings } from './support/site'
 
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']
 /** W0-T09: "headings form a valid outline". */
 const HEADING_RULES = ['heading-order', 'page-has-heading-one', 'empty-heading']
 
-const ROUTES = NIGHTLY ? documentRoutes() : PR_ROUTES
+const ROUTES = [...(NIGHTLY ? documentRoutes() : [...PR_ROUTES, ...W1_ROUTES]), ...W1_LEVEL_PAGES]
 const WIDTHS = NIGHTLY ? NIGHTLY_WIDTHS : PR_WIDTHS
 /**
  * The routes that are audited with their 3D pass drawn as well. A software renderer draws a frame in most of a second, so a pull
- * request audits the front page, which is the one a visitor meets first, and the nightly sweep audits them all.
+ * request audits the front page, which is the one a visitor meets first, and the pages of the games that W1 built and that have a scene
+ * (their text over the canvas is a different DOM from the 2D pass's), and the nightly sweep audits them all.
  */
-const AUDITED_IN_3D = (route: string) => HAS_3D(route) && (NIGHTLY || route === '/')
+const AUDITED_IN_3D = (route: string) => SCENE_IN_RUN(route) && (NIGHTLY || route === '/' || W1_ROUTES.includes(route))
 
 /**
  * Defects that this spec found and that no task has fixed yet, keyed by `<route> at <width>`. A test that is listed here is expected to
@@ -61,32 +64,38 @@ async function audit(page: Page, label: string): Promise<void> {
   for (const finding of rest) test.info().annotations.push({ type: 'axe (does not fail)', description: `${label}: ${finding}` })
 }
 
-for (const width of WIDTHS) {
-  test.describe(`at ${width} px`, () => {
-    test.use({ viewport: { width, height: 800 } })
+/*
+ * The tests are declared a route at a time, and not a width at a time. ci.yml runs the smoke project in four shards, and Playwright cuts
+ * the list of its tests, file after file in the order they are declared, into four runs of equal length, so the order is the plan of the
+ * shards. A page at 1280 px costs a runner several times what it does at 360 px (a mean of 41.6 s over seven audits at 1280 px, and 12.3 s
+ * over ten at 360 px [measured 2026-11-04 at c80dfad, in the first e2e-smoke run of PR #1 on a GitHub-hosted runner]), so a list in
+ * width order gave one shard every audit at 1280 px and another every one at 360 px. The describe blocks repeat for the same reason, and
+ * their titles stay `at <width> px`.
+ */
+for (const route of ROUTES) {
+  for (const width of WIDTHS) {
+    test.describe(`at ${width} px`, () => {
+      test.use({ viewport: { width, height: 800 } })
 
-    for (const route of ROUTES) {
       test(`${route}: axe finds no serious or critical violation, and the headings are an outline`, async ({ page, context }) => {
         await withSettings(context, { view3d: false })
         await open(page, route)
         await quiet(page)
         await audit(page, `${route} at ${width} px`)
       })
-    }
 
-    for (const route of ROUTES.filter(AUDITED_IN_3D)) {
-      test(`${route}, with its 3D pass drawn: axe finds no serious or critical violation`, async ({ page }) => {
-        test.setTimeout(120_000)
-        await open(page, route)
-        // The design page's specimen is a scene that keeps moving to show its motion, so it is audited live and not at rest.
-        await settled3d(page, { rested: route !== '/design' })
-        await audit(page, `${route} (3D) at ${width} px`)
-      })
-    }
+      if (AUDITED_IN_3D(route)) {
+        test(`${route}, with its 3D pass drawn: axe finds no serious or critical violation`, async ({ page }) => {
+          test.setTimeout(120_000)
+          await open(page, route)
+          // The design page's specimen is a scene that keeps moving to show its motion, so it is audited live and not at rest.
+          await settled3d(page, { rested: route !== '/design' })
+          await audit(page, `${route} (3D) at ${width} px`)
+        })
+      }
 
-    // Reflow is a phone's problem: at 1280 px there is nothing to cut off.
-    if (width <= 360) {
-      for (const route of ROUTES) {
+      // Reflow is a phone's problem: at 1280 px there is nothing to cut off.
+      if (width <= 360) {
         test(`${route}: no text is cut off at the right edge, and the page does not scroll sideways`, async ({ page, context }) => {
           const known = KNOWN_CLIPPED[`${route} at ${width}`]
           test.fail(known !== undefined, known)
@@ -98,8 +107,8 @@ for (const width of WIDTHS) {
           expect(found.text, 'text past the right edge, and out of every box that scrolls').toEqual([])
         })
       }
-    }
-  })
+    })
+  }
 }
 
 test.describe('the audit can fail', () => {
@@ -119,11 +128,13 @@ test.describe('the audit can fail', () => {
     expect(results.violations.filter((violation) => HEADING_RULES.includes(violation.id)).map((violation) => violation.id)).toContain('heading-order')
   })
 
-  test('a box wider than the phone, with text in it, is found by the reflow check, and one inside a scrolling region is not', async ({ page }) => {
+  test('a box wider than the phone, with text in it, is found by the reflow check, and one inside a scrolling region or a pixel is not', async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 800 })
     await page.setContent(
       '<!doctype html><html lang="en"><head><title>Fixture</title></head><body style="margin:0;overflow-x:hidden"><main><p style="width:500px;margin:0">Text in a box that is wider than the phone.</p>' +
-        '<div style="overflow-x:auto"><p style="width:500px;margin:0">Text in a region that scrolls.</p></div></main></body></html>',
+        '<div style="overflow-x:auto"><p style="width:500px;margin:0">Text in a region that scrolls.</p></div>' +
+        // A live region for a reader (`sr-only`): a pixel that clips a line as long as the turn's announcement.
+        '<div aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;white-space:nowrap"><span>Text in a live region that no one sees, and that is far wider than the phone.</span></div></main></body></html>',
     )
     const found = await clipped(page)
     expect(found.text).toHaveLength(1)

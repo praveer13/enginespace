@@ -11,7 +11,7 @@ export interface Focus {
   /** The control's name as a reader says it: its `aria-label`, or its text. */
   name: string
   tag: string
-  /** The control, or something inside it, draws an outline: how this site shows focus (`:focus-visible { outline }`). */
+  /** The control, something inside it, or the slip round it (a field's) draws an outline: how this site shows focus (`:focus-visible { outline }`). */
   ring: boolean
   /** The middle of the part of its box that is on screen is covered by something that is not part of it. */
   covered: boolean
@@ -28,8 +28,15 @@ export function focusOf(page: Page): Promise<Focus> {
       const style = getComputedStyle(element)
       return style.outlineStyle !== 'none' && Number.parseFloat(style.outlineWidth) > 0
     }
-    // A ticket's ring is on its paper, a child of the button, so the button's own style is not the whole answer.
-    const ring = outlined(active) || [...active.querySelectorAll('*')].some(outlined)
+    // A ticket's ring is on its paper, a child of the button, so the button's own style is not the whole answer. A field's is on its slip,
+    // the parent of the input (`:focus-within`, src/design/components.css), so for a field the three nearest ancestors are asked too.
+    const ringAbove = (element: Element) => {
+      if (!(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement)) return false
+      let parent = element.parentElement
+      for (let step = 0; step < 3 && parent !== null; step++, parent = parent.parentElement) if (outlined(parent)) return true
+      return false
+    }
+    const ring = outlined(active) || [...active.querySelectorAll('*')].some(outlined) || ringAbove(active)
     const box = active.getBoundingClientRect()
     const left = Math.max(box.left, 0)
     const top = Math.max(box.top, 0)
@@ -39,7 +46,8 @@ export function focusOf(page: Page): Promise<Focus> {
     const hit = offscreen ? null : document.elementFromPoint((left + right) / 2, (top + bottom) / 2)
     const covered = hit !== null && !active.contains(hit) && !hit.contains(active)
     // `textContent`, not `innerText`: the site prints its labels in capitals with CSS, and the name is the words, as a reader says them.
-    const label = active.getAttribute('aria-label') ?? active.textContent ?? ''
+    // A field is named by its label.
+    const label = active.getAttribute('aria-label') ?? (active as HTMLInputElement).labels?.[0]?.textContent ?? active.textContent ?? ''
     return { name: label.trim().replace(/\s+/g, ' ').slice(0, 80), tag: active.tagName.toLowerCase(), ring, covered, offscreen }
   })
 }

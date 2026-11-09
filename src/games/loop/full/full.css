@@ -46,6 +46,15 @@
   flex-basis: 100%;
 }
 
+/* A choice is a sentence ("It fits inside the fire: the line never waits for ..."), longer than a phone's line (WCAG 1.4.10): its plate wraps. */
+.es-full-choices .es-button {
+  max-width: 100%;
+  justify-content: flex-start;
+  line-height: 1.15;
+  text-align: left;
+  white-space: normal;
+}
+
 .es-full-modes {
   display: flex;
   flex-direction: column;

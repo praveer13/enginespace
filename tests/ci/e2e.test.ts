@@ -91,9 +91,9 @@ describe('playwright.config.ts (acceptance 5)', () => {
     expect(config).toContain("'--font-render-hinting=none'")
   })
 
-  test('has a smoke project with exactly the five specs of W0-T21, and each of them exists', () => {
+  test('has a smoke project with the five specs of W0-T21 and the keyboard walks of W1-T36, and each of them exists', () => {
     const smoke = [...(/const SMOKE = \[(.*?)\]\.map/s.exec(config)?.[1] ?? '').matchAll(/'([^']+)'/g)].map((match) => match[1])
-    expect(smoke).toEqual(['a11y', 'keyboard-loop', 'network', 'screenshots', 'reduced-motion'])
+    expect(smoke).toEqual(['a11y', 'keyboard-loop', 'network', 'reduced-motion', 'screenshots', 'walks'])
     for (const name of smoke) expect(existsSync(path.join(root, 'e2e', `${name}.spec.ts`))).toBe(true)
     expect(config).toContain("{ name: 'smoke', testMatch: SMOKE")
   })
