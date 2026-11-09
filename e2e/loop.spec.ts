@@ -24,7 +24,7 @@ import type { Page } from '@playwright/test'
 import { createServer } from 'vite'
 import type { ViteDevServer } from 'vite'
 import { applyAction, startRun, stateHash } from '../packages/play'
-import { frameSvg, layoutFrame } from '../packages/play/loop/layout'
+import { frameSvg, layoutFrame, PASS_LENS } from '../packages/play/loop/layout'
 import { loopInit, loopLevel, loopSession, loopView } from '../packages/play/loop/session'
 import { svgMarkup } from '../packages/play/loop/svg'
 import type { LoopAction } from '../packages/play/loop/types'
@@ -177,7 +177,8 @@ test.describe('a keyboard-only walk', () => {
     await open(page, 'first-1-fill')
     const titles = ['A clip empties', 'Mind the gap', 'Your turn']
     for (const [index, title] of ['Fill the rail', ...titles].entries()) {
-      await expect(page.locator('[data-game="loop"] .es-tape').first()).toContainText(`${title} · practice`)
+      // The shell's tape naming the level and its mode: the 3D scene's tapes are the design system's too, so it is found by its words.
+      await expect(page.locator('[data-game="loop"] .es-tape', { hasText: / · (practice|graded)$/ }).first()).toContainText(`${title} · practice`)
       if (index >= 2) await page.getByRole('switch').focus().then(() => page.keyboard.press('Space'))
       await playToTheEnd(page)
       await debriefButton(page).focus()
@@ -287,8 +288,12 @@ test.describe('determinism and the poster', () => {
       label: element.getAttribute('aria-label'),
       marks: element.querySelectorAll('rect, circle, ellipse, line, path, polygon, text').length,
       parts: [...element.querySelectorAll('g[data-part]')].map((g) => g.getAttribute('data-part')),
+      fit: element.getAttribute('preserveAspectRatio'),
     }))
-    const markup = svgMarkup(frameSvg(layoutFrame(loopView(loopInit(loopLevel('first-1-fill', 1))), { orientation, shot: 'loop' }), { cover: true }))
+    // In landscape the drawing covers its box, as the scene does; on a phone it is fitted to the box's width, so the whole pass is in view.
+    expect(drawn.fit).toBe(orientation === 'landscape' ? 'xMidYMid slice' : null)
+    const phone = orientation === 'portrait'
+    const markup = svgMarkup(frameSvg(layoutFrame(loopView(loopInit(loopLevel('first-1-fill', 1))), { orientation, shot: 'loop', ...(phone ? { lens: PASS_LENS } : {}) }), { cover: !phone }))
     expect(markup).toContain(`aria-label="${drawn.label?.replace(/'/g, '&#x27;')}"`)
     expect(markup.match(/<(rect|circle|ellipse|line|path|polygon|text)[ >]/g)).toHaveLength(drawn.marks)
     expect([...markup.matchAll(/<g data-part="([a-z-]+)">/g)].map((match) => match[1])).toEqual(drawn.parts as string[])

@@ -17,7 +17,7 @@ import { buildLevel, LEVEL_IDS } from '@es/play/loop/levels'
 import { stationsOf, ticketNo } from '@es/play/loop/layout'
 import { loopView } from '@es/play/loop/session'
 import type { LoopState, LoopView } from '@es/play/loop/types'
-import { HOOD, LINE, SHELF, WALL_Z } from '@es/play/loop/kitchen'
+import { HOOD, LINE, lineOf, SHELF, WALL_Z } from '@es/play/loop/kitchen'
 import { luminance, parseHex } from '@/design/contrast'
 import { resolveColor, type ColorRoleName } from '@/design/tokens'
 import { roomShade } from '@/scene/props/set'
@@ -397,21 +397,48 @@ describe('the camera presets (GAMES.md §2.6, Service, Cameras)', () => {
   })
 })
 
+describe('each tape sits on the object it names (W1b\'s finish review of the lesson blocks, round 1)', () => {
+  test('the line\'s on its last station\'s front, never on the tile; the expo\'s on the pass\'s front edge; the bin\'s on the bin\'s front', () => {
+    for (const slots of [4, 12]) {
+      const kitchen = serviceKitchen(slots, { printer: true, overlap: true })
+      const at = (id: string) => {
+        const tape = kitchen.tapes.find((candidate) => candidate.id === id)
+        if (!tape) throw new Error(`no tape ${id}`)
+        return tape.center
+      }
+      const line = lineOf(slots)
+      const [lx, ly, lz] = at('line')
+      expect(lx).toBeCloseTo(line.x(line.count - 1), 6)
+      expect(ly).toBeGreaterThan(0.12)
+      expect(ly).toBeLessThan(LINE.height)
+      expect(Math.abs(lz - (LINE.z + LINE.depth / 2))).toBeLessThan(0.05)
+      expect(lz).toBeGreaterThan(WALL_Z + 0.5)
+      const [, ey, ez] = at('expo')
+      expect(Math.abs(ey - PASS.top)).toBeLessThan(0.05)
+      expect(Math.abs(ez - PASS.depth / 2)).toBeLessThan(0.03)
+      const bin = kitchen.bin
+      if (bin === null) throw new Error('a level with overlap has a bin')
+      const [bx, , bz] = at('bin')
+      expect(bx).toBeCloseTo(bin[0], 6)
+      expect(bz).toBeGreaterThan(bin[2])
+    }
+  })
+})
+
 describe('the tapes that name the line and the expo never meet (W0 finding F5)', () => {
   const kitchen = kitchenOf(loopView(initState(level('first-3-gap'))))
-  /** The box a tape's words can take on screen: the tape itself, and never less than a phone's smallest print of them. */
+  /**
+   * The box a tape takes on screen, round its anchor: the design system's tape torn off at the size of its words, whose print is
+   * scene3d.css's clamp(0.6875rem, 1.5cqi, 0.8125rem) of the scene's box, about 0.62 em a letter of the marker with 1.3 em of tape past
+   * the words, and 1.5 em high [estimated; e2e/loop-scene.spec.ts measures the drawn boxes].
+   */
   const box = (preset: CameraPreset, id: string, width: number, height: number) => {
     const tape = kitchen.tapes.find((candidate) => candidate.id === id)
     if (!tape) throw new Error(`no tape ${id}`)
-    const [cx, cy, cz] = tape.center
-    const [w, h] = tape.size
-    const corners = [-1, 1].flatMap((sx) => [-1, 1].map((sy) => projectIn(preset, [cx + (sx * w) / 2, cy + (sy * h) / 2, cz], width, height)))
-    const x0 = Math.min(...corners.map((c) => c.x))
-    const x1 = Math.max(...corners.map((c) => c.x))
-    const y0 = Math.min(...corners.map((c) => c.y))
-    const y1 = Math.max(...corners.map((c) => c.y))
-    const half = { x: Math.max((x1 - x0) / 2, 45), y: Math.max((y1 - y0) / 2, 9) }
-    return { x0: (x0 + x1) / 2 - half.x, x1: (x0 + x1) / 2 + half.x, y0: (y0 + y1) / 2 - half.y, y1: (y0 + y1) / 2 + half.y }
+    const at = projectIn(preset, tape.center, width, height)
+    const size = Math.min(13, Math.max(11, width * 0.015))
+    const half = { x: ((tape.text.length * 0.62 + 1.3) * size) / 2, y: (1.5 * size) / 2 }
+    return { x0: at.x - half.x, x1: at.x + half.x, y0: at.y - half.y, y1: at.y + half.y }
   }
   for (const [preset, width, height] of [
     [LOOP_PRESETS[0], 390, 464],
@@ -424,7 +451,7 @@ describe('the tapes that name the line and the expo never meet (W0 finding F5)',
       const line = box(preset, 'line', width, height)
       const expo = box(preset, 'expo', width, height)
       expect(line.y1 < expo.y0 || expo.y1 < line.y0 || line.x1 < expo.x0 || expo.x1 < line.x0).toBe(true)
-      // The line's name is high, on the tile over the line; the expo's is low, on the pass's front edge.
+      // The line's name is on the line, beyond the pass; the expo's is nearer and lower, on the pass's front edge.
       expect(line.y1).toBeLessThan(expo.y0)
     })
   }

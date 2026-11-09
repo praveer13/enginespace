@@ -268,22 +268,26 @@
 
 /* ---------------------------------------------------------------------------------------------- the reveal */
 
-/* Below the perforation, and fed out of the printer in steps. Under reduced motion every duration is 0, and it is there at once. */
+/*
+ * Below the perforation, and fed out of the printer in steps. Under reduced motion every duration is 0, and it is there at once. The feed
+ * clips what has not come out yet and nothing once it has: it holds no clip after its last step (`backwards`, not `both`), and while it
+ * feeds its clip runs 8 px past the reveal's sides, so the focus ring of the verdict that takes focus (2 px at a 4 px offset) keeps its sides.
+ */
 .es-item__reveal {
   display: grid;
   gap: var(--es-space-3);
   margin-top: var(--es-space-6);
   padding-top: var(--es-space-4);
   border-top: 2px dotted var(--es-paper-rule);
-  animation: es-item-feed var(--es-dur-feed) var(--es-ease-feed) both;
+  animation: es-item-feed var(--es-dur-feed) var(--es-ease-feed) backwards;
 }
 
 @keyframes es-item-feed {
   from {
-    clip-path: inset(0 0 100% 0);
+    clip-path: inset(0 -8px 100% -8px);
   }
   to {
-    clip-path: inset(0 0 0 0);
+    clip-path: inset(0 -8px 0 -8px);
   }
 }
 

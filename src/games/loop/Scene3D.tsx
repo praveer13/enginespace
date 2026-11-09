@@ -12,7 +12,7 @@ import { roomFor } from '@/scene/props/context'
 import { progress } from '@/scene/props/motion'
 import type { Vec3 } from '@/scene/props/shape'
 import { SceneCanvas } from '@/scene/SceneCanvas'
-import { SheetInstances } from '@/scene/SheetInstances'
+import { TapeLabel } from '@/design/components/TapeLabel'
 import { changeOf, serviceKitchen, serviceScene, type Anchor, type Change, type ServiceKitchen, type ServiceScene } from './scene-layout'
 import type { FullScene, ToolPlace } from './full/scene'
 import { FRONT_PRESETS, LOOP_PRESETS } from './scene-presets'
@@ -38,8 +38,9 @@ import './scene3d.css'
  * the aisle between the pass and the line lies in shade, and the far wall and floor recede into a haze darker than any tile it covers.
  *
  * Draw calls at every tier: the static set's metal, glaze, tile, floor and glow (5), the contact shadows (1), the tickets (1), the clips
- * (1, and 1 more for the fired rail), the printer's paper (1), the plates (1), the bell's dome and plunger (2), the lamps' light (1) and
- * the tape (1). T1 adds the pools' warmth (1); T2 adds the steam (1), bloom and the final pass. The measured figures, read from
+ * (1, and 1 more for the fired rail), the printer's paper (1), the plates (1), the bell's dome and plunger (2) and the lamps' light (1).
+ * T1 adds the pools' warmth (1); T2 adds the steam (1), bloom and the final pass. The tapes are DOM, the design system's own, each on the
+ * object it names, so their words read at the size ramp's smallest step or larger on any screen. The measured figures, read from
  * renderer.info by e2e/loop-scene.spec.ts against A§11.1's 100, and this chunk's size as verify:bundle counts it against the 40 KB
  * gate, are in GAMES.md §3, "Budget".
  */
@@ -220,6 +221,13 @@ function Picks({ picks, onPick }: { picks: ServiceScene['picks']; onPick: (req: 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 function labelContent(anchor: Anchor): ReactNode {
+  if (anchor.kind === 'tape') {
+    return (
+      <TapeLabel size="sm" tilt="none">
+        {anchor.text}
+      </TapeLabel>
+    )
+  }
   if (anchor.kind === 'ticket' || anchor.kind === 'fired' || anchor.kind === 'waiting') {
     return (
       <span className="es-loop-label__ticket">
@@ -232,23 +240,29 @@ function labelContent(anchor: Anchor): ReactNode {
 }
 
 /**
- * Print that a shot cannot read: from under the lamps the counter's tickets and the tapes are out of shot or edge-on. A tape whose print
- * is hidden is not drawn either, so no blank strip of tape lies in the shot.
+ * Print that a shot cannot read: from under the lamps the counter's tickets and the tapes are out of shot or edge-on. From the side of the
+ * pass the counts that ride beside a tool (the comb's calls, the printer's tickets) fall on the expo's tape along the counter, the line's
+ * last station stands behind the pass, so its tape would sit on the counter, and the pass is drawn too small on a phone to hold the tapes
+ * at the size ramp's smallest step, so they show on a wider canvas alone (`SIDE_TAPES`). The tape and the mirror carry every count.
  */
 const HIDDEN: Readonly<Record<string, ReadonlySet<Anchor['kind']>>> = {
   lamps: new Set(['waiting', 'more', 'tape']),
+  side: new Set(['more']),
 }
+/** The narrowest canvas, in CSS px, that shows the tapes from the side of the pass [estimated]: wider than a phone's. */
+const SIDE_TAPES = 520
 
 function labelsOf(anchors: readonly Anchor[], preset: string): LabelSpec[] {
   const hidden = HIDDEN[preset]
+  const side = preset === 'side'
   return anchors
-    .filter((anchor) => !hidden?.has(anchor.kind))
+    .filter((anchor) => !hidden?.has(anchor.kind) && !(side && anchor.id === 'tape-line'))
     .map((anchor) => ({
       id: anchor.id,
       at: anchor.at,
       frame: anchor.frame,
       place: anchor.place,
-      minWidth: anchor.minWidth,
+      minWidth: side && anchor.kind === 'tape' ? SIDE_TAPES : anchor.minWidth,
       className: `es-loop-label es-loop-label--${anchor.kind}`,
       content: labelContent(anchor),
     }))
@@ -332,7 +346,7 @@ function Tools({ kind, places, shadows: footprints, name }: { kind: 'ring' | 'ba
 /* The scene                                                                                                          */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-function Service({ view, kitchen, scene, preset, onHang, full }: { view: KitchenView; kitchen: ServiceKitchen; scene: ServiceScene; preset: string; onHang?: (req: number) => void; full?: FullScene }) {
+function Service({ view, kitchen, scene, onHang, full }: { view: KitchenView; kitchen: ServiceKitchen; scene: ServiceScene; onHang?: (req: number) => void; full?: FullScene }) {
   const kit = useKit()
   const moment = useMoment(view, scene)
   const shown = moment.dark ? moment.before : moment.scene
@@ -362,22 +376,20 @@ function Service({ view, kitchen, scene, preset, onHang, full }: { view: Kitchen
       {full ? <Tools kind="ring" places={full.molds} shadows={full.moldShadows} name="molds" /> : null}
       {full ? <Tools kind="bar" places={full.comb} shadows={full.combShadows} name="comb" /> : null}
       <Steam emitters={steam} puff={moment.dark ? -moment.bells : moment.bells} />
-      {HIDDEN[preset]?.has('tape') ? null : <SheetInstances kind="tape" sheets={kitchen.tapes} name="tape" />}
       {onHang && scene.picks.length > 0 ? <Picks picks={scene.picks} onPick={onHang} /> : null}
     </Kitchen>
   )
 }
 
 export default function Scene3D({ view, preset, onHang, printer = true, full }: Scene3DProps) {
-  const tools = full !== undefined
-  const kitchen = useMemo(() => serviceKitchen(view.slots, { printer, overlap: view.overlapAvailable, tools }), [view.slots, printer, view.overlapAvailable, tools])
+  const kitchen = useMemo(() => serviceKitchen(view.slots, { printer, overlap: view.overlapAvailable }), [view.slots, printer, view.overlapAvailable])
   const scene = useMemo(() => serviceScene(view, kitchen), [view, kitchen])
   const labels = useMemo(() => labelsOf(full ? [...scene.anchors, ...full.anchors] : scene.anchors, preset), [scene.anchors, full, preset])
   return (
     <SceneCanvas labels={labels} fog={HAZE} exposure={1} environment="tubes" environmentIntensity={0.75} className="es-loop-scene">
       <CameraRig presets={printer ? LOOP_PRESETS : FRONT_PRESETS} preset={preset} parallax={0.05} />
       <Fluorescent power={0.85} />
-      <Service view={view} kitchen={kitchen} scene={scene} preset={preset} onHang={onHang} full={full} />
+      <Service view={view} kitchen={kitchen} scene={scene} onHang={onHang} full={full} />
     </SceneCanvas>
   )
 }

@@ -5,7 +5,8 @@
  * mark cap.
  */
 import { describe, expect, test } from 'bun:test'
-import { COMB, rackOf, teethOf } from '@es/play/loop/full/kitchen'
+import { COMB, RACK, rackOf, teethOf } from '@es/play/loop/full/kitchen'
+import { PASS } from '@es/play/loop/kitchen'
 import { fullFrame } from '@es/play/loop/full/layout'
 import { fullSession } from '@es/play/loop/full/session'
 import type { FullAction, FullLevelId, FullState } from '@es/play/loop/full/types'
@@ -80,6 +81,25 @@ describe('the 3D scene\'s layout', () => {
     expect(word.comb).toHaveLength(1 + 1)
     expect(teethOf(view.comb!)).toHaveLength(1)
     expect(word.anchors.find((anchor) => anchor.id === 'calls')?.text).toBe('1 call')
+  })
+
+  test('the comb and the rack carry their names on tape, stuck on themselves: the comb\'s on the expo\'s edge under it, the rack\'s at its row\'s end', () => {
+    const view = fullSession.view(play(start('graphs'), { t: 'commit', prediction: 0 }, { t: 'lever', name: 'graphMode', value: 'FULL_AND_PIECEWISE' }, { t: 'run', until: 'step' }))
+    const scene = sceneOfFull(view)
+    const comb = scene.anchors.find((anchor) => anchor.id === 'tape-comb')
+    expect(comb).toMatchObject({ kind: 'tape', text: 'comb · launches' })
+    // Under the comb's middle, on the pass's rolled front edge, in front of where the comb lies.
+    expect(comb!.at[0]).toBeCloseTo((COMB.x0 + COMB.x1) / 2, 6)
+    expect(comb!.at[2]).toBeGreaterThan(COMB.z)
+    expect(Math.abs(comb!.at[1] - PASS.top)).toBeLessThan(0.05)
+    const molds = scene.anchors.find((anchor) => anchor.id === 'tape-molds')
+    expect(molds).toMatchObject({ kind: 'tape', text: 'molds · sizes', place: 'right' })
+    // At the right end of the rack's row, level with it, wherever the night's sizes put that end.
+    expect(molds!.at[0]).toBeCloseTo(rackOf(view.rack!.sizes).x1, 6)
+    expect(molds!.at[2]).toBe(RACK.z)
+    // No tape names a tool that is not on the pass.
+    const bare = sceneOfFull({ ...view, rack: null, comb: null })
+    expect(bare.anchors.filter((anchor) => anchor.kind === 'tape')).toEqual([])
   })
 
   test('the allergy card lies in front of the expo with ALLERGY printed in its head, on the mask level alone', () => {

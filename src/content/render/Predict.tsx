@@ -43,7 +43,7 @@ type PredictBlock = Of<'predict'>
 
 export interface PredictTicketProps {
   block: PredictBlock
-  /** The lesson's id: the head line's, the event's ref, and what the page's runs are found by. */
+  /** The lesson's id: the foot line's, the event's ref, and what the page's runs are found by. */
   scope: string
   /** The block's place among the page's blocks, and the page's blocks, to find the game block that answers it. */
   at: number

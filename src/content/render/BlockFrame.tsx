@@ -7,8 +7,9 @@ import type { Pending } from './model'
 import { Scope } from './Page'
 
 /*
- * The ticket every block of a page is printed on (Blocks.tsx, and the game block, GameBlock.tsx): the page's id on the head line, the
- * block's own on the right, a stamped title, and its facts on strips of masking tape.
+ * The ticket every block of a page is printed on (Blocks.tsx, and the game block, GameBlock.tsx): a stamped title that leads the paper,
+ * its facts on strips of masking tape, and the page's id and the block's own on the foot line (DESIGN.md, Ticket). A ticket with no title
+ * opens on those ids instead, as its head line.
  */
 
 /** One block of a compiled page, by its type. */
@@ -19,7 +20,7 @@ export interface FrameProps {
   block: CompiledBlock['type']
   kind?: string
   scope: string
-  /** The block's own id, on the right of the head line. */
+  /** The block's own id, on the right of the foot line (of the head line, on a ticket with no title). */
   meta?: string
   title?: ReactNode
   /** The anchor a link to this section jumps to. */
@@ -41,6 +42,8 @@ export interface FrameProps {
 
 export function Frame({ block, kind, scope, meta, title, anchor, pending, lamp, stub, state, loadingLabel, error, empty, data = {}, children }: FrameProps) {
   const attributes = Object.fromEntries(Object.entries(data).map(([name, value]) => [`data-${name}`, value]))
+  // The title leads the paper, with no line over it, so the ids print on the foot line. A ticket with no title opens on them.
+  const ids = title ? { foot: [<Scope id={scope} />, meta] as const } : { head: <Scope id={scope} />, meta }
   return (
     <Ticket
       as="section"
@@ -52,8 +55,7 @@ export function Frame({ block, kind, scope, meta, title, anchor, pending, lamp, 
       {...attributes}
       width="wide"
       lamp={lamp}
-      head={<Scope id={scope} />}
-      meta={meta}
+      {...ids}
       title={title}
       titleAs="h2"
       stub={stub}

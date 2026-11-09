@@ -16,7 +16,8 @@ import { Inline, Prose } from './Prose'
 /*
  * The eight block types (ARCHITECTURE §4.3, D-016), each drawn as what it is on The Pass (D-047): a run of tickets, one per
  * block. A prose block breaks into a ticket for each `##` section, with the heading as the ticket's stamped title. Every
- * other block is one ticket, headed by the page's id and its own, titled by its kind, with its facts on tape labels.
+ * other block is one ticket, titled by its kind, with its facts on tape labels and the page's id and its own on its foot line.
+ * The title leads the paper; the prose before a page's first heading, which has none, opens on the page's id (BlockFrame.tsx).
  *
  * Prose, a warning, an isomorphism, a notional-machine card, a figure, an item set (src/items, W1-T04), a game (GameBlock.tsx, W1b-T01)
  * and a prediction (Predict.tsx, W1b-T02) are complete. A block whose feature a later task builds (a trace, a lab that has no page yet,
@@ -28,7 +29,7 @@ import { Inline, Prose } from './Prose'
 export interface BlocksProps {
   blocks: readonly CompiledBlock[]
   env: RenderEnv
-  /** The page the blocks belong to (a lesson or module id), printed on each ticket's head line. */
+  /** The page the blocks belong to (a lesson or module id), printed on each ticket's foot line, or its head line when it has no title. */
   scope: string
   /** The page's content revision (A§4.2), which a game block's runs carry. */
   rev?: string

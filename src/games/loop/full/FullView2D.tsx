@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { frameSvg } from '@es/play/loop/layout'
+import { frameSvg, PASS_LENS } from '@es/play/loop/layout'
 import { fullFrame } from '@es/play/loop/full/layout'
 import { Readout } from '@/design/components/Readout'
 import { StationLight } from '@/design/components/StationLight'
@@ -11,12 +11,15 @@ import type { FullRun } from './types'
 /*
  * The full service's 2D view (GAMES.md §3 "2D path", §2.6): Service's pass drawn flat through the scene's own shot, with the full
  * service's objects in it (the mold rack, the padding, the comb, the allergy card; packages/play/loop/full/layout.ts). The picture holds
- * no number but a ticket's: every count is DOM, on the tape and in the mirror. Under it sit the line's light and the clock.
+ * no number but a ticket's: every count is DOM, on the tape and in the mirror. Under it sit the line's light and the clock. It is framed
+ * as Service's 2D view is (View2D.tsx): covering its box in landscape, and on a phone through the wider lens and fitted to the box's
+ * width, so the whole pass stays in view.
  */
 export function FullView2D({ run }: { run: FullRun }) {
   const { view } = run
   const orientation = useOrientation()
-  const drawing = useMemo(() => svgToReact(frameSvg(fullFrame(view, { orientation, shot: 'loop' }), { cover: true })), [view, orientation])
+  const phone = orientation === 'portrait'
+  const drawing = useMemo(() => svgToReact(frameSvg(fullFrame(view, { orientation, shot: 'loop', ...(phone ? { lens: PASS_LENS } : {}) }), { cover: !phone })), [view, orientation, phone])
   const capture = view.stage.metric === 'capture'
   return (
     <div className="flex h-full min-h-0 flex-col gap-2" data-loop-view="" data-full-view="" data-orientation={orientation}>
