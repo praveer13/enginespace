@@ -624,7 +624,7 @@ kernelspace's seven-test gate (`games-3d.md` §2.3; PLAN-100X §5.4.0) still app
 - **Test 5 (schematic) is restated:** no photoreal hardware and no decorative particles behind prose. The look is The Pass (D-047): the design system applies its direction contract, and DESIGN.md documents the built world.
 - **Test 2 (≥3 axes reasoned about together) becomes advisory** under D-005. Each 3D game names its axes in §6.1. A game whose third axis is weak keeps its 3D for attention, and its 2D view is a first-class path, never a degraded one.
 
-`verify:games` checks the mechanical part: a display name and a subtitle (D-049), and a registered 2D view, mirror, debrief, card, keyboard map, KCs and sources, for every game.
+`verify:games` checks the mechanical part: a display name and a subtitle (D-049), and a registered 2D view, mirror, debrief, card, keyboard map, KCs and sources, for every game. It also measures the blind-strategy bound of ASSESSMENT §4.1 for every graded level, through the game's own session (`packages/play/<id>/blind.ts`).
 
 ### 6.3 Anatomy of a game
 
@@ -633,6 +633,7 @@ packages/play/<id>/
   session.ts     state, actions, reducer, scoring, the hidden reference ("ghost"), debrief data (pure)
   levels.ts      levels: setup(seed), win condition, the prediction to commit, KCs
   layout.ts      pure layout: sim state → positioned primitives, shared by the 2D view, the 3D scene and the poster
+  blind.ts       a probe for each graded level: the scene-blind strategies that `verify:games` plays against the session (ASSESSMENT §4.1)
 src/games/<id>/
   Game.tsx       Play → Debrief → Compose → In production → Build this (kernelspace's play sequence)
   View2D.tsx     SVG at ≤2,000 marks, Canvas2D above that (games-3d research)
@@ -1121,7 +1122,7 @@ TypeScript writes `schemas/vectors/*.json`, Python's tests read them, and `labs.
 | `verify:numbers` | An untagged number in prose (§4.4) |
 | `verify:kc` | A cycle; an item, level or check without a KC |
 | `verify:items` | A non-deterministic generator; an out-of-band seed; a blind strategy above its bound |
-| `verify:games` | A game missing its display name or subtitle (D-049), 2D view, mirror, debrief, card, keyboard map, KCs or sources; a session importing the DOM |
+| `verify:games` | A game missing its display name or subtitle (D-049), 2D view, mirror, debrief, card, keyboard map, KCs or sources, in `Game.tsx` and in any shell it loads on demand; a session importing the DOM; a graded level whose best scene-blind strategy passes more than 15% of its banded seeds [estimated] (ASSESSMENT §4.1) |
 | `verify:determinism` | §5.1's lint; a changed golden vector without `--write` |
 | `verify:boundaries` | §2.3's import rules; a static path from the entry to `three` |
 | `verify:bundle` | §11.1's gated budgets |
