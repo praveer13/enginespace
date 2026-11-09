@@ -1,0 +1,33 @@
+[package]
+name = "hybrid-kv"
+version = "0.1.0"
+edition = "2021"
+description = "forge lab hybrid-kv: a hybrid KV cache manager with adapter pages, TR5a's lab (enginespace)"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+kslab = { path = "../kit" }
+
+# The builds that are not the learner's own. Each swaps the file that the learner edits (src/manager.rs) for one of the repository's,
+# and no zip carries `reference/` or `bestiary/` (W1-T11 leaves them out). At most one of them is on.
+[features]
+# The reference solution, named `hybrid-kv@reference`: the site shows its run and never credits it (ARCHITECTURE §8.3).
+reference = []
+# The reference solution under the lab's own name, as a learner who finished would build it. For the host's own tests (verify:labs,
+# the e2e fixtures): it is how a credited run is made without a learner.
+solved = []
+# The bestiary (ASSESSMENT §4.5, TR5a §5): wrong managers that every host run must fail, each by the checks that bestiary/bestiary.json
+# names for it. Each is the reference with one rule broken, in a file of its own.
+bestiary-leaky-free = []
+bestiary-non-atomic-admit = []
+bestiary-window-off-by-one = []
+bestiary-window-short = []
+bestiary-double-counted = []
+bestiary-union-hit = []
+bestiary-published-twice = []
+bestiary-free-forward = []
+bestiary-unhashed-back = []
+bestiary-reset-while-running = []

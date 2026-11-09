@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 112" width="360" height="112" fill="none" stroke="currentColor" stroke-width="1">
+  <title>The CPU's launch work for one step of the small model, launched kernel by kernel, in pieces, and as one graph, to one scale</title>
+  <desc>Three rows on one time scale. The first has 28 teeth, one for each layer, each the 12 launches of that layer, 336 calls and 2,016 microseconds in all. The second is 29 short boxes for the replays of the pieces with a thin launch between them for each layer's attention, 57 calls and 1,038 microseconds. The third is one box, a single replay, 30 microseconds.</desc>
+  <g fill="currentColor" fill-opacity="0.34">
+    <rect x="98.00" y="22" width="8.14" height="14"/>
+    <rect x="107.14" y="22" width="8.14" height="14"/>
+    <rect x="116.29" y="22" width="8.14" height="14"/>
+    <rect x="125.43" y="22" width="8.14" height="14"/>
+    <rect x="134.57" y="22" width="8.14" height="14"/>
+    <rect x="143.71" y="22" width="8.14" height="14"/>
+    <rect x="152.86" y="22" width="8.14" height="14"/>
+    <rect x="162.00" y="22" width="8.14" height="14"/>
+    <rect x="171.14" y="22" width="8.14" height="14"/>
+    <rect x="180.29" y="22" width="8.14" height="14"/>
+    <rect x="189.43" y="22" width="8.14" height="14"/>
+    <rect x="198.57" y="22" width="8.14" height="14"/>
+    <rect x="207.71" y="22" width="8.14" height="14"/>
+    <rect x="216.86" y="22" width="8.14" height="14"/>
+    <rect x="226.00" y="22" width="8.14" height="14"/>
+    <rect x="235.14" y="22" width="8.14" height="14"/>
+    <rect x="244.29" y="22" width="8.14" height="14"/>
+    <rect x="253.43" y="22" width="8.14" height="14"/>
+    <rect x="262.57" y="22" width="8.14" height="14"/>
+    <rect x="271.71" y="22" width="8.14" height="14"/>
+    <rect x="280.86" y="22" width="8.14" height="14"/>
+    <rect x="290.00" y="22" width="8.14" height="14"/>
+    <rect x="299.14" y="22" width="8.14" height="14"/>
+    <rect x="308.29" y="22" width="8.14" height="14"/>
+    <rect x="317.43" y="22" width="8.14" height="14"/>
+    <rect x="326.57" y="22" width="8.14" height="14"/>
+    <rect x="335.71" y="22" width="8.14" height="14"/>
+    <rect x="344.86" y="22" width="8.14" height="14"/>
+    <rect x="98.00" y="52" width="3.31" height="14"/>
+    <rect x="101.81" y="52" width="0.80" height="14"/>
+    <rect x="102.57" y="52" width="3.31" height="14"/>
+    <rect x="106.38" y="52" width="0.80" height="14"/>
+    <rect x="107.14" y="52" width="3.31" height="14"/>
+    <rect x="110.95" y="52" width="0.80" height="14"/>
+    <rect x="111.71" y="52" width="3.31" height="14"/>
+    <rect x="115.52" y="52" width="0.80" height="14"/>
+    <rect x="116.29" y="52" width="3.31" height="14"/>
+    <rect x="120.10" y="52" width="0.80" height="14"/>
+    <rect x="120.86" y="52" width="3.31" height="14"/>
+    <rect x="124.67" y="52" width="0.80" height="14"/>
+    <rect x="125.43" y="52" width="3.31" height="14"/>
+    <rect x="129.24" y="52" width="0.80" height="14"/>
+    <rect x="130.00" y="52" width="3.31" height="14"/>
+    <rect x="133.81" y="52" width="0.80" height="14"/>
+    <rect x="134.57" y="52" width="3.31" height="14"/>
+    <rect x="138.38" y="52" width="0.80" height="14"/>
+    <rect x="139.14" y="52" width="3.31" height="14"/>
+    <rect x="142.95" y="52" width="0.80" height="14"/>
+    <rect x="143.71" y="52" width="3.31" height="14"/>
+    <rect x="147.52" y="52" width="0.80" height="14"/>
+    <rect x="148.29" y="52" width="3.31" height="14"/>
+    <rect x="152.10" y="52" width="0.80" height="14"/>
+    <rect x="152.86" y="52" width="3.31" height="14"/>
+    <rect x="156.67" y="52" width="0.80" height="14"/>
+    <rect x="157.43" y="52" width="3.31" height="14"/>
+    <rect x="161.24" y="52" width="0.80" height="14"/>
+    <rect x="162.00" y="52" width="3.31" height="14"/>
+    <rect x="165.81" y="52" width="0.80" height="14"/>
+    <rect x="166.57" y="52" width="3.31" height="14"/>
+    <rect x="170.38" y="52" width="0.80" height="14"/>
+    <rect x="171.14" y="52" width="3.31" height="14"/>
+    <rect x="174.95" y="52" width="0.80" height="14"/>
+    <rect x="175.71" y="52" width="3.31" height="14"/>
+    <rect x="179.52" y="52" width="0.80" height="14"/>
+    <rect x="180.29" y="52" width="3.31" height="14"/>
+    <rect x="184.10" y="52" width="0.80" height="14"/>
+    <rect x="184.86" y="52" width="3.31" height="14"/>
+    <rect x="188.67" y="52" width="0.80" height="14"/>
+    <rect x="189.43" y="52" width="3.31" height="14"/>
+    <rect x="193.24" y="52" width="0.80" height="14"/>
+    <rect x="194.00" y="52" width="3.31" height="14"/>
+    <rect x="197.81" y="52" width="0.80" height="14"/>
+    <rect x="198.57" y="52" width="3.31" height="14"/>
+    <rect x="202.38" y="52" width="0.80" height="14"/>
+    <rect x="203.14" y="52" width="3.31" height="14"/>
+    <rect x="206.95" y="52" width="0.80" height="14"/>
+    <rect x="207.71" y="52" width="3.31" height="14"/>
+    <rect x="211.52" y="52" width="0.80" height="14"/>
+    <rect x="212.29" y="52" width="3.31" height="14"/>
+    <rect x="216.10" y="52" width="0.80" height="14"/>
+    <rect x="216.86" y="52" width="3.31" height="14"/>
+    <rect x="220.67" y="52" width="0.80" height="14"/>
+    <rect x="221.43" y="52" width="3.31" height="14"/>
+    <rect x="225.24" y="52" width="0.80" height="14"/>
+    <rect x="226.00" y="52" width="3.31" height="14"/>
+    <rect x="98" y="82" width="3.81" height="14"/>
+  </g>
+  <g stroke="none" fill="currentColor" font-size="9">
+    <text x="4" y="33">eager: 336 calls</text>
+    <text x="4" y="63">in pieces: 57 calls</text>
+    <text x="4" y="93">one graph: 1 call</text>
+  </g>
+  <g stroke="none" fill="currentColor" font-size="8">
+    <text x="98" y="47">2,016 µs of launches</text>
+    <text x="235.8" y="63">1,038 µs</text>
+    <text x="107.8" y="93">30 µs</text>
+  </g>
+</svg>

@@ -1,0 +1,206 @@
+name: Nightly
+
+# The slow checks that would blow the pull-request fast gate (ARCHITECTURE §10.1). Nothing here blocks a merge: no other
+# workflow needs these jobs. When one fails, the report job opens one nightly-failure issue, or comments on the one that is
+# open, with a link to the run (kernelspace's pattern).
+#
+# It is off on the schedule until the owner sets the repository variable NIGHTLY_ENABLED to 'true' (D-052): on a private
+# repository every run spends the account's Actions minutes, and the browsers job alone can take up to 90 of them. A run
+# started by hand always runs.
+#
+# One step is reserved. It prints "pending: <task>" and passes until its owning task replaces it, because the check needs code that
+# does not exist yet (tests/ci/workflows.test.ts fails on a reserved step whose task has merged, so it cannot be forgotten):
+#   reports      W3-T13  link rot. The claim-expiry report runs now: verify:claims and verify:pins list what is past its TTL.
+#
+# Three are built:
+#   properties   W0-T10  the suite with every seeded property at its nightly seed count: 10,000 seeds where a pull request runs 200
+#                        (§5.10). W0-T10's file list did not include this workflow, so the W1 carry-over built the job. The
+#                        properties read one knob, ES_PROPERTY_SEEDS (tests/seeds.ts), and the job sets it.
+#   lab-profile  W0-T20  runs e2e/perf.spec.ts, the LCP, CLS and INP lab profile of §11.1, and fails above the gates.
+#   browsers     W0-T21  the sweep of playwright.config.ts under ES_E2E_NIGHTLY=1 (§10.1, §11.2): full axe at 320, 360 and 1280 px on
+#                        every document that prepare-pages writes, the reflow check, reduced motion and the network check on every
+#                        one of them, the keyboard walks (the front page's, and W1-T36's: every level of every game), the 3D passes
+#                        of every game audited and watched for frames, the specs that earlier tasks wrote, and the cross-browser
+#                        determinism hash in Chromium, Firefox and WebKit.
+
+on:
+  schedule:
+    - cron: '17 3 * * *' # 03:17 UTC [estimated slot]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly
+  cancel-in-progress: false
+
+jobs:
+  # §5.10: the properties over 10,000 seeds where a pull request runs 200 [estimated]. Every seeded property takes its seed count from
+  # tests/seeds.ts, which reads ES_PROPERTY_SEEDS, so the job is the whole suite with that one number raised: a property that a later
+  # task adds gets the nightly count by reading the knob, and tests/ci/seeds.test.ts fails on one that does not. Bun gives each test five
+  # seconds, which is right for a pull request and wrong for one test that loops over 10,000 seeds, so the job gives each a quarter of
+  # an hour.
+  #
+  # The suite is long at this size. In one process it took 3,601 s on the dev host, at a load average of 6 to 42 from other work, with a
+  # peak resident set of 4,296 MB [measured 2026-11-04 at 238a38c: 6,873 tests]. `--parallel=2` runs the files in two worker processes, one
+  # for each core of a private repository's runner [unverified], and took 1,097 s at a load average of 4, with 2,967 MB between the two
+  # [measured 2026-11-04 at 749a327: 6,868 tests pass and 6 skip, 194,315,269 expectations, 227 files]. A runner's cores are slower than
+  # the dev host's [unverified], so the job has 90 minutes [estimated] as a backstop, and D-052 counts it. If the first runs on a runner
+  # come near it, `bun test --shard=<i>/<n>` splits the files across a matrix of jobs.
+  properties:
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.NIGHTLY_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      ES_PROPERTY_SEEDS: '10000'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      # The suite runs under Bun, pinned as in ci.yml.
+      - name: Set up pinned Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.14
+
+      - run: npm ci
+
+      - name: The suite, with every seeded property at its nightly seed count
+        run: bun test --parallel=2 --timeout 900000
+
+  # Chromium takes every spec of e2e/ (W0-T20's lab profile skips itself here: its own job sets ES_LAB_PROFILE), and Firefox and WebKit
+  # take the determinism hash alone. The sweep is long, because it audits every document at three widths and runs the 3D specs on a
+  # software renderer: the timeout is a backstop [estimated], and the pull-request run (ci.yml's e2e-smoke) is what is kept short.
+  browsers:
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.NIGHTLY_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      ES_E2E_NIGHTLY: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      # The config lists the documents of the site by running prepare-pages, which runs under Bun.
+      - name: Set up pinned Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.14
+
+      - run: npm ci
+
+      - name: Install the three browsers
+        run: npx playwright install --with-deps chromium firefox webkit
+
+      - name: The sweep
+        run: npx playwright test
+
+      - name: Keep the report, the screenshots and the traces
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-nightly
+          path: |
+            playwright-report
+            test-results
+          retention-days: 14
+          if-no-files-found: ignore
+
+  # The spec builds the site itself and serves it gzipped through the network and CPU throttle of §11.1, so the job needs Node, the
+  # dependencies and Chromium, and not Bun. ES_LAB_PROFILE switches the spec on: in CI it skips itself without it, so a pull request
+  # does not pay for it. The lab numbers are in the log, and test-results/lab-profile.json keeps them with the host and the SHA.
+  lab-profile:
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.NIGHTLY_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+
+      - name: LCP, CLS and INP under the mobile lab profile
+        env:
+          ES_LAB_PROFILE: '1'
+        run: npx playwright test e2e/perf.spec.ts
+
+      - name: Keep the numbers
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: lab-profile
+          path: test-results/lab-profile.json
+          if-no-files-found: ignore
+
+  # Claims and pins past their TTL never fail a gate (§4.4): the gates print them, and this job keeps the log.
+  reports:
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.NIGHTLY_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Set up pinned Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.14
+
+      - run: npm ci
+      - run: bun run verify:claims
+      - run: bun run verify:pins
+
+      - name: Link-rot report
+        run: "echo 'pending: W3-T13'"
+
+  report:
+    needs: [properties, browsers, lab-profile, reports]
+    # A run started by hand from another branch is a trial, and a trial files no issue.
+    if: ${{ always() && contains(needs.*.result, 'failure') && (github.event_name == 'schedule' || github.ref_name == github.event.repository.default_branch) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - name: Open or update the nightly-failure issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          gh label create nightly-failure --color B60205 --description 'A nightly check failed' 2>/dev/null || true
+          results=$(jq -r 'to_entries[] | "- \(.key): \(.value.result)"' <<< "$NEEDS")
+          body=$(printf 'Nightly run: %s\n\n%s\n' "$RUN_URL" "$results")
+          open=$(gh issue list --label nightly-failure --state open --limit 1 --json number --jq '.[0].number // empty')
+          if [ -n "$open" ]; then
+            gh issue comment "$open" --body "$body"
+          else
+            gh issue create --label nightly-failure --title 'Nightly checks failed' --body "$body"
+          fi

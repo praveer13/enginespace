@@ -1,0 +1,444 @@
+{
+  "header": "Golden vectors for packages/sim/spec (ARCHITECTURE section 5.10): each maps its input to what the model gives for it, with the SHA-256 of that output's canonical JSON. They pin the exact verifier on hand-made distributions (every draw of its stream: the coin, the residual draw, the bonus draw), the seeded cases of the three bands, the chi-square statistic with its pooling, the acceptance-length model, and the lab's check on the exact sampler and on each member of the bestiary. Regenerate only with `bun scripts/vectors.ts --write`, and review the diff like code.",
+  "model": "spec",
+  "vectors": [
+    {
+      "name": "one draft that p accepts whatever the coin, then the bonus token from the next target",
+      "input": {
+        "draft": [0],
+        "fn": "verifyChain",
+        "p": [{"weights":[32768,16384,16384,0]},{"weights":[8192,8192,16384,32768]}],
+        "q": [{"weights":[16384,16384,16384,16384]}],
+        "seed": 1
+      },
+      "sha256": "a4bcad07fd328acea3f0dae95d9cbbcf01ce78b8e6141a8676b1ae60b338ec20",
+      "output": {"accepted":1,"end":{"draw":200,"kind":"bonus","token":0,"total":65536},"steps":[{"accepted":true,"token":0,"u":6079}],"tokens":[0,0]}
+    },
+    {
+      "name": "one draft that p rules out, so it is rejected whatever the coin, and the residual (p − q)⁺ is all on token 0",
+      "input": {
+        "draft": [3],
+        "fn": "verifyChain",
+        "p": [{"weights":[32768,16384,16384,0]},{"weights":[8192,8192,16384,32768]}],
+        "q": [{"weights":[16384,16384,16384,16384]}],
+        "seed": 2
+      },
+      "sha256": "a101ea2012fd6d5b25c236f379ba0137ccc5275753ad45409a3e02fef782b107",
+      "output": {"accepted":0,"end":{"draw":10128,"kind":"recovered","token":0,"total":16384},"steps":[{"accepted":false,"token":3,"u":3019}],"tokens":[0]}
+    },
+    {
+      "name": "three drafts: the first accepted, the second rejected by its coin, and the third never visited",
+      "input": {
+        "draft": [0,2,1],
+        "fn": "verifyChain",
+        "p": [{"weights":[20480,20480,12288,12288]},{"weights":[8192,24576,8192,24576]},{"weights":[16384,16384,16384,16384]},{"weights":[4096,4096,4096,53248]}],
+        "q": [{"weights":[8192,8192,24576,24576]},{"weights":[24576,8192,24576,8192]},{"weights":[16384,16384,16384,16384]}],
+        "seed": 11
+      },
+      "sha256": "65646e6ab23cd327d5009198aecacc47043b062be4a4a823f30450819fdf9672",
+      "output": {
+        "accepted": 1,
+        "end": {"draw":11397,"kind":"recovered","token":1,"total":32768},
+        "steps": [{"accepted":true,"token":0,"u":2507},{"accepted":false,"token":2,"u":22144}],
+        "tokens": [0,1]
+      }
+    },
+    {
+      "name": "three drafts that p accepts whatever the coins, then the bonus token",
+      "input": {
+        "draft": [0,1,2],
+        "fn": "verifyChain",
+        "p": [{"weights":[32768,16384,16384,0]},{"weights":[0,32768,16384,16384]},{"weights":[16384,16384,32768,0]},{"weights":[0,0,0,65536]}],
+        "q": [{"weights":[16384,16384,16384,16384]},{"weights":[16384,16384,16384,16384]},{"weights":[16384,16384,16384,16384]}],
+        "seed": 4
+      },
+      "sha256": "78a058ed8d3ca6e56206f2a0f94b26a23d5b6dccf1405a386e1ae0fd364186e9",
+      "output": {
+        "accepted": 3,
+        "end": {"draw":4557,"kind":"bonus","token":3,"total":65536},
+        "steps": [{"accepted":true,"token":0,"u":123},{"accepted":true,"token":1,"u":14591},{"accepted":true,"token":2,"u":12507}],
+        "tokens": [0,1,2,3]
+      }
+    },
+    {
+      "name": "an n-gram draft, whose q is one-hot: it is accepted with probability p(x), and a rejection recovers from p without x",
+      "input": {"draft":[2],"fn":"verifyChain","p":[{"weights":[8192,16384,40960,0]},{"weights":[16384,16384,16384,16384]}],"q":[{"weights":[0,0,65536,0]}],"seed":5},
+      "sha256": "017567c791ba07881675bc964f1a4c135240cb0657eb11e32295cf9f69044207",
+      "output": {"accepted":0,"end":{"draw":17487,"kind":"recovered","token":1,"total":24576},"steps":[{"accepted":false,"token":2,"u":58958}],"tokens":[1]}
+    },
+    {
+      "name": "no drafts: the bonus token alone, drawn from p",
+      "input": {"draft":[],"fn":"verifyChain","p":[{"weights":[1024,2048,4096,58368]}],"q":[],"seed":6},
+      "sha256": "74744254b11a0fd28fceb66083427fd98c003a823d9fd328426bb8fd9e6cb04c",
+      "output": {"accepted":0,"end":{"draw":34312,"kind":"bonus","token":3,"total":65536},"steps":[],"tokens":[3]}
+    },
+    {
+      "name": "the Verifier's band, one draft, seed 1",
+      "input": {"band":"spec","fn":"drawCase","gamma":1,"seed":1},
+      "sha256": "1388d458186e5fa5af4cee1526ccffe83d8bc893670aa20e36455a334c12fadf",
+      "output": {
+        "p": [{"total":65536,"weights":[8192,18432,18432,8192,12288,0]},{"total":65536,"weights":[14336,6144,11264,8192,12288,13312]}],
+        "q": [{"total":65536,"weights":[10240,6144,10240,6144,6144,26624]}]
+      }
+    },
+    {
+      "name": "the Verifier's band, three drafts, seed 2",
+      "input": {"band":"spec","fn":"drawCase","gamma":3,"seed":2},
+      "sha256": "48ef137d8fd0332d72e5b7d0a96e5627c6275627e2d4733757b9431ec1bd3db3",
+      "output": {
+        "p": [
+          {"total":65536,"weights":[2048,0,1024,8192,27648,26624]},
+          {"total":65536,"weights":[17408,2048,11264,5120,1024,28672]},
+          {"total":65536,"weights":[9216,1024,34816,4096,10240,6144]},
+          {"total":65536,"weights":[10240,9216,14336,27648,2048,2048]}
+        ],
+        "q": [
+          {"total":65536,"weights":[8192,14336,14336,5120,14336,9216]},
+          {"total":65536,"weights":[14336,22528,12288,2048,9216,5120]},
+          {"total":65536,"weights":[2048,11264,21504,1024,25600,4096]}
+        ]
+      }
+    },
+    {
+      "name": "the sparse band, two drafts, seed 3",
+      "input": {"band":"sparse","fn":"drawCase","gamma":2,"seed":3},
+      "sha256": "0897ba039ecdec550c0a3be9911a3e3c951c9e57c85e93368ec2858c62d6b5f9",
+      "output": {
+        "p": [
+          {"total":65536,"weights":[11264,7168,0,0,0,18432,0,0,1024,0,0,27648,0,0,0,0]},
+          {"total":65536,"weights":[0,4096,2048,0,0,0,0,0,2048,0,0,26624,0,0,0,30720]},
+          {"total":65536,"weights":[0,0,0,0,9216,0,11264,0,0,17408,17408,4096,0,6144,0,0]}
+        ],
+        "q": [
+          {"total":65536,"weights":[3072,11264,1024,1024,2048,3072,7168,8192,7168,1024,1024,1024,9216,3072,4096,2048]},
+          {"total":65536,"weights":[2048,1024,4096,4096,3072,8192,9216,2048,4096,5120,7168,6144,2048,3072,3072,1024]}
+        ]
+      }
+    },
+    {
+      "name": "the fine band, one draft, seed 4",
+      "input": {"band":"fine","fn":"drawCase","gamma":1,"seed":4},
+      "sha256": "bc0a339b80d8037a69bfcfdc51330d4c552e931fc2b2a612fc190f7e4fa7d35b",
+      "output": {
+        "p": [
+          {
+            "total": 65536,
+            "weights": [
+              1064,
+              3114,
+              211,
+              2410,
+              248,
+              346,
+              6350,
+              845,
+              941,
+              1081,
+              278,
+              260,
+              724,
+              560,
+              496,
+              867,
+              1989,
+              259,
+              229,
+              637,
+              1297,
+              525,
+              2506,
+              824,
+              753,
+              489,
+              328,
+              704,
+              185,
+              508,
+              1039,
+              262,
+              6109,
+              16,
+              774,
+              644,
+              734,
+              331,
+              1115,
+              1725,
+              1711,
+              767,
+              656,
+              120,
+              3184,
+              4039,
+              1322,
+              194,
+              297,
+              477,
+              2398,
+              1215,
+              1244,
+              701,
+              450,
+              131,
+              419,
+              116,
+              47,
+              1458,
+              252,
+              49,
+              13,
+              499
+            ]
+          },
+          {
+            "total": 65536,
+            "weights": [
+              1100,
+              1143,
+              527,
+              1415,
+              2394,
+              540,
+              1769,
+              1277,
+              152,
+              305,
+              467,
+              143,
+              283,
+              236,
+              200,
+              1571,
+              1191,
+              1784,
+              862,
+              60,
+              151,
+              204,
+              347,
+              253,
+              111,
+              830,
+              1086,
+              125,
+              851,
+              2313,
+              1046,
+              563,
+              2517,
+              1860,
+              1370,
+              1419,
+              2283,
+              1187,
+              1200,
+              104,
+              571,
+              271,
+              1013,
+              1026,
+              1165,
+              2712,
+              1556,
+              712,
+              867,
+              198,
+              495,
+              1868,
+              1180,
+              1599,
+              518,
+              265,
+              312,
+              441,
+              931,
+              1442,
+              5414,
+              427,
+              75,
+              3239
+            ]
+          }
+        ],
+        "q": [
+          {
+            "total": 65536,
+            "weights": [
+              758,
+              540,
+              530,
+              1951,
+              4324,
+              80,
+              1190,
+              1759,
+              2294,
+              230,
+              42,
+              1513,
+              78,
+              361,
+              2378,
+              58,
+              476,
+              2119,
+              841,
+              3571,
+              728,
+              116,
+              1427,
+              308,
+              822,
+              1132,
+              739,
+              2630,
+              820,
+              811,
+              657,
+              348,
+              2645,
+              205,
+              262,
+              1327,
+              387,
+              2818,
+              2799,
+              98,
+              86,
+              505,
+              1590,
+              326,
+              404,
+              456,
+              211,
+              1968,
+              680,
+              451,
+              312,
+              1684,
+              1436,
+              1008,
+              319,
+              969,
+              2,
+              1134,
+              1859,
+              650,
+              474,
+              93,
+              2671,
+              76
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "counts 30, 20 and 50 against 25, 25 and 50 expected: a statistic of 2 on 2 degrees of freedom",
+      "input": {"counts":[30,20,50],"fn":"chiSquare","p":{"weights":[16384,16384,32768]}},
+      "sha256": "168fbb6a8e11700ff8b28aaf16f7e04909438a2405b9f53792bad8bf82c588b7",
+      "output": {"df":2,"stat":2}
+    },
+    {
+      "name": "a token whose expected count is under 5 is pooled, and the pool under 5 joins the smallest token",
+      "input": {"counts":[5050,4940,10],"fn":"chiSquare","p":{"weights":[32768,32760,8]}},
+      "sha256": "5d4972b2263eb0d3272b258a79ca16adad9017f16eedf10bf9ac533530146588",
+      "output": {"df":1,"stat":1}
+    },
+    {
+      "name": "a token that p rules out was drawn: the statistic is infinite, which the fixture writes as null",
+      "input": {"counts":[4000,5990,10],"fn":"chiSquare","p":{"weights":[26214,39322,0]}},
+      "sha256": "e4b86c98a3a8ec3763d941caad272f7c5b66453a7b8f3bace4912ef45eea0f5d",
+      "output": {"df":1,"stat":null}
+    },
+    {
+      "name": "tokens per round at α = 0, 0.5, 0.65, 0.9 and 1 for draft lengths 0 to 8",
+      "input": {
+        "cases": [
+          [0,0],
+          [0,1],
+          [0,2],
+          [0,4],
+          [0,8],
+          [500,0],
+          [500,1],
+          [500,2],
+          [500,4],
+          [500,8],
+          [650,0],
+          [650,1],
+          [650,2],
+          [650,4],
+          [650,8],
+          [900,0],
+          [900,1],
+          [900,2],
+          [900,4],
+          [900,8],
+          [1000,0],
+          [1000,1],
+          [1000,2],
+          [1000,4],
+          [1000,8]
+        ],
+        "fn": "expectedTokensPerRound"
+      },
+      "sha256": "aaa083371c315be236eafda413e3dcb2ca125934b87db6915f36eb7e142d3352",
+      "output": [1,1,1,1,1,1,1.5,1.75,1.9375,1.99609375,1,1.65,2.0725,2.5256312499999996,2.797965963320312,1,1.9,2.71,4.0951,6.12579511,1,2,3,5,9]
+    },
+    {
+      "name": "the lab's check on the exact sampler: two seeds of 20,000 draws, a chain of two drafts, the Verifier's band",
+      "input": {"case":{"band":"spec","gamma":2,"seed":7},"draws":20000,"fn":"labTest","member":"reference","seeds":[101,102]},
+      "sha256": "68d51addce3bc26e65c1c53987ba8822a0cf1fbf4d54626e9825453d9b9a4189",
+      "output": {
+        "rejected": false,
+        "tests": [
+          {"counts":[5594,322,976,1561,6589,4958],"critical":25.745,"df":5,"rejected":false,"seed":101,"stat":2.5019606349206347},
+          {"counts":[5669,318,950,1577,6474,5012],"critical":25.745,"df":5,"rejected":false,"seed":102,"stat":1.9644901587301586}
+        ]
+      }
+    },
+    {
+      "name": "the lab's check on the \"accept-if-p-over-q\" member: two seeds of 20,000 draws, a chain of two drafts, the Verifier's band",
+      "input": {"case":{"band":"spec","gamma":2,"seed":7},"draws":20000,"fn":"labTest","member":"accept-if-p-over-q","seeds":[101,102]},
+      "sha256": "b2fe6844bb0b1d8e3b681f212df91213cf530054f4c7f43f04f7ef089338ad14",
+      "output": {"rejected":true,"tests":[{"counts":[0,0,0,1878,12849,5273],"critical":25.745,"df":5,"rejected":true,"seed":101,"stat":12975.719331428572}]}
+    },
+    {
+      "name": "the lab's check on the \"resample-from-p\" member: two seeds of 20,000 draws, a chain of two drafts, the Verifier's band",
+      "input": {"case":{"band":"spec","gamma":2,"seed":7},"draws":20000,"fn":"labTest","member":"resample-from-p","seeds":[101,102]},
+      "sha256": "23b3e8b924a3457c0c0b9018e804aa5976051a029bbd6ed2a9404d038d2107ee",
+      "output": {"rejected":true,"tests":[{"counts":[7408,430,1278,1738,2918,6228],"critical":25.745,"df":5,"rejected":true,"seed":101,"stat":3078.31169015873}]}
+    },
+    {
+      "name": "the lab's check on the \"resample-from-q\" member: two seeds of 20,000 draws, a chain of two drafts, the Verifier's band",
+      "input": {"case":{"band":"spec","gamma":2,"seed":7},"draws":20000,"fn":"labTest","member":"resample-from-q","seeds":[101,102]},
+      "sha256": "d7de8eb0cdc6f42e0d0ca9f788eccf1b5006886f37f4904e317b80503a169618",
+      "output": {"rejected":true,"tests":[{"counts":[8209,712,2078,1632,1251,6118],"critical":25.745,"df":5,"rejected":true,"seed":101,"stat":7637.261747301587}]}
+    },
+    {
+      "name": "the lab's check on the \"residual-off-by-one\" member: two seeds of 20,000 draws, a chain of two drafts, the Verifier's band",
+      "input": {"case":{"band":"spec","gamma":2,"seed":7},"draws":20000,"fn":"labTest","member":"residual-off-by-one","seeds":[101,102]},
+      "sha256": "a13d0adc6aff60d01b63f82733a59430c02899ae3839c61bca1d818b3053d148",
+      "output": {"rejected":true,"tests":[{"counts":[5912,322,976,1270,1208,10312],"critical":25.745,"df":5,"rejected":true,"seed":101,"stat":10083.602082539683}]}
+    },
+    {
+      "name": "the lab's check on the \"boundary-inclusive\" member: two seeds of 20,000 draws, a chain of two drafts, the Verifier's band",
+      "input": {"case":{"band":"spec","gamma":2,"seed":7},"draws":20000,"fn":"labTest","member":"boundary-inclusive","seeds":[101,102]},
+      "sha256": "3bafd9ab754cac612adb221e6506b0286c2cc38ba0b1d7f531bf1f95b1a6e259",
+      "output": {
+        "rejected": false,
+        "tests": [
+          {"counts":[5622,332,985,1562,6573,4926],"critical":25.745,"df":5,"rejected":false,"seed":101,"stat":4.737226666666667},
+          {"counts":[5669,318,950,1578,6473,5012],"critical":25.745,"df":5,"rejected":false,"seed":102,"stat":2.0108139682539683}
+        ]
+      }
+    },
+    {
+      "name": "the lab's check on the \"fly-lossy\" member: two seeds of 20,000 draws, a chain of two drafts, the Verifier's band",
+      "input": {"case":{"band":"spec","gamma":2,"seed":7},"draws":20000,"fn":"labTest","member":"fly-lossy","seeds":[101,102]},
+      "sha256": "15dcc76d6b34bd0bfea3923c85292abda2b6f6cd9f115d7a6baf240c5b5aaf3b",
+      "output": {"rejected":true,"tests":[{"counts":[7026,799,2445,1401,3546,4783],"critical":25.745,"df":5,"rejected":true,"seed":101,"stat":4943.051811428572}]}
+    }
+  ]
+}

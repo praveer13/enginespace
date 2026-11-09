@@ -1,0 +1,585 @@
+/*
+ * The course map's layout (W1-T06): how the page sets its heading and the printer's tape, and how the module tickets hang on the
+ * rail. The components of src/design/components draw the tickets, the tape labels, the stubs and the printer themselves; this file
+ * places them, draws the rod that each row of tickets hangs from, and prints the pips. Every colour, face, space, radius and shadow
+ * is a token role (src/design/tokens.css) or arithmetic on one, and the design system is not edited.
+ *
+ * Plain CSS outside Tailwind's layers, like src/content/render/content.css: it loads with the page that uses it.
+ */
+
+/* ---------------------------------------------------------------------------------------------- the page */
+
+.es-map {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-16);
+}
+
+.es-map__header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-8);
+  align-items: start;
+  padding-top: var(--es-space-4);
+}
+
+.es-map__intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-4);
+  justify-items: start;
+  min-width: 0;
+}
+
+/* The page's name stamped on a plate, with the kitchen's word for it on tape beside it. */
+.es-map__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--es-space-2) var(--es-space-4);
+}
+
+.es-map__title {
+  margin: 0;
+  font-size: clamp(2rem, 1.2rem + 3.4vw, 3.75rem);
+  line-height: 0.95;
+  overflow-wrap: anywhere;
+}
+
+.es-map__lede {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: 1.0625rem;
+  line-height: 1.55;
+}
+
+.es-map__tape {
+  justify-self: start;
+}
+
+@media (min-width: 64rem) {
+  .es-map__header {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 20rem);
+    column-gap: var(--es-space-16);
+  }
+
+  .es-map__tape {
+    justify-self: end;
+  }
+}
+
+.es-map__course {
+  min-width: 0;
+}
+
+/* ---------------------------------------------------------------------------------------------- the rail */
+
+/* The tickets, in the order of the course, in as many to a row as the page is wide. Each row hangs from its own stretch of rod. */
+.es-map__rails {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: var(--es-space-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 40rem) {
+  .es-map__rails {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 64rem) {
+  .es-map__rails {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 76rem) {
+  .es-map__rails {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* A stop is a clip on the rod and the ticket that hangs from it, as the rail's clips hold their tickets. */
+.es-map__stop {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  padding: 0.875rem var(--es-space-2) 0;
+}
+
+@media (min-width: 40rem) {
+  .es-map__stop {
+    padding-inline: var(--es-space-3);
+  }
+}
+
+/* The rod: stainless, lit from the tubes. Stretches of it meet edge to edge, so a row reads as one rod. */
+.es-map__rod {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1.375rem;
+  border-radius: var(--es-radius-plate);
+  background: linear-gradient(
+    180deg,
+    var(--es-surface-1) 0%,
+    color-mix(in srgb, var(--es-surface-1) 60%, var(--es-paper)) 18%,
+    var(--es-surface-1) 30%,
+    var(--es-surface-2) 62%,
+    var(--es-surface-3) 100%
+  );
+  box-shadow:
+    var(--es-shadow-plate),
+    0 8px 10px -8px color-mix(in srgb, var(--es-text-1) 45%, transparent);
+}
+
+/* Where a row begins and ends the rod has its rounded ends, and between tickets it has none. */
+@media (min-width: 40rem) and (max-width: 63.999rem) {
+  .es-map__rod {
+    border-radius: 0;
+  }
+
+  .es-map__stop:nth-child(2n + 1) > .es-map__rod {
+    border-radius: var(--es-radius-plate) 0 0 var(--es-radius-plate);
+  }
+
+  .es-map__stop:nth-child(2n) > .es-map__rod {
+    border-radius: 0 var(--es-radius-plate) var(--es-radius-plate) 0;
+  }
+
+  .es-map__stop:last-child:nth-child(2n + 1) > .es-map__rod {
+    border-radius: var(--es-radius-plate);
+  }
+}
+
+@media (min-width: 64rem) and (max-width: 75.999rem) {
+  .es-map__rod {
+    border-radius: 0;
+  }
+
+  .es-map__stop:nth-child(3n + 1) > .es-map__rod {
+    border-radius: var(--es-radius-plate) 0 0 var(--es-radius-plate);
+  }
+
+  .es-map__stop:nth-child(3n) > .es-map__rod,
+  .es-map__stop:last-child:nth-child(3n + 2) > .es-map__rod {
+    border-radius: 0 var(--es-radius-plate) var(--es-radius-plate) 0;
+  }
+
+  .es-map__stop:last-child:nth-child(3n + 1) > .es-map__rod {
+    border-radius: var(--es-radius-plate);
+  }
+}
+
+@media (min-width: 76rem) {
+  .es-map__rod {
+    border-radius: 0;
+  }
+
+  .es-map__stop:nth-child(4n + 1) > .es-map__rod {
+    border-radius: var(--es-radius-plate) 0 0 var(--es-radius-plate);
+  }
+
+  .es-map__stop:nth-child(4n) > .es-map__rod,
+  .es-map__stop:last-child:nth-child(4n + 2) > .es-map__rod,
+  .es-map__stop:last-child:nth-child(4n + 3) > .es-map__rod {
+    border-radius: 0 var(--es-radius-plate) var(--es-radius-plate) 0;
+  }
+
+  .es-map__stop:last-child:nth-child(4n + 1) > .es-map__rod {
+    border-radius: var(--es-radius-plate);
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------- a ticket */
+
+.es-map__ticket {
+  flex: 1 1 auto;
+}
+
+/* The title is stamped smaller than a page's: a module's name has to fit a ticket that hangs four to a row. */
+.es-map__ticket .es-ticket__title {
+  font-size: clamp(1.375rem, 1.2rem + 0.4vw, 1.625rem);
+  overflow-wrap: anywhere;
+}
+
+/* The ids on a head line print in capitals, as the printer prints a table. */
+.es-map__ticket .es-ticket__head {
+  text-transform: uppercase;
+}
+
+/* The lamp's pool reaches no further than the rod's stretch, so a ticket at the edge of the page does not light the page's margin. */
+.es-map__ticket[data-lamp]::before {
+  inset: -2.5rem -0.75rem 0;
+}
+
+.es-map__ticket .es-ticket__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: var(--es-space-3);
+}
+
+.es-map__ticket .es-ticket__body > * + * {
+  margin-top: 0;
+}
+
+.es-map__next {
+  justify-self: start;
+}
+
+/* Hours are printed in the printer's dots, with the unit after them. */
+.es-map__hours {
+  font-family: var(--es-font-ticket);
+  font-weight: var(--es-font-ticket-weight);
+  letter-spacing: var(--es-font-ticket-tracking);
+  white-space: nowrap;
+}
+
+/* Where the work is done: the lane on tape and its hours, and under them what the module asks for there. */
+.es-map__lanes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: var(--es-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-map__lane-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--es-space-1) var(--es-space-3);
+}
+
+.es-map__artifacts {
+  display: grid;
+  row-gap: var(--es-space-1);
+  margin: var(--es-space-1) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+/* A printed dot leads each artifact, as the printer marks a line. */
+.es-map__artifacts li {
+  position: relative;
+  padding-left: 1.1rem;
+}
+
+.es-map__artifacts li::before {
+  content: '';
+  position: absolute;
+  top: 0.55em;
+  left: 0.15rem;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: var(--es-radius-round);
+  background-color: var(--es-paper-ink);
+}
+
+/* What the module advises doing first: the word, then its kernelspace lessons and its modules. */
+.es-map__leans {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--es-space-1) var(--es-space-3);
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.es-map__leans-word {
+  color: var(--es-text-1);
+  font-weight: 700;
+}
+
+.es-map__refs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--es-space-3);
+}
+
+/* A link to a lesson is a target of its own (WCAG 2.5.8): at least 24 px tall, with room beside it. */
+.es-map__refs .es-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
+}
+
+.es-map__refs-name {
+  color: var(--es-text-2);
+}
+
+/* What the learner holds of the module: its pips, and the count in words. */
+.es-map__holding {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2) var(--es-space-3);
+  padding-top: var(--es-space-3);
+  border-top: 2px dotted var(--es-paper-rule);
+}
+
+.es-map__count {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--es-space-3);
+  margin: 0;
+  font-family: var(--es-font-ticket);
+  font-size: 0.9375rem;
+  line-height: 1.35;
+  letter-spacing: var(--es-font-ticket-tracking);
+  font-weight: var(--es-font-ticket-weight);
+}
+
+.es-map__holding[data-state='empty'] .es-map__count,
+.es-map__holding[data-state='reading'] .es-map__count {
+  color: var(--es-text-2);
+}
+
+/* A count on a ticket is short, and it is not broken across lines. (The loop's longer parts may wrap, at 320 px.) */
+.es-map__seg {
+  white-space: nowrap;
+}
+
+.es-map__num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------------------------------------- pips */
+
+.es-pips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* A ring when not met; a ringed dot when practised; a solid dot when earned; a ticked solid dot when kept. */
+.es-pip {
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  box-sizing: border-box;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid var(--es-paper-ink);
+  border-radius: var(--es-radius-round);
+  background-color: transparent;
+  color: var(--es-paper);
+}
+
+.es-pip[data-state='none'] {
+  border-color: var(--es-edge);
+}
+
+.es-pip[data-state='practised'] {
+  background-image: radial-gradient(circle at 50% 50%, var(--es-paper-ink) 0 26%, transparent 28%);
+}
+
+.es-pip[data-state='earned'],
+.es-pip[data-state='kept'] {
+  background-color: var(--es-paper-ink);
+}
+
+.es-pip__tick {
+  width: 100%;
+  height: 100%;
+  stroke-width: 3.5;
+}
+
+@media (forced-colors: active) {
+  .es-pip {
+    border-color: CanvasText;
+    forced-color-adjust: none;
+  }
+
+  .es-pip[data-state='practised'] {
+    background-image: radial-gradient(circle at 50% 50%, CanvasText 0 26%, transparent 28%);
+  }
+
+  .es-pip[data-state='earned'],
+  .es-pip[data-state='kept'] {
+    background-color: CanvasText;
+    color: Canvas;
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------- a module page: the loop */
+
+/* These tickets are blocks of the page (content.css bullets their lists, and the selectors here are as specific as its own). */
+.es-c-block .es-ticket__body .es-steps {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: var(--es-space-4);
+  margin: var(--es-space-6) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-c-block .es-ticket__body .es-steps > li {
+  margin: 0;
+}
+
+/* A step: its name stamped, what it asks, and what the learner has done in it. */
+.es-steps__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-1) var(--es-space-4);
+  padding-top: var(--es-space-4);
+  border-top: 2px dotted var(--es-paper-rule);
+}
+
+.es-steps__item:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.es-steps__name {
+  font-family: var(--es-font-heading);
+  font-size: 1.5rem;
+  line-height: 1;
+  letter-spacing: var(--es-font-heading-tracking);
+  font-weight: var(--es-font-heading-weight);
+  text-transform: uppercase;
+}
+
+.es-steps__what {
+  color: var(--es-text-2);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.es-steps__offer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--es-space-3);
+  margin-top: var(--es-space-1);
+}
+
+.es-steps__offer-word {
+  color: var(--es-text-1);
+  font-weight: 700;
+}
+
+/* A link to a game or a lab is a target of its own (WCAG 2.5.8): at least 24 px tall. */
+.es-steps__offer .es-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
+}
+
+.es-steps__done {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--es-space-3);
+  font-family: var(--es-font-ticket);
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  letter-spacing: var(--es-font-ticket-tracking);
+  font-weight: var(--es-font-ticket-weight);
+}
+
+.es-steps__num {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 40rem) {
+  .es-steps__item {
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+    grid-template-areas:
+      'name what'
+      'name done';
+    align-items: baseline;
+  }
+
+  .es-steps__name {
+    grid-area: name;
+  }
+
+  .es-steps__what {
+    grid-area: what;
+  }
+
+  .es-steps__done {
+    grid-area: done;
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------- a module page: the knowledge components */
+
+.es-c-block .es-ticket__body .es-kcs {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: var(--es-space-3);
+  margin: var(--es-space-6) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Said once for the whole list: some of its KCs have no graded item yet. */
+.es-kcs__note {
+  color: var(--es-paper-ink-2);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.es-c-block .es-ticket__body .es-kcs > li {
+  margin: 0;
+}
+
+.es-kcs__row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--es-space-3);
+  row-gap: var(--es-space-1);
+  align-items: start;
+}
+
+.es-kcs__row > .es-pip {
+  margin-top: 0.3rem;
+}
+
+.es-kcs__can {
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.es-kcs__state {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-1) var(--es-space-3);
+  color: var(--es-text-2);
+  font-family: var(--es-font-ticket);
+  font-size: 0.875rem;
+  line-height: 1.3;
+  letter-spacing: var(--es-font-ticket-tracking);
+  font-weight: var(--es-font-ticket-weight);
+}
+
+.es-kcs__total {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--es-space-3);
+  margin: 0;
+  padding-top: var(--es-space-3);
+  border-top: 2px dotted var(--es-paper-rule);
+  font-family: var(--es-font-ticket);
+  font-size: 0.9375rem;
+  letter-spacing: var(--es-font-ticket-tracking);
+  font-weight: var(--es-font-ticket-weight);
+}

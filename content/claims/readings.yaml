@@ -1,0 +1,289 @@
+# The reading targets of TR1 (W1-T01; D-011, D-035): "Inside vLLM" at commit 42172ad, nano-vllm and Mini-SGLang.
+#
+# The course reads three small or old code bases next to the engines it pins. Each is pinned by commit in course.lock.json (keys inside-vllm,
+# nano-vllm and mini-sglang), and TR1 maps each box of their request paths onto the pinned engines. These claims say what a reader needs to
+# know before the map: where the post stops being true of v0.33.0, and what the two small engines do and leave out. Read on 2026-11-04.
+# nano-vllm and Mini-SGLang have no releases or tags, so a claim cites the file at the commit.
+
+# --- Inside vLLM (commit 42172ad18fbc22c89d0063184e4570cc84186e16) ---------------------------------------------------------------------
+
+- id: inside-vllm.analysis-commit
+  value: 42172ad
+  text: The Inside vLLM post, published on 2025-09-05, says its analysis is based on vLLM commit 42172ad of August 9th, 2025. That is a source tree from before Model Runner V2 and before the CUDA-graph dispatcher.
+  tag: measured
+  source:
+    url: https://vllm.ai/blog/2025-09-05-anatomy-of-vllm
+    title: 'Inside vLLM: Anatomy of a High-Throughput LLM Inference System (Aleksa Gordic, 2025-09-05)'
+    quote: 'Analysis is based on commit 42172ad (August 9th, 2025).'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+  pin: inside-vllm
+
+- id: inside-vllm.commit-date
+  value: '2025-08-09'
+  text: The full commit is 42172ad18fbc22c89d0063184e4570cc84186e16, dated 2025-08-09 at 11:50:03 -0700, with the subject "Add triton mrope to replace the torch code path (#22375)".
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/commit/42172ad18fbc22c89d0063184e4570cc84186e16.patch
+    title: vLLM commit 42172ad18fbc22c89d0063184e4570cc84186e16 (patch)
+    quote: 'Date: Sat, 9 Aug 2025 11:50:03 -0700'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+  pin: inside-vllm
+
+- id: inside-vllm.async-experimental
+  value: Experimental
+  text: The post lists async scheduling under Experimental.
+  tag: measured
+  source:
+    url: https://vllm.ai/blog/2025-09-05-anatomy-of-vllm
+    title: 'Inside vLLM: Anatomy of a High-Throughput LLM Inference System (Aleksa Gordic, 2025-09-05)'
+    quote: 'Experimental: async scheduling'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+  pin: inside-vllm
+
+- id: inside-vllm.no-draft-model
+  value: n-gram, EAGLE, Medusa
+  text: The post says that V1 does not support the LLM draft-model method, and that it implements n-gram, EAGLE and Medusa proposal schemes instead.
+  tag: measured
+  source:
+    url: https://vllm.ai/blog/2025-09-05-anatomy-of-vllm
+    title: 'Inside vLLM: Anatomy of a High-Throughput LLM Inference System (Aleksa Gordic, 2025-09-05)'
+    quote: 'vLLM V1 does not support the LLM draft model method'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+  pin: inside-vllm
+
+- id: inside-vllm.chunked-prefill-by-hand
+  value: long_prefill_token_threshold
+  text: The post says that in V1 you enable chunked prefill by setting long_prefill_token_threshold to a positive integer.
+  tag: measured
+  source:
+    url: https://vllm.ai/blog/2025-09-05-anatomy-of-vllm
+    title: 'Inside vLLM: Anatomy of a High-Throughput LLM Inference System (Aleksa Gordic, 2025-09-05)'
+    quote: 'In vLLM V1, you enable chunked prefill by setting long_prefill_token_threshold to a positive integer.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+  pin: inside-vllm
+
+- id: inside-vllm.use-v1
+  value: VLLM_USE_V1=1
+  text: The post's setup code selects the V1 engine with VLLM_USE_V1="1".
+  tag: measured
+  source:
+    url: https://vllm.ai/blog/2025-09-05-anatomy-of-vllm
+    title: 'Inside vLLM: Anatomy of a High-Throughput LLM Inference System (Aleksa Gordic, 2025-09-05)'
+    quote: 'VLLM_USE_V1="1" # we''re using engine V1'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+  pin: inside-vllm
+
+# --- nano-vllm (commit bb823b3e06983d71485a8e1f23715ebd87d98ef8) ----------------------------------------------------------------------
+
+- id: nano-vllm.readme-lines
+  value: 1200
+  unit: lines
+  text: nano-vllm's README says its implementation is about 1,200 lines of Python. The count is the README's own and has not been checked here.
+  tag: unverified
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/README.md#L16
+    title: nano-vllm at bb823b3, README.md
+    quote: 'Clean implementation in ~ 1,200 lines of Python code'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.step-shape
+  value: prefill or decode, never mixed
+  text: nano-vllm's Scheduler.schedule returns a list of sequences and a flag that says whether they are prefill. It admits waiting sequences first, and it schedules a decode step only when no prefill was scheduled, so a step is all prefill or all decode. vLLM's scheduler has no such phases.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/scheduler.py#L25-L73
+    title: nano-vllm at bb823b3, nanovllm/engine/scheduler.py, Scheduler.schedule
+    quote: 'def schedule(self) -> tuple[list[Sequence], bool]:'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.chunked-prefill-first-only
+  value: the first sequence only
+  text: nano-vllm cuts a prompt into chunks only for the first sequence of a prefill step. A later sequence that does not fit the token budget waits for the next step.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/scheduler.py#L42-L43
+    title: nano-vllm at bb823b3, nanovllm/engine/scheduler.py, Scheduler.schedule
+    quote: '# only allow chunked prefill for the first seq'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.preempt-recompute
+  value: recompute
+  text: nano-vllm preempts by recomputation, as vLLM does. A preempted sequence goes back to the front of the waiting queue as a prefill with its blocks freed. The victim during decode is the last running sequence, and the sequence itself when it is the only one.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/scheduler.py#L58-L79
+    title: nano-vllm at bb823b3, nanovllm/engine/scheduler.py, Scheduler.preempt
+    quote: 'def preempt(self, seq: Sequence):'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.block-size
+  value: 256
+  unit: tokens
+  text: nano-vllm's KV block holds 256 tokens by default, and the config asserts that the size is a multiple of 256. vLLM's default block holds 16.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/config.py#L17-L22
+    title: nano-vllm at bb823b3, nanovllm/config.py, Config
+    quote: 'assert self.kvcache_block_size % 256 == 0'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.token-budget
+  value: 16384
+  unit: tokens
+  text: nano-vllm's Config defaults max_num_batched_tokens to 16,384 and max_num_seqs to 512, one setting for every GPU.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/config.py#L9-L10
+    title: nano-vllm at bb823b3, nanovllm/config.py, Config
+    quote: 'max_num_batched_tokens: int = 16384'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.requirements
+  value: '>=3.10,<3.13'
+  text: nano-vllm declares Python 3.10 up to but not including 3.13, and depends on torch 2.4.0 or newer, triton 3.0.0 or newer, transformers 4.51.0 or newer and an unpinned flash-attn. A pin of torch 2.14 and CUDA 13 is within torch's range, and whether a flash-attn build exists for it is [unverified] (vllm U3).
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/pyproject.toml#L11-L19
+    title: nano-vllm at bb823b3, pyproject.toml
+    quote: 'requires-python = ">=3.10,<3.13"'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: nano-vllm
+
+# --- Mini-SGLang (commit 9a91cfafe754aa85daee49998176275667eb58f2) ---------------------------------------------------------------------
+
+- id: mini-sglang.processes
+  value: API server, tokenizer, scheduler per GPU, detokenizer
+  text: Mini-SGLang is several independent processes, an API server, a tokenizer worker, a detokenizer worker and one scheduler worker for each GPU, the TP rank.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/docs/structures.md#L5-L12
+    title: Mini-SGLang at 9a91cfa, docs/structures.md (System Architecture)
+    quote: 'It consists of several independent processes working together.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.transport
+  value: ZeroMQ for control, NCCL for tensors
+  text: The Mini-SGLang processes talk over ZeroMQ for control messages, and over NCCL through torch.distributed for the heavy tensor data that moves between GPUs.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/docs/structures.md#L16
+    title: Mini-SGLang at 9a91cfa, docs/structures.md (Data Flow)
+    quote: 'The components communicate using **ZeroMQ (ZMQ)** for control messages and **NCCL** (via `torch.distributed`) for heavy tensor data exchange between GPUs.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.request-path
+  value: 8
+  unit: steps
+  text: Mini-SGLang's documented request path has eight steps. The API server forwards a request to the tokenizer, which sends tokens to the rank 0 scheduler, which broadcasts it to the other ranks. All the schedulers then run their engines, rank 0 collects the output token and sends it to the detokenizer, and the API server streams the text back.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/docs/structures.md#L20-L29
+    title: Mini-SGLang at 9a91cfa, docs/structures.md (Request Lifecycle)
+    quote: '**Scheduler (Rank 0)** collects the output token and sends it to the **Detokenizer**.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.chunked-prefill-default
+  value: 'true'
+  text: Mini-SGLang turns chunked prefill on by default.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/docs/features.md#L31
+    title: Mini-SGLang at 9a91cfa, docs/features.md (Chunked Prefill)
+    quote: 'Chunked Prefill, a technique introduced by [Sarathi-Serve](https://arxiv.org/abs/2403.02310), is enabled by default.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.cuda-graph-default
+  value: 'true'
+  text: Mini-SGLang captures and replays decode CUDA graphs by default. --cuda-graph-max-bs sets the largest captured batch, and 0 turns the feature off.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/docs/features.md#L45
+    title: Mini-SGLang at 9a91cfa, docs/features.md (CUDA Graph)
+    quote: 'This feature is enabled by default.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.overlap-default
+  value: 'on'
+  text: Mini-SGLang's overlap scheduling is on by default. The switch is DISABLE_OVERLAP_SCHEDULING, read from the environment variable MINISGL_DISABLE_OVERLAP_SCHEDULING, and it is false unless set.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/env.py#L50-L69
+    title: Mini-SGLang at 9a91cfa, python/minisgl/env.py
+    quote: 'DISABLE_OVERLAP_SCHEDULING = EnvBool(False)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.torch-pin
+  value: torch<2.10.0
+  text: Mini-SGLang's pyproject requires torch below 2.10.0 and transformers from 4.56.0 up to and including 4.57.3. The pinned engines use torch 2.14, so Mini-SGLang needs an environment of its own.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/pyproject.toml#L26-L40
+    title: Mini-SGLang at 9a91cfa, pyproject.toml
+    quote: '"torch<2.10.0",'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.linux-only
+  value: Linux only
+  text: Mini-SGLang supports Linux only, on x86_64 and aarch64, because it depends on Linux-specific CUDA kernels. A learner on another system reads it and cannot run it.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/README.md#L27
+    title: Mini-SGLang at 9a91cfa, README.md
+    quote: 'Mini-SGLang currently supports **Linux only** (x86_64 and aarch64).'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: mini-sglang

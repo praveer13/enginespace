@@ -1,0 +1,417 @@
+# vLLM at the pin: the hybrid KV cache manager, adapter slots, the HMA connector flag and the KV events (W1-T01; D-034, D-042, D-045).
+#
+# TR5a builds a page pool that holds every KV group and every adapter; vLLM does the first and not the second, and D-042 says so on every
+# card. The KV-event claims resolve ARCHITECTURE §5.4, which waited on this task to check the shapes of the pinned version. Read on
+# 2026-11-04 at v0.33.0 (commit 4ba787ec9959e566d3b587a796dff07673324da5).
+
+# --- Hybrid KV groups ----------------------------------------------------------------------------------------------------------------
+
+- id: vllm.hybrid-kv.single-pool
+  value: one pool, one page size
+  text: The hybrid KV cache manager serves every layer type from a single memory pool that is split into blocks of the same page size. Making every layer type reach that one page size is its core challenge.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/hybrid_kv_cache_manager.md#L47
+    title: vLLM v0.33.0, docs/design/hybrid_kv_cache_manager.md (Allocation)
+    quote: 'We use a single memory pool for all layer types. The memory pool is split into multiple blocks with the same page size.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.cache-key
+  value: (block hash, group id)
+  text: The block pool caches full blocks in a dict keyed by the pair of a block hash and a group id, so the same tokens in different groups are cached and evicted independently.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/hybrid_kv_cache_manager.md#L163
+    title: vLLM v0.33.0, docs/design/hybrid_kv_cache_manager.md (Prefix caching)
+    quote: 'The block pool uses a dict similar to `tuple(block_hash, group_id) -> block` to cache the full blocks.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.intersection
+  value: the intersection of the groups' hits
+  text: On a new request the manager checks the cache-hit prefix of each group and returns the intersection of the groups as the request's cached prefix.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/hybrid_kv_cache_manager.md#L165
+    title: vLLM v0.33.0, docs/design/hybrid_kv_cache_manager.md (Prefix caching)
+    quote: 'return the intersection of these groups as the cached prefix of the request.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.full-plus-sliding-lookup
+  value: full left to right, window right to left
+  text: For full attention plus sliding window the lookup first finds the longest full-attention hit scanning left to right, and then the longest sliding-window hit inside that length, checking from right to left.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/hybrid_kv_cache_manager.md#L196-L197
+    title: vLLM v0.33.0, docs/design/hybrid_kv_cache_manager.md (Case 2)
+    quote: 'Implemented by checking cache hits from right to left starting from the cache hit length of full attention.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.doc-two-groups
+  value: 2
+  unit: groups
+  text: The design document describes HybridKVCacheCoordinator as handling exactly two KV cache groups, one full-attention group and one other, and says other cases are not implemented. The code does more than that, as the next claim shows, so the document is stale on the number of groups.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/hybrid_kv_cache_manager.md#L221
+    title: vLLM v0.33.0, docs/design/hybrid_kv_cache_manager.md (Overview)
+    quote: 'Handles exactly two KV cache groups'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.n-group-lookup
+  value: iterative fixed point
+  text: At v0.33.0 HybridKVCacheCoordinator.find_longest_cache_hit handles a list of attention types, not only two, with an iterative fixed-point algorithm. Each type either accepts the candidate length or shortens it, and any shortening restarts the pass over all the types. The loop converges because the length only falls and stops at 0.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/kv_cache_coordinator.py#L811-L816
+    title: vLLM v0.33.0, vllm/v1/core/kv_cache_coordinator.py, HybridKVCacheCoordinator.find_longest_cache_hit
+    quote: 'Find the longest cache hit using an iterative fixed-point algorithm.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.simple-hybrid
+  value: one pass
+  text: When a model has exactly one full-attention group and one other group, the lookup needs one iteration, and full attention is always checked first when it exists.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/kv_cache_coordinator.py#L836-L837
+    title: vLLM v0.33.0, vllm/v1/core/kv_cache_coordinator.py, HybridKVCacheCoordinator.find_longest_cache_hit
+    quote: 'Simple hybrid (1 full attn + 1 other): one iteration suffices.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.one-lru
+  value: one LRU queue
+  text: The design document says all KV cache groups share one LRU queue. Blocks join it when they are freed, either because the request finished or because the block fell out of the sliding window.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/hybrid_kv_cache_manager.md#L203
+    title: vLLM v0.33.0, docs/design/hybrid_kv_cache_manager.md (Case 2)
+    quote: 'For now, we use one LRU queue for all kv cache groups.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+# --- The HMA connector flag ----------------------------------------------------------------------------------------------------------
+
+- id: vllm.hybrid-kv.supports-hma
+  value: SupportsHMA
+  text: A KV connector that works with the hybrid memory allocator (HMA) subclasses SupportsHMA and implements request_finished_all_groups. The class docstring says this is required to use a connector together with the hybrid memory allocator.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/distributed/kv_transfer/kv_connector/v1/base.py#L101-L129
+    title: vLLM v0.33.0, vllm/distributed/kv_transfer/kv_connector/v1/base.py, SupportsHMA
+    quote: 'This is required to use the connector together with hybrid memory allocator.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.hybrid-kv.auto-off-connector
+  value: off
+  text: When the user has not chosen, the config turns the hybrid KV cache manager off if the selected KV connector does not support it, and logs one warning. Hybrid SSM models then fail at startup, and sliding-window models run more slowly.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/vllm.py#L2257-L2277
+    title: vLLM v0.33.0, vllm/config/vllm.py (hybrid KV cache manager rules)
+    quote: 'Auto-disable HMA only when the connector config does not support it.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+# --- Adapter slots, not adapter pages ------------------------------------------------------------------------------------------------
+# D-042: at the pins neither engine pages adapters in the KV pool. vLLM keeps max_loras GPU slots and a CPU LRU. The adapter weights are
+# not blocks of the KV pool, and the only trace of S-LoRA in the tree is the fully sharded tensor-parallel slicing of LoRA layers.
+
+- id: vllm.lora.max-loras-default
+  value: 1
+  unit: slots
+  text: vLLM sizes its GPU adapter slots by max_loras, the most adapters that one batch may use, and it defaults to 1 at v0.33.0.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/lora.py#L36-L37
+    title: vLLM v0.33.0, vllm/config/lora.py, max_loras
+    quote: 'max_loras: int = Field(default=1, ge=1)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.lora.slot-count
+  value: lora_slots = max_loras
+  text: The LoRA model manager sizes its adapter slots, lora_slots, as max_loras.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/lora/model_manager.py#L347-L349
+    title: vLLM v0.33.0, vllm/lora/model_manager.py, LoRAModelManager.lora_slots
+    quote: 'return self.lora_config.max_loras'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.lora.s-lora-scope
+  value: tensor-parallel slicing
+  text: S-LoRA is cited in vLLM's LoRA layers only for how a fully sharded LoRA layer slices its weights across tensor-parallel ranks. In the KV block code, block_pool.py, kv_cache_manager.py, the coordinators and the single-type managers, the adapter appears only in block hashes and events, so adapter weights are not pages of the KV pool. Adapter pages in one pool are S-LoRA's design and not vLLM's.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/lora/layers/row_parallel_linear.py#L98-L106
+    title: vLLM v0.33.0, vllm/lora/layers/row_parallel_linear.py
+    quote: 'Based on S-LoRA, slicing happens along the output dim.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.kv-hash.lora-extra-key
+  value: '("lora", name, path)'
+  text: A request's LoRA adapter is part of its block hashes. The extra key is the tuple of the tag lora, the adapter's name and its path, so the same tokens under two adapters, or under one name re-pointed at another path, do not share cached blocks.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/kv_cache_utils.py#L590-L607
+    title: vLLM v0.33.0, vllm/v1/core/kv_cache_utils.py, _gen_lora_extra_hash_keys
+    quote: 'return [("lora", lora_request.lora_name, lora_request.lora_path)]'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.lora.max-rank-default
+  value: 16
+  unit: rank
+  text: The slots are sized for the largest rank an adapter may have, max_lora_rank, which defaults to 16 at v0.33.0.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/lora.py#L34
+    title: vLLM v0.33.0, vllm/config/lora.py, max_lora_rank
+    quote: 'max_lora_rank: MaxLoRARanks = 16'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.lora.cpu-cache
+  value: max_cpu_loras = max_loras
+  text: vLLM keeps up to max_cpu_loras adapters in CPU memory. The value defaults to max_loras and may not be smaller than it.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/lora.py#L121-L127
+    title: vLLM v0.33.0, vllm/config/lora.py, LoRAConfig._validate_lora_config
+    quote: 'self.max_cpu_loras = self.max_loras'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.lora.lru-slots
+  value: LRU over the slots
+  text: The LRUCacheLoRAModelManager manages the adapters with an LRU cache. When all slots are in use, it evicts the oldest active adapter before it activates a new one.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/lora/model_manager.py#L1441-L1450
+    title: vLLM v0.33.0, vllm/lora/model_manager.py, LRUCacheLoRAModelManager.activate_adapter
+    quote: 'self._active_adapters.remove_oldest()'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.lora.admission-cap
+  value: distinct adapters at most max_loras
+  text: The scheduler skips a waiting request whose adapter is not already scheduled once the distinct adapters in the batch reach max_loras. The request waits, so an adapter cap is part of admission.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/sched/scheduler.py#L1091-L1102
+    title: vLLM v0.33.0, vllm/v1/core/sched/scheduler.py, Scheduler.schedule
+    quote: 'Scheduling would exceed max_loras, skip.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+# --- KV events -----------------------------------------------------------------------------------------------------------------------
+# ARCHITECTURE §5.4 says the model's events take the shape of the pinned vLLM version's. These claims are that shape. The classes are
+# msgspec structs in vllm/distributed/kv_events.py, and an event is a tagged map whose `type` is the class name (the SGLang source says
+# so for both engines: see sglang.kv-events.encoding).
+
+- id: vllm.kv-events.batch
+  value: '[ts, events, data_parallel_rank]'
+  text: A KV event batch is an array-like struct of a timestamp, a list of events and an optional data-parallel rank. KVEventBatch narrows the events to BlockStored, BlockRemoved and AllBlocksCleared.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/distributed/kv_events.py#L31-L39
+    title: vLLM v0.33.0, vllm/distributed/kv_events.py, EventBatch
+    quote: 'data_parallel_rank: int | None = None'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.kv-events.block-stored
+  value: 15
+  unit: fields
+  text: BlockStored has 15 fields. Seven have no default, block_hashes, parent_block_hash, token_ids, block_size, lora_id (deprecated), medium and lora_name. Eight are optional, extra_keys, group_idx, kv_cache_spec_kind, kv_cache_spec_sliding_window, locality, ownership, session_id and lookahead_token_ids. A store carries the cache-spec kind of its group so that a consumer can classify groups as it learns them.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/distributed/kv_events.py#L56-L98
+    title: vLLM v0.33.0, vllm/distributed/kv_events.py, BlockStored
+    quote: 'Store events carry cache-spec metadata so consumers can classify and filter groups as they are learned.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.kv-events.adapter-field
+  value: lora_name
+  text: BlockStored already carries the adapter, as lora_name and as lora_id, which the source marks deprecated in favour of lora_name for the block key hash. The adapter name is also the first entry of extra_keys when it is set.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/distributed/kv_events.py#L62-L76
+    title: vLLM v0.33.0, vllm/distributed/kv_events.py, BlockStored
+    quote: 'Deprecated: use `lora_name` for KV block key hash.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.kv-events.block-removed
+  value: 5
+  unit: fields
+  text: BlockRemoved has 5 fields, block_hashes, medium, and the optional group_idx, locality and ownership.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/distributed/kv_events.py#L123-L130
+    title: vLLM v0.33.0, vllm/distributed/kv_events.py, BlockRemoved
+    quote: 'class BlockRemoved(KVCacheEvent):'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.kv-events.all-blocks-cleared
+  value: 0
+  unit: fields
+  text: AllBlocksCleared has no fields. The block pool appends it when reset_prefix_cache succeeds, which it does only if no block is in use.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/block_pool.py#L880-L908
+    title: vLLM v0.33.0, vllm/v1/core/block_pool.py, BlockPool.reset_prefix_cache
+    quote: 'self.kv_event_queue.append(AllBlocksCleared())'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.kv-events.block-removed-emission
+  value: one event per removed hash
+  text: The block pool emits one BlockRemoved for each hash it drops from the cache, with the medium and the group index of that hash.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/block_pool.py#L651-L664
+    title: vLLM v0.33.0, vllm/v1/core/block_pool.py, BlockPool._emit_block_removed_events
+    quote: 'def _emit_block_removed_events('
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.kv-events.zmq-frames
+  value: '[topic, 8-byte sequence, payload]'
+  text: The ZMQ publisher sends each batch as three frames, the topic, an 8-byte big-endian sequence number, and the msgpack-encoded batch, over a PUB socket.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/distributed/kv_events.py#L484-L511
+    title: vLLM v0.33.0, vllm/distributed/kv_events.py, ZmqEventPublisher._publisher_thread
+    quote: 'self._pub.send_multipart((self._topic_bytes, seq_bytes, payload))'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.kv-events.replay
+  value: ROUTER socket
+  text: With a replay endpoint the publisher also binds a ROUTER socket. A subscriber asks for the batches it missed by sending the starting sequence number as 8 bytes.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/distributed/kv_events.py#L323-L326
+    title: vLLM v0.33.0, vllm/distributed/kv_events.py, ZmqEventPublisher
+    quote: 'subscribers can request missed batches by sending the starting sequence number as an 8-byte big-endian integer.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.kv-events.replay-end-marker
+  value: -1
+  unit: sequence
+  text: A replay ends with a marker frame whose sequence is -1, packed as 8 big-endian signed bytes, so a subscriber knows the buffered batches have all been sent.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/distributed/kv_events.py#L339
+    title: vLLM v0.33.0, vllm/distributed/kv_events.py, ZmqEventPublisher.END_SEQ
+    quote: 'END_SEQ = (-1).to_bytes(8, "big", signed=True)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.kv-events.buffer-steps
+  value: 10000
+  unit: batches
+  text: The replay buffer holds the last 10,000 batches by default.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/kv_events.py#L31
+    title: vLLM v0.33.0, vllm/config/kv_events.py, buffer_steps
+    quote: 'buffer_steps: int = 10_000'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.kv-events.hwm
+  value: 100000
+  unit: events
+  text: The ZMQ high-water mark of the event publisher is 100,000 by default. After that many queued events, events start dropping if the consumer is not keeping up.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/kv_events.py#L38-L41
+    title: vLLM v0.33.0, vllm/config/kv_events.py, hwm
+    quote: 'events will start dropping if the consumer is not keeping up.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.kv-events.publisher-default
+  value: zmq if enabled, else null
+  text: Events are off by default. The publisher becomes zmq when enable_kv_cache_events is set and null otherwise, and the default endpoint is tcp://*:5557.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/kv_events.py#L14-L54
+    title: vLLM v0.33.0, vllm/config/kv_events.py, KVEventsConfig.__post_init__
+    quote: 'self.publisher = "zmq" if self.enable_kv_cache_events else "null"'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm

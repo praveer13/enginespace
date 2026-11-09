@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 190" width="360" height="190" fill="none" stroke="currentColor" stroke-width="1.5">
+  <title>vLLM's API server and engine core, with their tasks, threads, sockets and queues</title>
+  <desc>Two large boxes side by side. The API server on the left holds three asyncio tasks, a handler task above an output handler task above a socket task, joined upward by the outputs queue and the collector. The engine core on the right holds an input thread, a main thread and an output thread, joined downward by input_queue and output_queue, with a GPU box beside the main thread. A ZMQ arrow runs from the handler task to the input thread, and another from the output thread to the socket task. A caption notes that the busy loop also keeps batch_queue and aborts_queue.</desc>
+  <rect x="4" y="16" width="142" height="116"/>
+  <rect x="198" y="16" width="158" height="116"/>
+  <rect x="12" y="26" width="126" height="22"/>
+  <rect x="12" y="64" width="126" height="22"/>
+  <rect x="12" y="104" width="126" height="22"/>
+  <rect x="206" y="26" width="86" height="22"/>
+  <rect x="206" y="64" width="86" height="22"/>
+  <rect x="206" y="104" width="86" height="22"/>
+  <rect x="314" y="64" width="38" height="22"/>
+  <g stroke="none" fill="currentColor" font-size="10" text-anchor="middle">
+    <text x="75" y="11">API server</text>
+    <text x="277" y="11">engine core</text>
+    <text x="75" y="41">handler task</text>
+    <text x="75" y="79">output handler task</text>
+    <text x="75" y="119">socket task</text>
+    <text x="249" y="41">input thread</text>
+    <text x="249" y="79">main thread</text>
+    <text x="249" y="119">output thread</text>
+    <text x="333" y="79">GPU</text>
+    <text x="172" y="30">ZMQ</text>
+    <text x="172" y="110">ZMQ</text>
+  </g>
+  <g stroke="none" fill="currentColor" font-size="9">
+    <text x="84" y="58">collector</text>
+    <text x="84" y="98">outputs_queue</text>
+    <text x="258" y="58">input_queue</text>
+    <text x="258" y="98">output_queue</text>
+  </g>
+  <path d="M138 37H204M199 33L204 37L199 41"/>
+  <path d="M206 115H140M145 111L140 115L145 119"/>
+  <path d="M75 64V50M71 55L75 50L79 55"/>
+  <path d="M75 104V88M71 93L75 88L79 93"/>
+  <path d="M249 48V62M245 57L249 62L253 57"/>
+  <path d="M249 86V102M245 97L249 102L253 97"/>
+  <path d="M292 75H312M297 71L292 75L297 79M307 71L312 75L307 79"/>
+  <g stroke="none" fill="currentColor" font-size="10" text-anchor="middle">
+    <text x="180" y="152">ROUTER to DEALER on the way in, PUSH to PULL on the way out</text>
+    <text x="180" y="168">the busy loop also keeps batch_queue and aborts_queue</text>
+    <text x="180" y="184">asyncio tasks on the left, threads on the right</text>
+  </g>
+</svg>

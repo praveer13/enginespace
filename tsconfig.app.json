@@ -1,0 +1,53 @@
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "types": ["vite/client"],
+    "skipLibCheck": true,
+
+    /*
+     * The vendored FSRS model (src/items/today wraps it) imports two types from a module that this repository does not have. The
+     * second target of `@/*` is the shim that stands in for it (vendor/kernelspace/VENDOR.md, "Type shims"). Anything under src/
+     * wins, so no file of ours can be shadowed by a shim.
+     */
+    "paths": {
+      "@/*": ["./src/*", "./vendor/kernelspace/shims/src/*"],
+      "@es/sim": ["./packages/sim"],
+      "@es/sim/*": ["./packages/sim/*"],
+      "@es/play": ["./packages/play"],
+      "@es/play/*": ["./packages/play/*"],
+      "@es/ledger": ["./packages/ledger"],
+      "@es/ledger/*": ["./packages/ledger/*"],
+      "@es/schema": ["./packages/schema"],
+      "@es/schema/*": ["./packages/schema/*"],
+      "@es/verify": ["./packages/verify"],
+      "@es/verify/*": ["./packages/verify/*"]
+    },
+
+    /*
+     * The vendored Forge host (src/forge wraps it) imports two ledger types from a module that this repository does not have. The
+     * shim stands in for it, and rootDirs makes the relative import find the shim (vendor/kernelspace/VENDOR.md, "Type shims").
+     */
+    "rootDirs": ["./vendor/kernelspace/src", "./vendor/kernelspace/shims/src"],
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
+  },
+  "include": ["src", "packages/ledger", "packages/schema", "packages/verify"]
+}

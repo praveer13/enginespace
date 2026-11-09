@@ -1,0 +1,424 @@
+/*
+ * The content renderer's layout (W0-T09): how a module or lesson page sets its tickets, tape labels and printer tape on the
+ * stainless, and how prose lays out on a ticket. The components of src/design/components draw the tickets, the tape and the
+ * printer themselves; this file only places them and styles the text inside. Every colour, face, duration and space is a
+ * token role (src/design/tokens.css) or arithmetic on one, and the design system is not edited.
+ *
+ * Plain CSS outside Tailwind's layers, like src/design/specimens.css: it loads with the pages that use it.
+ */
+
+/* ---------------------------------------------------------------------------------------------- the page */
+
+.es-doc {
+  display: grid;
+  /* One column that may shrink below its widest content: a grid's own track would grow to the widest code line or table. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-8);
+}
+
+.es-doc__header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-3);
+  justify-items: start;
+}
+
+.es-doc__crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-1) var(--es-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9375rem;
+  color: var(--es-text-2);
+}
+
+.es-doc__crumbs li + li::before {
+  content: '/';
+  content: '/' / '';
+  margin-right: var(--es-space-2);
+  color: var(--es-text-3);
+}
+
+.es-doc__crumbs [aria-current='page'] {
+  color: var(--es-text-1);
+  font-weight: 700;
+}
+
+/* The page's name, stamped on a plate: the display face at a size that holds a lesson's title. */
+.es-doc__title {
+  margin: 0;
+  font-size: var(--es-size-page);
+  line-height: 0.95;
+  overflow-wrap: anywhere;
+}
+
+.es-doc__tapes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The printer's tape with the page's facts, and the run of tickets it has fed. On a wide screen the tape stands beside them. */
+.es-doc__columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-8);
+  align-items: start;
+}
+
+.es-doc__side,
+.es-doc__tickets {
+  min-width: 0;
+}
+
+.es-doc__tickets {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-12);
+}
+
+@media (min-width: 64rem) {
+  .es-doc__columns {
+    grid-template-columns: minmax(0, 36rem) minmax(0, 20rem);
+    column-gap: var(--es-space-12);
+  }
+
+  .es-doc__tickets {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .es-doc__side {
+    grid-column: 2;
+    grid-row: 1;
+    position: sticky;
+    top: var(--es-space-6);
+  }
+}
+
+/* A line of the tape keeps its label whole. A value too long for the rest of the line drops under it, flush right. */
+.es-doc__side .es-printer__line {
+  flex-wrap: wrap;
+}
+
+.es-doc__side .es-printer__line dt {
+  flex: none;
+  white-space: nowrap;
+}
+
+.es-doc__side .es-printer__line dd {
+  margin-left: auto;
+}
+
+/* Links side by side on a line of the tape. */
+.es-doc__refs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--es-space-1) var(--es-space-3);
+}
+
+.es-doc__lessons {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-6);
+}
+
+.es-doc__lesson-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ---------------------------------------------------------------------------------------------- a ticket's head and text */
+
+/* The ids on a head line are lower case in the source and print in capitals, as the printer prints a table. */
+.es-c-block .es-ticket__head {
+  text-transform: uppercase;
+}
+
+.es-c-block .es-ticket__body > * + :is(h3, h4) {
+  margin-top: var(--es-space-6);
+}
+
+.es-c-block .es-ticket__body h4 {
+  font-size: var(--es-size-base);
+  line-height: 1.4;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.es-c-block .es-ticket__body :is(ul, ol) {
+  padding-left: 1.4em;
+}
+
+.es-c-block .es-ticket__body ul {
+  list-style: disc;
+}
+
+.es-c-block .es-ticket__body ol {
+  list-style: decimal;
+}
+
+.es-c-block .es-ticket__body li + li {
+  margin-top: var(--es-space-1);
+}
+
+.es-c-block .es-ticket__body li :is(ul, ol) {
+  margin-top: var(--es-space-1);
+}
+
+.es-c-block .es-ticket__body :is(code, kbd) {
+  padding: 0.05em 0.3em;
+  border-radius: var(--es-radius-paper);
+  background-color: color-mix(in srgb, var(--es-paper-rule) 26%, var(--es-paper));
+  font-size: 0.9em;
+  overflow-wrap: anywhere;
+}
+
+.es-c-block .es-ticket__body pre {
+  padding: var(--es-space-3) var(--es-space-4);
+  overflow-x: auto;
+  border-block: 2px dotted var(--es-paper-rule);
+  background-color: color-mix(in srgb, var(--es-paper-rule) 26%, var(--es-paper));
+  font-size: var(--es-size-note);
+  line-height: 1.5;
+  tab-size: 4;
+}
+
+.es-c-block .es-ticket__body pre code {
+  padding: 0;
+  background: none;
+  font-size: inherit;
+  overflow-wrap: normal;
+}
+
+/* A table scrolls sideways on its own when the screen is narrower than it is. */
+.es-table {
+  overflow-x: auto;
+}
+
+.es-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.es-table :is(th, td) {
+  padding: var(--es-space-2) var(--es-space-3);
+  border-bottom: 1px dotted var(--es-edge);
+  text-align: left;
+  vertical-align: baseline;
+}
+
+.es-table th {
+  border-bottom: 2px solid var(--es-paper-ink);
+  font-weight: 700;
+}
+
+.es-table [data-align='right'] {
+  text-align: right;
+}
+
+.es-table [data-align='center'] {
+  text-align: center;
+}
+
+.es-ks {
+  white-space: nowrap;
+}
+
+/*
+ * In the tape a reference can be longer than the tape's line at 320 px (WCAG 1.4.10): `kernelspace t6.multi-lora-batching` does not fit
+ * beside the label of its line, and the printer's housing grew past the viewport to hold it, on every lesson that lists a long id (the
+ * nightly sweep found it on eight of the TR5a, TR6 and TR8 lessons). In the tape the chip may break after "kernelspace"; in prose it stays whole.
+ */
+.es-doc__side .es-ks {
+  white-space: normal;
+}
+
+/* ---------------------------------------------------------------------------------------------- tape, claims and tags */
+
+/* A tag the author typed: masking tape stuck on the sentence, level with the line. */
+.es-tag {
+  display: inline-flex;
+  vertical-align: 0.1em;
+  margin-inline: 0.15em;
+}
+
+/* A number with a source: printed on a slip with a perforated foot, and under it where it comes from. */
+.es-claim {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 100%;
+  margin-inline: 0.1em;
+  padding: 0.1rem var(--es-space-2) 0.15rem;
+  border-bottom: 2px dotted var(--es-edge);
+  background-color: color-mix(in srgb, var(--es-paper-rule) 20%, var(--es-paper));
+  vertical-align: baseline;
+}
+
+/* Past its TTL the perforation is a solid line in the second ink; the words under it say so as well. */
+.es-claim[data-state='stale'],
+.es-claim[data-state='unknown'],
+.es-claim[data-state='unavailable'] {
+  border-bottom-style: solid;
+  border-bottom-color: var(--es-paper-ink-2);
+}
+
+.es-claim__value {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.4em;
+}
+
+.es-claim__value code {
+  padding: 0;
+  background: none;
+}
+
+.es-claim__unit {
+  font-size: 0.875em;
+}
+
+.es-claim__source {
+  font-style: normal;
+}
+
+.es-claim__trace {
+  max-inline-size: 13rem;
+  font-size: var(--es-size-stamp);
+  line-height: 1.35;
+  color: var(--es-text-2);
+  overflow-wrap: anywhere;
+}
+
+.es-claim__trace code {
+  padding: 0;
+  background: none;
+  font-size: inherit;
+}
+
+.es-claim__stale {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+  margin-left: 0.5em;
+  color: var(--es-paper-ink-2);
+  font-weight: 700;
+}
+
+.es-claim__stale-mark {
+  flex: none;
+  width: 1em;
+  height: 1em;
+}
+
+.es-claim:is([data-state='unknown'], [data-state='unavailable']) .es-claim__trace {
+  color: var(--es-paper-ink-2);
+}
+
+/* The facts of a block, torn off the roll. */
+.es-c-block .es-ticket__body .es-c-tapes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2) var(--es-space-3);
+  padding: 0;
+  list-style: none;
+}
+
+/* ---------------------------------------------------------------------------------------------- the blocks */
+
+/* What a placeholder lacks, printed in the ribbon's red, in capitals as the printer prints a warning. */
+.es-c-pending {
+  text-transform: uppercase;
+}
+
+.es-c-pending .es-ticket-line__note {
+  white-space: nowrap;
+}
+
+.es-c-pending__mark {
+  width: 1.1em;
+  height: 1.1em;
+}
+
+.es-c-block .es-ticket__body .es-c-options {
+  list-style: upper-alpha;
+}
+
+.es-c-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--es-space-2);
+  color: var(--es-paper-ink-2);
+  font-weight: 700;
+}
+
+.es-c-warning__mark {
+  flex: none;
+  width: 1.25em;
+  height: 1.25em;
+  margin-top: 0.15em;
+}
+
+.es-c-breaks {
+  display: grid;
+  gap: var(--es-space-2);
+  justify-items: start;
+  padding-top: var(--es-space-3);
+  border-top: 2px dotted var(--es-paper-rule);
+}
+
+/* A notional-machine card: its name in the printer's bold, then its three parts, each under a strip of tape and a perforation. */
+.es-c-card__name {
+  font-weight: 700;
+}
+
+.es-c-block .es-ticket__body h3.es-c-part {
+  padding-top: var(--es-space-4);
+  border-top: 2px dotted var(--es-paper-rule);
+}
+
+.es-c-figure {
+  display: grid;
+  gap: var(--es-space-2);
+}
+
+.es-c-figure img {
+  width: 100%;
+  height: auto;
+}
+
+.es-c-figure figcaption {
+  font-size: 0.9375rem;
+  color: var(--es-text-2);
+}
+
+.es-c-block .es-ticket__body .es-c-artifacts {
+  display: grid;
+  gap: var(--es-space-4);
+  padding: 0;
+  list-style: none;
+}
+
+.es-c-artifacts li {
+  display: grid;
+  gap: var(--es-space-1);
+  justify-items: start;
+}
+
+.es-c-artifacts code {
+  color: var(--es-text-2);
+}

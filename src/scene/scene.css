@@ -1,0 +1,157 @@
+/*
+ * The scene kit's page layer: the Stage's box, the canvas, the labels over it, the notes the Stage prints, the camera buttons and
+ * the selection list, which every page with a scene loads with its Stage. The /design specimen's own layer is specimen.css, which
+ * only the specimen loads. Every colour, face, shadow and duration is a token role (src/design/tokens.css); this file names none
+ * of its own.
+ */
+
+/* ---------------------------------------------------------------------------------------------- the stage */
+
+.es-stage {
+  position: relative;
+  display: grid;
+  grid-template: 'view' minmax(0, 1fr) / minmax(0, 1fr);
+  overflow: hidden;
+  border-radius: var(--es-radius-plate);
+  background-color: var(--es-surface-0);
+  isolation: isolate;
+}
+
+.es-stage > .es-stage__twin,
+.es-stage > .es-stage__scene {
+  grid-area: view;
+  min-width: 0;
+  min-height: 0;
+}
+
+.es-stage__twin {
+  z-index: 1;
+  display: grid;
+  background-color: var(--es-surface-0);
+  transition: opacity var(--es-dur-settle) var(--es-ease-settle);
+}
+
+.es-stage__twin > * {
+  width: 100%;
+  height: 100%;
+}
+
+.es-stage__twin[data-leaving] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.es-stage__scene {
+  position: relative;
+  opacity: 0;
+  transition: opacity var(--es-dur-settle) var(--es-ease-settle);
+}
+
+.es-stage[data-stage-phase='live'] .es-stage__scene {
+  opacity: 1;
+}
+
+/* A note the Stage prints in its box: a strip of ticket paper at the top edge, with the ribbon's red mark. */
+.es-stage__note {
+  position: absolute;
+  z-index: 3;
+  top: var(--es-space-3);
+  left: var(--es-space-3);
+  right: var(--es-space-3);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2) var(--es-space-3);
+  width: fit-content;
+  max-width: calc(100% - 2 * var(--es-space-3));
+  margin: 0;
+  padding: var(--es-space-2) var(--es-space-3);
+  background-color: var(--es-paper);
+  box-shadow: var(--es-shadow-paper);
+  color: var(--es-paper-ink);
+  font-size: 0.9375rem;
+  line-height: 1.35;
+}
+
+.es-stage__note-mark {
+  flex: none;
+  width: 1.1em;
+  height: 1.1em;
+  color: var(--es-paper-ink-2);
+}
+
+.es-scene {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.es-scene__canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: pan-y;
+}
+
+/* ---------------------------------------------------------------------------------------------- labels */
+
+.es-labels {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.es-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  white-space: nowrap;
+  will-change: transform;
+}
+
+/* ---------------------------------------------------------------------------------------------- camera buttons */
+
+.es-camera-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2);
+}
+
+/* ---------------------------------------------------------------------------------------------- the selection list */
+
+.es-selection {
+  display: grid;
+  margin: 0;
+  padding: var(--es-space-1);
+  list-style: none;
+  background-color: var(--es-paper);
+  box-shadow: var(--es-shadow-paper);
+  color: var(--es-paper-ink);
+}
+
+.es-selection__option {
+  display: block;
+  min-height: 2.25rem;
+  padding: var(--es-space-2) var(--es-space-3);
+  border-bottom: 1px dotted var(--es-paper-rule);
+  cursor: pointer;
+  outline-offset: -2px;
+}
+
+.es-selection__option:last-child {
+  border-bottom: 0;
+}
+
+.es-selection__option:hover {
+  background-color: var(--es-surface-1);
+}
+
+/* The selected fire is under the lamp: the active state's amber, and its filament as the edge. */
+.es-selection__option[data-selected] {
+  background-color: var(--es-lamp);
+  box-shadow: inset 3px 0 0 var(--es-lamp-ring);
+}

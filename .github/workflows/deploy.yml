@@ -1,0 +1,121 @@
+name: Deploy to GitHub Pages
+
+# Publishes the site on every push to main, and by hand: the fast gate and the tests, then the build, prepare-pages, and the Pages
+# upload and deploy (ARCHITECTURE §10.1, kernelspace's deploy).
+#
+# The site is served at https://enginespace.naigap.com (D-058, the owner's answer to O-1), at the root of its own origin, so the
+# build and prepare-pages run with the default base "/" and this workflow sets no VITE_BASE. A preview or a fork that is served
+# under a subpath sets VITE_BASE for its own build, and prepare-pages reads the same variable (ARCHITECTURE §3.2).
+#
+# The repository has been public since 2026-11-08 (O-2, D-060). Three steps turn the deploy on, in this order:
+#   1. enable Pages with the source "GitHub Actions" (done on 2026-11-08);
+#   2. set the custom domain to enginespace.naigap.com and enforce HTTPS (the domain is set, and verified on the account, as of
+#      2026-11-08, and the DNS record, a CNAME to praveer13.github.io, is in place; GitHub enforces HTTPS once it has issued the
+#      certificate, which it says can take up to 24 hours [measured from GitHub's docs, 2026-11-08]);
+#   3. set the repository variable PAGES_ENABLED to 'true', which is done when W1 is on its way to main, and not before: wave-0's
+#      deploy.yml builds under /enginespace/ [measured at 7ceb7c2, 2026-11-08], which the custom domain does not serve (D-058).
+# While the variable is unset, both jobs are skipped. The first deploy runs on the push that brings W1 to main, or by hand: Run
+# workflow on main (workflow_dispatch), since the github-pages environment deploys main only [unverified, 2026-11-08]. A deploy
+# from an Actions workflow ignores public/CNAME [measured from GitHub's docs, 2026-11-08], so step 2 is what binds the domain.
+#
+# Every command of ci.yml's fast gate and tests job runs here too, so a deploy is never less checked than a pull request
+# (tests/ci/workflows.test.ts compares the two).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: vars.PAGES_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    # The tests alone ran past 14 minutes on a runner, unfinished [measured 2026-11-09, ci.yml's tests job on PR #2], and this job also
+    # installs, lints, type-checks, runs the gates and builds: 40 minutes is its backstop.
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      # The scripts run under Bun, pinned as in ci.yml.
+      - name: Set up pinned Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.14
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+
+      - name: Compile the content
+        run: |
+          if [ -f scripts/content/build.ts ]; then
+            bun scripts/content/build.ts
+          else
+            echo 'pending: W0-T08'
+          fi
+
+      - name: Source gates
+        run: bun run verify:all --stage source
+
+      - run: bun run test
+
+      # The deployed build, at the root of the custom domain: the default base "/".
+      - name: Build for Pages
+        run: npm run build
+
+      - name: Build gates
+        run: bun run verify:all --stage build
+
+      - name: Export freshness
+        run: |
+          if ! git ls-files --error-unmatch public/llms.txt > /dev/null 2>&1; then
+            echo '::error title=Export freshness::the Markdown export is not committed: run bun scripts/content/build.ts and commit public/md and public/llms.txt'
+            exit 1
+          fi
+          if [ -n "$(git status --porcelain --untracked-files=all -- public/md public/llms.txt)" ]; then
+            git status --short --untracked-files=all -- public/md public/llms.txt
+            echo '::error title=Export freshness::the committed Markdown export is stale: run bun scripts/content/build.ts and commit public/md and public/llms.txt'
+            exit 1
+          fi
+
+      # §3.2: a real index.html for every route it can enumerate, and the 404.html fallback. W0-T19 builds the script.
+      - name: Prepare the Pages directory
+        run: |
+          if [ -f scripts/prepare-pages.ts ]; then
+            bun scripts/prepare-pages.ts
+          else
+            echo 'pending: W0-T19'
+          fi
+
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    if: vars.PAGES_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>enginespace</title>
+    <!-- No icon yet: the empty data URL stops browsers asking for /favicon.ico. The visual identity adds the real one. -->
+    <link rel="icon" href="data:," />
+    <meta
+      name="description"
+      content="Fire the next step. enginespace is the Engine Internals course of kernelspace: run vLLM's and SGLang's decisions yourself in the browser, then prove them on a real GPU."
+    />
+    <!-- The faces of the first viewport, fetched with the document rather than after the stylesheet asks for them. -->
+    <link rel="preload" href="/fonts/big-shoulders-display-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/doto-latin-round-900.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/atkinson-hyperlegible-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <!-- The front page's styles, ahead of any script: they dress the static shell below (src/front/front.css). -->
+    <link rel="stylesheet" href="/src/front/front.css" />
+  </head>
+  <body>
+    <!-- The build writes the front page here (scripts/pages/front-shell.ts); prepare-pages writes every other page's own shell. -->
+    <div id="root"><!--es:front-shell--></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

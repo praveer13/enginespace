@@ -182,6 +182,6 @@ All [estimated]. The catalog's figure is 10 h, kept.
 ## 11. Open items
 
 1. **The fork's GPU stack.** nano-vllm needs a flash-attn build for torch 2.14 and CUDA 13, which is [unverified] (vllm U3). If none installs, the fork target becomes Mini-SGLang at `9a91cfa` (Linux and CUDA only, with JIT kernels; sglang M3) and W2-T34 says so.
-2. **nano-vllm's tensor-parallel processes.** GAMES.md's `nano-tp` level assumes a worker process for rank 1; W1-T16 confirms it at the pin [unverified].
+2. **nano-vllm's tensor-parallel processes.** GAMES.md's `nano-tp` level assumes a worker process for rank 1. W1-T16 read the pin on 2026-11-04 and confirmed it: `LLMEngine.__init__` starts one for each rank above 0, and rank 0 passes it each call through shared memory (claims `nano-vllm.tp-worker-process` and `nano-vllm.tp-shared-memory`) [measured].
 3. **A CPU-only alternative.** SGLang's Simulator runs SGLang's real scheduler on a CPU (sglang T9), which could give learners without a GPU a real-scheduler lane. It is validated against v0.5.16-v0.5.18 and `main`, not against v0.5.23, so TR1 lists it as reading only until someone validates it at the pin.
 4. **Owner traces for `map`.** The graded `map` runs on synthetic lifecycle traces until W2-T21 captures real ones; then each engine family gets one owner-captured lifecycle trace as a practice case.

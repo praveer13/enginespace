@@ -1,0 +1,72 @@
+/*
+ * Service's 3D scene, its page layer: the numbers printed on its tickets, a paid-for clip's empty stub, what the printer still holds,
+ * and the marker on its tape, all DOM over the canvas (D-021). Every colour, face and shadow is a token role (src/design/tokens.css);
+ * this file names none of its own. The scene's box is a size container, so print scales with the pass and not with the window.
+ */
+
+.es-loop-scene {
+  container-type: size;
+}
+
+.es-loop-label {
+  color: var(--es-paper-ink);
+  font-family: var(--es-font-ticket);
+  font-weight: var(--es-font-ticket-weight);
+  letter-spacing: var(--es-font-ticket-tracking);
+  line-height: 1;
+  text-align: center;
+}
+
+/* A ticket's number, printed in the head the atlas leaves blank, and a fresh ticket's "new" in the ribbon's red under it. */
+.es-loop-label__ticket {
+  display: grid;
+  justify-items: center;
+  gap: 0.15em;
+}
+
+.es-loop-label__no {
+  font-size: clamp(var(--es-size-micro), 1.25cqi, var(--es-size-plate));
+}
+
+.es-loop-label__sub {
+  color: var(--es-paper-ink-2);
+  font-size: clamp(0.5rem, 0.7cqi, var(--es-size-stamp)); /* impeccable-disable-line design-system-font-size -- the sub-line prints under its number on a ticket a few millimetres wide */
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* The fired rail's copies and the counter's tickets are further off or lying flat: their numbers print smaller. */
+.es-loop-label--fired .es-loop-label__no,
+.es-loop-label--waiting .es-loop-label__no {
+  font-size: clamp(0.5625rem, 1cqi, var(--es-size-print)); /* impeccable-disable-line design-system-font-size -- a far ticket's number, a step under micro on a phone */
+}
+
+/* A clip with nothing hung: paid for, and empty. A strip of paper in the ribbon's red, its edge dashed like a torn-off stub. */
+.es-loop-label--empty {
+  padding: 0.25em 0.4em 0.2em;
+  border: 1px dashed var(--es-paper-rule);
+  background-color: var(--es-paper);
+  box-shadow: var(--es-shadow-paper);
+  color: var(--es-paper-ink-2);
+  font-size: clamp(0.5rem, 0.85cqi, var(--es-size-caption)); /* impeccable-disable-line design-system-font-size -- four stubs fit side by side under a phone's rail */
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* What is still in the printer, printed over its housing. */
+.es-loop-label--more {
+  padding: 0.2em 0.35em;
+  border-radius: var(--es-radius-trim);
+  background-color: var(--es-surface-3);
+  color: var(--es-paper);
+  font-size: clamp(var(--es-size-micro), 1cqi, var(--es-size-print));
+}
+
+/* Marker on masking tape: the tape is in the scene, stuck where the kitchen sticks it; the words ride on it. */
+.es-loop-label--tape {
+  color: var(--es-tape-ink);
+  font-family: var(--es-font-label);
+  font-weight: var(--es-font-label-weight);
+  letter-spacing: var(--es-font-label-tracking);
+  font-size: clamp(0.5625rem, 0.95cqi, var(--es-size-print)); /* impeccable-disable-line design-system-font-size -- marker on a strip of tape a few centimetres wide on a phone */
+}

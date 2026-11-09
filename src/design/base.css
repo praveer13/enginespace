@@ -1,0 +1,263 @@
+/*
+ * The ground and the browser's own surfaces, in The Pass's materials: the page is brushed stainless under the tubes,
+ * reading text is Atkinson Hyperlegible, and the parts no component draws (selection, the caret, focus, scrollbars,
+ * underlines, numerals) carry the world too. Every value is a token role from tokens.css.
+ */
+
+@layer base {
+  html {
+    background-color: var(--es-surface-0);
+    background-image: var(--es-texture-sheen), var(--es-texture-brushed);
+    background-repeat: no-repeat, repeat-y;
+    /* The grain spans the full width, so no tile edge ever shows; it repeats only down the page. */
+    background-size: 100% auto, 100% 720px;
+    color: var(--es-text-1);
+    font-family: var(--es-font-body);
+    line-height: var(--es-font-body-leading);
+    font-kerning: normal;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent;
+    scrollbar-color: var(--es-surface-3) var(--es-surface-2);
+    min-height: 100%;
+  }
+
+  body {
+    min-height: 100vh;
+    font-size: var(--es-font-body-size);
+  }
+
+  /* The shell fills the window: the kick-plate sits at the foot of a short page. */
+  #root {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* Selection is the lamp's pool; the caret is its filament. */
+  ::selection {
+    background-color: var(--es-lamp);
+    color: var(--es-paper-ink);
+  }
+
+  :where(input, textarea, select, [contenteditable]) {
+    caret-color: var(--es-lamp-ring);
+  }
+
+  /* Focus: the heat lamp falls on the control the keyboard is on. A ring at 3:1 on every ground, and the lamp's glow
+     pooling from above. Components that draw their own ring override this. */
+  :focus-visible {
+    outline: 2px solid var(--es-focus);
+    outline-offset: 2px;
+    box-shadow: 0 -3px 14px 1px color-mix(in srgb, var(--es-lamp) 70%, transparent);
+  }
+
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  main:focus-visible {
+    outline: none;
+    box-shadow: none;
+  }
+
+  /* Links underline below the descenders, and thicken under the hand. */
+  a {
+    color: inherit;
+    text-decoration-line: underline;
+    text-decoration-thickness: 0.08em;
+    text-underline-offset: 0.24em;
+    text-decoration-skip-ink: auto;
+  }
+
+  a:hover {
+    text-decoration-thickness: 0.14em;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-wrap: balance;
+  }
+
+  p,
+  li,
+  dd {
+    text-wrap: pretty;
+  }
+
+  h1 {
+    font-family: var(--es-font-display);
+    font-size: var(--es-font-display-size);
+    line-height: var(--es-font-display-leading);
+    letter-spacing: var(--es-font-display-tracking);
+    font-weight: var(--es-font-display-weight);
+    text-transform: var(--es-font-display-case);
+  }
+
+  h2 {
+    font-family: var(--es-font-heading);
+    font-size: var(--es-font-heading-size);
+    line-height: var(--es-font-heading-leading);
+    letter-spacing: var(--es-font-heading-tracking);
+    font-weight: var(--es-font-heading-weight);
+    text-transform: var(--es-font-heading-case);
+  }
+
+  h3 {
+    font-family: var(--es-font-body);
+    font-size: var(--es-size-title);
+    line-height: 1.3;
+    font-weight: 700;
+  }
+
+  /* Numerals line up wherever numbers are compared. */
+  :where(table, data, time, output, meter, progress) {
+    font-variant-numeric: tabular-nums;
+  }
+
+  :where(code, kbd, samp, pre) {
+    font-family: var(--es-font-mono);
+    font-size: var(--es-font-mono-size);
+    line-height: var(--es-font-mono-leading);
+  }
+
+  hr {
+    border-color: var(--es-paper-rule);
+  }
+
+  /* Scrollbars in steel: a deep-steel thumb in a shaded track. Chrome and Firefox read scrollbar-color above. */
+  ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+    background-color: var(--es-surface-2);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--es-surface-3);
+    border: 3px solid var(--es-surface-2);
+    border-radius: var(--es-radius-round);
+  }
+
+  ::-webkit-scrollbar-corner {
+    background-color: var(--es-surface-2);
+  }
+}
+
+/* Reduced motion (ARCHITECTURE §6.9): transitions off, animations jump to their end, nothing scrolls smoothly.
+   Settings can force either answer with data-motion on the root (W0-T22). */
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion='full']) *,
+  :root:not([data-motion='full']) *::before,
+  :root:not([data-motion='full']) *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+:root[data-motion='reduce'] *,
+:root[data-motion='reduce'] *::before,
+:root[data-motion='reduce'] *::after {
+  animation-duration: 1ms !important;
+  animation-delay: 0ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0ms !important;
+  scroll-behavior: auto !important;
+}
+
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 3px solid var(--es-focus);
+    box-shadow: none;
+  }
+}
+
+@layer components {
+  /* The type roles as classes: a family with its size, leading, tracking, weight and case. */
+  .es-type-display {
+    font-family: var(--es-font-display);
+    font-size: var(--es-font-display-size);
+    line-height: var(--es-font-display-leading);
+    letter-spacing: var(--es-font-display-tracking);
+    font-weight: var(--es-font-display-weight);
+    text-transform: var(--es-font-display-case);
+  }
+
+  .es-type-heading {
+    font-family: var(--es-font-heading);
+    font-size: var(--es-font-heading-size);
+    line-height: var(--es-font-heading-leading);
+    letter-spacing: var(--es-font-heading-tracking);
+    font-weight: var(--es-font-heading-weight);
+    text-transform: var(--es-font-heading-case);
+  }
+
+  .es-type-body {
+    font-family: var(--es-font-body);
+    font-size: var(--es-font-body-size);
+    line-height: var(--es-font-body-leading);
+    letter-spacing: var(--es-font-body-tracking);
+    font-weight: var(--es-font-body-weight);
+    text-transform: var(--es-font-body-case);
+  }
+
+  .es-type-mono {
+    font-family: var(--es-font-mono);
+    font-size: var(--es-font-mono-size);
+    line-height: var(--es-font-mono-leading);
+    letter-spacing: var(--es-font-mono-tracking);
+    font-weight: var(--es-font-mono-weight);
+    text-transform: var(--es-font-mono-case);
+  }
+
+  .es-type-numeric {
+    font-family: var(--es-font-numeric);
+    font-size: var(--es-font-numeric-size);
+    line-height: var(--es-font-numeric-leading);
+    letter-spacing: var(--es-font-numeric-tracking);
+    font-weight: var(--es-font-numeric-weight);
+    text-transform: var(--es-font-numeric-case);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .es-type-ticket {
+    font-family: var(--es-font-ticket);
+    font-size: var(--es-font-ticket-size);
+    line-height: var(--es-font-ticket-leading);
+    letter-spacing: var(--es-font-ticket-tracking);
+    font-weight: var(--es-font-ticket-weight);
+    text-transform: var(--es-font-ticket-case);
+  }
+
+  .es-type-label {
+    font-family: var(--es-font-label);
+    font-size: var(--es-font-label-size);
+    line-height: var(--es-font-label-leading);
+    letter-spacing: var(--es-font-label-tracking);
+    font-weight: var(--es-font-label-weight);
+    text-transform: var(--es-font-label-case);
+  }
+
+  /* Reading measure for prose. */
+  .es-prose {
+    max-width: 68ch;
+  }
+
+  /* Steel and paper as surfaces for any element. */
+  .es-steel {
+    background-color: var(--es-surface-1);
+    background-image: var(--es-texture-brushed);
+    background-size: 100% 720px;
+  }
+
+  .es-paper {
+    background-color: var(--es-paper);
+    color: var(--es-paper-ink);
+  }
+}

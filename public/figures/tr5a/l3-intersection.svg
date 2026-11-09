@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 264" width="360" height="264" fill="none" stroke="currentColor" stroke-width="1.5">
+  <title>Two caches of the same prompt, with the edges that each of the three groups accepts marked under its row</title>
+  <desc>Two panels, each with three rows of squares, one for the full group and one for each sliding group, and a square for each of the prompt's eleven blocks. A filled square is a cached block. A small triangle under a row is an edge that the group accepts. In the first panel the three groups share one edge, marked by a vertical line. In the second panel they share none.</desc>
+  <g stroke="none" fill="currentColor" font-size="10">
+    <text x="4" y="14">A: the sliding groups hold different runs</text>
+    <text x="4" y="45">full</text>
+    <text x="4" y="73">sliding</text>
+    <text x="4" y="101">sliding</text>
+    <text x="4" y="144">B: the first has a gap in its run</text>
+    <text x="4" y="175">full</text>
+    <text x="4" y="203">sliding</text>
+    <text x="4" y="231">sliding</text>
+  </g>
+  <g stroke="none" fill="currentColor" font-size="9" text-anchor="middle">
+    <text x="71" y="28">0</text>
+    <text x="96" y="28">1</text>
+    <text x="121" y="28">2</text>
+    <text x="146" y="28">3</text>
+    <text x="171" y="28">4</text>
+    <text x="196" y="28">5</text>
+    <text x="221" y="28">6</text>
+    <text x="246" y="28">7</text>
+    <text x="271" y="28">8</text>
+    <text x="296" y="28">9</text>
+    <text x="321" y="28">10</text>
+    <text x="71" y="158">0</text>
+    <text x="96" y="158">1</text>
+    <text x="121" y="158">2</text>
+    <text x="146" y="158">3</text>
+    <text x="171" y="158">4</text>
+    <text x="196" y="158">5</text>
+    <text x="221" y="158">6</text>
+    <text x="246" y="158">7</text>
+    <text x="271" y="158">8</text>
+    <text x="296" y="158">9</text>
+    <text x="321" y="158">10</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.16">
+    <rect x="60" y="34" width="22" height="14"/>
+    <rect x="85" y="34" width="22" height="14"/>
+    <rect x="110" y="34" width="22" height="14"/>
+    <rect x="135" y="34" width="22" height="14"/>
+    <rect x="160" y="34" width="22" height="14"/>
+    <rect x="185" y="34" width="22" height="14"/>
+    <rect x="210" y="34" width="22" height="14"/>
+    <rect x="235" y="34" width="22" height="14"/>
+    <rect x="260" y="34" width="22" height="14"/>
+    <rect x="285" y="34" width="22" height="14"/>
+    <rect x="210" y="62" width="22" height="14"/>
+    <rect x="235" y="62" width="22" height="14"/>
+    <rect x="260" y="62" width="22" height="14"/>
+    <rect x="235" y="90" width="22" height="14"/>
+    <rect x="260" y="90" width="22" height="14"/>
+    <rect x="285" y="90" width="22" height="14"/>
+    <rect x="60" y="164" width="22" height="14"/>
+    <rect x="85" y="164" width="22" height="14"/>
+    <rect x="110" y="164" width="22" height="14"/>
+    <rect x="135" y="164" width="22" height="14"/>
+    <rect x="160" y="164" width="22" height="14"/>
+    <rect x="185" y="164" width="22" height="14"/>
+    <rect x="210" y="164" width="22" height="14"/>
+    <rect x="235" y="164" width="22" height="14"/>
+    <rect x="260" y="164" width="22" height="14"/>
+    <rect x="285" y="164" width="22" height="14"/>
+    <rect x="210" y="192" width="22" height="14"/>
+    <rect x="235" y="192" width="22" height="14"/>
+    <rect x="285" y="192" width="22" height="14"/>
+    <rect x="235" y="220" width="22" height="14"/>
+    <rect x="260" y="220" width="22" height="14"/>
+    <rect x="285" y="220" width="22" height="14"/>
+  </g>
+  <g stroke-width="1" stroke-dasharray="3 3">
+    <rect x="310" y="34" width="22" height="14"/>
+    <rect x="60" y="62" width="22" height="14"/>
+    <rect x="85" y="62" width="22" height="14"/>
+    <rect x="110" y="62" width="22" height="14"/>
+    <rect x="135" y="62" width="22" height="14"/>
+    <rect x="160" y="62" width="22" height="14"/>
+    <rect x="185" y="62" width="22" height="14"/>
+    <rect x="285" y="62" width="22" height="14"/>
+    <rect x="310" y="62" width="22" height="14"/>
+    <rect x="60" y="90" width="22" height="14"/>
+    <rect x="85" y="90" width="22" height="14"/>
+    <rect x="110" y="90" width="22" height="14"/>
+    <rect x="135" y="90" width="22" height="14"/>
+    <rect x="160" y="90" width="22" height="14"/>
+    <rect x="185" y="90" width="22" height="14"/>
+    <rect x="210" y="90" width="22" height="14"/>
+    <rect x="310" y="90" width="22" height="14"/>
+    <rect x="310" y="164" width="22" height="14"/>
+    <rect x="60" y="192" width="22" height="14"/>
+    <rect x="85" y="192" width="22" height="14"/>
+    <rect x="110" y="192" width="22" height="14"/>
+    <rect x="135" y="192" width="22" height="14"/>
+    <rect x="160" y="192" width="22" height="14"/>
+    <rect x="185" y="192" width="22" height="14"/>
+    <rect x="260" y="192" width="22" height="14"/>
+    <rect x="310" y="192" width="22" height="14"/>
+    <rect x="60" y="220" width="22" height="14"/>
+    <rect x="85" y="220" width="22" height="14"/>
+    <rect x="110" y="220" width="22" height="14"/>
+    <rect x="135" y="220" width="22" height="14"/>
+    <rect x="160" y="220" width="22" height="14"/>
+    <rect x="185" y="220" width="22" height="14"/>
+    <rect x="210" y="220" width="22" height="14"/>
+    <rect x="310" y="220" width="22" height="14"/>
+  </g>
+  <g fill="currentColor" stroke="none">
+    <path d="M80.5 57L83.5 51L86.5 57ZM105.5 57L108.5 51L111.5 57ZM130.5 57L133.5 51L136.5 57ZM155.5 57L158.5 51L161.5 57ZM180.5 57L183.5 51L186.5 57ZM205.5 57L208.5 51L211.5 57ZM230.5 57L233.5 51L236.5 57ZM255.5 57L258.5 51L261.5 57ZM280.5 57L283.5 51L286.5 57ZM305.5 57L308.5 51L311.5 57ZM255.5 85L258.5 79L261.5 85ZM280.5 85L283.5 79L286.5 85ZM280.5 113L283.5 107L286.5 113ZM305.5 113L308.5 107L311.5 113ZM80.5 187L83.5 181L86.5 187ZM105.5 187L108.5 181L111.5 187ZM130.5 187L133.5 181L136.5 187ZM155.5 187L158.5 181L161.5 187ZM180.5 187L183.5 181L186.5 187ZM205.5 187L208.5 181L211.5 187ZM230.5 187L233.5 181L236.5 187ZM255.5 187L258.5 181L261.5 187ZM280.5 187L283.5 181L286.5 187ZM305.5 187L308.5 181L311.5 187ZM255.5 215L258.5 209L261.5 215ZM280.5 243L283.5 237L286.5 243ZM305.5 243L308.5 237L311.5 243Z"/>
+  </g>
+  <g stroke-width="1" stroke-dasharray="4 3">
+    <path d="M283.5 32V115"/>
+  </g>
+  <g stroke="none" fill="currentColor" font-size="10" text-anchor="middle">
+    <text x="283.5" y="126">edge 9</text>
+    <text x="197.5" y="256">no edge that all three accept</text>
+  </g>
+</svg>

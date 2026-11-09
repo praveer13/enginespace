@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 130" width="360" height="130" fill="none" stroke="currentColor" stroke-width="1">
+  <title>The token budget of two steps: the running requests first, then the prompt's chunk</title>
+  <desc>Two bars, one for each of the two steps that carry the prompt of 3,000 tokens, each as long as the budget of 2,048 tokens. In each the first segment, narrow and dark, is the 100 running requests' one token each. In the first step the rest of the budget is the prompt's first chunk, 1,948 tokens. In the second step the prompt's remaining 1,052 tokens follow the decodes and 896 tokens of the budget are left, drawn as a dashed box.</desc>
+  <g fill="currentColor" fill-opacity="0.55">
+    <rect x="52" y="26" width="14.65" height="24"/>
+    <rect x="52" y="78" width="14.65" height="24"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.16">
+    <rect x="66.65" y="26" width="285.35" height="24"/>
+    <rect x="66.65" y="78" width="154.10" height="24"/>
+  </g>
+  <g stroke-dasharray="3 3">
+    <rect x="220.75" y="78" width="131.25" height="24"/>
+  </g>
+  <g stroke="none" fill="currentColor" font-size="9">
+    <text x="4" y="42">step 1</text>
+    <text x="209.3" y="42" text-anchor="middle">the prompt's chunk: 1,948 tokens</text>
+    <text x="52" y="22">100 decodes, one token each</text>
+    <text x="4" y="94">step 2</text>
+    <text x="143.7" y="94" text-anchor="middle">the prompt's chunk: 1,052 tokens</text>
+    <text x="286.4" y="94" text-anchor="middle">896 left</text>
+    <text x="52" y="74">100 decodes, one token each</text>
+  </g>
+  <g stroke="none" fill="currentColor" font-size="8">
+    <text x="52" y="124">the bar is the budget: 2,048 tokens a step</text>
+  </g>
+</svg>

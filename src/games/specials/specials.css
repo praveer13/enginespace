@@ -1,0 +1,216 @@
+/*
+ * The specials board's layout (W1-T06): how the Play index sets its heading, the sheet of steel that holds the games, and each game's
+ * line, with its picture in a recessed well. The components of src/design/components draw the tape, the stub and the pan themselves;
+ * this file places them. Every colour, face, space, radius and shadow is a token role (src/design/tokens.css) or arithmetic on one,
+ * and the design system is not edited.
+ *
+ * Plain CSS outside Tailwind's layers, like src/map/map.css: it loads with the page that uses it.
+ */
+
+/* ---------------------------------------------------------------------------------------------- the page */
+
+.es-specials {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-12);
+}
+
+.es-specials__header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-4);
+  justify-items: start;
+  padding-top: var(--es-space-4);
+}
+
+/* The page's name stamped on a plate, with the kitchen's word for it on tape beside it. */
+.es-specials__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--es-space-2) var(--es-space-4);
+}
+
+.es-specials__title {
+  margin: 0;
+  font-size: clamp(2rem, 1.2rem + 3.4vw, 3.75rem);
+  line-height: 0.95;
+  overflow-wrap: anywhere;
+}
+
+.es-specials__lede {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: 1.0625rem;
+  line-height: 1.55;
+}
+
+/* ---------------------------------------------------------------------------------------------- the board */
+
+/* A flat sheet of the house's brushed steel with a plate's edge, as the front page's menu is. */
+.es-specials__board {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-12);
+  min-width: 0;
+  padding: clamp(1rem, 3vw, 2rem);
+  border: 1px solid var(--es-edge);
+  border-radius: var(--es-radius-plate);
+  background-color: var(--es-surface-1);
+  background-image: var(--es-texture-brushed);
+  background-size: 100% 720px;
+  box-shadow: var(--es-shadow-paper);
+}
+
+.es-specials__group {
+  min-width: 0;
+}
+
+/* A group's plate, over a machined groove in the steel. */
+.es-specials__plate {
+  margin: 0;
+  padding-bottom: var(--es-space-3);
+  border-bottom: 1px solid var(--es-edge);
+}
+
+.es-lines {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A line of the board: its picture, its name, its tape and its stub. Lines are divided by a groove, a dark cut with the steel's light on its lip. */
+.es-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-4);
+  min-width: 0;
+  padding: var(--es-space-6) 0;
+  border-top: 1px solid color-mix(in srgb, var(--es-surface-3) 45%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--es-paper) 80%, transparent);
+}
+
+.es-line:first-child {
+  border-top: 0;
+  box-shadow: none;
+}
+
+@media (min-width: 56rem) {
+  .es-line {
+    grid-template-columns: 14rem minmax(0, 1fr) 12rem;
+    column-gap: var(--es-space-8);
+    align-items: center;
+  }
+
+  /* A game that can be played has its picture drawn larger than the bare pan of one that cannot. */
+  .es-line[data-status='open'] {
+    grid-template-columns: 22rem minmax(0, 1fr) 12rem;
+  }
+}
+
+/* The well: a recess in the steel that the picture sits in. */
+.es-line__well {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  max-width: 26rem;
+  min-height: 7rem;
+  padding: var(--es-space-2);
+  overflow: hidden;
+  border-radius: var(--es-radius-plate);
+  background-color: var(--es-surface-2);
+  background-image: var(--es-texture-brushed);
+  background-size: 100% 360px;
+  box-shadow: var(--es-shadow-press);
+}
+
+@media (min-width: 56rem) {
+  .es-line__well {
+    max-width: none;
+  }
+}
+
+.es-line[data-status='arriving'] .es-line__well {
+  min-height: 5.5rem;
+}
+
+.es-poster {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.es-poster svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* A bare pan where there is no picture: the well is empty, and says so in words. */
+.es-line__empty {
+  display: grid;
+  justify-items: center;
+  gap: var(--es-space-2);
+  color: var(--es-text-1);
+  font-family: var(--es-font-ticket);
+  font-size: 0.875rem;
+  font-weight: var(--es-font-ticket-weight);
+  letter-spacing: var(--es-font-ticket-tracking);
+  text-align: center;
+}
+
+.es-line__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: center;
+  gap: var(--es-space-3);
+  min-width: 0;
+}
+
+.es-line__name {
+  display: grid;
+  justify-items: start;
+  gap: var(--es-space-2);
+}
+
+/* The display name is stamped on a plate, and the engine's term for it is written on tape under it (D-049). */
+.es-line__title {
+  margin: 0;
+  font-family: var(--es-font-heading);
+  font-size: clamp(1.75rem, 1.3rem + 1.6vw, 2.5rem);
+  line-height: 0.95;
+  letter-spacing: var(--es-font-heading-tracking);
+  font-weight: var(--es-font-heading-weight);
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.es-line[data-status='arriving'] .es-line__title {
+  font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem);
+}
+
+.es-line__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2) var(--es-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-line__act {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 0;
+}
+
+/* A stub measures its container and not its words, so it is given a width of its own. */
+.es-line__act .es-stub {
+  width: 100%;
+  max-width: 12rem;
+}

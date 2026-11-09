@@ -1,0 +1,2131 @@
+/*
+ * The Pass's components, drawn in the world's materials. Every colour, face, duration and radius is a token role
+ * (tokens.css). `[data-force]` shows a pointer state without a pointer, for the /design page's specimens.
+ */
+
+@layer components {
+  /* ---------------------------------------------------------------------------------------------- printing dots */
+
+  .es-printing {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.22em;
+    margin-inline: 0.15em;
+  }
+
+  .es-printing > span {
+    width: 0.34em;
+    height: 0.34em;
+    border-radius: var(--es-radius-round);
+    background-color: currentColor;
+    opacity: 0.25;
+    animation: es-printing 1.2s steps(1, end) infinite;
+  }
+
+  .es-printing > span:nth-child(2) {
+    animation-delay: 0.4s;
+  }
+
+  .es-printing > span:nth-child(3) {
+    animation-delay: 0.8s;
+  }
+
+  @keyframes es-printing {
+    0%,
+    100% {
+      opacity: 0.25;
+    }
+    33% {
+      opacity: 1;
+    }
+  }
+
+  /* ---------------------------------------------------------------------------------------------- readout */
+
+  .es-readout {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 0.4em;
+    row-gap: 0.15em;
+    font-family: var(--es-font-numeric);
+    font-size: var(--es-font-numeric-size);
+    line-height: var(--es-font-numeric-leading);
+    letter-spacing: var(--es-font-numeric-tracking);
+    font-weight: var(--es-font-numeric-weight);
+    font-variant-numeric: tabular-nums;
+    color: inherit;
+  }
+
+  .es-readout[data-size='sm'] {
+    font-size: var(--es-size-print);
+  }
+
+  .es-readout[data-size='lg'] {
+    font-size: var(--es-size-large);
+  }
+
+  .es-readout[data-size='xl'] {
+    font-size: var(--es-size-count);
+    line-height: 1;
+  }
+
+  .es-readout[data-tone='ink-2'] {
+    color: var(--es-paper-ink-2);
+  }
+
+  .es-readout[data-tone='quiet'] {
+    color: var(--es-text-2);
+  }
+
+  .es-readout__unit {
+    font-size: 0.8em;
+  }
+
+  /* The tag is a small printed stamp in the reading face, so it stays legible at any size. */
+  .es-readout__tag {
+    align-self: center;
+    padding: 0.05rem 0.3rem 0;
+    border: 1px solid currentColor;
+    border-radius: var(--es-radius-trim);
+    font-family: var(--es-font-body);
+    font-size: var(--es-size-stamp);
+    line-height: 1.35;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--es-text-2);
+    white-space: nowrap;
+  }
+
+  .es-readout__tag:is([data-tag='derived'], [data-tag='estimated']) {
+    padding-inline: 0;
+    border-color: transparent;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+  }
+
+  .es-readout__tag[data-tag='synthetic'] {
+    color: var(--es-paper-ink-2);
+  }
+
+  .es-readout__tag[data-tag='measured'] {
+    color: var(--es-status-ok);
+  }
+
+  .es-readout__source {
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  /* ---------------------------------------------------------------------------------------------- masking tape */
+
+  .es-tape {
+    --tape-tilt: -1.2deg;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    max-width: 100%;
+    padding: 0.28em 0.85em 0.2em;
+    background-color: var(--es-tape);
+    background-image:
+      repeating-linear-gradient(90deg, color-mix(in srgb, var(--es-glint) 12%, transparent) 0 1px, transparent 1px 4px),
+      linear-gradient(180deg, color-mix(in srgb, var(--es-glint) 28%, transparent), transparent 65%);
+    box-shadow: inset 0 -1px 0 rgb(23 25 29 / 0.1);
+    color: var(--es-tape-ink);
+    font-family: var(--es-font-label);
+    font-size: var(--es-font-label-size);
+    line-height: var(--es-font-label-leading);
+    letter-spacing: var(--es-font-label-tracking);
+    font-weight: var(--es-font-label-weight);
+    transform: rotate(var(--tape-tilt));
+    /* Torn ends: an authored jagged edge at each end of the strip. */
+    mask-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 6 24' preserveAspectRatio='none'%3E%3Cpath d='M6 0V24H0L2 21.5 0.4 18.5 2.6 15 0 12 2.2 9 0.3 6 2.4 3 0 0Z'/%3E%3C/svg%3E"),
+      linear-gradient(#000, #000), /* impeccable-disable-line design-system-color -- a mask reads alpha only: this black is not a colour */
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 6 24' preserveAspectRatio='none'%3E%3Cpath d='M0 0V24H6L3.8 21 5.7 18 3.4 15 6 12 3.9 9 5.6 6 3.5 3 6 0Z'/%3E%3C/svg%3E");
+    mask-size:
+      6px 100%,
+      calc(100% - 12px) 100%,
+      6px 100%;
+    mask-position:
+      left center,
+      center,
+      right center;
+    mask-repeat: no-repeat;
+  }
+
+  .es-tape[data-tilt='right'] {
+    --tape-tilt: 0.9deg;
+  }
+
+  .es-tape[data-tilt='none'] {
+    --tape-tilt: 0deg;
+  }
+
+  .es-tape[data-size='sm'] {
+    padding: 0.18em 0.65em 0.12em;
+    font-size: var(--es-size-caption);
+  }
+
+  .es-tape__glyph {
+    flex: none;
+    width: 0.95em;
+    height: 0.95em;
+  }
+
+  .es-tape__text {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  /* ---------------------------------------------------------------------------------------------- ticket */
+
+  .es-ticket {
+    position: relative;
+    display: block;
+    width: 100%;
+    max-width: 24rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--es-paper-ink);
+    font: inherit;
+    text-align: left;
+    isolation: isolate;
+  }
+
+  .es-ticket[data-width='wide'] {
+    max-width: 36rem;
+  }
+
+  .es-ticket[data-width='full'] {
+    max-width: none;
+  }
+
+  /* The sheet carries the paper's shadow, so the punched hole casts one too. */
+  .es-ticket__sheet {
+    display: block;
+    filter: drop-shadow(0 1px 1px rgb(23 25 29 / 0.22)) drop-shadow(0 9px 10px rgb(23 25 29 / 0.2));
+    transition:
+      transform var(--es-dur-quick) var(--es-ease-settle),
+      filter var(--es-dur-quick) var(--es-ease-settle);
+  }
+
+  .es-ticket__paper {
+    position: relative;
+    display: block;
+    padding: var(--es-space-6) var(--es-space-6) var(--es-space-4);
+    border: 1px solid transparent;
+    background-color: var(--es-paper);
+    color: var(--es-paper-ink);
+  }
+
+  .es-ticket[data-hole] .es-ticket__paper {
+    padding-top: 2rem;
+    mask-image: radial-gradient(circle at 50% 0.9rem, transparent 0.4rem, #000 calc(0.4rem + 0.6px)); /* impeccable-disable-line design-system-color -- a mask reads alpha only: this black is not a colour */
+  }
+
+  /* Under the heat lamp: the pool of light on the steel around it, and the paper warmed at its top. */
+  .es-ticket[data-lamp]::before,
+  .es-ticket[data-interactive]:is(:focus-visible, [data-force='focus'])::before {
+    content: '';
+    position: absolute;
+    inset: -2.5rem -2.25rem 0;
+    z-index: -1;
+    /* An ellipse that ends inside its box, so the pool has no edge: light, not a panel. */
+    background: radial-gradient(
+      48% 38% at 50% 40%,
+      color-mix(in srgb, var(--es-lamp) 82%, transparent) 0%,
+      color-mix(in srgb, var(--es-lamp) 42%, transparent) 50%,
+      transparent 100%
+    );
+    pointer-events: none;
+  }
+
+  .es-ticket[data-lamp] .es-ticket__paper {
+    background-image: linear-gradient(180deg, color-mix(in srgb, var(--es-lamp) 26%, var(--es-paper)), var(--es-paper) 55%);
+  }
+
+  .es-ticket__head {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--es-space-4);
+    margin-bottom: var(--es-space-3);
+    padding-bottom: var(--es-space-2);
+    border-bottom: 2px dotted var(--es-paper-rule);
+    font-family: var(--es-font-ticket);
+    font-size: var(--es-size-print);
+    line-height: 1.3;
+    letter-spacing: var(--es-font-ticket-tracking);
+    font-weight: var(--es-font-ticket-weight);
+  }
+
+  .es-ticket__title {
+    display: block;
+    margin: 0 0 var(--es-space-3);
+    font-family: var(--es-font-heading);
+    font-size: var(--es-font-heading-size);
+    line-height: var(--es-font-heading-leading);
+    letter-spacing: var(--es-font-heading-tracking);
+    font-weight: var(--es-font-heading-weight);
+    text-transform: var(--es-font-heading-case);
+    text-wrap: balance;
+  }
+
+  .es-ticket__body {
+    display: block;
+    font-family: var(--es-font-body);
+    font-size: var(--es-font-body-size);
+    line-height: var(--es-font-body-leading);
+  }
+
+  /* The foot line: the table and the time, printed under the body, as the head line is on a ticket with no headline. */
+  .es-ticket__foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--es-space-1) var(--es-space-4);
+    margin-top: var(--es-space-4);
+    padding-top: var(--es-space-2);
+    border-top: 2px dotted var(--es-paper-rule);
+    color: var(--es-text-2);
+    font-family: var(--es-font-ticket);
+    font-size: var(--es-size-print);
+    line-height: 1.3;
+    letter-spacing: var(--es-font-ticket-tracking);
+    font-weight: var(--es-font-ticket-weight);
+  }
+
+  .es-ticket__body > * + * {
+    margin-top: var(--es-space-3);
+  }
+
+  .es-ticket__stub {
+    display: block;
+    margin: var(--es-space-4) calc(-1 * var(--es-space-6)) calc(-1 * var(--es-space-4) - 1px);
+  }
+
+  .es-ticket-line {
+    display: flex;
+    align-items: baseline;
+    gap: 1ch;
+    font-family: var(--es-font-ticket);
+    font-size: var(--es-font-ticket-size);
+    line-height: var(--es-font-ticket-leading);
+    letter-spacing: var(--es-font-ticket-tracking);
+    font-weight: var(--es-font-ticket-weight);
+  }
+
+  .es-ticket-line[data-tone='ink-2'] {
+    color: var(--es-paper-ink-2);
+  }
+
+  .es-ticket-line__qty {
+    flex: none;
+    min-width: 3ch;
+  }
+
+  .es-ticket-line__note {
+    margin-left: auto;
+    text-align: right;
+  }
+
+  .es-ticket[data-size='compact'] .es-ticket__paper {
+    padding: 1.25rem clamp(0.4rem, 2vw, 0.75rem) 0.75rem;
+  }
+
+  .es-ticket[data-size='compact'] .es-ticket-line,
+  .es-ticket[data-size='compact'] .es-ticket__head {
+    flex-wrap: wrap;
+    column-gap: 0.6ch;
+    font-size: clamp(var(--es-size-micro), 0.55rem + 0.6vw, var(--es-size-caption));
+  }
+
+  .es-ticket[data-size='compact'] .es-ticket__head {
+    margin-bottom: var(--es-space-2);
+  }
+
+  /* States */
+  /* Still printing: the print is faint. It is faint in the quiet text role, which holds 4.5:1 on paper (axe fails a ticket
+     that fades its text with opacity, which blends it down to about 2:1). */
+  .es-ticket[data-state='loading'] .es-ticket__body {
+    color: var(--es-text-3);
+  }
+
+  .es-ticket__printing {
+    display: flex;
+    align-items: center;
+    gap: var(--es-space-2);
+    margin-top: var(--es-space-3);
+    font-family: var(--es-font-ticket);
+    font-size: var(--es-size-print);
+    font-weight: 900;
+    color: var(--es-text-2);
+  }
+
+  .es-ticket__void {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--es-space-2);
+    margin-top: var(--es-space-4);
+    padding-top: var(--es-space-3);
+    border-top: 2px dotted var(--es-paper-ink-2);
+    color: var(--es-paper-ink-2);
+    font-family: var(--es-font-ticket);
+    font-size: var(--es-size-print);
+    line-height: 1.4;
+    font-weight: 900;
+  }
+
+  .es-ticket__void-mark {
+    flex: none;
+    width: 1.1em;
+    height: 1.1em;
+    margin-top: 0.1em;
+  }
+
+  .es-ticket__blank {
+    display: block;
+    padding: var(--es-space-8) 0;
+    text-align: center;
+    color: var(--es-text-2);
+    font-family: var(--es-font-ticket);
+    font-size: var(--es-size-print);
+    font-weight: 900;
+    background-image: repeating-linear-gradient(180deg, transparent 0 1.6rem, color-mix(in srgb, var(--es-paper-rule) 70%, transparent) 1.6rem calc(1.6rem + 1px));
+  }
+
+  .es-ticket[data-state='disabled'] .es-ticket__paper {
+    color: var(--es-text-3);
+  }
+
+  .es-ticket[data-state='disabled'] .es-ticket__sheet {
+    filter: drop-shadow(0 1px 1px rgb(23 25 29 / 0.16));
+  }
+
+  /* A ticket you pick up. It lifts under the hand and presses down; it never jumps under reduced motion. */
+  .es-ticket[data-interactive] {
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .es-ticket[data-interactive]:focus-visible {
+    outline: none;
+    box-shadow: none;
+  }
+
+  .es-ticket[data-interactive]:is(:hover, [data-force='hover']):not(:disabled) .es-ticket__sheet {
+    transform: translateY(-3px) rotate(-0.5deg);
+    filter: drop-shadow(0 2px 2px rgb(23 25 29 / 0.2)) drop-shadow(0 16px 16px rgb(23 25 29 / 0.24));
+  }
+
+  .es-ticket[data-interactive]:is(:active, [data-force='active']):not(:disabled) .es-ticket__sheet {
+    transform: translateY(1px);
+    filter: drop-shadow(0 1px 1px rgb(23 25 29 / 0.28));
+  }
+
+  .es-ticket[data-interactive]:is(:focus-visible, [data-force='focus']) .es-ticket__sheet {
+    outline: 2px solid var(--es-focus);
+    outline-offset: 3px;
+  }
+
+  .es-ticket[data-interactive]:disabled {
+    cursor: not-allowed;
+  }
+
+  /* ---------------------------------------------------------------------------------------------- stub */
+
+  .es-stub {
+    --perforation: var(--es-paper-rule);
+    position: relative;
+    display: block;
+    container-type: inline-size;
+  }
+
+  .es-stub__label {
+    white-space: nowrap;
+  }
+
+  @container (max-width: 17rem) {
+    .es-stub__pull {
+      font-size: var(--es-size-plate);
+      padding-inline: var(--es-space-4);
+    }
+  }
+
+  .es-stub__pull {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--es-space-3);
+    width: 100%;
+    min-height: 3.5rem;
+    padding: 1.15rem var(--es-space-6) 1rem;
+    border: 0;
+    background-color: var(--es-paper);
+    background-image: radial-gradient(circle at 50% 50%, var(--perforation) 0 1.7px, transparent 2.2px);
+    background-size: 10px 7px;
+    background-repeat: repeat-x;
+    background-position: 3px 0;
+    color: var(--es-paper-ink-2);
+    font-family: var(--es-font-ticket);
+    font-size: var(--es-size-action);
+    line-height: 1.1;
+    letter-spacing: 0.04em;
+    font-weight: 900;
+    text-align: left;
+    text-decoration: none;
+    text-transform: uppercase;
+    cursor: pointer;
+    touch-action: manipulation;
+    transform-origin: 0 0;
+    transition:
+      transform var(--es-dur-quick) var(--es-ease-settle),
+      background-color var(--es-dur-quick) var(--es-ease-settle),
+      box-shadow var(--es-dur-quick) var(--es-ease-settle);
+  }
+
+  .es-stub__arrow {
+    flex: none;
+    width: 1.15em;
+    height: 1.15em;
+    transition: transform var(--es-dur-quick) var(--es-ease-settle);
+  }
+
+  /* It starts to tear. */
+  .es-stub__pull:is(:hover, [data-force='hover']):not(:disabled, [aria-disabled='true']) {
+    --perforation: var(--es-edge);
+    transform: rotate(-0.8deg) translateY(1px);
+  }
+
+  .es-stub__pull:is(:hover, [data-force='hover']):not(:disabled, [aria-disabled='true']) .es-stub__arrow {
+    transform: translateX(3px);
+  }
+
+  .es-stub__pull:is(:active, [data-force='active']):not(:disabled, [aria-disabled='true']) {
+    transform: translateY(2px);
+    box-shadow: var(--es-shadow-press);
+  }
+
+  .es-stub__pull:is(:focus-visible, [data-force='focus']) {
+    outline: 2px solid var(--es-focus);
+    outline-offset: -5px;
+    box-shadow: none;
+    background-color: color-mix(in srgb, var(--es-lamp) 32%, var(--es-paper));
+  }
+
+  .es-stub[data-state='disabled'] .es-stub__pull {
+    --perforation: color-mix(in srgb, var(--es-paper-rule) 70%, var(--es-paper));
+    color: var(--es-text-3);
+    cursor: not-allowed;
+  }
+
+  .es-stub[data-state='disabled'] .es-stub__arrow {
+    visibility: hidden;
+  }
+
+  .es-stub[data-state='loading'] .es-stub__pull {
+    cursor: progress;
+  }
+
+  .es-stub[data-standalone] .es-stub__pull {
+    box-shadow: var(--es-shadow-paper);
+  }
+
+  .es-stub__error {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--es-space-2);
+    padding: var(--es-space-2) var(--es-space-6) var(--es-space-4);
+    background-color: var(--es-paper);
+    color: var(--es-paper-ink-2);
+    font-family: var(--es-font-body);
+    font-size: var(--es-size-print);
+    line-height: 1.45;
+  }
+
+  .es-stub__error-mark {
+    flex: none;
+    width: 1.1em;
+    height: 1.1em;
+    margin-top: 0.15em;
+  }
+
+  /* ---------------------------------------------------------------------------------------------- rail */
+
+  .es-rail {
+    position: relative;
+    padding: 0.875rem 0.25rem 0;
+    isolation: isolate;
+  }
+
+  /* The bar: a polished stainless rod, lit from the tubes above. */
+  .es-rail__bar {
+    position: absolute;
+    inset: 0 -0.5rem auto;
+    height: 1.375rem;
+    border-radius: var(--es-radius-plate);
+    background: linear-gradient(
+      180deg,
+      var(--es-surface-1) 0%,
+      color-mix(in srgb, var(--es-surface-1) 60%, var(--es-paper)) 18%,
+      var(--es-surface-1) 30%,
+      var(--es-surface-2) 62%,
+      var(--es-surface-3) 100%
+    );
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--es-surface-3) 50%, transparent),
+      0 2px 3px rgb(23 25 29 / 0.3),
+      0 10px 16px -10px rgb(23 25 29 / 0.45);
+  }
+
+  .es-rail[data-lamp]::before {
+    content: '';
+    position: absolute;
+    inset: -2.5rem -1.5rem -1rem;
+    z-index: -1;
+    /* As over a ticket: the ellipse ends inside its box. */
+    background: radial-gradient(
+      49% 44% at 50% 47%,
+      color-mix(in srgb, var(--es-lamp) 80%, transparent) 0%,
+      color-mix(in srgb, var(--es-lamp) 40%, transparent) 50%,
+      transparent 100%
+    );
+    pointer-events: none;
+  }
+
+  .es-rail[data-lamp] .es-ticket__paper {
+    background-image: linear-gradient(180deg, color-mix(in srgb, var(--es-lamp) 26%, var(--es-paper)), var(--es-paper) 70%);
+  }
+
+  .es-rail__clips {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(var(--es-rail-clips, 4), minmax(0, 1fr));
+    gap: var(--es-space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .es-rail__clip {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 0;
+  }
+
+  /* The clip: a deep-steel spring jaw gripping the bar and the ticket's top edge. */
+  .es-rail__grip {
+    position: relative;
+    z-index: 2;
+    width: 2.25rem;
+    height: 1.6rem;
+    margin: -0.55rem 0 -0.65rem;
+    border-radius: var(--es-radius-plate) var(--es-radius-plate) var(--es-radius-shoulder) var(--es-radius-shoulder);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--es-surface-3) 75%, var(--es-surface-1)) 0%, var(--es-surface-3) 45%, color-mix(in srgb, var(--es-surface-3) 80%, var(--es-paper-ink)) 100%);
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, var(--es-glint) 35%, transparent),
+      0 2px 3px rgb(23 25 29 / 0.4);
+  }
+
+  .es-rail__clip > .es-ticket {
+    max-width: 100%;
+  }
+
+  .es-rail__open {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    min-height: 7rem;
+    margin-top: 0.15rem;
+    padding: var(--es-space-4) var(--es-space-2) var(--es-space-3);
+    border: 2px dashed var(--es-edge);
+    color: var(--es-text-2);
+    font-family: var(--es-font-ticket);
+    font-size: var(--es-size-caption);
+    line-height: 1.35;
+    font-weight: 900;
+    text-align: center;
+  }
+
+  .es-rail[data-state='disabled'] .es-rail__clips {
+    opacity: 0.55;
+  }
+
+  .es-rail[data-state='loading'] .es-rail__grip {
+    animation: es-rail-set 1s var(--es-ease-settle) infinite alternate;
+  }
+
+  @keyframes es-rail-set {
+    to {
+      transform: translateY(2px);
+    }
+  }
+
+  /* ---------------------------------------------------------------------------------------------- printer and tape */
+
+  .es-printer {
+    display: grid;
+    justify-items: center;
+    width: 100%;
+    max-width: 20rem;
+    margin: 0;
+  }
+
+  .es-printer__housing {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    width: 100%;
+    min-height: 3.25rem;
+    padding: var(--es-space-2) var(--es-space-3) 1.35rem;
+    border-radius: var(--es-radius-shoulder) var(--es-radius-shoulder) var(--es-radius-plate) var(--es-radius-plate);
+    background-color: var(--es-surface-3);
+    background-image:
+      linear-gradient(180deg, color-mix(in srgb, var(--es-glint) 20%, transparent), transparent 45%),
+      var(--es-texture-brushed);
+    background-size: auto, 100% 360px;
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, var(--es-glint) 25%, transparent),
+      0 2px 4px rgb(23 25 29 / 0.35),
+      0 14px 20px -12px rgb(23 25 29 / 0.5);
+    color: var(--es-paper);
+  }
+
+  .es-printer__slot {
+    position: absolute;
+    inset: auto 1.1rem 0.5rem;
+    height: 0.3rem;
+    border-radius: var(--es-radius-trim);
+    background-color: var(--es-paper-ink);
+    box-shadow: 0 1px 0 color-mix(in srgb, var(--es-glint) 18%, transparent);
+  }
+
+  .es-printer__housing-items {
+    display: flex;
+    gap: var(--es-space-3);
+    align-items: center;
+  }
+
+  .es-printer__tape {
+    position: relative;
+    width: calc(100% - 2.75rem);
+    margin-top: -0.75rem;
+    padding: 1.25rem var(--es-space-4) 0;
+    background-color: var(--es-paper);
+    color: var(--es-paper-ink);
+    filter: drop-shadow(0 6px 6px rgb(23 25 29 / 0.22));
+    overflow: hidden;
+  }
+
+  .es-printer__feed[data-feeding] {
+    animation: es-feed var(--es-dur-feed) var(--es-ease-feed) both;
+  }
+
+  /* The provenance stamp at the tape's head, in the ribbon's red: printed once, so the lines under it print their figures alone. */
+  .es-printer__stamp {
+    width: fit-content;
+    margin: 0 0 var(--es-space-3);
+    padding: 0.1rem 0.4rem 0;
+    border: 1px solid currentColor;
+    border-radius: var(--es-radius-trim);
+    color: var(--es-paper-ink-2);
+    font-family: var(--es-font-body);
+    font-size: var(--es-size-micro);
+    line-height: 1.4;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* Under a stamp each figure's own tag is kept for a screen reader and left off the paper. */
+  .es-printer[data-stamped] .es-readout__tag {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  @keyframes es-feed {
+    from {
+      transform: translateY(-1.5rem);
+    }
+    to {
+      transform: none;
+    }
+  }
+
+  .es-printer__lines {
+    display: grid;
+    gap: var(--es-space-2);
+    margin: 0;
+  }
+
+  .es-printer__line {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--es-space-3);
+    margin: 0;
+    font-family: var(--es-font-ticket);
+    font-size: var(--es-size-print);
+    line-height: 1.35;
+    letter-spacing: var(--es-font-ticket-tracking);
+    font-weight: 900;
+  }
+
+  .es-printer__line dt {
+    text-transform: uppercase;
+  }
+
+  .es-printer__line dd {
+    margin: 0;
+    text-align: right;
+  }
+
+  .es-printer__line dd > .es-readout {
+    justify-content: flex-end;
+  }
+
+  .es-printer__line[data-tone='ink-2'] {
+    color: var(--es-paper-ink-2);
+  }
+
+  .es-printer__line--status,
+  .es-printer__line--blank {
+    justify-content: flex-start;
+    color: var(--es-text-2);
+    padding-bottom: var(--es-space-2);
+  }
+
+  .es-printer__line--error {
+    justify-content: flex-start;
+    color: var(--es-paper-ink-2);
+    padding-bottom: var(--es-space-2);
+  }
+
+  .es-printer__mark {
+    flex: none;
+    width: 1.1em;
+    height: 1.1em;
+  }
+
+  /* The torn end of the tape: teeth along its foot. */
+  .es-printer__tear {
+    display: block;
+    height: 0.4rem;
+    margin: var(--es-space-3) calc(-1 * var(--es-space-4)) 0;
+    background: conic-gradient(from -45deg at 50% 100%, var(--es-paper) 90deg, transparent 0) 0 0 / 0.75rem 100% repeat-x;
+    transform: translateY(0.4rem);
+  }
+
+  .es-printer__tape:has(.es-printer__tear) {
+    overflow: visible;
+    margin-bottom: 0.4rem;
+  }
+
+  /* The menu link sits on the housing: printed in paper-white on deep steel. */
+  .es-printer__housing .es-menu-link {
+    color: var(--es-paper);
+  }
+
+  /* ---------------------------------------------------------------------------------------------- hotel pan */
+
+  .es-pan {
+    --fill: var(--es-surface-2);
+    --edge: var(--es-edge);
+    position: relative;
+    display: inline-grid;
+    justify-items: center;
+    gap: var(--es-space-2);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    vertical-align: top;
+  }
+
+  .es-pan[data-state='used'] {
+    --fill: var(--es-memory-used);
+    --edge: var(--es-cat-blue-edge);
+  }
+
+  .es-pan[data-state='cached'] {
+    --fill: var(--es-memory-cached);
+    --edge: var(--es-cat-yellow-edge);
+  }
+
+  .es-pan[data-state='shared'] {
+    --fill: var(--es-memory-shared);
+    --edge: var(--es-cat-green-edge);
+  }
+
+  .es-pan[data-state='adapter'] {
+    --fill: var(--es-memory-adapter);
+    --edge: var(--es-cat-brown-edge);
+  }
+
+  .es-pan[data-state='evicted'] {
+    --fill: transparent;
+    --edge: var(--es-cat-red-edge);
+  }
+
+  /* The rim: drawn steel around the well, never moving. */
+  .es-pan__rim {
+    position: relative;
+    display: block;
+    width: 4.75rem;
+    height: 3.4rem;
+    padding: 0.42rem;
+    border-radius: var(--es-radius-pan);
+    background-color: var(--es-surface-1);
+    background-image: linear-gradient(160deg, color-mix(in srgb, var(--es-glint) 65%, transparent), transparent 45%, rgb(23 25 29 / 0.12));
+    box-shadow:
+      inset 0 0 0 1px var(--es-edge),
+      0 1px 2px rgb(23 25 29 / 0.28);
+    transition: box-shadow var(--es-dur-quick) var(--es-ease-settle);
+  }
+
+  .es-pan__well {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: calc(var(--es-radius-pan) - 4px); /* impeccable-disable-line design-system-radius -- the well sits 4px tighter than the pan's rim (DESIGN.md, Shapes) */
+    background-color: var(--es-surface-2);
+    box-shadow:
+      inset 0 2px 4px rgb(23 25 29 / 0.3),
+      inset 0 0 0 1px color-mix(in srgb, var(--es-surface-3) 45%, transparent);
+  }
+
+  .es-pan__well[data-pattern='solid'] {
+    background: var(--fill);
+    box-shadow:
+      inset 0 2px 4px rgb(23 25 29 / 0.3),
+      inset 0 0 0 1.5px var(--edge);
+  }
+
+  .es-pan__well[data-pattern='hatch'] {
+    background: repeating-linear-gradient(45deg, var(--fill) 0 3px, var(--es-surface-1) 3px 6px);
+    box-shadow:
+      inset 0 2px 4px rgb(23 25 29 / 0.25),
+      inset 0 0 0 2px var(--edge);
+  }
+
+  .es-pan__well[data-pattern='dots'] {
+    background:
+      radial-gradient(circle, color-mix(in srgb, var(--fill) 45%, var(--es-paper)) 0 1.3px, transparent 1.8px) 0 0 / 6px 6px,
+      var(--fill);
+    box-shadow:
+      inset 0 2px 4px rgb(23 25 29 / 0.3),
+      inset 0 0 0 1.5px var(--edge);
+  }
+
+  .es-pan[data-state='evicted'] .es-pan__well {
+    background: var(--es-surface-1);
+    box-shadow: none;
+    outline: 2px dashed var(--edge);
+    outline-offset: -2px;
+  }
+
+  .es-pan__mark {
+    position: absolute;
+    inset: 0;
+    width: 1.35rem;
+    height: 1.35rem;
+    margin: auto;
+  }
+
+  .es-pan[data-state='cached'] .es-pan__mark {
+    color: var(--es-cat-yellow-edge);
+  }
+
+  .es-pan[data-state='adapter'] .es-pan__mark {
+    color: var(--es-cat-brown-ink);
+  }
+
+  .es-pan[data-state='evicted'] .es-pan__mark {
+    color: var(--es-cat-red-edge);
+  }
+
+  .es-pan__tape {
+    max-width: 6.5rem;
+  }
+
+  .es-pan__glyph {
+    position: absolute;
+    right: -0.2rem;
+    top: -0.2rem;
+    width: 0.6rem;
+    height: 0.6rem;
+  }
+
+  .es-pan[data-size='sm'] .es-pan__rim {
+    width: 1.25rem;
+    height: 1rem;
+    padding: 2px;
+    border-radius: var(--es-radius-plate);
+  }
+
+  .es-pan[data-size='sm'] .es-pan__well {
+    border-radius: var(--es-radius-trim);
+  }
+
+  .es-pan[data-size='sm'] .es-pan__mark {
+    width: 0.7rem;
+    height: 0.7rem;
+  }
+
+  /* Pans never move (a moving pan would misteach copying): the hand and the lamp change their light only. */
+  button.es-pan {
+    cursor: pointer;
+  }
+
+  button.es-pan:focus-visible {
+    outline: none;
+    box-shadow: none;
+  }
+
+  button.es-pan:is(:hover, [data-force='hover']):not(:disabled) .es-pan__rim {
+    box-shadow:
+      inset 0 0 0 2px var(--es-text-1),
+      0 1px 2px rgb(23 25 29 / 0.28);
+  }
+
+  button.es-pan:is(:active, [data-force='active']):not(:disabled) .es-pan__rim {
+    box-shadow:
+      inset 0 0 0 2px var(--es-text-1),
+      inset 0 3px 6px rgb(23 25 29 / 0.35);
+  }
+
+  button.es-pan:is(:focus-visible, [data-force='focus']) .es-pan__rim,
+  .es-pan[data-lamp] .es-pan__rim {
+    outline: 2px solid var(--es-lamp-ring);
+    outline-offset: 2px;
+    box-shadow:
+      inset 0 0 0 1px var(--es-edge),
+      0 -3px 12px 1px color-mix(in srgb, var(--es-lamp) 75%, transparent);
+  }
+
+  button.es-pan:disabled,
+  .es-pan[data-disabled] {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  /* ---------------------------------------------------------------------------------------------- station light */
+
+  .es-station {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--es-space-3);
+  }
+
+  .es-station__bezel {
+    position: relative;
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: var(--es-radius-round);
+    background: radial-gradient(circle at 35% 30%, var(--es-surface-1), var(--es-surface-2) 70%);
+    box-shadow:
+      inset 0 0 0 1px var(--es-edge),
+      0 1px 2px rgb(23 25 29 / 0.3);
+  }
+
+  .es-station__lens {
+    display: grid;
+    place-items: center;
+    width: 1.2rem;
+    height: 1.2rem;
+    border-radius: var(--es-radius-round);
+    color: var(--es-paper);
+  }
+
+  /* Dark: a deep-steel lens with an open ring, the shape of a station with nothing cooking. */
+  .es-station[data-state='dark'] .es-station__lens {
+    background: radial-gradient(circle, var(--es-surface-3) 0 34%, color-mix(in srgb, var(--es-surface-3) 55%, var(--es-surface-1)) 38% 52%, var(--es-surface-3) 56%);
+    box-shadow: inset 0 2px 3px rgb(23 25 29 / 0.5);
+  }
+
+  /* Lit: the heat lamp's amber, glowing, with a solid core and the filament's edge. Whatever lane the station is in, a lit lens is
+     never a code colour: the lane rides beside the name as a mark (.es-station__lane), and the lens says only whether it is on. */
+  .es-station[data-state='lit'] .es-station__lens {
+    background: radial-gradient(circle at 38% 32%, color-mix(in srgb, var(--es-lamp) 35%, var(--es-paper)) 0 16%, var(--es-lamp) 52%, color-mix(in srgb, var(--es-lamp) 70%, var(--es-lamp-ring)) 100%);
+    box-shadow:
+      inset 0 0 0 1px var(--es-lamp-ring),
+      0 0 12px 2px color-mix(in srgb, var(--es-lamp) 55%, transparent);
+  }
+
+  .es-station[data-state='fault'] .es-station__lens {
+    background: var(--es-paper-ink-2);
+    box-shadow: 0 0 10px 2px color-mix(in srgb, var(--es-paper-ink-2) 45%, transparent);
+  }
+
+  .es-station__fault {
+    width: 0.8rem;
+    height: 0.8rem;
+  }
+
+  .es-station[data-lamp] .es-station__bezel {
+    outline: 2px solid var(--es-lamp-ring);
+    outline-offset: 2px;
+    box-shadow:
+      inset 0 0 0 1px var(--es-edge),
+      0 -3px 12px 1px color-mix(in srgb, var(--es-lamp) 75%, transparent);
+  }
+
+  .es-station__text {
+    display: grid;
+    line-height: 1.2;
+  }
+
+  .es-station__label {
+    font-weight: 700;
+  }
+
+  /* The lane's category mark: its board colour and its drawn glyph, the same lit or dark. */
+  .es-station__lane {
+    display: inline-block;
+    width: 0.8em;
+    height: 0.8em;
+    margin-right: 0.35em;
+    vertical-align: -0.05em;
+  }
+
+  .es-station__word {
+    font-family: var(--es-font-ticket);
+    font-size: var(--es-size-caption);
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--es-text-2);
+  }
+
+  .es-station[data-state='fault'] .es-station__word {
+    color: var(--es-paper-ink-2);
+  }
+
+  .es-station[data-disabled] .es-station__lens {
+    background: var(--es-surface-2);
+    box-shadow: none;
+  }
+
+  .es-station[data-disabled] .es-station__label,
+  .es-station[data-disabled] .es-station__word {
+    color: var(--es-text-3);
+  }
+
+  .es-station[data-size='sm'] .es-station__bezel {
+    width: 1.4rem;
+    height: 1.4rem;
+  }
+
+  .es-station[data-size='sm'] .es-station__lens {
+    width: 0.8rem;
+    height: 0.8rem;
+  }
+
+  /* ---------------------------------------------------------------------------------------------- bell */
+
+  .es-bell {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--es-space-3);
+  }
+
+  .es-bell__button,
+  .es-bell__still {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 4.5rem;
+    height: 4rem;
+    padding: 0.25rem;
+    border: 0;
+    border-radius: var(--es-radius-plate);
+    background: none;
+    color: inherit;
+  }
+
+  .es-bell[data-size='lg'] :is(.es-bell__button, .es-bell__still) {
+    width: 6rem;
+    height: 5.25rem;
+  }
+
+  .es-bell__button {
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .es-bell__button > .es-printing {
+    position: absolute;
+    bottom: -0.65rem;
+  }
+
+  .es-bell__drawing {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .es-bell__dome {
+    stroke: var(--es-edge);
+    stroke-width: 1.25;
+  }
+
+  .es-bell__chrome-hi {
+    stop-color: var(--es-paper);
+  }
+
+  .es-bell__chrome-mid {
+    stop-color: var(--es-surface-1);
+  }
+
+  .es-bell__chrome-lo {
+    stop-color: var(--es-surface-2);
+  }
+
+  .es-bell__shine {
+    fill: none;
+    stroke: var(--es-paper);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+  }
+
+  .es-bell__base {
+    fill: var(--es-surface-3);
+  }
+
+  .es-bell__plunger,
+  .es-bell__knob {
+    fill: var(--es-surface-2);
+    stroke: var(--es-edge);
+    stroke-width: 1.25;
+    transition: transform var(--es-dur-quick) var(--es-ease-settle);
+  }
+
+  .es-bell__waves {
+    fill: none;
+    stroke: var(--es-lamp-ring);
+    stroke-width: 2.25;
+    stroke-linecap: round;
+    opacity: 0;
+    transform-box: view-box;
+    transform-origin: 32px 30px;
+  }
+
+  .es-bell__body {
+    transform-box: view-box;
+    transform-origin: 32px 46px;
+  }
+
+  /* The strike: the plunger drops, the dome rings past and settles. One motion per step. */
+  .es-bell__body[data-struck] {
+    animation: es-bell-strike var(--es-dur-bell) var(--es-ease-strike) both;
+  }
+
+  .es-bell__waves[data-struck] {
+    animation: es-bell-ring calc(var(--es-dur-bell) * 2.5) var(--es-ease-settle) both;
+  }
+
+  @keyframes es-bell-strike {
+    0% {
+      transform: none;
+    }
+    30% {
+      transform: translateY(2.5px) scaleY(0.96);
+    }
+    60% {
+      transform: rotate(-3deg);
+    }
+    82% {
+      transform: rotate(1.5deg);
+    }
+    100% {
+      transform: none;
+    }
+  }
+
+  @keyframes es-bell-ring {
+    0% {
+      opacity: 0;
+      transform: scale(0.92);
+    }
+    22% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1.1);
+    }
+  }
+
+  .es-bell__button:is(:hover, [data-force='hover']):not(:disabled, [aria-disabled='true']) .es-bell__knob {
+    fill: var(--es-surface-1);
+  }
+
+  .es-bell__button:is(:active, [data-force='active']):not(:disabled, [aria-disabled='true']) :is(.es-bell__knob, .es-bell__plunger) {
+    transform: translateY(3px);
+  }
+
+  .es-bell__button:is(:focus-visible, [data-force='focus']) {
+    outline: 2px solid var(--es-focus);
+    outline-offset: 2px;
+    box-shadow: 0 -3px 14px 1px color-mix(in srgb, var(--es-lamp) 70%, transparent);
+  }
+
+  .es-bell__button:disabled {
+    cursor: not-allowed;
+  }
+
+  .es-bell[data-state='disabled'] .es-bell__dome {
+    fill: var(--es-surface-2);
+    stroke-dasharray: 3 2;
+  }
+
+  .es-bell[data-state='loading'] .es-bell__button {
+    cursor: progress;
+  }
+
+  .es-bell__count {
+    display: grid;
+    gap: 0.15rem;
+  }
+
+  .es-bell__caption {
+    font-family: var(--es-font-ticket);
+    font-size: var(--es-size-caption);
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--es-text-2);
+  }
+
+  /* ---------------------------------------------------------------------------------------------- button: a stamped plate */
+
+  .es-button {
+    --plate: var(--es-surface-1);
+    --plate-light: color-mix(in srgb, var(--es-glint) 55%, transparent);
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--es-space-2);
+    min-height: 2.75rem;
+    padding: 0.55rem 1.15rem 0.45rem;
+    border: 1px solid var(--es-edge);
+    border-radius: var(--es-radius-plate);
+    background-color: var(--plate);
+    background-image: linear-gradient(180deg, var(--plate-light), transparent 58%), var(--es-texture-brushed);
+    background-size: auto, 100% 360px;
+    box-shadow: var(--es-shadow-plate);
+    color: var(--es-text-1);
+    font-family: var(--es-font-display);
+    font-size: var(--es-size-plate);
+    line-height: 1;
+    letter-spacing: 0.07em;
+    font-weight: 800;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    touch-action: manipulation;
+    transition:
+      background-color var(--es-dur-quick) var(--es-ease-settle),
+      box-shadow var(--es-dur-quick) var(--es-ease-settle),
+      transform var(--es-dur-quick) var(--es-ease-settle);
+  }
+
+  .es-button[data-size='sm'] {
+    min-height: 2rem;
+    padding: 0.4rem 0.8rem 0.3rem;
+    font-size: var(--es-size-print);
+  }
+
+  .es-button[data-size='lg'] {
+    min-height: 3.25rem;
+    padding: 0.7rem 1.5rem 0.55rem;
+    font-size: var(--es-size-action);
+  }
+
+  .es-button__icon {
+    width: 1.05em;
+    height: 1.05em;
+    margin-top: -0.1em;
+  }
+
+  .es-button:is(:hover, [data-force='hover']):not(:disabled, [aria-disabled='true']) {
+    --plate: color-mix(in srgb, var(--es-surface-1) 55%, var(--es-paper));
+    box-shadow:
+      var(--es-shadow-plate),
+      0 6px 12px -6px rgb(23 25 29 / 0.4);
+  }
+
+  .es-button:is(:active, [data-force='active']):not(:disabled, [aria-disabled='true']) {
+    --plate: var(--es-surface-2);
+    --plate-light: color-mix(in srgb, var(--es-glint) 15%, transparent);
+    transform: translateY(1px);
+    box-shadow: var(--es-shadow-press);
+  }
+
+  .es-button:is(:focus-visible, [data-force='focus']) {
+    outline: 2px solid var(--es-focus);
+    outline-offset: 2px;
+    box-shadow:
+      var(--es-shadow-plate),
+      0 -3px 14px 1px color-mix(in srgb, var(--es-lamp) 70%, transparent);
+  }
+
+  .es-button:disabled {
+    --plate: var(--es-surface-0);
+    border-style: dashed;
+    background-image: none;
+    box-shadow: none;
+    color: var(--es-text-3);
+    cursor: not-allowed;
+  }
+
+  .es-button[aria-busy='true'] {
+    cursor: progress;
+  }
+
+  .es-button[data-state='error'] {
+    border-color: var(--es-paper-ink-2);
+    box-shadow:
+      var(--es-shadow-plate),
+      inset 0 0 0 1px var(--es-paper-ink-2);
+  }
+
+  /* An ink plate: deep steel, the label stamped out in paper-white. */
+  .es-button[data-variant='ink'] {
+    --plate: var(--es-surface-3);
+    --plate-light: color-mix(in srgb, var(--es-glint) 20%, transparent);
+    border-color: var(--es-paper-ink);
+    color: var(--es-paper);
+  }
+
+  .es-button[data-variant='ink']:is(:hover, [data-force='hover']):not(:disabled, [aria-disabled='true']) {
+    --plate: var(--es-surface-3);
+    --plate-light: color-mix(in srgb, var(--es-glint) 32%, transparent);
+  }
+
+  .es-button[data-variant='ink']:is(:active, [data-force='active']):not(:disabled, [aria-disabled='true']) {
+    --plate: color-mix(in srgb, var(--es-surface-3) 80%, var(--es-paper-ink));
+    --plate-light: color-mix(in srgb, var(--es-glint) 8%, transparent);
+  }
+
+  .es-button[data-variant='ink']:disabled {
+    --plate: var(--es-surface-0);
+    border-color: var(--es-edge);
+    color: var(--es-text-3);
+  }
+
+  /* A quiet stamp: the label without its plate. */
+  .es-button[data-variant='quiet'] {
+    --plate: transparent;
+    border-color: transparent;
+    background-image: none;
+    box-shadow: none;
+  }
+
+  .es-button[data-variant='quiet']:is(:hover, [data-force='hover']):not(:disabled, [aria-disabled='true']) {
+    --plate: transparent;
+    box-shadow: none;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.3em;
+  }
+
+  .es-button[data-variant='quiet']:is(:active, [data-force='active']):not(:disabled, [aria-disabled='true']) {
+    --plate: transparent;
+    box-shadow: none;
+    color: var(--es-paper-ink-2);
+  }
+
+  .es-button[data-variant='quiet']:is(:focus-visible, [data-force='focus']) {
+    box-shadow: 0 -3px 14px 1px color-mix(in srgb, var(--es-lamp) 70%, transparent);
+  }
+
+  .es-button-group {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--es-space-2) var(--es-space-3);
+  }
+
+  .es-button__error {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: var(--es-space-2);
+    color: var(--es-paper-ink-2);
+    font-size: var(--es-size-print);
+    line-height: 1.4;
+  }
+
+  .es-button__error-mark {
+    flex: none;
+    width: 1.1em;
+    height: 1.1em;
+    margin-top: 0.15em;
+  }
+
+  /* ---------------------------------------------------------------------------------------------- text link */
+
+  .es-link {
+    border-radius: var(--es-radius-trim);
+    color: inherit;
+    text-decoration-line: underline;
+    text-decoration-thickness: 0.08em;
+    text-underline-offset: 0.24em;
+    text-decoration-skip-ink: auto;
+    transition: text-decoration-thickness var(--es-dur-quick) var(--es-ease-settle);
+  }
+
+  .es-link:is(:hover, [data-force='hover']) {
+    text-decoration-thickness: 0.16em;
+  }
+
+  .es-link:is(:active, [data-force='active']) {
+    color: var(--es-paper-ink-2);
+  }
+
+  .es-link:is(:focus-visible, [data-force='focus']) {
+    outline: 2px solid var(--es-focus);
+    outline-offset: 2px;
+    box-shadow: 0 -3px 14px 1px color-mix(in srgb, var(--es-lamp) 70%, transparent);
+  }
+
+  .es-link[data-disabled] {
+    color: var(--es-text-3);
+    text-decoration-line: none;
+    cursor: not-allowed;
+  }
+
+  .es-link__external {
+    display: inline;
+    width: 0.8em;
+    height: 0.8em;
+    margin-left: 0.2em;
+    vertical-align: -0.05em;
+  }
+
+  /* ---------------------------------------------------------------------------------------------- toggle: an equipment switch */
+
+  .es-toggle {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: var(--es-space-3);
+  }
+
+  .es-toggle__switch {
+    position: relative;
+    flex: none;
+    width: 5.25rem;
+    height: 2.5rem;
+    padding: 0;
+    border: 1px solid var(--es-edge);
+    border-radius: var(--es-radius-plate);
+    background-color: var(--es-surface-0);
+    background-image: linear-gradient(180deg, rgb(23 25 29 / 0.14), rgb(23 25 29 / 0) 45%), var(--es-texture-brushed);
+    background-size: auto, 100% 360px;
+    box-shadow:
+      inset 0 2px 3px rgb(23 25 29 / 0.25),
+      0 1px 0 color-mix(in srgb, var(--es-glint) 60%, transparent);
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  /* The stamped words: the one in force shows in the open half of the plate. */
+  .es-toggle__plate {
+    position: absolute;
+    inset: 0 0.85rem 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 0.15rem;
+    font-family: var(--es-font-display);
+    font-size: var(--es-size-note);
+    letter-spacing: 0.1em;
+    font-weight: 800;
+    color: var(--es-text-2);
+  }
+
+  .es-toggle__switch[data-state='checked'] .es-toggle__plate {
+    inset: 0 auto 0 0.5rem;
+    justify-content: flex-start;
+    color: var(--es-text-1);
+  }
+
+  .es-toggle__word[data-word='on'],
+  .es-toggle__switch[data-state='checked'] .es-toggle__word[data-word='off'] {
+    display: none;
+  }
+
+  .es-toggle__switch[data-state='checked'] .es-toggle__word[data-word='on'] {
+    display: inline;
+  }
+
+  /* The lever: a polished bat that throws from side to side. */
+  .es-toggle__lever {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    display: block;
+    width: 1.85rem;
+    height: calc(100% - 6px);
+    border-radius: var(--es-radius-trim);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--es-surface-1) 50%, var(--es-paper)), var(--es-surface-2));
+    box-shadow:
+      inset 0 0 0 1px var(--es-edge),
+      inset 0 1px 0 color-mix(in srgb, var(--es-glint) 75%, transparent),
+      0 2px 3px rgb(23 25 29 / 0.4);
+    transition: transform var(--es-dur-quick) var(--es-ease-settle);
+  }
+
+  .es-toggle__lever[data-state='checked'] {
+    transform: translateX(calc(5.25rem - 1.85rem - 8px));
+  }
+
+  /* The pilot light, at the plate's end: dark when off, burning the heat lamp's amber when on. */
+  .es-toggle__pilot {
+    position: absolute;
+    top: 50%;
+    right: -1.35rem;
+    width: 0.75rem;
+    height: 0.75rem;
+    margin-top: -0.375rem;
+    border-radius: var(--es-radius-round);
+    background: radial-gradient(circle, var(--es-surface-3) 0 35%, color-mix(in srgb, var(--es-surface-3) 55%, var(--es-surface-1)) 40% 55%, var(--es-surface-3) 60%);
+    box-shadow: inset 0 0 0 1px var(--es-edge);
+  }
+
+  .es-toggle__switch[data-state='checked'] .es-toggle__pilot {
+    background: radial-gradient(circle at 38% 32%, color-mix(in srgb, var(--es-lamp) 35%, var(--es-paper)) 0 16%, var(--es-lamp) 55%, color-mix(in srgb, var(--es-lamp) 70%, var(--es-lamp-ring)) 100%);
+    box-shadow:
+      inset 0 0 0 1px var(--es-lamp-ring),
+      0 0 8px 1px color-mix(in srgb, var(--es-lamp) 70%, transparent);
+  }
+
+  .es-toggle__switch:is(:hover, [data-force='hover']):not(:disabled) .es-toggle__lever {
+    background: linear-gradient(180deg, var(--es-paper), var(--es-surface-1));
+  }
+
+  .es-toggle__switch:is(:active, [data-force='active']):not(:disabled) .es-toggle__lever {
+    box-shadow:
+      inset 0 0 0 1px var(--es-edge),
+      inset 0 2px 3px rgb(23 25 29 / 0.3);
+  }
+
+  .es-toggle__switch:is(:focus-visible, [data-force='focus']) {
+    outline: 2px solid var(--es-focus);
+    outline-offset: 2px;
+    box-shadow:
+      inset 0 2px 3px rgb(23 25 29 / 0.25),
+      0 -3px 14px 1px color-mix(in srgb, var(--es-lamp) 70%, transparent);
+  }
+
+  .es-toggle__switch:disabled {
+    cursor: not-allowed;
+    border-style: dashed;
+    background-image: none;
+  }
+
+  .es-toggle__switch:disabled .es-toggle__lever {
+    background: var(--es-surface-1);
+    box-shadow: inset 0 0 0 1px var(--es-edge);
+  }
+
+  .es-toggle__switch:disabled .es-toggle__plate {
+    color: var(--es-text-3);
+  }
+
+  .es-toggle__text {
+    display: grid;
+    gap: 0.15rem;
+    padding-top: 0.45rem;
+    margin-left: 1.25rem;
+  }
+
+  .es-toggle__label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--es-space-2);
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .es-toggle[data-state='disabled'] .es-toggle__label {
+    color: var(--es-text-3);
+    cursor: not-allowed;
+  }
+
+  .es-toggle__hint {
+    color: var(--es-text-2);
+    font-size: var(--es-size-print);
+  }
+
+  .es-toggle__error {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: var(--es-space-2);
+    color: var(--es-paper-ink-2);
+    font-size: var(--es-size-print);
+  }
+
+  .es-toggle__error-mark {
+    flex: none;
+    width: 1.1em;
+    height: 1.1em;
+    margin-top: 0.15em;
+  }
+
+  /* ---------------------------------------------------------------------------------------------- field: tape over a paper slip */
+
+  .es-field {
+    display: grid;
+    justify-items: start;
+    gap: var(--es-space-2);
+    width: 100%;
+    max-width: 28rem;
+  }
+
+  .es-field__label {
+    position: relative;
+    z-index: 1;
+    margin: 0 0 -0.9rem 0.6rem;
+    cursor: pointer;
+  }
+
+  .es-field__slip {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--es-space-2);
+    width: 100%;
+    padding: 0.7rem var(--es-space-3) 0;
+    border-bottom: 2px solid var(--es-edge);
+    background-color: var(--es-paper);
+    box-shadow: var(--es-shadow-paper);
+    color: var(--es-paper-ink);
+    transition: border-color var(--es-dur-quick) var(--es-ease-settle);
+  }
+
+  .es-field__input {
+    flex: 1;
+    min-width: 0;
+    height: 2.75rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--es-paper-ink);
+    font-family: var(--es-font-body);
+    font-size: var(--es-size-body);
+    outline: none;
+  }
+
+  .es-field__input:focus-visible {
+    outline: none;
+    box-shadow: none;
+  }
+
+  .es-field__input::placeholder {
+    color: var(--es-text-3);
+    opacity: 1;
+  }
+
+  .es-field[data-numeric] .es-field__input {
+    font-family: var(--es-font-numeric);
+    font-size: var(--es-size-plate);
+    letter-spacing: 0.04em;
+    font-weight: 900;
+    /* A number is printed on the slip and typed, never spun: the browser's spinner is no part of a slip. */
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+
+  .es-field[data-numeric] .es-field__input::-webkit-outer-spin-button,
+  .es-field[data-numeric] .es-field__input::-webkit-inner-spin-button {
+    margin: 0;
+    -webkit-appearance: none;
+  }
+
+  .es-field__slip:is(:hover, [data-force='hover']) {
+    border-bottom-color: var(--es-text-1);
+  }
+
+  .es-field__slip:is(:focus-within, [data-force='focus']) {
+    border-bottom-color: var(--es-lamp-ring);
+    outline: 2px solid var(--es-focus);
+    outline-offset: 2px;
+    box-shadow:
+      var(--es-shadow-paper),
+      0 -3px 14px 1px color-mix(in srgb, var(--es-lamp) 70%, transparent);
+  }
+
+  .es-field[data-state='disabled'] .es-field__slip {
+    border-bottom-style: dashed;
+    background-color: var(--es-surface-1);
+    box-shadow: none;
+  }
+
+  .es-field[data-state='disabled'] .es-field__input {
+    color: var(--es-text-3);
+    cursor: not-allowed;
+  }
+
+  .es-field[data-state='error'] .es-field__slip {
+    border-bottom-color: var(--es-paper-ink-2);
+  }
+
+  .es-field__hint {
+    color: var(--es-text-2);
+    font-size: var(--es-size-print);
+  }
+
+  .es-field__error {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: var(--es-space-2);
+    color: var(--es-paper-ink-2);
+    font-size: var(--es-size-print);
+    line-height: 1.4;
+  }
+
+  .es-field__error-mark {
+    flex: none;
+    width: 1.1em;
+    height: 1.1em;
+    margin-top: 0.15em;
+  }
+
+  /* ---------------------------------------------------------------------------------------------- the mirror's table */
+
+  /*
+   * The mirror kit's table (src/games/kit/MirrorTable.tsx), on its ticket. The ticket is a size container. Wide, the table is a
+   * table. Narrow, each row prints as a block of its own: the row's header first, then each cell after its column's name (the
+   * cell's `data-label`), wrapping as words do, so nothing is cut off at the paper's edge. The column heads stay in the document
+   * for a screen reader, and the table's roles are written on its elements, so it reads as a table in either layout.
+   */
+  .es-mirror {
+    container-type: inline-size;
+  }
+
+  .es-mirror__region {
+    overflow-x: auto;
+  }
+
+  @container (max-width: 36rem) {
+    .es-mirror__region {
+      overflow-x: visible;
+    }
+
+    .es-mirror__table,
+    .es-mirror__table caption,
+    .es-mirror__table tbody {
+      display: block;
+    }
+
+    .es-mirror__table caption {
+      text-wrap: pretty;
+    }
+
+    /* The column heads, for a screen reader only: each cell prints its own. Each head is a box of 1 px, so none reaches past the paper. */
+    .es-mirror__table thead th {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .es-mirror__table tbody tr {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: var(--es-space-1) var(--es-space-4);
+      padding: var(--es-space-3) var(--es-space-2);
+    }
+
+    .es-mirror__table tbody :is(th, td) {
+      display: inline-flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0 0.45em;
+      min-width: 0;
+      padding: 0;
+      text-align: left;
+    }
+
+    .es-mirror__table tbody td::before {
+      content: attr(data-label);
+      color: var(--es-text-2);
+      font-family: var(--es-font-body);
+      font-size: var(--es-size-note);
+      font-weight: 700;
+    }
+
+    .es-mirror__table tbody tr[data-lamp] td::before {
+      color: var(--es-paper-ink);
+    }
+
+    .es-mirror__table tbody tr[data-empty] td::before {
+      content: none;
+    }
+  }
+
+  /* ---------------------------------------------------------------------------------------------- the board and the kick-plate */
+
+  .es-board {
+    position: relative;
+    z-index: 1;
+    overflow: clip;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--es-space-2) var(--es-space-6);
+    padding: var(--es-space-3) var(--es-space-4);
+  }
+
+  .es-board[data-variant='board'] {
+    border-bottom: 1px solid var(--es-edge);
+    background-color: var(--es-surface-1);
+    background-image: linear-gradient(180deg, color-mix(in srgb, var(--es-glint) 50%, transparent), transparent 70%), var(--es-texture-brushed);
+    background-size: auto, 100% 720px;
+    box-shadow: var(--es-shadow-shelf);
+  }
+
+  .es-board[data-variant='kickplate'] {
+    border-top: 1px solid var(--es-paper-ink);
+    background-color: var(--es-surface-3);
+    background-image: linear-gradient(180deg, color-mix(in srgb, var(--es-glint) 16%, transparent), transparent 60%), var(--es-texture-brushed);
+    background-size: auto, 100% 720px;
+    color: var(--es-paper);
+  }
+
+  /* The house's name, stamped into a flat plate of brushed steel: the grain and one edge, and no drawn hardware. */
+  .es-board__plate {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.5rem;
+    padding: 0.3rem 0.95rem 0.2rem;
+    border: 1px solid var(--es-edge);
+    border-radius: var(--es-radius-plate);
+    background-color: var(--es-surface-2);
+    background-image: var(--es-texture-brushed);
+    background-size: 100% 360px;
+    color: var(--es-text-1);
+    font-family: var(--es-font-display);
+    font-size: 1.3125rem; /* impeccable-disable-line design-system-font-size -- the house name is stamped at its own size (DESIGN.md, Plate lettering) */
+    line-height: 1;
+    letter-spacing: 0.1em;
+    font-weight: 800;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
+  .es-board__plate:is(:hover, [data-force='hover']) {
+    text-decoration: none;
+    background-color: var(--es-surface-1);
+  }
+
+  .es-board__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 clamp(0.75rem, 2.4vw, 1.75rem);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .es-board__link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    padding: 0 0.15rem;
+    color: var(--es-text-2);
+    font-family: var(--es-font-display);
+    font-size: var(--es-size-plate);
+    line-height: 1;
+    letter-spacing: 0.08em;
+    font-weight: 800;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
+  .es-board__link:is(:hover, [data-force='hover']) {
+    color: var(--es-text-1);
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.35em;
+  }
+
+  .es-board__link:is(:active, [data-force='active']) {
+    transform: translateY(1px);
+  }
+
+  /* The page you are on is under the heat lamp: the pool above it and the filament's bar below. */
+  .es-board__link[aria-current='page'] {
+    color: var(--es-text-1);
+  }
+
+  .es-board__link[aria-current='page']::before {
+    content: '';
+    position: absolute;
+    inset: -0.9rem -1rem -0.25rem;
+    z-index: -1;
+    background: radial-gradient(65% 85% at 50% 0%, color-mix(in srgb, var(--es-lamp) 80%, transparent), transparent 78%);
+    pointer-events: none;
+  }
+
+  .es-board__link[aria-current='page']::after {
+    content: '';
+    position: absolute;
+    inset: auto 0.1rem 0.35rem;
+    height: 3px;
+    border-radius: var(--es-radius-trim);
+    background-color: var(--es-lamp-ring);
+  }
+
+  .es-board[data-variant='kickplate'] .es-board__link {
+    min-height: 2.5rem;
+    color: var(--es-paper);
+    font-size: var(--es-size-base);
+  }
+
+  .es-board[data-variant='kickplate'] .es-board__link[aria-current='page']::after {
+    background-color: var(--es-lamp);
+  }
+
+  .es-board[data-variant='kickplate'] .es-board__link[aria-current='page']::before {
+    display: none;
+  }
+
+  /* ---------------------------------------------------------------------------------------------- the menu link */
+
+  .es-menu-link {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.15rem var(--es-space-2);
+    color: inherit;
+    font-family: var(--es-font-ticket);
+    font-size: var(--es-size-base);
+    letter-spacing: 0.04em;
+    font-weight: 900;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
+  .es-menu-link__words {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.3em;
+  }
+
+  .es-menu-link__term {
+    font-family: var(--es-font-body);
+    font-size: var(--es-size-note);
+    letter-spacing: 0;
+    font-weight: 700;
+    text-transform: none;
+  }
+
+  .es-menu-link__arrow {
+    align-self: center;
+    width: 1em;
+    height: 1em;
+    transition: transform var(--es-dur-quick) var(--es-ease-settle);
+  }
+
+  .es-menu-link:is(:hover, [data-force='hover']) .es-menu-link__words {
+    text-decoration-thickness: 3px;
+  }
+
+  .es-menu-link:is(:hover, [data-force='hover']) .es-menu-link__arrow {
+    transform: translateX(3px);
+  }
+
+  /* ---------------------------------------------------------------------------------------------- the shell */
+
+  .es-skip {
+    position: absolute;
+    top: -6rem;
+    left: var(--es-space-4);
+    z-index: 50;
+  }
+
+  .es-skip:focus {
+    top: var(--es-space-3);
+  }
+
+  .es-shell__main {
+    flex: 1 0 auto;
+    width: 100%;
+    max-width: 80rem;
+    margin: 0 auto;
+    overflow-x: clip;
+    padding: var(--es-space-8) var(--es-space-4) var(--es-space-16);
+  }
+
+  @media (min-width: 48rem) {
+    .es-shell__main {
+      padding-inline: var(--es-space-8);
+    }
+
+    .es-board {
+      padding-inline: var(--es-space-8);
+    }
+  }
+
+  /*
+   * Forced colours: the gradients that draw a lit lens are dropped, so each on state is a solid Highlight, which is where tokens.ts
+   * maps the lamp. The block sits in the layer, after the rules it overrides: outside the layer, Tailwind's build moves the layer's
+   * rules to its own place, behind it, and a rule of the same weight in front of them loses.
+   */
+  @media (forced-colors: active) {
+    .es-board__link[aria-current='page']::after,
+    .es-toggle__switch[data-state='checked'] .es-toggle__pilot,
+    .es-station[data-state='lit'] .es-station__lens {
+      background: Highlight;
+    }
+  }
+}
+
+/* Reduced motion: the printer's dots stand still at full ink. */
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion='full']) .es-printing > span {
+    opacity: 1;
+  }
+}
+
+:root[data-motion='reduce'] .es-printing > span {
+  opacity: 1;
+}
+
+/* Forced colours: shapes keep their edges when the system replaces the palette. */
+@media (forced-colors: active) {
+  .es-button,
+  .es-toggle__switch,
+  .es-pan__rim,
+  .es-station__bezel {
+    border: 1px solid CanvasText;
+  }
+}

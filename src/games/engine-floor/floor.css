@@ -1,0 +1,200 @@
+/*
+ * Back of House's page layer: the hand-off cards of the tray, the rows of the laid path, and the red line a stopped ticket prints. Every
+ * colour, face, size, radius and space is a token role (src/design/tokens.css); this file names none of its own.
+ */
+
+/* The tray is a size container: its cards sit in two columns where the tray is wide enough for two, and in one where it is not. */
+.es-floor-tray {
+  container-type: inline-size;
+}
+
+.es-floor-tiles {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@container (min-width: 38rem) {
+  .es-floor-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* A hand-off card is a small ticket you pick up. It is tighter than the order's, so a tray of two dozen stays within reach. */
+.es-floor-tile .es-ticket__paper {
+  padding: var(--es-space-2) var(--es-space-3);
+}
+
+.es-floor-tile .es-ticket__head {
+  margin-bottom: var(--es-space-1);
+  padding-bottom: 2px;
+}
+
+.es-floor-tile .es-ticket__body {
+  font-size: var(--es-size-note);
+  line-height: 1.3;
+}
+
+.es-floor-tile .es-ticket__foot {
+  gap: 0 var(--es-space-2);
+  margin-top: var(--es-space-1);
+  padding-top: 2px;
+  font-size: var(--es-size-caption);
+  line-height: 1.25;
+}
+
+/* A run's new stops are inked in one after another, in the printer's line steps. Each takes its place in the delay it is given, and
+   every duration is 0 under reduced motion, so the stops are simply there. */
+@keyframes es-floor-ink {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.es-floor-ink {
+  animation: es-floor-ink var(--es-dur-feed) var(--es-ease-feed) both;
+}
+
+/* The laid path: an ordered list, one row for each stage, printed with a dotted rule between. */
+.es-floor-rows {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-floor-row {
+  border-bottom: 1px dotted var(--es-paper-rule);
+}
+
+.es-floor-row__main {
+  display: grid;
+  grid-template-columns: 2rem 1.25rem minmax(0, 1fr) 1.25rem;
+  align-items: start;
+  column-gap: var(--es-space-2);
+  width: 100%;
+  min-height: 2.75rem;
+  padding: var(--es-space-2) 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.es-floor-row__main:focus-visible {
+  outline: 2px solid var(--es-focus);
+  outline-offset: 2px;
+}
+
+.es-floor-row__no {
+  font-size: var(--es-size-plate);
+  line-height: 1.2;
+}
+
+.es-floor-row__glyph {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.1rem;
+}
+
+.es-floor-row__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.es-floor-row__mark {
+  display: flex;
+  justify-content: center;
+}
+
+/* The selected row is printed bold and underlined, the ribbon's own emphasis, and never a stripe down its side. */
+.es-floor-row[data-selected] .es-floor-row__text > :nth-child(2) {
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.25em;
+}
+
+/* A stage laid and not run is pencilled: its words stay at the quiet text role, which holds 4.5:1 on paper. */
+.es-floor-row[data-state='pending'] .es-floor-row__text {
+  color: var(--es-text-2);
+}
+
+/* The stage that stopped the ticket prints in the ribbon's red, with its drawn mark. */
+.es-floor-row[data-state='struck'] .es-floor-row__main {
+  color: var(--es-paper-ink-2);
+}
+
+.es-floor-row__tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2);
+  padding: 0 0 var(--es-space-3) 3.5rem;
+}
+
+/* What a run found when it stopped: a red line under a dotted red rule, as a voided ticket prints, then the sources. */
+.es-floor-stop {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-3);
+  margin-top: var(--es-space-4);
+  padding-top: var(--es-space-3);
+  border-top: 2px dotted var(--es-paper-ink-2);
+}
+
+.es-floor-stop__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--es-space-2);
+  color: var(--es-paper-ink-2);
+}
+
+@media (max-width: 29.99rem) {
+  .es-floor-row__tools {
+    padding-left: 0;
+  }
+}
+
+/* The graded bar: what mode the level is in, and the way into the other. It sits above the order on the level that can be graded. */
+.es-floor-mode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2) var(--es-space-4);
+}
+
+/* The levels: a row of plates that wraps, under the path. */
+.es-floor-rail {
+  padding-top: var(--es-space-4);
+  border-top: 1px dashed var(--es-edge);
+}
+
+.es-floor-levels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/*
+ * A stub's label stays on one line in the design system, and "Commit the prediction" is longer than the stub's line at 320 px
+ * (WCAG 1.4.10): the nightly sweep found it ending past the viewport. Here the label wraps beside its arrow, as the debriefs of the
+ * Inspection and the Tasting do for the title of the next level.
+ */
+[data-game='engine-floor'] .es-stub__label {
+  white-space: normal;
+}

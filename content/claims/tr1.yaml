@@ -1,0 +1,1860 @@
+# What TR1's seven lessons cite beyond the files above (W1-T20; ARCHITECTURE §4.4, D-011, D-035, D-039).
+#
+# Every claim here was read on 2026-11-05 from the file its URL names, at the tag or the commit the URL names (course.lock.json: vllm, sglang,
+# nano-vllm, mini-sglang, inside-vllm), and each quote was then found verbatim inside the lines its #L anchor names, in the pin's tarball (checked
+# against the pin with `git get-tar-commit-id`). tests/content/tr1-sources.test.ts does that check again on a machine that has the sources, as
+# tests/sim/lifecycle-sources.test.ts does for the lifecycle model's stages. A claim here says what a lesson needs and the files above do not
+# already say: the loop of each small engine, what moved between the commit of "Inside vLLM" and v0.33.0, the front end of the pinned engines,
+# and the abort path from the client to the freed blocks. An id starts with its pin's area: nano-vllm, mini-sglang, inside-vllm, vllm or sglang.
+# TTLs are 90 days for a fact that belongs to a pin, the quarter that the pin lasts (ARCHITECTURE §4.4).
+
+# --- Mini-SGLang (commit 9a91cfafe754aa85daee49998176275667eb58f2) -------------------------------------------------------------------
+
+- id: mini-sglang.copy-event
+  value: a non-blocking copy and an event
+  text: Mini-SGLang's Engine.forward_batch samples on the GPU, copies the sampled token ids to the host with a non-blocking .to("cpu"), records an event on its stream, and returns the GPU tensor, the host tensor and the event together. It reads nothing from the host tensor.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/engine/engine.py#L202-L206
+    title: Mini-SGLang at 9a91cfa, python/minisgl/engine/engine.py, Engine.forward_batch
+    quote: 'next_tokens_cpu = next_tokens_gpu.to("cpu", non_blocking=True)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.overlap-loop-order
+  value: launch this batch, then process the last one
+  text: In Mini-SGLang's overlap_loop the scheduler launches the current batch on the engine's stream first and processes the previous batch's results after it, so the CPU's work on one batch overlaps the GPU's work on the next.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/scheduler/scheduler.py#L83-L106
+    title: Mini-SGLang at 9a91cfa, python/minisgl/scheduler/scheduler.py, Scheduler.overlap_loop
+    quote: 'It will overlap the execution of current batch and processing of last batch''s results,'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.copy-done-sync
+  value: copy_done.synchronize() in the next turn
+  text: Mini-SGLang waits for a batch's copy to the host with copy_done.synchronize(), at the top of _process_last_data.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/scheduler/scheduler.py#L138-L143
+    title: Mini-SGLang at 9a91cfa, python/minisgl/scheduler/scheduler.py, Scheduler._process_last_data
+    quote: 'copy_done.synchronize()'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+# --- nano-vllm (commit bb823b3e06983d71485a8e1f23715ebd87d98ef8) ---------------------------------------------------------------------
+
+- id: nano-vllm.h2d-pinned-copies
+  value: pinned host tensors, copied with non_blocking=True
+  text: nano-vllm builds each prefill step's inputs on the host as tensors in pinned memory and copies each one to the GPU with .cuda(non_blocking=True). The inputs are the token ids, the positions, the cumulative sequence lengths and the slot mapping.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/model_runner.py#L164-L168
+    title: nano-vllm at bb823b3, nanovllm/engine/model_runner.py, ModelRunner.prepare_prefill
+    quote: 'input_ids = torch.tensor(input_ids, dtype=torch.int64, pin_memory=True).cuda(non_blocking=True)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.engine-step
+  value: schedule, run, postprocess
+  text: nano-vllm's whole engine loop is LLMEngine.step. It asks the scheduler for the sequences of the step and whether they are a prefill, runs them through the model runner, and hands the sampled ids back to the scheduler's postprocess.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/llm_engine.py#L49-L55
+    title: nano-vllm at bb823b3, nanovllm/engine/llm_engine.py, LLMEngine.step
+    quote: 'token_ids = self.model_runner.call("run", seqs, is_prefill)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.decode-at-the-end
+  value: once, after the loop
+  text: nano-vllm's generate adds every prompt to the scheduler and then calls step until the scheduler is finished. After the loop it turns token ids back into text once, for every sequence, so nothing is detokenized while the loop runs.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/llm_engine.py#L59-L90
+    title: nano-vllm at bb823b3, nanovllm/engine/llm_engine.py, LLMEngine.generate
+    quote: 'self.tokenizer.decode(token_ids)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.llm-is-the-engine
+  value: the library's front end is the engine class
+  text: nano-vllm's public LLM class is the engine and nothing more, an empty subclass of LLMEngine. Searching nanovllm/ for zmq, asyncio, threading, stream, abort and cancel finds no match, so the library has no server, no event loop, no streaming and no way to take a request back.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/llm.py#L4-L5
+    title: nano-vllm at bb823b3, nanovllm/llm.py
+    quote: 'class LLM(LLMEngine):'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.sampling-params
+  value: temperature, max_tokens, ignore_eos
+  text: nano-vllm's SamplingParams has three fields, temperature, max_tokens and ignore_eos, and it refuses any temperature at or below 1e-10, so the library has no greedy sampling.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/sampling_params.py#L5-L11
+    title: nano-vllm at bb823b3, nanovllm/sampling_params.py, SamplingParams
+    quote: 'assert self.temperature > 1e-10, "greedy sampling is not permitted"'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.qwen3-only
+  value: Qwen3ForCausalLM
+  text: nano-vllm's model runner builds one model class, Qwen3ForCausalLM, and does not choose among architectures.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/model_runner.py#L31
+    title: nano-vllm at bb823b3, nanovllm/engine/model_runner.py, ModelRunner.__init__
+    quote: 'self.model = Qwen3ForCausalLM(hf_config)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.sequence-states
+  value: WAITING, RUNNING, FINISHED
+  text: A nano-vllm sequence is in one of three states, WAITING, RUNNING or FINISHED.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/sequence.py#L8-L11
+    title: nano-vllm at bb823b3, nanovllm/engine/sequence.py, SequenceStatus
+    quote: 'FINISHED = auto()'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.sequence-blocks
+  value: ceil(num_tokens / block_size)
+  text: A nano-vllm sequence needs as many blocks as its tokens fill, rounded up. num_blocks is the token count plus the block size less one, integer-divided by the block size.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/sequence.py#L55-L57
+    title: nano-vllm at bb823b3, nanovllm/engine/sequence.py, Sequence.num_blocks
+    quote: 'return (self.num_tokens + self.block_size - 1) // self.block_size'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.sequence-pickle
+  value: ids for a prefill, the last token for a decode
+  text: When a nano-vllm sequence is pickled for another rank, it carries its counters and its block table, and then all its token ids if it is still a prefill but only its last token if it is not.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/sequence.py#L72-L74
+    title: nano-vllm at bb823b3, nanovllm/engine/sequence.py, Sequence.__getstate__
+    quote: 'last_state = self.last_token if not self.is_prefill else self.token_ids'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.queues-are-deques
+  value: two deques
+  text: nano-vllm's scheduler keeps its sequences in two deques, waiting and running.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/scheduler.py#L16-L17
+    title: nano-vllm at bb823b3, nanovllm/engine/scheduler.py, Scheduler.__init__
+    quote: 'self.waiting: deque[Sequence] = deque()'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.prefill-complete-to-running
+  value: running only once the whole prompt is scheduled
+  text: A nano-vllm sequence joins the running deque only when the chunk just scheduled completes its prompt. Until then it stays at the front of waiting, and each step schedules another chunk of it.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/scheduler.py#L46-L52
+    title: nano-vllm at bb823b3, nanovllm/engine/scheduler.py, Scheduler.schedule
+    quote: 'if seq.num_cached_tokens + seq.num_scheduled_tokens == seq.num_tokens:'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.partial-chunk-no-token
+  value: a partial chunk keeps no sampled token
+  text: The model runner samples for every sequence of a prefill step, but nano-vllm's postprocess throws the sampled token away for a sequence whose prompt is not yet complete. Only the chunk that finishes the prompt yields a first token.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/scheduler.py#L81-L92
+    title: nano-vllm at bb823b3, nanovllm/engine/scheduler.py, Scheduler.postprocess
+    quote: 'if is_prefill and seq.num_cached_tokens < seq.num_tokens:'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.hash-chain
+  value: each block's hash starts from the one before it
+  text: A nano-vllm block's hash is computed over its token ids after the previous block's hash, so a block's identity is the whole prefix up to and including it, not its own tokens alone.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/block_manager.py#L35-L41
+    title: nano-vllm at bb823b3, nanovllm/engine/block_manager.py, BlockManager.compute_hash
+    quote: 'h.update(prefix.to_bytes(8, "little"))'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.hit-verified
+  value: the stored token ids are compared
+  text: A nano-vllm prefix hit is not taken on the hash alone. can_allocate also compares the candidate block's stored token ids with the sequence's, and stops at the first block that differs.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/block_manager.py#L62-L70
+    title: nano-vllm at bb823b3, nanovllm/engine/block_manager.py, BlockManager.can_allocate
+    quote: 'self.blocks[block_id].token_ids != token_ids'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.last-block-uncached
+  value: the last block is never looked up
+  text: can_allocate tries every block of a sequence except its last, so a nano-vllm prefix hit never covers the last block, whole or partial, and the model always computes at least that block.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/block_manager.py#L58-L73
+    title: nano-vllm at bb823b3, nanovllm/engine/block_manager.py, BlockManager.can_allocate
+    quote: 'for i in range(seq.num_blocks - 1):'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.full-blocks-hashed
+  value: only whole blocks are hashed
+  text: nano-vllm hashes a block only once the step has filled it. hash_blocks counts the whole blocks that the step completes, and a partly filled block gets no hash.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/block_manager.py#L110-L120
+    title: nano-vllm at bb823b3, nanovllm/engine/block_manager.py, BlockManager.hash_blocks
+    quote: 'end = (seq.num_cached_tokens + seq.num_scheduled_tokens) // self.block_size'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.freed-blocks-stay-cached
+  value: a freed block keeps its hash until it is handed out again
+  text: A freed nano-vllm block keeps its hash and its entry in hash_to_block_id. The entry is deleted only when _allocate_block hands the block out again, so a finished request's prefix can still be hit.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/block_manager.py#L43-L56
+    title: nano-vllm at bb823b3, nanovllm/engine/block_manager.py, BlockManager._allocate_block
+    quote: 'if block.hash != -1 and self.hash_to_block_id.get(block.hash) == block_id:'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.free-list-fifo
+  value: the block free the longest is reused first
+  text: nano-vllm hands out blocks from the left of a deque and returns freed blocks to its right, so the block that has been free the longest is the next one reused.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/block_manager.py#L43-L56
+    title: nano-vllm at bb823b3, nanovllm/engine/block_manager.py, BlockManager._allocate_block and _deallocate_block
+    quote: 'self.free_block_ids.append(block_id)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.new-block-at-boundary
+  value: a block when the length is one past a multiple
+  text: A decoding nano-vllm sequence gets a new block when its length is one more than a multiple of the block size, which is when the token that the step is about to process is the first of a new block.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/block_manager.py#L103-L108
+    title: nano-vllm at bb823b3, nanovllm/engine/block_manager.py, BlockManager.can_append and may_append
+    quote: 'if len(seq) % self.block_size == 1:'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.graphs-decode-only
+  value: eager for a prefill, replay for a decode of at most 512
+  text: nano-vllm runs a prefill eagerly, and replays a captured CUDA graph only for a decode step of at most 512 sequences, the smallest captured graph that fits the batch. A larger decode batch, or enforce_eager, runs eagerly too.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/model_runner.py#L195-L212
+    title: nano-vllm at bb823b3, nanovllm/engine/model_runner.py, ModelRunner.run_model
+    quote: 'if is_prefill or self.enforce_eager or input_ids.size(0) > 512:'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.graph-sizes
+  value: 1, 2, 4, 8, then every 16
+  text: nano-vllm captures one decode graph for each batch size in a short list, 1, 2, 4 and 8 and then every multiple of 16 up to the batch limit.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/model_runner.py#L234
+    title: nano-vllm at bb823b3, nanovllm/engine/model_runner.py, ModelRunner.capture_cudagraph
+    quote: 'self.graph_bs = [1, 2, 4, 8] + list(range(16, max_bs + 1, 16))'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.context-global
+  value: a module-level global
+  text: nano-vllm keeps each step's attention metadata, the slot mapping, the sequence lengths and the block tables, in a module-level global that set_context replaces and get_context returns.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/utils/context.py#L16-L27
+    title: nano-vllm at bb823b3, nanovllm/utils/context.py, set_context
+    quote: '_CONTEXT = Context(is_prefill, cu_seqlens_q, cu_seqlens_k, max_seqlen_q, max_seqlen_k, slot_mapping, context_lens, block_tables)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.nccl-init
+  value: a literal address
+  text: nano-vllm joins its ranks in an NCCL process group at an address that is a literal in the model runner, tcp://localhost:2333, and not a field of its Config.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/model_runner.py#L26
+    title: nano-vllm at bb823b3, nanovllm/engine/model_runner.py, ModelRunner.__init__
+    quote: 'dist.init_process_group("nccl", "tcp://localhost:2333", world_size=self.world_size, rank=rank)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.shm-buffer
+  value: 2**20 bytes
+  text: The shared-memory buffer through which nano-vllm's rank 0 hands calls to the other ranks is created once, named nanovllm, at 2**20 bytes.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/model_runner.py#L41-L48
+    title: nano-vllm at bb823b3, nanovllm/engine/model_runner.py, ModelRunner.__init__
+    quote: 'self.shm = SharedMemory(name="nanovllm", create=True, size=2**20)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.rank0-runs-too
+  value: rank 0 writes the call, then runs it
+  text: In nano-vllm, rank 0 writes a call to the shared buffer first and then runs the same method itself. It does not wait for the other ranks to finish.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/model_runner.py#L85-L89
+    title: nano-vllm at bb823b3, nanovllm/engine/model_runner.py, ModelRunner.call
+    quote: 'if self.world_size > 1 and self.rank == 0:'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: nano-vllm.attention-reads-context
+  value: get_context() inside the forward pass
+  text: nano-vllm's attention layer reads the step's metadata with get_context() when it runs, and uses its slot mapping to store the new keys and values and its block tables and sequence lengths to attend over the cache.
+  tag: measured
+  source:
+    url: https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/layers/attention.py#L59-L75
+    title: nano-vllm at bb823b3, nanovllm/layers/attention.py, Attention.forward
+    quote: 'context = get_context()'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: nano-vllm
+
+- id: vllm.prefix-hit-last-token
+  value: prompt length less one
+  text: vLLM caps a prefix-cache hit one token short of the prompt. When every token of a prompt hits the cache it must still recompute the last token to get logits, so get_computed_blocks defaults the longest hit to the prompt length less one.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/kv_cache_manager.py#L295-L302
+    title: vLLM v0.33.0, vllm/v1/core/kv_cache_manager.py, KVCacheManager.get_computed_blocks
+    quote: 'NOTE: When all tokens hit the cache, we must recompute the last token'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: mini-sglang.prefix-hit-last-token
+  value: 'input_ids[: input_len - 1]'
+  text: Mini-SGLang matches a request's prefix against the radix cache one token short of its prompt, over all of input_ids but its last token, so the last token is always computed.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/scheduler/cache.py#L27-L30
+    title: Mini-SGLang at 9a91cfa, python/minisgl/scheduler/cache.py, CacheManager.match_req
+    quote: 'return self.prefix_cache.match_prefix(req.input_ids[: input_len - 1])'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.readme-lines
+  value: 5000
+  unit: lines
+  text: Mini-SGLang's README says its codebase is about 5,000 lines of Python. The Python files under python/minisgl have 8,090 physical lines at this commit, counted on 2026-11-05.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/README.md#L11
+    title: Mini-SGLang at 9a91cfa, README.md
+    quote: '**~5,000 lines of Python**'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.readme-compact
+  value: a compact implementation of SGLang
+  text: Mini-SGLang's README opens by calling it a compact implementation of SGLang, designed to demystify the complexities of modern LLM serving systems.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/README.md#L11
+    title: Mini-SGLang at 9a91cfa, README.md
+    quote: 'Mini-SGLang is a compact implementation of'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.shared-tokenizer-default
+  value: the tokenizer is shared with the detokenizer
+  text: By default Mini-SGLang starts no tokenizer process of its own. num_tokenizer is 0, which shares the tokenizer with the detokenizer, so one process does both jobs and both kinds of message arrive on the same socket.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/server/args.py#L14-L35
+    title: Mini-SGLang at 9a91cfa, python/minisgl/server/args.py, ServerArgs
+    quote: 'return self.num_tokenizer == 0'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.launch-processes
+  value: a scheduler for each rank, one detokenizer, num_tokenizer tokenizers
+  text: Mini-SGLang's launcher starts one scheduler process for each tensor-parallel rank, one process named minisgl-detokenizer-0, and as many tokenizer processes as num_tokenizer says. The API server is the launching process itself, which serves HTTP once the others are up.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/server/launch.py#L40-L113
+    title: Mini-SGLang at 9a91cfa, python/minisgl/server/launch.py, launch_server
+    quote: 'name="minisgl-detokenizer-0",'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.worker-one-loop
+  value: one loop for tokenize, detokenize and abort messages
+  text: Mini-SGLang's tokenize_worker is one loop that sorts what it receives into three kinds, detokenize messages, tokenize messages and abort messages, and handles each kind. The process at the shared address is therefore the tokenizer and the detokenizer at once.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/tokenizer/server.py#L59-L108
+    title: Mini-SGLang at 9a91cfa, python/minisgl/tokenizer/server.py, tokenize_worker
+    quote: 'assert len(detokenize_msg) + len(tokenize_msg) + len(abort_msg) == len(pending_msg)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.ipc-sockets
+  value: ipc:// sockets named by the launcher's pid
+  text: Mini-SGLang's ZMQ endpoints are ipc:// addresses under /tmp, suffixed with the launching process's pid, so its processes talk over Unix-domain sockets on one machine and not over the network.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/scheduler/config.py#L20-L33
+    title: Mini-SGLang at 9a91cfa, python/minisgl/scheduler/config.py, SchedulerConfig
+    quote: 'return "ipc:///tmp/minisgl_0" + self._unique_suffix'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.api-mailbox
+  value: an event and a list for each request
+  text: Mini-SGLang's API server gives each request a uid, a list in ack_map and an asyncio.Event in event_map. A listener task reads every reply from the socket, appends it to its request's list and sets the request's event, which wakes the handler that is waiting on it.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/server/api_server.py#L106-L123
+    title: Mini-SGLang at 9a91cfa, python/minisgl/server/api_server.py, FrontendManager
+    quote: 'self.event_map[msg.uid].set()'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.prefill-or-decode
+  value: a prefill batch, or else a decode batch
+  text: Mini-SGLang's scheduler builds a prefill batch when a request is pending and a decode batch only when it is not, so, as in nano-vllm, a step is all prefill or all decode.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/scheduler/scheduler.py#L219-L225
+    title: Mini-SGLang at 9a91cfa, python/minisgl/scheduler/scheduler.py, Scheduler._schedule_next_batch
+    quote: 'or self.decode_manager.schedule_next_batch()'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.prefill-budget
+  value: 8192
+  unit: tokens
+  text: Mini-SGLang's prefill budget, max_extend_tokens, defaults to 8,192 tokens.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/scheduler/config.py#L14-L17
+    title: Mini-SGLang at 9a91cfa, python/minisgl/scheduler/config.py, SchedulerConfig
+    quote: 'max_extend_tokens: int = 8192'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.prefill-chunk
+  value: the smaller of the budget left and the prompt left
+  text: In Mini-SGLang's PrefillAdder a request's chunk is the smaller of the token budget left for the batch and the request's remaining prompt. A request whose chunk is smaller than its remaining prompt becomes a ChunkedReq, and the budget shrinks by the chunk's size.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/scheduler/prefill.py#L72-L77
+    title: Mini-SGLang at 9a91cfa, python/minisgl/scheduler/prefill.py, PrefillAdder._add_one_req
+    quote: 'chunk_size = min(self.token_budget, remain_len)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.radix-default
+  value: radix
+  text: Mini-SGLang manages its KV cache with a radix cache by default.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/scheduler/config.py#L14-L17
+    title: Mini-SGLang at 9a91cfa, python/minisgl/scheduler/config.py, SchedulerConfig
+    quote: 'cache_type: str = "radix"'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.rank0-broadcast
+  value: a ZMQ publish, and the count over the CPU group
+  text: At more than one rank, Mini-SGLang's rank 0 receives requests from the tokenizer, publishes each raw message to the other ranks on a ZMQ PUB socket, and broadcasts how many messages there are over the CPU process group, so that every rank handles the same list.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/scheduler/io.py#L88-L107
+    title: Mini-SGLang at 9a91cfa, python/minisgl/scheduler/io.py, SchedulerIOMixin._recv_msg_multi_rank0
+    quote: 'self.tp_cpu_group.broadcast(src_tensor, root=0).wait()'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.rank0-replies
+  value: only rank 0 replies
+  text: Only rank 0 of Mini-SGLang sends results to the detokenizer. The reply function of every other rank does nothing.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/scheduler/io.py#L132-L133
+    title: Mini-SGLang at 9a91cfa, python/minisgl/scheduler/io.py, SchedulerIOMixin._reply_tokenizer_rank1
+    quote: '_ = reply  # do nothing for non-primary ranks'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.h2d-pinned
+  value: pinned host tensors, copied with non_blocking=True
+  text: Mini-SGLang builds each step's positions and index maps in pinned host memory and copies them to the GPU with non_blocking=True before the forward pass.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/scheduler/scheduler.py#L236-L267
+    title: Mini-SGLang at 9a91cfa, python/minisgl/scheduler/scheduler.py, _make_positions
+    quote: 'return indices_host.to(device, non_blocking=True)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.finished-twice
+  value: a request can be freed twice
+  text: Mini-SGLang's own comment warns that overlap scheduling may make a request be freed twice, and the scheduler keeps a set of the requests it finished in the previous turn and skips a second free.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/scheduler/scheduler.py#L158-L162
+    title: Mini-SGLang at 9a91cfa, python/minisgl/scheduler/scheduler.py, Scheduler._process_last_data
+    quote: 'NOTE: overlap scheduling may make the request freed twice, skip second free'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.accepted-and-ignored
+  value: n, stop and two penalties are parsed and never read
+  text: Mini-SGLang's request model has the fields n, stop, presence_penalty and frequency_penalty. Searching api_server.py for a read of any of the four finds none, and the SamplingParams that its handler builds hold ignore_eos, max_tokens, temperature, top_k and top_p only, so a request that sets one of the four is served as if it had not.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/server/api_server.py#L64-L84
+    title: Mini-SGLang at 9a91cfa, python/minisgl/server/api_server.py, OpenAICompletionRequest
+    quote: 'presence_penalty: float = 0.0'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.graph-or-eager
+  value: a graph when the batch fits one, else eager
+  text: Mini-SGLang's engine replays a CUDA graph when its graph runner says the batch can use one, and runs the model eagerly otherwise.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/engine/engine.py#L191-L197
+    title: Mini-SGLang at 9a91cfa, python/minisgl/engine/engine.py, Engine.forward_batch
+    quote: 'if self.graph_runner.can_use_cuda_graph(batch):'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.feature-list
+  value: no speculation, no grammars, no adapters, no disaggregation
+  text: Mini-SGLang's feature list names serving, a shell, tensor parallelism, three model families, chunked prefill, a page size, attention backends, CUDA graphs and a radix cache. Searching python/minisgl for speculat, grammar, lora and disagg finds no match, so none of those is in the engine.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/docs/features.md#L1-L59
+    title: Mini-SGLang at 9a91cfa, docs/features.md
+    quote: '# Features of Mini-SGLang'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.chunked-req-no-token
+  value: a chunked request keeps no sampled token
+  text: Mini-SGLang gives a request that has only part of its prompt in a batch its own class, ChunkedReq, and its result processing skips that request, so the token sampled at the end of a partial chunk is thrown away, as in nano-vllm.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/scheduler/scheduler.py#L146-L150
+    title: Mini-SGLang at 9a91cfa, python/minisgl/scheduler/scheduler.py, Scheduler._process_last_data
+    quote: 'if isinstance(req, ChunkedReq):'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.disconnect-checked-per-chunk
+  value: checked when the next chunk is about to be sent
+  text: Mini-SGLang's API server checks whether the client has disconnected only between chunks, as each chunk comes out of the reply generator and before it is yielded. When a disconnect is found it raises CancelledError, and the handler that catches it starts the abort.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/server/api_server.py#L190-L200
+    title: Mini-SGLang at 9a91cfa, python/minisgl/server/api_server.py, FrontendManager.stream_with_cancellation
+    quote: 'if await request.is_disconnected():'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.zmq-msgpack
+  value: msgpack frames on PUSH and PULL sockets
+  text: In Mini-SGLang a ZmqPushQueue packs each message with msgpack and sends it on a ZMQ PUSH socket, and a ZmqPullQueue receives it on a PULL socket and unpacks it.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/utils/mp.py#L12-L83
+    title: Mini-SGLang at 9a91cfa, python/minisgl/utils/mp.py, ZmqPushQueue and ZmqPullQueue
+    quote: 'event = msgpack.packb(self.encoder(obj), use_bin_type=True)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.zmq-async
+  value: the same push with an await
+  text: Mini-SGLang's ZmqAsyncPushQueue is a push queue on a zmq.asyncio context whose put is a coroutine that awaits the send.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/utils/mp.py#L33-L47
+    title: Mini-SGLang at 9a91cfa, python/minisgl/utils/mp.py, ZmqAsyncPushQueue
+    quote: 'await self.socket.send(event, copy=False)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.zmq-pubsub
+  value: a PUB socket and a SUB socket that subscribes to everything
+  text: Mini-SGLang's ZmqPubQueue sends on a ZMQ PUB socket, and its ZmqSubQueue receives on a SUB socket that subscribes to every message.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/utils/mp.py#L105-L151
+    title: Mini-SGLang at 9a91cfa, python/minisgl/utils/mp.py, ZmqPubQueue and ZmqSubQueue
+    quote: 'self.socket.setsockopt_string(zmq.SUBSCRIBE, "")'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+# --- "Inside vLLM" at 42172ad (commit 42172ad18fbc22c89d0063184e4570cc84186e16) ----------------------------------------------------
+
+- id: inside-vllm.completions-route
+  value: create_completion in vllm/entrypoints/openai/api_server.py
+  text: At the commit the post reads, the completions route is create_completion, a function of vllm/entrypoints/openai/api_server.py. It is wrapped in with_cancellation, so the request is cancelled when its client disconnects.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/42172ad18fbc22c89d0063184e4570cc84186e16/vllm/entrypoints/openai/api_server.py#L701-L703
+    title: vLLM at 42172ad, vllm/entrypoints/openai/api_server.py, create_completion
+    quote: 'async def create_completion(request: CompletionRequest, raw_request: Request):'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: inside-vllm
+
+- id: inside-vllm.step-three-calls
+  value: schedule, execute_model, update_from_output
+  text: At the post's commit EngineCore.step is three calls in a row. It schedules, runs execute_model and waits for it to return, and updates the scheduler from the output. Nothing is launched without blocking, no grammar mask is built meanwhile, and no queue of aborts is drained.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/42172ad18fbc22c89d0063184e4570cc84186e16/vllm/v1/engine/core.py#L261-L280
+    title: vLLM at 42172ad, vllm/v1/engine/core.py, EngineCore.step
+    quote: 'scheduler_output = self.scheduler.schedule()'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: inside-vllm
+
+- id: inside-vllm.sample-in-execute-model
+  value: the runner samples inside execute_model
+  text: At the post's commit the model runner samples inside execute_model, in the same call as the forward pass, and copies the sampled ids to the host with .tolist() before it returns. The engine core's step is blocked until they are there.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/42172ad18fbc22c89d0063184e4570cc84186e16/vllm/v1/worker/gpu_model_runner.py#L1595-L1667
+    title: vLLM at 42172ad, vllm/v1/worker/gpu_model_runner.py, GPUModelRunner.execute_model
+    quote: 'valid_sampled_token_ids = sampled_token_ids.tolist()'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: inside-vllm
+
+- id: inside-vllm.request-states
+  value: 9
+  unit: states
+  text: At the post's commit a request is in one of 9 states, WAITING, WAITING_FOR_FSM, WAITING_FOR_REMOTE_KVS, RUNNING, PREEMPTED and four finished states that begin FINISHED_.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/42172ad18fbc22c89d0063184e4570cc84186e16/vllm/v1/request.py#L194-L206
+    title: vLLM at 42172ad, vllm/v1/request.py, RequestStatus
+    quote: 'class RequestStatus(enum.IntEnum):'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: inside-vllm
+
+- id: inside-vllm.fsm-wait
+  value: guided decoding starts a request in WAITING_FOR_FSM
+  text: At the post's commit a generative request whose sampling parameters ask for guided decoding starts in WAITING_FOR_FSM and not in WAITING.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/42172ad18fbc22c89d0063184e4570cc84186e16/vllm/v1/request.py#L65-L67
+    title: vLLM at 42172ad, vllm/v1/request.py, Request.__init__
+    quote: 'self.status = RequestStatus.WAITING_FOR_FSM'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: inside-vllm
+
+- id: inside-vllm.block-hashes-in-the-manager
+  value: req_to_block_hashes
+  text: At the post's commit the KV cache manager keeps every request's block hashes in a dict of its own, req_to_block_hashes, so that the hashes are not recomputed on each call of get_computed_blocks or allocate_slots.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/42172ad18fbc22c89d0063184e4570cc84186e16/vllm/v1/core/kv_cache_manager.py#L117-L121
+    title: vLLM at 42172ad, vllm/v1/core/kv_cache_manager.py, KVCacheManager.__init__
+    quote: 'self.req_to_block_hashes: defaultdict['
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: inside-vllm
+
+# --- vLLM v0.33.0 (commit 4ba787ec9959e566d3b587a796dff07673324da5) ----------------------------------------------------------------
+
+- id: inside-vllm.hash-request-tokens
+  value: hash_request_tokens fills the dict when it is empty
+  text: At the post's commit get_computed_blocks reads a request's hashes from req_to_block_hashes, and when the list is empty it fills it by calling hash_request_tokens.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/42172ad18fbc22c89d0063184e4570cc84186e16/vllm/v1/core/kv_cache_manager.py#L164-L171
+    title: vLLM at 42172ad, vllm/v1/core/kv_cache_manager.py, KVCacheManager.get_computed_blocks
+    quote: 'block_hashes = hash_request_tokens(self.caching_hash_fn,'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: inside-vllm
+
+- id: vllm.request.block-hashes
+  value: a list on the request
+  text: At v0.33.0 each Request carries its own block_hashes list and a block hasher that fills it. The KV cache manager's req_to_block_hashes dict of the post's commit is gone, and so is the function hash_request_tokens that filled it.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/request.py#L225-L230
+    title: vLLM v0.33.0, vllm/v1/request.py, Request.__init__
+    quote: 'self.block_hashes: list[BlockHash] = []'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.env.no-use-v1
+  value: no VLLM_USE_V1
+  text: vllm/envs.py at v0.33.0 has no VLLM_USE_V1, and searching the vllm/ package for the name finds no use of it. The V1 engine is the only engine, and the switch that remains for the engine is which model runner it uses, VLLM_USE_V2_MODEL_RUNNER.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/envs.py#L312
+    title: vLLM v0.33.0, vllm/envs.py, VLLM_USE_V2_MODEL_RUNNER
+    quote: 'VLLM_USE_V2_MODEL_RUNNER: bool | None = None'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.step.execute-then-sample
+  value: execute_model returns nothing, and sample_tokens samples
+  text: In the default runner, MRV2, execute_model runs the forward pass, keeps its state in execute_model_state, and returns None. Sampling is a second call, sample_tokens, which takes the grammar output.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu/model_runner.py#L2123-L2156
+    title: vLLM v0.33.0, vllm/v1/worker/gpu/model_runner.py, GPUModelRunner.sample_tokens
+    quote: 'def sample_tokens('
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: inside-vllm.scope
+  value: from the offline engine to multi-GPU, multi-node serving
+  text: The post's subtitle gives its range as everything from paged attention, continuous batching, prefix caching and speculative decoding to multi-GPU, multi-node dynamic serving at scale.
+  tag: measured
+  source:
+    url: https://vllm.ai/blog/2025-09-05-anatomy-of-vllm
+    title: 'Inside vLLM: Anatomy of a High-Throughput LLM Inference System (Aleksa Gordic, 2025-09-05)'
+    quote: 'to multi-GPU, multi-node dynamic serving at scale'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 365
+  pin: inside-vllm
+
+- id: inside-vllm.three-threads
+  value: input thread, main thread, output thread
+  text: The post describes each engine core process as three threads. The input thread blocks on the input socket and puts each decoded request on input_queue, the main thread takes from it and runs the engine, and the output thread takes results from output_queue and sends them to the API server.
+  tag: measured
+  source:
+    url: https://vllm.ai/blog/2025-09-05-anatomy-of-vllm
+    title: 'Inside vLLM: Anatomy of a High-Throughput LLM Inference System (Aleksa Gordic, 2025-09-05)'
+    quote: 'Input thread — blocks on the input socket until a request is routed from the API server'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 365
+  pin: inside-vllm
+
+- id: inside-vllm.mixes-prefill-decode
+  value: both kinds in the same step
+  text: The post says the V1 scheduler can mix prefill and decode requests in the same step, where the V0 engine could do only one kind at once.
+  tag: measured
+  source:
+    url: https://vllm.ai/blog/2025-09-05-anatomy-of-vllm
+    title: 'Inside vLLM: Anatomy of a High-Throughput LLM Inference System (Aleksa Gordic, 2025-09-05)'
+    quote: 'The V1 scheduler can mix both types of requests in the same step'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 365
+  pin: inside-vllm
+
+- id: inside-vllm.prefix-caching-default
+  value: 'on'
+  text: The post says that prefix caching is enabled by default.
+  tag: measured
+  source:
+    url: https://vllm.ai/blog/2025-09-05-anatomy-of-vllm
+    title: 'Inside vLLM: Anatomy of a High-Throughput LLM Inference System (Aleksa Gordic, 2025-09-05)'
+    quote: 'Prefix caching is enabled by default.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 365
+  pin: inside-vllm
+
+- id: inside-vllm.block-size-16
+  value: 16
+  unit: tokens
+  text: The post gives vLLM's default KV block size as 16 tokens.
+  tag: measured
+  source:
+    url: https://vllm.ai/blog/2025-09-05-anatomy-of-vllm
+    title: 'Inside vLLM: Anatomy of a High-Throughput LLM Inference System (Aleksa Gordic, 2025-09-05)'
+    quote: 'block_size (default=16)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 365
+  pin: inside-vllm
+
+- id: inside-vllm.batch-queue-for-pp
+  value: a batch queue for pipeline parallelism
+  text: At the post's commit the engine core creates its batch queue only when the executor allows more than one batch in flight, and its own comment says the queue is there for pipeline parallelism, to remove pipeline bubbles.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/42172ad18fbc22c89d0063184e4570cc84186e16/vllm/v1/engine/core.py#L131-L141
+    title: vLLM at 42172ad, vllm/v1/engine/core.py, EngineCore.__init__
+    quote: 'Setup batch queue for pipeline parallelism.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: inside-vllm
+
+- id: vllm.engine-core.io-threads
+  value: threads for the sockets, queues for the busy loop
+  text: The engine core's source gives the reason for its threads and queues. Socket I/O in background threads releases the GIL and overlaps with the GPU, and some serialization overlaps with the forward pass. The threads move messages between the sockets and the queues, and the busy loop reads only the queues.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/core.py#L1250-L1254
+    title: vLLM v0.33.0, vllm/v1/engine/core.py, EngineCoreProc.__init__
+    quote: 'overlap ZMQ socket IO with GPU since they release the GIL,'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.frontend.zmq-router-pull
+  value: a ROUTER for requests, a PULL for outputs
+  text: The engine core client in the API server binds a ZMQ ROUTER socket that it sends requests on and a PULL socket that it receives outputs on.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/core_client.py#L674-L686
+    title: vLLM v0.33.0, vllm/v1/engine/core_client.py, MPClient.__init__
+    quote: 'bind_addresses.inputs[0],'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.engine-core.zmq-dealer
+  value: the input thread connects a DEALER
+  text: The engine core's input thread connects a ZMQ DEALER socket, with the engine's identity, to the client's ROUTER.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/core.py#L1947-L1955
+    title: vLLM v0.33.0, vllm/v1/engine/core.py, EngineCoreProc.process_input_sockets
+    quote: 'ctx, input_address, zmq.DEALER, identity=identity, bind=False'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.engine-core.zmq-push
+  value: the output thread pushes
+  text: The engine core's output thread sends each batch of outputs on a ZMQ PUSH socket, to the client's PULL.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/core.py#L2058-L2064
+    title: vLLM v0.33.0, vllm/v1/engine/core.py, EngineCoreProc.process_output_sockets
+    quote: 'make_zmq_socket(ctx, output_path, zmq.PUSH, linger=4000)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.frontend.cancellation
+  value: a route handler is cancelled when the client disconnects
+  text: The decorator on vLLM's completions route runs the handler as one asyncio task and a listener for the HTTP disconnect message as another. When the listener finishes first, the handler task is cancelled.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/entrypoints/serve/utils/api_utils.py#L68-L111
+    title: vLLM v0.33.0, vllm/entrypoints/serve/utils/api_utils.py, with_cancellation
+    quote: 'Decorator that allows a route handler to be cancelled by client'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.frontend.generate-aborts
+  value: a cancelled generate() aborts the request
+  text: AsyncLLM.generate catches the cancellation that a client disconnect causes, or the generator being garbage collected, and aborts the request in the engine before it re-raises.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/async_llm.py#L804-L812
+    title: vLLM v0.33.0, vllm/v1/engine/async_llm.py, AsyncLLM.generate
+    quote: 'we abort the request if we end up here.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.frontend.abort-two-places
+  value: the output processor, then the engine core
+  text: AsyncLLM.abort drops the request in its own output processor first and then sends the engine core an abort message for the request ids, so both halves of the system forget the request.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/async_llm.py#L948-L956
+    title: vLLM v0.33.0, vllm/v1/engine/async_llm.py, AsyncLLM.abort
+    quote: 'await self.engine_core.abort_requests_async(all_request_ids)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.frontend.output-handler
+  value: one background loop for all outputs
+  text: AsyncLLM has one background loop, _run_output_handler, which its docstring says pulls from the EngineCore and pushes to AsyncStreams.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/async_llm.py#L856-L857
+    title: vLLM v0.33.0, vllm/v1/engine/async_llm.py, AsyncLLM._run_output_handler
+    quote: 'Background loop: pulls from EngineCore and pushes to AsyncStreams.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.frontend.output-processor-step
+  value: the outputs go through the output processor, the results to their queues
+  text: In the output handler's loop, each slice of the engine core's outputs goes through output_processor.process_outputs, and a note in the code says the RequestOutputs are pushed to their queues.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/async_llm.py#L904-L911
+    title: vLLM v0.33.0, vllm/v1/engine/async_llm.py, AsyncLLM._run_output_handler
+    quote: '# NOTE: RequestOutputs are pushed to their queues.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.frontend.output-processor-detokenizes
+  value: the output processor detokenizes and performs the stop checks
+  text: In OutputProcessor.process_outputs, a comment says the step turns each request's new token ids into text and performs the stop checks. The request's detokenizer returns a stop string when it finds one, and the request's finish reason then becomes STOP.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/output_processor.py#L823-L830
+    title: vLLM v0.33.0, vllm/v1/engine/output_processor.py, OutputProcessor.process_outputs
+    quote: '# 2) Detokenize the token ids into text and perform stop checks.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.frontend.socket-task
+  value: socket reads in a task of their own
+  text: The engine core client reads the output socket in an asyncio task of its own and puts what it reads on an asyncio queue, so the socket's I/O is separate from the task that processes the outputs.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/core_client.py#L1193-L1262
+    title: vLLM v0.33.0, vllm/v1/engine/core_client.py, AsyncMPClient._ensure_output_queue_task
+    quote: 'Perform IO in separate task to parallelize as much as possible.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.frontend.collector-drain
+  value: drain without a task switch where possible
+  text: AsyncLLM.generate reads its request's collector without awaiting when something is already there, and its comment says this avoids a task switch under load.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/async_llm.py#L789-L802
+    title: vLLM v0.33.0, vllm/v1/engine/async_llm.py, AsyncLLM.generate
+    quote: 'drain queue without await if possible (avoids'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.frontend.stop-string-abort
+  value: the frontend aborts a request that hit a stop string
+  text: After the output processor has run, AsyncLLM's output handler sends the engine core an abort for the requests that the output processor lists as finished due to stop strings, as its comment says.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/async_llm.py#L918-L922
+    title: vLLM v0.33.0, vllm/v1/engine/async_llm.py, AsyncLLM._run_output_handler
+    quote: '# 3) Abort any reqs that finished due to stop strings.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.engine-core.input-thread-queue
+  value: the input thread puts each request on input_queue
+  text: The engine core's input thread puts each request that it decodes on input_queue, which its comment calls the input queue for the core busy loop.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/core.py#L2039-L2040
+    title: vLLM v0.33.0, vllm/v1/engine/core.py, EngineCoreProc.process_input_sockets
+    quote: 'self.input_queue.put_nowait((request_type, request))'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.engine-core.result-waits-in-busy-loop
+  value: the oldest batch's future is waited on in step_with_batch_queue
+  text: In step_with_batch_queue, under the comment "Block until the next result is available", the engine core takes the oldest batch off batch_queue and calls result() on its future in the same thread.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/core.py#L777-L783
+    title: vLLM v0.33.0, vllm/v1/engine/core.py, EngineCore.step_with_batch_queue
+    quote: 'model_output = future.result()'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.engine-core.abort-both-queues
+  value: put on aborts_queue and on input_queue
+  text: The engine core's input thread puts an abort on both aborts_queue and input_queue. Its comment says this lets the engine process aborts eagerly while keeping the order in the input queue so that no request is leaked, and that it is ok because aborting in the scheduler is idempotent.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/core.py#L2032-L2040
+    title: vLLM v0.33.0, vllm/v1/engine/core.py, EngineCoreProc.process_input_sockets
+    quote: 'Aborts are added to *both* queues, allows us to eagerly'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.engine-core.abort-idle-drain
+  value: an idle engine empties aborts_queue
+  text: When the engine core is idle and its input queue is empty, it clears aborts_queue instead of processing it, because every abort is also on input_queue and will be handled there.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/core.py#L1650-L1659
+    title: vLLM v0.33.0, vllm/v1/engine/core.py, EngineCoreProc._process_input_queue
+    quote: '# Drain aborts queue; all aborts are also processed via input_queue.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.engine-core.update-skips-finished
+  value: the output of a finished request is dropped
+  text: When a step's output comes back for a request that is already finished, Scheduler.update_from_output skips it. Its comment names the case, a request aborted while the model is executing it, which can happen with pipeline parallelism or async scheduling.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/sched/scheduler.py#L2327-L2335
+    title: vLLM v0.33.0, vllm/v1/core/sched/scheduler.py, Scheduler.update_from_output
+    quote: 'request is aborted while the model is executing it (e.g.,'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.executor.worker-async-output-thread
+  value: a thread in the worker waits for the copy
+  text: In a worker process with async scheduling on, the main thread puts each output on async_output_queue, and a thread of its own, WorkerAsyncOutputCopy, takes it, calls get_output, which waits for the copy, and puts the result on the worker's response queue.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/executor/multiproc_executor.py#L1127-L1152
+    title: vLLM v0.33.0, vllm/v1/executor/multiproc_executor.py, WorkerProc.handle_output and async_output_busy_loop
+    quote: 'self.async_output_queue.put(output)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.executor.uniproc-future
+  value: result() calls get_output() in the calling thread
+  text: With one rank the executor is UniProcExecutor, and execute_model(non_block=True) hands back a future whose result() calls AsyncOutput.get_output(), the wait on the copy, in whichever thread asks for the result.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/executor/uniproc_executor.py#L32-L48
+    title: vLLM v0.33.0, vllm/v1/executor/uniproc_executor.py, AsyncOutputFuture
+    quote: 'output = self.async_output.get_output()'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+# --- The states of a request at v0.33.0 --------------------------------------------------------------------------------------------
+
+- id: vllm.request.grammar-wait
+  value: WAITING_FOR_STRUCTURED_OUTPUT_GRAMMAR
+  text: A generative request that has a structured-output request starts in WAITING_FOR_STRUCTURED_OUTPUT_GRAMMAR, and not in WAITING, while its grammar compiles.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/request.py#L112-L117
+    title: vLLM v0.33.0, vllm/v1/request.py, Request.__init__
+    quote: 'self.status = RequestStatus.WAITING_FOR_STRUCTURED_OUTPUT_GRAMMAR'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.request.grammar-ready
+  value: promoted to WAITING
+  text: The scheduler promotes a request that was waiting for its grammar to WAITING once the grammar has compiled. A grammar that failed to compile leaves it where it is, with an error recorded for the request.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/sched/scheduler.py#L3535-L3547
+    title: vLLM v0.33.0, vllm/v1/core/sched/scheduler.py, Scheduler._handle_blocked_waiting_request
+    quote: '# Grammar is ready, promote to waiting state.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.request.remote-kv-wait
+  value: WAITING_FOR_REMOTE_KVS
+  text: When a KV connector loads a waiting request's cache asynchronously, the scheduler allocates its memory, sets the request to WAITING_FOR_REMOTE_KVS and skips it for the step.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/sched/scheduler.py#L1514-L1545
+    title: vLLM v0.33.0, vllm/v1/core/sched/scheduler.py, Scheduler.schedule
+    quote: 'request.status = RequestStatus.WAITING_FOR_REMOTE_KVS'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.request.remote-kv-ready
+  value: back to WAITING, or to PREEMPTED
+  text: When the remote load has finished, the scheduler promotes the request to WAITING, or to PREEMPTED if it has been preempted before.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/sched/scheduler.py#L3519-L3534
+    title: vLLM v0.33.0, vllm/v1/core/sched/scheduler.py, Scheduler._handle_blocked_waiting_request
+    quote: '# Promote request to waiting or preempted.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.request.admitted
+  value: RUNNING, when it joins the running list
+  text: A waiting or preempted request becomes RUNNING in Scheduler.schedule, at the point where it is moved onto the running list and given its tokens for the step.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/sched/scheduler.py#L1547-L1573
+    title: vLLM v0.33.0, vllm/v1/core/sched/scheduler.py, Scheduler.schedule
+    quote: 'request.status = RequestStatus.RUNNING'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.request.preempted-status
+  value: only a running request, which goes to PREEMPTED
+  text: Only a running request can be preempted, and _preempt_request asserts it. It frees the request's blocks, sets PREEMPTED, sets the computed-token count back to zero and puts the request at the front of the waiting queue.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/sched/scheduler.py#L1812-L1843
+    title: vLLM v0.33.0, vllm/v1/core/sched/scheduler.py, Scheduler._preempt_request
+    quote: 'request.status = RequestStatus.PREEMPTED'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.request.check-stop
+  value: STOPPED, LENGTH_CAPPED or REPETITION, by check_stop
+  text: check_stop sets a request's status after each output. It sets FINISHED_STOPPED for the end-of-sequence token or a stop token, FINISHED_LENGTH_CAPPED for the model's length or the request's max_tokens, and FINISHED_REPETITION when repetition detection finds a repeated pattern.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/sched/utils.py#L98-L140
+    title: vLLM v0.33.0, vllm/v1/core/sched/utils.py, check_stop
+    quote: 'request.status = RequestStatus.FINISHED_LENGTH_CAPPED'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.request.grammar-error
+  value: FINISHED_ERROR when the grammar rejects what was sampled
+  text: update_from_output finishes a request with FINISHED_ERROR when the structured-output grammar does not accept the tokens that the model sampled for it.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/sched/scheduler.py#L2432-L2443
+    title: vLLM v0.33.0, vllm/v1/core/sched/scheduler.py, Scheduler.update_from_output
+    quote: 'request.status = RequestStatus.FINISHED_ERROR'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.request.streaming-wait
+  value: WAITING_FOR_STREAMING_REQ
+  text: A request that stopped but is resumable, because it is a streaming input session with no further input queued, is set to WAITING_FOR_STREAMING_REQ and is counted among the sessions waiting for input.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/sched/scheduler.py#L2732-L2742
+    title: vLLM v0.33.0, vllm/v1/core/sched/scheduler.py, Scheduler._handle_stopped_request
+    quote: 'request.status = RequestStatus.WAITING_FOR_STREAMING_REQ'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.request.finished-order
+  value: finished means after PREEMPTED
+  text: A status counts as finished when it is greater than PREEMPTED, so the six statuses that begin FINISHED_ are the last six of the enum, and the order of the members is part of the rule.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/request.py#L379-L393
+    title: vLLM v0.33.0, vllm/v1/request.py, RequestStatus
+    quote: 'return status > RequestStatus.PREEMPTED'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.request.finish-reasons
+  value: a finish reason for each finished state
+  text: Each finished status maps to the finish reason that the client sees. FINISHED_ABORTED maps to abort, FINISHED_STOPPED to stop, and FINISHED_LENGTH_CAPPED and FINISHED_IGNORED both to length.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/request.py#L400-L412
+    title: vLLM v0.33.0, vllm/v1/request.py, _FINISHED_REASON_MAP
+    quote: 'RequestStatus.FINISHED_ABORTED: FinishReason.ABORT,'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.request.ignored-unassigned
+  value: nothing assigns FINISHED_IGNORED
+  text: FINISHED_IGNORED appears in the vllm package only in the enum and in the finish-reason map, where its comment says it stands for a prompt longer than the model's length cap. Nothing in the package assigns it, so no request reaches it.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/request.py#L378-L412
+    title: vLLM v0.33.0, vllm/v1/request.py, RequestStatus and _FINISHED_REASON_MAP
+    quote: 'NOTE: The ignored requests are the requests whose prompt lengths'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+# --- SGLang v0.5.23 (commit 297e54fd105e974cdf401e5b4d20253a22c16f90) ---------------------------------------------------------------
+
+- id: sglang.overlap.future-map
+  value: a relay for values across iterations
+  text: SGLang's FutureMap is a relay indexed by request-pool slot. A forward pass publishes its results to it, and the next iteration reads them back through resolve_forward_inputs.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/overlap_utils.py#L281-L284
+    title: SGLang v0.5.23, srt/managers/overlap_utils.py, FutureMap
+    quote: 'Always-on pool-indexed relay for cross-iter values.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.overlap.decode-inputs-on-gpu
+  value: a decode batch's input ids are gathered from the FutureMap
+  text: At the start of a forward pass, SGLang fills a prefill batch's input ids by a host-to-device copy from pinned CPU staging, and a decode batch's by a gather from the FutureMap, which holds the last iteration's sampled token.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/overlap_utils.py#L113-L118
+    title: SGLang v0.5.23, srt/managers/overlap_utils.py, resolve_forward_inputs
+    quote: "Decode/spec_v2: gather from FutureMap (last iter's sampled token)."
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.overlap.publish-and-drop
+  value: the next input ids come from the relay
+  text: After a forward pass without speculation, SGLang publishes the batch's new sequence lengths to the FutureMap and clears the batch's input ids, because the next iteration's input ids are relayed through the map.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/scheduler.py#L4707-L4749
+    title: SGLang v0.5.23, srt/managers/scheduler.py, Scheduler.run_batch
+    quote: '# Next-iter input_ids relayed via future_map.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.overlap.forward-waits-schedule
+  value: the forward stream waits for the schedule stream
+  text: In run_batch, for a generation batch with overlap on, SGLang launches the forward pass in a stream context of the forward stream, and that stream first waits for the schedule stream.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/scheduler.py#L4658-L4672
+    title: SGLang v0.5.23, srt/managers/scheduler.py, Scheduler.run_batch
+    quote: 'self.forward_stream.wait_stream(self.schedule_stream)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.overlap.schedule-stream
+  value: a stream of the scheduler's own
+  text: SGLang's scheduler creates a stream of its own and keeps it as schedule_stream.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/scheduler.py#L1159
+    title: SGLang v0.5.23, srt/managers/scheduler.py, Scheduler
+    quote: 'self.schedule_stream = None if use_mlx() else device_module.Stream(priority=0)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.overlap.copy-stream
+  value: a stream for the readback
+  text: The docstring of SGLang's _copy_result_to_cpu says the result readback is issued on copy_stream so that it overlaps the next forward pass, and that copy_stream is a leaf gated by copy_done, which forward_stream never waits for.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/scheduler.py#L5018-L5026
+    title: SGLang v0.5.23, srt/managers/scheduler.py, Scheduler._copy_result_to_cpu
+    quote: 'Issue the result readback on copy_stream so it overlaps the next forward.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.overlap.forward-stream
+  value: the model runner creates the forward stream
+  text: SGLang's model runner creates the forward stream, and the comment above it says the stream is for the overlap schedule.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/model_executor/model_runner.py#L468-L469
+    title: SGLang v0.5.23, srt/model_executor/model_runner.py, ModelRunner
+    quote: 'self.forward_stream = torch.get_device_module(self.device).Stream()'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.overlap.process-last
+  value: the previous batch is processed after the launch
+  text: In event_loop_overlap SGLang launches the current batch with run_batch and appends it, with its result, to result_queue. Only after that does it pop the previous batch and process its result, unless overlap is disabled for this batch, in which case it processes the previous one first.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/scheduler.py#L2094-L2123
+    title: SGLang v0.5.23, srt/managers/scheduler.py, Scheduler.event_loop_overlap
+    quote: '# If we do not need to overlap the current batch with the last batch,'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.prefix-hit-match
+  value: matched in the scheduler's loop over waiting requests
+  text: SGLang matches each candidate request's prefix against its tree cache in init_next_round_input, in the scheduler's loop over the waiting requests and before the batch adder is asked to take the request.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/scheduler.py#L4260-L4274
+    title: SGLang v0.5.23, srt/managers/scheduler.py, Scheduler._get_new_batch_prefill_raw
+    quote: 'req.init_next_round_input(self.tree_cache)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.prefix-hit-last-token
+  value: at most one token less than the input
+  text: SGLang caps the length of a prefix match at one token less than the input, so that the last token is always computed. Its own comment gives the reason as the logprob computation.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/schedule_batch.py#L1766-L1768
+    title: SGLang v0.5.23, srt/managers/schedule_batch.py, Req._compute_max_prefix_len
+    quote: 'the matched length is at most 1 less than the input length'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.frontend.mailbox
+  value: out_list, event and rid_to_state
+  text: SGLang's tokenizer manager keeps a state for each request in rid_to_state. Its handle_loop reads the detokenizer's replies, appends each one to its request's out_list and sets the request's event, in batches, which wakes the coroutine that waits on it.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/tokenizer_manager.py#L2778-L2786
+    title: SGLang v0.5.23, srt/managers/tokenizer_manager.py, TokenizerManager._handle_batch_output
+    quote: 'state.out_list.append(out_dict)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.frontend.poll-disconnect
+  value: the waiting coroutine polls for a disconnect
+  text: A coroutine that waits for its request's event in SGLang's tokenizer manager wakes on a timeout as well. When the wait times out it asks whether the client has disconnected, and if so it aborts the request and raises an error to end the call stack. Its comment calls this the case of non-streaming requests and requests still in the waiting queue.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/tokenizer_manager.py#L1954-L1975
+    title: SGLang v0.5.23, srt/managers/tokenizer_manager.py, TokenizerManager._stream_one_response
+    quote: 'Abort the request for disconnected requests (non-streaming, waiting queue)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.rust.server-opt-in
+  value: 'off'
+  text: SGLang's Rust HTTP server is opt-in. SGLANG_RUST_SERVER defaults to False at v0.5.23, so the default request path goes through the Python HTTP server.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/environ.py#L2158-L2160
+    title: SGLang v0.5.23, srt/environ.py, SGLANG_RUST_SERVER
+    quote: 'SGLANG_RUST_SERVER = EnvBool(False)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.rust.server-what
+  value: a typed HTTP frontend in Rust
+  text: sglang-server is SGLang's Rust HTTP frontend and request-processing pipeline. It exchanges typed requests and responses with the Python scheduler and keeps latency-sensitive work outside Python.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/rust/sglang-server/README.md#L3
+    title: SGLang v0.5.23, rust/sglang-server/README.md
+    quote: "SGLang's Rust HTTP frontend and request-processing pipeline."
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: vllm.rust.frontend-off
+  value: 'off'
+  text: vLLM's Rust frontend is off by default. VLLM_USE_RUST_FRONTEND reads 0 unless it is set, and the Python API server is the default.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/envs.py#L1456-L1458
+    title: vLLM v0.33.0, vllm/envs.py, VLLM_USE_RUST_FRONTEND
+    quote: 'int(os.getenv("VLLM_USE_RUST_FRONTEND", "0"))'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.rust.frontend-experimental
+  value: experimental
+  text: vLLM's Rust frontend is a drop-in alternative to the Python one that talks to the Python engine core over ZMQ. Its README says it is experimental and not feature-complete.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/rust/README.md#L3-L5
+    title: vLLM v0.33.0, rust/README.md
+    quote: 'It should still be considered experimental, and is not feature-complete.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: sglang.overlap.sync-in-result-processor
+  value: the prefill result processor waits on the copy event
+  text: SGLang's prefill result processor waits on the batch's copy event with copy_done.synchronize(), when the result has one, before it reads the result.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/scheduler_components/batch_result_processor.py#L258-L268
+    title: SGLang v0.5.23, srt/managers/scheduler_components/batch_result_processor.py, process_batch_result_prefill
+    quote: 'result.copy_done.synchronize()'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.overlap.sync-in-decode-processor
+  value: the decode result processor waits on the copy event
+  text: SGLang's decode result processor waits on the batch's copy event with copy_done.synchronize(), when the result has one, at the start of the function and before it reads the result.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/scheduler_components/batch_result_processor.py#L952-L958
+    title: SGLang v0.5.23, srt/managers/scheduler_components/batch_result_processor.py, process_batch_result_decode
+    quote: 'result.copy_done.synchronize()'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.overlap.finished-in-next-batch
+  value: a finished request can reappear in a result
+  text: SGLang's decode result processor skips a request that is already finished or retracted. A note in the code says this should only happen when overlap scheduling is enabled, and that the over-allocated tokens are freed in release_kv_cache.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/scheduler_components/batch_result_processor.py#L1022-L1027
+    title: SGLang v0.5.23, srt/managers/scheduler_components/batch_result_processor.py, process_batch_result_decode
+    quote: 'should only happen when overlap scheduling is enabled'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.overlap.skip-finishing-by-length
+  value: requests that a queued result finishes by length are dropped before the launch
+  text: SGLang's update_running_batch drops from the decode batch the requests that _reqs_finishing_inflight finds, which its docstring defines as the requests whose queued result commits their last output by length.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/scheduler.py#L4444-L4464
+    title: SGLang v0.5.23, srt/managers/scheduler.py, Scheduler._reqs_finishing_inflight and update_running_batch
+    quote: 'Requests whose queued result commits their last output by length.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.overlap.future-map-device
+  value: one 64-bit integer for each request-pool slot, on the map's device
+  text: SGLang's FutureMap allocates output_tokens_buf, one 64-bit integer for each request-pool slot, on the device it was constructed with, and not in host memory.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/overlap_utils.py#L316-L319
+    title: SGLang v0.5.23, srt/managers/overlap_utils.py, FutureMap.__init__
+    quote: 'self.output_tokens_buf = torch.empty('
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.overlap.future-map-built-on-scheduler-device
+  value: the scheduler builds the map with its own device
+  text: SGLang's scheduler creates its FutureMap with self.device, the device the scheduler itself holds.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/scheduler.py#L1681-L1682
+    title: SGLang v0.5.23, srt/managers/scheduler.py, Scheduler
+    quote: 'self.future_map = self.spec_algorithm.create_future_map('
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: vllm.frontend.fan-out
+  value: n child requests
+  text: When a vLLM request asks for n greater than one sample, AsyncLLM.add_request wraps it in a ParentRequest, makes a child request for each of the n samples, and sends each child to the engine core as its own request.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/async_llm.py#L538-L559
+    title: vLLM v0.33.0, vllm/v1/engine/async_llm.py, AsyncLLM.add_request
+    quote: 'for idx in range(parent_params.n):'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+# --- The abort path across the pins (lesson 7) ----------------------------------------------------------------------------------------
+
+- id: mini-sglang.abort-task
+  value: a disconnect starts abort_user as a task
+  text: When Mini-SGLang's stream_with_cancellation sees a disconnect it raises CancelledError, and the handler for that exception starts abort_user(uid) as a task of its own and re-raises.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/server/api_server.py#L190-L200
+    title: Mini-SGLang at 9a91cfa, python/minisgl/server/api_server.py, FrontendManager.stream_with_cancellation
+    quote: 'asyncio.create_task(self.abort_user(uid))'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.abort-user
+  value: wait, forget the mailbox, send an AbortMsg
+  text: Mini-SGLang's abort_user waits a tenth of a second, deletes the request's entries from ack_map and event_map, and then sends an AbortMsg with the request's uid through send_one.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/server/api_server.py#L202-L209
+    title: Mini-SGLang at 9a91cfa, python/minisgl/server/api_server.py, FrontendManager.abort_user
+    quote: 'await asyncio.sleep(0.1)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.wait-no-deadline
+  value: a bare await on the event, with no timeout
+  text: Mini-SGLang's wait_for_ack waits for a request's event with a bare await of event.wait(), which has no timeout, then clears the event and yields everything that the listener has filed under the request.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/server/api_server.py#L134-L147
+    title: Mini-SGLang at 9a91cfa, python/minisgl/server/api_server.py, FrontendManager.wait_for_ack
+    quote: 'await event.wait()'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.send-one
+  value: the message goes on send_tokenizer
+  text: Mini-SGLang's FrontendManager.send_one starts the listener task if it has not started, and puts the message on send_tokenizer.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/server/api_server.py#L130-L132
+    title: Mini-SGLang at 9a91cfa, python/minisgl/server/api_server.py, FrontendManager.send_one
+    quote: 'await self.send_tokenizer.put(msg)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.abort-forward
+  value: the tokenizer turns it into an AbortBackendMsg
+  text: Mini-SGLang's tokenizer worker turns each AbortMsg that it receives into an AbortBackendMsg with the same uid, and puts them on send_backend.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/tokenizer/server.py#L102-L108
+    title: Mini-SGLang at 9a91cfa, python/minisgl/tokenizer/server.py, tokenize_worker
+    quote: 'data=[AbortBackendMsg(uid=msg.uid) for msg in abort_msg]'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.abort-frees
+  value: the scheduler takes the request out and frees it at once
+  text: When Mini-SGLang's scheduler gets an AbortBackendMsg, it asks the prefill manager and then the decode manager to take the request out, and if either had it, it calls _free_req_resources for it.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/scheduler/scheduler.py#L190-L195
+    title: Mini-SGLang at 9a91cfa, python/minisgl/scheduler/scheduler.py, Scheduler._process_one_msg
+    quote: 'req_to_free = req_to_free or self.decode_manager.abort_req(msg.uid)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.free-req-resources
+  value: the table slot and the cache entry
+  text: Mini-SGLang's _free_req_resources frees the request's slot in the table manager and then calls cache_manager.cache_req for it with finished set to True.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/scheduler/scheduler.py#L200-L202
+    title: Mini-SGLang at 9a91cfa, python/minisgl/scheduler/scheduler.py, Scheduler._free_req_resources
+    quote: 'self.cache_manager.cache_req(req, finished=True)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: mini-sglang.abort-pending
+  value: the pending entry goes, and what it held is returned
+  text: Mini-SGLang's PrefillManager.abort_req removes the request with the uid from its pending list and returns the chunked request that the pending entry holds. It returns None when no pending entry has the uid.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/scheduler/prefill.py#L153-L158
+    title: Mini-SGLang at 9a91cfa, python/minisgl/scheduler/prefill.py, PrefillManager.abort_req
+    quote: 'return req.chunked_req'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: inside-vllm.abort-handled-at-top
+  value: the poll at the top of the turn handles it
+  text: At the post's commit each turn of the busy loop begins with the input queue. The poll handles every client request that is waiting, as its comment says, and an abort is one of them. The engine steps only after that.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/42172ad18fbc22c89d0063184e4570cc84186e16/vllm/v1/engine/core.py#L695-L722
+    title: vLLM at 42172ad, vllm/v1/engine/core.py, EngineCoreProc.run_busy_loop and _process_input_queue
+    quote: '# Handle any more client requests.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: inside-vllm
+
+- id: inside-vllm.abort-finishes
+  value: FINISHED_ABORTED, as in the pin
+  text: At the post's commit EngineCore.abort_requests calls scheduler.finish_requests with RequestStatus.FINISHED_ABORTED, and a comment says that the scheduler does not need to know the specific finish reason.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/42172ad18fbc22c89d0063184e4570cc84186e16/vllm/v1/engine/core.py#L234-L241
+    title: vLLM at 42172ad, vllm/v1/engine/core.py, EngineCore.abort_requests
+    quote: 'RequestStatus.FINISHED_ABORTED)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: inside-vllm
+
+- id: vllm.scheduler.finish-requests
+  value: status set, request freed
+  text: Scheduler.finish_requests takes request ids and a finished status such as FINISHED_ABORTED. It skips an id that is unknown or already finished, takes each other request out of the running list or the waiting queues, sets the status and frees the request. Its docstring gives the API server's abort of a disconnected client as its example.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/sched/scheduler.py#L2964-L3029
+    title: vLLM v0.33.0, vllm/v1/core/sched/scheduler.py, Scheduler.finish_requests
+    quote: 'Handles the finish signal from outside the scheduler.'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.scheduler.free-blocks
+  value: kv_cache_manager.free, unless the free is delayed
+  text: For a finished request, _free_request calls _free_blocks unless a connector delays the free. _free_blocks calls _free_request_blocks, which calls kv_cache_manager.free, or sets the blocks aside as a deferred free when an in-flight GPU step may still write them.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/sched/scheduler.py#L3057-L3092
+    title: vLLM v0.33.0, vllm/v1/core/sched/scheduler.py, Scheduler._free_request_blocks
+    quote: 'self.kv_cache_manager.free(request)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: vllm
+
+- id: sglang.abort.task
+  value: a background task waits two seconds, then aborts
+  text: SGLang's TokenizerManager.create_abort_task, which its comment says aborts the request if the client is disconnected, returns a background task. The task waits two seconds and then calls abort_request for each of the request's ids that still has a state in rid_to_state.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/tokenizer_manager.py#L2427-L2438
+    title: SGLang v0.5.23, srt/managers/tokenizer_manager.py, TokenizerManager.create_abort_task
+    quote: 'await asyncio.sleep(2)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.abort.request-once
+  value: one AbortReq for each request
+  text: SGLang's TokenizerManager.abort_request dispatches an AbortReq to the scheduler at most once for each request. It sets abort_sent on the request's state and returns early when the flag is already set, and it clears the flag if the dispatch raises.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/tokenizer_manager.py#L2241-L2262
+    title: SGLang v0.5.23, srt/managers/tokenizer_manager.py, TokenizerManager.abort_request
+    quote: 'req = AbortReq(rid=rid, abort_all=abort_all)'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.abort.waiting-queue
+  value: a request that has not started is popped out of the queue
+  text: SGLang's Scheduler.abort_request pops a request that is still in the waiting queue straight out of it. The comment says this only works for requests that have not started anything, and that something must still be sent back to the tokenizer manager to clean up its state.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/scheduler.py#L5690-L5702
+    title: SGLang v0.5.23, srt/managers/scheduler.py, Scheduler.abort_request
+    quote: '# Abort method 1: directly pop from the queue'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.abort.grammar-queue
+  value: a request in the grammar queue still runs one cheap prefill
+  text: For a request in the grammar queue, SGLang's Scheduler.abort_request calls the grammar manager to finish it with an abort. The comment says the request will still run one prefill forward pass, and that its input ids are cut to one token to make that prefill cheap.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/scheduler.py#L5735-L5739
+    title: SGLang v0.5.23, srt/managers/scheduler.py, Scheduler.abort_request
+    quote: '# Abort method 2: call `set_finish_with_abort`'
+    accessed: 2026-11-05
+  verifiedAt: 2026-11-05
+  ttlDays: 90
+  pin: sglang

@@ -1,0 +1,304 @@
+enginespace: third-party notices
+
+enginespace vendors files from kernelspace, in vendor/kernelspace/. This file carries
+the notices that come with them, in two sections: kernelspace, and ts-fsrs, whose memory
+model one of kernelspace's files transcribes. A third section, Fonts, carries the licences
+of the faces the site self-hosts in public/fonts/. A fourth, vLLM, names the three files
+that translate parts of vLLM to TypeScript, and a fifth, Quoted excerpts, covers the short
+excerpts of nano-vllm, Mini-SGLang, vLLM and SGLang that the lessons, the claims and the
+lifecycle model quote. The text of the Apache License 2.0, which several of these are
+under, is in LICENSES/Apache-2.0.txt. The licence of enginespace's own code and content is
+the owner's decision (O-3) and is not stated here: until it is decided, enginespace's own
+code and content are all rights reserved.
+
+The npm packages inside the site's scripts are not listed here. The build collects their
+licences into third-party-licenses.txt (scripts/pages/third-party-licenses.ts), which the
+site serves at /third-party-licenses.txt. That file carries this one after the packages,
+and then the texts of LICENSES/ that this one points to, so the notices below ship with
+the site. Some of those packages are published without a licence file, and
+third-party/notices.json keeps the text for each, with its source.
+
+============================================================================
+kernelspace
+============================================================================
+
+The files that vendor/kernelspace/VENDOR.md lists, each with its SHA-256 and the terms it
+is under, are copied, byte for byte, from kernelspace at commit
+d478f91a0af590f03fcfd76ee73149fa70b28e51 (committed 2026-10-30). The other files under
+vendor/kernelspace/ are enginespace's own: VENDOR.md, .gitattributes, and the type shims
+shims/ambient.d.ts, shims/src/lib/learner/types.ts and shims/src/lib/ledger/types.ts, of
+which the last two restate declarations from kernelspace's own types modules.
+
+kernelspace's code, tests, fixtures and configuration are under the MIT License below. It
+is vendor/kernelspace/LICENSE, word for word.
+
+MIT License
+
+Copyright (c) 2026 the kernelspace authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Some vendored files are under other terms:
+
+- vendor/kernelspace/public/traces/README.md is kernelspace's documentation, which
+  kernelspace puts under Creative Commons Attribution 4.0 International
+  (https://creativecommons.org/licenses/by/4.0/).
+- vendor/kernelspace/public/traces/burstgpt-v2-busiest-hour.json and
+  burstgpt-v2-busiest-minute.json are slices of BurstGPT v2.0, under CC BY 4.0. They are
+  attributed to the BurstGPT authors (KDD 2025) and the HPMLL/BurstGPT project
+  (https://github.com/HPMLL/BurstGPT). They are samples with clamped token counts, and the
+  README beside them says how each was cut.
+- vendor/kernelspace/public/traces/kimi-conversation.json is the first ten minutes of the
+  Kimi conversation trace of Mooncake (FAST'25), under the Apache License 2.0. It is
+  attributed to the Mooncake authors (https://github.com/kvcache-ai/Mooncake), and its
+  token counts are scaled and clamped as the README beside it says. Mooncake has no NOTICE
+  file at the commit that the slice is cut from (b82b9f86ceb67bb809339b9088085f34329683bb,
+  checked on 2026-11-08), so section 4(d) of the licence has no attribution lines of
+  Mooncake's to carry. The text of the Apache License 2.0 is in LICENSES/Apache-2.0.txt
+  (https://www.apache.org/licenses/LICENSE-2.0).
+- vendor/kernelspace/src/lib/learner/fsrs.ts and
+  vendor/kernelspace/tests/fixtures/fsrs/reference-vectors.json come from ts-fsrs, below.
+
+Two folders outside vendor/ start from vendored files: labs/forge/kit/ is a byte copy of
+vendor/kernelspace/labs/kit/, kernelspace's kslab crate, and labs/agent-kit/ is
+vendor/kernelspace/labs/agent-kit/, renamed and extended. What they take from kernelspace
+is under the MIT License above, and the NOTICE inside each lab zip in public/labs/ carries
+it.
+
+============================================================================
+ts-fsrs
+============================================================================
+
+This is kernelspace's own notice for ts-fsrs, from vendor/kernelspace/NOTICE, word for
+word. The paths in it are kernelspace's, so here they sit under vendor/kernelspace/.
+
+src/lib/learner/fsrs.ts transcribes the memory model of ts-fsrs 5.4.2
+(https://github.com/open-spaced-repetition/ts-fsrs), and
+tests/fixtures/fsrs/reference-vectors.json is that library's output. ts-fsrs is
+distributed under the MIT License, reproduced below from its npm package
+(version 5.4.2, file LICENSE, SHA-256
+8b83a73dd2894ff553d6de6113064b3ad9dfad3f839837b61f3b183881131d01).
+
+----------------------------------------------------------------------------
+
+MIT License
+
+Copyright (c) 2026 Open Spaced Repetition
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+============================================================================
+Fonts
+============================================================================
+
+The site self-hosts its faces in public/fonts/ and requests none from anywhere else
+(D-033, D-050). Each was fetched once, on 2026-11-03, from a Fontsource npm package at an
+exact version through its jsDelivr mirror, in its Latin subset; public/fonts/fonts.json
+pins every file and its source by SHA-256. Two files are Modified Versions, made with
+fontTools 4.60.1 as fonts.json records. The licence beside each face is the LICENSE file
+its package ships, unchanged.
+
+Big Shoulders Display
+  File:      public/fonts/big-shoulders-display-latin-800-normal.woff2
+  Source:    @fontsource/big-shoulders-display 5.3.0
+  Copyright 2019 The Big Shoulders Project Authors (https://github.com/xotypeco/big_shoulders)
+  Licence:   SIL Open Font License, Version 1.1 (public/fonts/OFL-BigShouldersDisplay.txt)
+
+Doto
+  File:      public/fonts/doto-latin-round-900.woff2, a Modified Version: the variable
+             font instanced at ROND 100 and weight 900
+  Source:    @fontsource-variable/doto 5.3.0
+  Copyright 2024-2024 The Doto Project Authors (https://github.com/oliverlalan/Doto)
+  Licence:   SIL Open Font License, Version 1.1 (public/fonts/OFL-Doto.txt)
+
+Handjet
+  File:      public/fonts/handjet-latin-micro-300.woff2, a Modified Version: the variable
+             font instanced at ELSH 2, ELGR 1 and weight 300, and subset to U+00B5 and
+             U+00B1
+  Source:    @fontsource-variable/handjet 5.3.0
+  Copyright 2018 The Handjet Project Authors (https://github.com/rosettatype/Handjet/)
+  Licence:   SIL Open Font License, Version 1.1 (public/fonts/OFL-Handjet.txt)
+
+Permanent Marker
+  File:      public/fonts/permanent-marker-latin-400-normal.woff2
+  Source:    @fontsource/permanent-marker 5.3.0
+  Copyright (c) 2010 by Font Diner, Inc. All rights reserved.
+  Licence:   Apache License, Version 2.0 (public/fonts/LICENSE-PermanentMarker.txt)
+
+Atkinson Hyperlegible
+  Files:     public/fonts/atkinson-hyperlegible-latin-{400,700}-{normal,italic}.woff2
+  Source:    @fontsource/atkinson-hyperlegible 5.3.0
+  Copyright 2020 Braille Institute of America, Inc.
+  Licence:   SIL Open Font License, Version 1.1 (public/fonts/OFL-AtkinsonHyperlegible.txt)
+
+Atkinson Hyperlegible Mono
+  File:      public/fonts/atkinson-hyperlegible-mono-latin-wght-normal.woff2
+  Source:    @fontsource-variable/atkinson-hyperlegible-mono 5.3.0
+  Copyright 2020-2024 The Atkinson Hyperlegible Mono Project Authors (https://github.com/googlefonts/atkinson-hyperlegible-next-mono)
+  Licence:   SIL Open Font License, Version 1.1 (public/fonts/OFL-AtkinsonHyperlegibleMono.txt)
+
+============================================================================
+vLLM
+============================================================================
+
+Parts of three files are translated to TypeScript from vLLM v0.33.0 and modified. Each
+begins with a header that says so and points here. They keep the names of the Python
+(snake_case turned into camelCase) and, where the logic is not trivial, the order of its
+statements.
+
+vLLM v0.33.0
+  Source:    https://github.com/vllm-project/vllm, the tag v0.33.0, commit
+             4ba787ec9959e566d3b587a796dff07673324da5
+  Copyright contributors to the vLLM project
+  Licence:   Apache License, Version 2.0 (LICENSES/Apache-2.0.txt)
+
+packages/sim/steploop/graphs.ts, the model of CUDA graphs and their two dispatchers,
+translates parts of these files of vLLM:
+  vllm/v1/cudagraph_dispatcher.py        CudagraphDispatcher
+  vllm/v1/worker/gpu/cudagraph_utils.py  CudaGraphManager and BatchExecutionDescriptor
+  vllm/v1/worker/gpu/lora_utils.py       get_lora_capture_cases
+  vllm/lora/utils.py                     get_captured_lora_counts
+  vllm/config/compilation.py             CUDAGraphMode,
+                                         CompilationConfig.resolve_cudagraph_mode_and_sizes
+                                         and adjust_cudagraph_sizes_for_spec_decode
+  vllm/config/vllm.py                    VllmConfig._set_cudagraph_sizes
+It also restates the fields of BatchDescriptor (vllm/forward_context.py) and the values of
+AttentionCGSupport (vllm/v1/attention/backend.py).
+
+tests/sim/graphs-oracle.ts, a second translation of the same two dispatchers that is
+written to share no code with graphs.ts, translates parts of
+vllm/v1/cudagraph_dispatcher.py, vllm/v1/worker/gpu/cudagraph_utils.py,
+vllm/v1/worker/gpu/lora_utils.py (get_lora_capture_cases) and vllm/lora/utils.py
+(get_captured_lora_counts), and restates the values of CUDAGraphMode
+(vllm/config/compilation.py).
+
+tests/sim/kv-support.ts, whose vllmHit is the oracle of the hybrid KV model's search for a
+prefix hit, translates parts of these files of vLLM:
+  vllm/v1/core/single_type_kv_cache_manager.py  find_longest_cache_hit of
+                                                FullAttentionManager,
+                                                SlidingWindowManager and MambaManager
+  vllm/v1/core/kv_cache_coordinator.py          find_longest_cache_hit of
+                                                HybridKVCacheCoordinator
+
+vLLM's source files state their copyright as "Copyright contributors to the vLLM project"
+and their licence as Apache-2.0, in a two-line header; the ten files named above read so at
+the tag [measured 2026-11-08]. vLLM's LICENSE at the tag is the Apache License 2.0 with its
+appendix unfilled (SHA-256
+c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4), and vLLM has no NOTICE
+file at the tag [measured 2026-11-08], so section 4(d) of the licence has no attribution
+lines of vLLM's to carry.
+
+LICENSES/Apache-2.0.txt is the Apache License 2.0 as published at
+https://www.apache.org/licenses/LICENSE-2.0.txt, fetched on 2026-11-08 (SHA-256
+cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30). It is the text of
+vLLM's LICENSE, apart from one blank line at the start. The Mooncake bullet above and the
+section below point at it too.
+
+============================================================================
+Quoted excerpts
+============================================================================
+
+The TR1 lessons in content/modules/tr1/lessons/, which the site serves again as Markdown in
+public/md/tr1/, quote short excerpts of four projects' source files. Each excerpt is a block
+headed with its path, its lines and a pinned commit, as in "nanovllm/engine/scheduler.py,
+lines 29 to 55 at bb823b3", and the prose above it links the same lines at the same commit.
+The one-line quotes in content/claims/ and in packages/sim/lifecycle are the same kind of
+excerpt, each with its source path, its line or lines, and a pinned commit or tag.
+
+The excerpts stay under their own licences, which are below. enginespace's own licence,
+when the owner chooses it (O-3), does not cover them, nor any other short quotation of
+these projects elsewhere in this repository, such as the research notes. A few claims quote
+other sources, such as kernelspace's lessons, the wrk2 and TensorRT-LLM repositories, blog
+posts and papers; each names its source by URL. Their licences are not listed here and have
+not been checked [unverified].
+
+nano-vllm
+  Source:    https://github.com/GeeeekExplorer/nano-vllm, commit bb823b3
+             (bb823b3e06983d71485a8e1f23715ebd87d98ef8)
+  Copyright (c) 2025 Xingkai Yu
+  Licence:   MIT License (below)
+
+Mini-SGLang
+  Source:    https://github.com/sgl-project/mini-sglang, commit 9a91cfa
+             (9a91cfafe754aa85daee49998176275667eb58f2)
+  Copyright (c) 2026 sgl-project
+  Licence:   MIT License (below)
+
+vLLM
+  Source:    https://github.com/vllm-project/vllm, the tag v0.33.0 (commit
+             4ba787ec9959e566d3b587a796dff07673324da5) and commit 42172ad
+             (42172ad18fbc22c89d0063184e4570cc84186e16), the commit that the post "Inside
+             vLLM" analyses
+  Copyright contributors to the vLLM project
+  Licence:   Apache License, Version 2.0 (LICENSES/Apache-2.0.txt)
+
+SGLang
+  Source:    https://github.com/sgl-project/sglang, the tag v0.5.23 (commit
+             297e54fd105e974cdf401e5b4d20253a22c16f90)
+  Copyright 2023-2024 SGLang Team
+  Licence:   Apache License, Version 2.0 (LICENSES/Apache-2.0.txt)
+
+The commits are the ones in course.lock.json. The MIT licence and copyright line of each of
+nano-vllm and Mini-SGLang were read from its LICENSE at the commit, and SGLang's from the
+appendix of its LICENSE at the tag, on 2026-11-08 [measured]. vLLM's LICENSE leaves its
+appendix unfilled, so its line is the one in the header of its source files, as above and
+in vllm/v1/engine/core.py at 42172ad. None of the four has a NOTICE file at its pin
+[measured 2026-11-08], so section 4(d) of the Apache License has nothing to carry.
+
+The two MIT licences have the same permission text, reproduced here once, with the
+copyright lines of nano-vllm and then of Mini-SGLang:
+
+MIT License
+
+Copyright (c) 2025 Xingkai Yu
+Copyright (c) 2026 sgl-project
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

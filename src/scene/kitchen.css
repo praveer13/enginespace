@@ -1,0 +1,487 @@
+/*
+ * The kitchen on /design (scene kit v1): the bench the 3D view stands on, its spec sheet, the rail of equipment tickets that picks a
+ * piece, the deck with the bell and the tier switch, the scene's labels, and the 2D notes' materials. Every colour, face, shadow
+ * and duration is a token role (src/design/tokens.css); this file names none of its own.
+ */
+
+.es-kitchen {
+  display: grid;
+  gap: var(--es-space-6);
+  grid-template-areas:
+    'view'
+    'picker'
+    'deck'
+    'sheet';
+  align-items: start;
+}
+
+@media (min-width: 64rem) {
+  .es-kitchen {
+    grid-template-columns: minmax(0, 2fr) minmax(18rem, 1fr);
+    grid-template-areas:
+      'view sheet'
+      'picker sheet'
+      'deck sheet';
+  }
+}
+
+.es-kitchen__view {
+  grid-area: view;
+  display: grid;
+  gap: var(--es-space-3);
+  min-width: 0;
+  margin: 0;
+}
+
+/* The 3D view in its stainless bezel. */
+.es-kitchen__stage {
+  aspect-ratio: 16 / 10;
+  border: 1px solid var(--es-edge);
+  box-shadow: var(--es-shadow-shelf);
+}
+
+@media (max-width: 40rem) {
+  .es-kitchen__stage {
+    aspect-ratio: 4 / 5;
+  }
+}
+
+.es-kitchen__caption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2) var(--es-space-3);
+  color: var(--es-text-2);
+  font-size: var(--es-size-print);
+  line-height: 1.4;
+}
+
+/* ---------------------------------------------------------------------------------------------- the spec sheet */
+
+.es-kitchen__sheet {
+  grid-area: sheet;
+}
+
+.es-kitchen__term {
+  margin: 0 0 var(--es-space-3);
+  color: var(--es-text-2);
+  font-family: var(--es-font-label);
+  font-weight: var(--es-font-label-weight);
+  font-size: var(--es-size-print);
+  letter-spacing: var(--es-font-label-tracking);
+}
+
+.es-kitchen__note {
+  margin: 0 0 var(--es-space-4);
+}
+
+.es-kitchen__note > svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  box-shadow: var(--es-shadow-paper);
+}
+
+.es-kitchen__note-caption {
+  margin-top: var(--es-space-2);
+  color: var(--es-text-3);
+  font-size: var(--es-size-caption);
+}
+
+.es-kitchen__made,
+.es-kitchen__bell-note,
+.es-kitchen__tier-note {
+  margin: 0 0 var(--es-space-3);
+  font-size: var(--es-size-print);
+  line-height: 1.5;
+}
+
+.es-kitchen__on {
+  font-family: var(--es-font-ticket);
+  font-weight: var(--es-font-ticket-weight);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.es-kitchen__sizes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: var(--es-space-2) var(--es-space-4);
+  margin: 0 0 var(--es-space-4);
+  padding: var(--es-space-3) 0;
+  border-block: 2px dotted var(--es-paper-rule);
+}
+
+.es-kitchen__size {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.es-kitchen__size dt {
+  font-family: var(--es-font-ticket);
+  font-weight: var(--es-font-ticket-weight);
+  font-size: var(--es-size-caption);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.es-kitchen__size dd {
+  margin: 0;
+}
+
+/* ---------------------------------------------------------------------------------------------- the rail of equipment tickets */
+
+.es-kitchen__picker {
+  grid-area: picker;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-3) var(--es-space-2);
+  padding: var(--es-space-4) var(--es-space-3) var(--es-space-3);
+  /* The rail itself: a polished rod across the top, the tickets hung under it. */
+  background-image: linear-gradient(180deg, var(--es-surface-3) 0, var(--es-surface-2) 2px, var(--es-surface-1) 5px, var(--es-surface-2) 7px, var(--es-surface-0) 8px, var(--es-surface-0));
+}
+
+/* An equipment ticket: bond paper cut square, its number in dots over its name, hung from the rail; the one in view is under the lamp. */
+.es-kitchen__pick {
+  position: relative;
+  display: grid;
+  gap: 0.2rem;
+  min-width: 7.5rem;
+  min-height: 2.75rem;
+  margin: 0;
+  padding: 0.55rem 0.75rem 0.5rem;
+  border: 1px solid var(--es-edge);
+  background-color: var(--es-paper);
+  color: var(--es-paper-ink);
+  font-family: var(--es-font-body);
+  font-size: var(--es-size-print);
+  line-height: 1.25;
+  text-align: left;
+  box-shadow: var(--es-shadow-paper);
+  cursor: pointer;
+  transition:
+    transform var(--es-dur-quick) var(--es-ease-settle),
+    box-shadow var(--es-dur-quick) var(--es-ease-settle);
+}
+
+.es-kitchen__pick:hover {
+  transform: translateY(-2px) rotate(-0.6deg);
+  box-shadow: var(--es-shadow-lift);
+}
+
+.es-kitchen__pick:active {
+  transform: translateY(1px);
+  box-shadow: var(--es-shadow-press);
+}
+
+.es-kitchen__pick:focus-visible {
+  outline: 2px solid var(--es-focus);
+  outline-offset: 2px;
+}
+
+.es-kitchen__pick[aria-pressed='true'] {
+  border-color: var(--es-lamp-ring);
+  background-image: linear-gradient(180deg, color-mix(in srgb, var(--es-lamp) 34%, var(--es-paper)), var(--es-paper) 70%);
+  box-shadow:
+    0 0 0 2px var(--es-lamp-ring),
+    var(--es-shadow-lift);
+}
+
+.es-kitchen__pick-no {
+  font-family: var(--es-font-ticket);
+  font-weight: var(--es-font-ticket-weight);
+  font-size: var(--es-size-caption);
+  letter-spacing: 0.04em;
+  color: var(--es-text-2);
+}
+
+.es-kitchen__pick-name {
+  font-size: var(--es-size-print);
+  line-height: 1.25;
+}
+
+/* ---------------------------------------------------------------------------------------------- the deck */
+
+.es-kitchen__deck {
+  grid-area: deck;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-4) var(--es-space-8);
+  padding: var(--es-space-6);
+  border: 1px solid var(--es-edge);
+  border-radius: var(--es-radius-plate);
+  background-color: var(--es-surface-1);
+  background-image: var(--es-texture-sheen), var(--es-texture-brushed);
+  background-size:
+    100% auto,
+    100% 720px;
+  box-shadow: var(--es-shadow-plate);
+}
+
+.es-kitchen__tiers {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2);
+  max-width: 24rem;
+}
+
+.es-kitchen__tier-why {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+}
+
+.es-kitchen__tape {
+  min-width: min(18rem, 100%);
+}
+
+.es-kitchen__word {
+  font-family: var(--es-font-ticket);
+  font-weight: var(--es-font-ticket-weight);
+  letter-spacing: var(--es-font-ticket-tracking);
+}
+
+/* ---------------------------------------------------------------------------------------------- the scene's labels */
+
+.es-kitchen-label {
+  line-height: 1;
+}
+
+/* A ticket's number, printed in its blank head. */
+.es-kitchen-label--ticket {
+  color: var(--es-paper-ink);
+  font-family: var(--es-font-ticket);
+  font-weight: var(--es-font-ticket-weight);
+  font-size: var(--es-size-caption);
+  letter-spacing: 0.04em;
+}
+
+/* Marker on a pan's tape. */
+.es-kitchen-label--tape {
+  color: var(--es-tape-ink);
+  font-family: var(--es-font-label);
+  font-weight: var(--es-font-label-weight);
+  font-size: var(--es-size-caption);
+  letter-spacing: var(--es-font-label-tracking);
+}
+
+/* ---------------------------------------------------------------------------------------------- the 2D notes */
+
+.es-draw {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.es-stage .es-draw {
+  background-color: var(--es-surface-0);
+}
+
+.es-draw__tile,
+.es-draw__floor {
+  stroke: none;
+}
+
+.es-draw__grout {
+  fill: var(--es-paper-rule);
+}
+
+.es-draw__tile-face {
+  fill: var(--es-paper);
+}
+
+.es-draw__cove {
+  fill: var(--es-surface-2);
+}
+
+.es-draw__floor-joint {
+  fill: var(--es-surface-3);
+}
+
+.es-draw__floor-face {
+  fill: var(--es-edge);
+}
+
+.es-draw__steel {
+  fill: var(--es-surface-1);
+  stroke: var(--es-edge);
+  stroke-width: 1;
+}
+
+.es-draw__steel-side {
+  fill: var(--es-surface-2);
+  stroke: var(--es-edge);
+  stroke-width: 1;
+}
+
+.es-draw__steel-shaded {
+  fill: var(--es-surface-2);
+  stroke: var(--es-edge);
+  stroke-width: 0.8;
+}
+
+.es-draw__steel-deep {
+  fill: var(--es-surface-3);
+  stroke: var(--es-text-1);
+  stroke-width: 0.8;
+}
+
+.es-draw__alu {
+  fill: var(--es-surface-1);
+  stroke: var(--es-edge);
+  stroke-width: 1;
+}
+
+.es-draw__alu-lip,
+.es-draw__chrome {
+  fill: var(--es-light-fluorescent);
+  stroke: var(--es-edge);
+  stroke-width: 1;
+}
+
+.es-draw__shine {
+  fill: none;
+  stroke: var(--es-paper);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.es-draw__cord,
+.es-draw__wire {
+  fill: none;
+  stroke: var(--es-text-1);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.es-draw__wire {
+  stroke: var(--es-edge);
+  stroke-width: 1.5;
+}
+
+.es-draw__iron,
+.es-draw__grate {
+  fill: var(--es-text-1);
+  stroke: var(--es-text-1);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.es-draw__grate {
+  fill: none;
+}
+
+.es-draw__knob {
+  fill: var(--es-text-1);
+}
+
+.es-draw__cold {
+  fill: var(--es-surface-3);
+}
+
+.es-draw__pilot-lit {
+  fill: var(--es-lamp);
+  stroke: var(--es-lamp-ring);
+  stroke-width: 0.8;
+}
+
+.es-draw__glow-strip {
+  fill: var(--es-lamp);
+}
+
+.es-draw__stop-lamp {
+  stop-color: var(--es-lamp);
+  stop-opacity: 0.95;
+}
+
+.es-draw__stop-pool {
+  stop-color: var(--es-lamp);
+  stop-opacity: 0.5;
+}
+
+.es-draw__stop-lamp-clear {
+  stop-color: var(--es-lamp);
+  stop-opacity: 0;
+}
+
+.es-draw__tube {
+  fill: var(--es-light-fluorescent);
+  stroke: var(--es-edge);
+  stroke-width: 0.6;
+}
+
+.es-draw__baffle {
+  fill: none;
+  stroke: var(--es-edge);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+
+.es-draw__paper {
+  fill: var(--es-paper);
+  stroke: var(--es-paper-rule);
+  stroke-width: 0.6;
+}
+
+.es-draw__lifted {
+  filter: drop-shadow(0 1px 1px color-mix(in srgb, var(--es-text-1) 22%, transparent));
+}
+
+.es-draw__print {
+  fill: var(--es-paper-ink);
+  font-family: var(--es-font-ticket);
+  font-weight: var(--es-font-ticket-weight);
+  font-size: 7.5px; /* impeccable-disable-line design-system-font-size -- print in the drawing's own units, scaled with its viewBox */
+  letter-spacing: 0.04em;
+}
+
+.es-draw__dots {
+  stroke: var(--es-paper-ink);
+  stroke-width: 1.6;
+  stroke-dasharray: 0.1 2.4;
+  stroke-linecap: round;
+}
+
+.es-draw__roll {
+  fill: var(--es-paper);
+  stroke: var(--es-paper-rule);
+  stroke-width: 1;
+}
+
+.es-draw__glaze {
+  fill: var(--es-paper);
+  stroke: var(--es-paper-rule);
+  stroke-width: 1;
+}
+
+.es-draw__well {
+  fill: none;
+  stroke: var(--es-paper-rule);
+  stroke-width: 0.8;
+}
+
+.es-draw__tape {
+  fill: var(--es-tape);
+}
+
+.es-draw__marker {
+  fill: var(--es-tape-ink);
+  font-family: var(--es-font-label);
+  font-weight: var(--es-font-label-weight);
+  font-size: 8px; /* impeccable-disable-line design-system-font-size -- marker in the drawing's own units, scaled with its viewBox */
+}
+
+/* A contact shadow: soft, offset under its object, cast by the tubes above. */
+.es-draw__shadow {
+  fill: var(--es-text-1);
+  opacity: 0.22;
+  filter: blur(2px);
+}
+
+.es-kitchen__note .es-draw__print,
+.es-kitchen__note .es-draw__marker {
+  display: none;
+}

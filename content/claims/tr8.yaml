@@ -1,0 +1,345 @@
+# What TR8's lessons cite beyond the claims of vllm/bench.yaml, sglang/bench.yaml and broken-bench.yaml (W1-T34; curriculum/TR8 §8): the tools' percentile
+# and goodput arithmetic, their warm-up requests, SGLang's one replay in time, wrk2's own run in more detail, what kernelspace's T7.L2 and its knee fix,
+# and what BurstGPT's files say about their timestamps. An id starts with its engine, or with `bench` when its source is not an engine's.
+#
+# Each quote was read on 2026-11-04 with the generic User-Agent "Mozilla/5.0 (X11; Linux x86_64)" from the file or page its anchor names, and found
+# verbatim inside the lines the anchor gives (a file at a tag is downloaded into a folder of its own and read as text, never run; a run of spaces in a
+# README's table is read as one). The tools are read at the pins, vLLM v0.33.0 and SGLang v0.5.23, and so their TTL is the quarter that a pin lasts.
+# wrk2 is read at 44a94c1, kernelspace at d478f91 and BurstGPT at its v2.0 tag, and a document at a commit or a tag does not move, so those carry a
+# year [estimated].
+
+- id: vllm.bench.percentile-numpy
+  value: np.percentile
+  text: In calculate_metrics, vllm bench serve takes each time-to-first-token percentile by passing the list of values straight to NumPy's np.percentile, with no check on how many there are. A run of ten requests reports a p99 just as a run of ten thousand does.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/benchmarks/serve.py#L786-L788
+    title: vLLM v0.33.0, vllm/benchmarks/serve.py, calculate_metrics (the TTFT percentiles)
+    quote: '(p, np.percentile(ttfts or 0, p) * 1000) for p in selected_percentiles'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.bench.goodput-denominator
+  value: good_completed / dur_s
+  text: vllm bench serve divides the requests that met every objective by dur_s, the benchmark duration. The duration is taken from just before the first request is generated to just after the last request has returned, so a run that is still draining its queue counts that time in the denominator.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/benchmarks/serve.py#L777-L780
+    title: vLLM v0.33.0, vllm/benchmarks/serve.py, calculate_metrics (request_goodput); the clock is started at line 1048 and read at line 1123
+    quote: 'request_goodput=good_completed / dur_s,'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.bench.timer-inside-request
+  value: output.ttft = timestamp - st
+  text: In vllm bench serve's default request function, for the openai backend, the timer starts as the function begins (st = time.perf_counter()), just before it posts the request, and the time to first token is the first chunk's timestamp less that start. So TTFT counts from the send.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/benchmarks/lib/endpoint_request_func.py#L248-L286
+    title: vLLM v0.33.0, vllm/benchmarks/lib/endpoint_request_func.py, async_request_openai_completions (the timer)
+    quote: 'output.ttft = timestamp - st'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.bench.client-queue-in-percentile-metrics
+  value: --percentile-metrics
+  text: vLLM's benchmarking guide says that when --max-concurrency is set, client_queue_time should be included in --percentile-metrics, to report the time spent waiting for the benchmark client's concurrency limit.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/benchmarking/cli.md#L775
+    title: vLLM v0.33.0, docs/benchmarking/cli.md, load pattern control parameters
+    quote: 'include `client_queue_time` in `--percentile-metrics` to report time spent waiting for the benchmark client''s concurrency limit.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.bench.warmup-is-request-zero
+  value: copies of one request
+  text: In vllm bench serve the warm-up requests are all one and the same, test_input, which is built from the first request of the dataset. They are sent together before the main run, under the concurrency cap when there is one, and none of their outputs is kept.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/benchmarks/serve.py#L875-L945
+    title: vLLM v0.33.0, vllm/benchmarks/serve.py, benchmark (the test run and the warm-up)
+    quote: 'request_func_input=test_input, session=session, pbar=warmup_pbar'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: sglang.bench.warmup-is-request-zero
+  value: 32
+  unit: tokens
+  text: In bench_serving the warm-up requests are copies of the first request of the dataset, with the output length capped at 32 tokens, and they run at the same concurrency as the measured run, so --warmup-requests does not become a burst of its own.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/benchmark/serving.py#L1466-L1501
+    title: SGLang v0.5.23, python/sglang/benchmark/serving.py, benchmark (the warm-up)
+    quote: 'output_len=min(test_request.output_len, 32),'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.bench.trace-timestamps-mooncake-only
+  value: only for the mooncake dataset
+  text: SGLang's bench_serving can schedule requests by the timestamps in a trace file, but its own help says the option is only valid for the mooncake dataset.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/benchmark/serving.py#L2472-L2476
+    title: SGLang v0.5.23, python/sglang/benchmark/serving.py, --use-trace-timestamps
+    quote: 'help="Use timestamps from the trace file for request scheduling. Only valid for ''mooncake'' dataset.",'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.bench.mooncake-generator
+  value: the timestamps in the Mooncake trace file
+  text: SGLang's Mooncake request generator yields requests based on the timestamps in the trace file. Each is due at its timestamp, counted from the first row and scaled by a slowdown factor.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/benchmark/datasets/mooncake.py#L56-L76
+    title: SGLang v0.5.23, python/sglang/benchmark/datasets/mooncake.py, get_mooncake_request_over_time
+    quote: 'An async generator that yields requests based on the timestamps in the Mooncake trace file,'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.bench.mooncake-in-time
+  value: ignoring --request-rate
+  text: For the mooncake dataset on the sglang backend, bench_serving prints that it is using the time-based Mooncake request scheduler and ignoring --request-rate.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/benchmark/serving.py#L1554-L1559
+    title: SGLang v0.5.23, python/sglang/benchmark/serving.py, benchmark (the Mooncake request scheduler)
+    quote: 'print("Using time-based Mooncake request scheduler, ignoring --request-rate.")'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: bench.wrk2.hdr-compensation
+  value: HdrHistogram can compensate
+  text: wrk2's README says that HdrHistogram includes a simple way to compensate for coordinated omission when a known expected interval between measurements exists. A harness that cannot send on schedule can correct its recorded latencies after the fact, if it knows the interval it meant to keep.
+  tag: measured
+  source:
+    url: https://github.com/giltene/wrk2/blob/44a94c17d8e6a0bac8559b53da76848e430cb7a7/README.md#L312-L314
+    title: wrk2 README (giltene/wrk2 at 44a94c1), the ways of correcting coordinated omission
+    quote: 'a simple way to compensate for Coordinated Omission when a known'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: bench.wrk2.example-2-run
+  value: 30 s, 100 connections, 2000 requests a second
+  text: wrk2's second example, the one with the 1.4 second pause, is a run of 30 seconds on 100 connections at a constant 2,000 requests a second (-d30s, -c100 and -R2000).
+  tag: measured
+  source:
+    url: https://github.com/giltene/wrk2/blob/44a94c17d8e6a0bac8559b53da76848e430cb7a7/README.md#L585-L587
+    title: wrk2 README (giltene/wrk2 at 44a94c1), Example 2
+    quote: 'wrk -t2 -c100 -d30s -R2000 --u_latency http://127.0.0.1:80/index.html'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: bench.wrk2.stall-uncorrected-p999
+  value: 1.41
+  unit: s
+  text: In the same example, the uncorrected distribution shows the pause only at its 99.9th percentile, 1.41 s, where its 99th percentile is 6.04 ms. These are the author's figures, which this course has not reproduced.
+  tag: measured
+  source:
+    url: https://github.com/giltene/wrk2/blob/44a94c17d8e6a0bac8559b53da76848e430cb7a7/README.md#L660-L668
+    title: wrk2 README (giltene/wrk2 at 44a94c1), Example 2, uncorrected latency
+    quote: '99.900% 1.41s'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: bench.wrk2.stall-recorded-count
+  value: 39500
+  unit: requests
+  text: The corrected distribution of wrk2's second example holds 39,500 recorded requests, which is the total count of its histogram. These are the author's figures, which this course has not reproduced.
+  tag: measured
+  source:
+    url: https://github.com/giltene/wrk2/blob/44a94c17d8e6a0bac8559b53da76848e430cb7a7/README.md#L655-L657
+    title: wrk2 README (giltene/wrk2 at 44a94c1), Example 2, recorded latency
+    quote: 'Total count = 39500'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: bench.kernelspace.traffic-rule
+  value: 'Poisson for open-loop truth, closed-loop concurrency for saturation curves'
+  text: 'kernelspace''s T7.L2 asks every benchmark to ship its arrival process, and names the two uses: Poisson arrivals for the open-loop truth, and closed-loop concurrency for saturation curves.'
+  tag: measured
+  source:
+    url: https://github.com/praveer13/kernelspace/blob/d478f91a0af590f03fcfd76ee73149fa70b28e51/public/lessons-md/t7.l2.md#L12
+    title: 'kernelspace T7.L2, Benchmarking Methodology, rule 1 (at d478f91)'
+    quote: 'arrival process** (Poisson for open-loop truth, closed-loop concurrency for saturation curves)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: bench.kernelspace.broken-bench-flaws
+  value: closed-loop, capped-output, warm-cache, warm-up
+  text: 'kernelspace''s broken-bench exercise gives a Fleet run one of four flaws, a closed loop, a capped output, a warm cache or a counted warm-up, and asks for the p95 TTFT that the benchmark should have reported.'
+  tag: measured
+  source:
+    url: https://github.com/praveer13/kernelspace/blob/d478f91a0af590f03fcfd76ee73149fa70b28e51/src/lib/world/fleet-ex/broken-bench.ts#L2-L19
+    title: 'kernelspace src/lib/world/fleet-ex/broken-bench.ts, the four flaws (at d478f91)'
+    quote: 'THE FOUR FLAWS. All four are expressible on the Fleet engine''s own mechanisms, so none is left out (the PR says so).'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: bench.kernelspace.burstgpt-lab-limits
+  value: lengths only, no timestamps
+  text: 'kernelspace''s burstgpt-replay field lab says that vLLM''s BurstGPT loader reads only the two token counts of a row, never the timestamps, and that a request rate of infinity sends all the requests at once, so the lab measures a saturated throughput ceiling and not arrival bursts.'
+  tag: measured
+  source:
+    url: https://github.com/praveer13/kernelspace/blob/d478f91a0af590f03fcfd76ee73149fa70b28e51/src/data/field-labs/burstgpt-replay.ts#L2-L15
+    title: 'kernelspace src/data/field-labs/burstgpt-replay.ts, the lab''s own limits (at d478f91)'
+    quote: 'counts, never the timestamps, and `--request-rate inf` sends them all at once.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: bench.kernelspace.knee-goodput
+  value: SLO-met requests ÷ the arrival window
+  text: 'kernelspace''s knee exercise reports goodput as the requests that met the SLO, wherever they finish, divided by the 40 s of the trace''s arrival window, and never as a percentage of the engine''s own.'
+  tag: measured
+  source:
+    url: https://github.com/praveer13/kernelspace/blob/d478f91a0af590f03fcfd76ee73149fa70b28e51/src/lib/world/fleet-ex/knee.ts#L28-L29
+    title: 'kernelspace src/lib/world/fleet-ex/knee.ts, the sweep (at d478f91)'
+    quote: 'requests that met the SLO, wherever they finish, ÷ 40 s, never `Engine.goodput()`''s percentage.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: bench.kernelspace.knee-fixed-window
+  value: a longer window would not do
+  text: 'kernelspace''s knee exercise holds its arrival window at 40 s and cuts the sped-up trace at it, because a trace compressed into a shorter window has a shorter denominator, and its goodput would rise again under overload.'
+  tag: measured
+  source:
+    url: https://github.com/praveer13/kernelspace/blob/d478f91a0af590f03fcfd76ee73149fa70b28e51/src/lib/world/fleet-ex/knee.ts#L22-L25
+    title: 'kernelspace src/lib/world/fleet-ex/knee.ts, the sweep (at d478f91)'
+    quote: 'longer window would not do, because a trace compressed into a shorter one has a shorter denominator and its goodput'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: bench.burstgpt.timestamp-column
+  value: request submission time
+  text: 'BurstGPT''s Timestamp column is the request submission time, in seconds from midnight at the start of the first day. It records when each request was submitted, which is the time a replay needs for its due time.'
+  tag: measured
+  source:
+    url: https://github.com/HPMLL/BurstGPT/blob/v2.0/README.md#L41
+    title: BurstGPT README at its v2.0 tag, Schema
+    quote: '`Timestamp`: request submission time, seconds from `0:00:00` on the first day.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: bench.burstgpt.elapsed-not-ttft
+  value: not the same as TTFT
+  text: 'In the files that have an Elapsed time column, that time runs from submission to the complete final response, all tokens included, and BurstGPT''s README says it is not the same as TTFT.'
+  tag: measured
+  source:
+    url: https://github.com/HPMLL/BurstGPT/blob/v2.0/README.md#L43
+    title: BurstGPT README at its v2.0 tag, Schema
+    quote: 'It’s not the same as TTFT (time to first token).'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: bench.burstgpt.failures
+  value: Response tokens of 0
+  text: 'The BurstGPT files that keep failures mark a failed request with a Response tokens value of 0, and the files named without_fails leave those rows out.'
+  tag: measured
+  source:
+    url: https://github.com/HPMLL/BurstGPT/blob/v2.0/README.md#L25-L27
+    title: BurstGPT README at its v2.0 tag, Data
+    quote: 'with some failure that `Response tokens` are `0`s.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: bench.burstgpt.license
+  value: CC BY 4.0
+  text: The BurstGPT repository carries the Creative Commons Attribution 4.0 International licence.
+  tag: measured
+  source:
+    url: https://github.com/HPMLL/BurstGPT/blob/v2.0/LICENSE#L1
+    title: BurstGPT LICENSE at its v2.0 tag
+    quote: 'Attribution 4.0 International'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: bench.burstgpt.cite-paper
+  value: cite the KDD '25 paper
+  text: 'BurstGPT''s README asks that anyone who uses the trace in research reference its paper, BurstGPT: A Real-World Workload Dataset to Optimize LLM Serving Systems (KDD ''25).'
+  tag: measured
+  source:
+    url: https://github.com/HPMLL/BurstGPT/blob/v2.0/README.md#L62
+    title: BurstGPT README at its v2.0 tag, Paper
+    quote: 'If the trace is utilized in your research, please ensure to reference our paper:'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: bench.burstgpt.busiest-hour-rows
+  value: 33305
+  unit: requests
+  text: 'In the BurstGPT v2.0 file BurstGPT_without_fails_1.csv, the busiest aligned one-hour window holds 33,305 requests, which kernelspace''s trace slice samples down to 480.'
+  tag: measured
+  source:
+    url: https://github.com/praveer13/kernelspace/blob/d478f91a0af590f03fcfd76ee73149fa70b28e51/public/traces/README.md#L12
+    title: kernelspace public/traces/README.md (at d478f91), the busiest-hour slice
+    quote: 'busiest aligned one-hour bin (33,305 source rows)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: bench.burstgpt.busiest-minute-rows
+  value: 1095
+  unit: requests
+  text: 'In the same file, the busiest aligned 60-second window holds 1,095 requests, which kernelspace''s trace slice samples down to 40.'
+  tag: measured
+  source:
+    url: https://github.com/praveer13/kernelspace/blob/d478f91a0af590f03fcfd76ee73149fa70b28e51/public/traces/README.md#L13
+    title: kernelspace public/traces/README.md (at d478f91), the busiest-minute slice
+    quote: 'busiest aligned 60-second bin (1,095 source rows'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: bench.burstgpt.hour-mean-per-minute
+  value: 555.08
+  unit: requests per minute
+  text: The busiest hour of the file averages about 555 requests a minute, which is its 33,305 requests over 60 minutes.
+  tag: derived
+  derived:
+    formula: bench.burstgpt.busiest-hour-rows / 60
+    inputs: [bench.burstgpt.busiest-hour-rows]
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+
+- id: bench.burstgpt.minute-over-hour-mean
+  value: 1.97
+  unit: x
+  text: The file's busiest minute holds about 1.97 times the requests of an average minute of its busiest hour. The two fall in different parts of the file, so this sets two peaks of the file side by side, and not one hour's own peak against its own mean.
+  tag: derived
+  derived:
+    formula: bench.burstgpt.busiest-minute-rows / bench.burstgpt.hour-mean-per-minute
+    inputs: [bench.burstgpt.busiest-minute-rows, bench.burstgpt.hour-mean-per-minute]
+  verifiedAt: 2026-11-04
+  ttlDays: 365

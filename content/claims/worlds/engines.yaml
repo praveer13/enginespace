@@ -1,0 +1,138 @@
+# Facts about the engines that the notional-machine cards cite and that no other claims file holds (W1-T07; ARCHITECTURE §4.4, §5.9).
+# Each was read on 2026-11-04 from the file its URL names, at the tag the URL names: vLLM v0.33.0 and SGLang v0.5.23 (course.lock.json,
+# keys vllm and sglang). A quote is the source's own text and a #L anchor says which lines hold it. A fact that belongs to a pin is
+# re-read at the quarterly re-pin, so its TTL is 90 days.
+
+# --- vLLM v0.33.0 --------------------------------------------------------------------------------------------------------------------
+
+- id: vllm.request.engine-core-process
+  value: a background process with a busy loop
+  text: In vLLM's multi-process mode the engine core runs in a background process with its own busy loop, and the client in the API server's process pushes requests to it and pulls outputs from it through ZMQ sockets.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/core_client.py#L598-L604
+    title: vLLM v0.33.0, vllm/v1/engine/core_client.py, MPClient
+    quote: 'EngineCore runs in a background process busy loop, getting new EngineCoreRequests and returning EngineCoreOutputs'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.engine-core.abort-status
+  value: FINISHED_ABORTED
+  text: When the engine core aborts requests it tells the scheduler to finish them with the status FINISHED_ABORTED.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/core.py#L564-L569
+    title: vLLM v0.33.0, vllm/v1/engine/core.py, EngineCore.abort_requests
+    quote: 'self.scheduler.finish_requests(request_ids, RequestStatus.FINISHED_ABORTED)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.scheduler.stop-check
+  value: update_from_output
+  text: vLLM's scheduler checks whether a request has stopped when a step's output tokens come back to it, in update_from_output, and it must do so before it builds the engine core output. So a stop is known only once the step that produced the token has been read back.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/sched/scheduler.py#L2755-L2757
+    title: vLLM v0.33.0, vllm/v1/core/sched/scheduler.py, Scheduler._update_request_with_output
+    quote: 'Check for stop and update request state.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.bonus-token
+  value: sampled from the target only
+  text: In vLLM's rejection sampler, when every proposed token is accepted a bonus token is added at the end of the sequence, and it is sampled from the target model's probabilities only.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/sample/rejection_sampler.py#L59-L62
+    title: vLLM v0.33.0, vllm/v1/sample/rejection_sampler.py, RejectionSampler
+    quote: 'If all proposed tokens are accepted, the bonus token is added to the end of the sequence. The bonus token is only sampled from the target probabilities.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.spec.sampling-constraints
+  value: temperature, top-k and top-p on the target logits
+  text: Before it verifies drafts, vLLM's rejection sampler runs the target model's logits through apply_sampling_constraints, which applies temperature scaling and then top-k and top-p.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/sample/rejection_sampler.py#L589-L598
+    title: vLLM v0.33.0, vllm/v1/sample/rejection_sampler.py, apply_sampling_constraints
+    quote: 'This function applies temperature scaling to the logits, as well as top-k and top-p.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.profiling.trace-files
+  value: one trace per worker rank
+  text: vLLM's torch profiler writes each worker's trace and a summary table under torch_profiler_dir. The trace is named after the worker's rank, as a gzipped Chrome-format JSON file with the suffix .pt.trace.json.gz, and the docs say to open traces in the Perfetto UI.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/contributing/profiling.md#L32-L36
+    title: vLLM v0.33.0, docs/contributing/profiling.md
+    quote: 'Each worker writes its trace and summary table under `torch_profiler_dir`,'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.profiling.nsys-graph-trace
+  value: --cuda-graph-trace=node
+  text: vLLM's profiling guide recommends launching Nsight Systems with --trace-fork-before-exec=true and --cuda-graph-trace=node, so that a CUDA graph is traced as its nodes and not as one launch.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/contributing/profiling.md#L233
+    title: vLLM v0.33.0, docs/contributing/profiling.md (Nsight Systems)
+    quote: 'The Nsight Systems profiler can be launched with `nsys profile ...`, with a few recommended flags for vLLM: `--trace-fork-before-exec=true --cuda-graph-trace=node`.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+# --- SGLang v0.5.23 ------------------------------------------------------------------------------------------------------------------
+
+- id: sglang.engine.components
+  value: tokenizer manager, scheduler, detokenizer manager
+  text: SGLang's engine has three components. The tokenizer manager tokenizes requests and sends them on, the scheduler in a subprocess schedules batches, runs the forward and sends the output tokens on, and the detokenizer manager in another subprocess turns tokens back into text.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/entrypoints/engine.py#L252-L255
+    title: SGLang v0.5.23, python/sglang/srt/entrypoints/engine.py, Engine
+    quote: 'The engine consists of three components:'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.engine.ipc
+  value: ZMQ IPC
+  text: SGLang's processes talk through IPC over the ZMQ library, each process on its own port, while the HTTP server, the engine and the tokenizer manager all run in the main process.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/entrypoints/engine.py#L258-L259
+    title: SGLang v0.5.23, python/sglang/srt/entrypoints/engine.py, Engine
+    quote: 'Inter-process communication is done through IPC (each process uses a different port) via the ZMQ library.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.bench.goodput-duration
+  value: good requests / benchmark duration
+  text: SGLang's bench_serving divides the requests that met every SLO by the duration of the whole run, which is measured from the first send to the last completion.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/benchmark/goodput.py#L48
+    title: SGLang v0.5.23, python/sglang/benchmark/goodput.py, calculate_goodput
+    quote: 'request_goodput=num_good / dur_s,'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang

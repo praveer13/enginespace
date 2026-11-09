@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 138" width="360" height="138" fill="none" stroke="currentColor" stroke-width="1">
+  <title>Two engine steps on a CPU lane and a GPU lane, with an open gap on the GPU lane between the forwards</title>
+  <desc>The CPU lane has two runs of boxes, one for each step: schedule, prepare, launch, sync and sample, in that order. The GPU lane has one box for each step, the forward, which starts when the launch ends. Between the first forward and the second the GPU lane is empty, drawn as a dashed box, for as long as the CPU lane is busy with the sync, the sample and the next step's schedule, prepare and launch: 764 microseconds, to scale.</desc>
+  <g stroke="none" fill="currentColor" font-size="10">
+    <text x="4" y="45">CPU</text>
+    <text x="4" y="89">GPU</text>
+  </g>
+  <g fill="currentColor" fill-opacity="0.14">
+    <rect x="46.00" y="30" width="39.47" height="22"/>
+    <rect x="85.47" y="30" width="1.86" height="22"/>
+    <rect x="87.32" y="30" width="2.32" height="22"/>
+    <rect x="199.92" y="30" width="39.47" height="22"/>
+    <rect x="239.39" y="30" width="1.86" height="22"/>
+    <rect x="241.25" y="30" width="2.32" height="22"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.34">
+    <rect x="184.45" y="30" width="1.55" height="22"/>
+    <rect x="185.99" y="30" width="13.93" height="22"/>
+    <rect x="338.52" y="30" width="1.55" height="22"/>
+    <rect x="340.07" y="30" width="13.93" height="22"/>
+  </g>
+  <g fill="currentColor" fill-opacity="0.55">
+    <rect x="89.65" y="74" width="94.80" height="22"/>
+    <rect x="243.57" y="74" width="94.95" height="22"/>
+  </g>
+  <g stroke-dasharray="3 3">
+    <rect x="184.45" y="74" width="59.12" height="22"/>
+  </g>
+  <g stroke-width="1">
+    <path d="M184.45 102V107H243.57V102"/>
+  </g>
+  <g stroke="none" fill="currentColor" font-size="8" text-anchor="middle">
+    <text x="65.7" y="45">schedule</text>
+    <text x="219.7" y="45">schedule</text>
+    <text x="137.0" y="89">forward</text>
+    <text x="291.0" y="89">forward</text>
+    <text x="193.0" y="26">sample</text>
+    <text x="347.0" y="26">sample</text>
+    <text x="214.0" y="118">bubble: 764 µs, the CPU's work</text>
+  </g>
+  <g stroke="none" fill="currentColor" font-size="8">
+    <text x="46" y="133">light: schedule, prepare, launch · dark: sync, sample</text>
+  </g>
+</svg>

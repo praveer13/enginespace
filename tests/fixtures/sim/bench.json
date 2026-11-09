@@ -1,0 +1,712 @@
+{
+  "header": "Golden vectors for packages/sim/bench (ARCHITECTURE section 5.10): each maps its input, a benchmark spec with a seed, a server and the summary options, to the client's log and its summary, with the SHA-256 of that output's canonical JSON. A run on the front page's tick world is recorded whole: its rows and its summary. A longer run is recorded as its summary with the count and the SHA-256 of its rows. Regenerate only with `bun scripts/vectors.ts --write`, and review the diff like code.",
+  "model": "bench",
+  "vectors": [
+    {
+      "name": "tick world: 12 requests with Poisson arrivals, an open loop, so every send is on its due time",
+      "input": {
+        "output": "full",
+        "seed": 21,
+        "server": {"chunkedPrefill":true,"gpu":{"card":"tick"},"maxBatchedTokens":2048,"maxNumSeqs":4},
+        "spec": {
+          "arrivals": {"kind":"poisson","ratePerSMilli":50000000},
+          "durationUs": 400,
+          "lengths": {"kind":"dists","output":{"hi":12,"kind":"uniform","lo":2},"prompt":{"hi":3,"kind":"uniform","lo":1}},
+          "requests": 12,
+          "slo": {"tpotUs":8,"ttftUs":30},
+          "warmupUs": 0
+        },
+        "summary": {"bootstrap":200,"seed":1}
+      },
+      "sha256": "7f43f246ff009adfc62b5d2babc39ac02110e865cdf6b4667b27df0d8caffed5",
+      "output": {
+        "endUs": 312,
+        "gpuBusyUs": 227,
+        "rows": [
+          {"client":null,"doneUs":87,"dueUs":44,"firstUs":49,"id":0,"outputTokens":10,"promptTokens":3,"sentUs":44},
+          {"client":null,"doneUs":87,"dueUs":55,"firstUs":66,"id":1,"outputTokens":6,"promptTokens":3,"sentUs":55},
+          {"client":null,"doneUs":87,"dueUs":61,"firstUs":71,"id":2,"outputTokens":5,"promptTokens":3,"sentUs":61},
+          {"client":null,"doneUs":115,"dueUs":102,"firstUs":107,"id":3,"outputTokens":3,"promptTokens":1,"sentUs":102},
+          {"client":null,"doneUs":138,"dueUs":121,"firstUs":126,"id":4,"outputTokens":4,"promptTokens":2,"sentUs":121},
+          {"client":null,"doneUs":160,"dueUs":133,"firstUs":143,"id":5,"outputTokens":5,"promptTokens":2,"sentUs":133},
+          {"client":null,"doneUs":168,"dueUs":134,"firstUs":143,"id":6,"outputTokens":7,"promptTokens":1,"sentUs":134},
+          {"client":null,"doneUs":168,"dueUs":143,"firstUs":152,"id":7,"outputTokens":5,"promptTokens":3,"sentUs":143},
+          {"client":null,"doneUs":232,"dueUs":186,"firstUs":191,"id":8,"outputTokens":11,"promptTokens":1,"sentUs":186},
+          {"client":null,"doneUs":232,"dueUs":194,"firstUs":204,"id":9,"outputTokens":8,"promptTokens":1,"sentUs":194},
+          {"client":null,"doneUs":304,"dueUs":254,"firstUs":259,"id":10,"outputTokens":12,"promptTokens":1,"sentUs":254},
+          {"client":null,"doneUs":312,"dueUs":272,"firstUs":284,"id":11,"outputTokens":8,"promptTokens":1,"sentUs":272}
+        ],
+        "steps": 54,
+        "summary": {
+          "adherence": {"hardLimitUs":20000,"lateRows":0,"maxLateUs":0,"ok":true,"rows":12,"toleranceUs":2000,"veryLateRows":0},
+          "counts": {"measured":12,"offered":12,"warmup":0},
+          "goodput": {"arrivalWindowPerSMilli":30000000,"met":12,"totalDurationPerSMilli":38461538},
+          "latency": {
+            "e2eFromDue": {"beyondP99":0,"maxUs":50,"meanUs":33,"n":12,"p50Us":32,"p90Us":46,"p99Us":50},
+            "e2eFromSent": {"beyondP99":0,"maxUs":50,"meanUs":33,"n":12,"p50Us":32,"p90Us":46,"p99Us":50},
+            "tpot": {"beyondP99":0,"maxUs":4,"meanUs":4,"n":12,"p50Us":4,"p90Us":4,"p99Us":4},
+            "ttftFromDue": {"beyondP99":0,"maxUs":12,"meanUs":8,"n":12,"p50Us":9,"p90Us":11,"p99Us":12},
+            "ttftFromSent": {"beyondP99":0,"maxUs":12,"meanUs":8,"n":12,"p50Us":9,"p90Us":11,"p99Us":12}
+          },
+          "littles": {
+            "completions": 12,
+            "expectedInFlightMilli": 978,
+            "fromUs": 0,
+            "inFlightUs": 391,
+            "meanInFlightMilli": 978,
+            "meanLatencyUs": 33,
+            "residualPermille": 0,
+            "sojournUs": 391,
+            "throughputPerSMilli": 30000000,
+            "toUs": 400
+          },
+          "p99Intervals": {
+            "e2eFromDue": {"hiUs":50,"levelPermille":950,"loUs":43,"pointUs":50,"resamples":200},
+            "tpot": {"hiUs":4,"levelPermille":950,"loUs":4,"pointUs":4,"resamples":200},
+            "ttftFromDue": {"hiUs":12,"levelPermille":950,"loUs":10,"pointUs":12,"resamples":200}
+          },
+          "rates": {"intendedPerSMilli":30000000,"sentPerSMilli":30000000},
+          "window": {"fromUs":0,"toUs":400}
+        }
+      }
+    },
+    {
+      "name": "tick world: the same schedule through 2 closed-loop clients, whose sends slip behind their due times",
+      "input": {
+        "output": "full",
+        "seed": 21,
+        "server": {"chunkedPrefill":true,"gpu":{"card":"tick"},"maxBatchedTokens":2048,"maxNumSeqs":4},
+        "spec": {
+          "arrivals": {"clients":2,"kind":"closed","schedule":{"kind":"poisson","ratePerSMilli":50000000},"thinkUs":0},
+          "durationUs": 400,
+          "lengths": {"kind":"dists","output":{"hi":12,"kind":"uniform","lo":2},"prompt":{"hi":3,"kind":"uniform","lo":1}},
+          "requests": 12,
+          "slo": {"tpotUs":8,"ttftUs":30},
+          "warmupUs": 0
+        },
+        "summary": {"bootstrap":200,"seed":1}
+      },
+      "sha256": "f2e3bce07835d884e4085c2aafbcabf6270fa00fe7f94dcb07da6858f83a4f87",
+      "output": {
+        "endUs": 312,
+        "gpuBusyUs": 256,
+        "rows": [
+          {"client":0,"doneUs":86,"dueUs":44,"firstUs":49,"id":0,"outputTokens":10,"promptTokens":3,"sentUs":44},
+          {"client":1,"doneUs":86,"dueUs":55,"firstUs":66,"id":1,"outputTokens":6,"promptTokens":3,"sentUs":55},
+          {"client":0,"doneUs":112,"dueUs":61,"firstUs":95,"id":2,"outputTokens":5,"promptTokens":3,"sentUs":86},
+          {"client":1,"doneUs":120,"dueUs":102,"firstUs":112,"id":3,"outputTokens":3,"promptTokens":1,"sentUs":102},
+          {"client":0,"doneUs":142,"dueUs":121,"firstUs":129,"id":4,"outputTokens":4,"promptTokens":2,"sentUs":121},
+          {"client":1,"doneUs":159,"dueUs":133,"firstUs":142,"id":5,"outputTokens":5,"promptTokens":2,"sentUs":133},
+          {"client":0,"doneUs":176,"dueUs":134,"firstUs":151,"id":6,"outputTokens":7,"promptTokens":1,"sentUs":142},
+          {"client":1,"doneUs":184,"dueUs":143,"firstUs":168,"id":7,"outputTokens":5,"promptTokens":3,"sentUs":159},
+          {"client":0,"doneUs":234,"dueUs":186,"firstUs":193,"id":8,"outputTokens":11,"promptTokens":1,"sentUs":186},
+          {"client":1,"doneUs":234,"dueUs":194,"firstUs":206,"id":9,"outputTokens":8,"promptTokens":1,"sentUs":194},
+          {"client":0,"doneUs":304,"dueUs":254,"firstUs":259,"id":10,"outputTokens":12,"promptTokens":1,"sentUs":254},
+          {"client":1,"doneUs":312,"dueUs":272,"firstUs":284,"id":11,"outputTokens":8,"promptTokens":1,"sentUs":272}
+        ],
+        "steps": 61,
+        "summary": {
+          "adherence": {"hardLimitUs":20000,"lateRows":0,"maxLateUs":25,"ok":true,"rows":12,"toleranceUs":2000,"veryLateRows":0},
+          "counts": {"measured":12,"offered":12,"warmup":0},
+          "goodput": {"arrivalWindowPerSMilli":27500000,"met":11,"totalDurationPerSMilli":35256410},
+          "latency": {
+            "e2eFromDue": {"beyondP99":0,"maxUs":51,"meanUs":38,"n":12,"p50Us":40,"p90Us":50,"p99Us":51},
+            "e2eFromSent": {"beyondP99":0,"maxUs":50,"meanUs":33,"n":12,"p50Us":31,"p90Us":48,"p99Us":50},
+            "tpot": {"beyondP99":0,"maxUs":4,"meanUs":4,"n":12,"p50Us":4,"p90Us":4,"p99Us":4},
+            "ttftFromDue": {"beyondP99":0,"maxUs":34,"meanUs":13,"n":12,"p50Us":10,"p90Us":25,"p99Us":34},
+            "ttftFromSent": {"beyondP99":0,"maxUs":12,"meanUs":9,"n":12,"p50Us":9,"p90Us":12,"p99Us":12}
+          },
+          "littles": {
+            "completions": 12,
+            "expectedInFlightMilli": 1003,
+            "fromUs": 0,
+            "inFlightUs": 401,
+            "meanInFlightMilli": 1003,
+            "meanLatencyUs": 33,
+            "residualPermille": 0,
+            "sojournUs": 401,
+            "throughputPerSMilli": 30000000,
+            "toUs": 400
+          },
+          "p99Intervals": {
+            "e2eFromDue": {"hiUs":51,"levelPermille":950,"loUs":48,"pointUs":51,"resamples":200},
+            "tpot": {"hiUs":4,"levelPermille":950,"loUs":4,"pointUs":4,"resamples":200},
+            "ttftFromDue": {"hiUs":34,"levelPermille":950,"loUs":17,"pointUs":34,"resamples":200}
+          },
+          "rates": {"intendedPerSMilli":30000000,"sentPerSMilli":30000000},
+          "window": {"fromUs":0,"toUs":400}
+        }
+      }
+    },
+    {
+      "name": "70B on H100 at TP 4: Poisson arrivals at 8 a second, an open loop",
+      "input": {
+        "output": "digest",
+        "seed": 31,
+        "server": {"chunkedPrefill":true,"gpu":{"card":"s5","hostTerm":"in-gpu","row":"h100-vllm-0-10-2-fp8","tp":4},"maxBatchedTokens":8192,"maxNumSeqs":64},
+        "spec": {
+          "arrivals": {"kind":"poisson","ratePerSMilli":8000},
+          "durationUs": 60000000,
+          "lengths": {"kind":"dists","output":{"hi":192,"kind":"uniform","lo":64},"prompt":{"hi":512,"kind":"uniform","lo":128}},
+          "requests": 1000,
+          "slo": {"tpotUs":50000,"ttftUs":500000},
+          "warmupUs": 10000000
+        },
+        "summary": {"bootstrap":1000,"seed":2}
+      },
+      "sha256": "2b19bcd47f03bdb7859ec3a3d585c4fba115627ee7c8f2fb89b8a1937eec866b",
+      "output": {
+        "endUs": 61925865,
+        "gpuBusyUs": 61786458,
+        "rows": {"count":462,"sha256":"2f17d3fdf334093a6b8b4e75d65349888ee69be792e1d6eacc27dc5dd10ed3b3"},
+        "steps": 4413,
+        "summary": {
+          "adherence": {"hardLimitUs":20000,"lateRows":0,"maxLateUs":0,"ok":true,"rows":462,"toleranceUs":2000,"veryLateRows":0},
+          "counts": {"measured":376,"offered":462,"warmup":86},
+          "goodput": {"arrivalWindowPerSMilli":7520,"met":376,"totalDurationPerSMilli":7241},
+          "latency": {
+            "e2eFromDue": {"beyondP99":3,"maxUs":2919854,"meanUs":1810467,"n":376,"p50Us":1780992,"p90Us":2564436,"p99Us":2861252},
+            "e2eFromSent": {"beyondP99":3,"maxUs":2919854,"meanUs":1810467,"n":376,"p50Us":1780992,"p90Us":2564436,"p99Us":2861252},
+            "tpot": {"beyondP99":3,"maxUs":16018,"meanUs":14068,"n":376,"p50Us":14012,"p90Us":14956,"p99Us":15580},
+            "ttftFromDue": {"beyondP99":3,"maxUs":93429,"meanUs":47077,"n":376,"p50Us":44536,"p90Us":64050,"p99Us":79399},
+            "ttftFromSent": {"beyondP99":3,"maxUs":93429,"meanUs":47077,"n":376,"p50Us":44536,"p90Us":64050,"p99Us":79399}
+          },
+          "littles": {
+            "completions": 371,
+            "expectedInFlightMilli": 13405,
+            "fromUs": 10000000,
+            "inFlightUs": 674489159,
+            "meanInFlightMilli": 13490,
+            "meanLatencyUs": 1806645,
+            "residualPermille": 6,
+            "sojournUs": 670265254,
+            "throughputPerSMilli": 7420,
+            "toUs": 60000000
+          },
+          "p99Intervals": {
+            "e2eFromDue": {"hiUs":2883200,"levelPermille":950,"loUs":2810856,"pointUs":2861252,"resamples":1000},
+            "tpot": {"hiUs":15816,"levelPermille":950,"loUs":15415,"pointUs":15580,"resamples":1000},
+            "ttftFromDue": {"hiUs":80143,"levelPermille":950,"loUs":78018,"pointUs":79399,"resamples":1000}
+          },
+          "rates": {"intendedPerSMilli":7520,"sentPerSMilli":7520},
+          "window": {"fromUs":10000000,"toUs":60000000}
+        }
+      }
+    },
+    {
+      "name": "70B on H100 at TP 4: the same schedule with the server frozen for 5 s at 30 s, an open loop",
+      "input": {
+        "output": "digest",
+        "seed": 31,
+        "server": {
+          "chunkedPrefill": true,
+          "gpu": {"card":"s5","hostTerm":"in-gpu","row":"h100-vllm-0-10-2-fp8","tp":4},
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64,
+          "stalls": [{"atUs":30000000,"forUs":5000000}]
+        },
+        "spec": {
+          "arrivals": {"kind":"poisson","ratePerSMilli":8000},
+          "durationUs": 60000000,
+          "lengths": {"kind":"dists","output":{"hi":192,"kind":"uniform","lo":64},"prompt":{"hi":512,"kind":"uniform","lo":128}},
+          "requests": 1000,
+          "slo": {"tpotUs":50000,"ttftUs":500000},
+          "warmupUs": 10000000
+        },
+        "summary": {"bootstrap":1000,"seed":2}
+      },
+      "sha256": "e444ca717edbf202d52ffdb0d1584c3e6eb6cad72ba0fce7ac5070deebf75b33",
+      "output": {
+        "endUs": 61926818,
+        "gpuBusyUs": 56810385,
+        "rows": {"count":462,"sha256":"6f63096fc74d8a6bb857080877a8fbf1068b3ea8f1cf59bad491304fafff9dd3"},
+        "steps": 3969,
+        "summary": {
+          "adherence": {"hardLimitUs":20000,"lateRows":0,"maxLateUs":0,"ok":true,"rows":462,"toleranceUs":2000,"veryLateRows":0},
+          "counts": {"measured":376,"offered":462,"warmup":86},
+          "goodput": {"arrivalWindowPerSMilli":6440,"met":322,"totalDurationPerSMilli":6201},
+          "latency": {
+            "e2eFromDue": {"beyondP99":3,"maxUs":8808001,"meanUs":2435692,"n":376,"p50Us":1923427,"p90Us":5305211,"p99Us":8420470},
+            "e2eFromSent": {"beyondP99":3,"maxUs":8808001,"meanUs":2435692,"n":376,"p50Us":1923427,"p90Us":5305211,"p99Us":8420470},
+            "tpot": {"beyondP99":3,"maxUs":105059,"meanUs":16636,"n":376,"p50Us":14260,"p90Us":18324,"p99Us":79015},
+            "ttftFromDue": {"beyondP99":3,"maxUs":5419975,"meanUs":388456,"n":376,"p50Us":46841,"p90Us":1160352,"p99Us":5107664},
+            "ttftFromSent": {"beyondP99":3,"maxUs":5419975,"meanUs":388456,"n":376,"p50Us":46841,"p90Us":1160352,"p99Us":5107664}
+          },
+          "littles": {
+            "completions": 371,
+            "expectedInFlightMilli": 18107,
+            "fromUs": 10000000,
+            "inFlightUs": 909560532,
+            "meanInFlightMilli": 18191,
+            "meanLatencyUs": 2440260,
+            "residualPermille": 5,
+            "sojournUs": 905336627,
+            "throughputPerSMilli": 7420,
+            "toUs": 60000000
+          },
+          "p99Intervals": {
+            "e2eFromDue": {"hiUs":8644441,"levelPermille":950,"loUs":8083177,"pointUs":8420470,"resamples":1000},
+            "tpot": {"hiUs":97555,"levelPermille":950,"loUs":57874,"pointUs":79015,"resamples":1000},
+            "ttftFromDue": {"hiUs":5359949,"levelPermille":950,"loUs":4181347,"pointUs":5107664,"resamples":1000}
+          },
+          "rates": {"intendedPerSMilli":7520,"sentPerSMilli":7520},
+          "window": {"fromUs":10000000,"toUs":60000000}
+        }
+      }
+    },
+    {
+      "name": "70B on H100 at TP 4: the same frozen server seen through 24 closed-loop clients, which hide the stall from their own timers",
+      "input": {
+        "output": "digest",
+        "seed": 31,
+        "server": {
+          "chunkedPrefill": true,
+          "gpu": {"card":"s5","hostTerm":"in-gpu","row":"h100-vllm-0-10-2-fp8","tp":4},
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64,
+          "stalls": [{"atUs":30000000,"forUs":5000000}]
+        },
+        "spec": {
+          "arrivals": {"clients":24,"kind":"closed","schedule":{"kind":"poisson","ratePerSMilli":8000},"thinkUs":0},
+          "durationUs": 60000000,
+          "lengths": {"kind":"dists","output":{"hi":192,"kind":"uniform","lo":64},"prompt":{"hi":512,"kind":"uniform","lo":128}},
+          "requests": 1000,
+          "slo": {"tpotUs":50000,"ttftUs":500000},
+          "warmupUs": 10000000
+        },
+        "summary": {"bootstrap":1000,"seed":2}
+      },
+      "sha256": "9afaed76e8ca06e01866cda1b279897ab3dc74e1375b6dc794b03ce3599c3adf",
+      "output": {
+        "endUs": 61926185,
+        "gpuBusyUs": 56809752,
+        "rows": {"count":462,"sha256":"8934245324e2637098f82cc7aa30e5071ca5becfec502f59fb17b0cb7cc0a50d"},
+        "steps": 3982,
+        "summary": {
+          "adherence": {"hardLimitUs":20000,"lateRows":72,"maxLateUs":4370270,"ok":false,"rows":462,"toleranceUs":2000,"veryLateRows":72},
+          "counts": {"measured":376,"offered":462,"warmup":86},
+          "goodput": {"arrivalWindowPerSMilli":5800,"met":290,"totalDurationPerSMilli":5585},
+          "latency": {
+            "e2eFromDue": {"beyondP99":3,"maxUs":8074043,"meanUs":2628241,"n":376,"p50Us":2067388,"p90Us":5735839,"p99Us":7607382},
+            "e2eFromSent": {"beyondP99":3,"maxUs":8074043,"meanUs":2165918,"n":376,"p50Us":1866187,"p90Us":2799917,"p99Us":7607382},
+            "tpot": {"beyondP99":3,"maxUs":94428,"meanUs":16103,"n":376,"p50Us":14461,"p90Us":15700,"p99Us":72565},
+            "ttftFromDue": {"beyondP99":3,"maxUs":5178589,"meanUs":639636,"n":376,"p50Us":49009,"p90Us":3311293,"p99Us":4866278},
+            "ttftFromSent": {"beyondP99":3,"maxUs":5178589,"meanUs":177314,"n":376,"p50Us":44426,"p90Us":66454,"p99Us":4866278}
+          },
+          "littles": {
+            "completions": 371,
+            "expectedInFlightMilli": 16078,
+            "fromUs": 10000000,
+            "inFlightUs": 808134259,
+            "meanInFlightMilli": 16163,
+            "meanLatencyUs": 2166874,
+            "residualPermille": 5,
+            "sojournUs": 803910354,
+            "throughputPerSMilli": 7420,
+            "toUs": 60000000
+          },
+          "p99Intervals": {
+            "e2eFromDue": {"hiUs":7850105,"levelPermille":950,"loUs":7296092,"pointUs":7607382,"resamples":1000},
+            "tpot": {"hiUs":87742,"levelPermille":950,"loUs":52012,"pointUs":72565,"resamples":1000},
+            "ttftFromDue": {"hiUs":5118563,"levelPermille":950,"loUs":4356736,"pointUs":4866278,"resamples":1000}
+          },
+          "rates": {"intendedPerSMilli":7520,"sentPerSMilli":7520},
+          "window": {"fromUs":10000000,"toUs":60000000}
+        }
+      }
+    },
+    {
+      "name": "70B on H100 at TP 4: 64 closed-loop clients with no schedule, which keep the server just full",
+      "input": {
+        "output": "digest",
+        "seed": 32,
+        "server": {"chunkedPrefill":true,"gpu":{"card":"s5","hostTerm":"in-gpu","row":"h100-vllm-0-10-2-fp8","tp":4},"maxBatchedTokens":8192,"maxNumSeqs":64},
+        "spec": {
+          "arrivals": {"clients":64,"kind":"closed","thinkUs":0},
+          "durationUs": 60000000,
+          "lengths": {"kind":"dists","output":{"hi":192,"kind":"uniform","lo":64},"prompt":{"hi":512,"kind":"uniform","lo":128}},
+          "requests": 1000,
+          "slo": {"tpotUs":50000,"ttftUs":500000},
+          "warmupUs": 10000000
+        },
+        "summary": {"bootstrap":1000,"seed":2}
+      },
+      "sha256": "118fe53888b2ad91c778cd9ef10ae04766317ef927fb99f6b9d2a4c8895f65ae",
+      "output": {
+        "endUs": 49285461,
+        "gpuBusyUs": 49297244,
+        "rows": {"count":1000,"sha256":"22cb237b2949d935bd4a359b7ce77b4210781f26b0dc48c50606a9550da09b56"},
+        "steps": 2117,
+        "summary": {
+          "adherence": {"hardLimitUs":20000,"lateRows":0,"maxLateUs":0,"ok":true,"rows":1000,"toleranceUs":2000,"veryLateRows":0},
+          "counts": {"measured":764,"offered":1000,"warmup":236},
+          "goodput": {"arrivalWindowPerSMilli":15280,"met":764,"totalDurationPerSMilli":19447},
+          "latency": {
+            "e2eFromDue": {"beyondP99":7,"maxUs":4627955,"meanUs":3036376,"n":764,"p50Us":3043582,"p90Us":4215487,"p99Us":4546798},
+            "e2eFromSent": {"beyondP99":7,"maxUs":4627955,"meanUs":3036376,"n":764,"p50Us":3043582,"p90Us":4215487,"p99Us":4546798},
+            "tpot": {"beyondP99":7,"maxUs":26035,"meanUs":23243,"n":764,"p50Us":23498,"p90Us":24215,"p99Us":25074},
+            "ttftFromDue": {"beyondP99":7,"maxUs":140842,"meanUs":61480,"n":764,"p50Us":57487,"p90Us":83466,"p99Us":111359},
+            "ttftFromSent": {"beyondP99":7,"maxUs":140842,"meanUs":61480,"n":764,"p50Us":57487,"p90Us":83466,"p99Us":111359}
+          },
+          "littles": {
+            "completions": 828,
+            "expectedInFlightMilli": 50517,
+            "fromUs": 10000000,
+            "inFlightUs": 2432853943,
+            "meanInFlightMilli": 48657,
+            "meanLatencyUs": 3050559,
+            "residualPermille": 38,
+            "sojournUs": 2525863179,
+            "throughputPerSMilli": 16560,
+            "toUs": 60000000
+          },
+          "p99Intervals": {
+            "e2eFromDue": {"hiUs":4598465,"levelPermille":950,"loUs":4492445,"pointUs":4546798,"resamples":1000},
+            "tpot": {"hiUs":25459,"levelPermille":950,"loUs":24676,"pointUs":25074,"resamples":1000},
+            "ttftFromDue": {"hiUs":117838,"levelPermille":950,"loUs":106697,"pointUs":111359,"resamples":1000}
+          },
+          "rates": {"intendedPerSMilli":15280,"sentPerSMilli":15280},
+          "window": {"fromUs":10000000,"toUs":60000000}
+        }
+      }
+    },
+    {
+      "name": "70B on H100 at TP 4: every request due at 0 behind 16 clients, the shape of `--request-rate inf --max-concurrency 16`",
+      "input": {
+        "output": "digest",
+        "seed": 33,
+        "server": {"chunkedPrefill":true,"gpu":{"card":"s5","hostTerm":"in-gpu","row":"h100-vllm-0-10-2-fp8","tp":4},"maxBatchedTokens":8192,"maxNumSeqs":64},
+        "spec": {
+          "arrivals": {"clients":16,"kind":"closed","schedule":{"kind":"burst"},"thinkUs":0},
+          "durationUs": 60000000,
+          "lengths": {"kind":"dists","output":{"hi":192,"kind":"uniform","lo":64},"prompt":{"hi":512,"kind":"uniform","lo":128}},
+          "requests": 200,
+          "slo": {"tpotUs":50000,"ttftUs":500000},
+          "warmupUs": 0
+        },
+        "summary": {"bootstrap":1000,"seed":2}
+      },
+      "sha256": "c6cc1228e7d31187a2b89ab355113ab5d6a4255aa003651f2412afb5ed565379",
+      "output": {
+        "endUs": 24111906,
+        "gpuBusyUs": 24123687,
+        "rows": {"count":200,"sha256":"53738084d52c0d261fc328b907b872b759f6955133a979b64798ab081df50dbb"},
+        "steps": 1681,
+        "summary": {
+          "adherence": {"hardLimitUs":20000,"lateRows":184,"maxLateUs":22316477,"ok":false,"rows":200,"toleranceUs":2000,"veryLateRows":184},
+          "counts": {"measured":200,"offered":200,"warmup":0},
+          "goodput": {"arrivalWindowPerSMilli":267,"met":16,"totalDurationPerSMilli":664},
+          "latency": {
+            "e2eFromDue": {"beyondP99":2,"maxUs":24111906,"meanUs":12548298,"n":200,"p50Us":12531510,"p90Us":21704214,"p99Us":23485989},
+            "e2eFromSent": {"beyondP99":2,"maxUs":2884627,"meanUs":1834995,"n":200,"p50Us":1817068,"p90Us":2574315,"p99Us":2800693},
+            "tpot": {"beyondP99":2,"maxUs":15187,"meanUs":14207,"n":200,"p50Us":14226,"p90Us":14619,"p99Us":14903},
+            "ttftFromDue": {"beyondP99":2,"maxUs":22350705,"meanUs":10775487,"n":200,"p50Us":10784884,"p90Us":20062471,"p99Us":22114441},
+            "ttftFromSent": {"beyondP99":2,"maxUs":320648,"meanUs":62184,"n":200,"p50Us":39638,"p90Us":59030,"p99Us":320648}
+          },
+          "littles": {
+            "completions": 200,
+            "expectedInFlightMilli": 6117,
+            "fromUs": 0,
+            "inFlightUs": 366999090,
+            "meanInFlightMilli": 6117,
+            "meanLatencyUs": 1834995,
+            "residualPermille": 0,
+            "sojournUs": 366999090,
+            "throughputPerSMilli": 3333,
+            "toUs": 60000000
+          },
+          "p99Intervals": {
+            "e2eFromDue": {"hiUs":24111906,"levelPermille":950,"loUs":22746799,"pointUs":23485989,"resamples":1000},
+            "tpot": {"hiUs":15187,"levelPermille":950,"loUs":14833,"pointUs":14903,"resamples":1000},
+            "ttftFromDue": {"hiUs":22350705,"levelPermille":950,"loUs":21487269,"pointUs":22114441,"resamples":1000}
+          },
+          "rates": {"intendedPerSMilli":3333,"sentPerSMilli":3333},
+          "window": {"fromUs":0,"toUs":60000000}
+        }
+      }
+    },
+    {
+      "name": "70B on H100 at TP 4: a replay of the BurstGPT minute at 8 times its pace",
+      "input": {
+        "output": "digest",
+        "seed": 34,
+        "server": {"chunkedPrefill":true,"gpu":{"card":"s5","hostTerm":"in-gpu","row":"h100-vllm-0-10-2-fp8","tp":4},"maxBatchedTokens":8192,"maxNumSeqs":64},
+        "spec": {
+          "arrivals": {"kind":"replay","slice":"burstgpt-v2-busiest-minute","speedPermille":8000},
+          "durationUs": 60000000,
+          "requests": 480,
+          "slo": {"tpotUs":100000,"ttftUs":2000000},
+          "warmupUs": 0
+        },
+        "summary": {"bootstrap":1000,"seed":2}
+      },
+      "sha256": "5d6194b6ee1555e14f18c436d51dc6a7bb622d5b33f99a47b0d0642b76cebbd3",
+      "output": {
+        "endUs": 7300940,
+        "gpuBusyUs": 1831027,
+        "rows": {"count":40,"sha256":"39a6d11259ffe3b84c5fe220387a96e5ccd7d4c61b7972000e86f80a637168e5"},
+        "steps": 128,
+        "summary": {
+          "adherence": {"hardLimitUs":20000,"lateRows":0,"maxLateUs":0,"ok":true,"rows":40,"toleranceUs":2000,"veryLateRows":0},
+          "counts": {"measured":40,"offered":40,"warmup":0},
+          "goodput": {"arrivalWindowPerSMilli":667,"met":40,"totalDurationPerSMilli":5479},
+          "latency": {
+            "e2eFromDue": {"beyondP99":0,"maxUs":77835,"meanUs":33997,"n":40,"p50Us":20312,"p90Us":53745,"p99Us":77835},
+            "e2eFromSent": {"beyondP99":0,"maxUs":77835,"meanUs":33997,"n":40,"p50Us":20312,"p90Us":53745,"p99Us":77835},
+            "tpot": {"beyondP99":0,"maxUs":11785,"meanUs":11779,"n":16,"p50Us":11778,"p90Us":11785,"p99Us":11785},
+            "ttftFromDue": {"beyondP99":0,"maxUs":42480,"meanUs":19862,"n":40,"p50Us":18408,"p90Us":24122,"p99Us":42480},
+            "ttftFromSent": {"beyondP99":0,"maxUs":42480,"meanUs":19862,"n":40,"p50Us":18408,"p90Us":24122,"p99Us":42480}
+          },
+          "littles": {
+            "completions": 40,
+            "expectedInFlightMilli": 23,
+            "fromUs": 0,
+            "inFlightUs": 1359867,
+            "meanInFlightMilli": 23,
+            "meanLatencyUs": 33997,
+            "residualPermille": 0,
+            "sojournUs": 1359867,
+            "throughputPerSMilli": 667,
+            "toUs": 60000000
+          },
+          "p99Intervals": {
+            "e2eFromDue": {"hiUs":77835,"levelPermille":950,"loUs":64074,"pointUs":77835,"resamples":1000},
+            "tpot": {"hiUs":11785,"levelPermille":950,"loUs":11781,"pointUs":11785,"resamples":1000},
+            "ttftFromDue": {"hiUs":42480,"levelPermille":950,"loUs":28731,"pointUs":42480,"resamples":1000}
+          },
+          "rates": {"intendedPerSMilli":667,"sentPerSMilli":667},
+          "window": {"fromUs":0,"toUs":60000000}
+        }
+      }
+    },
+    {
+      "name": "70B on H100 at TP 4: a cold start for the first 20 s at 3 times the step time, with the warm-up counted",
+      "input": {
+        "output": "digest",
+        "seed": 35,
+        "server": {
+          "chunkedPrefill": true,
+          "cold": {"slowdownPermille":3000,"untilUs":20000000},
+          "gpu": {"card":"s5","hostTerm":"in-gpu","row":"h100-vllm-0-10-2-fp8","tp":4},
+          "maxBatchedTokens": 8192,
+          "maxNumSeqs": 64
+        },
+        "spec": {
+          "arrivals": {"kind":"poisson","ratePerSMilli":8000},
+          "durationUs": 60000000,
+          "lengths": {"kind":"dists","output":{"hi":192,"kind":"uniform","lo":64},"prompt":{"hi":512,"kind":"uniform","lo":128}},
+          "requests": 1000,
+          "slo": {"tpotUs":50000,"ttftUs":500000},
+          "warmupUs": 0
+        },
+        "summary": {"bootstrap":1000,"seed":2}
+      },
+      "sha256": "9eeb95ae093087ecc92acb6dd670b917b6e1ba6fa61a94b0be7a20ff26532f61",
+      "output": {
+        "endUs": 60933844,
+        "gpuBusyUs": 60893624,
+        "rows": {"count":474,"sha256":"eb6e688ece9f251dec413bddd9183c209de22996cf1828697254a0343af52542"},
+        "steps": 3121,
+        "summary": {
+          "adherence": {"hardLimitUs":20000,"lateRows":0,"maxLateUs":0,"ok":true,"rows":474,"toleranceUs":2000,"veryLateRows":0},
+          "counts": {"measured":474,"offered":474,"warmup":0},
+          "goodput": {"arrivalWindowPerSMilli":6200,"met":372,"totalDurationPerSMilli":6105},
+          "latency": {
+            "e2eFromDue": {"beyondP99":4,"maxUs":12892141,"meanUs":3527094,"n":474,"p50Us":2322686,"p90Us":8528229,"p99Us":12435877},
+            "e2eFromSent": {"beyondP99":4,"maxUs":12892141,"meanUs":3527094,"n":474,"p50Us":2322686,"p90Us":8528229,"p99Us":12435877},
+            "tpot": {"beyondP99":4,"maxUs":71874,"meanUs":26909,"n":474,"p50Us":14926,"p90Us":67001,"p99Us":70101},
+            "ttftFromDue": {"beyondP99":4,"maxUs":563682,"meanUs":99291,"n":474,"p50Us":55949,"p90Us":222905,"p99Us":392119},
+            "ttftFromSent": {"beyondP99":4,"maxUs":563682,"meanUs":99291,"n":474,"p50Us":55949,"p90Us":222905,"p99Us":392119}
+          },
+          "littles": {
+            "completions": 469,
+            "expectedInFlightMilli": 27719,
+            "fromUs": 0,
+            "inFlightUs": 1668981735,
+            "meanInFlightMilli": 27816,
+            "meanLatencyUs": 3546165,
+            "residualPermille": 3,
+            "sojournUs": 1663151584,
+            "throughputPerSMilli": 7817,
+            "toUs": 60000000
+          },
+          "p99Intervals": {
+            "e2eFromDue": {"hiUs":12777864,"levelPermille":950,"loUs":11596256,"pointUs":12435877,"resamples":1000},
+            "tpot": {"hiUs":71020,"levelPermille":950,"loUs":69362,"pointUs":70101,"resamples":1000},
+            "ttftFromDue": {"hiUs":537902,"levelPermille":950,"loUs":351845,"pointUs":392119,"resamples":1000}
+          },
+          "rates": {"intendedPerSMilli":7900,"sentPerSMilli":7900},
+          "window": {"fromUs":0,"toUs":60000000}
+        }
+      }
+    },
+    {
+      "name": "70B on H100 at TP 4: replies cut at 16 tokens",
+      "input": {
+        "output": "digest",
+        "seed": 36,
+        "server": {"chunkedPrefill":true,"gpu":{"card":"s5","hostTerm":"in-gpu","row":"h100-vllm-0-10-2-fp8","tp":4},"maxBatchedTokens":8192,"maxNumSeqs":64},
+        "spec": {
+          "arrivals": {"kind":"poisson","ratePerSMilli":8000},
+          "durationUs": 60000000,
+          "lengths": {"kind":"dists","output":{"hi":192,"kind":"uniform","lo":64},"prompt":{"hi":512,"kind":"uniform","lo":128}},
+          "outputCap": 16,
+          "requests": 1000,
+          "slo": {"tpotUs":50000,"ttftUs":500000},
+          "warmupUs": 10000000
+        },
+        "summary": {"bootstrap":1000,"seed":2}
+      },
+      "sha256": "8ba4a633c1b52e8e1e798c29273803af8f7cf0a10d03e7e47093a2a4aae7a7e8",
+      "output": {
+        "endUs": 60036380,
+        "gpuBusyUs": 47821240,
+        "rows": {"count":434,"sha256":"995efe878b29fc606f1e7a15595f2496553f2b7b91f1d9de0e457247005f479a"},
+        "steps": 3612,
+        "summary": {
+          "adherence": {"hardLimitUs":20000,"lateRows":0,"maxLateUs":0,"ok":true,"rows":434,"toleranceUs":2000,"veryLateRows":0},
+          "counts": {"measured":364,"offered":434,"warmup":70},
+          "goodput": {"arrivalWindowPerSMilli":7280,"met":364,"totalDurationPerSMilli":7275},
+          "latency": {
+            "e2eFromDue": {"beyondP99":3,"maxUs":305866,"meanUs":235666,"n":364,"p50Us":233395,"p90Us":263757,"p99Us":296929},
+            "e2eFromSent": {"beyondP99":3,"maxUs":305866,"meanUs":235666,"n":364,"p50Us":233395,"p90Us":263757,"p99Us":296929},
+            "tpot": {"beyondP99":3,"maxUs":18427,"meanUs":13016,"n":364,"p50Us":12815,"p90Us":14542,"p99Us":16847},
+            "ttftFromDue": {"beyondP99":3,"maxUs":88350,"meanUs":40433,"n":364,"p50Us":40097,"p90Us":55302,"p99Us":78376},
+            "ttftFromSent": {"beyondP99":3,"maxUs":88350,"meanUs":40433,"n":364,"p50Us":40097,"p90Us":55302,"p99Us":78376}
+          },
+          "littles": {
+            "completions": 367,
+            "expectedInFlightMilli": 1730,
+            "fromUs": 10000000,
+            "inFlightUs": 85994894,
+            "meanInFlightMilli": 1720,
+            "meanLatencyUs": 235750,
+            "residualPermille": 6,
+            "sojournUs": 86520178,
+            "throughputPerSMilli": 7340,
+            "toUs": 60000000
+          },
+          "p99Intervals": {
+            "e2eFromDue": {"hiUs":301553,"levelPermille":950,"loUs":286609,"pointUs":296929,"resamples":1000},
+            "tpot": {"hiUs":17550,"levelPermille":950,"loUs":15776,"pointUs":16847,"resamples":1000},
+            "ttftFromDue": {"hiUs":87312,"levelPermille":950,"loUs":71169,"pointUs":78376,"resamples":1000}
+          },
+          "rates": {"intendedPerSMilli":7280,"sentPerSMilli":7280},
+          "window": {"fromUs":10000000,"toUs":60000000}
+        }
+      }
+    },
+    {
+      "name": "70B on H100 at TP 4: prompts left in the prefix cache by a previous run",
+      "input": {
+        "output": "digest",
+        "seed": 37,
+        "server": {"chunkedPrefill":true,"gpu":{"card":"s5","hostTerm":"in-gpu","row":"h100-vllm-0-10-2-fp8","tp":4},"maxBatchedTokens":8192,"maxNumSeqs":64},
+        "spec": {
+          "arrivals": {"kind":"poisson","ratePerSMilli":8000},
+          "durationUs": 60000000,
+          "lengths": {"kind":"dists","output":{"hi":192,"kind":"uniform","lo":64},"prompt":{"hi":512,"kind":"uniform","lo":128}},
+          "prefixWarm": true,
+          "requests": 1000,
+          "slo": {"tpotUs":50000,"ttftUs":500000},
+          "warmupUs": 10000000
+        },
+        "summary": {"bootstrap":1000,"seed":2}
+      },
+      "sha256": "085c7811ee1bb750359a08a4f02509a4b1b3fa462ec7e46bc870bc94451fc8d9",
+      "output": {
+        "endUs": 62096861,
+        "gpuBusyUs": 61936089,
+        "rows": {"count":490,"sha256":"92052c2a0f1b29d86eb7075d8e395ae2c74618e112a911574d96376fb1b33b87"},
+        "steps": 4830,
+        "summary": {
+          "adherence": {"hardLimitUs":20000,"lateRows":0,"maxLateUs":0,"ok":true,"rows":490,"toleranceUs":2000,"veryLateRows":0},
+          "counts": {"measured":419,"offered":490,"warmup":71},
+          "goodput": {"arrivalWindowPerSMilli":8380,"met":419,"totalDurationPerSMilli":8043},
+          "latency": {
+            "e2eFromDue": {"beyondP99":4,"maxUs":2571648,"meanUs":1683375,"n":419,"p50Us":1653845,"p90Us":2353706,"p99Us":2524710},
+            "e2eFromSent": {"beyondP99":4,"maxUs":2571648,"meanUs":1683375,"n":419,"p50Us":1653845,"p90Us":2353706,"p99Us":2524710},
+            "tpot": {"beyondP99":4,"maxUs":13495,"meanUs":12982,"n":419,"p50Us":13015,"p90Us":13340,"p99Us":13456},
+            "ttftFromDue": {"beyondP99":4,"maxUs":40254,"meanUs":32428,"n":419,"p50Us":32302,"p90Us":37538,"p99Us":39826},
+            "ttftFromSent": {"beyondP99":4,"maxUs":40254,"meanUs":32428,"n":419,"p50Us":32302,"p90Us":37538,"p99Us":39826}
+          },
+          "littles": {
+            "completions": 419,
+            "expectedInFlightMilli": 14122,
+            "fromUs": 10000000,
+            "inFlightUs": 704065751,
+            "meanInFlightMilli": 14081,
+            "meanLatencyUs": 1685256,
+            "residualPermille": 3,
+            "sojournUs": 706122422,
+            "throughputPerSMilli": 8380,
+            "toUs": 60000000
+          },
+          "p99Intervals": {
+            "e2eFromDue": {"hiUs":2540829,"levelPermille":950,"loUs":2483454,"pointUs":2524710,"resamples":1000},
+            "tpot": {"hiUs":13487,"levelPermille":950,"loUs":13433,"pointUs":13456,"resamples":1000},
+            "ttftFromDue": {"hiUs":40182,"levelPermille":950,"loUs":39335,"pointUs":39826,"resamples":1000}
+          },
+          "rates": {"intendedPerSMilli":8380,"sentPerSMilli":8380},
+          "window": {"fromUs":10000000,"toUs":60000000}
+        }
+      }
+    },
+    {
+      "name": "70B on H100 at TP 4: a client that spends 150 ms of CPU on every send, against a schedule of one every 125 ms",
+      "input": {
+        "output": "digest",
+        "seed": 38,
+        "server": {"chunkedPrefill":true,"gpu":{"card":"s5","hostTerm":"in-gpu","row":"h100-vllm-0-10-2-fp8","tp":4},"maxBatchedTokens":8192,"maxNumSeqs":64},
+        "spec": {
+          "arrivals": {"kind":"poisson","ratePerSMilli":8000},
+          "clientCostUs": 150000,
+          "durationUs": 60000000,
+          "lengths": {"kind":"dists","output":{"hi":192,"kind":"uniform","lo":64},"prompt":{"hi":512,"kind":"uniform","lo":128}},
+          "requests": 1000,
+          "slo": {"tpotUs":50000,"ttftUs":500000},
+          "warmupUs": 10000000
+        },
+        "summary": {"bootstrap":1000,"seed":2}
+      },
+      "sha256": "6c98fa91889189374825342184d6cb4365589b766607030134c97398876949b9",
+      "output": {
+        "endUs": 74582486,
+        "gpuBusyUs": 74579445,
+        "rows": {"count":484,"sha256":"8ff8f95aebb73bda77b2cf2950ceb5f48234b88ec2d7405e101e6d9510e82a7d"},
+        "steps": 5464,
+        "summary": {
+          "adherence": {"hardLimitUs":20000,"lateRows":481,"maxLateUs":12794929,"ok":false,"rows":484,"toleranceUs":2000,"veryLateRows":481},
+          "counts": {"measured":406,"offered":484,"warmup":78},
+          "goodput": {"arrivalWindowPerSMilli":0,"met":0,"totalDurationPerSMilli":0},
+          "latency": {
+            "e2eFromDue": {"beyondP99":4,"maxUs":14802203,"meanUs":9512926,"n":406,"p50Us":9319676,"p90Us":13797925,"p99Us":14746475},
+            "e2eFromSent": {"beyondP99":4,"maxUs":2701968,"meanUs":1785411,"n":406,"p50Us":1821837,"p90Us":2476545,"p99Us":2650944},
+            "tpot": {"beyondP99":4,"maxUs":14220,"meanUs":13667,"n":406,"p50Us":13667,"p90Us":14005,"p99Us":14172},
+            "ttftFromDue": {"beyondP99":4,"maxUs":12835277,"meanUs":7770162,"n":406,"p50Us":7814520,"p90Us":11890587,"p99Us":12742087},
+            "ttftFromSent": {"beyondP99":4,"maxUs":58242,"meanUs":42647,"n":406,"p50Us":42531,"p90Us":51163,"p99Us":57489}
+          },
+          "littles": {
+            "completions": 335,
+            "expectedInFlightMilli": 11908,
+            "fromUs": 10000000,
+            "inFlightUs": 592921331,
+            "meanInFlightMilli": 11858,
+            "meanLatencyUs": 1777362,
+            "residualPermille": 4,
+            "sojournUs": 595416347,
+            "throughputPerSMilli": 6700,
+            "toUs": 60000000
+          },
+          "p99Intervals": {
+            "e2eFromDue": {"hiUs":14795260,"levelPermille":950,"loUs":14471044,"pointUs":14746475,"resamples":1000},
+            "tpot": {"hiUs":14209,"levelPermille":950,"loUs":14119,"pointUs":14172,"resamples":1000},
+            "ttftFromDue": {"hiUs":12755261,"levelPermille":950,"loUs":12584344,"pointUs":12742087,"resamples":1000}
+          },
+          "rates": {"intendedPerSMilli":8120,"sentPerSMilli":6420},
+          "window": {"fromUs":10000000,"toUs":60000000}
+        }
+      }
+    }
+  ]
+}

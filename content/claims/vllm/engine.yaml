@@ -1,0 +1,569 @@
+# vLLM at the pin: the runner, the step loop, the scheduler and the engine defaults (W1-T01; ARCHITECTURE §4.4, D-035, D-041).
+#
+# Every claim here was read on 2026-11-04 from the file the source URL names, at the tag the URL names. The pin is v0.33.0, the commit
+# 4ba787ec9959e566d3b587a796dff07673324da5 (course.lock.json, key vllm). A quote is the source's own text, and a #L anchor says which
+# lines hold it. A fact about an older release (the day a default changed) cites that release. TTLs are in days: 90 for a fact that
+# belongs to the pin, which the quarterly re-pin re-reads, and 365 for the history of a release that never changes (ARCHITECTURE §4.4).
+# research/upstream-vllm.md has the row each claim came from (M6, M7 and so on) and the notes of the day it was first read.
+
+# --- Async scheduling ----------------------------------------------------------------------------------------------------------------
+
+- id: vllm.async-scheduling.default
+  value: 'on'
+  text: At v0.33.0 vLLM turns async scheduling on by default, unless an incompatible option is set. The config resolves an unset field to on, or to off with a warning when an option conflicts.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/vllm.py#L1685-L1686
+    title: vLLM v0.33.0, vllm/config/vllm.py (async scheduling resolved at L1685)
+    quote: 'Enable async scheduling unless there is an incompatible option.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.async-scheduling.tri-state
+  value: 'bool | None = None'
+  text: The async_scheduling field of SchedulerConfig is a tri-state at v0.33.0. It is None until the engine config resolves it, False turns the feature off and True turns it on.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/scheduler.py#L211
+    title: vLLM v0.33.0, vllm/config/scheduler.py, async_scheduling
+    quote: 'async_scheduling: bool | None = None'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.async-scheduling.since
+  value: v0.14.0
+  text: Async scheduling became vLLM's default in v0.14.0, released on 2026-01-20. The release notes list it as a breaking change that users can undo with --no-async-scheduling.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/releases/tag/v0.14.0
+    title: vLLM v0.14.0 release notes
+    quote: 'Async scheduling is now enabled by default - Users who experience issues can disable with --no-async-scheduling.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+  pin: vllm
+
+- id: vllm.async-scheduling.mrv1-limits
+  value: 'pipeline parallelism; some speculative methods'
+  text: On the V1 model runner (MRV1) async scheduling does not work with pipeline parallelism, with speculative methods other than EAGLE, n-gram on the GPU, a draft model, DSpark or DFlash, or with disable_padded_drafter_batch. An explicit request for it raises an error, and the default turns it off with one warning.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/vllm.py#L1651-L1719
+    title: vLLM v0.33.0, vllm/config/vllm.py (async scheduling checks, L1651-L1719)
+    quote: 'Async scheduling is not supported by the V1 model runner'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.step.max-concurrent-batches.mrv1
+  value: 2
+  unit: batches
+  text: With async scheduling on, the V1 model runner at pipeline-parallel size 1 keeps at most 2 batches in flight, which is what lets the CPU plan one batch while the GPU runs the other.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/vllm.py#L588-L598
+    title: vLLM v0.33.0, vllm/config/vllm.py, max_concurrent_batches
+    quote: 'Async scheduling requires 2 concurrent batches to overlap.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.step.max-concurrent-batches.mrv2
+  value: pp_size + 1
+  text: With async scheduling on, Model Runner V2 (MRV2) keeps pipeline-parallel size plus 1 batches in flight, so 2 batches without pipeline parallelism.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/vllm.py#L592-L594
+    title: vLLM v0.33.0, vllm/config/vllm.py, max_concurrent_batches
+    quote: 'return pp_size + 1'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+# --- The model runners ---------------------------------------------------------------------------------------------------------------
+
+- id: vllm.mrv2.default-since
+  value: v0.29.0
+  text: Model Runner V2 became vLLM's default runner for all models in v0.29.0, released on 2026-09-09. A pooling-model rollout came first.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/releases/tag/v0.29.0
+    title: vLLM v0.29.0 release notes
+    quote: 'Model Runner V2 is now the default for all models (#53183), completing the rollout that began with pooling models (#48290).'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+  pin: vllm
+
+- id: vllm.mrv2.default-rule
+  value: 'on, unless Triton or a feature blocks it'
+  text: At v0.33.0 the engine uses MRV2 unless VLLM_USE_V2_MODEL_RUNNER is set to 0, Triton is missing, or the configuration uses a feature MRV2 does not yet support. In the last two cases it falls back to MRV1 and logs one warning.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/vllm.py#L748-L767
+    title: vLLM v0.33.0, vllm/config/vllm.py, use_v2_model_runner
+    quote: 'Model Runner V2 does not yet support %s; using the V1 model'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.fallback-reasons
+  value: 5
+  unit: reasons
+  text: At v0.33.0 five things send a configuration back to MRV1. They are pipeline parallelism with the external_launcher backend; the speculative methods suffix and custom_class; parallel drafting for EAGLE; draft models with their own vocabulary; and the features dual-batch overlap lacks.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/vllm.py#L3053-L3087
+    title: vLLM v0.33.0, vllm/config/vllm.py, _get_v2_model_runner_unsupported_features
+    quote: 'def _get_v2_model_runner_unsupported_features(self) -> list[str]:'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv1.deprecated
+  value: deprecated
+  text: With v0.29.0 the project called MRV1 deprecated and aimed to remove it in v0.32, and said it would take no more MRV1-specific optimizations.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/releases/tag/v0.29.0
+    title: vLLM v0.29.0 release notes (Model Runner V1 Deprecation)
+    quote: 'we are considering Model Runner V1 deprecated and are targeting v0.32 for its removal.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+  pin: vllm
+
+- id: vllm.mrv1.still-ships
+  value: present
+  text: At v0.33.0 the MRV1 runner, class GPUModelRunner in vllm/v1/worker/gpu_model_runner.py, is still part of vLLM and is the runner that the engine falls back to, so the v0.32 removal target of the v0.29.0 notes slipped.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu_model_runner.py#L475
+    title: vLLM v0.33.0, vllm/v1/worker/gpu_model_runner.py
+    quote: 'class GPUModelRunner('
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.async-first
+  value: 'step N+1 is prepared while step N runs'
+  text: MRV2's design document says the scheduler and worker prepare the inputs for step N+1 while the GPU executes step N, so that CPU and GPU work overlap.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/model_runner_v2.md#L45
+    title: vLLM v0.33.0, docs/design/model_runner_v2.md (Async-First)
+    quote: 'The scheduler and worker prepare inputs for step `N+1` while the GPU executes step `N`, overlapping CPU and GPU work to maximize utilization.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.gpu-input-prep
+  value: Triton kernels
+  text: MRV2 prepares input_ids, positions, query_start_loc and seq_lens with Triton kernels on the GPU, so a value that the CPU does not know yet can still be derived there.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/model_runner_v2.md#L134
+    title: vLLM v0.33.0, docs/design/model_runner_v2.md (GPU-native input preparation)
+    quote: 'MRV2 uses Triton kernels to prepare inputs such as `input_ids`, `positions`, `query_start_loc`, and `seq_lens`.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.persistent-rows
+  value: 1024
+  unit: rows
+  text: MRV2 pre-allocates one fixed table with max_num_reqs rows, 1,024 by default on most platforms. A request keeps its row until it finishes or is preempted, and a preemption counts as a completion.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/model_runner_v2.md#L35-L37
+    title: vLLM v0.33.0, docs/design/model_runner_v2.md (Persistent batch)
+    quote: 'Pre-allocate a fixed-size tensor with `max_num_reqs` rows (1024 by default on most platforms).'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+# --- The step loop -------------------------------------------------------------------------------------------------------------------
+
+- id: vllm.step.order
+  value: 'schedule, launch, mask, wait, sample, update'
+  text: At v0.33.0 EngineCore.step schedules, launches execute_model without blocking, builds the grammar bitmask on the CPU while the forward runs, waits on the future, samples with the bitmask, and updates the scheduler from the output.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/core.py#L677-L691
+    title: vLLM v0.33.0, vllm/v1/engine/core.py, EngineCore.step
+    quote: 'future = self.model_executor.execute_model(scheduler_output, non_block=True)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.step.idle-sleep
+  value: 0.001
+  unit: s
+  text: When a step ran no model but the scheduler still holds requests, as when requests wait for remote KV or for a delayed free, the engine core loop sleeps 0.001 s to let background threads progress.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/core.py#L1690-L1694
+    title: vLLM v0.33.0, vllm/v1/engine/core.py, _process_engine_step
+    quote: 'time.sleep(0.001)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.engine-core.busy-loop
+  value: 'poll the input queue, then step'
+  text: The engine core's busy loop at v0.33.0 polls the input queue until there is work, runs one engine step, and goes round again.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/core.py#L1621-L1632
+    title: vLLM v0.33.0, vllm/v1/engine/core.py, EngineCoreProc.run_busy_loop
+    quote: '1) Poll the input queue until there is work to do.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.step.batch-queue
+  value: the batch queue first
+  text: With async scheduling the engine core uses step_with_batch_queue. It schedules a new batch whenever the queue has room and returns at once, and it blocks on the oldest batch's result only when the queue is full or nothing else can be scheduled.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/core.py#L708-L723
+    title: vLLM v0.33.0, vllm/v1/engine/core.py, EngineCore.step_with_batch_queue
+    quote: 'fulfilling the batch queue has a higher priority than getting model outputs.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.engine-core.queues
+  value: 'input_queue, output_queue'
+  text: At v0.33.0 the engine core process keeps a thread-safe input_queue of client requests and an output_queue of engine outputs.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/core.py#L1184-L1185
+    title: vLLM v0.33.0, vllm/v1/engine/core.py, EngineCoreProc
+    quote: 'self.input_queue = queue.Queue[tuple[EngineCoreRequestType, Any]]()'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.engine-core.aborts
+  value: aborts_queue
+  text: Aborts arrive on their own queue, aborts_queue, and EngineCore.step drains it after the forward returns and before it updates the scheduler from the output.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/core.py#L688-L690
+    title: vLLM v0.33.0, vllm/v1/engine/core.py, EngineCore.step
+    quote: 'Before processing the model output, process any aborts that happened'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+# --- The scheduler -------------------------------------------------------------------------------------------------------------------
+
+- id: vllm.scheduler.no-phases
+  value: one token budget
+  text: The v1 scheduler has no prefill phase and no decode phase. Each request has only the tokens it has computed and the tokens it should have, and each step hands out one token budget so that every request catches up.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/sched/scheduler.py#L701-L710
+    title: vLLM v0.33.0, vllm/v1/core/sched/scheduler.py, Scheduler.schedule
+    quote: 'There''s no "decoding phase" nor "prefill phase" in the scheduler.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.scheduler.order
+  value: 'running first, then waiting'
+  text: Within one step the scheduler serves the running requests first and the waiting requests after them, all out of the same token budget.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/sched/scheduler.py#L793
+    title: vLLM v0.33.0, vllm/v1/core/sched/scheduler.py, Scheduler.schedule
+    quote: 'First, schedule the RUNNING requests.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.scheduler.chunked-prefill-default
+  value: 'true'
+  text: At v0.33.0 chunked prefill is on by default, so a prompt that does not fit the step's token budget is cut into chunks.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/scheduler.py#L134
+    title: vLLM v0.33.0, vllm/config/scheduler.py, enable_chunked_prefill
+    quote: 'enable_chunked_prefill: bool = True'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.scheduler.long-prefill-threshold-default
+  value: 0
+  unit: tokens
+  text: The long-prefill token threshold defaults to 0, which means no cap on one prompt's chunk. The cap never applies to a request that is alone in the batch.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/scheduler.py#L79
+    title: vLLM v0.33.0, vllm/config/scheduler.py, long_prefill_token_threshold
+    quote: 'long_prefill_token_threshold: int = Field(default=0, ge=0)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.scheduler.reserve-full-isl
+  value: 'true'
+  text: At v0.33.0 the scheduler checks that a waiting request's whole prompt fits in the KV cache before it admits the request, not only its first chunk.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/scheduler.py#L190
+    title: vLLM v0.33.0, vllm/config/scheduler.py, scheduler_reserve_full_isl
+    quote: 'scheduler_reserve_full_isl: bool = True'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.scheduler.policy-default
+  value: fcfs
+  text: The default scheduling policy at v0.33.0 is first come, first served.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/scheduler.py#L159
+    title: vLLM v0.33.0, vllm/config/scheduler.py, policy
+    quote: 'policy: SchedulerPolicy = "fcfs"'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.scheduler.preemption-recompute
+  value: recompute
+  text: Preemption in vLLM v0.33.0 is recompute only. The victim's blocks are freed, its computed-token count goes back to 0, and it returns to the front of the waiting queue.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/sched/scheduler.py#L1799-L1842
+    title: vLLM v0.33.0, vllm/v1/core/sched/scheduler.py, _preempt_request
+    quote: 'request.num_computed_tokens = 0'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.scheduler.preemption-victim
+  value: the last running request
+  text: Under the first-come, first-served policy the victim of a preemption is the request that joined the running list last. Under the priority policy it is the one with the largest priority value and then the latest arrival.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/sched/scheduler.py#L930-L938
+    title: vLLM v0.33.0, vllm/v1/core/sched/scheduler.py, Scheduler.schedule
+    quote: 'preempted_req = self.running[-1]'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+# --- Defaults that depend on the GPU --------------------------------------------------------------------------------------------------
+# get_batch_defaults picks its numbers from the card's memory: under 70 GiB, 70 GiB or more (and not an A100, which gets the first row),
+# and 160 GiB or more. The server column is `vllm serve` (UsageContext.OPENAI_API_SERVER), and the offline column is the LLM class.
+
+- id: vllm.batch-defaults.small.server-tokens
+  value: 2048
+  unit: tokens
+  text: On a card with less than 70 GiB of memory, vllm serve defaults max_num_batched_tokens to 2,048 at v0.33.0. The course's RTX 4090 lab lands in this tier [derived], because the card's memory is under the line.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/engine/arg_utils.py#L2997-L3006
+    title: vLLM v0.33.0, vllm/engine/arg_utils.py, get_batch_defaults (the default tier)
+    quote: 'UsageContext.OPENAI_API_SERVER: 2048,'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.batch-defaults.small.offline-tokens
+  value: 8192
+  unit: tokens
+  text: On the same cards the offline LLM class defaults max_num_batched_tokens to 8,192.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/engine/arg_utils.py#L2997-L3006
+    title: vLLM v0.33.0, vllm/engine/arg_utils.py, get_batch_defaults (the default tier)
+    quote: 'UsageContext.LLM_CLASS: 8192,'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.batch-defaults.small.seqs
+  value: 256
+  unit: sequences
+  text: On the same cards max_num_seqs defaults to 256, for the server and for the offline class.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/engine/arg_utils.py#L3003-L3006
+    title: vLLM v0.33.0, vllm/engine/arg_utils.py, get_batch_defaults (the default tier)
+    quote: 'UsageContext.OPENAI_API_SERVER: 256,'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.batch-defaults.large.server-tokens
+  value: 8192
+  unit: tokens
+  text: On a card with 70 GiB or more that is not an A100 and is not a GB10, such as an H100 or an H200, vllm serve defaults max_num_batched_tokens to 8,192.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/engine/arg_utils.py#L2983-L2996
+    title: vLLM v0.33.0, vllm/engine/arg_utils.py, get_batch_defaults (70 GiB tier)
+    quote: 'UsageContext.OPENAI_API_SERVER: 8192,'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.batch-defaults.large.offline-tokens
+  value: 16384
+  unit: tokens
+  text: On those cards the offline LLM class defaults max_num_batched_tokens to 16,384.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/engine/arg_utils.py#L2983-L2996
+    title: vLLM v0.33.0, vllm/engine/arg_utils.py, get_batch_defaults (70 GiB tier)
+    quote: 'UsageContext.LLM_CLASS: 16384,'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.batch-defaults.large.seqs
+  value: 1024
+  unit: sequences
+  text: On those cards max_num_seqs defaults to 1,024, for the server and for the offline class.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/engine/arg_utils.py#L2993-L2996
+    title: vLLM v0.33.0, vllm/engine/arg_utils.py, get_batch_defaults (70 GiB tier)
+    quote: 'UsageContext.OPENAI_API_SERVER: 1024,'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.batch-defaults.xlarge.tokens
+  value: 16384
+  unit: tokens
+  text: On a card with 160 GiB or more, such as a B200 or a B300, both the server and the offline class default max_num_batched_tokens to 16,384.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/engine/arg_utils.py#L2973-L2982
+    title: vLLM v0.33.0, vllm/engine/arg_utils.py, get_batch_defaults (160 GiB tier)
+    quote: 'for GPUs like B200/B300 with >= 160GB memory, use the largest defaults'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.batch-defaults.threshold.large-gib
+  value: 70
+  unit: GiB
+  text: The 70 GiB line between the small and the large tier is a card memory of 70 GiB or more, and an A100 stays on the small tier whatever its memory.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/engine/arg_utils.py#L2983-L2987
+    title: vLLM v0.33.0, vllm/engine/arg_utils.py, get_batch_defaults
+    quote: 'device_memory >= 70 * GiB_bytes'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cache.block-size-default
+  value: 16
+  unit: tokens
+  text: The KV cache block holds 16 tokens by default at v0.33.0.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/cache.py#L185
+    title: vLLM v0.33.0, vllm/config/cache.py, DEFAULT_BLOCK_SIZE
+    quote: 'DEFAULT_BLOCK_SIZE: ClassVar[int] = 16'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.cache.prefix-caching-default
+  value: 'true'
+  text: Prefix caching is on by default at v0.33.0.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/cache.py#L257
+    title: vLLM v0.33.0, vllm/config/cache.py, enable_prefix_caching
+    quote: 'enable_prefix_caching: bool = True'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+# --- Requests and the front end (TR1) -----------------------------------------------------------------------------------------------
+
+- id: vllm.request.states
+  value: 12
+  unit: states
+  text: At v0.33.0 a request is in one of 12 states, WAITING, WAITING_FOR_STRUCTURED_OUTPUT_GRAMMAR, WAITING_FOR_REMOTE_KVS, WAITING_FOR_STREAMING_REQ, RUNNING, PREEMPTED, and six finished states that begin FINISHED_.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/request.py#L370-L386
+    title: vLLM v0.33.0, vllm/v1/request.py, RequestStatus
+    quote: 'class RequestStatus(enum.IntEnum):'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.http.api-server-shim
+  value: deprecated shim
+  text: At v0.33.0 the old HTTP entry module, vllm/entrypoints/openai/api_server.py, only re-exports names from vllm.entrypoints.launchers and warns that it is deprecated. The live entry is under vllm/entrypoints/launchers/.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/entrypoints/openai/api_server.py#L20-L27
+    title: vLLM v0.33.0, vllm/entrypoints/openai/api_server.py
+    quote: 'is deprecated and will likely be'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.http.create-completion
+  value: create_completion
+  text: The completions route that the Inside vLLM post follows, create_completion, still exists at v0.33.0, in vllm/entrypoints/openai/completion/api_router.py.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/entrypoints/openai/completion/api_router.py#L52
+    title: vLLM v0.33.0, vllm/entrypoints/openai/completion/api_router.py
+    quote: 'async def create_completion(request: CompletionRequest, raw_request: Request):'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm

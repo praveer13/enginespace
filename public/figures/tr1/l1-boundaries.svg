@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 140" width="360" height="140" fill="none" stroke="currentColor" stroke-width="1.5">
+  <title>A request crossing a thread boundary, a process boundary, the host-to-GPU boundary and back, with a sync before the read</title>
+  <desc>Three host threads in a row. Thread A hands the request to thread B through a queue, and thread B hands it to thread C in another process over IPC. A dashed line marks the process boundary between B and C. Thread C copies the request down to a GPU box, where a launch runs the work, and a second arrow copies the result back up. A bar across the upward arrow, marked sync, is the gate: nothing on the host reads the result before it.</desc>
+  <g stroke="none" fill="currentColor" font-size="10" text-anchor="middle">
+    <text x="98" y="12">process 1</text>
+    <text x="266" y="12">process 2</text>
+  </g>
+  <path d="M214 2V136" stroke-width="1" stroke-dasharray="3 3"/>
+  <rect x="8" y="22" width="68" height="28"/>
+  <rect x="120" y="22" width="68" height="28"/>
+  <rect x="232" y="22" width="68" height="28"/>
+  <g stroke="none" fill="currentColor" font-size="10" text-anchor="middle">
+    <text x="42" y="40">thread A</text>
+    <text x="154" y="40">thread B</text>
+    <text x="266" y="40">thread C</text>
+    <text x="98" y="31">queue</text>
+    <text x="201" y="31">IPC</text>
+  </g>
+  <path d="M76 36H118M113 32L118 36L113 40"/>
+  <path d="M188 36H230M225 32L230 36L225 40"/>
+  <rect x="232" y="84" width="68" height="36"/>
+  <g stroke="none" fill="currentColor" font-size="10" text-anchor="middle">
+    <text x="266" y="99">GPU</text>
+    <text x="266" y="112">launch</text>
+  </g>
+  <path d="M248 50V82M244 77L248 82L252 77"/>
+  <path d="M284 84V52M280 57L284 52L288 57"/>
+  <path d="M276 72H292" stroke-width="3"/>
+  <g stroke="none" fill="currentColor" font-size="10">
+    <text x="242" y="64" text-anchor="end">copy</text>
+    <text x="242" y="76" text-anchor="end">down</text>
+    <text x="292" y="62">copy up</text>
+    <text x="297" y="76">sync</text>
+    <text x="8" y="130">the gate: no read before the sync</text>
+  </g>
+</svg>

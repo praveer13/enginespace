@@ -1,0 +1,101 @@
+# The course: its modules in the order a learner meets them, with their hours (ARCHITECTURE §2.2, §3.1, §15).
+#
+# A module appears here before it is written, so the index and the map can list TR0 to the capstone from the first day. A
+# written module's module.md repeats its title and hours, and verify:content holds the two to the same values.
+#
+# Hours are [estimated] (docs/PLAN.md §4), split by lane: B is the browser, including a forge lab written on the laptop and
+# graded in the tab; L is the laptop's CPU; F is a GPU. The total, 91 hours, is [derived] by adding them up.
+#
+# Each module also lists what it leans on (`prereqs`) and what it asks the learner to build and prove (`artifacts`), so the map can
+# show them before the module is written. They come from the module's curriculum file (curriculum/<id>-*.md, §0 "At a glance"):
+# `prereqs` is the kernelspace lessons it names above all or as recommended, and the modules it advises first. The blanket
+# prerequisite, kernelspace T5 lessons 1 to 10, is the course's and not any one module's (PRODUCT.md). Prerequisites advise and
+# never lock (A§1, I9). Once a module has a module.md, the map reads that file's `prereqs` and `artifacts` and ignores these.
+modules:
+  - id: tr0
+    title: PyTorch for the Rust-first, and reading Triton
+    hours: 7 # [estimated]
+    hours_by_lane: { B: 4, L: 3 } # [estimated]
+    prereqs: [ks:T5.L1, ks:T0.L3, ks:T0.L4]
+    artifacts:
+      - { id: shape-shifter, lane: B, title: 'Tensor layout levels and item families, graded on fresh seeds' }
+      - { id: tr0.forward, lane: L, title: "A Qwen3 forward pass on the laptop's CPU that matches Hugging Face, graded by the local grader" }
+  - id: tr1
+    title: Read the engines
+    hours: 10 # [estimated]
+    hours_by_lane: { B: 7.5, F: 2.5 } # [estimated]
+    prereqs: [ks:T5.L10, ks:T5.L7, ks:T0.L6, ks:T2.L1]
+    artifacts:
+      - { id: engine-floor, lane: B, title: 'A lifecycle map of one request, checked span by span' }
+      - { id: tr1.fork, lane: F, title: 'A nano-vllm fork that emits a span for every stage of your own map' }
+  - id: tr2
+    title: The step loop
+    hours: 10 # [estimated]
+    hours_by_lane: { B: 10 } # [estimated]
+    prereqs: [ks:T5.L7, ks:T0.L6, ks:T4.L3]
+    artifacts:
+      - { id: loop, lane: B, title: 'The step-loop sim, toggled until the bubbles close' }
+  - id: tr3
+    title: Profile a real engine
+    hours: 12 # [estimated]
+    hours_by_lane: { B: 5, F: 7 } # [estimated]
+    prereqs: [ks:T0.L6, ks:T4.L3, tr2]
+    artifacts:
+      - { id: gap-hunt, lane: B, title: 'Attribution of pinned and synthetic traces, graded on fresh draws' }
+      - { id: tr3.profile, lane: F, title: 'A profile of the pinned vLLM on your GPU, with an attribution report and two toggled pairs' }
+  - id: tr4
+    title: Attention backends as a consumer
+    hours: 7 # [estimated]
+    hours_by_lane: { B: 2.5, F: 4.5 } # [estimated]
+    prereqs: [ks:T4.L6, ks:T5.L5, tr0, tr2]
+    artifacts:
+      - { id: dispatch, lane: B, title: 'Predict-then-reveal reads of backend selection, graded on fresh feature cards' }
+      - { id: tr4.sweep, lane: F, title: 'Backend sweeps on your GPU: correctness against a full-precision reference, and timings with intervals' }
+  - id: tr5a
+    title: Hybrid KV groups, and adapter pages in one pool
+    hours: 6 # [estimated]
+    hours_by_lane: { B: 6 } # [estimated]
+    prereqs: [ks:T5.L5, ks:T5.L6, ks:T6.L9]
+    artifacts:
+      - { id: hybrid-kv, lane: B, title: 'Property tests on your Rust hybrid KV manager, graded in the browser' }
+  - id: tr5b
+    title: Offload, the connector's engine side, and the event publisher
+    hours: 8 # [estimated]
+    hours_by_lane: { B: 5, F: 3 } # [estimated]
+    prereqs: [ks:T5.L6, tr5a]
+    artifacts:
+      - { id: kv-publisher, lane: B, title: 'Publisher conformance tests on your Rust module' }
+      - { id: tr5b.connector, lane: F, title: 'A toy connector in the pinned vLLM that round-trips KV byte for byte' }
+  - id: tr6
+    title: Speculation and structure
+    hours: 8 # [estimated]
+    hours_by_lane: { B: 6, F: 2 } # [estimated]
+    prereqs: [ks:T5.L8, ks:T6.L6, ks:T6.L8, tr2]
+    artifacts:
+      - { id: rejection-sampler, lane: B, title: 'A rejection sampler on your Rust code, tested for exactness with chi-square' }
+      - { id: mask-overlap, lane: B, title: 'The mask-overlap timeline' }
+      - { id: tr6.proposer, lane: F, title: 'A proposer in the pinned vLLM' }
+  - id: tr7
+    title: Contribute honestly
+    hours: 6 # [estimated]
+    hours_by_lane: { B: 2, F: 4 } # [estimated]
+    prereqs: [ks:T7.L2, tr8]
+    artifacts:
+      - { id: tr7.process, lane: B, title: "Items on each project's contribution rules, answered on fresh seeds" }
+      - { id: tr7.reproduce, lane: F, title: 'A reproduction with a receipt, and an issue draft generated from it' }
+  - id: tr8
+    title: Benchmark like you mean it
+    hours: 5 # [estimated]
+    hours_by_lane: { B: 3.5, F: 1.5 } # [estimated]
+    prereqs: [ks:T7.L1, ks:T7.L2]
+    artifacts:
+      - { id: broken-bench, lane: B, title: "A seeded corpus of broken benchmarks, extending kernelspace's broken-bench" }
+      - { id: tr8.replay, lane: F, title: 'A timestamp-faithful BurstGPT replay against the pinned vLLM, re-checked from raw records' }
+  - id: capstone
+    title: Reproduce a commit pair's delta, attribute it, explain it, price it
+    hours: 12 # [estimated]
+    hours_by_lane: { B: 2, F: 10 } # [estimated]
+    prereqs: [ks:T7.L2, ks:T7.L4, tr2, tr3, tr8]
+    artifacts:
+      - { id: capstone.page, lane: B, title: "The capstone page: it re-verifies both sides, and attributes the owner's pinned traces of the same pair" }
+      - { id: capstone.pair, lane: F, title: 'Paired runs under one challenge, and a structured explanation checked against the evidence' }

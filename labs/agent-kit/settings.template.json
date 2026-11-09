@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "deny": ["Edit(/{{TODO_FILE}})", "Edit(/{{HARNESS_FILE}})"]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PROJECT_DIR}/.claude/hooks/es-guard.sh\" {{TODO_FILE}}",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PROJECT_DIR}/.claude/hooks/es-guard.sh\" --harness {{HARNESS_FILE}}",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "outputStyle": "enginespace-socratic"
+}

@@ -4,7 +4,7 @@
 
 **Scope.** This document covers the site and its repo layout, the routes, the content format, the pure simulation package, the game framework on react-three-fiber, progress and evidence, the grading pipeline, the local grader and its receipts, CI, budgets and exact dependency versions. Three neighbours own the rest:
 - `docs/ASSESSMENT.md`, written in parallel, owns grading policy: what earns credit, the provenance weights and the pass bars. This document owns the formats and mechanics that carry them out. The design review of 2026-11-03 reconciled the two (D-043 to D-046); on credit, ASSESSMENT.md wins.
-- The visual identity is being chosen separately (`DESIGN.md` and its token file). Nothing here picks a colour, a typeface or a visual style; scenes are described by their objects, cameras and interactions only.
+- The visual identity is The Pass, a restaurant line kitchen and its expo pass (D-047). Its direction contract sits in the front page's surface brief (`.impeccable/surfaces/src-front-frontpage-tsx.md`), the design system applies it (W0-T05), and `DESIGN.md` documents the built world at the end of W0 (W0-T25). Nothing here picks a colour, a typeface or a visual style; scenes are described by their objects, cameras and interactions only, and GAMES.md §2.6 names those objects in the kitchen.
 - Decisions are logged in [DECISIONS.md](DECISIONS.md) as `D-nnn`, and tasks are listed in [TRACKER.md](TRACKER.md) as `W<wave>-T<nn>`.
 
 **Sources.**
@@ -98,8 +98,9 @@ enginespace is **one Vite app with one `package.json` and one lockfile**. Its pu
 ```
 enginespace/
   PRODUCT.md            product record (owner-confirmed 2026-11-03)
-  DESIGN.md             visual identity and its tokens (from the parallel design work)
+  DESIGN.md             visual identity and its tokens (written from the built world by impeccable's documenter, W0-T25)
   README.md  AGENTS.md  LICENSE  LICENSE-CONTENT  NOTICE    (licences: owner decision O-3)
+  LICENSES/             the licence texts that NOTICE points at: Apache-2.0.txt (D-060)
   course.lock.json      upstream pins, model revisions and dataset hashes (§4.4)
   package.json  package-lock.json  bunfig.toml  index.html  vite.config.ts
   tsconfig.json  tsconfig.app.json  tsconfig.node.json  tsconfig.pure.json
@@ -124,6 +125,7 @@ enginespace/
     front/              the front page: static-shell hydration, The Loop in 2D, the 3D upgrade
     games/<id>/         View2D.tsx  Scene3D.tsx  Mirror.tsx  Controls.tsx  Debrief.tsx
     scene/              the scene kit (§6.4): Stage, tiers, governor, primitives, post-FX, fallback
+    trace/              the trace viewer (W1-T09): Canvas2D lanes, marks and a DOM mirror over a trace@1 (§5.7, GAMES.md §2.6)
     design/             tokens.css  tokens.ts (role list)  scene-tokens.ts  components/
     content/            renderer for the compiled content; generated/ (git-ignored, built)
     evidence/           IndexedDB store, BroadcastChannel, export and import, provenance weights
@@ -182,8 +184,8 @@ React Router 7.18.1 in library mode: `createBrowserRouter` with a `lazy` loader 
 
 ### 3.2 Static hosting
 
-- **Base path.** GitHub Pages serves the site at `/enginespace/` until a custom domain is chosen (O-1). Vite reads the base from `VITE_BASE`, as kernelspace does.
-- **Deep links return HTTP 200.** `scripts/prepare-pages.ts` writes `dist/<route>/index.html` for every route it can enumerate: the route table, the content index, the game registry and the lab list. Each document gets its own `<title>`, description and static shell. `404.html` is the SPA fallback (kernelspace's `prepare-pages.mjs` pattern).
+- **Base path.** The site is served at the root of `https://enginespace.naigap.com` (D-058), so the deploy builds with the default base `/`. Vite reads the base from `VITE_BASE`, as kernelspace does, and `scripts/prepare-pages.ts` reads the same variable, so a preview or a fork that is served under a subpath, such as `/enginespace/` on a project site, builds and prepares under it. `public/CNAME` holds the domain. A deploy from an Actions workflow ignores that file [measured from GitHub's docs, "Managing a custom domain for your GitHub Pages site", 2026-11-08], so the owner sets the custom domain in the repository's Pages settings.
+- **Deep links return HTTP 200.** `scripts/prepare-pages.ts` writes `dist/<route>/index.html` for every route it can enumerate: the route table, the content index, the game registry and the lab list. Each document gets its own `<title>`, description and static shell, and the modulepreloads of its own route's chunks from the route table beside the entry (§6.10, D-059), as the front page's document has its own. `404.html` is the SPA fallback (kernelspace's `prepare-pages.mjs` pattern).
 - **CSP.** Every document carries the meta CSP (§12).
 - **Stale chunks.** A deploy replaces hashed chunks under open tabs. A `vite:preloadError` handler reloads once, and a sessionStorage flag stops a loop (kernelspace's `src/main.tsx` pattern).
 
@@ -281,15 +283,15 @@ The cap is eight types, enforced by `verify:content`.
 - An expired claim never fails CI. The page shows "stale since <date>" and the weekly watcher lists it.
 - A changed pin raises change cards for every claim tied to it (§10.1).
 
-**`course.lock.json`** is the course lockfile (catalog §7). Each entry is `{key, kind: pypi|git|blog|dataset|model|container, name, version|commit, url, sha256?, checkedAt, ttlDays, notes}`. The site build and the grader kit read the same file. Edition 1's proposed entries (O-4, D-035):
+**`course.lock.json`** is the course lockfile (catalog §7). Each entry is `{key, kind: pypi|git|blog|dataset|model|container|tool, name, version|commit, url, sha256?, checkedAt, ttlDays, notes}`. A vendor tool with no repository to pin a commit of, such as Nsight Systems, has the kind `tool` and is pinned by its version. The site build and the grader kit read the same file, and `verify:pins` checks its entries. Edition 1's proposed entries (O-4, D-035), as W1-T01 wrote them into the file on 2026-11-04:
 
 | Key | Proposed pin | Evidence |
 |---|---|---|
 | `vllm` | v0.33.0, commit `4ba787ec…324da5`. It was tagged on GitHub on 2026-11-01 and uploaded to PyPI on 2026-11-02. The fallback is v0.32.0, commit `5df63a72…28be` (vllm §3). | [measured] PyPI JSON. Requires Python ≥3.11,<3.15 and pins `torch==2.14.0`, `transformers>=5.16.1,<5.21.0`, `flashinfer-python==0.7.2.post1` and `xgrammar==0.2.8` [measured]. Wheels are CUDA 13.0 only, which needs a host driver of R580 or newer (vllm R4); no x.y.1 patch exists for 0.28-0.33 (vllm R1, R3) |
 | `sglang` | v0.5.23, sha `297e54fd…6f90`. It was uploaded to PyPI on 2026-10-30 and released on GitHub on 2026-11-02 (sglang R1). | [measured] release feed. `pyproject.toml` pins `torch==2.14.1`, `transformers==5.19.0`, `flashinfer_python[cu13]==0.7.2` and `xgrammar==0.2.7` [measured]. The NVIDIA image is CUDA 13 only (sglang R5) |
 | `inside-vllm` | commit `42172ad18fbc22c89d0063184e4570cc84186e16` (pre-MRV2) | catalog §3.5, checked 2026-10-24; full sha from vllm §3 |
-| `nano-vllm`, `mini-sglang` | proposed `bb823b3e…98ef8` and `9a91cfaf…58f2`; neither repo has tags. W1-T01 confirms them. | vllm §3; sglang §4 |
-| `nsys`, `ncu`, `perfetto` | proposed 2026.5.1, 2026.3.1 and v59.1 | sglang §4 [measured 2026-11-03] |
+| `nano-vllm`, `mini-sglang` | `bb823b3e…98ef8` and `9a91cfaf…58f2`; neither repo has tags. W1-T01 confirmed on 2026-11-04 that each is still the last commit on `main`. | vllm §3; sglang §4; the commit feeds [measured 2026-11-04] |
+| `nsys`, `ncu`, `perfetto` | 2026.5.1 and 2026.3.1 (kind `tool`), and v59.1, commit `1e9c61e9…10cf6d` | sglang §4 [measured 2026-11-03]; on 2026-11-04 NVIDIA's download page offered nsys 2026.6.1 and its documentation header read ncu v2026.4.0, so W1-T02 re-checks both [measured] |
 | `qwen3-0.6b` | Hugging Face revision to be pinned by W2-T16 | — |
 | `burstgpt-v2` | source asset SHA-256 `a4d068a7…dda1f4`, CC BY 4.0 | kernelspace's `public/traces/README.md` |
 
@@ -319,12 +321,13 @@ KCs come from a ref→KC map at read time and are never stored (kernelspace's ru
 | Output | Where | Size target |
 |---|---|---|
 | Course index: modules, lessons, titles, routes and hours | `src/content/generated/index.json`, in the entry closure | ≤ 6 KB gz [estimated] |
-| One JSON per lesson and per module | `src/content/generated/{lessons,modules}/*.json`, one lazy chunk each through `import.meta.glob` | ≤ 40 KB gz each [estimated] |
+| Course map: each module's prerequisites, artifacts and KCs, each KC's description and edges, and the ref→KC table (§4.5) | `src/content/generated/map.json`, one lazy chunk read by `/map`, the module pages and the progress code; kept out of the index because the index is in the entry closure | ≤ 12 KB gz [estimated] |
+| One JSON per lesson, per module and per card | `src/content/generated/{lessons,modules,cards}/*.json`, one lazy chunk each through `import.meta.glob`, whose tables sit in `src/content/load-lessons.ts`: the index and the claims, which the front page and the games read, are in `load.ts` without them (D-059) | ≤ 40 KB gz each [estimated] |
 | Learner's-agent export, with keys and answers stripped | `public/md/<module>/<lesson>.md`, `public/llms.txt` | — |
 | Claims for `/about` and the claim chips | `public/claims.json` (lazy) | — |
 | Search index (W3) | `public/search.json` (lazy) | ≤ 20 KB gz [estimated] |
 
-`src/content/generated/` is git-ignored: `npm run build` runs the compiler first. The Markdown export *is* committed, and CI fails when it is stale, as kernelspace's "Export freshness" step does.
+`src/content/generated/` is git-ignored: `npm run build` runs the compiler first. The Markdown export *is* committed, and CI fails when it is stale, as kernelspace's "Export freshness" step does (W1-T35). The step compares the tree after the build with the commit, and `tests/content/export.test.ts` compiles `content/` in memory and compares it, byte for byte, with the files the commit holds, so `bun test` and the merge gates fail on a stale export too. The same test holds the committed files to the rule that the export carries no key (I3): no sentence of an item family's solutions or whys, and no line that serializes a field named for a key. The export's links are relative, so it holds on any base (D-058).
 
 ### 4.7 Content gates
 
@@ -345,7 +348,9 @@ KCs come from a ref→KC map at read time and are never stored (kernelspace's ru
   - Time is integer µs (`type Us = number`), and every value stays below 2^53. Probabilities are integer weights (permille, or totals of 2^16).
   - Floating point is used only where kernelspace's S5 card uses it: +, −, ×, ÷, `max` and `Math.round` in a fixed order, which IEEE 754 makes identical in every engine.
 - **The determinism lint.** In `packages/sim/**` and `packages/play/**`:
-  - It bans `Math.exp`, `log`, `pow`, `sin`, `cos`, `tan`, `atan2`, `cbrt`, `hypot` and `random`.
+  - It bans `Math.exp`, `expm1`, `log`, `log1p`, `log2`, `log10`, `pow`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `atan2`, `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh`, `cbrt`, `hypot` and `random`.
+    - `random` is unseeded. The other 22 are the functions that ECMA-262 does not precisely specify: each engine computes them with its own maths library. The note that opens the standard's "Function Properties of the Math Object" lists them with `random`, and `**` is Number::exponentiate, which the standard leaves implementation-approximated like `pow` [measured 2026-11-04 from the `es2026` tag of tc39/ecma262; the `es2025` tag's note lists the same 23].
+    - They do differ in practice. Node 22.22.2 (V8) and Bun 1.3.14 (JavaScriptCore) return different bits from each of the 22 and from `**`, by up to 2 ulp, on from 13 (`atanh`) to 73,037 (`hypot`) of 200,000 inputs [measured 2026-11-04 on the dev host, by `tests/lint/math-engines.ts`]. They agree on the twelve that the standard specifies exactly, and those stay allowed: `abs`, `ceil`, `clz32`, `floor`, `fround`, `imul`, `max`, `min`, `round`, `sign`, `sqrt` (the correctly rounded root) and `trunc`. ES2025's `f16round` and ES2026's `sumPrecise` are exact in the standard too, and stay allowed.
   - It bans `**`, `Date`, `performance` and `crypto`.
   - It bans iteration over `Map` or `Set` where the order would reach output, unless the result is sorted.
   - It bans `Array.prototype.sort` without a comparator.
@@ -377,11 +382,11 @@ KCs come from a ref→KC map at read time and are never stored (kernelspace's ru
 export interface StepLoopConfig {
   maxNumSeqs: number; maxBatchedTokens: number; chunkedPrefill: boolean
   asyncScheduling: boolean
-  graphs: { mode: GraphModeId; captureSizes: readonly number[]; captured: readonly DispatchKey[] }
-  structured?: { sharePermille: number; overlap: boolean }     // requests with a grammar mask
-  spec?: { k: number; alphaPermille: number }                  // draft length, acceptance
-  lora?: { adapters: number; maxLoras: number }                // feeds the runner's adapter field: MRV2 num_active_loras; MRV1's legacy has_lora (D-041)
-  runner: RunnerPresetId                                       // e.g. 'v1' | 'mrv2': host-card presets from pinned claims
+  graphs: { mode: GraphModeId; captureSizes: readonly number[]; specializeLora?: boolean; specializeActiveLora?: boolean }   // the captured keys come from the runner's dispatcher
+  structured?: { overlap: boolean }                            // the mask on or off; which requests have a grammar is the workload's (ReqSpec.structured)
+  spec?: { k: number; alphaPermille: number; draftCostPermille: number; method?: SpecMethodId }   // draft length, acceptance, what a draft costs
+  lora?: { maxLoras: number }                                  // the cap on adapters; which request has which is the workload's; feeds the runner's adapter field: MRV2 num_active_loras; MRV1's legacy has_lora (D-041)
+  runner?: RunnerPresetId                                      // 'v1' | 'mrv2': picks the dispatcher; without it the loop keeps v0's padded-size rule
 }
 export interface HostCard {   // all integer µs; values are claims or [estimated] until fitted (below)
   scheduleBaseUs: Us; schedulePerSeqUs: Us; prepPerTokenUs: Us; launchPerKernelUs: Us
@@ -391,7 +396,7 @@ export interface HostCard {   // all integer µs; values are claims or [estimate
 export function runStepLoop(w: Workload, cfg: StepLoopConfig, host: HostCard, gpu: GpuCard,
                             opts: { horizonUs: Us }): StepLoopRun
 export interface StepLoopRun {
-  lanes: Timeline                 // spans on cpu-main, gpu-stream (and cpu-mask when overlapped)
+  lanes: Timeline                 // spans on cpu-main (the mask fill is a `mask` span there) and gpu-stream
   steps: readonly StepStat[]      // batch, padded size, graph hit or miss, gpu µs, bubble µs
   reqs: readonly ReqStat[]        // TTFT, TPOT, end-to-end, in µs
   summary: Summary                // GPU busy ‰, tokens/s ×1000, TPOT p50 and p99
@@ -403,7 +408,7 @@ export interface StepLoopRun {
 - **Launch.** Without graphs, launch costs kernels × `launchPerKernelUs`. With graphs it is one replay, but only when the step's dispatch key was captured. The key is per runner (D-041): for MRV2, the padded token count, the request count, the uniform token count, the maximum query length and the active-adapter case; for MRV1's legacy key, the padded token count, uniform decode or not, and `has_lora`. Otherwise the step falls back to eager or piecewise, as the pinned graph mode's data says.
 - **Async scheduling off.** The next step's schedule waits for this step's sampling.
 - **Async scheduling on.** The next step's schedule, prepare and launch overlap this step's GPU forward. The next step's input ids come from the device, not a host round trip. The model checks the dependency: a configuration that reads a token before it is sampled raises a `Violation`.
-- **The structured-output mask** runs on the CPU per masked request and must finish before sampling. With overlap on, it runs during the forward.
+- **The structured-output mask** runs on the engine core's thread per masked request and must finish before sampling. With overlap on, it runs during the forward.
 - **The GPU step time** is the S5 card's `us` for the step's load (`seqs`, `tokens`, `kvTokens`, `attnPairs`), at the padded batch size when a graph pads it, minus S5's per-sequence host term `seqs × t_seq`. That term runs on the CPU lane instead, where async scheduling can hide it, and on the 70B card it replaces the host card's per-sequence schedule and sample phases, so no host work is counted twice. Hiding it is an extrapolation beyond S5's additive fit, and the card says so (D-044).
 
 **Which engine the model follows.** At the pin:
@@ -418,41 +423,54 @@ export interface StepLoopRun {
 
 ```ts
 export interface KvGroupSpec { id: string; kind: 'full' | 'sliding' | 'state'
-                               layers: number; blockTokens: number; window?: number; statePages?: number }
+                               layers: number; padLayers?: number; blockTokens: number
+                               window?: number; statePages?: number; stateBytes?: number }
                                // one block of a group fills exactly one page (D-045); adapters are not groups
-export interface KvSpec { poolPages: number; pageBytes: number; paddingLayers: number
-                          groups: readonly KvGroupSpec[]; prefixCaching: boolean }
-export type KvOp =
-  | { op: 'admit'; req: number; tokens: number; adapter?: number }
-  | { op: 'append'; req: number; tokens: number } | { op: 'finish'; req: number }
+export interface KvSpec { poolPages: number; pageBytes: number; tokenBytes: number; paddingLayers: number
+                          groups: readonly KvGroupSpec[]; prefixCaching: boolean
+                          adapterSlots?: number }       // the engines' slots for adapters, in place of pages (D-042)
+export type KvOp =                                      // a token is an integer id below 2^32: blocks are hashed from them
+  | { op: 'admit'; req: number; prompt: readonly number[]; adapter?: number }
+  | { op: 'append'; req: number; tokens: readonly number[] } | { op: 'finish'; req: number }
   | { op: 'load-adapter'; adapter: number; pages: number } | { op: 'unload-adapter'; adapter: number }
   | { op: 'reset' }
 export function kvReference(spec: KvSpec): KvModel             // apply(op) → result; state(); events()
-export function kvInvariants(spec: KvSpec, s: KvState): readonly string[]
-export function kvOps(seed: Seed, spec: KvSpec, n: number): readonly KvOp[]
+export function kvInvariants(spec: KvSpec, s: KvState): readonly string[]   // each begins with the id of the check it fails
+export function kvOps(seed: Seed, spec: KvSpec, n: number, profile?: Partial<KvOpsProfile>): readonly KvOp[]
+export function kvJudge(spec: KvSpec, ops: readonly KvOp[], candidate: KvModel): KvJudgement | null
 ```
 
 - **One physical page pool with one page size** serves every group and every adapter (D-045). KV groups reach that size as vLLM's hybrid manager does at the pin: a preset groups layers, pads layers or inflates the attention block so each group's block is exactly one page, and the padding waste is reported (vllm K2). Adapters follow S-LoRA: an adapter takes ⌈adapter bytes ÷ page bytes⌉ pages of the same pool, stored non-contiguously, which is the `pages` of its `load-adapter` op.
 - **Putting adapters in that pool is the learner's design, not upstream's.** At the pins, vLLM keeps adapters in `max_loras` slots outside the KV pool, and SGLang in a fixed-slot `LoRAMemoryPool` (vllm K4; sglang X6). The model's In-production card says so, and the learner's allocator is compared against that slot baseline (D-042).
-- **Groups.** A full-attention group keeps every block. A sliding group frees blocks that fall behind its window. A state group holds a fixed number of pages per request. Adapter pages are shared by every request that uses the adapter.
-- **All or nothing.** An operation either succeeds or leaves the state untouched, lab 02's rule.
-- **Prefix caching.** Block hashes chain over the parent hash, the token ids and the extra keys (the adapter id).
-- **Events.** The model emits `BlockStored`, `BlockRemoved` and `AllBlocksCleared` in the shape of the pinned vLLM version's KV events [unverified until W1-T01 checks the pin].
-- **Invariants.** Pages are conserved; reference counts never go below zero; a block table's length matches its group's rule; every stored or removed block is published exactly once.
+- **Groups.** A full-attention group keeps every block. A sliding group frees blocks that fall behind its window: for a request of L tokens it holds the blocks from ⌊max(0, L - W + 1) ÷ B⌋ on (`vllm.hybrid-kv.sliding-skipped-tokens`), which is 7 + 2 + 2 blocks for the design document's 112-token example [measured: `vllm.hybrid-kv.doc-example-blocks`, 2026-11-04]. A state group keeps its newest `statePages` blocks however long the request runs: the block that is full holds the state at its edge and is cached, and the newest holds the live state. Adapter pages are shared by every request that uses the adapter.
+- **All or nothing.** An operation either succeeds or leaves the state untouched, lab 02's rule. Each works out what it needs first and refuses when the pool cannot supply it: an admit needs its new blocks to fit once the cached blocks of its hit have left the queue, and an append counts the blocks that its windows let go.
+- **The free queue** holds the free and the cached pages in eviction order. An allocation takes the front, and a cached page that it takes loses its hash. A page nobody holds goes back to the back with a hash and to the front without one, a request's blocks last block first, and a hit takes its pages out of the queue and returns the ones it does not keep (`vllm.kv-pool.*`).
+- **Prefix caching.** Block hashes chain over the parent hash, the token ids and the extra keys (the adapter id). The hit is the longest prefix that every group holds, found as a fixed point with full attention first (`vllm.hybrid-kv.n-group-lookup`), rounded down to a multiple of the least common multiple of the groups' block sizes, and never reaching the last token of the prompt. A block that two requests compute separately is cached once.
+- **Events.** The model emits `BlockStored`, `BlockRemoved` and `AllBlocksCleared` in the shape of vLLM v0.33.0's KV events, which W1-T01 read at the pin on 2026-11-04 (claims `vllm.kv-events.*`):
+  - An event is a tagged map whose `type` is the class name, and a batch is the array `[ts, events, data_parallel_rank]`, of which the model writes the first two, with `ts` the index of the operation. SGLang v0.5.23 encodes its events the same way and says so (`sglang.kv-events.encoding`).
+  - `BlockStored` has seven fields without a default: `block_hashes`, `parent_block_hash`, `token_ids`, `block_size`, `lora_id` (deprecated), `medium` and `lora_name`. Its eight optional fields are `extra_keys`, `group_idx`, `kv_cache_spec_kind`, `kv_cache_spec_sliding_window`, `locality`, `ownership`, `session_id` and `lookahead_token_ids`.
+  - `BlockRemoved` has `block_hashes`, `medium` and the optional `group_idx`, `locality` and `ownership`. `AllBlocksCleared` has no fields, and the block pool emits it only when a reset finds no block in use.
+  - The adapter is already in the shape: both engines carry it as `lora_name` (`vllm.kv-events.adapter-field`, `sglang.kv-events.adapter-field`), and the adapter is part of the block hash through `extra_keys` (`vllm.kv-hash.lora-extra-key`).
+- **Invariants.** Pages are conserved; reference counts never go below zero; a block table's length matches its group's rule; every stored or removed block is published exactly once. `kvInvariants` checks eight of them on a snapshot (`conservation`, `refcounts`, `tables`, `window`, `cache`, `queue`, `adapters`, `events`), and `kvJudge` adds the three that need a reference to compare with: `reply`, `hit` and `atomic`. The bestiary of TR5a §5 is a list of managers that each break one rule, and each must fail a named check.
 
 ### 5.5 The speculation sampler
 
 ```ts
-export interface Dist { weights: readonly number[]; total: number }   // integer weights, total = 2^16
+export interface Dist { weights: readonly number[]; total: number }   // integer weights; p and q share one total, 2^16 in the course's worlds
 export function verifyChain(p: readonly Dist[], q: readonly Dist[], draft: readonly number[], r: Rng): ChainResult
 export function chiSquare(counts: readonly number[], p: Dist): { stat: number; df: number }
-export const CRITICAL: Readonly<Record<'1e-3' | '1e-4', readonly number[]>> // by df; generated table
-export function expectedTokensPerRound(alphaPermille: number, gamma: number): number  // (1 − α^(γ+1)) / (1 − α)
+export const CRITICAL: Readonly<Record<'1e-3' | '1e-4', readonly number[]>> // ⌈1000 × the critical value⌉ by df, 0 to 255; generated table
+export function expectedTokensPerRound(alphaPermille: number, gamma: number): number  // 1 + α + … + α^γ = (1 − α^(γ+1)) / (1 − α)
 ```
 
 - **The accept step is exact in integers.** Draw `u` uniformly from `[0, q_x)` and accept when `u < p_x`. That accepts with probability min(1, p_x / q_x) with no floating point.
 - **On rejection,** resample from the residual `r_x = max(0, p_x − q_x)` by its integer total.
+- **A round** walks the drafts in order and stops at the first rejection. `ChainResult` holds each visited step (token, coin, accepted), the drafts accepted, how the round ended (`recovered` or `bonus`, with its draw and the draw's range) and the tokens emitted, which are the accepted drafts and one more.
 - **Exactness.** The output distribution equals p, and the chi-square test checks it on fresh seeds (§8.3).
+  - `chiSquare` pools the tokens whose expected count is under 5 (upstream's rule, claim vllm.spec.chi-square.min-expected [estimated]) and leaves out the tokens of weight 0. A draw of one of those is an infinite statistic, since p rules it out.
+  - `CRITICAL[level][df]` is the least integer c with P(χ² > c ÷ 1000) ≤ the level, for df from 0 to 255 [estimated], so a test that rejects above c ÷ 1000 rejects an exact sampler no more often than its level. `scripts/tables/chi-square-critical.ts` writes it, and `scripts/vectors.ts --check` regenerates it.
+  - The test follows no more than one distribution per seed (the first emitted token against p[0]), so the lab's error rate is the two seeds' and nothing more.
+- **The bestiary** (`packages/sim/spec/bestiary.ts`) holds the six wrong samplers of TR6 §5, each a rule set for the same loop. Five of them move the output distribution by an amount that 20,000 draws [estimated] show. The boundary-inclusive comparison of SGLang PR #35798 does not: with integer coins it moves each affected token's probability by 1 ÷ 2^16 [derived]. The statistic sees it only through the tokens it lets past a target that rules them out, which is the sparse band's case, and the accept step shows it on every case if it is looked at exhaustively: for each token, exactly min(p_x, q_x) of the q_x coins must accept (`acceptStepViolations`). The measured rates are in `tests/sim/spec-rates.test.ts`.
 - **The acceptance-length formula** and its repeated-product powers are kernelspace's `push-luck.ts` model (Leviathan, Kalman and Matias 2023).
 - Draft trees are a stretch level, labelled as one. Edition 1 verifies chains.
 
@@ -467,7 +485,8 @@ export interface BenchSpec { arrivals: ArrivalSpec; requests: number; warmupUs: 
   outputCap?: number; prefixWarm?: boolean; clientCostUs?: Us; slo: { ttftUs: Us; tpotUs: Us } }
 export function runBench(seed: Seed, spec: BenchSpec, server: ServerModel): BenchRun
 export function summarize(run: BenchRun, o: { bootstrap: number; seed: Seed }): BenchSummary
-export function brokenBenchCase(seed: Seed): BrokenCase
+export function brokenBenchCase(seed: Seed, opts?: { flaw?: BenchFlaw }): BrokenCase     // packages/sim/bench/broken.ts
+export function correctBench(scene: BrokenScene, flaw: BenchFlaw): BrokenCorrection        // the corrected p99, from the scene alone
 ```
 
 - **The server** is the step-loop model run coarse: async on, its step times from the S5 card. TR8's knee and TR2's bubbles therefore come from one model.
@@ -479,9 +498,12 @@ export function brokenBenchCase(seed: Seed): BrokenCase
   - The 95% interval on p99 is a percentile bootstrap with a seeded resampler (B = 1,000 [estimated]).
   - Goodput at SLO counts the requests that meet both their TTFT and TPOT objectives, per second.
   - Little's law gives a residual: mean concurrency against throughput × mean latency.
-- **The broken-benchmark corpus** extends kernelspace's four flaws (closed loop, capped output, warm cache, counted warm-up) with coordinated omission, a client queue hidden by the harness's timer, too few samples for a p99, a mean reported as a tail, a client-side bottleneck, and a "replay" that ignores the trace's timestamps, plus a control case with no flaw: ten flaws and a control (GAMES.md §11). Prefix-cache carry-over between runs (vllm B3) is the warm-cache flaw's real-world instance.
-  - Each seed draws the answer first, then the flaw and the scene, so the flaw's label does not give the answer away. This is kernelspace's rule (D39 in its wave-3 spec).
-  - A blind-strategy test bounds how often a scene-blind guess passes.
+- **The broken-benchmark corpus** (`packages/sim/bench/broken*.ts`, W1-T32) extends kernelspace's four flaws (closed loop, capped output, warm cache, counted warm-up) with coordinated omission, a client queue hidden by the harness's timer, too few samples for a p99, a mean reported as a tail, a client-side bottleneck, and a "replay" that ignores the trace's timestamps, plus a control case with no flaw: ten flaws and a control (GAMES.md §11). Prefix-cache carry-over between runs (vllm B3) is the warm-cache flaw's real-world instance. Every claim is a p99 of the time to first token, timed from the due time (ASSESSMENT B5), so the corrected numbers compare across flaws. A case is a log of the coarse server and the claim of a harness that did one thing wrong; all of it is synthetic.
+  - **The draw.** The seed picks the flaw (`seed mod 11`: any eleven consecutive seeds hold each once, and a uniform graded seed draws each with probability 1/11), and then the answer, the corrected p99, from a log-spaced grid that does not depend on the flaw's mechanism. The scene is built to reach it. That is kernelspace's rule (D39 in its wave-3 spec) with the flaw drawn first, so a label names how to correct the number and at most the regime it falls in. Closed loop, client queue hidden, client bottleneck and capped output can only happen to a server past its capacity (answers from 5 s to 120 s), and so can the replay's burst (2 s to 60 s). A freeze, the cause of coordinated omission, falls on a server at any load (0.35 s to 60 s). The counted warm-up and the control stay under capacity (70 ms to 2 s, and the control to 3 s with a few long prompts). Warm cache, too few samples and mean as tail draw either, so their answers run from 70 ms or 0.12 s to 120 s. Every range is a design parameter [estimated]. The scene's server is S5's "70B on H100" at TP 4, inside its fitted box (prompts up to 8,192 tokens), and its capacity on each traffic is measured by a saturation run, not assumed.
+  - **The band.** The benchmark's own randomness is drawn again, never the answer, until the case keeps the band (`brokenBand`): the corrected p99 rests on at least 1,000 rows (ASSESSMENT B7), the flaw moves the number by 1.5 times or more (kernelspace's `BB_MIN_RATIO`; the control's claim is the corrected number), and the log shows the flaw: sends slip behind their due times for a freeze, a client queue and a client bottleneck, and the log is settled once the warm-up is out for the control and the counted warm-up (B8). A seed that no draw puts in band is returned flagged, and a session redraws from another seed (GAMES.md §2.1). Over seeds 0 to 9,999 the draw took 1.11 tries per case on average (23 at the most) and 3 seeds were out of band [measured 2026-11-04 by `ES_PROPERTY_SEEDS=10000 bun test tests/sim/bench-broken.test.ts`].
+  - **The corrected number** is `correctBench(scene, flaw)`, a function of what the learner sees and the flaw's name, so the debrief shows arithmetic the learner could have done. It is one of three: the log's rows timed from their due times (control, mean as tail, coordinated omission, client queue hidden), the rows without the first max(100, 2 × `max_num_seqs`) = 128 by due time (counted warm-up, B8), or the benchmark run again with the flaw taken out of its setup (the other six: a Poisson loop at the claimed rate, no cap, a cold cache, a client that keeps up, 1,500 rows [estimated] after the warm-up, the trace's own timestamps). A flaw that does not apply to a scene corrects nothing. `correctedInterval` gives the 95% bootstrap interval on the corrected p99 (B = 1,000 [estimated]).
+  - **Blind strategies.** `bestConstantPerLabel` is the share of cases that the best constant per flaw label passes within ±15% of the corrected p99, which ASSESSMENT §4.1 bounds at 15% [estimated]. On the cases of seeds 0 to 9,999 it is 10.2%, and between 6% and 15% for one flaw (15% for the counted warm-up) [measured, same run]. The constants are chosen on the cases they are judged on, so that is an upper bound that falls as the cases grow in number: 14.1% over the first 1,100 [measured 2026-11-04 by `bun test tests/sim/bench-broken.test.ts`]. A PR judges the constants chosen on half of 1,100 cases against the other half, 7.6% [measured, same run], and the nightly run judges the 10,000 cases in-sample.
+  - **The claims** a flaw's debrief cites are `FLAW_CLAIMS`: the tools' source and guides at the pins (vLLM v0.33.0, SGLang v0.5.23) in `content/claims/vllm/bench.yaml`, `sglang/bench.yaml` and `broken-bench.yaml`, wrk2's own example of a pause, Schroeder et al.'s open and closed models, and two rules of kernelspace's T7.L2.
 
 ### 5.7 The trace model
 
@@ -543,7 +565,7 @@ Every game, every graded task and the Trace Room show their card. `verify:games`
 |---|---|---|
 | Unit | Each function's contract, with worked examples taken from lesson text | `bun test`, on every PR |
 | Golden vectors | `tests/fixtures/sim/<model>.json` maps inputs to outputs and is regenerated only by `bun scripts/vectors.ts --write`. A diff is reviewed like code. The vendored S5 step vectors pass unchanged. | every PR |
-| Properties | Seeded random inputs: 200 seeds on PRs and 10,000 nightly [estimated]. The invariants are page conservation and refcounts (`kv`); disjoint kernels per stream, no read before sampling, and busy ≤ horizon (`steploop`); exactness under chi-square (`spec`); Little's law within tolerance on stable runs (`bench`); round-trips and checks that pass on synthetic traces (`trace`). | PR and nightly |
+| Properties | Seeded random inputs: 200 seeds on PRs and 10,000 nightly [estimated], through one knob, `ES_PROPERTY_SEEDS` (`tests/seeds.ts`), which `nightly.yml`'s `properties` job sets. The invariants are page conservation and refcounts (`kv`); disjoint kernels per stream, no read before sampling, and busy ≤ horizon (`steploop`); exactness under chi-square (`spec`); Little's law within tolerance on stable runs (`bench`); round-trips and checks that pass on synthetic traces (`trace`). | PR and nightly |
 | Bestiary | Known-wrong implementations must fail and the reference must pass. Examples: FCFS against the reference schedule; a sampler that accepts with p/q and skips the residual; a leaky KV manager; a publisher that drops `BlockRemoved`; a closed-loop benchmark presented as open loop. This is kernelspace's rule: "every pass bar is proven against FCFS, SJF and the reference". | every PR |
 | Bands and blind strategies | Graded seeds are drawn within difficulty bands. A scene-blind strategy, such as the best constant per label, must stay under the bound ASSESSMENT.md sets. | every PR (sampled), nightly (full) |
 | Cross-runtime | The SHA-256 of canonical JSON for N fixed seeds per model is the same in Bun, Chromium, Firefox and WebKit | nightly, Playwright |
@@ -558,29 +580,31 @@ Every game, every graded task and the Trace Room show their card. `verify:games`
 
 Each game's rule is the concept it teaches (D-005). Six games are 3D, and every 3D game also has a 2D view and a DOM mirror. "Axes" names what each spatial dimension carries.
 
-| Id | Game | Module | The rule (= the concept) | 3D: objects, axes and camera | Graded artifact |
-|---|---|---|---|---|---|
-| `loop` | **The Loop** (front page) | TR2; TR6's mask level | A step costs the GPU about the same with one request or many, so every slot should stay live (the front page's lesson). The GPU idles whenever the CPU's work for the next step is not ready. You close the bubbles with async scheduling, CUDA graphs, capture sizes and dispatch keys, without letting a step read a token before it is sampled. | A CPU lane and a GPU lane run as parallel tracks along time. Batch slots stack across the track's width. Steps are slabs; kernel launches are combs that collapse into one replay slab when a graph hits; bubbles are open gaps on the GPU track. At the near end, the bay holds the tray of slots and the waiting requests, where the front page's visitor batches by hand (GAMES.md §3). Camera presets: along time, side and top. | TR2's "toggled until bubbles close" on fresh seeds (B) |
-| `engine-floor` | **The Engine Floor** | TR1 | A request moves only when you name the mechanism that moves it (queue, IPC, copy, sync or compute) and where it runs. The map you build is then checked span by span against a trace. | Processes are platforms (API server, engine core, workers), with the GPU on a lower deck. Queues are buffers and IPC is a bridge. One request capsule travels. Camera stops follow the request. | Lifecycle map by span checks (B) |
-| `pool` | **The Pool** | TR5a | One physical page pool serves every KV group and the adapters. A request runs only when all its groups' blocks and its adapter are resident. Sliding windows free pages, and you admit, preempt and load adapters to keep goodput up without running out. This is S-LoRA's design: at the pins, vLLM and SGLang keep adapters in slots, and the In-production card shows that (D-042). | A rack of physical pages, each at a fixed position for its whole life, with its group or adapter shown as a glyph rather than a shelf (a partitioned rack would draw what unified paging removes); a free line in eviction order along the rack's base; a request's block table is one thread per group to its pages; an adapter's pages are linked by their own thread, not contiguous (GAMES.md §8). Presets: front, per-group filter, top. | The `hybrid-kv` forge lab (B) |
-| `verifier` | **The Verifier** | TR6 | Accept a drafted token with probability min(1, p/q), and on rejection resample from the residual (p − q)⁺. The game runs your rule over 20,000 seeded draws [estimated], and only an exact rule's histogram matches p under chi-square. | Depth carries the draft chain: one skyline row per draft position, then a bonus row, each over the vocabulary, with columns that stack the overlap min(p, q), a reject cap where q > p and a recovery well where p > q. Drafted tokens drop onto their row, the walk stops at the first rejection, and the output skyline at the front converges on p (GAMES.md §10). | The `rejection-sampler` forge lab (B) |
-| `shape-shifter` | **Shape Shifter** | TR0 | A tensor is a buffer plus a shape and strides. Views move no data and `contiguous()` copies. Reach the target layout with the fewest copies, then tile it with a Triton-style grid that covers every element once. | The tensor is a block of cells above a strip, the buffer. A thread runs through the cells in stride order and re-weaves on a view; cells move on a copy. Program instances are tiles over the block. | Items on fresh seeds (B); the TR0 forward lab (L) |
-| `switchyard` | **The Switchyard** | TR5b | A KV block moves between GPU, CPU and disk only through the connector. Every move must be published in an order that lets a consumer rebuild the exact cache, and the consumer's view is checked after every event. | Three decks for the tiers, with blocks as cars on rails and events as signals. The consumer's ledger is a board beside the yard. | The `kv-publisher` forge lab (B); the toy connector (F) |
-| `broken-bench` | **Broken Bench** (2D) | TR8 | A published number is wrong because of one flaw. You find the flaw from the setup and the logs, then predict the corrected p99 with an interval. | — | The seeded corpus (B) |
-| `gap-hunt` | **Gap Hunt** (2D) | TR3; capstone | Every ns of a step window belongs to exactly one category: TPOT = GPU-busy (kernel or copy-only) + CPU-gap + both-idle, with overlap reported beside it (GAMES.md §6). You mark spans until every ns is accounted for, then name the gap's cause from the launch queue. | — | Attribution of pinned and synthetic traces (B) |
-| `dispatch` | **Dispatch** (2D) | TR4 | The engine picks an attention backend by matching model and GPU features against each backend's support. You predict the pick and its fallback before the reveal. | — | Items on fresh seeds from pinned data (B) |
+| Id | Game | Display name (D-049) | Module | The rule (= the concept) | 3D: objects, axes and camera | Graded artifact |
+|---|---|---|---|---|---|---|
+| `loop` | **The Loop** (front page) | **Service** · *the step loop* | TR2; TR6's mask level | A step costs the GPU about the same with one request or many, so every slot should stay live (the front page's lesson). The GPU idles whenever the CPU's work for the next step is not ready. You close the bubbles with async scheduling, CUDA graphs, capture sizes and dispatch keys, without letting a step read a token before it is sampled. | A CPU lane and a GPU lane run as parallel tracks along time. Batch slots stack across the track's width. Steps are slabs; kernel launches are combs that collapse into one replay slab when a graph hits; bubbles are open gaps on the GPU track. At the near end, the bay holds the tray of slots and the waiting requests, where the front page's visitor batches by hand (GAMES.md §3). Camera presets: along time, side and top. | TR2's "toggled until bubbles close" on fresh seeds (B) |
+| `engine-floor` | **The Engine Floor** | **Back of House** · *a request's lifecycle* | TR1 | A request moves only when you name the mechanism that moves it (queue, IPC, copy, sync or compute) and where it runs. The map you build is then checked span by span against a trace. | Processes are platforms (API server, engine core, workers), with the GPU on a lower deck. Queues are buffers and IPC is a bridge. One request capsule travels. Camera stops follow the request. | Lifecycle map by span checks (B) |
+| `pool` | **The Pool** | **The Reach-In** · *hybrid KV pages and adapters* | TR5a | One physical page pool serves every KV group and the adapters. A request runs only when all its groups' blocks and its adapter are resident. Sliding windows free pages, and you admit, preempt and load adapters to keep goodput up without running out. This is S-LoRA's design: at the pins, vLLM and SGLang keep adapters in slots, and the In-production card shows that (D-042). | A rack of physical pages, each at a fixed position for its whole life, with its group or adapter shown as a glyph rather than a shelf (a partitioned rack would draw what unified paging removes); a free line in eviction order along the rack's base; a request's block table is one thread per group to its pages; an adapter's pages are linked by their own thread, not contiguous (GAMES.md §8). Presets: front, per-group filter, top. | The `hybrid-kv` forge lab (B) |
+| `verifier` | **The Verifier** | **The Tasting** · *speculative decoding's verifier* | TR6 | Accept a drafted token with probability min(1, p/q), and on rejection resample from the residual (p − q)⁺. The game runs your rule over 20,000 seeded draws [estimated], and only an exact rule's histogram matches p under chi-square. | Depth carries the draft chain: one skyline row per draft position, then a bonus row, each over the vocabulary, with columns that stack the overlap min(p, q), a reject cap where q > p and a recovery well where p > q. Drafted tokens drop onto their row, the walk stops at the first rejection, and the output skyline at the front converges on p (GAMES.md §10). | The `rejection-sampler` forge lab (B) |
+| `shape-shifter` | **Shape Shifter** | **Sheet Pan** · *tensor views and copies* | TR0 | A tensor is a buffer plus a shape and strides. Views move no data and `contiguous()` copies. Reach the target layout with the fewest copies, then tile it with a Triton-style grid that covers every element once. | The tensor is a block of cells above a strip, the buffer. A thread runs through the cells in stride order and re-weaves on a view; cells move on a copy. Program instances are tiles over the block. | Items on fresh seeds (B); the TR0 forward lab (L) |
+| `switchyard` | **The Switchyard** | **The Dumbwaiter** · *KV offload, connector and events* | TR5b | A KV block moves between GPU, CPU and disk only through the connector. Every move must be published in an order that lets a consumer rebuild the exact cache, and the consumer's view is checked after every event. | Three decks for the tiers, with blocks as cars on rails and events as signals. The consumer's ledger is a board beside the yard. | The `kv-publisher` forge lab (B); the toy connector (F) |
+| `broken-bench` | **Broken Bench** (2D) | **The Inspection** · *benchmark methodology* | TR8 | A published number is wrong because of one flaw. You find the flaw from the setup and the logs, then predict the corrected p99 with an interval. | — | The seeded corpus (B) |
+| `gap-hunt` | **Gap Hunt** (2D) | **The Tape** · *trace attribution* | TR3; capstone | Every ns of a step window belongs to exactly one category: TPOT = GPU-busy (kernel or copy-only) + CPU-gap + both-idle, with overlap reported beside it (GAMES.md §6). You mark spans until every ns is accounted for, then name the gap's cause from the launch queue. | — | Attribution of pinned and synthetic traces (B) |
+| `dispatch` | **Dispatch** (2D) | **Line Check** · *attention backend selection* | TR4 | The engine picks an attention backend by matching model and GPU features against each backend's support. You predict the pick and its fallback before the reveal. | — | Items on fresh seeds from pinned data (B) |
 
 The Loop and Gap Hunt live in **the Trace Room**, the course's world (catalog §3.5): owner-captured traces beside the step-loop sim.
+
+The learner sees each game's display name over its subtitle (D-049); the Game column keeps the working names, which these docs use as shorthand. GAMES.md §2.6 gives every game's kitchen objects, cameras and materials in The Pass (D-047). No id, rule or object above changes.
 
 ### 6.2 The 3D gate, kept and amended (D-019)
 
 kernelspace's seven-test gate (`games-3d.md` §2.3; PLAN-100X §5.4.0) still applies, with one change made by the owner's decision D-005.
 
 - **Required:** tests 1 (intrinsic: winning means applying the concept), 3 (model-backed: every mark is computed by `packages/sim`), 4 (recurrence: used in at least 3 sessions, through levels, fresh seeds or later modules), 6 (load: pausable or turn-based, at most one new representation at a time, a 2D path, a DOM mirror and reduced motion) and 7 (debrief: a graded item or prediction names the concept).
-- **Test 5 (schematic) is restated:** no photoreal hardware and no decorative particles behind prose. The look comes from DESIGN.md.
+- **Test 5 (schematic) is restated:** no photoreal hardware and no decorative particles behind prose. The look is The Pass (D-047): the design system applies its direction contract, and DESIGN.md documents the built world.
 - **Test 2 (≥3 axes reasoned about together) becomes advisory** under D-005. Each 3D game names its axes in §6.1. A game whose third axis is weak keeps its 3D for attention, and its 2D view is a first-class path, never a degraded one.
 
-`verify:games` checks the mechanical part: a registered 2D view, mirror, debrief, card, keyboard map, KCs and sources for every game.
+`verify:games` checks the mechanical part: a display name and a subtitle (D-049), and a registered 2D view, mirror, debrief, card, keyboard map, KCs and sources, for every game.
 
 ### 6.3 Anatomy of a game
 
@@ -598,7 +622,7 @@ src/games/<id>/
   Debrief.tsx
 ```
 
-- **Registry.** `packages/play/registry.ts` records, for each game: id, module, title, KCs, `has3d`, the keyboard map, the levels, the card id and the source claims. `src/games/registry.ts` maps ids to lazy components (kernelspace's `PLAY_REGISTRY` pattern).
+- **Registry.** `packages/play/registry.ts` records, for each game: id, module, title (the display name) and subtitle (the engine concept, D-049), KCs, `has3d`, the keyboard map, the levels, the card id and the source claims. `src/games/registry.ts` maps ids to lazy components (kernelspace's `PLAY_REGISTRY` pattern).
 - **The action log is the record.** A run stores `{seed, level, actions[], rev}`. The score is a cache that can be recomputed: grading replays the actions through the pure reducer at grade time, so an edited score in IndexedDB changes nothing.
 - **The ghost stays hidden.** The hidden reference runs in lockstep and is read only by the debrief, kernelspace's rule.
 - **Modes.**
@@ -621,19 +645,19 @@ Every scene is built from these parts. A primitive takes positioned data from a 
 | `TimeAxis` | A scrolling µs window with ticks, in steps under reduced motion. |
 | `Selection` | Pointer picks (`instanceId`) and keyboard selection share one model. The selection is mirrored by the DOM list's roving tabindex. |
 | `PostFX` | Tiered post-processing (§6.5), in its own lazy chunk. |
-| `scene-tokens.ts` | Reads the design system's CSS custom properties (`getComputedStyle`) into material parameters when the scene mounts and when the theme changes. Role names come from `src/design/tokens.ts`; values come from DESIGN.md. |
+| `scene-tokens.ts` | Reads the design system's CSS custom properties (`getComputedStyle`) into material parameters when the scene mounts and when the theme changes. Role names come from `src/design/tokens.ts`; values come from the design system, which applies D-047's direction contract (W0-T05). |
 
 No drei (D-021). The kit implements its few helpers (adaptive DPR, a frame monitor, a camera rig) in under 2 KB gz each [estimated], following kernelspace's `Cube3D.tsx` ("no texture, no drei"). A later task that needs a drei helper adds an exact pin and a DECISIONS entry.
 
 ### 6.5 Post-processing within a budget
 
-- **Source.** Effects come from three's own addons (`three/addons/postprocessing/`: `EffectComposer`, `RenderPass`, `UnrealBloomPass` at half resolution, `SMAAPass` or FXAA through `ShaderPass`, and `OutputPass`). They are locked to `three` 0.185.1 and add no dependency (D-021).
+- **Source.** Effects come from three's own addons (`three/addons/postprocessing/`: `EffectComposer`, `RenderPass`, `UnrealBloomPass` at half resolution, FXAA through `ShaderPass`, and `OutputPass`). They are locked to `three` 0.185.1 and add no dependency (D-021). `SMAAPass` is not used: it alone is 35,631 B gz [measured 2026-11-04 by W0-T15, three 0.185.1, `gzip -9`], over the `postfx` budget below (D-023).
 - **Loading.** The effects load in the `postfx` chunk, at tier 2 and above only.
 - **Budget:**
   - at most two full-screen passes beyond the scene render;
   - at most 2.0 ms of GPU time per frame at tier 3 on the reference laptop [estimated], checked by hand at each wave's exit, because CI runners have no GPU;
   - `postfx` ≤ 25 KB gz [estimated].
-- **When effects turn off.** Effects never change intensity faster than 3 Hz (WCAG 2.3.1). They switch off under `prefers-contrast: more` and when the tier drops below 2. Whether and where to use bloom at all is DESIGN.md's call; the kit only offers it within this budget.
+- **When effects turn off.** Effects never change intensity faster than 3 Hz (WCAG 2.3.1). They switch off under `prefers-contrast: more` and when the tier drops below 2. Whether and where to use bloom at all is the look's call (D-047): The Pass blooms only what glows, the heat lamps' housings (`src/scene/postfx/plan.ts`), and DESIGN.md says that glow belongs to light sources alone. The kit only offers bloom within this budget.
 
 ### 6.6 Device tiers and adaptive quality
 
@@ -641,7 +665,7 @@ No drei (D-021). The kit implements its few helpers (adaptive DPR, a frame monit
 |---|---|---|---|---|
 | View | 2D only | 3D | 3D | 3D |
 | DPR cap | — | 1.0 | 1.5 | 2.0 |
-| Antialiasing | — | none | FXAA | SMAA |
+| Antialiasing | — | none | FXAA | FXAA |
 | Post passes | — | 0 | ≤1 | ≤2 |
 | Instances per scene | — | ≤10k | ≤30k | ≤50k |
 | Animation cap | — | 30 fps | 60 fps | 60 fps |
@@ -707,11 +731,13 @@ All tier values are [estimated] and start from games-3d.md's proposals: at most 
   - Workers, lesson JSON and traces each load on demand.
 - **Prefetching.**
   - On the front page, after LCP and on idle (`requestIdleCallback`, or after a 1.5 s timeout [estimated]), the `three-vendor` and `scene-loop` chunks are prefetched. This happens only at tier 1 or above, without `saveData`, and on a connection not reported as `2g`.
-  - Elsewhere, route chunks get `modulepreload` when a navigation link is hovered or focused.
+  - Elsewhere, route chunks get `modulepreload` when a navigation link is hovered or focused (`src/route-preload.ts`, D-059). The build writes a route table beside the entry, `<entry>.routes.json`: for each pattern of the route table the chunks its page needs besides the entry's, and for each game its component's (`scripts/pages/route-table.ts`). A link reads it the first time one is hovered or focused, and each chunk is preloaded once; a modulepreload fetches a module and runs nothing. Each document that `prepare-pages` writes preloads its own route's chunks from the same table (§3.2).
+  - So the entry names no page's chunk. Vite gives each lazy import a list of the chunks it needs (`__vite__mapDeps`), and the entry's lists named every chunk of every page, about 19 B gz a name, on every page (D-023's W1 note). The entry's lazy imports keep no list but their stylesheets, and every other lazy import keeps only the chunks its importer has not already loaded (`build.modulePreload.resolveDependencies`, vite.config.ts).
 - **First-paint budget**, gated by `verify:bundle` from Vite's manifest (§11.1):
-  - The entry chunk is ≤ 110 KB gz, with a target of ≤ 100 KB [estimated].
-  - The front page's first-paint closure (entry, the `front` route, The Loop's 2D view, the step-loop core and the content index) is ≤ 150 KB gz [estimated], with a target of ≤ 130 KB.
+  - The entry chunk and the chunks it imports statically (`react-vendor`) are ≤ 110 KB gz together, with a target of ≤ 100 KB [estimated].
+  - The front page's first-paint closure (entry, the `front` route, The Loop's 2D view, the step-loop core and the content index) is ≤ 150 KB gz [estimated], with a target of ≤ 130 KB. D-053 to D-055 raised the gate during W1, and D-059 put it back and fitted the closure to it.
   - kernelspace's whole-app entry measured 115.7 KB gz [measured at its d31a770, recorded in its `verify-bundle.ts`], which makes these figures reachable.
+  - Vite's modulepreload polyfill is off (`build.modulePreload.polyfill: false`, D-023's W1 note). Every browser since Firefox 115 and Safari 17 has `<link rel=modulepreload>`, and the polyfill cost 289 B gz of the front page's closure [measured 2026-11-04].
 
 ### 6.11 The front page: play first (D-004)
 
@@ -815,7 +841,7 @@ interface Graded { score: number /* [0,1] */; ok: boolean; provenance: Provenanc
 ### 8.2 Browser checks on fresh seeds
 
 - **The seed.** A graded attempt draws its seed with `crypto.getRandomValues` when it starts: unseen, though not secret (kernelspace S3). `band(seed)` rejects degenerate draws and draws again, and the reference answer is computed then by the pure model.
-- **Items.** A family is a pure `Gen {kcs, make(seed, level), grade(answer), solution}`, as in kernelspace's K1.
+- **Items.** A family is a pure `Gen {kcs, make(seed, level), grade(answer), solution}`, as in kernelspace's K1. A page plans with the families' faces (their ids, titles, KCs and variants, `packages/play/items/catalog.ts`) and loads a family's code when it draws one of its items (`src/items/families.ts`, D-059), so Today, a lesson and a module page carry no family they do not draw from.
 - **Graded game runs** are replayed from their action log at grade time (§6.3).
 - **Trace tasks** grade the learner's span marks against the trace model's ground truth, for synthetic traces, or against the owner's annotations, for pinned traces. Tolerances are in ns, as ASSESSMENT.md sets.
 - **No browser timing is ever graded** (catalog §7): `performance.now()` is coarsened, and wasm has no PMU.
@@ -826,8 +852,8 @@ The B-lane builds are Rust crates on kernelspace's `kslab` ABI v2 (vendored unch
 
 | Lab | Module | The learner writes | The host checks |
 |---|---|---|---|
-| `hybrid-kv` | TR5a | A hybrid KV manager with adapter pages, extending lab 02's optional `adapter_unified_paging` check | §5.4's invariants and results on seeded op streams, against `kvReference` |
-| `rejection-sampler` | TR6 | The verify step: accept or reject, then residual resampling | Chi-square on fresh seeds: 2 independent seeds × 20,000 draws at α = 1e-4 [estimated], so an exact sampler fails falsely with probability about 2 × 10⁻⁴ [derived]. Nightly runs measure the false-fail rate and each bestiary member's detection rate. |
+| `hybrid-kv` | TR5a | A hybrid KV manager with adapter pages, extending lab 02's optional `adapter_unified_paging` check | Six checks, one for each stage s1-s6 of TR5a §5. Each plays a script whose replies are known and then a seeded stream, and `kvJudge` judges every operation against `kvReference`: its reply, the hit, atomicity, §5.4's eight invariants on the state the module reports after the operation, and its events. The module reports its state through `ks_invoke` queries (`packages/sim/forge/kv-wire.ts`). |
+| `rejection-sampler` | TR6 | The verify step: accept or reject, then residual resampling | Four exact checks first (every coin of the accept step, the residual, every draw of the walk over the weights, and rounds in which no coin matters), then chi-square on fresh seeds: 2 independent seeds × 20,000 draws at α = 1e-4 [estimated], so an exact sampler fails falsely with probability about 2 × 10⁻⁴ [derived]. Nightly runs measure the false-fail rate and each bestiary member's detection rate. |
 | `kv-publisher` | TR5b | The engine-side event publisher | `kv-events@1` conformance: the reference consumer's view equals the truth after every op; ordering; reset semantics |
 
 **The oracle stays outside the learner's code.** In kernelspace each check is compiled into the learner's wasm (`ks_run`). Here the site drives the module through the existing `ks_invoke` bridge with batches of operations, the **invoke protocol** (`src/forge/invoke.ts`), and checks each reply against `packages/sim` on fresh seeds. The crate's own `ks_run` checks still back `cargo test`, so the terminal and the browser agree, but credit comes from the host.
@@ -945,7 +971,7 @@ vLLM 0.33.0 and SGLang 0.5.23 pin different torch and xgrammar builds [measured]
 
 ### 9.3 Install, with uv or pip, and rented GPUs
 
-The site serves the kits as static files from `public/labs/`: a forge zip per lab, a GPU kit zip, and the grader wheel. A manifest gives every file's SHA-256 (W2-T10). The repo is private, so learners cannot clone it.
+The site serves the kits as static files from `public/labs/`: a forge zip per lab, a GPU kit zip, and the grader wheel. A manifest gives every file's SHA-256 (W2-T10). The repo is public (D-060), so a learner may clone it, and the kits still ship as static downloads (D-007).
 
 - **uv (recommended).** uv 0.10.2, statespace's pin. Python 3.12 is the proposed default; the grader declares `>=3.11,<3.15`, vLLM's range [measured].
   ```
@@ -1050,16 +1076,17 @@ TypeScript writes `schemas/vectors/*.json`, Python's tests read them, and `labs.
 
 | Workflow | Trigger | Jobs |
 |---|---|---|
-| `ci.yml` | pull request | **fast-gate:** `npm ci`, lint, `tsc -b`, the content compile, every `verify:*` in §10.2, build, `verify:bundle`, export freshness. **tests:** `bun test` (units, golden vectors, 200-seed properties, bestiaries). **e2e-smoke:** Playwright Chromium against `vite preview`, with axe at 360 and 1280 px on 8 routes, a keyboard walk of the front-page game, the network-isolation check and screenshots uploaded as artifacts (target under 6 min [estimated]). |
-| `deploy.yml` | push to `main` | the fast gate and tests, then build, `prepare-pages`, `upload-pages-artifact` and `deploy-pages` (kernelspace's deploy) |
-| `nightly.yml` | 03:17 UTC [estimated slot], and by hand | 10,000-seed properties; the cross-browser determinism hash (Chromium, Firefox, WebKit); full axe at 320, 360 and 1280 px on every route; keyboard walks of every game; reduced-motion emulation (no animation frames after settle); the LCP, INP and CLS lab profile; claim-expiry and link-rot reports. On failure it opens or updates one issue, as kernelspace does. |
+| `ci.yml` | pull request | **fast-gate:** `npm ci`, lint, `tsc -b`, the content compile, every `verify:*` in §10.2, build, `verify:bundle`, export freshness. **tests:** `bun test` (units, golden vectors, 200-seed properties, bestiaries). **e2e-smoke:** Playwright Chromium against `vite preview`, with axe at 360 and 1280 px on 8 routes and, from W1-T36, on the 16 pages and 5 level pages that W1 added (`e2e/routes.ts`), the reduced-motion scan of the same pages and a frame count of every 3D scene, a keyboard walk of the front-page game and of one level of each W1 game (`e2e/walks.spec.ts`), the network-isolation check and screenshots uploaded as artifacts, in four shards (target under 6 min each [estimated]; unsharded, the 78 specs did not finish in 15 min on a private repository's two-core runner [measured 2026-11-04, PR #1]). Playwright cuts the sorted list of tests into four runs of equal length, so a spec's file name is its place in the plan: W1-T36's 193 tests ran as four shards of 66, 61, 75 and 98 s on a 20-core laptop [measured 2026-11-08 at df76ca9], and a runner takes about 4 to 16 times as long per test [derived from PR #1's first run], so a shard is about 11 min of test time [estimated; no CI run has timed these tests] and the 6 min target is not met without more shards. |
+| `deploy.yml` | push to `main`, and by hand | the fast gate and tests, then build, `prepare-pages`, `upload-pages-artifact` and `deploy-pages` (kernelspace's deploy) |
+| `nightly.yml` | 03:17 UTC [estimated slot], and by hand | 10,000-seed properties; the cross-browser determinism hash (Chromium, Firefox, WebKit); full axe at 320, 360 and 1280 px on every route; keyboard walks of every game, one for every level of the registry (`e2e/walks.spec.ts`, W1-T36); the network check and reduced-motion emulation (no animation frames after settle) on every document; the LCP, INP and CLS lab profile; claim-expiry and link-rot reports. On failure it opens or updates one issue, as kernelspace does. |
 | `labs.yml` | changes under `labs/**`, `schemas/**`, `packages/schema/**` or `packages/verify/**` | **forge:** Rust 1.96.0 with wasm32, `cargo test`, wasm builds of the reference and bestiary, `verify:labs` (the reference passes host checks; the bestiary fails). **grader:** `setup-uv`, `uv sync --locked`, `python -m unittest` (CPU), `verify:schema`, `verify:vectors`, receipt fixtures pass and forgeries fail. |
 | `upstream-watch.yml` (W3) | weekly | Compares PyPI and GitHub releases with `course.lock.json` and opens an issue with draft change cards. It never merges anything, and its requests send a generic User-Agent. |
 
 **Screenshots.**
 - Static pages and 2D views compare with a small tolerance, using self-hosted fonts on a fixed runner image.
 - 3D scenes are captured as artifacts and checked for "rendered and not blank" by sampling pixels, never by pixel diff. SwiftShader output is not a reference.
-- Headless Chromium on a runner renders WebGL through SwiftShader. Newer Chromium builds may need `--use-angle=swiftshader --enable-unsafe-swiftshader` [unverified for Playwright 1.63's Chromium; W0-T21 checks].
+- Headless Chromium on a runner renders WebGL through SwiftShader. [measured 2026-11-04 at bac1d04, with Playwright 1.63.0 driving Chrome for Testing 149.0.7827.55] Playwright adds `--enable-unsafe-swiftshader` itself, and WebGL2 exists with no flag. `--use-angle=swiftshader` is what makes the page read the renderer as capable and draw its 3D pass, because the headless shell otherwise fails a context request that refuses a major performance caveat, and the site then stays in 2D. `playwright.config.ts` holds the flag and the measurement. The Chromium that Playwright 1.63.0 pins, Chrome for Testing 153.0.8010.12, was not on the measuring machine [unverified], so the first run on a runner prints the build and renderer it ran on (e2e/screenshots.spec.ts).
+- Screenshot text is drawn with `--font-render-hinting=none`, which cut the difference between two headless modes from about 1.5% of the pixels to about 0.1% [measured 2026-11-04 at bac1d04, the front page's 2D pass at 360 and 1280 px].
 
 ### 10.2 Gates
 
@@ -1070,7 +1097,7 @@ TypeScript writes `schemas/vectors/*.json`, Python's tests read them, and `labs.
 | `verify:numbers` | An untagged number in prose (§4.4) |
 | `verify:kc` | A cycle; an item, level or check without a KC |
 | `verify:items` | A non-deterministic generator; an out-of-band seed; a blind strategy above its bound |
-| `verify:games` | A game missing its 2D view, mirror, debrief, card, keyboard map, KCs or sources; a session importing the DOM |
+| `verify:games` | A game missing its display name or subtitle (D-049), 2D view, mirror, debrief, card, keyboard map, KCs or sources; a session importing the DOM |
 | `verify:determinism` | §5.1's lint; a changed golden vector without `--write` |
 | `verify:boundaries` | §2.3's import rules; a static path from the entry to `three` |
 | `verify:bundle` | §11.1's gated budgets |
@@ -1111,10 +1138,10 @@ Every job sets `permissions: contents: read` unless it needs more, and uses `per
 
 | Budget | Gate | Target | Basis | Checked by |
 |---|---|---|---|---|
-| Entry chunk | ≤ 110 KB gz | ≤ 100 KB | [derived: kernelspace's larger app measured 115.7 KB] | `verify:bundle` (every PR) |
+| Entry chunk and its static imports | ≤ 110 KB gz | ≤ 100 KB | [derived: kernelspace's larger app measured 115.7 KB, in one file that carried React; here React sits in `react-vendor`, so the row counts the entry and what it imports statically (D-023)] | `verify:bundle` (every PR) |
 | Front-page first-paint closure | ≤ 150 KB gz | ≤ 130 KB | [estimated: about 60 KB React and ReactDOM, 15 KB router, 50 KB shell, 2D game and sim] | `verify:bundle` |
 | CSS (first paint) | ≤ 30 KB gz | ≤ 20 KB | [estimated] | `verify:bundle` |
-| Any other route's closure, excluding 3D | ≤ 200 KB gz | — | kernelspace's `/boot` and `/today` gate [measured precedent] | `verify:bundle` |
+| Any other route's closure, excluding 3D | ≤ 200 KB gz | — | kernelspace's `/boot` and `/today` gate, 200 KB [measured precedent] | `verify:bundle` |
 | `three-vendor` (three plus R3F) | ≤ 245 KB gz | — | [derived: kernelspace measured 238 to 242.4 KB] | `verify:bundle` |
 | Each `scene-<id>` | ≤ 40 KB gz | — | kernelspace's scene gate [measured precedent] | `verify:bundle` |
 | `postfx` | ≤ 25 KB gz | — | [estimated] | `verify:bundle` |
@@ -1246,7 +1273,9 @@ The kernelspace repo is only ever read, with `git show`, `git ls-tree` and `git 
 | `marked` | 18.0.6 (build-time only) |
 | `js-yaml` | 4.1.1 (build-time only; a local `.d.ts` declares the one function used) |
 
-**Not used** (D-021, D-022): `@react-three/drei`, `postprocessing`, `@react-three/postprocessing`, `detect-gpu`, `framer-motion`, MDX, any game engine, any analytics package. Icon and font packages are DESIGN.md's call; once chosen, they enter here with exact pins.
+**Not used** (D-021, D-022): `@react-three/drei`, `postprocessing`, `@react-three/postprocessing`, `detect-gpu`, `framer-motion`, MDX, any game engine, any analytics package.
+
+**Icons and faces.** No icon or font package is used: the faces are self-hosted files, pinned by SHA-256 in `public/fonts/fonts.json` and not dependencies (D-050), and the icons are drawn in `src/design`. A later icon or font package needs a DECISIONS entry and an exact pin here.
 
 **Python** (grader core; the engine envs are locked by `uv.lock`)
 
@@ -1293,9 +1322,8 @@ Hours are the catalog's [estimated] figures; the total is about 91 h.
 - **Extension points move.** The proposer, connector and profiler hooks in vLLM and SGLang can change between minors. Each GPU lab keeps a per-pin shim in `labs/gpu/<lab>/starter/`, and the quarterly re-pin carries that cost (catalog §9 puts Engine Internals' upkeep at about 10 h a quarter [estimated]; PLAN.md §11 estimates 14-25 h [estimated], counting the trace re-capture and the host-card refit).
 - **The Wire has not shipped.** TR5b owns a minimal connector contract and `kv-events@1` until WR3 ships, then reconciles (D-034).
 - **Unverified mechanics:**
-  - the SwiftShader flags for Playwright 1.63's Chromium (W0-T21);
+  - the SwiftShader flags on the Chromium that Playwright 1.63.0 pins, Chrome for Testing 153.0.8010.12: they were measured on 149.0.7827.55, and the first CI run of W0-T21's e2e suite prints the build (§10.1);
   - official engine images at the pinned tags (W2-T11);
-  - GitHub Pages on a private repository, which needs a paid GitHub plan (O-2);
   - WebKit's 7-day storage rule (§7.5).
 - **Unmeasured budgets.** Bundle budgets are estimates until W0-T20 measures them. W0-T24 freezes them in DECISIONS.
 - **Optional upgrades.** R3F 9.6.1 is behind 9.8.x and three 0.185.1 behind 0.186.x. Upgrading is optional and needs its own DECISIONS entry.

@@ -1,0 +1,96 @@
+# SGLang at the pin: the benchmark client bench_serving, its defaults and its traps (W1-T01; TR8, W1-T32).
+#
+# TR8's broken-benchmark corpus cites the real tool for each flaw: a rate of infinity, a capped closed loop, a warm-up that is one request, and
+# a run that ignores EOS. Read on 2026-11-04 at v0.5.23 (commit 297e54fd105e974cdf401e5b4d20253a22c16f90), in python/sglang/benchmark/serving.py.
+
+- id: sglang.bench.request-rate-default
+  value: inf
+  text: bench_serving defaults --request-rate to infinity, which sends all the requests at time 0, as vllm bench serve does. A finite rate draws exponential gaps, a Poisson process.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/benchmark/serving.py#L2465-L2471
+    title: SGLang v0.5.23, benchmark/serving.py, --request-rate
+    quote: 'Otherwise, we use Poisson process to synthesize the request arrival times. Default is inf.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.bench.max-concurrency-semaphore
+  value: a semaphore
+  text: bench_serving caps concurrency with an asyncio semaphore, so with --max-concurrency set the run is a capped closed loop.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/benchmark/serving.py#L1432
+    title: SGLang v0.5.23, benchmark/serving.py, benchmark
+    quote: 'semaphore = asyncio.Semaphore(max_concurrency) if max_concurrency else None'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.bench.warmup-default
+  value: 1
+  unit: requests
+  text: bench_serving sends 1 warm-up request by default, and --flush-cache, which flushes the server's cache before the run, is opt-in.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/benchmark/serving.py#L2697-L2712
+    title: SGLang v0.5.23, benchmark/serving.py, --warmup-requests
+    quote: 'help="Number of warmup requests to run before the benchmark",'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.bench.seed-default
+  value: 42
+  text: bench_serving seeds its random choices with 42 by default.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/benchmark/serving.py#L2554
+    title: SGLang v0.5.23, benchmark/serving.py, --seed
+    quote: 'parser.add_argument("--seed", type=int, default=42, help="The random seed.")'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.bench.ignore-eos-default
+  value: 'true'
+  text: bench_serving sends ignore_eos as true unless --disable-ignore-eos is given, so every response runs to its output length, which distorts speculation and structured output.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/benchmark/serving.py#L315-L317
+    title: SGLang v0.5.23, benchmark/serving.py
+    quote: 'payload["ignore_eos"] = not args.disable_ignore_eos'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.bench.goodput
+  value: every SLO met
+  text: A request counts toward bench_serving's goodput only if it succeeds and meets every given SLO. The SLOs are KEY:VALUE pairs in milliseconds, for example --goodput ttft:500 tpot:50.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/benchmark/serving.py#L2494-L2503
+    title: SGLang v0.5.23, benchmark/serving.py, --goodput
+    quote: 'counts toward goodput only if it succeeds and meets every given SLO.'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.bench.goodput-since
+  value: v0.5.23
+  text: bench_serving reports goodput and SLO attainment from v0.5.23 (pull request 43967), so a script written for an earlier SGLang has no --goodput.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/releases/tag/v0.5.23
+    title: SGLang v0.5.23 release notes
+    quote: '[Feat] bench: report goodput and SLO attainment in bench_serving: #43967'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 365
+  pin: sglang

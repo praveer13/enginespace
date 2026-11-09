@@ -11,3 +11,9 @@ src/content/generated/
 .impeccable/config.local.json
 .impeccable/review/
 .impeccable/build/
+.claude/
+bun.lock
+bun.lockb
+# What the content compiler writes into public/ (ARCHITECTURE §4.6). claims.json is never committed. The Markdown export, public/md/ and
+# public/llms.txt, is committed and so is not listed here (W1-T35): CI's Export freshness step and tests/content/export.test.ts fail when it is stale.
+public/claims.json

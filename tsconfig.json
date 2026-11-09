@@ -1,0 +1,23 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" },
+    { "path": "./tsconfig.pure.json" }
+  ],
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*", "./vendor/kernelspace/shims/src/*"],
+      "@es/sim": ["./packages/sim"],
+      "@es/sim/*": ["./packages/sim/*"],
+      "@es/play": ["./packages/play"],
+      "@es/play/*": ["./packages/play/*"],
+      "@es/ledger": ["./packages/ledger"],
+      "@es/ledger/*": ["./packages/ledger/*"],
+      "@es/schema": ["./packages/schema"],
+      "@es/schema/*": ["./packages/schema/*"],
+      "@es/verify": ["./packages/verify"],
+      "@es/verify/*": ["./packages/verify/*"]
+    }
+  }
+}
