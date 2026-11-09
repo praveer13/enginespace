@@ -11,6 +11,7 @@ import { spawnSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { GAMES } from '@es/play'
 import type { AnySession, GameEntry } from '@es/play'
 import { BAND_CANDIDATES, checkEntry, checkFiles, checkGames, checkSession, filesAt, readGameSource, worldAt } from '../../scripts/verify-games'
 import type { GateInput, Report } from '../../scripts/verify-games'
@@ -288,12 +289,21 @@ describe('this checkout', () => {
     expect(problems).toHaveLength(7)
   })
 
+  /** The graded levels of the registered games: each has a line that says what the best blind strategy passed against the bound (ASSESSMENT §4.1). */
+  const blindLines = (stdout: string): string[] =>
+    GAMES.games.flatMap((game) => game.levels.filter((level) => level.graded).map((level) => `${level.id}: best blind strategy passes `)).filter((line) => !stdout.includes(line))
+
   test('`bun scripts/verify-games.ts` passes on this checkout and says how many games it checked', () => {
     const result = spawnSync(process.execPath, ['scripts/verify-games.ts'], { cwd: root, encoding: 'utf8' })
     expect(`${result.stdout}${result.stderr}`).toContain('verify-games: ')
     expect(result.status).toBe(0)
     expect(result.stdout).toMatch(/^verify-games: \d+ games? registered, \d+ components?/)
     expect(result.stdout).toContain('verify-games: ok')
+    // And it measures ASSESSMENT §4.1's blind-strategy bound on every graded level of every game (W1b-T12): twelve of them.
+    expect(GAMES.games.flatMap((game) => game.levels.filter((level) => level.graded))).toHaveLength(12)
+    expect(blindLines(result.stdout)).toEqual([])
+    expect(result.stdout.match(/best blind strategy passes /g)).toHaveLength(12)
+    expect(result.stdout).toContain('against the bound of 15.0% [estimated]')
   })
 
   test('the gate registry runs it: `bun scripts/verify.ts games` is live and passes', () => {
@@ -301,5 +311,7 @@ describe('this checkout', () => {
     expect(result.status).toBe(0)
     expect(result.stdout).toContain('$ bun scripts/verify-games.ts')
     expect(result.stdout).not.toContain('pending')
+    // The registry's run is the one that CI and the merge gates make, so it measures the bound too.
+    expect(blindLines(result.stdout)).toEqual([])
   })
 })
