@@ -50,9 +50,10 @@ export const PITCH = { x: 0.114, z: 0.182 } as const
 export const FRAME = { front: 0.07, side: 0.07, back: 0.17 } as const
 /**
  * The mise in a pan: how far below the rim its edge lies, so the pan's wall and rolled rim stand round it as a line of steel, and how
- * high it heaps in the middle; its crown, where a kit pan's tape lies.
+ * high it heaps in the middle, a mound with round shoulders that the tubes catch (finish review, W1b round 1); its crown, where a kit
+ * pan's tape lies.
  */
-export const MISE = { drop: 0.02, heap: 0.007 } as const
+export const MISE = { drop: 0.02, heap: 0.013 } as const
 export const CROWN = TOP - MISE.drop + MISE.heap
 /** A pan's tape: masking tape across the mise. */
 export const TAPE = { w: 0.074, d: 0.044 } as const
@@ -271,7 +272,8 @@ export function nightOf(view: PoolView, r: ReachIn, { station, chosen }: NightOp
   const tapes: Tape[] = []
   for (const pan of pans) {
     if (pan.state === 'free') continue
-    fills.push({ at: top(pan.id, -MISE.heap), cell: FOOD[pan.state] })
+    // A pan's mise lies one way or end for end, by its number, so no two rows of the rack are stamped out alike.
+    fills.push({ at: top(pan.id, -MISE.heap), rotation: [0, (pan.id * 5) % 3 ? 0 : Math.PI, 0], cell: FOOD[pan.state] })
     // A kit's pans carry its tape, a degree or two off true, with the pin in marker on it. A kit's pan belongs to no station, so One
     // station leaves its tape off with the other stations' marks.
     if (pan.kit === null || station !== null) continue
