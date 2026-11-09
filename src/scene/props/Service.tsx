@@ -1,5 +1,21 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
-import { BufferGeometry, CircleGeometry, CylinderGeometry, InstancedBufferAttribute, Matrix4, PlaneGeometry, Vector3, type InstancedMesh, type Mesh, type MeshPhysicalMaterial, type ShaderMaterial } from 'three'
+import {
+  BufferGeometry,
+  CircleGeometry,
+  CylinderGeometry,
+  InstancedBufferAttribute,
+  Matrix4,
+  PlaneGeometry,
+  Vector3,
+  type Camera,
+  type InstancedMesh,
+  type Material,
+  type Mesh,
+  type MeshPhysicalMaterial,
+  type Scene,
+  type ShaderMaterial,
+  type WebGLRenderer,
+} from 'three'
 import { useKit } from '../kit'
 import type { Footprint } from './build'
 import { roomFor, useProps } from './context'
@@ -16,9 +32,9 @@ import { PLATE } from './specs'
  *   Plates      lathe-turned glazed plates, instanced; a plate slides from where it enters to its place and comes to rest on the
  *               settle curve, an exponential ease-out, and its contact shadow slides with it: a dark ring where its rim meets the
  *               steel and a soft shade past it, over the underside's own occlusion against the counter, baked once.
- *   ServiceBell the bell's chrome dome and plunger: a strike drops the plunger and rings the dome on the bell duration and the strike
- *               curve, with an amber flash on the dome; never more than one flash in 333 ms, so it cannot flash above 3 Hz (WCAG
- *               2.3.1).
+ *   ServiceBell the bell's chrome dome and plunger, turned in the chrome finish and mirroring the kit's room as polished metal does:
+ *               a strike drops the plunger and rings the dome on the bell duration and the strike curve, with an amber flash on the
+ *               dome; never more than one flash in 333 ms, so it cannot flash above 3 Hz (WCAG 2.3.1).
  *   LampLights  the heat lamps' light at every tier, with no spot light: a cone of warm haze under each lamp and the edgeless pool where
  *               it lands on the steel, brightening what lies there.
  *   Steam       a few soft puffs rising off each lit station when a fire lands, at T2 only, and never under reduced motion.
@@ -157,28 +173,55 @@ function footprintsOf(shown: ReadonlyMap<string, PlateShown>, scale: number): Fo
 /* The bell                                                                                                           */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** The dome's profile and the plunger's, turned: the base is the static set's (`bell-base`). */
+/**
+ * The dome's profile and the plunger's, turned (the base is the static set's `bell-base`) [estimated]: a dome with a rolled lip, round as a
+ * quarter of an ellipse nearly as tall as it is wide, so it shows the camera a curve from the tubes overhead down to the counter, and
+ * narrower than the base by a finger's width all round, so the base's deep steel rings its foot; on its crown the plunger's knob.
+ */
 const DOME: readonly Vec2[] = [
   [0, 0.026],
-  [0.0418, 0.026],
-  [0.0432, 0.0272],
-  [0.0428, 0.031],
-  [0.04, 0.039],
-  [0.034, 0.049],
-  [0.025, 0.0565],
-  [0.014, 0.0612],
-  [0.004, 0.063],
-  [0, 0.063],
+  [0.0345, 0.026],
+  [0.0362, 0.0266],
+  [0.0365, 0.0279],
+  [0.0359, 0.0337],
+  [0.0343, 0.0394],
+  [0.0316, 0.0447],
+  [0.0258, 0.0517],
+  [0.0183, 0.057],
+  [0.0113, 0.0599],
+  [0.0051, 0.0612],
+  [0, 0.0615],
 ]
 const PLUNGER: readonly Vec2[] = [
-  [0, 0.06],
-  [0.0026, 0.06],
-  [0.0026, 0.07],
-  [0.0058, 0.0712],
-  [0.0068, 0.0745],
-  [0.0058, 0.0778],
-  [0, 0.079],
+  [0, 0.058],
+  [0.0026, 0.058],
+  [0.0026, 0.0672],
+  [0.0065, 0.068],
+  [0.0078, 0.0715],
+  [0.0065, 0.075],
+  [0, 0.0758],
 ]
+/**
+ * How much brighter than brushed steel the bell's chrome mirrors the kit's room [estimated]. The room is a dim box with the tubes in it
+ * (src/scene/environment.ts): brushed steel blurs it into a bright sheen, and a polished dome mirrors its dim walls sharply, which drew
+ * the dome as a dark puck with an emblem (W1b's finish review of the lesson blocks, round 1). On a lit pass a chrome dome mirrors the
+ * lit counter and tile round it, which the box leaves out, so it takes the room this much brighter: the tubes' streaks white, the room
+ * light, and the floor a dark band at its foot, over the base's deep steel.
+ */
+const CHROME_ROOM = 2.4
+
+/**
+ * Points a chrome part's own material at the kit's room, mirrored at CHROME_ROOM: three takes a material's own strength of reflection
+ * only when the material names its reflection map. Each part calls it before it is drawn, when the kit has put the room in the scene.
+ */
+function mirrorRoom(_renderer: WebGLRenderer, scene: Scene, _camera: Camera, _geometry: BufferGeometry, material: Material) {
+  const chrome = material as MeshPhysicalMaterial
+  // A pass that draws the scene in a material of its own leaves it alone.
+  if (!chrome.isMeshPhysicalMaterial || chrome.envMap === scene.environment) return
+  chrome.envMap = scene.environment
+  chrome.envMapIntensity = scene.environmentIntensity * CHROME_ROOM
+  chrome.needsUpdate = true
+}
 /** How far the plunger drops on a strike, and how far the dome swings as it rings, at most [estimated]. */
 const STRIKE = { drop: 0.005, swing: 0.045, rings: 3.5 } as const
 /** The fewest milliseconds between two flashes: 3 per second at most (WCAG 2.3.1). */
@@ -235,8 +278,8 @@ export function ServiceBell({ at, strike, name = 'bell' }: { at: Vec3; strike: n
   const cast = kit.shadowLights > 0
   return (
     <group name={name} position={[...at]}>
-      <mesh ref={domeMesh} geometry={dome} material={flash} castShadow={cast} receiveShadow={cast} raycast={() => null} />
-      <mesh ref={plungerMesh} geometry={plunger} material={materials.metal} castShadow={cast} raycast={() => null} />
+      <mesh ref={domeMesh} geometry={dome} material={flash} castShadow={cast} receiveShadow={cast} raycast={() => null} onBeforeRender={mirrorRoom} />
+      <mesh ref={plungerMesh} geometry={plunger} material={flash} castShadow={cast} raycast={() => null} onBeforeRender={mirrorRoom} />
     </group>
   )
 }

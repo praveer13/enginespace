@@ -34,7 +34,7 @@ const MODE_LINES = {
 
 export interface GameBlockProps {
   block: Of<'game'>
-  /** The lesson or module the block belongs to, for the head line, and for its runs (runs.ts). */
+  /** The lesson or module the block belongs to, for the foot line, and for its runs (runs.ts). */
   scope: string
   /** The block's place among the page's blocks, which its runs are found by (runs.ts). */
   at: number
@@ -85,8 +85,8 @@ export function GameBlock({ block, scope, at, rev }: GameBlockProps) {
       </Frame>
     )
   }
-  // Once the stub is pulled, the ticket keeps its head, its title and the way to the game's own page: the game under it names itself, its
-  // level and its mode.
+  // Once the stub is pulled, the ticket keeps its title, its foot line and the way to the game's own page: the game under it names itself,
+  // its level and its mode.
   return (
     <div className="es-c-game" data-open={open ? '' : undefined}>
       <Frame block="game" scope={scope} meta={meta} title="Play" data={data(open ? 'open' : 'waiting')} stub={open ? undefined : <Stub onClick={() => setOpen(true)}>Start level</Stub>}>

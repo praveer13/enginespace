@@ -25,7 +25,7 @@ import { svgToReact } from '@/games/loop/svg'
 import { View2D } from '@/games/loop/View2D'
 import { hang, initState, setOverlap, step } from '@es/play/loop/engine'
 import { clipX, RAIL, SHOTS, viewOf } from '@es/play/loop/kitchen'
-import { FRAMES, MARK_CAP, MIRROR_TICKS, PAINTS, STRIP, WINDOW_TICKS, frameSvg, layoutFrame, layoutStrip, markCount, ticketNo, windowOf } from '@es/play/loop/layout'
+import { FRAMES, MARK_CAP, MIRROR_TICKS, PAINTS, PASS_LENS, STRIP, WINDOW_TICKS, frameSvg, layoutFrame, layoutStrip, markCount, ticketNo, windowOf } from '@es/play/loop/layout'
 import type { Paint } from '@es/play/loop/layout'
 import type { Frame, Mark, Orientation, ShotName } from '@es/play/loop/layout'
 import { firesOfRun } from '@es/play/loop/compare'
@@ -420,6 +420,42 @@ describe('the frame', () => {
     const see = viewOf(SHOTS.loop.base)
     const centres = marksOf(frame, 'clips').map((mark) => (mark.kind === 'rect' ? mark.x + mark.w / 2 : Number.NaN))
     centres.forEach((centre, slot) => expect(Math.abs(centre - (frame.width / 2 + see([clipX(slot, 4), RAIL.y, RAIL.z]).c * (frame.height / 2)))).toBeLessThan(0.6))
+  })
+
+  test("on a phone the 2D view's lens holds the whole pass: the printer and the tickets it fed at its left, the bell and the spike at its right, which the shot's own lens cuts (W1b's finish review of the lesson blocks, round 1)", () => {
+    /** The left and right of a layer's marks, in frame units: the marks a printer, a bell and a spike are drawn with are polygons, ellipses and lines. */
+    const across = (frame: Frame, part: string): [number, number] => {
+      const xs = marksOf(frame, part).flatMap((mark) => {
+        switch (mark.kind) {
+          case 'rect':
+            return [mark.x, mark.x + mark.w]
+          case 'ellipse':
+            return [mark.cx - mark.rx, mark.cx + mark.rx]
+          case 'circle':
+            return [mark.cx - mark.r, mark.cx + mark.r]
+          case 'line':
+            return [mark.x1, mark.x2]
+          case 'poly':
+            return mark.points.map(([x]) => x)
+          default:
+            return []
+        }
+      })
+      return [Math.min(...xs), Math.max(...xs)]
+    }
+    for (const overlap of [false, true]) {
+      for (const state of statesOfHouseNight(buildLevel('first-4-par', 1), { overlap })) {
+        const view = loopView(state)
+        const phone = layoutFrame(view, { orientation: 'portrait', shot: 'loop', lens: PASS_LENS })
+        for (const part of ['printer', 'bell']) {
+          const [left, right] = across(phone, part)
+          expect([part, left >= 0, right <= phone.width]).toEqual([part, true, true])
+        }
+        const own = layoutFrame(view, { orientation: 'portrait', shot: 'loop' })
+        expect(across(own, 'printer')[0]).toBeLessThan(0)
+        expect(across(own, 'bell')[1]).toBeGreaterThan(own.width)
+      }
+    }
   })
 
   test('ticket numbers are the id plus one, two digits', () => {

@@ -66,6 +66,13 @@ The bell with overlap off: the line drops dark while the expo writes, then every
 - **At T1 the pools are amber again.** There the kit's light adds after the tone curve, where amber laid on pale steel reads as a pale smudge, so the steel in each pool is also warmed toward the amber by scaling its own colour, which keeps its grain's light and dark.
 - **The room darkens as it recedes.** Its light falls off sooner toward the sides, so a phone's frame and a laptop's right side end in darker tile; the haze is the shadows' ink, darker than the floor's tile as well as the wall's; and the aisle between the pass and the line lies in shade, so the floor seen under the pass darkens away from the expo instead of catching the tubes.
 
+## Adaptations (W1b's finish review of the lesson blocks, round 1; two looks at 1440 and 390)
+
+- **The tapes are the design system's tape, on what they name.** Each name (the line's, the expo's, the bin's, the comb's, the rack's) is masking tape in the DOM, torn off at the size of its words and never smaller than the size ramp's smallest step (11 px on a phone, about 13 px on a laptop), so the lesson's GPU and CPU read at any width. Each is stuck on its object: the line's on its last station's cabinet, under the fired rail and over the pass's back edge, the expo's on the pass's front edge, the bin's on its front, the comb's on the front edge under it, the rack's at its row's right end. From the side of the pass the line's station stands behind the counter, so its tape is hidden there with the counts beside the tools, and on a phone every tape is, as that shot is too small to hold them.
+- **The bell reads as chrome on deep steel.** Its dome is turned narrower than its base, so the base's deep steel rings its foot, with the plunger's knob on its crown, and its chrome mirrors the kit's room brighter than brushed steel does: the tubes' streaks white, the room light, and a dark band at its foot.
+- **On a phone the 2D view holds the whole pass.** The portrait shot is drawn through a wider lens (`PASS_LENS`) and fitted to the box's width, so the printer that issues the tickets and the bell and the spike stand inside it.
+- **The full service's debrief reads on a phone.** Its ticket is a size container, and under 36rem the stage table prints each stage as a block of its own, as the mirror's table does, with the learner's call against the model's on its own line.
+
 ## Unresolved
 
 - GAMES.md §3's "3D scene" and "2D path" still describe lanes along time (a Gantt). This page draws the present instead (the rail, the fired rail, the last fire's plates, the stations), and the night's timeline lives in the tape and the mirror, and in the debrief's compare strips. The docs need the owner's amendment.

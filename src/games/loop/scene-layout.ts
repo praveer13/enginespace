@@ -49,11 +49,15 @@ const lean = (n: number, amount: number): number => (((n * 37) % 11) / 11 - 0.5)
 /* The kitchen: what stands still                                                                                     */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
+/**
+ * A strip of masking tape stuck on an object, its words in marker: a DOM label (Scene3D.tsx draws it as the design system's tape, torn off
+ * at the size of its words), anchored on the face of the object it names, so it sits on that object in every shot and its print never
+ * drops under the size ramp's smallest step (scene3d.css).
+ */
 export interface Tape {
   readonly id: string
+  /** The middle of the strip, on the object's face. */
   readonly center: Vec3
-  readonly size: readonly [number, number]
-  readonly rotation: Vec3
   readonly text: string
 }
 
@@ -87,12 +91,13 @@ export interface KitchenOptions {
   readonly printer: boolean
   /** The level has the overlap switch: hang the fired rail and set the bin on the pass. */
   readonly overlap: boolean
-  /** The full service's tools are on the pass: their names go on tape on the counter's front edge, beside the expo's. */
-  readonly tools?: boolean
 }
 
-/** The kitchen for a rail of `slots` clips: a function of the level's shape alone, so a fire never rebuilds it. */
-export function serviceKitchen(slots: number, { printer, overlap, tools = false }: KitchenOptions): ServiceKitchen {
+/**
+ * The kitchen for a rail of `slots` clips: a function of the level's shape alone, so a fire never rebuilds it. The full service's tools
+ * carry their own tapes, anchored on the comb and the rack where the night puts them (full/scene.ts).
+ */
+export function serviceKitchen(slots: number, { printer, overlap }: KitchenOptions): ServiceKitchen {
   const width = passWidth(slots)
   const rails = railLength(slots)
   const top = PASS.top
@@ -137,19 +142,15 @@ export function serviceKitchen(slots: number, { printer, overlap, tools = false 
   if (bin) items.push({ kind: 'pan', id: 'bin', at: bin, size: '1/1', depth: 0.1 })
 
   const tapes: Tape[] = [
-    // The line's name on the tile over its last station, and the expo's on the pass's rolled front edge, where each one stands: one
-    // high and far, one low and near, so the two never meet on any screen.
-    { id: 'line', center: [line.x(line.count - 1), 1.24, WALL_Z + 0.004], size: [0.6, 0.07], rotation: [0, 0, 0.02], text: 'the line · gpu' },
-    { id: 'expo', center: [0.15, top - 0.03, PASS.depth / 2 + 0.016], size: [0.42, 0.05], rotation: [-0.45, 0, -0.015], text: 'the expo · cpu' },
+    // The line's name on its last station's cabinet, low on its front, under the fired rail and over the pass's back edge: the band of
+    // the line that the shots over the pass see between the two, on a laptop and on a phone [estimated, by projecting kitchen.ts's SHOTS].
+    // From the side of the pass that station stands behind the pass, and the scene hides its tape there (Scene3D.tsx). The expo's is on
+    // the pass's rolled front edge, where the expediter stands. One on the line and one on the pass, so the two never meet on any screen.
+    { id: 'line', center: [line.x(line.count - 1), 0.32, LINE.z + LINE.depth / 2 - 0.02], text: 'the line · gpu' },
+    { id: 'expo', center: [0.15, top - 0.03, PASS.depth / 2 + 0.016], text: 'the expo · cpu' },
   ]
-  if (bin) tapes.push({ id: 'bin', center: [bin[0], top + 0.094, bin[2] + 0.1625 + 0.0035], size: [0.12, 0.024], rotation: [-0.12, 0, 0.03], text: 'binned · ghost' })
-  if (tools) {
-    // The full service's tools, named on the front edge as the expo is: the comb at the left, the molds at the right (full/kitchen.ts).
-    tapes.push(
-      { id: 'comb', center: [-0.4, top - 0.03, PASS.depth / 2 + 0.016], size: [0.3, 0.05], rotation: [-0.45, 0, 0.012], text: 'comb · launches' },
-      { id: 'molds', center: [0.6, top - 0.03, PASS.depth / 2 + 0.016], size: [0.3, 0.05], rotation: [-0.45, 0, -0.01], text: 'molds · sizes' },
-    )
-  }
+  // The bin's on the front of the pan.
+  if (bin) tapes.push({ id: 'bin', center: [bin[0], top + 0.094, bin[2] + 0.1625 + 0.0035], text: 'binned · ghost' })
   // The aisle's shade: from under the pass's back edge, where the pass's own shadow fades, back to the line's front.
   const [aisleFront, aisleBack] = [-PASS.depth / 2 + 0.08, LINE.z + LINE.depth / 2]
   return {

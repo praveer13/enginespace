@@ -140,8 +140,12 @@
 
 /* ---------------------------------------------------------------------------------------------- a ticket's head and text */
 
-/* The ids on a head line are lower case in the source and print in capitals, as the printer prints a table. */
-.es-c-block .es-ticket__head {
+/*
+ * The ids on a page's foot lines (or on the head line of a ticket with no title) are lower case in the source and print in capitals, as
+ * the printer prints a table.
+ */
+.es-c-block .es-ticket__head,
+.es-doc .es-c-block .es-ticket__foot {
   text-transform: uppercase;
 }
 

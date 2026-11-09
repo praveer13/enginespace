@@ -68,13 +68,28 @@ describe('/m/tr2/l0-sample', () => {
     for (const type of BLOCK_TYPES) expect(drawnTypes).toContain(type)
   })
 
-  test('draws a ticket for each block, with a head line that names the lesson, and a section\'s heading as its stamped title', () => {
+  test('draws a ticket for each block, whose stamped title leads the paper with the lesson named on its foot line, and a section\'s heading as its title', () => {
     const tickets = opening(html, 'section').filter((tag) => attribute(tag, 'data-block') !== undefined)
     // Two prose blocks (one of them in two tickets), the seven other blocks (the sample has two cards), and the closing ticket.
     expect(tickets.length).toBe(12)
     for (const tag of tickets) expect(tag).toContain('class="es-ticket es-c-block"')
-    // The lesson's id is on every head line for the eye, and hidden from assistive tech, which has the page's name once.
-    expect(html.match(/<div class="es-ticket__head"><span><span aria-hidden="true">tr2\.l0<\/span><\/span>/g)?.length).toBe(12)
+    // Each ticket's own markup, from its opening tag to the next ticket's.
+    const papers = html.split('<section class="es-ticket es-c-block"').slice(1)
+    expect(papers.length).toBe(12)
+    const scope = '<span aria-hidden="true">tr2.l0</span>'
+    const titled = papers.filter((paper) => paper.includes('class="es-ticket__title"'))
+    const untitled = papers.filter((paper) => !paper.includes('class="es-ticket__title"'))
+    // A title leads the paper (DESIGN.md, Ticket): no head line over it, and the lesson's id on the foot line, for the eye and hidden from
+    // assistive tech, which has the page's name once. A ticket with no title opens on it: the prose before the first heading, the prose
+    // after the last block, and the figure.
+    expect(titled.length).toBe(9)
+    for (const paper of titled) {
+      expect(paper).not.toContain('es-ticket__head')
+      expect(paper).toContain(`<div class="es-ticket__foot"><span>${scope}</span>`)
+    }
+    expect(untitled.length).toBe(12 - titled.length)
+    for (const paper of untitled) expect(paper).toContain(`<div class="es-ticket__head"><span>${scope}</span>`)
+    expect(html.match(/class="es-ticket__head"/g)?.length).toBe(untitled.length)
     expect(html).toContain('<h2 class="es-ticket__title">The bubble</h2>')
   })
 
@@ -541,14 +556,16 @@ describe('a notional-machine card (W1-T07)', () => {
   const env = renderEnv([], claims, TODAY)
   const html = render(h(NotionalMachineView, { card, env, scope: 'tr2.l1' }))
 
-  test('is one ticket, titled by its kind, with the card\'s id on its head line and no placeholder', () => {
+  test('is one ticket, titled by its kind, with the card\'s id on its foot line and no placeholder', () => {
     const tickets = opening(html, 'section')
     expect(tickets.length).toBe(1)
     expect(attribute(tickets[0], 'data-block')).toBe('card')
     expect(attribute(tickets[0], 'data-kind')).toBe('notional-machine')
     expect(attribute(tickets[0], 'data-placeholder')).toBeUndefined()
     expect(html).toContain('<h2 class="es-ticket__title">Notional machine</h2>')
-    expect(html).toContain('<div class="es-ticket__head"><span><span aria-hidden="true">tr2.l1</span></span><span>fixture-world</span></div>')
+    // The title leads the paper: no head line over it, and the lesson's id and the card's on the foot line.
+    expect(html).not.toContain('es-ticket__head')
+    expect(html).toContain('<div class="es-ticket__foot"><span><span aria-hidden="true">tr2.l1</span></span><span>fixture-world</span></div>')
   })
 
   test('prints the card\'s name and its few words, then its three parts under tape, in order, one level under the ticket\'s title', () => {

@@ -128,6 +128,11 @@ export interface FrameOptions {
   readonly clock?: string
   /** More of the kitchen, drawn after the pass through the same lens: the full service's mold rack, comb and allergy card. */
   readonly extra?: (draw: FrameDraw) => void
+  /**
+   * How many times wider than the shot's own lens the frame is drawn, from the same place: a box that must hold the whole pass from the
+   * printer to the bin, which a phone's square of the portrait shot cuts at both ends, takes a wider one (src/games/loop/View2D.tsx).
+   */
+  readonly lens?: number
 }
 
 /** The most marks the 2D view draws (A§6.4, W0-T16). The plan draws a fixed set of marks per clip, far under it. */
@@ -192,6 +197,14 @@ export const FRAMES: Readonly<Record<Orientation, { readonly width: number; read
   landscape: { width: 720, height: 300 },
   portrait: { width: 600, height: 600 },
 }
+
+/**
+ * The lens Service's 2D view draws its portrait shot through on a phone, as a factor on the shot's own [estimated]. The shot's own square
+ * cuts the pass at both ends, the printer that issues the tickets at its left and the bell and the spike at its right (W1b's finish
+ * review of the lesson blocks, round 1); this one holds the whole pass with a margin, the printer from 16 and the spike to 561 of the
+ * frame's 600 units [derived: the marks of first-4-par's frame at this lens]. The 3D scene keeps the shot's own lens.
+ */
+export const PASS_LENS = 1.3
 
 type Pt = readonly [number, number]
 
@@ -726,7 +739,7 @@ export function layoutFrame(view: KitchenView, options: FrameOptions = {}): Fram
   const size = FRAMES[orientation]
   // The frame is the shot's picture with its lens centred: a page that shifts the lens moves the frame instead (front.css).
   const chosen: Shot = orientation === 'portrait' ? shots.portrait : shots.base
-  const shot: Shot = { position: chosen.position, target: chosen.target, k: chosen.k }
+  const shot: Shot = { position: chosen.position, target: chosen.target, k: chosen.k * (options.lens ?? 1) }
   return { orientation, width: size.width, height: size.height, label: describe(view, options.clock), layers: build(view, shot, shotName, orientation, options.extra) }
 }
 

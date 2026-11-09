@@ -42,6 +42,11 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 
 The reveal. A learner who wrote 380 sees the ticket print "Right" and then, line by line, the two steps that make 380 from the figures they were given.
 
+## Adaptations (W1b's finish review of the lesson blocks, round 1)
+
+- **The title leads the paper.** As on every ticket of a lesson (DESIGN.md, Ticket), the item ticket has no head line over its stamped title: the lesson's id and the family's print on the foot line, and while a ticket is out its seed and `unseen` print beside them.
+- **The verdict's focus ring is whole.** The reveal's feed holds no clip once it has run, and while it feeds its clip runs past the reveal's sides, so the ring of the verdict that takes focus keeps its sides.
+
 ## Unresolved
 
 - **Title:** the stamped title reads "Items" for now, as the placeholder did. W1-T05 (Today) may want a different head line for an item served outside a lesson.

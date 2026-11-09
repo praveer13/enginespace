@@ -38,7 +38,7 @@ type Of<Type extends CompiledBlock['type']> = Extract<CompiledBlock, { type: Typ
 
 export interface ItemBlockProps {
   block: Of<'item'>
-  /** The lesson or module the block belongs to, for the head line. */
+  /** The lesson or module the block belongs to, for the foot line. */
   scope: string
   /** The families to draw from, whole. The catalog's faces, with each family's code loaded when an attempt starts, unless a test gives its own. */
   families?: readonly Gen[]
