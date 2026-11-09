@@ -74,17 +74,14 @@
   description: You can name the calls of one engine step in order, and say which of them launch GPU work and which wait for it.
   requires: [tr1.vllm-lifecycle] # advice, as the header says
   threshold: true
-  planned: W1-T15 # the `tr2.step-order` family, which the exit item of TR2's first lesson names
 
 - id: tr2.one-budget
   description: You can say how a scheduler that spends one token budget on running and waiting requests together chooses what runs, and what it does when the KV pool runs out.
   requires: [ks:t5.continuous-batching, ks:t5.sched-order, ks:t5.admission-headroom]
-  planned: W1-T15 # the `tr2.preempt-victim` family (TR2 §3, lesson 2)
 
 - id: tr2.gpu-dependent-defaults
   description: You can say why the same server command is a different configuration on two GPUs, and name the defaults that move with GPU memory.
   requires: [tr2.one-budget]
-  planned: W1-T15 # the `tr2.default-budget` family (TR2 §3, lesson 2)
 
 - id: tr2.bubble
   description: You can say why the GPU idles between engine steps when the CPU's work for the next step is not ready.
@@ -123,7 +120,6 @@
   description: You can say which fields of a batch's descriptor choose the CUDA graph that replays it, in the pinned runner and in the legacy one, and what runs when none matches.
   requires: [tr2.graph-modes, tr2.capture-padding]
   confusable: [tr2.graph-modes]
-  planned: W1-T14 # `close` has no adapter lever (W1-T14): the `keys` level, which waits on the owner's dispatcher tables (Q-10), or the `tr2.dispatch-key` family that TR2's lesson 6 names
 
 - id: tr2.graph-memory
   description: You can say why graph capture takes memory before the KV cache is sized, and correct a KV-capacity estimate for it.

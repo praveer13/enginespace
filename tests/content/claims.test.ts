@@ -10,7 +10,15 @@ import { agrees, claimProblems, evaluate, FormulaError } from '../../scripts/ver
 import { CLAIM_COUNT, CLAIMS, compile, errors, LESSON, lineOf, LOCK_KEYS, project, REPO_CLAIM_COUNT, REPO_COUNTS, repo, readSample, swap, where } from './support.ts'
 import type { Edit } from './support.ts'
 
-const TODAY = '2026-11-04'
+/** The day the sample's claims were checked (content/claims/sample.yaml): the date tests below move its dates around this one. */
+const SAMPLE_DAY = '2026-11-04'
+/** The day `days` after `day`. */
+const dayAfter = (day: string, days: number): string => new Date(Date.parse(`${day}T00:00:00Z`) + days * 24 * 3600 * 1000).toISOString().slice(0, 10)
+/**
+ * The day the gate runs on when it judges the repo's claims. A claim is dated the day it was checked and one from the future is an error, so
+ * the day cannot come before the latest claim: it is the sample's day until a task adds a claim that was checked later, and then that day.
+ */
+const TODAY = compileContent({ root: repo }).claims.reduce((latest, { claim }) => [claim.verifiedAt, claim.source?.accessed ?? ''].reduce((a, b) => (a > b ? a : b), latest), SAMPLE_DAY)
 const claims = readSample(CLAIMS)
 
 /**
@@ -189,9 +197,9 @@ describe('dates, pins and age', () => {
   const first = lineOf(claims, '- id: vllm.release.requires-python')
 
   test('a date after today is an error, and tomorrow is not (time zones)', () => {
-    expect(summary(problems({ [CLAIMS]: swap('verifiedAt: 2026-11-04\n  ttlDays: 90', 'verifiedAt: 2026-11-06\n  ttlDays: 90') }))).toEqual([`error ${first} future-date`])
-    expect(problems({ [CLAIMS]: swap('verifiedAt: 2026-11-04\n  ttlDays: 90', 'verifiedAt: 2026-11-05\n  ttlDays: 90') })).toEqual([])
-    expect(summary(problems({ [CLAIMS]: swap('accessed: 2026-11-04', 'accessed: 2026-12-01') }))).toEqual([`error ${first} future-date`])
+    expect(summary(problems({ [CLAIMS]: swap(`verifiedAt: ${SAMPLE_DAY}\n  ttlDays: 90`, `verifiedAt: ${dayAfter(TODAY, 2)}\n  ttlDays: 90`) }))).toEqual([`error ${first} future-date`])
+    expect(problems({ [CLAIMS]: swap(`verifiedAt: ${SAMPLE_DAY}\n  ttlDays: 90`, `verifiedAt: ${dayAfter(TODAY, 1)}\n  ttlDays: 90`) })).toEqual([])
+    expect(summary(problems({ [CLAIMS]: swap(`accessed: ${SAMPLE_DAY}`, `accessed: ${dayAfter(TODAY, 27)}`) }))).toEqual([`error ${first} future-date`])
   })
 
   test('a pin that the lock does not have is an error', () => {

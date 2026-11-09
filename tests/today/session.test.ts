@@ -5,6 +5,7 @@
  */
 import { describe, expect, test } from 'bun:test'
 import { bubbleWidth } from '@es/play/items/families/tr2/bubble-width'
+import { stepOrder } from '@es/play/items/families/tr2/step-order'
 import type { Gen } from '@es/play/items'
 import { deriveCards } from '../../src/items/today/cards'
 import { familiesAt, familyFor, levelFor } from '../../src/items/today/draw'
@@ -90,8 +91,16 @@ describe('the order', () => {
   })
 
   test('names the family and the title that will serve each line, and the level', () => {
-    const set = deriveCards(earned([BUBBLE]).events, appKcsOfRef, TODAY)
-    expect(composeSession(set, TODAY).lines).toEqual([{ kc: BUBBLE, family: 'tr2.bubble-width', title: bubbleWidth.title, level: 2 }])
+    // An idea that one family assesses is served by it.
+    const alone = deriveCards(earned([OVERLAP]).events, appKcsOfRef, TODAY)
+    expect(composeSession(alone, TODAY).lines).toEqual([{ kc: OVERLAP, family: 'tr2.bubble-width', title: bubbleWidth.title, level: 2 }])
+    // Two families assess the bubble (bubble-width, and the first lesson's step-order); they take turns by the reviews the card has had.
+    const once = deriveCards(earned([BUBBLE]).events, appKcsOfRef, TODAY)
+    expect(composeSession(once, TODAY).lines).toEqual([{ kc: BUBBLE, family: 'tr2.step-order', title: stepOrder.title, level: 2 }])
+    const ledger = earned([BUBBLE], '2026-10-20')
+    ledger.review('2026-10-22', BUBBLE, 3)
+    const twice = deriveCards(ledger.events, appKcsOfRef, TODAY)
+    expect(composeSession(twice, TODAY).lines).toEqual([{ kc: BUBBLE, family: 'tr2.bubble-width', title: bubbleWidth.title, level: 2 }])
   })
 
   test('is a welcome-back after a gap, and then serves the sturdiest ideas first', () => {
