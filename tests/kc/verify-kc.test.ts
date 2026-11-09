@@ -18,7 +18,7 @@ import type { GameEntry } from '@es/play'
 import { kcGraphSchema } from '@es/schema'
 import { loadYaml } from '../../scripts/content/parse.ts'
 import { renderSnapshot } from '../../scripts/kc/kernelspace.ts'
-import { checkKc, CONFUSABLE_MAX, courseModules, dependentCounts, gameReferences, itemReferences, readKernelspace, THRESHOLD_DEPENDENTS, trackerTasks } from '../../scripts/verify-kc.ts'
+import { checkKc, CONFUSABLE_MAX, courseModules, dependentCounts, gameReferences, itemReferences, LABS_FILE, labReferences, readKernelspace, THRESHOLD_DEPENDENTS, trackerTasks } from '../../scripts/verify-kc.ts'
 import type { KcInput, Reference } from '../../scripts/verify-kc.ts'
 import { root } from '../ci/support'
 
@@ -388,6 +388,63 @@ describe('itemReferences', () => {
 })
 
 /* ------------------------------------------------------------------------------------------------------------------ */
+/* Lab checks                                                                                                         */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+describe('labReferences', () => {
+  /** A table of the shape packages/sim/forge/kcs.ts exports, written as a module of a tree of its own. */
+  const table = (rows: string) => `export const LAB_CHECK_KCS = {\n${rows}\n}\n`
+
+  test('while packages/sim/forge/kcs.ts does not exist, finds none and says so', async () => {
+    const found = await labReferences(tempDir())
+    expect(found.references).toEqual([])
+    expect(found.diagnostics).toEqual([])
+    expect(found.note).toBe(`labs: ${LABS_FILE} does not exist, so no lab check names a KC`)
+  })
+
+  test('reads each check that a lab maps to KCs as a graded reference, and nothing of a check it leaves out', async () => {
+    const dir = put(tempDir(), {
+      [LABS_FILE]: table(`  'hybrid-kv': { checks: [{ id: 'one_group' }, { id: 'sliding' }], kcs: { sliding: ['tr5a.sliding-free', 'tr5a.all-or-nothing'] } },
+  'rejection-sampler': { checks: [{ id: 'accept' }], kcs: { accept: ['tr6.exact-acceptance'] } },`),
+    })
+    const found = await labReferences(dir)
+    expect(found.diagnostics).toEqual([])
+    expect(found.note).toBeNull()
+    expect(found.references).toEqual([
+      { kind: 'check', name: 'lab:hybrid-kv/sliding', file: LABS_FILE, kcs: ['tr5a.sliding-free', 'tr5a.all-or-nothing'], graded: true },
+      { kind: 'check', name: 'lab:rejection-sampler/accept', file: LABS_FILE, kcs: ['tr6.exact-acceptance'], graded: true },
+    ])
+    // The gate then counts the KCs as earned, and a mapped check that names nothing is "a check without a KC" (§10.2).
+    const graph = graphOf(kc('tr5a.sliding-free'), kc('tr5a.all-or-nothing'), kc('tr6.exact-acceptance'))
+    expect(said(run(graph, { references: found.references }))).toEqual([])
+    expect(said(run(graph, { references: [{ ...found.references[1], kcs: [] }, found.references[0]] }))).toEqual([
+      `error no-reference ${GRAPH}:${lineOf(graph, 'id: tr6.exact-acceptance')}`,
+      `error reference-no-kc ${LABS_FILE}:1`,
+    ])
+  })
+
+  test('fails a row that maps a check the lab does not have, a table that is not one, and a file that cannot be imported', async () => {
+    const renamed = await labReferences(put(tempDir(), { [LABS_FILE]: table(`  'hybrid-kv': { checks: [{ id: 'hit_all_groups' }], kcs: { hit: ['tr5a.hit-intersection'] } },`) }))
+    expect(renamed.references).toEqual([])
+    expect(renamed.diagnostics.map((d) => [d.code, d.file, d.message])).toEqual([['lab-unknown-check', LABS_FILE, 'lab:hybrid-kv maps the check "hit" to KCs, and the lab has no such check']])
+    const none = await labReferences(put(tempDir(), { [LABS_FILE]: 'export const SOMETHING_ELSE = 1\n' }))
+    expect(none.diagnostics.map((d) => d.code)).toEqual(['lab-table'])
+    const broken = await labReferences(put(tempDir(), { [LABS_FILE]: `throw new Error('boom')\n` }))
+    expect(broken.diagnostics.map((d) => [d.code, d.message])).toEqual([['lab-import', "cannot be imported to read the labs' checks: boom"]])
+  })
+
+  test('the repository\'s table maps only checks its labs have, to KCs of the graph, and names a KC of each lab', async () => {
+    const found = await labReferences(root)
+    expect(found.diagnostics).toEqual([])
+    expect(found.note).toBeNull()
+    const names = found.references.map((r) => r.name)
+    expect(names.some((name) => name.startsWith('lab:hybrid-kv/'))).toBe(true)
+    expect(names.some((name) => name.startsWith('lab:rejection-sampler/'))).toBe(true)
+    for (const reference of found.references) expect([reference.name, reference.kcs.length > 0, reference.graded]).toEqual([reference.name, true, true])
+  })
+})
+
+/* ------------------------------------------------------------------------------------------------------------------ */
 /* The kernelspace snapshot                                                                                           */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
@@ -522,7 +579,7 @@ describe('as a process', () => {
     // A game says so while it has no graded level: Service did until W1-T14.
     for (const game of GAMES.games) expect(out.includes(`note: games: ${game.id} has no graded level yet`), game.id).toBe(!game.levels.some((level) => level.graded))
     expect(out).toContain('note: items: packages/play/items does not exist yet (W1-T04)')
-    expect(out).toContain('note: labs: lab checks are not a source yet')
+    expect(out).toContain('note: labs: packages/sim/forge/kcs.ts does not exist, so no lab check names a KC')
   })
 
   test('fails a cycle with the file and the line, and counts the errors and the files', () => {

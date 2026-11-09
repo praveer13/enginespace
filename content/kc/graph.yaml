@@ -20,6 +20,9 @@
 #                Until a graded reference exists a KC carries `planned`, and W1-T38 fails on any that remain. The comment beside it
 #                says which artifact will carry the KC. Where TRACKER.md names no builder, it is the module's content task, whose
 #                exit checks give every lesson's KCs an item.
+#                The W1 exit review (W1-T38, 2026-11-08) removed the 25 placeholders that a graded game level, an item family or a
+#                lab check answered, the labs' through packages/sim/forge/kcs.ts. The eleven that remain wait for item families that
+#                the lessons name and no W1 task built, so `bun scripts/verify-kc.ts --final` fails on them (docs/waves/W1-report.md §5).
 #
 # The edges are the curriculum's, edge for edge, and tests/kc/graph.test.ts holds the two to each other. TR2's step-calls leans on
 # TR1's vllm-lifecycle only as advice: TR2 can be taken without TR1.
@@ -31,17 +34,15 @@
   description: You can say which mechanism carries a request across a boundary (a queue, IPC, a copy, a sync or compute), and where each stage of its path runs.
   requires: [ks:t2.process-thread, ks:t0.wait-bars]
   threshold: true
-  planned: W1-T19 # the graded `map` level, whose every stage has a mechanism and a place
 
 - id: tr1.small-engine-anatomy
   description: You can name the parts of a small engine (the engine, the scheduler, the block manager and the model runner) and say what each owns, reading nano-vllm.
   requires: [ks:t5.block-tables, ks:t5.continuous-batching, ks:t5.prefix-cache-keys]
-  planned: W1-T19 # `map` on a nano-vllm scenario
 
 - id: tr1.phases-vs-one-budget
   description: You can say how a scheduler that runs either prefill or decode in a step differs from vLLM's one token budget for every request.
   requires: [tr1.small-engine-anatomy, ks:t5.prefill-decode-interference]
-  planned: W1-T20 # an exit item of the lessons on nano-vllm and vLLM
+  planned: W1-T20 # the `tr1.step-budget` family, which the exit items of TR1's lessons 2 and 5 name
 
 - id: tr1.vllm-lifecycle
   description: You can trace a request through vLLM at the pinned version, from the API server to the model runner and back, naming each queue, process boundary, copy and sync.
@@ -49,13 +50,11 @@
   threshold: true
   # Two engines whose paths have the same shape and different names (TR1 §4: how many process boundaries does a token cross in vLLM? in Mini-SGLang?).
   confusable: [tr1.sglang-lifecycle]
-  planned: W1-T19 # `map` on a vLLM scenario
 
 - id: tr1.sglang-lifecycle
   description: You can trace a request through SGLang at the pinned version, through the tokenizer manager, the scheduler and the detokenizer, naming each queue, process boundary, copy and sync.
   requires: [tr1.five-mechanisms]
   confusable: [tr1.vllm-lifecycle]
-  planned: W1-T19 # `map` on an SGLang scenario
 
 - id: tr1.request-states
   description: You can name the states a request moves through in the pinned vLLM, and say what moves it from one to the next.
@@ -65,7 +64,6 @@
 - id: tr1.abort-path
   description: You can trace an abort from the client to the engine core, and say where the engine drains it and what it releases.
   requires: [tr1.request-states]
-  planned: W1-T19 # `map` on an abort scenario
 
 - id: tr1.read-at-the-pin
   description: You can find where a box of an older engine post lives in the pinned code, and say which of the post's statements are stale.
@@ -79,7 +77,7 @@
   description: You can name the calls of one engine step in order, and say which of them launch GPU work and which wait for it.
   requires: [tr1.vllm-lifecycle] # advice, as the header says
   threshold: true
-  planned: W1-T15 # an exit item of TR2's first lesson
+  planned: W1-T15 # the `tr2.step-order` family, which the exit item of TR2's first lesson names
 
 - id: tr2.one-budget
   description: You can say how a scheduler that spends one token budget on running and waiting requests together chooses what runs, and what it does when the KV pool runs out.
@@ -128,7 +126,7 @@
   description: You can say which fields of a batch's descriptor choose the CUDA graph that replays it, in the pinned runner and in the legacy one, and what runs when none matches.
   requires: [tr2.graph-modes, tr2.capture-padding]
   confusable: [tr2.graph-modes]
-  planned: W1-T14 # `close`, whose levers include adapter specialisation
+  planned: W1-T14 # `close` has no adapter lever (W1-T14): the `keys` level, which waits on the owner's dispatcher tables (Q-10), or the `tr2.dispatch-key` family that TR2's lesson 6 names
 
 - id: tr2.graph-memory
   description: You can say why graph capture takes memory before the KV cache is sized, and correct a KV-capacity estimate for it.
@@ -149,27 +147,23 @@
 - id: tr5a.hit-intersection
   description: You can work out the longest prefix hit when every KV group must hold it, and say why the answer is an intersection and not a union.
   requires: [tr5a.kv-groups, ks:t5.prefix-cache-keys]
-  planned: W1-T22 # the `hybrid-kv` lab, stage s4
 
 - id: tr5a.sliding-free
   description: You can say which blocks a sliding-window group releases as a request advances, and how many it still holds.
   requires: [tr5a.kv-groups]
   # Two ways a layer's memory stays bounded as a request grows: a window gives pages back, and a state group holds a fixed number (TR5a §1, item 4).
   confusable: [tr5a.state-pages]
-  planned: W1-T22 # the `hybrid-kv` lab, stage s2
 
 - id: tr5a.state-pages
   description: You can say why a state group holds a fixed number of pages for a request, however long the request runs.
   requires: [tr5a.kv-groups]
   confusable: [tr5a.sliding-free]
-  planned: W1-T22 # the `hybrid-kv` lab, stage s3
 
 - id: tr5a.adapter-pages
   description: You can work out how many pool pages an adapter takes, and say what must be resident for a request to run and what unloading an adapter returns.
   requires: [ks:t6.multi-lora-batching, ks:t6.lora-adapter-bytes, ks:t5.block-refcounts]
   # S-LoRA's pages against the slots that vLLM and SGLang use: the catalog's own wording ran the two together (D-042).
   confusable: [tr5a.slots-vs-pages]
-  planned: W1-T22 # the `hybrid-kv` lab, stage s5
 
 - id: tr5a.slots-vs-pages
   description: You can compare adapter slots, as the pinned engines use them, with adapters paged in one pool, and say when slots are enough.
@@ -180,7 +174,6 @@
 - id: tr5a.all-or-nothing
   description: You can say why an admit or a load takes all of its pages or none, and what state a refused one must leave the pool in.
   requires: [ks:t1.allocator-contract]
-  planned: W1-T22 # the `hybrid-kv` lab, stages s2 and s5
 
 # ---------------------------------------------------------------------------------------------------------------------------------
 # TR6 · Speculation and structure
@@ -188,45 +181,37 @@
 - id: tr6.verify-shape
   description: You can say what one speculative step does (draft, verify in a single target forward, add a bonus token) and why its padded shape keeps full CUDA graphs eligible.
   requires: [ks:t5.speculative-decoding, tr2.capture-padding]
-  planned: W1-T30 # an exit item of TR6's first lesson
 
 - id: tr6.exact-acceptance
   description: You can compute the probability that a drafted token is accepted from the target's and the draft's probabilities, and say why the rule leaves the output distributed exactly as the target's.
   requires: [ks:t5.speculative-decoding]
   # The accept rule against the recovery draw: the bestiary's mutants differ by swapping them, as accepting with p/q and then resampling from p does (TR6 §5).
   confusable: [tr6.residual-recovery]
-  planned: W1-T27 # the `rejection-sampler` lab
 
 - id: tr6.residual-recovery
   description: You can draw the replacement for a rejected token from the target's probabilities minus the draft's, where positive and normalised, and say what goes wrong with any other choice.
   requires: [tr6.exact-acceptance]
   confusable: [tr6.exact-acceptance]
-  planned: W1-T27 # the `rejection-sampler` lab
 
 - id: tr6.exactness-testing
   description: You can test a sampler for exactness with a chi-square goodness-of-fit test, and say what its significance level and its power tell you.
   requires: [tr6.residual-recovery]
-  planned: W1-T27 # the `rejection-sampler` lab, whose host runs the test
 
 - id: tr6.acceptance-length
   description: You can work out the tokens a speculative round emits on average from per-position acceptance, and find the draft length beyond which a longer draft stops paying.
   requires: [ks:t6.spec-acceptance]
-  planned: W1-T28 # the graded `chain` and `gamma` levels
 
 - id: tr6.proposer-families
   description: You can tell the proposer families of the pinned engines apart (n-gram, suffix, draft model, EAGLE and MTP) by what each needs, and look up which runner a method runs on at the pin.
   requires: [ks:t6.self-drafting]
-  planned: W1-T30 # the `tr6.which-runner` family (TR6 §4, Keep)
 
 - id: tr6.mask-phases
   description: You can name the phases of a grammar mask (compile, fill, apply and deferral), and say which run on the CPU, which on the GPU and which make a request wait.
   requires: [ks:t6.grammar-masks]
-  planned: W1-T30 # an exit item of TR6's lesson on the mask
 
 - id: tr6.mask-overlap
   description: You can predict whether a step's mask fill hides under the forward, and how large a bubble it leaves when it does not.
   requires: [tr6.mask-phases, tr2.async-overlap]
-  planned: W1-T30 # the graded `mask` level of the step-loop game
 
 # ---------------------------------------------------------------------------------------------------------------------------------
 # TR8 · Benchmark like you mean it
@@ -238,34 +223,28 @@
   # Three flaws of the broken-benchmark corpus that a learner takes for one another: a closed loop, a latency counted from the send, and
   # a client queue that the timer does not see (TR8 §1, items 1 and 2, and the corpus of §5).
   confusable: [tr8.open-vs-closed, tr8.client-queue]
-  planned: W1-T33 # the graded `due` level
 
 - id: tr8.open-vs-closed
   description: You can tell an open-loop client from a closed-loop one, and say what each shows when the server stalls.
   requires: [tr8.latency-from-due]
   confusable: [tr8.latency-from-due, tr8.client-queue]
-  planned: W1-T33 # the graded `due` and `court` levels
 
 - id: tr8.client-queue
   description: You can find the time a request waits inside the client before it is sent, and say why a cap on concurrency is a closed loop in disguise.
   requires: [tr8.open-vs-closed]
   confusable: [tr8.latency-from-due, tr8.open-vs-closed]
-  planned: W1-T33 # the graded `court` level
 
 - id: tr8.warmup-rule
   description: You can fix the warm-up window by a rule before a run, and check afterwards that the run was no longer warming.
   requires: [ks:t7.benchmark-hygiene]
-  planned: W1-T33 # the graded `warm` level
 
 - id: tr8.min-n-tail
   description: You can work out how many requests lie beyond a percentile, and say how many a run needs before that percentile means anything.
   requires: [ks:t7.tail-percentiles]
-  planned: W1-T33 # the graded `sure` level
 
 - id: tr8.bootstrap-p99
   description: You can put a bootstrap interval on a p99, and say how the width of the interval moves with the number of requests.
   requires: [tr8.min-n-tail]
-  planned: W1-T33 # the graded `sure` level
 
 - id: tr8.goodput-denominator
   description: You can say which denominator a goodput number divides by (the arrival window, or the whole run with its drain tail), and how the two differ under overload.
@@ -279,7 +258,6 @@
 - id: tr8.time-shaped-replay
   description: You can say whether a trace replay keeps the trace's timing or only its shape, and what a replay that ignores timestamps loses.
   requires: [tr8.open-vs-closed]
-  planned: W1-T33 # the graded `court` level
 
 - id: tr8.tool-defaults
   description: You can read what the benchmark tools' defaults do (rate, concurrency, warm-up, cache reuse and percentiles), and name the flags that change them.
