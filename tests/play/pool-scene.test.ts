@@ -193,6 +193,24 @@ describe('the night on the pans', () => {
     expect(pinned).toBeGreaterThan(0)
   })
 
+  test("a pan's mise lies along its pan or end for end, by the pan's number, so it stays square in its pan and the rack is not stamped out alike (finish review, W1b round 1)", () => {
+    const turns = new Set<number>()
+    for (const state of night('two-kinds')) {
+      const v = view(state)
+      const drawn = nightAt(state)
+      const held = v.pans.filter((pan) => pan.state !== 'free')
+      drawn.fills.forEach((fill, i) => {
+        const [x, y, z] = fill.rotation ?? [0, 0, 0]
+        expect([x, z]).toEqual([0, 0])
+        expect([0, Math.PI]).toContain(y)
+        // The turn is the pan's own, whatever the night does to it.
+        expect(y).toBe((held[i].id * 5) % 3 ? 0 : Math.PI)
+        turns.add(y)
+      })
+    }
+    expect([...turns].sort()).toEqual([0, Math.PI])
+  })
+
   test("each memory role has its own food, and a dumped pan's well is the hollow tray", () => {
     const held = (['used', 'cached', 'shared', 'adapter'] as const).map((state) => FOOD[state])
     expect(new Set(held).size).toBe(4)
@@ -542,6 +560,34 @@ describe('the acceptance checks on text, colour and size', () => {
 
   test("the steel reflects the kitchen's tubes and not the heat lamps' glow, so it warms only under a lit lamp (One Lamp)", () => {
     expect(sources[0]).toMatch(/<SceneCanvas [^>]*environment="tubes"/)
+  })
+
+  test('the room falls into a haze of shaded steel with distance and height, and the paper, the mise, the twine, the tape and the rings on the reach-in take none (finish review, W1b round 1)', () => {
+    const scene = sources[0]
+    // The haze is a role's colour, paler than the floor it lifts, beginning a little in front of the camera's focus.
+    expect(scene).toMatch(/<SceneCanvas fog=\{\{ near: HAZE\.near, far: HAZE\.far, color: 'surface-2' \}\}/)
+    const haze = /const HAZE = \{ near: (-?[\d.]+), far: ([\d.]+), high: ([\d.]+) \} as const/.exec(scene)
+    expect(haze).not.toBeNull()
+    const [near, far, high] = (haze ?? []).slice(1).map(Number)
+    expect(near).toBeLessThan(0)
+    expect(far).toBeGreaterThan(near)
+    expect(high).toBeLessThan(1)
+    // The steel takes it past the reach-in's sides and over the overshelf, the tile everywhere; both through the scene's own patches.
+    expect(scene).toMatch(/<Kitchen [^>]*metal=\{METAL_HAZE\}/)
+    expect(scene).toMatch(/patch\(materials\.tile, '[\w-]+', TILE_HAZE\)/)
+    const steel = /const METAL_HAZE = haze\('([\d.]+)', '([\d.]+)', '([\d.]+)'\)/.exec(scene)
+    expect(Number(steel?.[1])).toBeGreaterThan(RAIL.y + 0.05)
+    expect(Number(steel?.[3])).toBeGreaterThanOrEqual(reachInOf(104, 4).width / 2)
+    // What lies on the reach-in and the pass opts out of the fog.
+    for (const material of ['food', 'marks', 'cord']) expect(scene).toMatch(new RegExp(`const ${material} = new MeshStandardMaterial\\(\\{[^}]*fog: false`))
+    expect(scene).toMatch(/for \(const material of \[materials\.ticket, kit\.materials\.tape, kit\.materials\.lamp\]\) \{\s*material\.fog = false/)
+  })
+
+  test("at T1 the heat lamps take more of the kit's light than from T2, where the kit draws it three times over (finish review, W1b round 1)", () => {
+    const power = /const LAMP_POWER = \[([\d.]+), ([\d.]+)\] as const/.exec(sources[0])
+    expect(power).not.toBeNull()
+    expect(Number(power?.[1])).toBeGreaterThan(Number(power?.[2]))
+    expect(sources[0]).toMatch(/const power = LAMP_POWER\[kit\.tier < 2 \? 0 : 1\]/)
   })
 
   test('the scene reaches three only through the kit and its own lazy chunk, and the page holds it behind React.lazy', () => {
