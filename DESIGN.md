@@ -352,7 +352,7 @@ A pilot light in a stainless bezel, with the station's name and the word for its
 ### Navigation
 - **Board links:** Big Shoulders 800 uppercase at 1.125rem and 0.08em in text-2, at least 2.75rem tall; hover darkens to text-1 and underlines at 2px; the current page sits under the heat lamp, with an amber pool above it and a 3px filament bar below.
 - **Name plate:** the house's name stamped into a flat shaded-steel plate at 1.3125rem and 0.1em.
-- **Text link:** underlined at 0.08em with a 0.24em offset, thickening under the hand; active prints in ribbon red; external links carry a drawn mark.
+- **Text link:** underlined at 0.08em with a 0.24em offset, thickening under the hand; active prints in ribbon red; external links carry a drawn mark, and a link to a file of the site itself (a document that is not a page) opens in the same tab and carries none.
 
 ### Rail
 A polished stainless rod lit from the tubes, with deep-steel spring clips that grip each ticket through its punched hole. An empty clip shows a 2px dashed edge box with Doto print. The rail can sit under the lamp.

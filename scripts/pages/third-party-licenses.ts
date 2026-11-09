@@ -24,12 +24,43 @@
  *     and a missing one costs a licence.
  *   - A worker is bundled by a build of its own that Vite's plugins do not see (vite:worker), so its modules reach the file through the
  *     second plugin of `thirdPartyLicenses`, which vite.config.ts puts in `worker.plugins`.
- *   - A package whose files reach the site without being a module of a script (Tailwind's base CSS is copied into the stylesheet) is named
- *     in `alsoShips`.
+ *   - A package whose code reaches the site without being a module of a script is named in `alsoShips`: Tailwind, whose base CSS is copied
+ *     into the stylesheet, and Rollup, which writes code of its own into the scripts (below).
+ *   - Code that the build tool writes into a script comes in two kinds. One arrives as a module that has no file, and so no `node_modules` path:
+ *     Vite's preload helper (`\0vite/preload-helper.js`, in the entry script) and the interop helper of the Rollup commonjs plugin that Vite
+ *     bundles into its own build (`\0commonjsHelpers.js`, in react-vendor) [measured 2026-11-08 at 6418a20: the only two modules of the build
+ *     that are not files]. INJECTED names the package of each, vite, and of the rest of Vite's own, so vite is listed like a package whose
+ *     module reached a script. A module of that kind that INJECTED does not name fails the build, with its name: a helper that a new Vite or a
+ *     new plugin writes in is a licence that nobody has read.
+ *   - The other kind is no module at all. Rollup writes some of it itself when it renders a chunk: the helper that merges namespace objects
+ *     (`_mergeNamespaces`, which `HELPER_GENERATORS` writes in rollup/dist/es/shared/node-entry.js) is in react-vendor, and the literal of a
+ *     namespace object (`Object.freeze(Object.defineProperty({__proto__:null,...},Symbol.toStringTag,{value:"Module"}))`, which Rollup builds
+ *     when a module's namespace is used as a value) is in 7 other scripts [measured 2026-11-09 at b92a73e: of the 154 scripts of dist/assets].
+ *     No module of rollup reaches a script [measured 2026-11-09 at b92a73e], so the record's list of the packages in each script has no rollup
+ *     in it, and INJECTED has no module to name it for. vite.config.ts names rollup in `alsoShips` instead, which lists it apart from the
+ *     scripts and puts its section in the file. The build does not check for the code itself: tests/build.test.ts finds it in a real build.
+ *   - A plugin writes the rest of that kind into a script's code after Rollup has put the modules together. Vite's `__vite__mapDeps` is one,
+ *     the function that names the files which each lazy import loads with it (`vite:build-import-analysis` writes it in its `generateBundle`
+ *     hook), at the top of each script whose lazy imports have files to name [measured 2026-11-09 at 6ae0e50: 16 of the 154 scripts of
+ *     dist/assets]. The record (`.vite/third-party.json`, below) and INJECTED see only code that arrives as a module (the `moduleIds` of a
+ *     chunk), so the record lists vite for the two scripts that hold a helper module and not for the others, and code of that kind from another
+ *     plugin would fail nothing. `__vite__mapDeps` is covered because it is Vite's own code and vite's section carries Vite's licence, and not
+ *     because the build checks for it.
+ *   - vite's LICENSE.md is 101,182 bytes [measured 2026-11-08, vite 7.3.0], and nearly all of it is the licences of the dependencies that are bundled
+ *     into Vite's own build (its dev server, its config loader, its CSS tooling), which runs in Node and, but for the code named above, is not in
+ *     the site. So the file gives the two parts of it that apply, Vite's own MIT licence (that of the preload helper and of `__vite__mapDeps`) and
+ *     the Rollup plugins' (the commonjs helper's), from third-party/vite.txt, word for word, in place of the whole file. The entry in
+ *     third-party/notices.json says which file it stands in for (`replaces`) and that file's SHA-256, and the build fails when the installed
+ *     file is another one, and when vite is at another version than the entry's, until the file is read again and the entry is made for it.
+ *   - rollup's LICENSE.md is 35,231 bytes [measured 2026-11-09 at b92a73e, rollup 4.67.4], and everything after its first twelve lines is the
+ *     licences of the dependencies that Rollup bundles into its published files, which run in Node and are not in the site. So the file gives
+ *     those twelve lines, Rollup's own MIT licence (that of its helper and of its namespace literals), from third-party/rollup.txt, word for
+ *     word, in place of the whole file, under the same `replaces` entry and the same two failures as vite's.
  *   - Beside Vite's manifest the plugin writes `.vite/third-party.json`: each script of the build with the packages inside it. verify:bundle
  *     reads that (checkShipped below) and fails when the licence file lacks a package, when a script of dist/assets is not in the record (a
  *     worker the plugin never saw), or when NOTICE or a text of LICENSES/ is not in the file. tests/build.test.ts holds the record to the
- *     source maps of a real build.
+ *     source maps of a real build, to the one script that holds Vite's preload helper, and to the scripts that hold Rollup's helper and
+ *     namespace literals.
  *
  * Vite has a `build.license` option of its own (7.3.0, `licensePlugin` in dist/node/chunks/config.js), and it is not used, for four reasons
  * that were read in that file: it leaves a package with no licence file out of the text without a word; it reads the first LICENSE, LICENCE
@@ -39,6 +70,7 @@
  * Only the build and its gate use this module, and the tests. The text holds no path of this machine: a package is named by its name and
  * version, and a problem by `node_modules/...` from the first node_modules of its path.
  */
+import { createHash } from 'node:crypto'
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import path from 'node:path'
 import type { Plugin } from 'vite'
@@ -74,7 +106,10 @@ const plural = (count: number, word: string): string => `${count} ${word}${count
 /* The texts that the repository keeps                                                                                */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** A licence text that the repository keeps for a package whose release ships none: one entry of third-party/notices.json. */
+/**
+ * A licence text that the repository keeps for a package: one entry of third-party/notices.json. It is the text of a package whose release
+ * ships none, or, with `replaces`, the parts of a licence file that apply, for a package whose file carries much more than that.
+ */
 export interface Supplied {
   /** The text's file under third-party/. */
   readonly file: string
@@ -84,6 +119,13 @@ export interface Supplied {
   readonly source: string
   readonly basis: string
   readonly text: string
+  /**
+   * Set when the package does ship a licence file and this text stands in for it: that file's name, and its SHA-256 in the release that the text
+   * was cut from. The text is used with that file alone, and with no other version of the package.
+   */
+  readonly replaces?: { readonly file: string; readonly sha256: string }
+  /** A sentence about the package that goes above its text in the licence file. */
+  readonly note?: string
 }
 
 /** The text of a notice file with its line ends as `\n`, no byte-order mark, no blank line before or after. */
@@ -121,6 +163,15 @@ export function loadSupplied(root: string): Map<string, Supplied> {
       return ''
     }
     const [file, licence, source, basis] = [text('file'), text('licence'), text('source'), text('basis')]
+    const note = fields.note === undefined ? undefined : text('note')
+    let replaces: Supplied['replaces']
+    if (fields.replaces !== undefined) {
+      const stands = (typeof fields.replaces === 'object' && fields.replaces !== null ? fields.replaces : {}) as Record<string, unknown>
+      // A bare file name of the package's folder, so that the file is read from the package and from nowhere else.
+      if (typeof stands.file === 'string' && /^[^/\\]+$/.test(stands.file) && typeof stands.sha256 === 'string' && /^[0-9a-f]{64}$/.test(stands.sha256)) {
+        replaces = { file: stands.file, sha256: stands.sha256 }
+      } else problems.push(`${where} has a "replaces" that is not { "file": "LICENSE.md", "sha256": "<64 hex digits>" }`)
+    }
     const packages = Array.isArray(fields.packages) && fields.packages.every((id) => typeof id === 'string' && id.includes('@')) ? (fields.packages as string[]) : null
     if (packages === null || packages.length === 0) problems.push(`${where} has no "packages" array of name@version strings`)
     if (file === '' || packages === null) return
@@ -131,7 +182,7 @@ export function loadSupplied(root: string): Map<string, Supplied> {
     }
     for (const id of packages) {
       if (supplied.has(id)) problems.push(`${SUPPLIED_FILE} lists ${id} twice`)
-      else supplied.set(id, { file, licence, source, basis, text: textOf(target) })
+      else supplied.set(id, { file, licence, source, basis, text: textOf(target), ...(replaces === undefined ? {} : { replaces }), ...(note === undefined || note === '' ? {} : { note }) })
     }
   })
   if (problems.length > 0) throw new LicenceError(problems)
@@ -180,7 +231,8 @@ const plainPath = (moduleId: string): string => moduleId.replace(/^\0/, '').repl
 
 /**
  * The folder of the package that a module belongs to: up to the last `node_modules/<name>` or `node_modules/@scope/<name>` of its path. It
- * is null for a module outside node_modules (our own, and Vite's virtual ones) and for a path that ends at the package's folder.
+ * is null for a module outside node_modules (our own, which are the project's and not a package's; and the build tool's virtual ones, which
+ * INJECTED gives to their package) and for a path that ends at the package's folder.
  */
 export function packageRootOf(moduleId: string): string | null {
   const id = plainPath(moduleId)
@@ -190,6 +242,39 @@ export function packageRootOf(moduleId: string): string | null {
   const length = parts[0].startsWith('@') ? 2 : 1
   if (parts.length <= length || parts.slice(0, length).some((part) => part === '')) return null
   return id.slice(0, at + NODE_MODULES.length) + parts.slice(0, length).join('/')
+}
+
+/**
+ * The code that the build tool writes into a script itself, by the name of its module (without Rollup's `\0` prefix), and the package that the
+ * code is from. Such a module has no file, so no `node_modules` path leads to its package. These are the virtual modules that the source of
+ * Vite 7.3.0 names [read in node_modules/vite/dist/node/chunks/config.js]:
+ *   - `vite/preload-helper.js` is Vite's preload helper, which wraps each dynamic import() to load its CSS and chunks first (in the entry script);
+ *   - `commonjsHelpers.js` is the interop helpers of @rollup/plugin-commonjs, a Rollup plugin that Vite bundles into its own build (in react-vendor);
+ *   - `vite/modulepreload-polyfill.js` (which vite.config.ts turns off), `vite/dynamic-import-helper.js` (the runtime of an import() with a
+ *     variable in its path, from @rollup/plugin-dynamic-import-vars) and `vite/wasm-helper.js` (the loader of `.wasm?init`) are not in this
+ *     site's scripts [measured 2026-11-08 at 6418a20]. They are named so that a build that does have one lists vite, as for the first two.
+ * All come with the vite package, as far as the site can tell: it ships them, and the part of its licence file that is kept covers them, the
+ * Rollup plugins' notice included. A virtual module that is not here fails the build (collect), and the way out is to find whose code it is and
+ * to name the package here. The table holds modules only: code that a plugin writes into a script after the modules are put together (Vite's
+ * `__vite__mapDeps`) is no module, and nor is the code that Rollup writes itself when it renders a chunk (its namespace helper and literals), so
+ * no name here can catch either (see the header of this file).
+ */
+export const INJECTED: Readonly<Record<string, string>> = {
+  'commonjsHelpers.js': 'vite',
+  'vite/dynamic-import-helper.js': 'vite',
+  'vite/modulepreload-polyfill.js': 'vite',
+  'vite/preload-helper.js': 'vite',
+  'vite/wasm-helper.js': 'vite',
+}
+
+/**
+ * The name of a module that is not a file: Rollup's `\0` prefix and the query taken off. It is null for a module that is a file, with the
+ * prefix or without (`\0/p/node_modules/d/index.js?commonjs-module` is a file that a plugin wrapped).
+ */
+function virtualName(moduleId: string): string | null {
+  if (!moduleId.startsWith('\0')) return null
+  const name = plainPath(moduleId)
+  return name.startsWith('/') || /^[A-Za-z]:\//.test(name) ? null : name
 }
 
 /** A package's folder as a problem names it: from the first node_modules of its path, so that no folder of this machine is printed. */
@@ -223,11 +308,29 @@ function identifierOf(manifest: Record<string, unknown>): string | null {
   return several.length > 0 ? several.join(' OR ') : null
 }
 
-/** Why a package cannot be shipped: its package.json cannot be read, or it has no notice and the repository keeps none for it. */
-type Unshippable = { readonly kind: 'manifest'; readonly label: string } | { readonly kind: 'notice'; readonly id: string; readonly label: string }
+/**
+ * Why a package cannot be shipped:
+ *   - its package.json cannot be read;
+ *   - it has no notice and the repository keeps none for it;
+ *   - the repository keeps the parts of its licence file that apply, and keeps them for another version (`excerpt`);
+ *   - the installed licence file is not the one that the repository's text was cut from (`changed`).
+ */
+type Unshippable =
+  | { readonly kind: 'manifest'; readonly label: string }
+  | { readonly kind: 'notice'; readonly id: string; readonly label: string }
+  | { readonly kind: 'excerpt'; readonly id: string; readonly label: string }
+  | { readonly kind: 'changed'; readonly id: string; readonly label: string; readonly file: string; readonly expected: string; readonly actual: string | null }
 
-/** The package in the folder `root`, or what stops it from being shipped. */
-function readPackage(root: string, supplied: ReadonlyMap<string, Supplied>): Dependency | Unshippable {
+/** The SHA-256 of a file's bytes, or null when the folder has no such file. */
+function sha256Of(file: string): string | null {
+  return existsSync(file) && statSync(file).isFile() ? createHash('sha256').update(readFileSync(file)).digest('hex') : null
+}
+
+/**
+ * The package in the folder `root`, or what stops it from being shipped. `excerpted` holds the names of the packages whose licence file the
+ * repository replaces with the parts that apply: such a package is shipped from the text kept for its exact version and no other.
+ */
+function readPackage(root: string, supplied: ReadonlyMap<string, Supplied>, excerpted: ReadonlySet<string>): Dependency | Unshippable {
   const label = labelOf(root)
   let manifest: Record<string, unknown>
   try {
@@ -240,12 +343,20 @@ function readPackage(root: string, supplied: ReadonlyMap<string, Supplied>): Dep
   const name = typeof manifest.name === 'string' && manifest.name !== '' ? manifest.name : nameFromPath(root)
   const version = typeof manifest.version === 'string' && manifest.version !== '' ? manifest.version : 'unknown'
   const identifier = identifierOf(manifest)
+  const id = `${name}@${version}`
+  const kept = supplied.get(id)
+  if (kept?.replaces !== undefined) {
+    // The text was cut from one file of one release: with any other file it may not be the licence of the code that is here.
+    const actual = sha256Of(path.join(root, kept.replaces.file))
+    if (actual !== kept.replaces.sha256) return { kind: 'changed', id, label, file: kept.replaces.file, expected: kept.replaces.sha256, actual }
+    return { name, version, identifier, notices: [{ file: kept.file, text: kept.text }], supplied: kept }
+  }
+  if (excerpted.has(name)) return { kind: 'excerpt', id, label }
   const files = readdirSync(root)
     .filter((entry) => NOTICE_FILES.test(entry) && !NOT_A_NOTICE.test(entry) && statSync(path.join(root, entry)).isFile())
     .sort(compare)
   if (files.length > 0) return { name, version, identifier, notices: files.map((file) => ({ file, text: textOf(path.join(root, file)) })) }
-  const kept = supplied.get(`${name}@${version}`)
-  if (kept === undefined) return { kind: 'notice', id: `${name}@${version}`, label }
+  if (kept === undefined) return { kind: 'notice', id, label }
   return { name, version, identifier, notices: [{ file: kept.file, text: kept.text }], supplied: kept }
 }
 
@@ -255,27 +366,49 @@ export interface Collection {
   readonly dependencies: readonly Dependency[]
   /** For each script, by file (`assets/index-x.js`), the `name@version` of the packages that hold a module in it. */
   readonly chunks: Readonly<Record<string, readonly string[]>>
-  /** The `name@version` of the packages named by hand, whose files reach the site outside a script. */
+  /** The `name@version` of the packages named by hand, whose files or whose code reach the site without being a module of a script. */
   readonly alsoShips: readonly string[]
 }
 
 /**
  * The packages of some scripts. `modules` maps a script's file to the ids of its modules, `alsoShip` lists the folders of packages that
- * reach the site otherwise, and `supplied` holds the texts that the repository keeps for packages that ship none. It reads every package it
- * meets, and throws a `LicenceError` that names all the packages it cannot ship.
+ * reach the site otherwise, and `supplied` holds the texts that the repository keeps for packages. `toolsDir` is the node_modules folder that
+ * the build tool is installed in, where the packages of INJECTED's modules are. It reads every package it meets, and throws a `LicenceError`
+ * that names all the packages it cannot ship, and every module that the build tool wrote in and that no package is named for.
  */
-export function collect(modules: ReadonlyMap<string, readonly string[]>, alsoShip: readonly string[] = [], supplied: ReadonlyMap<string, Supplied> = new Map()): Collection {
+export function collect(
+  modules: ReadonlyMap<string, readonly string[]>,
+  alsoShip: readonly string[] = [],
+  supplied: ReadonlyMap<string, Supplied> = new Map(),
+  toolsDir?: string,
+): Collection {
+  // The names of the packages whose licence file the repository replaces: a version of one that has no text of its own fails the build.
+  const excerpted = new Set([...supplied].filter(([, kept]) => kept.replaces !== undefined).map(([id]) => id.slice(0, id.lastIndexOf('@'))))
   const byRoot = new Map<string, Dependency | Unshippable>()
   const read = (root: string): Dependency | null => {
-    if (!byRoot.has(root)) byRoot.set(root, readPackage(root, supplied))
+    if (!byRoot.has(root)) byRoot.set(root, readPackage(root, supplied, excerpted))
     const found = byRoot.get(root)
     return found !== undefined && 'name' in found ? found : null
   }
 
+  const unnamed = new Set<string>()
   const chunks: Record<string, string[]> = {}
   for (const [file, ids] of [...modules].sort(([a], [b]) => compare(a, b))) {
-    const roots = [...new Set(ids.flatMap((id) => packageRootOf(id) ?? []))]
-    chunks[file] = [...new Set(roots.flatMap((root) => read(root) ?? []).map(idOf))].sort(compare)
+    const roots = new Set<string>()
+    for (const id of ids) {
+      const root = packageRootOf(id)
+      if (root !== null) {
+        roots.add(root)
+        continue
+      }
+      const virtual = virtualName(id)
+      if (virtual === null) continue
+      const tool = INJECTED[virtual]
+      if (tool === undefined) unnamed.add(virtual)
+      else if (toolsDir === undefined) throw new Error(`collect was given the module ${virtual}, which the build tool wrote in, and not the node_modules folder that the build tool (${tool}) is installed in`)
+      else roots.add(path.join(toolsDir, tool))
+    }
+    chunks[file] = [...new Set([...roots].flatMap((root) => read(root) ?? []).map(idOf))].sort(compare)
   }
   const extra = alsoShip.flatMap((root) => read(root) ?? []).map(idOf).sort(compare)
 
@@ -288,8 +421,29 @@ export function collect(modules: ReadonlyMap<string, readonly string[]>, alsoShi
         `A copy without its notice is an unlicensed copy: read the licence file in the package's repository, keep it under third-party/ with its source and its SHA-256, and list the package in ${SUPPLIED_FILE}, or replace the package`,
     )
   }
+  const noExcerpt = [...new Set(stuck.flatMap((found) => (found.kind === 'excerpt' ? [`${found.id} (${found.label})`] : [])))].sort(compare)
+  if (noExcerpt.length > 0) {
+    problems.push(
+      `${plural(noExcerpt.length, 'package')} in the site ship${noExcerpt.length === 1 ? 's' : ''} a licence file of which ${SUPPLIED_FILE} keeps only the parts that apply, and keeps them for another version: ${noExcerpt.join(', ')}. ` +
+        `Read the licence file of this version, keep the parts that apply under third-party/ with their source, and list them for this version with the SHA-256 of the file they are cut from ("replaces")`,
+    )
+  }
+  const changed = stuck.flatMap((found) => (found.kind === 'changed' ? [found] : []))
+  for (const found of changed) {
+    problems.push(
+      `${found.id} (${found.label}) ships a ${found.file} that is not the file which ${SUPPLIED_FILE}'s text for it was cut from (${found.actual === null ? 'there is none' : `SHA-256 ${found.actual}`}, and the entry has ${found.expected}): ` +
+        'read the file again, keep the parts that apply, and list the new hash',
+    )
+  }
   const noManifest = [...new Set(stuck.flatMap((found) => (found.kind === 'manifest' ? [found.label] : [])))].sort(compare)
   if (noManifest.length > 0) problems.push(`${noManifest.join(', ')} ${noManifest.length === 1 ? 'has' : 'have'} no package.json that can be read, so the name and version of the package are not known`)
+  if (unnamed.size > 0) {
+    const names = [...unnamed].sort(compare)
+    problems.push(
+      `${names.join(', ')} ${names.length === 1 ? 'is a module' : 'are modules'} that the build tool writes into a script and that INJECTED names no package for. ` +
+        "Find whose code it is, read that package's licence, and name the package in INJECTED (scripts/pages/third-party-licenses.ts), so that the licence ships with the code",
+    )
+  }
   if (problems.length > 0) throw new LicenceError(problems)
 
   // Two folders can hold one version of a package (a copy nested in another package's node_modules): it is listed once.
@@ -308,10 +462,19 @@ function sectionOf(dependency: Dependency): string {
   const several = dependency.notices.length > 1
   const body = dependency.notices.map(({ file, text }) => (several ? `--- ${file} ---\n\n${text}` : text))
   const { supplied } = dependency
+  const kept = supplied === undefined ? '' : `${path.posix.dirname(SUPPLIED_FILE)}/${supplied.file}`
   const lead =
     supplied === undefined
       ? []
-      : [`This package ships no licence file. enginespace keeps the text below for it, in ${path.posix.dirname(SUPPLIED_FILE)}/${supplied.file}.`, `Source: ${supplied.source}`, supplied.basis, '']
+      : [
+          supplied.replaces === undefined
+            ? `This package ships no licence file. enginespace keeps the text below for it, in ${kept}.`
+            : `This package ships its licence in ${supplied.replaces.file} (SHA-256 ${supplied.replaces.sha256}), which carries more than the code of the package that is in this site. enginespace gives the parts of the file that apply, word for word, as kept in ${kept}.`,
+          `Source: ${supplied.source}`,
+          supplied.basis,
+          ...(supplied.note === undefined ? [] : [supplied.note]),
+          '',
+        ]
   const licence = dependency.identifier ?? supplied?.licence ?? 'not named in its package.json (the text below is its licence)'
   return [RULE, idOf(dependency), `Licence: ${licence}`, RULE, '', ...lead, body.join('\n\n')].join('\n')
 }
@@ -325,11 +488,17 @@ export function render(dependencies: readonly Dependency[], notice: string, text
   const header = [
     'enginespace: third-party licences',
     '',
-    'This file carries the licence of every npm package that the scripts and the stylesheet of this site are built from, as each package ships',
+    'This file carries the licence of every npm package that has code in the scripts or the stylesheet of this site, as each package ships',
     `it: the ${plural(dependencies.length, 'package')} below, sorted by name and each headed by its name and version, then the repository's NOTICE, which carries the`,
     'notices for the code that enginespace vendors from kernelspace, the code it ports and the fonts it hosts, and then the licence texts that',
     'NOTICE points to. A package is listed when a module of it reached a script of the build, even if the build then left its code out as',
-    'unused. The build writes this file, and fails when a package in it has no licence file.',
+    'unused. Vite is listed for the code that its build tool writes into the scripts: its own preload helper, its own dependency-map function',
+    '(__vite__mapDeps), which it writes into each script whose lazy imports have other files to load with them, and the interop helper of a',
+    "Rollup plugin that it bundles. Vite's section gives Vite's own licence, which is the licence of the first two, and that plugin's. Rollup is",
+    'listed for the code that it writes into the scripts itself: its helper that merges namespace objects (_mergeNamespaces, in react-vendor) and',
+    "the literals of the namespace objects that it builds for modules, in other scripts. Rollup's section gives Rollup's own licence. Neither section",
+    'gives the licences of the other dependencies that the tool bundles into its own build, which run in Node and are not in this site. The build',
+    'writes this file, and fails when a package in it has no licence file.',
   ].join('\n')
   const closing = [RULE, NOTICE_FILE, RULE, '', notice.replace(/\r\n?/g, '\n').trimEnd()].join('\n')
   const appended = texts.map(({ file, text }) => [RULE, file, RULE, '', text].join('\n'))
@@ -349,7 +518,7 @@ export const recordOf = ({ chunks, alsoShips }: Collection): LicenceRecord => ({
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 export interface LicenceOptions {
-  /** Packages by name, whose files are copied into the site without being a module of a script. */
+  /** Packages by name, whose files are copied into the site, or whose code the build writes into a script, without being a module of one. */
   readonly alsoShips?: readonly string[]
 }
 
@@ -380,6 +549,7 @@ export function thirdPartyLicenses(root: string, { alsoShips = [] }: LicenceOpti
           modules,
           alsoShips.map((name) => path.join(root, 'node_modules', name)),
           loadSupplied(root),
+          path.join(root, 'node_modules'),
         )
       } catch (error) {
         if (error instanceof LicenceError) this.error(error.message)

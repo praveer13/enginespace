@@ -16,7 +16,13 @@ licences into third-party-licenses.txt (scripts/pages/third-party-licenses.ts), 
 site serves at /third-party-licenses.txt. That file carries this one after the packages,
 and then the texts of LICENSES/ that this one points to, so the notices below ship with
 the site. Some of those packages are published without a licence file, and
-third-party/notices.json keeps the text for each, with its source.
+third-party/notices.json keeps the text for each, with its source. Vite and Rollup are two
+of the packages too, for the code that the build writes into the scripts: Vite's preload
+helper, its __vite__mapDeps function and the interop helper of a Rollup plugin that it
+bundles, and Rollup's helper that merges namespace objects (in react-vendor) and its
+namespace-object literals. For them the file gives the parts of Vite's and Rollup's
+licence files that apply, and not the licences of the dependencies that each bundles into
+its own build.
 
 ============================================================================
 kernelspace
@@ -177,6 +183,11 @@ Parts of three files are translated to TypeScript from vLLM v0.33.0 and modified
 begins with a header that says so and points here. They keep the names of the Python
 (snake_case turned into camelCase) and, where the logic is not trivial, the order of its
 statements.
+
+Those parts are under vLLM's licence, the Apache License 2.0, and carry vLLM's copyright
+line. That licence does not reach the rest of each of the three files, which is
+enginespace's own work: its licence is the owner's decision (O-3), and until it is decided
+the rest is all rights reserved.
 
 vLLM v0.33.0
   Source:    https://github.com/vllm-project/vllm, the tag v0.33.0, commit
