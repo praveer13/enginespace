@@ -88,8 +88,8 @@ describe("nightly.yml's properties job", () => {
     expect(runs.some((run) => /pending:/.test(run))).toBe(false)
   })
 
-  test('sets the knob to the nightly count', () => {
-    expect(properties.env).toEqual({ ES_PROPERTY_SEEDS: String(NIGHTLY_SEEDS) })
+  test('sets the knob to the nightly count, and turns on the heavy checks (W1b-T13)', () => {
+    expect(properties.env).toEqual({ ES_PROPERTY_SEEDS: String(NIGHTLY_SEEDS), ES_HEAVY: '1' })
     expect(seedCountFrom(properties.env?.ES_PROPERTY_SEEDS)).toBe(NIGHTLY_SEEDS)
   })
 

@@ -10,10 +10,11 @@
  *     reserved.
  */
 import { describe, expect, test } from 'bun:test'
-import { existsSync } from 'node:fs'
+import { existsSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 import { load } from 'js-yaml'
 import { PR_ROUTES, PR_WIDTHS, NIGHTLY_WIDTHS } from '../../e2e/routes'
+import playwrightConfig from '../../playwright.config'
 import { BUN_FALLBACK, between, read, root, trackerTasks } from './support'
 
 interface Step {
@@ -106,6 +107,54 @@ describe('playwright.config.ts (acceptance 5)', () => {
     // W0-T20's lab profile has a project of its own, which never retries, so that a budget that was missed is reported once.
     expect(config).toContain("{ name: 'lab', testMatch: LAB, retries: 0")
     expect(config).toContain("const LAB = '**/perf.spec.ts'")
+  })
+})
+
+describe('the browser of each project (W1b-T13)', () => {
+  const args = (name: string) => playwrightConfig.projects?.find((project) => project.name === name)?.use?.launchOptions?.args
+
+  test('the smoke project composes its pages on the CPU, on top of the flags that every project has: its tests do not wait on a browser that SwiftShader keeps busy', () => {
+    expect(args('features')).toEqual(['--use-angle=swiftshader', '--font-render-hinting=none'])
+    expect(args('smoke')).toEqual([...(args('features') ?? []), '--disable-gpu-compositing'])
+  })
+
+  test('the other projects keep the flags that every project had: the sweep still draws the scenes as a machine with no GPU does, and the lab profile launches a browser of its own', () => {
+    expect(args('lab')).toEqual(args('features'))
+    expect(playwrightConfig.projects?.map((project) => project.name)).toEqual(expect.arrayContaining(['smoke', 'features', 'lab']))
+    // The lab profile's spec sets its own flags, for the same reason (a clock must not wait for SwiftShader to present a frame), so the project is left alone.
+    expect(read('e2e/perf.spec.ts')).toContain("args: ['--enable-unsafe-swiftshader']")
+  })
+
+  test('the smoke project says what the flag was measured to do, for the Playwright that package.json pins', () => {
+    const note = /--disable-gpu-compositing[\s\S]*?\[measured (\d{4}-\d{2}-\d{2}) at ([0-9a-f]{7}), with Playwright (\d+\.\d+\.\d+)/.exec(config)
+    expect(note, 'a "[measured <date> at <sha>, with Playwright <version>" note beside the flag').not.toBeNull()
+    expect(note?.[3]).toBe((JSON.parse(read('package.json')) as { devDependencies: Record<string, string> }).devDependencies['@playwright/test'])
+  })
+})
+
+describe('the smoke specs wait on state, not on time (W1b-T13)', () => {
+  const names = [...(/const SMOKE = \[(.*?)\]\.map/s.exec(config)?.[1] ?? '').matchAll(/'([^']+)'/g)].map((match) => `e2e/${match[1]}.spec.ts`)
+  // What the specs share, but for the lab profile's vitals, which only e2e/perf.spec.ts reads.
+  const support = readdirSync(path.join(root, 'e2e/support'))
+    .filter((file) => file.endsWith('.ts') && file !== 'vitals.ts')
+    .map((file) => `e2e/support/${file}`)
+  const sleeps = (source: string) => [...source.matchAll(/\bwaitForTimeout\(/g)].length
+
+  test('hold two fixed waits between them, and both are in reduced-motion.spec.ts: the poll of a frame counter, and the second and a half in which a rested scene must ask for no frame', () => {
+    expect(names.length).toBe(6)
+    const found = Object.fromEntries(
+      [...names, ...support]
+        .map((file) => [file, sleeps(read(file))] as const)
+        .filter(([, count]) => count > 0),
+    )
+    // A fixed pause is a guess at how long a machine takes, and a runner with two browsers on four cores takes longer than the guess. Wait for
+    // the state that the pause stood for (`expect.poll`, `expect(...).toBe...`, a frame): a spec that must observe a span of time says so here.
+    expect(found).toEqual({ 'e2e/reduced-motion.spec.ts': 2 })
+  })
+
+  test('the check can fail: a spec with a pause is found', () => {
+    expect(sleeps('await page.waitForTimeout(300)\nawait page.waitForTimeout(50)')).toBe(2)
+    expect(sleeps("await expect.poll(() => page.evaluate(() => window.__raf ?? 0)).toBeGreaterThan(before)")).toBe(0)
   })
 })
 
