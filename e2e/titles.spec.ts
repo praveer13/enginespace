@@ -18,7 +18,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import type { Page } from '@playwright/test'
 import { GAMES } from '../packages/play/registry'
-import { LAB_TASKS, labName, titled } from '../src/content/render/model'
+import { BUILT_LABS, LAB_TASKS, labName, titled } from '../src/content/render/model'
 import { expect, open, quiet, test, withSettings } from './support/site'
 import type { Watch } from './support/site'
 
@@ -73,7 +73,8 @@ test.describe('a game page', () => {
 })
 
 test.describe('a lab page', () => {
-  for (const lab of Object.keys(LAB_TASKS)) {
+  // Every lab of the course: the forge labs that are built, and the labs that wait for an open task.
+  for (const lab of [...BUILT_LABS, ...Object.keys(LAB_TASKS)]) {
     test(`/labs/${lab} is titled ${JSON.stringify(titled(labName(lab)))} once it has mounted, and stays so`, async ({ page }) => {
       const route = `/labs/${lab}`
       await open(page, route)

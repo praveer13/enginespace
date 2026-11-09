@@ -78,14 +78,15 @@ describe('/m/tr2/l0-sample', () => {
     expect(html).toContain('<h2 class="es-ticket__title">The bubble</h2>')
   })
 
-  test('a block whose feature is not built yet says which task builds it, and holds its action down', () => {
-    expect(placeholders(html)).toEqual({ predict: 'W1-T13', trace: 'W1-T09', lab: 'W2-T23' })
+  test('a block whose feature is not built yet says which open task builds it, and holds its action down', () => {
+    // The sample lesson's prediction is no prediction of the course's: the table of which run answers which (W1b-T02) has no row for it, so its reveal waits.
+    expect(placeholders(html)).toEqual({ predict: 'W2-T43', trace: 'W2-T42', lab: 'W2-T23' })
     for (const [what, task] of [
-      ['the prediction box', 'W1-T13'],
-      ['the trace viewer', 'W1-T09'],
-      ['the lab', 'W2-T23'],
+      ['Its reveal waits on', 'W2-T43'],
+      ['Not built yet: the trace block', 'W2-T42'],
+      ['Not built yet: the lab', 'W2-T23'],
     ]) {
-      expect(html).toContain(`Not built yet: ${what}`)
+      expect(html).toContain(what)
       expect(html).toContain(`<span class="es-ticket-line__note">${task}</span>`)
     }
     // The prediction and the trace each have a stub that is held down. The lab's stub is a link, and the item set and the game are built.
@@ -475,12 +476,15 @@ describe('the blocks, one at a time', () => {
     expect(drawnBlocks({ type: 'trace', id: 'loop-off', seed: 7, tasks: ['gap'] })).toContain('>synthetic<')
   })
 
-  test('a forge lab and a GPU lab each name their own lab\'s task, and both link to the lab page', () => {
+  test('a forge lab that is built prints no placeholder, a GPU lab names its own open task, and both link to the lab page', () => {
     const lab = (id: string, lane: 'B' | 'L' | 'F'): CompiledBlock => ({ type: 'lab', id, lane, stages: ['s1', 's2'] })
+    // A forge lab that is built (W1-T22) leads to a page that works, so its ticket prints no placeholder: the link is live and says nothing is missing.
     const forge = drawnBlocks(lab('hybrid-kv', 'B'))
-    expect(placeholders(forge)).toEqual({ lab: 'W1-T22' })
+    expect(placeholders(forge)).toEqual({})
+    expect(forge).not.toContain('Not built yet')
     expect(forge).toContain('lane · B browser')
     expect(forge).toContain('href="/labs/hybrid-kv"')
+    expect(placeholders(drawnBlocks(lab('rejection-sampler', 'B')))).toEqual({})
     expect(placeholders(drawnBlocks(lab('tr0.forward', 'L')))).toEqual({ lab: 'W2-T16' })
     expect(drawnBlocks(lab('tr8.replay', 'F'))).toContain('stage · s2')
   })
@@ -496,8 +500,8 @@ describe('the blocks, one at a time', () => {
     const kept = (kind: 'notional-machine' | 'in-production' | 'build-this' | 'change') => placeholders(drawnBlocks({ type: 'card', kind, id: 'trace-room-steploop' }))
     // A notional-machine card is no placeholder: it prints while it loads, and the next test draws it once it has.
     expect(kept('notional-machine')).toEqual({})
-    expect(kept('in-production')).toEqual({ card: 'W1-T13' })
-    expect(kept('build-this')).toEqual({ card: 'W1-T13' })
+    expect(kept('in-production')).toEqual({ card: 'W2-T42' })
+    expect(kept('build-this')).toEqual({ card: 'W2-T42' })
     expect(kept('change')).toEqual({ card: 'W3-T06' })
   })
 

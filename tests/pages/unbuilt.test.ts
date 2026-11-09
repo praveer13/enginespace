@@ -150,7 +150,8 @@ describe('/about, which holds its licences today', () => {
 describe('the labs that W2 and W3 build', () => {
   test("are the labs of the course that have no host: the compiler's list less the forge labs that a host grades", () => {
     expect(Object.keys(LAB_STUBS).sort()).toEqual(LAB_IDS.filter((id) => !FORGE_LAB_IDS.includes(id)).sort())
-    expect(Object.keys(LAB_STUBS).sort()).toEqual(Object.keys(LAB_TASKS).filter((id) => !FORGE_LAB_IDS.includes(id)).sort())
+    // The labs that have a task are the labs that have no host: the built ones (W1b-T02) name no task.
+    expect(Object.keys(LAB_STUBS).sort()).toEqual(Object.keys(LAB_TASKS).sort())
     expect(Object.keys(LAB_STUBS)).toHaveLength(10)
   })
 
