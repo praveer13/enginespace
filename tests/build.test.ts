@@ -346,13 +346,30 @@ describe('the app build', () => {
       return `vite@${version}`
     }
 
-    test('names vite, for the helpers that the build tool writes into the scripts, and records it for the two scripts that hold them: the entry, with the preload helper, and react-vendor, with the commonjs interop helper', () => {
+    test('names vite for the two helper modules that the build tool writes into the scripts, and records it for the two scripts that hold them: the entry, with the preload helper, and react-vendor, with the commonjs interop helper', () => {
       const record = JSON.parse(textOf('.vite/third-party.json')) as { chunks: Record<string, string[]> }
       const holders = Object.keys(record.chunks).filter((file) => record.chunks[file].includes(viteId()))
       // The source maps cannot show these: a virtual module has no source. The preload helper has a message of its own, and sits in one script.
       const withHelper = scriptsOf().filter((file) => textOf(file).includes('Unable to preload CSS for'))
       expect(withHelper).toEqual([app.manifest[entryKeyOf(app)].file])
       expect(holders.sort()).toEqual([app.manifest[entryKeyOf(app)].file, chunkNamed(app, 'react-vendor')?.[1].file ?? 'no react-vendor chunk'].sort())
+    })
+
+    test("holds Vite's __vite__mapDeps function in scripts that the record does not list vite for, which is why the licence file says that the record sees only code that arrives as a module", () => {
+      const record = JSON.parse(textOf('.vite/third-party.json')) as { chunks: Record<string, string[]> }
+      const listed = new Set(Object.keys(record.chunks).filter((file) => record.chunks[file].includes(viteId())))
+      // Vite writes the function at the top of a script after the modules are put together: it is no module of the script, and the record cannot
+      // list vite for it. How many scripts hold it changes with every build, so only that some do, and that some of them are not listed.
+      const withFunction = scriptsOf().filter((file) => textOf(file).includes('const __vite__mapDeps=(i,m=__vite__mapDeps,'))
+      expect(withFunction.length).toBeGreaterThan(0)
+      expect(withFunction.filter((file) => !listed.has(file)).length).toBeGreaterThan(0)
+    })
+
+    test('says in its header, and in the section of vite, that Vite writes the dependency-map function into the scripts', () => {
+      const text = textOf('third-party-licenses.txt')
+      const header = text.slice(0, text.indexOf('='.repeat(76))).replace(/\s+/g, ' ')
+      expect(header).toContain('its own dependency-map function (__vite__mapDeps)')
+      expect(sectionOf(viteId()).replace(/\s+/g, ' ')).toContain('the dependency-map function (__vite__mapDeps)')
     })
 
     test("gives vite's own licence and the Rollup plugins' and not the licences of the dependencies that Vite bundles into its own build, which are most of its licence file", () => {

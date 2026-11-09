@@ -9,7 +9,11 @@
  *   3. The three translated files begin with the header that says so, and carry no SPDX line (the licence of enginespace's own
  *      code is the owner's, O-3).
  *   4. The documents say that the repo is public and that enginespace's own work is all rights reserved until O-3 is answered, and
- *      D-060 answers O-2.
+ *      D-060 answers O-2. It also says what is public as things stand: that `main`'s tip has been clean since PR #2 merged `wave-1`
+ *      while the history of `main`, `wave-0` and `wave-1` still holds older versions, that a rewrite is the owner's call and needs a
+ *      force-push of `main`, what the first deploy did, and, of the routine that the audit took for a translation, only what its
+ *      header said and what the audit judged. Those facts were read from GitHub's API on 2026-11-09 and are tagged in the record,
+ *      and the commits that it names are read from the history of the clone, when the clone has it (a shallow one does not).
  *   5. No tracked text file carries a local path, a session id or the owner's login name.
  */
 import { describe, expect, test } from 'bun:test'
@@ -29,6 +33,14 @@ function git(...args: string[]): string[] {
   if (run.status !== 0 && run.status !== 1) throw new Error(`git ${args.join(' ')} failed: ${run.stderr}`)
   return run.stdout.split('\n').filter((line) => line !== '')
 }
+
+/** git's exit status, from the repository's root: 0, or 1 for "no match" and "not an ancestor", or more for a commit that the clone does not have. */
+function gitStatus(...args: string[]): number {
+  return spawnSync('git', args, { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).status ?? -1
+}
+
+/** Built from pieces, so that this file does not match what it looks for: a local path, a session id, and the owner's login name. */
+const PERSONAL = [['/ho', 'me/[a-z]'], ['/tm', 'p/claude'], ['9aec', '8729'], ['prav', 'eern']].map((pieces) => pieces.join('')).join('|')
 
 const notice = read('NOTICE')
 
@@ -226,28 +238,117 @@ describe('the documents of a public repository (D-060)', () => {
       return end < 0 ? rest : rest.slice(0, end + 5)
     }
 
-    test("keeps its rule for the tree and for new commits, and does not call history clean: it says what older versions carry, what main's tip carries until wave-0 merges, and that a rewrite is the owner's call", () => {
+    test("keeps its rule for the tree and for new commits, and does not call history clean: it says what older versions carry, that main's tip has been clean since PR #2 merged wave-1 while its history is not, and that a rewrite is the owner's call and needs a force-push of main", () => {
       expect(record).toContain('From now on a committed file, fixture or commit message carries no local path, no session id and no login name.')
       expect(record).not.toContain('history included, and `wave-1` goes up after this record. A committed file')
       for (const needle of [
-        '**History is not clean, and `main`\'s tip is not yet.**',
+        '**`main`\'s tip is clean, and history is not.**',
         'Older versions of five files carry what the rule keeps out.',
-        'so `main`\'s tip carries them today',
-        'they leave `main`\'s tip when `wave-0` merges, and stay in its history',
+        // The tip: it carried two of the paths until PR #2 merged wave-1, which holds wave-0's a4b3bdf, and it carries none now.
+        '`main`\'s tip carried the paths of docs/TRACKER.md and research/upstream-vllm.md, in its root commit 4249418, until PR #2 merged `wave-1`, which holds `wave-0`\'s a4b3bdf',
+        'PR #2 merged as 9b7736c at 06:59 UTC on 2026-11-09',
+        'The tip carries none now',
+        // The history: PR #2 was a merge commit, so main's history holds the old versions of all five files.
+        '`main`\'s history holds the old versions of all five files, as `wave-1`\'s does',
+        'PR #2 was a merge commit, with 4249418 and `wave-1`\'s tip, 597433f, as its parents',
+        // A rewrite: the owner's call, and it reaches main's merge commits too.
         "Rewriting history to remove them is the owner's call, and this record does not make it",
+        'It also changes `main`\'s merge commits (9b7736c and 1b402ca), and so needs a force-push of `main`',
       ]) {
         expect([needle, record.includes(needle)]).toEqual([needle, true])
+      }
+      // What stopped being true when PR #2 merged wave-1 into main, and what was never true of main's tip.
+      for (const stale of ['`main`\'s tip is not yet', '`main`\'s one commit', 'carries them today', 'when `wave-0` merges', '`wave-1` goes up after this record']) {
+        expect([stale, record.includes(stale)]).toEqual([stale, false])
       }
       // It names the five files, and quotes nothing of what they carry (the sweep below holds the tree to that, this record included).
       for (const file of ['AGENTS.md', 'docs/TRACKER.md', 'docs/waves/W0-report.md', 'research/upstream-vllm.md', 'tests/fixtures/play/broken-bench-flagged.json']) {
         expect([file, record.includes(file)]).toEqual([file, true])
       }
+      // Every date and figure it adds is tagged where it stands: each of its measurements is named with its date, and the tip's with its SHA.
+      expect(record).toContain('[measured 2026-11-09 at 1b402ca: the tree through GitHub\'s API')
     })
 
-    test("records the chi-square generator's history: the commit that held the transliteration, the one that replaced it, the commits a rewrite would change, and that the owner can still choose it", () => {
-      for (const needle of ['f6796c7', '72ca4e0', 'Numerical Recipes', 'DLMF §8.7 and §8.9', 'would change the SHAs of the 142 commits after f6796c7', 'The owner can still choose to rewrite it.']) {
-        expect([needle, record.includes(needle)]).toEqual([needle, true])
+    test("records the chi-square generator's history without asserting what the audit only judged: the commit that held the routine, what its header said, what the audit took it for, the commit that replaced it, and the commits a rewrite would change", () => {
+      const bullet = flat(between(decisions, "- **The chi-square generator's history.**", '\n  - The third-party material carries its notices.'))
+      for (const needle of [
+        'f6796c7',
+        '72ca4e0',
+        'DLMF §8.7 and §8.9',
+        // What the header said, and what the audit took it for, with the tag that the audit's comparison was from memory of the book.
+        "whose header said that Q came from Numerical Recipes' series for P and its Lentz continued fraction",
+        "The licence audit of 2026-11-08 took it for a translation of the book's routines (finding licensing#5) [unverified against the book]",
+        'the audit worked from memory of the book, with no copy to compare against',
+        // The first version is in main's history too, and a rewrite of it reaches main's merge commits.
+        'The first version stays in the history of `wave-1` and, since PR #2, of `main`',
+        'would change the SHAs of the 142 commits after f6796c7',
+        'and also `main`\'s merge commits (9b7736c and 1b402ca), so it would need a force-push of `main`',
+        'The owner can still choose to rewrite it.',
+      ]) {
+        expect([needle, bullet.includes(needle)]).toEqual([needle, true])
       }
+      // Neither "transliterated" nor "copied" is said of the routine as a plain fact: the audit's judgment is attributed.
+      for (const plain of [/transliterat/i, /\bcopied\b/i, /\bcopy of Numerical/i]) expect([plain.source, plain.test(bullet)]).toEqual([plain.source, false])
+    })
+
+    test("names commits of this history and says of each what it did: where each of the five files first carried its path, where the path went out, and what the chi-square routine's two versions were", () => {
+      // The clone must have the history: a shallow one, as the deploy's checkout makes, lacks the old commits, and then there is nothing to read.
+      const has = (sha: string): boolean => gitStatus('cat-file', '-e', `${sha}^{commit}`) === 0
+      const carries = (sha: string, file: string): boolean => gitStatus('grep', '-q', '-I', '-E', PERSONAL, sha, '--', file) === 0
+      // Each file, the commit where it first carried its path, and the commit that took the path out: all of them are in the history bullet.
+      const files: [string, string, string][] = [
+        ['docs/TRACKER.md', '4249418', 'a4b3bdf'],
+        ['research/upstream-vllm.md', '4249418', 'a4b3bdf'],
+        ['AGENTS.md', '0dd073b', 'a4b3bdf'],
+        ['docs/waves/W0-report.md', '5fe5192', 'a4b3bdf'],
+        ['tests/fixtures/play/broken-bench-flagged.json', 'a405a96', '6b40104'],
+      ]
+      for (const [file, first, out] of files) {
+        expect([file, first, record.includes(first)]).toEqual([file, first, true])
+        if (has(first)) {
+          expect([file, first, 'carries', carries(first, file)]).toEqual([file, first, 'carries', true])
+          // It is the first: the commit before it does not (a root commit has none).
+          expect([file, first, 'before', carries(`${first}^`, file)]).toEqual([file, first, 'before', false])
+        }
+        if (has(first) && has(out)) {
+          // It is the one that took the path out: the commit before it carries the path, and it does not.
+          expect([file, out, 'before', carries(`${out}^`, file)]).toEqual([file, out, 'before', true])
+          expect([file, out, 'carries', carries(out, file)]).toEqual([file, out, 'carries', false])
+          expect([file, first, out, gitStatus('merge-base', '--is-ancestor', first, out)]).toEqual([file, first, out, 0])
+        }
+      }
+      expect(record).toContain("`wave-0`'s a4b3bdf")
+      if (has('4249418')) expect(git('rev-list', '--max-parents=0', 'HEAD')).toEqual([expect.stringMatching(/^4249418/)])
+      // The two versions of the chi-square generator: the first said what the record says it said, the second does not, and the table is the same.
+      if (has('f6796c7') && has('72ca4e0')) {
+        const header = "Q comes from Numerical Recipes' series for P when y < a + 1 and its Lentz continued fraction otherwise"
+        expect(git('show', 'f6796c7:scripts/tables/chi-square-critical.ts').join('\n')).toContain(header)
+        expect(git('show', '72ca4e0:scripts/tables/chi-square-critical.ts').join('\n')).not.toContain('Numerical Recipes')
+        expect(gitStatus('diff', '--quiet', 'f6796c7', '72ca4e0', '--', 'packages/sim/spec/critical.ts')).toBe(0)
+        expect(gitStatus('merge-base', '--is-ancestor', 'f6796c7', '72ca4e0')).toBe(0)
+      }
+    }, SLOW)
+
+    test('records the first deploy: the run on the push of PR #2 failed twice at the tests, the run on the next push twice at setting up Bun, the first deploy that succeeded ran from main at 1b402ca, and Enforce HTTPS is still the owner\'s step', () => {
+      const bullet = flat(between(decisions, '- **The first deploy.**', '\n  - The kits still ship as static downloads'))
+      for (const needle of [
+        'The deploy ran first on the push of PR #2\'s merge to `main` (9b7736c), and failed twice there, at `bun run test`',
+        "two tests ran past Bun's limit of 5 s for a test that sets none",
+        'PR #3 set that limit to 30 s [estimated], and merged as 1b402ca',
+        'The run on 1b402ca then failed twice at "Set up pinned Bun"',
+        "GitHub's release download of Bun 1.3.14 answered HTTP 504",
+        "GitHub's status page had an incident open",
+        'PR #4 is still open, and proposes to install the pinned Bun from npm when that download fails',
+        'so the first deploy that succeeded ran from `main` at 1b402ca on 2026-11-09',
+        'the Pages API reports no certificate and `https_enforced` false',
+        "Enforce HTTPS is still the owner's step, or the orchestrator's when the owner asks for it, once GitHub issues the certificate",
+      ]) {
+        expect([needle, bullet.includes(needle)]).toEqual([needle, true])
+      }
+      // Each of its facts is tagged with its date, and the sources are named: GitHub's API, the logs of the attempts, and the status page.
+      expect((bullet.match(/\[measured 2026-11-09[^\]]*\]/g) ?? []).length).toBeGreaterThanOrEqual(5)
+      expect(bullet).toContain('https://www.githubstatus.com/api/v2/incidents.json')
+      expect(bullet).not.toMatch(/HTTPS is enforced once|GitHub enforces HTTPS/)
     })
 
     test('names as pointing here only the records that do: each of them says D-060', () => {
@@ -276,10 +377,7 @@ describe('the documents of a public repository (D-060)', () => {
 })
 
 describe('the tree of a public repository', () => {
-  /** Built from pieces, so that this file does not match what it looks for: a local path, a session id, and the owner's login name. */
-  const personal = [['/ho', 'me/[a-z]'], ['/tm', 'p/claude'], ['9aec', '8729'], ['prav', 'eern']].map((pieces) => pieces.join('')).join('|')
-
   test('no tracked text file carries a local path, a session id or the owner\'s login name', () => {
-    expect(git('grep', '-n', '-I', '-E', personal, '--', '.', ':!package-lock.json').map((line) => line.slice(0, 200))).toEqual([])
+    expect(git('grep', '-n', '-I', '-E', PERSONAL, '--', '.', ':!package-lock.json').map((line) => line.slice(0, 200))).toEqual([])
   }, SLOW)
 })

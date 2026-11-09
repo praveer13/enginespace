@@ -11,6 +11,7 @@ import { renderToString } from 'react-dom/server'
 import { createStaticHandler, createStaticRouter, StaticRouterProvider } from 'react-router'
 import { routes } from '@/routes'
 import { cssVar, PAIRS, resolveColor, ROLE_NAMES, roleOf, rolesIn, type ColorRoleName } from '@/design/tokens'
+import { read } from '../ci/support'
 
 async function render(url: string): Promise<string> {
   const handler = createStaticHandler(routes)
@@ -82,6 +83,26 @@ describe('/design', () => {
     for (const state of ['hover', 'focus', 'active', 'disabled', 'loading', 'error', 'empty']) expect(text).toContain(`>${state}</figcaption>`)
     expect(text).toContain('a ticket you pick up: hover')
     expect(text).toContain('under the lamp')
+  })
+
+  test("shows the Link in each of its forms: the router's, an unavailable one, a file of the site, and another site's", () => {
+    const at = html.indexOf('<h3 class="es-spec__component-title">Link</h3>')
+    const specimen = html.slice(at, html.indexOf('<h3 class="es-spec__component-title">Toggle</h3>', at))
+    expect(at).toBeGreaterThan(-1)
+    for (const state of ['default', 'hover', 'focus', 'active', 'unavailable', 'a file of the site', 'another site']) expect([state, specimen.includes(`>${state}</figcaption>`)]).toEqual([state, true])
+    // A page of the site is the router's link, and an unavailable one is quiet text with no address.
+    expect(specimen).toContain('href="/m/tr2"')
+    expect(specimen).not.toContain('href="/m/tr3"')
+    // A file of the site is a plain link in the same tab, with no mark, at the site's root under the base (here the root). The router would
+    // answer its address with the not-found page.
+    expect(specimen).toContain('<a href="/third-party-licenses.txt" class="es-link">the licence file</a>')
+    // Another site's link opens a new tab, and says so in words and with the drawn mark.
+    const other = /<a href="https:\/\/docs\.vllm\.ai\/"[^>]*>.*?<\/a>/s.exec(specimen)?.[0] ?? ''
+    expect(other).toContain('target="_blank"')
+    expect(other).toContain('es-link__external')
+    expect(other).toContain('(opens in a new tab)')
+    // The base is read from the build, as the About page reads it, so that a preview under a subpath keeps the link right.
+    expect(read('src/pages/Design.tsx')).toContain("file={`${import.meta.env.BASE_URL ?? '/'}third-party-licenses.txt`}")
   })
 })
 

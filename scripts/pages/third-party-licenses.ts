@@ -26,15 +26,23 @@
  *     second plugin of `thirdPartyLicenses`, which vite.config.ts puts in `worker.plugins`.
  *   - A package whose files reach the site without being a module of a script (Tailwind's base CSS is copied into the stylesheet) is named
  *     in `alsoShips`.
- *   - Code that the build tool writes into a script has no file, and so no `node_modules` path: Vite's preload helper (`\0vite/preload-helper.js`,
- *     in the entry script) and the interop helper of the Rollup commonjs plugin that Vite bundles into its own build (`\0commonjsHelpers.js`,
- *     in react-vendor) [measured 2026-11-08 at 6418a20: the only two modules of the build that are not files]. INJECTED names the package of
- *     each, vite, and of the rest of Vite's own, so vite is listed like a package whose module reached a script. A module of that kind that
- *     INJECTED does not name fails the build, with its name: a helper that a new Vite or a new plugin writes in is a licence that nobody has read.
+ *   - Code that the build tool writes into a script comes in two kinds. One arrives as a module that has no file, and so no `node_modules` path:
+ *     Vite's preload helper (`\0vite/preload-helper.js`, in the entry script) and the interop helper of the Rollup commonjs plugin that Vite
+ *     bundles into its own build (`\0commonjsHelpers.js`, in react-vendor) [measured 2026-11-08 at 6418a20: the only two modules of the build
+ *     that are not files]. INJECTED names the package of each, vite, and of the rest of Vite's own, so vite is listed like a package whose
+ *     module reached a script. A module of that kind that INJECTED does not name fails the build, with its name: a helper that a new Vite or a
+ *     new plugin writes in is a licence that nobody has read.
+ *   - The other kind is no module at all: a plugin writes it into a script's code after Rollup has put the modules together. Vite's
+ *     `__vite__mapDeps` is one, the function that names the files which each lazy import loads with it (`vite:build-import-analysis` writes it
+ *     in its `generateBundle` hook), at the top of each script whose lazy imports have files to name [measured 2026-11-09 at 6ae0e50: 16 of the
+ *     154 scripts of dist/assets]. The record (`.vite/third-party.json`, below) and INJECTED see only code that arrives as a module (the
+ *     `moduleIds` of a chunk), so the record lists vite for the two scripts that hold a helper module and not for the others, and code of that
+ *     kind from another plugin would fail nothing. `__vite__mapDeps` is covered because it is Vite's own code and vite's section carries
+ *     Vite's licence, and not because the build checks for it.
  *   - vite's LICENSE.md is 101,182 bytes [measured 2026-11-08, vite 7.3.0], and nearly all of it is the licences of the dependencies that are bundled
- *     into Vite's own build (its dev server, its config loader, its CSS tooling), which runs in Node and, but for the two helpers above, is not in the
- *     site. So the file gives the two parts of it that apply, Vite's own MIT licence (the preload helper's) and the Rollup plugins' (the commonjs
- *     helper's), from third-party/vite.txt, word for word, in place of the whole file. The entry in
+ *     into Vite's own build (its dev server, its config loader, its CSS tooling), which runs in Node and, but for the code named above, is not in
+ *     the site. So the file gives the two parts of it that apply, Vite's own MIT licence (that of the preload helper and of `__vite__mapDeps`) and
+ *     the Rollup plugins' (the commonjs helper's), from third-party/vite.txt, word for word, in place of the whole file. The entry in
  *     third-party/notices.json says which file it stands in for (`replaces`) and that file's SHA-256, and the build fails when the installed
  *     file is another one, and when vite is at another version than the entry's, until the file is read again and the entry is made for it.
  *   - Beside Vite's manifest the plugin writes `.vite/third-party.json`: each script of the build with the packages inside it. verify:bundle
@@ -235,7 +243,8 @@ export function packageRootOf(moduleId: string): string | null {
  *     site's scripts [measured 2026-11-08 at 6418a20]. They are named so that a build that does have one lists vite, as for the first two.
  * All come with the vite package, as far as the site can tell: it ships them, and the part of its licence file that is kept covers them, the
  * Rollup plugins' notice included. A virtual module that is not here fails the build (collect), and the way out is to find whose code it is and
- * to name the package here.
+ * to name the package here. The table holds modules only: code that a plugin writes into a script after the modules are put together (Vite's
+ * `__vite__mapDeps`) is no module, and no name here can catch it (see the header of this file).
  */
 export const INJECTED: Readonly<Record<string, string>> = {
   'commonjsHelpers.js': 'vite',
@@ -470,10 +479,11 @@ export function render(dependencies: readonly Dependency[], notice: string, text
     `it: the ${plural(dependencies.length, 'package')} below, sorted by name and each headed by its name and version, then the repository's NOTICE, which carries the`,
     'notices for the code that enginespace vendors from kernelspace, the code it ports and the fonts it hosts, and then the licence texts that',
     'NOTICE points to. A package is listed when a module of it reached a script of the build, even if the build then left its code out as',
-    "unused. Vite is listed for the helpers that the build tool writes into the scripts (its preload helper, and the interop helper of a Rollup",
-    "plugin that it bundles): its section gives Vite's own licence and that plugin's, and not the licences of the other dependencies that Vite",
-    'bundles into its own build, which run in Node and are not in this site. The build writes this file, and fails when a package in it has no',
-    'licence file.',
+    'unused. Vite is listed for the code that its build tool writes into the scripts: its own preload helper, its own dependency-map function',
+    '(__vite__mapDeps), which it writes into each script whose lazy imports have other files to load with them, and the interop helper of a',
+    "Rollup plugin that it bundles. Vite's section gives Vite's own licence, which is the licence of the first two, and that plugin's, and not the",
+    'licences of the other dependencies that Vite bundles into its own build, which run in Node and are not in this site. The build writes this',
+    'file, and fails when a package in it has no licence file.',
   ].join('\n')
   const closing = [RULE, NOTICE_FILE, RULE, '', notice.replace(/\r\n?/g, '\n').trimEnd()].join('\n')
   const appended = texts.map(({ file, text }) => [RULE, file, RULE, '', text].join('\n'))
