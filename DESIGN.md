@@ -287,10 +287,25 @@ Depth is physical: paper lifts off steel, plates are stamped with a lit top edge
 - **Shelf** (`box-shadow: 0 1px 0 color-mix(in srgb, var(--es-glint) 55%, transparent), 0 6px 12px -6px rgb(23 25 29 / 0.35)`): the board's lip over the ground.
 - **Ticket sheet** (`filter: drop-shadow(0 1px 1px rgb(23 25 29 / 0.22)) drop-shadow(0 9px 10px rgb(23 25 29 / 0.2))`): a ticket's shadow is a drop-shadow on the sheet, so its punched hole and torn edges cast too.
 
+### The Kitchen in 3D
+Scene kit v1 gives every 3D game the same line kitchen, built in code with no image or model asset, and every value in it traces to a role.
+- **Materials:** each part takes a tone of a kitchen material, coloured from a colour role and only ever darkened from it: brushed steel in the three stainless tones (surface-1, surface-2, surface-3), spun aluminium, chrome, cast iron and the seasoned griddle (deep steel darkened), bakelite knobs and oil, glazed ceramic and subway tile (paper, with paper-rule grout), the sealed floor (deep steel), ticket paper, ribbon ink and masking tape. A metal differs from brushed stainless only by its finish, a factor on roughness, grain and metalness: chrome carries no grain, cast iron almost none.
+- **Light:** the fluorescent tubes' hemisphere light and a procedural reflected room (tubes overhead, the lamps' glow in front, steel-grey walls) give the steel something to mirror. The heat lamps over the pass are tight spots whose warm pool, about two plates across, lands on the steel under them and nowhere else, warming the steel's own sheen and streak rather than tinting a region; from tier 2 they cast soft shadow maps (three lights at T2, four at T3, none at T1). A scene's lamps burn only while the present lies under them.
+- **Glow:** only the heat lamp's amber glows: a lit station's element, a lamp's bulb, the heat strip over the pass. Each glowing part sits on a channel and a scene lights channels by a mask, so a station fires without new geometry. The hood's tubes glow in tube white below bloom's threshold: light, but not the present. Bloom (T2 and up, at half resolution) catches only what glows, holds a constant strength, and is off under more contrast and forced colours.
+- **Atmosphere:** the room's light is baked into its tile and floor, full over the line and falling away to the sides, above and behind into a veil of deep steel, so the far corners recede rather than only darkening. Fog begins past the camera's focus, so the far end of the line softens from every shot: the games haze into deep steel (surface-3), the /design kitchen into the ground (surface-0). Steam is a few soft puffs of pale steel off a lit station when a fire lands, at T2 only and never under reduced motion; the soft cone under each lamp is a T2 option the W1 games leave off.
+- **Contact:** every prop, static or moving, stands on a soft rounded contact shadow in the shadows' own ink over its baked ambient occlusion, at every 3D tier. T1 keeps the props, their occlusion and their contact shadows, and gives up shadow maps, bloom, cones and steam.
+- **Print:** every word and number a learner reads in a scene is DOM over the canvas: marker on strips of masking tape and Doto on paper tags, sized from the scene's box (a size container) and never below the ramp's smallest step. A prop's ticket carries only a texture of generic order lines in dots that nobody needs to read.
+
 ### Named Rules
 **The Paper Lifts Rule.** Under the hand, paper rises (translateY(-3px), a slight turn, a deeper drop-shadow) and plates brighten; on press, both go down 1-2px into the press shadow.
 
 **The Edgeless Pool Rule.** The lamp's light is a radial gradient that fades out inside its own box, so it reads as light falling on steel and never as a coloured panel.
+
+**The Nothing Floats Rule.** Every prop in a scene stands on its contact shadow and its baked occlusion at every 3D tier; shadow maps, bloom, cones and steam are what a lower tier gives up, never the contact.
+
+**The Still Kitchen Rule.** A prop moves only on a duration token, starting on the bell or the printer's feed, and holds the frame loop only while it moves: between bells the kitchen draws nothing, and under reduced motion a move is never started and the change is drawn at its end.
+
+**The Words Are DOM Rule.** Every word or number a learner reads in a 3D scene is DOM over the canvas; a texture carries only print nobody needs to read.
 
 ## Shapes
 
@@ -323,6 +338,7 @@ Containers are kitchen objects, never generic cards.
 - **Style:** masking tape over a paper slip: the label is a tape label overlapping the slip's top-left, the slip is bond paper with the paper shadow and a 2px edge-coloured foot line; the input is Atkinson at 1.0625rem (Doto 900 for numeric fields), placeholder in quiet text.
 - **Focus:** the foot line turns filament, the slip takes the 2px filament ring and the lamp's glow.
 - **Error / Disabled:** error turns the foot line ribbon red with the message below; disabled dashes the foot line on raised stainless with no shadow.
+- **Numeric:** a number is typed on the slip in Doto and never spun: the browser's spinner is removed.
 
 ### Toggle
 An equipment switch: a recessed brushed-steel well (5.25rem by 2.5rem, 3px edge), a polished lever that throws side to side on the quick duration, the word in force (ON or OFF) stamped in the open half in Big Shoulders 800 at 0.1em, and a pilot light at the well's end: a hollow ring of deep steel when off, burning the heat lamp's amber with the filament's edge when on.
@@ -342,7 +358,7 @@ A pilot light in a stainless bezel, with the station's name and the word for its
 A polished stainless rod lit from the tubes, with deep-steel spring clips that grip each ticket through its punched hole. An empty clip shows a 2px dashed edge box with Doto print. The rail can sit under the lamp.
 
 ### Printer Tape
-The live readout: bond paper fed from the printer's mouth, Doto 900 lines of term and value, uppercase terms, a torn foot. It feeds on the feed duration with the stepped easing. The provenance stamp ("synthetic ticks") is a small bordered stamp in Atkinson 700 uppercase in ribbon red.
+The live readout: bond paper fed from the printer's mouth, Doto 900 lines of term and value, uppercase terms, a torn foot. It feeds on the feed duration with the stepped easing. The provenance stamp ("synthetic ticks") is a small bordered stamp in Atkinson 700 uppercase in ribbon red. With a stamp, it prints once at the tape's head and each line's own tag is kept for a screen reader and left off the paper.
 
 ### Readout
 Doto with tabular figures, four sizes, an optional unit at 0.8em, and a provenance tag: a 1px-bordered Atkinson 700 uppercase stamp at 0.75rem (synthetic in ribbon red, measured in status-ok; derived and estimated print without the border).
@@ -356,6 +372,31 @@ The step clock: a drawn chrome bell on deep steel. A strike drops the plunger an
 ### Tape Label
 Masking tape torn off the roll: tape fill with faint crepe ridges and a top light, Permanent Marker in tape-ink, jagged masked ends, tilted -1.2deg by default.
 
+### Scene Kit Props
+The line's equipment, built from the kit's shape helpers (rounded boxes, lathes, sweeps round a rounded rectangle, bent tubes) and listed as data for one static set: the pass with its heat strip, heat lamps, the ticket rail and its spring clips, the impact printer, the bell's base, a ticket spike, hotel pans (full, half and third) with tape slots, plate stacks, the griddle, burner and fryer stations, the hood with its tube lights, the subway-tile wall, the sealed floor, a speed rack and worktops. A later game's prop joins as a custom piece of the same set: coloured through the palette's tones, its glowing parts on a channel, a footprint for its contact shadow, and its label on tape in a slot, in DOM.
+- **Moving props:** tickets that print, tear and hang on the rail's clips; the printer's feed, in six line steps; lathe-turned plates that slide down the pass and come to rest on the settle curve, their contact shadows sliding with them; the service bell, whose strike drops the plunger and rings the chrome dome on the bell duration and the strike curve.
+- **Specimen:** /design shows each piece alone and the whole pass assembled, at T1 and T2, each beside its 2D note; a rail of equipment tickets (bond paper cut square, a number in dots over a name) picks the piece, the one in view under the lamp, and the bell runs one fire.
+
+### Game Shell
+The frame round every game's views: its display name stamped over its engine concept, its mode or its own docket, the 2D and 3D switch (two plates in a labelled group, the current one pressed, and a disabled 3D plate that says why in words beside it), and the Keys button, which opens the key list on a ticket. Levels are a row of plates that wraps, and the way into a graded run is a line of words and one button.
+- **Mirror table:** the whole state as a DOM table on a ticket, its name on the printed foot line, engine terms for column heads and every figure a readout with its tag. On narrow paper each row prints as a block of its own; selectable rows form one roving tab stop.
+- **Debrief:** where the next level's title outruns the stub's line at 320px, the stub's label wraps beside its arrow.
+
+### Specials Board
+The Play index: the page's name stamped on a plate with the kitchen's word for it on tape beside it, and a sheet of steel holding each game's line, its poster in a recessed well that keeps the drawing's shape before the file arrives and says so in words if it never does.
+
+### Back of House
+A request's path through the kitchen. Hand-off cards are small tickets you pick up, tighter than the order's, in two columns where the tray is wide enough. The laid path is an ordered list on paper, one row per stage with a dotted rule between: the selected row prints bold and underlined, never with a stripe down its side; a stage laid and not run is pencilled in quiet text; the stage that stopped the ticket prints in ribbon red with its drawn mark, and the run's finding as a voided ticket's red line. A run's new stops ink in one after another on the printer's line steps.
+
+### The Reach-In
+The cabinet of hotel pans: rows of sixteen at every width, the cabinet a size container so the pans scale with it (about 20px each on a phone), the rotation along its base and the pass in front. A pan's state is its form (bare, solid, hatched with a hash mark, shared, or a kit's with its pin), and the station that keeps it is a marker glyph at its corner (circle, square or hexagon), matched in the key. A ticket's ruler draws one row per station: held is solid, shared mise dotted, to prep a dashed hollow outline, let go an open groove. Pans never move and nothing in the cabinet animates; the lamp falls on the pans an open eviction would dump, and on nothing else.
+
+### The Tasting
+The dishes are keyed on masking tape, each with the drawn shape that carries its colour; the recipe sets a column per dish as wide as the dish in the drawing, and each weight is typed on a ticket-paper slip in Doto. The audit's cards are tickets, in as many columns as fit. In the scene, dish and course names are marker on tape strips and counts are Doto on paper tags.
+
+### The Inspection
+The clipboard: a steel board with a drawn spring clip (a riveted plate, a barrel wound with its spring, a jaw with a rolled lip) holding a form of ticket paper, the clip casting a soft drop-shadow onto the paper. The claim on trial is stamped large in Doto, and one synthetic stamp covers every figure on the form. Graph-paper sheets are pinned to the pass, cut square and lifted; the selected order's times sit on a small ticket under the lamp, the board's only amber.
+
 ## Do's and Don'ts
 
 ### Do:
@@ -367,6 +408,7 @@ Masking tape torn off the roll: tape fill with faint crepe ridges and a top ligh
 - **Do** move on the bell: the quick duration (120ms) for the hand, the bell (240ms) for a step, the feed (420ms, steps(6, end)) for the printer, the settle (640ms) for a course coming to rest, all 0 under reduced motion.
 - **Do** draw focus as the 2px filament ring at 2px offset with the lamp's glow above it.
 - **Do** give every `font-size` a step of the size ramp and every radius a step of the rounded scale; a deliberate one-off keeps a one-line comment saying why.
+- **Do** build a new 3D prop from the kit's shape helpers and the palette's tones, with its glow on a channel, a footprint for its contact shadow, and its label on tape in DOM.
 
 ### Don't:
 - **Don't** add a dark scheme; the line is lit by its tubes, and the system ships light and more-contrast only.
