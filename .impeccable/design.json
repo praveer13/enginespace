@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-04T22:04:22+00:00",
+  "generatedAt": "2026-11-09T01:19:45+00:00",
   "title": "Design System: enginespace",
   "extensions": {
     "colorMeta": {
@@ -804,7 +804,146 @@
         "intensity": 1.15,
         "light": "HemisphereLight"
       },
-      "maps": "Normal and roughness maps are generated in code (brushed, crepe, paper fields); no image ships."
+      "maps": "Normal and roughness maps are generated in code (brushed, crepe, paper fields); no image ships.",
+      "props": {
+        "source": "src/design/scene-tokens.ts (materials.props, PROP_PARAMS, marked [estimated]); tones in src/scene/props/palette.ts",
+        "roles": {
+          "steel": "surface-1",
+          "steelShaded": "surface-2",
+          "steelDeep": "surface-3",
+          "iron": "surface-3",
+          "ceramic": "paper",
+          "tile": "paper",
+          "grout": "paper-rule",
+          "floor": "surface-3",
+          "glow": "lamp",
+          "cold": "surface-3",
+          "tube": "light-fluorescent",
+          "shadow": "text-1",
+          "steam": "surface-1",
+          "paper": "paper",
+          "ink": "paper-ink",
+          "tape": "tape"
+        },
+        "metal": {
+          "metalness": 0.92,
+          "anisotropy": 0.7,
+          "clearcoat": 0.12,
+          "clearcoatRoughness": 0.4
+        },
+        "finishes": {
+          "note": "[roughness x, grain x, metalness x] against brushed stainless",
+          "brushed": [
+            1,
+            1,
+            1
+          ],
+          "spun": [
+            0.78,
+            0.9,
+            1
+          ],
+          "chrome": [
+            0.16,
+            0,
+            1
+          ],
+          "iron": [
+            2.2,
+            0.14,
+            0.5
+          ],
+          "griddle": [
+            1.35,
+            0.32,
+            0.82
+          ]
+        },
+        "ceramic": {
+          "roughness": 0.2,
+          "clearcoat": 0.85,
+          "clearcoatRoughness": 0.06
+        },
+        "tile": {
+          "roughness": 0.14,
+          "groutRoughness": 0.92
+        },
+        "floor": {
+          "roughness": 0.42
+        },
+        "glow": {
+          "emissiveIntensity": 5.76,
+          "note": "Amber, the active state alone: a lit station's element, a lamp's bulb, the heat strip."
+        },
+        "tube": {
+          "emissiveIntensity": 1.7,
+          "note": "Tube white, below bloom's threshold."
+        },
+        "opacities": {
+          "contactShadow": 0.62,
+          "cone": 0.24,
+          "steam": 0.45
+        },
+        "lamp": {
+          "intensity": 5.5,
+          "distance": 2.2,
+          "angle": 0.27,
+          "penumbra": 0.6,
+          "decay": 2,
+          "shadowRadius": 5,
+          "shadowMap": 1024,
+          "pool": 0.7,
+          "light": "SpotLight per heat lamp over the pass"
+        }
+      }
+    },
+    "sceneKit": {
+      "source": "src/scene/props (scene kit v1)",
+      "props": [
+        "pass",
+        "heat-lamp",
+        "rail",
+        "printer",
+        "bell-base",
+        "spike",
+        "pan (1/1, 1/2, 1/3)",
+        "plate-stack",
+        "griddle",
+        "burners",
+        "fryer",
+        "hood",
+        "tile-wall",
+        "floor",
+        "speed-rack",
+        "worktop",
+        "custom"
+      ],
+      "moving": [
+        "Tickets and RailClips: print, tear, hang",
+        "PrinterFeed: steps(6, end)",
+        "Plates: slide and rest on ease-settle over dur-settle",
+        "ServiceBell: dur-bell on ease-strike",
+        "LampLights",
+        "Steam: T2 only, never under reduced motion"
+      ],
+      "glowChannels": {
+        "stations": "0-27",
+        "lamp": 28,
+        "strip": 29,
+        "tube": 30
+      },
+      "tiers": {
+        "T0": "2D only",
+        "T1": "props, baked occlusion, contact shadows; no shadow maps, no post-processing",
+        "T2": "adds lamp shadow maps (3 lights), bloom at half resolution with FXAA in the final pass, cones, steam",
+        "T3": "governor only; 4 shadow lights, 2 post passes"
+      },
+      "atmosphere": {
+        "roomLight": "baked into tile and floor, falling away into a veil of deep steel",
+        "fog": "from past the camera's focus; games haze to surface-3, the /design kitchen to surface-0",
+        "environment": "procedural reflected room (tubes, lamps' glow, steel walls) in a PMREM cube; no image asset"
+      },
+      "print": "Every readable word and number is DOM over the canvas: marker on tape strips, Doto on paper tags, never below size-micro."
     }
   },
   "components": [
@@ -932,6 +1071,21 @@
         "name": "The Edgeless Pool Rule",
         "body": "The lamp's light is a radial gradient that fades out inside its own box, so it reads as light falling on steel and never as a coloured panel.",
         "section": "elevation"
+      },
+      {
+        "name": "The Nothing Floats Rule",
+        "body": "Every prop in a scene stands on its contact shadow and its baked occlusion at every 3D tier; shadow maps, bloom, cones and steam are what a lower tier gives up, never the contact.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Still Kitchen Rule",
+        "body": "A prop moves only on a duration token, starting on the bell or the printer's feed, and holds the frame loop only while it moves: between bells the kitchen draws nothing, and under reduced motion a move is never started and the change is drawn at its end.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Words Are DOM Rule",
+        "body": "Every word or number a learner reads in a 3D scene is DOM over the canvas; a texture carries only print nobody needs to read.",
+        "section": "elevation"
       }
     ],
     "dos": [
@@ -942,7 +1096,8 @@
       "**Do** put the brushed grain (texture-brushed) on the ground and on stainless panels, plates and housings, sized to the full width so no tile edge shows.",
       "**Do** move on the bell: the quick duration (120ms) for the hand, the bell (240ms) for a step, the feed (420ms, steps(6, end)) for the printer, the settle (640ms) for a course coming to rest, all 0 under reduced motion.",
       "**Do** draw focus as the 2px filament ring at 2px offset with the lamp's glow above it.",
-      "**Do** give every `font-size` a step of the size ramp and every radius a step of the rounded scale; a deliberate one-off keeps a one-line comment saying why."
+      "**Do** give every `font-size` a step of the size ramp and every radius a step of the rounded scale; a deliberate one-off keeps a one-line comment saying why.",
+      "**Do** build a new 3D prop from the kit's shape helpers and the palette's tones, with its glow on a channel, a footprint for its contact shadow, and its label on tape in DOM."
     ],
     "donts": [
       "**Don't** add a dark scheme; the line is lit by its tubes, and the system ships light and more-contrast only.",
