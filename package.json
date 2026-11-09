@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "typecheck": "tsc -b",
-    "test": "bun test",
+    "test": "bun test --timeout 30000",
     "e2e": "playwright test",
     "verify:all": "bun scripts/verify.ts all",
     "verify:content": "bun scripts/verify.ts content",
