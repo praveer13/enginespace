@@ -1,3 +1,7 @@
 [test]
 # A bare `bun test` scans only tests/, so Playwright specs (e2e/*.spec.ts) are never run as bun tests.
 root = "./tests"
+# The time limit of a test that sets none is 30 s, in package.json's `test` script (`bun test --timeout 30000`), since a `timeout` key here
+# changed nothing in a probe [measured 2026-11-09, Bun 1.3.14]. Bun's default is 5 s, and on a GitHub runner the suite runs about half as
+# fast as on the laptop: the deploy of 9b7736c failed on two tests that took 5.16 and 5.28 s there and pass well inside 5 s here, and 29
+# tests took over 4 s on that runner [measured 2026-11-09, deploy.yml's run on main]. A test that needs longer still sets its own limit.
