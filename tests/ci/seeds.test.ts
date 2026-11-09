@@ -14,7 +14,7 @@ import { readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { load } from 'js-yaml'
 import { MAX_SEEDS, NIGHTLY_SEEDS, PR_SEEDS, SEED_COUNT, seedCountFrom, seeds } from '../seeds'
-import { between, read, root } from './support'
+import { BUN_FALLBACK, between, read, root } from './support'
 
 describe('the knob (tests/seeds.ts)', () => {
   test('is the pull request count when the variable is unset or empty', () => {
@@ -70,6 +70,7 @@ describe("nightly.yml's properties job", () => {
   interface Step {
     uses?: string
     run?: string
+    if?: string
     env?: Record<string, string>
     with?: Record<string, unknown>
   }
@@ -80,7 +81,7 @@ describe("nightly.yml's properties job", () => {
     'timeout-minutes'?: number
   }
   const properties = ((load(read('.github/workflows/nightly.yml')) as { jobs: Record<string, Job> }).jobs.properties ?? {}) as Job
-  const runs = (properties.steps ?? []).flatMap((step) => (step.run === undefined ? [] : [step.run.trim()]))
+  const runs = (properties.steps ?? []).flatMap((step) => (step.run === undefined || step.if === BUN_FALLBACK ? [] : [step.run.trim()]))
 
   test('is built: no reserved step is left in it', () => {
     expect(runs.length).toBeGreaterThanOrEqual(2)
