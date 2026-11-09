@@ -7,6 +7,7 @@
 import { describe, expect, test } from 'bun:test'
 import { GAME_IDS, LAB_IDS } from '../../scripts/content/directives.ts'
 import { GAME_TASKS, LAB_TASKS, PENDING, pendingGame, pendingLab } from '@/content/render/model'
+import { resolveGame } from '@/games/registry'
 import { trackerTasks } from '../ci/support.ts'
 
 const tasks = trackerTasks()
@@ -36,17 +37,27 @@ describe('the features that are not built yet', () => {
 })
 
 describe('the games', () => {
-  test('every game of the roster has a task, and no task is named for a game that is not there', () => {
-    expect(Object.keys(GAME_TASKS).sort()).toEqual([...GAME_IDS].sort())
+  /** The games this build has: a lesson's block plays them (W1b-T01). */
+  const built = GAME_IDS.filter((id) => resolveGame(id).kind === 'game')
+
+  test('every game of the roster is built or has a task, never both, and no task is named for a game that is not there', () => {
+    expect([...built, ...Object.keys(GAME_TASKS)].sort()).toEqual([...GAME_IDS].sort())
+    expect(built.filter((id) => Object.hasOwn(GAME_TASKS, id))).toEqual([])
+    // W1 built five games, and a lesson's block of each plays it.
+    expect([...built].sort()).toEqual(['broken-bench', 'engine-floor', 'loop', 'pool', 'verifier'])
   })
 
   test.each(Object.entries(GAME_TASKS))('%s is built by %s, whose title names it', (game, task) => {
     expect(heading(task)).toContain(`(\`${game}\`)`)
   })
 
-  test('a game that is not listed falls back to the game framework, and so does a name every object has', () => {
-    expect(pendingGame('loop').task).toBe(GAME_TASKS.loop)
-    for (const name of ['not-a-game', 'constructor', 'toString']) expect(heading(pendingGame(name).task)).toContain('Game framework')
+  test.each(Object.entries(GAME_TASKS))('%s waits for %s, which is still open: its marker is [ ] or [~], not [=] or [x] (W1b-T01, acceptance 6)', (_game, task) => {
+    expect(heading(task)).toMatch(/^#### \[[ ~]\] /)
+  })
+
+  test('a game that is built, and a name that is no game, name no task; a name every object has is not a game', () => {
+    for (const name of [...built, 'not-a-game', 'constructor', 'toString']) expect([name, pendingGame(name)]).toEqual([name, null])
+    expect(pendingGame('switchyard')).toEqual({ task: GAME_TASKS.switchyard, what: 'the game' })
   })
 })
 

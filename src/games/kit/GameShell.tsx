@@ -69,6 +69,12 @@ export interface GameShellProps<Level, State, Action extends GameAction, View, S
   rev?: string
   /** The game's heading: 2 on its own page, 3 inside a lesson. */
   headingLevel?: 2 | 3
+  /**
+   * The game sits inside a lesson (a `game` block, A§4.3): its column, not the screen, sets the room, so the view, the controls, the
+   * switches and the mirror stand one under the other at every width, as on a phone, and the view keeps the column's whole width. Its
+   * region and its stages are named with the level and the mode as well, because a lesson can hold two of the same game.
+   */
+  embedded?: boolean
   /** Whether the keys are bound. The learner's setting ("Game keys", WCAG 2.1.4) turns them off in every game; this can only turn them off as well. */
   shortcuts?: boolean
   /** Whether the tier and the browser allow 3D. The learner's setting ("3D off") is read here too. A game without a scene never has it. */
@@ -79,10 +85,10 @@ export interface GameShellProps<Level, State, Action extends GameAction, View, S
   defaultView?: GameView
   onViewChange?: (view: GameView) => void
   /**
-   * Called when a run ends, with the record, grade and hash, for the ledger: once for each run, so a practice run that is undone
-   * and finished again reports again. A front-page run passes nothing, because it records nothing (D-038).
+   * Called when a run ends, with the record, grade and hash, and the run's mode, for the ledger: once for each run, so a practice run
+   * that is undone and finished again reports again. A front-page run passes nothing, because it records nothing (D-038).
    */
-  onFinish?: (result: RunResult) => void
+  onFinish?: (result: RunResult, mode: GameMode) => void
   /** A key the shell does not take itself. Return true when the command was handled. A `step-back` left unhandled undoes. */
   onCommand?: (command: string, run: RunApi<Action, View, Score, Ask>) => boolean | void
   view2d: (run: RunApi<Action, View, Score, Ask>) => ReactNode
@@ -258,6 +264,13 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
   }, [restarted, container])
 
   const Heading = props.headingLevel === 3 ? 'h3' : 'h2'
+  // Inside a lesson the column sets the room, so the wide screen's columns (the `lg:` classes) are left out and the parts stack, as on a
+  // phone. On the game's own page every class is as written.
+  const wide = (classes: string): string => (props.embedded ? classes.split(' ').filter((name) => !name.startsWith('lg:')).join(' ') : classes)
+  // A lesson can hold two of the same game, so there the game's region and its stages also say the level and the mode (the tape's words).
+  const tapeId = useId()
+  const modeWord = mode === 'practice' ? 'practice' : 'graded'
+  const stagesLabel = props.embedded ? `Stages of ${game.title}: ${levelTitle ?? level}, ${modeWord}` : 'Stages of this game'
 
   const viewNode: ReactNode = (
     <>
@@ -305,15 +318,15 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
       if (props.stage) return <div className="min-w-0">{props.mirror(api)}</div>
       if (props.mirrorFirst) {
         return (
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:grid-rows-[auto_1fr] lg:items-start">
+          <div className={wide('grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:grid-rows-[auto_1fr] lg:items-start')}>
             <div className="flex min-w-0 flex-col gap-4">{viewNode}</div>
-            <div className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1">{props.mirror(api)}</div>
-            <div className="flex min-w-0 flex-col gap-4 lg:col-start-1 lg:row-start-2">{playControls}</div>
+            <div className={wide('min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1')}>{props.mirror(api)}</div>
+            <div className={wide('flex min-w-0 flex-col gap-4 lg:col-start-1 lg:row-start-2')}>{playControls}</div>
           </div>
         )
       }
       return (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start">
+        <div className={wide('grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start')}>
           <div className="flex min-w-0 flex-col gap-4">
             {viewNode}
             {playControls}
@@ -331,9 +344,9 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
   const tools = (
     <div className="flex flex-wrap items-center gap-3">
       {docket === undefined ? (
-        <TapeLabel size="sm">
+        <TapeLabel size="sm" id={props.embedded ? tapeId : undefined}>
           {levelTitle ? `${levelTitle} · ` : ''}
-          {mode === 'practice' ? 'practice' : 'graded'}
+          {modeWord}
         </TapeLabel>
       ) : null}
       {game.has3d ? <ViewSwitch view={view} onViewChange={switchView} available3d={can3d} unavailableReason={limits.unavailable3d} /> : null}
@@ -348,7 +361,7 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
     </div>
   )
   const nav = (
-    <nav aria-label="Stages of this game">
+    <nav aria-label={stagesLabel}>
       <ol className="flex flex-wrap gap-2">
         {stages.map((stage) => (
           <li key={stage}>
@@ -383,7 +396,7 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
       role="group"
       aria-label={PHASE_NAMES[phase]}
       data-stage={phase}
-      className={flow ? 'min-w-0 outline-none lg:col-start-1 lg:row-start-3' : 'outline-none'}
+      className={flow ? wide('min-w-0 outline-none lg:col-start-1 lg:row-start-3') : 'outline-none'}
     >
       {stagePanel()}
     </div>
@@ -393,8 +406,11 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
     <section
       ref={container}
       tabIndex={-1}
-      aria-labelledby={headingId}
+      aria-labelledby={props.embedded && docket === undefined ? `${headingId} ${tapeId}` : headingId}
       data-game={game.id}
+      data-level={level}
+      // The run's seed: unseen, not secret (A§8.2), as an item's ticket prints its own. A test reads that a graded run drew its own.
+      data-seed={seed}
       data-phase={phase}
       data-mode={mode}
       data-view={view}
@@ -427,26 +443,26 @@ function ShellRun<L, S, A extends GameAction, V, C, K>(props: ShellRunProps<L, S
         // the mirror's, and only the mirror's row is flexible, so a column of controls longer than the view and its switches lengthens
         // that row alone and the mirror stands right under the switches. The order on the page is the order on a narrow screen and the
         // keyboard's: the view, the controls, what stands beside them, the view's switches, the mirror.
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:grid-rows-[auto_auto_1fr] lg:items-start">
+        <div className={wide('grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:grid-rows-[auto_auto_1fr] lg:items-start')}>
           <div className="flex min-w-0 flex-col gap-4">{viewNode}</div>
-          <div className="flex min-w-0 flex-col gap-6 lg:col-start-2 lg:row-span-3 lg:row-start-1" data-shell-column="controls">
+          <div className={wide('flex min-w-0 flex-col gap-6 lg:col-start-2 lg:row-span-3 lg:row-start-1')} data-shell-column="controls">
             <div className="flex min-w-0 flex-col gap-4">{playControls}</div>
             <div className="min-w-0">{props.beside(api)}</div>
           </div>
-          <div className="min-w-0 lg:col-start-1 lg:row-start-2">{toolbar}</div>
+          <div className={wide('min-w-0 lg:col-start-1 lg:row-start-2')}>{toolbar}</div>
           {panelNode}
         </div>
       ) : props.stage && phase === 'play' ? (
         // The view leads, and the controls stand beside it, so a hand on them never loses sight of the scene. The view's switches
         // stand under it on a wide screen; on a narrow one they follow the controls, which come first after the view. A sticky view
         // keeps its switches under it everywhere, and in 3D its column stays in sight while the controls run on down the page.
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:grid-rows-[auto_1fr] lg:items-start">
-          <div className={`flex min-w-0 flex-col gap-4${sticky ? ` lg:row-span-2${view === '3d' ? ' lg:sticky lg:top-4' : ''}` : ''}`}>
+        <div className={wide('grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:grid-rows-[auto_1fr] lg:items-start')}>
+          <div className={wide(`flex min-w-0 flex-col gap-4${sticky ? ` lg:row-span-2${view === '3d' ? ' lg:sticky lg:top-4' : ''}` : ''}`)}>
             {viewNode}
             {sticky ? toolbar : null}
           </div>
-          <div className="flex min-w-0 flex-col gap-4 lg:col-start-2 lg:row-span-2 lg:row-start-1">{playControls}</div>
-          {sticky ? null : <div className="min-w-0 lg:col-start-1 lg:row-start-2">{toolbar}</div>}
+          <div className={wide('flex min-w-0 flex-col gap-4 lg:col-start-2 lg:row-span-2 lg:row-start-1')}>{playControls}</div>
+          {sticky ? null : <div className={wide('min-w-0 lg:col-start-1 lg:row-start-2')}>{toolbar}</div>}
         </div>
       ) : props.stage ? (
         toolbar

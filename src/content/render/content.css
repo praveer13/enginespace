@@ -422,3 +422,43 @@
 .es-c-artifacts code {
   color: var(--es-text-2);
 }
+
+/* ---------------------------------------------------------------------------------------------- the game block */
+
+/*
+ * A game block (GameBlock.tsx): its ticket, and once the learner starts the level, the game under it on the steel, as on the game's own
+ * page. The ticket keeps its measure; the game takes the column's whole width.
+ */
+.es-c-game {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-6);
+}
+
+.es-c-game__name strong {
+  font-weight: 700;
+}
+
+.es-c-block .es-ticket__body .es-c-game__elsewhere {
+  font-size: var(--es-size-print);
+}
+
+/* The line that stands where the game will be while its code comes: the printer's dots, in quiet text on the steel. */
+.es-c-game__loading {
+  display: flex;
+  align-items: center;
+  gap: var(--es-space-2);
+  margin: 0;
+  color: var(--es-text-2);
+  outline: none;
+}
+
+/*
+ * On a wide screen a game the learner has opened takes the room the lesson leaves beside its tape: the tickets keep their measure, and the
+ * game's view gets about the width it has on its own page.
+ */
+@media (min-width: 64rem) {
+  .es-doc__columns:has(.es-c-game[data-open]) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 20rem);
+  }
+}

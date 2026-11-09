@@ -92,7 +92,7 @@ export function LessonView({ lesson, module, claims, today }: LessonViewProps) {
         tapes={[lesson.status]}
       />
       <Columns side={<PrinterTape label="About this lesson" lines={lines} />}>
-        <Blocks blocks={lesson.blocks} env={env} scope={lesson.id} />
+        <Blocks blocks={lesson.blocks} env={env} scope={lesson.id} rev={lesson.rev} />
         <Ticket
           as="section"
           width="wide"

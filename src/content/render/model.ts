@@ -246,24 +246,17 @@ export interface Pending {
 }
 
 /**
- * The task that builds each game's session, 2D view and mirror, which a `game` block embeds. `loop` is TR2's levels, the
- * first lesson that needs it. tests/content/pending.test.ts reads docs/TRACKER.md and fails when a task here is gone or no
- * longer names the game.
+ * The open task that builds each game of the roster that this build does not have yet: its session, 2D view and mirror, which a `game`
+ * block embeds. A game that is built (src/games/registry.ts) is not here, and its block plays it (GameBlock.tsx, W1b-T01), so the
+ * lesson's first paint tells the two apart without the games' code. tests/content/pending.test.ts reads docs/TRACKER.md and fails when a
+ * task here is gone, is no longer open, or no longer names the game, and when the roster has a game that is neither built nor here.
  */
 export const GAME_TASKS: Readonly<Record<string, string>> = {
-  loop: 'W1-T13',
-  'engine-floor': 'W1-T17',
-  pool: 'W1-T23',
-  verifier: 'W1-T28',
-  'broken-bench': 'W1-T33',
   'shape-shifter': 'W2-T14',
   'gap-hunt': 'W2-T20',
   dispatch: 'W2-T25',
   switchyard: 'W2-T30',
 }
-
-/** The framework every game sits in, for a game id that GAME_TASKS does not list. */
-const GAME_FRAMEWORK = 'W0-T14'
 
 /**
  * The task that builds each lab, which a `lab` block is the Build card of: the three forge labs (lane B), then the GPU and
@@ -299,6 +292,7 @@ export const PENDING = {
   change: { task: 'W3-T06', what: 'the change card' },
 } as const satisfies Record<string, Pending>
 
-/** The task for a game or a lab, by its id. The ids are the content's, so a name that is not an own key of the table falls back to the framework. */
-export const pendingGame = (game: string): Pending => ({ task: Object.hasOwn(GAME_TASKS, game) ? GAME_TASKS[game] : GAME_FRAMEWORK, what: 'the game' })
+/** The open task for a game that is not built yet, or null for one that is (or for a name no game has: only own keys of the table count). */
+export const pendingGame = (game: string): Pending | null => (Object.hasOwn(GAME_TASKS, game) ? { task: GAME_TASKS[game], what: 'the game' } : null)
+/** The task for a lab, by its id. The ids are the content's, so a name that is not an own key of the table falls back to the forge host. */
 export const pendingLab = (lab: string): Pending => ({ task: Object.hasOwn(LAB_TASKS, lab) ? LAB_TASKS[lab] : LAB_FRAMEWORK, what: 'the lab' })
