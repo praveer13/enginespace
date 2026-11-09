@@ -30,6 +30,12 @@ export function renderEnv(blocks: readonly CompiledBlock[], claims: ReadonlyMap<
 /** A page's `<title>`: its name, then the site's, as routes.tsx writes every route's. */
 export const titled = (page: string): string => `${page} · enginespace`
 
+/**
+ * A lab's page name, `Lab tr8.replay`: the heading of its served document, its tab, and the heading of its page until the lab is built.
+ * scripts/pages/plan.ts writes the document from this, and src/pages/Lab.tsx the page, so that the two never say different things.
+ */
+export const labName = (lab: string): string => `Lab ${lab}`
+
 /** Today as YYYY-MM-DD in UTC, the grain a claim's age is counted in. */
 export const todayIso = (now: Date = new Date()): string => now.toISOString().slice(0, 10)
 

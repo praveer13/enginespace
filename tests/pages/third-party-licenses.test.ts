@@ -25,6 +25,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { createElement } from 'react'
 import { renderToString } from 'react-dom/server'
+import { StaticRouter } from 'react-router'
 import type { Plugin } from 'vite'
 import {
   checkShipped,
@@ -1283,7 +1284,8 @@ describe('the file, named where a reader looks', () => {
   })
 
   describe('the About page', () => {
-    const html = renderToString(createElement(About))
+    // Inside a router, as the app renders it: the stub at the foot of its second ticket is the router's link (W1b-T09).
+    const html = renderToString(createElement(StaticRouter, { location: '/about' }, createElement(About)))
 
     test('links the file at the site\'s root as a link of the site itself: the same tab, no external mark, and not the router\'s link (which answers the address with its not-found page)', () => {
       const link = /<a ([^>]*)>(.*?)<\/a>/s.exec(html)
