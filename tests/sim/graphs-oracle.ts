@@ -1,8 +1,8 @@
 /*
  * Parts of this file are translated to TypeScript from vLLM v0.33.0 (commit 4ba787ec9959e566d3b587a796dff07673324da5) and modified:
  * vllm/v1/cudagraph_dispatcher.py, vllm/v1/worker/gpu/cudagraph_utils.py, vllm/v1/worker/gpu/lora_utils.py, vllm/lora/utils.py and,
- * for the values of CUDAGraphMode, vllm/config/compilation.py. Copyright contributors to the vLLM project.
- * Licensed under the Apache License 2.0; see NOTICE and LICENSES/Apache-2.0.txt.
+ * for the values of CUDAGraphMode, vllm/config/compilation.py. Those parts carry vLLM's notice, "Copyright contributors to the vLLM
+ * project", and are under the Apache License 2.0; see NOTICE and LICENSES/Apache-2.0.txt.
  *
  * Two ports of vLLM v0.33.0's CUDA-graph dispatchers (vllm/v1/worker/gpu/cudagraph_utils.py and vllm/v1/cudagraph_dispatcher.py),
  * written to be read beside the Python and to share nothing with packages/sim/steploop/graphs.ts: where the model keeps sorted groups and

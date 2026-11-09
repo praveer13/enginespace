@@ -5,6 +5,9 @@
  *     a NOTICE beside it) and one without, which must fail with its name. Then the order, the licence labels, the file names that count,
  *     the text that the repository keeps for a package that ships none, NOTICE and the texts of LICENSES/ after the packages, and the rule
  *     that no path of this machine is written.
+ *   - The modules that the build tool writes into a script (Vite's preload helper, the commonjs interop helper): they belong to vite, one
+ *     that INJECTED does not name fails the build, and the text that the repository keeps for part of vite's licence file stands in for the
+ *     file, for that file and that version alone.
  *   - The plugin's hooks, driven by hand, and then a real `vite build` of a miniature project with a lazy chunk and a worker, the way
  *     the app's own build has them: the worker's package is in the file only because of the second plugin, and the gate says so when the
  *     build leaves the second plugin out.
@@ -24,6 +27,7 @@ import {
   checkShipped,
   collect,
   idOf,
+  INJECTED,
   LICENCES_FILE,
   LicenceError,
   loadSupplied,
@@ -374,6 +378,184 @@ describe('the texts that the repository keeps (third-party/notices.json)', () =>
 })
 
 /* ------------------------------------------------------------------------------------------------------------------ */
+/* Code that the build tool writes in, and a text that stands in for part of a licence file                           */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/** vite's licence file in miniature: Vite's own licence, and then the licences that are bundled into Vite's own build. */
+const VITE_OWN = 'Vite core license, fixture text\n\nMIT License, Copyright (c) Vite Authors\n'
+const VITE_FILE = `${VITE_OWN}\n# Licenses of bundled dependencies\n\nBundled dependencies, fixture text\n\n## some-dependency\nLicense: ISC\n`
+const sha256 = (text: string): string => createHash('sha256').update(text).digest('hex')
+
+describe('the modules that the build tool writes into a script', () => {
+  /** A project with a package of its own and a vite whose licence file has both parts. `tools` is the node_modules folder the plugin finds vite in. */
+  function toolProject(): { ids: Record<string, string>; tools: string } {
+    const project = fresh()
+    const ids = install(project, [
+      { name: 'pkg-a', version: '1.2.3', license: 'MIT', files: { LICENSE: MIT('A Authors') } },
+      { name: 'vite', version: '7.3.0', license: 'MIT', files: { 'LICENSE.md': VITE_FILE } },
+    ])
+    return { ids, tools: path.join(project, 'node_modules') }
+  }
+
+  test("are the virtual modules of Vite 7.3.0, all of them vite's, as its own source names them: the preload helper and the commonjs interop helper reach this site, the rest are named so that a build that has one lists vite", () => {
+    expect(INJECTED).toEqual({
+      'commonjsHelpers.js': 'vite',
+      'vite/dynamic-import-helper.js': 'vite',
+      'vite/modulepreload-polyfill.js': 'vite',
+      'vite/preload-helper.js': 'vite',
+      'vite/wasm-helper.js': 'vite',
+    })
+    // A name with a typo would never match a module: each is in the source of the Vite that builds the site (the polyfill's id is made of two strings there).
+    const source = read('node_modules/vite/dist/node/chunks/config.js')
+    for (const name of Object.keys(INJECTED)) {
+      const spelled = name === 'vite/modulepreload-polyfill.js' ? 'vite/modulepreload-polyfill"' : `${name}"`
+      expect([name, source.includes(spelled)]).toEqual([name, true])
+    }
+  })
+
+  test('list vite for each script that holds one, with the packages of that script, and in the record of those scripts alone', () => {
+    const { ids, tools } = toolProject()
+    const collection = collect(
+      modulesOf({ 'assets/index-x.js': ['\0vite/preload-helper.js', ids['pkg-a']], 'assets/react-vendor-y.js': ['\0commonjsHelpers.js'], 'assets/plain-z.js': ['/p/src/x.ts'] }),
+      [],
+      new Map(),
+      tools,
+    )
+    expect(collection.dependencies.map(idOf)).toEqual(['pkg-a@1.2.3', 'vite@7.3.0'])
+    expect(collection.chunks).toEqual({ 'assets/index-x.js': ['pkg-a@1.2.3', 'vite@7.3.0'], 'assets/plain-z.js': [], 'assets/react-vendor-y.js': ['vite@7.3.0'] })
+  })
+
+  test("ship vite's licence file as the package has it when the repository keeps no text for part of it", () => {
+    const { tools } = toolProject()
+    const text = render(collect(modulesOf({ 'assets/x.js': ['\0vite/preload-helper.js'] }), [], new Map(), tools).dependencies, 'N')
+    expect(text).toContain('\nvite@7.3.0\nLicence: MIT\n')
+    expect(text).toContain(VITE_OWN.trimEnd())
+    expect(text).toContain('Bundled dependencies, fixture text')
+  })
+
+  test('fail the build when INJECTED names no package for one, with its name, once for the whole build', () => {
+    const { tools } = toolProject()
+    const attempt = () => collect(modulesOf({ 'assets/a.js': ['\0virtual:mystery.js', '\0other/helper.js'], 'assets/b.js': ['\0virtual:mystery.js'] }), [], new Map(), tools)
+    expect(attempt).toThrow(LicenceError)
+    let problems: readonly string[] = []
+    try {
+      attempt()
+    } catch (error) {
+      problems = (error as LicenceError).problems
+    }
+    expect(problems).toHaveLength(1)
+    expect(problems[0]).toContain('other/helper.js, virtual:mystery.js are modules that the build tool writes into a script and that INJECTED names no package for')
+    expect(problems[0]).toContain("name the package in INJECTED (scripts/pages/third-party-licenses.ts), so that the licence ships with the code")
+  })
+
+  test('do not take for one a file that a plugin wrapped, nor a file of the project that it wrapped', () => {
+    const { ids, tools } = toolProject()
+    const wrapped = `\0${ids['pkg-a']}?commonjs-module`
+    const collection = collect(modulesOf({ 'assets/x.js': [wrapped, '\0/p/src/own.ts?commonjs-proxy', '\0C:\\p\\src\\own.ts?commonjs-proxy'] }), [], new Map(), tools)
+    expect(collection.chunks).toEqual({ 'assets/x.js': ['pkg-a@1.2.3'] })
+  })
+
+  test('need to be told where the build tool is installed, which is a mistake of the caller and not of a licence', () => {
+    expect(() => collect(modulesOf({ 'assets/x.js': ['\0vite/preload-helper.js'] }))).toThrow('not the node_modules folder that the build tool (vite) is installed in')
+  })
+})
+
+describe('a text that stands in for part of a licence file ("replaces" in third-party/notices.json)', () => {
+  /** vite 7.3.0 with the licence file above, and an index that keeps Vite's own part of it for that version, pinned to the file. */
+  function excerptProject(options: { version?: string; file?: string | null; sha?: string; entry?: Record<string, unknown> } = {}): { dir: string; module: string } {
+    const { version = '7.3.0', file = VITE_FILE, sha = sha256(VITE_FILE), entry = {} } = options
+    const dir = fresh()
+    const ids = install(dir, [{ name: 'vite', version, license: 'MIT', files: file === null ? {} : { 'LICENSE.md': file } }])
+    mkdirSync(path.join(dir, 'third-party'))
+    writeFileSync(path.join(dir, 'third-party/vite.txt'), VITE_OWN)
+    writeFileSync(
+      path.join(dir, SUPPLIED_FILE),
+      JSON.stringify({
+        notices: [{ file: 'vite.txt', licence: 'MIT', source: 'https://example.invalid/vite/LICENSE.md', basis: 'Cut from the first lines of the file.', replaces: { file: 'LICENSE.md', sha256: sha }, packages: ['vite@7.3.0'], ...entry }],
+      }),
+    )
+    return { dir, module: ids.vite }
+  }
+
+  test("is shipped in place of the file, whose other licences are left out, under a lead that says which file it stands in for and where the text is kept", () => {
+    const { dir, module } = excerptProject()
+    const supplied = loadSupplied(dir)
+    expect(supplied.get('vite@7.3.0')?.replaces).toEqual({ file: 'LICENSE.md', sha256: sha256(VITE_FILE) })
+    const [dependency] = collect(modulesOf({ 'assets/x.js': [module] }), [], supplied).dependencies
+    expect(dependency.notices).toEqual([{ file: 'vite.txt', text: VITE_OWN.trimEnd() }])
+    const text = render([dependency], 'N')
+    expect(text).toContain(`${'='.repeat(76)}\nvite@7.3.0\nLicence: MIT\n${'='.repeat(76)}\n\n`)
+    expect(text).toContain(
+      `This package ships its licence in LICENSE.md (SHA-256 ${sha256(VITE_FILE)}), which carries more than the code of the package that is in this site. enginespace gives the parts of the file that apply, word for word, as kept in third-party/vite.txt.\nSource: https://example.invalid/vite/LICENSE.md\nCut from the first lines of the file.\n\n${VITE_OWN.trimEnd()}`,
+    )
+    expect(text).not.toContain('Bundled dependencies, fixture text')
+  })
+
+  test('is used with the file it was cut from and no other: a file that differs fails the build, with the package, the file and both hashes', () => {
+    const changed = `${VITE_FILE}A line that a later build of the same version added.\n`
+    const { dir, module } = excerptProject({ file: changed, sha: sha256(VITE_FILE) })
+    const attempt = () => collect(modulesOf({ 'assets/x.js': [module] }), [], loadSupplied(dir))
+    expect(attempt).toThrow(LicenceError)
+    expect(attempt).toThrow("vite@7.3.0 (node_modules/vite) ships a LICENSE.md that is not the file which third-party/notices.json's text for it was cut from")
+    expect(attempt).toThrow(`SHA-256 ${sha256(changed)}, and the entry has ${sha256(VITE_FILE)}`)
+  })
+
+  test('fails the build when the package ships no such file, and says so', () => {
+    const { dir, module } = excerptProject({ file: null })
+    expect(() => collect(modulesOf({ 'assets/x.js': [module] }), [], loadSupplied(dir))).toThrow(`there is none, and the entry has ${sha256(VITE_FILE)}`)
+  })
+
+  test('is kept for one version: another version of the package fails the build until the text is made for it, though its own file is there', () => {
+    const { dir, module } = excerptProject({ version: '7.4.0' })
+    const attempt = () => collect(modulesOf({ 'assets/x.js': [module] }), [], loadSupplied(dir))
+    expect(attempt).toThrow(LicenceError)
+    expect(attempt).toThrow('vite@7.4.0 (node_modules/vite)')
+    expect(attempt).toThrow('keeps only the parts that apply, and keeps them for another version')
+    expect(attempt).toThrow('with the SHA-256 of the file they are cut from ("replaces")')
+  })
+
+  test('is read strictly: "replaces" is a bare file name and 64 hex digits, and a note is a sentence', () => {
+    const { dir } = excerptProject()
+    const index = path.join(dir, SUPPLIED_FILE)
+    const rewrite = (entry: Record<string, unknown>) =>
+      writeFileSync(index, JSON.stringify({ notices: [{ file: 'vite.txt', licence: 'MIT', source: 's', basis: 'b', packages: ['vite@7.3.0'], ...entry }] }))
+    const shape = 'has a "replaces" that is not { "file": "LICENSE.md", "sha256": "<64 hex digits>" }'
+    const bad = [{ file: '../LICENSE.md', sha256: sha256(VITE_FILE) }, { file: 'sub/LICENSE.md', sha256: sha256(VITE_FILE) }, { file: 'LICENSE.md', sha256: 'abc' }, { file: 'LICENSE.md' }, 'LICENSE.md', null]
+    const outcomes = bad.map((replaces) => {
+      rewrite({ replaces })
+      try {
+        loadSupplied(dir)
+        return 'accepted'
+      } catch (error) {
+        return (error as Error).message.includes(shape) ? 'rejected' : (error as Error).message
+      }
+    })
+    expect(outcomes).toEqual(bad.map(() => 'rejected'))
+    rewrite({ replaces: { file: 'LICENSE.md', sha256: sha256(VITE_FILE) }, note: '' })
+    expect(() => loadSupplied(dir)).toThrow('has no "note" string')
+    rewrite({ replaces: { file: 'LICENSE.md', sha256: sha256(VITE_FILE) }, note: 'A sentence.' })
+    expect(loadSupplied(dir).get('vite@7.3.0')?.note).toBe('A sentence.')
+  })
+
+  test("prints a note above the text and below the basis, for a text that stands in for a file and for one that supplies a file", () => {
+    const note = 'This package also embeds code of another project, under the same licence.'
+    const { dir, module } = excerptProject({ entry: { note } })
+    const text = render(collect(modulesOf({ 'assets/x.js': [module] }), [], loadSupplied(dir)).dependencies, 'N')
+    expect(text).toContain(`Cut from the first lines of the file.\n${note}\n\n${VITE_OWN.trimEnd()}`)
+
+    // A package that ships no file, with a note: the same place, and no note on a section that has none.
+    const bare = fresh()
+    const ids = install(bare, [{ name: 'bare', version: '1.0.0', license: 'MIT' }, { name: 'plain', version: '1.0.0', license: 'MIT', files: { LICENSE: MIT('Plain') } }])
+    mkdirSync(path.join(bare, 'third-party'))
+    writeFileSync(path.join(bare, 'third-party/bare.txt'), 'MIT License\n\nCopyright (c) Bare Authors\n')
+    writeFileSync(path.join(bare, SUPPLIED_FILE), JSON.stringify({ notices: [{ file: 'bare.txt', licence: 'MIT', source: 'https://example.invalid/bare/LICENSE', basis: 'Read from the repository.', note, packages: ['bare@1.0.0'] }] }))
+    const rendered = render(collect(modulesOf({ 'assets/x.js': [ids.bare, ids.plain] }), [], loadSupplied(bare)).dependencies, 'N')
+    expect(rendered).toContain(`Source: https://example.invalid/bare/LICENSE\nRead from the repository.\n${note}\n\nMIT License\n\nCopyright (c) Bare Authors`)
+    expect(rendered.split(note)).toHaveLength(2)
+  })
+})
+
+/* ------------------------------------------------------------------------------------------------------------------ */
 /* The plugin's hooks                                                                                                 */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
@@ -443,6 +625,23 @@ describe('the plugin', () => {
     expect(JSON.parse(record.source)).toEqual({ chunks: { 'assets/index-x.js': ['pkg-a@1.2.3'] }, alsoShips: ['pkg-b@2.0.0'] })
   })
 
+  test("finds the build tool in the project's node_modules: vite is listed, with the text for it, for a script that holds its preload helper", () => {
+    const { project, ids } = threePackages()
+    install(project, [{ name: 'vite', version: '7.3.0', license: 'MIT', files: { 'LICENSE.md': VITE_FILE } }])
+    const { plugin } = thirdPartyLicenses(project)
+    const [text, record] = generate(plugin, { 'assets/index-x.js': [ids['pkg-a'], '\0vite/preload-helper.js'], 'assets/lazy-y.js': [ids['pkg-b']] })
+    expect(text.source).toContain('\nvite@7.3.0\nLicence: MIT\n')
+    expect(JSON.parse(record.source)).toEqual({ chunks: { 'assets/index-x.js': ['pkg-a@1.2.3', 'vite@7.3.0'], 'assets/lazy-y.js': ['pkg-b@2.0.0'] }, alsoShips: [] })
+  })
+
+  test('fails the build for a module that the build tool writes in and nobody has named, and for a vite that is not installed', () => {
+    const { project, ids } = threePackages()
+    const { plugin } = thirdPartyLicenses(project)
+    expect(() => generate(plugin, { 'assets/x.js': [ids['pkg-a'], '\0virtual:mystery.js'] })).toThrow('virtual:mystery.js is a module that the build tool writes into a script and that INJECTED names no package for')
+    // vite is named for the preload helper, and the project has none installed: the build says which package it could not read.
+    expect(() => generate(plugin, { 'assets/x.js': ['\0vite/preload-helper.js'] })).toThrow('node_modules/vite has no package.json that can be read')
+  })
+
   test('fails the build with the package\'s name, and with a sentence for a project that has no NOTICE', () => {
     const { project, ids } = threePackages()
     const { plugin } = thirdPartyLicenses(project)
@@ -478,6 +677,8 @@ function miniature(withWorkerPlugin: boolean, extra: readonly Pkg[] = []): strin
     { name: 'pkg-b', version: '2.0.0', license: 'Apache-2.0', files: { 'LICENCE.md': 'Apache License, fixture text\n' } },
     { name: '@scope/pkg-c', version: '3.1.0', license: 'ISC', files: { 'LICENSE.txt': 'ISC License, fixture text\n' } },
     { name: 'pkg-unused', version: '4.0.0', license: 'MIT', files: { LICENSE: MIT('Unused') } },
+    // The build tool, which writes its preload helper into the entry for the lazy import below: the file names it, and so must this folder have it.
+    { name: 'vite', version: '7.3.0', license: 'MIT', files: { 'LICENSE.md': VITE_FILE } },
     ...extra,
   ])
   writeFileSync(path.join(project, 'index.html'), '<!doctype html>\n<html><head><meta charset="UTF-8" /></head><body><script type="module" src="/main.ts"></script></body></html>\n')
@@ -552,8 +753,18 @@ describe('a real build of a miniature project', () => {
     expect(Object.keys(chunks).sort()).toEqual((shipped?.scripts ?? []).slice().sort())
   })
 
+  test("names vite for the preload helper that the build writes into the script that makes the lazy import, which is not a file of any package, and records it for that script alone", () => {
+    expect((shipped?.text ?? '').split('\n')).toContain('vite@7.3.0')
+    const chunks = (parseRecord(shipped?.record ?? '') as { chunks: Record<string, string[]> }).chunks
+    const holders = Object.keys(chunks).filter((file) => chunks[file].includes('vite@7.3.0'))
+    expect(holders).toHaveLength(1)
+    // The script that holds the helper is the one that holds its message, and no other script does.
+    const withHelper = Object.keys(chunks).filter((file) => readFileSync(path.join(built.dist, file), 'utf8').includes('Unable to preload CSS'))
+    expect(withHelper).toEqual(holders)
+  })
+
   test('passes the gate', () => {
-    expect(checkShipped(shipped as Shipped)).toEqual({ problems: [], packages: ['@scope/pkg-c@3.1.0', 'pkg-a@1.2.3', 'pkg-b@2.0.0'] })
+    expect(checkShipped(shipped as Shipped)).toEqual({ problems: [], packages: ['@scope/pkg-c@3.1.0', 'pkg-a@1.2.3', 'pkg-b@2.0.0', 'vite@7.3.0'] })
   })
 
   test('fails the gate for the same project built without the second plugin: the worker\'s script is one the first never saw', () => {
@@ -667,11 +878,14 @@ interface Notice {
   source: string
   basis: string
   packages: string[]
+  /** Set for a text that stands in for part of the licence file that the package ships. */
+  replaces?: { file: string; sha256: string }
+  note?: string
 }
 
 describe('third-party/notices.json', () => {
   const index = JSON.parse(read(SUPPLIED_FILE)) as { schema: string; fetched: string; userAgent: string; notices: Notice[] }
-  const lock = JSON.parse(read('package-lock.json')) as { packages: Record<string, { version: string; dev?: boolean }> }
+  const lock = JSON.parse(read('package-lock.json')) as { packages: Record<string, { version: string; resolved?: string; dev?: boolean }> }
   const listed = index.notices.flatMap((notice) => notice.packages.map((id) => ({ id, notice })))
   const split = (id: string): [string, string] => [id.slice(0, id.lastIndexOf('@')), id.slice(id.lastIndexOf('@') + 1)]
 
@@ -691,10 +905,26 @@ describe('third-party/notices.json', () => {
   })
 
   test('names where each text was read: a file of a repository at a full commit, and says how far the text is known to hold', () => {
-    for (const notice of index.notices) {
+    const whole = index.notices.filter((notice) => notice.replaces === undefined)
+    expect(whole.length).toBeGreaterThan(0)
+    for (const notice of whole) {
       expect([notice.file, notice.source]).toEqual([notice.file, expect.stringMatching(/^https:\/\/raw\.githubusercontent\.com\/[\w.-]+\/[\w.-]+\/[0-9a-f]{40}\/LICENSE$/)])
       expect([notice.file, notice.basis]).toEqual([notice.file, expect.stringContaining('[measured 2026-11-08]')])
       expect(notice.basis).toContain(notice.source.split('/')[5])
+    }
+  })
+
+  test('names where a text that stands in for part of a licence file was read: that file of that release of the package, from the tarball the lockfile pins, with the tag of what was measured', () => {
+    const stands = index.notices.filter((notice) => notice.replaces !== undefined)
+    expect(stands.map((notice) => notice.packages)).toEqual([['vite@7.3.0']])
+    for (const notice of stands) {
+      for (const id of notice.packages) {
+        const [name, version] = split(id)
+        const resolved = lock.packages[`node_modules/${name}`]?.resolved
+        expect([id, resolved]).toEqual([id, `https://registry.npmjs.org/${name}/-/${name}-${version}.tgz`])
+        expect([id, notice.source]).toEqual([id, expect.stringContaining(`the file ${notice.replaces?.file} of the npm package ${name} ${version} (${resolved}`)])
+      }
+      expect([notice.file, notice.basis]).toEqual([notice.file, expect.stringMatching(/^\[measured 2026-11-08 at [0-9a-f]{7}\]/)])
     }
   })
 
@@ -706,12 +936,54 @@ describe('third-party/notices.json', () => {
     }
   })
 
-  test('lists only packages that ship no notice file, since a text for one that ships its own is never used', () => {
-    for (const { id } of listed) {
+  test('lists only packages that ship no notice file, since a text for one that ships its own is never used, but for the ones whose text stands in for the file they ship', () => {
+    const bare = listed.filter(({ notice }) => notice.replaces === undefined)
+    expect(bare.length).toBeGreaterThan(0)
+    for (const { id } of bare) {
       const [name] = split(id)
       const files = readdirSync(path.join(root, 'node_modules', name)).filter((file) => /^(?:licen[cs]e|copying|notice)(?:[-_.].*)?$/i.test(file) && !/\.(?:[cm]?[jt]sx?|json|map)$/i.test(file))
       expect([id, files]).toEqual([id, []])
     }
+  })
+
+  test('keeps for a package that ships a licence file the parts of it that apply: the file is the one pinned, and the text is lines of it, word for word, in order, and a small part of it', () => {
+    const stands = listed.filter(({ notice }) => notice.replaces !== undefined)
+    expect(stands.length).toBeGreaterThan(0)
+    for (const { id, notice } of stands) {
+      const [name] = split(id)
+      const replaced = notice.replaces as { file: string; sha256: string }
+      const whole = readFileSync(path.join(root, 'node_modules', name, replaced.file))
+      expect([id, createHash('sha256').update(whole).digest('hex')]).toEqual([id, replaced.sha256])
+      const lines = whole.toString('utf8').split('\n')
+      const kept = readFileSync(path.join(root, 'third-party', notice.file), 'utf8')
+      // The parts are cut at the rule that the file itself puts between its entries, and each is a run of the file's own lines.
+      const parts = kept.split('\n---------------------------------------\n').map((part) => part.trim())
+      expect([id, parts.length]).toEqual([id, 2])
+      const [first, second] = parts
+      // vite's: Vite's own licence is lines 1 to 24, and the Rollup plugins' entry, lines 130 to 167 (the numbers that the entry's basis gives).
+      expect([id, lines.slice(0, 24).join('\n')]).toEqual([id, first])
+      expect([id, lines.slice(129, 167).join('\n')]).toEqual([id, second])
+      expect(notice.basis).toContain('(lines 1 to 24)')
+      expect(notice.source).toContain('lines 1 to 24 and lines 130 to 167')
+      // What is left out is the licences of what Vite bundles into its own build, which is nearly all of the file.
+      expect(kept).not.toContain('Licenses of bundled dependencies')
+      expect(kept.length).toBeLessThan(whole.length / 10)
+    }
+  })
+
+  test("says of @react-three/fiber that it embeds react-reconciler under Meta's MIT notice, which react's licence file carries too, and no other entry has a note", () => {
+    const entry = index.notices.find((notice) => notice.packages.includes('@react-three/fiber@9.6.1'))
+    expect(entry?.note).toContain('react-reconciler')
+    expect(entry?.note).toContain('react@19.2.3')
+    expect(entry?.note).toContain('[measured 2026-11-08 in the installed package]')
+    expect(index.notices.filter((notice) => notice.note !== undefined)).toEqual([entry])
+    // The embedded copy is in the file that the note names, under that banner, and no licence file comes with it ...
+    const embedded = readFileSync(path.join(root, 'node_modules/@react-three/fiber', entry?.note?.match(/\b(dist\/events-[0-9a-f]+\.esm\.js)\b/)?.[1] ?? 'no-such-file'), 'utf8')
+    expect(embedded).toContain('react-reconciler.production.js')
+    expect(embedded).toMatch(/Copyright \(c\) Meta Platforms, Inc\. and affiliates\.[\s*]*This source code is licensed under the MIT license/)
+    // ... react's licence file has the same copyright line, and the lockfile has react at the version that the note names.
+    expect(read('node_modules/react/LICENSE')).toContain('Copyright (c) Meta Platforms, Inc. and affiliates')
+    expect(lock.packages['node_modules/react']?.version).toBe('19.2.3')
   })
 
   test('gives the licence that the package\'s own package.json names, and lists each package once', () => {
@@ -756,11 +1028,15 @@ describe('the file, named where a reader looks', () => {
   describe('the About page', () => {
     const html = renderToString(createElement(About))
 
-    test('links the file at the site\'s root, and says it is a link to another document', () => {
-      const link = /<a [^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/s.exec(html)
-      expect(link?.[1]).toBe('/third-party-licenses.txt')
-      expect(link?.[2]).toContain('third-party-licenses.txt')
-      expect(html).toContain('opens in a new tab')
+    test('links the file at the site\'s root as a link of the site itself: the same tab, no external mark, and not the router\'s link (which answers the address with its not-found page)', () => {
+      const link = /<a ([^>]*)>(.*?)<\/a>/s.exec(html)
+      const attributes = link?.[1] ?? ''
+      expect(/href="([^"]+)"/.exec(attributes)?.[1]).toBe('/third-party-licenses.txt')
+      // The text of the link and nothing else in it: no drawn mark, and no words about a new tab.
+      expect(link?.[2]).toBe('third-party-licenses.txt')
+      expect(attributes).not.toMatch(/target=|rel=|data-discover/)
+      expect(html).not.toContain('opens in a new tab')
+      expect(html).not.toContain('es-link__external')
     })
 
     test('names the font licences that sit in /fonts/, as fonts.json and NOTICE have them, each a file that the site serves', () => {
@@ -778,6 +1054,14 @@ describe('the file, named where a reader looks', () => {
     test('uses the design system\'s link, and no colour or face of its own', () => {
       expect(html).toContain('class="es-link"')
       expect(read('src/pages/About.tsx')).not.toMatch(/#[0-9a-f]{3,8}\b|font-family|rgb\(|hsl\(/i)
+    })
+
+    test('builds the folder it names from the base the site is served at, as it does the address of the link, and not as /fonts/ typed in the text', () => {
+      const source = read('src/pages/About.tsx')
+      expect(source).toContain("`${import.meta.env.BASE_URL ?? '/'}fonts/`")
+      expect(source).not.toContain('<code>/fonts/</code>')
+      // At the root, where the tests run and the deploy serves the site, the text is the same as it was.
+      expect(html).toContain('<code>/fonts/</code>')
     })
   })
 })

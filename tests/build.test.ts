@@ -331,6 +331,45 @@ describe('the app build', () => {
       expect(record.alsoShips.map((id) => id.replace(/@[^@]+$/, ''))).toEqual(['tailwindcss'])
       expect(textOf('third-party-licenses.txt')).toContain(`\n${record.alsoShips[0]}\n`)
     })
+
+    /** The text under a package's heading in the licence file, up to the heading of the next package or of NOTICE. */
+    function sectionOf(id: string): string {
+      const lines = textOf('third-party-licenses.txt').split('\n')
+      const rule = '='.repeat(76)
+      const at = lines.indexOf(id)
+      expect([id, at > 0]).toEqual([id, true])
+      const next = lines.findIndex((line, index) => index > at + 2 && line === rule && lines[index + 3] === rule)
+      return lines.slice(at + 3, next < 0 ? lines.length : next).join('\n')
+    }
+    const viteId = (): string => {
+      const { version } = JSON.parse(readFileSync(path.join(root, 'node_modules/vite/package.json'), 'utf8')) as { version: string }
+      return `vite@${version}`
+    }
+
+    test('names vite, for the helpers that the build tool writes into the scripts, and records it for the two scripts that hold them: the entry, with the preload helper, and react-vendor, with the commonjs interop helper', () => {
+      const record = JSON.parse(textOf('.vite/third-party.json')) as { chunks: Record<string, string[]> }
+      const holders = Object.keys(record.chunks).filter((file) => record.chunks[file].includes(viteId()))
+      // The source maps cannot show these: a virtual module has no source. The preload helper has a message of its own, and sits in one script.
+      const withHelper = scriptsOf().filter((file) => textOf(file).includes('Unable to preload CSS for'))
+      expect(withHelper).toEqual([app.manifest[entryKeyOf(app)].file])
+      expect(holders.sort()).toEqual([app.manifest[entryKeyOf(app)].file, chunkNamed(app, 'react-vendor')?.[1].file ?? 'no react-vendor chunk'].sort())
+    })
+
+    test("gives vite's own licence and the Rollup plugins' and not the licences of the dependencies that Vite bundles into its own build, which are most of its licence file", () => {
+      const section = sectionOf(viteId())
+      expect(section).toContain('# Vite core license')
+      expect(section).toContain('Copyright (c) 2019-present, VoidZero Inc. and Vite contributors')
+      expect(section).toContain('Copyright (c) 2019 RollupJS Plugin Contributors')
+      for (const left of ['# Licenses of bundled dependencies', '@jridgewell/gen-mapping', 'chokidar', 'postcss-selector-parser', 'License: ISC']) expect([left, section.includes(left)]).toEqual([left, false])
+      const whole = readFileSync(path.join(root, 'node_modules/vite/LICENSE.md'), 'utf8')
+      expect(section.length).toBeLessThan(whole.length / 10)
+    })
+
+    test("says in the section of @react-three/fiber that it embeds react-reconciler under the notice that react's section carries", () => {
+      const section = sectionOf('@react-three/fiber@9.6.1')
+      expect(section).toContain('This package also embeds react-reconciler, which is Meta Platforms, Inc. and affiliates\' code under the MIT licence')
+      expect(sectionOf('react@19.2.3')).toContain('Copyright (c) Meta Platforms, Inc. and affiliates')
+    })
   })
 
   test('puts React in react-vendor, which the entry imports', () => {
@@ -356,10 +395,14 @@ describe('the app built under a subpath, with VITE_BASE=/enginespace/, as a prev
     // The router's basename comes from the same base, so the links agree with the files.
     const entry = readFileSync(path.join(pages.outDir, pages.manifest['index.html'].file), 'utf8')
     expect(entry).toContain('"/enginespace/"')
-    // The About page links the licence file under the base too, and the build wrote the file at the root of its folder.
+    // The About page links the licence file under the base too, and the build wrote the file at the root of its folder. Its text names the
+    // folder of the typefaces' licences under the base as well, and not as /fonts/ whatever the base is.
     const about = Object.values(pages.manifest).find((chunk) => chunk.src === 'src/pages/About.tsx')?.file ?? 'no chunk for src/pages/About.tsx'
-    expect(readFileSync(path.join(pages.outDir, about), 'utf8')).toContain('/enginespace/third-party-licenses.txt')
+    const aboutText = readFileSync(path.join(pages.outDir, about), 'utf8')
+    expect(aboutText).toContain('/enginespace/third-party-licenses.txt')
+    expect(aboutText).toContain('/enginespace/fonts/')
     expect(existsSync(path.join(pages.outDir, 'third-party-licenses.txt'))).toBe(true)
+    expect(existsSync(path.join(pages.outDir, 'fonts'))).toBe(true)
   }, 120_000)
 })
 

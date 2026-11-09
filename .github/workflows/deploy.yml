@@ -10,12 +10,18 @@ name: Deploy to GitHub Pages
 # The repository has been public since 2026-11-08 (O-2, D-060). Three steps turn the deploy on, in this order:
 #   1. enable Pages with the source "GitHub Actions" (done on 2026-11-08);
 #   2. set the custom domain to enginespace.naigap.com and enforce HTTPS (the domain is set, and verified on the account, as of
-#      2026-11-08, and the DNS record, a CNAME to praveer13.github.io, is in place; GitHub enforces HTTPS once it has issued the
-#      certificate, which it says can take up to 24 hours [measured from GitHub's docs, 2026-11-08]);
-#   3. set the repository variable PAGES_ENABLED to 'true', which is done when W1 is on its way to main, and not before: wave-0's
-#      deploy.yml builds under /enginespace/ [measured at 7ceb7c2, 2026-11-08], which the custom domain does not serve (D-058).
+#      2026-11-08, and the DNS record, a CNAME to praveer13.github.io, is in place. Enforcing HTTPS does not turn itself on for a
+#      custom domain, and it is the owner's to do: once GitHub offers the option, tick Enforce HTTPS in Settings → Pages, or set
+#      https_enforced through the Pages API. GitHub says the option can take up to 24 hours to become available [measured from
+#      GitHub's docs, 2026-11-08]; with nothing deployed, the Pages API reported no certificate in the 110 minutes after the
+#      domain was set [measured 2026-11-08]. Until it is ticked the site is also served over http, where the forge's hashing
+#      fails, because a browser offers crypto.subtle on a secure page only: src/forge/sha256.ts);
+#   3. set the repository variable PAGES_ENABLED to 'true', which is set on 2026-11-08, with W1's merge to main (PR #2), and not
+#      before: wave-0's deploy.yml builds under /enginespace/ [measured at 7ceb7c2, 2026-11-08], which the custom domain does not
+#      serve (D-058).
 # While the variable is unset, both jobs are skipped. The first deploy runs on the push that brings W1 to main, or by hand: Run
-# workflow on main (workflow_dispatch), since the github-pages environment deploys main only [unverified, 2026-11-08]. A deploy
+# workflow on main (workflow_dispatch), since the github-pages environment has custom branch policies and its one policy is the
+# branch main, so it deploys main only [measured 2026-11-08, from the environment's settings through GitHub's API]. A deploy
 # from an Actions workflow ignores public/CNAME [measured from GitHub's docs, 2026-11-08], so step 2 is what binds the domain.
 #
 # Every command of ci.yml's fast gate and tests job runs here too, so a deploy is never less checked than a pull request

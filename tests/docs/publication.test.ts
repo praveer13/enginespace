@@ -105,7 +105,8 @@ describe('the three files that translate parts of vLLM', () => {
   const ported = ['packages/sim/steploop/graphs.ts', 'tests/sim/graphs-oracle.ts', 'tests/sim/kv-support.ts']
   const vllm = section('vLLM')
 
-  test('begin with a header that says what was translated and modified, whose copyright it is, and the licence', () => {
+  test('begin with a header that says what was translated and modified, whose copyright it is, and the licence of those parts', () => {
+    const licence = 'Those parts carry vLLM\'s notice, "Copyright contributors to the vLLM project", and are under the Apache License 2.0; see NOTICE and LICENSES/Apache-2.0.txt'
     for (const file of ported) {
       const top = read(file)
         .split('\n')
@@ -113,12 +114,21 @@ describe('the three files that translate parts of vLLM', () => {
         .join(' ')
         .replace(/ (?:\/\/|\*|\/\*) /g, ' ')
         .replace(/\s+/g, ' ')
-      for (const part of ['translated to TypeScript from vLLM v0.33.0', 'and modified', 'Copyright contributors to the vLLM project', 'Licensed under the Apache License 2.0; see NOTICE and LICENSES/Apache-2.0.txt']) {
+      for (const part of ['translated to TypeScript from vLLM v0.33.0', 'and modified', 'Copyright contributors to the vLLM project', licence]) {
         expect([file, top.includes(part)]).toEqual([file, true])
       }
-      // The licence of enginespace's own files is the owner's to give (O-3): no file claims one with an SPDX line.
+      // The licence sentence has a subject, the translated parts. "Licensed under ..." with none reads as the licence of the whole file,
+      // which is partly enginespace's own, and the licence of that is the owner's to give (O-3).
+      expect([file, top.includes('Licensed under')]).toEqual([file, false])
+      // ... so no file claims a licence for its own part with an SPDX line either.
       expect([file, /SPDX/.test(read(file))]).toEqual([file, false])
     }
+  })
+
+  test("NOTICE's section says the same: the Apache License is the licence of the translated parts, and not of the rest of each file, which is enginespace's own (O-3)", () => {
+    const text = flat(vllm)
+    expect(text).toContain("Those parts are under vLLM's licence, the Apache License 2.0, and carry vLLM's copyright line.")
+    expect(text).toContain("That licence does not reach the rest of each of the three files, which is enginespace's own work: its licence is the owner's decision (O-3), and until it is decided the rest is all rights reserved.")
   })
 
   test("name upstream files that NOTICE's vLLM section names too, and the pin and the copyright line that it gives", () => {
@@ -202,6 +212,60 @@ describe('the documents of a public repository (D-060)', () => {
     expect(open).not.toMatch(/^\| O-2 \|/m)
     expect(open).toMatch(/^\| O-3 \|[^\n]*all rights reserved[^\n]*\(D-060\)[^\n]*\| W3-T15 \|$/m)
     expect(between(decisions, '**Answered.**', '**Carried over by the W0 exit review')).toContain('**O-2**')
+  })
+
+  describe("D-060's account of what is public", () => {
+    const decisions = read('docs/DECISIONS.md')
+    const record = flat(between(decisions, '### D-060 · ', '\n---\n'))
+    /** D-nnn's record, from its heading to the next heading or rule. */
+    const recordOf = (id: string): string => {
+      const start = decisions.indexOf(`\n### ${id} · `)
+      if (start < 0) throw new Error(`docs/DECISIONS.md has no record ${id}`)
+      const rest = decisions.slice(start + 1)
+      const end = rest.slice(5).search(/\n#{2,3} |\n---\n/)
+      return end < 0 ? rest : rest.slice(0, end + 5)
+    }
+
+    test("keeps its rule for the tree and for new commits, and does not call history clean: it says what older versions carry, what main's tip carries until wave-0 merges, and that a rewrite is the owner's call", () => {
+      expect(record).toContain('From now on a committed file, fixture or commit message carries no local path, no session id and no login name.')
+      expect(record).not.toContain('history included, and `wave-1` goes up after this record. A committed file')
+      for (const needle of [
+        '**History is not clean, and `main`\'s tip is not yet.**',
+        'Older versions of five files carry what the rule keeps out.',
+        'so `main`\'s tip carries them today',
+        'they leave `main`\'s tip when `wave-0` merges, and stay in its history',
+        "Rewriting history to remove them is the owner's call, and this record does not make it",
+      ]) {
+        expect([needle, record.includes(needle)]).toEqual([needle, true])
+      }
+      // It names the five files, and quotes nothing of what they carry (the sweep below holds the tree to that, this record included).
+      for (const file of ['AGENTS.md', 'docs/TRACKER.md', 'docs/waves/W0-report.md', 'research/upstream-vllm.md', 'tests/fixtures/play/broken-bench-flagged.json']) {
+        expect([file, record.includes(file)]).toEqual([file, true])
+      }
+    })
+
+    test("records the chi-square generator's history: the commit that held the transliteration, the one that replaced it, the commits a rewrite would change, and that the owner can still choose it", () => {
+      for (const needle of ['f6796c7', '72ca4e0', 'Numerical Recipes', 'DLMF §8.7 and §8.9', 'would change the SHAs of the 142 commits after f6796c7', 'The owner can still choose to rewrite it.']) {
+        expect([needle, record.includes(needle)]).toEqual([needle, true])
+      }
+    })
+
+    test('names as pointing here only the records that do: each of them says D-060', () => {
+      const named = /((?:D-\d{3}, )+D-\d{3} and D-\d{3}) point here/.exec(record)?.[1] ?? ''
+      const ids = named.match(/D-\d{3}/g) ?? []
+      // D-031 was on the list while its record said nothing of D-060.
+      expect(ids.length).toBeGreaterThanOrEqual(5)
+      expect(ids).toContain('D-031')
+      expect(ids.filter((id) => !recordOf(id).includes('D-060'))).toEqual([])
+    })
+
+    test("gives enforcing HTTPS as the owner's action, once GitHub offers it, and does not say that it turns itself on", () => {
+      expect(record).toContain('Enforcing HTTPS is the owner\'s step and does not turn itself on')
+      for (const needle of ['"Enforce HTTPS" in Settings → Pages', '`https_enforced` through the Pages API', 'GitHub says the option can take up to 24 hours to become available', 'no certificate in the 110 minutes after the domain was set [measured 2026-11-08]']) {
+        expect([needle, record.includes(needle)]).toEqual([needle, true])
+      }
+      expect(record).not.toMatch(/HTTPS is enforced once|GitHub enforces HTTPS/)
+    })
   })
 
   test('no LICENSE or LICENSE-CONTENT file exists until the owner answers O-3', () => {

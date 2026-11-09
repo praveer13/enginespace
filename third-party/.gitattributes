@@ -1,3 +1,4 @@
-# The bytes here are the bytes of the upstream licence files (notices.json pins each by SHA-256), and nothing else.
+# The bytes here are the bytes of the upstream licence files (notices.json pins each by SHA-256), or, for an entry with "replaces", the lines of
+# the upstream file that apply, word for word, and nothing else.
 # No line-ending conversion on any platform, so the hashes hold everywhere.
 * -text
