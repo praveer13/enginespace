@@ -11,10 +11,13 @@ import { maskFits } from './families/tr6/mask-fits'
 import { maskPhases } from './families/tr6/mask-phases'
 import { verifyShape } from './families/tr6/verify-shape'
 import { whichRunner } from './families/tr6/which-runner'
+import { goodputDenominator } from './families/tr8/goodput-denominator'
+import { littlesLaw } from './families/tr8/littles-law'
+import { whichFlag } from './families/tr8/which-flag'
 import type { Gen } from './types'
 
 /** Every family, in module order and, within a module, in the order of its files (the order in which `verify:items` reads them). */
-export const FAMILIES: readonly Gen[] = [bubbleWidth, graphHit, paddingWaste, exactnessTest, maskFits, maskPhases, verifyShape, whichRunner]
+export const FAMILIES: readonly Gen[] = [bubbleWidth, graphHit, paddingWaste, exactnessTest, maskFits, maskPhases, verifyShape, whichRunner, goodputDenominator, littlesLaw, whichFlag]
 
 const BY_ID: ReadonlyMap<string, Gen> = new Map(FAMILIES.map((family) => [family.id, family]))
 

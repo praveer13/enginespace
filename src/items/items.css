@@ -46,6 +46,8 @@
 .es-item__unit {
   font-family: var(--es-font-numeric);
   font-weight: var(--es-font-numeric-weight);
+  /* A unit that the readout does not know (req/s, min, prompts) is printed after the tag, and is set off from it. */
+  margin-inline-start: 0.3em;
 }
 
 /* The scenario's numbers, printed as the order lines of a ticket: the label, a dotted leader, the figure and its tag. */

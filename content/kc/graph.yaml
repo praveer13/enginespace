@@ -249,11 +249,9 @@
 - id: tr8.goodput-denominator
   description: You can say which denominator a goodput number divides by (the arrival window, or the whole run with its drain tail), and how the two differ under overload.
   requires: [ks:t7.goodput, ks:t7.goodput-curve]
-  planned: W1-T34 # the `tr8.goodput-denominator` family (TR8 §4, Keep)
 
 - id: tr8.littles-law
   description: You can check a benchmark log with Little's law, that mean concurrency equals throughput times mean latency on a stable window.
-  planned: W1-T34 # the `tr8.littles-law` family (TR8 §4, Keep)
 
 - id: tr8.time-shaped-replay
   description: You can say whether a trace replay keeps the trace's timing or only its shape, and what a replay that ignores timestamps loses.
@@ -262,4 +260,3 @@
 - id: tr8.tool-defaults
   description: You can read what the benchmark tools' defaults do (rate, concurrency, warm-up, cache reuse and percentiles), and name the flags that change them.
   requires: [tr8.client-queue, tr8.warmup-rule]
-  planned: W1-T34 # the `tr8.which-flag` family (TR8 §4, Keep)

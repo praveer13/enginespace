@@ -19,6 +19,9 @@ const LOADERS: Readonly<Record<string, () => Promise<Gen>>> = {
   'tr6.mask-phases': () => import('@es/play/items/families/tr6/mask-phases').then((family) => family.maskPhases),
   'tr6.verify-shape': () => import('@es/play/items/families/tr6/verify-shape').then((family) => family.verifyShape),
   'tr6.which-runner': () => import('@es/play/items/families/tr6/which-runner').then((family) => family.whichRunner),
+  'tr8.goodput-denominator': () => import('@es/play/items/families/tr8/goodput-denominator').then((family) => family.goodputDenominator),
+  'tr8.littles-law': () => import('@es/play/items/families/tr8/littles-law').then((family) => family.littlesLaw),
+  'tr8.which-flag': () => import('@es/play/items/families/tr8/which-flag').then((family) => family.whichFlag),
 }
 
 /** The ids that have a loader, in the table's order. */

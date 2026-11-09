@@ -98,6 +98,40 @@ export const CATALOG: readonly GenFace[] = [
       { id: 'runner', title: 'The runner a configuration runs on', kcs: ['tr6.proposer-families'], levels: [0, 1, 2, 3] },
     ],
   },
+  {
+    id: 'tr8.goodput-denominator',
+    version: 1,
+    title: 'The denominator of a goodput',
+    kcs: ['tr8.goodput-denominator'],
+    variants: [
+      { id: 'tool-prints', title: 'What a tool prints for a run', kcs: ['tr8.goodput-denominator'], levels: [0, 1, 2, 3] },
+      { id: 'convert', title: 'A goodput over the other clock', kcs: ['tr8.goodput-denominator'], levels: [0, 1, 2, 3] },
+      { id: 'which-clock', title: 'The clock a printed goodput divides by', kcs: ['tr8.goodput-denominator'], levels: [0, 1, 2, 3] },
+    ],
+  },
+  {
+    id: 'tr8.littles-law',
+    version: 1,
+    title: "Little's law as a check on a log",
+    kcs: ['tr8.littles-law'],
+    variants: [
+      { id: 'in-flight', title: 'Requests in flight, from the rate and the latency', kcs: ['tr8.littles-law'], levels: [0, 1, 2, 3] },
+      { id: 'solve-for', title: 'The latency or the rate, from the other two', kcs: ['tr8.littles-law'], levels: [0, 1, 2, 3] },
+      { id: 'check', title: 'Whether a log agrees with itself', kcs: ['tr8.littles-law'], levels: [0, 1, 2, 3] },
+    ],
+  },
+  {
+    id: 'tr8.which-flag',
+    version: 1,
+    title: 'Which flag of the benchmark tools',
+    kcs: ['tr8.tool-defaults', 'tr8.client-queue'],
+    variants: [
+      { id: 'at-fault-vllm', title: 'The flag of vllm bench serve at fault', kcs: ['tr8.tool-defaults'], levels: [0, 1, 2, 3] },
+      { id: 'at-fault-sglang', title: 'The flag of sglang.bench_serving at fault', kcs: ['tr8.tool-defaults'], levels: [0, 1, 2, 3] },
+      { id: 'default-does', title: 'What a tool does when a flag is left out', kcs: ['tr8.tool-defaults'], levels: [3] },
+      { id: 'send-rate', title: 'The rate a capped run sends', kcs: ['tr8.client-queue', 'tr8.tool-defaults'], levels: [0, 1, 2, 3] },
+    ],
+  },
 ]
 
 const BY_ID: ReadonlyMap<string, GenFace> = new Map(CATALOG.map((face) => [face.id, face]))
