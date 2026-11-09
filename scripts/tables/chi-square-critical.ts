@@ -18,16 +18,18 @@
  * vocabulary of 256 tokens.
  *
  * The computation, all in doubles. ln Γ(df / 2) is a sum of logarithms from the factorial or the half-integer product, not an
- * approximation. Q comes from Numerical Recipes' series for P when y < a + 1 and its Lentz continued fraction otherwise, and the
- * critical value from bisection on Q(a, y) = α, down to the last bit. At each of the 510 computed roots the survival probability is
- * within 2.4e-13 of α, relative [measured 2026-11-04, bun 1.3.14, against 400-bit exact arithmetic in tests/sim/spec-critical.test.ts],
- * which puts 1000 · x within about 1e-8 of a table unit of its true value [estimated].
+ * approximation. Q comes from two expansions in DLMF §8.7 and §8.9 (NIST Digital Library of Mathematical Functions,
+ * https://dlmf.nist.gov/8, version 1.2.8 of 2026-09-15, read 2026-11-08): when y < a + 1, P from the power series of DLMF 8.7.1 and
+ * then Q = 1 − P; otherwise Q itself from the continued fraction of DLMF 8.9.2, evaluated from the bottom up at a fixed depth that
+ * doubles until two depths agree. The critical value comes from bisection on Q(a, y) = α, down to the last bit. At each of the 510
+ * computed roots the survival probability is within 2.4e-13 of α, relative [measured 2026-11-08, bun 1.3.14, against 400-bit exact
+ * arithmetic in tests/sim/spec-critical.test.ts], which puts 1000 · x within about 1e-8 of a table unit of its true value [estimated].
  *
  * Platform independence. A different libm could move a computed value by a few units in the last place, which is about 1e-12 of a
  * table unit [estimated]. The one rounding that could flip is the ceiling, when 1000 · x is within that distance of an integer, so
  * the generator refuses to write a table in which any entry is closer than MARGIN = 1e-5 of a unit to an integer: an error would
  * have to be a thousand times larger than this algorithm's to change a committed integer. The committed table's own margin is
- * printed by `--check` [measured 2026-11-04, bun 1.3.14].
+ * printed by `--check` [measured 2026-11-08, bun 1.3.14].
  */
 import { readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
@@ -62,44 +64,80 @@ export function lnGammaHalf(df: number): number {
   return sum
 }
 
-const EPS = 1e-16
-const TINY = 1e-300
+/*
+ * The incomplete gamma function, from DLMF chapter 8 (https://dlmf.nist.gov/8). For a > 0 and y > 0:
+ *
+ *   P(a, y) = γ(a, y) / Γ(a), Q(a, y) = Γ(a, y) / Γ(a) and P + Q = 1                                      DLMF 8.2.4, 8.2.5
+ *   P(a, y) = y^a γ*(a, y), where γ*(a, y) = e^(−y) Σ_{k ≥ 0} y^k / Γ(a + k + 1)                             DLMF 8.2.6, 8.7.1
+ *   y^(−a) e^y Γ(a, y) = c_1 / (1 + c_2 / (1 + c_3 / (1 + ⋯))),
+ *     where c_1 = 1/y and, for k ≥ 1, c_(2k) = (k − a)/y and c_(2k+1) = k/y                                 DLMF 8.9.2
+ *
+ * Both leave the factor y^a e^(−y) / Γ(a) outside. Since Γ(a + k + 1) = a Γ(a) · (a + 1)(a + 2) ⋯ (a + k), the series is
+ * P = y^a e^(−y) / (a Γ(a)) · Σ_{k ≥ 0} y^k / ((a + 1) ⋯ (a + k)), and the fraction is Q = y^a e^(−y) / Γ(a) · (its value).
+ */
 
-/** Q(a, y), the regularized upper incomplete gamma function, for a = df / 2 and y > 0, with `lnGamma` = ln Γ(a). */
+/**
+ * How closely two depths of the continued fraction must agree, relative [estimated]: a few units in the last place of a double, and
+ * a thousandth of the 1e-12 to which tests/sim/spec-critical.test.ts holds the roots.
+ */
+const AGREEMENT = 1e-15
+/**
+ * The depth (the number of partial numerators c_j kept) that the doubling starts from, and the depth at which it gives up. Building
+ * the table, the fraction settles by depth 256 [measured 2026-11-08, bun 1.3.14], far short of the limit.
+ */
+const FIRST_DEPTH = 8
+const DEPTH_LIMIT = 1 << 16
+
+/**
+ * Σ_{k ≥ 0} y^k / ((a + 1) ⋯ (a + k)), which is Γ(a + 1) times the sum of DLMF 8.7.1. For y < a + 1 every term is positive and
+ * smaller than the one before it, so the adding stops at the first term too small to change the total.
+ */
+function seriesTotal(a: number, y: number): number {
+  let total = 0
+  let term = 1
+  for (let k = 1; total + term !== total; k++) {
+    total += term
+    term *= y / (a + k)
+  }
+  return total
+}
+
+/**
+ * The continued fraction of DLMF 8.9.2 cut off after its first `depth` partial numerators, worked from the bottom up: the value
+ * below the last level is taken as 0, and each level j above it is c_j / (1 + the value below). For y ≥ a + 1 every denominator
+ * is positive [derived]: a level with c_j ≥ 0 has a value that is not negative, and a level with c_j < 0 (j = 2k with k < a) sits
+ * on one of those or on the bottom, so its value is at least c_j = −(a − k)/y > −1.
+ */
+function fractionAtDepth(a: number, y: number, depth: number): number {
+  let below = 0
+  for (let j = depth; j >= 1; j--) {
+    const k = Math.floor(j / 2)
+    const partial = (j === 1 ? 1 : j % 2 === 0 ? k - a : k) / y // c_j
+    below = partial / (1 + below)
+  }
+  return below
+}
+
+/** y^(−a) e^y Γ(a, y) by DLMF 8.9.2: the depth doubles until two depths agree to AGREEMENT, and the deeper value is the result. */
+function fractionValue(a: number, y: number): number {
+  let shallower = fractionAtDepth(a, y, FIRST_DEPTH)
+  for (let depth = 2 * FIRST_DEPTH; depth <= DEPTH_LIMIT; depth *= 2) {
+    const deeper = fractionAtDepth(a, y, depth)
+    if (Math.abs(deeper - shallower) <= AGREEMENT * deeper) return deeper
+    shallower = deeper
+  }
+  throw new Error(`the continued fraction for Q(${a}, ${y}) did not settle by depth ${DEPTH_LIMIT}`)
+}
+
+/**
+ * Q(a, y), the regularized upper incomplete gamma function, for a = df / 2 and y > 0, with `lnGamma` = ln Γ(a); 1 for y ≤ 0. Below
+ * y = a + 1 it is 1 − P, with P from the series; from y = a + 1 on, the continued fraction gives Q itself, so even a small Q keeps
+ * its relative accuracy.
+ */
 export function upperGamma(a: number, y: number, lnGamma: number): number {
   if (y <= 0) return 1
-  const front = Math.exp(-y + a * Math.log(y) - lnGamma)
-  if (y < a + 1) {
-    // P(a, y) by its series, then Q = 1 − P. For y < a + 1 the series converges quickly and P is not near 1.
-    let ap = a
-    let del = 1 / a
-    let sum = del
-    for (let n = 0; n < 100000; n++) {
-      ap += 1
-      del *= y / ap
-      sum += del
-      if (Math.abs(del) < Math.abs(sum) * EPS) break
-    }
-    return 1 - sum * front
-  }
-  // Q(a, y) by its continued fraction (modified Lentz).
-  let b = y + 1 - a
-  let c = 1 / TINY
-  let d = 1 / b
-  let h = d
-  for (let i = 1; i < 100000; i++) {
-    const an = -i * (i - a)
-    b += 2
-    d = an * d + b
-    if (Math.abs(d) < TINY) d = TINY
-    c = b + an / c
-    if (Math.abs(c) < TINY) c = TINY
-    d = 1 / d
-    const delta = d * c
-    h *= delta
-    if (Math.abs(delta - 1) < EPS) break
-  }
-  return front * h
+  const scale = Math.exp(a * Math.log(y) - y - lnGamma) // y^a e^(−y) / Γ(a)
+  return y < a + 1 ? 1 - (scale / a) * seriesTotal(a, y) : scale * fractionValue(a, y)
 }
 
 /** The x with P(χ² with df degrees of freedom > x) = alpha, by bisection to the last bit. */
