@@ -24,6 +24,7 @@ import path from 'node:path'
 import { compiledLessonSchema, compiledModuleSchema } from '@es/schema'
 import type { CompiledBlock, ProseFlow, ProseInline } from '@es/schema'
 import { lockFileSchema } from '@es/schema/lock'
+import { offeredAt } from '../../packages/play/items/draw'
 import { familyById } from '../../packages/play/items/registry'
 import { POOL } from '../../packages/play/pool/entry'
 import { buildLevel } from '../../packages/play/pool/levels'
@@ -287,7 +288,7 @@ describe('what the lessons teach', () => {
     expect(modes('tr5a.l4')).toEqual(['adapters/practice', 'adapters/graded', 'manager/graded'])
   })
 
-  test('the KCs a lesson promises are earned by something that exists: a graded level, a stage of the lab, or the family that waits to be built', () => {
+  test('the KCs a lesson promises are earned by something that exists: a graded level, a stage of the lab, or an item family that a block of the lesson draws', () => {
     const byGame = new Set(POOL.kcs)
     const stageKcs = (stage: string): readonly string[] => {
       const check = HYBRID_KV_CHECKS[Number(stage.slice(1)) - 1]
@@ -296,11 +297,15 @@ describe('what the lessons teach', () => {
     for (const { lesson } of lessons) {
       const stages = lesson.blocks.flatMap((b) => (b.type === 'lab' ? b.stages : []))
       const byLab = new Set(stages.flatMap(stageKcs))
-      const hasItems = lesson.blocks.some((b) => b.type === 'item')
-      // The one KC with no level and no stage: its item family is the module's own, and a lesson's exit ticket draws it.
-      const WAITING_FOR_ITEMS = new Set(['tr5a.slots-vs-pages'])
+      // The KCs that the lesson's item blocks can draw: those of the variants that each family offers at the block's level.
+      const byItems = new Set(
+        lesson.blocks.flatMap((b) => {
+          const gen = b.type === 'item' ? familyById(b.family) : undefined
+          return b.type === 'item' && gen !== undefined ? offeredAt(gen, b.level).flatMap((variant) => variant.kcs) : []
+        }),
+      )
       for (const kc of lesson.kcs) {
-        const earned = byGame.has(kc) || byLab.has(kc) || (WAITING_FOR_ITEMS.has(kc) && hasItems)
+        const earned = byGame.has(kc) || byLab.has(kc) || byItems.has(kc)
         expect([lesson.id, kc, earned]).toEqual([lesson.id, kc, true])
       }
     }
@@ -324,9 +329,10 @@ describe('what the lessons teach', () => {
     expect(HYBRID_KV_CHECKS.map((c) => c.stage)).toEqual([1, 2, 3, 4, 5, 6])
   })
 
-  test('an item block names a TR5a family and a level it can be drawn at; a built family assesses only KCs its lesson teaches; the four still to build are named', () => {
-    const TO_BUILD = ['tr5a.blocks-held', 'tr5a.hit-length', 'tr5a.pages-for-adapter', 'tr5a.slots-vs-pages']
+  test('an item block names a TR5a family that is built and a level it can be drawn at; the items it can draw assess only KCs its lesson teaches, and every KC of a family is drawn by some lesson that teaches it', () => {
+    const BUILT = ['tr5a.blocks-held', 'tr5a.hit-length', 'tr5a.pages-for-adapter', 'tr5a.slots-vs-pages']
     const named = new Set<string>()
+    const drawn = new Map<string, Set<string>>()
     for (const { lesson } of lessons) {
       for (const block of lesson.blocks) {
         if (block.type !== 'item') continue
@@ -334,11 +340,23 @@ describe('what the lessons teach', () => {
         expect([block.level]).toEqual([block.family === 'tr5a.blocks-held' && lesson.id === 'tr5a.l2' ? 3 : 2])
         named.add(block.family)
         const gen = familyById(block.family)
-        if (gen === undefined) expect(TO_BUILD).toContain(block.family)
-        else for (const kc of gen.kcs) expect([lesson.id, block.family, lesson.kcs.includes(kc)]).toEqual([lesson.id, block.family, true])
+        expect([lesson.id, block.family, gen !== undefined]).toEqual([lesson.id, block.family, true])
+        if (gen === undefined) continue
+        // A block draws the variants its family offers at the block's level, and `blocks-held` is named by two lessons at two levels: the first
+        // lesson's items are about a request and a model whose groups are given, and the second's about a model given by its layer counts.
+        const variants = offeredAt(gen, block.level)
+        expect([lesson.id, block.family, variants.length > 0]).toEqual([lesson.id, block.family, true])
+        for (const kc of variants.flatMap((variant) => variant.kcs)) {
+          expect([lesson.id, block.family, kc, lesson.kcs.includes(kc)]).toEqual([lesson.id, block.family, kc, true])
+          drawn.set(block.family, (drawn.get(block.family) ?? new Set<string>()).add(kc))
+        }
       }
     }
-    expect([...named].sort()).toEqual(TO_BUILD)
+    expect([...named].sort()).toEqual(BUILT)
+    for (const id of BUILT) {
+      const gen = familyById(id)
+      for (const kc of gen?.kcs ?? []) expect([id, kc, drawn.get(id)?.has(kc) ?? false]).toEqual([id, kc, true])
+    }
   })
 
   test('an exit ticket is three items on fresh seeds (ASSESSMENT §4.2)', () => {
