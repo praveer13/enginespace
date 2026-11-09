@@ -12,6 +12,61 @@ import type { GenFace } from './types'
 
 export const CATALOG: readonly GenFace[] = [
   {
+    id: 'tr1.request-state',
+    version: 1,
+    title: 'The states of a request',
+    kcs: ['tr1.request-states', 'tr1.abort-path'],
+    variants: [
+      { id: 'next', title: 'The status after an event', kcs: ['tr1.request-states'], levels: [0, 1, 2, 3] },
+      { id: 'moves', title: 'What moves a request on', kcs: ['tr1.request-states'], levels: [1, 2] },
+      { id: 'count', title: 'Which statuses are finished', kcs: ['tr1.request-states'], levels: [2, 3] },
+      { id: 'abort', title: 'The status after an abort', kcs: ['tr1.request-states', 'tr1.abort-path'], levels: [1, 2] },
+    ],
+  },
+  {
+    id: 'tr1.step-budget',
+    version: 1,
+    title: 'One step, two schedulers',
+    kcs: ['tr1.phases-vs-one-budget'],
+    variants: [
+      { id: 'step', title: 'The tokens the next step runs', kcs: ['tr1.phases-vs-one-budget'], levels: [0, 1, 2, 3] },
+      { id: 'holds', title: 'What the next step holds', kcs: ['tr1.phases-vs-one-budget'], levels: [0, 1, 2] },
+      { id: 'left', title: 'The tokens still waiting after a step', kcs: ['tr1.phases-vs-one-budget'], levels: [2, 3] },
+    ],
+  },
+  {
+    id: 'tr1.what-moved',
+    version: 1,
+    title: 'What moved since the post',
+    kcs: ['tr1.read-at-the-pin'],
+    variants: [
+      { id: 'box', title: 'What became of a box of the post', kcs: ['tr1.read-at-the-pin'], levels: [0, 1, 2, 3] },
+      { id: 'statement', title: 'Whether a statement of the post still holds', kcs: ['tr1.read-at-the-pin'], levels: [0, 1, 2, 3] },
+    ],
+  },
+  {
+    id: 'tr1.where-does-it-run',
+    version: 1,
+    title: 'Where a stage runs',
+    kcs: ['tr1.sglang-lifecycle', 'tr1.vllm-lifecycle', 'tr1.abort-path'],
+    variants: [
+      { id: 'sglang', title: "Where a stage of Mini-SGLang's or SGLang's path runs", kcs: ['tr1.sglang-lifecycle'], levels: [0, 1, 2, 3] },
+      { id: 'vllm', title: "Where a stage of vLLM's path runs", kcs: ['tr1.vllm-lifecycle'], levels: [0, 1, 2, 3] },
+      { id: 'abort', title: "Where a stage of an abort's path runs", kcs: ['tr1.abort-path'], levels: [0, 1, 2, 3] },
+    ],
+  },
+  {
+    id: 'tr1.which-mechanism',
+    version: 1,
+    title: 'Which mechanism joins a stage',
+    kcs: ['tr1.five-mechanisms', 'tr1.sglang-lifecycle', 'tr1.vllm-lifecycle'],
+    variants: [
+      { id: 'nano', title: "A stage of nano-vllm's path", kcs: ['tr1.five-mechanisms'], levels: [0, 1, 2, 3] },
+      { id: 'sglang', title: "A stage of Mini-SGLang's or SGLang's path", kcs: ['tr1.five-mechanisms', 'tr1.sglang-lifecycle'], levels: [0, 1, 2, 3] },
+      { id: 'vllm', title: "A stage of vLLM's path", kcs: ['tr1.five-mechanisms', 'tr1.vllm-lifecycle'], levels: [0, 1, 2, 3] },
+    ],
+  },
+  {
     id: 'tr2.bubble-width',
     version: 1,
     title: 'Bubble width',

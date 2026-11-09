@@ -53,18 +53,18 @@ describe('the length of a session', () => {
   })
 
   test('is as long as what is due when less is due, and an idea no family serves yet costs nothing and is not mentioned', () => {
-    const set = deriveCards(earned([BUBBLE, OVERLAP, 'tr1.five-mechanisms', 'tr5a.kv-groups']).events, appKcsOfRef, TODAY)
+    const set = deriveCards(earned([BUBBLE, OVERLAP, 'tr1.small-engine-anatomy', 'tr5a.kv-groups']).events, appKcsOfRef, TODAY)
     const session = composeSession(set, TODAY)
     expect(session.lines.map((line) => line.kc).sort()).toEqual([OVERLAP, BUBBLE])
     expect(session.seconds).toBe(2 * NOMINAL_ITEM_SECONDS)
-    expect(JSON.stringify(session)).not.toContain('tr1.five-mechanisms')
+    expect(JSON.stringify(session)).not.toContain('tr1.small-engine-anatomy')
   })
 
   test('is empty when nothing is due, or nothing that is due can be served', () => {
     expect(composeSession(deriveCards([], appKcsOfRef, TODAY), TODAY).lines).toEqual([])
     const justNow = earned([BUBBLE], '2026-11-04')
     expect(composeSession(deriveCards(justNow.events, appKcsOfRef, TODAY), TODAY).lines).toEqual([])
-    const unservable = earned(['tr1.five-mechanisms'])
+    const unservable = earned(['tr1.small-engine-anatomy'])
     const session = composeSession(deriveCards(unservable.events, appKcsOfRef, TODAY), TODAY)
     expect(session.lines).toEqual([])
     expect(session.seconds).toBe(0)
