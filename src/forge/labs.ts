@@ -7,6 +7,16 @@
 import { HYBRID_KV_CHECKS, REJECTION_SAMPLER_CHECKS, TOY_CHECKS } from '@es/sim'
 import type { HostLab } from './invoke'
 
+/**
+ * A readout that follows a lab's checks (readout.ts): printed on the lab's page, never graded, never recorded. `slots` is the `hybrid-kv`
+ * lab's, TR5a §5: one night of adapter churn on the learner's module and on a model with fixed adapter slots.
+ */
+export interface LabReadout {
+  kind: 'slots'
+  /** The check that has to pass before the readout is played: TR5a §5 prints it "after s5". */
+  after: string
+}
+
 export interface ForgeLab extends HostLab {
   /** The lab's name on its page. */
   title: string
@@ -17,6 +27,7 @@ export interface ForgeLab extends HostLab {
   /** The crate that builds the module, and the file it writes. */
   crate: string
   wasm: string
+  readout?: LabReadout
 }
 
 export const FORGE_LABS: Readonly<Record<string, ForgeLab>> = {
@@ -46,5 +57,6 @@ export const FORGE_LABS: Readonly<Record<string, ForgeLab>> = {
     crate: 'hybrid-kv',
     wasm: 'hybrid_kv.wasm',
     checks: HYBRID_KV_CHECKS,
+    readout: { kind: 'slots', after: 'adapter_pages' },
   },
 }
