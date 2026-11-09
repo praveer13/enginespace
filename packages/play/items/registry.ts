@@ -3,6 +3,11 @@
  * teach a KC that is due, and `verify:items` holds every one of them to its gates. A family is added here, in module order, by the
  * task that builds it; `verify:kc` reads this folder for the families that assess each KC.
  */
+import { requestState } from './families/tr1/request-state'
+import { stepBudget } from './families/tr1/step-budget'
+import { whatMoved } from './families/tr1/what-moved'
+import { whereDoesItRun } from './families/tr1/where-does-it-run'
+import { whichMechanism } from './families/tr1/which-mechanism'
 import { bubbleWidth } from './families/tr2/bubble-width'
 import { graphHit } from './families/tr2/graph-hit'
 import { paddingWaste } from './families/tr2/padding-waste'
@@ -17,7 +22,24 @@ import { whichFlag } from './families/tr8/which-flag'
 import type { Gen } from './types'
 
 /** Every family, in module order and, within a module, in the order of its files (the order in which `verify:items` reads them). */
-export const FAMILIES: readonly Gen[] = [bubbleWidth, graphHit, paddingWaste, exactnessTest, maskFits, maskPhases, verifyShape, whichRunner, goodputDenominator, littlesLaw, whichFlag]
+export const FAMILIES: readonly Gen[] = [
+  requestState,
+  stepBudget,
+  whatMoved,
+  whereDoesItRun,
+  whichMechanism,
+  bubbleWidth,
+  graphHit,
+  paddingWaste,
+  exactnessTest,
+  maskFits,
+  maskPhases,
+  verifyShape,
+  whichRunner,
+  goodputDenominator,
+  littlesLaw,
+  whichFlag,
+]
 
 const BY_ID: ReadonlyMap<string, Gen> = new Map(FAMILIES.map((family) => [family.id, family]))
 

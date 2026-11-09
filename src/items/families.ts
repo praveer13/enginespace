@@ -11,6 +11,11 @@ import { use } from 'react'
 import type { Gen } from '@es/play/items/types'
 
 const LOADERS: Readonly<Record<string, () => Promise<Gen>>> = {
+  'tr1.request-state': () => import('@es/play/items/families/tr1/request-state').then((family) => family.requestState),
+  'tr1.step-budget': () => import('@es/play/items/families/tr1/step-budget').then((family) => family.stepBudget),
+  'tr1.what-moved': () => import('@es/play/items/families/tr1/what-moved').then((family) => family.whatMoved),
+  'tr1.where-does-it-run': () => import('@es/play/items/families/tr1/where-does-it-run').then((family) => family.whereDoesItRun),
+  'tr1.which-mechanism': () => import('@es/play/items/families/tr1/which-mechanism').then((family) => family.whichMechanism),
   'tr2.bubble-width': () => import('@es/play/items/families/tr2/bubble-width').then((family) => family.bubbleWidth),
   'tr2.graph-hit': () => import('@es/play/items/families/tr2/graph-hit').then((family) => family.graphHit),
   'tr2.padding-waste': () => import('@es/play/items/families/tr2/padding-waste').then((family) => family.paddingWaste),

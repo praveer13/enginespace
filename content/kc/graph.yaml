@@ -42,7 +42,6 @@
 - id: tr1.phases-vs-one-budget
   description: You can say how a scheduler that runs either prefill or decode in a step differs from vLLM's one token budget for every request.
   requires: [tr1.small-engine-anatomy, ks:t5.prefill-decode-interference]
-  planned: W1-T20 # the `tr1.step-budget` family, which the exit items of TR1's lessons 2 and 5 name
 
 - id: tr1.vllm-lifecycle
   description: You can trace a request through vLLM at the pinned version, from the API server to the model runner and back, naming each queue, process boundary, copy and sync.
@@ -59,7 +58,6 @@
 - id: tr1.request-states
   description: You can name the states a request moves through in the pinned vLLM, and say what moves it from one to the next.
   requires: [tr1.vllm-lifecycle]
-  planned: W1-T20 # the `tr1.request-state` family (TR1 §4, Keep)
 
 - id: tr1.abort-path
   description: You can trace an abort from the client to the engine core, and say where the engine drains it and what it releases.
@@ -68,7 +66,6 @@
 - id: tr1.read-at-the-pin
   description: You can find where a box of an older engine post lives in the pinned code, and say which of the post's statements are stale.
   requires: [tr1.vllm-lifecycle]
-  planned: W1-T20 # the `tr1.what-moved` family (TR1 §4, Keep)
 
 # ---------------------------------------------------------------------------------------------------------------------------------
 # TR2 · The step loop

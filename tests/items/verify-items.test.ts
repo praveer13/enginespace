@@ -145,7 +145,7 @@ describe('a sample family passes verify:items', () => {
     expect(result.notes).toEqual([])
     expect(result.families.map((family) => family.id)).toEqual(FAMILIES.map((family) => family.id))
     const lines = summaryLines(result)
-    expect(lines[0]).toContain('tr2.bubble-width v1: 3 variants (async-off, async-on, close-it), levels 0 1 2 3')
+    expect(lines.find((line) => line.startsWith('tr2.bubble-width'))).toContain('tr2.bubble-width v1: 3 variants (async-off, async-on, close-it), levels 0 1 2 3')
     expect(lines.filter((line) => /^tr2\./.test(line)).map((line) => line.replace(/ \(.*$/, ''))).toEqual([
       'tr2.bubble-width v1: 3 variants',
       'tr2.graph-hit v1: 2 variants',
