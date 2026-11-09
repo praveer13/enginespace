@@ -476,28 +476,38 @@ export function expectedTokensPerRound(alphaPermille: number, gamma: number): nu
 
 ### 5.6 The benchmark generator
 
+The API as W1-T31 built it (`packages/sim/bench` at a9115f6); W1-T32 added the corpus.
+
 ```ts
+export type OpenArrivals =                                          // arrivals that do not depend on the server
+  | { kind: 'poisson'; ratePerSMilli: number }                      // via a committed exponential-quantile table
+  | { kind: 'replay'; slice: TraceSlice; speedPermille: number }    // a vendored BurstGPT or Mooncake slice; it travels in the spec, parsed by parseSlice, since the package loads no files
+  | { kind: 'burst'; atUs?: Us }                                    // every request due at once: `vllm bench serve --request-rate inf`, vllm's default (vllm B1)
 export type ArrivalSpec =
-  | { kind: 'poisson'; ratePerSMilli: number }               // via a committed exponential-quantile table
-  | { kind: 'replay'; slice: SliceId; speedPermille: number } // vendored BurstGPT or Mooncake slices
-  | { kind: 'closed'; clients: number; thinkUs: Us }
-export interface BenchSpec { arrivals: ArrivalSpec; requests: number; warmupUs: Us; durationUs: Us
+  | OpenArrivals
+  | { kind: 'closed'; clients: number; thinkUs: Us; schedule?: OpenArrivals }  // `schedule` is the load that the clients try to follow
+export interface BenchSpec { arrivals: ArrivalSpec; lengths?: LengthPlan; requests: number; warmupUs: Us; durationUs: Us
   outputCap?: number; prefixWarm?: boolean; clientCostUs?: Us; slo: { ttftUs: Us; tpotUs: Us } }
-export function runBench(seed: Seed, spec: BenchSpec, server: ServerModel): BenchRun
-export function summarize(run: BenchRun, o: { bootstrap: number; seed: Seed }): BenchSummary
+export interface BenchRow { id: ReqId; client: number | null; dueUs: Us; sentUs: Us; firstUs: Us; doneUs: Us
+  promptTokens: number; outputTokens: number }                      // one request of the client's log, in integer µs from the start of the run
+export function runBench(seed: Seed, spec: BenchSpec, server: ServerModel): BenchRun   // BenchRun: one BenchRow per request, and the spec
+export function summarize(run: BenchRun, o: SummarizeOptions): BenchSummary            // SummarizeOptions: { bootstrap: number; seed: Seed; warmupUs?: Us; levelPermille?: number }
+export function summarizeRows(rows: readonly BenchRow[], p: SummaryParams, o: SummarizeOptions): BenchSummary  // any log, as the receipt verifier has it (§8.5 rule 8)
 export function brokenBenchCase(seed: Seed, opts?: { flaw?: BenchFlaw }): BrokenCase     // packages/sim/bench/broken.ts
 export function correctBench(scene: BrokenScene, flaw: BenchFlaw): BrokenCorrection        // the corrected p99, from the scene alone
 ```
 
-- **The server** is the step-loop model run coarse: async on, its step times from the S5 card. TR8's knee and TR2's bubbles therefore come from one model.
-- **Every request keeps its intended send time** next to its actual send time.
-  - Closed loop produces coordinated omission by construction: a stalled server delays sends, and latency is measured from the actual send.
-  - Open loop sends on schedule.
-- **Statistics.**
-  - Percentiles use nearest rank on sorted integers.
-  - The 95% interval on p99 is a percentile bootstrap with a seeded resampler (B = 1,000 [estimated]).
-  - Goodput at SLO counts the requests that meet both their TTFT and TPOT objectives, per second.
-  - Little's law gives a residual: mean concurrency against throughput × mean latency.
+- **The server** (`runServer`, `s5Server`) is the step-loop model run coarse: the step loop with its host card at zero, async on, its step times from the S5 card. TR8's knee and TR2's bubbles therefore come from one model, and `tests/sim/bench-server.test.ts` holds it to that: over 200 seeds [estimated], `runServer` and `runStepLoop` with a zero host card give every request the same first-token and last-token time. The server is a second copy of the loop because a closed loop's arrivals depend on completions, and `runStepLoop` takes its whole workload up front. A `ServerModel` also carries what the flaws need: `stalls`, windows in which the engine's main thread is frozen, and `cold`, a cold start until `untilUs` whose steps take `slowdownPermille` ÷ 1,000 times as long [estimated].
+- **Every request keeps its intended send time** (`dueUs`) next to its actual send time (`sentUs`), with its first and last token times and its token counts.
+  - Open loop sends on schedule, so `sentUs = dueUs`, unless the client's own cost per request (`clientCostUs`) holds it back.
+  - A closed loop with a `schedule` produces coordinated omission by construction: a server slower than the schedule asks of it holds the clients back, and sends slip behind their due times. A closed loop without one has no intended times of its own, and its log shows no slip, which is how it hides an overload.
+  - The summary reports latency from the due time (the course's rule, ASSESSMENT B5) and from the actual send (the harness's) side by side.
+- **Statistics** (`stats.ts`, `summary.ts`) are exact integer arithmetic on the rows of a log, so the browser recomputes a receipt's summary with the code that summarizes a simulated run (§8.5 rule 8).
+  - Percentiles use nearest rank on sorted integers: p50, p90 and p99, with the mean, the maximum and how many observations lie beyond the p99.
+  - The 95% interval on p99 is a percentile bootstrap with a seeded resampler (B = 1,000 [estimated]), for the time to first token from the due time, the time per output token and the end-to-end latency.
+  - Goodput at SLO counts the requests that meet both their TTFT and TPOT objectives, per second, under both denominators: the arrival window (the course's definition) and the total duration with the drain tail (SGLang's `--goodput`, sglang T6; ASSESSMENT B9).
+  - Little's law gives a residual: mean concurrency against throughput × mean latency (ASSESSMENT B10).
+  - Arrival adherence counts the rows sent later than ASSESSMENT B4's tolerance and hard limit after their due times.
 - **The broken-benchmark corpus** (`packages/sim/bench/broken*.ts`, W1-T32) extends kernelspace's four flaws (closed loop, capped output, warm cache, counted warm-up) with coordinated omission, a client queue hidden by the harness's timer, too few samples for a p99, a mean reported as a tail, a client-side bottleneck, and a "replay" that ignores the trace's timestamps, plus a control case with no flaw: ten flaws and a control (GAMES.md §11). Prefix-cache carry-over between runs (vllm B3) is the warm-cache flaw's real-world instance. Every claim is a p99 of the time to first token, timed from the due time (ASSESSMENT B5), so the corrected numbers compare across flaws. A case is a log of the coarse server and the claim of a harness that did one thing wrong; all of it is synthetic.
   - **The draw.** The seed picks the flaw (`seed mod 11`: any eleven consecutive seeds hold each once, and a uniform graded seed draws each with probability 1/11), and then the answer, the corrected p99, from a log-spaced grid that does not depend on the flaw's mechanism. The scene is built to reach it. That is kernelspace's rule (D39 in its wave-3 spec) with the flaw drawn first, so a label names how to correct the number and at most the regime it falls in. Closed loop, client queue hidden, client bottleneck and capped output can only happen to a server past its capacity (answers from 5 s to 120 s), and so can the replay's burst (2 s to 60 s). A freeze, the cause of coordinated omission, falls on a server at any load (0.35 s to 60 s). The counted warm-up and the control stay under capacity (70 ms to 2 s, and the control to 3 s with a few long prompts). Warm cache, too few samples and mean as tail draw either, so their answers run from 70 ms or 0.12 s to 120 s. Every range is a design parameter [estimated]. The scene's server is S5's "70B on H100" at TP 4, inside its fitted box (prompts up to 8,192 tokens), and its capacity on each traffic is measured by a saturation run, not assumed.
   - **The band.** The benchmark's own randomness is drawn again, never the answer, until the case keeps the band (`brokenBand`): the corrected p99 rests on at least 1,000 rows (ASSESSMENT B7), the flaw moves the number by 1.5 times or more (kernelspace's `BB_MIN_RATIO`; the control's claim is the corrected number), and the log shows the flaw: sends slip behind their due times for a freeze, a client queue and a client bottleneck, and the log is settled once the warm-up is out for the control and the counted warm-up (B8). A seed that no draw puts in band is returned flagged, and a session redraws from another seed (GAMES.md §2.1). Over seeds 0 to 9,999 the draw took 1.11 tries per case on average (23 at the most) and 3 seeds were out of band [measured 2026-11-04 by `ES_PROPERTY_SEEDS=10000 bun test tests/sim/bench-broken.test.ts`].
@@ -507,13 +517,13 @@ export function correctBench(scene: BrokenScene, flaw: BenchFlaw): BrokenCorrect
 
 ### 5.7 The trace model
 
-**`trace@1`** stores spans in columns, with integer nanosecond timestamps relative to an origin.
+**`trace@1`** stores spans in columns, with integer nanosecond timestamps relative to an origin. The API is as W1-T08 built it (`packages/sim/trace` at 22d30a8).
 
 ```ts
 export interface EsTrace {
   schema: 'enginespace/trace@1'
   meta: { source: 'synthetic' | 'owner' | 'learner'; engine?: string; version?: string
-          gpu?: string; capturedAt?: string; sha256?: string; synthetic: boolean }
+          gpu?: string; capturedAt?: string; sha256?: string; synthetic: boolean }  // sha256: the raw capture's; the trace's own hash is of encodeTrace's text
   strings: string[]                                 // name and category table
   tracks: { id: number; kind: 'cpu-thread' | 'cuda-api' | 'gpu-stream' | 'marker'; name: number }[]
   spans: { track: Int32Array; startNs: Float64Array; durNs: Float64Array; name: Int32Array
@@ -521,24 +531,34 @@ export interface EsTrace {
   flows: { from: number; to: number; kind: 'launch' | 'sync' | 'copy' }[]
   marks: { tNs: number; name: number }[]            // step boundaries, NVTX ranges
 }
-export function traceFromRun(run: StepLoopRun, seed: Seed, jitter: JitterSpec): EsTrace  // synthetic
-export function attribute(t: EsTrace, w: StepWindow): Attribution  // kernels, CPU gaps, overlap, TPOT split
-export function traceChecks(t: EsTrace, floors?: Floors): readonly CheckResult[]
+export function traceFromRun(run: StepLoopRun, seed: Seed, jitter?: JitterSpec): EsTrace  // synthetic; DEFAULT_JITTER unless given, CLEAN_JITTER for none
+export function stepWindows(t: EsTrace): StepWindow[]                // the marks named 'step', two at a time
+export function attribute(t: EsTrace, w: StepWindow): Attribution   // kernels, copies, CPU gaps, both-idle, and the overlap beside them
+export function attributeSteps(t: EsTrace): Attribution[]            // every step window, reading the trace once
+export function traceChecks(t: EsTrace, floors?: TraceFloors): readonly TraceCheckResult[]
+export function encodeTrace(t: EsTrace): string                      // the canonical text, whose SHA-256 is the trace's hash
+export function decodeTrace(source: string): EsTrace                 // strict: an unknown or missing field, a column of another length or a value that is not an integer is an error
 ```
 
-- **Synthetic traces** come from step-loop runs with seeded jitter. They carry `synthetic: true`, so their ground truth is exact.
+- **Synthetic traces** come from step-loop runs with seeded jitter (`JitterSpec`: kernels per forward, their spread, the copies' share, the gaps between launches and the main thread's noise, all [estimated] and printed on the card). The jitter works inside the run's own spans and never moves where the GPU or the main thread starts or stops being busy, so a synthetic trace's ground truth is exact: it is the run's own. They carry `synthetic: true`, and `meta.synthetic` is true exactly when `meta.source` is `'synthetic'`.
 - **Owner-captured traces** are normalized by the grader's exporter (§9.4), pinned by SHA-256 and dated, and published under `public/traces/`.
+  - An exporter writes what the rest of the package reads: a mark named `step` at each step boundary; GPU work as spans of category `kernel` or `copy` on `gpu-stream` tracks; the engine's main thread as `cpu-thread` tracks and the CUDA calls it makes as `cuda-api` tracks, and no other thread; a correlation id on each CUDA launch or copy call, repeated on the GPU work it started, and −1 where there is none; and a `meta` that leaves out a field it does not know.
+  - `encodeTrace` writes the canonical text, so a Python exporter has to write the same bytes (§9.8) for the browser to get the hash the grader got.
+  - `meta.sha256` is read as the SHA-256 of the raw capture the trace was normalized from, until the owner says otherwise (W1-T08; `docs/waves/W1-report.md` §12).
 - **`attribute`** partitions a step window, from one step mark to the next, in integer ns (GAMES.md §6; ASSESSMENT T7):
   - GPU-busy, the union of kernel and copy spans on GPU streams, split into kernel and copy-only;
   - CPU-gap, GPU-idle time while the engine's main thread is busy;
   - both-idle, GPU-idle time while the main thread is idle too.
-  The three sum to the window, which is the step's TPOT, exactly. Overlap, the main thread's busy time inside GPU-busy, is reported beside the partition as hidden CPU work.
-- **`traceChecks`** checks:
-  - time runs monotonically;
-  - no two kernels overlap on one stream;
-  - every kernel has a launch before it on its correlation id;
-  - step marks contain their kernels;
-  - each span is at least its physics floor (§8.5).
+  The three sum to the window, which is the step's TPOT, exactly. Overlap, the main thread's busy time inside GPU-busy, is reported beside the partition as hidden CPU work. A window need not be one of the trace's own, and a span that crosses its edge counts for the part inside it.
+- **`traceChecks`** returns one verdict for each check. A failing check names its first offender and prints the bound it broke (statespace's rule, §8.5 rule 9), and lists up to 8 [estimated] offending spans for a viewer to light:
+  - `structure`: the columns are consistent;
+  - T2: time runs forward, so no span starts before 0 or lasts a negative time, and the step marks strictly increase;
+  - T3: no two kernel or copy spans overlap on one GPU stream;
+  - T4: every kernel has a launch before it on its correlation id, and a graph launch is one such span for all its nodes;
+  - T5: step marks contain their kernels;
+  - T9, when the caller gives the floors from the hardware atlas: no step's GPU-busy time and no named span is shorter than its physics floor (§8.5 rule 9).
+
+  The rest of ASSESSMENT §6.1 needs what a trace does not hold, and `packages/verify` runs it (W2-T08).
 
 ### 5.8 Smaller models
 
@@ -937,8 +957,12 @@ Receipt fixtures run in CI: real bundles from the owner's GPU smoke runs (W2-T12
 ```
 labs/
   README.md                learner-facing: lanes, kits, how grading works
-  agent-kit/               AGENTS.md, a fail-closed PreToolUse guard, settings, Socratic output style
-                           (vendored from kernelspace labs/agent-kit, renamed and extended)
+  agent-kit/               the learner's agent kit, kernelspace's labs/agent-kit renamed and extended (W1-T11):
+    AGENTS.template.md       the tutoring rules, with placeholders that the packer fills for each lab
+    settings.template.json   the permission denials and the PreToolUse hooks, filled the same way
+    hooks/es-guard.sh        the fail-closed guard that keeps an agent out of the TODO(you) file and the harness
+    output-styles/enginespace-socratic.md   the Socratic output style
+                           a lab's zip carries them as AGENTS.md (beside a CLAUDE.md that imports it) and under .claude/
   forge/                   lane B: Rust → wasm
     Cargo.toml  Cargo.lock  rust-toolchain.toml (1.96.0 + wasm32-unknown-unknown)
     kit/                   kslab, vendored from kernelspace labs/kit at d478f91, unchanged

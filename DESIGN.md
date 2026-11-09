@@ -329,7 +329,7 @@ The primary action, printed on a ticket's tear-off stub.
 
 ### Cards / Containers
 Containers are kitchen objects, never generic cards.
-- **Ticket:** bond paper cut square, up to 24rem wide (36rem wide, or full), 1.5rem padding, ribbon-black print; a Doto head line over a dotted rule, a heading-face title, an Atkinson body, a Doto foot line. Under the lamp it gains the edgeless amber pool behind it and warmed paper at its top. Loading prints faint in quiet text; voided prints a ribbon-red line under a red dotted rule.
+- **Ticket:** bond paper cut square, up to 24rem wide (36rem wide, or full), 1.5rem padding, ribbon-black print; a heading-face title that leads the paper, with no head line over it, an Atkinson body, and a Doto foot line under a dotted rule that prints the ticket's number, table and time. A ticket with no title opens on that line instead, as a Doto head line over a dotted rule (`src/design/components/Ticket.tsx`, since 81e54e9). Under the lamp it gains the edgeless amber pool behind it and warmed paper at its top. Loading prints faint in quiet text; voided prints a ribbon-red line under a red dotted rule.
 - **Board (top) and kick-plate (foot):** the board is raised brushed stainless with an edge line and the shelf shadow; the kick-plate is deep brushed stainless with paper-white text.
 - **Menu board:** a flat sheet of raised brushed stainless with a 3px edge and the paper shadow.
 - **Printer:** a deep-stainless housing with rounded upper corners (8px 8px 3px 3px), the menu link printed on its face in paper white, a dark mouth, and the tape feeding from it in steps.
