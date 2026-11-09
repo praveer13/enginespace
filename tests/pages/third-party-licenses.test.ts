@@ -925,6 +925,11 @@ describe('third-party/notices.json', () => {
         expect([id, notice.source]).toEqual([id, expect.stringContaining(`the file ${notice.replaces?.file} of the npm package ${name} ${version} (${resolved}`)])
       }
       expect([notice.file, notice.basis]).toEqual([notice.file, expect.stringMatching(/^\[measured 2026-11-08 at [0-9a-f]{7}\]/)])
+      // Every measurement in the basis carries its date and the SHA of the build it was made at, a count of scripts included. A count changes
+      // with every build, so no test holds its value: only that it is tagged.
+      const tags = notice.basis.match(/\[measured [^\]]*\]/g) ?? []
+      expect(tags.length).toBeGreaterThan(1)
+      for (const tag of tags) expect([tag, /^\[measured 20\d\d-\d\d-\d\d at [0-9a-f]{7}\]$/.test(tag)]).toEqual([tag, true])
     }
   })
 
@@ -1003,6 +1008,96 @@ describe('third-party/notices.json', () => {
 
   test('leaves the bytes alone: no line-ending conversion in third-party/', () => {
     expect(read('third-party/.gitattributes')).toMatch(/^\* -text$/m)
+  })
+})
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* What is said of Vite's own code in the scripts                                                                     */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/*
+ * Vite writes more of its own code into the scripts than the two helper modules that INJECTED names: `__vite__mapDeps`, the function that
+ * lists the files which each lazy import loads with it, is at the top of every script whose lazy imports have files to list. It is no
+ * module, so neither the record nor INJECTED sees it, and a sentence that said "two helpers" and "none of its code" was false. Each place
+ * that speaks of Vite's code in the scripts is held here to the wording that is true. No test holds a count of scripts, which changes with
+ * every build: tests/build.test.ts checks the function against a real build, and the basis tags the count it gives.
+ */
+describe("what is said of Vite's own code in the scripts", () => {
+  /** A block comment's text on one line: the line breaks, and the ` * ` that starts each line, taken out. */
+  const comment = (text: string): string => text.replace(/\n[ \t]*(?:\*[ \t]?)?/g, ' ').replace(/\s+/g, ' ').trim()
+  const oneLine = (text: string): string => text.replace(/\s+/g, ' ').trim()
+  const source = read('scripts/pages/third-party-licenses.ts')
+  const viteEntry = (JSON.parse(read(SUPPLIED_FILE)) as { notices: Notice[] }).notices.find((notice) => notice.packages.includes('vite@7.3.0'))
+
+  test('is a function that Vite writes: the build-import-analysis plugin of the Vite that builds the site has `__vite__mapDeps` in its source', () => {
+    const vite = read('node_modules/vite/dist/node/chunks/config.js')
+    expect(vite).toContain('name: "vite:build-import-analysis"')
+    expect(vite).toContain('const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=')
+  })
+
+  test("the basis of the vite entry names the dependency-map function beside the preload helper and the interop helper, and says that the record sees only code that arrives as a module", () => {
+    expect(viteEntry).toBeDefined()
+    const basis = oneLine(viteEntry?.basis ?? '')
+    for (const part of [
+      'the dependency-map function (__vite__mapDeps), which Vite writes into each script whose lazy imports have other files to load with them',
+      'its preload helper, in the entry script',
+      'the interop helper of @rollup/plugin-commonjs, in react-vendor',
+      'The dependency-map function is not a module',
+      'see only code that arrives as a module',
+      'this section covers all three',
+    ]) {
+      expect([part, basis.includes(part)]).toEqual([part, true])
+    }
+    // The sentences that were false: two helpers are not all of the code of Vite's that the scripts hold.
+    for (const gone of ['apart from two helpers', 'none of its code', 'The two are the only modules']) expect([gone, basis.includes(gone)]).toEqual([gone, false])
+  })
+
+  test("the file's own header names it among the code of Vite's that the scripts hold, and says whose licence covers it", () => {
+    const text = render([], 'N')
+    const header = oneLine(text.slice(0, text.indexOf('='.repeat(76))))
+    for (const part of [
+      'its own preload helper, its own dependency-map function (__vite__mapDeps), which it writes into each script whose lazy imports have other files to load with them,',
+      'and the interop helper of a Rollup plugin that it bundles',
+      "Vite's section gives Vite's own licence, which is the licence of the first two, and that plugin's",
+    ]) {
+      expect([part, header.includes(part)]).toEqual([part, true])
+    }
+    expect(header).not.toContain('the helpers that the build tool writes into the scripts')
+  })
+
+  test("the plugin's header says the same, and that the record and INJECTED, which see only modules, do not catch the function or code like it", () => {
+    const header = comment(source.slice(0, source.indexOf("import { createHash }")))
+    for (const part of [
+      '`__vite__mapDeps` is one, the function that names the files which each lazy import loads with it',
+      'The record (`.vite/third-party.json`, below) and INJECTED see only code that arrives as a module',
+      'code of that kind from another plugin would fail nothing',
+      "Vite's own MIT licence (that of the preload helper and of `__vite__mapDeps`)",
+    ]) {
+      expect([part, header.includes(part)]).toEqual([part, true])
+    }
+    expect(header).not.toContain('but for the two helpers above')
+    // INJECTED's own comment says that its table holds modules only.
+    const injected = comment(source.slice(source.indexOf('The code that the build tool writes into a script itself'), source.indexOf('export const INJECTED')))
+    expect(injected).toContain("The table holds modules only: code that a plugin writes into a script after the modules are put together (Vite's `__vite__mapDeps`) is no module")
+  })
+
+  test("README's paragraph on the gate says it, and that the record lists Vite for the scripts of the helper modules and not for each script that holds the function", () => {
+    const readme = oneLine(read('README.md'))
+    for (const part of [
+      'the `__vite__mapDeps` function that it writes into each script whose lazy imports have other files to load with them',
+      'The record that the gate reads sees only code that arrives as a module',
+      'not for each script that holds `__vite__mapDeps`',
+    ]) {
+      expect([part, readme.includes(part)]).toEqual([part, true])
+    }
+    expect(readme).not.toContain('for the helpers that the build writes into the scripts')
+  })
+
+  test('no place that speaks of Vite\'s code in the scripts still counts it as two helpers, or says that none of it is there', () => {
+    for (const file of ['README.md', 'NOTICE', 'vite.config.ts', 'scripts/pages/third-party-licenses.ts', 'third-party/notices.json']) {
+      const text = oneLine(read(file).replace(/\n[ \t]*(?:\*|\/\/)[ \t]?/g, ' '))
+      for (const gone of [/\btwo helpers\b/, /none of its code is in the scripts/]) expect([file, gone.source, gone.test(text)]).toEqual([file, gone.source, false])
+    }
   })
 })
 
