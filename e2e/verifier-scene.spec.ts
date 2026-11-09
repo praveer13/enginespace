@@ -7,8 +7,8 @@
  *   2. The observed skyline updates in batches, not per draw: a hundred rounds drawn at once move the scene once, and it settles.
  *   3. Reduced motion shows each batch's final histogram: a draw cuts to its end, and then no animation frame is asked for.
  *   And the rest of the scene contract: `V` swaps 2D and 3D and keeps the run, `C` and the buttons reach every shot, the capture is not
- *   blank, all text is DOM, every name stands whole inside the box in every shot, and a dish's tape picked on the pass hands focus to
- *   its weight.
+ *   blank, all text is DOM, every name stands whole inside the box in every shot, a dish's tape picked on the pass hands focus to its
+ *   weight, and each heat lamp's pool lies on the steel under it, on the course being tasted.
  *
  * How it runs, as e2e/loop-scene.spec.ts does: one test build with `VITE_ES_TEST_HOOKS=1` (it exposes `window.__esScene` and honours
  * `?es-tier=<0-3>`), served by `context.route` so no server runs, with any request off the origin failing the test. Chromium renders
@@ -377,6 +377,27 @@ test.describe('`gamma`: a run of stacks, the kept plates at the bottom whether a
       console.log(`position ${position + 1}: low ${low.map(Math.round).join(',')}, high ${high.map(Math.round).join(',')}`)
       const warmth = ([red, , blue]: [number, number, number]) => red - blue
       expect(warmth(high) - warmth(low), `position ${position + 1}: the draft's yellow stands over the overlap's green`).toBeGreaterThan(40)
+    }
+  })
+})
+
+test.describe('the lamps\' light (W1b\'s finish review, round 1): one pool on the course being tasted, under the lamp that lights it', () => {
+  test('over one course, the steel under a lamp, in front of its plates, is warmer than the steel between two lamps', async ({ page }) => {
+    await open(page, 'overlap', 2)
+    await settle(page)
+    await page.addStyleTag({ content: '.es-labels { visibility: hidden !important; }' })
+    await frame(page)
+    // Open steel 12 cm in front of the course: under the left lamp and the middle one, each between two dishes' pairs, and between two
+    // lamps, in the next gap between pairs, where no pool reaches. The right lamp's pool holds the bell.
+    const warmth = ([red, , blue]: [number, number, number]) => red - blue
+    for (const [lamp, between] of [
+      [-0.8, -0.4],
+      [0, 0.4],
+    ] as const) {
+      const under = await colourAt(page, [lamp, TOP, 0.12])
+      const off = await colourAt(page, [between, TOP, 0.12])
+      console.log(`the lamp over x ${lamp}: under it ${under.map(Math.round).join(',')}, between lamps ${off.map(Math.round).join(',')}`)
+      expect(warmth(under) - warmth(off), `the pool under the lamp over x ${lamp}`).toBeGreaterThan(12)
     }
   })
 })

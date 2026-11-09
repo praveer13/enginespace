@@ -15,8 +15,8 @@
  *   - What went out is a ring on the chef's dispenser at the height served, up to the top of its wires.
  *   - `gamma` lays a run of eight stacks across the pass: the plates the walk keeps if it gets that far, and the rest it sends back.
  *     The courses the commis plates stand upright; the rest wait upside down, unplated.
- *   - Three heat lamps hang over where a round begins (the front course), a little behind it so that their light pools on its plates
- *     and not on the pass in front of them, or over `gamma`'s plated run.
+ *   - Three heat lamps hang over where a round begins (the front course), straight over it, so each one's pool lies on its plates and
+ *     the steel between them, under the shade that lights it; or over `gamma`'s plated run.
  *   - A run's courses are named on tape at the pass's left end, which runs on past the soup for them (scene-plan.ts); a single
  *     course's counts are on one paper tag a dish, hung from the pass's edge under its tape: the commis's plates, then the chef's.
  *
@@ -180,15 +180,23 @@ function lampsOver(plan: Plan, count: number): TastingScene['lamps'] {
 }
 
 /**
- * Over a course: a lamp over each two dishes, so the whole course stands in their light, hung a little behind it [estimated]. Brushed
- * steel shows a lamp's light on the side of its pool toward the eye, so a lamp over the course itself would light the pass in front of
- * it; from here the light pools on the course's plates and the steel between them.
+ * Over a course: a lamp over each two dishes, between their pairs, so the whole course stands in their light [estimated]. Each hangs
+ * straight over the course being tasted, the front one, and its light falls plumb, so its pool lies on the steel round the plates under
+ * it and nowhere else: the kit's light is a cone of haze and an edgeless pool where it lands, with no spot light, so no lobe of the
+ * lamp's light slides along brushed steel toward the eye.
  */
 const ROW_LAMPS: TastingScene['lamps'] = [
-  [-0.8, -0.15],
-  [0, -0.15],
-  [0.8, -0.15],
+  [-0.8, 0],
+  [0, 0],
+  [0.8, 0],
 ]
+
+/**
+ * What went out, a white enamel ring threaded on the dispenser's wires [estimated]: from just round the plates' edges to a flange 35 mm
+ * past them, so its face reads as a ring round her stack from over the pass, and from half a plate under the height it marks to a
+ * plate over it, so that settled it caps her stack's top plate.
+ */
+export const RING = { inner: 0.064, outer: 0.095, below: 0.005, above: 0.011 } as const
 
 /** How many plates a dispenser's wires stand over the chef's stack [estimated]: room for what went out to show over what she sends. */
 const SPARE = 6

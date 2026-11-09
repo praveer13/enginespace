@@ -11,7 +11,7 @@ import { progress } from '@/scene/props/motion'
 import { merged, type Vec2 } from '@/scene/props/shape'
 import { SceneCanvas } from '@/scene/SceneCanvas'
 import { SheetInstances } from '@/scene/SheetInstances'
-import { changeOf, ringHeight, tastingKitchen, tastingScene, type Anchor, type Band, type Change, type Dispenser, type Marker, type Ring, type Stack, type TastingScene } from './scene-layout'
+import { changeOf, RING, ringHeight, tastingKitchen, tastingScene, type Anchor, type Band, type Change, type Dispenser, type Marker, type Ring, type Stack, type TastingScene } from './scene-layout'
 import { planOf, PLATE, presetsOf, stackHeight, type Plan, type Vec3 } from './scene-plan'
 import type { Shot } from './scene-shots'
 
@@ -28,7 +28,7 @@ import type { Shot } from './scene-shots'
  * out the other way, tipping away from her as it lands; then the rings settle on the chef's dispensers to what went out, onto the tops
  * of her stacks as it becomes her tasting, so a run's first round leaves them off the tops and a thousand settle them there. The lamps'
  * light is the kit's, a cone of warm haze under each and an edgeless pool where it lands on the course being tasted, with no spot light,
- * and the steel reflects the tubes and not the lamps' glow, so the amber lies on that course and nowhere else.
+ * and the steel reflects the tubes and not the lamps' glow, so the amber lies on that course, under the shades, and nowhere else.
  * A change of the recipe settles the rings and drops nothing. Between bells the kitchen is still; under reduced motion every change cuts.
  *
  * Draw calls at every tier: the room's metal, glaze, tile, floor and glow (5), the contact shadows (1), the tasting's glaze and wire (2),
@@ -51,18 +51,22 @@ export interface Scene3DProps {
 
 /**
  * The haze the room falls into, from this far beyond what the camera looks at to this far [estimated], in deep steel, which is also the
- * colour past the room's walls, so that a shot that sees over them sees haze. Over a run it starts just past the courses, so the line and
- * the wall behind them fall away into it; over one course, whose wall stands nearer the pass, it thickens within the wall's depth, so the
- * line keeps its steel and the wall over it is haze. The shots nearer the pass, which stand further in front of the room, take it further
+ * colour past the room's walls, so that a shot that sees over them sees haze. Over a run it starts just past the courses and is whole by
+ * the wall, so the line behind them falls away into it and the wall over the line is haze well before the box's top edge; over one
+ * course, whose wall stands nearer the pass, it thickens within the wall's depth, so the line keeps its steel, the wall over it is haze
+ * and the hood in front of the wall ends the room. The shots nearer the pass, which stand further in front of the room, take it further
  * off, so that the room falls into it and never into a void.
  */
 const haze = (near: number, far: number) => ({ near, far, color: 'surface-3' as const })
-const HAZE = haze(0.45, 3.1)
-const ONE_HAZE = haze(0.5, 1.7)
+const HAZE = haze(0.3, 1.5)
+const ONE_HAZE = haze(0.45, 1.4)
 const NEAR_HAZE = haze(1.3, 4.6)
-/** The heat lamps' light, as a share of the kit's [estimated], and each lamp's pool along the pass and across it in metres: two dishes lit. */
+/**
+ * The heat lamps' light, as a share of the kit's [estimated], and each lamp's pool along the pass and across it in metres: the two dishes
+ * under the lamp, within the counter's depth, and gone before the next lamp's pool.
+ */
 const LAMP_POWER = 0.7
-const POOL = [0.32, 0.22] as const
+const POOL = [0.3, 0.2] as const
 /** No piece of the tasting is picked: the dishes' tape is. */
 const NO_PICK = () => null
 /** Turns round a stack [estimated]: enough that a stack of plates reads round at a phone's size. */
@@ -256,20 +260,29 @@ interface Settling {
 /** The parts a pulled plate's edge band can be: one the two stacks share, or the commis's extra (a graded run's plain stacks are his). */
 const PULLED: readonly Band[] = ['probability-overlap', 'probability-draft']
 /**
- * What went out: a white enamel ring round the plates' edges, drawn hollow, its top and its foot in the edge's grey so that it reads on
- * white plates as on steel.
+ * What went out: a white enamel ring threaded on the dispenser's wires, a flange round the plates' edges (scene-layout.ts's RING), so
+ * that from over the pass its face reads as a ring round her stack at a glance, and its band from the front. It is drawn hollow, the
+ * observed code: its band and its face in white enamel, its rims, its inner lip and its foot in the edge's grey, so that it reads on white
+ * plates as on steel. It rides a plate's edge band and the plate over it: settled, it caps her stack's top plate. Its section, round
+ * from its foot out, up its band and in across its face; each point says whether it is white (1) or the edge's grey (0).
  */
+const { inner: RIN, outer: ROUT, below: RLOW, above: RHIGH } = RING
 const HOOP: readonly Vec2[] = [
-  [0.064, -0.005],
-  [0.078, -0.005],
-  [0.078, -0.003],
-  [0.078, 0.003],
-  [0.078, 0.005],
-  [0.064, 0.005],
-  [0.064, -0.005],
+  [RIN, -RLOW],
+  [ROUT - 0.005, -RLOW],
+  [ROUT - 0.001, 0.003 - RLOW],
+  [ROUT, (RHIGH - RLOW) / 2],
+  [ROUT - 0.001, RHIGH - 0.003],
+  [ROUT - 0.005, RHIGH - 0.0005],
+  [ROUT - 0.009, RHIGH],
+  [RIN + 0.006, RHIGH],
+  [RIN + 0.002, RHIGH - 0.0005],
+  [RIN, RHIGH - 0.003],
+  [RIN, -RLOW],
 ]
-/** The light each of the ring's points takes, as `paint` takes it. */
-const HOOP_LIGHT = [0.8, 0.85, 1, 0.95, 0.9, 0.85, 0.8]
+const HOOP_WHITE = [0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0]
+/** The light each of the ring's points takes, as `paint` takes it: its face full, its band a little less, its underside in its own shade. */
+const HOOP_LIGHT = [0.62, 0.66, 0.85, 0.95, 0.92, 0.95, 1, 1, 0.9, 0.75, 0.62]
 
 /**
  * What moves on the bell, in one loop that holds the frames only while something moves: the plates the latest rounds pulled, each a
@@ -291,7 +304,7 @@ function Moving({ markers, rings, change }: { markers: readonly Marker[]; rings:
         const edge = new Color(colors[band])
         return paint(satin(profile.points, 32, glaze), profile.points.length, (j) => (profile.band[j] < 0 ? glaze : edge), profile.light)
       }),
-      paint(painted(palette.part(lathe(HOOP, 32), 'ceramic')), HOOP.length, (j) => (j === 2 || j === 3 ? white : grey), HOOP_LIGHT),
+      paint(painted(palette.part(lathe(HOOP, 40), 'ceramic')), HOOP.length, (j) => (HOOP_WHITE[j] ? white : grey), HOOP_LIGHT),
     ]
   }, [palette, colors])
   useEffect(() => () => parts.forEach((part) => part.dispose()), [parts])
