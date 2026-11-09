@@ -29,7 +29,7 @@ CI has never run on `wave-1`: the wave PR will start it (§4.4).
 3. Ship the five game surfaces with their open fixes listed, or schedule the scene-kit task of §7.4.
 4. The owner's tasks: W1-T02's pins (D-035, O-4), W1-T37's screen-reader pass (its notes go in §10.3), and Q-10's dispatcher tables (§10.1).
 5. Build `loop/graphs` and `loop/mask` as graded levels, or amend ASSESSMENT to what was built (O-17); confirm W1-T27's change to ASSESSMENT §4.5 (O-18).
-6. Name the reference devices (O-9, carried to W2-T41), answer O-7 and O-8 at the `wave-0` merge, and say which domain the message of 2026-11-08 meant (O-12).
+6. Name the reference devices (O-9, carried to W2-T41), and answer O-7 and O-8 at the `wave-0` merge. (O-12, which domain the message of 2026-11-08 meant, was answered later that day: D-058 stands.)
 7. Accept or change the proposed records that W1 ran on: D-044 above all, whose confirmation was due before W1-T12, and D-059.
 
 ---
@@ -162,7 +162,7 @@ All runs used Chrome for Testing 153.0.8010.12 through the wrapper, 2 workers, o
 
 ### 4.4 CI on GitHub
 
-`wave-1` has never been pushed: the remote holds `main` and `wave-0` [measured 2026-11-08 with `git ls-remote`], so `ci.yml`, `deploy.yml`, `nightly.yml` and `labs.yml` have never run on W1's code. The wave PR will start `ci.yml`. What is known from PR #1: its first run failed, and two commits made it green (run 41924657242, 2026-11-04), one of them a real bug that only Chrome 153 showed. W1's e2e-smoke subset grew from 78 tests to 193 in four shards, which ran in 66, 61, 75 and 98 s on this host [measured 2026-11-08 at df76ca9 by W1-T36]; at PR #1's ratio of 4 to 16 times slower per test, a shard is about 11 minutes on a runner [estimated by W1-T36], against A§10.1's 6. The nightly runs only by hand until `NIGHTLY_ENABLED` is set (D-052), and the deploy waits for O-2.
+`wave-1` has never been pushed: the remote holds `main` and `wave-0` [measured 2026-11-08 with `git ls-remote`], so `ci.yml`, `deploy.yml`, `nightly.yml` and `labs.yml` have never run on W1's code. The wave PR will start `ci.yml`. What is known from PR #1: its first run failed, and two commits made it green (run 41924657242, 2026-11-04), one of them a real bug that only Chrome 153 showed. W1's e2e-smoke subset grew from 78 tests to 193 in four shards, which ran in 66, 61, 75 and 98 s on this host [measured 2026-11-08 at df76ca9 by W1-T36]; at PR #1's ratio of 4 to 16 times slower per test, a shard is about 11 minutes on a runner [estimated by W1-T36], against A§10.1's 6. The nightly runs only by hand until `NIGHTLY_ENABLED` is set (D-052), and the deploy waits for `PAGES_ENABLED` (O-2 was answered later on 2026-11-08: the repo is public and Pages is on, D-060).
 
 ---
 
@@ -373,14 +373,14 @@ A test that failed under load and passed when run alone, as W1's tasks reported 
 
 | # | In short | Since | Needed by |
 |---|---|---|---|
-| O-2 | Pages on a private repository, and when the repo goes public | 2026-11-03 | before `PAGES_ENABLED` |
-| O-3 | The content and code licences | 2026-11-03 | W3-T15 |
+| O-2 | Pages on a private repository, and when the repo goes public. Answered 2026-11-08, after this review: the repo is public and Pages is on (D-060) | 2026-11-03 | answered |
+| O-3 | The content and code licences. The repo went public before they were decided (D-060); until then, enginespace's own code and content are all rights reserved | 2026-11-03 | W3-T15 |
 | O-4 | The edition-1 pins | 2026-11-03 | W1-T02 |
 | O-5, O-6 | Reference traces; the capstone's commit pairs | 2026-11-03 | W2-T21; W3-T01 |
 | O-7, O-8 | The pick-form gate; review capacity (W1 added 170,253 lines, §11) | 2026-11-03 | the `wave-0` merge |
 | O-9 | The reference laptop and phone | 2026-11-03 | W2-T41 (carried again) |
 | O-10, O-11 | Grader-attested correctness; the 2D-first front page | 2026-11-03 | W2-T08; past due |
-| O-12 | Which domain the message "statespace.naigap.com i mean" concerns: `enginespace.naigap.com`, `statespace.naigap.com` and `kernelspace.naigap.com` all resolve to GitHub Pages, and statespace's repository names `statespace.play.naigap.com` [measured 2026-11-08]. D-058 stands until the owner says otherwise. | 2026-11-08 | before `PAGES_ENABLED` |
+| O-12 | Which domain the message "statespace.naigap.com i mean" concerns: `enginespace.naigap.com`, `statespace.naigap.com` and `kernelspace.naigap.com` all resolve to GitHub Pages, and statespace's repository names `statespace.play.naigap.com` [measured 2026-11-08]. D-058 stands until the owner says otherwise. Answered 2026-11-08, after this review: the correction names statespace's own domain, so D-058 stands (D-060) | 2026-11-08 | answered |
 | O-13 to O-18 | Shadow lights; the blind bound; the p99 band; the full service's row; graded `graphs` and `mask`; `rejection-sampler`'s five checks | 2026-11-08 | DECISIONS gives each |
 | D-044, D-059 and the other proposed records | Accept or change | — | W2's module tasks |
 | Q-5, Q-10 | A `proved` event for completion; the dispatcher tables | 2026-11-03 | the task that derives completion; W1-T12 |
@@ -450,7 +450,7 @@ Every S and M task went over its line bound: the three S tasks by 1.4 to 7.5 tim
 - A§5.6 and A§5.7 against the as-built benchmark and trace APIs (W1-T31, W1-T08); A§9.2's agent-kit file name (W1-T11).
 - WORLD.md and TR5b's wording that TR5b "adds an adapter field" to the KV events, which both engines already carry as `lora_name`, before the `kv-publisher` lab is written; and `research/upstream-vllm.md`'s rows on which file the Inside vLLM post follows (W1-T01).
 
-**For the owner, from W1's tasks:** TR1's lessons compile to 296 minutes against the module's 7.5 browser hours in `content/course.yaml` [measured 2026-11-05 by W1-T20], so the hours fall or W2 adds counted work; the repository's NOTICE describes `vendor/kernelspace/` alone, while `labs/forge/kit` and `labs/agent-kit` are copies from kernelspace too (W1-T11, for O-3); and a trace's `meta.sha256` is read as the raw capture's hash until the owner says otherwise, before W2-T19 writes it (W1-T08).
+**For the owner, from W1's tasks:** TR1's lessons compile to 296 minutes against the module's 7.5 browser hours in `content/course.yaml` [measured 2026-11-05 by W1-T20], so the hours fall or W2 adds counted work; the repository's NOTICE described `vendor/kernelspace/` alone, while `labs/forge/kit` and `labs/agent-kit` are copies from kernelspace too (W1-T11, for O-3; NOTICE names both since 2026-11-08, D-060); and a trace's `meta.sha256` is read as the raw capture's hash until the owner says otherwise, before W2-T19 writes it (W1-T08).
 
 **Inherited and still open:** from W0, `scripts/` and `tests/` are linted and not type-checked, and `verify:boundaries` walks static imports from `src/main.tsx` only. From W1's tasks: the 90-day TTL of the pin claims runs out about 2027-02-02 [derived], when the first re-pin falls; `sglang.bench.rust-client-2500-requests` is tagged unverified; the Gastronorm pan sizes are [unverified]; and three of 10,000 broken-bench seeds come back out of band and are redrawn [measured 2026-11-04 by W1-T32].
 

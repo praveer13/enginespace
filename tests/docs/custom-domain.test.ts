@@ -37,8 +37,16 @@ describe('D-058 in docs/DECISIONS.md', () => {
   test('answers O-1: its row has left the table of open questions, and the answer is written under the table', () => {
     const open = between(decisions, '## Open owner questions', '**Answered.**')
     expect(open).not.toMatch(/^\| O-1 \|/m)
-    expect(open).toMatch(/^\| O-2 \|/m)
     expect(decisions).toMatch(/\*\*Answered\.\*\* O-1, the custom domain, was answered by the owner on 2026-11-08[^\n]*\(D-058\)/)
+  })
+
+  test('is the answer to O-12 as well: the message that named statespace.naigap.com changed nothing for enginespace, and D-058 stands', () => {
+    const open = between(decisions, '## Open owner questions', '**Answered.**')
+    expect(open).not.toMatch(/^\| O-12 \|/m)
+    const answered = between(decisions, '**Answered.**', '**Carried over by the W0 exit review')
+    expect(answered).toContain('**O-12**')
+    expect(answered).toContain('"statespace.naigap.com i mean"')
+    expect(answered).toContain('D-058 (`enginespace.naigap.com`) stands')
   })
 
   test('leaves D-015 saying that the main origin is decided and a second origin would need a name of its own', () => {

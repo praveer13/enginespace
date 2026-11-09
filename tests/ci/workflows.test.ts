@@ -5,8 +5,8 @@
  *   - every workflow file parses with js-yaml (acceptance 5), and a duplicate key is an error;
  *   - every action is pinned by full SHA with §10.3's release in the comment, jobs default to `contents: read`, only the
  *     jobs that need more widen it, and every checkout drops its credentials (acceptance 1);
- *   - deploy.yml builds at the root of the custom domain (the default base, D-058) on pushes to main only, behind PAGES_ENABLED
- *     (acceptance 3);
+ *   - deploy.yml builds at the root of the custom domain (the default base, D-058) on pushes to main and by hand, behind
+ *     PAGES_ENABLED (acceptance 3);
  *   - nightly.yml opens or updates one nightly-failure issue when a job fails (acceptance 4);
  *   - every gate of the registry runs in some workflow, and the fast gate runs them in the order that works: the source
  *     gates, the build, then the gates that read it;
@@ -223,11 +223,11 @@ describe('ci.yml (§10.1)', () => {
 })
 
 describe('deploy.yml (acceptance 3)', () => {
-  test('runs on pushes to main and nothing else', () => {
-    expect(workflow('deploy.yml').on).toEqual({ push: { branches: ['main'] } })
+  test('runs on pushes to main and by hand (workflow_dispatch, so that main can be deployed once PAGES_ENABLED is set), and nothing else', () => {
+    expect(workflow('deploy.yml').on).toEqual({ push: { branches: ['main'] }, workflow_dispatch: null })
   })
 
-  test('both jobs wait for PAGES_ENABLED, which stays unset until the owner answers O-2', () => {
+  test('both jobs wait for PAGES_ENABLED, which is set when W1 is on its way to main (O-2 was answered on 2026-11-08, D-060)', () => {
     expect(jobsOf('deploy.yml').map(([name, job]) => [name, job.if])).toEqual([
       ['build', "vars.PAGES_ENABLED == 'true'"],
       ['deploy', "vars.PAGES_ENABLED == 'true'"],
@@ -246,7 +246,7 @@ describe('deploy.yml (acceptance 3)', () => {
     expect(keysOf(workflow('deploy.yml'))).not.toContain('VITE_BASE')
   })
 
-  test('says in its header that the site is served at https://enginespace.naigap.com, and gives the owner the steps that turn it on, in order', () => {
+  test('says in its header that the site is served at https://enginespace.naigap.com, and lists the steps that turn it on, in order, with where each stands', () => {
     const source = sources.get('deploy.yml') ?? ''
     // The comment block above `on:`, with the comment marks and the line breaks taken out.
     const header = source.slice(0, source.indexOf('\non:')).replace(/\n#\s?/g, ' ')

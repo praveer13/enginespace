@@ -1,20 +1,22 @@
 name: Deploy to GitHub Pages
 
-# Publishes the site on every push to main: the fast gate and the tests, then the build, prepare-pages, and the Pages upload
-# and deploy (ARCHITECTURE §10.1, kernelspace's deploy).
+# Publishes the site on every push to main, and by hand: the fast gate and the tests, then the build, prepare-pages, and the Pages
+# upload and deploy (ARCHITECTURE §10.1, kernelspace's deploy).
 #
 # The site is served at https://enginespace.naigap.com (D-058, the owner's answer to O-1), at the root of its own origin, so the
 # build and prepare-pages run with the default base "/" and this workflow sets no VITE_BASE. A preview or a fork that is served
 # under a subpath sets VITE_BASE for its own build, and prepare-pages reads the same variable (ARCHITECTURE §3.2).
 #
-# It is off until the owner answers O-2 (docs/DECISIONS.md): GitHub Pages on a private repository needs a paid GitHub plan
-# [unverified, 2026-11-03]. To turn it on, in this order:
-#   1. enable Pages with the source "GitHub Actions";
-#   2. set the custom domain to enginespace.naigap.com and enforce HTTPS (the DNS record, a CNAME to praveer13.github.io, is in
-#      place; GitHub says the HTTPS option can take up to 24 hours to become available [measured from GitHub's docs, 2026-11-08]);
-#   3. set the repository variable PAGES_ENABLED to 'true'.
-# While the variable is unset, both jobs are skipped. A deploy from an Actions workflow ignores public/CNAME [measured from
-# GitHub's docs, 2026-11-08], so step 2 is what binds the domain.
+# The repository has been public since 2026-11-08 (O-2, D-060). Three steps turn the deploy on, in this order:
+#   1. enable Pages with the source "GitHub Actions" (done on 2026-11-08);
+#   2. set the custom domain to enginespace.naigap.com and enforce HTTPS (the domain is set, and verified on the account, as of
+#      2026-11-08, and the DNS record, a CNAME to praveer13.github.io, is in place; GitHub enforces HTTPS once it has issued the
+#      certificate, which it says can take up to 24 hours [measured from GitHub's docs, 2026-11-08]);
+#   3. set the repository variable PAGES_ENABLED to 'true', which is done when W1 is on its way to main, and not before: wave-0's
+#      deploy.yml builds under /enginespace/ [measured at 7ceb7c2, 2026-11-08], which the custom domain does not serve (D-058).
+# While the variable is unset, both jobs are skipped. The first deploy runs on the push that brings W1 to main, or by hand: Run
+# workflow on main (workflow_dispatch), since the github-pages environment deploys main only [unverified, 2026-11-08]. A deploy
+# from an Actions workflow ignores public/CNAME [measured from GitHub's docs, 2026-11-08], so step 2 is what binds the domain.
 #
 # Every command of ci.yml's fast gate and tests job runs here too, so a deploy is never less checked than a pull request
 # (tests/ci/workflows.test.ts compares the two).
@@ -22,6 +24,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read

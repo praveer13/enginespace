@@ -1,5 +1,5 @@
 {
- "about": "Seeds 0 to 9,999 whose first draw the corpus flags at the flaw its own seed picks: brokenBenchCase(seed) with band.ok false. Found by one scan. [measured 2026-11-04 on wave-1 at 5345384, packages/sim/bench; /tmp/claude-1000/-home-praveern-workplace-kernelspace/9aec8729-7b99-4ce5-a558-6d7551419c0c/scratchpad/scan-flagged.ts]",
+ "about": "Seeds 0 to 9,999 whose first draw the corpus flags at the flaw its own seed picks: brokenBenchCase(seed) with band.ok false. Found by one scan. [measured 2026-11-04 on wave-1 at 5345384, packages/sim/bench]",
  "seconds": 133,
  "tries": 11076,
  "flagged": [
