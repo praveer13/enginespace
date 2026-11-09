@@ -42,6 +42,8 @@ const routes = routeTable(root)
 /**
  * The licences of the npm packages inside the scripts, and NOTICE after them, written to dist/third-party-licenses.txt (scripts/pages/third-party-licenses.ts).
  * Tailwind's base CSS (preflight, the `--tw-*` defaults) is copied into the stylesheet, so its package is named here though no script holds a module of it.
+ * Vite itself needs no entry here: the helpers that the build writes into the scripts (its preload helper, and the interop helper of a Rollup plugin that it
+ * bundles) are modules with no file, which the plugin gives to vite, with the parts of Vite's licence file that apply (third-party/notices.json, `replaces`).
  */
 const licences = thirdPartyLicenses(root, { alsoShips: ['tailwindcss'] })
 

@@ -180,6 +180,16 @@ describe('Button, TextLink, Toggle, Field and TapeLabel', () => {
     expect(render(h(TextLink, { to: '/m/tr3', disabled: true }, 'TR3'))).not.toContain('href=')
   })
 
+  test('a link to a file of the site itself is a plain link in the same tab, with no external mark and no words about a new tab', () => {
+    const html = render(h(TextLink, { file: '/third-party-licenses.txt' }, 'the licences'))
+    expect(html).toBe('<a href="/third-party-licenses.txt" class="es-link">the licences</a>')
+    // It is not the router's link, which would answer a file's address with the not-found page, and it is not the other site's.
+    for (const other of ['data-discover', 'target=', 'rel=', 'es-link__external', 'opens in a new tab', '<svg']) expect([other, html.includes(other)]).toEqual([other, false])
+    // It keeps the link's class and forced state, and an unavailable one is still quiet text.
+    expect(render(h(TextLink, { file: '/x.txt', className: 'extra', 'data-force': 'hover' }, 'x'))).toBe('<a href="/x.txt" class="es-link extra" data-force="hover">x</a>')
+    expect(render(h(TextLink, { file: '/x.txt', disabled: true }, 'x'))).not.toContain('href=')
+  })
+
   test('a toggle is a switch named by its label', () => {
     const html = render(h(Toggle, { label: 'Overlap', defaultChecked: true, hint: 'overlap (async scheduling)' }))
     expect(html).toContain('role="switch"')

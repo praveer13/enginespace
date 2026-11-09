@@ -260,6 +260,26 @@ describe('deploy.yml (acceptance 3)', () => {
     expect(steps.map(([, at]) => at)).toEqual(steps.map(([, at]) => at).sort((a, b) => a - b))
   })
 
+  test("gives enforcing HTTPS as the owner's action and not as something GitHub does by itself, and tags what the header says of the certificate, the variable and the environment", () => {
+    const source = sources.get('deploy.yml') ?? ''
+    const header = source
+      .slice(0, source.indexOf('\non:'))
+      .replace(/\n#\s?/g, ' ')
+      .replace(/\s+/g, ' ')
+    // For a custom domain "Enforce HTTPS" is an option that GitHub offers once it has issued the certificate, and someone ticks it. A reader who
+    // took it for automatic would skip it, and the site would also be served over http, where the forge's crypto.subtle hashing fails.
+    expect(header).toContain("Enforcing HTTPS does not turn itself on for a custom domain, and it is the owner's to do")
+    expect(header).toContain('tick Enforce HTTPS in Settings → Pages, or set https_enforced through the Pages API')
+    expect(header).not.toMatch(/GitHub enforces HTTPS|HTTPS is enforced once/)
+    // The 24 hours stay GitHub's, attributed to its docs; the 110 minutes are a measurement.
+    expect(header).toContain("GitHub says the option can take up to 24 hours to become available [measured from GitHub's docs, 2026-11-08]")
+    expect(header).toContain('no certificate in the 110 minutes after the domain was set [measured 2026-11-08]')
+    // The variable is set on a day, with W1's merge, and the environment's branch policy was read and is no longer a guess.
+    expect(header).toContain("PAGES_ENABLED to 'true', which is set on 2026-11-08, with W1's merge to main (PR #2)")
+    expect(header).toContain("its one policy is the branch main, so it deploys main only [measured 2026-11-08, from the environment's settings through GitHub's API]")
+    expect(header).not.toContain('[unverified')
+  })
+
   test('uploads dist/ and deploys it to the github-pages environment, after the build', () => {
     const upload = stepsOf('deploy.yml', 'build').find((step) => step.uses?.startsWith('actions/upload-pages-artifact@'))
     expect(upload?.with).toEqual({ path: 'dist' })

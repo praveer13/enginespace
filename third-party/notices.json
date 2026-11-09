@@ -1,6 +1,6 @@
 {
   "schema": "enginespace/third-party-notices@1",
-  "about": "Licence texts for the npm packages whose releases ship no licence file, so that their notices travel with the copies of them in the site (scripts/pages/third-party-licenses.ts). The build uses a text only for a package that ships none of LICENSE, LICENCE, COPYING and NOTICE, and only at the version listed here: another version of such a package fails the build until its licence file is read again and listed. Each text is the licence file of the package's repository, byte for byte as raw.githubusercontent.com served it on the date below to the User-Agent below, and pinned by SHA-256. tests/pages/third-party-licenses.test.ts checks every hash, every package against package-lock.json and the licence that each package.json names.",
+  "about": "Licence texts for the npm packages whose releases ship no licence file, so that their notices travel with the copies of them in the site (scripts/pages/third-party-licenses.ts). The build uses a text only for a package that ships none of LICENSE, LICENCE, COPYING and NOTICE, and only at the version listed here: another version of such a package fails the build until its licence file is read again and listed. Each such text is the licence file of the package's repository, byte for byte as raw.githubusercontent.com served it on the date below to the User-Agent below, and pinned by SHA-256. One entry is of another kind, and has a \"replaces\" field: the package ships its licence file, and that file carries far more than the code of the package that is in the site, so the entry keeps the parts that apply, word for word from the installed file. The build uses it in place of the file, only while the file has the SHA-256 that \"replaces\" gives, and another version of that package fails the build in the same way. An entry's \"note\", where it has one, is printed above its text. tests/pages/third-party-licenses.test.ts checks every hash, every package against package-lock.json, the licence that each package.json names, and that the parts of an entry with \"replaces\" are in the file.",
   "fetched": "2026-11-08",
   "userAgent": "Mozilla/5.0 (X11; Linux x86_64)",
   "notices": [
@@ -27,6 +27,7 @@
       "sha256": "9c35b5de7b7493a707fffe4eb23bd2f7f449153c1911f7c6eefb4e591fd5349a",
       "source": "https://raw.githubusercontent.com/pmndrs/react-three-fiber/2a528745e9aa7c9e6cca41e404b59d45cf0d0cc7/LICENSE",
       "basis": "[measured 2026-11-08] The text is the LICENSE of the repository at commit 2a528745e9aa7c9e6cca41e404b59d45cf0d0cc7, which is the tag v9.6.1, the release that this package is. The same file is at tag v9.0.0 and at the head of the default branch.",
+      "note": "This package also embeds react-reconciler, which is Meta Platforms, Inc. and affiliates' code under the MIT licence: dist/events-b389eeca.esm.js, which the build bundles, holds its production build under that banner, and no licence file comes with it [measured 2026-11-08 in the installed package]. That notice is the same as react's, and this file carries react's under react@19.2.3.",
       "packages": ["@react-three/fiber@9.6.1"]
     },
     {
@@ -36,6 +37,15 @@
       "source": "https://raw.githubusercontent.com/theKashey/react-remove-scroll-bar/8ca9ba5ea52de03308fe8ced94f7b159a44d28ff/LICENSE",
       "basis": "[measured 2026-11-08] The text is the LICENSE of the repository at commit 8ca9ba5ea52de03308fe8ced94f7b159a44d28ff, the head of master that day. The package's own package.json names MIT and the same author. [unverified] that the file existed at the release: npm's record of the release names the commit b3b1287aad81def2e2ae707274b74531b61ddbaf, and raw.githubusercontent.com serves no file at that commit, not even README.md [measured 2026-11-08], so the licence could not be read at 2.3.8.",
       "packages": ["react-remove-scroll-bar@2.3.8"]
+    },
+    {
+      "file": "vite.txt",
+      "licence": "MIT",
+      "sha256": "b4f3e619a470f9904879943cfc87e02c8849868700197d5cc225255f3b00a5b0",
+      "source": "the file LICENSE.md of the npm package vite 7.3.0 (https://registry.npmjs.org/vite/-/vite-7.3.0.tgz, the tarball that package-lock.json pins by its integrity hash): lines 1 to 24 and lines 130 to 167",
+      "basis": "[measured 2026-11-08 at 6418a20] LICENSE.md of vite 7.3.0 is 101,182 bytes. It opens with Vite's own MIT licence (lines 1 to 24) and then carries the licences of the dependencies that are bundled into Vite's own build: its dev server, its config loader, its CSS tooling and the rest. That build runs in Node, and none of its code is in the scripts of this site. Two modules that the build writes into the scripts are not files, and both are Vite's: its preload helper, in the entry script, and the interop helper of @rollup/plugin-commonjs, a Rollup plugin that Vite bundles, in react-vendor. They are the only modules of the build that are not files. The second part of the text (lines 130 to 167) is the licence of the Rollup plugins that Vite lists together with that one. The text is those lines word for word, with a rule between the two parts.",
+      "replaces": { "file": "LICENSE.md", "sha256": "2ef0b8a67599690e6abccc21a3678b54457b420fb402654112d45c4e71cce364" },
+      "packages": ["vite@7.3.0"]
     }
   ]
 }
