@@ -39,8 +39,18 @@ function gitStatus(...args: string[]): number {
   return spawnSync('git', args, { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).status ?? -1
 }
 
-/** Built from pieces, so that this file does not match what it looks for: a local path, a session id, and the owner's login name. */
-const PERSONAL = [['/ho', 'me/[a-z]'], ['/tm', 'p/claude'], ['9aec', '8729'], ['prav', 'eern']].map((pieces) => pieces.join('')).join('|')
+/** Built from pieces, so that this file does not match what it looks for: a home folder's path, and an agent's scratch path. */
+const LOCAL_PATH = [['/ho', 'me/[a-z]'], ['/tm', 'p/claude']].map((pieces) => pieces.join('')).join('|')
+
+/**
+ * The owner's login name and the first group of the id of the session that built W1, as the SHA-256 of each, so that this public
+ * file names neither. Each is eight letters or digits, and the sweep below hashes every word of that length in the tree.
+ */
+const PERSONAL_WORDS = new Set([
+  '34e108cd17f0288685607c1fa6152e767cc76f6e3c2c4434fcb3db62812f1dc0',
+  '11fc436519522c9235467a5d41904f8bd16dee054def4f86d634c5d2904dfaf0',
+])
+const sha256 = (text: string): string => createHash('sha256').update(text).digest('hex')
 
 const notice = read('NOTICE')
 
@@ -294,7 +304,7 @@ describe('the documents of a public repository (D-060)', () => {
     test("names commits of this history and says of each what it did: where each of the five files first carried its path, where the path went out, and what the chi-square routine's two versions were", () => {
       // The clone must have the history: a shallow one, as the deploy's checkout makes, lacks the old commits, and then there is nothing to read.
       const has = (sha: string): boolean => gitStatus('cat-file', '-e', `${sha}^{commit}`) === 0
-      const carries = (sha: string, file: string): boolean => gitStatus('grep', '-q', '-I', '-E', PERSONAL, sha, '--', file) === 0
+      const carries = (sha: string, file: string): boolean => gitStatus('grep', '-q', '-I', '-E', LOCAL_PATH, sha, '--', file) === 0
       // Each file, the commit where it first carried its path, and the commit that took the path out: all of them are in the history bullet.
       const files: [string, string, string][] = [
         ['docs/TRACKER.md', '4249418', 'a4b3bdf'],
@@ -378,6 +388,14 @@ describe('the documents of a public repository (D-060)', () => {
 
 describe('the tree of a public repository', () => {
   test('no tracked text file carries a local path, a session id or the owner\'s login name', () => {
-    expect(git('grep', '-n', '-I', '-E', PERSONAL, '--', '.', ':!package-lock.json').map((line) => line.slice(0, 200))).toEqual([])
+    // A failure names the file and the line, never what matched: the logs of a public repository's CI are public too.
+    const where = (line: string): string => line.split(':').slice(0, 2).join(':')
+    expect(git('grep', '-n', '-I', '-E', LOCAL_PATH, '--', '.', ':!package-lock.json').map(where)).toEqual([])
+    const words = new Set(git('grep', '-h', '-o', '-w', '-I', '-E', '[A-Za-z0-9]{8}', '--', '.', ':!package-lock.json'))
+    // The sweep reads words: a tree with none would pass it whatever this file looked for.
+    expect(words.size).toBeGreaterThan(1000)
+    const found = [...words].filter((word) => PERSONAL_WORDS.has(sha256(word)))
+    const files = found.flatMap((word) => git('grep', '-n', '-I', '-w', '-F', word, '--', '.', ':!package-lock.json').map(where))
+    expect({ words: found.length, files }).toEqual({ words: 0, files: [] })
   }, SLOW)
 })
