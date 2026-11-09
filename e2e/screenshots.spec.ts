@@ -27,6 +27,14 @@ import { expect, open, quiet, settled3d, test, withSettings } from './support/si
  */
 const TOLERANCE = 0.01
 
+/**
+ * How long a 2D screenshot assertion may take to capture the page: 30 s [estimated], in place of the config's 10 s for every `expect`.
+ * The tolerance above is what the comparison allows; this is only the wait. On a 4-core runner, the 2D pass after a fire at 1280 px ran
+ * out of the 10 s before a single capture was taken, in both attempts of two runs, while the 3D pass's test drew beside it on SwiftShader
+ * [measured 2026-11-09, PR #2's CI: the fonts were in, then the timeout]. The same test passed in the run before, in 30.5 s.
+ */
+const CAPTURE_TIMEOUT = 30_000
+
 test.describe('the software renderer', () => {
   test('draws WebGL2 with the config\'s flags, and the page is told that it can: the build and renderer are printed', async ({ page, browser }) => {
     await page.goto('about:blank')
@@ -59,7 +67,7 @@ test.describe('the 2D pass of the front page', () => {
       await open(page, '/')
       await quiet(page)
       await page.evaluate(() => document.fonts.ready)
-      await expect(page).toHaveScreenshot(`front-${width}.png`, { maxDiffPixelRatio: TOLERANCE })
+      await expect(page).toHaveScreenshot(`front-${width}.png`, { maxDiffPixelRatio: TOLERANCE, timeout: CAPTURE_TIMEOUT })
     })
   }
 })
@@ -85,7 +93,7 @@ test.describe('the 2D pass of the front page after a fire (W0 finding F1)', () =
       // places whose clips rode empty.
       await expect(page.locator('[data-front-poster] [data-part="plates"] ellipse[fill="var(--es-paper)"]')).toHaveCount(4)
       await expect(page.locator('[data-front-poster] [data-part="plates"] ellipse[stroke-dasharray]')).toHaveCount(2)
-      await expect(page).toHaveScreenshot(`front-fired-${width}.png`, { maxDiffPixelRatio: TOLERANCE })
+      await expect(page).toHaveScreenshot(`front-fired-${width}.png`, { maxDiffPixelRatio: TOLERANCE, timeout: CAPTURE_TIMEOUT })
     })
   }
 })
