@@ -83,7 +83,8 @@ export function ItemBlock({ block, scope, families }: ItemBlockProps) {
   const start = () => setRun((previous) => ({ n: (previous?.n ?? 0) + 1, entropy: freshEntropy(block.count) }))
 
   if (run === null) {
-    const kcs = [...new Set(gen.variants.flatMap((variant) => variant.kcs))]
+    // The KCs of the variants that this block can draw: a family that two lessons name at two levels (tr5a.blocks-held) assesses other KCs in each.
+    const kcs = [...new Set(offeredAt(gen, level).flatMap((variant) => variant.kcs))]
     return (
       <Frame scope={scope} family={block.family} phase="idle" stub={<Stub onClick={start}>Start items</Stub>}>
         <p>

@@ -17,6 +17,10 @@ import { paddingWaste } from './families/tr2/padding-waste'
 import { preemptVictim } from './families/tr2/preempt-victim'
 import { runnerFallback } from './families/tr2/runner-fallback'
 import { stepOrder } from './families/tr2/step-order'
+import { blocksHeld } from './families/tr5a/blocks-held'
+import { hitLength } from './families/tr5a/hit-length'
+import { pagesForAdapter } from './families/tr5a/pages-for-adapter'
+import { slotsVsPages } from './families/tr5a/slots-vs-pages'
 import { exactnessTest } from './families/tr6/exactness-test'
 import { maskFits } from './families/tr6/mask-fits'
 import { maskPhases } from './families/tr6/mask-phases'
@@ -43,6 +47,10 @@ export const FAMILIES: readonly Gen[] = [
   preemptVictim,
   runnerFallback,
   stepOrder,
+  blocksHeld,
+  hitLength,
+  pagesForAdapter,
+  slotsVsPages,
   exactnessTest,
   maskFits,
   maskPhases,

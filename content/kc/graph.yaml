@@ -162,7 +162,6 @@
   description: You can compare adapter slots, as the pinned engines use them, with adapters paged in one pool, and say when slots are enough.
   requires: [tr5a.adapter-pages]
   confusable: [tr5a.adapter-pages]
-  planned: W1-T25 # the `tr5a.slots-vs-pages` family (TR5a §4, Keep)
 
 - id: tr5a.all-or-nothing
   description: You can say why an admit or a load takes all of its pages or none, and what state a refused one must leave the pool in.
