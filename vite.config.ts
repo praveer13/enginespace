@@ -41,11 +41,14 @@ const routes = routeTable(root)
 
 /**
  * The licences of the npm packages inside the scripts, and NOTICE after them, written to dist/third-party-licenses.txt (scripts/pages/third-party-licenses.ts).
- * Tailwind's base CSS (preflight, the `--tw-*` defaults) is copied into the stylesheet, so its package is named here though no script holds a module of it.
- * Vite itself needs no entry here: the helpers that the build writes into the scripts (its preload helper, and the interop helper of a Rollup plugin that it
- * bundles) are modules with no file, which the plugin gives to vite, with the parts of Vite's licence file that apply (third-party/notices.json, `replaces`).
+ * Two packages are named here though no script holds a module of them. Tailwind's base CSS (preflight, the `--tw-*` defaults) is copied into the stylesheet.
+ * Rollup writes code of its own into the scripts when it renders a chunk, the helper that merges namespace objects (in react-vendor) and the literals of
+ * namespace objects (in other scripts), and none of its modules reaches one: its section gives the lines of its LICENSE.md that apply (third-party/notices.json, `replaces`).
+ * Vite itself needs no entry here. Two of the helpers that it writes into the scripts (its preload helper, and the interop helper of a Rollup plugin that it
+ * bundles) are modules with no file, which the plugin gives to vite. A third, its `__vite__mapDeps` function, is no module at all, and the section of vite covers
+ * it all the same: that section gives the parts of Vite's licence file that apply (third-party/notices.json, `replaces`).
  */
-const licences = thirdPartyLicenses(root, { alsoShips: ['tailwindcss'] })
+const licences = thirdPartyLicenses(root, { alsoShips: ['rollup', 'tailwindcss'] })
 
 // https://vite.dev/config/
 export default defineConfig({
