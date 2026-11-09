@@ -1,6 +1,6 @@
 # enginespace: build tracker
 
-**Status:** proposed backlog. W0's 24 tasks are built: 23 are done and W0-T25 is in review, because its first check waits on the owner, and `wave-0` waits for the owner's review ([waves/W0-report.md](waves/W0-report.md)). W1's 35 build tasks are built and in review in `wave-1`, which stacks on `wave-0`; its exit review, W1-T38, is open on one check, and its two owner tasks wait ([waves/W1-report.md](waves/W1-report.md)). The other 58 tasks show `[ ]`: a wave's exit review sets its markers. **Date:** 2026-11-03, markers updated 2026-11-08. **Source:** [ARCHITECTURE.md](ARCHITECTURE.md) (cited as A§n) and [DECISIONS.md](DECISIONS.md) (D-nnn, O-n). Credit rules come from `docs/ASSESSMENT.md`, written in parallel. The look is The Pass (D-047): W0-T05 applies its direction contract, and W0-T25 documents the built world in DESIGN.md.
+**Status:** proposed backlog. W0's 24 tasks and W1's 35 build tasks are built, and both waves merged into `main` on 2026-11-09 with PR #2 ([waves/W0-report.md](waves/W0-report.md), [waves/W1-report.md](waves/W1-report.md)); their `[=]` markers turn `[x]` at W1b's exit review. W0-T25's first check and W1's two owner tasks wait on the owner. W1's exit review, W1-T38, is open on one check, which W1b, W1's carry-over, closes in `wave-1b`. The other tasks show `[ ]`: a wave's exit review sets its markers. **Date:** 2026-11-03, markers updated 2026-11-08, W1b added 2026-11-09. **Source:** [ARCHITECTURE.md](ARCHITECTURE.md) (cited as A§n) and [DECISIONS.md](DECISIONS.md) (D-nnn, O-n). Credit rules come from `docs/ASSESSMENT.md`, written in parallel. The look is The Pass (D-047): W0-T05 applies its direction contract, and W0-T25 documents the built world in DESIGN.md.
 
 ## How to read this page
 
@@ -17,7 +17,7 @@
   - Anything larger is split before it starts.
 - **Models** (D-036):
   - `sonnet` for every build task;
-  - `opus` for wave exit reviews and for W0-T25's finish review;
+  - `opus` for wave exit reviews, for W0-T25's finish review, and for W1b-T01 and W1b-T10 (W1b's header says why);
   - `owner` for tasks only the owner can do. These tasks block their dependants, and agents never simulate them.
 - **Game names.** A game task's title gives the game's display name and id, as in "Service (`loop`)". Display names are what the learner sees (D-049). Task bodies and the design docs keep the working names (The Loop, The Pool and the rest) as shorthand, and GAMES.md §0 maps all three.
 - **Status markers:** `[ ]` todo, `[~]` in progress, `[=]` review (acceptance passed, waiting for merge), `[x]` done.
@@ -51,6 +51,7 @@ Paste this brief above the task text when dispatching a task. AGENTS.md (W0-T23)
 
 - **W0** starts now.
 - **W1** starts after W0-T24.
+- **W1b**, W1's carry-over, starts after W1-T38's report (2026-11-09). W1b-T16 closes W1-T38.
 - **W2's grader track** (W2-T01 to W2-T12) may start after W0-T24 and run alongside W1. **W2's module tasks** start after W1-T38.
 - **W3** starts after W2-T41.
 - **Branches.** Each wave branch stacks on the previous unmerged one, and the owner merges in order (D-036).
@@ -58,6 +59,7 @@ Paste this brief above the task text when dispatching a task. AGENTS.md (W0-T23)
 **Critical paths** [estimated, taking each size at its upper bound]:
 - **W0:** T01 → T03 → T07 → T10 → T14 → T15 → T17 → T18 → T21 → T25 → T24. The go/no-go chain, T03 → T12 → T13 (the TR2 spike, D-040) → T16, joins it at T17 and is 2 h shorter [derived from the size bounds]. T05 and T20 run alongside.
 - **W1:** two chains. One is T03 → T04 → T14 for items, with T12 → T13 for Service (`loop`). The other is T21 → T22 for the KV lab. Both end at T36 → T38.
+- **W1b:** two chains. One is T01 → T02 for the lessons, then the lesson's finish review. The other is T10 and the four scenes' finish reviews. Both end at T14 → T16.
 - **W2:** T01 → T02 → T08 → T12 (owner fixtures). The module labs follow, then T39 → T41. Owner tasks T21 (traces) and T17 (the bank) gate T22 and TR0's browser re-check.
 - **W3:** T01 (owner's commit pairs) → T02 → T03 → T17.
 
@@ -67,9 +69,10 @@ Paste this brief above the task text when dispatching a task. AGENTS.md (W0-T23)
 |---|---|---|---|---|---|---|---|
 | W0 | Scaffold, the design system, the front-page 3D game, the finish review | 24 | 6 | 14 | 4 | 0 | 2 |
 | W1 | The no-GPU modules (TR1, TR2, TR5a, TR6, TR8) and their games | 38 | 6 | 18 | 14 | 2 | 1 |
+| W1b | W1's carry-over: lessons that run W1's games, the item families, the scene kit, CI | 16 | 6 | 8 | 2 | 0 | 3 |
 | W2 | The GPU modules (TR0, TR3, TR4, TR5b, TR7), the local grader, and the GPU parts of TR1, TR6 and TR8 | 41 | 5 | 23 | 13 | 4 | 1 |
 | W3 | The capstone, polish and launch | 17 | 7 | 9 | 1 | 3 | 1 |
-| **Total** | | **120** | **24** | **64** | **32** | **9** | **5** |
+| **Total** | | **136** | **30** | **72** | **34** | **9** | **8** |
 
 The owner column counts tasks only the owner can do. It leaves out reviewing PRs and answering O-1 to O-11.
 
@@ -717,6 +720,218 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
      - the gates;
      - every KC `planned:` placeholder filled.
   2. The wave PR is open.
+
+---
+
+## W1b: W1's carry-over (the loop W1 left open, the scene kit, CI)
+
+**Why there is a W1b.** W1 built every task of its tracker and did not close its loop ([waves/W1-report.md](waves/W1-report.md) §1). The site went live on 2026-11-09, and a check of it in a real browser that day showed what that leaves a learner [measured 2026-11-09 at 1b402ca, on the live site and on a local copy of the same files]:
+- the 27 lessons hold 40 game blocks, 39 prediction boxes, 8 lab blocks and 24 item sets that print "Not built yet" with a disabled button, though most of them name tasks marked `[=]`;
+- no page links the forge labs' crates;
+- game and lab pages lose their own `<title>` once the app mounts.
+
+W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before W2's module tasks start. Its branch, `wave-1b`, stacks on `wave-1`. W2's grader track may run alongside it.
+
+**Models.** W1b-T01 and W1b-T10 go to opus, as W1 gave its scene kit, the Service redress and the finish fixes to opus (W1-report §9.4 and §11). W1b-T16 is the exit review. The rest are sonnet's (D-036).
+
+**Exit criteria:**
+- Every lesson block that names a built feature runs it:
+  - a game block plays its level in the lesson;
+  - a prediction box takes a prediction and scores it after the game;
+  - an item set draws items;
+  - a forge lab's block leads to a page that hands over the crate.
+- `bun scripts/verify-kc.ts --final` passes, which is W1-T38's first check.
+- The map and the module pages count items and lab checks toward progress, as well as game levels.
+- The scene kit carries the haze, the lamp's pool and paper, inside the frozen scene gates. Each of the four 3D surfaces gets one more finish review.
+- No frozen gate moved: every gate table of `wave-1b` holds `wave-1`'s values or stricter.
+
+### Lessons that run what W1 built
+
+#### [ ] W1b-T01 · Lesson game blocks play their levels · L · opus · deps: —
+- **Goal:** A lesson's `game` block embeds its game at its level and mode, as A§4.3 has it ("It embeds `src/games/<id>`"). This replaces today's ticket, which prints "Not built yet" beside a disabled "Start level".
+  - The game's code loads only when the learner starts the level.
+  - A page keeps one live 3D canvas (A§6, `Stage`), and every other embed shows its 2D view until it is opened.
+  - A `graded` block runs on a fresh seed and writes the same `play` events as the game's own page (A§6.3, A§7).
+  - A game that no task has built yet keeps its ticket, which names its open task.
+- **Read:**
+  - A§4.3, A§6 and A§7.2;
+  - GAMES.md §2 and the section of each W1 game;
+  - DESIGN.md (Ticket, One Lamp);
+  - `src/content/render/Blocks.tsx` and `model.ts`;
+  - `src/pages/Game.tsx`, `src/games/kit/GameShell.tsx` and `src/scene/lease.ts`;
+  - the level pages, `/play/<game>?level=`.
+- **Files:** `src/content/render/`; whatever the game shell needs to sit inside a lesson; tests and `e2e/` coverage.
+- **Accept:**
+  1. Each of the 40 game blocks in the 27 lessons starts its level in the lesson. A registry test checks that every block names a level that exists. An e2e walk per game plays a lesson's block to its debrief by keys alone, at 360 and 1280 px, with focus in view.
+  2. With two game blocks open on one page, only one 3D canvas is live at a time.
+  3. A graded block writes the same `play` events as the game's page does for the same run, and a test compares them.
+  4. The lesson and module routes' JavaScript stays inside D-023's gates, and `verify:bundle` prints what the embed loads on demand.
+  5. axe finds no serious or critical violation on a lesson with an embed open, at 360 and 1280 px.
+  6. `GAME_TASKS` names only open tasks.
+
+#### [ ] W1b-T02 · The lesson prediction box, and placeholders that name open work · M · sonnet · deps: W1b-T01
+- **Goal:** A lesson's `predict` block works.
+  - It takes a prediction: a number within its tolerance, a choice, or an interval.
+  - It commits the prediction before the game that follows it is played.
+  - At the reveal it scores the prediction against the reference that the pure model computes from that run. The reveal is `after-game` for every block (`REVEAL_POINTS`), and no key is stored (A§1, I3; ASSESSMENT §4.7).
+  - It writes a `predict` event (A§7.2), which moves no completion and no weight-1.0 credit (ASSESSMENT §6).
+
+  When this task is done, every placeholder the renderer still prints names an open task.
+- **Read:**
+  - ASSESSMENT §4.7 and §6;
+  - A§4.3 and A§7.2;
+  - GAMES.md's Predict row;
+  - `predictShape` in `packages/schema/content.ts`;
+  - the 39 predict blocks in `content/modules`.
+- **Files:** `src/content/render/` (PredictTicket); a table of which result of which game block answers each prediction; `PENDING` in `model.ts`; `tests/content/pending.test.ts`.
+- **Accept:**
+  1. Each of the 39 blocks commits, then reveals and scores after its game. A test plays each one's game on a seed and checks that the reference is read from the run.
+  2. A committed prediction cannot change, and nothing of the answer shows before the game ends.
+  3. The `predict` event carries the value and the outcome (A§7.2's row). Where a page reads predictions (Today, a game's Mirror), it reads this one. A reader that does not exist yet is named with its task.
+  4. `tests/content/pending.test.ts` fails when `PENDING`, `GAME_TASKS` or `LAB_TASKS` names a task whose marker is `[=]` or `[x]`. The trace block and the In-production and Build-this cards each name the open task that builds them. If no task does, add one to W2 and say so.
+  5. Keys alone commit and reveal a prediction. axe passes as in W1b-T01.
+
+#### [ ] W1b-T03 · TR1's item families · M · sonnet · deps: —
+- **Goal:** Build the five families that TR1's lessons name and no W1 task built (W1-report §5):
+  - `tr1.which-mechanism`;
+  - `tr1.step-budget`;
+  - `tr1.where-does-it-run`;
+  - `tr1.what-moved`;
+  - `tr1.request-state`.
+
+  Build each to W1-T04's contract, as W1-T14 and W1-T30 built theirs: the generator, its face in `packages/play/items/catalog.ts`, its loader in `src/items/families.ts`, goldens, and its `verify:items` bands.
+- **Accept:**
+  1. `verify:items` passes on every level, and each level's best blind strategy is under the bound that `verify:items` holds (ASSESSMENT §4.1; O-14 is the owner's).
+  2. TR1's content test lists no family as `TO_BUILD`, and every item block in TR1's lessons draws items.
+  3. In `content/kc/graph.yaml`, the families replace the `planned:` lines they answer: `tr1.phases-vs-one-budget`, `tr1.request-states` and `tr1.read-at-the-pin`.
+  4. Every fact about an engine is a claim at the pins (A§4.4), or is derived from the sim.
+
+#### [ ] W1b-T04 · TR2's item families · M · sonnet · deps: —
+- **Goal:** Build TR2's six families to the contract of W1b-T03:
+  - `tr2.step-order`;
+  - `tr2.preempt-victim`;
+  - `tr2.default-budget`;
+  - `tr2.runner-fallback`;
+  - `tr2.dispatch-key`;
+  - `tr2.kv-after-graphs`.
+
+  `tr2.dispatch-key` is built from the dispatch rules that D-041 keeps as data. A variant that needs the committed dispatcher tables (Q-10) is left out, and the task says so.
+- **Accept:** W1b-T03's four checks, for TR2's content test and for the KCs `tr2.step-calls`, `tr2.one-budget`, `tr2.gpu-dependent-defaults` and `tr2.dispatch-keys`. If Service's `keys` level is still waiting on Q-10, `tr2.dispatch-keys` is answered by the family.
+
+#### [ ] W1b-T05 · TR5a's item families · M · sonnet · deps: —
+- **Goal:** Build TR5a's four families to the contract of W1b-T03:
+  - `tr5a.blocks-held`;
+  - `tr5a.hit-length`;
+  - `tr5a.pages-for-adapter`;
+  - `tr5a.slots-vs-pages`.
+- **Accept:** W1b-T03's four checks, for TR5a's content test and the KC `tr5a.slots-vs-pages`.
+
+#### [ ] W1b-T06 · TR8's item families · M · sonnet · deps: —
+- **Goal:** Build TR8's three families to the contract of W1b-T03:
+  - `tr8.goodput-denominator`;
+  - `tr8.littles-law`;
+  - `tr8.which-flag`.
+
+  Today then serves TR8's KCs, which no family serves now.
+- **Accept:** W1b-T03's four checks, for TR8's content test and the KCs `tr8.goodput-denominator`, `tr8.littles-law` and `tr8.tool-defaults`.
+
+#### [ ] W1b-T07 · Progress from items and lab checks · S · sonnet · deps: —
+- **Goal:** Today, `src/progress/sources.ts` maps only a game run to its KCs, so the map and the module pages show progress from game levels alone, while Today schedules from items (W1-report §5). Make `sources.ts` map `item` and `lab-check` events to their KCs as well, through `packages/play/items/catalog.ts` and `LAB_CHECK_KCS` (`packages/sim/forge/kcs.ts`). ASSESSMENT §9's states that wait on Q-5 stay as they are.
+- **Accept:**
+  1. A test shows an item event and a lab-check event each moving their KCs in the map's model.
+  2. The map and module routes stay inside their gates: the catalog costs those pages nothing (D-059).
+
+#### [ ] W1b-T08 · Lab pages hand over the crate · S · sonnet · deps: —
+- **Goal:** Each forge lab's page links its kit, `/labs/enginespace-<lab>.zip`, beside "Build the lab's crate", with the kit's size and SHA-256 from `public/labs/manifest.json`. This is W1-T11's follow-up: the live check found no page that links the kits. `hybrid-kv`'s page also shows the slot-baseline readout of TR5a §5, W1-T22's follow-up.
+- **Accept:**
+  1. An e2e check links every file in the manifest from its lab page, and the linked bytes hash to the manifest's SHA-256.
+  2. The page gives the hash as a line a learner can copy to check the download.
+  3. A test holds the slot-baseline readout to the sim.
+
+#### [ ] W1b-T09 · Titles, stub pages and the live check's other findings · S · sonnet · deps: —
+- **Goal:** Fix what the live check of 2026-11-09 found beside the larger tasks:
+  - Game and lab pages keep their own `<title>` after the app mounts. Today they fall back to "Game · enginespace" and "Lab · enginespace", which is weak for WCAG 2.4.2.
+  - Each stub page says what it will hold and which wave builds it: `/receipts`, `/changes`, `/trace-room`, the ten labs that W2 and W3 build, and `/about` beyond its licences paragraph. `/about`'s description says what the page holds today.
+  - `e2e/network.spec.ts`'s policy test passes against GitHub Pages too, which answers `/map` with a 301 to `/map/`. This was the live run's one failure.
+  - `/play/pool` loses its moderate `landmark-unique`.
+  - If the `THREE.Clock` deprecation warning on the 3D pages comes from this repo's code, it goes. If it comes from a dependency, it stays, and the task names the dependency.
+- **Accept:**
+  1. A test reads `document.title` after mount on a game page and on a lab page.
+  2. The network spec passes against `vite preview` and against a server that redirects directory paths as Pages does.
+  3. axe reports no `landmark-unique` on `/play/pool`.
+  4. No stub says only "This page is not built yet".
+
+### The scene kit and the games
+
+#### [ ] W1b-T10 · Scene kit: haze, the lamp's pool, and paper · L · opus · deps: —
+- **Goal:** Carry into the scene kit the recipe that passed review: Back of House's round-2 fix, which draws the lamp as a cone of warm haze with an edgeless pool and no spot light, and dims the tile toward the hood. Apply it to the four 3D scenes: Service, The Tasting, Back of House and The Reach-In. Give the ticket curl, thickness and tooth (W1-report §7.4). Then each surface gets one more finish review.
+- **Read:**
+  - W1-report §7;
+  - DESIGN.md;
+  - `.impeccable/surfaces/`;
+  - `src/scene/` and each game's 3D scene.
+- **Accept:**
+  1. Each scene's `verify:bundle` row stays under its frozen 40 KB gate. The task starts by freeing bytes, from the candidates W1's records name: a local merge in place of three's `mergeGeometries`, or a kit split so that a scene counts only the props it draws. If the recipe cannot fit, the task stops and reports with the measurements.
+  2. Draw calls and instances stay under A§11.1's gates at every tier (the scene specs).
+  3. The 2D views carry the same pool of lamp light, not a radial blur with a white-hot centre.
+  4. impeccable's finish reviewer judges each of the four surfaces once more from captures at 1440 and 390 px, and one fix round follows if it asks for one.
+
+#### [ ] W1b-T11 · The Inspection's tail gives nothing away · S · sonnet · deps: —
+- **Goal:** The Inspection's tail shows max(12, the p99's rank + 6) rows, so the number of rows can tell where the p99 sits (W1-report §12). The count must not depend on the answer.
+- **Accept:**
+  1. A test over 1,000 seeds shows that the row count is a function of what the learner may see, not of the p99's rank.
+  2. The game's walks and `verify:games` pass.
+
+#### [ ] W1b-T12 · `verify:games` measures the blind bound and reads the full service · M · sonnet · deps: —
+- **Goal:** Today each game's own tests measure ASSESSMENT §4.1's bound, and `verify:games` does not. Make `verify:games` measure it for every graded level, and read the full service's views, which it skips (the half of O-16 that is not the owner's). The bound stays as ASSESSMENT gives it, since O-14 is the owner's.
+- **Accept:**
+  1. The gate prints each graded level's best blind strategy against its bound, and fails a level over it.
+  2. A mutation test makes a level guessable and shows the gate failing.
+  3. If a level as built is over the bound, the task stops and reports it with the measurements, and changes neither the level nor the bound.
+
+### CI and the docs
+
+#### [ ] W1b-T13 · CI: shard the unit tests, steady the e2e shards, cover the labs' paths · M · sonnet · deps: —
+- **Goal:** Four CI fixes (W1-report §12, and PR #2's runs):
+  - CI's `tests` job runs the unit suite in shards (`bun test --shard`). On a runner it took 9 to 16 minutes in one job [measured 2026-11-09, PR #2 to #4].
+  - The e2e smoke shard that flakes under load waits on state rather than on time.
+  - `labs.yml` runs when the files that `verify:labs` reads change: `src/forge`, `packages/sim`, `scripts/labs` and `tests/fixtures/forge`.
+  - The nightly sets `ES_HEAVY` and `ES_LAB_TRIALS`.
+- **Accept:**
+  1. Together the shards run every test file once. A test lists each shard's files and compares their union with the suite.
+  2. `tests/ci/workflows.test.ts` holds the new shape, and `deploy.yml`'s build still runs the whole suite.
+  3. Every job keeps a numeric timeout.
+  4. No test is skipped, narrowed or given retries to pass.
+
+#### [ ] W1b-T14 · Type-check `scripts/` and `tests/` · M · sonnet · deps: W1b-T01 to W1b-T13
+- **Goal:**
+  - `npm run typecheck` covers `scripts/` and `tests/`, which W0 left linted but not type-checked.
+  - Each of the seven `as unknown as` casts that give no reason (A21, A22) gets a reason or a real type. One of them passes `null` where a geometry is typed.
+- **Accept:**
+  1. `tsc -b` checks every file under `scripts/` and `tests/`.
+  2. No `any`, `@ts-ignore` or `as unknown as` is added without a reason on its line.
+  3. No test changes what it asserts.
+
+#### [ ] W1b-T15 · Docs follow what was built · S · sonnet · deps: —
+- **Goal:** Make the doc edits of W1-report §12 that are not the owner's:
+  - ASSESSMENT §4.6's "[measured once built]" rows take the rates that W1-T26 and W1-T27 measured.
+  - DESIGN.md's Ticket loses the head line over the title (§7.2).
+  - `content/claims/README.md` gets a rule for a quote that crosses a line break, or the two quotes of W1-report §6 are re-quoted from one line.
+  - A§5.6 and A§5.7 follow the benchmark and trace APIs as built, and A§9.2 gives the agent kit's file name.
+  - WORLD.md and TR5b stop saying that TR5b "adds an adapter field" to the KV events: both engines already carry it as `lora_name`.
+  - The rows of `research/upstream-vllm.md` say which file the Inside vLLM post follows.
+
+  The owner's amendments are not this task's: A§6.1, A§6.6, GAMES.md §3, §5, §8 and §10, and ASSESSMENT §4.1.
+- **Accept:** Each edit cites what it follows: a task id, a file at a SHA, or a claim. `verify:content` and `verify:claims` pass.
+
+### Closing W1b
+
+#### [ ] W1b-T16 · W1b exit review · S · opus · deps: all of W1b
+- **Accept:**
+  1. `bun scripts/verify-kc.ts --final` passes. W1-T38's first check then holds, and W1-T38 turns `[=]`.
+  2. `docs/waves/W1b-report.md` records the budgets, the gates and the finish reviews, and diffs every gate table against `wave-1`.
+  3. Each finding of the live check of 2026-11-09 is closed or carried to a named task.
+  4. The coordinator opens the wave PR.
 
 ---
 
