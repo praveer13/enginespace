@@ -53,6 +53,13 @@ The bell with overlap off: the line drops dark while the expo writes, then every
 - **The debrief reads the configuration lever by lever.** A table of the learner's configuration against the house's, with a row marked where they differ, comes before the stage table, which a one-stage level keeps for its call against the model's.
 - **A graded run is asked for in one line above the controls** ("This level can be graded, on fresh numbers." and one button); in a graded run the line says so, Undo is not drawn, and the debrief offers another graded run and practice.
 
+## Adaptations (W1b-T10, the scene kit's haze, the lamp's pool and paper; two looks at 1440 and 390)
+
+- **The lamps' light is the kit's** (W1b-T10): no spot light, but under each lit lamp a cone of warm haze from inside its shade's lip down to the surface and an edgeless pool where it lands, at every tier, which brightens the steel and lays no colour of its own; paper lying in it stays white. A lit end on the cone's mouth drew a hard peach disc under each shade in the task's first look, so the mouth is dark and the shade's own bulb is its glow.
+- **Paper is the kit's** (W1b-T10): a tooth of soft fibres and a normal that catches a raking light, a shade darker toward its cut edges, a millimetre thick at the scene's scale and curled at its foot [estimated].
+- **The pools on the pass** are round a plate's place and gone before the next lamp's, and the steel reflects the tubes and not the lamps' glow, so the amber lies under the three lamps and nowhere else. In 2D each pool is the lamp's amber from a low lift at its middle to nothing at its rim, with no white-hot core, and the brushed grain shows through it.
+- **The room falls into haze:** its light is full behind the worktops and falls up the tile to the hood and toward the corners into a veil of deep steel, and the haze begins nearer the line.
+
 ## Unresolved
 
 - GAMES.md §3's "3D scene" and "2D path" still describe lanes along time (a Gantt). This page draws the present instead (the rail, the fired rail, the last fire's plates, the stations), and the night's timeline lives in the tape and the mirror, and in the debrief's compare strips. The docs need the owner's amendment.

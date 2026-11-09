@@ -599,8 +599,8 @@ function thePass(p: Painter, lens: Lens, view: KitchenView, width: number) {
     grain.push([lens.at(-half + 0.04 + short, top, z), lens.at(half - 0.04 - short * 0.7, top, z)])
   }
   p.path(grain, { stroke: 'paper', width: 0.5, strokeOpacity: 0.5 })
-  // Under each lamp, its light on the brushed steel: hot in the middle and gone by the edge, longer across the brush (toward the expo)
-  // than along it, as the steel scatters it. A gradient laid on as light, never a blur.
+  // Under each lamp, its light on the brushed steel: a warm lift in the middle, the grain showing through, and gone by the edge, longer
+  // across the brush (toward the expo) than along it, as the steel scatters it. A gradient laid on as light, never a blur.
   p.layer('pools')
   for (const x of lampsOf(view.slots)) {
     const z = PLATE_Z + 0.02
@@ -740,17 +740,16 @@ const FACE: Readonly<Record<Face, string>> = {
   label: 'var(--es-font-label)',
 }
 /**
- * The frame's two gradients, each made of token roles [estimated stops]: the lamps' light on the pass, white-hot at its middle and the
- * lamp's amber out to nothing at its edge, so the steel under it reads lit and no edge shows; and the side wall's shade, deepening from
- * its near end at the frame's left to the far corner.
+ * The frame's two gradients, each made of token roles [estimated stops]: the lamps' light on the pass, the lamp's amber as a low lift at
+ * its middle, with no hot core, out to nothing at its edge, so the brushed grain under it shows through, the steel reads lit and no edge
+ * shows (the 3D scene's pool, the scene kit's); and the side wall's shade, deepening from its near end at the frame's left to the far corner.
  */
 const GRADIENTS = {
   'lamp-pool': {
     tag: 'radialGradient',
     stops: [
-      [0, 'glint', 0.5],
-      [0.3, 'lamp', 0.46],
-      [0.62, 'lamp', 0.2],
+      [0, 'lamp', 0.3],
+      [0.45, 'lamp', 0.16],
       [1, 'lamp', 0],
     ],
   },

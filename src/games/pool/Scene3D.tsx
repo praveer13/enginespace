@@ -33,11 +33,12 @@ import { nightOf, PAN, reachInOf, TAPE, TICKET, type Night, type ReachIn } from 
  * trays, one for each layer of its station, rise out of it and splay round its back edge toward the expo, each holding its layer's mise,
  * the padding layers last and empty, and the station's glyph on a strip of tape in the top one, on the settle duration. Between decisions the kitchen
  * is still; under reduced motion every change cuts. The heat lamps hang low over the pass and burn only while the present lies there,
- * pooling their amber on its steel under the waiting tickets, and the pans a dump would take ring in the lamp's amber.
+ * their light the kit's cone of warm haze and the edgeless pool where it lands on the steel round the waiting tickets, the paper lying in
+ * it white; and the pans a dump would take ring in the lamp's amber.
  *
  * Draw calls at T1: the static set's metal, glaze, tile, floor and glow (5), the contact shadows (1), the tickets and the clips (2), the
  * pans, their mise, the kits' tapes and the marks on them (4), the lamp's rings (1), each string of twine (one per station on the focus,
- * one per landed kit), and the fan's trays and their mise (2). T2 adds each shadow-casting lamp's pass over what casts. The measured
+ * one per landed kit), the fan's trays and their mise (2), and the lamps' light while they burn (1). T2 adds bloom and the final pass. The measured
  * figures, read from renderer.info by e2e/pool-scene.spec.ts against A§11.1's 100, are in GAMES.md §8, "Budget".
  */
 
@@ -53,8 +54,12 @@ export interface Scene3DProps {
 
 /** The most instances of a kind: the largest pool's pans [estimated over the levels' 288]. */
 const MOST = 512
-/** The heat lamps' light over the pass, as a share of the kit's [estimated]: they hang low and close over the tickets, so a little pools. */
-const LAMP_POWER = 0.06
+/**
+ * The heat lamps' light over the pass, as a share of the kit's [estimated], and each lamp's pool on the pass along it and across it, in
+ * metres: the steel round the waiting tickets warmed, and the paper lying in it white, as it lies over the light.
+ */
+const LAMP_POWER = 0.45
+const POOL = [0.26, 0.2] as const
 /**
  * The fan [estimated]: how far it splays in all, and how far the top tray's front lifts, in radians; the height of each tray over the one
  * under it, how deep a tray is as a share of a pan, and how far the trays rise from where they wait, under the head pan's mise, to the
@@ -318,12 +323,11 @@ function Reach({ r, items, night }: { r: ReachIn; items: readonly PropSpec[]; ni
     kit.invalidate()
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the moment starts again when its strings or its fan do, and on nothing else
   }, [geometries, fan])
-  const cast = kit.shadowLights > 0
   return (
     <>
       <StaticSet items={items} room={r.light} />
       {/* The heat lamps' light, low over the pass: on only while the present lies there. */}
-      <LampLights lamps={r.lamps} power={night.lit ? LAMP_POWER : 0} cones={false} />
+      <LampLights lamps={night.lit ? r.lamps : []} power={LAMP_POWER} spread={POOL} />
       {/* The tickets, and the clips that grip them, larger than the kit's and curled: the moment's paper reads across the reach-in. */}
       <RailClips at={r.rail} clips={r.clips} scale={TICKET.scale} />
       <Tickets tickets={night.tickets} scale={TICKET.scale} curl={TICKET.curl} />
@@ -335,8 +339,8 @@ function Reach({ r, items, night }: { r: ReachIn; items: readonly PropSpec[]; ni
       {[...kits, ...geometries].map((geometry, i) => (
         <mesh key={i} geometry={geometry} material={materials.ceramic} />
       ))}
-      <instancedMesh ref={trays} args={[parts.pan, materials.metal, 16]} castShadow={cast} frustumCulled={false} />
-      <instancedMesh ref={fanned} args={[parts.slices, parts.food, 32]} castShadow={cast} frustumCulled={false} />
+      <instancedMesh ref={trays} args={[parts.pan, materials.metal, 16]} frustumCulled={false} />
+      <instancedMesh ref={fanned} args={[parts.slices, parts.food, 32]} frustumCulled={false} />
     </>
   )
 }
@@ -347,7 +351,7 @@ export default function Scene3D({ view, preset, station, chosen }: Scene3DProps)
   const items = useMemo((): PropSpec[] => [...r.items, { kind: 'custom', id: 'reach-in', at: [0, 0, -r.depth / 2], build: (m) => cabinet(m, r) }], [r])
   const night = useMemo(() => nightOf(view, r, { station: preset === 'station' ? station : null, chosen }), [view, r, preset, station, chosen])
   return (
-    <SceneCanvas fog={{ near: 0.4, far: 3.2, color: 'surface-3' }} environment="tubes" environmentIntensity={0.55} shadows>
+    <SceneCanvas fog={{ near: 0.45, far: 2.2, color: 'surface-3' }} environment="tubes" environmentIntensity={0.55}>
       <CameraRig presets={r.presets} preset={preset} parallax={0.04} />
       <Fluorescent />
       <Kitchen lit={night.lit ? ALWAYS_LIT : ALWAYS_LIT & ~(1 << CHANNEL.lamp)}>

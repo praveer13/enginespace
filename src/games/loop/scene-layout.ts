@@ -15,7 +15,7 @@
  *     bin, a full hotel pan at the pass's right end, and the bin keeps the last few. A finished ticket is spiked.
  *   - The line behind the pass: a station for each clip, burning in the lamp's amber where the latest fire cooked a course and
  *     cold where its clip rode empty (`stationsOf`). Tile, hood, floor and a speed rack make the room, and the room's light, baked
- *     into the tile and the floor, is full over the line and dims toward the room's corners, over the hood and into the wall's foot.
+ *     into the tile and the floor, is full behind the line's worktops and dims up the tile to the hood and toward the room's corners.
  *   - Three heat lamps over the pass, the bell at its front right.
  *
  * Every word and number is a DOM label anchored here (D-021, GAMES.md §2.6 rule 7); the tickets' print is texture.
@@ -157,10 +157,11 @@ export function serviceKitchen(slots: number, { printer, overlap, tools = false 
       top: [station.at[0], LINE.height + 0.04, LINE.z - 0.02] as Vec3,
     })),
     tapes,
-    // Full over the middle half of the line, up to 40 cm under the hood's lip and back as far as the line, and easing down to a little
-    // over half of that two metres further to either side, 1.4 metres higher and two metres further back [estimated]: the far corner
-    // and the wall over the hood fall away, and the tile behind the line stays lit.
-    room: { x: 0, half: lineWidth / 4, above: HOOD.top - HOOD.height - 0.4, beyond: LINE.z, reach: [2, 1.4, 2], dim: 0.55 },
+    // Full over the middle half of the line, up to a hand over its worktops and back as far as the line, and easing down to a third of
+    // that 1.6 metres further to either side, up the tile to the hood's lip and nearly three metres further back, with what it no longer
+    // lights veiled in the haze's deep steel [estimated]: the tile behind the worktops stays lit, and the wall up to the hood and the far
+    // corners fall away into the haze.
+    room: { x: 0, half: lineWidth / 4, above: LINE.height + 0.15, beyond: LINE.z, reach: [1.6, 0.85, 2.8], dim: 0.3, veil: 0.7 },
   }
 }
 

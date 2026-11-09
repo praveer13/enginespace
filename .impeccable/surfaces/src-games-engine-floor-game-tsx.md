@@ -61,6 +61,11 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 
 The first struck stop. A learner lays the engine core's `update_from_output` straight after `schedule` and pulls the stub; in the house the ticket goes through the host stand's window, along the chute and out onto the pass, and balks at the hand-off that does not hold, whose chit is struck in red, and the order prints, in the printer's dots, the file and line where the engine calls the model first. In the 2D house the route inks up to the pass and stops before it.
 
+## Adaptations (W1b-T10, the scene kit's haze, the lamp's pool and paper; two looks at 1440 and 390)
+
+- **This scene's lamp recipe is the kit's now** (its round-2 fix: a cone of warm haze and an edgeless pool, no spot light), drawn by the kit's LampLights at the same pool, a counter's depth across and longer along it; the cone's mouth is dark inside the shade's lip, where the house's own ring glows.
+- **Paper is the kit's:** the ticket has a tooth of soft fibres, a shade darker toward its cut edges and a curl at its foot [estimated], so it reads as bond paper and not as a flat card.
+
 ## Adaptations (W1-T18, two looks at 1440 and 390)
 
 - **The first look** read as an empty steel shelving unit: the window frames floated at the decks' ends like handles, the shaft was a black column, the line sat cramped under the pass's deck with its hood hidden, labels collided and almost nothing was amber. The second build widened the lanes to a metre, raised the line's storey so its hood shows, cut the windows into a steel partition with sills and hid the chute behind it, opened the shaft, gave the present's lamp its cone at T2 and more light, and framed the one storey there is before the prediction.

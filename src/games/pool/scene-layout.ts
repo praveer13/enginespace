@@ -183,9 +183,10 @@ export function reachInOf(pages: number, cap: number): ReachIn {
     rail,
     clips: Array.from({ length: cap }, (_, k) => ({ id: `clip${k}`, x: clipX(k, cap) })),
     tape: { at: [-0.52, TOP + 0.0006, -FRAME.front / 2], rotation: [-Math.PI / 2, 0, 0.02], scale: [0.4, 0.05, 1], cell: CELL.scrawl },
-    // The room's light, baked into its tile and its floor: full over the line and the reach-in's left, and falling away into the haze's
-    // deep steel across the room past the rack's right side, up the wall over the overshelf, and back toward the far corner.
-    light: { x: -0.6, half: 0.8, above: 1.3, beyond: back, reach: [1.1, 0.6, 1.2], dim: 0.3, veil: 0.8 },
+    // The room's light, baked into its tile and its floor: full over the line and the reach-in's left up to the rack's top, and falling
+    // away into the haze's deep steel across the room past the rack's middle, up the wall behind the overshelf to the frame's top, and
+    // back toward the far corner [estimated].
+    light: { x: -0.6, half: 0.7, above: 1, beyond: back, reach: [1, 0.45, 1.2], dim: 0.2, veil: 0.9 },
     presets: SHOTS.map((id) => {
       const [wide, portrait] = shots[id === 'top' ? 1 : 0]
       return { id, label: id, shot: id === 'top' ? id : 'establish', projection: 'perspective', ...wide, portrait }

@@ -221,8 +221,9 @@ describe('the app build', () => {
     // Only the props are in it: not three, not React, not the kit's core.
     const sources = app.sources.get(kit?.file ?? '') ?? []
     expect(sources.filter((source) => !source.includes('src/scene/props/') && !source.startsWith(THREE_ADDONS))).toEqual([])
-    // Their addon (BufferGeometryUtils) rides with them, and no page's first chunk loads them.
-    expect(chunksHolding(app, `${THREE_ADDONS}utils/`)).toEqual([kit?.file])
+    // They merge their geometry themselves (shape.ts's merged, W1b-T10), so three's geometry addon (BufferGeometryUtils) rides in no chunk
+    // at all, and no page's first chunk loads the props.
+    expect(chunksHolding(app, `${THREE_ADDONS}utils/`)).toEqual([])
     for (const page of readdirSync(path.join(root, 'src/pages')).filter((file) => file.endsWith('.tsx'))) {
       const [key] = Object.entries(app.manifest).find(([, chunk]) => chunk.name === page.replace('.tsx', '') && chunk.isDynamicEntry) ?? []
       if (key) expect(staticClosure(app, key).has(kitKey ?? 'no scene-kit chunk'), page).toBe(false)

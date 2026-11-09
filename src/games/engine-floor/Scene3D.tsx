@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { BufferAttribute, CylinderGeometry, Euler, Quaternion, Vector3, type Mesh } from 'three'
+import { BufferAttribute, Euler, Quaternion, Vector3, type Mesh } from 'three'
 import type { FloorView, LaidView } from '@es/play/engine-floor/types'
 import { TapeLabel } from '@/design/components/TapeLabel'
 import { CameraRig } from '@/scene/CameraRig'
@@ -7,13 +7,13 @@ import { useSceneTokens } from '@/design/scene-tokens'
 import { useKit } from '@/scene/kit'
 import type { LabelSpec } from '@/scene/labels'
 import { Fluorescent } from '@/scene/Lights'
-import { CHANNEL, cellOffset, Kitchen, StaticSet, ticketGeometry, useMotionLoop, useProps } from '@/scene/props'
+import { CHANNEL, cellOffset, Kitchen, LampLights, StaticSet, ticketGeometry, useMotionLoop, useProps, type LampLight } from '@/scene/props'
 import { progress } from '@/scene/props/motion'
 import { merged, painted } from '@/scene/props/shape'
 import type { PropSpec } from '@/scene/props/specs'
 import { SceneCanvas } from '@/scene/SceneCanvas'
 import { SheetInstances } from '@/scene/SheetInstances'
-import type { HouseItem, HouseProp, Pose, Spot } from './scene-layout'
+import type { HouseItem, HouseProp, Pose } from './scene-layout'
 import type { SceneModel } from './scene-presets'
 import { carGeometries, customOf, OWN } from './scene-props'
 import { playOf, presetFor, routeOf, type Chit, type Hop, type Play, type Route } from './scene-route'
@@ -34,8 +34,9 @@ import './scene3d.css'
  * every change cuts.
  *
  * The one lamp: of the house's lamps only the present's is lit: its bulb's glow round its shade's lip, by the kitchen's glow mask, and its
- * light (Glow): a cone of warm haze from the shade's mouth to the surface its hands work at, and the warm pool where it lands on the steel,
- * edgeless, wider along the counter than across it, at every tier and wide enough to read across the cutaway. Its light falls in front of
+ * light (the kit's LampLights, whose recipe this scene's round-2 fix drew first): a cone of warm haze from the shade's mouth to the surface
+ * its hands work at, and the warm pool where it lands on the steel, edgeless, wider along the counter than across it, at every tier and
+ * wide enough to read across the cutaway. Its light falls in front of
  * the ticket that hangs on the tile, so the paper stays white bond, warmed only at its top by the haze it hangs in. On the line the
  * present's station burns instead, and a station burns while the ticket cooks on it. Nothing else glows but the canopy's white tubes. The
  * room falls away past the house into a haze of deep steel.
@@ -57,25 +58,12 @@ export interface Scene3DProps {
 
 /** The haze the room falls into past what the camera looks at, from this far to this far [estimated], in deep steel. */
 const HAZE = { near: 0.3, far: 3.2, color: 'surface-3' } as const
+/** The present lamp's pool where it lands, along the counter and across it, in metres [estimated]: a counter's depth across, longer along its grain. */
+const POOL = [0.336, 0.21] as const
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* The ticket and the dumbwaiter's car                                                                                */
 /* ------------------------------------------------------------------------------------------------------------------ */
-
-/**
- * The present lamp's light, as the room sees it, a unit tall (the scene stretches it from the shade's mouth to the surface the hands work at,
- * stopping 0.7% short so the pool lies on that surface and not in it): a cone of warm haze in the kit's soft additive light, and its two
- * caps, the mouth's glow and the pool where the light lands, both turned to the room so they read from every stop. The haze is strongest
- * at the mouth and fades down the cone, and the pool fades from its middle to nothing at its rim (its side's top ring, the mouth's cap and
- * the pool's 40 middles are lit; the side's foot and the pool's rim are dark). Its sizes are [estimated]: the mouth about the shade's, the
- * pool a counter's depth across, and stretched along the counter as brushed steel spreads a lamp's light along its grain.
- */
-const GLOW = new CylinderGeometry(0.1, 0.21, 0.993, 40).translate(0, -0.4965, 0)
-const { uv, normal } = GLOW.attributes
-for (let i = 0; i < 244; i++) {
-  uv.setY(i, i < 41 ? 2.3 : i > 81 && i < 203 ? 3.3 : 0)
-  if (i > 81) normal.setXYZ(i, 0, 0, 1)
-}
 
 /** The ticket: a kitchen's [estimated], a slip a hand wide and twice as long, the print's own shape, thick enough that its edge catches light. */
 const SHEET = ticketGeometry(0.1, 0.2, 0.002)
@@ -100,8 +88,8 @@ function sample(hop: Hop, t: number, mesh: Mesh): [number, number] {
   return [k, u]
 }
 
-/** The ticket (the kit's paper, with its print) and the car, placed every frame of a play, and at rest otherwise; and the lit lamp's light. */
-function Mover({ route, shaft, play, passed, onHop, lamp }: { route: Route; shaft: number | null; play: Play | null; passed: number; onHop: (k: number) => void; lamp: Spot['lamp'] }) {
+/** The ticket (the kit's paper, with its print) and the car, placed every frame of a play, and at rest otherwise. */
+function Mover({ route, shaft, play, passed, onHop }: { route: Route; shaft: number | null; play: Play | null; passed: number; onHop: (k: number) => void }) {
   const kit = useKit()
   const { materials, palette } = useProps()
   const box = useMemo(() => merged(carGeometries().map((part) => painted(palette.part(part, 'steel')))), [palette])
@@ -153,7 +141,6 @@ function Mover({ route, shaft, play, passed, onHop, lamp }: { route: Route; shaf
     <>
       <mesh ref={ticket} geometry={SHEET} material={materials.ticket} raycast={() => null} />
       {box && shaft !== null ? <mesh ref={car} geometry={box} material={materials.metal} position={[shaft, route.cars[0], -0.23]} raycast={() => null} /> : null}
-      {lamp ? <instancedMesh args={[GLOW, materials.cone, 3]} count={kit.tier > 1 ? 3 : 1} position={lamp.at as [number, number, number]} scale={[1.6, lamp.at[1] - lamp.target[1], 1]} renderOrder={2} /> : null}
     </>
   )
 }
@@ -199,6 +186,7 @@ function House3D({ model, route, stop, play, passed, spot, cook, onHop }: { mode
   const [hands, setHands] = useState({ key: '', specs: [] as PropSpec[] })
   if (hands.key !== handKey) setHands({ key: handKey, specs: route.props.map(asSpec) })
   const mask = (1 << CHANNEL.tube) | (present === null ? 0 : 1 << present.channel) | (cook === null ? 0 : 1 << cook)
+  const lamps = useMemo<LampLight[]>(() => (present?.lamp ? [{ id: present.key, ...present.lamp }] : []), [present])
   return (
     <>
       <CameraRig presets={model.presets} preset={presetFor(model, stop, spot)} parallax={0.05} />
@@ -206,7 +194,8 @@ function House3D({ model, route, stop, play, passed, spot, cook, onHop }: { mode
       <Kitchen lit={mask}>
         <StaticSet items={items} room={house.room} name="house" />
         {hands.specs.length > 0 ? <StaticSet items={hands.specs} occlusion={{ radius: 0.06 }} name="handoffs" /> : null}
-        <Mover route={route} shaft={house.shaft.x} play={play} passed={passed} onHop={onHop} lamp={present?.lamp ?? null} />
+        <LampLights lamps={lamps} spread={POOL} />
+        <Mover route={route} shaft={house.shaft.x} play={play} passed={passed} onHop={onHop} />
       </Kitchen>
       <SheetInstances kind="tape" sheets={strips} name="tape" />
     </>

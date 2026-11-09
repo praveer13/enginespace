@@ -248,10 +248,12 @@ describe('the room: scene kit v1\'s props, laid out for the plan', () => {
       expect(z).toBeLessThan(0)
       expect(z).toBeGreaterThan(-ROW / 2)
     }
-    // Over a run the shades hang higher, and the light still leaves at a course's height, so its pool is a course deep.
+    // Over a run the shades hang higher, and the light leaves them there, at their mouths: the kit's light is a cone of haze from the
+    // shade's mouth to its pool, and the pool is the kit's spread, a course deep, however high the shade (W1b-T10; a light that left a
+    // hand under the shade drew its mouth's glow in the air under it).
     const run = planOf('rows', 4)
     const runKitchen = tastingKitchen(run, scene.lamps)
-    for (const light of runKitchen.lights) expect(light.at[1]).toBeCloseTo(plan.mouth - 0.02)
+    for (const light of runKitchen.lights) expect(light.at[1]).toBeCloseTo(run.mouth - 0.02)
     expect(run.mouth).toBeGreaterThan(plan.mouth)
   })
 })

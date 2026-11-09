@@ -12,7 +12,6 @@ import path from 'node:path'
 import { Box3, BufferGeometry, ShaderChunk, Vector3 } from 'three'
 import { staticSceneTokens } from '@/design/scene-tokens'
 import { buildProp, panGeometries, PLATE_SHADOWS, plateFootprints, plateProfile } from '@/scene/props/build'
-import { countSpotSpecular, POOL_FRAGMENT } from '@/scene/props/materials'
 import { bakeOcclusion } from '@/scene/props/occlusion'
 import { CHANNEL, paletteFrom } from '@/scene/props/palette'
 import { cellOffset, feedPath, ticketGeometry } from '@/scene/props/paper'
@@ -20,6 +19,7 @@ import { ALWAYS_LIT, buildSet, litMask, roomShade, type RoomLight } from '@/scen
 import { lathe, roundedBox, roundedRectPath, sweep } from '@/scene/props/shape'
 import { PAN_SIZES, PLATE, TICKET, type PropSpec } from '@/scene/props/specs'
 import { drawPrint, PRINT_CELLS, PRINT_SIZE, tileMaps, floorMaps } from '@/scene/props/surfaces'
+import { countSpotSpecular, POOL_FRAGMENT } from '@/scene/spot-pools'
 
 const root = path.resolve(import.meta.dirname, '../..')
 const palette = paletteFrom(staticSceneTokens())
@@ -358,10 +358,13 @@ describe('paper', () => {
 
   test("the atlas prints in the impact printer's dots and only in its two inks, on a canvas it is handed, with no letter and no number", () => {
     const calls: string[] = []
+    const edges: string[] = []
     const dots: { x: number; y: number; radius: number }[] = []
     const context = {
       fillStyle: '',
+      strokeStyle: '',
       fillRect: () => calls.push('rect'),
+      strokeRect: () => edges.push(`edge:${context.strokeStyle}`),
       beginPath: () => undefined,
       arc: (x: number, y: number, radius: number) => dots.push({ x, y, radius }),
       fill: () => calls.push(`dot:${context.fillStyle}`),
@@ -383,6 +386,9 @@ describe('paper', () => {
     }
     // The print's dots are large enough to read as dots at a ticket's size in a scene: about a 25th of a cell's width across.
     expect(Math.max(...dots.map((dot) => dot.radius)) * 2).toBeGreaterThan(cell.w / 25)
+    // W1b-T10: each sheet has its tooth (soft dots of the rule's ink inside it, counted above) and is a shade darker toward its cut
+    // edges, in the rule's ink, twice over: the ticket's back and edges sample that shade, so its thickness reads.
+    expect(edges).toEqual(Array.from({ length: PRINT_CELLS.across * PRINT_CELLS.down * 2 }, () => 'edge:rule'))
   })
 })
 
