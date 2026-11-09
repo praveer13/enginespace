@@ -37,7 +37,9 @@ jobs:
   build:
     if: vars.PAGES_ENABLED == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # The tests alone ran past 14 minutes on a runner, unfinished [measured 2026-11-09, ci.yml's tests job on PR #2], and this job also
+    # installs, lints, type-checks, runs the gates and builds: 40 minutes is its backstop.
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
