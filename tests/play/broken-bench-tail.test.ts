@@ -132,15 +132,18 @@ describe(`over ${SEEDS.length} seeds`, () => {
     for (const [n, lengths] of byOrders) expect([n, [...lengths]]).toEqual([n, [Math.min(n, TAIL_ROWS)]])
   }, MINUTES)
 
-  test('is blind to the place: handed a reading that puts the p99 elsewhere, it lists the same number of lines', () => {
+  test('is blind to the place and to the times: handed a reading that puts the p99 elsewhere, or a log with other times, it lists the same number of lines', () => {
     const { scene } = caseOf({ seed: 1000, flaw: BENCH_FLAWS[1000 % BENCH_FLAWS.length] })
+    // The same orders with other times to first token, so that the p99 is another order, at another time, in another place in the tail.
+    const other = scene.rows.map((row, i) => ({ ...row, firstUs: row.dueUs + 1 + ((i * 7919) % 100_000) }))
     for (const desk of desksOf(scene, 1000)) {
       const reading = readingOf(scene.rows, desk)
       const lines = tailOf(scene.rows, desk, reading).length
       for (const place of [1, 2, 7, 13, 40, 67, 120, 1000]) {
-        const moved = { ...reading, fromTop: place, beyond: place - 1 }
+        const moved = { ...reading, fromTop: place, beyond: place - 1, p99Us: reading.p99Us * 3, meanUs: reading.meanUs * 2 }
         expect([desk, place, tailOf(scene.rows, desk, moved).length]).toEqual([desk, place, lines])
       }
+      expect([desk, tailOf(other, desk).length]).toEqual([desk, lines])
     }
   })
 
