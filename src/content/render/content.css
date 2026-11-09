@@ -423,6 +423,47 @@
   color: var(--es-text-2);
 }
 
+/* ---------------------------------------------------------------------------------------------- the prediction block */
+
+/*
+ * A prediction (Predict.tsx) is filled in like an item, and borrows the item block's slip, plates, keys and verdict (src/items/items.css,
+ * which a lesson loads with its item blocks). These are the lines that only a prediction prints: why a reveal waits, what the model read,
+ * which run it read it from, and what the committed ticket waits for.
+ */
+.es-c-predict__why,
+.es-c-predict__reads,
+.es-c-predict__run,
+.es-c-predict__status {
+  max-width: 68ch;
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+.es-c-predict__why,
+.es-c-predict__run {
+  color: var(--es-text-2);
+}
+
+/* What the committed ticket waits for is the present, so it prints in ribbon black; the printer's dots name it as a line of the ticket. */
+.es-c-predict__status {
+  margin-top: var(--es-space-3);
+  font-family: var(--es-font-ticket);
+  font-weight: var(--es-font-ticket-weight);
+  letter-spacing: var(--es-font-ticket-tracking);
+  color: var(--es-paper-ink);
+}
+
+/* A range has two slips side by side, and one under the other on a phone. */
+.es-c-predict__range {
+  flex-wrap: wrap;
+}
+
+.es-c-predict__range .es-field {
+  flex: 1 1 11rem;
+}
+
 /* ---------------------------------------------------------------------------------------------- the game block */
 
 /*

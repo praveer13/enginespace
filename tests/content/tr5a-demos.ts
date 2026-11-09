@@ -382,7 +382,9 @@ export const groupsOf = (spec: KvSpec, kind: KvGroupSpec['kind']): readonly KvGr
 
 /**
  * The reference of each prediction of TR5a's lessons, from the numbers its prompt gives and the model's own functions. Nothing is stored in a
- * lesson (A§1, I3); the prediction box computes the same thing when it reveals (W1-T13 builds it).
+ * lesson (A§1, I3). The lesson's prediction box (W1b-T02) reads its answer from the run of the game block that follows the prediction, where
+ * packages/play/predictions has a reading, and tests/play/predictions.test.ts holds each reading to the figure here; a prediction with no
+ * reading waits for W2-T43, and its figure here is what that task starts from.
  */
 export const PREDICTIONS: Readonly<Record<string, { readonly unit: string; readonly reference: () => number }>> = {
   'tr5a.l1.p1': { unit: 'pages', reference: () => kvPagesHeld(TWO_KINDS, 4096) },

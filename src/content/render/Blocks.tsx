@@ -4,14 +4,13 @@ import { publicUrl, useClaims } from '../load'
 import { useCard } from '../load-lessons'
 import { ItemBlock } from '@/items/ItemBlock'
 import { Icon } from '@/design/components/Glyph'
-import { Readout } from '@/design/components/Readout'
 import { Stub } from '@/design/components/Stub'
 import { TapeLabel } from '@/design/components/TapeLabel'
-import { TicketLine } from '@/design/components/Ticket'
 import './content.css'
 import { Frame, PendingLine, Tapes, type Of } from './BlockFrame'
 import { GameBlock } from './GameBlock'
-import { cardClaimIds, decimals, laneName, PENDING, pendingLab, readoutUnit, sections, type RenderEnv } from './model'
+import { cardClaimIds, laneName, PENDING, pendingLab, sections, type RenderEnv } from './model'
+import { PredictTicket } from './Predict'
 import { Inline, Prose } from './Prose'
 
 /*
@@ -19,10 +18,11 @@ import { Inline, Prose } from './Prose'
  * block. A prose block breaks into a ticket for each `##` section, with the heading as the ticket's stamped title. Every
  * other block is one ticket, headed by the page's id and its own, titled by its kind, with its facts on tape labels.
  *
- * Prose, a warning, an isomorphism, a notional-machine card, a figure, an item set (src/items, W1-T04) and a game (GameBlock.tsx,
- * W1b-T01) are complete. A block whose feature a later task builds (a prediction, a trace, a lab page, the other cards kept in their own
- * files, a game no task has built yet) prints what it is told, then a red line naming the task that builds the rest, and a stub for the
- * action it will have, held down. A feature task replaces its block's placeholder below and leaves the others alone.
+ * Prose, a warning, an isomorphism, a notional-machine card, a figure, an item set (src/items, W1-T04), a game (GameBlock.tsx, W1b-T01)
+ * and a prediction (Predict.tsx, W1b-T02) are complete. A block whose feature a later task builds (a trace, a lab that has no page yet,
+ * the other cards kept in their own files, a game no task has built yet, a prediction that no run answers) prints what it is told, then
+ * a red line naming the open task that builds the rest, and a stub for the action it will have, held down. A feature task replaces its
+ * block's placeholder below and leaves the others alone.
  */
 
 export interface BlocksProps {
@@ -35,15 +35,15 @@ export interface BlocksProps {
 }
 
 export function Blocks({ blocks, env, scope, rev }: BlocksProps) {
-  return blocks.map((block, at) => <BlockTicket key={at} block={block} at={at} env={env} scope={scope} rev={rev} />)
+  return blocks.map((block, at) => <BlockTicket key={at} block={block} at={at} blocks={blocks} env={env} scope={scope} rev={rev} />)
 }
 
-function BlockTicket({ block, at, env, scope, rev }: { block: CompiledBlock; at: number; env: RenderEnv; scope: string; rev?: string }) {
+function BlockTicket({ block, at, blocks, env, scope, rev }: { block: CompiledBlock; at: number; blocks: readonly CompiledBlock[]; env: RenderEnv; scope: string; rev?: string }) {
   switch (block.type) {
     case 'prose':
       return <ProseTickets block={block} env={env} scope={scope} />
     case 'predict':
-      return <PredictTicket block={block} scope={scope} />
+      return <PredictTicket block={block} scope={scope} at={at} blocks={blocks} rev={rev} />
     case 'item':
       return <ItemBlock block={block} scope={scope} />
     case 'game':
@@ -78,48 +78,7 @@ function ProseTickets({ block, env, scope }: { block: Of<'prose'>; env: RenderEn
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* predict                                                                                                            */
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/** 0.15 as 15, without the 15.000000000000002 that multiplying gives. */
-const percent = (ratio: number): number => Number((ratio * 100).toPrecision(12))
-
-function PredictTicket({ block, scope }: { block: Of<'predict'>; scope: string }) {
-  const { answer } = block
-  const pending = PENDING.predict
-  const unit = answer.kind === 'choice' ? undefined : (readoutUnit(answer.unit) ?? answer.unit)
-  return (
-    <Frame block="predict" scope={scope} meta={block.id} title="Predict" pending={pending.task} stub={<Stub disabled>Commit answer</Stub>}>
-      <p>{block.prompt}</p>
-      {answer.kind === 'choice' ? (
-        <ol className="es-c-options">
-          {answer.options.map((option) => (
-            <li key={option.id}>{option.text}</li>
-          ))}
-        </ol>
-      ) : null}
-      <Tapes
-        label="About this prediction"
-        items={[`answer · ${answer.kind}`, ...(unit === undefined ? [] : [`unit · ${unit}`]), `reveal · ${block.reveal}`, ...block.kcs]}
-      />
-      {answer.kind === 'numeric' ? (
-        <p className="es-c-line">
-          {answer.rel_tol === 0 ? (
-            <TicketLine>tolerance: the exact value</TicketLine>
-          ) : (
-            <TicketLine qty={<Readout value={percent(answer.rel_tol)} digits={decimals(percent(answer.rel_tol))} unit="%" tag="estimated" size="sm" />}>
-              tolerance
-            </TicketLine>
-          )}
-        </p>
-      ) : null}
-      <PendingLine {...pending} />
-    </Frame>
-  )
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-/* trace (the game block is GameBlock.tsx)                                                                            */
+/* trace (the game block is GameBlock.tsx, the prediction is Predict.tsx)                                              */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 function TraceTicket({ block, scope }: { block: Of<'trace'>; scope: string }) {
@@ -139,11 +98,12 @@ function TraceTicket({ block, scope }: { block: Of<'trace'>; scope: string }) {
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 function LabTicket({ block, scope }: { block: Of<'lab'>; scope: string }) {
+  // A lab with a page of its own prints no placeholder; one that W2 or W3 builds names the open task that does.
   const pending = pendingLab(block.id)
   return (
-    <Frame block="lab" scope={scope} meta={block.id} title="Build" pending={pending.task} stub={<Stub to={`/labs/${block.id}`}>Open lab</Stub>}>
+    <Frame block="lab" scope={scope} meta={block.id} title="Build" pending={pending?.task} stub={<Stub to={`/labs/${block.id}`}>Open lab</Stub>}>
       <Tapes label="About this lab" items={[`lane · ${block.lane} ${laneName(block.lane)}`, ...block.stages.map((stage) => `stage · ${stage}`)]} />
-      <PendingLine {...pending} />
+      {pending === null ? null : <PendingLine {...pending} />}
     </Frame>
   )
 }

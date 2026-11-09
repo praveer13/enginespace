@@ -3,7 +3,8 @@
  * with the lesson's route (`/m/<module>/<file name>`), in the order the lesson has them. The content is read as text, so the spec needs no
  * compiler: tests/content/game-blocks.test.ts holds the compiled blocks to the registries, and this list is the same blocks.
  *
- * And the moves every lesson spec makes: start a block's level, find the game it opened, and read the ledger's `play` events.
+ * And the moves every lesson spec makes: start a block's level, find the game it opened, and read the ledger's `play` events (W1b-T02 adds
+ * its `predict` events).
  */
 import { readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -83,11 +84,11 @@ export interface StoredPlay {
 }
 
 /**
- * Every `play` event in the ledger's IndexedDB, oldest first, and none while the app has not made its database: opening it from here
- * first would make an empty one of the app's version, with no store in it, and the app would then find no upgrade to make.
+ * Every event in the ledger's IndexedDB, in no order, and none while the app has not made its database: opening it from here first would
+ * make an empty one of the app's version, with no store in it, and the app would then find no upgrade to make.
  */
-export async function playEvents(page: Page): Promise<StoredPlay[]> {
-  const rows = await page.evaluate(async () => {
+export async function ledgerEvents(page: Page): Promise<unknown[]> {
+  return page.evaluate(async () => {
     const made = (await indexedDB.databases()).some((database) => database.name === 'enginespace')
     if (!made) return []
     return new Promise<unknown[]>((resolve, reject) => {
@@ -109,5 +110,31 @@ export async function playEvents(page: Page): Promise<StoredPlay[]> {
       }
     })
   })
-  return (rows as StoredPlay[]).filter((row) => row.kind === 'play').sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0))
+}
+
+const byTime = (a: { at: string }, b: { at: string }) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0)
+
+/** Every `play` event in the ledger's IndexedDB, oldest first. */
+export async function playEvents(page: Page): Promise<StoredPlay[]> {
+  return ((await ledgerEvents(page)) as StoredPlay[]).filter((row) => row.kind === 'play').sort(byTime)
+}
+
+/** One `predict` event of the ledger, as IndexedDB holds it (A§7.2). */
+export interface StoredPredict {
+  id: string
+  kind: 'predict'
+  ref: string
+  at: string
+  rev?: string
+  seed?: number
+  score: number
+  ok: boolean
+  provenance: string
+  conf?: string
+  data: { value: number | string | { lo: number; hi: number }; truth: number | string | { lo: number; hi: number }; unit?: string }
+}
+
+/** Every `predict` event in the ledger's IndexedDB, oldest first. */
+export async function predictEvents(page: Page): Promise<StoredPredict[]> {
+  return ((await ledgerEvents(page)) as StoredPredict[]).filter((row) => row.kind === 'predict').sort(byTime)
 }

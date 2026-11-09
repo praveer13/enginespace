@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Link, useParams } from 'react-router'
 import { useDocumentTitle } from '@/content/load'
-import { labName, laneName, pendingLab, titled } from '@/content/render/model'
+import { LAB_TASKS, labName, laneName, titled } from '@/content/render/model'
 import { Ticket } from '@/design/components/Ticket'
 import { isForgeLab } from '@/forge/ids'
 import { printedId } from '@/map/summary'
@@ -25,7 +25,7 @@ function LabStubPage({ id, stub }: { id: string; stub: LabStub }) {
       lead={`${stub.handIn}.`}
       heading="What it will hold"
       holds={stub.lane === 'B' ? LAB_HOLDS.forge : LAB_HOLDS.graded}
-      tasks={[pendingLab(id).task]}
+      tasks={[LAB_TASKS[id]]}
       next={{ to: `/m/${stub.module}`, label: `Open ${printedId(stub.module)}` }}
       tapes={[`lane · ${laneName(stub.lane)}`, `module · ${printedId(stub.module)}`]}
     />

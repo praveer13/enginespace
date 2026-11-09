@@ -26,6 +26,8 @@ export interface FrameProps {
   anchor?: string
   /** The task that builds what this ticket stands in for, when it is a placeholder. */
   pending?: string
+  /** The heat lamp falls on the ticket: the place the next decision acts on (a prediction that waits for its answer, or for its reveal). */
+  lamp?: boolean
   stub?: ReactNode
   /** The ticket's state: a block that waits for a file prints as loading, and one that did not load as an error or as blank. */
   state?: TicketState
@@ -37,7 +39,7 @@ export interface FrameProps {
   children?: ReactNode
 }
 
-export function Frame({ block, kind, scope, meta, title, anchor, pending, stub, state, loadingLabel, error, empty, data = {}, children }: FrameProps) {
+export function Frame({ block, kind, scope, meta, title, anchor, pending, lamp, stub, state, loadingLabel, error, empty, data = {}, children }: FrameProps) {
   const attributes = Object.fromEntries(Object.entries(data).map(([name, value]) => [`data-${name}`, value]))
   return (
     <Ticket
@@ -49,6 +51,7 @@ export function Frame({ block, kind, scope, meta, title, anchor, pending, stub, 
       data-placeholder={pending}
       {...attributes}
       width="wide"
+      lamp={lamp}
       head={<Scope id={scope} />}
       meta={meta}
       title={title}
