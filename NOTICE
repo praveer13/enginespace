@@ -16,9 +16,13 @@ licences into third-party-licenses.txt (scripts/pages/third-party-licenses.ts), 
 site serves at /third-party-licenses.txt. That file carries this one after the packages,
 and then the texts of LICENSES/ that this one points to, so the notices below ship with
 the site. Some of those packages are published without a licence file, and
-third-party/notices.json keeps the text for each, with its source. Vite is one of the
-packages, for the helpers that the build writes into the scripts, and the file gives the
-parts of Vite's licence file that apply to them.
+third-party/notices.json keeps the text for each, with its source. Vite and Rollup are two
+of the packages too, for the code that the build writes into the scripts: Vite's preload
+helper, its __vite__mapDeps function and the interop helper of a Rollup plugin that it
+bundles, and Rollup's helper that merges namespace objects (in react-vendor) and its
+namespace-object literals. For them the file gives the parts of Vite's and Rollup's
+licence files that apply, and not the licences of the dependencies that each bundles into
+its own build.
 
 ============================================================================
 kernelspace

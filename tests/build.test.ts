@@ -318,7 +318,7 @@ describe('the app build', () => {
       }
     })
 
-    test('records every script of the build, the forge worker\'s among them, and the packages of Tailwind\'s base CSS by hand', () => {
+    test('records every script of the build, the forge worker\'s among them, and the packages named by hand: Rollup, for the code that it writes into the scripts, and Tailwind, for its base CSS', () => {
       const record = JSON.parse(textOf('.vite/third-party.json')) as { chunks: Record<string, string[]>; alsoShips: string[] }
       expect(Object.keys(record.chunks).sort()).toEqual(scriptsOf())
       expect(scriptsOf().some((file) => /^assets\/forge\.worker-/.test(file))).toBe(true)
@@ -328,8 +328,9 @@ describe('the app build', () => {
         .map((file) => textOf(`assets/${file}`))
         .join('\n')
       expect(css).toContain('--tw-border-spacing-x')
-      expect(record.alsoShips.map((id) => id.replace(/@[^@]+$/, ''))).toEqual(['tailwindcss'])
-      expect(textOf('third-party-licenses.txt')).toContain(`\n${record.alsoShips[0]}\n`)
+      // Rollup's code is in the scripts and no module of it is (the tests below), so it is named by hand as well.
+      expect(record.alsoShips.map((id) => id.replace(/@[^@]+$/, ''))).toEqual(['rollup', 'tailwindcss'])
+      for (const id of record.alsoShips) expect(textOf('third-party-licenses.txt')).toContain(`\n${id}\n`)
     })
 
     /** The text under a package's heading in the licence file, up to the heading of the next package or of NOTICE. */
@@ -370,6 +371,56 @@ describe('the app build', () => {
       const header = text.slice(0, text.indexOf('='.repeat(76))).replace(/\s+/g, ' ')
       expect(header).toContain('its own dependency-map function (__vite__mapDeps)')
       expect(sectionOf(viteId()).replace(/\s+/g, ' ')).toContain('the dependency-map function (__vite__mapDeps)')
+    })
+
+    const rollupId = (): string => {
+      const { version } = JSON.parse(readFileSync(path.join(root, 'node_modules/rollup/package.json'), 'utf8')) as { version: string }
+      return `rollup@${version}`
+    }
+    /**
+     * Rollup's helper that merges namespace objects (`_mergeNamespaces`, written by `HELPER_GENERATORS` in Rollup's source), as esbuild's minifier
+     * leaves it in a script. The minifier chooses the names of the function and its variables, so they are matched and not spelled; what the
+     * helper does is spelled: it loops over a list, skips what is not a namespace, copies every key but "default" that the target lacks with its
+     * property descriptor, and returns the target frozen with the toStringTag of a module.
+     */
+    const MERGE_NAMESPACES =
+      /function [\w$]+\(([\w$]+),([\w$]+)\)\{for\(var ([\w$]+)=0;\3<\2\.length;\3\+\+\)[^]*?!="string"&&!Array\.isArray\([^]*?!=="default"[^]*?Object\.getOwnPropertyDescriptor\([^]*?return Object\.freeze\(Object\.defineProperty\(\1,Symbol\.toStringTag,\{value:"Module"\}\)\)\}/
+    /** Rollup's literal for a module's namespace object, as it is written wherever a namespace is used as a value. */
+    const NAMESPACE_LITERAL = 'Object.freeze(Object.defineProperty({__proto__:null,'
+
+    test("holds Rollup's helper that merges namespace objects in react-vendor and Rollup's namespace literals in other scripts, though no module of rollup reaches a script, which is why the record names rollup by hand", () => {
+      const record = JSON.parse(textOf('.vite/third-party.json')) as { chunks: Record<string, string[]>; alsoShips: string[] }
+      // The source maps show no file of rollup in any chunk, and the record has no rollup among the packages of any script: it is the build
+      // tool and not an import of the site, and what it writes into the scripts is in no module.
+      expect([...app.sources.values()].flat().filter((source) => source.startsWith('node_modules/rollup/'))).toEqual([])
+      expect(Object.values(record.chunks).flat().filter((id) => id.startsWith('rollup@'))).toEqual([])
+      expect(record.alsoShips).toContain(rollupId())
+      // The helper is in react-vendor and in no other script. The gaps of the pattern are lazy, so a match is the helper alone and stays short:
+      // 347 characters [measured 2026-11-09 at b92a73e], and a bound of 600 [estimated] tells it from several functions run together.
+      const vendor = chunkNamed(app, 'react-vendor')?.[1].file ?? 'no react-vendor chunk'
+      const helper = MERGE_NAMESPACES.exec(textOf(vendor))
+      expect(helper, `no helper that merges namespace objects in ${vendor}`).not.toBeNull()
+      expect(helper?.[0].length ?? Infinity).toBeLessThan(600)
+      expect(scriptsOf().filter((file) => MERGE_NAMESPACES.test(textOf(file)))).toEqual([vendor])
+      // The literal of a namespace object is in more than one script, and the licence file says "other scripts" and gives no count.
+      expect(scriptsOf().filter((file) => textOf(file).includes(NAMESPACE_LITERAL)).length).toBeGreaterThan(1)
+    })
+
+    test("says in its header, and in the section of rollup, that Rollup writes a helper and namespace literals into the scripts, and gives Rollup's own licence", () => {
+      const text = textOf('third-party-licenses.txt')
+      const header = text.slice(0, text.indexOf('='.repeat(76))).replace(/\s+/g, ' ')
+      expect(header).toContain('Rollup is listed for the code that it writes into the scripts itself')
+      expect(header).toContain('its helper that merges namespace objects (_mergeNamespaces, in react-vendor)')
+      expect(header).toContain("Rollup's section gives Rollup's own licence")
+      const section = sectionOf(rollupId())
+      expect(section.replace(/\s+/g, ' ')).toContain('the helper that merges namespace objects (_mergeNamespaces')
+      expect(section).toContain('# Rollup core license')
+      expect(section).toContain('Copyright (c) 2017 [these people](https://github.com/rollup/rollup/graphs/contributors)')
+      // Not the licences of what Rollup bundles into its published files, which are most of its licence file.
+      for (const left of ['# Licenses of bundled dependencies', '# Bundled dependencies:', 'chokidar', 'magic-string', 'License: ISC', 'By: Sindre Sorhus']) expect([left, section.includes(left)]).toEqual([left, false])
+      // The section ends with the first twelve lines of the licence file that rollup ships, and with nothing after them.
+      const twelve = readFileSync(path.join(root, 'node_modules/rollup/LICENSE.md'), 'utf8').split('\n').slice(0, 12).join('\n')
+      expect(section.trimEnd().endsWith(twelve)).toBe(true)
     })
 
     test("gives vite's own licence and the Rollup plugins' and not the licences of the dependencies that Vite bundles into its own build, which are most of its licence file", () => {

@@ -24,31 +24,43 @@
  *     and a missing one costs a licence.
  *   - A worker is bundled by a build of its own that Vite's plugins do not see (vite:worker), so its modules reach the file through the
  *     second plugin of `thirdPartyLicenses`, which vite.config.ts puts in `worker.plugins`.
- *   - A package whose files reach the site without being a module of a script (Tailwind's base CSS is copied into the stylesheet) is named
- *     in `alsoShips`.
+ *   - A package whose code reaches the site without being a module of a script is named in `alsoShips`: Tailwind, whose base CSS is copied
+ *     into the stylesheet, and Rollup, which writes code of its own into the scripts (below).
  *   - Code that the build tool writes into a script comes in two kinds. One arrives as a module that has no file, and so no `node_modules` path:
  *     Vite's preload helper (`\0vite/preload-helper.js`, in the entry script) and the interop helper of the Rollup commonjs plugin that Vite
  *     bundles into its own build (`\0commonjsHelpers.js`, in react-vendor) [measured 2026-11-08 at 6418a20: the only two modules of the build
  *     that are not files]. INJECTED names the package of each, vite, and of the rest of Vite's own, so vite is listed like a package whose
  *     module reached a script. A module of that kind that INJECTED does not name fails the build, with its name: a helper that a new Vite or a
  *     new plugin writes in is a licence that nobody has read.
- *   - The other kind is no module at all: a plugin writes it into a script's code after Rollup has put the modules together. Vite's
- *     `__vite__mapDeps` is one, the function that names the files which each lazy import loads with it (`vite:build-import-analysis` writes it
- *     in its `generateBundle` hook), at the top of each script whose lazy imports have files to name [measured 2026-11-09 at 6ae0e50: 16 of the
- *     154 scripts of dist/assets]. The record (`.vite/third-party.json`, below) and INJECTED see only code that arrives as a module (the
- *     `moduleIds` of a chunk), so the record lists vite for the two scripts that hold a helper module and not for the others, and code of that
- *     kind from another plugin would fail nothing. `__vite__mapDeps` is covered because it is Vite's own code and vite's section carries
- *     Vite's licence, and not because the build checks for it.
+ *   - The other kind is no module at all. Rollup writes some of it itself when it renders a chunk: the helper that merges namespace objects
+ *     (`_mergeNamespaces`, which `HELPER_GENERATORS` writes in rollup/dist/es/shared/node-entry.js) is in react-vendor, and the literal of a
+ *     namespace object (`Object.freeze(Object.defineProperty({__proto__:null,...},Symbol.toStringTag,{value:"Module"}))`, which Rollup builds
+ *     when a module's namespace is used as a value) is in 7 other scripts [measured 2026-11-09 at b92a73e: of the 154 scripts of dist/assets].
+ *     No module of rollup reaches a script [measured 2026-11-09 at b92a73e], so the record's list of the packages in each script has no rollup
+ *     in it, and INJECTED has no module to name it for. vite.config.ts names rollup in `alsoShips` instead, which lists it apart from the
+ *     scripts and puts its section in the file. The build does not check for the code itself: tests/build.test.ts finds it in a real build.
+ *   - A plugin writes the rest of that kind into a script's code after Rollup has put the modules together. Vite's `__vite__mapDeps` is one,
+ *     the function that names the files which each lazy import loads with it (`vite:build-import-analysis` writes it in its `generateBundle`
+ *     hook), at the top of each script whose lazy imports have files to name [measured 2026-11-09 at 6ae0e50: 16 of the 154 scripts of
+ *     dist/assets]. The record (`.vite/third-party.json`, below) and INJECTED see only code that arrives as a module (the `moduleIds` of a
+ *     chunk), so the record lists vite for the two scripts that hold a helper module and not for the others, and code of that kind from another
+ *     plugin would fail nothing. `__vite__mapDeps` is covered because it is Vite's own code and vite's section carries Vite's licence, and not
+ *     because the build checks for it.
  *   - vite's LICENSE.md is 101,182 bytes [measured 2026-11-08, vite 7.3.0], and nearly all of it is the licences of the dependencies that are bundled
  *     into Vite's own build (its dev server, its config loader, its CSS tooling), which runs in Node and, but for the code named above, is not in
  *     the site. So the file gives the two parts of it that apply, Vite's own MIT licence (that of the preload helper and of `__vite__mapDeps`) and
  *     the Rollup plugins' (the commonjs helper's), from third-party/vite.txt, word for word, in place of the whole file. The entry in
  *     third-party/notices.json says which file it stands in for (`replaces`) and that file's SHA-256, and the build fails when the installed
  *     file is another one, and when vite is at another version than the entry's, until the file is read again and the entry is made for it.
+ *   - rollup's LICENSE.md is 35,231 bytes [measured 2026-11-09 at b92a73e, rollup 4.67.4], and everything after its first twelve lines is the
+ *     licences of the dependencies that Rollup bundles into its published files, which run in Node and are not in the site. So the file gives
+ *     those twelve lines, Rollup's own MIT licence (that of its helper and of its namespace literals), from third-party/rollup.txt, word for
+ *     word, in place of the whole file, under the same `replaces` entry and the same two failures as vite's.
  *   - Beside Vite's manifest the plugin writes `.vite/third-party.json`: each script of the build with the packages inside it. verify:bundle
  *     reads that (checkShipped below) and fails when the licence file lacks a package, when a script of dist/assets is not in the record (a
  *     worker the plugin never saw), or when NOTICE or a text of LICENSES/ is not in the file. tests/build.test.ts holds the record to the
- *     source maps of a real build, and to the one script that holds Vite's preload helper.
+ *     source maps of a real build, to the one script that holds Vite's preload helper, and to the scripts that hold Rollup's helper and
+ *     namespace literals.
  *
  * Vite has a `build.license` option of its own (7.3.0, `licensePlugin` in dist/node/chunks/config.js), and it is not used, for four reasons
  * that were read in that file: it leaves a package with no licence file out of the text without a word; it reads the first LICENSE, LICENCE
@@ -244,7 +256,8 @@ export function packageRootOf(moduleId: string): string | null {
  * All come with the vite package, as far as the site can tell: it ships them, and the part of its licence file that is kept covers them, the
  * Rollup plugins' notice included. A virtual module that is not here fails the build (collect), and the way out is to find whose code it is and
  * to name the package here. The table holds modules only: code that a plugin writes into a script after the modules are put together (Vite's
- * `__vite__mapDeps`) is no module, and no name here can catch it (see the header of this file).
+ * `__vite__mapDeps`) is no module, and nor is the code that Rollup writes itself when it renders a chunk (its namespace helper and literals), so
+ * no name here can catch either (see the header of this file).
  */
 export const INJECTED: Readonly<Record<string, string>> = {
   'commonjsHelpers.js': 'vite',
@@ -353,7 +366,7 @@ export interface Collection {
   readonly dependencies: readonly Dependency[]
   /** For each script, by file (`assets/index-x.js`), the `name@version` of the packages that hold a module in it. */
   readonly chunks: Readonly<Record<string, readonly string[]>>
-  /** The `name@version` of the packages named by hand, whose files reach the site outside a script. */
+  /** The `name@version` of the packages named by hand, whose files or whose code reach the site without being a module of a script. */
   readonly alsoShips: readonly string[]
 }
 
@@ -481,9 +494,11 @@ export function render(dependencies: readonly Dependency[], notice: string, text
     'NOTICE points to. A package is listed when a module of it reached a script of the build, even if the build then left its code out as',
     'unused. Vite is listed for the code that its build tool writes into the scripts: its own preload helper, its own dependency-map function',
     '(__vite__mapDeps), which it writes into each script whose lazy imports have other files to load with them, and the interop helper of a',
-    "Rollup plugin that it bundles. Vite's section gives Vite's own licence, which is the licence of the first two, and that plugin's, and not the",
-    'licences of the other dependencies that Vite bundles into its own build, which run in Node and are not in this site. The build writes this',
-    'file, and fails when a package in it has no licence file.',
+    "Rollup plugin that it bundles. Vite's section gives Vite's own licence, which is the licence of the first two, and that plugin's. Rollup is",
+    'listed for the code that it writes into the scripts itself: its helper that merges namespace objects (_mergeNamespaces, in react-vendor) and',
+    "the literals of the namespace objects that it builds for modules, in other scripts. Rollup's section gives Rollup's own licence. Neither section",
+    'gives the licences of the other dependencies that the tool bundles into its own build, which run in Node and are not in this site. The build',
+    'writes this file, and fails when a package in it has no licence file.',
   ].join('\n')
   const closing = [RULE, NOTICE_FILE, RULE, '', notice.replace(/\r\n?/g, '\n').trimEnd()].join('\n')
   const appended = texts.map(({ file, text }) => [RULE, file, RULE, '', text].join('\n'))
@@ -503,7 +518,7 @@ export const recordOf = ({ chunks, alsoShips }: Collection): LicenceRecord => ({
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 export interface LicenceOptions {
-  /** Packages by name, whose files are copied into the site without being a module of a script. */
+  /** Packages by name, whose files are copied into the site, or whose code the build writes into a script, without being a module of one. */
   readonly alsoShips?: readonly string[]
 }
 

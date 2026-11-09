@@ -7,12 +7,15 @@
  *     that no path of this machine is written.
  *   - The modules that the build tool writes into a script (Vite's preload helper, the commonjs interop helper): they belong to vite, one
  *     that INJECTED does not name fails the build, and the text that the repository keeps for part of vite's licence file stands in for the
- *     file, for that file and that version alone.
+ *     file, for that file and that version alone. A text of that kind stands in for rollup's file too, and rollup is named by hand
+ *     (`alsoShips`), because the code that Rollup writes into the scripts is no module of them.
  *   - The plugin's hooks, driven by hand, and then a real `vite build` of a miniature project with a lazy chunk and a worker, the way
  *     the app's own build has them: the worker's package is in the file only because of the second plugin, and the gate says so when the
  *     build leaves the second plugin out.
  *   - The gate (checkShipped) on a build that is right, and on each way it can be wrong.
  *   - third-party/notices.json against the lockfile and the installed packages, and the About page's link.
+ *   - What the file, the plugin's header, the entries, the README, NOTICE and vite.config.ts say of the build tools' own code in the scripts
+ *     (Vite's `__vite__mapDeps`, Rollup's namespace helper and literals); tests/build.test.ts holds those words to a real build.
  */
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { spawnSync } from 'node:child_process'
@@ -553,6 +556,27 @@ describe('a text that stands in for part of a licence file ("replaces" in third-
     expect(rendered).toContain(`Source: https://example.invalid/bare/LICENSE\nRead from the repository.\n${note}\n\nMIT License\n\nCopyright (c) Bare Authors`)
     expect(rendered.split(note)).toHaveLength(2)
   })
+
+  test('is shipped for a package that is named by hand and that no script holds a module of (rollup is), and the record lists it apart from the scripts, which the gate finds in the file', () => {
+    const { dir } = excerptProject()
+    writeFileSync(path.join(dir, 'NOTICE'), NOTICE_TEXT)
+    const { plugin } = thirdPartyLicenses(dir, { alsoShips: ['vite'] })
+    const [text, record] = generate(plugin, { 'assets/x.js': ['/p/src/main.ts'] })
+    expect(text.source).toContain(`${'='.repeat(76)}\nvite@7.3.0\nLicence: MIT\n${'='.repeat(76)}\n\n`)
+    expect(text.source).toContain(VITE_OWN.trimEnd())
+    expect(text.source).not.toContain('Bundled dependencies, fixture text')
+    expect(JSON.parse(record.source)).toEqual({ chunks: { 'assets/x.js': [] }, alsoShips: ['vite@7.3.0'] })
+    expect(checkShipped({ text: text.source, record: record.source, notice: NOTICE_TEXT, texts: [], scripts: ['assets/x.js'] })).toEqual({ problems: [], packages: ['vite@7.3.0'] })
+  })
+
+  test('fails the build for a package named by hand at another version than the text was cut for, and for a licence file that is not the one it was cut from', () => {
+    const bumped = excerptProject({ version: '7.4.0' })
+    writeFileSync(path.join(bumped.dir, 'NOTICE'), NOTICE_TEXT)
+    expect(() => generate(thirdPartyLicenses(bumped.dir, { alsoShips: ['vite'] }).plugin, { 'assets/x.js': [] })).toThrow('keeps only the parts that apply, and keeps them for another version')
+    const edited = excerptProject({ file: `${VITE_FILE}A line that a later build of the same version added.\n`, sha: sha256(VITE_FILE) })
+    writeFileSync(path.join(edited.dir, 'NOTICE'), NOTICE_TEXT)
+    expect(() => generate(thirdPartyLicenses(edited.dir, { alsoShips: ['vite'] }).plugin, { 'assets/x.js': [] })).toThrow("ships a LICENSE.md that is not the file which third-party/notices.json's text for it was cut from")
+  })
 })
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -883,6 +907,16 @@ interface Notice {
   note?: string
 }
 
+/**
+ * The entries that stand in for part of a licence file, which are the licence files of the build tools: the day each was read, and the lines of
+ * the file that the text keeps, in order. The text is those lines word for word, with the rule that the file puts between its entries between
+ * the parts (vite's has two). Vite's was read on 2026-11-08, and Rollup's on 2026-11-09, at the build of the SHA that its basis names.
+ */
+const CUTS: Readonly<Record<string, { readonly measured: string; readonly cuts: readonly (readonly [number, number])[] }>> = {
+  'vite@7.3.0': { measured: '2026-11-08', cuts: [[1, 24], [130, 167]] },
+  'rollup@4.67.4': { measured: '2026-11-09', cuts: [[1, 12]] },
+}
+
 describe('third-party/notices.json', () => {
   const index = JSON.parse(read(SUPPLIED_FILE)) as { schema: string; fetched: string; userAgent: string; notices: Notice[] }
   const lock = JSON.parse(read('package-lock.json')) as { packages: Record<string, { version: string; resolved?: string; dev?: boolean }> }
@@ -916,15 +950,16 @@ describe('third-party/notices.json', () => {
 
   test('names where a text that stands in for part of a licence file was read: that file of that release of the package, from the tarball the lockfile pins, with the tag of what was measured', () => {
     const stands = index.notices.filter((notice) => notice.replaces !== undefined)
-    expect(stands.map((notice) => notice.packages)).toEqual([['vite@7.3.0']])
+    // The build tools whose licence files carry far more than the code of theirs that is in the site: Vite and Rollup, and no other package.
+    expect(stands.flatMap((notice) => notice.packages).sort()).toEqual(Object.keys(CUTS).sort())
     for (const notice of stands) {
       for (const id of notice.packages) {
         const [name, version] = split(id)
         const resolved = lock.packages[`node_modules/${name}`]?.resolved
         expect([id, resolved]).toEqual([id, `https://registry.npmjs.org/${name}/-/${name}-${version}.tgz`])
         expect([id, notice.source]).toEqual([id, expect.stringContaining(`the file ${notice.replaces?.file} of the npm package ${name} ${version} (${resolved}`)])
+        expect([id, notice.basis]).toEqual([id, expect.stringMatching(new RegExp(`^\\[measured ${CUTS[id].measured} at [0-9a-f]{7}\\]`))])
       }
-      expect([notice.file, notice.basis]).toEqual([notice.file, expect.stringMatching(/^\[measured 2026-11-08 at [0-9a-f]{7}\]/)])
       // Every measurement in the basis carries its date and the SHA of the build it was made at, a count of scripts included. A count changes
       // with every build, so no test holds its value: only that it is tagged.
       const tags = notice.basis.match(/\[measured [^\]]*\]/g) ?? []
@@ -953,7 +988,7 @@ describe('third-party/notices.json', () => {
 
   test('keeps for a package that ships a licence file the parts of it that apply: the file is the one pinned, and the text is lines of it, word for word, in order, and a small part of it', () => {
     const stands = listed.filter(({ notice }) => notice.replaces !== undefined)
-    expect(stands.length).toBeGreaterThan(0)
+    expect(stands.map(({ id }) => id).sort()).toEqual(Object.keys(CUTS).sort())
     for (const { id, notice } of stands) {
       const [name] = split(id)
       const replaced = notice.replaces as { file: string; sha256: string }
@@ -961,16 +996,16 @@ describe('third-party/notices.json', () => {
       expect([id, createHash('sha256').update(whole).digest('hex')]).toEqual([id, replaced.sha256])
       const lines = whole.toString('utf8').split('\n')
       const kept = readFileSync(path.join(root, 'third-party', notice.file), 'utf8')
-      // The parts are cut at the rule that the file itself puts between its entries, and each is a run of the file's own lines.
+      // The parts are cut at the rule that the file itself puts between its entries, and each is a run of the file's own lines. Vite's text has two:
+      // Vite's own licence (lines 1 to 24) and the Rollup plugins' entry (lines 130 to 167). Rollup's has one, Rollup's own licence (lines 1 to 12).
+      // The numbers are the ones that the entry's basis and source give.
+      const { cuts } = CUTS[id]
       const parts = kept.split('\n---------------------------------------\n').map((part) => part.trim())
-      expect([id, parts.length]).toEqual([id, 2])
-      const [first, second] = parts
-      // vite's: Vite's own licence is lines 1 to 24, and the Rollup plugins' entry, lines 130 to 167 (the numbers that the entry's basis gives).
-      expect([id, lines.slice(0, 24).join('\n')]).toEqual([id, first])
-      expect([id, lines.slice(129, 167).join('\n')]).toEqual([id, second])
-      expect(notice.basis).toContain('(lines 1 to 24)')
-      expect(notice.source).toContain('lines 1 to 24 and lines 130 to 167')
-      // What is left out is the licences of what Vite bundles into its own build, which is nearly all of the file.
+      expect([id, parts.length]).toEqual([id, cuts.length])
+      cuts.forEach(([from, to], at) => expect([id, from, to, lines.slice(from - 1, to).join('\n')]).toEqual([id, from, to, parts[at]]))
+      expect(notice.basis).toContain(`(lines 1 to ${cuts[0][1]})`)
+      expect(notice.source).toContain(cuts.map(([from, to]) => `lines ${from} to ${to}`).join(' and '))
+      // What is left out is the licences of what the tool bundles into its own build, which is nearly all of the file.
       expect(kept).not.toContain('Licenses of bundled dependencies')
       expect(kept.length).toBeLessThan(whole.length / 10)
     }
@@ -1097,6 +1132,133 @@ describe("what is said of Vite's own code in the scripts", () => {
     for (const file of ['README.md', 'NOTICE', 'vite.config.ts', 'scripts/pages/third-party-licenses.ts', 'third-party/notices.json']) {
       const text = oneLine(read(file).replace(/\n[ \t]*(?:\*|\/\/)[ \t]?/g, ' '))
       for (const gone of [/\btwo helpers\b/, /none of its code is in the scripts/]) expect([file, gone.source, gone.test(text)]).toEqual([file, gone.source, false])
+    }
+  })
+})
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* What is said of Rollup's own code in the scripts                                                                   */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/*
+ * Rollup writes code into the scripts itself when it renders a chunk: the helper that merges namespace objects (`_mergeNamespaces`, in
+ * react-vendor) and the literals of namespace objects (in other scripts). No module of rollup reaches a script, so the record could not list
+ * it, and a file that said "every npm package that has code in the scripts" had no section for it. vite.config.ts now names rollup in
+ * `alsoShips`, and the lines of its LICENSE.md that apply stand in for the file (third-party/notices.json). Each place that speaks of the
+ * build tool's code in the scripts is held here to the wording that is true. No test holds a count of scripts, which changes with every build:
+ * tests/build.test.ts finds the helper and the literals in a real build, and the basis tags the count it gives.
+ */
+describe("what is said of Rollup's own code in the scripts", () => {
+  /** A block comment's text on one line: the line breaks, and the ` * ` that starts each line, taken out. */
+  const comment = (text: string): string => text.replace(/\n[ \t]*(?:\*[ \t]?)?/g, ' ').replace(/\s+/g, ' ').trim()
+  const oneLine = (text: string): string => text.replace(/\s+/g, ' ').trim()
+  const source = read('scripts/pages/third-party-licenses.ts')
+  const rollupEntry = (JSON.parse(read(SUPPLIED_FILE)) as { notices: Notice[] }).notices.find((notice) => notice.packages.includes('rollup@4.67.4'))
+
+  test('is code that Rollup writes: the Rollup that builds the site has the helper and the namespace literal in its source, and Vite builds with that copy', () => {
+    const rollup = read('node_modules/rollup/dist/es/shared/node-entry.js')
+    expect(rollup).toContain("const MERGE_NAMESPACES_VARIABLE = '_mergeNamespaces';")
+    expect(rollup).toContain('const HELPER_GENERATORS = {')
+    expect(rollup).toContain('[MERGE_NAMESPACES_VARIABLE](t, snippets, liveBindings, freeze, symbols) {')
+    // A namespace object is written with no prototype, the toStringTag of a module, and a freeze.
+    expect(rollup).toContain('members.unshift([null, `__proto__:${_}null`]);')
+    expect(rollup).toContain('Symbol.toStringTag,${_}${getToStringTagValue(getObject)}')
+    expect(rollup).toContain('/*#__PURE__*/Object.freeze(${output})')
+    // vite has no copy of rollup of its own, so the package that the build names is the one that bundles the site.
+    expect(existsSync(path.join(root, 'node_modules/vite/node_modules/rollup'))).toBe(false)
+    const dependencies = (JSON.parse(read('node_modules/vite/package.json')) as { dependencies: Record<string, string> }).dependencies
+    expect(dependencies.rollup).toBeDefined()
+  })
+
+  test('the basis of the rollup entry names the helper and the literals and where they are, and says that no module of Rollup reaches a script, so the record cannot list it', () => {
+    expect(rollupEntry).toBeDefined()
+    const basis = oneLine(rollupEntry?.basis ?? '')
+    for (const part of [
+      'LICENSE.md of rollup 4.67.4 is 35,231 bytes',
+      "It opens with Rollup's own MIT licence (lines 1 to 12)",
+      'no module of it reaches a script',
+      'the helper that merges namespace objects (_mergeNamespaces, which HELPER_GENERATORS writes in dist/es/shared/node-entry.js of the package), in react-vendor',
+      'the literal of a namespace object',
+      "Rollup's own licence (lines 1 to 12) is the licence of both",
+      'cannot list rollup for any script',
+      'vite.config.ts names rollup by hand (alsoShips)',
+    ]) {
+      expect([part, basis.includes(part)]).toEqual([part, true])
+    }
+    // The count of scripts that hold the literal is given, and tagged with its day and its build.
+    expect(basis).toMatch(/it is in \d+ other scripts of the \d+ in dist\/assets \[measured 20\d\d-\d\d-\d\d at [0-9a-f]{7}\]/)
+    // The basis of the vite entry sends a reader who looks for Rollup's own code to the section of rollup, so that the two sections divide it.
+    const vite = oneLine((JSON.parse(read(SUPPLIED_FILE)) as { notices: Notice[] }).notices.find((notice) => notice.packages.includes('vite@7.3.0'))?.basis ?? '')
+    expect(vite).toContain("The code that Rollup itself writes into the scripts is not the vite package's, and the section of rollup covers it.")
+  })
+
+  test("the file's own header names Rollup beside Vite, with the helper and the literals, and says that its section gives Rollup's own licence", () => {
+    const text = render([], 'N')
+    const header = oneLine(text.slice(0, text.indexOf('='.repeat(76))))
+    for (const part of [
+      "and that plugin's. Rollup is listed for the code that it writes into the scripts itself: its helper that merges namespace objects (_mergeNamespaces, in react-vendor)",
+      'and the literals of the namespace objects that it builds for modules, in other scripts.',
+      "Rollup's section gives Rollup's own licence.",
+      'Neither section gives the licences of the other dependencies that the tool bundles into its own build, which run in Node and are not in this site.',
+    ]) {
+      expect([part, header.includes(part)]).toEqual([part, true])
+    }
+  })
+
+  test("the plugin's header says the same, and that rollup is named in alsoShips because no module of it reaches a script", () => {
+    const header = comment(source.slice(0, source.indexOf('import { createHash }')))
+    for (const part of [
+      'A package whose code reaches the site without being a module of a script is named in `alsoShips`: Tailwind, whose base CSS is copied into the stylesheet, and Rollup, which writes code of its own into the scripts',
+      'Rollup writes some of it itself when it renders a chunk: the helper that merges namespace objects (`_mergeNamespaces`, which `HELPER_GENERATORS` writes in rollup/dist/es/shared/node-entry.js) is in react-vendor',
+      'the literal of a namespace object',
+      'No module of rollup reaches a script',
+      'vite.config.ts names rollup in `alsoShips` instead, which lists it apart from the scripts and puts its section in the file',
+      "Rollup's own MIT licence (that of its helper and of its namespace literals)",
+    ]) {
+      expect([part, header.includes(part)]).toEqual([part, true])
+    }
+  })
+
+  test('vite.config.ts names rollup in alsoShips beside tailwindcss, and its comment says what Rollup writes and that Vite needs no entry', () => {
+    const config = read('vite.config.ts')
+    expect(config).toContain("thirdPartyLicenses(root, { alsoShips: ['rollup', 'tailwindcss'] })")
+    const note = comment(config.slice(config.indexOf('The licences of the npm packages inside the scripts'), config.indexOf('const licences')))
+    for (const part of [
+      'Two packages are named here though no script holds a module of them',
+      'Rollup writes code of its own into the scripts when it renders a chunk, the helper that merges namespace objects (in react-vendor) and the literals of namespace objects (in other scripts)',
+      'Vite itself needs no entry here',
+      'its preload helper, and the interop helper of a Rollup plugin that it bundles',
+      'its `__vite__mapDeps` function, is no module at all',
+    ]) {
+      expect([part, note.includes(part)]).toEqual([part, true])
+    }
+  })
+
+  test("README's paragraph on the gate and NOTICE's opening name Rollup beside Vite, with the code that each writes into the scripts", () => {
+    const readme = oneLine(read('README.md'))
+    for (const part of [
+      "Rollup is another, for the code that it writes into the scripts itself (the helper that merges namespace objects, in `react-vendor`, and the literals of the namespace objects that it builds for modules, in other scripts), and its section gives Rollup's own licence.",
+      'Neither section gives the licences of the other dependencies that the tool bundles into its own build.',
+      'it lists Rollup for no script: `vite.config.ts` names Rollup in `alsoShips`, which puts its section in the file.',
+      'and the parts of the licence files of Vite and Rollup that apply',
+    ]) {
+      expect([part, readme.includes(part)]).toEqual([part, true])
+    }
+    const notice = read('NOTICE')
+    const opening = oneLine(notice.slice(0, notice.indexOf('='.repeat(76))))
+    for (const part of [
+      'Vite and Rollup are two of the packages too, for the code that the build writes into the scripts:',
+      "Vite's preload helper, its __vite__mapDeps function and the interop helper of a Rollup plugin that it bundles, and Rollup's helper that merges namespace objects (in react-vendor) and its namespace-object literals.",
+      "the parts of Vite's and Rollup's licence files that apply, and not the licences of the dependencies that each bundles into its own build.",
+    ]) {
+      expect([part, opening.includes(part)]).toEqual([part, true])
+    }
+  })
+
+  test("no place that speaks of the build's code in the scripts calls it the helpers of one tool, as if Vite's were all of it", () => {
+    for (const file of ['README.md', 'NOTICE', 'vite.config.ts', 'scripts/pages/third-party-licenses.ts', 'third-party/notices.json']) {
+      const text = oneLine(read(file).replace(/\n[ \t]*(?:\*|\/\/)[ \t]?/g, ' '))
+      for (const gone of [/the helpers that the build writes into the scripts/, /helpers that the build tool writes into the scripts/]) expect([file, gone.source, gone.test(text)]).toEqual([file, gone.source, false])
     }
   })
 })
