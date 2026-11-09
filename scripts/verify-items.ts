@@ -394,7 +394,7 @@ export function checkShape(gen: Gen, file: string): Diagnostic[] {
       ids.add(variant.id)
       if (!Array.isArray(variant.kcs) || variant.kcs.length === 0) bad('family-variants', `variant "${variant.id}" names no KC`)
       else for (const kc of variant.kcs) covered.add(kc)
-      if (!Array.isArray(variant.levels) || variant.levels.length === 0 || !variant.levels.every((level) => (LEVELS as readonly number[]).includes(level))) {
+      if (!Array.isArray(variant.levels) || variant.levels.length === 0 || !variant.levels.every((level: number) => (LEVELS as readonly number[]).includes(level))) {
         bad('family-variants', `variant "${variant.id}" must list levels from 0 to 3`)
       }
     }
@@ -545,7 +545,7 @@ export function readVectors(root: string): { file: VectorFile | null; diagnostic
     if (!isRecord(parsed) || parsed.schema !== VECTORS_SCHEMA || !isRecord(parsed.families)) {
       return { file: null, diagnostics: [at(VECTORS_FILE, `is not an ${VECTORS_SCHEMA} file`, 'vectors-file')] }
     }
-    return { file: parsed as unknown as VectorFile, diagnostics: [] }
+    return { file: parsed as unknown as VectorFile, diagnostics: [] } // `--write` made the file: its schema id and families are checked above, and the rest is the shape renderVectors writes
   } catch (caught) {
     return { file: null, diagnostics: [at(VECTORS_FILE, `cannot be read: ${message(caught)}`, 'vectors-file')] }
   }

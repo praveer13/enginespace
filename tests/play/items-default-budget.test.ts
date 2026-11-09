@@ -94,7 +94,8 @@ describe('the keys, re-derived from what the ticket prints', () => {
         if (item.answer.kind !== 'choice') throw new Error('a choice')
         const t = ticket(item)
         const row = rowOf(t)
-        const pair = PAIRS.find((candidate) => candidate.id === item.answer.correct)
+        const { correct } = item.answer
+        const pair = PAIRS.find((candidate) => candidate.id === correct)
         expect(pair).toBeDefined()
         expect([pair?.tokens, pair?.seqs]).toEqual([t.offline ? row.offline : row.server, row.seqs])
         // The command is the server's below level 3.

@@ -313,7 +313,8 @@ describe('levels', () => {
     for (const seed of SEEDS.slice(0, 100)) {
       const item = requestState.make(seed, 1, 'moves')
       if (item.answer.kind !== 'choice') throw new Error('a choice')
-      const right = item.answer.options.find((option) => option.id === item.answer.correct)
+      const { correct } = item.answer
+      const right = item.answer.options.find((option) => option.id === correct)
       expect(plain(item.worked[0].text)).not.toContain(plain(right?.text ?? []).toLowerCase())
     }
   })

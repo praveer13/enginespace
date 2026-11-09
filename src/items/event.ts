@@ -1,4 +1,4 @@
-import type { Draft, Json } from '@es/ledger'
+import type { Draft } from '@es/ledger'
 import type { ItemResult } from '@es/play/items/attempt'
 
 /*
@@ -17,6 +17,6 @@ export function itemDraft(result: ItemResult): Draft<'item'> {
     seed: result.seed,
     ...(result.conf === undefined ? {} : { conf: result.conf }),
     rev: result.rev,
-    data: { answer: result.answer as unknown as Json },
+    data: { answer: result.answer },
   }
 }

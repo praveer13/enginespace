@@ -16,6 +16,7 @@ import { decodeEvent, MemoryStore, seededIds, stampEvent } from '@es/ledger'
 import { courseMapSchema } from '@es/schema'
 import type { CompiledBlock } from '@es/schema'
 import { gradePrediction } from '@es/play/predictions/grade'
+import type { PredictAnswer } from '@es/play/predictions/grade'
 import { NO_BLOCK, PLAN, UNLISTED } from '@es/play/predictions/plan'
 import { Blocks } from '@/content/render/Blocks'
 import { renderEnv } from '@/content/render/model'
@@ -154,7 +155,7 @@ describe('the slip of each shape of answer', () => {
 describe('reading a slip', () => {
   const slip = { text: '', pick: null, lo: '', hi: '' }
   const numericAnswer = { kind: 'numeric', unit: 'us', rel_tol: 0.05 } as const
-  const choiceAnswer = { kind: 'choice', options: [{ id: 'a-yes', text: 'Yes' }, { id: 'b-no', text: 'No' }] } as const
+  const choiceAnswer: PredictAnswer = { kind: 'choice', options: [{ id: 'a-yes', text: 'Yes' }, { id: 'b-no', text: 'No' }] }
   const intervalAnswer = { kind: 'interval', unit: 'ms' } as const
 
   test('a number is read with its unit as the page prints it or as the lesson writes it, with thousands in groups, and nothing else is a number', () => {

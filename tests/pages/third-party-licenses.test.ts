@@ -46,7 +46,7 @@ import {
   SUPPLIED_FILE,
   thirdPartyLicenses,
 } from '../../scripts/pages/third-party-licenses'
-import type { Collection, Dependency, RepositoryText, Shipped } from '../../scripts/pages/third-party-licenses'
+import type { Collection, Dependency, LicenceRecord, RepositoryText, Shipped } from '../../scripts/pages/third-party-licenses'
 import { Component as About } from '../../src/pages/About'
 import { read, root } from '../ci/support'
 
@@ -771,7 +771,7 @@ describe('a real build of a miniature project', () => {
   test('records the worker\'s script with its package, among the scripts of the build', () => {
     const record = parseRecord(shipped?.record ?? '')
     expect(typeof record).toBe('object')
-    const chunks = (record as { chunks: Record<string, string[]> }).chunks
+    const chunks = (record as LicenceRecord).chunks
     const worker = Object.keys(chunks).filter((file) => /^assets\/w\.worker-/.test(file))
     expect(worker).toHaveLength(1)
     expect(chunks[worker[0]]).toEqual(['@scope/pkg-c@3.1.0'])
@@ -780,7 +780,7 @@ describe('a real build of a miniature project', () => {
 
   test("names vite for the preload helper that the build writes into the script that makes the lazy import, which is not a file of any package, and records it for that script alone", () => {
     expect((shipped?.text ?? '').split('\n')).toContain('vite@7.3.0')
-    const chunks = (parseRecord(shipped?.record ?? '') as { chunks: Record<string, string[]> }).chunks
+    const chunks = (parseRecord(shipped?.record ?? '') as LicenceRecord).chunks
     const holders = Object.keys(chunks).filter((file) => chunks[file].includes('vite@7.3.0'))
     expect(holders).toHaveLength(1)
     // The script that holds the helper is the one that holds its message, and no other script does.

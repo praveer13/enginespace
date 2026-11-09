@@ -51,7 +51,7 @@ Run these on your branch before you open the pull request. CI runs the same ones
 ```sh
 npm ci                # install the exact pins in package-lock.json; in a worktree, rule 2 replaces it
 npm run lint          # ESLint, with the package fences and the determinism bans
-npm run typecheck     # tsc -b: the app, the Node-side configs and the pure packages
+npm run typecheck     # tsc -b: the app, the Node-side configs, the pure packages, and scripts/ and tests/
 bun test              # the tests under tests/; npm test runs the same
 npm run build         # tsc -b, then vite build into dist/
 npm run verify:all    # every verify:* gate

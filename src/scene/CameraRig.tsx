@@ -1,7 +1,7 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { OrthographicCamera, PerspectiveCamera, Vector3, type Camera } from 'three'
-import { framingFor, lerp, lerpVec, presetById, transitionMs, type CameraPreset, type Framing, type Vec3 } from './camera-rig'
+import { framingFor, lerp, lerpVec, presetById, transitionMs, type CameraPreset, type Framing } from './camera-rig'
 import { useKit } from './kit'
 
 /*
@@ -213,7 +213,7 @@ export function CameraRig({ presets, preset, orbit = false, parallax = 0 }: Came
       if (!alive) return
       const camera = presetById(presets, preset).projection === 'orthographic' ? cameras.orthographic : cameras.perspective
       const controls = new OrbitControls(camera, gl.domElement)
-      const [x, y, z] = targetKey.split(',').map(Number) as unknown as Vec3
+      const [x, y, z] = targetKey.split(',').map(Number)
       controls.target.copy(new Vector3(x, y, z))
       controls.enableDamping = false
       controls.enablePan = false

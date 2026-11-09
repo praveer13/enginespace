@@ -189,7 +189,8 @@ export interface Play {
 /** A balk: from the ticket's stand, a short way toward the hand-off that did not hold, and back. It goes to no other hands. */
 export function balkOf(hop: Hop): Hop {
   const [from, next = from] = hop.poses
-  const nudge: Pose = { at: from.at.map((v, k) => v + (next.at[k] - v) * BALK) as unknown as Vec3, rot: from.rot }
+  const [x, y, z] = from.at.map((v, k) => v + (next.at[k] - v) * BALK)
+  const nudge: Pose = { at: [x, y, z], rot: from.rot }
   return { stage: hop.stage, poses: [from, nudge, from], car: null, cook: null, spot: '', length: 0.2 }
 }
 

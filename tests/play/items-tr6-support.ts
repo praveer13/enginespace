@@ -13,7 +13,9 @@ interface ClaimRecord {
   id: string
   value: string | number
   text: string
-  source?: { url: string; quote: string }
+  /** The upstream the claim is about, as `course.lock.json` names it: `vllm`, `sglang`. */
+  pin?: string
+  source?: { url: string; quote: string; title: string }
 }
 
 const walk = (dir: string): string[] =>

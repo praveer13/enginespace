@@ -215,7 +215,7 @@ describe('dates, pins and age', () => {
     const stale = problems({}, '2027-02-03', LOCK_KEYS, CLAIMS)
     expect(summary(stale)).toEqual([`warning ${first} stale-claim`])
     expect(stale[0].message).toBe('vllm.release.requires-python: stale since 2027-02-02 (checked 2026-11-04, good for 90 days)')
-    expect(errors({ diagnostics: stale, outputs: [], claims: [], lockKeys: null, stats: { modules: 0, lessons: 0, claims: 0 } })).toEqual([])
+    expect(errors({ diagnostics: stale, outputs: [], claims: [], lockKeys: null, cards: new Set(), stats: { modules: 0, lessons: 0, claims: 0 } })).toEqual([])
   })
 
   test('the 365-day claims are stale a year on', () => {

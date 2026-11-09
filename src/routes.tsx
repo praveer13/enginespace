@@ -1,4 +1,4 @@
-import type { RouteObject } from 'react-router'
+import type { NonIndexRouteObject } from 'react-router'
 import App, { AppError, AppLoading, type RouteHandle } from './App'
 import { Component as NotFound } from './pages/NotFound'
 
@@ -10,8 +10,10 @@ const titled = (page: string): RouteHandle => ({ title: `${page} · ${SITE}` })
  * The route table (ARCHITECTURE §3.1). Every page is its own lazy chunk, so the entry holds only the shell
  * and the not-found page. The routes carry no guards: prerequisites advise and never block (I9).
  * Adding a route here means adding it to §3.1 and to tests/smoke.test.ts, which compares the two.
+ * The table is one shell route whose children are the pages, so it is typed as routes that are not index routes: a copy of the
+ * shell with other children is a route too.
  */
-export const routes: RouteObject[] = [
+export const routes: NonIndexRouteObject[] = [
   {
     path: '/',
     Component: App,
