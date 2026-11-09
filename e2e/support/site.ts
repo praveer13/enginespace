@@ -95,7 +95,11 @@ export const test = base.extend<{ watch: Watch }>({
       const attach = (tab: Page) => {
         tab.on('pageerror', (error) => watch.errors.push(`pageerror: ${error.message}`))
         tab.on('console', (message) => {
-          // Warnings are not this page's errors: three's own notice that one of its classes is deprecated is one.
+          // Warnings are not this page's errors: three's own notice that one of its classes is deprecated is one. `THREE.Clock: This module has
+          // been deprecated` (three 0.185.1, since r183) is printed on /, /design and the four 3D games, as each makes its Canvas, by
+          // @react-three/fiber 9.6.1, which makes a clock in the store of every Canvas (`clock: new THREE.Clock()`, its events-*.js). None of
+          // this repository's code makes one [measured 2026-11-09 at 1cc66d4 by a stack taken where the warning is printed, and by grep], so it
+          // stays until the dependency moves to THREE.Timer (W1b-T09).
           if (message.type() === 'error') watch.errors.push(`console: ${message.text()}`)
         })
       }

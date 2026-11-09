@@ -386,3 +386,46 @@
 .es-ledger__none {
   color: var(--es-text-3);
 }
+
+/* ---------------------------------------------------------------------------------------------- a page that is not built yet */
+
+/*
+ * The ticket of what a page will hold (src/unbuilt/Unbuilt.tsx, W1b-T09). The page's frame (the plate, the lead, the gaps between its parts) is
+ * `.es-page` above; these place what is particular to the ticket. They sit in this file and not in a file of their own because every
+ * stylesheet that a lazy route loads is named in the entry's list of them, and the front page's first paint pays for each name (D-023).
+ */
+
+/* The lane and the module of a lab, on masking tape. */
+.es-unbuilt__tapes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2) var(--es-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* What the page will hold: square bullets, as the paper is cut. Under a line of print (the id of the trace asked for) it stands a line away. */
+.es-unbuilt__holds {
+  display: grid;
+  gap: var(--es-space-2);
+  margin: 0;
+  padding-inline-start: var(--es-space-6);
+  list-style: square;
+}
+
+.es-unbuilt__holds:not(:first-child) {
+  margin-top: var(--es-space-4);
+}
+
+/* What the page lacks, in the ribbon's red and in capitals, as the printer prints a warning (the lesson's placeholders print alike), set
+   off from the list above it by a line more than the ticket puts between its parts. */
+.es-unbuilt__pending {
+  margin-top: var(--es-space-4);
+  text-transform: uppercase;
+}
+
+.es-unbuilt__mark {
+  width: 1.1em;
+  height: 1.1em;
+}

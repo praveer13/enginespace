@@ -27,6 +27,12 @@ import { clipped, documentRoutes, expect, NIGHTLY, open, quiet, SCENE_IN_RUN, se
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']
 /** W0-T09: "headings form a valid outline". */
 const HEADING_RULES = ['heading-order', 'page-has-heading-one', 'empty-heading']
+/**
+ * W1b-T09: a game's page has regions of its own (the game, its stage, its controls), and a reader that lists the landmarks cannot tell
+ * two of one name apart. Axe says so as a moderate finding, which does not fail, and W1's run printed one on /play/pool (the game and
+ * its cabinet were both The Reach-In) that nobody read. On a game's page it fails, whatever its impact.
+ */
+const LANDMARK_RULES = ['landmark-unique']
 
 const ROUTES = [...(NIGHTLY ? documentRoutes() : [...PR_ROUTES, ...W1_ROUTES]), ...W1_LEVEL_PAGES]
 const WIDTHS = NIGHTLY ? NIGHTLY_WIDTHS : PR_WIDTHS
@@ -51,7 +57,7 @@ function analyze(page: Page): Promise<AxeResults> {
 }
 
 /** The audit: what fails, and what is only said. */
-async function audit(page: Page, label: string): Promise<void> {
+async function audit(page: Page, label: string, route: string): Promise<void> {
   const results = await analyze(page)
   const rules = results.passes.length + results.violations.length
   // A page that axe could not read (a blank document, a frame it never entered) passes everything: it must have been looked at.
@@ -59,6 +65,9 @@ async function audit(page: Page, label: string): Promise<void> {
   const blocking = results.violations.filter((violation) => IMPACTS.has(violation.impact ?? ''))
   expect(blocking.map(summary), `${label}: serious or critical violations`).toEqual([])
   expect(results.violations.filter((violation) => HEADING_RULES.includes(violation.id)).map(summary), `${label}: the heading outline`).toEqual([])
+  if (route.startsWith('/play/')) {
+    expect(results.violations.filter((violation) => LANDMARK_RULES.includes(violation.id)).map(summary), `${label}: the landmarks of a game's page`).toEqual([])
+  }
   const rest = results.violations.map((violation) => `${violation.id} [${violation.impact}] on ${violation.nodes.length} node${violation.nodes.length === 1 ? '' : 's'}`)
   console.log(`axe ${label}: ${rules} rules, ${rest.length === 0 ? 'no violation' : rest.join(', ')}`)
   for (const finding of rest) test.info().annotations.push({ type: 'axe (does not fail)', description: `${label}: ${finding}` })
@@ -81,7 +90,7 @@ for (const route of ROUTES) {
         await withSettings(context, { view3d: false })
         await open(page, route)
         await quiet(page)
-        await audit(page, `${route} at ${width} px`)
+        await audit(page, `${route} at ${width} px`, route)
       })
 
       if (AUDITED_IN_3D(route)) {
@@ -90,7 +99,7 @@ for (const route of ROUTES) {
           await open(page, route)
           // The design page's specimen is a scene that keeps moving to show its motion, so it is audited live and not at rest.
           await settled3d(page, { rested: route !== '/design' })
-          await audit(page, `${route} (3D) at ${width} px`)
+          await audit(page, `${route} (3D) at ${width} px`, route)
         })
       }
 

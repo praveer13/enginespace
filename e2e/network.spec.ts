@@ -142,11 +142,15 @@ test.describe('the policy', () => {
 
   test('the browser enforces it: a fetch to another origin is refused by the policy, and a navigation to another origin by the net', async ({ page, watch }) => {
     await open(page, '/map')
+    // The path the page is at, whatever the server did to get there: GitHub Pages answers `/map` with a 301 to `/map/`, and `vite preview`
+    // does not (the live run of 2026-11-09 failed here on the slash). The refusal names the page it happened on, so it is read from the page.
+    const here = await page.evaluate(() => location.pathname)
+    expect(here.replace(/\/$/, ''), 'the page is the map, with or without the slash a host adds').toBe('/map')
     // The policy: the request is refused inside the browser, before it is a request, and the page is told.
     const outcome = await page.evaluate(() => fetch('https://example.invalid/pixel').then(() => 'sent', (error: Error) => error.name))
     expect(outcome).toBe('TypeError')
     // The page loads the ledger, and refuses nothing else: the one refusal is the fetch that was asked for.
-    await expect.poll(() => watch.refused).toEqual([expect.stringMatching(/^connect-src https:\/\/example\.invalid\/pixel @\/map$/)])
+    await expect.poll(() => watch.refused).toEqual([`connect-src https://example.invalid/pixel @${here}`])
     expect(watch.strays, 'the policy stops it before the net').toEqual([])
     // The net: a navigation is not governed by `connect-src`, so only the route that refuses other origins sees it.
     await page.goto('https://example.invalid/page').catch(() => undefined)

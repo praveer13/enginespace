@@ -397,6 +397,9 @@ The dishes are keyed on masking tape, each with the drawn shape that carries its
 ### The Inspection
 The clipboard: a steel board with a drawn spring clip (a riveted plate, a barrel wound with its spring, a jaw with a rolled lip) holding a form of ticket paper, the clip casting a soft drop-shadow onto the paper. The claim on trial is stamped large in Doto, and one synthetic stamp covers every figure on the form. Graph-paper sheets are pinned to the pass, cut square and lifted; the selected order's times sit on a small ticket under the lamp, the board's only amber.
 
+### The Unbuilt Page
+A page whose task has not landed: Receipts, Changes, the Trace Room, the part of About that is still to come, and the labs that the later waves build. Its name is stamped on a plate over one line that says what the page is for, and one ticket lists what it will hold in square bullets of Atkinson. The ticket says in the ribbon's red, with a drawn lock, that the page is not built, prints the wave it arrives with and the task that builds it on its foot line, and ends in one stub that leads to a page that is built. A lab's lane and module ride under the lead on masking tape. Nothing on it is lit, because the lamp has nothing to act on.
+
 ## Do's and Don'ts
 
 ### Do:

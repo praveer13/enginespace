@@ -532,7 +532,11 @@ test.describe('accessibility', () => {
   const HEADING_RULES = ['heading-order', 'page-has-heading-one', 'empty-heading']
   const LEVELS = ['one-group', 'two-kinds', 'evict', 'same-size', 'state', 'adapters', 'manager']
 
-  /** The audit: serious and critical findings fail, and so do the heading rules, whatever their impact. */
+  /**
+   * The audit: serious and critical findings fail, and so do the heading rules and `landmark-unique`, whatever their impact. The Reach-In's
+   * cabinet and the game it sits in were both named "The reach-in" (axe: a moderate finding on every level, which W1-T36's run printed
+   * and nothing failed on, W1b-T09), and a reader that lists the landmarks cannot tell two of one name apart.
+   */
   async function audit(page: Page, label: string) {
     // A button that has just changed its look is part-way through a transition of its colours, and axe measures the contrast of that.
     await page.evaluate(() => Promise.allSettled(document.getAnimations().map((animation) => animation.finished)))
@@ -541,6 +545,7 @@ test.describe('accessibility', () => {
     const summary = (v: (typeof results.violations)[number]) => `${v.id} [${v.impact}] ${v.help}: ${v.nodes.slice(0, 3).map((node) => `${node.target.join(' ')} (${node.any[0]?.message ?? node.failureSummary ?? ''}) ${node.html.slice(0, 160)}`).join(' ; ')}`
     expect(results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical').map(summary), `${label}: serious or critical violations`).toEqual([])
     expect(results.violations.filter((v) => HEADING_RULES.includes(v.id)).map(summary), `${label}: the heading outline`).toEqual([])
+    expect(results.violations.filter((v) => v.id === 'landmark-unique').map(summary), `${label}: the landmarks`).toEqual([])
   }
 
   for (const width of [360, 1280]) {

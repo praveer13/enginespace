@@ -66,7 +66,9 @@ export function Rack({ view, dump, pointed, pick }: RackProps) {
   const total = view.pans.length
   const stock = view.stock
   return (
-    <section className="es-reachin__cabinet" aria-label="The reach-in" data-reachin-rack="">
+    // Named as its siblings are (`The rotation: the free line`, `The pass: tickets`), and not `The reach-in`: the game's own region is named for
+    // the game, The Reach-In, and axe reads two landmarks of one name, whatever the case, as one that cannot be told from the other (landmark-unique).
+    <section className="es-reachin__cabinet" aria-label="The reach-in: the page pool" data-reachin-rack="">
       <header className="es-reachin__plate">
         <span className="es-reachin__name">The reach-in</span>
         <TapeLabel size="sm" tilt="left">

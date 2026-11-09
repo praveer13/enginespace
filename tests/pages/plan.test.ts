@@ -13,7 +13,7 @@ import { headingOf, leavesOf, PAGES, planPages } from '../../scripts/pages/plan'
 import type { Page, Sources, Written } from '../../scripts/pages/plan'
 import { loadSources } from '../../scripts/pages/sources'
 import { routes } from '../../src/routes'
-import { titled } from '../../src/content/render/model'
+import { labName, titled } from '../../src/content/render/model'
 import { backticked, between, read, tableRows } from '../ci/support'
 import { fakeSources } from './support'
 
@@ -107,6 +107,13 @@ describe('the real sources', () => {
       expect(byUrl(plan.pages, module.route)?.title).toBe(titled(module.title))
       for (const lesson of module.lessons) expect(byUrl(plan.pages, lesson.route)?.title).toBe(titled(lesson.title))
     }
+  })
+
+  test('give a game and a lab the title that their page sets once it has mounted, and the lab the heading its stub has (W1b-T09)', () => {
+    for (const game of sources.games) expect(byUrl(plan.pages, `/play/${game.id}`)).toMatchObject({ title: titled(game.title), heading: game.title })
+    for (const lab of sources.labs) expect(byUrl(plan.pages, `/labs/${lab}`)).toMatchObject({ title: titled(labName(lab)), heading: labName(lab) })
+    expect(sources.games.length).toBeGreaterThan(3)
+    expect(sources.labs.length).toBeGreaterThan(10)
   })
 
   test('write a sentence for every page, with no empty field and no number in it', () => {

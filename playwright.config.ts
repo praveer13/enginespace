@@ -14,9 +14,12 @@ import { defineConfig } from '@playwright/test'
  *
  * Environment, all of it optional:
  *   ES_CHROMIUM       the path of a Chromium to run in place of the one that Playwright installed, for a host where that one cannot start.
- *   ES_E2E_PORT       the port of `vite preview`, 4180. The server is never reused, because a stale one from another tree would be
- *                     tested in place of this build: a port that is taken is an error, and this gives a run its own.
+ *   ES_E2E_PORT       the port of `vite preview` (or of the Pages server, below), 4180. The server is never reused, because a stale one from
+ *                     another tree would be tested in place of this build: a port that is taken is an error, and this gives a run its own.
  *   ES_E2E_ORIGIN     the address of a server that already serves a build (`http://127.0.0.1:4173`): then nothing is built or started.
+ *   ES_E2E_PAGES=1    serve the build as GitHub Pages does in place of `vite preview`: prepare-pages writes the documents, and a server that
+ *                     redirects `/map` to `/map/` and answers 404.html with a 404 serves them (e2e/support/serve-pages.ts). The live run of
+ *                     2026-11-09 found a spec that held on `vite preview` and failed on Pages for want of that redirect.
  *   ES_E2E_NIGHTLY=1  the nightly sweep (nightly.yml): axe at 320, 360 and 1280 px on every document that prepare-pages writes, the
  *                     network check and the reduced-motion scan of each, a keyboard walk of every level of every game (walks.spec.ts), and
  *                     the cross-browser determinism hash in Firefox and WebKit. It builds with prepare-pages, which needs Bun.
@@ -27,6 +30,7 @@ const PORT = Number(process.env.ES_E2E_PORT) || 4180
 const OUTSIDE = (process.env.ES_E2E_ORIGIN ?? '').replace(/\/$/, '')
 const ORIGIN = OUTSIDE || `http://127.0.0.1:${PORT}`
 const NIGHTLY = process.env.ES_E2E_NIGHTLY === '1'
+const PAGES = process.env.ES_E2E_PAGES === '1'
 const CI = Boolean(process.env.CI)
 
 /**
@@ -135,8 +139,11 @@ export default defineConfig({
   webServer: OUTSIDE
     ? undefined
     : {
-        // A fresh build, so that no spec tests an old one. The nightly sweep lists the documents that prepare-pages writes.
-        command: `npm run build && ${NIGHTLY ? 'bun scripts/prepare-pages.ts && ' : ''}npx vite preview --host 127.0.0.1 --port ${PORT} --strictPort`,
+        // A fresh build, so that no spec tests an old one. The nightly sweep lists the documents that prepare-pages writes, and so does a run
+        // served as Pages serves it, which needs them in dist/ to answer an address with its own document.
+        command: `npm run build && ${NIGHTLY || PAGES ? 'bun scripts/prepare-pages.ts && ' : ''}${
+          PAGES ? `bun e2e/support/serve-pages.ts ${PORT}` : `npx vite preview --host 127.0.0.1 --port ${PORT} --strictPort`
+        }`,
         url: `${ORIGIN}/`,
         reuseExistingServer: false,
         timeout: 300_000,
