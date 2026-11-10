@@ -4,6 +4,7 @@
 **Research key:** `vllm`. **For:** the authors of TR0-TR8, the capstone and the course lockfile.
 **Scope:** the upstream vLLM facts that `SPECIALIZATIONS.md` §3.5 (Engine Internals) and §10 depend on, as of 2026-11-03.
 **Corrected:** 2026-11-09 (W1b-T15, from W1-T01's finding of 2026-11-04). Section 1 item 10, rows M11 and T2 and section 5 item 5 said that "Inside vLLM" names `openai/api_server.py`. It names no source file. It follows `create_completion`, the completions route, which was a function of that file at the post's commit and is one of `vllm/entrypoints/openai/completion/api_router.py` at v0.33.0. The post, fetched again on 2026-11-09 (468,361 bytes), has no `api_server` in its text, and the one source file it links is an example on `main`, `examples/offline_inference/basic/basic.py` [measured].
+**Corrected again:** 2026-11-09 (W1b close-out, from W1b-T06's finding). Section 4, under TR8, said that `vllm bench serve` has "p99-only output". Its percentile list does default to the 99th alone, but `serve.py` prints the mean and the median of each metric it reports before that metric's percentiles (lines 1424 and 1425 at `4ba787e`), so the output is not p99 only [measured 2026-11-09]. The course's claim `vllm.bench.metric-percentiles-default` was corrected the same day.
 
 How to read this file:
 
@@ -248,7 +249,7 @@ Proposed lockfile entries:
 
 ### TR8: benchmark like you mean it (5 h)
 
-- Each upstream trap is documented, so the seeded corpus can cite it: cache reuse across runs (B3), `--max-concurrency` hiding client queueing while TTFT, TPOT and E2EL start at the send (B2), no warmup by default and p99-only output (B1), a rescaled arrival schedule (B2), and the docs' own recommendation of a closed-loop pattern (B2).
+- Each upstream trap is documented, so the seeded corpus can cite it: cache reuse across runs (B3), `--max-concurrency` hiding client queueing while TTFT, TPOT and E2EL start at the send (B2), no warmup by default and a p99 as the only percentile (B1), a rescaled arrival schedule (B2), and the docs' own recommendation of a closed-loop pattern (B2).
 - Bootstrap CIs are the course's addition; upstream gives at most a coefficient of variation (B4).
 - The local grader's internal-consistency checks for a benchmark log can use the identities in B5.
 

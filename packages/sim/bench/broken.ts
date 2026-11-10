@@ -37,9 +37,11 @@ export { BROKEN_CORRECTED_ROWS } from './broken-kits'
 
 /**
  * The claims that ground each flaw in a real tool or paper (content/claims/vllm/bench.yaml and sglang/bench.yaml, W1-T01, and
- * content/claims/broken-bench.yaml, read 2026-11-04): what a debrief cites. The control has none. A flaw that no tool commits says what
- * it is grounded in instead, in the claim's text: `mean-as-tail` in the tool's report layout, and `too-few-samples` in the guide's own
- * ten-prompt example and kernelspace's rule.
+ * content/claims/broken-bench.yaml, read 2026-11-04; `vllm.bench.metric-percentiles-default` was read again and corrected on 2026-11-09):
+ * what a debrief cites. The control has none. A flaw that no tool commits says what it is grounded in instead, in the claim's text:
+ * `mean-as-tail` in the tool's report layout, where the mean and the median of each metric come before its percentiles (the source prints
+ * them in that order, and the guide's sample lists the mean, the median and the p99 on consecutive lines), and `too-few-samples` in the
+ * guide's own ten-prompt example and kernelspace's rule.
  */
 export const FLAW_CLAIMS: Readonly<Record<BenchFlaw, readonly string[]>> = {
   'closed-loop': ['vllm.bench.request-rate-default', 'vllm.bench.max-concurrency-closed-loop', 'vllm.bench.max-concurrency-recommended', 'bench.schroeder.closed-vs-open'],

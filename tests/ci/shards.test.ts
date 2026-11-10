@@ -192,6 +192,8 @@ describe("Bun's own count of each shard of this suite", () => {
     const output = bunTest(root, ['--timeout', '30000', `--shard=${index}/${count}`, `--preload=${stop}`], { ES_SHARD_PROBE: '1' })
     const line = /--shard=(\d+)\/(\d+): running (\d+)\/(\d+) test files/.exec(output)
     expect(line === null ? output : line.slice(1).map(Number), 'the line that bun test prints before it runs a shard').toEqual([index, count, files.length, suite.length])
-    expect(/^(tests\/\S+):$/m.exec(output)?.[1], "the first file of the shard, which is the listing's first").toBe(files[0])
+    // Under GitHub Actions Bun opens each file's output as a group, `::group::tests/x.test.ts:`, and under an AI agent's environment
+    // (CLAUDECODE) it prints the bare name, which is how the merge gates ran this and missed the group on PR #6's CI (2026-11-10).
+    expect(/^(?:::group::)?(tests\/\S+):$/m.exec(output)?.[1], "the first file of the shard, which is the listing's first").toBe(files[0])
   })
 })

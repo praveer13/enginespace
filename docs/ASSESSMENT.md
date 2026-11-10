@@ -164,7 +164,7 @@ All are computed at read time from events and content; nothing is stored (kernel
 
 | Check | False-fail rate for an honest learner | Detection | How it is measured |
 |---|---|---|---|
-| `rejection-sampler`'s chi-square | about 2 × 10⁻⁴ per attempt [derived: 1 − (1 − 10⁻⁴)²]; measured 1.8 × 10⁻⁴ [derived: 9 false fails in 50,000 cases of the lab's check, W1-T27] | each bestiary member caught at least 99% of the time at 20,000 draws [estimated target]; the chi-square alone does it for five of the six, and the exact checks catch the sixth every time (below) | 200 trials per PR and 10,000 nightly (W1-T26, `tests/sim/spec-rates.test.ts`); 8 runs per PR and 1,500 by hand through the host (W1-T27, `tests/forge/rejection-sampler-rates.test.ts`) [measured 2026-11-04] |
+| `rejection-sampler`'s chi-square | about 2 × 10⁻⁴ per attempt [derived: 1 − (1 − 10⁻⁴)²]; measured 1.8 × 10⁻⁴ [derived: 9 false fails in 50,000 cases of the lab's check, W1-T27] | each bestiary member caught at least 99% of the time at 20,000 draws [estimated target]; the chi-square alone does it for five of the six, and the exact checks catch the sixth every time (below) | 200 trials per PR and 10,000 nightly (W1-T26, `tests/sim/spec-rates.test.ts`); 8 runs per PR and 1,500 a row nightly through the host (W1-T27, `tests/forge/rejection-sampler-rates.test.ts`, which the `lab-rates` job of `nightly.yml` runs with `ES_LAB_TRIALS=1500`, W1b-T13) [measured 2026-11-04] |
 | Bootstrap intervals (TR8, recomputation) | a deterministic recomputation, so none | the nominal 95% interval covers within [93%, 97%] over 2,000 seeds [estimated tolerance] | W1-T31 |
 | Everything else in the browser | none: the checks are exact | — | golden vectors |
 

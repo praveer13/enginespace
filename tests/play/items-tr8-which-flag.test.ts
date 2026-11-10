@@ -61,7 +61,8 @@ const CLAIM_SAYS: Readonly<Record<string, readonly string[]>> = {
   'vllm.bench.seed-default': ['--seed defaults to 0', 'draw the same prompts'],
   'sglang.bench.seed-default': ['seeds its random choices with 42 by default'],
   'vllm.bench.prefix-cache-reuse': ['can reuse prompts left in the prefix cache and inflate throughput', 'varying --seed, restarting or resetting the server', 'vllm bench sweep serve'],
-  'vllm.bench.metric-percentiles-default': ['defaults to the 99th percentile alone'],
+  // The table prints the 99th "beside the mean and the median". The claim once said that a default run reports no median, and now holds that sentence.
+  'vllm.bench.metric-percentiles-default': ['defaults to the 99th percentile alone', 'prints the mean and the median before the percentiles'],
   'vllm.bench.guide-mean-median-p99': ['a mean (71.54 ms), a median (73.88 ms) and a 99th percentile (79.49 ms)'],
   'vllm.bench.max-tokens-is-output-len': ['carries `max_tokens` equal to the `output_len` of its dataset sample'],
   'vllm.bench.sharegpt-output-len': ['gives every request of the ShareGPT dataset one output length, in place of the lengths in the dataset'],
