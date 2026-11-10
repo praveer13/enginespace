@@ -26,7 +26,7 @@ import type { Page } from '@playwright/test'
 import { build } from 'vite'
 import { buildLevel } from '../packages/play/verifier/levels'
 import { excessPlates, keptPlates, sweepOfLevel, thousandths, tokensOf } from '../packages/play/verifier/state'
-import { columnX, FRONT, planOf, TOP } from '../src/games/verifier/scene-plan'
+import { columnX, FRONT, planOf, roomOf, TOP } from '../src/games/verifier/scene-plan'
 import type { FrameStats } from '../src/scene/stage-runtime'
 import type { SceneHook } from '../src/scene/test-hook'
 import { pixelStats } from './support/pixels'
@@ -353,6 +353,58 @@ async function colourAt(page: Page, point: [number, number, number]): Promise<[n
     return sum.map((v) => v / (data.length / 4)) as [number, number, number]
   }, at)
 }
+
+/** How much the canvas's luma varies over a `w` by `h` px patch round a scene point, read back from the kept frame: its standard deviation, 0 to 1. */
+async function spreadAt(page: Page, point: [number, number, number], w: number, h: number): Promise<number> {
+  const at = await page.evaluate((p) => (window.__esScene as SceneHook).probes.verifier.project(p), point)
+  if (!at) throw new Error('the point is behind the camera')
+  return page.evaluate(
+    ({ x, y, w, h }) => {
+      const canvas = document.querySelector<HTMLCanvasElement>('[data-stage="verifier"] canvas')
+      if (!canvas) throw new Error('no canvas')
+      const copy = document.createElement('canvas')
+      copy.width = canvas.width
+      copy.height = canvas.height
+      const context = copy.getContext('2d')
+      if (!context) throw new Error('no 2D canvas')
+      context.drawImage(canvas, 0, 0)
+      const scale = canvas.width / canvas.getBoundingClientRect().width
+      const { data } = context.getImageData(Math.round((x - w / 2) * scale), Math.round((y - h / 2) * scale), Math.round(w * scale), Math.round(h * scale))
+      let sum = 0
+      let squares = 0
+      const n = data.length / 4
+      for (let i = 0; i < data.length; i += 4) {
+        const luma = (0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]) / 255
+        sum += luma
+        squares += luma * luma
+      }
+      const mean = sum / n
+      return Math.sqrt(Math.max(0, squares / n - mean * mean))
+    },
+    { x: at.x, y: at.y, w, h },
+  )
+}
+
+test.describe('the back wall (W1b\'s finish review, round 2): over one course its tile shows through the haze', () => {
+  test('at 1440, the wall between two lamps, over the line, is tile veiled in haze and not one flat plane', async ({ page }) => {
+    await open(page, 'overlap', 2)
+    await settle(page)
+    await page.addStyleTag({ content: '.es-labels { visibility: hidden !important; }' })
+    await frame(page)
+    // Round 2's wall was the haze's flat colour behind the lamps (a patch's standard deviation 0); the tile's courses and grout show
+    // through it now, between the lamps' cones, from a hand over the line's worktops up toward the hood.
+    const { wallZ } = roomOf(planOf('rows', 1))
+    for (const [x, y] of [
+      [-0.4, 1.2],
+      [0.4, 1.2],
+      [-0.4, 1.6],
+    ] as const) {
+      const spread = await spreadAt(page, [x, y, wallZ], 60, 24)
+      console.log(`the wall at x ${x}, ${y} m up: a luma spread of ${spread.toFixed(4)}`)
+      expect(spread, `the tile behind the lamps at x ${x}, ${y} m up`).toBeGreaterThan(0.004)
+    }
+  })
+})
 
 test.describe('`gamma`: a run of stacks, the kept plates at the bottom whether a stack is plated or waits upside down', () => {
   test('past the pick, a stack turned over still has the overlap\'s plates at the counter and the draft\'s above them', async ({ page }) => {
