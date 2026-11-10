@@ -974,7 +974,7 @@ labs/
     src/enginespace_grader/
       cli.py  grade.py  verify.py  selftest.py  doctor.py
       challenge.py  rng.py  canonical.py  hashing.py  receipt.py  bundle.py  schemas.py  identity.py  errors.py
-      fingerprint.py  pins.py  fetch.py
+      fingerprint.py  redact.py  engine_config.py  pins.py  fetch.py
       schemas/             the five JSON Schemas of schemas/ (§9.6's four and the references manifest's), copied byte for byte by scripts/export-schemas.ts (the grader is installed alone)
       checks/              allclose, teacher-forced agreement, chi-square from counts, percentiles
       trace/               torch-profiler Chrome JSON → trace@1; nsys SQLite export → trace@1
@@ -996,7 +996,7 @@ labs/
   references/manifest.json large inputs and outputs: url, sha256, bytes, licence, date (enginespace/references@1, §9.7)
 ```
 
-W2-T02 builds the commands, the cross-language contract (§9.8), the receipt and the bundle, and the lab interface; `doctor` is a stub, and `fingerprint.py` reads host facts only. `fingerprint.py` grows in W2-T03, `pins.py` is W2-T04's, and `fetch.py`, the references manifest and its schema are W2-T05's.
+W2-T02 builds the commands, the cross-language contract (§9.8), the receipt and the bundle, and the lab interface. W2-T03 builds `fingerprint.py` (§9.5), `redact.py`, which holds what a receipt never holds (§9.9), and `engine_config.py`, which reads an engine's effective configuration from its log and configuration dump; `doctor` prints the fingerprint and checks nothing until `pins.py`, which is W2-T04's. `fetch.py`, the references manifest and its schema are W2-T05's.
 
 vLLM 0.33.0 and SGLang 0.5.23 pin different torch and xgrammar builds [measured], so each engine gets its own environment and its own lockfile. One uv project with declared conflicting extras was considered and rejected: separate projects are easier for an agent to change and for a learner to repair.
 
@@ -1037,13 +1037,13 @@ The grader collects the fingerprint from NVML through `nvidia-ml-py` when it can
 - **Driver:** the driver version and CUDA driver version.
 - **torch:** its version, `torch.version.cuda` and cuDNN.
 - **Engine:** name, version and commit, plus the SHA-256 of the installed distribution's `RECORD`.
-- **Effective engine configuration** (engine labs; ASSESSMENT §5.6), read from the engine's own log and configuration dump: the runner that actually ran (MRV2, or MRV1 after a fallback warning, vllm M2), the CUDA-graph mode after any downgrade (vllm G7), async scheduling on or off (vllm M6), the attention backend selected (vllm E2), and `max_num_batched_tokens` and `max_num_seqs`, which differ by GPU for the same command (vllm M9).
+- **Effective engine configuration** (engine labs; ASSESSMENT §5.6), read from the engine's own log and configuration dump: the runner that actually ran (MRV2, or MRV1 after a fallback warning, vllm M2), the CUDA-graph mode after any downgrade (vllm G7), async scheduling on or off (vllm M6), the attention backend selected (vllm E2), and `max_num_batched_tokens` and `max_num_seqs`, which differ by GPU for the same command (vllm M9). At the pin the log alone does not say all of it [measured 2026-11-09, vLLM v0.33.0 at 4ba787e]: a default start prints no line that says async scheduling is on, and prints `max_num_seqs` at DEBUG only, so a lab also hands over the configuration dump (the dev-mode endpoint `/server_info?config_format=json`, or the `VllmConfig` of an offline `LLM`). A field that no source gives is missing and is never guessed. `engine_config.py` holds the lines it reads, and `content/claims/vllm/logs.yaml` quotes each with its file and line.
 - **Key libraries:** flashinfer, xgrammar, triton and transformers.
 - **Python and host:** the Python version; OS, kernel, architecture, CPU model, cores and RAM; whether it runs in a container.
 - **Self-declared:** a host kind (`local`, `runpod`, `modal`, `lambda` or `other`).
 - **Environment variables:** only those on the lab's allowlist (named `VLLM_*` and `SGLANG_*` variables).
 
-**Never collected:** hostname, user name, IP or MAC addresses, GPU UUID or serial number, absolute paths (the grader makes them relative to the kit), tokens or keys (it never reads `HF_TOKEN` into a receipt), or the full environment.
+**Never collected:** hostname, user name, IP or MAC addresses, GPU UUID or serial number, absolute paths (the grader makes them relative to the kit), tokens or keys (it never reads `HF_TOKEN` into a receipt), or the full environment. Three layers keep them out (`redact.py`): the grader never asks NVML or `nvidia-smi` for a UUID, a serial number or a bus address, and reads the environment only for the lab's allowlist; the text it does take from the machine is scrubbed, an allowlisted value that holds a path, an address or a token being recorded as `<redacted>` and a name that says it holds a secret never; and the finished fingerprint is checked once more, where a field that still holds something personal is dropped, or stops the run if the receipt needs it. The tests seed each of them into a subprocess's environment (`labs/grader/tests/test_privacy.py`).
 
 ### 9.6 The receipt format, `enginespace/receipt@1`
 
@@ -1105,7 +1105,7 @@ TypeScript writes `schemas/vectors/*.json`, Python's tests read them, and `labs.
 
 ### 9.9 Privacy
 
-`doctor` prints the exact receipt fields before any `grade` run writes them. Receipts never leave the machine unless the learner moves them, and the site stores the parsed receipt only in the learner's own IndexedDB.
+`doctor` prints the exact receipt fields before any `grade` run writes them: both call `fingerprint.gather` with the same arguments. Receipts never leave the machine unless the learner moves them, and the site stores the parsed receipt only in the learner's own IndexedDB. A lab that keeps an engine's log as an artifact scrubs it first (`redact.scrub_text`), so that the bundle holds no path or name of the learner's.
 
 ---
 

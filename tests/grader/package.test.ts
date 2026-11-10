@@ -47,6 +47,8 @@ describe('the unittest chain', () => {
     for (const name of ['rng', 'subseed', 'challenge', 'canonical', 'hashing', 'receipt', 'bundle', 'verify', 'grade', 'labs', 'cli', 'identity', 'schemas', 'selftest', 'discovery', 'fetch']) {
       expect(tests).toContain(`test_${name}.py`)
     }
+    // W2-T03: the fingerprint, what a receipt never holds, the effective engine configuration, and doctor.
+    for (const name of ['fingerprint', 'redact', 'privacy', 'engine_config', 'doctor']) expect(tests).toContain(`test_${name}.py`)
   })
 
   test('the suite reads each of the five vector files that TypeScript writes (D-030), and the vectors are where it looks for them', () => {
@@ -214,6 +216,53 @@ describe('what leaves the machine (ARCHITECTURE §9.7, ASSESSMENT §5.1; W2-T05)
     for (const needle of [/environ\.get\(\s*["'](?:HF_|HUGGING)/, /getenv\(\s*["'](?:HF_|HUGGING)/, /["'](?:Authorization|Cookie|Referer|X-[A-Za-z-]+)["']/, /getpass|gethostname|platform\.node|getlogin|\bUSER\b/]) {
       expect([needle.source, needle.test(code)]).toEqual([needle.source, false])
     }
+  })
+})
+
+describe('the fingerprint and what a receipt never holds (W2-T03; ARCHITECTURE §9.5 and §9.9)', () => {
+  const privacy = read(`${GRADER}/tests/test_privacy.py`)
+
+  test('the privacy test seeds a host name, a user name, a GPU UUID and serial number, an absolute path and HF_TOKEN into a subprocess, and never into the runner itself', () => {
+    const seeds = privacy.slice(privacy.indexOf('SEEDS: dict[str, str] = {'), privacy.indexOf('def seeded_environment'))
+    for (const name of ['hostname', 'user name', 'GPU UUID', 'GPU serial number', 'absolute path', 'HF_TOKEN']) expect([name, seeds.includes(`"${name}"`)]).toEqual([name, true])
+    expect(privacy).toMatch(/subprocess\.run\(\s*\[sys\.executable, \*argv\]/)
+    expect(privacy).toContain('env=seeded_environment(')
+    // The runner's own environment is read to check that the seeds are not in it, and written nowhere.
+    expect(privacy).not.toMatch(/os\.environ\[[^\]]*\]\s*=[^=]/)
+    expect(privacy).not.toMatch(/patch\.dict|os\.putenv|os\.environ\.(?:update|setdefault|pop)|monkeypatch/)
+  })
+
+  test('the privacy test searches for each seeded value in what the subprocess printed, in the receipt, the notes, the scrubbed log and the bundle, and checks its own search first', () => {
+    for (const needle of ['test_doctor_prints_none_of_them', 'test_a_graded_stage_of_an_engine_lab_holds_none_of_them_anywhere', 'test_the_search_finds_a_value_that_is_there', 'test_the_seeds_are_in_the_environment_of_the_subprocess_and_not_in_the_runners']) {
+      expect([needle, privacy.includes(`def ${needle}(`)]).toEqual([needle, true])
+    }
+  })
+
+  test('the fixtures are labelled synthetic, and so is the fake NVML', () => {
+    expect(read(`${GRADER}/tests/synthetic/README.md`)).toMatch(/Everything in this folder is \*\*synthetic\*\*/)
+    expect(read(`${GRADER}/tests/fake_nvml.py`)).toContain('SYNTHETIC')
+    expect(read(`${GRADER}/tests/fake_smi.py`)).toContain('SYNTHETIC')
+  })
+
+  test('the fingerprint asks NVML and nvidia-smi for no UUID, no serial number and no bus address', () => {
+    const source = read(`${PACKAGE}/fingerprint.py`)
+    expect(source).not.toMatch(/nvml\.nvmlDeviceGet(?:UUID|Serial|PciInfo|BoardPartNumber|HandleByUUID|HandleBySerial|HandleByPciBusId)\(/)
+    const columns = source.slice(source.indexOf('SMI_COLUMNS = ('), source.indexOf('SMI_MINIMAL_COLUMNS')) + source.slice(source.indexOf('SMI_MINIMAL_COLUMNS = ('), source.indexOf('\n', source.indexOf('SMI_MINIMAL_COLUMNS = (')))
+    expect(columns.match(/"[a-z_.]+"/g)?.length).toBe(14)
+    for (const forbidden of ['uuid', 'serial', 'pci.', 'bus_id', 'gpu_bus_id']) expect([forbidden, columns.includes(forbidden)]).toEqual([forbidden, false])
+  })
+
+  test('the fingerprint, the scrubber, the engine-config reader and doctor make no network request: the grader sends nothing anywhere (A§9.1)', () => {
+    for (const file of ['fingerprint.py', 'redact.py', 'engine_config.py', 'doctor.py']) {
+      const code = read(`${PACKAGE}/${file}`)
+      for (const banned of [/\burllib\b/, /\bhttp\.client\b/, /\brequests\b/, /\bsocket\.(?:socket|getfqdn|gethostbyname|gethostbyaddr|getaddrinfo|create_connection)\b/, /\bftplib\b/, /\bsmtplib\b/]) {
+        expect([file, banned.source, banned.test(code)]).toEqual([file, banned.source, false])
+      }
+    }
+  })
+
+  test('the fingerprint and doctor do not import jsonschema, which the commands that need it import when they run', () => {
+    for (const file of ['fingerprint.py', 'redact.py', 'engine_config.py', 'doctor.py']) expect([file, /^(?:from jsonschema|import jsonschema)/m.test(read(`${PACKAGE}/${file}`))]).toEqual([file, false])
   })
 })
 

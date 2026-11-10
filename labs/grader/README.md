@@ -18,7 +18,7 @@ uv run --project labs/grader enginespace selftest
 
 | Command | Does | Built in |
 |---|---|---|
-| `enginespace doctor` | prints the fields a receipt would record about this machine | a stub in W2-T02: host facts only; W2-T03 and W2-T04 build the rest |
+| `enginespace doctor [--lab LAB] [--engine-log FILE] [--engine-config FILE]` | prints the fields a receipt would record about this machine, and notes for what it could not read | the fingerprint in W2-T03; still a stub for the checks, which arrive with W2-T04 |
 | `enginespace grade <lab>.<stage> --challenge <token>` | decodes the token, runs the stage on the seeds it derives, checks the work, writes `receipts/<lab>-<stage>-<utc>.es.json.gz` | W2-T02 (the labs themselves arrive with their tasks) |
 | `enginespace receipt verify <file>` | the browser's first three rules, run here | W2-T02 |
 | `enginespace selftest [--gpu]` | the grader's own checks, and its tests where they are installed | W2-T02; `--gpu` stops with a message until a GPU lab exists (W2-T12) |
@@ -68,6 +68,31 @@ Rules 1 to 3 of A§8.5, on a `.es.json.gz` file:
 
 The other rules need what a file cannot show about itself: the ledger of the browser that issued the token (binding), the list of grader builds the site published (identity), the pins, and every number recomputed from the raw records (A§8.5 rules 4 to 10). A file that passes these three can still be refused there, and a receipt is not signed: it records what was reported (A§8.6).
 
+## The fingerprint, and what a receipt never holds
+
+`enginespace doctor` prints the `environment` that `enginespace grade` will write into a receipt, before any run writes it (A§9.5, A§9.9). Both call `fingerprint.gather` with the same arguments, so what `doctor` prints is what the receipt holds. A source that is missing, broken or silent costs a field and a note, never the run, and the notes say which.
+
+| Field | Read from |
+|---|---|
+| `gpus`, `driver` | NVML through `nvidia-ml-py` (the module `pynvml`) when it imports and starts, else the CSV of `nvidia-smi --query-gpu`; the CUDA version of the driver from `nvidia-smi --version` or the table it prints. The SM count, which neither gives, and the whole list when both are missing, come from torch. The CSV has no column for the virtualization mode, so that field is left out on that path. |
+| `torch` | the installed distribution, and `torch.version.cuda` and cuDNN when torch imports (which takes seconds) |
+| `engine` | the engine's distribution: its version, the commit if pip recorded one for a build from git (PEP 610), and the SHA-256 of its `RECORD`, read as bytes. Re-hashing the installed files against `RECORD` is the pin check's work (W2-T04). |
+| `libs` | flashinfer, xgrammar, triton and transformers, when installed |
+| `host` | the operating system (`/etc/os-release`, or `sysctl` on macOS), the kernel release, the architecture, the CPU model, the cores, the RAM, and whether the process is in a container |
+| `envVars` | only the `VLLM_*` and `SGLANG_*` variables on the lab's allowlist (`Lab.env_allowlist`), each scrubbed |
+
+**What it never holds** (A§9.5): a host name, a user name, an IP or MAC address, a GPU's UUID or serial number, an absolute path, a token or a key, or the whole environment. Three layers keep them out, and `redact.py` explains each. The code never asks for them: not NVML's `nvmlDeviceGetUUID`, `nvmlDeviceGetSerial` or `nvmlDeviceGetPciInfo`, and not the `uuid`, `serial` or `pci.bus_id` columns of `nvidia-smi`. Text that does come from the machine is scrubbed: an allowlisted variable whose value holds a path, an address, a URL or a token is recorded as `<redacted>`, a name that says it holds a secret (`KEY`, `TOKEN`, `SECRET`, `PASSWORD`, `AUTH`) is never recorded even on the allowlist, and `redact.scrub_text` cleans an engine's log before a lab keeps it as an artifact (a path under the kit becomes relative to it, every other path becomes `<path>`). And the finished fingerprint is looked at once more: a field that still holds something personal is left out with a note, and a field the receipt needs stops the run. The strict schema stands behind all three, since it has no field that could hold one.
+
+The tests seed a host name, a user name, a GPU UUID and serial number, absolute paths and `HF_TOKEN` into the environment of a *subprocess* (never of the test runner), put a fake NVML and a fake `nvidia-smi` in its way that would hand over a UUID and a serial number to anyone who asked, run `doctor` and the flow of `grade` in it, and look for every seeded value in everything that came out (`tests/test_privacy.py`). Their own inputs are checked first: the seeds are in the subprocess's environment, and the search finds a seeded value in an output that holds one.
+
+### The effective engine configuration
+
+An engine lab's receipt also records what the engine *did* (`environment.engineConfig`): the runner that ran (MRV2, or MRV1 after a fallback), the CUDA-graph mode after any downgrade, whether scheduling was async, the attention backend, and `max_num_batched_tokens` and `max_num_seqs`, which differ by GPU for the same command (ASSESSMENT §5.6). The lab hands the grader its engine's log and, if it has one, the configuration dump (`StageResult.engine_run`), and `engine_config.py` reads the six fields from them. It reads vLLM v0.33.0 only, the course's pin, and the lines it looks for are quoted with their files and lines in `content/claims/vllm/logs.yaml`.
+
+At that pin the log alone is not enough [measured 2026-11-09, vLLM v0.33.0 at 4ba787e]. A default start prints no line that says async scheduling is on, and prints `max_num_seqs` at DEBUG only. So a lab also hands over the configuration dump: the answer of `/server_info?config_format=json` (a dev-mode endpoint, with `VLLM_SERVER_DEV_MODE=1`), or the `VllmConfig` of an offline `LLM` dumped as JSON. A field that no source gives is missing and is never guessed, and two sources that disagree make it missing too. A reading with a field missing records no `engineConfig` (the receipt schema needs all six) and one failed `engine-config` check that says what was not found; the receipt is written all the same, so that a run is not lost for a log line. `enginespace doctor --engine-log FILE --engine-config FILE` shows what the grader would read from an earlier run. A lab that keeps the log as an artifact (so that the site can read the same configuration) scrubs it first with `redact.scrub_text`, and keeps `engine_config.dump_essentials(dump)` of the dump: the five values the reading uses, with no model name, folder or environment (the dump of `/server_info` has all three).
+
+The reading is tested on logs and dumps written by hand from the pinned source's format strings (`tests/synthetic/`, labelled SYNTHETIC), because no engine ran: W2-T12's recordings of the owner's runs must be read by the same code, and whatever they show that the synthetic files do not is a finding for this module.
+
 ## The contract with the site
 
 The grader and the site must agree on a few things exactly (A§9.8, D-030), and TypeScript is the source of each:
@@ -91,7 +116,7 @@ uv run --project labs/grader python -m unittest         # from the root of the r
 uv run --project labs/grader python -m unittest labs.grader.tests.test_rng -v
 ```
 
-The tests use the standard library's `unittest` and run on the CPU. They pass on CPython 3.11, 3.12, 3.13 and 3.14, the range the package declares [measured 2026-11-09, 3.11.14 to 3.14.3, also with `-X dev -W error`]; `labs.yml` runs the runner's default interpreter. Run from the root of the repository, `python -m unittest` searches only folders that are packages, so `labs/`, `labs/grader/` and `labs/grader/tests/` each have an `__init__.py`; without them the command would find no test and, on Python 3.11, pass: it exits 0 there and 5 from Python 3.12 on [measured 2026-11-09, CPython 3.11.14 to 3.14.3]. `tests/test_discovery.py` and `tests/grader/package.test.ts` hold them in place. `uv lock --check --project labs/grader` checks that `uv.lock` is current.
+The tests use the standard library's `unittest` and run on the CPU. Nothing in them asks the machine they run on, apart from one test that fingerprints it and requires the result to fit a receipt: the sources of the fingerprint are parameters (`fingerprint.Probes`), and the tests give them recorded `nvidia-smi` output, a fake NVML (`tests/fake_nvml.py`) and logs in `tests/synthetic/`, all written by hand with invented values (its README says so). They pass on CPython 3.11, 3.12, 3.13 and 3.14, the range the package declares [measured 2026-11-09, 3.11.14 to 3.14.3, also with `-X dev -W error`]; `labs.yml` runs the runner's default interpreter. Run from the root of the repository, `python -m unittest` searches only folders that are packages, so `labs/`, `labs/grader/` and `labs/grader/tests/` each have an `__init__.py`; without them the command would find no test and, on Python 3.11, pass: it exits 0 there and 5 from Python 3.12 on [measured 2026-11-09, CPython 3.11.14 to 3.14.3]. `tests/test_discovery.py` and `tests/grader/package.test.ts` hold them in place. `uv lock --check --project labs/grader` checks that `uv.lock` is current.
 
 `tests/fixtures/grader/` (at the root of the repository) holds a synthetic bundle that this grader wrote, with an invented machine and a fixed identity that is not a published build. The Python suite requires the file to be what the grader writes now (`tests/test_fixture.py`), and `tests/grader/bundle-fixture.test.ts` reads it with the browser's own primitives (`DecompressionStream`, the zod schemas, `canonicalJson`, `crypto`) and requires rules 1 to 3 to pass and the receipt's identity hash to be the one in `sample.expected.json`. So what the grader writes is what the site reads, with neither language needing the other at test time. After a change that is meant to alter the file: `uv run --project labs/grader python -m labs.grader.tests.fixture`.
 
@@ -103,7 +128,7 @@ src/enginespace_grader/
   cli.py  grade.py  verify.py  selftest.py  doctor.py      the commands
   challenge.py  rng.py  canonical.py  hashing.py           the cross-language contract
   receipt.py  bundle.py  schemas.py  identity.py           the receipt, the bundle, the packaged schemas, the grader's hash
-  fingerprint.py                                           host facts (W2-T03 builds the rest)
+  fingerprint.py  redact.py  engine_config.py              the fingerprint; what a receipt never holds; the effective engine configuration
   fetch.py                                                 the references manifest, and the downloads it pins (W2-T05)
   labs/                                                    the plug-in interface; one module for each lab arrives with its task
   schemas/                                                 written by scripts/export-schemas.ts

@@ -1,6 +1,6 @@
 """The `enginespace` command (ARCHITECTURE section 9.4): one table of commands, each loaded only when it is named.
 
-    enginespace doctor                                   print the fields a receipt would record (a stub until W2-T03 and W2-T04)
+    enginespace doctor                                   print the fields a receipt would record (its checks arrive with W2-T04)
     enginespace fetch <lab>                              download the files that a lab pins, and keep only those that hash to the pin
     enginespace grade <lab>.<stage> --challenge <token>  grade a stage on a challenge from the site, and write its bundle
     enginespace receipt verify <file>                    the browser's first three rules, run locally
@@ -106,12 +106,15 @@ def _grade(argv: Sequence[str]) -> int:
     provenance, notes = resolve_provenance(args.assisted, args.agent)
     for note in notes:
         sys.stderr.write(note + "\n")
+    found = fingerprint.gather(args.host_kind, engine=fingerprint.engine_for(lab.environment), env_allow=lab.env_allowlist)
+    for note in found.notes:
+        sys.stderr.write(f"note: {note}\n")
     outcome = run_stage(
         lab,
         stage_id,
         args.challenge,
         out_dir=Path(args.out),
-        environment=fingerprint.collect(args.host_kind),
+        environment=found.environment,
         pins=local_pins(lab),
         provenance=provenance,
         notes=args.notes,
@@ -129,7 +132,7 @@ def _grade(argv: Sequence[str]) -> int:
 
 #: name -> (what runs it, what it does).
 COMMANDS: dict[str, tuple[Callable[[Sequence[str]], int], str]] = {
-    "doctor": (_doctor, "print the fields that a receipt would record about this machine (a stub until W2-T03 and W2-T04)"),
+    "doctor": (_doctor, "print the fields that a receipt would record about this machine (its checks of the pins arrive with W2-T04)"),
     "fetch": (_fetch, "download the files that a lab pins into the cache, and keep only those whose SHA-256 is the manifest's: fetch <lab>"),
     "grade": (_grade, "grade a stage on a challenge token from the site, and write its bundle: grade <lab>.<stage> --challenge <token>"),
     "receipt": (_receipt, "receipt verify <file>: the browser's first three rules, run locally"),

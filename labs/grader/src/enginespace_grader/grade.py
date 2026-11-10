@@ -26,10 +26,11 @@ from typing import Any
 
 from .bundle import BundleStats, build_bundle, write_bundle
 from .challenge import TOKEN_LIFETIME_DAYS, age_in_days, check_challenge
+from .engine_config import read_engine_config
 from .errors import GraderError
 from .identity import identity
 from .labs import Lab, StageContext
-from .receipt import build_receipt, enum_values, receipt_problems, utc_instant
+from .receipt import build_receipt, enum_values, make_check, receipt_problems, utc_instant
 
 __all__ = ["GradeOutcome", "local_pins", "receipt_path", "resolve_provenance", "run_stage"]
 
@@ -150,6 +151,16 @@ def run_stage(
     if missing:
         raise GraderError(f"{lab.id} did not report the check{'s' if len(missing) > 1 else ''} {', '.join(missing)}, which {stage_id} must report. This is a fault in the lab, not in your work")
 
+    # An engine lab hands over its engine's log: the effective configuration is read from it and recorded, and one check says whether all six fields were found.
+    # A reading with a field missing is no reason to lose a run, so the receipt is written without `engineConfig` and the check fails with what was not found.
+    environment = dict(environment)
+    checks = list(result.checks)
+    if result.engine_run is not None:
+        reading = read_engine_config(result.engine_run, lab.environment)
+        if reading.config is not None:
+            environment["engineConfig"] = reading.config
+        checks.append(make_check("engine-config", "environment", reading.ok, detail=reading.detail()))
+
     moment = clock().astimezone(dt.timezone.utc)
     all_notes = "\n".join(text for text in (result.notes, notes) if text) or None
     try:
@@ -161,7 +172,7 @@ def run_stage(
             pins=pins,
             inputs=result.inputs,
             artifacts=[artifact.entry() for artifact in result.artifacts],
-            checks=result.checks,
+            checks=checks,
             provenance=provenance,
             performance=result.performance,
             notes=all_notes,
