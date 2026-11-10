@@ -92,7 +92,7 @@ describe('the forged bestiary', () => {
     ])
   })
 
-  test('every forgery has an honest fixture to be made from, and the two kinds of fixture are forged into five and four', () => {
+  test('every forgery has an honest fixture to be made from, and the two kinds of fixture are forged into seven and two', () => {
     expect(forgeriesFor(replayFixture()).map((forgery) => forgery.id)).toEqual(['edited-p99', 'resigned-hash', 'reused-token', 'replayed-receipt', 'closed-loop', 'unknown-grader', 'other-seed'])
     expect(forgeriesFor(traceFixture()).map((forgery) => forgery.id)).toEqual(['too-fast', 'not-a-partition'])
     const covered = new Set([...forgeriesFor(replayFixture()), ...forgeriesFor(traceFixture())].map((forgery) => forgery.id))
