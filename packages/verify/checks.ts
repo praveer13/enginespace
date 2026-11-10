@@ -70,8 +70,14 @@ export type Outcome = CheckResult | NotApplicable
 
 export const isNa = (outcome: Outcome): outcome is NotApplicable => 'na' in outcome
 
-export const pass = (id: string, bound: string): CheckResult => ({ id, status: 'pass', bound })
-export const fail = (id: string, bound: string): CheckResult => ({ id, status: 'fail', bound })
+/**
+ * A bound as a sentence: one that opens with a plain lower-case word (`the trace has 13 step windows`) opens with a capital, as the verdict's sentences do. One that opens
+ * with a name (`latency.ttftFromDue.p99Us: the receipt claims`, `p99Intervals`) is left as it is: a name is no sentence's first word.
+ */
+const sentence = (bound: string): string => (/^[a-z]+ /.test(bound) ? `${bound.charAt(0).toUpperCase()}${bound.slice(1)}` : bound)
+
+export const pass = (id: string, bound: string): CheckResult => ({ id, status: 'pass', bound: sentence(bound) })
+export const fail = (id: string, bound: string): CheckResult => ({ id, status: 'fail', bound: sentence(bound) })
 export const na = (reason: string): NotApplicable => ({ na: reason })
 
 /** Computes a value once for a run: the second check that asks for the same key gets the first one's answer. */

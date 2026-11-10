@@ -50,7 +50,7 @@ describe('the honest replay', () => {
     expect(checkOf(outcome, 'B4')?.bound).toBe(
       '0 sends of 1,264 were late, the latest by 0 µs. The bound is at least 99.9% of sends within 2,000 µs of their due time and none past 20,000 µs [estimated].',
     )
-    expect(checkOf(outcome, 'B14')?.bound).toBe("the server's prefix cache was reset at -60,000,000,000 ns and the first request is due at 19,014,000 ns: no earlier run's cache can have helped.")
+    expect(checkOf(outcome, 'B14')?.bound).toBe("The server's prefix cache was reset at -60,000,000,000 ns and the first request is due at 19,014,000 ns: no earlier run's cache can have helped.")
   })
 
   test('is recomputed from the rows with the declared workload and the challenge\'s seed: the same fixture with another seed in the context is another schedule', async () => {
@@ -65,12 +65,12 @@ describe('B1, the schedule binds to the challenge', () => {
   test('fails when a row is another request than the schedule\'s: the id, the due time and the prompt length are held', async () => {
     const outcome = await run(withLog((log) => (log.rows.promptTokens[17] += 1)))
     expect(checkOf(outcome, 'B1')).toMatchObject({ status: 'fail' })
-    expect(checkOf(outcome, 'B1')?.bound).toMatch(/^row 17 is request 17, due [\d,]+ ns with a prompt of [\d,]+ tokens, and the schedule has request 17, due [\d,]+ ns with [\d,]+: a run on other seeds fails here\.$/)
+    expect(checkOf(outcome, 'B1')?.bound).toMatch(/^Row 17 is request 17, due [\d,]+ ns with a prompt of [\d,]+ tokens, and the schedule has request 17, due [\d,]+ ns with [\d,]+: a run on other seeds fails here\.$/)
   })
 
   test('counts the rows that differ, and the first is named', async () => {
     const outcome = await run(withLog((log) => (log.rows.dueNs[3] += 1000) && undefined))
-    expect(checkOf(outcome, 'B1')?.bound).toContain('row 3 is request 3')
+    expect(checkOf(outcome, 'B1')?.bound).toContain('Row 3 is request 3')
   })
 
   test('fails when the log has more or fewer requests than the seed draws', async () => {
@@ -79,13 +79,13 @@ describe('B1, the schedule binds to the challenge', () => {
         for (const column of Object.values(log.rows)) column.pop()
       }),
     )
-    expect(checkOf(outcome, 'B1')?.bound).toBe("the log has 1,263 rows and the challenge's seed draws 1,264 requests, so this is not the run that the challenge asked for: a run on other seeds fails here.")
+    expect(checkOf(outcome, 'B1')?.bound).toBe("The log has 1,263 rows and the challenge's seed draws 1,264 requests, so this is not the run that the challenge asked for: a run on other seeds fails here.")
   })
 
   test('fails, with the reason, when the site declares no workload for the stage, because a requirement that a receipt can meet by leaving it out is none', async () => {
     const fixture = replayFixture()
     const outcome = await verify(fixture.bundle, { ...fixture.context, stages: {} })
-    expect(checkOf(outcome, 'B1')).toEqual({ id: 'B1', status: 'fail', bound: 'this site declares no workload for tr8.replay.s2, so the schedule cannot be drawn again from the challenge.' })
+    expect(checkOf(outcome, 'B1')).toEqual({ id: 'B1', status: 'fail', bound: 'This site declares no workload for tr8.replay.s2, so the schedule cannot be drawn again from the challenge.' })
     expect(outcome.verdict.provenance).toBe('gpu-unverified')
   })
 })
@@ -111,12 +111,12 @@ describe('B3, each request went through in order', () => {
   test('fails a send before its due time, and names the row', async () => {
     const outcome = await run(withLog((log) => (log.rows.sentNs[40] = log.rows.dueNs[40] - 1)))
     expect(checkOf(outcome, 'B3')?.status).toBe('fail')
-    expect(checkOf(outcome, 'B3')?.bound).toMatch(/^row 40 \(request 40\) has due [\d,]+, sent [\d,]+, first token [\d,]+ and last token [\d,]+ ns, which are not in order from 0\.$/)
+    expect(checkOf(outcome, 'B3')?.bound).toMatch(/^Row 40 \(request 40\) has due [\d,]+, sent [\d,]+, first token [\d,]+ and last token [\d,]+ ns, which are not in order from 0\.$/)
   })
 
   test('fails a completed request with no output token', async () => {
     const outcome = await run(withLog((log) => (log.rows.outputTokens[2] = 0)))
-    expect(checkOf(outcome, 'B3')?.bound).toBe('row 2 (request 2) completed with 0 output tokens, and a completed request has at least one.')
+    expect(checkOf(outcome, 'B3')?.bound).toBe('Row 2 (request 2) completed with 0 output tokens, and a completed request has at least one.')
   })
 
   test('counts the rows beyond the first, and leaves the statistics unrun: they would read garbage', async () => {
@@ -126,7 +126,7 @@ describe('B3, each request went through in order', () => {
       }),
     )
     expect(checkOf(outcome, 'B3')?.bound).toContain('(and 2 more rows)')
-    expect(checkOf(outcome, 'B6')).toEqual({ id: 'B6', status: 'fail', bound: 'the rows are not in order (B3).' })
+    expect(checkOf(outcome, 'B6')).toEqual({ id: 'B6', status: 'fail', bound: 'The rows are not in order (B3).' })
   })
 })
 
@@ -212,7 +212,7 @@ describe('B7, the interval', () => {
 })
 
 describe('B8, the warm-up', () => {
-  test('fails a run that is still warming: the median first token of the tenth after the warm-up is more than 5/4 of the rest', async () => {
+  test('fails a run that is Still warming: the median first token of the tenth after the warm-up is more than 5/4 of the rest', async () => {
     const outcome = await run(
       withLog((log) => {
         const warm = 128
@@ -224,7 +224,7 @@ describe('B8, the warm-up', () => {
       }),
     )
     expect(checkOf(outcome, 'B8')?.status).toBe('fail')
-    expect(checkOf(outcome, 'B8')?.bound).toMatch(/^still warming: the median time to first token of the first tenth after the warm-up is [\d,]+ µs, more than 5\/4 of the [\d,]+ µs of the rest \[estimated bound\]\.$/)
+    expect(checkOf(outcome, 'B8')?.bound).toMatch(/^Still warming: the median time to first token of the first tenth after the warm-up is [\d,]+ µs, more than 5\/4 of the [\d,]+ µs of the rest \[estimated bound\]\.$/)
   })
 })
 
@@ -278,7 +278,7 @@ describe('a log that cannot be read', () => {
       if (artifact.encoding === 'json') (artifact.data as Log).rows.status.pop()
     })
     const outcome = await run(fixture)
-    expect(checkOf(outcome, 'B6')?.bound).toBe('the log could not be read: rows.status has 1,263 rows, where rows.id has 1,264.')
+    expect(checkOf(outcome, 'B6')?.bound).toBe('The log could not be read: rows.status has 1,263 rows, where rows.id has 1,264.')
     expect(failed(outcome).filter((id) => id.startsWith('B'))).toHaveLength(12)
   })
 
@@ -289,7 +289,7 @@ describe('a log that cannot be read', () => {
       delete bundle.artifacts['bench-log']
     })
     const outcome = await run(fixture)
-    expect(checkOf(outcome, 'B2')?.bound).toBe('the log could not be read: the learner kept it and it is not in the bundle, so this browser cannot read it.')
+    expect(checkOf(outcome, 'B2')?.bound).toBe('The log could not be read: the learner kept it and it is not in the bundle, so this browser cannot read it.')
   })
 
   test('is any file that is not bench-log@1 in the format of a log: the reader names the first thing that is wrong', async () => {

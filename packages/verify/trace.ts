@@ -39,7 +39,7 @@ const line = (id: string, ok: boolean, text: string): CheckResult => (ok ? pass(
 const structural = (run: Run, parsed: Good): readonly TraceCheckResult[] => memoized(run, `trace:checks:${parsed.id}`, () => traceChecks(parsed.value))
 
 /** The recomputed attribution of every step window of a trace, once. */
-export const windowsOf = (run: Run, parsed: Good): readonly Attribution[] => memoized(run, `trace:windows:${parsed.id}`, () => attributeSteps(parsed.value))
+const windowsOf = (run: Run, parsed: Good): readonly Attribution[] => memoized(run, `trace:windows:${parsed.id}`, () => attributeSteps(parsed.value))
 
 function t1(run: Run, parsed: Good): Outcome {
   const { meta } = parsed.value

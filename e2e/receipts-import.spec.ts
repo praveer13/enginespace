@@ -173,7 +173,7 @@ test.describe('an honest receipt', () => {
 
     // What it is worth now: nothing yet, and why.
     await expect(slip(page)).toContainText('not credited')
-    await expect(slip(page)).toContainText('X1 is not built yet: W2-T23 builds it')
+    await expect(slip(page)).toContainText('T6: This site declares no step count for tr3.profile.s2.')
     await expect(status(page)).toContainText('Kept in your ledger. Not credited.')
 
     // The ledger has the receipt and the event that spent its token, written together, and the report beside the receipt.

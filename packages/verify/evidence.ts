@@ -165,6 +165,3 @@ export const benchLogs = (run: Run): readonly Parsed<BenchLog>[] => readArtifact
 
 /** The traces of a receipt, each read once, as the typed columns that `traceChecks` and `attribute` take. */
 export const traces = (run: Run): readonly Parsed<EsTrace>[] => readArtifacts(run, 'trace', TRACE_FORMAT, traceFromJson)
-
-/** Whether a receipt carries any evidence of either kind, listed or read. */
-export const hasEvidence = (run: Run): boolean => run.receipt.artifacts.some((entry) => (entry.kind === 'bench-log' && entry.format === BENCH_LOG_FORMAT) || (entry.kind === 'trace' && entry.format === TRACE_FORMAT))

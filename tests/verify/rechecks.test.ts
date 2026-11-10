@@ -81,7 +81,7 @@ describe('identity-tally (D-046)', () => {
     const gap = same(3)
     first[1] = 4
     const outcome = await run(withArtifact('identity', 'outputs', IDENTITY_FORMAT, identity(first, gap)))
-    expect(checkOf(outcome, 'identity-tally')?.bound).toBe('the artifact "identity" could not be read: sequences[1] has a gap exactly when it has a first mismatch.')
+    expect(checkOf(outcome, 'identity-tally')?.bound).toBe('The artifact "identity" could not be read: sequences[1] has a gap exactly when it has a first mismatch.')
   })
 
   test('is left out when the receipt has no comparison, and does nothing for a stage that does not ask for it', async () => {
@@ -103,12 +103,12 @@ describe('acceptance-counts', () => {
 
   test('fails a round that accepted more than was proposed', async () => {
     const outcome = await run(withArtifact('acceptance', 'counts', ACCEPTANCE_FORMAT, rounds([4, 4], [4, 5], [1, 1], [5, 6])))
-    expect(checkOf(outcome, 'acceptance-counts')?.bound).toBe('round 1 accepted 5 of 4 proposed: accepted tokens never exceed proposed ones.')
+    expect(checkOf(outcome, 'acceptance-counts')?.bound).toBe('Round 1 accepted 5 of 4 proposed: accepted tokens never exceed proposed ones.')
   })
 
   test('fails a round whose tokens out are not accepted plus the bonus', async () => {
     const outcome = await run(withArtifact('acceptance', 'counts', ACCEPTANCE_FORMAT, rounds([4, 4], [4, 2], [1, 1], [5, 4])))
-    expect(checkOf(outcome, 'acceptance-counts')?.bound).toBe('round 1 emitted 4 tokens, and its 2 accepted plus 1 bonus make 3.')
+    expect(checkOf(outcome, 'acceptance-counts')?.bound).toBe('Round 1 emitted 4 tokens, and its 2 accepted plus 1 bonus make 3.')
   })
 
   test('fails a claimed acceptance that is not the totals: a rate typed in', async () => {
@@ -128,7 +128,7 @@ describe('acceptance-counts', () => {
 
   test('fails a negative count, which no round has', async () => {
     const outcome = await run(withArtifact('acceptance', 'counts', ACCEPTANCE_FORMAT, rounds([4], [-1], [1], [0])))
-    expect(checkOf(outcome, 'acceptance-counts')?.bound).toBe('round 0 has a negative count.')
+    expect(checkOf(outcome, 'acceptance-counts')?.bound).toBe('Round 0 has a negative count.')
   })
 })
 
@@ -143,17 +143,17 @@ describe('argmax-bank (TR0)', () => {
 
   test('fails an id that is not the bank\'s, and names the position', async () => {
     const fixture = withArtifact('argmax', 'outputs', ARGMAX_FORMAT, argmax([3, 9, 27], [101, 999, 303]), { 'tr8.replay.s2': bank })
-    expect(checkOf(await run(fixture), 'argmax-bank')?.bound).toBe("position 9: the receipt's argmax is token 999, and the pinned bank has 202 (every banked position must agree).")
+    expect(checkOf(await run(fixture), 'argmax-bank')?.bound).toBe("Position 9: the receipt's argmax is token 999, and the pinned bank has 202 (every banked position must agree).")
   })
 
   test('fails a position of the bank that the receipt leaves out', async () => {
     const fixture = withArtifact('argmax', 'outputs', ARGMAX_FORMAT, argmax([3, 9], [101, 202]), { 'tr8.replay.s2': bank })
-    expect(checkOf(await run(fixture), 'argmax-bank')?.bound).toBe('position 27 of the bank is not among the 2 positions the receipt gives.')
+    expect(checkOf(await run(fixture), 'argmax-bank')?.bound).toBe('Position 27 of the bank is not among the 2 positions the receipt gives.')
   })
 
   test('fails when the site holds no bank for the stage, and says whose recording it waits for', async () => {
     const fixture = withArtifact('argmax', 'outputs', ARGMAX_FORMAT, argmax([3], [101]))
-    expect(checkOf(await run(fixture), 'argmax-bank')?.bound).toBe('this site holds no argmax bank for tr8.replay.s2 yet (the owner records it, W2-T17), so the ids cannot be compared.')
+    expect(checkOf(await run(fixture), 'argmax-bank')?.bound).toBe('This site holds no argmax bank for tr8.replay.s2 yet (the owner records it, W2-T17), so the ids cannot be compared.')
   })
 })
 

@@ -802,9 +802,11 @@
   line-height: 1.5;
 }
 
+/* Narrow: the id and the word on one line, and the bound under them across the whole width. From 40rem: three columns, with the id's column one width for every
+   check (a longer id wraps at its hyphens), so that the bounds line up. */
 .es-check {
   display: grid;
-  grid-template-columns: minmax(3ch, max-content) max-content minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) max-content;
   align-items: baseline;
   gap: var(--es-space-1) var(--es-space-3);
   padding-inline-start: var(--es-space-2);
@@ -830,14 +832,25 @@
   font-weight: var(--es-font-ticket-weight);
 }
 
-.es-check__bound {
+.es-check__bound,
+.es-check__badge {
+  grid-column: 1 / -1;
   overflow-wrap: anywhere;
 }
 
 .es-check__badge {
-  grid-column: 3;
   color: var(--es-text-3);
-  font-size: var(--es-size-print);
+}
+
+@media (min-width: 40rem) {
+  .es-check {
+    grid-template-columns: 10ch max-content minmax(0, 1fr);
+  }
+
+  .es-check__bound,
+  .es-check__badge {
+    grid-column: 3;
+  }
 }
 
 .es-verdict-checks {

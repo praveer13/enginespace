@@ -40,6 +40,8 @@ export type ImportResult =
       /** The receipt's identity, and the fragment of its page. */
       sha256: string
       verdict: Verdict
+      /** The grader's version, which the badge of an attested check names. */
+      grader: string
       /** The ledger held this receipt already: this check added its report, and no event. */
       recheck: boolean
     }
@@ -97,5 +99,5 @@ export async function importReceipt(file: File, env: ImportEnv): Promise<ImportR
     return { step: 'failed', file: facts, rules: outcome.rules, message: messageOf(error) }
   }
   if (!kept.ok) return { step: 'failed', file: facts, rules: outcome.rules, message: kept.detail }
-  return { step: 'kept', file: facts, rules: outcome.rules, sha256: outcome.receiptSha256, verdict: outcome.verdict, recheck }
+  return { step: 'kept', file: facts, rules: outcome.rules, sha256: outcome.receiptSha256, verdict: outcome.verdict, grader: outcome.receipt.grader.version, recheck }
 }

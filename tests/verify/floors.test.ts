@@ -63,15 +63,15 @@ describe('P1, a step against its floor', () => {
     expect(checkOf(outcome, 'P1')).toEqual({
       id: 'P1',
       status: 'fail',
-      bound: 'the hardware atlas has no entry for "NVIDIA Example Accelerator", so no floor can be made, and a name that is not listed is not guessed.',
+      bound: 'The hardware atlas has no entry for "NVIDIA Example Accelerator", so no floor can be made, and a name that is not listed is not guessed.',
     })
   })
 
   test('fails a receipt that names no GPU, and one that lists no model, since there is nothing to make the floor from', async () => {
     const none = await run(edited(traceFixture(), (bundle) => (bundle.receipt.environment.gpus = [])))
-    expect(checkOf(none, 'P1')?.bound).toBe('the receipt names no GPU, and a floor is made from the GPU that ran.')
+    expect(checkOf(none, 'P1')?.bound).toBe('The receipt names no GPU, and a floor is made from the GPU that ran.')
     const noModel = await run(edited(traceFixture(), (bundle) => (bundle.receipt.inputs = bundle.receipt.inputs.filter((input) => input.kind !== 'model'))))
-    expect(checkOf(noModel, 'P1')?.bound).toBe('the receipt lists no model among its inputs, so there are no weight bytes to make a floor from.')
+    expect(checkOf(noModel, 'P1')?.bound).toBe('The receipt lists no model among its inputs, so there are no weight bytes to make a floor from.')
   })
 
   test('fails a trace with no step window: no step can be held to a floor', async () => {
@@ -81,7 +81,7 @@ describe('P1, a step against its floor', () => {
         trace.marks = []
       }),
     )
-    expect(checkOf(outcome, 'P1')?.bound).toBe('the trace has no step window, so no step can be held to its floor.')
+    expect(checkOf(outcome, 'P1')?.bound).toBe('The trace has no step window, so no step can be held to its floor.')
   })
 
   test('has nothing to bound in a receipt with no performance evidence, and the rule passes', async () => {
@@ -118,11 +118,11 @@ describe('P3 (B13), the throughput ceiling', () => {
 
   test('fails a receipt that records no max_num_seqs, since the most a step can emit is then not known', async () => {
     const outcome = await run(edited(replayFixture(), (bundle) => delete bundle.receipt.environment.engineConfig))
-    expect(checkOf(outcome, 'P3')?.bound).toBe('the receipt records no max_num_seqs, so the most tokens a step can emit is not known.')
+    expect(checkOf(outcome, 'P3')?.bound).toBe('The receipt records no max_num_seqs, so the most tokens a step can emit is not known.')
   })
 
   test('fails a GPU that the atlas lacks, as P1 does', async () => {
     const outcome = await run(edited(replayFixture(), (bundle) => bundle.receipt.environment.gpus.forEach((gpu) => (gpu.name = 'NVIDIA Example Accelerator'))))
-    expect(checkOf(outcome, 'P3')?.bound).toContain('the hardware atlas has no entry for "NVIDIA Example Accelerator"')
+    expect(checkOf(outcome, 'P3')?.bound).toContain('The hardware atlas has no entry for "NVIDIA Example Accelerator"')
   })
 })

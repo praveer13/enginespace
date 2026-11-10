@@ -34,7 +34,7 @@ function CheckLine({ check }: { check: CheckResult }) {
   )
 }
 
-function Rule({ result }: { result: RuleResult }) {
+function Rule({ result, checks }: { result: RuleResult; checks: boolean }) {
   return (
     <li className="es-rule" data-status={result.status} data-rule={result.id}>
       <span className="es-rule__n" aria-hidden="true">
@@ -49,7 +49,7 @@ function Rule({ result }: { result: RuleResult }) {
         <span>{RULE_WORDS[result.status]}</span>
       </span>
       <p className="es-rule__summary">{result.summary}</p>
-      {result.checks !== undefined && result.checks.length > 0 ? (
+      {checks && result.checks !== undefined && result.checks.length > 0 ? (
         <ul className="es-rule__checks" aria-label={`Checks of rule ${result.rule}`}>
           {result.checks.map((check) => (
             <CheckLine key={check.id} check={check} />
@@ -66,11 +66,15 @@ function Rule({ result }: { result: RuleResult }) {
   )
 }
 
-export function RuleList({ rules, label }: { rules: readonly RuleResult[]; label: string }) {
+/**
+ * The rules as a list. A rule of 7 to 9 lists its checks under its sentence, each with its bound, unless `checks` is false: where the verdict is printed
+ * under the list, it lists every check once, and the rules say only what they found.
+ */
+export function RuleList({ rules, label, checks = true }: { rules: readonly RuleResult[]; label: string; checks?: boolean }) {
   return (
     <ol className="es-rules" aria-label={label}>
       {rules.map((result) => (
-        <Rule key={result.id} result={result} />
+        <Rule key={result.id} result={result} checks={checks} />
       ))}
     </ol>
   )

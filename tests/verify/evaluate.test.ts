@@ -28,8 +28,8 @@ describe('a stage that requires a check the receipt has no evidence for', () => 
     const outcome = await verify(fixture.bundle, fixture.context)
     const ids = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10', 'B12', 'B14', 'P3']
     expect(failed(outcome)).toEqual(ids)
-    expect(checkOf(outcome, 'B1')?.bound).toBe('the receipt carries no benchmark log (enginespace/bench-log@1).')
-    expect(checkOf(outcome, 'P3')?.bound).toBe('the receipt carries no benchmark log.')
+    expect(checkOf(outcome, 'B1')?.bound).toBe('The receipt carries no benchmark log (enginespace/bench-log@1).')
+    expect(checkOf(outcome, 'P3')?.bound).toBe('The receipt carries no benchmark log.')
     expect(outcome.verdict.provenance).toBe('gpu-unverified')
     expect(outcome.rules[7]).toMatchObject({ status: 'fail', summary: '12 checks, 0 passed and 12 failed.' })
   })
@@ -80,7 +80,7 @@ describe('a check that cannot run', () => {
     const checks = results.flatMap((rule) => rule.checks ?? [])
     // Rule 7 reads the artifacts of every receipt and its three re-checks throw; the stage's required checks throw too; and the run goes on to the end.
     expect(checks.length).toBeGreaterThan(10)
-    expect(checks.every((check) => check.status === 'fail' && check.bound.startsWith('the check could not run: this list cannot be read'))).toBe(true)
+    expect(checks.every((check) => check.status === 'fail' && check.bound.startsWith('The check could not run: this list cannot be read'))).toBe(true)
   })
 })
 

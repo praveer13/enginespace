@@ -74,8 +74,8 @@ describe('the honest sample', () => {
     // that tr3.profile.s2 requires and that are not built yet are named with the task that builds them; the grader lists none of the checks the stage requires.
     const reasons = outcome.verdict.reasons.join('\n')
     expect(reasons).toContain('T1: ')
-    expect(reasons).toContain('T6: this site declares no step count for tr3.profile.s2.')
-    expect(reasons).toContain('P1: the hardware atlas has no entry for "Example GPU 24GB"')
+    expect(reasons).toContain('T6: This site declares no step count for tr3.profile.s2.')
+    expect(reasons).toContain('P1: The hardware atlas has no entry for "Example GPU 24GB"')
     expect(reasons).toContain('X1 is not built yet: W2-T23 builds it')
     expect(outcome.rules[6].status).toBe('pass')
     expect(outcome.rules[7].status).toBe('fail')

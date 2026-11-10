@@ -440,7 +440,7 @@ function Check({ report, newest, receipt }: { report: VerificationReport; newest
           all of them run.
         </p>
       ) : null}
-      <RuleList rules={read.rules} label={`How this browser checked the receipt, ${formatWhen(report.at)}`} />
+      <RuleList rules={read.rules} label={`How this browser checked the receipt, ${formatWhen(report.at)}`} checks={false} />
       <VerdictLine verdict={verdictOf(receipt, read.rules, read.ran)} grader={receipt.grader.version} />
     </>
   )

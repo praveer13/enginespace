@@ -63,7 +63,7 @@ const refusedOutcome = await verifyBundle(fileOf(tampered), contextFor(tampered)
 if (refusedOutcome.kind !== 'refused') throw new Error('the tampered file was taken')
 
 const FILE = { name: 'tr3.profile-s2-20261109T120000Z.es.json.gz', bytes: 2082 }
-const kept = (over: Partial<Extract<ImportState, { step: 'kept' }>> = {}): ImportState => ({ step: 'kept', file: FILE, rules: good.rules, sha256: good.receiptSha256, verdict: good.verdict, recheck: false, ...over })
+const kept = (over: Partial<Extract<ImportState, { step: 'kept' }>> = {}): ImportState => ({ step: 'kept', file: FILE, rules: good.rules, sha256: good.receiptSha256, verdict: good.verdict, grader: good.receipt.grader.version, recheck: false, ...over })
 
 describe('the slip, waiting for a file', () => {
   const html = panel({ step: 'idle' })
@@ -228,13 +228,26 @@ describe('the slip, with a receipt that was kept', () => {
     expect(text(html)).toContain('Bound to the challenge this browser issued for tr3.profile.s2')
   })
 
-  test('prints the checks of rules 8 and 9, each with an id, a word and the bound it was held to', () => {
-    const checks = [...html.matchAll(/<li class="es-check" data-status="(\w+)" data-check="(\w+)">/g)].map((match) => `${match[2]}:${match[1]}`)
-    expect(checks).toContain('T6:fail')
-    expect(checks).toContain('T2:pass')
-    expect(checks).toContain('P1:fail')
-    expect(text(html)).toContain('this site declares no step count for tr3.profile.s2')
-    expect(text(html)).toContain('the hardware atlas has no entry for "Example GPU 24GB"')
+  test('prints each check once, under the verdict, with an id, a word, the bound it was held to and who checked it, and the rules above say only what they found', () => {
+    const checks = [...html.matchAll(/<li class="es-check" data-status="(\w+)" data-check="([\w-]+)" data-how="([\w-]+)">/g)].map((match) => `${match[2]}:${match[1]}:${match[3]}`)
+    expect(checks).toContain('T6:fail:re-checked')
+    expect(checks).toContain('T2:pass:re-checked')
+    expect(checks).toContain('P1:fail:re-checked')
+    expect(checks).toContain('agreement:attested:attested')
+    expect(new Set(checks).size).toBe(checks.length)
+    expect(text(html)).toContain('This site declares no step count for tr3.profile.s2')
+    expect(text(html)).toContain('The hardware atlas has no entry for "Example GPU 24GB"')
+    expect(text(html)).toContain('re-checked here')
+    expect(text(html)).toContain('attested by grader 0.1.0')
+    // The rules of 7 to 9 give their sentence and no list: the verdict has the list.
+    expect(html).not.toContain('aria-label="Checks of rule')
+    expect(text(html)).toMatch(/\d+ checks?, \d+ passed and \d+ failed\./)
+  })
+
+  test('lists the checks under their rule where there is no verdict to list them: a check that was made and not kept', () => {
+    const html = panel({ step: 'failed', file: FILE, message: 'This tab is read-only.', rules: good.rules })
+    expect(html).toContain('aria-label="Checks of rule 8"')
+    expect(html).toMatch(/<li class="es-check" data-status="fail" data-check="T6">/)
   })
 
   test('says what it is worth now: not credited, and why, in the words of the verifier and not in a number of the page\'s own', () => {

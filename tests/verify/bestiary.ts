@@ -203,7 +203,7 @@ const tooFast: Forgery = {
   title: 'a trace faster than its physics floor',
   from: 'trace',
   fails: { rule: 9, check: 'P1' },
-  bound: /step \d+ has [\d,]+ ns of GPU-busy time, below its floor of [\d,]+ ns( \(and \d+ more\))?\. The floor is [\d,]+ weight bytes × 80% \[estimated\] ÷ [\d,]+ GB\/s over \d+ GPUs? = [\d,]+ ns/,
+  bound: /Step \d+ has [\d,]+ ns of GPU-busy time, below its floor of [\d,]+ ns( \(and \d+ more\))?\. The floor is [\d,]+ weight bytes × 80% \[estimated\] ÷ [\d,]+ GB\/s over \d+ GPUs? = [\d,]+ ns/,
   forge: (honest) => {
     const { id, trace } = traceOf(honest)
     const receipt = honest.bundle.receipt
@@ -246,7 +246,7 @@ const notAPartition: Forgery = {
   title: 'an attribution that does not partition its step window',
   from: 'trace',
   fails: { rule: 8, check: 'T7' },
-  bound: /window \d+: GPU-busy [\d,]+ ns \+ CPU-gap [\d,]+ ns \+ both-idle [\d,]+ ns = [\d,]+ ns, and the window is [\d,]+ ns long: an attribution partitions its window exactly/,
+  bound: /Window \d+: GPU-busy [\d,]+ ns \+ CPU-gap [\d,]+ ns \+ both-idle [\d,]+ ns = [\d,]+ ns, and the window is [\d,]+ ns long: an attribution partitions its window exactly/,
   forge: (honest) =>
     edited(honest, (bundle) => {
       const { id } = traceOf(honest)
@@ -262,7 +262,7 @@ const otherSeed: Forgery = {
   title: 'a pair run on different seeds',
   from: 'bench',
   fails: { rule: 8, check: 'B1' },
-  bound: /(the log has [\d,]+ rows? and the challenge's seed draws [\d,]+ requests?|row \d+ is request \d+, due [\d,]+ ns with a prompt of [\d,]+ tokens, and the schedule has request \d+).*a run on other seeds fails here/,
+  bound: /(The log has [\d,]+ rows? and the challenge's seed draws [\d,]+ requests?|Row \d+ is request \d+, due [\d,]+ ns with a prompt of [\d,]+ tokens, and the schedule has request \d+).*a run on other seeds fails here/,
   forge: (honest) => {
     const spec = honest.context.stages?.[honest.stage]?.bench as BenchSpec
     const seed = honest.bundle.receipt.challenge.seed
