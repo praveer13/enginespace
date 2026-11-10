@@ -222,41 +222,60 @@ export function customOf(prop: HouseProp): CustomSpec {
 }
 
 /**
- * The ticket [estimated]: a kitchen's slip a hand wide and twice as long, the print's own shape, 3 mm thick at the house's scale; rolled,
- * it hangs 200 mm, as the flat slip of 100 by 200 mm it replaces did, so it is as tall in every framing.
+ * The ticket [estimated]: a kitchen's slip, the print's own shape, twice as long as it is wide, in a stock 8 mm thick at the house's
+ * scale. Rolled at both ends it hangs 200 mm, as the flat slip of 100 by 200 mm it replaces did, so it is as tall in every framing. The
+ * cutaway draws about 4.4 mm to a pixel at the ticket [derived from the framings], so a stock as thin as the paper's would show no edge;
+ * at 8 mm the cut end the curl turns up is a strip about a pixel and a half across there (tests/play/engine-floor-scene.test.ts).
  */
-export const SLIP = { width: 0.12, height: 0.24, thickness: 0.003 } as const
-/** The roll's set in it [estimated]: the sheet cups across toward its foot, and from `from` down its foot rolls forward round `radius`. */
-export const ROLL = { from: 0.165, radius: 0.032, cup: 0.008 } as const
-/** Where the kit's paper samples its blank for a sheet's back and cut edges (paper.ts), and the shaded corner of the cell they take here. */
+export const SLIP = { width: 0.13, height: 0.26, thickness: 0.008 } as const
+/**
+ * The roll's set in it [estimated], as the sheet's turn from straight down toward the room, along its length: it leaves the rail's clip
+ * turned `head` radians forward and hangs straight from `hang` down, and from `curl` down its foot curls forward, tighter toward its cut
+ * end, through `foot` radians, so the curl's back stands in front of its face with the cut end on top.
+ */
+export const ROLL = { head: Math.PI / 2, hang: 0.076, curl: 0.157, foot: 2.6 } as const
+/** The sheet's turn toward the room `s` down it, in radians from straight down. */
+const turnAt = (s: number) => (s < ROLL.hang ? ROLL.head * (1 - s / ROLL.hang) ** 2 : s > ROLL.curl ? ROLL.foot * ((s - ROLL.curl) / (SLIP.height - ROLL.curl)) ** 1.4 : 0)
+/**
+ * Where the kit's paper samples its blank for a sheet's back and cut edges (paper.ts), the shaded corner of a cell that its back and its
+ * long edges take here, and the plain paper under a cell's last line of print that its cut ends take.
+ */
 const BLANK = [0.04, 0.03]
-const SHADE = [0.012, 0.012]
+export const SHADE = [0.012, 0.012] as const
+export const LIT = [0.5, 0.1] as const
 
 /**
- * The ticket's sheet, which moves and so is not in the set: the kit's slip (paper.ts's `ticketGeometry`, flat), set as a ticket torn off
- * the roll keeps it, at a scale the cutaway reads. It cups across, its corners forward, more toward its foot, and its foot rolls forward
- * round a tight curl and back up toward its face, so where it turns the paper's back and its cut edge show, in the shaded paper of a
- * cell's corner. Its top edge's middle is the origin, as the kit's.
+ * The ticket's sheet, which moves and so is not in the set: the kit's slip (paper.ts's `ticketGeometry`, flat), bent row by row along the
+ * roll's set at a scale the cutaway reads. Its top rolls forward off the rail's clip and straightens as it hangs, so it takes the tubes'
+ * light; its foot curls away from the tile and up, so the curl's back, in the shaded paper of a cell's corner, stands in front of its
+ * face, with the cut end on top of it in the cell's plain paper, turned to the tubes: a lit strip of the stock's thickness. Seen from the
+ * cutaway's three quarters, a curl moves the paper mostly along the line of sight, so it reads by its light and shade more than by its
+ * outline. Its top edge's middle is the origin, as the kit's.
  */
 export function ticketSheet() {
-  // Rows of 5 mm, so the curl turns in steps of about a tenth of a radian.
+  // Rows of about 5 mm, so the curls turn in steps of about a fifth of a radian at most.
+  const step = SLIP.height / 48
   const sheet = ticketGeometry(SLIP.width, SLIP.height, SLIP.thickness, 0, 48)
   const position = sheet.getAttribute('position')
+  const normal = sheet.getAttribute('normal')
   const uv = sheet.getAttribute('uv')
+  // The face's line down the sheet, a row at a time: how far down it is, how far out from the clip, and its turn there.
+  const line: number[][] = []
+  for (let j = 0, y = 0, z = 0; j <= 48; j++) {
+    line.push([y, z, turnAt(j * step)])
+    y -= Math.cos(turnAt((j + 0.5) * step)) * step
+    z += Math.sin(turnAt((j + 0.5) * step)) * step
+  }
   for (let i = 0; i < position.count; i++) {
-    const x = position.getX(i)
-    const down = -position.getY(i)
-    let y = -down
-    let z = position.getZ(i) + ROLL.cup * ((2 * x) / SLIP.width) ** 2 * Math.min(down, ROLL.from) / ROLL.from
-    // Past where the roll starts, the sheet wraps round the curl's axis, in front of its face: its face inside, its back outside.
-    const turn = (down - ROLL.from) / ROLL.radius
-    if (turn > 0) {
-      const r = ROLL.radius - z
-      y = -ROLL.from - r * Math.sin(turn)
-      z = ROLL.radius - r * Math.cos(turn)
+    // A vertex keeps its depth in the paper (the face at 0, the back the thickness behind it), square to the line at its row.
+    const [y, z, turn] = line[Math.round(-position.getY(i) / step)]
+    const depth = position.getZ(i)
+    position.setXYZ(i, position.getX(i), y + depth * Math.sin(turn), z + depth * Math.cos(turn))
+    // A cut end faces along the flat sheet's length: the lit stock. The back and the long edges are in the paper's shade.
+    if (Math.abs(uv.getX(i) - BLANK[0]) < 1e-6 && Math.abs(uv.getY(i) - BLANK[1]) < 1e-6) {
+      const [u, v] = Math.abs(normal.getY(i)) > 0.5 ? LIT : SHADE
+      uv.setXY(i, u, v)
     }
-    position.setXYZ(i, x, y, z)
-    if (Math.abs(uv.getX(i) - BLANK[0]) < 1e-6 && Math.abs(uv.getY(i) - BLANK[1]) < 1e-6) uv.setXY(i, SHADE[0], SHADE[1])
   }
   sheet.computeVertexNormals()
   return sheet

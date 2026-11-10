@@ -6,7 +6,7 @@
  * evidence supports runs. An edit re-signs the artifact, as a forger who changes the trace and writes its new hash into the receipt would.
  */
 import { describe, expect, test } from 'bun:test'
-import { edited, traceFixture, FIXTURES_GRADER } from './synthetic'
+import { edited, traceFixture, FIXTURES_GRADER, SERVING } from './synthetic'
 import type { Fixture } from './synthetic'
 import { checkOf, failed, verify } from './run'
 
@@ -71,6 +71,66 @@ describe('T1, the trace reads, names its origin, and is no made-up capture', () 
   })
 })
 
+describe('a check over nothing is not a pass (the review of W2\'s grader track)', () => {
+  /** The honest trace with no span at all: the columns, the flows that point into them, and the marks are left, or taken away. */
+  const noSpans = (marks: boolean) =>
+    withTrace((trace) => {
+      for (const column of Object.values(trace.spans)) column.length = 0
+      ;(trace as unknown as { flows: unknown[] }).flows.length = 0
+      if (!marks) trace.marks = []
+    })
+  /** The honest trace with its spans and without step marks: no window to hold them. */
+  const noWindows = () => withTrace((trace) => (trace.marks = []))
+  const NEEDS_SPANS = ['T2', 'T3', 'T4', 'T5', 'T7', 'T8']
+
+  test.each([
+    ['a trace with no span, and the step marks that bound its windows', () => noSpans(true)],
+    ['a trace with no span and no mark', () => noSpans(false)],
+  ])('%s fails each check that reads spans, and says there is no span', async (_name, make) => {
+    const outcome = await run(make())
+    for (const id of NEEDS_SPANS) {
+      expect([id, checkOf(outcome, id)?.status]).toEqual([id, 'fail'])
+      expect(checkOf(outcome, id)?.bound).toBe(`The trace has no span, so ${id} has nothing to check: a capture of no work is no capture.`)
+    }
+    expect(outcome.verdict.provenance).toBe('gpu-unverified')
+  })
+
+  test('a trace with spans and no step window fails them as well, and says there is no window', async () => {
+    const outcome = await run(noWindows())
+    for (const id of NEEDS_SPANS) {
+      expect([id, checkOf(outcome, id)?.status]).toEqual([id, 'fail'])
+      expect(checkOf(outcome, id)?.bound).toBe(`The trace has no step window (it needs two marks named step), so ${id} has no step to check.`)
+    }
+  })
+
+  test('leaves T1, T6 and X4 to say what they say of it: the meta is read, the count of windows is not the declared one, and the GPU is named', async () => {
+    const outcome = await run(noSpans(true))
+    expect(checkOf(outcome, 'T1')?.status).toBe('pass')
+    expect(checkOf(outcome, 'X4')?.status).toBe('pass')
+    expect(checkOf(outcome, 'T6')?.bound).toMatch(/^The trace has 13 step windows, and the challenge's seed asks for 13/)
+    const none = await run(noWindows())
+    expect(checkOf(none, 'T6')?.status).toBe('fail')
+    expect(checkOf(none, 'T6')?.bound).toMatch(/^The trace has 0 step windows, and the challenge's seed asks for 13/)
+  })
+
+  test('holds a trace of a pair to it one by one: the empty second trace fails and the first trace\'s own failure is not lost', async () => {
+    const pair = edited(traceFixture(), (bundle) => {
+      const first = traceOf(bundle)
+      first.spans.startNs[0] = -5
+      const second = JSON.parse(JSON.stringify(first)) as TraceData
+      for (const column of Object.values(second.spans)) column.length = 0
+      ;(second as unknown as { flows: unknown[] }).flows.length = 0
+      const entry = bundle.receipt.artifacts[0]
+      bundle.receipt.artifacts.push({ ...entry, id: 'trace-b' })
+      bundle.artifacts['trace-b'] = { encoding: 'json', data: second }
+      bundle.receipt.performance = { kind: 'pair', claimed: { trace: claimOf(bundle), 'trace-b': claimOf(bundle) } }
+    })
+    const outcome = await run(pair)
+    expect(checkOf(outcome, 'T2')?.bound).toContain('trace: Time runs forward: span 0')
+    expect(checkOf(outcome, 'T2')?.bound).toContain('trace-b: The trace has no span, so T2 has nothing to check')
+  })
+})
+
 describe('T2 to T5, the structure of a capture', () => {
   test('T2 fails a span that starts before 0', async () => {
     const outcome = await run(withTrace((trace) => (trace.spans.startNs[0] = -5)))
@@ -118,7 +178,8 @@ describe('T6, the number of step windows', () => {
 
   test('is left out of a stage that does not require it when the site declares no count (a stage that requires it fails with the reason: the pipeline test has tr3.profile.s2)', async () => {
     const fixture = traceFixture()
-    const none = await verify(fixture.bundle, { ...fixture.context, stages: {} })
+    // The stage still pins what the floors are made from; it declares no step count.
+    const none = await verify(fixture.bundle, { ...fixture.context, stages: { 'tr3.profile.s5': { ...SERVING } } })
     expect(checkOf(none, 'T6')).toBeUndefined()
     expect(none.verdict.provenance).toBe('practice')
   })

@@ -8,12 +8,16 @@
  *      ASSESSMENT §13's other three: a re-signed hash (B6), a reused token (rule 4), and a pair run on different seeds (B1).
  * The forgeries are built from the fixtures by tests/verify/bestiary.ts, which reads whatever bundle it is given, so that the owner's bundles of W2-T12
  * are forged the same way. And the limit of the design is a test too: a forger who edits the rows and recomputes every summary is not caught (A§8.6).
+ *
+ * The review of W2's grader track added two, each of a hole it found: a trace too fast with a smaller model typed into the
+ * receipt's inputs (P1 made its floor from the receipt's own figure), and an acceptance artifact with no round in it (acceptance-counts passed over nothing). Each passed
+ * before its fix, and fails its named check now.
  */
 import { describe, expect, test } from 'bun:test'
 import { verifyBundle } from '@es/verify'
 import type { CheckedOutcome, Outcome, RuleResult } from '@es/verify'
 import { BESTIARY, forgeriesFor } from './bestiary'
-import { edited, replayFixture, traceFixture } from './synthetic'
+import { edited, proposerFixture, replayFixture, traceFixture } from './synthetic'
 import type { Fixture } from './synthetic'
 import { fileOf } from './support'
 
@@ -33,7 +37,7 @@ function found(outcome: CheckedOutcome, rule: number, check: string): { status: 
   return { status: inside.status, bound: inside.bound }
 }
 
-const FIXTURES = [replayFixture, traceFixture]
+const FIXTURES = [replayFixture, traceFixture, proposerFixture]
 
 describe('the honest synthetic fixtures', () => {
   test.each(FIXTURES.map((make) => [make().name, make] as const))('%s passes every rule, and earns the verdict of its stage', async (_name, make) => {
@@ -52,6 +56,15 @@ describe('the honest synthetic fixtures', () => {
     ])
     expect(outcome.verdict.provenance).toBe(fixture.provenance)
     expect(outcome.verdict.checks.filter((check) => check.verdict === 'fail')).toEqual([])
+  })
+
+  test('the proposer is credited in full: the grader\'s identity check is attested, and the browser\'s one check of the counts is re-checked here', async () => {
+    const outcome = await run(proposerFixture())
+    expect(outcome.verdict).toMatchObject({ provenance: 'gpu-verified', reasons: [] })
+    expect(outcome.verdict.checks).toEqual([
+      { id: 'acceptance-counts', verdict: 'pass', bound: '1 artifact: in every round accepted ≤ proposed and tokens out = accepted + bonus, and any claimed acceptance equals the totals.', how: 're-checked', required: true },
+      { id: 'tie-aware-identity', verdict: 'attested', bound: 'value 200, bound 200, n 200; synthetic: 200 of 200 sequences identical to the plain run', how: 'attested', required: true },
+    ])
   })
 
   test('the replay is credited in full: its grader-attested check is attested, and the thirteen checks of the replay are re-checked here', async () => {
@@ -77,8 +90,20 @@ describe('the honest synthetic fixtures', () => {
 })
 
 describe('the forged bestiary', () => {
-  test('has the nine forgeries of ASSESSMENT §13, once each', () => {
-    expect(BESTIARY.map((forgery) => forgery.id)).toEqual(['edited-p99', 'resigned-hash', 'reused-token', 'replayed-receipt', 'closed-loop', 'too-fast', 'unknown-grader', 'not-a-partition', 'other-seed'])
+  test('has the nine forgeries of ASSESSMENT §13, once each, and the two that the review of the grader track added', () => {
+    expect(BESTIARY.map((forgery) => forgery.id)).toEqual([
+      'edited-p99',
+      'resigned-hash',
+      'reused-token',
+      'replayed-receipt',
+      'closed-loop',
+      'too-fast',
+      'unknown-grader',
+      'not-a-partition',
+      'other-seed',
+      'smaller-model',
+      'empty-evidence',
+    ])
     expect(BESTIARY.map((forgery) => forgery.title)).toEqual([
       'an edited p99',
       'a re-signed hash',
@@ -89,13 +114,16 @@ describe('the forged bestiary', () => {
       'an unknown grader build',
       'an attribution that does not partition its step window',
       'a pair run on different seeds',
+      'a trace faster than its physics floor, with a smaller model typed in',
+      'evidence left out and its entry left in: an acceptance artifact with no round',
     ])
   })
 
-  test('every forgery has an honest fixture to be made from, and the two kinds of fixture are forged into seven and two', () => {
+  test('every forgery has an honest fixture to be made from, and the three kinds of fixture are forged into seven, three and one', () => {
     expect(forgeriesFor(replayFixture()).map((forgery) => forgery.id)).toEqual(['edited-p99', 'resigned-hash', 'reused-token', 'replayed-receipt', 'closed-loop', 'unknown-grader', 'other-seed'])
-    expect(forgeriesFor(traceFixture()).map((forgery) => forgery.id)).toEqual(['too-fast', 'not-a-partition'])
-    const covered = new Set([...forgeriesFor(replayFixture()), ...forgeriesFor(traceFixture())].map((forgery) => forgery.id))
+    expect(forgeriesFor(traceFixture()).map((forgery) => forgery.id)).toEqual(['too-fast', 'not-a-partition', 'smaller-model'])
+    expect(forgeriesFor(proposerFixture()).map((forgery) => forgery.id)).toEqual(['empty-evidence'])
+    const covered = new Set([...forgeriesFor(replayFixture()), ...forgeriesFor(traceFixture()), ...forgeriesFor(proposerFixture())].map((forgery) => forgery.id))
     expect(covered.size).toBe(BESTIARY.length)
   })
 

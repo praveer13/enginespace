@@ -12,10 +12,11 @@ import { CHECK_IDS } from '@es/verify'
 import { BENCH_CHECKS } from '@es/verify/bench'
 import { firstDifference } from '@es/verify/checks'
 import { FLOORS_BUILT } from '@es/verify/floors'
-import { BENCH_CHECK_IDS, FLOOR_CHECK_IDS, RECHECK_IDS, TRACE_CHECK_IDS } from '@es/verify/ids'
+import { BENCH_CHECK_IDS, EVIDENCE_CHECK_IDS, FLOOR_CHECK_IDS, RECHECK_IDS, TRACE_CHECK_IDS } from '@es/verify/ids'
 import { RECHECKS_BUILT } from '@es/verify/rechecks'
 import { TRACE_CHECKS_BUILT } from '@es/verify/trace'
-import { edited, replayFixture, traceFixture } from './synthetic'
+import { edited, REPLAY_SPEC, replayFixture, SERVING, traceFixture } from './synthetic'
+import type { Fixture } from './synthetic'
 import { verifyBundle } from '@es/verify'
 import { checkOf, failed, verify } from './run'
 import { fileOf } from './support'
@@ -48,6 +49,65 @@ describe('a stage that lists checks as captured', () => {
   test('runs rule 7\'s re-checks whatever the stage, when the receipt has their artifact, and a stage that asks for none leaves them out otherwise', async () => {
     const outcome = await verify(replayFixture().bundle, replayFixture().context)
     expect(outcome.rules[6]).toMatchObject({ rule: 7, id: 'rechecks', status: 'pass', summary: 'No check of this rule applies to the receipt.' })
+  })
+})
+
+describe('a stage that asks for evidence (the review of W2\'s grader track)', () => {
+  /** A fixture made the receipt of another stage, with the challenge's token naming it. */
+  const asStage = (fixture: Fixture, stage: string): Fixture =>
+    edited(fixture, (bundle) => {
+      const parts = { stage, seed: bundle.receipt.challenge.seed, nonce: bundle.receipt.challenge.nonce, issuedOn: bundle.receipt.challenge.issuedOn }
+      bundle.receipt.stage = stage
+      bundle.receipt.lab = stage.slice(0, stage.lastIndexOf('.'))
+      bundle.receipt.challenge.token = formatChallenge(parts)
+    })
+  const STAGE = 'tr7.reproduce.s1'
+  const evidenceOf = async (fixture: Fixture) => checkOf(await verify(fixture.bundle, fixture.context), 'evidence')
+  /** The honest trace of tr3.profile.s5 as a receipt of tr7.reproduce.s1, changed. */
+  const traceOf = (change: (trace: { spans: Record<string, number[]>; flows: unknown[]; marks: unknown[] }) => void): Fixture =>
+    edited(asStage(traceFixture(), STAGE), (bundle) => change(bundle.artifacts.trace.data as never))
+
+  test('is satisfied by a trace with a span and step windows, and by a log with rows, and the check prints which', async () => {
+    expect(await evidenceOf(asStage(traceFixture(), STAGE))).toEqual({ id: 'evidence', status: 'pass', bound: 'The receipt carries 13 step windows in 1 trace to recompute.' })
+    // The stage declares no workload here, so nothing says which rows are the warm-up's, and every row counts.
+    expect(await evidenceOf(asStage(replayFixture(), STAGE))).toEqual({ id: 'evidence', status: 'pass', bound: 'The receipt carries 1,264 measured rows of a benchmark log to recompute.' })
+  })
+
+  test('counts the rows after the warm-up when the stage declares the workload that says how many that is', async () => {
+    const fixture = asStage(replayFixture(), STAGE)
+    const declared = { ...fixture.context, stages: { [STAGE]: { bench: REPLAY_SPEC, ...SERVING } } }
+    expect((await verify(fixture.bundle, declared)).rules[7].checks?.find((check) => check.id === 'evidence')?.bound).toBe('The receipt carries 1,136 measured rows of a benchmark log to recompute.')
+  })
+
+  test.each([
+    ['carries neither a log nor a trace', () => edited(asStage(traceFixture(), STAGE), (bundle) => ((bundle.receipt.artifacts = []), (bundle.artifacts = {}), (bundle.receipt.performance = undefined)))],
+    ['carries a trace with no span, whose step marks are all it has', () => traceOf((trace) => (Object.values(trace.spans).forEach((column) => (column.length = 0)), (trace.flows.length = 0)))],
+    ['carries a trace with spans and no step window', () => traceOf((trace) => (trace.marks.length = 0))],
+    [
+      'carries a benchmark log with no row',
+      () => edited(asStage(replayFixture(), STAGE), (bundle) => Object.values((bundle.artifacts['bench-log'].data as { rows: Record<string, number[]> }).rows).forEach((column) => (column.length = 0))),
+    ],
+  ])('fails a receipt that %s: a check over nothing satisfies nothing', async (_name, make) => {
+    const fixture = make()
+    const outcome = await verify(fixture.bundle, fixture.context)
+    expect(checkOf(outcome, 'evidence')).toEqual({
+      id: 'evidence',
+      status: 'fail',
+      bound: 'The stage asks for a benchmark log or a trace to recompute, and the receipt carries neither with anything in it: no log has a measured row, and no trace has a span and a step window.',
+    })
+    expect(outcome.verdict.provenance).toBe('gpu-unverified')
+    expect(outcome.verdict.reasons.join('\n')).toContain('evidence: The stage asks for a benchmark log or a trace to recompute')
+  })
+
+  test('is a check of the stages that ask for it and of no other: the honest replay of tr8.replay.s2 and the practice trace of tr3.profile.s5 have none', async () => {
+    expect(await evidenceOf(replayFixture())).toBeUndefined()
+    expect(await evidenceOf(traceFixture())).toBeUndefined()
+  })
+
+  test('is counted in the verdict as a check the stage requires, re-checked here', async () => {
+    const fixture = asStage(traceFixture(), STAGE)
+    const outcome = await verify(fixture.bundle, fixture.context)
+    expect(outcome.verdict.checks.find((check) => check.id === 'evidence')).toMatchObject({ verdict: 'pass', how: 're-checked', required: true })
   })
 })
 
@@ -94,11 +154,13 @@ describe('the registry', () => {
     expect([...RECHECKS_BUILT].sort()).toEqual([...RECHECK_IDS].sort())
   })
 
-  test('lists the checks of the three rules in the order they run: rule 7\'s three, then the benchmark\'s and the trace\'s, then the floors', () => {
+  test('lists the checks of the three rules in the order they run: rule 7\'s three, then evidence, the benchmark\'s and the trace\'s, then the floors', () => {
+    expect(EVIDENCE_CHECK_IDS).toEqual(['evidence'])
     expect(CHECK_IDS).toEqual([
       'identity-tally',
       'acceptance-counts',
       'argmax-bank',
+      'evidence',
       'B1',
       'B2',
       'B3',

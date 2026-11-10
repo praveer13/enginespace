@@ -2,7 +2,7 @@
  * The check of a receipt bundle (ARCHITECTURE §8.4, §8.5): rules 1 to 6, in order, on a file the learner chose.
  *
  *   1  caps        the file and what is inside it are no larger than the caps, counted while it is decompressed
- *   2  schema      the text is a bundle@1 and a receipt@1, strictly
+ *   2  schema      the text is a bundle@1 and a receipt@1, strictly, after a scan of its shape that refuses a text no parser should be given (shape.ts)
  *   3  integrity   every artifact's canonical bytes hash to the receipt's entry
  *   4  binding     the token is an unexpired, unused challenge of this ledger, and the seed is the token's
  *   5  grader      the grader's version and source hash are a build this site published

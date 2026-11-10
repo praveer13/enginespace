@@ -4,11 +4,15 @@
  * grader is no published build (it is a fixtures build, and the context publishes it as one), the traces say they are synthetic, and the receipts' notes
  * say so.
  *
- * Two bundles, because two kinds of evidence are recomputed:
+ * Three bundles, because three kinds of evidence are recomputed or re-checked:
  *   - `replayFixture()`: a stage `tr8.replay.s2`, with an open-loop benchmark log of 1,264 requests that the coarse server of §5.6 answered, the summary
  *     the grader would claim for it, and the grader's teacher-forced check. Every check the stage asks for is built, so it is `gpu-verified`.
  *   - `traceFixture()`: a stage `tr3.profile.s5`, which asks only that whatever the receipt captured is consistent, with a trace of a step-loop run, the
  *     attribution the grader would claim for each step window, and nothing else. It is `practice`, which is what that stage earns.
+ *   - `proposerFixture()`: a stage `tr6.proposer.s1`, which asks of the browser one thing, that the counts of a speculative proposer's rounds follow
+ *     their rules (accepted never above proposed, tokens out = accepted + bonus), and of the grader that its tie-aware identity held. It carries the
+ *     counts of 200 rounds that a seeded generator drew, and the grader's check; it is `gpu-verified`, and it is the fixture that an artifact with no round
+ *     in it is forged from.
  *
  * The bundle is the same object a test changes (`changed`) and puts its hashes right again after (`resigned`), and the context is the one in which it
  * passes. Both are built once and cloned, because a run of the simulator is cheap and a thousand of them are not.
@@ -20,12 +24,13 @@ import { sha256 } from '../schema/receipt-support'
 import { runBench, planBench, s5Server, summarizeRows } from '../../packages/sim/bench'
 import type { BenchSpec } from '../../packages/sim/bench'
 import { canonicalJson } from '../../packages/sim/core/json'
+import { chance, rngFor } from '../../packages/sim/core/rng'
 import { HOST_PRESETS } from '../../packages/sim/host'
 import { defaultCaptureSizes, runStepLoop, s5Card } from '../../packages/sim/steploop'
 import { attributeSteps, traceFromJson, traceFromRun, traceToJson } from '../../packages/sim/trace'
 import { genWorkload } from '../../packages/sim/workload'
 import { ATLAS } from '@/receipts/atlas'
-import { BENCH_LOG_FORMAT, TRACE_FORMAT, warmupRows } from '@es/verify'
+import { ACCEPTANCE_FORMAT, BENCH_LOG_FORMAT, TRACE_FORMAT, warmupRows } from '@es/verify'
 import type { PublishedGrader, VerifyContext } from '@es/verify'
 import { bookedFor, NOW, resigned, VLLM_PIN } from './support'
 import { sampleReceipt } from '../schema/receipt-support'
@@ -42,6 +47,15 @@ const SEC = 1_000_000
 /** The two bundles' tokens' seeds. */
 export const REPLAY_SEED = 0x1234abcd
 export const TRACE_SEED = 0x2468ace0
+
+/**
+ * The model that the stages of these fixtures serve, as the site pins it for the floors (StageDeclaration.model): the file of the receipt's model input, by its
+ * hash and size. The receipt's own figure is never what a floor is made from.
+ */
+export const MODEL_PIN = [{ name: 'Example/model-70B-fp8', sha256: sha256('example model'), bytes: MODEL_BYTES }] as const
+
+/** What a stage of these fixtures declares for the floors besides its workload: the model, the four GPUs it runs on, and the most sequences its engine runs at once. */
+export const SERVING = { model: MODEL_PIN, gpus: GPUS, maxNumSeqs: 64 } as const
 
 /** The workload that the replay stage's challenge draws, which the context declares for `tr8.replay.s2` (a synthetic stand-in for TR8's BurstGPT window, W2-T36). */
 export const REPLAY_SPEC: BenchSpec = {
@@ -139,7 +153,7 @@ function buildReplay(): Fixture {
   receipt.checks = [{ id: 'teacher-forced', kind: 'correctness', pass: true, value: 0.995, bound: 0.99, n: 200, detail: 'teacher-forced agreement on a sample of 200 outputs', refSha256: sha256('example bank') }]
   receipt.performance = { kind: 'bench', claimed: { 'bench-log': claimedSummary(run, REPLAY_SPEC, REPLAY_SEED) } }
   const bundle: Bundle = { schema: 'enginespace/bundle@1', receipt, artifacts: { 'bench-log': { encoding: 'json', data: log } } }
-  return { name: 'replay', stage: 'tr8.replay.s2', provenance: 'gpu-verified', bundle, context: contextOf(bundle, { 'tr8.replay.s2': { bench: REPLAY_SPEC } }) }
+  return { name: 'replay', stage: 'tr8.replay.s2', provenance: 'gpu-verified', bundle, context: contextOf(bundle, { 'tr8.replay.s2': { bench: REPLAY_SPEC, ...SERVING } }) }
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -182,11 +196,50 @@ function buildTrace(): Fixture {
   receipt.checks = []
   receipt.performance = { kind: 'trace', claimed: { trace: claimedWindows(trace) } }
   const bundle: Bundle = { schema: 'enginespace/bundle@1', receipt, artifacts: { trace: { encoding: 'json', data: trace } } }
-  return { name: 'trace', stage: 'tr3.profile.s5', provenance: 'practice', bundle, context: contextOf(bundle, { 'tr3.profile.s5': { steps: { salt: 'trace/steps', lo: windows, hi: windows } } }) }
+  return { name: 'trace', stage: 'tr3.profile.s5', provenance: 'practice', bundle, context: contextOf(bundle, { 'tr3.profile.s5': { steps: { salt: 'trace/steps', lo: windows, hi: windows }, ...SERVING } }) }
+}
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* The proposer                                                                                                       */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+export const PROPOSER_SEED = 0x13572468
+const PROPOSER_ROUNDS = 200
+const PROPOSER_DRAFTS = 4
+
+/**
+ * The counts of `rounds` rounds of a proposer that drafts `drafts` tokens a round and has each accepted with a chance of 7 in 10 until the first that is not,
+ * as the grader would write them (`enginespace/acceptance@1`): the round emits its accepted drafts and one more token, so a round's tokens out are its accepted plus 1.
+ */
+export function acceptanceOf(seed: number, rounds: number = PROPOSER_ROUNDS, drafts: number = PROPOSER_DRAFTS): { schema: string; rounds: Record<'proposed' | 'accepted' | 'bonus' | 'emitted', number[]> } {
+  const rng = rngFor(seed, 'proposer/rounds')
+  const counts: Record<'proposed' | 'accepted' | 'bonus' | 'emitted', number[]> = { proposed: [], accepted: [], bonus: [], emitted: [] }
+  for (let i = 0; i < rounds; i += 1) {
+    let accepted = 0
+    while (accepted < drafts && chance(rng, 700)) accepted += 1
+    counts.proposed.push(drafts)
+    counts.accepted.push(accepted)
+    counts.bonus.push(1)
+    counts.emitted.push(accepted + 1)
+  }
+  return { schema: ACCEPTANCE_FORMAT, rounds: counts }
+}
+
+function buildProposer(): Fixture {
+  const counts = acceptanceOf(PROPOSER_SEED)
+  const receipt = sample()
+  machine(receipt)
+  challenge(receipt, 'tr6.proposer.s1', PROPOSER_SEED)
+  receipt.artifacts = [entryOf('acceptance', 'counts', ACCEPTANCE_FORMAT, counts)]
+  receipt.checks = [{ id: 'tie-aware-identity', kind: 'correctness', pass: true, value: 200, bound: 200, n: 200, detail: 'synthetic: 200 of 200 sequences identical to the plain run' }]
+  receipt.performance = undefined
+  const bundle: Bundle = { schema: 'enginespace/bundle@1', receipt, artifacts: { acceptance: { encoding: 'json', data: counts } } }
+  return { name: 'proposer', stage: 'tr6.proposer.s1', provenance: 'gpu-verified', bundle, context: contextOf(bundle, {}) }
 }
 
 let replay: Fixture | undefined
 let trace: Fixture | undefined
+let proposer: Fixture | undefined
 
 /** A fresh copy of the honest replay: change it freely. */
 export function replayFixture(): Fixture {
@@ -198,6 +251,12 @@ export function replayFixture(): Fixture {
 export function traceFixture(): Fixture {
   trace ??= buildTrace()
   return { ...trace, bundle: structuredClone(trace.bundle) }
+}
+
+/** A fresh copy of the honest proposer bundle: change it freely. */
+export function proposerFixture(): Fixture {
+  proposer ??= buildProposer()
+  return { ...proposer, bundle: structuredClone(proposer.bundle) }
 }
 
 /** A fixture after `change` and its hashes put right: a forger who re-signs what they edited. The context follows the receipt, since its token may have changed. */

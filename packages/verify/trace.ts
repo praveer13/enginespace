@@ -13,6 +13,11 @@
  *   T10  the two traces of a pair name one engine, version and GPU, and have as many windows
  *   X4   one GPU name across the receipt: the trace names the GPU that NVML reported
  *
+ * A check over nothing is not a pass (the review of W2's grader track). T2 to T5, T7 and T8 read the spans and the step windows of a trace, and every one of them holds
+ * of a trace that has none: no span starts before 0, no two overlap, no kernel lacks its launch, and the windows of no window partition to the ns. So each fails a trace with no span
+ * or no step window, and says which: a receipt that kept the entry and left the capture out would otherwise pass them. T1 reads the trace's meta, X4 its GPU's name, T6 counts the
+ * windows and fails a count of none on its own, and T10 compares two traces; P1, the floor of a step, fails a trace with no step window in floors.ts.
+ *
  * A trace's claimed attribution is `performance.claimed[<artifact id>]`: `{ windows: [{ fromNs, toNs, windowNs, gpuBusyNs, kernelNs, copyOnlyNs,
  * cpuGapNs, bothIdleNs, overlapNs }] }`, one row for each step window in time order, which is `Attribution` of packages/sim/trace without its
  * segments. A row is compared for the fields it has. T7 holds a row to its own window first, so that a figure which does not partition its window
@@ -140,6 +145,18 @@ function pair(all: readonly Parsed<EsTrace>[]): Outcome {
   return problems.length > 0 ? fail('T10', cut(`${problems.join('; ')}.`, PROBLEM_CHARS)) : pass('T10', `Both traces are from ${a.value.meta.engine ?? 'one engine'} ${a.value.meta.version ?? ''} on ${a.value.meta.gpu ?? 'one GPU'}, with ${plural(windows[0], 'step window')} each.`)
 }
 
+/** The checks that read a trace's spans and its step windows, and so have nothing to say about a trace that has none. */
+const NEEDS_SPANS: ReadonlySet<string> = new Set(['T2', 'T3', 'T4', 'T5', 'T7', 'T8'])
+
+/** Why a trace has no span or no step window for a check to look at, as a sentence; null when it has both. */
+function nothingToCheck(id: string, parsed: Good): string | null {
+  const spans = parsed.value.spans.track.length
+  const windows = stepWindows(parsed.value).length
+  if (spans === 0) return `the trace has no span, so ${id} has nothing to check: a capture of no work is no capture.`
+  if (windows === 0) return `the trace has no step window (it needs two marks named step), so ${id} has no step to check.`
+  return null
+}
+
 /** Runs T-check or X-check `id` over every trace of the receipt. `na` when the receipt has none. */
 export function traceCheck(run: Run, id: string): Outcome {
   const all = traces(run)
@@ -151,6 +168,11 @@ export function traceCheck(run: Run, id: string): Outcome {
   for (const parsed of all) {
     if (!parsed.ok) {
       parts.push({ label: parsed.id, result: fail(id, cut(`the trace could not be read: ${parsed.problem}.`, PROBLEM_CHARS)) })
+      continue
+    }
+    const empty = NEEDS_SPANS.has(id) ? nothingToCheck(id, parsed) : null
+    if (empty !== null) {
+      parts.push({ label: parsed.id, result: fail(id, cut(empty, PROBLEM_CHARS)) })
       continue
     }
     const outcome = check(run, parsed)

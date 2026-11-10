@@ -80,6 +80,14 @@ The first service. A visitor fires two tickets; the stations sit half dark and t
 
 - **The printer fits a phone's first screen.** Below 30rem the housing is as short as what it carries: a foot that just holds the mouth, a narrower band over the menu, and the menu's lines set close, so the whole housing, its mouth included, stands above the fold of a 390 by 844 screen.
 
+## Adaptations (W1b's finish review of the lesson blocks, round 2)
+
+- **The 2D pass's names are tape in the DOM.** The posters and the 2D view hold no word but a ticket's: the line's and the expo's names are the design system's masking tape over the drawing, stuck on the last station and on the pass's front edge, at the size of the pass's box and never under the size ramp's smallest step, as the 3D pass prints its own. The static HTML prints them beside each inlined poster.
+
+## Adaptations (W1b close-out, the 2D view's labels)
+
+- **The 2D pass prints no number or word at all.** The tickets' numbers and the empty clips' stubs are print in the DOM over the drawing, as its tapes are: each hung ticket's number in Doto on its paper, each empty clip's stub hung from the clip's jaw with its word in the ribbon's red, at the size of the pass's box and never under the size ramp's smallest step; a fired copy's number shows on a pass 520 px wide or wider [estimated]. The static HTML prints the first frame's four stubs beside each inlined poster, and the posters hold no print. The four front-page screenshot baselines are re-blessed for it at the unchanged 1%.
+
 ## Unresolved
 
 - **Faces:** the exact faces (sourced and self-hosted) are chosen at build time.

@@ -423,9 +423,11 @@ test.describe('the picture (W1-T24)', () => {
     await settle(page)
     for (const action of actions.slice(0, 12)) await act(page, action)
     await settle(page)
-    // The floor's column to the left of the line, at 1440 px: at the foot of the wall and at the front of the shot.
-    const back = await canvasRegion(page, [0.015, 0.33, 0.17, 0.45], 'luma')
-    const front = await canvasRegion(page, [0.015, 0.86, 0.17, 0.98], 'luma')
+    // The floor's column to the left of the line, at 1440 px: at the foot of the wall and at the front of the shot. The front shot looks
+    // across the rack at 35.5° (finish review, W1b round 2), so the wall's foot stands at half the canvas's height, and the column keeps
+    // left of the line's oven.
+    const back = await canvasRegion(page, [0.015, 0.5, 0.1, 0.6], 'luma')
+    const front = await canvasRegion(page, [0.015, 0.86, 0.1, 0.98], 'luma')
     expect(back).toBeGreaterThan(front + 25)
     console.log(`the floor's luma: ${back.toFixed(1)} at the back, ${front.toFixed(1)} at the front`)
   })

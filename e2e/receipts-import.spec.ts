@@ -12,6 +12,13 @@
  *      pass, rule 5 fails and says why, and the receipt is kept as not credited. The same files with a published grader are held under Bun
  *      (tests/receipts/importer.test.ts).
  *
+ * And the review's finding that a file inside the caps could still crash the tab (W2's grader track, review fixes): rule 1 bounds the bytes of a bundle, and a
+ * parser's memory is not its bytes. 200 MB of nested brackets, and 250 MB of `[],` or `{},`, are a few hundred KB compressed and pass rule 1. Imported before
+ * the fix, the nested file crashed the tab in 4.1 s, and the two wide ones took 38.5 and 37.5 s to be refused as "Invalid input" on a host with 31 GB, where
+ * `JSON.parse` peaked at 5.1 and 6.1 GB resident, and crashed the tab in the review's run [measured 2026-11-10 in the headless shell of Chrome for Testing
+ * 153.0.8010.12, which Playwright 1.63.0 pins]. Rule 2 now scans the text first (packages/verify/shape.ts), so each is refused with the bound in the message, the
+ * page is alive to say so, and nothing is kept. A control of the same size made of numbers, which cost a parser next to nothing, is read.
+ *
  * And what stands behind them. A file chosen with the learner's own picker and a file dropped on the slip both reach the worker; the receipt is
  * written with its report in one transaction, and a receipt that is imported again adds a report and no event. The page's lists, the tape and the
  * receipt's page all read what was kept. The slip is reachable with the keys alone, takes focus to its result, and passes axe in each state at
@@ -145,6 +152,61 @@ async function chooseMadeInPage(page: Page, make: 'oversized' | 'bomb'): Promise
     field.files = data.files
     field.dispatchEvent(new Event('change', { bubbles: true }))
   }, make)
+}
+
+/** One run of a made file: `text` once, or repeated until it fills `megabytes` MiB. */
+interface Segment {
+  text: string
+  megabytes?: number
+}
+
+/**
+ * Hands the input a gzip file that is made in the page from segments of text, as a few hundred KB through the browser's own compressor: the text inside is as
+ * large as the segments say, and nothing is committed. The text is streamed to the compressor in pieces of about a MiB.
+ */
+async function chooseTextMadeInPage(page: Page, name: string, segments: Segment[]): Promise<void> {
+  await page.evaluate(
+    async ({ file: fileName, parts }) => {
+      const encoder = new TextEncoder()
+      const MIB = 1024 * 1024
+      // Each segment as the bytes that are sent: once, or as a piece of about a MiB that is sent as many times as it takes.
+      const pieces = parts.map((part) => encoder.encode(part.megabytes === undefined ? part.text : part.text.repeat(Math.max(1, Math.floor(MIB / part.text.length)))))
+      let at = 0
+      let sent = 0
+      const source = new ReadableStream<Uint8Array>({
+        pull(controller) {
+          for (;;) {
+            const part = parts[at]
+            if (part === undefined) {
+              controller.close()
+              return
+            }
+            if (part.megabytes === undefined) {
+              controller.enqueue(pieces[at])
+              at += 1
+              return
+            }
+            if (sent >= part.megabytes) {
+              at += 1
+              sent = 0
+              continue
+            }
+            sent += 1
+            controller.enqueue(pieces[at])
+            return
+          }
+        },
+      })
+      const file = new File([await new Response(source.pipeThrough(new CompressionStream('gzip'))).blob()], fileName)
+      const field = document.querySelector<HTMLInputElement>('input[type="file"]')
+      if (field === null) throw new Error('the slip has no file input')
+      const data = new DataTransfer()
+      data.items.add(file)
+      field.files = data.files
+      field.dispatchEvent(new Event('change', { bubbles: true }))
+    },
+    { file: name, parts: segments },
+  )
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -292,6 +354,74 @@ test.describe('a file that is over a cap', () => {
     expect((await statuses(page))[0]).toBe('caps:fail')
     expect((await stored(page)).receipts).toEqual([])
     await expect(challengeRows(page).first()).toHaveAttribute('data-state', 'open')
+  })
+})
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* A file inside the caps whose shape would run the parser out of memory                                              */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+test.describe('a file inside the caps that is built to run the parser out of memory', () => {
+  /** The shapes the review measured to crash the tab in `JSON.parse`, at its sizes: each passes rule 1 (a few hundred KB compressed, under 256 MB inside). */
+  const BOMBS: { name: string; file: string; segments: Segment[]; message: RegExp }[] = [
+    {
+      name: '200 MB of nested brackets, 100 million levels deep',
+      file: 'nested.es.json.gz',
+      segments: [{ text: '[', megabytes: 100 }, { text: ']', megabytes: 100 }],
+      message: /The JSON inside nests more than 64 levels deep, and the site parses at most that \[estimated\]/,
+    },
+    {
+      name: '250 MB of empty arrays, 87 million of them',
+      file: 'arrays.es.json.gz',
+      segments: [{ text: '[' }, { text: '[],', megabytes: 250 }, { text: '[]]' }],
+      message: /The JSON inside holds more than 4,194,304 arrays, objects and strings \(member names included\)/,
+    },
+    {
+      name: '250 MB of empty objects, 87 million of them',
+      file: 'objects.es.json.gz',
+      segments: [{ text: '[' }, { text: '{},', megabytes: 250 }, { text: '{}]' }],
+      message: /The JSON inside holds more than 4,194,304 arrays, objects and strings \(member names included\)/,
+    },
+  ]
+
+  for (const bomb of BOMBS) {
+    test(`is refused at rule 2 with the bound in the message, unparsed, the tab alive, and nothing kept: ${bomb.name}`, async ({ page }) => {
+      test.setTimeout(150_000)
+      let crashed = false
+      page.on('crash', () => {
+        crashed = true
+      })
+      await visit(page)
+      await chooseTextMadeInPage(page, bomb.file, bomb.segments)
+      await expect(slip(page).getByRole('heading', { level: 3, name: 'Not a receipt this browser can read' })).toBeVisible({ timeout: 120_000 })
+      expect(crashed, 'the tab crashed').toBe(false)
+      expect(await statuses(page)).toEqual(['caps:pass', 'schema:fail', 'integrity:skipped', 'binding:skipped', 'grader:skipped', 'pins:skipped', 'rechecks:skipped', 'recomputation:skipped', 'floors:skipped'])
+      await expect(rules(page).nth(1)).toContainText(bomb.message)
+      await expect(slip(page)).toContainText('Nothing was kept and no challenge was spent.')
+      const found = await stored(page)
+      expect(found.receipts).toEqual([])
+      expect(found.events.filter((event) => event.kind === 'receipt')).toEqual([])
+      await expect(challengeRows(page).first()).toHaveAttribute('data-state', 'open')
+      // The page is still the learner's: the slip takes the honest file next.
+      await chooseWithKeys(page, fileOf(bundle()))
+      await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your ledger' })).toBeVisible()
+    })
+  }
+
+  test('reads a file of the same size made of numbers, which cost a parser next to nothing, and says it is no bundle', async ({ page }) => {
+    test.setTimeout(150_000)
+    let crashed = false
+    page.on('crash', () => {
+      crashed = true
+    })
+    await visit(page)
+    // 200 MB of integers: 100 million of them in one array, with no array, object or string beyond the one that holds them.
+    await chooseTextMadeInPage(page, 'numbers.es.json.gz', [{ text: '[' }, { text: '0,', megabytes: 200 }, { text: '0]' }])
+    await expect(slip(page).getByRole('heading', { level: 3, name: 'Not a receipt this browser can read' })).toBeVisible({ timeout: 120_000 })
+    expect(crashed, 'the tab crashed').toBe(false)
+    expect((await statuses(page)).slice(0, 2)).toEqual(['caps:pass', 'schema:fail'])
+    await expect(rules(page).nth(1)).toContainText('(the file): ')
+    await expect(rules(page).nth(1)).not.toContainText('The JSON inside')
   })
 })
 

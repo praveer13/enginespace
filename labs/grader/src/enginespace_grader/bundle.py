@@ -11,6 +11,12 @@ for `base64`. The receipt lists each artifact's SHA-256 and byte count, so the s
 
 Writing is deterministic: the same bundle gives the same bytes (no file name or time in the gzip header, the members in the receipt's order), and the
 file appears whole or not at all.
+
+The caps bound a bundle's bytes, and bytes are not what a parser costs: a text inside them can nest a hundred million levels deep, or hold a quarter of a
+gigabyte of `[],`, and `json.loads` of it runs out of memory. So the text is also held to a shape before it is parsed, as the site holds it (rule 2,
+packages/verify/shape.ts): at most `MAX_DEPTH` levels, and at most `MAX_NODES` arrays, objects and strings. `ShapeScan` counts them, `read_bundle` refuses a text
+that passes either bound, and `write_bundle` refuses to write one. The shape does not count numbers, which cost the site's parser next to nothing and Python an
+object each, so `read_bundle` also turns a MemoryError of the parse into a message.
 """
 
 from __future__ import annotations
@@ -19,6 +25,7 @@ import base64
 import gzip
 import json
 import os
+import re
 import stat
 import tempfile
 import zlib
@@ -37,10 +44,14 @@ __all__ = [
     "BUNDLE_SCHEMA_TAG",
     "MAX_COMPRESSED_BYTES",
     "MAX_DECOMPRESSED_BYTES",
+    "MAX_DEPTH",
+    "MAX_NODES",
     "Artifact",
     "BundleRead",
     "BundleReadError",
     "BundleStats",
+    "ShapeError",
+    "ShapeScan",
     "bundle_problems",
     "build_bundle",
     "gunzip_capped",
@@ -57,12 +68,81 @@ MAX_COMPRESSED_BYTES = 32 * 1024 * 1024
 MAX_DECOMPRESSED_BYTES = 256 * 1024 * 1024
 
 
+#: ARCHITECTURE section 8.5 rule 2 [estimated]: the deepest nesting of arrays and objects that the site parses, and the most arrays, objects and strings
+#: (the names of members among them) in the text of one bundle. Numbers, true, false and null are not counted. packages/verify/limits.ts holds the same two numbers.
+MAX_DEPTH = 64
+MAX_NODES = 4 * 1024 * 1024
+
+
 class BundleReadError(GraderError):
     """A file that is not a bundle the site would read. `rule` is the rule of ARCHITECTURE section 8.5 that it breaks: 1 for the caps and the gzip, 2 for the JSON."""
 
     def __init__(self, rule: int, message: str) -> None:
         super().__init__(message)
         self.rule = rule
+
+
+class ShapeError(ValueError):
+    """A JSON text that passes a bound of the shape scan. `reason` is "depth" or "nodes", and the message says which bound and what the site does."""
+
+    def __init__(self, reason: str, message: str) -> None:
+        super().__init__(message)
+        self.reason = reason
+
+
+# One token of the scan: a string whole (to its closing quote, or to the end of the data when it has none), or one bracket. Everything between tokens (numbers,
+# commas, colons, white space) is skipped by the regular expression's own search and costs no Python at all, and every alternative begins with a literal byte, which
+# lets the engine look for the next token with its fast scan for a set of bytes: 250 MB of integers take 0.5 s, and 5 s when a branch begins with a group
+# [measured 2026-11-10, CPython 3.13.12]. A string's body is an unrolled loop with possessive quantifiers (Python 3.11 and later): runs of ordinary bytes, and a
+# backslash with the byte after it. The structural characters are ASCII, which never appear inside a multi-byte UTF-8 character, so the scan reads the bytes and not the text.
+_TOKEN = re.compile(rb'"[^"\\]*+(?:\\.[^"\\]*+)*+"?|\[|\{|\]|\}', re.DOTALL)
+_QUOTE, _CLOSE_ARRAY, _CLOSE_OBJECT = 0x22, 0x5D, 0x7D
+
+
+class ShapeScan:
+    """Counts the depth and the arrays, objects and strings of JSON text, as packages/verify/shape.ts does, and raises `ShapeError` at the first bound that is passed.
+
+    `feed` takes the text in pieces, each a whole run of tokens: a string never runs from one piece into the next. The count carries from one to the next, so
+    the writer scans the pieces it writes and the reader scans the whole text with one call. It is a scan and not a parse: it does not judge whether the text is JSON.
+    A closing bracket with nothing open is ignored, and an unterminated string takes the rest of the piece.
+    """
+
+    __slots__ = ("deepest", "depth", "max_depth", "max_nodes", "nodes")
+
+    def __init__(self, max_depth: int = MAX_DEPTH, max_nodes: int = MAX_NODES) -> None:
+        self.max_depth = max_depth
+        self.max_nodes = max_nodes
+        self.depth = 0
+        self.deepest = 0
+        self.nodes = 0
+
+    def feed(self, data: bytes) -> None:
+        depth, deepest, nodes = self.depth, self.deepest, self.nodes
+        max_depth, max_nodes = self.max_depth, self.max_nodes
+        for match in _TOKEN.finditer(data):
+            first = data[match.start()]
+            if first == _CLOSE_ARRAY or first == _CLOSE_OBJECT:
+                if depth:
+                    depth -= 1
+                continue
+            nodes += 1
+            if first != _QUOTE:  # an opening bracket: a string begins with a quote
+                depth += 1
+                if depth > max_depth:
+                    raise ShapeError(
+                        "depth",
+                        f"the JSON inside nests more than {max_depth:,} levels deep, and the site parses at most that [estimated]: a bundle nests about 7. "
+                        "It was not parsed, because the parser's memory grows with the depth",
+                    )
+                if depth > deepest:
+                    deepest = depth
+            if nodes > max_nodes:
+                raise ShapeError(
+                    "nodes",
+                    f"the JSON inside holds more than {max_nodes:,} arrays, objects and strings (member names included), and the site parses at most that many [estimated]. "
+                    "It was not parsed, because the parser's memory grows with their number",
+                )
+        self.depth, self.deepest, self.nodes = depth, deepest, nodes
 
 
 @dataclass(frozen=True)
@@ -250,11 +330,20 @@ def write_bundle(path: Path, bundle: Mapping[str, Any]) -> BundleStats:
             "list the largest artifact with inBundle false, by its hash and size, and keep the file"
         )
 
+    shape = ShapeScan(MAX_DEPTH, MAX_NODES)
     try:
         with os.fdopen(handle, "wb") as raw:
             # An empty file name and a modification time of 0, so that the header names neither the machine's folders nor the moment.
             with gzip.GzipFile(filename="", mode="wb", fileobj=raw, compresslevel=9, mtime=0) as packed:
                 for piece in _chunks(bundle):
+                    # The shape the site would parse (rule 2), counted as the pieces go: a bundle that the site would refuse is not written.
+                    try:
+                        shape.feed(piece)
+                    except ShapeError as error:
+                        raise GraderError(
+                            f"the bundle would not pass the site's checks, and was not written: {error}. "
+                            "List the artifact with the most pieces with inBundle false, by its hash and size, and keep the file"
+                        ) from None
                     packed.write(piece)
                     plain += len(piece)
                     if plain > MAX_DECOMPRESSED_BYTES:
@@ -309,10 +398,17 @@ class BundleRead:
     decompressed_bytes: int
 
 
-def read_bundle(path: Path, *, max_compressed: int = MAX_COMPRESSED_BYTES, max_decompressed: int = MAX_DECOMPRESSED_BYTES) -> BundleRead:
-    """Reads a `.es.json.gz` file under the caps of rule 1 and parses its JSON (rule 2's first step). Raises `BundleReadError`.
+def read_bundle(
+    path: Path,
+    *,
+    max_compressed: int = MAX_COMPRESSED_BYTES,
+    max_decompressed: int = MAX_DECOMPRESSED_BYTES,
+    max_depth: int = MAX_DEPTH,
+    max_nodes: int = MAX_NODES,
+) -> BundleRead:
+    """Reads a `.es.json.gz` file under the caps of rule 1 and the shape bounds of rule 2, and parses its JSON (rule 2's first step). Raises `BundleReadError`.
 
-    The caps are the site's unless a test asks for smaller ones.
+    The caps and the bounds are the site's unless a test asks for smaller ones.
     """
     path = Path(path)
     status = path.stat()
@@ -331,9 +427,17 @@ def read_bundle(path: Path, *, max_compressed: int = MAX_COMPRESSED_BYTES, max_d
         text = plain.decode("utf-8")
     except UnicodeDecodeError as error:
         raise BundleReadError(2, f"the text inside is not UTF-8 (byte {error.start})") from None
+    # The shape of the text, before anything is built from it: json.loads of a text inside the caps can still run out of memory (rule 2, packages/verify/shape.ts).
+    try:
+        ShapeScan(max_depth, max_nodes).feed(plain)
+    except ShapeError as error:
+        raise BundleReadError(2, str(error)) from None
     try:
         return BundleRead(parse_json(text), size, len(plain))
     except ValueError as error:
         raise BundleReadError(2, f"the text inside is not JSON: {error}") from None
     except RecursionError:
         raise BundleReadError(2, "the JSON inside is nested too deeply to read") from None
+    except MemoryError:
+        # The shape bound does not count numbers, which cost the site's parser next to nothing and cost Python an object each: a column of a hundred million integers.
+        raise BundleReadError(2, "the JSON inside needs more memory than this machine has to read it") from None

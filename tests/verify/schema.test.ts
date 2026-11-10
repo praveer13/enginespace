@@ -146,12 +146,17 @@ describe('a receipt that has no canonical form', () => {
     expect(failed(source)[0]).toMatch(/no canonical form/)
   })
 
-  test('is a receipt nested deeper than the stack: it says so, in a sentence, and does not throw', () => {
+  test('is a receipt nested deeper than the stack: it says so, in a sentence, and does not throw (the shape scan refuses it first: tests/verify/shape.test.ts)', () => {
     let deep = ''
     for (let i = 0; i < 20_000; i += 1) deep += '['
     for (let i = 0; i < 20_000; i += 1) deep += ']'
     const source = text(sampleBundle()).replace('"ext":{"example":true}', `"ext":{"deep":${deep}}`)
     const [problem] = failed(source)
-    expect(problem).toMatch(/^\/receipt: the receipt has no canonical form/)
+    expect(problem).toMatch(/^The JSON inside nests more than 64 levels deep/)
+  })
+
+  test('is still named when it is as deep as the bound allows and holds a number beyond 2^53 at the bottom: the canonical form is refused, with the path', () => {
+    const source = text(sampleBundle()).replace('"ext":{"example":true}', `"ext":{"deep":${'['.repeat(60)}12345678901234567890${']'.repeat(60)}}`)
+    expect(failed(source)[0]).toMatch(/^\/receipt: the receipt has no canonical form, so it cannot be identified: /)
   })
 })

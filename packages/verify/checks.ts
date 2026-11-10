@@ -28,12 +28,32 @@ import type { CheckResult } from './report'
 export interface StageDeclaration {
   /** The open-loop benchmark of the stage: the arrivals and lengths its seed draws, the arrival window and the objectives (B1, B8, B9, B10). */
   readonly bench?: BenchSpec
+  /**
+   * The model the stage serves, as its files by hash and size (P1, P3). The weight bytes of a floor come from here and never from the receipt, which is the run's own
+   * account of its inputs: a receipt that could name its own model could name a small one, and no floor would bind. The receipt's model inputs have to be exactly these files.
+   */
+  readonly model?: readonly ModelFile[]
+  /**
+   * How many GPUs the stage's engine spans, tensor parallel size times pipeline parallel size (P1, P3). The fingerprint lists every GPU on the machine, and the run may
+   * have used few of them, so a floor is made from this many of the listed GPUs (the fastest), and from one when a stage leaves it out: the fewest GPUs a run can have used
+   * give the highest floor, and a floor that is too high fails an honest run in view of its author, where one that is too low credits a forger.
+   */
+  readonly gpus?: number
+  /** The most sequences the stage's engine runs at once on any GPU it supports (P3). The receipt's `max_num_seqs` is the engine's own report, and it may not be above this. */
+  readonly maxNumSeqs?: number
   /** The number of step windows the stage's challenge asks for, drawn from the seed: `between(rngFor(seed, salt), lo, hi)` (T6). */
   readonly steps?: { readonly salt: string; readonly lo: number; readonly hi: number }
   /** The most tokens one sequence emits in one step (P3): 1 unless the stage speculates. */
   readonly tokensPerSeqStep?: number
   /** The share of the model's weight bytes that one forward reads, in permille, for a model that is not dense (P1, P3). The atlas's `READ_PERMILLE` otherwise. */
   readonly readPermille?: number
+}
+
+/** A file of the model a stage serves, as a receipt records an input (A§9.6): its name, the SHA-256 of its bytes, and their number. The site pins them (src/receipts/declared.ts). */
+export interface ModelFile {
+  readonly name: string
+  readonly sha256: string
+  readonly bytes: number
 }
 
 export type StageDeclarations = Readonly<Record<string, StageDeclaration>>

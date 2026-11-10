@@ -12,6 +12,10 @@
  *                      plus the bonus token, and a claimed acceptance (`performance.claimed[<id>]`: `{ rounds, proposed, accepted, ratePermille }`) equals the totals.
  *   argmax-bank        TR0's argmax token ids (`enginespace/argmax@1`) at the positions of the owner's pinned bank (W2-T17), which the site holds.
  *
+ * A re-check over nothing is not a pass (the review of W2's grader track). An artifact with no sequence, no round or no position, and a bank with no position, say nothing
+ * that a rule can hold, and a count of nothing satisfies every rule that is about each of its members. So each fails, and says that there was nothing to count: a receipt
+ * that kept the entry and left the evidence out would otherwise have the browser's own check of its stage pass for it.
+ *
  * A re-check runs when the receipt has its artifact, or when the stage requires it and then it fails without one. The three are the ones whose
  * rules ASSESSMENT states in full. The others of rule 7 (TR1's span order, TR4's errors, TR5b's probe log and event replay) are pending (stages.ts)
  * and arrive with their labs, which define the artifacts they read.
@@ -40,6 +44,11 @@ function identityTally(run: Run): Outcome {
   if (all.length === 0) return na(`the receipt carries no sequence comparison (${IDENTITY_FORMAT})`)
   const bad = unreadable('identity-tally', all)
   if (bad !== null) return bad
+  for (const parsed of all) {
+    if (parsed.ok && parsed.value.first.length === 0) {
+      return fail('identity-tally', cut(`the artifact "${parsed.id}" holds no sequence, so no run was compared with another: an identity over no sequence is no identity (D-046).`, PROBLEM_CHARS))
+    }
+  }
   let sequences = 0
   let identical = 0
   let ties = 0
@@ -63,6 +72,11 @@ function acceptanceCounts(run: Run): Outcome {
   if (all.length === 0) return na(`the receipt carries no acceptance counts (${ACCEPTANCE_FORMAT})`)
   const bad = unreadable('acceptance-counts', all)
   if (bad !== null) return bad
+  for (const parsed of all) {
+    if (parsed.ok && parsed.value.proposed.length === 0) {
+      return fail('acceptance-counts', cut(`the artifact "${parsed.id}" holds no round of speculation, so there is nothing to count: accepted ≤ proposed and tokens out = accepted + bonus say nothing about no round.`, PROBLEM_CHARS))
+    }
+  }
   for (const parsed of all) {
     if (!parsed.ok) continue
     const { proposed, accepted, bonus, emitted } = parsed.value
@@ -92,6 +106,7 @@ function argmaxBank(run: Run): Outcome {
   if (bad !== null) return bad
   const bank = run.bank
   if (bank === undefined) return fail('argmax-bank', cut(`this site holds no argmax bank for ${run.receipt.stage} yet (the owner records it, W2-T17), so the ids cannot be compared.`, PROBLEM_CHARS))
+  if (bank.positions.length === 0) return fail('argmax-bank', cut(`this site's argmax bank for ${run.receipt.stage} holds no position, so the ids cannot be compared: every id agrees with a bank of nothing.`, PROBLEM_CHARS))
   const parsed = all[0]
   if (!parsed.ok) return fail('argmax-bank', 'the ids could not be read.')
   const given = new Map<number, number>()

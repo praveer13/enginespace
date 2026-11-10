@@ -19,6 +19,10 @@ from enginespace_grader.errors import GraderError
 from enginespace_grader.hashing import sha256_hex
 
 from . import samples
+from .support import vectors_dir
+
+#: The cases that packages/verify/shape.ts is given too (tests/verify/shape.test.ts), at the root of the repository.
+SHAPE_CASES = vectors_dir().parents[1] / "tests" / "fixtures" / "grader" / "shape-cases.json"
 
 
 class Folder(unittest.TestCase):
@@ -342,7 +346,8 @@ class Rule1(Folder):
         self.refused(gz(b"{} {}"), 2, "not JSON")
 
     def test_json_nested_beyond_what_can_be_read_is_a_message_and_not_a_crash(self) -> None:
-        self.refused(gz(b"[" * 200_000 + b"]" * 200_000), 2, "nested too deeply")
+        # The shape bound (class Shape below) stops it first; the parser's own RecursionError is only the second line of defence.
+        self.refused(gz(b"[" * 200_000 + b"]" * 200_000), 2, "nests more than 64 levels deep")
 
     def test_a_good_file_reports_its_sizes(self) -> None:
         payload = b'{"a": [1, 2, 3]}'
@@ -350,6 +355,119 @@ class Rule1(Folder):
         self.assertEqual(read.document, {"a": [1, 2, 3]})
         self.assertEqual(read.decompressed_bytes, len(payload))
         self.assertEqual(read.compressed_bytes, len(gz(payload)))
+
+
+class Shape(Folder):
+    """Rule 2 looks at the shape of the text before it parses it (packages/verify/shape.ts): the caps bound the bytes, and bytes are not what a parser costs."""
+
+    def read(self, data: bytes, **bounds: int) -> bundles.BundleRead:
+        path = self.folder / "f.es.json.gz"
+        path.write_bytes(data)
+        return bundles.read_bundle(path, **bounds)
+
+    def refused(self, data: bytes, fragment: str, **bounds: int) -> None:
+        with mock.patch.object(bundles, "parse_json", side_effect=AssertionError("the text was parsed")), self.assertRaises(bundles.BundleReadError) as caught:
+            self.read(data, **bounds)
+        self.assertEqual(caught.exception.rule, 2)
+        self.assertIn(fragment, str(caught.exception))
+
+    def test_the_bounds_are_the_sites(self) -> None:
+        self.assertEqual((bundles.MAX_DEPTH, bundles.MAX_NODES), (64, 4 * 1024 * 1024))
+        self.assertEqual(bundles.MAX_NODES, 4_194_304)
+
+    def test_the_scan_gives_the_cases_that_the_site_is_given_the_answers_the_site_gets(self) -> None:
+        document = json.loads(SHAPE_CASES.read_text(encoding="utf-8"))
+        self.assertEqual(document["spec"], "enginespace/shape-cases@1")
+        self.assertGreater(len(document["cases"]), 20)
+        for case in document["cases"]:
+            with self.subTest(case["name"]):
+                scan = bundles.ShapeScan(case["limits"]["depth"], case["limits"]["nodes"])
+                if case["ok"]:
+                    scan.feed(case["text"].encode("utf-8"))
+                    self.assertEqual((scan.deepest, scan.nodes), (case["deepest"], case["nodes"]))
+                else:
+                    with self.assertRaises(bundles.ShapeError) as caught:
+                        scan.feed(case["text"].encode("utf-8"))
+                    self.assertEqual(caught.exception.reason, case["reason"])
+
+    def test_the_count_carries_from_one_piece_to_the_next_and_a_string_does_not(self) -> None:
+        scan = bundles.ShapeScan(3, 100)
+        scan.feed(b'{"a":[')
+        scan.feed(b'1,{"b":2}')
+        self.assertEqual((scan.depth, scan.deepest, scan.nodes), (2, 3, 5))
+        with self.assertRaises(bundles.ShapeError):
+            scan.feed(b"[[")  # two open already, and a third is the bound; the fourth is past it
+        scan = bundles.ShapeScan()
+        scan.feed(b'["abc')  # an unterminated string takes the rest of its piece, and no more
+        scan.feed(b',"def"]')
+        self.assertEqual((scan.depth, scan.nodes), (0, 3))
+
+    def test_the_messages_say_the_bound_and_that_the_text_was_not_parsed(self) -> None:
+        with self.assertRaises(bundles.ShapeError) as deep:
+            bundles.ShapeScan().feed(b"[" * 65)
+        self.assertEqual(
+            str(deep.exception),
+            "the JSON inside nests more than 64 levels deep, and the site parses at most that [estimated]: a bundle nests about 7. It was not parsed, because the parser's memory grows with the depth",
+        )
+        with self.assertRaises(bundles.ShapeError) as wide:
+            bundles.ShapeScan(64, 10).feed(b"[" + b"[]," * 10 + b"[]]")
+        self.assertIn("holds more than 10 arrays, objects and strings (member names included)", str(wide.exception))
+        self.assertTrue(str(wide.exception).endswith("because the parser's memory grows with their number"))
+
+    def test_text_nested_beyond_the_bound_is_refused_at_rule_2_and_never_parsed(self) -> None:
+        self.refused(gz(b"[" * 200_000 + b"]" * 200_000), "nests more than 64 levels deep")
+        self.refused(gz(b"[" * 65 + b"]" * 65), "nests more than 64 levels deep")
+        self.assertEqual(self.read(gz(b"[" * 64 + b"]" * 64)).decompressed_bytes, 128)
+
+    def test_text_with_more_pieces_than_the_bound_is_refused_at_rule_2_and_never_parsed(self) -> None:
+        # At the real bound once, which is a few seconds of regular expression, and at a small one for each kind of piece.
+        self.refused(gz(b"[" + b",".join([b"[]"] * bundles.MAX_NODES) + b"]"), "holds more than 4,194,304 arrays, objects and strings")
+        for unit in (b"[]", b"{}", b'""', b'{"k":0}', b'["x"]'):
+            with self.subTest(unit=unit):
+                self.refused(gz(b"[" + b",".join([unit] * 2000) + b"]"), "holds more than 1,000 arrays, objects and strings", max_nodes=1000)
+
+    def test_a_parse_that_runs_out_of_memory_is_a_message_and_not_a_crash(self) -> None:
+        # Numbers are not counted, and a column of them can still be more than a machine has room for as Python objects.
+        with mock.patch.object(bundles, "parse_json", side_effect=MemoryError), self.assertRaises(bundles.BundleReadError) as caught:
+            self.read(gz(b"[1,2,3]"))
+        self.assertEqual(caught.exception.rule, 2)
+        self.assertIn("needs more memory than this machine has", str(caught.exception))
+
+    def test_a_bound_given_by_the_caller_is_the_one_held(self) -> None:
+        text = json.dumps({"a": [1, 2, {"b": "c"}]}).encode()
+        self.assertEqual(self.read(gz(text), max_depth=3, max_nodes=6).document, {"a": [1, 2, {"b": "c"}]})
+        self.refused(gz(text), "nests more than 2 levels deep", max_depth=2)
+        self.refused(gz(text), "holds more than 5 arrays", max_nodes=5)
+
+    def test_numbers_are_not_counted_so_a_column_of_integers_passes_whatever_its_length(self) -> None:
+        column = b"[" + b"1234567," * 2_000_000 + b"0]"
+        read = self.read(gz(column), max_nodes=1)
+        self.assertEqual(len(read.document), 2_000_001)
+
+    def test_the_bundles_of_the_grader_and_of_the_site_are_far_inside_the_bounds(self) -> None:
+        scan = bundles.ShapeScan()
+        scan.feed(json.dumps(samples.sample_bundle(), ensure_ascii=False).encode("utf-8"))
+        self.assertLessEqual(scan.deepest, 7)
+        self.assertLessEqual(scan.nodes * 1000, bundles.MAX_NODES)
+
+    def test_the_writer_refuses_a_bundle_the_site_would_refuse_for_its_shape_and_leaves_nothing_behind(self) -> None:
+        document = samples.sample_bundle()
+        target = self.folder / "shape.es.json.gz"
+        with mock.patch.object(bundles, "MAX_NODES", 50), self.assertRaises(GraderError) as caught:
+            bundles.write_bundle(target, document)
+        self.assertIn("would not pass the site's checks, and was not written", str(caught.exception))
+        self.assertIn("holds more than 50 arrays, objects and strings", str(caught.exception))
+        self.assertIn("inBundle false", str(caught.exception))
+        with mock.patch.object(bundles, "MAX_DEPTH", 3), self.assertRaises(GraderError) as deep:
+            bundles.write_bundle(target, document)
+        self.assertIn("nests more than 3 levels deep", str(deep.exception))
+        self.assertEqual(list(self.folder.iterdir()), [])
+
+    def test_the_writer_writes_what_the_reader_reads_under_the_same_bounds(self) -> None:
+        document = samples.sample_bundle()
+        with mock.patch.object(bundles, "MAX_DEPTH", 7), mock.patch.object(bundles, "MAX_NODES", 400):
+            bundles.write_bundle(self.folder / "a.es.json.gz", document)
+        self.assertEqual(bundles.read_bundle(self.folder / "a.es.json.gz", max_depth=7, max_nodes=400).document, document)
 
 
 if __name__ == "__main__":

@@ -13,8 +13,8 @@ import { merged, type Vec3 } from '@/scene/props/shape'
 import type { PropSpec } from '@/scene/props/specs'
 import { SceneCanvas } from '@/scene/SceneCanvas'
 import { SheetInstances } from '@/scene/SheetInstances'
-import { cabinet } from './cabinet'
-import { MISE, nightOf, PAN, reachInOf, TAPE, TICKET, type Night, type ReachIn } from './scene-layout'
+import { cabinet, lampBar } from './cabinet'
+import { LAMP, MISE, nightOf, PAN, PASS, reachInOf, TAPE, TICKET, type Night, type ReachIn } from './scene-layout'
 
 /*
  * The Reach-In's 3D scene (`pool`; GAMES.md §2.6 "The Reach-In", §8 "3D scene"; scene kit v1): a reach-in prep cabinet in the middle of
@@ -35,7 +35,8 @@ import { MISE, nightOf, PAN, reachInOf, TAPE, TICKET, type Night, type ReachIn }
  * string per station, reaches across the reach-in to the pans it holds, and the head pan fans into the layers it serves: thin steel
  * trays, one for each layer of its station, rise out of it and splay round its back edge toward the expo, each holding its layer's mise,
  * the padding layers last and empty, and the station's glyph on a strip of tape in the top one, on the settle duration. Between decisions the kitchen
- * is still; under reduced motion every change cuts. The heat lamps hang low over the pass and burn only while the present lies there,
+ * is still; under reduced motion every change cuts. The heat lamps hang low over the pass on short stems from a bar across it (cabinet.ts),
+ * and burn only while the present lies there,
  * their light the kit's cone of warm haze and the edgeless pool where it lands on the steel round the waiting tickets, the paper lying in
  * it white; and the pans a dump would take ring in the lamp's amber.
  *
@@ -103,40 +104,43 @@ const METAL_HAZE = haze('1.45', '2.3', '0.99')
 const TILE_HAZE = haze('0.95', '2.2', '0.0')
 
 /**
- * The paper on the rail and on the pass [estimated] (finish review, W1b round 1): a tooth of fibres in its shading, two mottles a few
- * pixels across, and its cut edges a shade darker within a pixel or two of its outline at any size, so the sheet's edge reads. A hung
- * ticket's clip pinches it: its top corners pulled forward and down round the ball that grips it (`pinch`, falling away over `grip`, the
- * top 35% of the sheet), the light on it turned with them, a crease down from the clip, and the ball's shadow where it grips. A ticket
- * lying on the pass is not pinched: a hung one's face looks into the room, a lying one's up. The ticket is the kit's, before its scale:
- * 80 by 120 mm, hanging from the middle of its top edge, its face's uv over the sheet and a single uv on its back and edges.
+ * The paper on the rail and on the pass [estimated] (finish reviews, W1b rounds 1 and 2): a tooth of fibres in its shading, two mottles
+ * coarse and strong enough to show on a ticket 50 px tall. A hung ticket's clip pinches it: its top corners pulled forward and down round
+ * the ball that grips it (`pinch`, falling away over `grip`, the top 35% of the sheet), the light on it turned with them, a crease down
+ * from the clip, and the ball's shadow where it grips. A hung ticket is a thick slip, its back pushed `pinch * 0.45` behind its face
+ * (10 mm at the scene's scale, many times a real sheet), turned on its clip (scene-layout.ts), so its cut edge stands to the room as a lit
+ * strip of thickness, its edges 1.6 times as bright as its face, where a drawn outline stood before. A ticket lying on the pass is not
+ * pinched or thickened: a hung one's face looks into the room, a lying one's up. The ticket is the kit's, before its scale: 80 by 120 mm,
+ * hanging from the middle of its top edge and curled 0.24 of its length (the back lies 1 mm behind the face, which the curl and the cup
+ * across set: z = 0.0288 t² + 11.25 t x², t down the sheet), its face's uv over the sheet and a single uv on its back and edges.
  */
 function paper(shader: Shader) {
   shader.vertexShader = shader.vertexShader
-    .replace('#include <common>', '$&\nvarying vec3 vPaper;')
+    .replace('#include <common>', '$&\nvarying vec4 vPaper;')
     .replace(
       '#include <beginnormal_vertex>',
       `$&
-float pinch=0.;
+float pinch=0.,t=-position.y/.12,back=step(position.z,.0288*t*t+11.25*t*position.x*position.x-5e-4);
 #ifdef USE_INSTANCING
 pinch=.012*(1.-smoothstep(.6,.85,normalize(instanceMatrix[2].xyz).y));
 #endif
 float grip=max(0.,1.+position.y/.042);
 objectNormal.xy-=pinch*vec2(grip*grip*sign(position.x)/.04,grip*abs(position.x)/.00084)*objectNormal.z;
-vPaper=vec3(uv,pinch/.012);`,
+vPaper=vec4(uv,pinch/.012,step(abs(objectNormal.z),.5));`,
     )
-    .replace('#include <begin_vertex>', '$&\ntransformed.zy+=pinch*grip*grip*abs(position.x)/.04*vec2(1,-.6);')
+    .replace('#include <begin_vertex>', '$&\ntransformed.zy+=pinch*grip*grip*abs(position.x)/.04*vec2(1,-.6);\ntransformed.z-=back*pinch*.45;')
   shader.fragmentShader = shader.fragmentShader
     .replace(
       '#include <common>',
       `$&
-varying vec3 vPaper;
+varying vec4 vPaper;
 float tooth(vec2 p){vec2 i=floor(p),f=fract(p),k=vec2(127.1,311.7);vec4 h=fract(sin(vec4(dot(i,k),dot(i+vec2(1,0),k),dot(i+vec2(0,1),k),dot(i+1.,k)))*43758.5);f*=f*(3.-2.*f);return mix(mix(h.x,h.y,f.x),mix(h.z,h.w,f.x),f.y);}`,
     )
     .replace(
       '#include <map_fragment>',
       `$&
-vec2 cut=min(vPaper.xy,1.-vPaper.xy)/(fwidth(vPaper.xy)+1e-5),pin=vPaper.xy-vec2(.5,1);
-diffuseColor.rgb*=(.9+.06*tooth(vPaper.xy*vec2(7,10))+.04*tooth(vPaper.xy*vec2(19,27)))*(.78+.22*smoothstep(.4,2.,min(cut.x,cut.y)))*(1.-vPaper.z*(.24*(1.-smoothstep(0.,.07,abs(pin.x)))*smoothstep(-.4,0.,pin.y)+.45*(1.-smoothstep(0.,.14,length(pin*vec2(1,1.5))))));`,
+vec2 pin=vPaper.xy-vec2(.5,1);
+diffuseColor.rgb*=(.8+.15*tooth(vPaper.xy*vec2(5,8))+.1*tooth(vPaper.xy*vec2(13,19)))*(1.+.6*vPaper.w)*(1.-vPaper.z*(.24*(1.-smoothstep(0.,.07,abs(pin.x)))*smoothstep(-.4,0.,pin.y)+.45*(1.-smoothstep(0.,.14,length(pin*vec2(1,1.5))))));`,
     )
 }
 
@@ -166,16 +170,17 @@ const twine = (points: readonly Vec3[], color: Color): BufferGeometry => painted
 const cellAt = (cell: number): [number, number] => [(cell % 4) / 4, 0.75 - (cell >> 2) / 4]
 
 /**
- * Each memory role's food [estimated]: how many pieces, their radius in px, how squashed they are, whether each is a ring, and how far its
- * role's colour goes toward ink (or, below 0, toward paper) at a piece's lit top, in its body, and in the gaps between the pieces. Dark
- * blueberries under their dusty bloom for a held pan; golden corn kernels for a cached one; green scallion rings for shared mise; a recipe
- * kit's sauce with a few bubbles in it. A whole piece carries the tubes' glint on its top.
+ * Each memory role's food [estimated]: how many pieces, their radius in px, how squashed they are, whether each is a ring, how far its
+ * role's colour goes toward ink (or, below 0, toward paper) at a piece's lit top, in its body, and in the gaps between the pieces, and
+ * how far a piece may be cooked toward the kit's brown, each piece its own share of it. Dark blueberries under their dusty bloom for a
+ * held pan; corn kernels for a cached one, cooked to an uneven gold rather than the board's yellow (finish review, W1b round 2); green
+ * scallion rings for shared mise; a recipe kit's sauce with a few bubbles in it. A whole piece carries the tubes' glint on its top.
  */
 const FOODS = [
-  ['used', 30, 10, 1, 0, -0.3, 0.6, 0.94],
-  ['cached', 46, 8.5, 0.74, 0, -0.55, 0.16, 0.8],
-  ['shared', 40, 8, 1, 1, -0.5, 0.2, 0.55],
-  ['adapter', 7, 4, 1, 1, -0.4, 0.38, 0.5],
+  ['used', 30, 10, 1, 0, -0.3, 0.6, 0.94, 0],
+  ['cached', 46, 8.5, 0.74, 0, -0.45, 0.1, 0.85, 0.9],
+  ['shared', 40, 8, 1, 1, -0.5, 0.2, 0.55, 0],
+  ['adapter', 7, 4, 1, 1, -0.4, 0.38, 0.5, 0],
 ] as const
 
 /**
@@ -189,8 +194,9 @@ const FOODS = [
 function atlas(tokens: SceneTokens): CanvasTexture<OffscreenCanvas> {
   const g = new OffscreenCanvas(512, 256).getContext('2d') as OffscreenCanvasRenderingContext2D
   const { colors } = tokens
-  /** A role's colour taken `t` of the way toward ink, or `-t` of the way toward paper, in linear light. */
-  const shade = (role: ColorRoleName, t: number) => roleColor(tokens, role).lerp(roleColor(tokens, t < 0 ? 'paper' : 'tape-ink'), Math.abs(t)).getStyle()
+  const role = (name: ColorRoleName) => roleColor(tokens, name)
+  /** A colour taken `t` of the way toward ink, or `-t` of the way toward paper, in linear light. */
+  const shade = (color: Color, t: number) => color.clone().lerp(role(t < 0 ? 'paper' : 'tape-ink'), Math.abs(t)).getStyle()
   g.fillStyle = colors.tape
   for (const [x, y] of [[0, 0], [128, 0], [256, 0], [128, 64]]) {
     g.beginPath()
@@ -216,40 +222,39 @@ function atlas(tokens: SceneTokens): CanvasTexture<OffscreenCanvas> {
   g.strokeStyle = colors['memory-evicted']
   g.lineWidth = 12
   g.strokeRect(262, 70, 116, 52)
-  FOODS.forEach(([state, n, r, squash, ring, light, body, gap], f) => {
+  FOODS.forEach(([state, n, r, squash, ring, light, body, gap, toast], f) => {
     const x = f * 128
-    const base = `memory-${state}` as const
-    const top = shade(base, light)
-    const mid = shade(base, body)
-    const deep = shade(base, Math.min(0.95, body + 0.3))
-    const glint = shade(base, -0.85)
-    g.fillStyle = shade(base, gap)
+    const base = role(`memory-${state}`)
+    const brown = role('memory-adapter')
+    g.fillStyle = shade(base.clone().lerp(brown, toast / 2), gap)
     g.fillRect(x, 128, 128, 64)
     g.lineWidth = r / 2
     for (let i = 0; i < n; i++) {
+      // Each piece cooked its own way toward the brown, so a toasted food is uneven.
+      const tone = base.clone().lerp(brown, toast * ((i * 0.618) % 1))
       g.setTransform(1, 0, 0, squash, x + 10 + 108 * ((0.5 + i * 0.7548777) % 1), 138 + 44 * ((0.5 + i * 0.5698403) % 1))
       // Lit round its own top, so a pan turned end for end is lit as its neighbours are: the light that picks a side is the room's.
-      const shade = g.createRadialGradient(0, 0, r / 9, 0, 0, r)
-      shade.addColorStop(0, top)
-      shade.addColorStop(0.55, mid)
-      shade.addColorStop(1, deep)
-      g.fillStyle = g.strokeStyle = shade
+      const lit = g.createRadialGradient(0, 0, r / 9, 0, 0, r)
+      lit.addColorStop(0, shade(tone, light))
+      lit.addColorStop(0.55, shade(tone, body))
+      lit.addColorStop(1, shade(tone, Math.min(0.95, body + 0.3)))
+      g.fillStyle = g.strokeStyle = lit
       g.beginPath()
       g.arc(0, 0, r, 0, 7)
       if (ring) g.stroke()
       else {
         g.fill()
-        g.fillStyle = glint
+        g.fillStyle = shade(tone, -0.85)
         g.beginPath()
         g.arc(-r / 4, -r / 4, r / 4, 0, 7)
         g.fill()
       }
     }
     g.resetTransform()
-    // The meniscus: where the food climbs the pan's wall, in its own shade.
-    g.strokeStyle = shade(base, 0.7)
-    g.lineWidth = 5
-    g.strokeRect(x + 2.5, 130.5, 123, 59)
+    // The meniscus: where the food climbs the pan's wall, in its own shade, a dark rim round the fill.
+    g.strokeStyle = shade(base, 0.8)
+    g.lineWidth = 8
+    g.strokeRect(x + 4, 132, 120, 56)
   })
   const texture = new CanvasTexture(g.canvas)
   texture.colorSpace = 'srgb'
@@ -265,9 +270,10 @@ const cells = (shader: Shader) => {
 const celled = (geometry: BufferGeometry): BufferGeometry => geometry.setAttribute('aCell', new InstancedBufferAttribute(new Float32Array(MOST * 2), 2))
 
 /**
- * A pan's mise, at its rest below the rim: heaped over its middle into a mound with round shoulders, and drawn up the pan's walls at its
- * edge, a meniscus, with its cell of the atlas laid along the pan. The mound's crown takes the room's light and its foot is in the pan's
- * shadow, half as bright where it meets the wall [estimated].
+ * A pan's mise, at its rest below the rim: heaped over its middle into a dome, and drawn up the pan's walls at its edge, a meniscus, with
+ * its cell of the atlas laid along the pan. Its slopes turn to the tubes, so the side toward them is lit and the far side shaded, and its
+ * crown takes the room's light whole while its foot is in the pan's shadow, 0.4 as bright where it meets the wall [estimated]: the mound
+ * and its dark rim read at the front shot's distance (finish review, W1b round 2), where a flat-topped heap drew a flat fill.
  */
 function miseGeometry(): BufferGeometry {
   const w = PAN.w - 0.02
@@ -278,9 +284,9 @@ function miseGeometry(): BufferGeometry {
   const light = new Float32Array(position.count * 3)
   for (let i = 0; i < position.count; i++) {
     const s = 2 * Math.max(Math.abs(position.getX(i) / w), Math.abs(position.getZ(i) / d))
-    position.setY(i, MISE.heap * (1 - s ** 4) + 0.004 * s ** 12)
+    position.setY(i, MISE.heap * (1 - s * s) + 0.004 * s ** 12)
     uv.setXY(i, position.getZ(i) / d + 0.5, position.getX(i) / w + 0.5)
-    light.fill(1 - 0.5 * s ** 3, i * 3, i * 3 + 3)
+    light.fill(1 - 0.6 * s * s, i * 3, i * 3 + 3)
   }
   geometry.setAttribute('color', new BufferAttribute(light, 3))
   geometry.computeVertexNormals()
@@ -296,9 +302,9 @@ function partsOf(palette: ReturnType<typeof useProps>['palette'], tokens: SceneT
   const tint = pan.getAttribute('color')
   for (let i = 0; i < tint.count; i++) tint.setXYZ(i, tint.getX(i) * shade[i], tint.getY(i) * shade[i], tint.getZ(i) * shade[i])
   const map = atlas(tokens)
-  // The food is shaded in its own drawing and by its mound, with a little gloss; tape and marker are matte. Everything cuts out where its
-  // cell is empty, and neither they nor the twine take the haze.
-  const food = new MeshStandardMaterial({ map, vertexColors: true, roughness: 0.36, alphaTest: 0.5, fog: false })
+  // The food is shaded in its own drawing and by its mound, glossy enough that the tubes glint on its shoulders; tape and marker are
+  // matte. Everything cuts out where its cell is empty, and neither they nor the twine take the haze.
+  const food = new MeshStandardMaterial({ map, vertexColors: true, roughness: 0.28, alphaTest: 0.5, fog: false })
   const marks = new MeshStandardMaterial({ map, roughness: 0.8, alphaTest: 0.5, fog: false })
   const cord = new MeshStandardMaterial({ vertexColors: true, roughness: 0.8, fog: false })
   food.onBeforeCompile = marks.onBeforeCompile = cells
@@ -459,7 +465,7 @@ function Reach({ r, items, night }: { r: ReachIn; items: readonly PropSpec[]; ni
 export default function Scene3D({ view, preset, station, chosen }: Scene3DProps) {
   const pages = view.pans.length
   const r = useMemo(() => reachInOf(pages, view.cap), [pages, view.cap])
-  const items = useMemo((): PropSpec[] => [...r.items, { kind: 'custom', id: 'reach-in', at: [0, 0, -r.depth / 2], build: (m) => cabinet(m, r) }], [r])
+  const items = useMemo((): PropSpec[] => [...r.items, { kind: 'custom', id: 'reach-in', at: [0, 0, -r.depth / 2], build: (m) => cabinet(m, r) }, { kind: 'custom', id: 'lamp-bar', at: [0, PASS.top, LAMP.z], build: lampBar }], [r])
   const night = useMemo(() => nightOf(view, r, { station: preset === 'station' ? station : null, chosen }), [view, r, preset, station, chosen])
   return (
     <SceneCanvas fog={{ near: HAZE.near, far: HAZE.far, color: 'surface-2' }} environment="tubes" environmentIntensity={0.55}>

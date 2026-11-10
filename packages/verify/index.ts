@@ -20,6 +20,8 @@ export { readBundle } from './caps'
 export type { ReadResult } from './caps'
 export { parseBundle, pointer } from './schema'
 export type { ParseResult } from './schema'
+export { scanShape } from './shape'
+export type { ShapeReason, ShapeResult } from './shape'
 export { canonicalBytes, decodeBase64, sha256Hex, toHex } from './hashing'
 export { checkIntegrity } from './integrity'
 export type { IntegrityResult } from './integrity'
@@ -31,7 +33,7 @@ export { checkPins, ENGINELESS_LABS } from './pins'
 export type { Compatible, EnginePin, PinOptions, PinTable } from './pins'
 export { findGpu, gpusOf, PEAK_MARGIN_PERMILLE, READ_PERMILLE, readFloorNs } from './atlas'
 export type { Atlas, AtlasEntry } from './atlas'
-export type { ArgmaxBank, Banks, StageDeclaration, StageDeclarations } from './checks'
+export type { ArgmaxBank, Banks, ModelFile, StageDeclaration, StageDeclarations } from './checks'
 export {
   ACCEPTANCE_FORMAT,
   ARGMAX_FORMAT,

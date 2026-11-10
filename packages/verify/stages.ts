@@ -7,7 +7,8 @@
  *
  *   attested   the grader's checks the stage requires, by the `id` the grader writes in `receipt.checks` (the lab's kit lists them). The browser takes
  *              them as the grader's word, once the grader is one the site published (rule 5), and they count only if they are there and they passed
- *   rechecked  the checks this browser re-runs, by the ids of checks.ts: B1 to B14, T1 to T10, X1 to X5, P1 to P4, and a re-check's own name. A check
+ *   rechecked  the checks this browser re-runs, by the ids of checks.ts: B1 to B14, T1 to T10, X1 to X5, P1 to P4, a re-check's own name, and `evidence`, that the
+ *              receipt carries a log with a measured row or a trace with a step window to recompute (evidence-check.ts). A check
  *              the stage names and this build does not have is `PENDING` with the task that builds it, and a receipt of the stage is not credited
  *              until it exists: the verdict says which one is missing and whose it is
  *   optional   grader checks the stage lists as optional: they may fail without changing the verdict

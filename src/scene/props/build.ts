@@ -308,6 +308,11 @@ function printer(m: Maker) {
   m.shadow([0, 0, 0], [w, d], { radius: 0.02, soft: 0.035, strength: 0.9 })
 }
 
+/**
+ * The bell's base, turned steel in the tone of deep steel (the palette's `turned`), its chamfered rim catching the tubes round the dome's
+ * foot. The spike beside it stands on the darker brushed deep tone, so the two read as two objects (W1b's finish review of the lesson
+ * blocks, round 2).
+ */
 function bellBase(m: Maker) {
   m.add(
     lathe(
@@ -324,7 +329,7 @@ function bellBase(m: Maker) {
       ],
       36,
     ),
-    'deep',
+    'turned',
   )
   m.shadow([0, 0, 0], [BELL.radius * 2, BELL.radius * 2], { radius: BELL.radius, soft: 0.02, strength: 0.9 })
 }
