@@ -17,7 +17,7 @@
  * as the front page's is.
  */
 import type { Page } from '@playwright/test'
-import { PR_ROUTES, W1_LEVEL_PAGES, W1_ROUTES } from './routes'
+import { PR_ROUTES, W1_LEVEL_PAGES, W1_ROUTES, W2_ROUTES } from './routes'
 import { front, playToTheDebrief } from './support/front'
 import { documentRoutes, expect, NIGHTLY, open, quiet, SCENE_IN_RUN, settled3d, test, withSettings } from './support/site'
 
@@ -29,7 +29,7 @@ declare global {
   }
 }
 
-const ROUTES = [...(NIGHTLY ? documentRoutes() : [...PR_ROUTES, ...W1_ROUTES]), ...W1_LEVEL_PAGES]
+const ROUTES = [...(NIGHTLY ? documentRoutes() : [...PR_ROUTES, ...W1_ROUTES, ...W2_ROUTES]), ...W1_LEVEL_PAGES]
 
 /** Puts a counter on `requestAnimationFrame`. Reading the count asks for no frame. */
 function installCounter() {
