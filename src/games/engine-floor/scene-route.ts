@@ -65,8 +65,8 @@ const ON = -0.2
 /** A pair of hands' own spike stands this far right of them, and their gate as far left, either side of their lamp's light [estimated]. */
 const BESIDE = 0.3
 /**
- * A ticket standing on a sill, at the gate or in the dumbwaiter's car: the middle of its top edge this far over the bottom of its rolled
- * foot, its height (scene-props.ts's sheet: rolled from 0.165 m down round a curl of 32 mm, 3 mm thick) and a little more.
+ * A ticket standing on a sill, at the gate or in the dumbwaiter's car: the middle of its top edge this far over the bottom of its curled
+ * foot, its height (scene-props.ts's sheet, rolled at its head and curled at its foot, hangs 200 mm) and a little more.
  */
 const TALL = 0.205
 
