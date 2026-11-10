@@ -21,7 +21,7 @@ import path from 'node:path'
 import { load } from 'js-yaml'
 import { GATE_NAMES, GATES } from '../../scripts/verify'
 import { checkBoundaries } from '../../scripts/verify-boundaries'
-import { BUN_FALLBACK, backticked, between, ciTestShards, read, root, tableRows, trackerTasks } from './support'
+import { BUN_FALLBACK, TASK_ID, backticked, between, ciTestShards, markedTasks, read, root, tableRows, taskHeadings, trackerTasks } from './support'
 
 interface Step {
   name?: string
@@ -512,19 +512,25 @@ describe('reserved steps', () => {
     'W1-T01', 'W1-T03', 'W1-T04', 'W1-T05', 'W1-T06', 'W1-T07', 'W1-T08', 'W1-T09', 'W1-T10', 'W1-T11', 'W1-T12', 'W1-T13', 'W1-T14', 'W1-T15',
     'W1-T16', 'W1-T17', 'W1-T18', 'W1-T19', 'W1-T20', 'W1-T21', 'W1-T22', 'W1-T23', 'W1-T24', 'W1-T25', 'W1-T26', 'W1-T27', 'W1-T28', 'W1-T29',
     'W1-T30', 'W1-T31', 'W1-T32', 'W1-T33', 'W1-T34', 'W1-T35', 'W1-T36',
-    // W1's exit review, in wave-1, whose open check W1b closed in wave-1b: W1b's exit review (W1b-T16) marked it `[=]`. W1b's own tasks have
-    // ids that this file's patterns do not read (W\d-T\d\d), so they are not listed here (docs/waves/W1b-report.md §10).
+    // W1's exit review, in wave-1, whose open check W1b closed in wave-1b: W1b's exit review (W1b-T16) marked it `[=]`.
     'W1-T38',
+    // W1b, in wave-1b: every task of the wave, which its exit review (W1b-T16) marked `[=]`. They were left out until the patterns of this file
+    // and of support.ts read their ids (W1b-report §10, TASK_ID in support.ts); the last tests of this block hold the list to the tracker's.
+    'W1b-T01', 'W1b-T02', 'W1b-T03', 'W1b-T04', 'W1b-T05', 'W1b-T06', 'W1b-T07', 'W1b-T08', 'W1b-T09', 'W1b-T10', 'W1b-T11', 'W1b-T12',
+    'W1b-T13', 'W1b-T14', 'W1b-T15', 'W1b-T16',
   ]
 
   /** A reserved step is one whose whole command is the echo. A step that echoes it only where a file is missing (the content compile, prepare-pages, the labs) switches on by file, and is not reserved. */
   const reservedIn = (text: string) =>
     Object.entries((load(text) as Workflow).jobs ?? {}).flatMap(([job, { steps = [] }]) =>
       steps.flatMap((step) => {
-        const task = /^echo ['"]pending: (W\d-T\d\d)['"]$/.exec(step.run?.trim() ?? '')?.[1]
+        const task = new RegExp(`^echo ['"]pending: (${TASK_ID})['"]$`).exec(step.run?.trim() ?? '')?.[1]
         return task === undefined ? [] : [{ job, task }]
       }),
     )
+
+  /** The tasks that `tracker` marks done or in review and that the list above lacks: what the marker guard is to find none of. */
+  const unlisted = (tracker: string) => markedTasks(tracker, 'x=').filter((task) => !MERGED.includes(task))
 
   test('none names a task that has merged: the task has landed, and its step is a check that nobody built', () => {
     const reserved = [...sources].flatMap(([file, source]) => reservedIn(source).map(({ job, task }) => ({ file, job, task })))
@@ -549,8 +555,41 @@ describe('reserved steps', () => {
   })
 
   test('has every task that TRACKER.md marks done or in review', () => {
-    const marked = [...read('docs/TRACKER.md').matchAll(/^#### \[([x=])\] (W\d-T\d\d) · /gm)].map((match) => match[2])
+    const marked = markedTasks(read('docs/TRACKER.md'), 'x=')
     expect(marked.length).toBeGreaterThan(20)
     expect(marked.filter((task) => !MERGED.includes(task))).toEqual([])
+  })
+
+  describe("W1b's ids, which the patterns before the close-out did not read (W1b-report §10)", () => {
+    const tracker = read('docs/TRACKER.md')
+
+    test("every task of the tracker's W1b section is read by the pattern, and the guard finds each one that is marked on the list", () => {
+      const section = between(tracker, '\n## W1b: ', '\n## W2: ')
+      const headings = [...section.matchAll(/^#### \[(.)\] (\S+) · /gm)].map((match) => ({ marker: match[1], id: match[2] }))
+      // W1b built sixteen tasks. Every heading of the section has an id of its wave that the pattern reads, and the pattern misses none.
+      expect(headings.length).toBeGreaterThanOrEqual(16)
+      expect(headings.filter(({ id }) => !id.startsWith('W1b-T'))).toEqual([])
+      expect(taskHeadings(section)).toEqual(headings)
+      // The exit review marked them `[=]`, so the guard has them to look for: it finds them marked, and none missing from the list.
+      expect(markedTasks(section, 'x=').length).toBeGreaterThanOrEqual(16)
+      expect(unlisted(section)).toEqual([])
+    })
+
+    test("would find a task of W1b that is marked and not on the list: the pattern of before read none of W1b's ids", () => {
+      const stale = '## W1b: carry-over\n\n#### [=] W1b-T05 · TR5a item families · M · sonnet\n\n#### [ ] W1b-T06 · TR8 item families · M · sonnet\n\n#### [x] W1b-T99 · A task that is not on the list · S · sonnet\n'
+      expect([...stale.matchAll(/^#### \[([x=])\] (W\d-T\d\d) · /gm)]).toEqual([])
+      expect(markedTasks(stale, 'x=')).toEqual(['W1b-T05', 'W1b-T99'])
+      expect(unlisted(stale)).toEqual(['W1b-T99'])
+    })
+
+    test('would find a reserved step that names a task of W1b, once that task has merged', () => {
+      const stale = "jobs:\n  labs:\n    steps:\n      - run: \"echo 'pending: W1b-T08'\"\n  reports:\n    steps:\n      - run: \"echo 'pending: W3-T13'\"\n"
+      expect(/^echo ['"]pending: (W\d-T\d\d)['"]$/.exec("echo 'pending: W1b-T08'")).toBeNull()
+      expect(reservedIn(stale)).toEqual([
+        { job: 'labs', task: 'W1b-T08' },
+        { job: 'reports', task: 'W3-T13' },
+      ])
+      expect(reservedIn(stale).filter(({ task }) => MERGED.includes(task))).toEqual([{ job: 'labs', task: 'W1b-T08' }])
+    })
   })
 })

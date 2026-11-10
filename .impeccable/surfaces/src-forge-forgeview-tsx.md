@@ -48,7 +48,11 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 
 The first red check. The ticket prints the reply the module gave beside the reply it should have given, in the ribbon's red, with the seed that drew the commands, and the lamp falls on that line.
 
+## Adaptations (W1b-T08, the crate and the slot readout)
+
+- **The crate.** The page hands over the lab's crate, the zip that the packer (W1-T11) makes. A wide ticket without a punched hole, "Take the crate", stands under the module slip while the slip waits for a file, and not above it, so that the slip's chooser stays in a phone's first screen. It holds the zip's name as a link to the file, with its size beside it as a measured readout, and one line on what the crate holds. The zip's SHA-256 is on masking tape in marker, and under it is the line that checks the download, `echo '<hash>  <name>' | sha256sum -c`, in a code box with a plate that copies it; when the browser refuses the clipboard, the plate selects the line and says so. While the site's manifest is on its way, or cannot be read, the ticket says that, leaves out the size and the hash, and still offers the link, because a zip's name is its lab's id.
+- **The slot readout** (`hybrid-kv` only). After the checks, a panel, "Measured against the slots", says that once the adapter stage passes the page plays one night of adapter churn on the learner's module and the same night on a model with fixed slots, as vLLM and SGLang keep adapters at their pins, and counts the tickets each admitted and the kits each brought in. Its table is the mirror kit's, on a ticket: the learner's module and a row for each count of slots, the engine's term leading each column head and the kitchen's word under it. It is a readout and not a check, so it carries no lamp and no verdict, says that it earns nothing and is not written to the ledger, and tags every figure as synthetic.
+
 ## Unresolved
 
-- **The kit's download:** the packer (W1-T11) makes the zip, and the page links to it then.
 - **The learner's module has no kitchen word.** GAMES.md §2.6 names the engine's objects and not the learner's code, so the page says "your module".
