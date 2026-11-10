@@ -27,7 +27,10 @@ class Discovery(unittest.TestCase):
         self.assertEqual(done.returncode, 0, done.stderr)
         count, *modules = done.stdout.splitlines()
         self.assertGreater(int(count), 150)
-        for name in ("rng", "subseed", "challenge", "canonical", "hashing", "receipt", "bundle", "verify", "grade", "cli", "identity", "schemas", "selftest", "labs", "fetch"):
+        for name in (
+            "rng", "subseed", "challenge", "canonical", "hashing", "receipt", "bundle", "verify", "grade", "cli", "identity", "schemas", "selftest", "labs", "fetch",
+            "fingerprint", "redact", "privacy", "engine_config", "doctor",
+        ):
             self.assertIn(f"labs.grader.tests.test_{name}", modules)
 
 

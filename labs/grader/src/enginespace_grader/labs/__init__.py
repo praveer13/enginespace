@@ -24,6 +24,14 @@ an artifact; and a whole number must stay below 2**53.
 this grader (ASSESSMENT section 5.8). `Stage.checks` lists the ids that the stage must report; a stage that does not report one of them is a fault in the
 lab, and the grader stops with a message instead of writing a receipt that the site would score as having skipped it.
 
+An engine lab (one whose `environment` is `vllm`, `sglang` or `nano-vllm`) also hands over the log of its engine's run in `StageResult.engine_run`, with the
+configuration dump if it has one. The grader reads the effective engine configuration from them (`environment.engineConfig`: the runner, the graph mode, async
+scheduling, the attention backend and the two limits; engine_config.py says what the pinned vLLM prints and where) and records one `engine-config` check of kind
+`environment`: it passes when all six were found, and when they were not it says which were missing, and the receipt is written all the same. A lab that keeps the
+log as an artifact scrubs it first (`redact.scrub_text`), so that no path or name of the learner's is in the bundle, and keeps of the configuration dump only
+`engine_config.dump_essentials`, which holds the values the reading uses and nothing else. `Lab.env_allowlist` names the `VLLM_*` and
+`SGLANG_*` variables whose values the receipt records; nothing else of the environment is read (fingerprint.py).
+
 The modules of the nine labs arrive with their tasks (W2-T16 for `tr0_forward`, W2-T19 and W2-T23 for `tr3_profile`, and so on). Until then a test, or a
 lab under development, registers its lab with `register`.
 """
@@ -40,6 +48,7 @@ from typing import Any, ClassVar
 
 from ..bundle import Artifact
 from ..challenge import Challenge
+from ..engine_config import EngineRun
 from ..errors import GraderError
 from ..rng import Rng
 
@@ -96,6 +105,8 @@ class StageResult:
     notes: str | None = None
     #: Anything else. The site ignores it, and it is part of the receipt's hash.
     ext: dict[str, Any] | None = None
+    #: For an engine lab: the engine's log of the run, its configuration dump and the environment it ran in, which the grader reads the effective engine configuration from.
+    engine_run: EngineRun | None = None
 
 
 class Lab(ABC):
@@ -109,6 +120,9 @@ class Lab(ABC):
     environment: ClassVar[str]
     #: Its stages by id.
     stages: ClassVar[Mapping[str, Stage]]
+    #: The `VLLM_*` and `SGLANG_*` variables whose values a receipt for this lab records (ARCHITECTURE section 9.5). Each value is scrubbed, and a name that says it holds
+    #: a secret is never recorded. Nothing else of the environment is read.
+    env_allowlist: ClassVar[tuple[str, ...]] = ()
 
     @abstractmethod
     def run(self, context: StageContext) -> StageResult:
