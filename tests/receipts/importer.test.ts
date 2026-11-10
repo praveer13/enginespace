@@ -1,10 +1,11 @@
 /*
- * W2-T07: bringing a receipt back, end to end except for the browser: a file is checked by the rules of packages/verify (the same function the
+ * W2-T07, W2-T08: bringing a receipt back, end to end except for the browser: a file is checked by the rules of packages/verify (the same function the
  * worker runs), and a receipt that was read whole is kept in a real ledger engine on the memory store (the same engine the page runs). The
  * worker, the page and the real IndexedDB are held in a browser, in e2e/receipts-import.spec.ts.
  *
  *   - An honest receipt is kept: its record and its event are written in one transaction, the event spends the challenge's token, and the page's
- *     own list of challenges then calls the token used, by this receipt. It is `gpu-unverified` and credits nothing, because rules 7 to 10 are W2-T08's.
+ *     own list of challenges then calls the token used, by this receipt. The bare sample is `gpu-unverified` and credits nothing: the stage asks of its
+ *     evidence (rules 7 to 9) what a toy trace cannot give, and the verdict says which checks.
  *   - A receipt checked again adds a report and no event. A second receipt for the same token is kept, labelled, and does not take the token.
  *   - A reused token fails binding. An unknown grader build gives `gpu-unverified`. Both are kept with their reasons.
  *   - An oversized file, a zip bomb and a tampered hash are refused with a message, and the ledger is as it was: no record, no event, no token spent.
@@ -16,6 +17,7 @@ import { parseExport } from '@es/ledger'
 import type { Draft } from '@es/ledger'
 import { verifyBundle } from '@es/verify'
 import type { Outcome, PublishedGrader } from '@es/verify'
+import { ATLAS } from '@/receipts/atlas'
 import { heldChallenges } from '@/receipts/challenge'
 import { importReceipt } from '@/receipts/importer'
 import type { ImportEnv, ImportResult } from '@/receipts/importer'
@@ -63,16 +65,20 @@ const kept = (result: ImportResult) => {
   return result
 }
 const ruleStatuses = (result: ImportResult) => (result.step === 'failed' ? [] : result.rules.map((rule) => `${rule.id}:${rule.status}`))
+/** The first six, which are the rules of W2-T07: the bare sample's rules 7 to 9 are the bestiary's and the pipeline's to look at. */
+const sixOf = (result: ImportResult) => ruleStatuses(result).slice(0, 6)
+const LATER_SKIPPED = ['rechecks:skipped', 'recomputation:skipped', 'floors:skipped']
 
 describe('an honest receipt', () => {
   test('is kept: the record and the event are written, and the answer says which receipt, with the verdict that holds it back', async () => {
     const { tab } = await ledgerWithChallenge()
     const result = kept(await importReceipt(fileNamed(fileOf(bundle)), envOf(tab)))
-    expect(ruleStatuses(result)).toEqual(['caps:pass', 'schema:pass', 'integrity:pass', 'binding:pass', 'grader:pass', 'pins:pass'])
+    expect(sixOf(result)).toEqual(['caps:pass', 'schema:pass', 'integrity:pass', 'binding:pass', 'grader:pass', 'pins:pass'])
     expect(result.sha256).toMatch(/^[0-9a-f]{64}$/)
     expect(result.recheck).toBe(false)
     expect(result.verdict.provenance).toBe('gpu-unverified')
-    expect(result.verdict.reasons).toHaveLength(1)
+    expect(result.verdict.reasons.length).toBeGreaterThan(1)
+    expect(result.verdict.reasons.join(' ')).toContain('X1 is not built yet: W2-T23 builds it')
     expect(result.file).toEqual({ name: 'tr3.profile-s2-20261109T120000Z.es.json.gz', bytes: expect.any(Number) })
 
     const snapshot = tab.engine.getSnapshot()
@@ -81,7 +87,7 @@ describe('an honest receipt', () => {
     expect(receiptEvents).toHaveLength(1)
   })
 
-  test('is stored as the receipt the page reads, and its report reads back with the six rules', async () => {
+  test('is stored as the receipt the page reads, and its report reads back with the nine rules it stores and says it ran ten', async () => {
     const { tab } = await ledgerWithChallenge()
     const result = kept(await importReceipt(fileNamed(fileOf(bundle)), envOf(tab)))
     const [record] = tab.engine.getSnapshot().receipts
@@ -94,10 +100,10 @@ describe('an honest receipt', () => {
     }
     expect(record.reports[0].at).toBe(NOW_ISO)
     const report = readStoredReport(record.reports[0].report)
-    expect(report?.rules.map((rule) => rule.status)).toEqual(['pass', 'pass', 'pass', 'pass', 'pass', 'pass'])
-    expect(report?.ran).toBe(6)
+    expect(report?.rules.map((rule) => rule.status)).toEqual(['pass', 'pass', 'pass', 'pass', 'pass', 'pass', 'pass', 'fail', 'fail'])
+    expect(report?.ran).toBe(10)
     expect(report?.sizes?.compressedBytes).toBeGreaterThan(0)
-    expect(verdictOf(report?.rules ?? [], report?.ran).provenance).toBe('gpu-unverified')
+    expect(verdictOf(bundle.receipt, report?.rules ?? [], report?.ran).provenance).toBe('gpu-unverified')
   })
 
   test('writes an event that credits nothing, names the receipt and the token, and holds nothing about the machine but its GPU, engine and driver', async () => {
@@ -117,12 +123,15 @@ describe('an honest receipt', () => {
         environment: 'Example GPU 24GB, vllm 0.33.0, driver 580.82.07',
       },
     })
-    // Each check the grader ran is there with a verdict that does not claim this browser re-ran it, and its numbers as the grader gave them.
-    expect(event?.kind === 'receipt' ? event.data.checks : []).toEqual([
-      { id: 'agreement', verdict: 'attested', bound: 'value 0.995, bound 0.99, n 200' },
-      { id: 'runner', verdict: 'attested' },
+    // Each check the grader ran is there as attested, with its numbers as the grader gave them, beside the checks this browser ran, which are pass or fail.
+    const checks = event?.kind === 'receipt' ? event.data.checks : []
+    expect(checks.filter((check) => ['agreement', 'runner', 'engine-integrity'].includes(check.id))).toEqual([
+      { id: 'agreement', verdict: 'attested', bound: 'value 0.995, bound 0.99, n 200; teacher-forced agreement over 200 positions' },
+      { id: 'runner', verdict: 'attested', bound: 'MRV2 ran' },
       { id: 'engine-integrity', verdict: 'attested', bound: 'tolerance 0' },
     ])
+    expect(checks.find((check) => check.id === 'T2')).toMatchObject({ verdict: 'pass' })
+    expect(checks.find((check) => check.id === 'X1')).toMatchObject({ verdict: 'fail' })
   })
 
   test('spends the token: the page\'s own list of challenges calls it used, by this receipt', async () => {
@@ -155,7 +164,7 @@ describe('a receipt checked again', () => {
     const again = kept(await importReceipt(fileNamed(fileOf(bundle)), envOf(tab, { now: () => Date.parse(NOW_ISO) + 60_000 })))
     expect(again.recheck).toBe(true)
     expect(again.sha256).toBe(first.sha256)
-    expect(ruleStatuses(again)).toEqual(['caps:pass', 'schema:pass', 'integrity:pass', 'binding:pass', 'grader:pass', 'pins:pass'])
+    expect(sixOf(again)).toEqual(['caps:pass', 'schema:pass', 'integrity:pass', 'binding:pass', 'grader:pass', 'pins:pass'])
     const snapshot = tab.engine.getSnapshot()
     expect(snapshot.receipts).toHaveLength(1)
     expect(snapshot.receipts[0].reports.map((report) => report.at)).toEqual([NOW_ISO, '2026-11-09T12:01:00.000Z'])
@@ -184,7 +193,7 @@ describe('a reused token', () => {
     const result = kept(await importReceipt(fileNamed(fileOf(second)), envOf(tab, { now: () => Date.parse(NOW_ISO) + 60_000 })))
     expect(result.sha256).not.toBe(first.sha256)
     expect(result.recheck).toBe(false)
-    expect(ruleStatuses(result)).toEqual(['caps:pass', 'schema:pass', 'integrity:pass', 'binding:fail', 'grader:pass', 'pins:pass'])
+    expect(sixOf(result)).toEqual(['caps:pass', 'schema:pass', 'integrity:pass', 'binding:fail', 'grader:pass', 'pins:pass'])
     expect(result.rules[3].problems[0]).toContain(`spent by receipt ${first.sha256.slice(0, 8)} already`)
     expect(result.verdict.provenance).toBe('gpu-unverified')
     const snapshot = tab.engine.getSnapshot()
@@ -212,7 +221,7 @@ describe('an unknown grader build', () => {
   test('gives gpu-unverified: the receipt is kept with the reason, and the token is spent because it was bound', async () => {
     const { tab } = await ledgerWithChallenge()
     const result = kept(await importReceipt(fileNamed(fileOf(bundle)), envOf(tab, { graders: [{ version: '0.1.0', sourceSha256: sha256('what the site published') }] })))
-    expect(ruleStatuses(result)).toEqual(['caps:pass', 'schema:pass', 'integrity:pass', 'binding:pass', 'grader:fail', 'pins:pass'])
+    expect(sixOf(result)).toEqual(['caps:pass', 'schema:pass', 'integrity:pass', 'binding:pass', 'grader:fail', 'pins:pass'])
     expect(result.verdict.provenance).toBe('gpu-unverified')
     expect(result.verdict.reasons[0]).toBe('enginespace-grader 0.1.0 is not the build this site published under that version.')
     const event = tab.engine.getSnapshot().events.find((entry) => entry.kind === 'receipt')
@@ -266,7 +275,7 @@ describe('a file that is refused', () => {
     })
     const result = await importReceipt(fileNamed(fileOf(tampered)), envOf(tab))
     expect(result.step).toBe('refused')
-    expect(ruleStatuses(result)).toEqual(['caps:pass', 'schema:pass', 'integrity:fail', 'binding:skipped', 'grader:skipped', 'pins:skipped'])
+    expect(ruleStatuses(result)).toEqual(['caps:pass', 'schema:pass', 'integrity:fail', 'binding:skipped', 'grader:skipped', 'pins:skipped', ...LATER_SKIPPED])
     if (result.step === 'refused') expect(result.rules[2].problems[0]).toContain('Artifact "trace"')
     await untouched(tab)
   })
@@ -300,7 +309,7 @@ describe('a check that cannot finish', () => {
     expect(result.step).toBe('failed')
     if (result.step === 'failed') {
       expect(result.message).toBe('This tab is read-only, so it cannot import or undo. Reload to update, then try again.')
-      expect(result.rules).toHaveLength(6)
+      expect(result.rules).toHaveLength(9)
     }
   })
 
@@ -341,6 +350,9 @@ describe('a check that cannot finish', () => {
       nowMs: Date.parse(NOW_ISO),
       graders: [GRADER],
       pins: [VLLM_PIN],
+      atlas: ATLAS,
+      stages: {},
+      banks: {},
     })
   })
 })

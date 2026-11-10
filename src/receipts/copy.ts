@@ -100,7 +100,7 @@ export const IMPORT = {
 export const RULE_WORDS = { pass: 'pass', fail: 'fail', skipped: 'not run' } as const
 
 /** What a verdict is called on a line of the list of receipts. A receipt with no report is `unchecked`. */
-export const VERDICT_WORDS = { unchecked: 'unchecked', 'gpu-unverified': 'not credited', assisted: 'credited in part', 'gpu-verified': 'credited' } as const
+export const VERDICT_WORDS = { unchecked: 'unchecked', 'gpu-unverified': 'not credited', assisted: 'credited in part', practice: 'counted as practice', 'gpu-verified': 'credited' } as const
 
 /** The "How this browser checked it" part of a receipt's page. */
 export const REPORTS = {
@@ -108,7 +108,16 @@ export const REPORTS = {
   none: 'Not checked in this browser yet. Bring the grader\'s file back on the receipts page, and the rules it was checked by will be listed here.',
   unreadable: 'A check that a version of the site wrote, and this one cannot read.',
   verdict: 'What it is worth now',
+  /** The list of the verdict's checks under the reasons: each is a word, the bound it was held to, and who checked it. */
+  checks: 'Check by check',
+  checksLabel: 'The verdict, check by check',
+  recheckedHere: 're-checked here',
+  /** `attested by grader 0.1.0`: the version follows. */
+  attestedBy: 'attested by grader',
 } as const
+
+/** The words of a check's result in the verdict: a mark is never a colour alone. */
+export const CHECK_WORDS = { pass: 'pass', fail: 'fail', attested: 'attested' } as const
 
 export const TAPE = {
   label: 'Challenges and receipts, counted',
@@ -132,6 +141,6 @@ export function receiptsCopy(): string[] {
     else if (Array.isArray(value)) value.forEach(walk)
     else if (value !== null && typeof value === 'object') Object.values(value).forEach(walk)
   }
-  walk({ LEAD, ISSUE, TICKET, CHALLENGES, RECEIPTS, IMPORT, RULE_WORDS, VERDICT_WORDS, REPORTS, TAPE })
+  walk({ LEAD, ISSUE, TICKET, CHALLENGES, RECEIPTS, IMPORT, RULE_WORDS, VERDICT_WORDS, REPORTS, CHECK_WORDS, TAPE })
   return out
 }

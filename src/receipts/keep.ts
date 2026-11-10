@@ -3,13 +3,12 @@
  * the ledger holds beside it.
  *
  *   record  the parsed receipt under its SHA-256, with the report of this check. The raw artifacts stay in the learner's bundle file.
- *   event   `receipt:<stage>`, with the receipt's hash, the challenge token it spent, a verdict for each check the grader ran, the grader's version
- *           and a one-line summary of the machine. The token is spent by this event: `heldChallenges` reads it so (src/receipts/challenge.ts).
+ *   event   `receipt:<stage>`, with the receipt's hash, the challenge token it spent, a verdict for each check (the browser's own, passed or failed,
+ *           and the grader's, attested or failed), the grader's version and a one-line summary of the machine. The token is spent by this event:
+ *           `heldChallenges` reads it so (src/receipts/challenge.ts).
  *
- * The event carries the provenance that the verdict names, and its weight is applied when the ledger is read and never stored (A§7.3). While rules
- * 7 to 10 are not built (W2-T08) the verdict is `gpu-unverified` for every receipt (packages/verify/report.ts), so the event is `ok: false`, at a
- * score of 0, and credits nothing. Each of the grader's checks is `attested` when the grader says it passed and `fail` when it says it did not:
- * this browser re-runs none of them yet, and says so by not calling any of them `pass`.
+ * The event carries the provenance that the verdict names, and its weight is applied when the ledger is read and never stored (A§7.3): `gpu-verified` is
+ * 1.0, `assisted` and `practice` 0.3, and `gpu-unverified` nothing (ASSESSMENT §3.2). A receipt that is not credited is `ok: false`, at a score of 0.
  *
  * The event is written for a receipt once. A receipt that is checked again, a re-import of the same file, adds a report to its record and no second
  * event: the first one spent the token, and a second would count the receipt twice.
@@ -18,44 +17,25 @@ import { LIMITS } from '@es/ledger'
 import type { Draft, IsoInstant, Json, LedgerEvent, ReceiptCheck, ReceiptRecord } from '@es/ledger'
 import type { Receipt } from '@es/schema/receipt'
 import { cut, storedReport } from '@es/verify'
-import type { CheckedOutcome } from '@es/verify'
+import type { CheckedOutcome, Verdict } from '@es/verify'
 import { gpuLine } from './records'
 
 const toJson = (value: unknown): Json => JSON.parse(JSON.stringify(value)) as Json
 
-/** What the receipt's own numbers for a check say, in one line: `value 0.995, bound 0.99`. A check with none has no bound to print. */
-function boundOf(check: Receipt['checks'][number]): string | undefined {
-  const parts = (
-    [
-      ['value', check.value],
-      ['bound', check.bound],
-      ['tolerance', check.tolerance],
-      ['n', check.n],
-    ] as const
-  )
-    .filter(([, number]) => number !== undefined)
-    .map(([name, number]) => `${name} ${number}`)
-  return parts.length === 0 ? undefined : cut(parts.join(', '), LIMITS.lineChars)
-}
-
 /**
- * The verdict of each check the grader ran, as the browser has it: `attested` for a check the grader says passed, and `fail` for one it says
- * did not. The event holds at most `LIMITS.checks` of them, and at least one: a receipt with more says how many are left out, and one with none
- * says that it has none, which is a failure of its own.
+ * The verdict of each check, as the event keeps it: `pass` or `fail` for what this browser ran, `attested` for what the grader checked and said it
+ * passed, and `fail` for what it said it did not pass. The event holds at most `LIMITS.checks` of them, and at least one: a verdict with more says how
+ * many are left out, and one with none says that it has none, which is a failure of its own.
  */
-export function checksOf(receipt: Receipt): ReceiptCheck[] {
-  if (receipt.checks.length === 0) return [{ id: 'no-checks', verdict: 'fail', bound: 'the receipt lists no check' }]
-  const verdict = (check: Receipt['checks'][number]): ReceiptCheck['verdict'] => (check.pass ? 'attested' : 'fail')
-  const entry = (check: Receipt['checks'][number]): ReceiptCheck => {
-    const bound = boundOf(check)
-    return { id: check.id, verdict: verdict(check), ...(bound === undefined ? {} : { bound }) }
-  }
-  if (receipt.checks.length <= LIMITS.checks) return receipt.checks.map(entry)
-  const shown = receipt.checks.slice(0, LIMITS.checks - 1)
-  const left = receipt.checks.slice(LIMITS.checks - 1)
+export function checksOf(verdict: Verdict): ReceiptCheck[] {
+  if (verdict.checks.length === 0) return [{ id: 'no-checks', verdict: 'fail', bound: 'the receipt lists no check' }]
+  const entry = (check: Verdict['checks'][number]): ReceiptCheck => ({ id: check.id, verdict: check.verdict, bound: cut(check.bound, LIMITS.lineChars) })
+  if (verdict.checks.length <= LIMITS.checks) return verdict.checks.map(entry)
+  const shown = verdict.checks.slice(0, LIMITS.checks - 1)
+  const left = verdict.checks.slice(LIMITS.checks - 1)
   const more: ReceiptCheck = {
     id: 'more-checks',
-    verdict: left.some((check) => !check.pass) ? 'fail' : 'attested',
+    verdict: left.some((check) => check.verdict === 'fail') ? 'fail' : left.every((check) => check.how === 'attested') ? 'attested' : 'pass',
     bound: `and ${left.length} more checks, not listed here`,
   }
   return [...shown.map(entry), more]
@@ -81,7 +61,7 @@ export function receiptDraft(outcome: CheckedOutcome): Draft<'receipt'> {
     data: {
       receiptSha256,
       challenge: receipt.challenge.token,
-      checks: checksOf(receipt),
+      checks: checksOf(verdict),
       graderVersion: receipt.grader.version,
       environment: environmentLine(receipt),
     },

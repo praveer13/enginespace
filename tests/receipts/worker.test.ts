@@ -1,5 +1,5 @@
 /*
- * W2-T07: receipt.worker, and the client that talks to it (src/receipts/verify-in-worker.ts).
+ * W2-T07, W2-T08: receipt.worker, and the client that talks to it (src/receipts/verify-in-worker.ts).
  *
  *   - The real worker runs in Bun, from its source file, as Vite bundles it for the browser: `new Worker(new URL(…, import.meta.url))`. A file goes
  *     in as a Blob, and the outcome comes back as plain data, the same as `verifyBundle` gives on the main thread. Bun's worker is not Chromium's, and
@@ -15,9 +15,10 @@ import type { ReceiptReply, ReceiptRequest } from '@/receipts/protocol'
 import { verifierOn, verifyInWorker } from '@/receipts/verify-in-worker'
 import type { ReceiptPort } from '@/receipts/verify-in-worker'
 import { changed, contextFor, fileOf, sampleBundle } from '../verify/support'
+import { replayFixture } from '../verify/synthetic'
 
 describe('the real worker', () => {
-  test('checks a receipt on its own thread and answers with what the main thread would: the same six rules, the same identity', async () => {
+  test('checks a receipt on its own thread and answers with what the main thread would: the same nine rules, the same identity', async () => {
     const bundle = sampleBundle()
     const file = fileOf(bundle)
     const here = await verifyBundle(file, contextFor(bundle))
@@ -25,10 +26,19 @@ describe('the real worker', () => {
     expect(there).toEqual(here)
     expect(there.kind).toBe('checked')
     if (there.kind === 'checked') {
-      expect(there.rules.map((rule) => rule.status)).toEqual(['pass', 'pass', 'pass', 'pass', 'pass', 'pass'])
+      expect(there.rules.map((rule) => rule.status)).toEqual(['pass', 'pass', 'pass', 'pass', 'pass', 'pass', 'pass', 'fail', 'fail'])
       expect(there.receipt).toEqual(bundle.receipt)
     }
   }, 30_000)
+
+  test('recomputes a benchmark of 1,264 requests on its own thread, with the atlas and the stage\'s declared workload as data, and credits it as the main thread does', async () => {
+    const fixture = replayFixture()
+    const file = fileOf(fixture.bundle)
+    const here = await verifyBundle(file, fixture.context)
+    const there = await verifyInWorker(file, fixture.context)
+    expect(there).toEqual(here)
+    expect(there.kind === 'checked' ? there.verdict.provenance : there.kind).toBe('gpu-verified')
+  }, 60_000)
 
   test('refuses a tampered hash with the artifact named, and a zip bomb with the cap in the message, on its own thread', async () => {
     const tampered = changed((b) => {

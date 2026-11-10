@@ -1,5 +1,7 @@
 /*
- * W2-T07, rules 1 to 6 of ARCHITECTURE §8.5 together: `verifyBundle` on a file, and the report and the verdict it leaves.
+ * W2-T07, rules 1 to 6 of ARCHITECTURE §8.5 together: `verifyBundle` on a file, and the report and the verdict it leaves. W2-T08 added rules 7 to 9 to the
+ * report (they have their own tests, and the bestiary's) and the verdict as rule 10. The sample here is bare: it is a `tr3.profile.s2` receipt with a
+ * toy trace, and the stage asks for far more of it, so it fails rules 8 and 9 and is not credited, and these tests look at the first six.
  *
  * The task's four checks, on files:
  *   1. Oversized and zip-bomb files abort with a message. They are `refused` at rule 1, and every rule after it says it did not run.
@@ -9,8 +11,7 @@
  * And the honest ones: the synthetic sample, and the bundle that the Python grader's own code wrote, pass all six rules when the ledger, the
  * published list and the pins are the ones they were made against.
  *
- * What is held back is the credit. Rules 7 to 10 are W2-T08's, so no receipt is `gpu-verified` here, and the verdict of an honest one says
- * that it is waiting for them, in words, and not that anything is wrong with it.
+ * What is held back is the credit. The bare sample asks of rules 7 to 9 what it cannot give, and the verdict says which checks, in words.
  */
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
@@ -20,7 +21,6 @@ import { bundleSchema } from '@es/schema/bundle'
 import {
   MAX_COMPRESSED_BYTES,
   MAX_DECOMPRESSED_BYTES,
-  NOT_BUILT_REASON,
   readStoredReport,
   RULES,
   RULES_IN_ALL,
@@ -43,13 +43,17 @@ const refused = (outcome: Outcome): RefusedOutcome => {
   return outcome
 }
 const ALL_PASS = ['1:caps:pass', '2:schema:pass', '3:integrity:pass', '4:binding:pass', '5:grader:pass', '6:pins:pass']
+/** What rules 7 to 9 say when a rule before them stopped the check. */
+const LATER_SKIPPED = ['7:rechecks:skipped', '8:recomputation:skipped', '9:floors:skipped']
+const firstSix = (outcome: Outcome): string[] => statuses(outcome).slice(0, 6)
 
 describe('the honest sample', () => {
-  test('passes all six rules, in the order and with the names of A§8.5', async () => {
+  test('passes the first six rules, in the order and with the names of A§8.5, and the nine rules that a report stores have the names of A§8.5 too', async () => {
     const outcome = checked(await verifyBundle(fileOf(sampleBundle()), contextFor()))
-    expect(statuses(outcome)).toEqual(ALL_PASS)
-    expect(RULES.map((rule) => [rule.rule, rule.id])).toEqual([[1, 'caps'], [2, 'schema'], [3, 'integrity'], [4, 'binding'], [5, 'grader'], [6, 'pins']])
-    expect(outcome.rules.every((rule) => rule.problems.length === 0)).toBe(true)
+    expect(firstSix(outcome)).toEqual(ALL_PASS)
+    expect(RULES.map((rule) => [rule.rule, rule.id])).toEqual([[1, 'caps'], [2, 'schema'], [3, 'integrity'], [4, 'binding'], [5, 'grader'], [6, 'pins'], [7, 'rechecks'], [8, 'recomputation'], [9, 'floors']])
+    expect(outcome.rules.slice(0, 6).every((rule) => rule.problems.length === 0)).toBe(true)
+    expect(outcome.rules).toHaveLength(9)
   })
 
   test('comes back parsed, with the receipt\'s identity, which is the SHA-256 of its canonical JSON', async () => {
@@ -61,12 +65,21 @@ describe('the honest sample', () => {
     expect(outcome.sizes.decompressedBytes).toBeGreaterThan(outcome.sizes.compressedBytes)
   })
 
-  test('is not credited, and says why: the rules that would credit it are not built (W2-T08), and nothing is wrong with the receipt', async () => {
+  test('is not credited, and says why: the stage asks of the evidence what the bare sample does not give, and the verdict names each check', async () => {
     const outcome = checked(await verifyBundle(fileOf(sampleBundle()), contextFor()))
-    expect(RULES_RUN).toBe(6)
+    expect(RULES_RUN).toBe(10)
     expect(RULES_IN_ALL).toBe(10)
-    expect(outcome.verdict).toEqual({ provenance: 'gpu-unverified', reasons: [NOT_BUILT_REASON] })
-    expect(NOT_BUILT_REASON).toContain('Rules 7 to 10')
+    expect(outcome.verdict.provenance).toBe('gpu-unverified')
+    // The toy trace has no capture time and says it is synthetic; the site declares no step count for the stage; the GPU is not in the atlas; the checks
+    // that tr3.profile.s2 requires and that are not built yet are named with the task that builds them; the grader lists none of the checks the stage requires.
+    const reasons = outcome.verdict.reasons.join('\n')
+    expect(reasons).toContain('T1: ')
+    expect(reasons).toContain('T6: This site declares no step count for tr3.profile.s2.')
+    expect(reasons).toContain('P1: The hardware atlas has no entry for "Example GPU 24GB"')
+    expect(reasons).toContain('X1 is not built yet: W2-T23 builds it')
+    expect(outcome.rules[6].status).toBe('pass')
+    expect(outcome.rules[7].status).toBe('fail')
+    expect(outcome.rules[8].status).toBe('fail')
   })
 
   test('is the same receipt when the file is written again: the identity does not depend on the gzip, the key order or the spacing', async () => {
@@ -87,7 +100,7 @@ describe('the bundle that the Python grader wrote', () => {
 
   test('passes rules 1 to 3 as it is written, with the identity that the grader computed, and fails rules 4 to 6 until the site knows its ledger, grader and pins', async () => {
     const outcome = checked(await verifyBundle(file(), { book: [], nowMs: NOW, graders: [], pins: [] }))
-    expect(statuses(outcome)).toEqual(['1:caps:pass', '2:schema:pass', '3:integrity:pass', '4:binding:fail', '5:grader:fail', '6:pins:fail'])
+    expect(firstSix(outcome)).toEqual(['1:caps:pass', '2:schema:pass', '3:integrity:pass', '4:binding:fail', '5:grader:fail', '6:pins:fail'])
     expect(outcome.receiptSha256).toBe(expected.receiptSha256)
   })
 
@@ -100,7 +113,7 @@ describe('the bundle that the Python grader wrote', () => {
         pins: [VLLM_PIN],
       }),
     )
-    expect(statuses(outcome)).toEqual(ALL_PASS)
+    expect(firstSix(outcome)).toEqual(ALL_PASS)
     expect(outcome.receiptSha256).toBe(expected.receiptSha256)
   })
 })
@@ -108,7 +121,7 @@ describe('the bundle that the Python grader wrote', () => {
 describe('an oversized file', () => {
   test('is refused at rule 1 with the size and the cap in its message, and every later rule says it did not run', async () => {
     const outcome = refused(await verifyBundle(new Blob([new Uint8Array(MAX_COMPRESSED_BYTES + 1)]), contextFor()))
-    expect(statuses(outcome)).toEqual(['1:caps:fail', '2:schema:skipped', '3:integrity:skipped', '4:binding:skipped', '5:grader:skipped', '6:pins:skipped'])
+    expect(statuses(outcome)).toEqual(['1:caps:fail', '2:schema:skipped', '3:integrity:skipped', '4:binding:skipped', '5:grader:skipped', '6:pins:skipped', ...LATER_SKIPPED])
     expect(outcome.rules[0].summary).toBe('The file is 33,554,433 bytes, and the site reads at most 33,554,432 compressed (the cap of rule 1).')
     expect(outcome.rules[1].summary).toBe('Not checked: an earlier rule stopped the check.')
     expect(outcome.sizes).toEqual({ compressedBytes: MAX_COMPRESSED_BYTES + 1 })
@@ -127,7 +140,7 @@ describe('a zip bomb', () => {
     const bomb = new Blob([new Uint8Array(gzipSync(Buffer.alloc(MAX_DECOMPRESSED_BYTES + 16 * 1024 * 1024)))])
     expect(bomb.size).toBeLessThan(400_000)
     const outcome = refused(await verifyBundle(bomb, contextFor()))
-    expect(statuses(outcome)).toEqual(['1:caps:fail', '2:schema:skipped', '3:integrity:skipped', '4:binding:skipped', '5:grader:skipped', '6:pins:skipped'])
+    expect(statuses(outcome)).toEqual(['1:caps:fail', '2:schema:skipped', '3:integrity:skipped', '4:binding:skipped', '5:grader:skipped', '6:pins:skipped', ...LATER_SKIPPED])
     expect(outcome.rules[0].summary).toBe('It holds more than the 268,435,456 bytes that the site reads once decompressed (the cap of rule 1), so it stopped there.')
   })
 
@@ -143,7 +156,7 @@ describe('a zip bomb', () => {
 describe('a file that is not a bundle', () => {
   test('is refused at rule 2 when it is JSON of another kind, with the place of the first problem', async () => {
     const outcome = refused(await verifyBundle(fileOf({ hello: 'world' }), contextFor()))
-    expect(statuses(outcome)).toEqual(['1:caps:pass', '2:schema:fail', '3:integrity:skipped', '4:binding:skipped', '5:grader:skipped', '6:pins:skipped'])
+    expect(statuses(outcome)).toEqual(['1:caps:pass', '2:schema:fail', '3:integrity:skipped', '4:binding:skipped', '5:grader:skipped', '6:pins:skipped', ...LATER_SKIPPED])
     expect(outcome.rules[1].problems[0]).toMatch(/^\/schema: /)
   })
 
@@ -161,12 +174,12 @@ describe('a file that is not a bundle', () => {
     expect(outcome.rules[0].summary).toContain('.es.json.gz')
   })
 
-  test('never throws, whatever the bytes: the answer is always a result with six rules in it', async () => {
+  test('never throws, whatever the bytes: the answer is always a result with the nine rules of a report in it', async () => {
     const junk = [new Uint8Array(0), new Uint8Array(1), Uint8Array.of(0x1f, 0x8b, 8), new Uint8Array(1000).fill(0x1f), new TextEncoder().encode('{"schema":"enginespace/bundle@1"}')]
     for (const bytes of junk) {
       const outcome = await verifyBundle(new Blob([bytes]), contextFor())
       expect(outcome.kind).toBe('refused')
-      expect(outcome.rules).toHaveLength(6)
+      expect(outcome.rules).toHaveLength(9)
     }
   })
 })
@@ -178,7 +191,7 @@ describe('a tampered hash', () => {
       if (entry !== undefined) entry.sha256 = '0'.repeat(64)
     })
     const outcome = refused(await verifyBundle(fileOf(bundle), contextFor(bundle)))
-    expect(statuses(outcome)).toEqual(['1:caps:pass', '2:schema:pass', '3:integrity:fail', '4:binding:skipped', '5:grader:skipped', '6:pins:skipped'])
+    expect(statuses(outcome)).toEqual(['1:caps:pass', '2:schema:pass', '3:integrity:fail', '4:binding:skipped', '5:grader:skipped', '6:pins:skipped', ...LATER_SKIPPED])
     expect(outcome.rules[2].summary).toBe('An artifact in the bundle is not the one the receipt lists.')
     expect(outcome.rules[2].problems).toHaveLength(1)
     expect(outcome.rules[2].problems[0]).toContain('Artifact "log": its data in the bundle hashes to')
@@ -203,7 +216,7 @@ describe('a tampered hash', () => {
       }),
     )
     const outcome = checked(await verifyBundle(fileOf(bundle), contextFor(bundle)))
-    expect(statuses(outcome)).toEqual(ALL_PASS)
+    expect(firstSix(outcome)).toEqual(ALL_PASS)
   })
 })
 
@@ -212,7 +225,7 @@ describe('a reused token', () => {
     const bundle = sampleBundle()
     const other = sha256('an earlier receipt')
     const outcome = checked(await verifyBundle(fileOf(bundle), contextFor(bundle, { book: [bookedFor(bundle.receipt, { usedBy: other })] })))
-    expect(statuses(outcome)).toEqual(['1:caps:pass', '2:schema:pass', '3:integrity:pass', '4:binding:fail', '5:grader:pass', '6:pins:pass'])
+    expect(firstSix(outcome)).toEqual(['1:caps:pass', '2:schema:pass', '3:integrity:pass', '4:binding:fail', '5:grader:pass', '6:pins:pass'])
     expect(outcome.rules[3].problems[0]).toContain(`spent by receipt ${other.slice(0, 8)} already`)
     expect(outcome.verdict.provenance).toBe('gpu-unverified')
     expect(outcome.verdict.reasons[0]).toBe('The receipt is not bound to an unused, unexpired challenge of this browser.')
@@ -228,7 +241,7 @@ describe('a reused token', () => {
   test('is bound once more when it is the receipt itself that spent the token: a re-import is a re-verification', async () => {
     const bundle = sampleBundle()
     const outcome = checked(await verifyBundle(fileOf(bundle), contextFor(bundle, { book: [bookedFor(bundle.receipt, { usedBy: receiptSha(bundle.receipt) })] })))
-    expect(statuses(outcome)).toEqual(ALL_PASS)
+    expect(firstSix(outcome)).toEqual(ALL_PASS)
   })
 })
 
@@ -236,7 +249,7 @@ describe('an unknown grader build', () => {
   test('fails rule 5 and gives gpu-unverified, with the reason shown', async () => {
     const bundle = sampleBundle()
     const outcome = checked(await verifyBundle(fileOf(bundle), contextFor(bundle, { graders: [{ version: '0.1.0', sourceSha256: sha256('a build that was published') }] })))
-    expect(statuses(outcome)).toEqual(['1:caps:pass', '2:schema:pass', '3:integrity:pass', '4:binding:pass', '5:grader:fail', '6:pins:pass'])
+    expect(firstSix(outcome)).toEqual(['1:caps:pass', '2:schema:pass', '3:integrity:pass', '4:binding:pass', '5:grader:fail', '6:pins:pass'])
     expect(outcome.verdict.provenance).toBe('gpu-unverified')
     expect(outcome.verdict.reasons[0]).toBe('enginespace-grader 0.1.0 is not the build this site published under that version.')
   })
@@ -262,7 +275,7 @@ describe('an engine off the pin', () => {
       if (b.receipt.environment.engine !== undefined) b.receipt.environment.engine.version = '0.32.0'
     })
     const outcome = checked(await verifyBundle(fileOf(bundle), contextFor(bundle)))
-    expect(statuses(outcome)).toEqual(['1:caps:pass', '2:schema:pass', '3:integrity:pass', '4:binding:pass', '5:grader:pass', '6:pins:fail'])
+    expect(firstSix(outcome)).toEqual(['1:caps:pass', '2:schema:pass', '3:integrity:pass', '4:binding:pass', '5:grader:pass', '6:pins:fail'])
     expect(outcome.verdict.reasons[0]).toBe("The run is off the course's pins.")
   })
 })
@@ -273,17 +286,40 @@ describe('the report', () => {
   test('is stored as plain JSON, and reads back to what was written', async () => {
     const outcome = checked(await verifyBundle(fileOf(sampleBundle()), contextFor()))
     const stored = storedReport(outcome.rules, outcome.sizes)
-    expect(stored).toEqual({ v: 1, ran: 6, sizes: outcome.sizes, rules: outcome.rules })
+    expect(stored).toEqual({ v: 1, ran: 10, sizes: outcome.sizes, rules: outcome.rules })
     expect(readStoredReport(JSON.parse(JSON.stringify(stored)))).toEqual(stored)
+    // The checks of rules 7 to 9 are in it, each with its bound, and it is still under the 4,000 characters that the six rules of W2-T07 were held to:
+    // 2,967 characters for this sample, and 3,615 for the replay fixture of tests/verify/synthetic.ts, which has thirteen checks [measured 2026-11-10].
     expect(JSON.stringify(stored).length).toBeLessThan(4000)
   })
 
   test('reads without sizes, for a file that was refused before they were counted', () => {
-    expect(readStoredReport({ v: 1, ran: 6, rules })).toEqual({ v: 1, ran: 6, rules })
+    expect(readStoredReport({ v: 1, ran: 10, rules })).toEqual({ v: 1, ran: 10, rules })
+  })
+
+  test('reads a report that an earlier build wrote under six rules, and says it ran six', () => {
+    const six = rules.slice(0, 6)
+    expect(readStoredReport({ v: 1, ran: 6, rules: six })).toEqual({ v: 1, ran: 6, rules: six })
+  })
+
+  test('keeps the checks of a rule and reads them back strictly: an id of the grammar, a status of two, a bound of a sentence', () => {
+    const withChecks = rules.map((rule) => (rule.rule === 8 ? { ...rule, checks: [{ id: 'B6', status: 'fail' as const, bound: 'The p99 is 2 s.' }] } : rule))
+    expect(readStoredReport({ v: 1, ran: 10, rules: withChecks })).toEqual({ v: 1, ran: 10, rules: withChecks })
+    for (const bad of [
+      [{ id: 'B 6', status: 'pass', bound: 'x' }],
+      [{ id: 'B6', status: 'attested', bound: 'x' }],
+      [{ id: 'B6', status: 'pass', bound: 7 }],
+      [{ id: 'B6', status: 'pass', bound: 'x'.repeat(5000) }],
+      [{ id: 'B6', status: 'pass' }],
+      'none',
+      Array.from({ length: 65 }, () => ({ id: 'B6', status: 'pass', bound: 'x' })),
+    ]) {
+      expect(readStoredReport({ v: 1, ran: 10, rules: rules.map((rule) => (rule.rule === 8 ? { ...rule, checks: bad } : rule)) }), JSON.stringify(bad).slice(0, 60)).toBeNull()
+    }
   })
 
   test('is null for JSON that is not a report: a newer version, a wrong kind, a result with a field of the wrong type, an unknown rule', () => {
-    const good = { v: 1, ran: 6, rules }
+    const good = { v: 1, ran: 10, rules }
     expect(readStoredReport(good)).not.toBeNull()
     for (const bad of [
       null,
@@ -308,10 +344,13 @@ describe('the report', () => {
     }
   })
 
-  test('has a verdict that is worked out when it is read: a report written under six rules reads as waiting for the rest', () => {
-    expect(verdictOf(rules, 6)).toEqual({ provenance: 'gpu-unverified', reasons: [NOT_BUILT_REASON] })
-    const failing = rules.map((rule) => (rule.id === 'grader' ? { ...rule, status: 'fail' as const, summary: 'The grader is not known.' } : rule))
-    expect(verdictOf(failing, 6).reasons).toEqual(['The grader is not known.', NOT_BUILT_REASON])
+  test('has a verdict that is worked out when it is read: a report written under six rules reads as needing the file brought back', () => {
+    const six = rules.slice(0, 6)
+    const older = verdictOf(sampleBundle().receipt, six, 6)
+    expect(older.provenance).toBe('gpu-unverified')
+    expect(older.reasons[0]).toBe("This check was made by an earlier version of the site that ran 6 of the 10 rules. Bring the receipt's file back, and it is checked by all of them.")
+    const failing = six.map((rule) => (rule.id === 'grader' ? { ...rule, status: 'fail' as const, summary: 'The grader is not known.' } : rule))
+    expect(verdictOf(sampleBundle().receipt, failing, 6).reasons.slice(0, 2)).toEqual(['The grader is not known.', older.reasons[0]])
   })
 })
 

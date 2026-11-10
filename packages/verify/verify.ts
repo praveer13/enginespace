@@ -14,8 +14,9 @@
  * same: it is kept with its reasons and is `gpu-unverified`, and "never credited" (ASSESSMENT §3.2). It spends its token if it was bound,
  * because the run's seeds were seen. A rule that cannot run because an earlier one stopped the check is `skipped`.
  *
- * Rules 7 to 10 (the re-checks, the recomputation, the physics floors and the verdict) are W2-T08's. They extend this function, and
- * `verdictOf` (report.ts) holds every receipt back until they exist.
+ * Rules 7 to 9 (the re-checks, the recomputation and the physics floors) run on every receipt that was read whole, whether or not rules 4 to 6 passed, and
+ * leave their checks in the report with the bounds printed (evaluate.ts). Rule 10, the verdict, is `verdictOf` (verdict.ts), and it is worked out here
+ * for the page to show and again when a stored report is read, so that it is never stored.
  *
  * Everything the check needs comes in as `VerifyContext`: the ledger's challenges, the published graders, the pins and the moment. This
  * package reads no ledger and no clock, so the worker that runs it, a test and a script all give it the same inputs.
@@ -24,6 +25,9 @@ import type { Receipt } from '@es/schema/receipt'
 import { readBundle } from './caps'
 import { checkBinding } from './binding'
 import type { ChallengeBook } from './binding'
+import type { Atlas } from './atlas'
+import type { Banks, Run, StageDeclarations } from './checks'
+import { evaluate } from './evaluate'
 import { grouped, plural } from './format'
 import { checkGrader } from './identity'
 import type { PublishedGrader } from './identity'
@@ -32,10 +36,12 @@ import { CAPS } from './limits'
 import type { Caps } from './limits'
 import { checkPins } from './pins'
 import type { Compatible, PinTable } from './pins'
-import { RULES, verdictOf } from './report'
-import type { RuleResult, Sizes, Verdict } from './report'
+import { RULES } from './report'
+import type { RuleResult, Sizes } from './report'
 import { sha256Hex } from './hashing'
 import { parseBundle } from './schema'
+import { verdictOf } from './verdict'
+import type { Verdict } from './verdict'
 
 export interface VerifyContext {
   /** The challenges the ledger holds, for rule 4. */
@@ -48,6 +54,12 @@ export interface VerifyContext {
   readonly pins: PinTable
   /** Engine versions that a lab declares compatible, for rule 6. */
   readonly compatible?: Compatible
+  /** The hardware atlas, for the floors of rule 9. Empty when the site has none, and then a receipt with performance evidence fails there. */
+  readonly atlas?: Atlas
+  /** What each stage declares of the workload its challenge draws, for rule 8 (B1, T6, P3). A stage that is not here has those checks fail. */
+  readonly stages?: StageDeclarations
+  /** The reference banks of rule 7, by stage. */
+  readonly banks?: Banks
   /** Smaller caps than the site's, for a test. */
   readonly caps?: Caps
 }
@@ -126,7 +138,7 @@ export async function verifyBundle(file: Blob, context: VerifyContext): Promise<
   const integrityRule = result('integrity', 'pass', `${plural(integrity.hashed, 'artifact')} hashed over canonical bytes, and each equals the receipt's entry${kept}.`)
 
   /* 4 to 6. What the receipt is worth. */
-  const rules = [
+  const first = [
     capsRule,
     schemaRule,
     integrityRule,
@@ -134,7 +146,22 @@ export async function verifyBundle(file: Blob, context: VerifyContext): Promise<
     checkGrader(receipt, context.graders),
     checkPins(receipt, context.pins, { compatible: context.compatible }),
   ]
-  return { kind: 'checked', rules, sizes, receipt, receiptSha256, verdict: verdictOf(rules) }
+
+  /* 7 to 9. What the artifacts say. */
+  const build = context.graders.find((entry) => entry.version === receipt.grader.version && entry.sourceSha256 === receipt.grader.sourceSha256)
+  const run: Run = {
+    receipt,
+    artifacts: bundle.artifacts,
+    atlas: context.atlas ?? [],
+    declared: context.stages?.[receipt.stage],
+    bank: context.banks?.[receipt.stage],
+    synthetic: build?.synthetic === true,
+    memo: new Map(),
+  }
+  const rules = [...first, ...evaluate(run)]
+
+  /* 10. The verdict, from the results. */
+  return { kind: 'checked', rules, sizes, receipt, receiptSha256, verdict: verdictOf(receipt, rules) }
 }
 
 /** Rule 1 passed: what it counted, against what the cap allows. */

@@ -142,7 +142,7 @@ function ReceiptLine({ held }: { held: HeldReceipt }) {
   const named = stageOf(receipt.stage)
   // What the latest check made of it, in a word: a receipt that was never checked here is `unchecked`, and one whose report this build cannot read has no word.
   const read = report === undefined ? null : readStoredReport(report.report)
-  const worth = report === undefined ? VERDICT_WORDS.unchecked : read === null ? undefined : VERDICT_WORDS[verdictOf(read.rules, read.ran).provenance]
+  const worth = report === undefined ? VERDICT_WORDS.unchecked : read === null ? undefined : VERDICT_WORDS[verdictOf(receipt, read.rules, read.ran).provenance]
   return (
     <li className="es-held__item" data-state="receipt" data-stage={receipt.stage}>
       <div className="es-held__what">

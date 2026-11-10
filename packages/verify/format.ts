@@ -7,8 +7,8 @@ import { PROBLEMS_SHOWN, PROBLEM_CHARS } from './limits'
 /** `n` with its thousands separators, whichever locale the browser is in: `33,554,432`. */
 export const grouped = (n: number): string => n.toLocaleString('en-US')
 
-/** `n` and a noun, in the plural unless it is 1. */
-export const plural = (n: number, noun: string): string => `${grouped(n)} ${noun}${n === 1 ? '' : 's'}`
+/** `n` and a noun, in the plural unless it is 1. A noun whose plural is not the noun and an `s` gives its plural. */
+export const plural = (n: number, noun: string, many: string = `${noun}s`): string => `${grouped(n)} ${n === 1 ? noun : many}`
 
 /** Text from a file, cut short with `...` when it is longer than `max`, so that one hostile name cannot fill the page. */
 export function cut(text: unknown, max: number = 64): string {

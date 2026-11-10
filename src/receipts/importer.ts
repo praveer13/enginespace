@@ -1,5 +1,5 @@
 /*
- * Bringing a receipt back (ARCHITECTURE §8.4, §8.5; W2-T07): one file in, checked by rules 1 to 6 in the receipt worker, and, if it is a receipt
+ * Bringing a receipt back (ARCHITECTURE §8.4, §8.5; W2-T07, W2-T08): one file in, checked by rules 1 to 9 in the receipt worker, and, if it is a receipt
  * that was read whole, kept in the learner's ledger.
  *
  *   refused   Rule 1, 2 or 3 stopped the file: it is over a cap, or damaged, or not a bundle, or an artifact is not the one the receipt lists. It is
@@ -15,9 +15,11 @@
  * the published graders and the pins. The page passes the real ones, and a test passes stand-ins. Nothing is sent anywhere (I1).
  */
 import type { LedgerEvent, ReceiptRecord } from '@es/ledger'
-import type { Outcome, PinTable, PublishedGrader, RuleResult, Verdict } from '@es/verify'
+import type { Atlas, Banks, Outcome, PinTable, PublishedGrader, RuleResult, StageDeclarations, Verdict } from '@es/verify'
 import type { KeepInput, KeepResult } from '@/evidence/engine'
+import { ATLAS } from './atlas'
 import { challengeBook } from './book'
+import { BANKS, STAGE_DECLARATIONS } from './declared'
 import { PUBLISHED_GRADERS } from './graders'
 import { hasEventFor, receiptDraft, receiptRecord } from './keep'
 import { ENGINE_PINS } from './pins'
@@ -38,13 +40,15 @@ export type ImportResult =
       /** The receipt's identity, and the fragment of its page. */
       sha256: string
       verdict: Verdict
+      /** The grader's version, which the badge of an attested check names. */
+      grader: string
       /** The ledger held this receipt already: this check added its report, and no event. */
       recheck: boolean
     }
   | { step: 'failed'; file: FileFacts; message: string; rules?: readonly RuleResult[] }
 
 export interface ImportEnv {
-  /** Runs rules 1 to 6 on the file: the receipt worker in the browser. */
+  /** Runs rules 1 to 9 on the file, and works out rule 10: the receipt worker in the browser. */
   verify: Verifier
   /** Writes a checked receipt: `keepReceipt` of the ledger. */
   keep(input: KeepInput): Promise<KeepResult>
@@ -56,6 +60,10 @@ export interface ImportEnv {
   cancelled?(): boolean
   graders?: readonly PublishedGrader[]
   pins?: PinTable
+  /** The hardware atlas of rule 9, the workload each stage declares for rule 8, and the reference banks of rule 7. The site's own unless a test gives others. */
+  atlas?: Atlas
+  stages?: StageDeclarations
+  banks?: Banks
 }
 
 const messageOf = (error: unknown): string => (error instanceof Error ? error.message : String(error))
@@ -70,6 +78,9 @@ export async function importReceipt(file: File, env: ImportEnv): Promise<ImportR
       nowMs,
       graders: env.graders ?? PUBLISHED_GRADERS,
       pins: env.pins ?? ENGINE_PINS,
+      atlas: env.atlas ?? ATLAS,
+      stages: env.stages ?? STAGE_DECLARATIONS,
+      banks: env.banks ?? BANKS,
     })
   } catch (error) {
     return { step: 'failed', file: facts, message: messageOf(error) }
@@ -88,5 +99,5 @@ export async function importReceipt(file: File, env: ImportEnv): Promise<ImportR
     return { step: 'failed', file: facts, rules: outcome.rules, message: messageOf(error) }
   }
   if (!kept.ok) return { step: 'failed', file: facts, rules: outcome.rules, message: kept.detail }
-  return { step: 'kept', file: facts, rules: outcome.rules, sha256: outcome.receiptSha256, verdict: outcome.verdict, recheck }
+  return { step: 'kept', file: facts, rules: outcome.rules, sha256: outcome.receiptSha256, verdict: outcome.verdict, grader: outcome.receipt.grader.version, recheck }
 }

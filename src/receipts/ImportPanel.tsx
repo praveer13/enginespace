@@ -198,8 +198,8 @@ export function ImportPanel({ ready, readOnly, memoryOnly, state, onChoose, onCl
       >
         <FileLine file={state.file} />
         <p>{state.recheck ? IMPORT.recheckNote : IMPORT.keptNote}</p>
-        <RuleList rules={state.rules} label={IMPORT.rulesLabel} />
-        <VerdictLine verdict={state.verdict} />
+        <RuleList rules={state.rules} label={IMPORT.rulesLabel} checks={false} />
+        <VerdictLine verdict={state.verdict} grader={state.grader} />
       </Ticket>
     )
   }

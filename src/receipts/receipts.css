@@ -787,6 +787,84 @@
   color: var(--es-paper-ink-2);
 }
 
+/* The checks of a rule (rules 7 to 9) and of the verdict: an id, a word and a mark, the bound it was held to, and who checked it. */
+.es-rule > .es-rule__checks {
+  grid-column: 2 / -1;
+}
+
+.es-rule__checks {
+  display: grid;
+  gap: var(--es-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--es-size-print);
+  line-height: 1.5;
+}
+
+/* Narrow: the id and the word on one line, and the bound under them across the whole width. From 40rem: three columns, with the id's column one width for every
+   check (a longer id wraps at its hyphens), so that the bounds line up. */
+.es-check {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: baseline;
+  gap: var(--es-space-1) var(--es-space-3);
+  padding-inline-start: var(--es-space-2);
+  border-inline-start: 2px dotted var(--es-paper-rule);
+}
+
+.es-check[data-status='fail'] {
+  border-inline-start-style: solid;
+  color: var(--es-paper-ink-2);
+}
+
+.es-check__id {
+  font-family: var(--es-font-ticket);
+  font-weight: var(--es-font-ticket-weight);
+  overflow-wrap: anywhere;
+}
+
+.es-check__result {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--es-space-1);
+  font-family: var(--es-font-ticket);
+  font-weight: var(--es-font-ticket-weight);
+}
+
+.es-check__bound,
+.es-check__badge {
+  grid-column: 1 / -1;
+  overflow-wrap: anywhere;
+}
+
+.es-check__badge {
+  color: var(--es-text-3);
+}
+
+@media (min-width: 40rem) {
+  .es-check {
+    grid-template-columns: 10ch max-content minmax(0, 1fr);
+  }
+
+  .es-check__bound,
+  .es-check__badge {
+    grid-column: 3;
+  }
+}
+
+.es-verdict-checks {
+  display: grid;
+  gap: var(--es-space-2);
+  margin-top: var(--es-space-2);
+}
+
+.es-verdict-checks__heading {
+  margin: 0;
+  font-family: var(--es-font-ticket);
+  font-weight: var(--es-font-ticket-weight);
+}
+
 /* ---------------------------------------------------------------------------------------------- what it is worth now */
 
 .es-import__verdict {

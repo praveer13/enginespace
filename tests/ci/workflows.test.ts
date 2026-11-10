@@ -472,7 +472,7 @@ describe('labs.yml (§10.1)', () => {
     })
   }
 
-  test('runs for a change to what the lab gates read, and by hand: the labs, the schemas and the receipt rules (W0-T04), what verify:labs imports and compares (W1b-T13), and the grader\'s fixtures (W2-T02, W2-T05)', () => {
+  test('runs for a change to what the lab gates read, and by hand: the labs, the schemas and the receipt rules (W0-T04), what verify:labs imports and compares (W1b-T13), the grader\'s fixtures (W2-T02, W2-T05), and what the receipt fixtures step reads (W2-T08)', () => {
     expect(labsPaths).toEqual([
       'labs/**',
       'schemas/**',
@@ -486,6 +486,10 @@ describe('labs.yml (§10.1)', () => {
       'tests/fixtures/forge/**',
       'tests/fixtures/grader/**',
       'tests/fixtures/references/**',
+      'tests/fixtures/receipts/**',
+      'tests/verify/**',
+      'tests/schema/receipt-support.ts',
+      'src/receipts/atlas.ts',
       'vendor/kernelspace/**',
       '.github/workflows/labs.yml',
     ])
@@ -537,7 +541,7 @@ describe('labs.yml (§10.1)', () => {
     expect(grader).toContain('bun run verify:vectors')
   })
 
-  test('the grader job (W2-T02) checks the lock, syncs from it, runs the tests as TRACKER words the command, runs the installed command, and then the two gates, in that order', () => {
+  test('the grader job (W2-T02) checks the lock, syncs from it, runs the tests as TRACKER words the command, runs the installed command, then the two gates, and then the receipt fixtures and forgeries of W2-T08, in that order', () => {
     expect(runsOf('labs.yml', 'grader')).toEqual([
       'npm ci',
       'uv lock --check --project labs/grader',
@@ -546,7 +550,7 @@ describe('labs.yml (§10.1)', () => {
       'uv run --project labs/grader enginespace selftest --no-suite',
       'bun run verify:schema',
       'bun run verify:vectors',
-      "echo 'pending: W2-T08'",
+      'bun test tests/verify/bestiary.test.ts tests/verify/fixtures.test.ts',
     ])
     // The commands of TRACKER's acceptance 1 and 4, word for word.
     const task = trackerTasks().get('W2-T02') ?? ''
@@ -568,11 +572,11 @@ describe('reserved steps', () => {
   test('each prints "pending: <task>" with a task that TRACKER.md has', () => {
     const tasks = trackerTasks()
     const reserved = [...sources].flatMap(([file, source]) => [...source.matchAll(/echo ['"]pending: ([^'"]+)['"]/g)].map((match) => ({ file, task: match[1] })))
-    // Seven are left [measured 2026-11-08 at the wave-1 tip 76eb3fd, with W1-T35's change]: the content compile of ci.yml and of deploy.yml
-    // (W0-T08), prepare-pages (W0-T19), the labs' two (W1-T10, W2-T02), the grader's receipt fixtures (W2-T08) and the link-rot report
-    // (W3-T13). The Export freshness step of both workflows had one more each, until W1-T35 built the check, so the count that stood here,
-    // more than eight, could not hold. The list is exact, so a step that is added or built changes it in the same commit.
-    expect(reserved.map(({ task }) => task).sort()).toEqual(['W0-T08', 'W0-T08', 'W0-T19', 'W1-T10', 'W2-T02', 'W2-T08', 'W3-T13'])
+    // Six are left [measured 2026-11-10 at the wave-2 tip, with W2-T08's change]: the content compile of ci.yml and of deploy.yml (W0-T08),
+    // prepare-pages (W0-T19), the labs' two (W1-T10, W2-T02) and the link-rot report (W3-T13). The grader's receipt fixtures (W2-T08) had a seventh, until
+    // W2-T08 built the step. The Export freshness step of both workflows had one more each, until W1-T35 built the check, so the count that stood
+    // here, more than eight, could not hold. The list is exact, so a step that is added or built changes it in the same commit.
+    expect(reserved.map(({ task }) => task).sort()).toEqual(['W0-T08', 'W0-T08', 'W0-T19', 'W1-T10', 'W2-T02', 'W3-T13'])
     expect(reserved.filter(({ task }) => !tasks.has(task))).toEqual([])
   })
 
@@ -596,6 +600,8 @@ describe('reserved steps', () => {
     // and of support.ts read their ids (W1b-report §10, TASK_ID in support.ts); the last tests of this block hold the list to the tracker's.
     'W1b-T01', 'W1b-T02', 'W1b-T03', 'W1b-T04', 'W1b-T05', 'W1b-T06', 'W1b-T07', 'W1b-T08', 'W1b-T09', 'W1b-T10', 'W1b-T11', 'W1b-T12',
     'W1b-T13', 'W1b-T14', 'W1b-T15', 'W1b-T16',
+    // W2, in wave-2: the tasks that have built a reserved step.
+    'W2-T08',
   ]
 
   /** A reserved step is one whose whole command is the echo. A step that echoes it only where a file is missing (the content compile, prepare-pages, the labs) switches on by file, and is not reserved. */
@@ -612,8 +618,8 @@ describe('reserved steps', () => {
 
   test('none names a task that has merged: the task has landed, and its step is a check that nobody built', () => {
     const reserved = [...sources].flatMap(([file, source]) => reservedIn(source).map(({ job, task }) => ({ file, job, task })))
-    // The link-rot report waits for W3-T13, and the grader's receipt fixtures for W2-T08.
-    expect(reserved.map(({ task }) => task).sort()).toEqual(expect.arrayContaining(['W2-T08', 'W3-T13']))
+    // The link-rot report waits for W3-T13. The grader's receipt fixtures waited for W2-T08, which built the step.
+    expect(reserved.map(({ task }) => task).sort()).toEqual(expect.arrayContaining(['W3-T13']))
     expect(reserved.filter(({ task }) => MERGED.includes(task)).map(({ file, job, task }) => `${file}/${job} still prints "pending: ${task}", and ${task} has merged: build the step`)).toEqual([])
   })
 

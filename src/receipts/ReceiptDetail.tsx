@@ -23,8 +23,8 @@ import { formatWhen } from './when'
  *
  * Nothing above the last part is a verdict. A figure is the grader's own, and prints with the tag `unverified` that a screen reader hears
  * and a single stamp that the eye reads, until this browser has recomputed it. The checks are the grader's attestations. How this browser
- * checked the receipt is its own section, the last: each check that the receipt has had, with the rules it ran and what they came to. Rules 1 to
- * 6 are W2-T07's, and recomputation, which turns a figure from `unverified` to a figure of this browser's own, is W2-T08's.
+ * checked the receipt is its own section, the last: each check that the receipt has had, with the rules it ran and what they came to, and the verdict
+ * check by check. Rules 1 to 6 are W2-T07's. Rules 7 to 9 (W2-T08) recompute what the run claimed from the raw records, and print the bound of each check.
  */
 
 const none = <span className="es-receipt__none">none</span>
@@ -343,7 +343,7 @@ function Files({ receipt }: { receipt: Receipt }) {
 function Checks({ receipt }: { receipt: Receipt }) {
   return (
     <Part title="What the grader checked">
-      <p className="es-receipt__lead">These are the grader&apos;s own results. This browser has not re-run them.</p>
+      <p className="es-receipt__lead">These are the grader&apos;s own results. This browser re-runs the ones it can, and the part at the foot of the page lists them with their bounds.</p>
       {receipt.checks.length === 0 ? (
         <p className="es-receipt__empty">{none}</p>
       ) : (
@@ -416,7 +416,7 @@ function Notes({ receipt }: { receipt: Receipt }) {
 }
 
 /** One check of the receipt: when it was made, the rules it ran, and what they came to. The newest is open, and an earlier one folds. */
-function Check({ report, newest }: { report: VerificationReport; newest: boolean }) {
+function Check({ report, newest, receipt }: { report: VerificationReport; newest: boolean; receipt: Receipt }) {
   const read = readStoredReport(report.report)
   const heading = (
     <>
@@ -436,11 +436,12 @@ function Check({ report, newest }: { report: VerificationReport; newest: boolean
     <>
       {read.ran < RULES_IN_ALL ? (
         <p className="es-receipt__lead">
-          <Readout value={read.ran} tag="measured" size="sm" /> of the ten verification rules ran in this check, and the rest are built in a later version of the site.
+          <Readout value={read.ran} tag="measured" size="sm" /> of the ten verification rules ran in this check, because an earlier version of the site made it. Bring the receipt&apos;s file back, and
+          all of them run.
         </p>
       ) : null}
-      <RuleList rules={read.rules} label={`How this browser checked the receipt, ${formatWhen(report.at)}`} />
-      <VerdictLine verdict={verdictOf(read.rules, read.ran)} />
+      <RuleList rules={read.rules} label={`How this browser checked the receipt, ${formatWhen(report.at)}`} checks={false} />
+      <VerdictLine verdict={verdictOf(receipt, read.rules, read.ran)} grader={receipt.grader.version} />
     </>
   )
   return newest ? (
@@ -458,7 +459,7 @@ function Check({ report, newest }: { report: VerificationReport; newest: boolean
   )
 }
 
-function Reports({ reports }: { reports: readonly VerificationReport[] }) {
+function Reports({ reports, receipt }: { reports: readonly VerificationReport[]; receipt: Receipt }) {
   const newestFirst = [...reports].sort((a, b) => (a.at < b.at ? 1 : -1))
   return (
     <Part title={REPORTS.title}>
@@ -467,7 +468,7 @@ function Reports({ reports }: { reports: readonly VerificationReport[] }) {
       ) : (
         <ul className="es-receipt__checks">
           {newestFirst.map((report, at) => (
-            <Check key={`${report.at}#${at}`} report={report} newest={at === 0} />
+            <Check key={`${report.at}#${at}`} report={report} newest={at === 0} receipt={receipt} />
           ))}
         </ul>
       )}
@@ -516,7 +517,7 @@ export function ReceiptDetail({ held, challenges }: { held: Extract<HeldReceipt,
       <Checks receipt={receipt} />
       <Claimed receipt={receipt} />
       <Notes receipt={receipt} />
-      <Reports reports={reports} />
+      <Reports reports={reports} receipt={receipt} />
     </Ticket>
   )
 }
