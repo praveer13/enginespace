@@ -66,7 +66,7 @@ const POOL = [0.336, 0.21] as const
 /* The ticket and the dumbwaiter's car                                                                                */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** The ticket: a kitchen's slip, curled as the roll leaves it, its foot rolled forward so its back and its cut edge show (scene-props.ts). */
+/** The ticket: a kitchen's slip, its top rolled forward off the clip and its foot curled up to the room, its cut end lit (scene-props.ts). */
 const SHEET = ticketSheet()
 const [u, v] = cellOffset(3)
 SHEET.setAttribute('aCell', new BufferAttribute(new Float32Array(SHEET.getAttribute('position').count * 2).map((_, i) => (i % 2 ? v : u)), 2))

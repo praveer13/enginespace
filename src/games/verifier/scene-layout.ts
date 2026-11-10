@@ -6,13 +6,15 @@
  *   - The room is Service's: floor, tile on two walls, the hood over a cold line, a speed rack, and the pass, here as deep as the run.
  *     Its light, baked into the tile and the floor, is full over the line and the pass, and dims toward the corners, up the wall over
  *     the line and behind the pass.
- *   - Each dish of a course has the commis's stack of plates on its left and the chef's on its right, in her wire dispenser, whose
- *     foot is the target's blue and whose wires stand a few plates over her stack. A plate's edge band is its part (`Band`): in a
- *     practice run the plates both stacks share are the overlap's, the commis's extra the draft's and the chef's extra the residual's;
- *     a graded run's stacks are plain, the commis's the draft's and the chef's the target's.
+ *   - Each dish of a course has three stacks across the pass: the commis's plates on its left, the chef's in her wire dispenser,
+ *     whose foot is the target's blue and whose wires stand a few plates over her stack, and what went out on its right. A plate's
+ *     edge band is its part (`Band`): in a practice run the plates both stacks share are the overlap's, the commis's extra the
+ *     draft's and the chef's extra the residual's; a graded run's stacks are plain, the commis's the draft's and the chef's the
+ *     target's.
  *   - A drafted plate is the commis's plate at its coin's height, pulled out of his stack: level and toward the chef and the expo when
  *     she keeps it, tipped away from her when she sends it back. Of the latest rounds, one plate for each place.
- *   - What went out is a ring on the chef's dispenser at the height served, up to the top of its wires.
+ *   - What went out is a stack of white side plates edged in grey beside her dispenser, as many as went out of the dish there, up to
+ *     the top of her dispenser's wires: settled, it stands exactly as tall as her stack, and the two skylines are one.
  *   - `gamma` lays a run of eight stacks across the pass: the plates the walk keeps if it gets that far, and the rest it sends back.
  *     The courses the commis plates stand upright; the rest wait upside down, unplated.
  *   - Three heat lamps hang over where a round begins (the front course), straight over it, so each one's pool lies on its plates and
@@ -25,7 +27,7 @@
 import type { RowView, VerifierView } from '@es/play/verifier/types'
 import type { RoomLight } from '@/scene/props/set'
 import type { PropSpec } from '@/scene/props/specs'
-import { columnX, FRONT, FULL, NAMES, PAIR, PLATE, roomOf, rowZ, stackHeight, TOP, type Plan, type Vec3 } from './scene-plan'
+import { columnX, FRONT, FULL, NAMES, roomOf, rowZ, STACKS, stackHeight, TOP, type Plan, type Vec3 } from './scene-plan'
 
 export type Band = 'probability-overlap' | 'probability-draft' | 'probability-residual' | 'probability-target'
 
@@ -52,11 +54,13 @@ export interface Marker {
   readonly round: number
 }
 
-export interface Ring {
+/** What went out of a dish here: a stack of side plates beside her dispenser. */
+export interface Served {
   readonly id: string
-  /** The dispenser's foot, and the height of its wires over the counter. */
+  /** The stack's foot, on the counter. */
   readonly at: Vec3
-  readonly top: number
+  /** The most plates it stands, her dispenser's top: more than that waits there, and the mirror prints the figure. */
+  readonly cap: number
   /** What went out of this dish here, in plates out of sixty-four, or null when nothing has (or a graded recipe hides it). */
   readonly out: number | null
 }
@@ -102,7 +106,7 @@ export interface Dispenser {
 export interface TastingScene {
   readonly stacks: readonly Stack[]
   readonly dispensers: readonly Dispenser[]
-  readonly rings: readonly Ring[]
+  readonly served: readonly Served[]
   readonly markers: readonly Marker[]
   readonly tapes: readonly Tape[]
   readonly anchors: readonly Anchor[]
@@ -132,8 +136,8 @@ const STATIONS = ['griddle', 'burners', 'fryer', 'burners', 'griddle'] as const
 export function tastingKitchen(plan: Plan, lamps: TastingScene['lamps']): TastingKitchen {
   const { lineZ, wallZ, sideX } = roomOf(plan)
   const lineWidth = STATIONS.length * LINE.width
-  // The bell at the pass's front, between the last two dishes, where the shot over the course keeps it.
-  const bell: Vec3 = [columnX(plan, plan.columns - 1.5), TOP, FRONT - 0.045]
+  // The bell at the pass's front, between the last two dishes, where the shot over the course keeps it, clear of the plates a round pulls.
+  const bell: Vec3 = [columnX(plan, plan.columns - 1.5) - 0.05, TOP, FRONT - 0.045]
   const items: PropSpec[] = [
     { kind: 'floor', id: 'floor', at: [0, 0, wallZ / 2 + 1.6], width: 14, depth: 9 },
     { kind: 'tile-wall', id: 'wall', at: [0, 0, wallZ], width: 14, height: 3.1 },
@@ -192,13 +196,9 @@ const ROW_LAMPS: TastingScene['lamps'] = [
 ]
 
 /**
- * What went out, a white enamel ring threaded on the dispenser's wires [estimated]: from just round the plates' edges to a flange 35 mm
- * past them, so its face reads as a ring round her stack from over the pass, and from half a plate under the height it marks to a
- * plate over it, so that settled it caps her stack's top plate.
+ * How many plates a dispenser's wires stand over the chef's stack [estimated]: what went out stands up to there, so a dish that went out
+ * more often than she sends it stands over her stack, and more than that waits at the wires' top.
  */
-export const RING = { inner: 0.064, outer: 0.095, below: 0.005, above: 0.011 } as const
-
-/** How many plates a dispenser's wires stand over the chef's stack [estimated]: room for what went out to show over what she sends. */
 const SPARE = 6
 
 /** A strip of tape on the pass's rolled front edge, under a column, tilted back with the edge. */
@@ -221,7 +221,7 @@ export function tastingScene(view: VerifierView, plan: Plan, flags: SceneFlags):
   if (plan.kind === 'gamma') return gammaScene(view, plan)
   const stacks: Stack[] = []
   const dispensers: Dispenser[] = []
-  const rings: Ring[] = []
+  const served: Served[] = []
   const markers = new Map<string, Marker>()
   const tapes: Tape[] = view.dishes.map((name, d) => edgeTape(plan, d, name))
   const anchors: Anchor[] = []
@@ -231,16 +231,17 @@ export function tastingScene(view: VerifierView, plan: Plan, flags: SceneFlags):
     row.p.forEach((p, d) => {
       const q = row.q?.[d] ?? 0
       const agreed = Math.min(p, q)
-      const commis: Vec3 = [columnX(plan, d) - PAIR, TOP, z]
-      const chef: Vec3 = [columnX(plan, d) + PAIR, TOP, z]
+      const at = (side: number): Vec3 => [columnX(plan, d) + side, TOP, z]
+      const commis = at(STACKS.commis)
+      const chef = at(STACKS.chef)
       if (q > 0) stacks.push({ id: `q${r}-${d}`, at: commis, bands: flags.scaffold ? [...run(agreed, 'probability-overlap'), ...run(q - agreed, 'probability-draft')] : run(q, 'probability-draft') })
       if (p > 0) {
         const chefBands = flags.scaffold && row.q !== null ? [...run(agreed, 'probability-overlap'), ...run(p - agreed, 'probability-residual')] : run(p, 'probability-target')
         stacks.push({ id: `p${r}-${d}`, at: chef, bands: chefBands })
       }
-      const top = stackHeight(Math.min(FULL, p + SPARE))
-      dispensers.push({ at: chef, top })
-      rings.push({ id: `ring${r}-${d}`, at: chef, top, out: flags.outcome && row.out !== null ? row.out[d] : null })
+      const cap = Math.min(FULL, p + SPARE)
+      dispensers.push({ at: chef, top: stackHeight(cap) })
+      served.push({ id: `out${r}-${d}`, at: at(STACKS.out), cap, out: flags.outcome && row.out !== null ? row.out[d] : null })
       // A dish's counts on one paper tag, the commis's then the chef's, hung from the pass's edge under the dish's tape: the counter in
       // front of a pair has no room for a tag in front of the tape from a phone's height or level with the counter.
       if (single) anchors.push({ id: `count-${d}`, kind: 'count', at: [columnX(plan, d), TOP - 0.2, FRONT + 0.03], text: `${q} · ${p}` })
@@ -253,7 +254,7 @@ export function tastingScene(view: VerifierView, plan: Plan, flags: SceneFlags):
       const id = `${r}:${m.token}:${plate}`
       markers.set(id, {
         id,
-        at: [columnX(plan, m.token) - PAIR, TOP, z],
+        at: [columnX(plan, m.token) + STACKS.commis, TOP, z],
         plate,
         kept: m.kept,
         band: flags.scaffold && plate < agreed ? 'probability-overlap' : 'probability-draft',
@@ -266,7 +267,7 @@ export function tastingScene(view: VerifierView, plan: Plan, flags: SceneFlags):
   })
   return {
     ...keep(stacks, dispensers),
-    rings,
+    served,
     markers: [...markers.values()],
     tapes,
     anchors: [...anchors, ...tapeAnchors(tapes)],
@@ -289,7 +290,7 @@ function gammaScene(view: VerifierView, plan: Plan): TastingScene {
   const tapes = Array.from({ length: plan.columns }, (_, j) => edgeTape(plan, j, String(j + 1)))
   return {
     ...keep(stacks, []),
-    rings: [],
+    served: [],
     markers: [],
     tapes,
     anchors: tapeAnchors(tapes),
@@ -303,8 +304,8 @@ function gammaScene(view: VerifierView, plan: Plan): TastingScene {
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /**
- * How a new view moves the scene: on the bell (rounds drawn: the new rounds' plates drop and the rings settle), as the learner's own
- * change of the recipe or the card (the rings settle, nothing drops), or as a cut (a new level, an undo, the first frame).
+ * How a new view moves the scene: on the bell (rounds drawn: the new rounds' plates drop and what went out settles), as the learner's
+ * own change of the recipe or the card (what went out settles, nothing drops), or as a cut (a new level, an undo, the first frame).
  */
 export type Change = 'bell' | 'settle' | 'cut'
 
@@ -315,8 +316,5 @@ export function changeOf(before: VerifierView | null, after: VerifierView): Chan
   return before.gamma?.pick !== after.gamma?.pick ? 'cut' : 'settle'
 }
 
-/**
- * The height a ring stands at on a dispenser whose wires stand `top` high, for `out` plates: round the edge of the plate it reaches, on
- * the counter for none, and at the wires' top for more than they hold (the mirror prints every figure).
- */
-export const ringHeight = (out: number, top: number): number => Math.min(top - 0.012, Math.max(0.005, (out - 1) * PLATE.pitch + 0.0056))
+/** How many plates what went out stands, for `out` plates: none for none, and no more than her dispenser's top (the mirror prints every figure). */
+export const servedPlates = (served: Served): number => Math.min(served.cap, Math.max(0, served.out ?? 0))
