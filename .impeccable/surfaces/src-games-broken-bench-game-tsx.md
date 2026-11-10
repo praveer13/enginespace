@@ -52,6 +52,11 @@ The ruling. The court reads the number the report should have had: on the histog
 - **The real tools as one ledger.** The real tools' claims, on the ruling's slip and under each flag of In production, are set the same way: a line for each claim, its figure beside its source, every figure at the print step, and a phrase in the reading face, never in a large code face.
 - **No heading said twice.** The verdict's sentence opens on what the learner did, because the ticket's heading already says whether the ruling stands.
 
+## Adaptations (W1b-T11)
+
+- **The tail lists as many orders for every log, in a box that scrolls.** A graded attempt does not say where the p99 sits, and a tail that ended a few lines under the p99 said it by its length. The tail now lists the slowest hundred orders, or all of them when the log is shorter, whatever the log, the stopwatch and the cut. A tail that long scrolls in a box of its own, about a dozen lines in view at rest on a screen of ordinary height, so that it takes no more of the page than it did, the desk follows within reach on a phone, and the steel scrollbar says that more follow. The box is never taller than three quarters of the screen, and a little over half of it under a finger, so that there is page above and below it to swipe. The column heads scroll away with the rows.
+- **The time keeps its room on narrow paper.** The slowest orders of a log timed from the due time run to nine characters, 92 px in the dot face, and the box would cut that off and scroll sideways where the paper used to let it run on. On paper under 23.5 rem, a phone up to about 410 px wide, the time takes its 6 rem first and the order gives up a little of its room, and under 19 rem, a 320 px phone's, the rank gives up some too, so that nothing scrolls sideways, with a desktop's scrollbar drawn in the box. The p99's tape wraps under its rank on the narrowest paper.
+
 ## Unresolved
 
 - **The 3D opener** (`rain-and-relay`) is a stretch built after `court` ships; its camera presets and the kitchen words for its arenas are in GAMES.md §2.6.

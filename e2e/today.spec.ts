@@ -23,9 +23,10 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Locator, Page } from '@playwright/test'
 import type { LedgerEvent } from '../packages/ledger'
-import { plain } from '../packages/play/items'
-import type { Item } from '../packages/play/items'
+import { FAMILIES, familyById, plain } from '../packages/play/items'
+import type { Gen, Item } from '../packages/play/items'
 import { bubbleWidth } from '../packages/play/items/families/tr2/bubble-width'
+import { stepOrder } from '../packages/play/items/families/tr2/step-order'
 import { deriveCards } from '../src/items/today/cards'
 import { addDays, formatDay } from '../src/items/today/days'
 import { drawForKc } from '../src/items/today/draw'
@@ -171,6 +172,16 @@ interface Ticket {
   item: Item
 }
 
+/**
+ * The family that made a ticket: the ticket prints the idea and the variant, and one family has a variant of that name for the idea. Two
+ * families assess the bubble (bubble-width and step-order) and they take turns by the reviews the card has had, so the page decides which.
+ */
+function familyOf(kc: string, variant: string): Gen {
+  const found = FAMILIES.filter((family) => family.variants.some((candidate) => candidate.id === variant && candidate.kcs.includes(kc)))
+  if (found.length !== 1) throw new Error(`${found.length} families have a variant ${variant} for ${kc}`)
+  return found[0]
+}
+
 /** What the ticket on the page says it is, and the item that its seed makes. */
 async function ticket(page: Page): Promise<Ticket> {
   const a = await block(page).evaluate((element) => ({
@@ -182,7 +193,9 @@ async function ticket(page: Page): Promise<Ticket> {
   }))
   const seed = Number(a.seed)
   const level = Number(a.level)
-  return { kc: a.kc ?? '', seed, level, variant: a.variant ?? '', kind: a.kind ?? '', item: bubbleWidth.make(seed, level as 0 | 1 | 2 | 3, a.variant ?? '') }
+  const kc = a.kc ?? ''
+  const variant = a.variant ?? ''
+  return { kc, seed, level, variant, kind: a.kind ?? '', item: familyOf(kc, variant).make(seed, level as 0 | 1 | 2 | 3, variant) }
 }
 
 /** Writes the answer that is right for the ticket, or one that is wrong, and says how sure; it does not check the ticket. */
@@ -205,9 +218,16 @@ async function check(page: Page): Promise<void> {
   await quiet(page, 300)
 }
 
-/** The entropy that makes the first ticket of `kc` the kind asked for (found with the same draw the page makes, on a ledger that has met nothing). */
-function entropyFor(kc: string, kind: 'numeric' | 'choice'): number {
-  for (let entropy = 1; entropy < 1000; entropy += 1) if (drawForKc(bubbleWidth, kc, 2, entropy).item.answer.kind === kind) return entropy
+/**
+ * The entropy that makes the first ticket of `kc` the kind asked for (found with the same draw the page makes, by the family that the prep
+ * names for the idea on a ledger that holds `events`, and on a ledger that has met no seed).
+ */
+function entropyFor(events: readonly LedgerEvent[], kc: string, kind: 'numeric' | 'choice'): number {
+  const today = dayOffset(0)
+  const line = composeSession(deriveCards(events, appKcsOfRef, today), today).lines.find((candidate) => candidate.kc === kc)
+  const gen = line === undefined ? undefined : familyById(line.family)
+  if (line === undefined || gen === undefined) throw new Error(`the prep has no line for ${kc}`)
+  for (let entropy = 1; entropy < 1000; entropy += 1) if (drawForKc(gen, kc, line.level, entropy).item.answer.kind === kind) return entropy
   throw new Error(`no entropy makes a ${kind} ticket for ${kc}`)
 }
 
@@ -232,7 +252,10 @@ test.describe('the prep list', () => {
     const lines = page.locator('.es-prep__list .es-prep__line')
     await expect(lines).toHaveCount(2)
     for (const kc of [BUBBLE, OVERLAP]) await expect(page.locator('.es-prep__list .es-prep__kc', { hasText: kc })).toBeVisible()
-    await expect(lines.first()).toContainText('Bubble width')
+    // Each line names the family that will serve it. Two families assess the bubble and take turns by the reviews the card has had (one so far,
+    // so the second); the overlap has one.
+    await expect(lines.filter({ hasText: BUBBLE })).toContainText(stepOrder.title)
+    await expect(lines.filter({ hasText: OVERLAP })).toContainText(bubbleWidth.title)
     await expect(page.locator('.es-prep__list .es-ticket__foot')).toContainText('about')
     await expect(page.locator('.es-prep__list .es-ticket__foot')).toContainText('2')
     await expect(page.locator('.es-prep__list .es-ticket__foot')).toContainText('estimated')
@@ -282,7 +305,7 @@ test.describe('a prep', () => {
     const events = earned({ bubble: 6, overlap: 5 })
     const [first, second] = order(events)
     await visit(page, events)
-    await queue(page, [entropyFor(first, 'numeric'), entropyFor(second, 'choice')])
+    await queue(page, [entropyFor(events, first, 'numeric'), entropyFor(events, second, 'choice')])
     await start(page).click()
 
     // Ticket 1: a number to write. The ticket is under the lamp, holds a seed on its foot line, and the list has folded to a strip on a phone.
@@ -388,7 +411,7 @@ test.describe('a prep', () => {
     const events = earned({ bubble: 6, overlap: 5 })
     const [first] = order(events)
     await visit(page, events)
-    await queue(page, [entropyFor(first, 'numeric')])
+    await queue(page, [entropyFor(events, first, 'numeric')])
     await start(page).click()
     await expect(block(page)).toHaveAttribute('data-kind', 'numeric')
     await field(page).fill('plenty')
@@ -411,7 +434,7 @@ test.describe('the keyboard, at 360 px', () => {
     const events = earned({ bubble: 6, overlap: 5 })
     const [first, second] = order(events)
     await visit(page, events)
-    await queue(page, [entropyFor(first, 'numeric'), entropyFor(second, 'choice')])
+    await queue(page, [entropyFor(events, first, 'numeric'), entropyFor(events, second, 'choice')])
     const walk = walkOf(page)
 
     // The way in: the skip link first, and it works. Then Tab reaches the stub that starts the prep, and Enter pulls it.
@@ -536,7 +559,7 @@ for (const width of [360, 1280]) {
       const events = earned({ bubble: 6, overlap: 5 })
       const [first, second] = order(events)
       await visit(page, events)
-      await queue(page, [entropyFor(first, 'numeric'), entropyFor(second, 'choice')])
+      await queue(page, [entropyFor(events, first, 'numeric'), entropyFor(events, second, 'choice')])
       await audit(page, 'the prep list')
       await start(page).click()
       await expect(block(page)).toHaveAttribute('data-phase', 'asking')

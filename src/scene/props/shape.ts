@@ -14,7 +14,6 @@
  * on a small clip and the anisotropic highlight runs across it as it would. Pure three, no React, no DOM: a test builds every prop.
  */
 import { BoxGeometry, BufferAttribute, BufferGeometry, CatmullRomCurve3, Color, Euler, LatheGeometry, Matrix4, Quaternion, TubeGeometry, Vector2, Vector3 } from 'three'
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 
 export type Vec3 = readonly [number, number, number]
 export type Vec2 = readonly [number, number]
@@ -452,11 +451,27 @@ export function painted(part: Part): BufferGeometry {
   return geometry
 }
 
-/** Many painted geometries as one: what a whole static set's surface draws in a single call. */
+/**
+ * Many geometries with the same attributes as one, each one's index moved past the vertices before it: what a whole static set's surface
+ * draws in a single call. The kit's own merge, so three's geometry addon stays out of every scene's chunk.
+ */
 export function merged(geometries: readonly BufferGeometry[]): BufferGeometry | null {
   if (geometries.length === 0) return null
-  const out = geometries.length === 1 ? geometries[0].clone() : mergeGeometries([...geometries], false)
-  if (!out) return null
+  const out = new BufferGeometry()
+  for (const [name, { itemSize }] of Object.entries(geometries[0].attributes)) {
+    const parts = geometries.map((g) => g.getAttribute(name).array)
+    const array = new Float32Array(parts.reduce((n, part) => n + part.length, 0))
+    parts.reduce((at, part) => (array.set(part, at), at + part.length), 0)
+    out.setAttribute(name, new BufferAttribute(array, itemSize))
+  }
+  const index: number[] = []
+  let base = 0
+  for (const g of geometries) {
+    const count = g.getAttribute('position').count
+    for (let i = 0; i < (g.index?.count ?? count); i++) index.push((g.index?.getX(i) ?? i) + base)
+    base += count
+  }
+  out.setIndex(index)
   out.computeBoundingSphere()
   out.computeBoundingBox()
   return out

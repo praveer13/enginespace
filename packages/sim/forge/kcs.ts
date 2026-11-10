@@ -2,9 +2,11 @@
 // by its checks on seeds drawn at grade time (ASSESSMENT §4.5), so a check names the KCs it assesses, as an item family and a game do,
 // and `verify:kc` reads this table as its source of lab checks (scripts/verify-kc.ts): a check id that the lab does not have, or a KC that
 // the graph does not have, fails the gate. The toy lab is the forge's practice lab and names none. A lab that grades adds its row here
-// (W2-T29's `kv-publisher`). Data only, like the rest of packages/sim.
-import { HYBRID_KV_CHECKS, HYBRID_KV_KCS } from './hybrid-kv'
-import { REJECTION_SAMPLER_CHECKS, REJECTION_SAMPLER_KCS } from './rejection-sampler'
+// (W2-T29's `kv-publisher`), and its table to check-kcs.ts, which holds the KCs alone so that the map can read them without the checks and
+// their oracles. Data only, like the rest of packages/sim.
+import { HYBRID_KV_KCS, REJECTION_SAMPLER_KCS } from './check-kcs'
+import { HYBRID_KV_CHECKS } from './hybrid-kv'
+import { REJECTION_SAMPLER_CHECKS } from './rejection-sampler'
 import type { PlannedCheck } from './toy'
 
 export interface LabCheckKcs {

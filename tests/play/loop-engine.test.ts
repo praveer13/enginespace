@@ -280,7 +280,8 @@ describe('a run is its log', () => {
   test('an action the rules refuse is not logged, and a log that does not replay says where it broke', () => {
     const run = startRun(loopSession, { game: 'loop', level: 'first-4-par', seed: 1 })
     expect(() => applyAction(loopSession, run, { t: 'admit', req: 99 })).toThrow('ticket 99 is not waiting')
-    const broken = replay(loopSession, { ...run.record, actions: [{ t: 'admit', req: 0 }, { t: 'admit', req: 0 }] })
+    const twice: LoopAction[] = [{ t: 'admit', req: 0 }, { t: 'admit', req: 0 }]
+    const broken = replay(loopSession, { ...run.record, actions: twice })
     expect(broken).toMatchObject({ ok: false, at: 1 })
   })
 

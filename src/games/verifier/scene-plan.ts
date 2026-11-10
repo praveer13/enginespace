@@ -4,9 +4,11 @@
  * in it, so the game's page holds the camera's buttons and the `C` key before the scene's chunk loads, and Bun tests the framing.
  *
  * Every length is [estimated], on the scene kit's proportions:
- *   - a tasting plate is 120 mm across, and a stack of them rises 11 mm a plate, so a whole tasting of sixty-four stands 70 cm tall;
- *   - each dish has the commis's stack on its left and the chef's dispenser on its right, four fingers apart; the dishes stand 40 cm
- *     apart across the pass, and a run's courses stand in rows 50 cm apart, from the pass's front edge back toward the line;
+ *   - a tasting plate is 110 mm across, and a stack of them rises 11 mm a plate, so a whole tasting of sixty-four stands 70 cm tall;
+ *     what went out is stacked on side plates, 90 mm across, at the same rise, so its height reads against hers;
+ *   - each dish has three stacks two fingers apart, the commis's on its left, the chef's in her dispenser and what went out on its
+ *     right, a hand clear of the next dish's; the dishes stand 40 cm apart across the pass, and a run's courses stand in rows 50 cm
+ *     apart, from the pass's front edge back toward the line;
  *   - over a run, the pass runs on to the left of the soup by a stride, where each course's name lies on its tape clear of its stacks;
  *   - `gamma` stands its eight positions of a run across the pass, 30 cm apart, in one row.
  */
@@ -15,14 +17,18 @@ import type { Shot, ShotId } from './scene-shots'
 
 export type Vec3 = readonly [number, number, number]
 
-/** A tasting plate: its rim's radius, its own height, and how much each plate adds to a stack. */
-export const PLATE = { r: 0.06, h: 0.0098, pitch: 0.011 } as const
+/** A tasting plate: its rim's radius, a side plate's (what went out), its own height, and how much each plate adds to a stack. */
+export const PLATE = { r: 0.055, out: 0.045, h: 0.0098, pitch: 0.011 } as const
 /** A whole tasting: the most plates a stack holds, and what a dispenser stands tall enough for. */
 export const FULL = 64
 /** The pass's counter top, as Service's. */
 export const TOP = 0.92
-/** From a dish's middle to its two stacks' middles. */
-export const PAIR = 0.08
+/**
+ * From a dish's middle to its three stacks' middles, across the pass: the commis's, the chef's in her dispenser, and what went out,
+ * each two fingers from the next and the three a hand clear of the next dish's, so a dish reads as one group and her stack stands
+ * between his and what went out.
+ */
+export const STACKS = { commis: -0.12, chef: 0.01, out: 0.13 } as const
 /** Between two dishes' middles, two rows of a run, and two positions of `gamma`. */
 export const DISH = 0.4
 export const ROW = 0.5
@@ -46,7 +52,10 @@ export interface Plan {
   readonly width: number
   readonly depth: number
   readonly back: number
-  /** The heat lamps' mouths: higher over a run, so that the courses behind stand clear of them in the shot over the run. */
+  /**
+   * The heat lamps' mouths: over one course 80 cm over the counter, a hand over the tallest stack a dish can have, so the shades hang
+   * over the plates they light; higher over a run, so that the courses behind stand clear of them in the shot over the run.
+   */
   readonly mouth: number
 }
 
@@ -57,7 +66,7 @@ export function planOf(kind: Plan['kind'], rows: number): Plan {
   const names = n > 1 ? NAMES : 0
   const width = (kind === 'gamma' ? columns * STEP + 0.6 : columns * DISH + 0.5) + names
   const depth = (n - 1) * ROW + FRONT + 0.3
-  return { kind, rows: n, columns, x: -names / 2, width, depth, back: FRONT - depth, mouth: 1.86 + 0.08 * (n - 1) }
+  return { kind, rows: n, columns, x: -names / 2, width, depth, back: FRONT - depth, mouth: n > 1 ? 1.86 + 0.08 * (n - 1) : 1.72 }
 }
 
 /** A column's middle across the pass: a dish, or a position of `gamma`. */
@@ -78,15 +87,19 @@ export function roomOf(plan: Plan): { lineZ: number; wallZ: number; sideX: numbe
 /**
  * The three shots of a plan (GAMES.md §2.6, The Tasting's cameras), each in the order and with the words of `shots`
  * (scene-shots.ts, which the page holds, so its buttons stand before the scene loads):
- *   Over the run        Establish: from the expo's side of the pass and above it, the lamps at the top, the pass and its stacks across
- *                       the lower half, any later courses in rows behind, the line beyond. Over a run of courses, from higher and
- *                       closer, so the courses and their names fill the box and the hood stands above it; on a phone, from higher
- *                       still, so all six pairs fit. On a phone over one course, low and near, a little over the stacks: the pass
- *                       and its stacks fill the box's lower half, the box's foot at the floor's line and the pass's open shelf in its
- *                       shade, and the room over it falls into haze (its target stands back along the same line of sight, so the haze,
- *                       measured from it, starts behind the line). Six pairs across a phone's box stand no taller than that, whatever
- *                       the shot: the box is taller than wide.
- *   One course          Focus: the front course, front on and nearly level with the counter, so the stacks' heights and the rings
+ *   Over the run        Establish: from the expo's side of the pass and above it, the pass and its stacks across the lower half, any
+ *                       later courses in rows behind, the line beyond. Over one course, from a little over the lamps, so their shades
+ *                       read from above, and tilted up until the hood's lip stands whole along the top of the box, its lights under
+ *                       it, so a canopy ends the room and nothing is cut by the box's edge. Over a run of courses, from higher and
+ *                       closer, so the courses and their names fill the box, the hood stands above it and the lamps over the front
+ *                       course stand whole inside it; on a phone, from higher still, through a lens a degree wider for each course
+ *                       less, so all six dishes' stacks stand inside the box's sides however short the run. On a phone over one
+ *                       course, down under the lamps' mouths, so their bulbs show, and as near as the six dishes and their names on
+ *                       tape allow: the pass and its stacks in the box's lower half, the floor in front of it under the box's foot and
+ *                       the floor under its open shelf in its shade, and the hood and the lamps over them. Six dishes across a phone's
+ *                       box stand no taller than that from any height or distance in front of the pass: the box is taller than wide,
+ *                       and the outer stacks and their tapes already stand at its edges (tests/play/verifier-scene.test.ts).
+ *   One course          Focus: the front course, front on and nearly level with the counter, so each dish's three stacks' heights
  *                       read against each other.
  *   Walk with the chef  Follow, which the learner chooses: low from the pass's right end, along the front course and down the run,
  *                       turned far enough down it that the soup's tape at its far end stands inside the box.
@@ -101,8 +114,8 @@ export function presetsOf(plan: Plan, shots: readonly Shot[]): CameraPreset[] {
       shot: 'establish',
       projection: 'perspective',
       ...(plan.rows > 1
-        ? { position: [-0.2, 3, 2 + deep * 0.15], target: [-0.2, 0.85, mid - 0.3], fov: 36, portrait: { position: [0, 3.8 + deep * 0.3, 2.4], target: [0, 1.1, mid - 0.2], fov: 40 } }
-        : { position: [-0.3, 2.02, 2.62], target: [0, 1.15, -0.24], fov: 34, portrait: { position: [0, 2, 3.3], target: [0, 1.46, -0.26], fov: 48 } }),
+        ? { position: [-0.2, 3, 2 + deep * 0.15], target: [-0.2, 0.85, mid - 0.3], fov: 38, portrait: { position: [0, 3.8 + deep * 0.3, 2.4], target: [0, 1.1, mid - 0.2], fov: 48 - plan.rows } }
+        : { position: [-0.15, 2.3, 3.1], target: [0, 1.32, -0.24], fov: 29, portrait: { position: [0, 1.5, 3.45], target: [0, 1.48, -0.26], fov: 48 } }),
     },
     course: {
       shot: 'focus',

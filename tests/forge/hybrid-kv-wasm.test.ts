@@ -31,7 +31,7 @@ const lab = FORGE_LABS['hybrid-kv']
 const bestiary = readBestiary(path.join(root, 'labs/forge/hybrid-kv'))
 const fixtures = path.join(root, 'tests/fixtures/forge/hybrid-kv')
 
-const bytesOf = (name: string): Buffer => readFileSync(path.join(fixtures, `${name}.wasm`))
+const bytesOf = (name: string): Buffer<ArrayBuffer> => readFileSync(path.join(fixtures, `${name}.wasm`))
 const read = (name: string): ArrayBuffer => {
   const bytes = bytesOf(name)
   return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer
@@ -45,7 +45,7 @@ afterAll(() => host.dispose())
  * The module's own checks, which `cargo test` runs: `ks_run` for one check on its default seed, in a fresh instance for each check (as
  * the kit's own runner does), and whether it passed. A module that traps (the template's `todo!()`) has not passed.
  */
-async function ownChecks(bytes: Buffer): Promise<Record<string, boolean>> {
+async function ownChecks(bytes: Buffer<ArrayBuffer>): Promise<Record<string, boolean>> {
   const module = await WebAssembly.compile(bytes)
   const passed: Record<string, boolean> = {}
   for (const check of lab.checks) {

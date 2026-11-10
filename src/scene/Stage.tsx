@@ -1,11 +1,11 @@
 import clsx from 'clsx'
-import { Component, Suspense, useCallback, useEffect, useId, useMemo, useReducer, useRef, useState, useSyncExternalStore, type ComponentType, type ErrorInfo, type ReactNode } from 'react'
+import { Component, Suspense, useCallback, useContext, useEffect, useId, useMemo, useReducer, useRef, useState, useSyncExternalStore, type ComponentType, type ErrorInfo, type ReactNode } from 'react'
 import { Button } from '@/design/components/Button'
 import { Icon } from '@/design/components/Glyph'
 import { useSceneTokens } from '@/design/scene-tokens'
 import { limitsFor } from '@/settings/rules'
 import { useSettings } from '@/settings/useSettings'
-import { useLease } from './lease'
+import { ClaimLease, useLease } from './lease'
 import { StageContext, type FrameStats, type StageFailure, type StageRuntime } from './stage-runtime'
 import { countLostContext, refreshDeviceTier, unavailableReason, useDeviceTier, type Tier } from './tiers'
 import './scene.css'
@@ -18,7 +18,8 @@ import './scene.css'
  *   - The 2D view paints first, in the same box: on the server, in the first render, at T0, while the scene loads, and
  *     whenever the scene cannot run. The swap to 3D is a crossfade, or a cut under reduced motion.
  *   - It decides from the tier (tiers.ts): T0 never loads the scene; `saveData` waits until the learner asks.
- *   - One live canvas per page (lease.ts): a second Stage shows its 2D view until it is opened.
+ *   - One live canvas per page (lease.ts): a second Stage shows its 2D view until it is opened. Inside a `ClaimLease` (a lesson's game
+ *     block the learner has just started) a Stage takes the lease the first time it wants it, and the one it took it from goes 2D.
  *   - When the scene fails (no context, a shader that does not compile, a render that throws, a chunk that does not load,
  *     a lost context) the Stage shows the 2D view and announces "3D view unavailable; showing the 2D view". The session
  *     lives outside the views, so nothing of it is lost. After a first lost context it tries once more to restore the
@@ -213,23 +214,33 @@ export function Stage<P extends object>({ view2d, scene: Scene, sceneProps, anno
   const tier: Tier = (state.tier ?? device.tier) as Tier
   const saveData = device.hints?.saveData === true
   const wants = device.known && device.tier >= 1 && !state.permanent && !state.chose2d && (!saveData || state.requested)
-  const lease = useLease(stageId, wants)
+  // The lease is held under this Stage's own key: two Stages with one id (a lesson's two blocks of a game) are still two holders.
+  const leaseKey = `${stageId}~${generated.replace(/[^a-zA-Z0-9]/g, '')}`
+  const lease = useLease(leaseKey, wants)
   const mounted = wants && lease.held && state.failure === null
   const box = useRef<HTMLDivElement>(null)
   const { holder, take } = lease
   useEffect(() => {
     const element = box.current
-    if (!openInView || !wants || !element || typeof IntersectionObserver !== 'function' || holder === stageId) return
+    if (!openInView || !wants || !element || typeof IntersectionObserver !== 'function' || holder === leaseKey) return
     const sight = new IntersectionObserver(
       ([entry]) => {
         if (entry.intersectionRatio < IN_VIEW || holder === null) return
-        if (!inViewport(document.querySelector(`[data-stage="${CSS.escape(holder)}"]`))) take()
+        if (!inViewport(document.querySelector(`[data-lease="${CSS.escape(holder)}"]`))) take()
       },
       { threshold: [IN_VIEW] },
     )
     sight.observe(element)
     return () => sight.disconnect()
-  }, [openInView, wants, holder, stageId, take])
+  }, [openInView, wants, holder, leaseKey, take])
+  // A Stage that the learner has just opened (ClaimLease: a lesson's game block) takes the lease the first time it wants it.
+  const claim = useContext(ClaimLease)
+  const claimed = useRef(false)
+  useEffect(() => {
+    if (!claim || !wants || claimed.current) return
+    claimed.current = true
+    take()
+  }, [claim, wants, take])
   // A scene that leaves takes what it had drawn with it. This adjusts state while rendering, the pattern for state that follows a value.
   const [wasMounted, setWasMounted] = useState(mounted)
   if (wasMounted !== mounted) {
@@ -355,6 +366,7 @@ export function Stage<P extends object>({ view2d, scene: Scene, sceneProps, anno
       ref={box}
       className={clsx('es-stage', className)}
       data-stage={stageId}
+      data-lease={leaseKey}
       data-stage-phase={phase}
       data-tier={device.known ? tier : undefined}
       data-failure={state.failure ?? undefined}

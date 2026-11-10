@@ -20,11 +20,13 @@ import { readdirSync } from 'node:fs'
 import path from 'node:path'
 import { load } from 'js-yaml'
 import { GATE_NAMES, GATES } from '../../scripts/verify'
-import { backticked, between, read, root, tableRows, trackerTasks } from './support'
+import { checkBoundaries } from '../../scripts/verify-boundaries'
+import { BUN_FALLBACK, TASK_ID, backticked, between, ciTestShards, markedTasks, read, root, tableRows, taskHeadings, trackerTasks } from './support'
 
 interface Step {
   name?: string
   id?: string
+  'continue-on-error'?: boolean
   uses?: string
   run?: string
   if?: string
@@ -38,6 +40,8 @@ interface Job {
   if?: string
   permissions?: Record<string, string>
   environment?: { name?: string; url?: string }
+  env?: Record<string, string>
+  strategy?: { 'fail-fast'?: boolean; matrix?: { shard?: number[] } }
   steps?: Step[]
 }
 interface Workflow {
@@ -67,7 +71,8 @@ const workflows = new Map(
 const workflow = (file: string) => workflows.get(file) as Workflow
 const jobsOf = (file: string) => Object.entries(workflow(file).jobs ?? {})
 const stepsOf = (file: string, job: string) => workflow(file).jobs?.[job]?.steps ?? []
-const runsOf = (file: string, job: string) => stepsOf(file, job).flatMap((step) => (step.run === undefined ? [] : [step.run.trim()]))
+const runsOf = (file: string, job: string) =>
+  stepsOf(file, job).flatMap((step) => (step.run === undefined || step.if === BUN_FALLBACK ? [] : [step.run.trim()]))
 const allSteps = () => files.flatMap((file) => jobsOf(file).flatMap(([job, { steps = [] }]) => steps.map((step) => ({ file, job, step }))))
 
 /** ARCHITECTURE §10.3: the actions with their SHAs and releases, and the tools with their versions. */
@@ -152,6 +157,28 @@ describe('the actions and tools (§10.3)', () => {
     expect(new Set(inputs('astral-sh/setup-uv', 'version'))).toEqual(new Set([tool('uv')]))
     expect(workflow('labs.yml').env?.RUST_TOOLCHAIN).toBe(tool('Rust'))
   })
+
+  test("every Bun step falls back to npm's copy of the same release when GitHub's download fails (§10.3)", () => {
+    const fallback = 'npm install --global --no-audit --no-fund "bun@$BUN_VERSION" && test "$(bun --version)" = "$BUN_VERSION"'
+    const problems: string[] = []
+    let count = 0
+    for (const file of files) {
+      for (const [job, { steps = [] }] of jobsOf(file)) {
+        steps.forEach((step, index) => {
+          if (!step.uses?.startsWith('oven-sh/setup-bun@')) return
+          count += 1
+          const at = `${file}/${job}`
+          if (step.id !== 'bun' || step['continue-on-error'] !== true) problems.push(`${at}: setup-bun needs id: bun and continue-on-error: true`)
+          const next = steps[index + 1]
+          if (next?.if !== BUN_FALLBACK) return void problems.push(`${at}: the step after setup-bun is not the fallback that runs when it failed`)
+          if (next.env?.BUN_VERSION !== tool('Bun')) problems.push(`${at}: the fallback installs Bun ${next.env?.BUN_VERSION}, but §10.3 pins ${tool('Bun')}`)
+          if (next.run?.trim() !== fallback) problems.push(`${at}: the fallback runs "${next.run?.trim()}", not "${fallback}"`)
+        })
+      }
+    }
+    expect(count).toBeGreaterThan(0)
+    expect(problems).toEqual([])
+  })
 })
 
 describe('permissions and credentials (acceptance 1)', () => {
@@ -198,8 +225,23 @@ describe('ci.yml (§10.1)', () => {
     expect(new Set(positions).size).toBe(order.length)
   })
 
-  test('the tests job installs and runs the suite', () => {
-    expect(runsOf('ci.yml', 'tests')).toEqual(['npm ci', 'bun run test'])
+  test('the tests job installs, and runs its shard of the unit suite: one job for each shard of `bun test --shard`, none cancelling the others (W1b-T13)', () => {
+    const { command, count, matrix } = ciTestShards()
+    expect(runsOf('ci.yml', 'tests')).toEqual(['npm ci', command])
+    expect(command).toBe(`bun run test --shard="$SHARD/${count}"`)
+    expect(matrix).toEqual(Array.from({ length: count }, (_, at) => at + 1))
+    const job = workflow('ci.yml').jobs?.tests
+    expect(job?.strategy?.['fail-fast']).toBe(false)
+    // The shard number reaches the command through `env`, as every value does (the test above that bans a pasted expression).
+    expect(stepsOf('ci.yml', 'tests').find((step) => step.run?.trim() === command)?.env).toEqual({ SHARD: '${{ matrix.shard }}' })
+  })
+
+  test('a shard of the unit suite has a backstop below the 30 minutes that the whole suite was given in one job, and it is a number', () => {
+    // The suite took 9 to 16 minutes in one job on a runner [measured 2026-11-09, PR #2 to #4], and the 30 held it until it was split. A shard
+    // runs at most a third of it (tests/ci/shards.test.ts lists the files), so the backstop is the 15 minutes that the job had before W1.
+    const backstop = workflow('ci.yml').jobs?.tests?.['timeout-minutes']
+    expect(typeof backstop).toBe('number')
+    expect(backstop).toBeLessThanOrEqual(15)
   })
 
   test('every gate of the registry runs in some workflow, and only verify:labs, which needs Rust, stays out of the fast gate', () => {
@@ -291,8 +333,18 @@ describe('deploy.yml (acceptance 3)', () => {
 
   test('runs every command that the fast gate and the tests job of ci.yml run, so a deploy is never less checked than a pull request', () => {
     const deployed = new Set(runsOf('deploy.yml', 'build'))
-    const reviewed = [...runsOf('ci.yml', 'fast-gate'), ...runsOf('ci.yml', 'tests')]
+    // The tests job runs one shard of the suite, `bun run test --shard="$SHARD/4"`, and the deploy runs the suite whole, `bun run test`: the
+    // shard's command without its flag is the deploy's, so the deploy runs everything that every shard runs (W1b-T13).
+    const whole = (run: string) => run.replace(/ --shard="\$SHARD\/\d+"$/, '')
+    const reviewed = [...runsOf('ci.yml', 'fast-gate'), ...runsOf('ci.yml', 'tests').map(whole)]
     expect(reviewed.filter((run) => !deployed.has(run))).toEqual([])
+    expect(reviewed).toContain('bun run test')
+  })
+
+  test('runs the whole suite in its build job, not a shard of it (W1b-T13)', () => {
+    const suite = runsOf('deploy.yml', 'build').filter((run) => /\btest\b/.test(run))
+    expect(suite).toEqual(['bun run test'])
+    expect(jobsOf('deploy.yml').flatMap(([, job]) => Object.keys(job.strategy ?? {}))).toEqual([])
   })
 })
 
@@ -328,6 +380,25 @@ describe('nightly.yml (acceptance 4)', () => {
     expect(condition).toContain('github.event.repository.default_branch')
   })
 
+  test('turns on the heavy checks and the lab rates at the size of a nightly run, which no other workflow does (W1b-T13)', () => {
+    const jobs = workflow('nightly.yml').jobs ?? {}
+    // ES_HEAVY switches on tests/sim/bench-stats.test.ts's coverage of the p99 over 2,000 seeds, in the job that runs the whole suite.
+    expect(jobs.properties?.env?.ES_HEAVY).toBe('1')
+    expect(read('tests/sim/bench-stats.test.ts')).toContain("process.env['ES_HEAVY'] !== '1'")
+    // ES_LAB_TRIALS is the size of tests/forge/rejection-sampler-rates.test.ts: 8 trials a row by default, and the job's 1,500 is the size that W1-T27 measured.
+    const rates = jobs['lab-rates']
+    expect(rates?.env).toEqual({ ES_LAB_TRIALS: '1500', ES_LAB_REPORT: '1' })
+    expect(read('tests/forge/rejection-sampler-rates.test.ts')).toMatch(/Number\(process\.env\['ES_LAB_TRIALS'\] \?\? 8\)/)
+    expect(runsOf('nightly.yml', 'lab-rates')).toEqual(['npm ci', 'bun test tests/forge/rejection-sampler-rates.test.ts'])
+    expect(typeof rates?.['timeout-minutes']).toBe('number')
+    // A pull request, a deploy and the lab workflow run the small sizes: the knobs are set in nightly.yml and nowhere else.
+    const envOf = (file: string) =>
+      [workflow(file).env, ...jobsOf(file).flatMap(([, job]) => [job.env, ...(job.steps ?? []).map((step) => step.env)])].flatMap((env) => Object.keys(env ?? {}))
+    for (const file of files.filter((name) => name !== 'nightly.yml')) {
+      expect([file, envOf(file).filter((key) => key === 'ES_HEAVY' || key === 'ES_LAB_TRIALS')]).toEqual([file, []])
+    }
+  })
+
   test('the schedule spends no Actions minutes until the owner sets NIGHTLY_ENABLED, and a run by hand always runs (D-052)', () => {
     const checks = jobsOf('nightly.yml')
       .map(([name]) => name)
@@ -339,10 +410,60 @@ describe('nightly.yml (acceptance 4)', () => {
 })
 
 describe('labs.yml (§10.1)', () => {
-  test('runs for a change under labs/, schemas/, packages/schema/ or packages/verify/, and by hand', () => {
-    const on = workflow('labs.yml').on as { pull_request?: { paths?: string[] }; workflow_dispatch?: unknown }
-    expect(on.pull_request?.paths).toEqual(['labs/**', 'schemas/**', 'packages/schema/**', 'packages/verify/**', '.github/workflows/labs.yml'])
-    expect('workflow_dispatch' in on).toBe(true)
+  const labsOn = workflow('labs.yml').on as { pull_request?: { paths?: string[] }; workflow_dispatch?: unknown }
+  const labsPaths = labsOn.pull_request?.paths ?? []
+
+  /** Whether a path filter of labs.yml names `file`. The filter's forms are `dir/**` and one file; any other form throws instead of being guessed at. */
+  function names(globs: readonly string[], file: string): boolean {
+    return globs.some((glob) => {
+      const body = glob.endsWith('/**') ? glob.slice(0, -3) : glob
+      if (/[*?![\]]/.test(body)) throw new Error(`labs.yml's path "${glob}" is in a form that this test does not read: write "dir/**" or one file`)
+      return glob.endsWith('/**') ? file.startsWith(`${body}/`) : file === glob
+    })
+  }
+
+  test('runs for a change to what the lab gates read, and by hand: the labs, the schemas and the receipt rules (W0-T04), and what verify:labs imports and compares (W1b-T13)', () => {
+    expect(labsPaths).toEqual([
+      'labs/**',
+      'schemas/**',
+      'packages/schema/**',
+      'packages/verify/**',
+      'packages/sim/**',
+      'src/forge/**',
+      'src/workers/forge.worker.ts',
+      'scripts/labs/**',
+      'scripts/verify-labs.ts',
+      'tests/fixtures/forge/**',
+      'vendor/kernelspace/**',
+      '.github/workflows/labs.yml',
+    ])
+    expect('workflow_dispatch' in labsOn).toBe(true)
+  })
+
+  test('names every file that verify:labs imports, and every folder that it reads, so that a new dependency of the gate adds its path here (W1b-T13)', () => {
+    // The static imports of the script, and of the worker that the forge pool starts with `new URL(…, import.meta.url)`, which no import walk sees.
+    expect(read('src/forge/worker-pool.ts')).toContain("new URL('../workers/forge.worker.ts', import.meta.url)")
+    const imported = checkBoundaries(root, ['scripts/verify-labs.ts', 'src/workers/forge.worker.ts']).reachable
+    expect(imported).toEqual(expect.arrayContaining(['scripts/verify-labs.ts', 'scripts/labs/judge.ts', 'src/forge/host.ts', 'src/workers/forge.worker.ts']))
+    expect(imported.filter((file) => !names(labsPaths, file))).toEqual([])
+    // The folders it reads without importing: the crates, the builds that are committed to compare its own with, and the vendored kit.
+    const folders = [...read('scripts/verify-labs.ts').matchAll(/path\.join\(ROOT, '([^']+)'\)/g)].map((match) => match[1]).sort()
+    expect(folders).toEqual(['labs/forge', 'tests/fixtures/forge', 'vendor/kernelspace/labs/kit'])
+    expect(folders.filter((folder) => !names(labsPaths, `${folder}/a-file`))).toEqual([])
+    // The folders that W1's report found missing (§12).
+    for (const folder of ['src/forge', 'packages/sim', 'scripts/labs', 'tests/fixtures/forge']) expect(names(labsPaths, `${folder}/a-file`), folder).toBe(true)
+  })
+
+  test('the check can fail: the filter before W1b-T13 misses a file that the gate imports, and a form it does not read throws', () => {
+    const before = ['labs/**', 'schemas/**', 'packages/schema/**', 'packages/verify/**', '.github/workflows/labs.yml']
+    const imported = checkBoundaries(root, ['scripts/verify-labs.ts', 'src/workers/forge.worker.ts']).reachable
+    const missed = imported.filter((file) => !names(before, file))
+    expect(missed).toEqual(expect.arrayContaining(['src/forge/host.ts', 'scripts/labs/judge.ts']))
+    expect(missed.some((file) => file.startsWith('packages/sim/'))).toBe(true)
+    expect(names(before, 'src/forge/host.ts')).toBe(false)
+    expect(names(['src/forge/**'], 'src/forge/host.ts')).toBe(true)
+    expect(names(['src/forge/**'], 'src/forge-other/host.ts')).toBe(false)
+    expect(() => names(['src/**/*.ts'], 'src/forge/host.ts')).toThrow('does not read')
   })
 
   test('has the forge and grader jobs, each switched on by the lab it tests', () => {
@@ -391,16 +512,25 @@ describe('reserved steps', () => {
     'W1-T01', 'W1-T03', 'W1-T04', 'W1-T05', 'W1-T06', 'W1-T07', 'W1-T08', 'W1-T09', 'W1-T10', 'W1-T11', 'W1-T12', 'W1-T13', 'W1-T14', 'W1-T15',
     'W1-T16', 'W1-T17', 'W1-T18', 'W1-T19', 'W1-T20', 'W1-T21', 'W1-T22', 'W1-T23', 'W1-T24', 'W1-T25', 'W1-T26', 'W1-T27', 'W1-T28', 'W1-T29',
     'W1-T30', 'W1-T31', 'W1-T32', 'W1-T33', 'W1-T34', 'W1-T35', 'W1-T36',
+    // W1's exit review, in wave-1, whose open check W1b closed in wave-1b: W1b's exit review (W1b-T16) marked it `[=]`.
+    'W1-T38',
+    // W1b, in wave-1b: every task of the wave, which its exit review (W1b-T16) marked `[=]`. They were left out until the patterns of this file
+    // and of support.ts read their ids (W1b-report §10, TASK_ID in support.ts); the last tests of this block hold the list to the tracker's.
+    'W1b-T01', 'W1b-T02', 'W1b-T03', 'W1b-T04', 'W1b-T05', 'W1b-T06', 'W1b-T07', 'W1b-T08', 'W1b-T09', 'W1b-T10', 'W1b-T11', 'W1b-T12',
+    'W1b-T13', 'W1b-T14', 'W1b-T15', 'W1b-T16',
   ]
 
   /** A reserved step is one whose whole command is the echo. A step that echoes it only where a file is missing (the content compile, prepare-pages, the labs) switches on by file, and is not reserved. */
   const reservedIn = (text: string) =>
     Object.entries((load(text) as Workflow).jobs ?? {}).flatMap(([job, { steps = [] }]) =>
       steps.flatMap((step) => {
-        const task = /^echo ['"]pending: (W\d-T\d\d)['"]$/.exec(step.run?.trim() ?? '')?.[1]
+        const task = new RegExp(`^echo ['"]pending: (${TASK_ID})['"]$`).exec(step.run?.trim() ?? '')?.[1]
         return task === undefined ? [] : [{ job, task }]
       }),
     )
+
+  /** The tasks that `tracker` marks done or in review and that the list above lacks: what the marker guard is to find none of. */
+  const unlisted = (tracker: string) => markedTasks(tracker, 'x=').filter((task) => !MERGED.includes(task))
 
   test('none names a task that has merged: the task has landed, and its step is a check that nobody built', () => {
     const reserved = [...sources].flatMap(([file, source]) => reservedIn(source).map(({ job, task }) => ({ file, job, task })))
@@ -425,8 +555,41 @@ describe('reserved steps', () => {
   })
 
   test('has every task that TRACKER.md marks done or in review', () => {
-    const marked = [...read('docs/TRACKER.md').matchAll(/^#### \[([x=])\] (W\d-T\d\d) · /gm)].map((match) => match[2])
+    const marked = markedTasks(read('docs/TRACKER.md'), 'x=')
     expect(marked.length).toBeGreaterThan(20)
     expect(marked.filter((task) => !MERGED.includes(task))).toEqual([])
+  })
+
+  describe("W1b's ids, which the patterns before the close-out did not read (W1b-report §10)", () => {
+    const tracker = read('docs/TRACKER.md')
+
+    test("every task of the tracker's W1b section is read by the pattern, and the guard finds each one that is marked on the list", () => {
+      const section = between(tracker, '\n## W1b: ', '\n## W2: ')
+      const headings = [...section.matchAll(/^#### \[(.)\] (\S+) · /gm)].map((match) => ({ marker: match[1], id: match[2] }))
+      // W1b built sixteen tasks. Every heading of the section has an id of its wave that the pattern reads, and the pattern misses none.
+      expect(headings.length).toBeGreaterThanOrEqual(16)
+      expect(headings.filter(({ id }) => !id.startsWith('W1b-T'))).toEqual([])
+      expect(taskHeadings(section)).toEqual(headings)
+      // The exit review marked them `[=]`, so the guard has them to look for: it finds them marked, and none missing from the list.
+      expect(markedTasks(section, 'x=').length).toBeGreaterThanOrEqual(16)
+      expect(unlisted(section)).toEqual([])
+    })
+
+    test("would find a task of W1b that is marked and not on the list: the pattern of before read none of W1b's ids", () => {
+      const stale = '## W1b: carry-over\n\n#### [=] W1b-T05 · TR5a item families · M · sonnet\n\n#### [ ] W1b-T06 · TR8 item families · M · sonnet\n\n#### [x] W1b-T99 · A task that is not on the list · S · sonnet\n'
+      expect([...stale.matchAll(/^#### \[([x=])\] (W\d-T\d\d) · /gm)]).toEqual([])
+      expect(markedTasks(stale, 'x=')).toEqual(['W1b-T05', 'W1b-T99'])
+      expect(unlisted(stale)).toEqual(['W1b-T99'])
+    })
+
+    test('would find a reserved step that names a task of W1b, once that task has merged', () => {
+      const stale = "jobs:\n  labs:\n    steps:\n      - run: \"echo 'pending: W1b-T08'\"\n  reports:\n    steps:\n      - run: \"echo 'pending: W3-T13'\"\n"
+      expect(/^echo ['"]pending: (W\d-T\d\d)['"]$/.exec("echo 'pending: W1b-T08'")).toBeNull()
+      expect(reservedIn(stale)).toEqual([
+        { job: 'labs', task: 'W1b-T08' },
+        { job: 'reports', task: 'W3-T13' },
+      ])
+      expect(reservedIn(stale).filter(({ task }) => MERGED.includes(task))).toEqual([{ job: 'labs', task: 'W1b-T08' }])
+    })
   })
 })

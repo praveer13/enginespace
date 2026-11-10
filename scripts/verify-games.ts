@@ -17,16 +17,27 @@
  *   - KCs and claims that exist, once the KC graph (W1-T03) and the claims files (W0-T08) exist. Until then these two checks
  *     print a note and pass, as an unbuilt gate does (scripts/verify.ts);
  *   - a card that the content compiler accepts: three parts, claims that exist, a source for each rule (W1-T07, scripts/content/cards.ts).
- *     A card file that is there and does not compile is as good as missing, and `verify:content` says what is wrong with it.
+ *     A card file that is there and does not compile is as good as missing, and `verify:content` says what is wrong with it;
+ *   - a shell of its own, when `Game.tsx` loads one on demand (Service's full service, `FullService.tsx`): that file too renders a 2D
+ *     view, a mirror, controls and a debrief, each a component of the game whose file is there, and a 3D game's reaches `Scene3D` only
+ *     through `import()` (W1b-T12; W1 report §9.1, A4). A game with one shell has nothing more to read;
+ *   - a blind-strategy bound that holds (ASSESSMENT §4.1 and §13; W1b-T12): on every graded level the best scene-blind strategy passes a
+ *     single banded seed at most 15% of the time [estimated], so that three fresh seeds in a row are out of reach by guessing. Each
+ *     game's folder has the probes of its graded levels (`packages/play/<id>/blind.ts`), which play the strategies through the game's own
+ *     session and grade them with its own grade. The gate prints each level's best strategy against the bound, fails a level over it,
+ *     and fails a graded level that has no probe. It measures when it is given a way to, as the command line is (scripts/games/blind.ts).
  *
  * Not checked yet, and said so in the task's report: the keyboard and reduced-motion e2e walks (W0-T21 and each game's task
- * decide their spec names), the cross-browser determinism hash (nightly, §5.10), and ASSESSMENT §4.1's blind-strategy bound for
- * graded levels, which needs each graded level's blind strategies and first matters with W1's graded levels.
+ * decide their spec names), and the cross-browser determinism hash (nightly, §5.10).
  *
  *   bun scripts/verify-games.ts
  *
- * `checkGames` is the whole gate over what it is given: the games, the component ids, a view of the files and the world's ids.
- * The tests call it with a toy game and a tree held in memory; the command line gives it this checkout.
+ * The nights that the probes play take a minute or so in all, and the games' are independent, so the command line measures each game in
+ * a process of its own while the other checks go on (scripts/games/blind.ts); the gate takes under a minute on a loaded laptop.
+ *
+ * `checkGames` is the whole gate over what it is given: the games, the component ids, a view of the files, the world's ids and, to
+ * measure the blind bound, a way to measure it. The tests call it with a toy game and a tree held in memory; the command line gives it
+ * this checkout and the five games' probes.
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -38,6 +49,11 @@ import type { AnySession, GameEntry } from '../packages/play'
 import { claimIdSchema, gameIdSchema, kcIdSchema, levelIdSchema, moduleIdSchema, slugSchema } from '../packages/schema/refs'
 import { GAME_COMPONENTS } from '../src/games/registry'
 import { compileContent } from './content/build.ts'
+import { BLIND_PROBES, MIN_BLIND_SAMPLE, checkBlind, measureAside, measuredBy } from './games/blind.ts'
+import type { BlindCheck, BlindMeasure } from './games/blind.ts'
+
+export { BLIND_PROBES, MIN_BLIND_SAMPLE, checkBlind, measureAside, measuredBy }
+export type { BlindCheck, BlindMeasure }
 
 /** The share of the first seeds that a level's band must accept, at least [estimated, kernelspace's EPLB floor], and how many are tried [estimated]. */
 export const BAND_FLOOR = 0.2
@@ -65,6 +81,13 @@ export interface GateInput {
   world: World
   candidates?: number
   floor?: number
+  /**
+   * Measures a game's graded levels against ASSESSMENT §4.1's blind-strategy bound (scripts/games/blind.ts): `measuredBy(probes)` in this
+   * process, or the processes that the command line starts. Given, every graded level of every game is measured and one with no probe
+   * fails. Left out, the bound is not measured, as the claims are not checked before their files exist: a test of another part of the gate
+   * is not made to wait for a minute of nights.
+   */
+  blind?: BlindMeasure
 }
 
 export interface Finding {
@@ -139,19 +162,34 @@ export function checkEntry(entry: GameEntry): string[] {
 /* The files                                                                                                          */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** What `Game.tsx` renders and imports, read from its syntax tree: JSX tag names, and static and dynamic import specifiers. */
-export function readGameSource(file: string, text: string): { tags: Set<string>; staticImports: string[]; dynamicImports: string[]; defaultExport: boolean } {
+/**
+ * What `Game.tsx` renders and imports, read from its syntax tree: JSX tag names, static and dynamic import specifiers, and the
+ * specifier that each name is imported from (a name imported by default, by name or as a namespace; a type-only import has none).
+ */
+export function readGameSource(
+  file: string,
+  text: string,
+): { tags: Set<string>; staticImports: string[]; dynamicImports: string[]; defaultExport: boolean; importedFrom: Map<string, string> } {
   const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
   const tags = new Set<string>()
   const staticImports: string[] = []
   const dynamicImports: string[] = []
+  const importedFrom = new Map<string, string>()
   let defaultExport = false
   const visit = (node: ts.Node) => {
     if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) tags.add(node.tagName.getText(source))
-    else if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier) && node.importClause?.isTypeOnly !== true) staticImports.push(node.moduleSpecifier.text)
-    else if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword && ts.isStringLiteralLike(node.arguments[0])) dynamicImports.push(node.arguments[0].text)
-    else if (ts.isExportAssignment(node) && !node.isExportEquals) defaultExport = true
-    else if (
+    else if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier) && node.importClause?.isTypeOnly !== true) {
+      staticImports.push(node.moduleSpecifier.text)
+      const clause = node.importClause
+      if (clause?.name !== undefined) importedFrom.set(clause.name.text, node.moduleSpecifier.text)
+      const bindings = clause?.namedBindings
+      if (bindings !== undefined && ts.isNamespaceImport(bindings)) importedFrom.set(bindings.name.text, node.moduleSpecifier.text)
+      else if (bindings !== undefined) for (const element of bindings.elements) if (!element.isTypeOnly) importedFrom.set(element.name.text, node.moduleSpecifier.text)
+    } else if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword && ts.isStringLiteralLike(node.arguments[0])) {
+      dynamicImports.push(node.arguments[0].text)
+    } else if (ts.isExportAssignment(node) && !node.isExportEquals) {
+      defaultExport = true
+    } else if (
       (ts.isFunctionDeclaration(node) || ts.isClassDeclaration(node)) &&
       ts.getModifiers(node)?.some((modifier) => modifier.kind === ts.SyntaxKind.DefaultKeyword)
     ) {
@@ -160,7 +198,7 @@ export function readGameSource(file: string, text: string): { tags: Set<string>;
     ts.forEachChild(node, visit)
   }
   visit(source)
-  return { tags, staticImports, dynamicImports, defaultExport }
+  return { tags, staticImports, dynamicImports, defaultExport, importedFrom }
 }
 
 /** What is missing from a game's files: its views, its mirror, its debrief, its controls, its card, and the wiring of Game.tsx. */
@@ -186,8 +224,71 @@ export function checkFiles(entry: GameEntry, files: Files): string[] {
     if (game.staticImports.some((specifier) => /(^|\/)Scene3D$/.test(specifier))) {
       problems.push(`${folder}/Game.tsx imports Scene3D statically: load it with React.lazy(() => import('./Scene3D')), so the scene is its own chunk (A§6.10)`)
     }
+    for (const shell of lazyShells(entry, files)) problems.push(...checkShell(entry, shell, files))
   }
   return problems
+}
+
+/** The file that a relative specifier names, as `files` has it (`./full/FullMirror` from `src/games/loop` is `src/games/loop/full/FullMirror.tsx`), or null. */
+function resolveFrom(dir: string, specifier: string, files: Files): string | null {
+  if (!specifier.startsWith('./') && !specifier.startsWith('../')) return null
+  const base = path.posix.join(dir, specifier)
+  return [`${base}.tsx`, `${base}.ts`, `${base}/index.tsx`, `${base}/index.ts`].find((candidate) => files.exists(candidate)) ?? null
+}
+
+/**
+ * The parts of a game that `Game.tsx` loads on demand and that mount a shell of their own: Service's full service (`FullService.tsx`),
+ * which has the TR2 and TR6 levels, a session of its own rules, and views of its own. `Game.tsx` shows them only once a learner opens one
+ * of those levels, so a gate that reads `Game.tsx` alone passes a full service with no mirror (W1 report §9.1, A4).
+ */
+export function lazyShells(entry: GameEntry, files: Files): string[] {
+  const folder = `src/games/${entry.id}`
+  if (!files.exists(`${folder}/Game.tsx`)) return []
+  const found: string[] = []
+  for (const specifier of readGameSource(`${folder}/Game.tsx`, files.read(`${folder}/Game.tsx`)).dynamicImports) {
+    const file = resolveFrom(folder, specifier, files)
+    if (file === null || found.includes(file)) continue
+    // The text is looked at before the syntax tree is: most of what Game.tsx loads is a scene or a debrief, and a scene is long.
+    const text = files.read(file)
+    if (text.includes('<GameShell') && readGameSource(file, text).tags.has('GameShell')) found.push(file)
+  }
+  return found
+}
+
+/**
+ * The view of a shell's file for each of the game's parts: the component it renders that is named for the part (`FullMirror` for the
+ * mirror, as `Mirror` is `Game.tsx`'s), or undefined for a part it never renders.
+ */
+function viewsOf(source: ReturnType<typeof readGameSource>): Map<(typeof PARTS)[number], string | undefined> {
+  return new Map(PARTS.map((part) => [part, [...source.tags].find((tag) => tag === part || tag.endsWith(part))]))
+}
+
+/** What a shell of its own, loaded by `Game.tsx`, is missing: the four views of a game, as components of the game whose files are there, and the 3D scene. */
+export function checkShell(entry: GameEntry, file: string, files: Files): string[] {
+  const problems: string[] = []
+  const source = readGameSource(file, files.read(file))
+  if (!source.defaultExport) problems.push(`${file} has no default export, which Game.tsx loads with React.lazy`)
+  for (const [part, tag] of viewsOf(source)) {
+    if (tag === undefined) {
+      problems.push(`${file} never renders a ${part} of its own: a component whose name ends in ${part}`)
+      continue
+    }
+    const from = source.importedFrom.get(tag)
+    if (from !== undefined && from.startsWith('.') && resolveFrom(path.posix.dirname(file), from, files) === null) {
+      problems.push(`${file} renders <${tag}>, and its file is missing: ${from}`)
+    }
+  }
+  if (entry.has3d && !source.tags.has('Scene3D')) problems.push(`${file} never renders <Scene3D>`)
+  if (source.staticImports.some((specifier) => /(^|\/)Scene3D$/.test(specifier))) {
+    problems.push(`${file} imports Scene3D statically: load it with React.lazy(() => import('./Scene3D')), so the scene is its own chunk (A§6.10)`)
+  }
+  return problems
+}
+
+/** One line for the printout per shell: the components that stand for the game's four views in it. */
+function shellLine(file: string, files: Files): string {
+  const views = [...viewsOf(readGameSource(file, files.read(file)))].map(([part, tag]) => `${part} ${tag ?? 'none'}`)
+  return `its own shell, ${path.posix.basename(file)}, renders ${views.join(', ')}`
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -268,6 +369,7 @@ export async function checkGames(input: GateInput): Promise<Report> {
     add(entry.id, checkEntry(entry))
     if (!componentIds.includes(entry.id)) add(entry.id, ['it has no component in src/games/registry.ts'])
     add(entry.id, checkFiles(entry, files))
+    for (const shell of lazyShells(entry, files)) out.push(shellLine(shell, files))
     // A card that is missing was reported by checkFiles. One that is there and does not compile is not a card yet.
     if (world.cardIds && !blank(entry.card) && files.exists(`content/cards/${entry.card}.md`) && !world.cardIds.has(entry.card)) {
       add(entry.id, [`the notional-machine card content/cards/${entry.card}.md does not compile: it needs three parts, claims that exist and a source for each rule (A§5.9). Run verify:content for the lines`])
@@ -281,6 +383,11 @@ export async function checkGames(input: GateInput): Promise<Report> {
         const checked = checkSession(entry, session, input.candidates, input.floor)
         add(entry.id, checked.problems)
         out.push(...checked.lines)
+        if (input.blind !== undefined) {
+          const blind = await input.blind(entry, session)
+          add(entry.id, blind.problems)
+          out.push(...blind.lines)
+        }
       } catch (error) {
         add(entry.id, [`its session did not load: ${error instanceof Error ? error.message : String(error)}`])
       }
@@ -329,9 +436,22 @@ export function worldAt(root: string): World {
   return { claimIds: idsIn(root, claimFiles), kcIds: idsIn(root, ['content/kc/graph.yaml']), cardIds }
 }
 
-export async function main(root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')): Promise<number> {
+/**
+ * The gate over this checkout. `blind` measures the blind-strategy bound of every graded level through the games' probes, which plays
+ * their nights: the command line asks for it, and a test of another part of the gate that runs `main` on a copy of the tree does not.
+ */
+export async function main(root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), options: { blind?: boolean } = {}): Promise<number> {
   const games = GAMES.games
-  const report = await checkGames({ games, componentIds: Object.keys(GAME_COMPONENTS), files: filesAt(root), world: worldAt(root) })
+  // The nights that the probes play are the slow part, and the games' are independent: each game's starts now, in a process of its own,
+  // and the checks below go on beside them.
+  const aside = new Map(options.blind === true ? games.filter((game) => game.levels.some((level) => level.graded)).map((game) => [game.id, measureAside(game)] as const) : [])
+  const report = await checkGames({
+    games,
+    componentIds: Object.keys(GAME_COMPONENTS),
+    files: filesAt(root),
+    world: worldAt(root),
+    ...(options.blind === true ? { blind: (entry: GameEntry, session: AnySession) => aside.get(entry.id) ?? checkBlind(entry, session, undefined) } : {}),
+  })
   console.log(`verify-games: ${games.length} game${games.length === 1 ? '' : 's'} registered, ${Object.keys(GAME_COMPONENTS).length} component${Object.keys(GAME_COMPONENTS).length === 1 ? '' : 's'}`)
   for (const game of games) {
     console.log(`  ${game.id}`)
@@ -348,4 +468,4 @@ export async function main(root = path.resolve(path.dirname(fileURLToPath(import
   return 0
 }
 
-if (import.meta.main) process.exitCode = await main()
+if (import.meta.main) process.exitCode = await main(undefined, { blind: true })

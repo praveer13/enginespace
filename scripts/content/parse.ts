@@ -53,7 +53,7 @@ export function loadYaml(text: string, file: string, firstLine: number, gate: Ga
   // js-yaml builds its exceptions on plain objects and calls Error.captureStackTrace on them, which Bun refuses once something has
   // replaced Error.prepareStackTrace. The React Compiler rules of eslint-plugin-react-hooks do, and `bun test` runs the lint tests
   // and these in one process. Setting the hook aside for the call keeps a syntax error a YAMLException with its position.
-  const hook = Error as unknown as { prepareStackTrace: unknown }
+  const hook = Error as unknown as { prepareStackTrace: unknown } // @types/node declares prepareStackTrace as a method that is always there, and this sets it to undefined
   const prepare = hook.prepareStackTrace
   hook.prepareStackTrace = undefined
   try {

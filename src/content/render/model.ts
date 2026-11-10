@@ -30,6 +30,12 @@ export function renderEnv(blocks: readonly CompiledBlock[], claims: ReadonlyMap<
 /** A page's `<title>`: its name, then the site's, as routes.tsx writes every route's. */
 export const titled = (page: string): string => `${page} · enginespace`
 
+/**
+ * A lab's page name, `Lab tr8.replay`: the heading of its served document, its tab, and the heading of its page until the lab is built.
+ * scripts/pages/plan.ts writes the document from this, and src/pages/Lab.tsx the page, so that the two never say different things.
+ */
+export const labName = (lab: string): string => `Lab ${lab}`
+
 /** Today as YYYY-MM-DD in UTC, the grain a claim's age is counted in. */
 export const todayIso = (now: Date = new Date()): string => now.toISOString().slice(0, 10)
 
@@ -246,32 +252,31 @@ export interface Pending {
 }
 
 /**
- * The task that builds each game's session, 2D view and mirror, which a `game` block embeds. `loop` is TR2's levels, the
- * first lesson that needs it. tests/content/pending.test.ts reads docs/TRACKER.md and fails when a task here is gone or no
- * longer names the game.
+ * The open task that builds each game of the roster that this build does not have yet: its session, 2D view and mirror, which a `game`
+ * block embeds. A game that is built (src/games/registry.ts) is not here, and its block plays it (GameBlock.tsx, W1b-T01), so the
+ * lesson's first paint tells the two apart without the games' code. tests/content/pending.test.ts reads docs/TRACKER.md and fails when a
+ * task here is gone, is no longer open, or no longer names the game, and when the roster has a game that is neither built nor here.
  */
 export const GAME_TASKS: Readonly<Record<string, string>> = {
-  loop: 'W1-T13',
-  'engine-floor': 'W1-T17',
-  pool: 'W1-T23',
-  verifier: 'W1-T28',
-  'broken-bench': 'W1-T33',
   'shape-shifter': 'W2-T14',
   'gap-hunt': 'W2-T20',
   dispatch: 'W2-T25',
   switchyard: 'W2-T30',
 }
 
-/** The framework every game sits in, for a game id that GAME_TASKS does not list. */
-const GAME_FRAMEWORK = 'W0-T14'
+/**
+ * The forge labs that W1 built, whose pages take a dropped `.wasm` (src/forge/ids.ts): a `lab` block of one leads to a page that works, so its
+ * ticket prints no placeholder. The labs of the course are these and `LAB_TASKS`'s, and tests/content/pending.test.ts holds the two lists to
+ * the compiler's.
+ */
+export const BUILT_LABS: readonly string[] = ['hybrid-kv', 'rejection-sampler']
 
 /**
- * The task that builds each lab, which a `lab` block is the Build card of: the three forge labs (lane B), then the GPU and
- * local labs (lanes L and F). The same test holds it to the tracker and to the compiler's list of lab ids.
+ * The open task that builds each lab that has no page yet, which a `lab` block is the Build card of: the forge lab W2 builds, then the GPU
+ * and local labs (lanes L and F). A lab that is built is in `BUILT_LABS` and names no task. The same test holds this table to the tracker,
+ * where each task is still open (`[ ]` or `[~]`).
  */
 export const LAB_TASKS: Readonly<Record<string, string>> = {
-  'hybrid-kv': 'W1-T22',
-  'rejection-sampler': 'W1-T27',
   'kv-publisher': 'W2-T29',
   'tr0.forward': 'W2-T16',
   'tr1.fork': 'W2-T34',
@@ -284,21 +289,28 @@ export const LAB_TASKS: Readonly<Record<string, string>> = {
   'capstone.pair': 'W3-T02',
 }
 
-/** The forge host, which every forge lab runs on, for a lab id that LAB_TASKS does not list. */
-const LAB_FRAMEWORK = 'W1-T10'
-
 /**
- * The task that builds each feature the blocks stand for. The tracker gives no task to a lesson's prediction box, so it is
- * W1-T13, whose levels open with a prediction and are the first to need one.
+ * The open task that builds each feature the blocks stand for, where the feature is not built yet. A feature that is built is not here: the
+ * prediction box (W1b-T02) and the game block (W1b-T01) are drawn in full. tests/content/pending.test.ts reads docs/TRACKER.md and fails
+ * when a task here is gone, is no longer open (`[ ]` or `[~]`), or no longer says the feature.
  */
 export const PENDING = {
-  predict: { task: 'W1-T13', what: 'the prediction box' },
-  trace: { task: 'W1-T09', what: 'the trace viewer' },
-  'in-production': { task: 'W1-T13', what: 'the In-production card' },
-  'build-this': { task: 'W1-T13', what: 'the Build-this card' },
+  trace: { task: 'W2-T42', what: 'the trace block' },
+  'in-production': { task: 'W2-T42', what: 'the In-production card' },
+  'build-this': { task: 'W2-T42', what: 'the Build-this card' },
   change: { task: 'W3-T06', what: 'the change card' },
 } as const satisfies Record<string, Pending>
 
-/** The task for a game or a lab, by its id. The ids are the content's, so a name that is not an own key of the table falls back to the framework. */
-export const pendingGame = (game: string): Pending => ({ task: Object.hasOwn(GAME_TASKS, game) ? GAME_TASKS[game] : GAME_FRAMEWORK, what: 'the game' })
-export const pendingLab = (lab: string): Pending => ({ task: Object.hasOwn(LAB_TASKS, lab) ? LAB_TASKS[lab] : LAB_FRAMEWORK, what: 'the lab' })
+/** The open task for a game that is not built yet, or null for one that is (or for a name no game has: only own keys of the table count). */
+export const pendingGame = (game: string): Pending | null => (Object.hasOwn(GAME_TASKS, game) ? { task: GAME_TASKS[game], what: 'the game' } : null)
+/** The open task for a lab that has no page yet, or null for one that has (or for a name no lab has: only own keys of the table count). */
+export const pendingLab = (lab: string): Pending | null => (Object.hasOwn(LAB_TASKS, lab) ? { task: LAB_TASKS[lab], what: 'the lab' } : null)
+
+/**
+ * The place of the game block that answers a prediction, in its page's blocks: the first block of that game and level after the prediction,
+ * or -1 when the page has none (packages/play/predictions/plan.ts names the game and the level; tests/play/predictions.test.ts finds one for
+ * each of the lessons').
+ */
+export function answeringBlock(blocks: readonly CompiledBlock[], at: number, answer: { readonly game: string; readonly level: string }): number {
+  return blocks.findIndex((block, place) => place > at && block.type === 'game' && block.id === answer.game && block.level === answer.level)
+}

@@ -1,8 +1,9 @@
 import { useMemo } from 'react'
-import { frameSvg } from '@es/play/loop/layout'
+import { frameSvg, PASS_LENS } from '@es/play/loop/layout'
 import { fullFrame } from '@es/play/loop/full/layout'
 import { Readout } from '@/design/components/Readout'
 import { StationLight } from '@/design/components/StationLight'
+import { FrameLabels } from '../FrameLabels'
 import { svgToReact } from '../svg'
 import { useOrientation } from '../useOrientation'
 import { tagOf } from './tags'
@@ -10,18 +11,25 @@ import type { FullRun } from './types'
 
 /*
  * The full service's 2D view (GAMES.md §3 "2D path", §2.6): Service's pass drawn flat through the scene's own shot, with the full
- * service's objects in it (the mold rack, the padding, the comb, the allergy card; packages/play/loop/full/layout.ts). The picture holds
- * no number but a ticket's: every count is DOM, on the tape and in the mirror. Under it sit the line's light and the clock.
+ * service's objects in it (the mold rack, the padding, the comb, the allergy card; packages/play/loop/full/layout.ts). The picture prints
+ * no word and no number: every count is DOM, on the tape and in the mirror, and its print, the tickets' numbers, the molds' sizes and the
+ * kitchen's names on tape, the comb's and the rack's among them, is DOM over it (FrameLabels.tsx). Under it sit the line's light and the
+ * clock. It is framed as
+ * Service's 2D view is (View2D.tsx): covering its box in landscape, and on a phone through the wider lens and fitted to the box's width,
+ * so the whole pass stays in view.
  */
 export function FullView2D({ run }: { run: FullRun }) {
   const { view } = run
   const orientation = useOrientation()
-  const drawing = useMemo(() => svgToReact(frameSvg(fullFrame(view, { orientation, shot: 'loop' }), { cover: true })), [view, orientation])
+  const phone = orientation === 'portrait'
+  const frame = useMemo(() => fullFrame(view, { orientation, shot: 'loop', ...(phone ? { lens: PASS_LENS } : {}) }), [view, orientation, phone])
+  const drawing = useMemo(() => svgToReact(frameSvg(frame, { cover: !phone })), [frame, phone])
   const capture = view.stage.metric === 'capture'
   return (
     <div className="flex h-full min-h-0 flex-col gap-2" data-loop-view="" data-full-view="" data-orientation={orientation}>
-      <div className="relative min-h-0 flex-1 overflow-hidden [&>svg]:absolute [&>svg]:inset-0 [&>svg]:h-full [&>svg]:w-full" data-loop-drawing="">
+      <div className="relative min-h-0 flex-1 overflow-hidden [container-type:size] [&>svg]:absolute [&>svg]:inset-0 [&>svg]:h-full [&>svg]:w-full" data-loop-drawing="">
         {drawing}
+        <FrameLabels frame={frame} fit={phone ? 'contain' : 'cover'} />
       </div>
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 px-3 pb-2">
         <StationLight lit={view.lineLit} label="The line" size="sm" />

@@ -562,15 +562,6 @@ export const REJECTION_SAMPLER_CHECKS: readonly PlannedCheck[] = [
   },
 ]
 
-/**
- * The knowledge components that a check assesses (content/kc/graph.yaml), which `verify:kc` reads through kcs.ts. The mapping is the one
- * W1-T27 proposed when it built the lab: `accept` is the accept rule, `residual`, `pick` and `round` are the recovery from the residual
- * and the walk that draws it, and `exact` is the chi-square test of exactness that the host runs on the learner's sampler.
- */
-export const REJECTION_SAMPLER_KCS: Readonly<Record<string, readonly string[]>> = {
-  accept: ['tr6.exact-acceptance'],
-  residual: ['tr6.residual-recovery'],
-  pick: ['tr6.residual-recovery'],
-  round: ['tr6.residual-recovery'],
-  exact: ['tr6.exactness-testing'],
-}
+// The knowledge components that a check assesses are in check-kcs.ts, a file that imports nothing, so that the map can read them without this
+// oracle. They are exported from here as well.
+export { REJECTION_SAMPLER_KCS } from './check-kcs'

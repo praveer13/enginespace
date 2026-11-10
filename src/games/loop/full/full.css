@@ -173,6 +173,14 @@
   text-align: left;
 }
 
+/*
+ * The debrief's ticket (FullDebrief.tsx) is a size container, so that on narrow paper its stage table prints each stage as a block of its
+ * own, as the mirror's table does (components.css, "the mirror's table"), and never scrolls sideways under the learner's call.
+ */
+.es-full-debrief {
+  container-type: inline-size;
+}
+
 /* The way into a graded run, above the controls: a line of words and one button. */
 .es-full-mode {
   padding-bottom: var(--es-space-2);

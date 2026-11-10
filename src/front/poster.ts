@@ -11,8 +11,12 @@
  *
  * The front page's run is practice on a pinned seed (D-038), so the poster, the first paint and the challenge are the same for every
  * visitor.
+ *
+ * The poster prints no word and no number: the tickets' numbers, the empty clips' stubs and the kitchen's names on masking tape are in
+ * the DOM over the drawing, stuck on what they belong to, which the page prints from the frame's `tags` and `tapes` beside the inlined SVG
+ * (FrontPage.tsx, src/games/loop/FrameLabels.tsx), as the 3D pass prints its own.
  */
-import { frameSvg, layoutFrame, type Orientation } from '@es/play/loop/layout'
+import { frameSvg, layoutFrame, type Frame, type Orientation } from '@es/play/loop/layout'
 import { loopInit, loopLevel, loopView } from '@es/play/loop/session'
 import type { SvgNode } from '@es/play/loop/svg'
 import type { LoopView } from '@es/play/loop/types'
@@ -28,7 +32,12 @@ export function posterView(): LoopView {
   return loopView(loopInit(loopLevel(POSTER_LEVEL, POSTER_SEED)))
 }
 
-/** The drawing of a view in one orientation, through the front page's shot (it draws no printer: the page holds its own). */
+/** The frame of a view in one orientation, through the front page's shot (it draws no printer: the page holds its own). */
+export function passFrame(view: LoopView, orientation: Orientation): Frame {
+  return layoutFrame(view, { orientation, shot: 'front' })
+}
+
+/** The drawing of a view in one orientation: its frame written as SVG, which is the poster. */
 export function passDrawing(view: LoopView, orientation: Orientation): SvgNode {
-  return frameSvg(layoutFrame(view, { orientation, shot: 'front' }))
+  return frameSvg(passFrame(view, orientation))
 }

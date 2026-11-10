@@ -4,7 +4,7 @@ import { InstancedBufferAttribute, Matrix4, PlaneGeometry, Quaternion, Vector3, 
 import { useKit } from '../kit'
 import type { Footprint } from './build'
 import { createShadowRegistry, PropsContext, roomFor, type PropsKit, type ShadowRegistry } from './context'
-import { createPropMaterials, type PropMaterials } from './materials'
+import { createPropMaterials, type MetalPatch, type PropMaterials } from './materials'
 import { paletteFrom } from './palette'
 import { ALWAYS_LIT } from './set'
 
@@ -67,16 +67,17 @@ function ContactShadows({ registry, materials }: { registry: ShadowRegistry; mat
 
 /**
  * The props' shared kit: materials for this tier and these tokens, the palette, and the contact shadows under everything. `lit` is
- * the kitchen's glow mask, bit n lighting channel n (set.ts's `litMask`): every glowing part of every prop inside follows it.
+ * the kitchen's glow mask, bit n lighting channel n (set.ts's `litMask`): every glowing part of every prop inside follows it. `metal`
+ * patches the metal's shader further, for lamps of a scene's own (spot-lamps.tsx); keep it the same function from render to render.
  */
-export function Kitchen({ lit = ALWAYS_LIT, children }: { lit?: number; children: ReactNode }) {
+export function Kitchen({ lit = ALWAYS_LIT, metal, children }: { lit?: number; metal?: MetalPatch; children: ReactNode }) {
   const kit = useKit()
   const gl = useThree((state) => state.gl)
   const { tokens } = kit
   const base = kit.materials
   // Made again only when the colours, the tier's class (T1, or T2 and up) or the kit's own maps change.
   const tierClass = kit.tier >= 2 ? 2 : 1
-  const materials = useMemo(() => createPropMaterials({ tokens, tier: tierClass, base }, gl.capabilities.getMaxAnisotropy()), [tokens, tierClass, base, gl])
+  const materials = useMemo(() => createPropMaterials({ tokens, tier: tierClass, base }, gl.capabilities.getMaxAnisotropy(), metal), [tokens, tierClass, base, gl, metal])
   useEffect(() => () => materials.dispose(), [materials])
   const palette = useMemo(() => paletteFrom(tokens), [tokens])
   const [shadows] = useState(createShadowRegistry)

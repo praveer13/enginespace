@@ -14,11 +14,14 @@ import { below, between, shuffle } from '@es/sim/core'
 import { finishItem, gradeChoice, gradeNumeric, itemRng, num, resolveVariant, rich } from '@es/play/items'
 import type { Gen, Item, Level, Response, Step, VariantSpec } from '@es/play/items'
 
+/** What a family's `make` gives `finishItem`: the item without the parts that the framework fills in. */
+type Made = Omit<Item, 'family' | 'version' | 'rev'>
+
 type Options = {
   id?: string
   variants?: VariantSpec[]
   band?: (seed: number, level: Level) => boolean
-  make: (seed: number, level: Level, variant: string) => Omit<Item, 'family' | 'version' | 'rev'>
+  make: (seed: number, level: Level, variant: string) => Made
   version?: number
 }
 
@@ -59,7 +62,7 @@ export const toySum: Gen = toy({
     const [a, b] = numbersOf(seed, level, variant.id)
     return variant.id !== 'sum' || a !== b
   },
-  make: (seed, level, variant) => {
+  make: (seed, level, variant): Made => {
     const base = { variant, level, seed, kcs: variant === 'sum' ? SUM.kcs : LARGER.kcs, worked: [] }
     if (variant === 'sum') {
       const [a, b] = numbersOf(seed, level, variant)

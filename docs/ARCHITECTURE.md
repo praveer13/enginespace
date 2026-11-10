@@ -89,6 +89,7 @@ enginespace is **one Vite app with one `package.json` and one lockfile**. Its pu
 - **One `node_modules`.** A worktree agent hard-links one tree (`cp -al`) and keeps its own `node_modules/.tmp`, where `tsc -b` keeps its build info.
 - **The boundaries still hold.**
   - Each package has its own `tsconfig`. `packages/sim` and `packages/play` compile with `lib: ["ES2022"]` and no DOM, so any DOM reference is a type error.
+  - `scripts/` and `tests/` compile together in `tsconfig.tools.json`, which extends the app's options and adds Node's types, so `tsc -b` checks them as it checks the app (W1b-T14). `@types/bun` is not on §14's list, so `scripts/types/bun.d.ts` declares the parts of Bun that they call, as `src/types/js-yaml.d.ts` does for js-yaml.
   - ESLint's `no-restricted-imports` fences each package.
   - `verify:boundaries` checks the import graph.
 - **The way out is cheap.** If a second app appears, such as an instrument origin or a TypeScript CLI, the packages already sit in `packages/` and become npm workspaces without any file moving.
@@ -103,7 +104,7 @@ enginespace/
   LICENSES/             the licence texts that NOTICE points at: Apache-2.0.txt (D-060)
   course.lock.json      upstream pins, model revisions and dataset hashes (§4.4)
   package.json  package-lock.json  bunfig.toml  index.html  vite.config.ts
-  tsconfig.json  tsconfig.app.json  tsconfig.node.json  tsconfig.pure.json
+  tsconfig.json  tsconfig.app.json  tsconfig.node.json  tsconfig.pure.json  tsconfig.tools.json
   eslint.config.js  tailwind.config.ts  postcss.config.js  playwright.config.ts
   docs/                 PLAN, ARCHITECTURE, ASSESSMENT, DECISIONS, TRACKER and the rest
   content/
@@ -136,7 +137,7 @@ enginespace/
   public/               fonts/ (self-hosted)  posters/  references/  traces/  labs/ (kits, wheel, manifest)
   labs/                 forge/ (Rust → wasm)  grader/ (Python)  envs/  gpu/  runners/  references/  agent-kit/  (§9.2)
   schemas/              committed JSON Schema exports and the shared vectors (rng, challenge, canonical JSON, hashing)
-  scripts/              content/  verify-*.ts  prepare-pages.ts  pack-labs.ts  export-schemas.ts  vendor-drift.ts  posters.ts
+  scripts/              content/  verify-*.ts  prepare-pages.ts  pack-labs.ts  export-schemas.ts  vendor-drift.ts  posters.ts  types/
   tests/                bun tests that mirror packages/ and src/ (pure code only)
   e2e/                  Playwright specs: axe, keyboard walks, screenshots, budgets, network isolation
   vendor/kernelspace/   files copied at d478f91, never edited in place; VENDOR.md (§13)
@@ -169,7 +170,7 @@ React Router 7.18.1 in library mode: `createBrowserRouter` with a `lazy` loader 
 | `/m/:module/:lesson` | Lesson | `lesson` + the lesson's JSON; game chunks on demand | yes |
 | `/play` | Games index | `play-index` | yes |
 | `/play/:game` | One game, full screen, at any level | `game-<id>`; `scene-<id>` lazily | yes; 2D or tier 1 |
-| `/labs/:lab` | Lab page. A forge lab takes a dropped `.wasm` and shows per-check results. A GPU or local lab offers the kit download, a challenge and the receipt import. | `lab`, `forge.worker` | laptop-first; read-only on phones |
+| `/labs/:lab` | Lab page. A forge lab hands over its crate, the packer's zip, with its size, its SHA-256 and a line that checks the download (W1b-T08); it takes a dropped `.wasm` and shows per-check results. `hybrid-kv`'s page also plays the slot-baseline readout of TR5a §5 once its adapter-pages check (s5) passes (W1b-T08). A GPU or local lab offers the kit download, a challenge and the receipt import. | `lab`, `forge.worker` | laptop-first; read-only on phones |
 | `/trace-room` and `/trace-room/:trace` | The Trace Room: pinned and synthetic traces, and Gap Hunt | `trace-room` | laptop-first for the timeline viewer; Gap Hunt's graded levels also work on phones, marking by list, and count the same (ASSESSMENT §4.3) |
 | `/receipts` | Receipts: issue a challenge, import a bundle, and list receipts. A receipt's detail opens at `/receipts#<sha256>`. | `receipts`, `receipt.worker` | yes (list and detail) |
 | `/today` | Keep: spaced review of the KCs earned so far | `today` | yes |
@@ -476,28 +477,38 @@ export function expectedTokensPerRound(alphaPermille: number, gamma: number): nu
 
 ### 5.6 The benchmark generator
 
+The API as W1-T31 built it (`packages/sim/bench` at a9115f6); W1-T32 added the corpus.
+
 ```ts
+export type OpenArrivals =                                          // arrivals that do not depend on the server
+  | { kind: 'poisson'; ratePerSMilli: number }                      // via a committed exponential-quantile table
+  | { kind: 'replay'; slice: TraceSlice; speedPermille: number }    // a vendored BurstGPT or Mooncake slice; it travels in the spec, parsed by parseSlice, since the package loads no files
+  | { kind: 'burst'; atUs?: Us }                                    // every request due at once: `vllm bench serve --request-rate inf`, vllm's default (vllm B1)
 export type ArrivalSpec =
-  | { kind: 'poisson'; ratePerSMilli: number }               // via a committed exponential-quantile table
-  | { kind: 'replay'; slice: SliceId; speedPermille: number } // vendored BurstGPT or Mooncake slices
-  | { kind: 'closed'; clients: number; thinkUs: Us }
-export interface BenchSpec { arrivals: ArrivalSpec; requests: number; warmupUs: Us; durationUs: Us
+  | OpenArrivals
+  | { kind: 'closed'; clients: number; thinkUs: Us; schedule?: OpenArrivals }  // `schedule` is the load that the clients try to follow
+export interface BenchSpec { arrivals: ArrivalSpec; lengths?: LengthPlan; requests: number; warmupUs: Us; durationUs: Us
   outputCap?: number; prefixWarm?: boolean; clientCostUs?: Us; slo: { ttftUs: Us; tpotUs: Us } }
-export function runBench(seed: Seed, spec: BenchSpec, server: ServerModel): BenchRun
-export function summarize(run: BenchRun, o: { bootstrap: number; seed: Seed }): BenchSummary
+export interface BenchRow { id: ReqId; client: number | null; dueUs: Us; sentUs: Us; firstUs: Us; doneUs: Us
+  promptTokens: number; outputTokens: number }                      // one request of the client's log, in integer µs from the start of the run
+export function runBench(seed: Seed, spec: BenchSpec, server: ServerModel): BenchRun   // BenchRun: one BenchRow per request, and the spec
+export function summarize(run: BenchRun, o: SummarizeOptions): BenchSummary            // SummarizeOptions: { bootstrap: number; seed: Seed; warmupUs?: Us; levelPermille?: number }
+export function summarizeRows(rows: readonly BenchRow[], p: SummaryParams, o: SummarizeOptions): BenchSummary  // any log, as the receipt verifier has it (§8.5 rule 8)
 export function brokenBenchCase(seed: Seed, opts?: { flaw?: BenchFlaw }): BrokenCase     // packages/sim/bench/broken.ts
 export function correctBench(scene: BrokenScene, flaw: BenchFlaw): BrokenCorrection        // the corrected p99, from the scene alone
 ```
 
-- **The server** is the step-loop model run coarse: async on, its step times from the S5 card. TR8's knee and TR2's bubbles therefore come from one model.
-- **Every request keeps its intended send time** next to its actual send time.
-  - Closed loop produces coordinated omission by construction: a stalled server delays sends, and latency is measured from the actual send.
-  - Open loop sends on schedule.
-- **Statistics.**
-  - Percentiles use nearest rank on sorted integers.
-  - The 95% interval on p99 is a percentile bootstrap with a seeded resampler (B = 1,000 [estimated]).
-  - Goodput at SLO counts the requests that meet both their TTFT and TPOT objectives, per second.
-  - Little's law gives a residual: mean concurrency against throughput × mean latency.
+- **The server** (`runServer`, `s5Server`) is the step-loop model run coarse: the step loop with its host card at zero, async on, its step times from the S5 card. TR8's knee and TR2's bubbles therefore come from one model, and `tests/sim/bench-server.test.ts` holds it to that: over 200 seeds [estimated], `runServer` and `runStepLoop` with a zero host card give every request the same first-token and last-token time. The server is a second copy of the loop because a closed loop's arrivals depend on completions, and `runStepLoop` takes its whole workload up front. A `ServerModel` also carries what the flaws need: `stalls`, windows in which the engine's main thread is frozen, and `cold`, a cold start until `untilUs` whose steps take `slowdownPermille` ÷ 1,000 times as long [estimated].
+- **Every request keeps its intended send time** (`dueUs`) next to its actual send time (`sentUs`), with its first and last token times and its token counts.
+  - Open loop sends on schedule, so `sentUs = dueUs`, unless the client's own cost per request (`clientCostUs`) holds it back.
+  - A closed loop with a `schedule` produces coordinated omission by construction: a server slower than the schedule asks of it holds the clients back, and sends slip behind their due times. A closed loop without one has no intended times of its own, and its log shows no slip, which is how it hides an overload.
+  - The summary reports latency from the due time (the course's rule, ASSESSMENT B5) and from the actual send (the harness's) side by side.
+- **Statistics** (`stats.ts`, `summary.ts`) are exact integer arithmetic on the rows of a log, so the browser recomputes a receipt's summary with the code that summarizes a simulated run (§8.5 rule 8).
+  - Percentiles use nearest rank on sorted integers: p50, p90 and p99, with the mean, the maximum and how many observations lie beyond the p99.
+  - The 95% interval on p99 is a percentile bootstrap with a seeded resampler (B = 1,000 [estimated]), for the time to first token from the due time, the time per output token and the end-to-end latency.
+  - Goodput at SLO counts the requests that meet both their TTFT and TPOT objectives, per second, under both denominators: the arrival window (the course's definition) and the total duration with the drain tail (SGLang's `--goodput`, sglang T6; ASSESSMENT B9).
+  - Little's law gives a residual: mean concurrency against throughput × mean latency (ASSESSMENT B10).
+  - Arrival adherence counts the rows sent later than ASSESSMENT B4's tolerance and hard limit after their due times.
 - **The broken-benchmark corpus** (`packages/sim/bench/broken*.ts`, W1-T32) extends kernelspace's four flaws (closed loop, capped output, warm cache, counted warm-up) with coordinated omission, a client queue hidden by the harness's timer, too few samples for a p99, a mean reported as a tail, a client-side bottleneck, and a "replay" that ignores the trace's timestamps, plus a control case with no flaw: ten flaws and a control (GAMES.md §11). Prefix-cache carry-over between runs (vllm B3) is the warm-cache flaw's real-world instance. Every claim is a p99 of the time to first token, timed from the due time (ASSESSMENT B5), so the corrected numbers compare across flaws. A case is a log of the coarse server and the claim of a harness that did one thing wrong; all of it is synthetic.
   - **The draw.** The seed picks the flaw (`seed mod 11`: any eleven consecutive seeds hold each once, and a uniform graded seed draws each with probability 1/11), and then the answer, the corrected p99, from a log-spaced grid that does not depend on the flaw's mechanism. The scene is built to reach it. That is kernelspace's rule (D39 in its wave-3 spec) with the flaw drawn first, so a label names how to correct the number and at most the regime it falls in. Closed loop, client queue hidden, client bottleneck and capped output can only happen to a server past its capacity (answers from 5 s to 120 s), and so can the replay's burst (2 s to 60 s). A freeze, the cause of coordinated omission, falls on a server at any load (0.35 s to 60 s). The counted warm-up and the control stay under capacity (70 ms to 2 s, and the control to 3 s with a few long prompts). Warm cache, too few samples and mean as tail draw either, so their answers run from 70 ms or 0.12 s to 120 s. Every range is a design parameter [estimated]. The scene's server is S5's "70B on H100" at TP 4, inside its fitted box (prompts up to 8,192 tokens), and its capacity on each traffic is measured by a saturation run, not assumed.
   - **The band.** The benchmark's own randomness is drawn again, never the answer, until the case keeps the band (`brokenBand`): the corrected p99 rests on at least 1,000 rows (ASSESSMENT B7), the flaw moves the number by 1.5 times or more (kernelspace's `BB_MIN_RATIO`; the control's claim is the corrected number), and the log shows the flaw: sends slip behind their due times for a freeze, a client queue and a client bottleneck, and the log is settled once the warm-up is out for the control and the counted warm-up (B8). A seed that no draw puts in band is returned flagged, and a session redraws from another seed (GAMES.md §2.1). Over seeds 0 to 9,999 the draw took 1.11 tries per case on average (23 at the most) and 3 seeds were out of band [measured 2026-11-04 by `ES_PROPERTY_SEEDS=10000 bun test tests/sim/bench-broken.test.ts`].
@@ -507,13 +518,13 @@ export function correctBench(scene: BrokenScene, flaw: BenchFlaw): BrokenCorrect
 
 ### 5.7 The trace model
 
-**`trace@1`** stores spans in columns, with integer nanosecond timestamps relative to an origin.
+**`trace@1`** stores spans in columns, with integer nanosecond timestamps relative to an origin. The API is as W1-T08 built it (`packages/sim/trace` at 22d30a8).
 
 ```ts
 export interface EsTrace {
   schema: 'enginespace/trace@1'
   meta: { source: 'synthetic' | 'owner' | 'learner'; engine?: string; version?: string
-          gpu?: string; capturedAt?: string; sha256?: string; synthetic: boolean }
+          gpu?: string; capturedAt?: string; sha256?: string; synthetic: boolean }  // sha256: the raw capture's; the trace's own hash is of encodeTrace's text
   strings: string[]                                 // name and category table
   tracks: { id: number; kind: 'cpu-thread' | 'cuda-api' | 'gpu-stream' | 'marker'; name: number }[]
   spans: { track: Int32Array; startNs: Float64Array; durNs: Float64Array; name: Int32Array
@@ -521,24 +532,34 @@ export interface EsTrace {
   flows: { from: number; to: number; kind: 'launch' | 'sync' | 'copy' }[]
   marks: { tNs: number; name: number }[]            // step boundaries, NVTX ranges
 }
-export function traceFromRun(run: StepLoopRun, seed: Seed, jitter: JitterSpec): EsTrace  // synthetic
-export function attribute(t: EsTrace, w: StepWindow): Attribution  // kernels, CPU gaps, overlap, TPOT split
-export function traceChecks(t: EsTrace, floors?: Floors): readonly CheckResult[]
+export function traceFromRun(run: StepLoopRun, seed: Seed, jitter?: JitterSpec): EsTrace  // synthetic; DEFAULT_JITTER unless given, CLEAN_JITTER for none
+export function stepWindows(t: EsTrace): StepWindow[]                // the marks named 'step', two at a time
+export function attribute(t: EsTrace, w: StepWindow): Attribution   // kernels, copies, CPU gaps, both-idle, and the overlap beside them
+export function attributeSteps(t: EsTrace): Attribution[]            // every step window, reading the trace once
+export function traceChecks(t: EsTrace, floors?: TraceFloors): readonly TraceCheckResult[]
+export function encodeTrace(t: EsTrace): string                      // the canonical text, whose SHA-256 is the trace's hash
+export function decodeTrace(source: string): EsTrace                 // strict: an unknown or missing field, a column of another length or a value that is not an integer is an error
 ```
 
-- **Synthetic traces** come from step-loop runs with seeded jitter. They carry `synthetic: true`, so their ground truth is exact.
+- **Synthetic traces** come from step-loop runs with seeded jitter (`JitterSpec`: kernels per forward, their spread, the copies' share, the gaps between launches and the main thread's noise, all [estimated] and printed on the card). The jitter works inside the run's own spans and never moves where the GPU or the main thread starts or stops being busy, so a synthetic trace's ground truth is exact: it is the run's own. They carry `synthetic: true`, and `meta.synthetic` is true exactly when `meta.source` is `'synthetic'`.
 - **Owner-captured traces** are normalized by the grader's exporter (§9.4), pinned by SHA-256 and dated, and published under `public/traces/`.
+  - An exporter writes what the rest of the package reads: a mark named `step` at each step boundary; GPU work as spans of category `kernel` or `copy` on `gpu-stream` tracks; the engine's main thread as `cpu-thread` tracks and the CUDA calls it makes as `cuda-api` tracks, and no other thread; a correlation id on each CUDA launch or copy call, repeated on the GPU work it started, and −1 where there is none; and a `meta` that leaves out a field it does not know.
+  - `encodeTrace` writes the canonical text, so a Python exporter has to write the same bytes (§9.8) for the browser to get the hash the grader got.
+  - `meta.sha256` is read as the SHA-256 of the raw capture the trace was normalized from, until the owner says otherwise (W1-T08; `docs/waves/W1-report.md` §12).
 - **`attribute`** partitions a step window, from one step mark to the next, in integer ns (GAMES.md §6; ASSESSMENT T7):
   - GPU-busy, the union of kernel and copy spans on GPU streams, split into kernel and copy-only;
   - CPU-gap, GPU-idle time while the engine's main thread is busy;
   - both-idle, GPU-idle time while the main thread is idle too.
-  The three sum to the window, which is the step's TPOT, exactly. Overlap, the main thread's busy time inside GPU-busy, is reported beside the partition as hidden CPU work.
-- **`traceChecks`** checks:
-  - time runs monotonically;
-  - no two kernels overlap on one stream;
-  - every kernel has a launch before it on its correlation id;
-  - step marks contain their kernels;
-  - each span is at least its physics floor (§8.5).
+  The three sum to the window, which is the step's TPOT, exactly. Overlap, the main thread's busy time inside GPU-busy, is reported beside the partition as hidden CPU work. A window need not be one of the trace's own, and a span that crosses its edge counts for the part inside it.
+- **`traceChecks`** returns one verdict for each check. A failing check names its first offender and prints the bound it broke (statespace's rule, §8.5 rule 9), and lists up to 8 [estimated] offending spans for a viewer to light:
+  - `structure`: the columns are consistent;
+  - T2: time runs forward, so no span starts before 0 or lasts a negative time, and the step marks strictly increase;
+  - T3: no two kernel or copy spans overlap on one GPU stream;
+  - T4: every kernel has a launch before it on its correlation id, and a graph launch is one such span for all its nodes;
+  - T5: step marks contain their kernels;
+  - T9, when the caller gives the floors from the hardware atlas: no step's GPU-busy time and no named span is shorter than its physics floor (§8.5 rule 9).
+
+  The rest of ASSESSMENT §6.1 needs what a trace does not hold, and `packages/verify` runs it (W2-T08).
 
 ### 5.8 Smaller models
 
@@ -604,7 +625,7 @@ kernelspace's seven-test gate (`games-3d.md` §2.3; PLAN-100X §5.4.0) still app
 - **Test 5 (schematic) is restated:** no photoreal hardware and no decorative particles behind prose. The look is The Pass (D-047): the design system applies its direction contract, and DESIGN.md documents the built world.
 - **Test 2 (≥3 axes reasoned about together) becomes advisory** under D-005. Each 3D game names its axes in §6.1. A game whose third axis is weak keeps its 3D for attention, and its 2D view is a first-class path, never a degraded one.
 
-`verify:games` checks the mechanical part: a display name and a subtitle (D-049), and a registered 2D view, mirror, debrief, card, keyboard map, KCs and sources, for every game.
+`verify:games` checks the mechanical part: a display name and a subtitle (D-049), and a registered 2D view, mirror, debrief, card, keyboard map, KCs and sources, for every game. It also measures the blind-strategy bound of ASSESSMENT §4.1 for every graded level, through the game's own session (`packages/play/<id>/blind.ts`).
 
 ### 6.3 Anatomy of a game
 
@@ -613,6 +634,7 @@ packages/play/<id>/
   session.ts     state, actions, reducer, scoring, the hidden reference ("ghost"), debrief data (pure)
   levels.ts      levels: setup(seed), win condition, the prediction to commit, KCs
   layout.ts      pure layout: sim state → positioned primitives, shared by the 2D view, the 3D scene and the poster
+  blind.ts       a probe for each graded level: the scene-blind strategies that `verify:games` plays against the session (ASSESSMENT §4.1)
 src/games/<id>/
   Game.tsx       Play → Debrief → Compose → In production → Build this (kernelspace's play sequence)
   View2D.tsx     SVG at ≤2,000 marks, Canvas2D above that (games-3d research)
@@ -937,8 +959,12 @@ Receipt fixtures run in CI: real bundles from the owner's GPU smoke runs (W2-T12
 ```
 labs/
   README.md                learner-facing: lanes, kits, how grading works
-  agent-kit/               AGENTS.md, a fail-closed PreToolUse guard, settings, Socratic output style
-                           (vendored from kernelspace labs/agent-kit, renamed and extended)
+  agent-kit/               the learner's agent kit, kernelspace's labs/agent-kit renamed and extended (W1-T11):
+    AGENTS.template.md       the tutoring rules, with placeholders that the packer fills for each lab
+    settings.template.json   the permission denials and the PreToolUse hooks, filled the same way
+    hooks/es-guard.sh        the fail-closed guard that keeps an agent out of the TODO(you) file and the harness
+    output-styles/enginespace-socratic.md   the Socratic output style
+                           a lab's zip carries them as AGENTS.md (beside a CLAUDE.md that imports it) and under .claude/
   forge/                   lane B: Rust → wasm
     Cargo.toml  Cargo.lock  rust-toolchain.toml (1.96.0 + wasm32-unknown-unknown)
     kit/                   kslab, vendored from kernelspace labs/kit at d478f91, unchanged
@@ -1076,10 +1102,10 @@ TypeScript writes `schemas/vectors/*.json`, Python's tests read them, and `labs.
 
 | Workflow | Trigger | Jobs |
 |---|---|---|
-| `ci.yml` | pull request | **fast-gate:** `npm ci`, lint, `tsc -b`, the content compile, every `verify:*` in §10.2, build, `verify:bundle`, export freshness. **tests:** `bun test` (units, golden vectors, 200-seed properties, bestiaries). **e2e-smoke:** Playwright Chromium against `vite preview`, with axe at 360 and 1280 px on 8 routes and, from W1-T36, on the 16 pages and 5 level pages that W1 added (`e2e/routes.ts`), the reduced-motion scan of the same pages and a frame count of every 3D scene, a keyboard walk of the front-page game and of one level of each W1 game (`e2e/walks.spec.ts`), the network-isolation check and screenshots uploaded as artifacts, in four shards (target under 6 min each [estimated]; unsharded, the 78 specs did not finish in 15 min on a private repository's two-core runner [measured 2026-11-04, PR #1]). Playwright cuts the sorted list of tests into four runs of equal length, so a spec's file name is its place in the plan: W1-T36's 193 tests ran as four shards of 66, 61, 75 and 98 s on a 20-core laptop [measured 2026-11-08 at df76ca9], and a runner takes about 4 to 16 times as long per test [derived from PR #1's first run], so a shard is about 11 min of test time [estimated; no CI run has timed these tests] and the 6 min target is not met without more shards. |
+| `ci.yml` | pull request | **fast-gate:** `npm ci`, lint, `tsc -b`, the content compile, every `verify:*` in §10.2, build, `verify:bundle`, export freshness. **tests:** `bun test --shard=<i>/4` (units, golden vectors, 200-seed properties, bestiaries), four jobs that together run every test file once: Bun sorts the paths and deals the files out in turn, and `tests/ci/shards.test.ts` lists each shard's files and compares their union with the suite. In one job the suite took 9 to 16 minutes on a runner [measured 2026-11-09, PR #2 to #4], and the heaviest shard has 34% of its test time [derived from the test times of a laptop run at 54d880f and of the deploy's build], so a shard is 3.5 to 5.5 minutes of tests [derived]. `deploy.yml` still runs the suite whole. **e2e-smoke:** Playwright Chromium against `vite preview`, with axe at 360 and 1280 px on 8 routes and, from W1-T36, on the 16 pages and 5 level pages that W1 added (`e2e/routes.ts`), the reduced-motion scan of the same pages and a frame count of every 3D scene, a keyboard walk of the front-page game and of one level of each W1 game (`e2e/walks.spec.ts`), the network-isolation check and screenshots uploaded as artifacts, in four shards (target under 6 min each [estimated]; unsharded, the 78 specs did not finish in 15 min on a private repository's two-core runner [measured 2026-11-04, PR #1]). Playwright cuts the sorted list of tests into four runs of equal length, so a spec's file name is its place in the plan: W1-T36's 193 tests ran as four shards of 66, 61, 75 and 98 s on a 20-core laptop [measured 2026-11-08 at df76ca9], and a runner takes about 4 to 16 times as long per test [derived from PR #1's first run], so a shard was about 11 min of test time [estimated]. The runs of PR #2 and #3 took 7 to 12 min a shard [measured 2026-11-09], with shard 4's keyboard walks at 1280 px and 2D screenshot failing or retrying on each of PR #2's three runs: the pages do not need the GPU, and the browser composed them through SwiftShader on the CPU all the same. The smoke project's browser composes on the CPU since W1b-T13 (`--disable-gpu-compositing`, `playwright.config.ts`), and the four shards ran in 82, 71, 58 and 74 s on four pinned cores of a laptop, against 206, 196, 293 and 306 s [measured 2026-11-09 at 54d880f]; a runner has not timed the change yet [unverified]. |
 | `deploy.yml` | push to `main`, and by hand | the fast gate and tests, then build, `prepare-pages`, `upload-pages-artifact` and `deploy-pages` (kernelspace's deploy) |
-| `nightly.yml` | 03:17 UTC [estimated slot], and by hand | 10,000-seed properties; the cross-browser determinism hash (Chromium, Firefox, WebKit); full axe at 320, 360 and 1280 px on every route; keyboard walks of every game, one for every level of the registry (`e2e/walks.spec.ts`, W1-T36); the network check and reduced-motion emulation (no animation frames after settle) on every document; the LCP, INP and CLS lab profile; claim-expiry and link-rot reports. On failure it opens or updates one issue, as kernelspace does. |
-| `labs.yml` | changes under `labs/**`, `schemas/**`, `packages/schema/**` or `packages/verify/**` | **forge:** Rust 1.96.0 with wasm32, `cargo test`, wasm builds of the reference and bestiary, `verify:labs` (the reference passes host checks; the bestiary fails). **grader:** `setup-uv`, `uv sync --locked`, `python -m unittest` (CPU), `verify:schema`, `verify:vectors`, receipt fixtures pass and forgeries fail. |
+| `nightly.yml` | 03:17 UTC [estimated slot], and by hand | 10,000-seed properties, with the p99's 2,000-seed bootstrap coverage (`ES_HEAVY=1`); the rejection-sampler lab's error rates at 1,500 trials a row (`ES_LAB_TRIALS`); the cross-browser determinism hash (Chromium, Firefox, WebKit); full axe at 320, 360 and 1280 px on every route; keyboard walks of every game, one for every level of the registry (`e2e/walks.spec.ts`, W1-T36); the network check and reduced-motion emulation (no animation frames after settle) on every document; the LCP, INP and CLS lab profile; claim-expiry and link-rot reports. On failure it opens or updates one issue, as kernelspace does. |
+| `labs.yml` | changes under `labs/**`, `schemas/**`, `packages/schema/**` or `packages/verify/**`, and to what `verify:labs` imports or compares: `packages/sim/**`, `src/forge/**`, `src/workers/forge.worker.ts`, `scripts/labs/**`, `scripts/verify-labs.ts`, `tests/fixtures/forge/**` and `vendor/kernelspace/**` (`tests/ci/workflows.test.ts` walks the script's imports) | **forge:** Rust 1.96.0 with wasm32, `cargo test`, wasm builds of the reference and bestiary, `verify:labs` (the reference passes host checks; the bestiary fails). **grader:** `setup-uv`, `uv sync --locked`, `python -m unittest` (CPU), `verify:schema`, `verify:vectors`, receipt fixtures pass and forgeries fail. |
 | `upstream-watch.yml` (W3) | weekly | Compares PyPI and GitHub releases with `course.lock.json` and opens an issue with draft change cards. It never merges anything, and its requests send a generic User-Agent. |
 
 **Screenshots.**
@@ -1097,7 +1123,7 @@ TypeScript writes `schemas/vectors/*.json`, Python's tests read them, and `labs.
 | `verify:numbers` | An untagged number in prose (§4.4) |
 | `verify:kc` | A cycle; an item, level or check without a KC |
 | `verify:items` | A non-deterministic generator; an out-of-band seed; a blind strategy above its bound |
-| `verify:games` | A game missing its display name or subtitle (D-049), 2D view, mirror, debrief, card, keyboard map, KCs or sources; a session importing the DOM |
+| `verify:games` | A game missing its display name or subtitle (D-049), 2D view, mirror, debrief, card, keyboard map, KCs or sources, in `Game.tsx` and in any shell it loads on demand; a session importing the DOM; a graded level whose best scene-blind strategy passes more than 15% of its banded seeds [estimated] (ASSESSMENT §4.1) |
 | `verify:determinism` | §5.1's lint; a changed golden vector without `--write` |
 | `verify:boundaries` | §2.3's import rules; a static path from the entry to `three` |
 | `verify:bundle` | §11.1's gated budgets |
@@ -1129,6 +1155,11 @@ Kernelspace's pattern applies: the scaffold reserves each gate, and it prints `p
 | `actions/upload-artifact` | `cf430e030ddbb5b0abf93d22962f4752f3646cd9` (v7.0.2) | statespace [measured] |
 
 Every job sets `permissions: contents: read` unless it needs more, and uses `persist-credentials: false` on checkout (kernelspace's CI).
+
+Bun comes from `oven-sh/setup-bun`, which downloads the release from GitHub. That step may fail (`continue-on-error`). When it does, the next step installs the same release from npm, `npm install --global bun@<the pin>`, and fails unless `bun --version` prints the pin.
+- **Why:** on 2026-11-09, GitHub's release downloads answered HTTP 504 throughout a GitHub incident. Every job that needed Bun stopped at that step, the first deploys of `main` among them [measured 2026-11-09].
+- **Same build:** npm's `bun@1.3.14` reports `1.3.14+0d9b296af`, the build that GitHub's release ships [measured 2026-11-09].
+- **Enforced by:** `tests/ci/workflows.test.ts`, which holds every Bun step to this pair.
 
 ---
 

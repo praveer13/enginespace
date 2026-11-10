@@ -119,6 +119,40 @@ describe('the page names the game as D-049 says, and opens on the first level', 
   })
 })
 
+/**
+ * The landmarks of some markup as axe's `landmark-unique` reads them: a region (`section`, or `role="region"`) or a navigation that has a name,
+ * by its role and its name in lower case, since axe compares names without regard to case. An element with no name is no landmark.
+ */
+function landmarksIn(markup: string): string[] {
+  const headings = new Map([...markup.matchAll(/<(h[1-6])\b[^>]*\bid="([^"]+)"[^>]*>(.*?)<\/\1>/gs)].map((match) => [match[2], textOf(match[3]).trim()]))
+  const found: string[] = []
+  for (const match of markup.matchAll(/<(section|nav|aside|div)\b([^>]*)>/g)) {
+    const attributes = match[2]
+    const role = /\brole="(region|navigation|complementary)"/.exec(attributes)?.[1] ?? { section: 'region', nav: 'navigation', aside: 'complementary', div: undefined }[match[1]]
+    if (role === undefined) continue
+    const label = /\baria-label="([^"]*)"/.exec(attributes)?.[1] ?? headings.get(/\baria-labelledby="([^"]*)"/.exec(attributes)?.[1] ?? '')
+    if (label !== undefined) found.push(`${role}: ${label.replace(/&#x27;/g, "'").toLowerCase()}`)
+  }
+  return found
+}
+
+describe('the landmarks of the page can be told apart (axe landmark-unique, W1b-T09)', () => {
+  test('the game is a region named for the game, and the cabinet it holds is named for what it is: no two regions share a name, on any level', () => {
+    for (const [id] of PRACTICE) {
+      const landmarks = landmarksIn(render(h(Game, { level: id })))
+      expect(landmarks).toContain('region: the reach-in')
+      expect(landmarks).toContain('region: the reach-in: the page pool')
+      expect([id, landmarks.filter((landmark, at) => landmarks.indexOf(landmark) !== at)]).toEqual([id, []])
+    }
+  })
+
+  test('the check can fail: a cabinet named as the game is, in either case, is found', () => {
+    const page = '<section aria-labelledby="g"><h2 id="g">The Reach-In</h2><section aria-label="The reach-in"></section></section>'
+    expect(landmarksIn(page)).toEqual(['region: the reach-in', 'region: the reach-in'])
+    expect(landmarksIn('<section><h2>No name, no landmark</h2></section><nav aria-label="Levels of The Reach-In"></nav>')).toEqual(['navigation: levels of the reach-in'])
+  })
+})
+
 describe('the 2D view draws the reach-in, never a chart (GAMES.md §10 "2D path", §2.6 "The Reach-In")', () => {
   const level = practiceOf('evict')
   const state = asking(level, 'evict')

@@ -32,6 +32,10 @@ const TOLERANCE = 0.01
  * The tolerance above is what the comparison allows; this is only the wait. On a 4-core runner, the 2D pass after a fire at 1280 px ran
  * out of the 10 s before a single capture was taken, in both attempts of two runs, while the 3D pass's test drew beside it on SwiftShader
  * [measured 2026-11-09, PR #2's CI: the fonts were in, then the timeout]. The same test passed in the run before, in 30.5 s.
+ * The wait was not what it lacked: the capture waited on a browser that SwiftShader kept busy with the page, and with the 3D pass beside it.
+ * The smoke project composes its pages on the CPU now (playwright.config.ts, W1b-T13), and the same test took 1.8 s on four cores of a
+ * laptop at a load average of 20 to 40, where it took 13.1 s without that [measured 2026-11-09 at 54d880f], so the 30 s is a backstop
+ * and not what the capture needs.
  */
 const CAPTURE_TIMEOUT = 30_000
 

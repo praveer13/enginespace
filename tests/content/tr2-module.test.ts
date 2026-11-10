@@ -14,7 +14,7 @@
  *     every figure is the one `tests/content/tr2-figures.ts` draws, so when the model or a level moves a number, this file names the lesson
  *     and the figure that went stale.
  *   - The claims TR2 adds (content/claims/tr2.yaml) are read at the pins, at a tag or a commit, with the lines of their quotes.
- *   - What the lessons name but nobody has built yet is named here: six item families, and the `keys` level (Q-10).
+ *   - What the lessons name but nobody has built yet is named here: the `keys` level (Q-10). The nine item families they name are built (W1-T14, W1b-T04).
  */
 import { describe, expect, test } from 'bun:test'
 import { spawnSync } from 'node:child_process'
@@ -250,16 +250,21 @@ describe('check 4: the status is review', () => {
 /* What TR2 teaches                                                                                                   */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** The item families that nobody has built yet, and the KCs each is written to assess (content/kc/graph.yaml's `planned:` lines and curriculum/TR2 §4). */
-const TO_BUILD: Readonly<Record<string, readonly string[]>> = {
+/**
+ * The nine item families that TR2's lessons name, and the KCs each is written to assess (content/kc/graph.yaml and curriculum/TR2 §4). W1-T14 built
+ * three of them and W1b-T04 the other six, so no family is waiting for a task: the list that W1-T15 kept of the unbuilt ones is empty.
+ */
+const FAMILIES_NAMED: Readonly<Record<string, readonly string[]>> = {
   'tr2.step-order': ['tr2.step-calls', 'tr2.bubble'],
   'tr2.preempt-victim': ['tr2.one-budget'],
   'tr2.default-budget': ['tr2.gpu-dependent-defaults'],
+  'tr2.bubble-width': ['tr2.bubble', 'tr2.async-overlap'],
   'tr2.runner-fallback': ['tr2.mrv2-delta'],
+  'tr2.graph-hit': ['tr2.graph-replay'],
+  'tr2.padding-waste': ['tr2.capture-padding'],
   'tr2.dispatch-key': ['tr2.dispatch-keys'],
   'tr2.kv-after-graphs': ['tr2.graph-memory'],
 }
-const BUILT = ['tr2.bubble-width', 'tr2.graph-hit', 'tr2.padding-waste']
 
 describe('what the lessons teach', () => {
   const graph = readFileSync(path.join(repo, 'content/kc/graph.yaml'), 'utf8')
@@ -321,7 +326,7 @@ describe('what the lessons teach', () => {
     for (const { lesson } of lessons) for (const block of lesson.blocks) if (block.type === 'game') expect([lesson.id, block.level === 'keys']).toEqual([lesson.id, false])
   })
 
-  test('an item block names a family of TR2: three are built and six wait for W1-T38, and a built family assesses only KCs its lesson teaches', () => {
+  test('an item block names a family of TR2, and each of the nine is built: it assesses KCs its lesson teaches, at a level it draws at, and no family waits for a task', () => {
     const named = new Set<string>()
     for (const { lesson } of lessons) {
       for (const block of lesson.blocks) {
@@ -329,19 +334,18 @@ describe('what the lessons teach', () => {
         expect(block.family.startsWith('tr2.')).toBe(true)
         named.add(block.family)
         const gen = familyById(block.family)
-        if (gen === undefined) expect(Object.keys(TO_BUILD)).toContain(block.family)
-        else {
-          expect(BUILT).toContain(block.family)
-          for (const kc of gen.kcs) expect([lesson.id, block.family, lesson.kcs.includes(kc)]).toEqual([lesson.id, block.family, true])
-          // The level is one the family draws at.
-          expect(gen.variants.some((variant) => (variant.levels as readonly number[]).includes(block.level))).toBe(true)
-        }
+        // A lesson that names a family nobody built prints "Not built yet" in its place: none does.
+        expect([lesson.id, block.family, gen !== undefined]).toEqual([lesson.id, block.family, true])
+        if (gen === undefined) continue
+        expect(Object.keys(FAMILIES_NAMED)).toContain(block.family)
+        for (const kc of gen.kcs) expect([lesson.id, block.family, lesson.kcs.includes(kc)]).toEqual([lesson.id, block.family, true])
+        // The level is one the family draws at.
+        expect(gen.variants.some((variant) => (variant.levels as readonly number[]).includes(block.level))).toBe(true)
       }
     }
-    expect([...named].sort()).toEqual([...BUILT, ...Object.keys(TO_BUILD)].sort())
-    // The three built families really are built, and the six really are not, so this list is the follow-up of W1-T38 and goes stale the day one is built.
-    for (const id of BUILT) expect([id, familyById(id) !== undefined]).toEqual([id, true])
-    for (const id of Object.keys(TO_BUILD)) expect([id, familyById(id) === undefined]).toEqual([id, true])
+    expect([...named].sort()).toEqual(Object.keys(FAMILIES_NAMED).sort())
+    // The KCs each family is written to assess are the ones it names.
+    for (const [id, kcs] of Object.entries(FAMILIES_NAMED)) expect([id, familyById(id)?.kcs]).toEqual([id, kcs])
   })
 
   test('an exit ticket is three items on fresh seeds at level two, and a practice item before it is at a lower level (ASSESSMENT §4.2)', () => {
@@ -363,7 +367,7 @@ describe('what the lessons teach', () => {
       const reached = new Set<string>()
       for (const block of lesson.blocks) {
         if (block.type === 'game') for (const kc of gameKcs) reached.add(kc)
-        if (block.type === 'item') for (const kc of familyById(block.family)?.kcs ?? TO_BUILD[block.family] ?? []) reached.add(kc)
+        if (block.type === 'item') for (const kc of familyById(block.family)?.kcs ?? []) reached.add(kc)
       }
       for (const kc of lesson.kcs) expect([lesson.id, kc, reached.has(kc)]).toEqual([lesson.id, kc, true])
     }

@@ -3,16 +3,17 @@
  *
  *   metal     every metal of the line in one MeshPhysicalMaterial: brushed stainless, spun aluminium, chrome and cast iron differ
  *             per vertex by their finish (roughness, the brush's grain and anisotropy, metalness), on the kit's own brushed maps.
- *             The anisotropic lobe runs across the grain, so the highlights move along the steel as the camera does. Under each heat
- *             lamp the counter's own sheen and streak brighten in the lamp's warm light and fall off softly, in place of the one
- *             smooth lobe of the lamp's full amber that a spot light's specular draws off brushed steel, which read as a painted disc.
+ *             The anisotropic lobe runs across the grain, so the highlights move along the steel as the camera does. No spot light
+ *             lights it: a spot's specular draws one smooth lobe of the lamp's full amber off brushed steel, which read as a painted
+ *             disc, so a heat lamp's light is the cone's (Service.tsx's LampLights).
  *   ceramic   glazed ceramic: the plates, knobs and the fryer's oil, glossy with a clearcoat at T2.
  *   tile      the back wall's subway tile; floor, the sealed quarry tile; each with its generated normals and roughness.
  *   glow      what is lit: a station's element, a lamp's bulb, the heat strip, in the lamp's amber, each on its channel; a dark
  *             channel draws as cold deep steel. Lighting a station changes one uniform. Bloom catches it at T2.
  *   ticket    ticket paper with the print atlas, each ticket's cell from its instance.
  *   shadow    the contact shadows: a soft rounded rectangle under every prop, at every tier.
- *   cone      the light under a heat lamp, additive and soft, at T2.
+ *   cone      a heat lamp's light, additive and soft, at every tier: a cone of warm haze under its shade and the edgeless pool where it
+ *             lands. A face whose uv.x is 1 lies flat (a pool, a shade's mouth) and glows whichever way it is seen.
  *   steam     soft puffs over a lit station when a fire lands, at T2.
  *
  * Every colour is a role, from the kit's tokens; every number is scene-tokens.ts's PROP_PARAMS [estimated].
@@ -36,9 +37,9 @@ import {
   UniformsUtils,
   UnsignedByteType,
   Vector2,
-  Vector3,
   type Material,
   type Texture,
+  type WebGLProgramParametersWithUniforms,
 } from 'three'
 import type { Kit } from '../kit'
 import { drawPrint, floorMaps, FLOOR_MODULE, PRINT_CELLS, PRINT_SIZE, TILE_MODULE, tileMaps, type SurfaceMaps } from './surfaces'
@@ -55,18 +56,13 @@ export interface PropMaterials {
   readonly steam: ShaderMaterial
   /** Lights the glow channels in `mask` (bit n is channel n) and darkens the rest. */
   setLit(mask: number): void
-  /**
-   * The heat lamps' pools on the steel: each (x, z, radius) in metres, on the level surface at `y`, lit from `height` above it, in
-   * `color` (the lamp's, at the pool's strength). An empty list lifts them.
-   */
-  setPools(pools: readonly (readonly [number, number, number])[], y?: number, color?: Color, height?: number): void
   /** A metal of its own for one moving part, the same program as `metal`, whose emissive can flash amber (the bell's dome). */
   flashMetal(): MeshPhysicalMaterial
   dispose(): void
 }
 
 /** Replaces `find` in a shader chunk, and fails loudly if three's chunk no longer has it, so a patch never goes silently missing. */
-function patched(chunk: string, find: string, replace: string): string {
+export function patched(chunk: string, find: string, replace: string): string {
   if (!chunk.includes(find)) throw new Error(`a prop material's patch no longer fits three's shader: ${find}`)
   return chunk.replace(find, replace)
 }
@@ -80,75 +76,16 @@ function patched(chunk: string, find: string, replace: string): string {
  */
 const RADIANCE_CAP = '#include <opaque_fragment>\ngl_FragColor.rgb = min(gl_FragColor.rgb, vec3(16.0));'
 
-/** The heat lamps' pools, shared by every metal of one kitchen: each pool's (x, z, radius), the surface's height, the lamps' height over it, and the colour. */
-interface PoolUniforms {
-  uPools: { value: Vector3[] }
-  uPoolY: { value: number }
-  uPoolH: { value: number }
-  uPoolColor: { value: Color }
-}
+/** A further patch of the metal's shader, after the kit's own (a scene's lamps of its own: src/scene/spot-lamps.tsx). */
+export type MetalPatch = (shader: WebGLProgramParametersWithUniforms) => void
 
-/**
- * A lamp's light on the counter, on an upward face within a few centimetres of the pools' height. No colour is laid on the steel: the
- * lamp brightens what the steel already reflects. The lamps' own reflection off the steel there (their spot lights' specular, which
- * three draws as one smooth lobe in the lamp's full amber, bright enough to clip) is taken off, and the steel's own sheen (its specular
- * without the lamps, with the grain and the highlights that the room and the tubes put there) is brightened and warmed in its place,
- * as much as the lamps' reflection was strong: so the warm light keeps that reflection's footprint, its cone and penumbra, the way it
- * leans as the camera moves and, from T2, the shadows that the plates cast in it, falling off softly. Over it lies the steel's streak,
- * a lobe narrow along the brush and long across it from each lamp toward the eye, following the brush's lines (read from the steel's own
- * roughness, so its smoother lines catch more of the lamp). A spot's size is the lamp's cone where it lands, so the warm light stays on
- * the pass.
- */
-const POOL_VERTEX = `
-vec4 esWorld = vec4(transformed, 1.0);
-vec4 esUp = vec4(objectNormal, 0.0);
-#ifdef USE_INSTANCING
-esWorld = instanceMatrix * esWorld;
-esUp = instanceMatrix * esUp;
-#endif
-vPoolAt = (modelMatrix * esWorld).xyz;
-vPoolUp = normalize((modelMatrix * esUp).xyz).y;`
-
-export const POOL_FRAGMENT = `
-float esFlat = smoothstep(0.7, 0.95, vPoolUp) * (1.0 - smoothstep(0.008, 0.03, abs(vPoolAt.y - uPoolY)));
-if (esFlat > 0.0 && uPools[0].z > 0.0) {
-  vec3 esOwn = totalSpecular - esSpot;
-  vec3 esEye = normalize(cameraPosition - vPoolAt);
-  float esStreak = 0.0;
-  for (int i = 0; i < 3; i++) {
-    vec3 p = uPools[i];
-    if (p.z <= 0.0) continue;
-    vec2 d = (vPoolAt.xz - p.xy) / p.z;
-    vec3 h = normalize(normalize(vec3(p.x, uPoolY + uPoolH, p.y) - vPoolAt) + esEye);
-    esStreak += exp(-(h.x * h.x / 0.003 + h.z * h.z / 0.35) / (h.y * h.y) - 0.5 * d.x * d.x - 0.1 * d.y * d.y);
-  }
-  float esSheen = 1.0 - exp(-1.6 * dot(esSpot, vec3(0.2126, 0.7152, 0.0722)));
-  float esGrain = clamp(2.3 - 4.2 * roughnessFactor, 0.3, 1.5);
-  outgoingLight += esFlat * (uPoolColor * esOwn * (esSheen * 1.6 + esStreak * esGrain * 3.2) - esSpot);
-}
-`
-
-/**
- * three's lights, with the specular each spot light adds counted into `esSpot`: the heat lamps' own reflection, which the counter's
- * pool takes off and gives back as the steel's warmed sheen. Found by the spot loop's shadow line and its call, so a patch that no
- * longer fits fails loudly.
- */
-export function countSpotSpecular(chunk: string): string {
-  const shadowed = chunk.indexOf('vSpotLightCoord[ i ] ) : 1.0;')
-  const call = chunk.indexOf('RE_Direct(', shadowed)
-  const end = chunk.indexOf(';', call) + 1
-  if (shadowed < 0 || call < 0 || end <= 0) throw new Error("a prop material's patch no longer fits three's shader: the spot lights' loop")
-  return `vec3 esSpot = vec3(0.0);\nvec3 esBefore = vec3(0.0);\n${chunk.slice(0, call)}esBefore = reflectedLight.directSpecular;\n${chunk.slice(call, end)}\nesSpot += reflectedLight.directSpecular - esBefore;${chunk.slice(end)}`
-}
-
-/** Adds the per-vertex finish to a physical material: roughness, the grain (normal map and anisotropy) and metalness; and the lamps' pools. */
-function patchFinish(material: MeshPhysicalMaterial, pools: PoolUniforms) {
-  material.customProgramCacheKey = () => 'es-prop-metal-v5'
+/** Adds the per-vertex finish to a physical material: roughness, the grain (normal map and anisotropy) and metalness; then `extra`. */
+function patchFinish(material: MeshPhysicalMaterial, extra?: MetalPatch) {
+  material.customProgramCacheKey = () => (extra ? 'es-prop-metal-v6+' : 'es-prop-metal-v6')
   material.onBeforeCompile = (shader) => {
-    Object.assign(shader.uniforms, pools)
-    shader.vertexShader = patched(shader.vertexShader, '#include <common>', '#include <common>\nattribute vec3 aFinish;\nvarying vec3 vFinish;\nvarying vec3 vPoolAt;\nvarying float vPoolUp;')
-    shader.vertexShader = patched(shader.vertexShader, '#include <begin_vertex>', `#include <begin_vertex>\nvFinish = aFinish;${POOL_VERTEX}`)
-    let fragment = patched(shader.fragmentShader, '#include <common>', '#include <common>\nvarying vec3 vFinish;\nvarying vec3 vPoolAt;\nvarying float vPoolUp;\nuniform vec3 uPools[3];\nuniform float uPoolY;\nuniform float uPoolH;\nuniform vec3 uPoolColor;')
+    shader.vertexShader = patched(shader.vertexShader, '#include <common>', '#include <common>\nattribute vec3 aFinish;\nvarying vec3 vFinish;')
+    shader.vertexShader = patched(shader.vertexShader, '#include <begin_vertex>', '#include <begin_vertex>\nvFinish = aFinish;')
+    let fragment = patched(shader.fragmentShader, '#include <common>', '#include <common>\nvarying vec3 vFinish;')
     fragment = patched(fragment, '#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = clamp(roughnessFactor * vFinish.x, 0.0, 1.0);')
     fragment = patched(fragment, '#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\nmetalnessFactor *= vFinish.z;')
     fragment = patched(fragment, '#include <normal_fragment_maps>', patched(ShaderChunk.normal_fragment_maps, 'mapN.xy *= normalScale;', 'mapN.xy *= normalScale * vFinish.y;'))
@@ -157,8 +94,8 @@ function patchFinish(material: MeshPhysicalMaterial, pools: PoolUniforms) {
       '#include <lights_physical_fragment>',
       patched(ShaderChunk.lights_physical_fragment, 'vec2 anisotropyV = anisotropyVector;', 'vec2 anisotropyV = anisotropyVector * vFinish.y;'),
     )
-    fragment = patched(fragment, '#include <lights_fragment_begin>', countSpotSpecular(ShaderChunk.lights_fragment_begin))
-    shader.fragmentShader = patched(fragment, '#include <opaque_fragment>', `${POOL_FRAGMENT}${RADIANCE_CAP}`)
+    shader.fragmentShader = patched(fragment, '#include <opaque_fragment>', RADIANCE_CAP)
+    extra?.(shader)
   }
 }
 
@@ -277,7 +214,7 @@ varying float vEdge;
 void main() {
   vec4 world = modelMatrix * instanceMatrix * vec4(position, 1.0);
   vec3 n = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal);
-  vEdge = abs(dot(n, normalize(cameraPosition - world.xyz)));
+  vEdge = mix(abs(dot(n, normalize(cameraPosition - world.xyz))), 1.0, uv.x);
   vAlong = uv.y;
   vec4 mvPosition = viewMatrix * world;
   gl_Position = projectionMatrix * mvPosition;
@@ -351,7 +288,7 @@ export interface MaterialSource {
   readonly base: Kit['materials']
 }
 
-export function createPropMaterials(source: MaterialSource, maxAnisotropy: number): PropMaterials {
+export function createPropMaterials(source: MaterialSource, maxAnisotropy: number, extra?: MetalPatch): PropMaterials {
   const { tokens, tier } = source
   const inputs = tokens.materials.props
   const params = tokens.materials.propParams
@@ -360,7 +297,6 @@ export function createPropMaterials(source: MaterialSource, maxAnisotropy: numbe
   const steel = source.base.stainless
   const owned: Texture[] = []
 
-  const pools: PoolUniforms = { uPools: { value: [new Vector3(), new Vector3(), new Vector3()] }, uPoolY: { value: 0 }, uPoolH: { value: 1 }, uPoolColor: { value: new Color(inputs.glow) } }
   const makeMetal = () => {
     const metal = new MeshPhysicalMaterial({
       name: 'prop-metal',
@@ -376,7 +312,7 @@ export function createPropMaterials(source: MaterialSource, maxAnisotropy: numbe
       clearcoat: t2 ? params.metal.clearcoat : 0,
       clearcoatRoughness: params.metal.clearcoatRoughness,
     })
-    patchFinish(metal, pools)
+    patchFinish(metal, extra)
     return metal
   }
   const metal = makeMetal()
@@ -447,7 +383,7 @@ export function createPropMaterials(source: MaterialSource, maxAnisotropy: numbe
     roughness: 1,
     roughnessMap: paper.roughnessMap,
     normalMap: paper.normalMap,
-    normalScale: new Vector2(0.3, 0.3),
+    normalScale: new Vector2(0.8, 0.8),
     metalness: 0,
     side: DoubleSide,
   })
@@ -501,15 +437,6 @@ export function createPropMaterials(source: MaterialSource, maxAnisotropy: numbe
     steam,
     setLit(mask) {
       glowUniforms.uLit.value = mask | 0
-    },
-    setPools(list, y = 0, color, height = 1) {
-      pools.uPools.value.forEach((pool, i) => {
-        const [x, z, radius] = list[i] ?? [0, 0, 0]
-        pool.set(x, z, radius)
-      })
-      pools.uPoolY.value = y
-      pools.uPoolH.value = height
-      if (color) pools.uPoolColor.value.copy(color)
     },
     flashMetal() {
       const material = makeMetal()

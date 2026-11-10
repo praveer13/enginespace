@@ -1,6 +1,6 @@
 /*
  * Service's 3D scene, its page layer: the numbers printed on its tickets, a paid-for clip's empty stub, what the printer still holds,
- * and the marker on its tape, all DOM over the canvas (D-021). Every colour, face and shadow is a token role (src/design/tokens.css);
+ * and its tapes, all DOM over the canvas (D-021). Every colour, face and shadow is a token role (src/design/tokens.css);
  * this file names none of its own. The scene's box is a size container, so print scales with the pass and not with the window.
  */
 
@@ -62,11 +62,10 @@
   font-size: clamp(var(--es-size-micro), 1cqi, var(--es-size-print));
 }
 
-/* Marker on masking tape: the tape is in the scene, stuck where the kitchen sticks it; the words ride on it. */
-.es-loop-label--tape {
-  color: var(--es-tape-ink);
-  font-family: var(--es-font-label);
-  font-weight: var(--es-font-label-weight);
-  letter-spacing: var(--es-font-label-tracking);
-  font-size: clamp(0.5625rem, 0.95cqi, var(--es-size-print)); /* impeccable-disable-line design-system-font-size -- marker on a strip of tape a few centimetres wide on a phone */
+/*
+ * Marker on masking tape: the design system's tape (.es-tape), torn off at the size of its words and stuck on the object it names
+ * (scene-layout.ts). Its print scales with the scene's box and never drops under the size ramp's smallest step, so a phone reads it.
+ */
+.es-loop-label--tape .es-tape[data-size] {
+  font-size: clamp(var(--es-size-micro), 1.5cqi, var(--es-size-caption));
 }

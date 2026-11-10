@@ -3,7 +3,8 @@ name: CI
 # The pull-request gates (ARCHITECTURE §10.1). Three jobs run side by side:
 #   fast-gate  lint, typecheck, the content compile, every verify:* gate that scripts/verify.ts registers, the build, and the
 #              gate that reads the build (verify:bundle), then export freshness.
-#   tests      bun test: units, golden vectors, seeded properties and bestiaries.
+#   tests      bun test, in four shards (bun test --shard) that together run every test file once: units, golden vectors, seeded
+#              properties and bestiaries.
 #   e2e-smoke  Playwright's Chromium against vite preview: axe on the eight routes of W0-T21 and the sixteen pages and five level pages
 #              that W1 added (W1-T36) at 360 and 1280 px, the keyboard walks of the front-page game and of one level of each W1 game,
 #              the network check, the screenshots and reduced motion. The specs that earlier tasks wrote, and every level of every game,
@@ -46,9 +47,18 @@ jobs:
 
       # The scripts run under Bun, pinned as in kernelspace's workflows.
       - name: Set up pinned Bun
+        id: bun
+        continue-on-error: true
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.3.14
+
+      # A failed download from GitHub falls back to npm's copy of the same release (ARCHITECTURE §10.3).
+      - name: Set up pinned Bun from npm, when GitHub's download failed
+        if: steps.bun.outcome == 'failure'
+        env:
+          BUN_VERSION: 1.3.14
+        run: npm install --global --no-audit --no-fund "bun@$BUN_VERSION" && test "$(bun --version)" = "$BUN_VERSION"
 
       - run: npm ci
       - run: npm run lint
@@ -87,12 +97,27 @@ jobs:
             exit 1
           fi
 
-  # The suite outgrew a 15-minute backstop with W1: on PR #2's first run the runner had run 253 of the 268 test files, with no
-  # failure, when the job timed out after 841 s of tests [measured 2026-11-09, PR #2]. The laptop runs all 268 in 427 s [measured
-  # 2026-11-08 at 6418a20]. 30 minutes holds the whole suite until it is split across jobs (`bun test --shard`) or made faster.
+  # The suite outgrew one job with W1: on PR #2's first run the runner had run 253 of the 268 test files, with no failure, when the
+  # job timed out after 841 s of tests, and the runs that finished took 9 and 16 minutes in all [measured 2026-11-09, PR #2 and #3].
+  # The deploy's build ran the whole suite in 610 and 955 s [measured 2026-11-09, deploy.yml on main]. The laptop runs all 268 in 427 s
+  # [measured 2026-11-08 at 6418a20].
+  #
+  # So the job is four, one for each shard of `bun test --shard=<i>/4`. Bun sorts the test files by path and deals them out in turn,
+  # the first to shard 1, the second to shard 2 and so on, so the four shards together run every file once and no file twice;
+  # tests/ci/shards.test.ts lists each shard's files, compares their union with the suite, and asks Bun itself how many files each shard
+  # runs. A file is therefore in the shard that its place in the sorted list gives it, and nobody assigns it. On the files of 2026-11-09 the
+  # dealing gave the heaviest shard 34% of the suite's test time, on the laptop's run and on the runner's [derived from the junit reports of
+  # a laptop run at 54d880f, and from the test times in the log of the deploy's build], so a shard takes a third of a full run or a little
+  # more, which on the runs above is 3.5 to 5.5 minutes of tests [derived]. The backstop is 15 minutes [estimated]: it was 15 for the unsharded
+  # job at the start of W1, and the 30 that it was raised to is gone. deploy.yml still runs the suite whole (tests/ci/workflows.test.ts
+  # compares the two).
   tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -105,14 +130,27 @@ jobs:
 
       # The suite runs under Bun, pinned as in the fast gate.
       - name: Set up pinned Bun
+        id: bun
+        continue-on-error: true
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.3.14
 
+      # A failed download from GitHub falls back to npm's copy of the same release (ARCHITECTURE §10.3).
+      - name: Set up pinned Bun from npm, when GitHub's download failed
+        if: steps.bun.outcome == 'failure'
+        env:
+          BUN_VERSION: 1.3.14
+        run: npm install --global --no-audit --no-fund "bun@$BUN_VERSION" && test "$(bun --version)" = "$BUN_VERSION"
+
       - run: npm ci
 
-      # bunfig.toml roots `bun test` at tests/, so Playwright's specs in e2e/ never run here.
-      - run: bun run test
+      # bunfig.toml roots `bun test` at tests/, so Playwright's specs in e2e/ never run here. `bun run test` is package.json's
+      # `bun test --timeout 30000`, and the flag after it is Bun's: this shard's share of the sorted file list, out of four.
+      - name: Run this shard of the unit suite
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: bun run test --shard="$SHARD/4"
 
   # §10.1: Playwright's Chromium against `vite preview`, with axe on the pull-request routes, the keyboard walks of the front-page game
   # and of the games that W1 built, the network-isolation check, and the screenshots uploaded as artifacts. playwright.config.ts builds
@@ -126,9 +164,12 @@ jobs:
   # cores, and SwiftShader draws on the CPU, so the 78 specs in one job did not finish in 15 minutes [measured 2026-11-04 on PR #1:
   # 47 of 78 had run when the job timed out]. The cut is by count and the order is the files' names, so playwright.config.ts says where
   # each file sorts and why; W1-T36's 193 tests ran as four shards of 66, 61, 75 and 98 s on a 20-core laptop [measured 2026-11-08 at
-  # df76ca9]. A runner took about 4 to 16 times as long per test as that laptop did [derived from the first CI run's log on 2026-11-04,
-  # PR #1, against the laptop's times on 2026-11-08], which puts a shard at about 11 minutes of test time [estimated: no CI run has
-  # timed W1-T36's tests], inside this job's backstop.
+  # df76ca9]. On a runner the four shards took 7 to 12 minutes each, and shard 4 failed or had to retry its keyboard walks at 1280 px and its
+  # 2D screenshot after a fire on each of PR #2's three runs [measured 2026-11-09, PR #2 and #3]. Those tests did not wait for too short a time: the
+  # pages that they open do not need the GPU, and the browser composed them through SwiftShader on the CPU all the same, until it did not
+  # answer for a minute and a half. The smoke project's browser composes on the CPU now (playwright.config.ts has the measurements): the four
+  # shards ran in 82, 71, 58 and 74 s on four pinned cores of a laptop, where they took 206, 196, 293 and 306 s [measured 2026-11-09 at
+  # 54d880f]. No run on a runner has timed the change [unverified], and the backstop stays at 20 minutes.
   e2e-smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 20

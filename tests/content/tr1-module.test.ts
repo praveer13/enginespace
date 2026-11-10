@@ -22,7 +22,11 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import type { ProseInline } from '@es/schema'
 import { ENGINE_FLOOR } from '../../packages/play/engine-floor/entry'
+import { faceById } from '../../packages/play/items/catalog'
+import { offeredAt } from '../../packages/play/items/draw'
+import { startAttempt } from '../../packages/play/items/attempt'
 import { familyById } from '../../packages/play/items/registry'
+import type { Level } from '../../packages/play/items/types'
 import { MINUTES_TOLERANCE } from '../../scripts/content/build.ts'
 import {
   FINISHED_STATUSES,
@@ -188,18 +192,18 @@ describe('what the lessons teach', () => {
     expect(levels.filter((id) => id !== 'map').sort()).toEqual(Object.values(LEVEL_OF_LESSON).sort())
   })
 
-  test("a lesson's KCs are earned by the game, or wait for the item family that its exit check names", () => {
+  test("a lesson's KCs are earned by the game, or assessed by an item family that the lesson draws from", () => {
     const earned = new Set(ENGINE_FLOOR.kcs)
-    // The three KCs that the graded map cannot earn wait for an item family (the KC graph says which task builds it).
-    const WAITING_FOR_ITEMS = new Set(['tr1.phases-vs-one-budget', 'tr1.request-states', 'tr1.read-at-the-pin'])
+    // The three KCs that the graded map cannot earn are assessed by item families (W1b-T03), which the KC graph names as their graded references.
+    const BY_ITEMS = new Set(['tr1.phases-vs-one-budget', 'tr1.request-states', 'tr1.read-at-the-pin'])
     for (const { lesson } of lessons) {
-      const hasItems = lesson.blocks.some((block) => block.type === 'item')
-      for (const kc of lesson.kcs) expect([lesson.id, kc, earned.has(kc) || (WAITING_FOR_ITEMS.has(kc) && hasItems)]).toEqual([lesson.id, kc, true])
+      const assessed = new Set(lesson.blocks.flatMap((block) => (block.type === 'item' ? (familyById(block.family)?.kcs ?? []) : [])))
+      for (const kc of lesson.kcs) expect([lesson.id, kc, earned.has(kc) || assessed.has(kc)]).toEqual([lesson.id, kc, true])
+      for (const kc of lesson.kcs.filter((id) => BY_ITEMS.has(id))) expect([lesson.id, kc, earned.has(kc), assessed.has(kc)]).toEqual([lesson.id, kc, false, true])
     }
   })
 
-  test('an item block names a TR1 family; a built family assesses only KCs its lesson teaches; the five still to build are named', () => {
-    const TO_BUILD = ['tr1.request-state', 'tr1.step-budget', 'tr1.what-moved', 'tr1.where-does-it-run', 'tr1.which-mechanism']
+  test('an item block names a TR1 family that is built, which draws items at the block\'s level, and the lesson teaches a KC that the family assesses', () => {
     const named = new Set<string>()
     for (const { lesson } of lessons) {
       for (const block of lesson.blocks) {
@@ -208,11 +212,19 @@ describe('what the lessons teach', () => {
         expect(block.level).toBe(2)
         named.add(block.family)
         const gen = familyById(block.family)
-        if (gen === undefined) expect(TO_BUILD).toContain(block.family)
-        else for (const kc of gen.kcs) expect([lesson.id, block.family, lesson.kcs.includes(kc)]).toEqual([lesson.id, block.family, true])
+        expect([lesson.id, block.family, gen !== undefined]).toEqual([lesson.id, block.family, true])
+        if (gen === undefined) continue
+        // The item block shows its ticket from the family's face, and an attempt of `count` items can be drawn: no placeholder is left.
+        expect([lesson.id, block.family, faceById(block.family) !== undefined]).toEqual([lesson.id, block.family, true])
+        expect(offeredAt(gen, block.level as Level).length).toBeGreaterThan(0)
+        const attempt = startAttempt(gen, block.level as Level, Array.from({ length: block.count }, (_, at) => 0x5eed + 977 * at))
+        expect(attempt.served).toHaveLength(block.count)
+        expect(new Set(attempt.served.map((served) => served.seed)).size).toBe(block.count)
+        // A family is named by several lessons, each of which teaches one of the KCs that it assesses.
+        expect([lesson.id, block.family, gen.kcs.some((kc) => lesson.kcs.includes(kc))]).toEqual([lesson.id, block.family, true])
       }
     }
-    expect([...named].sort()).toEqual(TO_BUILD)
+    expect([...named].sort()).toEqual(['tr1.request-state', 'tr1.step-budget', 'tr1.what-moved', 'tr1.where-does-it-run', 'tr1.which-mechanism'])
   })
 
   test('an exit ticket is three items on fresh seeds (ASSESSMENT §4.2)', () => {

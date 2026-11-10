@@ -7,7 +7,8 @@
  *
  *   review:<kc>                 that KC itself
  *   play:<game>/<level>         the KCs the game exercises (the registry's `kcs`; a level names none of its own yet)
- *   item:gen/<family>/<v>       the KCs the family assesses (`Gen.kcs`, A§8.2)
+ *   item:gen/<family>/<v>       the KCs of that variant of the family (A§8.2: a variant assesses its own, as the item it makes carries
+ *                               them in `Item.kcs`), the same rule as Today's (src/items/today/kcs.ts)
  *   lab:<lab>, prove:<lab>      the KCs the lab's checks assess
  *   receipt:<stage>             the KCs of the stage's lab
  *   predict:<lesson>#<id>       the KCs the lesson's prediction names, from the exact refs the compiler writes (map.json)
@@ -23,8 +24,8 @@ import { labOfStage, parseRef } from '@es/schema/refs'
 export interface KcSources {
   /** The KCs a game's level exercises. */
   game(game: string, level: string): readonly string[]
-  /** The KCs an item family assesses. */
-  family(family: string): readonly string[]
+  /** The KCs that a variant of an item family assesses. An item that a variant made carries them, and a family's `kcs` is the union of its variants'. */
+  variant(family: string, variant: string): readonly string[]
   /** The KCs a lab's checks assess, for a forge lab (`hybrid-kv`) and a GPU or local lab (`tr8.replay`) alike. */
   lab(lab: string): readonly string[]
   /** The exact refs that content assigns to KCs: a prediction's. */
@@ -45,7 +46,7 @@ export function kcsOfRef(ref: string, sources: KcSources): readonly string[] {
     case 'play':
       return unique(sources.game(parsed.game, parsed.level))
     case 'item':
-      return unique(sources.family(parsed.family))
+      return unique(sources.variant(parsed.family, parsed.variant))
     case 'lab':
     case 'prove':
       return unique(sources.lab(parsed.lab))

@@ -124,7 +124,7 @@ describe('kept: right again on a fresh seed, unassisted, 30 days or more after i
   })
 
   test('an item on a fresh seed keeps it as a review does', () => {
-    expect(stateOf([earned, made('item', 'item:gen/tr2.bubble-width/async-on', { day: 31 })], 'tr2.bubble')).toBe('kept')
+    expect(stateOf([earned, made('item', 'item:gen/tr2.bubble-width/async-off', { day: 31 })], 'tr2.bubble')).toBe('kept')
   })
 
   test('a review that was wrong, assisted, or on a seed already seen keeps nothing', () => {
@@ -238,7 +238,7 @@ describe('the answer is a function of the events and the content', () => {
   })
 
   test('a source that knows nothing names no KC for a game run, an item or a lab, but a review still names its own', () => {
-    const empty = { refs: {}, game: () => [], family: () => [], lab: () => [] }
+    const empty = { refs: {}, game: () => [], variant: () => [], lab: () => [] }
     const state = deriveProgress(events, MAP, empty, homeOf)
     expect(state.counts).toEqual({ total: 7, practised: 1, earned: 1, kept: 0 })
     // The review passed at full weight, and the game run that would have earned the KC 31 days before is not evidence for it here.

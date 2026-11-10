@@ -12,11 +12,11 @@
  *     beside it, on the quarry floor against the subway tile. The room's light is baked into the tile and the floor, full over the line
  *     and dimming toward the far corners and up the tile over the hood, and past the house the room falls into a haze of deep steel.
  *   - A storey for each process over the line, a room on a brushed-stainless deck with a rolled front edge, furnished by its floor's
- *     kind so that it reads as its place at the cutaway's scale: the dining room's tables under their cloths with their chairs, the host
- *     stand's panelled counter with the night's book open on its lectern, the order desk with its printer and the printer's tape over its
- *     edge, the pass with its warm plates along its heated shelf, the cooks' bench with its pans, and the whole kitchen's pass and
- *     printer. Its hands work at that surface: a pair of hands is a short ticket rail on the tile over it, high enough that their ticket
- *     hangs clear of the surface, with a heat lamp hung from the deck above.
+ *     kind so that it reads as its place at the cutaway's scale: the dining room's tables under their cloths with their chairs, a host
+ *     stand of its own for each pair of hands at the host stand with the night's book open on its lectern beside them, the order desk with
+ *     its printer and the printer's tape over its edge, the pass with its warm plates along its heated shelf, the cooks' bench with its
+ *     pans, and the whole kitchen's pass and printer. Its hands work at that surface: a pair of hands is a short ticket rail on the tile
+ *     over it, high enough that their ticket hangs clear of the surface, with a heat lamp hung from the deck above.
  *   - The house's two walls: at its left a steel partition, with a ticket window into every storey where there are two or more (IPC and
  *     shared memory cross between floors through the chute hidden behind it), and at its right the dumbwaiter's open shaft, a landing at
  *     every storey's work surface and one at the line's counter, whose car the copies ride. They are the house's furniture, and say
@@ -77,6 +77,8 @@ const STATIONS = ['burners', 'griddle', 'fryer'] as const
 const LINE_RAIL = HOUSE.counter + 0.3
 /** A storey's counters, desks and tables reach this far out from the tile. */
 const COUNTER = 0.42
+/** A pair of hands' own host stand reaches this far either side of them: past their gate and their spike, and short of the next stand. */
+const STAND = 0.4
 /** The pass's heated shelf, where its warm plates stand, is this far under its counter (the kit's SHELF_DROP). */
 const SHELF = 0.37
 
@@ -101,8 +103,14 @@ export type HouseProp =
   | { readonly kind: 'post'; readonly id: string; readonly at: Vec3; readonly height: number }
   /** The line's canopy, the back edge of its top at `at`, on the tile under the deck. */
   | { readonly kind: 'canopy'; readonly id: string; readonly at: Vec3; readonly width: number; readonly depth: number; readonly height: number }
-  /** The dining room's table and the host stand's counter, their tops `height` over `at`. */
+  /**
+   * The dining room's table, the host stand's lectern with the night's book, and the pedestal a spike stands on between two host stands
+   * (scene-route.ts): their tops `height` over `at`.
+   */
   | { readonly kind: 'table'; readonly id: string; readonly at: Vec3; readonly height: number }
+  | { readonly kind: 'lectern'; readonly id: string; readonly at: Vec3; readonly height: number }
+  | { readonly kind: 'pedestal'; readonly id: string; readonly at: Vec3; readonly height: number }
+  /** A pair of hands' own host stand, its top `height` over `at`. */
   | { readonly kind: 'stand'; readonly id: string; readonly at: Vec3; readonly width: number; readonly depth: number; readonly height: number }
   /** A heat lamp's bulb, glowing round its shade's lip at `at`, on the lamp's channel. */
   | { readonly kind: 'ring'; readonly id: string; readonly at: Vec3; readonly channel: number }
@@ -121,6 +129,11 @@ export interface Storey {
   /** The surface its hands work at (its tables, counter or desk, or the line's counter): its window's sill and its landing. */
   readonly top: number
   readonly line: boolean
+  /**
+   * Where each pair of hands works at a stand of its own (the host stand's), how far that stand reaches either side of them; 0 where
+   * they share one counter. A spike laid between two stands stands on a pedestal of its own (scene-route.ts).
+   */
+  readonly stand: number
 }
 
 /** A pair of hands, or a stream of the line: where its place is in the house. */
@@ -149,6 +162,11 @@ export interface Pose {
 export interface House {
   /** Changes whenever the static house does: the scene rebuilds its set on it. */
   readonly key: string
+  /**
+   * A house of one storey over the line (before the prediction, and nano-vllm's whole kitchen): its cutaway is framed on its hands
+   * (scene-presets.ts), so their names show on a phone too (scene-route.ts's `handsInView`).
+   */
+  readonly low: boolean
   readonly storeys: readonly Storey[]
   readonly spots: ReadonlyMap<string, Spot>
   readonly items: readonly HouseItem[]
@@ -170,9 +188,9 @@ const lean = (n: number, amount: number): number => (((n * 37) % 11) / 11 - 0.5)
  * What a storey's hands work at, by its floor's kind (GAMES.md §2.6), and what stands on it, against the tile: a counter over its lanes
  * (`span` across them) that reaches a little past the first on the left and further past the last on the right, where its own things
  * stand clear of the spikes and gates a stage lays beside a ticket. Each reads as its place at the cutaway's scale: the dining room's
- * table for each pair of hands (each set with its plate, scene-props.ts) and one more, the host stand's book open on its lectern
- * (scene-props.ts), the order desk's printer with its tape run out over the desk's front edge, and the pass's warm plates, a stack every
- * half metre along its heated shelf.
+ * table for each pair of hands (each set with its plate, scene-props.ts) and one more, a host stand of its own for each pair of hands at
+ * the host stand, with the night's book open on a lectern past the last (scene-props.ts), the order desk's printer with its tape run out
+ * over the desk's front edge, and the pass's warm plates, a stack every half metre along its heated shelf.
  */
 function furnish(kind: FloorKind, j: number, y: number, span: number): HouseItem[] {
   const z = HOUSE.back + COUNTER / 2
@@ -180,7 +198,10 @@ function furnish(kind: FloorKind, j: number, y: number, span: number): HouseItem
   const end = span + 0.62
   const counter = { id: `counter-${j}`, at: [(span + 0.37) / 2, y, z] as Vec3, width: span + 1.25, depth: COUNTER, height: HOUSE.surface }
   if (kind === 'dining') return [0, span + 1.45].map((x, i) => ({ kind: 'table', id: `table-${j}-${i}`, at: [x, y, -0.21], height: HOUSE.surface }))
-  if (kind === 'host') return [{ kind: 'stand', ...counter }]
+  if (kind === 'host') {
+    const stands = Array.from({ length: Math.round(span / HOUSE.lane) + 1 }, (_, i): HouseItem => ({ kind: 'stand', id: `stand-${j}-${i}`, at: [i * HOUSE.lane, y, z], width: 2 * STAND, depth: COUNTER - 0.02, height: HOUSE.surface }))
+    return [...stands, { kind: 'lectern', id: `lectern-${j}`, at: [span + 0.57, y, z + 0.05], height: HOUSE.surface }]
+  }
   const printer: HouseItem = { kind: 'printer', id: `printer-${j}`, at: [end, top, z + 0.12] }
   if (kind === 'desk') return [{ kind: 'worktop', ...counter }, printer, { kind: 'tape', id: `tape-${j}`, at: [end, top, z + 0.21] }]
   if (kind === 'cooks') return [{ kind: 'worktop', ...counter }, { kind: 'pan', id: `pan-${j}`, at: [end, top, z], size: '1/2', depth: 0.1 }]
@@ -220,7 +241,7 @@ export function houseOf(floors: readonly Floor[]): House {
     const top = y + HOUSE.surface
     const lip = top + LAMP.lip
     const ceiling = y + HOUSE.pitch - HOUSE.deck
-    storeys.push({ process: floor.process, title: floor.title, y, top, line: false })
+    storeys.push({ process: floor.process, title: floor.title, y, top, line: false, stand: floor.kind === 'host' ? STAND : 0 })
     items.push(deck(`deck-${j}`, y), ...furnish(floor.kind, j, y, (floor.lanes.length - 1) * HOUSE.lane))
     floor.lanes.forEach((lane, i) => {
       const x = i * HOUSE.lane
@@ -242,7 +263,7 @@ export function houseOf(floors: readonly Floor[]): House {
   items.push(deck('roof', roof))
 
   // The line: a station for each stream and the kitchen's own after them, under the canopy, with the line's rail on the tile.
-  storeys.push({ process: null, title: line?.title ?? FLOOR_NAMES.line, y: 0, top: HOUSE.counter, line: true })
+  storeys.push({ process: null, title: line?.title ?? FLOOR_NAMES.line, y: 0, top: HOUSE.counter, line: true, stand: 0 })
   const z = HOUSE.back + HOUSE.station / 2
   for (let i = 0; i < stations; i++) items.push({ kind: STATIONS[i % 3], id: `station-${i}`, at: [i, 0, z], width: 0.98, depth: HOUSE.station, height: HOUSE.counter, channel: i })
   streams.forEach((lane, i) => add(lane, { x: i, y: HOUSE.counter, gpu: true, channel: i, stand: { at: [i, LINE_RAIL - CLIP, HOUSE.back + 0.027], rot: [-0.06, 0, lean(i + 5, 0.08)] }, lamp: null }))
@@ -273,6 +294,7 @@ export function houseOf(floors: readonly Floor[]): House {
 
   return {
     key: `${storeys.map((s) => `${s.process}:${s.y}`).join('/')}|${[...spots.keys()].join(',')}`,
+    low: hosts.length < 2,
     storeys,
     spots,
     items,
@@ -301,14 +323,21 @@ export interface Tape {
   readonly text: string
   /** A lane's kind beside its name: the CPU's code for a thread, the GPU's for a stream (DESIGN.md, Only Code: with its glyph). */
   readonly slot?: 'blue' | 'green'
-  /** Hidden in a canvas narrower than this, in CSS px: the mirror and the 2D view carry it. */
+  /**
+   * Hidden in a canvas narrower than this, in CSS px, where three would meet: the mirror and the 2D view carry it. A pair of hands' tape
+   * shows on a phone too where the camera is close on hands (scene-route.ts's `handsInView`).
+   */
   readonly minWidth?: number
   /**
    * A storey's tape starts at its anchor and runs right; a pair of hands' is centred on the front of the furniture they work at, under
    * their ticket, their lamp and the chits of their hand-offs, and wraps at its hyphens to about a lane's width.
    */
   readonly hands?: boolean
-  /** A strip of masking tape stuck in the scene, its words over it: the line's name on the canopy's lip, as Service's is on its tile. */
+  /**
+   * A strip of masking tape stuck in the scene, its words over it: the line's name on the canopy's lip, as Service's is on its tile. The
+   * scene cuts it to its words wherever the camera stands, as the DOM tapes are cut to theirs (Scene3D.tsx), up to `size`: no longer than
+   * the lip leaves it from its centre, and no taller than the lip's band over the tubes.
+   */
   readonly strip?: { readonly center: Vec3; readonly size: readonly [number, number]; readonly rotation: Vec3 }
 }
 
@@ -324,9 +353,9 @@ export function tapesOf(house: House): Tape[] {
       const id = `storey-${i}`
       const text = s.title.toUpperCase()
       if (!s.line) return { id, at: [left, s.y - 0.028, HOUSE.front + 0.028], text }
-      // On the canopy's lip, over the line's left station and its tube.
-      const at: Vec3 = [0, HOUSE.line - HOUSE.deck - HOOD.height + 0.072, HOUSE.back + HOOD.depth + 0.004]
-      return { id, at, text, strip: { center: at, size: [0.72, 0.075], rotation: [0, 0, -0.012] } }
+      // On the canopy's lip over the line's left station, in the band above its tube, whose light stays clear of the tape.
+      const at: Vec3 = [0, HOUSE.line - HOUSE.deck - HOOD.height + 0.084, HOUSE.back + HOOD.depth + 0.004]
+      return { id, at, text, strip: { center: at, size: [1, 0.088], rotation: [0, 0, -0.012] } }
     }),
     ...[...house.spots.values()].map((spot): Tape => ({
       hands: true,

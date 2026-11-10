@@ -35,5 +35,7 @@ The bell on the assembled pass: the chrome dome wobbles and flashes amber, the p
 
 ## Unresolved
 
+- **W1b-T10** carried Back of House's lamp into the kit: every game's lamp is a cone of warm haze and an edgeless pool with no spot light. The kitchen here keeps scene kit v1's spot lamps (src/scene/spot-lamps.tsx, outside the kit's props, so no game counts them), whose shadow maps at T2 its spec holds, until the owner rules on O-13; it shows the kit's new paper and merge.
+
 - The heat lamps' shadow maps at T2 depart from A§6.6 (real-time shadows off at T1 and T2) and steam departs from GAMES.md §2.6 rule 1 (no steam): the task asks for both, and the docs need the owner's amendment.
 - The ticket print is a texture of generic order lines in dots; it carries no number a reader needs (GAMES.md §2.6 rule 7), and the ticket's number stays a DOM label.

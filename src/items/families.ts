@@ -11,14 +11,32 @@ import { use } from 'react'
 import type { Gen } from '@es/play/items/types'
 
 const LOADERS: Readonly<Record<string, () => Promise<Gen>>> = {
+  'tr1.request-state': () => import('@es/play/items/families/tr1/request-state').then((family) => family.requestState),
+  'tr1.step-budget': () => import('@es/play/items/families/tr1/step-budget').then((family) => family.stepBudget),
+  'tr1.what-moved': () => import('@es/play/items/families/tr1/what-moved').then((family) => family.whatMoved),
+  'tr1.where-does-it-run': () => import('@es/play/items/families/tr1/where-does-it-run').then((family) => family.whereDoesItRun),
+  'tr1.which-mechanism': () => import('@es/play/items/families/tr1/which-mechanism').then((family) => family.whichMechanism),
   'tr2.bubble-width': () => import('@es/play/items/families/tr2/bubble-width').then((family) => family.bubbleWidth),
+  'tr2.default-budget': () => import('@es/play/items/families/tr2/default-budget').then((family) => family.defaultBudget),
+  'tr2.dispatch-key': () => import('@es/play/items/families/tr2/dispatch-key').then((family) => family.dispatchKey),
   'tr2.graph-hit': () => import('@es/play/items/families/tr2/graph-hit').then((family) => family.graphHit),
+  'tr2.kv-after-graphs': () => import('@es/play/items/families/tr2/kv-after-graphs').then((family) => family.kvAfterGraphs),
   'tr2.padding-waste': () => import('@es/play/items/families/tr2/padding-waste').then((family) => family.paddingWaste),
+  'tr2.preempt-victim': () => import('@es/play/items/families/tr2/preempt-victim').then((family) => family.preemptVictim),
+  'tr2.runner-fallback': () => import('@es/play/items/families/tr2/runner-fallback').then((family) => family.runnerFallback),
+  'tr2.step-order': () => import('@es/play/items/families/tr2/step-order').then((family) => family.stepOrder),
+  'tr5a.blocks-held': () => import('@es/play/items/families/tr5a/blocks-held').then((family) => family.blocksHeld),
+  'tr5a.hit-length': () => import('@es/play/items/families/tr5a/hit-length').then((family) => family.hitLength),
+  'tr5a.pages-for-adapter': () => import('@es/play/items/families/tr5a/pages-for-adapter').then((family) => family.pagesForAdapter),
+  'tr5a.slots-vs-pages': () => import('@es/play/items/families/tr5a/slots-vs-pages').then((family) => family.slotsVsPages),
   'tr6.exactness-test': () => import('@es/play/items/families/tr6/exactness-test').then((family) => family.exactnessTest),
   'tr6.mask-fits': () => import('@es/play/items/families/tr6/mask-fits').then((family) => family.maskFits),
   'tr6.mask-phases': () => import('@es/play/items/families/tr6/mask-phases').then((family) => family.maskPhases),
   'tr6.verify-shape': () => import('@es/play/items/families/tr6/verify-shape').then((family) => family.verifyShape),
   'tr6.which-runner': () => import('@es/play/items/families/tr6/which-runner').then((family) => family.whichRunner),
+  'tr8.goodput-denominator': () => import('@es/play/items/families/tr8/goodput-denominator').then((family) => family.goodputDenominator),
+  'tr8.littles-law': () => import('@es/play/items/families/tr8/littles-law').then((family) => family.littlesLaw),
+  'tr8.which-flag': () => import('@es/play/items/families/tr8/which-flag').then((family) => family.whichFlag),
 }
 
 /** The ids that have a loader, in the table's order. */

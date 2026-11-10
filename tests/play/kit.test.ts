@@ -81,6 +81,42 @@ describe('the shell names the game as D-049 says: the display name over its engi
   })
 })
 
+describe('inside a lesson (W1b-T01: `embedded`)', () => {
+  /** Every layout the shell has: the plain one, the mirror first, the view leading, the sticky view, and the view leading with what stands beside. */
+  const layouts: Partial<Props>[] = [{}, { mirrorFirst: true }, { stage: true }, { stage: 'sticky' }, { stage: true, beside: () => h('div', { 'data-slot': 'beside' }) }]
+
+  test("the parts stand one under the other at every width: none of the wide screen's columns, which the page keeps", () => {
+    for (const layout of layouts) {
+      expect(shell({ ...layout, embedded: true })).not.toMatch(/\blg:/)
+      expect(shell(layout)).toMatch(/\blg:/)
+    }
+  })
+
+  test('the parts keep the order of a narrow screen and of the keyboard: the view, the controls, what stands beside them, the switches, the mirror', () => {
+    const markup = shell({ stage: true, embedded: true, beside: () => h('div', { 'data-slot': 'beside' }) })
+    const at = ['data-slot="view2d"', 'data-slot="controls"', 'data-slot="beside"', 'aria-label="Stages of', 'data-stage="play"', 'data-slot="mirror"'].map((text) => markup.indexOf(text))
+    expect(at.every((index, i) => index > -1 && (i === 0 || index > at[i - 1]))).toBe(true)
+  })
+
+  test("the game's region and its stages are named with the level and the mode, since a lesson can hold two of one game", () => {
+    const markup = shell({ embedded: true, headingLevel: 3, levelTitle: 'The pile', mode: 'graded' })
+    expect(markup).toContain('aria-label="Stages of Counting House: The pile, graded"')
+    const tape = /<span class="es-tape" data-tilt="left" data-size="sm" id="([^"]+)"><span class="es-tape__text">The pile · graded<\/span><\/span>/.exec(markup)?.[1]
+    const heading = /<h3 id="([^"]+)"/.exec(markup)?.[1]
+    expect(tape).toBeTruthy()
+    expect(markup).toContain(`aria-labelledby="${heading} ${tape}"`)
+    // On its own page the region is named by the heading alone, and the stages as they always were.
+    const page = shell({ levelTitle: 'The pile' })
+    expect(page).toContain('aria-label="Stages of this game"')
+    expect(page).not.toMatch(/aria-labelledby="[^" ]+ [^"]+"/)
+  })
+
+  test('the section says the level it plays, on a page and in a lesson alike', () => {
+    expect(shell()).toContain('data-level="pile"')
+    expect(shell({ embedded: true })).toContain('data-level="pile"')
+  })
+})
+
 describe('the stages', () => {
   test('a game with only a debrief shows Play and Debrief, and Debrief is shut until the run is over', () => {
     const markup = shell()

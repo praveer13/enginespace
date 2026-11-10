@@ -12,7 +12,6 @@ import path from 'node:path'
 import { Box3, BufferGeometry, ShaderChunk, Vector3 } from 'three'
 import { staticSceneTokens } from '@/design/scene-tokens'
 import { buildProp, panGeometries, PLATE_SHADOWS, plateFootprints, plateProfile } from '@/scene/props/build'
-import { countSpotSpecular, POOL_FRAGMENT } from '@/scene/props/materials'
 import { bakeOcclusion } from '@/scene/props/occlusion'
 import { CHANNEL, paletteFrom } from '@/scene/props/palette'
 import { cellOffset, feedPath, ticketGeometry } from '@/scene/props/paper'
@@ -20,6 +19,7 @@ import { ALWAYS_LIT, buildSet, litMask, roomShade, type RoomLight } from '@/scen
 import { lathe, roundedBox, roundedRectPath, sweep } from '@/scene/props/shape'
 import { PAN_SIZES, PLATE, TICKET, type PropSpec } from '@/scene/props/specs'
 import { drawPrint, PRINT_CELLS, PRINT_SIZE, tileMaps, floorMaps } from '@/scene/props/surfaces'
+import { countSpotSpecular, POOL_FRAGMENT } from '@/scene/spot-pools'
 
 const root = path.resolve(import.meta.dirname, '../..')
 const palette = paletteFrom(staticSceneTokens())
@@ -321,6 +321,37 @@ describe("a room that lights itself falls away from its line (Service's finish r
   })
 })
 
+describe("the service bell is polished chrome on deep steel (W1b's finish review of the lesson blocks, round 2)", () => {
+  test("its base is turned steel in deep steel's tone: lighter than the spike's base beside it, which is brushed deep steel, and darker than shaded steel", () => {
+    const bell = buildProp({ kind: 'bell-base', id: 'b', at: [0, 0, 0] }, palette)
+    const spike = buildProp({ kind: 'spike', id: 's', at: [0, 0, 0] }, palette)
+    const [base] = bell.parts
+    const [spikeBase] = spike.parts
+    expect(base.surface).toBe('metal')
+    expect(base.color).toBe(palette.colorOf('turned'))
+    expect(spikeBase.color).toBe(palette.colorOf('deep'))
+    for (const channel of ['r', 'g', 'b'] as const) {
+      // A metal's colour is its reflectance: the base mirrors the room at well over half again the spike's, and short of shaded steel.
+      expect(base.color[channel]).toBeGreaterThan(spikeBase.color[channel] * 1.5)
+      expect(base.color[channel]).toBeLessThan(palette.colorOf('shaded')[channel])
+    }
+    // Turned on the lathe: the spun finish, its grain running round the base.
+    expect(base.finish).toEqual(palette.finishes.spun)
+  })
+
+  test("its dome and plunger are polished evenly, with no grain, and soft enough that the room's tubes merge into one highlight over the crown", () => {
+    const polished = palette.part(new BufferGeometry(), 'polished')
+    const [roughness, grain, metalness] = polished.finish
+    expect([polished.surface, grain, metalness]).toEqual(['metal', 0, 1])
+    // A roughness of its own (the bell's material has no roughness map): rougher than chrome's on brushed steel's map, which mirrored the
+    // tubes as stripes, and smoother than brushed steel's own (MATERIAL_PARAMS.stainless, 0.36).
+    expect(roughness).toBeGreaterThan(palette.finishes.chrome[0] * 0.36)
+    expect(roughness).toBeGreaterThanOrEqual(0.25)
+    expect(roughness).toBeLessThan(0.36)
+    expect(polished.color.equals(palette.colorOf('steel'))).toBe(true)
+  })
+})
+
 describe('paper', () => {
   test('a ticket hangs from its top edge with thickness and a curl toward its face', () => {
     const ticket = ticketGeometry(TICKET.width, TICKET.height, TICKET.thickness)
@@ -358,10 +389,13 @@ describe('paper', () => {
 
   test("the atlas prints in the impact printer's dots and only in its two inks, on a canvas it is handed, with no letter and no number", () => {
     const calls: string[] = []
+    const edges: string[] = []
     const dots: { x: number; y: number; radius: number }[] = []
     const context = {
       fillStyle: '',
+      strokeStyle: '',
       fillRect: () => calls.push('rect'),
+      strokeRect: () => edges.push(`edge:${context.strokeStyle}`),
       beginPath: () => undefined,
       arc: (x: number, y: number, radius: number) => dots.push({ x, y, radius }),
       fill: () => calls.push(`dot:${context.fillStyle}`),
@@ -383,6 +417,9 @@ describe('paper', () => {
     }
     // The print's dots are large enough to read as dots at a ticket's size in a scene: about a 25th of a cell's width across.
     expect(Math.max(...dots.map((dot) => dot.radius)) * 2).toBeGreaterThan(cell.w / 25)
+    // W1b-T10: each sheet has its tooth (soft dots of the rule's ink inside it, counted above) and is a shade darker toward its cut
+    // edges, in the rule's ink, twice over: the ticket's back and edges sample that shade, so its thickness reads.
+    expect(edges).toEqual(Array.from({ length: PRINT_CELLS.across * PRINT_CELLS.down * 2 }, () => 'edge:rule'))
   })
 })
 

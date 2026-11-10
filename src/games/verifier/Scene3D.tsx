@@ -11,29 +11,33 @@ import { progress } from '@/scene/props/motion'
 import { merged, type Vec2 } from '@/scene/props/shape'
 import { SceneCanvas } from '@/scene/SceneCanvas'
 import { SheetInstances } from '@/scene/SheetInstances'
-import { changeOf, ringHeight, tastingKitchen, tastingScene, type Anchor, type Band, type Change, type Dispenser, type Marker, type Ring, type Stack, type TastingScene } from './scene-layout'
+import { changeOf, servedPlates, tastingKitchen, tastingScene, type Anchor, type Band, type Change, type Dispenser, type Marker, type Served, type Stack, type TastingScene } from './scene-layout'
 import { planOf, PLATE, presetsOf, stackHeight, type Plan, type Vec3 } from './scene-plan'
+import { tastingLamp } from './scene-props'
 import type { Shot } from './scene-shots'
 
 /*
  * The Tasting's 3D scene (`verifier`; GAMES.md §2.6 "The Tasting", §10 "3D scene"; scene kit v1): the pass where the chef tastes, its room and
  * its light from the kit, and the game's own pieces made the kit's way, turned and swept with its helpers: the stacks of tasting plates,
  * stacked by hand, each in a satin glaze with its part on its edge band and a gap of shade under it; the chef's wire dispensers standing
- * in an enamel foot of the target's blue, a few plates over her stack; the rings that mark what went out, white enamel edged in grey;
- * and the plates a round pulls, glazed as the stacks' are, each over its own shadow on the steel. Laid out by scene-layout.ts
- * from the session's view, so it draws and decides nothing. A lazy chunk of its own, loaded by the Stage that the game holds.
+ * in an enamel foot of the target's blue, a few plates over her stack; what went out, stacked on white side plates edged in grey beside
+ * her dispenser; the plates a round pulls, glazed as the stacks' are, each over its own shadow on the steel; and the heat lamps, under
+ * shades of brushed steel round a dark well (scene-props.ts). Laid out by scene-layout.ts from the session's view, so it draws and
+ * decides nothing. A lazy chunk of its own, loaded by the Stage that the game holds.
  *
  * One moment carries the game, on the bell (a draw of rounds): the bell strikes, the new rounds' plates drop beside the commis's stacks,
  * course after course into the run, to their places at their coins' heights, a kept one level and out toward the chef, a sent-back one
- * out the other way, tipping away from her as it lands; then the rings settle on the chef's dispensers to what went out, onto the tops
- * of her stacks as it becomes her tasting, so a run's first round leaves them off the tops and a thousand settle them there. The lamps'
- * amber pools on the course being tasted.
- * A change of the recipe settles the rings and drops nothing. Between bells the kitchen is still; under reduced motion every change cuts.
+ * out the other way, tipping away from her as it lands; then what went out settles beside each of her stacks, a dish's side plates
+ * rising or falling to how often it went out, so a run's first round stands one dish to the wires' top and leaves the rest bare, and a
+ * thousand stand each beside her stack exactly as tall: two skylines that are one. The lamps' light is the kit's, a cone of warm haze
+ * under each and an edgeless pool where it lands on the course being tasted, with no spot light, and the steel reflects the tubes and not
+ * the lamps' glow, so the amber lies on that course, under the shades, and nowhere else. A change of the recipe settles what went out
+ * and drops nothing. Between bells the kitchen is still; under reduced motion every change cuts.
  *
- * Draw calls at T1: the room's metal, glaze, tile, floor and glow (5), the contact shadows (1), the tasting's glaze and wire (2), the
- * pulled plates (2, one a part), the rings (1), the bell's dome and plunger (2) and the tape (1). T2 adds each shadow-casting
- * lamp's pass over what casts. The measured figures, read from renderer.info by e2e/verifier-scene.spec.ts, and this chunk's size as
- * verify:bundle counts it, are in GAMES.md §10, "Budget".
+ * Draw calls at every tier: the room's metal, glaze, tile, floor and glow (5), the contact shadows (1), the tasting's glaze and wire (2),
+ * the pulled plates (2, one a part), what went out (1), the bell's dome and plunger (2), the lamps' light while they burn (1) and the
+ * tape (1). T2 adds bloom and the final pass. The measured figures, read from renderer.info by e2e/verifier-scene.spec.ts, and this
+ * chunk's size as verify:bundle counts it, are in GAMES.md §10, "Budget".
  */
 
 export interface Scene3DProps {
@@ -50,17 +54,22 @@ export interface Scene3DProps {
 
 /**
  * The haze the room falls into, from this far beyond what the camera looks at to this far [estimated], in deep steel, which is also the
- * colour past the room's walls, so that a shot that sees over them sees haze. Over a run it starts just past the courses, so the line and
- * the wall behind them fall away into it; over one course, whose wall stands nearer the pass, it thickens within the wall's depth, so the
- * line keeps its steel and the wall over it is haze. The shots nearer the pass, which stand further in front of the room, take it further
- * off, so that the room falls into it and never into a void.
+ * colour past the room's walls, so that a shot that sees over them sees haze. Over a run it starts just past the courses and is whole by
+ * the wall, so the line behind them falls away into it and the wall over the line is haze well before the box's top edge. Over one
+ * course, whose wall stands nearer the pass, it starts behind the line and is about two thirds by the wall, so the tile keeps its
+ * courses and grout behind the lamps, veiled in the haze, and the hood in front of the wall ends the room. The shots nearer the pass,
+ * which stand further in front of the room, take it further off, so that the room falls into it and never into a void.
  */
 const haze = (near: number, far: number) => ({ near, far, color: 'surface-3' as const })
-const HAZE = haze(0.45, 3.1)
-const ONE_HAZE = haze(0.5, 1.7)
+const HAZE = haze(0.3, 1.5)
+const ONE_HAZE = haze(0.7, 1.9)
 const NEAR_HAZE = haze(1.3, 4.6)
-/** The heat lamps' light, as a share of the kit's [estimated]: amber pooled on the steel round the course being tasted. */
-const LAMP_POWER = 1.1
+/**
+ * The heat lamps' light, as a share of the kit's [estimated], and each lamp's pool along the pass and across it in metres: the two dishes
+ * under the lamp, within the counter's depth, and gone before the next lamp's pool.
+ */
+const LAMP_POWER = 0.7
+const POOL = [0.3, 0.2] as const
 /** No piece of the tasting is picked: the dishes' tape is. */
 const NO_PICK = () => null
 /** Turns round a stack [estimated]: enough that a stack of plates reads round at a phone's size. */
@@ -72,11 +81,11 @@ const SLACK = 0.0035
 /**
  * A drafted plate: how far it falls, where it stands out of the stack when it lands (a kept plate level, toward the chef and the pass's
  * edge; a sent-back one away from her, tipped down away from her), how far a sent-back one tips, and its drop's length [estimated]. Each
- * stands clear of its stack, and of the dispensers either side, so that it reads from over the run.
+ * stands in front of the commis's stack, clear of it, of her dispenser and of the dish beside, so that it reads from over the run.
  */
-const DROP = { height: 0.26, kept: [0.06, 0.105], back: [-0.1, 0.05], tip: 0.5, ms: 300, row: 70, round: 16 } as const
-/** After a bell the rings wait for the plates to land [estimated]. */
-const RING_DELAY = 160
+const DROP = { height: 0.26, kept: [0.065, 0.12], back: [-0.065, 0.12], tip: 0.5, ms: 300, row: 70, round: 16 } as const
+/** After a bell what went out waits for the plates to land [estimated]. */
+const SERVE_DELAY = 160
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* The plates                                                                                                         */
@@ -111,6 +120,9 @@ function stackProfile(n: number): { points: Vec2[]; band: number[]; light: numbe
   return { points, band, light }
 }
 
+/** A low-discrepancy step a plate, so no two plates up a stack sit alike, in [-SLACK, SLACK]. */
+const slack = (k: number, f: number) => (((k * f) % 1) - 0.5) * 2 * SLACK
+
 /**
  * Paints a turned geometry's vertices by its profile's points: a point's colour (or the glaze), times its light. With `n` plates it also
  * sets each plate a little off the one under it, by `seed`: the stack is stacked by hand.
@@ -118,8 +130,6 @@ function stackProfile(n: number): { points: Vec2[]; band: number[]; light: numbe
 function paint(geometry: BufferGeometry, per: number, colorOf: (point: number) => Color, light: readonly number[], n = 0, seed = 0): BufferGeometry {
   const color = geometry.getAttribute('color')
   const at = geometry.getAttribute('position')
-  // A low-discrepancy step a plate, so no two plates up a stack sit alike, in [-SLACK, SLACK].
-  const slack = (k: number, f: number) => (((k * f) % 1) - 0.5) * 2 * SLACK
   for (let v = 0; v < color.count; v++) {
     const c = colorOf(v % per)
     const l = light[v % per]
@@ -132,7 +142,7 @@ function paint(geometry: BufferGeometry, per: number, colorOf: (point: number) =
   return geometry
 }
 
-const glazeOf = (palette: Palette): Color => palette.part(null as unknown as BufferGeometry, 'ceramic').color
+const glazeOf = (palette: Palette): Color => palette.colorOf('ceramic')
 
 /** A turned piece in the plates' satin glaze, painted as `paint` does. */
 const satin = (points: readonly Vec2[], segments: number, color: Color) => painted({ geometry: lathe(points, segments), surface: 'ceramic', color, finish: SATIN })
@@ -142,13 +152,13 @@ const round = (at: Vec3, r: number, strength: number): Footprint => ({ center: a
 
 /** The dispenser's posts: two wires from its foot up behind the stack, joined over the top. */
 const POST = 0.707 * (PLATE.r + 0.016)
-/** The dispenser's foot: a flat enamel ring round the stack, in the target's blue, the posts standing in it. */
+/** The dispenser's foot: a flat enamel ring round the stack, in the target's blue, the posts standing in it, short of the stacks beside. */
 const FOOT: readonly Vec2[] = [
-  [0.064, 0],
-  [0.084, 0],
-  [0.084, 0.005],
-  [0.064, 0.005],
-  [0.064, 0],
+  [0.059, 0],
+  [0.072, 0],
+  [0.072, 0.005],
+  [0.059, 0.005],
+  [0.059, 0],
 ]
 
 /** The static tasting: every stack and every dispenser of the course, merged by surface into one glaze draw and one wire draw. */
@@ -204,17 +214,16 @@ function TastingSet({ stacks, dispensers }: { stacks: readonly Stack[]; dispense
     kit.invalidate()
     return () => shadows.remove('tasting')
   }, [built, shadows, kit])
-  const cast = kit.shadowLights > 0
   return (
     <group name="tasting">
       {/* The glaze's draw and the wire's. */}
-      {[built.ceramic, built.metal].map((geometry, i) => geometry && <mesh key={i} geometry={geometry} material={i ? materials.metal : materials.ceramic} castShadow={cast} receiveShadow={cast} raycast={NO_PICK} />)}
+      {[built.ceramic, built.metal].map((geometry, i) => geometry && <mesh key={i} geometry={geometry} material={i ? materials.metal : materials.ceramic} raycast={NO_PICK} />)}
     </group>
   )
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* The moving pieces: the pulled plates and the rings                                                                 */
+/* The moving pieces: the pulled plates and what went out                                                             */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 const matrix = new Matrix4()
@@ -245,8 +254,9 @@ interface Dropping {
   readonly index: number
 }
 
+/** A stack of what went out on its way, in plates, from the height it stood at to the one it settles at. */
 interface Settling {
-  readonly ring: Ring
+  readonly served: Served
   readonly from: number
   readonly to: number
   readonly start: number
@@ -254,47 +264,29 @@ interface Settling {
 
 /** The parts a pulled plate's edge band can be: one the two stacks share, or the commis's extra (a graded run's plain stacks are his). */
 const PULLED: readonly Band[] = ['probability-overlap', 'probability-draft']
-/**
- * What went out: a white enamel ring round the plates' edges, drawn hollow, its top and its foot in the edge's grey so that it reads on
- * white plates as on steel.
- */
-const HOOP: readonly Vec2[] = [
-  [0.064, -0.005],
-  [0.078, -0.005],
-  [0.078, -0.003],
-  [0.078, 0.003],
-  [0.078, 0.005],
-  [0.064, 0.005],
-  [0.064, -0.005],
-]
-/** The light each of the ring's points takes, as `paint` takes it. */
-const HOOP_LIGHT = [0.8, 0.85, 1, 0.95, 0.9, 0.85, 0.8]
 
 /**
  * What moves on the bell, in one loop that holds the frames only while something moves: the plates the latest rounds pulled, each a
  * tasting plate glazed as its stack's are with its part on its edge band, over its own shadow on the steel (fainter and wider the higher
- * it was pulled from); and the rings on the dispensers, each settling from where it stood to what went out (a ring new to the course comes
- * down from the top of the dispenser's wires).
+ * it was pulled from); and what went out, beside each of her stacks: side plates in the same white glaze, edged in the observed code's
+ * grey, stacked by hand as hers are, as many as went out of the dish there with the top one at the very height, so that settled the
+ * stack stands exactly as tall as hers. It rises or falls from the height it stood at; a stack new to the course rises from the counter.
  */
-function Moving({ markers, rings, change }: { markers: readonly Marker[]; rings: readonly Ring[]; change: Change }) {
+function Moving({ markers, served, change }: { markers: readonly Marker[]; served: readonly Served[]; change: Change }) {
   const kit = useKit()
   const { materials, palette, shadows } = useProps()
   const colors = kit.tokens.colors
   const parts = useMemo(() => {
     const profile = stackProfile(1)
     const glaze = glazeOf(palette)
-    const white = new Color(colors['probability-observed'])
-    const grey = new Color(colors['cat-white-edge'])
-    return [
-      ...PULLED.map((band) => {
-        const edge = new Color(colors[band])
-        return paint(satin(profile.points, 32, glaze), profile.points.length, (j) => (profile.band[j] < 0 ? glaze : edge), profile.light)
-      }),
-      paint(painted(palette.part(lathe(HOOP, 32), 'ceramic')), HOOP.length, (j) => (j === 2 || j === 3 ? white : grey), HOOP_LIGHT),
-    ]
+    return [...PULLED, 'cat-white-edge' as const].map((band, part) => {
+      const edge = new Color(colors[band])
+      const plate = paint(satin(profile.points, part < 2 ? 32 : SEGMENTS, glaze), profile.points.length, (j) => (profile.band[j] < 0 ? glaze : edge), profile.light)
+      return part < 2 ? plate : plate.scale(PLATE.out / PLATE.r, 1, PLATE.out / PLATE.r)
+    })
   }, [palette, colors])
   useEffect(() => () => parts.forEach((part) => part.dispose()), [parts])
-  // The pulled plates' draws, one a part, then the rings'.
+  // The pulled plates' draws, one a part, then the side plates of what went out.
   const meshes = useRef<(InstancedMesh | null)[]>([])
   const drops = useRef<Dropping[]>([])
   const settles = useRef(new Map<string, Settling>())
@@ -311,11 +303,17 @@ function Moving({ markers, rings, change }: { markers: readonly Marker[]; rings:
         if (t < 1) moving = true
         meshes.current[part]?.setMatrixAt(index, now < start + delay ? matrix.compose(at.set(...marker.at), turn, none) : pose(marker, t, ease))
       }
-      let i = 0
+      let k = 0
       for (const s of settles.current.values()) {
         if (!reducedMotion && progress(now, s.start, settleMs) < 1) moving = true
-        meshes.current[2]?.setMatrixAt(i++, matrix.compose(at.set(s.ring.at[0], s.ring.at[1] + heightAt(s, now), s.ring.at[2]), turn.identity(), one))
+        const h = heightAt(s, now)
+        const [x, y, z] = s.served.at
+        const seed = 40 + x * 7.3 + z * 3.1
+        // None under half a plate; past that a plate a plate, the top one at the very height.
+        for (let i = 0; i < (h < 0.5 ? 0 : Math.ceil(h - 1e-3)); i++)
+          meshes.current[2]?.setMatrixAt(k++, matrix.compose(at.set(x + slack(i + seed, 0.618034), y + Math.max(0, Math.min(i, h - 1)) * PLATE.pitch, z + slack(i + seed, 0.414214)), turn.identity(), one))
       }
+      if (meshes.current[2]) meshes.current[2].count = k
       for (const mesh of meshes.current) if (mesh) mesh.instanceMatrix.needsUpdate = true
       return moving
     },
@@ -328,38 +326,38 @@ function Moving({ markers, rings, change }: { markers: readonly Marker[]; rings:
     // The rounds this bell drew drop their plates, course after course into the run; any other change leaves them where they are.
     const drop = change === 'bell' && !reducedMotion
     const first = markers.reduce((min, m) => (m.round > seen.current ? Math.min(min, m.round) : min), Infinity)
-    const counts = [0, 0, 0]
+    const counts = [0, 0]
     drops.current = markers.map((marker) => {
       const part = marker.band === PULLED[0] ? 0 : 1
       return { marker, start: drop && marker.round > seen.current ? now : -Infinity, delay: marker.row * DROP.row + (marker.round - first) * DROP.round, part, index: counts[part]++ }
     })
     seen.current = markers.reduce((max, m) => Math.max(max, m.round), -1)
     const next = new Map<string, Settling>()
-    for (const ring of rings) {
-      if (ring.out === null) continue
-      const to = ringHeight(ring.out, ring.top)
-      const was = settles.current.get(ring.id)
-      next.set(ring.id, { ring, to, from: change === 'cut' ? to : was ? heightAt(was, now) : ring.top - 0.012, start: now + (change === 'bell' ? RING_DELAY : 0) })
+    for (const stack of served) {
+      if (stack.out === null) continue
+      const to = servedPlates(stack)
+      const was = settles.current.get(stack.id)
+      next.set(stack.id, { served: stack, to, from: change === 'cut' ? to : was ? heightAt(was, now) : 0, start: now + (change === 'bell' ? SERVE_DELAY : 0) })
     }
     settles.current = next
-    counts[2] = next.size
     meshes.current.forEach((mesh, part) => {
-      if (mesh) mesh.count = counts[part]
+      if (mesh && part < 2) mesh.count = counts[part]
     })
-    // Each pulled plate's shadow on the steel under where it lands.
-    shadows.set(
-      'pulled',
-      markers.map((m) => {
+    // Each pulled plate's shadow on the steel under where it lands, and each stack of what went out over its own.
+    shadows.set('pulled', [
+      ...markers.map((m) => {
         const [x, z] = m.kept ? DROP.kept : DROP.back
         return round([m.at[0] + x, m.at[1], m.at[2] + z], PLATE.r + m.plate * 0.0015, 0.3 - m.plate * 0.004)
       }),
-    )
+      ...[...next.values()].filter((s) => Math.max(s.from, s.to) >= 0.5).map((s) => round(s.served.at, PLATE.out + 0.004, 0.95)),
+    ])
     if (write(now)) wake()
     kit.invalidate()
     return () => shadows.remove('pulled')
-  }, [markers, rings, change, reducedMotion, heightAt, kit, shadows, wake, write])
+  }, [markers, served, change, reducedMotion, heightAt, kit, shadows, wake, write])
 
-  const cast = kit.shadowLights > 0
+  // Room for every stack of what went out up to her dispenser's top.
+  const room = served.reduce((n, s) => n + Math.ceil(s.cap), 0)
   return (
     <group name="moving">
       {parts.map((geometry, part) => (
@@ -368,9 +366,7 @@ function Moving({ markers, rings, change }: { markers: readonly Marker[]; rings:
           ref={(mesh) => {
             meshes.current[part] = mesh
           }}
-          args={[geometry, materials.ceramic, roomFor(part < 2 ? markers.length : rings.length)]}
-          castShadow={cast}
-          receiveShadow={cast}
+          args={[geometry, materials.ceramic, roomFor(part < 2 ? markers.length : room)]}
           frustumCulled={false}
           raycast={NO_PICK}
         />
@@ -410,15 +406,19 @@ function useChange(view: VerifierView): { change: Change; strikes: number } {
 
 function Tasting({ plan, scene, change, strikes, onPick }: { plan: Plan; scene: TastingScene; change: Change; strikes: number; onPick?: (dish: number) => void }) {
   // The room stands still: it is built again only for another plan, or lamps that hang elsewhere (the layout keeps each list one object).
-  const kitchen = useMemo(() => tastingKitchen(plan, scene.lamps), [plan, scene.lamps])
-  const lit = scene.lit ? ALWAYS_LIT : ALWAYS_LIT & ~(1 << CHANNEL.lamp)
+  const kitchen = useMemo(() => {
+    const room = tastingKitchen(plan, scene.lamps)
+    return { ...room, items: room.items.map(tastingLamp) }
+  }, [plan, scene.lamps])
+  // The line is cold and its hood's tubes are off, so nothing white burns at the frame's top edge over the run; the lamps burn while the present has a place.
+  const lit = (scene.lit ? ALWAYS_LIT : ALWAYS_LIT & ~(1 << CHANNEL.lamp)) & ~(1 << CHANNEL.tube)
   return (
     <Kitchen lit={lit}>
       <StaticSet items={kitchen.items} room={kitchen.room} name="room" />
-      <LampLights lamps={scene.lit ? kitchen.lights : []} power={LAMP_POWER} cones={false} />
+      <LampLights lamps={scene.lit ? kitchen.lights : []} power={LAMP_POWER} spread={POOL} />
       <ServiceBell at={kitchen.bell} strike={strikes} />
       <TastingSet stacks={scene.stacks} dispensers={scene.dispensers} />
-      <Moving markers={scene.markers} rings={scene.rings} change={change} />
+      <Moving markers={scene.markers} served={scene.served} change={change} />
       {/* A dish's tape on the pass's edge, picked, hands focus to the dish's weight while there is a recipe to sculpt. */}
       <SheetInstances kind="tape" sheets={scene.tapes} name="tape" onPick={onPick && ((id) => id.startsWith('col-') && onPick(Number(id.slice(4))))} />
     </Kitchen>
@@ -433,7 +433,7 @@ export default function Scene3D({ view, shots, preset, scaffold, outcome, onPick
   const scene = useMemo(() => tastingScene(view, plan, { scaffold, outcome }), [view, plan, scaffold, outcome])
   const labels = useMemo(() => labelsOf(scene.anchors, preset), [scene.anchors, preset])
   return (
-    <SceneCanvas labels={labels} background="surface-3" fog={preset !== 'run' ? NEAR_HAZE : plan.rows > 1 ? HAZE : ONE_HAZE} environmentIntensity={0.75} shadows className="es-vf-scene">
+    <SceneCanvas labels={labels} background="surface-3" fog={preset !== 'run' ? NEAR_HAZE : plan.rows > 1 ? HAZE : ONE_HAZE} environment="tubes" environmentIntensity={0.75} className="es-vf-scene">
       <CameraRig presets={presets} preset={preset} parallax={0.05} />
       <Fluorescent power={0.85} />
       <Tasting plan={plan} scene={scene} change={change} strikes={strikes} onPick={onPick} />

@@ -12,7 +12,7 @@ function failingFactory(error: { name: string }): { factory: IDBFactory; opened:
   const factory = {
     open(name: string, version?: number) {
       opened.push({ name, version })
-      const request: Partial<IDBOpenDBRequest> & { error: unknown } = { error }
+      const request: Partial<Omit<IDBOpenDBRequest, 'error'>> & { error: unknown } = { error }
       queueMicrotask(() => request.onerror?.call(request as IDBOpenDBRequest, { preventDefault: () => undefined } as Event))
       return request
     },

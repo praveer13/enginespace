@@ -4,10 +4,13 @@
  * as long as the session and says nothing of how much more is due: ASSESSMENT §8, "never an overdue count".
  */
 import { describe, expect, test } from 'bun:test'
+import { readFileSync } from 'node:fs'
 import { bubbleWidth } from '@es/play/items/families/tr2/bubble-width'
+import { stepOrder } from '@es/play/items/families/tr2/step-order'
 import type { Gen } from '@es/play/items'
 import { deriveCards } from '../../src/items/today/cards'
 import { familiesAt, familyFor, levelFor } from '../../src/items/today/draw'
+import { firstMemory } from '../../src/items/today/fsrs'
 import { appKcsOfRef } from '../../src/items/today/kcs'
 import { AHEAD_ITEMS, NOMINAL_ITEM_SECONDS, SESSION_CAP_ITEMS, SESSION_CAP_MINUTES, TRANSFER_STABILITY_DAYS } from '../../src/items/today/limits'
 import { composeSession, confusableGroups, interleaveConfusable, minutesOf, nominalSeconds } from '../../src/items/today/session'
@@ -16,6 +19,13 @@ import { TestLedger } from './support'
 
 const BUBBLE = 'tr2.bubble'
 const OVERLAP = 'tr2.async-overlap'
+/**
+ * Ideas of the graph that no family serves yet: the ones the catalog gives no level, as the registry stands. They are looked up, and not named,
+ * so that a family built for one of them does not make these tests stale (W1b built the families of TR1, TR2, TR5a and TR8 one at a time).
+ */
+const UNSERVED = [...readFileSync(new URL('../../content/kc/graph.yaml', import.meta.url), 'utf8').matchAll(/^- id: (\S+)$/gm)]
+  .map((match) => match[1])
+  .filter((kc) => levelFor({ kc, memory: firstMemory(3) }) === null)
 const TODAY = '2026-11-04'
 const nothing = (): never => {
   throw new Error('this family is only asked what it offers')
@@ -53,18 +63,20 @@ describe('the length of a session', () => {
   })
 
   test('is as long as what is due when less is due, and an idea no family serves yet costs nothing and is not mentioned', () => {
-    const set = deriveCards(earned([BUBBLE, OVERLAP, 'tr1.five-mechanisms', 'tr5a.kv-groups']).events, appKcsOfRef, TODAY)
+    expect(UNSERVED.length).toBeGreaterThanOrEqual(2)
+    const set = deriveCards(earned([BUBBLE, OVERLAP, UNSERVED[0], UNSERVED[1]]).events, appKcsOfRef, TODAY)
     const session = composeSession(set, TODAY)
     expect(session.lines.map((line) => line.kc).sort()).toEqual([OVERLAP, BUBBLE])
     expect(session.seconds).toBe(2 * NOMINAL_ITEM_SECONDS)
-    expect(JSON.stringify(session)).not.toContain('tr1.five-mechanisms')
+    expect(JSON.stringify(session)).not.toContain(UNSERVED[0])
+    expect(JSON.stringify(session)).not.toContain(UNSERVED[1])
   })
 
   test('is empty when nothing is due, or nothing that is due can be served', () => {
     expect(composeSession(deriveCards([], appKcsOfRef, TODAY), TODAY).lines).toEqual([])
     const justNow = earned([BUBBLE], '2026-11-04')
     expect(composeSession(deriveCards(justNow.events, appKcsOfRef, TODAY), TODAY).lines).toEqual([])
-    const unservable = earned(['tr1.five-mechanisms'])
+    const unservable = earned([UNSERVED[0]])
     const session = composeSession(deriveCards(unservable.events, appKcsOfRef, TODAY), TODAY)
     expect(session.lines).toEqual([])
     expect(session.seconds).toBe(0)
@@ -90,8 +102,16 @@ describe('the order', () => {
   })
 
   test('names the family and the title that will serve each line, and the level', () => {
-    const set = deriveCards(earned([BUBBLE]).events, appKcsOfRef, TODAY)
-    expect(composeSession(set, TODAY).lines).toEqual([{ kc: BUBBLE, family: 'tr2.bubble-width', title: bubbleWidth.title, level: 2 }])
+    // An idea that one family assesses is served by it.
+    const alone = deriveCards(earned([OVERLAP]).events, appKcsOfRef, TODAY)
+    expect(composeSession(alone, TODAY).lines).toEqual([{ kc: OVERLAP, family: 'tr2.bubble-width', title: bubbleWidth.title, level: 2 }])
+    // Two families assess the bubble (bubble-width, and the first lesson's step-order); they take turns by the reviews the card has had.
+    const once = deriveCards(earned([BUBBLE]).events, appKcsOfRef, TODAY)
+    expect(composeSession(once, TODAY).lines).toEqual([{ kc: BUBBLE, family: 'tr2.step-order', title: stepOrder.title, level: 2 }])
+    const ledger = earned([BUBBLE], '2026-10-20')
+    ledger.review('2026-10-22', BUBBLE, 3)
+    const twice = deriveCards(ledger.events, appKcsOfRef, TODAY)
+    expect(composeSession(twice, TODAY).lines).toEqual([{ kc: BUBBLE, family: 'tr2.bubble-width', title: bubbleWidth.title, level: 2 }])
   })
 
   test('is a welcome-back after a gap, and then serves the sturdiest ideas first', () => {

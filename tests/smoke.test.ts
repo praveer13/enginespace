@@ -125,16 +125,18 @@ describe('routes against ARCHITECTURE §3.1', () => {
     '/m/:module/:lesson': { h1: 'Lesson', shows: 'tr2 / l0-sample' },
     '/play': { h1: 'Games' },
     '/play/:game': { h1: 'Play Service', shows: 'Loading Service', title: 'Game · enginespace' },
-    '/labs/:lab': { h1: 'Lab', shows: 'Lab id: tr8.replay' },
-    '/trace-room': { h1: 'The Trace Room' },
+    // A lab's page names itself as its served document does (`Lab tr8.replay`), and sets that title itself; the route's is the fallback.
+    // A page that is not built yet names the task that builds it (src/unbuilt/copy.ts).
+    '/labs/:lab': { h1: 'Lab tr8.replay', shows: 'W2-T36', title: 'Lab · enginespace' },
+    '/trace-room': { h1: 'The Trace Room', shows: 'W2-T20' },
     '/trace-room/:trace': { h1: 'The Trace Room', shows: 'Trace id: sample' },
-    '/receipts': { h1: 'Receipts' },
+    '/receipts': { h1: 'Receipts', shows: 'W2-T06' },
     '/today': { h1: 'Today' },
     '/evidence': { h1: 'Evidence' },
     '/design': { h1: 'Design system' },
     '/settings': { h1: 'Settings' },
-    '/about': { h1: 'About' },
-    '/changes': { h1: 'Changes' },
+    '/about': { h1: 'About', shows: 'W3-T15' },
+    '/changes': { h1: 'Changes', shows: 'W3-T06' },
     '*': { h1: 'Page not found' },
   }
   const params: Record<string, string> = { module: 'tr2', lesson: 'l0-sample', game: 'loop', lab: 'tr8.replay', trace: 'sample' }

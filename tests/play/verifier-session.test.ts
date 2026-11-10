@@ -415,10 +415,12 @@ describe('a run is its log (A§6.3, ASSESSMENT §4.3)', () => {
 
   test('a log with an action the reducer refuses, or one that comes after the end, does not replay, and names the action', () => {
     const level = buildLevel('exact', 0)
-    const bad = replay(S, { game: 'verifier', level: 'exact', seed: 0, actions: [{ t: 'sculpt', token: 0, delta: -3 }] })
+    // The Tasting has no such action. A function builds it, so that it is not an object literal checked against `GameAction`'s one field.
+    const sculpt = (delta: number) => ({ t: 'sculpt', token: 0, delta })
+    const bad = replay(S, { game: 'verifier', level: 'exact', seed: 0, actions: [sculpt(-3)] })
     expect(bad.ok).toBe(false)
     if (!bad.ok) expect(bad.at).toBe(0)
-    const after = replay(S, { game: 'verifier', level: 'exact', seed: 0, actions: [...houseActions(level), { t: 'sculpt', token: 0, delta: 1 }] })
+    const after = replay(S, { game: 'verifier', level: 'exact', seed: 0, actions: [...houseActions(level), sculpt(1)] })
     expect(after.ok).toBe(false)
     if (!after.ok) expect(after.reason).toContain('comes after the run was over')
   })

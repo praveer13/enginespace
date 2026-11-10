@@ -145,11 +145,17 @@ describe('a sample family passes verify:items', () => {
     expect(result.notes).toEqual([])
     expect(result.families.map((family) => family.id)).toEqual(FAMILIES.map((family) => family.id))
     const lines = summaryLines(result)
-    expect(lines[0]).toContain('tr2.bubble-width v1: 3 variants (async-off, async-on, close-it), levels 0 1 2 3')
+    expect(lines.find((line) => line.startsWith('tr2.bubble-width'))).toContain('tr2.bubble-width v1: 3 variants (async-off, async-on, close-it), levels 0 1 2 3')
     expect(lines.filter((line) => /^tr2\./.test(line)).map((line) => line.replace(/ \(.*$/, ''))).toEqual([
       'tr2.bubble-width v1: 3 variants',
+      'tr2.default-budget v1: 3 variants',
+      'tr2.dispatch-key v1: 3 variants',
       'tr2.graph-hit v1: 2 variants',
+      'tr2.kv-after-graphs v1: 3 variants',
       'tr2.padding-waste v1: 3 variants',
+      'tr2.preempt-victim v1: 3 variants',
+      'tr2.runner-fallback v1: 3 variants',
+      'tr2.step-order v1: 3 variants',
     ])
     // Each family's line is followed by a line for each of its levels, and every level line reports the band and the best blind strategy.
     const levelLines = lines.filter((line) => line.startsWith('  level'))

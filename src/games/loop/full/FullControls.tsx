@@ -224,7 +224,7 @@ function Levers({ run }: { run: FullRun }) {
   return (
     <div className="flex flex-col gap-4" data-full-levers="">
       {view.stage.levers.includes('async') ? (
-        <Toggle label="Write the next call during this fire" hint="async scheduling" checked={view.levers.async} onCheckedChange={(on) => set('async', on)} id="full-async" disabled={locked} />
+        <Toggle label="Write the next call during this fire" hint="async scheduling" checked={view.levers.async} onCheckedChange={(on) => set('async', on)} disabled={locked} />
       ) : null}
       {view.stage.levers.includes('inputIds') ? (
         <Toggle
@@ -232,15 +232,14 @@ function Levers({ run }: { run: FullRun }) {
           hint="MRV2 prepares them on the GPU; the model checks the dependency, and no flag in either engine names this switch"
           checked={view.levers.inputIds === 'device'}
           onCheckedChange={(on) => set('inputIds', on ? 'device' : 'host')}
-          id="full-input-ids"
           disabled={locked}
         />
       ) : null}
       {view.stage.levers.includes('runner') ? (
-        <Toggle label="The V2 runner" hint="MRV2 when on; the legacy V1 runner when off" checked={view.levers.runner === 'mrv2'} onCheckedChange={(on) => set('runner', on ? 'mrv2' : 'v1')} id="full-runner" disabled={locked} />
+        <Toggle label="The V2 runner" hint="MRV2 when on; the legacy V1 runner when off" checked={view.levers.runner === 'mrv2'} onCheckedChange={(on) => set('runner', on ? 'mrv2' : 'v1')} disabled={locked} />
       ) : null}
       {view.stage.levers.includes('maskOverlap') ? (
-        <Toggle label="Write the allergy card during the fire" hint="the mask's overlap with the forward" checked={view.levers.maskOverlap} onCheckedChange={(on) => set('maskOverlap', on)} id="full-mask" />
+        <Toggle label="Write the allergy card during the fire" hint="the mask's overlap with the forward" checked={view.levers.maskOverlap} onCheckedChange={(on) => set('maskOverlap', on)} />
       ) : null}
       {view.stage.levers.includes('graphMode') ? <Modes run={run} locked={locked} /> : null}
       {view.stage.levers.includes('capture') ? <Ladder run={run} locked={locked} /> : null}

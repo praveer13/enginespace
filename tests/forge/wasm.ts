@@ -89,7 +89,7 @@ export function listJson(lab: string, version: number, checks: readonly CheckSpe
   return JSON.stringify({ lab, version, abi: 2, checks })
 }
 
-export function buildLabModule(spec: ModuleSpec = {}): Uint8Array {
+export function buildLabModule(spec: ModuleSpec = {}): Uint8Array<ArrayBuffer> {
   const lab = spec.lab ?? 'lab'
   const checks = spec.checks ?? DEFAULT_CHECKS
   const invoke = spec.invoke ?? 'echo'

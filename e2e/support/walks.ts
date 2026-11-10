@@ -276,16 +276,26 @@ const listOf = (page: Page, kind: string) =>
     return buttons.map((button) => ({ name: (button.getAttribute('aria-label') ?? button.textContent ?? '').trim().replace(/\s+/g, ' '), focused: button === document.activeElement, pressed: button.getAttribute('aria-pressed') === 'true' }))
   }, kind)
 
+/** Waits until the page has been given `count` frames: what the effects of a commit need to have run, on a machine of any speed. */
+const frames = (page: Page, count: number) =>
+  page.evaluate(
+    (n) =>
+      new Promise<void>((resolve) => {
+        const next = (left: number) => (left === 0 ? resolve() : requestAnimationFrame(() => next(left - 1)))
+        next(n)
+      }),
+    count,
+  )
+
 /** Waits for the open ask to be of this kind, and puts the keyboard in its list: focus follows a new ask on its own, and a page that has just opened does not take focus. */
 async function awaitAsk(page: Page, walk: Walk, kind: string): Promise<void> {
   await expect.poll(() => askKind(page), { message: `the open ask is ${kind}` }).toBe(kind)
   const inList = () => page.evaluate((k) => document.activeElement?.closest(`[data-ask-list="${k}"]`) != null, kind)
-  for (let i = 0; i < 90 && !(await inList()); i++) {
-    // Focus may be about to follow the ask; give the page a moment before moving it by hand.
-    if (i < 2) await page.waitForTimeout(50)
-    if (await inList()) break
-    await walk.press('Tab')
-  }
+  // Focus may be about to follow the ask: the game moves it from an effect that runs after the commit that opened the ask, and two frames
+  // on that effect has run, however slow the machine is. Wait for the frames, and not for some milliseconds that a busy machine outlasts;
+  // if focus is not in the list then, it is not coming, and the walk tabs to it.
+  if (!(await inList())) await frames(page, 2)
+  for (let i = 0; i < 90 && !(await inList()); i++) await walk.press('Tab')
   expect(await inList(), `focus is in the ${kind} list`).toBe(true)
 }
 
@@ -422,8 +432,9 @@ async function fileRuling(page: Page, walk: Walk, ruling: Ruling): Promise<void>
   await page.keyboard.press('Enter')
 }
 
-const benchLevelWalk = (level: 'due' | 'warm' | 'sure' | 'court'): Walker => async (page, walk) => {
-  const slots = benchLevel(level, practiceSeed('broken-bench', level)).slots
+/** The Inspection's level filed right, case by case: on its practice seed, or on the seed a graded run drew (e2e/lesson-games.spec.ts). */
+export const benchLevelWalk = (level: 'due' | 'warm' | 'sure' | 'court', seed = practiceSeed('broken-bench', level)): Walker => async (page, walk) => {
+  const slots = benchLevel(level, seed).slots
   for (const [at, slot] of slots.entries()) {
     if (at > 0) await expect.poll(() => activeName(page)).toBe(`The court, case ${at + 1} of ${slots.length}`)
     await fileRuling(page, walk, rightRuling(slot))

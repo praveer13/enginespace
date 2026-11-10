@@ -89,7 +89,7 @@ Minutes are [estimated].
 | `config/__init__.py` | 4,501 | 160 |
 | `vllm/v1/cudagraph_dispatcher.py` | did not exist | 348 |
 
-Statements in the post that are stale at the pin (vllm T2): async scheduling listed as "Experimental" (the default since v0.14.0, vllm M6); no draft-model method; Medusa listed (removed in v0.33.0, vllm S1); chunked prefill described through `long_prefill_token_threshold` (now on by default, with the threshold at 0, vllm M8); `VLLM_USE_V1`; and `openai/api_server.py` as the entry point (vllm M11).
+Statements in the post that are stale at the pin (vllm T2): async scheduling listed as "Experimental" (the default since v0.14.0, vllm M6); no draft-model method; Medusa listed (removed in v0.33.0, vllm S1); chunked prefill described through `long_prefill_token_threshold` (now on by default, with the threshold at 0, vllm M8); and `VLLM_USE_V1`. The post names no file for its entry point: it follows `create_completion`, which moved from `openai/api_server.py` to `openai/completion/api_router.py` (vllm M11, T2).
 
 **Reading budget for `tr1.l5`** (line counts [measured] at v0.33.0, vllm TR1 notes): `async_llm.py` 1,447; `core_client.py` 2,170; `core.py` 2,860; `scheduler.py` 3,783; MRV2 `model_runner.py` 2,519. The lesson reads named symbols, not whole files.
 

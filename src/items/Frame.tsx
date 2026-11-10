@@ -6,9 +6,9 @@ import './items.css'
 
 /*
  * The ticket an item block is printed on, whatever it is doing: waiting to start, asking, showing why, or telling the tally. It is
- * the same ticket as every other block of a lesson (src/content/render/Blocks.tsx): the lesson's id on the head line, the family's
- * on the right, and a stamped title. The seed the ticket was made from is on its foot line, for the eye and for a test: a seed is
- * unseen, and not secret (A§8.2).
+ * the same ticket as every other block of a lesson (src/content/render/BlockFrame.tsx): a stamped title that leads the paper, with no
+ * line over it, and the lesson's id and the family's on the foot line. While a ticket is out, the seed it was made from prints on the
+ * foot line too, at the right, for the eye and for a test: a seed is unseen, and not secret (A§8.2).
  */
 
 export interface FrameProps {
@@ -21,6 +21,7 @@ export interface FrameProps {
   lamp?: boolean
   state?: TicketState
   loadingLabel?: string
+  /** The ticket's own facts for the foot line (its seed and whether it was seen), which print after the lesson's id and the family's. */
   foot?: readonly [ReactNode, ReactNode?]
   stub?: ReactNode
   /** Data attributes the block exposes: the seed, the level, the variant, the kind of answer. */
@@ -28,8 +29,19 @@ export interface FrameProps {
   children?: ReactNode
 }
 
+/** Two facts on one side of the foot line, with the printer's dot between them for the eye. */
+const both = (a: ReactNode, b: ReactNode) => (
+  <>
+    {a}
+    <span aria-hidden="true"> · </span>
+    {b}
+  </>
+)
+
 export function Frame({ scope, family, phase, lamp = false, state = 'default', loadingLabel, foot, stub, data = {}, children }: FrameProps) {
   const attributes = Object.fromEntries(Object.entries(data).map(([name, value]) => [`data-${name}`, value]))
+  // The ids sit as every block's do (the lesson's at the left, the family's at the right) until the ticket has a seed to print as well.
+  const ids = foot === undefined ? ([<Scope id={scope} />, family] as const) : ([both(<Scope id={scope} />, family), foot[1] === undefined ? foot[0] : both(foot[0], foot[1])] as const)
   return (
     <Ticket
       as="section"
@@ -38,14 +50,12 @@ export function Frame({ scope, family, phase, lamp = false, state = 'default', l
       data-phase={phase}
       {...attributes}
       width="wide"
-      head={<Scope id={scope} />}
-      meta={family}
       title="Items"
       titleAs="h2"
       lamp={lamp}
       state={state}
       loadingLabel={loadingLabel}
-      foot={foot}
+      foot={ids}
       stub={stub}
     >
       {children}
