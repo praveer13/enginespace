@@ -288,8 +288,9 @@ describe('the report', () => {
     const stored = storedReport(outcome.rules, outcome.sizes)
     expect(stored).toEqual({ v: 1, ran: 10, sizes: outcome.sizes, rules: outcome.rules })
     expect(readStoredReport(JSON.parse(JSON.stringify(stored)))).toEqual(stored)
-    // The checks of rules 7 to 9 are in it, each with its bound: a few KB, where the six rules of W2-T07 were under 4,000 characters.
-    expect(JSON.stringify(stored).length).toBeLessThan(12_000)
+    // The checks of rules 7 to 9 are in it, each with its bound, and it is still under the 4,000 characters that the six rules of W2-T07 were held to:
+    // 2,967 characters for this sample, and 3,615 for the replay fixture of tests/verify/synthetic.ts, which has thirteen checks [measured 2026-11-10].
+    expect(JSON.stringify(stored).length).toBeLessThan(4000)
   })
 
   test('reads without sizes, for a file that was refused before they were counted', () => {
