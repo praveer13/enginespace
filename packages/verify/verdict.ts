@@ -89,6 +89,8 @@ export function verdictOf(receipt: Receipt, rules: readonly RuleResult[], ran: n
     }
     if (ran79.some((check) => check.id === id)) continue
     const task = PENDING[id]
+    // A report of an earlier build holds no result of rules 7 to 9, and says so once, above: a missing result is not each check's own fault.
+    if (task === undefined && ran < RULES_IN_ALL && CHECK_IDS.includes(id)) continue
     const bound =
       task !== undefined
         ? `${id} is not built yet: ${task} builds it, and a receipt of ${receipt.stage} is not credited until it exists.`

@@ -157,6 +157,14 @@ describe('gpu-unverified', () => {
     expect(verdict.reasons[0]).toBe(`This check was made by an earlier version of the site that ran 6 of the ${RULES_IN_ALL} rules. Bring the receipt's file back, and it is checked by all of them.`)
   })
 
+  test('says it once for a stage that requires checks of the browser: the missing results of rules 7 to 9 are not each check\'s fault, and a check that is not built yet still names its task', () => {
+    const verdict = verdictOf(receiptOf('tr8.replay.s2', { checks: [{ id: 'teacher-forced', kind: 'correctness', pass: true, detail: '' }] }), results().slice(0, 6), 6)
+    expect(verdict.reasons).toEqual([`This check was made by an earlier version of the site that ran 6 of the ${RULES_IN_ALL} rules. Bring the receipt's file back, and it is checked by all of them.`])
+    const pending = verdictOf(receiptOf('tr4.sweep.s2', { checks: [{ id: 'sdpa-tolerance', kind: 'correctness', pass: true, detail: '' }] }), results().slice(0, 6), 6)
+    expect(pending.reasons).toHaveLength(2)
+    expect(pending.reasons[1]).toBe('sweep-errors is not built yet: W2-T26 builds it, and a receipt of tr4.sweep.s2 is not credited until it exists.')
+  })
+
   test('says at most eight reasons and counts the rest: a receipt cannot fill the page with them', () => {
     const many = Array.from({ length: 20 }, (_, at) => ({ id: `T${at}`, status: 'fail' as const, bound: 'broke' }))
     const verdict = verdictOf(receiptOf('tr3.profile.s5'), results({ 8: many }, [8]))
