@@ -2,7 +2,8 @@
  * W0-T21, acceptance 1: axe finds no serious or critical violation on the eight routes of the pull-request subset, at 360 and at 1280
  * px (ARCHITECTURE §10.1 and §11.2; e2e/routes.ts lists them, and verify:routes holds the list to the route table). W1-T36 adds what W1
  * built to the same audits: its sixteen pages (a module and its richest lesson for each of TR1, TR5a, TR6 and TR8, the Play index, the four
- * other games, the two labs of the forge, and Today) and the pages of the full service's levels (`W1_ROUTES`, `W1_LEVEL_PAGES`).
+ * other games, the two labs of the forge, and Today) and the pages of the full service's levels (`W1_ROUTES`, `W1_LEVEL_PAGES`). W2-T06 adds the
+ * receipts page (`W2_ROUTES`), whose states with a ledger in them e2e/receipts.spec.ts audits as well.
  *
  * What a run is.
  *   - Axe checks WCAG 2.0, 2.1 and 2.2 at levels A and AA, and its best-practice rules besides (`wcag2a`, `wcag2aa`, `wcag21a`,
@@ -21,7 +22,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { AxeResults, Result } from 'axe-core'
 import type { Page } from '@playwright/test'
-import { NIGHTLY_WIDTHS, PR_ROUTES, PR_WIDTHS, W1_LEVEL_PAGES, W1_ROUTES } from './routes'
+import { NIGHTLY_WIDTHS, PR_ROUTES, PR_WIDTHS, W1_LEVEL_PAGES, W1_ROUTES, W2_ROUTES } from './routes'
 import { clipped, documentRoutes, expect, NIGHTLY, open, quiet, SCENE_IN_RUN, settled3d, test, withSettings } from './support/site'
 
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']
@@ -34,7 +35,7 @@ const HEADING_RULES = ['heading-order', 'page-has-heading-one', 'empty-heading']
  */
 const LANDMARK_RULES = ['landmark-unique']
 
-const ROUTES = [...(NIGHTLY ? documentRoutes() : [...PR_ROUTES, ...W1_ROUTES]), ...W1_LEVEL_PAGES]
+const ROUTES = [...(NIGHTLY ? documentRoutes() : [...PR_ROUTES, ...W1_ROUTES, ...W2_ROUTES]), ...W1_LEVEL_PAGES]
 const WIDTHS = NIGHTLY ? NIGHTLY_WIDTHS : PR_WIDTHS
 /**
  * The routes that are audited with their 3D pass drawn as well. A software renderer draws a frame in most of a second, so a pull

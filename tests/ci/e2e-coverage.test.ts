@@ -16,7 +16,7 @@ import path from 'node:path'
 import { GAMES } from '@es/play'
 import { FIRST_SERVICE } from '@es/play/loop/entry'
 import { FRONT_LEVELS, SMOKE_LEVELS, WALKED } from '../../e2e/levels'
-import { PR_ROUTES, W1_LEVEL_PAGES, W1_ROUTES } from '../../e2e/routes'
+import { PR_ROUTES, W1_LEVEL_PAGES, W1_ROUTES, W2_ROUTES } from '../../e2e/routes'
 import { read, root } from './support'
 
 const PATH = /^\/(?:[A-Za-z0-9][A-Za-z0-9._-]*(?:\/[A-Za-z0-9][A-Za-z0-9._-]*)*)?$/
@@ -42,6 +42,19 @@ describe("W1's routes", () => {
   test('reach the page of every game in the registry, so that a game that is added has its page audited', () => {
     const visited = new Set([...PR_ROUTES, ...W1_ROUTES])
     expect(GAMES.games.map((game) => `/play/${game.id}`).filter((route) => !visited.has(route))).toEqual([])
+  })
+})
+
+describe("W2's routes", () => {
+  test('are paths in the route table\'s notation, each once, and none repeats the pull request\'s or W1\'s', () => {
+    for (const route of W2_ROUTES) expect(route).toMatch(PATH)
+    expect(new Set(W2_ROUTES).size).toBe(W2_ROUTES.length)
+    expect(W2_ROUTES.filter((route) => PR_ROUTES.includes(route) || W1_ROUTES.includes(route))).toEqual([])
+  })
+
+  test('hold the receipts page that W2-T06 built, which the axe, the reduced-motion and the network specs visit with the pull request\'s', () => {
+    expect(W2_ROUTES).toContain('/receipts')
+    for (const spec of ['a11y', 'network', 'reduced-motion']) expect(read(`e2e/${spec}.spec.ts`), `e2e/${spec}.spec.ts visits W2's routes`).toContain('W2_ROUTES')
   })
 })
 
