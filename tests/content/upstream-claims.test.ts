@@ -140,6 +140,19 @@ describe('the upstream claims', () => {
       expect(['number', 'string']).toContain(typeof claim.value)
     }
   })
+
+  // The W1b close-out corrected this claim. It said that a run that asks for no more percentiles "reports the tail and no median", and
+  // vllm/benchmarks/serve.py prints the mean and the median of each metric it reports before that metric's percentiles. The words that
+  // hold the correction are the claim's own and name no line, so a re-pin that moves the lines keeps them.
+  test('vllm.bench.metric-percentiles-default says that a run prints the mean and the median before the percentiles, and quotes the line that prints the median', () => {
+    const claim = upstream.find((record) => record.claim.id === 'vllm.bench.metric-percentiles-default')?.claim
+    expect(claim).toBeDefined()
+    expect(claim?.value).toBe('99')
+    expect(claim?.text).toContain('defaults to the 99th percentile alone')
+    expect(claim?.text).toContain('prints the mean and the median before the percentiles')
+    expect(claim?.text).not.toMatch(/no median/i)
+    expect(claim?.source?.quote).toContain('Median {metric_name}')
+  })
 })
 
 describe('the topics of W1-T01’s goal', () => {
