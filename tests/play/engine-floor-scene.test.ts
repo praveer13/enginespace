@@ -31,7 +31,7 @@
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
-import { Box3, PerspectiveCamera, Vector3 } from 'three'
+import { Box3, Euler, Matrix4, PerspectiveCamera, Quaternion, Vector3 } from 'three'
 import { MAP_LEVEL, trayFor } from '@es/play/engine-floor/levels'
 import { floorView } from '@es/play/engine-floor/session'
 import { referenceOf } from '@es/play/engine-floor/stages'
@@ -47,7 +47,7 @@ import { roomShade } from '@/scene/props/set'
 import type { PropSpec } from '@/scene/props/specs'
 import { HOUSE, houseOf, presentOf, tapesOf, type House, type HouseItem, type HouseProp } from '@/games/engine-floor/scene-layout'
 import { presetsOf, sceneModelOf } from '@/games/engine-floor/scene-presets'
-import { customOf, OWN, ROLL, SLIP, ticketSheet } from '@/games/engine-floor/scene-props'
+import { customOf, LIT, OWN, ROLL, SHADE, SLIP, ticketSheet } from '@/games/engine-floor/scene-props'
 import { BALK, balkOf, handsInView, hopMs, playOf, presetFor, routeOf } from '@/games/engine-floor/scene-route'
 import { floorsOf, nextStop, stopsOf } from '@/games/engine-floor/scene-stops'
 import { ALL_SCENARIOS, laidTo, levelOf, ranTo, truthOf, walk } from './engine-floor-support'
@@ -550,54 +550,92 @@ describe('the route: the ticket\'s way through the house', () => {
   })
 })
 
-describe('the ticket: paper with its thickness, its curl and its print (the finish review\'s W1b round 1)', () => {
+describe('the ticket: paper with its thickness, its two curls and its print (W1b\'s close-out)', () => {
   const sheet = ticketSheet()
   const position = sheet.getAttribute('position')
   const normal = sheet.getAttribute('normal')
   const uv = sheet.getAttribute('uv')
   const box = new Box3().setFromBufferAttribute(position as never)
+  const at = (i: number) => new Vector3(position.getX(i), position.getY(i), position.getZ(i))
+  const takes = (i: number, [u, v]: readonly [number, number]) => Math.abs(uv.getX(i) - u) < 1e-6 && Math.abs(uv.getY(i) - v) < 1e-6
+  const all = Array.from({ length: position.count }, (_, i) => i)
+  // The face takes its cell of the print atlas whole; the back and the long edges take one point of a cell's shaded corner, the cut ends one of its plain paper.
+  const face = all.filter((i) => !takes(i, SHADE) && !takes(i, LIT))
+  const back = all.filter((i) => takes(i, SHADE))
+  const ends = all.filter((i) => takes(i, LIT))
+  /** How far down the sheet a vertex of the face is, along the paper, from its print's row. */
+  const down = (i: number) => (1 - uv.getY(i)) * SLIP.height
+  const hanging = face.filter((i) => down(i) > ROLL.hang + 0.01 && down(i) < ROLL.curl - 0.01)
 
-  test('it is the slip it was, a hand wide, hung from the middle of its top edge, its print on its face and its back and edges in the paper\'s shade', () => {
+  test('a slip the print\'s own shape, hung from the middle of its top edge: its print on its face, its back and long edges in the paper\'s shade and its cut ends in its plain paper', () => {
     expect(box.max.x - box.min.x).toBeCloseTo(SLIP.width, 6)
+    expect(SLIP.height).toBeCloseTo(2 * SLIP.width, 6)
     expect(box.max.y).toBeCloseTo(0, 6)
-    // The face takes its cell of the print atlas whole; the back and the cut edges sample one point of a cell's shaded corner.
-    let face = 0
-    let shade = 0
-    for (let i = 0; i < uv.count; i++) {
-      const [u, v] = [uv.getX(i), uv.getY(i)]
-      if (u < 0.02 && v < 0.02 && u > 0 && v > 0) shade += 1
-      else face += 1
-    }
-    expect(face).toBeGreaterThan(0)
-    expect(shade).toBeGreaterThan(0)
+    expect(face.length).toBeGreaterThan(0)
+    expect(back.length).toBeGreaterThan(0)
+    expect(ends.length).toBeGreaterThan(0)
+    // A cell is 128 by 256 px with a ruled border 16 px wide, and its last line of print is 85% down it in dots 4.5 px across (surfaces.ts's
+    // drawPrint): the plain paper lies inside the border and under that line, and the shaded corner inside the border's darkest rule.
+    expect(LIT[0]).toBeGreaterThan(16 / 128)
+    expect(LIT[0]).toBeLessThan(1 - 16 / 128)
+    expect(LIT[1]).toBeGreaterThan(16 / 256)
+    expect(LIT[1]).toBeLessThan(0.15 - 4.5 / 256)
+    expect(Math.max(...SHADE)).toBeLessThan(5 / 256)
   })
 
-  test('its foot rolls forward past the horizontal and back up toward its face, the curl as deep as the roll\'s radius and its thickness, its back turned up to the room where it turns', () => {
-    // The curl's bottom is the lowest of the sheet, the roll's radius and the paper's thickness under where it starts.
-    expect(-box.min.y).toBeCloseTo(ROLL.from + ROLL.radius + SLIP.thickness, 3)
-    // Past the horizontal: some of the sheet stands in front of the curl's axis, its foot turning back up toward its face.
-    expect(box.max.z).toBeGreaterThan(ROLL.radius + 0.01)
-    // Where it turns back up, the paper's back faces up and out to the room, so a camera over the counter sees the back and its cut edge.
-    let backUp = 0
-    for (let i = 0; i < position.count; i++) {
-      if (position.getZ(i) > ROLL.radius && uv.getX(i) < 0.02 && normal.getY(i) > 0.3 && normal.getZ(i) > 0) backUp += 1
+  test('its top rolls forward off the rail\'s clip: it leaves the clip a quarter turn forward, facing up, and hangs straight in front of it', () => {
+    const top = face.filter((i) => down(i) < 1e-6)
+    expect(top.length).toBeGreaterThan(0)
+    for (const i of top) {
+      expect(position.getY(i)).toBeCloseTo(0, 6)
+      expect(position.getZ(i)).toBeCloseTo(0, 6)
+      expect(normal.getY(i)).toBeGreaterThan(0.9)
     }
-    expect(backUp).toBeGreaterThan(0)
+    // Between the head's roll and the foot's curl the face hangs straight down, square to the room, the roll's depth in front of the clip.
+    expect(hanging.length).toBeGreaterThan(0)
+    for (const i of hanging) {
+      expect(normal.getZ(i)).toBeGreaterThan(0.999)
+      expect(position.getZ(i)).toBeGreaterThan(0.03)
+    }
   })
 
-  test('its paper has a thickness: over the flat of the sheet its back is the thickness behind its face', () => {
-    // Down the sheet's middle, above the roll: a vertex of the face at z 0 and one of the back the thickness behind it, at each row.
-    const middle = new Map<string, number[]>()
-    for (let i = 0; i < position.count; i++) {
-      const [x, y, z] = [position.getX(i), position.getY(i), position.getZ(i)]
-      if (Math.abs(x) > 1e-6 || -y > ROLL.from - 0.01) continue
-      const row = y.toFixed(4)
-      middle.set(row, [...(middle.get(row) ?? []), z])
+  test('its foot curls away from the tile and up, past a quarter turn: the curl\'s back stands to the room in front of its face, with the cut end on top', () => {
+    const face0 = Math.max(...hanging.map((i) => position.getZ(i)))
+    const foot = face.filter((i) => down(i) > SLIP.height - 1e-6)
+    expect(foot.length).toBeGreaterThan(0)
+    for (const i of foot) {
+      // Its cut end is in front of the hanging face, and above the curl's lowest point: the curl has turned back up.
+      expect(position.getZ(i)).toBeGreaterThan(face0 + 0.05)
+      expect(position.getY(i)).toBeGreaterThan(box.min.y + 0.01)
     }
-    expect(middle.size).toBeGreaterThan(3)
-    for (const zs of middle.values()) {
-      if (zs.length < 2) continue
-      expect(Math.max(...zs) - Math.min(...zs)).toBeCloseTo(SLIP.thickness, 6)
+    // Where it has turned back up, the paper's back faces the room, so the cutaway's camera, a little above, sees the curl's back.
+    expect(back.filter((i) => position.getZ(i) > face0 + 0.05 && normal.getZ(i) > 0.5).length).toBeGreaterThan(0)
+  })
+
+  test('a lit strip of the stock\'s thickness: the curl turns the cut end of its foot up and to the room, and the strip is as wide as the stock is thick', () => {
+    const tip = ends.filter((i) => position.getY(i) < -0.1)
+    expect(tip.length).toBeGreaterThan(0)
+    for (const i of tip) {
+      // Up to the tubes and out to the room: lit by them, and seen by every camera of the house.
+      expect(normal.getY(i)).toBeGreaterThan(0.5)
+      expect(normal.getZ(i)).toBeGreaterThan(0.3)
+      const across = tip.filter((k) => k !== i && Math.abs(position.getX(k) - position.getX(i)) < 1e-6).map((k) => at(k).distanceTo(at(i)))
+      expect(Math.max(...across)).toBeCloseTo(SLIP.thickness, 5)
+    }
+  })
+
+  test('the camera culls it by bounds that hold the whole bent sheet: the flat slip\'s, which the kit took, are wide enough', () => {
+    const sphere = sheet.boundingSphere
+    expect(sphere).not.toBeNull()
+    for (const i of all) expect(sphere?.distanceToPoint(at(i)) ?? Infinity).toBeLessThanOrEqual(1e-6)
+  })
+
+  test('its paper has a thickness all along it: away from its long edges, each vertex of its face has one of its back the stock\'s thickness behind it, through both curls', () => {
+    const inner = face.filter((i) => Math.abs(position.getX(i)) < SLIP.width / 2 - 1e-4)
+    expect(inner.length).toBeGreaterThan(0)
+    for (const i of inner) {
+      const p = at(i)
+      expect(Math.min(...back.map((k) => p.distanceTo(at(k))))).toBeCloseTo(SLIP.thickness, 5)
     }
   })
 })
@@ -706,7 +744,7 @@ describe('the camera\'s stops (GAMES.md §2.6, Cameras)', () => {
             const v = new Vector3(x, y, z).project(camera)
             return [((v.x + 1) / 2) * w, ((1 - v.y) / 2) * h]
           }
-          // The sheet as it hangs, rolled at its foot (scene-props.ts).
+          // The sheet as it hangs, rolled at its head and curled at its foot (scene-props.ts).
           const [, head] = px(spot.x, spot.stand.at[1], spot.stand.at[2])
           const [left, foot] = px(spot.x - SLIP.width / 2, spot.stand.at[1] - SHEET_HEIGHT, spot.stand.at[2])
           expect(foot - head, `${id} ${stop} at ${width}`).toBeGreaterThan(40)
@@ -716,6 +754,40 @@ describe('the camera\'s stops (GAMES.md §2.6, Cameras)', () => {
             expect(y).toBeGreaterThan(0)
             expect(y).toBeLessThan(h)
           }
+        }
+      }
+    }
+  })
+
+  test('the ticket\'s lit strip, the cut end its foot turns up, is at least a pixel across in a low house\'s cutaway, on a laptop and on a phone', () => {
+    const boxes = [[1440, 872, 630], [390, 358, 489]] as const
+    const sheet = ticketSheet()
+    const position = sheet.getAttribute('position')
+    const uv = sheet.getAttribute('uv')
+    const tip = Array.from({ length: position.count }, (_, i) => i).filter((i) => Math.abs(uv.getX(i) - LIT[0]) < 1e-6 && Math.abs(uv.getY(i) - LIT[1]) < 1e-6 && position.getY(i) < -0.1)
+    expect(tip.length).toBeGreaterThan(0)
+    for (const id of ['nano', 'vllm'] as const) {
+      const view = floorView(walk(levelOf(id)))
+      const house = houseOfView(view)
+      const spot = presentOf(view, house) as NonNullable<ReturnType<typeof presentOf>>
+      // The ticket as it hangs on its rail (scene-layout.ts's stand), in the world.
+      const hung = new Matrix4().compose(new Vector3(...spot.stand.at), new Quaternion().setFromEuler(new Euler(...spot.stand.rot)), new Vector3(1, 1, 1))
+      const preset = presetsOf(house).find((candidate) => candidate.id === 'cutaway') as never
+      for (const [width, w, h] of boxes) {
+        const framing = framingFor(preset, width)
+        const camera = new PerspectiveCamera(framing.fov, w / h, 0.05, 200)
+        camera.position.set(...(framing.position as [number, number, number]))
+        camera.lookAt(...(framing.target as [number, number, number]))
+        camera.updateMatrixWorld()
+        const px = (i: number) => {
+          const v = new Vector3(position.getX(i), position.getY(i), position.getZ(i)).applyMatrix4(hung).project(camera)
+          return new Vector3(((v.x + 1) / 2) * w, ((1 - v.y) / 2) * h, 0)
+        }
+        // Across the strip, from each vertex on its face's side to the one on its back's, the stock's thickness away, on the screen.
+        for (const i of tip) {
+          const partner = tip.filter((k) => k !== i && Math.abs(position.getX(k) - position.getX(i)) < 1e-6)
+          expect(partner.length).toBeGreaterThan(0)
+          for (const k of partner) expect(px(i).distanceTo(px(k)), `${id} at ${width}`).toBeGreaterThan(1)
         }
       }
     }

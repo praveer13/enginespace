@@ -61,6 +61,12 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 
 The first struck stop. A learner lays the engine core's `update_from_output` straight after `schedule` and pulls the stub; in the house the ticket goes through the host stand's window, along the chute and out onto the pass, and balks at the hand-off that does not hold, whose chit is struck in red, and the order prints, in the printer's dots, the file and line where the engine calls the model first. In the 2D house the route inks up to the pass and stops before it.
 
+## Adaptations (W1b's close-out: the ticket; two looks at 1440 and 390)
+
+The round-2 verdict left one fix open: the ticket hung as a flat card with a small flick at one corner. The cause was this scene's own ticket at this camera, not the kit's paper, and the kit is unchanged: the cutaway looks from 24° right of the sheet and a little above, so a foot rolled toward the camera moved mostly along the line of sight and showed as a few pixels' skew to the left; the head hung flat from the clip; and the cutaway draws about 4.4 mm to a pixel at the ticket, so a stock of 3 mm showed no edge [derived from the framings].
+- **The sheet is bent along the roll's set, row by row,** in this scene's own code. Its top leaves the rail's clip a quarter turn forward and straightens as it hangs, so it takes the tubes' light. Its foot curls away from the tile and up through about 150°, so the curl's back stands to the room in the shade of a cell's corner, with the cut end on top of it, turned up to the tubes, in the cell's plain paper: a lit strip of the stock's thickness. The stock is 8 mm and the slip 130 by 260 mm, the print's own shape, so it still hangs 200 mm [estimated and derived].
+- **The first look** compared three bends, each on a build of its own: a shorter head roll over a curl of about 140° read as a flat sheet whose foot flares left; a quarter-turn head over a curl of about 160° read as paper, the curl's dark back under a light rim; a lip turned square to the camera read as a lip. **The second look** confirmed the second bend at 1440 and 390, in the cutaway and the follow, with the stock at 8 mm and the curl turned a little less, so the cut end shows as a strip about a pixel and a half across at the cutaway [derived from the framings].
+
 ## Adaptations (W1b's finish review, round 1: fix; two looks at 1440 and 390)
 
 The verdict pass found the chit clear of the printer, three fixes partial and one possible regression. The fixes, inside the frozen 40 KB scene gate [estimated] (D-023):
