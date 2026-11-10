@@ -1,0 +1,483 @@
+# The hardware atlas, Ada Lovelace: the RTX 4090, the L4 and the L40S (W2-T09; ARCHITECTURE §8.5 rule 9, ASSESSMENT §6.4). What each GPU can do, as NVIDIA states it: the name it is listed under,
+# its memory capacity and bandwidth, and its peak rates by precision. The physics floors of the receipt check read them, keyed by the GPU name that the fingerprint reports.
+# content/claims/README.md, "The hardware atlas", says how an id is built, which units the claims use, and how a dense peak is told from a sparse one.
+#
+# Every number was read on 2026-11-09 from the document its source names, with the generic User-Agent "Mozilla/5.0 (X11; Linux x86_64)" and no other header that names anyone.
+# Each download went into a folder of its own and was read as text, never run: a PDF through pdftotext and a page through an HTML parser. The pieces of every quote were found,
+# in order, in that text before the claim was written. A TTL of 365 days is a design parameter [estimated]: the figures of a shipped GPU do not move, but a vendor can revise a page.
+#
+# The documents of this file, with the size and the SHA-256 of the copy that was read on 2026-11-09:
+#   - NVIDIA Linux x86_64 driver 580.196.07 README
+#     https://download.nvidia.com/XFree86/Linux-x86_64/580.196.07/README/supportedchips.html
+#     221357 bytes, SHA-256 9595baedfa021dcfd3c89e16fc85f969c79f60e44064dba02504c921102bc769
+#   - NVIDIA L4 Tensor Core GPU datasheet 3408215 (August 2024)
+#     https://dam-cdn.nvd.orangelogic.com/AssetLink/8f4cjsr458mk07kxxt608b1ct0t570x7.pdf
+#     467982 bytes, SHA-256 63b48f3f686158b1ee7872bac251d6b5875b65a9319454dff8fba378719b2074
+#   - NVIDIA L40S GPU page on nvidia.com
+#     https://www.nvidia.com/en-us/data-center/l40s/
+#     577559 bytes, SHA-256 be4c48d0dd3af1cf28926a97f8e2a23a284460b3139fb97d0dad51299d64538b
+#   - NVIDIA Ada GPU Architecture whitepaper, V2.02
+#     https://images.nvidia.com/aem-dam/Solutions/Data-Center/l4/nvidia-ada-gpu-architecture-whitepaper-V2.02.pdf
+#     3856537 bytes, SHA-256 7cbe859bf7e63e16921536042fef24788968667c967529427099e97be0805ed1
+
+# --- NVIDIA GeForce RTX 4090 -----------------------------------------------------------------------------------------------------------------------
+
+- id: hw.rtx4090.product-name
+  value: NVIDIA GeForce RTX 4090
+  text: NVIDIA's Linux driver 580.196.07 lists PCI device 2684 as "NVIDIA GeForce RTX 4090". The RTX 4090 D is listed apart, as "NVIDIA GeForce RTX 4090 D" (device 2685). The atlas matches the GPU name in a fingerprint to this string. That nvidia-smi and NVML print the same string is not checked here [unverified].
+  tag: measured
+  source:
+    url: https://download.nvidia.com/XFree86/Linux-x86_64/580.196.07/README/supportedchips.html
+    title: NVIDIA Linux x86_64 driver 580.196.07 README, Appendix A, Supported NVIDIA GPU Products
+    quote: NVIDIA GeForce RTX 4090 | 2684
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx4090.mem-capacity
+  value: 24
+  unit: GB
+  text: NVIDIA's Ada whitepaper lists 24 GB of GDDR6X memory for the RTX 4090.
+  tag: measured
+  source:
+    url: https://images.nvidia.com/aem-dam/Solutions/Data-Center/l4/nvidia-ada-gpu-architecture-whitepaper-V2.02.pdf
+    title: NVIDIA Ada GPU Architecture whitepaper, V2.02, Appendix A, Table 2, RTX 4090 column
+    quote: Frame Buffer Memory Size and Type | 11 GB GDDR6 | 24 GB GDDR6X | 24 GB GDDR6X
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx4090.mem-bw
+  value: 1008
+  unit: GB/s
+  text: NVIDIA's Ada whitepaper lists a memory bandwidth of 1,008 GB/s for the RTX 4090 (384 bits at 21 Gbps). It is a peak rate, not a measured one.
+  tag: measured
+  source:
+    url: https://images.nvidia.com/aem-dam/Solutions/Data-Center/l4/nvidia-ada-gpu-architecture-whitepaper-V2.02.pdf
+    title: NVIDIA Ada GPU Architecture whitepaper, V2.02, Appendix A, Table 2, RTX 4090 column
+    quote: Memory Bandwidth | 616 GB/sec | 1008 GB/sec | 1008 GB/sec
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx4090.fp32
+  value: 82.6
+  unit: TFLOPS
+  text: NVIDIA's Ada whitepaper lists 82.6 TFLOPS of FP32 for the RTX 4090, on the CUDA cores and not the Tensor Cores, computed at its 2520 MHz boost clock.
+  tag: measured
+  source:
+    url: https://images.nvidia.com/aem-dam/Solutions/Data-Center/l4/nvidia-ada-gpu-architecture-whitepaper-V2.02.pdf
+    title: NVIDIA Ada GPU Architecture whitepaper, V2.02, Appendix A, Table 2, RTX 4090 column
+    quote: Peak FP32 TFLOPS (non-Tensor) | 14.2 | 40 | 82.6
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx4090.tf32-dense
+  value: 82.6
+  unit: TFLOPS
+  text: NVIDIA's Ada whitepaper lists 82.6 TFLOPS for the RTX 4090's TF32 Tensor Cores without sparsity and 165.2 TFLOPS with it, computed at its 2520 MHz boost clock.
+  tag: measured
+  source:
+    url: https://images.nvidia.com/aem-dam/Solutions/Data-Center/l4/nvidia-ada-gpu-architecture-whitepaper-V2.02.pdf
+    title: NVIDIA Ada GPU Architecture whitepaper, V2.02, Appendix A, Table 2, RTX 4090 column, second figure with sparsity (footnote 2)
+    quote: Peak TF32 Tensor TFLOPS | N/A | 40/80 | 82.6/165.2
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx4090.fp16-dense
+  value: 330.3
+  unit: TFLOPS
+  text: NVIDIA's Ada whitepaper lists 330.3 TFLOPS for the RTX 4090's FP16 Tensor Cores (FP16 accumulation, the faster mode) without sparsity and 660.6 TFLOPS with it, computed at its 2520 MHz boost clock.
+  tag: measured
+  source:
+    url: https://images.nvidia.com/aem-dam/Solutions/Data-Center/l4/nvidia-ada-gpu-architecture-whitepaper-V2.02.pdf
+    title: NVIDIA Ada GPU Architecture whitepaper, V2.02, Appendix A, Table 2, RTX 4090 column, second figure with sparsity (footnote 2)
+    quote: Peak FP16 Tensor TFLOPS with FP16 Accumulate | 113.8 | 160/320 | 330.3/660.6
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx4090.fp16-fp32acc-dense
+  value: 165.2
+  unit: TFLOPS
+  text: NVIDIA's Ada whitepaper lists 165.2 TFLOPS for the RTX 4090's FP16 Tensor Cores (FP32 accumulation) without sparsity and 330.4 TFLOPS with it, computed at its 2520 MHz boost clock.
+  tag: measured
+  source:
+    url: https://images.nvidia.com/aem-dam/Solutions/Data-Center/l4/nvidia-ada-gpu-architecture-whitepaper-V2.02.pdf
+    title: NVIDIA Ada GPU Architecture whitepaper, V2.02, Appendix A, Table 2, RTX 4090 column, second figure with sparsity (footnote 2)
+    quote: Peak FP16 Tensor TFLOPS with FP32 Accumulate | 56.9 | 80/160 | 165.2/330.4
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx4090.bf16-dense
+  value: 165.2
+  unit: TFLOPS
+  text: NVIDIA's Ada whitepaper lists 165.2 TFLOPS for the RTX 4090's BF16 Tensor Cores (FP32 accumulation) without sparsity and 330.4 TFLOPS with it, computed at its 2520 MHz boost clock.
+  tag: measured
+  source:
+    url: https://images.nvidia.com/aem-dam/Solutions/Data-Center/l4/nvidia-ada-gpu-architecture-whitepaper-V2.02.pdf
+    title: NVIDIA Ada GPU Architecture whitepaper, V2.02, Appendix A, Table 2, RTX 4090 column, second figure with sparsity (footnote 2)
+    quote: Peak BF16 Tensor TFLOPS with FP32 Accumulate | N/A | 80/160 | 165.2/330.4
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx4090.fp8-dense
+  value: 660.6
+  unit: TFLOPS
+  text: NVIDIA's Ada whitepaper lists 660.6 TFLOPS for the RTX 4090's FP8 Tensor Cores (FP16 accumulation, the faster mode) without sparsity and 1,321.2 TFLOPS with it, computed at its 2520 MHz boost clock.
+  tag: measured
+  source:
+    url: https://images.nvidia.com/aem-dam/Solutions/Data-Center/l4/nvidia-ada-gpu-architecture-whitepaper-V2.02.pdf
+    title: NVIDIA Ada GPU Architecture whitepaper, V2.02, Appendix A, Table 2, RTX 4090 column, second figure with sparsity (footnote 2)
+    quote: Peak FP8 Tensor TFLOPS with FP16 Accumulate | N/A | N/A | 660.6/1321.2
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx4090.fp8-fp32acc-dense
+  value: 330.3
+  unit: TFLOPS
+  text: NVIDIA's Ada whitepaper lists 330.3 TFLOPS for the RTX 4090's FP8 Tensor Cores (FP32 accumulation) without sparsity and 660.6 TFLOPS with it, computed at its 2520 MHz boost clock.
+  tag: measured
+  source:
+    url: https://images.nvidia.com/aem-dam/Solutions/Data-Center/l4/nvidia-ada-gpu-architecture-whitepaper-V2.02.pdf
+    title: NVIDIA Ada GPU Architecture whitepaper, V2.02, Appendix A, Table 2, RTX 4090 column, second figure with sparsity (footnote 2)
+    quote: Peak FP8 Tensor TFLOPS with FP32 Accumulate | N/A | N/A | 330.3/660.6
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx4090.int8-dense
+  value: 660.6
+  unit: TOPS
+  text: NVIDIA's Ada whitepaper lists 660.6 TOPS for the RTX 4090's INT8 Tensor Cores without sparsity and 1,321.2 TOPS with it, computed at its 2520 MHz boost clock.
+  tag: measured
+  source:
+    url: https://images.nvidia.com/aem-dam/Solutions/Data-Center/l4/nvidia-ada-gpu-architecture-whitepaper-V2.02.pdf
+    title: NVIDIA Ada GPU Architecture whitepaper, V2.02, Appendix A, Table 2, RTX 4090 column, second figure with sparsity (footnote 2)
+    quote: Peak INT8 Tensor TOPS | 227.7 | 320/640 | 660.6/1321.2
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+
+# --- NVIDIA L4 -------------------------------------------------------------------------------------------------------------------------------------
+
+- id: hw.l4.product-name
+  value: NVIDIA L4
+  text: NVIDIA's Linux driver 580.196.07 lists PCI device 27B8 as "NVIDIA L4". The atlas matches the GPU name in a fingerprint to this string. That nvidia-smi and NVML print the same string is not checked here [unverified].
+  tag: measured
+  source:
+    url: https://download.nvidia.com/XFree86/Linux-x86_64/580.196.07/README/supportedchips.html
+    title: NVIDIA Linux x86_64 driver 580.196.07 README, Appendix A, Supported NVIDIA GPU Products
+    quote: NVIDIA L4 | 27B8 10DE 16CA
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.l4.mem-capacity
+  value: 24
+  unit: GB
+  text: NVIDIA's L4 datasheet lists 24 GB of memory.
+  tag: measured
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/8f4cjsr458mk07kxxt608b1ct0t570x7.pdf
+    title: NVIDIA L4 Tensor Core GPU datasheet 3408215 (August 2024), Specifications
+    quote: GPU Memory | 24GB
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.l4.mem-bw
+  value: 300
+  unit: GB/s
+  text: NVIDIA's L4 datasheet lists a memory bandwidth of 300 GB/s. It is a peak rate, not a measured one.
+  tag: measured
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/8f4cjsr458mk07kxxt608b1ct0t570x7.pdf
+    title: NVIDIA L4 Tensor Core GPU datasheet 3408215 (August 2024), Specifications
+    quote: GPU Memory Bandwidth | 300 GB/s
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.l4.fp32
+  value: 30.3
+  unit: TFLOPS
+  text: NVIDIA's L4 datasheet lists 30.3 TFLOPS of FP32, on the CUDA cores and not the Tensor Cores.
+  tag: measured
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/8f4cjsr458mk07kxxt608b1ct0t570x7.pdf
+    title: NVIDIA L4 Tensor Core GPU datasheet 3408215 (August 2024), Specifications
+    quote: FP32 | 30.3 teraFLOPs
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.l4.tf32-sparse
+  value: 120
+  unit: TFLOPS
+  text: NVIDIA's L4 datasheet lists 120 TFLOPS for the L4's TF32 Tensor Cores and marks the figure as shown with sparsity.
+  tag: measured
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/8f4cjsr458mk07kxxt608b1ct0t570x7.pdf
+    title: NVIDIA L4 Tensor Core GPU datasheet 3408215 (August 2024), Specifications, footnoted "*Shown with sparsity. Specifications 1/2 lower without sparsity."
+    quote: TF32 Tensor Core | 120 teraFLOPS*
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.l4.tf32-dense
+  value: 60
+  unit: TFLOPS
+  text: 'The dense TF32 Tensor Core peak of the L4: half of the 120 TFLOPS that NVIDIA''s L4 datasheet lists with sparsity, which is 60 TFLOPS. The datasheet says its specifications are 1/2 lower without sparsity. NVIDIA''s Ada whitepaper lists the same figure.'
+  tag: derived
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/8f4cjsr458mk07kxxt608b1ct0t570x7.pdf
+    title: NVIDIA L4 Tensor Core GPU datasheet 3408215 (August 2024), Specifications, footnoted "*Shown with sparsity. Specifications 1/2 lower without sparsity."
+    quote: TF32 Tensor Core | 120 teraFLOPS*
+    accessed: 2026-11-09
+  derived:
+    formula: hw.l4.tf32-sparse / 2
+    inputs: [hw.l4.tf32-sparse]
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.l4.fp16-sparse
+  value: 242
+  unit: TFLOPS
+  text: NVIDIA's L4 datasheet lists 242 TFLOPS for the L4's FP16 Tensor Cores and marks the figure as shown with sparsity.
+  tag: measured
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/8f4cjsr458mk07kxxt608b1ct0t570x7.pdf
+    title: NVIDIA L4 Tensor Core GPU datasheet 3408215 (August 2024), Specifications, footnoted "*Shown with sparsity. Specifications 1/2 lower without sparsity."
+    quote: FP16 Tensor Core | 242 teraFLOPS*
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.l4.fp16-dense
+  value: 121
+  unit: TFLOPS
+  text: 'The dense FP16 Tensor Core peak of the L4: half of the 242 TFLOPS that NVIDIA''s L4 datasheet lists with sparsity, which is 121 TFLOPS. The datasheet says its specifications are 1/2 lower without sparsity. NVIDIA''s Ada whitepaper lists the same figure.'
+  tag: derived
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/8f4cjsr458mk07kxxt608b1ct0t570x7.pdf
+    title: NVIDIA L4 Tensor Core GPU datasheet 3408215 (August 2024), Specifications, footnoted "*Shown with sparsity. Specifications 1/2 lower without sparsity."
+    quote: FP16 Tensor Core | 242 teraFLOPS*
+    accessed: 2026-11-09
+  derived:
+    formula: hw.l4.fp16-sparse / 2
+    inputs: [hw.l4.fp16-sparse]
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.l4.bf16-sparse
+  value: 242
+  unit: TFLOPS
+  text: NVIDIA's L4 datasheet lists 242 TFLOPS for the L4's BF16 Tensor Cores and marks the figure as shown with sparsity.
+  tag: measured
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/8f4cjsr458mk07kxxt608b1ct0t570x7.pdf
+    title: NVIDIA L4 Tensor Core GPU datasheet 3408215 (August 2024), Specifications, footnoted "*Shown with sparsity. Specifications 1/2 lower without sparsity."
+    quote: BFLOAT16 Tensor Core | 242 teraFLOPS*
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.l4.bf16-dense
+  value: 121
+  unit: TFLOPS
+  text: 'The dense BF16 Tensor Core peak of the L4: half of the 242 TFLOPS that NVIDIA''s L4 datasheet lists with sparsity, which is 121 TFLOPS. The datasheet says its specifications are 1/2 lower without sparsity. NVIDIA''s Ada whitepaper lists the same figure.'
+  tag: derived
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/8f4cjsr458mk07kxxt608b1ct0t570x7.pdf
+    title: NVIDIA L4 Tensor Core GPU datasheet 3408215 (August 2024), Specifications, footnoted "*Shown with sparsity. Specifications 1/2 lower without sparsity."
+    quote: BFLOAT16 Tensor Core | 242 teraFLOPS*
+    accessed: 2026-11-09
+  derived:
+    formula: hw.l4.bf16-sparse / 2
+    inputs: [hw.l4.bf16-sparse]
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.l4.fp8-sparse
+  value: 485
+  unit: TFLOPS
+  text: NVIDIA's L4 datasheet lists 485 TFLOPS for the L4's FP8 Tensor Cores and marks the figure as shown with sparsity.
+  tag: measured
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/8f4cjsr458mk07kxxt608b1ct0t570x7.pdf
+    title: NVIDIA L4 Tensor Core GPU datasheet 3408215 (August 2024), Specifications, footnoted "*Shown with sparsity. Specifications 1/2 lower without sparsity."
+    quote: FP8 Tensor Core | 485 teraFLOPs*
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.l4.fp8-dense
+  value: 242.5
+  unit: TFLOPS
+  text: 'The dense FP8 Tensor Core peak of the L4: half of the 485 TFLOPS that NVIDIA''s L4 datasheet lists with sparsity, which is 242.5 TFLOPS. The datasheet says its specifications are 1/2 lower without sparsity. NVIDIA''s Ada whitepaper lists 242 TFLOPS for the same part, a whole number.'
+  tag: derived
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/8f4cjsr458mk07kxxt608b1ct0t570x7.pdf
+    title: NVIDIA L4 Tensor Core GPU datasheet 3408215 (August 2024), Specifications, footnoted "*Shown with sparsity. Specifications 1/2 lower without sparsity."
+    quote: FP8 Tensor Core | 485 teraFLOPs*
+    accessed: 2026-11-09
+  derived:
+    formula: hw.l4.fp8-sparse / 2
+    inputs: [hw.l4.fp8-sparse]
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.l4.int8-sparse
+  value: 485
+  unit: TOPS
+  text: NVIDIA's L4 datasheet lists 485 TOPS for the L4's INT8 Tensor Cores and marks the figure as shown with sparsity.
+  tag: measured
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/8f4cjsr458mk07kxxt608b1ct0t570x7.pdf
+    title: NVIDIA L4 Tensor Core GPU datasheet 3408215 (August 2024), Specifications, footnoted "*Shown with sparsity. Specifications 1/2 lower without sparsity."
+    quote: INT8 Tensor Core | 485 TOPs*
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.l4.int8-dense
+  value: 242.5
+  unit: TOPS
+  text: 'The dense INT8 Tensor Core peak of the L4: half of the 485 TOPS that NVIDIA''s L4 datasheet lists with sparsity, which is 242.5 TOPS. The datasheet says its specifications are 1/2 lower without sparsity. NVIDIA''s Ada whitepaper lists 242 TOPS for the same part, a whole number.'
+  tag: derived
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/8f4cjsr458mk07kxxt608b1ct0t570x7.pdf
+    title: NVIDIA L4 Tensor Core GPU datasheet 3408215 (August 2024), Specifications, footnoted "*Shown with sparsity. Specifications 1/2 lower without sparsity."
+    quote: INT8 Tensor Core | 485 TOPs*
+    accessed: 2026-11-09
+  derived:
+    formula: hw.l4.int8-sparse / 2
+    inputs: [hw.l4.int8-sparse]
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+
+# --- NVIDIA L40S -----------------------------------------------------------------------------------------------------------------------------------
+
+- id: hw.l40s.product-name
+  value: NVIDIA L40S
+  text: NVIDIA's Linux driver 580.196.07 lists PCI device 26B9 as "NVIDIA L40S". The atlas matches the GPU name in a fingerprint to this string. That nvidia-smi and NVML print the same string is not checked here [unverified].
+  tag: measured
+  source:
+    url: https://download.nvidia.com/XFree86/Linux-x86_64/580.196.07/README/supportedchips.html
+    title: NVIDIA Linux x86_64 driver 580.196.07 README, Appendix A, Supported NVIDIA GPU Products
+    quote: NVIDIA L40S | 26B9 10DE 1851
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.l40s.mem-capacity
+  value: 48
+  unit: GB
+  text: NVIDIA's L40S page lists 48 GB of GDDR6 memory.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/en-us/data-center/l40s/
+    title: NVIDIA L40S GPU page on nvidia.com, Specifications, the full specifications table
+    quote: GPU Memory | 48GB GDDR6 with ECC
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.l40s.mem-bw
+  value: 864
+  unit: GB/s
+  text: NVIDIA's L40S page lists a memory bandwidth of 864 GB/s. It is a peak rate, not a measured one.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/en-us/data-center/l40s/
+    title: NVIDIA L40S GPU page on nvidia.com, Specifications, the full specifications table
+    quote: Memory Bandwidth | 864GB/s
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.l40s.fp32
+  value: 91.6
+  unit: TFLOPS
+  text: NVIDIA's L40S page lists 91.6 TFLOPS of FP32, on the CUDA cores and not the Tensor Cores.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/en-us/data-center/l40s/
+    title: NVIDIA L40S GPU page on nvidia.com, Specifications, the full specifications table
+    quote: FP32 TFLOPS | 91.6
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.l40s.tf32-dense
+  value: 183
+  unit: TFLOPS
+  text: NVIDIA's L40S page lists 183 TFLOPS for the L40S's TF32 Tensor Cores without sparsity and 366 TFLOPS with it. The page writes each pair with a capital I between the figures.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/en-us/data-center/l40s/
+    title: NVIDIA L40S GPU page on nvidia.com, Specifications, the full specifications table, second figure footnoted "*With Sparsity"
+    quote: TF32 Tensor Core TFLOPS | 183 I 366*
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.l40s.bf16-dense
+  value: 362.05
+  unit: TFLOPS
+  text: NVIDIA's L40S page lists 362.05 TFLOPS for the L40S's BF16 Tensor Cores without sparsity and 733 TFLOPS with it. The page writes each pair with a capital I between the figures.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/en-us/data-center/l40s/
+    title: NVIDIA L40S GPU page on nvidia.com, Specifications, the full specifications table, second figure footnoted "*With Sparsity"
+    quote: BFLOAT16 Tensor Core TFLOPS | 362.05 I 733*
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.l40s.fp16-dense
+  value: 362.05
+  unit: TFLOPS
+  text: NVIDIA's L40S page lists 362.05 TFLOPS for the L40S's FP16 Tensor Cores without sparsity and 733 TFLOPS with it. The page writes each pair with a capital I between the figures.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/en-us/data-center/l40s/
+    title: NVIDIA L40S GPU page on nvidia.com, Specifications, the full specifications table, second figure footnoted "*With Sparsity"
+    quote: FP16 Tensor Core | 362.05 I 733*
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.l40s.fp8-dense
+  value: 733
+  unit: TFLOPS
+  text: NVIDIA's L40S page lists 733 TFLOPS for the L40S's FP8 Tensor Cores without sparsity and 1,466 TFLOPS with it. The page writes each pair with a capital I between the figures.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/en-us/data-center/l40s/
+    title: NVIDIA L40S GPU page on nvidia.com, Specifications, the full specifications table, second figure footnoted "*With Sparsity"
+    quote: FP8 Tensor Core | 733 I 1,466*
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.l40s.int8-dense
+  value: 733
+  unit: TOPS
+  text: NVIDIA's L40S page lists 733 TOPS for the L40S's INT8 Tensor Cores without sparsity and 1,466 TOPS with it. The page writes each pair with a capital I between the figures.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/en-us/data-center/l40s/
+    title: NVIDIA L40S GPU page on nvidia.com, Specifications, the full specifications table, second figure footnoted "*With Sparsity"
+    quote: Peak INT8 Tensor TOPS Peak INT4 Tensor TOPS | 733 I 1,466* 733 I 1,466*
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
