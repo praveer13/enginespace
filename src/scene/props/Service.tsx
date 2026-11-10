@@ -32,9 +32,10 @@ import { PLATE } from './specs'
  *   Plates      lathe-turned glazed plates, instanced; a plate slides from where it enters to its place and comes to rest on the
  *               settle curve, an exponential ease-out, and its contact shadow slides with it: a dark ring where its rim meets the
  *               steel and a soft shade past it, over the underside's own occlusion against the counter, baked once.
- *   ServiceBell the bell's chrome dome and plunger, turned in the chrome finish and mirroring the kit's room as polished metal does:
- *               a strike drops the plunger and rings the dome on the bell duration and the strike curve, with an amber flash on the
- *               dome; never more than one flash in 333 ms, so it cannot flash above 3 Hz (WCAG 2.3.1).
+ *   ServiceBell the bell's chrome dome and plunger, polished smooth and bright: the kit's room mirrored softly, so the tubes overhead
+ *               roll one soft highlight over the crown and the floor darkens its foot over the base's rim, and never a pattern of
+ *               stripes. A strike drops the plunger and rings the dome on the bell duration and the strike curve, with an amber flash on
+ *               the dome; never more than one flash in 333 ms, so it cannot flash above 3 Hz (WCAG 2.3.1).
  *   LampLights  the heat lamps' light at every tier, with no spot light: a cone of warm haze under each lamp and the edgeless pool where
  *               it lands on the steel, brightening what lies there.
  *   Steam       a few soft puffs rising off each lit station when a fire lands, at T2 only, and never under reduced motion.
@@ -203,12 +204,11 @@ const PLUNGER: readonly Vec2[] = [
 ]
 /**
  * How much brighter than brushed steel the bell's chrome mirrors the kit's room [estimated]. The room is a dim box with the tubes in it
- * (src/scene/environment.ts): brushed steel blurs it into a bright sheen, and a polished dome mirrors its dim walls sharply, which drew
- * the dome as a dark puck with an emblem (W1b's finish review of the lesson blocks, round 1). On a lit pass a chrome dome mirrors the
- * lit counter and tile round it, which the box leaves out, so it takes the room this much brighter: the tubes' streaks white, the room
- * light, and the floor a dark band at its foot, over the base's deep steel.
+ * (src/scene/environment.ts). On a lit pass a chrome dome mirrors the lit counter and tile round it, which the box leaves out, so it takes
+ * the room this much brighter: a body a shade brighter than the counter, the tubes a white highlight over the crown, and the floor a
+ * darker band at its foot. Brighter, the polished dome burns out into a flat white ball (the fix round's first look).
  */
-const CHROME_ROOM = 2.4
+const CHROME_ROOM = 3
 
 /**
  * Points a chrome part's own material at the kit's room, mirrored at CHROME_ROOM: three takes a material's own strength of reflection
@@ -230,8 +230,8 @@ const FLASH_GAP_MS = 334
 export function ServiceBell({ at, strike, name = 'bell' }: { at: Vec3; strike: number; name?: string }) {
   const kit = useKit()
   const { materials, palette } = useProps()
-  const dome = useMemo(() => painted(palette.part(lathe(DOME, 40), 'chrome')), [palette])
-  const plunger = useMemo(() => painted(palette.part(lathe(PLUNGER, 16), 'chrome')), [palette])
+  const dome = useMemo(() => painted(palette.part(lathe(DOME, 40), 'polished')), [palette])
+  const plunger = useMemo(() => painted(palette.part(lathe(PLUNGER, 16), 'polished')), [palette])
   useEffect(
     () => () => {
       dome.dispose()
@@ -239,7 +239,12 @@ export function ServiceBell({ at, strike, name = 'bell' }: { at: Vec3; strike: n
     },
     [dome, plunger],
   )
-  const flash = useMemo(() => materials.flashMetal(), [materials])
+  // Polished even all over: the palette's polished finish with no roughness map, which would streak the polish with the brush's grain.
+  const flash = useMemo(() => {
+    const metal = materials.flashMetal()
+    metal.roughnessMap = null
+    return metal
+  }, [materials])
   const domeMesh = useRef<Mesh>(null)
   const plungerMesh = useRef<Mesh>(null)
   const run = useRef({ strike, start: -Infinity, flash: false, lastFlash: -Infinity })

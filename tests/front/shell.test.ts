@@ -90,6 +90,19 @@ describe('the shell, rendered', () => {
     expect(box).toContain('data-orientation="portrait"')
   })
 
+  test("prints the kitchen's names over each poster as the design system's tape in the DOM, outside the SVG, stuck where the frame says (W1b's finish review of the lesson blocks, round 2)", () => {
+    const box = shell.slice(shell.indexOf('class="es-front-pass__stage"'), shell.indexOf('class="es-front-deck"'))
+    for (const orientation of ['landscape', 'portrait'] as const) {
+      const frame = box.slice(box.indexOf(`data-orientation="${orientation}"`))
+      const layer = frame.slice(frame.indexOf('</svg>'), frame.indexOf('</div></div>') + '</div></div>'.length)
+      expect(layer).toMatch(/^<\/svg><div class="es-frame-tapes" data-fit="fill" style="--es-frame-ratio:[\d.]+" aria-hidden="true">/)
+      expect([...layer.matchAll(/data-tape="([a-z]+)"/g)].map((match) => match[1])).toEqual(['line', 'expo'])
+      expect([...layer.matchAll(/<span class="es-tape__text">([^<]+)<\/span>/g)].map((match) => match[1])).toEqual(['the line · gpu', 'the expo · cpu'])
+    }
+    // The posters hold none of the words: they are the page's, so they keep to the size ramp however small the poster is drawn.
+    for (const poster of renderPosters()) expect(poster.svg).not.toMatch(/the line · gpu|the expo · cpu/i)
+  })
+
   test('holds the printer\'s strip with the first three of the six waiting tickets, says the rest are inside, and has the bell beside it', () => {
     const expo = shell.slice(shell.indexOf('class="es-front-expo"'), shell.indexOf('class="es-front-pass__stage"'))
     expect([...expo.matchAll(/aria-label="Hang ticket No\. \d+ on the rail"/g)].map((match) => match[0])).toEqual(

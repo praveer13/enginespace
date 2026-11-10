@@ -3,7 +3,7 @@ import { useLoaderData } from 'react-router'
 import { keymapOf, levelOf } from '@es/play'
 import type { KeyBinding } from '@es/play'
 import { FIRST_SERVICE, FULL_SERVICE_KEYS, LOOP } from '@es/play/loop/entry'
-import { stationsOf, type Orientation } from '@es/play/loop/layout'
+import { frameSvg, stationsOf, type Orientation } from '@es/play/loop/layout'
 import { loopSession } from '@es/play/loop/session'
 import type { LoopAction, LoopView } from '@es/play/loop/types'
 import type { ContentIndex } from '@es/schema'
@@ -29,6 +29,7 @@ import { Mirror } from '@/games/loop/Mirror'
 import { stepClockOf } from '@/games/loop/readout'
 import type { Scene3DProps } from '@/games/loop/Scene3D'
 import { FRONT_PRESET } from '@/games/loop/scene-presets'
+import { FrameTapes } from '@/games/loop/FrameTapes'
 import { svgToReact } from '@/games/loop/svg'
 import type { LoopRun } from '@/games/loop/types'
 import { useOrientation } from '@/games/loop/useOrientation'
@@ -38,7 +39,7 @@ import { unavailableReason, useDeviceTier } from '@/scene/tiers'
 import { anchorProperties, PASS_ANCHORS } from './anchors'
 import { DECK, HERO, MENU, NEXT, NIGHT, ORDER, TAPE } from './copy'
 import { decimalsOf, lanesOf, menuId, type FrontData } from './menu'
-import { ORIENTATIONS, passDrawing } from './poster'
+import { ORIENTATIONS, passFrame } from './poster'
 import { readConnection, upgradeOf, useSettled } from './upgrade'
 
 /*
@@ -652,7 +653,8 @@ function PassTape({ view, next, onFill }: { view: LoopView; next: LoopView | nul
 
 /**
  * The 2D drawing of the pass: the poster, and then the 2D view of the run, written by the same pure layout (poster.ts). The server
- * cannot know the screen, so it draws both orientations and front.css shows the one that fits; the browser draws its own.
+ * cannot know the screen, so it draws both orientations and front.css shows the one that fits; the browser draws its own. Over each
+ * frame, in a box of the frame's own shape, the kitchen's names are masking tape in the DOM, stuck on what they name (FrameTapes).
  */
 function PassDrawing({ view, both }: { view: LoopView; both: boolean }) {
   const orientation = useOrientation()
@@ -667,10 +669,12 @@ function PassDrawing({ view, both }: { view: LoopView; both: boolean }) {
 }
 
 function Frame({ view, orientation }: { view: LoopView; orientation: Orientation }) {
-  const svg = useMemo(() => svgToReact(passDrawing(view, orientation)), [view, orientation])
+  const frame = useMemo(() => passFrame(view, orientation), [view, orientation])
+  const svg = useMemo(() => svgToReact(frameSvg(frame)), [frame])
   return (
     <div className="es-front-drawing__frame" data-orientation={orientation}>
       {svg}
+      <FrameTapes frame={frame} fit="fill" />
     </div>
   )
 }

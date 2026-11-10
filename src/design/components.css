@@ -180,6 +180,49 @@
     overflow-wrap: anywhere;
   }
 
+  /*
+   * Tape stuck on a drawing: a 2D view's names, laid over its SVG as the frame lies in its box (filling a box of the frame's own shape,
+   * covering the box and cut at its sides, or fitted inside it), each strip stuck on its object's point, across it or ending there
+   * (src/games/loop/FrameTapes.tsx). Its print scales with the drawing's box, a size container, and never drops under the ramp's
+   * smallest step, as a scene's tapes do.
+   */
+  .es-frame-tapes {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .es-frame-tapes:not([data-fit='fill']) {
+    inset: auto;
+    top: 50%;
+    left: 50%;
+    width: max(100cqw, 100cqh * var(--es-frame-ratio, 1));
+    aspect-ratio: var(--es-frame-ratio, 1);
+    translate: -50% -50%;
+  }
+
+  .es-frame-tapes[data-fit='contain'] {
+    width: min(100cqw, 100cqh * var(--es-frame-ratio, 1));
+  }
+
+  .es-frame-tapes__tape {
+    position: absolute;
+    width: max-content;
+    translate: -50% -50%;
+  }
+
+  .es-frame-tapes__tape[data-place='left'] {
+    translate: -100% -50%;
+  }
+
+  .es-frame-tapes__tape[data-place='right'] {
+    translate: 0 -50%;
+  }
+
+  .es-frame-tapes__tape > .es-tape[data-size] {
+    font-size: clamp(var(--es-size-micro), 1.5cqi, var(--es-size-caption));
+  }
+
   /* ---------------------------------------------------------------------------------------------- ticket */
 
   .es-ticket {

@@ -24,7 +24,7 @@ import { ROLES } from '@/design/tokens'
 import { svgToReact } from '@/games/loop/svg'
 import { View2D } from '@/games/loop/View2D'
 import { hang, initState, setOverlap, step } from '@es/play/loop/engine'
-import { clipX, RAIL, SHOTS, viewOf } from '@es/play/loop/kitchen'
+import { clipX, FIRED, GRIP, LINE, lineOf, PASS, RAIL, SHOTS, TICKET, viewOf } from '@es/play/loop/kitchen'
 import { FRAMES, MARK_CAP, MIRROR_TICKS, PAINTS, PASS_LENS, STRIP, WINDOW_TICKS, frameSvg, layoutFrame, layoutStrip, markCount, ticketNo, windowOf } from '@es/play/loop/layout'
 import type { Paint } from '@es/play/loop/layout'
 import type { Frame, Mark, Orientation, ShotName } from '@es/play/loop/layout'
@@ -189,9 +189,11 @@ describe('the drawing paints with token roles and nothing else', () => {
       }
     }
     for (const name of used) expect([name, Object.hasOwn(ROLES, name)]).toEqual([name, true])
-    // The drawing's materials: the lamp and its filament, the steel's four tones, the paper and its two inks and rule, the masking
-    // tape and its marker, and the printer's dots.
-    for (const name of ['lamp', 'lamp-ring', 'surface-0', 'surface-1', 'surface-2', 'surface-3', 'paper', 'paper-ink', 'paper-ink-2', 'paper-rule', 'tape', 'tape-ink', 'font-numeric', 'font-ticket', 'font-label']) expect([name, used.has(name)]).toEqual([name, true])
+    // The drawing's materials: the lamp and its filament, the steel's four tones, the paper and its two inks and rule, and the printer's
+    // dots. The masking tape and its marker are not among them: the kitchen's names are the design system's tape in the DOM over the
+    // drawing (W1b's finish review of the lesson blocks, round 2), never print in it.
+    for (const name of ['lamp', 'lamp-ring', 'surface-0', 'surface-1', 'surface-2', 'surface-3', 'paper', 'paper-ink', 'paper-ink-2', 'paper-rule', 'font-numeric', 'font-ticket']) expect([name, used.has(name)]).toEqual([name, true])
+    for (const name of ['tape', 'tape-ink', 'font-label']) expect([name, used.has(name)]).toEqual([name, false])
   })
 
   test("no state takes a code colour, and the amber stays where the present is: the lamps' pools on the pass, their mouths, and a burning station", () => {
@@ -346,7 +348,10 @@ describe('the same kitchen as the scene, drawn flat in its own materials (the fi
     const fired = marksOf(layoutFrame(view), 'fired')
     const numbers = texts(fired.filter((mark) => mark.kind === 'text' && mark.face === 'numeric'))
     expect(numbers).toEqual((view.firedRail ?? []).flatMap((clip) => (clip.req === null ? [] : [ticketNo(clip.req)])))
-    expect(texts(fired)).toContain('FIRED RAIL')
+    // Its name is tape the page prints in the DOM (FrameTapes), stuck on it while it hangs and on nothing when it does not.
+    expect(texts(fired).filter((text) => !/^\d+$/.test(text))).toEqual([])
+    expect(layoutFrame(view).tapes.filter((tape) => tape.id === 'fired')).toMatchObject([{ text: 'fired rail', place: 'left' }])
+    expect(layoutFrame(loopView(step(fill(initState(buildLevel('first-3-gap', 1)))))).tapes.map((tape) => tape.id)).toEqual(['line', 'expo'])
   })
 
   test('no lane chart and no legend: no axis, no clock stamps, no bars along time; tape names the line and the expo', () => {
@@ -356,8 +361,9 @@ describe('the same kitchen as the scene, drawn flat in its own materials (the fi
         const frame = layoutFrame(view, { shot })
         const markup = svgMarkup(frameSvg(frame))
         for (const word of ['PLATE', 'EMPTY', 'BINNED', 'PLAN', 'READ', 'TICKS', 'SYNTHETIC']) expect(markup).not.toContain(`>${word}`)
-        expect(markup).toContain('>THE LINE · GPU</text>')
-        expect(markup).toContain('>THE EXPO · CPU</text>')
+        // The line and the expo are named on tape that the page prints in the DOM over the drawing (FrameTapes), not in it.
+        expect(frame.tapes.map((tape) => tape.text)).toEqual(['the line · gpu', 'the expo · cpu'])
+        expect(markup).not.toMatch(/the line · gpu|the expo · cpu/i)
         expect(frame.layers.map((layer) => layer.part)).not.toContain('clock')
         // The only numbers drawn are tickets' numbers and the printer's count of what it still holds.
         for (const text of texts(frame.layers.flatMap((layer) => layer.marks))) if (/\d/.test(text)) expect(text).toMatch(/^\+?\d{1,3}$/)
@@ -460,6 +466,71 @@ describe('the frame', () => {
 
   test('ticket numbers are the id plus one, two digits', () => {
     expect([0, 8, 11].map(ticketNo)).toEqual(['01', '09', '12'])
+  })
+})
+
+describe("the kitchen's names are tape in the DOM, each stuck on what it names (W1b's finish review of the lesson blocks, round 2)", () => {
+  type Options = { readonly orientation: Orientation; readonly shot: ShotName; readonly lens?: number }
+  /** Every frame a night is drawn in: both orientations through both shots, and a phone's through the 2D view's wider lens. */
+  const OPTIONS: readonly Options[] = [...ORIENTATIONS.flatMap((orientation) => SHOT_NAMES.map((shot) => ({ orientation, shot }))), { orientation: 'portrait', shot: 'loop', lens: PASS_LENS }]
+  /** A point of the kitchen in a frame drawn with `options`, as layout.ts projects it. */
+  const project = (frame: Frame, options: Options, point: readonly [number, number, number]): [number, number] => {
+    const chosen = options.orientation === 'portrait' ? SHOTS[options.shot].portrait : SHOTS[options.shot].base
+    const seen = viewOf({ position: chosen.position, target: chosen.target, k: chosen.k * (options.lens ?? 1) })(point)
+    return [frame.width / 2 + seen.c * (frame.height / 2), frame.height / 2 - seen.d * (frame.height / 2)]
+  }
+
+  test("each lies inside the frame, on its object: the line's on its last station between the fired rail's tickets and the pass's back edge, the fired rail's on its channel ending by its first ticket, the expo's on the pass's front edge", () => {
+    let checked = 0
+    for (const state of statesOfHouseNight(buildLevel('first-4-par', 1), { overlap: true })) {
+      const view = loopView(state)
+      for (const options of OPTIONS) {
+        const frame = layoutFrame(view, options)
+        const tapes = new Map(frame.tapes.map((tape) => [tape.id, tape]))
+        expect([...tapes.keys()]).toEqual(view.firedRail === null ? ['line', 'expo'] : ['line', 'fired', 'expo'])
+        for (const tape of frame.tapes) expect([options, tape.id, tape.x > 0 && tape.x < frame.width && tape.y > 0 && tape.y < frame.height]).toEqual([options, tape.id, true])
+        // The line's: across its last station's front, under the fired rail's tickets and over the pass's back edge, which hides the
+        // station's foot, so it covers neither the tickets nor the pass.
+        const line = lineOf(view.slots)
+        const station = line.x(line.count - 1)
+        const front = LINE.z + LINE.depth / 2 - 0.02
+        const tape = tapes.get('line')!
+        expect(tape.x).toBeGreaterThan(project(frame, options, [station - line.width / 2, LINE.height / 2, front])[0])
+        expect(tape.x).toBeLessThan(project(frame, options, [station + line.width / 2, LINE.height / 2, front])[0])
+        expect(tape.y).toBeGreaterThan(project(frame, options, [station, FIRED.y - GRIP - TICKET.height * 0.85, FIRED.z + 0.012])[1])
+        expect(tape.y).toBeLessThan(project(frame, options, [station, PASS.top, -PASS.depth / 2])[1])
+        // The expo's: on the rolled front edge, between its top and its foot.
+        const expo = tapes.get('expo')!
+        expect(expo.y).toBeGreaterThan(project(frame, options, [0.15, PASS.top, PASS.depth / 2])[1])
+        expect(expo.y).toBeLessThan(project(frame, options, [0.15, PASS.top - 0.04, PASS.depth / 2])[1])
+        // The fired rail's: on its channel, ending left of its first clip's ticket.
+        const fired = tapes.get('fired')
+        if (fired !== undefined) {
+          expect(fired.place).toBe('left')
+          expect(fired.x).toBeLessThan(project(frame, options, [clipX(0, view.slots) - (TICKET.width * 0.85) / 2, FIRED.y, FIRED.z + 0.012])[0])
+          expect(fired.y).toBeGreaterThan(project(frame, options, [0, FIRED.y, FIRED.z + 0.016])[1])
+          expect(fired.y).toBeLessThan(project(frame, options, [0, FIRED.y - 0.035, FIRED.z + 0.016])[1])
+        }
+        checked += 1
+      }
+    }
+    expect(checked).toBeGreaterThan(100)
+  })
+
+  test("View2D prints them as the design system's tape over the drawing, outside its SVG, in a layer laid over the frame as the SVG lays it out", () => {
+    const state = step(fill(setOverlap(initState(buildLevel('first-3-gap', 1)), true)))
+    const markup = renderToStaticMarkup(h(View2D, { run: fakeRun(state) }))
+    const frame = layoutFrame(loopView(state), { orientation: 'landscape', shot: 'loop' })
+    expect(frame.tapes.map((tape) => tape.id)).toEqual(['line', 'fired', 'expo'])
+    // The drawing box is a size container, so the tapes' print scales with it (components.css, "tape stuck on a drawing").
+    expect(markup).toMatch(/<div class="[^"]*\[container-type:size\][^"]*" data-loop-drawing="">/)
+    const layer = markup.slice(markup.indexOf('</svg>'))
+    expect(layer).toMatch(/^<\/svg><div class="es-frame-tapes" data-fit="cover" style="--es-frame-ratio:2.4" aria-hidden="true">/)
+    const share = (value: number, of: number) => Math.round((value / of) * 10000) / 100
+    for (const tape of frame.tapes) {
+      const at = new RegExp(`<span class="es-frame-tapes__tape" data-tape="${tape.id}"(?: data-place="([a-z]+)")? style="left:([\\d.]+)%;top:([\\d.]+)%"><span class="es-tape" data-tilt="none" data-size="sm"><span class="es-tape__text">([^<]+)</span></span></span>`).exec(layer)
+      expect(at?.slice(1)).toEqual([tape.place, String(share(tape.x, frame.width)), String(share(tape.y, frame.height)), tape.text])
+    }
   })
 })
 
