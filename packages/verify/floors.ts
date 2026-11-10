@@ -25,7 +25,7 @@
  */
 import { stepWindows, traceChecks } from '@es/sim/trace'
 import { fail, memoized, na, pass, together } from './checks'
-import type { Outcome, Run } from './checks'
+import type { ModelFile, Outcome, Run } from './checks'
 import { benchLogs, traces } from './evidence'
 import { throughputOf } from './bench'
 import { gpusOf, PEAK_MARGIN_PERMILLE, READ_PERMILLE, readFloorNs } from './atlas'
@@ -33,7 +33,6 @@ import type { Gpus } from './atlas'
 import { cut, grouped, plural } from './format'
 import { PROBLEM_CHARS } from './limits'
 import type { CheckResult } from './report'
-import type { ModelFile } from './checks'
 
 interface Basis {
   readonly gpus: Extract<Gpus, { ok: true }>
@@ -50,7 +49,7 @@ const short = (sha256: string): string => `${sha256.slice(0, 8)}…`
 const named = (file: ModelFile): string => `"${cut(file.name, 40)}" with ${grouped(file.bytes)} bytes (sha256 ${short(file.sha256)})`
 
 /**
- * What is wrong with the model inputs of a receipt next to the files its stage pins, as a sentence; null when they are the same files. A file is the same when its hash
+ * What is wrong with the model inputs of a receipt next to the files its stage pins, as a sentence without its full stop; null when they are the same files. A file is the same when its hash
  * and its size are. The first input that is not a pinned file is named with the pinned file of its name, if there is one, and the first pinned file the receipt lacks is
  * named when every input is a pinned one.
  */
@@ -61,11 +60,11 @@ function modelProblem(inputs: Run['receipt']['inputs'], pinned: readonly ModelFi
     const same = pinned.find((file) => file.name === input.name)
     const mine = named(input)
     return same === undefined
-      ? `The receipt lists the model input ${mine}, which ${stage} does not pin: the floor is made from the pinned model.`
-      : `The receipt lists the model input ${mine}, and ${stage} pins ${named(same)}; the floor is made from the pinned one.`
+      ? `The receipt lists the model input ${mine}, which ${stage} does not pin: the floor is made from the pinned model`
+      : `The receipt lists the model input ${mine}, and ${stage} pins ${named(same)}; the floor is made from the pinned one`
   }
   const lacking = pinned.find((file) => !given.some((input) => input.sha256 === file.sha256 && input.bytes === file.bytes))
-  return lacking === undefined ? null : `${stage} pins the model file ${named(lacking)}, and the receipt lists no model input like it.`
+  return lacking === undefined ? null : `${stage} pins the model file ${named(lacking)}, and the receipt lists no model input like it`
 }
 
 /** What a floor is made of for this receipt, or the sentence that says why none can be. */
@@ -86,7 +85,7 @@ function basisOf(run: Run): Basis | string {
       return `this site declares no model for ${stage}, so there are no weight bytes to make a floor from, and the receipt's own figure for its model is not taken: a receipt that named its own model could name a small one`
     }
     const problem = modelProblem(run.receipt.inputs, pinned, stage)
-    if (problem !== null) return problem.endsWith('.') ? problem.slice(0, -1) : problem
+    if (problem !== null) return problem
     const weightBytes = pinned.reduce((total, file) => total + file.bytes, 0)
     if (weightBytes <= 0) return `the model that ${stage} pins has no bytes, so there are no weight bytes to make a floor from`
     const readPermille = run.declared?.readPermille ?? READ_PERMILLE
