@@ -512,6 +512,9 @@ describe('reserved steps', () => {
     'W1-T01', 'W1-T03', 'W1-T04', 'W1-T05', 'W1-T06', 'W1-T07', 'W1-T08', 'W1-T09', 'W1-T10', 'W1-T11', 'W1-T12', 'W1-T13', 'W1-T14', 'W1-T15',
     'W1-T16', 'W1-T17', 'W1-T18', 'W1-T19', 'W1-T20', 'W1-T21', 'W1-T22', 'W1-T23', 'W1-T24', 'W1-T25', 'W1-T26', 'W1-T27', 'W1-T28', 'W1-T29',
     'W1-T30', 'W1-T31', 'W1-T32', 'W1-T33', 'W1-T34', 'W1-T35', 'W1-T36',
+    // W1's exit review, in wave-1, whose open check W1b closed in wave-1b: W1b's exit review (W1b-T16) marked it `[=]`. W1b's own tasks have
+    // ids that this file's patterns do not read (W\d-T\d\d), so they are not listed here (docs/waves/W1b-report.md §10).
+    'W1-T38',
   ]
 
   /** A reserved step is one whose whole command is the echo. A step that echoes it only where a file is missing (the content compile, prepare-pages, the labs) switches on by file, and is not reserved. */
