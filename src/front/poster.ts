@@ -12,8 +12,9 @@
  * The front page's run is practice on a pinned seed (D-038), so the poster, the first paint and the challenge are the same for every
  * visitor.
  *
- * The kitchen's names are not in the poster: they are masking tape in the DOM over the drawing, stuck on what they name, which the page
- * prints from the frame's `tapes` beside the inlined SVG (FrontPage.tsx, src/games/loop/FrameTapes.tsx), as the 3D pass prints its own.
+ * The poster prints no word and no number: the tickets' numbers, the empty clips' stubs and the kitchen's names on masking tape are in
+ * the DOM over the drawing, stuck on what they belong to, which the page prints from the frame's `tags` and `tapes` beside the inlined SVG
+ * (FrontPage.tsx, src/games/loop/FrameLabels.tsx), as the 3D pass prints its own.
  */
 import { frameSvg, layoutFrame, type Frame, type Orientation } from '@es/play/loop/layout'
 import { loopInit, loopLevel, loopView } from '@es/play/loop/session'

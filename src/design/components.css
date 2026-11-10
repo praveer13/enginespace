@@ -181,18 +181,19 @@
   }
 
   /*
-   * Tape stuck on a drawing: a 2D view's names, laid over its SVG as the frame lies in its box (filling a box of the frame's own shape,
-   * covering the box and cut at its sides, or fitted inside it), each strip stuck on its object's point, across it or ending there
-   * (src/games/loop/FrameTapes.tsx). Its print scales with the drawing's box, a size container, and never drops under the ramp's
-   * smallest step, as a scene's tapes do.
+   * Print stuck on a drawing: a 2D view's words and numbers, laid over its SVG as the frame lies in its box (filling a box of the frame's
+   * own shape, covering the box and cut at its sides, or fitted inside it), each piece stuck on its object's point
+   * (src/games/loop/FrameLabels.tsx): masking tape across its point or ending there, and print on the kitchen's paper and steel. It scales
+   * with the drawing's box, a size container, between the ramp's smallest step and its caption step, as a scene's labels do, and print
+   * that needs room shows only in a box at least 520 px wide, the scene's own measure for it (Scene3D.tsx's `minWidth`).
    */
-  .es-frame-tapes {
+  .es-frame-labels {
     position: absolute;
     inset: 0;
     pointer-events: none;
   }
 
-  .es-frame-tapes:not([data-fit='fill']) {
+  .es-frame-labels:not([data-fit='fill']) {
     inset: auto;
     top: 50%;
     left: 50%;
@@ -201,26 +202,86 @@
     translate: -50% -50%;
   }
 
-  .es-frame-tapes[data-fit='contain'] {
+  .es-frame-labels[data-fit='contain'] {
     width: min(100cqw, 100cqh * var(--es-frame-ratio, 1));
   }
 
-  .es-frame-tapes__tape {
+  .es-frame-labels__tape {
     position: absolute;
     width: max-content;
     translate: -50% -50%;
   }
 
-  .es-frame-tapes__tape[data-place='left'] {
+  .es-frame-labels__tape[data-place='left'] {
     translate: -100% -50%;
   }
 
-  .es-frame-tapes__tape[data-place='right'] {
+  .es-frame-labels__tape[data-place='right'] {
     translate: 0 -50%;
   }
 
-  .es-frame-tapes__tape > .es-tape[data-size] {
+  .es-frame-labels__tape > .es-tape[data-size],
+  .es-frame-labels__tag {
     font-size: clamp(var(--es-size-micro), 1.5cqi, var(--es-size-caption));
+  }
+
+  /* A ticket's number in the printer's dots, on paper of its own that keeps it whole on a ticket drawn narrower than the number. */
+  .es-frame-labels__tag {
+    position: absolute;
+    translate: -50% -50%;
+    background-color: var(--es-paper);
+    color: var(--es-paper-ink);
+    font-family: var(--es-font-ticket);
+    font-weight: var(--es-font-ticket-weight);
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  /*
+   * A paid-for clip with nothing hung: a stub hung from the clip's jaw, its edge perforated, its word in capitals in the ribbon's red, as the
+   * scene's stub prints it. The dots' own spacing is its tracking, so four stubs stand apart on a 360 px phone's rail.
+   */
+  .es-frame-labels__tag[data-kind='empty'] {
+    translate: -50% 0;
+    padding: 0.2em 0.2em 0.15em;
+    border: 1px dashed var(--es-paper-rule);
+    box-shadow: var(--es-shadow-paper);
+    color: var(--es-paper-ink-2);
+    text-transform: uppercase;
+  }
+
+  /* A ticket the printer has fed, lying on the counter: its number printed on it, with no paper of its own over the slip's. */
+  .es-frame-labels__tag[data-kind='waiting'] {
+    background: none;
+  }
+
+  /* What the printer still holds, on its housing: paper-white print on a chip of its deep steel. */
+  .es-frame-labels__tag[data-kind='more'] {
+    padding: 0.2em 0.35em;
+    border-radius: var(--es-radius-trim);
+    background-color: var(--es-surface-3);
+    color: var(--es-paper);
+  }
+
+  /* A mold's size stamped on the steel in front of it, and the fire's mold's on a chip of the lamp's amber with the filament's edge. */
+  .es-frame-labels__tag[data-kind='mold'] {
+    background: none;
+    color: var(--es-text-1);
+    font-family: var(--es-font-numeric);
+  }
+
+  .es-frame-labels__tag[data-kind='pick'] {
+    padding: 0.15em 0.4em 0.1em;
+    border: 1px solid var(--es-lamp-ring);
+    border-radius: var(--es-radius-round);
+    background-color: var(--es-lamp);
+    font-family: var(--es-font-numeric);
+  }
+
+  @container (width < 520px) {
+    .es-frame-labels__tag[data-room] {
+      display: none;
+    }
   }
 
   /* ---------------------------------------------------------------------------------------------- ticket */

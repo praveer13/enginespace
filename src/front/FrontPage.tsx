@@ -29,7 +29,7 @@ import { Mirror } from '@/games/loop/Mirror'
 import { stepClockOf } from '@/games/loop/readout'
 import type { Scene3DProps } from '@/games/loop/Scene3D'
 import { FRONT_PRESET } from '@/games/loop/scene-presets'
-import { FrameTapes } from '@/games/loop/FrameTapes'
+import { FrameLabels } from '@/games/loop/FrameLabels'
 import { svgToReact } from '@/games/loop/svg'
 import type { LoopRun } from '@/games/loop/types'
 import { useOrientation } from '@/games/loop/useOrientation'
@@ -654,7 +654,8 @@ function PassTape({ view, next, onFill }: { view: LoopView; next: LoopView | nul
 /**
  * The 2D drawing of the pass: the poster, and then the 2D view of the run, written by the same pure layout (poster.ts). The server
  * cannot know the screen, so it draws both orientations and front.css shows the one that fits; the browser draws its own. Over each
- * frame, in a box of the frame's own shape, the kitchen's names are masking tape in the DOM, stuck on what they name (FrameTapes).
+ * frame, in a box of the frame's own shape, its print is in the DOM, each piece stuck on its object: the tickets' numbers, the empty
+ * clips' stubs and the kitchen's names on masking tape (FrameLabels).
  */
 function PassDrawing({ view, both }: { view: LoopView; both: boolean }) {
   const orientation = useOrientation()
@@ -674,7 +675,7 @@ function Frame({ view, orientation }: { view: LoopView; orientation: Orientation
   return (
     <div className="es-front-drawing__frame" data-orientation={orientation}>
       {svg}
-      <FrameTapes frame={frame} fit="fill" />
+      <FrameLabels frame={frame} fit="fill" />
     </div>
   )
 }

@@ -313,40 +313,55 @@ test.describe('determinism and the poster', () => {
  * The kitchen's names on the 2D drawing (W1b's finish review of the lesson blocks, round 2): the line's, the fired rail's and the expo's are
  * the design system's masking tape in the DOM over the drawing, as the 3D scene's are, never print in the SVG, which a phone's wider lens
  * shrank to 2 or 3 px. Each is stuck where the frame says, as the SVG lays the frame out in its box (covering it in landscape, fitted on a
- * phone), inside the box, apart from the others, and printed between the size ramp's smallest step and its caption step.
+ * phone), inside the box, apart from the others, and printed between the size ramp's smallest step and its caption step. The close-out's
+ * verdict found the rest of the drawing's print as small (the stubs' word at about 4 px at 1440 and 2 px at 390, the tickets' numbers and
+ * the printer's counts likewise), so every number and word of it is print in the DOM too, held to the same checks (W1b close-out, Service's
+ * 2D labels).
  */
-test.describe("the kitchen's names on the 2D drawing", () => {
-  /** The drawing's box, the size ramp's two steps in px, the SVG's markup, and each tape as the page prints it. */
+test.describe("the kitchen's names and print on the 2D drawing", () => {
+  /**
+   * The drawing's box, the size ramp's two steps in px, the SVG's markup, each tape as the page prints it, and each piece of print on the
+   * kitchen's paper and steel that the page shows (a piece that needs room is not shown in a small box).
+   */
   const measure = (page: Page) =>
     page.evaluate(() => {
       const box = document.querySelector('[data-loop-drawing]')!.getBoundingClientRect()
       const root = getComputedStyle(document.documentElement)
       const px = (name: string) => parseFloat(root.getPropertyValue(name)) * parseFloat(root.fontSize)
+      const seen = (element: HTMLElement, id: string) => {
+        const r = element.getBoundingClientRect()
+        return { id, text: element.textContent ?? '', size: parseFloat(getComputedStyle(element).fontSize), x: r.x, y: r.y, w: r.width, h: r.height }
+      }
+      const tags = [...document.querySelectorAll<HTMLElement>('[data-loop-drawing] .es-frame-labels__tag')]
       return {
         box: { x: box.x, y: box.y, w: box.width, h: box.height },
         micro: px('--es-size-micro'),
         caption: px('--es-size-caption'),
         svg: document.querySelector('[data-loop-drawing] svg')!.outerHTML,
-        tapes: [...document.querySelectorAll<HTMLElement>('[data-loop-drawing] .es-frame-tapes__tape')].map((holder) => {
-          const tape = holder.querySelector<HTMLElement>('.es-tape')!
-          const r = tape.getBoundingClientRect()
-          return { id: holder.dataset.tape ?? '', text: tape.textContent ?? '', size: parseFloat(getComputedStyle(tape).fontSize), x: r.x, y: r.y, w: r.width, h: r.height }
-        }),
+        tapes: [...document.querySelectorAll<HTMLElement>('[data-loop-drawing] .es-frame-labels__tape')].map((holder) => seen(holder.querySelector<HTMLElement>('.es-tape')!, holder.dataset.tape ?? '')),
+        tags: tags.filter((tag) => getComputedStyle(tag).display !== 'none').map((tag) => ({ ...seen(tag, tag.dataset.tag ?? ''), kind: tag.dataset.kind ?? '' })),
+        hidden: tags.filter((tag) => getComputedStyle(tag).display === 'none').map((tag) => tag.dataset.tag ?? ''),
       }
     })
   type Seen = Awaited<ReturnType<typeof measure>>
 
-  /** Every tape on the size ramp, inside the drawing, and apart from every other: none covers another's words. */
+  /** Every tape and every piece of print shown on the size ramp, inside the drawing, and apart from every other: none covers another's words. */
   function keepsTo(seen: Seen) {
-    for (const [i, tape] of seen.tapes.entries()) {
-      expect(tape.size).toBeGreaterThanOrEqual(seen.micro - 0.01)
-      expect(tape.size).toBeLessThanOrEqual(seen.caption + 0.01)
-      expect([tape.id, tape.x >= seen.box.x, tape.y >= seen.box.y, tape.x + tape.w <= seen.box.x + seen.box.w, tape.y + tape.h <= seen.box.y + seen.box.h]).toEqual([tape.id, true, true, true, true])
-      for (const other of seen.tapes.slice(i + 1)) {
-        const apart = tape.x + tape.w <= other.x || other.x + other.w <= tape.x || tape.y + tape.h <= other.y || other.y + other.h <= tape.y
-        expect([tape.id, other.id, apart]).toEqual([tape.id, other.id, true])
+    const labels = [...seen.tapes, ...seen.tags]
+    for (const [i, label] of labels.entries()) {
+      expect([label.id, label.size >= seen.micro - 0.01, label.size <= seen.caption + 0.01]).toEqual([label.id, true, true])
+      expect([label.id, label.x >= seen.box.x, label.y >= seen.box.y, label.x + label.w <= seen.box.x + seen.box.w, label.y + label.h <= seen.box.y + seen.box.h]).toEqual([label.id, true, true, true, true])
+      for (const other of labels.slice(i + 1)) {
+        const apart = label.x + label.w <= other.x || other.x + other.w <= label.x || label.y + label.h <= other.y || other.y + other.h <= label.y
+        expect([label.id, other.id, apart]).toEqual([label.id, other.id, true])
       }
     }
+  }
+
+  /** The frame as the SVG lays it out in its box: covering it in landscape, fitted to it on a phone, centred either way. */
+  const placed = (seen: Seen, frame: { width: number; height: number; orientation: string }) => {
+    const scale = (frame.orientation === 'landscape' ? Math.max : Math.min)(seen.box.w / frame.width, seen.box.h / frame.height)
+    return { scale, left: seen.box.x + (seen.box.w - frame.width * scale) / 2, top: seen.box.y + (seen.box.h - frame.height * scale) / 2 }
   }
 
   for (const width of [360, 1280]) {
@@ -362,7 +377,7 @@ test.describe("the kitchen's names on the 2D drawing", () => {
         await expect(enabledTickets(page)).not.toHaveCount(before)
       }
       await bell(page).click()
-      await expect(page.locator('[data-loop-drawing] .es-frame-tapes__tape')).toHaveCount(3)
+      await expect(page.locator('[data-loop-drawing] .es-frame-labels__tape')).toHaveCount(3)
       const orientation = width < 480 ? 'portrait' : 'landscape'
       const state = step(fill(setOverlap(initState(buildLevel('first-3-gap', 1)), true)))
       const frame = layoutFrame(loopView(state), { orientation, shot: 'loop', ...(orientation === 'portrait' ? { lens: PASS_LENS } : {}) })
@@ -371,13 +386,47 @@ test.describe("the kitchen's names on the 2D drawing", () => {
       expect(seen.svg).not.toMatch(/the line · gpu|fired rail|the expo · cpu/i)
       // Stuck where the frame says, across its point or ending there, with the frame in its box as the SVG lays it out: covering it in
       // landscape, fitted to it on a phone, centred either way.
-      const scale = (orientation === 'landscape' ? Math.max : Math.min)(seen.box.w / frame.width, seen.box.h / frame.height)
-      const left = seen.box.x + (seen.box.w - frame.width * scale) / 2
-      const top = seen.box.y + (seen.box.h - frame.height * scale) / 2
+      const { scale, left, top } = placed(seen, frame)
       for (const [i, tape] of seen.tapes.entries()) {
         const want = frame.tapes[i]
         const x = want.place === 'left' ? tape.x + tape.w : tape.x + tape.w / 2
         expect([tape.id, Math.abs(x - (left + want.x * scale)) < 2, Math.abs(tape.y + tape.h / 2 - (top + want.y * scale)) < 2]).toEqual([tape.id, true, true])
+      }
+      keepsTo(seen)
+    })
+
+    test(`at ${width} px mid-night, every number and word of the drawing is print in the DOM, each on its object, inside the drawing, apart, and on the size ramp`, async ({ page, context }) => {
+      await withSettings(context, { view3d: false })
+      await page.setViewportSize({ width, height: 800 })
+      await open(page, 'first-4-par')
+      // Four tickets hung and three bells rung: two tickets on the rail, two clips paid for and empty, five tickets fed onto the counter and
+      // three more in the printer.
+      for (let i = 0; i < 4; i++) {
+        const before = await enabledTickets(page).count()
+        await enabledTickets(page).first().click()
+        await expect(enabledTickets(page)).not.toHaveCount(before)
+      }
+      for (const fire of [1, 2, 3]) {
+        await bell(page).click()
+        await expect(page.locator('[data-live="line"]')).toContainText(`Fire ${fire} rung`)
+      }
+      const orientation = width < 480 ? 'portrait' : 'landscape'
+      const frame = layoutFrame(loopView(step(step(step(fill(initState(buildLevel('first-4-par', 1))))))), { orientation, shot: 'loop', ...(orientation === 'portrait' ? { lens: PASS_LENS } : {}) })
+      await expect(page.locator('[data-loop-drawing] .es-frame-labels__tag')).toHaveCount(frame.tags.length)
+      const seen = await measure(page)
+      // The drawing prints nothing; the page prints the tickets' numbers, the stubs' word and the printer's count over it.
+      expect(seen.svg).not.toContain('<text')
+      expect(frame.tags.map((tag) => tag.kind)).toEqual(['ticket', 'empty', 'empty', 'ticket', 'waiting', 'waiting', 'waiting', 'waiting', 'waiting', 'more'])
+      // What needs room is shown in the laptop's drawing and left to the controls in the phone's: the counter's five fed tickets.
+      const roomy = frame.tags.filter((tag) => tag.room !== true)
+      expect(seen.tags.map((tag) => [tag.id, tag.text])).toEqual((orientation === 'portrait' ? roomy : frame.tags).map((tag) => [tag.id, tag.text]))
+      expect(seen.hidden).toEqual(orientation === 'portrait' ? frame.tags.filter((tag) => tag.room === true).map((tag) => tag.id) : [])
+      // Each stuck where the frame says: centred on its point, but a stub, which hangs from the clip's jaw at its point.
+      const { scale, left, top } = placed(seen, frame)
+      for (const tag of seen.tags) {
+        const want = frame.tags.find((candidate) => candidate.id === tag.id)!
+        const y = want.kind === 'empty' ? tag.y : tag.y + tag.h / 2
+        expect([tag.id, Math.abs(tag.x + tag.w / 2 - (left + want.x * scale)) < 2, Math.abs(y - (top + want.y * scale)) < 2]).toEqual([tag.id, true, true])
       }
       keepsTo(seen)
     })
@@ -391,10 +440,15 @@ test.describe("the kitchen's names on the 2D drawing", () => {
       await field.press('Enter')
       await expect(page.locator('[data-full-prediction="called"]')).toBeVisible()
       await bell(page).click()
-      await expect(page.locator('[data-loop-drawing] .es-frame-tapes__tape')).toHaveCount(4)
+      await expect(page.locator('[data-loop-drawing] .es-frame-labels__tape')).toHaveCount(4)
       const seen = await measure(page)
       expect(seen.tapes.map((tape) => tape.text).sort()).toEqual(['comb · launches', 'molds · sizes', 'the expo · cpu', 'the line · gpu'])
       expect(seen.svg).not.toMatch(/comb · launches|molds · sizes/i)
+      // The tickets' numbers and the molds' sizes are print over the drawing too: on the twelve clips they need room, so the phone's drawing
+      // leaves them to the mirror, and the laptop's shows them, apart from each other and from the names.
+      expect(seen.svg).not.toContain('<text')
+      if (width < 480) expect(seen.tags.filter((tag) => tag.kind === 'ticket' || tag.kind === 'mold')).toEqual([])
+      else expect(seen.tags.filter((tag) => tag.kind === 'ticket').length).toBeGreaterThan(0)
       keepsTo(seen)
     })
   }
