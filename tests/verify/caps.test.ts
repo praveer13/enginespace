@@ -3,9 +3,9 @@
  * the file is decompressed with `DecompressionStream('gzip')`, so that a zip bomb stops at the cap and ends in a message.
  *
  *   - An oversized file is refused by its size, before any of it is read. The fixture is generated here and never committed.
- *   - A zip bomb is generated here too. A deflate stream holds at most about 1,030 bytes of output for each byte it takes, so a bomb of the real
- *     cap is about 260 KB [measured 2026-11-09 with Bun 1.3.14's zlib: 300 MB of zeros gzip to 305,799 bytes], made in memory in a moment; a bomb
- *     of a few KB is a bomb of a smaller cap, which the same function takes as a parameter.
+ *   - A zip bomb is generated here too. A gzip stream of zeros holds about 1,030 bytes of output for each byte it takes [derived from 300 MiB of
+ *     zeros gzipping to 305,799 bytes, measured 2026-11-09 with Bun 1.3.14's zlib], so a bomb of the real cap is about 260 KB [derived], made in
+ *     memory in a moment; a bomb of a few KB is a bomb of a smaller cap, which the same function takes as a parameter.
  *   - What is not a gzip stream, is cut short, or has junk after it is refused with a message that says so; text that is not UTF-8 or starts with a
  *     byte order mark is refused as the grader's reader refuses it.
  *   - The caps are the grader's: the writer (labs/grader/src/enginespace_grader/bundle.py) and this reader hold one pair of numbers.

@@ -8,8 +8,10 @@
  * keeps one copy of it in memory and not two.
  *
  * A bundle is one gzip stream. The grader's reader refuses a file with anything after the stream's end, and `DecompressionStream` is what
- * the site reads it with, so a stream that ends early, or has junk after it, is the browser's own error and is reported as damage. Nothing
- * is trusted that the decompressor did not accept whole.
+ * the site reads it with, so a stream that ends early, or has junk after it, is the browser's own error and is reported as damage. Chromium
+ * refused a stream that was cut short, one with junk after its end, and one of two members [measured 2026-11-10 in Chrome for Testing
+ * 153.0.8010.12, the headless shell that Playwright 1.63.0 pins]; Bun, which runs the tests, reads two members as one [measured 2026-11-09 with
+ * Bun 1.3.14]. Nothing is trusted that the decompressor did not accept whole.
  *
  * What comes out is text and not yet a bundle: rule 2 reads it (schema.ts). The two things that make it not text are rule 2's, as the
  * grader's reader counts them: a byte order mark, which JSON does not allow, and bytes that are not UTF-8.

@@ -144,7 +144,7 @@ export function ImportPanel({ ready, readOnly, memoryOnly, state, onChoose, onCl
     )
   } else if (state.step === 'checking') {
     slip = (
-      <Ticket as="div" width="full" hole={false} head={IMPORT.head} meta={state.file.name} state="loading" loadingLabel={IMPORT.checking}>
+      <Ticket as="div" width="full" hole={false} head={IMPORT.head} state="loading" loadingLabel={IMPORT.checking}>
         <FileLine file={state.file} />
       </Ticket>
     )
@@ -155,7 +155,6 @@ export function ImportPanel({ ready, readOnly, memoryOnly, state, onChoose, onCl
         width="full"
         hole={false}
         head={IMPORT.refusedHead}
-        meta={state.file.name}
         title={IMPORT.refusedTitle}
         titleAs="h3"
         state="error"
@@ -174,7 +173,6 @@ export function ImportPanel({ ready, readOnly, memoryOnly, state, onChoose, onCl
         width="full"
         hole={false}
         head={IMPORT.refusedHead}
-        meta={state.file.name}
         title={IMPORT.failedTitle}
         titleAs="h3"
         state="error"
@@ -193,7 +191,6 @@ export function ImportPanel({ ready, readOnly, memoryOnly, state, onChoose, onCl
         width="full"
         hole={false}
         head={IMPORT.keptHead}
-        meta={state.file.name}
         title={state.recheck ? IMPORT.recheckTitle : IMPORT.keptTitle}
         titleAs="h3"
         foot={[`Receipt ${shortHash(state.sha256)}`]}

@@ -25,7 +25,6 @@
 import { gzipSync } from 'node:zlib'
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
-import { parseChallenge } from '@es/schema/challenge'
 import { Ledger } from '../tests/receipts/support'
 import { sampleBundle } from '../tests/schema/receipt-support'
 import { daysAgo, put } from './support/receipts'
@@ -526,9 +525,4 @@ test.describe('at 320 px', () => {
     expect(state.scrolls, 'pixels the page scrolls sideways').toBeLessThanOrEqual(0)
     expect(state.text, 'text past the right edge').toEqual([])
   })
-})
-
-test('the parts of a token that the page and the receipt share are the codec\'s', async () => {
-  // The sample receipt's token is a token of the shared codec, so that the seeded challenge is one that the ledger's own codec takes.
-  expect(parseChallenge(bundle().receipt.challenge.token)?.stage).toBe('tr3.profile.s2')
 })

@@ -22,8 +22,10 @@ export type ReceiptReply =
   | { type: 'failed'; id: number; message: string }
 
 /**
- * How long the page waits for a check [estimated]. A bundle at its caps is read, parsed and hashed in a few seconds on a laptop; a file that
- * keeps the worker busy for longer than this is stopped, and the learner is told. The worker is the page's own and the file is the learner's.
+ * How long the page waits for a check, in milliseconds [estimated]. Reading, parsing and hashing a bundle that is close to the caps took 0.8 s for
+ * a text artifact of 242.5 MiB inside and 0.7 s for a JSON artifact of 32.9 MiB, in Bun 1.3.14 on the development host [measured 2026-11-10 with
+ * packages/verify at f484238, in Bun and not in a browser], so a budget of two minutes leaves room for a slow laptop's browser. A file that keeps the
+ * worker busy for longer is stopped, and the learner is told. The worker is the page's own and the file is the learner's.
  */
 export const CHECK_BUDGET_MS = 120_000
 
