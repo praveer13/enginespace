@@ -2,9 +2,9 @@
  * export-schemas: writes everything under schemas/ from the code that is its source (D-030, ARCHITECTURE §9.6 and §9.8).
  *
  *   schemas/<name>.schema.json   the zod schemas of packages/schema that the grader validates against, as JSON Schema 2020-12:
- *                                receipt@1, bundle@1, the challenge and trace@1 (W2-T01)
+ *                                receipt@1, bundle@1, the challenge and trace@1 (W2-T01), and the references manifest, references@1 (W2-T05)
  *   labs/grader/src/enginespace_grader/schemas/<name>.schema.json
- *                                the same four files, byte for byte, inside the grader's package (W2-T02). The grader is installed by itself, as a
+ *                                the same files, byte for byte, inside the grader's package (W2-T02). The grader is installed by itself, as a
  *                                wheel or from the kit, with no schemas/ folder beside it, so it carries the copy that it validates with. Nobody
  *                                edits a copy: this script writes it, and `verify:schema` fails on one that differs.
  *   schemas/vectors/<name>.json  the cross-language vectors that the grader's tests read: rng, subseed, challenge, canonical, sha256
@@ -28,6 +28,7 @@ import type { ZodType } from 'zod'
 import { bundleSchema } from '../packages/schema/bundle.ts'
 import { challengeSchema } from '../packages/schema/challenge.ts'
 import { receiptSchema } from '../packages/schema/receipt.ts'
+import { referencesSchema } from '../packages/schema/references.ts'
 import { traceSchema } from '../packages/schema/trace.ts'
 import { z } from '../packages/schema/zod.ts'
 import { numberProblems } from './schemas/format.ts'
@@ -46,12 +47,13 @@ export interface SchemaExport {
   readonly source: string
 }
 
-/** The schemas that the grader validates against, in the order A§9.6 names them. Adding a schema is adding a row. */
+/** The schemas that the grader validates against, in the order A§9.6 names them, and then the references manifest of A§9.7 (W2-T05). Adding a schema is adding a row. */
 export const SCHEMA_EXPORTS: readonly SchemaExport[] = [
   { file: 'schemas/receipt.schema.json', schema: receiptSchema, source: 'packages/schema/receipt.ts' },
   { file: 'schemas/bundle.schema.json', schema: bundleSchema, source: 'packages/schema/bundle.ts' },
   { file: 'schemas/challenge.schema.json', schema: challengeSchema, source: 'packages/schema/challenge.ts' },
   { file: 'schemas/trace.schema.json', schema: traceSchema, source: 'packages/schema/trace.ts' },
+  { file: 'schemas/references.schema.json', schema: referencesSchema, source: 'packages/schema/references.ts' },
 ]
 
 /** Where the grader's package keeps its copy of each schema: the folder of its package data (labs/grader/pyproject.toml, W2-T02). */

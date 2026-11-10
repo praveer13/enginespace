@@ -118,7 +118,7 @@ enginespace/
     play/               pure game sessions, the game registry's metadata and layout functions (§6.3)
     ledger/             ledger core: types, ids, codec, merge, memory store, conformance suite (§7)
     schema/             zod schemas: content, claims, lock, KC, receipt@1, bundle@1, trace@1,
-                        challenge; JSON Schema export (§9.6)
+                        challenge, references@1; JSON Schema export (§9.6, §9.7)
     verify/             pure receipt verification rules (§8.5)
   src/
     main.tsx  App.tsx  routes.tsx
@@ -975,7 +975,7 @@ labs/
       cli.py  grade.py  verify.py  selftest.py  doctor.py
       challenge.py  rng.py  canonical.py  hashing.py  receipt.py  bundle.py  schemas.py  identity.py  errors.py
       fingerprint.py  pins.py  fetch.py
-      schemas/             the four JSON Schemas of schemas/, copied byte for byte by scripts/export-schemas.ts (the grader is installed alone)
+      schemas/             the five JSON Schemas of schemas/ (§9.6's four and the references manifest's), copied byte for byte by scripts/export-schemas.ts (the grader is installed alone)
       checks/              allclose, teacher-forced agreement, chi-square from counts, percentiles
       trace/               torch-profiler Chrome JSON → trace@1; nsys SQLite export → trace@1
       bench/               the open-loop client: seeded schedule, per-request records
@@ -993,10 +993,10 @@ labs/
     tr0-forward/  tr1-fork/  tr3-profile/  tr4-sweep/  tr5b-connector/  tr6-proposer/
     tr7-reproduce/  tr8-replay/  capstone/
   runners/                 rented GPUs: runpod.md, lambda.md, modal_app.py
-  references/manifest.json large inputs and outputs: url, sha256, bytes, licence, date
+  references/manifest.json large inputs and outputs: url, sha256, bytes, licence, date (enginespace/references@1, §9.7)
 ```
 
-W2-T02 builds the commands, the cross-language contract (§9.8), the receipt and the bundle, and the lab interface; `doctor` is a stub, and `fingerprint.py` reads host facts only. `fingerprint.py` grows in W2-T03, `pins.py` is W2-T04's and `fetch.py` W2-T05's.
+W2-T02 builds the commands, the cross-language contract (§9.8), the receipt and the bundle, and the lab interface; `doctor` is a stub, and `fingerprint.py` reads host facts only. `fingerprint.py` grows in W2-T03, `pins.py` is W2-T04's, and `fetch.py`, the references manifest and its schema are W2-T05's.
 
 vLLM 0.33.0 and SGLang 0.5.23 pin different torch and xgrammar builds [measured], so each engine gets its own environment and its own lockfile. One uv project with declared conflicting extras was considered and rejected: separate projects are easier for an agent to change and for a learner to repair.
 
@@ -1023,7 +1023,7 @@ The site serves the kits as static files from `public/labs/`: a forge zip per la
 | Command | Does | Writes |
 |---|---|---|
 | `enginespace doctor` | Prints the fingerprint (§9.5) and checks pins, CUDA visibility, disk space and the model cache. It also checks the host driver against the pin's requirement: R580 or newer for v0.33.0's CUDA 13 wheels (vllm R4). It shows exactly what a receipt would record. | stdout |
-| `enginespace fetch <lab>` | Downloads the lab's pinned inputs (model revision, dataset slice, reference bank) and checks their SHA-256 | cache |
+| `enginespace fetch <lab>` | Downloads the lab's pinned inputs (model revision, dataset slice, reference bank) from the references manifest (§9.7), checks their SHA-256, and resumes a download that stopped | cache |
 | `enginespace grade <lab>.<stage> --challenge <token>` | Decodes the token, derives the seeds, runs the stage, checks correctness against references, and captures the performance evidence | `receipts/*.es.json.gz` |
 | `enginespace receipt verify <file>` | Schema, hashes and token format: the browser's first three rules, run locally | stdout |
 | `enginespace trace export <in> --format <fmt>` | Normalizes a trace into `trace@1`; `<fmt>` is `torch` (profiler Chrome JSON) or `nsys-sqlite` | a file |
@@ -1081,9 +1081,17 @@ properties:
 
 ### 9.7 References and downloads
 
-- **The manifest.** `labs/references/manifest.json` lists every large file with its URL, SHA-256, size, licence and date. Files live in GitHub Release assets or on Hugging Face at pinned revisions, never in git.
+- **The manifest.** `labs/references/manifest.json` lists every large file with its URL, SHA-256, size, licence and date. Files live in GitHub Release assets or on Hugging Face at pinned revisions, never in git. It is `enginespace/references@1` (W2-T05): a `schema` tag and a list of `entries`, where an entry is `{name, kind, labs, path, url, sha256, bytes, licence, date, revision?, notes?}`.
+  - `name`, `kind`, `revision`, `sha256` and `bytes` are what a receipt records as an `inputs` entry (§9.6), so the manifest never admits a name or a revision that a receipt would refuse.
+  - `labs` names the labs that use the file, and `enginespace fetch <lab>` downloads the entries that list it. `path` is where the file goes in the cache: relative, no `..`, no two paths alike when case is ignored, and no path inside another.
+  - `url` is https. The schema also takes http to 127.0.0.1, localhost or [::1], which the grader's tests serve files from; no committed entry uses it.
+  - The zod schema in `packages/schema/references.ts` is the one definition (D-030). `scripts/export-schemas.ts` writes `schemas/references.schema.json` and the grader's copy of it, and the grader validates the whole manifest before it downloads anything. `tests/fixtures/references/cases.json` holds good and bad manifests, and the TypeScript and Python suites each have to judge them as it says.
 - **Reference banks.** The TR0 argmax bank, the teacher-forcing continuations and the owner's traces are produced by the owner (W2-T17, W2-T21) and published under `public/references/` and `public/traces/` with their hashes.
-- **Downloads** send a generic User-Agent (`enginespace-grader/<version>`) and no identity. A hash mismatch stops the run.
+- **Downloads** send a generic User-Agent (`enginespace-grader/<version>`) and no identity: no cookie, no credential, and no token (`HF_TOKEN` is never read). A hash mismatch stops the run.
+  - A download goes to a hidden file beside its destination, `.<name>.<start of the pin>.part`, and is renamed to its `path` only when its SHA-256 equals the entry's, so the cache holds whole, checked files. A mismatch deletes the partial file and exits with status 1, as does a server that sends more than the pinned size. A server that announces another size, or answers a resume with another part of the file, exits with status 1 before a byte is written and leaves a partial file as it was, because the answer is wrong and not what had arrived.
+  - A download that stops keeps its partial file, and the next run sends `Range: bytes=<n>-` and goes on from there. A server that ignores the range sends the whole file, and the download starts again.
+  - A file already in the cache is hashed again each time, so a file that was changed is downloaded again, and a lab reads a fetched input only after the same check.
+  - Plain http is refused except to the loopback addresses, and a redirect from https must stay on https. The cache is the learner's own folder, outside the kit: `--cache`, else `ENGINESPACE_CACHE`, else `enginespace/references` in the user's cache folder.
 
 ### 9.8 The cross-language contract
 

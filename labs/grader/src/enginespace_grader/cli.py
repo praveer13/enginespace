@@ -1,17 +1,19 @@
 """The `enginespace` command (ARCHITECTURE section 9.4): one table of commands, each loaded only when it is named.
 
     enginespace doctor                                   print the fields a receipt would record (a stub until W2-T03 and W2-T04)
+    enginespace fetch <lab>                              download the files that a lab pins, and keep only those that hash to the pin
     enginespace grade <lab>.<stage> --challenge <token>  grade a stage on a challenge from the site, and write its bundle
     enginespace receipt verify <file>                    the browser's first three rules, run locally
     enginespace selftest [--gpu]                         the grader's own tests
     enginespace version                                  the grader's name, version and source hash
 
-`fetch` (W2-T05) and `trace export` (W2-T19) join the table with their tasks. A command is a function of the arguments after its name, and it imports what it
-uses when it runs, so `--version` and `doctor` do not load `jsonschema`. The pattern is statespace's (bench/statespace/cli.py at 7b6938c).
+`trace export` (W2-T19) joins the table with its task. A command is a function of the arguments after its name, and it imports what it uses when it runs, so
+`--version` and `doctor` do not load `jsonschema`. The pattern is statespace's (bench/statespace/cli.py at 7b6938c).
 
 Exit status: 0 when the command did what it was asked and found nothing wrong, 1 when it found something wrong (a check failed, a file was not verified),
 2 for a usage error or a file that cannot be read, and 3 when it could not run (a `GraderError`: a bad token, a lab this install does not have, and so on).
-Nothing leaves the machine: no command here makes a network request.
+The only command that makes a network request is `fetch`, which downloads the pinned files of a lab with a generic User-Agent and no identity (fetch.py);
+nothing else leaves the machine.
 """
 
 from __future__ import annotations
@@ -34,6 +36,12 @@ def _doctor(argv: Sequence[str]) -> int:
     from . import doctor
 
     return doctor.main(argv)
+
+
+def _fetch(argv: Sequence[str]) -> int:
+    from . import fetch
+
+    return fetch.main(argv)
 
 
 def _selftest(argv: Sequence[str]) -> int:
@@ -122,6 +130,7 @@ def _grade(argv: Sequence[str]) -> int:
 #: name -> (what runs it, what it does).
 COMMANDS: dict[str, tuple[Callable[[Sequence[str]], int], str]] = {
     "doctor": (_doctor, "print the fields that a receipt would record about this machine (a stub until W2-T03 and W2-T04)"),
+    "fetch": (_fetch, "download the files that a lab pins into the cache, and keep only those whose SHA-256 is the manifest's: fetch <lab>"),
     "grade": (_grade, "grade a stage on a challenge token from the site, and write its bundle: grade <lab>.<stage> --challenge <token>"),
     "receipt": (_receipt, "receipt verify <file>: the browser's first three rules, run locally"),
     "selftest": (_selftest, "run the grader's own checks, and its tests where they are installed (--gpu adds the GPU smoke, not built yet)"),

@@ -34,6 +34,7 @@ import { main as verifySchema } from '../../scripts/verify-schema'
 import { bundleSchema } from '@es/schema/bundle'
 import { challengeSchema } from '@es/schema/challenge'
 import { receiptSchema } from '@es/schema/receipt'
+import { referencesSchema } from '@es/schema/references'
 import { traceSchema } from '@es/schema/trace'
 import { read, root } from './support'
 
@@ -75,7 +76,13 @@ describe('the export is deterministic', () => {
     const first = renderSchemas()
     const second = renderSchemas()
     expect(second).toEqual(first)
-    expect(first.map(({ file }) => file)).toEqual(['schemas/receipt.schema.json', 'schemas/bundle.schema.json', 'schemas/challenge.schema.json', 'schemas/trace.schema.json'])
+    expect(first.map(({ file }) => file)).toEqual([
+      'schemas/receipt.schema.json',
+      'schemas/bundle.schema.json',
+      'schemas/challenge.schema.json',
+      'schemas/trace.schema.json',
+      'schemas/references.schema.json',
+    ])
     for (const { file, text } of first) expect([file, read(file) === text]).toEqual([file, true])
   })
 
@@ -87,7 +94,7 @@ describe('the export is deterministic', () => {
     const written = filesOf(path.join(a, 'schemas'))
     expect(filesOf(path.join(b, 'schemas'))).toEqual(written)
     expect(written).toEqual(filesOf(path.join(root, 'schemas')))
-    expect(Object.keys(written)).toHaveLength(9)
+    expect(Object.keys(written)).toHaveLength(10)
   })
 
   test('is two-space JSON with one final newline, the keys in the order zod writes them', () => {
@@ -97,10 +104,10 @@ describe('the export is deterministic', () => {
     }
   })
 
-  test('is exactly what verify:schema reads: the command line passes on the tree, and the schemas it covers are the four of A§9.6', () => {
+  test('is exactly what verify:schema reads: the command line passes on the tree, and the schemas it covers are the four of A§9.6 and the references manifest of A§9.7', () => {
     const { status, out } = run('scripts/verify-schema.ts')
-    expect([status, out.trim()]).toEqual([0, "verify:schema passed: 4 JSON Schemas, and the grader's copy of each, are what the zod schemas of packages/schema export"])
-    expect(SCHEMA_EXPORTS.map((entry) => entry.schema)).toEqual([receiptSchema, bundleSchema, challengeSchema, traceSchema])
+    expect([status, out.trim()]).toEqual([0, "verify:schema passed: 5 JSON Schemas, and the grader's copy of each, are what the zod schemas of packages/schema export"])
+    expect(SCHEMA_EXPORTS.map((entry) => entry.schema)).toEqual([receiptSchema, bundleSchema, challengeSchema, traceSchema, referencesSchema])
   })
 })
 
@@ -154,11 +161,11 @@ describe('a drift fails verify:schema', () => {
 
   test('a folder with no schemas fails once for each file, and once more for each copy of the grader', () => {
     const dir = tempRoot()
-    expect(schemaDrift(dir)).toHaveLength(4)
-    expect(graderCopyDrift(dir)).toHaveLength(4)
+    expect(schemaDrift(dir)).toHaveLength(5)
+    expect(graderCopyDrift(dir)).toHaveLength(5)
     const { status, said } = gate(dir)
     expect(status).toBe(1)
-    expect(said).toContain('verify:schema failed: 8 problem(s)')
+    expect(said).toContain('verify:schema failed: 10 problem(s)')
   })
 
   test('a usage error is 2, and --check on the export reports the same drift', () => {
@@ -175,7 +182,7 @@ describe('a drift fails verify:schema', () => {
 
 describe("the grader's copies of the schemas (W2-T02)", () => {
   /** The grader's package carries these, and its `schemas.py` loads them: pyproject.toml ships every file of src/enginespace_grader. */
-  const names = ['receipt.schema.json', 'bundle.schema.json', 'challenge.schema.json', 'trace.schema.json']
+  const names = ['receipt.schema.json', 'bundle.schema.json', 'challenge.schema.json', 'trace.schema.json', 'references.schema.json']
 
   function gate(dir: string) {
     const result = run('scripts/verify-schema.ts', '--root', dir)
@@ -328,17 +335,18 @@ describe('what the file says of itself', () => {
     }
   })
 
-  test('is titled with the tag of the format, for the three that have one', () => {
+  test('is titled with the tag of the format, for the four that have one', () => {
     const titles = Object.fromEntries(documents.map(({ file, json }) => [path.basename(file), json.title]))
     expect(titles).toEqual({
       'receipt.schema.json': 'enginespace/receipt@1',
       'bundle.schema.json': 'enginespace/bundle@1',
       'challenge.schema.json': 'enginespace challenge',
       'trace.schema.json': 'enginespace/trace@1',
+      'references.schema.json': 'enginespace/references@1',
     })
   })
 
-  test('is the same document as an authored input and as the parsed output, since none of the four has a default or a transform', () => {
+  test('is the same document as an authored input and as the parsed output, since none of the five has a default or a transform', () => {
     for (const { schema } of SCHEMA_EXPORTS) {
       expect(z.toJSONSchema(schema, { io: 'output' })).toEqual(z.toJSONSchema(schema, { io: 'input' }))
     }

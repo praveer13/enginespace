@@ -6,9 +6,10 @@ name: Labs
 #           builds the template, the reference and the bestiary for wasm itself and checks them through the host the site uses: the
 #           template traps, the reference passes, and the bestiary fails. W1-T10 builds that gate.
 #   grader  the local grader: uv 0.10.2, exactly, from the action or else from PyPI; the lockfile checked and synced; its unittest suite on
-#           the CPU, which reads schemas/vectors and so is the Python end of verify:vectors, and requires the synthetic bundle in
-#           tests/fixtures/grader to be what the grader writes now; the installed command's own checks; verify:schema and verify:vectors;
-#           and the receipt fixtures (the fixtures pass and the forgeries fail).
+#           the CPU, which reads schemas/vectors and so is the Python end of verify:vectors, requires the synthetic bundle in
+#           tests/fixtures/grader to be what the grader writes now, and judges the manifests of tests/fixtures/references as the zod schema
+#           does (it downloads from a server on 127.0.0.1 and reaches nothing else); the installed command's own checks; verify:schema and
+#           verify:vectors; and the receipt fixtures (the fixtures pass and the forgeries fail).
 #
 # A job switches on when its lab lands (labs/forge/Cargo.toml from W1-T10, labs/grader/pyproject.toml from W2-T02), and this
 # file does not change for that. Until then the detect job prints "pending: <task>" for the lab that is missing, and the job
@@ -35,6 +36,7 @@ on:
       - 'scripts/verify-labs.ts'
       - 'tests/fixtures/forge/**'
       - 'tests/fixtures/grader/**'
+      - 'tests/fixtures/references/**'
       - 'vendor/kernelspace/**'
       - '.github/workflows/labs.yml'
   workflow_dispatch:
