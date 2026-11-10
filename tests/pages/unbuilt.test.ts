@@ -3,7 +3,7 @@
  *
  *   - /changes, /about, /trace-room and the ten labs that W2 and W3 build each render a heading, a lead, a list of what the page
  *     will hold, the red line that says it is not built, the task and the wave that build it, and a way on to a page that is. (/receipts
- *     was the fifth until W2-T06 built it: tests/receipts/ holds what it says of the part that is still to come.)
+ *     was the fifth until W2-T06 built it: tests/receipts/ holds what it says.)
  *   - The words are src/unbuilt/copy.ts's, and they come from somewhere: each task is a task of docs/TRACKER.md whose text is about
  *     that page, and each lab's module, lane and one line are the course's own (the compiled map). A task renamed, or a lab whose artifact
  *     changes, fails here and not in front of a learner.

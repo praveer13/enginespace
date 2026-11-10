@@ -1,8 +1,7 @@
 /*
  * The words of the pages that are not built yet (W1b-T09): what each will hold, and the task that builds it. The pages are
  * src/pages/Changes.tsx, About.tsx, TraceRoom.tsx and Lab.tsx (for the labs that W2 and W3 build), and src/unbuilt/Unbuilt.tsx draws
- * them. A page that is built takes its words out of here with its stub: /receipts did with W2-T06, and says in src/receipts/copy.ts what
- * of it is still to come.
+ * them. A page that is built takes its words out of here with its stub: /receipts did with W2-T06, and has its words in src/receipts/copy.ts.
  *
  * Nothing in these words is new. What a page holds is what ARCHITECTURE §3.1 and §8.4 say of it and what its tasks in docs/TRACKER.md
  * ask for, and a lab's one line is what content/course.yaml says the learner hands in. tests/pages/unbuilt.test.ts reads the tracker

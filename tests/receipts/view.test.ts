@@ -1,12 +1,14 @@
 /*
- * /receipts as markup (W2-T06): its states, drawn on the server renderer with every input as a prop. What a click does is checked in a real
- * browser, in e2e/receipts.spec.ts (the keyboard walk, axe, the copy, the issue, the focus that moves).
+ * /receipts as markup (W2-T06, W2-T07): its states, drawn on the server renderer with every input as a prop. What a click does is checked in a
+ * real browser, in e2e/receipts.spec.ts (the keyboard walk, axe, the copy, the issue, the focus that moves) and e2e/receipts-import.spec.ts (the
+ * slip: a file chosen and dropped, the worker, the ledger).
  *
  *   - Loading, empty, and full: the tickets that are still printing, the blank ones, and the lists with a challenge in each state, a
  *     receipt, and a record that is not one.
  *   - A challenge is open, used or expired in words on tape, and only an open one can be copied. Newest first, eight at a time.
  *   - One receipt opened at its hash: every part of the receipt on the page, as text (a receipt comes from a file, A§12), every figure
  *     through the readout with the tag of a number that nobody has checked, the tables readable as tables, and the way back.
+ *   - The slip a receipt comes back on, in every state of the importer (tests/receipts/import-view.test.ts).
  *   - The page is one heading, and every control is named.
  */
 import { describe, expect, test } from 'bun:test'
@@ -35,7 +37,19 @@ const text = (html: string) => decode(html.replace(/<wbr\s*\/?>/g, '').replace(/
 const headings = (html: string, level: number) => [...html.matchAll(new RegExp(`<h${level}[^>]*>(.*?)</h${level}>`, 'gs'))].map((match) => text(match[1]))
 
 const issue = async () => ({ ok: false as const, detail: 'not here' })
-const base = (over: Partial<ReceiptsViewProps> = {}): ReceiptsViewProps => ({ ready: true, backend: 'idb', readOnly: false, held: [], receipts: [], open: null, issue, ...over })
+const base = (over: Partial<ReceiptsViewProps> = {}): ReceiptsViewProps => ({
+  ready: true,
+  backend: 'idb',
+  readOnly: false,
+  held: [],
+  receipts: [],
+  open: null,
+  issue,
+  importer: { step: 'idle' },
+  onChoose: () => undefined,
+  onClear: () => undefined,
+  ...over,
+})
 const view = (over: Partial<ReceiptsViewProps> = {}) => render(createElement(ReceiptsView, base(over)))
 
 /** A ledger with a challenge in each state, and the sample receipt that spent one. */
@@ -86,11 +100,13 @@ describe('the page with nothing in the ledger', () => {
     expect(labs[8]).toEqual(['capstone.pair', 'capstone.pair · GPU'])
   })
 
-  test('says in the ribbon red, with the task and the wave, that the importer is not built', () => {
+  test('has the slip that a receipt comes back on, after the two lists, and no part of the page is left unbuilt', () => {
     expect(headings(html, 2)).toEqual(['Get a challenge', 'Your challenges', 'Your receipts', 'Bring a receipt back'])
-    expect(text(html)).toContain('Not built yet')
-    expect(text(html)).toContain('Arriving with W2')
-    expect(text(html)).toContain('W2-T07')
+    expect(text(html)).not.toContain('Not built yet')
+    expect(text(html)).not.toContain('Arriving with')
+    expect(text(html)).toContain('Drop a receipt')
+    expect(text(html)).toContain('Choose a file')
+    expect(html).toContain('type="file"')
   })
 
   test('says the expiry in days as an estimate, through the readout', () => {
@@ -119,7 +135,8 @@ describe('the challenges', () => {
     ])
     expect(held.map((entry) => entry.event.id)).toEqual([open.id, used.id, expired.id])
     expect([...html.matchAll(/class="es-tape es-held__state"[^>]*>.*?<span class="es-tape__text">(\w+)<\/span>/g)].map((match) => match[1])).toEqual(['open', 'used', 'expired'])
-    expect(headings(html, 3)).toEqual([])
+    // The lists have no headings of their own: the only one below the panels' is the slip's.
+    expect(headings(html, 3)).toEqual(['Drop a receipt'])
   })
 
   test('offer a copy only for the open one, named for its stage', () => {
@@ -253,8 +270,8 @@ describe('one receipt, opened at its hash', () => {
     expect(html).toContain('<span class="es-receipt__result" data-pass="true">')
   })
 
-  test('says it has not been checked in this browser, and what that waits for', () => {
-    expect(text(html)).toContain('Not checked in this browser yet. The worker that checks a receipt and the rules it applies are still to come')
+  test('says it has not been checked in this browser, and how to have it checked', () => {
+    expect(text(html)).toContain("Not checked in this browser yet. Bring the grader's file back on the receipts page, and the rules it was checked by will be listed here.")
   })
 
   test('lists the times it was checked, once there are reports', () => {

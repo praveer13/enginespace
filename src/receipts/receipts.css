@@ -1,5 +1,6 @@
 /*
- * /receipts (W2-T06): the deck that issues a challenge, the ticket it prints, the two lists, and one receipt opened. The components of
+ * /receipts (W2-T06, W2-T07): the deck that issues a challenge, the ticket it prints, the slip that takes a receipt back, the two lists, and one
+ * receipt opened. The components of
  * src/design/components draw the tickets, the plates, the tape and the stub, src/pages/panels.css lays out the page and its panels, and
  * this file places what is particular to this page. Every colour, face, space, radius and shadow is a token role (src/design/tokens.css),
  * and the design system is not edited.
@@ -247,7 +248,8 @@
   font-size: var(--es-size-note);
 }
 
-.es-held__item > .es-held__state {
+.es-held__item > .es-held__state,
+.es-held__item > .es-held__worth {
   grid-column: 2;
   grid-row: 1;
 }
@@ -598,14 +600,237 @@
   overflow-wrap: anywhere;
 }
 
-/* The red line that says a part is not built, set as the unbuilt pages set it, and as the first line of its ticket. */
-.es-receipts .es-unbuilt__pending {
-  margin-top: 0;
-}
-
 /* A part of the page that takes focus when the page moves to it (a receipt that opens, the lists that come back) is not a control: it is
    named for a reader and scrolled to, and draws no ring, as the main landmark draws none (src/design/base.css). */
 .es-receipts [tabindex='-1']:focus-visible {
   outline: none;
   box-shadow: none;
+}
+
+/* ---------------------------------------------------------------------------------------------- the slip a receipt comes back on */
+
+/* The drop target is as wide as the slip, so that the filament and the pool of light round it hug the paper (the forge's slip is the same). */
+.es-drop {
+  position: relative;
+  isolation: isolate;
+  max-width: 44rem;
+}
+
+.es-drop[data-over]::before {
+  content: '';
+  position: absolute;
+  inset: -2.5rem -2.25rem 0;
+  z-index: -1;
+  background: radial-gradient(
+    48% 38% at 50% 40%,
+    color-mix(in srgb, var(--es-lamp) 82%, transparent) 0%,
+    color-mix(in srgb, var(--es-lamp) 42%, transparent) 50%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+.es-drop[data-over]::after {
+  content: '';
+  position: absolute;
+  inset: -0.5rem;
+  border: 2px dashed var(--es-lamp-ring);
+  pointer-events: none;
+}
+
+.es-import__slip .es-ticket__paper {
+  padding-inline: var(--es-space-4);
+}
+
+@media (min-width: 40rem) {
+  .es-import__slip .es-ticket__paper {
+    padding-inline: var(--es-space-6);
+  }
+}
+
+.es-import__file {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--es-space-1) var(--es-space-3);
+  margin: 0;
+}
+
+/* The learner's own file name: it breaks wherever the paper ends, and is never cut. */
+.es-import__name {
+  font-family: var(--es-font-mono);
+  font-size: var(--es-size-note);
+  overflow-wrap: anywhere;
+}
+
+.es-import__caps {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--es-space-1);
+}
+
+.es-import__warn {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--es-space-2);
+  max-width: 56ch;
+  margin: 0;
+  color: var(--es-paper-ink-2);
+  font-size: var(--es-size-print);
+  line-height: 1.45;
+}
+
+.es-import__mark {
+  flex: none;
+  width: 1.1em;
+  height: 1.1em;
+  margin-top: 0.15em;
+}
+
+.es-import__quiet {
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-print);
+}
+
+.es-import__after {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2) var(--es-space-4);
+  margin-top: var(--es-space-3);
+}
+
+/* ---------------------------------------------------------------------------------------------- the rules, one after another */
+
+.es-rules {
+  display: grid;
+  margin: var(--es-space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-rule {
+  display: grid;
+  grid-template-columns: 2ch minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--es-space-1) var(--es-space-3);
+  padding: var(--es-space-3) 0;
+  border-bottom: 1px dotted var(--es-paper-rule);
+}
+
+.es-rule:last-child {
+  border-bottom: 0;
+}
+
+.es-rule > .es-rule__summary,
+.es-rule > .es-rule__problems {
+  grid-column: 2 / -1;
+}
+
+.es-rule__n {
+  font-family: var(--es-font-ticket);
+  font-size: var(--es-size-plate);
+  font-weight: var(--es-font-ticket-weight);
+  letter-spacing: var(--es-font-ticket-tracking);
+}
+
+.es-rule__name {
+  margin: 0;
+  font-weight: 700;
+}
+
+.es-rule__result {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--es-space-1);
+  font-family: var(--es-font-ticket);
+  font-weight: var(--es-font-ticket-weight);
+}
+
+.es-rule[data-status='fail'] .es-rule__result,
+.es-rule[data-status='fail'] .es-rule__n {
+  color: var(--es-paper-ink-2);
+}
+
+.es-rule[data-status='skipped'] {
+  color: var(--es-text-3);
+}
+
+.es-rule__mark {
+  flex: none;
+  width: 1.1em;
+  height: 1.1em;
+}
+
+.es-rule__summary {
+  margin: 0;
+  max-width: 62ch;
+  font-size: var(--es-size-print);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.es-rule__problems {
+  display: grid;
+  gap: var(--es-space-1);
+  margin: 0;
+  padding-inline-start: var(--es-space-6);
+  list-style: square;
+  font-size: var(--es-size-print);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.es-rule[data-status='fail'] .es-rule__problems {
+  color: var(--es-paper-ink-2);
+}
+
+/* ---------------------------------------------------------------------------------------------- what it is worth now */
+
+.es-import__verdict {
+  display: grid;
+  gap: var(--es-space-2);
+  margin-top: var(--es-space-4);
+  padding-top: var(--es-space-3);
+  border-top: 2px dotted var(--es-paper-rule);
+}
+
+.es-import__verdict-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2) var(--es-space-3);
+  margin: 0;
+  font-weight: 700;
+}
+
+.es-import__reasons {
+  display: grid;
+  gap: var(--es-space-1);
+  margin: 0;
+  padding-inline-start: var(--es-space-6);
+  list-style: square;
+  font-size: var(--es-size-print);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+/* A receipt's page keeps a check beside each earlier one: the newest is open, and the rest fold. */
+.es-receipt__check {
+  display: grid;
+  gap: var(--es-space-2);
+}
+
+.es-receipt__checks {
+  display: grid;
+  gap: var(--es-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-receipt__earlier > summary {
+  cursor: pointer;
 }

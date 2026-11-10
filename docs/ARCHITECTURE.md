@@ -933,6 +933,13 @@ The B-lane builds are Rust crates on kernelspace's `kslab` ABI v2 (vendored unch
 
 Receipt fixtures run in CI: real bundles from the owner's GPU smoke runs (W2-T12) must pass. A forged bestiary built from them must fail, check by check: an edited p99, a re-signed hash, a reused token, a replayed old receipt, a closed-loop log, a trace too fast for its GPU, an unknown grader build, an attribution that does not partition its window, and a pair run on different seeds (ASSESSMENT §13).
 
+**Rules 1 to 6, as built (W2-T07).** `packages/verify` holds them, one file for each (`caps.ts` to `pins.ts`), and `receipt.worker` runs them on the file that the learner drops or chooses, with what only the page knows passed in as data: the ledger's challenges, the grader builds the site published (`src/receipts/graders.ts`) and the engines that `course.lock.json` pins (`src/receipts/pins.ts`).
+- A file that fails rule 1, 2 or 3 is not a receipt the browser can read, so nothing is kept and no token is spent. A receipt that is read whole is kept with its report even when rule 4, 5 or 6 failed, as `gpu-unverified` with the reasons (ASSESSMENT §3.2). Its `receipt` event spends the token, because the run's seeds were seen. A receipt that is checked again adds a report to its record and no second event.
+- The record and the event are written in one transaction (`keepReceipt` of the evidence engine), and the report is stored as plain JSON that is read back through `readStoredReport`. The verdict is worked out when it is read (`verdictOf`).
+- Until rules 7 to 10 exist, every receipt is `gpu-unverified`, and says that its rules are not built: this browser re-runs none of the grader's checks yet, and takes no `pass` flag on trust (I6). W2-T08 builds them and widens the verdict.
+- Rule 5 compares the grader with the list the site published. The list is compiled into the site and is empty until the kit and the grader wheel are packed (W2-T10), so until then no receipt is credited.
+- Rule 6 compares the engine's name, release and commit with the lock. The libraries are the grader's own comparison with its environment's lock, because the environments' locks (W2-T04) are not on the site yet; a lab that declares an older engine compatible is passed to the rule as `Compatible` data (`packages/verify/pins.ts`), and none does yet, so the page passes none.
+
 ### 8.6 What the pipeline proves, and what it does not
 
 - **It proves:**

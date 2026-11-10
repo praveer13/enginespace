@@ -75,6 +75,9 @@ function build(label: string, args: string[], env: Record<string, string> = {}):
   return { outDir, log, manifest, sources }
 }
 
+/** A worker's bundle: `assets/forge.worker-<hash>.js`. Vite writes each worker as one file of its own, beside the app's chunks. */
+const isWorker = (file: string): boolean => /^assets\/[\w-]+\.worker-[\w-]+\.js$/.test(file)
+
 const chunkNamed = (b: Build, name: string) => Object.entries(b.manifest).find(([, chunk]) => chunk.name === name)
 const entryKeyOf = (b: Build) => Object.entries(b.manifest).find(([, chunk]) => chunk.isEntry)?.[0] ?? ''
 
@@ -110,9 +113,13 @@ function expectThreeIsolated(b: Build) {
   expect(loadedFirst).not.toContain(threeVendor ?? 'no three-vendor chunk')
   expect(chunksHolding(b, THREE_CORE, R3F, THREE_ADDONS).filter((file) => loadedFirst.includes(file))).toEqual([])
 
-  // No package's code is bundled twice.
+  // No package's code is bundled twice in the app. A worker is a build of its own: Vite bundles it apart from the app, as one file that
+  // cannot share a chunk with the app's, so a package that a worker uses is in the worker's file as well as in the app's. ARCHITECTURE §14
+  // lists zod for the receipt worker, and the app uses it too, so that is no duplicate of the kind this check is for, which is two chunks
+  // of one graph that Rollup could have joined. verify:bundle holds each worker's file to its own size budget (A§11.1).
   const holders = new Map<string, Set<string>>()
   for (const [file, paths] of b.sources) {
+    if (isWorker(file)) continue
     for (const p of paths.filter((path) => path.startsWith('node_modules/'))) holders.set(p, (holders.get(p) ?? new Set()).add(file))
   }
   expect([...holders].filter(([, files]) => files.size > 1).map(([p]) => p)).toEqual([])

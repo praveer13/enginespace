@@ -1,16 +1,18 @@
 import type { ReactNode } from 'react'
 import type { Sha256, VerificationReport } from '@es/ledger'
 import type { Receipt } from '@es/schema/receipt'
+import { readStoredReport, RULES_IN_ALL, verdictOf } from '@es/verify'
 import { Icon } from '@/design/components/Glyph'
 import { Readout } from '@/design/components/Readout'
 import { TextLink } from '@/design/components/TextLink'
 import { Ticket } from '@/design/components/Ticket'
 import { Bytes } from './Bytes'
 import type { HeldChallenge } from './challenge'
-import { RECEIPTS } from './copy'
+import { RECEIPTS, REPORTS } from './copy'
 import { stageOf } from './labs'
 import { gpuLine } from './records'
 import type { HeldReceipt } from './records'
+import { RuleList, VerdictLine } from './Rules'
 import { TokenText } from './TokenText'
 import { formatWhen } from './when'
 
@@ -19,9 +21,10 @@ import { formatWhen } from './when'
  * the pins, the inputs and the artifacts it hashed, the checks that the grader ran, what the run claimed, and how the learner says they
  * worked. Everything is text: a receipt comes from a file, and its strings go on the page as strings (A§12).
  *
- * Nothing here is a verdict. A figure is the grader's own, and prints with the tag `unverified` that a screen reader hears and a single
- * stamp that the eye reads, until this browser has recomputed it. The checks are the grader's attestations. How this browser checked the
- * receipt is its own section, and that section is empty until the worker and the rules that fill it exist (W2-T07, W2-T08).
+ * Nothing above the last part is a verdict. A figure is the grader's own, and prints with the tag `unverified` that a screen reader hears
+ * and a single stamp that the eye reads, until this browser has recomputed it. The checks are the grader's attestations. How this browser
+ * checked the receipt is its own section, the last: each check that the receipt has had, with the rules it ran and what they came to. Rules 1 to
+ * 6 are W2-T07's, and recomputation, which turns a figure from `unverified` to a figure of this browser's own, is W2-T08's.
  */
 
 const none = <span className="es-receipt__none">none</span>
@@ -412,20 +415,60 @@ function Notes({ receipt }: { receipt: Receipt }) {
   )
 }
 
+/** One check of the receipt: when it was made, the rules it ran, and what they came to. The newest is open, and an earlier one folds. */
+function Check({ report, newest }: { report: VerificationReport; newest: boolean }) {
+  const read = readStoredReport(report.report)
+  const heading = (
+    <>
+      Checked <time dateTime={report.at}>{formatWhen(report.at)}</time>
+    </>
+  )
+  if (read === null) {
+    return (
+      <li className="es-receipt__check">
+        <p>
+          {heading}. {REPORTS.unreadable}
+        </p>
+      </li>
+    )
+  }
+  const body = (
+    <>
+      {read.ran < RULES_IN_ALL ? (
+        <p className="es-receipt__lead">
+          <Readout value={read.ran} tag="measured" size="sm" /> of the ten verification rules ran in this check, and the rest are built in a later version of the site.
+        </p>
+      ) : null}
+      <RuleList rules={read.rules} label={`How this browser checked the receipt, ${formatWhen(report.at)}`} />
+      <VerdictLine verdict={verdictOf(read.rules, read.ran)} />
+    </>
+  )
+  return newest ? (
+    <li className="es-receipt__check">
+      <p>{heading}</p>
+      {body}
+    </li>
+  ) : (
+    <li>
+      <details className="es-receipt__earlier">
+        <summary>{heading}</summary>
+        {body}
+      </details>
+    </li>
+  )
+}
+
 function Reports({ reports }: { reports: readonly VerificationReport[] }) {
+  const newestFirst = [...reports].sort((a, b) => (a.at < b.at ? 1 : -1))
   return (
-    <Part title="How this browser checked it">
-      {reports.length === 0 ? (
-        <p className="es-receipt__lead">{RECEIPTS.unchecked}. The worker that checks a receipt and the rules it applies are still to come, and the verdict is computed from them when a receipt is read.</p>
+    <Part title={REPORTS.title}>
+      {newestFirst.length === 0 ? (
+        <p className="es-receipt__lead">{REPORTS.none}</p>
       ) : (
-        <ul className="es-receipt__reports">
-          {[...reports]
-            .sort((a, b) => (a.at < b.at ? 1 : -1))
-            .map((report) => (
-              <li key={report.at}>
-                Checked <time dateTime={report.at}>{formatWhen(report.at)}</time>
-              </li>
-            ))}
+        <ul className="es-receipt__checks">
+          {newestFirst.map((report, at) => (
+            <Check key={`${report.at}#${at}`} report={report} newest={at === 0} />
+          ))}
         </ul>
       )}
     </Part>

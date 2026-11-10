@@ -17,15 +17,19 @@
  *   - Expired: it was not used, and `CHALLENGE_TTL_DAYS` days have passed since the event was written. The count is from the event's
  *     instant, to the millisecond, and not from the token's date, which has only the day.
  *   - Open: neither.
- * The receipt worker's binding rule (W2-T07) reads the same function, so the page and the worker cannot disagree about a token.
+ * The receipt worker's binding rule (A§8.5 rule 4, W2-T07) reads the same function, so the page and the worker cannot disagree about a token:
+ * `stateAt` and `CHALLENGE_TTL_DAYS` are defined once, in packages/verify/binding.ts, which this file re-exports.
  */
 import { dayOf, systemClock } from '@es/ledger'
 import type { ChallengeEvent, Clock, Draft, IsoInstant, LedgerEvent, Sha256 } from '@es/ledger'
 import { formatChallenge, NONCE_ALPHABET, NONCE_LENGTH } from '@es/schema/challenge'
 import type { ChallengeParts } from '@es/schema/challenge'
+import { CHALLENGE_TTL_DAYS, stateAt } from '@es/verify/binding'
+import type { ChallengeState } from '@es/verify/binding'
 
-/** How long a token is good for, in days [estimated]: ARCHITECTURE §8.4 and ASSESSMENT §5.3. */
-export const CHALLENGE_TTL_DAYS = 14
+/** How long a token is good for, in days [estimated]: ARCHITECTURE §8.4 and ASSESSMENT §5.3. The definition is the binding rule's (packages/verify/binding.ts). */
+export { CHALLENGE_TTL_DAYS, stateAt }
+export type { ChallengeState }
 
 const DAY_MS = 86_400_000
 
@@ -101,8 +105,6 @@ export async function writeChallenge(stage: string, ledger: Appender, clock: Clo
 /* Reading the ledger's challenges                                                                                    */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-export type ChallengeState = 'open' | 'used' | 'expired'
-
 /** A challenge the ledger holds, with the state it is in at the instant it was asked about. */
 export interface HeldChallenge {
   readonly event: ChallengeEvent
@@ -120,12 +122,6 @@ export const expiryOf = (at: IsoInstant): IsoInstant => new Date(Date.parse(at) 
 
 /** Now, in milliseconds. It is a function of its own so that the page reads the clock where it counts the states, and not while it draws. */
 export const clockNow = (): number => Date.now()
-
-/** The state of a token that was written at `at`, at the instant `nowMs`, and whether a receipt used it. */
-export function stateAt(at: IsoInstant, nowMs: number, used: boolean): ChallengeState {
-  if (used) return 'used'
-  return nowMs >= Date.parse(at) + CHALLENGE_TTL_DAYS * DAY_MS ? 'expired' : 'open'
-}
 
 /** Newest first: by the instant written, then by id, so that the order does not depend on the order the ledger listed them in. */
 const newestFirst = (a: ChallengeEvent, b: ChallengeEvent): number => (a.at === b.at ? (a.id < b.id ? 1 : -1) : a.at < b.at ? 1 : -1)

@@ -18,16 +18,20 @@
  *   guard     a newer `schemaVersion`, a newer IndexedDB version or an upgrade by another tab makes the engine read-only for
  *             good (guard.ts). Every write then refuses, and the snapshot carries the note that asks for a reload.
  *   files     `exportLedger`, `previewImport`, `importLedger` and `undoImport` (export.ts, import.ts).
+ *   receipts  `keepReceipt` writes a checked receipt and the event that spends its challenge's token in one transaction (W2-T07).
  *
  * Writes that change the store (an append, an import, an undo, a reset, a working record) run one at a time, in the order
  * they were asked, on a promise queue. A write that fails leaves the store as it was: the commit is one transaction.
  */
 import {
   GRADED_KINDS,
+  LIMITS,
   lwwWorking,
   MemoryStore,
   mergeEvents,
+  mergeReceiptRecord,
   mergeReceipts,
+  decodeReceiptRecord,
   decodeWorkingRecord,
   planUndo,
   RESOLVERS,
@@ -51,6 +55,7 @@ import type {
   LedgerEvent,
   LedgerStore,
   ReadOnlyReason,
+  ReceiptEvent,
   ReceiptRecord,
   StoreContents,
   StoreTx,
@@ -147,6 +152,24 @@ export type AppendResult<K extends Kind = Kind> =
     }
   | { ok: false; error: 'read-only' | 'closed'; detail: string }
 
+/** What a checked receipt is kept with: its record, and the event that records what the browser concluded, which is absent when the event is already there. */
+export interface KeepInput {
+  record: ReceiptRecord
+  /** Written with the record, unless the ledger holds an event for this receipt by the time the write runs: a receipt has one event. */
+  event?: Draft<'receipt'>
+}
+
+export type KeepResult =
+  | {
+      ok: true
+      /** The receipt as the store keeps it now: the reports of earlier checks joined to this one. */
+      record: ReceiptRecord
+      /** The event that was written: absent when the input had none, or when the ledger held one for the receipt already. */
+      event?: ReceiptEvent
+    }
+  /** `invalid`: the record would not pass the codec that an export is read with, so it could not be exported and imported again; `failed`: the store would not take it. */
+  | { ok: false; error: 'read-only' | 'closed' | 'invalid' | 'failed'; detail: string }
+
 export type WorkingResult = { ok: true } | { ok: false; error: 'read-only' | 'closed' | 'invalid'; detail: string }
 
 export type PreviewResult = { ok: true; preview: ImportPreview } | Refused
@@ -175,6 +198,12 @@ export interface EvidenceEngine {
   subscribe(listener: () => void): () => void
   /** Stamps and writes an event. Resolves when the store has it, or when it is clear that it will not. */
   append<K extends Kind>(draft: Draft<K> & { kind: K }): Promise<AppendResult<K>>
+  /**
+   * Keeps a checked receipt (W2-T07): the record joins the `receipts` store, and the event, if there is one, goes to `events`, in one
+   * transaction, so a receipt is never held without the event that spent its token, nor the event without the receipt. A record that is
+   * kept already gains the report of this check; it keeps its newest `LIMITS.reports` reports, so an export of the ledger can always be read back.
+   */
+  keepReceipt(input: KeepInput): Promise<KeepResult>
   /** Last writer wins. A key is `<namespace>:<name>`, such as `settings:reduced-motion`; `outbox:` is reserved. */
   setWorking(key: string, value: Json): Promise<WorkingResult>
   deleteWorking(key: string): Promise<WorkingResult>
@@ -478,6 +507,49 @@ export async function createEvidence(deps: EvidenceDeps): Promise<EvidenceEngine
     return { ok: true, event, durable }
   }
 
+  /** The receipt as a record, with its reports kept to what an export can carry (`LIMITS.reports`, the newest). */
+  function recordToKeep(incoming: ReceiptRecord): { record: ReceiptRecord; replaces: boolean } {
+    const existing = storedReceipts.find((entry) => entry.sha256 === incoming.sha256)
+    if (existing === undefined) return { record: incoming, replaces: false }
+    const merged = mergeReceiptRecord(existing, incoming)
+    if (merged.reports.length <= LIMITS.reports) return { record: incoming, replaces: false }
+    // The store joins a record with the one it holds, so a trimmed record has to replace the old one: delete, then put (StoreTx's order).
+    return { record: { ...merged, reports: merged.reports.slice(merged.reports.length - LIMITS.reports) }, replaces: true }
+  }
+
+  async function keepReceipt(input: KeepInput): Promise<KeepResult> {
+    if (closed) return { ok: false, error: 'closed', detail: 'The evidence ledger is closed.' }
+    if (guard.readOnly) return { ok: false, error: 'read-only', detail: readOnlyDetail(guard.reason) }
+    if (deviceId === undefined) return { ok: false, error: 'read-only', detail: REFUSAL_MESSAGES['read-only'] }
+    // The same codec that reads a ledger file: a record it would refuse could be written, and then every export of the ledger would be refused
+    // on import, so it is refused here, where the receipt is.
+    const decoded = decodeReceiptRecord(input.record)
+    if (!decoded.ok) return { ok: false, error: 'invalid', detail: decoded.reason }
+    // A draft that breaks a rule throws here, where the bug is.
+    const event = input.event === undefined ? undefined : stampEvent<'receipt'>({ clock, newId: deps.newId, dev: deviceId }, input.event as Draft<'receipt'> & { kind: 'receipt' })
+    return enqueue(async (): Promise<KeepResult> => {
+      if (closed) return { ok: false, error: 'closed', detail: 'The evidence ledger is closed.' }
+      if (guard.readOnly) return { ok: false, error: 'read-only', detail: readOnlyDetail(guard.reason) }
+      // What this tab wrote and the store has not confirmed is part of the ledger before the receipt is.
+      await savePending()
+      await refresh().catch(noop)
+      // A receipt has one event, which spent its token. Another tab may have kept the same file since the page looked, so the event is left out
+      // when the ledger holds one for this receipt now: a second would count the receipt twice.
+      const written = event !== undefined && !view().events.some((entry) => entry.kind === 'receipt' && entry.data.receiptSha256 === event.data.receiptSha256) ? event : undefined
+      const { record, replaces } = recordToKeep(decoded.value)
+      const tx: StoreTx = { putReceipts: [record], ...(written === undefined ? {} : { putEvents: [written] }), ...(replaces ? { deleteReceiptIds: [record.sha256] } : {}) }
+      try {
+        await store.commit(tx, RESOLVERS)
+      } catch {
+        return { ok: false, error: 'failed', detail: REFUSAL_MESSAGES.failed }
+      }
+      await refresh().catch(scheduleRefresh)
+      channel.post({ t: 'changed', what: 'append' })
+      if (written !== undefined) void requestPersistence([written])
+      return { ok: true, record: storedReceipts.find((entry) => entry.sha256 === record.sha256) ?? record, ...(written === undefined ? {} : { event: written }) }
+    })
+  }
+
   async function saveWorking(record: WorkingRecord): Promise<void> {
     if (guard.readOnly || closed) return
     try {
@@ -697,6 +769,7 @@ export async function createEvidence(deps: EvidenceDeps): Promise<EvidenceEngine
     },
     // TypeScript cannot relate two instantiations of the conditional type `Draft<K>`, so the generic signature is stated here.
     append: appendDraft as EvidenceEngine['append'],
+    keepReceipt,
     setWorking,
     deleteWorking,
     exportLedger,
