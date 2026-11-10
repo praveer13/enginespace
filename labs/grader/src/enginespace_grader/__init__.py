@@ -1,7 +1,8 @@
 """The enginespace local grader (ARCHITECTURE section 9, D-026): the `enginespace` command and the code behind it.
 
 It runs a lab stage on the learner's machine, checks the work against references, and writes one receipt bundle that the browser verifies. Its
-core needs the standard library and `jsonschema`, and it sends nothing anywhere: a receipt is a file that the learner moves by hand.
+core needs the standard library and `jsonschema`, and it sends nothing anywhere except the pinned downloads of `enginespace fetch` (fetch.py): a receipt is a file
+that the learner moves by hand.
 
 Importing the package imports nothing else, so a command loads only what it uses.
 """

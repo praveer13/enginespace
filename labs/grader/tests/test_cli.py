@@ -31,7 +31,7 @@ def run(*argv: str) -> tuple[int, str, str]:
 
 class Table(unittest.TestCase):
     def test_the_commands_are_those_of_the_architecture(self) -> None:
-        self.assertEqual(sorted(cli.COMMANDS), ["doctor", "grade", "receipt", "selftest", "version"])
+        self.assertEqual(sorted(cli.COMMANDS), ["doctor", "fetch", "grade", "receipt", "selftest", "version"])
         status, out, _ = run("--help")
         self.assertEqual(status, 0)
         for name in cli.COMMANDS:
@@ -60,7 +60,7 @@ class Table(unittest.TestCase):
             self.assertEqual((done.returncode, done.stdout.splitlines()[0]), (0, f"{GRADER_NAME} {__version__}"), done.stderr)
 
     def test_importing_the_command_loads_neither_jsonschema_nor_the_commands(self) -> None:
-        code = "import sys; import enginespace_grader.cli; print(sorted(m for m in ('jsonschema', 'enginespace_grader.bundle', 'enginespace_grader.verify', 'enginespace_grader.selftest') if m in sys.modules))"
+        code = "import sys; import enginespace_grader.cli; print(sorted(m for m in ('jsonschema', 'enginespace_grader.bundle', 'enginespace_grader.verify', 'enginespace_grader.selftest', 'enginespace_grader.fetch') if m in sys.modules))"
         done = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True)
         self.assertEqual(done.stdout.strip(), "[]")
 

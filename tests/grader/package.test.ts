@@ -44,7 +44,7 @@ describe('the unittest chain', () => {
   test('the test files are named test_*.py, which is the pattern unittest looks for, and there are many', () => {
     const tests = filesUnder(`${GRADER}/tests`).filter((file) => /^test_[a-z0-9_]+\.py$/.test(file))
     expect(tests.length).toBeGreaterThanOrEqual(15)
-    for (const name of ['rng', 'subseed', 'challenge', 'canonical', 'hashing', 'receipt', 'bundle', 'verify', 'grade', 'labs', 'cli', 'identity', 'schemas', 'selftest', 'discovery']) {
+    for (const name of ['rng', 'subseed', 'challenge', 'canonical', 'hashing', 'receipt', 'bundle', 'verify', 'grade', 'labs', 'cli', 'identity', 'schemas', 'selftest', 'discovery', 'fetch']) {
       expect(tests).toContain(`test_${name}.py`)
     }
   })
@@ -142,12 +142,12 @@ describe('the commands', () => {
     .map(([command]) => command.replaceAll('`', ''))
     .map((command) => command.replace(/^enginespace /, ''))
 
-  test('ARCHITECTURE §9.4 names the six commands, and cli.py has the four that W2-T02 builds, and `version`, which prints the hash that the packer needs', () => {
+  test('ARCHITECTURE §9.4 names the six commands, and cli.py has the five that W2-T02 and W2-T05 build, and `version`, which prints the hash that the packer needs', () => {
     expect(table.map((command) => command.split(' ')[0])).toEqual(['doctor', 'fetch', 'grade', 'receipt', 'trace', 'selftest'])
     const commands = [...cli.matchAll(/^ {4}"([a-z]+)": \(_[a-z]+, /gm)].map((match) => match[1])
-    expect(commands).toEqual(['doctor', 'grade', 'receipt', 'selftest', 'version'])
-    // `fetch` is W2-T05's and `trace export` W2-T19's, and the docstring says so.
-    expect(cli).toContain('`fetch` (W2-T05) and `trace export` (W2-T19) join the table with their tasks')
+    expect(commands).toEqual(['doctor', 'fetch', 'grade', 'receipt', 'selftest', 'version'])
+    // `trace export` is W2-T19's, and the docstring says so.
+    expect(cli).toContain('`trace export` (W2-T19) joins the table with its task')
   })
 
   test('the command is installed as `enginespace` and the receipt command has its verify subcommand', () => {
@@ -156,10 +156,16 @@ describe('the commands', () => {
     expect(cli).toContain('"verify"')
   })
 
-  test('the packaged files are the ones the build ships: the code, the four schemas and nothing from the tests', () => {
+  test('the packaged files are the ones the build ships: the code, the five schemas and nothing from the tests', () => {
     const files = filesUnder(PACKAGE)
     expect(files.filter((file) => file.endsWith('.py')).length).toBeGreaterThanOrEqual(15)
-    expect(files.filter((file) => file.startsWith('schemas/'))).toEqual(['schemas/bundle.schema.json', 'schemas/challenge.schema.json', 'schemas/receipt.schema.json', 'schemas/trace.schema.json'])
+    expect(files.filter((file) => file.startsWith('schemas/'))).toEqual([
+      'schemas/bundle.schema.json',
+      'schemas/challenge.schema.json',
+      'schemas/receipt.schema.json',
+      'schemas/references.schema.json',
+      'schemas/trace.schema.json',
+    ])
     expect(files.filter((file) => !/\.(py|json)$/.test(file))).toEqual([])
     expect(files.filter((file) => file.startsWith('tests/') || file.includes('test_'))).toEqual([])
   })
@@ -184,6 +190,30 @@ describe('the package names no place on a machine', () => {
     expect(samples).toContain('Example Linux 1.0')
     expect(samples).toContain('Example GPU 24GB')
     expect(samples).toContain('No machine ran it')
+  })
+})
+
+describe('what leaves the machine (ARCHITECTURE §9.7, ASSESSMENT §5.1; W2-T05)', () => {
+  /** An import of a library that can make a network request. */
+  const NETWORK = /^\s*(?:import\s+(?:urllib\.request|http\.client|http\.server|socket|ssl|ftplib|smtplib|telnetlib|xmlrpc\.client|requests|httpx|aiohttp|websockets)\b|from\s+(?:urllib\s+import\s+request|urllib\.request|http\.client|http\.server|socket|ssl|ftplib|smtplib|requests|httpx|aiohttp|websockets)\b)/m
+  const modules = filesUnder(PACKAGE).filter((file) => file.endsWith('.py'))
+
+  test('no module of the package but fetch.py imports a library that can make a request, so `enginespace fetch` is the one command that downloads anything', () => {
+    expect(modules).toContain('fetch.py')
+    expect(modules.filter((file) => NETWORK.test(read(`${PACKAGE}/${file}`)))).toEqual(['fetch.py'])
+    // The check can fail: it reads each form of an import that it names.
+    for (const line of ['import urllib.request', 'from urllib import request', 'import http.client as h', 'from socket import socket', 'import requests', 'from httpx import get']) expect([line, NETWORK.test(line)]).toEqual([line, true])
+    for (const line of ['import urllib.parse', 'from urllib.parse import urlsplit', 'import hashlib', 'from .socketry import x']) expect([line, NETWORK.test(line)]).toEqual([line, false])
+  })
+
+  test('fetch.py sends the User-Agent that names the program and its version, and reads no token, cookie, user name or host name', () => {
+    const code = read(`${PACKAGE}/fetch.py`)
+    expect(code).toContain('return f"{GRADER_NAME}/{__version__}"')
+    expect(code).toContain('headers = {"User-Agent": user_agent(), "Accept-Encoding": "identity"}')
+    expect(read(`${PACKAGE}/__init__.py`)).toContain('GRADER_NAME = "enginespace-grader"')
+    for (const needle of [/environ\.get\(\s*["'](?:HF_|HUGGING)/, /getenv\(\s*["'](?:HF_|HUGGING)/, /["'](?:Authorization|Cookie|Referer|X-[A-Za-z-]+)["']/, /getpass|gethostname|platform\.node|getlogin|\bUSER\b/]) {
+      expect([needle.source, needle.test(code)]).toEqual([needle.source, false])
+    }
   })
 })
 

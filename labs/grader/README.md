@@ -1,6 +1,6 @@
 # enginespace-grader
 
-The local grader of the course (ARCHITECTURE §9, D-026). It installs one command, `enginespace`, which runs a lab stage on your machine, checks the work against references, and writes one receipt bundle that the course site verifies in your browser. It sends nothing anywhere: a receipt is a file, and you move it by hand.
+The local grader of the course (ARCHITECTURE §9, D-026). It installs one command, `enginespace`, which runs a lab stage on your machine, checks the work against references, and writes one receipt bundle that the course site verifies in your browser. It sends nothing anywhere but the pinned downloads of `enginespace fetch`: a receipt is a file, and you move it by hand.
 
 Its core needs the Python standard library and one package, `jsonschema` 4.26.0. Python 3.11 to 3.14 (vLLM's range, A§9.3).
 
@@ -23,7 +23,7 @@ uv run --project labs/grader enginespace selftest
 | `enginespace receipt verify <file>` | the browser's first three rules, run here | W2-T02 |
 | `enginespace selftest [--gpu]` | the grader's own checks, and its tests where they are installed | W2-T02; `--gpu` stops with a message until a GPU lab exists (W2-T12) |
 | `enginespace version` | the name, the version and the source hash | W2-T02 |
-| `enginespace fetch <lab>` | downloads a lab's pinned inputs and checks their SHA-256 | W2-T05 |
+| `enginespace fetch <lab>` | downloads the files that a lab pins, resumes a download that stopped, and keeps only the bytes whose SHA-256 is the manifest's | W2-T05 |
 | `enginespace trace export <in> --format <fmt>` | normalises a trace into `trace@1` | W2-T19 |
 
 Exit status: 0 when the command did what it was asked and found nothing wrong; 1 when it found something wrong (a check failed, a file was not verified); 2 for a usage error or a file that cannot be read; 3 when it could not run (a bad token, a lab this install does not have, a pin check that does not exist yet).
@@ -42,6 +42,22 @@ A receipt is written whether the stage's checks passed or not, because the site 
 
 **What a receipt never holds** (A§9.5): a host name, a user name, an address, a GPU's UUID or serial number, an absolute path, a token or a key. The schema has no field that could hold one, and refuses a key that it does not name.
 
+### `fetch`
+
+```sh
+uv run --project labs/grader enginespace fetch tr0.forward
+uv run --project labs/grader enginespace fetch tr0.forward --manifest references/manifest.json --cache /mnt/disk/enginespace
+```
+
+A lab's large inputs (a model's weights, a dataset slice, the owner's reference banks) are not in the kit. They are listed in the references manifest, `labs/references/manifest.json` ([labs/references/README.md](../references/README.md)), each with its URL, SHA-256, size and licence, and `fetch` downloads the ones that list the lab you name into your cache. It looks for the manifest in `references/manifest.json` or `labs/references/manifest.json`, in the folder you run it from or one above it (the kit's folder, or a checkout of the repository), and `--manifest` names one. The cache is `--cache`, else `ENGINESPACE_CACHE`, else `enginespace/references` in your user cache folder (`~/.cache`), outside the kit, so a new kit does not make you download a model again.
+
+- **A file is kept only if its bytes hash to the manifest's SHA-256.** A download goes to a hidden `.<name>.<start of the hash>.part` file beside its place and is renamed to that place when it matches. A hash that does not match stops the command (status 1), deletes the partial file and says so, and so does a server that sends more than the manifest pins. A server that announces another size, or answers a resume with other bytes than were asked for, stops it (status 1) before a byte is written and leaves a partial file as it was: the answer is wrong, and not what had arrived. A file already in the cache is hashed again each time, so a changed one is downloaded again.
+- **A download that stopped resumes.** A dropped connection, a timeout and Ctrl-C keep what arrived. Run the command again and it sends `Range: bytes=<n>-` and goes on from there; a server that ignores the range sends the whole file, and the download starts again.
+- **What it sends.** A GET per file, with the User-Agent `enginespace-grader/<version>` and the headers HTTP needs. No cookie, no credential and no token (`HF_TOKEN` is never read), and no name of yours in a header or a URL. The URLs are https, and a redirect from https stays on https; plain http is allowed only to `127.0.0.1`, `localhost` and `[::1]`, which is how the tests serve a file from a folder. Your proxy settings are used, except for those.
+- **It checks the room first.** A file that does not fit on the disk is a message before the download and not a full disk after it.
+
+A lab finds its entries with `fetch.load_manifest(fetch.find_manifest()).for_lab("tr0.forward")`, reads each fetched file with `fetch.cached_file(reference)`, which hashes it again, and records it as `reference.as_input()`, the entry that the receipt's `inputs` take (A§9.6). `fetch` does not run during `grade`: a lab that finds a file missing says to run it.
+
 ### `receipt verify`
 
 Rules 1 to 3 of A§8.5, on a `.es.json.gz` file:
@@ -56,7 +72,7 @@ The other rules need what a file cannot show about itself: the ledger of the bro
 
 The grader and the site must agree on a few things exactly (A§9.8, D-030), and TypeScript is the source of each:
 
-- **The schemas.** `packages/schema` (zod) is the one definition of `receipt@1`, `bundle@1`, the challenge and `trace@1`. `bun scripts/export-schemas.ts` writes them to `schemas/*.schema.json` and, byte for byte, to `src/enginespace_grader/schemas/`, because the grader is installed by itself and validates with that copy. `verify:schema` fails when a copy differs.
+- **The schemas.** `packages/schema` (zod) is the one definition of `receipt@1`, `bundle@1`, the challenge, `trace@1` and `references@1`, the manifest that `fetch` reads. `bun scripts/export-schemas.ts` writes them to `schemas/*.schema.json` and, byte for byte, to `src/enginespace_grader/schemas/`, because the grader is installed by itself and validates with that copy. `verify:schema` fails when a copy differs.
 - **The generator and the codec.** `splitmix32u`, `hash32`, `rngFor` and the challenge token (`rng.py`, `challenge.py`); canonical JSON and SHA-256 (`canonical.py`, `hashing.py`). `schemas/vectors/*.json` holds what the TypeScript code does, and `tests/` runs every vector. A vector that the port does not reproduce fails the grader job of `labs.yml`.
 - **Canonical JSON** is RFC 8785 for the values this project writes, and strict: a whole number of 2^53 or more, NaN and a lone surrogate have no canonical form. Python's `repr` and `json.dumps` write `1e-07` and `1.0`, so neither is used for a number.
 
@@ -88,6 +104,7 @@ src/enginespace_grader/
   challenge.py  rng.py  canonical.py  hashing.py           the cross-language contract
   receipt.py  bundle.py  schemas.py  identity.py           the receipt, the bundle, the packaged schemas, the grader's hash
   fingerprint.py                                           host facts (W2-T03 builds the rest)
+  fetch.py                                                 the references manifest, and the downloads it pins (W2-T05)
   labs/                                                    the plug-in interface; one module for each lab arrives with its task
   schemas/                                                 written by scripts/export-schemas.ts
 tests/                                                     unittest

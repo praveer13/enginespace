@@ -472,7 +472,7 @@ describe('labs.yml (§10.1)', () => {
     })
   }
 
-  test('runs for a change to what the lab gates read, and by hand: the labs, the schemas and the receipt rules (W0-T04), what verify:labs imports and compares (W1b-T13), and the grader\'s fixture (W2-T02)', () => {
+  test('runs for a change to what the lab gates read, and by hand: the labs, the schemas and the receipt rules (W0-T04), what verify:labs imports and compares (W1b-T13), and the grader\'s fixtures (W2-T02, W2-T05)', () => {
     expect(labsPaths).toEqual([
       'labs/**',
       'schemas/**',
@@ -485,6 +485,7 @@ describe('labs.yml (§10.1)', () => {
       'scripts/verify-labs.ts',
       'tests/fixtures/forge/**',
       'tests/fixtures/grader/**',
+      'tests/fixtures/references/**',
       'vendor/kernelspace/**',
       '.github/workflows/labs.yml',
     ])
