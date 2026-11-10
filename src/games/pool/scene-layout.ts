@@ -116,15 +116,19 @@ const shot = (elevation: number, fov: number, d: number, z: number, x = 0) => ({
  * follows the depth along a straight line or two, fitted to the nearest camera that holds, for every pool size of the levels, the rack's
  * corners, the rail and its hung tickets clear of the overshelf, the waiting tickets, the pass's front lip and the heat lamps in its
  * frame, with the lamps' shades over the pass and hiding no pan, hung ticket or waiting ticket; the tests project those landmarks through
- * every preset at every pool size. Front of the reach-in looks down 35.5°, across the rack rather than down on it, so that the pans show
- * their rims, their depth and their heaped mise, where a steeper shot read them as a grid of tiles (finish review, W1b round 2); the lamp
- * bar over the pass stays under the front row's rims in the picture, which is as low as the shot goes. At 1440 px it stands to the left
- * so that the line and its hood come into the frame beside the rack; on a phone the rack runs across the width. From above looks down
- * 76° (82°, stood back from the pass, which leaves it out of a phone's frame).
+ * every preset at every pool size. Front of the reach-in looks down 35.5° at 1440 px, across the rack rather than down on it, so that the
+ * pans show their rims, their depth and their heaped mise, where a steeper shot read them as a grid of tiles (finish review, W1b round 2);
+ * the lamp bar over the pass stays under the front row's rims in the picture, which is as low as the shot goes. It stands to the left so
+ * that the line and its hood come into the frame beside the rack. On a phone the rack runs across the width, and the frame's height,
+ * which a low shot through a wide lens gave to the pass, its shelf and the lamps while the rack shrank to a strip at the top (finish
+ * review, W1b close-out), goes to the rack: the shot looks down 48° through a 28° lens, near the camera grammar's Establish, from far
+ * enough that the pass in front is drawn little larger than the rack, and stands so the pass's front lip lies along the frame's foot,
+ * its shelf and legs out of the picture; the rack is the largest thing in the frame, and the lamp bar stands well below its front row.
+ * From above looks down 76° (82°, stood back from the pass, which leaves it out of a phone's frame).
  */
 export const framings = (depth: number) => [
-  // 35.5° at both widths
-  [shot(0.62, 36, Math.max(3.48, 2.14 + 0.733 * depth), Math.min(-0.27, 0.28 - 0.29 * depth), -0.3), shot(0.62, 44, 3.52, -0.33)],
+  // 35.5° at 1440 px, 48° on a phone
+  [shot(0.62, 36, Math.max(3.48, 2.14 + 0.733 * depth), Math.min(-0.27, 0.28 - 0.29 * depth), -0.3), shot(0.838, 28, Math.max(5.6, 2.12 + 1.45 * depth), Math.min(-0.44, 0.48 - 0.386 * depth))],
   // 76° and 82°
   [shot(1.3265, 32, Math.max(2.5 + 0.1 * depth, 1.84 * depth), -0.47 * depth), shot(1.4312, 44, Math.max(3.28 + 0.06 * depth, 1.263 * depth), -0.4 - 0.34 * depth)],
 ]
