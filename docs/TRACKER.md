@@ -1,6 +1,6 @@
 # enginespace: build tracker
 
-**Status:** proposed backlog. W0's 24 tasks and W1's 35 build tasks are built, and both waves merged into `main` on 2026-11-09 with PR #2 ([waves/W0-report.md](waves/W0-report.md), [waves/W1-report.md](waves/W1-report.md)); their `[=]` markers turn `[x]` at W1b's exit review. W0-T25's first check and W1's two owner tasks wait on the owner. W1's exit review, W1-T38, is open on one check, which W1b, W1's carry-over, closes in `wave-1b`. The other tasks show `[ ]`: a wave's exit review sets its markers. **Date:** 2026-11-03, markers updated 2026-11-08, W1b added 2026-11-09. **Source:** [ARCHITECTURE.md](ARCHITECTURE.md) (cited as A§n) and [DECISIONS.md](DECISIONS.md) (D-nnn, O-n). Credit rules come from `docs/ASSESSMENT.md`, written in parallel. The look is The Pass (D-047): W0-T05 applies its direction contract, and W0-T25 documents the built world in DESIGN.md.
+**Status:** proposed backlog. W0's 24 tasks and W1's 35 build tasks are built, and both waves merged into `main` on 2026-11-09 with PR #2 ([waves/W0-report.md](waves/W0-report.md), [waves/W1-report.md](waves/W1-report.md)). W1b's exit review turned their `[=]` markers `[x]`, but for the two tasks with a check that waits on the owner, W0-T25 (its first) and W1-T12 (its fourth), which keep `[=]`; W1's two owner tasks wait on the owner too. W1b, W1's carry-over, built its 15 tasks into `wave-1b`, which waits for the owner's merge ([waves/W1b-report.md](waves/W1b-report.md)). There `bun scripts/verify-kc.ts --final` passes, so W1-T38's open check holds and W1-T38 shows `[=]`. The other tasks show `[ ]`: a wave's exit review sets its markers. **Date:** 2026-11-03, markers updated 2026-11-09, W1b added 2026-11-09. **Source:** [ARCHITECTURE.md](ARCHITECTURE.md) (cited as A§n) and [DECISIONS.md](DECISIONS.md) (D-nnn, O-n). Credit rules come from `docs/ASSESSMENT.md`, written in parallel. The look is The Pass (D-047): W0-T05 applies its direction contract, and W0-T25 documents the built world in DESIGN.md.
 
 ## How to read this page
 
@@ -407,9 +407,11 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
 
 **At the exit review (W1-T38, 2026-11-08).** Every build task of W1 merged into `wave-1`, and each shows `[=]` until the owner merges the wave. W1-T02 and W1-T37 are the owner's and stay `[ ]`. W1-T38 shows `[~]`: its first check fails on the eleven KCs that still say `planned`, because the lessons name 18 item families that no W1 task built ([waves/W1-report.md](waves/W1-report.md) §5). Within merged tasks, W1-T12's fourth check waits on the owner's dispatcher tables (Q-10), and so does W1-T13's `keys` level.
 
+**At W1b's exit review (W1b-T16, 2026-11-09).** The owner merged `wave-1` into `main` with PR #2, so W1's build tasks show `[x]`, but W1-T12, which keeps `[=]` while its fourth check waits on Q-10's tables (W1-T13's `keys` level waits on them too). W1b built the 18 item families, and on `wave-1b` at `1ed97ac` `bun scripts/verify-kc.ts --final` passes: 45 KCs, all 45 with a graded reference and none planned. So W1-T38's first check holds there, and W1-T38 shows `[=]` until the owner merges `wave-1b` ([waves/W1b-report.md](waves/W1b-report.md) §4.3).
+
 ### Shared
 
-#### [=] W1-T01 · Pins and W1 claims · M · sonnet · deps: W0-T24
+#### [x] W1-T01 · Pins and W1 claims · M · sonnet · deps: W0-T24
 - **Goal:**
   - `course.lock.json` entries by SHA for `vllm`, `sglang`, `nano-vllm`, `mini-sglang`, `inside-vllm`, `nsys`, `ncu` and `perfetto` (D-035, A§4.4).
   - A claim for every upstream fact that a W1 module cites:
@@ -433,13 +435,13 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
 #### [ ] W1-T02 · Owner: confirm the edition-1 pins · S · owner · deps: W1-T01
 - **Accept:** D-035's status reads accepted or changed, with the date, and `course.lock.json` matches.
 
-#### [=] W1-T03 · KC graph v0 · M · sonnet · deps: W0-T24
+#### [x] W1-T03 · KC graph v0 · M · sonnet · deps: W0-T24
 - **Goal:** `content/kc/graph.yaml` for TR1, TR2, TR5a, TR6 and TR8, with edges and thresholds, following ASSESSMENT.md's KC conventions, plus `verify:kc`.
 - **Accept:**
   1. The graph is a DAG.
   2. Every KC has a description and at least one reference to an item, a game level or a check. A `planned:` placeholder is allowed only until W1-T38, which fails on any that remain.
 
-#### [=] W1-T04 · Generator framework and the item block · M · sonnet · deps: W1-T03
+#### [x] W1-T04 · Generator framework and the item block · M · sonnet · deps: W1-T03
 - **Goal:**
   - `packages/play/items`: `Gen {kcs, make(seed, level), grade, solution, band}`.
   - `src/items/ItemBlock.tsx`: a fresh seed when an attempt starts, a confidence tap, a why on reveal, and `item` events with provenance.
@@ -449,34 +451,34 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   2. Two graded attempts draw different seeds (e2e).
   3. No key or solution appears in the Markdown export.
 
-#### [=] W1-T05 · Today · M · sonnet · deps: W0-T02, W1-T04
+#### [x] W1-T05 · Today · M · sonnet · deps: W0-T02, W1-T04
 - **Goal:** `/today`, with due KCs from the vendored FSRS, items regenerated on fresh seeds, a session cap of 10-12 minutes [estimated], and `review` events. Phone-first (D-037).
 - **Accept:**
   1. The FSRS reference vectors pass through the wrapper.
   2. A scripted 30-day ledger produces the expected due list (golden).
   3. The page passes axe and a keyboard walk at 360 px.
 
-#### [=] W1-T06 · Course map and module progress · M · sonnet · deps: W0-T09, W1-T03
+#### [x] W1-T06 · Course map and module progress · M · sonnet · deps: W0-T09, W1-T03
 - **Goal:** `/map`: TR0-TR8 and the capstone, with lanes, hours, kernelspace prerequisites, artifacts, and evidence state derived at read time through the ref→KC map. An accessible list sits behind the graphic. Module pages show their loop and progress.
 - **Accept:**
   1. No status is stored: a test asserts that progress reads only events and content.
   2. There is no sideways scroll at 320 px.
   3. Every node links to its module.
 
-#### [=] W1-T07 · Notional-machine cards · S · sonnet · deps: W0-T08
+#### [x] W1-T07 · Notional-machine cards · S · sonnet · deps: W0-T08
 - **Goal:** `content/cards/*` for the steploop, lifecycle, kv, spec, bench and trace worlds, each with "Models", "Ignores" and "Calibrated against" (A§5.9). The `card` block renders them.
 - **Accept:**
   1. Every card cites claim ids.
   2. `verify:games` fails when a registered game's card is missing.
 
-#### [=] W1-T08 · Trace model and synthetic traces · M · sonnet · deps: W0-T13
+#### [x] W1-T08 · Trace model and synthetic traces · M · sonnet · deps: W0-T13
 - **Goal:** `packages/sim/trace` per A§5.7: `trace@1` columns, `traceFromRun` with seeded jitter, `attribute` and `traceChecks`.
 - **Accept:**
   1. On 200 seeds of synthetic traces, GPU-busy + CPU-gap + both-idle equals every step window exactly in integer ns (A§5.7; ASSESSMENT T7), and `attribute` recovers the run's own per-µs truth.
   2. `traceChecks` passes synthetic traces and fails constructed defects: overlapping kernels, a launch after its kernel, a kernel outside its step mark.
   3. Encoding round-trips exactly.
 
-#### [=] W1-T09 · Trace viewer · L · sonnet · deps: W0-T14, W1-T08
+#### [x] W1-T09 · Trace viewer · L · sonnet · deps: W0-T14, W1-T08
 - **Goal:** `src/trace/TraceView`:
   - Canvas2D lanes, with zoom and pan by keys and buttons;
   - selecting, marking and labelling spans;
@@ -488,7 +490,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   2. Every action works from the keyboard.
   3. axe is clean.
 
-#### [=] W1-T10 · Forge host and the invoke protocol · L · sonnet · deps: W0-T02
+#### [x] W1-T10 · Forge host and the invoke protocol · L · sonnet · deps: W0-T02
 - **Goal:**
   - `src/forge`, wrapping the vendored host, and `forge.worker`.
   - `src/forge/invoke.ts`: seeded op batches over `ks_invoke`, with an oracle hook into `packages/sim`.
@@ -501,7 +503,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   3. A `--features reference` build shows "@reference: no credit".
   4. `lab-check` events carry `wasmSha256` and seeds.
 
-#### [=] W1-T11 · Forge lab packer · S · sonnet · deps: W1-T10
+#### [x] W1-T11 · Forge lab packer · S · sonnet · deps: W1-T10
 - **Goal:** `scripts/pack-labs.ts` packs each forge lab (crate, kit, agent kit, README) as a zip in `public/labs/`, with a SHA-256 manifest. The agent kit is vendored from kernelspace and renamed.
 - **Accept:**
   1. Two runs produce byte-identical zips (fixed modification times).
@@ -525,21 +527,21 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   4. A script generates the dispatcher golden tables by running the pinned vLLM's MRV2 (`vllm/v1/worker/gpu/cudagraph_utils.py`) and MRV1 (`vllm/v1/cudagraph_dispatcher.py`) dispatch on a CPU (GAMES.md §3). The owner runs it at the pin and commits the tables with their SHA-256 (Q-10), and `dispatchV2` and `dispatchV1` agree with them on at least 5,000 cases each. That a CPU-only run is enough is [unverified]; if it is not, the owner runs it on the W2-T12 smoke host and W1-T13's `keys` level waits.
   5. On the 70B card, no host work is counted on both lanes (a test sums each lane's per-sequence terms).
 
-#### [=] W1-T13 · Service (`loop`): TR2's levels · L · sonnet · deps: W0-T17, W1-T12
+#### [x] W1-T13 · Service (`loop`): TR2's levels · L · sonnet · deps: W0-T17, W1-T12
 - **Goal:** Levels `async`, `graphs` (stages `comb`, `sizes` and `modes`), `keys` (choose dispatch keys under a memory budget; the In-production card shows MRV2's descriptor, MRV1's `has_lora` and SGLang's padded-size buckets, per D-041), `mrv2` and `mask` (TR6's tie-in), as GAMES.md §3.2 designs them; W1-T14 adds the graded `close`. Each level has a prediction first, a debrief, Compose (a policy spec compiled to a configuration), an In-production card with pinned engine flags as claims, and a Build-this card, in both 2D and 3D. On these levels the printer tape switches from synthetic ticks to µs on the model's clock, with each cost card's tags (D-048), and the new objects (the mold rack, the comb, the allergy card) follow GAMES.md §2.6.
 - **Accept:**
   1. Every level can be won by keyboard.
   2. On 50 seeds, each level's naive configuration fails its bar and the intended one passes.
   3. `scene-loop` stays at or under 40 KB gz.
 
-#### [=] W1-T14 · TR2's graded task and item families · M · sonnet · deps: W1-T04, W1-T13
+#### [x] W1-T14 · TR2's graded task and item families · M · sonnet · deps: W1-T04, W1-T13
 - **Goal:** The Loop's `close` level, "toggled until the bubbles close", graded on fresh seeds (seeded workload and host-card draws), plus the families `tr2.bubble-width`, `tr2.graph-hit` and `tr2.padding-waste`, with their bands and blind strategies.
 - **Accept:**
   1. `verify:items` passes.
   2. A test shows "everything on" failing some graded seeds, through the memory budget or padding waste.
   3. The pass bars match ASSESSMENT.md.
 
-#### [=] W1-T15 · TR2 content · L · sonnet · deps: W1-T01, W1-T13, W1-T14
+#### [x] W1-T15 · TR2 content · L · sonnet · deps: W1-T01, W1-T13, W1-T14
 - **Goal:** TR2's `module.md` and lessons (about 10 h [estimated]): the step loop, async scheduling, the MRV2 delta, CUDA-graph modes and dispatch keys. Every fact is a claim, and `builds_on` names kernelspace's T5.L7 and T0.L6.
 - **Accept:**
   1. `verify:content`, `verify:claims` and `verify:numbers` pass.
@@ -549,34 +551,34 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
 
 ### TR1: read the engines
 
-#### [=] W1-T16 · Sim: the lifecycle model · M · sonnet · deps: W1-T01, W1-T08
+#### [x] W1-T16 · Sim: the lifecycle model · M · sonnet · deps: W1-T01, W1-T08
 - **Goal:** `packages/sim/lifecycle`: the request paths of vLLM and SGLang as data (stage, location, mechanism), each stage sourced to the pinned reading targets, plus synthetic lifecycle traces (A§5.8).
 - **Accept:**
   1. Every stage cites its file at its commit.
   2. Synthetic traces pass `traceChecks`.
   3. Goldens reproduce.
 
-#### [=] W1-T17 · Back of House (`engine-floor`): session, 2D view and mirror · M · sonnet · deps: W0-T14, W1-T16
+#### [x] W1-T17 · Back of House (`engine-floor`): session, 2D view and mirror · M · sonnet · deps: W0-T14, W1-T16
 - **Goal:** `packages/play/engine-floor` and a 2D swimlane view. The capsule moves only when the mechanism and the location are both right, and the map builds as the request moves.
 - **Accept:**
   1. The game can be completed by keyboard.
   2. A wrong answer is explained from the stage's source.
   3. `verify:games` passes.
 
-#### [=] W1-T18 · Back of House (`engine-floor`): the 3D scene · L · sonnet · deps: W0-T15, W1-T17
+#### [x] W1-T18 · Back of House (`engine-floor`): the 3D scene · L · sonnet · deps: W0-T15, W1-T17
 - **Goal:** Process platforms, the GPU deck, queue buffers and IPC bridges, with one capsule and camera stops that follow it (A§6.1).
 - **Accept:**
   1. At most 40 KB gz and at most 100 draw calls.
   2. Reduced motion cuts between stops.
   3. `V` keeps the session.
 
-#### [=] W1-T19 · TR1's graded lifecycle map · M · sonnet · deps: W1-T09, W1-T17
+#### [x] W1-T19 · TR1's graded lifecycle map · M · sonnet · deps: W1-T09, W1-T17
 - **Goal:** The Engine Floor's graded `map` level (GAMES.md §5): on a fresh scenario (engine × streaming × TP × abort × prefix hit × n = 2), the learner lays the request's path from the tray, and `spanCheck` matches every laid stage, in order, to a span of the scenario's synthetic lifecycle trace, shown in the trace viewer. Pass bars are ASSESSMENT.md §4.3's.
 - **Accept:**
   1. Grading is deterministic and the seeds are banded; each engine family appears on at least 15% of graded seeds.
   2. A scene-blind strategy (laying one engine family's most common path) passes no more often than ASSESSMENT.md §4.1's bound.
 
-#### [=] W1-T20 · TR1 content · L · sonnet · deps: W1-T16, W1-T17, W1-T18, W1-T19
+#### [x] W1-T20 · TR1 content · L · sonnet · deps: W1-T16, W1-T17, W1-T18, W1-T19
 - **Goal:** TR1's module and lessons: reading nano-vllm, Mini-SGLang, and Inside vLLM at 42172ad; the lifecycle; abort inside the engine, recapped from the Data Plane's DP5 in under an hour (catalog §4). The fork lab is announced for W2.
 - **Accept:**
   1. The checks of W1-T15 pass.
@@ -584,7 +586,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
 
 ### TR5a: hybrid KV and adapter pages
 
-#### [=] W1-T21 · Sim: the hybrid KV model · L · sonnet · deps: W0-T12, W1-T01
+#### [x] W1-T21 · Sim: the hybrid KV model · L · sonnet · deps: W0-T12, W1-T01
 - **Goal:** All of A§5.4: groups, the pool, sliding release, state pages, adapters, prefix hashing, events, invariants and op generators.
 - **Accept:**
   1. The invariants hold over 200 seeds × 2,000 ops.
@@ -592,7 +594,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   3. Every group's block is exactly one page, and an adapter takes ⌈adapter bytes ÷ page bytes⌉ pages (D-045).
   4. The events match their goldens.
 
-#### [=] W1-T22 · Forge lab `hybrid-kv` · L · sonnet · deps: W1-T10, W1-T21
+#### [x] W1-T22 · Forge lab `hybrid-kv` · L · sonnet · deps: W1-T10, W1-T21
 - **Goal:**
   - `labs/forge/hybrid-kv`: the harness `lib.rs` (DO NOT EDIT), the `TODO(you)` file, stages, a reference feature and bestiary modules.
   - Host checks run through invoke against `kvReference` on fresh seeds.
@@ -602,33 +604,33 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   2. `cargo test` agrees with the host on the default seeds.
   3. W1-T11 packs the zip.
 
-#### [=] W1-T23 · The Reach-In (`pool`): session, 2D view and mirror · M · sonnet · deps: W0-T14, W1-T21
+#### [x] W1-T23 · The Reach-In (`pool`): session, 2D view and mirror · M · sonnet · deps: W0-T14, W1-T21
 - **Goal:** `packages/play/pool`, with admit, evict, preempt and prefetch-adapter actions. The levels are GAMES.md §8's `one-group`, `two-kinds`, `evict`, `same-size`, `state`, `adapters` and `manager`, with `evict`, `adapters` and `manager` graded, and a 2D grid view.
 - **Accept:**
   1. The game can be completed by keyboard.
   2. On 50 seeds, each level's naive play fails its bar and the intended play passes.
   3. `verify:games` passes.
 
-#### [=] W1-T24 · The Reach-In (`pool`): the 3D scene · L · sonnet · deps: W0-T15, W1-T23
+#### [x] W1-T24 · The Reach-In (`pool`): the 3D scene · L · sonnet · deps: W0-T15, W1-T23
 - **Goal:** The rack of fixed-position pages with group and adapter glyphs (no shelf per group), the free line in eviction order, one thread per group from a request to its pages, and linked, non-contiguous adapter pages, with front, per-group-filter and top presets (A§6.1, GAMES.md §8).
 - **Accept:**
   1. Scene budgets as in W1-T18.
   2. Under reduced motion, the threads update per op without layout jumps.
 
-#### [=] W1-T25 · TR5a content · M · sonnet · deps: W1-T22, W1-T23, W1-T24
+#### [x] W1-T25 · TR5a content · M · sonnet · deps: W1-T22, W1-T23, W1-T24
 - **Goal:** TR5a's module and lessons: hybrid KV groups, and adapter pages in the same pool as S-LoRA's design, which the learner builds and measures against upstream's adapter slots (D-042). They build on lab 02 and T6.L9.
 - **Accept:** The checks of W1-T15 pass.
 
 ### TR6: speculation and structure
 
-#### [=] W1-T26 · Sim: speculation · M · sonnet · deps: W0-T12
+#### [x] W1-T26 · Sim: speculation · M · sonnet · deps: W0-T12
 - **Goal:** A§5.5: `Dist`, `verifyChain`, residual sampling, `chiSquare`, the `CRITICAL` tables (a generator script with committed output) and `expectedTokensPerRound`.
 - **Accept:**
   1. With 2 seeds at α = 1e-4, the false-fail rate is at most 5e-4 [estimated bound]: 200 seeds on PRs, 10,000 nightly.
   2. Each bestiary member is detected at least 99% of the time at N = 20,000. Record the measurement [measured].
   3. The generator reproduces the committed tables.
 
-#### [=] W1-T27 · Forge lab `rejection-sampler` · L · sonnet · deps: W1-T10, W1-T26
+#### [x] W1-T27 · Forge lab `rejection-sampler` · L · sonnet · deps: W1-T10, W1-T26
 - **Goal:**
   - `labs/forge/rejection-sampler`.
   - The host drives the learner's verify step with seeded p, q and drafts, then runs chi-square on two fresh seeds.
@@ -637,7 +639,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   1. The reference passes and every bestiary member fails.
   2. The measured false-fail and detection rates are recorded in the PR.
 
-#### [=] W1-T28 · The Tasting (`verifier`): session, 2D view and mirror · M · sonnet · deps: W0-T14, W1-T26
+#### [x] W1-T28 · The Tasting (`verifier`): session, 2D view and mirror · M · sonnet · deps: W0-T14, W1-T26
 - **Goal:** GAMES.md §10's levels:
   - `overlap` (practice): γ = 1; predict α from the overlap min(p, q).
   - `exact` (graded): sculpt or choose the recovery rule until the exact output's total-variation distance to p is 0, computed in rationals.
@@ -649,14 +651,14 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   2. Only the exact residual reaches total-variation distance 0 in `exact`.
   3. `verify:games` passes.
 
-#### [=] W1-T29 · The Tasting (`verifier`): the 3D scene · L · sonnet · deps: W0-T15, W1-T28
+#### [x] W1-T29 · The Tasting (`verifier`): the 3D scene · L · sonnet · deps: W0-T15, W1-T28
 - **Goal:** One skyline row per draft position into depth, then a bonus row, each column stacking the overlap, the reject cap and the recovery well; drafted tokens dropping onto their rows, the walk stopping at the first rejection, and the output skyline converging at the front (A§6.1, GAMES.md §10).
 - **Accept:**
   1. Scene budgets as in W1-T18.
   2. The observed skyline updates in batches, not per draw.
   3. Reduced motion shows each batch's final histogram.
 
-#### [=] W1-T30 · TR6 content and the mask-overlap timeline · L · sonnet · deps: W1-T13, W1-T27, W1-T28, W1-T29
+#### [x] W1-T30 · TR6 content and the mask-overlap timeline · L · sonnet · deps: W1-T13, W1-T27, W1-T28, W1-T29
 - **Goal:** TR6's module and lessons:
   - speculation, which this course owns, and the rejection sampler;
   - EAGLE-3 and MTP as reading;
@@ -668,40 +670,40 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
 
 ### TR8: benchmark like you mean it
 
-#### [=] W1-T31 · Sim: the benchmark generator · L · sonnet · deps: W0-T12, W0-T13
+#### [x] W1-T31 · Sim: the benchmark generator · L · sonnet · deps: W0-T12, W0-T13
 - **Goal:** A§5.6: arrivals (Poisson by table, replay, closed loop); the server as the step loop's coarse mode; intended against actual send times; and the statistics (percentiles, bootstrap interval, goodput, Little's law).
 - **Accept:**
   1. On the same server, closed loop shows coordinated omission and open loop does not (test).
   2. On a known distribution, the nominal 95% bootstrap interval covers within [93%, 97%] over 2,000 seeds [estimated tolerance].
   3. On stable runs, the Little's-law residual is under 2%.
 
-#### [=] W1-T32 · The broken-benchmark corpus · M · sonnet · deps: W1-T31
+#### [x] W1-T32 · The broken-benchmark corpus · M · sonnet · deps: W1-T31
 - **Goal:** `brokenBenchCase(seed)` with A§5.6's ten flaws and the control case (GAMES.md §11). The answer is drawn first, seeds are banded, and the blind-strategy bounds are measured and printed (kernelspace's D39 rule). Each flaw's debrief cites its real-world instance as a claim, such as `vllm bench serve`'s `--request-rate inf` default, `--max-concurrency` as a capped closed loop, zero warm-ups and prefix-cache reuse across runs (vllm B1-B3).
 - **Accept:**
   1. Each of the eleven cases (ten flaws and the control) appears in 1/11 ± 3% of seeds [estimated tolerance].
   2. The best constant per flaw label passes at most as often as ASSESSMENT.md's bound.
   3. Every case's corrected answer recomputes from its scene.
 
-#### [=] W1-T33 · The Inspection (`broken-bench`) · M · sonnet · deps: W0-T14, W1-T32
+#### [x] W1-T33 · The Inspection (`broken-bench`) · M · sonnet · deps: W0-T14, W1-T32
 - **Goal:** A 2D evidence board with the setup, the client log and a plot. The learner picks the flaw and predicts the corrected p99 with an interval, scored by log score. The debrief re-runs the corrected benchmark.
 - **Accept:**
   1. The game can be completed by keyboard.
   2. Runs are graded on fresh seeds.
   3. `verify:games` passes.
 
-#### [=] W1-T34 · TR8 content · M · sonnet · deps: W1-T31, W1-T32, W1-T33
+#### [x] W1-T34 · TR8 content · M · sonnet · deps: W1-T31, W1-T32, W1-T33
 - **Goal:** TR8's module and lessons: open against closed loop, coordinated omission, warm-up, and bootstrap intervals on p99. They extend kernelspace's broken-bench and knee exercises, and announce the BurstGPT replay for W2.
 - **Accept:** The checks of W1-T15 pass.
 
 ### Closing W1
 
-#### [=] W1-T35 · Markdown export and `llms.txt` · S · sonnet · deps: W0-T08
+#### [x] W1-T35 · Markdown export and `llms.txt` · S · sonnet · deps: W0-T08
 - **Goal:** Commit `public/md/**` and `public/llms.txt`, with keys stripped, and add a CI freshness check.
 - **Accept:**
   1. A test finds no solution or key field in the export.
   2. A stale export fails the freshness check.
 
-#### [=] W1-T36 · End-to-end coverage for W1 · M · sonnet · deps: W1-T15, W1-T20, W1-T25, W1-T30, W1-T34
+#### [x] W1-T36 · End-to-end coverage for W1 · M · sonnet · deps: W1-T15, W1-T20, W1-T25, W1-T30, W1-T34
 - **Goal:** Coverage for every W1 route and game:
   - axe at 360 and 1280 px;
   - keyboard walks of every game level;
@@ -712,7 +714,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
 #### [ ] W1-T37 · Owner: screen-reader pass · S · owner · deps: W1-T36
 - **Accept:** NVDA and VoiceOver notes are in `docs/waves/W1-report.md`, and issues are filed.
 
-#### [~] W1-T38 · W1 exit review · S · opus · deps: all of W1
+#### [=] W1-T38 · W1 exit review · S · opus · deps: all of W1
 - **Accept:**
   1. The report records:
      - a spot-check of content facts, with a sample of claims re-fetched;
@@ -745,9 +747,11 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
 - The scene kit carries the haze, the lamp's pool and paper, inside the frozen scene gates. Each of the four 3D surfaces gets one more finish review.
 - No frozen gate moved: every gate table of `wave-1b` holds `wave-1`'s values or stricter.
 
+**At the exit review (W1b-T16, 2026-11-09).** Every task of W1b merged into `wave-1b` through the merge script's five gates, and each shows `[=]` until the owner merges the wave ([waves/W1b-report.md](waves/W1b-report.md)). Within merged tasks, W1b-T02's first check holds for 17 of the 39 prediction boxes: no run of the games as built holds the answer of the other 22, and their tickets name W2-T43, which W1b-T02 added. W1b-T04's `tr2.dispatch-key` leaves out the variants that need Q-10's tables, as its goal allows. The other exit criteria hold; the finish reviews' open fixes and the live check's findings are in the report's §6 and §7.
+
 ### Lessons that run what W1 built
 
-#### [ ] W1b-T01 · Lesson game blocks play their levels · L · opus · deps: —
+#### [=] W1b-T01 · Lesson game blocks play their levels · L · opus · deps: —
 - **Goal:** A lesson's `game` block embeds its game at its level and mode, as A§4.3 has it ("It embeds `src/games/<id>`"). This replaces today's ticket, which prints "Not built yet" beside a disabled "Start level".
   - The game's code loads only when the learner starts the level.
   - A page keeps one live 3D canvas (A§6, `Stage`), and every other embed shows its 2D view until it is opened.
@@ -769,7 +773,7 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   5. axe finds no serious or critical violation on a lesson with an embed open, at 360 and 1280 px.
   6. `GAME_TASKS` names only open tasks.
 
-#### [ ] W1b-T02 · The lesson prediction box, and placeholders that name open work · M · sonnet · deps: W1b-T01
+#### [=] W1b-T02 · The lesson prediction box, and placeholders that name open work · M · sonnet · deps: W1b-T01
 - **Goal:** A lesson's `predict` block works.
   - It takes a prediction: a number within its tolerance, a choice, or an interval.
   - It commits the prediction before the game that follows it is played.
@@ -791,7 +795,7 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   4. `tests/content/pending.test.ts` fails when `PENDING`, `GAME_TASKS` or `LAB_TASKS` names a task whose marker is `[=]` or `[x]`. The trace block and the In-production and Build-this cards each name the open task that builds them. If no task does, add one to W2 and say so.
   5. Keys alone commit and reveal a prediction. axe passes as in W1b-T01.
 
-#### [ ] W1b-T03 · TR1's item families · M · sonnet · deps: —
+#### [=] W1b-T03 · TR1's item families · M · sonnet · deps: —
 - **Goal:** Build the five families that TR1's lessons name and no W1 task built (W1-report §5):
   - `tr1.which-mechanism`;
   - `tr1.step-budget`;
@@ -806,7 +810,7 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   3. In `content/kc/graph.yaml`, the families replace the `planned:` lines they answer: `tr1.phases-vs-one-budget`, `tr1.request-states` and `tr1.read-at-the-pin`.
   4. Every fact about an engine is a claim at the pins (A§4.4), or is derived from the sim.
 
-#### [ ] W1b-T04 · TR2's item families · M · sonnet · deps: —
+#### [=] W1b-T04 · TR2's item families · M · sonnet · deps: —
 - **Goal:** Build TR2's six families to the contract of W1b-T03:
   - `tr2.step-order`;
   - `tr2.preempt-victim`;
@@ -818,7 +822,7 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   `tr2.dispatch-key` is built from the dispatch rules that D-041 keeps as data. A variant that needs the committed dispatcher tables (Q-10) is left out, and the task says so.
 - **Accept:** W1b-T03's four checks, for TR2's content test and for the KCs `tr2.step-calls`, `tr2.one-budget`, `tr2.gpu-dependent-defaults` and `tr2.dispatch-keys`. If Service's `keys` level is still waiting on Q-10, `tr2.dispatch-keys` is answered by the family.
 
-#### [ ] W1b-T05 · TR5a's item families · M · sonnet · deps: —
+#### [=] W1b-T05 · TR5a's item families · M · sonnet · deps: —
 - **Goal:** Build TR5a's four families to the contract of W1b-T03:
   - `tr5a.blocks-held`;
   - `tr5a.hit-length`;
@@ -826,7 +830,7 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   - `tr5a.slots-vs-pages`.
 - **Accept:** W1b-T03's four checks, for TR5a's content test and the KC `tr5a.slots-vs-pages`.
 
-#### [ ] W1b-T06 · TR8's item families · M · sonnet · deps: —
+#### [=] W1b-T06 · TR8's item families · M · sonnet · deps: —
 - **Goal:** Build TR8's three families to the contract of W1b-T03:
   - `tr8.goodput-denominator`;
   - `tr8.littles-law`;
@@ -835,20 +839,20 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   Today then serves TR8's KCs, which no family serves now.
 - **Accept:** W1b-T03's four checks, for TR8's content test and the KCs `tr8.goodput-denominator`, `tr8.littles-law` and `tr8.tool-defaults`.
 
-#### [ ] W1b-T07 · Progress from items and lab checks · S · sonnet · deps: —
+#### [=] W1b-T07 · Progress from items and lab checks · S · sonnet · deps: —
 - **Goal:** Today, `src/progress/sources.ts` maps only a game run to its KCs, so the map and the module pages show progress from game levels alone, while Today schedules from items (W1-report §5). Make `sources.ts` map `item` and `lab-check` events to their KCs as well, through `packages/play/items/catalog.ts` and `LAB_CHECK_KCS` (`packages/sim/forge/kcs.ts`). ASSESSMENT §9's states that wait on Q-5 stay as they are.
 - **Accept:**
   1. A test shows an item event and a lab-check event each moving their KCs in the map's model.
   2. The map and module routes stay inside their gates: the catalog costs those pages nothing (D-059).
 
-#### [ ] W1b-T08 · Lab pages hand over the crate · S · sonnet · deps: —
+#### [=] W1b-T08 · Lab pages hand over the crate · S · sonnet · deps: —
 - **Goal:** Each forge lab's page links its kit, `/labs/enginespace-<lab>.zip`, beside "Build the lab's crate", with the kit's size and SHA-256 from `public/labs/manifest.json`. This is W1-T11's follow-up: the live check found no page that links the kits. `hybrid-kv`'s page also shows the slot-baseline readout of TR5a §5, W1-T22's follow-up.
 - **Accept:**
   1. An e2e check links every file in the manifest from its lab page, and the linked bytes hash to the manifest's SHA-256.
   2. The page gives the hash as a line a learner can copy to check the download.
   3. A test holds the slot-baseline readout to the sim.
 
-#### [ ] W1b-T09 · Titles, stub pages and the live check's other findings · S · sonnet · deps: —
+#### [=] W1b-T09 · Titles, stub pages and the live check's other findings · S · sonnet · deps: —
 - **Goal:** Fix what the live check of 2026-11-09 found beside the larger tasks:
   - Game and lab pages keep their own `<title>` after the app mounts. Today they fall back to "Game · enginespace" and "Lab · enginespace", which is weak for WCAG 2.4.2.
   - Each stub page says what it will hold and which wave builds it: `/receipts`, `/changes`, `/trace-room`, the ten labs that W2 and W3 build, and `/about` beyond its licences paragraph. `/about`'s description says what the page holds today.
@@ -863,7 +867,7 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
 
 ### The scene kit and the games
 
-#### [ ] W1b-T10 · Scene kit: haze, the lamp's pool, and paper · L · opus · deps: —
+#### [=] W1b-T10 · Scene kit: haze, the lamp's pool, and paper · L · opus · deps: —
 - **Goal:** Carry into the scene kit the recipe that passed review: Back of House's round-2 fix, which draws the lamp as a cone of warm haze with an edgeless pool and no spot light, and dims the tile toward the hood. Apply it to the four 3D scenes: Service, The Tasting, Back of House and The Reach-In. Give the ticket curl, thickness and tooth (W1-report §7.4). Then each surface gets one more finish review.
 - **Read:**
   - W1-report §7;
@@ -876,13 +880,13 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   3. The 2D views carry the same pool of lamp light, not a radial blur with a white-hot centre.
   4. impeccable's finish reviewer judges each of the four surfaces once more from captures at 1440 and 390 px, and one fix round follows if it asks for one.
 
-#### [ ] W1b-T11 · The Inspection's tail gives nothing away · S · sonnet · deps: —
+#### [=] W1b-T11 · The Inspection's tail gives nothing away · S · sonnet · deps: —
 - **Goal:** The Inspection's tail shows max(12, the p99's rank + 6) rows, so the number of rows can tell where the p99 sits (W1-report §12). The count must not depend on the answer.
 - **Accept:**
   1. A test over 1,000 seeds shows that the row count is a function of what the learner may see, not of the p99's rank.
   2. The game's walks and `verify:games` pass.
 
-#### [ ] W1b-T12 · `verify:games` measures the blind bound and reads the full service · M · sonnet · deps: —
+#### [=] W1b-T12 · `verify:games` measures the blind bound and reads the full service · M · sonnet · deps: —
 - **Goal:** Today each game's own tests measure ASSESSMENT §4.1's bound, and `verify:games` does not. Make `verify:games` measure it for every graded level, and read the full service's views, which it skips (the half of O-16 that is not the owner's). The bound stays as ASSESSMENT gives it, since O-14 is the owner's.
 - **Accept:**
   1. The gate prints each graded level's best blind strategy against its bound, and fails a level over it.
@@ -891,7 +895,7 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
 
 ### CI and the docs
 
-#### [ ] W1b-T13 · CI: shard the unit tests, steady the e2e shards, cover the labs' paths · M · sonnet · deps: —
+#### [=] W1b-T13 · CI: shard the unit tests, steady the e2e shards, cover the labs' paths · M · sonnet · deps: —
 - **Goal:** Four CI fixes (W1-report §12, and PR #2's runs):
   - CI's `tests` job runs the unit suite in shards (`bun test --shard`). On a runner it took 9 to 16 minutes in one job [measured 2026-11-09, PR #2 to #4].
   - The e2e smoke shard that flakes under load waits on state rather than on time.
@@ -903,7 +907,7 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   3. Every job keeps a numeric timeout.
   4. No test is skipped, narrowed or given retries to pass.
 
-#### [ ] W1b-T14 · Type-check `scripts/` and `tests/` · M · sonnet · deps: W1b-T01 to W1b-T13
+#### [=] W1b-T14 · Type-check `scripts/` and `tests/` · M · sonnet · deps: W1b-T01 to W1b-T13
 - **Goal:**
   - `npm run typecheck` covers `scripts/` and `tests/`, which W0 left linted but not type-checked.
   - Each of the seven `as unknown as` casts that give no reason (A21, A22) gets a reason or a real type. One of them passes `null` where a geometry is typed.
@@ -912,7 +916,7 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   2. No `any`, `@ts-ignore` or `as unknown as` is added without a reason on its line.
   3. No test changes what it asserts.
 
-#### [ ] W1b-T15 · Docs follow what was built · S · sonnet · deps: —
+#### [=] W1b-T15 · Docs follow what was built · S · sonnet · deps: —
 - **Goal:** Make the doc edits of W1-report §12 that are not the owner's:
   - ASSESSMENT §4.6's "[measured once built]" rows take the rates that W1-T26 and W1-T27 measured.
   - DESIGN.md's Ticket loses the head line over the title (§7.2).
@@ -926,7 +930,7 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
 
 ### Closing W1b
 
-#### [ ] W1b-T16 · W1b exit review · S · opus · deps: all of W1b
+#### [=] W1b-T16 · W1b exit review · S · opus · deps: all of W1b
 - **Accept:**
   1. `bun scripts/verify-kc.ts --final` passes. W1-T38's first check then holds, and W1-T38 turns `[=]`.
   2. `docs/waves/W1b-report.md` records the budgets, the gates and the finish reviews, and diffs every gate table against `wave-1`.
