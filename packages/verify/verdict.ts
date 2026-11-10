@@ -79,14 +79,6 @@ export function verdictOf(receipt: Receipt, rules: readonly RuleResult[], ran: n
   }
   // What the stage requires of this browser and it has not got: a check that is not built yet, or one that nothing in the receipt let it run.
   for (const id of required) {
-    if (id === 'evidence') {
-      if (!rules.some((result) => result.rule >= 8 && (result.checks?.length ?? 0) > 0)) {
-        const bound = 'The stage asks for a benchmark log or a trace to recompute, and the receipt carries neither.'
-        checks.push({ id: 'evidence', verdict: 'fail', bound, how: 're-checked', required: true })
-        reasons.push(bound)
-      }
-      continue
-    }
     if (ran79.some((check) => check.id === id)) continue
     const task = PENDING[id]
     // A report of an earlier build holds no result of rules 7 to 9, and says so once, above: a missing result is not each check's own fault.

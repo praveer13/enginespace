@@ -33,7 +33,7 @@ export { checkPins, ENGINELESS_LABS } from './pins'
 export type { Compatible, EnginePin, PinOptions, PinTable } from './pins'
 export { findGpu, gpusOf, PEAK_MARGIN_PERMILLE, READ_PERMILLE, readFloorNs } from './atlas'
 export type { Atlas, AtlasEntry } from './atlas'
-export type { ArgmaxBank, Banks, StageDeclaration, StageDeclarations } from './checks'
+export type { ArgmaxBank, Banks, ModelFile, StageDeclaration, StageDeclarations } from './checks'
 export {
   ACCEPTANCE_FORMAT,
   ARGMAX_FORMAT,

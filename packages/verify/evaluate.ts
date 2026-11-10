@@ -18,8 +18,9 @@
 import { benchCheck } from './bench'
 import { fail, isNa } from './checks'
 import type { Outcome, Run } from './checks'
+import { evidenceCheck } from './evidence-check'
 import { floorCheck } from './floors'
-import { BENCH_CHECK_IDS, FLOOR_CHECK_IDS, RECHECK_IDS, TRACE_CHECK_IDS } from './ids'
+import { BENCH_CHECK_IDS, EVIDENCE_CHECK_IDS, FLOOR_CHECK_IDS, RECHECK_IDS, TRACE_CHECK_IDS } from './ids'
 import { recheck } from './rechecks'
 import type { CheckResult, RuleResult } from './report'
 import { canonical, stageRow } from './stages'
@@ -39,8 +40,8 @@ const GROUPS: readonly Group[] = [
   {
     rule: 8,
     id: 'recomputation',
-    ids: [...BENCH_CHECK_IDS, ...TRACE_CHECK_IDS],
-    run: (run, id) => (BENCH_CHECK_IDS.includes(id) ? benchCheck(run, id) : traceCheck(run, id)),
+    ids: [...EVIDENCE_CHECK_IDS, ...BENCH_CHECK_IDS, ...TRACE_CHECK_IDS],
+    run: (run, id) => (EVIDENCE_CHECK_IDS.includes(id) ? evidenceCheck(run) : BENCH_CHECK_IDS.includes(id) ? benchCheck(run, id) : traceCheck(run, id)),
     always: false,
   },
   { rule: 9, id: 'floors', ids: FLOOR_CHECK_IDS, run: floorCheck, always: false },
@@ -73,6 +74,8 @@ export function evaluate(run: Run): readonly RuleResult[] {
     const checks: CheckResult[] = []
     for (const id of group.ids) {
       const must = required.has(id)
+      // "Evidence" is a requirement of a stage and not a check on whatever a receipt carries: it runs for a stage that asks for it, and for no other.
+      if (EVIDENCE_CHECK_IDS.includes(id) && !must) continue
       if (!(must || group.always || captured.has(id) || everything)) continue
       const outcome = guarded(group, run, id)
       if (!isNa(outcome)) checks.push(outcome)

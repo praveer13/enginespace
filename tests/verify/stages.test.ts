@@ -69,7 +69,7 @@ describe('the stages', () => {
 
 describe('the checks a stage requires of the browser', () => {
   const built = new Set(CHECK_IDS)
-  const named = [...new Set(STAGES.flatMap((stage) => [...stage.rechecked, ...stage.captured]).filter((id) => id !== '*' && id !== 'evidence').map(canonical))]
+  const named = [...new Set(STAGES.flatMap((stage) => [...stage.rechecked, ...stage.captured]).filter((id) => id !== '*').map(canonical))]
 
   test('are each built or pending, never both and never neither', () => {
     for (const id of named) {

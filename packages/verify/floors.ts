@@ -4,13 +4,21 @@
  * too good fails with its bound printed (statespace's I10).
  *
  *   P1  A step's GPU-busy time is at least the weights it reads over the memory bandwidth (T9 is the same check, for a trace).
- *       Weight bytes are the receipt's model inputs, `READ_PERMILLE` of them [estimated] (the share of a dense model that one forward streams),
- *       and the bandwidths of all the GPUs add. The KV bytes a step reads would only raise the floor, so a floor made without them cannot fail an honest run.
+ *       Weight bytes are the stage's pinned model, `READ_PERMILLE` of them [estimated] (the share of a dense model that one forward streams),
+ *       and the bandwidths of the GPUs the stage runs on add. The KV bytes a step reads would only raise the floor, so a floor made without them cannot fail an honest run.
  *   P3  Output tokens per second stay below the lower of two ceilings (B13):
  *         memory   `max_num_seqs` × tokens per sequence per step ÷ the least a step can take;
  *         compute  the peak (with a margin) ÷ the FLOPs of a token, 2 × the parameters, with the parameters bounded below by bytes ÷ 4 (fp32 is the widest).
  *       A mixture of experts reads less than a dense model, and a speculative proposer emits more than one token per step: a stage declares both.
  *   P2, P4  A FLOP rate against the peak, and an attention call against the bytes it must move, are TR4's: they need its sweep (W2-T26).
+ *
+ * What a floor is made from comes from the site and not from the receipt (the review of W2's grader track). A receipt is the run's own account of itself, and a floor
+ * made from a figure in it is a floor that one smaller number defeats: the bestiary's smaller-model forgery types 1,000,000 bytes into the model input of a trace that is
+ * too fast, and a floor of 59 ns [derived: 1,000,000 bytes × 80% ÷ 13,400 GB/s] lets every step through. So the stage declares (StageDeclaration, src/receipts/declared.ts):
+ *   model        the files of the model it serves, by hash and size. The weight bytes are theirs, and the receipt's model inputs have to be exactly these files;
+ *   gpus         how many GPUs its engine spans, out of the ones the fingerprint lists, which are all the machine has. It is 1 when left out;
+ *   maxNumSeqs   the most sequences its engine runs at once, which the receipt's `max_num_seqs` may not pass (P3 only).
+ * A stage that declares no model fails P1 and P3 with that reason, as a stage with no workload fails B1; and P3 fails likewise for a stage with no `maxNumSeqs`.
  *
  * A GPU the atlas lacks has no floors, and this rule does not guess: a receipt with performance evidence that names one fails here, because a floor
  * that a forger can dodge by naming an unlisted GPU is no floor. A receipt with no performance evidence has nothing to bound and passes.
@@ -25,6 +33,7 @@ import type { Gpus } from './atlas'
 import { cut, grouped, plural } from './format'
 import { PROBLEM_CHARS } from './limits'
 import type { CheckResult } from './report'
+import type { ModelFile } from './checks'
 
 interface Basis {
   readonly gpus: Extract<Gpus, { ok: true }>
@@ -34,18 +43,52 @@ interface Basis {
   readonly floorNs: number
 }
 
+/** The start of a hash, as the sentences print it. */
+const short = (sha256: string): string => `${sha256.slice(0, 8)}…`
+
+/** A model file as the sentences name it: `"name" with 1,000 bytes (sha256 0123abcd…)`. */
+const named = (file: ModelFile): string => `"${cut(file.name, 40)}" with ${grouped(file.bytes)} bytes (sha256 ${short(file.sha256)})`
+
+/**
+ * What is wrong with the model inputs of a receipt next to the files its stage pins, as a sentence; null when they are the same files. A file is the same when its hash
+ * and its size are. The first input that is not a pinned file is named with the pinned file of its name, if there is one, and the first pinned file the receipt lacks is
+ * named when every input is a pinned one.
+ */
+function modelProblem(inputs: Run['receipt']['inputs'], pinned: readonly ModelFile[], stage: string): string | null {
+  const given = inputs.filter((input) => input.kind === 'model')
+  for (const input of given) {
+    if (pinned.some((file) => file.sha256 === input.sha256 && file.bytes === input.bytes)) continue
+    const same = pinned.find((file) => file.name === input.name)
+    const mine = named(input)
+    return same === undefined
+      ? `The receipt lists the model input ${mine}, which ${stage} does not pin: the floor is made from the pinned model.`
+      : `The receipt lists the model input ${mine}, and ${stage} pins ${named(same)}; the floor is made from the pinned one.`
+  }
+  const lacking = pinned.find((file) => !given.some((input) => input.sha256 === file.sha256 && input.bytes === file.bytes))
+  return lacking === undefined ? null : `${stage} pins the model file ${named(lacking)}, and the receipt lists no model input like it.`
+}
+
 /** What a floor is made of for this receipt, or the sentence that says why none can be. */
 function basisOf(run: Run): Basis | string {
   return memoized(run, 'floors:basis', (): Basis | string => {
+    const stage = run.receipt.stage
     const names = run.receipt.environment.gpus.map((gpu) => gpu.name)
-    const gpus = gpusOf(run.atlas, names)
+    const used = run.declared?.gpus ?? 1
+    const gpus = gpusOf(run.atlas, names, used)
     if (!gpus.ok) {
       return gpus.count === 0
         ? 'the receipt names no GPU, and a floor is made from the GPU that ran'
         : `the hardware atlas has no entry for ${gpus.missing.map((name) => `"${cut(name, 60)}"`).join(', ')}, so no floor can be made, and a name that is not listed is not guessed`
     }
-    const weightBytes = run.receipt.inputs.filter((input) => input.kind === 'model').reduce((total, input) => total + input.bytes, 0)
-    if (weightBytes <= 0) return 'the receipt lists no model among its inputs, so there are no weight bytes to make a floor from'
+    if (names.length < used) return `the receipt lists ${plural(names.length, 'GPU')}, and ${stage} runs on ${grouped(used)}, so it is not the run that the stage declares and no floor is made from it`
+    const pinned = run.declared?.model
+    if (pinned === undefined || pinned.length === 0) {
+      return `this site declares no model for ${stage}, so there are no weight bytes to make a floor from, and the receipt's own figure for its model is not taken: a receipt that named its own model could name a small one`
+    }
+    const problem = modelProblem(run.receipt.inputs, pinned, stage)
+    if (problem !== null) return problem.endsWith('.') ? problem.slice(0, -1) : problem
+    const weightBytes = pinned.reduce((total, file) => total + file.bytes, 0)
+    if (weightBytes <= 0) return `the model that ${stage} pins has no bytes, so there are no weight bytes to make a floor from`
     const readPermille = run.declared?.readPermille ?? READ_PERMILLE
     return { gpus, weightBytes, readPermille, floorNs: readFloorNs(weightBytes, readPermille, gpus.bandwidthGBps) }
   })
@@ -88,6 +131,11 @@ function p3(run: Run): Outcome {
   if (typeof basis === 'string') return fail('P3', cut(`${basis}.`, PROBLEM_CHARS))
   const seqs = run.receipt.environment.engineConfig?.maxNumSeqs
   if (seqs === undefined) return fail('P3', 'the receipt records no max_num_seqs, so the most tokens a step can emit is not known.')
+  const most = run.declared?.maxNumSeqs
+  if (most === undefined) return fail('P3', cut(`this site declares no most for max_num_seqs for ${run.receipt.stage}, so the receipt's figure for it cannot be held to anything.`, PROBLEM_CHARS))
+  if (seqs > most) {
+    return fail('P3', cut(`the receipt records max_num_seqs ${grouped(seqs)}, and the engine of ${run.receipt.stage} never runs more than ${grouped(most)} sequences at once, so the ceiling is not made from the receipt's figure.`, PROBLEM_CHARS))
+  }
   const found = throughputOf(run)
   if (typeof found === 'string') return na(found)
   const perStep = run.declared?.tokensPerSeqStep ?? 1

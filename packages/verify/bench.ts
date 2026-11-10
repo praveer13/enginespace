@@ -329,6 +329,19 @@ export function benchCheck(run: Run, id: string): Outcome {
   return together(id, parts)
 }
 
+/**
+ * How many rows of the benchmark logs of a receipt count as measured, in all: the rows after the warm-up when the stage declares the workload that tells how many the warm-up is,
+ * and every row of a log when it does not, since nothing then says which are the warm-up's. A log that cannot be read counts for none.
+ */
+export function measuredRows(run: Run): number {
+  let total = 0
+  for (const parsed of benchLogs(run)) {
+    if (!parsed.ok) continue
+    total += analysisOf(run, parsed).summary?.counts.measured ?? parsed.value.rows.id.length
+  }
+  return total
+}
+
 /** What the throughput ceiling (P3) needs of the logs: the measured output tokens per second of each, from the rows. */
 export function throughputOf(run: Run): readonly { readonly id: string; readonly tokensPerS: number; readonly rows: number }[] | string {
   const out: { id: string; tokensPerS: number; rows: number }[] = []

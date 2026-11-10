@@ -9,6 +9,9 @@
 /** Rule 7's re-checks (rechecks.ts). */
 export const RECHECK_IDS: readonly string[] = ['identity-tally', 'acceptance-counts', 'argmax-bank']
 
+/** Rule 8, for a stage that asks for evidence at all (evidence-check.ts): that the receipt carries a log with a measured row or a trace with a step window. */
+export const EVIDENCE_CHECK_IDS: readonly string[] = ['evidence']
+
 /** Rule 8, for a benchmark log (bench.ts). B11 is pending (stages.ts), and B13 is P3. */
 export const BENCH_CHECK_IDS: readonly string[] = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10', 'B12', 'B14']
 
@@ -19,4 +22,4 @@ export const TRACE_CHECK_IDS: readonly string[] = ['T1', 'T2', 'T3', 'T4', 'T5',
 export const FLOOR_CHECK_IDS: readonly string[] = ['P1', 'P3']
 
 /** Every id of a check that rules 7 to 9 have, in the order they run. */
-export const CHECK_IDS: readonly string[] = [...RECHECK_IDS, ...BENCH_CHECK_IDS, ...TRACE_CHECK_IDS, ...FLOOR_CHECK_IDS]
+export const CHECK_IDS: readonly string[] = [...RECHECK_IDS, ...EVIDENCE_CHECK_IDS, ...BENCH_CHECK_IDS, ...TRACE_CHECK_IDS, ...FLOOR_CHECK_IDS]

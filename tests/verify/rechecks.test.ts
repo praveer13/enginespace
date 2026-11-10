@@ -157,6 +157,50 @@ describe('argmax-bank (TR0)', () => {
   })
 })
 
+describe('a re-check over nothing is not a pass (the review of W2\'s grader track)', () => {
+  const rounds = (proposed: number[], accepted: number[], bonus: number[], emitted: number[]) => ({ schema: ACCEPTANCE_FORMAT, rounds: { proposed, accepted, bonus, emitted } })
+
+  test('identity-tally fails an artifact with no sequence: an identity over no sequence is no identity', async () => {
+    const outcome = await run(withArtifact('identity', 'outputs', IDENTITY_FORMAT, identity([], [])))
+    expect(checkOf(outcome, 'identity-tally')).toEqual({
+      id: 'identity-tally',
+      status: 'fail',
+      bound: 'The artifact "identity" holds no sequence, so no run was compared with another: an identity over no sequence is no identity (D-046).',
+    })
+    expect(outcome.verdict.provenance).toBe('gpu-unverified')
+  })
+
+  test('acceptance-counts fails an artifact with no round, though no round broke a rule, and names the artifact', async () => {
+    const outcome = await run(withArtifact('acceptance', 'counts', ACCEPTANCE_FORMAT, rounds([], [], [], [])))
+    expect(checkOf(outcome, 'acceptance-counts')).toEqual({
+      id: 'acceptance-counts',
+      status: 'fail',
+      bound: 'The artifact "acceptance" holds no round of speculation, so there is nothing to count: accepted ≤ proposed and tokens out = accepted + bonus say nothing about no round.',
+    })
+  })
+
+  test('fails when one artifact of two is empty, since the other\'s rounds do not make up for it', async () => {
+    const fixture = edited(withArtifact('first', 'counts', ACCEPTANCE_FORMAT, rounds([4], [2], [1], [3])), (bundle) => {
+      bundle.receipt.artifacts.push({ id: 'second', kind: 'counts', format: ACCEPTANCE_FORMAT, sha256: sha256('x'), bytes: 1, inBundle: true })
+      bundle.artifacts.second = { encoding: 'json', data: rounds([], [], [], []) }
+    })
+    const outcome = await run({ ...fixture, context: { ...fixture.context, banks: {} } })
+    expect(checkOf(outcome, 'acceptance-counts')?.bound).toContain('The artifact "second" holds no round of speculation')
+  })
+
+  test('still passes a single round: one is something to count', async () => {
+    const outcome = await run(withArtifact('acceptance', 'counts', ACCEPTANCE_FORMAT, rounds([4], [0], [1], [1])))
+    expect(checkOf(outcome, 'acceptance-counts')?.status).toBe('pass')
+    const one = await run(withArtifact('identity', 'outputs', IDENTITY_FORMAT, identity([-1], [-1])))
+    expect(checkOf(one, 'identity-tally')?.status).toBe('pass')
+  })
+
+  test('argmax-bank fails a bank that holds no position, which every id would agree with', async () => {
+    const fixture = withArtifact('argmax', 'outputs', ARGMAX_FORMAT, { schema: ARGMAX_FORMAT, positions: [3], ids: [101] }, { 'tr8.replay.s2': { positions: [], ids: [] } })
+    expect(checkOf(await run(fixture), 'argmax-bank')?.bound).toBe("This site's argmax bank for tr8.replay.s2 holds no position, so the ids cannot be compared: every id agrees with a bank of nothing.")
+  })
+})
+
 describe('an artifact of rule 7 that cannot be read', () => {
   test('fails with the first thing wrong with it, whichever re-check reads it', async () => {
     const cases: [string, string, object, RegExp][] = [

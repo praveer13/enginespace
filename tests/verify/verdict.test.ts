@@ -139,10 +139,18 @@ describe('gpu-unverified', () => {
     expect(verdict.reasons.join('\n')).toContain('B1 is required, and the report holds no result for it, so it cannot be told whether the receipt passed it.')
   })
 
-  test('is a stage that asks for the evidence of its receipt, with a receipt that carries none', () => {
+  test('is a stage that asks for the evidence of its receipt, with a receipt that carries none: the check of evidence failed, and its bound is the reason', () => {
+    const none = { id: 'evidence', status: 'fail' as const, bound: 'The stage asks for a benchmark log or a trace to recompute, and the receipt carries neither with anything in it.' }
+    const verdict = verdictOf(receiptOf('tr7.reproduce.s1', { checks: [{ id: 'teacher-forced', kind: 'correctness', pass: true, detail: '' }] }), results({ 8: [none] }, [8]))
+    expect(verdict.provenance).toBe('gpu-unverified')
+    expect(verdict.reasons).toContain(`evidence: ${none.bound}`)
+    expect(verdict.checks.find((check) => check.id === 'evidence')).toEqual({ id: 'evidence', verdict: 'fail', bound: none.bound, how: 're-checked', required: true })
+  })
+
+  test('is a stored report with no result for the evidence a stage asks for, which is not credited either: it cannot be told whether there was any', () => {
     const verdict = verdictOf(receiptOf('tr7.reproduce.s1', { checks: [{ id: 'teacher-forced', kind: 'correctness', pass: true, detail: '' }] }), results())
     expect(verdict.provenance).toBe('gpu-unverified')
-    expect(verdict.reasons).toContain('The stage asks for a benchmark log or a trace to recompute, and the receipt carries neither.')
+    expect(verdict.reasons).toContain('evidence is required, and the report holds no result for it, so it cannot be told whether the receipt passed it.')
   })
 
   test('is a stage this version does not list: it cannot say what the stage requires', () => {

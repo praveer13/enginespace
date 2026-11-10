@@ -16,6 +16,10 @@
  *   unknown-grader      A receipt from a grader build that the site did not publish: rule 5.
  *   not-a-partition     An attribution whose GPU-busy, CPU-gap and both-idle do not add up to their window: T7.
  *   other-seed          A pair of runs of which the second was drawn from another seed than the challenge's: B1.
+ *   smaller-model       The too-fast trace again, with a smaller model's size typed into the receipt's inputs, so that the floor made from the receipt's own figure is a few ns: P1.
+ *                       The floor is made from the model that the site pins for the stage, and the receipt's input has to be that model.
+ *   empty-evidence      The evidence left out and the entry for it left in: an acceptance artifact with its four columns empty, beside the grader's own check of the identity
+ *                       as passed. A count over no round is no count: acceptance-counts (rule 7).
  *
  * What none of them is: a consistent forgery, in which the forger edits the rows and recomputes every summary that follows from them (A§8.6). That one passes,
  * and tests/verify/bestiary.test.ts says so in a test, so that the limit of the design is in the code and not only in the prose.
@@ -33,8 +37,8 @@ import type { TraceJson } from '../../packages/sim/trace'
 export interface Forgery {
   readonly id: string
   readonly title: string
-  /** The kind of honest fixture it is made from. */
-  readonly from: 'bench' | 'trace'
+  /** The kind of honest fixture it is made from: one whose evidence is a benchmark log, a trace, or the counts of a proposer's rounds. */
+  readonly from: 'bench' | 'trace' | 'counts'
   /** The check that must fail: the rule's number, and the check's id (the rule's own id for rules 1 to 6). */
   readonly fails: { readonly rule: number; readonly check: string }
   /** What the printed bound must say: the bound it broke, in the words of the check. */
@@ -291,13 +295,46 @@ const otherSeed: Forgery = {
   },
 }
 
-/** Every forgery, in the order the ledger of ASSESSMENT §13 lists them. */
-export const BESTIARY: readonly Forgery[] = [editedP99, resignedHash, reusedToken, replayedReceipt, closedLoop, tooFast, unknownGrader, notAPartition, otherSeed]
+const smallerModel: Forgery = {
+  id: 'smaller-model',
+  title: 'a trace faster than its physics floor, with a smaller model typed in',
+  from: 'trace',
+  fails: { rule: 9, check: 'P1' },
+  bound: /The receipt lists the model input "[^"]+" with 1,000,000 bytes \(sha256 [0-9a-f]{8}…\), and \S+ pins "[^"]+" with [\d,]+ bytes/,
+  forge: (honest) => {
+    // The trace of the too-fast forgery, which breaks the honest floor; then the receipt's figure for the weights is made one million bytes, so that a floor made from the
+    // receipt's own inputs is 59 ns [derived: 1,000,000 bytes × 80% ÷ 13,400 GB/s] and every step clears it.
+    return edited(tooFast.forge(honest), (bundle) => {
+      for (const input of bundle.receipt.inputs) if (input.kind === 'model') input.bytes = 1_000_000
+    })
+  },
+}
+
+const emptyEvidence: Forgery = {
+  id: 'empty-evidence',
+  title: 'evidence left out and its entry left in: an acceptance artifact with no round',
+  from: 'counts',
+  fails: { rule: 7, check: 'acceptance-counts' },
+  bound: /The artifact "acceptance" holds no round of speculation, so there is nothing to count/,
+  forge: (honest) =>
+    edited(honest, (bundle) => {
+      const entry = bundle.receipt.artifacts.find((artifact) => artifact.kind === 'counts')
+      if (entry === undefined) throw new Error(`${honest.name} carries no counts`)
+      const data = bundle.artifacts[entry.id]
+      if (data.encoding !== 'json') throw new Error('counts are JSON')
+      // The four columns of the rounds are emptied, and the entry, the schema tag and the grader's own pass are left as they were: a re-signed file.
+      for (const column of Object.values((data.data as { rounds: Record<string, number[]> }).rounds)) column.length = 0
+    }),
+}
+
+/** Every forgery: the nine of ASSESSMENT §13 in the order it lists them, then the two that the review of W2's grader track added. */
+export const BESTIARY: readonly Forgery[] = [editedP99, resignedHash, reusedToken, replayedReceipt, closedLoop, tooFast, unknownGrader, notAPartition, otherSeed, smallerModel, emptyEvidence]
 
 /** The forgeries that an honest fixture can be forged into: those that read the kind of evidence it carries. */
 export function forgeriesFor(fixture: Fixture): readonly Forgery[] {
   const kinds = new Set(fixture.bundle.receipt.artifacts.map((artifact) => artifact.kind))
-  return BESTIARY.filter((forgery) => (forgery.from === 'bench' ? kinds.has('bench-log') : kinds.has('trace')))
+  const carries = { bench: kinds.has('bench-log'), trace: kinds.has('trace'), counts: kinds.has('counts') } as const
+  return BESTIARY.filter((forgery) => carries[forgery.from])
 }
 
 /** Reads a committed bundle back: the owner's fixtures of tests/fixtures/receipts/ are `.es.json.gz`, as `enginespace grade` writes them (W2-T12). */

@@ -48,21 +48,24 @@ export type Gpus =
   | { readonly ok: false; readonly missing: readonly string[]; readonly count: number }
 
 /**
- * The atlas's figures for the GPUs a receipt names, summed. A run on several GPUs reads its weights from all of them at once, so the bandwidths add
- * (perfect tensor or pipeline parallelism, the most any split can do, which keeps a floor from the sum safe). A GPU the atlas lacks makes the whole
- * answer `ok: false`, with its name, once: a floor needs every GPU.
+ * The atlas's figures for the GPUs a run used, summed. The receipt lists every GPU on the machine, and the run may have used few of them, so `used` says how many:
+ * the fastest `used` of the listed GPUs are added, by bandwidth for the bandwidth and by peak for the peak, which keeps a floor from being stricter than any choice of
+ * that many GPUs could bear. It is every listed GPU when `used` is left out, and never more than the machine has. A run on several GPUs reads its weights from all of
+ * them at once, so the bandwidths add (perfect tensor or pipeline parallelism, the most any split can do, which keeps a floor from the sum safe). A GPU the atlas lacks
+ * makes the whole answer `ok: false`, with its name, once: a floor needs every GPU the receipt names, since a name that is left out of the sum could be the slow one.
  */
-export function gpusOf(atlas: Atlas, names: readonly string[]): Gpus {
+export function gpusOf(atlas: Atlas, names: readonly string[], used: number = names.length): Gpus {
   const missing = [...new Set(names.filter((name) => findGpu(atlas, name) === undefined))]
   if (missing.length > 0 || names.length === 0) return { ok: false, missing, count: names.length }
-  let bandwidthGBps = 0
-  let peakTflops = 0
-  for (const name of names) {
-    const entry = findGpu(atlas, name)
-    bandwidthGBps += entry?.bandwidthGBps ?? 0
-    peakTflops += entry?.peakTflops ?? 0
-  }
-  return { ok: true, count: names.length, bandwidthGBps, peakTflops }
+  const entries = names.map((name) => findGpu(atlas, name)).filter((entry): entry is AtlasEntry => entry !== undefined)
+  const count = Math.max(1, Math.min(used, names.length))
+  const fastest = (pick: (entry: AtlasEntry) => number): number =>
+    entries
+      .map(pick)
+      .sort((a, b) => b - a)
+      .slice(0, count)
+      .reduce((total, value) => total + value, 0)
+  return { ok: true, count, bandwidthGBps: fastest((entry) => entry.bandwidthGBps), peakTflops: fastest((entry) => entry.peakTflops) }
 }
 
 /**
