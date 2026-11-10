@@ -16,7 +16,7 @@ related_targets: ["src/receipts"]
 - **Constraints:**
   - the PRODUCT.md and DESIGN.md constraints (one lamp, only code, dots for numbers, no dark scheme);
   - phone-first at 360 px: one column, no sideways scroll at 320 px, every action by keyboard, targets of 24 px at least;
-  - the importer is W2-T07's, so the page says in the ribbon's red where it will stand and that it is not built;
+  - the importer is W2-T07's: the last panel is the slip that takes a receipt back, and what comes of a file is printed on it, with the rules it was checked by;
   - a number is a readout with its tag, and a figure on a receipt carries `unverified` until the browser has recomputed it.
 
 ## Direction contract
@@ -48,6 +48,6 @@ The chit. Choose a lab and a stage, press the plate, and a ticket prints under t
 
 ## Unresolved
 
-- **The importer:** a panel for the grader's bundle (a drop slip and a file picker), the worker that checks it, and the report that fills "How this browser checked it" are W2-T07's and W2-T08's. Until they land the page says so and prints each figure as unverified.
+- **The rest of the verdict:** the slip, the worker and the report of rules 1 to 6 are W2-T07's. Rules 7 to 10 (the re-checks, the recomputation, the floors and the verdict) are W2-T08's, and until they land every receipt is held as not credited, and each figure on a receipt is printed as unverified.
 - **A lab's own page:** it will offer its challenge too (LAB_HOLDS), and may link here with `?stage=` to open this page on its stage.
 - **A challenge for a stage that already has an open one:** the page issues another and lists both. Whether it should say so first waits for a learner to be confused by it.

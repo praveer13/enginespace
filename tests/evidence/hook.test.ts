@@ -44,7 +44,7 @@ describe('useEvidence', () => {
     expect(view.events).toEqual([])
     expect(view.working.size).toBe(0)
     expect(view.readOnly).toBe(false)
-    for (const action of ['append', 'setWorking', 'deleteWorking', 'exportLedger', 'previewImport', 'importLedger', 'undoImport', 'reset', 'reload']) {
+    for (const action of ['append', 'keepReceipt', 'setWorking', 'deleteWorking', 'exportLedger', 'previewImport', 'importLedger', 'undoImport', 'reset', 'reload']) {
       expect(typeof view[action as keyof Evidence]).toBe('function')
     }
     expect(NOT_READY.ready).toBe(false)

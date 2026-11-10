@@ -1,24 +1,25 @@
 import { useEffect, useMemo, useRef } from 'react'
 import type { ReceiptRecord, Sha256 } from '@es/ledger'
-import { Icon } from '@/design/components/Glyph'
 import { PrinterTape } from '@/design/components/PrinterTape'
 import type { PrinterTapeLine } from '@/design/components/PrinterTape'
 import { Readout } from '@/design/components/Readout'
-import { Ticket, TicketLine } from '@/design/components/Ticket'
+import { Ticket } from '@/design/components/Ticket'
 import { CHALLENGE_TTL_DAYS, countChallenges } from './challenge'
 import type { HeldChallenge } from './challenge'
-import { CHALLENGES, COMING, LEAD, RECEIPTS, TAPE, waveOf } from './copy'
+import { CHALLENGES, LEAD, RECEIPTS, TAPE } from './copy'
 import { ChallengeList, ReceiptList } from './Held'
+import { ImportPanel } from './ImportPanel'
 import { IssuePanel } from './IssuePanel'
 import type { IssuePanelProps } from './IssuePanel'
 import { BackLink, ReceiptDetail, UnreadableReceipt } from './ReceiptDetail'
 import { heldReceipts } from './records'
+import type { ImportState } from './useImport'
 import './receipts.css'
 
 /*
- * /receipts (ARCHITECTURE §3.1, §8.4; W2-T06), drawn from what the ledger holds. The page has two views of one route: the lists, and one
- * receipt opened at the address's fragment, `#<sha256>`. A fragment is never sent to a server, and the lists and the receipt it names
- * are read from the learner's own ledger.
+ * /receipts (ARCHITECTURE §3.1, §8.4; W2-T06, W2-T07), drawn from what the ledger holds. The page has two views of one route: the lists, with
+ * the deck that issues a challenge and the slip that takes a receipt back, and one receipt opened at the address's fragment, `#<sha256>`. A
+ * fragment is never sent to a server, and the lists and the receipt it names are read from the learner's own ledger.
  *
  * `ReceiptsView` takes all of it as props, as the evidence page's view does, so the server renderer draws any state of it. The hook that
  * opens the ledger and the address are src/pages/Receipts.tsx's.
@@ -37,6 +38,12 @@ export interface ReceiptsViewProps {
   /** The stage that the address asks to start on (`?stage=`). */
   preset?: string
   issue: IssuePanelProps['issue']
+  /** The importer's state (`useImport`): what has become of the last file that was dropped. */
+  importer: ImportState
+  /** A file was dropped or chosen on the slip. */
+  onChoose(file: File): void
+  /** The learner cleared the result of the last file. */
+  onClear(): void
 }
 
 /** The page's tape: how many challenges are in each state and how many receipts the browser holds. */
@@ -56,25 +63,6 @@ function Tape({ ready, counts, receipts }: { ready: boolean; counts: ReturnType<
       empty={TAPE.empty}
       lines={ready && !empty ? lines : []}
     />
-  )
-}
-
-/** The part of the page that is not built yet, as the unbuilt pages say it: the red line, and the task and the wave that build it. */
-function Coming() {
-  return (
-    <section aria-labelledby="rc-coming" className="es-panel">
-      <h2 id="rc-coming" className="es-panel__title">
-        {COMING.title}
-      </h2>
-      <p className="es-panel__lead">{COMING.lead}</p>
-      <Ticket as="div" width="full" hole={false} foot={[`Arriving with ${waveOf(COMING.tasks[0])}`, COMING.tasks.join(' · ')]}>
-        <p className="es-unbuilt__pending">
-          <TicketLine tone="ink-2" qty={<Icon name="lock" className="es-unbuilt__mark" />}>
-            Not built yet
-          </TicketLine>
-        </p>
-      </Ticket>
-    </section>
   )
 }
 
@@ -115,7 +103,7 @@ function Lists({ props, held, records }: { props: ReceiptsViewProps; held: reado
           </Ticket>
         )}
       </section>
-      <Coming />
+      <ImportPanel ready={ready} readOnly={props.readOnly} memoryOnly={props.backend === 'memory'} state={props.importer} onChoose={props.onChoose} onClear={props.onClear} />
     </>
   )
 }

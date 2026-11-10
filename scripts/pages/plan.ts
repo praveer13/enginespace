@@ -182,8 +182,10 @@ export const PAGES: Readonly<Record<string, Spec>> = {
       description: 'Read this trace and its spans beside the seeded step-loop world.',
     })),
   ),
-  // What the page holds today (W2-T07 adds the importer): its lead says the same (src/receipts/copy.ts), and a test holds the two together.
-  '/receipts': page('Issue a challenge for a lab that runs on your own machine, and read the receipts that you hold. Nothing here is sent anywhere.'),
+  // Its lead says the same (src/receipts/copy.ts), and a test holds the two together.
+  '/receipts': page(
+    'Issue a challenge for a lab that runs on your own machine, bring back the receipt that your grader writes and see how this browser checked it, and read the receipts that you hold. Nothing here is sent anywhere.',
+  ),
   '/today': page('A short spaced review of what you have earned so far, drawn on fresh seeds.'),
   '/evidence': page('The progress that your own ledger shows, kept on this device. Export it, import it, or undo an import.'),
   '/design': page("The token roles and their values, the components and their states, motion, and the scene kit's specimens, each beside its 2D twin."),

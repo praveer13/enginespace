@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { readStoredReport, verdictOf } from '@es/verify'
 import { Button } from '@/design/components/Button'
 import { Readout } from '@/design/components/Readout'
 import { TapeLabel } from '@/design/components/TapeLabel'
 import { TextLink } from '@/design/components/TextLink'
 import type { HeldChallenge } from './challenge'
 import { selectContents, useCopy } from './clipboard'
-import { CHALLENGES, RECEIPTS } from './copy'
+import { CHALLENGES, RECEIPTS, VERDICT_WORDS } from './copy'
 import { stageOf } from './labs'
 import { detailAddress, gpuLine, latestReport, shortHash, summarizeChecks } from './records'
 import type { HeldReceipt } from './records'
@@ -139,6 +140,9 @@ function ReceiptLine({ held }: { held: HeldReceipt }) {
   const checks = summarizeChecks(receipt)
   const report = latestReport(reports)
   const named = stageOf(receipt.stage)
+  // What the latest check made of it, in a word: a receipt that was never checked here is `unchecked`, and one whose report this build cannot read has no word.
+  const read = report === undefined ? null : readStoredReport(report.report)
+  const worth = report === undefined ? VERDICT_WORDS.unchecked : read === null ? undefined : VERDICT_WORDS[verdictOf(read.rules, read.ran).provenance]
   return (
     <li className="es-held__item" data-state="receipt" data-stage={receipt.stage}>
       <div className="es-held__what">
@@ -152,6 +156,11 @@ function ReceiptLine({ held }: { held: HeldReceipt }) {
           hash <code>{shortHash(sha256)}</code>
         </span>
       </div>
+      {worth === undefined ? null : (
+        <TapeLabel size="sm" tilt="none" className="es-held__worth">
+          {worth}
+        </TapeLabel>
+      )}
       <p className="es-held__when">
         made <time dateTime={receipt.createdAt}>{formatWhen(receipt.createdAt)}</time> by grader {receipt.grader.version} on {gpuLine(receipt)}
       </p>
