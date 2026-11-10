@@ -312,6 +312,8 @@ A worker runs A§8.5's ten rules in order and stores the parsed receipt and its 
 | `capstone.pair.s1` | per side, everything `tr8.replay.s2` and `tr3.profile.s2` require; R: X2 (the sides differ only in the pair's change) and per-side pins | — |
 | `capstone.pair.s2` | R: every number in the form equals the recomputed one; the mechanism's consistency rules ([CAPSTONE §5](../curriculum/CAPSTONE.md)); floors; the price claim dated | — |
 
+**As built (W2-T08).** `packages/verify/stages.ts` is this table in code, and `tests/verify/stages.test.ts` reads it and fails when the two part. The name of each A check, the `id` a lab's kit writes into `receipt.checks`, is the one `stages.ts` gives it (`teacher-forced`, `tie-aware-identity`, `engine-integrity`, `logits-fp32` and the rest). A browser check that a row names and the site cannot run yet is *pending* there with the task that builds it, and a receipt of that stage is not credited until it exists: a verdict says "X is not built yet; W2-Tnn builds it", and never takes the grader's word for a check that the table gives to the browser. A stage that requires nothing earns `practice`, and `tr4.sweep.s4`, which the table marks "its own KC at full weight", requires what s2 and s3 do.
+
 ## 6. Consistency checks for performance evidence
 
 The browser recomputes every summary from raw records and requires agreement within the stated rounding (A§8.5 rule 8). All tolerances are [estimated] until the owner's fixtures (W2-T12) measure honest runs against them.
@@ -372,6 +374,8 @@ Floors use datasheet numbers from the hardware atlas's sourced claims (W2-T09), 
 | P2 | No reported FLOP rate exceeds the datasheet dense peak at that precision. |
 | P3 | Output tokens per second stay below the lower of two ceilings: compute (peak ÷ FLOPs per token) and memory (bandwidth ÷ bytes per token), as kernelspace's `burstgpt-replay` field lab computes them. |
 | P4 | An attention call takes at least the bytes it must read and write ÷ the datasheet bandwidth. |
+
+**As built (W2-T08).** `packages/verify/floors.ts` makes P1 (T9) and P3 (B13). A floor is made from the GPU's name as NVML reports it, found exactly in the hardware atlas, from the weight bytes of the receipt's model inputs (80% of them [estimated], the share of a dense model that one forward streams) and the bandwidths of all its GPUs added. A GPU that the atlas lacks has no floors, and a receipt with performance evidence from one is not credited: P1 and P3 fail, naming the GPU, because a floor that a receipt can dodge by naming an unlisted GPU is no floor. P2 and P4 need TR4's sweep (W2-T26).
 
 ### 6.5 Rounding and tolerance policy
 

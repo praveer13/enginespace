@@ -1,9 +1,9 @@
 import { Icon } from '@/design/components/Glyph'
 import type { IconName } from '@/design/components/Glyph'
 import { TapeLabel } from '@/design/components/TapeLabel'
-import { RULES } from '@es/verify'
-import type { RuleResult, RuleStatus, Verdict } from '@es/verify'
-import { REPORTS, RULE_WORDS, VERDICT_WORDS } from './copy'
+import { RULES, VERDICT_RULE } from '@es/verify'
+import type { CheckResult, RuleResult, RuleStatus, Verdict } from '@es/verify'
+import { CHECK_WORDS, REPORTS, RULE_WORDS, VERDICT_WORDS } from './copy'
 
 /*
  * The result of each verification rule, as a list (ARCHITECTURE §8.5): the rule's number and name, a word and a drawn mark for what it found, the
@@ -15,9 +15,24 @@ import { REPORTS, RULE_WORDS, VERDICT_WORDS } from './copy'
  */
 
 const MARKS: Record<RuleStatus, IconName> = { pass: 'check', fail: 'alert', skipped: 'strike' }
+const CHECK_MARKS: Record<'pass' | 'fail' | 'attested', IconName> = { pass: 'check', fail: 'alert', attested: 'check' }
 
 /** The name of a rule, from the verifier's own table: a report names the rule by its id, and the table says what to call it. */
 const NAMES: ReadonlyMap<string, string> = new Map(RULES.map((entry) => [entry.id, entry.name]))
+
+/** One check of rules 7 to 9: its id, a word and a mark for how it came out, and the bound it was held to with what was found against it. */
+function CheckLine({ check }: { check: CheckResult }) {
+  return (
+    <li className="es-check" data-status={check.status} data-check={check.id}>
+      <span className="es-check__id">{check.id}</span>
+      <span className="es-check__result">
+        <Icon name={CHECK_MARKS[check.status]} className="es-rule__mark" />
+        <span>{CHECK_WORDS[check.status]}</span>
+      </span>
+      <span className="es-check__bound">{check.bound}</span>
+    </li>
+  )
+}
 
 function Rule({ result }: { result: RuleResult }) {
   return (
@@ -34,7 +49,13 @@ function Rule({ result }: { result: RuleResult }) {
         <span>{RULE_WORDS[result.status]}</span>
       </span>
       <p className="es-rule__summary">{result.summary}</p>
-      {result.problems.length === 0 ? null : (
+      {result.checks !== undefined && result.checks.length > 0 ? (
+        <ul className="es-rule__checks" aria-label={`Checks of rule ${result.rule}`}>
+          {result.checks.map((check) => (
+            <CheckLine key={check.id} check={check} />
+          ))}
+        </ul>
+      ) : result.problems.length === 0 ? null : (
         <ul className="es-rule__problems">
           {result.problems.map((problem, at) => (
             <li key={at}>{problem}</li>
@@ -59,10 +80,14 @@ export function RuleList({ rules, label }: { rules: readonly RuleResult[]; label
  * What the rules came to: the verdict, as a word on masking tape beside what it means, and the reasons under it, one sentence each. The verdict is
  * worked out when it is shown, from the rules and how many of them ran (`verdictOf`), and is never read out of a stored field.
  */
-export function VerdictLine({ verdict }: { verdict: Verdict }) {
+export function VerdictLine({ verdict, grader }: { verdict: Verdict; grader?: string }) {
   return (
-    <div className="es-import__verdict">
+    <div className="es-import__verdict" data-rule={VERDICT_RULE.id}>
       <p className="es-import__verdict-line">
+        <span className="es-rule__n" aria-hidden="true">
+          {VERDICT_RULE.rule}
+        </span>
+        <span className="sr-only">Rule {VERDICT_RULE.rule}, </span>
         <TapeLabel size="sm" tilt="none" className="es-import__worth">
           {VERDICT_WORDS[verdict.provenance]}
         </TapeLabel>
@@ -71,6 +96,32 @@ export function VerdictLine({ verdict }: { verdict: Verdict }) {
       <ul className="es-import__reasons">
         {verdict.reasons.map((reason, at) => (
           <li key={at}>{reason}</li>
+        ))}
+      </ul>
+      {grader === undefined || verdict.checks.length === 0 ? null : <VerdictChecks verdict={verdict} grader={grader} />}
+    </div>
+  )
+}
+
+/**
+ * The verdict, check by check (ARCHITECTURE §8.5 rule 10, ASSESSMENT §5.8): each check with a word and a mark, the bound it was held to, and a badge that
+ * says who checked it, "re-checked here" or "attested by grader x.y.z", so that the learner sees which is which. A check that the stage requires says so.
+ */
+function VerdictChecks({ verdict, grader }: { verdict: Verdict; grader: string }) {
+  return (
+    <div className="es-verdict-checks">
+      <h4 className="es-verdict-checks__heading">{REPORTS.checks}</h4>
+      <ul className="es-rule__checks" aria-label={REPORTS.checksLabel}>
+        {verdict.checks.map((check, at) => (
+          <li key={`${check.how}:${check.id}:${at}`} className="es-check" data-status={check.verdict} data-check={check.id} data-how={check.how}>
+            <span className="es-check__id">{check.id}</span>
+            <span className="es-check__result">
+              <Icon name={CHECK_MARKS[check.verdict]} className="es-rule__mark" />
+              <span>{CHECK_WORDS[check.verdict]}</span>
+            </span>
+            <span className="es-check__bound">{check.bound}</span>
+            <span className="es-check__badge">{check.how === 're-checked' ? REPORTS.recheckedHere : `${REPORTS.attestedBy} ${grader}`}</span>
+          </li>
         ))}
       </ul>
     </div>

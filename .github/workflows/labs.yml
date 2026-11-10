@@ -15,6 +15,9 @@ name: Labs
 # file does not change for that. Until then the detect job prints "pending: <task>" for the lab that is missing, and the job
 # for it is skipped.
 #
+# The receipt fixtures step (W2-T08) reads the bestiary and the synthetic fixtures (tests/verify/, built on tests/schema/receipt-support.ts), the owner's
+# bundles once they exist (tests/fixtures/receipts/) and the hardware atlas that the floors read (src/receipts/atlas.ts), so a change to any of them runs it.
+#
 # The workflow runs when a file that its gates read changes. verify:labs reads more than labs/: it imports the forge host and the
 # worker the site runs (src/forge, src/workers/forge.worker.ts), the models behind the labs' checks (packages/sim) and the vendored files
 # under those (vendor/kernelspace), it judges the builds with scripts/labs, and it compares the builds that tests/fixtures/forge
@@ -37,6 +40,10 @@ on:
       - 'tests/fixtures/forge/**'
       - 'tests/fixtures/grader/**'
       - 'tests/fixtures/references/**'
+      - 'tests/fixtures/receipts/**'
+      - 'tests/verify/**'
+      - 'tests/schema/receipt-support.ts'
+      - 'src/receipts/atlas.ts'
       - 'vendor/kernelspace/**'
       - '.github/workflows/labs.yml'
   workflow_dispatch:
@@ -197,6 +204,8 @@ jobs:
       - run: bun run verify:schema
       - run: bun run verify:vectors
 
-      # W2-T08 builds the receipt fixtures and the forged bestiary. This step passes the fixtures and fails on a forgery then.
+      # W2-T08: the receipt fixtures pass the browser's rules (packages/verify, ARCHITECTURE §8.5), and the forged bestiary fails them check by check, with
+      # the bound printed. The fixtures are the synthetic ones of tests/verify until the owner's bundles are committed to tests/fixtures/receipts/ (W2-T12),
+      # which the same tests then forge from. The tests run under Bun, as the unit suite does.
       - name: Receipt fixtures and forgeries
-        run: "echo 'pending: W2-T08'"
+        run: bun test tests/verify/bestiary.test.ts tests/verify/fixtures.test.ts

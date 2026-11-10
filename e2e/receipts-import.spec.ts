@@ -1,5 +1,5 @@
 /*
- * W2-T07's acceptance checks, in Playwright's Chromium, on /receipts: the slip a receipt comes back on, the receipt worker behind it, and the
+ * W2-T07's acceptance checks (and the rules W2-T08 added to the list), in Playwright's Chromium, on /receipts: the slip a receipt comes back on, the receipt worker behind it, and the
  * ledger it writes to.
  *
  *   1. Oversized and zip-bomb files abort with a message. A file over the cap of rule 1, and a gzip file that inflates past the other cap, are
@@ -161,8 +161,9 @@ test.describe('an honest receipt', () => {
     await chooseWithKeys(page, fileOf(bundle()))
     await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your ledger' })).toBeVisible()
 
-    // Rule by rule: the file is whole, answers the challenge, and the engine is the pin; the grader is not a build this site published.
-    expect(await statuses(page)).toEqual(['caps:pass', 'schema:pass', 'integrity:pass', 'binding:pass', 'grader:fail', 'pins:pass'])
+    // Rule by rule: the file is whole, answers the challenge, and the engine is the pin; the grader is not a build this site published. Rules 7 to 9 are W2-T08's:
+    // the sample's toy trace has no capture time, the site declares no step count for its stage and its GPU is not in the atlas, so recomputation and the floors fail.
+    expect(await statuses(page)).toEqual(['caps:pass', 'schema:pass', 'integrity:pass', 'binding:pass', 'grader:fail', 'pins:pass', 'rechecks:pass', 'recomputation:fail', 'floors:fail'])
     await expect(rules(page).nth(0)).toContainText('bytes compressed')
     await expect(rules(page).nth(2)).toContainText('2 artifacts hashed over canonical bytes')
     await expect(rules(page).nth(3)).toContainText('Bound to the challenge this browser issued for tr3.profile.s2')
@@ -172,7 +173,7 @@ test.describe('an honest receipt', () => {
 
     // What it is worth now: nothing yet, and why.
     await expect(slip(page)).toContainText('not credited')
-    await expect(slip(page)).toContainText('Rules 7 to 10')
+    await expect(slip(page)).toContainText('X1 is not built yet: W2-T23 builds it')
     await expect(status(page)).toContainText('Kept in your ledger. Not credited.')
 
     // The ledger has the receipt and the event that spent its token, written together, and the report beside the receipt.
@@ -180,8 +181,8 @@ test.describe('an honest receipt', () => {
     expect(found.receipts).toHaveLength(1)
     expect(found.receipts[0].receipt).toMatchObject({ lab: 'tr3.profile', stage: 'tr3.profile.s2' })
     expect(found.receipts[0].reports).toHaveLength(1)
-    expect(found.receipts[0].reports[0].report).toMatchObject({ v: 1, ran: 6 })
-    expect(found.receipts[0].reports[0].report.rules.map((rule) => `${rule.id}:${rule.status}`)).toEqual(['caps:pass', 'schema:pass', 'integrity:pass', 'binding:pass', 'grader:fail', 'pins:pass'])
+    expect(found.receipts[0].reports[0].report).toMatchObject({ v: 1, ran: 10 })
+    expect(found.receipts[0].reports[0].report.rules.map((rule) => `${rule.id}:${rule.status}`)).toEqual(['caps:pass', 'schema:pass', 'integrity:pass', 'binding:pass', 'grader:fail', 'pins:pass', 'rechecks:pass', 'recomputation:fail', 'floors:fail'])
     const events = found.events.filter((event) => event.kind === 'receipt')
     expect(events).toHaveLength(1)
     expect(events[0]).toMatchObject({
@@ -191,7 +192,9 @@ test.describe('an honest receipt', () => {
       provenance: 'gpu-unverified',
       data: { receiptSha256: found.receipts[0].sha256, graderVersion: '0.1.0', environment: 'Example GPU 24GB, vllm 0.33.0, driver 580.82.07' },
     })
-    expect(events[0].data.checks?.map((check) => check.verdict)).toEqual(['attested', 'attested', 'attested'])
+    // The grader's three checks are attested, and the browser's own are pass or fail.
+    expect(events[0].data.checks?.filter((check) => ['agreement', 'runner', 'engine-integrity'].includes(check.id)).map((check) => check.verdict)).toEqual(['attested', 'attested', 'attested'])
+    expect(events[0].data.checks?.find((check) => check.id === 'T2')?.verdict).toBe('pass')
 
     // The page reads what was kept: the receipt is in the list, the challenge is used by it, and the tape counts both.
     await expect(receiptRows(page)).toHaveCount(1)
@@ -225,8 +228,10 @@ test.describe('an honest receipt', () => {
     const article = page.getByRole('article', { name: 'Receipt for tr3.profile.s2' })
     await expect(article).toBeVisible()
     const checked = article.locator('.es-receipt__part', { hasText: 'How this browser checked it' })
-    await expect(checked).toContainText('of the ten verification rules ran in this check')
-    await expect(checked.locator('.es-rule')).toHaveCount(6)
+    await expect(checked.locator('.es-rule')).toHaveCount(9)
+    await expect(checked.locator('.es-import__verdict[data-rule="verdict"]')).toBeVisible()
+    await expect(checked).toContainText('re-checked here')
+    await expect(checked).toContainText('attested by grader 0.1.0')
     await expect(checked).toContainText('not credited')
     await expect(article).toContainText('Used by this receipt.')
   })
@@ -254,7 +259,7 @@ test.describe('an honest receipt', () => {
     await page.goto(`${ROUTE}#${sha256}`)
     const article = page.getByRole('article', { name: 'Receipt for tr3.profile.s2' })
     await expect(article).toBeVisible()
-    await expect(article.locator('.es-rule')).toHaveCount(6)
+    await expect(article.locator('.es-rule')).toHaveCount(9)
     await expect(article.locator('.es-rule[data-rule="grader"]')).toHaveAttribute('data-status', 'fail')
   })
 })
@@ -270,7 +275,7 @@ test.describe('a file that is over a cap', () => {
     await expect(slip(page).getByRole('heading', { level: 3, name: 'Not a receipt this browser can read' })).toBeVisible({ timeout: 30_000 })
     await expect(slip(page).locator('[data-state="error"]')).toBeVisible()
     await expect(slip(page)).toContainText('The file is 34,603,008 bytes, and the site reads at most 33,554,432 compressed (the cap of rule 1).')
-    expect(await statuses(page)).toEqual(['caps:fail', 'schema:skipped', 'integrity:skipped', 'binding:skipped', 'grader:skipped', 'pins:skipped'])
+    expect(await statuses(page)).toEqual(['caps:fail', 'schema:skipped', 'integrity:skipped', 'binding:skipped', 'grader:skipped', 'pins:skipped', 'rechecks:skipped', 'recomputation:skipped', 'floors:skipped'])
     await expect(slip(page)).toContainText('Nothing was kept and no challenge was spent.')
     const found = await stored(page)
     expect(found.receipts).toEqual([])
@@ -309,7 +314,7 @@ test.describe('a file that is not a receipt', () => {
     await visit(page)
     await chooseWithKeys(page, fileOf({ hello: 'world' }))
     await expect(slip(page).getByRole('heading', { level: 3, name: 'Not a receipt this browser can read' })).toBeVisible()
-    expect(await statuses(page)).toEqual(['caps:pass', 'schema:fail', 'integrity:skipped', 'binding:skipped', 'grader:skipped', 'pins:skipped'])
+    expect(await statuses(page)).toEqual(['caps:pass', 'schema:fail', 'integrity:skipped', 'binding:skipped', 'grader:skipped', 'pins:skipped', 'rechecks:skipped', 'recomputation:skipped', 'floors:skipped'])
     await expect(rules(page).nth(1)).toContainText('/schema:')
   })
 
@@ -335,7 +340,7 @@ test.describe('a tampered hash', () => {
     entry.sha256 = '1'.repeat(64)
     await chooseWithKeys(page, fileOf(tampered))
     await expect(slip(page).getByRole('heading', { level: 3, name: 'Not a receipt this browser can read' })).toBeVisible()
-    expect(await statuses(page)).toEqual(['caps:pass', 'schema:pass', 'integrity:fail', 'binding:skipped', 'grader:skipped', 'pins:skipped'])
+    expect(await statuses(page)).toEqual(['caps:pass', 'schema:pass', 'integrity:fail', 'binding:skipped', 'grader:skipped', 'pins:skipped', 'rechecks:skipped', 'recomputation:skipped', 'floors:skipped'])
     await expect(rules(page).nth(2)).toContainText('Artifact "trace": its data in the bundle hashes to')
     await expect(rules(page).nth(2)).toContainText(`the receipt lists ${'1'.repeat(64)}`)
     await expect(slip(page)).toContainText('An artifact in the bundle is not the one the receipt lists.')
@@ -454,7 +459,7 @@ test('keeps nothing and says so when the ledger would not take the receipt', asy
   await chooseWithKeys(page, fileOf(bundle()))
   await expect(slip(page).getByRole('heading', { level: 3, name: 'Not kept' })).toBeVisible()
   await expect(slip(page)).toContainText('The browser could not save the change, and nothing was changed.')
-  expect((await statuses(page)).length).toBe(6)
+  expect((await statuses(page)).length).toBe(9)
   expect((await stored(page)).receipts).toEqual([])
   await expect(challengeRows(page).first()).toHaveAttribute('data-state', 'open')
 })

@@ -1,11 +1,12 @@
 /*
- * W2-T07: the slip a receipt comes back on (src/receipts/ImportPanel.tsx), the list of rules it prints (Rules.tsx), and the part of a receipt's
+ * W2-T07, W2-T08: the slip a receipt comes back on (src/receipts/ImportPanel.tsx), the list of rules it prints (Rules.tsx), and the part of a receipt's
  * page that keeps each check (ReceiptDetail.tsx), drawn on the server renderer from the real results of the rules. What a drop does is checked in
  * a real browser, in e2e/receipts-import.spec.ts.
  *
  *   - The slip in each state: waiting for the ledger, ready, read-only, in memory only, checking, refused, kept, kept again, failed.
  *   - A refused file says which rule stopped it, in the ribbon's red, and that nothing was kept; the rules after it say they did not run.
- *   - A receipt that was kept lists its six rules, says what it is worth now (not credited, and why), and leads to its page.
+ *   - A receipt that was kept lists its nine rules and the checks of rules 7 to 9 with their bounds, says what it is worth now (not credited, and why),
+ *     and leads to its page.
  *   - A result is a word and a mark and never a colour alone; the learner's file name and every sentence a rule quotes go on the page as text.
  *   - The caps are readouts with the tag of an estimate; the file's size is a readout with the tag of a measurement.
  *   - A receipt's page keeps every check it has had, the newest open and the rest folded, reads a report back through the verifier's own reader,
@@ -153,9 +154,9 @@ describe('the slip, with a file that is not a receipt this browser can read', ()
     expect(text(html)).toContain('Nothing was kept and no challenge was spent.')
   })
 
-  test('lists the six rules: the first two pass, integrity fails and names the artifact, and the rest say they did not run', () => {
+  test('lists the nine rules: the first two pass, integrity fails and names the artifact, and the rest say they did not run', () => {
     const rules = [...html.matchAll(/<li class="es-rule" data-status="(\w+)" data-rule="(\w+)">/g)].map((match) => `${match[2]}:${match[1]}`)
-    expect(rules).toEqual(['caps:pass', 'schema:pass', 'integrity:fail', 'binding:skipped', 'grader:skipped', 'pins:skipped'])
+    expect(rules).toEqual(['caps:pass', 'schema:pass', 'integrity:fail', 'binding:skipped', 'grader:skipped', 'pins:skipped', 'rechecks:skipped', 'recomputation:skipped', 'floors:skipped'])
     expect(text(html)).toContain('Artifact "log": its data in the bundle hashes to')
     expect(text(html)).toContain('Not checked: an earlier rule stopped the check.')
   })
@@ -165,6 +166,9 @@ describe('the slip, with a file that is not a receipt this browser can read', ()
       'check:pass',
       'check:pass',
       'alert:fail',
+      'strike:not run',
+      'strike:not run',
+      'strike:not run',
       'strike:not run',
       'strike:not run',
       'strike:not run',
@@ -179,6 +183,9 @@ describe('the slip, with a file that is not a receipt this browser can read', ()
       '4:Binding',
       '5:Grader identity',
       '6:Pins',
+      '7:Re-checks',
+      '8:Recomputation',
+      '9:Physics floors',
     ])
     expect(html).toContain('aria-label="How this browser checked the file"')
   })
@@ -205,7 +212,7 @@ describe('the slip, with a receipt that was kept', () => {
     expect(text(html)).toContain('The receipt is in your ledger with this check beside it.')
   })
 
-  test('lists the six rules, all passed, with what each found', () => {
+  test('lists the nine rules, with what each found: the six of W2-T07 pass, and the bare sample fails what the stage asks of its evidence in rules 8 and 9', () => {
     expect([...html.matchAll(/<li class="es-rule" data-status="(\w+)" data-rule="(\w+)">/g)].map((match) => `${match[2]}:${match[1]}`)).toEqual([
       'caps:pass',
       'schema:pass',
@@ -213,15 +220,28 @@ describe('the slip, with a receipt that was kept', () => {
       'binding:pass',
       'grader:pass',
       'pins:pass',
+      'rechecks:pass',
+      'recomputation:fail',
+      'floors:fail',
     ])
     expect(text(html)).toContain('2 artifacts hashed over canonical bytes')
     expect(text(html)).toContain('Bound to the challenge this browser issued for tr3.profile.s2')
   })
 
+  test('prints the checks of rules 8 and 9, each with an id, a word and the bound it was held to', () => {
+    const checks = [...html.matchAll(/<li class="es-check" data-status="(\w+)" data-check="(\w+)">/g)].map((match) => `${match[2]}:${match[1]}`)
+    expect(checks).toContain('T6:fail')
+    expect(checks).toContain('T2:pass')
+    expect(checks).toContain('P1:fail')
+    expect(text(html)).toContain('this site declares no step count for tr3.profile.s2')
+    expect(text(html)).toContain('the hardware atlas has no entry for "Example GPU 24GB"')
+  })
+
   test('says what it is worth now: not credited, and why, in the words of the verifier and not in a number of the page\'s own', () => {
     expect(text(html)).toContain('not credited')
     expect(text(html)).toContain('What it is worth now')
-    expect(text(html)).toContain('Rules 7 to 10 (the re-checks, the recomputation, the physics floors and the verdict) are not built in this version of the site')
+    expect(text(html)).toContain('X1 is not built yet: W2-T23 builds it, and a receipt of tr3.profile.s2 is not credited until it exists.')
+    expect(html).toContain('data-rule="verdict"')
     expect(html).toMatch(/role="status" aria-live="polite">Kept in your ledger\. Not credited\.<\/p>/)
   })
 
@@ -257,7 +277,7 @@ describe('the slip, when the check broke or the ledger would not take the receip
 
   test('lists the rules when the file was checked and the ledger refused it', () => {
     const html = panel({ step: 'failed', file: FILE, message: 'This tab is read-only.', rules: good.rules })
-    expect([...html.matchAll(/data-rule="(\w+)"/g)]).toHaveLength(6)
+    expect([...html.matchAll(/data-rule="(\w+)"/g)]).toHaveLength(9)
   })
 })
 
@@ -282,14 +302,34 @@ describe('a receipt\'s page, with the checks it has had', () => {
   const report = (at: string, rules = good.rules): VerificationReport => ({ at, report: JSON.parse(JSON.stringify(storedReport(rules, good.sizes))) as VerificationReport['report'] })
   const page = (reports: VerificationReport[]): string => render(createElement(ReceiptDetail, { held: { ...held, reports }, challenges: [] }))
 
-  test('lists the rules of the newest check, open, with how many of the ten ran and what they came to', () => {
+  test('lists the rules of the newest check, open, with the verdict as the tenth, and what they came to', () => {
     const html = page([report('2026-11-09T12:00:00.000Z')])
     expect(text(html)).toContain('Checked 9 Nov 2026, 12:00')
     expect(html).toContain('aria-label="How this browser checked the receipt, 9 Nov 2026, 12:00"')
-    expect([...html.matchAll(/data-rule="(\w+)"/g)].map((match) => match[1])).toEqual(['caps', 'schema', 'integrity', 'binding', 'grader', 'pins'])
-    expect(html).toMatch(/<data class="es-readout__value" value="6">6<\/data>.*?of the ten verification rules ran in this check/s)
+    expect([...html.matchAll(/data-rule="(\w+)"/g)].map((match) => match[1])).toEqual(['caps', 'schema', 'integrity', 'binding', 'grader', 'pins', 'rechecks', 'recomputation', 'floors', 'verdict'])
+    expect(text(html)).not.toContain('of the ten verification rules ran in this check')
     expect(text(html)).toContain('not credited')
     expect(text(html)).not.toContain('Not checked in this browser yet')
+  })
+
+  test('shows the verdict check by check, each with its bound and who checked it: re-checked here, or attested by the grader', () => {
+    const html = page([report('2026-11-09T12:00:00.000Z')])
+    const items = [...html.matchAll(/<li class="es-check" data-status="(\w+)" data-check="([\w-]+)" data-how="([\w-]+)">/g)].map((match) => `${match[2]}:${match[1]}:${match[3]}`)
+    expect(items).toContain('T2:pass:re-checked')
+    expect(items).toContain('X1:fail:re-checked')
+    expect(items).toContain('teacher-forced:fail:attested')
+    expect(items).toContain('agreement:attested:attested')
+    expect(text(html)).toContain('re-checked here')
+    expect(text(html)).toContain('attested by grader 0.1.0')
+  })
+
+  test('says how many rules ran when an earlier build made the check: six, and the learner is asked to bring the file back', () => {
+    const six = storedReport(good.rules.slice(0, 6), good.sizes)
+    const older = { ...JSON.parse(JSON.stringify(six)), ran: 6 } as VerificationReport['report']
+    const html = page([{ at: '2026-11-09T12:00:00.000Z', report: older }])
+    expect(html).toMatch(/<data class="es-readout__value" value="6">6<\/data>.*?of the ten verification rules ran in this check/s)
+    expect(text(html)).toContain("Bring the receipt's file back, and all of them run.")
+    expect(text(html)).toContain('This check was made by an earlier version of the site that ran 6 of the 10 rules.')
   })
 
   test('folds the earlier checks under the time they were made, newest first', () => {

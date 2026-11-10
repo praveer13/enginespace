@@ -18,6 +18,12 @@ import type { RuleResult } from './report'
 export interface PublishedGrader {
   readonly version: string
   readonly sourceSha256: string
+  /**
+   * Whether the build only writes labelled synthetic fixtures (W2-T08): its traces say they are synthetic, and rule 8's T1 lets them. The site's own
+   * list never sets it, because a build that makes synthetic receipts is not one that a learner's receipts come from. The tests publish such a build
+   * so that an honest synthetic bundle can pass every rule, and it passes nothing in a site that has not published it.
+   */
+  readonly synthetic?: boolean
 }
 
 const short = (sha: string): string => `${sha.slice(0, 12)}...`
