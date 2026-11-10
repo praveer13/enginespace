@@ -646,6 +646,36 @@ describe('the presets (A§6.1: front, per-group filter, top)', () => {
     }
   })
 
+  test("on a phone the front shot gives the frame to the rack: the largest thing in it, across the width, its pans 15 px or more each way, and the pass along the frame's foot with its shelf out of the picture (finish review, W1b close-out)", () => {
+    // The page's and the lesson's canvas on a 390 by 844 phone: 356 by 464 (above), and 356 by 462 [measured 2026-11-09 at 7f704f9].
+    const area = (points: { x: number; y: number }[]) => Math.abs(points.reduce((sum, p, i) => sum + p.x * points[(i + 1) % points.length].y - points[(i + 1) % points.length].x * p.y, 0)) / 2
+    for (const height of [464, 462]) {
+      for (const pages of POOLS) {
+        const r = reachInOf(pages, 4)
+        const P = (p: Vec3) => projectIn(r.presets[0], p, 356, height)
+        const half = r.width / 2
+        const rack = [P([-half, TOP, -r.depth]), P([half, TOP, -r.depth]), P([half, TOP, 0]), P([-half, TOP, 0])]
+        const [back, fore] = [PASS.z - PASS.depth / 2, PASS.z + PASS.depth / 2]
+        const pass = [P([-PASS.width / 2, PASS.top, back]), P([PASS.width / 2, PASS.top, back]), P([PASS.width / 2, PASS.top, fore]), P([-PASS.width / 2, PASS.top, fore])]
+        // The rack's top is larger in the picture than the pass's, which a low shot through a wide lens drew the larger at 44 pans, and
+        // it runs across the width (the deepest rack, 18 rows, stands back to fit).
+        expect(area(rack), `${height} ${pages}`).toBeGreaterThan(1.15 * area(pass))
+        expect(rack[2].x - rack[3].x, `${height} ${pages}`).toBeGreaterThan((pages < 288 ? 0.9 : 0.75) * 356)
+        // The pass lies along the frame's foot, wholly in its lower half: below its front lip the frame shows a sliver of it, and not its
+        // shelf and legs.
+        expect(height - P([0, PASS.top - 0.04, fore + 0.012]).y, `${height} ${pages}`).toBeLessThan(0.04 * height)
+        expect(Math.min(...pass.map((p) => p.y)), `${height} ${pages}`).toBeGreaterThan(height / 2)
+        // On the levels up to 160 pans the back row's pans, the smallest in the picture, at its ends and middle, and the front row's last,
+        // stand 15 px or more across and deep, so each reads as a pan.
+        if (pages > 160) continue
+        for (const [x, , z] of [r.pans[0], r.pans[7], r.pans[15], r.pans[pages - 1]]) {
+          expect(P([x + PAN.w / 2, TOP, z]).x - P([x - PAN.w / 2, TOP, z]).x, `${height} ${pages}`).toBeGreaterThan(15)
+          expect(P([x, TOP, z + PAN.d / 2]).y - P([x, TOP, z - PAN.d / 2]).y, `${height} ${pages}`).toBeGreaterThan(15)
+        }
+      }
+    }
+  })
+
   test('at 1440 px a hung ticket stands about 50 px tall in the front shot on the levels the reach-in is played most in, so its paper reads (finish review, round 2)', () => {
     for (const pages of [104, 112, 160]) {
       const r = reachInOf(pages, 4)
