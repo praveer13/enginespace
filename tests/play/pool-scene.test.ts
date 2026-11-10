@@ -21,9 +21,9 @@ import { framingFor, type CameraPreset } from '@/scene/camera-rig'
 import { buildProp } from '@/scene/props/build'
 import { paletteFrom } from '@/scene/props/palette'
 import { TICKET as KIT_TICKET, type Vec3 } from '@/scene/props/specs'
-import { cabinet } from '@/games/pool/cabinet'
+import { cabinet, lampBar } from '@/games/pool/cabinet'
 import { focusOf } from '@/games/pool/focus'
-import { CELL, COLS, CROWN, FOOD, FOOT, FRAME, MISE, nightOf, PAN, PASS, PITCH, RAIL, reachInOf, SHOTS, TICKET, TOP, type Night } from '@/games/pool/scene-layout'
+import { CELL, COLS, CROWN, FOOD, FOOT, FRAME, LAMP, MISE, nightOf, PAN, PASS, PITCH, RAIL, reachInOf, SHOTS, TICKET, TOP, type Night } from '@/games/pool/scene-layout'
 import { POOL_CAMERAS } from '@/games/pool/scene-presets'
 import { playThrough, practiceOf } from './pool-support'
 
@@ -164,6 +164,48 @@ describe('the reach-in: a pan in every slot, each in its place for its whole lif
       expect(lip.max.y).toBeGreaterThan(cover.max.y)
     }
   })
+
+  test("the heat lamps hang from a bar across the pass, a prop made the kit's way: two posts standing on its top, each grounded, and nothing over the pass higher than the bar (finish review, W1b round 2)", () => {
+    const palette = paletteFrom(staticSceneTokens())
+    const built = buildProp({ kind: 'custom', id: 'lamp-bar', at: [0, PASS.top, LAMP.z], build: lampBar }, palette)
+    expect(new Set(built.parts.map((part) => part.surface))).toEqual(new Set(['metal']))
+    // Nothing floats: each post's foot stands on the pass's top on its own contact shadow, inside the pass.
+    expect(built.footprints).toHaveLength(2)
+    for (const footprint of built.footprints) {
+      expect(footprint.center[1]).toBeCloseTo(PASS.top, 9)
+      expect(Math.abs(footprint.center[0])).toBeLessThan(PASS.width / 2 - 0.02)
+      expect(Math.abs(footprint.center[2] - PASS.z)).toBeLessThan(PASS.depth / 2)
+    }
+    // The bar runs across the pass under the lamps' line, within its width, at the bar's height; no part of it rises past the bar or sinks
+    // into the pass.
+    let top = -Infinity
+    for (const part of built.parts) {
+      part.geometry.computeBoundingBox()
+      const box = part.geometry.boundingBox
+      if (!box) throw new Error('a part without a box')
+      expect(box.min.y).toBeGreaterThanOrEqual(PASS.top - 1e-6)
+      expect(Math.max(-box.min.x, box.max.x)).toBeLessThan(PASS.width / 2)
+      top = Math.max(top, box.max.y)
+    }
+    expect(top).toBeGreaterThan(LAMP.bar + 0.01)
+    expect(top).toBeLessThanOrEqual(LAMP.bar + 0.013 + 1e-6)
+    // Each lamp hangs from the bar by its canopy, its shade's mouth where the layout's light is, and no part of it reaches above the bar.
+    const r = reachInOf(104, 4)
+    const lamps = r.items.filter((item) => item.kind === 'heat-lamp')
+    expect(lamps).toHaveLength(2)
+    for (const lamp of lamps) {
+      if (lamp.kind !== 'heat-lamp') continue
+      expect(lamp.at[1]).toBe(LAMP.bar)
+      expect(lamp.at[2]).toBe(LAMP.z)
+      expect(Math.abs(lamp.at[0])).toBeLessThan(LAMP.span / 2)
+      expect(lamp.at[1] - lamp.drop - 0.2015).toBeCloseTo(LAMP.mouth, 9)
+      for (const part of buildProp(lamp, palette).parts) {
+        part.geometry.computeBoundingBox()
+        expect(part.geometry.boundingBox?.max.y ?? Infinity).toBeLessThanOrEqual(LAMP.bar + 1e-6)
+      }
+    }
+    for (const light of r.lamps) expect(light.at[1]).toBeCloseTo(LAMP.mouth - 0.02, 9)
+  })
 })
 
 describe('the night on the pans', () => {
@@ -209,6 +251,42 @@ describe('the night on the pans', () => {
       })
     }
     expect([...turns].sort()).toEqual([0, Math.PI])
+  })
+
+  test("each pan's mise is heaped a little higher or lower than its neighbours', the highest still under the rim, and a kit's pan as drawn, its tape on its crown (finish review, W1b round 2)", () => {
+    const heaps = new Set<number>()
+    for (const id of ['two-kinds', 'adapters'] as const) {
+      for (const state of night(id)) {
+        const held = view(state).pans.filter((pan) => pan.state !== 'free')
+        nightAt(state).fills.forEach((fill, i) => {
+          const [across, up, along] = fill.scale ?? [1, 1, 1]
+          // Only its height changes, so it stays square in its pan.
+          expect([across, along]).toEqual([1, 1])
+          if (held[i].kit !== null) expect(up).toBe(1)
+          expect(up).toBeGreaterThanOrEqual(0.75)
+          expect(MISE.heap * up).toBeLessThan(MISE.drop)
+          heaps.add(up)
+        })
+      }
+    }
+    expect(heaps.size).toBeGreaterThanOrEqual(4)
+  })
+
+  test('a ticket on the line hangs turned on its clip, so its cut edge stands to the room, and one waiting on the pass lies square (finish review, W1b round 2)', () => {
+    let hung = 0
+    for (const state of night('two-kinds')) {
+      const v = view(state)
+      for (const ticket of nightAt(state).tickets) {
+        const [tilt, turn] = ticket.rotation ?? [0, 0, 0]
+        if (v.running.includes(Number(ticket.id.slice(1)))) {
+          expect(tilt).toBe(-TICKET.tilt)
+          expect(Math.abs(turn - TICKET.turn)).toBeLessThan(0.081)
+          hung += 1
+        } else expect(turn).toBe(0)
+      }
+    }
+    expect(TICKET.turn).toBeGreaterThan(0.3)
+    expect(hung).toBeGreaterThan(10)
   })
 
   test("each memory role has its own food, and a dumped pan's well is the hollow tray", () => {
@@ -497,6 +575,34 @@ describe('the presets (A§6.1: front, per-group filter, top)', () => {
       }
     })
 
+    test(`at ${width} by ${height} px, nothing that holds the lamps crosses a pan in any preset: the lamp bar and its posts stand under the rack in the picture (finish review, W1b round 2)`, () => {
+      // A rod's outline in the picture, from points round its two ends: the bar across the pass and each post under it (cabinet.ts's lampBar).
+      const around = ([x, y, z]: Vec3, d: number): Vec3[] => [
+        [x - d, y, z],
+        [x + d, y, z],
+        [x, y - d, z],
+        [x, y + d, z],
+        [x, y, z - d],
+        [x, y, z + d],
+      ]
+      const rod = (preset: CameraPreset, a: Vec3, b: Vec3, radius: number) => outline([...around(a, radius), ...around(b, radius)].map((p) => projectIn(preset, p, width, height)))
+      const half = LAMP.span / 2
+      for (const pages of POOLS) {
+        const r = reachInOf(pages, 4)
+        for (const preset of r.presets) {
+          const hulls = [rod(preset, [-half - 0.02, LAMP.bar, LAMP.z], [half + 0.02, LAMP.bar, LAMP.z], 0.013), ...[-half, half].map((x) => rod(preset, [x, PASS.top, LAMP.z], [x, LAMP.bar, LAMP.z], 0.024))]
+          for (const [id, pan] of r.pans.entries()) {
+            const corners: Vec3[] = [[0, 0], [-0.045, -0.08], [0.045, -0.08], [-0.045, 0.08], [0.045, 0.08]].map(([dx, dz]) => [pan[0] + dx, TOP, pan[2] + dz])
+            const crossed = corners.some((p) => {
+              const at = projectIn(preset, p, width, height)
+              return inside(at, width, height) && hulls.some((hull) => within(hull, at))
+            })
+            expect(crossed, `${preset.id} ${pages}: pan ${id + 1}`).toBe(false)
+          }
+        }
+      }
+    })
+
     test(`at ${width} by ${height} px, the front shot sees each lamp's shade over the pass, and every hung ticket whole, under the overshelf's front edge and not behind it`, () => {
       for (const pages of POOLS) {
         const r = reachInOf(pages, 4)
@@ -596,6 +702,35 @@ describe('the acceptance checks on text, colour and size', () => {
     // A type is erased; a value imported from the scene's modules would pull them into the page's chunk.
     expect(game).not.toMatch(/^import (?!type )[^\n]*from '\.\/(Scene3D|scene-layout|cabinet)'/m)
     expect(sources[1]).not.toMatch(/from 'three'/)
+  })
+
+  test("the corn is cooked toward the kit's brown, each kernel its own share of it, and no other food is; each food keeps its role's colour (finish review, W1b round 2)", () => {
+    const scene = sources[0]
+    const toast = Object.fromEntries([...scene.matchAll(/\['(used|cached|shared|adapter)', [^\]]*, ([\d.]+)\],/g)].map(([, state, share]) => [state, Number(share)]))
+    expect(Object.keys(toast).sort()).toEqual(['adapter', 'cached', 'shared', 'used'])
+    expect(toast.cached).toBeGreaterThan(0.5)
+    expect(toast.cached).toBeLessThanOrEqual(1)
+    for (const state of ['used', 'shared', 'adapter']) expect(toast[state]).toBe(0)
+    // Each piece is its own role's colour, toward the kit's brown by its own share of the food's toast; nothing else is mixed in.
+    expect(scene).toMatch(/const base = role\(`memory-\$\{state\}`\)/)
+    expect(scene).toMatch(/const brown = role\('memory-adapter'\)/)
+    expect(scene).toMatch(/const tone = base\.clone\(\)\.lerp\(brown, toast \* \(\(i \* 0\.618\) % 1\)\)/)
+  })
+
+  test("a hung ticket is a thick slip with lit edges, and no outline is drawn round the paper: the patch finds the sheet's back from the kit's ticket and this scene's curl (finish review, W1b round 2)", () => {
+    const scene = sources[0]
+    // The back lies 1 mm behind the face, which ticketGeometry curls by `curl` of the kit's ticket's length and cups across its width.
+    const back = /float pinch=0\.,t=-position\.y\/([\d.]+),back=step\(position\.z,([\d.]+)\*t\*t\+([\d.]+)\*t\*position\.x\*position\.x-5e-4\);/.exec(scene)
+    expect(back).not.toBeNull()
+    const [length, curl, cup] = (back ?? []).slice(1).map((v) => Number(v.startsWith('.') ? `0${v}` : v))
+    expect(length).toBeCloseTo(KIT_TICKET.height, 9)
+    expect(curl).toBeCloseTo(TICKET.curl * KIT_TICKET.height, 9)
+    expect(cup).toBeCloseTo((TICKET.curl * KIT_TICKET.height * 0.625) / (KIT_TICKET.width / 2) ** 2, 6)
+    expect(KIT_TICKET.thickness).toBeGreaterThan(0.0005 * 1.5)
+    // A hung one's back is pushed behind its face (a lying one's is not: its pinch is 0), and its cut edges are lit.
+    expect(scene).toMatch(/transformed\.z-=back\*pinch\*\.\d+;/)
+    expect(scene).toMatch(/\(1\.\+\.\d+\*vPaper\.w\)/)
+    expect(scene).not.toMatch(/fwidth/)
   })
 
   test('the instances of the largest pool stay far under the tier caps (A§6.6: 10k at T1)', () => {

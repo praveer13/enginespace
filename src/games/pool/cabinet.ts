@@ -1,10 +1,27 @@
 /*
- * The reach-in, The Reach-In's own prop (GAMES.md §2.6 "The Reach-In"; scene kit v1): made the kit's way, from shape.ts's bevelled
- * boxes and rods in the palette's tones, and listed in the scene's static set as a `CustomSpec`, so that it is merged by surface and its
- * occlusion is baked with the room's. Three and the kit only, no React, so a test builds it with the kit's `buildProp`.
+ * The reach-in and the pass's lamp bar, The Reach-In's own props (GAMES.md §2.6 "The Reach-In"; scene kit v1): made the kit's way, from
+ * shape.ts's bevelled boxes and rods in the palette's tones, and listed in the scene's static set as `CustomSpec`s, so that they are
+ * merged by surface and their occlusion is baked with the room's. Three and the kit only, no React, so a test builds them with the kit's
+ * `buildProp`.
  */
 import { block, rod, roundedRectPath, tube, type PropMaker } from '@/scene/props'
-import { COLS, FRAME, PITCH, RAIL, TOP, type ReachIn } from './scene-layout'
+import { COLS, FRAME, LAMP, PASS, PITCH, RAIL, TOP, type ReachIn } from './scene-layout'
+
+/**
+ * The lamp bar over the pass, in its own space (the pass's top at y = 0, under the lamps' line): a steel rod across the pass's back half
+ * on two posts that stand on its top, each on a round foot with its contact shadow. The heat lamps' canopies clasp the bar (scene-layout.ts
+ * hangs them from it), so nothing over the pass reaches higher than the bar.
+ */
+export function lampBar(m: PropMaker) {
+  const high = LAMP.bar - PASS.top
+  const half = LAMP.span / 2
+  m.add(rod([-half - 0.02, high, 0], [half + 0.02, high, 0], 0.013, 14), 'steel')
+  for (const x of [-half, half]) {
+    m.add(rod([x, 0, 0], [x, high, 0], 0.011, 12), 'steel')
+    m.add(rod([x, 0, 0], [x, 0.008, 0], 0.024, 16), 'steel')
+    m.shadow([x, 0, 0], [0.05, 0.05], { radius: 0.025, soft: 0.03, strength: 0.7 })
+  }
+}
 
 /**
  * The reach-in, in its own space (its base's middle at the origin, its front toward +z): a cabinet with a reach-in door to each third and
