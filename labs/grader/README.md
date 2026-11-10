@@ -63,7 +63,7 @@ A lab finds its entries with `fetch.load_manifest(fetch.find_manifest()).for_lab
 Rules 1 to 3 of A§8.5, on a `.es.json.gz` file:
 
 1. **Caps.** At most 32 MB compressed and 256 MB once decompressed [estimated], counted while the file is decompressed, so a zip bomb stops with a message.
-2. **Schema.** `bundle@1` and `receipt@1`, strictly, and the challenge token.
+2. **Schema.** `bundle@1` and `receipt@1`, strictly, and the challenge token. Before the text is parsed it is scanned once, and a text that nests more than 64 levels deep, or holds more than 4,194,304 arrays, objects and strings (member names included) [estimated], is refused unparsed: the caps bound a file's bytes, and a parser's memory is not its bytes. `enginespace grade` refuses to write such a bundle.
 3. **Integrity.** The SHA-256 and the byte count of every artifact's canonical bytes equal the receipt's entry. A tampered hash is rejected, and the message names the artifact.
 
 The other rules need what a file cannot show about itself: the ledger of the browser that issued the token (binding), the list of grader builds the site published (identity), the pins, and every number recomputed from the raw records (A§8.5 rules 4 to 10). A file that passes these three can still be refused there, and a receipt is not signed: it records what was reported (A§8.6).

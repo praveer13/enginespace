@@ -9,6 +9,9 @@
  * leaves open (`ext`, `claimed`) has no identity and is refused here. The grader's reader refuses the same receipt, for the same reason
  * (receipt.py, `receipt_rule_problems`).
  *
+ * Before any of that, the text is looked at once for its shape (shape.ts): a file that nests deeper than a bundle can, or holds more arrays, objects and
+ * strings than a bundle can, is refused here and never parsed, because rule 1 bounds the bytes of the text and not what `JSON.parse` allocates for them.
+ *
  * Nothing here trusts the file's own idea of itself. A `schema` tag that is not `enginespace/bundle@1` is a problem, and so is a bundle
  * from a newer format: the site reads the formats it knows and says which one it did not recognise.
  */
@@ -16,6 +19,9 @@ import { bundleSchema } from '@es/schema/bundle'
 import type { Bundle } from '@es/schema/bundle'
 import { canonicalJson } from '@es/sim/core/json'
 import { cut, firstProblems } from './format'
+import { SHAPE } from './limits'
+import type { Shape } from './limits'
+import { scanShape } from './shape'
 
 export type ParseResult =
   | { readonly ok: true; readonly bundle: Bundle; readonly canonicalReceipt: string }
@@ -34,8 +40,13 @@ function jsonMessage(error: unknown): string {
   return cut(error instanceof Error ? error.message : String(error), 120)
 }
 
-/** Reads the text inside a file as a `bundle@1`: the document, checked by the schema, and the receipt's canonical text. */
-export function parseBundle(text: string): ParseResult {
+/**
+ * Reads the text inside a file as a `bundle@1`: the document, checked by the schema, and the receipt's canonical text. The shape of the text is held to
+ * `shape` first, the site's bounds unless a test asks for smaller ones, and a text that is outside them is not parsed.
+ */
+export function parseBundle(text: string, shape: Shape = SHAPE): ParseResult {
+  const looked = scanShape(text, shape)
+  if (!looked.ok) return { ok: false, problems: [looked.message] }
   let document: unknown
   try {
     document = JSON.parse(text)
@@ -48,7 +59,7 @@ export function parseBundle(text: string): ParseResult {
   try {
     return { ok: true, bundle, canonicalReceipt: canonicalJson(bundle.receipt) }
   } catch (error) {
-    // A RangeError names the path ($.performance.claimed.x) and says what is wrong there; a stack that is too deep says so in its own words.
+    // A RangeError names the path ($.performance.claimed.x) and says what is wrong there. (A text nested too deeply for the stack never gets this far: the shape scan refuses it.)
     return { ok: false, problems: [`/receipt: the receipt has no canonical form, so it cannot be identified: ${jsonMessage(error)}.`] }
   }
 }
