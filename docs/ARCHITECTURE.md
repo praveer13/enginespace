@@ -972,14 +972,17 @@ labs/
   grader/                  the local grader
     pyproject.toml  uv.lock  README.md
     src/enginespace_grader/
-      cli.py  challenge.py  rng.py  canonical.py  hashing.py  receipt.py  bundle.py
-      fingerprint.py  pins.py  fetch.py  doctor.py
+      cli.py  grade.py  verify.py  selftest.py  doctor.py
+      challenge.py  rng.py  canonical.py  hashing.py  receipt.py  bundle.py  schemas.py  identity.py  errors.py
+      fingerprint.py  pins.py  fetch.py
+      schemas/             the four JSON Schemas of schemas/, copied byte for byte by scripts/export-schemas.ts (the grader is installed alone)
       checks/              allclose, teacher-forced agreement, chi-square from counts, percentiles
       trace/               torch-profiler Chrome JSON → trace@1; nsys SQLite export → trace@1
       bench/               the open-loop client: seeded schedule, per-request records
       labs/                one module per lab: tr0_forward, tr1_fork, tr3_profile, tr4_sweep,
                            tr5b_connector, tr6_proposer, tr7_reproduce, tr8_replay, capstone
-    tests/                 unittest; CPU only in CI; GPU tests skip without CUDA
+    tests/                 unittest; CPU only in CI; GPU tests skip without CUDA. labs/, labs/grader/ and this folder are packages, so that
+                           `uv run --project labs/grader python -m unittest`, run from the root of the repository, finds them
   envs/                    one locked environment per engine
     cpu/                   TR0 (CPU torch and transformers)
     vllm/                  TR3, TR4, TR5b, TR6, TR7, TR8, capstone
@@ -992,6 +995,8 @@ labs/
   runners/                 rented GPUs: runpod.md, lambda.md, modal_app.py
   references/manifest.json large inputs and outputs: url, sha256, bytes, licence, date
 ```
+
+W2-T02 builds the commands, the cross-language contract (§9.8), the receipt and the bundle, and the lab interface; `doctor` is a stub, and `fingerprint.py` reads host facts only. `fingerprint.py` grows in W2-T03, `pins.py` is W2-T04's and `fetch.py` W2-T05's.
 
 vLLM 0.33.0 and SGLang 0.5.23 pin different torch and xgrammar builds [measured], so each engine gets its own environment and its own lockfile. One uv project with declared conflicting extras was considered and rejected: separate projects are easier for an agent to change and for a learner to repair.
 
@@ -1042,7 +1047,7 @@ The grader collects the fingerprint from NVML through `nvidia-ml-py` when it can
 
 ### 9.6 The receipt format, `enginespace/receipt@1`
 
-The zod schema in `packages/schema` is the single source. `scripts/export-schemas.ts` writes `schemas/receipt.schema.json`, which the grader validates against, and `verify:schema` fails when the two drift (D-030). ASSESSMENT.md decides which checks each stage requires. The outline below abbreviates the schema.
+The zod schema in `packages/schema` is the single source. `scripts/export-schemas.ts` writes `schemas/receipt.schema.json`, which the grader validates against, and `verify:schema` fails when the two drift (D-030). The grader is installed by itself, with no `schemas/` folder beside it, so the export writes the same bytes into its package (`labs/grader/src/enginespace_grader/schemas/`), and `verify:schema` checks those copies as well. ASSESSMENT.md decides which checks each stage requires. The outline below abbreviates the schema.
 
 ```yaml
 $id: enginespace/receipt@1
@@ -1053,7 +1058,7 @@ properties:
   stage:       { pattern: '^(tr[0-8][ab]?|capstone)\.[a-z0-9-]+\.s[0-9]+$' }
   challenge:   { token, seed, nonce, issuedOn }               # the browser re-derives and compares
   createdAt:   date-time (UTC)
-  grader:      { name: enginespace-grader, version, sourceSha256 }   # hash over the package's files, sorted
+  grader:      { name: enginespace-grader, version, sourceSha256 }   # hash over the package's files, sorted: path, length and bytes of each (identity.py)
   environment: { host, gpus[], driver, python, torch, engine, engineConfig?, libs[], envVars }   # §9.5; engineConfig on engine labs
   pins:        { lockSha256, envLockSha256, onPin: boolean, offPin: [names] }
   inputs:      [{ name, kind: model|dataset|prompts|reference, revision?, sha256, bytes }]
@@ -1105,7 +1110,7 @@ TypeScript writes `schemas/vectors/*.json`, Python's tests read them, and `labs.
 | `ci.yml` | pull request | **fast-gate:** `npm ci`, lint, `tsc -b`, the content compile, every `verify:*` in §10.2, build, `verify:bundle`, export freshness. **tests:** `bun test --shard=<i>/4` (units, golden vectors, 200-seed properties, bestiaries), four jobs that together run every test file once: Bun sorts the paths and deals the files out in turn, and `tests/ci/shards.test.ts` lists each shard's files and compares their union with the suite. In one job the suite took 9 to 16 minutes on a runner [measured 2026-11-09, PR #2 to #4], and the heaviest shard has 34% of its test time [derived from the test times of a laptop run at 54d880f and of the deploy's build], so a shard is 3.5 to 5.5 minutes of tests [derived]. `deploy.yml` still runs the suite whole. **e2e-smoke:** Playwright Chromium against `vite preview`, with axe at 360 and 1280 px on 8 routes and, from W1-T36, on the 16 pages and 5 level pages that W1 added (`e2e/routes.ts`), the reduced-motion scan of the same pages and a frame count of every 3D scene, a keyboard walk of the front-page game and of one level of each W1 game (`e2e/walks.spec.ts`), the network-isolation check and screenshots uploaded as artifacts, in four shards (target under 6 min each [estimated]; unsharded, the 78 specs did not finish in 15 min on a private repository's two-core runner [measured 2026-11-04, PR #1]). Playwright cuts the sorted list of tests into four runs of equal length, so a spec's file name is its place in the plan: W1-T36's 193 tests ran as four shards of 66, 61, 75 and 98 s on a 20-core laptop [measured 2026-11-08 at df76ca9], and a runner takes about 4 to 16 times as long per test [derived from PR #1's first run], so a shard was about 11 min of test time [estimated]. The runs of PR #2 and #3 took 7 to 12 min a shard [measured 2026-11-09], with shard 4's keyboard walks at 1280 px and 2D screenshot failing or retrying on each of PR #2's three runs: the pages do not need the GPU, and the browser composed them through SwiftShader on the CPU all the same. The smoke project's browser composes on the CPU since W1b-T13 (`--disable-gpu-compositing`, `playwright.config.ts`), and the four shards ran in 82, 71, 58 and 74 s on four pinned cores of a laptop, against 206, 196, 293 and 306 s [measured 2026-11-09 at 54d880f]; a runner has not timed the change yet [unverified]. |
 | `deploy.yml` | push to `main`, and by hand | the fast gate and tests, then build, `prepare-pages`, `upload-pages-artifact` and `deploy-pages` (kernelspace's deploy) |
 | `nightly.yml` | 03:17 UTC [estimated slot], and by hand | 10,000-seed properties, with the p99's 2,000-seed bootstrap coverage (`ES_HEAVY=1`); the rejection-sampler lab's error rates at 1,500 trials a row (`ES_LAB_TRIALS`); the cross-browser determinism hash (Chromium, Firefox, WebKit); full axe at 320, 360 and 1280 px on every route; keyboard walks of every game, one for every level of the registry (`e2e/walks.spec.ts`, W1-T36); the network check and reduced-motion emulation (no animation frames after settle) on every document; the LCP, INP and CLS lab profile; claim-expiry and link-rot reports. On failure it opens or updates one issue, as kernelspace does. |
-| `labs.yml` | changes under `labs/**`, `schemas/**`, `packages/schema/**` or `packages/verify/**`, and to what `verify:labs` imports or compares: `packages/sim/**`, `src/forge/**`, `src/workers/forge.worker.ts`, `scripts/labs/**`, `scripts/verify-labs.ts`, `tests/fixtures/forge/**` and `vendor/kernelspace/**` (`tests/ci/workflows.test.ts` walks the script's imports) | **forge:** Rust 1.96.0 with wasm32, `cargo test`, wasm builds of the reference and bestiary, `verify:labs` (the reference passes host checks; the bestiary fails). **grader:** `setup-uv`, `uv sync --locked`, `python -m unittest` (CPU), `verify:schema`, `verify:vectors`, receipt fixtures pass and forgeries fail. |
+| `labs.yml` | changes under `labs/**`, `schemas/**`, `packages/schema/**` or `packages/verify/**`, and to what `verify:labs` imports or compares: `packages/sim/**`, `src/forge/**`, `src/workers/forge.worker.ts`, `scripts/labs/**`, `scripts/verify-labs.ts`, `tests/fixtures/forge/**` and `vendor/kernelspace/**` (`tests/ci/workflows.test.ts` walks the script's imports), and to the grader's synthetic bundle, `tests/fixtures/grader/**` | **forge:** Rust 1.96.0 with wasm32, `cargo test`, wasm builds of the reference and bestiary, `verify:labs` (the reference passes host checks; the bestiary fails). **grader:** `setup-uv` (with PyPI's copy of the same release when GitHub's download fails, §10.3), `uv lock --check`, `uv sync --locked`, `python -m unittest` (CPU; the Python end of `verify:vectors`), `enginespace selftest --no-suite`, `verify:schema`, `verify:vectors`, receipt fixtures pass and forgeries fail. |
 | `upstream-watch.yml` (W3) | weekly | Compares PyPI and GitHub releases with `course.lock.json` and opens an issue with draft change cards. It never merges anything, and its requests send a generic User-Agent. |
 
 **Screenshots.**
@@ -1160,6 +1165,8 @@ Bun comes from `oven-sh/setup-bun`, which downloads the release from GitHub. Tha
 - **Why:** on 2026-11-09, GitHub's release downloads answered HTTP 504 throughout a GitHub incident. Every job that needed Bun stopped at that step, the first deploys of `main` among them [measured 2026-11-09].
 - **Same build:** npm's `bun@1.3.14` reports `1.3.14+0d9b296af`, the build that GitHub's release ships [measured 2026-11-09].
 - **Enforced by:** `tests/ci/workflows.test.ts`, which holds every Bun step to this pair.
+
+uv comes from `astral-sh/setup-uv`, pinned to 0.10.2 as the table says, and the labs workflow gives it the same fallback (W2-T02). The action fetches uv from GitHub as `setup-bun` fetches Bun [unverified: the action's source was not read], so its step may fail (`continue-on-error`). When it does, the next step installs `uv==0.10.2` from PyPI into a virtual environment of its own, puts that on the path, and fails unless `uv --version` prints the pin. Nothing else installs uv: not `latest`, not an unpinned `pip install`, not a piped installer. `tests/ci/workflows.test.ts` holds every `setup-uv` step to this pair.
 
 ---
 

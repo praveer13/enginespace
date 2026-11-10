@@ -3,6 +3,10 @@
  *
  *   schemas/<name>.schema.json   the zod schemas of packages/schema that the grader validates against, as JSON Schema 2020-12:
  *                                receipt@1, bundle@1, the challenge and trace@1 (W2-T01)
+ *   labs/grader/src/enginespace_grader/schemas/<name>.schema.json
+ *                                the same four files, byte for byte, inside the grader's package (W2-T02). The grader is installed by itself, as a
+ *                                wheel or from the kit, with no schemas/ folder beside it, so it carries the copy that it validates with. Nobody
+ *                                edits a copy: this script writes it, and `verify:schema` fails on one that differs.
  *   schemas/vectors/<name>.json  the cross-language vectors that the grader's tests read: rng, subseed, challenge, canonical, sha256
  *
  *   bun scripts/export-schemas.ts [--root <dir>]            write both
@@ -50,6 +54,9 @@ export const SCHEMA_EXPORTS: readonly SchemaExport[] = [
   { file: 'schemas/trace.schema.json', schema: traceSchema, source: 'packages/schema/trace.ts' },
 ]
 
+/** Where the grader's package keeps its copy of each schema: the folder of its package data (labs/grader/pyproject.toml, W2-T02). */
+export const GRADER_SCHEMAS_DIR = 'labs/grader/src/enginespace_grader/schemas'
+
 /** "No character follows", which Python and ECMAScript read the same way. */
 export const END_OF_TEXT = '(?![\\s\\S])'
 
@@ -76,6 +83,11 @@ export function exportSchema({ schema, source }: Pick<SchemaExport, 'schema' | '
 /** The bytes of every JSON Schema file, as the code writes them now. */
 export function renderSchemas(): Rendered[] {
   return SCHEMA_EXPORTS.map((entry) => ({ file: entry.file, text: `${JSON.stringify(exportSchema(entry), null, 2)}\n` }))
+}
+
+/** The grader's copies: the bytes of `renderSchemas()` under the grader's package, one file for each schema. */
+export function renderGraderCopies(): Rendered[] {
+  return renderSchemas().map(({ file, text }) => ({ file: `${GRADER_SCHEMAS_DIR}/${path.basename(file)}`, text }))
 }
 
 /**
@@ -173,6 +185,11 @@ export function schemaDrift(root: string = DEFAULT_ROOT): string[] {
   return drift(root, renderSchemas(), 'schemas', 'a JSON Schema of packages/schema')
 }
 
+/** Drift of the grader's copies from the schemas: a copy that is missing, one that differs, and a `.json` file in the folder that nothing writes. */
+export function graderCopyDrift(root: string = DEFAULT_ROOT): string[] {
+  return drift(root, renderGraderCopies(), GRADER_SCHEMAS_DIR, "a copy of a JSON Schema that the grader's package carries")
+}
+
 /** Drift of schemas/vectors/*.json from the builders, and the number forms the files hold. */
 export function vectorDrift(root: string = DEFAULT_ROOT): string[] {
   const rendered = renderVectors()
@@ -189,7 +206,7 @@ export function writeAll(root: string = DEFAULT_ROOT): string[] {
   const refused = vectors.flatMap(({ file, text }) => numberProblems(text).map((problem) => `${file}:${problem}`))
   if (refused.length > 0) throw new Error(`export-schemas: a vector file holds a number that JavaScript and Python might read differently:\n  ${refused.join('\n  ')}`)
   const written: string[] = []
-  for (const { file, text } of [...renderSchemas(), ...vectors]) {
+  for (const { file, text } of [...renderSchemas(), ...renderGraderCopies(), ...vectors]) {
     mkdirSync(path.dirname(path.join(root, file)), { recursive: true })
     writeFileSync(path.join(root, file), text)
     written.push(file)
@@ -212,13 +229,13 @@ export function main(argv: readonly string[]): number {
     }
   }
   if (check) {
-    const problems = [...schemaDrift(root), ...exportProblems(), ...vectorDrift(root)]
+    const problems = [...schemaDrift(root), ...graderCopyDrift(root), ...exportProblems(), ...vectorDrift(root)]
     for (const problem of problems) console.error(`export-schemas: ${problem}`)
     if (problems.length > 0) {
       console.error(`export-schemas: ${problems.length} problem(s). If the change is intended, run \`bun scripts/export-schemas.ts\` and review the diff of schemas/ (D-030).`)
       return 1
     }
-    console.log(`export-schemas: ${SCHEMA_EXPORTS.length} schema(s) and ${renderVectors().length} vector file(s) are what the code writes`)
+    console.log(`export-schemas: ${SCHEMA_EXPORTS.length} schema(s), their copies in the grader, and ${renderVectors().length} vector file(s) are what the code writes`)
     return 0
   }
   const written = writeAll(root)

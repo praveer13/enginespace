@@ -1,0 +1,7 @@
+# The environment that `uv run --project labs/grader` makes, and what Python and uv write beside the code.
+.venv/
+__pycache__/
+*.py[cod]
+dist/
+build/
+*.egg-info/

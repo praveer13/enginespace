@@ -5,8 +5,10 @@ name: Labs
 #   forge   lane B: Rust to wasm. cargo test against the reference, then verify:labs. As in kernelspace's verify-labs, that gate
 #           builds the template, the reference and the bestiary for wasm itself and checks them through the host the site uses: the
 #           template traps, the reference passes, and the bestiary fails. W1-T10 builds that gate.
-#   grader  the local grader: uv sync from the lockfile, its unittest suite on the CPU, verify:schema and verify:vectors, and the
-#           receipt fixtures (the fixtures pass and the forgeries fail).
+#   grader  the local grader: uv 0.10.2, exactly, from the action or else from PyPI; the lockfile checked and synced; its unittest suite on
+#           the CPU, which reads schemas/vectors and so is the Python end of verify:vectors, and requires the synthetic bundle in
+#           tests/fixtures/grader to be what the grader writes now; the installed command's own checks; verify:schema and verify:vectors;
+#           and the receipt fixtures (the fixtures pass and the forgeries fail).
 #
 # A job switches on when its lab lands (labs/forge/Cargo.toml from W1-T10, labs/grader/pyproject.toml from W2-T02), and this
 # file does not change for that. Until then the detect job prints "pending: <task>" for the lab that is missing, and the job
@@ -32,6 +34,7 @@ on:
       - 'scripts/labs/**'
       - 'scripts/verify-labs.ts'
       - 'tests/fixtures/forge/**'
+      - 'tests/fixtures/grader/**'
       - 'vendor/kernelspace/**'
       - '.github/workflows/labs.yml'
   workflow_dispatch:
@@ -159,15 +162,36 @@ jobs:
         run: npm install --global --no-audit --no-fund "bun@$BUN_VERSION" && test "$(bun --version)" = "$BUN_VERSION"
 
       - name: Set up pinned uv
+        id: uv
+        continue-on-error: true
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           version: 0.10.2
           enable-cache: false
 
+      # setup-uv fetches uv from GitHub, as setup-bun fetches Bun [unverified: the action's source was not read], so a failed download falls back
+      # to PyPI's copy of the same release (ARCHITECTURE §10.3). The copy goes into a virtual environment of its own, and the step stops unless
+      # `uv --version` prints the pin.
+      - name: Set up pinned uv from PyPI, when GitHub's download failed
+        if: steps.uv.outcome == 'failure'
+        env:
+          UV_VERSION: 0.10.2
+        run: |
+          python3 -m venv "$RUNNER_TEMP/uv-venv"
+          "$RUNNER_TEMP/uv-venv/bin/python" -m pip install --no-input "uv==$UV_VERSION"
+          echo "$RUNNER_TEMP/uv-venv/bin" >> "$GITHUB_PATH"
+          test "$("$RUNNER_TEMP/uv-venv/bin/uv" --version | cut -d ' ' -f 2)" = "$UV_VERSION"
+
       - run: npm ci
+      - name: The grader's lockfile is current
+        run: uv lock --check --project labs/grader
       - run: uv sync --locked --project labs/grader
+      # The command is the one TRACKER names (W2-T02). uv runs it from the root of the repository, where unittest finds the tests only because
+      # labs/, labs/grader/ and labs/grader/tests/ are packages (labs/__init__.py says why).
       - name: Grader tests, on the CPU
         run: uv run --project labs/grader python -m unittest
+      - name: The installed command runs its own checks
+        run: uv run --project labs/grader enginespace selftest --no-suite
       - run: bun run verify:schema
       - run: bun run verify:vectors
 

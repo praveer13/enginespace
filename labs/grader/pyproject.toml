@@ -1,0 +1,33 @@
+# The local grader (ARCHITECTURE section 9, D-026, W2-T02): the `enginespace` command, installed with uv or with pip.
+#
+# Its core needs the standard library and one dependency, jsonschema, at the version that statespace's Bench CLI pins (ARCHITECTURE
+# section 14). The engine environments (labs/envs, W2-T04) each add this package as a path dependency. Every other package that the lock
+# holds is jsonschema's own: uv.lock pins each of them, with the hash of every wheel, and `uv sync --locked` installs from it.
+#
+# The tests use the standard library's unittest and so add nothing here. Run them from the repository root:
+#   uv run --project labs/grader python -m unittest
+#
+# requires-python is vLLM's range (ARCHITECTURE section 9.3). The lock covers all of it, whichever interpreter wrote the lock.
+#
+# There is no `license` field and no licence file, on purpose: the licence of enginespace's own code is the owner's decision (O-3, D-060),
+# and until it is made the code is all rights reserved. A field here would claim a licence that nobody has chosen. The owner's answer
+# adds the field and the file in one change, with NOTICE.
+
+[project]
+name = "enginespace-grader"
+version = "0.1.0"
+description = "The enginespace local grader: runs a lab stage on the learner's machine and writes a receipt that the browser verifies."
+readme = "README.md"
+requires-python = ">=3.11,<3.15"
+dependencies = ["jsonschema==4.26.0"]
+# The grader is served from the course site (public/labs, W2-T10) and is never uploaded to PyPI.
+classifiers = ["Private :: Do Not Upload"]
+
+[project.scripts]
+enginespace = "enginespace_grader.cli:main"
+
+# uv_build is statespace's backend and its pin (ARCHITECTURE section 14). It reads the package from src/enginespace_grader, which it
+# names from the project name, and it ships every file of that folder, the JSON Schemas in schemas/ among them.
+[build-system]
+requires = ["uv_build==0.10.2"]
+build-backend = "uv_build"
