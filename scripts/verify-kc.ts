@@ -376,11 +376,15 @@ export function checkKc(input: KcInput): { diagnostics: Diagnostic[]; stats: KcS
 /* This checkout                                                                                                      */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** The ids of docs/TRACKER.md's tasks (`#### [ ] W1-T14 · …`), or null when the file is not there. */
+/**
+ * The ids of docs/TRACKER.md's tasks (`#### [ ] W1-T14 · …`, and a carry-over wave's, `#### [=] W1b-T08 · …`), or null when the file is not there.
+ * The wave is a digit with an optional `b` after it, as TASK_ID of tests/ci/support.ts reads it, and tests/kc/verify-kc.test.ts holds the
+ * two readers to the same ids of the tracker.
+ */
 export function trackerTasks(root: string): Set<string> | null {
   const file = path.join(root, 'docs/TRACKER.md')
   if (!existsSync(file)) return null
-  return new Set([...readFileSync(file, 'utf8').matchAll(/^#### \[.\] (W\d-T\d\d) · /gm)].map((match) => match[1]))
+  return new Set([...readFileSync(file, 'utf8').matchAll(/^#### \[.\] (W\d+b?-T\d\d) · /gm)].map((match) => match[1]))
 }
 
 /** The module ids of content/course.yaml, or null when it is not there or is not a course (verify:content says what is wrong). */

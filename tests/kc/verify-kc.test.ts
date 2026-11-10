@@ -20,7 +20,7 @@ import { loadYaml } from '../../scripts/content/parse.ts'
 import { renderSnapshot } from '../../scripts/kc/kernelspace.ts'
 import { checkKc, CONFUSABLE_MAX, courseModules, dependentCounts, gameReferences, itemReferences, LABS_FILE, labReferences, readKernelspace, THRESHOLD_DEPENDENTS, trackerTasks } from '../../scripts/verify-kc.ts'
 import type { KcInput, Reference } from '../../scripts/verify-kc.ts'
-import { root } from '../ci/support'
+import { root, trackerTasks as testTasks } from '../ci/support'
 
 const scratch: string[] = []
 afterAll(() => scratch.forEach((dir) => rmSync(dir, { recursive: true, force: true })))
@@ -277,6 +277,15 @@ describe('references', () => {
     expect(said(run(wrong))).toEqual([])
   })
 
+  test('planned may name a task of W1b, whose ids the check did not read before the close-out (W1b-report §10)', () => {
+    const w1b = graphOf(kc('tr1.a', { planned: 'W1b-T08' }))
+    expect(said(run(w1b, { tasks: new Set(['W1b-T08']) }))).toEqual([])
+    const wrong = graphOf(kc('tr1.a', { planned: 'W1b-T99' }))
+    const result = run(wrong, { tasks: new Set(['W1b-T08']) })
+    expect(said(result)).toEqual([`error unknown-task ${GRAPH}:${lineOf(wrong, 'planned')}`])
+    expect(result.diagnostics[0].message).toContain('planned for W1b-T99, and docs/TRACKER.md has no such task')
+  })
+
   test('--final fails on every placeholder that remains, and says nothing of those that have no reference', () => {
     const result = run(text, { references: [item('item:gen/tr1.a', ['tr1.a']), item('item:gen/tr1.b', ['tr1.b'])], final: true })
     expect(said(result)).toEqual([`error planned-remaining ${GRAPH}:${lineOf(text, 'planned')}`])
@@ -519,6 +528,18 @@ describe('the files the gate reads beside the graph', () => {
     expect(trackerTasks(dir)).toEqual(new Set(['W1-T14', 'W0-T01']))
     expect(trackerTasks(tempDir())).toBeNull()
     expect(trackerTasks(root)?.has('W1-T03')).toBe(true)
+  })
+
+  test("trackerTasks reads the ids of a carry-over wave, W1b's, and not a heading that only looks like one", () => {
+    const dir = put(tempDir(), {
+      'docs/TRACKER.md': '## W1b\n\n#### [=] W1b-T05 · TR5a · M · sonnet\n\n#### [ ] W2-T01 · Schemas · M\n\n#### [x] W1b-T5 · One digit · S\n\n#### [ ] W1c-T01 · Another letter · S\n\nW1b-T99 is only mentioned.\n',
+    })
+    expect(trackerTasks(dir)).toEqual(new Set(['W1b-T05', 'W2-T01']))
+    expect(trackerTasks(root)?.has('W1b-T08')).toBe(true)
+  })
+
+  test("trackerTasks reads the same ids of this tracker as the tests of tests/ci do, so a wave that only one of them can read fails here", () => {
+    expect([...(trackerTasks(root) ?? [])].sort()).toEqual([...testTasks().keys()].sort())
   })
 
   test('courseModules reads the ids of course.yaml, and none when it is missing or is not a course', () => {

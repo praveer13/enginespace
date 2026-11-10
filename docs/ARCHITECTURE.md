@@ -170,7 +170,7 @@ React Router 7.18.1 in library mode: `createBrowserRouter` with a `lazy` loader 
 | `/m/:module/:lesson` | Lesson | `lesson` + the lesson's JSON; game chunks on demand | yes |
 | `/play` | Games index | `play-index` | yes |
 | `/play/:game` | One game, full screen, at any level | `game-<id>`; `scene-<id>` lazily | yes; 2D or tier 1 |
-| `/labs/:lab` | Lab page. A forge lab takes a dropped `.wasm` and shows per-check results. A GPU or local lab offers the kit download, a challenge and the receipt import. | `lab`, `forge.worker` | laptop-first; read-only on phones |
+| `/labs/:lab` | Lab page. A forge lab hands over its crate, the packer's zip, with its size, its SHA-256 and a line that checks the download (W1b-T08); it takes a dropped `.wasm` and shows per-check results. `hybrid-kv`'s page also plays the slot-baseline readout of TR5a §5 once its adapter-pages check (s5) passes (W1b-T08). A GPU or local lab offers the kit download, a challenge and the receipt import. | `lab`, `forge.worker` | laptop-first; read-only on phones |
 | `/trace-room` and `/trace-room/:trace` | The Trace Room: pinned and synthetic traces, and Gap Hunt | `trace-room` | laptop-first for the timeline viewer; Gap Hunt's graded levels also work on phones, marking by list, and count the same (ASSESSMENT §4.3) |
 | `/receipts` | Receipts: issue a challenge, import a bundle, and list receipts. A receipt's detail opens at `/receipts#<sha256>`. | `receipts`, `receipt.worker` | yes (list and detail) |
 | `/today` | Keep: spaced review of the KCs earned so far | `today` | yes |

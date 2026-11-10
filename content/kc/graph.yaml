@@ -21,8 +21,9 @@
 #                says which artifact will carry the KC. Where TRACKER.md names no builder, it is the module's content task, whose
 #                exit checks give every lesson's KCs an item.
 #                The W1 exit review (W1-T38, 2026-11-08) removed the 25 placeholders that a graded game level, an item family or a
-#                lab check answered, the labs' through packages/sim/forge/kcs.ts. The eleven that remain wait for item families that
-#                the lessons name and no W1 task built, so `bun scripts/verify-kc.ts --final` fails on them (docs/waves/W1-report.md §5).
+#                lab check answered, the labs' through packages/sim/forge/kcs.ts. Eleven stayed, for item families that the lessons
+#                name and no W1 task built (docs/waves/W1-report.md §5). W1b-T03 to W1b-T06 built those families and removed the
+#                eleven, so no KC carries `planned` now and `bun scripts/verify-kc.ts --final` passes (docs/waves/W1b-report.md §4.3).
 #
 # The edges are the curriculum's, edge for edge, and tests/kc/graph.test.ts holds the two to each other. TR2's step-calls leans on
 # TR1's vllm-lifecycle only as advice: TR2 can be taken without TR1.
