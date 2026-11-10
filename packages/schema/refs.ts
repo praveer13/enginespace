@@ -48,6 +48,12 @@ const LOCK_KEY = '[a-z0-9]+(?:[.-][a-z0-9]+)*'
 /** A claim's id (A§4.4): at least two dotted segments, as in `vllm.async-scheduling.default` and kernelspace's `hw.h100-sxm.hbm-bw`. */
 const CLAIM_ID = `${SLUG}(?:\\.${SLUG})+`
 
+/**
+ * The regex source of a stage id, without anchors or capture groups, for a schema that embeds one in a longer pattern: the challenge token
+ * of A§8.4 is `es1:<stage>:…` (challenge.ts), and its export to the grader's JSON Schema has to say the same stage as `stageIdSchema` does.
+ */
+export const STAGE_ID_SOURCE = STAGE
+
 function pattern(source: string, message: string) {
   return z.string().regex(new RegExp(`^${source}$`), message)
 }

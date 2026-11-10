@@ -1,0 +1,272 @@
+{
+  "spec": "enginespace/vectors-challenge@1",
+  "description": "The challenge token es1:<lab>.<stage>:<seed>:<nonce>:<issued>:<checksum> (ARCHITECTURE section 8.4, D-027), and the receipt's challenge object. A port reads a token the way packages/schema/challenge.ts does.",
+  "reading": [
+    "A \"token\" vector gives a token that must be accepted, with what a port reads from it: \"stage\", \"seed\" (the 8 hex digits of \"seedHex\" as an unsigned integer), \"nonce\", \"issuedOn\" (YYYYMMDD) and \"checksum\". \"body\" is the token's text up to the last colon, and \"checksum\" is the 32-bit FNV-1a hash of \"body\" (hash32, subseed.json) as 8 lower-case hex digits. \"firstDraws\" are the first draws of splitmix32u(seed), which ties the seed to the stream of rng.json.",
+    "The grammar, read whole with no text around it (Python: fullmatch, never a search, and never $ which also matches before a final newline): the tag \"es1\"; a stage id, which is a module (tr0 to tr8 with an optional a or b after the digit, or \"capstone\"), a dot, lower-case words joined by single hyphens, \".s\" and digits; 8 lower-case hex digits; 16 characters of A to Z and 2 to 7; 8 digits; 8 lower-case hex digits. The date must be a day of the Gregorian calendar, in years 1 to 9999 (a year is a leap year when 4 divides it, and 100 does not unless 400 does).",
+    "A \"refused\" vector gives a token that must be refused, each wrong in one way only, with a checksum that is right for its text except where the checksum is the fault. A \"challenge-object\" vector gives a receipt's challenge object: \"valid\" says whether it is accepted, which needs exactly the keys token, seed, nonce and issuedOn, the seed an unsigned 32-bit integer, a good token, and the seed, nonce and issue date that the token carries."
+  ],
+  "source": "scripts/schemas/challenge-vectors.ts; bun scripts/export-schemas.ts writes it",
+  "oracle": "packages/schema/challenge.ts; the refused tokens are made by hand from a good body, and the builder checks that the codec refuses each",
+  "vectors": [
+    {
+      "id": "valid-seed-0",
+      "note": "seed 0 is 8 zeros",
+      "fn": "token",
+      "token": "es1:tr0.forward.s1:00000000:AAAAAAAAAAAAAAAA:20260101:43352549",
+      "stage": "tr0.forward.s1",
+      "seed": 0,
+      "seedHex": "00000000",
+      "nonce": "AAAAAAAAAAAAAAAA",
+      "issuedOn": "20260101",
+      "body": "es1:tr0.forward.s1:00000000:AAAAAAAAAAAAAAAA:20260101",
+      "checksum": "43352549",
+      "firstDraws": [1684164658, 3653269916, 2939563536, 2141751570]
+    },
+    {
+      "id": "valid-seed-0xffffffff",
+      "note": "the largest seed is 8 f's, and a reader must not take it as a negative number",
+      "fn": "token",
+      "token": "es1:tr8.replay.s2:ffffffff:7777777777777777:20261231:b5a7283b",
+      "stage": "tr8.replay.s2",
+      "seed": 4294967295,
+      "seedHex": "ffffffff",
+      "nonce": "7777777777777777",
+      "issuedOn": "20261231",
+      "body": "es1:tr8.replay.s2:ffffffff:7777777777777777:20261231",
+      "checksum": "b5a7283b",
+      "firstDraws": [3950124170, 4293442868, 1302505678, 2762329221]
+    },
+    {
+      "id": "valid-ledger-fixture",
+      "note": "the token that the ledger's tests use, with the checksum that this codec computes for it",
+      "fn": "token",
+      "token": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:20261104:16eee4ae",
+      "stage": "tr8.replay.s2",
+      "seed": 195936478,
+      "seedHex": "0badc0de",
+      "nonce": "ABCDEFGHJKLMNPQR",
+      "issuedOn": "20261104",
+      "body": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:20261104",
+      "checksum": "16eee4ae",
+      "firstDraws": [871029999, 2315059555, 3551388389, 3093556492]
+    },
+    {
+      "id": "valid-seed-0x80000000",
+      "note": "the smallest seed that a signed 32-bit integer cannot hold",
+      "fn": "token",
+      "token": "es1:tr5b.connector.s3:80000000:A2B3C4D5E6F7G2H3:20280229:d83fd57b",
+      "stage": "tr5b.connector.s3",
+      "seed": 2147483648,
+      "seedHex": "80000000",
+      "nonce": "A2B3C4D5E6F7G2H3",
+      "issuedOn": "20280229",
+      "body": "es1:tr5b.connector.s3:80000000:A2B3C4D5E6F7G2H3:20280229",
+      "checksum": "d83fd57b",
+      "firstDraws": [2241709437, 3944143666, 3411218436, 3540427171]
+    },
+    {
+      "id": "valid-seed-0x7fffffff",
+      "fn": "token",
+      "token": "es1:tr3.profile.s5:7fffffff:MFRGGZDFMZTWQ2LK:20260630:413cf005",
+      "stage": "tr3.profile.s5",
+      "seed": 2147483647,
+      "seedHex": "7fffffff",
+      "nonce": "MFRGGZDFMZTWQ2LK",
+      "issuedOn": "20260630",
+      "body": "es1:tr3.profile.s5:7fffffff:MFRGGZDFMZTWQ2LK:20260630",
+      "checksum": "413cf005",
+      "firstDraws": [4248582883, 4262198461, 1289980769, 2026769080]
+    },
+    {
+      "id": "valid-capstone-and-leap-day",
+      "note": "2024-02-29 is a real day",
+      "fn": "token",
+      "token": "es1:capstone.pair.s1:00000001:ZYXWVUTSRQPONMLK:20240229:d4551eff",
+      "stage": "capstone.pair.s1",
+      "seed": 1,
+      "seedHex": "00000001",
+      "nonce": "ZYXWVUTSRQPONMLK",
+      "issuedOn": "20240229",
+      "body": "es1:capstone.pair.s1:00000001:ZYXWVUTSRQPONMLK:20240229",
+      "checksum": "d4551eff",
+      "firstDraws": [1580013426, 350525680, 3524174333, 3011703609]
+    },
+    {
+      "id": "valid-two-digit-stage-number",
+      "fn": "token",
+      "token": "es1:tr6.proposer.s10:12345678:BBBBBBBBBBBBBBBB:20260715:7cc4227d",
+      "stage": "tr6.proposer.s10",
+      "seed": 305419896,
+      "seedHex": "12345678",
+      "nonce": "BBBBBBBBBBBBBBBB",
+      "issuedOn": "20260715",
+      "body": "es1:tr6.proposer.s10:12345678:BBBBBBBBBBBBBBBB:20260715",
+      "checksum": "7cc4227d",
+      "firstDraws": [2986037511, 744488920, 2204577711, 2810942300]
+    },
+    {
+      "id": "valid-hyphenated-lab",
+      "fn": "token",
+      "token": "es1:tr1.nano-vllm.s2:deadbeef:Q2Q2Q2Q2Q2Q2Q2Q2:20261009:5540057a",
+      "stage": "tr1.nano-vllm.s2",
+      "seed": 3735928559,
+      "seedHex": "deadbeef",
+      "nonce": "Q2Q2Q2Q2Q2Q2Q2Q2",
+      "issuedOn": "20261009",
+      "body": "es1:tr1.nano-vllm.s2:deadbeef:Q2Q2Q2Q2Q2Q2Q2Q2:20261009",
+      "checksum": "5540057a",
+      "firstDraws": [46217145, 304148291, 1711218402, 2692075039]
+    },
+    {
+      "id": "valid-last-day-of-9999",
+      "note": "years run from 1 to 9999",
+      "fn": "token",
+      "token": "es1:tr4.sweep.s4:0000002a:LLLLLLLLLLLLLLLL:99991231:d06a13c5",
+      "stage": "tr4.sweep.s4",
+      "seed": 42,
+      "seedHex": "0000002a",
+      "nonce": "LLLLLLLLLLLLLLLL",
+      "issuedOn": "99991231",
+      "body": "es1:tr4.sweep.s4:0000002a:LLLLLLLLLLLLLLLL:99991231",
+      "checksum": "d06a13c5",
+      "firstDraws": [551831576, 144025891, 322543647, 3034809370]
+    },
+    {
+      "id": "valid-first-day-of-year-1",
+      "fn": "token",
+      "token": "es1:tr7.reproduce.s1:00000007:MMMMMMMMMMMMMMMM:00010101:a0fefb52",
+      "stage": "tr7.reproduce.s1",
+      "seed": 7,
+      "seedHex": "00000007",
+      "nonce": "MMMMMMMMMMMMMMMM",
+      "issuedOn": "00010101",
+      "body": "es1:tr7.reproduce.s1:00000007:MMMMMMMMMMMMMMMM:00010101",
+      "checksum": "a0fefb52",
+      "firstDraws": [3838393609, 4210744933, 801465066, 1648156487]
+    },
+    {"id": "refused-empty", "note": "nothing", "fn": "refused", "token": ""},
+    {"id": "refused-words", "note": "not a token at all", "fn": "refused", "token": "hello"},
+    {"id": "refused-tag-es2", "note": "a tag this codec does not know: a change of format is a new tag", "fn": "refused", "token": "es2:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:20261104:9c2b86ed"},
+    {"id": "refused-tag-upper-case", "note": "the tag is lower case", "fn": "refused", "token": "ES1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:20261104:0f47f8ee"},
+    {"id": "refused-stage-without-number", "note": "a lab, not a stage", "fn": "refused", "token": "es1:tr8.replay:0badc0de:ABCDEFGHJKLMNPQR:20261104:fa0e2265"},
+    {"id": "refused-stage-number-missing-digits", "note": "the stage number has no digits", "fn": "refused", "token": "es1:tr8.replay.s:0badc0de:ABCDEFGHJKLMNPQR:20261104:262e805c"},
+    {"id": "refused-stage-module-tr9", "note": "there is no module tr9", "fn": "refused", "token": "es1:tr9.replay.s1:0badc0de:ABCDEFGHJKLMNPQR:20261104:60c2c22c"},
+    {"id": "refused-stage-upper-case", "note": "a stage is lower case", "fn": "refused", "token": "es1:TR8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:20261104:8b43182e"},
+    {"id": "refused-stage-double-hyphen", "note": "words of a stage are joined by single hyphens", "fn": "refused", "token": "es1:tr8.re--play.s2:0badc0de:ABCDEFGHJKLMNPQR:20261104:f8a7d314"},
+    {"id": "refused-seed-7-digits", "note": "the seed is 8 hex digits", "fn": "refused", "token": "es1:tr8.replay.s2:0badc0d:ABCDEFGHJKLMNPQR:20261104:98c548a9"},
+    {"id": "refused-seed-9-digits", "note": "the seed is 8 hex digits", "fn": "refused", "token": "es1:tr8.replay.s2:00badc0de:ABCDEFGHJKLMNPQR:20261104:e32bbfea"},
+    {"id": "refused-seed-upper-case", "note": "the seed is lower-case hex", "fn": "refused", "token": "es1:tr8.replay.s2:0BADC0DE:ABCDEFGHJKLMNPQR:20261104:36df2dae"},
+    {"id": "refused-seed-not-hex", "note": "g is not a hex digit", "fn": "refused", "token": "es1:tr8.replay.s2:0badc0dg:ABCDEFGHJKLMNPQR:20261104:f6af7d24"},
+    {"id": "refused-nonce-15-characters", "note": "a nonce is 16 characters", "fn": "refused", "token": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQ:20261104:75904ebc"},
+    {"id": "refused-nonce-17-characters", "note": "a nonce is 16 characters", "fn": "refused", "token": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQRA:20261104:2b90446b"},
+    {"id": "refused-nonce-lower-case", "note": "the base32 alphabet is upper case", "fn": "refused", "token": "es1:tr8.replay.s2:0badc0de:abcdefghjklmnpqr:20261104:3be18c2e"},
+    {"id": "refused-nonce-digit-0", "note": "0 is not in the base32 alphabet (2 to 7 are)", "fn": "refused", "token": "es1:tr8.replay.s2:0badc0de:0BCDEFGHJKLMNPQR:20261104:1280357d"},
+    {"id": "refused-nonce-digit-1", "note": "1 is not in the base32 alphabet", "fn": "refused", "token": "es1:tr8.replay.s2:0badc0de:1BCDEFGHJKLMNPQR:20261104:7913ff3e"},
+    {"id": "refused-nonce-digit-8", "note": "8 is not in the base32 alphabet", "fn": "refused", "token": "es1:tr8.replay.s2:0badc0de:8BCDEFGHJKLMNPQR:20261104:142218d5"},
+    {"id": "refused-nonce-digit-9", "note": "9 is not in the base32 alphabet", "fn": "refused", "token": "es1:tr8.replay.s2:0badc0de:9BCDEFGHJKLMNPQR:20261104:54ae5af6"},
+    {"id": "refused-nonce-padding", "note": "a nonce is 16 characters of the alphabet and no padding", "fn": "refused", "token": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQ=:20261104:44ad4ec1"},
+    {"id": "refused-date-month-13", "note": "there is no month 13", "fn": "refused", "token": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:20261301:3ec05297"},
+    {"id": "refused-date-month-0", "note": "there is no month 0", "fn": "refused", "token": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:20260001:6730e1c7"},
+    {"id": "refused-date-day-0", "note": "there is no day 0", "fn": "refused", "token": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:20260100:c605487f"},
+    {"id": "refused-date-april-31", "note": "April has 30 days", "fn": "refused", "token": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:20260431:9beccdd0"},
+    {"id": "refused-date-feb-29-in-2023", "note": "2023 is not a leap year", "fn": "refused", "token": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:20230229:a6d50918"},
+    {
+      "id": "refused-date-feb-29-in-2100",
+      "note": "2100 is divisible by 100 and not by 400, so it is not a leap year",
+      "fn": "refused",
+      "token": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:21000229:6bbb8bc4"
+    },
+    {"id": "refused-date-year-0", "note": "years run from 1", "fn": "refused", "token": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:00000101:0bdb8896"},
+    {"id": "refused-date-with-hyphens", "note": "the date is 8 digits", "fn": "refused", "token": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:2026-11-04:d9c013dc"},
+    {"id": "refused-date-7-digits", "note": "the date is 8 digits", "fn": "refused", "token": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:2026110:b76aad6e"},
+    {"id": "refused-checksum-one-digit-off", "note": "the checksum does not match the text before it", "fn": "refused", "token": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:20261104:16eee4a0"},
+    {"id": "refused-checksum-upper-case", "note": "the checksum is lower-case hex", "fn": "refused", "token": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:20261104:16EEE4AE"},
+    {"id": "refused-checksum-7-digits", "note": "the checksum is 8 hex digits", "fn": "refused", "token": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:20261104:16eee4a"},
+    {
+      "id": "refused-checksum-of-the-wrong-text",
+      "note": "the checksum is of the text before the last colon, with the colon left out",
+      "fn": "refused",
+      "token": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:20261104:20c65ad4"
+    },
+    {
+      "id": "refused-checksum-of-the-text-with-its-colon",
+      "note": "the checksum is of the text before the last colon, and not of the text with that colon",
+      "fn": "refused",
+      "token": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:20261104:ae11d4fc"
+    },
+    {"id": "refused-no-checksum", "note": "the last field is missing", "fn": "refused", "token": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:20261104"},
+    {"id": "refused-empty-checksum", "note": "the last field is empty", "fn": "refused", "token": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:20261104:"},
+    {"id": "refused-extra-field", "note": "a sixth field after the checksum", "fn": "refused", "token": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:20261104:16eee4ae:extra"},
+    {
+      "id": "refused-trailing-newline",
+      "note": "a token is read whole: Python's $ would let a final newline pass, so a port matches the whole text",
+      "fn": "refused",
+      "token": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:20261104:16eee4ae\n"
+    },
+    {
+      "id": "refused-leading-space",
+      "note": "a token is read whole, and the caller trims what the learner pasted",
+      "fn": "refused",
+      "token": " es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:20261104:16eee4ae"
+    },
+    {"id": "refused-trailing-space", "note": "a token is read whole", "fn": "refused", "token": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:20261104:16eee4ae "},
+    {"id": "refused-inner-space", "note": "no space inside", "fn": "refused", "token": "es1:tr8.replay.s2:0badc0de: ABCDEFGHJKLMNPQR:20261104:16eee4ae"},
+    {
+      "id": "challenge-object-agrees",
+      "note": "the parts are the token's own",
+      "fn": "object",
+      "value": {"token": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:20261104:16eee4ae", "seed": 195936478, "nonce": "ABCDEFGHJKLMNPQR", "issuedOn": "20261104"},
+      "valid": true
+    },
+    {
+      "id": "challenge-object-seed-differs",
+      "note": "the seed is not the token's",
+      "fn": "object",
+      "value": {"token": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:20261104:16eee4ae", "seed": 195936479, "nonce": "ABCDEFGHJKLMNPQR", "issuedOn": "20261104"},
+      "valid": false
+    },
+    {
+      "id": "challenge-object-nonce-differs",
+      "note": "the nonce is not the token's",
+      "fn": "object",
+      "value": {"token": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:20261104:16eee4ae", "seed": 195936478, "nonce": "AAAAAAAAAAAAAAAA", "issuedOn": "20261104"},
+      "valid": false
+    },
+    {
+      "id": "challenge-object-date-differs",
+      "note": "the issue date is not the token's",
+      "fn": "object",
+      "value": {"token": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:20261104:16eee4ae", "seed": 195936478, "nonce": "ABCDEFGHJKLMNPQR", "issuedOn": "20261105"},
+      "valid": false
+    },
+    {
+      "id": "challenge-object-token-bad-checksum",
+      "note": "the token's checksum is wrong",
+      "fn": "object",
+      "value": {"token": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:20261104:16eee4a0", "seed": 195936478, "nonce": "ABCDEFGHJKLMNPQR", "issuedOn": "20261104"},
+      "valid": false
+    },
+    {
+      "id": "challenge-object-seed-above-32-bits",
+      "note": "the seed does not fit 32 bits",
+      "fn": "object",
+      "value": {"token": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:20261104:16eee4ae", "seed": 4294967296, "nonce": "ABCDEFGHJKLMNPQR", "issuedOn": "20261104"},
+      "valid": false
+    },
+    {
+      "id": "challenge-object-extra-key",
+      "note": "a receipt's challenge has these four fields and no other",
+      "fn": "object",
+      "value": {"token": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:20261104:16eee4ae", "seed": 195936478, "nonce": "ABCDEFGHJKLMNPQR", "issuedOn": "20261104", "checksum": "abcdef01"},
+      "valid": false
+    },
+    {
+      "id": "challenge-object-missing-key",
+      "note": "a receipt's challenge has these four fields",
+      "fn": "object",
+      "value": {"token": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:20261104:16eee4ae", "seed": 195936478, "nonce": "ABCDEFGHJKLMNPQR"},
+      "valid": false
+    }
+  ]
+}
