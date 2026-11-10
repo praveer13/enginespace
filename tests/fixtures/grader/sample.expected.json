@@ -1,0 +1,10 @@
+{
+  "artifactsInBundle": [
+    "trace",
+    "log"
+  ],
+  "artifactsKept": [
+    "capture"
+  ],
+  "receiptSha256": "0adb7c80785d9a8207a1a8aa1a8cae5d3bd8f27b6343cce7621609c1af736e7e"
+}

@@ -7,6 +7,8 @@
  * It fails when
  *   - a schema file is missing, or differs from what `z.toJSONSchema` writes now (the first line that differs is named);
  *   - a `.json` file at the top of schemas/ is one that nothing writes;
+ *   - the same holds for the copy that the grader's package carries of each schema (W2-T02), because the grader is installed alone and
+ *     validates with that copy, so a copy that lags is a grader that accepts what the site refuses;
  *   - an exported schema could not be read as the site reads it: a pattern whose meaning differs between ECMAScript and Python's `re`, or
  *     an object that leaves its keys open.
  * `bun scripts/export-schemas.ts` rewrites the files. A change to a schema is reviewed as the diff of schemas/*.schema.json beside it.
@@ -14,7 +16,7 @@
  * Exit status: 0 when nothing is wrong, 1 when something is, 2 for a usage error.
  */
 import path from 'node:path'
-import { exportProblems, SCHEMA_EXPORTS, schemaDrift } from './export-schemas.ts'
+import { exportProblems, graderCopyDrift, SCHEMA_EXPORTS, schemaDrift } from './export-schemas.ts'
 
 const DEFAULT_ROOT = path.resolve(import.meta.dirname, '..')
 
@@ -30,13 +32,13 @@ export function main(argv: readonly string[]): number {
       return 2
     }
   }
-  const problems = [...schemaDrift(root), ...exportProblems()]
+  const problems = [...schemaDrift(root), ...graderCopyDrift(root), ...exportProblems()]
   for (const problem of problems) console.error(`verify:schema: ${problem}`)
   if (problems.length > 0) {
     console.error(`verify:schema failed: ${problems.length} problem(s). If the change is intended, run \`bun scripts/export-schemas.ts\` and review the diff of schemas/ (D-030).`)
     return 1
   }
-  console.log(`verify:schema passed: ${SCHEMA_EXPORTS.length} JSON Schemas are what the zod schemas of packages/schema export`)
+  console.log(`verify:schema passed: ${SCHEMA_EXPORTS.length} JSON Schemas, and the grader's copy of each, are what the zod schemas of packages/schema export`)
   return 0
 }
 

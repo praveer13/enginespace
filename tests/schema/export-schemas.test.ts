@@ -4,6 +4,8 @@
  *   Accept 1: the export is deterministic, and a drift fails.
  *     - Two exports in one process, and two in processes of their own, write the same bytes, and they are the bytes that are committed.
  *     - A schema file that differs by one byte, one that is missing and one that nothing writes each fail verify:schema, naming the file.
+ *   And, from W2-T02, the grader's copies: the grader is installed alone, so its package carries a copy of each schema (the copy it validates
+ *   with), the export writes it, and verify:schema fails on a copy that is missing, that differs, or that nothing writes.
  *   And what the export promises the grader:
  *     - every pattern that Python's `re` reads differently from ECMAScript is found, and the ones exported are not those;
  *     - the end-of-text test that replaces `$` means the same as `$` in ECMAScript on every string, and refuses a final newline in both;
@@ -15,7 +17,19 @@ import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, wri
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { z } from 'zod'
-import { END_OF_TEXT, SCHEMA_EXPORTS, exportProblems, exportSchema, patternProblem, portabilityProblems, renderSchemas, schemaDrift } from '../../scripts/export-schemas'
+import {
+  END_OF_TEXT,
+  GRADER_SCHEMAS_DIR,
+  SCHEMA_EXPORTS,
+  exportProblems,
+  exportSchema,
+  graderCopyDrift,
+  patternProblem,
+  portabilityProblems,
+  renderGraderCopies,
+  renderSchemas,
+  schemaDrift,
+} from '../../scripts/export-schemas'
 import { main as verifySchema } from '../../scripts/verify-schema'
 import { bundleSchema } from '@es/schema/bundle'
 import { challengeSchema } from '@es/schema/challenge'
@@ -48,10 +62,11 @@ function run(script: string, ...args: string[]) {
   return { status: result.status, out: result.stdout, err: result.stderr }
 }
 
-/** A copy of the committed schemas/ in a folder of its own. */
+/** A copy of the committed schemas/ in a folder of its own, with the grader's copies of them where the grader keeps them. */
 function copyOfSchemas(): string {
   const dir = tempRoot()
   cpSync(path.join(root, 'schemas'), path.join(dir, 'schemas'), { recursive: true })
+  cpSync(path.join(root, GRADER_SCHEMAS_DIR), path.join(dir, GRADER_SCHEMAS_DIR), { recursive: true })
   return dir
 }
 
@@ -84,7 +99,7 @@ describe('the export is deterministic', () => {
 
   test('is exactly what verify:schema reads: the command line passes on the tree, and the schemas it covers are the four of A§9.6', () => {
     const { status, out } = run('scripts/verify-schema.ts')
-    expect([status, out.trim()]).toEqual([0, 'verify:schema passed: 4 JSON Schemas are what the zod schemas of packages/schema export'])
+    expect([status, out.trim()]).toEqual([0, "verify:schema passed: 4 JSON Schemas, and the grader's copy of each, are what the zod schemas of packages/schema export"])
     expect(SCHEMA_EXPORTS.map((entry) => entry.schema)).toEqual([receiptSchema, bundleSchema, challengeSchema, traceSchema])
   })
 })
@@ -137,10 +152,13 @@ describe('a drift fails verify:schema', () => {
     expect(schemaDrift(copyOfSchemas())).toEqual([])
   })
 
-  test('a folder with no schemas fails once for each file', () => {
+  test('a folder with no schemas fails once for each file, and once more for each copy of the grader', () => {
     const dir = tempRoot()
     expect(schemaDrift(dir)).toHaveLength(4)
-    expect(gate(dir).status).toBe(1)
+    expect(graderCopyDrift(dir)).toHaveLength(4)
+    const { status, said } = gate(dir)
+    expect(status).toBe(1)
+    expect(said).toContain('verify:schema failed: 8 problem(s)')
   })
 
   test('a usage error is 2, and --check on the export reports the same drift', () => {
@@ -152,6 +170,73 @@ describe('a drift fails verify:schema', () => {
     expect(status).toBe(1)
     expect(err).toContain('schemas/bundle.schema.json is not what the code writes')
     expect(run('scripts/export-schemas.ts', '--nope').status).toBe(2)
+  })
+})
+
+describe("the grader's copies of the schemas (W2-T02)", () => {
+  /** The grader's package carries these, and its `schemas.py` loads them: pyproject.toml ships every file of src/enginespace_grader. */
+  const names = ['receipt.schema.json', 'bundle.schema.json', 'challenge.schema.json', 'trace.schema.json']
+
+  function gate(dir: string) {
+    const result = run('scripts/verify-schema.ts', '--root', dir)
+    return { status: result.status, said: result.err }
+  }
+
+  test('are the schemas, byte for byte, in the folder of the grader’s package data, and the committed copies are those bytes', () => {
+    expect(GRADER_SCHEMAS_DIR).toBe('labs/grader/src/enginespace_grader/schemas')
+    expect(renderGraderCopies().map(({ file }) => file)).toEqual(names.map((name) => `${GRADER_SCHEMAS_DIR}/${name}`))
+    const schemas = renderSchemas()
+    renderGraderCopies().forEach(({ file, text }, at) => {
+      expect([file, text === schemas[at].text]).toEqual([file, true])
+      expect([file, read(file) === text, read(file) === read(schemas[at].file)]).toEqual([file, true, true])
+    })
+    expect(readdirSync(path.join(root, GRADER_SCHEMAS_DIR)).sort()).toEqual([...names].sort())
+    expect(graderCopyDrift(root)).toEqual([])
+  })
+
+  test('are written by the export into a root of its own, beside the schemas', () => {
+    const dir = tempRoot()
+    const { status, out } = run('scripts/export-schemas.ts', '--root', dir)
+    expect(status).toBe(0)
+    expect(out).toContain(GRADER_SCHEMAS_DIR)
+    for (const name of names) expect([name, readFileSync(path.join(dir, GRADER_SCHEMAS_DIR, name), 'utf8') === read(`${GRADER_SCHEMAS_DIR}/${name}`)]).toEqual([name, true])
+    expect(run('scripts/export-schemas.ts', '--check', '--root', dir).status).toBe(0)
+  })
+
+  test('that differ by a character fail verify:schema, naming the copy and the first line that differs', () => {
+    const dir = copyOfSchemas()
+    const file = path.join(dir, GRADER_SCHEMAS_DIR, 'receipt.schema.json')
+    writeFileSync(file, readFileSync(file, 'utf8').replace('"maxItems": 64', '"maxItems": 65'))
+    const { status, said } = gate(dir)
+    expect(status).toBe(1)
+    expect(said).toContain(`verify:schema: ${GRADER_SCHEMAS_DIR}/receipt.schema.json is not what the code writes (line `)
+    expect(said).toContain('maxItems')
+    expect(said).toContain('verify:schema failed: 1 problem(s)')
+    // The schemas themselves are fine, and so are the other copies.
+    expect(schemaDrift(dir)).toEqual([])
+    expect(graderCopyDrift(dir)).toHaveLength(1)
+  })
+
+  test('that are missing fail, and so does a json file in their folder that nothing writes', () => {
+    const missing = copyOfSchemas()
+    rmSync(path.join(missing, GRADER_SCHEMAS_DIR, 'trace.schema.json'))
+    expect(gate(missing).said).toContain(`${GRADER_SCHEMAS_DIR}/trace.schema.json is missing`)
+    expect(gate(missing).status).toBe(1)
+
+    const stray = copyOfSchemas()
+    writeFileSync(path.join(stray, GRADER_SCHEMAS_DIR, 'old.schema.json'), '{}\n')
+    const { status, said } = gate(stray)
+    expect(status).toBe(1)
+    expect(said).toContain(`${GRADER_SCHEMAS_DIR}/old.schema.json is not a copy of a JSON Schema that the grader's package carries that anything writes`)
+  })
+
+  test('are checked by --check as well', () => {
+    const dir = copyOfSchemas()
+    const file = path.join(dir, GRADER_SCHEMAS_DIR, 'challenge.schema.json')
+    writeFileSync(file, readFileSync(file, 'utf8').replace('"title"', '"titel"'))
+    const { status, err } = run('scripts/export-schemas.ts', '--check', '--root', dir)
+    expect(status).toBe(1)
+    expect(err).toContain(`${GRADER_SCHEMAS_DIR}/challenge.schema.json is not what the code writes`)
   })
 })
 

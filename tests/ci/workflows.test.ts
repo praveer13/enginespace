@@ -21,7 +21,7 @@ import path from 'node:path'
 import { load } from 'js-yaml'
 import { GATE_NAMES, GATES } from '../../scripts/verify'
 import { checkBoundaries } from '../../scripts/verify-boundaries'
-import { BUN_FALLBACK, TASK_ID, backticked, between, ciTestShards, markedTasks, read, root, tableRows, taskHeadings, trackerTasks } from './support'
+import { BUN_FALLBACK, TASK_ID, UV_FALLBACK, backticked, between, ciTestShards, markedTasks, read, root, tableRows, taskHeadings, trackerTasks } from './support'
 
 interface Step {
   name?: string
@@ -72,7 +72,7 @@ const workflow = (file: string) => workflows.get(file) as Workflow
 const jobsOf = (file: string) => Object.entries(workflow(file).jobs ?? {})
 const stepsOf = (file: string, job: string) => workflow(file).jobs?.[job]?.steps ?? []
 const runsOf = (file: string, job: string) =>
-  stepsOf(file, job).flatMap((step) => (step.run === undefined || step.if === BUN_FALLBACK ? [] : [step.run.trim()]))
+  stepsOf(file, job).flatMap((step) => (step.run === undefined || step.if === BUN_FALLBACK || step.if === UV_FALLBACK ? [] : [step.run.trim()]))
 const allSteps = () => files.flatMap((file) => jobsOf(file).flatMap(([job, { steps = [] }]) => steps.map((step) => ({ file, job, step }))))
 
 /** ARCHITECTURE §10.3: the actions with their SHAs and releases, and the tools with their versions. */
@@ -178,6 +178,56 @@ describe('the actions and tools (§10.3)', () => {
     }
     expect(count).toBeGreaterThan(0)
     expect(problems).toEqual([])
+  })
+})
+
+describe("uv and the grader's pins in the labs workflow (W2-T02): uv 0.10.2 exactly, from the action or else from PyPI", () => {
+  const pip = [
+    'python3 -m venv "$RUNNER_TEMP/uv-venv"',
+    '"$RUNNER_TEMP/uv-venv/bin/python" -m pip install --no-input "uv==$UV_VERSION"',
+    'echo "$RUNNER_TEMP/uv-venv/bin" >> "$GITHUB_PATH"',
+    'test "$("$RUNNER_TEMP/uv-venv/bin/uv" --version | cut -d \' \' -f 2)" = "$UV_VERSION"',
+  ].join('\n')
+
+  test("every uv step falls back to PyPI's copy of the same release when GitHub's download fails, and checks the version it got", () => {
+    const problems: string[] = []
+    let count = 0
+    for (const file of files) {
+      for (const [job, { steps = [] }] of jobsOf(file)) {
+        steps.forEach((step, index) => {
+          if (!step.uses?.startsWith('astral-sh/setup-uv@')) return
+          count += 1
+          const at = `${file}/${job}`
+          if (step.id !== 'uv' || step['continue-on-error'] !== true) problems.push(`${at}: setup-uv needs id: uv and continue-on-error: true`)
+          const next = steps[index + 1]
+          if (next?.if !== UV_FALLBACK) return void problems.push(`${at}: the step after setup-uv is not the fallback that runs when it failed`)
+          if (next.env?.UV_VERSION !== tool('uv')) problems.push(`${at}: the fallback installs uv ${next.env?.UV_VERSION}, but §10.3 pins ${tool('uv')}`)
+          if (next.run?.trim() !== pip) problems.push(`${at}: the fallback runs "${next.run?.trim()}", not the pinned install with its version check`)
+        })
+      }
+    }
+    expect(count).toBeGreaterThan(0)
+    expect(problems).toEqual([])
+  })
+
+  test('nothing installs uv any other way: no `latest`, no unpinned pip install, no piped installer, and every version input is the pin', () => {
+    const scripts = allSteps().flatMap(({ file, job, step }) => (step.run === undefined ? [] : [{ at: `${file}/${job}`, run: step.run }]))
+    const mentions = scripts.filter(({ run }) => /\buv\b/.test(run) && /install/.test(run))
+    // The fallback is the one step that installs it, and it pins it through UV_VERSION.
+    expect(mentions.map(({ run }) => run.trim())).toEqual([pip])
+    for (const { run } of scripts) expect(run).not.toMatch(/curl[^\n]*\|\s*(?:ba)?sh/)
+    for (const { step } of allSteps().filter(({ step }) => step.uses?.startsWith('astral-sh/setup-uv@'))) {
+      expect(String(step.with?.version)).toBe(tool('uv'))
+      expect(String(step.with?.version)).toMatch(/^\d+\.\d+\.\d+$/)
+      expect(step.with?.['version-file']).toBeUndefined()
+    }
+  })
+
+  test("the grader's pins are TRACKER's and statespace's: uv_build 0.10.2 builds it, and jsonschema 4.26.0 is its one dependency", () => {
+    expect(tool('uv')).toBe('0.10.2')
+    const pyproject = read('labs/grader/pyproject.toml')
+    expect(pyproject).toContain('requires = ["uv_build==0.10.2"]')
+    expect(pyproject).toContain('dependencies = ["jsonschema==4.26.0"]')
   })
 })
 
@@ -422,7 +472,7 @@ describe('labs.yml (§10.1)', () => {
     })
   }
 
-  test('runs for a change to what the lab gates read, and by hand: the labs, the schemas and the receipt rules (W0-T04), and what verify:labs imports and compares (W1b-T13)', () => {
+  test('runs for a change to what the lab gates read, and by hand: the labs, the schemas and the receipt rules (W0-T04), what verify:labs imports and compares (W1b-T13), and the grader\'s fixture (W2-T02)', () => {
     expect(labsPaths).toEqual([
       'labs/**',
       'schemas/**',
@@ -434,6 +484,7 @@ describe('labs.yml (§10.1)', () => {
       'scripts/labs/**',
       'scripts/verify-labs.ts',
       'tests/fixtures/forge/**',
+      'tests/fixtures/grader/**',
       'vendor/kernelspace/**',
       '.github/workflows/labs.yml',
     ])
@@ -483,6 +534,32 @@ describe('labs.yml (§10.1)', () => {
     expect(grader).toContain('uv run --project labs/grader python -m unittest')
     expect(grader).toContain('bun run verify:schema')
     expect(grader).toContain('bun run verify:vectors')
+  })
+
+  test('the grader job (W2-T02) checks the lock, syncs from it, runs the tests as TRACKER words the command, runs the installed command, and then the two gates, in that order', () => {
+    expect(runsOf('labs.yml', 'grader')).toEqual([
+      'npm ci',
+      'uv lock --check --project labs/grader',
+      'uv sync --locked --project labs/grader',
+      'uv run --project labs/grader python -m unittest',
+      'uv run --project labs/grader enginespace selftest --no-suite',
+      'bun run verify:schema',
+      'bun run verify:vectors',
+      "echo 'pending: W2-T08'",
+    ])
+    // The commands of TRACKER's acceptance 1 and 4, word for word.
+    const task = trackerTasks().get('W2-T02') ?? ''
+    expect(task).toContain('`uv run --project labs/grader python -m unittest` passes on CPU')
+    expect(task).toContain('`uv lock --check` is clean')
+  })
+
+  test('the grader job sets up Node, Bun and then uv, and has a numeric timeout that is not longer than the forge job\'s', () => {
+    const jobs = Object.fromEntries(jobsOf('labs.yml'))
+    const uses = (jobs.grader.steps ?? []).map((step) => step.uses?.split('@')[0]).filter((name) => name !== undefined)
+    expect(uses).toEqual(['actions/checkout', 'actions/setup-node', 'oven-sh/setup-bun', 'astral-sh/setup-uv'])
+    expect(typeof jobs.grader['timeout-minutes']).toBe('number')
+    expect(jobs.grader['timeout-minutes']).toBeLessThanOrEqual(jobs.forge['timeout-minutes'] ?? 0)
+    expect(jobs.grader['timeout-minutes']).toBeLessThanOrEqual(20)
   })
 })
 

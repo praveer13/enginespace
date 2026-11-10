@@ -15,6 +15,12 @@ export const read = (relative: string) => readFileSync(path.join(root, relative)
  */
 export const BUN_FALLBACK = "steps.bun.outcome == 'failure'"
 
+/**
+ * The same for uv (W2-T02): the `if` of the step that installs uv from PyPI when setup-uv's download failed. It is left out of the lists of a
+ * job's commands too, and workflows.test.ts checks it on its own, after every setup-uv step.
+ */
+export const UV_FALLBACK = "steps.uv.outcome == 'failure'"
+
 /** The text between two markers. A renamed heading throws instead of silently parsing nothing. */
 export function between(text: string, from: string, to: string): string {
   const start = text.indexOf(from)
