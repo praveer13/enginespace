@@ -24,10 +24,13 @@ import type { Page } from '@playwright/test'
 import { createServer } from 'vite'
 import type { ViteDevServer } from 'vite'
 import { applyAction, startRun, stateHash } from '../packages/play'
+import { hang, initState, setOverlap, step } from '../packages/play/loop/engine'
+import { buildLevel } from '../packages/play/loop/levels'
 import { frameSvg, layoutFrame, PASS_LENS } from '../packages/play/loop/layout'
 import { loopInit, loopLevel, loopSession, loopView } from '../packages/play/loop/session'
 import { svgMarkup } from '../packages/play/loop/svg'
-import type { LoopAction } from '../packages/play/loop/types'
+import type { LoopAction, LoopState } from '../packages/play/loop/types'
+import { withSettings } from './support/site'
 
 const root = path.resolve(import.meta.dirname, '..')
 
@@ -68,6 +71,12 @@ const test = base
 const BOOT = 45_000
 
 const bell = (page: Page) => page.getByRole('button', { name: /Ring the bell/ })
+/** Every free clip hung, in the strip's order: what the page does when its tickets are tapped one after another. */
+const fill = (state: LoopState): LoopState => {
+  let next = state
+  while (next.waiting.length > 0 && next.tray.includes(null)) next = hang(next, next.waiting[0])
+  return next
+}
 const debriefButton = (page: Page) => page.getByRole('button', { name: 'See the debrief' })
 const enabledTickets = (page: Page) => page.locator('[data-loop-controls] ul button:not([disabled])')
 const game = (page: Page) => page.locator('section[data-game="loop"]')
@@ -298,4 +307,95 @@ test.describe('determinism and the poster', () => {
     expect(markup.match(/<(rect|circle|ellipse|line|path|polygon|text)[ >]/g)).toHaveLength(drawn.marks)
     expect([...markup.matchAll(/<g data-part="([a-z-]+)">/g)].map((match) => match[1])).toEqual(drawn.parts as string[])
   })
+})
+
+/*
+ * The kitchen's names on the 2D drawing (W1b's finish review of the lesson blocks, round 2): the line's, the fired rail's and the expo's are
+ * the design system's masking tape in the DOM over the drawing, as the 3D scene's are, never print in the SVG, which a phone's wider lens
+ * shrank to 2 or 3 px. Each is stuck where the frame says, as the SVG lays the frame out in its box (covering it in landscape, fitted on a
+ * phone), inside the box, apart from the others, and printed between the size ramp's smallest step and its caption step.
+ */
+test.describe("the kitchen's names on the 2D drawing", () => {
+  /** The drawing's box, the size ramp's two steps in px, the SVG's markup, and each tape as the page prints it. */
+  const measure = (page: Page) =>
+    page.evaluate(() => {
+      const box = document.querySelector('[data-loop-drawing]')!.getBoundingClientRect()
+      const root = getComputedStyle(document.documentElement)
+      const px = (name: string) => parseFloat(root.getPropertyValue(name)) * parseFloat(root.fontSize)
+      return {
+        box: { x: box.x, y: box.y, w: box.width, h: box.height },
+        micro: px('--es-size-micro'),
+        caption: px('--es-size-caption'),
+        svg: document.querySelector('[data-loop-drawing] svg')!.outerHTML,
+        tapes: [...document.querySelectorAll<HTMLElement>('[data-loop-drawing] .es-frame-tapes__tape')].map((holder) => {
+          const tape = holder.querySelector<HTMLElement>('.es-tape')!
+          const r = tape.getBoundingClientRect()
+          return { id: holder.dataset.tape ?? '', text: tape.textContent ?? '', size: parseFloat(getComputedStyle(tape).fontSize), x: r.x, y: r.y, w: r.width, h: r.height }
+        }),
+      }
+    })
+  type Seen = Awaited<ReturnType<typeof measure>>
+
+  /** Every tape on the size ramp, inside the drawing, and apart from every other: none covers another's words. */
+  function keepsTo(seen: Seen) {
+    for (const [i, tape] of seen.tapes.entries()) {
+      expect(tape.size).toBeGreaterThanOrEqual(seen.micro - 0.01)
+      expect(tape.size).toBeLessThanOrEqual(seen.caption + 0.01)
+      expect([tape.id, tape.x >= seen.box.x, tape.y >= seen.box.y, tape.x + tape.w <= seen.box.x + seen.box.w, tape.y + tape.h <= seen.box.y + seen.box.h]).toEqual([tape.id, true, true, true, true])
+      for (const other of seen.tapes.slice(i + 1)) {
+        const apart = tape.x + tape.w <= other.x || other.x + other.w <= tape.x || tape.y + tape.h <= other.y || other.y + other.h <= tape.y
+        expect([tape.id, other.id, apart]).toEqual([tape.id, other.id, true])
+      }
+    }
+  }
+
+  for (const width of [360, 1280]) {
+    test(`at ${width} px they are tape in the DOM, each on its object, inside the drawing, apart, and on the size ramp`, async ({ page, context }) => {
+      await withSettings(context, { view3d: false })
+      await page.setViewportSize({ width, height: 800 })
+      await open(page, 'first-3-gap')
+      // Overlap on, the rail filled and the bell rung: the fire is on the line and its copies hang on the fired rail.
+      await page.getByRole('switch', { name: /Write the next call during this fire/ }).click()
+      while ((await enabledTickets(page).count()) > 0) {
+        const before = await enabledTickets(page).count()
+        await enabledTickets(page).first().click()
+        await expect(enabledTickets(page)).not.toHaveCount(before)
+      }
+      await bell(page).click()
+      await expect(page.locator('[data-loop-drawing] .es-frame-tapes__tape')).toHaveCount(3)
+      const orientation = width < 480 ? 'portrait' : 'landscape'
+      const state = step(fill(setOverlap(initState(buildLevel('first-3-gap', 1)), true)))
+      const frame = layoutFrame(loopView(state), { orientation, shot: 'loop', ...(orientation === 'portrait' ? { lens: PASS_LENS } : {}) })
+      const seen = await measure(page)
+      expect(seen.tapes.map((tape) => [tape.id, tape.text])).toEqual(frame.tapes.map((tape) => [tape.id, tape.text]))
+      expect(seen.svg).not.toMatch(/the line · gpu|fired rail|the expo · cpu/i)
+      // Stuck where the frame says, across its point or ending there, with the frame in its box as the SVG lays it out: covering it in
+      // landscape, fitted to it on a phone, centred either way.
+      const scale = (orientation === 'landscape' ? Math.max : Math.min)(seen.box.w / frame.width, seen.box.h / frame.height)
+      const left = seen.box.x + (seen.box.w - frame.width * scale) / 2
+      const top = seen.box.y + (seen.box.h - frame.height * scale) / 2
+      for (const [i, tape] of seen.tapes.entries()) {
+        const want = frame.tapes[i]
+        const x = want.place === 'left' ? tape.x + tape.w : tape.x + tape.w / 2
+        expect([tape.id, Math.abs(x - (left + want.x * scale)) < 2, Math.abs(tape.y + tape.h / 2 - (top + want.y * scale)) < 2]).toEqual([tape.id, true, true])
+      }
+      keepsTo(seen)
+    })
+
+    test(`at ${width} px the full service's names, the rack's under the line's and the comb's beside the expo's, stand inside the drawing and apart`, async ({ page, context }) => {
+      await withSettings(context, { view3d: false })
+      await page.setViewportSize({ width, height: 800 })
+      await open(page, 'async')
+      const field = page.locator('[data-full-prediction="open"] input')
+      await field.fill('100')
+      await field.press('Enter')
+      await expect(page.locator('[data-full-prediction="called"]')).toBeVisible()
+      await bell(page).click()
+      await expect(page.locator('[data-loop-drawing] .es-frame-tapes__tape')).toHaveCount(4)
+      const seen = await measure(page)
+      expect(seen.tapes.map((tape) => tape.text).sort()).toEqual(['comb · launches', 'molds · sizes', 'the expo · cpu', 'the line · gpu'])
+      expect(seen.svg).not.toMatch(/comb · launches|molds · sizes/i)
+      keepsTo(seen)
+    })
+  }
 })

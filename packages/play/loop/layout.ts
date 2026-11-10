@@ -15,12 +15,14 @@
  *     it and never as a blur: flat washes of the lamp's amber in the counter's plane, and the brushed lines the light catches (`lampPool`);
  *   - the pass: its brushed top with the plates of the last fire read back, one under every clip that cooked a course, each with its
  *     rim and its shadow, a binned plate hollow and struck through in the ribbon's red, an empty place a dashed ring; its rolled front
- *     edge with the expo's name on masking tape, and under it the heated shelf's bars with the plate stacks warming on them;
+ *     edge, and under it the heated shelf's bars with the plate stacks warming on them;
  *   - on Service's own page, the printer at the pass's left end and the tickets it has fed lying on the counter, the next first. The
  *     front page holds a printer of its own, so its shot draws none.
  * A state is a shape before it is a colour (WCAG 1.4.1), the lamp's amber marks only the pass's pools and a burning station, and no
  * code colour marks a state. Every number the drawing writes is a ticket's number; the counters are DOM, in the printer's tape and the
- * mirror.
+ * mirror. The kitchen's names are masking tape stuck on what they name (the line's on its last station, the fired rail's on its channel,
+ * the expo's on the pass's front edge): the frame says where (`tapes`), and the page prints each in the DOM over the drawing, as the 3D
+ * scene prints its own, so a name never shrinks under the size ramp's smallest step with the drawing (D-021, src/games/loop/FrameTapes.tsx).
  *
  * A frame is the shot's picture at a fixed size: the viewBox is the shot's full height and 2.4 heights wide in landscape (as wide as
  * it is tall in portrait), its centre the camera's. The room is drawn past the viewBox on every side, so a page that shows the frame in a wider box,
@@ -60,14 +62,12 @@ export type Paint =
   | 'lamp-ring'
   | 'text-1'
   | 'lane-gpu'
-  | 'tape'
-  | 'tape-ink'
 
 /** The roles among those paints, as a list, for the test that checks them against the design system. */
-export const PAINTS: readonly Paint[] = ['glint', 'surface-0', 'surface-1', 'surface-2', 'surface-3', 'edge', 'paper', 'paper-ink', 'paper-ink-2', 'paper-rule', 'lamp', 'lamp-ring', 'text-1', 'lane-gpu', 'tape', 'tape-ink']
+export const PAINTS: readonly Paint[] = ['glint', 'surface-0', 'surface-1', 'surface-2', 'surface-3', 'edge', 'paper', 'paper-ink', 'paper-ink-2', 'paper-rule', 'lamp', 'lamp-ring', 'text-1', 'lane-gpu']
 
-/** The faces the drawing sets text in: the printer's dots for numbers and print, and marker on masking tape. */
-export type Face = 'numeric' | 'ticket' | 'label'
+/** The faces the drawing sets text in: the printer's dots, for numbers and print. Marker on masking tape is the page's (`FrameTape`). */
+export type Face = 'numeric' | 'ticket'
 
 interface Style {
   readonly fill?: Paint
@@ -111,6 +111,20 @@ export type Orientation = 'landscape' | 'portrait'
 /** Whose shot a frame is drawn through: the front page's, or Service's own page's (kitchen.ts, `SHOTS`). */
 export type ShotName = keyof typeof SHOTS
 
+/**
+ * A strip of masking tape stuck on an object of the kitchen, its words in marker: where it is stuck, in the frame's units, and on which
+ * side of that point the strip lies (none: across it; `left`: it ends there). The drawing leaves it out, and the page prints it over the
+ * drawing as the design system's tape in the DOM (src/games/loop/FrameTapes.tsx), so its print keeps to the size ramp however small the
+ * drawing is drawn, as the 3D scene's tapes do (D-021).
+ */
+export interface FrameTape {
+  readonly id: string
+  readonly x: number
+  readonly y: number
+  readonly text: string
+  readonly place?: 'left' | 'right'
+}
+
 export interface Frame {
   readonly orientation: Orientation
   readonly width: number
@@ -118,6 +132,8 @@ export interface Frame {
   /** The accessible name of the drawing: its state in a sentence. */
   readonly label: string
   readonly layers: readonly Layer[]
+  /** The kitchen's names on masking tape, for the page to print over the drawing: never drawn in it. */
+  readonly tapes: readonly FrameTape[]
 }
 
 export interface FrameOptions {
@@ -236,9 +252,10 @@ export type Lens = ReturnType<typeof lensOf>
 /* Drawing                                                                                                            */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** The marks of the layers under construction. */
+/** The marks of the layers under construction, and the tapes stuck on the kitchen. */
 function painter() {
   const layers: { part: string; marks: Mark[] }[] = []
+  const tapes: FrameTape[] = []
   let marks: Mark[] = []
   const layer = (part: string) => {
     marks = []
@@ -256,7 +273,7 @@ function painter() {
   }
   const text = (x: number, y: number, label: string, size: number, fill: Paint, face: Face) => void marks.push({ kind: 'text', x: num(x), y: num(y), text: label, size: num(size), anchor: 'middle', fill, face })
   const add = (mark: Mark) => void marks.push(mark)
-  return { layers, layer, rect, line, circle, ellipse, poly, path, text, add }
+  return { layers, tapes, layer, rect, line, circle, ellipse, poly, path, text, add }
 }
 
 export type Painter = ReturnType<typeof painter>
@@ -276,11 +293,13 @@ const upright = (lens: Lens, x0: number, x1: number, y0: number, y1: number, z: 
 /** A level quad at height y, from x0 to x1 and z0 to z1. */
 const level = (lens: Lens, x0: number, x1: number, y: number, z0: number, z1: number): Pt[] => [lens.at(x0, y, z0), lens.at(x1, y, z0), lens.at(x1, y, z1), lens.at(x0, y, z1)]
 
-/** A strip of masking tape across a point, `w` by `h` metres, its words in marker. */
-function tape(p: Painter, lens: Lens, x: number, y: number, z: number, w: number, h: number, words: string) {
-  p.poly(upright(lens, x - w / 2, x + w / 2, y - h / 2, y + h / 2, z), { fill: 'tape' })
-  const [cx, cy] = lens.at(x, y, z)
-  p.text(cx, cy + 0.4, words, h * 0.62 * lens.per(x, y, z), 'tape-ink', 'label')
+/**
+ * A strip of masking tape stuck on the kitchen at (x, y, z), its words in marker, across that point or ending there (`place`). The
+ * drawing keeps where it lands for the page (`FrameTape`), which tears the strip off at the size of its words.
+ */
+function tape(p: Painter, lens: Lens, id: string, x: number, y: number, z: number, words: string, place?: FrameTape['place']) {
+  const [tx, ty] = lens.at(x, y, z)
+  p.tapes.push(place === undefined ? { id, x: tx, y: ty, text: words } : { id, x: tx, y: ty, text: words, place })
 }
 
 /**
@@ -444,9 +463,14 @@ function theLine(p: Painter, lens: Lens, view: KitchenView) {
   }
   p.layer('heat')
   for (const mark of heat) p.add(mark)
-  // The line's name, on tape on the tile over its last station.
-  p.layer('labels-line')
-  tape(p, lens, line.x(line.count - 1), 1.24, WALL_Z + 0.01, 0.6, 0.07, 'THE LINE · GPU')
+  // The line's name on tape on its last station's cabinet, as the 3D scene sticks it (src/games/loop/scene-layout.ts): low on the
+  // cabinet's front, in the band that the shot sees between the fired rail's tickets and the pass's back edge, so it covers neither in
+  // any shot, and it stays put whether the fired rail is hung or not. It sits above the band's middle [estimated], which leaves the
+  // counter's back room on a phone for the rack's tape under it on the full service's levels (full/layout.ts).
+  const x = line.x(line.count - 1)
+  const tickets = lens.at(x, FIRED.y - GRIP - TICKET.height * 0.85, FIRED.z + 0.012)[1]
+  const edge = lens.at(x, PASS.top, -PASS.depth / 2)[1]
+  p.tapes.push({ id: 'line', x: lens.at(x, LINE.height / 2, LINE.z + LINE.depth / 2 - 0.02)[0], y: tenth(tickets + (edge - tickets) * 0.42), text: 'the line · gpu' })
 }
 
 /** A ticket hung from its clip: paper with its punched hole, its number printed large, and two lines of dots under it. */
@@ -508,9 +532,9 @@ function rails(p: Painter, lens: Lens, view: KitchenView, width: number) {
     p.layer('fired')
     for (const x of [-length / 2 + 0.03, length / 2 - 0.03]) p.line(lens.at(x, FIRED.y, FIRED.z), lens.at(x, bar, bz), { stroke: 'surface-2', width: 0.8 })
     railAt(p, lens, FIRED.y, FIRED.z, length, view.firedRail, slots, true)
-    // Its name on tape stuck on the channel, between its first two clips, where every shot sees it.
-    const pitch = slots > 1 ? clipX(1, slots) - clipX(0, slots) : 0.3
-    tape(p, lens, clipX(0, slots) + pitch / 2, FIRED.y - 0.0175, FIRED.z + 0.016, Math.min(0.2, pitch - 0.06), 0.032, 'FIRED RAIL')
+    // Its name on tape on the channel's left end, the strip ending by the first clip's ticket and running out past the rail's end where
+    // the drawing is small: between two clips, a strip at the size of its words covers both tickets on a phone.
+    tape(p, lens, 'fired', clipX(0, slots) - (TICKET.width * 0.85) / 2 - 0.012, FIRED.y - 0.0175, FIRED.z + 0.016, 'fired rail', 'left')
   }
   p.layer('rail')
   railAt(p, lens, RAIL.y, RAIL.z, length, view.rail, slots, false)
@@ -657,12 +681,12 @@ function thePass(p: Painter, lens: Lens, view: KitchenView, width: number) {
   p.layer('plates')
   const served = [...view.fires].reverse().find((fire) => !fire.onLine)
   served?.places.forEach((place, slot) => plateAt(p, lens, clipX(slot, view.slots), place.state, plateRadius(view.slots)))
-  // The rolled front edge, the apron under it, and the expo's name on tape on the edge.
+  // The rolled front edge, the apron under it, and the expo's name on tape on the edge, where the expediter stands.
   p.layer('edge')
   p.poly(upright(lens, -half, half, top - 0.04, top, d / 2), { fill: 'surface-2' })
   p.line(lens.at(-half, top - 0.004, d / 2), lens.at(half, top - 0.004, d / 2), { stroke: 'paper', width: 1, strokeOpacity: 0.9 })
   p.poly(upright(lens, -half + 0.02, half - 0.02, top - 0.1, top - 0.04, d / 2 - 0.025), { fill: 'surface-1', stroke: 'surface-2', width: 0.5 })
-  tape(p, lens, 0.15, top - 0.03, d / 2 + 0.006, 0.42, 0.05, 'THE EXPO · CPU')
+  tape(p, lens, 'expo', 0.15, top - 0.03, d / 2 + 0.006, 'the expo · cpu')
 }
 
 /** The bell and the spike at the pass's right end. */
@@ -704,8 +728,8 @@ function printerAt(p: Painter, lens: Lens, view: KitchenView, width: number) {
   }
 }
 
-/** The drawing of a night through a shot. */
-function build(view: KitchenView, shot: Shot, shotName: ShotName, orientation: Orientation, extra?: (draw: FrameDraw) => void): Layer[] {
+/** The drawing of a night through a shot, and the tapes stuck on its kitchen. */
+function build(view: KitchenView, shot: Shot, shotName: ShotName, orientation: Orientation, extra?: (draw: FrameDraw) => void): Pick<Frame, 'layers' | 'tapes'> {
   const size = FRAMES[orientation]
   const lens = lensOf(shot, size.width, size.height)
   const p = painter()
@@ -720,7 +744,7 @@ function build(view: KitchenView, shot: Shot, shotName: ShotName, orientation: O
   extra?.({ p, lens, width, upright, level, tape })
   bellAndSpike(p, lens, width)
   if (shotName === 'loop') printerAt(p, lens, view, width)
-  return p.layers.filter((layer) => layer.marks.length > 0)
+  return { layers: p.layers.filter((layer) => layer.marks.length > 0), tapes: p.tapes }
 }
 
 /** The sentence that names the drawing: the state it shows, for assistive technology and for the poster's alt text. */
@@ -740,7 +764,7 @@ export function layoutFrame(view: KitchenView, options: FrameOptions = {}): Fram
   // The frame is the shot's picture with its lens centred: a page that shifts the lens moves the frame instead (front.css).
   const chosen: Shot = orientation === 'portrait' ? shots.portrait : shots.base
   const shot: Shot = { position: chosen.position, target: chosen.target, k: chosen.k * (options.lens ?? 1) }
-  return { orientation, width: size.width, height: size.height, label: describe(view, options.clock), layers: build(view, shot, shotName, orientation, options.extra) }
+  return { orientation, width: size.width, height: size.height, label: describe(view, options.clock), ...build(view, shot, shotName, orientation, options.extra) }
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -772,7 +796,7 @@ export function layoutStrip(fires: readonly FireView[], options: { readonly slot
       else marks.push({ kind: 'rect', x: num(x + 0.75), y, w: num(Math.max(w - 1.5, 0.5)), h: STRIP.row, fill: 'surface-3' })
     })
   }
-  return { orientation: 'landscape', width: STRIP.width, height, label: options.label, layers: [{ part: 'strip', marks }] }
+  return { orientation: 'landscape', width: STRIP.width, height, label: options.label, layers: [{ part: 'strip', marks }], tapes: [] }
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -782,7 +806,6 @@ export function layoutStrip(fires: readonly FireView[], options: { readonly slot
 const FACE: Readonly<Record<Face, string>> = {
   numeric: 'var(--es-font-numeric)',
   ticket: 'var(--es-font-ticket)',
-  label: 'var(--es-font-label)',
 }
 /**
  * The frame's two gradients, each made of token roles [estimated stops]: a brushed line catching a lamp's light (`lampPool`), the lamp's

@@ -10,8 +10,8 @@ import { PASS } from '@es/play/loop/kitchen'
 import { fullFrame } from '@es/play/loop/full/layout'
 import { fullSession } from '@es/play/loop/full/session'
 import type { FullAction, FullLevelId, FullState } from '@es/play/loop/full/types'
-import { MARK_CAP } from '@es/play/loop/layout'
-import { countMarks } from '@es/play/loop/svg'
+import { MARK_CAP, PASS_LENS } from '@es/play/loop/layout'
+import { countMarks, svgMarkup } from '@es/play/loop/svg'
 import { frameSvg } from '@es/play/loop/layout'
 import { sceneOfFull } from '@/games/loop/full/scene'
 
@@ -53,6 +53,29 @@ describe('the 2D frame', () => {
     expect(countMarks(frameSvg(fullFrame(fullSession.view(modes))))).toBeLessThanOrEqual(MARK_CAP)
     expect(frame.label).toContain("µs on the model's clock")
     expect(frame.label).not.toContain('ticks')
+  })
+
+  test("the comb and the rack carry their names on tape stuck on themselves, which the page prints in the DOM: the comb's on the front edge under its left end, clear of the expo's, the rack's at its row's right end (W1b's finish review of the lesson blocks, round 2)", () => {
+    const view = fullSession.view(play(start('graphs'), { t: 'commit', prediction: 0 }, { t: 'lever', name: 'graphMode', value: 'FULL_AND_PIECEWISE' }, { t: 'run', until: 'step' }))
+    for (const orientation of ['landscape', 'portrait'] as const) {
+      // As the 2D view draws it: a phone's through the wider lens.
+      const frame = fullFrame(view, { orientation, ...(orientation === 'portrait' ? { lens: PASS_LENS } : {}) })
+      const tapes = new Map(frame.tapes.map((tape) => [tape.id, tape]))
+      expect(tapes.get('comb')).toMatchObject({ text: 'comb · launches' })
+      expect(tapes.get('molds')).toMatchObject({ text: 'molds · sizes', place: 'right' })
+      // The words are the page's: the drawing holds none of them.
+      expect(svgMarkup(frameSvg(frame))).not.toMatch(/comb · launches|molds · sizes/i)
+      // On the front edge with the expo's, and further along it from the expo's middle than the two strips' halves are long. The strips are
+      // about 104 and 91 px long in a drawing 356 px wide on a 390 px phone, and 122 and 108 px in one 870 px wide and 504 px tall on a
+      // laptop [measured 2026-11-09 over wave-1b at d7ea594 with this round's tree]: half their sum is 0.27 of the phone's frame, 0.30 of
+      // it on a 360 px phone's 326 px drawing, and 0.09 of the laptop's [derived].
+      const comb = tapes.get('comb')!
+      const expo = tapes.get('expo')!
+      expect(Math.abs(comb.y - expo.y)).toBeLessThan(1)
+      expect(expo.x - comb.x).toBeGreaterThan(frame.width * (orientation === 'portrait' ? 0.3 : 0.1))
+    }
+    // No tape names a tool that is not on the pass.
+    expect(fullFrame({ ...view, rack: null, comb: null }).tapes.map((tape) => tape.id)).toEqual(['line', 'fired', 'expo'].filter((id) => id !== 'fired' || view.firedRail !== null))
   })
 })
 
