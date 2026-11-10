@@ -541,7 +541,7 @@ describe('labs.yml (§10.1)', () => {
     expect(grader).toContain('bun run verify:vectors')
   })
 
-  test('the grader job (W2-T02) checks the lock, syncs from it, runs the tests as TRACKER words the command, runs the installed command, and then the two gates, in that order', () => {
+  test('the grader job (W2-T02) checks the lock, syncs from it, runs the tests as TRACKER words the command, runs the installed command, then the two gates, and then the receipt fixtures and forgeries of W2-T08, in that order', () => {
     expect(runsOf('labs.yml', 'grader')).toEqual([
       'npm ci',
       'uv lock --check --project labs/grader',
