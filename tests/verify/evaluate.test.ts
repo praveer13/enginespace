@@ -16,7 +16,9 @@ import { BENCH_CHECK_IDS, FLOOR_CHECK_IDS, RECHECK_IDS, TRACE_CHECK_IDS } from '
 import { RECHECKS_BUILT } from '@es/verify/rechecks'
 import { TRACE_CHECKS_BUILT } from '@es/verify/trace'
 import { edited, replayFixture, traceFixture } from './synthetic'
+import { verifyBundle } from '@es/verify'
 import { checkOf, failed, verify } from './run'
+import { fileOf } from './support'
 
 describe('a stage that requires a check the receipt has no evidence for', () => {
   test('fails each, with the reason: a replay with its log taken out, and the artifact left out of the bundle with it', async () => {
@@ -138,5 +140,53 @@ describe('the comparison of a claim with what was recomputed', () => {
     expect(firstDifference({ p99Us: 1 }, null, 'latency.tpot')).toBe('latency.tpot: the receipt claims figures and the rows give null')
     expect(firstDifference(null, { p99Us: 1 }, 'latency.tpot')).toBe('latency.tpot: the receipt claims null and the rows give {"p99Us":1}')
     expect(firstDifference('5', 5, 'x')).toBe('x: the receipt claims "5" and the rows give 5')
+  })
+})
+
+describe('an artifact that is hostile', () => {
+  /** What a file may put where a log or a trace belongs: JSON of every shape but the right one. */
+  const HOSTILE: [string, unknown][] = [
+    ['null', null],
+    ['a number', 7],
+    ['a string', 'x'.repeat(1000)],
+    ['an empty list', []],
+    ['a list of lists', [[], [[]], [[[]]]]],
+    ['an empty object', {}],
+    ['the schema tag alone', { schema: 'enginespace/trace@1' }],
+    ['columns that are not columns', { schema: 'enginespace/bench-log@1', cacheResetNs: 0, rows: { id: 'a', dueNs: {}, sentNs: null, firstNs: [], doneNs: [], promptTokens: [], outputTokens: [], status: [] } }],
+    ['a field named for the prototype', JSON.parse('{"__proto__": {"polluted": true}, "schema": "enginespace/trace@1"}') as unknown],
+    ['numbers beyond 2^53', { schema: 'enginespace/bench-log@1', cacheResetNs: 1e300, rows: {} }],
+  ]
+
+  test.each(HOSTILE)('%s in the place of a benchmark log or a trace is a receipt with failed checks, and the check never throws or credits it', async (_name, data) => {
+    for (const fixture of [replayFixture(), traceFixture()]) {
+      const put = (bundle: typeof fixture.bundle): void => {
+        bundle.artifacts[bundle.receipt.artifacts[0].id] = { encoding: 'json', data: data as object }
+      }
+      let hostile = fixture
+      try {
+        hostile = edited(fixture, put)
+      } catch {
+        // Data with no canonical form cannot be signed, and the file that holds it is refused at rule 3: the bundle is sent unsigned.
+        const bundle = structuredClone(fixture.bundle)
+        put(bundle)
+        hostile = { ...fixture, bundle }
+      }
+      const outcome = await verifyBundle(fileOf(hostile.bundle), hostile.context)
+      // It is refused at rule 3 when the data has no canonical bytes, and otherwise checked and not credited: either way, an answer.
+      expect(['checked', 'refused']).toContain(outcome.kind)
+      if (outcome.kind === 'checked') expect(outcome.verdict.provenance).toBe('gpu-unverified')
+    }
+    expect(({} as { polluted?: boolean }).polluted).toBeUndefined()
+  })
+
+  test('a claim of the wrong shape is a failed check and not a crash: a string, a list or a number where an object of figures belongs', async () => {
+    for (const claim of ['fast', [1, 2, 3], 7, null]) {
+      const outcome = await verify(edited(replayFixture(), (bundle) => (bundle.receipt.performance = { kind: 'bench', claimed: { 'bench-log': claim } })).bundle, replayFixture().context)
+      expect(outcome.verdict.provenance).toBe('gpu-verified')
+    }
+    const odd = await verify(edited(replayFixture(), (bundle) => (bundle.receipt.performance = { kind: 'bench', claimed: { 'bench-log': { latency: 'x', counts: 5, adherence: [], goodput: null, littles: 'y', p99Intervals: 3 } } })).bundle, replayFixture().context)
+    expect(odd.verdict.provenance).toBe('gpu-unverified')
+    expect(failed(odd)).toEqual(['B2', 'B4', 'B7', 'B9', 'B10'])
   })
 })
