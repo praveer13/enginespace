@@ -26,6 +26,7 @@ import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
 import { checkChallenge, parseChallenge } from '@es/schema/challenge'
 import { drawParts } from '../src/receipts/challenge'
+import { RECEIPTS } from '../src/receipts/copy'
 import { Ledger, wordsOf } from '../tests/receipts/support'
 import { put, seeded } from './support/receipts'
 import { walkOf } from './support/front'
@@ -434,7 +435,7 @@ test.describe('a receipt', () => {
     const ledger = await visitSeeded(page)
     await page.goto(`${ROUTE}#${'0'.repeat(64)}`)
     await expect(page.getByRole('heading', { level: 2, name: 'This browser holds no receipt with that hash' })).toBeVisible()
-    await expect(page.getByText('A receipt is kept on the device that imported it.')).toBeVisible()
+    await expect(page.getByText(RECEIPTS.notFoundNote)).toBeVisible()
     await page.goto(`${ROUTE}#${ledger.record.sha256}`)
     await expect(page.getByRole('article', { name: 'Receipt for tr3.profile.s2' })).toBeVisible()
     // A fragment that is not a hash is no receipt's address: it shows the lists.
