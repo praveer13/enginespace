@@ -1,0 +1,226 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Written by scripts/export-schemas.ts from packages/schema/trace.ts. Do not edit it: change the zod schema and run `bun scripts/export-schemas.ts`.",
+  "type": "object",
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "enginespace/trace@1"
+    },
+    "meta": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": [
+            "synthetic",
+            "owner",
+            "learner"
+          ]
+        },
+        "engine": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])",
+          "maxLength": 128
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])",
+          "maxLength": 64
+        },
+        "gpu": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])",
+          "maxLength": 128
+        },
+        "capturedAt": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z(?![\\s\\S])"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+        },
+        "synthetic": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "source",
+        "synthetic"
+      ],
+      "additionalProperties": false
+    },
+    "strings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tracks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "cpu-thread",
+              "cuda-api",
+              "gpu-stream",
+              "marker"
+            ]
+          },
+          "name": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "spans": {
+      "type": "object",
+      "properties": {
+        "track": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          }
+        },
+        "startNs": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "durNs": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "name": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          }
+        },
+        "cat": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          }
+        },
+        "corr": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": -1,
+            "maximum": 2147483647
+          }
+        }
+      },
+      "required": [
+        "track",
+        "startNs",
+        "durNs",
+        "name",
+        "cat",
+        "corr"
+      ],
+      "additionalProperties": false
+    },
+    "flows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "to": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "launch",
+              "sync",
+              "copy"
+            ]
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "kind"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "marks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "tNs": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "name": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          }
+        },
+        "required": [
+          "tNs",
+          "name"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "schema",
+    "meta",
+    "strings",
+    "tracks",
+    "spans",
+    "flows",
+    "marks"
+  ],
+  "additionalProperties": false,
+  "title": "enginespace/trace@1",
+  "description": "A trace in columns (ARCHITECTURE §5.7). Checked by the site and not expressible in JSON Schema: the six span columns have one length; a span's track is the id of a track and track ids differ; every name and cat is an index into strings; a flow joins two spans; a span ends below 2^53 ns and no time is -0; meta.synthetic is true exactly when meta.source is \"synthetic\"."
+}

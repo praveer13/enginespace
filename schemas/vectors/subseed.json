@@ -1,0 +1,353 @@
+{
+  "spec": "enginespace/vectors-subseed@1",
+  "description": "hash32 (FNV-1a) and the sub-stream rngFor(seed, salt) = splitmix32u(seed xor hash32(salt)), the way a stage gives each purpose a stream of its own (ARCHITECTURE section 5.1 and 9.8). The challenge token's checksum is hash32 of the token's text up to its last colon.",
+  "reading": [
+    "hash32: \"hash\" is the 32-bit FNV-1a of \"text\" (offset basis 0x811c9dc5, then for each character xor it in and multiply by 0x01000193 modulo 2^32), and \"hex\" is the same number as 8 lower-case hex digits. The texts here are ASCII, where the hash over UTF-16 code units, which JavaScript takes, is the hash over bytes. Hashing text outside ASCII is not part of this contract.",
+    "rngFor: \"hash\" is hash32(salt), \"mixed\" is (seed xor hash) as an unsigned 32-bit integer, and \"draws\" are the first draws of splitmix32u(mixed), which is the stream of rng.json. A salt is ASCII (every character at most U+007F), and a seed is an unsigned 32-bit integer; a vector with \"error\": true must be refused by the port.",
+    "A salt is a string in the vector: a character the JSON file writes as an escape is the character, and a salt of 300 characters is spelled out."
+  ],
+  "source": "scripts/schemas/rng-vectors.ts; bun scripts/export-schemas.ts writes it",
+  "oracle": "packages/sim/core/rng.ts over the vendored vendor/kernelspace/src/lib/rng.ts; tests/schema/vectors.test.ts holds the stream and the hashes to a second splitmix32 and a second FNV-1a, written in BigInt",
+  "vectors": [
+    {"id": "hash32-empty", "fn": "hash32", "text": "", "hash": 2166136261, "hex": "811c9dc5"},
+    {"id": "hash32-a", "fn": "hash32", "text": "a", "hash": 3826002220, "hex": "e40c292c"},
+    {"id": "hash32-b", "fn": "hash32", "text": "b", "hash": 3876335077, "hex": "e70c2de5"},
+    {"id": "hash32-ab", "fn": "hash32", "text": "ab", "hash": 1294271946, "hex": "4d2505ca"},
+    {"id": "hash32-foobar", "fn": "hash32", "text": "foobar", "hash": 3214735720, "hex": "bf9cf968"},
+    {"id": "hash32-hello", "fn": "hash32", "text": "hello", "hash": 1335831723, "hex": "4f9f2cab"},
+    {"id": "hash32-fox", "fn": "hash32", "text": "The quick brown fox jumps over the lazy dog", "hash": 76545936, "hex": "048fff90"},
+    {"id": "hash32-salt", "fn": "hash32", "text": "workload/arrivals", "hash": 2855100519, "hex": "aa2d6067"},
+    {"id": "hash32-token-body", "fn": "hash32", "text": "es1:tr8.replay.s2:0badc0de:ABCDEFGHJKLMNPQR:20261104", "hash": 384754862, "hex": "16eee4ae"},
+    {"id": "hash32-printable-ascii", "fn": "hash32", "text": " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~", "hash": 1458624920, "hex": "56f0d998"},
+    {"id": "hash32-control-and-delete", "fn": "hash32", "text": "\u0000\u0001\u001f\u007f", "hash": 4017830080, "hex": "ef7b38c0"},
+    {
+      "id": "hash32-long",
+      "fn": "hash32",
+      "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "hash": 131170661,
+      "hex": "07d18165"
+    },
+    {
+      "id": "rngFor-seed-0-salt-empty",
+      "fn": "rngFor",
+      "seed": 0,
+      "salt": "",
+      "hash": 2166136261,
+      "mixed": 2166136261,
+      "draws": [3900923005, 2085367585, 1847477345, 1203524161, 2757219190, 3440692005, 4142223557, 3345527288]
+    },
+    {
+      "id": "rngFor-seed-0-salt-a",
+      "fn": "rngFor",
+      "seed": 0,
+      "salt": "a",
+      "hash": 3826002220,
+      "mixed": 3826002220,
+      "draws": [2472560394, 7194076, 1964041110, 3567969600, 3093272322, 653558998, 3792107015, 2412621607]
+    },
+    {
+      "id": "rngFor-seed-0-salt-workload-arrivals",
+      "fn": "rngFor",
+      "seed": 0,
+      "salt": "workload/arrivals",
+      "hash": 2855100519,
+      "mixed": 2855100519,
+      "draws": [1442258242, 4115306237, 3145788345, 2846350187, 391121257, 3857807247, 4277311025, 1833454221]
+    },
+    {
+      "id": "rngFor-seed-0-salt-workload-prompt",
+      "fn": "rngFor",
+      "seed": 0,
+      "salt": "workload/prompt",
+      "hash": 290947511,
+      "mixed": 290947511,
+      "draws": [1441366968, 35816086, 2083561475, 3766323259, 1154084375, 1943632991, 92694206, 3942053174]
+    },
+    {
+      "id": "rngFor-seed-0-salt-workload-output",
+      "fn": "rngFor",
+      "seed": 0,
+      "salt": "workload/output",
+      "hash": 1548302208,
+      "mixed": 1548302208,
+      "draws": [1556262623, 4244171229, 1180843674, 2262431719, 4258029604, 2014588654, 1484830160, 1938568028]
+    },
+    {
+      "id": "rngFor-seed-0-salt-bench-bootstrap-p990",
+      "fn": "rngFor",
+      "seed": 0,
+      "salt": "bench/bootstrap/p990",
+      "hash": 3006445875,
+      "mixed": 3006445875,
+      "draws": [3884443222, 3706286086, 1629731856, 3310313078, 1798441944, 2666917388, 4055836839, 51476726]
+    },
+    {
+      "id": "rngFor-seed-0-salt-spec-draft",
+      "fn": "rngFor",
+      "seed": 0,
+      "salt": "spec/draft",
+      "hash": 3542959662,
+      "mixed": 3542959662,
+      "draws": [978336046, 79807423, 1286503457, 240840128, 2814520746, 2184880638, 2138619362, 3222338748]
+    },
+    {
+      "id": "rngFor-seed-0-salt-kv-ops",
+      "fn": "rngFor",
+      "seed": 0,
+      "salt": "kv/ops",
+      "hash": 785258951,
+      "mixed": 785258951,
+      "draws": [4039417399, 1653304956, 3975725981, 3042759767, 3615974053, 3724947120, 4096474612, 2275552986]
+    },
+    {
+      "id": "rngFor-seed-0-salt-trace-gpu",
+      "fn": "rngFor",
+      "seed": 0,
+      "salt": "trace/gpu",
+      "hash": 1516005475,
+      "mixed": 1516005475,
+      "draws": [945832844, 2014095463, 3658398089, 1491594498, 1145171342, 203897667, 3991842111, 2610204954]
+    },
+    {
+      "id": "rngFor-seed-0-salt-items-tr2.bubble-width-async-on-1-answer",
+      "fn": "rngFor",
+      "seed": 0,
+      "salt": "items/tr2.bubble-width/async-on/1/answer",
+      "hash": 185164803,
+      "mixed": 185164803,
+      "draws": [2689285444, 1418428991, 3303340409, 3124885278, 693856004, 40500407, 3573906920, 2392142405]
+    },
+    {
+      "id": "rngFor-seed-0-salt-300-chars",
+      "fn": "rngFor",
+      "seed": 0,
+      "salt": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "hash": 2533439733,
+      "mixed": 2533439733,
+      "draws": [1679036245, 1191008355, 2050289325, 3109889555, 4093215594, 4285792857, 1780850546, 462291603]
+    },
+    {
+      "id": "rngFor-seed-1-salt-empty",
+      "fn": "rngFor",
+      "seed": 1,
+      "salt": "",
+      "hash": 2166136261,
+      "mixed": 2166136260,
+      "draws": [3528601603, 1203333431, 19322711, 1319487558, 21359569, 1571773418, 1390233203, 4033888708]
+    },
+    {
+      "id": "rngFor-seed-1-salt-workload-arrivals",
+      "fn": "rngFor",
+      "seed": 1,
+      "salt": "workload/arrivals",
+      "hash": 2855100519,
+      "mixed": 2855100518,
+      "draws": [3229762701, 1230113228, 2875831387, 2456975084, 3440403074, 3406635491, 18651127, 3075730645]
+    },
+    {
+      "id": "rngFor-seed-1-salt-spec-draft",
+      "fn": "rngFor",
+      "seed": 1,
+      "salt": "spec/draft",
+      "hash": 3542959662,
+      "mixed": 3542959663,
+      "draws": [1619932214, 258667072, 4232891818, 1783368146, 1746565735, 532104150, 1804087682, 1010366011]
+    },
+    {
+      "id": "rngFor-seed-0x80000000-salt-empty",
+      "fn": "rngFor",
+      "seed": 2147483648,
+      "salt": "",
+      "hash": 2166136261,
+      "mixed": 18652613,
+      "draws": [1766219342, 2024662049, 3490030425, 3832435826, 1789944641, 4179227206, 845615441, 2822129325]
+    },
+    {
+      "id": "rngFor-seed-0x80000000-salt-workload-arrivals",
+      "fn": "rngFor",
+      "seed": 2147483648,
+      "salt": "workload/arrivals",
+      "hash": 2855100519,
+      "mixed": 707616871,
+      "draws": [89267646, 752515718, 3327604958, 4205713006, 3020191322, 3885552169, 3712320012, 1067648627]
+    },
+    {
+      "id": "rngFor-seed-0x80000000-salt-spec-draft",
+      "fn": "rngFor",
+      "seed": 2147483648,
+      "salt": "spec/draft",
+      "hash": 3542959662,
+      "mixed": 1395476014,
+      "draws": [927180526, 2906333323, 4048045972, 2433334171, 2681779486, 1123477866, 3907724218, 3202029525]
+    },
+    {
+      "id": "rngFor-seed-0xdeadbeef-salt-empty",
+      "fn": "rngFor",
+      "seed": 3735928559,
+      "salt": "",
+      "hash": 2166136261,
+      "mixed": 1605444394,
+      "draws": [319598191, 612481380, 1223324305, 3837514044, 3604377016, 996291638, 707789082, 3261634688]
+    },
+    {
+      "id": "rngFor-seed-0xdeadbeef-salt-workload-arrivals",
+      "fn": "rngFor",
+      "seed": 3735928559,
+      "salt": "workload/arrivals",
+      "hash": 2855100519,
+      "mixed": 1954602632,
+      "draws": [1812599038, 2333176568, 3346036079, 3339336117, 4007839600, 935751008, 2200132328, 3643075057]
+    },
+    {
+      "id": "rngFor-seed-0xdeadbeef-salt-spec-draft",
+      "fn": "rngFor",
+      "seed": 3735928559,
+      "salt": "spec/draft",
+      "hash": 3542959662,
+      "mixed": 226556097,
+      "draws": [4079673873, 3554614163, 2351278641, 3308259836, 870335597, 6812708, 993604203, 1675126396]
+    },
+    {
+      "id": "rngFor-seed-0xffffffff-salt-empty",
+      "fn": "rngFor",
+      "seed": 4294967295,
+      "salt": "",
+      "hash": 2166136261,
+      "mixed": 2128831034,
+      "draws": [2084285259, 2622606475, 1892252414, 367300048, 2008447896, 1580453286, 4011499186, 302600062]
+    },
+    {
+      "id": "rngFor-seed-0xffffffff-salt-a",
+      "fn": "rngFor",
+      "seed": 4294967295,
+      "salt": "a",
+      "hash": 3826002220,
+      "mixed": 468965075,
+      "draws": [2030146319, 1519861773, 617130482, 1997618662, 234967857, 3992943829, 3101809845, 3210515226]
+    },
+    {
+      "id": "rngFor-seed-0xffffffff-salt-workload-arrivals",
+      "fn": "rngFor",
+      "seed": 4294967295,
+      "salt": "workload/arrivals",
+      "hash": 2855100519,
+      "mixed": 1439866776,
+      "draws": [2162215729, 3687776409, 3852287006, 3933209576, 560261534, 211742001, 4072174646, 2921902007]
+    },
+    {
+      "id": "rngFor-seed-0xffffffff-salt-workload-prompt",
+      "fn": "rngFor",
+      "seed": 4294967295,
+      "salt": "workload/prompt",
+      "hash": 290947511,
+      "mixed": 4004019784,
+      "draws": [656556128, 2855787164, 1001503429, 532492423, 3135106060, 1498788474, 3767547860, 2094998742]
+    },
+    {
+      "id": "rngFor-seed-0xffffffff-salt-workload-output",
+      "fn": "rngFor",
+      "seed": 4294967295,
+      "salt": "workload/output",
+      "hash": 1548302208,
+      "mixed": 2746665087,
+      "draws": [3015430244, 2879290575, 419744696, 366513757, 2681189213, 1562763158, 2874106371, 2171871223]
+    },
+    {
+      "id": "rngFor-seed-0xffffffff-salt-bench-bootstrap-p990",
+      "fn": "rngFor",
+      "seed": 4294967295,
+      "salt": "bench/bootstrap/p990",
+      "hash": 3006445875,
+      "mixed": 1288521420,
+      "draws": [3366178693, 4226279186, 2026515707, 2373700009, 1088838978, 356729169, 1967620200, 1909225985]
+    },
+    {
+      "id": "rngFor-seed-0xffffffff-salt-spec-draft",
+      "fn": "rngFor",
+      "seed": 4294967295,
+      "salt": "spec/draft",
+      "hash": 3542959662,
+      "mixed": 752007633,
+      "draws": [1564161452, 3124835257, 1739326383, 1186504832, 697674315, 1577994285, 506434174, 1844191027]
+    },
+    {
+      "id": "rngFor-seed-0xffffffff-salt-kv-ops",
+      "fn": "rngFor",
+      "seed": 4294967295,
+      "salt": "kv/ops",
+      "hash": 785258951,
+      "mixed": 3509708344,
+      "draws": [2431870031, 2836327744, 1390019700, 2342529656, 1550445205, 1730046435, 2121891507, 4154272141]
+    },
+    {
+      "id": "rngFor-seed-0xffffffff-salt-trace-gpu",
+      "fn": "rngFor",
+      "seed": 4294967295,
+      "salt": "trace/gpu",
+      "hash": 1516005475,
+      "mixed": 2778961820,
+      "draws": [3396246882, 1567110976, 711499980, 762992132, 1668913620, 1004416690, 259137199, 2797321649]
+    },
+    {
+      "id": "rngFor-seed-0xffffffff-salt-items-tr2.bubble-width-async-on-1-answer",
+      "fn": "rngFor",
+      "seed": 4294967295,
+      "salt": "items/tr2.bubble-width/async-on/1/answer",
+      "hash": 185164803,
+      "mixed": 4109802492,
+      "draws": [4175423476, 1341335373, 2414783702, 1527887690, 601072062, 3224586048, 2117423113, 1662481743]
+    },
+    {
+      "id": "rngFor-seed-0xffffffff-salt-300-chars",
+      "fn": "rngFor",
+      "seed": 4294967295,
+      "salt": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "hash": 2533439733,
+      "mixed": 1761527562,
+      "draws": [1204635410, 1446284429, 998039147, 1450961019, 3501737702, 1357152718, 1220048860, 1303846604]
+    },
+    {
+      "id": "rngFor-salt-accented-is-refused",
+      "note": "a salt is ASCII: the hash of a salt is over bytes only where the characters are one byte each",
+      "fn": "rngFor",
+      "seed": 7,
+      "salt": "\u00e9",
+      "error": true
+    },
+    {
+      "id": "rngFor-salt-first-non-ascii-is-refused",
+      "note": "a salt is ASCII: the hash of a salt is over bytes only where the characters are one byte each",
+      "fn": "rngFor",
+      "seed": 7,
+      "salt": "\u0080",
+      "error": true
+    },
+    {
+      "id": "rngFor-salt-cjk-is-refused",
+      "note": "a salt is ASCII: the hash of a salt is over bytes only where the characters are one byte each",
+      "fn": "rngFor",
+      "seed": 7,
+      "salt": "\u65e5\u672c",
+      "error": true
+    },
+    {
+      "id": "rngFor-salt-astral-is-refused",
+      "note": "a salt is ASCII: the hash of a salt is over bytes only where the characters are one byte each",
+      "fn": "rngFor",
+      "seed": 7,
+      "salt": "\ud83d\ude00",
+      "error": true
+    },
+    {
+      "id": "rngFor-salt-mixed-is-refused",
+      "note": "a salt is ASCII: the hash of a salt is over bytes only where the characters are one byte each",
+      "fn": "rngFor",
+      "seed": 7,
+      "salt": "workload/\u00e9",
+      "error": true
+    },
+    {"id": "rngFor-seed-negative-is-refused", "note": "a seed is an unsigned 32-bit integer", "fn": "rngFor", "seed": -1, "salt": "a", "error": true},
+    {"id": "rngFor-seed-2^32-is-refused", "note": "a seed is an unsigned 32-bit integer", "fn": "rngFor", "seed": 4294967296, "salt": "a", "error": true},
+    {"id": "rngFor-seed-fraction-is-refused", "note": "a seed is an unsigned 32-bit integer", "fn": "rngFor", "seed": 1.5, "salt": "a", "error": true}
+  ]
+}
