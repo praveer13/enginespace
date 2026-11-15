@@ -569,7 +569,7 @@ export function decodeTrace(source: string): EsTrace                 // strict: 
   - `contiguous()` copies;
   - a Triton-style grid of programs with BLOCK sizes covers a tensor with masks at the edges.
 - **`backends`** is the pinned version's attention-backend choice, written as ordered rules over model and GPU features. It is data from claims, so a re-pin edits data rather than code.
-- **`tiers`** covers GPU, CPU and disk tiers; the store, load, offload and evict operations; the `kv-events@1` stream; and a reference consumer that rebuilds the cache view from events. TR5b owns this minimal contract until The Wire's WR3 ships, per catalog §4's rule (D-034).
+- **`tiers`** covers GPU, CPU and disk tiers; the store, load, offload and evict operations; the `kv-events@1` stream; and a reference consumer that rebuilds the cache view from events. TR5b owns this minimal contract until The Wire's WR3 ships, per catalog §4's rule (D-034). W2-T28 built it as `kv-events@1`: three LRU tiers (`GPU`, `CPU`, `DISK`, which are the events' `medium`), the operations `store`, `offload`, `load`, `evict` and `reset`, a reference publisher that is the truth, a reference consumer that rebuilds the view from the events and notes what it cannot live with (a phantom removal, a double store, a batch out of order, a tier over capacity), `tiersJudge` with its eight checks (`reply`, `atomic`, `truth`, `view`, `ordering`, `reset`, `capacity`, `events`), and a connector contract in six calls after vLLM's scheduler and worker split (research K6). Both engines already carry the adapter as `lora_name`, so the events add no field for it (§5.4).
 
 ### 5.9 Notional-machine cards
 

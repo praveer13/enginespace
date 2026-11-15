@@ -20,6 +20,7 @@ export * from './bench'
 export * from './forge'
 export * from './spec'
 export * from './kv'
+export * from './tiers'
 // `lifecycle` is a namespace here, because its names (`Place`, `Scenario`, `Mechanism`, `legal`, `walk`) are the vocabulary of GAMES.md §5 and
 // are too general to share a flat barrel with the other models. Import from '@es/sim/lifecycle' for the names themselves.
 export * as lifecycle from './lifecycle'
