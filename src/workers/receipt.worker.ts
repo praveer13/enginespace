@@ -4,6 +4,7 @@
  * here and nowhere else, so a file that inflates without end can only stall this worker, and the page stops it at the time it allows (src/receipts/protocol.ts).
  * A JSON that would run the parser out of memory (a hundred million levels deep, a quarter of a gigabyte of `[],`, or a quarter of a gigabyte of `-0,`, which parses and then runs the canonical form out of memory) is
  * refused before it is parsed, by a scan of its shape in rule 2 (packages/verify/shape.ts, which counts the commas as well): a worker that runs out of memory takes the tab with it, and the caps of rule 1 bound a file's bytes and not its parse.
+ * A string is no shape for the scan: one of 129 MiB with a character outside Latin-1 in it is inside every bound, and crashed the tab in `JSON.stringify` while the canonical form of a JSON artifact was made, so the canonical form writes a long string in pieces (packages/sim/core/json.ts) and no string of a file inside the caps can do that now.
  * Then the schema's own lists are counted before the schema sees them (schema.ts), because zod makes an issue for every invalid entry of a list before it applies the list's bound, and a throw from the schema is a refusal at rule 2.
  *
  * The rules are packages/verify's and are pure; this file carries a request in and an outcome out (src/receipts/protocol.ts), and nothing
