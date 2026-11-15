@@ -185,7 +185,7 @@ class Seeded(unittest.TestCase):
 
     def test_doctor_prints_the_fields_a_receipt_records_and_nothing_else_of_the_environment(self) -> None:
         report = json.loads(self.doctor("--json").stdout)
-        self.assertEqual(sorted(report), ["environment", "grader", "notes", "stub"])
+        self.assertEqual(sorted(report), ["environment", "grader", "notes", "pins"])
         environment = report["environment"]
         self.assertEqual(environment["envVars"], {}, "no lab, no allowlist, no variable")
         self.assertLessEqual(set(environment), {"host", "gpus", "driver", "python", "torch", "libs", "envVars"})

@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any, ClassVar
 from unittest import mock
 
-from enginespace_grader import cli, fingerprint, grade, labs
+from enginespace_grader import cli, fingerprint, grade, labs, pins
 from enginespace_grader.bundle import Artifact
 from enginespace_grader.challenge import format_challenge
 from enginespace_grader.labs import Lab, Stage, StageContext, StageResult
@@ -67,6 +67,10 @@ class Doctor(unittest.TestCase):
         patch = mock.patch.object(fingerprint, "default_probes", return_value=self.machine)
         patch.start()
         self.addCleanup(patch.stop)
+        # These tests are about the fingerprint; the checks of the pins have their own tests (test_pins.py), against a kit that the tests build.
+        no_kit = mock.patch.object(pins, "find_kit_root", return_value=None)
+        no_kit.start()
+        self.addCleanup(no_kit.stop)
 
     def report(self, *flags: str) -> dict[str, Any]:
         status, out, err = run("doctor", "--json", *flags)
@@ -74,18 +78,18 @@ class Doctor(unittest.TestCase):
         report: dict[str, Any] = json.loads(out)
         return report
 
-    def test_it_says_that_it_is_still_a_stub_for_the_checks_and_prints_the_fingerprint(self) -> None:
+    def test_it_prints_the_fingerprint_and_says_what_it_does_not_check(self) -> None:
         status, out, _ = run("doctor")
         self.assertEqual(status, 0)
-        self.assertIn("doctor is a stub in this build", out)
-        self.assertIn("checks nothing yet", out)
-        self.assertIn("W2-T04", out)
+        self.assertNotIn("stub", out)
+        self.assertIn("not checked in this build: CUDA visibility, the free disk and the model cache", out)
+        self.assertIn("the pins were not checked: say which environment with --lab or --env", out)
         self.assertIn("exactly what a receipt records in `environment`", out)
         self.assertIn('"name": "NVIDIA GeForce RTX 4090"', out)
 
     def test_the_json_is_the_environment_that_collect_gives_for_the_same_arguments(self) -> None:
         report = self.report("--host-kind", "modal")
-        self.assertTrue(report["stub"])
+        self.assertIsNone(report["pins"])
         self.assertEqual(report["environment"], fingerprint.collect("modal"))
         self.assertEqual(report["environment"]["host"]["kind"], "modal")
         self.assertEqual(report["grader"]["name"], "enginespace-grader")

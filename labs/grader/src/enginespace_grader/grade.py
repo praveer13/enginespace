@@ -66,13 +66,12 @@ def resolve_provenance(assisted: str | None, agent: str | None, environ: Mapping
 def local_pins(lab: Lab) -> dict[str, Any]:
     """The receipt's `pins` for this machine: the hashes of the course lock and the environment's lock, and whether the engine and libraries are on them.
 
-    W2-T04 builds this (pins.py reads `course.lock.json` and the environment's lock, and compares the installed distributions with them). Until it does, a run on
-    a learner's machine cannot say what it ran on, and the grader stops, because a receipt that claimed to be on the pins without checking would be a lie.
+    pins.py reads `course.lock.json` and the environment's `uv.lock` and compares the installed distributions with them (W2-T04). Where it cannot find the lock it stops,
+    because a receipt that claimed to be on the pins without checking would be a lie.
     """
-    raise GraderError(
-        f"this build cannot say whether {lab.id}'s environment is on the course's pins yet: the pin check arrives with W2-T04 (labs/envs and pins.py), "
-        "and a receipt that claimed it without checking would be untrue"
-    )
+    from . import pins
+
+    return pins.local_pins(lab)
 
 
 def receipt_path(out_dir: Path, lab_id: str, stage_id: str, moment: dt.datetime) -> Path:

@@ -29,6 +29,7 @@ on:
   pull_request:
     paths:
       - 'labs/**'
+      - 'course.lock.json'
       - 'schemas/**'
       - 'packages/schema/**'
       - 'packages/verify/**'
@@ -194,6 +195,10 @@ jobs:
       - run: npm ci
       - name: The grader's lockfile is current
         run: uv lock --check --project labs/grader
+      # The four engine environments (W2-T04): each uv.lock satisfies its pyproject.toml, and each requirements.txt is what `uv export` gives from the lock.
+      # It resolves from PyPI's metadata and installs nothing: the GPU wheels are gigabytes, and no job syncs these environments.
+      - name: The engine environments' locks and exports are current
+        run: bash labs/envs/relock.sh --check
       - run: uv sync --locked --project labs/grader
       # The command is the one TRACKER names (W2-T02). uv runs it from the root of the repository, where unittest finds the tests only because
       # labs/, labs/grader/ and labs/grader/tests/ are packages (labs/__init__.py says why).

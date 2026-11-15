@@ -1,0 +1,35 @@
+# The CPU environment (ARCHITECTURE section 9.2, D-026, W2-T04): TR0's forward pass over Hugging Face weights, on the CPU.
+#
+# One locked uv project per environment. uv.lock pins every package with the hash of every file, and requirements.txt is `uv export` of that lock, for pip
+# with --require-hashes. The pins are those of course.lock.json (D-035, proposed until the owner confirms it, O-4); a change of pin changes this file and
+# re-locks the environment, and the grader's tests fail while the two disagree.
+#
+# Nobody runs `uv sync` on a GPU environment in CI or on a machine without a GPU: the wheels are gigabytes. `uv lock --check` needs none of them.
+#
+# There is no `license` field, on purpose: the licence of enginespace's own code is the owner's decision (O-3, D-060).
+
+[project]
+name = "enginespace-env-cpu"
+version = "0.1.0"
+description = "The locked CPU environment of the TR0 lab."
+requires-python = ">=3.11,<3.15"
+dependencies = [
+    "torch==2.14.0",
+    "transformers==5.19.0",
+    "enginespace-grader",
+]
+classifiers = ["Private :: Do Not Upload"]
+
+[tool.uv]
+package = false
+environments = ["sys_platform == 'linux'", "sys_platform == 'darwin'"]
+
+# On Linux, PyPI's torch is the CUDA build, gigabytes of libraries that a CPU lab never uses. PyTorch's own CPU index serves the CPU wheel.
+[tool.uv.sources]
+torch = { index = "pytorch-cpu", marker = "sys_platform == 'linux'" }
+enginespace-grader = { path = "../../grader" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true

@@ -1,0 +1,33 @@
+# The nano-vllm environment (ARCHITECTURE section 9.2, D-026, W2-T04): TR1's fork lab: the reading target, run.
+#
+# One locked uv project per environment. uv.lock pins every package with the hash of every file, and requirements.txt is `uv export` of that lock, for pip
+# with --require-hashes. The pins are those of course.lock.json (D-035, proposed until the owner confirms it, O-4); a change of pin changes this file and
+# re-locks the environment, and the grader's tests fail while the two disagree.
+#
+# Nobody runs `uv sync` on a GPU environment in CI or on a machine without a GPU: the wheels are gigabytes. `uv lock --check` needs none of them.
+#
+# There is no `license` field, on purpose: the licence of enginespace's own code is the owner's decision (O-3, D-060).
+
+[project]
+name = "enginespace-env-nano-vllm"
+version = "0.1.0"
+description = "The locked environment of the nano-vllm lab."
+# nano-vllm declares Python >=3.10,<3.13 (course.lock.json); the course's lower bound is 3.11.
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "nano-vllm",
+    # nano-vllm leaves torch unpinned, and an unpinned torch would be the newest one. The course runs its engines on torch 2.14 (vLLM's pin), so the reading
+    # target runs on it too. Whether a flash-attn build exists for torch 2.14 and CUDA 13 is [unverified] (course.lock.json; W2-T34 tests it).
+    "torch==2.14.0",
+    "enginespace-grader",
+]
+classifiers = ["Private :: Do Not Upload"]
+
+[tool.uv]
+package = false
+environments = ["sys_platform == 'linux'"]
+
+# nano-vllm has no release and no tag, so it is pinned by the commit of course.lock.json (D-035).
+[tool.uv.sources]
+nano-vllm = { git = "https://github.com/GeeeekExplorer/nano-vllm", rev = "bb823b3e06983d71485a8e1f23715ebd87d98ef8" }
+enginespace-grader = { path = "../../grader" }

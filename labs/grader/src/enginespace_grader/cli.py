@@ -1,6 +1,6 @@
 """The `enginespace` command (ARCHITECTURE section 9.4): one table of commands, each loaded only when it is named.
 
-    enginespace doctor                                   print the fields a receipt would record (its checks arrive with W2-T04)
+    enginespace doctor                                   print the fields a receipt would record, and check the pins and the host driver
     enginespace fetch <lab>                              download the files that a lab pins, and keep only those that hash to the pin
     enginespace grade <lab>.<stage> --challenge <token>  grade a stage on a challenge from the site, and write its bundle
     enginespace receipt verify <file>                    the browser's first three rules, run locally
@@ -132,7 +132,7 @@ def _grade(argv: Sequence[str]) -> int:
 
 #: name -> (what runs it, what it does).
 COMMANDS: dict[str, tuple[Callable[[Sequence[str]], int], str]] = {
-    "doctor": (_doctor, "print the fields that a receipt would record about this machine (its checks of the pins arrive with W2-T04)"),
+    "doctor": (_doctor, "print the fields that a receipt would record about this machine, and check the pins and the host driver"),
     "fetch": (_fetch, "download the files that a lab pins into the cache, and keep only those whose SHA-256 is the manifest's: fetch <lab>"),
     "grade": (_grade, "grade a stage on a challenge token from the site, and write its bundle: grade <lab>.<stage> --challenge <token>"),
     "receipt": (_receipt, "receipt verify <file>: the browser's first three rules, run locally"),

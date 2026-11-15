@@ -18,7 +18,7 @@ uv run --project labs/grader enginespace selftest
 
 | Command | Does | Built in |
 |---|---|---|
-| `enginespace doctor [--lab LAB] [--engine-log FILE] [--engine-config FILE]` | prints the fields a receipt would record about this machine, and notes for what it could not read | the fingerprint in W2-T03; still a stub for the checks, which arrive with W2-T04 |
+| `enginespace doctor [--lab LAB] [--env ENV] [--engine-log FILE] [--engine-config FILE]` | prints the fields a receipt would record about this machine, and notes for what it could not read | the fingerprint in W2-T03; `--lab` or `--env` adds the pin and host-driver checks of W2-T04 (exit 1 on a failure); its checks of CUDA visibility, disk and the model cache are not built |
 | `enginespace grade <lab>.<stage> --challenge <token>` | decodes the token, runs the stage on the seeds it derives, checks the work, writes `receipts/<lab>-<stage>-<utc>.es.json.gz` | W2-T02 (the labs themselves arrive with their tasks) |
 | `enginespace receipt verify <file>` | the browser's first three rules, run here | W2-T02 |
 | `enginespace selftest [--gpu]` | the grader's own checks, and its tests where they are installed | W2-T02; `--gpu` stops with a message until a GPU lab exists (W2-T12) |
@@ -76,7 +76,7 @@ The other rules need what a file cannot show about itself: the ledger of the bro
 |---|---|
 | `gpus`, `driver` | NVML through `nvidia-ml-py` (the module `pynvml`) when it imports and starts, else the CSV of `nvidia-smi --query-gpu`; the CUDA version of the driver from `nvidia-smi --version` or the table it prints. The SM count, which neither gives, and the whole list when both are missing, come from torch. The CSV has no column for the virtualization mode, so that field is left out on that path. |
 | `torch` | the installed distribution, and `torch.version.cuda` and cuDNN when torch imports (which takes seconds) |
-| `engine` | the engine's distribution: its version, the commit if pip recorded one for a build from git (PEP 610), and the SHA-256 of its `RECORD`, read as bytes. Re-hashing the installed files against `RECORD` is the pin check's work (W2-T04). |
+| `engine` | the engine's distribution: its version, the commit if pip recorded one for a build from git (PEP 610), and the SHA-256 of its `RECORD`, read as bytes. The pin check (pins.py, W2-T04) compares versions and commits and does not re-hash the installed files against `RECORD`. |
 | `libs` | flashinfer, xgrammar, triton and transformers, when installed |
 | `host` | the operating system (`/etc/os-release`, or `sysctl` on macOS), the kernel release, the architecture, the CPU model, the cores, the RAM, and whether the process is in a container |
 | `envVars` | only the `VLLM_*` and `SGLANG_*` variables on the lab's allowlist (`Lab.env_allowlist`), each scrubbed |
@@ -136,3 +136,13 @@ tests/                                                     unittest
 ```
 
 The pyproject has no `license` field, on purpose: the licence of enginespace's own code is the owner's decision (O-3, D-060).
+
+## The pin checks (W2-T04)
+
+`enginespace doctor --lab <lab>` (or `--env cpu|vllm|sglang|nano-vllm`) compares the machine with the course's pins and prints each comparison, `[ok]` or `[FAIL]`, with its reason. It exits 1 when one fails. `grade` runs the same comparison to fill the receipt's `pins` (`lockSha256`, `envLockSha256`, `onPin`, `offPin`), and stops when it cannot find the files to compare with.
+
+- The engine is compared with `course.lock.json`: its release, and its commit when pip recorded one (nano-vllm is installed from a commit).
+- torch and the key libraries are compared with the environment's `uv.lock` (`envs/<env>/uv.lock`). A library that the lock holds and the machine lacks is off the pin.
+- The host driver is compared with the CUDA generation that the lock's wheels are built for: R580 or newer for CUDA 13 (D-035). An older driver fails the check, and it is not an `offPin` entry, because it is no package.
+
+The files are found from the working directory upward (a kit's folder, or the repository's root), or from the folder that `ENGINESPACE_KIT` names. The environments are in `labs/envs` (see its README); `bash labs/envs/relock.sh` re-locks them.
