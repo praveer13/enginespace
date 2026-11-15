@@ -9,7 +9,7 @@
 // attribution and structural checks. W1-T31 adds `bench`, the benchmark generator: arrivals, the coarse server and the statistics
 // of a log. W1-T10 adds `forge`, the oracles of the forge labs. W1-T26 adds `spec`, the exact rejection sampler. W1-T16 adds `lifecycle`,
 // a request's path through the engines, as data and as synthetic traces. W1-T21 adds `kv`, the hybrid KV manager: groups, one page pool,
-// prefix hashing, adapters, events and the invariants a manager keeps. The rest follow, each in a folder of its own.
+// prefix hashing, adapters, events and the invariants a manager keeps. W2-T13 adds `tensor`, a buffer with shape and strides and PyTorch's view rules. The rest follow, each in a folder of its own.
 export * from './core'
 export * from './physics'
 export * from './host'
@@ -23,6 +23,8 @@ export * from './kv'
 // `lifecycle` is a namespace here, because its names (`Place`, `Scenario`, `Mechanism`, `legal`, `walk`) are the vocabulary of GAMES.md §5 and
 // are too general to share a flat barrel with the other models. Import from '@es/sim/lifecycle' for the names themselves.
 export * as lifecycle from './lifecycle'
+// `tensor` is a namespace too (W2-T13): `numel`, `Goal`, `Plan` and `cdiv` are too general for the flat barrel. Import from '@es/sim/tensor'.
+export * as tensor from './tensor'
 // `Dist` is a token-count distribution in `workload` and a probability distribution in `spec` (ARCHITECTURE §5.5). This barrel keeps
 // the older meaning: import the probability one from '@es/sim/spec'.
 export type { Dist } from './workload'

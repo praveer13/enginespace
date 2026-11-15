@@ -568,6 +568,7 @@ export function decodeTrace(source: string): EsTrace                 // strict: 
   - view, reshape, permute, transpose, expand (stride 0) and slice change metadata only;
   - `contiguous()` copies;
   - a Triton-style grid of programs with BLOCK sizes covers a tensor with masks at the edges.
+  - W2-T13 builds it in `packages/sim/tensor`, with the view rules of PyTorch (`computeStride`, `is_contiguous`, `expand`, basic slicing). The rules are checked against `tests/fixtures/tensor/torch-vectors.json`, which `scripts/tensor-torch-vectors.py` wrote once with torch 2.14.0 running on a CPU; the goldens are `tests/fixtures/sim/tensor.json`. `fewestPlan` searches at most 6 operations deep, for a tensor of at most 256 elements. A target is a shape, the elements in logical order and whether the tensor must end contiguous: a shape alone would let a transpose reach `[3, 2]` from `[2, 3]` for free.
 - **`backends`** is the pinned version's attention-backend choice, written as ordered rules over model and GPU features. It is data from claims, so a re-pin edits data rather than code.
 - **`tiers`** covers GPU, CPU and disk tiers; the store, load, offload and evict operations; the `kv-events@1` stream; and a reference consumer that rebuilds the cache view from events. TR5b owns this minimal contract until The Wire's WR3 ships, per catalog §4's rule (D-034).
 
