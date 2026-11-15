@@ -16,6 +16,7 @@ import sqlite3
 import stat
 import tempfile
 import unittest
+import unittest.mock
 from pathlib import Path
 from typing import Any
 
@@ -109,6 +110,16 @@ class Goldens(Workspace):
         _, stdout, _ = run(str(TORCH), "--format", "torch", "--out", str(out), *META)
         self.assertIn(hashlib.sha256(out.read_bytes()).hexdigest(), stdout)
         self.assertIn("3 step windows", stdout)
+
+    def test_the_path_it_wrote_is_printed_with_a_tilde_under_the_home_folder(self) -> None:
+        home = self.dir / "home"
+        (home / "work").mkdir(parents=True)
+        with unittest.mock.patch.dict(os.environ, {"HOME": str(home), "USERPROFILE": str(home)}):
+            _, stdout, _ = run(str(TORCH), "--format", "torch", "--out", str(home / "work" / "t.json"), *META)
+            self.assertIn("wrote ~/work/t.json (", stdout)
+            self.assertNotIn(str(home), stdout)
+            _, elsewhere, _ = run(str(TORCH), "--format", "torch", "--out", str(self.dir / "t.json"), *META)
+        self.assertIn(f"wrote {self.dir / 't.json'} (", elsewhere)
 
     def test_a_graph_replay_is_one_launch_for_its_nodes_in_both_formats(self) -> None:
         for name in ("torch-profiler-steps.trace.json", "nsys-export-steps.trace.json"):

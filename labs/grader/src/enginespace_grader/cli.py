@@ -131,14 +131,16 @@ def _grade(argv: Sequence[str]) -> int:
         provenance=provenance,
         notes=args.notes,
     )
+    from .fetch import shown  # here and not at the top: the table loads a command only when it runs
+
     failed = outcome.failed_checks
     sys.stdout.write(f"graded {stage_id} with {GRADER_NAME} {__version__}\n")
-    sys.stdout.write(f"  wrote {outcome.path} ({outcome.stats.compressed_bytes:,} bytes)\n")
+    sys.stdout.write(f"  wrote {shown(outcome.path)} ({outcome.stats.compressed_bytes:,} bytes)\n")
     sys.stdout.write(f"  checks: {len(outcome.receipt['checks']) - len(failed)} passed, {len(failed)} failed\n")
     for check in failed:
         sys.stdout.write(f"    FAIL {check['id']}: {check['detail'] or 'no detail'}\n")
     sys.stdout.write(f"  receipt id {outcome.stats.receipt_sha256}\n")
-    sys.stdout.write(f"Check it here with `enginespace receipt verify {outcome.path}`, then drop it on the Receipts page.\n")
+    sys.stdout.write(f"Check it here with `enginespace receipt verify {shown(outcome.path)}`, then drop it on the Receipts page.\n")
     return EXIT_OK if not failed else EXIT_FAILED
 
 
