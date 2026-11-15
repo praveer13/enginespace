@@ -6,11 +6,11 @@
       "kind": "gpu-kit",
       "version": "0.1.0",
       "graderSourceSha256": "2cc3a50848c197309c435c1e1ebb62289374731f5b24138b86c5aa3ac4885839",
-      "bytes": 2858949,
-      "sha256": "afc36a6788e53d00a8dcfedc3a95da2d46bfb003aef0cdd9ea9bdb14dd99e85e",
+      "bytes": 2897372,
+      "sha256": "0c4fd4ac4ea1b473cae21c81c836a9b93f1a358118944ac7eaf19dd0c9f87311",
       "root": "enginespace-gpu-kit",
       "members": [
-        { "path": "README.md", "bytes": 2035, "sha256": "014e7f47b86c91c4bdc221a8141374c8f3f55c2d74a86bd353bdc630d4f3dafe" },
+        { "path": "README.md", "bytes": 2096, "sha256": "19773fa0fc4024afd7374b6286adfd136f3d048268a5f817049bc0a7e45eba81" },
         { "path": "course.lock.json", "bytes": 6041, "sha256": "6d07d5e0a139f3285859832ca282670dd69a876797e59bf649583642d2e05b1f" },
         { "path": "envs/README.md", "bytes": 2577, "sha256": "3b1fc575f037f81292158d90558efb92e72ee83e458867eff39521aa6fddb020" },
         { "path": "envs/cpu/Dockerfile", "bytes": 1761, "sha256": "5a49634e571391949536cdad665c7aec85f61651dab33b3a88307224fb0d6436" },
@@ -66,7 +66,10 @@
         { "path": "grader/src/enginespace_grader/verify.py", "bytes": 8248, "sha256": "0195c4cae563bcf90e624b173348ea55ecaf79d54df582909ce7469703fe5859" },
         { "path": "grader/uv.lock", "bytes": 36514, "sha256": "c39160ac015c5b85d5df067e80047e3c1484deeab186f66ad50c907ede17d850" },
         { "path": "references/README.md", "bytes": 3526, "sha256": "ae969df170689bbc437cdc798b64189d38982a7fd1e722456461cb16281d65e1" },
-        { "path": "references/manifest.json", "bytes": 60, "sha256": "dc0db4636bde11d2e028e017890697bc1b69d43b1386fad781ada53ce475ede8" }
+        { "path": "references/manifest.json", "bytes": 60, "sha256": "dc0db4636bde11d2e028e017890697bc1b69d43b1386fad781ada53ce475ede8" },
+        { "path": "runners/lambda.md", "bytes": 8069, "sha256": "59d88f981d51be4feb6310ce7e13db4c69b8e4944e296a231ba2e897d003300a" },
+        { "path": "runners/modal_app.py", "bytes": 20329, "sha256": "be3b9d9368db6a93071194acc4ffc0a7c67b20a978b499debc23a33a52447a91" },
+        { "path": "runners/runpod.md", "bytes": 9508, "sha256": "978a258e1afc9f6088a7b60b4b60f2aaed7e0509c031865bc608557c6ffafda1" }
       ]
     },
     {
