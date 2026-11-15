@@ -98,31 +98,42 @@ const rest = (done: readonly RuleResult[]): RuleResult[] => RULES.slice(done.len
 
 const encoder = new TextEncoder()
 
+type Parsed = Extract<ReturnType<typeof parseBundle>, { ok: true }>
+
 export async function verifyBundle(file: Blob, context: VerifyContext): Promise<Outcome> {
   const caps = context.caps ?? CAPS
 
-  /* 1. Caps. */
-  const read = await readBundle(file, caps)
-  if (!read.ok) {
-    const sizes = read.sizes === undefined ? {} : { sizes: read.sizes }
-    // A file over a cap, or one that is not gzip, is rule 1's. Text that is not UTF-8, or starts with a byte order mark, is rule 2's, as the
-    // grader's reader counts it: the caps held, and the schema is where it fails.
-    if (read.rule === 1) {
-      const rules = [result('caps', 'fail', read.message)]
-      return { kind: 'refused', rules: [...rules, ...rest(rules)], ...sizes }
+  /*
+   * 1 and 2, in a function of their own so that the decoded text (up to the 256 MB cap, and as large again as UTF-16 when it holds a character outside Latin-1) is out of scope, and a
+   * garbage collection may free it, before rule 3 builds the canonical bytes of the artifacts, which is where the peak of a file inside the caps is.
+   */
+  const intake = async (): Promise<{ done: Outcome } | { sizes: Sizes; capsRule: RuleResult; parsed: Parsed }> => {
+    const read = await readBundle(file, caps)
+    if (!read.ok) {
+      const sizes = read.sizes === undefined ? {} : { sizes: read.sizes }
+      // A file over a cap, or one that is not gzip, is rule 1's. Text that is not UTF-8, or starts with a byte order mark, is rule 2's, as the
+      // grader's reader counts it: the caps held, and the schema is where it fails.
+      if (read.rule === 1) {
+        const rules = [result('caps', 'fail', read.message)]
+        return { done: { kind: 'refused', rules: [...rules, ...rest(rules)], ...sizes } }
+      }
+      const rules = [capsPassed(read.sizes, caps), result('schema', 'fail', read.message)]
+      return { done: { kind: 'refused', rules: [...rules, ...rest(rules)], ...sizes } }
     }
-    const rules = [capsPassed(read.sizes, caps), result('schema', 'fail', read.message)]
-    return { kind: 'refused', rules: [...rules, ...rest(rules)], ...sizes }
-  }
-  const { sizes } = read
-  const capsRule = capsPassed(sizes, caps)
+    const { sizes } = read
+    const capsRule = capsPassed(sizes, caps)
 
-  /* 2. Schema. */
-  const parsed = parseBundle(read.text)
-  if (!parsed.ok) {
-    const rules = [capsRule, result('schema', 'fail', 'The file is not a bundle@1 with a receipt@1 in it.', parsed.problems)]
-    return { kind: 'refused', rules: [...rules, ...rest(rules)], sizes }
+    /* 2. Schema. */
+    const parsed = parseBundle(read.text)
+    if (!parsed.ok) {
+      const rules = [capsRule, result('schema', 'fail', 'The file is not a bundle@1 with a receipt@1 in it.', parsed.problems)]
+      return { done: { kind: 'refused', rules: [...rules, ...rest(rules)], sizes } }
+    }
+    return { sizes, capsRule, parsed }
   }
+  const taken = await intake()
+  if ('done' in taken) return taken.done
+  const { sizes, capsRule, parsed } = taken
   const { bundle } = parsed
   const { receipt } = bundle
   const schemaRule = result('schema', 'pass', 'bundle@1 and receipt@1: every field is the schema\'s, and no other.')

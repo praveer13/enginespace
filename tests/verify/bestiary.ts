@@ -20,6 +20,8 @@
  *                       The floor is made from the model that the site pins for the stage, and the receipt's input has to be that model.
  *   faster-gpu-typed    The too-fast trace again (0.8 of the honest floor, which the faster GPU's floor would clear), with four H200s typed into the receipt's list of GPUs and the trace
  *                       left naming the H100 that ran: the floor is made from the GPU the trace names, and P1 fails with the H100's bound.
+ *   relabelled-trace   The too-fast trace again, with its entry's kind written as `log` and its format as `json` in the receipt alone: the artifact is read by its own schema tag,
+ *                       so P1 still holds it to its floor, and T1 names the mismatch.
  *   empty-evidence      The evidence left out and the entry for it left in: an acceptance artifact with its four columns empty, beside the grader's own check of the identity
  *                       as passed. A count over no round is no count: acceptance-counts (rule 7).
  *
@@ -261,6 +263,23 @@ const fasterGpuTyped: Forgery = {
     }),
 }
 
+/** The too-fast trace with its entry relabelled in the receipt alone (the artifact and its hash are untouched), so that it reads as no trace to a verifier that trusts the label. */
+const relabelledTrace: Forgery = {
+  id: 'relabelled-trace',
+  title: "a trace faster than its physics floor, with its entry relabelled as a log in the receipt",
+  from: 'trace',
+  fails: { rule: 9, check: 'P1' },
+  bound: P1_BOUND,
+  forge: (honest) =>
+    edited(shortened(honest, 0.5), (bundle) => {
+      const { id } = traceOf(honest)
+      const entry = bundle.receipt.artifacts.find((artifact) => artifact.id === id)
+      if (entry === undefined) throw new Error('the trace has no entry')
+      entry.kind = 'log'
+      entry.format = 'json'
+    }),
+}
+
 const unknownGrader: Forgery = {
   id: 'unknown-grader',
   title: 'an unknown grader build',
@@ -356,7 +375,7 @@ const emptyEvidence: Forgery = {
 }
 
 /** Every forgery: the nine of ASSESSMENT §13 in the order it lists them, then the two that the review of W2's grader track added, and the one that the second review added. */
-export const BESTIARY: readonly Forgery[] = [editedP99, resignedHash, reusedToken, replayedReceipt, closedLoop, tooFast, unknownGrader, notAPartition, otherSeed, smallerModel, emptyEvidence, fasterGpuTyped]
+export const BESTIARY: readonly Forgery[] = [editedP99, resignedHash, reusedToken, replayedReceipt, closedLoop, tooFast, unknownGrader, notAPartition, otherSeed, smallerModel, emptyEvidence, fasterGpuTyped, relabelledTrace]
 
 /** The forgeries that an honest fixture can be forged into: those that read the kind of evidence it carries. */
 export function forgeriesFor(fixture: Fixture): readonly Forgery[] {

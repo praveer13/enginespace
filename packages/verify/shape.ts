@@ -21,8 +21,12 @@
  *          hash (rule 3), makes a string for every value and joins them. A file of 250 MB of `-0,` (87 million numbers, 254,873 B compressed) parsed in seconds
  *          and then crashed the tab in the canonical form, after 22 s and a peak of 4.17 GB, while 25.5 million distinct 9-digit integers (255 MB) survived at 2.97 GB
  *          [measured in 2026-11 by the second review of W2's grader track, the same Chromium, build 727167e]. A value is the first of its container or follows a comma, so
- *          the commas, with the nodes, bound every value; the bound is 16 Mi. (The receipt itself is also held to the ledger's size before its canonical form is made:
+ *          the commas, with the nodes, bound every value; the bound is 16 Mi. (Nor is the shape the whole of it: a list of millions of `{}` inside these bounds still makes zod build an issue for each, so rule 2 counts the schema's lists next, schema.ts.) (The receipt itself is also held to the ledger's size before its canonical form is made:
  *          schema.ts.)
+ *
+ * What the scan does not count is the length of a string: a string is one node whatever its length, and a file inside the caps can hold one of 250 MiB. Its cost is the canonical form's, which writes a string longer
+ * than 1 Mi characters in pieces (packages/sim/core/json.ts), because `JSON.stringify` of a parsed string over 2^27 characters that holds one outside Latin-1 crashed the pinned Chromium's renderer in rule 3 [measured
+ * 2026-11-15 by the second review of W2's rest track, build ff47e8f]. No bound on a string's length is needed, and none is held in the grader's writer.
  *
  * It is a scan and not a parse. It finds the strings by their quotes and their backslashes, skips what is inside them, and counts the brackets that are
  * left. It does not judge whether the text is JSON, which `JSON.parse` does next on a text that has passed. That is sound as a bound for any text, valid

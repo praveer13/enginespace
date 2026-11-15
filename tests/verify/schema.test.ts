@@ -160,3 +160,27 @@ describe('a receipt that has no canonical form', () => {
     expect(failed(source)[0]).toMatch(/^\/receipt: the receipt has no canonical form, so it cannot be identified: /)
   })
 })
+
+describe('a list that is longer than the schema allows', () => {
+  const withArtifacts = (members: string): string => text({ ...sampleBundle(), receipt: { ...sampleBundle().receipt, artifacts: ['@@'] } }).replace('["@@"]', `[${members}]`)
+
+  test('is refused at rule 2 naming the list, for empty objects and for numbers, and no throw comes out of the schema', () => {
+    for (const members of [Array(524_288).fill('0').join(','), Array(200_000).fill('{}').join(','), Array(65).fill('{}').join(',')]) {
+      expect(failed(withArtifacts(members))).toEqual(['/receipt/artifacts: holds more than the 64 entries that it may, so the file was not read further.'])
+    }
+  })
+
+  test('names each list of the schema, and the keys of envVars and of the bundle\'s artifacts', () => {
+    const many = (count: number): Record<string, string> => Object.fromEntries(Array.from({ length: count }, (_, at) => [`K${at}`, '0']))
+    const big = (place: (b: ReturnType<typeof sampleBundle>) => void): string => failed(text(changed(place)))[0] ?? ''
+    expect(big((b) => { b.receipt.environment.gpus = Array(17).fill(b.receipt.environment.gpus[0]) })).toMatch(/^\/receipt\/environment\/gpus: holds more than the 16 entries/)
+    expect(big((b) => { b.receipt.checks = Array(257).fill(b.receipt.checks[0]) })).toMatch(/^\/receipt\/checks: holds more than the 256 entries/)
+    expect(big((b) => { b.receipt.environment.envVars = many(65) })).toMatch(/^\/receipt\/environment\/envVars: holds more than the 64 keys/)
+    expect(big((b) => { b.artifacts = many(65) as never })).toMatch(/^\/artifacts: holds more than the 64 keys/)
+  })
+
+  test('a list at its bound is left to the schema', () => {
+    const [problem] = failed(withArtifacts(Array(64).fill('{}').join(',')))
+    expect(problem).not.toMatch(/holds more than/)
+  })
+})

@@ -30,9 +30,32 @@ const LONE_SURROGATE = /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[
  */
 const at = (path: string, way: string | number): string => (typeof way === 'number' ? `${path}[${way}]` : path + way)
 
+/**
+ * The longest string that is handed to `JSON.stringify` whole, in UTF-16 code units: 1 Mi. In the pinned Chromium (Chrome for Testing 153.0.8010.12), `JSON.stringify` of a string
+ * longer than 2^27 code units that holds a character outside Latin-1 crashes the renderer, and so takes the learner's tab: a JSON artifact of one string of 129 MiB, "π" and a run
+ * of `a`, is about 133 KB compressed and passes rules 1 and 2 [measured 2026-11-15 by the second review of W2's rest track, build ff47e8f]. A longer string is written in pieces.
+ */
+export const STRING_PIECE = 1024 * 1024
+
+/**
+ * The form of one string. A string that fits a piece is `JSON.stringify`'s. A longer one is written piece by piece, and the escapes of a piece are the escapes of those characters
+ * in the whole (they are made one character at a time), so the text is byte for byte what `JSON.stringify` would write. A piece never ends between the two halves of a surrogate
+ * pair, which `JSON.stringify` would write as two `\u` escapes when it saw each alone; the check above has already refused a string with a lone half.
+ */
 function text(value: string, path: string, way: string | number = ''): string {
   if (LONE_SURROGATE.test(value)) throw new RangeError(`${at(path, way)}: a lone surrogate has no UTF-8 form`)
-  return JSON.stringify(value)
+  if (value.length <= STRING_PIECE) return JSON.stringify(value)
+  const pieces: string[] = ['"']
+  for (let start = 0; start < value.length; ) {
+    let end = Math.min(start + STRING_PIECE, value.length)
+    const last = value.charCodeAt(end - 1)
+    if (end < value.length && last >= 0xd800 && last <= 0xdbff) end += 1 // a high surrogate: the low one that follows is its other half
+    const piece = JSON.stringify(value.slice(start, end))
+    pieces.push(piece.slice(1, -1))
+    start = end
+  }
+  pieces.push('"')
+  return pieces.join('')
 }
 
 function encode(value: unknown, path: string, ancestors: object[], way: string | number = ''): string {

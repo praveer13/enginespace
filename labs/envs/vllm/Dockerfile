@@ -2,7 +2,7 @@
 #
 #   docker build -f envs/vllm/Dockerfile -t enginespace-vllm .
 #
-# The base is vLLM's official image at the pinned tag (D-035). That the tag exists on Docker Hub is [unverified]; W2-T11 checks it and records the result as a dated claim.
+# The base is vLLM's official image at the pinned tag (D-035). That the tag exists on Docker Hub, and that the namespace is the project's, are the claims vllm.image.openai-tag and vllm.image.official ([measured] 2026-11-15, content/claims/runners.yaml).
 # The Dockerfile builds are left to the owner's smoke run (W2-T12): nothing in CI builds them, and no one has built this one [unverified].
 #
 # The locked environment is installed from uv.lock, with the hash of every file, into /opt/venv, and the kit goes beside it. The base image brings the CUDA

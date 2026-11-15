@@ -104,6 +104,7 @@ describe('the forged bestiary', () => {
       'smaller-model',
       'empty-evidence',
       'faster-gpu-typed',
+      'relabelled-trace',
     ])
     expect(BESTIARY.map((forgery) => forgery.title)).toEqual([
       'an edited p99',
@@ -118,12 +119,13 @@ describe('the forged bestiary', () => {
       'a trace faster than its physics floor, with a smaller model typed in',
       'evidence left out and its entry left in: an acceptance artifact with no round',
       "a trace faster than its physics floor, with a faster GPU typed into the receipt's list",
+      'a trace faster than its physics floor, with its entry relabelled as a log in the receipt',
     ])
   })
 
-  test('every forgery has an honest fixture to be made from, and the three kinds of fixture are forged into seven, four and one', () => {
+  test('every forgery has an honest fixture to be made from, and the three kinds of fixture are forged into seven, five and one', () => {
     expect(forgeriesFor(replayFixture()).map((forgery) => forgery.id)).toEqual(['edited-p99', 'resigned-hash', 'reused-token', 'replayed-receipt', 'closed-loop', 'unknown-grader', 'other-seed'])
-    expect(forgeriesFor(traceFixture()).map((forgery) => forgery.id)).toEqual(['too-fast', 'not-a-partition', 'smaller-model', 'faster-gpu-typed'])
+    expect(forgeriesFor(traceFixture()).map((forgery) => forgery.id)).toEqual(['too-fast', 'not-a-partition', 'smaller-model', 'faster-gpu-typed', 'relabelled-trace'])
     expect(forgeriesFor(proposerFixture()).map((forgery) => forgery.id)).toEqual(['empty-evidence'])
     const covered = new Set([...forgeriesFor(replayFixture()), ...forgeriesFor(traceFixture()), ...forgeriesFor(proposerFixture())].map((forgery) => forgery.id))
     expect(covered.size).toBe(BESTIARY.length)

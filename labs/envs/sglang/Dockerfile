@@ -2,7 +2,7 @@
 #
 #   docker build -f envs/sglang/Dockerfile -t enginespace-sglang .
 #
-# The base is SGLang's NVIDIA image at the pinned tag, which course.lock.json names (CUDA 13 only). That the tag exists is [unverified]; W2-T11 checks it.
+# The base is SGLang's NVIDIA image at the pinned tag, which course.lock.json names (CUDA 13 only). That the tag exists is the claim sglang.image.tag ([measured] 2026-11-15, content/claims/runners.yaml).
 # The Dockerfile builds are left to the owner's smoke run (W2-T12): nothing in CI builds them, and no one has built this one [unverified].
 #
 # The locked environment is installed from uv.lock, with the hash of every file, into /opt/venv, and the kit goes beside it. The base image brings the CUDA

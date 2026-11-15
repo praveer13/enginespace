@@ -12,6 +12,10 @@
  * Before any of that, the text is looked at once for its shape (shape.ts): a file that nests deeper than a bundle can, or holds more arrays, objects and
  * strings than a bundle can, is refused here and never parsed, because rule 1 bounds the bytes of the text and not what `JSON.parse` allocates for them.
  *
+ * Then the lists are counted before the schema sees them (`overlong`): zod parses every entry of a list before it applies the list's own `.max`, and makes an issue for each
+ * invalid entry and each missing key, so a list of millions of `{}` or `0` inside the shape bounds costs tens of millions of issues, a RangeError, or the tab. A list or an
+ * object that is longer than the schema's own bound is refused at rule 2 naming it, and a throw from the schema is a refusal and not the check breaking.
+ *
  * The receipt is also held to the ledger's length before its canonical form is made (`fitsChars`), and the canonical form builds the path of a value only when it throws.
  *
  * Nothing here trusts the file's own idea of itself. A `schema` tag that is not `enginespace/bundle@1` is a problem, and so is a bundle
@@ -19,6 +23,7 @@
  */
 import { bundleSchema } from '@es/schema/bundle'
 import type { Bundle } from '@es/schema/bundle'
+import { RECEIPT_LIMITS } from '@es/schema/receipt'
 import { canonicalJson } from '@es/sim/core/json'
 import { cut, firstProblems, grouped } from './format'
 import { RECEIPT_CHARS, SHAPE } from './limits'
@@ -72,6 +77,43 @@ function fitsChars(value: unknown, limit: number): boolean {
   return walk(value)
 }
 
+/** The lists of a receipt that the schema bounds, by their place, and the keys of `envVars` and of the bundle's artifacts, which it bounds too. */
+const LISTS: readonly (readonly [readonly string[], number, boolean])[] = [
+  [['receipt', 'environment', 'gpus'], RECEIPT_LIMITS.gpus, false],
+  [['receipt', 'environment', 'libs'], RECEIPT_LIMITS.libs, false],
+  [['receipt', 'pins', 'offPin'], RECEIPT_LIMITS.offPin, false],
+  [['receipt', 'environment', 'envVars'], RECEIPT_LIMITS.envVars, true],
+  [['receipt', 'inputs'], RECEIPT_LIMITS.inputs, false],
+  [['receipt', 'artifacts'], RECEIPT_LIMITS.artifacts, false],
+  [['receipt', 'checks'], RECEIPT_LIMITS.checks, false],
+  [['artifacts'], RECEIPT_LIMITS.artifacts, true],
+]
+
+/** The first list (or object of keys) in the document that is longer than the schema allows, as a sentence, or undefined. Looks at each place only by its length, so it costs nothing. */
+function overlong(document: unknown): string | undefined {
+  for (const [path, limit, keyed] of LISTS) {
+    let at: unknown = document
+    for (const part of path) {
+      if (at === null || typeof at !== 'object' || Array.isArray(at)) {
+        at = undefined
+        break
+      }
+      at = Object.hasOwn(at, part) ? (at as Record<string, unknown>)[part] : undefined
+    }
+    if (at === null || typeof at !== 'object') continue
+    // `Object.keys` of an object of millions of keys is itself a list of millions, so the keys are counted by a walk that stops at the first excess.
+    let count = 0
+    if (Array.isArray(at)) count = at.length
+    else if (keyed) {
+      for (const key in at) {
+        if (Object.hasOwn(at, key) && ++count > limit) break
+      }
+    }
+    if (count > limit) return `/${path.join('/')}: holds more than the ${limit} ${keyed ? 'keys' : 'entries'} that it may, so the file was not read further.`
+  }
+  return undefined
+}
+
 /**
  * Reads the text inside a file as a `bundle@1`: the document, checked by the schema, and the receipt's canonical text. The shape of the text is held to
  * `shape` first, the site's bounds unless a test asks for smaller ones, and a text that is outside them is not parsed.
@@ -85,7 +127,15 @@ export function parseBundle(text: string, shape: Shape = SHAPE): ParseResult {
   } catch (error) {
     return { ok: false, problems: [`The text inside is not JSON: ${jsonMessage(error)}.`] }
   }
-  const parsed = bundleSchema.safeParse(document)
+  const excess = overlong(document)
+  if (excess !== undefined) return { ok: false, problems: [excess] }
+  let parsed: ReturnType<typeof bundleSchema.safeParse>
+  try {
+    parsed = bundleSchema.safeParse(document)
+  } catch (error) {
+    // A file that makes the schema throw (a RangeError from a million issues) is a file the schema refuses, and the check has not broken.
+    return { ok: false, problems: [`The text inside is not a bundle@1: the schema could not be applied to it (${jsonMessage(error)}).`] }
+  }
   if (!parsed.success) return { ok: false, problems: schemaProblems(parsed.error.issues) }
   const bundle = parsed.data
   if (!fitsChars(bundle.receipt, RECEIPT_CHARS)) {

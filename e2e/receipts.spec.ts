@@ -187,8 +187,9 @@ test.describe('issuing a challenge', () => {
     const first = await tokenText(page)
     await getChallenge(page).click()
     await expect(rows(page)).toHaveCount(2)
+    // The ticket swaps to the new token after the list grows, so poll until it shows one that is not the first.
+    await expect.poll(() => tokenText(page)).not.toBe(first)
     const second = await tokenText(page)
-    expect(second).not.toBe(first)
     const stored = await events(page)
     expect(stored.map((event) => event.data.token).sort()).toEqual([first, second].sort())
     // The ticket shows the newest, and the list has both.
