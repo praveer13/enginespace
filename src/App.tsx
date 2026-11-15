@@ -1,43 +1,46 @@
 import { useEffect, useLayoutEffect, type ReactNode } from 'react'
 import { Outlet, isRouteErrorResponse, useLocation, useMatches, useNavigationType, useRouteError } from 'react-router'
-import { Board } from '@/design/components/Board'
+import { Board, ContinueLink } from '@/design/components/Board'
 import { Button } from '@/design/components/Button'
 import { TapeLabel } from '@/design/components/TapeLabel'
 import { EvidenceNotice } from '@/evidence/EvidenceNotice'
+import { usePointer } from '@/settings/usePlace'
 
 /** What a route's `handle` carries: the text of the page's `<title>`. */
 export interface RouteHandle {
   title: string
 }
 
-// ARCHITECTURE §3.3: the primary navigation is Map · Play · Today · Receipts · Evidence,
-// and the footer links About, Changes, Settings and Design.
+// REDESIGN §2.3: the header is the wordmark, then Course, Games, Review and Progress, then Continue at the right. The footer links
+// About, Sources and changes, and Settings. The design system's page (/design) and the GPU lab results (/receipts) are reached from
+// where they are used, never from the chrome.
 const PRIMARY_LINKS = [
-  { to: '/map', label: 'Map' },
-  { to: '/play', label: 'Play' },
-  { to: '/today', label: 'Today' },
-  { to: '/receipts', label: 'Receipts' },
-  { to: '/evidence', label: 'Evidence' },
+  { to: '/map', label: 'Course' },
+  { to: '/play', label: 'Games' },
+  { to: '/today', label: 'Review' },
+  { to: '/evidence', label: 'Progress' },
 ]
 const FOOTER_LINKS = [
   { to: '/about', label: 'About' },
-  { to: '/changes', label: 'Changes' },
+  { to: '/changes', label: 'Sources and changes' },
   { to: '/settings', label: 'Settings' },
-  { to: '/design', label: 'Design' },
 ]
 
 const BRAND = { to: '/', label: 'enginespace' }
 
-// The shell is The Pass's board above the page and its kick-plate below (W0-T05, D-047): every style comes from the
-// design system's components and token roles.
+// The shell is the board above the page and its kick-plate below (W0-T05, D-047): every style comes from the design system's
+// components and token roles.
+// The header's Continue reads the pointer (`es:next`): `nextStep`'s last answer, which a page that opens the ledger keeps (D-066).
+// Until one has, and on the server, it is the empty ledger's answer, the first lesson. The header never opens the ledger (D-038).
 function Shell({ children }: { children: ReactNode }) {
+  const pointer = usePointer()
   return (
     <>
       <a href="#main" className="es-skip">
         <TapeLabel tilt="none">Skip to main content</TapeLabel>
       </a>
       <header>
-        <Board label="Primary" brand={BRAND} links={PRIMARY_LINKS} />
+        <Board label="Primary" brand={BRAND} links={PRIMARY_LINKS} fold action={<ContinueLink target={pointer} />} />
       </header>
       <main id="main" tabIndex={-1} className="es-shell__main">
         <EvidenceNotice />

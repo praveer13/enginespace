@@ -244,18 +244,3 @@ export function deriveProgress(
 
   return { modules, kcs, counts: countsOf([...kcs.values()].map((kc) => kc.state)), events: read }
 }
-
-/**
- * The module the course would go on with: the first one in the course's order that can be opened and whose KCs are not all earned.
- * A planned module cannot be opened, and one with no KCs yet has nothing to finish. Null when there is none. This advises and never
- * locks (ARCHITECTURE §1, I9): every module opens whatever this says.
- */
-export function nextModule(modules: readonly { id: string; status: string }[], progress: Progress): string | null {
-  for (const module of modules) {
-    if (module.status === 'planned') continue
-    const counts = progress.modules.get(module.id)?.counts
-    const finished = counts !== undefined && counts.total > 0 && counts.earned === counts.total
-    if (!finished) return module.id
-  }
-  return null
-}

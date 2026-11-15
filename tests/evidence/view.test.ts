@@ -376,7 +376,7 @@ describe('import', () => {
     const html = render(createElement(ImportPanel, { api: NO_API, checkpoints }))
     expect(decode(html)).toContain('Last import: a replace on')
     expect(html).toMatch(/<button[^>]*>Undo the last import<\/button>/)
-    expect(decode(html)).toContain('what you have earned since stays')
+    expect(decode(html)).toContain('what you have done since stays')
     // Only the newest is offered.
     expect([...html.matchAll(/Undo the last import/g)]).toHaveLength(1)
     expect(decode(render(createElement(ImportPanel, { api: NO_API, checkpoints: checkpoints.slice(1) })))).toContain('Last import: a merge on')

@@ -5,13 +5,15 @@
  * and total is printed through the dot matrix from the course and the ledger.
  */
 
+import { SKILL_WORDS } from '@/progress/words'
+
 export const MAP = {
-  title: 'Course map',
+  title: 'Course',
   /** The kitchen's word for the map, on tape beside the engine's term (GAMES.md §2.6). */
   term: 'the menu',
   lede: [
     'Every module hangs on the rail in the order you meet them. What a ticket advises you to do first never locks it: any ticket opens.',
-    'The dots are a ticket’s knowledge components, counted from the events in this browser each time the page draws: a ring is one you have not met, a ringed dot one you have practised, a solid dot one you have earned, and a ticked dot one you have kept.',
+    'The dots are a ticket’s knowledge components, counted from the events in this browser each time the page draws: a ring is one you have not started, a ringed dot one you have tried, a solid dot one you have passed, and a ticked dot one you have kept.',
   ],
   modules: 'The modules, in order',
   /** The tape's name, and its lines. */
@@ -19,7 +21,7 @@ export const MAP = {
     name: 'The course so far',
     hours: 'hours, all',
     lanes: { B: 'browser', L: 'laptop', F: 'GPU' },
-    earned: 'earned',
+    earned: 'passed',
     kept: 'kept',
     next: 'next ticket',
     of: 'of',
@@ -28,6 +30,12 @@ export const MAP = {
   },
   /** On the ticket that the lamp is over. */
   next: 'next ticket',
+  /** The way on at the top of the page: `nextStep`'s answer, told back as a sentence. */
+  way: {
+    fresh: 'You have not started.',
+    next: 'Next:',
+    skipped: (n: number) => `${n} earlier ${n === 1 ? 'lesson' : 'lessons'} not finished`,
+  },
   advised: 'Advised first',
   kernelspace: 'kernelspace',
   hoursNote: 'hours estimated',
@@ -35,16 +43,16 @@ export const MAP = {
   holding: {
     reading: 'Reading your ledger',
     none: 'No knowledge components yet',
-    earned: 'earned',
+    earned: 'passed',
     of: 'of',
-    practising: 'practised',
+    practising: 'tried',
     kept: 'kept',
-    nothing: 'Nothing earned yet',
+    nothing: 'Nothing passed yet',
   },
   notice: {
-    loadingTitle: 'Course map',
-    loadingWhat: 'course map',
-    failedTitle: 'The course map did not load',
+    loadingTitle: 'Course',
+    loadingWhat: 'course',
+    failedTitle: 'The course did not load',
     failedMessage: 'The map would not print. Check your connection and reload the page.',
   },
 } as const
@@ -55,24 +63,24 @@ export const LOOP = {
   term: 'the loop',
   lede: 'Every module runs the same five steps. The counts are of the events in this browser, read when the page draws.',
   steps: {
-    predict: { name: 'Predict', what: 'Commit your answer before each reveal. A prediction earns no credit.' },
+    predict: { name: 'Predict', what: 'Commit your answer before each reveal. A guess counts toward no skill.' },
     play: { name: 'Play', what: 'Play the games on practice seeds, then answer on fresh ones.' },
     build: { name: 'Build', what: 'Write the lab, and run it against checks drawn when you start.' },
     prove: { name: 'Prove', what: 'Do it again on fresh seeds with your agent closed.' },
-    /** Follows a link to Today, which is the first word of the sentence. */
-    keep: { name: 'Keep', what: 'brings back what you have earned, a few weeks on.' },
+    /** Follows a link to Review, which is the first word of the sentence. */
+    keep: { name: 'Keep', what: 'brings back what you have passed, a few weeks on.' },
   },
   games: 'Games',
   labs: 'Labs',
   noGame: 'No game of its own.',
   noLab: 'No lab to write in this module.',
   arrives: 'arriving with',
-  today: 'Today',
+  today: 'Review',
   made: 'made',
-  credited: 'credited',
+  credited: 'passed',
   of: 'of',
   tried: 'tried',
-  partial: 'at part credit',
+  partial: 'passed in practice',
   nothing: 'nothing yet',
   proved: 'proved',
   notYet: 'not yet',
@@ -83,12 +91,12 @@ export const LOOP = {
 export const KCS = {
   title: 'Knowledge components',
   term: 'what you can do',
-  lede: 'Each one is something you can do once you hold it. A ring is one you have not met, a ringed dot one you have practised, a solid dot one you have earned, and a ticked dot one you have kept.',
-  states: { none: 'not yet', practised: 'practised', earned: 'earned', kept: 'kept' },
+  lede: 'Each one is something you can do once you hold it. A ring is one you have not started, a ringed dot one you have tried, a solid dot one you have passed, and a ticked dot one you have kept.',
+  states: SKILL_WORDS,
   /** Printed once, when some of the module's KCs have no graded item behind them yet (ASSESSMENT §3.3: a practice level earns at most part credit). */
-  planned: 'Some of these cannot be earned yet: the first graded item for each is still being built.',
+  planned: 'Some of these cannot be passed yet: their first graded questions are not published yet.',
   reading: 'Reading your ledger',
-  count: { of: 'of', earned: 'earned', kept: 'kept' },
+  count: { of: 'of', earned: 'passed', kept: 'kept' },
 } as const
 
 /** Every string above, for the tests. */

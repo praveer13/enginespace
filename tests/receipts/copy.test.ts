@@ -76,8 +76,8 @@ describe('the slip that takes a receipt back', () => {
     expect(LEAD).toMatch(/how this browser checked it/)
   })
 
-  test('says a receipt is not credited yet in words a learner reads, and names no number', () => {
-    expect(VERDICT_WORDS['gpu-unverified']).toBe('not credited')
+  test('says a receipt does not count yet in words a learner reads, and names no number', () => {
+    expect(VERDICT_WORDS['gpu-unverified']).toBe('not counted')
     expect(VERDICT_WORDS.unchecked).toBe('unchecked')
     expect(REPORTS.none).toContain('Not checked in this browser yet')
     for (const sentence of [...Object.values(IMPORT), ...Object.values(REPORTS), ...Object.values(VERDICT_WORDS)]) expect(untaggedNumbers(sentence)).toEqual([])

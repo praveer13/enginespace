@@ -100,7 +100,7 @@ export const IMPORT = {
 export const RULE_WORDS = { pass: 'pass', fail: 'fail', skipped: 'not run' } as const
 
 /** What a verdict is called on a line of the list of receipts. A receipt with no report is `unchecked`. */
-export const VERDICT_WORDS = { unchecked: 'unchecked', 'gpu-unverified': 'not credited', assisted: 'credited in part', practice: 'counted as practice', 'gpu-verified': 'credited' } as const
+export const VERDICT_WORDS = { unchecked: 'unchecked', 'gpu-unverified': 'not counted', assisted: 'passed in practice', practice: 'counted as practice', 'gpu-verified': 'passed' } as const
 
 /** The "How this browser checked it" part of a receipt's page. */
 export const REPORTS = {

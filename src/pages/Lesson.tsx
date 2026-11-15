@@ -9,10 +9,13 @@ import { TextLink } from '@/design/components/TextLink'
 import { Ticket } from '@/design/components/Ticket'
 import { useClaims, useDocumentTitle, useIndex } from '@/content/load'
 import { useLesson } from '@/content/load-lessons'
+import { useMap } from '@/content/load-map'
 import { Blocks } from '@/content/render/Blocks'
 import { citedClaimIds, laneName, neighbours, renderEnv, titled, todayIso } from '@/content/render/model'
 import { Columns, LinkRow, PageHeader, PageNotice, RefLink, Scope } from '@/content/render/Page'
 import '@/content/render/content.css'
+import { moduleCode } from '@/progress/words'
+import { useBookmark } from '@/settings/bookmark'
 
 /*
  * /m/:module/:lesson (ARCHITECTURE §3.1): one lesson, as a run of tickets under its title, with the printer's tape of facts
@@ -61,10 +64,25 @@ export interface LessonViewProps {
   today: string
 }
 
+/**
+ * The lesson page's part of the way on (REDESIGN §2.4): it keeps the bookmark (`es:here`) as the learner reads and acts. It draws
+ * nothing: the lesson's sections do. The pointer (`es:next`) is rewritten by the next page that opens the ledger with the way on in it
+ * (Course, a module), so the lesson's first paint carries neither `nextStep` nor the ledger (REDESIGN §4, Budgets).
+ */
+function WayHere({ route, article }: { route: string; article: HTMLElement | null }) {
+  const map = useMap()
+  const row = map.status === 'ready' ? map.value.lessons.find((lesson) => lesson.route === route) : undefined
+  useBookmark(route, article, row?.anchors.test)
+  return null
+}
+
 export function LessonView({ lesson, module, claims, today }: LessonViewProps) {
   const env = useMemo(() => renderEnv(lesson.blocks, claims, today), [lesson.blocks, claims, today])
   const moduleRoute = module?.route ?? `/m/${lesson.module}`
   const { previous, next } = neighbours(module, lesson.slug)
+  const [article, setArticle] = useState<HTMLElement | null>(null)
+  const lessons = module?.lessons ?? []
+  const position = lessons.findIndex((candidate) => candidate.slug === lesson.slug)
 
   const lines: PrinterTapeLine[] = [
     { id: 'module', label: 'module', value: <TextLink to={moduleRoute}>{lesson.module}</TextLink> },
@@ -81,13 +99,14 @@ export function LessonView({ lesson, module, claims, today }: LessonViewProps) {
   }
 
   return (
-    <article className="es-doc" data-rev={lesson.rev}>
+    <article ref={setArticle} className="es-doc" data-rev={lesson.rev}>
+      <WayHere route={`/m/${lesson.module}/${lesson.slug}`} article={article} />
       <PageHeader
         crumbs={[
-          { to: '/map', label: 'Course map' },
-          { to: moduleRoute, label: module === undefined ? lesson.module : `${lesson.module}: ${module.title}` },
+          { to: '/map', label: 'Course' },
+          { to: moduleRoute, label: module === undefined ? moduleCode(lesson.module) : `${moduleCode(lesson.module)} ${module.title}` },
         ]}
-        current={lesson.id}
+        current={position < 0 ? lesson.title : `Lesson ${position + 1} of ${lessons.length}`}
         title={lesson.title}
         tapes={[lesson.status]}
       />

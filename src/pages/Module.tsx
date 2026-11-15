@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useParams } from 'react-router'
-import type { Claim, CompiledModule, IndexLesson, IndexModule, MapKc } from '@es/schema'
+import type { Claim, CompiledModule, IndexLesson, IndexModule, MapKc, MapLesson } from '@es/schema'
+import { ContinueLink } from '@/design/components/Board'
 import { PrinterTape, type PrinterTapeLine } from '@/design/components/PrinterTape'
 import { Readout } from '@/design/components/Readout'
 import { Stub } from '@/design/components/Stub'
@@ -16,7 +17,9 @@ import { Columns, LinkRow, PageHeader, PageNotice, RefLink, Scope } from '@/cont
 import '@/content/render/content.css'
 import { Kcs, Loop } from '@/map/ModuleProgress'
 import type { ModuleProgress } from '@/progress/derive'
+import type { LessonState, Step } from '@/progress/next'
 import { useProgress } from '@/progress/useProgress'
+import { LEGENDS, LESSON_WORDS, moduleCode } from '@/progress/words'
 
 /*
  * /m/:module (ARCHITECTURE §3.1): a module's page. Its title, the printer's tape of facts, the module's own words, what you
@@ -34,7 +37,7 @@ export function Component() {
   const cites = loaded !== null && citedClaimIds(loaded.blocks).size > 0
   const claims = useClaims(cites)
   const map = useMap()
-  const { ready, progress } = useProgress(map.status === 'ready' ? map.value : null)
+  const { ready, progress, next, last, lessons } = useProgress(map.status === 'ready' ? map.value : null)
   const [today] = useState(todayIso)
   const entry = index.status === 'ready' ? index.value.modules.find((candidate) => candidate.id === id) : undefined
   const title = loaded?.title ?? entry?.title ?? null
@@ -47,7 +50,7 @@ export function Component() {
     return <PageNotice kind="loading" title="Module" ticket={id} what="module" />
   }
   if (loaded === null && entry === undefined) {
-    return <PageNotice kind="missing" title="Module not found" ticket={id} message={`No module called ${id}.`} back={{ to: '/map', label: 'Course map' }} />
+    return <PageNotice kind="missing" title="Module not found" ticket={id} message={`No module called ${id}.`} back={{ to: '/map', label: 'Open the course' }} />
   }
   // A map that did not load leaves the loop and the evidence out; the rest of the page does not need it.
   const kcs = map.status === 'ready' ? map.value.kcs.filter((kc) => kc.module === id) : undefined
@@ -61,6 +64,7 @@ export function Component() {
       kcs={kcs}
       progress={progress?.modules.get(id)}
       ready={ready}
+      way={map.status === 'ready' ? { step: next, last, states: lessons, lessons: map.value.lessons.filter((lesson) => lesson.module === id) } : undefined}
     />
   )
 }
@@ -80,6 +84,47 @@ export interface ModuleViewProps {
   progress?: ModuleProgress
   /** True once the ledger has been read. Until then the page says so, and does not say the learner has done nothing. */
   ready?: boolean
+  /** The way on and each lesson's state, from the ledger and the map's lessons table. Undefined when the map did not load. */
+  way?: ModuleWay
+}
+
+export interface ModuleWay {
+  /** `nextStep`'s answer, or null until the ledger has been read. */
+  step: Step | null
+  last: string | null
+  states: ReadonlyMap<string, LessonState>
+  /** This module's rows of the lessons table, in order. */
+  lessons: readonly MapLesson[]
+}
+
+/**
+ * The module's way on (REDESIGN §3.3): Continue when `nextStep` points into this module, told back as a sentence; otherwise a local way on
+ * that names its target, the module's first lesson not done. It waits for the ledger, and says so.
+ */
+function ModuleWayOn({ id, way, ready }: { id: string; way: ModuleWay; ready: boolean }) {
+  const { step, last, states, lessons } = way
+  if (!ready || step === null) {
+    return (
+      <p className="es-way" role="status">
+        Reading your ledger
+      </p>
+    )
+  }
+  const at = lessons.findIndex((lesson) => states.get(lesson.id) !== 'done')
+  const target = lessons[at]
+  const here = step.module === id || target === undefined
+  const sentence = step.module === id ? (last === null ? null : `${last} Next: ${step.reason}.`) : target === undefined ? `Every lesson of ${moduleCode(id)} is done. Next: ${step.reason}.` : null
+  return (
+    <div className="es-way">
+      {sentence === null ? null : <p className="es-way__last">{sentence}</p>}
+      {here || target === undefined ? (
+        <ContinueLink target={step} emphasis="primary" minutes={step.minutes} />
+      ) : (
+        // A local way on names its target and never says Continue (REDESIGN §2.4).
+        <ContinueLink target={{ href: target.route, label: `Open lesson ${at + 1}, ${target.title}`, word: 'Open' }} emphasis="primary" minutes={target.minutes} />
+      )}
+    </div>
+  )
 }
 
 /** Hours, printed through the readout. They are [estimated] (docs/PLAN.md §4). */
@@ -87,7 +132,7 @@ function hoursReadout(hours: number) {
   return <Readout value={hours} digits={decimals(hours)} tag="estimated" size="sm" />
 }
 
-export function ModuleView({ id, module, entry, claims, today, kcs, progress, ready = false }: ModuleViewProps) {
+export function ModuleView({ id, module, entry, claims, today, kcs, progress, ready = false, way }: ModuleViewProps) {
   const env = useMemo(() => renderEnv(module?.blocks ?? [], claims, today), [module, claims, today])
   const title = module?.title ?? entry?.title ?? id
   const status = module?.status ?? entry?.status ?? 'planned'
@@ -108,8 +153,8 @@ export function ModuleView({ id, module, entry, claims, today, kcs, progress, re
     const counts = progress?.counts
     const held = ready && counts !== undefined
     lines.push({
-      id: 'earned',
-      label: 'earned',
+      id: 'passed',
+      label: 'skills passed',
       value: held ? (
         <>
           <Readout value={counts.earned} tag="measured" size="sm" /> of {counts.total}
@@ -161,7 +206,8 @@ export function ModuleView({ id, module, entry, claims, today, kcs, progress, re
 
   return (
     <article className="es-doc" data-rev={module?.rev}>
-      <PageHeader crumbs={[{ to: '/map', label: 'Course map' }]} current={id} title={title} tapes={[status]} />
+      <PageHeader crumbs={[{ to: '/map', label: 'Course' }]} current={`${moduleCode(id)} ${title}`} title={title} tapes={[status]} />
+      {way === undefined ? null : <ModuleWayOn id={id} way={way} ready={ready} />}
       <Columns side={<PrinterTape label="About this module" lines={lines} />}>
         {module === null ? (
           <Ticket as="section" width="wide" head={id} state="empty" empty="Planned: not written yet." />
@@ -179,20 +225,21 @@ export function ModuleView({ id, module, entry, claims, today, kcs, progress, re
           </>
         )}
         {kcs === undefined || kcs.length === 0 ? null : <Kcs module={id} kcs={kcs} progress={progress} ready={ready} />}
-        <Lessons lessons={entry?.lessons ?? null} scope={id} />
+        <Lessons lessons={entry?.lessons ?? null} scope={id} states={ready ? way?.states : undefined} />
         {module === null ? null : <Artifacts artifacts={module.artifacts} scope={module.id} />}
       </Columns>
     </article>
   )
 }
 
-/** A module's lessons, each a ticket with a stub that opens it. */
-function Lessons({ lessons, scope }: { lessons: readonly IndexLesson[] | null; scope: string }) {
+/** A module's lessons, each a ticket with a stub that opens it, and its state in words once the ledger has been read. */
+function Lessons({ lessons, scope, states }: { lessons: readonly IndexLesson[] | null; scope: string; states?: ReadonlyMap<string, LessonState> }) {
   return (
     <section aria-labelledby="lessons" className="es-doc__lessons">
       <h2 id="lessons" className="es-doc__heading">
         Lessons
       </h2>
+      {states === undefined ? null : <p className="es-doc__legend">{LEGENDS.lesson}</p>}
       {lessons === null ? (
         <Ticket width="wide" head={scope} state="error" error="The list of lessons did not load. Reload the page." />
       ) : lessons.length === 0 ? (
@@ -215,6 +262,11 @@ function Lessons({ lessons, scope }: { lessons: readonly IndexLesson[] | null; s
               <p className="es-c-line">
                 <TicketLine qty={<Readout value={lesson.minutes} tag="estimated" size="sm" />}>minutes</TicketLine>
               </p>
+              {states === undefined ? null : (
+                <p className="es-c-line" data-lesson-state={states.get(lesson.id) ?? 'not-started'}>
+                  {LESSON_WORDS[states.get(lesson.id) ?? 'not-started']}
+                </p>
+              )}
             </Ticket>
           ))}
         </ol>

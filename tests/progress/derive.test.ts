@@ -4,7 +4,7 @@
  * 30 days or more after it was earned). The module's loop counts the events of each step. Nothing is stored.
  */
 import { describe, expect, test } from 'bun:test'
-import { deriveProgress, KEPT_AFTER_DAYS, nextModule } from '@/progress/derive'
+import { deriveProgress, KEPT_AFTER_DAYS } from '@/progress/derive'
 import type { Progress } from '@/progress/derive'
 import { homeOf, made, MAP, SOURCES, ungraded } from './support'
 import type { Made } from './support'
@@ -244,37 +244,5 @@ describe('the answer is a function of the events and the content', () => {
     // The review passed at full weight, and the game run that would have earned the KC 31 days before is not evidence for it here.
     expect(state.kcs.get('tr2.bubble')?.state).toBe('earned')
     expect(state.events).toBe(4)
-  })
-})
-
-describe('the module the course would go on with', () => {
-  const modules = MAP.modules.map((module, index) => ({ id: module.id, status: index === 0 || module.id === 'capstone' ? 'planned' : 'draft' }))
-
-  test('is the first module that can be opened, when nothing is earned', () => {
-    expect(nextModule(modules, progress([]))).toBe('tr1')
-  })
-
-  test('stays on a module until all of its KCs are earned, and then goes on', () => {
-    const tr1 = [made('review', 'review:tr1.five-mechanisms'), made('review', 'review:tr1.vllm-lifecycle')]
-    expect(nextModule(modules, progress([tr1[0]]))).toBe('tr1')
-    expect(nextModule(modules, progress(tr1))).toBe('tr2')
-  })
-
-  test('is not moved by a KC that is only practised', () => {
-    const practised = [made('review', 'review:tr1.five-mechanisms', { ok: false }), made('review', 'review:tr1.vllm-lifecycle', { provenance: 'practice' })]
-    expect(nextModule(modules, progress(practised))).toBe('tr1')
-  })
-
-  test('passes over a planned module, and over a module with no KCs yet to finish only when it is planned', () => {
-    const open = [{ id: 'tr0', status: 'draft' }, ...modules.slice(1)]
-    // An open module with no KCs has nothing to finish, so the course would still start there.
-    expect(nextModule(open, progress([]))).toBe('tr0')
-    expect(nextModule(modules, progress([]))).toBe('tr1')
-  })
-
-  test('is none when every module that can be opened is earned', () => {
-    const all = MAP.kcs.map((kc) => made('review', `review:${kc.id}`))
-    expect(nextModule(modules.filter((module) => module.status !== 'planned'), progress(all))).toBeNull()
-    expect(nextModule([], progress([]))).toBeNull()
   })
 })

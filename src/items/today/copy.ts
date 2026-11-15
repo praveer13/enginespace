@@ -10,7 +10,7 @@ import type { LocalDay } from '@es/ledger'
 import { formatDay } from './days'
 import type { SessionMode } from './session'
 
-export const PAGE_LEAD = 'The ideas you have earned, brought back just before they fade. Every ticket is on new numbers, and nothing is timed.'
+export const PAGE_LEAD = 'The ideas you have passed, brought back just before they fade. Every ticket is on new numbers, and nothing is timed.'
 
 export const WELCOME_BACK = 'Welcome back. This is a short list of the ideas most worth keeping, and the rest will come back gradually.'
 
@@ -31,9 +31,9 @@ export const MORE_PREP = 'Prep another list'
 
 export const EMPTY_TITLE = 'Nothing to prep yet'
 export const EMPTY_BODY =
-  "Today keeps what you have already earned. Answer a lesson's items or play a graded level, and the ideas you get right come back here just before they fade."
-export const EMPTY_UNSERVED_TITLE = 'No tickets yet for what you have earned'
-export const EMPTY_UNSERVED_BODY = 'The ideas you have earned so far have no review tickets built. They arrive with their modules, and this page picks them up on its own.'
+  "Review keeps what you have already passed. Answer a lesson's items or play a graded level, and the ideas you get right come back here just before they fade."
+export const EMPTY_UNSERVED_TITLE = 'No tickets yet for what you have passed'
+export const EMPTY_UNSERVED_BODY = 'The ideas you have passed so far have no review tickets yet. This page picks them up on its own once their modules publish them.'
 
 export const REST_TITLE = 'Nothing is due today'
 
@@ -59,8 +59,7 @@ export const LOAD_LABEL = 'Reading your ledger'
 /** What the ticket says while the code of the family that serves it loads (src/items/families.ts). */
 export const PRINT_LABEL = 'Printing the ticket'
 
-export const LINK_MAP = 'Open the course map'
-export const LINK_TR2 = 'Start with TR2'
+export const LINK_MAP = 'Open the course'
 export const LINK_EVIDENCE = 'See your evidence'
 
 /** The status each line of the list has for assistive technology, which the box alone does not say. */

@@ -129,7 +129,7 @@ describe('gpu-unverified', () => {
   test('is a check that a stage requires of the browser and nothing has run: not built yet, with the task that builds it', () => {
     const verdict = verdictOf(receiptOf('tr4.sweep.s2', { checks: [{ id: 'sdpa-tolerance', kind: 'correctness', pass: true, detail: '' }] }), results())
     expect(verdict.provenance).toBe('gpu-unverified')
-    expect(verdict.reasons).toEqual(['sweep-errors is not built yet: W2-T26 builds it, and a receipt of tr4.sweep.s2 is not credited until it exists.'])
+    expect(verdict.reasons).toEqual(['sweep-errors is not built yet: W2-T26 builds it, and a receipt of tr4.sweep.s2 does not count until it exists.'])
   })
 
   test('is a check that the results do not hold at all: a stored report with no result for a check that the stage requires is not credited', () => {
@@ -170,7 +170,7 @@ describe('gpu-unverified', () => {
     expect(verdict.reasons).toEqual([`This check was made by an earlier version of the site that ran 6 of the ${RULES_IN_ALL} rules. Bring the receipt's file back, and it is checked by all of them.`])
     const pending = verdictOf(receiptOf('tr4.sweep.s2', { checks: [{ id: 'sdpa-tolerance', kind: 'correctness', pass: true, detail: '' }] }), results().slice(0, 6), 6)
     expect(pending.reasons).toHaveLength(2)
-    expect(pending.reasons[1]).toBe('sweep-errors is not built yet: W2-T26 builds it, and a receipt of tr4.sweep.s2 is not credited until it exists.')
+    expect(pending.reasons[1]).toBe('sweep-errors is not built yet: W2-T26 builds it, and a receipt of tr4.sweep.s2 does not count until it exists.')
   })
 
   test('says at most eight reasons and counts the rest: a receipt cannot fill the page with them', () => {

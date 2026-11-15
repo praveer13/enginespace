@@ -93,7 +93,7 @@ const text = (file: string) => strip(readFileSync(path.join(root, file), 'utf8')
 
 describe('the code that derives and shows progress', () => {
   test('is where the tracker puts it: src/progress derives, and src/map and the pages show', () => {
-    expect(DERIVES).toEqual(['src/progress/derive.ts', 'src/progress/kcmap.ts', 'src/progress/sources.ts', 'src/progress/useProgress.ts'])
+    expect(DERIVES).toEqual(['src/progress/derive.ts', 'src/progress/kcmap.ts', 'src/progress/next.ts', 'src/progress/sources.ts', 'src/progress/useProgress.ts', 'src/progress/useWayOn.ts', 'src/progress/words.ts'])
     for (const file of SHOWS) expect(existsSync(path.join(root, file)), file).toBe(true)
     expect(sourcesUnder('src/map').length).toBeGreaterThan(2)
   })
@@ -126,18 +126,29 @@ describe('the code that derives and shows progress', () => {
 
   test.each(ALL)('%s reads nothing of the ledger but its events: not the working store, the receipts nor the checkpoints', (file) => {
     const source = text(file)
-    const hits = [/\bworking\b/, /\breceipts\b/, /\bcheckpoints\b/, /\bunsaved\b/, /\bstuck\b/].filter((pattern) => pattern.test(source)).map(String)
+    // A lesson's `checkpoints` in the map's lessons table are its item blocks outside the Test (next.ts), not the ledger's undo points.
+    const hits = [/\bworking\b/, /\breceipts\b/, /(?<!lesson\.)\bcheckpoints\b/, /\bunsaved\b/, /\bstuck\b/].filter((pattern) => pattern.test(source)).map(String)
     expect(hits).toEqual([])
   })
 
-  test.each(ALL)('%s imports no settings and none of the parts of the engine that read or write a store', (file) => {
-    const imports = [...text(file).matchAll(/from\s+'([^']+)'/g)].map((match) => match[1])
+  /*
+   * One exception, D-066's (REDESIGN §2.4): the hook that opens the ledger keeps a copy of `nextStep`'s answer, the pointer, and reads the
+   * bookmark, so that the header can say Continue without opening the ledger. It imports those two from the settings' store and nothing
+   * else of it, and the pointer holds the answer's link and words, never a state, a count or an event (tests/app/places.test.ts).
+   */
+  test.each(ALL)('%s imports no settings and none of the parts of the engine that read or write a store, but the pointer and the bookmark', (file) => {
+    const source = text(file)
+    const imports = [...source.matchAll(/from\s+'([^']+)'/g)].map((match) => match[1])
     const banned = imports.filter((from) => /^@\/settings(\/|$)|^\.\.?\/settings|^@\/evidence\/(engine|idb-store|outbox|channel|guard|import|export|transfer|notice)$/.test(from))
-    expect(banned).toEqual([])
+    if (file === 'src/progress/useWayOn.ts') {
+      expect(banned).toEqual(['@/settings/bookmark', '@/settings/store'])
+      expect(/import \{ ([^}]+) \} from '@\/settings\/bookmark'/.exec(source)?.[1]).toBe('readPlace')
+      expect(/import \{ ([^}]+) \} from '@\/settings\/store'/.exec(source)?.[1]).toBe('keepPointer')
+    } else expect(banned).toEqual([])
   })
 
   test('the derivation is pure: no React, no clock, no entropy, no store', () => {
-    for (const file of ['src/progress/derive.ts', 'src/progress/kcmap.ts']) {
+    for (const file of ['src/progress/derive.ts', 'src/progress/kcmap.ts', 'src/progress/next.ts', 'src/progress/words.ts']) {
       const source = text(file)
       expect(source, file).not.toMatch(/from\s+'react'/)
       expect(source, file).not.toMatch(/\bDate\.now\b|\bnew Date\(\)|\bMath\.random\b|\bperformance\.now\b|\bcrypto\./)
@@ -145,9 +156,10 @@ describe('the code that derives and shows progress', () => {
     }
   })
 
-  test('the only file that opens the ledger is the hook, and it takes the events and the ready flag and no more', () => {
+  test('the only files that open the ledger are the two hooks, and each takes the events and the ready flag and no more', () => {
     const openers = DERIVES.filter((file) => /useEvidence/.test(text(file)))
-    expect(openers).toEqual(['src/progress/useProgress.ts'])
-    expect(text('src/progress/useProgress.ts')).toMatch(/const \{ ready, events \} = useEvidence\(\)/)
+    // useWayOn is the way on alone, for a lesson page, and useProgress calls it for Course and a module page.
+    expect(openers).toEqual(['src/progress/useProgress.ts', 'src/progress/useWayOn.ts'])
+    for (const file of openers) expect(text(file), file).toMatch(/const \{ ready, events \} = useEvidence\(\)/)
   })
 })

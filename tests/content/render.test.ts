@@ -157,7 +157,7 @@ describe('/m/tr2/l0-sample', () => {
   test('links: a kernelspace lesson goes out to kernelspace, a route is the router\'s, and the page says where the module is', () => {
     expect(html).toContain('href="https://kernelspace.naigap.com/lesson/t5.l7"')
     expect(html).toContain('<a class="es-link" href="/map" data-discover="true">the course map</a>')
-    expect(html).toContain('<a class="es-link" href="/m/tr2" data-discover="true">tr2: The step loop</a>')
+    expect(html).toContain('<a class="es-link" href="/m/tr2" data-discover="true">TR2 The step loop</a>')
   })
 
   test('the facts of the lesson are the printer\'s tape: its module, minutes, status, lanes and what it builds on', () => {

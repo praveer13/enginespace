@@ -65,7 +65,7 @@ describe('the copy', () => {
   test('of the map holds no number that no tag covers, and says the kitchen word beside the engine\'s term', () => {
     expect(mapCopy().length).toBeGreaterThan(30)
     expect(mapCopy().flatMap((text) => untaggedNumbers(text))).toEqual([])
-    expect(MAP.title).toBe('Course map')
+    expect(MAP.title).toBe('Course')
     expect(MAP.term).toBe('the menu')
   })
 

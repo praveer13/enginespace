@@ -44,7 +44,7 @@ import {
   lessonRoute,
   moduleRoute,
 } from '../../packages/schema/compiled.ts'
-import type { CompiledBlock, ContentIndex, CourseMap, IndexLesson, IndexModule } from '../../packages/schema/compiled.ts'
+import type { CompiledBlock, ContentIndex, CourseMap, FamilyCount, IndexLesson, IndexModule, MapLesson, ProseFlow, ProseInline } from '../../packages/schema/compiled.ts'
 import { lessonFrontMatterSchema, moduleFrontMatterSchema } from '../../packages/schema/content.ts'
 import type { LessonFrontMatter, ModuleFrontMatter } from '../../packages/schema/content.ts'
 import { courseSchema } from '../../packages/schema/course.ts'
@@ -58,7 +58,7 @@ import { blockLinks, blockMarkdown, blockMinutes, compileDirective, GAME_IDS, LA
 import type { DirectiveBlock, LinkEnv, LinkProblem } from './directives.ts'
 import { formatDiagnostic, isRecord, loadYaml, locate, parseContentFile, problem, schemaDiagnostics } from './parse.ts'
 import type { ContentFile, Diagnostic, Gate } from './parse.ts'
-import { compileProse, numberMessage, untaggedNumbers, WORDS_PER_MINUTE, withoutCode } from './prose.ts'
+import { compileProse, countWords, numberMessage, untaggedNumbers, WORDS_PER_MINUTE, withoutCode } from './prose.ts'
 import type { ProseContext } from './prose.ts'
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -646,7 +646,135 @@ function llmsText(course: Course, modules: ReadonlyMap<string, ModuleResult>): s
  * labs; one that is not gives what `course.yaml` holds, and no labs. The KCs come from the graph, and the refs from the predictions
  * of every lesson: `predict:tr2.l3#tr2.l3.p1` is evidence for the KCs that the block names.
  */
-function buildMap(course: Course, modules: ReadonlyMap<string, ModuleResult>, graph: readonly Kc[]): CourseMap {
+/** A prose line's words, without code. */
+const inlineText = (nodes: readonly ProseInline[]): string =>
+  nodes.map((node) => (node.type === 'text' || node.type === 'code' ? node.text : node.type === 'em' || node.type === 'strong' || node.type === 'link' ? inlineText(node.children) : node.type === 'claim' ? node.id : node.type === 'ks' ? node.ref : '')).join('')
+
+/**
+ * The id the lesson page gives each `##` heading: its words, lower case, joined by hyphens, with `-2` on a repeat. It is the rule of
+ * `headingIds` in src/content/render/model.ts, which this compiler cannot import, and tests/content/map.test.ts holds the two together.
+ */
+function headingAnchors(blocks: readonly CompiledBlock[]): Map<object, string> {
+  const ids = new Map<object, string>()
+  const taken = new Set<string>()
+  for (const block of blocks) {
+    if (block.type !== 'prose') continue
+    for (const node of block.body) {
+      if (node.type !== 'heading') continue
+      const base =
+        inlineText(node.children)
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '') || 'section'
+      let id = base
+      for (let n = 2; taken.has(id); n += 1) id = `${base}-${n}`
+      taken.add(id)
+      ids.set(node, id)
+    }
+  }
+  return ids
+}
+
+/** The words a reader meets in prose, without code: what an opener's setup is measured in. */
+function proseWords(flows: readonly ProseFlow[]): number {
+  const inline = (nodes: readonly ProseInline[]): string =>
+    nodes.map((node) => (node.type === 'text' ? node.text : node.type === 'em' || node.type === 'strong' || node.type === 'link' ? inline(node.children) : ' ')).join('')
+  let words = 0
+  for (const flow of flows) {
+    if (flow.type === 'paragraph' || flow.type === 'heading') words += countWords(inline(flow.children))
+    else if (flow.type === 'list') words += flow.items.reduce((sum, item) => sum + proseWords(item), 0)
+    else if (flow.type === 'table') words += [...flow.head, ...flow.rows.flat()].reduce((sum, cell) => sum + countWords(inline(cell)), 0)
+  }
+  return words
+}
+
+/** The most words before the run that a run-first lesson (opener A) has, and a primer (opener B) above it (REDESIGN §2.5). */
+export const OPENER_WORDS = { run: 60, primer: 200 } as const
+
+/** Families with their counts, a family listed twice counted once with both counts. */
+function counted(items: readonly { family: string; count: number }[]): FamilyCount[] {
+  const out: FamilyCount[] = []
+  for (const item of items) {
+    const known = out.find((row) => row.family === item.family)
+    if (known === undefined) out.push({ family: item.family, count: item.count })
+    else known.count += item.count
+  }
+  return out
+}
+
+/**
+ * A lesson's row in the map's lessons table (REDESIGN §2.4 and §2.5), derived from its compiled blocks and nothing else:
+ *   - Run is the game blocks before the first `##`, and the lesson's opener is `run` when at most 60 words of prose precede the first of
+ *     them, `primer` when more do, and `read` when the first game sits after the first `##` or there is none;
+ *   - Test is the last `##` part when that part holds an item or a graded game block. Its items are the question set, and every graded
+ *     game block of the lesson is a graded level of the Test, wherever it sits;
+ *   - every other item block is a checkpoint, and every other practice game block after the first `##` an inline run.
+ * Refs are the ledger's, so the way on reads the learner's events against them: `play:pool/evict`, `predict:tr5a.l1#tr5a.l1.p1`.
+ */
+export function lessonRow(front: LessonFrontMatter, slug: string, rev: string, blocks: readonly CompiledBlock[]): MapLesson {
+  const ids = headingAnchors(blocks)
+  // Where each block sits: before the first `##` (part 0) or in the part of the heading above it (1, 2, ...).
+  const parts: number[] = []
+  const anchors: string[] = []
+  let part = 0
+  let before = 0
+  let firstGame = -1
+  blocks.forEach((block, at) => {
+    if (block.type === 'prose') {
+      for (const flow of block.body) {
+        if (flow.type === 'heading' && flow.depth === 2) {
+          part += 1
+          anchors.push(ids.get(flow) ?? '')
+        } else if (part === 0 && firstGame < 0) before += proseWords([flow])
+      }
+    }
+    if (block.type === 'game' && firstGame < 0) firstGame = at
+    parts.push(part)
+  })
+  const last = part
+  const testPart = last > 0 && blocks.some((block, at) => parts[at] === last && (block.type === 'item' || (block.type === 'game' && block.mode === 'graded')))
+
+  const run: string[] = []
+  const inline: string[] = []
+  const graded: string[] = []
+  const predicts: string[] = []
+  const checkpoints: { family: string; count: number }[] = []
+  const questions: { family: string; count: number }[] = []
+  const add = (list: string[], ref: string) => {
+    if (!list.includes(ref)) list.push(ref)
+  }
+  blocks.forEach((block, at) => {
+    if (block.type === 'game') {
+      const ref = `play:${block.id}/${block.level}`
+      if (block.mode === 'graded') add(graded, ref)
+      else if (parts[at] === 0) add(run, ref)
+      else add(inline, ref)
+    } else if (block.type === 'item') {
+      ;(testPart && parts[at] === last ? questions : checkpoints).push({ family: block.family, count: block.count })
+    } else if (block.type === 'predict') add(predicts, `predict:${front.id}#${block.id}`)
+  })
+  const opener = run.length === 0 ? 'read' : before <= OPENER_WORDS.run ? 'run' : 'primer'
+  const read = anchors[0]
+  const test = testPart ? anchors[last - 1] : undefined
+  return {
+    id: front.id,
+    module: front.module,
+    route: lessonRoute(front.module, slug),
+    title: front.title,
+    minutes: front.minutes,
+    needs: front.lanes !== undefined && front.lanes.length > 0 ? [...front.lanes] : ['B'],
+    rev,
+    opener,
+    run,
+    inline,
+    predicts,
+    checkpoints: counted(checkpoints),
+    test: { questions: counted(questions), graded },
+    anchors: { ...(read === undefined || read === '' ? {} : { read }), ...(test === undefined || test === '' ? {} : { test }) },
+  }
+}
+
+function buildMap(course: Course, modules: ReadonlyMap<string, ModuleResult>, graph: readonly Kc[], out: Diagnostic[]): CourseMap {
   const kcs = graph.map((kc) => ({
     id: kc.id,
     module: moduleOfKc(kc.id),
@@ -663,6 +791,17 @@ function buildMap(course: Course, modules: ReadonlyMap<string, ModuleResult>, gr
       }
     }
   }
+  const lessons: MapLesson[] = []
+  for (const entry of course.modules) {
+    for (const lesson of modules.get(entry.id)?.lessons ?? []) {
+      const row = lessonRow(lesson.front, lesson.slug, lesson.rev, lesson.body.blocks)
+      // An authoring rule (REDESIGN §2.5, rule 4): every lesson has a Test, and the way on calls a lesson done when its Test is passed.
+      if (row.test.questions.length === 0 && row.test.graded.length === 0) {
+        out.push(problem('content', 'warning', 'no-test', `content/modules/${entry.id}/lessons/${lesson.slug}.md`, 1, `lesson ${lesson.front.id} has no Test: put an item block or a graded game block under its last ## heading, or the lesson can never be done`))
+      }
+      lessons.push(row)
+    }
+  }
   return {
     modules: course.modules.map((entry) => {
       const written = modules.get(entry.id)?.front
@@ -676,6 +815,7 @@ function buildMap(course: Course, modules: ReadonlyMap<string, ModuleResult>, gr
     }),
     kcs,
     refs,
+    lessons,
   }
 }
 
@@ -744,7 +884,7 @@ function buildOutputs(course: Course, modules: ReadonlyMap<string, ModuleResult>
 
   const index = checked<ContentIndex>(contentIndexSchema, { totalHours: course.modules.reduce((sum, module) => sum + module.hours, 0), modules: indexModules }, 'course index', 'content/course.yaml')
   if (index !== undefined) emit('src/content/generated/index.json', json(index), 'content/course.yaml', BUDGETS.index)
-  const courseMap = checked<CourseMap>(courseMapSchema, buildMap(course, modules, sources.kcGraph), 'course map', 'content/course.yaml')
+  const courseMap = checked<CourseMap>(courseMapSchema, buildMap(course, modules, sources.kcGraph, out), 'course map', 'content/course.yaml')
   if (courseMap !== undefined) emit('src/content/generated/map.json', json(courseMap), 'content/course.yaml', BUDGETS.map)
   emit('public/llms.txt', llmsText(course, modules))
 

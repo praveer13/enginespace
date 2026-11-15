@@ -131,7 +131,7 @@ export const NEXT = {
   title: 'Read the engines',
   body: 'Trace one request through vLLM and SGLang, from the API server to the model runner. You map it in the browser first, then follow your own map through a nano-vllm fork on a GPU.',
   hours: 'hours',
-  start: 'Start TR1',
+  start: 'Open TR1',
   /** Printed under the stub while TR1's lessons are still being written, so the stub never promises more than the page holds. */
   planned: 'TR1’s lessons are being written. Its page shows what it covers.',
 } as const

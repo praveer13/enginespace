@@ -28,7 +28,7 @@ export interface UnbuiltCopy {
 export const UNBUILT = {
   /** ARCHITECTURE §3.1, ASSESSMENT §8; W3-T06. */
   changes: {
-    title: 'Changes',
+    title: 'Sources and changes',
     lead: 'The claims and the pins that have moved, as change cards.',
     heading: 'What it will hold',
     holds: [

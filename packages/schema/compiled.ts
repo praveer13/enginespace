@@ -14,9 +14,9 @@ import { z } from './zod'
 import { CLAIM_TAGS, claimSchema } from './claims'
 import type { ClaimTag } from './claims'
 import { nonBlank, sha256Hex } from './common'
-import { artifactSchema, blockSchema, cardFrontMatterSchema, lessonFrontMatterSchema, moduleFrontMatterSchema, STATUSES } from './content'
+import { artifactSchema, blockSchema, cardFrontMatterSchema, LANES, lessonFrontMatterSchema, moduleFrontMatterSchema, STATUSES } from './content'
 import type { Block } from './content'
-import { gameIdSchema, kcIdSchema, kcRefSchema, labIdSchema, lessonIdSchema, moduleIdSchema, prereqSchema, refSchema } from './refs'
+import { familyIdSchema, gameIdSchema, kcIdSchema, kcRefSchema, labIdSchema, lessonIdSchema, moduleIdSchema, prereqSchema, refSchema } from './refs'
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Prose                                                                                                              */
@@ -210,16 +210,55 @@ export const mapKcSchema = z.strictObject({
   planned: z.string().optional(),
 })
 
+/** How a lesson opens (REDESIGN §2.5): a run first (A), a primer then a run (B), or reading first (C). */
+export const LESSON_OPENERS = ['run', 'primer', 'read'] as const
+
+/** A question set's family and how many of its questions the set asks. */
+export const familyCountSchema = z.strictObject({ family: familyIdSchema, count: z.int().positive() })
+
+/**
+ * A lesson as the way on reads it (REDESIGN §2.4): its place, its size, and the ledger refs of each section, so that `nextStep`
+ * (src/progress/next.ts) can say from events alone whether its Run is done, whether its Test is passed, and which lesson an event
+ * belongs to. The compiler derives every field from the lesson's blocks, by the rules of REDESIGN §2.5:
+ *   run          the game blocks before the first `##` (the opener's runs)
+ *   inline       the practice game blocks after it
+ *   predicts     every prediction's ref
+ *   checkpoints  the item blocks outside the Test
+ *   test         the item blocks of the last `##` part, when that part holds an item or a graded game, and every graded game block
+ *   anchors      the heading ids where Read and Test start, as the lesson page draws them
+ * `rev` is the lesson's, which a run in the lesson writes on its event: an event that several lessons could own goes to the one
+ * whose `rev` it carries.
+ */
+export const mapLessonSchema = z.strictObject({
+  id: lessonIdSchema,
+  module: moduleIdSchema,
+  route: z.string().regex(/^\/m\/[a-z0-9]+\/l[0-9]+(?:-[a-z0-9]+)*$/),
+  title: nonBlank,
+  minutes: z.int().positive(),
+  /** The lanes it is worked in: B alone is "browser only". */
+  needs: z.array(z.enum(LANES)).min(1),
+  rev: sha256Hex,
+  opener: z.enum(LESSON_OPENERS),
+  run: z.array(refSchema),
+  inline: z.array(refSchema),
+  predicts: z.array(refSchema),
+  checkpoints: z.array(familyCountSchema),
+  test: z.strictObject({ questions: z.array(familyCountSchema), graded: z.array(refSchema) }),
+  anchors: z.strictObject({ read: z.string().min(1).optional(), test: z.string().min(1).optional() }),
+})
+
 /**
  * `src/content/generated/map.json`: what the course map and the module pages read to show a learner's evidence. The modules
  * come with their prerequisites, artifacts, labs and KCs, the KCs with their edges, and `refs` with the KCs that content
  * assigns to a ledger ref: a prediction's, from the lesson that asks it. The other refs get their KCs from the game
- * registry, the item families and the labs (kernelspace's static ref map, ARCHITECTURE §4.5). Nothing about a learner is in it.
+ * registry, the item families and the labs (kernelspace's static ref map, ARCHITECTURE §4.5). `lessons` is every built lesson
+ * in course order, as the way on reads it. Nothing about a learner is in it.
  */
 export const courseMapSchema = z.strictObject({
   modules: z.array(mapModuleSchema).min(1),
   kcs: z.array(mapKcSchema),
   refs: z.record(refSchema, z.array(kcIdSchema)),
+  lessons: z.array(mapLessonSchema),
 })
 
 export type CompiledLesson = z.infer<typeof compiledLessonSchema>
@@ -231,4 +270,6 @@ export type ContentIndex = z.infer<typeof contentIndexSchema>
 export type ClaimsOutput = z.infer<typeof claimsOutputSchema>
 export type MapModule = z.infer<typeof mapModuleSchema>
 export type MapKc = z.infer<typeof mapKcSchema>
+export type MapLesson = z.infer<typeof mapLessonSchema>
+export type FamilyCount = z.infer<typeof familyCountSchema>
 export type CourseMap = z.infer<typeof courseMapSchema>

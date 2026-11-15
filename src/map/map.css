@@ -54,6 +54,15 @@
   line-height: 1.55;
 }
 
+/* The legend of the words for state: one quiet line under the lede (REDESIGN §3.2). */
+.es-map__legend {
+  max-width: 66ch;
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+  line-height: 1.5;
+}
+
 .es-map__tape {
   justify-self: start;
 }
@@ -64,7 +73,16 @@
     column-gap: var(--es-space-16);
   }
 
-  .es-map__tape {
+  /* The legend of the words for state: one quiet line under the lede (REDESIGN §3.2). */
+.es-map__legend {
+  max-width: 66ch;
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+  line-height: 1.5;
+}
+
+.es-map__tape {
     justify-self: end;
   }
 }

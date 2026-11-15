@@ -909,7 +909,7 @@ function Menu({ index }: { index: ContentIndex | null }) {
   )
 }
 
-/** The close: the next ticket out of the printer, TR1, with "Start TR1" on its stub. */
+/** The close: the next ticket out of the printer, TR1, with "Open TR1" on its stub. */
 function NextTicket({ index }: { index: ContentIndex | null }) {
   const id = useId()
   const tr1 = index?.modules.find((module) => module.id === 'tr1') ?? null

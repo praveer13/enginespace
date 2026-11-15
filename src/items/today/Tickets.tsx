@@ -4,9 +4,11 @@ import type { LocalDay } from '@es/ledger'
 import { PrinterTape } from '@/design/components/PrinterTape'
 import { Readout } from '@/design/components/Readout'
 import { Stub } from '@/design/components/Stub'
+import { ContinueLink } from '@/design/components/Board'
 import { TextLink } from '@/design/components/TextLink'
+import { usePointer } from '@/settings/usePlace'
 import { Ticket } from '@/design/components/Ticket'
-import { AHEAD_NOTE, DONE_TITLE, EMPTY_BODY, EMPTY_TITLE, EMPTY_UNSERVED_BODY, EMPTY_UNSERVED_TITLE, LINK_EVIDENCE, LINK_MAP, LINK_TR2, LOAD_LABEL, nextPrep, REST_AHEAD, REST_TITLE, START_AHEAD, tallyLine } from './copy'
+import { AHEAD_NOTE, DONE_TITLE, EMPTY_BODY, EMPTY_TITLE, EMPTY_UNSERVED_BODY, EMPTY_UNSERVED_TITLE, LINK_EVIDENCE, LINK_MAP, LOAD_LABEL, nextPrep, REST_AHEAD, REST_TITLE, START_AHEAD, tallyLine } from './copy'
 import { formatDay } from './days'
 import { PrepLines } from './PrepList'
 import type { LineView } from './plan'
@@ -35,13 +37,17 @@ function Links({ children }: { children: ReactNode }) {
   return <p className="es-prep__links">{children}</p>
 }
 
-/** Nothing is earned yet, or what is earned has no tickets yet. */
+/** Nothing is passed yet, or what is passed has no review questions yet. The way on is Continue, from the pointer (REDESIGN §2.4). */
 export function EmptyTicket({ day, unserved }: { day: LocalDay; unserved: boolean }) {
+  const pointer = usePointer()
   return (
     <Ticket as="section" className="es-prep__ticket" data-state="empty" width="wide" head={head} meta={<span aria-hidden="true">{formatDay(day)}</span>} title={unserved ? EMPTY_UNSERVED_TITLE : EMPTY_TITLE} titleAs="h2">
       <p>{unserved ? EMPTY_UNSERVED_BODY : EMPTY_BODY}</p>
+      <div className="es-way">
+        <ContinueLink target={pointer} emphasis="primary" minutes={pointer.minutes} />
+      </div>
       <Links>
-        <TextLink to="/m/tr2">{LINK_TR2}</TextLink> <TextLink to="/map">{LINK_MAP}</TextLink>
+        <TextLink to="/map">{LINK_MAP}</TextLink>
       </Links>
     </Ticket>
   )

@@ -250,12 +250,12 @@ describe('the slip, with a receipt that was kept', () => {
     expect(html).toMatch(/<li class="es-check" data-status="fail" data-check="T6">/)
   })
 
-  test('says what it is worth now: not credited, and why, in the words of the verifier and not in a number of the page\'s own', () => {
-    expect(text(html)).toContain('not credited')
+  test('says what it is worth now: not counted, and why, in the words of the verifier and not in a number of the page\'s own', () => {
+    expect(text(html)).toContain('not counted')
     expect(text(html)).toContain('What it is worth now')
-    expect(text(html)).toContain('X1 is not built yet: W2-T23 builds it, and a receipt of tr3.profile.s2 is not credited until it exists.')
+    expect(text(html)).toContain('X1 is not built yet: W2-T23 builds it, and a receipt of tr3.profile.s2 does not count until it exists.')
     expect(html).toContain('data-rule="verdict"')
-    expect(html).toMatch(/role="status" aria-live="polite">Kept in your ledger\. Not credited\.<\/p>/)
+    expect(html).toMatch(/role="status" aria-live="polite">Kept in your ledger\. Not counted\.<\/p>/)
   })
 
   test('offers another file and a way to clear the result, as a refused file does', () => {
@@ -275,7 +275,7 @@ describe('the slip, with a receipt that was kept', () => {
     const page = panel(state)
     expect(page).toContain('data-status="fail" data-rule="binding"')
     expect(text(page)).toContain("This browser's ledger holds no challenge with this token.")
-    expect(text(page)).toContain('not credited')
+    expect(text(page)).toContain('not counted')
   })
 })
 
@@ -321,7 +321,7 @@ describe('a receipt\'s page, with the checks it has had', () => {
     expect(html).toContain('aria-label="How this browser checked the receipt, 9 Nov 2026, 12:00"')
     expect([...html.matchAll(/data-rule="(\w+)"/g)].map((match) => match[1])).toEqual(['caps', 'schema', 'integrity', 'binding', 'grader', 'pins', 'rechecks', 'recomputation', 'floors', 'verdict'])
     expect(text(html)).not.toContain('of the ten verification rules ran in this check')
-    expect(text(html)).toContain('not credited')
+    expect(text(html)).toContain('not counted')
     expect(text(html)).not.toContain('Not checked in this browser yet')
   })
 
@@ -373,6 +373,6 @@ describe('the list of receipts, in a word', () => {
 
   test('names what the latest check made of each receipt, and that one was never checked', () => {
     // Newest first: the sample (9 Nov, never checked), the one checked and not credited, and the one whose report this build cannot read, which has no word.
-    expect(words).toEqual(['unchecked', 'not credited'])
+    expect(words).toEqual(['unchecked', 'not counted'])
   })
 })
