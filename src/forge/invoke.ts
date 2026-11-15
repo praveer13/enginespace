@@ -165,6 +165,14 @@ async function runCheck(host: ForgeHost, check: PlannedCheck, seed: number | und
 }
 
 /**
+ * A conversation that is not one of a lab's checks, such as the night of hybrid-kv's slot readout (readout.ts): one fresh instance, one
+ * check's budget, and a result like a check's, trap and timeout included. The lab's list does not name it, and the ledger never hears of it.
+ */
+export function runExtra(host: ForgeHost, check: PlannedCheck, options: { budgetMs?: number; now?: () => number } = {}): Promise<CheckResult> {
+  return runCheck(host, check, undefined, false, options.budgetMs ?? CHECK_BUDGET_MS, options.now ?? (() => performance.now()))
+}
+
+/**
  * Grades a loaded module as `lab`: every check in a fresh instance with its own seed and its own budget, in order. It throws LabAbiError
  * when the module is not this lab's (`moduleProblem`), and otherwise returns the run, whatever the checks came to.
  */

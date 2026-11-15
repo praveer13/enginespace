@@ -47,7 +47,7 @@ function cutaway(house: House, aspect: number): Fit {
   const { min, max } = house.box
   const d = max[2] - min[2]
   const z = (min[2] + max[2]) / 2
-  if (house.storeys.length < 3) return aspect < 1 ? fit([0.15, 2.66, z], 0.85, 1.3, d, 0.42, 0.28, aspect, 1.04) : fit([0.35, 2.42, z], 2.2, 1.85, d, 0.42, 0.28, aspect, 1.04)
+  if (house.low) return aspect < 1 ? fit([0.15, 2.66, z], 0.85, 1.3, d, 0.42, 0.28, aspect, 1.04) : fit([0.35, 2.42, z], 2.2, 1.85, d, 0.42, 0.28, aspect, 1.04)
   return fit([(min[0] + max[0]) / 2, (0.9 + max[1]) / 2, z], max[0] - min[0], max[1] - 0.9, d, 0.42, 0.24, aspect, 1.1)
 }
 

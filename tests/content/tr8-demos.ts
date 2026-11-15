@@ -354,7 +354,9 @@ export const goodputPerS = (met: number, seconds: number): number => met / secon
 
 /**
  * The reference of each prediction of TR8's lessons, from the numbers its prompt gives and the course's own functions. Nothing is stored
- * in a lesson (A§1, I3); the prediction box computes the same thing when it reveals (W1-T13 builds it).
+ * in a lesson (A§1, I3). None of TR8's four has a run to read it from (the questions are toy runs and a tool's arithmetic, and The
+ * Inspection plays cases drawn from the seed), so the lesson's box says that its reveal waits for W2-T43 (packages/play/predictions/plan.ts),
+ * and these figures are what that task starts from.
  */
 export const PREDICTIONS: Readonly<Record<string, { readonly unit: string; readonly reference: () => number }>> = {
   'tr8.l1.p1': { unit: 'ms', reference: () => p99Of(toyLog().map((r) => r.fromSentMs)) },

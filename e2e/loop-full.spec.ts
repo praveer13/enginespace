@@ -369,6 +369,29 @@ test.describe('the draw-call budget of the full service (A§11.1, D-023)', () =>
       expect(most.calls).toBeLessThanOrEqual(100)
       console.log(`full service T${tier}: at most ${most.sceneCalls} scene draw calls (${most.calls} in the frame, passes ${most.passes.join(' + ')}), ${most.instances} instances, ${most.triangles} triangles`)
     })
+
+    // The level with the most on the pass at once: twelve tickets hung and twelve copies on the fired rail, twelve plates, the rack and the
+    // comb, and every tape (W1b's finish review of the lesson blocks, round 1, fix 7).
+    test(`a night of async, twelve tickets with the rack and the comb, draws in at most 100 calls, at T${tier}`, async ({ page }) => {
+      test.setTimeout(300_000)
+      await open(page, 'async', tier)
+      await settle(page)
+      const [first] = LEVEL('async').stages
+      await call(page, first.answer)
+      await key(page, 'KeyO')
+      await expect(page.getByRole('switch', { name: /Write the next call during this fire/ })).toHaveAttribute('aria-checked', 'true')
+      let most: FrameStats | null = null
+      for (let fire = 0; fire < 20; fire++) {
+        await page.getByRole('button', { name: /Ring the bell/ }).click()
+        await settle(page)
+        const stats = await frame(page)
+        if (most === null || stats.sceneCalls > most.sceneCalls) most = stats
+      }
+      if (most === null) throw new Error('no frame was drawn')
+      expect(most.sceneCalls).toBeLessThanOrEqual(100)
+      expect(most.calls).toBeLessThanOrEqual(100)
+      console.log(`full service async T${tier}: at most ${most.sceneCalls} scene draw calls (${most.calls} in the frame, passes ${most.passes.join(' + ')}), ${most.instances} instances, ${most.triangles} triangles`)
+    })
   }
 })
 

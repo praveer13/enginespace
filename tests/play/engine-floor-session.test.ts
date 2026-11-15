@@ -8,7 +8,6 @@
  */
 import { describe, expect, test } from 'bun:test'
 import { drawInBand, regrade, replay, stateHash } from '@es/play'
-import type { GameAction } from '@es/play'
 import { stopOfMistake } from '@es/play/engine-floor/engine'
 import { MAX_PREDICTION } from '@es/play/engine-floor/facts'
 import { ALL_LEVEL_IDS, LEVEL_IDS } from '@es/play/engine-floor/levels'
@@ -320,7 +319,7 @@ describe('the log is the record (A§6.3, ASSESSMENT §4.3)', () => {
   test('a log that does not replay earns nothing, and says which action it was: a stage not in the tray, a lay before the prediction, an action after the end', () => {
     const level = levelOf('nano')
     const base = { game: 'engine-floor', level: 'nano', seed: 0 }
-    const bad = (actions: GameAction[]) => regrade(floorSession, { ...base, actions })
+    const bad = (actions: FloorAction[]) => regrade(floorSession, { ...base, actions })
     expect(bad([{ t: 'lay', stage: level.reference[0] }])).toMatchObject({ valid: false, at: 0 })
     expect(bad([{ t: 'commit', prediction: 0 }, { t: 'lay', stage: 'vllm.http-request' }])).toMatchObject({ valid: false, at: 1 })
     expect(bad([...houseActions(level), { t: 'run' }])).toMatchObject({ valid: false, at: houseActions(level).length })

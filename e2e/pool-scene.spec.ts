@@ -196,6 +196,35 @@ function sampleCanvas(page: Page): Promise<number[]> {
   })
 }
 
+/**
+ * A region of the canvas, read back from the test build's kept frame, as shares of its width and height [left, top, right, bottom]: the
+ * mean luma of its pixels (Rec. 601), or how many are warm (red over blue by more than 20 of 255).
+ */
+function canvasRegion(page: Page, [left, top, right, bottom]: readonly [number, number, number, number], what: 'luma' | 'warm'): Promise<number> {
+  return page.evaluate(
+    ({ box, kind }) => {
+      const canvas = document.querySelector<HTMLCanvasElement>('[data-stage="pool"] canvas')
+      if (!canvas) return Number.NaN
+      const copy = document.createElement('canvas')
+      copy.width = canvas.width
+      copy.height = canvas.height
+      const context = copy.getContext('2d')
+      if (!context) return Number.NaN
+      context.drawImage(canvas, 0, 0)
+      const [x0, y0] = [Math.round(box[0] * copy.width), Math.round(box[1] * copy.height)]
+      const { data } = context.getImageData(x0, y0, Math.round(box[2] * copy.width) - x0, Math.round(box[3] * copy.height) - y0)
+      let sum = 0
+      let warm = 0
+      for (let i = 0; i < data.length; i += 4) {
+        sum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]
+        if (data[i] - data[i + 2] > 20) warm += 1
+      }
+      return kind === 'warm' ? warm : sum / (data.length / 4)
+    },
+    { box: [left, top, right, bottom], kind: what },
+  )
+}
+
 /** Where the scene's box is on the page, not on the screen: a scroll does not move it, a layout change does. */
 const placeOf = (page: Page) =>
   stage(page).evaluate((element) => {
@@ -374,6 +403,34 @@ test.describe('the picture (W1-T24)', () => {
       console.log(`3D capture at ${width} px, ${sampled.width}x${sampled.height}: ${sampled.colours} distinct colours in ${sampled.samples} samples, luma spread ${sampled.spread.toFixed(1)}; kept at ${shot}`)
     })
   }
+
+  test('at 390 px on tier 1 the heat lamps pool their amber on the steel round the waiting tickets (finish review, W1b round 1)', async ({ page }) => {
+    test.setTimeout(120_000)
+    await page.setViewportSize({ width: 390, height: 844 })
+    await open(page, 'one-group', 1)
+    await settle(page)
+    expect(await askKind(page)).toBe('admit')
+    // The pass fills the lower part of the canvas: its warm pixels, red over blue by more than 20 of 255, as the review counted them.
+    const warm = await canvasRegion(page, [0, 0.55, 1, 1], 'warm')
+    expect(warm).toBeGreaterThan(300)
+    console.log(`T1 at 390 px: ${warm} warm pixels on the pass`)
+  })
+
+  test('the room falls into haze: the floor beside the line lifts toward the back (finish review, W1b round 1)', async ({ page }) => {
+    test.setTimeout(240_000)
+    const { actions } = nightOfHouse('two-kinds')
+    await open(page, 'two-kinds', 2)
+    await settle(page)
+    for (const action of actions.slice(0, 12)) await act(page, action)
+    await settle(page)
+    // The floor's column to the left of the line, at 1440 px: at the foot of the wall and at the front of the shot. The front shot looks
+    // across the rack at 35.5° (finish review, W1b round 2), so the wall's foot stands at half the canvas's height, and the column keeps
+    // left of the line's oven.
+    const back = await canvasRegion(page, [0.015, 0.5, 0.1, 0.6], 'luma')
+    const front = await canvasRegion(page, [0.015, 0.86, 0.1, 0.98], 'luma')
+    expect(back).toBeGreaterThan(front + 25)
+    console.log(`the floor's luma: ${back.toFixed(1)} at the back, ${front.toFixed(1)} at the front`)
+  })
 
   test("all text is DOM: the scene carries no word and no number, the tickets' numbers are the page's, and the page says what the fan shows", async ({ page }) => {
     test.setTimeout(120_000)

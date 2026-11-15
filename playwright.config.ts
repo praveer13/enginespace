@@ -14,9 +14,12 @@ import { defineConfig } from '@playwright/test'
  *
  * Environment, all of it optional:
  *   ES_CHROMIUM       the path of a Chromium to run in place of the one that Playwright installed, for a host where that one cannot start.
- *   ES_E2E_PORT       the port of `vite preview`, 4180. The server is never reused, because a stale one from another tree would be
- *                     tested in place of this build: a port that is taken is an error, and this gives a run its own.
+ *   ES_E2E_PORT       the port of `vite preview` (or of the Pages server, below), 4180. The server is never reused, because a stale one from
+ *                     another tree would be tested in place of this build: a port that is taken is an error, and this gives a run its own.
  *   ES_E2E_ORIGIN     the address of a server that already serves a build (`http://127.0.0.1:4173`): then nothing is built or started.
+ *   ES_E2E_PAGES=1    serve the build as GitHub Pages does in place of `vite preview`: prepare-pages writes the documents, and a server that
+ *                     redirects `/map` to `/map/` and answers 404.html with a 404 serves them (e2e/support/serve-pages.ts). The live run of
+ *                     2026-11-09 found a spec that held on `vite preview` and failed on Pages for want of that redirect.
  *   ES_E2E_NIGHTLY=1  the nightly sweep (nightly.yml): axe at 320, 360 and 1280 px on every document that prepare-pages writes, the
  *                     network check and the reduced-motion scan of each, a keyboard walk of every level of every game (walks.spec.ts), and
  *                     the cross-browser determinism hash in Firefox and WebKit. It builds with prepare-pages, which needs Bun.
@@ -27,6 +30,7 @@ const PORT = Number(process.env.ES_E2E_PORT) || 4180
 const OUTSIDE = (process.env.ES_E2E_ORIGIN ?? '').replace(/\/$/, '')
 const ORIGIN = OUTSIDE || `http://127.0.0.1:${PORT}`
 const NIGHTLY = process.env.ES_E2E_NIGHTLY === '1'
+const PAGES = process.env.ES_E2E_PAGES === '1'
 const CI = Boolean(process.env.CI)
 
 /**
@@ -42,9 +46,12 @@ const CI = Boolean(process.env.CI)
  * on a 20-core laptop under a load average of about 13 from other work [measured 2026-11-08 at df76ca9 with W1-T36's files]. The first
  * arrangement of the same work (206 tests, a11y.spec.ts in width order, the walks sorting before keyboard-loop) cut as 102, 167, 210 and 105 s
  * of test time, the sum of the tests' durations in each shard [measured 2026-11-08 at df76ca9], and the tests of W0-T21 alone as 47, 120, 42
- * and 47 s [measured 2026-11-08 at df76ca9]. `walks` sorts last: a game played to its debrief at two widths is the heaviest test for its
- * length, and the 3D checks of reduced-motion and screenshots, the next heaviest, sit before it. A spec that is added belongs where its name
- * sorts to: run the shards (`npx playwright test --project=smoke --shard=<i>/4`) and look at the four times before it merges.
+ * and 47 s [measured 2026-11-08 at df76ca9]. `walks` sorts last, and while the browser drew every page through SwiftShader a game played to its
+ * debrief at 1280 px was the heaviest test for its length, so that the heavy ones sat together: the browser below composes on the CPU now,
+ * and the 193 tests ran as four shards of 82, 71, 58 and 74 s on four cores of a 20-thread laptop under a load average of 20 to 40, against 206,
+ * 196, 293 and 306 s with the flags that every other project has [measured 2026-11-09 at 54d880f, two workers and one retry]. A spec that is
+ * added belongs where its name sorts to: run the shards (`npx playwright test --project=smoke --shard=<i>/4`) and look at the four times
+ * before it merges.
  */
 const SMOKE = ['a11y', 'keyboard-loop', 'network', 'reduced-motion', 'screenshots', 'walks'].map((name) => `**/${name}.spec.ts`)
 /** W0-T20's lab profile: a measurement, which nightly.yml's lab-profile job runs on its own. */
@@ -78,6 +85,38 @@ const LAB = '**/perf.spec.ts'
  */
 const FLAGS = ['--use-angle=swiftshader', '--font-render-hinting=none']
 
+/*
+ * The smoke project's browser also composes its pages on the CPU: `--disable-gpu-compositing`, added to the flags above for that project
+ * alone (W1b-T13). With the flags above and nothing else, Chromium rasterizes and composes every page through SwiftShader's GL, on the CPU,
+ * whether or not the page has WebGL in it, so a page costs by its pixels, and two browsers share a runner's four cores (W0-T20 found the
+ * same cost for a clock: e2e/perf.spec.ts, D-023). On PR #2's runner the keyboard walks at 1280 px (3D off: nothing in them draws a
+ * scene) took 72 to 78 s each, and the browser behind one of them answered `newContext` too late for the 90 s that a test's setup has
+ * before its own `test.setTimeout` starts: shard 4 had three tests time out "while setting up context" in each of the first two runs,
+ * and one in the third, the trivial test after the walks among them, and a retry passed in 15 to 28 s; the 2D screenshot after a fire ran
+ * out its 10 s in the last two runs, while a 3D test drew beside it (CAPTURE_TIMEOUT, e2e/screenshots.spec.ts). Neither wants a longer
+ * wait: the browser was starved, and the pages did not need what starved it [measured 2026-11-09, PR #2's CI logs].
+ *
+ * [measured 2026-11-09 at 54d880f, with Playwright 1.63.0 driving chromium_headless_shell-1243 (Chrome for Testing 153.0.8010.12), on a
+ * 20-thread laptop under a load average of 13 to 40 from other work, each run pinned to two or four of its cores, with two workers and
+ * one retry, as a runner has them.]
+ *   - Service's walk at 1280 px, one worker on two cores: 33.5 and 43.4 s with the flags above, and 2.2 s with this one (7.0 s on every
+ *     core). At 360 px: 5.3 and 6.1 s, and 1.9 s. All the walks together, on four cores, took 3.0 minutes, and a test of about 130 ms in
+ *     them waited 38.9 s for its context; with the flag, 16.7 s, and the test took 135 ms.
+ *   - The four smoke shards, on four cores, which pass either way (49, 48, 48 and 48 tests): 206, 196, 293 and 306 s, and 82, 71, 58 and
+ *     74 s. In the 306 s run the same test waited 78 s for its context.
+ *   - The failure of PR #2's runner, reproduced: the twelve walks on two cores took 5.9 minutes with the flags above, and the Reach-In's
+ *     walk at 1280 px timed out "while setting up context" at 90 s and passed on its retry in 12.7 s; with this flag they took 19.4 s,
+ *     and none was retried.
+ *   - What does not move: the renderer is SwiftShader's (the line that e2e/screenshots.spec.ts prints); the 3D passes are drawn, with 155
+ *     and 157 colours and a luma spread of 76.1 and 70.9 at 360 and 1280 px against 160 and 156 and the same spreads; and the 2D baselines
+ *     of that spec differ by 4 and 4 pixels at 360 px (0 and 0 without the flag) and by 6,880 and 6,726 at 1280 px (6,860 and 6,695) of
+ *     1,024,000 (a run at no tolerance), so the 1% that the spec allows has the same room.
+ * Only `smoke` has it. `features` keeps the flags above, so that the nightly sweep still draws and composes the scenes as a GPU-less
+ * machine does. The lab profile's spec launches a browser of its own (e2e/perf.spec.ts), with `--enable-unsafe-swiftshader` alone, for
+ * the same reason, and the project of that spec is left as it was.
+ */
+const SMOKE_FLAGS = [...FLAGS, '--disable-gpu-compositing']
+
 /** One browser, one window: a phone's 360 px, which is the narrowest that PRODUCT.md promises to serve. The specs widen it where they must. */
 const use = {
   baseURL: ORIGIN,
@@ -95,6 +134,9 @@ const chromium = {
   browserName: 'chromium' as const,
   launchOptions: { executablePath: process.env.ES_CHROMIUM || undefined, args: FLAGS },
 }
+
+/** The browser of the smoke project: the same, composing on the CPU (SMOKE_FLAGS). */
+const chromiumSmoke = { ...chromium, launchOptions: { ...chromium.launchOptions, args: SMOKE_FLAGS } }
 
 export default defineConfig({
   testDir: './e2e',
@@ -116,7 +158,7 @@ export default defineConfig({
   reporter: CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   projects: [
     // fullyParallel, so that ci.yml's shards split the smoke specs test by test and not file by file (six files, four shards).
-    { name: 'smoke', testMatch: SMOKE, fullyParallel: true, use: chromium },
+    { name: 'smoke', testMatch: SMOKE, fullyParallel: true, use: chromiumSmoke },
     // Every other spec: the ones that earlier tasks wrote, and whatever a later task adds.
     { name: 'features', testIgnore: [...SMOKE, LAB], use: chromium },
     // The lab profile is a number to be read and not a flake to be retried: a failure is a budget that was exceeded, and a second try
@@ -135,8 +177,11 @@ export default defineConfig({
   webServer: OUTSIDE
     ? undefined
     : {
-        // A fresh build, so that no spec tests an old one. The nightly sweep lists the documents that prepare-pages writes.
-        command: `npm run build && ${NIGHTLY ? 'bun scripts/prepare-pages.ts && ' : ''}npx vite preview --host 127.0.0.1 --port ${PORT} --strictPort`,
+        // A fresh build, so that no spec tests an old one. The nightly sweep lists the documents that prepare-pages writes, and so does a run
+        // served as Pages serves it, which needs them in dist/ to answer an address with its own document.
+        command: `npm run build && ${NIGHTLY || PAGES ? 'bun scripts/prepare-pages.ts && ' : ''}${
+          PAGES ? `bun e2e/support/serve-pages.ts ${PORT}` : `npx vite preview --host 127.0.0.1 --port ${PORT} --strictPort`
+        }`,
         url: `${ORIGIN}/`,
         reuseExistingServer: false,
         timeout: 300_000,

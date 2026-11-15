@@ -7,9 +7,12 @@ import { Readout } from '@/design/components/Readout'
 import { Stub } from '@/design/components/Stub'
 import { TapeLabel } from '@/design/components/TapeLabel'
 import { Ticket } from '@/design/components/Ticket'
+import { Crate } from './Crate'
 import { CHECK_BUDGET_MS } from './protocol'
 import type { CheckResult, CheckStatus } from './invoke'
+import type { KitState } from './kits'
 import type { ForgeLab } from './labs'
+import { SlotReadoutSection } from './SlotReadout'
 import type { FileFacts, ForgeState } from './useForge'
 import { recordedSentence } from './words'
 
@@ -18,12 +21,17 @@ import { recordedSentence } from './words'
  * the file chooser; the printer's tape, which says what the run found; and the checks, as the lines of one ticket. The heat lamp marks
  * where the next decision acts: the slip while there is no module (and after a refusal), and the first check that did not pass.
  *
+ * Under the slip, while it waits for a file, stands the lab's crate: the zip to build from, with its size and SHA-256 and the line that checks
+ * the download (Crate.tsx, W1b-T08). A lab with a readout, `hybrid-kv`'s slot night, has a section of its own after the checks.
+ *
  * It starts nothing itself, so a test draws any state without a worker.
  */
 
 export interface ForgeViewProps {
   lab: ForgeLab
   state: ForgeState
+  /** What the manifest says of the lab's zip. Without it the crate waits for the manifest, as it does when the page has just opened. */
+  kit?: KitState
   onChoose(file: File): void
   onRunAgain(): void
   onReplay(): void
@@ -199,10 +207,14 @@ function announcement(lab: ForgeLab, state: ForgeState): string {
   }
 }
 
-export function ForgeView({ lab, state, onChoose, onRunAgain, onReplay }: ForgeViewProps) {
+export function ForgeView({ lab, state, kit = { status: 'loading' }, onChoose, onRunAgain, onReplay }: ForgeViewProps) {
   const input = useRef<HTMLInputElement>(null)
   const [over, setOver] = useState(false)
-  const busy = state.step === 'reading' || state.step === 'running'
+  // The readout holds the page as a run does: a file chosen or a run pulled while the night is being played would be lost to it.
+  const night = state.step === 'done' && state.readout?.status === 'running'
+  const busy = state.step === 'reading' || state.step === 'running' || night
+  // The crate stands under the slip while the slip waits for a module to be accepted.
+  const waiting = state.step === 'idle' || state.step === 'reading' || state.step === 'refused'
   const rows = rowsOf(lab, state)
   const firstRed = state.step === 'done' ? state.run.checks.findIndex((check) => check.status !== 'pass') : -1
   const seeded = state.step === 'done' && state.run.checks.some((check) => check.seed !== undefined)
@@ -294,7 +306,7 @@ export function ForgeView({ lab, state, onChoose, onRunAgain, onReplay }: ForgeV
           {lab.lead} In the engine: {lab.engineTerm}.
         </p>
       </header>
-      <div className="es-forge-layout" data-step={state.step}>
+      <div className="es-forge-layout" data-step={state.step} data-readout={lab.readout === undefined ? undefined : ''}>
         <section aria-label="Your module" className="es-panel es-forge-slip">
           <div className="es-forge-drop" data-over={over || undefined} onDragOver={onDragOver} onDragLeave={() => setOver(false)} onDrop={onDrop}>
             <input
@@ -307,6 +319,7 @@ export function ForgeView({ lab, state, onChoose, onRunAgain, onReplay }: ForgeV
             />
             {slip}
           </div>
+          {waiting ? <Crate lab={lab} kit={kit} /> : null}
         </section>
 
         <aside className="es-forge-tape" aria-label="The run">
@@ -345,7 +358,13 @@ export function ForgeView({ lab, state, onChoose, onRunAgain, onReplay }: ForgeV
                 limit per check <Readout value={CHECK_BUDGET_MS / 1000} unit="s" tag="estimated" size="sm" />
               </span>,
             ]}
-            stub={state.step === 'done' ? <Stub onClick={onRunAgain}>Run on new seeds</Stub> : undefined}
+            stub={
+              state.step === 'done' ? (
+                <Stub onClick={onRunAgain} disabled={night}>
+                  Run on new seeds
+                </Stub>
+              ) : undefined
+            }
           >
             <ol className="es-forge-checks">
               {lab.checks.map((check, index) => {
@@ -362,7 +381,7 @@ export function ForgeView({ lab, state, onChoose, onRunAgain, onReplay }: ForgeV
             </ol>
             {seeded ? (
               <div className="es-forge-again">
-                <Button variant="quiet" onClick={onReplay}>
+                <Button variant="quiet" onClick={onReplay} disabled={night}>
                   Tell these seeds again
                 </Button>
                 <span className="es-forge-hint">A replay of seeds you have seen is never recorded.</span>
@@ -370,6 +389,8 @@ export function ForgeView({ lab, state, onChoose, onRunAgain, onReplay }: ForgeV
             ) : null}
           </Ticket>
         </section>
+
+        {lab.readout === undefined ? null : <SlotReadoutSection lab={lab} state={state} />}
       </div>
       <p className="sr-only" role="status" aria-live="polite">
         {announcement(lab, state)}

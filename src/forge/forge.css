@@ -2,7 +2,8 @@
  * A forge lab's page (W1-T10): the module slip, the checks printed on paper, and the printer's tape beside them. The heading and the
  * panels come from panels.css, and this file places what only a forge lab has. Every colour, face, space and shadow is a token role
  * (src/design/tokens.css), and the design system is not edited. Amber appears in three places: the slip's own lamp, the dashed
- * filament round it while a file is dragged over it, and the first check that did not pass.
+ * filament round it while a file is dragged over it, and the first check that did not pass. The lab's crate under the slip (Crate.tsx) and the
+ * slot readout after the checks (SlotReadout.tsx) are paper and steel and carry none.
  */
 
 /* ---------------------------------------------------------------------------------------------- the page's three places */
@@ -22,6 +23,7 @@
 
 .es-forge-slip,
 .es-forge-run,
+.es-forge-readout,
 .es-forge-tape {
   min-width: 0;
 }
@@ -46,6 +48,18 @@
 
   .es-forge-run {
     grid-area: checks;
+  }
+
+  /* A lab with a readout gives it a place of its own after the checks, and the tape stands beside all three. */
+  .es-forge-layout[data-readout] {
+    grid-template-areas:
+      'slip tape'
+      'checks tape'
+      'readout tape';
+  }
+
+  .es-forge-readout {
+    grid-area: readout;
   }
 
   .es-forge-layout[data-step='idle'] .es-forge-tape {
@@ -113,7 +127,8 @@
   gap: var(--es-space-2);
 }
 
-.es-forge-hash__digits {
+.es-forge-hash__digits,
+.es-forge-crate__digits {
   max-width: 34ch;
   overflow-wrap: anywhere;
   user-select: all;
@@ -238,7 +253,8 @@
 }
 
 /* Seeds and counts print in the dot matrix, with tabular figures. */
-.es-forge-seed {
+.es-forge-seed,
+.es-forge-figure {
   font-family: var(--es-font-numeric);
   font-weight: var(--es-font-numeric-weight);
   letter-spacing: var(--es-font-numeric-tracking);
@@ -273,6 +289,80 @@
   align-items: center;
   gap: var(--es-space-2) var(--es-space-6);
   margin-top: var(--es-space-4);
+}
+
+/* ---------------------------------------------------------------------------------------------- the crate, handed over */
+
+/* The crate is its own sheet under the slip, with a little more steel between them than two panels of a column have. */
+.es-forge-crate {
+  margin-top: var(--es-space-4);
+}
+
+/* The zip's name is the link, and the size is a count beside it. The name is an identifier, so it is set in the code face. */
+.es-forge-crate__file {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--es-space-1) var(--es-space-3);
+}
+
+.es-forge-crate__file .es-link {
+  font-family: var(--es-font-mono);
+  font-size: var(--es-font-mono-size);
+  overflow-wrap: anywhere;
+}
+
+.es-forge-crate__check {
+  display: grid;
+  gap: var(--es-space-3);
+}
+
+/* The check line is code, so it takes the code face's own size, which a build command printed in the body's size does not. */
+.es-forge-crate__line,
+.es-forge-crate__line code,
+.es-forge-crate__digits {
+  font-size: var(--es-font-mono-size);
+  line-height: var(--es-font-mono-leading);
+}
+
+/* The line runs on as a terminal's does, from its first character to the edge of the paper, and is one line when it is copied. */
+.es-forge-crate__line code {
+  word-break: break-all;
+}
+
+/* What the pipe feeds stays whole, so that a line that wraps does not cut "sha256sum" in two. */
+.es-forge-crate__tail {
+  white-space: nowrap;
+}
+
+/* A command in a sentence stays whole. */
+.es-forge-crate p code {
+  white-space: nowrap;
+}
+
+.es-forge-crate__check > * {
+  margin: 0;
+}
+
+.es-forge-crate__check .es-forge-again {
+  margin-top: 0;
+}
+
+/* ---------------------------------------------------------------------------------------------- against the slots */
+
+/* The paragraphs of the readout hold the measure of the panel's lead. */
+.es-forge-readout > p {
+  max-width: 62ch;
+  margin: 0;
+}
+
+/* A column head's kitchen word, under the engine's term. */
+.es-forge-sub {
+  display: block;
+  flex-basis: 100%;
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+  font-weight: 400;
 }
 
 /* ---------------------------------------------------------------------------------------------- beside the checks */

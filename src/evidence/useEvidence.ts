@@ -157,6 +157,12 @@ const ACTIONS: EvidenceActions = {
   },
 }
 
+/**
+ * `append` for a writer that is not a component: it opens the engine when it first writes. A game's recorder (src/games/kit/record.ts)
+ * loads this module when a run ends, so a game's page opens the ledger only once it has something to write.
+ */
+export const appendEvidence: EvidenceActions['append'] = ACTIONS.append
+
 export function useEvidence(): Evidence {
   const snapshot = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
   return useMemo(() => ({ ...snapshot, ...ACTIONS }), [snapshot])

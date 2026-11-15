@@ -36,7 +36,7 @@ import { TIERS } from './tiers'
  */
 
 // The full catalogue of three's classes as JSX elements, as R3F's own <Canvas> registers it.
-extend(THREE as unknown as Parameters<typeof extend>[0])
+extend(THREE as unknown as Parameters<typeof extend>[0]) // a catalogue is constructors, and the namespace also holds functions and constants that no element names
 
 export interface SceneCanvasProps {
   children: ReactNode

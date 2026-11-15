@@ -48,10 +48,12 @@ export class FakePort implements ForgePort {
   readonly requests: ForgeRequest[] = []
   private listener: ((reply: ForgeReply) => void) | null = null
   private crash: ((message: string) => void) | null = null
-  constructor(
-    readonly name: string,
-    private handler: Handler,
-  ) {}
+  readonly name: string
+  private handler: Handler
+  constructor(name: string, handler: Handler) {
+    this.name = name
+    this.handler = handler
+  }
 
   post(request: ForgeRequest): void {
     this.requests.push(request)
@@ -80,7 +82,10 @@ export class FakePort implements ForgePort {
 export class FakePool implements ForgePool {
   readonly ports: FakePort[] = []
   readonly discarded: FakePort[] = []
-  constructor(private handler: Handler) {}
+  private handler: Handler
+  constructor(handler: Handler) {
+    this.handler = handler
+  }
 
   async acquire(): Promise<ForgePort> {
     const port = new FakePort(`worker ${this.ports.length + 1}`, this.handler)

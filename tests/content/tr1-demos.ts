@@ -136,6 +136,9 @@ export const SCHEDULER_LINES = { post: 1163, pin: 3783 } as const
  * The reference answer of every prediction block in TR1's lessons, with the unit the block names. Each is recomputed from the model or from
  * the arithmetic above, and `tests/content/tr1-module.test.ts` checks the block's id, unit and tolerance against this table and the
  * lesson's text against the answer.
+ * The lesson's prediction box (W1b-T02) reads its answer from the run of the game block that follows the prediction, where
+ * packages/play/predictions has a reading, and tests/play/predictions.test.ts holds each reading to the figure here; a prediction with no
+ * reading waits for W2-T43, and its figure here is what that task starts from.
  */
 export const PREDICTIONS: Readonly<Record<string, { readonly unit: string; readonly reference: () => number }>> = {
   'tr1.l1.p1': { unit: 'boundaries', reference: () => tokenBoundaries(scenarioOf('nano')) },

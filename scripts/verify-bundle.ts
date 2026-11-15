@@ -49,8 +49,9 @@
  * three-vendor in a build with no 3D. A worker, a scene, a game or post-processing whose source is in the tree and has no chunk
  * fails, because its budget cannot be measured. The gate also prints, without a verdict: the document, the fonts it preloads, the
  * course index (A§4.6: 6 KB), the route table beside the entry that a hovered or focused link reads (D-059), what loads on demand
- * that no row holds (a lazy part of a game with its route, any other lazy part by what it adds to the entry; D-059), the size of
- * the site against Pages' cap, and the third-party licences. The last is a check and holds no budget: dist/third-party-licenses.txt
+ * that no row holds (a lazy part of a game with its route, a lesson's game block with the lesson's route and each game it can embed
+ * (W1b-T01), any other lazy part by what it adds to the entry; D-059), the size of the site against Pages' cap, and the third-party
+ * licences. The last is a check and holds no budget: dist/third-party-licenses.txt
  * must name every npm package that a script of the build holds and carry NOTICE and the texts of LICENSES/, and a script of
  * dist/assets that the licence plugin did not record (a worker) fails it (scripts/pages/third-party-licenses.ts, checkShipped).
  *
@@ -89,6 +90,9 @@ export const BUDGETS = {
 
 /** `/play/:game` is the page `Game`, which loads the game of its id on demand. */
 const GAME_PAGE = 'Game'
+/** A lesson is the page `Lesson`, and its game block loads this when the learner starts a level, then the game of the block (W1b-T01). */
+const LESSON_PAGE = 'Lesson'
+const GAME_EMBED = 'src/content/render/GameEmbed.tsx'
 /** The course index, a lazy chunk that the front page's loader awaits before it paints (A§6.10, scripts/pages/front-shell.ts). */
 const COURSE_INDEX = 'src/content/generated/index.json'
 const LESSONS = 'src/content/generated/lessons/'
@@ -355,18 +359,53 @@ export function checkBundle(input: Input): Report {
   const gamePage = pageKeys.get(GAME_PAGE)
   const gameIdOf = new Map([...gameKeys].map(([id, key]) => [key, id]))
   const entryLoaded = new Set(closureOf(manifest, [entry]))
+  const embedKey = Object.keys(manifest).find((key) => manifest[key].isDynamicEntry === true && (manifest[key].src ?? key) === GAME_EMBED)
+  const gameParts: { game: string; key: string; source: string }[] = []
   for (const [key, chunk] of Object.entries(manifest)) {
     const source = chunk.src
     if (chunk.isDynamicEntry !== true || source === undefined || gameIdOf.has(key) || [...pageKeys.values()].includes(key)) continue
     if (source.startsWith('src/scene/') || SCENE_SOURCE.test(source) || source.startsWith('src/content/generated/') || source.startsWith('node_modules/')) continue
+    // A lesson's game block is printed below, with the lesson's route and each game it embeds.
+    if (key === embedKey) continue
     const game = /^src\/games\/([^/]+)\//.exec(source)?.[1]
     const gameKey = game === undefined ? undefined : gameKeys.get(game)
     if (gameKey !== undefined && gamePage !== undefined) {
+      gameParts.push({ game: game as string, key, source })
       const files = filesOf(manifest, closureOf(manifest, [entry, gamePage, gameKey, key]))
       measured(`on-demand:${source}`, `route /play/${game} with ${path.basename(source, '.tsx')}`, sizeOf([...files.js, ...files.css]), {}, `the route's closure with ${source}, which its game loads on demand`)
     } else {
       const files = filesOf(manifest, closureOf(manifest, [key]).filter((candidate) => !entryLoaded.has(candidate)))
       measured(`on-demand:${source}`, `on demand ${source}`, sizeOf([...files.js, ...files.css]), {}, `${chunk.file} and what it adds to the entry`)
+    }
+  }
+
+  /*
+   * A lesson's game block (W1b-T01): the lesson's route with what the block loads when the learner starts a level, its embed and the game of
+   * the block, for each game, and with each lazy part of that game, as a learner who plays it downloads them. Printed and held to no gate
+   * (D-059): the lesson's own row above is its first paint, which carries none of a game.
+   */
+  const lessonPage = pageKeys.get(LESSON_PAGE)
+  if (lessonPage !== undefined && embedKey !== undefined) {
+    for (const [id, gameKey] of gameKeys) {
+      const base = [entry, lessonPage, embedKey, gameKey]
+      const files = filesOf(manifest, closureOf(manifest, base))
+      measured(
+        `lesson-game:${id}`,
+        `route /m/:module/:lesson with ${id}`,
+        sizeOf([...files.js, ...files.css]),
+        {},
+        `the lesson's closure with its game block's embed and ${id}'s game, which load when the learner starts a level`,
+      )
+      for (const part of gameParts.filter((candidate) => candidate.game === id)) {
+        const more = filesOf(manifest, closureOf(manifest, [...base, part.key]))
+        measured(
+          `lesson-game:${id}:${part.source}`,
+          `route /m/:module/:lesson with ${id} and ${path.basename(part.source, '.tsx')}`,
+          sizeOf([...more.js, ...more.css]),
+          {},
+          `the row above with ${part.source}, which its game loads on demand`,
+        )
+      }
     }
   }
 

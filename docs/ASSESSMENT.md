@@ -164,11 +164,21 @@ All are computed at read time from events and content; nothing is stored (kernel
 
 | Check | False-fail rate for an honest learner | Detection | How it is measured |
 |---|---|---|---|
-| `rejection-sampler`'s chi-square | about 2 × 10⁻⁴ per attempt [derived: 1 − (1 − 10⁻⁴)²] | each bestiary member caught at least 99% of the time at 20,000 draws [estimated target] | 200 seeds per PR, 10,000 nightly (W1-T26) [measured once built] |
+| `rejection-sampler`'s chi-square | about 2 × 10⁻⁴ per attempt [derived: 1 − (1 − 10⁻⁴)²]; measured 1.8 × 10⁻⁴ [derived: 9 false fails in 50,000 cases of the lab's check, W1-T27] | each bestiary member caught at least 99% of the time at 20,000 draws [estimated target]; the chi-square alone does it for five of the six, and the exact checks catch the sixth every time (below) | 200 trials per PR and 10,000 nightly (W1-T26, `tests/sim/spec-rates.test.ts`); 8 runs per PR and 1,500 a row nightly through the host (W1-T27, `tests/forge/rejection-sampler-rates.test.ts`, which the `lab-rates` job of `nightly.yml` runs with `ES_LAB_TRIALS=1500`, W1b-T13) [measured 2026-11-04] |
 | Bootstrap intervals (TR8, recomputation) | a deterministic recomputation, so none | the nominal 95% interval covers within [93%, 97%] over 2,000 seeds [estimated tolerance] | W1-T31 |
 | Everything else in the browser | none: the checks are exact | — | golden vectors |
 
 A false fail never subtracts anything: the learner re-runs on fresh seeds at once, and the Mirror shows the attempt as "check failed, retry" rather than as a miss.
+
+**What W1-T26 and W1-T27 measured,** on 2026-11-04 with Bun 1.3.14 on the dev host [measured]. The headers of the two tests hold the full record, and [labs/forge/README.md](../labs/forge/README.md) tabulates the lab's. W1-T26 measured `packages/sim/spec` at its branch commit 4d033ce, which differs from the merged f6796c7 in one line of `index.ts`; W1-T27 measured the builds in `tests/fixtures/forge/rejection-sampler` at fef5726. The seeds are fixed, so each figure is what that code gives, and a change to the sampler or to the generators can move it. W1b-T15 ran the 200-trial size again at 34db7f6 on 2026-11-09, and every figure of that size came out the same [measured].
+- **False fails.**
+  - W1-T26 sent the exact sampler through the lab's check, two seeds of 20,000 draws each tested at α = 10⁻⁴, over three kinds of target: none in 200 trials, none in 10,000, and 9 in the 40,000 after them. That is 2.25 × 10⁻⁴ over those 40,000 [derived], against the nominal 2 × 10⁻⁴ and a bound of 5 × 10⁻⁴ [estimated].
+  - W1-T27 ran the lab's own check at the model's level on 50,000 cases and got 9 false fails. Through the host, on the builds that Rust makes, it got none in 1,500 runs of all five checks.
+  - The statistic with no sampler behind it: 3,000,000 exact multinomial samples of each of five targets put it over the 10⁻⁴ value 290 to 352 times, where 300 are expected (W1-T26).
+- **Detection.**
+  - `resample-from-p`, `resample-from-q`, `residual-off-by-one` and `fly-lossy` are rejected by the chi-square in every trial of their band: 10,000 of 10,000 (W1-T26) and 1,500 of 1,500 runs through the host (W1-T27). So is the p > q rule, apart from the rare pair on which it is exact, where every token with p ≤ q has p = 0: 10,000 of 10,000 trials of its band, 9,990 of 10,000 cases at the model's level, and 1,499 and 1,496 of 1,500 runs through the host, in two rows.
+  - The boundary-inclusive comparison moves each token's probability by 1 ÷ 65,536 [derived], so the chi-square alone misses the 99% target. It rejects the member in 99.91% of 10,000 trials on a sparse band, where the drafter proposes tokens that p rules out, and in 12.55% on the Verifier's band at the worlds' total of 2¹⁶ (W1-T26); at the model's level in 11.6% of 10,000 cases, and through the host in 160 and 183 of 1,500 runs, in two rows (W1-T27). The exhaustive look at the accept step rejects it in every trial, 10,000 of 10,000 (W1-T26), and the exact `accept` and `pick` checks reject it in all 1,500 runs (W1-T27). That is why the lab of §4.5 sends four exact checks beside the chi-square.
+  - The bias is 1 ÷ total per token [derived], so a smaller total shows it to the statistic: at a total of 64, the grid of the Verifier's exact levels, in 50 of 50 trials, and at 4,096 in 2 of 50 (W1-T26).
 
 ### 4.7 Predictions
 

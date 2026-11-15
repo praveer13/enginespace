@@ -28,11 +28,11 @@ describe('the small-model napkin card', () => {
 
   test('prices the line by S5\'s card and leaves every host phase to the host card: a decode of 16 rows over 256 tokens costs 1,670 µs', () => {
     const load = decodes(16, 256)
-    const cost = gpuCost(SMALL_CARD, { seqs: 16, prefillSeqs: 0, ...load })
+    const cost = gpuCost(SMALL_CARD, { prefillSeqs: 0, ...load })
     expect(cost).toEqual({ gpuUs: stepCard(SMALL_CARD.spec, 1, load).us, hostSeqUs: null })
     expect(cost.gpuUs).toBe(1670)
     // The 70B card keeps its host term: a number, which replaces the host card's per-sequence phases (D-044).
-    expect(gpuCost(s5Card('h100-vllm-0-10-2-fp8', 4), { seqs: 16, prefillSeqs: 0, ...load }).hostSeqUs).toBeGreaterThan(0)
+    expect(gpuCost(s5Card('h100-vllm-0-10-2-fp8', 4), { prefillSeqs: 0, ...load }).hostSeqUs).toBeGreaterThan(0)
   })
 
   test('a step of the small model is short enough that the host\'s work is a large share of it, which is the regime TR2\'s levels need', () => {
@@ -40,7 +40,7 @@ describe('the small-model napkin card', () => {
     const eager = host.launchPerKernelUs * host.kernelsPerLayer * gpuLayers(SMALL_CARD)
     // Calling every kernel of a fire costs the expo more than the fire costs the line.
     expect(eager).toBe(2016)
-    expect(eager).toBeGreaterThan(gpuCost(SMALL_CARD, { seqs: 12, prefillSeqs: 0, ...decodes(12, 256) }).gpuUs)
+    expect(eager).toBeGreaterThan(gpuCost(SMALL_CARD, { prefillSeqs: 0, ...decodes(12, 256) }).gpuUs)
   })
 })
 

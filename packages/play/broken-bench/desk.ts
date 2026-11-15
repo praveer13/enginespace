@@ -10,7 +10,8 @@
  *
  * What the desk reads is the sample those two settings give: how many orders, their mean, and the tail, the slowest orders ranked.
  * The p99 is the order at nearest rank ⌈0.99 n⌉ from the fastest, which is `n − ⌈0.99 n⌉ + 1` from the slowest, with `n − ⌈0.99 n⌉` orders
- * beyond it (A§5.6, B6, B7): a learner can find it by counting down the tail, which is the point of showing the tail.
+ * beyond it (A§5.6, B6, B7): a learner can find it by counting down the tail, which is the point of showing the tail. The tail is as long
+ * for every log, so that it says nothing of where the p99 sits (`TAIL_ROWS`).
  *
  * Everything here is pure and integer. Nothing is stored: the settings are the board's own, and the court never reads them.
  */
@@ -73,19 +74,28 @@ export interface TailLine {
   readonly p99: boolean
 }
 
-/** The fewest lines the tail shows, when the log has them: a short log's p99 sits at rank 1 or 2, and the tail shows a few below it. */
-export const TAIL_MIN = 12
+/**
+ * How many orders the tail lists: the slowest hundred, or every order when the log has fewer. The length is fixed because a graded attempt
+ * says nowhere where the p99 sits and leaves the rule to the learner, n − ⌈0.99 n⌉ + 1 from the slowest. The tail used to end six orders
+ * below the p99 and never ran under twelve lines, so on every tail of more than twelve lines the p99 was the seventh from the bottom, and a
+ * learner who had not applied the rule could read its answer off the count of lines (W1-report §12, W1b-T11). A tail of fixed length is a
+ * function of what the desk's summary prints, the orders measured, and of nothing else: not of the p99's place, not of the stopwatch and not
+ * of the times. Where it ends says nothing, and the p99 stands wherever the rule puts it, from the first line down to the 67th.
+ *
+ * The hundred is sized for the corpus. Its longest log has 6,628 orders, the warm-up's 128 and at most 6,500 measured (`heavy`, in
+ * packages/sim/bench/broken-kits.ts) [derived], and with no cut at the desk its p99 is the 67th slowest, which leaves 33 lines under it
+ * [derived]. tests/play/broken-bench-tail.test.ts holds the p99 inside the tail for every case it draws, at every desk it tries, the widest
+ * among them, and fails when the corpus deals a log that the tail does not reach into: a corpus with longer logs raises this number and
+ * changes nothing else.
+ */
+export const TAIL_ROWS = 100
 
-/** How many orders the tail shows below the p99. */
-export const TAIL_BELOW = 6
-
-/** The slowest orders, ranked, from the slowest down to a few below the p99. The p99 is always among them, whatever the length of the log. */
+/** The slowest orders, ranked from the slowest: `TAIL_ROWS` of them, or all of them when the log is shorter. The p99 is among them for every log the corpus deals. */
 export function tailOf(rows: readonly BenchRow[], desk: Desk, reading: Reading = readingOf(rows, desk)): TailLine[] {
   const cut = reading.cut
   const lines = rows.slice(cut).map((row, i) => ({ row, latencyUs: reading.latencies[i] }))
   lines.sort((a, b) => b.latencyUs - a.latencyUs || a.row.id - b.row.id)
-  const shown = Math.min(lines.length, Math.max(TAIL_MIN, reading.fromTop + TAIL_BELOW))
-  return lines.slice(0, shown).map((line, i) => ({
+  return lines.slice(0, TAIL_ROWS).map((line, i) => ({
     rank: i + 1,
     id: line.row.id,
     latencyUs: line.latencyUs,

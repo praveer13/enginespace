@@ -5,8 +5,10 @@ import { CameraRig } from './CameraRig'
 import { CAMERAS, cellOf, clipX, kitchenLayout, serviceAt, stationsLit, focusOf, type KitchenLayout, type ServiceState, type Subject } from './kitchen-specimen'
 import type { LabelSpec } from './labels'
 import { Fluorescent } from './Lights'
-import { CHANNEL, CLIP_DROP, Kitchen, LampLights, litMask, Plates, PrinterFeed, RailClips, ServiceBell, StaticSet, Steam, tearPose, Tickets, type PlatePlace, type TicketPose } from './props'
+import { CHANNEL, CLIP_DROP, Kitchen, litMask, Plates, PrinterFeed, RailClips, ServiceBell, StaticSet, Steam, tearPose, Tickets, type PlatePlace, type TicketPose } from './props'
 import { SceneCanvas } from './SceneCanvas'
+import { SpotLamps } from './spot-lamps'
+import { lampPools } from './spot-pools'
 import { SheetInstances } from './SheetInstances'
 import type { Vec3 } from './props/specs'
 
@@ -20,7 +22,8 @@ import type { Vec3 } from './props/specs'
  *
  * Draw calls, assembled, at T1: the static set's metal, glaze, tile, floor and glow (5), the contact shadows (1), the tickets (1), the
  * clips (1), the printer's paper (1), the plates (1) and the bell's dome and plunger (2): 12. T2 adds the lamps' cones (1), the steam
- * (1), and each shadow-casting lamp's pass over what casts. The hotel pans' tape, on the pans alone, is one more.
+ * (1), and each shadow-casting lamp's pass over what casts. The hotel pans' tape, on the pans alone, is one more. Its lamps are scene kit
+ * v1's spot lamps (spot-lamps.tsx), which cast those shadows; the games' lamps are the kit's cone of haze and pool, with no spot light.
  */
 
 export interface KitchenScene3DProps {
@@ -95,6 +98,7 @@ function platePlaces(layout: KitchenLayout, service: ServiceState): PlatePlace[]
 
 export default function KitchenScene3D({ subject, step }: KitchenScene3DProps) {
   const tokens = useSceneTokens()
+  const pools = useMemo(() => lampPools(), [])
   const layout = useMemo(() => kitchenLayout(subject), [subject])
   const service = useMemo(() => serviceAt(step), [step])
   const camera = CAMERAS[subject]
@@ -135,9 +139,9 @@ export default function KitchenScene3D({ subject, step }: KitchenScene3DProps) {
     <SceneCanvas labels={labels} fog={{ near: HAZE.near + focus * 0.15, far: HAZE.far + focus * 0.5 }} exposure={1} environmentIntensity={0.75} shadows className="es-kitchen-scene">
       <CameraRig presets={presets} preset={subject} parallax={0.05} />
       <Fluorescent power={0.85} />
-      <Kitchen lit={mask}>
+      <Kitchen lit={mask} metal={pools.patch}>
         <StaticSet items={layout.items} name={`set-${subject}`} />
-        <LampLights lamps={lights} power={subject === 'pass' ? 0.3 : 1} />
+        <SpotLamps lamps={lights} pools={pools} power={subject === 'pass' ? 0.3 : 1} />
         {layout.rail ? <RailClips at={layout.rail.at} clips={clips} /> : null}
         <Tickets tickets={tickets} />
         {layout.printer ? <PrinterFeed at={layout.printer.at} yaw={layout.printer.yaw} feed={subject === 'printer' ? step : service.lastPrinted} cell={cellOf(printing)} /> : null}

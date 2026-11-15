@@ -37,8 +37,8 @@ function FloorScene(props: Scene3DProps) {
  * The levels are the practice run of GAMES.md §5: one engine's one idea each, in the order of its difficulty. A level opens in practice on
  * its pinned seed, and a finished level offers the next. The last, `map`, can also be graded: a graded run draws a seed when it starts,
  * in band (GAMES.md §2.1), which is a fresh scenario of any of the five engines, with no undo and one run (W1-T19; ASSESSMENT §4.3).
- * Whether a page records the run is its own business: a lesson passes `onFinish` for a graded run (D-038), and the game's page passes
- * nothing.
+ * Whether a page records the run is its own business: the game's page and a lesson's block each pass the recorder as `onFinish`
+ * (src/games/kit/record.ts, W1b-T01). Inside a lesson the block names the level, so the rail of levels and the next level are left out.
  *
  * The 3D view (W1-T18) is the house in cutaway, in a Stage that paints the 2D house first and keeps it as the fallback (A§6.7). It opens on
  * its own on a device whose tier draws 3D, and leads the page with the controls beside it; `V` or the switch swaps the two views, and the
@@ -90,80 +90,86 @@ export default function Game({ level, mode, placement = 'page', rev, onFinish }:
     setAsked({ level, mode })
     setAttempt(startOf(known(level), mode))
   }
-  // Moving to another level or another attempt replaces the page's content, and the button that was pressed goes with it: focus goes back to the game.
+  // Moving to another level or another attempt replaces the page's content, and the button that was pressed goes with it: focus goes back to
+  // the game. This game's own, found from its box, since a lesson can hold two of it.
+  const host = useRef<HTMLDivElement>(null)
   const moved = useRef(false)
   useEffect(() => {
     if (!moved.current) return
     moved.current = false
-    document.querySelector<HTMLElement>(`[data-game="${ENGINE_FLOOR.id}"]`)?.focus({ preventScroll: true })
+    host.current?.querySelector<HTMLElement>('[data-game]')?.focus({ preventScroll: true })
   }, [attempt])
   const go = (next: Attempt) => {
     moved.current = true
     setAttempt(next)
   }
 
+  const embedded = placement === 'embed'
   const entry = levelOf(ENGINE_FLOOR, attempt.level) ?? ENGINE_FLOOR.levels[0]
   const at = ENGINE_FLOOR.levels.findIndex((candidate) => candidate.id === entry.id)
-  const after = ENGINE_FLOOR.levels[at + 1] ?? null
+  const after = embedded ? null : (ENGINE_FLOOR.levels[at + 1] ?? null)
 
   return (
-    <GameShell
-      game={ENGINE_FLOOR}
-      session={floorSession}
-      level={entry.id}
-      levelTitle={entry.title}
-      seed={attempt.seed}
-      mode={attempt.mode}
-      rev={rev}
-      headingLevel={placement === 'embed' ? 3 : 2}
-      onFinish={onFinish}
-      allow3d={draws3d}
-      unavailable3d={unavailable3d}
-      view={view}
-      onViewChange={setChosenView}
-      stage="sticky"
-      onCommand={(command, r) => {
-        if (command === 'run' || command === 'step') return run(r)
-        if (command === 'unlay') {
-          if (!r.view.canUnlay) return false
-          r.dispatch({ t: 'unlay' })
-          return true
-        }
-        if (command === 'camera') {
-          if (view !== '3d') return false
-          const stops = stopsOf(floorsOf(r.view))
-          const next = nextStop(stops, stop)
-          setStop(next)
-          r.announce(`Camera: ${stops.find((candidate) => candidate.id === next)?.label ?? 'Cutaway'}.`)
-          return true
-        }
-        return false
-      }}
-      view2d={(r) => <View2D run={r} />}
-      scene3d={(r) => <FloorStage run={r} stop={stop} onStop={setStop} />}
-      controls={(r) => (
-        <>
-          {view === '3d' ? <Stops run={r} stop={stop} onStop={setStop} /> : null}
-          <Controls
+    <div ref={host} className="contents">
+      <GameShell
+        game={ENGINE_FLOOR}
+        session={floorSession}
+        level={entry.id}
+        levelTitle={entry.title}
+        seed={attempt.seed}
+        mode={attempt.mode}
+        rev={rev}
+        headingLevel={embedded ? 3 : 2}
+        embedded={embedded}
+        onFinish={onFinish}
+        allow3d={draws3d}
+        unavailable3d={unavailable3d}
+        view={view}
+        onViewChange={setChosenView}
+        stage="sticky"
+        onCommand={(command, r) => {
+          if (command === 'run' || command === 'step') return run(r)
+          if (command === 'unlay') {
+            if (!r.view.canUnlay) return false
+            r.dispatch({ t: 'unlay' })
+            return true
+          }
+          if (command === 'camera') {
+            if (view !== '3d') return false
+            const stops = stopsOf(floorsOf(r.view))
+            const next = nextStop(stops, stop)
+            setStop(next)
+            r.announce(`Camera: ${stops.find((candidate) => candidate.id === next)?.label ?? 'Cutaway'}.`)
+            return true
+          }
+          return false
+        }}
+        view2d={(r) => <View2D run={r} />}
+        scene3d={(r) => <FloorStage run={r} stop={stop} onStop={setStop} />}
+        controls={(r) => (
+          <>
+            {view === '3d' ? <Stops run={r} stop={stop} onStop={setStop} /> : null}
+            <Controls
+              run={r}
+              top={<GradedBar entry={entry} mode={attempt.mode} done={r.done} onGraded={() => go(graded(entry.id))} onPractice={() => go(practice(entry.id))} />}
+              rail={embedded ? undefined : <LevelList levels={ENGINE_FLOOR.levels} current={entry.id} onLevel={(id) => go(practice(id))} />}
+            />
+          </>
+        )}
+        mirror={(r) => <Mirror run={r} />}
+        debrief={(r, outcome) => (
+          <Debrief
             run={r}
-            top={<GradedBar entry={entry} mode={attempt.mode} done={r.done} onGraded={() => go(graded(entry.id))} onPractice={() => go(practice(entry.id))} />}
-            rail={<LevelList levels={ENGINE_FLOOR.levels} current={entry.id} onLevel={(id) => go(practice(id))} />}
+            outcome={outcome}
+            next={after === null ? null : { id: after.id, title: after.title }}
+            onNext={() => after !== null && go(practice(after.id))}
+            onGraded={entry.graded ? () => go(graded(entry.id)) : null}
+            onPractice={() => go(practice(entry.id))}
           />
-        </>
-      )}
-      mirror={(r) => <Mirror run={r} />}
-      debrief={(r, outcome) => (
-        <Debrief
-          run={r}
-          outcome={outcome}
-          next={after === null ? null : { id: after.id, title: after.title }}
-          onNext={() => after !== null && go(practice(after.id))}
-          onGraded={entry.graded ? () => go(graded(entry.id)) : null}
-          onPractice={() => go(practice(entry.id))}
-        />
-      )}
-      card={<WorldCard />}
-    />
+        )}
+        card={<WorldCard />}
+      />
+    </div>
   )
 }
 

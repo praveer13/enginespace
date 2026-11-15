@@ -61,6 +61,7 @@ export function FullDebrief({ run, outcome, next, onNext, onGraded = null, onPra
         meta={view.title}
         titleAs="h3"
         title={grade.ok ? 'Well served.' : 'Serve it again.'}
+        className="es-full-debrief"
         stub={next === null ? <Stub to="/m/tr2">Back to TR2</Stub> : <Stub onClick={onNext}>{`Next: ${next.title}`}</Stub>}
       >
         <p className="es-type-body">{debrief.sentence}</p>
@@ -112,29 +113,34 @@ export function FullDebrief({ run, outcome, next, onNext, onGraded = null, onPra
             </table>
           </div>
         ) : null}
-        <div role="region" aria-label="Each stage against the house" tabIndex={0} className="overflow-x-auto">
-          <table className="w-full border-collapse text-left">
-            <caption className="pb-2 text-left font-bold">Each stage: your best night against the house's, and your call against the model's</caption>
-            <thead>
-              <tr>
-                <th scope="col" className="border-b border-edge py-2 pr-4 font-bold">
+        {/*
+         * On narrow paper (under 36rem, the debrief's ticket being a size container) each stage prints as a block of its own, as the mirror's
+         * rows do (components.css, "the mirror's table"): the stage, then each figure after its column's name, so the call against the model's
+         * reads without a sideways scroll. The table keeps its roles, so it reads as a table in either layout.
+         */}
+        <div role="region" aria-label="Each stage against the house" tabIndex={0} className="es-mirror__region">
+          <table role="table" className="es-mirror__table w-full border-collapse text-left">
+            <caption className="es-mirror__caption pb-2 text-left font-bold">Each stage: your best night against the house's, and your call against the model's</caption>
+            <thead role="rowgroup">
+              <tr role="row">
+                <th scope="col" role="columnheader" className="border-b border-edge py-2 pr-4 font-bold">
                   Stage
                 </th>
-                <th scope="col" className="border-b border-edge py-2 pr-4 text-right font-bold">
+                <th scope="col" role="columnheader" className="border-b border-edge py-2 pr-4 text-right font-bold">
                   Yours
                   <span className="block text-sm font-normal text-text-2">µs, best night</span>
                 </th>
-                <th scope="col" className="border-b border-edge py-2 pr-4 text-right font-bold">
+                <th scope="col" role="columnheader" className="border-b border-edge py-2 pr-4 text-right font-bold">
                   The house
                   <span className="block text-sm font-normal text-text-2">µs</span>
                 </th>
-                <th scope="col" className="border-b border-edge py-2 text-right font-bold">
+                <th scope="col" role="columnheader" className="border-b border-edge py-2 text-right font-bold">
                   Your call
                   <span className="block text-sm font-normal text-text-2">and the model's</span>
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody role="rowgroup">
               {level.stages.map((world, i) => {
                 const stage = view.stages[i]
                 const best = stage.served.length === 0 ? null : Math.min(...stage.served.map((night) => night.metric))
@@ -142,16 +148,18 @@ export function FullDebrief({ run, outcome, next, onNext, onGraded = null, onPra
                 const said = (value: number) => (p.kind === 'choice' ? p.options[value] : `${formatReadout(value)} ${p.unit}`)
                 const tag = tagOf({ synthetic: world.card === 'small' }, 'expo')
                 return (
-                  <tr key={world.id} className="border-b border-paper-rule" data-stage-row={world.id} data-passed={stage.passed || undefined}>
-                    <th scope="row" className="py-2 pr-4 text-left font-normal">
+                  <tr key={world.id} role="row" className="border-b border-paper-rule" data-stage-row={world.id} data-passed={stage.passed || undefined}>
+                    <th scope="row" role="rowheader" className="py-2 pr-4 text-left font-normal">
                       {world.title}
                       <span className="block text-sm text-text-2">{stage.passed ? 'at the bar' : 'missed the bar'}</span>
                     </th>
-                    <td className="py-2 pr-4 text-right">{best === null ? 'none served' : <Readout value={best} unit="µs" tag={tag} size="sm" tone={stage.passed ? 'ink' : 'ink-2'} />}</td>
-                    <td className="py-2 pr-4 text-right">
+                    <td role="cell" data-label="Yours, best night" className="py-2 pr-4 text-right">
+                      {best === null ? 'none served' : <Readout value={best} unit="µs" tag={tag} size="sm" tone={stage.passed ? 'ink' : 'ink-2'} />}
+                    </td>
+                    <td role="cell" data-label="The house" className="py-2 pr-4 text-right">
                       <Readout value={world.houseMetric} unit="µs" tag={tag} size="sm" />
                     </td>
-                    <td className="py-2 text-right">
+                    <td role="cell" data-label="Your call, and the model's" className="py-2 text-right">
                       {stage.predicted === null ? 'not called' : `${said(stage.predicted)}; the model: ${said(world.answer)}${predictionClose(world, stage.predicted) ? ', on the money' : ''}`}
                     </td>
                   </tr>

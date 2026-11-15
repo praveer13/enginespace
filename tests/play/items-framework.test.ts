@@ -261,7 +261,12 @@ describe('grading', () => {
   })
 
   test('the options of a choice are in the order the seed shuffled them, which differs between seeds, and the ids are what is graded', () => {
-    const orders = new Set(fixedSeeds(60).map((seed) => (toySum.make(seed, 2, 'larger').answer.kind === 'choice' ? (toySum.make(seed, 2, 'larger').answer as { options: { id: string }[] }).options.map((o) => o.id).join('') : '')))
+    const orders = new Set(
+      fixedSeeds(60).map((seed) => {
+        const { answer } = toySum.make(seed, 2, 'larger')
+        return answer.kind === 'choice' ? answer.options.map((o) => o.id).join('') : ''
+      }),
+    )
     expect(orders.size).toBeGreaterThan(1)
   })
 })

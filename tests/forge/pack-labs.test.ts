@@ -291,10 +291,18 @@ describe('what a learner reads', () => {
   const readme = text(member(archive, 'README.md'))
   const agents = text(member(archive, 'AGENTS.md'))
   const ids = toy.checks.map((check) => check.id)
+  /** What is the repository's own business: a task id (W1-T14, and W1b's, W1b-T08), a document of the repository, a gate, a record and a question of the owner's. */
+  const REPOSITORY_BUSINESS = /W\d+b?-T\d\d|ARCHITECTURE|DECISIONS|verify:|\bD-0\d\d\b|\bO-\d+\b/
 
   test('no placeholder is left in anything, and nothing is the repository\'s own business', () => {
     for (const m of archive.members) expect([m.path, text(m.data).match(/\{\{[A-Z_]+\}\}/)]).toEqual([m.path, null])
-    for (const file of ['README.md', 'AGENTS.md']) expect(text(member(archive, file))).not.toMatch(/W\d-T\d\d|ARCHITECTURE|DECISIONS|verify:|\bD-0\d\d\b|\bO-\d+\b/)
+    for (const file of ['README.md', 'AGENTS.md']) expect(text(member(archive, file))).not.toMatch(REPOSITORY_BUSINESS)
+  })
+
+  test('the check would find a task id of W1b, which the pattern of before (W\\d-T\\d\\d) did not read', () => {
+    expect('built by W1b-T08').toMatch(REPOSITORY_BUSINESS)
+    expect('built by W1-T11').toMatch(REPOSITORY_BUSINESS)
+    expect('built by W1b-T08').not.toMatch(/W\d-T\d\d/)
   })
 
   test('AGENTS.md lists exactly the site\'s checks, in grading order, with the count, the two files and the gate', () => {

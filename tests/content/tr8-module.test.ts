@@ -18,10 +18,24 @@ import { describe, expect, test } from 'bun:test'
 import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
+import { createElement as h } from 'react'
+import type { ReactElement } from 'react'
+import { renderToString } from 'react-dom/server'
+import { StaticRouter } from 'react-router'
+import { decodeEvent, stampEvent } from '@es/ledger'
+import type { WriterContext } from '@es/ledger'
 import { compiledLessonSchema, compiledModuleSchema } from '@es/schema'
 import type { CompiledBlock, ProseFlow, ProseInline } from '@es/schema'
 import { lockFileSchema } from '@es/schema/lock'
 import { BROKEN_BENCH } from '../../packages/play/broken-bench/entry'
+import Attempt from '@/items/Attempt'
+import { ItemBlock } from '@/items/ItemBlock'
+import { answerItem, fixedSeeds, isLevel, offeredAt, plain, regradeItem, resultOf, startAttempt } from '../../packages/play/items'
+import { faceById } from '../../packages/play/items/catalog'
+import { itemDraft } from '../../src/items/event'
+import { drawForKc, familiesAt, familyFor, levelFor } from '../../src/items/today/draw'
+import { appKcsOfRef } from '../../src/items/today/kcs'
+import { TRANSFER_STABILITY_DAYS } from '../../src/items/today/limits'
 import { familyById } from '../../packages/play/items/registry'
 import { ADHERENCE_HARD_LIMIT_US, ADHERENCE_TOLERANCE_US } from '../../packages/sim/bench'
 import { BENCH_WARMUP_ROWS } from '../../packages/sim/bench/broken'
@@ -244,20 +258,15 @@ describe('what the lessons teach', () => {
     }
   })
 
-  test('the KCs of a lesson\'s games are among the lesson\'s, and the game earns the KCs the exit check promises', () => {
+  test('a KC of a lesson is earned by the game of the module or assessed by a built item family of the lesson', () => {
     const earned = new Set(BROKEN_BENCH.kcs)
-    // A KC the court's game cannot earn waits for an item family (the KC graph says which task builds it).
-    const WAITING_FOR_ITEMS = new Set(['tr8.goodput-denominator', 'tr8.littles-law', 'tr8.tool-defaults'])
     for (const { lesson } of lessons) {
-      for (const kc of lesson.kcs) {
-        const hasItems = lesson.blocks.some((block) => block.type === 'item')
-        expect([lesson.id, kc, earned.has(kc) || (WAITING_FOR_ITEMS.has(kc) && hasItems)]).toEqual([lesson.id, kc, true])
-      }
+      const assessed = new Set(lesson.blocks.flatMap((block) => (block.type === 'item' ? (familyById(block.family)?.kcs ?? []) : [])))
+      for (const kc of lesson.kcs) expect([lesson.id, kc, earned.has(kc) || assessed.has(kc)]).toEqual([lesson.id, kc, true])
     }
   })
 
-  test('an item block names a TR8 family; a built family assesses only KCs its lesson teaches; the three still to build are named', () => {
-    const TO_BUILD = ['tr8.goodput-denominator', 'tr8.littles-law', 'tr8.which-flag']
+  test('an item block names a built TR8 family, and a family assesses only KCs its lesson teaches', () => {
     const named = new Set<string>()
     for (const { lesson } of lessons) {
       for (const block of lesson.blocks) {
@@ -266,17 +275,159 @@ describe('what the lessons teach', () => {
         expect([block.level, block.count]).toEqual([2, block.count])
         named.add(block.family)
         const gen = familyById(block.family)
-        if (gen === undefined) expect(TO_BUILD).toContain(block.family)
-        else for (const kc of gen.kcs) expect([lesson.id, block.family, lesson.kcs.includes(kc)]).toEqual([lesson.id, block.family, true])
+        expect([lesson.id, block.family, gen !== undefined]).toEqual([lesson.id, block.family, true])
+        for (const kc of gen?.kcs ?? []) expect([lesson.id, block.family, lesson.kcs.includes(kc)]).toEqual([lesson.id, block.family, true])
       }
     }
-    expect([...named].sort()).toEqual(TO_BUILD)
+    expect([...named].sort()).toEqual(['tr8.goodput-denominator', 'tr8.littles-law', 'tr8.which-flag'])
+  })
+
+  test('every item block draws its items: an attempt of the block\'s count at its level, from variants the family offers there', () => {
+    let drawn = 0
+    for (const { lesson } of lessons) {
+      for (const block of lesson.blocks) {
+        if (block.type !== 'item') continue
+        const gen = familyById(block.family)
+        if (gen === undefined || !isLevel(block.level)) throw new Error(`${lesson.id}: ${block.family} at level ${block.level} cannot be drawn`)
+        const attempt = startAttempt(gen, block.level, fixedSeeds(block.count, 0x7a8))
+        expect([lesson.id, block.family, attempt.served.length]).toEqual([lesson.id, block.family, block.count])
+        for (const { item } of attempt.served) {
+          expect(offeredAt(gen, block.level).map((variant) => variant.id)).toContain(item.variant)
+          expect(item.kcs.every((kc) => lesson.kcs.includes(kc))).toBe(true)
+        }
+        drawn += block.count
+      }
+    }
+    // Lesson 3's ticket is three items of one family, and lesson 4's is two of one and one of another.
+    expect(drawn).toBe(6)
   })
 
   test('an exit ticket is three items on fresh seeds (ASSESSMENT §4.2)', () => {
     for (const { lesson } of lessons) {
       const items = exitCheck(lesson.blocks)?.blocks.flatMap((block) => (block.type === 'item' ? [block.count] : [])) ?? []
       if (items.length > 0) expect([lesson.id, items.reduce((a, b) => a + b, 0)]).toEqual([lesson.id, 3])
+    }
+  })
+})
+
+describe('the item blocks, as the lessons print them (W1b-T06)', () => {
+  const render = (element: ReactElement): string => renderToString(h(StaticRouter, { location: '/m/tr8' }, element)).replaceAll('<!-- -->', '')
+  const escaped = (value: string): string => value.replace(/'/g, '&#x27;')
+  const blocks = lessons.flatMap(({ lesson }) => lesson.blocks.flatMap((block) => (block.type === 'item' ? [{ lesson, block }] : [])))
+
+  test('there are three, and they are lesson 3\'s ticket and the two of lesson 4\'s', () => {
+    expect(blocks.map(({ lesson, block }) => [lesson.id, block.family, block.level, block.count])).toEqual([
+      ['tr8.l3', 'tr8.which-flag', 2, 3],
+      ['tr8.l4', 'tr8.goodput-denominator', 2, 2],
+      ['tr8.l4', 'tr8.littles-law', 2, 1],
+    ])
+  })
+
+  for (const { lesson, block } of blocks) {
+    const gen = familyById(block.family)
+    const face = faceById(block.family)
+    if (gen === undefined || face === undefined || !isLevel(block.level)) throw new Error(`${block.family} cannot be drawn`)
+    const level = block.level
+
+    test(`${lesson.id}, ${block.family}: the ticket waits with the family's title and KCs, and a stub that can be pulled, and not "Not built yet"`, () => {
+      const html = render(h(ItemBlock, { block, scope: lesson.id }))
+      expect(html).toContain('data-phase="idle"')
+      expect(html).not.toContain('Not built yet')
+      expect(html).toContain(`${block.count} ${block.count === 1 ? 'item' : 'items'} on fresh numbers, drawn when you start.`)
+      expect(html).toContain(escaped(face.title))
+      for (const kc of new Set(face.variants.flatMap((variant) => variant.kcs))) expect(html).toContain(kc)
+      expect(html).toMatch(/<button type="button" class="es-stub__pull"(?![^>]*disabled)[^>]*>/)
+      expect(html).toContain('Start items')
+    })
+
+    test(`${lesson.id}, ${block.family}: the first ticket of an attempt holds a seed and the question, and no key and no solution`, () => {
+      for (const entropy of [[3, 4, 5], [100, 200, 300], [0x9e3779b9, 7, 0xffffffff]]) {
+        const page = render(h(Attempt, { gen, level, entropy: entropy.slice(0, block.count), scope: lesson.id, onRestart: () => undefined }))
+        const first = startAttempt(gen, level, entropy.slice(0, block.count)).served[0].item
+        expect(page).toContain('data-phase="asking"')
+        expect(page).toContain(`data-seed="${first.seed}"`)
+        expect(page).toContain(`Item 1 of ${block.count}`)
+        // The stem is drawn part by part: words as words, and code in a code element.
+        for (const part of first.stem) {
+          if (part.t === 'text') expect(page).toContain(escaped(part.text))
+          if (part.t === 'code') expect(page).toContain(`<code>${escaped(part.code)}</code>`)
+        }
+        for (const given of first.givens) expect(page).toContain(escaped(given.label))
+        for (const step of gen.solution(first)) {
+          const sentence = plain(step.text.filter((part) => part.t === 'text'))
+          for (const piece of sentence.split(/(?<=\.)\s/).filter((text) => text.length > 30)) expect(page).not.toContain(escaped(piece))
+        }
+        if (first.answer.kind === 'choice') for (const option of first.answer.options) expect(page).not.toContain(escaped(plain(option.why)))
+        expect(page).not.toContain('data-ok')
+        expect(page).not.toContain('es-item__reveal')
+        expect(page).not.toContain('"truth"')
+      }
+    })
+
+    test(`${lesson.id}, ${block.family}: an answer is an item event that the ledger's strict codec takes, with no key, and that grades again to what it recorded`, () => {
+      const context: WriterContext = { clock: { nowIso: () => '2026-11-09T09:30:00.000Z', tzOffsetMinutes: () => 0 }, newId: () => 'ev-1', dev: 'dev-a1' }
+      for (const entropy of fixedSeeds(24, 0x7b10 + block.count)) {
+        const served = startAttempt(gen, level, [entropy]).served[0]
+        // Once right and once wrong: the key as the item holds it, and an answer that is not the key.
+        for (const right of [true, false]) {
+          const answer = served.item.answer
+          const response =
+            answer.kind === 'choice'
+              ? { kind: 'choice' as const, pick: right ? answer.correct : (answer.options.find((option) => option.id !== answer.correct)?.id ?? '') }
+              : { kind: 'numeric' as const, value: right ? answer.truth : answer.truth + 10_000 }
+          const answered = answerItem(gen, startAttempt(gen, level, [entropy]), 0, response)
+          const event = stampEvent(context, itemDraft(resultOf(answered, 0)))
+          if (event.kind !== 'item') throw new Error('an item event')
+          expect(event.ref).toBe(`item:gen/${gen.id}/${served.item.variant}`)
+          // It grades again from its seed and its answer alone, to the verdict it recorded, on the family as it is now.
+          expect(regradeItem({ ref: event.ref, seed: event.seed, rev: event.rev, answer: event.data.answer })).toMatchObject({ valid: true, ok: right, stale: false })
+          expect(decodeEvent(JSON.parse(JSON.stringify(event))).ok).toBe(true)
+          expect(event).toMatchObject({ ok: right, provenance: 'unseen', seed: served.seed, rev: served.item.rev })
+          const text = JSON.stringify(event)
+          for (const forbidden of ['truth', 'solution', 'why']) expect(text).not.toContain(`"${forbidden}"`)
+        }
+      }
+    })
+  }
+})
+
+describe('what Today serves of TR8 (W1b-T06)', () => {
+  // The four KCs that a TR8 family assesses: the lessons' exit tickets name three families, and `tr8.which-flag` assesses the cap's KC as well.
+  const SERVED = ['tr8.goodput-denominator', 'tr8.littles-law', 'tr8.tool-defaults', 'tr8.client-queue'] as const
+
+  test.each(SERVED)('%s is served at level 2 from the catalog by a TR8 family, and the family draws it on a fresh seed', (kc) => {
+    const able = familiesAt(kc, 2)
+    expect(able.length).toBeGreaterThan(0)
+    expect(able.every((face) => face.id.startsWith('tr8.'))).toBe(true)
+    for (const face of able) {
+      const gen = familyById(face.id)
+      if (gen === undefined) throw new Error(`${face.id} has a face and no family`)
+      for (const entropy of fixedSeeds(20, 0x70da)) {
+        const drawn = drawForKc(gen, kc, 2, entropy)
+        expect(drawn.item.kcs).toContain(kc)
+        expect(drawn.item.level).toBe(2)
+      }
+    }
+  })
+
+  test('an item event of a TR8 family is evidence for the KCs of its variant, which is how an answer earns a card and moves the map', () => {
+    expect(appKcsOfRef('item:gen/tr8.which-flag/send-rate')).toEqual(['tr8.client-queue', 'tr8.tool-defaults'])
+    expect(appKcsOfRef('item:gen/tr8.which-flag/at-fault-vllm')).toEqual(['tr8.tool-defaults'])
+    expect(appKcsOfRef('item:gen/tr8.which-flag/default-does')).toEqual(['tr8.tool-defaults'])
+    for (const variant of ['tool-prints', 'convert', 'which-clock']) expect(appKcsOfRef(`item:gen/tr8.goodput-denominator/${variant}`)).toEqual(['tr8.goodput-denominator'])
+    for (const variant of ['in-flight', 'solve-for', 'check']) expect(appKcsOfRef(`item:gen/tr8.littles-law/${variant}`)).toEqual(['tr8.littles-law'])
+    expect(appKcsOfRef('item:gen/tr8.which-flag/no-such-variant')).toEqual([])
+  })
+
+  test('serves a card of each of the four, at the level its memory asks for', () => {
+    for (const kc of SERVED) {
+      // A new memory is served on its own (level 2); a sturdy one is carried to a changed surface (level 3) where a family offers one.
+      for (const stability of [1, TRANSFER_STABILITY_DAYS + 1]) {
+        const card = { kc, memory: { stability, difficulty: 5 }, reps: 0 }
+        const level = levelFor(card)
+        expect(level === null ? null : isLevel(level)).toBe(true)
+        if (level !== null) expect(familyFor(card, level)?.id.startsWith('tr8.')).toBe(true)
+      }
     }
   })
 })

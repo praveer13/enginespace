@@ -24,8 +24,8 @@ import type { VerifierRun } from './types'
  */
 
 /**
- * The key. Under the 3D scene (`scene`) it also names the objects the drawing does not have: the chef's dispenser, which holds her stack
- * and the ring of what went out, the commis's stack on the left, and the plates that wait upside down, unplated.
+ * The key. Under the 3D scene (`scene`) it also names the objects the drawing does not have: the chef's dispenser, which holds her stack,
+ * the commis's stack on her left, what went out stacked on her right, and the plates that wait upside down, unplated.
  */
 function Key({ run, scaffold, meter, scene = false }: { run: VerifierRun; scaffold: boolean; meter: boolean; scene?: boolean }) {
   const { view } = run
@@ -103,7 +103,7 @@ function Key({ run, scaffold, meter, scene = false }: { run: VerifierRun; scaffo
       {hasOut ? (
         <li>
           <TapeLabel size="sm" slot="white" tilt="none">
-            {scene ? 'what went out · the ring' : 'what went out'}
+            {scene ? 'what went out · on the right' : 'what went out'}
           </TapeLabel>
         </li>
       ) : null}

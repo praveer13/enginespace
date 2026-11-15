@@ -34,7 +34,7 @@ describe('the catalog of faces', () => {
   })
 
   test('answers an id no family has with undefined, and looks in the faces it is given', () => {
-    expect(faceById('tr2.dispatch-key')).toBeUndefined()
+    expect(faceById('tr2.no-such-family')).toBeUndefined()
     expect(faceById('tr2.bubble-width', [bubbleWidth])).toBe(bubbleWidth)
     expect(faceById('tr2.graph-hit', [bubbleWidth])).toBeUndefined()
   })
@@ -56,10 +56,10 @@ describe("the families' code, loaded when an item is drawn", () => {
   test('answers an id with no loader with a rejection, never a throw, and does not remember it', async () => {
     let first: Promise<Gen> | undefined
     expect(() => {
-      first = loadFamily('tr2.dispatch-key')
+      first = loadFamily('tr2.no-such-family')
     }).not.toThrow()
-    await expect(first).rejects.toThrow('no item family "tr2.dispatch-key" has a loader')
-    const second = loadFamily('tr2.dispatch-key')
+    await expect(first).rejects.toThrow('no item family "tr2.no-such-family" has a loader')
+    const second = loadFamily('tr2.no-such-family')
     expect(second).not.toBe(first)
     await second.catch(() => undefined)
   })

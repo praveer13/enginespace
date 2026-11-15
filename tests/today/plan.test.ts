@@ -25,14 +25,14 @@ describe('the four states of the page', () => {
 
   test('is unserved when what is earned has no ticket built: a card exists, and no family can serve it', () => {
     const ledger = new TestLedger()
-    ledger.review('2026-10-30', 'tr1.five-mechanisms', 3)
+    ledger.review('2026-10-30', 'tr1.small-engine-anatomy', 3)
     expect(planFor(deck(ledger), TODAY)).toEqual({ kind: 'unserved' })
   })
 
   test('is a list when something that can be served is due, with the session it would start', () => {
     const ledger = new TestLedger()
     ledger.review('2026-11-01', BUBBLE, 3)
-    ledger.review('2026-11-01', 'tr1.five-mechanisms', 3)
+    ledger.review('2026-11-01', 'tr1.small-engine-anatomy', 3)
     const plan = planFor(deck(ledger), TODAY)
     expect(plan.kind).toBe('list')
     if (plan.kind !== 'list') return
@@ -56,11 +56,11 @@ describe('the four states of the page', () => {
 
   test('the next prep leaves out the ideas that cannot be served', () => {
     const ledger = new TestLedger()
-    ledger.review(TODAY, 'tr1.five-mechanisms', 3)
+    ledger.review(TODAY, 'tr1.small-engine-anatomy', 3)
     ledger.review(TODAY, OVERLAP, 4)
     // The unservable idea falls due in two days; the servable one in eight.
     expect(nextServableDay(deck(ledger), TODAY)).toBe(addDays(TODAY, 8))
-    expect(servable({ kc: 'tr1.five-mechanisms', memory: firstMemory(3) })).toBe(false)
+    expect(servable({ kc: 'tr1.small-engine-anatomy', memory: firstMemory(3) })).toBe(false)
     expect(servable({ kc: OVERLAP, memory: firstMemory(3) })).toBe(true)
     expect(nextServableDay(deck(new TestLedger()), TODAY)).toBeNull()
   })

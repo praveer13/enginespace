@@ -9,16 +9,22 @@
  *   - The import fences of ARCHITECTURE §2.3 and the three fence (ARCHITECTURE §2.3, D-023). The fence matrix agrees with
  *     scripts/verify-boundaries.ts, which also resolves the relative paths that a rule on specifier text cannot.
  */
-import { describe, expect, test } from 'bun:test'
+import { afterAll, describe, expect, test } from 'bun:test'
 import { readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { ESLint } from 'eslint'
 import { RULES } from '../../scripts/verify-boundaries'
 import { BANNED_MATH } from '../../scripts/verify-determinism'
 import { ALLOWED, BANNED } from './cases'
+import { holdStackHook } from './stack-hook'
 
 const root = path.resolve(import.meta.dirname, '../..')
 const eslint = new ESLint({ cwd: root })
+
+// Linting a .tsx file installs Babel's stack trace rewriter for the rest of the process. The file after this one in a shard gets
+// back the hook it would have had (./stack-hook.ts).
+const hold = holdStackHook()
+afterAll(() => hold.release())
 
 /** The rule ids of the errors ESLint reports for `code` linted as if it lived at `as`, a path relative to the repo root. */
 async function errors(as: string, code: string): Promise<string[]> {

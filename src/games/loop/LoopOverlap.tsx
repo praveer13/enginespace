@@ -12,7 +12,6 @@ export function LoopOverlap({ controls }: { controls: LoopControls }) {
       checked={view.overlap}
       disabled={view.done}
       onCheckedChange={(on) => run.dispatch({ t: 'lever', name: 'async', value: on })}
-      id="loop-overlap"
     />
   )
 }

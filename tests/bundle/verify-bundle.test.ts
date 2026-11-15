@@ -401,6 +401,46 @@ describe('what loads on demand (D-059)', () => {
   })
 })
 
+describe("a lesson's game block, on demand (W1b-T01)", () => {
+  const LESSON_PAGE = 'src/pages/Lesson.tsx'
+  const EMBED = 'src/content/render/GameEmbed.tsx'
+  const withLesson = run({
+    routes: [...ROUTES, { pattern: '/m/:module/:lesson', page: 'Lesson' }],
+    specs: {
+      'index.html': { ...APP['index.html'], dyn: [...(APP['index.html'].dyn ?? []), LESSON_PAGE] },
+      [LESSON_PAGE]: { bytes: 1_500, name: 'Lesson', dynamic: true, src: LESSON_PAGE, imports: ['_react-vendor.js', 'index.html', '_blocks.js'] },
+      '_blocks.js': { bytes: 5_000, name: 'Blocks', imports: ['_react-vendor.js'], dyn: [EMBED] },
+      [EMBED]: { bytes: 2_000, name: 'GameEmbed', dynamic: true, src: EMBED, imports: ['_react-vendor.js', '_registry.js'], dyn: ['src/games/loop/Game.tsx'] },
+      '_registry.js': { bytes: 1_200, name: 'registry' },
+      'src/games/loop/Game.tsx': { ...APP['src/games/loop/Game.tsx'], dyn: ['src/games/loop/Scene3D.tsx', 'src/games/loop/FullService.tsx'] },
+      'src/games/loop/FullService.tsx': { bytes: 30_000, name: 'FullService', dynamic: true, src: 'src/games/loop/FullService.tsx', imports: ['_session.js', '_rules.js'] },
+      '_rules.js': { bytes: 15_000, name: 'rules' },
+    },
+  })
+
+  test("prints the lesson's route with the embed and each game, as a learner who starts a level downloads them, and holds it to no gate", () => {
+    const lesson = rowOf(withLesson, 'route:/m/:module/:lesson')
+    // The lesson's first paint: index.html 36,000 + react 60,000 + the page 1,500 + its blocks 5,000 + the entry's CSS 15,000. No game.
+    expect([lesson.status, lesson.bytes]).toEqual(['ok', 117_500])
+    const row = rowOf(withLesson, 'lesson-game:loop')
+    expect([row.status, row.label, row.gate, row.target]).toEqual(['info', 'route /m/:module/:lesson with loop', null, null])
+    // With the embed (2,000) and the registry (1,200), the game (4,000) and what it imports that the lesson does not: session 9,000 and stage-runtime 6,000.
+    expect(row.bytes).toBe(117_500 + 2_000 + 1_200 + 4_000 + 9_000 + 6_000)
+  })
+
+  test("prints each lazy part of the game with the lesson too, and not the embed as a part of its own", () => {
+    const part = rowOf(withLesson, 'lesson-game:loop:src/games/loop/FullService.tsx')
+    expect([part.status, part.label]).toEqual(['info', 'route /m/:module/:lesson with loop and FullService'])
+    expect(part.bytes).toBe(rowOf(withLesson, 'lesson-game:loop').bytes! + 45_000)
+    expect(withLesson.rows.map((candidate) => candidate.id)).not.toContain(`on-demand:${EMBED}`)
+    expect(withLesson.failed).toBe(0)
+  })
+
+  test('prints nothing of the kind for a build with no lesson page or no embed', () => {
+    expect(run().rows.filter((candidate) => candidate.id.startsWith('lesson-game:'))).toEqual([])
+  })
+})
+
 describe('a gate and a target', () => {
   test('the entry is ok up to its target, warns above it, and fails one byte above its gate', () => {
     // The entry's closure is its own file and react-vendor's 60,000 B, so the file is what is left of the figure.

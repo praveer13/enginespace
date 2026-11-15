@@ -9,10 +9,11 @@
  *     the course index (modules and lessons), the game registry, the lab list and the Trace Room's traces;
  *   - `/` is the document that index.html built, which the front page owns (W0-T18), and `*` is 404.html, the fallback that
  *     serves every other address and lets the router show its not-found page.
- * Every document gets its own `<title>`, its own description and its own static shell (document.ts). A static page, a module and
- * a lesson are titled as their pages title themselves once they run (routes.tsx names a static page's, and the content pages call
- * `titled`), so the tab does not change when the app takes over. A game, a lab and a trace are titled here by what they are, and
- * their pages are stubs that still set the route's generic title, which replaces it: they take the plan's title when they are built.
+ * Every document gets its own `<title>`, its own description and its own static shell (document.ts). A static page, a module, a
+ * lesson, a game and a lab are titled as their pages title themselves once they run (routes.tsx names a static page's, and the
+ * content pages, the game page and the lab page call `titled`), so the tab does not change when the app takes over. A trace is titled
+ * here by what it is, and the Trace Room's page still sets the route's generic title, which replaces it: it takes the plan's title
+ * when W2-T20 builds it.
  *
  * A route that the plan cannot enumerate is a problem, and so is an entry for a route that the table does not have. `PAGES` is
  * keyed by the route table's patterns (§3.1), so adding a route means adding its entry here, and `verify:routes` fails until its
@@ -25,7 +26,7 @@ import { matchRoutes } from 'react-router'
 import type { RouteObject } from 'react-router'
 import type { GameEntry } from '../../packages/play/types.ts'
 import type { ContentIndex } from '../../packages/schema/compiled.ts'
-import { titled } from '../../src/content/render/model.ts'
+import { labName, titled } from '../../src/content/render/model.ts'
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* What a plan is made from                                                                                           */
@@ -167,8 +168,8 @@ export const PAGES: Readonly<Record<string, Spec>> = {
   '/labs/:lab': each(({ labs }) =>
     labs.map((lab) => ({
       url: `/labs/${lab}`,
-      title: titled(`Lab ${lab}`),
-      heading: `Lab ${lab}`,
+      title: titled(labName(lab)),
+      heading: labName(lab),
       description: 'The kit to download and the checks that grade this lab.',
     })),
   ),
@@ -186,7 +187,8 @@ export const PAGES: Readonly<Record<string, Spec>> = {
   '/evidence': page('The progress that your own ledger shows, kept on this device. Export it, import it, or undo an import.'),
   '/design': page("The token roles and their values, the components and their states, motion, and the scene kit's specimens, each beside its 2D twin."),
   '/settings': page('3D on or off, the quality tier cap, reduced motion, and your data on this device.'),
-  '/about': page('What each simulated world models and ignores, the claims and their sources, the licences, and the privacy promise.'),
+  // What the page holds today (W3-T15 builds the rest): its lead says the same (src/unbuilt/copy.ts), and a test holds the two together.
+  '/about': page('The licences of the third-party code and the typefaces that this site uses.'),
   '/changes': page('The claims and the pins that have moved, as change cards.'),
   '*': { kind: 'fallback', description: 'Nothing lives at this address.' },
 }

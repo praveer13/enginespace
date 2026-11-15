@@ -161,6 +161,23 @@ describe('the debrief, Compose, In production and Build this', () => {
     expect(markup).toContain('Next: The allergy card')
   })
 
+  test('on narrow paper each stage prints as a block of its own: the ticket is a size container, and each figure carries its column\'s name', () => {
+    const level = fullSession.level('async', 0)
+    const markup = render(h(FullDebrief, { run: runOf(fullSession.ghost(level)), outcome: outcomeOf(fullSession.ghost(level)), next: null, onNext: () => undefined }))
+    // The debrief's ticket is the container the kit's narrow table reads (components.css, "the mirror's table"), and nothing in the
+    // stage table scrolls sideways of its own: its box is the kit's, which scrolls only where the paper is wide.
+    expect(markup).toMatch(/<section class="es-ticket es-full-debrief"/)
+    const table = markup.slice(markup.indexOf('aria-label="Each stage against the house"'))
+    expect(table).toMatch(/^aria-label="Each stage against the house" tabindex="0" class="es-mirror__region"/)
+    expect(table).toContain('<table role="table" class="es-mirror__table')
+    for (const stage of level.stages) {
+      const row = table.slice(table.indexOf(`data-stage-row="${stage.id}"`), table.indexOf('</tr>', table.indexOf(`data-stage-row="${stage.id}"`)))
+      expect(row).toContain('role="rowheader"')
+      // Each figure names its column where the row prints as a block: the learner's best night, the house's, and the call against the model's.
+      expect([...row.matchAll(/data-label="([^"]+)"/g)].map((match) => match[1])).toEqual(['Yours, best night', 'The house', 'Your call, and the model&#x27;s'])
+    }
+  })
+
   test('Compose compiles the levers to the pinned engines\' configuration, and says in words what has no flag', () => {
     const level = buildFullLevel('async', 0)
     const off = compile(level.stages, level.stages.map((stage) => stage.naive))

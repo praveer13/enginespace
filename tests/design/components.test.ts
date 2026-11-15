@@ -28,7 +28,7 @@ const h = createElement
 
 describe('Ticket', () => {
   test('a container ticket is an article with its head, stamped title and printed lines', () => {
-    const html = render(h(Ticket, { head: 'No. 0042', meta: 'TBL 7', title: 'Fire the next step.' }, h(TicketLine, { qty: '2x' }, 'DECODE')))
+    const html = render(h(Ticket, { head: 'No. 0042', meta: 'TBL 7', title: 'Fire the next step.' }, h(TicketLine, { qty: '2x', children: 'DECODE' })))
     expect(html).toMatch(/^<article class="es-ticket"/)
     expect(html).toContain('<h3 class="es-ticket__title">Fire the next step.</h3>')
     expect(html).toContain('data-hole="true"')
@@ -54,16 +54,16 @@ describe('Ticket', () => {
 
 describe('Stub', () => {
   test('as a link it is the router’s link; as an action it is a button', () => {
-    expect(render(h(Stub, { to: '/play/loop' }, 'Start service'))).toContain('href="/play/loop"')
-    expect(render(h(Stub, { onClick: () => undefined }, 'Start service'))).toContain('<button type="button" class="es-stub__pull"')
+    expect(render(h(Stub, { to: '/play/loop', children: 'Start service' }))).toContain('href="/play/loop"')
+    expect(render(h(Stub, { onClick: () => undefined, children: 'Start service' }))).toContain('<button type="button" class="es-stub__pull"')
   })
 
   test('disabled, loading and error are element states', () => {
-    expect(render(h(Stub, { disabled: true }, 'Start service'))).toContain('disabled=""')
-    const loading = render(h(Stub, { loading: true, to: '/play/loop' }, 'Start service'))
+    expect(render(h(Stub, { disabled: true, children: 'Start service' }))).toContain('disabled=""')
+    const loading = render(h(Stub, { loading: true, to: '/play/loop', children: 'Start service' }))
     expect(loading).toContain('aria-busy="true"')
     expect(loading).not.toContain('href=')
-    const error = render(h(Stub, { error: 'The line did not answer.', onClick: () => undefined }, 'Start service'))
+    const error = render(h(Stub, { error: 'The line did not answer.', onClick: () => undefined, children: 'Start service' }))
     const describedBy = /aria-describedby="([^"]+)"/.exec(error)?.[1]
     expect(describedBy).toBeTruthy()
     expect(error).toContain(`id="${describedBy}" role="alert"`)
@@ -173,21 +173,21 @@ describe('Button, TextLink, Toggle, Field and TapeLabel', () => {
   })
 
   test('a link to another site opens in a new tab and says so', () => {
-    const html = render(h(TextLink, { href: 'https://docs.vllm.ai/' }, 'the vLLM docs'))
+    const html = render(h(TextLink, { href: 'https://docs.vllm.ai/', children: 'the vLLM docs' }))
     expect(html).toContain('target="_blank"')
     expect(html).toContain('rel="noreferrer noopener"')
     expect(html).toContain('(opens in a new tab)')
-    expect(render(h(TextLink, { to: '/m/tr3', disabled: true }, 'TR3'))).not.toContain('href=')
+    expect(render(h(TextLink, { to: '/m/tr3', disabled: true, children: 'TR3' }))).not.toContain('href=')
   })
 
   test('a link to a file of the site itself is a plain link in the same tab, with no external mark and no words about a new tab', () => {
-    const html = render(h(TextLink, { file: '/third-party-licenses.txt' }, 'the licences'))
+    const html = render(h(TextLink, { file: '/third-party-licenses.txt', children: 'the licences' }))
     expect(html).toBe('<a href="/third-party-licenses.txt" class="es-link">the licences</a>')
     // It is not the router's link, which would answer a file's address with the not-found page, and it is not the other site's.
     for (const other of ['data-discover', 'target=', 'rel=', 'es-link__external', 'opens in a new tab', '<svg']) expect([other, html.includes(other)]).toEqual([other, false])
     // It keeps the link's class and forced state, and an unavailable one is still quiet text.
-    expect(render(h(TextLink, { file: '/x.txt', className: 'extra', 'data-force': 'hover' }, 'x'))).toBe('<a href="/x.txt" class="es-link extra" data-force="hover">x</a>')
-    expect(render(h(TextLink, { file: '/x.txt', disabled: true }, 'x'))).not.toContain('href=')
+    expect(render(h(TextLink, { file: '/x.txt', className: 'extra', 'data-force': 'hover', children: 'x' }))).toBe('<a href="/x.txt" class="es-link extra" data-force="hover">x</a>')
+    expect(render(h(TextLink, { file: '/x.txt', disabled: true, children: 'x' }))).not.toContain('href=')
   })
 
   test('a toggle is a switch named by its label', () => {
@@ -209,7 +209,7 @@ describe('Button, TextLink, Toggle, Field and TapeLabel', () => {
   })
 
   test('a tape label with a station code draws the slot’s glyph', () => {
-    expect(render(h(TapeLabel, { slot: 'yellow' }, 'cached'))).toContain('data-glyph="diamond"')
+    expect(render(h(TapeLabel, { slot: 'yellow', children: 'cached' }))).toContain('data-glyph="diamond"')
   })
 })
 

@@ -51,7 +51,9 @@ describe('the family', () => {
   test('is registered, names KCs of the graph, and offers its variants at the levels it says', () => {
     expect(familyById('tr2.bubble-width')).toBe(bubbleWidth)
     expect(FAMILIES).toContain(bubbleWidth)
-    expect(familiesForKc('tr2.bubble')).toEqual([bubbleWidth])
+    // Two families assess the idea, in the registry's order: this one, and (W1b-T04) the first lesson's exit ticket, which asks for the idle time before a step.
+    expect(familiesForKc('tr2.bubble').map((family) => family.id)).toEqual(['tr2.bubble-width', 'tr2.step-order'])
+    expect(familiesForKc('tr2.bubble')[0]).toBe(bubbleWidth)
     expect(familiesForKc('tr2.nothing')).toEqual([])
     const graph = readFileSync(path.join(root, 'content/kc/graph.yaml'), 'utf8')
     const ids = new Set([...graph.matchAll(/^- id: (\S+)/gm)].map((match) => match[1]))

@@ -130,18 +130,30 @@ export function viteBuild(outDir: string, base: string | undefined): void {
   if (run.status !== 0) throw new Error(`vite build exited with ${run.status}:\n${run.stdout}${run.stderr}`)
 }
 
+export interface ServeOptions {
+  /** The port to listen on. Default 0: any free one, which `origin` then names. */
+  port?: number
+  /** The interface to listen on, and the host `origin` names. Default: every interface, named `localhost`. */
+  hostname?: string
+}
+
 /**
  * A static server that answers as GitHub Pages does for a site under `base`: `/` on a custom domain (D-058), or the repository's path
  * on a project site. A file is served as it is, a folder with an index.html answers at its address with a trailing slash and redirects
- * from the one without, and anything else gets 404.html with the status 404. There are no rewrites, which is the whole reason for
- * prepare-pages.
+ * from the one without (with a 301, and the query kept: `/play/loop?level=async` goes to `/play/loop/?level=async`), and anything else
+ * gets 404.html with the status 404. There are no rewrites, which is the whole reason for prepare-pages.
+ *
+ * Playwright runs against it in place of `vite preview` when ES_E2E_PAGES is set (playwright.config.ts, e2e/support/serve-pages.ts), because
+ * `vite preview` answers every address with one document and never redirects, and a spec that holds on it can still fail on the host
+ * (the network spec did, on the live run of 2026-11-09).
  */
-export function servePages(dist: string, base: string): { origin: string; stop: () => void } {
+export function servePages(dist: string, base: string, { port = 0, hostname }: ServeOptions = {}): { origin: string; stop: () => void } {
   const isFile = (file: string) => existsSync(file) && statSync(file).isFile()
   const server = Bun.serve({
-    port: 0,
+    port,
+    ...(hostname === undefined ? {} : { hostname }),
     fetch(request) {
-      const { pathname } = new URL(request.url)
+      const { pathname, search } = new URL(request.url)
       const missing = () => new Response(Bun.file(path.join(dist, '404.html')), { status: 404, headers: { 'content-type': 'text/html' } })
       if (!pathname.startsWith(base)) return missing()
       const target = path.resolve(dist, decodeURIComponent(pathname.slice(base.length)))
@@ -149,11 +161,11 @@ export function servePages(dist: string, base: string): { origin: string; stop: 
       if (isFile(target)) return new Response(Bun.file(target))
       const index = path.join(target, 'index.html')
       if (existsSync(target) && statSync(target).isDirectory() && isFile(index)) {
-        if (!pathname.endsWith('/')) return new Response(null, { status: 301, headers: { location: `${pathname}/` } })
+        if (!pathname.endsWith('/')) return new Response(null, { status: 301, headers: { location: `${pathname}/${search}` } })
         return new Response(Bun.file(index), { headers: { 'content-type': 'text/html' } })
       }
       return missing()
     },
   })
-  return { origin: `http://localhost:${server.port}`, stop: () => void server.stop(true) }
+  return { origin: `http://${hostname ?? 'localhost'}:${server.port}`, stop: () => void server.stop(true) }
 }

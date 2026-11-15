@@ -5,17 +5,19 @@
  * clips, the copies on the fired rail, the counter's tickets and the printer's feed, the plates of the last fire read back, the bin,
  * the spike, the stations' heat and the bubble. Then the presets, the tapes that must never meet, the motion grammar's reading of a
  * change, the instance budget, and the acceptance checks on colour and text. Service's finish review, round 2: the room falls away
- * beyond the line, its light baked into its tile and floor and its haze darker than the tile it fogs.
+ * beyond the line, its light baked into its tile and floor and its haze darker than the tile it fogs. W1b's round 1: the back wall falls
+ * toward a phone frame's sides, the haze is darker than the floor's tile too, the aisle lies in shade, and at T1 the pools warm the steel.
  */
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
+import { BufferGeometry, CustomBlending, DstColorFactor, OneFactor, SrcAlphaFactor, ZeroFactor } from 'three'
 import { askOf, hang, initState, setOverlap, step } from '@es/play/loop/engine'
 import { buildLevel, LEVEL_IDS } from '@es/play/loop/levels'
 import { stationsOf, ticketNo } from '@es/play/loop/layout'
 import { loopView } from '@es/play/loop/session'
 import type { LoopState, LoopView } from '@es/play/loop/types'
-import { HOOD, LINE, SHELF, WALL_Z } from '@es/play/loop/kitchen'
+import { HOOD, LINE, lineOf, SHELF, WALL_Z } from '@es/play/loop/kitchen'
 import { luminance, parseHex } from '@/design/contrast'
 import { resolveColor, type ColorRoleName } from '@/design/tokens'
 import { roomShade } from '@/scene/props/set'
@@ -293,6 +295,54 @@ describe('the room falls away beyond the line (the finish review, round 2, fix 5
   })
 })
 
+describe("the room darkens as it recedes (W1b's finish review of Service, round 1)", () => {
+  const kitchen = serviceKitchen(4, { printer: false, overlap: false })
+  const palette = paletteFrom(staticSceneTokens())
+  const scene = readFileSync(path.join(root, 'src/games/loop/Scene3D.tsx'), 'utf8')
+
+  test("the back wall takes under half its middle's light about 1.3 metres out, where a phone's frame and a laptop's right side end", () => {
+    // The front page's phone shot sees the back wall to about 1.4 metres either side of the line's middle at the height of the lamps'
+    // mouths, and its laptop shot to about 1.3 metres on its right [derived by hand from SHOTS.front and boxes of 390 and 1440 px].
+    const middle = roomShade(kitchen.room, 0, 1.3, WALL_Z)
+    for (const x of [-1.3, 1.3]) expect(roomShade(kitchen.room, x, 1.3, WALL_Z)).toBeLessThan(middle / 2)
+    // The tile behind the line's outer stations keeps most of the light, so the dark stations still stand against lit tile.
+    for (const x of [-0.87, 0.87]) expect(roomShade(kitchen.room, x, 1, WALL_Z)).toBeGreaterThan(0.6)
+  })
+
+  test("the haze is darker than every tile it covers, the floor's quarry tile as well as the wall's", () => {
+    const role = /const HAZE = \{ near: [\d.]+, far: [\d.]+, color: '([a-z0-9-]+)' \} as const/.exec(scene)?.[1] ?? 'paper'
+    // The floor's colour as the palette gives it, in linear light, as `luminance` reads a role.
+    const floor = palette.part(new BufferGeometry(), 'floor').color
+    expect(luminance(parseHex(resolveColor(role as ColorRoleName)))).toBeLessThan(0.2126 * floor.r + 0.7152 * floor.g + 0.0722 * floor.b)
+  })
+
+  test('the aisle between the pass and the line lies in shade, from under the pass to the line, so the floor darkens away from the expo', () => {
+    const { aisle } = kitchen
+    expect(aisle.center[1]).toBe(0)
+    expect(aisle.strength).toBe(1)
+    expect(aisle.size[0]).toBeGreaterThan(passWidth(4))
+    const [front, back] = [aisle.center[2] + aisle.size[1] / 2, aisle.center[2] - aisle.size[1] / 2]
+    expect(front).toBeGreaterThan(-PASS.depth / 2)
+    expect(front).toBeLessThan(0)
+    expect(back).toBeCloseTo(LINE.z + LINE.depth / 2)
+    expect(scene).toMatch(/<AisleShade shade=\{kitchen\.aisle\} \/>/)
+  })
+
+  test("at T1 the steel in each pool is warmed toward the lamp's amber by scaling its own colour, so its grain keeps its light and dark", () => {
+    const [r, g, b] = (/const WARM = \[([\d.]+), ([\d.]+), ([\d.]+)\] as const/.exec(scene) ?? []).slice(1).map(Number)
+    expect(r).toBeGreaterThan(1)
+    expect(g).toBeLessThan(r)
+    expect(b).toBeLessThan(g)
+    expect(b).toBeLessThan(1)
+    // A multiply, the frame's colour times the disc's colour plus its alpha, with the frame's alpha kept, so the disc lays no colour of its
+    // own; written by the values of three's constants, and drawn below T2 only.
+    const blend = (/const MULTIPLY = \{ blending: (\d+), blendSrc: (\d+), blendDst: (\d+), blendSrcAlpha: (\d+), blendDstAlpha: (\d+) \} as const/.exec(scene) ?? []).slice(1).map(Number)
+    expect(blend).toEqual([CustomBlending, DstColorFactor, SrcAlphaFactor, ZeroFactor, OneFactor])
+    expect(scene).toMatch(/depthWrite: false, \.\.\.MULTIPLY \}/)
+    expect(scene).toMatch(/kit\.tier < 2 \? <PoolWarmth lamps=\{kitchen\.lights\} spread=\{POOL\} \/> : null/)
+  })
+})
+
 describe('the camera presets (GAMES.md §2.6, Service, Cameras)', () => {
   test('three shots, a button each: over the shoulder (the default), the side of the pass in orthographic, and under the lamps', () => {
     expect(LOOP_PRESETS.map((preset) => [preset.id, preset.label, preset.shot, preset.projection])).toEqual([
@@ -347,21 +397,48 @@ describe('the camera presets (GAMES.md §2.6, Service, Cameras)', () => {
   })
 })
 
+describe('each tape sits on the object it names (W1b\'s finish review of the lesson blocks, round 1)', () => {
+  test('the line\'s on its last station\'s front, never on the tile; the expo\'s on the pass\'s front edge; the bin\'s on the bin\'s front', () => {
+    for (const slots of [4, 12]) {
+      const kitchen = serviceKitchen(slots, { printer: true, overlap: true })
+      const at = (id: string) => {
+        const tape = kitchen.tapes.find((candidate) => candidate.id === id)
+        if (!tape) throw new Error(`no tape ${id}`)
+        return tape.center
+      }
+      const line = lineOf(slots)
+      const [lx, ly, lz] = at('line')
+      expect(lx).toBeCloseTo(line.x(line.count - 1), 6)
+      expect(ly).toBeGreaterThan(0.12)
+      expect(ly).toBeLessThan(LINE.height)
+      expect(Math.abs(lz - (LINE.z + LINE.depth / 2))).toBeLessThan(0.05)
+      expect(lz).toBeGreaterThan(WALL_Z + 0.5)
+      const [, ey, ez] = at('expo')
+      expect(Math.abs(ey - PASS.top)).toBeLessThan(0.05)
+      expect(Math.abs(ez - PASS.depth / 2)).toBeLessThan(0.03)
+      const bin = kitchen.bin
+      if (bin === null) throw new Error('a level with overlap has a bin')
+      const [bx, , bz] = at('bin')
+      expect(bx).toBeCloseTo(bin[0], 6)
+      expect(bz).toBeGreaterThan(bin[2])
+    }
+  })
+})
+
 describe('the tapes that name the line and the expo never meet (W0 finding F5)', () => {
   const kitchen = kitchenOf(loopView(initState(level('first-3-gap'))))
-  /** The box a tape's words can take on screen: the tape itself, and never less than a phone's smallest print of them. */
+  /**
+   * The box a tape takes on screen, round its anchor: the design system's tape torn off at the size of its words, whose print is
+   * scene3d.css's clamp(0.6875rem, 1.5cqi, 0.8125rem) of the scene's box, about 0.62 em a letter of the marker with 1.3 em of tape past
+   * the words, and 1.5 em high [estimated; e2e/loop-scene.spec.ts measures the drawn boxes].
+   */
   const box = (preset: CameraPreset, id: string, width: number, height: number) => {
     const tape = kitchen.tapes.find((candidate) => candidate.id === id)
     if (!tape) throw new Error(`no tape ${id}`)
-    const [cx, cy, cz] = tape.center
-    const [w, h] = tape.size
-    const corners = [-1, 1].flatMap((sx) => [-1, 1].map((sy) => projectIn(preset, [cx + (sx * w) / 2, cy + (sy * h) / 2, cz], width, height)))
-    const x0 = Math.min(...corners.map((c) => c.x))
-    const x1 = Math.max(...corners.map((c) => c.x))
-    const y0 = Math.min(...corners.map((c) => c.y))
-    const y1 = Math.max(...corners.map((c) => c.y))
-    const half = { x: Math.max((x1 - x0) / 2, 45), y: Math.max((y1 - y0) / 2, 9) }
-    return { x0: (x0 + x1) / 2 - half.x, x1: (x0 + x1) / 2 + half.x, y0: (y0 + y1) / 2 - half.y, y1: (y0 + y1) / 2 + half.y }
+    const at = projectIn(preset, tape.center, width, height)
+    const size = Math.min(13, Math.max(11, width * 0.015))
+    const half = { x: ((tape.text.length * 0.62 + 1.3) * size) / 2, y: (1.5 * size) / 2 }
+    return { x0: at.x - half.x, x1: at.x + half.x, y0: at.y - half.y, y1: at.y + half.y }
   }
   for (const [preset, width, height] of [
     [LOOP_PRESETS[0], 390, 464],
@@ -374,7 +451,7 @@ describe('the tapes that name the line and the expo never meet (W0 finding F5)',
       const line = box(preset, 'line', width, height)
       const expo = box(preset, 'expo', width, height)
       expect(line.y1 < expo.y0 || expo.y1 < line.y0 || line.x1 < expo.x0 || expo.x1 < line.x0).toBe(true)
-      // The line's name is high, on the tile over the line; the expo's is low, on the pass's front edge.
+      // The line's name is on the line, beyond the pass; the expo's is nearer and lower, on the pass's front edge.
       expect(line.y1).toBeLessThan(expo.y0)
     })
   }

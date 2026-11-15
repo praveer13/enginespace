@@ -590,7 +590,9 @@ export const wasted = (rows: number, padded: number | null): number | null => (p
 
 /**
  * The reference of each prediction of TR2's lessons, from the numbers its prompt gives and the course's own functions. Nothing is stored in a
- * lesson (A§1, I3); the prediction box computes the same thing when it reveals (W1-T13 builds it).
+ * lesson (A§1, I3). The lesson's prediction box (W1b-T02) reads its answer from the run of the game block that follows the prediction, where
+ * packages/play/predictions has a reading, and tests/play/predictions.test.ts holds each reading to the figure here; a prediction with no
+ * reading waits for W2-T43, and its figure here is what that task starts from.
  */
 export const PREDICTIONS: Readonly<Record<string, { readonly unit: string; readonly reference: () => number }>> = {
   // 700 µs of CPU work before the forward, 300 µs after, a forward of 2,000 µs, nothing overlapped: the GPU is busy 2,000 of 3,000 µs.

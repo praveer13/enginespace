@@ -8,6 +8,7 @@ import { z } from 'zod'
 import { blockBodySchemas } from '@es/schema'
 import { formatDiagnostic, loadYaml, locate, parseContentFile, schemaDiagnostics } from '../../scripts/content/parse.ts'
 import type { Diagnostic } from '../../scripts/content/parse.ts'
+import { holdStackHook, setStackHook } from '../lint/stack-hook'
 
 /** Four lines. What follows starts on line five. */
 const FRONT = '---\nid: tr2.l0\nmodule: tr2\n---'
@@ -135,12 +136,21 @@ describe('loadYaml', () => {
   test('still reports a syntax error once the React Compiler lint rules have replaced Error.prepareStackTrace', async () => {
     // Linting a .tsx file loads eslint-plugin-react-hooks' compiler rules, which install Babel's stack trace rewriter. Bun then
     // refuses Error.captureStackTrace on the plain objects that js-yaml throws, and `bun test` runs the lint tests and this in one
-    // process. loadYaml sets the hook aside for the call.
+    // process. loadYaml sets the hook aside for the call. Babel installs its rewriter once a process, and a test file that lints puts
+    // back the hook it found (tests/lint/stack-hook.ts), so this test puts the rewriter in place itself and takes it out after.
     const root = path.resolve(import.meta.dirname, '../..')
-    await new ESLint({ cwd: root }).lintText('export const f = () => <p />', { filePath: path.join(root, 'src/x.tsx') })
-    const out: Diagnostic[] = []
-    expect(loadYaml('a: [1', 'x.md', 1, 'content', out).ok).toBe(false)
-    expect(out.map((d) => d.code)).toEqual(['bad-yaml'])
+    const hold = holdStackHook()
+    try {
+      await new ESLint({ cwd: root }).lintText('export const f = () => <p />', { filePath: path.join(root, 'src/x.tsx') })
+      const rewriter = hold.rewriter()
+      expect(typeof rewriter, "Babel's rewriter, which linting a .tsx installs once a process").toBe('function')
+      setStackHook(rewriter)
+      const out: Diagnostic[] = []
+      expect(loadYaml('a: [1', 'x.md', 1, 'content', out).ok).toBe(false)
+      expect(out.map((d) => d.code)).toEqual(['bad-yaml'])
+    } finally {
+      hold.release()
+    }
   })
 
   test('returns the value', () => {

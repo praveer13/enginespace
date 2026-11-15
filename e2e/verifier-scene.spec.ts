@@ -7,8 +7,8 @@
  *   2. The observed skyline updates in batches, not per draw: a hundred rounds drawn at once move the scene once, and it settles.
  *   3. Reduced motion shows each batch's final histogram: a draw cuts to its end, and then no animation frame is asked for.
  *   And the rest of the scene contract: `V` swaps 2D and 3D and keeps the run, `C` and the buttons reach every shot, the capture is not
- *   blank, all text is DOM, every name stands whole inside the box in every shot, and a dish's tape picked on the pass hands focus to
- *   its weight.
+ *   blank, all text is DOM, every name stands whole inside the box in every shot, a dish's tape picked on the pass hands focus to its
+ *   weight, and each heat lamp's pool lies on the steel under it, on the course being tasted.
  *
  * How it runs, as e2e/loop-scene.spec.ts does: one test build with `VITE_ES_TEST_HOOKS=1` (it exposes `window.__esScene` and honours
  * `?es-tier=<0-3>`), served by `context.route` so no server runs, with any request off the origin failing the test. Chromium renders
@@ -26,7 +26,7 @@ import type { Page } from '@playwright/test'
 import { build } from 'vite'
 import { buildLevel } from '../packages/play/verifier/levels'
 import { excessPlates, keptPlates, sweepOfLevel, thousandths, tokensOf } from '../packages/play/verifier/state'
-import { columnX, FRONT, planOf, TOP } from '../src/games/verifier/scene-plan'
+import { columnX, FRONT, planOf, roomOf, TOP } from '../src/games/verifier/scene-plan'
 import type { FrameStats } from '../src/scene/stage-runtime'
 import type { SceneHook } from '../src/scene/test-hook'
 import { pixelStats } from './support/pixels'
@@ -354,6 +354,58 @@ async function colourAt(page: Page, point: [number, number, number]): Promise<[n
   }, at)
 }
 
+/** How much the canvas's luma varies over a `w` by `h` px patch round a scene point, read back from the kept frame: its standard deviation, 0 to 1. */
+async function spreadAt(page: Page, point: [number, number, number], w: number, h: number): Promise<number> {
+  const at = await page.evaluate((p) => (window.__esScene as SceneHook).probes.verifier.project(p), point)
+  if (!at) throw new Error('the point is behind the camera')
+  return page.evaluate(
+    ({ x, y, w, h }) => {
+      const canvas = document.querySelector<HTMLCanvasElement>('[data-stage="verifier"] canvas')
+      if (!canvas) throw new Error('no canvas')
+      const copy = document.createElement('canvas')
+      copy.width = canvas.width
+      copy.height = canvas.height
+      const context = copy.getContext('2d')
+      if (!context) throw new Error('no 2D canvas')
+      context.drawImage(canvas, 0, 0)
+      const scale = canvas.width / canvas.getBoundingClientRect().width
+      const { data } = context.getImageData(Math.round((x - w / 2) * scale), Math.round((y - h / 2) * scale), Math.round(w * scale), Math.round(h * scale))
+      let sum = 0
+      let squares = 0
+      const n = data.length / 4
+      for (let i = 0; i < data.length; i += 4) {
+        const luma = (0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]) / 255
+        sum += luma
+        squares += luma * luma
+      }
+      const mean = sum / n
+      return Math.sqrt(Math.max(0, squares / n - mean * mean))
+    },
+    { x: at.x, y: at.y, w, h },
+  )
+}
+
+test.describe('the back wall (W1b\'s finish review, round 2): over one course its tile shows through the haze', () => {
+  test('at 1440, the wall between two lamps, over the line, is tile veiled in haze and not one flat plane', async ({ page }) => {
+    await open(page, 'overlap', 2)
+    await settle(page)
+    await page.addStyleTag({ content: '.es-labels { visibility: hidden !important; }' })
+    await frame(page)
+    // Round 2's wall was the haze's flat colour behind the lamps (a patch's standard deviation 0); the tile's courses and grout show
+    // through it now, between the lamps' cones, from a hand over the line's worktops up toward the hood.
+    const { wallZ } = roomOf(planOf('rows', 1))
+    for (const [x, y] of [
+      [-0.4, 1.2],
+      [0.4, 1.2],
+      [-0.4, 1.6],
+    ] as const) {
+      const spread = await spreadAt(page, [x, y, wallZ], 60, 24)
+      console.log(`the wall at x ${x}, ${y} m up: a luma spread of ${spread.toFixed(4)}`)
+      expect(spread, `the tile behind the lamps at x ${x}, ${y} m up`).toBeGreaterThan(0.004)
+    }
+  })
+})
+
 test.describe('`gamma`: a run of stacks, the kept plates at the bottom whether a stack is plated or waits upside down', () => {
   test('past the pick, a stack turned over still has the overlap\'s plates at the counter and the draft\'s above them', async ({ page }) => {
     await open(page, 'gamma', 2)
@@ -377,6 +429,27 @@ test.describe('`gamma`: a run of stacks, the kept plates at the bottom whether a
       console.log(`position ${position + 1}: low ${low.map(Math.round).join(',')}, high ${high.map(Math.round).join(',')}`)
       const warmth = ([red, , blue]: [number, number, number]) => red - blue
       expect(warmth(high) - warmth(low), `position ${position + 1}: the draft's yellow stands over the overlap's green`).toBeGreaterThan(40)
+    }
+  })
+})
+
+test.describe('the lamps\' light (W1b\'s finish review, round 1): one pool on the course being tasted, under the lamp that lights it', () => {
+  test('over one course, the steel under a lamp, in front of its plates, is warmer than the steel between two lamps', async ({ page }) => {
+    await open(page, 'overlap', 2)
+    await settle(page)
+    await page.addStyleTag({ content: '.es-labels { visibility: hidden !important; }' })
+    await frame(page)
+    // Open steel 12 cm in front of the course: under the left lamp and the middle one, each between two dishes' pairs, and between two
+    // lamps, in the next gap between pairs, where no pool reaches. The right lamp's pool holds the bell.
+    const warmth = ([red, , blue]: [number, number, number]) => red - blue
+    for (const [lamp, between] of [
+      [-0.8, -0.4],
+      [0, 0.4],
+    ] as const) {
+      const under = await colourAt(page, [lamp, TOP, 0.12])
+      const off = await colourAt(page, [between, TOP, 0.12])
+      console.log(`the lamp over x ${lamp}: under it ${under.map(Math.round).join(',')}, between lamps ${off.map(Math.round).join(',')}`)
+      expect(warmth(under) - warmth(off), `the pool under the lamp over x ${lamp}`).toBeGreaterThan(12)
     }
   })
 })

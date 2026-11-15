@@ -121,9 +121,11 @@ describe('the sentences are the kitchen\'s words, and carry no number', () => {
           const letters = [...sentence.matchAll(/table ([A-Z])/g)].map((match) => match[1])
           for (const letter of letters) expect(level.tables.map((table) => table.letter)).toContain(letter)
           if (names !== null) {
-            expect(Number.isInteger(names.turn)).toBe(true)
-            expect(names.turn).toBeGreaterThanOrEqual(0)
-            expect(names.turn).toBeLessThan(mine.history.length)
+            // The debrief's type is every game's: Pool names a turn, and a lever would fail the first line.
+            const { turn } = names as { readonly turn: number }
+            expect(Number.isInteger(turn)).toBe(true)
+            expect(turn).toBeGreaterThanOrEqual(0)
+            expect(turn).toBeLessThan(mine.history.length)
             seen.add(sentence.replace(/table [A-Z]/g, 'table X').slice(0, 40))
           }
         }

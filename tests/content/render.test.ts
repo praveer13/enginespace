@@ -68,35 +68,51 @@ describe('/m/tr2/l0-sample', () => {
     for (const type of BLOCK_TYPES) expect(drawnTypes).toContain(type)
   })
 
-  test('draws a ticket for each block, with a head line that names the lesson, and a section\'s heading as its stamped title', () => {
+  test('draws a ticket for each block, whose stamped title leads the paper with the lesson named on its foot line, and a section\'s heading as its title', () => {
     const tickets = opening(html, 'section').filter((tag) => attribute(tag, 'data-block') !== undefined)
     // Two prose blocks (one of them in two tickets), the seven other blocks (the sample has two cards), and the closing ticket.
     expect(tickets.length).toBe(12)
     for (const tag of tickets) expect(tag).toContain('class="es-ticket es-c-block"')
-    // The lesson's id is on every head line for the eye, and hidden from assistive tech, which has the page's name once.
-    expect(html.match(/<div class="es-ticket__head"><span><span aria-hidden="true">tr2\.l0<\/span><\/span>/g)?.length).toBe(12)
+    // Each ticket's own markup, from its opening tag to the next ticket's.
+    const papers = html.split('<section class="es-ticket es-c-block"').slice(1)
+    expect(papers.length).toBe(12)
+    const scope = '<span aria-hidden="true">tr2.l0</span>'
+    const titled = papers.filter((paper) => paper.includes('class="es-ticket__title"'))
+    const untitled = papers.filter((paper) => !paper.includes('class="es-ticket__title"'))
+    // A title leads the paper (DESIGN.md, Ticket): no head line over it, and the lesson's id on the foot line, for the eye and hidden from
+    // assistive tech, which has the page's name once. A ticket with no title opens on it: the prose before the first heading, the prose
+    // after the last block, and the figure.
+    expect(titled.length).toBe(9)
+    for (const paper of titled) {
+      expect(paper).not.toContain('es-ticket__head')
+      expect(paper).toContain(`<div class="es-ticket__foot"><span>${scope}</span>`)
+    }
+    expect(untitled.length).toBe(12 - titled.length)
+    for (const paper of untitled) expect(paper).toContain(`<div class="es-ticket__head"><span>${scope}</span>`)
+    expect(html.match(/class="es-ticket__head"/g)?.length).toBe(untitled.length)
     expect(html).toContain('<h2 class="es-ticket__title">The bubble</h2>')
   })
 
-  test('a block whose feature is not built yet says which task builds it, and holds its action down', () => {
-    expect(placeholders(html)).toEqual({ predict: 'W1-T13', game: 'W1-T13', trace: 'W1-T09', lab: 'W2-T23' })
+  test('a block whose feature is not built yet says which open task builds it, and holds its action down', () => {
+    // The sample lesson's prediction is no prediction of the course's: the table of which run answers which (W1b-T02) has no row for it, so its reveal waits.
+    expect(placeholders(html)).toEqual({ predict: 'W2-T43', trace: 'W2-T42', lab: 'W2-T23' })
     for (const [what, task] of [
-      ['the prediction box', 'W1-T13'],
-      ['the game', 'W1-T13'],
-      ['the trace viewer', 'W1-T09'],
-      ['the lab', 'W2-T23'],
+      ['Its reveal waits on', 'W2-T43'],
+      ['Not built yet: the trace block', 'W2-T42'],
+      ['Not built yet: the lab', 'W2-T23'],
     ]) {
-      expect(html).toContain(`Not built yet: ${what}`)
+      expect(html).toContain(what)
       expect(html).toContain(`<span class="es-ticket-line__note">${task}</span>`)
     }
-    // The prediction, the game and the trace each have a stub that is held down. The lab's stub is a link, and the item set is built.
-    expect(html.match(/<button type="button" class="es-stub__pull"[^>]*disabled=""/g)?.length).toBe(3)
+    // The prediction and the trace each have a stub that is held down. The lab's stub is a link, and the item set and the game are built.
+    expect(html.match(/<button type="button" class="es-stub__pull"[^>]*disabled=""/g)?.length).toBe(2)
     expect(html).toContain('href="/labs/tr3.profile"')
+    expect(html).not.toContain('Not built yet: the game')
   })
 
-  test('a block that is complete carries no placeholder: prose, the item set, the two cards (the warning, and the notional-machine card that prints while it loads) and the figure', () => {
-    const complete = opening(html, 'section').filter((tag) => ['prose', 'item', 'card', 'figure'].includes(attribute(tag, 'data-block') ?? ''))
-    expect(complete.length).toBe(7)
+  test('a block that is complete carries no placeholder: prose, the item set, the game, the two cards (the warning, and the notional-machine card that prints while it loads) and the figure', () => {
+    const complete = opening(html, 'section').filter((tag) => ['prose', 'item', 'game', 'card', 'figure'].includes(attribute(tag, 'data-block') ?? ''))
+    expect(complete.length).toBe(8)
     for (const tag of complete) expect(tag).not.toContain('data-placeholder')
   })
 
@@ -433,11 +449,38 @@ describe('the blocks, one at a time', () => {
     expect(html).toContain('<data class="es-readout__value" value="12.5">12.5%</data>')
   })
 
-  test('a game block names its task by the game, and a game the roster does not list falls back to the framework', () => {
-    const game = (id: string): CompiledBlock => ({ type: 'game', id, level: 'sizes', mode: 'graded' })
-    expect(placeholders(drawnBlocks(game('pool')))).toEqual({ game: 'W1-T23' })
-    expect(placeholders(drawnBlocks(game('not-a-game')))).toEqual({ game: 'W0-T14' })
-    expect(drawnBlocks(game('pool'))).toContain('graded')
+  test('a game block of a game that is built waits for the learner: its display name, its level and its mode, and the stub that starts it (W1b-T01)', () => {
+    const block: CompiledBlock = { type: 'game', id: 'pool', level: 'evict', mode: 'graded' }
+    const html = drawnBlocks(block)
+    expect(placeholders(html)).toEqual({})
+    const ticket = opening(html, 'section').find((tag) => attribute(tag, 'data-block') === 'game') ?? ''
+    expect([attribute(ticket, 'data-play'), attribute(ticket, 'data-mode'), attribute(ticket, 'data-phase')]).toEqual(['pool/evict', 'graded', 'waiting'])
+    // D-049: the display name over its engine concept, from the roster, which costs the lesson's first paint none of the game's code.
+    expect(html).toContain('<strong>The Reach-In</strong> · hybrid KV pages and adapters')
+    for (const fact of ['level · evict', 'graded']) expect(html).toContain(fact)
+    expect(html).toContain('Graded: new numbers drawn when you start, and no undo.')
+    // The stub is live, and the way to every level is the game's own page.
+    expect(html).toMatch(/<button type="button" class="es-stub__pull"><span class="es-stub__label">Start level<\/span>/)
+    expect(html).not.toMatch(/<button type="button" class="es-stub__pull"[^>]*disabled=""/)
+    expect(html).toContain('href="/play/pool?level=evict"')
+    // Nothing of the game is drawn until the learner starts it.
+    expect(html).not.toContain('data-game=')
+    expect(drawnBlocks({ type: 'game', id: 'loop', level: 'async', mode: 'practice' })).toContain('Practice, on the level’s own numbers, with undo.')
+  })
+
+  test('a game block of a game that no task has built yet names its open task and holds its stub down, and a name that is no game names no task', () => {
+    const game = (id: string): CompiledBlock => ({ type: 'game', id, level: 'yard', mode: 'graded' })
+    const waiting = drawnBlocks(game('switchyard'))
+    expect(placeholders(waiting)).toEqual({ game: 'W2-T30' })
+    expect(waiting).toContain('Not built yet: the game')
+    expect(waiting).toContain('<strong>The Dumbwaiter</strong>')
+    expect(waiting).toMatch(/<button type="button" class="es-stub__pull"[^>]*disabled=""/)
+    for (const id of ['not-a-game', 'constructor']) {
+      const none = drawnBlocks(game(id))
+      expect(placeholders(none)).toEqual({})
+      expect(none).toContain(`No game is called ${id}.`)
+      expect(none).not.toContain('es-stub')
+    }
   })
 
   test('a trace with no seed is a pinned trace, and one with a seed is labelled synthetic', () => {
@@ -448,12 +491,15 @@ describe('the blocks, one at a time', () => {
     expect(drawnBlocks({ type: 'trace', id: 'loop-off', seed: 7, tasks: ['gap'] })).toContain('>synthetic<')
   })
 
-  test('a forge lab and a GPU lab each name their own lab\'s task, and both link to the lab page', () => {
+  test('a forge lab that is built prints no placeholder, a GPU lab names its own open task, and both link to the lab page', () => {
     const lab = (id: string, lane: 'B' | 'L' | 'F'): CompiledBlock => ({ type: 'lab', id, lane, stages: ['s1', 's2'] })
+    // A forge lab that is built (W1-T22) leads to a page that works, so its ticket prints no placeholder: the link is live and says nothing is missing.
     const forge = drawnBlocks(lab('hybrid-kv', 'B'))
-    expect(placeholders(forge)).toEqual({ lab: 'W1-T22' })
+    expect(placeholders(forge)).toEqual({})
+    expect(forge).not.toContain('Not built yet')
     expect(forge).toContain('lane · B browser')
     expect(forge).toContain('href="/labs/hybrid-kv"')
+    expect(placeholders(drawnBlocks(lab('rejection-sampler', 'B')))).toEqual({})
     expect(placeholders(drawnBlocks(lab('tr0.forward', 'L')))).toEqual({ lab: 'W2-T16' })
     expect(drawnBlocks(lab('tr8.replay', 'F'))).toContain('stage · s2')
   })
@@ -469,8 +515,8 @@ describe('the blocks, one at a time', () => {
     const kept = (kind: 'notional-machine' | 'in-production' | 'build-this' | 'change') => placeholders(drawnBlocks({ type: 'card', kind, id: 'trace-room-steploop' }))
     // A notional-machine card is no placeholder: it prints while it loads, and the next test draws it once it has.
     expect(kept('notional-machine')).toEqual({})
-    expect(kept('in-production')).toEqual({ card: 'W1-T13' })
-    expect(kept('build-this')).toEqual({ card: 'W1-T13' })
+    expect(kept('in-production')).toEqual({ card: 'W2-T42' })
+    expect(kept('build-this')).toEqual({ card: 'W2-T42' })
     expect(kept('change')).toEqual({ card: 'W3-T06' })
   })
 
@@ -486,9 +532,10 @@ describe('the blocks, one at a time', () => {
   })
 
   test('an item block of a family that no task has built yet says so, and holds its stub down', () => {
-    const html = drawnBlocks({ type: 'item', family: 'tr2.dispatch-key', level: 1, count: 5 })
+    // A family that a lesson names and nobody has built is the case, and none of TR2's is one now: the id is one no lesson names.
+    const html = drawnBlocks({ type: 'item', family: 'tr2.no-such-family', level: 1, count: 5 })
     expect(html).toContain('data-phase="unbuilt"')
-    expect(html).toContain('Not built yet: the generator for tr2.dispatch-key')
+    expect(html).toContain('Not built yet: the generator for tr2.no-such-family')
     expect(html).toMatch(/<button type="button" class="es-stub__pull"[^>]*disabled=""/)
   })
 
@@ -509,14 +556,16 @@ describe('a notional-machine card (W1-T07)', () => {
   const env = renderEnv([], claims, TODAY)
   const html = render(h(NotionalMachineView, { card, env, scope: 'tr2.l1' }))
 
-  test('is one ticket, titled by its kind, with the card\'s id on its head line and no placeholder', () => {
+  test('is one ticket, titled by its kind, with the card\'s id on its foot line and no placeholder', () => {
     const tickets = opening(html, 'section')
     expect(tickets.length).toBe(1)
     expect(attribute(tickets[0], 'data-block')).toBe('card')
     expect(attribute(tickets[0], 'data-kind')).toBe('notional-machine')
     expect(attribute(tickets[0], 'data-placeholder')).toBeUndefined()
     expect(html).toContain('<h2 class="es-ticket__title">Notional machine</h2>')
-    expect(html).toContain('<div class="es-ticket__head"><span><span aria-hidden="true">tr2.l1</span></span><span>fixture-world</span></div>')
+    // The title leads the paper: no head line over it, and the lesson's id and the card's on the foot line.
+    expect(html).not.toContain('es-ticket__head')
+    expect(html).toContain('<div class="es-ticket__foot"><span><span aria-hidden="true">tr2.l1</span></span><span>fixture-world</span></div>')
   })
 
   test('prints the card\'s name and its few words, then its three parts under tape, in order, one level under the ticket\'s title', () => {

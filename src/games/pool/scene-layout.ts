@@ -13,9 +13,9 @@
  *     marker, lies along its front edge.
  *   - The line's rail: along the front edge of the reach-in's overshelf, a clip for each batch slot, and the tickets on the line hung on
  *     them, tipped toward the expo and curling at the foot as paper off a roll does.
- *   - The pass, across an aisle in front: the waiting tickets lie along its front half, and two heat lamps hang low over its back half,
- *     under the line's rail, burning only while the present lies on the pass (an admit, or the tickets a kit is wanted for): each aims
- *     forward and pools its amber on the steel under the tickets in front of it.
+ *   - The pass, across an aisle in front: the waiting tickets lie along its front half, and two heat lamps hang low over its back half on
+ *     short stems from a lamp bar across it, under the line's rail, burning only while the present lies on the pass (an admit, or the
+ *     tickets a kit is wanted for): each aims forward and pools its amber on the steel under the tickets in front of it.
  *   - The room: tile, the line's burners under their hood to the left, the floor, and the room's light falling away from the line and
  *     the reach-in into the haze, across, up the wall and back.
  *
@@ -50,9 +50,10 @@ export const PITCH = { x: 0.114, z: 0.182 } as const
 export const FRAME = { front: 0.07, side: 0.07, back: 0.17 } as const
 /**
  * The mise in a pan: how far below the rim its edge lies, so the pan's wall and rolled rim stand round it as a line of steel, and how
- * high it heaps in the middle; its crown, where a kit pan's tape lies.
+ * high it heaps in the middle, a mound with round shoulders that the tubes catch (finish reviews, W1b rounds 1 and 2), each pan's a
+ * little higher or lower than its neighbours' and the highest still under the rim; its crown, where a kit pan's tape lies.
  */
-export const MISE = { drop: 0.02, heap: 0.007 } as const
+export const MISE = { drop: 0.02, heap: 0.016 } as const
 export const CROWN = TOP - MISE.drop + MISE.heap
 /** A pan's tape: masking tape across the mise. */
 export const TAPE = { w: 0.074, d: 0.044 } as const
@@ -66,16 +67,20 @@ export const RAIL = { y: 1.3, pitch: 0.16, grip: 0.045, out: 0.235 } as const
 /**
  * The tickets: the kit's, drawn `scale` times its size, so that a hung ticket's paper, its curl and its print read across the reach-in
  * at 1440 px, about 50 px tall in the front shot; the clips grow with them. A ticket's length at that size and the distance between two
- * lying on the pass; and how one stands: a hung one tipped forward off its clip by `tilt` radians, and every one curled toward its face
- * by `curl` of its length, as paper off a roll is.
+ * lying on the pass; and how one stands: a hung one tipped forward off its clip by `tilt` radians and turned on it by about `turn`
+ * radians, so that its cut edge stands toward the room (finish review, W1b round 2), and every one curled toward its face by `curl` of
+ * its length, as paper off a roll is.
  */
-export const TICKET = { scale: 1.85, height: 0.222, gap: 0.165, tilt: 0.32, curl: 0.24 } as const
+export const TICKET = { scale: 1.85, height: 0.222, gap: 0.165, tilt: 0.32, turn: 0.45, curl: 0.24 } as const
 /**
- * The heat lamps over the pass: their x, the mouth of each shade, under the line's rail, and the line under them, each on a rod from a
- * ceiling out of every shot (5 m up). They hang over the pass's back half, so that from every preset their shades stand over the pass and
- * behind the waiting tickets (the tests project their shades), and each throws its light forward and down on the tickets in front of it.
+ * The heat lamps over the pass: their x, the mouth of each shade, under the line's rail, and the line under them; and the lamp bar they
+ * hang from on short stems, a steel rod `bar` up across the pass's back half on two posts `span` apart that stand on its top (cabinet.ts's
+ * `lampBar`). The lamps hang over the pass's back half, so that from every preset their shades stand over the pass and behind the waiting
+ * tickets, and each throws its light forward and down on the tickets in front of it. Nothing over the pass stands higher than the bar,
+ * so in the front shot no stem or post crosses the rack, where a rod from the ceiling ran across it (finish review, W1b round 2); the
+ * tests project the shades, the bar and its posts.
  */
-const LAMP = { x: 0.24, mouth: 1.2, z: 0.74 } as const
+export const LAMP = { x: 0.24, mouth: 1.17, z: 0.765, bar: 1.44, span: 1.42 } as const
 
 /**
  * The presets' ids, as scene-presets.ts names them for the page's plates (a test holds the two lists equal). The scene does not import
@@ -111,13 +116,19 @@ const shot = (elevation: number, fov: number, d: number, z: number, x = 0) => ({
  * follows the depth along a straight line or two, fitted to the nearest camera that holds, for every pool size of the levels, the rack's
  * corners, the rail and its hung tickets clear of the overshelf, the waiting tickets, the pass's front lip and the heat lamps in its
  * frame, with the lamps' shades over the pass and hiding no pan, hung ticket or waiting ticket; the tests project those landmarks through
- * every preset at every pool size. Front of the reach-in looks down 53° at 1440 px, stood to the left so that the line and its hood come
- * into the frame beside the rack, and 52° on a phone, the rack across the width. From above looks down 76° (82°, stood back from the
- * pass, which leaves it out of a phone's frame).
+ * every preset at every pool size. Front of the reach-in looks down 35.5° at 1440 px, across the rack rather than down on it, so that the
+ * pans show their rims, their depth and their heaped mise, where a steeper shot read them as a grid of tiles (finish review, W1b round 2);
+ * the lamp bar over the pass stays under the front row's rims in the picture, which is as low as the shot goes. It stands to the left so
+ * that the line and its hood come into the frame beside the rack. On a phone the rack runs across the width, and the frame's height,
+ * which a low shot through a wide lens gave to the pass, its shelf and the lamps while the rack shrank to a strip at the top (finish
+ * review, W1b close-out), goes to the rack: the shot looks down 48° through a 28° lens, near the camera grammar's Establish, from far
+ * enough that the pass in front is drawn little larger than the rack, and stands so the pass's front lip lies along the frame's foot,
+ * its shelf and legs out of the picture; the rack is the largest thing in the frame, and the lamp bar stands well below its front row.
+ * From above looks down 76° (82°, stood back from the pass, which leaves it out of a phone's frame).
  */
 export const framings = (depth: number) => [
-  // 53° and 52°
-  [shot(0.925, 30, Math.max(3.86, 2.06 + 1.48 * depth), Math.min(0, 0.5 - 0.4 * depth), Math.max(-0.6, -0.04 - 0.36 * depth)), shot(0.9076, 40, Math.max(3.68, 1.78 + 0.96 * depth), Math.min(-0.06, 0.63 - 0.4 * depth))],
+  // 35.5° at 1440 px, 48° on a phone
+  [shot(0.62, 36, Math.max(3.48, 2.14 + 0.733 * depth), Math.min(-0.27, 0.28 - 0.29 * depth), -0.3), shot(0.838, 28, Math.max(5.6, 2.12 + 1.45 * depth), Math.min(-0.44, 0.48 - 0.386 * depth))],
   // 76° and 82°
   [shot(1.3265, 32, Math.max(2.5 + 0.1 * depth, 1.84 * depth), -0.47 * depth), shot(1.4312, 44, Math.max(3.28 + 0.06 * depth, 1.263 * depth), -0.4 - 0.34 * depth)],
 ]
@@ -177,15 +188,17 @@ export function reachInOf(pages: number, cap: number): ReachIn {
       { kind: 'hood', id: 'hood', at: [-1.48, 2.25, back], width: 1.1, depth: 1, height: 0.46 },
       { kind: 'pass', id: 'pass', at: [0, 0, PASS.z], width: PASS.width, depth: PASS.depth, height: PASS.top, strip: 0 },
       { kind: 'rail', id: 'rail', at: rail, length: cap * RAIL.pitch + 0.12 },
-      ...lamps.map((x): PropSpec => ({ kind: 'heat-lamp', id: `lamp${x}`, at: [x, 5, LAMP.z], drop: 5 - LAMP.mouth - 0.2015, hang: 'rod' })),
+      // Each lamp's canopy clasps the bar, its stem a few centimetres down to the shade.
+      ...lamps.map((x): PropSpec => ({ kind: 'heat-lamp', id: `lamp${x}`, at: [x, LAMP.bar, LAMP.z], drop: LAMP.bar - LAMP.mouth - 0.2015, hang: 'rod' })),
     ],
     lamps: lamps.map((x) => ({ id: `lamp${x}`, at: [x, LAMP.mouth - 0.02, LAMP.z], target: [x, PASS.top, PASS.line] })),
     rail,
     clips: Array.from({ length: cap }, (_, k) => ({ id: `clip${k}`, x: clipX(k, cap) })),
     tape: { at: [-0.52, TOP + 0.0006, -FRAME.front / 2], rotation: [-Math.PI / 2, 0, 0.02], scale: [0.4, 0.05, 1], cell: CELL.scrawl },
-    // The room's light, baked into its tile and its floor: full over the line and the reach-in's left, and falling away into the haze's
-    // deep steel across the room past the rack's right side, up the wall over the overshelf, and back toward the far corner.
-    light: { x: -0.6, half: 0.8, above: 1.3, beyond: back, reach: [1.1, 0.6, 1.2], dim: 0.3, veil: 0.8 },
+    // The room's light, baked into its tile and its floor: full over the line and the reach-in's left up to the rack's top, and falling
+    // away into the haze's deep steel across the room past the rack's middle, up the wall behind the overshelf to the frame's top, and
+    // back toward the far corner [estimated].
+    light: { x: -0.6, half: 0.7, above: 1, beyond: back, reach: [1, 0.45, 1.2], dim: 0.2, veil: 0.9 },
     presets: SHOTS.map((id) => {
       const [wide, portrait] = shots[id === 'top' ? 1 : 0]
       return { id, label: id, shot: id === 'top' ? id : 'establish', projection: 'perspective', ...wide, portrait }
@@ -270,7 +283,10 @@ export function nightOf(view: PoolView, r: ReachIn, { station, chosen }: NightOp
   const tapes: Tape[] = []
   for (const pan of pans) {
     if (pan.state === 'free') continue
-    fills.push({ at: top(pan.id, -MISE.heap), cell: FOOD[pan.state] })
+    // A pan's mise lies one way or end for end, by its number, so no two rows of the rack are stamped out alike; and it is heaped a
+    // little higher or lower than its neighbours', so the tubes glint on each mound in its own place (finish review, W1b round 2). A
+    // kit's pan is heaped as drawn, as its tape lies on its crown.
+    fills.push({ at: top(pan.id, -MISE.heap), rotation: [0, (pan.id * 5) % 3 ? 0 : Math.PI, 0], scale: [1, pan.kit === null ? 0.75 + ((pan.id * 7) % 5) / 10 : 1, 1], cell: FOOD[pan.state] })
     // A kit's pans carry its tape, a degree or two off true, with the pin in marker on it. A kit's pan belongs to no station, so One
     // station leaves its tape off with the other stations' marks.
     if (pan.kit === null || station !== null) continue
@@ -294,7 +310,7 @@ export function nightOf(view: PoolView, r: ReachIn, { station, chosen }: NightOp
   })
   const hang = r.rail[2] + 0.012
   view.running.forEach((id, k) => {
-    poses.set(id, { id: `t${id}`, at: [clipX(k, cap), RAIL.y - RAIL.grip, hang], rotation: [-TICKET.tilt, 0, lean(id, 0.07)], cell: cellOf(id), arc: 0.16 })
+    poses.set(id, { id: `t${id}`, at: [clipX(k, cap), RAIL.y - RAIL.grip, hang], rotation: [-TICKET.tilt, TICKET.turn + lean(id, 0.16), lean(id, 0.07)], cell: cellOf(id), arc: 0.16 })
     if (ask?.kind === 'preempt' && ask.candidates.includes(id)) rings.push({ at: [clipX(k, cap), RAIL.y - RAIL.grip + FOOT[0] / 2, hang + FOOT[1] / 2 + 0.01], rotation: [Math.PI / 2 - TICKET.tilt, 0, 0], scale: [1.45, 1, 1.35] })
   })
 

@@ -159,13 +159,17 @@ describe('the app build', () => {
     // loads for the replay grader when the game plays two sets of rules, as Service does since W1-T13 (the first service's and the full
     // service's), so that a page that plays one of them never carries the other; or an item family's code
     // (packages/play/items/families/<module>/<family>.ts), which Today and an item block load when they draw one of its items, so that a
-    // page carries no family it does not draw from (D-059).
+    // page carries no family it does not draw from (D-059); or the game of a lesson's game block (src/content/render/GameEmbed.tsx,
+    // W1b-T01), which the lesson loads when the learner starts a level, with the games' registry, so that a lesson's first paint carries no
+    // game; verify:bundle prints it with the lesson's route and each game it embeds; or the reveal of a lesson's prediction
+    // (src/content/render/reveal.ts, W1b-T02) and the readings of a module's predictions (packages/play/predictions/<module>.ts), which the
+    // box loads when the learner pulls the stub after the game, because they bring the games' worlds and the ledger with them.
     // The compiled content is lazy too, but it is not a page: the next test holds it to account.
     const named = Object.entries(app.manifest)
       .filter(([key, chunk]) => chunk.isDynamicEntry && chunk.src !== undefined && !key.startsWith(CONTENT))
       .map(([key]) => key)
     const onDemand =
-      /^(packages\/play\/[^/]+\/game\.ts|packages\/play\/items\/families\/(?:tr[0-8][ab]?|capstone)\/[a-z0-9-]+\.ts|src\/games\/[^/]+\/[A-Za-z0-9]+\.tsx|src\/scene\/[\w/-]+\.tsx?|src\/forge\/ForgeLabPage\.tsx|src\/items\/Attempt\.tsx|src\/trace\/TraceView\.tsx|src\/route-change\.ts|node_modules\/three\/examples\/jsm\/[\w/-]+\.js)$/
+      /^(packages\/play\/[^/]+\/game\.ts|packages\/play\/items\/families\/(?:tr[0-8][ab]?|capstone)\/[a-z0-9-]+\.ts|src\/games\/[^/]+\/[A-Za-z0-9]+\.tsx|src\/scene\/[\w/-]+\.tsx?|src\/forge\/ForgeLabPage\.tsx|src\/items\/Attempt\.tsx|src\/content\/render\/(?:GameEmbed\.tsx|reveal\.ts)|packages\/play\/predictions\/tr[0-8][ab]?\.ts|src\/trace\/TraceView\.tsx|src\/route-change\.ts|node_modules\/three\/examples\/jsm\/[\w/-]+\.js)$/
     expect(named.filter((key) => !pages.includes(key) && !onDemand.test(key))).toEqual([])
   })
 
@@ -221,8 +225,9 @@ describe('the app build', () => {
     // Only the props are in it: not three, not React, not the kit's core.
     const sources = app.sources.get(kit?.file ?? '') ?? []
     expect(sources.filter((source) => !source.includes('src/scene/props/') && !source.startsWith(THREE_ADDONS))).toEqual([])
-    // Their addon (BufferGeometryUtils) rides with them, and no page's first chunk loads them.
-    expect(chunksHolding(app, `${THREE_ADDONS}utils/`)).toEqual([kit?.file])
+    // They merge their geometry themselves (shape.ts's merged, W1b-T10), so three's geometry addon (BufferGeometryUtils) rides in no chunk
+    // at all, and no page's first chunk loads the props.
+    expect(chunksHolding(app, `${THREE_ADDONS}utils/`)).toEqual([])
     for (const page of readdirSync(path.join(root, 'src/pages')).filter((file) => file.endsWith('.tsx'))) {
       const [key] = Object.entries(app.manifest).find(([, chunk]) => chunk.name === page.replace('.tsx', '') && chunk.isDynamicEntry) ?? []
       if (key) expect(staticClosure(app, key).has(kitKey ?? 'no scene-kit chunk'), page).toBe(false)
@@ -444,7 +449,7 @@ describe('the app build', () => {
     const [vendorKey, vendor] = chunkNamed(app, 'react-vendor') ?? []
     expect(vendor).toBeDefined()
     expect(app.manifest[entryKeyOf(app)].imports).toContain(vendorKey)
-    expect(chunksHolding(app, 'node_modules/react/', 'node_modules/react-dom/')).toEqual([vendor.file])
+    expect(chunksHolding(app, 'node_modules/react/', 'node_modules/react-dom/')).toEqual([vendor!.file])
   })
 })
 
@@ -488,8 +493,8 @@ describe('a build with a lazy scene that imports three, R3F and a three addon', 
     expectThreeIsolated(fixture)
     const [vendorKey, vendor] = chunkNamed(fixture, 'three-vendor') ?? []
     expect(vendor).toBeDefined()
-    expect(chunksHolding(fixture, THREE_CORE)).toEqual([vendor.file])
-    expect(chunksHolding(fixture, R3F)).toEqual([vendor.file])
+    expect(chunksHolding(fixture, THREE_CORE)).toEqual([vendor!.file])
+    expect(chunksHolding(fixture, R3F)).toEqual([vendor!.file])
     expect(fixture.manifest['scene.ts'].imports).toContain(vendorKey)
   })
 
@@ -501,7 +506,7 @@ describe('a build with a lazy scene that imports three, R3F and a three addon', 
     const [, vendor] = chunkNamed(fixture, 'react-vendor') ?? []
     expect(vendor).toBeDefined()
     for (const name of ['react', 'react-dom', 'scheduler', 'zustand', 'use-sync-external-store']) {
-      expect(chunksHolding(fixture, `node_modules/${name}/`)).toEqual([vendor.file])
+      expect(chunksHolding(fixture, `node_modules/${name}/`)).toEqual([vendor!.file])
     }
   })
 })

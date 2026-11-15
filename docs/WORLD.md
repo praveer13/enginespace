@@ -85,7 +85,7 @@ vLLM v1's rules at v0.33.0 (vllm M8, M12), which kernelspace's lab 06 twin alrea
 - **Adapters, two policies.** S-LoRA's unified paging (an adapter takes ⌈adapter bytes ÷ page bytes⌉ pages, stored non-contiguously, shared by every request using it, admitted all or nothing), which the learner builds; and the slot baseline: vLLM's `max_loras` slots with a CPU LRU and an admission cap on distinct adapters (vllm K4), or SGLang's `max_loras_per_batch` slots (sglang X6).
 - **Prefix caching.** A block's hash chains its parent's hash, its token ids and its extra keys (the adapter id). A hit is the longest prefix every group holds, found as a fixed point with full attention first (vllm K1).
 - **Capacity** is the memory budget, less the weights, the activation workspace and the CUDA-graph reservation, divided by the bytes per page; since v0.29.0 the graph memory is reserved before the KV cache is sized (vllm G9).
-- **Events** are `BlockStored`, `BlockRemoved` and `AllBlocksCleared` in `kv-events@1`, mirroring v0.33.0's shapes (vllm K8) with an adapter field (sglang H2) (D-034).
+- **Events** are `BlockStored`, `BlockRemoved` and `AllBlocksCleared` in `kv-events@1`, mirroring v0.33.0's shapes (vllm K8) (D-034). Those shapes already carry the adapter, so the schema adds no adapter field of its own: vLLM's `BlockStored` has `lora_name`, and a `lora_id` that its source marks deprecated, and SGLang's has `lora_name` since v0.5.23 (claims `vllm.kv-events.adapter-field` and `sglang.kv-events.adapter-field`; sglang H2).
 - **Invariants:** pages are conserved; refcounts never go below zero; a block table's length follows its group's rule; every operation is all or nothing; every stored or removed block is published exactly once.
 
 ### 2.5 CUDA graphs

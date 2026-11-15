@@ -23,6 +23,10 @@
  *      1440 px and the claim at 390 px; and on a phone the tail comes before the desk.
  *   9. The rows sheet lights the selected order as an edgeless pool on the tape's paper, with no fill, border or outline of its own, at
  *      1440 and 390 px; and on a phone the tail prints each order on one line under its column heads, so the desk follows close under it.
+ *  10. The tail gives nothing away (W1b-T11): it lists as many orders for every log and every setting of the stopwatch and the cut, in a
+ *      graded attempt too, so that its length says nothing of where the p99 sits; and it scrolls in a box of its own, which does not scroll
+ *      sideways from 320 to 390 px under the widest times a log has, and is smaller under a finger, so that a tail of a hundred lines
+ *      leaves the desk within reach and the page can be swiped above and below it.
  *
  * How it runs. The spec starts the app's own Vite dev server on a free port, so it needs no build and no preview server, and drives
  * `/play/broken-bench` in whichever browser Playwright launches. With ES_E2E_ORIGIN set to the address of a server that is already running
@@ -36,6 +40,7 @@ import { createServer } from 'vite'
 import type { ViteDevServer } from 'vite'
 import { applyAction, drawInBand, startRun, stateHash } from '../packages/play'
 import { caseOf } from '../packages/play/broken-bench/cases'
+import { TAIL_ROWS } from '../packages/play/broken-bench/desk'
 import { FLAW_FACTS } from '../packages/play/broken-bench/flaws'
 import { orderNo } from '../packages/play/broken-bench/layout'
 import { buildLevel } from '../packages/play/broken-bench/levels'
@@ -530,6 +535,79 @@ test.describe('the tape and the tail', () => {
     const desk = await page.locator('[data-bench-desk]').boundingBox()
     if (tailBox === null || desk === null) throw new Error('the tail or the desk is not drawn')
     expect(tailBox.y + tailBox.height).toBeLessThan(desk.y)
+  })
+
+  test('the tail lists as many orders for every log and every setting of the desk, in a graded attempt too, in a box that scrolls', async ({ page }) => {
+    test.setTimeout(120_000)
+    const lines = () => page.locator('[data-mirror=""] tbody tr').count()
+    const measured = async () => Number(/Desk: ([\d,]+) orders measured/.exec(await page.locator('[data-mirror-summary]').innerText())?.[1]?.replace(/,/g, ''))
+    const box = page.locator('[data-mirror=""] .es-mirror__region')
+    await page.setViewportSize({ width: 390, height: 844 })
+    // A client queue hidden is dealt on an odd seed. Seed 3 deals a log of 1,128 orders and 73 the longest log that this level deals, 5,128 [measured 2026-11-09 at 397331b].
+    for (const seed of [3, 73]) {
+      await open(page, 'due')
+      await queueSeeds(page, [seed])
+      await page.getByRole('button', { name: 'Graded attempt, fresh seed' }).click()
+      await expect(game(page)).toHaveAttribute('data-mode', 'graded')
+      await expect(game(page)).toHaveAttribute('data-seed', String(seed))
+      await expect(page.getByText('At the desk')).toHaveCount(0)
+      const orders = caseOf(buildLevel('due', seed).slots[0]).scene.rows.length
+      // The tail is a box that scrolls: it holds every line and shows a dozen or so, so that it leaves the desk within reach.
+      expect(await lines(), `seed ${seed}: the report's desk`).toBe(TAIL_ROWS)
+      const found = await box.evaluate((region) => ({ shown: region.clientHeight, held: region.scrollHeight, overflowY: getComputedStyle(region).overflowY }))
+      expect([seed, found.overflowY]).toEqual([seed, 'auto'])
+      expect(found.shown).toBeLessThanOrEqual(40 * 16)
+      expect(found.held).toBeGreaterThan(found.shown)
+      // The same lines with the stopwatch at the due time, with nothing cut, with a cut that leaves most of the log, and one that leaves 50 orders.
+      await game(page).focus()
+      await page.keyboard.press('KeyT')
+      await expect(page.locator('[data-mirror-summary]')).toContainText('timed from the due time')
+      expect(await lines(), `seed ${seed}: the stopwatch at the due time`).toBe(TAIL_ROWS)
+      for (const [cut, left] of [[0, orders], [500, orders - 500], [orders - 50, 50]] as const) {
+        await page.getByLabel('Leave out the first').fill(String(cut))
+        await expect.poll(measured, { message: `seed ${seed}: the orders the desk measures at a cut of ${cut}` }).toBe(left)
+        expect(await lines(), `seed ${seed}: a cut of ${cut}`).toBe(Math.min(left, TAIL_ROWS))
+      }
+    }
+  })
+
+  test('the tail\'s box does not scroll sideways from 320 to 390 px under the widest times that a log has (WCAG 1.4.10)', async ({ page }) => {
+    test.setTimeout(120_000)
+    // A client queue hidden, timed from the due time, has the slowest orders of the corpus: seed 389 of this level, on the due clock, has
+    // 121,697.8 ms at the top of its tail, nine characters and 92 px in the dot face [measured 2026-11-09 at 397331b].
+    const seed = 389
+    const box = page.locator('[data-mirror=""] .es-mirror__region')
+    for (const width of [320, 360, 375, 390]) {
+      await page.setViewportSize({ width, height: 800 })
+      await open(page, 'due')
+      await queueSeeds(page, [seed])
+      await page.getByRole('button', { name: 'Graded attempt, fresh seed' }).click()
+      await expect(game(page)).toHaveAttribute('data-seed', String(seed))
+      await game(page).focus()
+      await page.keyboard.press('KeyT')
+      await expect(page.locator('[data-mirror-summary]')).toContainText('timed from the due time')
+      await expect(page.locator('[data-mirror] tbody tr').first().locator('td[data-label="To first token"]')).toContainText('121,697.8')
+      // The browser draws no scrollbar here, and a desktop browser draws one 15 to 17 px wide inside the box: the box's padding takes the same room.
+      await box.evaluate((region) => {
+        region.style.paddingRight = '17px'
+      })
+      const found = await box.evaluate((region) => ({ sideways: region.scrollWidth - region.clientWidth, wide: Math.max(...[...region.querySelectorAll('tbody tr td:last-child')].slice(0, 20).map((cell) => cell.scrollWidth - cell.clientWidth)) }))
+      // Nothing scrolls sideways in the box, and no time overflows the cell it is printed in.
+      expect([width, found.sideways]).toEqual([width, 0])
+      expect([width, found.wide]).toEqual([width, 0])
+    }
+  })
+
+  test.describe('under a finger', () => {
+    test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } })
+
+    test('the tail\'s box is at most 55% of the screen, where a mouse allows 75%, so that there is page to swipe above and below it', async ({ page }) => {
+      await open(page, 'due')
+      expect(await page.evaluate(() => matchMedia('(pointer: coarse)').matches)).toBe(true)
+      const shown = await page.locator('[data-mirror=""] .es-mirror__region').evaluate((region) => ({ box: region.clientHeight, screen: innerHeight }))
+      expect(shown.box).toBeGreaterThan(0)
+      expect(shown.box).toBeLessThanOrEqual(Math.floor(0.55 * shown.screen))
+    })
   })
 })
 

@@ -258,7 +258,7 @@ export function poolExample(): { df: number; bins: number; pooledTokens: number;
   const counts = weights.map((w) => (draws * w) / 1000)
   const { df } = chiSquare(counts, { weights: [...weights], total: 1000 })
   const small = weights.filter((w) => w > 0 && (draws * w) / 1000 < 5)
-  return { df, bins: df + 1, pooledTokens: small.length, pooledExpected: small.reduce((a, w) => a + (draws * w) / 1000, 0), ruledOut: weights.filter((w) => w === 0).length }
+  return { df, bins: df + 1, pooledTokens: small.length, pooledExpected: small.reduce<number>((a, w) => a + (draws * w) / 1000, 0), ruledOut: weights.filter((w) => w === 0).length }
 }
 
 /** The lab's level and the false-fail it implies: `1 − (1 − 1e-4)^2` for two seeds, as parts in 10,000 (by repeated products, so no pow). */
@@ -402,7 +402,12 @@ export interface ChoicePrediction {
   readonly reference: () => string
 }
 
-/** What each lesson's prediction is worth, computed from the course's own models: the reveal's reference answer, which no content file stores (A§1, I3). */
+/**
+ * What each lesson's prediction is worth, computed from the course's own models: the reveal's reference answer, which no content file stores
+ * (A§1, I3). None of TR6's five has a run to read it from (the questions carry numbers of their own that no level of The Tasting or of the
+ * allergy card holds), so the lesson's box says that its reveal waits for W2-T43 (packages/play/predictions/plan.ts), and these figures are
+ * what that task starts from.
+ */
 export const PREDICTIONS: Readonly<Record<string, NumericPrediction | ChoicePrediction>> = {
   // Each draft kept with probability 0.8, three drafts: 1 + 0.8 + 0.64 + 0.512.
   'tr6.l1.p1': { kind: 'numeric', unit: 'tokens', reference: () => tokensPerRoundAt(800, 3) },

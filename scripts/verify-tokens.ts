@@ -24,6 +24,7 @@ import {
   cssVar,
   FONT_PARTS,
   fontVar,
+  isColorRole,
   PAIRS,
   ROLE_GROUPS,
   ROLE_NAMES,
@@ -337,6 +338,8 @@ function describe(name: RoleName): string {
   const label = `${name}`.padEnd(22)
   const variable = cssVar(name).padEnd(26)
   if (role.kind === 'color') {
+    // `roleOf` does not tell the compiler that a role of kind 'color' is one of COLORS, and this does.
+    if (!isColorRole(name)) throw new Error(`${name} is a colour that COLORS does not list`)
     const light = resolveColor(name)
     const shown = typeof role.value === 'string' ? light : `${light} (= ${role.value.ref})`
     const overrides = SCHEME_NAMES.filter((scheme) => scheme !== 'light' && resolveColor(name, scheme) !== light).map(

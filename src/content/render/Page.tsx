@@ -15,8 +15,8 @@ import { kernelspaceLabel, kernelspaceUrl, titled } from './model'
  */
 
 /**
- * The page's id on a ticket's head line, for the eye. Every ticket of a page carries it, so assistive tech skips it: the
- * page's name and its breadcrumb give it once.
+ * The page's id on a ticket's foot line (its head line, on a ticket with no title), for the eye. Every ticket of a page carries it,
+ * so assistive tech skips it: the page's name and its breadcrumb give it once.
  */
 export function Scope({ id }: { id: string }) {
   return <span aria-hidden="true">{id}</span>

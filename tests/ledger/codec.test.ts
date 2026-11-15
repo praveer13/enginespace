@@ -664,7 +664,7 @@ describe('fitsJson', () => {
   })
 
   test('a list with a hole is not JSON', () => {
-    // eslint-disable-next-line no-sparse-arrays
+    // eslint-disable-next-line no-sparse-arrays -- the hole is the case under test: a list with a hole is not JSON
     expect(fitsJson([1, , 3], { chars: 100, depth: 3 })).toBe(false)
   })
 

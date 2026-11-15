@@ -15,7 +15,8 @@
  *     bin, a full hotel pan at the pass's right end, and the bin keeps the last few. A finished ticket is spiked.
  *   - The line behind the pass: a station for each clip, burning in the lamp's amber where the latest fire cooked a course and
  *     cold where its clip rode empty (`stationsOf`). Tile, hood, floor and a speed rack make the room, and the room's light, baked
- *     into the tile and the floor, is full over the line and dims toward the room's corners, over the hood and into the wall's foot.
+ *     into the tile and the floor, is full behind the line's worktops and dims up the tile to the hood and toward the room's corners.
+ *     The aisle between the pass and the line lies in their shade.
  *   - Three heat lamps over the pass, the bell at its front right.
  *
  * Every word and number is a DOM label anchored here (D-021, GAMES.md §2.6 rule 7); the tickets' print is texture.
@@ -23,6 +24,7 @@
 import { BAR, CEILING, clipX, FIRED, GRIP, HOOD, lampsOf, LINE, lineOf, MOUTH, PASS, passWidth, pitchOf, PLATE_Z, RAIL, railLength, SHELF, STATION_KINDS, TICKET, WALL_Z } from '@es/play/loop/kitchen'
 import { stationsOf, ticketNo } from '@es/play/loop/layout'
 import type { KitchenView } from '@es/play/loop/types'
+import type { Footprint } from '@/scene/props/build'
 import type { RoomLight } from '@/scene/props/set'
 import type { PropSpec, StationSpec, Vec3 } from '@/scene/props/specs'
 
@@ -47,11 +49,15 @@ const lean = (n: number, amount: number): number => (((n * 37) % 11) / 11 - 0.5)
 /* The kitchen: what stands still                                                                                     */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
+/**
+ * A strip of masking tape stuck on an object, its words in marker: a DOM label (Scene3D.tsx draws it as the design system's tape, torn off
+ * at the size of its words), anchored on the face of the object it names, so it sits on that object in every shot and its print never
+ * drops under the size ramp's smallest step (scene3d.css).
+ */
 export interface Tape {
   readonly id: string
+  /** The middle of the strip, on the object's face. */
   readonly center: Vec3
-  readonly size: readonly [number, number]
-  readonly rotation: Vec3
   readonly text: string
 }
 
@@ -72,6 +78,12 @@ export interface ServiceKitchen {
   readonly tapes: readonly Tape[]
   /** The room's light, baked into its tile and its floor (the static set's `room`). */
   readonly room: RoomLight
+  /**
+   * The aisle between the pass and the line, in the shade of the pass and the hood: a soft shadow on its floor from under the pass's back
+   * edge to the line's front, as the contact shadows are drawn, so the floor darkens as it recedes from the expo rather than catching
+   * the tubes beyond the pass's own shadow [estimated].
+   */
+  readonly aisle: Footprint
 }
 
 export interface KitchenOptions {
@@ -79,12 +91,13 @@ export interface KitchenOptions {
   readonly printer: boolean
   /** The level has the overlap switch: hang the fired rail and set the bin on the pass. */
   readonly overlap: boolean
-  /** The full service's tools are on the pass: their names go on tape on the counter's front edge, beside the expo's. */
-  readonly tools?: boolean
 }
 
-/** The kitchen for a rail of `slots` clips: a function of the level's shape alone, so a fire never rebuilds it. */
-export function serviceKitchen(slots: number, { printer, overlap, tools = false }: KitchenOptions): ServiceKitchen {
+/**
+ * The kitchen for a rail of `slots` clips: a function of the level's shape alone, so a fire never rebuilds it. The full service's tools
+ * carry their own tapes, anchored on the comb and the rack where the night puts them (full/scene.ts).
+ */
+export function serviceKitchen(slots: number, { printer, overlap }: KitchenOptions): ServiceKitchen {
   const width = passWidth(slots)
   const rails = railLength(slots)
   const top = PASS.top
@@ -129,19 +142,17 @@ export function serviceKitchen(slots: number, { printer, overlap, tools = false 
   if (bin) items.push({ kind: 'pan', id: 'bin', at: bin, size: '1/1', depth: 0.1 })
 
   const tapes: Tape[] = [
-    // The line's name on the tile over its last station, and the expo's on the pass's rolled front edge, where each one stands: one
-    // high and far, one low and near, so the two never meet on any screen.
-    { id: 'line', center: [line.x(line.count - 1), 1.24, WALL_Z + 0.004], size: [0.6, 0.07], rotation: [0, 0, 0.02], text: 'the line · gpu' },
-    { id: 'expo', center: [0.15, top - 0.03, PASS.depth / 2 + 0.016], size: [0.42, 0.05], rotation: [-0.45, 0, -0.015], text: 'the expo · cpu' },
+    // The line's name on its last station's cabinet, low on its front, under the fired rail and over the pass's back edge: the band of
+    // the line that the shots over the pass see between the two, on a laptop and on a phone [estimated, by projecting kitchen.ts's SHOTS].
+    // From the side of the pass that station stands behind the pass, and the scene hides its tape there (Scene3D.tsx). The expo's is on
+    // the pass's rolled front edge, where the expediter stands. One on the line and one on the pass, so the two never meet on any screen.
+    { id: 'line', center: [line.x(line.count - 1), 0.32, LINE.z + LINE.depth / 2 - 0.02], text: 'the line · gpu' },
+    { id: 'expo', center: [0.15, top - 0.03, PASS.depth / 2 + 0.016], text: 'the expo · cpu' },
   ]
-  if (bin) tapes.push({ id: 'bin', center: [bin[0], top + 0.094, bin[2] + 0.1625 + 0.0035], size: [0.12, 0.024], rotation: [-0.12, 0, 0.03], text: 'binned · ghost' })
-  if (tools) {
-    // The full service's tools, named on the front edge as the expo is: the comb at the left, the molds at the right (full/kitchen.ts).
-    tapes.push(
-      { id: 'comb', center: [-0.4, top - 0.03, PASS.depth / 2 + 0.016], size: [0.3, 0.05], rotation: [-0.45, 0, 0.012], text: 'comb · launches' },
-      { id: 'molds', center: [0.6, top - 0.03, PASS.depth / 2 + 0.016], size: [0.3, 0.05], rotation: [-0.45, 0, -0.01], text: 'molds · sizes' },
-    )
-  }
+  // The bin's on the front of the pan.
+  if (bin) tapes.push({ id: 'bin', center: [bin[0], top + 0.094, bin[2] + 0.1625 + 0.0035], text: 'binned · ghost' })
+  // The aisle's shade: from under the pass's back edge, where the pass's own shadow fades, back to the line's front.
+  const [aisleFront, aisleBack] = [-PASS.depth / 2 + 0.08, LINE.z + LINE.depth / 2]
   return {
     slots,
     items,
@@ -157,10 +168,13 @@ export function serviceKitchen(slots: number, { printer, overlap, tools = false 
       top: [station.at[0], LINE.height + 0.04, LINE.z - 0.02] as Vec3,
     })),
     tapes,
-    // Full over the middle half of the line, up to 40 cm under the hood's lip and back as far as the line, and easing down to a little
-    // over half of that two metres further to either side, 1.4 metres higher and two metres further back [estimated]: the far corner
-    // and the wall over the hood fall away, and the tile behind the line stays lit.
-    room: { x: 0, half: lineWidth / 4, above: HOOD.top - HOOD.height - 0.4, beyond: LINE.z, reach: [2, 1.4, 2], dim: 0.55 },
+    // Full over the middle third of the line, up to a hand over its worktops and back as far as the line, and easing down to a third of
+    // that 1.2 metres further to either side, up the tile to the hood's lip and nearly three metres further back, with what it no longer
+    // lights veiled in deep steel [estimated]: the tile behind the worktops stays lit, and the wall up to the hood and toward the far
+    // corners falls away, so that the sides of a phone's frame, about 1.3 metres out on the back wall [derived from SHOTS.front], are under
+    // half the middle's light.
+    room: { x: 0, half: lineWidth / 6, above: LINE.height + 0.15, beyond: LINE.z, reach: [1.2, 0.85, 2.8], dim: 0.3, veil: 0.7 },
+    aisle: { center: [0, 0, (aisleFront + aisleBack) / 2], size: [width + 0.6, aisleFront - aisleBack], radius: 0.1, soft: 0.25, strength: 1, yaw: 0 },
   }
 }
 

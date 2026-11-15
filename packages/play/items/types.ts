@@ -252,8 +252,11 @@ export type GenFace = Pick<Gen, 'id' | 'version' | 'title' | 'kcs' | 'variants'>
 /** The ledger ref of an item's events (ARCHITECTURE §4.5). */
 export const itemRef = (family: string, variant: string): string => `item:gen/${family}/${variant}`
 
-/** What the ledger keeps of an answer (`item` events carry free JSON in `data.answer`): the level it was made at, and the response. */
-export interface StoredAnswer {
+/**
+ * What the ledger keeps of an answer (`item` events carry free JSON in `data.answer`): the level it was made at, and the response. It is a
+ * type and not an interface, because the compiler takes an object type for JSON and an interface for something that might have more.
+ */
+export type StoredAnswer = {
   readonly level: Level
   readonly response: Response
 }

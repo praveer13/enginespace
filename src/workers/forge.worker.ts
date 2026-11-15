@@ -17,7 +17,7 @@ import { capReply, invokeCall, readCallReply } from '../../vendor/kernelspace/sr
 import { MAX_MODULE_BYTES, type ForgeReply, type ForgeRequest } from '../forge/protocol'
 
 /* The app tsconfig has the DOM lib, not WebWorker: type just what is used. */
-const scope = self as unknown as {
+const scope = self as unknown as { // `self` is a Window to this program, and a worker's onmessage and postMessage are not a Window's
   onmessage: ((ev: MessageEvent<ForgeRequest>) => void) | null
   postMessage(msg: ForgeReply): void
 }
