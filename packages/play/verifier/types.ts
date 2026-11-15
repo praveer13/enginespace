@@ -43,8 +43,6 @@ export type Plates = readonly number[]
 
 interface LevelBase {
   readonly seed: Seed
-  readonly title: string
-  readonly prompt: string
   /** The chef's tasting at each draft position, and the bonus position after the last (a run of γ drafts has γ + 1 of these). */
   readonly p: readonly Plates[]
   /** The commis's plates at each draft position (γ of them). Empty in `gamma`, whose positions are acceptance rates and not distributions. */

@@ -12,17 +12,12 @@
  * the seeds (GAMES.md §5, "Band": each engine family on at least 15% of graded seeds), and a learner who knows one engine's most common
  * path is right on few of them. The band then asks of the scenario what GAMES.md §5 asks: at least one queue, one copy, one sync and one
  * process boundary on its path. nano-vllm crosses no process at one rank, so its graded scenarios are its two-rank ones.
- *
- * Copy follows GAMES.md §2.6: the kitchen's word names the object and the engine's term rides beside it. It carries no digit, so no
- * number goes untagged. The facts in it are the lifecycle model's (content/cards/lifecycle.md), which cites the pinned source.
- *
- * A level's title names the engine and nothing of its architecture, and its prompt, which says what the level is about, is shown once the
- * prediction is written down: "one process" or "four processes" before it would answer it.
  */
 import { assertSeed, below, rngFor, shuffle } from '@es/sim/core'
 import type { Seed } from '@es/sim/core'
 import { ENGINES, ENGINE_IDS, entryOf, invalidReason, pathFacts, scenarios } from '@es/sim/lifecycle'
 import type { EngineId, Scenario, StageDef } from '@es/sim/lifecycle'
+import { FLOOR_COPY } from './copy'
 import { runPath } from './engine'
 import { ownerOf, referenceOf, stageIn, stagesOf } from './stages'
 import type { FloorLevel, FloorLevelId, GradedLevelId, PracticeLevelId } from './types'
@@ -43,64 +38,31 @@ export const DISTRACTORS = 4
 const scenario = (engine: EngineId, over: Partial<Scenario> = {}): Scenario => ({ engine, streaming: false, tp: 1, abort: false, prefixHit: false, n: 1, ...over })
 
 interface LevelDef {
-  readonly title: string
-  readonly prompt: string
   readonly scenario: Scenario
 }
 
 const DEFS: Readonly<Record<PracticeLevelId, LevelDef>> = {
   nano: {
-    title: 'nano-vllm',
-    prompt:
-      'An offline library: the caller, the scheduler and the model runner share one process and one thread, so the ticket crosses no window. It goes down to the line by the dumbwaiter and comes back up, and the hands wait for it ("Heard!") before they read what it brought.',
     scenario: scenario('nano-vllm'),
   },
   'nano-tp': {
-    title: 'nano-vllm on two GPUs',
-    prompt:
-      'A second rank is a second process. nano-vllm starts a worker for it and passes each call through shared memory (the window shelf), and the halves of every layer pass across between the two GPUs.',
     scenario: scenario('nano-vllm', { tp: 2 }),
   },
   mini: {
-    title: 'Mini-SGLang',
-    prompt:
-      'Four processes joined by ZMQ, each a window: the API server, a tokenizer, a scheduler for the rank, and a detokenizer. The scheduler overlaps, so the sync on a copy comes in the next turn of its loop.',
     scenario: scenario('mini-sglang', { streaming: true }),
   },
   inside: {
-    title: 'Inside vLLM',
-    prompt:
-      'vLLM at the commit the post "Inside vLLM" reads. The API server and the engine core are two processes, and inside the engine core an input thread, the busy loop and an output thread pass the ticket to one another on spikes (queues).',
     scenario: scenario('inside-vllm', { streaming: true }),
   },
   vllm: {
-    title: 'vLLM at the pin',
-    prompt:
-      'vLLM at the pin plans the next step before the last one is read back: async scheduling is on by default, so the busy loop launches a batch, keeps its future in `batch_queue`, and waits on the oldest only when the queue is full.',
     scenario: scenario('vllm', { streaming: true }),
   },
   sglang: {
-    title: 'SGLang at the pin',
-    prompt:
-      'SGLang at the pin: the scheduler launches one batch and reads the result of the one before it in the next turn of its loop. A prefix hit is found in the radix tree before the batch is built.',
     scenario: scenario('sglang', { streaming: true, prefixHit: true }),
   },
   abort: {
-    title: 'vLLM, the client leaves',
-    prompt:
-      'The client goes away in the middle of the stream. In vLLM at the pin the abort rides a queue of its own and is drained before `update_from_output`. Lay the way the first token took, and then the abort.',
     scenario: scenario('vllm', { streaming: true, abort: true }),
   },
-}
-
-/**
- * The graded level's words. The title names the level and no engine, because the engine is the scenario's and the order shows it; the
- * prompt says what the level asks and carries no digit. Neither answers the prediction.
- */
-const MAP_DEF: Omit<LevelDef, 'scenario'> = {
-  title: 'The lifecycle map',
-  prompt:
-    'A request on one of the five engines, and no word of how its house is built. Lay its whole path from the tray, naming every queue, copy and sync, in the order the engine makes them. The ticket goes once, and the night\'s tape then reads every stage you laid against the spans the request leaves.',
 }
 
 const isPracticeId = (id: string): id is PracticeLevelId => Object.hasOwn(DEFS, id)
@@ -111,7 +73,7 @@ export function scenarioOf(id: PracticeLevelId): Scenario {
 }
 
 /** The titles of the levels, for the registry's record and its test. */
-export const levelTitle = (id: FloorLevelId): string => (id === MAP_LEVEL ? MAP_DEF.title : DEFS[id].title)
+export const levelTitle = (id: FloorLevelId): string => FLOOR_COPY[id].title
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* The graded scenario                                                                                                */
@@ -216,13 +178,10 @@ export function buildLevel(id: string, seed: Seed): FloorLevel {
   if (id !== MAP_LEVEL && !isPracticeId(id)) throw new RangeError(`Back of House has no level "${id}"`)
   assertSeed(seed)
   const graded = id === MAP_LEVEL
-  const def = graded ? MAP_DEF : DEFS[id as PracticeLevelId]
   const scenario = scenarioFor(seed, id)
   return {
     id: id as FloorLevelId,
     seed,
-    title: def.title,
-    prompt: def.prompt,
     scenario,
     reference: referenceOf(scenario).map((stage) => stage.id),
     tray: trayFor(scenario, seed, graded).map((stage) => stage.id),

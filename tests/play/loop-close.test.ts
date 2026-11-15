@@ -31,7 +31,7 @@ import {
 } from '@es/play/loop/full/close'
 import { buildFullLevel, defaultLevers, inFullBand, stageInBand } from '@es/play/loop/full/levels'
 import { CARDS, drawnHost, graphBytes, hostOf, nightOf, resolvedMode, servingMode } from '@es/play/loop/full/night'
-import { fullSession, nightMeetsBar } from '@es/play/loop/full/session'
+import { fullSession, nightMeetsBar, wordsOf } from '@es/play/loop/full/session'
 import type { FullAction, FullState, Levers, StageWorld } from '@es/play/loop/full/types'
 import { hostPreset } from '@es/sim/host'
 import { gpuLayers } from '@es/sim/steploop'
@@ -375,7 +375,8 @@ describe('the session: one night, closed-book, graded by replay', () => {
     const s = start()
     const stage = s.level.stages[0]
     expect(fullSession.ask(s)).toEqual({ kind: 'predict', stage: 'close' })
-    expect(stage.prediction).toMatchObject({ kind: 'number', unit: '%' })
+    expect(stage.prediction).toMatchObject({ kind: 'number' })
+    expect(wordsOf('close', stage).prediction).toMatchObject({ kind: 'number', unit: '%' })
     const naive = nightOf(stage, stage.naive)!
     expect(stage.answer).toBe(Math.round((100 * naive.bubbleUs) / naive.clockUs))
     expect(() => fullSession.reduce(s, { t: 'run', until: 'step' })).toThrow('commit the prediction before the first night')

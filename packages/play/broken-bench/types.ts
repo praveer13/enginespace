@@ -49,9 +49,6 @@ export interface CaseSlot {
 export interface BenchLevel {
   readonly id: BenchLevelId
   readonly seed: Seed
-  readonly title: string
-  /** The line the level opens on, in the kitchen's words with the engine's term beside it (GAMES.md §2.6, rule 2). */
-  readonly prompt: string
   readonly slots: readonly CaseSlot[]
   /** Cases that must stand, with the flaw and the number right, for the level to pass (ASSESSMENT §4.3) [estimated]. */
   readonly needed: number

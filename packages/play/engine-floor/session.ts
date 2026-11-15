@@ -23,6 +23,7 @@ import type { Seed } from '@es/sim/core'
 import { ENGINES, entryOf } from '@es/sim/lifecycle'
 import type { Place, StageDef } from '@es/sim/lifecycle'
 import type { Debrief, Grade, Session } from '../types'
+import { FLOOR_COPY } from './copy'
 import { runPath, stopOfMistake } from './engine'
 import { MAX_PREDICTION, boundariesOut } from './facts'
 import { ALL_LEVEL_IDS, MAP_LEVEL, buildLevel, inLevelBand } from './levels'
@@ -186,8 +187,8 @@ export function floorView(s: FloorState): FloorView {
   })
   return {
     level: s.level.id,
-    title: s.level.title,
-    prompt: s.level.prompt,
+    title: FLOOR_COPY[s.level.id].title,
+    prompt: FLOOR_COPY[s.level.id].prompt,
     scenario: sc,
     pin: { engine: engine.id, title: engine.title, repo: engine.repo, ref: engine.ref, readOn: engine.readOn },
     entry: entryOf(sc.engine),

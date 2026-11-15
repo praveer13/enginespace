@@ -24,6 +24,7 @@ import { dumpOf } from '@/games/pool/dump'
 import Game from '@/games/pool/Game'
 import { Mirror } from '@/games/pool/Mirror'
 import { View2D } from '@/games/pool/View2D'
+import { POOL_COPY } from '@es/play/pool/copy'
 import { engine, house } from '@es/play/pool/policy'
 import { poolSession } from '@es/play/pool/session'
 import { buildLevel } from '@es/play/pool/levels'
@@ -82,11 +83,10 @@ describe('the page names the game as D-049 says, and opens on the first level', 
 
   test('says what the level is about before anything else on the stage: the level\'s own line, in the kitchen\'s words', () => {
     for (const [id] of PRACTICE) {
-      const level = practiceOf(id)
       const markup = render(h(Game, { level: id }))
       expect(markup).toContain('data-pool-prompt=""')
       const shown = textOf(markup.slice(markup.indexOf('data-pool-prompt')))
-      expect([id, shown.includes(level.prompt.replace(/\s+/g, ' '))]).toEqual([id, true])
+      expect([id, shown.includes(POOL_COPY[id].prompt.replace(/\s+/g, ' '))]).toEqual([id, true])
       // It comes before the cabinet it describes.
       expect(markup.indexOf('data-pool-prompt')).toBeLessThan(markup.indexOf('data-reachin-rack'))
     }

@@ -10,7 +10,7 @@ import { serviceSession } from '@es/play/loop/game'
 import { FULL_SERVICE } from '@es/play/loop/entry'
 import { buildFullLevel, FULL_LEVEL_IDS, NIGHTS_PER_STAGE } from '@es/play/loop/full/levels'
 import { nightOf } from '@es/play/loop/full/night'
-import { fullSession } from '@es/play/loop/full/session'
+import { copyOf, fullSession } from '@es/play/loop/full/session'
 import type { FullAction, FullState } from '@es/play/loop/full/types'
 import { seeds } from '../seeds'
 
@@ -135,7 +135,7 @@ describe('the house, the grade and the debrief', () => {
     // A practice stage names its lever; the graded stage weighs each lever from the configuration served, and names the one worth the most.
     if (missed.bar === 'throughput') expect(['async', 'graphMode', 'capture', 'runner']).toContain((debrief.names as { lever: string }).lever)
     else expect(debrief.names).toEqual({ lever: missed.levers[0] })
-    expect(debrief.sentence).toContain(missed.title)
+    expect(debrief.sentence).toContain(copyOf(level.id, missed.id).title)
   })
 })
 

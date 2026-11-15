@@ -13,6 +13,7 @@
 import type { Seed } from '@es/sim/core'
 import type { Debrief, Grade, Session } from '../types'
 import { askOf, avoidableEmpties, canHang, countersOf, hang, houseTurn, hungCount, initState, levelDone, measured, onLine, runToDecision, setBatching, setOverlap, step } from './engine'
+import { LOOP_COPY } from './copy'
 import { LEVEL_IDS, PASS_SCORE, buildLevel, inLevelBand } from './levels'
 import type { ClipView, FireView, LoopAction, LoopAsk, LoopCounters, LoopLevel, LoopLevelId, LoopState, LoopView, PlaceOutcome, PlaceView } from './types'
 
@@ -107,8 +108,8 @@ export function loopView(s: LoopState): LoopView {
   const counters = countersOf(s, sim)
   return {
     level: s.level.id,
-    title: s.level.title,
-    prompt: s.level.prompt,
+    title: LOOP_COPY[s.level.id].title,
+    prompt: LOOP_COPY[s.level.id].prompt,
     synthetic: true,
     slots: s.level.slots,
     clockUs: counters.clockUs,

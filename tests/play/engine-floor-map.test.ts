@@ -33,6 +33,7 @@ import { applyAction, drawInBand, regrade, replay, startRun, stateHash, undoActi
 import { below, rngFor } from '@es/sim/core'
 import { needsOf, runPath } from '@es/play/engine-floor/engine'
 import { checkViewOf, spanCheck, traceOf } from '@es/play/engine-floor/spans'
+import { FLOOR_COPY } from '@es/play/engine-floor/copy'
 import { DISTRACTORS, LEVEL_IDS, MAP_LEVEL, buildLevel, gradedScenarios, hasEveryHandoff, inLevelBand, ownStages, scenarioFor, scenarioOf, trayFor } from '@es/play/engine-floor/levels'
 import { frameSvg, layoutMap, mapOfView } from '@es/play/engine-floor/layout'
 import { floorGhost, floorGrade, floorInit, floorReduce, floorSession, floorView } from '@es/play/engine-floor/session'
@@ -98,9 +99,9 @@ describe('the scenario a seed draws (GAMES.md §5: engine × streaming × TP × 
   test('the level allows one run, and its title names no engine and nothing of how a house is built', () => {
     const level = map(3)
     expect(level.attempts).toBe(1)
-    expect(level.title).toBe('The lifecycle map')
-    expect(level.title).not.toMatch(/process|thread|queue|window|boundar|hop/i)
-    expect(level.prompt).not.toMatch(/\d/)
+    expect(FLOOR_COPY[level.id].title).toBe('The lifecycle map')
+    expect(FLOOR_COPY[level.id].title).not.toMatch(/process|thread|queue|window|boundar|hop/i)
+    expect(FLOOR_COPY[level.id].prompt).not.toMatch(/\d/)
     expect(LEVEL_IDS.every((id) => buildLevel(id, 0).attempts === null)).toBe(true)
   })
 })
@@ -112,7 +113,7 @@ describe('acceptance 1: grading is deterministic and the seeds are banded', () =
       expect(stateHash(floorGhost(map(seed)))).toBe(stateHash(floorGhost(map(seed))))
     }
     // The first state and the house run of the pinned practice seed, as hashes that every runtime must give (e2e/engine-floor-map.spec.ts checks the browser's).
-    expect([stateHash(floorInit(map(0))), stateHash(floorGhost(map(0)))]).toEqual(['ecc42080', '4795133c'])
+    expect([stateHash(floorInit(map(0))), stateHash(floorGhost(map(0)))]).toEqual(['412273a9', 'c29f7459'])
   })
 
   test('the same seed and the same actions give the same state and the same grade, played, replayed from the log, and graded again from a stored copy of it', () => {

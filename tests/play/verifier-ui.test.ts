@@ -9,6 +9,7 @@ import path from 'node:path'
 import { createElement as h, type ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { StaticRouter } from 'react-router'
+import { VERIFIER_COPY } from '@es/play/verifier/copy'
 import { buildLevel } from '@es/play/verifier/levels'
 import { verifierInit, verifierSession } from '@es/play/verifier/session'
 import { excessPlates } from '@es/play/verifier/state'
@@ -157,7 +158,7 @@ describe('the controls are HTML for every action', () => {
       const markup = controls(stateAfter(buildLevel(id, seed)))
       expect(markup).toContain('data-verifier-prompt')
       // A prompt holds no figure of the world; the one digit it may hold is the 1 of the paper's rule, min(1, p ÷ q).
-      const prompt = buildLevel(id, seed).prompt.replace('min(1, p ÷ q)', '')
+      const prompt = VERIFIER_COPY[id].prompt.replace('min(1, p ÷ q)', '')
       expect(/\d/.test(prompt)).toBe(false)
       for (const button of markup.match(/<button[^>]*>.*?<\/button>/g) ?? []) {
         const named = /aria-label="[^"]+"/.test(button) || />[^<]*[A-Za-z0-9+−][^<]*<|><\/?span[^>]*>[^<]*[A-Za-z]/.test(button) || /sr-only/.test(button)

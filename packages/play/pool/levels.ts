@@ -15,6 +15,7 @@ import { assertSeed, below, rngFor } from '@es/sim/core'
 import type { Seed } from '@es/sim/core'
 import { kvAdapterCatalog, kvPagesHeld, kvPreset } from '@es/sim/kv'
 import type { KvPresetId } from '@es/sim/kv'
+import { POOL_COPY } from './copy'
 import type { PoolLevel, PoolLevelId, PoolPredict } from './types'
 import { POOL_LEVEL_IDS } from './types'
 import { buildWorkload } from './workload'
@@ -33,8 +34,6 @@ export const CHUNK = 16
 export const LOAD_RATE = 8
 
 interface Shape {
-  readonly title: string
-  readonly prompt: string
   readonly preset: KvPresetId
   readonly pool: number
   readonly cap: number
@@ -59,15 +58,8 @@ const BASE: WorkloadSpec = {
   kits: [],
 }
 
-/*
- * The copy follows GAMES.md §2.6: the kitchen word names the object and the engine term rides beside it. It carries no digit, so no
- * number goes untagged: the counters are Readouts, and the mirror holds every figure.
- */
 const SHAPES: Readonly<Record<Exclude<PoolLevelId, 'manager'>, Shape>> = {
   'one-group': {
-    title: 'One station',
-    prompt:
-      'One station keeps every pan an order needs. Hang a ticket (admit a request), and a ticket that opens like an earlier one starts from that one\'s pans: shared mise, a prefix hit. When a ticket needs room, say which cached pans to dump (evict).',
     preset: 'one-group',
     pool: 44,
     cap: 3,
@@ -76,9 +68,6 @@ const SHAPES: Readonly<Record<Exclude<PoolLevelId, 'manager'>, Shape>> = {
     predict: 'pages',
   },
   'two-kinds': {
-    title: 'Two kinds of station',
-    prompt:
-      'A full-attention station keeps every pan of an order, and a sliding-window station keeps only the pans of its hold window and lets the rest go back to the rotation. One order holds pans at all three stations.',
     preset: 'two-kinds',
     pool: 104,
     cap: 4,
@@ -87,9 +76,6 @@ const SHAPES: Readonly<Record<Exclude<PoolLevelId, 'manager'>, Shape>> = {
     predict: 'pages',
   },
   evict: {
-    title: 'Dump the right pans',
-    prompt:
-      'The reach-in is full, and a ticket hits only as far as every station still holds its pans. When a ticket needs room, dump the pans nobody is waiting on, and keep the head of an order: every later hit starts from it.',
     preset: 'two-kinds',
     pool: 112,
     cap: 4,
@@ -98,9 +84,6 @@ const SHAPES: Readonly<Record<Exclude<PoolLevelId, 'manager'>, Shape>> = {
     predict: 'pages',
   },
   'same-size': {
-    title: 'One pan size',
-    prompt:
-      'Every station\'s pan is the same size, so the model\'s layers are grouped to fill one pan, and the layers that do not fill a group are padded. Count the stations, and see what the padding wastes.',
     preset: 'same-size',
     pool: 208,
     cap: 3,
@@ -109,9 +92,6 @@ const SHAPES: Readonly<Record<Exclude<PoolLevelId, 'manager'>, Shape>> = {
     predict: 'stations',
   },
   state: {
-    title: 'A station of state',
-    prompt:
-      'A recurrent layer keeps a fixed number of pans for each ticket, however long its order runs, and the full-attention pans are made larger to match. A hit needs the pan that holds the state at its edge.',
     preset: 'state',
     pool: 64,
     cap: 3,
@@ -120,9 +100,6 @@ const SHAPES: Readonly<Record<Exclude<PoolLevelId, 'manager'>, Shape>> = {
     predict: 'state',
   },
   adapters: {
-    title: 'Recipe kits',
-    prompt:
-      'A recipe kit is a variant\'s own mise, in pans from the same reach-in. A ticket hangs only when its kit has landed, and a kit stays while a ticket that uses it is on the line. Bring a kit in before its ticket hangs, and mind what it costs the cached pans.',
     preset: 'two-kinds',
     pool: 160,
     cap: 4,
@@ -143,9 +120,6 @@ function managerShape(seed: Seed): Shape {
     state: { pool: 96, workload: { ...night, tables: 8, outChunks: [3, 5] as const } },
   }[preset]
   return {
-    title: 'The whole manager',
-    prompt:
-      'Everything at once: stations of every kind, a full reach-in, and recipe kits that compete with the cached pans. Run the manager\'s policy on a night you have not seen.',
     preset,
     pool: model.pool,
     cap: 4,
@@ -158,7 +132,7 @@ function managerShape(seed: Seed): Shape {
 export const isLevelId = (id: string): id is PoolLevelId => (POOL_LEVEL_IDS as readonly string[]).includes(id)
 
 /** The titles of the levels, for the registry's record. */
-export const levelTitle = (id: PoolLevelId): string => (id === 'manager' ? 'The whole manager' : SHAPES[id].title)
+export const levelTitle = (id: PoolLevelId): string => POOL_COPY[id].title
 
 /** The levels that are graded (ASSESSMENT §4.3: `pool/evict`, `pool/adapters` and `pool/manager`). */
 export const GRADED: readonly PoolLevelId[] = ['evict', 'adapters', 'manager']
@@ -177,8 +151,6 @@ export function buildLevel(id: string, seed: Seed): PoolLevel {
   return {
     id,
     seed,
-    title: shape.title,
-    prompt: shape.prompt,
     graded: GRADED.includes(id),
     preset: shape.preset,
     spec,
@@ -201,16 +173,12 @@ export function buildLevel(id: string, seed: Seed): PoolLevel {
 function predictionOf(kind: Shape['predict'], spec: ReturnType<typeof kvPreset>, kits: PoolLevel['kits'], firstTokens: number): PoolPredict {
   switch (kind) {
     case 'pages':
-      return { ask: 'How many pans will ticket No. 01 hold, across every station, once it hangs?', unit: 'pages', answer: kvPagesHeld(spec, firstTokens) }
+      return { answer: kvPagesHeld(spec, firstTokens) }
     case 'stations':
-      return { ask: 'How many stations does this model need, so that every pan is one size?', unit: 'stations', answer: spec.groups.length }
+      return { answer: spec.groups.length }
     case 'state':
-      return {
-        ask: 'How many pans do the state stations hold for one ticket, however long its order runs?',
-        unit: 'pages',
-        answer: spec.groups.reduce((sum, g) => sum + (g.kind === 'state' ? (g.statePages ?? 0) : 0), 0),
-      }
+      return { answer: spec.groups.reduce((sum, g) => sum + (g.kind === 'state' ? (g.statePages ?? 0) : 0), 0) }
     case 'kit':
-      return { ask: 'How many pans does the largest recipe kit take?', unit: 'pages', answer: kits.reduce((most, kit) => Math.max(most, kit.pages), 0) }
+      return { answer: kits.reduce((most, kit) => Math.max(most, kit.pages), 0) }
   }
 }

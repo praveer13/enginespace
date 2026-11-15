@@ -26,14 +26,14 @@ import { SEED_COUNT, seeds } from '../seeds'
 
 const S = verifierSession
 
-/** The hashes of the house's runs on the practice seeds [measured 2026-11-04 on this task's branch; the same in a browser: e2e/verifier.spec.ts]. */
+/** The hashes of the house's runs on the practice seeds [measured 2026-11-04 on this task's branch; the same in a browser: e2e/verifier.spec.ts]. Re-measured 2026-11-15 on R-T02's branch: a level no longer holds its display words (`copy.ts`), so each hash is that of the old state without them; scripts/state-copy-equivalence.ts proves it. */
 const GOLDEN: Readonly<Record<VerifierLevelId, string>> = {
-  overlap: 'e3432eee',
-  exact: '40467720',
-  chain: '6d869552',
-  'greedy-ngram': '1cfeeea2',
-  mutants: '56454d4d',
-  gamma: '83e1662c',
+  overlap: '59b05898',
+  exact: '46e77d9c',
+  chain: 'e0d9a77c',
+  'greedy-ngram': '1eb06cea',
+  mutants: '3c0451fb',
+  gamma: 'e21abfe8',
 }
 
 describe('the contract every game keeps (GAMES.md §2.5)', () => {

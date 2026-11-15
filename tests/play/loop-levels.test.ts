@@ -24,6 +24,7 @@ import { applyAction, drawInBand, finishRun, levelOf, regrade, startRun, stateHa
 import { FIRST_SERVICE, LOOP } from '@es/play/loop/entry'
 import { askOf, countersOf, hang, initState, levelDone, measured, setOverlap, step } from '@es/play/loop/engine'
 import { LEVEL_IDS, PASS_SCORE, SLOTS, buildLevel, inParBand, levelTitle, services, simNight, frontPageWorkload } from '@es/play/loop/levels'
+import { LOOP_COPY } from '@es/play/loop/copy'
 import { loopDebrief, loopGhost, loopGrade, loopInBand, loopLevel, loopSession, loopView } from '@es/play/loop/session'
 import type { LoopLevelId, LoopState } from '@es/play/loop/types'
 import { visitorNight } from './loop-support'
@@ -273,7 +274,7 @@ describe('the beats of First service, on the practice seed', () => {
     }
     expect(sentences.length).toBeGreaterThan(4)
     for (const sentence of sentences) expect(sentence).not.toMatch(/\d/)
-    for (const id of LEVEL_IDS) expect(`${buildLevel(id, 1).title} ${buildLevel(id, 1).prompt}`).not.toMatch(/\d/)
+    for (const id of LEVEL_IDS) expect(`${LOOP_COPY[id].title} ${LOOP_COPY[id].prompt}`).not.toMatch(/\d/)
   })
 
   test('play(...) helpers are inert: a level\'s first state does not move when another is built', () => {

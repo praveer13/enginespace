@@ -26,15 +26,15 @@ import { PRACTICE, bulk, houseActions, playThrough, practiceOf, stateAfter } fro
 const S = poolSession
 const textOf = (state: PoolState): string => canonicalJson(state)
 
-/** The hashes of the house's runs on the practice seeds [measured 2026-11-04 at d287a14, the tip of wave-1, with this task's files; the same in a browser: e2e/pool.spec.ts]. */
+/** The hashes of the house's runs on the practice seeds [measured 2026-11-04 at d287a14, the tip of wave-1, with this task's files; the same in a browser: e2e/pool.spec.ts]. Re-measured 2026-11-15 on R-T02's branch: a level no longer holds its display words (`copy.ts`), so each hash is that of the old state without them; scripts/state-copy-equivalence.ts proves it. */
 const GOLDEN: Readonly<Record<PoolLevelId, string>> = {
-  'one-group': 'dfff95cc',
-  'two-kinds': 'a5afdb78',
-  evict: '427f825e',
-  'same-size': '6134538a',
-  state: '548984aa',
-  adapters: 'b6ce7544',
-  manager: '517835a0',
+  'one-group': '824600f1',
+  'two-kinds': 'e5d69230',
+  evict: '06b88fb1',
+  'same-size': '6bfc2832',
+  state: 'd87f6c7d',
+  adapters: '0c5c5052',
+  manager: '8fc89e92',
 }
 
 /** The first state of the house's run at which `want` holds, or null. */

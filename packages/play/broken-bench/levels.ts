@@ -16,53 +16,36 @@
 import { assertSeed, below, rngFor } from '@es/sim/core'
 import type { Seed } from '@es/sim/core'
 import { BENCH_FLAWS } from '@es/sim/bench/broken-types'
+import { BENCH_COPY } from './copy'
 import type { BenchLevel, BenchLevelId, CaseSlot, Flaw } from './types'
 import { LEVEL_IDS } from './types'
 
 export { LEVEL_IDS }
 
 interface LevelDef {
-  readonly title: string
-  readonly prompt: string
   readonly cases: number
   readonly needed: number
   /** The flaws a single-case level deals, in the order that `seed mod` their number picks them. */
   readonly flaws?: readonly Flaw[]
 }
 
-/*
- * The copy carries no digit: a figure on screen is a Readout that tags it. The kitchen's word names the object and the engine's term
- * rides beside it (GAMES.md §2.6, rule 2).
- */
 const DEFS: Readonly<Record<BenchLevelId, LevelDef>> = {
   due: {
-    title: 'From the due time',
-    prompt:
-      'A kitchen quotes a p99 off its stopwatch log. The log keeps when each guest was due as well as when their order was taken. Name the flaw, time the log again from the due times, and write down the p99 the report should have had, with the range you stand behind.',
     cases: 1,
     needed: 1,
     flaws: ['coordinated-omission', 'client-queue-hidden'],
   },
   warm: {
-    title: 'The warm-up cut',
-    prompt:
-      "A report may have timed the first tables while the ovens heat. The course fixes the cut before the run and checks after it that the log had settled. Apply the rule: name the flaw, or say that the inspection is fair, and write down the p99 that stands, with a range.",
     cases: 1,
     needed: 1,
     flaws: ['warm-up-counted', 'none'],
   },
   sure: {
-    title: 'How sure',
-    prompt:
-      'A p99 needs orders beyond it, and an interval says how far to trust it. Count what lies beyond this report\'s p99, name the flaw or say that the inspection is fair, and write down the p99 a long enough run would show, with the range you stand behind.',
     cases: 1,
     needed: 1,
     flaws: ['too-few-samples', 'none'],
   },
   court: {
-    title: 'The court',
-    prompt:
-      'Five reports come before the court, each with its setup and its log. In each, name the flaw (or find none), write down the p99 the report should have had, and give a range. Four of the five must stand, with the flaw and the number right.',
     cases: 5,
     needed: 4,
   },
@@ -106,11 +89,11 @@ export function buildLevel(id: string, seed: Seed): BenchLevel {
   if (!isLevelId(id)) throw new RangeError(`the Inspection has no level "${id}"`)
   assertSeed(seed)
   const def = DEFS[id]
-  return { id, seed, title: def.title, prompt: def.prompt, slots: slotsOf(id, seed), needed: def.needed }
+  return { id, seed, slots: slotsOf(id, seed), needed: def.needed }
 }
 
 /** The titles of the levels, for the registry's record and its test. */
-export const levelTitle = (id: BenchLevelId): string => DEFS[id].title
+export const levelTitle = (id: BenchLevelId): string => BENCH_COPY[id].title
 
 /** How many cases a level holds. */
 export const casesOf = (id: BenchLevelId): number => DEFS[id].cases

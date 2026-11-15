@@ -21,6 +21,7 @@ import path from 'node:path'
 import { bestConstantPerLabel, brokenBenchCase } from '@es/sim/bench'
 import { BENCH_FLAWS } from '@es/sim/bench/broken-types'
 import { REDRAWS, caseOf } from '@es/play/broken-bench/cases'
+import { BENCH_COPY } from '@es/play/broken-bench/copy'
 import { LEVEL_IDS, buildLevel, casesOf, isLevelId, levelTitle, slotsOf } from '@es/play/broken-bench/levels'
 import type { Flaw } from '@es/play/broken-bench/types'
 import { BLIND_SEEDS, NIGHTLY_SEEDS, casesOf as corpusCases, drawnCases, pct } from '../sim/bench-broken-support'
@@ -59,9 +60,9 @@ describe('what each single-case level deals', () => {
   test('a level has a title, a prompt without a figure in it (the name p99 apart), and a pass', () => {
     for (const id of LEVEL_IDS) {
       const level = buildLevel(id, 0)
-      expect(level.title).toBe(levelTitle(id))
-      expect(level.prompt.length).toBeGreaterThan(80)
-      expect(level.prompt.replaceAll('p99', '')).not.toMatch(/\d/)
+      expect(BENCH_COPY[id].title).toBe(levelTitle(id))
+      expect(BENCH_COPY[id].prompt.length).toBeGreaterThan(80)
+      expect(BENCH_COPY[id].prompt.replaceAll('p99', '')).not.toMatch(/\d/)
       expect(level.needed).toBe(id === 'court' ? 4 : 1)
       expect(level.slots).toHaveLength(casesOf(id))
     }

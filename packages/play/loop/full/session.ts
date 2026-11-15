@@ -15,10 +15,40 @@ import { GRAPH_MODES, gpuLayers } from '@es/sim/steploop'
 import type { Debrief, Grade, Session } from '../../types'
 import type { ClipView } from '../types'
 import { closeCards, differing, leverWorth, meetsThroughput, throughputPermille, verdictOf } from './close'
-import { buildFullLevel, FULL_LEVEL_IDS, inFullBand, MODES } from './levels'
+import { FULL_COPY } from './copy'
+import type { StageCopy } from './copy'
+import { buildFullLevel, FULL_LEVEL_IDS, inFullBand, MODES, OUTPUTS } from './levels'
 import { CARDS, graphBytes, nightAt, nightOf, resolvedMode, servingMode } from './night'
 import type { Night } from './night'
-import type { FullAction, FullAsk, FullCounters, FullLevel, FullState, FullView, LeverName, Levers, Served, StageState, StageView, StageWorld } from './types'
+import type { FullAction, FullAsk, FullCounters, FullLevel, FullLevelId, FullState, FullView, LeverName, Levers, Prediction, Served, StageState, StageView, StageWorld } from './types'
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* The words                                                                                                          */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/** The copy of a stage of a level (`./copy.ts`). Throws for a stage the level does not have. */
+export function copyOf(level: FullLevelId, stage: StageWorld['id']): StageCopy {
+  const copy = FULL_COPY[level].stages[stage]
+  if (copy === undefined) throw new RangeError(`the ${level} level has no stage "${stage}"`)
+  return copy
+}
+
+/** A stage's words: its title, what it asks (a prompt may name what the seed drew), and its prediction with the question, unit or options. */
+export function wordsOf(level: FullLevelId, world: StageWorld): { readonly title: string; readonly prompt: string; readonly prediction: Prediction } {
+  const copy = copyOf(level, world.id)
+  const rule = world.prediction
+  const words = copy.prediction
+  const prediction: Prediction =
+    rule.kind === 'number' && 'unit' in words
+      ? { kind: 'number', question: words.question, unit: words.unit, tolerancePermille: rule.tolerancePermille }
+      : rule.kind === 'choice' && 'options' in words
+        ? { kind: 'choice', question: words.question, options: words.options }
+        : (() => {
+            throw new RangeError(`the ${level} level's ${world.id} stage asks a ${rule.kind} prediction that its copy words otherwise`)
+          })()
+  const mixed = world.outputs[0] === OUTPUTS.short[0] && world.outputs[1] === OUTPUTS.short[1]
+  return { title: copy.title, prompt: typeof copy.prompt === 'string' ? copy.prompt : copy.prompt({ support: world.support, mixed }), prediction }
+}
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Reading the state                                                                                                  */
@@ -123,10 +153,13 @@ function setCapture(stage: StageState, world: StageWorld, sizes: readonly number
   return { ...stage, levers: { ...stage.levers, captureSizes: [...sizes] }, night: midNight(world, stage) ? null : stage.night }
 }
 
-function commit(stage: StageState, world: StageWorld, prediction: unknown): StageState {
+function commit(level: FullLevelId, stage: StageState, world: StageWorld, prediction: unknown): StageState {
   if (stage.prediction !== null) throw new RangeError('the prediction is committed already')
   if (typeof prediction !== 'number' || !Number.isSafeInteger(prediction) || prediction < 0) throw new RangeError('a prediction is a whole number of at least 0')
-  if (world.prediction.kind === 'choice' && prediction >= world.prediction.options.length) throw new RangeError(`there are ${world.prediction.options.length} choices`)
+  if (world.prediction.kind === 'choice') {
+    const choices = (copyOf(level, world.id).prediction as { readonly options: readonly string[] }).options.length
+    if (prediction >= choices) throw new RangeError(`there are ${choices} choices`)
+  }
   return { ...stage, prediction }
 }
 
@@ -163,7 +196,7 @@ function ring(stage: StageState, world: StageWorld, until: 'step' | 'decision'):
 export function fullReduce(s: FullState, a: FullAction): FullState {
   switch (a.t) {
     case 'commit':
-      return withStage(s, (stage, world) => commit(stage, world, a.prediction))
+      return withStage(s, (stage, world) => commit(s.level.id, stage, world, a.prediction))
     case 'lever':
       return withStage(s, (stage, world) => setLever(stage, world, a.name, a.value))
     case 'capture':
@@ -219,8 +252,8 @@ export function fullGrade(mine: FullState): Grade {
 }
 
 /** Whether a prediction is close to the model's answer: a choice exactly, a number within its tolerance (and 10 µs) [estimated]. */
-export function predictionClose(world: StageWorld, predicted: number): boolean {
-  const p = world.prediction
+export function predictionClose(level: FullLevelId, world: StageWorld, predicted: number): boolean {
+  const p = wordsOf(level, world).prediction
   if (p.kind === 'choice') return predicted === world.answer
   const slack = Math.floor((world.answer * p.tolerancePermille) / 1000) + (p.unit === 'µs' ? 10 : 0)
   return Math.abs(predicted - world.answer) <= slack
@@ -255,10 +288,10 @@ export function fullDebrief(mine: FullState): Debrief {
   const missed = level.stages.findIndex((_, i) => !mine.stages[i].served.some((night) => night.ok))
   if (missed < 0) return { sentence: SUMMARIES[level.id], names: null }
   const world = level.stages[missed]
-  if (world.bar === 'throughput') return gradedDebrief(world, mine.stages[missed])
+  if (world.bar === 'throughput') return gradedDebrief(level.id, world, mine.stages[missed])
   const lever = world.levers[0]
   return {
-    sentence: `${world.title}: no night met the bar, which is the house's night within its margin. ${SUMMARIES[level.id]}`,
+    sentence: `${copyOf(level.id, world.id).title}: no night met the bar, which is the house's night within its margin. ${SUMMARIES[level.id]}`,
     names: { lever },
   }
 }
@@ -269,7 +302,7 @@ export function fullDebrief(mine: FullState): Debrief {
  * learner never served names the lever the naive configuration gets most wrong. The sentence carries no digit: the verdict's figures are
  * Readouts with their tags, beside it.
  */
-function gradedDebrief(world: StageWorld, stage: StageState): Debrief {
+function gradedDebrief(level: FullLevelId, world: StageWorld, stage: StageState): Debrief {
   const last = stage.served[stage.served.length - 1]
   const mine = last?.levers ?? world.naive
   const worth = leverWorth(world, mine)
@@ -288,7 +321,7 @@ function gradedDebrief(world: StageWorld, stage: StageState): Debrief {
         : verdict.kind === 'violation'
           ? 'A fire read a token before it was sampled: the expo wrote the next call while the last fire was still on the line, and with the ids written by hand the call needed a token that did not exist yet. A night that breaks the dependency scores nothing.'
           : 'Your night served fewer tokens for each ms than the bar allows against the house\'s.'
-  return { sentence: `${world.title}: ${why} ${SUMMARIES.close}`, names: { lever } }
+  return { sentence: `${copyOf(level, world.id).title}: ${why} ${SUMMARIES.close}`, names: { lever } }
 }
 
 /** The lever's words for a screen. */
@@ -314,7 +347,8 @@ const emptyCounters: FullCounters = {
   tpotP50Us: null,
 }
 
-function stageView(world: StageWorld, stage: StageState): StageView {
+function stageView(level: FullLevelId, world: StageWorld, stage: StageState): StageView {
+  const words = wordsOf(level, world)
   const closed = stageClosed(world, stage)
   // A closed-book stage keeps the mode a lever resolves to, and the memory the routines take, to itself until the night is served.
   const reveal = !world.sealed || closed
@@ -322,11 +356,11 @@ function stageView(world: StageWorld, stage: StageState): StageView {
   const verdict = world.bar !== 'throughput' || last === undefined ? null : verdictOf(world, last, last.refused === true ? (servingMode(world, last.levers).changes.at(-1) ?? null) : null)
   return {
     id: world.id,
-    title: world.title,
-    prompt: world.prompt,
+    title: words.title,
+    prompt: words.prompt,
     card: world.card,
     levers: world.levers,
-    prediction: world.prediction,
+    prediction: words.prediction,
     predicted: stage.prediction,
     answer: stage.served.length > 0 ? world.answer : null,
     served: stage.served,
@@ -365,18 +399,18 @@ export function fullView(s: FullState): FullView {
   const ask = fullAsk(s)
   return {
     level: s.level.id,
-    title: s.level.title,
-    prompt: s.level.prompt,
+    title: FULL_COPY[s.level.id].title,
+    prompt: FULL_COPY[s.level.id].prompt,
     slots: world.slots,
     unit: 'µs',
     synthetic: card.synthetic,
     tag: card.tag === 'derived' ? 'derived' : 'estimated',
     cardLabel: card.label,
     at: s.at,
-    stage: stageView(world, stage),
+    stage: stageView(s.level.id, world, stage),
     stages: s.level.stages.map((w, i) => ({
       id: w.id,
-      title: w.title,
+      title: copyOf(s.level.id, w.id).title,
       closed: stageClosed(w, s.stages[i]),
       passed: s.stages[i].served.some((night) => night.ok),
       served: s.stages[i].served,

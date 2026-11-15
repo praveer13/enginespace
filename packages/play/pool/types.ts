@@ -57,19 +57,23 @@ export interface PoolReq {
   readonly delay: number
 }
 
-/** What a level asks the learner to predict before the first decision (GAMES.md §8: "Predict the pages a request will hold"). */
+/**
+ * What a level asks the learner to predict before the first decision (GAMES.md §8: "Predict the pages a request will hold"): the answer, by
+ * the sim's arithmetic. The question and the unit it is in are words, and `./copy.ts` holds them by level id.
+ */
 export interface PoolPredict {
+  readonly answer: number
+}
+
+/** The prediction as the panel shows it: the question, the unit its answer is in, and the answer. */
+export interface PoolPredictView extends PoolPredict {
   readonly ask: string
   readonly unit: 'pages' | 'stations'
-  readonly answer: number
 }
 
 export interface PoolLevel {
   readonly id: PoolLevelId
   readonly seed: Seed
-  readonly title: string
-  /** The line the level opens on, in the kitchen's words with the engine's term beside them. */
-  readonly prompt: string
   /** Graded levels are drawn on a fresh seed, show the learner no price for a dump, and have no undo. */
   readonly graded: boolean
   readonly preset: KvPresetId
@@ -343,7 +347,7 @@ export interface PoolView {
   readonly ask: AskView | null
   readonly counts: PoolScore
   /** The prediction asked, and the learner's answer once committed. */
-  readonly predict: PoolPredict & { readonly committed: number | null; readonly open: boolean }
+  readonly predict: PoolPredictView & { readonly committed: number | null; readonly open: boolean }
   /** Pans in each drawn form. A pan that a waiting ticket starts from is drawn as shared mise whether a ticket holds it or not. */
   readonly tally: Readonly<Record<PanState, number>>
   /** Pans by what is in them, from the sim's own pages, so the four add up to the pool: bare, held by a ticket, cached (nobody holds it), and a kit's. */
