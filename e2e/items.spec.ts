@@ -480,6 +480,8 @@ test.describe('with motion, the reveal is fed out in steps', () => {
     expect(duration).toBe('0.42s')
     await quiet(page, 300)
     expect(await page.evaluate(() => document.getAnimations().filter((animation) => (animation as CSSAnimation).animationName === 'es-item-feed' && animation.playState === 'running').length)).toBe(0)
+    // The feed holds no clip once it has run, so nothing of the reveal is cut off: the ring of the verdict that takes focus keeps its sides.
+    expect(await reveal.evaluate((element) => getComputedStyle(element).clipPath)).toBe('none')
   })
 })
 

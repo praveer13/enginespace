@@ -507,10 +507,14 @@ describe('the schema guard', () => {
   })
 
   test('a database at a newer IndexedDB version is read-only too', async () => {
+    const memory = new MemoryStore()
     const newerIdb: LedgerStore = {
-      ...new MemoryStore(),
       backend: 'idb',
       open: async () => ({ backend: 'idb', schemaVersion: null, readOnly: true, reason: 'newer-idb' }),
+      readAll: () => memory.readAll(),
+      commit: (tx, resolve) => memory.commit(tx, resolve),
+      listCheckpoints: () => memory.listCheckpoints(),
+      readCheckpoint: (id) => memory.readCheckpoint(id),
       onVersionChange: () => () => undefined,
       close: () => undefined,
     }

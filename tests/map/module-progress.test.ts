@@ -130,11 +130,14 @@ describe('the knowledge components on a module page', () => {
   })
 
   test('says once, for the whole list, that a KC with no graded item behind it yet cannot be earned yet', () => {
-    expect(kcsOf('tr2').some((kc) => kc.planned !== undefined)).toBe(true)
-    expect(textOf(kcs).split(KCS.planned).length - 1).toBe(1)
-    // And not at all for a module whose KCs all have a graded item.
-    const graded = render(h(Kcs, { module: 'tr2', kcs: kcsOf('tr2').map((kc) => ({ id: kc.id, module: kc.module, description: kc.description, requires: kc.requires })), ready: true }))
-    expect(textOf(graded)).not.toContain(KCS.planned)
+    // The note reads the graph's `planned:` lines, and TR2 has none since W1b-T04 built the families that answered them, so the list that has
+    // two is made here from TR2's own KCs, and does not depend on which module still waits.
+    const listed = kcsOf('tr2').map((kc) => ({ id: kc.id, module: kc.module, description: kc.description, requires: kc.requires }))
+    const waiting = render(h(Kcs, { module: 'tr2', kcs: listed.map((kc, at) => (at < 2 ? { ...kc, planned: 'W1-T99' } : kc)), ready: true }))
+    expect(textOf(waiting).split(KCS.planned).length - 1).toBe(1)
+    // And not at all for a module whose KCs all have a graded item: TR2's page as the app draws it.
+    expect(kcsOf('tr2').filter((kc) => kc.planned !== undefined)).toEqual([])
+    expect(textOf(kcs)).not.toContain(KCS.planned)
   })
 
   test('each KC shows its state in words, and the pips are not the only carrier', () => {

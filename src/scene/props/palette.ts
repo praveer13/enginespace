@@ -18,6 +18,8 @@ export type Tone =
   | 'deep'
   | 'alu'
   | 'chrome'
+  | 'polished'
+  | 'turned'
   | 'iron'
   | 'griddle'
   | 'knob'
@@ -46,6 +48,12 @@ const TONES: Readonly<Record<Tone, ToneSpec>> = {
   deep: { surface: 'metal', role: 'steelDeep', shade: 1, finish: 'brushed' },
   alu: { surface: 'metal', role: 'steel', shade: 0.98, finish: 'spun' },
   chrome: { surface: 'metal', role: 'steel', shade: 1, finish: 'chrome' },
+  // The bell's dome: chrome polished even, with no grain. Mirrored as sharply as the chrome finish mirrors, the dim room drew the tubes as
+  // hard white stripes on a grey body, an emblem on a mouse (W1b's finish review of the lesson blocks, rounds 1 and 2); this rough, the
+  // room's reflection blurs, so the tubes overhead merge into one soft highlight that rolls over the crown, and the body reads bright.
+  polished: { surface: 'metal', role: 'steel', shade: 1, finish: [0.3, 0, 1] },
+  // The bell's base: shaded steel turned on the lathe, a shade toward deep steel, so a lit dome stands on deep steel and not on black.
+  turned: { surface: 'metal', role: 'steelShaded', shade: 0.55, finish: 'spun' },
   iron: { surface: 'metal', role: 'iron', shade: 0.36, finish: 'iron' },
   griddle: { surface: 'metal', role: 'iron', shade: 0.55, finish: 'griddle' },
   knob: { surface: 'ceramic', role: 'iron', shade: 0.2, finish: [1.6, 0.5, 0] },
@@ -62,6 +70,8 @@ export const CHANNEL = { lamp: 28, strip: 29, tube: 30 } as const
 export const MAX_STATIONS = 28
 
 export interface Palette {
+  /** The colour of a tone: the one `Color` that every part in that tone shares. */
+  colorOf(tone: Tone): Color
   /** A part in a tone: the surface it is drawn in, its colour and its numbers. */
   part(geometry: BufferGeometry, tone: Tone): Part
   /** A glowing part on a channel, `strength` of the full glow. Tube light takes the tubes' white; every other channel the lamp's amber. */
@@ -89,6 +99,7 @@ export function paletteFrom(tokens: SceneTokens): Palette {
   const tubeShare = params.tube.emissiveIntensity / params.glow.emissiveIntensity
   return {
     finishes,
+    colorOf,
     part(geometry, tone) {
       const spec = TONES[tone]
       return { geometry, surface: spec.surface, color: colorOf(tone), finish: typeof spec.finish === 'string' ? finishes[spec.finish] : spec.finish }

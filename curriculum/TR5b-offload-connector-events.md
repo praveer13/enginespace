@@ -29,7 +29,7 @@
    5. `request_finished` returning True keeps the blocks until `get_finished` reports them.
 5. **Keep the hybrid manager on.** A connector that does not subclass `SupportsHMA` (`request_finished_all_groups`) turns vLLM's hybrid KV manager off, and hybrid SSM models then fail at startup. Upstream's `ExampleConnector` does not subclass it (vllm K3), so the learner's connector must.
 6. **Events a consumer can replay.** vLLM publishes `BlockStored`, `BlockRemoved` and `AllBlocksCleared`, batched as `KVEventBatch(ts, events, data_parallel_rank)`. Its ZMQ publisher sends a three-part message (topic, an 8-byte big-endian sequence number, a msgpack payload), can serve replays on a ROUTER socket with an end marker of sequence −1, and defaults to `buffer_steps` 10,000, a high-water mark of 100,000, a queue of 100,000 and the endpoint `tcp://*:5557` [measured at v0.33.0]. A consumer must reference-count repeated stores in chunk mode and ignore removals of hashes it never saw (vllm K8).
-7. **The same idea in SGLang.** HiCache is L1 on the GPU, L2 in host memory and L3 in storage, with L3 backends `file` (for demonstration), `mooncake`, `hf3fs`, `nixl`, `aibrix` and `dynamic`, behind a `HiCacheStorage` interface (sglang H1). Its events carry `lora_id`, `lora_name`, `cache_salt` and `session_id` on `BlockStored`, with LoRA-aware block ids new in v0.5.23 (sglang H2). So an event schema needs an adapter dimension.
+7. **The same idea in SGLang.** HiCache is L1 on the GPU, L2 in host memory and L3 in storage, with L3 backends `file` (for demonstration), `mooncake`, `hf3fs`, `nixl`, `aibrix` and `dynamic`, behind a `HiCacheStorage` interface (sglang H1). Its events carry `lora_id`, `lora_name`, `cache_salt` and `session_id` on `BlockStored`, with LoRA-aware block ids new in v0.5.23 (sglang H2). vLLM's `BlockStored` already carries the adapter too, as `lora_name` and a deprecated `lora_id` (vllm K8; claim `vllm.kv-events.adapter-field`). So an event schema needs an adapter dimension, and both engines' events have it.
 8. **What a real consumer does not guarantee.** SGLang's experimental Rust indexer documents that it has "no sequence gate, incarnation fencing, replay recovery, worker liveness TTL, or restart recovery"; it logs and ignores sequence gaps, and re-applies redelivered or reordered batches in arrival order (sglang H3). That list is TR5b's conformance checklist for the publisher: gaps, replay, duplicates, reordering, restart and liveness.
 
 **Knowledge components** (proposed; W2-T33 writes them):
@@ -113,7 +113,7 @@ The module counts as complete when `kv-publisher`, the Switchyard's graded level
 | s2 `batches` | events batched per engine step into one `KVEventBatch` with a timestamp and a strictly increasing sequence number |
 | s3 `replay` | the last `buffer_steps` batches kept; a replay from sequence k returns every batch from k on, then the end marker −1 |
 | s4 `reset` | `AllBlocksCleared` before any new `BlockStored` after a cache reset |
-| s5 `chunks_and_adapters` | repeated stores of one hash in chunk mode published each time; an adapter id on every `BlockStored` |
+| s5 `chunks_and_adapters` | repeated stores of one hash in chunk mode published each time; the adapter (`lora_name`) on every `BlockStored` |
 | s6 `gauntlet` | seeded streams with the consumer's transport dropping, duplicating and reordering batches, and a publisher restart; the consumer's view, rebuilt with replays, equals the truth after every batch |
 
 Where vLLM's behaviour is silent (for example, what a restarted publisher announces first), `kv-events@1` states the course's own rule and marks it as the course's, for WR3 to settle (D-034).
@@ -133,7 +133,7 @@ Where vLLM's behaviour is silent (for example, what a restarted publisher announ
 | vLLM | v0.33.0 (`4ba787ec…324da5`) | the connector, events, offload config and unit tests |
 | SGLang | v0.5.23 (`297e54fd…6f90`) | HiCache, events, the indexer's README |
 | KV-offloading post | `vllm.ai/blog/2026-01-08-kv-offloading-connector` (2026-01-08) | its speedups are [unverified] (vllm K5) |
-| `kv-events@1` | the course's minimal schema (D-034), mirroring v0.33.0's shapes plus an adapter field | reconciled when WR3 ships |
+| `kv-events@1` | the course's minimal schema (D-034), mirroring v0.33.0's shapes, whose `BlockStored` already carries the adapter as `lora_name` (claim `vllm.kv-events.adapter-field`), as SGLang's does at v0.5.23 (claim `sglang.kv-events.adapter-field`) | reconciled when WR3 ships |
 | A small hybrid model for the `SupportsHMA` check | chosen and pinned by W2-T32 | must fit 24 GB [unverified which] |
 
 ## 8. Dated claims

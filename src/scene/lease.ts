@@ -2,8 +2,18 @@
  * One live 3D canvas per page (ARCHITECTURE §6.4). A Stage that wants its scene asks for the lease; while another Stage
  * holds it, this one shows its 2D view and a button that takes the lease over, and the holder falls back to its 2D view.
  * Browsers cap live WebGL contexts at a small number, and one scene is what a reader looks at anyway.
+ *
+ * Each Stage holds the lease under a key of its own, so two Stages of the same game on one page (a lesson's two blocks of Service)
+ * are two holders and never both live.
  */
-import { useCallback, useEffect, useSyncExternalStore } from 'react'
+import { createContext, useCallback, useEffect, useSyncExternalStore } from 'react'
+
+/**
+ * A part of the page whose Stages take the lease the first time they want it, instead of waiting for it to be free: a lesson's game
+ * block that the learner has just started (W1b-T01). The level asked for last is the one in 3D, and the one it took the lease from shows
+ * its 2D view, with the button that takes it back. Everywhere else a Stage waits.
+ */
+export const ClaimLease = createContext(false)
 
 export interface Lease {
   readonly holder: () => string | null

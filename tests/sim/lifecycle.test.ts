@@ -331,7 +331,7 @@ describe('what each factor of a scenario changes', () => {
   test('streaming ends the path with a server-sent event, and the other mode with the whole response', () => {
     for (const id of ENGINE_IDS) {
       const supports = ENGINES[id].supports.streaming
-      const last = (streaming: boolean) => referencePath({ ...base(id), streaming }).pop()?.id
+      const last = (streaming: boolean) => referencePath({ ...base(id), streaming }).at(-1)?.id
       if (supports.includes(true)) expect([id, last(true)]).toEqual([id, `${PREFIX[id]}sse-chunk`])
       expect([id, last(false)]).toEqual([id, id === 'nano-vllm' ? 'nano.detokenize' : `${PREFIX[id]}full-response`])
     }

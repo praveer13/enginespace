@@ -11,6 +11,13 @@ name: Labs
 # A job switches on when its lab lands (labs/forge/Cargo.toml from W1-T10, labs/grader/pyproject.toml from W2-T02), and this
 # file does not change for that. Until then the detect job prints "pending: <task>" for the lab that is missing, and the job
 # for it is skipped.
+#
+# The workflow runs when a file that its gates read changes. verify:labs reads more than labs/: it imports the forge host and the
+# worker the site runs (src/forge, src/workers/forge.worker.ts), the models behind the labs' checks (packages/sim) and the vendored files
+# under those (vendor/kernelspace), it judges the builds with scripts/labs, and it compares the builds that tests/fixtures/forge
+# commits with the ones it makes. W1 left those out of the filter, so a change to the host or to a model could break a lab with no
+# labs job on the pull request (W1 report §12). tests/ci/workflows.test.ts walks the imports of scripts/verify-labs.ts and fails on
+# a file that this list does not cover, so a lab's new dependency adds its path here before it can merge.
 
 on:
   pull_request:
@@ -19,6 +26,13 @@ on:
       - 'schemas/**'
       - 'packages/schema/**'
       - 'packages/verify/**'
+      - 'packages/sim/**'
+      - 'src/forge/**'
+      - 'src/workers/forge.worker.ts'
+      - 'scripts/labs/**'
+      - 'scripts/verify-labs.ts'
+      - 'tests/fixtures/forge/**'
+      - 'vendor/kernelspace/**'
       - '.github/workflows/labs.yml'
   workflow_dispatch:
 
@@ -78,9 +92,18 @@ jobs:
 
       # The scripts run under Bun, pinned as in ci.yml.
       - name: Set up pinned Bun
+        id: bun
+        continue-on-error: true
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.3.14
+
+      # A failed download from GitHub falls back to npm's copy of the same release (ARCHITECTURE §10.3).
+      - name: Set up pinned Bun from npm, when GitHub's download failed
+        if: steps.bun.outcome == 'failure'
+        env:
+          BUN_VERSION: 1.3.14
+        run: npm install --global --no-audit --no-fund "bun@$BUN_VERSION" && test "$(bun --version)" = "$BUN_VERSION"
 
       - name: Set up pinned Rust with the wasm32 target
         run: |
@@ -122,9 +145,18 @@ jobs:
           cache: npm
 
       - name: Set up pinned Bun
+        id: bun
+        continue-on-error: true
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.3.14
+
+      # A failed download from GitHub falls back to npm's copy of the same release (ARCHITECTURE §10.3).
+      - name: Set up pinned Bun from npm, when GitHub's download failed
+        if: steps.bun.outcome == 'failure'
+        env:
+          BUN_VERSION: 1.3.14
+        run: npm install --global --no-audit --no-fund "bun@$BUN_VERSION" && test "$(bun --version)" = "$BUN_VERSION"
 
       - name: Set up pinned uv
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0

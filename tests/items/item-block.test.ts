@@ -54,11 +54,22 @@ describe('the ticket that waits', () => {
   })
 })
 
+describe('the ticket that waits, for a family that two lessons name at two levels', () => {
+  test('names the KCs of the variants that the block draws at its level, and not the other level\'s', () => {
+    const first = render(h(ItemBlock, { block: block('tr5a.blocks-held', 2), scope: 'tr5a.l1' }))
+    for (const kc of ['tr5a.kv-groups', 'tr5a.sliding-free', 'tr5a.state-pages']) expect(first).toContain(kc)
+    expect(first).not.toContain('tr5a.page-size-unification')
+    const second = render(h(ItemBlock, { block: block('tr5a.blocks-held', 3), scope: 'tr5a.l2' }))
+    expect(second).toContain('tr5a.page-size-unification')
+    for (const kc of ['tr5a.kv-groups', 'tr5a.sliding-free', 'tr5a.state-pages']) expect(second).not.toContain(kc)
+  })
+})
+
 describe('the ticket for a family that is not built, or a level it does not offer', () => {
   test('says the generator is not built, holds the stub down, and starts nothing', () => {
-    const html = render(h(ItemBlock, { block: block('tr2.dispatch-key', 2), scope: 'tr2.l3' }))
+    const html = render(h(ItemBlock, { block: block('tr2.no-such-family', 2), scope: 'tr2.l3' }))
     expect(html).toContain('data-phase="unbuilt"')
-    expect(html).toContain('Not built yet: the generator for tr2.dispatch-key')
+    expect(html).toContain('Not built yet: the generator for tr2.no-such-family')
     expect(html).toMatch(/<button type="button" class="es-stub__pull"[^>]*disabled=""/)
   })
 

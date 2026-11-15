@@ -57,9 +57,11 @@ describe('the roster', () => {
     }
   })
 
-  test("agrees with the pending-block table's task for each game that is not built in W0", () => {
-    for (const entry of ROSTER.filter((candidate) => candidate.wave > 0)) {
-      expect([entry.id, Number(GAME_TASKS[entry.id].slice(1, 2))]).toEqual([entry.id, entry.wave])
+  test("agrees with the pending-block table: a game the registry does not have yet is listed with a task of the roster's wave, and one it has is not listed (W1b-T01)", () => {
+    for (const entry of ROSTER) {
+      const task = Object.hasOwn(GAME_TASKS, entry.id) ? GAME_TASKS[entry.id] : null
+      if (GAMES.has(entry.id)) expect([entry.id, task]).toEqual([entry.id, null])
+      else expect([entry.id, task === null ? null : Number(task.slice(1, 2))]).toEqual([entry.id, entry.wave])
     }
   })
 

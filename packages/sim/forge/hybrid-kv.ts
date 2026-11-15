@@ -292,16 +292,9 @@ function planOf(key: keyof typeof HYBRID_KV_SCRIPTS, what: string) {
 
 const EVERY = 'every reply, every page and every event as the reference has them'
 
-/**
- * The knowledge components that a check assesses (content/kc/graph.yaml), which `verify:kc` reads through kcs.ts. The exit review
- * (W1-T38) wired that source and removed the `planned: W1-T22` lines that these checks answer.
- */
-export const HYBRID_KV_KCS: Readonly<Record<string, readonly string[]>> = {
-  sliding: ['tr5a.sliding-free', 'tr5a.all-or-nothing'],
-  state: ['tr5a.state-pages'],
-  hit_all_groups: ['tr5a.hit-intersection'],
-  adapter_pages: ['tr5a.adapter-pages', 'tr5a.all-or-nothing'],
-}
+// The knowledge components that a check assesses are in check-kcs.ts, a file that imports nothing, so that the map can read them without this
+// oracle. They are exported from here as well.
+export { HYBRID_KV_KCS } from './check-kcs'
 
 /** The six checks of the `hybrid-kv` lab, in grading order: the stages s1 to s6 of TR5a §5. */
 export const HYBRID_KV_CHECKS: readonly PlannedCheck[] = [

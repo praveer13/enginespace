@@ -21,8 +21,9 @@
 #                says which artifact will carry the KC. Where TRACKER.md names no builder, it is the module's content task, whose
 #                exit checks give every lesson's KCs an item.
 #                The W1 exit review (W1-T38, 2026-11-08) removed the 25 placeholders that a graded game level, an item family or a
-#                lab check answered, the labs' through packages/sim/forge/kcs.ts. The eleven that remain wait for item families that
-#                the lessons name and no W1 task built, so `bun scripts/verify-kc.ts --final` fails on them (docs/waves/W1-report.md §5).
+#                lab check answered, the labs' through packages/sim/forge/kcs.ts. Eleven stayed, for item families that the lessons
+#                name and no W1 task built (docs/waves/W1-report.md §5). W1b-T03 to W1b-T06 built those families and removed the
+#                eleven, so no KC carries `planned` now and `bun scripts/verify-kc.ts --final` passes (docs/waves/W1b-report.md §4.3).
 #
 # The edges are the curriculum's, edge for edge, and tests/kc/graph.test.ts holds the two to each other. TR2's step-calls leans on
 # TR1's vllm-lifecycle only as advice: TR2 can be taken without TR1.
@@ -42,7 +43,6 @@
 - id: tr1.phases-vs-one-budget
   description: You can say how a scheduler that runs either prefill or decode in a step differs from vLLM's one token budget for every request.
   requires: [tr1.small-engine-anatomy, ks:t5.prefill-decode-interference]
-  planned: W1-T20 # the `tr1.step-budget` family, which the exit items of TR1's lessons 2 and 5 name
 
 - id: tr1.vllm-lifecycle
   description: You can trace a request through vLLM at the pinned version, from the API server to the model runner and back, naming each queue, process boundary, copy and sync.
@@ -59,7 +59,6 @@
 - id: tr1.request-states
   description: You can name the states a request moves through in the pinned vLLM, and say what moves it from one to the next.
   requires: [tr1.vllm-lifecycle]
-  planned: W1-T20 # the `tr1.request-state` family (TR1 §4, Keep)
 
 - id: tr1.abort-path
   description: You can trace an abort from the client to the engine core, and say where the engine drains it and what it releases.
@@ -68,7 +67,6 @@
 - id: tr1.read-at-the-pin
   description: You can find where a box of an older engine post lives in the pinned code, and say which of the post's statements are stale.
   requires: [tr1.vllm-lifecycle]
-  planned: W1-T20 # the `tr1.what-moved` family (TR1 §4, Keep)
 
 # ---------------------------------------------------------------------------------------------------------------------------------
 # TR2 · The step loop
@@ -77,17 +75,14 @@
   description: You can name the calls of one engine step in order, and say which of them launch GPU work and which wait for it.
   requires: [tr1.vllm-lifecycle] # advice, as the header says
   threshold: true
-  planned: W1-T15 # the `tr2.step-order` family, which the exit item of TR2's first lesson names
 
 - id: tr2.one-budget
   description: You can say how a scheduler that spends one token budget on running and waiting requests together chooses what runs, and what it does when the KV pool runs out.
   requires: [ks:t5.continuous-batching, ks:t5.sched-order, ks:t5.admission-headroom]
-  planned: W1-T15 # the `tr2.preempt-victim` family (TR2 §3, lesson 2)
 
 - id: tr2.gpu-dependent-defaults
   description: You can say why the same server command is a different configuration on two GPUs, and name the defaults that move with GPU memory.
   requires: [tr2.one-budget]
-  planned: W1-T15 # the `tr2.default-budget` family (TR2 §3, lesson 2)
 
 - id: tr2.bubble
   description: You can say why the GPU idles between engine steps when the CPU's work for the next step is not ready.
@@ -126,7 +121,6 @@
   description: You can say which fields of a batch's descriptor choose the CUDA graph that replays it, in the pinned runner and in the legacy one, and what runs when none matches.
   requires: [tr2.graph-modes, tr2.capture-padding]
   confusable: [tr2.graph-modes]
-  planned: W1-T14 # `close` has no adapter lever (W1-T14): the `keys` level, which waits on the owner's dispatcher tables (Q-10), or the `tr2.dispatch-key` family that TR2's lesson 6 names
 
 - id: tr2.graph-memory
   description: You can say why graph capture takes memory before the KV cache is sized, and correct a KV-capacity estimate for it.
@@ -169,7 +163,6 @@
   description: You can compare adapter slots, as the pinned engines use them, with adapters paged in one pool, and say when slots are enough.
   requires: [tr5a.adapter-pages]
   confusable: [tr5a.adapter-pages]
-  planned: W1-T25 # the `tr5a.slots-vs-pages` family (TR5a §4, Keep)
 
 - id: tr5a.all-or-nothing
   description: You can say why an admit or a load takes all of its pages or none, and what state a refused one must leave the pool in.
@@ -249,11 +242,9 @@
 - id: tr8.goodput-denominator
   description: You can say which denominator a goodput number divides by (the arrival window, or the whole run with its drain tail), and how the two differ under overload.
   requires: [ks:t7.goodput, ks:t7.goodput-curve]
-  planned: W1-T34 # the `tr8.goodput-denominator` family (TR8 §4, Keep)
 
 - id: tr8.littles-law
   description: You can check a benchmark log with Little's law, that mean concurrency equals throughput times mean latency on a stable window.
-  planned: W1-T34 # the `tr8.littles-law` family (TR8 §4, Keep)
 
 - id: tr8.time-shaped-replay
   description: You can say whether a trace replay keeps the trace's timing or only its shape, and what a replay that ignores timestamps loses.
@@ -262,4 +253,3 @@
 - id: tr8.tool-defaults
   description: You can read what the benchmark tools' defaults do (rate, concurrency, warm-up, cache reuse and percentiles), and name the flags that change them.
   requires: [tr8.client-queue, tr8.warmup-rule]
-  planned: W1-T34 # the `tr8.which-flag` family (TR8 §4, Keep)

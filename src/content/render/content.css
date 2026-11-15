@@ -140,8 +140,12 @@
 
 /* ---------------------------------------------------------------------------------------------- a ticket's head and text */
 
-/* The ids on a head line are lower case in the source and print in capitals, as the printer prints a table. */
-.es-c-block .es-ticket__head {
+/*
+ * The ids on a page's foot lines (or on the head line of a ticket with no title) are lower case in the source and print in capitals, as
+ * the printer prints a table.
+ */
+.es-c-block .es-ticket__head,
+.es-doc .es-c-block .es-ticket__foot {
   text-transform: uppercase;
 }
 
@@ -421,4 +425,85 @@
 
 .es-c-artifacts code {
   color: var(--es-text-2);
+}
+
+/* ---------------------------------------------------------------------------------------------- the prediction block */
+
+/*
+ * A prediction (Predict.tsx) is filled in like an item, and borrows the item block's slip, plates, keys and verdict (src/items/items.css,
+ * which a lesson loads with its item blocks). These are the lines that only a prediction prints: why a reveal waits, what the model read,
+ * which run it read it from, and what the committed ticket waits for.
+ */
+.es-c-predict__why,
+.es-c-predict__reads,
+.es-c-predict__run,
+.es-c-predict__status {
+  max-width: 68ch;
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+.es-c-predict__why,
+.es-c-predict__run {
+  color: var(--es-text-2);
+}
+
+/* What the committed ticket waits for is the present, so it prints in ribbon black; the printer's dots name it as a line of the ticket. */
+.es-c-predict__status {
+  margin-top: var(--es-space-3);
+  font-family: var(--es-font-ticket);
+  font-weight: var(--es-font-ticket-weight);
+  letter-spacing: var(--es-font-ticket-tracking);
+  color: var(--es-paper-ink);
+}
+
+/* A range has two slips side by side, and one under the other on a phone. */
+.es-c-predict__range {
+  flex-wrap: wrap;
+}
+
+.es-c-predict__range .es-field {
+  flex: 1 1 11rem;
+}
+
+/* ---------------------------------------------------------------------------------------------- the game block */
+
+/*
+ * A game block (GameBlock.tsx): its ticket, and once the learner starts the level, the game under it on the steel, as on the game's own
+ * page. The ticket keeps its measure; the game takes the column's whole width.
+ */
+.es-c-game {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-6);
+}
+
+.es-c-game__name strong {
+  font-weight: 700;
+}
+
+.es-c-block .es-ticket__body .es-c-game__elsewhere {
+  font-size: var(--es-size-print);
+}
+
+/* The line that stands where the game will be while its code comes: the printer's dots, in quiet text on the steel. */
+.es-c-game__loading {
+  display: flex;
+  align-items: center;
+  gap: var(--es-space-2);
+  margin: 0;
+  color: var(--es-text-2);
+  outline: none;
+}
+
+/*
+ * On a wide screen a game the learner has opened takes the room the lesson leaves beside its tape: the tickets keep their measure, and the
+ * game's view gets about the width it has on its own page.
+ */
+@media (min-width: 64rem) {
+  .es-doc__columns:has(.es-c-game[data-open]) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 20rem);
+  }
 }

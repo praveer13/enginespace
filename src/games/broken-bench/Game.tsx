@@ -27,6 +27,8 @@ import './bench.css'
  * Practice plays a level's pinned seed, with undo and with the desk's readouts. A graded attempt draws its seed when it starts, from
  * `crypto.getRandomValues` and through the level's band, and is stamped unseen (ASSESSMENT §4.1; A§8.2): it has no undo, and the desk
  * does not say where the p99 sits. The seed is drawn on the page and never inside the pure package, which reads no entropy (I3).
+ * A run's result goes to the page's `onFinish`, which the game's page and a lesson's block each give the recorder (src/games/kit/record.ts,
+ * W1b-T01). Inside a lesson the block names the level and the attempt, so the docket and the next level are left out.
  *
  * The keys are the game's own: `T` moves the stopwatch between the send and the due time, `J` and `K` select the next and the previous
  * order, and `[` and `]` turn to the previous and the next sheet. A key is left alone where the focused control uses it itself.
@@ -70,17 +72,20 @@ export default function Game({ level, mode = 'practice', placement = 'page', rev
     setLevelId(known(level))
     setAttempt(begin(known(level), attempt.mode))
   }
-  // Moving on to the next level replaces the page's content, and the button that was pressed goes with it: focus goes back to the game.
+  // Moving on to the next level replaces the page's content, and the button that was pressed goes with it: focus goes back to the game. This
+  // game's own, found from its box, since a lesson can hold two of it.
+  const host = useRef<HTMLDivElement>(null)
   const advanced = useRef(false)
   useEffect(() => {
     if (!advanced.current) return
     advanced.current = false
-    document.querySelector<HTMLElement>(`[data-game="${BROKEN_BENCH.id}"]`)?.focus({ preventScroll: true })
+    host.current?.querySelector<HTMLElement>('[data-game]')?.focus({ preventScroll: true })
   }, [levelId, attempt])
 
+  const embedded = placement === 'embed'
   const entry = levelOf(BROKEN_BENCH, levelId) ?? LEVELS[0]
   const at = LEVELS.findIndex((candidate) => candidate.id === entry.id)
-  const after = LEVELS[at + 1] ?? null
+  const after = embedded ? null : (LEVELS[at + 1] ?? null)
   const open = (id: string, as: GameMode) => {
     advanced.current = true
     setLevelId(id)
@@ -94,7 +99,7 @@ export default function Game({ level, mode = 'practice', placement = 'page', rev
   // The levels and the attempt, in one row under the game's name with its stages: the row says which level is open and how, so the shell
   // prints no tape that says it again. A lesson that embeds the game picks the level itself, and the shell's tape names it there.
   const docket =
-    placement === 'embed' ? undefined : (
+    embedded ? undefined : (
       <div className="es-bench-docket" data-bench-docket="">
         <nav aria-label="Levels of the Inspection">
           <ul>
@@ -119,7 +124,7 @@ export default function Game({ level, mode = 'practice', placement = 'page', rev
     )
 
   return (
-    <div className="flex flex-col gap-6" data-bench-page="">
+    <div ref={host} className="flex flex-col gap-6" data-bench-page="">
       <GameShell
         docket={docket}
         mirrorFirst
@@ -130,7 +135,8 @@ export default function Game({ level, mode = 'practice', placement = 'page', rev
         seed={attempt.seed}
         mode={attempt.mode}
         rev={rev}
-        headingLevel={placement === 'embed' ? 3 : 2}
+        headingLevel={embedded ? 3 : 2}
+        embedded={embedded}
         onFinish={onFinish}
         onCommand={(command, run) => {
           const desk = deskFor(bench, setBench, run)

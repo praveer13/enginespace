@@ -78,8 +78,9 @@ function LoopScene(props: Scene3DProps) {
  * Service's parts into it, and the keys that are Service's: `.` rings the bell, Space toggles Auto, `O` flips the overlap switch.
  *
  * The four levels are the front-page run, "First service" (GAMES.md §3.1). Each is practice on its pinned seed, and a finished level
- * offers the next. A front-page run records nothing (D-038), so `onFinish` is only forwarded when a page passes one. TR2's levels
- * join this game with W1-T13.
+ * offers the next. A front-page run records nothing (D-038), so `onFinish` is only forwarded when a page passes one: the game's page and a
+ * lesson's block each pass the recorder (src/games/kit/record.ts, W1b-T01). TR2's levels join this game with W1-T13. Inside a lesson the
+ * block names the level, so the docket and the next level are left out.
  *
  * The 3D view (W0-T17) is the pass seen over the expediter's shoulder, in a Stage that paints the 2D view first and keeps it as the
  * fallback (A§6.7). It opens on its own on a device whose tier draws 3D, and `V` or the switch swaps the two views; the session lives
@@ -103,11 +104,13 @@ export default function Game({ level, mode, placement = 'page', rev, onFinish }:
   }
   const toggleAuto: AutoToggleRef = useRef(null)
   // Moving on to the next level replaces the page's content, and the button that was pressed goes with it: focus goes back to the game.
+  // This game's own, found from its box, since a lesson can hold two of it.
+  const host = useRef<HTMLDivElement>(null)
   const advanced = useRef(false)
   useEffect(() => {
     if (!advanced.current) return
     advanced.current = false
-    document.querySelector<HTMLElement>(`[data-game="${LOOP.id}"]`)?.focus({ preventScroll: true })
+    host.current?.querySelector<HTMLElement>('[data-game]')?.focus({ preventScroll: true })
   }, [levelId])
 
   // 3D opens by itself where the device draws it, and a learner's own choice of view wins from then on. Under `saveData` the Stage
@@ -119,10 +122,11 @@ export default function Game({ level, mode, placement = 'page', rev, onFinish }:
   const unavailable3d = device.known && !draws3d ? unavailableReason(device.reason) : undefined
   const [preset, setPreset] = useState(DEFAULT_PRESET)
 
+  const embedded = placement === 'embed'
   const entry = levelOf(LOOP, levelId) ?? LOOP.levels[0]
-  // The first service walks its own four levels: its last one ends on the end card, as on the front page.
+  // The first service walks its own four levels: its last one ends on the end card, as on the front page. A lesson names its level.
   const at = FIRST_SERVICE.findIndex((candidate) => candidate.id === entry.id)
-  const after = FIRST_SERVICE[at + 1] ?? null
+  const after = embedded ? null : (FIRST_SERVICE[at + 1] ?? null)
   const advance = () => {
     if (after === null) return
     advanced.current = true
@@ -133,7 +137,7 @@ export default function Game({ level, mode, placement = 'page', rev, onFinish }:
     setLevelId(id)
   }
   // A lesson that embeds the game names its level; the page offers them all.
-  const docket = placement === 'embed' ? undefined : <Docket current={levelId} onOpen={open} />
+  const docket = embedded ? undefined : <Docket current={levelId} onOpen={open} />
 
   if (levelId === KEYS.id) {
     return (
@@ -153,70 +157,75 @@ export default function Game({ level, mode, placement = 'page', rev, onFinish }:
   }
   if (isFull(levelId)) {
     return (
-      <Suspense fallback={<p role="status">Setting up the full service…</p>}>
-        <FullService level={levelId} mode={mode} placement={placement} rev={rev} onFinish={onFinish} docket={docket} onLevel={open} />
-      </Suspense>
+      <div ref={host} className="contents">
+        <Suspense fallback={<p role="status">Setting up the full service…</p>}>
+          <FullService level={levelId} mode={mode} placement={placement} rev={rev} onFinish={onFinish} docket={docket} onLevel={open} />
+        </Suspense>
+      </div>
     )
   }
 
   return (
-    <GameShell
-      game={FIRST_FACE}
-      session={loopSession}
-      level={entry.id}
-      levelTitle={entry.title}
-      seed={entry.practiceSeed}
-      mode="practice"
-      rev={rev}
-      headingLevel={placement === 'embed' ? 3 : 2}
-      onFinish={onFinish}
-      docket={docket}
-      onCommand={(command, run) => {
-        if (command === 'step') return ring(run)
-        if (command === 'overlap') {
-          if (!run.view.overlapAvailable || run.view.done) return false
-          run.dispatch({ t: 'lever', name: 'async', value: !run.view.overlap })
-          return true
-        }
-        if (command === 'play-pause') {
-          toggleAuto.current?.()
-          return toggleAuto.current !== null
-        }
-        if (command === 'camera') {
-          if (view !== '3d') return false
-          const next = nextPreset(LOOP_PRESETS, preset)
-          setPreset(next)
-          run.announce(`Camera: ${presetById(LOOP_PRESETS, next).label}.`)
-          return true
-        }
-        return false
-      }}
-      allow3d={draws3d}
-      unavailable3d={unavailable3d}
-      view={view}
-      onViewChange={setChosenView}
-      view2d={(run) => (
-        // The 2D view in the box the scene would take, so it draws the kitchen at the scene's scale.
-        <div className={`${STAGE_BOX} overflow-hidden rounded-plate border border-edge bg-surface-0`}>
-          <View2D run={run} />
-        </div>
-      )}
-      scene3d={(run) => <LoopStage run={run} preset={preset} />}
-      controls={(run) => (
-        <>
-          {view === '3d' ? <CameraButtons presets={LOOP_PRESETS} value={preset} onChange={setPreset} label="Camera on the pass" /> : null}
-          <Controls run={run} toggleAutoRef={toggleAuto} />
-        </>
-      )}
-      mirror={(run) => <Mirror run={run} />}
-      stage
-      debrief={(run, outcome) => (
-        <Suspense fallback={<p role="status">Printing the debrief…</p>}>
-          <Debrief run={run} outcome={outcome} next={after === null ? null : { id: after.id, title: after.title }} onNext={advance} />
-        </Suspense>
-      )}
-      card={<WorldCard />}
-    />
+    <div ref={host} className="contents">
+      <GameShell
+        game={FIRST_FACE}
+        session={loopSession}
+        level={entry.id}
+        levelTitle={entry.title}
+        seed={entry.practiceSeed}
+        mode="practice"
+        rev={rev}
+        headingLevel={embedded ? 3 : 2}
+        embedded={embedded}
+        onFinish={onFinish}
+        docket={docket}
+        onCommand={(command, run) => {
+          if (command === 'step') return ring(run)
+          if (command === 'overlap') {
+            if (!run.view.overlapAvailable || run.view.done) return false
+            run.dispatch({ t: 'lever', name: 'async', value: !run.view.overlap })
+            return true
+          }
+          if (command === 'play-pause') {
+            toggleAuto.current?.()
+            return toggleAuto.current !== null
+          }
+          if (command === 'camera') {
+            if (view !== '3d') return false
+            const next = nextPreset(LOOP_PRESETS, preset)
+            setPreset(next)
+            run.announce(`Camera: ${presetById(LOOP_PRESETS, next).label}.`)
+            return true
+          }
+          return false
+        }}
+        allow3d={draws3d}
+        unavailable3d={unavailable3d}
+        view={view}
+        onViewChange={setChosenView}
+        view2d={(run) => (
+          // The 2D view in the box the scene would take, so it draws the kitchen at the scene's scale.
+          <div className={`${STAGE_BOX} overflow-hidden rounded-plate border border-edge bg-surface-0`}>
+            <View2D run={run} />
+          </div>
+        )}
+        scene3d={(run) => <LoopStage run={run} preset={preset} />}
+        controls={(run) => (
+          <>
+            {view === '3d' ? <CameraButtons presets={LOOP_PRESETS} value={preset} onChange={setPreset} label="Camera on the pass" /> : null}
+            <Controls run={run} toggleAutoRef={toggleAuto} />
+          </>
+        )}
+        mirror={(run) => <Mirror run={run} />}
+        stage
+        debrief={(run, outcome) => (
+          <Suspense fallback={<p role="status">Printing the debrief…</p>}>
+            <Debrief run={run} outcome={outcome} next={after === null ? null : { id: after.id, title: after.title }} onNext={advance} />
+          </Suspense>
+        )}
+        card={<WorldCard />}
+      />
+    </div>
   )
 }
 

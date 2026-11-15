@@ -1,8 +1,8 @@
 // Parts of this file are translated to TypeScript from vLLM v0.33.0 (commit 4ba787ec9959e566d3b587a796dff07673324da5) and modified:
 // vllm/v1/cudagraph_dispatcher.py, vllm/v1/worker/gpu/cudagraph_utils.py, vllm/v1/worker/gpu/lora_utils.py, vllm/lora/utils.py,
 // vllm/config/compilation.py and vllm/config/vllm.py, and the definitions of BatchDescriptor (vllm/forward_context.py) and
-// AttentionCGSupport (vllm/v1/attention/backend.py). Copyright contributors to the vLLM project.
-// Licensed under the Apache License 2.0; see NOTICE and LICENSES/Apache-2.0.txt.
+// AttentionCGSupport (vllm/v1/attention/backend.py). Those parts carry vLLM's notice, "Copyright contributors to the vLLM project",
+// and are under the Apache License 2.0; see NOTICE and LICENSES/Apache-2.0.txt.
 //
 // CUDA graphs as data (ARCHITECTURE §5.3; WORLD §2.5; GAMES.md §3, "Simulation API"; D-041): the five modes and how a requested one is
 // downgraded, the capture sizes vLLM chooses, the adapter cases it captures, and the two dispatchers that decide, for each step,

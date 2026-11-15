@@ -6,9 +6,10 @@
  *   - an empty ring mold in each padded place of the latest fire's mold, where a plate would stand;
  *   - the comb along the expo's edge, its teeth as tall as the calls each layer took, or folded flat into one word;
  *   - on the mask level, the allergy card in front of the expo, struck in the ribbon's red.
- * The drawing writes no count: every count is DOM, on the tape and in the mirror (GAMES.md §2.6, rule 7). The numbers it writes are names,
- * as a ticket's is: each mold's size, stamped on the steel in front of it, as the 3D scene labels it. Its words are marker on masking tape,
- * as the kitchen's other names are.
+ * The drawing writes no count: every count is DOM, on the tape and in the mirror (GAMES.md §2.6, rule 7). Its numbers are names, as a
+ * ticket's is: each mold's size, stamped on the steel in front of it, as the 3D scene labels it. They and its words are the page's, in the
+ * DOM over the drawing, as the kitchen's other print is (`FrameTag`, `FrameTape`): the sizes on the steel, and the names on masking tape
+ * stuck on the tool each names.
  */
 import { clipX, PASS, plateRadius } from '../kitchen'
 import { layoutFrame } from '../layout'
@@ -18,21 +19,15 @@ import type { FullView } from './types'
 
 type Pt = readonly [number, number]
 
-/** Where the full service's names sit on the counter's front edge, beside the expo's tape at its middle [estimated]. */
-const EDGE_TAPE = { comb: -0.4, rack: 0.6 } as const
-
-/**
- * A mold's stamped size: how far in front of the ring's edge it sits, clear of the ring's shadow and short of the plates, and how tall
- * its figures stand, as tall as the fired rail's ticket numbers, in metres [estimated].
- */
-const STAMP = { gap: 0.046, size: 0.032 } as const
+/** How far in front of a mold's ring its stamped size sits, clear of the ring's shadow and short of the plates, in metres [estimated]. */
+const STAMP_GAP = 0.046
 
 /** The rack, its molds, and the mold the latest fire dropped into, under the lamp. */
 function rack(draw: FrameDraw, view: FullView) {
   const { p, lens } = draw
   if (view.rack === null || view.rack.sizes.length === 0) return
   const top = PASS.top
-  const { molds } = rackOf(view.rack.sizes)
+  const { molds, x1 } = rackOf(view.rack.sizes)
   p.layer('rack')
   molds.forEach((mold, i) => {
     const base = lens.disc(mold.x, top, RACK.z, mold.r)
@@ -54,17 +49,15 @@ function rack(draw: FrameDraw, view: FullView) {
     p.ellipse(base, { fill: 'surface-1', stroke: 'surface-3', width: 0.5 })
     p.ellipse(rim, { fill: 'surface-2', stroke: picked ? 'lamp-ring' : 'paper', width: picked ? 1.2 : 0.7 })
   })
-  // Each mold's size, stamped on the steel in front of it; the mold the fire dropped into has its size on a chip in the lamp's light.
+  // Each mold's size, stamped on the steel in front of it, where the drawing has room for the row; the mold the fire dropped into has its
+  // size on a chip in the lamp's light, always, as the scene prints them (src/games/loop/full/scene.ts).
   molds.forEach((mold, i) => {
-    const z = RACK.z + mold.r + STAMP.gap
-    const [x, y] = lens.at(mold.x, top, z)
-    const size = STAMP.size * lens.per(mold.x, top, z)
     const picked = view.rack!.picked === i
-    if (picked) p.rect(x - size * 0.95, y - size * 0.62, size * 1.9, size * 1.24, { fill: 'lamp', stroke: 'lamp-ring', width: 0.6, rx: size * 0.62 })
-    p.text(x, y, String(mold.size), size, picked ? 'paper-ink' : 'text-1', 'numeric')
+    p.tag(picked ? 'pick' : 'mold', `mold-${mold.size}`, lens.at(mold.x, top, RACK.z + mold.r + STAMP_GAP), String(mold.size), !picked)
   })
-  // Its name on masking tape on the counter's front edge, right of the expo's own, as the kitchen names its stations.
-  draw.tape(p, lens, EDGE_TAPE.rack, top - 0.03, PASS.depth / 2 + 0.006, 0.34, 0.05, 'MOLDS · SIZES')
+  // Its name on masking tape at its row's right end, as the 3D scene sticks it (src/games/loop/full/scene.ts), toward the row's front
+  // [estimated]: on a phone's drawing the counter's back holds the strip between the line's tape and the plates' far rims only there.
+  draw.tape(p, lens, 'molds', x1, top + 0.004, RACK.z + 0.02, 'molds · sizes', 'right')
 }
 
 /** The padded places of the latest fire read back: an empty ring mold where each plate would stand. */
@@ -110,7 +103,9 @@ function comb(draw: FrameDraw, view: FullView) {
     const w = view.comb.mode === 'FULL' ? COMB.width * 10 : COMB.width
     p.poly(upright(lens, tooth.x - w / 2, tooth.x + w / 2, top + COMB.spine, top + COMB.spine + tooth.h, z), { fill: 'surface-1', stroke: 'surface-3', width: 0.4 })
   }
-  draw.tape(p, lens, EDGE_TAPE.comb, top - 0.03, PASS.depth / 2 + 0.006, 0.3, 0.05, 'COMB · LAUNCHES')
+  // Its name on masking tape on the counter's front edge under its left end, clear of the expo's tape on the same edge on a phone's
+  // drawing, where the strips are wider than the steel between their middles [estimated].
+  draw.tape(p, lens, 'comb', COMB.x0, top - 0.03, PASS.depth / 2 + 0.006, 'comb · launches')
 }
 
 /** The allergy card in front of the expo: a card cut square, ruled, with the dishes struck through in the ribbon's red. */

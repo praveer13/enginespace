@@ -3,8 +3,7 @@
  * the middle of its top edge; and the path the printer's paper takes out of its mouth, curling tighter as it hangs. Pure three.
  */
 import { BufferAttribute, BufferGeometry, Matrix4, Vector3 } from 'three'
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
-import type { Vec3 } from './shape'
+import { merged, type Vec3 } from './shape'
 import { PRINTER, RAIL } from './specs'
 import { PRINT_CELLS } from './surfaces'
 
@@ -60,10 +59,10 @@ const BLANK: readonly [number, number] = [0.04, 0.03]
 
 /**
  * A ticket `width` × `height` and `thickness` thick, hanging from the middle of its top edge down -y, its face toward +z and its
- * foot curled toward the face by `curl` of its height. The face's UVs cover its atlas cell; its back and edges are blank paper.
+ * foot curled toward the face by `curl` of its height, in `rows` down it (more for a sheet a game bends further). The face's UVs cover
+ * its atlas cell; its back and edges are blank paper.
  */
-export function ticketGeometry(width: number, height: number, thickness: number, curl = 0.16): BufferGeometry {
-  const rows = 12
+export function ticketGeometry(width: number, height: number, thickness: number, curl = 0.22, rows = 12): BufferGeometry {
   const columns = 6
   const at = (i: number, j: number, back: boolean): Vec3 => {
     const t = j / rows
@@ -110,11 +109,9 @@ export function ticketGeometry(width: number, height: number, thickness: number,
       head,
     ),
   ]
-  const merged = mergeGeometries([...front, ...back, ...edges], false)
+  const sheet = merged([...front, ...back, ...edges]) as BufferGeometry
   for (const part of [...front, ...back, ...edges]) part.dispose()
-  if (!merged) throw new Error('a ticket\'s parts did not merge')
-  merged.computeBoundingSphere()
-  return merged
+  return sheet
 }
 
 /**

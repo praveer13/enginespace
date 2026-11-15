@@ -1,8 +1,8 @@
 /*
  * Parts of this file (the section "vLLM's search for a hit, ported": `fullFind`, `slidingFind`, `stateFind` and `vllmHit`) are translated to
  * TypeScript from vLLM v0.33.0 (commit 4ba787ec9959e566d3b587a796dff07673324da5) and modified: vllm/v1/core/single_type_kv_cache_manager.py
- * and vllm/v1/core/kv_cache_coordinator.py. Copyright contributors to the vLLM project.
- * Licensed under the Apache License 2.0; see NOTICE and LICENSES/Apache-2.0.txt.
+ * and vllm/v1/core/kv_cache_coordinator.py. Those parts carry vLLM's notice, "Copyright contributors to the vLLM project", and are under
+ * the Apache License 2.0; see NOTICE and LICENSES/Apache-2.0.txt.
  *
  * Shared by the hybrid KV model's tests (tests/sim/kv-*.test.ts): the streams the property tests run, random specs and caches, and the
  * oracles that share no code with packages/sim/kv:

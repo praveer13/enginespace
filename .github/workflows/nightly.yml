@@ -12,10 +12,13 @@ name: Nightly
 # does not exist yet (tests/ci/workflows.test.ts fails on a reserved step whose task has merged, so it cannot be forgotten):
 #   reports      W3-T13  link rot. The claim-expiry report runs now: verify:claims and verify:pins list what is past its TTL.
 #
-# Three are built:
+# Four are built:
 #   properties   W0-T10  the suite with every seeded property at its nightly seed count: 10,000 seeds where a pull request runs 200
 #                        (§5.10). W0-T10's file list did not include this workflow, so the W1 carry-over built the job. The
-#                        properties read one knob, ES_PROPERTY_SEEDS (tests/seeds.ts), and the job sets it.
+#                        properties read one knob, ES_PROPERTY_SEEDS (tests/seeds.ts), and the job sets it. It sets ES_HEAVY too, which
+#                        turns on the checks that cost minutes and that no pull request pays for (W1b-T13).
+#   lab-rates    W1b-T13 the error rates of the rejection-sampler lab, on its committed builds, through the worker the site uses
+#                        (tests/forge/rejection-sampler-rates.test.ts), at the size of a nightly run: ES_LAB_TRIALS trials a row.
 #   lab-profile  W0-T20  runs e2e/perf.spec.ts, the LCP, CLS and INP lab profile of §11.1, and fails above the gates.
 #   browsers     W0-T21  the sweep of playwright.config.ts under ES_E2E_NIGHTLY=1 (§10.1, §11.2): full axe at 320, 360 and 1280 px on
 #                        every document that prepare-pages writes, the reflow check, reduced motion and the network check on every
@@ -54,6 +57,11 @@ jobs:
     timeout-minutes: 90
     env:
       ES_PROPERTY_SEEDS: '10000'
+      # tests/sim/bench-stats.test.ts runs the p99's coverage over 2,000 seeds of the real pipeline only under ES_HEAVY=1 (ASSESSMENT §13
+      # lists bootstrap coverage at 2,000 seeds, nightly). Until this line no workflow set it (W1 report §4.1, O-15). The file takes 5.4 s without
+      # it and 36 s with it, and the p99 covers 93.0% of 2,000 seeds at n = 1,000 rows and 94.0% at n = 2,500, inside the test's bounds [measured
+      # 2026-11-09 at 54d880f on a 20-core laptop at a load average of about 30].
+      ES_HEAVY: '1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -66,14 +74,74 @@ jobs:
 
       # The suite runs under Bun, pinned as in ci.yml.
       - name: Set up pinned Bun
+        id: bun
+        continue-on-error: true
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.3.14
+
+      # A failed download from GitHub falls back to npm's copy of the same release (ARCHITECTURE §10.3).
+      - name: Set up pinned Bun from npm, when GitHub's download failed
+        if: steps.bun.outcome == 'failure'
+        env:
+          BUN_VERSION: 1.3.14
+        run: npm install --global --no-audit --no-fund "bun@$BUN_VERSION" && test "$(bun --version)" = "$BUN_VERSION"
 
       - run: npm ci
 
       - name: The suite, with every seeded property at its nightly seed count
         run: bun test --parallel=2 --timeout 900000
+
+  # W1-T27 acceptance 2 (ASSESSMENT §4.6): the error rates of the rejection-sampler lab, on the builds that Rust made, through the worker
+  # that the site uses (tests/forge/rejection-sampler-rates.test.ts). A trial is one run of the lab on seeds from a fixed stream, so a run is
+  # a function of the code and cannot flake. A pull request runs 8 trials a row, to keep its gate short, and this job runs ES_LAB_TRIALS=1500
+  # of them, the size that W1-T27 measured the lab at: no false fail of the reference in 1,500 runs, where 0.3 are expected at the chi-square's
+  # nominal 2e-4, and each member of the bestiary caught by the checks that name it in at least 99% of them. At that size the file passed with
+  # the table that its header gives (160 of 1,500 for the boundary-inclusive comparison's chi-square) in 11.5 minutes of CPU (user and system),
+  # 19.2 of wall under a load average of 30 to 40 [measured 2026-11-09 at 54d880f, on a 20-thread laptop]. A runner took 1.4 to 2.2 times as
+  # long as the laptop's 427 s for the unit suite [derived from PR #2 to #4], which makes it 16 to 25 minutes of CPU [derived], and the backstop an hour
+  # [estimated]: it is a job of its own so that a slow run cannot take the properties job's 90 minutes. No Rust is needed: the builds are
+  # the wasm that tests/fixtures/forge commits, which verify:labs holds to the source. ES_LAB_REPORT=1 prints the table of rates in the log.
+  # The 10,000 trials of ASSESSMENT §13 are the model's (tests/sim/spec-rates.test.ts reads ES_PROPERTY_SEEDS, so the properties job runs
+  # them); this job adds the same rates through the real module and worker. A trial costs about 51 ms of CPU there [derived: 689 s of CPU for
+  # the 13,500 trials of nine rows], so 10,000 a row would be 76 minutes of CPU on the laptop [derived] and 1.8 to 2.8 hours on a runner
+  # [derived], against 11.5 minutes at 1,500.
+  lab-rates:
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.NIGHTLY_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      ES_LAB_TRIALS: '1500'
+      ES_LAB_REPORT: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      # The test runs under Bun, pinned as in ci.yml.
+      - name: Set up pinned Bun
+        id: bun
+        continue-on-error: true
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.14
+
+      # A failed download from GitHub falls back to npm's copy of the same release (ARCHITECTURE §10.3).
+      - name: Set up pinned Bun from npm, when GitHub's download failed
+        if: steps.bun.outcome == 'failure'
+        env:
+          BUN_VERSION: 1.3.14
+        run: npm install --global --no-audit --no-fund "bun@$BUN_VERSION" && test "$(bun --version)" = "$BUN_VERSION"
+
+      - run: npm ci
+
+      - name: The rates of the rejection-sampler lab, at the size of a nightly run
+        run: bun test tests/forge/rejection-sampler-rates.test.ts
 
   # Chromium takes every spec of e2e/ (W0-T20's lab profile skips itself here: its own job sets ES_LAB_PROFILE), and Firefox and WebKit
   # take the determinism hash alone. The sweep is long, because it audits every document at three widths and runs the 3D specs on a
@@ -96,9 +164,18 @@ jobs:
 
       # The config lists the documents of the site by running prepare-pages, which runs under Bun.
       - name: Set up pinned Bun
+        id: bun
+        continue-on-error: true
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.3.14
+
+      # A failed download from GitHub falls back to npm's copy of the same release (ARCHITECTURE §10.3).
+      - name: Set up pinned Bun from npm, when GitHub's download failed
+        if: steps.bun.outcome == 'failure'
+        env:
+          BUN_VERSION: 1.3.14
+        run: npm install --global --no-audit --no-fund "bun@$BUN_VERSION" && test "$(bun --version)" = "$BUN_VERSION"
 
       - run: npm ci
 
@@ -168,9 +245,18 @@ jobs:
           cache: npm
 
       - name: Set up pinned Bun
+        id: bun
+        continue-on-error: true
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.3.14
+
+      # A failed download from GitHub falls back to npm's copy of the same release (ARCHITECTURE §10.3).
+      - name: Set up pinned Bun from npm, when GitHub's download failed
+        if: steps.bun.outcome == 'failure'
+        env:
+          BUN_VERSION: 1.3.14
+        run: npm install --global --no-audit --no-fund "bun@$BUN_VERSION" && test "$(bun --version)" = "$BUN_VERSION"
 
       - run: npm ci
       - run: bun run verify:claims
@@ -180,7 +266,7 @@ jobs:
         run: "echo 'pending: W3-T13'"
 
   report:
-    needs: [properties, browsers, lab-profile, reports]
+    needs: [properties, lab-rates, browsers, lab-profile, reports]
     # A run started by hand from another branch is a trial, and a trial files no issue.
     if: ${{ always() && contains(needs.*.result, 'failure') && (github.event_name == 'schedule' || github.ref_name == github.event.repository.default_branch) }}
     runs-on: ubuntu-latest

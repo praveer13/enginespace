@@ -12,7 +12,8 @@ describe('kcsOfRef', () => {
   test.each([
     ['a review names its KC itself', 'review:tr2.async-overlap', ['tr2.async-overlap']],
     ["a game run names the game's KCs", 'play:loop/close', ['tr2.bubble', 'tr2.async-overlap']],
-    ['an item names the family\'s KCs, whatever its variant', 'item:gen/tr2.bubble-width/async-on', ['tr2.bubble']],
+    ['an item names the KCs of its variant, as the item it made carries them (A§8.2)', 'item:gen/tr2.bubble-width/async-off', ['tr2.bubble']],
+    ['an item whose variant assesses two KCs names both', 'item:gen/tr2.bubble-width/close-it', ['tr2.bubble', 'tr2.async-overlap']],
     ["a forge lab's check names the lab's KCs", 'lab:hybrid-kv', ['tr5a.kv-groups', 'tr5a.adapter-pages']],
     ["a Prove-it on a lab names the lab's KCs", 'prove:hybrid-kv', ['tr5a.kv-groups', 'tr5a.adapter-pages']],
     ["a prediction names the KCs its lesson assigns", 'predict:tr2.l3#tr2.l3.p1', ['tr2.async-overlap']],
@@ -34,6 +35,7 @@ describe('kcsOfRef', () => {
     ['a change card seen', 'change:vllm-pin'],
     ['a game this build does not have', 'play:shape-shifter/fewest'],
     ['a family this build does not have', 'item:gen/tr9.nothing/v1'],
+    ['a variant of a family that this build has, which it does not have', 'item:gen/tr2.bubble-width/no-such-variant'],
     ['a ref that is not one', 'nonsense'],
     ['a ref of a form that does not exist', 'badge:tr2.l3'],
     ['an empty ref', ''],

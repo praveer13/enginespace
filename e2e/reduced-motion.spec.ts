@@ -144,7 +144,8 @@ test.describe('the checks can fail', () => {
     expect(found.styled.join('\n')).toContain('transition for 1s')
     expect(found.running.length).toBeGreaterThan(0)
     const before = await page.evaluate(() => window.__raf ?? 0)
-    await page.waitForTimeout(300)
-    expect(await page.evaluate(() => window.__raf ?? 0)).toBeGreaterThan(before)
+    // The fixture asks for a frame in every frame it is given, so its count grows as soon as the page is given one. Wait for that: a busy
+    // machine may give none in 300 ms, and a wait for the state needs no guess at how long the machine takes.
+    await expect.poll(() => page.evaluate(() => window.__raf ?? 0), { message: 'the count of a page that asks for frames' }).toBeGreaterThan(before)
   })
 })

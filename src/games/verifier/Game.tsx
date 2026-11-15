@@ -36,8 +36,9 @@ function TastingScene(props: Scene3DProps) {
  * and the keys that are its own: `D` draws a batch of rounds, `.` draws one, and Enter submits the answer.
  *
  * A level opens in practice on its pinned seed. A level that can be graded also opens a graded run on a seed drawn when it starts, in
- * band (GAMES.md §2.1), with no undo and no live meter. Whether a page records the run is its own business: a lesson passes `onFinish`
- * for a graded run (D-038), and the game's page passes nothing.
+ * band (GAMES.md §2.1), with no undo and no live meter. Whether a page records the run is its own business: the game's page and a lesson's
+ * block each pass the recorder as `onFinish` (src/games/kit/record.ts, W1b-T01). Inside a lesson the block names the level, so the row of
+ * levels and the next level are left out, and the way into a graded run and back stays.
  *
  * The 3D view (W1-T29) is the pass where the chef tastes, in a Stage that paints the 2D drawing first and keeps it as the fallback (A§6.7). It opens
  * on its own on a device whose tier draws 3D, and `V` or the switch swaps the two views; the session lives in the shell, above both, so a
@@ -122,12 +123,14 @@ export default function Game({ level, mode, placement = 'page', rev, onFinish }:
     setAsked({ level, mode })
     setAttempt(startOf(known(level), mode))
   }
-  // Moving to another level replaces the page's content, and the button that was pressed goes with it: focus goes back to the game.
+  // Moving to another level replaces the page's content, and the button that was pressed goes with it: focus goes back to the game. This
+  // game's own, found from its box, since a lesson can hold two of it.
+  const host = useRef<HTMLDivElement>(null)
   const moved = useRef(false)
   useEffect(() => {
     if (!moved.current) return
     moved.current = false
-    document.querySelector<HTMLElement>(`[data-game="${VERIFIER.id}"]`)?.focus({ preventScroll: true })
+    host.current?.querySelector<HTMLElement>('[data-game]')?.focus({ preventScroll: true })
   }, [attempt])
   const go = (next: Attempt) => {
     moved.current = true
@@ -143,67 +146,72 @@ export default function Game({ level, mode, placement = 'page', rev, onFinish }:
   const unavailable3d = device.known && !draws3d ? unavailableReason(device.reason) : undefined
   const [preset, setPreset] = useState<string>(DEFAULT_PRESET)
 
+  const embedded = placement === 'embed'
   const entry = levelOf(VERIFIER, attempt.level) ?? VERIFIER.levels[0]
   const at = VERIFIER.levels.findIndex((candidate) => candidate.id === entry.id)
-  const after = VERIFIER.levels[at + 1] ?? null
+  const after = embedded ? null : (VERIFIER.levels[at + 1] ?? null)
 
   return (
-    <GameShell
-      game={VERIFIER}
-      session={verifierSession}
-      level={entry.id}
-      levelTitle={entry.title}
-      seed={attempt.seed}
-      mode={attempt.mode}
-      rev={rev}
-      headingLevel={placement === 'embed' ? 3 : 2}
-      onFinish={onFinish}
-      onCommand={(name, run) => {
-        if (name !== 'camera') return command(name, run)
-        if (view !== '3d') return false
-        const next = TASTING_SHOTS[(TASTING_SHOTS.findIndex((shot) => shot.id === preset) + 1) % TASTING_SHOTS.length]
-        setPreset(next.id)
-        run.announce(`Camera: ${next.label}.`)
-        return true
-      }}
-      allow3d={draws3d}
-      unavailable3d={unavailable3d}
-      view={view}
-      onViewChange={setChosenView}
-      view2d={(run) => <View2D run={run} />}
-      scene3d={(run) => <TastingStage run={run} preset={preset} />}
-      controls={(run) => (
-        <>
-          {view === '3d' ? <CameraButtons presets={TASTING_SHOTS} value={preset} onChange={setPreset} label="Camera on the pass" /> : null}
-          <Controls
+    <div ref={host} className="contents">
+      <GameShell
+        game={VERIFIER}
+        session={verifierSession}
+        level={entry.id}
+        levelTitle={entry.title}
+        seed={attempt.seed}
+        mode={attempt.mode}
+        rev={rev}
+        headingLevel={embedded ? 3 : 2}
+        embedded={embedded}
+        onFinish={onFinish}
+        onCommand={(name, run) => {
+          if (name !== 'camera') return command(name, run)
+          if (view !== '3d') return false
+          const next = TASTING_SHOTS[(TASTING_SHOTS.findIndex((shot) => shot.id === preset) + 1) % TASTING_SHOTS.length]
+          setPreset(next.id)
+          run.announce(`Camera: ${next.label}.`)
+          return true
+        }}
+        allow3d={draws3d}
+        unavailable3d={unavailable3d}
+        view={view}
+        onViewChange={setChosenView}
+        view2d={(run) => <View2D run={run} />}
+        scene3d={(run) => <TastingStage run={run} preset={preset} />}
+        controls={(run) => (
+          <>
+            {view === '3d' ? <CameraButtons presets={TASTING_SHOTS} value={preset} onChange={setPreset} label="Camera on the pass" /> : null}
+            <Controls
+              run={run}
+              rail={
+                <LevelRail
+                  levels={VERIFIER.levels}
+                  current={entry.id}
+                  mode={attempt.mode}
+                  done={run.done}
+                  onLevel={(id) => go(practice(id))}
+                  onGraded={() => go(graded(entry.id))}
+                  onPractice={() => go(practice(entry.id))}
+                  showLevels={!embedded}
+                />
+              }
+            />
+          </>
+        )}
+        mirror={(run) => <Mirror run={run} />}
+        debrief={(run, outcome) => (
+          <Debrief
             run={run}
-            rail={
-              <LevelRail
-                levels={VERIFIER.levels}
-                current={entry.id}
-                mode={attempt.mode}
-                done={run.done}
-                onLevel={(id) => go(practice(id))}
-                onGraded={() => go(graded(entry.id))}
-                onPractice={() => go(practice(entry.id))}
-              />
-            }
+            outcome={outcome}
+            next={after === null ? null : { id: after.id, title: after.title }}
+            onNext={() => after !== null && go(practice(after.id))}
+            onPracticeAgain={() => (attempt.mode === 'practice' ? run.restart() : go(practice(entry.id)))}
+            onNewNumbers={() => go(newNumbers(entry.id))}
+            onGraded={entry.graded ? () => go(graded(entry.id)) : null}
           />
-        </>
-      )}
-      mirror={(run) => <Mirror run={run} />}
-      debrief={(run, outcome) => (
-        <Debrief
-          run={run}
-          outcome={outcome}
-          next={after === null ? null : { id: after.id, title: after.title }}
-          onNext={() => after !== null && go(practice(after.id))}
-          onPracticeAgain={() => (attempt.mode === 'practice' ? run.restart() : go(practice(entry.id)))}
-          onNewNumbers={() => go(newNumbers(entry.id))}
-          onGraded={entry.graded ? () => go(graded(entry.id)) : null}
-        />
-      )}
-      card={<WorldCard />}
-    />
+        )}
+        card={<WorldCard />}
+      />
+    </div>
   )
 }

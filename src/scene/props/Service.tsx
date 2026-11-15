@@ -1,5 +1,21 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
-import { BufferGeometry, CircleGeometry, Color, CylinderGeometry, InstancedBufferAttribute, Matrix4, PlaneGeometry, SpotLight, Vector3, type InstancedMesh, type Mesh, type MeshPhysicalMaterial, type ShaderMaterial } from 'three'
+import {
+  BufferGeometry,
+  CircleGeometry,
+  CylinderGeometry,
+  InstancedBufferAttribute,
+  Matrix4,
+  PlaneGeometry,
+  Vector3,
+  type Camera,
+  type InstancedMesh,
+  type Material,
+  type Mesh,
+  type MeshPhysicalMaterial,
+  type Scene,
+  type ShaderMaterial,
+  type WebGLRenderer,
+} from 'three'
 import { useKit } from '../kit'
 import type { Footprint } from './build'
 import { roomFor, useProps } from './context'
@@ -16,12 +32,12 @@ import { PLATE } from './specs'
  *   Plates      lathe-turned glazed plates, instanced; a plate slides from where it enters to its place and comes to rest on the
  *               settle curve, an exponential ease-out, and its contact shadow slides with it: a dark ring where its rim meets the
  *               steel and a soft shade past it, over the underside's own occlusion against the counter, baked once.
- *   ServiceBell the bell's chrome dome and plunger: a strike drops the plunger and rings the dome on the bell duration and the strike
- *               curve, with an amber flash on the dome; never more than one flash in 333 ms, so it cannot flash above 3 Hz (WCAG
- *               2.3.1).
- *   LampLights  the heat lamps' warm spots, casting soft shadow maps from T2 where the scene asked, the warm light each throws on the
- *               brushed steel under it (the steel's own sheen and streak brightened, falling off softly), and, where a scene asks, the
- *               soft cone of light under each at T2.
+ *   ServiceBell the bell's chrome dome and plunger, polished smooth and bright: the kit's room mirrored softly, so the tubes overhead
+ *               roll one soft highlight over the crown and the floor darkens its foot over the base's rim, and never a pattern of
+ *               stripes. A strike drops the plunger and rings the dome on the bell duration and the strike curve, with an amber flash on
+ *               the dome; never more than one flash in 333 ms, so it cannot flash above 3 Hz (WCAG 2.3.1).
+ *   LampLights  the heat lamps' light at every tier, with no spot light: a cone of warm haze under each lamp and the edgeless pool where
+ *               it lands on the steel, brightening what lies there.
  *   Steam       a few soft puffs rising off each lit station when a fire lands, at T2 only, and never under reduced motion.
  */
 
@@ -158,28 +174,54 @@ function footprintsOf(shown: ReadonlyMap<string, PlateShown>, scale: number): Fo
 /* The bell                                                                                                           */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** The dome's profile and the plunger's, turned: the base is the static set's (`bell-base`). */
+/**
+ * The dome's profile and the plunger's, turned (the base is the static set's `bell-base`) [estimated]: a dome with a rolled lip, round as a
+ * quarter of an ellipse nearly as tall as it is wide, so it shows the camera a curve from the tubes overhead down to the counter, and
+ * narrower than the base by a finger's width all round, so the base's deep steel rings its foot; on its crown the plunger's knob.
+ */
 const DOME: readonly Vec2[] = [
   [0, 0.026],
-  [0.0418, 0.026],
-  [0.0432, 0.0272],
-  [0.0428, 0.031],
-  [0.04, 0.039],
-  [0.034, 0.049],
-  [0.025, 0.0565],
-  [0.014, 0.0612],
-  [0.004, 0.063],
-  [0, 0.063],
+  [0.0345, 0.026],
+  [0.0362, 0.0266],
+  [0.0365, 0.0279],
+  [0.0359, 0.0337],
+  [0.0343, 0.0394],
+  [0.0316, 0.0447],
+  [0.0258, 0.0517],
+  [0.0183, 0.057],
+  [0.0113, 0.0599],
+  [0.0051, 0.0612],
+  [0, 0.0615],
 ]
 const PLUNGER: readonly Vec2[] = [
-  [0, 0.06],
-  [0.0026, 0.06],
-  [0.0026, 0.07],
-  [0.0058, 0.0712],
-  [0.0068, 0.0745],
-  [0.0058, 0.0778],
-  [0, 0.079],
+  [0, 0.058],
+  [0.0026, 0.058],
+  [0.0026, 0.0672],
+  [0.0065, 0.068],
+  [0.0078, 0.0715],
+  [0.0065, 0.075],
+  [0, 0.0758],
 ]
+/**
+ * How much brighter than brushed steel the bell's chrome mirrors the kit's room [estimated]. The room is a dim box with the tubes in it
+ * (src/scene/environment.ts). On a lit pass a chrome dome mirrors the lit counter and tile round it, which the box leaves out, so it takes
+ * the room this much brighter: a body a shade brighter than the counter, the tubes a white highlight over the crown, and the floor a
+ * darker band at its foot. Brighter, the polished dome burns out into a flat white ball (the fix round's first look).
+ */
+const CHROME_ROOM = 3
+
+/**
+ * Points a chrome part's own material at the kit's room, mirrored at CHROME_ROOM: three takes a material's own strength of reflection
+ * only when the material names its reflection map. Each part calls it before it is drawn, when the kit has put the room in the scene.
+ */
+function mirrorRoom(_renderer: WebGLRenderer, scene: Scene, _camera: Camera, _geometry: BufferGeometry, material: Material) {
+  const chrome = material as MeshPhysicalMaterial
+  // A pass that draws the scene in a material of its own leaves it alone.
+  if (!chrome.isMeshPhysicalMaterial || chrome.envMap === scene.environment) return
+  chrome.envMap = scene.environment
+  chrome.envMapIntensity = scene.environmentIntensity * CHROME_ROOM
+  chrome.needsUpdate = true
+}
 /** How far the plunger drops on a strike, and how far the dome swings as it rings, at most [estimated]. */
 const STRIKE = { drop: 0.005, swing: 0.045, rings: 3.5 } as const
 /** The fewest milliseconds between two flashes: 3 per second at most (WCAG 2.3.1). */
@@ -188,8 +230,8 @@ const FLASH_GAP_MS = 334
 export function ServiceBell({ at, strike, name = 'bell' }: { at: Vec3; strike: number; name?: string }) {
   const kit = useKit()
   const { materials, palette } = useProps()
-  const dome = useMemo(() => painted(palette.part(lathe(DOME, 40), 'chrome')), [palette])
-  const plunger = useMemo(() => painted(palette.part(lathe(PLUNGER, 16), 'chrome')), [palette])
+  const dome = useMemo(() => painted(palette.part(lathe(DOME, 40), 'polished')), [palette])
+  const plunger = useMemo(() => painted(palette.part(lathe(PLUNGER, 16), 'polished')), [palette])
   useEffect(
     () => () => {
       dome.dispose()
@@ -197,7 +239,12 @@ export function ServiceBell({ at, strike, name = 'bell' }: { at: Vec3; strike: n
     },
     [dome, plunger],
   )
-  const flash = useMemo(() => materials.flashMetal(), [materials])
+  // Polished even all over: the palette's polished finish with no roughness map, which would streak the polish with the brush's grain.
+  const flash = useMemo(() => {
+    const metal = materials.flashMetal()
+    metal.roughnessMap = null
+    return metal
+  }, [materials])
   const domeMesh = useRef<Mesh>(null)
   const plungerMesh = useRef<Mesh>(null)
   const run = useRef({ strike, start: -Infinity, flash: false, lastFlash: -Infinity })
@@ -236,8 +283,8 @@ export function ServiceBell({ at, strike, name = 'bell' }: { at: Vec3; strike: n
   const cast = kit.shadowLights > 0
   return (
     <group name={name} position={[...at]}>
-      <mesh ref={domeMesh} geometry={dome} material={flash} castShadow={cast} receiveShadow={cast} raycast={() => null} />
-      <mesh ref={plungerMesh} geometry={plunger} material={materials.metal} castShadow={cast} raycast={() => null} />
+      <mesh ref={domeMesh} geometry={dome} material={flash} castShadow={cast} receiveShadow={cast} raycast={() => null} onBeforeRender={mirrorRoom} />
+      <mesh ref={plungerMesh} geometry={plunger} material={flash} castShadow={cast} raycast={() => null} onBeforeRender={mirrorRoom} />
     </group>
   )
 }
@@ -246,99 +293,60 @@ export function ServiceBell({ at, strike, name = 'bell' }: { at: Vec3; strike: n
 /* The heat lamps' light                                                                                              */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** A heat lamp's light: where it leaves the shade (the bulb's face) and where it falls. */
+/** A heat lamp's light: where it leaves the shade (its mouth) and where it lands (the surface under it). */
 export interface LampLight {
   readonly id: string
   readonly at: Vec3
   readonly target: Vec3
 }
 
-/** The cone's top radius as a share of its foot's: it starts at the shade's mouth [estimated]. */
-const CONE_TOP = 0.34
 /**
- * How far the light a lamp throws on the steel leans from its amber toward the tubes' glint [estimated]: the steel brightens warm
- * under it, as a heat lamp's light looks off a counter, and never takes the lamp's full colour as a coat of paint.
+ * A heat lamp's light as the room sees it, a unit tall from the shade's mouth (y = 0) to the surface it lands on (y = -1) and a unit wide
+ * where it lands: a cone of warm haze, strongest at the mouth, inside the shade's lip at every scene's spread, and fading down the cone;
+ * and the pool where the light lands, fading from its middle to nothing at its rim, so it reads as light on the steel and never as a disc.
+ * uv.y is how much light (the cone's `vAlong`): the side's top ring and the pool's 40 middles are lit; the side's foot, the pool's rim and
+ * the mouth's end are dark, since the shade's own bulb glows there. uv.x is 1 on the two ends, which lie flat and glow whichever way they
+ * are seen (Back of House's round-2 recipe, whose lit mouth drew a hard disc under a wider shade's lip).
  */
-const POOL_GLINT = 0.2
+export const LAMP_GLOW = new CylinderGeometry(0.3, 1, 1, 40).translate(0, -0.5, 0)
+const glowUv = LAMP_GLOW.getAttribute('uv')
+for (let i = 0; i < glowUv.count; i++) glowUv.setXY(i, i > 81 ? 1 : 0, i < 41 ? 2.3 : i > 162 && i < 203 ? 3.3 : 0)
 
-export function LampLights({ lamps, power = 1, cones = true, name = 'lamp-lights' }: { lamps: readonly LampLight[]; power?: number; cones?: boolean; name?: string }) {
+/**
+ * The pool's half-widths where a lamp's light lands, along the counter (x) and across it (z), in metres [estimated]: a counter's depth
+ * across, and longer along the counter, as brushed steel spreads a lamp's light along its grain.
+ */
+const SPREAD = [0.34, 0.21] as const
+/** How far above the surface the pool lies [estimated]: under paper lying on it, so a ticket stays white and the light falls round it. */
+const LIFT = 0.0006
+
+/**
+ * The heat lamps' light, at every tier and with no spot light: under each lamp a cone of warm haze from its shade's mouth to the surface
+ * its light lands on, and the edgeless pool there, in the kit's soft additive light, which brightens what lies under it and lays no colour
+ * of its own. A lamp aimed off its plumb leans its cone toward where it lands, and its pool lies flat there. At T2 and up the light goes
+ * through the tone curve with the frame, so it is drawn three times over; at T1 it adds to the frame after the tone curve, so it is drawn
+ * once at 0.6 of its strength [estimated]. `power` scales its strength, and `spread` its pool.
+ */
+export function LampLights({ lamps, power = 1, spread = SPREAD, name = 'lamp-lights' }: { lamps: readonly LampLight[]; power?: number; spread?: readonly [number, number]; name?: string }) {
   const kit = useKit()
   const { materials } = useProps()
-  const params = kit.tokens.materials.propParams.lamp
-  const color = kit.tokens.colors.lamp
-  const glint = kit.tokens.colors.glint
-  const shadowLights = kit.shadowLights
-  const lights = useMemo(
-    () =>
-      lamps.map((lamp, i) => {
-        const light = new SpotLight(new Color(color), params.intensity * power, params.distance, params.angle, params.penumbra, params.decay)
-        light.name = `lamp-light-${lamp.id}`
-        light.position.set(...lamp.at)
-        light.target.position.set(...lamp.target)
-        light.castShadow = i < shadowLights
-        if (light.castShadow) {
-          light.shadow.mapSize.set(params.shadowMap, params.shadowMap)
-          light.shadow.radius = params.shadowRadius
-          light.shadow.bias = -0.0004
-          light.shadow.normalBias = 0.012
-          light.shadow.camera.near = 0.03
-          light.shadow.camera.far = params.distance
-        }
-        return light
-      }),
-    [lamps, color, params, power, shadowLights],
-  )
-  useEffect(
-    () => () => {
-      for (const light of lights) light.dispose()
-    },
-    [lights],
-  )
-  // Each lamp's light on the steel under it, as wide as its cone where it lands (materials.ts): warm, leaning toward the glint.
+  const copies = kit.tier > 1 ? 3 : 1
+  const opacity = kit.tokens.materials.propParams.cone.opacity * power * (copies > 1 ? 1 : 0.6)
+  const mesh = useRef<InstancedMesh>(null)
   useLayoutEffect(() => {
-    const pools = lamps.map((lamp) => {
-      const height = lamp.at[1] - lamp.target[1]
-      return [lamp.target[0], lamp.target[2], height * Math.tan(params.angle)] as const
-    })
-    const lamp = lamps[0]
-    const warm = new Color(color).lerp(new Color(glint), POOL_GLINT).multiplyScalar(params.pool * power)
-    materials.setPools(pools, lamp?.target[1] ?? 0, warm, lamp ? lamp.at[1] - lamp.target[1] : 1)
+    const instanced = mesh.current
+    if (instanced) {
+      ;(instanced.material as ShaderMaterial).uniforms.uOpacity.value = opacity
+      lamps.forEach(({ at: [x, y, z], target: [tx, ty, tz] }, i) => {
+        matrix.set(spread[0], x - tx, 0, x, 0, y - ty - LIFT, 0, y, 0, z - tz, spread[1], z, 0, 0, 0, 1)
+        for (let k = 0; k < copies; k++) instanced.setMatrixAt(i * copies + k, matrix)
+      })
+      instanced.count = lamps.length * copies
+      instanced.instanceMatrix.needsUpdate = true
+    }
     kit.invalidate()
-    return () => materials.setPools([])
-  }, [lamps, materials, params, color, glint, power, kit])
-  const showCones = cones && kit.tier >= 2
-  const coneGeometry = useMemo(() => new CylinderGeometry(CONE_TOP, 1, 1, 36, 1, true).translate(0, -0.5, 0), [])
-  useEffect(() => () => coneGeometry.dispose(), [coneGeometry])
-  const coneMesh = useRef<InstancedMesh>(null)
-  useLayoutEffect(() => {
-    const instanced = coneMesh.current
-    if (!instanced) return
-    const from = new Vector3()
-    const to = new Vector3()
-    lamps.forEach((lamp, i) => {
-      from.set(...lamp.at)
-      to.set(...lamp.target)
-      const height = from.distanceTo(to)
-      const radius = height * Math.tan(params.angle * 0.8)
-      instanced.setMatrixAt(i, matrix.makeScale(radius, height, radius).setPosition(from))
-    })
-    instanced.count = lamps.length
-    instanced.instanceMatrix.needsUpdate = true
-    instanced.computeBoundingSphere()
-    kit.invalidate()
-  }, [lamps, params, kit, showCones])
-
-  return (
-    <group name={name}>
-      {lights.map((light) => (
-        <group key={light.name}>
-          <primitive object={light} />
-          <primitive object={light.target} />
-        </group>
-      ))}
-      {showCones ? <instancedMesh ref={coneMesh} name="lamp-cones" args={[coneGeometry, materials.cone, Math.max(1, lamps.length)]} renderOrder={2} raycast={() => null} /> : null}
-    </group>
-  )
+  }, [lamps, opacity, spread, copies, materials, kit])
+  return <instancedMesh ref={mesh} name={name} args={[LAMP_GLOW, materials.cone, roomFor(lamps.length * 3)]} renderOrder={2} frustumCulled={false} raycast={() => null} />
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */

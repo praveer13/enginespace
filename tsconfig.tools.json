@@ -1,0 +1,21 @@
+{
+  /*
+   * scripts/ and tests/, type-checked with the app's options (W1b-T14). Both import src/ and the packages, so this program reads
+   * those too, and it has what they run on: Node's types, the DOM lib that src/ and its renderers name, and Vite's ambient modules.
+   * scripts/types/bun.d.ts declares the parts of Bun that scripts/ and tests/ call, since @types/bun is not on ARCHITECTURE section 14's list.
+   */
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.tools.tsbuildinfo",
+    "target": "ES2023",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node", "vite/client"]
+  },
+  /* The js-yaml declaration is the one that tsconfig.node.json adds for the content compiler, which scripts/content is. */
+  "include": ["scripts", "tests", "src/types/js-yaml.d.ts"],
+  /*
+   * The two fixtures that the type checker must refuse: a number with no tag, and a tick count with a tag that is not synthetic.
+   * tests/design/readout.test.ts compiles them and expects exactly one error each.
+   */
+  "exclude": ["tests/fixtures/design/readout-untagged.tsx", "tests/fixtures/design/readout-ticks-not-synthetic.tsx"]
+}

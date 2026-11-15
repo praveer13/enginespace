@@ -13,7 +13,7 @@
  * The ledger stores them as free JSON within a budget (packages/ledger, LIMITS.marksChars), so this file bounds what it writes: at
  * most `MAX_MARKS` ranges, each label at most `LABEL_MAX` characters.
  */
-import type { Json, TraceMarkData } from '@es/ledger'
+import type { TraceMarkData } from '@es/ledger'
 import type { AttributionCategory } from '@es/sim/trace'
 import type { Win } from './model'
 
@@ -121,8 +121,13 @@ export function overlaps(marks: readonly Mark[]): Overlap[] {
 // ---------------------------------------------------------------------------------------------------------------------------
 // The trace-mark event's shape
 
+/**
+ * One entry of a `trace-mark` event's marks. A range without words is one entry and a range with words is another, and neither has a
+ * `label?` that could hold `undefined`, so a list of entries is JSON as the type says it is (`Json` has no `undefined`).
+ */
 export type MarkEntry =
-  | { kind: 'range'; fromNs: number; toNs: number; category: Category | null; label?: string }
+  | { kind: 'range'; fromNs: number; toNs: number; category: Category | null }
+  | { kind: 'range'; fromNs: number; toNs: number; category: Category | null; label: string }
   | { kind: 'cause'; span: number }
 
 /** The marks as entries, ranges in time order and then the cause. A label that is empty is left out, as JSON leaves out `undefined`. */
@@ -139,7 +144,7 @@ export function exportMarks(notes: Annotations): MarkEntry[] {
  */
 export function traceMarkData(notes: Annotations, error: number): TraceMarkData {
   if (!(error >= 0) || !Number.isFinite(error)) throw new RangeError(`the attribution error is a number of at least 0, got ${error}`)
-  return { marks: exportMarks(notes) as unknown as Json[], error }
+  return { marks: exportMarks(notes), error }
 }
 
 const SLUG = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/

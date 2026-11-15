@@ -198,6 +198,21 @@ test.describe('accept 2 and 3: the largest paint is the heading, and nothing shi
   }
 })
 
+test.describe("the printer stands in a phone's first screen (W1b's finish review of Service, round 1)", () => {
+  test('at 390 × 844 the whole housing, the mouth at its foot included, is above the fold', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto(`${ORIGIN}/?es-tier=0`)
+    await mounted(page)
+    await page.evaluate(() => document.fonts.ready)
+    for (const part of ['.es-front-printer', '.es-front-printer__mouth']) {
+      const box = await page.locator(part).boundingBox()
+      console.log(`390 × 844: ${part} from ${box?.y} to ${(box?.y ?? 0) + (box?.height ?? 0)} px`)
+      expect(box, part).not.toBeNull()
+      expect((box?.y ?? 0) + (box?.height ?? 0), part).toBeLessThanOrEqual(844)
+    }
+  })
+})
+
 test.describe('accept 4: the 3D chunks are never requested', () => {
   test('with data saver on, the pass offers 3D and loads none of it', async ({ page, requests }) => {
     await page.addInitScript(() => {

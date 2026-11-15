@@ -657,6 +657,9 @@ function ComponentSpecimens() {
             .
           </span>
         </State>
+        <State label="a file of the site" ground="paper">
+          <TextLink file={`${import.meta.env.BASE_URL ?? '/'}third-party-licenses.txt`}>the licence file</TextLink>
+        </State>
         <State label="another site" ground="paper">
           <TextLink href="https://docs.vllm.ai/">the vLLM docs</TextLink>
         </State>

@@ -12,6 +12,61 @@ import type { GenFace } from './types'
 
 export const CATALOG: readonly GenFace[] = [
   {
+    id: 'tr1.request-state',
+    version: 1,
+    title: 'The states of a request',
+    kcs: ['tr1.request-states', 'tr1.abort-path'],
+    variants: [
+      { id: 'next', title: 'The status after an event', kcs: ['tr1.request-states'], levels: [0, 1, 2, 3] },
+      { id: 'moves', title: 'What moves a request on', kcs: ['tr1.request-states'], levels: [1, 2] },
+      { id: 'count', title: 'Which statuses are finished', kcs: ['tr1.request-states'], levels: [2, 3] },
+      { id: 'abort', title: 'The status after an abort', kcs: ['tr1.request-states', 'tr1.abort-path'], levels: [1, 2] },
+    ],
+  },
+  {
+    id: 'tr1.step-budget',
+    version: 1,
+    title: 'One step, two schedulers',
+    kcs: ['tr1.phases-vs-one-budget'],
+    variants: [
+      { id: 'step', title: 'The tokens the next step runs', kcs: ['tr1.phases-vs-one-budget'], levels: [0, 1, 2, 3] },
+      { id: 'holds', title: 'What the next step holds', kcs: ['tr1.phases-vs-one-budget'], levels: [0, 1, 2] },
+      { id: 'left', title: 'The tokens still waiting after a step', kcs: ['tr1.phases-vs-one-budget'], levels: [2, 3] },
+    ],
+  },
+  {
+    id: 'tr1.what-moved',
+    version: 1,
+    title: 'What moved since the post',
+    kcs: ['tr1.read-at-the-pin'],
+    variants: [
+      { id: 'box', title: 'What became of a box of the post', kcs: ['tr1.read-at-the-pin'], levels: [0, 1, 2, 3] },
+      { id: 'statement', title: 'Whether a statement of the post still holds', kcs: ['tr1.read-at-the-pin'], levels: [0, 1, 2, 3] },
+    ],
+  },
+  {
+    id: 'tr1.where-does-it-run',
+    version: 1,
+    title: 'Where a stage runs',
+    kcs: ['tr1.sglang-lifecycle', 'tr1.vllm-lifecycle', 'tr1.abort-path'],
+    variants: [
+      { id: 'sglang', title: "Where a stage of Mini-SGLang's or SGLang's path runs", kcs: ['tr1.sglang-lifecycle'], levels: [0, 1, 2, 3] },
+      { id: 'vllm', title: "Where a stage of vLLM's path runs", kcs: ['tr1.vllm-lifecycle'], levels: [0, 1, 2, 3] },
+      { id: 'abort', title: "Where a stage of an abort's path runs", kcs: ['tr1.abort-path'], levels: [0, 1, 2, 3] },
+    ],
+  },
+  {
+    id: 'tr1.which-mechanism',
+    version: 1,
+    title: 'Which mechanism joins a stage',
+    kcs: ['tr1.five-mechanisms', 'tr1.sglang-lifecycle', 'tr1.vllm-lifecycle'],
+    variants: [
+      { id: 'nano', title: "A stage of nano-vllm's path", kcs: ['tr1.five-mechanisms'], levels: [0, 1, 2, 3] },
+      { id: 'sglang', title: "A stage of Mini-SGLang's or SGLang's path", kcs: ['tr1.five-mechanisms', 'tr1.sglang-lifecycle'], levels: [0, 1, 2, 3] },
+      { id: 'vllm', title: "A stage of vLLM's path", kcs: ['tr1.five-mechanisms', 'tr1.vllm-lifecycle'], levels: [0, 1, 2, 3] },
+    ],
+  },
+  {
     id: 'tr2.bubble-width',
     version: 1,
     title: 'Bubble width',
@@ -20,6 +75,28 @@ export const CATALOG: readonly GenFace[] = [
       { id: 'async-off', title: 'The gap with async scheduling off', kcs: ['tr2.bubble'], levels: [0, 1, 2, 3] },
       { id: 'async-on', title: 'The gap with async scheduling on', kcs: ['tr2.async-overlap'], levels: [0, 1, 2, 3] },
       { id: 'close-it', title: 'The smallest change that closes the gap', kcs: ['tr2.bubble', 'tr2.async-overlap'], levels: [2, 3] },
+    ],
+  },
+  {
+    id: 'tr2.default-budget',
+    version: 1,
+    title: 'Defaults that move with the card',
+    kcs: ['tr2.gpu-dependent-defaults'],
+    variants: [
+      { id: 'tier', title: 'The defaults a card starts with', kcs: ['tr2.gpu-dependent-defaults'], levels: [0, 1, 2, 3] },
+      { id: 'budget-left', title: 'The budget left for a prompt', kcs: ['tr2.gpu-dependent-defaults'], levels: [0, 1, 2, 3] },
+      { id: 'waiting', title: 'The requests still waiting', kcs: ['tr2.gpu-dependent-defaults'], levels: [1, 2, 3] },
+    ],
+  },
+  {
+    id: 'tr2.dispatch-key',
+    version: 1,
+    title: 'Dispatch keys',
+    kcs: ['tr2.dispatch-keys'],
+    variants: [
+      { id: 'which-graph', title: 'Which graph replays a step', kcs: ['tr2.dispatch-keys'], levels: [0, 1, 2, 3] },
+      { id: 'captured', title: 'The graphs captured at start-up', kcs: ['tr2.dispatch-keys'], levels: [0, 1, 2, 3] },
+      { id: 'fields', title: 'The fields of the key', kcs: ['tr2.dispatch-keys'], levels: [0, 1, 2, 3] },
     ],
   },
   {
@@ -33,6 +110,17 @@ export const CATALOG: readonly GenFace[] = [
     ],
   },
   {
+    id: 'tr2.kv-after-graphs',
+    version: 1,
+    title: 'The KV cache after the graphs',
+    kcs: ['tr2.graph-memory'],
+    variants: [
+      { id: 'kv-tokens', title: 'The KV cache that is left', kcs: ['tr2.graph-memory'], levels: [0, 1, 2, 3] },
+      { id: 'graphs-cost', title: 'What the graphs cost the cache', kcs: ['tr2.graph-memory'], levels: [0, 1, 2, 3] },
+      { id: 'share', title: 'The share of the cache the graphs take', kcs: ['tr2.graph-memory'], levels: [1, 2, 3] },
+    ],
+  },
+  {
     id: 'tr2.padding-waste',
     version: 1,
     title: 'Padding waste',
@@ -41,6 +129,88 @@ export const CATALOG: readonly GenFace[] = [
       { id: 'padded-size', title: 'The size a step pads to', kcs: ['tr2.capture-padding'], levels: [0, 1, 2, 3] },
       { id: 'night-waste', title: 'The padding a night wastes', kcs: ['tr2.capture-padding'], levels: [0, 1, 2, 3] },
       { id: 'choose-sizes', title: 'Sizes that waste the least', kcs: ['tr2.capture-padding'], levels: [2, 3] },
+    ],
+  },
+  {
+    id: 'tr2.preempt-victim',
+    version: 1,
+    title: 'The victim, and the one budget',
+    kcs: ['tr2.one-budget'],
+    variants: [
+      { id: 'victim', title: 'Which request is preempted', kcs: ['tr2.one-budget'], levels: [0, 1, 2, 3] },
+      { id: 'restart', title: 'The tokens a victim computes again', kcs: ['tr2.one-budget'], levels: [1, 2, 3] },
+      { id: 'chunk', title: 'The prompt a step takes', kcs: ['tr2.one-budget'], levels: [0, 1, 2, 3] },
+    ],
+  },
+  {
+    id: 'tr2.runner-fallback',
+    version: 1,
+    title: 'The V2 runner, and when it falls back',
+    kcs: ['tr2.mrv2-delta'],
+    variants: [
+      { id: 'which-runner', title: 'Which runner serves a configuration', kcs: ['tr2.mrv2-delta'], levels: [0, 1, 2, 3] },
+      { id: 'phase', title: 'The phase a change of MRV2 shortens', kcs: ['tr2.mrv2-delta'], levels: [0, 1, 2, 3] },
+      { id: 'saves', title: 'The CPU work MRV2 takes off a step', kcs: ['tr2.mrv2-delta'], levels: [0, 1, 2, 3] },
+    ],
+  },
+  {
+    id: 'tr2.step-order',
+    version: 1,
+    title: 'One step, five calls',
+    kcs: ['tr2.step-calls', 'tr2.bubble'],
+    variants: [
+      { id: 'order', title: 'The order of the calls', kcs: ['tr2.step-calls'], levels: [2, 3] },
+      { id: 'role', title: 'What a call does and what it waits for', kcs: ['tr2.step-calls'], levels: [0, 1, 2, 3] },
+      { id: 'idle-before', title: "The GPU's idle time before a step", kcs: ['tr2.bubble'], levels: [0, 1, 2, 3] },
+    ],
+  },
+  {
+    id: 'tr5a.blocks-held',
+    version: 1,
+    title: 'Pages a request holds',
+    kcs: ['tr5a.kv-groups', 'tr5a.sliding-free', 'tr5a.state-pages', 'tr5a.page-size-unification'],
+    variants: [
+      { id: 'sliding', title: 'The pages a sliding group still holds', kcs: ['tr5a.sliding-free'], levels: [0, 1, 2] },
+      { id: 'hybrid', title: 'The pages a full group and sliding groups hold', kcs: ['tr5a.kv-groups', 'tr5a.sliding-free'], levels: [0, 1, 2] },
+      { id: 'recurrent', title: 'The pages a full group and state groups hold', kcs: ['tr5a.kv-groups', 'tr5a.state-pages'], levels: [0, 1, 2] },
+      { id: 'from-layers', title: 'The pages of a model given by its layers', kcs: ['tr5a.page-size-unification'], levels: [0, 1, 3] },
+      { id: 'from-state', title: 'The pages of a model with recurrent layers', kcs: ['tr5a.page-size-unification'], levels: [0, 1, 3] },
+    ],
+  },
+  {
+    id: 'tr5a.hit-length',
+    version: 1,
+    title: 'Prefix hit length',
+    kcs: ['tr5a.hit-intersection'],
+    variants: [
+      { id: 'windows', title: 'The hit of a full group and sliding groups', kcs: ['tr5a.hit-intersection'], levels: [0, 1, 2] },
+      { id: 'states', title: 'The hit of a full group and state groups', kcs: ['tr5a.hit-intersection'], levels: [0, 1, 2] },
+      { id: 'limiter', title: 'The group that limits a hit', kcs: ['tr5a.hit-intersection'], levels: [3] },
+    ],
+  },
+  {
+    id: 'tr5a.pages-for-adapter',
+    version: 1,
+    title: 'Pages for an adapter',
+    kcs: ['tr5a.adapter-pages'],
+    variants: [
+      { id: 'pages', title: 'The pages an adapter takes', kcs: ['tr5a.adapter-pages'], levels: [0, 1, 2, 3] },
+      { id: 'to-run', title: 'The pages left after a request runs', kcs: ['tr5a.adapter-pages'], levels: [0, 1, 2, 3] },
+      { id: 'free-after', title: 'The pages free after a load or an unload', kcs: ['tr5a.adapter-pages'], levels: [0, 1, 2, 3] },
+      { id: 'empty-share', title: "The share of an adapter's pages left empty", kcs: ['tr5a.adapter-pages'], levels: [1, 2, 3] },
+    ],
+  },
+  {
+    id: 'tr5a.slots-vs-pages',
+    version: 1,
+    title: 'Slots against pages',
+    kcs: ['tr5a.slots-vs-pages'],
+    variants: [
+      { id: 'slot-idle', title: 'The share of a slot that stays unused', kcs: ['tr5a.slots-vs-pages'], levels: [0, 1, 2, 3] },
+      { id: 'slots-take', title: 'The pages that slots take out of the pool', kcs: ['tr5a.slots-vs-pages'], levels: [0, 1, 2, 3] },
+      { id: 'cap', title: 'The requests the adapter cap holds back', kcs: ['tr5a.slots-vs-pages'], levels: [1, 2] },
+      { id: 'enough', title: 'The deployment that slots serve well', kcs: ['tr5a.slots-vs-pages'], levels: [0, 1, 2] },
+      { id: 'pinned', title: 'What the pinned engines do with an adapter', kcs: ['tr5a.slots-vs-pages'], levels: [0, 1, 2] },
     ],
   },
   {
@@ -96,6 +266,40 @@ export const CATALOG: readonly GenFace[] = [
       { id: 'needs', title: 'What a method drafts from', kcs: ['tr6.proposer-families'], levels: [0, 1, 2, 3] },
       { id: 'choose', title: 'The method for what the team has', kcs: ['tr6.proposer-families'], levels: [1, 2, 3] },
       { id: 'runner', title: 'The runner a configuration runs on', kcs: ['tr6.proposer-families'], levels: [0, 1, 2, 3] },
+    ],
+  },
+  {
+    id: 'tr8.goodput-denominator',
+    version: 1,
+    title: 'The denominator of a goodput',
+    kcs: ['tr8.goodput-denominator'],
+    variants: [
+      { id: 'tool-prints', title: 'What a tool prints for a run', kcs: ['tr8.goodput-denominator'], levels: [0, 1, 2, 3] },
+      { id: 'convert', title: 'A goodput over the other clock', kcs: ['tr8.goodput-denominator'], levels: [0, 1, 2, 3] },
+      { id: 'which-clock', title: 'The clock a printed goodput divides by', kcs: ['tr8.goodput-denominator'], levels: [0, 1, 2, 3] },
+    ],
+  },
+  {
+    id: 'tr8.littles-law',
+    version: 1,
+    title: "Little's law as a check on a log",
+    kcs: ['tr8.littles-law'],
+    variants: [
+      { id: 'in-flight', title: 'Requests in flight, from the rate and the latency', kcs: ['tr8.littles-law'], levels: [0, 1, 2, 3] },
+      { id: 'solve-for', title: 'The latency or the rate, from the other two', kcs: ['tr8.littles-law'], levels: [0, 1, 2, 3] },
+      { id: 'check', title: 'Whether a log agrees with itself', kcs: ['tr8.littles-law'], levels: [0, 1, 2, 3] },
+    ],
+  },
+  {
+    id: 'tr8.which-flag',
+    version: 1,
+    title: 'Which flag of the benchmark tools',
+    kcs: ['tr8.tool-defaults', 'tr8.client-queue'],
+    variants: [
+      { id: 'at-fault-vllm', title: 'The flag of vllm bench serve at fault', kcs: ['tr8.tool-defaults'], levels: [0, 1, 2, 3] },
+      { id: 'at-fault-sglang', title: 'The flag of sglang.bench_serving at fault', kcs: ['tr8.tool-defaults'], levels: [0, 1, 2, 3] },
+      { id: 'default-does', title: 'What a tool does when a flag is left out', kcs: ['tr8.tool-defaults'], levels: [3] },
+      { id: 'send-rate', title: 'The rate a capped run sends', kcs: ['tr8.client-queue', 'tr8.tool-defaults'], levels: [0, 1, 2, 3] },
     ],
   },
 ]

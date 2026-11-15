@@ -1,0 +1,183 @@
+# What TR1's item families rest on beyond the files above (W1b-T03; ARCHITECTURE §4.4, D-011, D-035).
+#
+# The Inside vLLM lesson's table of boxes (tr1.l4) has six rows whose only change is a line number: the post's address still works at v0.33.0.
+# The lesson links each at both commits and tests/content/tr1-sources.test.ts finds the name on the linked lines, but no claim carried them,
+# and tr1.what-moved asks about them. Each box has two claims here, one for the post's commit and one for the pin, each quoting the definition.
+# An id says where the box is: `inside-vllm.where.<box>` at the post's commit and `vllm.where.<box>` at the pin. The last claim is one fact
+# of v0.33.0's request.py that tr1.request-state needs and no claim carried: where a new request's status starts.
+#
+# They quote the unpacked tarballs of the two commits (codeload.github.com, by commit), the trees that tests/content/tr1-sources.test.ts reads
+# for tr1.yaml, which were fetched on 2026-11-04. That day is the `accessed` and the `verifiedAt` of every claim: a commit does not change, so
+# a claim is as old as its snapshot, and the TTL is the quarter that a pin lasts, 90 days. tests/play/items-tr1-what-moved.test.ts finds every
+# quote inside the lines of its anchor again, whenever ES_LIFECYCLE_SOURCES names the trees.
+
+- id: inside-vllm.where.async-llm
+  value: vllm/v1/engine/async_llm.py
+  text: At the post's commit the class AsyncLLM is defined in vllm/v1/engine/async_llm.py.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/42172ad18fbc22c89d0063184e4570cc84186e16/vllm/v1/engine/async_llm.py#L46
+    title: vLLM at 42172ad, vllm/v1/engine/async_llm.py, AsyncLLM
+    quote: 'class AsyncLLM(EngineClient):'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: inside-vllm
+
+- id: vllm.where.async-llm
+  value: vllm/v1/engine/async_llm.py
+  text: At v0.33.0 the class AsyncLLM is defined in vllm/v1/engine/async_llm.py.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/async_llm.py#L93
+    title: vLLM v0.33.0, vllm/v1/engine/async_llm.py, AsyncLLM
+    quote: 'class AsyncLLM(EngineClient):'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: inside-vllm.where.async-mp-client
+  value: vllm/v1/engine/core_client.py
+  text: At the post's commit the class AsyncMPClient is defined in vllm/v1/engine/core_client.py.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/42172ad18fbc22c89d0063184e4570cc84186e16/vllm/v1/engine/core_client.py#L722
+    title: vLLM at 42172ad, vllm/v1/engine/core_client.py, AsyncMPClient
+    quote: 'class AsyncMPClient(MPClient):'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: inside-vllm
+
+- id: vllm.where.async-mp-client
+  value: vllm/v1/engine/core_client.py
+  text: At v0.33.0 the class AsyncMPClient is defined in vllm/v1/engine/core_client.py.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/core_client.py#L1149
+    title: vLLM v0.33.0, vllm/v1/engine/core_client.py, AsyncMPClient
+    quote: 'class AsyncMPClient(MPClient):'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: inside-vllm.where.engine-core-proc
+  value: vllm/v1/engine/core.py
+  text: At the post's commit the class EngineCoreProc is defined in vllm/v1/engine/core.py.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/42172ad18fbc22c89d0063184e4570cc84186e16/vllm/v1/engine/core.py#L430
+    title: vLLM at 42172ad, vllm/v1/engine/core.py, EngineCoreProc
+    quote: 'class EngineCoreProc(EngineCore):'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: inside-vllm
+
+- id: vllm.where.engine-core-proc
+  value: vllm/v1/engine/core.py
+  text: At v0.33.0 the class EngineCoreProc is defined in vllm/v1/engine/core.py.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/core.py#L1165
+    title: vLLM v0.33.0, vllm/v1/engine/core.py, EngineCoreProc
+    quote: 'class EngineCoreProc(EngineCore):'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: inside-vllm.where.scheduler
+  value: vllm/v1/core/sched/scheduler.py
+  text: At the post's commit the class Scheduler is defined in vllm/v1/core/sched/scheduler.py.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/42172ad18fbc22c89d0063184e4570cc84186e16/vllm/v1/core/sched/scheduler.py#L41
+    title: vLLM at 42172ad, vllm/v1/core/sched/scheduler.py, Scheduler
+    quote: 'class Scheduler(SchedulerInterface):'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: inside-vllm
+
+- id: vllm.where.scheduler
+  value: vllm/v1/core/sched/scheduler.py
+  text: At v0.33.0 the class Scheduler is defined in vllm/v1/core/sched/scheduler.py.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/sched/scheduler.py#L86
+    title: vLLM v0.33.0, vllm/v1/core/sched/scheduler.py, Scheduler
+    quote: 'class Scheduler(SchedulerInterface):'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: inside-vllm.where.allocate-slots
+  value: vllm/v1/core/kv_cache_manager.py
+  text: At the post's commit the method allocate_slots of the KV cache manager is defined in vllm/v1/core/kv_cache_manager.py.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/42172ad18fbc22c89d0063184e4570cc84186e16/vllm/v1/core/kv_cache_manager.py#L192
+    title: vLLM at 42172ad, vllm/v1/core/kv_cache_manager.py, KVCacheManager.allocate_slots
+    quote: 'def allocate_slots('
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: inside-vllm
+
+- id: vllm.where.allocate-slots
+  value: vllm/v1/core/kv_cache_manager.py
+  text: At v0.33.0 the method allocate_slots of the KV cache manager is defined in vllm/v1/core/kv_cache_manager.py.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/kv_cache_manager.py#L380
+    title: vLLM v0.33.0, vllm/v1/core/kv_cache_manager.py, KVCacheManager.allocate_slots
+    quote: 'def allocate_slots('
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+- id: inside-vllm.where.free-block-queue
+  value: vllm/v1/core/block_pool.py
+  text: At the post's commit the free_block_queue of the block pool is defined in vllm/v1/core/block_pool.py.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/42172ad18fbc22c89d0063184e4570cc84186e16/vllm/v1/core/block_pool.py#L49
+    title: vLLM at 42172ad, vllm/v1/core/block_pool.py, BlockPool.__init__ (free_block_queue)
+    quote: 'self.free_block_queue = FreeKVCacheBlockQueue(self.blocks)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: inside-vllm
+
+- id: vllm.where.free-block-queue
+  value: vllm/v1/core/block_pool.py
+  text: At v0.33.0 the free_block_queue of the block pool is defined in vllm/v1/core/block_pool.py.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/block_pool.py#L182
+    title: vLLM v0.33.0, vllm/v1/core/block_pool.py, BlockPool.__init__ (free_block_queue)
+    quote: 'self.free_block_queue = FreeKVCacheBlockQueue(self.blocks)'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm
+
+# --- A new request's first status (vLLM v0.33.0, commit 4ba787ec9959e566d3b587a796dff07673324da5) ---------------------------------------
+
+- id: vllm.request.starts-waiting
+  value: WAITING
+  text: Request.__init__ gives a new request the status WAITING. Only a generative request that has a structured-output request is then set to WAITING_FOR_STRUCTURED_OUTPUT_GRAMMAR, and that is the one start that differs.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/request.py#L100
+    title: vLLM v0.33.0, vllm/v1/request.py, Request.__init__
+    quote: 'self.status = RequestStatus.WAITING'
+    accessed: 2026-11-04
+  verifiedAt: 2026-11-04
+  ttlDays: 90
+  pin: vllm

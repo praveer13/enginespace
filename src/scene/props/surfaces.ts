@@ -173,10 +173,11 @@ export interface PrintInks {
 }
 
 /**
- * Draws the atlas on a canvas: paper, then each cell's print as an impact printer leaves it, in dots: lines of words a few dots long,
- * the dots round and large enough to read as dots at the size a scene draws a ticket, and the dotted rules between them in the rule's
- * ink. It prints no letter and no number, so it is the paper's texture and never a readout (GAMES.md §2.6, rule 7), and it is drawn
- * at once, with no face to wait for.
+ * Draws the atlas on a canvas: paper with its tooth, the soft mottle of its fibres in the rule's ink, and each sheet a shade darker toward
+ * its cut edges (where the ticket's back and edges sample it too, so its thickness reads); then each cell's print as an impact printer
+ * leaves it, in dots: lines of words a few dots long, the dots round and large enough to read as dots at the size a scene draws a ticket,
+ * and the dotted rules between them in the rule's ink. It prints no letter and no number, so it is the paper's texture and never a readout
+ * (GAMES.md §2.6, rule 7), and it is drawn at once, with no face to wait for. The mottle's and the edges' strengths are [estimated].
  */
 export function drawPrint(canvas: HTMLCanvasElement | OffscreenCanvas, inks: PrintInks): void {
   const context = canvas.getContext('2d') as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null
@@ -187,8 +188,25 @@ export function drawPrint(canvas: HTMLCanvasElement | OffscreenCanvas, inks: Pri
   context.fillStyle = inks.paper
   context.fillRect(0, 0, width, height)
   for (let cell = 0; cell < PRINT_CELLS.across * PRINT_CELLS.down; cell++) {
-    const cx = (cell % PRINT_CELLS.across) * cw + cw * 0.2
-    const cy = Math.floor(cell / PRINT_CELLS.across) * ch + ch * 0.17
+    const x0 = (cell % PRINT_CELLS.across) * cw
+    const y0 = Math.floor(cell / PRINT_CELLS.across) * ch
+    // The tooth: a soft mottle of fibres inside the sheet, then the sheet a shade darker toward its cut edges.
+    context.fillStyle = context.strokeStyle = inks.rule
+    for (let k = 0; k < 110; k++) {
+      const r = 2 + 9 * hash(k, cell, 7)
+      context.globalAlpha = 0.04 + 0.06 * hash(k, cell, 8)
+      context.beginPath()
+      context.arc(x0 + r + 0.5 + (cw - 2 * r - 1) * hash(k, cell, 9), y0 + r + 0.5 + (ch - 2 * r - 1) * hash(k, cell, 10), r, 0, 7)
+      context.fill()
+    }
+    for (const [line, alpha] of [[16, 0.12], [5, 0.3]]) {
+      context.globalAlpha = alpha
+      context.lineWidth = line
+      context.strokeRect(x0 + line / 2, y0 + line / 2, cw - line, ch - line)
+    }
+    context.globalAlpha = 1
+    const cx = x0 + cw * 0.2
+    const cy = y0 + ch * 0.17
     // Nine lines a cell; the second and every fourth after it a dotted rule. A line's words end at a space, a dot left out.
     for (let line = 0; line < 9; line++) {
       const rule = line % 4 === 1

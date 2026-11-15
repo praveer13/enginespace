@@ -49,6 +49,18 @@ const EVIDENCE: LedgerEvent[] = [
   review('e2e-4', 'tr2.graph-replay', { at: LATER }),
 ]
 
+/** An answer to an item, the way a lesson's item block and Today write it (src/items/event.ts): right or wrong, on a fresh seed. */
+function answer(id: string, ref: string, { ok = true, at = AT }: { ok?: boolean; at?: string } = {}): LedgerEvent {
+  const data = { answer: { level: 2, response: { kind: 'numeric', value: 4 } } }
+  return { id, v: 1, kind: 'item', ref, at, tz: 0, day: at.slice(0, 10), dev: 'dev-e2e-0001', score: ok ? 1 : 0, ok, provenance: 'unseen', seed: 4242, data }
+}
+
+/** A green run of a forge lab, the way its page writes it (src/forge/record.ts): one event for the run, with each check's result. */
+function labRun(id: string, lab: string, checks: readonly string[], { at = AT }: { at?: string } = {}): LedgerEvent {
+  const data = { wasmSha256: 'ab'.repeat(32), seeds: checks.map((_, index) => index + 1), checks: checks.map((check, index) => ({ id: check, status: 'pass' as const, seed: index + 1 })) }
+  return { id, v: 1, kind: 'lab-check', ref: `lab:${lab}`, at, tz: 0, day: at.slice(0, 10), dev: 'dev-e2e-0001', score: 1, ok: true, provenance: 'unseen', data }
+}
+
 const exportText = (events: LedgerEvent[]) => serializeExport(buildExport({ ledger: { events, receipts: [] }, device: 'dev-e2e-0001', exportedAt: LATER }))
 
 /** Puts events in the ledger through the Evidence page: choose a file, merge it, and wait for the page to say it is in. */
@@ -237,6 +249,55 @@ test.describe('the course map', () => {
     await readTheLedger(page)
     await expect(stop(page, 'tr2').locator('.es-map__count')).toContainText('0 of 11 earned')
     await expect(stop(page, 'tr2').locator('.es-pip[data-state="none"]')).toHaveCount(11)
+  })
+})
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* Items and lab checks count toward progress (W1b-T07)                                                               */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+test.describe('progress from items and lab checks', () => {
+  test.use({ viewport: { width: 1280, height: 900 } })
+
+  // The first variant of Bubble width assesses `tr2.bubble` alone, and hybrid-kv's checks assess five KCs of TR5a (tests/map/progress-sources.test.ts
+  // holds the same expectations at the model). The production build reads them from the families' faces and from check-kcs.ts, and from
+  // neither the families nor the oracles.
+  const EVIDENCE_OF_ITEMS_AND_LABS: LedgerEvent[] = [
+    answer('e2e-item-1', 'item:gen/tr2.bubble-width/async-off'),
+    answer('e2e-item-2', 'item:gen/tr2.graph-hit/hit-or-miss', { ok: false }),
+    labRun('e2e-lab-1', 'hybrid-kv', ['one_group', 'sliding', 'state', 'hit_all_groups', 'adapter_pages', 'gauntlet']),
+  ]
+
+  test('the map and the module pages show what an item and a green lab run earned, and what a wrong answer practised', async ({ page, context }) => {
+    await withSettings(context, { view3d: false })
+    await putIn(page, EVIDENCE_OF_ITEMS_AND_LABS)
+    await open(page, '/map')
+    await readTheLedger(page)
+    const tr2 = stop(page, 'tr2')
+    await expect(tr2.locator('.es-pip[data-state="earned"]')).toHaveCount(1)
+    await expect(tr2.locator('.es-pip[data-state="practised"]')).toHaveCount(1)
+    await expect(tr2.locator('.es-map__count')).toContainText('1 of 11 earned')
+    await expect(tr2.locator('.es-map__count')).toContainText('1 practised')
+    await expect(stop(page, 'tr5a').locator('.es-pip[data-state="earned"]')).toHaveCount(5)
+    await expect(stop(page, 'tr5a').locator('.es-map__count')).toContainText('5 of 8 earned')
+    // A module that neither touched is as it was.
+    await expect(stop(page, 'tr1').locator('.es-pip[data-state="none"]')).toHaveCount(8)
+
+    await open(page, '/m/tr2')
+    await readTheLedger(page)
+    const tr2Kcs = page.locator('[data-block="kcs"]')
+    await expect(tr2Kcs.locator('[data-kc="tr2.bubble"]')).toHaveAttribute('data-state', 'earned')
+    await expect(tr2Kcs.locator('[data-kc="tr2.async-overlap"]')).toHaveAttribute('data-state', 'none')
+    await expect(tr2Kcs.locator('[data-kc="tr2.graph-replay"]')).toHaveAttribute('data-state', 'practised')
+
+    await open(page, '/m/tr5a')
+    await readTheLedger(page)
+    const tr5aKcs = page.locator('[data-block="kcs"]')
+    await expect(tr5aKcs.locator('[data-kc="tr5a.state-pages"]')).toHaveAttribute('data-state', 'earned')
+    await expect(tr5aKcs.locator('[data-kc="tr5a.adapter-pages"]')).toHaveAttribute('data-state', 'earned')
+    await expect(tr5aKcs.locator('[data-kc="tr5a.kv-groups"]')).toHaveAttribute('data-state', 'none')
+    // The lab run is the Build step of its module's loop (the third of the five).
+    await expect(page.locator('[data-block="loop"] .es-steps__item').nth(2)).toContainText('1 credited of 1 tried')
   })
 })
 

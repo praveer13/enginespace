@@ -3,6 +3,8 @@ import { useParams } from 'react-router'
 import { TextLink } from '@/design/components/TextLink'
 import { TEST_HOOKS } from '@/scene/test-hook'
 import { syntheticId, syntheticSeed } from '@/trace/ids'
+import { UNBUILT } from '@/unbuilt/copy'
+import { Unbuilt } from '@/unbuilt/Unbuilt'
 
 // Serves both /trace-room (the list) and /trace-room/:trace (one trace). The list is W2-T20's. Until it lands, the one tape on show is the
 // specimen at /trace-room/synthetic-<seed>, in the dev server and in test builds (VITE_ES_TEST_HOOKS=1), and nowhere else: a production
@@ -30,15 +32,12 @@ export function Component() {
     )
   }
   return (
-    <>
-      <h1>The Trace Room</h1>
-      {traceId ? <p>Trace id: {traceId}</p> : null}
-      <p>This page is not built yet.</p>
+    <Unbuilt {...UNBUILT.traceRoom} facts={traceId ? [`Trace id: ${traceId}`] : []}>
       {SHOW_SPECIMEN ? (
         <p>
           A specimen tape is on show: <TextLink to={`/trace-room/${syntheticId(7)}`}>a synthetic night, seed 7</TextLink>.
         </p>
       ) : null}
-    </>
+    </Unbuilt>
   )
 }

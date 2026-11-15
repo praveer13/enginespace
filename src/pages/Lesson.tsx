@@ -92,12 +92,12 @@ export function LessonView({ lesson, module, claims, today }: LessonViewProps) {
         tapes={[lesson.status]}
       />
       <Columns side={<PrinterTape label="About this lesson" lines={lines} />}>
-        <Blocks blocks={lesson.blocks} env={env} scope={lesson.id} />
+        <Blocks blocks={lesson.blocks} env={env} scope={lesson.id} rev={lesson.rev} />
+        {/* The title leads the paper, as on every block's ticket: the lesson's id prints on the foot line (BlockFrame.tsx). */}
         <Ticket
           as="section"
           width="wide"
-          head={<Scope id={lesson.id} />}
-          meta="end"
+          foot={[<Scope id={lesson.id} />, 'end']}
           title="Next"
           titleAs="h2"
           className="es-c-block"

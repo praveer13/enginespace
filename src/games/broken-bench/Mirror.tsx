@@ -1,4 +1,4 @@
-import { binsOf } from '@es/play/broken-bench/desk'
+import { TAIL_ROWS, binsOf } from '@es/play/broken-bench/desk'
 import { orderNo } from '@es/play/broken-bench/layout'
 import { TapeLabel } from '@/design/components/TapeLabel'
 import { formatReadout } from '@/design/format'
@@ -13,6 +13,10 @@ import type { BenchRun } from './types'
  * is `n − ⌈0.99 n⌉ + 1` from the slowest with `n − ⌈0.99 n⌉` orders beyond it. The learner counts down it. Under it, the counts of the
  * histogram's stacks, so the picture carries nothing that is only in the picture. The log itself is the rows sheet: every order to a line.
  *
+ * The tail is as long for every log: `TAIL_ROWS` of the slowest orders, or all of them when the log is shorter, and the caption says so.
+ * Its length, and the place where it ends, therefore say nothing of where the p99 sits. The table is a box of its own that scrolls
+ * (bench.css, "the tail's box"), so a tail of that length takes the room of one box and no more.
+ *
  * On a wide screen the inspector's clipboard stands above the tail, in this column, beside the pass. On a narrow one the 2D view holds it
  * (View2D.tsx draws the same form), and bench.css shows the one that fits.
  *
@@ -20,7 +24,7 @@ import type { BenchRun } from './types'
  * so where the kit would print a narrow table as a block for each row, with a name before each cell, the tail keeps its column heads in
  * one line over the rows and prints each order on one line (bench.css, "the tail"): on a phone the desk stays within reach under it. The
  * lamp falls on the selected order, which is the present. In a graded attempt nothing says where the p99 sits: the summary says how many
- * orders were measured, and the rule is the learner's to apply.
+ * orders were measured, and the rule is the learner's to apply, to a table whose length tells nothing of the answer.
  */
 
 const head = (term: string, unit: string) => (
@@ -82,7 +86,11 @@ export function Mirror({ run, desk }: { run: BenchRun; desk: DeskApi | null }) {
         id={run.mirrorId}
         className="es-bench-tail"
         head="Mirror · the tail"
-        caption="The slowest orders under the desk's stopwatch and cut, ranked from the slowest"
+        caption={
+          <>
+            The slowest orders under the desk&apos;s stopwatch and cut, ranked from the slowest, up to {num(TAIL_ROWS)} of them
+          </>
+        }
         summary={
           <>
             Desk: {num(reading.n)} orders measured, timed from {desk.clock === 'due' ? 'the due time' : 'the send'}, the first {num(reading.cut)} left out. Mean {ms(reading.meanUs)} ms.
