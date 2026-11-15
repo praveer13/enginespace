@@ -5,9 +5,10 @@
     enginespace grade <lab>.<stage> --challenge <token>  grade a stage on a challenge from the site, and write its bundle
     enginespace receipt verify <file>                    the browser's first three rules, run locally
     enginespace selftest [--gpu]                         the grader's own tests
+    enginespace trace export <input> --format <fmt>      normalise a torch-profiler or nsys capture into trace@1
     enginespace version                                  the grader's name, version and source hash
 
-`trace export` (W2-T19) joins the table with its task. A command is a function of the arguments after its name, and it imports what it uses when it runs, so
+A command is a function of the arguments after its name, and it imports what it uses when it runs, so
 `--version` and `doctor` do not load `jsonschema`. The pattern is statespace's (bench/statespace/cli.py at 7b6938c).
 
 Exit status: 0 when the command did what it was asked and found nothing wrong, 1 when it found something wrong (a check failed, a file was not verified),
@@ -81,6 +82,17 @@ def _receipt(argv: Sequence[str]) -> int:
     return verification.main(args.files, args.json)
 
 
+def _trace(argv: Sequence[str]) -> int:
+    help_text = "usage: enginespace trace export <input> --format torch|nsys-sqlite [--out FILE] [options]\n\n`enginespace trace export --help` says more.\n"
+    if argv and argv[0] == "export":
+        from .trace import export
+
+        return export.main(argv[1:])
+    wanted = bool(argv) and argv[0] in ("-h", "--help")
+    (sys.stdout if wanted else sys.stderr).write(help_text)
+    return EXIT_OK if wanted else EXIT_USAGE
+
+
 def _grade(argv: Sequence[str]) -> int:
     from . import fingerprint
     from .grade import local_pins, resolve_provenance, run_stage
@@ -136,6 +148,7 @@ COMMANDS: dict[str, tuple[Callable[[Sequence[str]], int], str]] = {
     "fetch": (_fetch, "download the files that a lab pins into the cache, and keep only those whose SHA-256 is the manifest's: fetch <lab>"),
     "grade": (_grade, "grade a stage on a challenge token from the site, and write its bundle: grade <lab>.<stage> --challenge <token>"),
     "receipt": (_receipt, "receipt verify <file>: the browser's first three rules, run locally"),
+    "trace": (_trace, "trace export <input> --format torch|nsys-sqlite: normalise a profiler capture into trace@1"),
     "selftest": (_selftest, "run the grader's own checks, and its tests where they are installed (--gpu adds the GPU smoke, not built yet)"),
     "version": (_version, "print the grader's name, version and source hash"),
 }

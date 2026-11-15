@@ -144,12 +144,13 @@ describe('the commands', () => {
     .map(([command]) => command.replaceAll('`', ''))
     .map((command) => command.replace(/^enginespace /, ''))
 
-  test('ARCHITECTURE §9.4 names the six commands, and cli.py has the five that W2-T02 and W2-T05 build, and `version`, which prints the hash that the packer needs', () => {
+  test('ARCHITECTURE §9.4 names the six commands, and cli.py has all six (`trace export` since W2-T19) and `version`, which prints the hash that the packer needs', () => {
     expect(table.map((command) => command.split(' ')[0])).toEqual(['doctor', 'fetch', 'grade', 'receipt', 'trace', 'selftest'])
     const commands = [...cli.matchAll(/^ {4}"([a-z]+)": \(_[a-z]+, /gm)].map((match) => match[1])
-    expect(commands).toEqual(['doctor', 'fetch', 'grade', 'receipt', 'selftest', 'version'])
-    // `trace export` is W2-T19's, and the docstring says so.
-    expect(cli).toContain('`trace export` (W2-T19) joins the table with its task')
+    expect(commands).toEqual(['doctor', 'fetch', 'grade', 'receipt', 'trace', 'selftest', 'version'])
+    // `trace export` is W2-T19's: the docstring's table lists it, and its two formats are those of §9.4.
+    expect(cli).toContain('enginespace trace export <input> --format <fmt>')
+    expect(table.find((command) => command.startsWith('trace export'))).toContain('--format <fmt>')
   })
 
   test('the command is installed as `enginespace` and the receipt command has its verify subcommand', () => {

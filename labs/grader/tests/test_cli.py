@@ -31,7 +31,7 @@ def run(*argv: str) -> tuple[int, str, str]:
 
 class Table(unittest.TestCase):
     def test_the_commands_are_those_of_the_architecture(self) -> None:
-        self.assertEqual(sorted(cli.COMMANDS), ["doctor", "fetch", "grade", "receipt", "selftest", "version"])
+        self.assertEqual(sorted(cli.COMMANDS), ["doctor", "fetch", "grade", "receipt", "selftest", "trace", "version"])
         status, out, _ = run("--help")
         self.assertEqual(status, 0)
         for name in cli.COMMANDS:

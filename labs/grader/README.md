@@ -24,7 +24,7 @@ uv run --project labs/grader enginespace selftest
 | `enginespace selftest [--gpu]` | the grader's own checks, and its tests where they are installed | W2-T02; `--gpu` stops with a message until a GPU lab exists (W2-T12) |
 | `enginespace version` | the name, the version and the source hash | W2-T02 |
 | `enginespace fetch <lab>` | downloads the files that a lab pins, resumes a download that stopped, and keeps only the bytes whose SHA-256 is the manifest's | W2-T05 |
-| `enginespace trace export <in> --format <fmt>` | normalises a trace into `trace@1` | W2-T19 |
+| `enginespace trace export <in> --format <fmt>` | normalises a torch-profiler Chrome trace (`torch`) or an Nsight Systems SQLite export (`nsys-sqlite`) into `trace@1` | W2-T19 |
 
 Exit status: 0 when the command did what it was asked and found nothing wrong; 1 when it found something wrong (a check failed, a file was not verified); 2 for a usage error or a file that cannot be read; 3 when it could not run (a bad token, a lab this install does not have, a pin check that does not exist yet).
 
@@ -67,6 +67,23 @@ Rules 1 to 3 of A§8.5, on a `.es.json.gz` file:
 3. **Integrity.** The SHA-256 and the byte count of every artifact's canonical bytes equal the receipt's entry. A tampered hash is rejected, and the message names the artifact.
 
 The other rules need what a file cannot show about itself: the ledger of the browser that issued the token (binding), the list of grader builds the site published (identity), the pins, and every number recomputed from the raw records (A§8.5 rules 4 to 10). A file that passes these three can still be refused there, and a receipt is not signed: it records what was reported (A§8.6).
+
+### `trace export`
+
+```sh
+uv run --project labs/grader enginespace trace export rank0.pt.trace.json --format torch --out rank0.trace.json \
+  --engine vllm --engine-version 0.33.0 --gpu "NVIDIA GeForce RTX 4090" --captured-at 2026-11-20T10:00:00Z
+uv run --project labs/grader enginespace trace export report.sqlite --format nsys-sqlite --step-name '^my_step \d+$' --out report.trace.json
+```
+
+It normalises a profiler capture into `trace@1` (ARCHITECTURE §5.7): the columns that the trace viewer, the attribution and the checks read, written as canonical text, so that the trace's SHA-256 is the same in the grader and in the browser. `meta.sha256` is the hash of the capture it was made from; `meta` leaves out whatever the capture and the flags do not say (the site's check T1 wants a learner's trace to name its engine, version, GPU and capture time, and the command says which are missing). `--source synthetic` labels a made-up capture, and `--source owner` is for the owner's reference traces.
+
+- **`--format torch`** reads a torch-profiler Chrome trace (`torch.profiler`, or vLLM's `--profiler-config`): `kernel`, `gpu_memcpy` and `gpu_memset` events on the GPU's streams, the `cuda_runtime` calls with their correlation ids, `cpu_op` and `python_function` frames, and `ProfilerStep#<n>` annotations as the steps. Times are read as decimal text and converted to integer ns without a double in between.
+- **`--format nsys-sqlite`** reads an `nsys export --type sqlite` file, read-only: the `CUPTI_ACTIVITY_KIND_*` tables, `NVTX_EVENTS` for the steps (`--step-name` says which ranges), `StringIds` and `TARGET_INFO_GPU`. A capture taken with `--cuda-graph-trace=node` shows the nodes of a graph as kernels with the replay's correlation id, which is how the trace keeps them under one `cudaGraphLaunch`. **The table and column names are [unverified]** against the pinned nsys (2026.5.1, proposed): no nsys was available when it was written, and the owner's first capture (W2-T21) checks them. A table or column that is missing stops the command and names it.
+
+What it decides, and says: the engine's main thread is the one that carries the steps (`--main-thread` names another), and other threads are left out. A CPU step range does not contain the kernels it launched, because the GPU runs after the CPU has left the step, so a step's window is the GPU's: from the first start to the last end of the GPU work that the step's launch calls started. Work outside the first and last step mark is left out and counted. A kernel whose launch was on another thread gets correlation id -1, and the site's T4 fails it, so the trace says that no launch can be shown before it. Nothing is moved or rounded to make a check pass. Every name goes through `redact.scrub_text` first, since a Python frame's name holds a path. The command prints what it left out, and `traceChecks` on the site (T2 to T5) is the judge of the result.
+
+What an Nsight Systems export cannot give is the engine's Python frames, so the main thread is busy in such a trace only while a CUDA call runs and its CPU-gap time is a lower bound. A memset is GPU work that `trace@1` does not count as busy (the model reads `kernel` and `copy`), and is carried under the category `memset`.
 
 ## The fingerprint, and what a receipt never holds
 
@@ -130,6 +147,7 @@ src/enginespace_grader/
   receipt.py  bundle.py  schemas.py  identity.py           the receipt, the bundle, the packaged schemas, the grader's hash
   fingerprint.py  redact.py  engine_config.py              the fingerprint; what a receipt never holds; the effective engine configuration
   fetch.py                                                 the references manifest, and the downloads it pins (W2-T05)
+  trace/                                                   `trace export`: model.py (the columns, as the site writes them), assemble.py, torch_profiler.py, nsys.py, export.py (W2-T19)
   labs/                                                    the plug-in interface; one module for each lab arrives with its task
   schemas/                                                 written by scripts/export-schemas.ts
 tests/                                                     unittest

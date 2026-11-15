@@ -32,3 +32,7 @@ Logs and configuration dumps in the shape of vLLM v0.33.0 (commit 4ba787e), the 
 | `server-info-rtx4090.json`, `server-info-h100.json` | the answer of `/server_info?config_format=json` (a dev-mode endpoint), for the same command on a 24 GB card and on an 80 GB card: the token budget and `max_num_seqs` differ by GPU (the research's row M9) |
 
 A re-pin re-reads the claims, and the logs here follow what the claims say.
+
+## `trace/`
+
+Hand-built profiler captures (a torch-profiler Chrome trace, and the SQL of an Nsight Systems SQLite export) and the `trace@1` that `enginespace trace export` writes from them (W2-T19). `trace/README.md` says what each file stands for.
