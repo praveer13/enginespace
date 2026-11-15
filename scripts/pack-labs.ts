@@ -302,13 +302,18 @@ export function buildArchive(lab: PackLab, root: string = REPO_ROOT): LabArchive
 export interface ManifestFile {
   /** The file's name in public/labs. */
   name: string
-  /** What wrote it: `forge-lab` is this script's. Another task's kinds (W2-T10's) are kept as they are. */
+  /** What wrote it: `forge-lab` is this script's. The kinds of scripts/pack-kit.ts (`gpu-kit`, `grader-wheel`) are kept as they are. */
   kind: string
   lab?: string
   bytes: number
   sha256: string
   /** The folder every member sits in. */
   root?: string
+  /** A grader wheel's (W2-T10, scripts/pack-kit.ts): the grader's version, and the hash over the files of its import package that a receipt records. */
+  version?: string
+  sourceSha256?: string
+  /** A GPU kit's: the same hash, taken over the grader's package inside the kit's zip. */
+  graderSourceSha256?: string
   /** For review: each file of the zip, by its path in the folder. */
   members?: { path: string; bytes: number; sha256: string }[]
 }
