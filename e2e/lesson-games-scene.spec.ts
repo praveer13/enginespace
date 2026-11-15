@@ -132,7 +132,7 @@ const SCENES = [
   { route: ROUTE, block: FIRST, name: 'Service, First service', probe: 'loop' },
   { route: ROUTE, block: SECOND, name: 'Service, the full service', probe: 'loop' },
   { route: '/m/tr1/l1-five-mechanisms', block: { game: 'engine-floor', level: 'nano', mode: 'practice' }, name: 'Back of House', probe: 'engine-floor' },
-  { route: '/m/tr5a/l1-why-one-model-needs-several-kv-caches', block: { game: 'pool', level: 'one-group', mode: 'practice' }, name: 'The Reach-In', probe: 'pool' },
+  { route: '/m/tr5a/l1-why-one-model-needs-several-kv-caches', block: { game: 'pool', level: 'one-group', mode: 'practice' }, name: 'KV page pool', probe: 'pool' },
   { route: '/m/tr6/l2-the-rejection-sampler-exactly', block: { game: 'verifier', level: 'overlap', mode: 'practice' }, name: 'The Tasting', probe: 'verifier' },
 ] as const
 
@@ -144,6 +144,8 @@ test.describe("an embedded scene's budget (D-023, frozen; A§11.1: 100 draw call
         await page.goto(`${ORIGIN}${route}?es-tier=${tier}`)
         await page.evaluate(() => document.fonts.ready)
         await startBlock(page, block)
+        // KV page pool opens on its diagram (R-T07, REDESIGN §2.9): its scene is one switch away.
+        if (block.game === 'pool') await embedOf(page, block).getByRole('button', { name: '3D', exact: true }).click()
         const stage = embedOf(page, block).locator('.es-stage')
         await expect(stage).toHaveAttribute('data-stage-phase', 'live', { timeout: 90_000 })
         await expect(stage).toHaveAttribute('data-settled', 'true', { timeout: 60_000 })

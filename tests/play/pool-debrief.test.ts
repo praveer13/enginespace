@@ -1,11 +1,11 @@
 /*
- * W1-T23, the debrief of The Reach-In (GAMES.md §8 "Core loop": "Debrief with kernelspace's R(i) rule"; §2.1): the one sentence a run ends
+ * W1-T23, the debrief of KV page pool (GAMES.md §8 "Core loop": "Debrief with kernelspace's R(i) rule"; §2.1): the one sentence a run ends
  * on and the decision that mattered.
  *
  * kernelspace's rule: with R(i) = "the reference policy, taking over the learner's state before decision i, still reaches the bound", the
  * root cause is the latest learner decision d with R(d) true and R(d + 1) false. These tests hold the debrief to that definition, played
- * out through the session's own reducer, and hold its sentences to the kitchen's words: they carry no digit (the counters beside them are
- * Readouts that tag every number), and the places they name are tables that exist.
+ * out through the session's own reducer, and hold its sentences to the engine's words (R-T07, REDESIGN §2.7): they carry no digit (the counts
+ * beside them are tagged), they name conversations that exist, and the copy guard finds no banned word in any of them.
  */
 import { describe, expect, setDefaultTimeout, test } from 'bun:test'
 import { drawInBand } from '@es/play'
@@ -16,6 +16,7 @@ import type { PoolAction, PoolLevel, PoolState } from '@es/play/pool/types'
 import { engine, blindLast, newest } from '@es/play/pool/policy'
 import { poolReference, poolSession, slotBaseline, SHELF_SLOTS } from '@es/play/pool/session'
 import { costOf, gradeOf, ratio, unservedOf } from '@es/play/pool/score'
+import { findBanned } from '@/copy/banned'
 import { bulk, houseActions, playThrough, practiceOf, stateAfter } from './pool-support'
 
 // The debrief replays the house from every decision of a night, which takes a few seconds, and several on a loaded host.
@@ -94,19 +95,20 @@ describe('the decision that mattered is kernelspace\'s: the latest decision afte
   })
 })
 
-describe('the sentences are the kitchen\'s words, and carry no number', () => {
-  test('a night that passes says so, with no digit and no decision', () => {
+describe('the sentences are the engine\'s words, and carry no number', () => {
+  test('a run that passes says so, with no digit and no decision', () => {
     for (const id of POOL_LEVEL_IDS) {
       const level = practiceOf(id)
       const ghost = S.ghost(level)
       const debrief = debriefOf(ghost, ghost)
       expect([id, debrief.names]).toEqual([id, null])
-      expect(debrief.sentence).toMatch(/kept pace with the house|paid less than the house/)
+      expect(debrief.sentence).toMatch(/matched the reference|paid less than the reference/)
+      expect([id, findBanned(debrief.sentence)]).toEqual([id, []])
       expect([id, /\d/.test(debrief.sentence)]).toEqual([id, false])
     }
   })
 
-  test('a night that paid more says what the learner did, at a table that exists, with no digit, whoever played it', () => {
+  test('a run that paid more says what the learner did, in a conversation that exists, with no digit and no banned word, whoever played it', () => {
     const seen = new Set<string>()
     for (const id of POOL_LEVEL_IDS) {
       for (let entropy = 1; entropy <= 10; entropy++) {
@@ -118,7 +120,8 @@ describe('the sentences are the kitchen\'s words, and carry no number', () => {
           const { sentence, names } = debriefOf(mine, ghost)
           expect(/\d/.test(sentence)).toBe(false)
           expect(sentence.length).toBeGreaterThan(60)
-          const letters = [...sentence.matchAll(/table ([A-Z])/g)].map((match) => match[1])
+          expect(findBanned(sentence)).toEqual([])
+          const letters = [...sentence.matchAll(/conversations? ([A-Z])/g)].map((match) => match[1])
           for (const letter of letters) expect(level.tables.map((table) => table.letter)).toContain(letter)
           if (names !== null) {
             // The debrief's type is every game's: Pool names a turn, and a lever would fail the first line.
@@ -126,7 +129,7 @@ describe('the sentences are the kitchen\'s words, and carry no number', () => {
             expect(Number.isInteger(turn)).toBe(true)
             expect(turn).toBeGreaterThanOrEqual(0)
             expect(turn).toBeLessThan(mine.history.length)
-            seen.add(sentence.replace(/table [A-Z]/g, 'table X').slice(0, 40))
+            seen.add(sentence.replace(/conversation [A-Z]/g, 'conversation X').slice(0, 40))
           }
         }
       }
@@ -135,14 +138,14 @@ describe('the sentences are the kitchen\'s words, and carry no number', () => {
     expect(seen.size).toBeGreaterThanOrEqual(3)
   })
 
-  test('a night that ends with tickets unserved says the line has to keep moving, and names no decision', () => {
+  test('a run that ends with requests unserved says the batch has to keep moving, and names no decision', () => {
     const level = practiceOf('evict')
     const ghost = S.ghost(level)
     const idle = playThrough(level, () => ({ t: 'admit', req: null })).states.at(-1) as PoolState
     const debrief = debriefOf(idle, ghost)
     expect(debrief.names).toBeNull()
     expect(debrief.sentence).toContain('unserved')
-    expect(debrief.sentence).toContain('The line has to keep moving')
+    expect(debrief.sentence).toContain('The batch has to keep moving')
     expect(/\d/.test(debrief.sentence)).toBe(false)
   })
 

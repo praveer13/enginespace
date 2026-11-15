@@ -1,134 +1,156 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { changeLine } from './announce'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Button } from '@/design/components/Button'
 import { Field } from '@/design/components/Field'
 import { Glyph } from '@/design/components/Glyph'
-import { Pan } from '@/design/components/Pan'
-import { Stub } from '@/design/components/Stub'
-import { TapeLabel } from '@/design/components/TapeLabel'
-import { formatReadout } from '@/design/format'
-import { Ticket, TicketLine } from '@/design/components/Ticket'
-import type { AskView, PoolView } from '@es/play/pool/types'
-import { stationGlyph, unitWord } from './glyphs'
-import { pansWord, stepsWord } from './words'
-import type { PoolMode, PoolRun } from './types'
+import type { AskView, PoolView, TicketView } from '@es/play/pool/types'
+import { changeLine } from './announce'
 import type { Dump } from './dump'
+import { stateGlyph, unitWord } from './glyphs'
+import type { PoolMode, PoolRun } from './types'
 import { useRoving } from './useRoving'
+import { pagesWord, reqName, stepsWord, tokensWord } from './words'
 
 /*
- * The Reach-In's controls (GAMES.md §8 "Controls", §2.6): HTML for every action, so a pointer, a keyboard and a screen reader all reach
- * the same things. The open ask is a ticket under the heat lamp, and its list is the way to act on it:
- *   admit     the waiting tickets, as buttons that hang them, and a plate to hang none ("W");
- *   evict     the cached pans in the rotation's order, as buttons that choose them. The rotation's next pans are chosen to begin with, as
- *             the engine would dump them; the learner changes what they disagree with, and the stub confirms ("D");
- *   preempt   the tickets on the line, as buttons that pull them;
- *   prefetch  the kits that waiting tickets need, as buttons that bring them in, and a plate for none yet ("W").
- * Each list is one tab stop, and the arrows move along it (a roving tabindex). When an action opens the next ask, focus goes to that ask's
- * list, so that a keyboard never loses its place. In a graded level the price of a dump and the shared mise a ticket would find are not
- * printed in the lists: the drawing still shows the rulers, and the learner reads them (ASSESSMENT §4.3).
+ * KV page pool's dock (REDESIGN §2.6, GAMES.md §8 "Controls"): the guess slot, then the current decision. HTML for every action, so a
+ * pointer, a keyboard and a screen reader all reach the same things:
+ *   admit     the waiting requests, as buttons that admit them, and "Admit none this step" (W);
+ *   evict     the cached pages in the free queue's order, as toggles. The free queue's next pages are chosen to begin with, as the engine
+ *             would evict them; the learner changes what they disagree with, and confirms (D);
+ *   preempt   the running requests, as buttons that preempt them;
+ *   load      the LoRA adapters that waiting requests need, as buttons that load them, and "Load none yet" (W).
+ * Each list is one tab stop, and the arrows move along it (a roving tabindex). When an action opens the next decision, focus goes to its
+ * list, so a keyboard never loses its place. A new decision is announced in the dock and in the live region. In practice each eviction
+ * shows its cost before it is chosen; in a graded run it does not, and the dock says so (ASSESSMENT §4.3).
+ *
+ * Before the guess is answered, a waiting request's row shows its tokens and its prefix hit, and not its page count, which is the answer.
  */
 
 interface AskProps {
   run: PoolRun
   dump: Dump
   mode: PoolMode
-  /** The pans a row or a ticket is pointing at, for the drawing to ring. */
+  /** The pages a row is pointing at, for the diagram to ring. */
   onPoint: (pages: readonly number[]) => void
+  /** The guess is still open: rows hold back what would answer it. */
+  guessing: boolean
 }
 
-/** A count in the printer's dots. The lists say once that every count is the synthetic world's, and a row does not repeat it. */
-const num = (value: number) => <span className="font-numeric">{formatReadout(value)}</span>
+const num = (value: number) => <span className="font-numeric">{value}</span>
 
-/** The pans a waiting ticket's hit starts from: what the rack rings when the ticket is pointed at. */
-const hitPages = (view: PoolView, id: number): number[] => view.pans.filter((pan) => pan.spokenFor.includes(id) || pan.holders.includes(id)).map((pan) => pan.id)
+/** The pages a waiting request's prefix hit starts from: what the diagram rings when the request is pointed at. */
+const hitPages = (view: PoolView, id: number): number[] => view.pans.filter((page) => page.spokenFor.includes(id) || page.holders.includes(id)).map((page) => page.id)
+
+const convo = (ticket: TicketView) => `conversation ${ticket.letter}, turn ${ticket.turn + 1} of ${ticket.turns}`
 
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* The prediction                                                                                                     */
+/* The guess                                                                                                          */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-function Predict({ run }: { run: PoolRun }) {
+function Guess({ run, onSkip }: { run: PoolRun; onSkip: () => void }) {
   const { predict } = run.view
   const [text, setText] = useState('')
   const value = text.trim() === '' ? null : Number(text)
   const bad = value !== null && (!Number.isInteger(value) || value < 0)
+  const titleId = useId()
   return (
-    <Ticket as="section" width="full" hole={false} titleAs="h3" title="Say it first." data-pool-predict="">
-      <p>{predict.ask}</p>
-      <Field
-        label="Your answer"
-        numeric
-        value={text}
-        inputMode="numeric"
-        onChange={(event) => setText(event.target.value)}
-        hint={`A whole number of ${unitWord(predict.unit)}. You can skip this and play.`}
-        error={bad ? 'Write a whole number of at least 0.' : undefined}
-      />
-      <div className="es-ask__row">
-        <Stub
-          disabled={value === null || bad}
-          onClick={() => {
-            if (value !== null && !bad) run.dispatch({ t: 'commit', prediction: value })
-          }}
-        >
-          Commit
-        </Stub>
-      </div>
-    </Ticket>
+    <section className="es-dock__guess" aria-labelledby={titleId} data-pool-predict="">
+      <h3 id={titleId} className="es-dock__title">
+        Your guess
+      </h3>
+      <p className="es-dock__text">{predict.ask}</p>
+      <form
+        className="es-dock__guess-form"
+        onSubmit={(event) => {
+          event.preventDefault()
+          if (value !== null && !bad) run.dispatch({ t: 'commit', prediction: value })
+        }}
+      >
+        <Field
+          label="Your guess"
+          numeric
+          value={text}
+          inputMode="numeric"
+          onChange={(event) => setText(event.target.value)}
+          hint={`A whole number of ${unitWord(predict.unit)}. The run answers it.`}
+          error={bad ? 'Write a whole number, 0 or more.' : undefined}
+        />
+        <div className="es-dock__row">
+          <Button type="submit" variant="ink" disabled={value === null || bad}>
+            Commit
+          </Button>
+          <Button variant="quiet" onClick={onSkip}>
+            Skip the guess
+          </Button>
+        </div>
+      </form>
+    </section>
   )
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* The asks                                                                                                           */
+/* The decisions                                                                                                      */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-function AdmitAsk({ run, mode, onPoint }: AskProps) {
+function AdmitAsk({ run, mode, onPoint, guessing }: AskProps) {
   const { view } = run
   const ask = view.ask as Extract<AskView, { kind: 'admit' }>
   const { list, stop, onKeyDown, note } = useRoving(ask.candidates.length)
   const graded = mode === 'graded'
   return (
     <>
-      <p>Pick the ticket to hang (admit), or hang none this step. A ticket that is hung pins the pans it starts from.</p>
-      <ul ref={list} onKeyDown={onKeyDown} data-native-keys="arrows" className="es-ask__list" data-ask-list="admit">
+      <p className="es-dock__text">Admit one waiting request, or none this step. An admitted request pins the cached pages its prefix hit reuses.</p>
+      <ul ref={list} onKeyDown={onKeyDown} data-native-keys="arrows" className="es-dock__list" data-ask-list="admit">
         {view.waiting.map((id) => {
           const ticket = view.tickets[id]
           const at = ask.candidates.indexOf(id)
           const can = at >= 0
-          const why = ticket.kitReady === false ? 'its kit has not landed' : ticket.fits === false ? 'its pans do not fit yet' : null
+          const why = ticket.kitReady === false ? 'its adapter has not loaded' : ticket.fits === false ? 'its pages do not fit yet' : null
           return (
-            <li key={id} className="es-ask__item">
-              <Ticket
-                as="button"
-                compact
-                hole={false}
-                width="full"
-                state={can ? 'default' : 'disabled'}
-                head={`No. ${ticket.no}`}
-                meta={`table ${ticket.letter}`}
+            <li key={id}>
+              <button
+                type="button"
+                className="es-dock__option"
                 data-roving=""
+                disabled={!can}
                 tabIndex={can && at === stop ? 0 : -1}
-                aria-label={`Hang ticket No. ${ticket.no}, table ${ticket.letter}${why === null ? '' : `, ${why}`}`}
+                aria-label={`Admit request ${id + 1}, ${convo(ticket)}${why === null ? '' : `, ${why}`}`}
                 onClick={() => run.dispatch({ t: 'admit', req: id })}
                 onFocus={() => {
                   note(Math.max(at, 0))
                   onPoint(hitPages(view, id))
                 }}
                 onBlur={() => onPoint([])}
+                onPointerEnter={() => onPoint(hitPages(view, id))}
+                onPointerLeave={() => onPoint([])}
               >
-                <TicketLine>hang</TicketLine>
-                {graded ? null : <TicketLine note={<>{num(ticket.hit)} tokens</>}>shared mise</TicketLine>}
-                {graded || ticket.fresh === null ? null : <TicketLine note={<>{num(ticket.fresh)} {pansWord(ticket.fresh)}</>}>to take</TicketLine>}
-                {why === null ? null : <TicketLine tone="ink-2">{why}</TicketLine>}
-              </Ticket>
+                <span className="es-dock__option-name">
+                  Admit <strong>{reqName(id)}</strong>
+                </span>
+                <span className="es-dock__option-meta">
+                  conversation {ticket.letter} · {num(ticket.tokens)} {tokensWord(ticket.tokens)}
+                  {graded ? null : (
+                    <>
+                      {' '}
+                      · prefix hit {num(ticket.hit)}
+                    </>
+                  )}
+                  {graded || guessing || ticket.fresh === null ? null : (
+                    <>
+                      {' '}
+                      · {num(ticket.fresh)} new {pagesWord(ticket.fresh)}
+                    </>
+                  )}
+                </span>
+                {why === null ? null : <span className="es-dock__option-why">{why}</span>}
+              </button>
             </li>
           )
         })}
       </ul>
-      <div className="es-ask__row">
-        <Button variant="plate" aria-keyshortcuts="W" onClick={() => run.dispatch({ t: 'admit', req: null })}>
-          Hang none
+      <div className="es-dock__row">
+        <Button variant="quiet" aria-keyshortcuts="W" onClick={() => run.dispatch({ t: 'admit', req: null })}>
+          Admit none this step
         </Button>
-        {graded ? null : <span className="es-ask__unit">Counts are tokens and pans of the synthetic world.</span>}
       </div>
     </>
   )
@@ -139,27 +161,30 @@ function EvictAsk({ run, dump, mode, onPoint }: AskProps) {
   const ask = view.ask as Extract<AskView, { kind: 'evict' }>
   const { list, stop, onKeyDown, note } = useRoving(ask.candidates.length)
   const graded = mode === 'graded'
-  const target =
-    ask.for === 'admit' ? `room for ticket No. ${view.tickets[ask.target].no}` : `room for kit ${ask.target + 1}, whose pans come out of the same reach-in`
+  const target = ask.for === 'admit' ? `to make room for ${reqName(ask.target)}` : `to make room for adapter ${ask.target + 1}, whose pages come out of the same pool`
   return (
     <>
-      <p>
-        Dump <strong>{ask.need}</strong> cached {pansWord(ask.need)} to make {target} (evict). The rotation&apos;s next {pansWord(ask.need)} are chosen, as the engine would dump
-        them. A ticket hits only as far as every station still holds its pans, so change what you disagree with.
+      <p className="es-dock__text">
+        Choose <strong>{ask.need}</strong> cached {pagesWord(ask.need)} to evict {target}. The free queue&apos;s next are chosen, as the engine would evict them. A prefix hit counts only
+        as far as every KV group still holds its pages, so change what you disagree with.
       </p>
-      <ul ref={list} onKeyDown={onKeyDown} data-native-keys="arrows" className="es-ask__list es-ask__list--pans" data-ask-list="evict">
+      <p className="es-dock__note" data-pool-costs={graded ? 'hidden' : 'shown'}>
+        {graded ? 'A graded run shows no costs: read them off the diagram.' : 'Each page shows the tokens that evicting it costs.'}
+      </p>
+      <ul ref={list} onKeyDown={onKeyDown} data-native-keys="arrows" className="es-dock__list" data-ask-list="evict">
         {ask.candidates.map((page, rank) => {
-          const pan = view.pans[page]
+          const cell = view.pans[page]
           const picked = dump.isPicked(page)
-          const station = pan.station === null ? null : view.stations[pan.station]
+          const group = cell.station === null ? null : view.stations[cell.station]
           const waiting = ask.spoken[rank]
           const seated = ask.seated[rank]
-          const tell = (ids: readonly number[]) => ids.map((id) => `No. ${view.tickets[id].no}`).join(', ')
+          const reqs = (ids: readonly number[]) => ids.map((id) => reqName(id)).join(', ')
           return (
-            <li key={page} className="es-ask__item">
+            <li key={page}>
               <button
                 type="button"
-                className="es-pick"
+                className="es-dock__option"
+                data-pick-row=""
                 data-roving=""
                 data-picked={picked || undefined}
                 aria-pressed={picked}
@@ -170,55 +195,55 @@ function EvictAsk({ run, dump, mode, onPoint }: AskProps) {
                   onPoint([page])
                 }}
                 onBlur={() => onPoint([])}
+                onPointerEnter={() => onPoint([page])}
+                onPointerLeave={() => onPoint([])}
               >
-                <span className="es-pick__rank font-numeric">{String(rank + 1).padStart(2, '0')}</span>
-                <Pan state={picked ? 'evicted' : pan.state} name={`pan ${page + 1}`} size="sm" />
-                <TapeLabel size="sm" tilt="none">
-                  {pan.tape ?? `pan ${page + 1}`}
-                </TapeLabel>
-                {station === null ? null : (
-                  <span className="es-pick__station">
-                    <Glyph shape={stationGlyph(station)} className="es-pick__glyph" />
-                    <span>{station.id}</span>
-                  </span>
-                )}
-                {graded ? null : waiting.length > 0 ? (
-                  <span className="es-pick__tag" data-tone="waiting">
-                    {`waiting: ${tell(waiting)}, loses `}
-                    {num(ask.price[rank])} tokens
-                  </span>
-                ) : seated.length > 0 ? (
-                  <span className="es-pick__tag" data-tone="seated">
-                    {`seated: table ${[...new Set(seated.map((id) => view.tickets[id].letter))].join(', ')}, would lose `}
-                    {num(ask.soon[rank])} tokens
-                  </span>
-                ) : (
-                  <span className="es-pick__tag" data-tone="free">
-                    nobody waits on it
-                  </span>
-                )}
-                <span className="sr-only">{picked ? 'chosen to dump' : 'not chosen'}</span>
+                <span className="es-dock__option-name">
+                  <Glyph shape={stateGlyph(picked ? 'evicted' : cell.state)} className="es-dock__mark" data-state={picked ? 'evicted' : cell.state} />
+                  <span>page {page + 1}</span>
+                  {cell.tape === null ? null : <span className="es-dock__label">{cell.tape}</span>}
+                </span>
+                <span className="es-dock__option-meta">
+                  {group === null ? null : <>group {group.id}</>}
+                  {graded ? null : waiting.length > 0 ? (
+                    <span data-cost="waiting">
+                      {' '}
+                      · {reqs(waiting)} waits on it: costs {num(ask.price[rank])} {tokensWord(ask.price[rank])}
+                    </span>
+                  ) : seated.length > 0 ? (
+                    <span data-cost="soon">
+                      {' '}
+                      · conversation {[...new Set(seated.map((id) => view.tickets[id].letter))].join(', ')} returns: would cost {num(ask.soon[rank])} {tokensWord(ask.soon[rank])}
+                    </span>
+                  ) : (
+                    <span data-cost="free"> · costs nothing now</span>
+                  )}
+                </span>
+                <span className="sr-only">{picked ? ', chosen to evict' : ', kept'}</span>
               </button>
             </li>
           )
         })}
       </ul>
-      <div className="es-ask__row">
-        <span className="es-ask__count" role="status">
-          Chosen {num(dump.pages.length)} of {num(ask.need)} {pansWord(ask.need)}
+      <div className="es-dock__row">
+        <span className="es-dock__count" role="status">
+          Chosen {num(dump.pages.length)} of {num(ask.need)} {pagesWord(ask.need)}
         </span>
-        <Button variant="quiet" size="sm" onClick={dump.reset}>
-          The rotation&apos;s next
+        <Button variant="quiet" onClick={dump.reset}>
+          The free queue&apos;s next
         </Button>
       </div>
-      <Stub
+      <Button
+        variant="ink"
+        className="es-dock__go"
         disabled={!dump.ready}
+        aria-keyshortcuts="D"
         onClick={() => {
           if (dump.ready) run.dispatch({ t: 'evict', pages: [...dump.pages].sort((a, b) => a - b) })
         }}
       >
-        {`Dump the ${ask.need} ${pansWord(ask.need)}`}
-      </Stub>
+        {`Evict ${ask.need} ${pagesWord(ask.need)}`}
+      </Button>
     </>
   )
 }
@@ -229,25 +254,21 @@ function PreemptAsk({ run, onPoint }: AskProps) {
   const { list, stop, onKeyDown, note } = useRoving(ask.candidates.length)
   return (
     <>
-      <p>
-        Ticket No. {view.tickets[ask.stalled].no} cannot grow: the rotation has no pan left to give it. Pull a ticket from the line (preempt), and its pans go back to the rotation.
-        It hangs again later, and what the rotation no longer holds of it is prepped again.
+      <p className="es-dock__text">
+        {reqName(ask.stalled)} cannot grow: the free queue has no page left to give it. Preempt a running request, and its pages go back to the free queue. It is admitted
+        again later, and what the pool no longer holds of it is recomputed.
       </p>
-      <ul ref={list} onKeyDown={onKeyDown} data-native-keys="arrows" className="es-ask__list" data-ask-list="preempt">
+      <ul ref={list} onKeyDown={onKeyDown} data-native-keys="arrows" className="es-dock__list" data-ask-list="preempt">
         {ask.candidates.map((id, at) => {
           const ticket = view.tickets[id]
           return (
-            <li key={id} className="es-ask__item">
-              <Ticket
-                as="button"
-                compact
-                hole={false}
-                width="full"
-                head={`No. ${ticket.no}`}
-                meta={`table ${ticket.letter}`}
+            <li key={id}>
+              <button
+                type="button"
+                className="es-dock__option"
                 data-roving=""
                 tabIndex={at === stop ? 0 : -1}
-                aria-label={`Pull ticket No. ${ticket.no}, table ${ticket.letter}${id === ask.stalled ? ', the one that cannot grow' : ''}`}
+                aria-label={`Preempt request ${id + 1}, ${convo(ticket)}${id === ask.stalled ? ', the one that cannot grow' : ''}`}
                 onClick={() => run.dispatch({ t: 'preempt', req: id })}
                 onFocus={() => {
                   note(at)
@@ -255,10 +276,13 @@ function PreemptAsk({ run, onPoint }: AskProps) {
                 }}
                 onBlur={() => onPoint([])}
               >
-                <TicketLine>pull</TicketLine>
-                <TicketLine note={<>{num(ticket.tokens)} tokens</>}>in the order</TicketLine>
-                {id === ask.stalled ? <TicketLine tone="ink-2">cannot grow</TicketLine> : null}
-              </Ticket>
+                <span className="es-dock__option-name">
+                  Preempt <strong>{reqName(id)}</strong>
+                </span>
+                <span className="es-dock__option-meta">
+                  conversation {ticket.letter} · {num(ticket.tokens)} {tokensWord(ticket.tokens)} held{id === ask.stalled ? ' · cannot grow' : ''}
+                </span>
+              </button>
             </li>
           )
         })}
@@ -273,39 +297,38 @@ function PrefetchAsk({ run }: AskProps) {
   const { list, stop, onKeyDown, note } = useRoving(ask.candidates.length)
   return (
     <>
-      <p>
-        A ticket in the waiting line needs a recipe kit that is not in the reach-in. Bring a kit in (prefetch) while the line is busy, and it lands in a few steps, taking its pans
-        from the same pool. Or bring none yet.
+      <p className="es-dock__text">
+        A waiting request needs a LoRA adapter that is not loaded. Load it now, while the batch runs, and it lands in a few steps, taking its pages from the same pool. Or load none
+        yet.
       </p>
-      <ul ref={list} onKeyDown={onKeyDown} data-native-keys="arrows" className="es-ask__list" data-ask-list="prefetch">
+      <ul ref={list} onKeyDown={onKeyDown} data-native-keys="arrows" className="es-dock__list" data-ask-list="prefetch">
         {ask.candidates.map((id, at) => {
           const kit = view.kits[id]
           return (
-            <li key={id} className="es-ask__item">
-              <Ticket
-                as="button"
-                compact
-                hole={false}
-                width="full"
-                head={`Kit ${kit.id + 1}`}
-                meta={`rank ${kit.rank}`}
+            <li key={id}>
+              <button
+                type="button"
+                className="es-dock__option"
                 data-roving=""
                 tabIndex={at === stop ? 0 : -1}
-                aria-label={`Bring kit ${kit.id + 1} in, rank ${kit.rank}`}
+                aria-label={`Load adapter ${kit.id + 1}, rank ${kit.rank}`}
                 onClick={() => run.dispatch({ t: 'prefetch', adapter: id })}
                 onFocus={() => note(at)}
               >
-                <TicketLine note={<>{num(kit.pages)} {pansWord(kit.pages)}</>}>takes</TicketLine>
-                <TicketLine note={<>{num(kit.loadSteps)} {stepsWord(kit.loadSteps)}</>}>to land</TicketLine>
-                <TicketLine>{`for ${kit.wanted.map((t) => `No. ${view.tickets[t].no}`).join(', ')}`}</TicketLine>
-              </Ticket>
+                <span className="es-dock__option-name">
+                  Load <strong>adapter {kit.id + 1}</strong>
+                </span>
+                <span className="es-dock__option-meta">
+                  rank {kit.rank} · {num(kit.pages)} {pagesWord(kit.pages)} · {num(kit.loadSteps)} {stepsWord(kit.loadSteps)} to load · for {kit.wanted.map((t) => reqName(t)).join(', ')}
+                </span>
+              </button>
             </li>
           )
         })}
       </ul>
-      <div className="es-ask__row">
-        <Button variant="plate" aria-keyshortcuts="W" onClick={() => run.dispatch({ t: 'prefetch', adapter: null })}>
-          Bring none yet
+      <div className="es-dock__row">
+        <Button variant="quiet" aria-keyshortcuts="W" onClick={() => run.dispatch({ t: 'prefetch', adapter: null })}>
+          Load none yet
         </Button>
       </div>
     </>
@@ -313,15 +336,20 @@ function PrefetchAsk({ run }: AskProps) {
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* The open ask                                                                                                       */
+/* The open decision                                                                                                  */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-const HEADLINES = { admit: 'Hang a ticket.', evict: 'Dump the pans.', preempt: 'Pull a ticket.', prefetch: 'Bring a kit in.' } as const
+const HEADLINES = {
+  admit: 'Admit a request',
+  evict: 'New decision: the pool is full',
+  preempt: 'New decision: the batch cannot grow',
+  prefetch: 'New decision: load an adapter',
+} as const
 
-/** A key for the open ask, which changes whenever a new decision opens, or the prediction closes, so that focus can follow it. */
-function askKey(view: PoolView): string {
+/** A key for the open decision, which changes whenever a new one opens, or the guess closes, so that focus can follow it. */
+function askKey(view: PoolView, guessing: boolean): string {
   const ask = view.ask
-  const predicting = view.predict.open ? 'predict' : 'play'
+  const predicting = guessing ? 'guess' : 'play'
   if (ask === null) return `none:${predicting}`
   const target = ask.kind === 'evict' ? `${ask.for}${ask.target}` : ask.kind === 'preempt' ? `${ask.stalled}` : ''
   return `${view.step}:${ask.kind}:${target}:${ask.candidates.length}:${predicting}`
@@ -340,69 +368,63 @@ function useAnnouncements(run: PoolRun): void {
   }, [view, announce])
 }
 
-export function Controls({ run, dump, mode, onPoint }: AskProps) {
+export interface ControlsProps {
+  run: PoolRun
+  dump: Dump
+  mode: PoolMode
+  onPoint: (pages: readonly number[]) => void
+}
+
+export function Controls({ run, dump, mode, onPoint }: ControlsProps) {
   const { view } = run
   const ask = view.ask
   const body = useRef<HTMLDivElement>(null)
+  const titleId = useId()
+  const [skipped, setSkipped] = useState(false)
+  const guessing = view.predict.open && !skipped
   useAnnouncements(run)
-  // When a new ask opens, focus goes to its first control if the learner's focus was in the controls or had nowhere to be. A pointer
-  // user who is somewhere else on the page is not pulled away.
-  const key = askKey(view)
+  // When a new decision opens, focus goes to its first control if the learner's focus was in the dock or had nowhere to be. A pointer user
+  // who is somewhere else on the page is not pulled away.
+  const key = askKey(view, guessing)
   const lastKey = useRef(key)
   useEffect(() => {
     if (lastKey.current === key) return
     lastKey.current = key
     const here = document.activeElement
     const lost = here === null || here === document.body || !here.isConnected || ('disabled' in here && here.disabled === true)
-    if (!lost && !(body.current?.contains(here) ?? false)) return
-    const first = body.current?.querySelector<HTMLElement>('button[data-roving]:not(:disabled), .es-stub__pull:not(:disabled), button:not(:disabled)')
+    const dock = body.current?.closest('[data-dock]') ?? null
+    if (!lost && !(dock?.contains(here) ?? false)) return
+    const first = body.current?.querySelector<HTMLElement>('button[data-roving]:not(:disabled), button:not(:disabled)')
     first?.focus({ preventScroll: true })
-    // The ask opens under the drawing, below where the learner was looking: bring the whole of it into view, and move the page no more
-    // than that, so that an ask that is already on the screen does not move it at all.
     body.current?.closest<HTMLElement>('[data-ask-card]')?.scrollIntoView({ block: 'nearest' })
   }, [key])
 
-  // The night is over: focus goes to the way on, which the shell prints under the controls.
-  const ended = useRef(run.done)
-  useEffect(() => {
-    if (ended.current === run.done) return
-    ended.current = run.done
-    if (!run.done) return
-    const way = document.querySelector<HTMLElement>('[data-end] button')
-    way?.focus({ preventScroll: true })
-    way?.scrollIntoView({ block: 'nearest' })
-  }, [run.done])
-
-  if (run.done) {
-    return (
-      <Ticket as="section" width="full" hole={false} titleAs="h3" title={view.incomplete ? 'Tickets left unserved.' : 'Every ticket is served.'}>
-        <p>{view.incomplete ? 'The night ran out of steps with tickets waiting.' : 'Open the debrief to see what the house would have done.'}</p>
-      </Ticket>
-    )
-  }
+  if (run.done) return null
   let content: ReactNode = null
   if (ask !== null) {
-    const props: AskProps = { run, dump, mode, onPoint }
+    const props: AskProps = { run, dump, mode, onPoint, guessing }
     content =
       ask.kind === 'admit' ? <AdmitAsk {...props} /> : ask.kind === 'evict' ? <EvictAsk {...props} /> : ask.kind === 'preempt' ? <PreemptAsk {...props} /> : <PrefetchAsk {...props} />
   }
   return (
-    <div className="es-ask-stack" data-pool-controls="" data-ask={ask === null ? 'none' : ask.kind}>
-      {view.predict.open ? <Predict run={run} /> : null}
-      <Ticket
-        as="section"
-        width="full"
-        hole={false}
-        lamp={ask !== null}
-        titleAs="h3"
-        title={ask === null ? 'Nothing to decide.' : HEADLINES[ask.kind]}
-        aria-label="The open ask"
-        data-ask-card=""
-      >
-        <div ref={body} className="es-ask__body">
+    <div className="es-dock" data-pool-controls="" data-ask={ask === null ? 'none' : ask.kind}>
+      {guessing ? (
+        <Guess
+          run={run}
+          onSkip={() => {
+            setSkipped(true)
+            run.announce('Guess skipped.')
+          }}
+        />
+      ) : null}
+      <section className="es-dock__decision" aria-labelledby={titleId} data-ask-card="" data-new={ask !== null && ask.kind !== 'admit' ? '' : undefined}>
+        <h3 id={titleId} className="es-dock__title">
+          {ask === null ? 'Nothing to decide this step' : HEADLINES[ask.kind]}
+        </h3>
+        <div ref={body} className="es-dock__body">
           {content}
         </div>
-      </Ticket>
+      </section>
     </div>
   )
 }

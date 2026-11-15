@@ -1,5 +1,0 @@
-{
-  "area": "pool",
-  "task": "R-T07",
-  "covers": "KV page pool's rendered surfaces on /play/pool: the 2D and 3D views, labels, controls, debrief, mirror and live-region lines, which the e2e scan reads."
-}

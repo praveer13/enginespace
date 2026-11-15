@@ -263,11 +263,10 @@ const FLOOR: Record<(typeof WALKED)['engine-floor'][number], Walker> = {
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* The Reach-In (`pool`)                                                                                              */
+/* KV page pool (`pool`)                                                                                              */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 const askKind = (page: Page) => page.locator('[data-pool-controls]').getAttribute('data-ask')
-const ticketNo = (id: number) => String(id + 1).padStart(2, '0')
 
 /** The buttons of the open ask's list that can be acted on, in order, with their names. */
 const listOf = (page: Page, kind: string) =>
@@ -308,7 +307,7 @@ async function arrowToItem(page: Page, walk: Walk, kind: string, index: number):
   for (; at > index; at--) await walk.press('ArrowUp')
 }
 
-/** Answers the open ask the way a keyboard does, with the house's action: a ticket by the arrows and Enter, a dump by Space on the rows and the stub. */
+/** Answers the open decision the way a keyboard does, with the reference's action: a request by the arrows and Enter, an eviction by Space on the rows and its button. */
 async function take(page: Page, walk: Walk, action: PoolAction): Promise<void> {
   switch (action.t) {
     case 'commit':
@@ -316,13 +315,13 @@ async function take(page: Page, walk: Walk, action: PoolAction): Promise<void> {
     case 'admit': {
       await awaitAsk(page, walk, 'admit')
       if (action.req === null) {
-        await tabTo(walk, /^Hang none$/, 6)
+        await tabTo(walk, /^Admit none this step$/, 12)
         await page.keyboard.press('Enter')
         break
       }
       const items = await listOf(page, 'admit')
-      const index = items.findIndex((item) => item.name.startsWith(`Hang ticket No. ${ticketNo(action.req as number)},`))
-      expect(index, `ticket ${action.req} is on the list`).toBeGreaterThanOrEqual(0)
+      const index = items.findIndex((item) => item.name.startsWith(`Admit request ${(action.req as number) + 1},`))
+      expect(index, `request ${action.req} is on the list`).toBeGreaterThanOrEqual(0)
       await arrowToItem(page, walk, 'admit', index)
       await page.keyboard.press('Enter')
       break
@@ -330,7 +329,7 @@ async function take(page: Page, walk: Walk, action: PoolAction): Promise<void> {
     case 'evict': {
       await awaitAsk(page, walk, 'evict')
       const rows = await listOf(page, 'evict')
-      const named = await page.evaluate(() => Array.from(document.querySelectorAll<HTMLButtonElement>('[data-ask-list="evict"] button[data-roving]')).map((button) => Number(/pan (\d+)/.exec(button.textContent ?? '')?.[1])))
+      const named = await page.evaluate(() => Array.from(document.querySelectorAll<HTMLButtonElement>('[data-ask-list="evict"] button[data-roving]')).map((button) => Number(/page (\d+)/.exec(button.textContent ?? '')?.[1])))
       const want = new Set(action.pages.map((pan) => pan + 1))
       // Space on a row toggles the pan; the rows are in the rotation's order, and the first `need` are chosen to begin with.
       for (const [index, row] of rows.entries()) {
@@ -340,15 +339,15 @@ async function take(page: Page, walk: Walk, action: PoolAction): Promise<void> {
         }
       }
       await expect(page.locator('[data-ask-list="evict"] [aria-pressed="true"]')).toHaveCount(action.pages.length)
-      await tabTo(walk, /^Dump the \d+ pans?$/, 8)
+      await tabTo(walk, /^Evict \d+ pages?$/, 8)
       await page.keyboard.press('Enter')
       break
     }
     case 'preempt': {
       await awaitAsk(page, walk, 'preempt')
       const items = await listOf(page, 'preempt')
-      const index = items.findIndex((item) => item.name.startsWith(`Pull ticket No. ${ticketNo(action.req)},`))
-      expect(index, `ticket ${action.req} is on the line`).toBeGreaterThanOrEqual(0)
+      const index = items.findIndex((item) => item.name.startsWith(`Preempt request ${action.req + 1},`))
+      expect(index, `request ${action.req} is running`).toBeGreaterThanOrEqual(0)
       await arrowToItem(page, walk, 'preempt', index)
       await page.keyboard.press('Enter')
       break
@@ -356,12 +355,12 @@ async function take(page: Page, walk: Walk, action: PoolAction): Promise<void> {
     case 'prefetch': {
       await awaitAsk(page, walk, 'prefetch')
       if (action.adapter === null) {
-        await tabTo(walk, /^Bring none yet$/, 6)
+        await tabTo(walk, /^Load none yet$/, 12)
         await page.keyboard.press('Enter')
         break
       }
       const items = await listOf(page, 'prefetch')
-      const index = items.findIndex((item) => item.name.startsWith(`Bring kit ${(action.adapter as number) + 1} in,`))
+      const index = items.findIndex((item) => item.name.startsWith(`Load adapter ${(action.adapter as number) + 1},`))
       expect(index, `kit ${action.adapter} is on offer`).toBeGreaterThanOrEqual(0)
       await arrowToItem(page, walk, 'prefetch', index)
       await page.keyboard.press('Enter')
@@ -372,15 +371,19 @@ async function take(page: Page, walk: Walk, action: PoolAction): Promise<void> {
 
 const poolNight = (level: PoolLevelId): Walker => async (page, walk) => {
   const built = poolLevel(level, practiceSeed('pool', level))
-  // The prediction is optional, and only the first action: a field and a Commit, written with the keys.
-  await tabTo(walk, /^Your answer$/)
+  // The guess is optional, and only the first action: a field and a Commit, written with the keys.
+  await tabTo(walk, /^Your guess$/)
   await page.keyboard.type(String(built.predict.answer))
   await tabTo(walk, /^Commit$/, 3)
   await page.keyboard.press('Enter')
   await expect(liveLine(page)).not.toHaveText('')
   for (const action of houseActions(built)) await take(page, walk, action)
-  await expect(outcome(page)).toHaveText(OVER)
-  await intoTheDebrief(page, walk, page.locator('[data-pool-debrief] h3').first(), 'Well stocked.')
+  // The instrument frame puts the result in the dock and focus on its verdict, which the grade gives: a graded level has a pass rule.
+  await expect(outcome(page)).toHaveText('The run is over. The result is in the dock.')
+  const verdict = page.locator('[data-result] [data-result-heading]')
+  await expect(verdict).toHaveText(built.graded ? 'Passed' : 'Finished (practice)')
+  await expect.poll(() => page.evaluate(() => document.activeElement?.hasAttribute('data-result-heading') ?? false)).toBe(true)
+  await walk.see()
 }
 
 const POOL: Record<(typeof WALKED)['pool'][number], Walker> = {
