@@ -8,7 +8,7 @@
  *   2. A tampered hash fails integrity. The file is refused at rule 3, the message names the artifact, and the challenge is still open.
  *   3. A reused token fails binding. A second receipt for a token that a first one spent is kept, labelled, with the reason, and the token stays the
  *      first receipt's.
- *   4. An unknown grader build gives `gpu-unverified`. This build publishes no grader (W2-T10 does), so the honest sample is the case: rules 1 to 4 and 6
+ *   4. An unknown grader build gives `gpu-unverified`. W2-T10 published grader 0.1.0, and the honest sample is 0.1.0 with another source hash, so it is the case: rules 1 to 4 and 6
  *      pass, rule 5 fails and says why, and the receipt is kept as not credited. The same files with a published grader are held under Bun
  *      (tests/receipts/importer.test.ts).
  *
@@ -216,7 +216,7 @@ async function chooseTextMadeInPage(page: Page, name: string, segments: Segment[
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 test.describe('an honest receipt', () => {
-  test('chosen with the keys, is checked in the worker, kept with its report, and listed; the grader this build has not published makes it not credited', async ({ page, watch }) => {
+  test('chosen with the keys, is checked in the worker, kept with its report, and listed; a grader build that is not the published one makes it not credited', async ({ page, watch }) => {
     await visit(page)
     const before = watch.requests.length
     await expect(slip(page)).toContainText('Drop a receipt')
@@ -225,14 +225,14 @@ test.describe('an honest receipt', () => {
     await chooseWithKeys(page, fileOf(bundle()))
     await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your ledger' })).toBeVisible()
 
-    // Rule by rule: the file is whole, answers the challenge, and the engine is the pin; the grader is not a build this site published. Rules 7 to 9 are W2-T08's:
+    // Rule by rule: the file is whole, answers the challenge, and the engine is the pin; the grader is not the build this site published under that version. Rules 7 to 9 are W2-T08's:
     // the sample's toy trace has no capture time, the site declares no step count for its stage and its GPU is not in the atlas, so recomputation and the floors fail.
     expect(await statuses(page)).toEqual(['caps:pass', 'schema:pass', 'integrity:pass', 'binding:pass', 'grader:fail', 'pins:pass', 'rechecks:pass', 'recomputation:fail', 'floors:fail'])
     await expect(rules(page).nth(0)).toContainText('bytes compressed')
     await expect(rules(page).nth(2)).toContainText('2 artifacts hashed over canonical bytes')
     await expect(rules(page).nth(3)).toContainText('Bound to the challenge this browser issued for tr3.profile.s2')
-    await expect(rules(page).nth(4)).toContainText('enginespace-grader 0.1.0 is not a build this site knows.')
-    await expect(rules(page).nth(4)).toContainText('has published no grader yet')
+    await expect(rules(page).nth(4)).toContainText('enginespace-grader 0.1.0 is not the build this site published under that version.')
+    await expect(rules(page).nth(4)).toContainText('The site published version 0.1.0 with source hash')
     await expect(rules(page).nth(5)).toContainText('vllm 0.33.0 is the pin.')
 
     // What it is worth now: nothing yet, and why.
@@ -456,6 +456,32 @@ test.describe('a file inside the caps that is built to run the parser out of mem
     await expect(rules(page).nth(1)).toContainText('(the file): ')
     await expect(rules(page).nth(1)).not.toContainText('The JSON inside')
   })
+
+  // The review of W2's rest track: a list of millions of empty objects and numbers in `receipt.artifacts` is inside rule 1's caps and all three shape bounds, and zod made an issue for
+  // each before it applied the list's own bound [measured, build 32b30c4: the tab crashed after 22 s at 4.5 GB]. Rule 2 counts the schema's lists before the schema sees them.
+  const listed = (members: Segment[]): Segment[] => {
+    const [head = '', tail = ''] = JSON.stringify({ ...bundle(), receipt: { ...bundle().receipt, artifacts: ['@@'] } }).split('["@@"]')
+    return [{ text: `${head}[` }, ...members, { text: `]${tail}` }]
+  }
+  for (const [label, segments] of [
+    ['3.8 million {} and 12.6 million 0 in receipt.artifacts (the file that crashed the tab)', [{ text: '{},', megabytes: 11 }, { text: '0,', megabytes: 24 }, { text: '0' }]],
+    ['524,288 zeros in receipt.artifacts (the small file that made the check break)', [{ text: '0,', megabytes: 1 }, { text: '0' }]],
+  ] as const) {
+    test(`refuses ${label} at rule 2, naming the list, and the tab lives`, async ({ page }) => {
+      test.setTimeout(200_000)
+      let crashed = false
+      page.on('crash', () => {
+        crashed = true
+      })
+      await visit(page)
+      await chooseTextMadeInPage(page, 'listed.es.json.gz', listed([...segments]))
+      await expect(slip(page).getByRole('heading', { level: 3, name: 'Not a receipt this browser can read' })).toBeVisible({ timeout: 150_000 })
+      expect(crashed, 'the tab crashed').toBe(false)
+      expect((await statuses(page)).slice(0, 2)).toEqual(['caps:pass', 'schema:fail'])
+      await expect(rules(page).nth(1)).toContainText('/receipt/artifacts: holds more than the 64 entries that it may')
+      await expect(rules(page).nth(1)).not.toContainText('may be a good one')
+    })
+  }
 })
 
 /* ------------------------------------------------------------------------------------------------------------------ */

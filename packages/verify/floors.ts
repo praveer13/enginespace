@@ -72,6 +72,7 @@ function modelProblem(inputs: Run['receipt']['inputs'], pinned: readonly ModelFi
  * names none (a benchmark log). The GPUs come from what the stage declares (how many) and what the evidence shows (which): with a name, the floor is made from `used` GPUs
  * of that model, and the receipt's list has to hold that many of them; without one, from the slowest `used` of the listed GPUs. The list is typed beside the hashed evidence, and a
  * faster GPU's name typed into it must not lower the floor (the second review of W2's grader track).
+ * The limit of that (the rest review): a log names no GPU, so P3's ceiling follows the receipt's own list, and replacing every name in it with a faster GPU's raises the ceiling (four H100 give 15,314 tokens/s, and the same list renamed H200 gives 21,942 [measured 2026-11, build 32b30c4, the replay fixture]), with no artifact touched. Closing it means `bench-log@1` naming the GPU (the grader writes it from NVML, as it does `meta.gpu` of a trace) and P3 making its basis with the name.
  */
 function basisOf(run: Run, named?: string): Basis | string {
   return memoized(run, `floors:basis:${named ?? ''}`, (): Basis | string => {
