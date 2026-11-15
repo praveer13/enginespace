@@ -21,6 +21,10 @@
  * scan, parsed in seconds, and crashed the tab in the canonical form [measured in the second review of W2's grader track, same Chromium], so rule 2 now counts the commas as well, and those four files
  * are refused too. A file of numbers inside the bound is read.
  *
+ * And one long string. A JSON artifact that holds a string of more than 2^27 characters with a character outside Latin-1 in it (129 MiB of `a` after a "π", 133 KB compressed) crashed the tab in the canonical
+ * form of rule 3, because `JSON.stringify` of such a string crashes the renderer [measured 2026-11-15 at ff47e8f, same Chromium]. The form is now written in pieces (packages/sim/core/json.ts), so that file, the same as a
+ * member name, strings in nested arrays and a string of `π` alone are refused at rule 3 as a hash that does not match, with the tab alive.
+ *
  * And what stands behind them. A file chosen with the learner's own picker and a file dropped on the slip both reach the worker; the receipt is
  * written with its report in one transaction, and a receipt that is imported again adds a report and no event. The page's lists, the tape and the
  * receipt's page all read what was kept. The slip is reachable with the keys alone, takes focus to its result, and passes axe in each state at
@@ -438,6 +442,39 @@ test.describe('a file inside the caps that is built to run the parser out of mem
       // The page is still the learner's: the slip takes the honest file next.
       await chooseWithKeys(page, fileOf(bundle()))
       await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your ledger' })).toBeVisible()
+    })
+  }
+
+  /**
+   * One long string in a JSON artifact (the second review of W2's rest track, finding 1). In the pinned Chromium, `JSON.stringify` of a parsed string longer than 2^27 characters that
+   * holds one outside Latin-1 crashed the renderer in rule 3's canonical form: "π" and 129 MiB of `a` is about 133 KB compressed, and passed rules 1 and 2 (2.1 s to the crash, 0.72 GB
+   * [measured 2026-11-15 at ff47e8f]). The canonical form now writes a long string in pieces (packages/sim/core/json.ts), so each file is a hash that does not match (rule 3, the artifact named),
+   * never a crash. Nothing is committed: the strings are made in the page.
+   */
+  const LONG_STRINGS: { name: string; segments: Segment[] }[] = [
+    { name: '"π" and 129 MiB of `a` as one value', segments: [{ text: `${artifactHead}"π` }, { text: 'a', megabytes: 129 }, { text: `"${artifactTail}` }] },
+    { name: '"π" and 129 MiB of `a` as a member name', segments: [{ text: `${artifactHead}{"π` }, { text: 'a', megabytes: 129 }, { text: `":1}${artifactTail}` }] },
+    {
+      name: '"π" and 100 MiB of `a` in each of two strings, in nested arrays',
+      segments: [{ text: `${artifactHead}[["π` }, { text: 'a', megabytes: 100 }, { text: '"],[["π' }, { text: 'a', megabytes: 100 }, { text: `"]]]${artifactTail}` }],
+    },
+    { name: '120 Mi characters of `π` and nothing else (240 MiB, near the cap of rule 1)', segments: [{ text: `${artifactHead}"` }, { text: 'π', megabytes: 120 }, { text: `"${artifactTail}` }] },
+  ]
+  for (const long of LONG_STRINGS) {
+    test(`is refused at rule 3, naming the artifact, the tab alive, and nothing kept: ${long.name}`, async ({ page }) => {
+      test.setTimeout(150_000)
+      let crashed = false
+      page.on('crash', () => {
+        crashed = true
+      })
+      await visit(page)
+      await chooseTextMadeInPage(page, 'long.es.json.gz', long.segments)
+      await expect(slip(page).getByRole('heading', { level: 3, name: 'Not a receipt this browser can read' })).toBeVisible({ timeout: 120_000 })
+      expect(crashed, 'the tab crashed').toBe(false)
+      expect(await statuses(page)).toEqual(['caps:pass', 'schema:pass', 'integrity:fail', 'binding:skipped', 'grader:skipped', 'pins:skipped', 'rechecks:skipped', 'recomputation:skipped', 'floors:skipped'])
+      await expect(rules(page).nth(2)).toContainText('Artifact "trace": its data in the bundle hashes to')
+      expect((await stored(page)).receipts).toEqual([])
+      await expect(challengeRows(page).first()).toHaveAttribute('data-state', 'open')
     })
   }
 

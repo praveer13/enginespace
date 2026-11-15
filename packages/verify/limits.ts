@@ -45,7 +45,13 @@ export const MAX_DEPTH = 64
 /** The most arrays, objects and strings that the JSON of a bundle may hold [estimated]: 4 Mi, 4,194,304. */
 export const MAX_NODES = 4 * 1024 * 1024
 
-/** The most commas outside strings that the JSON of a bundle may hold [estimated]: 16 Mi, 16,777,216. */
+/**
+ * The most commas outside strings that the JSON of a bundle may hold [estimated]: 16 Mi, 16,777,216.
+ *
+ * The margin is thin. The heaviest file that survives the bounds that the second review of W2's rest track found is 16.6 million `9e15` in a JSON artifact (each becomes 16 digits in the canonical form) beside a 170 MiB
+ * text artifact with one `π`: refused at rule 3 in 4.9 s with the renderer at 3,860,380 KB [measured 2026-11-15 at ff47e8f, Chrome for Testing 153.0.8010.12], against crashes seen near 4.5 GB. Dropping the decoded text
+ * before rule 3 hashes (verify.ts reads and parses in a function of its own) brought the same file to 3,754,956 KB [measured 2026-11-15, same Chromium, this change]. A bound is never raised to make room.
+ */
 export const MAX_COMMAS = 16 * 1024 * 1024
 
 /** The shape bounds of rule 2. A test passes smaller ones, so that a file that breaks them need not be as large as the real one. */
