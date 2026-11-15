@@ -9,7 +9,21 @@ import { StaticRouter } from 'react-router'
 import { Bell } from '@/design/components/Bell'
 import { Board, MenuLink } from '@/design/components/Board'
 import { Button } from '@/design/components/Button'
+import { Callout } from '@/design/components/Callout'
+import { DeltaChip } from '@/design/components/DeltaChip'
 import { Field } from '@/design/components/Field'
+import { GoalLine } from '@/design/components/GoalLine'
+import { Legend } from '@/design/components/Legend'
+import { LevelMenu } from '@/design/components/LevelMenu'
+import { Marker } from '@/design/components/Marker'
+import { NextStep } from '@/design/components/NextStep'
+import { Note } from '@/design/components/Note'
+import { NumberLine } from '@/design/components/NumberLine'
+import { PartsList } from '@/design/components/PartsList'
+import { Popover } from '@/design/components/Popover'
+import { SectionRail } from '@/design/components/SectionRail'
+import { Stamp, TAG_LEGEND, TagLegend, UNVERIFIED_MEANS } from '@/design/components/Stamp'
+import { TitleBlock } from '@/design/components/TitleBlock'
 import { Pan } from '@/design/components/Pan'
 import { PrinterTape } from '@/design/components/PrinterTape'
 import { Rail } from '@/design/components/Rail'
@@ -230,5 +244,232 @@ describe('Board', () => {
     expect(html).toMatch(/<a aria-current="page" class="es-board__link[^"]*" href="\/map"[^>]*>Map<\/a>/)
     expect(html).toMatch(/href="\/"[^>]*>enginespace<\/a>/)
     expect(html).not.toMatch(/aria-current="page"[^>]*href="\/play"/)
+  })
+})
+
+/*
+ * Wave R's components (REDESIGN 2.8, stage 1, R-T05). What a click, a key or a press outside does is checked in a browser, in
+ * e2e/design-parts.spec.ts; these hold the markup each state is made of.
+ */
+describe('Popover', () => {
+  test('a closed popover is its trigger alone: a real button that says it opens a dialog, and no sheet', () => {
+    const html = render(h(Popover, { trigger: 'Parts', title: 'Parts of the KV page pool', children: h('p', null, 'Five parts.') }))
+    expect(html).toMatch(/^<div class="es-pop" data-variant="button"><button type="button" class="es-pop__trigger" aria-expanded="false" aria-haspopup="dialog">Parts<\/button><\/div>$/)
+    expect(html).not.toContain('role="dialog"')
+  })
+
+  test('an open popover is a dialog named by its title, controlled by its trigger, with a Close button', () => {
+    const html = render(h(Popover, { trigger: 'page', title: 'page', defaultOpen: true, children: h('p', null, 'Holds the KV of a few tokens.') }))
+    const panel = /aria-controls="([^"]+)"/.exec(html)?.[1]
+    expect(panel).toBeTruthy()
+    expect(html).toContain('aria-expanded="true"')
+    expect(html).toMatch(new RegExp(`id="${panel}" role="dialog" aria-labelledby="([^"]+)"`))
+    const title = new RegExp(`id="${panel}" role="dialog" aria-labelledby="([^"]+)"`).exec(html)?.[1]
+    expect(html).toContain(`<span class="es-pop__title" id="${title}">page</span>`)
+    expect(html).toContain('aria-label="Close"')
+    expect(html).toContain('data-open="true"')
+  })
+
+  test('inside a paragraph it is phrasing content, and a disabled trigger is a disabled button', () => {
+    const html = render(h(Popover, { inline: true, variant: 'mark', trigger: '1', triggerLabel: 'Source 1', title: 'Pages', defaultOpen: true, children: 'x' }))
+    expect(html).toMatch(/^<span class="es-pop" data-variant="mark"/)
+    expect(html).not.toMatch(/<div/)
+    expect(html).toContain('aria-label="Source 1"')
+    expect(render(h(Popover, { trigger: 'Parts', title: 'Parts', disabled: true, children: 'x' }))).toContain('disabled=""')
+  })
+})
+
+describe('Stamp', () => {
+  test('is a button with its word, which opens the tag legend: four lines, one per provenance word', () => {
+    const closed = render(h(Stamp, { word: 'synthetic' }))
+    expect(closed).toMatch(/<button type="button" class="es-pop__trigger" aria-expanded="false" aria-haspopup="dialog" data-word="synthetic"><span class="es-stamp__word">synthetic<\/span>/)
+    const open = render(h(Stamp, { word: 'measured', source: '2026-11-03 at 8f8fbe1', defaultOpen: true }))
+    expect(open).toContain('How numbers are tagged')
+    const lines = [...open.matchAll(/<div class="es-taglegend__line"><dt><span class="es-stamp__word">([a-z]+)<\/span><\/dt><dd>([^<]+)<\/dd><\/div>/g)]
+    expect(lines.map((line) => line[1])).toEqual(['measured', 'derived', 'estimated', 'synthetic'])
+    expect(lines.map((line) => line[1])).toEqual(TAG_LEGEND.map((line) => line.word))
+    expect(open).toContain('2026-11-03 at 8f8fbe1')
+  })
+
+  test('unverified says first what it means, in the alert ink, above the same four lines', () => {
+    const html = render(h(Stamp, { word: 'unverified', defaultOpen: true }))
+    expect(html).toContain('data-word="unverified"')
+    expect(html).toContain(`<p class="es-stamp__lead" data-word="unverified"><strong>Unverified:</strong> ${UNVERIFIED_MEANS}</p>`)
+    expect([...html.matchAll(/es-taglegend__line/g)]).toHaveLength(4)
+  })
+
+  test('the legend alone is the one About prints', () => {
+    expect([...render(h(TagLegend)).matchAll(/<dt>/g)]).toHaveLength(4)
+  })
+})
+
+describe('SectionRail', () => {
+  const sections = [
+    { id: 'run', title: 'Run', href: '#run', state: 'done', answers: ['you said 300 pages'] },
+    { id: 'read', title: 'Read', href: '#read', parts: [{ id: 'p1', title: 'Two kinds of layer', href: '#p1', seen: true }, { id: 'p2', title: 'Two kinds of KV cache', href: '#p2', run: true }] },
+    { id: 'test', title: 'Test', href: '#test', state: '1 of 3: not yet' },
+    { id: 'keep', title: 'Keep', href: '#keep' },
+  ]
+
+  test('is a nav holding an ordered list, and the current entry alone carries aria-current="step" and the marker', () => {
+    const html = render(h(SectionRail, { label: 'This lesson', sections, current: 'p2', minutesLeft: 40 }))
+    expect(html).toMatch(/^<nav class="es-srail" aria-label="This lesson"><ol class="es-srail__list"/)
+    expect([...html.matchAll(/aria-current="step"/g)]).toHaveLength(1)
+    expect(html).toMatch(/<a href="#p2" class="es-srail__link" data-kind="part" aria-current="step">.*Run: .*Two kinds of KV cache.*<span class="es-marker es-srail__now" data-kind="mark">.*now<\/span><\/span><\/a>/s)
+    expect([...html.matchAll(/class="es-marker[ "]/g)]).toHaveLength(1)
+    expect(html).toContain('you said 300 pages')
+    expect(html).toContain('<span class="sr-only">seen</span>')
+    expect(html).toContain('About 40 min left')
+    expect(html).not.toContain('disabled')
+  })
+
+  test('the strip is one button that says where you are, and opens the same list', () => {
+    const closed = render(h(SectionRail, { label: 'This lesson', variant: 'strip', summary: 'Lesson 1 · Read 2 of 2', sections, current: 'p2' }))
+    const list = /aria-controls="([^"]+)"/.exec(closed)?.[1]
+    expect(closed).toContain('aria-expanded="false"')
+    expect(closed).toContain(`<ol class="es-srail__list" id="${list}" hidden="">`)
+    expect(closed).toContain('Lesson 1 · Read 2 of 2')
+    expect(closed).toMatch(/data-at="before"[^>]*><\/span><span class="es-srail__segment" data-at="now"/)
+    const open = render(h(SectionRail, { label: 'This lesson', variant: 'strip', summary: 'x', sections, current: 'p2', defaultOpen: true }))
+    expect(open).toContain('aria-expanded="true"')
+    expect(open).not.toContain('hidden=""')
+  })
+})
+
+describe('LevelMenu', () => {
+  const levels = [
+    { id: 'one-group', title: 'One KV group', mode: 'practice' as const },
+    { id: 'evict', title: 'Evict the right pages', mode: 'graded' as const },
+    { id: 'manager', title: 'The whole manager', mode: 'graded' as const, unavailable: true },
+  ]
+
+  test('is one control, a select named Level, whose options say each level in words', () => {
+    const html = render(h(LevelMenu, { levels, value: 'evict', onChange: () => undefined }))
+    expect([...html.matchAll(/<select/g)]).toHaveLength(1)
+    expect(html).not.toMatch(/<button/)
+    const id = /<select id="([^"]+)"/.exec(html)?.[1]
+    expect(html).toContain(`<label for="${id}" class="sr-only">Level</label>`)
+    expect(html).toContain('<option value="one-group">Level 1 of 3 · One KV group · practice</option>')
+    expect(html).toContain('<option value="evict" selected="">Level 2 of 3 · Evict the right pages · graded</option>')
+    expect(html).toContain('<option value="manager" disabled="">Level 3 of 3 · The whole manager · not published yet</option>')
+    // The face over the select prints the chosen level, with its kind kept apart from the title that a phone may cut.
+    expect(html).toMatch(/<span class="es-level__face" aria-hidden="true"><span>Level 2 of 3 ·<\/span><span class="es-level__title">Evict the right pages<\/span><span class="es-level__mode">· graded<\/span><\/span>/)
+  })
+
+  test('disabled is the element state', () => {
+    expect(render(h(LevelMenu, { levels, value: 'one-group', disabled: true }))).toMatch(/<select[^>]*disabled=""/)
+  })
+})
+
+describe('Marker and Callout', () => {
+  test('the marker is a shape and a word, whatever its kind', () => {
+    for (const kind of ['mark', 'cursor', 'ring'] as const) {
+      const html = render(h(Marker, { kind, children: kind === 'ring' ? h('button', null, 'Admit') : undefined }))
+      expect(html, kind).toContain('<svg class="es-marker__shape"')
+      expect(html, kind).toContain('<span class="es-marker__word">now</span>')
+    }
+    expect(render(h(Marker, { kind: 'ring', word: 'your first move', children: h('button', null, 'Admit') }))).toMatch(
+      /<span class="es-marker__ring"><button>Admit<\/button><\/span>.*your first move/s,
+    )
+    expect(render(h(Marker, { kind: 'cursor', at: 0.25 }))).toContain('inset-inline-start:25%')
+  })
+
+  test('a callout is an ink disc with its numeral; selectable, it is a pressed-or-not button named by its part', () => {
+    expect(render(h(Callout, { n: 2, name: 'page' }))).toBe('<span class="es-callout"><span class="es-callout__disc">2</span><span class="sr-only">: page</span></span>')
+    const button = render(h(Callout, { n: 3, name: 'request', onSelect: () => undefined, selected: true }))
+    expect(button).toMatch(/^<button type="button" class="es-callout"[^>]*aria-label="3: request" aria-pressed="true"/)
+    expect(render(h(Callout, { n: 3, name: 'request', onSelect: () => undefined, disabled: true }))).toContain('disabled=""')
+  })
+})
+
+describe('PartsList, Legend and Note', () => {
+  const parts = [
+    { id: 'pool', name: 'KV page pool', sentence: 'The memory for the KV cache.' },
+    { id: 'blocks', name: 'num_gpu_blocks', code: true, sentence: 'How many pages.', isNew: true },
+  ]
+
+  test('the parts list is an ordered list by the callouts’ numerals, with each name, its sentence, and "new" in a word', () => {
+    const html = render(h(PartsList, { label: 'Parts of the KV page pool', parts }))
+    expect(html).toMatch(/^<ol class="es-parts" aria-label="Parts of the KV page pool">/)
+    expect(html).toContain('<span class="es-callout__disc es-parts__n" aria-hidden="true">2</span>')
+    expect(html).toContain('<code>num_gpu_blocks</code><span class="es-parts__new">new</span>')
+    expect(html).not.toContain('<button')
+  })
+
+  test('selectable, each row is a button pressed when its part is selected; empty, it says so', () => {
+    const html = render(h(PartsList, { label: 'Parts', parts, selected: 'blocks', onSelect: () => undefined }))
+    expect([...html.matchAll(/<button type="button" class="es-parts__row"/g)]).toHaveLength(2)
+    expect([...html.matchAll(/aria-pressed="true"/g)]).toHaveLength(1)
+    expect(render(h(PartsList, { label: 'Parts', parts: [] }))).toContain('No parts are drawn on this level.')
+  })
+
+  test('a legend is the slot’s glyph in its colour and edge, and the word; with now, the marker ends it', () => {
+    const html = render(h(Legend, { entries: [{ slot: 'yellow', word: 'a cached page' }], now: 'the current tick' }))
+    expect(html).toContain('data-glyph="diamond"')
+    expect(html).toContain('color:var(--es-cat-yellow)')
+    expect(html).toContain('stroke="var(--es-cat-yellow-edge)"')
+    expect(html).toContain('a cached page')
+    expect(html).toMatch(/es-marker.*the current tick/s)
+  })
+
+  test('a note is headed by its kind in words, never a colour, and the analogy says where it breaks', () => {
+    expect(render(h(Note, { kind: 'watch', children: 'x' }))).toMatch(/role="note".*data-icon="alert".*Watch out/s)
+    expect(render(h(Note, { kind: 'in-engine', children: 'x' }))).toContain('In vLLM today')
+    const same = render(h(Note, { kind: 'same-idea', children: 'x', breaks: 'Nothing is swapped.' }))
+    expect(same).toContain('The same idea in the OS')
+    expect(same).toContain('<strong>Where it breaks:</strong> Nothing is swapped.')
+  })
+})
+
+describe('TitleBlock, GoalLine, DeltaChip, NumberLine and NextStep', () => {
+  test('the title block is one line: the model, its clock, and what it leaves out behind a popover', () => {
+    const html = render(h(TitleBlock, { model: 'Model of the KV page pool', clock: 'Clock: synthetic steps', leavesOut: h('p', null, 'The kernels.') }))
+    expect(html).toContain('Model of the KV page pool')
+    expect(html).toContain('Clock: synthetic steps')
+    expect(html).toMatch(/<button[^>]*class="es-pop__trigger"[^>]*>What this model leaves out<\/button>/)
+    expect(html).not.toContain('The kernels.')
+  })
+
+  test('the goal line says Goal, then its four parts in order; met, it says so with a check', () => {
+    const html = render(h(GoalLine, { aim: 'A.', control: 'B.', target: 'C.', ends: 'D.' }))
+    expect(html).toBe(
+      '<p class="es-goal"><strong class="es-goal__lead">Goal:</strong> <span data-part="aim">A.</span> <span data-part="control">B.</span> <span data-part="target">C.</span> <span data-part="ends">D.</span></p>',
+    )
+    expect(render(h(GoalLine, { aim: 'A.', control: 'B.', target: 'C.', ends: 'D.', met: 'All 15 served.' }))).toMatch(/data-met="".*data-icon="check".*All 15 served\./s)
+  })
+
+  test('a delta always prints its sign, a true minus for a fall', () => {
+    expect(render(h(DeltaChip, { value: 4, unit: 'tokens' }))).toContain('<span class="es-delta__value">+4</span><span class="es-delta__unit"> tokens</span>')
+    expect(render(h(DeltaChip, { value: -2, unit: 'pages' }))).toContain('<span class="es-delta__value">−2</span>')
+    expect(render(h(DeltaChip, { value: 3, unit: 'ticks', what: 'idle', hold: true }))).toMatch(/data-hold="".*idle.*\+3/s)
+  })
+
+  test('the number line lists each pin with its kind, its word and its value, placed along the axis', () => {
+    const html = render(
+      h(NumberLine, {
+        caption: 'Pages',
+        min: 0,
+        max: 400,
+        unit: 'pages',
+        pins: [
+          { id: 'g', kind: 'guess', value: 300, label: 'you said' },
+          { id: 'r', kind: 'result', value: 260, label: 'the model' },
+        ],
+      }),
+    )
+    expect(html).toMatch(/data-kind="guess"[^>]*style="--es-at:0.75">.*you said<\/span> <data value="300">300 pages<\/data>/s)
+    expect(html).toMatch(/data-kind="result"[^>]*style="--es-at:0.65">.*the model<\/span> <data value="260">260 pages<\/data>/s)
+  })
+
+  test('the way on is one link with the answer’s label and place; unavailable, it links nowhere and says so', () => {
+    const html = render(h(NextStep, { to: '/m/tr1/l1-five-mechanisms', label: 'Start: TR1 lesson 1', minutes: 35, reviews: '3 reviews due, about 4 min' }))
+    expect([...html.matchAll(/<a /g)]).toHaveLength(1)
+    expect(html).toMatch(/<a class="es-next__action" data-emphasis="primary" href="\/m\/tr1\/l1-five-mechanisms"[^>]*>.*Start: TR1 lesson 1.*about 35 min/s)
+    expect(html).toContain('3 reviews due, about 4 min')
+    expect(render(h(NextStep, { to: '/', label: 'x', emphasis: 'outline' }))).toContain('data-emphasis="outline"')
+    const off = render(h(NextStep, { to: '/m/tr3', label: 'TR3 lesson 1', unavailable: true }))
+    expect(off).not.toContain('href=')
+    expect(off).toContain('aria-disabled="true"')
+    expect(off).toContain('Not published yet')
   })
 })

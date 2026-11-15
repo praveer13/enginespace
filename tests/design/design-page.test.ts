@@ -60,6 +60,7 @@ describe('/design', () => {
 
   test('shows every component of the design system', () => {
     for (const title of [
+      ...PART_TITLES,
       'Ticket',
       'Stub',
       'Rail',
@@ -103,6 +104,89 @@ describe('/design', () => {
     expect(other).toContain('(opens in a new tab)')
     // The base is read from the build, as the About page reads it, so that a preview under a subpath keeps the link right.
     expect(read('src/pages/Design.tsx')).toContain("file={`${import.meta.env.BASE_URL ?? '/'}third-party-licenses.txt`}")
+  })
+})
+
+/** Wave R's components (REDESIGN 2.8, stage 1), in the order /design shows them: before the components every page is drawn with today. */
+const PART_TITLES = [
+  'Marker',
+  'Callout',
+  'Parts list',
+  'Legend',
+  'Note',
+  'Popover',
+  'Stamp',
+  'Title block',
+  'Section rail',
+  'Level menu',
+  'Goal line',
+  'Delta',
+  'Number line',
+  'The way on',
+]
+
+describe('/design: the lesson\'s and the instrument\'s parts (R-T05)', () => {
+  let html = ''
+  let text = ''
+  beforeAll(async () => {
+    html = await render('/design')
+    text = decode(html)
+  })
+
+  /** One specimen's markup, from its section to the next specimen's. */
+  const specimen = (title: string) => {
+    const at = new RegExp(`<section class="es-spec__component"[^>]*aria-label="${title}"`).exec(html)?.index ?? -1
+    const next = html.indexOf('<section class="es-spec__component"', at + 1)
+    return at < 0 ? '' : html.slice(at, next < 0 ? undefined : next)
+  }
+  const labels = (title: string) => [...specimen(title).matchAll(/<figcaption class="es-spec__state-label">([^<]+)<\/figcaption>/g)].map((match) => decode(match[1]))
+
+  test('shows each new component first, in the order of the brief, ahead of Ticket', () => {
+    const order = [...PART_TITLES, 'Ticket'].map((title) => html.indexOf(`<h3 class="es-spec__component-title">${title}</h3>`))
+    expect(order.every((at) => at > 0)).toBe(true)
+    expect(order).toEqual([...order].sort((a, b) => a - b))
+  })
+
+  test.each([
+    ['Callout', ['default', 'hover', 'focus', 'active', 'selected', 'disabled']],
+    ['Parts list', ['hover', 'focus', 'active', 'disabled', 'empty']],
+    ['Popover', ['default', 'hover', 'focus', 'active', 'disabled']],
+    ['Stamp', ['hover', 'focus', 'active', 'disabled', 'open: the tag legend']],
+    ['Section rail', ['an entry: hover', 'an entry: focus', 'an entry: active', 'the strip, closed', 'the strip, open']],
+    ['Level menu', ['live', 'hover', 'focus', 'active', 'disabled']],
+    ['The way on', ['default', 'hover', 'focus', 'active', 'outline', 'unavailable']],
+  ] as const)('%s is shown in its states', (title, states) => {
+    const shown = labels(title)
+    for (const state of states) expect([state, shown.includes(state)]).toEqual([state, true])
+  })
+
+  test('each forced state reaches its control: a pointer state is drawn without a pointer', () => {
+    for (const title of ['Callout', 'Popover', 'Stamp', 'Level menu', 'The way on', 'Section rail', 'Parts list'])
+      for (const state of ['hover', 'focus', 'active']) expect([title, state, specimen(title).includes(`data-force="${state}"`)]).toEqual([title, state, true])
+  })
+
+  test('every section rail on the page is a nav with its own name, and holds one current step', () => {
+    const rails = [...specimen('Section rail').matchAll(/<nav class="es-srail"[^>]*aria-label="([^"]+)"/g)].map((match) => match[1])
+    expect(rails.length).toBeGreaterThanOrEqual(5)
+    expect(new Set(rails).size).toBe(rails.length)
+    expect([...specimen('Section rail').matchAll(/aria-current="step"/g)]).toHaveLength(rails.length)
+  })
+
+  test('the stamp opens the tag legend, and the open popover and stamp are dialogs named by their titles', () => {
+    expect(text).toContain('How numbers are tagged')
+    expect([...specimen('Stamp').matchAll(/es-taglegend__line/g)]).toHaveLength(4)
+    expect([...html.matchAll(/role="dialog" aria-labelledby="/g)].length).toBeGreaterThanOrEqual(2)
+  })
+
+  test('the level menu is one select, and the markers carry a word', () => {
+    expect([...specimen('Level menu').matchAll(/<select/g)]).toHaveLength(5)
+    expect([...specimen('Marker').matchAll(/<span class="es-marker__word">[^<]+<\/span>/g)]).toHaveLength(3)
+  })
+
+  test('the parts are drawn by one stylesheet of the design system, loaded with them and not with every page', () => {
+    for (const file of ['Marker', 'Callout', 'PartsList', 'Legend', 'Note', 'Popover', 'Stamp', 'TitleBlock', 'SectionRail', 'LevelMenu', 'GoalLine', 'DeltaChip', 'NumberLine', 'NextStep'])
+      expect([file, read(`src/design/components/${file}.tsx`).includes("import '../parts.css'")]).toEqual([file, true])
+    expect(read('src/design/components.css')).not.toContain('.es-pop')
   })
 })
 
