@@ -109,20 +109,20 @@ describe('createRegistry', () => {
 describe('the games of the course', () => {
   /** D-049's table: id, display name and subtitle. */
   function displayNames(): Map<string, { title: string; subtitle: string }> {
-    const decisions = read('docs/DECISIONS.md')
-    const block = between(decisions, '### D-049', '### D-050')
+    // D-063 adopts REDESIGN §2.7's table of titles and subtitles.
+    const block = between(read('docs/REDESIGN.md'), '**Games**', '**Labs.**')
     const rows = block
       .split('\n')
       .filter((line) => line.trim().startsWith('|'))
       .slice(2)
       .map((line) => line.split('|').slice(1, -1).map((cell) => cell.trim()))
-    return new Map(rows.map(([id, title, subtitle]) => [id.replaceAll('`', ''), { title, subtitle }]))
+    return new Map(rows.map(([id, , title, subtitle]) => [id.replaceAll('`', ''), { title: title.replaceAll('**', ''), subtitle }]))
   }
 
   test('D-049\'s table is the nine games of ARCHITECTURE §6.1', () => {
     const table = displayNames()
     expect([...table.keys()].sort()).toEqual(['broken-bench', 'dispatch', 'engine-floor', 'gap-hunt', 'loop', 'pool', 'shape-shifter', 'switchyard', 'verifier'])
-    expect(table.get('loop')).toEqual({ title: 'Service', subtitle: 'the step loop' })
+    expect(table.get('loop')).toEqual({ title: 'Step loop', subtitle: 'Keep every slot live, and never make the GPU wait for the CPU.' })
     const roster = between(read('docs/ARCHITECTURE.md'), '### 6.1 Roster', '### 6.2')
     for (const [id, { title }] of table) expect([id, roster.includes(`**${title}**`)]).toEqual([id, true])
   })

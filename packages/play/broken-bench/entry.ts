@@ -1,10 +1,10 @@
 /**
- * The Inspection's record in the game registry (ARCHITECTURE §6.3, D-049): what is known about the game without running it, which the
+ * Broken benchmark's record in the game registry (ARCHITECTURE §6.3, D-063): what is known about the game without running it, which the
  * Play index, the static-routes script and `verify:games` read. It is data and one loader. The rules load with the game (`session`,
  * below), so the registry never pulls the sim into a page that only lists games, and the first paint of the front page pays for this
  * record and nothing else of the game.
  *
- * The display name leads and the engine concept follows it (D-049): the game's id, its levels and its actions stay the engine's.
+ * The display name leads and the rule in one line follows it (D-063): the game's id, its levels and its actions stay the engine's.
  * Practice seeds are pinned here as plain numbers because this file may not import the levels (they import the sim). Each is the first
  * seed from 0 that the level's band accepts (GAMES.md §2.1), which is 0, since the band is kept inside every case (session.ts), and
  * tests/play/broken-bench-entry.test.ts checks that each still is and that it deals the flaw the level teaches.
@@ -17,21 +17,21 @@ const SHEETS = ['rows', 'timeline', 'histogram'] as const
 export const BROKEN_BENCH: GameEntry = {
   id: 'broken-bench',
   modules: ['tr8'],
-  title: 'The Inspection',
-  subtitle: 'benchmark methodology',
+  title: 'Broken benchmark',
+  subtitle: 'Latency counts from when a request was due.',
   // The 3D opener, rain-and-relay, is a stretch built after `court` ships (GAMES.md §11), so the game has no Scene3D.tsx yet.
   has3d: false,
   kcs: ['tr8.latency-from-due', 'tr8.open-vs-closed', 'tr8.client-queue', 'tr8.warmup-rule', 'tr8.min-n-tail', 'tr8.bootstrap-p99', 'tr8.time-shaped-replay'],
   keys: [
-    { id: 'stopwatch', code: 'KeyT', label: 'T', description: 'Time each order from the send, or from when it was due' },
-    { id: 'next-row', code: 'KeyJ', label: 'J', description: 'Select the next order in the log' },
-    { id: 'prev-row', code: 'KeyK', label: 'K', description: 'Select the previous order in the log' },
+    { id: 'stopwatch', code: 'KeyT', label: 'T', description: 'Time each request from its send, or from when it was due' },
+    { id: 'next-row', code: 'KeyJ', label: 'J', description: 'Select the next request in the log' },
+    { id: 'prev-row', code: 'KeyK', label: 'K', description: 'Select the previous request in the log' },
   ],
   levels: [
-    { id: 'due', title: 'From the due time', graded: true, practiceSeed: 0, stages: SHEETS },
-    { id: 'warm', title: 'The warm-up cut', graded: true, practiceSeed: 0, stages: SHEETS },
-    { id: 'sure', title: 'How sure', graded: true, practiceSeed: 0, stages: SHEETS },
-    { id: 'court', title: 'The court', graded: true, practiceSeed: 0, stages: SHEETS },
+    { id: 'due', title: 'From due time', graded: true, practiceSeed: 0, stages: SHEETS },
+    { id: 'warm', title: 'Warm-up cut', graded: true, practiceSeed: 0, stages: SHEETS },
+    { id: 'sure', title: 'p99 interval', graded: true, practiceSeed: 0, stages: SHEETS },
+    { id: 'court', title: 'Five reports', graded: true, practiceSeed: 0, stages: SHEETS },
   ],
   card: 'trace-room-bench',
   // The claims the debrief can cite: the real-world instance of each flaw (FLAW_CLAIMS in packages/sim/bench/broken.ts), then the flags of the

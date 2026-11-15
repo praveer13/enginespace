@@ -208,7 +208,7 @@ test.describe('a keyboard-only walk files a ruling on every level', () => {
     const slots = buildLevel('court', 0).slots
     await open(page, 'court')
     for (const [at, slot] of slots.entries()) {
-      if (at > 0) await expect.poll(() => activeName(page)).toBe(`The court, case ${at + 1} of 5`)
+      if (at > 0) await expect.poll(() => activeName(page)).toBe(`Five reports, case ${at + 1} of 5`)
       await fileRuling(page, rightAnswer(slot))
       if (at < slots.length - 1) await expect(live(page)).toContainText(`Case ${at + 1} of 5 filed.`)
     }
@@ -226,11 +226,11 @@ test.describe('a keyboard-only walk files a ruling on every level', () => {
     await endWithTheDebrief(page, 'The ruling falls.')
     await expect(page.locator('[data-ruling] [data-line="flaw"] [data-ok="false"]')).toHaveCount(1)
     await expect(page.locator('[data-ruling] [data-line="number"] [data-ok="true"]')).toHaveCount(1)
-    await page.getByRole('button', { name: 'Next: The warm-up cut' }).focus()
+    await page.getByRole('button', { name: 'Next: Warm-up cut' }).focus()
     await page.keyboard.press('Enter')
     await expect.poll(() => page.evaluate(() => document.activeElement?.getAttribute('data-game'))).toBe('broken-bench')
     // The docket in the game's header says which level is open and how: the warm-up cut, in practice.
-    await expect(page.getByRole('navigation', { name: 'Levels of the Inspection' }).locator('[aria-current="true"]')).toHaveText('The warm-up cut')
+    await expect(page.getByRole('navigation', { name: 'Levels of the Inspection' }).locator('[aria-current="true"]')).toHaveText('Warm-up cut')
     await expect(page.getByRole('group', { name: 'Attempt' }).getByRole('button', { name: 'Practice', exact: true })).toHaveAttribute('aria-pressed', 'true')
   })
 
@@ -718,7 +718,7 @@ test.describe('accessibility', () => {
         await audit(page, `due, graded, at ${width} px`)
         await open(page, 'court')
         await fileRuling(page, rightAnswer(buildLevel('court', 0).slots[0]))
-        await expect.poll(() => activeName(page)).toBe('The court, case 2 of 5')
+        await expect.poll(() => activeName(page)).toBe('Five reports, case 2 of 5')
         await audit(page, `court, second case, at ${width} px`)
         await open(page, 'sure')
         await fileRuling(page, rightAnswer(buildLevel('sure', 0).slots[0]))

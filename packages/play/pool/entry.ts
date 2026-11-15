@@ -1,5 +1,5 @@
 /**
- * The Reach-In's record in the game registry (ARCHITECTURE §6.3, D-049): what is known about the game without running it, which the Play
+ * KV page pool's record in the game registry (ARCHITECTURE §6.3, D-063): what is known about the game without running it, which the Play
  * index, the static-routes script and `verify:games` read. It is data and one loader. The rules load with the game (`session`, below),
  * so the registry never pulls the sim into a page that only lists games.
  *
@@ -11,23 +11,23 @@ import type { GameEntry } from '../types'
 export const POOL: GameEntry = {
   id: 'pool',
   modules: ['tr5a'],
-  title: 'The Reach-In',
-  subtitle: 'hybrid KV pages and adapters',
-  // The reach-in in 3D (W1-T24): src/games/pool/Scene3D.tsx.
+  title: 'KV page pool',
+  subtitle: 'One page pool serves every KV group and every adapter.',
+  // The pool in 3D (W1-T24): src/games/pool/Scene3D.tsx.
   has3d: true,
   // The graded `manager` level is the first graded reference for these two (content/kc/graph.yaml). The rest of TR5a's KCs wait for the lab.
   kcs: ['tr5a.kv-groups', 'tr5a.page-size-unification'],
   keys: [
-    { id: 'wait', code: 'KeyW', label: 'W', description: 'Hang none, or bring no kit in, this step' },
-    { id: 'dump', code: 'KeyD', label: 'D', description: 'Dump the pans chosen' },
+    { id: 'wait', code: 'KeyW', label: 'W', description: 'Admit no request, or load no adapter, this step' },
+    { id: 'dump', code: 'KeyD', label: 'D', description: 'Evict the pages chosen' },
   ],
   levels: [
-    { id: 'one-group', title: 'One station', graded: false, practiceSeed: 2 },
-    { id: 'two-kinds', title: 'Two kinds of station', graded: false, practiceSeed: 10 },
-    { id: 'evict', title: 'Dump the right pans', graded: true, practiceSeed: 10 },
-    { id: 'same-size', title: 'One pan size', graded: false, practiceSeed: 0 },
-    { id: 'state', title: 'A station of state', graded: false, practiceSeed: 0 },
-    { id: 'adapters', title: 'Recipe kits', graded: true, practiceSeed: 0 },
+    { id: 'one-group', title: 'One KV group', graded: false, practiceSeed: 2 },
+    { id: 'two-kinds', title: 'Full attention and a sliding window', graded: false, practiceSeed: 10 },
+    { id: 'evict', title: 'Choose what to evict', graded: true, practiceSeed: 10 },
+    { id: 'same-size', title: 'One page size for every group', graded: false, practiceSeed: 0 },
+    { id: 'state', title: 'A state group', graded: false, practiceSeed: 0 },
+    { id: 'adapters', title: 'LoRA adapters in the same pool', graded: true, practiceSeed: 0 },
     { id: 'manager', title: 'The whole manager', graded: true, practiceSeed: 0 },
   ],
   card: 'kv',

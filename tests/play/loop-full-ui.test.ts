@@ -70,11 +70,11 @@ describe('the docket: Service\'s levels under its name', () => {
   test('the first service\'s four, the full service\'s five, and the keys behind their card, waiting', () => {
     const markup = render(h(Game, null))
     const docket = markup.slice(markup.indexOf('data-loop-docket'), markup.indexOf('</nav>', markup.indexOf('data-loop-docket')))
-    for (const title of ['First service', 'Fill the rail', 'Your turn', 'The full service', 'Write during the fire', 'Drilled routines', 'The V2 runner', 'Close the bubbles', 'The allergy card', 'Keys']) {
+    for (const title of ['First service', 'Fill the batch', 'Both levers', 'The full service', 'Async scheduling on two cost cards', 'CUDA graphs: launches against replay', 'The V2 model runner', 'Every lever, on new numbers', 'The grammar mask inside a step', 'Keys']) {
       expect(docket).toContain(title)
     }
     expect(docket).toContain('· waiting')
-    expect(docket).toMatch(/aria-current="true"[^>]*>Fill the rail/)
+    expect(docket).toMatch(/aria-current="true"[^>]*>Fill the batch/)
   })
 
   test('a lesson that embeds the game names its level, so the docket is left out', () => {
@@ -85,8 +85,8 @@ describe('the docket: Service\'s levels under its name', () => {
 describe('the full service\'s page', () => {
   test('names the game as D-049 says, opens on the level it is given, with its stages and every stage of the play sequence', () => {
     const markup = render(h(FullService, { level: 'async', onLevel: () => undefined }))
-    expect(markup).toMatch(/<h2 id="[^"]+" class="es-type-heading">Service<\/h2>/)
-    expect(markup).toContain('Write during the fire · practice')
+    expect(markup).toMatch(/<h2 id="[^"]+" class="es-type-heading">Step loop<\/h2>/)
+    expect(markup).toContain('Async scheduling on two cost cards · practice')
     for (const stage of ['>Play</button>', '>Debrief</button>', '>Compose</button>', '>In production</button>', '>Build this</button>']) expect(markup).toContain(stage)
     expect(markup).toContain('aria-label="Stages of the level"')
     expect(markup).toContain('>70B on H100')
@@ -224,6 +224,6 @@ describe('the live line', () => {
     expect(fullChangeLine(fullSession.view(play(before, { t: 'run', until: 'step' })), fullSession.view(after))).toMatch(/^Fire 2: \d+ plates?, 336 calls/)
     const served = play(before, { t: 'run', until: 'decision' })
     expect(fullChangeLine(fullSession.view(before), fullSession.view(served))).toContain('it misses the bar')
-    expect(fullChangeLine(fullSession.view(before), fullSession.view(play(before, { t: 'stage', to: 'sizes' })))).toBe('The mold rack.')
+    expect(fullChangeLine(fullSession.view(before), fullSession.view(play(before, { t: 'stage', to: 'sizes' })))).toBe('Capture sizes and padding.')
   })
 })

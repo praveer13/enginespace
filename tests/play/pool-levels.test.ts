@@ -85,7 +85,7 @@ describe('the levels of GAMES.md §8, in the order they teach', () => {
     expect(POOL_COPY['one-group'].predict.unit).toBe('pages')
     const same = buildLevel('same-size', 0)
     expect(same.predict).toEqual({ answer: same.spec.groups.length })
-    expect(POOL_COPY['same-size'].predict.unit).toBe('stations')
+    expect(POOL_COPY['same-size'].predict.unit).toBe('KV groups')
     const state = buildLevel('state', 0)
     expect(state.predict.answer).toBe(state.spec.groups.reduce((sum, g) => sum + (g.kind === 'state' ? (g.statePages ?? 0) : 0), 0))
     const kits = buildLevel('adapters', 0)

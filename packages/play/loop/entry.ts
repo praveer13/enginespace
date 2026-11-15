@@ -1,5 +1,5 @@
 /**
- * Service's record in the game registry (ARCHITECTURE §6.3, D-049): what is known about the game without running it, which the
+ * Step loop's record in the game registry (ARCHITECTURE §6.3, D-063): what is known about the game without running it, which the
  * Play index, the static-routes script and `verify:games` read. It is data and one loader. The rules load with the game
  * (`session`, below), so the registry never pulls the sim into a page that only lists games.
  *
@@ -10,10 +10,10 @@ import type { GameEntry, LevelEntry } from '../types'
 
 /** The front page's run, "First service" (GAMES.md §3.1): the four levels the front page walks, and nothing after them. */
 export const FIRST_SERVICE: readonly LevelEntry[] = [
-  { id: 'first-1-fill', title: 'Fill the rail', graded: false, practiceSeed: 1 },
-  { id: 'first-2-slot', title: 'A clip empties', graded: false, practiceSeed: 1 },
-  { id: 'first-3-gap', title: 'Mind the gap', graded: false, practiceSeed: 1 },
-  { id: 'first-4-par', title: 'Your turn', graded: false, practiceSeed: 1 },
+  { id: 'first-1-fill', title: 'Fill the batch', graded: false, practiceSeed: 1 },
+  { id: 'first-2-slot', title: 'Refill a slot', graded: false, practiceSeed: 1 },
+  { id: 'first-3-gap', title: 'Close a bubble', graded: false, practiceSeed: 1 },
+  { id: 'first-4-par', title: 'Both levers', graded: false, practiceSeed: 1 },
 ]
 
 /**
@@ -23,11 +23,11 @@ export const FIRST_SERVICE: readonly LevelEntry[] = [
  * practice seed is an in-band one with a drilled routine in its house (tests/play/loop-close.test.ts checks that it is in band).
  */
 export const FULL_SERVICE: readonly LevelEntry[] = [
-  { id: 'async', title: 'Write during the fire', graded: false, practiceSeed: 0, stages: ['70b', 'small'] },
-  { id: 'graphs', title: 'Drilled routines', graded: false, practiceSeed: 0, stages: ['comb', 'sizes', 'modes'] },
-  { id: 'mrv2', title: 'The V2 runner', graded: false, practiceSeed: 0, stages: ['small', '70b'] },
-  { id: 'close', title: 'Close the bubbles', graded: true, practiceSeed: 16, stages: ['close'] },
-  { id: 'mask', title: 'The allergy card', graded: false, practiceSeed: 0, stages: ['mask'] },
+  { id: 'async', title: 'Async scheduling on two cost cards', graded: false, practiceSeed: 0, stages: ['70b', 'small'] },
+  { id: 'graphs', title: 'CUDA graphs: launches against replay', graded: false, practiceSeed: 0, stages: ['comb', 'sizes', 'modes'] },
+  { id: 'mrv2', title: 'The V2 model runner', graded: false, practiceSeed: 0, stages: ['small', '70b'] },
+  { id: 'close', title: 'Every lever, on new numbers', graded: true, practiceSeed: 16, stages: ['close'] },
+  { id: 'mask', title: 'The grammar mask inside a step', graded: false, practiceSeed: 0, stages: ['mask'] },
 ]
 
 /** The keys that the full service alone binds; the first service, on the front page and on Service's page, neither binds nor lists them. */
@@ -37,16 +37,16 @@ export const LOOP: GameEntry = {
   id: 'loop',
   // The home module first (GAMES.md §0): TR2 continues the front-page run with its graded levels, and TR6 adds the mask lane.
   modules: ['tr2', 'tr6'],
-  title: 'Service',
-  subtitle: 'the step loop',
+  title: 'Step loop',
+  subtitle: 'Keep every slot live, and never make the GPU wait for the CPU.',
   // The 3D scene is src/games/loop/Scene3D.tsx (W0-T17).
   has3d: true,
   // The knowledge components the game exercises: the graded `close` earns the ones its levers are about (W1-T14; KC graph, `planned: W1-T14`).
   kcs: ['tr2.bubble', 'tr2.async-overlap', 'tr2.mrv2-delta', 'tr2.graph-modes', 'tr2.graph-memory'],
   keys: [
-    { id: 'overlap', code: 'KeyO', label: 'O', description: 'Write the next call during this fire (overlap)' },
-    { id: 'graph-mode', code: 'KeyG', label: 'G', description: 'Cycle the CUDA-graph mode (the full service)' },
-    { id: 'runner', code: 'KeyM', label: 'M', description: 'Switch the model runner (the full service)' },
+    { id: 'overlap', code: 'KeyO', label: 'O', description: 'Switch async scheduling on or off (overlap)' },
+    { id: 'graph-mode', code: 'KeyG', label: 'G', description: 'Cycle the CUDA graph mode (the full levels)' },
+    { id: 'runner', code: 'KeyM', label: 'M', description: 'Switch the model runner (the full levels)' },
   ],
   levels: [...FIRST_SERVICE, ...FULL_SERVICE],
   card: 'trace-room-steploop',

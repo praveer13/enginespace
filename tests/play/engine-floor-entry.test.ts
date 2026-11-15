@@ -38,7 +38,7 @@ describe('verify:games for engine-floor', () => {
     expect(report.findings).toEqual([])
     expect(report.notes).toEqual([])
     const lines = report.lines.get('engine-floor') ?? []
-    expect(lines[0]).toBe("Back of House · a request's lifecycle")
+    expect(lines[0]).toBe('Request path · Every queue, IPC hop, copy and sync between the API server and the GPU.')
     for (const id of ALL_LEVEL_IDS) expect(lines.some((line) => line.startsWith(`${id}: practice seed 0 in band; `))).toBe(true)
     expect(lines).toContain('keys: 8 common + 2 of its own')
   })
@@ -56,8 +56,8 @@ describe('verify:games for engine-floor', () => {
 })
 
 describe('the registry\'s record of Back of House', () => {
-  test('is D-049\'s: the display name over its subtitle, the id `engine-floor`, TR1, and its 3D scene (W1-T18)', () => {
-    expect([ENGINE_FLOOR.id, ENGINE_FLOOR.title, ENGINE_FLOOR.subtitle]).toEqual(['engine-floor', 'Back of House', "a request's lifecycle"])
+  test('is D-063\'s: the title over its subtitle, the id `engine-floor`, TR1, and its 3D scene (W1-T18)', () => {
+    expect([ENGINE_FLOOR.id, ENGINE_FLOOR.title, ENGINE_FLOOR.subtitle]).toEqual(['engine-floor', 'Request path', 'Every queue, IPC hop, copy and sync between the API server and the GPU.'])
     expect(ENGINE_FLOOR.modules).toEqual(['tr1'])
     expect(ENGINE_FLOOR.has3d).toBe(true)
     expect(existsSync(path.join(root, 'src/games/engine-floor/Scene3D.tsx'))).toBe(true)

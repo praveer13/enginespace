@@ -1,0 +1,5 @@
+{
+  "area": "tr2",
+  "task": "R-T36",
+  "covers": "TR2's compiled lessons and module, its Markdown export under public/md/tr2, and its lines in llms.txt."
+}

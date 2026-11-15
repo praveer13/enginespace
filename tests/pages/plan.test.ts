@@ -146,10 +146,10 @@ describe('with fake sources', () => {
     expect(byUrl(plan.pages, '/m/tr2/l1-first')).toMatchObject({ title: 'The first "lesson" · enginespace', description: 'A lesson in The step loop & its bubbles.' })
   })
 
-  test('names a game by the display name the registry gives (D-049), with its concept in the sentence', () => {
-    expect(byUrl(plan.pages, '/play/loop')).toMatchObject({ title: 'Service · enginespace', heading: 'Service' })
-    expect(byUrl(plan.pages, '/play/loop')?.description).toBe('Play the step loop as a seeded game whose rule is the concept itself, in 2D or in 3D.')
-    expect(byUrl(plan.pages, '/play/gap-hunt')?.description).toBe('Play trace attribution as a seeded game whose rule is the concept itself, in 2D.')
+  test('names a game by the title the registry gives (D-063), in the sentence too', () => {
+    expect(byUrl(plan.pages, '/play/loop')).toMatchObject({ title: 'Step loop · enginespace', heading: 'Step loop' })
+    expect(byUrl(plan.pages, '/play/loop')?.description).toBe('Step loop: a seeded game whose rule is the concept itself, in 2D or in 3D.')
+    expect(byUrl(plan.pages, '/play/gap-hunt')?.description).toBe('Trace attribution: a seeded game whose rule is the concept itself, in 2D.')
   })
 
   test('names a lab and a trace by the id that its address carries', () => {

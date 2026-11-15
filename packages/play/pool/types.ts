@@ -68,7 +68,7 @@ export interface PoolPredict {
 /** The prediction as the panel shows it: the question, the unit its answer is in, and the answer. */
 export interface PoolPredictView extends PoolPredict {
   readonly ask: string
-  readonly unit: 'pages' | 'stations'
+  readonly unit: 'pages' | 'KV groups'
 }
 
 export interface PoolLevel {

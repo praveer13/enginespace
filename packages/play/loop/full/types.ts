@@ -66,7 +66,7 @@ export type PredictionRule = { readonly kind: 'number'; readonly tolerancePermil
 
 /** A prediction as the panel shows it: the rule with its words (`./copy.ts`): a number in a unit, or one of a few choices. */
 export type Prediction =
-  | { readonly kind: 'number'; readonly question: string; readonly unit: 'µs' | 'calls' | 'fires' | '%'; readonly tolerancePermille: Permille }
+  | { readonly kind: 'number'; readonly question: string; readonly unit: 'µs' | 'launches' | 'steps' | '%'; readonly tolerancePermille: Permille }
   | { readonly kind: 'choice'; readonly question: string; readonly options: readonly string[] }
 
 /** The histogram world of `graphs` · `sizes`: fires of decode rows, the molds the rack can hold, and the ladder to pick them from. */

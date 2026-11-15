@@ -133,7 +133,7 @@ describe('the Play index', () => {
     expect(textOf(line)).toContain('also TR6')
     const stubs = opening(line, 'a').filter((tag) => attribute(tag, 'class')?.includes('es-stub__pull'))
     expect(stubs.map((tag) => attribute(tag, 'href'))).toEqual(['/play/loop'])
-    expect(textOf(line)).toContain('Play Service')
+    expect(textOf(line)).toContain('Play Step loop')
   })
 
   test('every game that can be played links to /play/<id> by one stub, and no other game is linked to', () => {
@@ -156,7 +156,7 @@ describe('the Play index', () => {
   })
 
   test('the games of W2 are all there, arriving with W2', () => {
-    for (const title of ['Sheet Pan', 'The Tape', 'Line Check', 'The Dumbwaiter']) {
+    for (const title of ['Tensor views', 'Trace attribution', 'Backend dispatch', 'KV offload']) {
       const markup = lineOf(html, ROSTER.find((entry) => entry.title === title)?.id as string)
       expect(textOf(markup)).toContain(`${SPECIALS.arrivesWith} W2`)
     }

@@ -278,7 +278,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   5. The `postfx` chunk is absent from the network log at T1 and present at T2 (forced tiers).
   6. `verify:boundaries` passes.
 
-#### [x] W0-T16 · Service (`loop`): session, 2D view, mirror and poster · M · sonnet · deps: W0-T13, W0-T14
+#### [x] W0-T16 · Step loop (`loop`): session, 2D view, mirror and poster · M · sonnet · deps: W0-T13, W0-T14
 - **Goal:** `packages/play/loop` (session, the front-page levels `first-1-fill` to `first-4-par`, `layout.ts`) and `src/games/loop/{Game,View2D,Mirror,Controls,Debrief}.tsx`; `scripts/posters.ts` renders the practice seed's SVG from `layout.ts` (A§6.11). The session carries GAMES.md §3's synthetic tick card (`TICK_CARD`), manual admission (`admit`), and static and continuous batching over `packages/sim/steploop` (D-043).
 - **Read:** GAMES.md §3.1 and §2.6 (Service's objects and First service's copy); D-043, D-048, D-049.
 - **Accept:**
@@ -288,7 +288,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   4. The 2D view stays at or under 2,000 SVG marks in its default window.
   5. `verify:games` passes for `loop`.
 
-#### [x] W0-T17 · Service (`loop`): the 3D scene · L · sonnet · deps: W0-T15, W0-T16
+#### [x] W0-T17 · Step loop (`loop`): the 3D scene · L · sonnet · deps: W0-T15, W0-T16
 - **Goal:** `src/games/loop/Scene3D.tsx`, built from scene-kit primitives (A§6.1, `loop` row):
   - CPU and GPU tracks along time, with batch slots across the width;
   - the bay, which the front page plays in: the tray of slots, the waiting requests beside it and, with overlap on, the second tray (GAMES.md §3, D-043);
@@ -530,7 +530,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   4. A script generates the dispatcher golden tables by running the pinned vLLM's MRV2 (`vllm/v1/worker/gpu/cudagraph_utils.py`) and MRV1 (`vllm/v1/cudagraph_dispatcher.py`) dispatch on a CPU (GAMES.md §3). The owner runs it at the pin and commits the tables with their SHA-256 (Q-10), and `dispatchV2` and `dispatchV1` agree with them on at least 5,000 cases each. That a CPU-only run is enough is [unverified]; if it is not, the owner runs it on the W2-T12 smoke host and W1-T13's `keys` level waits.
   5. On the 70B card, no host work is counted on both lanes (a test sums each lane's per-sequence terms).
 
-#### [x] W1-T13 · Service (`loop`): TR2's levels · L · sonnet · deps: W0-T17, W1-T12
+#### [x] W1-T13 · Step loop (`loop`): TR2's levels · L · sonnet · deps: W0-T17, W1-T12
 - **Goal:** Levels `async`, `graphs` (stages `comb`, `sizes` and `modes`), `keys` (choose dispatch keys under a memory budget; the In-production card shows MRV2's descriptor, MRV1's `has_lora` and SGLang's padded-size buckets, per D-041), `mrv2` and `mask` (TR6's tie-in), as GAMES.md §3.2 designs them; W1-T14 adds the graded `close`. Each level has a prediction first, a debrief, Compose (a policy spec compiled to a configuration), an In-production card with pinned engine flags as claims, and a Build-this card, in both 2D and 3D. On these levels the printer tape switches from synthetic ticks to µs on the model's clock, with each cost card's tags (D-048), and the new objects (the mold rack, the comb, the allergy card) follow GAMES.md §2.6.
 - **Accept:**
   1. Every level can be won by keyboard.
@@ -561,14 +561,14 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   2. Synthetic traces pass `traceChecks`.
   3. Goldens reproduce.
 
-#### [x] W1-T17 · Back of House (`engine-floor`): session, 2D view and mirror · M · sonnet · deps: W0-T14, W1-T16
+#### [x] W1-T17 · Request path (`engine-floor`): session, 2D view and mirror · M · sonnet · deps: W0-T14, W1-T16
 - **Goal:** `packages/play/engine-floor` and a 2D swimlane view. The capsule moves only when the mechanism and the location are both right, and the map builds as the request moves.
 - **Accept:**
   1. The game can be completed by keyboard.
   2. A wrong answer is explained from the stage's source.
   3. `verify:games` passes.
 
-#### [x] W1-T18 · Back of House (`engine-floor`): the 3D scene · L · sonnet · deps: W0-T15, W1-T17
+#### [x] W1-T18 · Request path (`engine-floor`): the 3D scene · L · sonnet · deps: W0-T15, W1-T17
 - **Goal:** Process platforms, the GPU deck, queue buffers and IPC bridges, with one capsule and camera stops that follow it (A§6.1).
 - **Accept:**
   1. At most 40 KB gz and at most 100 draw calls.
@@ -607,14 +607,14 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   2. `cargo test` agrees with the host on the default seeds.
   3. W1-T11 packs the zip.
 
-#### [x] W1-T23 · The Reach-In (`pool`): session, 2D view and mirror · M · sonnet · deps: W0-T14, W1-T21
+#### [x] W1-T23 · KV page pool (`pool`): session, 2D view and mirror · M · sonnet · deps: W0-T14, W1-T21
 - **Goal:** `packages/play/pool`, with admit, evict, preempt and prefetch-adapter actions. The levels are GAMES.md §8's `one-group`, `two-kinds`, `evict`, `same-size`, `state`, `adapters` and `manager`, with `evict`, `adapters` and `manager` graded, and a 2D grid view.
 - **Accept:**
   1. The game can be completed by keyboard.
   2. On 50 seeds, each level's naive play fails its bar and the intended play passes.
   3. `verify:games` passes.
 
-#### [x] W1-T24 · The Reach-In (`pool`): the 3D scene · L · sonnet · deps: W0-T15, W1-T23
+#### [x] W1-T24 · KV page pool (`pool`): the 3D scene · L · sonnet · deps: W0-T15, W1-T23
 - **Goal:** The rack of fixed-position pages with group and adapter glyphs (no shelf per group), the free line in eviction order, one thread per group from a request to its pages, and linked, non-contiguous adapter pages, with front, per-group-filter and top presets (A§6.1, GAMES.md §8).
 - **Accept:**
   1. Scene budgets as in W1-T18.
@@ -642,7 +642,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   1. The reference passes and every bestiary member fails.
   2. The measured false-fail and detection rates are recorded in the PR.
 
-#### [x] W1-T28 · The Tasting (`verifier`): session, 2D view and mirror · M · sonnet · deps: W0-T14, W1-T26
+#### [x] W1-T28 · Rejection sampler (`verifier`): session, 2D view and mirror · M · sonnet · deps: W0-T14, W1-T26
 - **Goal:** GAMES.md §10's levels:
   - `overlap` (practice): γ = 1; predict α from the overlap min(p, q).
   - `exact` (graded): sculpt or choose the recovery rule until the exact output's total-variation distance to p is 0, computed in rationals.
@@ -654,7 +654,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   2. Only the exact residual reaches total-variation distance 0 in `exact`.
   3. `verify:games` passes.
 
-#### [x] W1-T29 · The Tasting (`verifier`): the 3D scene · L · sonnet · deps: W0-T15, W1-T28
+#### [x] W1-T29 · Rejection sampler (`verifier`): the 3D scene · L · sonnet · deps: W0-T15, W1-T28
 - **Goal:** One skyline row per draft position into depth, then a bonus row, each column stacking the overlap, the reject cap and the recovery well; drafted tokens dropping onto their rows, the walk stopping at the first rejection, and the output skyline converging at the front (A§6.1, GAMES.md §10).
 - **Accept:**
   1. Scene budgets as in W1-T18.
@@ -687,7 +687,7 @@ The owner column counts tasks only the owner can do. It leaves out reviewing PRs
   2. The best constant per flaw label passes at most as often as ASSESSMENT.md's bound.
   3. Every case's corrected answer recomputes from its scene.
 
-#### [x] W1-T33 · The Inspection (`broken-bench`) · M · sonnet · deps: W0-T14, W1-T32
+#### [x] W1-T33 · Broken benchmark (`broken-bench`) · M · sonnet · deps: W0-T14, W1-T32
 - **Goal:** A 2D evidence board with the setup, the client log and a plot. The learner picks the flaw and predicts the corrected p99 with an interval, scored by log score. The debrief re-runs the corrected benchmark.
 - **Accept:**
   1. The game can be completed by keyboard.
@@ -1058,14 +1058,14 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   1. The rules agree with PyTorch on a committed fixture set, generated once with CPU torch, with the torch version recorded.
   2. Goldens reproduce.
 
-#### [ ] W2-T14 · Sheet Pan (`shape-shifter`): session, 2D view and mirror · M · sonnet · deps: W0-T14, W2-T13
+#### [ ] W2-T14 · Tensor views (`shape-shifter`): session, 2D view and mirror · M · sonnet · deps: W0-T14, W2-T13
 - **Goal:** GAMES.md §4's levels: `views`, `stride-zero` and `three-d` for practice, and `fewest` and `grid` graded. The 2D view is a shape and stride table beside the buffer strip.
 - **Accept:**
   1. The game can be completed by keyboard.
   2. The fewest-copies bar matches the model's optimum.
   3. `verify:games` passes.
 
-#### [ ] W2-T15 · Sheet Pan (`shape-shifter`): the 3D scene · L · sonnet · deps: W0-T15, W2-T14
+#### [ ] W2-T15 · Tensor views (`shape-shifter`): the 3D scene · L · sonnet · deps: W0-T15, W2-T14
 - **Goal:** The tensor as a block of cells above its buffer strip, with a stride-order thread through the cells. The thread re-weaves on a view, cells move on a copy, and program tiles sit over the block (A§6.1).
 - **Accept:**
   1. Scene budgets as in W1-T18.
@@ -1097,7 +1097,7 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   1. The fixtures round-trip.
   2. TypeScript's `traceChecks` passes on the exported fixtures (a cross-language test).
 
-#### [ ] W2-T20 · The Trace Room and The Tape (`gap-hunt`) · L · sonnet · deps: W1-T09, W1-T08
+#### [ ] W2-T20 · The Trace Room and Trace attribution (`gap-hunt`) · L · sonnet · deps: W1-T09, W1-T08
 - **Goal:**
   - `/trace-room`: lists pinned and synthetic traces, each with its card.
   - Gap Hunt (2D): find the gap, mark the spans, name the cause, with GAMES.md §6's levels (`read`, `gap`, `attribute`, `graphs`, `pinned`, `yours`) and its list mode for phones, which ASSESSMENT §4.3 grades the same.
@@ -1141,7 +1141,7 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
 
 ### TR4: backends as a consumer
 
-#### [ ] W2-T25 · Sim: backend rules, and Line Check (`dispatch`) · M · sonnet · deps: W1-T01, W0-T14
+#### [ ] W2-T25 · Sim: backend rules, and Backend dispatch (`dispatch`) · M · sonnet · deps: W1-T01, W0-T14
 - **Goal:** `packages/sim/backends` as an ordered rule table from pinned claims, and Dispatch (2D): predict-then-reveal items on fresh seeds.
 - **Accept:**
   1. Every rule cites a claim.
@@ -1173,13 +1173,13 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   1. The reference passes.
   2. Each bestiary member (a dropped event, events out of order, a missing `AllBlocksCleared`) fails.
 
-#### [ ] W2-T30 · The Dumbwaiter (`switchyard`): session, 2D view and mirror · M · sonnet · deps: W0-T14, W2-T28
+#### [ ] W2-T30 · KV offload (`switchyard`): session, 2D view and mirror · M · sonnet · deps: W0-T14, W2-T28
 - **Goal:** `packages/play/switchyard`. The learner publishes each move, and the consumer's board is checked after every event. The 2D view is lanes.
 - **Accept:**
   1. The game can be completed by keyboard.
   2. `verify:games` passes.
 
-#### [ ] W2-T31 · The Dumbwaiter (`switchyard`): the 3D scene · L · sonnet · deps: W0-T15, W2-T30
+#### [ ] W2-T31 · KV offload (`switchyard`): the 3D scene · L · sonnet · deps: W0-T15, W2-T30
 - **Goal:** Three decks, block cars on rails, event signals, and the consumer's board (A§6.1).
 - **Accept:** Scene budgets as in W1-T18.
 

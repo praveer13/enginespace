@@ -51,7 +51,7 @@ test.describe('the front-page walk', () => {
       // software renderer most of a second, so the pass is walked through one level, and the four levels through the 2D pass.
       await front.start(page).focus()
       await page.keyboard.press('Enter')
-      const levels = threeD ? ['Fill the rail'] : ['Fill the rail', 'A clip empties', 'Mind the gap', 'Your turn']
+      const levels = threeD ? ['Fill the batch'] : ['Fill the batch', 'Refill a slot', 'Close a bubble', 'Both levers']
       for (const [index, title] of levels.entries()) {
         await expect(front.level(page)).toContainText(title)
         await playToTheDebrief(page)

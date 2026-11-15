@@ -53,18 +53,18 @@ const controls = (state: PoolState, mode: 'practice' | 'graded' = 'practice') =>
 describe('the page names the game as D-049 says, and opens on the first level', () => {
   test('the display name over its engine concept, the level and its mode on a tape label, and no working name', () => {
     const markup = render(h(Game, null))
-    expect(markup).toMatch(/<h2 id="[^"]+" class="es-type-heading">The Reach-In<\/h2><p class="es-type-body[^"]*">hybrid KV pages and adapters<\/p>/)
-    expect(markup).toContain('One station · practice')
+    expect(markup).toMatch(/<h2 id="[^"]+" class="es-type-heading">KV page pool<\/h2><p class="es-type-body[^"]*">One page pool serves every KV group and every adapter.<\/p>/)
+    expect(markup).toContain('One KV group · practice')
     expect(markup).toContain('data-game="pool"')
     expect(markup).not.toContain('The Pool')
-    expect(render(h(Game, { placement: 'embed' }))).toMatch(/<h3 id="[^"]+" class="es-type-heading">The Reach-In<\/h3>/)
+    expect(render(h(Game, { placement: 'embed' }))).toMatch(/<h3 id="[^"]+" class="es-type-heading">KV page pool<\/h3>/)
   })
 
   test('opens the level it is given, and the first when the id is not one of its own', () => {
-    expect(render(h(Game, { level: 'evict' }))).toContain('Dump the right pans · practice')
+    expect(render(h(Game, { level: 'evict' }))).toContain('Choose what to evict · practice')
     expect(render(h(Game, { level: 'manager' }))).toContain('The whole manager · practice')
-    expect(render(h(Game, { level: 'first-1-fill' }))).toContain('One station · practice')
-    expect(render(h(Game, { level: 'constructor' }))).toContain('One station · practice')
+    expect(render(h(Game, { level: 'first-1-fill' }))).toContain('One KV group · practice')
+    expect(render(h(Game, { level: 'constructor' }))).toContain('One KV group · practice')
   })
 
   test('has Play and Debrief, the keys button, the view switch with the 2D view first (W1-T24: 3D opens once the device is known to draw it), and the seven levels in a rail', () => {
@@ -76,7 +76,7 @@ describe('the page names the game as D-049 says, and opens on the first level', 
     expect(markup).not.toContain('data-surface="3d"')
     expect(markup).toContain('data-surface="2d"')
     const rail = markup.slice(markup.indexOf('aria-label="Levels of The Reach-In"'))
-    for (const title of ['One station', 'Two kinds of station', 'Dump the right pans', 'One pan size', 'A station of state', 'Recipe kits', 'The whole manager']) expect(rail).toContain(title)
+    for (const title of ['One KV group', 'Full attention and a sliding window', 'Choose what to evict', 'One page size for every group', 'A state group', 'LoRA adapters in the same pool', 'The whole manager']) expect(rail).toContain(title)
     expect(rail).toContain('aria-current="step"')
     expect(count(rail, /\(graded level\)/g)).toBe(3)
   })
@@ -100,10 +100,10 @@ describe('the page names the game as D-049 says, and opens on the first level', 
 
   test('a graded level can be played as a graded run, which says it prints no price; a level that cannot be graded opens in practice whatever it is asked', () => {
     const graded = render(h(Game, { level: 'evict', mode: 'graded' }))
-    expect(graded).toContain('Dump the right pans · graded')
+    expect(graded).toContain('Choose what to evict · graded')
     expect(graded).toContain('A fresh seed, no undo, and no price printed for a dump.')
     expect(graded).not.toContain('>Undo<')
-    expect(render(h(Game, { level: 'one-group', mode: 'graded' }))).toContain('One station · practice')
+    expect(render(h(Game, { level: 'one-group', mode: 'graded' }))).toContain('One KV group · practice')
     expect(render(h(Game, { level: 'evict' }))).toContain('>Undo<')
     expect(render(h(Game, { level: 'evict' }))).toContain('The pinned seed, with undo and the price of each dump.')
   })
@@ -140,7 +140,7 @@ describe('the landmarks of the page can be told apart (axe landmark-unique, W1b-
   test('the game is a region named for the game, and the cabinet it holds is named for what it is: no two regions share a name, on any level', () => {
     for (const [id] of PRACTICE) {
       const landmarks = landmarksIn(render(h(Game, { level: id })))
-      expect(landmarks).toContain('region: the reach-in')
+      expect(landmarks).toContain('region: kv page pool')
       expect(landmarks).toContain('region: the reach-in: the page pool')
       expect([id, landmarks.filter((landmark, at) => landmarks.indexOf(landmark) !== at)]).toEqual([id, []])
     }
@@ -504,7 +504,7 @@ describe('the live region says one sentence for each change (A§6.9)', () => {
 })
 
 describe('the debrief says the decision that mattered, and puts the house and the engine beside you', () => {
-  const next = { id: 'two-kinds', title: 'Two kinds of station' }
+  const next = { id: 'two-kinds', title: 'Full attention and a sliding window' }
 
   function debrief(id: PoolLevelId, who: typeof engine | typeof house, over: { predicted?: number } = {}) {
     const level = practiceOf(id)
@@ -564,8 +564,8 @@ describe('the debrief says the decision that mattered, and puts the house and th
     expect(textOf(markup)).toMatch(/kept pace with the house|paid less than the house/)
     // The stub says "Next level" and the ticket names the level, so that a long title never has to fit a phone's stub.
     expect(markup).toMatch(/es-stub__label">Next level</)
-    expect(textOf(markup)).toContain('Next level: Two kinds of station')
-    expect(textOf(markup)).not.toContain('Next: Two kinds of station')
+    expect(textOf(markup)).toContain('Next level: Full attention and a sliding window')
+    expect(textOf(markup)).not.toContain('Next: Full attention and a sliding window')
     expect(textOf(markup)).toContain('Play this level again')
     expect(textOf(markup)).toContain('New numbers')
   })

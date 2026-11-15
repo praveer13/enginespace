@@ -162,7 +162,8 @@ export const PAGES: Readonly<Record<string, Spec>> = {
       url: `/play/${game.id}`,
       title: titled(game.title),
       heading: game.title,
-      description: `Play ${game.subtitle} as a seeded game whose rule is the concept itself, in 2D${game.has3d ? ' or in 3D' : ''}.`,
+      // The title, the engine's term (D-063): the subtitle is the game's rule as a sentence, which may hold a number such as min(1, p/q).
+      description: `${game.title}: a seeded game whose rule is the concept itself, in 2D${game.has3d ? ' or in 3D' : ''}.`,
     })),
   ),
   '/labs/:lab': each(({ labs }) =>

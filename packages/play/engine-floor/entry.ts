@@ -1,5 +1,5 @@
 /**
- * Back of House's record in the game registry (ARCHITECTURE §6.3, D-049): what is known about the game without running it, which the Play
+ * Request path's record in the game registry (ARCHITECTURE §6.3, D-063): what is known about the game without running it, which the Play
  * index, the static-routes script and `verify:games` read. It is data and one loader. The rules load with the game (`session`, below), so
  * the registry never pulls the lifecycle model into a page that only lists games.
  *
@@ -14,8 +14,8 @@ import type { GameEntry } from '../types'
 export const ENGINE_FLOOR: GameEntry = {
   id: 'engine-floor',
   modules: ['tr1'],
-  title: 'Back of House',
-  subtitle: "a request's lifecycle",
+  title: 'Request path',
+  subtitle: 'Every queue, IPC hop, copy and sync between the API server and the GPU.',
   has3d: true,
   // The graded level, `map`, earns these: a fresh scenario of any of the five engines, with or without ranks, a prefix hit and an abort.
   kcs: ['tr1.five-mechanisms', 'tr1.small-engine-anatomy', 'tr1.vllm-lifecycle', 'tr1.sglang-lifecycle', 'tr1.abort-path'],
@@ -30,8 +30,8 @@ export const ENGINE_FLOOR: GameEntry = {
     { id: 'inside', title: 'Inside vLLM', graded: false, practiceSeed: 0 },
     { id: 'vllm', title: 'vLLM at the pin', graded: false, practiceSeed: 0 },
     { id: 'sglang', title: 'SGLang at the pin', graded: false, practiceSeed: 0 },
-    { id: 'abort', title: 'vLLM, the client leaves', graded: false, practiceSeed: 0 },
-    { id: 'map', title: 'The lifecycle map', graded: true, practiceSeed: 0 },
+    { id: 'abort', title: 'vLLM: the client disconnects', graded: false, practiceSeed: 0 },
+    { id: 'map', title: 'Map the request path', graded: true, practiceSeed: 0 },
   ],
   card: 'lifecycle',
   claims: [

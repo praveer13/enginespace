@@ -33,7 +33,7 @@ describe('verify:games for loop', () => {
     expect(report.findings).toEqual([])
     expect(report.notes).toEqual([])
     const lines = report.lines.get('loop') ?? []
-    expect(lines[0]).toBe('Service · the step loop')
+    expect(lines[0]).toBe('Step loop · Keep every slot live, and never make the GPU wait for the CPU.')
     for (const id of ['first-1-fill', 'first-2-slot', 'first-3-gap', 'first-4-par']) expect(lines.some((line) => line.startsWith(`${id}: practice seed 1 in band; `))).toBe(true)
     // The full service's levels (W1-T13): each in band on its pinned seed 0.
     for (const id of ['async', 'graphs', 'mrv2', 'mask']) expect(lines.some((line) => line.startsWith(`${id}: practice seed 0 in band; `))).toBe(true)
@@ -52,8 +52,8 @@ describe('verify:games for loop', () => {
 })
 
 describe('the registry\'s record of Service', () => {
-  test('is D-049\'s: the display name over its subtitle, the id `loop`, TR2 first and TR6 after it, and its 3D scene (W0-T17)', () => {
-    expect([LOOP.id, LOOP.title, LOOP.subtitle]).toEqual(['loop', 'Service', 'the step loop'])
+  test('is D-063\'s: the title over its subtitle, the id `loop`, TR2 first and TR6 after it, and its 3D scene (W0-T17)', () => {
+    expect([LOOP.id, LOOP.title, LOOP.subtitle]).toEqual(['loop', 'Step loop', 'Keep every slot live, and never make the GPU wait for the CPU.'])
     expect(LOOP.modules).toEqual(['tr2', 'tr6'])
     expect(LOOP.has3d).toBe(true)
     expect(existsSync(path.join(root, 'src/games/loop/Scene3D.tsx'))).toBe(true)

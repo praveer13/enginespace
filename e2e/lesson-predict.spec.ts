@@ -156,7 +156,7 @@ test.describe('a prediction is committed, played for, and revealed, by keys alon
         await expect(first.locator('[data-truth]')).toContainText(String(truth))
         await expect(first.locator('dl')).toContainText('you wrote')
         await expect(first.locator('dl')).toContainText('0 boundaries')
-        await expect(first).toContainText('Read from your run of Back of House, level nano')
+        await expect(first).toContainText('Read from your run of Request path, level nano')
         expect(watch.requests.some((path) => READING.test(path)), 'the reading is asked for when the stub is pulled').toBe(true)
 
         await revealStub(page, 'tr1.l1.p2').focus()
@@ -240,7 +240,7 @@ test.describe('a run that ended before the commit is no run to reveal after (acc
     await ticket.getByRole('button', { name: 'Commit answer' }).click()
     await expect(ticket).toHaveAttribute('data-phase', 'committed')
     await expect(revealStub(page, NANO.id)).toBeDisabled()
-    await expect(ticket).toContainText('Play Back of House, level nano, below.')
+    await expect(ticket).toContainText('Play Request path, level nano, below.')
     await quiet(page)
     await expect(ticket).toHaveAttribute('data-phase', 'committed')
     expect(await predictEvents(page)).toEqual([])
@@ -258,8 +258,8 @@ test.describe('the block that answers a prediction is the first of its game and 
       await ticketOf(page, id).getByRole('button', { name: 'Commit answer' }).click()
       await expect(ticketOf(page, id)).toHaveAttribute('data-phase', 'committed')
     }
-    await expect(ticketOf(page, 'tr5a.l4.p1')).toContainText('Play The Reach-In, level adapters, below.')
-    await expect(ticketOf(page, 'tr5a.l4.p2')).toContainText('Play The Reach-In, level adapters (graded), below.')
+    await expect(ticketOf(page, 'tr5a.l4.p1')).toContainText('Play KV page pool, level adapters, below.')
+    await expect(ticketOf(page, 'tr5a.l4.p2')).toContainText('Play KV page pool, level adapters (graded), below.')
     expect(await predictEvents(page)).toEqual([])
   })
 })

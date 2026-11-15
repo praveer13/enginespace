@@ -110,7 +110,7 @@ describe("the poster is the front page's first frame, and the 2D view draws the 
   test("the first frame is the empty rail, a perforated stub on every clip with the page's word on it, and no printer: the front page holds its own", () => {
     const [landscape, portrait] = renderPosters()
     expect(landscape.svg).toContain('role="img"')
-    expect(landscape.svg).toContain('aria-label="Fill the rail. The rail has 4 clips and 0 are hung. 6 tickets wait.')
+    expect(landscape.svg).toContain('aria-label="Fill the batch. The rail has 4 clips and 0 are hung. 6 tickets wait.')
     for (const poster of [landscape, portrait]) {
       const frame = layoutFrame(first, { orientation: poster.orientation, shot: 'front' })
       expect(marksOf(frame, 'rail').filter((mark) => mark.kind === 'poly' && mark.fill === 'paper' && mark.dash !== undefined)).toHaveLength(4)

@@ -83,9 +83,9 @@ const served = (state: FullState, mutate: Partial<FullState['stages'][0]['levers
 describe('the page of `close`', () => {
   test('is Service\'s, with the level on its docket, a way into a graded run, and every stage of the play sequence', () => {
     const docket = render(h(Game, null))
-    expect(docket.slice(docket.indexOf('data-loop-docket'))).toContain('Close the bubbles')
+    expect(docket.slice(docket.indexOf('data-loop-docket'))).toContain('Every lever, on new numbers')
     const markup = render(h(FullService, { level: 'close', onLevel: () => undefined }))
-    expect(markup).toContain('Close the bubbles · practice')
+    expect(markup).toContain('Every lever, on new numbers · practice')
     expect(markup).toContain('data-full-mode="practice"')
     expect(markup).toContain('This level can be graded, on fresh numbers.')
     expect(markup).toContain('Start a graded run')
@@ -98,7 +98,7 @@ describe('the page of `close`', () => {
 
   test('a graded run draws its seed when it starts: the page says so, and offers no undo and no way back to the same numbers', () => {
     const markup = render(h(FullService, { level: 'close', mode: 'graded', onLevel: () => undefined }))
-    expect(markup).toContain('Close the bubbles · graded')
+    expect(markup).toContain('Every lever, on new numbers · graded')
     expect(markup).toContain('data-mode="graded"')
     expect(markup).toContain('data-full-mode="graded"')
     expect(markup).toContain('A graded run: fresh numbers drawn now, no undo, one night')
@@ -114,7 +114,7 @@ describe('the controls of a closed-book stage', () => {
   test('the prediction first, then every lever of the stage, and one button that serves the whole night: no bell, no Auto', () => {
     const markup = render(h(FullControls, { run: runOf(start()) }))
     expect(markup).toContain('data-full-prediction="open"')
-    expect(markup).toContain('what share of the night does the line sit dark')
+    expect(markup).toContain('what share of the run does the GPU sit idle')
     expect(markup).toContain('In per cent')
     for (const lever of ['Write the next call during this fire', "The line fills the next call&#x27;s input ids", 'The V2 runner']) expect(markup).toContain(lever)
     for (const mode of ['FULL_AND_PIECEWISE', 'FULL_DECODE_ONLY', 'PIECEWISE', 'NONE · call each dish']) expect(markup).toContain(mode)
