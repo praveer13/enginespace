@@ -9,6 +9,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from typing import Any
+from unittest import mock
 
 from enginespace_grader import bundle as bundles
 from enginespace_grader import grade
@@ -247,10 +248,10 @@ class Provenance(unittest.TestCase):
 
 
 class Pins(unittest.TestCase):
-    def test_until_the_pin_check_exists_a_run_cannot_claim_to_be_on_the_pins(self) -> None:
-        with self.assertRaises(GraderError) as caught:
+    def test_without_a_course_lock_to_compare_with_a_run_cannot_claim_to_be_on_the_pins(self) -> None:
+        with mock.patch("enginespace_grader.pins.find_kit_root", return_value=None), self.assertRaises(GraderError) as caught:
             grade.local_pins(SampleLab())
-        self.assertIn("W2-T04", str(caught.exception))
+        self.assertIn("course.lock.json was not found", str(caught.exception))
         self.assertIn("tr3.profile", str(caught.exception))
 
 

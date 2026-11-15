@@ -93,18 +93,18 @@ class Interrupt(unittest.TestCase):
 
 
 class Doctor(unittest.TestCase):
-    def test_the_stub_says_it_is_one_and_prints_what_a_receipt_would_record(self) -> None:
+    def test_it_prints_what_a_receipt_would_record_and_says_what_it_does_not_check(self) -> None:
         status, out, _ = run("doctor")
         self.assertEqual(status, 0)
-        self.assertIn("doctor is a stub in this build", out)
-        self.assertIn("checks nothing yet", out)
+        self.assertNotIn("stub", out)
+        self.assertIn("not checked in this build", out)
         self.assertIn('"python"', out)
 
-    def test_json_output_is_marked_a_stub_and_holds_the_environment(self) -> None:
+    def test_json_output_holds_the_environment_and_no_pin_check_without_an_environment(self) -> None:
         status, out, _ = run("doctor", "--json", "--host-kind", "modal")
         self.assertEqual(status, 0)
         report = json.loads(out)
-        self.assertTrue(report["stub"])
+        self.assertIsNone(report["pins"])
         self.assertEqual(report["environment"]["host"]["kind"], "modal")
         self.assertEqual(report["grader"]["name"], "enginespace-grader")
 
@@ -158,7 +158,7 @@ class Grade(unittest.TestCase):
         self.addCleanup(labs.unregister, "tr3.profile")
 
     def grade(self, *extra: str, stage: str = "tr3.profile.s2", token: str | None = None, pins_known: bool = True) -> tuple[int, str, str]:
-        """Runs `enginespace grade` on the sample lab. The pin check is W2-T04's, so unless a test asks for the real one, the pins are the sample's."""
+        """Runs `enginespace grade` on the sample lab. Unless a test asks for the real pin check (pins.py), the pins are the sample's."""
         from enginespace_grader.challenge import format_challenge
 
         token = token if token is not None else format_challenge(stage, 0x0BADC0DE, "ABCDEFGHJKLMNPQR", "20261104")
@@ -223,10 +223,12 @@ class Grade(unittest.TestCase):
         self.assertIn("not a challenge token", err)
         self.assertEqual(list(self.folder.iterdir()), [])
 
-    def test_without_the_pin_check_a_run_stops_and_says_which_task_builds_it(self) -> None:
-        status, out, err = self.grade(pins_known=False)
+    def test_without_a_course_lock_to_compare_with_a_run_stops_and_says_what_to_do(self) -> None:
+        with mock.patch("enginespace_grader.pins.find_kit_root", return_value=None):
+            status, out, err = self.grade(pins_known=False)
         self.assertEqual((status, out), (3, ""))
-        self.assertIn("W2-T04", err)
+        self.assertIn("course.lock.json was not found", err)
+        self.assertIn("ENGINESPACE_KIT", err)
         self.assertEqual(list(self.folder.iterdir()), [])
 
     def test_usage_errors_are_status_2(self) -> None:

@@ -1,0 +1,27 @@
+# The vLLM engine environment (ARCHITECTURE section 9.2, D-026, W2-T04): TR3, TR4, TR5b, TR6, TR7, TR8 and the capstone.
+#
+# One locked uv project per engine. uv.lock pins every package with the hash of every file, and requirements.txt is `uv export` of that lock, for pip with
+# --require-hashes. The engine's version is the pin of course.lock.json (D-035, proposed until the owner confirms it, O-4); a change of pin changes this
+# file and re-locks the environment, and tests/test_envs.py in the grader fails while the two disagree.
+#
+# Nobody runs `uv sync` on this environment in CI or on a laptop without a GPU: the wheels are gigabytes. `uv lock --check` needs no wheel.
+#
+# There is no `license` field, on purpose: the licence of enginespace's own code is the owner's decision (O-3, D-060).
+
+[project]
+name = "enginespace-env-vllm"
+version = "0.1.0"
+description = "The locked environment of the vLLM labs."
+requires-python = ">=3.11,<3.15"
+dependencies = [
+    "vllm==0.33.0",
+    "enginespace-grader",
+]
+classifiers = ["Private :: Do Not Upload"]
+
+[tool.uv]
+package = false
+# The engines run on Linux with an NVIDIA GPU, so the lock covers Linux only and not every platform that the grader itself supports.
+environments = ["sys_platform == 'linux'"]
+[tool.uv.sources]
+enginespace-grader = { path = "../../grader" }

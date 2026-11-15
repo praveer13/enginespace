@@ -472,9 +472,10 @@ describe('labs.yml (§10.1)', () => {
     })
   }
 
-  test('runs for a change to what the lab gates read, and by hand: the labs, the schemas and the receipt rules (W0-T04), what verify:labs imports and compares (W1b-T13), the grader\'s fixtures (W2-T02, W2-T05), and what the receipt fixtures step reads (W2-T08)', () => {
+  test('runs for a change to what the lab gates read, and by hand: the labs, the schemas and the receipt rules (W0-T04), what verify:labs imports and compares (W1b-T13), the grader\'s fixtures (W2-T02, W2-T05), what the receipt fixtures step reads (W2-T08), and the course lock that the pin checks of the grader read (W2-T04)', () => {
     expect(labsPaths).toEqual([
       'labs/**',
+      'course.lock.json',
       'schemas/**',
       'packages/schema/**',
       'packages/verify/**',
@@ -549,10 +550,11 @@ describe('labs.yml (§10.1)', () => {
     expect(grader).toContain('bun run verify:vectors')
   })
 
-  test('the grader job (W2-T02) checks the lock, syncs from it, runs the tests as TRACKER words the command, runs the installed command, then the two gates, and then the receipt fixtures and forgeries of W2-T08, in that order', () => {
+  test('the grader job (W2-T02) checks the lock, syncs from it, runs the tests as TRACKER words the command, runs the installed command, then the two gates, and then the receipt fixtures and forgeries of W2-T08, in that order; W2-T04 puts the check of the engine environments beside the lock check of the grader', () => {
     expect(runsOf('labs.yml', 'grader')).toEqual([
       'npm ci',
       'uv lock --check --project labs/grader',
+      'bash labs/envs/relock.sh --check',
       'uv sync --locked --project labs/grader',
       'uv run --project labs/grader python -m unittest',
       'uv run --project labs/grader enginespace selftest --no-suite',
