@@ -372,7 +372,7 @@ describe('what the lessons teach', () => {
     expect(lessonOf('tr5a.l1').text).toContain('a group is a **station**, a page is a **hotel pan** in the reach-in, a request is a **ticket**')
     expect(lessonOf('tr5a.l3').text).toContain('the free queue is **the rotation**, evicting a page is **dumping a pan**, and a prefix hit is **shared mise**')
     expect(lessonOf('tr5a.l4').text).toContain('an adapter is a **recipe kit**')
-    expect(POOL.title).toBe('The Reach-In')
+    expect(POOL.title).toBe('KV page pool')
   })
 })
 

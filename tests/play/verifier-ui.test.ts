@@ -32,18 +32,18 @@ const noop = () => undefined
 describe('the page names the game as D-049 says, and opens on the first level', () => {
   test('the display name over its engine concept, the level and its mode on a tape label, and no working name', () => {
     const markup = render(h(Game, null))
-    expect(markup).toMatch(/<h2 id="[^"]+" class="es-type-heading">The Tasting<\/h2><p class="es-type-body[^"]*">speculative decoding&#x27;s verifier<\/p>/)
-    expect(markup).toContain('What the chef keeps · practice')
+    expect(markup).toMatch(/<h2 id="[^"]+" class="es-type-heading">Rejection sampler<\/h2><p class="es-type-body[^"]*">Accept with min\(1, p\/q\), resample from \(p - q\)\+, and the output is exactly p.<\/p>/)
+    expect(markup).toContain('Acceptance rate: the overlap of p and q · practice')
     expect(markup).toContain('data-game="verifier"')
     expect(markup).not.toContain('The Verifier')
-    expect(render(h(Game, { placement: 'embed' }))).toMatch(/<h3 id="[^"]+" class="es-type-heading">The Tasting<\/h3>/)
+    expect(render(h(Game, { placement: 'embed' }))).toMatch(/<h3 id="[^"]+" class="es-type-heading">Rejection sampler<\/h3>/)
   })
 
   test('opens the level it is given, and the first when the id is not one of its own', () => {
-    expect(render(h(Game, { level: 'exact' }))).toContain('Make it exact · practice')
-    expect(render(h(Game, { level: 'gamma' }))).toContain('How far ahead · practice')
-    expect(render(h(Game, { level: 'first-1-fill' }))).toContain('What the chef keeps · practice')
-    expect(render(h(Game, { level: 'constructor' }))).toContain('What the chef keeps · practice')
+    expect(render(h(Game, { level: 'exact' }))).toContain('Resample from the residual · practice')
+    expect(render(h(Game, { level: 'gamma' }))).toContain('Choose γ · practice')
+    expect(render(h(Game, { level: 'first-1-fill' }))).toContain('Acceptance rate: the overlap of p and q · practice')
+    expect(render(h(Game, { level: 'constructor' }))).toContain('Acceptance rate: the overlap of p and q · practice')
   })
 
   test('has Play and Debrief, the keys button, the view switch on 2D until the device is known to draw 3D, and the six levels in a rail', () => {
@@ -56,7 +56,7 @@ describe('the page names the game as D-049 says, and opens on the first level', 
     expect(markup).toMatch(/aria-pressed="false" aria-keyshortcuts="V" disabled="">3D view<\/button>/)
     expect(markup).toContain('data-surface="2d"')
     const rail = markup.slice(markup.indexOf('aria-label="Levels of The Tasting"'))
-    for (const title of ['What the chef keeps', 'Make it exact', 'A run of plates', 'The favourite and the copier', 'Five rules to audit', 'How far ahead']) expect(rail).toContain(title)
+    for (const title of ['Acceptance rate: the overlap of p and q', 'Resample from the residual', 'Tokens per round with γ drafts', 'Greedy target, n-gram draft', 'Five broken accept rules', 'Choose γ']) expect(rail).toContain(title)
     expect(rail).toContain('aria-current="step"')
     expect(count(rail, /\(can be graded\)/g)).toBe(3)
   })
@@ -70,13 +70,13 @@ describe('the page names the game as D-049 says, and opens on the first level', 
 
   test('a graded run opens on a seed drawn at the start, with no undo and no meter, and says so', () => {
     const markup = render(h(Game, { level: 'exact', mode: 'graded' }))
-    expect(markup).toContain('Make it exact · graded')
+    expect(markup).toContain('Resample from the residual · graded')
     expect(markup).not.toContain('>Undo<')
     expect(markup).not.toContain('Start from p')
     expect(markup).not.toContain('Draw 10')
     expect(markup).toContain('A graded run: fresh numbers, no undo, no live meter, one submission.')
     // A level that cannot be graded opens in practice whatever it is asked.
-    expect(render(h(Game, { level: 'overlap', mode: 'graded' }))).toContain('What the chef keeps · practice')
+    expect(render(h(Game, { level: 'overlap', mode: 'graded' }))).toContain('Acceptance rate: the overlap of p and q · practice')
     expect(render(h(Game, { level: 'exact' }))).toContain('>Undo<')
   })
 })
@@ -256,7 +256,7 @@ describe('the debrief says what the run did and what the arithmetic says', () =>
       h(Debrief, {
         run: fakeRun(state, { done: true }),
         outcome: outcomeOf(state),
-        next: { id: 'exact', title: 'Make it exact' },
+        next: { id: 'exact', title: 'Resample from the residual' },
         onNext: noop,
         onPracticeAgain: noop,
         onNewNumbers: noop,
@@ -273,7 +273,7 @@ describe('the debrief says what the run did and what the arithmetic says', () =>
       expect(markup).toContain('Debrief')
       expect(markup).toContain('What to take away')
       expect(markup).toContain('The real engines')
-      expect(markup).toContain('Next: Make it exact')
+      expect(markup).toContain('Next: Resample from the residual')
     }
   })
 
@@ -282,7 +282,7 @@ describe('the debrief says what the run did and what the arithmetic says', () =>
     expect(markup).not.toContain('es-ticket__head')
     const feet = [...markup.matchAll(/<div class="es-ticket__foot"><span>([^<]*)<\/span><span>([^<]*)<\/span><\/div>/g)].map((match) => [match[1], match[2]])
     expect(feet).toEqual([
-      ['Debrief', 'Make it exact'],
+      ['Debrief', 'Resample from the residual'],
       ['The real engines', 'not this world'],
     ])
   })

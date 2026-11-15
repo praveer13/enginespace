@@ -40,7 +40,7 @@ describe('verify:games for pool', () => {
     expect(report.findings).toEqual([])
     expect(report.notes).toEqual([])
     const lines = report.lines.get('pool') ?? []
-    expect(lines[0]).toBe('The Reach-In · hybrid KV pages and adapters')
+    expect(lines[0]).toBe('KV page pool · One page pool serves every KV group and every adapter.')
     for (const level of POOL.levels) {
       expect(lines.some((line) => line.startsWith(`${level.id}: practice seed ${level.practiceSeed} in band; `))).toBe(true)
     }
@@ -50,8 +50,8 @@ describe('verify:games for pool', () => {
 })
 
 describe('the registry\'s record of The Reach-In', () => {
-  test('is D-049\'s: the display name over its subtitle, the id `pool`, TR5a, and the 3D scene W1-T24 built', () => {
-    expect([POOL.id, POOL.title, POOL.subtitle]).toEqual(['pool', 'The Reach-In', 'hybrid KV pages and adapters'])
+  test('is D-063\'s: the title over its subtitle, the id `pool`, TR5a, and the 3D scene W1-T24 built', () => {
+    expect([POOL.id, POOL.title, POOL.subtitle]).toEqual(['pool', 'KV page pool', 'One page pool serves every KV group and every adapter.'])
     expect(POOL.modules).toEqual(['tr5a'])
     expect(POOL.has3d).toBe(true)
     expect(existsSync(path.join(root, 'src/games/pool/Scene3D.tsx'))).toBe(true)

@@ -233,10 +233,10 @@ test.describe('a keyboard-only walk wins every level', () => {
     await tabTo(page, /^Finish$/, 5)
     await page.keyboard.press('Enter')
     await endWithTheDebrief(page)
-    await page.getByRole('button', { name: 'Next: Make it exact' }).focus()
+    await page.getByRole('button', { name: 'Next: Resample from the residual' }).focus()
     await page.keyboard.press('Enter')
     await expect.poll(() => page.evaluate(() => document.activeElement?.getAttribute('data-game'))).toBe('verifier')
-    await expect(page.locator('[data-game="verifier"] .es-tape').first()).toContainText('Make it exact · practice')
+    await expect(page.locator('[data-game="verifier"] .es-tape').first()).toContainText('Resample from the residual · practice')
   })
 })
 
@@ -303,7 +303,7 @@ test.describe('a graded run', () => {
   test('hides the decomposition, the live meter, the presets, the draws and the undo, and is won from the numbers it prints', async ({ page }) => {
     await open(page, 'exact')
     await page.getByRole('button', { name: 'Start a graded run' }).click()
-    await expect(page.locator('[data-game="verifier"] .es-tape').first()).toContainText('Make it exact · graded')
+    await expect(page.locator('[data-game="verifier"] .es-tape').first()).toContainText('Resample from the residual · graded')
     for (const hidden of ['Undo', 'Start from p', 'Start from q', 'Draw 10']) await expect(page.getByRole('button', { name: hidden })).toHaveCount(0)
     await expect(game(page)).not.toContainText('agreed')
     await expect(game(page)).not.toContainText('Distance from')

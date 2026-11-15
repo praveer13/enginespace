@@ -1,0 +1,5 @@
+{
+  "area": "broken-bench",
+  "task": "R-T31",
+  "covers": "Broken benchmark's rendered surfaces on /play/broken-bench: the views, the report form, controls, debrief, mirror and live-region lines."
+}

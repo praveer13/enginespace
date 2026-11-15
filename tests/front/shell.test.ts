@@ -195,7 +195,7 @@ describe('a real build', () => {
     expect(info.outside).toBe('')
     const inside = html.slice(html.indexOf('<div id="root">'), html.indexOf('<script type="module"', html.indexOf('<div id="root">')))
     expect(inside).toContain('Fire the next step.')
-    expect(svgsIn(inside).filter((svg) => svg.includes('aria-label="Fill the rail.'))).toEqual(renderPosters().map((poster) => poster.svg.trimEnd()))
+    expect(svgsIn(inside).filter((svg) => svg.includes('aria-label="Fill the batch.'))).toEqual(renderPosters().map((poster) => poster.svg.trimEnd()))
   })
 
   test('keeps the policy first and runs no inline script', async () => {

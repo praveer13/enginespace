@@ -1,0 +1,5 @@
+{
+  "area": "items",
+  "task": "R-T32",
+  "covers": "Every item family's title, stem, givens, options, reasons and worked steps, over the seed count of tests/seeds.ts."
+}

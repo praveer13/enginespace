@@ -184,8 +184,8 @@ test.describe('a keyboard-only walk', () => {
   test('plays all four levels to their debriefs, and Next keeps focus in the game', async ({ page }) => {
     test.setTimeout(120_000)
     await open(page, 'first-1-fill')
-    const titles = ['A clip empties', 'Mind the gap', 'Your turn']
-    for (const [index, title] of ['Fill the rail', ...titles].entries()) {
+    const titles = ['Refill a slot', 'Close a bubble', 'Both levers']
+    for (const [index, title] of ['Fill the batch', ...titles].entries()) {
       // The shell's tape naming the level and its mode: the 3D scene's tapes are the design system's too, so it is found by its words.
       await expect(page.locator('[data-game="loop"] .es-tape', { hasText: / · (practice|graded)$/ }).first()).toContainText(`${title} · practice`)
       if (index >= 2) await page.getByRole('switch').focus().then(() => page.keyboard.press('Space'))
@@ -203,7 +203,7 @@ test.describe('a keyboard-only walk', () => {
     await expect(page.getByText('The same night, served three ways')).toBeVisible()
     await expect(page.getByText('The real engine', { exact: true })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Open the course map' })).toHaveAttribute('href', '/map')
-    await expect(page.getByRole('button', { name: 'New numbers' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'New numbers', exact: true })).toBeVisible()
   })
 })
 

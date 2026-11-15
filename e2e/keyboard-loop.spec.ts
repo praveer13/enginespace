@@ -67,7 +67,7 @@ for (const width of PR_WIDTHS) {
       // The debrief reads at this width: no word of it is cut off (WCAG 1.4.10), and its way on is reachable by Tab.
       const found = await clipped(page, '.es-front-night__debrief')
       expect(found.text, 'the debrief, past the right edge').toEqual([])
-      await walk.tabTo(/^Next: A clip empties$/, 6)
+      await walk.tabTo(/^Next: Refill a slot$/, 6)
 
       expect(walk.problems(), 'a focus stop that a keyboard user cannot see').toEqual([])
     })
@@ -111,7 +111,7 @@ for (const width of PR_WIDTHS) {
       test.setTimeout(120_000)
       await front.start(page).focus()
       await page.keyboard.press('Enter')
-      const titles = ['Fill the rail', 'A clip empties', 'Mind the gap', 'Your turn']
+      const titles = ['Fill the batch', 'Refill a slot', 'Close a bubble', 'Both levers']
       for (const [index, title] of titles.entries()) {
         await expect(front.level(page)).toContainText(title)
         await playToTheDebrief(page)

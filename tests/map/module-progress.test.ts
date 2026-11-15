@@ -44,7 +44,7 @@ describe('the loop on a module page', () => {
 
   test('Play names the module\'s game and links the ones that are built, and Build says when there is no lab', () => {
     expect(loop).toContain('href="/play/loop"')
-    expect(textOf(loop)).toContain('Service')
+    expect(textOf(loop)).toContain('Step loop')
     expect(textOf(loop)).toContain(LOOP.noLab)
   })
 
@@ -101,8 +101,8 @@ describe('the games of a loop are links only where the game is built', () => {
     const html = render(h(Loop, { ...props, games: ['gap-hunt', 'shape-shifter'], progress: progressOf([]).modules.get('tr5a') }))
     expect(html).not.toContain('href="/play/gap-hunt"')
     expect(html).not.toContain('href="/play/shape-shifter"')
-    expect(textOf(html)).toContain('The Tape, arriving with W2')
-    expect(textOf(html)).toContain('Sheet Pan, arriving with W2')
+    expect(textOf(html)).toContain('Trace attribution, arriving with W2')
+    expect(textOf(html)).toContain('Tensor views, arriving with W2')
   })
 
   test('a module with no game says so', () => {

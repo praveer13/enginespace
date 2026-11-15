@@ -41,7 +41,7 @@ describe('verify:games for broken-bench', () => {
     expect(report.findings).toEqual([])
     expect(report.notes).toEqual([])
     const lines = report.lines.get('broken-bench') ?? []
-    expect(lines[0]).toBe('The Inspection · benchmark methodology')
+    expect(lines[0]).toBe('Broken benchmark · Latency counts from when a request was due.')
     for (const id of LEVEL_IDS) expect([id, lines.some((line) => line.startsWith(`${id}: practice seed 0 in band; `))]).toEqual([id, true])
     expect(lines).toContain('keys: 8 common + 3 of its own')
   })
@@ -55,8 +55,8 @@ describe('verify:games for broken-bench', () => {
 })
 
 describe('the registry\'s record of The Inspection', () => {
-  test('is D-049\'s: the display name over its subtitle, the id `broken-bench`, TR8, and no 3D scene until the opener is built', () => {
-    expect([BROKEN_BENCH.id, BROKEN_BENCH.title, BROKEN_BENCH.subtitle]).toEqual(['broken-bench', 'The Inspection', 'benchmark methodology'])
+  test('is D-063\'s: the title over its subtitle, the id `broken-bench`, TR8, and no 3D scene until the opener is built', () => {
+    expect([BROKEN_BENCH.id, BROKEN_BENCH.title, BROKEN_BENCH.subtitle]).toEqual(['broken-bench', 'Broken benchmark', 'Latency counts from when a request was due.'])
     expect(BROKEN_BENCH.modules).toEqual(['tr8'])
     expect(BROKEN_BENCH.has3d).toBe(false)
     expect(existsSync(path.join(root, 'src/games/broken-bench/Scene3D.tsx'))).toBe(false)

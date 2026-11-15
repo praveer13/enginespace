@@ -45,18 +45,18 @@ function outcomeOf(state: LoopState): { outcome: LoopOutcome; ghost: LoopState }
 describe('the page names the game as D-049 says, and opens on the first level', () => {
   test('the display name over its engine concept, the level and its mode on a tape label, and no working name', () => {
     const markup = render(h(Game, null))
-    expect(markup).toMatch(/<h2 id="[^"]+" class="es-type-heading">Service<\/h2><p class="es-type-body[^"]*">the step loop<\/p>/)
-    expect(markup).toContain('Fill the rail · practice')
+    expect(markup).toMatch(/<h2 id="[^"]+" class="es-type-heading">Step loop<\/h2><p class="es-type-body[^"]*">Keep every slot live, and never make the GPU wait for the CPU.<\/p>/)
+    expect(markup).toContain('Fill the batch · practice')
     expect(markup).toContain('data-game="loop"')
     expect(markup).not.toContain('The Loop')
-    expect(render(h(Game, { placement: 'embed' }))).toMatch(/<h3 id="[^"]+" class="es-type-heading">Service<\/h3>/)
+    expect(render(h(Game, { placement: 'embed' }))).toMatch(/<h3 id="[^"]+" class="es-type-heading">Step loop<\/h3>/)
   })
 
   test('opens the level it is given, and the first when the id is not one of its own', () => {
-    expect(render(h(Game, { level: 'first-3-gap' }))).toContain('Mind the gap · practice')
-    expect(render(h(Game, { level: 'first-4-par' }))).toContain('Your turn · practice')
-    expect(render(h(Game, { level: 'no-such-level' }))).toContain('Fill the rail · practice')
-    expect(render(h(Game, { level: 'constructor' }))).toContain('Fill the rail · practice')
+    expect(render(h(Game, { level: 'first-3-gap' }))).toContain('Close a bubble · practice')
+    expect(render(h(Game, { level: 'first-4-par' }))).toContain('Both levers · practice')
+    expect(render(h(Game, { level: 'no-such-level' }))).toContain('Fill the batch · practice')
+    expect(render(h(Game, { level: 'constructor' }))).toContain('Fill the batch · practice')
   })
 
   test('has Play and Debrief and no other stage, the view switch of a game with a 3D scene, and the keys button', () => {
@@ -87,7 +87,7 @@ describe('the controls: Tap a ticket to hang it on the rail', () => {
     expect(count(markup, /tabindex="0"/g)).toBe(1)
     expect(count(markup, /tabindex="-1"/g)).toBe(5)
     expect(markup).not.toContain('role="switch"')
-    expect(markup).toContain('Tap a ticket to hang it on the rail (put a request in the batch)')
+    expect(markup).toContain('Tap a waiting request to admit it into the running batch.')
     expect(markup).toContain('aria-label="Ring the bell: fire the next step"')
   })
 

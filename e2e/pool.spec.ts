@@ -287,7 +287,7 @@ test.describe('a keyboard-only walk wins levels', () => {
     await page.getByRole('button', { name: 'Next level' }).focus()
     await page.keyboard.press('Enter')
     await expect.poll(() => page.evaluate(() => document.activeElement?.getAttribute('data-game'))).toBe('pool')
-    await expect(levelTape(page)).toContainText('Two kinds of station · practice')
+    await expect(levelTape(page)).toContainText('Full attention and a sliding window · practice')
   })
 })
 
@@ -426,7 +426,7 @@ test.describe('a graded run', () => {
   test('hides the price of a dump, the shared mise a ticket would find and the undo, and says so', async ({ page }) => {
     await open(page, 'evict')
     await page.getByRole('button', { name: 'Graded', exact: true }).click()
-    await expect(levelTape(page)).toContainText('Dump the right pans · graded')
+    await expect(levelTape(page)).toContainText('Choose what to evict · graded')
     await expect(page.getByRole('button', { name: 'Undo' })).toHaveCount(0)
     await awaitAsk(page, 'admit')
     await expect(game(page)).not.toContainText('shared mise 0')
@@ -461,7 +461,7 @@ test.describe('a graded run', () => {
     for (const action of houseActions(buildLevel('one-group', 2))) await take(page, action, { none: 'key', dump: 'key' })
     await endWithTheDebrief(page)
     await page.getByRole('button', { name: 'New numbers' }).click()
-    await expect(levelTape(page)).toContainText('One station · practice')
+    await expect(levelTape(page)).toContainText('One KV group · practice')
     await awaitAsk(page, 'admit')
   })
 })

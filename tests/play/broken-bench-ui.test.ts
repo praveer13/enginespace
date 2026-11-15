@@ -49,10 +49,10 @@ const docketOf = (markup: string) => ({
 describe('the page names the game as D-049 says, and opens on the first level', () => {
   test('the display name over its engine concept, then one row of the levels, the attempt, the stages and the keys, and no working name', () => {
     const markup = render(h(Game, null))
-    expect(markup).toMatch(/<h2 id="[^"]+" class="es-type-heading">The Inspection<\/h2><p class="es-type-body[^"]*">benchmark methodology<\/p>/)
-    expect(docketOf(markup)).toEqual({ level: 'From the due time', attempt: 'Practice' })
+    expect(markup).toMatch(/<h2 id="[^"]+" class="es-type-heading">Broken benchmark<\/h2><p class="es-type-body[^"]*">Latency counts from when a request was due.<\/p>/)
+    expect(docketOf(markup)).toEqual({ level: 'From due time', attempt: 'Practice' })
     // The row says the level and the mode, so no tape says them again; and the stages and the keys are in the same row, in the header.
-    expect(markup).not.toContain('From the due time · practice')
+    expect(markup).not.toContain('From due time · practice')
     const header = markup.slice(markup.indexOf('<header'), markup.indexOf('</header>'))
     for (const part of ['aria-label="Levels of the Inspection"', 'aria-label="Attempt"', 'aria-label="Stages of this game"', '>Keys</button>']) expect(header).toContain(part)
     expect(header.indexOf('aria-label="Attempt"')).toBeLessThan(header.indexOf('aria-label="Stages of this game"'))
@@ -60,17 +60,17 @@ describe('the page names the game as D-049 says, and opens on the first level', 
     expect(markup).not.toContain('The Broken Bench')
     // A lesson that embeds the game has no docket, and the shell's tape names the level and the mode there.
     const embedded = render(h(Game, { placement: 'embed' }))
-    expect(embedded).toMatch(/<h3 id="[^"]+" class="es-type-heading">The Inspection<\/h3>/)
+    expect(embedded).toMatch(/<h3 id="[^"]+" class="es-type-heading">Broken benchmark<\/h3>/)
     expect(embedded).not.toContain('aria-label="Levels of the Inspection"')
-    expect(embedded).toContain('From the due time · practice')
+    expect(embedded).toContain('From due time · practice')
   })
 
   test('opens the level it is given, and the first when the id is not one of its own', () => {
-    expect(docketOf(render(h(Game, { level: 'court' }))).level).toBe('The court')
-    expect(docketOf(render(h(Game, { level: 'sure' }))).level).toBe('How sure')
-    expect(docketOf(render(h(Game, { level: 'warm' }))).level).toBe('The warm-up cut')
-    expect(docketOf(render(h(Game, { level: 'rain-and-relay' }))).level).toBe('From the due time')
-    expect(docketOf(render(h(Game, { level: 'constructor' }))).level).toBe('From the due time')
+    expect(docketOf(render(h(Game, { level: 'court' }))).level).toBe('Five reports')
+    expect(docketOf(render(h(Game, { level: 'sure' }))).level).toBe('p99 interval')
+    expect(docketOf(render(h(Game, { level: 'warm' }))).level).toBe('Warm-up cut')
+    expect(docketOf(render(h(Game, { level: 'rain-and-relay' }))).level).toBe('From due time')
+    expect(docketOf(render(h(Game, { level: 'constructor' }))).level).toBe('From due time')
   })
 
   test('puts the tail between the pass and the desk, so a phone reads the evidence before the instruments', () => {
@@ -90,7 +90,7 @@ describe('the page names the game as D-049 says, and opens on the first level', 
     expect(markup).not.toContain('3D view')
     expect(markup).toContain('data-surface="2d"')
     const docket = markup.slice(markup.indexOf('aria-label="Levels of the Inspection"'), markup.indexOf('aria-label="Attempt"'))
-    for (const title of ['From the due time', 'The warm-up cut', 'How sure', 'The court']) expect(docket).toContain(`>${title}</button>`)
+    for (const title of ['From due time', 'Warm-up cut', 'p99 interval', 'Five reports']) expect(docket).toContain(`>${title}</button>`)
     expect(count(docket, /aria-current="true"/g)).toBe(1)
     expect(markup).toContain('Graded attempt, fresh seed')
     expect(markup).toContain('aria-pressed="true">Practice</button>')
@@ -98,7 +98,7 @@ describe('the page names the game as D-049 says, and opens on the first level', 
 
   test('opens a graded attempt on a seed it draws, and the board hides the desk\'s p99 there', () => {
     const markup = render(h(Game, { mode: 'graded' }))
-    expect(docketOf(markup)).toEqual({ level: 'From the due time', attempt: 'Graded attempt, fresh seed' })
+    expect(docketOf(markup)).toEqual({ level: 'From due time', attempt: 'Graded attempt, fresh seed' })
     expect(markup).toContain('data-mode="graded"')
     expect(markup).not.toContain('At the desk')
     expect(markup).toContain('Count down from the slowest to the order at the p99')

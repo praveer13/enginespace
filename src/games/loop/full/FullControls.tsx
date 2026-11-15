@@ -29,7 +29,7 @@ export type { AutoToggleRef } from './useFullControls'
  *   - the nights served, each against the house's.
  */
 
-const UNIT_WORD: Readonly<Record<Extract<Prediction, { kind: 'number' }>['unit'], string>> = { µs: 'µs', calls: 'calls', fires: 'fires', '%': 'per cent' }
+const UNIT_WORD: Readonly<Record<Extract<Prediction, { kind: 'number' }>['unit'], string>> = { µs: 'µs', launches: 'launches', steps: 'steps', '%': 'per cent' }
 
 /** After the call the ticket prints it and its field goes, so focus moves on to the stage's first lever, or to the bell. */
 function focusNext() {

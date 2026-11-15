@@ -436,7 +436,7 @@ async function fileRuling(page: Page, walk: Walk, ruling: Ruling): Promise<void>
 export const benchLevelWalk = (level: 'due' | 'warm' | 'sure' | 'court', seed = practiceSeed('broken-bench', level)): Walker => async (page, walk) => {
   const slots = benchLevel(level, seed).slots
   for (const [at, slot] of slots.entries()) {
-    if (at > 0) await expect.poll(() => activeName(page)).toBe(`The court, case ${at + 1} of ${slots.length}`)
+    if (at > 0) await expect.poll(() => activeName(page)).toBe(`Five reports, case ${at + 1} of ${slots.length}`)
     await fileRuling(page, walk, rightRuling(slot))
     if (at < slots.length - 1) await expect(liveLine(page)).toContainText(`Case ${at + 1} of ${slots.length} filed.`)
   }

@@ -455,8 +455,8 @@ describe('the blocks, one at a time', () => {
     expect(placeholders(html)).toEqual({})
     const ticket = opening(html, 'section').find((tag) => attribute(tag, 'data-block') === 'game') ?? ''
     expect([attribute(ticket, 'data-play'), attribute(ticket, 'data-mode'), attribute(ticket, 'data-phase')]).toEqual(['pool/evict', 'graded', 'waiting'])
-    // D-049: the display name over its engine concept, from the roster, which costs the lesson's first paint none of the game's code.
-    expect(html).toContain('<strong>The Reach-In</strong> · hybrid KV pages and adapters')
+    // D-063: the title over its rule in one line, from the roster, which costs the lesson's first paint none of the game's code.
+    expect(html).toContain('<strong>KV page pool</strong> · One page pool serves every KV group and every adapter.')
     for (const fact of ['level · evict', 'graded']) expect(html).toContain(fact)
     expect(html).toContain('Graded: new numbers drawn when you start, and no undo.')
     // The stub is live, and the way to every level is the game's own page.
@@ -473,7 +473,7 @@ describe('the blocks, one at a time', () => {
     const waiting = drawnBlocks(game('switchyard'))
     expect(placeholders(waiting)).toEqual({ game: 'W2-T30' })
     expect(waiting).toContain('Not built yet: the game')
-    expect(waiting).toContain('<strong>The Dumbwaiter</strong>')
+    expect(waiting).toContain('<strong>KV offload</strong>')
     expect(waiting).toMatch(/<button type="button" class="es-stub__pull"[^>]*disabled=""/)
     for (const id of ['not-a-game', 'constructor']) {
       const none = drawnBlocks(game(id))

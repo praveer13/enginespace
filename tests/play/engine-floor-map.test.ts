@@ -99,7 +99,7 @@ describe('the scenario a seed draws (GAMES.md §5: engine × streaming × TP × 
   test('the level allows one run, and its title names no engine and nothing of how a house is built', () => {
     const level = map(3)
     expect(level.attempts).toBe(1)
-    expect(FLOOR_COPY[level.id].title).toBe('The lifecycle map')
+    expect(FLOOR_COPY[level.id].title).toBe('Map the request path')
     expect(FLOOR_COPY[level.id].title).not.toMatch(/process|thread|queue|window|boundar|hop/i)
     expect(FLOOR_COPY[level.id].prompt).not.toMatch(/\d/)
     expect(LEVEL_IDS.every((id) => buildLevel(id, 0).attempts === null)).toBe(true)

@@ -1,38 +1,65 @@
 /**
- * What the front page's levels say, by level id (R-T02): the title on the rail and the line a level opens on. The words are display
- * copy and no rule reads them, so they are not in a level or a state: rewording one moves no state hash and no golden. A view reads
- * them here by id (`loopView`), and `levelTitle` serves the registry's record.
+ * What the step loop's four demo levels say, by level id (R-T02, R-T04): the title in the level menu, the goal line and the line a level
+ * opens on. The words are display copy and no rule reads them, so they are not in a level or a state: rewording one moves no state hash and
+ * no golden. A view reads them here by id (`loopView`), and `levelTitle` serves the registry's record.
  *
- * The copy follows GAMES.md §2.6 ("First service's copy"): the kitchen word names the object and the engine term rides beside it.
- * It carries no digit, so no number goes untagged: the counters are Readouts, and the mirror holds every figure.
+ * The words are the engine's (REDESIGN §2.7, D-063): request, batch slot, step, async scheduling, bubble, ghost token. Step is the Step
+ * button's word too. The copy carries no digit, so no number goes untagged: the counters are Readouts, and the mirror holds every figure.
+ * None of the four is graded, so none has a pass rule.
  */
+import type { GoalLine } from '../types'
 import type { LoopLevelId } from './types'
 
 export interface LoopCopy {
   /** The level's name on screen. */
   readonly title: string
-  /** The line the level opens on, in the kitchen's words with the engine's term beside it. */
+  readonly goal: GoalLine
+  /** The line the level opens on. */
   readonly prompt: string
 }
 
 export const LOOP_COPY: Readonly<Record<LoopLevelId, LoopCopy>> = {
   'first-1-fill': {
-    title: 'Fill the rail',
-    prompt: 'Tap a ticket to hang it on the rail (put a request in the batch). Hang as many as there are clips, then ring the bell.',
+    title: 'Fill the batch',
+    goal: {
+      aim: 'Fill the running batch before the first step.',
+      controls: 'You choose which waiting requests to admit into the empty batch slots.',
+      beat: "The number to beat is the reference run's: every slot live in the first step.",
+      ends: "Ends when the first step's tokens are read back.",
+    },
+    prompt: 'Tap a waiting request to admit it into the running batch. Admit as many as there are batch slots, then press Step.',
   },
   'first-2-slot': {
-    title: 'A clip empties',
+    title: 'Refill a slot',
+    goal: {
+      aim: 'Keep every batch slot live when a request finishes.',
+      controls: 'You choose whether to admit a waiting request into the freed slot or leave it empty.',
+      beat: "The number to beat is the reference run's: every slot live in the step after.",
+      ends: 'Ends when the step after the first finished request is read back.',
+    },
     prompt:
-      'Ring the bell until a ticket ends. Its clip opens and the line waits for you: hang the next ticket (refill the slot), or ring the bell to leave the clip empty.',
+      'Press Step until a request finishes. Its slot frees at the step boundary and the loop waits for you: admit the next request into it (continuous batching), or press Step to leave the slot empty.',
   },
   'first-3-gap': {
-    title: 'Mind the gap',
+    title: 'Close a bubble',
+    goal: {
+      aim: 'Close the bubbles, where the GPU idles while the CPU prepares the next step.',
+      controls: 'You switch async scheduling on, so the CPU prepares the next step while this one runs.',
+      beat: "The number to beat is the reference run's idle GPU time.",
+      ends: 'Ends when the first ghost token is read back.',
+    },
     prompt:
-      'The stations go dark between fires while the expo writes the next call. Turn on "Write the next call during this fire" (overlap, async scheduling), then keep ringing the bell until a plate is binned.',
+      'Between steps the GPU sits idle while the CPU schedules and prepares the next one: a bubble. Turn on async scheduling, then keep pressing Step until a ghost token appears, a token computed for a request that had already stopped.',
   },
   'first-4-par': {
-    title: 'Your turn',
+    title: 'Both levers',
+    goal: {
+      aim: 'Serve every request in as few ticks as you can.',
+      controls: 'You admit requests into freed slots, and switch async scheduling on or off.',
+      beat: "The reference run's clock is the number to beat.",
+      ends: 'Ends when every request is served.',
+    },
     prompt:
-      'A burst of tickets and both tools: refill every clip the moment it opens, and write the next call during the fire. Serve every ticket and beat par.',
+      'A burst of requests, and both levers: refill every slot the moment it frees, and schedule the next step while this one runs. Serve every request in no more ticks than the reference run.',
   },
 }

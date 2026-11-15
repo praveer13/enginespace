@@ -1,47 +1,97 @@
 /**
- * What the Tasting's levels say, by level id (R-T02): the title on the rail and the line a level opens on. The words are display copy
- * and no rule reads them, so they are not in a level or a state: rewording one moves no state hash and no golden. The view reads them
- * here by id (`verifierView`), and `levelTitle` serves the registry's record.
+ * What Rejection sampler's levels say, by level id (R-T02, R-T04): the title in the level menu, the goal line, the line a level opens on,
+ * and for a graded level its pass rule. The words are display copy and no rule reads them, so they are not in a level or a state:
+ * rewording one moves no state hash and no golden. The view reads them here by id (`verifierView`), and `levelTitle` serves the registry's
+ * record.
  *
- * The kitchen's word names the object and the engine's term rides beside it (GAMES.md §2.6, rule 2), and no prompt holds a digit: the
- * figures are in the mirror, the tape and the drawing, each tagged synthetic.
+ * The words are the engine's and the paper's (REDESIGN §2.7, D-063): draft model and q, target model and p, accept, residual, bonus token,
+ * γ. Only a pass rule carries a digit, the level's own bar, and tests/copy/game-copy.test.ts reads the bar from the session's grade and
+ * finds it there; the figures are in the mirror, the readouts and the drawing, each tagged synthetic.
  */
+import type { GoalLine } from '../types'
 import type { VerifierLevelId } from './types'
 
 export interface LevelCopy {
   readonly title: string
+  readonly goal: GoalLine
   readonly prompt: string
+  /** A graded level's pass rule, stated before the run (REDESIGN §2.6), with the level's bar in it. */
+  readonly passRule?: string
 }
+
+/** ASSESSMENT §4.3's bars, as `verifierGrade` computes them. */
+const EXACT_PASS = "Passes when the output's total variation distance from p is exactly 0."
+const CHAIN_PASS = 'Passes when your prediction is within 1% of the exact tokens per round.'
+const GAMMA_PASS = 'Passes when you choose the draft length with the best speedup.'
 
 export const VERIFIER_COPY: Readonly<Record<VerifierLevelId, LevelCopy>> = {
   overlap: {
-    title: 'What the chef keeps',
+    title: 'Acceptance rate: the overlap of p and q',
+    goal: {
+      aim: 'Find the acceptance rate α of one draft position.',
+      controls: 'You predict how many sixty-fourths the target accepts, then draw rounds to watch it.',
+      beat: 'The number to beat is the exact overlap, to within one sixty-fourth.',
+      ends: 'Ends when you submit your count.',
+    },
     prompt:
-      'The commis has plated a stack for each dish ahead of the chef. The plates both stacks share are the ones she keeps (the overlap, min(p, q), which is α). Predict how many of the sixty-four plates she keeps, then watch rounds go down the pass.',
+      'The draft model proposes each token with probability q, and the target model would emit it with probability p, both counted in sixty-fourths over six tokens. The target accepts the share the two have in common: the overlap, min(p, q), which is the acceptance rate α. Predict how many sixty-fourths it accepts, then draw rounds.',
   },
   exact: {
-    title: 'Make it exact',
+    title: 'Resample from the residual',
+    goal: {
+      aim: 'Make the output of the rejection sampler exactly the target distribution p.',
+      controls: 'You set the weight each token is resampled with after a rejection.',
+      beat: EXACT_PASS,
+      ends: 'Ends when you submit the weights.',
+    },
     prompt:
-      'The chef keeps a commis plate with probability min(1, p ÷ q), the accept rule. When she sends one back she re-plates from a recipe of yours: how heavily she draws from each dish. Sculpt the recipe until what goes out is her tasting exactly (the output is p, total variation distance zero), then submit.',
+      'The target accepts a draft token with probability min(1, p ÷ q), the accept rule. When it rejects one, it resamples from weights you set for each token. Set the weights until the output is p exactly (total variation distance zero), then submit.',
+    passRule: EXACT_PASS,
   },
   chain: {
-    title: 'A run of plates',
+    title: 'Tokens per round with γ drafts',
+    goal: {
+      aim: 'Count the tokens one round of γ draft tokens yields on average.',
+      controls: 'You predict the tokens per round, then draw rounds to watch them.',
+      beat: CHAIN_PASS,
+      ends: 'Ends when you submit your prediction.',
+    },
     prompt:
-      'The commis plates a run of courses ahead, and the chef tastes them in order. She stops at the first plate she sends back, and plates one extra course herself when she keeps them all (the bonus token). Predict how many courses a round serves on average.',
+      'The draft model proposes a run of γ tokens, and the target checks them in order. It stops at the first rejection, and samples one bonus token itself when it accepts them all. Predict how many tokens a round yields on average.',
+    passRule: CHAIN_PASS,
   },
   'greedy-ngram': {
-    title: 'The favourite and the copier',
+    title: 'Greedy target, n-gram draft',
+    goal: {
+      aim: 'Verify an n-gram draft at temperature zero and at full temperature.',
+      controls: 'You say whether the drafted token is accepted, then set the residual weights.',
+      beat: 'The number to beat is two right answers: the verdict, and a distance from p of zero.',
+      ends: 'Ends when you submit both.',
+    },
     prompt:
-      'A copier plates whatever the night served lately and knows nothing of how often, so its q is a single dish (an n-gram draft). First, at temperature zero the chef always sends her favourite: is the copier\'s plate kept? Then, at full temperature, sculpt the re-plating that still sends out her tasting exactly.',
+      "An n-gram draft copies the token that followed the same context earlier and knows nothing of how likely it is, so its q puts everything on one token. First, at temperature zero the target always emits its most likely token: is the drafted token accepted? Then, at full temperature, set the residual that still makes the output p exactly.",
   },
   mutants: {
-    title: 'Five rules to audit',
+    title: 'Five broken accept rules',
+    goal: {
+      aim: 'Find the bug in each of five broken rejection samplers.',
+      controls: 'You draw rounds from each sampler, or check every draw of its accept step, then name its bug.',
+      beat: 'The number to beat is five bugs named right.',
+      ends: 'Ends when you submit your five answers.',
+    },
     prompt:
-      'Five tasting rules, each a little wrong in a different way. Taste a rule, or check every coin of its accept step, and name the bug in each one.',
+      'Five rejection samplers, each wrong in a different way. Draw rounds from a sampler, or check every random draw of its accept step, and name the bug in each one.',
   },
   gamma: {
-    title: 'How far ahead',
+    title: 'Choose γ',
+    goal: {
+      aim: 'Choose how many tokens to draft in each round.',
+      controls: 'You choose the draft length γ.',
+      beat: GAMMA_PASS,
+      ends: 'Ends when you submit your γ.',
+    },
     prompt:
-      'The chef tastes a whole run in one go, and each plate the commis sets down costs a fraction of a tasting. The further along the run, the less likely she gets that far. Choose how many plates ahead the commis should plate for the most courses a tasting buys (the draft length γ).',
+      'The target verifies a whole run of draft tokens in one forward, and each draft token costs a fraction of a target forward. The further along the run, the less likely a token is reached. Choose the draft length γ that buys the most tokens for the time spent.',
+    passRule: GAMMA_PASS,
   },
 }

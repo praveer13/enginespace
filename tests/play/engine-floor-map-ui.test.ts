@@ -71,7 +71,7 @@ const debrief = (state: FloorState, over: { mode?: 'graded' | 'practice'; graded
 describe('the page opens the graded level in practice, and in a graded run when it is asked to', () => {
   test('in practice it names the level and its mode on a tape label, and offers a graded run on a fresh scenario of any of the five engines', () => {
     const markup = render(h(Game, { level: 'map' }))
-    expect(markup).toContain('The lifecycle map · practice')
+    expect(markup).toContain('Map the request path · practice')
     expect(markup).toContain('data-mode="practice"')
     expect(markup).toContain('data-floor-mode="practice"')
     expect(markup).toContain('This level can be graded, on a fresh scenario of any of the five engines.')
@@ -81,7 +81,7 @@ describe('the page opens the graded level in practice, and in a graded run when 
 
   test('in a graded run it says so: a fresh scenario, no undo and one run, with the way back to practice, and no Undo plate', () => {
     const markup = render(h(Game, { level: 'map', mode: 'graded' }))
-    expect(markup).toContain('The lifecycle map · graded')
+    expect(markup).toContain('Map the request path · graded')
     expect(markup).toContain('data-mode="graded"')
     expect(markup).toContain('data-floor-mode="graded"')
     expect(markup).toContain('A graded run: a fresh scenario, no undo and one run.')
@@ -127,7 +127,7 @@ describe('the levels: a row of plates, the current one marked, the one that can 
 
   test('marks the current level, and says in words for a screen reader that the last can be graded', () => {
     expect(count(markup, /aria-current="step"/g)).toBe(1)
-    expect(markup).toMatch(/data-variant="ink"[^>]*aria-current="step">The lifecycle map<span class="sr-only"> \(can be graded\)<\/span>/)
+    expect(markup).toMatch(/data-variant="ink"[^>]*aria-current="step">Map the request path<span class="sr-only"> \(can be graded\)<\/span>/)
     expect(count(markup, /can be graded/g)).toBe(1)
   })
 

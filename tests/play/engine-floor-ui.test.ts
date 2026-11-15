@@ -43,17 +43,17 @@ function mistaken(level = vllm): FloorState {
 describe('the page names the game as D-049 says, and opens on the first level', () => {
   test('the display name over its engine concept, the level and its mode on a tape label, and no working name', () => {
     const markup = render(h(Game, null))
-    expect(markup).toMatch(/<h2 id="[^"]+" class="es-type-heading">Back of House<\/h2><p class="es-type-body[^"]*">a request&#x27;s lifecycle<\/p>/)
+    expect(markup).toMatch(/<h2 id="[^"]+" class="es-type-heading">Request path<\/h2><p class="es-type-body[^"]*">Every queue, IPC hop, copy and sync between the API server and the GPU.<\/p>/)
     expect(markup).toContain('nano-vllm · practice')
     expect(markup).toContain('data-game="engine-floor"')
     expect(markup).not.toContain('The Engine Floor')
-    expect(render(h(Game, { placement: 'embed' }))).toMatch(/<h3 id="[^"]+" class="es-type-heading">Back of House<\/h3>/)
+    expect(render(h(Game, { placement: 'embed' }))).toMatch(/<h3 id="[^"]+" class="es-type-heading">Request path<\/h3>/)
   })
 
   test('opens the level it is given, and the first when the id is not one of its own', () => {
-    expect(render(h(Game, { level: 'abort' }))).toContain('vLLM, the client leaves · practice')
+    expect(render(h(Game, { level: 'abort' }))).toContain('vLLM: the client disconnects · practice')
     expect(render(h(Game, { level: 'sglang' }))).toContain('SGLang at the pin · practice')
-    expect(render(h(Game, { level: 'map' }))).toContain('The lifecycle map · practice')
+    expect(render(h(Game, { level: 'map' }))).toContain('Map the request path · practice')
     expect(render(h(Game, { level: 'constructor' }))).toContain('nano-vllm · practice')
   })
 

@@ -60,7 +60,7 @@ const pct = (part: number, whole: number) => `${((100 * part) / whole).toFixed(1
 describe('the registry\'s record of close', () => {
   test('is a graded level of Service, between the V2 runner and the allergy card, with one stage and a practice seed that is in band', () => {
     const entry = FULL_SERVICE.find((level) => level.id === 'close')
-    expect(entry).toEqual({ id: 'close', title: 'Close the bubbles', graded: true, practiceSeed: 16, stages: ['close'] })
+    expect(entry).toEqual({ id: 'close', title: 'Every lever, on new numbers', graded: true, practiceSeed: 16, stages: ['close'] })
     expect(FULL_SERVICE.map((level) => level.id)).toEqual(['async', 'graphs', 'mrv2', 'close', 'mask'])
     expect(LOOP.levels.find((level) => level.id === 'close')).toBe(entry)
     expect(inFullBand('close', entry!.practiceSeed)).toBe(true)
