@@ -40,10 +40,6 @@ export type LeverAccess = 'locked' | 'free'
 export interface LoopLevel {
   readonly id: LoopLevelId
   readonly seed: Seed
-  /** The level's name on screen. */
-  readonly title: string
-  /** The line the level opens on, in the kitchen's words with the engine's term beside it (GAMES.md §2.6, "First service's copy"). */
-  readonly prompt: string
   /** Clips on the rail: the batch slots (D-043: 4 [estimated]). */
   readonly slots: number
   /**

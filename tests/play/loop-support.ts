@@ -18,8 +18,6 @@ export function handLevel(outputs: readonly number[], over: Partial<LoopLevel> =
   return {
     id: 'first-4-par',
     seed: 0,
-    title: 'Hand level',
-    prompt: 'A level made by hand.',
     slots: 4,
     outputs,
     opening: null,

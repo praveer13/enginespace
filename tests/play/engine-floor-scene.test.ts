@@ -58,7 +58,7 @@ const asSpec = (item: HouseItem): PropSpec => (OWN.has(item.kind) ? customOf(ite
 
 /** A level on a scenario of the model: its own path, and a tray of every stage it has and four of other engines. */
 function levelFor(sc: Scenario, id: FloorLevel['id'] = 'inside'): FloorLevel {
-  return { id, seed: 0, title: describeScenario(sc), prompt: '', scenario: sc, reference: referenceOf(sc).map((stage) => stage.id), tray: trayFor(sc, 0, true).map((stage) => stage.id), attempts: null }
+  return { id, seed: 0, scenario: sc, reference: referenceOf(sc).map((stage) => stage.id), tray: trayFor(sc, 0, true).map((stage) => stage.id), attempts: null }
 }
 
 /** The view with the engine's whole path laid, written down first: the house as the learner sees it before the run. */

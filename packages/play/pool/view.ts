@@ -12,6 +12,7 @@
  */
 import { kvHitFrom, kvTableRule } from '@es/sim/kv'
 import type { KvPage } from '@es/sim/kv'
+import { POOL_COPY } from './copy'
 import { kitReady, loadSteps, peek, planOf } from './engine'
 import type { PoolWork } from './engine'
 import { labelOf } from './labels'
@@ -182,8 +183,8 @@ export function poolView(state: PoolState): PoolView {
   }
   return {
     level: level.id,
-    title: level.title,
-    prompt: level.prompt,
+    title: POOL_COPY[level.id].title,
+    prompt: POOL_COPY[level.id].prompt,
     graded: level.graded,
     synthetic: true,
     step: state.step,
@@ -197,7 +198,7 @@ export function poolView(state: PoolState): PoolView {
     kits: kitsOf(w, state),
     ask: askOf(w, state),
     counts: scoreOf(state),
-    predict: { ...level.predict, committed: state.predicted, open: state.history.length === 0 && !state.done },
+    predict: { ...POOL_COPY[level.id].predict, ...level.predict, committed: state.predicted, open: state.history.length === 0 && !state.done },
     tally,
     stock,
     cap: level.cap,

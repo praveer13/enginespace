@@ -8,6 +8,7 @@
  */
 import { LAB_DRAWS } from '@es/sim/spec'
 import { CARD_COPY } from './cards'
+import { VERIFIER_COPY } from './copy'
 import { markersOf } from './draws'
 import { finalFacts } from './facts'
 import { GRID } from './levels'
@@ -110,8 +111,8 @@ export function viewOf(s: VerifierState): VerifierView {
   const meter: Meter | null = tv === null ? null : { tv: toFrac(tv), exact: isZero(tv) }
   return {
     level: level.id,
-    title: level.title,
-    prompt: level.prompt,
+    title: VERIFIER_COPY[level.id].title,
+    prompt: VERIFIER_COPY[level.id].prompt,
     synthetic: true,
     dishes: DISHES,
     rows,

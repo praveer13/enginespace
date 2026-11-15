@@ -1,6 +1,6 @@
 import { drawInBand } from '@es/play'
 import { buildFullLevel } from '@es/play/loop/full/levels'
-import { fullSession, leverWords, predictionClose } from '@es/play/loop/full/session'
+import { fullSession, leverWords, predictionClose, wordsOf } from '@es/play/loop/full/session'
 import type { LeverName, Levers } from '@es/play/loop/full/types'
 import { Button } from '@/design/components/Button'
 import { Readout } from '@/design/components/Readout'
@@ -144,13 +144,13 @@ export function FullDebrief({ run, outcome, next, onNext, onGraded = null, onPra
               {level.stages.map((world, i) => {
                 const stage = view.stages[i]
                 const best = stage.served.length === 0 ? null : Math.min(...stage.served.map((night) => night.metric))
-                const p = world.prediction
+                const p = wordsOf(view.level, world).prediction
                 const said = (value: number) => (p.kind === 'choice' ? p.options[value] : `${formatReadout(value)} ${p.unit}`)
                 const tag = tagOf({ synthetic: world.card === 'small' }, 'expo')
                 return (
                   <tr key={world.id} role="row" className="border-b border-paper-rule" data-stage-row={world.id} data-passed={stage.passed || undefined}>
                     <th scope="row" role="rowheader" className="py-2 pr-4 text-left font-normal">
-                      {world.title}
+                      {stage.title}
                       <span className="block text-sm text-text-2">{stage.passed ? 'at the bar' : 'missed the bar'}</span>
                     </th>
                     <td role="cell" data-label="Yours, best night" className="py-2 pr-4 text-right">
@@ -160,7 +160,7 @@ export function FullDebrief({ run, outcome, next, onNext, onGraded = null, onPra
                       <Readout value={world.houseMetric} unit="µs" tag={tag} size="sm" />
                     </td>
                     <td role="cell" data-label="Your call, and the model's" className="py-2 text-right">
-                      {stage.predicted === null ? 'not called' : `${said(stage.predicted)}; the model: ${said(world.answer)}${predictionClose(world, stage.predicted) ? ', on the money' : ''}`}
+                      {stage.predicted === null ? 'not called' : `${said(stage.predicted)}; the model: ${said(world.answer)}${predictionClose(view.level, world, stage.predicted) ? ', on the money' : ''}`}
                     </td>
                   </tr>
                 )

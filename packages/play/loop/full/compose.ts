@@ -10,7 +10,7 @@
 import type { Seed } from '@es/sim/core'
 import { buildFullLevel, defaultLevers } from './levels'
 import { nightOf } from './night'
-import { nightMeetsBar } from './session'
+import { copyOf, nightMeetsBar } from './session'
 import type { FullLevelId, Levers, StageWorld } from './types'
 
 /** The configuration a policy compiles to: a line of each engine's for each lever the level has, and what has no flag. */
@@ -87,7 +87,7 @@ export function composeRun(id: FullLevelId, policy: readonly Levers[], seeds: re
     const level = buildFullLevel(id, seed)
     const stages = level.stages.map((stage, i) => {
       const night = nightOf(stage, policy[i] ?? stage.house)
-      return { id: stage.id, title: stage.title, metric: night === null ? null : night.metric, house: stage.houseMetric, ok: night !== null && nightMeetsBar(stage, night) }
+      return { id: stage.id, title: copyOf(id, stage.id).title, metric: night === null ? null : night.metric, house: stage.houseMetric, ok: night !== null && nightMeetsBar(stage, night) }
     })
     return { seed, stages, ok: stages.every((stage) => stage.ok) }
   })

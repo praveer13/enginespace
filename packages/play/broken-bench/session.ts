@@ -20,6 +20,7 @@ import type { Seed } from '@es/sim/core'
 import { BENCH_FLAWS } from '@es/sim/bench/broken-types'
 import type { Debrief, Grade, Session } from '../types'
 import { caseOf } from './cases'
+import { BENCH_COPY } from './copy'
 import { FLAW_FACTS } from './flaws'
 import { MAX_PREDICTION_US, judge, stands } from './judge'
 import { buildLevel, isLevelId } from './levels'
@@ -155,8 +156,8 @@ export function benchView(s: BenchState): BenchView {
   const prediction = done ? null : s.predictions[s.at]
   return {
     level: s.level.id,
-    title: s.level.title,
-    prompt: s.level.prompt,
+    title: BENCH_COPY[s.level.id].title,
+    prompt: BENCH_COPY[s.level.id].prompt,
     synthetic: true,
     caseNo: Math.min(s.at + 1, cases),
     cases,

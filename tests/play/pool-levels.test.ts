@@ -19,6 +19,7 @@
  */
 import { describe, expect, setDefaultTimeout, test } from 'bun:test'
 import { drawInBand } from '@es/play'
+import { POOL_COPY } from '@es/play/pool/copy'
 import { applyAction, advance, freshWork } from '@es/play/pool/engine'
 import type { Policy } from '@es/play/pool/engine'
 import { POOL } from '@es/play/pool/entry'
@@ -47,10 +48,11 @@ describe('the levels of GAMES.md §8, in the order they teach', () => {
     for (const entry of POOL.levels) {
       const level = buildLevel(entry.id, entry.practiceSeed)
       expect([entry.id, level.graded]).toEqual([entry.id, entry.graded])
-      expect(level.title).toBe(entry.title)
+      expect(POOL_COPY[entry.id as PoolLevelId].title).toBe(entry.title)
       expect(levelTitle(entry.id as PoolLevelId)).toBe(entry.title)
-      expect(level.prompt.length).toBeGreaterThan(80)
-      expect([entry.id, /\d/.test(level.prompt), /\d/.test(level.title)]).toEqual([entry.id, false, false])
+      const words = POOL_COPY[entry.id as PoolLevelId]
+      expect(words.prompt.length).toBeGreaterThan(80)
+      expect([entry.id, /\d/.test(words.prompt), /\d/.test(words.title)]).toEqual([entry.id, false, false])
     }
     expect(isLevelId('evict')).toBe(true)
     expect(isLevelId('constructor')).toBe(false)
@@ -79,9 +81,11 @@ describe('the levels of GAMES.md §8, in the order they teach', () => {
 
   test('ask for a prediction the sim\'s own arithmetic answers', () => {
     const one = buildLevel('one-group', 2)
-    expect(one.predict).toMatchObject({ unit: 'pages', answer: kvPagesHeld(one.spec, one.reqs[0].prompt.length) })
+    expect(one.predict).toEqual({ answer: kvPagesHeld(one.spec, one.reqs[0].prompt.length) })
+    expect(POOL_COPY['one-group'].predict.unit).toBe('pages')
     const same = buildLevel('same-size', 0)
-    expect(same.predict).toMatchObject({ unit: 'stations', answer: same.spec.groups.length })
+    expect(same.predict).toEqual({ answer: same.spec.groups.length })
+    expect(POOL_COPY['same-size'].predict.unit).toBe('stations')
     const state = buildLevel('state', 0)
     expect(state.predict.answer).toBe(state.spec.groups.reduce((sum, g) => sum + (g.kind === 'state' ? (g.statePages ?? 0) : 0), 0))
     const kits = buildLevel('adapters', 0)

@@ -1,4 +1,4 @@
-import type { PanView, PoolPredict, PoolView, StationView } from '@es/play/pool/types'
+import type { PanView, PoolPredictView, PoolView, StationView } from '@es/play/pool/types'
 
 /** The glyph that draws a station: a circle for full attention, a square for a sliding window, a hexagon for state. The kind is the code. */
 const KIND_GLYPH = { full: 'circle', sliding: 'square', state: 'hexagon' } as const
@@ -25,4 +25,4 @@ export function panTitle(pan: PanView, view: PoolView): string {
 }
 
 /** What a prediction counts, in the kitchen's word: the engine's pages are pans. */
-export const unitWord = (unit: PoolPredict['unit']): string => (unit === 'pages' ? 'pans' : unit)
+export const unitWord = (unit: PoolPredictView['unit']): string => (unit === 'pages' ? 'pans' : unit)

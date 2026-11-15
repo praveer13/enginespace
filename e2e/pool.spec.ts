@@ -523,7 +523,7 @@ test.describe('determinism', () => {
     })()`)
     expect(inBrowser).toBe(expected)
     expect(expected).toMatch(/^[0-9a-f]{8}$/)
-    expect(expected).toBe('427f825e')
+    expect(expected).toBe('06b88fb1')
   })
 })
 

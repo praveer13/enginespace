@@ -71,9 +71,9 @@ export function Compose({ run }: { run: FullRun }) {
                     <th scope="col" className="border-b border-edge py-2 pr-4 font-bold">
                       Night
                     </th>
-                    {level.stages.map((stage) => (
+                    {level.stages.map((stage, i) => (
                       <th key={stage.id} scope="col" className="border-b border-edge py-2 pr-4 text-right font-bold">
-                        {stage.title}
+                        {view.stages[i].title}
                         <span className="block text-sm font-normal text-text-2">µs, yours against the house</span>
                       </th>
                     ))}

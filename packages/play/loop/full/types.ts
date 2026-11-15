@@ -58,7 +58,13 @@ export interface Levers {
   readonly maskOverlap: boolean
 }
 
-/** A prediction to commit before the stage's first night (GAMES.md §3, "Predict"): a number in a unit, or one of a few choices. */
+/**
+ * What a stage's prediction is to the rules (GAMES.md §3, "Predict"): a number within a tolerance, or one of a few choices, the answer
+ * being the index of the right one. The words (the question, a number's unit, the choices) are `./copy.ts`'s, by level and stage id.
+ */
+export type PredictionRule = { readonly kind: 'number'; readonly tolerancePermille: Permille } | { readonly kind: 'choice' }
+
+/** A prediction as the panel shows it: the rule with its words (`./copy.ts`): a number in a unit, or one of a few choices. */
 export type Prediction =
   | { readonly kind: 'number'; readonly question: string; readonly unit: 'µs' | 'calls' | 'fires' | '%'; readonly tolerancePermille: Permille }
   | { readonly kind: 'choice'; readonly question: string; readonly options: readonly string[] }
@@ -93,9 +99,6 @@ export interface HostDraw {
 /** A stage of a level on its seed: its world and its answers. */
 export interface StageWorld {
   readonly id: StageId
-  readonly title: string
-  /** What the stage asks, in the kitchen's words with the engine's term beside them. */
-  readonly prompt: string
   readonly card: CardId
   readonly levers: readonly LeverName[]
   /** The configuration the stage opens on: its naive one (the naive configuration fails the bar on every in-band seed). */
@@ -130,7 +133,7 @@ export interface StageWorld {
   readonly houseTokens: number
   /** The bar: a night passes when its metric is at most the house's times (1000 + slack) / 1000 [estimated]. */
   readonly slackPermille: Permille
-  readonly prediction: Prediction
+  readonly prediction: PredictionRule
   /** The prediction's answer, from the model on this seed: a number, or the index of the right choice. */
   readonly answer: number
   /** Clips on the rail (`max_num_seqs`). */
@@ -163,8 +166,6 @@ export type Draft = Omit<StageWorld, 'answer' | 'houseMetric' | 'houseTokens'>
 export interface FullLevel {
   readonly id: FullLevelId
   readonly seed: Seed
-  readonly title: string
-  readonly prompt: string
   readonly stages: readonly StageWorld[]
 }
 

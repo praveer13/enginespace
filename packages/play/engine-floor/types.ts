@@ -31,10 +31,6 @@ export type FloorLevelId = PracticeLevelId | GradedLevelId
 export interface FloorLevel {
   readonly id: FloorLevelId
   readonly seed: Seed
-  /** The level's name on screen. */
-  readonly title: string
-  /** The line the level opens on, in the kitchen's words with the engine's term beside them. */
-  readonly prompt: string
   readonly scenario: Scenario
   /** The engine's path for the scenario, as stage ids in order: the house run. Nothing on screen reads it before a run has been judged. */
   readonly reference: readonly string[]
