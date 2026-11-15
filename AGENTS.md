@@ -4,7 +4,7 @@ Rules for the coding agents that build enginespace, and for the people who work 
 
 enginespace is the Engine Internals course of the kernelspace family: a zero-server, browser-first site on Vite, React 19 and TypeScript, with Three.js for the 3D games and Bun for the tests. [README.md](README.md) says what the course is and how to run the site, and [PRODUCT.md](PRODUCT.md) is the product record.
 
-The work is the backlog in [docs/TRACKER.md](docs/TRACKER.md): tasks named `W<wave>-T<nn>`, one pull request each. Its agent brief is the rule set for every task, and the first section below carries it word for word. If the two differ, the tracker wins, and `tests/docs/repo-docs.test.ts` fails until this file says what the tracker says. A§n is section n of [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), D-nnn is a record in [docs/DECISIONS.md](docs/DECISIONS.md), and O-n is an open owner question there.
+The work is the backlog in [docs/TRACKER.md](docs/TRACKER.md): tasks named `W<wave>-T<nn>`, and wave R's, the redesign's, `R-T<nn>`, one pull request each. Its agent brief is the rule set for every task, and the first section below carries it word for word. If the two differ, the tracker wins, and `tests/docs/repo-docs.test.ts` fails until this file says what the tracker says. A§n is section n of [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), D-nnn is a record in [docs/DECISIONS.md](docs/DECISIONS.md), and O-n is an open owner question there.
 
 This file is for the agents that build the repository. The agent kit in the lab zips has an AGENTS.md of its own, for the learner's agent (A§9.2).
 
@@ -24,7 +24,7 @@ This file is for the agents that build the repository. The agent kit in the lab 
 6. **Dependencies.** Add none without a DECISIONS record and an exact pin (A§14). Use no `^` and no `~`.
 7. **Numbers.** Tag every number in content and docs as [measured], [derived], [estimated] or [unverified], and date every upstream fact. In content, put facts in claims (A§4.4). Never invent a fact. If one cannot be sourced, mark it [unverified] and list it in the PR.
 8. **Web requests.** Send a generic User-Agent, and never send the owner's name or email in a header, URL or payload. The site itself makes no third-party request.
-9. **Look.** The visual identity is decided (D-047): The Pass, a restaurant line kitchen and its expo pass. Use only the token roles in `src/design/tokens.ts` and the components in `src/design/components`, once they exist. Put no literal colour or font name outside `src/design`. Game names and objects follow GAMES.md §2.6.
+9. **Look.** The visual identity is Data Book (D-062). Use only the token roles in `src/design/tokens.ts` and the components in `src/design/components`. Put no literal colour or font name outside `src/design`. Names follow GAMES.md §2.6: the engine's term is the only name (D-063). D-062 is proposed until the owner's look gate (R-T20), and until stage 4 of wave R the kitchen's files stay in the tree, untouched.
 10. **Done means:**
     - `npm run lint`, `npm run typecheck`, `bun test`, `npm run build` and every `verify:*` the task touches pass;
     - the PR lists each acceptance check with its evidence;
@@ -34,7 +34,7 @@ The orchestrator is whoever dispatches your task. Set up with rules 1 and 2 befo
 
 ## Reading a task
 
-A task line reads `ID · title · size · model · deps`, and its body gives the Goal, what to Read, the Files and the Accept checks. The task is done when every Accept check passes and its evidence is in the PR description. The model is `sonnet` for build tasks, `opus` for wave exit reviews and W0-T25's finish review, and `owner` for tasks only the owner can do: those block their dependants, and agents never simulate them. Numbers in Accept checks (seed counts, time limits, tolerances) are design parameters [estimated]. Pass bars for credit come from [docs/ASSESSMENT.md](docs/ASSESSMENT.md) and override any figure in the tracker.
+A task line reads `ID · title · size · model · deps`, and its body gives the Goal, what to Read, the Files and the Accept checks. The task is done when every Accept check passes and its evidence is in the PR description. The model is `sonnet` for build tasks, `opus` for wave exit reviews, W0-T25's finish review and the tasks the tracker gives it, `haiku` for wave R's two mechanical tasks (D-068), and `owner` for tasks only the owner can do: those block their dependants, and agents never simulate them. Numbers in Accept checks (seed counts, time limits, tolerances) are design parameters [estimated]. Pass bars for credit come from [docs/ASSESSMENT.md](docs/ASSESSMENT.md) and override any figure in the tracker.
 
 ## Branches, worktrees and merging
 
@@ -108,4 +108,4 @@ Identifiers (D-014, W0-T13, `receipt@1`), counts of named things, list numbering
 
 ## Where things are
 
-README.md's "What is in this repository" maps the tree and the documents. [docs/ASSESSMENT.md](docs/ASSESSMENT.md) owns credit and wins over every other file on it, [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) owns the formats and the mechanics, and [docs/GAMES.md](docs/GAMES.md) §2.6 names the games and their kitchen objects (rule 9).
+README.md's "What is in this repository" maps the tree and the documents. [docs/ASSESSMENT.md](docs/ASSESSMENT.md) owns credit and wins over every other file on it, [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) owns the formats and the mechanics, and [docs/GAMES.md](docs/GAMES.md) §2.6 names the games (rule 9), and [docs/REDESIGN.md](docs/REDESIGN.md) is wave R's brief.
