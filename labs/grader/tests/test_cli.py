@@ -184,6 +184,16 @@ class Grade(unittest.TestCase):
         self.assertEqual(receipt["environment"]["host"]["kind"], "runpod", "the host kind is what the learner declared")
         self.assertNotIn("not declared", err)
 
+    def test_a_path_under_the_home_folder_is_printed_with_a_tilde(self) -> None:
+        with mock.patch.dict(os.environ, {"HOME": str(self.folder.parent), "USERPROFILE": str(self.folder.parent)}):
+            status, out, err = self.grade("--assisted", "none", "--agent", "no")
+        self.assertEqual(status, 0, err)
+        (written,) = self.folder.iterdir()
+        shown = f"~/{written.relative_to(self.folder.parent)}"
+        self.assertIn(f"wrote {shown} (", out)
+        self.assertIn(f"enginespace receipt verify {shown}`", out)
+        self.assertNotIn(str(self.folder.parent), out)
+
     def test_the_bundle_it_writes_verifies(self) -> None:
         self.grade("--assisted", "none", "--agent", "no")
         (path,) = self.folder.iterdir()

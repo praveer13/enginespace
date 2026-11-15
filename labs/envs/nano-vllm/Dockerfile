@@ -2,7 +2,7 @@
 #
 #   docker build -f envs/nano-vllm/Dockerfile -t enginespace-nano-vllm .
 #
-# nano-vllm has no image of its own. The base is NVIDIA's CUDA 13.0 development image, whose compiler flash-attn's build may need [unverified]. The tag and the build are [unverified]; W2-T11 checks the tag, and W2-T34 tests flash-attn on torch 2.14 and CUDA 13.
+# nano-vllm has no image of its own. The base is NVIDIA's CUDA 13.0 development image, whose compiler flash-attn's build may need [unverified]. That the tag exists is the claim runners.image.cuda-devel ([measured] 2026-11-15, content/claims/runners.yaml); whether flash-attn builds on it is [unverified], and W2-T34 tests flash-attn on torch 2.14 and CUDA 13.
 # The Dockerfile builds are left to the owner's smoke run (W2-T12): nothing in CI builds them, and no one has built this one [unverified].
 #
 # The locked environment is installed from uv.lock, with the hash of every file, into /opt/venv, and the kit goes beside it. The base image brings the CUDA

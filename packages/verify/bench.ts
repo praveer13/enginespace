@@ -322,6 +322,10 @@ export function benchCheck(run: Run, id: string): Outcome {
       parts.push({ label: parsed.id, result: fail(id, cut(`the log could not be read: ${parsed.problem}.`, PROBLEM_CHARS)) })
       continue
     }
+    if (parsed.relabelled !== undefined) {
+      parts.push({ label: parsed.id, result: fail(id, cut(`${parsed.relabelled}.`, PROBLEM_CHARS)) })
+      continue
+    }
     const outcome = check(run, parsed, analysisOf(run, parsed))
     if ('na' in outcome) return outcome
     parts.push({ label: parsed.id, result: outcome })

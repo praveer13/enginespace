@@ -51,6 +51,7 @@ function t1(run: Run, parsed: Good): Outcome {
   const missing = (['engine', 'version', 'gpu', 'capturedAt'] as const).filter((key) => meta[key] === undefined)
   const problems: string[] = []
   if (missing.length > 0) problems.push(`it does not name its ${missing.join(', ')}`)
+  if (parsed.relabelled !== undefined) problems.push(parsed.relabelled)
   if (meta.synthetic && !run.synthetic) problems.push('it says it is synthetic, and a made-up trace is not a capture of a run')
   if (meta.source === 'owner') problems.push("it says it is one of the owner's reference traces, which a learner's receipt cannot carry")
   if (problems.length > 0) return fail('T1', cut(`${problems.join('; ')}.`, PROBLEM_CHARS))

@@ -48,7 +48,7 @@ export interface BenchLog {
 }
 
 /** An artifact read, or why it could not be. `id` is the artifact's id in the receipt. */
-export type Parsed<T> = { readonly id: string; readonly ok: true; readonly value: T } | { readonly id: string; readonly ok: false; readonly problem: string }
+export type Parsed<T> = { readonly id: string; readonly ok: true; readonly value: T; readonly relabelled?: string } | { readonly id: string; readonly ok: false; readonly problem: string }
 
 const isInt = (x: unknown): x is number => typeof x === 'number' && Number.isSafeInteger(x) && !Object.is(x, -0)
 
@@ -142,17 +142,34 @@ export const readArgmax = (data: unknown): ArgmaxLog => {
 
 const messageOf = (error: unknown): string => cut(error instanceof Error ? error.message : String(error), 200)
 
-/** The receipt's entries of this kind and format, and what each came to: the artifact read, or the reason it could not be. */
+/** The `schema` tag that a JSON artifact carries in its own data, or undefined for any other artifact. */
+const tagOf = (run: Run, id: string): string | undefined => {
+  const artifact = run.artifacts[id] as { readonly encoding?: string; readonly data?: unknown } | undefined
+  if (artifact?.encoding !== 'json') return undefined
+  const data = artifact.data
+  if (typeof data !== 'object' || data === null || Array.isArray(data)) return undefined
+  const tag = (data as { readonly schema?: unknown }).schema
+  return typeof tag === 'string' ? tag : undefined
+}
+
+/**
+ * The receipt's entries that are of this kind and format, and what each came to: the artifact read, or the reason it could not be.
+ * An entry is also read when the JSON it points at carries this format's own `schema` tag, whatever the receipt calls it: the receipt's label is the
+ * learner's to type, so a trace relabelled `log` in the receipt alone is still read as the trace it is (and its checks, P1 above all, still run), and the
+ * mismatch is reported with the artifact (`relabelled`).
+ */
 export function readArtifacts<T>(run: Run, kind: ReceiptArtifact['kind'], format: string, parse: (data: unknown) => T): readonly Parsed<T>[] {
   return memoized(run, `evidence:${kind}:${format}`, () =>
     run.receipt.artifacts
-      .filter((entry) => entry.kind === kind && entry.format === format)
+      .filter((entry) => (entry.kind === kind && entry.format === format) || (entry.inBundle && tagOf(run, entry.id) === format))
       .map((entry): Parsed<T> => {
         if (!entry.inBundle) return { id: entry.id, ok: false, problem: 'the learner kept it and it is not in the bundle, so this browser cannot read it' }
         const artifact = run.artifacts[entry.id]
         if (artifact.encoding !== 'json') return { id: entry.id, ok: false, problem: `it is written as ${artifact.encoding}, and ${format} is JSON` }
         try {
-          return { id: entry.id, ok: true, value: parse(artifact.data) }
+          const value = parse(artifact.data)
+          const labelled = entry.kind === kind && entry.format === format
+          return labelled ? { id: entry.id, ok: true, value } : { id: entry.id, ok: true, value, relabelled: `the receipt lists it as kind "${entry.kind}", format "${cut(entry.format, 40)}", and its own data says ${format}` }
         } catch (error) {
           return { id: entry.id, ok: false, problem: messageOf(error) }
         }

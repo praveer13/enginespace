@@ -120,7 +120,9 @@ def main(argv: Sequence[str]) -> int:
         Path(temporary).unlink(missing_ok=True)
         raise
 
-    sys.stdout.write(f"wrote {out} ({len(data):,} bytes)\n")
+    from ..fetch import shown  # here and not at the top: a command loads only when it runs
+
+    sys.stdout.write(f"wrote {shown(out)} ({len(data):,} bytes)\n")
     sys.stdout.write(f"  trace sha256 {hashlib.sha256(data).hexdigest()}\n")
     sys.stdout.write(f"  capture sha256 {options.raw_sha256}\n")
     sys.stdout.write(f"  {report.spans:,} spans on {report.tracks} tracks, {report.flows:,} flows, {report.marks} step marks ({report.windows} step windows)\n")

@@ -2,7 +2,7 @@
 #
 #   docker build -f envs/cpu/Dockerfile -t enginespace-cpu .
 #
-# TR0 needs no GPU, so the base is the official Python image. The tag moves with Python's patch releases, so the build is not byte-reproducible [unverified]; the locked environment is.
+# TR0 needs no GPU, so the base is the official Python image. The tag moves with Python's patch releases, so the build is not byte-reproducible (the claim runners.image.python-slim, [measured] 2026-11-15, content/claims/runners.yaml, records the tag's digest of the day); the locked environment is.
 # The Dockerfile builds are left to the owner's smoke run (W2-T12): nothing in CI builds them, and no one has built this one [unverified].
 #
 # The locked environment is installed from uv.lock, with the hash of every file, into /opt/venv, and the kit goes beside it. The base image brings the CUDA
