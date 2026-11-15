@@ -372,8 +372,9 @@ class Shape(Folder):
         self.assertIn(fragment, str(caught.exception))
 
     def test_the_bounds_are_the_sites(self) -> None:
-        self.assertEqual((bundles.MAX_DEPTH, bundles.MAX_NODES), (64, 4 * 1024 * 1024))
+        self.assertEqual((bundles.MAX_DEPTH, bundles.MAX_NODES, bundles.MAX_COMMAS), (64, 4 * 1024 * 1024, 16 * 1024 * 1024))
         self.assertEqual(bundles.MAX_NODES, 4_194_304)
+        self.assertEqual(bundles.MAX_COMMAS, 16_777_216)
 
     def test_the_scan_gives_the_cases_that_the_site_is_given_the_answers_the_site_gets(self) -> None:
         document = json.loads(SHAPE_CASES.read_text(encoding="utf-8"))
@@ -381,10 +382,10 @@ class Shape(Folder):
         self.assertGreater(len(document["cases"]), 20)
         for case in document["cases"]:
             with self.subTest(case["name"]):
-                scan = bundles.ShapeScan(case["limits"]["depth"], case["limits"]["nodes"])
+                scan = bundles.ShapeScan(case["limits"]["depth"], case["limits"]["nodes"], case["limits"]["commas"])
                 if case["ok"]:
                     scan.feed(case["text"].encode("utf-8"))
-                    self.assertEqual((scan.deepest, scan.nodes), (case["deepest"], case["nodes"]))
+                    self.assertEqual((scan.deepest, scan.nodes, scan.commas), (case["deepest"], case["nodes"], case["commas"]))
                 else:
                     with self.assertRaises(bundles.ShapeError) as caught:
                         scan.feed(case["text"].encode("utf-8"))
@@ -401,6 +402,26 @@ class Shape(Folder):
         scan.feed(b'["abc')  # an unterminated string takes the rest of its piece, and no more
         scan.feed(b',"def"]')
         self.assertEqual((scan.depth, scan.nodes), (0, 3))
+
+    def test_commas_are_counted_between_tokens_and_across_pieces_and_a_column_of_numbers_past_the_bound_is_refused(self) -> None:
+        scan = bundles.ShapeScan()
+        scan.feed(b'[1,2,"a,b",')
+        scan.feed(b"3,4]")
+        self.assertEqual((scan.commas, scan.nodes), (4, 2))
+        for unit in (b"0,", b"-0,", b"true,", b"null,"):
+            with self.subTest(unit):
+                bundles.ShapeScan(64, 100, 1000).feed(b"[" + unit * 1000 + b"0]")
+                with self.assertRaises(bundles.ShapeError) as many:
+                    bundles.ShapeScan(64, 100, 1000).feed(b"[" + unit * 1001 + b"0]")
+                self.assertEqual(many.exception.reason, "commas")
+        self.assertIn("holds more than 1,000 commas outside its strings", str(many.exception))
+        # The real bound, on a text that the site refuses in Chromium: 17 million zeros.
+        with self.assertRaises(bundles.ShapeError):
+            bundles.ShapeScan().feed(b"[" + b"0," * (bundles.MAX_COMMAS + 1) + b"0]")
+
+    def test_a_column_of_numbers_past_the_bound_is_refused_by_the_reader_at_rule_2(self) -> None:
+        self.refused(gz(b"[" + b"-0," * 2001 + b"0]"), "holds more than 2,000 commas outside its strings", max_commas=2000)
+        self.assertEqual(self.read(gz(b"[" + b"-0," * 2000 + b"0]"), max_commas=2000).decompressed_bytes, 6003)
 
     def test_the_messages_say_the_bound_and_that_the_text_was_not_parsed(self) -> None:
         with self.assertRaises(bundles.ShapeError) as deep:

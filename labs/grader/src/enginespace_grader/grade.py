@@ -6,7 +6,8 @@
     4. Check that the stage reported the checks it declares.
     5. Build the receipt: the challenge, the grader's identity, the fingerprint, the pins, the inputs, the artifacts (hashed over their canonical bytes), the
        checks and the learner's provenance.
-    6. Check the bundle as the site will (schema, the rules JSON Schema cannot say, integrity), and write it, gzipped, to
+    6. Look for what the machine knows about itself in the free text a lab supplied (check details, notes, input names, `ext`, the text and JSON artifacts), and stop
+       when there is any. Check the bundle as the site will (schema, the rules JSON Schema cannot say, integrity), and write it, gzipped, to
        `<out>/<lab>-<stage>-<utc>.es.json.gz`. A bundle that the site would refuse is not written.
 
 The grader sends nothing anywhere: the learner moves the file to the browser by hand. A receipt is written when the stage ran, whether its checks passed
@@ -19,20 +20,21 @@ import datetime as dt
 import os
 import sys
 import tempfile
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .bundle import BundleStats, build_bundle, write_bundle
+from .bundle import Artifact, BundleStats, build_bundle, write_bundle
 from .challenge import TOKEN_LIFETIME_DAYS, age_in_days, check_challenge
 from .engine_config import read_engine_config
 from .errors import GraderError
 from .identity import identity
 from .labs import Lab, StageContext
 from .receipt import build_receipt, enum_values, make_check, receipt_problems, utc_instant
+from .redact import Sensitive, find_leaks
 
-__all__ = ["GradeOutcome", "local_pins", "receipt_path", "resolve_provenance", "run_stage"]
+__all__ = ["GradeOutcome", "leaks_in", "local_pins", "receipt_path", "resolve_provenance", "run_stage"]
 
 
 def resolve_provenance(assisted: str | None, agent: str | None, environ: Mapping[str, str] | None = None) -> tuple[dict[str, Any], list[str]]:
@@ -104,6 +106,25 @@ class GradeOutcome:
         return not self.failed_checks
 
 
+def leaks_in(receipt: Mapping[str, Any], artifacts: Sequence[Artifact], sensitive: Sensitive | None = None) -> list[str]:
+    """Where the free text of a receipt and its artifacts still holds the machine's host name, user name, folder or a secret: JSON Pointers, never the text.
+
+    The fingerprint was looked over when it was made (fingerprint.py), so `environment` is left out here, apart from the engine configuration that was read from a log
+    afterwards. What a lab supplies is not fixed in shape: the details of its checks, its notes, the names of its inputs, `ext` and `claimed`, and the data of an artifact
+    that is text or JSON. A pointer into an artifact starts with `/artifacts/<id>`, which is a place in the bundle and not of the receipt.
+    """
+    known = Sensitive.from_machine() if sensitive is None else sensitive
+    found = find_leaks({key: value for key, value in receipt.items() if key != "environment"}, known)
+    config = (receipt.get("environment") or {}).get("engineConfig")
+    if config is not None:
+        found += [f"/environment/engineConfig{place}" if place != "/" else "/environment/engineConfig" for place in find_leaks(config, known)]
+    for artifact in artifacts:
+        if not artifact.in_bundle or artifact.data is None or artifact.encoding not in ("json", "text"):
+            continue
+        found += [f"/artifacts/{artifact.id}{'' if place == '/' else place}" for place in find_leaks(artifact.data, known)]
+    return found
+
+
 def run_stage(
     lab: Lab,
     stage_id: str,
@@ -116,6 +137,7 @@ def run_stage(
     notes: str | None = None,
     now: Callable[[], dt.datetime] | None = None,
     log: Callable[[str], None] | None = None,
+    sensitive: Sensitive | None = None,
 ) -> GradeOutcome:
     """Grades one stage of `lab` on the challenge `token`, and writes its bundle under `out_dir`. Raises a `GraderError` for anything the learner can act on."""
     say = log if log is not None else (lambda message: sys.stderr.write(message + "\n"))
@@ -183,6 +205,13 @@ def run_stage(
     problems = receipt_problems(receipt)
     if problems:
         raise GraderError("the receipt would not pass the site's schema, and was not written:\n  " + "\n  ".join(problems))
+    leaks = leaks_in(receipt, result.artifacts, sensitive)
+    if leaks:
+        shown = ", ".join(leaks[:6]) + (f" and {len(leaks) - 6} more" if len(leaks) > 6 else "")
+        raise GraderError(
+            f"{lab.id} supplied text that holds this machine's host name, user name, a folder of it or a secret, at {shown}, and the bundle was not written: "
+            "a receipt never holds one (ARCHITECTURE section 9.5). This is a fault in the lab, not in your work"
+        )
     bundle = build_bundle(receipt, result.artifacts)
     path = receipt_path(Path(out_dir), lab.id, stage_id, moment)
     stats = write_bundle(path, bundle)

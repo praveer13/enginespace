@@ -40,7 +40,7 @@ A receipt is written whether the stage's checks passed or not, because the site 
 
 **Provenance is self-reported.** `--assisted none|explain|code` and `--agent yes|no`, or `ENGINESPACE_ASSISTED` and `ENGINESPACE_AGENT`. When you declare nothing, the receipt records the most help (`assisted: code`, `agent: true`), because a declaration that is unsure should declare more help and not less (the rule of statespace's `check`). It is never a penalty: it changes a weight (ASSESSMENT §3.2). The guard is recorded `on` unless the agent kit's switch is off (`ES_SOLO=0`).
 
-**What a receipt never holds** (A§9.5): a host name, a user name, an address, a GPU's UUID or serial number, an absolute path, a token or a key. The schema has no field that could hold one, and refuses a key that it does not name.
+**What a receipt never holds** (A§9.5): a host name, a user name, an address, a GPU's UUID or serial number, an absolute path, a token or a key. The schema refuses a key that it does not name, but it cannot tell what a free-text field holds (a check's detail, the notes, an input's name, `ext`, a text or JSON artifact), so before the bundle is written the grader looks through all of them for this machine's host name, user name, folders and secrets, and writes nothing when it finds one (`grade.leaks_in`). The fingerprint is looked over as it is made. An address in a lab's free text, and any other personal detail the grader has no way to recognise, are not found, so a lab never copies a log line into a receipt without reading it.
 
 ### `fetch`
 

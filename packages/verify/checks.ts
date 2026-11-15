@@ -35,7 +35,7 @@ export interface StageDeclaration {
   readonly model?: readonly ModelFile[]
   /**
    * How many GPUs the stage's engine spans, tensor parallel size times pipeline parallel size (P1, P3). The fingerprint lists every GPU on the machine, and the run may
-   * have used few of them, so a floor is made from this many of the listed GPUs (the fastest), and from one when a stage leaves it out: the fewest GPUs a run can have used
+   * have used few of them, so a floor is made from this many GPUs of the model that the trace names (or the slowest of the listed ones, when the evidence names none), and from one when a stage leaves it out: the fewest GPUs a run can have used
    * give the highest floor, and a floor that is too high fails an honest run in view of its author, where one that is too low credits a forger.
    */
   readonly gpus?: number

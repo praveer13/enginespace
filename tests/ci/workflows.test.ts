@@ -529,6 +529,14 @@ describe('labs.yml (§10.1)', () => {
     expect([jobs.grader.needs, jobs.grader.if]).toEqual(['detect', "needs.detect.outputs.grader == 'true'"])
   })
 
+  test("the grader job pins the interpreter that runs its tests (§10.3): one minor series, found and never downloaded", () => {
+    const env = jobsOf('labs.yml').find(([job]) => job === 'grader')?.[1].env
+    expect(env?.UV_PYTHON).toBe(tool('Python (the grader\'s tests in CI)'))
+    expect(env?.UV_PYTHON).toMatch(/^3\.\d+$/)
+    expect(env?.UV_PYTHON_DOWNLOADS).toBe('never')
+    expect(read('labs/grader/pyproject.toml')).toContain('requires-python = ">=3.11,<3.15"')
+  })
+
   test('the forge job tests the crates and runs verify:labs; the grader job syncs from the lockfile and runs its tests', () => {
     const forge = runsOf('labs.yml', 'forge').join('\n')
     expect(forge).toContain('cargo test')

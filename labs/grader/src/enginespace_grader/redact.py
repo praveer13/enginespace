@@ -260,6 +260,8 @@ def find_leaks(document: Any, sensitive: Sensitive | None = None, *, ips: bool =
                     walk(child, here)
         elif isinstance(node, (list, tuple)):
             for index, child in enumerate(node):
+                if isinstance(child, (int, float)) or child is None:  # a column of numbers holds nothing personal, and a trace has millions
+                    continue
                 walk(child, f"{place}/{index}")
 
     walk(document, "")

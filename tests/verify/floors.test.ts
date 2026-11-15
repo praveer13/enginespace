@@ -12,8 +12,9 @@
  * runs (`maxNumSeqs`). A stage that pins none of them has the floor fail with that reason, as a stage with no workload has B1 fail.
  */
 import { describe, expect, test } from 'bun:test'
-import { findGpu, gpusOf, PEAK_MARGIN_PERMILLE, READ_PERMILLE, readFloorNs } from '@es/verify'
+import { findGpu, gpusNamed, gpusOf, PEAK_MARGIN_PERMILLE, READ_PERMILLE, readFloorNs } from '@es/verify'
 import { ATLAS } from '@/receipts/atlas'
+import { BESTIARY } from './bestiary'
 import { edited, replayFixture, traceFixture, GPU_NAME, MODEL_BYTES, MODEL_PIN } from './synthetic'
 import type { Fixture } from './synthetic'
 import { checkOf, verify } from './run'
@@ -53,6 +54,16 @@ describe('the atlas, as the floors read it', () => {
     // The sum never takes more than the machine has, and a name the atlas lacks still fails the whole run.
     expect(gpusOf(ATLAS, [h100], 4)).toEqual({ ok: true, count: 1, bandwidthGBps: 3350, peakTflops: 1979 })
     expect(gpusOf(ATLAS, [h100, 'NVIDIA B200'], 1)).toEqual({ ok: false, missing: ['NVIDIA B200'], count: 2 })
+  })
+
+  test('adds the slowest GPUs of the list when it is told to, and the GPUs of one name when the evidence names it: a faster name typed into the list lowers neither', () => {
+    const l4 = 'NVIDIA L4'
+    const h200 = 'NVIDIA H200'
+    expect(gpusOf(ATLAS, [h200, h200, GPU_NAME, GPU_NAME], 2, 'slowest')).toEqual({ ok: true, count: 2, bandwidthGBps: 6700, peakTflops: 3958 })
+    expect(gpusOf(ATLAS, [l4, GPU_NAME, h200], 1, 'slowest')).toEqual({ ok: true, count: 1, bandwidthGBps: 300, peakTflops: 242.5 })
+    expect(gpusNamed(ATLAS, [GPU_NAME, GPU_NAME, h200], GPU_NAME, 2)).toEqual({ ok: true, count: 2, bandwidthGBps: 6700, peakTflops: 3958 })
+    expect(gpusNamed(ATLAS, [GPU_NAME, h200], GPU_NAME, 2)).toEqual({ ok: false, missing: [], count: 2, listed: 1 })
+    expect(gpusNamed(ATLAS, [GPU_NAME], 'NVIDIA B200', 1)).toEqual({ ok: false, missing: ['NVIDIA B200'], count: 1 })
   })
 
   test('makes a floor of weight bytes over bandwidth: GB/s is bytes per ns, and the quotient is rounded down', () => {
@@ -229,6 +240,41 @@ describe('the model that a floor is made from is the one the site pins for the s
     expect(checkOf(empty, 'P3')?.bound).toMatch(/^This site declares no model for tr8\.replay\.s2/)
     const undeclared = await run(trace, { stages: {} })
     expect(checkOf(undeclared, 'P1')?.bound).toMatch(/^This site declares no model for tr3\.profile\.s5/)
+  })
+})
+
+describe('a faster GPU typed into the receipt\'s list (the second review)', () => {
+  /** Four H200s typed in beside the four H100s, the trace untouched: the honest floor must not move. */
+  const typed = (bundle: Fixture['bundle']): void => {
+    for (let i = 0; i < 4; i += 1) bundle.receipt.environment.gpus.push({ ...bundle.receipt.environment.gpus[0], name: 'NVIDIA H200' })
+  }
+
+  test('does not lower the floor of a trace: P1 prints the H100 floor, and the honest trace passes with it', async () => {
+    const outcome = await run(edited(traceFixture(), typed))
+    expect(checkOf(outcome, 'P1')?.status).toBe('pass')
+    expect(checkOf(outcome, 'P1')?.bound).toContain('÷ 13,400 GB/s over 4 GPUs = 4,179,104 ns')
+  })
+
+  test('fails a trace that is under the H100 floor and over the H200 one', async () => {
+    const fixture = BESTIARY.find((forgery) => forgery.id === 'faster-gpu-typed')?.forge(traceFixture())
+    if (fixture === undefined) throw new Error('the bestiary has no such forgery')
+    const outcome = await run(fixture)
+    expect(checkOf(outcome, 'P1')?.status).toBe('fail')
+    expect(checkOf(outcome, 'P1')?.bound).toMatch(/÷ 13,400 GB\/s over 4 GPUs = 4,179,104 ns/)
+    // The same trace against the floor that the typed list alone would give is clear of it: the forgery is a real one, and only the source of the GPUs stops it.
+    expect(readFloorNs(MODEL_BYTES, READ_PERMILLE, 4 * 4800)).toBeLessThan(4_179_104)
+  })
+
+  test('fails a trace that names a GPU that the receipt lists too few times, and says so', async () => {
+    const outcome = await run(edited(traceFixture(), (bundle) => (bundle.receipt.environment.gpus = bundle.receipt.environment.gpus.map((gpu, at) => (at < 3 ? gpu : { ...gpu, name: 'NVIDIA H200' })))))
+    expect(checkOf(outcome, 'P1')?.status).toBe('fail')
+    expect(checkOf(outcome, 'P1')?.bound).toContain('and the receipt lists 3 GPUs of that name')
+  })
+
+  test('does not raise the ceiling of a benchmark log, which names no GPU: P3 takes the slowest of the GPUs listed', async () => {
+    const control = checkOf(await run(replayFixture()), 'P3')?.bound
+    const typedIn = checkOf(await run(edited(replayFixture(), typed)), 'P3')?.bound
+    expect(typedIn).toBe(control)
   })
 })
 

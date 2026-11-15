@@ -146,6 +146,11 @@ jobs:
     if: needs.detect.outputs.grader == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      # The interpreter that runs the grader's tests is pinned too (ARCHITECTURE §10.3): uv looks for this minor series among the interpreters the runner has, and never
+      # downloads one, so a runner image that moves to another series fails here and not in the tests. It is inside the lock's range (>=3.11,<3.15).
+      UV_PYTHON: '3.12'
+      UV_PYTHON_DOWNLOADS: never
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

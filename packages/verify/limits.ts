@@ -29,8 +29,14 @@ export const CAPS: Caps = { compressedBytes: MAX_COMPRESSED_BYTES, decompressedB
 export interface Shape {
   /** The most arrays and objects open at once. A bundle nests about 7 deep. */
   readonly depth: number
-  /** The most arrays, objects and strings (the names of members among them) in the whole text. Numbers, `true`, `false` and `null` are not counted. */
+  /** The most arrays, objects and strings (the names of members among them) in the whole text. Numbers, `true`, `false` and `null` are not nodes (`commas` bounds them). */
   readonly nodes: number
+  /**
+   * The most commas outside strings in the whole text. A value of any kind (a number, `true`, `false`, `null`) is the first of its container or follows a comma, so the
+   * commas bound the values that the nodes do not count: a column of zeros costs the parser next to nothing, and the canonical form of the receipt and of each JSON
+   * artifact makes a string and a slot for each.
+   */
+  readonly commas: number
 }
 
 /** The deepest that the JSON of a bundle may nest [estimated]. */
@@ -39,8 +45,17 @@ export const MAX_DEPTH = 64
 /** The most arrays, objects and strings that the JSON of a bundle may hold [estimated]: 4 Mi, 4,194,304. */
 export const MAX_NODES = 4 * 1024 * 1024
 
+/** The most commas outside strings that the JSON of a bundle may hold [estimated]: 16 Mi, 16,777,216. */
+export const MAX_COMMAS = 16 * 1024 * 1024
+
 /** The shape bounds of rule 2. A test passes smaller ones, so that a file that breaks them need not be as large as the real one. */
-export const SHAPE: Shape = { depth: MAX_DEPTH, nodes: MAX_NODES }
+export const SHAPE: Shape = { depth: MAX_DEPTH, nodes: MAX_NODES, commas: MAX_COMMAS }
+
+/**
+ * The longest a receipt may be as JSON, in characters [estimated]. It is the ledger's own bound for a kept receipt (packages/ledger/types.ts, `LIMITS.receiptChars`; tests/verify/shape.test.ts
+ * holds the two equal), and rule 2 holds the receipt to it before its canonical form is made, so a receipt that the ledger would refuse is refused here at once, and its form costs little.
+ */
+export const RECEIPT_CHARS = 262_144
 
 /**
  * How many problems a rule names before it says "and N more" [estimated]. A receipt comes from a file that someone may have edited, and

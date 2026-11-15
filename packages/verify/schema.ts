@@ -12,14 +12,16 @@
  * Before any of that, the text is looked at once for its shape (shape.ts): a file that nests deeper than a bundle can, or holds more arrays, objects and
  * strings than a bundle can, is refused here and never parsed, because rule 1 bounds the bytes of the text and not what `JSON.parse` allocates for them.
  *
+ * The receipt is also held to the ledger's length before its canonical form is made (`fitsChars`), and the canonical form builds the path of a value only when it throws.
+ *
  * Nothing here trusts the file's own idea of itself. A `schema` tag that is not `enginespace/bundle@1` is a problem, and so is a bundle
  * from a newer format: the site reads the formats it knows and says which one it did not recognise.
  */
 import { bundleSchema } from '@es/schema/bundle'
 import type { Bundle } from '@es/schema/bundle'
 import { canonicalJson } from '@es/sim/core/json'
-import { cut, firstProblems } from './format'
-import { SHAPE } from './limits'
+import { cut, firstProblems, grouped } from './format'
+import { RECEIPT_CHARS, SHAPE } from './limits'
 import type { Shape } from './limits'
 import { scanShape } from './shape'
 
@@ -41,6 +43,36 @@ function jsonMessage(error: unknown): string {
 }
 
 /**
+ * Whether a value is no longer than `limit` characters as JSON, counted as the walk goes, which stops at the first excess: a hostile value costs no more than the limit.
+ * The count is a close one and not the canonical text's (a string counts its length and two quotes, an escape as one character), and it is only used to refuse a receipt
+ * that the ledger would refuse. Its depth is the shape scan's.
+ */
+function fitsChars(value: unknown, limit: number): boolean {
+  let chars = 0
+  const walk = (item: unknown): boolean => {
+    if (typeof item === 'string') chars += item.length + 2
+    else if (typeof item === 'number') chars += String(item).length
+    else if (typeof item === 'boolean') chars += 5
+    else if (item === null) chars += 4
+    else if (Array.isArray(item)) {
+      chars += 2
+      for (const member of item) {
+        chars += 1
+        if (chars > limit || !walk(member)) return false
+      }
+    } else if (typeof item === 'object') {
+      chars += 2
+      for (const [key, member] of Object.entries(item)) {
+        chars += key.length + 4
+        if (chars > limit || !walk(member)) return false
+      }
+    }
+    return chars <= limit
+  }
+  return walk(value)
+}
+
+/**
  * Reads the text inside a file as a `bundle@1`: the document, checked by the schema, and the receipt's canonical text. The shape of the text is held to
  * `shape` first, the site's bounds unless a test asks for smaller ones, and a text that is outside them is not parsed.
  */
@@ -56,6 +88,9 @@ export function parseBundle(text: string, shape: Shape = SHAPE): ParseResult {
   const parsed = bundleSchema.safeParse(document)
   if (!parsed.success) return { ok: false, problems: schemaProblems(parsed.error.issues) }
   const bundle = parsed.data
+  if (!fitsChars(bundle.receipt, RECEIPT_CHARS)) {
+    return { ok: false, problems: [`/receipt: the receipt is longer than ${grouped(RECEIPT_CHARS)} characters as JSON, which is the most the site keeps of one, so it was not read further.`] }
+  }
   try {
     return { ok: true, bundle, canonicalReceipt: canonicalJson(bundle.receipt) }
   } catch (error) {

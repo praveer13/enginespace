@@ -2,8 +2,8 @@
  * receipt.worker: where a receipt bundle is read and checked (ARCHITECTURE §8.5, §12). The file is untrusted. It is decompressed under the caps
  * of rule 1, parsed and held to the schema of rule 2, hashed against the receipt (rule 3), and bound, identified and pinned (rules 4 to 6)
  * here and nowhere else, so a file that inflates without end can only stall this worker, and the page stops it at the time it allows (src/receipts/protocol.ts).
- * A JSON that would run the parser out of memory (a hundred million levels deep, or a quarter of a gigabyte of `[],`) is refused before it is parsed, by a scan of its
- * shape in rule 2 (packages/verify/shape.ts): a worker that runs out of memory takes the tab with it, and the caps of rule 1 bound a file's bytes and not its parse.
+ * A JSON that would run the parser out of memory (a hundred million levels deep, a quarter of a gigabyte of `[],`, or a quarter of a gigabyte of `-0,`, which parses and then runs the canonical form out of memory) is
+ * refused before it is parsed, by a scan of its shape in rule 2 (packages/verify/shape.ts, which counts the commas as well): a worker that runs out of memory takes the tab with it, and the caps of rule 1 bound a file's bytes and not its parse.
  *
  * The rules are packages/verify's and are pure; this file carries a request in and an outcome out (src/receipts/protocol.ts), and nothing
  * else. It fetches nothing, reads no ledger and no clock, and renders nothing.
