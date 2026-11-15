@@ -70,6 +70,7 @@ __all__ = [
     "fetch_reference",
     "find_manifest",
     "format_size",
+    "shown",
     "load_manifest",
     "main",
     "manifest_problems",
@@ -238,19 +239,19 @@ def load_manifest(path: Path) -> Manifest:
         with open(path, "rb") as handle:
             data = handle.read(MAX_MANIFEST_BYTES + 1)
     except FileNotFoundError:
-        raise GraderError(f"there is no manifest at {path}. Run the command from the kit's folder (or from the repository), or name the file with --manifest") from None
+        raise GraderError(f"there is no manifest at {shown(path)}. Run the command from the kit's folder (or from the repository), or name the file with --manifest") from None
     except OSError as error:
-        raise GraderError(f"cannot read the manifest {path}: {error.strerror or error}") from None
+        raise GraderError(f"cannot read the manifest {shown(path)}: {error.strerror or error}") from None
     if len(data) > MAX_MANIFEST_BYTES:
-        raise GraderError(f"{path} is larger than {format_size(MAX_MANIFEST_BYTES)}, which no references manifest is")
+        raise GraderError(f"{shown(path)} is larger than {format_size(MAX_MANIFEST_BYTES)}, which no references manifest is")
     try:
         document = parse_json(data.decode("utf-8"))
     except UnicodeDecodeError:
-        raise GraderError(f"{path} is not UTF-8 text, so it is not a references manifest") from None
+        raise GraderError(f"{shown(path)} is not UTF-8 text, so it is not a references manifest") from None
     except ValueError as error:
-        raise GraderError(f"{path} is not JSON: {error}") from None
+        raise GraderError(f"{shown(path)} is not JSON: {error}") from None
     except RecursionError:
-        raise GraderError(f"{path} is nested too deeply to read") from None
+        raise GraderError(f"{shown(path)} is nested too deeply to read") from None
     return parse_manifest(document, path)
 
 
@@ -266,6 +267,16 @@ def find_manifest(start: Path | None = None) -> Path:
         f"no references manifest was found in {here} or above it (looked for {' and '.join(MANIFEST_LOCATIONS)}). "
         "Run the command from the kit's folder, or from the repository, or name the file with --manifest"
     )
+
+
+def shown(path: Path | str) -> str:
+    """A path as a message prints it: under the home folder it starts with `~`, so that a line the learner pastes into a question or a log does not carry their user name."""
+    where = Path(path)
+    try:
+        inside = where.relative_to(Path.home())
+    except (ValueError, RuntimeError):  # not under the home folder, or no home folder to be under
+        return str(where)
+    return "~" if str(inside) == "." else f"~/{inside}"
 
 
 def default_cache(environ: Mapping[str, str] | None = None) -> Path:
@@ -572,7 +583,7 @@ def fetch_reference(reference: Reference, cache: Path, *, say: Callable[[str], N
     try:
         destination.parent.mkdir(parents=True, exist_ok=True)
     except OSError as error:
-        raise GraderError(f"cannot use {cache} as the cache: {error.strerror or error}. Name another folder with --cache") from None
+        raise GraderError(f"cannot use {shown(cache)} as the cache: {error.strerror or error}. Name another folder with --cache") from None
 
     if _is_verified(destination, reference):
         return Fetched(reference, destination, "present", 0)
@@ -623,12 +634,12 @@ def fetch_lab(manifest: Manifest, lab: str, cache: Path, *, say: Callable[[str],
         if is_stage_id(lab):
             raise GraderError(f"{lab} is a stage, and fetch takes a lab: run `enginespace fetch {lab_of_stage_id(lab)}`")
         known = manifest.labs()
-        where = str(manifest.source) if manifest.source is not None else "the manifest"
+        where = shown(manifest.source) if manifest.source is not None else "the manifest"
         raise GraderError(
             f"{where} lists no file for {lab!r}"
             + (f". It lists files for: {', '.join(known)}. Check the lab id" if known else ": it lists no file at all yet, because a lab's files are added to it when the lab is built")
         )
-    say(f"{lab}: {len(entries)} file{'' if len(entries) == 1 else 's'}, into {cache}")
+    say(f"{lab}: {len(entries)} file{'' if len(entries) == 1 else 's'}, into {shown(cache)}")
     done: list[Fetched] = []
     for entry in entries:
         result = fetch_reference(entry, cache, say=say)

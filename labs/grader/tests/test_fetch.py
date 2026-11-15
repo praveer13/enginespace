@@ -877,6 +877,22 @@ class Command(Folder):
         self.assertIn("/entries/1/path", err)
         self.assertEqual(self.server.seen, [], "the good entry was not fetched either")
 
+    def test_a_path_under_the_home_folder_is_printed_from_the_tilde_and_never_with_the_user_name(self) -> None:
+        home = self.folder / "home" / "learner"
+        home.mkdir(parents=True)
+        with mock.patch.dict(os.environ, {"HOME": str(home), "USERPROFILE": str(home)}):
+            self.assertEqual(fetch.shown(home / ".cache" / "enginespace" / "references"), "~/.cache/enginespace/references")
+            self.assertEqual(fetch.shown(home), "~")
+            self.assertEqual(fetch.shown(self.folder / "elsewhere"), str(self.folder / "elsewhere"))
+            manifest, _ = self.lab_manifest()
+            status, _, err = run("fetch", "tr0.forward", "--manifest", str(manifest), "--cache", str(home / ".cache" / "enginespace" / "references"))
+            self.assertEqual(status, 0, err)
+            self.assertIn("tr0.forward: 2 files, into ~/.cache/enginespace/references", err)
+            status, _, err = run("fetch", "tr9.nothing", "--manifest", str(home / "nope.json"), "--cache", str(self.cache))
+            self.assertEqual(status, 3)
+            self.assertIn("there is no manifest at ~/nope.json", err)
+            self.assertNotIn(str(home), err)
+
     def test_a_manifest_that_is_not_there_is_status_3(self) -> None:
         status, out, err = run("fetch", "tr0.forward", "--manifest", str(self.folder / "nope.json"), "--cache", str(self.cache))
         self.assertEqual((status, out), (3, ""))

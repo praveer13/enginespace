@@ -45,27 +45,45 @@ export function findGpu(atlas: Atlas, name: string): AtlasEntry | undefined {
 /** What the GPUs of a run are to the floors: the sum of their bandwidths and of their peaks, or the names that the atlas lacks. */
 export type Gpus =
   | { readonly ok: true; readonly count: number; readonly bandwidthGBps: number; readonly peakTflops: number }
-  | { readonly ok: false; readonly missing: readonly string[]; readonly count: number }
+  | { readonly ok: false; readonly missing: readonly string[]; readonly count: number; readonly listed?: number }
+
+/** Which of the listed GPUs make the sum: the fastest ones (a floor that no choice of that many GPUs could break), or the slowest (a floor that no listed GPU could be blamed for). */
+export type GpuPick = 'fastest' | 'slowest'
 
 /**
  * The atlas's figures for the GPUs a run used, summed. The receipt lists every GPU on the machine, and the run may have used few of them, so `used` says how many:
- * the fastest `used` of the listed GPUs are added, by bandwidth for the bandwidth and by peak for the peak, which keeps a floor from being stricter than any choice of
- * that many GPUs could bear. It is every listed GPU when `used` is left out, and never more than the machine has. A run on several GPUs reads its weights from all of
- * them at once, so the bandwidths add (perfect tensor or pipeline parallelism, the most any split can do, which keeps a floor from the sum safe). A GPU the atlas lacks
- * makes the whole answer `ok: false`, with its name, once: a floor needs every GPU the receipt names, since a name that is left out of the sum could be the slow one.
+ * that many of the listed GPUs are added, by bandwidth for the bandwidth and by peak for the peak, and never more than the machine has. `pick` says which: the
+ * `'fastest'` (the default) keeps a floor from being stricter than any choice of that many GPUs could bear, and the `'slowest'` keeps a floor from being lower than the
+ * list can justify, which is the one that a floor must take when nothing but the receipt's own list says which GPU ran: a name that is typed into the list must not lower it
+ * (the second review of W2's grader track). A run on several GPUs reads its weights from all of them at once, so the bandwidths add (perfect tensor or pipeline
+ * parallelism, the most any split can do, which keeps a floor from the sum safe). A GPU the atlas lacks makes the whole answer `ok: false`, with its name, once: a floor
+ * needs every GPU the receipt names, since a name that is left out of the sum could be the slow one.
  */
-export function gpusOf(atlas: Atlas, names: readonly string[], used: number = names.length): Gpus {
+export function gpusOf(atlas: Atlas, names: readonly string[], used: number = names.length, pick: GpuPick = 'fastest'): Gpus {
   const missing = [...new Set(names.filter((name) => findGpu(atlas, name) === undefined))]
   if (missing.length > 0 || names.length === 0) return { ok: false, missing, count: names.length }
   const entries = names.map((name) => findGpu(atlas, name)).filter((entry): entry is AtlasEntry => entry !== undefined)
   const count = Math.max(1, Math.min(used, names.length))
-  const fastest = (pick: (entry: AtlasEntry) => number): number =>
+  const chosen = (value: (entry: AtlasEntry) => number): number =>
     entries
-      .map(pick)
-      .sort((a, b) => b - a)
+      .map(value)
+      .sort((a, b) => (pick === 'fastest' ? b - a : a - b))
       .slice(0, count)
-      .reduce((total, value) => total + value, 0)
-  return { ok: true, count, bandwidthGBps: fastest((entry) => entry.bandwidthGBps), peakTflops: fastest((entry) => entry.peakTflops) }
+      .reduce((total, figure) => total + figure, 0)
+  return { ok: true, count, bandwidthGBps: chosen((entry) => entry.bandwidthGBps), peakTflops: chosen((entry) => entry.peakTflops) }
+}
+
+/**
+ * The figures of `used` GPUs of one model, the one that the evidence names (a trace's `meta.gpu`), or why there are not that many: `ok: false` with `missing` holding
+ * the name when the atlas lacks it, or `listed` less than `used` when the receipt's list has fewer GPUs of that name than the stage runs on. The evidence is the
+ * hashed artifact, and the list is typed beside it, so the floor is made from the GPU the artifact names and the list has to agree with it.
+ */
+export function gpusNamed(atlas: Atlas, names: readonly string[], named: string, used: number): Gpus {
+  const entry = findGpu(atlas, named)
+  if (entry === undefined) return { ok: false, missing: [named], count: names.length }
+  const listed = names.filter((name) => name === named).length
+  if (listed < used) return { ok: false, missing: [], count: names.length, listed }
+  return { ok: true, count: used, bandwidthGBps: entry.bandwidthGBps * used, peakTflops: entry.peakTflops * used }
 }
 
 /**

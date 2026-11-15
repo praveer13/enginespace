@@ -18,6 +18,8 @@
  *   other-seed          A pair of runs of which the second was drawn from another seed than the challenge's: B1.
  *   smaller-model       The too-fast trace again, with a smaller model's size typed into the receipt's inputs, so that the floor made from the receipt's own figure is a few ns: P1.
  *                       The floor is made from the model that the site pins for the stage, and the receipt's input has to be that model.
+ *   faster-gpu-typed    The too-fast trace again (0.8 of the honest floor, which the faster GPU's floor would clear), with four H200s typed into the receipt's list of GPUs and the trace
+ *                       left naming the H100 that ran: the floor is made from the GPU the trace names, and P1 fails with the H100's bound.
  *   empty-evidence      The evidence left out and the entry for it left in: an acceptance artifact with its four columns empty, beside the grader's own check of the identity
  *                       as passed. A count over no round is no count: acceptance-counts (rule 7).
  *
@@ -202,13 +204,14 @@ const closedLoop: Forgery = {
   },
 }
 
-const tooFast: Forgery = {
-  id: 'too-fast',
-  title: 'a trace faster than its physics floor',
-  from: 'trace',
-  fails: { rule: 9, check: 'P1' },
-  bound: /Step \d+ has [\d,]+ ns of GPU-busy time, below its floor of [\d,]+ ns( \(and \d+ more\))?\. The floor is [\d,]+ weight bytes × 80% \[estimated\] ÷ [\d,]+ GB\/s over \d+ GPUs? = [\d,]+ ns/,
-  forge: (honest) => {
+/** The bound that P1 prints for a step under its floor. */
+const P1_BOUND = /Step \d+ has [\d,]+ ns of GPU-busy time, below its floor of [\d,]+ ns( \(and \d+ more\))?\. The floor is [\d,]+ weight bytes × 80% \[estimated\] ÷ [\d,]+ GB\/s over \d+ GPUs? = [\d,]+ ns/
+
+/**
+ * The honest trace with every kernel and copy shortened until its longest step is `share` of the honest floor (the floor of the GPUs that the receipt lists, as they were), the
+ * attribution claimed for it made consistent again.
+ */
+function shortened(honest: Fixture, share: number): Fixture {
     const { id, trace } = traceOf(honest)
     const receipt = honest.bundle.receipt
     const gpus = gpusOf(honest.context.atlas ?? [], receipt.environment.gpus.map((gpu) => gpu.name))
@@ -217,8 +220,8 @@ const tooFast: Forgery = {
     const floor = readFloorNs(weights, READ_PERMILLE, gpus.bandwidthGBps)
     const before = attributeSteps(traceFromJson(trace))
     const longest = Math.max(...before.map((w) => w.gpuBusyNs))
-    // Shorten every kernel and copy until the longest step is half the floor: every step is then below it, whatever the trace was.
-    const scale = Math.min(1, floor / 2 / longest)
+    // Shorten every kernel and copy until the longest step is `share` of the floor: every step is then below it, whatever the trace was.
+    const scale = Math.min(1, (floor * share) / longest)
     const gpuTracks = new Set(trace.tracks.filter((track) => track.kind === 'gpu-stream').map((track) => track.id))
     const forged: TraceJson = JSON.parse(JSON.stringify(trace))
     const spans = forged.spans as unknown as { track: number[]; durNs: number[] }
@@ -230,7 +233,32 @@ const tooFast: Forgery = {
       // The forger claims the attribution of the trace they have, so that T7 and the rest are satisfied and only the floor is broken.
       setClaim(bundle, id, windowsOf(forged))
     })
-  },
+}
+
+const tooFast: Forgery = {
+  id: 'too-fast',
+  title: 'a trace faster than its physics floor',
+  from: 'trace',
+  fails: { rule: 9, check: 'P1' },
+  bound: P1_BOUND,
+  forge: (honest) => shortened(honest, 0.5),
+}
+
+/**
+ * The GPUs of the receipt's list, with faster ones typed in. The trace is shortened to 0.8 of the honest floor, which a floor made from the fastest GPUs of the list clears
+ * (the listed H200s read 1.4 times as fast as the H100 the trace names), and the trace keeps naming the H100: the floor is made from the GPU that the trace names.
+ */
+const fasterGpuTyped: Forgery = {
+  id: 'faster-gpu-typed',
+  title: 'a trace faster than its physics floor, with a faster GPU typed into the receipt\'s list',
+  from: 'trace',
+  fails: { rule: 9, check: 'P1' },
+  bound: P1_BOUND,
+  forge: (honest) =>
+    edited(shortened(honest, 0.8), (bundle) => {
+      const [first] = bundle.receipt.environment.gpus
+      for (let i = 0; i < 4; i += 1) bundle.receipt.environment.gpus.push({ ...first, name: 'NVIDIA H200' })
+    }),
 }
 
 const unknownGrader: Forgery = {
@@ -327,8 +355,8 @@ const emptyEvidence: Forgery = {
     }),
 }
 
-/** Every forgery: the nine of ASSESSMENT §13 in the order it lists them, then the two that the review of W2's grader track added. */
-export const BESTIARY: readonly Forgery[] = [editedP99, resignedHash, reusedToken, replayedReceipt, closedLoop, tooFast, unknownGrader, notAPartition, otherSeed, smallerModel, emptyEvidence]
+/** Every forgery: the nine of ASSESSMENT §13 in the order it lists them, then the two that the review of W2's grader track added, and the one that the second review added. */
+export const BESTIARY: readonly Forgery[] = [editedP99, resignedHash, reusedToken, replayedReceipt, closedLoop, tooFast, unknownGrader, notAPartition, otherSeed, smallerModel, emptyEvidence, fasterGpuTyped]
 
 /** The forgeries that an honest fixture can be forged into: those that read the kind of evidence it carries. */
 export function forgeriesFor(fixture: Fixture): readonly Forgery[] {

@@ -82,6 +82,7 @@ describe('a stage that asks for evidence (the review of W2\'s grader track)', ()
   test.each([
     ['carries neither a log nor a trace', () => edited(asStage(traceFixture(), STAGE), (bundle) => ((bundle.receipt.artifacts = []), (bundle.artifacts = {}), (bundle.receipt.performance = undefined)))],
     ['carries a trace with no span, whose step marks are all it has', () => traceOf((trace) => (Object.values(trace.spans).forEach((column) => (column.length = 0)), (trace.flows.length = 0)))],
+    ['carries a trace whose spans all lie after its last step window', () => traceOf((trace) => (trace.spans.startNs = trace.spans.startNs.map((start) => start + 1_000_000_000_000)))],
     ['carries a trace with spans and no step window', () => traceOf((trace) => (trace.marks.length = 0))],
     [
       'carries a benchmark log with no row',
@@ -93,7 +94,7 @@ describe('a stage that asks for evidence (the review of W2\'s grader track)', ()
     expect(checkOf(outcome, 'evidence')).toEqual({
       id: 'evidence',
       status: 'fail',
-      bound: 'The stage asks for a benchmark log or a trace to recompute, and the receipt carries neither with anything in it: no log has a measured row, and no trace has a span and a step window.',
+      bound: 'The stage asks for a benchmark log or a trace to recompute, and the receipt carries neither with anything in it: no log has a measured row, and no trace has a span inside a step window.',
     })
     expect(outcome.verdict.provenance).toBe('gpu-unverified')
     expect(outcome.verdict.reasons.join('\n')).toContain('evidence: The stage asks for a benchmark log or a trace to recompute')

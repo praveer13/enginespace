@@ -17,7 +17,9 @@
  * the fix, the nested file crashed the tab in 4.1 s, and the two wide ones took 38.5 and 37.5 s to be refused as "Invalid input" on a host with 31 GB, where
  * `JSON.parse` peaked at 5.1 and 6.1 GB resident, and crashed the tab in the review's run [measured 2026-11-10 in the headless shell of Chrome for Testing
  * 153.0.8010.12, which Playwright 1.63.0 pins]. Rule 2 now scans the text first (packages/verify/shape.ts), so each is refused with the bound in the message, the
- * page is alive to say so, and nothing is kept. A control of the same size made of numbers, which cost a parser next to nothing, is read.
+ * page is alive to say so, and nothing is kept. Numbers were not counted then: 250 MB of `0,` or `-0,` (87 million values, in `receipt.ext` or in the data of a JSON artifact) passed the
+ * scan, parsed in seconds, and crashed the tab in the canonical form [measured in the second review of W2's grader track, same Chromium], so rule 2 now counts the commas as well, and those four files
+ * are refused too. A file of numbers inside the bound is read.
  *
  * And what stands behind them. A file chosen with the learner's own picker and a file dropped on the slip both reach the worker; the receipt is
  * written with its report in one transaction, and a receipt that is imported again adds a report and no event. The page's lists, the tape and the
@@ -384,6 +386,37 @@ test.describe('a file inside the caps that is built to run the parser out of mem
     },
   ]
 
+  /**
+   * A file of numbers inside the caps and inside the node bound (the second review): `0,` and `-0,` are no node, and 250 MB of them crashed the tab in the canonical form, which makes a
+   * string and a slot for each (22 s, a peak of 4.17 GB [measured in the second review, the same Chromium]), in the receipt's \`ext\` and in a JSON artifact alike. Rule 2 counts the commas.
+   */
+  const marked = (change: (document: ReturnType<typeof sampleBundle>) => void): [string, string] => {
+    const document = sampleBundle()
+    change(document)
+    const [head, tail] = JSON.stringify(document).split('"@@"')
+    return [head, tail]
+  }
+  const [extHead, extTail] = marked((document) => {
+    ;(document.receipt as { ext: unknown }).ext = '@@'
+  })
+  const [artifactHead, artifactTail] = marked((document) => {
+    ;(document.artifacts.trace as { data: unknown }).data = '@@'
+  })
+  const commaMessage = /The JSON inside holds more than 16,777,216 commas outside its strings/
+  for (const [place, head, tail] of [
+    ['receipt.ext', extHead, extTail],
+    ['the data of a JSON artifact', artifactHead, artifactTail],
+  ] as const) {
+    for (const unit of ['0,', '-0,']) {
+      BOMBS.push({
+        name: `250 MB of ${unit} in ${place}`,
+        file: 'numbers.es.json.gz',
+        segments: [{ text: `${head}{"pad":[` }, { text: unit, megabytes: 250 }, { text: `0]}${tail}` }],
+        message: commaMessage,
+      })
+    }
+  }
+
   for (const bomb of BOMBS) {
     test(`is refused at rule 2 with the bound in the message, unparsed, the tab alive, and nothing kept: ${bomb.name}`, async ({ page }) => {
       test.setTimeout(150_000)
@@ -408,15 +441,15 @@ test.describe('a file inside the caps that is built to run the parser out of mem
     })
   }
 
-  test('reads a file of the same size made of numbers, which cost a parser next to nothing, and says it is no bundle', async ({ page }) => {
+  test('reads a file of numbers that is inside the bound on commas, which cost a parser next to nothing, and says it is no bundle', async ({ page }) => {
     test.setTimeout(150_000)
     let crashed = false
     page.on('crash', () => {
       crashed = true
     })
     await visit(page)
-    // 200 MB of integers: 100 million of them in one array, with no array, object or string beyond the one that holds them.
-    await chooseTextMadeInPage(page, 'numbers.es.json.gz', [{ text: '[' }, { text: '0,', megabytes: 200 }, { text: '0]' }])
+    // 12 MiB of integers: 6.3 million of them in one array, inside the bound of 16,777,216 commas, with no array, object or string beyond the one that holds them.
+    await chooseTextMadeInPage(page, 'numbers.es.json.gz', [{ text: '[' }, { text: '0,', megabytes: 12 }, { text: '0]' }])
     await expect(slip(page).getByRole('heading', { level: 3, name: 'Not a receipt this browser can read' })).toBeVisible({ timeout: 120_000 })
     expect(crashed, 'the tab crashed').toBe(false)
     expect((await statuses(page)).slice(0, 2)).toEqual(['caps:pass', 'schema:fail'])

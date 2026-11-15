@@ -90,7 +90,7 @@ describe('the honest synthetic fixtures', () => {
 })
 
 describe('the forged bestiary', () => {
-  test('has the nine forgeries of ASSESSMENT §13, once each, and the two that the review of the grader track added', () => {
+  test('has the nine forgeries of ASSESSMENT §13, once each, the two that the review of the grader track added, and the one of the second review', () => {
     expect(BESTIARY.map((forgery) => forgery.id)).toEqual([
       'edited-p99',
       'resigned-hash',
@@ -103,6 +103,7 @@ describe('the forged bestiary', () => {
       'other-seed',
       'smaller-model',
       'empty-evidence',
+      'faster-gpu-typed',
     ])
     expect(BESTIARY.map((forgery) => forgery.title)).toEqual([
       'an edited p99',
@@ -116,12 +117,13 @@ describe('the forged bestiary', () => {
       'a pair run on different seeds',
       'a trace faster than its physics floor, with a smaller model typed in',
       'evidence left out and its entry left in: an acceptance artifact with no round',
+      "a trace faster than its physics floor, with a faster GPU typed into the receipt's list",
     ])
   })
 
-  test('every forgery has an honest fixture to be made from, and the three kinds of fixture are forged into seven, three and one', () => {
+  test('every forgery has an honest fixture to be made from, and the three kinds of fixture are forged into seven, four and one', () => {
     expect(forgeriesFor(replayFixture()).map((forgery) => forgery.id)).toEqual(['edited-p99', 'resigned-hash', 'reused-token', 'replayed-receipt', 'closed-loop', 'unknown-grader', 'other-seed'])
-    expect(forgeriesFor(traceFixture()).map((forgery) => forgery.id)).toEqual(['too-fast', 'not-a-partition', 'smaller-model'])
+    expect(forgeriesFor(traceFixture()).map((forgery) => forgery.id)).toEqual(['too-fast', 'not-a-partition', 'smaller-model', 'faster-gpu-typed'])
     expect(forgeriesFor(proposerFixture()).map((forgery) => forgery.id)).toEqual(['empty-evidence'])
     const covered = new Set([...forgeriesFor(replayFixture()), ...forgeriesFor(traceFixture()), ...forgeriesFor(proposerFixture())].map((forgery) => forgery.id))
     expect(covered.size).toBe(BESTIARY.length)

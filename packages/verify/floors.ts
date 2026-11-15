@@ -28,7 +28,7 @@ import { fail, memoized, na, pass, together } from './checks'
 import type { ModelFile, Outcome, Run } from './checks'
 import { benchLogs, traces } from './evidence'
 import { throughputOf } from './bench'
-import { gpusOf, PEAK_MARGIN_PERMILLE, READ_PERMILLE, readFloorNs } from './atlas'
+import { gpusNamed, gpusOf, PEAK_MARGIN_PERMILLE, READ_PERMILLE, readFloorNs } from './atlas'
 import type { Gpus } from './atlas'
 import { cut, grouped, plural } from './format'
 import { PROBLEM_CHARS } from './limits'
@@ -67,19 +67,35 @@ function modelProblem(inputs: Run['receipt']['inputs'], pinned: readonly ModelFi
   return lacking === undefined ? null : `${stage} pins the model file ${named(lacking)}, and the receipt lists no model input like it`
 }
 
-/** What a floor is made of for this receipt, or the sentence that says why none can be. */
-function basisOf(run: Run): Basis | string {
-  return memoized(run, 'floors:basis', (): Basis | string => {
+/**
+ * What a floor is made of for this receipt, or the sentence that says why none can be. `named` is the GPU that the evidence names (a trace's `meta.gpu`), or undefined when it
+ * names none (a benchmark log). The GPUs come from what the stage declares (how many) and what the evidence shows (which): with a name, the floor is made from `used` GPUs
+ * of that model, and the receipt's list has to hold that many of them; without one, from the slowest `used` of the listed GPUs. The list is typed beside the hashed evidence, and a
+ * faster GPU's name typed into it must not lower the floor (the second review of W2's grader track).
+ */
+function basisOf(run: Run, named?: string): Basis | string {
+  return memoized(run, `floors:basis:${named ?? ''}`, (): Basis | string => {
     const stage = run.receipt.stage
     const names = run.receipt.environment.gpus.map((gpu) => gpu.name)
     const used = run.declared?.gpus ?? 1
-    const gpus = gpusOf(run.atlas, names, used)
-    if (!gpus.ok) {
-      return gpus.count === 0
+    // The receipt's list has to be one that the atlas knows whole, as it always had to be: a name that is left out of the sum could be the slow one.
+    const listed = gpusOf(run.atlas, names, used, 'slowest')
+    if (!listed.ok) {
+      return listed.count === 0
         ? 'the receipt names no GPU, and a floor is made from the GPU that ran'
-        : `the hardware atlas has no entry for ${gpus.missing.map((name) => `"${cut(name, 60)}"`).join(', ')}, so no floor can be made, and a name that is not listed is not guessed`
+        : `the hardware atlas has no entry for ${listed.missing.map((name) => `"${cut(name, 60)}"`).join(', ')}, so no floor can be made, and a name that is not listed is not guessed`
     }
     if (names.length < used) return `the receipt lists ${plural(names.length, 'GPU')}, and ${stage} runs on ${grouped(used)}, so it is not the run that the stage declares and no floor is made from it`
+    let gpus = listed
+    if (named !== undefined) {
+      const same = gpusNamed(run.atlas, names, named, used)
+      if (!same.ok) {
+        return same.listed === undefined
+          ? `the hardware atlas has no entry for "${cut(named, 60)}", the GPU that the trace names, so no floor can be made, and a name that is not listed is not guessed`
+          : `the trace names "${cut(named, 60)}", ${stage} runs on ${grouped(used)} GPU${used === 1 ? '' : 's'}, and the receipt lists ${plural(same.listed, 'GPU')} of that name: the floor is made from the GPU that the trace names, as many times as the stage runs`
+      }
+      gpus = same
+    }
     const pinned = run.declared?.model
     if (pinned === undefined || pinned.length === 0) {
       return `this site declares no model for ${stage}, so there are no weight bytes to make a floor from, and the receipt's own figure for its model is not taken: a receipt that named its own model could name a small one`
@@ -99,12 +115,16 @@ const explain = (basis: Basis): string =>
 function p1(run: Run): Outcome {
   const all = traces(run)
   if (all.length === 0) return na('the receipt carries no trace')
-  const basis = basisOf(run)
-  if (typeof basis === 'string') return fail('P1', cut(`${basis}.`, PROBLEM_CHARS))
   const parts: { label: string; result: CheckResult }[] = []
   for (const parsed of all) {
     if (!parsed.ok) {
       parts.push({ label: parsed.id, result: fail('P1', cut(`the trace could not be read: ${parsed.problem}.`, PROBLEM_CHARS)) })
+      continue
+    }
+    // The floor of a trace is made from the GPU that the trace names, so that a name typed into the receipt's list beside it lowers nothing.
+    const basis = basisOf(run, parsed.value.meta.gpu)
+    if (typeof basis === 'string') {
+      parts.push({ label: parsed.id, result: fail('P1', cut(`${basis}.`, PROBLEM_CHARS)) })
       continue
     }
     if (stepWindows(parsed.value).length === 0) {

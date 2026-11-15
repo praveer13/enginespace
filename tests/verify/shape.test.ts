@@ -14,7 +14,8 @@ import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { gunzipSync, gzipSync } from 'node:zlib'
-import { MAX_DEPTH, MAX_NODES, PROBLEM_CHARS, SHAPE, parseBundle, scanShape, verifyBundle } from '@es/verify'
+import { LIMITS } from '@es/ledger'
+import { MAX_COMMAS, MAX_DEPTH, MAX_NODES, PROBLEM_CHARS, RECEIPT_CHARS, SHAPE, parseBundle, scanShape, verifyBundle } from '@es/verify'
 import type { Outcome } from '@es/verify'
 import { root } from '../ci/support'
 import { contextFor, sampleBundle } from './support'
@@ -23,10 +24,11 @@ import { replayFixture, traceFixture } from './synthetic'
 interface Case {
   readonly name: string
   readonly text: string
-  readonly limits: { readonly depth: number; readonly nodes: number }
+  readonly limits: { readonly depth: number; readonly nodes: number; readonly commas: number }
   readonly ok: boolean
   readonly deepest?: number
   readonly nodes?: number
+  readonly commas?: number
   readonly reason?: string
 }
 const cases = (JSON.parse(readFileSync(path.join(root, 'tests/fixtures/grader/shape-cases.json'), 'utf8')) as { spec: string; cases: Case[] }).cases
@@ -43,7 +45,9 @@ describe('the bounds', () => {
     expect(MAX_DEPTH).toBe(64)
     expect(MAX_NODES).toBe(4 * 1024 * 1024)
     expect(MAX_NODES).toBe(4_194_304)
-    expect(SHAPE).toEqual({ depth: 64, nodes: 4_194_304 })
+    expect(MAX_COMMAS).toBe(16_777_216)
+    expect(SHAPE).toEqual({ depth: 64, nodes: 4_194_304, commas: 16_777_216 })
+    expect(RECEIPT_CHARS).toBe(LIMITS.receiptChars)
   })
 })
 
@@ -55,20 +59,20 @@ describe('the scan, on the cases that both ends are given', () => {
 
   test.each(cases.map((one) => [one.name, one] as const))('%s', (_name, one) => {
     const found = scanShape(one.text, one.limits)
-    if (one.ok) expect(found).toEqual({ ok: true, deepest: one.deepest, nodes: one.nodes })
+    if (one.ok) expect(found).toEqual({ ok: true, deepest: one.deepest, nodes: one.nodes, commas: one.commas })
     else expect(found).toMatchObject({ ok: false, reason: one.reason })
   })
 })
 
 describe('the scan, beyond the cases', () => {
-  test('counts a column of a million integers as nothing: numbers cost next to nothing, so they are not counted', () => {
+  test('counts a column of a million integers as no node, and counts their commas', () => {
     const column = `[${'1234567,'.repeat(1_000_000)}0]`
-    expect(scanShape(column)).toEqual({ ok: true, deepest: 1, nodes: 1 })
+    expect(scanShape(column)).toEqual({ ok: true, deepest: 1, nodes: 1, commas: 1_000_000 })
   })
 
   test('skips a long string whole, and finds its end by the backslashes before the quote and not by the quote alone', () => {
     const long = `"${'x'.repeat(2_000_000)}\\"${'['.repeat(100)}\\\\"`
-    expect(scanShape(`[${long},[1]]`)).toEqual({ ok: true, deepest: 2, nodes: 3 })
+    expect(scanShape(`[${long},[1]]`)).toEqual({ ok: true, deepest: 2, nodes: 3, commas: 1 })
   })
 
   test('refuses 65 levels and takes 64, at the real bound', () => {
@@ -94,8 +98,8 @@ describe('the scan, beyond the cases', () => {
   test('refuses an object with more member names than the bound, one name that nothing else shares each', () => {
     let names = ''
     for (let i = 0; i < 500; i += 1) names += `"k${i}":0,`
-    expect(scanShape(`{${names}"z":0}`, { depth: 4, nodes: 500 })).toMatchObject({ ok: false, reason: 'nodes' })
-    expect(scanShape(`{${names}"z":0}`, { depth: 4, nodes: 502 })).toMatchObject({ ok: true, nodes: 502 })
+    expect(scanShape(`{${names}"z":0}`, { depth: 4, nodes: 500, commas: 1000 })).toMatchObject({ ok: false, reason: 'nodes' })
+    expect(scanShape(`{${names}"z":0}`, { depth: 4, nodes: 502, commas: 1000 })).toMatchObject({ ok: true, nodes: 502 })
   })
 
   test('says which bound, with the number, in a sentence that a report can keep', () => {
@@ -119,16 +123,59 @@ describe('an honest bundle', () => {
     ['the bundle that the Python grader wrote', grader],
   ]
 
-  test.each(texts)('%s nests 6 or 7 deep and holds a thousandth of the pieces the bound allows, or fewer', (_name, text) => {
+  test.each(texts)('%s nests 6 or 7 deep and holds a thousandth of the pieces and a hundredth of the commas the bounds allow, or fewer', (_name, text) => {
     const found = scanShape(text)
     if (!found.ok) throw new Error(found.message)
     expect(found.deepest).toBeGreaterThanOrEqual(6)
     expect(found.deepest).toBeLessThanOrEqual(7)
     expect(found.nodes * 1000).toBeLessThanOrEqual(MAX_NODES)
+    expect(found.commas * 100).toBeLessThanOrEqual(MAX_COMMAS)
   })
 
   test.each(texts)('%s is parsed as it was before the scan', (_name, text) => {
     expect(parseBundle(text).ok).toBe(true)
+  })
+})
+
+describe('the commas of a text (the second review: a file of numbers inside the caps crashed the tab in the canonical form)', () => {
+  test.each([['0,'], ['-0,'], ['1,'], ['true,'], ['null,']])('a column of %s past the bound is refused by the scan, and one at the bound is not', (unit) => {
+    const column = (count: number): string => `[${unit.repeat(count)}0]`
+    expect(scanShape(column(MAX_COMMAS))).toMatchObject({ ok: true, commas: MAX_COMMAS })
+    const over = scanShape(column(MAX_COMMAS + 1))
+    expect(over).toMatchObject({ ok: false, reason: 'commas' })
+    expect(!over.ok && over.message).toMatch(/^The JSON inside holds more than 16,777,216 commas outside its strings/)
+    expect(!over.ok && over.message.length).toBeLessThanOrEqual(PROBLEM_CHARS)
+  })
+
+  test('are refused in the whole check of a file, in `ext` and in a JSON artifact, before the parser and the canonical form are given the text', async () => {
+    const real = JSON.parse
+    let asked = 0
+    JSON.parse = ((...args: Parameters<typeof JSON.parse>) => {
+      asked += 1
+      return real(...args)
+    }) as typeof JSON.parse
+    try {
+      const pad = `[${'-0,'.repeat(MAX_COMMAS + 1)}0]`
+      const inExt = JSON.stringify(sampleBundle()).replace('"ext":{"example":true}', `"ext":{"pad":${pad}}`)
+      expect(inExt).toContain(pad)
+      expect(refusedAtRule2(await verifyBundle(fileOfText(inExt), contextFor()))).toMatch(/^The JSON inside holds more than 16,777,216 commas/)
+      const inArtifact = JSON.stringify(traceFixture().bundle).replace('"data":{', `"data":{"pad":${pad},`)
+      expect(inArtifact).toContain(pad)
+      expect(refusedAtRule2(await verifyBundle(fileOfText(inArtifact), contextFor()))).toMatch(/^The JSON inside holds more than 16,777,216 commas/)
+      expect(asked).toBe(0)
+    } finally {
+      JSON.parse = real
+    }
+  }, 120_000)
+
+  test('a receipt longer than the ledger keeps is refused at rule 2, and one inside it is taken', () => {
+    const text = (pad: string): string => JSON.stringify(sampleBundle()).replace('"ext":{"example":true}', `"ext":{"pad":"${pad}"}`)
+    const found = parseBundle(text('x'.repeat(RECEIPT_CHARS)))
+    expect(found.ok).toBe(false)
+    expect(!found.ok && found.problems[0]).toMatch(/^\/receipt: the receipt is longer than 262,144 characters as JSON/)
+    expect(parseBundle(text('x'.repeat(RECEIPT_CHARS - 10_000))).ok).toBe(true)
+    const numbers = parseBundle(text('y').replace('"pad":"y"', `"pad":[${'0,'.repeat(RECEIPT_CHARS / 2)}0]`))
+    expect(numbers.ok).toBe(false)
   })
 })
 

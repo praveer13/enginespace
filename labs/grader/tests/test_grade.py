@@ -14,6 +14,7 @@ from enginespace_grader import bundle as bundles
 from enginespace_grader import grade
 from enginespace_grader.challenge import format_challenge
 from enginespace_grader.errors import GraderError
+from enginespace_grader.redact import Sensitive
 from enginespace_grader.rng import rng_for
 
 from . import samples
@@ -150,6 +151,35 @@ class Grading(unittest.TestCase):
         with self.assertRaises(GraderError):
             self.stage(environment={**sample_environment(), "hostname": "example-host"})
         self.assertEqual(list(self.folder.iterdir()), [])
+
+    def test_free_text_that_names_the_machine_is_refused_before_anything_is_written(self) -> None:
+        known = Sensitive(hosts=("example-host",), users=("learner",), folders=("/work/learner",))
+
+        def lab_with(change: Any) -> SampleLab:
+            class Leaky(SampleLab):
+                def run(self, context: Any) -> Any:
+                    result = super().run(context)
+                    change(result)
+                    return result
+
+            return Leaky()
+
+        def notes(result: Any) -> None:
+            result.notes = "ran on example-host"
+
+        for name, change, place in (
+            ("the notes", notes, "/notes"),
+            ("the text of an artifact", lambda result: result.artifacts.append(bundles.Artifact.from_text("notes-file", "log", "text", "wrote /work/learner/out")), "/artifacts/notes-file"),
+            ("the JSON of an artifact", lambda result: result.artifacts.append(bundles.Artifact.from_json("meta", "outputs", "json", {"who": ["learner", "x"]})), "/artifacts/meta/who/0"),
+            ("ext", lambda result: setattr(result, "ext", {"where": "example-host"}), "/ext/where"),
+        ):
+            with self.subTest(name), self.assertRaises(GraderError) as caught:
+                self.stage(lab_with(change), sensitive=known)
+            self.assertIn(place, str(caught.exception))
+            self.assertNotIn("example-host", str(caught.exception))
+            self.assertEqual(list(self.folder.iterdir()), [])
+        # What the machine does not say is let through, and so is a column of numbers.
+        self.stage(lab_with(lambda result: result.artifacts.append(bundles.Artifact.from_json("col", "outputs", "json", {"n": list(range(1000))}))), sensitive=known)
 
     def test_the_scratch_folder_is_gone_afterwards(self) -> None:
         seen: list[Path] = []

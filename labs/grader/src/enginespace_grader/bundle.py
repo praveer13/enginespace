@@ -15,8 +15,8 @@ file appears whole or not at all.
 The caps bound a bundle's bytes, and bytes are not what a parser costs: a text inside them can nest a hundred million levels deep, or hold a quarter of a
 gigabyte of `[],`, and `json.loads` of it runs out of memory. So the text is also held to a shape before it is parsed, as the site holds it (rule 2,
 packages/verify/shape.ts): at most `MAX_DEPTH` levels, and at most `MAX_NODES` arrays, objects and strings. `ShapeScan` counts them, `read_bundle` refuses a text
-that passes either bound, and `write_bundle` refuses to write one. The shape does not count numbers, which cost the site's parser next to nothing and Python an
-object each, so `read_bundle` also turns a MemoryError of the parse into a message.
+that passes either bound, and `write_bundle` refuses to write one. The shape does not count numbers as nodes, which cost the site's parser next to nothing, but it bounds the commas outside strings (`MAX_COMMAS`), which
+bounds every value; Python pays an object for each number, so `read_bundle` also turns a MemoryError of the parse into a message.
 """
 
 from __future__ import annotations
@@ -45,6 +45,7 @@ __all__ = [
     "MAX_COMPRESSED_BYTES",
     "MAX_DECOMPRESSED_BYTES",
     "MAX_DEPTH",
+    "MAX_COMMAS",
     "MAX_NODES",
     "Artifact",
     "BundleRead",
@@ -72,6 +73,10 @@ MAX_DECOMPRESSED_BYTES = 256 * 1024 * 1024
 #: (the names of members among them) in the text of one bundle. Numbers, true, false and null are not counted. packages/verify/limits.ts holds the same two numbers.
 MAX_DEPTH = 64
 MAX_NODES = 4 * 1024 * 1024
+
+#: The most commas outside strings in the text of one bundle [estimated]: 16 Mi. Each value that is not a node (a number, true, false, null) is the first of its container or follows a
+#: comma, and the site makes a string for each in the canonical form of the receipt and of a JSON artifact. packages/verify/limits.ts holds the same number.
+MAX_COMMAS = 16 * 1024 * 1024
 
 
 class BundleReadError(GraderError):
@@ -107,20 +112,30 @@ class ShapeScan:
     A closing bracket with nothing open is ignored, and an unterminated string takes the rest of the piece.
     """
 
-    __slots__ = ("deepest", "depth", "max_depth", "max_nodes", "nodes")
+    __slots__ = ("commas", "deepest", "depth", "max_commas", "max_depth", "max_nodes", "nodes")
 
-    def __init__(self, max_depth: int = MAX_DEPTH, max_nodes: int = MAX_NODES) -> None:
+    def __init__(self, max_depth: int = MAX_DEPTH, max_nodes: int = MAX_NODES, max_commas: int = MAX_COMMAS) -> None:
         self.max_depth = max_depth
         self.max_nodes = max_nodes
+        self.max_commas = max_commas
+        self.commas = 0
         self.depth = 0
         self.deepest = 0
         self.nodes = 0
 
     def feed(self, data: bytes) -> None:
-        depth, deepest, nodes = self.depth, self.deepest, self.nodes
-        max_depth, max_nodes = self.max_depth, self.max_nodes
+        depth, deepest, nodes, commas = self.depth, self.deepest, self.nodes, self.commas
+        max_depth, max_nodes, max_commas = self.max_depth, self.max_nodes, self.max_commas
+        count = data.count
+        seen = 0  # where the commas have been counted to: what lies between two tokens is counted whole, in C, and a token's own bytes (a string's) hold none that count
         for match in _TOKEN.finditer(data):
-            first = data[match.start()]
+            start = match.start()
+            if start > seen:
+                commas += count(b",", seen, start)
+                if commas > max_commas:
+                    raise self._too_many_commas()
+            seen = match.end()
+            first = data[start]
             if first == _CLOSE_ARRAY or first == _CLOSE_OBJECT:
                 if depth:
                     depth -= 1
@@ -142,7 +157,17 @@ class ShapeScan:
                     f"the JSON inside holds more than {max_nodes:,} arrays, objects and strings (member names included), and the site parses at most that many [estimated]. "
                     "It was not parsed, because the parser's memory grows with their number",
                 )
-        self.depth, self.deepest, self.nodes = depth, deepest, nodes
+        commas += count(b",", seen)
+        if commas > max_commas:
+            raise self._too_many_commas()
+        self.depth, self.deepest, self.nodes, self.commas = depth, deepest, nodes, commas
+
+    def _too_many_commas(self) -> ShapeError:
+        return ShapeError(
+            "commas",
+            f"the JSON inside holds more than {self.max_commas:,} commas outside its strings, so more than that many numbers, true, false, null and other values, and the site reads at most that many [estimated]. "
+            "It was not read, because the canonical form of what it holds grows with their number",
+        )
 
 
 @dataclass(frozen=True)
@@ -330,7 +355,7 @@ def write_bundle(path: Path, bundle: Mapping[str, Any]) -> BundleStats:
             "list the largest artifact with inBundle false, by its hash and size, and keep the file"
         )
 
-    shape = ShapeScan(MAX_DEPTH, MAX_NODES)
+    shape = ShapeScan(MAX_DEPTH, MAX_NODES, MAX_COMMAS)
     try:
         with os.fdopen(handle, "wb") as raw:
             # An empty file name and a modification time of 0, so that the header names neither the machine's folders nor the moment.
@@ -405,6 +430,7 @@ def read_bundle(
     max_decompressed: int = MAX_DECOMPRESSED_BYTES,
     max_depth: int = MAX_DEPTH,
     max_nodes: int = MAX_NODES,
+    max_commas: int = MAX_COMMAS,
 ) -> BundleRead:
     """Reads a `.es.json.gz` file under the caps of rule 1 and the shape bounds of rule 2, and parses its JSON (rule 2's first step). Raises `BundleReadError`.
 
@@ -429,7 +455,7 @@ def read_bundle(
         raise BundleReadError(2, f"the text inside is not UTF-8 (byte {error.start})") from None
     # The shape of the text, before anything is built from it: json.loads of a text inside the caps can still run out of memory (rule 2, packages/verify/shape.ts).
     try:
-        ShapeScan(max_depth, max_nodes).feed(plain)
+        ShapeScan(max_depth, max_nodes, max_commas).feed(plain)
     except ShapeError as error:
         raise BundleReadError(2, str(error)) from None
     try:
