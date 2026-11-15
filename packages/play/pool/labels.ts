@@ -1,19 +1,20 @@
 /**
- * The tape on a pan (GAMES.md §2.6: "its masking-tape label carries its hash and its group"): which table's order a block belongs to,
- * and which block of it.
+ * The label on a page (GAMES.md §2.6: a page carries its hash and its group): which conversation's prefix a block belongs to, and which
+ * block of it.
  *
  * The sim's pages know a hash and a group and nothing of whose they are, as an engine's pages do. The game does know, because it wrote
- * the night: every block of every ticket is a block of its table's longest sequence, and the sequence's hash chain (the sim's own) names
- * each block. So a pan's tape is `C·5`, table C's block 5 (counted from the head, 0), or `S1·2` for a block that lies wholly inside the
- * first standing order, which several tables open with and so share. A learner reads a pan's owner off its tape, as a cook reads a
- * label, and the mirror lists the hash beside it.
+ * the run: every block of every request is a block of its conversation's longest sequence, and the sequence's hash chain (the sim's own)
+ * names each block. So a page's label is `C·5`, conversation C's block 5 (counted from the head, 0), or `S1·2` for a block that lies
+ * wholly inside the first shared system prompt, which several conversations open with and so share. A learner reads a page's owner off its
+ * label, and the mirror lists the hash beside it. The field names (`table`, `standing`) are the first ids and do not change; the label's
+ * text is display copy and enters no state.
  */
 import { divFloor } from '@es/sim/core'
 import { kvChain, kvExtraKey } from '@es/sim/kv'
 import type { PoolLevel, PoolReq } from './types'
 
 export interface PanLabel {
-  /** The table whose order the block belongs to, or null for a standing order's block. */
+  /** The conversation whose prefix the block belongs to, or null for a shared system prompt's block. */
   readonly table: number | null
   readonly standing: number | null
   readonly block: number
@@ -25,7 +26,7 @@ const catalogs = new WeakMap<PoolLevel, ReadonlyMap<string, PanLabel>>()
 
 const keyOf = (blockTokens: number, hash: number): string => `${blockTokens}:${hash}`
 
-/** Every block that the night can make, by block size and hash. Built once for a level. */
+/** Every block that the run can make, by block size and hash. Built once for a level. */
 export function labelsOf(level: PoolLevel): ReadonlyMap<string, PanLabel> {
   const known = catalogs.get(level)
   if (known !== undefined) return known
@@ -51,5 +52,5 @@ export function labelsOf(level: PoolLevel): ReadonlyMap<string, PanLabel> {
   return labels
 }
 
-/** The label of the block with this hash at this block size, or undefined for a hash the night never makes. */
+/** The label of the block with this hash at this block size, or undefined for a hash the run never makes. */
 export const labelOf = (level: PoolLevel, blockTokens: number, hash: number): PanLabel | undefined => labelsOf(level).get(keyOf(blockTokens, hash))

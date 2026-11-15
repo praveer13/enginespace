@@ -106,17 +106,19 @@ const stage = (page: Page) => page.locator('[data-stage="pool"]')
 const game = (page: Page) => page.locator('section[data-game="pool"]')
 const probe = (page: Page) => page.evaluate(() => window.__esScene?.probes.pool?.info() ?? null)
 const askKind = (page: Page) => page.locator('[data-pool-controls]').getAttribute('data-ask')
-const camera = (page: Page) => page.getByRole('group', { name: 'Camera on the reach-in' })
-const CAMERAS = ['Front of the reach-in', 'One station', 'From above']
+const camera = (page: Page) => page.getByRole('group', { name: 'Camera on the page pool' })
+const CAMERAS = ['Front of the page pool', 'One KV group', 'From above']
 
 /** The house's night on a level's practice seed, as the page plays it: every state, and the actions between them. */
 const nightOfHouse = (id: PoolLevelId) => playThrough(practiceOf(id), house)
-const ticketNo = (id: number) => String(id + 1).padStart(2, '0')
+const reqNo = (id: number) => String(id + 1)
 
 async function open(page: Page, level: string, tier: number) {
   await page.goto(`${ORIGIN}/play/pool?level=${level}&es-tier=${tier}`)
   await page.evaluate(() => document.fonts.ready)
   await expect(game(page)).toBeVisible()
+  // The diagram is the default view (R-T07, REDESIGN §2.9): 3D is one switch away.
+  await page.getByRole('button', { name: '3D', exact: true }).click()
   await expect(game(page)).toHaveAttribute('data-view', '3d')
 }
 
@@ -151,13 +153,13 @@ async function act(page: Page, action: PoolAction) {
   const button = (name: string | RegExp) => page.getByRole('button', { name }).first()
   switch (action.t) {
     case 'admit':
-      await (action.req === null ? button('Hang none') : button(new RegExp(`^Hang ticket No\\. ${ticketNo(action.req)},`))).click()
+      await (action.req === null ? button('Admit none this step') : button(new RegExp(`^Admit request ${reqNo(action.req)},`))).click()
       return
     case 'preempt':
-      await button(new RegExp(`^Pull ticket No\\. ${ticketNo(action.req)},`)).click()
+      await button(new RegExp(`^Preempt request ${reqNo(action.req)},`)).click()
       return
     case 'prefetch':
-      await (action.adapter === null ? button('Bring none yet') : button(new RegExp(`^Bring kit ${action.adapter + 1} in,`))).click()
+      await (action.adapter === null ? button('Load none yet') : button(new RegExp(`^Load adapter ${action.adapter + 1},`))).click()
       return
     case 'evict': {
       // The rows are toggles in the rotation's order, the first ones the ticket needs chosen to begin with.
@@ -165,10 +167,10 @@ async function act(page: Page, action: PoolAction) {
       const want = new Set(action.pages.map((pan) => pan + 1))
       for (let i = 0; i < (await rows.count()); i++) {
         const row = rows.nth(i)
-        const pan = Number(/pan (\d+)/.exec((await row.textContent()) ?? '')?.[1])
+        const pan = Number(/page (\d+)/.exec((await row.textContent()) ?? '')?.[1])
         if (((await row.getAttribute('aria-pressed')) === 'true') !== want.has(pan)) await row.click()
       }
-      await button(/^Dump the \d+ pans?$/).click()
+      await button(/^Evict \d+ pages?$/).click()
     }
   }
 }
@@ -247,7 +249,7 @@ test.describe('the draw-call budget over a whole night (A§11.1)', () => {
           const stats = await frame(page)
           if (stats.sceneCalls > most.sceneCalls) most = stats
         }
-        await expect(page.getByRole('button', { name: 'See the debrief' })).toHaveCount(1)
+        await expect(page.locator('[data-result]')).toHaveCount(1)
         expect(most.sceneCalls).toBeLessThanOrEqual(100)
         expect(most.calls).toBeLessThanOrEqual(100)
         console.log(`${level} T${tier}: at most ${most.sceneCalls} scene draw calls (${most.calls} in the frame, passes ${most.passes.join(' + ')}), ${most.instances} instances, ${most.triangles} triangles, ${most.shadows ?? 0} shadow maps, dpr ${most.dpr}`)
@@ -361,8 +363,8 @@ test.describe('the views and the camera (A§6.8)', () => {
       await settle(page)
     }
     // One station: the page's buttons pick the station, and the scene draws its twine alone: one string where every station's are three.
-    await camera(page).getByRole('button', { name: 'One station' }).click()
-    const stations = page.getByRole('group', { name: 'The station shown' }).getByRole('button')
+    await camera(page).getByRole('button', { name: 'One KV group' }).click()
+    const stations = page.getByRole('group', { name: 'The KV group shown' }).getByRole('button')
     await expect(stations).toHaveCount(3)
     await expect(stations.first()).toHaveAttribute('aria-pressed', 'true')
     await settle(page)
@@ -441,7 +443,7 @@ test.describe('the picture (W1-T24)', () => {
     const first = poolSession.view(states[0])
     // No label rides on the canvas; the tickets that can hang are named on the page, by their numbers, in the open ask's list.
     await expect(labels).toHaveCount(0)
-    for (const id of first.waiting) await expect(page.locator('[data-pool-controls] [data-ask-list]')).toContainText(`No. ${first.tickets[id].no}`)
+    for (const id of first.waiting) await expect(page.locator('[data-pool-controls] [data-ask-list]')).toContainText(`R${id + 1}`)
     // Nothing is on the line yet, so there is no fan to speak of.
     await expect(page.locator('[data-pool-fan]')).toHaveCount(0)
     // The ticket hung first is the focus: its head pan fans into the layers of its station, and the page says which and how many.
@@ -452,9 +454,9 @@ test.describe('the picture (W1-T24)', () => {
     const ticket = view.running[view.running.length - 1]
     const station = view.stations.find((candidate) => candidate.layers === fan?.layers)
     expect(fan).not.toBeNull()
-    await expect(page.locator('[data-pool-fan]')).toContainText(`No. ${view.tickets[ticket].no}`)
+    await expect(page.locator('[data-pool-fan]')).toContainText(`R${ticket + 1}`)
     await expect(page.locator('[data-pool-fan]')).toContainText(`${station?.id}`)
-    await expect(page.locator('[data-pool-fan]')).toContainText(`all ${fan?.layers} of the station's layers`)
+    await expect(page.locator('[data-pool-fan]')).toContainText(`all ${fan?.layers} of the group's layers`)
     await expect(labels).toHaveCount(0)
     // The canvas carries no text, and is hidden from assistive technology with its box.
     await expect(stage(page).locator('.es-stage__scene')).toHaveAttribute('aria-hidden', 'true')

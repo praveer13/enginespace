@@ -1,0 +1,364 @@
+/*
+ * The instrument frame (REDESIGN §2.6, §3.5): the title strip, the goal line, the diagram with the dock beside it, the foot strip, the title
+ * block and the state as a table. Token roles only, so it draws under the current values and under Data Book's.
+ *
+ *   wide (64rem and up)   the diagram and the dock side by side, one height, sized to the first screen, so the diagram, the current control
+ *                         and the readout are in view together; a long list scrolls inside the dock.
+ *   narrow                one column. On a screen at least 700 px tall the dock is pinned to the foot, and holds the decision over one
+ *                         readout line; under 700 px it follows the diagram and nothing is pinned (the Short Viewport Rule).
+ */
+
+.es-frame {
+  --es-frame-gap: var(--es-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-2);
+  min-width: 0;
+  outline: none;
+}
+
+/* On the game's own page the frame is the page: it starts close under the header. */
+.es-shell__main:has(.es-frame[data-placement='page']) {
+  padding-top: var(--es-space-2);
+}
+
+@media (min-width: 64rem) {
+  .es-shell__main:has(.es-frame[data-placement='page']) {
+    padding-top: var(--es-space-4);
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------ the title strip */
+
+.es-frame__strip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-2);
+  align-items: end;
+}
+
+.es-frame__crumb {
+  display: none;
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+  line-height: 1.4;
+}
+
+.es-frame__crumb a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.es-frame__crumb a:hover {
+  color: var(--es-text-1);
+}
+
+.es-frame__title {
+  margin: 0;
+  font-family: var(--es-font-heading);
+  font-size: clamp(1.75rem, 1.4rem + 1.2vw, 2.5rem);
+  font-weight: var(--es-font-heading-weight);
+  line-height: 1;
+  letter-spacing: var(--es-font-heading-tracking);
+  text-transform: none;
+}
+
+.es-frame__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--es-space-3);
+}
+
+.es-frame__crumb {
+  flex-basis: 100%;
+}
+
+.es-frame__role {
+  margin: var(--es-space-1) 0 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+  line-height: 1.35;
+}
+
+.es-frame__menu {
+  min-width: 0;
+}
+
+.es-frame__menu .es-level,
+.es-frame__menu .es-level__select {
+  width: 100%;
+}
+
+.es-frame__level {
+  margin: 0;
+  font-weight: 700;
+}
+
+.es-frame__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-1) var(--es-space-2);
+}
+
+/* The Parts and How to play sheets open under their buttons, over the page, and never wider than the screen. */
+.es-frame__tool .es-pop__panel {
+  z-index: 30;
+}
+
+/* The Keyboard list's button stands in the strip on a wide screen, and inside How to play on a phone. */
+.es-frame__keyboard[data-place='strip'] {
+  display: none;
+}
+
+.es-frame__howto-keys {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2);
+  margin: var(--es-space-3) 0 0;
+}
+
+@media (min-width: 64rem) {
+  .es-frame__strip {
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 26rem) auto;
+    column-gap: var(--es-space-6);
+  }
+
+  .es-frame__crumb {
+    display: block;
+  }
+
+  .es-frame__name {
+    display: block;
+  }
+
+  .es-frame__tools {
+    justify-content: flex-end;
+  }
+
+  .es-frame__keyboard[data-place='strip'] {
+    display: inline-block;
+  }
+
+  .es-frame__howto-keys {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------ the goal line */
+
+.es-frame__goal-box {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--es-space-2);
+  padding-block: var(--es-space-1);
+  border-block: 1px solid var(--es-edge);
+}
+
+.es-frame__goal.es-goal {
+  max-width: 112ch;
+}
+
+.es-frame__goal-more {
+  flex: none;
+  min-height: 2.75rem;
+  padding-inline: var(--es-space-2);
+  color: var(--es-text-1);
+  font-size: var(--es-size-note);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.es-frame__goal-more:focus-visible {
+  outline: 3px solid var(--es-text-1);
+  outline-offset: 2px;
+}
+
+/* On a phone the goal line keeps to two lines until "more" opens it. */
+@media (max-width: 63.999rem) {
+  .es-frame__goal-box:not([data-open]) .es-goal {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .es-frame__goal-box .es-goal {
+    font-size: var(--es-size-note);
+  }
+}
+
+@media (min-width: 64rem) {
+  .es-frame__goal-more {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------ the diagram and the dock */
+
+.es-frame__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-frame-gap);
+  min-width: 0;
+}
+
+.es-frame__diagram {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--es-paper);
+  color: var(--es-paper-ink);
+  box-shadow: var(--es-shadow-paper);
+}
+
+.es-frame__view {
+  min-height: 0;
+  outline: none;
+}
+
+.es-frame__view:focus-visible {
+  outline: 3px solid var(--es-text-1);
+  outline-offset: -3px;
+}
+
+.es-frame__legend {
+  min-width: 0;
+  padding: var(--es-space-1) var(--es-space-2);
+  border-top: 1px solid var(--es-paper-rule);
+}
+
+.es-frame__dock {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--es-paper);
+  color: var(--es-paper-ink);
+  box-shadow: var(--es-shadow-paper);
+}
+
+.es-frame__dock-main {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--es-space-3) var(--es-space-4);
+}
+
+.es-frame__readout {
+  flex: none;
+  padding: var(--es-space-2) var(--es-space-4);
+  border-top: 1px solid var(--es-paper-rule);
+}
+
+.es-frame__result {
+  outline: none;
+}
+
+.es-frame__result:focus-visible,
+.es-debrief__verdict:focus-visible {
+  outline: 3px solid var(--es-text-1);
+  outline-offset: 2px;
+}
+
+/*
+ * Wide: one row, the diagram and the dock at one height that fits the first screen under the title strip and the goal line [estimated
+ * from the 1440 x 900 layout of REDESIGN §3.5], never less than 26rem and never more than 44rem.
+ */
+@media (min-width: 64rem) {
+  .es-frame {
+    gap: var(--es-space-3);
+  }
+
+  .es-frame[data-placement='page'] .es-frame__body {
+    grid-template-columns: minmax(0, 1fr) minmax(20rem, 26rem);
+    height: clamp(26rem, 100svh - 23.5rem, 44rem);
+  }
+
+  .es-frame[data-placement='page'] .es-frame__diagram {
+    overflow: hidden;
+  }
+
+  .es-frame[data-placement='page'] .es-frame__view {
+    flex: 1 1 auto;
+    overflow: auto;
+  }
+}
+
+/* Inside a lesson the column, not the screen, sets the room: the diagram and the dock stand one under the other, and nothing scrolls inside. */
+.es-frame[data-placement='embed'] .es-frame__dock-main {
+  overflow: visible;
+}
+
+/* Narrow and at least 700 px tall: the dock is pinned to the foot and holds the decision over one readout line. */
+@media (max-width: 63.999rem) and (min-height: 700px) {
+  .es-frame[data-placement='page'] .es-frame__view {
+    max-height: calc(67svh - 23.5rem);
+    min-height: 9rem;
+    overflow: auto;
+  }
+
+  .es-frame[data-placement='page'] .es-frame__dock {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    max-height: 33svh;
+    box-shadow: var(--es-shadow-lift);
+  }
+
+  .es-frame[data-placement='page'] .es-frame__dock-main {
+    padding-block: var(--es-space-2);
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------ the foot strip, the title block, the table */
+
+.es-frame__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--es-space-2) var(--es-space-4);
+}
+
+.es-frame__foot-actions,
+.es-frame__mode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2);
+}
+
+.es-frame__table {
+  min-width: 0;
+}
+
+.es-frame__table-summary {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: var(--es-space-2);
+  cursor: pointer;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+}
+
+.es-frame__table-summary:focus-visible {
+  outline: 3px solid var(--es-text-1);
+  outline-offset: 2px;
+}
+
+.es-frame__table-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-6);
+  padding-top: var(--es-space-3);
+}

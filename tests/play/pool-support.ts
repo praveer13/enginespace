@@ -60,7 +60,7 @@ export function bulk(level: PoolLevel, policy: Policy, quiet: boolean) {
   return w
 }
 
-/** A run as the pieces of The Reach-In's page receive it (GameShell's `RunApi`), for a state, with every action a no-op: for server-rendering the page. */
+/** A run as the pieces of KV page pool's page receive it (the frame's `FrameRun`), for a state, with every action a no-op: for server-rendering the page. */
 export function fakeRun(state: PoolState, over: Partial<PoolRun> = {}): PoolRun {
   const view = poolSession.view(state)
   return {
@@ -79,14 +79,12 @@ export function fakeRun(state: PoolState, over: Partial<PoolRun> = {}): PoolRun 
     announce: () => undefined,
     setAutoplay: () => undefined,
     mirrorId: 'mirror',
-    phase: 'play',
     restart: () => undefined,
-    goTo: () => undefined,
     ...over,
   }
 }
 
-/** A finished run as the shell hands it to the debrief: the grade, the debrief and the reference's view. */
+/** A finished run as the frame hands it to the result: the grade, the debrief and the reference's view. */
 export function outcomeOf(state: PoolState): PoolOutcome {
   const level = state.level
   const start = startRun(poolSession, { game: 'pool', level: level.id, seed: level.seed })

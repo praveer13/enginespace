@@ -18,7 +18,7 @@ import { PRACTICE, playThrough, practiceOf } from './pool-support'
 const S = poolSession
 
 describe('the tape on a pan names whose block it holds', () => {
-  test('every pan that holds a hash has a tape of the form `C·5` or `S1·2`, and a kit\'s pans say which kit', () => {
+  test('every page that holds a hash has a label of the form `C·5` or `S1·2`, and an adapter\'s pages say which adapter', () => {
     for (const [id, seed] of PRACTICE) {
       const level = S.level(id, seed)
       const { states } = playThrough(level, house)
@@ -26,7 +26,7 @@ describe('the tape on a pan names whose block it holds', () => {
         const view = S.view(state)
         for (const pan of view.pans) {
           if (pan.state === 'free') expect(pan.tape).toBeNull()
-          else if (pan.state === 'adapter') expect(pan.tape).toMatch(/^kit \d+$/)
+          else if (pan.state === 'adapter') expect(pan.tape).toMatch(/^adapter \d+$/)
           else if (pan.hash !== null) expect([id, pan.id, pan.tape]).toEqual([id, pan.id, expect.stringMatching(/^(S\d+|[A-Z])·\d+$/)])
         }
       }
