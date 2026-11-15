@@ -45,7 +45,7 @@ df -h . | tail -n 1
 On the instance. Edit the three lines marked `# EDIT`, then paste the whole block. The build installs uv 0.10.2 exactly and the locked environment, with the hash of every file, into the image. It downloads gigabytes of wheels [estimated] and takes a while.
 
 ```bash
-KIT_URL='https://enginespace.naigap.com/labs/enginespace-gpu-kit.zip'   # EDIT: the link on the lab's page
+KIT_URL='https://enginespace.naigap.com/labs/enginespace-gpu-kit-0.1.0.zip'   # EDIT: the link on the lab's page
 KIT_SHA256='0000000000000000000000000000000000000000000000000000000000000000'   # EDIT: the SHA-256 line on the lab's page
 ENV_NAME='vllm'   # EDIT: vllm, sglang or nano-vllm
 

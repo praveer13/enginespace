@@ -45,7 +45,12 @@ def load_modal_app() -> Any:
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
+    # No bytecode is written beside the file: the kit packer refuses a folder that holds build output (scripts/pack-kit.ts).
+    was, sys.dont_write_bytecode = sys.dont_write_bytecode, True
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.dont_write_bytecode = was
     return module
 
 

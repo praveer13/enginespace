@@ -60,7 +60,7 @@ df -h . | tail -n 1
 On the pod. Edit the four lines marked `# EDIT`, then paste the blocks in order. They are the Dockerfile's steps, made by hand: uv 0.10.2 exactly, the locked environment installed with the hash of every file, and the kit beside it.
 
 ```bash
-KIT_URL='https://enginespace.naigap.com/labs/enginespace-gpu-kit.zip'   # EDIT: the link on the lab's page
+KIT_URL='https://enginespace.naigap.com/labs/enginespace-gpu-kit-0.1.0.zip'   # EDIT: the link on the lab's page
 KIT_SHA256='0000000000000000000000000000000000000000000000000000000000000000'   # EDIT: the SHA-256 line on the lab's page
 ENV_NAME='vllm'   # EDIT: vllm, sglang or nano-vllm
 STAGE='tr8.replay.s1'   # EDIT: the stage you were issued a challenge for
