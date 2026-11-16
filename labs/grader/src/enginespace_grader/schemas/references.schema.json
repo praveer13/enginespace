@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Written by scripts/export-schemas.ts from packages/schema/references.ts. Do not edit it: change the zod schema and run `bun scripts/export-schemas.ts`.",
+  "type": "object",
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "enginespace/references@1"
+    },
+    "entries": {
+      "maxItems": 256,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])",
+            "maxLength": 128
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "model",
+              "dataset",
+              "prompts",
+              "reference"
+            ]
+          },
+          "labs": {
+            "minItems": 1,
+            "maxItems": 16,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^(?:tr[0-8][ab]?|capstone)\\.[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])"
+            }
+          },
+          "path": {
+            "type": "string",
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9_-])?(?:\\/[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9_-])?)*(?![\\s\\S])"
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 2048,
+            "pattern": "^(?:https:\\/\\/[a-z0-9]+(?:[.-][a-z0-9]+)*|http:\\/\\/(?:127\\.0\\.0\\.1|localhost|\\[::1\\]))(?::[0-9]{1,5})?\\/[A-Za-z0-9._~%!&'()*+,;=:@/?-]*(?![\\s\\S])"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "licence": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])",
+            "maxLength": 128
+          },
+          "date": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}(?![\\s\\S])"
+          },
+          "revision": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])",
+            "maxLength": 64
+          },
+          "notes": {
+            "type": "string",
+            "pattern": "^[^\\u0000-\\u0008\\u000b\\u000c\\u000e-\\u001f\\u007f]*(?![\\s\\S])",
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "name",
+          "kind",
+          "labs",
+          "path",
+          "url",
+          "sha256",
+          "bytes",
+          "licence",
+          "date"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "schema",
+    "entries"
+  ],
+  "additionalProperties": false,
+  "title": "enginespace/references@1",
+  "description": "The large files that the local grader downloads, each pinned by SHA-256 and size (ARCHITECTURE §9.7). Checked by the grader and not expressible in JSON Schema: entry names differ; paths differ, ignoring case, and no path is a folder that another path is inside; a date is a day that exists."
+}

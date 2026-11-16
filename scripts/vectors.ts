@@ -18,7 +18,7 @@
  *
  * Adding a model: give it a `VectorModel` in MODELS, whose cases are JSON inputs and a function from them to the model's
  * output. `workload` (W0-T12), `steploop` (W0-T13), `trace` (W1-T08), `bench` (W1-T31), `spec` (W1-T26), `lifecycle` (W1-T16),
- * `steploop-v1` (W1-T12), `kv` (W1-T21) and `broken-bench` (W1-T32) were added this way.
+ * `steploop-v1` (W1-T12), `kv` (W1-T21), `broken-bench` (W1-T32) and `tensor` (W2-T13) were added this way.
  */
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -40,6 +40,8 @@ import { ENGINE_DEFAULTS, TICK_CARD, defaultCaptureSizes, mrv1RoundedSizes, runS
 import type { GpuCard, GraphSettings, S5HostTerm, StepLoopConfig, StepLoopRun } from '../packages/sim/steploop'
 import { CLEAN_JITTER, DEFAULT_JITTER, attributeSteps, encodeTrace, traceChecks, traceFromRun, traceToJson } from '../packages/sim/trace'
 import type { Attribution, JitterSpec } from '../packages/sim/trace'
+import { addresses, applyOp, contiguousView, fewestPlan, goalAfter, gridCoverage, isContiguous, naivePlan, programCells } from '../packages/sim/tensor'
+import type { ShiftOp, TView } from '../packages/sim/tensor'
 import { genWorkload, parseSlice, replayWorkload } from '../packages/sim/workload'
 import type { LengthPlan, ReplaySpec, SliceId, TraceSlice, Workload, WorkloadSpec } from '../packages/sim/workload'
 import { checkCritical } from './tables/chi-square-critical'
@@ -1615,7 +1617,99 @@ const brokenBench: VectorModel = {
   cases: () => Object.entries(brokenInputs).map(([name, input]) => ({ name, input, run: () => brokenOutput(input) })),
 }
 
-export const MODELS: readonly VectorModel[] = [workload, steploop, steploopV1, trace, bench, spec, lifecycle, kv, brokenBench]
+// ---------------------------------------------------------------------------------------------------------------------------
+// tensor
+
+type TensorInput =
+  | { readonly fn: 'chain'; readonly shape: readonly number[]; readonly ops: readonly ShiftOp[] }
+  | { readonly fn: 'fewest'; readonly shape: readonly number[]; readonly prelude: readonly ShiftOp[]; readonly target: readonly ShiftOp[]; readonly contiguous: boolean }
+  | { readonly fn: 'grid'; readonly shape: readonly number[]; readonly block: readonly number[]; readonly grid?: readonly number[] }
+  | { readonly fn: 'program'; readonly shape: readonly number[]; readonly block: readonly number[]; readonly index: readonly number[] }
+
+const T = (op: ShiftOp): ShiftOp => op
+const tensorInputs: Record<string, TensorInput> = {
+  // GAMES.md section 4's levels, in the order a learner meets them.
+  'views-transpose-is-free': { fn: 'chain', shape: [4, 6], ops: [T({ op: 'transpose', a: 0, b: 1 })] },
+  'views-view-after-transpose-fails': { fn: 'chain', shape: [4, 6], ops: [T({ op: 'transpose', a: 0, b: 1 }), T({ op: 'view', shape: [24] })] },
+  'views-reshape-after-transpose-copies': { fn: 'chain', shape: [4, 6], ops: [T({ op: 'transpose', a: 0, b: 1 }), T({ op: 'reshape', shape: [24] })] },
+  'views-contiguous-twice': { fn: 'chain', shape: [4, 6], ops: [T({ op: 'transpose', a: 0, b: 1 }), T({ op: 'contiguous' }), T({ op: 'contiguous' })] },
+  'stride-zero-expand': { fn: 'chain', shape: [1, 4], ops: [T({ op: 'expand', shape: [3, 4] })] },
+  'stride-zero-expand-then-contiguous': { fn: 'chain', shape: [1, 4], ops: [T({ op: 'expand', shape: [3, 4] }), T({ op: 'contiguous' })] },
+  'stride-zero-expand-new-lead-dim': { fn: 'chain', shape: [4], ops: [T({ op: 'expand', shape: [2, 3, 4] })] },
+  'stride-zero-expand-wrong-size': { fn: 'chain', shape: [2, 4], ops: [T({ op: 'expand', shape: [3, 4] })] },
+  'slice-every-other-column': { fn: 'chain', shape: [4, 6], ops: [T({ op: 'slice', dim: 1, start: 0, stop: 6, step: 2 })] },
+  'slice-then-view-fails': { fn: 'chain', shape: [4, 6], ops: [T({ op: 'slice', dim: 1, start: 1, stop: 4, step: 1 }), T({ op: 'view', shape: [12] })] },
+  'three-d-heads-split': { fn: 'chain', shape: [12, 8], ops: [T({ op: 'view', shape: [2, 6, 2, 4] }), T({ op: 'permute', order: [0, 2, 1, 3] })] },
+  'three-d-heads-split-flatten-copies': { fn: 'chain', shape: [12, 8], ops: [T({ op: 'view', shape: [2, 6, 2, 4] }), T({ op: 'permute', order: [0, 2, 1, 3] }), T({ op: 'reshape', shape: [4, 6, 4] })] },
+  'three-d-heads-split-flatten-view-fails': { fn: 'chain', shape: [12, 8], ops: [T({ op: 'view', shape: [2, 6, 2, 4] }), T({ op: 'permute', order: [0, 2, 1, 3] }), T({ op: 'view', shape: [4, 6, 4] })] },
+  'bad-shape-count': { fn: 'chain', shape: [4, 6], ops: [T({ op: 'view', shape: [5, 5] })] },
+  // The fewest copies: the target is what a chain of operations gives, so that it is reachable.
+  'fewest-transpose-flatten': { fn: 'fewest', shape: [6, 4], prelude: [], target: [T({ op: 'permute', order: [1, 0] }), T({ op: 'reshape', shape: [24] })], contiguous: true },
+  'fewest-transpose-only': { fn: 'fewest', shape: [4, 6], prelude: [], target: [T({ op: 'transpose', a: 0, b: 1 })], contiguous: false },
+  'fewest-transpose-contiguous': { fn: 'fewest', shape: [4, 6], prelude: [], target: [T({ op: 'transpose', a: 0, b: 1 })], contiguous: true },
+  'fewest-heads-first': { fn: 'fewest', shape: [6, 4], prelude: [], target: [T({ op: 'reshape', shape: [2, 3, 2, 2] }), T({ op: 'permute', order: [2, 0, 1, 3] })], contiguous: true },
+  'fewest-permute-then-merge': { fn: 'fewest', shape: [2, 3, 4], prelude: [], target: [T({ op: 'permute', order: [2, 0, 1] }), T({ op: 'reshape', shape: [4, 6] })], contiguous: true },
+  'fewest-beats-naive': { fn: 'fewest', shape: [2, 3, 4], prelude: [], target: [T({ op: 'permute', order: [2, 0, 1] }), T({ op: 'reshape', shape: [8, 3] }), T({ op: 'permute', order: [1, 0] }), T({ op: 'reshape', shape: [2, 12] })], contiguous: false },
+  'fewest-slice-then-flatten': { fn: 'fewest', shape: [4, 6], prelude: [], target: [T({ op: 'slice', dim: 1, start: 1, stop: 4, step: 1 }), T({ op: 'reshape', shape: [12] })], contiguous: true },
+  'fewest-from-a-view': { fn: 'fewest', shape: [4, 6], prelude: [T({ op: 'transpose', a: 0, b: 1 })], target: [T({ op: 'reshape', shape: [2, 3, 4] })], contiguous: true },
+  'fewest-expand': { fn: 'fewest', shape: [1, 4], prelude: [], target: [T({ op: 'expand', shape: [3, 4] }), T({ op: 'permute', order: [1, 0] })], contiguous: false },
+  // The grid: exact for the default grid, short for a smaller one.
+  'grid-even': { fn: 'grid', shape: [8, 8], block: [4, 4] },
+  'grid-edge-masks': { fn: 'grid', shape: [10, 7], block: [4, 4] },
+  'grid-1d-uneven': { fn: 'grid', shape: [1000], block: [128] },
+  'grid-block-bigger-than-tensor': { fn: 'grid', shape: [3, 5], block: [8, 8] },
+  'grid-short': { fn: 'grid', shape: [10, 7], block: [4, 4], grid: [2, 2] },
+  'grid-block-not-power-of-two': { fn: 'grid', shape: [9], block: [3] },
+  'grid-rank-mismatch': { fn: 'grid', shape: [8, 8], block: [4] },
+  'program-corner': { fn: 'program', shape: [10, 7], block: [4, 4], index: [2, 1] },
+  'program-inside': { fn: 'program', shape: [10, 7], block: [4, 4], index: [0, 0] },
+}
+
+function tensorOutput(input: TensorInput): unknown {
+  switch (input.fn) {
+    case 'chain': {
+      let v: TView = contiguousView(input.shape)
+      const steps: unknown[] = []
+      for (const o of input.ops) {
+        const r = applyOp(v, o)
+        if ('error' in r) {
+          steps.push({ error: r.error })
+          break
+        }
+        v = r.view
+        steps.push({ view: r.view, copied: r.copied, contiguous: isContiguous(r.view) })
+      }
+      return { steps, addresses: addresses(v) }
+    }
+    case 'fewest': {
+      let start: TView = contiguousView(input.shape)
+      for (const o of input.prelude) {
+        const r = applyOp(start, o)
+        if ('error' in r) throw new Error(`prelude ${JSON.stringify(o)} fails`)
+        start = r.view
+      }
+      const goal = goalAfter(start, input.target, input.contiguous)
+      if (!goal) throw new Error('target fails')
+      const plan = fewestPlan(start, goal)
+      const naive = naivePlan(start, input.target, input.contiguous)
+      return { start, goalShape: goal.shape, plan, naive }
+    }
+    case 'grid':
+      return gridCoverage(input.shape, input.block, input.grid)
+    case 'program':
+      return programCells(input.shape, input.block, input.index)
+  }
+}
+
+const tensor: VectorModel = {
+  model: 'tensor',
+  file: `${FIXTURE_DIR}/tensor.json`,
+  header:
+    'Golden vectors for packages/sim/tensor (ARCHITECTURE section 5.8, GAMES section 4): each maps its input to what the model answers. A `chain` applies operations to a contiguous tensor and records each step\'s view, the elements it moved and whether it is contiguous, or the error that stops it. A `fewest` records the cheapest plan to a target that a chain of operations reaches (and the naive plan, contiguous() before every operation). A `grid` records a Triton-style grid\'s programs, masked lanes and coverage, and a `program` the cells of one program. That the view rules are PyTorch\'s is checked apart, against tests/fixtures/tensor/torch-vectors.json. Regenerate only with `bun scripts/vectors.ts --write`, and review the diff like code.',
+  cases: () => Object.entries(tensorInputs).map(([name, input]) => ({ name, input, run: () => tensorOutput(input) })),
+}
+
+export const MODELS: readonly VectorModel[] = [workload, steploop, steploopV1, trace, bench, spec, lifecycle, kv, brokenBench, tensor]
 
 // ---------------------------------------------------------------------------------------------------------------------------
 // fixtures

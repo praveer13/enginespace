@@ -106,7 +106,8 @@ describe('accept 2: the manifest\'s hashes match', () => {
   function mismatches(dir: string, sources: (lab: string, file: string) => Uint8Array | undefined): string[] {
     const manifest = JSON.parse(text(bytesOf(dir, MANIFEST_NAME))) as Manifest
     const problems: string[] = []
-    for (const entry of manifest.files) {
+    // The grader wheel and the GPU kit (W2-T10, scripts/pack-kit.ts) share the manifest; tests/grader/pack-kit.test.ts holds them.
+    for (const entry of manifest.files.filter((file) => file.kind === 'forge-lab')) {
       const bytes = bytesOf(dir, entry.name)
       if (sha256(bytes) !== entry.sha256) problems.push(`${entry.name}: SHA-256`)
       if (bytes.length !== entry.bytes) problems.push(`${entry.name}: size`)
@@ -143,7 +144,7 @@ describe('accept 2: the manifest\'s hashes match', () => {
   test('the committed public/labs: the same, and nothing else in it', () => {
     const dir = path.join(root, 'public/labs')
     expect(mismatches(dir, sourceOf)).toEqual([])
-    expect(files(dir)).toEqual(everything)
+    expect(files(dir).filter((name) => !/\.whl$|^enginespace-gpu-kit-/.test(name))).toEqual(everything)
   })
 
   test('the committed public/labs is what the sources pack to: a source that changed without a repack fails here', () => {

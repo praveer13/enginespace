@@ -20,7 +20,7 @@
  */
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
-import { PR_ROUTES, W1_LEVEL_PAGES, W1_ROUTES } from './routes'
+import { PR_ROUTES, W1_LEVEL_PAGES, W1_ROUTES, W2_ROUTES } from './routes'
 import { front, playToTheDebrief } from './support/front'
 import { documentRoutes, expect, HAS_3D, KNOWN_REFUSALS, NIGHTLY, open, quiet, ready, SCENE_IN_RUN, settled3d, test, withSettings } from './support/site'
 
@@ -28,11 +28,12 @@ const root = path.resolve(import.meta.dirname, '..')
 /**
  * The pages whose own visit is a network check. A pull request visits the eight, and of W1's the pages that load a game or a lab from its
  * lazy chunks (the games, the labs, and the full service's richest level; every other page of W1 is visited by the axe and reduced-motion
- * specs, and support/site.ts fails any test whose page reaches outside the origin, so they are watched all the same). The nightly sweep
- * visits every document and the full service's five levels.
+ * specs, and support/site.ts fails any test whose page reaches outside the origin, so they are watched all the same), and W2's pages (W2-T06's
+ * receipts page, which reads the ledger and writes a challenge to it, and sends nothing). The nightly sweep visits every document and the
+ * full service's five levels.
  */
 const W1_LAZY = W1_ROUTES.filter((route) => route.startsWith('/play/') || route.startsWith('/labs/'))
-const ROUTES = NIGHTLY ? [...documentRoutes(), ...W1_LEVEL_PAGES] : [...PR_ROUTES, ...W1_LAZY, ...W1_LEVEL_PAGES.filter((page) => page.endsWith('?level=graphs'))]
+const ROUTES = NIGHTLY ? [...documentRoutes(), ...W1_LEVEL_PAGES] : [...PR_ROUTES, ...W1_LAZY, ...W2_ROUTES, ...W1_LEVEL_PAGES.filter((page) => page.endsWith('?level=graphs'))]
 const FACES = (JSON.parse(readFileSync(path.join(root, 'public/fonts/fonts.json'), 'utf8')) as { faces: { family: string; file: string }[] }).faces
 
 test.describe('the front-page walk', () => {

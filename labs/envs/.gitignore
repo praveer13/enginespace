@@ -1,0 +1,2 @@
+# What `uv sync` makes beside a project, if someone runs it on a CPU environment.
+.venv/

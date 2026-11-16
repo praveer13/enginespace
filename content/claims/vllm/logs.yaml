@@ -1,0 +1,297 @@
+# vLLM at the pin: what the engine prints and where, which the grader reads the effective engine configuration from (W2-T03; ARCHITECTURE section 9.5, ASSESSMENT section 5.6).
+#
+# Every claim here was read on 2026-11-09 from the file the source URL names, at the tag the URL names, in the tag's source tarball, as text. Nothing in the tarball
+# was run. The pin is v0.33.0, the commit 4ba787ec9959e566d3b587a796dff07673324da5 (course.lock.json, key vllm), which `git get-tar-commit-id` read from the tarball,
+# and the tarball's SHA-256 is 2540b44ac130699997ccc2c7cf57ae3ceae43348643d0603330b01458b111a09, the same as W1-T01's copy. A quote is the source's own text from one
+# line, and a #L anchor says which lines hold it. In the text of a log line, a word in capitals, such as MODE or N, stands for what the engine fills in. labs/grader/src/enginespace_grader/engine_config.py reads exactly these lines of a log, so a re-pin that moves one of
+# them moves the reading: read these claims again first, and run the grader's tests on a log of the new pin.
+#
+# Two things are absences, and say where the search looked: that no INFO line says async scheduling is on (vllm.log.async-scheduling-silent) and that the config
+# line holds none of the scheduler's limits (vllm.log.config-line-no-scheduler-limits).
+
+
+- id: vllm.log.runner-mrv2
+  value: 'Using V2 Model Runner'
+  text: 'When the GPU worker uses Model Runner V2 it logs "Using V2 Model Runner" once, at INFO. The worker has no line of its own for Model Runner V1 (a search of the tag''s logger calls for "model runner" finds this one and the CPU and XPU workers'' copies), so this line is the log''s word that MRV2 ran.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu_worker.py#L512-L513
+    title: 'vLLM v0.33.0, vllm/v1/worker/gpu_worker.py, the GPU worker''s start'
+    quote: 'logger.info_once("Using V2 Model Runner")'
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.log.runner-fallback-warning
+  value: 'one warning'
+  text: 'When the configuration uses a feature that MRV2 does not support, vLLM logs one warning, "Model Runner V2 does not yet support REASONS; using the V1 model runner instead.", with the reasons joined by commas, and runs MRV1. The warning is the only trace of the fallback.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/vllm.py#L760-L764
+    title: 'vLLM v0.33.0, vllm/config/vllm.py, use_v2_model_runner, the unsupported-features fallback'
+    quote: '"Model Runner V2 does not yet support %s; using the V1 model "'
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.log.runner-triton-warning
+  value: 'one warning'
+  text: 'Without Triton, on a platform that is specified, vLLM logs "Model Runner V2 requires Triton; using the V1 model runner instead." once and runs MRV1.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/vllm.py#L753-L755
+    title: 'vLLM v0.33.0, vllm/config/vllm.py, use_v2_model_runner, the Triton fallback'
+    quote: '"Model Runner V2 requires Triton; using the V1 model runner instead."'
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.log.runner-env-silent
+  value: 'no line'
+  text: 'When VLLM_USE_V2_MODEL_RUNNER is set, use_v2_model_runner returns its value before it checks for Triton or for unsupported features, and logs nothing, so a 0 gives MRV1 in silence. HiSparse, which raises an error for a 0, and watermarking, which overrides a 0 and says so at INFO, are checked before it.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/vllm.py#L748-L750
+    title: 'vLLM v0.33.0, vllm/config/vllm.py, use_v2_model_runner, the environment variable'
+    quote: 'if use_v2_model_runner is not None:'
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.log.config-line
+  value: 'Initializing a V1 LLM engine (v%s) with config: %s'
+  text: 'The engine core logs "Initializing a V1 LLM engine (vVERSION) with config: CONFIG" at INFO when it starts, on the engine of local data-parallel rank 0. The config is the string form of VllmConfig.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/core.py#L139-L143
+    title: 'vLLM v0.33.0, vllm/v1/engine/core.py, EngineCore.__init__'
+    quote: '"Initializing a V1 LLM engine (v%s) with config: %s",'
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.log.config-line-compilation-config
+  value: 'compilation_config'
+  text: 'The string form of VllmConfig, which the line above prints, ends with the compilation config, and the compilation config carries cudagraph_mode: the mode the engine starts with, before any downgrade by the attention backend.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/vllm.py#L2842
+    title: 'vLLM v0.33.0, vllm/config/vllm.py, VllmConfig.__str__'
+    quote: 'f"compilation_config={self.compilation_config!r}, "'
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.log.compilation-config-repr
+  value: 'a dict of the set fields'
+  text: 'CompilationConfig prints as the dict that pydantic dumps with exclude_unset=True, so an enum prints by its repr, which for the mode FULL_AND_PIECEWISE reads CUDAGraphMode.FULL_AND_PIECEWISE: (2, 1) between angle brackets. Whether cudagraph_mode is among the fields it counts as set when the engine resolves it by default is unverified, and the grader reads a mode that the line lacks as missing.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/compilation.py#L845-L848
+    title: 'vLLM v0.33.0, vllm/config/compilation.py, CompilationConfig.__repr__'
+    quote: 'self, exclude=exclude, exclude_unset=True'
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.log.config-line-no-scheduler-limits
+  value: 'enable_chunked_prefill only'
+  text: 'The string form of VllmConfig holds one field of the scheduler config, enable_chunked_prefill, and neither max_num_batched_tokens, max_num_seqs nor async_scheduling; this is a reading of the whole of __str__, from model= to kernel_config=, and the quote is the one scheduler field in it.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/vllm.py#L2840
+    title: 'vLLM v0.33.0, vllm/config/vllm.py, VllmConfig.__str__'
+    quote: 'f"enable_chunked_prefill={self.scheduler_config.enable_chunked_prefill}, "  # noqa'
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.log.graph-downgrade-warnings
+  value: 'setting cudagraph_mode=X'
+  text: 'Each downgrade of the CUDA-graph mode is a WARNING whose message ends "; setting cudagraph_mode=MODE", and the downgrade of a full decode graph to PIECEWISE or NONE adds " because attention is compiled piecewise" or " because attention is not compiled piecewise" after the mode. Several can follow each other in one start, and the last one names the mode that runs.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/compilation.py#L1414-L1464
+    title: 'vLLM v0.33.0, vllm/config/compilation.py, CompilationConfig.resolve_cudagraph_mode_and_sizes'
+    quote: 'msg += "; setting cudagraph_mode=FULL_AND_PIECEWISE"'
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.log.graph-override-warning
+  value: 'Overriding to MODE.'
+  text: 'A mode that needs piecewise capture, on a model with neither a compiled submodule nor breakable CUDA graphs, is logged once as "Cudagraph mode MODE requires piecewise capture, but the loaded model provides neither a compiled submodule nor breakable CUDA graphs. Overriding to MODE."'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/compilation.py#L1473-L1479
+    title: 'vLLM v0.33.0, vllm/config/compilation.py, CompilationConfig.resolve_cudagraph_mode_and_sizes, the piecewise override'
+    quote: '"Cudagraph mode %s requires piecewise capture, but the loaded "'
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.log.enforce-eager-warning
+  value: 'CUDA graphs off'
+  text: 'With enforce_eager the config logs "Enforce eager set, disabling torch.compile, CUDAGraphs, and JIT kernel warmup." as a warning ("disabling torch.compile and CUDAGraphs." when fault tolerance is on) and sets cudagraph_mode to NONE, before the engine''s config line is printed.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/vllm.py#L1777-L1784
+    title: 'vLLM v0.33.0, vllm/config/vllm.py, VllmConfig.__post_init__, enforce_eager'
+    quote: '"Enforce eager set, disabling torch.compile, CUDAGraphs, and "'
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.log.attention-backend-auto
+  value: 'Using X attention backend out of potential backends: [...].'
+  text: 'When the user names no attention backend, the CUDA platform logs "Using NAME attention backend out of potential backends: [NAMES]." at INFO, once, with the name of the backend it picked and the valid backends in priority order.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/platforms/cuda.py#L508-L515
+    title: 'vLLM v0.33.0, vllm/platforms/cuda.py, CudaPlatformBase.get_attn_backend_cls, the automatic pick'
+    quote: '"Using %s attention backend out of potential backends: %s."'
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.log.attention-backend-named
+  value: 'Using AttentionBackendEnum.X backend.'
+  text: 'When the user names an attention backend and it is valid, the CUDA platform logs "Using BACKEND backend." at INFO. The argument is an AttentionBackendEnum member, which defines no __str__, so Python prints it with its class name: "Using AttentionBackendEnum.FLASH_ATTN backend."'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/platforms/cuda.py#L448
+    title: 'vLLM v0.33.0, vllm/platforms/cuda.py, CudaPlatformBase.get_attn_backend_cls, a backend the user named'
+    quote: 'logger.info("Using %s backend.", selected_backend)'
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.log.chunked-prefill-budget
+  value: 'Chunked prefill is enabled with max_num_batched_tokens=N.'
+  text: 'With chunked prefill on, which is the default, the scheduler config logs "Chunked prefill is enabled with max_num_batched_tokens=N." once at INFO, with the budget as resolved for the GPU. With it off, no line gives the budget.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/scheduler.py#L310-L313
+    title: 'vLLM v0.33.0, vllm/config/scheduler.py, SchedulerConfig.__post_init__'
+    quote: '"Chunked prefill is enabled with max_num_batched_tokens=%d."'
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.log.batch-defaults-debug
+  value: 'debug level only'
+  text: 'The defaults of max_num_batched_tokens and max_num_seqs, which differ by GPU, are logged as "Defaulting max_num_batched_tokens to N for CONTEXT usage context." and "Defaulting max_num_seqs to N for CONTEXT usage context." at DEBUG only, so a default INFO log holds neither.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/engine/arg_utils.py#L3226-L3229
+    title: 'vLLM v0.33.0, vllm/engine/arg_utils.py, EngineArgs._set_default_max_num_seqs_and_batched_tokens_args'
+    quote: '"Defaulting max_num_batched_tokens to %d for %s usage context."'
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.log.non-default-args
+  value: 'non-default args: {...}'
+  text: 'The API server and the LLM class log "non-default args: DICT" at INFO: the arguments whose value differs from the default, as a Python dict, so a limit or a switch that the user did not set is not in it.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/entrypoints/common/startup.py#L96
+    title: 'vLLM v0.33.0, vllm/entrypoints/common/startup.py, log_non_default_args'
+    quote: 'logger.info("non-default args: %s", redact_sensitive_args(non_default_args))'
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.log.async-scheduling-silent
+  value: 'no line'
+  text: 'No line of the log says that async scheduling is on: the config resolves an unset field to True and logs nothing. It logs only when it resolves the field to False (the warnings below) or when the user names it (non-default args). This is a reading of every logger call near async scheduling in the tag, and the quote is the branch that sets True.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/vllm.py#L1716-L1719
+    title: 'vLLM v0.33.0, vllm/config/vllm.py, VllmConfig.__post_init__, the async scheduling default'
+    quote: 'self.scheduler_config.async_scheduling = True'
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.log.async-scheduling-off-warnings
+  value: 'a warning'
+  text: 'When async scheduling resolves to off, the config logs a warning: that the executor backend does not support it, that it is disabled for ROCm DeepEP high-throughput DBO, or, for MRV1, "Async scheduling is disabled because the V1 model runner does not support it with FEATURE." A pooling model is switched off with a DEBUG line.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/vllm.py#L1712-L1717
+    title: 'vLLM v0.33.0, vllm/config/vllm.py, VllmConfig.__post_init__, async scheduling switched off'
+    quote: '"Async scheduling is disabled because the V1 model runner "'
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.server-info.json-dump
+  value: 'GET /server_info?config_format=json'
+  text: 'GET /server_info answers with the VllmConfig as text by default and, with config_format=json, as the JSON that pydantic dumps of it, beside the VLLM_* environment and the system environment. The JSON holds scheduler_config (max_num_batched_tokens, max_num_seqs, async_scheduling) and compilation_config (cudagraph_mode).'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/entrypoints/serve/dev/server_info/api_router.py#L50-L55
+    title: 'vLLM v0.33.0, vllm/entrypoints/serve/dev/server_info/api_router.py, show_server_info'
+    quote: 'PydanticVllmConfig.dump_python(vllm_config, mode="json", fallback=str)'
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.server-info.dev-mode-only
+  value: 'VLLM_SERVER_DEV_MODE=1'
+  text: 'The /server_info route is one of the development endpoints, which the API server registers only when VLLM_SERVER_DEV_MODE is set.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/entrypoints/launchers/api_server/routers.py#L46-L48
+    title: 'vLLM v0.33.0, vllm/entrypoints/launchers/api_server/routers.py, the API server''s routers'
+    quote: 'if envs.VLLM_SERVER_DEV_MODE:'
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.log.line-format
+  value: '(PROCESS pid=PID) LEVEL MM-DD HH:MM:SS [file:line] message'
+  text: 'Each line of vLLM''s log starts with VLLM_LOGGING_PREFIX if one is set, then the process name and pid in parentheses, the level, the date and time as month-day, the file and line in brackets, and the message, so the message sits anywhere after a prefix that the reader does not control.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/logger.py#L28-L32
+    title: 'vLLM v0.33.0, vllm/logger.py, _FORMAT'
+    quote: '"[%(fileinfo)s:%(lineno)d] %(message)s"'
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.env.v2-runner-integer
+  value: '0 is false, any other integer is true'
+  text: 'VLLM_USE_V2_MODEL_RUNNER is converted with bool(int(value)): 0 is false, any other integer is true, an unset variable is None, and text that is not an integer raises ValueError when the variable is read.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/envs.py#L360-L363
+    title: 'vLLM v0.33.0, vllm/envs.py, maybe_convert_bool'
+    quote: 'return bool(int(value))'
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 90
+  pin: vllm

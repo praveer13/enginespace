@@ -1,0 +1,195 @@
+# The rented-GPU runners (W2-T11; ARCHITECTURE section 9.3): the image tags that the four engine Dockerfiles start from, and what the runner documents rely on at RunPod,
+# Lambda and Modal. Read on 2026-11-15.
+#
+# Every request sent the User-Agent `Mozilla/5.0 (X11; Linux x86_64)` with no cookie, no login and no other header that names anyone, and no call used the `gh` CLI.
+# Docker Hub's JSON API answered the four tag questions (`hub.docker.com/v2/repositories/<namespace>/<repository>/tags/<tag>`), and each answer was saved to a folder of its
+# own and read as text. The pages of RunPod, Lambda and Modal were saved the same way and read with their markup stripped. The modal 1.6.4 wheel was checked against the
+# SHA-256 that PyPI lists for it and read as text, never run, to see the signatures that modal_app.py calls; nothing was installed and no Modal account was used.
+#
+# A Docker Hub tag is a moving label unless a digest is pinned, and the Dockerfiles pin none (the lock holds the Python packages that run, ARCHITECTURE section 9.3), so each tag
+# claim records the digest that the tag pointed at on the day, and a re-read that finds another digest is a change card for the pin. The Python tag moves with its patch releases.
+# No claim here is about a price: the runner documents state none, because a price that was not read from the vendor's page that day would be invented.
+
+- id: vllm.image.openai-tag
+  value: 'vllm/vllm-openai:v0.33.0'
+  text: Docker Hub lists the tag v0.33.0 in vllm/vllm-openai as active, for linux/amd64 and linux/arm64, last pushed 2026-11-02 at 03:06 UTC. The tag's index digest on 2026-11-15 was sha256:d825baf9ce4b1b6bfc5ecc7b79880c7e6748c65a72d697ce3d47607aafa84c6e, and the amd64 image's was sha256:91ee972ab751fb7180bc71c175865e36b091686600dca783d52b2511399810b3. It is the base of labs/envs/vllm/Dockerfile.
+  tag: measured
+  source:
+    url: https://hub.docker.com/v2/repositories/vllm/vllm-openai/tags/v0.33.0
+    title: Docker Hub, vllm/vllm-openai, tag v0.33.0 (JSON API)
+    quote: '"name":"v0.33.0"'
+    accessed: 2026-11-15
+  verifiedAt: 2026-11-15
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.image.official
+  value: vllm/vllm-openai
+  text: vLLM's own installation guide at v0.33.0 calls the image on Docker Hub as vllm/vllm-openai its official Docker image, so the namespace is the project's and not a third party's.
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/docs/getting_started/installation/gpu.cuda.inc.md#L278-L279
+    title: vLLM v0.33.0, docs/getting_started/installation/gpu.cuda.inc.md, pre-built images
+    quote: 'vLLM offers an official Docker image for deployment.'
+    accessed: 2026-11-15
+  verifiedAt: 2026-11-15
+  ttlDays: 90
+  pin: vllm
+
+- id: sglang.image.tag
+  value: 'lmsysorg/sglang:v0.5.23'
+  text: Docker Hub lists the tag v0.5.23 in lmsysorg/sglang as active, for linux/amd64 and linux/arm64, last pushed 2026-10-30 at 01:46 UTC. The tag's index digest on 2026-11-15 was sha256:f832b5c39559c9caa900b22ad37c76fcce66470676855c42052102c537812f1f, and the amd64 image's was sha256:f7876bef696ccf9cf75a2bf7ccb82970f5fac577f082fb8ca95c9a59d2160eb5. It is the base of labs/envs/sglang/Dockerfile.
+  tag: measured
+  source:
+    url: https://hub.docker.com/v2/repositories/lmsysorg/sglang/tags/v0.5.23
+    title: Docker Hub, lmsysorg/sglang, tag v0.5.23 (JSON API)
+    quote: '"name":"v0.5.23"'
+    accessed: 2026-11-15
+  verifiedAt: 2026-11-15
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.image.readme
+  value: lmsysorg/sglang
+  text: SGLang's README at v0.5.23 tells the reader to pull its Docker image, and the image it names is lmsysorg/sglang (its example tag is latest, which the course never uses). Docker Hub describes the repository as the Docker images for the sgl-project/sglang source.
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/297e54fd105e974cdf401e5b4d20253a22c16f90/README.md#L32-L35
+    title: SGLang v0.5.23, README.md, Get Started
+    quote: 'Pull the Docker image, which includes SGLang and its dependencies:'
+    accessed: 2026-11-15
+  verifiedAt: 2026-11-15
+  ttlDays: 90
+  pin: sglang
+
+- id: runners.image.cuda-devel
+  value: 'nvidia/cuda:13.0.2-cudnn-devel-ubuntu24.04'
+  text: Docker Hub lists the tag 13.0.2-cudnn-devel-ubuntu24.04 in nvidia/cuda as active, for linux/amd64 and linux/arm64, last pushed 2025-11-05 at 21:45 UTC. The tag's index digest on 2026-11-15 was sha256:e071e85c52ad91fc9ea24158ff5330876b2d1a5c4ac83ccc6066976835873c01. It is the base of labs/envs/nano-vllm/Dockerfile. Whether flash-attn builds on it for torch 2.14 is a question for W2-T34, which this claim does not answer.
+  tag: measured
+  source:
+    url: https://hub.docker.com/v2/repositories/nvidia/cuda/tags/13.0.2-cudnn-devel-ubuntu24.04
+    title: Docker Hub, nvidia/cuda, tag 13.0.2-cudnn-devel-ubuntu24.04 (JSON API)
+    quote: '"name":"13.0.2-cudnn-devel-ubuntu24.04"'
+    accessed: 2026-11-15
+  verifiedAt: 2026-11-15
+  ttlDays: 90
+
+- id: runners.image.cuda-publisher
+  value: nvidia/cuda
+  text: Docker Hub describes nvidia/cuda, in the nvidia namespace, as the CUDA and cuDNN images from gitlab.com/nvidia/cuda, which is NVIDIA's own repository of them, so the namespace is NVIDIA's and not a third party's.
+  tag: measured
+  source:
+    url: https://hub.docker.com/v2/repositories/nvidia/cuda
+    title: Docker Hub, nvidia/cuda (JSON API)
+    quote: '"description":"CUDA and cuDNN images from gitlab.com/nvidia/cuda"'
+    accessed: 2026-11-15
+  verifiedAt: 2026-11-15
+  ttlDays: 90
+
+- id: runners.image.python-slim
+  value: 'python:3.12-slim-bookworm'
+  text: Docker Hub lists the tag 3.12-slim-bookworm in library/python, whose library namespace is Docker's official images, as active, last pushed 2026-11-05 at 17:07 UTC. The tag moves with each patch release of Python 3.12, so the digest on 2026-11-15, sha256:935c3c5b12357a7e10caa9c1e6ca5692344d97cf229832ef584be2cec9fc03df, is the day's and not a pin. It is the base of labs/envs/cpu/Dockerfile.
+  tag: measured
+  source:
+    url: https://hub.docker.com/v2/repositories/library/python/tags/3.12-slim-bookworm
+    title: Docker Hub, library/python, tag 3.12-slim-bookworm (JSON API)
+    quote: '"name":"3.12-slim-bookworm"'
+    accessed: 2026-11-15
+  verifiedAt: 2026-11-15
+  ttlDays: 90
+
+- id: runners.runpod.no-docker-in-pod
+  value: no Docker inside a pod
+  text: RunPod runs the Docker engine for the pod, so a pod cannot build an image from a Dockerfile or run one of its own. The pod's image has to be one that RunPod can pull, and the environment's setup runs inside it.
+  tag: measured
+  source:
+    url: https://docs.runpod.io/pods/overview
+    title: Runpod documentation, Pods overview, Limitations
+    quote: 'Runpod runs Docker for you, so you cannot spin up your own Docker instance or use Docker Compose on Pods.'
+    accessed: 2026-11-15
+  verifiedAt: 2026-11-15
+  ttlDays: 90
+
+- id: runners.runpod.custom-template-ssh
+  value: TCP port 22 and an SSH daemon
+  text: For a pod from a custom template, RunPod's page on SSH says to expose TCP port 22 and to run an SSH daemon inside the pod, and gives a start command for it that ends in sleep infinity. Full SSH, which scp needs, wants a pod with a public IP address. Its official templates, such as Runpod PyTorch, have this set up.
+  tag: measured
+  source:
+    url: https://docs.runpod.io/pods/configuration/use-ssh
+    title: Runpod documentation, Connect to a Pod with SSH
+    quote: 'ensure that TCP port 22 is exposed and that the SSH daemon is running inside your Pod.'
+    accessed: 2026-11-15
+  verifiedAt: 2026-11-15
+  ttlDays: 90
+
+- id: runners.lambda.default-image
+  value: Ubuntu 22.04 LTS
+  text: A Lambda On-Demand Cloud instance runs Ubuntu 22.04 LTS by default, with Lambda Stack preinstalled. The page lists Docker among what the Lambda Stack image includes.
+  tag: measured
+  source:
+    url: https://docs.lambda.ai/public-cloud/on-demand/
+    title: Lambda documentation, On-Demand Cloud overview, base images
+    quote: 'By default, each ODC instance runs Ubuntu 22.04 LTS.'
+    accessed: 2026-11-15
+  verifiedAt: 2026-11-15
+  ttlDays: 90
+
+- id: runners.lambda.container-toolkit
+  value: NVIDIA container toolkit
+  text: Lambda Stack, the default image of an On-Demand Cloud instance, preinstalls the NVIDIA container toolkit beside the CUDA libraries and the NVIDIA driver, which is what lets docker run take --gpus all.
+  tag: measured
+  source:
+    url: https://docs.lambda.ai/public-cloud/on-demand/
+    title: Lambda documentation, On-Demand Cloud overview, default image
+    quote: 'NVIDIA container toolkit'
+    accessed: 2026-11-15
+  verifiedAt: 2026-11-15
+  ttlDays: 90
+
+- id: runners.lambda.no-consumer-gpu
+  value: no RTX 4090
+  text: The instance types that Lambda's page lists are the B200, GH200, H100 (SXM and PCIe), A100 (SXM and PCIe), A10, A6000, Tesla V100 and RTX 6000. It lists no RTX 4090. The page dates its table to December 2025, so a newer table may differ.
+  tag: measured
+  source:
+    url: https://docs.lambda.ai/public-cloud/on-demand/
+    title: Lambda documentation, On-Demand Cloud overview, instance types
+    quote: 'As of December 2025, ODC offers the following instance types:'
+    accessed: 2026-11-15
+  verifiedAt: 2026-11-15
+  ttlDays: 90
+
+- id: runners.modal.gpu-types
+  value: 'T4, L4, A10, L40S, A100, A100-40GB, A100-80GB, RTX-PRO-6000, H100, H100!, H200, B200, B200+, B300'
+  text: The values that Modal's gpu argument takes, as its guide lists them, are T4, L4, A10, L40S, A100, A100-40GB, A100-80GB, RTX-PRO-6000, H100, H100!, H200, B200, B200+ and B300. The list holds no RTX 4090, and modal_app.py refuses a GPU that is not in it.
+  tag: measured
+  source:
+    url: https://modal.com/docs/guide/gpu
+    title: Modal documentation, GPU acceleration, specifying GPU type
+    quote: 'Modal supports the following values for this parameter:'
+    accessed: 2026-11-15
+  verifiedAt: 2026-11-15
+  ttlDays: 90
+
+- id: runners.modal.from-dockerfile
+  value: Image.from_dockerfile
+  text: Modal builds an image from a local Dockerfile through Image.from_dockerfile, with its own implementation of the Dockerfile specification and not Docker, and the image can be extended with the image builder's methods. modal_app.py builds each environment's Dockerfile this way, with the kit as the context.
+  tag: measured
+  source:
+    url: https://modal.com/docs/guide/existing-images
+    title: Modal documentation, Images, using existing images
+    quote: 'You can define an Image from an existing Dockerfile by passing its path to'
+    accessed: 2026-11-15
+  verifiedAt: 2026-11-15
+  ttlDays: 90
+
+- id: runners.modal.client-version
+  value: 1.6.4
+  text: The newest release of the modal package on PyPI on 2026-11-15 was 1.6.4, uploaded on 2026-11-12. Its Image.from_dockerfile takes a context_dir, Image.add_local_dir takes copy and ignore, and App.function takes gpu, timeout and volumes, which is what modal_app.py calls. The runner document names this version, and a newer one is the learner's to try.
+  tag: measured
+  source:
+    url: https://pypi.org/pypi/modal/json
+    title: modal on PyPI (JSON API)
+    quote: '"version":"1.6.4"'
+    accessed: 2026-11-15
+  verifiedAt: 2026-11-15
+  ttlDays: 90

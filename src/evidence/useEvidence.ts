@@ -24,6 +24,8 @@ import type {
   EvidenceSnapshot,
   ExportResult,
   ImportResult,
+  KeepInput,
+  KeepResult,
   PreviewResult,
   ResetResult,
   UndoResult,
@@ -35,6 +37,8 @@ import { setReadOnlyNotice } from './notice'
 export interface EvidenceActions {
   /** Stamps an event and writes it. A graded one makes the browser asked, once, to keep the learner's storage. */
   append<K extends Kind>(draft: Draft<K> & { kind: K }): Promise<AppendResult<K>>
+  /** Keeps a checked receipt and, with it, the event that spends its challenge's token, in one write (src/receipts/importer.ts). */
+  keepReceipt(input: KeepInput): Promise<KeepResult>
   /** A setting, a draft or a remembered position, by `<namespace>:<name>`. The latest write wins. Never evidence. */
   setWorking(key: string, value: Json): Promise<WorkingResult>
   deleteWorking(key: string): Promise<WorkingResult>
@@ -144,6 +148,7 @@ const getServerSnapshot = (): EvidenceSnapshot => NOT_READY
 const ACTIONS: EvidenceActions = {
   // TypeScript cannot relate two instantiations of the conditional type `Draft<K>`, so the generic signature is stated by cast.
   append: (<K extends Kind>(draft: Draft<K> & { kind: K }) => boot().then((evidence) => evidence.append<K>(draft))) as EvidenceActions['append'],
+  keepReceipt: (input) => boot().then((evidence) => evidence.keepReceipt(input)),
   setWorking: (key, value) => boot().then((evidence) => evidence.setWorking(key, value)),
   deleteWorking: (key) => boot().then((evidence) => evidence.deleteWorking(key)),
   exportLedger: (options) => boot().then((evidence) => evidence.exportLedger(options)),

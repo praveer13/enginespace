@@ -1,0 +1,389 @@
+{
+  "spec": "enginespace/shape-cases@1",
+  "about": "Texts, the bounds to scan them under, and what the scan of rule 2 (ARCHITECTURE section 8.5) finds: the deepest nesting and the number of arrays, objects and strings, or the bound that was passed. packages/verify/shape.ts and the grader's ShapeScan (labs/grader/src/enginespace_grader/bundle.py) each have to give exactly this, which tests/verify/shape.test.ts and labs/grader/tests/test_bundle.py check. A case is hand-written: change the file and both suites in one commit.",
+  "cases": [
+    {
+      "name": "a number is no node and nests nowhere",
+      "text": "42",
+      "limits": {
+        "depth": 4,
+        "nodes": 8,
+        "commas": 1000
+      },
+      "ok": true,
+      "deepest": 0,
+      "nodes": 0,
+      "commas": 0
+    },
+    {
+      "name": "an empty text has nothing to count",
+      "text": "",
+      "limits": {
+        "depth": 4,
+        "nodes": 8,
+        "commas": 1000
+      },
+      "ok": true,
+      "deepest": 0,
+      "nodes": 0,
+      "commas": 0
+    },
+    {
+      "name": "an object, a list and a nested object: three containers, and three strings with the names",
+      "text": "{\"a\":[1,2,{\"b\":\"c\"}]}",
+      "limits": {
+        "depth": 3,
+        "nodes": 6,
+        "commas": 1000
+      },
+      "ok": true,
+      "deepest": 3,
+      "nodes": 6,
+      "commas": 2
+    },
+    {
+      "name": "the same text one level too deep for its bound",
+      "text": "{\"a\":[1,2,{\"b\":\"c\"}]}",
+      "limits": {
+        "depth": 2,
+        "nodes": 100,
+        "commas": 1000
+      },
+      "ok": false,
+      "reason": "depth"
+    },
+    {
+      "name": "the same text one piece too many for its bound",
+      "text": "{\"a\":[1,2,{\"b\":\"c\"}]}",
+      "limits": {
+        "depth": 3,
+        "nodes": 5,
+        "commas": 1000
+      },
+      "ok": false,
+      "reason": "nodes"
+    },
+    {
+      "name": "numbers, true, false and null are not counted",
+      "text": "[1,2.5,-3e4,true,false,null]",
+      "limits": {
+        "depth": 1,
+        "nodes": 1,
+        "commas": 1000
+      },
+      "ok": true,
+      "deepest": 1,
+      "nodes": 1,
+      "commas": 5
+    },
+    {
+      "name": "the names of members are strings",
+      "text": "{\"a\":1,\"b\":2,\"c\":{\"d\":3}}",
+      "limits": {
+        "depth": 2,
+        "nodes": 6,
+        "commas": 1000
+      },
+      "ok": true,
+      "deepest": 2,
+      "nodes": 6,
+      "commas": 2
+    },
+    {
+      "name": "brackets and quotes inside a string are its text",
+      "text": "[\"[[{{ \\\" ]]}}\"]",
+      "limits": {
+        "depth": 1,
+        "nodes": 2,
+        "commas": 1000
+      },
+      "ok": true,
+      "deepest": 1,
+      "nodes": 2,
+      "commas": 0
+    },
+    {
+      "name": "a string that ends in an escaped backslash ends there",
+      "text": "[\"a\\\\\",[1]]",
+      "limits": {
+        "depth": 2,
+        "nodes": 3,
+        "commas": 1000
+      },
+      "ok": true,
+      "deepest": 2,
+      "nodes": 3,
+      "commas": 1
+    },
+    {
+      "name": "a quote after an odd run of backslashes is escaped",
+      "text": "[\"x\\\"[[[[\"]",
+      "limits": {
+        "depth": 1,
+        "nodes": 2,
+        "commas": 1000
+      },
+      "ok": true,
+      "deepest": 1,
+      "nodes": 2,
+      "commas": 0
+    },
+    {
+      "name": "a quote after an even run of backslashes ends the string",
+      "text": "[\"x\\\\\\\\\",[[1]]]",
+      "limits": {
+        "depth": 3,
+        "nodes": 4,
+        "commas": 1000
+      },
+      "ok": true,
+      "deepest": 3,
+      "nodes": 4,
+      "commas": 1
+    },
+    {
+      "name": "a name with an escaped quote in it is one string",
+      "text": "{\"a\\\"b\":1}",
+      "limits": {
+        "depth": 1,
+        "nodes": 2,
+        "commas": 1000
+      },
+      "ok": true,
+      "deepest": 1,
+      "nodes": 2,
+      "commas": 0
+    },
+    {
+      "name": "an escaped surrogate pair is one string",
+      "text": "[\"\\ud83d\\ude00\"]",
+      "limits": {
+        "depth": 1,
+        "nodes": 2,
+        "commas": 1000
+      },
+      "ok": true,
+      "deepest": 1,
+      "nodes": 2,
+      "commas": 0
+    },
+    {
+      "name": "characters outside ASCII are in the string and nowhere else",
+      "text": "[\"é€😀\",[\"ü\"]]",
+      "limits": {
+        "depth": 2,
+        "nodes": 4,
+        "commas": 1000
+      },
+      "ok": true,
+      "deepest": 2,
+      "nodes": 4,
+      "commas": 1
+    },
+    {
+      "name": "an unterminated string takes the rest of the text",
+      "text": "[\"abc[[[[",
+      "limits": {
+        "depth": 1,
+        "nodes": 2,
+        "commas": 1000
+      },
+      "ok": true,
+      "deepest": 1,
+      "nodes": 2,
+      "commas": 0
+    },
+    {
+      "name": "so does one that ends in a lone backslash",
+      "text": "[\"abc\\",
+      "limits": {
+        "depth": 1,
+        "nodes": 2,
+        "commas": 1000
+      },
+      "ok": true,
+      "deepest": 1,
+      "nodes": 2,
+      "commas": 0
+    },
+    {
+      "name": "a closing bracket with nothing open is ignored",
+      "text": "]]}[[",
+      "limits": {
+        "depth": 2,
+        "nodes": 2,
+        "commas": 1000
+      },
+      "ok": true,
+      "deepest": 2,
+      "nodes": 2,
+      "commas": 0
+    },
+    {
+      "name": "white space and new lines between the tokens are skipped",
+      "text": "{ \"a\" : [ 1 , 2 ] }\n",
+      "limits": {
+        "depth": 2,
+        "nodes": 3,
+        "commas": 1000
+      },
+      "ok": true,
+      "deepest": 2,
+      "nodes": 3,
+      "commas": 1
+    },
+    {
+      "name": "the depth bound itself is allowed",
+      "text": "[[[[]]]]",
+      "limits": {
+        "depth": 4,
+        "nodes": 4,
+        "commas": 1000
+      },
+      "ok": true,
+      "deepest": 4,
+      "nodes": 4,
+      "commas": 0
+    },
+    {
+      "name": "one level past it is not",
+      "text": "[[[[[]]]]]",
+      "limits": {
+        "depth": 4,
+        "nodes": 100,
+        "commas": 1000
+      },
+      "ok": false,
+      "reason": "depth"
+    },
+    {
+      "name": "the node bound itself is allowed",
+      "text": "[[],[],[]]",
+      "limits": {
+        "depth": 4,
+        "nodes": 4,
+        "commas": 1000
+      },
+      "ok": true,
+      "deepest": 2,
+      "nodes": 4,
+      "commas": 2
+    },
+    {
+      "name": "one piece past it is not",
+      "text": "[[],[],[],[]]",
+      "limits": {
+        "depth": 4,
+        "nodes": 4,
+        "commas": 1000
+      },
+      "ok": false,
+      "reason": "nodes"
+    },
+    {
+      "name": "a string past the node bound is not allowed either",
+      "text": "[\"a\",\"b\",\"c\"]",
+      "limits": {
+        "depth": 8,
+        "nodes": 3,
+        "commas": 1000
+      },
+      "ok": false,
+      "reason": "nodes"
+    },
+    {
+      "name": "an opening bracket past both bounds breaks the depth bound first",
+      "text": "[[",
+      "limits": {
+        "depth": 1,
+        "nodes": 1,
+        "commas": 1000
+      },
+      "ok": false,
+      "reason": "depth"
+    },
+    {
+      "name": "a column of numbers is no node but its commas are counted",
+      "text": "[1,2,3,4,5]",
+      "limits": {
+        "depth": 2,
+        "nodes": 4,
+        "commas": 4
+      },
+      "ok": true,
+      "deepest": 1,
+      "nodes": 1,
+      "commas": 4
+    },
+    {
+      "name": "one comma more than the bound refuses a column of numbers",
+      "text": "[1,2,3,4,5]",
+      "limits": {
+        "depth": 2,
+        "nodes": 4,
+        "commas": 3
+      },
+      "ok": false,
+      "reason": "commas"
+    },
+    {
+      "name": "a column of negative zeros is held by its commas",
+      "text": "[-0,-0,-0,-0]",
+      "limits": {
+        "depth": 2,
+        "nodes": 4,
+        "commas": 2
+      },
+      "ok": false,
+      "reason": "commas"
+    },
+    {
+      "name": "true, false and null are held by their commas too",
+      "text": "[true,false,null,true]",
+      "limits": {
+        "depth": 2,
+        "nodes": 4,
+        "commas": 2
+      },
+      "ok": false,
+      "reason": "commas"
+    },
+    {
+      "name": "a comma inside a string is no comma of the text",
+      "text": "[\"a,b,c\",\"d,e\"]",
+      "limits": {
+        "depth": 2,
+        "nodes": 4,
+        "commas": 1
+      },
+      "ok": true,
+      "deepest": 1,
+      "nodes": 3,
+      "commas": 1
+    },
+    {
+      "name": "an escaped quote does not end the string, so the comma after it is inside",
+      "text": "[\"a\\\",b,c\",0]",
+      "limits": {
+        "depth": 2,
+        "nodes": 4,
+        "commas": 1
+      },
+      "ok": true,
+      "deepest": 1,
+      "nodes": 2,
+      "commas": 1
+    },
+    {
+      "name": "a comma after the last bracket is counted",
+      "text": "[0],,,",
+      "limits": {
+        "depth": 2,
+        "nodes": 4,
+        "commas": 2
+      },
+      "ok": false,
+      "reason": "commas"
+    }
+  ]
+}

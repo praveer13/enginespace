@@ -15,7 +15,7 @@
  *
  * The e2e route list is `PR_ROUTES` in e2e/routes.ts, the paths that the pull-request subset of the specs visits (ARCHITECTURE §10.1,
  * §11.2: axe on eight routes), with the routes that W1-T36 adds to them (`W1_ROUTES`, and the paths of `W1_LEVEL_PAGES`, a game's page
- * opened on a level by `?level=`). W0-T21 adds that file, and until it exists there is nothing to compare, which the output says.
+ * opened on a level by `?level=`) and the routes that W2's tasks add (`W2_ROUTES`). W0-T21 adds that file, and until it exists there is nothing to compare, which the output says.
  * The gate needs no build: it reads the table and the sources, and prepare-pages checks the built files (the title, the policy,
  * the base) when it writes them; tests/pages runs a real build through it.
  *
@@ -72,7 +72,7 @@ const isPaths = (value: unknown): value is string[] => Array.isArray(value) && v
 async function loadE2e(root: string): Promise<readonly string[] | null> {
   const file = path.join(root, 'e2e/routes.ts')
   if (!existsSync(file)) return null
-  const loaded = (await import(file)) as { PR_ROUTES?: unknown; W1_ROUTES?: unknown; W1_LEVEL_PAGES?: unknown }
+  const loaded = (await import(file)) as { PR_ROUTES?: unknown; W1_ROUTES?: unknown; W1_LEVEL_PAGES?: unknown; W2_ROUTES?: unknown }
   if (!isPaths(loaded.PR_ROUTES)) {
     throw new Error('e2e/routes.ts must export PR_ROUTES, an array of the paths that the pull-request specs visit, such as ["/", "/map", "/m/tr2"]')
   }
@@ -80,7 +80,10 @@ async function loadE2e(root: string): Promise<readonly string[] | null> {
   const w1 = loaded.W1_ROUTES ?? []
   const levelPages = loaded.W1_LEVEL_PAGES ?? []
   if (!isPaths(w1) || !isPaths(levelPages)) throw new Error('e2e/routes.ts must export W1_ROUTES and W1_LEVEL_PAGES as arrays of paths')
-  const paths = [...loaded.PR_ROUTES, ...w1]
+  // So are W2's, which each of its tasks that builds a page adds to.
+  const w2 = loaded.W2_ROUTES ?? []
+  if (!isPaths(w2)) throw new Error('e2e/routes.ts must export W2_ROUTES as an array of paths')
+  const paths = [...loaded.PR_ROUTES, ...w1, ...w2]
   const documents = new Set(paths)
   const levelDocuments = [...new Set(levelPages.map((page) => page.split('?')[0]))].filter((document) => !documents.has(document))
   return [...paths, ...levelDocuments]

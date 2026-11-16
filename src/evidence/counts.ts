@@ -75,7 +75,7 @@ export const KIND_FACTS: Readonly<Record<Kind, { name: string; what: string }>> 
   prove: { name: 'Prove-its', what: 'What you predicted a module would reply, and what it did, with your agent closed.' },
   'trace-mark': { name: 'Trace marks', what: 'Spans you marked on a trace, and how far off they were.' },
   challenge: { name: 'Challenges', what: 'Issued for a GPU or local lab. Not graded: a receipt is.' },
-  receipt: { name: 'Receipts', what: "A grader's receipt, verified in this browser." },
+  receipt: { name: 'Receipts', what: "A grader's receipt, checked in this browser." },
   review: { name: 'Reviews', what: "Today's grade for a knowledge component." },
   ack: { name: 'Acknowledgements', what: 'A screen or a change card you have seen. They carry no result.' },
 }

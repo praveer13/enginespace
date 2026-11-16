@@ -1,0 +1,3 @@
+# The grader's hash is over the bytes of its files (src/enginespace_grader/identity.py), so a checkout must not change a line ending: on Windows, a
+# checkout with core.autocrlf would give the code another hash, and the site would not know the build.
+* text=auto eol=lf

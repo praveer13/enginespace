@@ -1,0 +1,652 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Written by scripts/export-schemas.ts from packages/schema/receipt.ts. Do not edit it: change the zod schema and run `bun scripts/export-schemas.ts`.",
+  "type": "object",
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "enginespace/receipt@1"
+    },
+    "lab": {
+      "type": "string",
+      "pattern": "^(?:tr[0-8][ab]?|capstone)\\.[a-z0-9]+(?:-[a-z0-9]+)*(?![\\s\\S])"
+    },
+    "stage": {
+      "type": "string",
+      "pattern": "^(?:tr[0-8][ab]?|capstone)\\.[a-z0-9]+(?:-[a-z0-9]+)*\\.s[0-9]+(?![\\s\\S])"
+    },
+    "challenge": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string",
+          "pattern": "^es1:((?:tr[0-8][ab]?|capstone)\\.[a-z0-9]+(?:-[a-z0-9]+)*\\.s[0-9]+):([0-9a-f]{8}):([A-Z2-7]{16}):([0-9]{8}):([0-9a-f]{8})(?![\\s\\S])"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "nonce": {
+          "type": "string",
+          "pattern": "^[A-Z2-7]{16}(?![\\s\\S])"
+        },
+        "issuedOn": {
+          "type": "string",
+          "pattern": "^[0-9]{8}(?![\\s\\S])"
+        }
+      },
+      "required": [
+        "token",
+        "seed",
+        "nonce",
+        "issuedOn"
+      ],
+      "additionalProperties": false,
+      "title": "enginespace challenge",
+      "description": "The challenge a receipt was graded on (ARCHITECTURE §8.4). Checked by the site and not expressible in JSON Schema: the issue date is a day of the calendar, the token's checksum is the FNV-1a hash of its text up to the last colon, and seed, nonce and issuedOn are the token's own."
+    },
+    "createdAt": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?Z(?![\\s\\S])"
+    },
+    "grader": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "const": "enginespace-grader"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9][0-9A-Za-z.+_-]{0,63}(?![\\s\\S])"
+        },
+        "sourceSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+        }
+      },
+      "required": [
+        "name",
+        "version",
+        "sourceSha256"
+      ],
+      "additionalProperties": false
+    },
+    "environment": {
+      "type": "object",
+      "properties": {
+        "host": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "local",
+                "runpod",
+                "modal",
+                "lambda",
+                "other"
+              ]
+            },
+            "os": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])",
+              "maxLength": 128
+            },
+            "kernel": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])",
+              "maxLength": 128
+            },
+            "arch": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])",
+              "maxLength": 32
+            },
+            "cpu": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])",
+              "maxLength": 128
+            },
+            "cores": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "ramBytes": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "container": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        "gpus": {
+          "maxItems": 16,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])",
+                "maxLength": 128
+              },
+              "memoryBytes": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "computeCapability": {
+                "type": "string",
+                "pattern": "^[0-9]{1,2}\\.[0-9]{1,2}(?![\\s\\S])"
+              },
+              "smCount": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "maxSmClockMhz": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "maxMemClockMhz": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "powerLimitMw": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "pcieGen": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9
+              },
+              "pcieWidth": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 32
+              },
+              "mig": {
+                "type": "string",
+                "enum": [
+                  "enabled",
+                  "disabled",
+                  "unsupported"
+                ]
+              },
+              "ecc": {
+                "type": "string",
+                "enum": [
+                  "enabled",
+                  "disabled",
+                  "unsupported"
+                ]
+              },
+              "virtualization": {
+                "type": "string",
+                "enum": [
+                  "none",
+                  "passthrough",
+                  "vgpu",
+                  "unknown"
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "memoryBytes"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "driver": {
+          "type": "object",
+          "properties": {
+            "version": {
+              "type": "string",
+              "pattern": "^[0-9][0-9A-Za-z.+_-]{0,63}(?![\\s\\S])"
+            },
+            "cudaVersion": {
+              "type": "string",
+              "pattern": "^[0-9][0-9A-Za-z.+_-]{0,63}(?![\\s\\S])"
+            }
+          },
+          "required": [
+            "version"
+          ],
+          "additionalProperties": false
+        },
+        "python": {
+          "type": "string",
+          "pattern": "^[0-9][0-9A-Za-z.+_-]{0,63}(?![\\s\\S])"
+        },
+        "torch": {
+          "type": "object",
+          "properties": {
+            "version": {
+              "type": "string",
+              "pattern": "^[0-9][0-9A-Za-z.+_-]{0,63}(?![\\s\\S])"
+            },
+            "cuda": {
+              "type": "string",
+              "pattern": "^[0-9][0-9A-Za-z.+_-]{0,63}(?![\\s\\S])"
+            },
+            "cudnn": {
+              "type": "string",
+              "pattern": "^[0-9][0-9A-Za-z.+_-]{0,63}(?![\\s\\S])"
+            }
+          },
+          "required": [
+            "version"
+          ],
+          "additionalProperties": false
+        },
+        "engine": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "maxLength": 64,
+              "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*(?![\\s\\S])"
+            },
+            "version": {
+              "type": "string",
+              "pattern": "^[0-9][0-9A-Za-z.+_-]{0,63}(?![\\s\\S])"
+            },
+            "commit": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}(?![\\s\\S])"
+            },
+            "recordSha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+            }
+          },
+          "required": [
+            "name",
+            "version"
+          ],
+          "additionalProperties": false
+        },
+        "engineConfig": {
+          "type": "object",
+          "properties": {
+            "runner": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])",
+              "maxLength": 64
+            },
+            "graphMode": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])",
+              "maxLength": 64
+            },
+            "asyncScheduling": {
+              "type": "boolean"
+            },
+            "attentionBackend": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])",
+              "maxLength": 64
+            },
+            "maxNumBatchedTokens": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "maxNumSeqs": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "runner",
+            "graphMode",
+            "asyncScheduling",
+            "attentionBackend",
+            "maxNumBatchedTokens",
+            "maxNumSeqs"
+          ],
+          "additionalProperties": false
+        },
+        "libs": {
+          "maxItems": 32,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*(?![\\s\\S])"
+              },
+              "version": {
+                "type": "string",
+                "pattern": "^[0-9][0-9A-Za-z.+_-]{0,63}(?![\\s\\S])"
+              }
+            },
+            "required": [
+              "name",
+              "version"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "envVars": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^(?:VLLM|SGLANG)_[A-Z0-9_]{1,64}(?![\\s\\S])"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])",
+            "maxLength": 256
+          },
+          "maxProperties": 64
+        }
+      },
+      "required": [
+        "host",
+        "gpus",
+        "python",
+        "torch",
+        "libs",
+        "envVars"
+      ],
+      "additionalProperties": false
+    },
+    "pins": {
+      "type": "object",
+      "properties": {
+        "lockSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+        },
+        "envLockSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+        },
+        "onPin": {
+          "type": "boolean"
+        },
+        "offPin": {
+          "maxItems": 32,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*(?![\\s\\S])"
+          }
+        }
+      },
+      "required": [
+        "lockSha256",
+        "envLockSha256",
+        "onPin",
+        "offPin"
+      ],
+      "additionalProperties": false
+    },
+    "inputs": {
+      "maxItems": 64,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])",
+            "maxLength": 128
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "model",
+              "dataset",
+              "prompts",
+              "reference"
+            ]
+          },
+          "revision": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])",
+            "maxLength": 64
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "name",
+          "kind",
+          "sha256",
+          "bytes"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "artifacts": {
+      "maxItems": 64,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*(?![\\s\\S])"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "outputs",
+              "trace",
+              "bench-log",
+              "sweep",
+              "events",
+              "counts",
+              "report",
+              "patch",
+              "log"
+            ]
+          },
+          "format": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z0-9]+(?:[./@+_-][a-z0-9]+)*(?![\\s\\S])"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "inBundle": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "format",
+          "sha256",
+          "bytes",
+          "inBundle"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "checks": {
+      "maxItems": 256,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*(?![\\s\\S])"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "correctness",
+              "property",
+              "environment"
+            ]
+          },
+          "pass": {
+            "type": "boolean"
+          },
+          "value": {
+            "type": "number"
+          },
+          "bound": {
+            "type": "number"
+          },
+          "tolerance": {
+            "type": "number"
+          },
+          "n": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "detail": {
+            "type": "string",
+            "pattern": "^[^\\u0000-\\u0008\\u000b\\u000c\\u000e-\\u001f\\u007f]*(?![\\s\\S])",
+            "maxLength": 1000
+          },
+          "refSha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "pass",
+          "detail"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "performance": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "bench",
+            "trace",
+            "sweep",
+            "pair"
+          ]
+        },
+        "claimed": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {}
+        }
+      },
+      "required": [
+        "kind",
+        "claimed"
+      ],
+      "additionalProperties": false
+    },
+    "provenance": {
+      "type": "object",
+      "properties": {
+        "assisted": {
+          "type": "string",
+          "enum": [
+            "none",
+            "explain",
+            "code"
+          ]
+        },
+        "agent": {
+          "type": "boolean"
+        },
+        "guard": {
+          "type": "string",
+          "enum": [
+            "on",
+            "off"
+          ]
+        }
+      },
+      "required": [
+        "assisted",
+        "agent",
+        "guard"
+      ],
+      "additionalProperties": false
+    },
+    "notes": {
+      "type": "string",
+      "pattern": "^[^\\u0000-\\u0008\\u000b\\u000c\\u000e-\\u001f\\u007f]*(?![\\s\\S])",
+      "maxLength": 2000
+    },
+    "ext": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {}
+    }
+  },
+  "required": [
+    "schema",
+    "lab",
+    "stage",
+    "challenge",
+    "createdAt",
+    "grader",
+    "environment",
+    "pins",
+    "inputs",
+    "artifacts",
+    "checks",
+    "provenance"
+  ],
+  "additionalProperties": false,
+  "title": "enginespace/receipt@1",
+  "description": "What the local grader writes after a lab stage (ARCHITECTURE §9.6). Checked by the site and not expressible in JSON Schema: lab is the stage's lab, and challenge.token names this stage; artifact ids, input names, check ids, library names and offPin entries each differ; pins.onPin is true exactly when pins.offPin is empty; a number that a check reports is below 2^53 when it is an integer. The challenge is checked as challenge.schema.json says."
+}

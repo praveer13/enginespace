@@ -1,0 +1,914 @@
+/*
+ * /receipts (W2-T06, W2-T07): the deck that issues a challenge, the ticket it prints, the slip that takes a receipt back, the two lists, and one
+ * receipt opened. The components of
+ * src/design/components draw the tickets, the plates, the tape and the stub, src/pages/panels.css lays out the page and its panels, and
+ * this file places what is particular to this page. Every colour, face, space, radius and shadow is a token role (src/design/tokens.css),
+ * and the design system is not edited.
+ *
+ * Plain CSS outside Tailwind's layers, like src/pages/panels.css. It sits in its own file and not in panels.css, which says why the unbuilt
+ * page's few rules do not: a stylesheet of its own is a name in the entry's list of them, which the front page's first paint pays for
+ * (D-023), and these rules are many. A file of their own cost the front page 21 B gz, and the same rules in panels.css would have cost
+ * the seven other routes that load it between 1.3 and 2.1 KB gz each, for a page that only /receipts draws [measured 2026-11-09 at
+ * e6604b3 with this page's tree, `bun scripts/verify-bundle.ts` both ways].
+ */
+
+/* ---------------------------------------------------------------------------------------------- the page's tape */
+
+/* The other pages put the tape above the panels on a narrow screen, as a summary first. Here the task comes first: the deck is what a
+   visitor came for, and the tape is a count of what the lists below already say, so on a phone it prints at the foot, where its arrival
+   after the ledger opens moves nothing that has been read. From 64rem it stands beside the panels as panels.css places it. */
+.es-receipts .es-page__side {
+  order: 0;
+}
+
+/* ---------------------------------------------------------------------------------------------- the deck: a lab and a stage */
+
+.es-issue {
+  gap: var(--es-space-6);
+}
+
+.es-issue__fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  /* Each slip keeps its own height: a hint under one must not stretch the other's rows apart. */
+  align-items: start;
+  gap: var(--es-space-6);
+}
+
+/* Two slips side by side where the deck is wide enough for each to hold its longest stage name. */
+@media (min-width: 40rem) {
+  .es-issue__fields {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--es-space-6) var(--es-space-8);
+  }
+}
+
+.es-issue .es-field {
+  max-width: none;
+}
+
+.es-issue__warn,
+.es-chit__warn {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--es-space-2);
+  max-width: 56ch;
+  margin: 0;
+  color: var(--es-paper-ink-2);
+  font-size: var(--es-size-print);
+  line-height: 1.45;
+}
+
+.es-issue__mark,
+.es-chit__mark {
+  flex: none;
+  width: 1.1em;
+  height: 1.1em;
+  margin-top: 0.15em;
+}
+
+.es-issue__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-3) var(--es-space-6);
+}
+
+/* The select sits on the slip like the field's input. The platform's arrow is replaced by one drawn in the slip's ink. */
+.es-slip .es-field__input {
+  appearance: none;
+  padding-inline-end: 2rem;
+  cursor: pointer;
+  text-overflow: ellipsis;
+}
+
+.es-slip[data-state='disabled'] .es-field__input {
+  cursor: not-allowed;
+}
+
+.es-slip__chevron {
+  position: absolute;
+  inset-inline-end: var(--es-space-4);
+  top: 55%;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-50%) rotate(45deg);
+  pointer-events: none;
+}
+
+.es-slip[data-state='disabled'] .es-slip__chevron {
+  color: var(--es-text-3);
+}
+
+/* ---------------------------------------------------------------------------------------------- the ticket a challenge prints on */
+
+.es-chit {
+  min-width: 0;
+}
+
+.es-chit:empty {
+  display: none;
+}
+
+.es-chit__block {
+  display: grid;
+  gap: var(--es-space-2);
+}
+
+.es-chit__label {
+  margin: 0;
+  color: var(--es-text-2);
+  font-family: var(--es-font-ticket);
+  font-size: var(--es-size-caption);
+  font-weight: var(--es-font-ticket-weight);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* The token is the thing on the ticket: the printer's dots at the readout's size, selected whole by one click, and broken at its colons. */
+.es-chit__token {
+  margin: 0;
+  font-family: var(--es-font-ticket);
+  font-size: var(--es-size-plate);
+  font-weight: var(--es-font-ticket-weight);
+  line-height: 1.4;
+  letter-spacing: var(--es-font-ticket-tracking);
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.es-chit__command {
+  margin: 0;
+  padding: var(--es-space-3);
+  border: 1px solid var(--es-paper-rule);
+  background-color: color-mix(in srgb, var(--es-surface-1) 45%, var(--es-paper));
+}
+
+.es-chit__command code {
+  font-family: var(--es-font-mono);
+  font-size: var(--es-size-print);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.es-chit__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2) var(--es-space-6);
+}
+
+/* What the copy did. The line holds its place when empty, so the stub does not move when the word arrives. */
+.es-chit__status {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--es-space-2);
+  min-height: 1.5em;
+  margin: 0;
+  font-family: var(--es-font-ticket);
+  font-size: var(--es-size-print);
+  font-weight: var(--es-font-ticket-weight);
+  line-height: 1.4;
+}
+
+.es-chit__status[data-status='failed'] {
+  color: var(--es-paper-ink-2);
+}
+
+/* ---------------------------------------------------------------------------------------------- the lists */
+
+.es-held-ticket .es-ticket__paper {
+  padding-inline: var(--es-space-4);
+}
+
+@media (min-width: 40rem) {
+  .es-held-ticket .es-ticket__paper {
+    padding-inline: var(--es-space-6);
+  }
+}
+
+.es-held {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-held__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--es-space-1) var(--es-space-3);
+  padding: var(--es-space-4) 0;
+  border-bottom: 1px dotted var(--es-paper-rule);
+}
+
+/* A line's parts run under one another across its width, but the stage's name and its state, which share the first row. */
+.es-held__item > * {
+  grid-column: 1 / -1;
+}
+
+.es-held__item:first-child {
+  padding-top: 0;
+}
+
+.es-held__item:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.es-held__item > .es-held__what {
+  grid-column: 1;
+  display: grid;
+  min-width: 0;
+}
+
+/* A stage's id in the printer's dots, and under it the stage's name and what tells one challenge from another. */
+.es-held__id {
+  font-family: var(--es-font-ticket);
+  font-size: var(--es-size-plate);
+  font-weight: var(--es-font-ticket-weight);
+  letter-spacing: var(--es-font-ticket-tracking);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.es-held__name {
+  color: var(--es-text-2);
+  font-size: var(--es-size-print);
+  line-height: 1.45;
+}
+
+.es-held__name code,
+.es-held__when code {
+  font-family: var(--es-font-mono);
+  font-size: var(--es-size-note);
+}
+
+.es-held__item > .es-held__state,
+.es-held__item > .es-held__worth {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.es-held__when {
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-print);
+  line-height: 1.5;
+}
+
+
+.es-held__lapsed {
+  color: var(--es-paper-ink-2);
+}
+
+.es-held__act {
+  justify-self: start;
+  margin-top: var(--es-space-2);
+}
+
+.es-held__copy {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-1) var(--es-space-3);
+}
+
+.es-held__token {
+  flex: 1 0 100%;
+  font-family: var(--es-font-ticket);
+  font-size: var(--es-size-print);
+  font-weight: var(--es-font-ticket-weight);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.es-held__copied {
+  min-width: 4ch;
+  font-family: var(--es-font-ticket);
+  font-size: var(--es-size-print);
+  font-weight: var(--es-font-ticket-weight);
+}
+
+/* ---------------------------------------------------------------------------------------------- one receipt opened */
+
+.es-receipts__opened {
+  max-width: 56rem;
+  gap: var(--es-space-6);
+}
+
+.es-receipt__back {
+  margin: 0;
+}
+
+.es-receipt .es-ticket__paper {
+  padding-inline: var(--es-space-4);
+}
+
+@media (min-width: 40rem) {
+  .es-receipt .es-ticket__paper {
+    padding-inline: var(--es-space-6);
+  }
+}
+
+/* The stamp says once what every figure on the paper is: the grader's own. Under it each figure's tag stays for a screen reader. */
+.es-receipt__stamp {
+  width: fit-content;
+  margin: 0 0 var(--es-space-4);
+  padding: 0.1rem 0.4rem 0;
+  border: 1px solid currentColor;
+  border-radius: var(--es-radius-trim);
+  color: var(--es-paper-ink-2);
+  font-family: var(--es-font-body);
+  font-size: var(--es-size-stamp);
+  line-height: 1.4;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.es-receipt .es-readout__tag {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.es-receipt__part {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-3);
+  margin-top: var(--es-space-6);
+  padding-top: var(--es-space-4);
+  border-top: 2px dotted var(--es-paper-rule);
+}
+
+.es-receipt__heading {
+  margin: 0;
+  font-size: var(--es-size-title);
+  line-height: 1.3;
+}
+
+.es-receipt__lead {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-print);
+  line-height: 1.5;
+}
+
+.es-receipt__empty {
+  margin: 0;
+}
+
+.es-receipt__none {
+  color: var(--es-text-3);
+}
+
+.es-facts {
+  display: grid;
+  margin: 0;
+}
+
+.es-facts + .es-facts {
+  margin-top: var(--es-space-3);
+}
+
+.es-facts__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  padding: var(--es-space-2) 0;
+  border-bottom: 1px dotted var(--es-paper-rule);
+}
+
+.es-facts dt {
+  color: var(--es-text-2);
+  font-family: var(--es-font-ticket);
+  font-size: var(--es-size-caption);
+  font-weight: var(--es-font-ticket-weight);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.es-facts dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 40rem) {
+  .es-facts__row {
+    grid-template-columns: 11rem minmax(0, 1fr);
+    column-gap: var(--es-space-4);
+    align-items: baseline;
+  }
+}
+
+.es-receipt__stack {
+  display: grid;
+  gap: var(--es-space-1);
+}
+
+.es-receipt__inline {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--es-space-1) var(--es-space-2);
+}
+
+.es-receipt__hash {
+  font-family: var(--es-font-mono);
+  font-size: var(--es-size-note);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.es-receipt__token {
+  font-family: var(--es-font-ticket);
+  font-size: var(--es-size-print);
+  font-weight: var(--es-font-ticket-weight);
+  overflow-wrap: anywhere;
+}
+
+/*
+ * The receipt's tables. The paper is a size container: wide, each list is a table, and narrow, each row prints as a block of its own, the
+ * row's header first and then each cell after its column's name, so that nothing is cut off at the edge of the paper (the mirror's table
+ * does the same, src/design/components.css). The column heads stay in the document for a screen reader.
+ */
+.es-receipt .es-ticket__body {
+  container-type: inline-size;
+}
+
+.es-receipt__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--es-size-print);
+}
+
+.es-receipt__table th,
+.es-receipt__table td {
+  padding: var(--es-space-2) var(--es-space-3) var(--es-space-2) 0;
+  border-bottom: 1px dotted var(--es-paper-rule);
+  text-align: left;
+  vertical-align: top;
+  /* A word breaks only when it cannot fit its column: a short word is never cut, and a hash, which is one word, breaks where it must. */
+  overflow-wrap: break-word;
+}
+
+.es-receipt__table .es-readout {
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.es-receipt__table thead th {
+  border-bottom: 2px dotted var(--es-paper-rule);
+  font-family: var(--es-font-ticket);
+  font-size: var(--es-size-caption);
+  font-weight: var(--es-font-ticket-weight);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.es-receipt__table tbody th {
+  font-weight: 700;
+}
+
+@container (max-width: 36rem) {
+  .es-receipt__table,
+  .es-receipt__table tbody {
+    display: block;
+  }
+
+  /* The column heads, for a screen reader only: each cell prints its own. Each head is a box of 1 px, so none reaches past the paper. */
+  .es-receipt__table thead {
+    display: block;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .es-receipt__table tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--es-space-1) var(--es-space-4);
+    padding: var(--es-space-3) 0;
+    border-bottom: 1px dotted var(--es-paper-rule);
+  }
+
+  .es-receipt__table tbody :is(th, td) {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 0.45em;
+    min-width: 0;
+    padding: 0;
+    border-bottom: 0;
+    /* No column negotiates for width here, so a word may break wherever the paper ends. */
+    overflow-wrap: anywhere;
+  }
+
+  /* The row's header takes the first line to itself. */
+  .es-receipt__table tbody th {
+    display: block;
+    flex: 1 0 100%;
+  }
+
+  .es-receipt__table tbody td::before {
+    content: attr(data-label);
+    color: var(--es-text-2);
+    font-size: var(--es-size-note);
+    font-weight: 700;
+  }
+
+  /* A cell with nothing in it is left off a narrow paper. */
+  .es-receipt__table tbody td[data-empty] {
+    display: none;
+  }
+
+  /* A hash is a line of its own, as wide as the paper, so that it breaks once and not at every column's edge. */
+  .es-receipt__table tbody td:has(.es-receipt__hash) {
+    flex: 1 0 100%;
+    display: block;
+  }
+
+  .es-receipt__table tbody td:has(.es-receipt__hash)::before {
+    display: block;
+  }
+}
+
+.es-receipt__sub {
+  display: block;
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+  font-weight: 400;
+}
+
+.es-receipt__result {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--es-space-1);
+  font-family: var(--es-font-ticket);
+  font-weight: var(--es-font-ticket-weight);
+}
+
+.es-receipt__result[data-fail] {
+  color: var(--es-paper-ink-2);
+}
+
+.es-receipt__mark {
+  flex: none;
+  width: 1.1em;
+  height: 1.1em;
+}
+
+.es-receipt__notes {
+  max-width: 62ch;
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.es-receipt__reports {
+  display: grid;
+  gap: var(--es-space-1);
+  margin: 0;
+  padding-inline-start: var(--es-space-6);
+  list-style: square;
+}
+
+.es-receipt__problem {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--es-space-2);
+  color: var(--es-paper-ink-2);
+  font-family: var(--es-font-ticket);
+  font-size: var(--es-size-print);
+  font-weight: var(--es-font-ticket-weight);
+  overflow-wrap: anywhere;
+}
+
+/* A part of the page that takes focus when the page moves to it (a receipt that opens, the lists that come back) is not a control: it is
+   named for a reader and scrolled to, and draws no ring, as the main landmark draws none (src/design/base.css). */
+.es-receipts [tabindex='-1']:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+/* ---------------------------------------------------------------------------------------------- the slip a receipt comes back on */
+
+/* The drop target is as wide as the slip, so that the filament and the pool of light round it hug the paper (the forge's slip is the same). */
+.es-drop {
+  position: relative;
+  isolation: isolate;
+  max-width: 44rem;
+}
+
+.es-drop[data-over]::before {
+  content: '';
+  position: absolute;
+  inset: -2.5rem -2.25rem 0;
+  z-index: -1;
+  background: radial-gradient(
+    48% 38% at 50% 40%,
+    color-mix(in srgb, var(--es-lamp) 82%, transparent) 0%,
+    color-mix(in srgb, var(--es-lamp) 42%, transparent) 50%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+.es-drop[data-over]::after {
+  content: '';
+  position: absolute;
+  inset: -0.5rem;
+  border: 2px dashed var(--es-lamp-ring);
+  pointer-events: none;
+}
+
+.es-import__slip .es-ticket__paper {
+  padding-inline: var(--es-space-4);
+}
+
+@media (min-width: 40rem) {
+  .es-import__slip .es-ticket__paper {
+    padding-inline: var(--es-space-6);
+  }
+}
+
+.es-import__file {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--es-space-1) var(--es-space-3);
+  margin: 0;
+}
+
+/* The learner's own file name: it breaks wherever the paper ends, and is never cut. */
+.es-import__name {
+  font-family: var(--es-font-mono);
+  font-size: var(--es-size-note);
+  overflow-wrap: anywhere;
+}
+
+.es-import__caps {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--es-space-1);
+}
+
+.es-import__warn {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--es-space-2);
+  max-width: 56ch;
+  margin: 0;
+  color: var(--es-paper-ink-2);
+  font-size: var(--es-size-print);
+  line-height: 1.45;
+}
+
+.es-import__mark {
+  flex: none;
+  width: 1.1em;
+  height: 1.1em;
+  margin-top: 0.15em;
+}
+
+.es-import__quiet {
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-print);
+}
+
+.es-import__after {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2) var(--es-space-4);
+  margin-top: var(--es-space-3);
+}
+
+/* ---------------------------------------------------------------------------------------------- the rules, one after another */
+
+.es-rules {
+  display: grid;
+  margin: var(--es-space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-rule {
+  display: grid;
+  grid-template-columns: 2ch minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--es-space-1) var(--es-space-3);
+  padding: var(--es-space-3) 0;
+  border-bottom: 1px dotted var(--es-paper-rule);
+}
+
+.es-rule:last-child {
+  border-bottom: 0;
+}
+
+.es-rule > .es-rule__summary,
+.es-rule > .es-rule__problems {
+  grid-column: 2 / -1;
+}
+
+.es-rule__n {
+  font-family: var(--es-font-ticket);
+  font-size: var(--es-size-plate);
+  font-weight: var(--es-font-ticket-weight);
+  letter-spacing: var(--es-font-ticket-tracking);
+}
+
+.es-rule__name {
+  margin: 0;
+  font-weight: 700;
+}
+
+.es-rule__result {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--es-space-1);
+  font-family: var(--es-font-ticket);
+  font-weight: var(--es-font-ticket-weight);
+}
+
+.es-rule[data-status='fail'] .es-rule__result,
+.es-rule[data-status='fail'] .es-rule__n {
+  color: var(--es-paper-ink-2);
+}
+
+.es-rule[data-status='skipped'] {
+  color: var(--es-text-3);
+}
+
+.es-rule__mark {
+  flex: none;
+  width: 1.1em;
+  height: 1.1em;
+}
+
+.es-rule__summary {
+  margin: 0;
+  max-width: 62ch;
+  font-size: var(--es-size-print);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.es-rule__problems {
+  display: grid;
+  gap: var(--es-space-1);
+  margin: 0;
+  padding-inline-start: var(--es-space-6);
+  list-style: square;
+  font-size: var(--es-size-print);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.es-rule[data-status='fail'] .es-rule__problems {
+  color: var(--es-paper-ink-2);
+}
+
+/* The checks of a rule (rules 7 to 9) and of the verdict: an id, a word and a mark, the bound it was held to, and who checked it. */
+.es-rule > .es-rule__checks {
+  grid-column: 2 / -1;
+}
+
+.es-rule__checks {
+  display: grid;
+  gap: var(--es-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--es-size-print);
+  line-height: 1.5;
+}
+
+/* Narrow: the id and the word on one line, and the bound under them across the whole width. From 40rem: three columns, with the id's column one width for every
+   check (a longer id wraps at its hyphens), so that the bounds line up. */
+.es-check {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: baseline;
+  gap: var(--es-space-1) var(--es-space-3);
+  padding-inline-start: var(--es-space-2);
+  border-inline-start: 2px dotted var(--es-paper-rule);
+}
+
+.es-check[data-status='fail'] {
+  border-inline-start-style: solid;
+  color: var(--es-paper-ink-2);
+}
+
+.es-check__id {
+  font-family: var(--es-font-ticket);
+  font-weight: var(--es-font-ticket-weight);
+  overflow-wrap: anywhere;
+}
+
+.es-check__result {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--es-space-1);
+  font-family: var(--es-font-ticket);
+  font-weight: var(--es-font-ticket-weight);
+}
+
+.es-check__bound,
+.es-check__badge {
+  grid-column: 1 / -1;
+  overflow-wrap: anywhere;
+}
+
+.es-check__badge {
+  color: var(--es-text-3);
+}
+
+@media (min-width: 40rem) {
+  .es-check {
+    grid-template-columns: 10ch max-content minmax(0, 1fr);
+  }
+
+  .es-check__bound,
+  .es-check__badge {
+    grid-column: 3;
+  }
+}
+
+.es-verdict-checks {
+  display: grid;
+  gap: var(--es-space-2);
+  margin-top: var(--es-space-2);
+}
+
+.es-verdict-checks__heading {
+  margin: 0;
+  font-family: var(--es-font-ticket);
+  font-weight: var(--es-font-ticket-weight);
+}
+
+/* ---------------------------------------------------------------------------------------------- what it is worth now */
+
+.es-import__verdict {
+  display: grid;
+  gap: var(--es-space-2);
+  margin-top: var(--es-space-4);
+  padding-top: var(--es-space-3);
+  border-top: 2px dotted var(--es-paper-rule);
+}
+
+.es-import__verdict-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2) var(--es-space-3);
+  margin: 0;
+  font-weight: 700;
+}
+
+.es-import__reasons {
+  display: grid;
+  gap: var(--es-space-1);
+  margin: 0;
+  padding-inline-start: var(--es-space-6);
+  list-style: square;
+  font-size: var(--es-size-print);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+/* A receipt's page keeps a check beside each earlier one: the newest is open, and the rest fold. */
+.es-receipt__check {
+  display: grid;
+  gap: var(--es-space-2);
+}
+
+.es-receipt__checks {
+  display: grid;
+  gap: var(--es-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-receipt__earlier > summary {
+  cursor: pointer;
+}

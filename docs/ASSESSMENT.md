@@ -267,7 +267,7 @@ The challenge's FNV-1a checksum is the one non-SHA value, and it guards against 
 A worker runs A§8.5's ten rules in order and stores the parsed receipt and its report in the learner's IndexedDB; the raw artifacts stay in the learner's file.
 
 1. **Caps:** at most 32 MB compressed and 256 MB decompressed [estimated], counted while `DecompressionStream('gzip')` runs, so a zip bomb aborts.
-2. **Schema:** strict zod validation of `bundle@1` and `receipt@1`.
+2. **Schema:** strict zod validation of `bundle@1` and `receipt@1`, after a scan of the text's shape: at most 64 levels of nesting, at most 4,194,304 arrays, objects and strings, and at most 16,777,216 commas outside strings, which bounds the numbers [estimated], because a file inside rule 1's caps can still run a parser out of memory.
 3. **Integrity:** every artifact's SHA-256 recomputed with `crypto.subtle`.
 4. **Binding:** an unused, unexpired `challenge` event for this lab and stage in this ledger, and seeds equal to those derived from the token.
 5. **Grader identity:** the version and `sourceSha256` on the site's published list.
@@ -311,6 +311,8 @@ A worker runs A§8.5's ten rules in order and stores the parsed receipt and its 
 | `tr8.replay.s3` | — | R: vLLM's result identities (B11) |
 | `capstone.pair.s1` | per side, everything `tr8.replay.s2` and `tr3.profile.s2` require; R: X2 (the sides differ only in the pair's change) and per-side pins | — |
 | `capstone.pair.s2` | R: every number in the form equals the recomputed one; the mechanism's consistency rules ([CAPSTONE §5](../curriculum/CAPSTONE.md)); floors; the price claim dated | — |
+
+**As built (W2-T08).** `packages/verify/stages.ts` is this table in code, and `tests/verify/stages.test.ts` reads it and fails when the two part. The name of each A check, the `id` a lab's kit writes into `receipt.checks`, is the one `stages.ts` gives it (`teacher-forced`, `tie-aware-identity`, `engine-integrity`, `logits-fp32` and the rest). A browser check that a row names and the site cannot run yet is *pending* there with the task that builds it, and a receipt of that stage is not credited until it exists: a verdict says "X is not built yet; W2-Tnn builds it", and never takes the grader's word for a check that the table gives to the browser. A stage that requires nothing earns `practice`, and `tr4.sweep.s4`, which the table marks "its own KC at full weight", requires what s2 and s3 do. A check over nothing is not a pass: the re-checks of rule 7 fail an artifact with no sequence, round or position; T2 to T5, T7 and T8 fail a trace with no span or no step window; and "evidence" (`tr7.reproduce.s1`) is a check of its own in rule 8, passed only by a trace with a span inside a step window or a benchmark log with a measured row. A receipt that keeps the entry of its evidence and leaves the evidence out is not credited.
 
 ## 6. Consistency checks for performance evidence
 
@@ -373,6 +375,8 @@ Floors use datasheet numbers from the hardware atlas's sourced claims (W2-T09), 
 | P3 | Output tokens per second stay below the lower of two ceilings: compute (peak ÷ FLOPs per token) and memory (bandwidth ÷ bytes per token), as kernelspace's `burstgpt-replay` field lab computes them. |
 | P4 | An attention call takes at least the bytes it must read and write ÷ the datasheet bandwidth. |
 
+**As built (W2-T08).** `packages/verify/floors.ts` makes P1 (T9) and P3 (B13). A floor is made from the GPU's name as NVML reports it, found exactly in the hardware atlas, from the weight bytes of the model that the stage pins (80% of them [estimated], the share of a dense model that one forward streams) and the bandwidths of the GPUs the stage's engine spans added. The site pins the model, the number of GPUs and the most sequences for each stage (`StageDeclaration`, `src/receipts/declared.ts`), and nothing is taken from the receipt's own account of its inputs: the receipt's model inputs have to be exactly the pinned files, the fingerprint lists every GPU on the machine, and the floor takes as many GPUs as the stage runs on (one when the stage declares no count) of the model that the trace names, which the list has to hold that many times, or the slowest listed ones when the evidence names no GPU (a benchmark log), so that a faster GPU's name typed into the list lowers nothing for a trace (the second review of the grader track); for a log, which names no GPU, the ceiling follows the receipt's own list, so renaming every listed GPU raises it (four H100 give 15,314 tokens/s and the same list renamed H200 gives 21,942 [measured 2026-11, build 32b30c4]), a limit that stays until `bench-log@1` carries the GPU's name as `trace@1` does, and P3 holds the receipt's `max_num_seqs` to the most the stage declares. A stage that pins no model fails P1 and P3 with that reason, as one with no workload fails B1; a smaller model typed into the receipt (the review of the grader track found that a floor of 59 ns lets a trace that is too fast through [derived: 1,000,000 bytes × 80% ÷ 13,400 GB/s]) fails P1 with both figures printed. A GPU that the atlas lacks has no floors, and a receipt with performance evidence from one is not credited: P1 and P3 fail, naming the GPU, because a floor that a receipt can dodge by naming an unlisted GPU is no floor. P2 and P4 need TR4's sweep (W2-T26).
+
 ### 6.5 Rounding and tolerance policy
 
 - Structural rules (T2-T7, B1-B3) are exact in integers.
@@ -430,6 +434,8 @@ The map (`/map`) and module pages show these states, derived at read time (W1-T0
 | What it looks like | What blunts it | What is left |
 |---|---|---|
 | Typing a better number into a receipt (an edited p99) | integrity hashes (rule 3); every summary recomputed from raw rows (B6, B7) | nothing at this level |
+| Typing a smaller model, or more GPUs, or a faster GPU's name, into the receipt so that a trace or a throughput clears its floor | the floors are made from the model, the GPU count and the most sequences that the stage pins, from the GPU that the trace names, and for a log, which names none, from the slowest listed one, so that for a throughput the receipt's own list of GPUs is still typed beside the evidence and renaming it raises the ceiling, and the receipt's model inputs have to be those files (P1, P3) | nothing at this level for a trace; for a throughput, the list of GPUs renamed to a faster one (open, above) |
+| Leaving the evidence out and its entry in (a proposer with no round, a trace with no span) | a check over nothing fails: rule 7's counts, T2 to T5, T7 and T8, and the "evidence" a stage asks for | nothing at this level |
 | Fabricating raw rows that agree with each other | schedule binding to the challenge (B1), arrival adherence (B4), Little's law (B10), TPOT identities (B12), floors (P1-P4), trace-to-log agreement (X1) | a forger who simulates a whole consistent run can pass (§12) |
 | Running closed loop and calling it open loop | arrival adherence (B4) | — |
 | Reusing a friend's receipt, or one's own old one | binding to an unused challenge in this device's ledger (rule 4); single use; 14-day expiry | — |
@@ -472,7 +478,7 @@ From A§8.6, restated as policy. The pipeline proves that the work ran on seeds 
 |---|---|---|
 | Every forge lab's bestiary fails, and its reference passes | `verify:labs` | every PR touching `labs/` |
 | Every game's naive strategy fails and its reference passes on its bands; blind strategies stay under §4.1's bound | `verify:games`, `verify:items` | every PR (sampled), nightly (full) |
-| The forged-receipt bestiary fails, check by check: an edited p99, a re-signed hash, a reused token, a replayed old receipt, a closed-loop log, a trace too fast for its GPU, an unknown grader build, an attribution that does not sum, a pair on different seeds | receipt fixtures in CI (A§8.5; W2-T08) | every PR touching `packages/verify` or `labs/grader` |
+| The forged-receipt bestiary fails, check by check: an edited p99, a re-signed hash, a reused token, a replayed old receipt, a closed-loop log, a trace too fast for its GPU, a trace too fast with a smaller model typed in, an unknown grader build, an attribution that does not sum, evidence left out with its entry left in, a pair on different seeds | receipt fixtures in CI (A§8.5; W2-T08) | every PR touching `packages/verify` or `labs/grader` |
 | Honest receipts from the owner's GPUs pass | W2-T12's fixtures | CI, and at each re-pin |
 | The chi-square false-fail rate and detection rates | 10,000 seeds | nightly |
 | Bootstrap coverage | 2,000 seeds | nightly |

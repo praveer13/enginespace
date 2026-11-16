@@ -1,0 +1,570 @@
+# The hardware atlas, Blackwell: the RTX 5090 and the three RTX PRO 6000 editions (W2-T09; ARCHITECTURE §8.5 rule 9, ASSESSMENT §6.4). What each GPU can do, as NVIDIA states it: the name it is listed under,
+# its memory capacity and bandwidth, and its peak rates by precision. The physics floors of the receipt check read them, keyed by the GPU name that the fingerprint reports.
+# content/claims/README.md, "The hardware atlas", says how an id is built, which units the claims use, and how a dense peak is told from a sparse one.
+#
+# Every number was read on 2026-11-09 from the document its source names, with the generic User-Agent "Mozilla/5.0 (X11; Linux x86_64)" and no other header that names anyone.
+# Each download went into a folder of its own and was read as text, never run: a PDF through pdftotext and a page through an HTML parser. The pieces of every quote were found,
+# in order, in that text before the claim was written. A TTL of 365 days is a design parameter [estimated]: the figures of a shipped GPU do not move, but a vendor can revise a page.
+#
+# The documents of this file, with the size and the SHA-256 of the copy that was read on 2026-11-09:
+#   - NVIDIA Linux x86_64 driver 580.196.07 README
+#     https://download.nvidia.com/XFree86/Linux-x86_64/580.196.07/README/supportedchips.html
+#     221357 bytes, SHA-256 9595baedfa021dcfd3c89e16fc85f969c79f60e44064dba02504c921102bc769
+#   - NVIDIA RTX Blackwell GPU Architecture whitepaper, V1.1
+#     https://images.nvidia.com/aem-dam/Solutions/geforce/blackwell/nvidia-rtx-blackwell-gpu-architecture.pdf
+#     8283392 bytes, SHA-256 906ff2a409d7a7e4cbc56f5d3a179d574120d19aaba99520670e1a0c064595fa
+#   - NVIDIA RTX PRO Blackwell GPU Architecture whitepaper, V1.1
+#     https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/quadro-product-literature/pdf/NVIDIA-RTX-Blackwell-PRO-GPU-Architecture-v1_1.pdf
+#     1125909 bytes, SHA-256 1ca55d8f2e87610d1cb9b2c9bda2b2221b1a16e76c1b2e758135c29758b4b676
+#   - NVIDIA RTX PRO 6000 Blackwell Server Edition datasheet 4682150 (December 2025)
+#     https://dam-cdn.nvd.orangelogic.com/AssetLink/707m1632ypg4du1fj3ci1jo3h4w1k78j.pdf
+#     195992 bytes, SHA-256 a9fbf9e9340b4852270196e2b599bfeec4e5028527b550fa76160aed7a5c4d50
+#   - NVIDIA RTX PRO 6000 Blackwell Server Edition page on nvidia.com
+#     https://www.nvidia.com/en-us/data-center/rtx-pro-6000-blackwell-server-edition/
+#     580876 bytes, SHA-256 618d42604a89b5751b271665044f6bab0615714401be2473634c3b1041358698
+#   - NVIDIA RTX PRO 6000 Blackwell Workstation Edition datasheet 5349469 (June 2026)
+#     https://www.nvidia.com/content/dam/en-zz/Solutions/data-center/rtx-pro-6000-blackwell-workstation-edition/workstation-blackwell-rtx-pro-6000-workstation-edition-nvidia-us-3519208-web.pdf
+#     311997 bytes, SHA-256 a19daec7b413bcbc2abc3893de5b97d4cfefef59cf1cb0f6121c3414037a9ddf
+#   - NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition datasheet 3519233 (April 2025)
+#     https://www.nvidia.com/content/dam/en-zz/Solutions/products/workstations/professional-desktop-gpus/rtx-pro-6000-max-q/workstation-datasheet-blackwell-rtx-pro-6000-max-q-nvidia-3519233.pdf
+#     236942 bytes, SHA-256 44696d36829b4cce91c262f74942dfc27ee9c2a86b25bfb1cf1ccb85a57cd076
+
+# --- NVIDIA GeForce RTX 5090 -----------------------------------------------------------------------------------------------------------------------
+
+- id: hw.rtx5090.product-name
+  value: NVIDIA GeForce RTX 5090
+  text: NVIDIA's Linux driver 580.196.07 lists PCI device 2B85 as "NVIDIA GeForce RTX 5090". The RTX 5090 D and D v2 are listed apart (devices 2B87 and 2B8C). The atlas matches the GPU name in a fingerprint to this string. That nvidia-smi and NVML print the same string is not checked here [unverified].
+  tag: measured
+  source:
+    url: https://download.nvidia.com/XFree86/Linux-x86_64/580.196.07/README/supportedchips.html
+    title: NVIDIA Linux x86_64 driver 580.196.07 README, Appendix A, Supported NVIDIA GPU Products
+    quote: NVIDIA GeForce RTX 5090 | 2B85
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx5090.mem-capacity
+  value: 32
+  unit: GB
+  text: NVIDIA's RTX Blackwell whitepaper lists 32 GB of GDDR7 memory for the RTX 5090.
+  tag: measured
+  source:
+    url: https://images.nvidia.com/aem-dam/Solutions/geforce/blackwell/nvidia-rtx-blackwell-gpu-architecture.pdf
+    title: NVIDIA RTX Blackwell GPU Architecture whitepaper, V1.1, Appendix A, Table 3, RTX 5090 column
+    quote: Frame Buffer Memory Size and Type | 24 GB GDDR6X | 24 GB GDDR6X | 32 GB GDDR7
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx5090.mem-bw
+  value: 1792
+  unit: GB/s
+  text: NVIDIA's RTX Blackwell whitepaper lists a memory bandwidth of 1,792 GB/s for the RTX 5090 (512 bits at 28 Gbps). It is a peak rate, not a measured one.
+  tag: measured
+  source:
+    url: https://images.nvidia.com/aem-dam/Solutions/geforce/blackwell/nvidia-rtx-blackwell-gpu-architecture.pdf
+    title: NVIDIA RTX Blackwell GPU Architecture whitepaper, V1.1, Appendix A, Table 3, RTX 5090 column
+    quote: Memory Bandwidth | 936 GB/sec | 1008 GB/sec | 1792 GB/sec
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx5090.fp32
+  value: 104.8
+  unit: TFLOPS
+  text: NVIDIA's RTX Blackwell whitepaper lists 104.8 TFLOPS of FP32 for the RTX 5090, on the CUDA cores and not the Tensor Cores, computed at its 2407 MHz boost clock.
+  tag: measured
+  source:
+    url: https://images.nvidia.com/aem-dam/Solutions/geforce/blackwell/nvidia-rtx-blackwell-gpu-architecture.pdf
+    title: NVIDIA RTX Blackwell GPU Architecture whitepaper, V1.1, Appendix A, Table 3, RTX 5090 column
+    quote: Peak FP32 TFLOPS (non-Tensor) | 35.6 | 82.6 | 104.8
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx5090.tf32-dense
+  value: 104.8
+  unit: TFLOPS
+  text: NVIDIA's RTX Blackwell whitepaper lists 104.8 TFLOPS for the RTX 5090's TF32 Tensor Cores without sparsity and 209.5 TFLOPS with it, computed at its 2407 MHz boost clock.
+  tag: measured
+  source:
+    url: https://images.nvidia.com/aem-dam/Solutions/geforce/blackwell/nvidia-rtx-blackwell-gpu-architecture.pdf
+    title: NVIDIA RTX Blackwell GPU Architecture whitepaper, V1.1, Appendix A, Table 3, RTX 5090 column, second figure with sparsity (footnote 2)
+    quote: Peak TF32 Tensor TFLOPS | 35.6/71.2 | 82.6/165.2 | 104.8/209.5
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx5090.bf16-dense
+  value: 209.5
+  unit: TFLOPS
+  text: NVIDIA's RTX Blackwell whitepaper lists 209.5 TFLOPS for the RTX 5090's BF16 Tensor Cores (FP32 accumulation) without sparsity and 419 TFLOPS with it, computed at its 2407 MHz boost clock.
+  tag: measured
+  source:
+    url: https://images.nvidia.com/aem-dam/Solutions/geforce/blackwell/nvidia-rtx-blackwell-gpu-architecture.pdf
+    title: NVIDIA RTX Blackwell GPU Architecture whitepaper, V1.1, Appendix A, Table 3, RTX 5090 column, second figure with sparsity (footnote 2)
+    quote: Peak BF16 Tensor TFLOPS with FP32 Accumulate | 71.2/142.4 | 165.2/330.4 | 209.5/419
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx5090.fp16-dense
+  value: 419
+  unit: TFLOPS
+  text: NVIDIA's RTX Blackwell whitepaper lists 419 TFLOPS for the RTX 5090's FP16 Tensor Cores (FP16 accumulation, the faster mode) without sparsity and 838 TFLOPS with it, computed at its 2407 MHz boost clock.
+  tag: measured
+  source:
+    url: https://images.nvidia.com/aem-dam/Solutions/geforce/blackwell/nvidia-rtx-blackwell-gpu-architecture.pdf
+    title: NVIDIA RTX Blackwell GPU Architecture whitepaper, V1.1, Appendix A, Table 3, RTX 5090 column, second figure with sparsity (footnote 2)
+    quote: Peak FP16 Tensor TFLOPS with FP16 Accumulate | 142.3/284.6 | 330.3/660.6 | 419/838
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx5090.fp16-fp32acc-dense
+  value: 209.5
+  unit: TFLOPS
+  text: NVIDIA's RTX Blackwell whitepaper lists 209.5 TFLOPS for the RTX 5090's FP16 Tensor Cores (FP32 accumulation) without sparsity and 419 TFLOPS with it, computed at its 2407 MHz boost clock.
+  tag: measured
+  source:
+    url: https://images.nvidia.com/aem-dam/Solutions/geforce/blackwell/nvidia-rtx-blackwell-gpu-architecture.pdf
+    title: NVIDIA RTX Blackwell GPU Architecture whitepaper, V1.1, Appendix A, Table 3, RTX 5090 column, second figure with sparsity (footnote 2)
+    quote: Peak FP16 Tensor TFLOPS with FP32 Accumulate | 71.2/142.4 | 165.2/330.4 | 209.5/419
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx5090.fp8-dense
+  value: 838
+  unit: TFLOPS
+  text: NVIDIA's RTX Blackwell whitepaper lists 838 TFLOPS for the RTX 5090's FP8 Tensor Cores (FP16 accumulation, the faster mode) without sparsity and 1,676 TFLOPS with it, computed at its 2407 MHz boost clock.
+  tag: measured
+  source:
+    url: https://images.nvidia.com/aem-dam/Solutions/geforce/blackwell/nvidia-rtx-blackwell-gpu-architecture.pdf
+    title: NVIDIA RTX Blackwell GPU Architecture whitepaper, V1.1, Appendix A, Table 3, RTX 5090 column, second figure with sparsity (footnote 2)
+    quote: Peak FP8 Tensor TFLOPS with FP16 Accumulate | N/A | 660.6/1321.2 | 838/1676
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx5090.fp8-fp32acc-dense
+  value: 419
+  unit: TFLOPS
+  text: NVIDIA's RTX Blackwell whitepaper lists 419 TFLOPS for the RTX 5090's FP8 Tensor Cores (FP32 accumulation) without sparsity and 838 TFLOPS with it, computed at its 2407 MHz boost clock.
+  tag: measured
+  source:
+    url: https://images.nvidia.com/aem-dam/Solutions/geforce/blackwell/nvidia-rtx-blackwell-gpu-architecture.pdf
+    title: NVIDIA RTX Blackwell GPU Architecture whitepaper, V1.1, Appendix A, Table 3, RTX 5090 column, second figure with sparsity (footnote 2)
+    quote: Peak FP8 Tensor TFLOPS with FP32 Accumulate | N/A | 330.3/660.6 | 419/838
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx5090.int8-dense
+  value: 838
+  unit: TOPS
+  text: NVIDIA's RTX Blackwell whitepaper lists 838 TOPS for the RTX 5090's INT8 Tensor Cores without sparsity and 1,676 TOPS with it, computed at its 2407 MHz boost clock.
+  tag: measured
+  source:
+    url: https://images.nvidia.com/aem-dam/Solutions/geforce/blackwell/nvidia-rtx-blackwell-gpu-architecture.pdf
+    title: NVIDIA RTX Blackwell GPU Architecture whitepaper, V1.1, Appendix A, Table 3, RTX 5090 column, second figure with sparsity (footnote 2)
+    quote: Peak INT8 Tensor TOPS | 284.7/569.4 | 660.6/1321.2 | 838/1676
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx5090.fp4-dense
+  value: 1676
+  unit: TFLOPS
+  text: NVIDIA's RTX Blackwell whitepaper lists 1,676 TFLOPS for the RTX 5090's FP4 Tensor Cores without sparsity and 3,352 TFLOPS with it, computed at its 2407 MHz boost clock.
+  tag: measured
+  source:
+    url: https://images.nvidia.com/aem-dam/Solutions/geforce/blackwell/nvidia-rtx-blackwell-gpu-architecture.pdf
+    title: NVIDIA RTX Blackwell GPU Architecture whitepaper, V1.1, Appendix A, Table 3, RTX 5090 column, second figure with sparsity (footnote 2)
+    quote: Peak FP4 Tensor TFLOPS with FP32 Accumulate (FP4 AI TOPS) | N/A | N/A | 1676/3352
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+
+# --- NVIDIA RTX PRO 6000 Blackwell Workstation Edition ---------------------------------------------------------------------------------------------
+
+- id: hw.rtx-pro-6000-workstation.product-name
+  value: NVIDIA RTX PRO 6000 Blackwell Workstation Edition
+  text: NVIDIA's Linux driver 580.196.07 lists PCI device 2BB1 as "NVIDIA RTX PRO 6000 Blackwell Workstation Edition". The atlas matches the GPU name in a fingerprint to this string. That nvidia-smi and NVML print the same string is not checked here [unverified].
+  tag: measured
+  source:
+    url: https://download.nvidia.com/XFree86/Linux-x86_64/580.196.07/README/supportedchips.html
+    title: NVIDIA Linux x86_64 driver 580.196.07 README, Appendix A, Supported NVIDIA GPU Products
+    quote: NVIDIA RTX PRO 6000 Blackwell Workstation Edition | 2BB1
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx-pro-6000-workstation.mem-capacity
+  value: 96
+  unit: GB
+  text: NVIDIA's RTX PRO 6000 Blackwell Workstation Edition datasheet lists 96 GB of GDDR7 memory.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/data-center/rtx-pro-6000-blackwell-workstation-edition/workstation-blackwell-rtx-pro-6000-workstation-edition-nvidia-us-3519208-web.pdf
+    title: NVIDIA RTX PRO 6000 Blackwell Workstation Edition datasheet 5349469 (June 2026), Specifications
+    quote: GPU Memory | 96 GB GDDR7 with ECC
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx-pro-6000-workstation.mem-bw
+  value: 1792
+  unit: GB/s
+  text: NVIDIA's RTX PRO 6000 Blackwell Workstation Edition datasheet lists a memory bandwidth of 1,792 GB/s (512 bits at 28 Gbps, by the RTX PRO Blackwell whitepaper). It is a peak rate, not a measured one.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/data-center/rtx-pro-6000-blackwell-workstation-edition/workstation-blackwell-rtx-pro-6000-workstation-edition-nvidia-us-3519208-web.pdf
+    title: NVIDIA RTX PRO 6000 Blackwell Workstation Edition datasheet 5349469 (June 2026), Specifications
+    quote: Memory Bandwidth | 1792 GB/s
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx-pro-6000-workstation.fp32
+  value: 126
+  unit: TFLOPS
+  text: NVIDIA's RTX PRO Blackwell whitepaper lists 126 TFLOPS of FP32 for the Workstation Edition, on the CUDA cores and not the Tensor Cores, computed at its 2617 MHz boost clock.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/quadro-product-literature/pdf/NVIDIA-RTX-Blackwell-PRO-GPU-Architecture-v1_1.pdf
+    title: NVIDIA RTX PRO Blackwell GPU Architecture whitepaper, V1.1, Appendix A, Table 4, Max-Q Workstation Edition and Workstation Edition columns
+    quote: Peak FP32 TFLOPS (non-Tensor) | 38.7 | 91.1 | 109.7 | 126.0
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx-pro-6000-workstation.tf32-dense
+  value: 251.9
+  unit: TFLOPS
+  text: NVIDIA's RTX PRO Blackwell whitepaper lists 251.9 TFLOPS for the Workstation Edition's TF32 Tensor Cores without sparsity and 503.8 TFLOPS with it, computed at its 2617 MHz boost clock.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/quadro-product-literature/pdf/NVIDIA-RTX-Blackwell-PRO-GPU-Architecture-v1_1.pdf
+    title: NVIDIA RTX PRO Blackwell GPU Architecture whitepaper, V1.1, Appendix A, Table 4, Max-Q Workstation Edition and Workstation Edition columns, second figure with sparsity (footnote 2)
+    quote: Peak TF32 Tensor TFLOPS | 219.5/438.9 | 251.9/503.8
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx-pro-6000-workstation.bf16-dense
+  value: 503.8
+  unit: TFLOPS
+  text: NVIDIA's RTX PRO Blackwell whitepaper lists 503.8 TFLOPS for the Workstation Edition's BF16 Tensor Cores (FP32 accumulation) without sparsity and 1,007.6 TFLOPS with it, computed at its 2617 MHz boost clock.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/quadro-product-literature/pdf/NVIDIA-RTX-Blackwell-PRO-GPU-Architecture-v1_1.pdf
+    title: NVIDIA RTX PRO Blackwell GPU Architecture whitepaper, V1.1, Appendix A, Table 4, Max-Q Workstation Edition and Workstation Edition columns, second figure with sparsity (footnote 2)
+    quote: Peak BF16 Tensor TFLOPS with FP32 Accumulate | 438.9/877.9 | 503.8/1007.6
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx-pro-6000-workstation.fp16-dense
+  value: 503.8
+  unit: TFLOPS
+  text: NVIDIA's RTX PRO Blackwell whitepaper lists 503.8 TFLOPS for the Workstation Edition's FP16 Tensor Cores without sparsity and 1,007.6 TFLOPS with it, computed at its 2617 MHz boost clock.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/quadro-product-literature/pdf/NVIDIA-RTX-Blackwell-PRO-GPU-Architecture-v1_1.pdf
+    title: NVIDIA RTX PRO Blackwell GPU Architecture whitepaper, V1.1, Appendix A, Table 4, Max-Q Workstation Edition and Workstation Edition columns, second figure with sparsity (footnote 2)
+    quote: Peak FP16 Tensor TFLOPS with FP16 Accumulate | 438.9/877.9 | 503.8/1007.6
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx-pro-6000-workstation.fp8-dense
+  value: 1007.6
+  unit: TFLOPS
+  text: NVIDIA's RTX PRO Blackwell whitepaper lists 1,007.6 TFLOPS for the Workstation Edition's FP8 Tensor Cores (the same rate with FP16 and FP32 accumulation) without sparsity and 2,015.2 TFLOPS with it, computed at its 2617 MHz boost clock.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/quadro-product-literature/pdf/NVIDIA-RTX-Blackwell-PRO-GPU-Architecture-v1_1.pdf
+    title: NVIDIA RTX PRO Blackwell GPU Architecture whitepaper, V1.1, Appendix A, Table 4, Max-Q Workstation Edition and Workstation Edition columns, second figure with sparsity (footnote 2)
+    quote: Peak FP8 Tensor TFLOPS with FP16 Accumulate | 877.9/1755.7 | 1007.6/2015.2
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx-pro-6000-workstation.int8-dense
+  value: 1007.6
+  unit: TOPS
+  text: NVIDIA's RTX PRO Blackwell whitepaper lists 1,007.6 TOPS for the Workstation Edition's INT8 Tensor Cores without sparsity and 2,015.2 TOPS with it, computed at its 2617 MHz boost clock.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/quadro-product-literature/pdf/NVIDIA-RTX-Blackwell-PRO-GPU-Architecture-v1_1.pdf
+    title: NVIDIA RTX PRO Blackwell GPU Architecture whitepaper, V1.1, Appendix A, Table 4, Max-Q Workstation Edition and Workstation Edition columns, second figure with sparsity (footnote 2)
+    quote: Peak INT8 Tensor TOPS | 877.9/1755.7 | 1007.6/2015.2
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx-pro-6000-workstation.fp4-dense
+  value: 2015.2
+  unit: TFLOPS
+  text: NVIDIA's RTX PRO Blackwell whitepaper lists 2,015.2 TFLOPS for the Workstation Edition's FP4 Tensor Cores without sparsity and 4,030.4 TFLOPS with it, computed at its 2617 MHz boost clock. NVIDIA's datasheet lists 4000 AI TOPS, the effective FP4 rate with sparsity, which rounds the 4,030.4 of the whitepaper.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/quadro-product-literature/pdf/NVIDIA-RTX-Blackwell-PRO-GPU-Architecture-v1_1.pdf
+    title: NVIDIA RTX PRO Blackwell GPU Architecture whitepaper, V1.1, Appendix A, Table 4, Max-Q Workstation Edition and Workstation Edition columns, second figure with sparsity (footnote 2)
+    quote: Peak FP4 Tensor TFLOPS with FP32 Accumulate (FP4 AI TOPS) | 1755.7/3511.4 | 2015.2/4030.4
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+
+# --- NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition ---------------------------------------------------------------------------------------
+
+- id: hw.rtx-pro-6000-max-q.product-name
+  value: NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition
+  text: NVIDIA's Linux driver 580.196.07 lists PCI device 2BB4 as "NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition". The atlas matches the GPU name in a fingerprint to this string. That nvidia-smi and NVML print the same string is not checked here [unverified].
+  tag: measured
+  source:
+    url: https://download.nvidia.com/XFree86/Linux-x86_64/580.196.07/README/supportedchips.html
+    title: NVIDIA Linux x86_64 driver 580.196.07 README, Appendix A, Supported NVIDIA GPU Products
+    quote: NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition | 2BB4
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx-pro-6000-max-q.mem-capacity
+  value: 96
+  unit: GB
+  text: NVIDIA's RTX PRO 6000 Blackwell Max-Q Workstation Edition datasheet lists 96 GB of GDDR7 memory.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/products/workstations/professional-desktop-gpus/rtx-pro-6000-max-q/workstation-datasheet-blackwell-rtx-pro-6000-max-q-nvidia-3519233.pdf
+    title: NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition datasheet 3519233 (April 2025), Specifications
+    quote: GPU memory | 96 GB GDDR7 with ECC
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx-pro-6000-max-q.mem-bw
+  value: 1792
+  unit: GB/s
+  text: NVIDIA's RTX PRO 6000 Blackwell Max-Q Workstation Edition datasheet lists a memory bandwidth of 1,792 GB/s (512 bits at 28 Gbps, by the RTX PRO Blackwell whitepaper). It is a peak rate, not a measured one.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/products/workstations/professional-desktop-gpus/rtx-pro-6000-max-q/workstation-datasheet-blackwell-rtx-pro-6000-max-q-nvidia-3519233.pdf
+    title: NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition datasheet 3519233 (April 2025), Specifications
+    quote: Memory bandwidth | 1792 GB/s
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx-pro-6000-max-q.fp32
+  value: 109.7
+  unit: TFLOPS
+  text: NVIDIA's RTX PRO Blackwell whitepaper lists 109.7 TFLOPS of FP32 for the Max-Q Workstation Edition, on the CUDA cores and not the Tensor Cores, computed at its 2280 MHz boost clock. NVIDIA's datasheet rounds this to 110 TFLOPS.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/quadro-product-literature/pdf/NVIDIA-RTX-Blackwell-PRO-GPU-Architecture-v1_1.pdf
+    title: NVIDIA RTX PRO Blackwell GPU Architecture whitepaper, V1.1, Appendix A, Table 4, Max-Q Workstation Edition and Workstation Edition columns
+    quote: Peak FP32 TFLOPS (non-Tensor) | 38.7 | 91.1 | 109.7 | 126.0
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx-pro-6000-max-q.tf32-dense
+  value: 219.5
+  unit: TFLOPS
+  text: NVIDIA's RTX PRO Blackwell whitepaper lists 219.5 TFLOPS for the Max-Q Workstation Edition's TF32 Tensor Cores without sparsity and 438.9 TFLOPS with it, computed at its 2280 MHz boost clock.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/quadro-product-literature/pdf/NVIDIA-RTX-Blackwell-PRO-GPU-Architecture-v1_1.pdf
+    title: NVIDIA RTX PRO Blackwell GPU Architecture whitepaper, V1.1, Appendix A, Table 4, Max-Q Workstation Edition and Workstation Edition columns, second figure with sparsity (footnote 2)
+    quote: Peak TF32 Tensor TFLOPS | 219.5/438.9 | 251.9/503.8
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx-pro-6000-max-q.bf16-dense
+  value: 438.9
+  unit: TFLOPS
+  text: NVIDIA's RTX PRO Blackwell whitepaper lists 438.9 TFLOPS for the Max-Q Workstation Edition's BF16 Tensor Cores (FP32 accumulation) without sparsity and 877.9 TFLOPS with it, computed at its 2280 MHz boost clock.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/quadro-product-literature/pdf/NVIDIA-RTX-Blackwell-PRO-GPU-Architecture-v1_1.pdf
+    title: NVIDIA RTX PRO Blackwell GPU Architecture whitepaper, V1.1, Appendix A, Table 4, Max-Q Workstation Edition and Workstation Edition columns, second figure with sparsity (footnote 2)
+    quote: Peak BF16 Tensor TFLOPS with FP32 Accumulate | 438.9/877.9 | 503.8/1007.6
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx-pro-6000-max-q.fp16-dense
+  value: 438.9
+  unit: TFLOPS
+  text: NVIDIA's RTX PRO Blackwell whitepaper lists 438.9 TFLOPS for the Max-Q Workstation Edition's FP16 Tensor Cores without sparsity and 877.9 TFLOPS with it, computed at its 2280 MHz boost clock.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/quadro-product-literature/pdf/NVIDIA-RTX-Blackwell-PRO-GPU-Architecture-v1_1.pdf
+    title: NVIDIA RTX PRO Blackwell GPU Architecture whitepaper, V1.1, Appendix A, Table 4, Max-Q Workstation Edition and Workstation Edition columns, second figure with sparsity (footnote 2)
+    quote: Peak FP16 Tensor TFLOPS with FP16 Accumulate | 438.9/877.9 | 503.8/1007.6
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx-pro-6000-max-q.fp8-dense
+  value: 877.9
+  unit: TFLOPS
+  text: NVIDIA's RTX PRO Blackwell whitepaper lists 877.9 TFLOPS for the Max-Q Workstation Edition's FP8 Tensor Cores (the same rate with FP16 and FP32 accumulation) without sparsity and 1,755.7 TFLOPS with it, computed at its 2280 MHz boost clock.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/quadro-product-literature/pdf/NVIDIA-RTX-Blackwell-PRO-GPU-Architecture-v1_1.pdf
+    title: NVIDIA RTX PRO Blackwell GPU Architecture whitepaper, V1.1, Appendix A, Table 4, Max-Q Workstation Edition and Workstation Edition columns, second figure with sparsity (footnote 2)
+    quote: Peak FP8 Tensor TFLOPS with FP16 Accumulate | 877.9/1755.7 | 1007.6/2015.2
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx-pro-6000-max-q.int8-dense
+  value: 877.9
+  unit: TOPS
+  text: NVIDIA's RTX PRO Blackwell whitepaper lists 877.9 TOPS for the Max-Q Workstation Edition's INT8 Tensor Cores without sparsity and 1,755.7 TOPS with it, computed at its 2280 MHz boost clock.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/quadro-product-literature/pdf/NVIDIA-RTX-Blackwell-PRO-GPU-Architecture-v1_1.pdf
+    title: NVIDIA RTX PRO Blackwell GPU Architecture whitepaper, V1.1, Appendix A, Table 4, Max-Q Workstation Edition and Workstation Edition columns, second figure with sparsity (footnote 2)
+    quote: Peak INT8 Tensor TOPS | 877.9/1755.7 | 1007.6/2015.2
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx-pro-6000-max-q.fp4-dense
+  value: 1755.7
+  unit: TFLOPS
+  text: NVIDIA's RTX PRO Blackwell whitepaper lists 1,755.7 TFLOPS for the Max-Q Workstation Edition's FP4 Tensor Cores without sparsity and 3,511.4 TFLOPS with it, computed at its 2280 MHz boost clock. NVIDIA's datasheet lists 3511 AI TOPS, the effective FP4 rate with sparsity, which rounds the 3,511.4 of the whitepaper.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/design-visualization/quadro-product-literature/pdf/NVIDIA-RTX-Blackwell-PRO-GPU-Architecture-v1_1.pdf
+    title: NVIDIA RTX PRO Blackwell GPU Architecture whitepaper, V1.1, Appendix A, Table 4, Max-Q Workstation Edition and Workstation Edition columns, second figure with sparsity (footnote 2)
+    quote: Peak FP4 Tensor TFLOPS with FP32 Accumulate (FP4 AI TOPS) | 1755.7/3511.4 | 2015.2/4030.4
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+
+# --- NVIDIA RTX PRO 6000 Blackwell Server Edition --------------------------------------------------------------------------------------------------
+
+- id: hw.rtx-pro-6000-server.product-name
+  value: NVIDIA RTX PRO 6000 Blackwell Server Edition
+  text: NVIDIA's Linux driver 580.196.07 lists PCI device 2BB5 as "NVIDIA RTX PRO 6000 Blackwell Server Edition". The atlas matches the GPU name in a fingerprint to this string. That nvidia-smi and NVML print the same string is not checked here [unverified].
+  tag: measured
+  source:
+    url: https://download.nvidia.com/XFree86/Linux-x86_64/580.196.07/README/supportedchips.html
+    title: NVIDIA Linux x86_64 driver 580.196.07 README, Appendix A, Supported NVIDIA GPU Products
+    quote: NVIDIA RTX PRO 6000 Blackwell Server Edition | 2BB5 10DE 204E
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx-pro-6000-server.mem-capacity
+  value: 96
+  unit: GB
+  text: NVIDIA's RTX PRO 6000 Blackwell Server Edition datasheet lists 96 GB of GDDR7 memory.
+  tag: measured
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/707m1632ypg4du1fj3ci1jo3h4w1k78j.pdf
+    title: NVIDIA RTX PRO 6000 Blackwell Server Edition datasheet 4682150 (December 2025), Technical Specifications
+    quote: GPU memory | 96 GB GDDR7 with ECC
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx-pro-6000-server.mem-bw
+  value: 1597
+  unit: GB/s
+  text: NVIDIA's RTX PRO 6000 Blackwell Server Edition datasheet lists a memory bandwidth of 1,597 GB/s, below the 1792 GB/s of the two Workstation Editions. It is a peak rate, not a measured one.
+  tag: measured
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/707m1632ypg4du1fj3ci1jo3h4w1k78j.pdf
+    title: NVIDIA RTX PRO 6000 Blackwell Server Edition datasheet 4682150 (December 2025), Technical Specifications
+    quote: Memory bandwidth | 1597 GB/s
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx-pro-6000-server.fp32
+  value: 120
+  unit: TFLOPS
+  text: NVIDIA's RTX PRO 6000 Blackwell Server Edition datasheet lists 120 TFLOPS of FP32, on the CUDA cores and not the Tensor Cores.
+  tag: measured
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/707m1632ypg4du1fj3ci1jo3h4w1k78j.pdf
+    title: NVIDIA RTX PRO 6000 Blackwell Server Edition datasheet 4682150 (December 2025), Technical Specifications
+    quote: Single-precision performance (FP32) | 120 TFLOPS
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx-pro-6000-server.fp4-listed
+  value: 4
+  unit: PFLOPS
+  text: NVIDIA's RTX PRO 6000 Blackwell Server Edition datasheet lists 4 PFLOPS for the Server Edition's FP4 Tensor Cores and does not say whether the figure counts sparsity, which no other document read for the atlas settles for this card. It is recorded as listed and not as a dense peak. It can serve as a ceiling, since the dense peak is at most the listed figure whichever way NVIDIA counted [unverified].
+  tag: measured
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/707m1632ypg4du1fj3ci1jo3h4w1k78j.pdf
+    title: NVIDIA RTX PRO 6000 Blackwell Server Edition datasheet 4682150 (December 2025), Technical Specifications
+    quote: Peak FP4 AI PFLOPS | 4 PFLOPS
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx-pro-6000-server.fp8-listed
+  value: 2
+  unit: PFLOPS
+  text: NVIDIA's RTX PRO 6000 Blackwell Server Edition page lists 2 PFLOPS for the Server Edition's FP8 Tensor Cores and does not say whether the figure counts sparsity, which no other document read for the atlas settles for this card. It is recorded as listed and not as a dense peak. It can serve as a ceiling, since the dense peak is at most the listed figure whichever way NVIDIA counted [unverified].
+  tag: measured
+  source:
+    url: https://www.nvidia.com/en-us/data-center/rtx-pro-6000-blackwell-server-edition/
+    title: NVIDIA RTX PRO 6000 Blackwell Server Edition page on nvidia.com, Specifications
+    quote: FP8 Tensor Core | 2 PFLOPS
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx-pro-6000-server.fp16-listed
+  value: 1
+  unit: PFLOPS
+  text: NVIDIA's RTX PRO 6000 Blackwell Server Edition page lists 1 PFLOP for the Server Edition's FP16 Tensor Cores and does not say whether the figure counts sparsity, which no other document read for the atlas settles for this card. It is recorded as listed and not as a dense peak. It can serve as a ceiling, since the dense peak is at most the listed figure whichever way NVIDIA counted [unverified].
+  tag: measured
+  source:
+    url: https://www.nvidia.com/en-us/data-center/rtx-pro-6000-blackwell-server-edition/
+    title: NVIDIA RTX PRO 6000 Blackwell Server Edition page on nvidia.com, Specifications
+    quote: FP16 | BF16 Tensor Core | 1 PFLOP
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx-pro-6000-server.bf16-listed
+  value: 1
+  unit: PFLOPS
+  text: NVIDIA's RTX PRO 6000 Blackwell Server Edition page lists 1 PFLOP for the Server Edition's BF16 Tensor Cores and does not say whether the figure counts sparsity, which no other document read for the atlas settles for this card. It is recorded as listed and not as a dense peak. It can serve as a ceiling, since the dense peak is at most the listed figure whichever way NVIDIA counted [unverified].
+  tag: measured
+  source:
+    url: https://www.nvidia.com/en-us/data-center/rtx-pro-6000-blackwell-server-edition/
+    title: NVIDIA RTX PRO 6000 Blackwell Server Edition page on nvidia.com, Specifications
+    quote: FP16 | BF16 Tensor Core | 1 PFLOP
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.rtx-pro-6000-server.tf32-listed
+  value: 234
+  unit: TFLOPS
+  text: NVIDIA's RTX PRO 6000 Blackwell Server Edition page lists 234 TFLOPS for the Server Edition's TF32 Tensor Cores and does not say whether the figure counts sparsity, which no other document read for the atlas settles for this card. It is recorded as listed and not as a dense peak. It can serve as a ceiling, since the dense peak is at most the listed figure whichever way NVIDIA counted [unverified].
+  tag: measured
+  source:
+    url: https://www.nvidia.com/en-us/data-center/rtx-pro-6000-blackwell-server-edition/
+    title: NVIDIA RTX PRO 6000 Blackwell Server Edition page on nvidia.com, Specifications
+    quote: TF32 Tensor Core | 234 TFLOPS
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365

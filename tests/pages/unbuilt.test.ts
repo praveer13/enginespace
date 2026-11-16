@@ -1,8 +1,9 @@
 /*
  * W1b-T09: the pages that are not built yet say what they will hold and which task builds it, and no page says only that it is not built.
  *
- *   - /receipts, /changes, /about, /trace-room and the ten labs that W2 and W3 build each render a heading, a lead, a list of what the page
- *     will hold, the red line that says it is not built, the task and the wave that build it, and a way on to a page that is.
+ *   - /changes, /about, /trace-room and the ten labs that W2 and W3 build each render a heading, a lead, a list of what the page
+ *     will hold, the red line that says it is not built, the task and the wave that build it, and a way on to a page that is. (/receipts
+ *     was the fifth until W2-T06 built it: tests/receipts/ holds what it says.)
  *   - The words are src/unbuilt/copy.ts's, and they come from somewhere: each task is a task of docs/TRACKER.md whose text is about
  *     that page, and each lab's module, lane and one line are the course's own (the compiled map). A task renamed, or a lab whose artifact
  *     changes, fails here and not in front of a learner.
@@ -68,7 +69,6 @@ const documentOf = (url: string): Written => {
 
 /** The pages with a route of their own, with their copy. */
 const PAGES = [
-  ['/receipts', UNBUILT.receipts],
   ['/changes', UNBUILT.changes],
   ['/about', UNBUILT.about],
   ['/trace-room', UNBUILT.traceRoom],
@@ -109,8 +109,6 @@ describe.each(PAGES)('%s, which is not built yet', (url, copy) => {
 
 describe('the tasks the pages name', () => {
   test('are tasks of the tracker, and the tracker\'s text for each is about the page', () => {
-    expect(heading('W2-T06')).toContain('`/receipts`')
-    expect(heading('W2-T07')).toContain('Receipt worker and import')
     expect(heading('W2-T20')).toContain('The Trace Room')
     expect(tasks.get('W3-T06')).toContain('`/changes` renders change cards')
     expect(tasks.get('W3-T15')).toContain('`/about`')

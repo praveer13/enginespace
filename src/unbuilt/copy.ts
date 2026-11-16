@@ -1,7 +1,7 @@
 /*
  * The words of the pages that are not built yet (W1b-T09): what each will hold, and the task that builds it. The pages are
- * src/pages/Receipts.tsx, Changes.tsx, About.tsx, TraceRoom.tsx and Lab.tsx (for the labs that W2 and W3 build), and
- * src/unbuilt/Unbuilt.tsx draws them. A page that is built takes its words out of here with its stub.
+ * src/pages/Changes.tsx, About.tsx, TraceRoom.tsx and Lab.tsx (for the labs that W2 and W3 build), and src/unbuilt/Unbuilt.tsx draws
+ * them. A page that is built takes its words out of here with its stub: /receipts did with W2-T06, and has its words in src/receipts/copy.ts.
  *
  * Nothing in these words is new. What a page holds is what ARCHITECTURE §3.1 and §8.4 say of it and what its tasks in docs/TRACKER.md
  * ask for, and a lab's one line is what content/course.yaml says the learner hands in. tests/pages/unbuilt.test.ts reads the tracker
@@ -26,19 +26,6 @@ export interface UnbuiltCopy {
 
 /** The pages with a route of their own. A page's `lead` is the sentence its meta description gives too (scripts/pages/plan.ts), and a test holds the two together. */
 export const UNBUILT = {
-  /** ARCHITECTURE §3.1 and §8.4; W2-T06 issues the challenge and draws the page, W2-T07 imports the bundle. */
-  receipts: {
-    title: 'Receipts',
-    lead: 'Issue a challenge for a GPU lab, import the receipt that the local grader writes, and read how your browser checked it.',
-    heading: 'What it will hold',
-    holds: [
-      'A challenge for a lab and its stage, as a token to copy.',
-      'The receipts you hold, listed, each opening to its detail.',
-      'The bundle that your grader wrote, imported here and checked in this browser.',
-    ],
-    tasks: ['W2-T06', 'W2-T07'],
-    next: { to: '/evidence', label: 'Open your evidence' },
-  },
   /** ARCHITECTURE §3.1, ASSESSMENT §8; W3-T06. */
   changes: {
     title: 'Changes',

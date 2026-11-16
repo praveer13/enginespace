@@ -1,0 +1,606 @@
+{
+  "header": "Golden vectors for packages/sim/tensor (ARCHITECTURE section 5.8, GAMES section 4): each maps its input to what the model answers. A `chain` applies operations to a contiguous tensor and records each step's view, the elements it moved and whether it is contiguous, or the error that stops it. A `fewest` records the cheapest plan to a target that a chain of operations reaches (and the naive plan, contiguous() before every operation). A `grid` records a Triton-style grid's programs, masked lanes and coverage, and a `program` the cells of one program. That the view rules are PyTorch's is checked apart, against tests/fixtures/tensor/torch-vectors.json. Regenerate only with `bun scripts/vectors.ts --write`, and review the diff like code.",
+  "model": "tensor",
+  "vectors": [
+    {
+      "name": "views-transpose-is-free",
+      "input": {"fn":"chain","ops":[{"a":0,"b":1,"op":"transpose"}],"shape":[4,6]},
+      "sha256": "a572b33ff20222c8ede9e74391d0dce7e6e2676c398b775f64d2c7acc86491fd",
+      "output": {
+        "addresses": [0,6,12,18,1,7,13,19,2,8,14,20,3,9,15,21,4,10,16,22,5,11,17,23],
+        "steps": [{"contiguous":false,"copied":0,"view":{"offset":0,"shape":[6,4],"strides":[1,6]}}]
+      }
+    },
+    {
+      "name": "views-view-after-transpose-fails",
+      "input": {"fn":"chain","ops":[{"a":0,"b":1,"op":"transpose"},{"op":"view","shape":[24]}],"shape":[4,6]},
+      "sha256": "93f89defaf3e6d971a50c4b1cc06a3b695e43dc1df7f40c062b3dcce4fdd5a74",
+      "output": {
+        "addresses": [0,6,12,18,1,7,13,19,2,8,14,20,3,9,15,21,4,10,16,22,5,11,17,23],
+        "steps": [{"contiguous":false,"copied":0,"view":{"offset":0,"shape":[6,4],"strides":[1,6]}},{"error":"not-viewable"}]
+      }
+    },
+    {
+      "name": "views-reshape-after-transpose-copies",
+      "input": {"fn":"chain","ops":[{"a":0,"b":1,"op":"transpose"},{"op":"reshape","shape":[24]}],"shape":[4,6]},
+      "sha256": "57807765498aa471d3a0fa4201fb297398f15af288635d6d6c643a81add6b768",
+      "output": {
+        "addresses": [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23],
+        "steps": [
+          {"contiguous":false,"copied":0,"view":{"offset":0,"shape":[6,4],"strides":[1,6]}},
+          {"contiguous":true,"copied":24,"view":{"offset":0,"shape":[24],"strides":[1]}}
+        ]
+      }
+    },
+    {
+      "name": "views-contiguous-twice",
+      "input": {"fn":"chain","ops":[{"a":0,"b":1,"op":"transpose"},{"op":"contiguous"},{"op":"contiguous"}],"shape":[4,6]},
+      "sha256": "e3cb25e10566a629f6015f24de6f216c193b677be733061c55b7127e964a6c8b",
+      "output": {
+        "addresses": [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23],
+        "steps": [
+          {"contiguous":false,"copied":0,"view":{"offset":0,"shape":[6,4],"strides":[1,6]}},
+          {"contiguous":true,"copied":24,"view":{"offset":0,"shape":[6,4],"strides":[4,1]}},
+          {"contiguous":true,"copied":0,"view":{"offset":0,"shape":[6,4],"strides":[4,1]}}
+        ]
+      }
+    },
+    {
+      "name": "stride-zero-expand",
+      "input": {"fn":"chain","ops":[{"op":"expand","shape":[3,4]}],"shape":[1,4]},
+      "sha256": "7141c65e7f0cc938cf8207244ad789293f12199e2b364541d04c304b1681e2b7",
+      "output": {"addresses":[0,1,2,3,0,1,2,3,0,1,2,3],"steps":[{"contiguous":false,"copied":0,"view":{"offset":0,"shape":[3,4],"strides":[0,1]}}]}
+    },
+    {
+      "name": "stride-zero-expand-then-contiguous",
+      "input": {"fn":"chain","ops":[{"op":"expand","shape":[3,4]},{"op":"contiguous"}],"shape":[1,4]},
+      "sha256": "37475695bf9e47dca61958162b42cf096735b40c092bc25a365db238d73b0b29",
+      "output": {
+        "addresses": [0,1,2,3,4,5,6,7,8,9,10,11],
+        "steps": [
+          {"contiguous":false,"copied":0,"view":{"offset":0,"shape":[3,4],"strides":[0,1]}},
+          {"contiguous":true,"copied":12,"view":{"offset":0,"shape":[3,4],"strides":[4,1]}}
+        ]
+      }
+    },
+    {
+      "name": "stride-zero-expand-new-lead-dim",
+      "input": {"fn":"chain","ops":[{"op":"expand","shape":[2,3,4]}],"shape":[4]},
+      "sha256": "740db7ae2b12f8db6349a66760350471869976e57ed03ffeb15fcc7d53ebdbdc",
+      "output": {
+        "addresses": [0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3],
+        "steps": [{"contiguous":false,"copied":0,"view":{"offset":0,"shape":[2,3,4],"strides":[0,0,1]}}]
+      }
+    },
+    {
+      "name": "stride-zero-expand-wrong-size",
+      "input": {"fn":"chain","ops":[{"op":"expand","shape":[3,4]}],"shape":[2,4]},
+      "sha256": "f6e61d26fdf07e77e418a16a20f0f8be29a36200def1ac4c93b776a27a49efba",
+      "output": {"addresses":[0,1,2,3,4,5,6,7],"steps":[{"error":"bad-shape"}]}
+    },
+    {
+      "name": "slice-every-other-column",
+      "input": {"fn":"chain","ops":[{"dim":1,"op":"slice","start":0,"step":2,"stop":6}],"shape":[4,6]},
+      "sha256": "0eb1e32b95527045b80904e1020413c155bc79e8693c17d9aa07479d8874f0d8",
+      "output": {"addresses":[0,2,4,6,8,10,12,14,16,18,20,22],"steps":[{"contiguous":false,"copied":0,"view":{"offset":0,"shape":[4,3],"strides":[6,2]}}]}
+    },
+    {
+      "name": "slice-then-view-fails",
+      "input": {"fn":"chain","ops":[{"dim":1,"op":"slice","start":1,"step":1,"stop":4},{"op":"view","shape":[12]}],"shape":[4,6]},
+      "sha256": "bd43911c5a599d9979a5cc8deeae46e4177e6c2cb39eb804f66f3182f6b8d9ad",
+      "output": {
+        "addresses": [1,2,3,7,8,9,13,14,15,19,20,21],
+        "steps": [{"contiguous":false,"copied":0,"view":{"offset":1,"shape":[4,3],"strides":[6,1]}},{"error":"not-viewable"}]
+      }
+    },
+    {
+      "name": "three-d-heads-split",
+      "input": {"fn":"chain","ops":[{"op":"view","shape":[2,6,2,4]},{"op":"permute","order":[0,2,1,3]}],"shape":[12,8]},
+      "sha256": "455669b8fbd98ce91cacf5efef4cb7623de2ff290bfc8f651b03dde6bbfe8145",
+      "output": {
+        "addresses": [
+          0,
+          1,
+          2,
+          3,
+          8,
+          9,
+          10,
+          11,
+          16,
+          17,
+          18,
+          19,
+          24,
+          25,
+          26,
+          27,
+          32,
+          33,
+          34,
+          35,
+          40,
+          41,
+          42,
+          43,
+          4,
+          5,
+          6,
+          7,
+          12,
+          13,
+          14,
+          15,
+          20,
+          21,
+          22,
+          23,
+          28,
+          29,
+          30,
+          31,
+          36,
+          37,
+          38,
+          39,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          50,
+          51,
+          56,
+          57,
+          58,
+          59,
+          64,
+          65,
+          66,
+          67,
+          72,
+          73,
+          74,
+          75,
+          80,
+          81,
+          82,
+          83,
+          88,
+          89,
+          90,
+          91,
+          52,
+          53,
+          54,
+          55,
+          60,
+          61,
+          62,
+          63,
+          68,
+          69,
+          70,
+          71,
+          76,
+          77,
+          78,
+          79,
+          84,
+          85,
+          86,
+          87,
+          92,
+          93,
+          94,
+          95
+        ],
+        "steps": [
+          {"contiguous":true,"copied":0,"view":{"offset":0,"shape":[2,6,2,4],"strides":[48,8,4,1]}},
+          {"contiguous":false,"copied":0,"view":{"offset":0,"shape":[2,2,6,4],"strides":[48,4,8,1]}}
+        ]
+      }
+    },
+    {
+      "name": "three-d-heads-split-flatten-copies",
+      "input": {"fn":"chain","ops":[{"op":"view","shape":[2,6,2,4]},{"op":"permute","order":[0,2,1,3]},{"op":"reshape","shape":[4,6,4]}],"shape":[12,8]},
+      "sha256": "0493c6effae8d028707430a30b754057497d9d95a6d605d08da2d743bd3308c1",
+      "output": {
+        "addresses": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          50,
+          51,
+          52,
+          53,
+          54,
+          55,
+          56,
+          57,
+          58,
+          59,
+          60,
+          61,
+          62,
+          63,
+          64,
+          65,
+          66,
+          67,
+          68,
+          69,
+          70,
+          71,
+          72,
+          73,
+          74,
+          75,
+          76,
+          77,
+          78,
+          79,
+          80,
+          81,
+          82,
+          83,
+          84,
+          85,
+          86,
+          87,
+          88,
+          89,
+          90,
+          91,
+          92,
+          93,
+          94,
+          95
+        ],
+        "steps": [
+          {"contiguous":true,"copied":0,"view":{"offset":0,"shape":[2,6,2,4],"strides":[48,8,4,1]}},
+          {"contiguous":false,"copied":0,"view":{"offset":0,"shape":[2,2,6,4],"strides":[48,4,8,1]}},
+          {"contiguous":true,"copied":96,"view":{"offset":0,"shape":[4,6,4],"strides":[24,4,1]}}
+        ]
+      }
+    },
+    {
+      "name": "three-d-heads-split-flatten-view-fails",
+      "input": {"fn":"chain","ops":[{"op":"view","shape":[2,6,2,4]},{"op":"permute","order":[0,2,1,3]},{"op":"view","shape":[4,6,4]}],"shape":[12,8]},
+      "sha256": "d6efa260c8fb29e086c69907f12af412c68bc311cf5195169bf8aa8a446a1d41",
+      "output": {
+        "addresses": [
+          0,
+          1,
+          2,
+          3,
+          8,
+          9,
+          10,
+          11,
+          16,
+          17,
+          18,
+          19,
+          24,
+          25,
+          26,
+          27,
+          32,
+          33,
+          34,
+          35,
+          40,
+          41,
+          42,
+          43,
+          4,
+          5,
+          6,
+          7,
+          12,
+          13,
+          14,
+          15,
+          20,
+          21,
+          22,
+          23,
+          28,
+          29,
+          30,
+          31,
+          36,
+          37,
+          38,
+          39,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          50,
+          51,
+          56,
+          57,
+          58,
+          59,
+          64,
+          65,
+          66,
+          67,
+          72,
+          73,
+          74,
+          75,
+          80,
+          81,
+          82,
+          83,
+          88,
+          89,
+          90,
+          91,
+          52,
+          53,
+          54,
+          55,
+          60,
+          61,
+          62,
+          63,
+          68,
+          69,
+          70,
+          71,
+          76,
+          77,
+          78,
+          79,
+          84,
+          85,
+          86,
+          87,
+          92,
+          93,
+          94,
+          95
+        ],
+        "steps": [
+          {"contiguous":true,"copied":0,"view":{"offset":0,"shape":[2,6,2,4],"strides":[48,8,4,1]}},
+          {"contiguous":false,"copied":0,"view":{"offset":0,"shape":[2,2,6,4],"strides":[48,4,8,1]}},
+          {"error":"not-viewable"}
+        ]
+      }
+    },
+    {
+      "name": "bad-shape-count",
+      "input": {"fn":"chain","ops":[{"op":"view","shape":[5,5]}],"shape":[4,6]},
+      "sha256": "821594a4782bc020bebcf8ba279935dd6c0ce078a343565c2625af36c7d2ef3b",
+      "output": {"addresses":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23],"steps":[{"error":"bad-shape"}]}
+    },
+    {
+      "name": "fewest-transpose-flatten",
+      "input": {"contiguous":true,"fn":"fewest","prelude":[],"shape":[6,4],"target":[{"op":"permute","order":[1,0]},{"op":"reshape","shape":[24]}]},
+      "sha256": "57a3f9439ad20cd1d62c616da25a85137fd970da7bbb2d91758126d0936b3b94",
+      "output": {
+        "goalShape": [24],
+        "naive": {"copies":1,"moved":24,"ops":[{"op":"permute","order":[1,0]},{"op":"contiguous"},{"op":"reshape","shape":[24]}]},
+        "plan": {"copies":1,"moved":24,"ops":[{"op":"permute","order":[1,0]},{"op":"reshape","shape":[24]}]},
+        "start": {"offset":0,"shape":[6,4],"strides":[4,1]}
+      }
+    },
+    {
+      "name": "fewest-transpose-only",
+      "input": {"contiguous":false,"fn":"fewest","prelude":[],"shape":[4,6],"target":[{"a":0,"b":1,"op":"transpose"}]},
+      "sha256": "321b6e812efa1fb55e6db7b3d4be88cf6fda75712492f22bbce309f4a907fd51",
+      "output": {
+        "goalShape": [6,4],
+        "naive": {"copies":0,"moved":0,"ops":[{"a":0,"b":1,"op":"transpose"}]},
+        "plan": {"copies":0,"moved":0,"ops":[{"op":"permute","order":[1,0]}]},
+        "start": {"offset":0,"shape":[4,6],"strides":[6,1]}
+      }
+    },
+    {
+      "name": "fewest-transpose-contiguous",
+      "input": {"contiguous":true,"fn":"fewest","prelude":[],"shape":[4,6],"target":[{"a":0,"b":1,"op":"transpose"}]},
+      "sha256": "373f0cdb7fda97c51dcc23484e22abd5532e235fdcd80ba084bf23c28c4f9009",
+      "output": {
+        "goalShape": [6,4],
+        "naive": {"copies":1,"moved":24,"ops":[{"a":0,"b":1,"op":"transpose"},{"op":"contiguous"}]},
+        "plan": {"copies":1,"moved":24,"ops":[{"op":"permute","order":[1,0]},{"op":"contiguous"}]},
+        "start": {"offset":0,"shape":[4,6],"strides":[6,1]}
+      }
+    },
+    {
+      "name": "fewest-heads-first",
+      "input": {"contiguous":true,"fn":"fewest","prelude":[],"shape":[6,4],"target":[{"op":"reshape","shape":[2,3,2,2]},{"op":"permute","order":[2,0,1,3]}]},
+      "sha256": "200969c845bfa9ed37916ad29e37d55d92a9f4627c820f271ad3efaf86710095",
+      "output": {
+        "goalShape": [2,2,3,2],
+        "naive": {"copies":1,"moved":24,"ops":[{"op":"reshape","shape":[2,3,2,2]},{"op":"permute","order":[2,0,1,3]},{"op":"contiguous"}]},
+        "plan": {
+          "copies": 1,
+          "moved": 24,
+          "ops": [{"op":"reshape","shape":[2,3,4]},{"op":"reshape","shape":[2,3,2,2]},{"op":"permute","order":[2,0,1,3]},{"op":"contiguous"}]
+        },
+        "start": {"offset":0,"shape":[6,4],"strides":[4,1]}
+      }
+    },
+    {
+      "name": "fewest-permute-then-merge",
+      "input": {"contiguous":true,"fn":"fewest","prelude":[],"shape":[2,3,4],"target":[{"op":"permute","order":[2,0,1]},{"op":"reshape","shape":[4,6]}]},
+      "sha256": "b87ae65d073698d23632f26b40824feb492fcf2a20694365aa697587a2271f44",
+      "output": {
+        "goalShape": [4,6],
+        "naive": {"copies":1,"moved":24,"ops":[{"op":"permute","order":[2,0,1]},{"op":"contiguous"},{"op":"reshape","shape":[4,6]}]},
+        "plan": {"copies":1,"moved":24,"ops":[{"op":"permute","order":[2,0,1]},{"op":"reshape","shape":[4,6]},{"op":"contiguous"}]},
+        "start": {"offset":0,"shape":[2,3,4],"strides":[12,4,1]}
+      }
+    },
+    {
+      "name": "fewest-beats-naive",
+      "input": {
+        "contiguous": false,
+        "fn": "fewest",
+        "prelude": [],
+        "shape": [2,3,4],
+        "target": [{"op":"permute","order":[2,0,1]},{"op":"reshape","shape":[8,3]},{"op":"permute","order":[1,0]},{"op":"reshape","shape":[2,12]}]
+      },
+      "sha256": "78d13eebc57d08e376706dbdf5c919079232f482525b673847c03b0ba3cd6597",
+      "output": {
+        "goalShape": [2,12],
+        "naive": {
+          "copies": 2,
+          "moved": 48,
+          "ops": [
+            {"op":"permute","order":[2,0,1]},
+            {"op":"contiguous"},
+            {"op":"reshape","shape":[8,3]},
+            {"op":"permute","order":[1,0]},
+            {"op":"contiguous"},
+            {"op":"reshape","shape":[2,12]}
+          ]
+        },
+        "plan": {"copies":1,"moved":24,"ops":[{"op":"permute","order":[1,2,0]},{"op":"reshape","shape":[2,12]}]},
+        "start": {"offset":0,"shape":[2,3,4],"strides":[12,4,1]}
+      }
+    },
+    {
+      "name": "fewest-slice-then-flatten",
+      "input": {"contiguous":true,"fn":"fewest","prelude":[],"shape":[4,6],"target":[{"dim":1,"op":"slice","start":1,"step":1,"stop":4},{"op":"reshape","shape":[12]}]},
+      "sha256": "f509a4adb804a164786320dd2b746855566967fc673b638863338a2a52004679",
+      "output": {
+        "goalShape": [12],
+        "naive": {"copies":1,"moved":12,"ops":[{"dim":1,"op":"slice","start":1,"step":1,"stop":4},{"op":"contiguous"},{"op":"reshape","shape":[12]}]},
+        "plan": {"copies":1,"moved":12,"ops":[{"dim":1,"op":"slice","start":1,"step":1,"stop":4},{"op":"reshape","shape":[12]}]},
+        "start": {"offset":0,"shape":[4,6],"strides":[6,1]}
+      }
+    },
+    {
+      "name": "fewest-from-a-view",
+      "input": {"contiguous":true,"fn":"fewest","prelude":[{"a":0,"b":1,"op":"transpose"}],"shape":[4,6],"target":[{"op":"reshape","shape":[2,3,4]}]},
+      "sha256": "6e725281dc5633e6c1027c81e1402ee125a4af95bf513b81e36b36c34264a9bd",
+      "output": {
+        "goalShape": [2,3,4],
+        "naive": {"copies":1,"moved":24,"ops":[{"op":"contiguous"},{"op":"reshape","shape":[2,3,4]}]},
+        "plan": {"copies":1,"moved":24,"ops":[{"op":"reshape","shape":[2,3,4]},{"op":"contiguous"}]},
+        "start": {"offset":0,"shape":[6,4],"strides":[1,6]}
+      }
+    },
+    {
+      "name": "fewest-expand",
+      "input": {"contiguous":false,"fn":"fewest","prelude":[],"shape":[1,4],"target":[{"op":"expand","shape":[3,4]},{"op":"permute","order":[1,0]}]},
+      "sha256": "221739c70c40c28da54de5ca2c0397ecc5cc532acf57a238c9805b0cf7de854b",
+      "output": {
+        "goalShape": [4,3],
+        "naive": {"copies":1,"moved":12,"ops":[{"op":"expand","shape":[3,4]},{"op":"contiguous"},{"op":"permute","order":[1,0]}]},
+        "plan": {"copies":0,"moved":0,"ops":[{"op":"permute","order":[1,0]},{"op":"expand","shape":[4,3]}]},
+        "start": {"offset":0,"shape":[1,4],"strides":[4,1]}
+      }
+    },
+    {
+      "name": "grid-even",
+      "input": {"block":[4,4],"fn":"grid","shape":[8,8]},
+      "sha256": "67261d6352eb7e8926e5152754e5078e8bb00ef3cb58457b64da6f91d8283607",
+      "output": {"covered":64,"duplicated":0,"exact":true,"grid":[2,2],"lanes":64,"masked":0,"pow2":true,"programs":4}
+    },
+    {
+      "name": "grid-edge-masks",
+      "input": {"block":[4,4],"fn":"grid","shape":[10,7]},
+      "sha256": "4bda769590b39db59cf9e7c398a1774d81f6516a2664df2a3667be56e274f552",
+      "output": {"covered":70,"duplicated":0,"exact":true,"grid":[3,2],"lanes":96,"masked":26,"pow2":true,"programs":6}
+    },
+    {
+      "name": "grid-1d-uneven",
+      "input": {"block":[128],"fn":"grid","shape":[1000]},
+      "sha256": "bf9fe5fe55b201d6e14acf3006a64772a1024b8cc8ff3a24b7800e298f8d4880",
+      "output": {"covered":1000,"duplicated":0,"exact":true,"grid":[8],"lanes":1024,"masked":24,"pow2":true,"programs":8}
+    },
+    {
+      "name": "grid-block-bigger-than-tensor",
+      "input": {"block":[8,8],"fn":"grid","shape":[3,5]},
+      "sha256": "a36e56b27300054efc9a48da91085e6ae3b782e41645c228489141512efa4de8",
+      "output": {"covered":15,"duplicated":0,"exact":true,"grid":[1,1],"lanes":64,"masked":49,"pow2":true,"programs":1}
+    },
+    {
+      "name": "grid-short",
+      "input": {"block":[4,4],"fn":"grid","grid":[2,2],"shape":[10,7]},
+      "sha256": "f8dc5f362ffebef3036437c25e4bec55d4fb3882d2f389e6a10bf04c09e72f11",
+      "output": {"covered":56,"duplicated":0,"exact":false,"grid":[2,2],"lanes":64,"masked":8,"pow2":true,"programs":4}
+    },
+    {
+      "name": "grid-block-not-power-of-two",
+      "input": {"block":[3],"fn":"grid","shape":[9]},
+      "sha256": "20b5bca61985504e8f79c0f86c2adc219ab3baf621a5ba5c5297ef357c5fd433",
+      "output": {"covered":9,"duplicated":0,"exact":true,"grid":[3],"lanes":9,"masked":0,"pow2":false,"programs":3}
+    },
+    {
+      "name": "grid-rank-mismatch",
+      "input": {"block":[4],"fn":"grid","shape":[8,8]},
+      "sha256": "358b6d8d4586c396ae7c8bf1ca5289b02ba0dfd0742598278e68e74f4b715214",
+      "output": {"error":"bad-shape"}
+    },
+    {
+      "name": "program-corner",
+      "input": {"block":[4,4],"fn":"program","index":[2,1],"shape":[10,7]},
+      "sha256": "86dbfa8efc9853c7d9920f8670efa3b72bad4f725fa58e856227998e7cba1881",
+      "output": {"cells":[[8,4],[8,5],[8,6],[9,4],[9,5],[9,6]],"masked":10}
+    },
+    {
+      "name": "program-inside",
+      "input": {"block":[4,4],"fn":"program","index":[0,0],"shape":[10,7]},
+      "sha256": "d7a19c34c1d6af172173811db7c9d5dd59b197787bfb7ea9759d83cd45e83589",
+      "output": {"cells":[[0,0],[0,1],[0,2],[0,3],[1,0],[1,1],[1,2],[1,3],[2,0],[2,1],[2,2],[2,3],[3,0],[3,1],[3,2],[3,3]],"masked":0}
+    }
+  ]
+}

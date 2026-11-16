@@ -1,0 +1,572 @@
+# The hardware atlas, Hopper: the H100 SXM, the H100 PCIe and the H200 SXM (W2-T09; ARCHITECTURE §8.5 rule 9, ASSESSMENT §6.4). What each GPU can do, as NVIDIA states it: the name it is listed under,
+# its memory capacity and bandwidth, and its peak rates by precision. The physics floors of the receipt check read them, keyed by the GPU name that the fingerprint reports.
+# content/claims/README.md, "The hardware atlas", says how an id is built, which units the claims use, and how a dense peak is told from a sparse one.
+#
+# Every number was read on 2026-11-09 from the document its source names, with the generic User-Agent "Mozilla/5.0 (X11; Linux x86_64)" and no other header that names anyone.
+# Each download went into a folder of its own and was read as text, never run: a PDF through pdftotext and a page through an HTML parser. The pieces of every quote were found,
+# in order, in that text before the claim was written. A TTL of 365 days is a design parameter [estimated]: the figures of a shipped GPU do not move, but a vendor can revise a page.
+#
+# The documents of this file, with the size and the SHA-256 of the copy that was read on 2026-11-09:
+#   - NVIDIA Linux x86_64 driver 580.196.07 README
+#     https://download.nvidia.com/XFree86/Linux-x86_64/580.196.07/README/supportedchips.html
+#     221357 bytes, SHA-256 9595baedfa021dcfd3c89e16fc85f969c79f60e44064dba02504c921102bc769
+#   - NVIDIA H100 Tensor Core GPU page on nvidia.com
+#     https://www.nvidia.com/en-us/data-center/h100/
+#     293532 bytes, SHA-256 35328007757f3a5c55a0d53ee8330151826c31e69536c8ffadec63dc58f89539
+#   - NVIDIA H100 Tensor Core GPU Architecture whitepaper, V1.04
+#     https://dam-cdn.nvd.orangelogic.com/AssetLink/705n6ur546g0uk43w0117r17n8042d73.pdf
+#     7880278 bytes, SHA-256 3641614979809a027a8aabdc2e77639efb8fcd0f8dc7873a22ba2125489f5a27
+#   - NVIDIA H100 PCIe GPU Product Brief, PB-11133-001_v02 (November 2022)
+#     https://www.nvidia.com/content/dam/en-zz/Solutions/gtcs22/data-center/h100/PB-11133-001_v01.pdf
+#     787501 bytes, SHA-256 66ed708d7fb1a7dc5adb83e4852243a99c47d0c19afb3d501211f052f6d28fa7
+#   - NVIDIA H200 Tensor Core GPU datasheet 3512650 (November 2024)
+#     https://dam-cdn.nvd.orangelogic.com/AssetLink/5o2qgy5d2835ve2pm11i62kv8mphqta8.pdf
+#     642800 bytes, SHA-256 ccfeaf25d4dfcd1981d7a02f19355559fa9715ad32cf8f2b14dcf75eb6e0ac6f
+
+# --- H100 SXM (NVIDIA H100 80GB HBM3) --------------------------------------------------------------------------------------------------------------
+
+- id: hw.h100-sxm.product-name
+  value: NVIDIA H100 80GB HBM3
+  text: NVIDIA's Linux driver 580.196.07 lists PCI device 2330 as "NVIDIA H100 80GB HBM3". The name carries HBM3, the memory of the H100 SXM; the PCIe card has HBM2e and is listed as "NVIDIA H100 PCIe" (device 2331). The atlas matches the GPU name in a fingerprint to this string. That nvidia-smi and NVML print the same string is not checked here [unverified].
+  tag: measured
+  source:
+    url: https://download.nvidia.com/XFree86/Linux-x86_64/580.196.07/README/supportedchips.html
+    title: NVIDIA Linux x86_64 driver 580.196.07 README, Appendix A, Supported NVIDIA GPU Products
+    quote: NVIDIA H100 80GB HBM3 | 2330 10DE 16C0
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h100-sxm.mem-capacity
+  value: 80
+  unit: GB
+  text: NVIDIA's H100 page lists 80 GB of memory for the H100 SXM.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/en-us/data-center/h100/
+    title: NVIDIA H100 Tensor Core GPU page on nvidia.com, Product Specifications, H100 SXM column
+    quote: GPU Memory | 80GB | 94GB
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h100-sxm.mem-bw-tbps
+  value: 3.35
+  unit: TB/s
+  text: NVIDIA's H100 page lists a memory bandwidth of 3.35 TB/s for the H100 SXM. It is a peak rate, not a measured one.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/en-us/data-center/h100/
+    title: NVIDIA H100 Tensor Core GPU page on nvidia.com, Product Specifications, H100 SXM column
+    quote: GPU Memory Bandwidth | 3.35TB/s | 3.9TB/s
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h100-sxm.mem-bw
+  value: 3350
+  unit: GB/s
+  text: 'The H100 SXM''s memory bandwidth in GB/s: the 3.35 TB/s that NVIDIA''s H100 page lists, times a thousand. Every mem-bw claim of the atlas is in GB/s. The Hopper whitepaper lists 3352 GB/s for the same module and marks the figure "Not Finalized for H100".'
+  tag: derived
+  source:
+    url: https://www.nvidia.com/en-us/data-center/h100/
+    title: NVIDIA H100 Tensor Core GPU page on nvidia.com, Product Specifications, H100 SXM column
+    quote: GPU Memory Bandwidth | 3.35TB/s | 3.9TB/s
+    accessed: 2026-11-09
+  derived:
+    formula: hw.h100-sxm.mem-bw-tbps * 1000
+    inputs: [hw.h100-sxm.mem-bw-tbps]
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h100-sxm.fp32
+  value: 67
+  unit: TFLOPS
+  text: NVIDIA's H100 page lists 67 TFLOPS of FP32 for the H100 SXM, on the CUDA cores and not the Tensor Cores.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/en-us/data-center/h100/
+    title: NVIDIA H100 Tensor Core GPU page on nvidia.com, Product Specifications, H100 SXM column
+    quote: FP32 | 67 teraFLOPS | 60 teraFLOPs
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h100-sxm.tf32-sparse
+  value: 989
+  unit: TFLOPS
+  text: NVIDIA's H100 page lists 989 TFLOPS for the H100 SXM's TF32 Tensor Cores and marks the figure "With sparsity", so it is not the dense peak.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/en-us/data-center/h100/
+    title: NVIDIA H100 Tensor Core GPU page on nvidia.com, Product Specifications, H100 SXM column, footnoted "* With sparsity"
+    quote: TF32 Tensor Core* | 989 teraFLOPS | 835 teraFLOPs
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h100-sxm.tf32-dense
+  value: 494.5
+  unit: TFLOPS
+  text: 'The dense TF32 Tensor Core peak of the H100 SXM: half of the 989 TFLOPS that NVIDIA''s H100 page lists with sparsity, which is 494.5 TFLOPS. NVIDIA''s Hopper whitepaper lists 494.7 TFLOPS dense for the same part. The page rounds its figure, and the two differ by less than 0.05%.'
+  tag: derived
+  source:
+    url: https://www.nvidia.com/en-us/data-center/h100/
+    title: NVIDIA H100 Tensor Core GPU page on nvidia.com, Product Specifications, H100 SXM column, footnoted "* With sparsity"
+    quote: TF32 Tensor Core* | 989 teraFLOPS | 835 teraFLOPs
+    accessed: 2026-11-09
+  derived:
+    formula: hw.h100-sxm.tf32-sparse / 2
+    inputs: [hw.h100-sxm.tf32-sparse]
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h100-sxm.bf16-sparse
+  value: 1979
+  unit: TFLOPS
+  text: NVIDIA's H100 page lists 1,979 TFLOPS for the H100 SXM's BF16 Tensor Cores and marks the figure "With sparsity", so it is not the dense peak.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/en-us/data-center/h100/
+    title: NVIDIA H100 Tensor Core GPU page on nvidia.com, Product Specifications, H100 SXM column, footnoted "* With sparsity"
+    quote: BFLOAT16 Tensor Core* | 1,979 teraFLOPS | 1,671 teraFLOPS
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h100-sxm.bf16-dense
+  value: 989.5
+  unit: TFLOPS
+  text: 'The dense BF16 Tensor Core peak of the H100 SXM: half of the 1,979 TFLOPS that NVIDIA''s H100 page lists with sparsity, which is 989.5 TFLOPS. NVIDIA''s Hopper whitepaper lists 989.4 TFLOPS dense for the same part. The page rounds its figure, and the two differ by less than 0.05%.'
+  tag: derived
+  source:
+    url: https://www.nvidia.com/en-us/data-center/h100/
+    title: NVIDIA H100 Tensor Core GPU page on nvidia.com, Product Specifications, H100 SXM column, footnoted "* With sparsity"
+    quote: BFLOAT16 Tensor Core* | 1,979 teraFLOPS | 1,671 teraFLOPS
+    accessed: 2026-11-09
+  derived:
+    formula: hw.h100-sxm.bf16-sparse / 2
+    inputs: [hw.h100-sxm.bf16-sparse]
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h100-sxm.fp16-sparse
+  value: 1979
+  unit: TFLOPS
+  text: NVIDIA's H100 page lists 1,979 TFLOPS for the H100 SXM's FP16 Tensor Cores and marks the figure "With sparsity", so it is not the dense peak.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/en-us/data-center/h100/
+    title: NVIDIA H100 Tensor Core GPU page on nvidia.com, Product Specifications, H100 SXM column, footnoted "* With sparsity"
+    quote: FP16 Tensor Core* | 1,979 teraFLOPS | 1,671 teraFLOPS
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h100-sxm.fp16-dense
+  value: 989.5
+  unit: TFLOPS
+  text: 'The dense FP16 Tensor Core peak of the H100 SXM: half of the 1,979 TFLOPS that NVIDIA''s H100 page lists with sparsity, which is 989.5 TFLOPS. NVIDIA''s Hopper whitepaper lists 989.4 TFLOPS dense for the same part. The page rounds its figure, and the two differ by less than 0.05%.'
+  tag: derived
+  source:
+    url: https://www.nvidia.com/en-us/data-center/h100/
+    title: NVIDIA H100 Tensor Core GPU page on nvidia.com, Product Specifications, H100 SXM column, footnoted "* With sparsity"
+    quote: FP16 Tensor Core* | 1,979 teraFLOPS | 1,671 teraFLOPS
+    accessed: 2026-11-09
+  derived:
+    formula: hw.h100-sxm.fp16-sparse / 2
+    inputs: [hw.h100-sxm.fp16-sparse]
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h100-sxm.fp8-sparse
+  value: 3958
+  unit: TFLOPS
+  text: NVIDIA's H100 page lists 3,958 TFLOPS for the H100 SXM's FP8 Tensor Cores and marks the figure "With sparsity", so it is not the dense peak.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/en-us/data-center/h100/
+    title: NVIDIA H100 Tensor Core GPU page on nvidia.com, Product Specifications, H100 SXM column, footnoted "* With sparsity"
+    quote: FP8 Tensor Core* | 3,958 teraFLOPS | 3,341 teraFLOPS
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h100-sxm.fp8-dense
+  value: 1979
+  unit: TFLOPS
+  text: 'The dense FP8 Tensor Core peak of the H100 SXM: half of the 3,958 TFLOPS that NVIDIA''s H100 page lists with sparsity, which is 1,979 TFLOPS. NVIDIA''s Hopper whitepaper lists 1978.9 TFLOPS dense for the same part. The page rounds its figure, and the two differ by less than 0.05%.'
+  tag: derived
+  source:
+    url: https://www.nvidia.com/en-us/data-center/h100/
+    title: NVIDIA H100 Tensor Core GPU page on nvidia.com, Product Specifications, H100 SXM column, footnoted "* With sparsity"
+    quote: FP8 Tensor Core* | 3,958 teraFLOPS | 3,341 teraFLOPS
+    accessed: 2026-11-09
+  derived:
+    formula: hw.h100-sxm.fp8-sparse / 2
+    inputs: [hw.h100-sxm.fp8-sparse]
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h100-sxm.int8-sparse
+  value: 3958
+  unit: TOPS
+  text: NVIDIA's H100 page lists 3,958 TOPS for the H100 SXM's INT8 Tensor Cores and marks the figure "With sparsity", so it is not the dense peak.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/en-us/data-center/h100/
+    title: NVIDIA H100 Tensor Core GPU page on nvidia.com, Product Specifications, H100 SXM column, footnoted "* With sparsity"
+    quote: INT8 Tensor Core* | 3,958 TOPS | 3,341 TOPS
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h100-sxm.int8-dense
+  value: 1979
+  unit: TOPS
+  text: 'The dense INT8 Tensor Core peak of the H100 SXM: half of the 3,958 TOPS that NVIDIA''s H100 page lists with sparsity, which is 1,979 TOPS. NVIDIA''s Hopper whitepaper lists 1978.9 TOPS dense for the same part. The page rounds its figure, and the two differ by less than 0.05%.'
+  tag: derived
+  source:
+    url: https://www.nvidia.com/en-us/data-center/h100/
+    title: NVIDIA H100 Tensor Core GPU page on nvidia.com, Product Specifications, H100 SXM column, footnoted "* With sparsity"
+    quote: INT8 Tensor Core* | 3,958 TOPS | 3,341 TOPS
+    accessed: 2026-11-09
+  derived:
+    formula: hw.h100-sxm.int8-sparse / 2
+    inputs: [hw.h100-sxm.int8-sparse]
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+
+# --- NVIDIA H100 PCIe ------------------------------------------------------------------------------------------------------------------------------
+
+- id: hw.h100-pcie.product-name
+  value: NVIDIA H100 PCIe
+  text: NVIDIA's Linux driver 580.196.07 lists PCI device 2331 as "NVIDIA H100 PCIe". The card has HBM2e; the HBM3 module is listed as "NVIDIA H100 80GB HBM3" (device 2330). The atlas matches the GPU name in a fingerprint to this string. That nvidia-smi and NVML print the same string is not checked here [unverified].
+  tag: measured
+  source:
+    url: https://download.nvidia.com/XFree86/Linux-x86_64/580.196.07/README/supportedchips.html
+    title: NVIDIA Linux x86_64 driver 580.196.07 README, Appendix A, Supported NVIDIA GPU Products
+    quote: NVIDIA H100 PCIe | 2331 10DE 1626
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h100-pcie.mem-capacity
+  value: 80
+  unit: GB
+  text: NVIDIA's H100 PCIe product brief lists 80 GB of HBM2e memory.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/gtcs22/data-center/h100/PB-11133-001_v01.pdf
+    title: NVIDIA H100 PCIe GPU Product Brief, PB-11133-001_v02 (November 2022), Table 2, Memory Specifications
+    quote: Memory size | 80 GB
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h100-pcie.mem-bw
+  value: 2000
+  unit: GB/s
+  text: NVIDIA's H100 PCIe product brief lists a peak memory bandwidth of 2,000 GB/s for the H100 PCIe. The Hopper whitepaper's table lists 2039 GB/s for the same card and marks the figure "Not Finalized for H100"; 5,120 bits at a 1,593 MHz DDR clock give 2,039 GB/s [derived], so a floor that divides by 2,000 is about 2% stricter than the card's own peak.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/gtcs22/data-center/h100/PB-11133-001_v01.pdf
+    title: NVIDIA H100 PCIe GPU Product Brief, PB-11133-001_v02 (November 2022), Table 2, Memory Specifications
+    quote: Peak memory bandwidth | 2,000 GB/s
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h100-pcie.fp32
+  value: 51.2
+  unit: TFLOPS
+  text: NVIDIA's Hopper whitepaper lists 51.2 TFLOPS of FP32 for the H100 PCIe, on the CUDA cores and not the Tensor Cores.
+  tag: measured
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/705n6ur546g0uk43w0117r17n8042d73.pdf
+    title: NVIDIA H100 Tensor Core GPU Architecture whitepaper, V1.04, Table 3, H100 PCIe column
+    quote: Peak FP32 TFLOPS (non-Tensor) | 19.5 | 66.9 | 51.2
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h100-pcie.tf32-dense
+  value: 378
+  unit: TFLOPS
+  text: NVIDIA's Hopper whitepaper lists 378 TFLOPS for the H100 PCIe's TF32 Tensor Cores without sparsity and 756 TFLOPS with it.
+  tag: measured
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/705n6ur546g0uk43w0117r17n8042d73.pdf
+    title: NVIDIA H100 Tensor Core GPU Architecture whitepaper, V1.04, Table 3, H100 PCIe column, second figure with sparsity
+    quote: Peak TF32 Tensor TFLOPS | 156/312 | 494.7/989.4 | 378/756
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h100-pcie.bf16-dense
+  value: 756
+  unit: TFLOPS
+  text: NVIDIA's Hopper whitepaper lists 756 TFLOPS for the H100 PCIe's BF16 Tensor Cores without sparsity and 1,513 TFLOPS with it.
+  tag: measured
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/705n6ur546g0uk43w0117r17n8042d73.pdf
+    title: NVIDIA H100 Tensor Core GPU Architecture whitepaper, V1.04, Table 3, H100 PCIe column, second figure with sparsity
+    quote: Peak BF16 Tensor TFLOPS with FP32 Accumulate | 312/624 | 989.4/1978.9 | 756/1513
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h100-pcie.fp16-dense
+  value: 756
+  unit: TFLOPS
+  text: NVIDIA's Hopper whitepaper lists 756 TFLOPS for the H100 PCIe's FP16 Tensor Cores without sparsity and 1,513 TFLOPS with it.
+  tag: measured
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/705n6ur546g0uk43w0117r17n8042d73.pdf
+    title: NVIDIA H100 Tensor Core GPU Architecture whitepaper, V1.04, Table 3, H100 PCIe column, second figure with sparsity
+    quote: Peak FP16 Tensor TFLOPS with FP16 Accumulate | 312/624 | 989.4/1978.9 | 756/1513
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h100-pcie.fp8-dense
+  value: 1513
+  unit: TFLOPS
+  text: NVIDIA's Hopper whitepaper lists 1,513 TFLOPS for the H100 PCIe's FP8 Tensor Cores without sparsity and 3,026 TFLOPS with it.
+  tag: measured
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/705n6ur546g0uk43w0117r17n8042d73.pdf
+    title: NVIDIA H100 Tensor Core GPU Architecture whitepaper, V1.04, Table 3, H100 PCIe column, second figure with sparsity
+    quote: Peak FP8 Tensor TFLOPS with FP16 Accumulate | NA | 1978.9/3957.8 | 1513/3026
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h100-pcie.int8-dense
+  value: 1513
+  unit: TOPS
+  text: NVIDIA's Hopper whitepaper lists 1,513 TOPS for the H100 PCIe's INT8 Tensor Cores without sparsity and 3,026 TOPS with it.
+  tag: measured
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/705n6ur546g0uk43w0117r17n8042d73.pdf
+    title: NVIDIA H100 Tensor Core GPU Architecture whitepaper, V1.04, Table 3, H100 PCIe column, second figure with sparsity
+    quote: Peak INT8 Tensor TOPS | 624/1248 | 1978.9/3957.8 | 1513/3026
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+
+# --- H200 SXM (NVIDIA H200) ------------------------------------------------------------------------------------------------------------------------
+
+- id: hw.h200-sxm.product-name
+  value: NVIDIA H200
+  text: NVIDIA's Linux driver 580.196.07 lists PCI device 2335 as "NVIDIA H200". The H200 NVL is listed apart, as "NVIDIA H200 NVL" (device 233B). The atlas matches the GPU name in a fingerprint to this string. That nvidia-smi and NVML print the same string is not checked here [unverified].
+  tag: measured
+  source:
+    url: https://download.nvidia.com/XFree86/Linux-x86_64/580.196.07/README/supportedchips.html
+    title: NVIDIA Linux x86_64 driver 580.196.07 README, Appendix A, Supported NVIDIA GPU Products
+    quote: NVIDIA H200 | 2335 10DE 18BE
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h200-sxm.mem-capacity
+  value: 141
+  unit: GB
+  text: NVIDIA's H200 datasheet lists 141 GB of memory for the H200 SXM. The datasheet marks its specifications "Preliminary specifications. May be subject to change."
+  tag: measured
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/5o2qgy5d2835ve2pm11i62kv8mphqta8.pdf
+    title: NVIDIA H200 Tensor Core GPU datasheet 3512650 (November 2024), Technical Specifications, H200 SXM column
+    quote: GPU Memory | 141GB | 141GB
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h200-sxm.mem-bw-tbps
+  value: 4.8
+  unit: TB/s
+  text: NVIDIA's H200 datasheet lists a memory bandwidth of 4.8 TB/s for the H200 SXM. It is a peak rate, not a measured one. The datasheet marks its specifications "Preliminary specifications. May be subject to change."
+  tag: measured
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/5o2qgy5d2835ve2pm11i62kv8mphqta8.pdf
+    title: NVIDIA H200 Tensor Core GPU datasheet 3512650 (November 2024), Technical Specifications, H200 SXM column
+    quote: GPU Memory Bandwidth | 4.8TB/s | 4.8TB/s
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h200-sxm.mem-bw
+  value: 4800
+  unit: GB/s
+  text: 'The H200 SXM''s memory bandwidth in GB/s: the 4.8 TB/s that NVIDIA''s H200 datasheet lists, times a thousand.'
+  tag: derived
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/5o2qgy5d2835ve2pm11i62kv8mphqta8.pdf
+    title: NVIDIA H200 Tensor Core GPU datasheet 3512650 (November 2024), Technical Specifications, H200 SXM column
+    quote: GPU Memory Bandwidth | 4.8TB/s | 4.8TB/s
+    accessed: 2026-11-09
+  derived:
+    formula: hw.h200-sxm.mem-bw-tbps * 1000
+    inputs: [hw.h200-sxm.mem-bw-tbps]
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h200-sxm.fp32
+  value: 67
+  unit: TFLOPS
+  text: NVIDIA's H200 datasheet lists 67 TFLOPS of FP32 for the H200 SXM, on the CUDA cores and not the Tensor Cores. The datasheet marks its specifications "Preliminary specifications. May be subject to change."
+  tag: measured
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/5o2qgy5d2835ve2pm11i62kv8mphqta8.pdf
+    title: NVIDIA H200 Tensor Core GPU datasheet 3512650 (November 2024), Technical Specifications, H200 SXM column
+    quote: FP32 | 67 TFLOPS | 60 TFLOPS
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h200-sxm.tf32-sparse
+  value: 989
+  unit: TFLOPS
+  text: NVIDIA's H200 datasheet lists 989 TFLOPS for the H200 SXM's TF32 Tensor Cores and marks the figure "With sparsity", so it is not the dense peak. The datasheet marks its specifications "Preliminary specifications. May be subject to change."
+  tag: measured
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/5o2qgy5d2835ve2pm11i62kv8mphqta8.pdf
+    title: NVIDIA H200 Tensor Core GPU datasheet 3512650 (November 2024), Technical Specifications, H200 SXM column, footnoted "With sparsity."
+    quote: TF32 Tensor Core | 989 TFLOPS | 835 TFLOPS
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h200-sxm.tf32-dense
+  value: 494.5
+  unit: TFLOPS
+  text: 'The dense TF32 Tensor Core peak of the H200 SXM: half of the 989 TFLOPS that NVIDIA''s H200 datasheet lists with sparsity, which is 494.5 TFLOPS. The datasheet marks its specifications "Preliminary specifications. May be subject to change."'
+  tag: derived
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/5o2qgy5d2835ve2pm11i62kv8mphqta8.pdf
+    title: NVIDIA H200 Tensor Core GPU datasheet 3512650 (November 2024), Technical Specifications, H200 SXM column, footnoted "With sparsity."
+    quote: TF32 Tensor Core | 989 TFLOPS | 835 TFLOPS
+    accessed: 2026-11-09
+  derived:
+    formula: hw.h200-sxm.tf32-sparse / 2
+    inputs: [hw.h200-sxm.tf32-sparse]
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h200-sxm.bf16-sparse
+  value: 1979
+  unit: TFLOPS
+  text: NVIDIA's H200 datasheet lists 1,979 TFLOPS for the H200 SXM's BF16 Tensor Cores and marks the figure "With sparsity", so it is not the dense peak. The datasheet marks its specifications "Preliminary specifications. May be subject to change."
+  tag: measured
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/5o2qgy5d2835ve2pm11i62kv8mphqta8.pdf
+    title: NVIDIA H200 Tensor Core GPU datasheet 3512650 (November 2024), Technical Specifications, H200 SXM column, footnoted "With sparsity."
+    quote: BFLOAT16 Tensor Core | 1,979 TFLOPS | 1,671 TFLOPS
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h200-sxm.bf16-dense
+  value: 989.5
+  unit: TFLOPS
+  text: 'The dense BF16 Tensor Core peak of the H200 SXM: half of the 1,979 TFLOPS that NVIDIA''s H200 datasheet lists with sparsity, which is 989.5 TFLOPS. The datasheet marks its specifications "Preliminary specifications. May be subject to change."'
+  tag: derived
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/5o2qgy5d2835ve2pm11i62kv8mphqta8.pdf
+    title: NVIDIA H200 Tensor Core GPU datasheet 3512650 (November 2024), Technical Specifications, H200 SXM column, footnoted "With sparsity."
+    quote: BFLOAT16 Tensor Core | 1,979 TFLOPS | 1,671 TFLOPS
+    accessed: 2026-11-09
+  derived:
+    formula: hw.h200-sxm.bf16-sparse / 2
+    inputs: [hw.h200-sxm.bf16-sparse]
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h200-sxm.fp16-sparse
+  value: 1979
+  unit: TFLOPS
+  text: NVIDIA's H200 datasheet lists 1,979 TFLOPS for the H200 SXM's FP16 Tensor Cores and marks the figure "With sparsity", so it is not the dense peak. The datasheet marks its specifications "Preliminary specifications. May be subject to change."
+  tag: measured
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/5o2qgy5d2835ve2pm11i62kv8mphqta8.pdf
+    title: NVIDIA H200 Tensor Core GPU datasheet 3512650 (November 2024), Technical Specifications, H200 SXM column, footnoted "With sparsity."
+    quote: FP16 Tensor Core | 1,979 TFLOPS | 1,671 TFLOPS
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h200-sxm.fp16-dense
+  value: 989.5
+  unit: TFLOPS
+  text: 'The dense FP16 Tensor Core peak of the H200 SXM: half of the 1,979 TFLOPS that NVIDIA''s H200 datasheet lists with sparsity, which is 989.5 TFLOPS. The datasheet marks its specifications "Preliminary specifications. May be subject to change."'
+  tag: derived
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/5o2qgy5d2835ve2pm11i62kv8mphqta8.pdf
+    title: NVIDIA H200 Tensor Core GPU datasheet 3512650 (November 2024), Technical Specifications, H200 SXM column, footnoted "With sparsity."
+    quote: FP16 Tensor Core | 1,979 TFLOPS | 1,671 TFLOPS
+    accessed: 2026-11-09
+  derived:
+    formula: hw.h200-sxm.fp16-sparse / 2
+    inputs: [hw.h200-sxm.fp16-sparse]
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h200-sxm.fp8-sparse
+  value: 3958
+  unit: TFLOPS
+  text: NVIDIA's H200 datasheet lists 3,958 TFLOPS for the H200 SXM's FP8 Tensor Cores and marks the figure "With sparsity", so it is not the dense peak. The datasheet marks its specifications "Preliminary specifications. May be subject to change."
+  tag: measured
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/5o2qgy5d2835ve2pm11i62kv8mphqta8.pdf
+    title: NVIDIA H200 Tensor Core GPU datasheet 3512650 (November 2024), Technical Specifications, H200 SXM column, footnoted "With sparsity."
+    quote: FP8 Tensor Core | 3,958 TFLOPS | 3,341 TFLOPS
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h200-sxm.fp8-dense
+  value: 1979
+  unit: TFLOPS
+  text: 'The dense FP8 Tensor Core peak of the H200 SXM: half of the 3,958 TFLOPS that NVIDIA''s H200 datasheet lists with sparsity, which is 1,979 TFLOPS. The datasheet marks its specifications "Preliminary specifications. May be subject to change."'
+  tag: derived
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/5o2qgy5d2835ve2pm11i62kv8mphqta8.pdf
+    title: NVIDIA H200 Tensor Core GPU datasheet 3512650 (November 2024), Technical Specifications, H200 SXM column, footnoted "With sparsity."
+    quote: FP8 Tensor Core | 3,958 TFLOPS | 3,341 TFLOPS
+    accessed: 2026-11-09
+  derived:
+    formula: hw.h200-sxm.fp8-sparse / 2
+    inputs: [hw.h200-sxm.fp8-sparse]
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h200-sxm.int8-sparse
+  value: 3958
+  unit: TOPS
+  text: NVIDIA's H200 datasheet lists 3,958 TOPS for the H200 SXM's INT8 Tensor Cores and marks the figure "With sparsity", so it is not the dense peak. The datasheet writes the unit as TFLOPS for this row; the atlas counts integer operations in TOPS. The datasheet marks its specifications "Preliminary specifications. May be subject to change."
+  tag: measured
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/5o2qgy5d2835ve2pm11i62kv8mphqta8.pdf
+    title: NVIDIA H200 Tensor Core GPU datasheet 3512650 (November 2024), Technical Specifications, H200 SXM column, footnoted "With sparsity."
+    quote: INT8 Tensor Core | 3,958 TFLOPS | 3,341 TFLOPS
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.h200-sxm.int8-dense
+  value: 1979
+  unit: TOPS
+  text: 'The dense INT8 Tensor Core peak of the H200 SXM: half of the 3,958 TOPS that NVIDIA''s H200 datasheet lists with sparsity, which is 1,979 TOPS. The datasheet marks its specifications "Preliminary specifications. May be subject to change."'
+  tag: derived
+  source:
+    url: https://dam-cdn.nvd.orangelogic.com/AssetLink/5o2qgy5d2835ve2pm11i62kv8mphqta8.pdf
+    title: NVIDIA H200 Tensor Core GPU datasheet 3512650 (November 2024), Technical Specifications, H200 SXM column, footnoted "With sparsity."
+    quote: INT8 Tensor Core | 3,958 TFLOPS | 3,341 TFLOPS
+    accessed: 2026-11-09
+  derived:
+    formula: hw.h200-sxm.int8-sparse / 2
+    inputs: [hw.h200-sxm.int8-sparse]
+  verifiedAt: 2026-11-09
+  ttlDays: 365

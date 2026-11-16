@@ -1,0 +1,444 @@
+# The hardware atlas, Ampere: the A100, in its 40 GB and 80 GB cards, SXM4 and PCIe (W2-T09; ARCHITECTURE §8.5 rule 9, ASSESSMENT §6.4). What each GPU can do, as NVIDIA states it: the name it is listed under,
+# its memory capacity and bandwidth, and its peak rates by precision. The physics floors of the receipt check read them, keyed by the GPU name that the fingerprint reports.
+# content/claims/README.md, "The hardware atlas", says how an id is built, which units the claims use, and how a dense peak is told from a sparse one.
+#
+# Every number was read on 2026-11-09 from the document its source names, with the generic User-Agent "Mozilla/5.0 (X11; Linux x86_64)" and no other header that names anyone.
+# Each download went into a folder of its own and was read as text, never run: a PDF through pdftotext and a page through an HTML parser. The pieces of every quote were found,
+# in order, in that text before the claim was written. A TTL of 365 days is a design parameter [estimated]: the figures of a shipped GPU do not move, but a vendor can revise a page.
+#
+# The documents of this file, with the size and the SHA-256 of the copy that was read on 2026-11-09:
+#   - NVIDIA Linux x86_64 driver 580.196.07 README
+#     https://download.nvidia.com/XFree86/Linux-x86_64/580.196.07/README/supportedchips.html
+#     221357 bytes, SHA-256 9595baedfa021dcfd3c89e16fc85f969c79f60e44064dba02504c921102bc769
+#   - NVIDIA A100 Tensor Core GPU datasheet 2188504 (May 2022)
+#     https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-nvidia-us-2188504-web.pdf
+#     494314 bytes, SHA-256 fddf4c231c708cd7c9557ebdbb951c7f745587f86ab6e3a790a2f600b2569fb7
+#   - NVIDIA A100 40GB PCIe GPU Accelerator Product Brief, PB-10137-001_v03 (September 2020)
+#     https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/A100-PCIE-Prduct-Brief.pdf
+#     341524 bytes, SHA-256 06e4c11c950d6ad08fbe2ea543857d6b22d0a3060d6cf8b63e550debf448fe0b
+#   - NVIDIA A100 Tensor Core GPU Architecture whitepaper, V1.0
+#     https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/nvidia-ampere-architecture-whitepaper.pdf
+#     7979890 bytes, SHA-256 3a800ad7668ec37037fa5870a8e3bb681b75f19668b3d11492ab9b0da0d58815
+
+# --- A100 40GB SXM (NVIDIA A100-SXM4-40GB) ---------------------------------------------------------------------------------------------------------
+
+- id: hw.a100-40-sxm.product-name
+  value: NVIDIA A100-SXM4-40GB
+  text: NVIDIA's Linux driver 580.196.07 lists PCI device 20B0 as "NVIDIA A100-SXM4-40GB". It is the A100 with 40 GB of HBM2 on an SXM4 board. The atlas matches the GPU name in a fingerprint to this string. That nvidia-smi and NVML print the same string is not checked here [unverified].
+  tag: measured
+  source:
+    url: https://download.nvidia.com/XFree86/Linux-x86_64/580.196.07/README/supportedchips.html
+    title: NVIDIA Linux x86_64 driver 580.196.07 README, Appendix A, Supported NVIDIA GPU Products
+    quote: NVIDIA A100-SXM4-40GB | 20B0
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.a100-40-sxm.mem-capacity
+  value: 40
+  unit: GB
+  text: NVIDIA's Ampere whitepaper lists 40 GB of HBM2 memory for the A100 40GB SXM.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/nvidia-ampere-architecture-whitepaper.pdf
+    title: NVIDIA A100 Tensor Core GPU Architecture whitepaper, V1.0, Table 4, A100 column
+    quote: Memory Size | 16 GB | 32 GB / 16 GB | 40 GB
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.a100-40-sxm.mem-bw
+  value: 1555
+  unit: GB/s
+  text: NVIDIA's Ampere whitepaper lists a memory bandwidth of 1,555 GB/s for the A100 40GB SXM (5,120 bits at a 1215 MHz DDR clock). It is a peak rate, not a measured one.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/nvidia-ampere-architecture-whitepaper.pdf
+    title: NVIDIA A100 Tensor Core GPU Architecture whitepaper, V1.0, Table 4, A100 column
+    quote: Memory Bandwidth | 720 GB/sec | 900 GB/sec | 1555 GB/sec
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.a100-40-sxm.fp32
+  value: 19.5
+  unit: TFLOPS
+  text: NVIDIA's Ampere whitepaper lists 19.5 TFLOPS of FP32 for the A100 40GB SXM, on the CUDA cores and not the Tensor Cores, at the 1410 MHz boost clock.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/nvidia-ampere-architecture-whitepaper.pdf
+    title: NVIDIA A100 Tensor Core GPU Architecture whitepaper, V1.0, Table 1
+    quote: Peak FP32 | 19.5 TFLOPS
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.a100-40-sxm.tf32-dense
+  value: 156
+  unit: TFLOPS
+  text: NVIDIA's Ampere whitepaper lists 156 TFLOPS for the A100 40GB SXM's TF32 Tensor Cores without sparsity and 312 TFLOPS with it, at the 1410 MHz boost clock.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/nvidia-ampere-architecture-whitepaper.pdf
+    title: NVIDIA A100 Tensor Core GPU Architecture whitepaper, V1.0, Table 1, second figure with sparsity (footnote 2)
+    quote: Peak TF32 Tensor Core | 156 TFLOPS | 312 TFLOPS
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.a100-40-sxm.bf16-dense
+  value: 312
+  unit: TFLOPS
+  text: NVIDIA's Ampere whitepaper lists 312 TFLOPS for the A100 40GB SXM's BF16 Tensor Cores without sparsity and 624 TFLOPS with it, at the 1410 MHz boost clock.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/nvidia-ampere-architecture-whitepaper.pdf
+    title: NVIDIA A100 Tensor Core GPU Architecture whitepaper, V1.0, Table 1, second figure with sparsity (footnote 2)
+    quote: Peak BF16 Tensor Core | 312 TFLOPS | 624 TFLOPS
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.a100-40-sxm.fp16-dense
+  value: 312
+  unit: TFLOPS
+  text: NVIDIA's Ampere whitepaper lists 312 TFLOPS for the A100 40GB SXM's FP16 Tensor Cores without sparsity and 624 TFLOPS with it, at the 1410 MHz boost clock.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/nvidia-ampere-architecture-whitepaper.pdf
+    title: NVIDIA A100 Tensor Core GPU Architecture whitepaper, V1.0, Table 1, second figure with sparsity (footnote 2)
+    quote: Peak FP16 Tensor Core | 312 TFLOPS | 624 TFLOPS
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.a100-40-sxm.int8-dense
+  value: 624
+  unit: TOPS
+  text: NVIDIA's Ampere whitepaper lists 624 TOPS for the A100 40GB SXM's INT8 Tensor Cores without sparsity and 1,248 TOPS with it, at the 1410 MHz boost clock.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/nvidia-ampere-architecture-whitepaper.pdf
+    title: NVIDIA A100 Tensor Core GPU Architecture whitepaper, V1.0, Table 1, second figure with sparsity (footnote 2)
+    quote: Peak INT8 Tensor Core | 624 TOPS | 1,248 TOPS
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+
+# --- A100 40GB PCIe (NVIDIA A100-PCIE-40GB) --------------------------------------------------------------------------------------------------------
+
+- id: hw.a100-40-pcie.product-name
+  value: NVIDIA A100-PCIE-40GB
+  text: NVIDIA's Linux driver 580.196.07 lists PCI device 20F1 as "NVIDIA A100-PCIE-40GB". It is the A100 with 40 GB of HBM2 on a PCIe card. The atlas matches the GPU name in a fingerprint to this string. That nvidia-smi and NVML print the same string is not checked here [unverified].
+  tag: measured
+  source:
+    url: https://download.nvidia.com/XFree86/Linux-x86_64/580.196.07/README/supportedchips.html
+    title: NVIDIA Linux x86_64 driver 580.196.07 README, Appendix A, Supported NVIDIA GPU Products
+    quote: NVIDIA A100-PCIE-40GB | 20F1 10DE 145F
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.a100-40-pcie.mem-capacity
+  value: 40
+  unit: GB
+  text: NVIDIA's A100 40GB PCIe product brief lists 40 GB of HBM2 memory.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/A100-PCIE-Prduct-Brief.pdf
+    title: NVIDIA A100 40GB PCIe GPU Accelerator Product Brief, PB-10137-001_v03 (September 2020), Table 2, Memory Specifications
+    quote: Memory size | 40 GB
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.a100-40-pcie.mem-bw
+  value: 1555
+  unit: GB/s
+  text: NVIDIA's A100 40GB PCIe product brief lists a peak memory bandwidth of up to 1,555 GB/s. It is a peak rate, not a measured one.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/A100-PCIE-Prduct-Brief.pdf
+    title: NVIDIA A100 40GB PCIe GPU Accelerator Product Brief, PB-10137-001_v03 (September 2020), Table 2, Memory Specifications
+    quote: Peak memory bandwidth | Up to 1555 GB/s
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.a100-40-pcie.fp32
+  value: 19.5
+  unit: TFLOPS
+  text: NVIDIA's Ampere whitepaper lists 19.5 TFLOPS of FP32 for the A100 40GB PCIe, on the CUDA cores and not the Tensor Cores, at the 1410 MHz boost clock. The whitepaper's table does not name a form factor; the PCIe card's product brief gives the same 1410 MHz boost clock.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/nvidia-ampere-architecture-whitepaper.pdf
+    title: NVIDIA A100 Tensor Core GPU Architecture whitepaper, V1.0, Table 1
+    quote: Peak FP32 | 19.5 TFLOPS
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.a100-40-pcie.tf32-dense
+  value: 156
+  unit: TFLOPS
+  text: NVIDIA's Ampere whitepaper lists 156 TFLOPS for the A100 40GB PCIe's TF32 Tensor Cores without sparsity and 312 TFLOPS with it, at the 1410 MHz boost clock. The whitepaper's table does not name a form factor; the PCIe card's product brief gives the same 1410 MHz boost clock.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/nvidia-ampere-architecture-whitepaper.pdf
+    title: NVIDIA A100 Tensor Core GPU Architecture whitepaper, V1.0, Table 1, second figure with sparsity (footnote 2)
+    quote: Peak TF32 Tensor Core | 156 TFLOPS | 312 TFLOPS
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.a100-40-pcie.bf16-dense
+  value: 312
+  unit: TFLOPS
+  text: NVIDIA's Ampere whitepaper lists 312 TFLOPS for the A100 40GB PCIe's BF16 Tensor Cores without sparsity and 624 TFLOPS with it, at the 1410 MHz boost clock. The whitepaper's table does not name a form factor; the PCIe card's product brief gives the same 1410 MHz boost clock.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/nvidia-ampere-architecture-whitepaper.pdf
+    title: NVIDIA A100 Tensor Core GPU Architecture whitepaper, V1.0, Table 1, second figure with sparsity (footnote 2)
+    quote: Peak BF16 Tensor Core | 312 TFLOPS | 624 TFLOPS
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.a100-40-pcie.fp16-dense
+  value: 312
+  unit: TFLOPS
+  text: NVIDIA's Ampere whitepaper lists 312 TFLOPS for the A100 40GB PCIe's FP16 Tensor Cores without sparsity and 624 TFLOPS with it, at the 1410 MHz boost clock. The whitepaper's table does not name a form factor; the PCIe card's product brief gives the same 1410 MHz boost clock.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/nvidia-ampere-architecture-whitepaper.pdf
+    title: NVIDIA A100 Tensor Core GPU Architecture whitepaper, V1.0, Table 1, second figure with sparsity (footnote 2)
+    quote: Peak FP16 Tensor Core | 312 TFLOPS | 624 TFLOPS
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.a100-40-pcie.int8-dense
+  value: 624
+  unit: TOPS
+  text: NVIDIA's Ampere whitepaper lists 624 TOPS for the A100 40GB PCIe's INT8 Tensor Cores without sparsity and 1,248 TOPS with it, at the 1410 MHz boost clock. The whitepaper's table does not name a form factor; the PCIe card's product brief gives the same 1410 MHz boost clock.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/nvidia-ampere-architecture-whitepaper.pdf
+    title: NVIDIA A100 Tensor Core GPU Architecture whitepaper, V1.0, Table 1, second figure with sparsity (footnote 2)
+    quote: Peak INT8 Tensor Core | 624 TOPS | 1,248 TOPS
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+
+# --- A100 80GB SXM (NVIDIA A100-SXM4-80GB) ---------------------------------------------------------------------------------------------------------
+
+- id: hw.a100-80-sxm.product-name
+  value: NVIDIA A100-SXM4-80GB
+  text: NVIDIA's Linux driver 580.196.07 lists PCI device 20B2 as "NVIDIA A100-SXM4-80GB". It is the A100 with 80 GB of HBM2e on an SXM4 board. The atlas matches the GPU name in a fingerprint to this string. That nvidia-smi and NVML print the same string is not checked here [unverified].
+  tag: measured
+  source:
+    url: https://download.nvidia.com/XFree86/Linux-x86_64/580.196.07/README/supportedchips.html
+    title: NVIDIA Linux x86_64 driver 580.196.07 README, Appendix A, Supported NVIDIA GPU Products
+    quote: NVIDIA A100-SXM4-80GB | 20B2 10DE 1463
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.a100-80-sxm.mem-capacity
+  value: 80
+  unit: GB
+  text: NVIDIA's A100 datasheet lists 80 GB of HBM2e memory for the A100 80GB SXM.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-nvidia-us-2188504-web.pdf
+    title: NVIDIA A100 Tensor Core GPU datasheet 2188504 (May 2022), specifications table, A100 80GB PCIe and A100 80GB SXM columns
+    quote: GPU Memory | 80GB HBM2e | 80GB HBM2e
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.a100-80-sxm.mem-bw
+  value: 2039
+  unit: GB/s
+  text: NVIDIA's A100 datasheet lists a memory bandwidth of 2,039 GB/s for the A100 80GB SXM. It is a peak rate, not a measured one.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-nvidia-us-2188504-web.pdf
+    title: NVIDIA A100 Tensor Core GPU datasheet 2188504 (May 2022), specifications table, A100 80GB PCIe and A100 80GB SXM columns
+    quote: GPU Memory Bandwidth | 1,935GB/s | 2,039GB/s
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.a100-80-sxm.fp32
+  value: 19.5
+  unit: TFLOPS
+  text: NVIDIA's A100 datasheet lists 19.5 TFLOPS of FP32 for the A100 80GB SXM, on the CUDA cores and not the Tensor Cores.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-nvidia-us-2188504-web.pdf
+    title: NVIDIA A100 Tensor Core GPU datasheet 2188504 (May 2022), specifications table, A100 80GB PCIe and A100 80GB SXM columns
+    quote: FP32 | 19.5 TFLOPS
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.a100-80-sxm.tf32-dense
+  value: 156
+  unit: TFLOPS
+  text: NVIDIA's A100 datasheet lists 156 TFLOPS for the A100 80GB SXM's TF32 Tensor Cores without sparsity and 312 TFLOPS with it. The row spans the PCIe and the SXM card.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-nvidia-us-2188504-web.pdf
+    title: NVIDIA A100 Tensor Core GPU datasheet 2188504 (May 2022), specifications table, A100 80GB PCIe and A100 80GB SXM columns, second figure footnoted "* With sparsity"
+    quote: Tensor Float 32 (TF32) | 156 TFLOPS | 312 TFLOPS*
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.a100-80-sxm.bf16-dense
+  value: 312
+  unit: TFLOPS
+  text: NVIDIA's A100 datasheet lists 312 TFLOPS for the A100 80GB SXM's BF16 Tensor Cores without sparsity and 624 TFLOPS with it. The row spans the PCIe and the SXM card.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-nvidia-us-2188504-web.pdf
+    title: NVIDIA A100 Tensor Core GPU datasheet 2188504 (May 2022), specifications table, A100 80GB PCIe and A100 80GB SXM columns, second figure footnoted "* With sparsity"
+    quote: BFLOAT16 Tensor Core | 312 TFLOPS | 624 TFLOPS*
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.a100-80-sxm.fp16-dense
+  value: 312
+  unit: TFLOPS
+  text: NVIDIA's A100 datasheet lists 312 TFLOPS for the A100 80GB SXM's FP16 Tensor Cores without sparsity and 624 TFLOPS with it. The row spans the PCIe and the SXM card.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-nvidia-us-2188504-web.pdf
+    title: NVIDIA A100 Tensor Core GPU datasheet 2188504 (May 2022), specifications table, A100 80GB PCIe and A100 80GB SXM columns, second figure footnoted "* With sparsity"
+    quote: FP16 Tensor Core | 312 TFLOPS | 624 TFLOPS*
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.a100-80-sxm.int8-dense
+  value: 624
+  unit: TOPS
+  text: NVIDIA's A100 datasheet lists 624 TOPS for the A100 80GB SXM's INT8 Tensor Cores without sparsity and 1,248 TOPS with it. The row spans the PCIe and the SXM card.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-nvidia-us-2188504-web.pdf
+    title: NVIDIA A100 Tensor Core GPU datasheet 2188504 (May 2022), specifications table, A100 80GB PCIe and A100 80GB SXM columns, second figure footnoted "* With sparsity"
+    quote: INT8 Tensor Core | 624 TOPS | 1248 TOPS*
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+
+# --- NVIDIA A100 80GB PCIe -------------------------------------------------------------------------------------------------------------------------
+
+- id: hw.a100-80-pcie.product-name
+  value: NVIDIA A100 80GB PCIe
+  text: NVIDIA's Linux driver 580.196.07 lists PCI device 20B5 as "NVIDIA A100 80GB PCIe". It is the A100 with 80 GB of HBM2e on a PCIe card. The atlas matches the GPU name in a fingerprint to this string. That nvidia-smi and NVML print the same string is not checked here [unverified].
+  tag: measured
+  source:
+    url: https://download.nvidia.com/XFree86/Linux-x86_64/580.196.07/README/supportedchips.html
+    title: NVIDIA Linux x86_64 driver 580.196.07 README, Appendix A, Supported NVIDIA GPU Products
+    quote: NVIDIA A100 80GB PCIe | 20B5 10DE 1533
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.a100-80-pcie.mem-capacity
+  value: 80
+  unit: GB
+  text: NVIDIA's A100 datasheet lists 80 GB of HBM2e memory for the A100 80GB PCIe.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-nvidia-us-2188504-web.pdf
+    title: NVIDIA A100 Tensor Core GPU datasheet 2188504 (May 2022), specifications table, A100 80GB PCIe and A100 80GB SXM columns
+    quote: GPU Memory | 80GB HBM2e | 80GB HBM2e
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.a100-80-pcie.mem-bw
+  value: 1935
+  unit: GB/s
+  text: NVIDIA's A100 datasheet lists a memory bandwidth of 1,935 GB/s for the A100 80GB PCIe. It is a peak rate, not a measured one.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-nvidia-us-2188504-web.pdf
+    title: NVIDIA A100 Tensor Core GPU datasheet 2188504 (May 2022), specifications table, A100 80GB PCIe and A100 80GB SXM columns
+    quote: GPU Memory Bandwidth | 1,935GB/s | 2,039GB/s
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.a100-80-pcie.fp32
+  value: 19.5
+  unit: TFLOPS
+  text: NVIDIA's A100 datasheet lists 19.5 TFLOPS of FP32 for the A100 80GB PCIe, on the CUDA cores and not the Tensor Cores.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-nvidia-us-2188504-web.pdf
+    title: NVIDIA A100 Tensor Core GPU datasheet 2188504 (May 2022), specifications table, A100 80GB PCIe and A100 80GB SXM columns
+    quote: FP32 | 19.5 TFLOPS
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.a100-80-pcie.tf32-dense
+  value: 156
+  unit: TFLOPS
+  text: NVIDIA's A100 datasheet lists 156 TFLOPS for the A100 80GB PCIe's TF32 Tensor Cores without sparsity and 312 TFLOPS with it. The row spans the PCIe and the SXM card.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-nvidia-us-2188504-web.pdf
+    title: NVIDIA A100 Tensor Core GPU datasheet 2188504 (May 2022), specifications table, A100 80GB PCIe and A100 80GB SXM columns, second figure footnoted "* With sparsity"
+    quote: Tensor Float 32 (TF32) | 156 TFLOPS | 312 TFLOPS*
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.a100-80-pcie.bf16-dense
+  value: 312
+  unit: TFLOPS
+  text: NVIDIA's A100 datasheet lists 312 TFLOPS for the A100 80GB PCIe's BF16 Tensor Cores without sparsity and 624 TFLOPS with it. The row spans the PCIe and the SXM card.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-nvidia-us-2188504-web.pdf
+    title: NVIDIA A100 Tensor Core GPU datasheet 2188504 (May 2022), specifications table, A100 80GB PCIe and A100 80GB SXM columns, second figure footnoted "* With sparsity"
+    quote: BFLOAT16 Tensor Core | 312 TFLOPS | 624 TFLOPS*
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.a100-80-pcie.fp16-dense
+  value: 312
+  unit: TFLOPS
+  text: NVIDIA's A100 datasheet lists 312 TFLOPS for the A100 80GB PCIe's FP16 Tensor Cores without sparsity and 624 TFLOPS with it. The row spans the PCIe and the SXM card.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-nvidia-us-2188504-web.pdf
+    title: NVIDIA A100 Tensor Core GPU datasheet 2188504 (May 2022), specifications table, A100 80GB PCIe and A100 80GB SXM columns, second figure footnoted "* With sparsity"
+    quote: FP16 Tensor Core | 312 TFLOPS | 624 TFLOPS*
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365
+
+- id: hw.a100-80-pcie.int8-dense
+  value: 624
+  unit: TOPS
+  text: NVIDIA's A100 datasheet lists 624 TOPS for the A100 80GB PCIe's INT8 Tensor Cores without sparsity and 1,248 TOPS with it. The row spans the PCIe and the SXM card.
+  tag: measured
+  source:
+    url: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-nvidia-us-2188504-web.pdf
+    title: NVIDIA A100 Tensor Core GPU datasheet 2188504 (May 2022), specifications table, A100 80GB PCIe and A100 80GB SXM columns, second figure footnoted "* With sparsity"
+    quote: INT8 Tensor Core | 624 TOPS | 1248 TOPS*
+    accessed: 2026-11-09
+  verifiedAt: 2026-11-09
+  ttlDays: 365

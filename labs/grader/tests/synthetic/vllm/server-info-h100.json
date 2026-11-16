@@ -1,0 +1,50 @@
+{
+  "_synthetic": "Written by hand in the shape of the answer of /server_info?config_format=json at vLLM v0.33.0 (vllm/entrypoints/serve/dev/server_info/api_router.py:43). No engine ran, every value is invented, and whether pydantic's JSON mode writes cudagraph_mode as a pair of numbers is [unverified].",
+  "vllm_config": {
+    "model_config": {
+      "model": "Qwen/Qwen3-0.6B",
+      "dtype": "torch.bfloat16",
+      "max_model_len": 40960,
+      "enforce_eager": false
+    },
+    "load_config": {
+      "download_dir": null
+    },
+    "scheduler_config": {
+      "max_num_batched_tokens": 8192,
+      "max_num_seqs": 1024,
+      "async_scheduling": true,
+      "enable_chunked_prefill": true
+    },
+    "compilation_config": {
+      "mode": 3,
+      "cache_dir": "/root/.cache/vllm/torch_compile_cache/example",
+      "cudagraph_mode": [
+        2,
+        1
+      ],
+      "cudagraph_capture_sizes": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        24,
+        32,
+        40,
+        48
+      ]
+    },
+    "attention_config": {
+      "backend": null
+    }
+  },
+  "vllm_env": {
+    "VLLM_CACHE_ROOT": "/root/.cache/vllm",
+    "VLLM_USE_V2_MODEL_RUNNER": null
+  },
+  "system_env": {
+    "OS": "Ubuntu 24.04.1 LTS (x86_64)",
+    "nvidia_gpu_models": "GPU 0: NVIDIA GeForce RTX 4090"
+  }
+}

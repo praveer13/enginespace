@@ -21,8 +21,9 @@ export const PR_ROUTES: string[] = ['/', '/map', '/m/tr2', '/m/tr2/l3-async-sche
  * and claims), the Play index, the four games besides Service, the two labs of the forge, and Today. The nightly sweep visits every
  * document and not these alone (e2e/support/site.ts, `documentRoutes`).
  *
- * The Trace Room and the receipts page are left out: they are stubs until W2 builds them, and the specimen tape of the viewer shows
- * only in a test build (src/pages/TraceRoom.tsx). Both are in the nightly sweep as documents.
+ * The Trace Room is left out: it is a stub until W2 builds it, and the specimen tape of the viewer shows only in a test build
+ * (src/pages/TraceRoom.tsx). It is in the nightly sweep as a document. The receipts page was left out for the same reason, and joined
+ * with W2-T06 (`W2_ROUTES` below).
  */
 export const W1_ROUTES: string[] = [
   '/m/tr1',
@@ -42,6 +43,14 @@ export const W1_ROUTES: string[] = [
   '/labs/rejection-sampler',
   '/today',
 ]
+
+/**
+ * What W2 adds to the pull-request subset, a page of every kind that its tasks build as they land: the receipts page (W2-T06), where a
+ * challenge is issued and a receipt is read. It reads the learner's ledger, so it is audited with its ledger in each of its states (the
+ * spec of its own, e2e/receipts.spec.ts, seeds them), and here with the empty one, by axe at 360 and 1280 px, the reduced-motion scan and
+ * the network check, like every page before it.
+ */
+export const W2_ROUTES: string[] = ['/receipts']
 
 /**
  * A game's page opens on its first level, and `?level=` opens another, so the document list does not reach them. W1-T36 adds the levels

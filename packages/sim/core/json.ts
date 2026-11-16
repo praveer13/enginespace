@@ -24,28 +24,58 @@ const compareKeys = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 
 /** A high surrogate with no low surrogate after it, or a low surrogate with no high surrogate before it. */
 const LONE_SURROGATE = /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/
 
-function text(value: string, path: string): string {
-  if (LONE_SURROGATE.test(value)) throw new RangeError(`${path}: a lone surrogate has no UTF-8 form`)
-  return JSON.stringify(value)
+/**
+ * Where a value is, for a message: the path of its container and the way in (an index, or `.name`). It is joined only when a message is made, so a value that has a form
+ * costs no string: a column of a hundred million numbers made one for each, in the review's measurement of a tab that ran out of memory.
+ */
+const at = (path: string, way: string | number): string => (typeof way === 'number' ? `${path}[${way}]` : path + way)
+
+/**
+ * The longest string that is handed to `JSON.stringify` whole, in UTF-16 code units: 1 Mi. In the pinned Chromium (Chrome for Testing 153.0.8010.12), `JSON.stringify` of a string
+ * longer than 2^27 code units that holds a character outside Latin-1 crashes the renderer, and so takes the learner's tab: a JSON artifact of one string of 129 MiB, "π" and a run
+ * of `a`, is about 133 KB compressed and passes rules 1 and 2 [measured 2026-11-15 by the second review of W2's rest track, build ff47e8f]. A longer string is written in pieces.
+ */
+export const STRING_PIECE = 1024 * 1024
+
+/**
+ * The form of one string. A string that fits a piece is `JSON.stringify`'s. A longer one is written piece by piece, and the escapes of a piece are the escapes of those characters
+ * in the whole (they are made one character at a time), so the text is byte for byte what `JSON.stringify` would write. A piece never ends between the two halves of a surrogate
+ * pair, which `JSON.stringify` would write as two `\u` escapes when it saw each alone; the check above has already refused a string with a lone half.
+ */
+function text(value: string, path: string, way: string | number = ''): string {
+  if (LONE_SURROGATE.test(value)) throw new RangeError(`${at(path, way)}: a lone surrogate has no UTF-8 form`)
+  if (value.length <= STRING_PIECE) return JSON.stringify(value)
+  const pieces: string[] = ['"']
+  for (let start = 0; start < value.length; ) {
+    let end = Math.min(start + STRING_PIECE, value.length)
+    const last = value.charCodeAt(end - 1)
+    if (end < value.length && last >= 0xd800 && last <= 0xdbff) end += 1 // a high surrogate: the low one that follows is its other half
+    const piece = JSON.stringify(value.slice(start, end))
+    pieces.push(piece.slice(1, -1))
+    start = end
+  }
+  pieces.push('"')
+  return pieces.join('')
 }
 
-function encode(value: unknown, path: string, ancestors: object[]): string {
+function encode(value: unknown, path: string, ancestors: object[], way: string | number = ''): string {
   if (value === null) return 'null'
   switch (typeof value) {
     case 'boolean':
       return value ? 'true' : 'false'
     case 'string':
-      return text(value, path)
+      return text(value, path, way)
     case 'number':
-      if (!Number.isFinite(value)) throw new RangeError(`${path}: ${value} has no JSON form`)
-      if (Number.isInteger(value) && !Number.isSafeInteger(value)) throw new RangeError(`${path}: the integer ${value} is beyond 2^53`)
+      if (!Number.isFinite(value)) throw new RangeError(`${at(path, way)}: ${value} has no JSON form`)
+      if (Number.isInteger(value) && !Number.isSafeInteger(value)) throw new RangeError(`${at(path, way)}: the integer ${value} is beyond 2^53`)
       return JSON.stringify(value)
     case 'object':
       break
     default:
-      throw new TypeError(`${path}: a ${typeof value} has no JSON form`)
+      throw new TypeError(`${at(path, way)}: a ${typeof value} has no JSON form`)
   }
   const node: object = value
+  path = at(path, way)
   if (ancestors.includes(node)) throw new TypeError(`${path}: the structure is cyclic`)
   ancestors.push(node)
   try {
@@ -53,7 +83,7 @@ function encode(value: unknown, path: string, ancestors: object[]): string {
       const items: string[] = []
       for (let i = 0; i < node.length; i++) {
         if (!(i in node)) throw new TypeError(`${path}[${i}]: a hole in an array has no JSON form`)
-        items.push(encode(node[i], `${path}[${i}]`, ancestors))
+        items.push(encode(node[i], path, ancestors, i))
       }
       return `[${items.join(',')}]`
     }
@@ -63,7 +93,7 @@ function encode(value: unknown, path: string, ancestors: object[]): string {
     for (const key of Object.keys(record).sort(compareKeys)) {
       const member = record[key]
       if (member === undefined) throw new TypeError(`${path}.${key}: undefined has no JSON form`)
-      members.push(`${text(key, `${path}.${key}`)}:${encode(member, `${path}.${key}`, ancestors)}`)
+      members.push(`${text(key, path, `.${key}`)}:${encode(member, path, ancestors, `.${key}`)}`)
     }
     return `{${members.join(',')}}`
   } finally {
