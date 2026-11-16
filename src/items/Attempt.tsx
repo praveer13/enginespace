@@ -9,7 +9,6 @@ import { Button } from '@/design/components/Button'
 import { Field } from '@/design/components/Field'
 import { Icon } from '@/design/components/Glyph'
 import { Stub } from '@/design/components/Stub'
-import { TapeLabel } from '@/design/components/TapeLabel'
 import { TicketLine } from '@/design/components/Ticket'
 import { decimals } from '@/content/render/model'
 import { formatReadout } from '@/design/format'
@@ -124,12 +123,12 @@ export default function AttemptView({ gen, level, entropy, scope, onRestart }: A
       family={gen.id}
       phase={phase}
       lamp={phase === 'asking'}
-      foot={[`seed ${seedLabel(item.seed)}`, attempt.provenance]}
+      foot={[`Seed ${seedLabel(item.seed)}`, attempt.provenance === 'unseen' ? 'new numbers' : 'practice numbers']}
       stub={
         phase === 'asking' ? (
           <Stub onClick={check}>Check answer</Stub>
         ) : (
-          <Stub onClick={advance}>{last ? 'See the tally' : 'Next question'}</Stub>
+          <Stub onClick={advance}>{last ? 'See the result' : 'Next question'}</Stub>
         )
       }
       data={{ seed: String(item.seed), level: String(item.level), variant: item.variant, kind: item.answer.kind, rev: item.rev, ...(revealed ? { ok: String(answered.grade.ok) } : {}) }}
@@ -193,9 +192,7 @@ export function Givens({ item }: { item: Item }) {
 export function Worked({ item }: { item: Item }) {
   return (
     <div className="es-item__worked">
-      <TapeLabel size="sm" tilt="left">
-        {item.level === 0 ? 'worked example, other numbers' : 'the first step'}
-      </TapeLabel>
+      <span className="es-item__label">{item.level === 0 ? 'Worked example, other numbers' : 'The first step'}</span>
       <ol>
         {item.worked.map((step, at) => (
           <li key={at}>
@@ -218,7 +215,7 @@ interface QuestionProps {
   onSubmit: () => void
 }
 
-/** The slip the learner writes on: a number in a tape-labelled field, or lines with a tick box each. */
+/** What the learner answers with: a number in a labelled field, or radio choices, one of which is picked. */
 export function Question({ item, text, pick, locked, problem, onText, onPick, onSubmit }: QuestionProps) {
   const name = useId()
   const spec = item.answer
@@ -251,9 +248,7 @@ export function Question({ item, text, pick, locked, problem, onText, onPick, on
   return (
     <fieldset className="es-item__choice" disabled={locked} aria-describedby={problem === null ? undefined : `${name}-problem`}>
       <legend>
-        <TapeLabel size="sm" tilt="left">
-          {spec.label}
-        </TapeLabel>
+        <span className="es-item__label">{spec.label}</span>
       </legend>
       {spec.options.map((option) => {
         const isKey = option.id === spec.correct
@@ -262,9 +257,7 @@ export function Question({ item, text, pick, locked, problem, onText, onPick, on
           <div key={option.id} className="es-item__option" data-key={locked && isKey ? 'true' : undefined} data-yours={isYours ? 'true' : undefined}>
             <label>
               <input type="radio" name={name} value={option.id} checked={pick === option.id} onChange={() => onPick(option.id)} />
-              <span className="es-item__tick" aria-hidden="true">
-                <Icon name="check" />
-              </span>
+              <span className="es-item__radio" aria-hidden="true" />
               <span className="es-item__option-text">
                 <RichText parts={option.text} />
               </span>
@@ -298,7 +291,7 @@ export function Question({ item, text, pick, locked, problem, onText, onPick, on
   )
 }
 
-/** How sure the learner is, said before the answer is checked: three stamped plates, one pressed in. Optional, and never a gate. */
+/** How sure the learner is, said before the answer is checked: three buttons, one pressed in. Optional, and never a gate. */
 export function SurePlates({ value, onChange }: { value: Confidence | null; onChange: (value: Confidence | null) => void }) {
   const label = useId()
   return (
@@ -386,9 +379,7 @@ export function Reveal({
       )}
       {steps.length > 0 ? (
         <div className="es-item__steps">
-          <TapeLabel size="sm" tilt="left">
-            why
-          </TapeLabel>
+          <span className="es-item__label">why</span>
           <ol>
             {steps.map((step, at) => (
               <li key={at}>
@@ -417,6 +408,11 @@ export function Unsaved({ detail }: { detail: string }) {
 /* The tally                                                                                                          */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
+/** "3 of 3: passed", or "1 of 3: not yet. New numbers when you retry." A set passes when every question is right on numbers that were new. */
+function tallyLine(right: number, total: number, passed: boolean): string {
+  return passed ? `${right} of ${total}: passed` : `${right} of ${total}: not yet. New numbers when you retry.`
+}
+
 function Tally({ gen, attempt }: { gen: Gen; attempt: Attempt }) {
   const { right, total } = tally(attempt)
   const titles = new Map(gen.variants.map((variant) => [variant.id, variant.title]))
@@ -427,11 +423,8 @@ function Tally({ gen, attempt }: { gen: Gen; attempt: Attempt }) {
   return (
     <div className="es-item__tally">
       <h3 className="es-item__verdict" tabIndex={-1} ref={heading}>
-        <span>
-          {right} of {total} right
-        </span>
+        <span>{tallyLine(right, total, right === total && attempt.provenance === 'unseen')}</span>
       </h3>
-      <p>These were your numbers. Ask for new ones and the same questions come back on seeds nobody drew before.</p>
       <ol className="es-item__lines">
         {attempt.served.map((served, at) => {
           const ok = attempt.answered[at]?.grade.ok === true

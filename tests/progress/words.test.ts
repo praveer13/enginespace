@@ -8,7 +8,7 @@
  *     state's id (compared, switched on, listed as an enum or used as a key or a data attribute), which never reaches the screen.
  *   - The words Continue and Start, as the way on, are said only by `nextStep` and the controls that show its answer: the header, the
  *     way on of Course and of a module, and every empty state, all from its answer or from the pointer that copies it. A move in hand
- *     ("Start a graded run", "Start items") is a verb of the run, not the way on, and is not this check's business.
+ *     ("Start a graded run", "Start questions") is a verb of the run, not the way on, and is not this check's business.
  *   - No other derivation of "next" is left: no `nextModule`, and no `LINK_TR2`.
  */
 import { describe, expect, test } from 'bun:test'

@@ -36,6 +36,13 @@ describe('what Today says', () => {
       copy.lineStatus('now'),
       copy.lineStatus('done', true),
       copy.lineStatus('done', false),
+      copy.nextReview('2026-11-20'),
+      copy.nextAfter('2026-11-20'),
+      copy.lastSeen('2026-11-09'),
+      copy.stateWord('waiting'),
+      copy.stateWord('now'),
+      copy.stateWord('done', true),
+      copy.stateWord('done', false),
     ]
     for (const text of built) expect(text, text).not.toMatch(BACKLOG)
   })
@@ -68,6 +75,15 @@ describe('what Today says', () => {
     expect(copy.listTitle('due')).toBe('Review set')
     expect(copy.listTitle('welcome-back')).toBe('Review set')
     expect(copy.listTitle('ahead')).toBe('Review ahead')
+  })
+
+  test('says the days and the state of a row in words, and calls an item a question everywhere', () => {
+    expect(copy.nextReview('2026-11-20')).toBe('Next review: Fri 20 Nov.')
+    expect(copy.nextAfter('2026-11-20')).toBe('Next after this: Fri 20 Nov')
+    expect(copy.lastSeen('2026-11-09')).toBe('last seen Mon 9 Nov')
+    expect(['waiting', 'now', 'done'].map((state) => copy.stateWord(state as 'waiting' | 'now' | 'done'))).toEqual(['next', 'now', 'missed'])
+    expect(copy.stateWord('done', true)).toBe('right')
+    for (const [name, text] of STRINGS) expect(text, name).not.toMatch(/\bitems?\b|\btickets?\b|\bprep\b/i)
   })
 
   test('asks for the actions by what they do', () => {

@@ -1,35 +1,54 @@
 import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import type { LocalDay } from '@es/ledger'
-import { PrinterTape } from '@/design/components/PrinterTape'
+import { Button } from '@/design/components/Button'
+import { ContinueLink } from '@/design/components/Board'
 import { Readout } from '@/design/components/Readout'
 import { Stub } from '@/design/components/Stub'
-import { ContinueLink } from '@/design/components/Board'
 import { TextLink } from '@/design/components/TextLink'
-import { usePointer } from '@/settings/usePlace'
 import { Ticket } from '@/design/components/Ticket'
-import { AHEAD_NOTE, DONE_TITLE, EMPTY_BODY, EMPTY_TITLE, EMPTY_UNSERVED_BODY, EMPTY_UNSERVED_TITLE, LINK_EVIDENCE, LINK_MAP, LOAD_LABEL, nextPrep, REST_AHEAD, REST_TITLE, START_AHEAD, tallyLine } from './copy'
-import { formatDay } from './days'
+import type { Pointer } from '@/settings/store'
+import {
+  AHEAD_NOTE,
+  EMPTY_BODY,
+  EMPTY_TITLE,
+  EMPTY_UNSERVED_BODY,
+  EMPTY_UNSERVED_TITLE,
+  KEPT_LABEL,
+  KEPT_LEGEND,
+  LINK_EVIDENCE,
+  LINK_MAP,
+  LOAD_LABEL,
+  nextAfter,
+  nextReview,
+  nextPrep,
+  REST_AHEAD,
+  REST_TITLE,
+  START_AHEAD,
+  tallyLine,
+} from './copy'
 import { PrepLines } from './PrepList'
-import type { LineView } from './plan'
+import type { IdeaRow } from './PrepList'
 
 /*
- * The tickets of the page that are not the list and not the ticket being prepped: the one that waits while the ledger is read, the one
- * that says there is nothing to keep yet, the one that says nothing is due, and the one that closes a prep. Each is a ticket of the same
- * paper (src/design/components/Ticket.tsx) with a stamped title, and none of them says how much is overdue.
+ * The sheets of the page that are not the set being asked and not the list that waits: the one that waits while the ledger is read, the
+ * one that says nothing is passed yet, the one that says nothing is due, and the one that closes a review. Each is a sheet of the same
+ * paper (src/design/components/Ticket.tsx), none says how much is overdue, and each offers the way on: the amber Continue, from
+ * `nextStep` (REDESIGN 2.4), the only amber control on its screen. A review that has more to do offers it as a quiet button beside.
  */
 
-const head = <span aria-hidden="true">Today</span>
-
-/** A ticket still printing: while the ledger is read, or, with `label`, while the code of the family that serves the next ticket loads. */
+/** A sheet still reading: while the ledger is read, or, with `label`, while the code of the family that serves the next question loads. */
 export function LoadingTicket({ label = LOAD_LABEL }: { label?: string }) {
-  return <Ticket as="section" className="es-prep__ticket" width="wide" head={head} state="loading" loadingLabel={label} />
+  return <Ticket as="section" className="es-prep__ticket" width="full" state="loading" loadingLabel={label} />
 }
 
-/** What stands beside the list on a wide screen before the prep starts: a blank ticket where the first one will print. */
-export function BlankTicket() {
+/** The way on: Continue, or Start, from the pointer. Absent when the way on is this page (every lesson is done and something is due). */
+function Way({ way }: { way: Pointer | null }) {
+  if (way === null) return null
   return (
-    <Ticket as="div" className="es-prep__blank" width="wide" state="empty" empty="The first ticket prints when you start the prep." aria-hidden="true" />
+    <div className="es-way">
+      <ContinueLink target={way} emphasis="primary" {...(way.minutes === undefined ? {} : { minutes: way.minutes })} />
+    </div>
   )
 }
 
@@ -37,15 +56,12 @@ function Links({ children }: { children: ReactNode }) {
   return <p className="es-prep__links">{children}</p>
 }
 
-/** Nothing is passed yet, or what is passed has no review questions yet. The way on is Continue, from the pointer (REDESIGN §2.4). */
-export function EmptyTicket({ day, unserved }: { day: LocalDay; unserved: boolean }) {
-  const pointer = usePointer()
+/** Nothing is passed yet, or what is passed has no review questions yet. The way on is Continue (REDESIGN 2.4). */
+export function EmptyTicket({ unserved, way }: { unserved: boolean; way: Pointer | null }) {
   return (
-    <Ticket as="section" className="es-prep__ticket" data-state="empty" width="wide" head={head} meta={<span aria-hidden="true">{formatDay(day)}</span>} title={unserved ? EMPTY_UNSERVED_TITLE : EMPTY_TITLE} titleAs="h2">
+    <Ticket as="section" className="es-prep__ticket" data-state="empty" width="full" title={unserved ? EMPTY_UNSERVED_TITLE : EMPTY_TITLE} titleAs="h2">
       <p>{unserved ? EMPTY_UNSERVED_BODY : EMPTY_BODY}</p>
-      <div className="es-way">
-        <ContinueLink target={pointer} emphasis="primary" minutes={pointer.minutes} />
-      </div>
+      <Way way={way} />
       <Links>
         <TextLink to="/map">{LINK_MAP}</TextLink>
       </Links>
@@ -53,22 +69,18 @@ export function EmptyTicket({ day, unserved }: { day: LocalDay; unserved: boolea
   )
 }
 
-/** Nothing is due that can be served: when the next prep is, and a review ahead where there is something to look at. */
-export function RestTicket({ day, next, ahead, onAhead }: { day: LocalDay; next: LocalDay | null; ahead: boolean; onAhead: () => void }) {
+/** Nothing is due that can be served: when the next review is, the way on, and a review ahead where there is something to look at. */
+export function RestTicket({ next, ahead, onAhead, way }: { next: LocalDay | null; ahead: boolean; onAhead: () => void; way: Pointer | null }) {
   return (
-    <Ticket
-      as="section"
-      className="es-prep__ticket"
-      data-state="rest"
-      width="wide"
-      head={head}
-      meta={<span aria-hidden="true">{formatDay(day)}</span>}
-      title={REST_TITLE}
-      titleAs="h2"
-      stub={ahead ? <Stub onClick={onAhead}>{START_AHEAD}</Stub> : undefined}
-    >
+    <Ticket as="section" className="es-prep__ticket" data-state="rest" width="full" title={REST_TITLE} titleAs="h2">
       {next === null ? null : <p className="es-prep__next">{nextPrep(next)}</p>}
-      {ahead ? <p>{REST_AHEAD}</p> : null}
+      <Way way={way} />
+      {ahead ? (
+        <div className="es-prep__more">
+          <p>{REST_AHEAD}</p>
+          {way === null ? <Stub onClick={onAhead}>{START_AHEAD}</Stub> : <Button onClick={onAhead}>{START_AHEAD}</Button>}
+        </div>
+      ) : null}
       <Links>
         <TextLink to="/map">{LINK_MAP}</TextLink> <TextLink to="/evidence">{LINK_EVIDENCE}</TextLink>
       </Links>
@@ -77,58 +89,56 @@ export function RestTicket({ day, next, ahead, onAhead }: { day: LocalDay; next:
 }
 
 export interface DoneTicketProps {
-  day: LocalDay
-  lines: readonly LineView[]
+  rows: readonly IdeaRow[]
   right: number
   total: number
   /** The first day after today on which an idea that can be served falls due. */
   next: LocalDay | null
-  /** What the stub offers: another list of what is due, a review ahead, or nothing. */
+  /** What a quiet button offers: another list of what is due, a review ahead, or nothing. */
   more: { label: string; run: () => void } | null
   ahead: boolean
+  way: Pointer | null
 }
 
 /**
- * The close of a prep: the ticket with its tally and the lines with what became of each idea, and beside it the printer, which prints
- * the prep's counts and the day of the next prep. The counts are what happened on this device, so they are [measured].
+ * The close of a review: the tally, the next review, the amber Continue and what became of each idea. The tally and the way on come
+ * first, so that the way on is inside the first screen on a phone. The counts are what happened on this device, so they are [measured].
  */
-export function DoneTicket({ day, lines, right, total, next, more, ahead }: DoneTicketProps) {
+export function DoneTicket({ rows, right, total, next, more, ahead, way }: DoneTicketProps) {
   const heading = useRef<HTMLHeadingElement>(null)
   useEffect(() => {
     heading.current?.focus()
   }, [])
   return (
-    <>
-      <Ticket
-        as="section"
-        className="es-prep__ticket"
-        data-state="done"
-        width="wide"
-        head={head}
-        meta={<span aria-hidden="true">{formatDay(day)}</span>}
-        title={DONE_TITLE}
-        titleAs="h2"
-        stub={more === null ? undefined : <Stub onClick={more.run}>{more.label}</Stub>}
-      >
-        <h3 className="es-item__verdict es-prep__verdict" tabIndex={-1} ref={heading}>
-          <span>{tallyLine(right, total)}</span>
-        </h3>
-        {ahead ? <p>{AHEAD_NOTE}</p> : null}
-        <PrepLines lines={lines} label="What became of each idea" />
-        {next === null ? null : <p className="es-prep__next">{nextPrep(next)}</p>}
-        <Links>
-          <TextLink to="/map">{LINK_MAP}</TextLink> <TextLink to="/evidence">{LINK_EVIDENCE}</TextLink>
-        </Links>
-      </Ticket>
-      <PrinterTape
-        className="es-prep__tape"
-        label="The review, in numbers"
-        lines={[
-          { id: 'tickets', label: 'questions', value: <Readout value={total} tag="measured" source="this review" size="sm" /> },
-          { id: 'right', label: 'right', value: <Readout value={right} tag="measured" source="this review" size="sm" /> },
-          ...(next === null ? [] : [{ id: 'next', label: 'next review', value: formatDay(next) }]),
-        ]}
-      />
-    </>
+    <Ticket as="section" className="es-prep__ticket" data-state="done" width="full">
+      <h2 className="es-item__verdict es-prep__verdict" tabIndex={-1} ref={heading}>
+        <span>{tallyLine(right, total)}</span>
+      </h2>
+      {next === null ? null : <p className="es-prep__next">{nextReview(next)}</p>}
+      {ahead ? <p>{AHEAD_NOTE}</p> : null}
+      {way === null && more !== null ? <Stub onClick={more.run}>{more.label}</Stub> : <Way way={way} />}
+      {way !== null && more !== null ? (
+        <div className="es-prep__more">
+          <Button onClick={more.run}>{more.label}</Button>
+        </div>
+      ) : null}
+      <PrepLines rows={rows} label="What became of each idea" />
+      <Links>
+        <TextLink to="/map">{LINK_MAP}</TextLink> <TextLink to="/evidence">{LINK_EVIDENCE}</TextLink>
+      </Links>
+    </Ticket>
+  )
+}
+
+/** The quiet column: when the next review after this one is, and how many ideas are kept, with what "kept" means. */
+export function Aside({ kept, next }: { kept: number; next: LocalDay | null }) {
+  return (
+    <aside className="es-prep__aside" aria-label="About your review">
+      {next === null ? null : <p className="es-prep__after">{nextAfter(next)}</p>}
+      <p className="es-prep__kept">
+        <span>{KEPT_LABEL}</span> <Readout value={kept} tag="measured" source="this device" size="lg" className="es-item__num" />
+      </p>
+      <p className="es-prep__legend">{KEPT_LEGEND}</p>
+    </aside>
   )
 }

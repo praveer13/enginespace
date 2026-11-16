@@ -27,57 +27,45 @@ describe('the ticket that waits', () => {
   test('says what is coming, how many, and at what level, and draws no seed: entropy is read when the stub is pulled', () => {
     expect(html).toContain('data-block="item"')
     expect(html).toContain('data-phase="idle"')
-    expect(html).toContain('3 items on fresh numbers, drawn when you start.')
+    expect(html).toContain('3 questions on fresh numbers, drawn when you start.')
     expect(html).toContain('<span class="es-ticket-line__qty">3x</span>')
     expect(html).toContain('Bubble width')
-    expect(html).toContain('level 2')
     expect(html).toContain('on your own')
     expect(html).not.toContain('data-seed')
-    expect(html).not.toContain('seed ')
+    expect(html).not.toContain('Seed ')
   })
 
-  test('names the KCs it assesses on tape, and has a stub that is not held down', () => {
-    for (const kc of ['tr2.bubble', 'tr2.async-overlap']) expect(html).toContain(kc)
+  test('shows no id, and has a button that is not held down: an item is called a question everywhere', () => {
+    for (const id of ['tr2.bubble', 'tr2.async-overlap', 'tr2.l0', 'tr2.bubble-width']) expect(html.replace(/data-(?:scope|family)="[^"]*"/g, '')).not.toContain(id)
     expect(html).toMatch(/<button type="button" class="es-stub__pull"(?![^>]*disabled)[^>]*>/)
-    expect(html).toContain('Start items')
+    expect(html).toContain('Start questions')
+    expect(html.replace(/<[^>]*>/g, ' ')).not.toMatch(/\bitems?\b/i)
   })
 
-  test('is a ticket like the other blocks: the lesson on its head line, the family beside it, a stamped title', () => {
-    expect(html).toContain('<span aria-hidden="true">tr2.l0</span>')
-    expect(html).toContain('tr2.bubble-width')
-    expect(html).toContain('<h2 class="es-ticket__title">Items</h2>')
+  test('is a sheet like the other blocks, titled Questions', () => {
+    expect(html).toContain('<h2 class="es-ticket__title">Questions</h2>')
     expect(html).toContain('class="es-ticket es-c-block"')
   })
 
-  test('says one item, in the singular', () => {
-    expect(render(h(ItemBlock, { block: block('tr2.bubble-width', 2, 1), scope: 'tr2.l0' }))).toContain('1 item on fresh numbers')
-  })
-})
-
-describe('the ticket that waits, for a family that two lessons name at two levels', () => {
-  test('names the KCs of the variants that the block draws at its level, and not the other level\'s', () => {
-    const first = render(h(ItemBlock, { block: block('tr5a.blocks-held', 2), scope: 'tr5a.l1' }))
-    for (const kc of ['tr5a.kv-groups', 'tr5a.sliding-free', 'tr5a.state-pages']) expect(first).toContain(kc)
-    expect(first).not.toContain('tr5a.page-size-unification')
-    const second = render(h(ItemBlock, { block: block('tr5a.blocks-held', 3), scope: 'tr5a.l2' }))
-    expect(second).toContain('tr5a.page-size-unification')
-    for (const kc of ['tr5a.kv-groups', 'tr5a.sliding-free', 'tr5a.state-pages']) expect(second).not.toContain(kc)
+  test('says one question, in the singular', () => {
+    expect(render(h(ItemBlock, { block: block('tr2.bubble-width', 2, 1), scope: 'tr2.l0' }))).toContain('1 question on fresh numbers')
   })
 })
 
 describe('the ticket for a family that is not built, or a level it does not offer', () => {
-  test('says the generator is not built, holds the stub down, and starts nothing', () => {
+  test('says the questions are not published yet, holds the button down, and starts nothing', () => {
     const html = render(h(ItemBlock, { block: block('tr2.no-such-family', 2), scope: 'tr2.l3' }))
     expect(html).toContain('data-phase="unbuilt"')
-    expect(html).toContain('Not built yet: the generator for tr2.no-such-family')
+    expect(html).toContain('These questions are not published yet.')
+    expect(html).not.toContain('Not built yet')
+    expect(html).not.toContain('tr2.no-such-family</')
     expect(html).toMatch(/<button type="button" class="es-stub__pull"[^>]*disabled=""/)
   })
 
   test('a level the family offers no variant at says which levels it does', () => {
     const upper: Gen = toy({ id: 'tr2.upper', variants: [{ id: 'one', title: 'One', kcs: ['tr2.bubble'], levels: [2, 3] }], make: (seed, level, variant) => bubbleWidth.make(seed, level, 'close-it') && { variant, level, seed, kcs: ['tr2.bubble'], stem: [], givens: [], worked: [], answer: { kind: 'numeric', label: 'n', unit: 'tokens', truth: 1, tolerance: {} }, params: {} } })
     const html = render(h(ItemBlock, { block: block('tr2.upper', 0), scope: 'tr2.l3', families: [upper] }))
-    expect(html).toContain('has no items at level 0 (worked example)')
-    expect(html).toContain('levels it offers are 2, 3')
+    expect(html).toContain('There are no worked example questions on this topic yet.')
     expect(html).toContain('disabled=""')
   })
 })
@@ -91,14 +79,14 @@ describe('the first ticket of an attempt', () => {
   test('holds the seed it was drawn from, in the foot line and as data, and the question with its numbers', () => {
     expect(html).toContain('data-phase="asking"')
     expect(html).toContain(`data-seed="${first.seed}"`)
-    expect(html).toContain(`seed ${seedLabel(first.seed)}`)
-    expect(html).toContain('unseen')
+    expect(html).toContain(`Seed ${seedLabel(first.seed)}`)
+    expect(html).toContain('new numbers')
     expect(html).toContain('Question 1 of 3')
     expect(html).toContain(plain(first.item.stem).replace(/'/g, '&#x27;'))
     for (const given of first.item.givens) expect(html).toContain(given.label)
   })
 
-  test('takes the answer on a slip or on lines with a tick box, and three plates for how sure', () => {
+  test('takes the answer in a field or as radios, and three buttons for how sure', () => {
     if (first.item.answer.kind === 'numeric') {
       expect(html).toContain('class="es-field__input"')
       expect(html).toContain('inputMode="decimal"')
@@ -112,7 +100,7 @@ describe('the first ticket of an attempt', () => {
     expect(html).toMatch(/aria-labelledby="[^"]+"/)
   })
 
-  test('is lit: the heat lamp falls on the ticket that waits for an answer', () => {
+  test('is marked as the sheet the next decision acts on while it waits for an answer', () => {
     expect(html).toContain('data-lamp="true"')
   })
 
@@ -135,8 +123,8 @@ describe('the first ticket of an attempt', () => {
     const at = (text: string) => html.indexOf(text)
     expect(at('Question 1 of 3')).toBeLessThan(at(plain(first.item.stem).replace(/'/g, '&#x27;')))
     expect(at('es-item__givens')).toBeLessThan(at('How sure are you?'))
-    expect(at('How sure are you?')).toBeLessThan(at('seed '))
-    expect(at('seed ')).toBeLessThan(at('Check answer'))
+    expect(at('How sure are you?')).toBeLessThan(at('Seed '))
+    expect(at('Seed ')).toBeLessThan(at('Check answer'))
   })
 })
 

@@ -148,7 +148,8 @@ describe('who writes them', () => {
     expect(callers('useBookmark')).toEqual(['src/pages/Lesson.tsx'])
     // Every page that keeps the pointer opens the ledger to do it: Course and a module, through useProgress, and a lesson once it loads the
     // ledger after its first paint (R-T10).
-    expect(callers('useWayOn')).toEqual(['src/content/render/LessonLedger.tsx', 'src/progress/useProgress.ts'])
+    // Review keeps it too (R-T24): it is told how many reviews are due, which only it knows.
+    expect(callers('useWayOn')).toEqual(['src/content/render/LessonLedger.tsx', 'src/items/today/TodayView.tsx', 'src/progress/useProgress.ts'])
     expect(callers('useProgress')).toEqual(['src/pages/Map.tsx', 'src/pages/Module.tsx'])
     expect(code('src/progress/useWayOn.ts')).toMatch(/useEvidence\(\)/)
   })
