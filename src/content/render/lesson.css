@@ -820,8 +820,9 @@
 
 .es-sources {
   display: grid;
-  gap: var(--es-space-4);
-  max-width: var(--lesson-measure);
+  /* Two columns where the lesson's column is wide: a lesson with twenty claims would otherwise end in a page of sources. */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 26rem), 1fr));
+  gap: var(--es-space-4) var(--es-space-8);
   margin: 0;
   padding-inline-start: 2em;
   font-size: var(--es-size-note);

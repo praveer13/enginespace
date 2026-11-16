@@ -10,13 +10,13 @@ lanes: [B]
 games: [loop]
 ---
 
-The third lesson left nine fires on the small card with a dark stretch that overlap could not close. All nine admitted a ticket, and seven launched kernel by kernel, because no graph had been captured for their size. Their launch took longer than the forward it launched. This lesson is about that launch: what a CUDA graph is, why replaying one is cheap, why it works only for the shapes that were captured, what the padding that fixes the shapes costs, and the five modes in which vLLM captures. {{ks:T4.L3}} told you that decode is bandwidth-bound, so that a step costs the GPU about the same whether it carries one request or many. That makes the cost on the CPU side matter more, and a launch is the biggest of it.
+The third lesson left nine steps on the small card with a bubble that overlap could not close. All nine admitted a request, and seven launched kernel by kernel, because no graph had been captured for their size. Their launch took longer than the forward it launched. This lesson is about that launch: what a CUDA graph is, why replaying one is cheap, why it holds only for the shapes that were captured, what the padding costs, and the five modes in which vLLM captures. {{ks:T4.L3}} told you that decode is bandwidth-bound, so a step costs the GPU about the same with one request or many, and the CPU side matters more.
 
-## The comb
+## One launch for every kernel
 
-A forward pass is not one operation. It is a sequence of kernels, and an eager engine launches each of them from Python, one call at a time. The course's model gives a layer 12 kernels [estimated] and a launch 6 µs [estimated] of the CPU's time, which are round figures, and the small model has 28 layers [estimated]. A step then makes 336 calls [derived] and spends 2,016 µs [derived] of CPU time launching them. The GPU's own work for a step of 12 rows on that card is 1,225 µs [measured], from the `async` level's practice night, read on 2026-11-08 at `b5fb81a`, so the launching is longer than the computing. In the game that sequence is drawn as a comb, a tooth for each layer, and the expo calls each dish one by one. The model draws the whole launch before the forward starts. A real eager launch lets the GPU begin on the first kernels while the CPU is still launching the rest, so on a step with a long forward the model overstates what launching costs, and its card lists this among what it ignores.
+A forward pass is not one operation. It is a sequence of kernels, and an eager engine launches each of them from Python, one call at a time. The course's model gives a layer 12 kernels [estimated] and a launch 6 µs [estimated] of the CPU's time, which are round figures, and the small model has 28 layers [estimated]. A step then makes 336 calls [derived] and spends 2,016 µs [derived] of CPU time launching them. The GPU's own work for a step of 12 rows on that card is 1,225 µs [measured], from the `async` level's practice run, read on 2026-11-08 at `b5fb81a`, so the launching is longer than the computing. In the level's first stage that sequence is drawn as one launch for every kernel of every layer. The model draws the whole launch before the forward starts. A real eager launch lets the GPU begin on the first kernels while the CPU is still launching the rest, so on a step with a long forward the model overstates what launching costs, and its card lists this among what it ignores.
 
-A CUDA graph removes the comb. The GPU work is recorded once, as a graph of kernels with their arguments, and replayed later with much lower launch overhead. {{claim:sglang.cudagraph.blog-definition}} TensorRT-LLM's overview says it as a count: a sequence of CUDA operations captured as one graph can be launched with one API call. {{claim:trtllm.cudagraph.one-call}} vLLM's compile guide gives the purpose in a line: it applies CUDA graphs to reduce CPU overheads. {{claim:vllm.cudagraph.purpose}} And its note on CUDA graphs for the vision encoder says when the overhead hurts most: the overhead is more significant when the batch or the image is small, and the cure is to capture the forward pass at several sizes when the model is initialized and replay the right graph at run time. {{claim:vllm.cudagraph.encoder-overhead}}
+A CUDA graph removes those launches. The GPU work is recorded once, as a graph of kernels with their arguments, and replayed later with much lower launch overhead. {{claim:sglang.cudagraph.blog-definition}} TensorRT-LLM's overview says it as a count: a sequence of CUDA operations captured as one graph can be launched with one API call. {{claim:trtllm.cudagraph.one-call}} vLLM's compile guide gives the purpose in a line: it applies CUDA graphs to reduce CPU overheads. {{claim:vllm.cudagraph.purpose}} And its note on CUDA graphs for the vision encoder says when the overhead hurts most: the overhead is more significant when the batch or the image is small, and the cure is to capture the forward pass at several sizes when the model is initialized and replay the right graph at run time. {{claim:vllm.cudagraph.encoder-overhead}}
 
 :::figure
 src: figures/tr2/l5-comb.svg
@@ -25,9 +25,7 @@ description: Three rows on one time scale. The first has a tooth for each of the
 origin: generated
 :::
 
-There is a test for whether a forward is launch-bound, and it needs no profiler. Time the forward at several sizes of work. If the curve is flat across a wide range of sizes, the time is the launches and not the compute. SGLang's post on its graphs makes the point about prefill on gpt-oss-120b: every curve is flat across a range of prompt lengths, which it calls the signature of launch overhead rather than compute. {{claim:sglang.cudagraph.blog-flat-curve}}
-
-Commit to a number before you play.
+Commit to a number before you open the level.
 
 :::predict
 id: tr2.l5.p1
@@ -36,6 +34,8 @@ answer: { kind: numeric, unit: us, rel_tol: 0.02 }
 reveal: after-game
 kcs: [tr2.graph-replay]
 :::
+
+There is a test for whether a forward is launch-bound, and it needs no profiler. Time the forward at several sizes of work. If the curve is flat across a wide range of sizes, the time is the launches and not the compute. SGLang's post on its graphs makes the point about prefill on gpt-oss-120b: every curve is flat across a range of prompt lengths, which it calls the signature of launch overhead rather than compute. {{claim:sglang.cudagraph.blog-flat-curve}}
 
 ## Why a graph holds for some shapes only
 
@@ -51,6 +51,14 @@ Mini-SGLang's graph runner is a file of 171 lines [measured] at the commit 9a91c
 - **A condition.** A graph serves a decode batch no larger than the largest size, and anything else runs eagerly. {{claim:mini-sglang.graph.decode-only}}
 
 Copy in, replay, slice out. vLLM's version has more machinery around the same six, and the rest of the module reads it as such.
+
+Check what a step launches before you go on.
+
+:::item
+family: tr2.graph-hit
+level: 1
+count: 1
+:::
 
 :::card
 kind: isomorphism
@@ -111,9 +119,9 @@ A graph with N operations that cannot be captured splits into N+1 partitions, an
 
 Which mode runs is not always the mode you asked for. That is the sixth lesson's, with the memory that every mode takes.
 
-## Play the comb and the rack
+## Play the launches and the sizes
 
-Open the `graphs` level, "Drilled routines". It has three stages and `[` and `]` move between them. Play the first, `comb`, then the second, `sizes`, and leave the third to the next lesson. In the comb stage you serve the same night with no routine drilled and then with the default mode, and the tape counts the calls of a fire. In the sizes stage the rack holds only a few molds, the sizes the line has time to drill, and you pick them for a night of decode fires drawn from a histogram.
+Open the `graphs` level, "CUDA graphs: launches against replay". It has three stages and `[` and `]` move between them. Play the first, `comb`, then the second, `sizes`, and leave the third to the next lesson. In the first stage you serve the same run with no graph captured and then with the default mode, and the diagram counts the calls of a step. In the second stage the engine has room to capture only a few sizes, and you pick them for a run of decode steps drawn from a histogram.
 
 :::game
 id: loop
@@ -121,23 +129,23 @@ level: graphs
 mode: practice
 :::
 
-Here are the two stages on their practice seed, `0`, read on 2026-11-08 at `b5fb81a`. The comb stage is the small model's night, served with no graph and then with the default mode.
+Here are the two stages on their practice seed, `0`, read on 2026-11-08 at `b5fb81a`. The `comb` stage is the small model's run, served with no graph and then with the default mode.
 
-| The comb stage's night | No graph [measured] | The default mode [measured] |
+| The `comb` stage's run | No graph [measured] | The default mode [measured] |
 |---|---|---|
-| Calls to launch one steady fire | 336 | 1 |
+| Calls to launch one steady step | 336 | 1 |
 | Clock, µs | 140,123 | 79,375 |
 | Median time per output token, µs | 2,750 | 1,493 |
 | The GPU's idle time while the CPU worked, µs | 72,734 | 11,982 |
 
-The default mode removes 83.5% [derived] of the dark stretches, 45.7% [derived] of the median token and 43.4% [derived] of the night. The 11,982 µs [measured] that remain are the nine fires of the third lesson. The sizes stage is a different world: a night of 40 decode fires [estimated], drawn from a histogram whose batches are 7 to 11 rows [measured], with room for three molds [estimated].
+The default mode removes 83.5% [derived] of the bubbles, 45.7% [derived] of the median token and 43.4% [derived] of the run. The 11,982 µs [measured] that remain are the nine steps of the third lesson. The `sizes` stage is a different world: a run of 40 decode steps [estimated], drawn from a histogram whose batches are 7 to 11 rows [measured], with room to capture three sizes [estimated].
 
-| The sizes stage | The molds [measured] | Capture cost, µs [measured] |
+| The `sizes` stage | The captured sizes [measured] | Capture cost, µs [measured] |
 |---|---|---|
 | vLLM's own list cut to three | 1, 2, 4 | 79,440 |
 | The best three | 8, 9, 11 | 406 |
 
-The capture cost is the padded rows' time plus the time of the fires that no mold holds, which are launched one by one. Cutting the default list to its first three molds holds none of the 40 fires, because every batch is above 4 rows [measured], so each is a comb. The best three are close to the sizes the night has: they pad a batch of 7 up to 8 and a batch of 10 up to 11 [measured], and hold the rest exactly. The default list is good for a server that does not know its traffic. It is a bad one for a rack that is too small to hold it, and the best three are found by looking at every list of three.
+The capture cost is the padded rows' time plus the time of the steps that no captured size holds, which are launched one by one. Cutting the default list to its first three sizes holds none of the 40 steps, because every batch is above 4 rows [measured], so each is launched kernel by kernel. The best three are close to the sizes the run has: they pad a batch of 7 up to 8 and a batch of 10 up to 11 [measured], and hold the rest exactly. The default list is good for a server that does not know its traffic. It is a bad one when the room is too small to hold it, and the best three are found by looking at every list of three.
 
 :::item
 family: tr2.graph-hit
@@ -158,17 +166,11 @@ id: trace-room-steploop
 
 ## What the GPU will check
 
-The prediction this lesson makes about a real engine is tested in TR3's lab: its stage `s2` captures the same workload with the default `-O2` and with `-O0`, and the prediction you commit in the browser before it is scored against the receipt. That lab arrives with the grader, in W2 (D-039). Until then the comb and the ladder are the model's, with host figures that are [estimated].
-
-## What to carry
-
-- A replay launches a recorded sequence of kernels with one call, so it takes the launch work off the CPU. It does not shorten the kernels.
-- It holds only for the shapes that were captured, so an engine copies data into static buffers and pads a batch up to the next captured size. The padding is computed and wasted, and it hurts a small batch in proportion.
-- vLLM has five modes, three single and two pairs, and the default captures full graphs for uniform decode and piecewise graphs for the rest.
+The prediction this lesson makes about a real engine is tested in TR3's lab: its stage `s2` captures the same workload with the default `-O2` and with `-O0`, and the prediction you commit in the browser before it is scored against the receipt. That lab arrives with the grader. Until then the launches and the ladder of sizes are the model's, with host figures that are [estimated].
 
 ## Exit check
 
-This lesson tests three skills: saying what one graph replay saves over launching the same kernels one by one, and why it holds only for the shapes that were captured (`tr2.graph-replay`), working out the size a batch is padded to and what the padding wastes (`tr2.capture-padding`), and naming the modes an engine offers (`tr2.graph-modes`). The exit ticket is three items on fresh seeds, one on what a step launches, and two on the size a step is padded to or on the lists of sizes that waste the least. It is passed with at least two right, one of them numeric (ASSESSMENT §4.2). The skill with the modes is earned again by the graded `close` level at the end of the sixth lesson.
+This lesson tests three skills: saying what one graph replay saves over launching the same kernels one by one, and why it holds only for the shapes that were captured (`tr2.graph-replay`), working out the size a batch is padded to and what the padding wastes (`tr2.capture-padding`), and naming the modes an engine offers (`tr2.graph-modes`). The questions are three items on fresh seeds, one on what a step launches, and two on the size a step is padded to or on the lists of sizes that waste the least. Pass with at least two right, one of them numeric. The skill with the modes is earned again by the graded `close` level at the end of the sixth lesson.
 
 :::item
 family: tr2.graph-hit

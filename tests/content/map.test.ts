@@ -275,11 +275,12 @@ describe('the lessons table', () => {
     }
   })
 
-  test('the openers read from the shape of each file today: TR8 lesson 3 opens on a primer and a run, TR5a lesson 1 on a run (the reference lesson), and the rest on reading', () => {
+  test('the openers read from the shape of each file today: TR8 lesson 3 and TR2 lesson 4 open on a primer and a run, TR5a lesson 1 and TR2 lessons 1 and 3 on a run, and the rest on reading', () => {
     const openers = Object.fromEntries(realMap.lessons.map((row) => [row.id, row.opener]))
     expect(openers['tr8.l3']).toBe('primer')
     expect(openers['tr5a.l1']).toBe('run')
-    expect(Object.values(openers).filter((opener) => opener === 'read')).toHaveLength(25)
+    expect([openers['tr2.l1'], openers['tr2.l3'], openers['tr2.l4']]).toEqual(['run', 'run', 'primer'])
+    expect(Object.values(openers).filter((opener) => opener === 'read')).toHaveLength(22)
   })
 
   test('a lesson whose last part holds no question and no graded level has no Test, and the compiler warns', () => {

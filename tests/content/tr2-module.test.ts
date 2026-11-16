@@ -394,16 +394,20 @@ describe('what the lessons teach', () => {
   test('the lessons that name a GPU part say so under a heading of their own, and that part waits for the grader', () => {
     for (const { lesson, text } of lessons) {
       if (!headings(lesson).includes('What the GPU will check')) continue
-      expect([lesson.id, text.includes('(D-039)')]).toEqual([lesson.id, true])
+      // The section says what waits for the grader, in the engine's words: TR3's lab, and that nothing here measures the learner's GPU.
+      const section = text.slice(text.indexOf('## What the GPU will check'))
+      expect([lesson.id, /arrives with the grader|TR3/.test(section)]).toEqual([lesson.id, true])
+      expect([lesson.id, /D-0\d\d/.test(text)]).toEqual([lesson.id, false])
     }
     expect(lessons.filter((l) => headings(l.lesson).includes('What the GPU will check')).map((l) => l.lesson.id)).toEqual(['tr2.l3', 'tr2.l4', 'tr2.l5', 'tr2.l6', 'tr2.l7'])
   })
 })
 
-describe('the GPU part is announced and never faked (D-039)', () => {
+describe('the GPU part is announced and never faked', () => {
   test('the module page names the lab that tests TR2 on a GPU, which is TR3\'s, and says that it arrives with the grader', () => {
     expect(moduleText).toContain('Its predictions about a real engine are tested in TR3\'s lab, `tr3.profile`')
-    expect(moduleText).toContain('That lab arrives with the grader (W2, D-039).')
+    expect(moduleText).toContain('That lab arrives with the grader.')
+    expect(moduleText).not.toMatch(/D-0\d\d|W2/)
     expect(moduleText).toContain('TR2 has no GPU stage.')
   })
 
@@ -428,14 +432,15 @@ describe('the GPU part is announced and never faked (D-039)', () => {
     expect(module_.artifacts[0].title).toBe('The step-loop sim, toggled until the bubbles close')
   })
 
-  test('the module says that the level for dispatch keys waits for the owner, and does not play it (Q-10)', () => {
-    expect(moduleText).toContain('A level called `keys` is planned for the dispatch keys of the sixth lesson, and it is not open')
-    expect(moduleText).toContain('(Q-10)')
-    expect(lessonOf('tr2.l6').text).toContain('It is not open yet: it waits for the table of the pinned dispatchers\' own answers, which the owner has to produce (Q-10).')
+  test('the module says that there is no level for dispatch keys, because nobody has run the pinned dispatchers, and names no open question', () => {
+    expect(moduleText).toContain('There is no level for the dispatch keys of the sixth lesson')
+    expect(moduleText).not.toContain('Q-10')
+    expect(lessonOf('tr2.l6').text).toContain("The course has no level for this section's rule yet")
+    expect(lessonOf('tr2.l6').text).not.toContain('Q-10')
   })
 
-  test('the module says that only `close` is graded as built, so the two other graded bars of ASSESSMENT §9 are not in the game yet', () => {
-    expect(moduleText).toContain('As built, `close` is the graded level and `graphs` is a practice level')
+  test('the module says that only `close` is graded, and that `graphs` is a practice level', () => {
+    expect(moduleText).toContain('`graphs` is a practice level, so its stages `sizes` and `modes` are not graded')
     expect(LOOP.levels.find((level) => level.id === 'graphs')?.graded).toBe(false)
     expect(LOOP.levels.find((level) => level.id === 'close')?.graded).toBe(true)
   })
@@ -448,8 +453,8 @@ describe('the GPU part is announced and never faked (D-039)', () => {
         return null
       }
     })()
-    // The day the owner commits the table, the sixth lesson's wording about it is stale, and this test names it.
-    expect([fixture === null, lessonOf('tr2.l6').text.includes('it has not been committed (Q-10)')]).toEqual([true, true])
+    // The day someone commits the table, the sixth lesson's wording about it is stale, and this test names it.
+    expect([fixture === null, lessonOf('tr2.l6').text.includes('The pinned code\'s own answers have not been tabulated')]).toEqual([true, true])
   })
 })
 
@@ -660,7 +665,7 @@ describe('lesson 3: async scheduling closes the bubble, and costs a token', () =
       ['Clock, µs', (r) => fmt(r.clockUs)],
       ['Median time per output token, µs', (r) => fmt(r.tpotP50Us)],
       ['The GPU\'s idle time while the CPU worked, µs', (r) => fmt(r.bubbleUs)],
-      ['Fires with a dark stretch before them', (r) => `${r.darkFires} of ${r.fires}`],
+      ['Steps with a bubble before them', (r) => `${r.darkFires} of ${r.fires}`],
       ['Ghost tokens', (r) => fmt(r.ghostTokens)],
     ]
     for (const [name, cell] of rows) mentions('tr2.l3', name, `| ${name} | ${cell(big.off)} | ${cell(big.on)} | ${cell(small.off)} | ${cell(small.on)} |`)
@@ -668,8 +673,8 @@ describe('lesson 3: async scheduling closes the bubble, and costs a token', () =
 
   test('what overlap saves on each card, and what it leaves on the small one', () => {
     const pct = (before: number, after: number): string => fmt((100 * (before - after)) / before, 1)
-    mentions('tr2.l3', 'big card', `the median token is ${pct(big.off.tpotP50Us, big.on.tpotP50Us)}% faster [derived] and the night ${pct(big.off.clockUs, big.on.clockUs)}% shorter [derived]`)
-    mentions('tr2.l3', 'small card', `the night is ${pct(small.off.clockUs, small.on.clockUs)}% shorter [derived] and the median token ${pct(small.off.tpotP50Us, small.on.tpotP50Us)}% faster [derived]`)
+    mentions('tr2.l3', 'big card', `the median token is ${pct(big.off.tpotP50Us, big.on.tpotP50Us)}% faster [derived] and the run ${pct(big.off.clockUs, big.on.clockUs)}% shorter [derived]`)
+    mentions('tr2.l3', 'small card', `the run is ${pct(small.off.clockUs, small.on.clockUs)}% shorter [derived] and the median token ${pct(small.off.tpotP50Us, small.on.tpotP50Us)}% faster [derived]`)
     expect(big.on.bubbleUs).toBe(0)
     // About twelve times: the forward of the big card against the CPU's work.
     const fire = steadyFire('70b')
@@ -680,7 +685,7 @@ describe('lesson 3: async scheduling closes the bubble, and costs a token', () =
 
   test('the nine fires of the small card that still have a dark stretch: all admit a ticket, seven are launched one by one, two in pieces', () => {
     const dark = darkFires('small')
-    mentions('tr2.l3', 'nine of the fires', `${dark.length} of its ${small.on.fires} fires [measured] still have a dark stretch`)
+    mentions('tr2.l3', 'nine of the fires', `${dark.length} of its ${small.on.fires} steps [measured] still have a bubble before them`)
     expect(dark.every((fire) => fire.admits > 0)).toBe(true)
     expect(dark.filter((fire) => fire.mode === 'NONE').length).toBe(7)
     expect(dark.filter((fire) => fire.mode === 'PIECEWISE').length).toBe(2)
@@ -697,7 +702,7 @@ describe('lesson 3: async scheduling closes the bubble, and costs a token', () =
 
   test('the price: every ticket stops on EOS, so each of the 24 costs a ghost token, 4.6% of the rows the night computed', () => {
     const rowsComputed = small.on.usefulTokens + small.on.ghostTokens
-    mentions('tr2.l3', 'ghosts', `${fmt(small.on.ghostTokens)} of the ${fmt(rowsComputed)} rows [derived] that the night computed, or ${fmt((100 * small.on.ghostTokens) / rowsComputed, 1)}% [derived]`)
+    mentions('tr2.l3', 'ghosts', `${fmt(small.on.ghostTokens)} of the ${fmt(rowsComputed)} rows [derived] that the run computed, or ${fmt((100 * small.on.ghostTokens) / rowsComputed, 1)}% [derived]`)
     expect([big.on.ghostTokens, small.on.ghostTokens, big.off.ghostTokens, small.off.ghostTokens]).toEqual([24, 24, 0, 0])
   })
 })
@@ -746,7 +751,7 @@ describe('lesson 5: CUDA graphs', () => {
 
   test('the comb: 336 calls and 2,016 µs eagerly, 57 calls in pieces, 1 call as one graph, against a forward of 1,225 µs', () => {
     mentions('tr2.l5', 'the comb', `A step then makes ${fmt(c.eagerCalls)} calls [derived] and spends ${fmt(c.eagerLaunchUs)} µs [derived] of CPU time launching`)
-    mentions('tr2.l5', 'the forward', `${fmt(steadyFire('small').forwardUs)} µs [measured], from the \`async\` level's practice night`)
+    mentions('tr2.l5', 'the forward', `${fmt(steadyFire('small').forwardUs)} µs [measured], from the \`async\` level's practice run`)
     mentions('tr2.l5', 'the calls', `For the small model's 28 layers that is ${fmt(c.piecewiseCalls)} calls [measured], where an eager launch makes ${fmt(c.eagerCalls)} and a full graph makes 1 [measured]`)
     mentions('tr2.l5', 'the pieces', `The model counts it as ${c.layers + 1} replays and ${c.piecewiseCalls - c.layers - 1} attention launches [measured]`)
     expect([c.piecewiseCalls, c.fullLaunchUs]).toEqual([57, 30])
@@ -765,13 +770,13 @@ describe('lesson 5: CUDA graphs', () => {
 
   test('the comb stage and the sizes stage on their practice seed', () => {
     const night = combNight()
-    mentions('tr2.l5', 'calls', `| Calls to launch one steady fire | ${fmt(night.eagerCalls)} | ${fmt(night.graphCalls)} |`)
+    mentions('tr2.l5', 'calls', `| Calls to launch one steady step | ${fmt(night.eagerCalls)} | ${fmt(night.graphCalls)} |`)
     mentions('tr2.l5', 'clock', `| Clock, µs | ${fmt(night.eager.clockUs)} | ${fmt(night.graphs.clockUs)} |`)
     mentions('tr2.l5', 'tpot', `| Median time per output token, µs | ${fmt(night.eager.tpotP50Us)} | ${fmt(night.graphs.tpotP50Us)} |`)
     mentions('tr2.l5', 'idle', `| The GPU's idle time while the CPU worked, µs | ${fmt(night.eager.bubbleUs)} | ${fmt(night.graphs.bubbleUs)} |`)
     const cut = (before: number, after: number): string => fmt((100 * (before - after)) / before, 1)
-    mentions('tr2.l5', 'the cuts', `removes ${cut(night.eager.bubbleUs, night.graphs.bubbleUs)}% [derived] of the dark stretches, ${cut(night.eager.tpotP50Us, night.graphs.tpotP50Us)}% [derived] of the median token and ${cut(night.eager.clockUs, night.graphs.clockUs)}% [derived] of the night`)
-    mentions('tr2.l5', 'what remains', `The ${fmt(night.graphs.bubbleUs)} µs [measured] that remain are the nine fires of the third lesson`)
+    mentions('tr2.l5', 'the cuts', `removes ${cut(night.eager.bubbleUs, night.graphs.bubbleUs)}% [derived] of the bubbles, ${cut(night.eager.tpotP50Us, night.graphs.tpotP50Us)}% [derived] of the median token and ${cut(night.eager.clockUs, night.graphs.clockUs)}% [derived] of the run`)
+    mentions('tr2.l5', 'what remains', `The ${fmt(night.graphs.bubbleUs)} µs [measured] that remain are the nine steps of the third lesson`)
     const sizes = sizesNight()
     mentions('tr2.l5', 'naive molds', `| vLLM's own list cut to three | ${sizes.naiveMolds.join(', ')} | ${fmt(sizes.naiveCost)} |`)
     mentions('tr2.l5', 'best molds', `| The best three | ${sizes.houseMolds.join(', ')} | ${fmt(sizes.houseCost)} |`)
@@ -863,17 +868,17 @@ describe('lesson 6: dispatch keys, modes and memory', () => {
     const close = closePractice()
     expect(CLOSE_PRACTICE_SEED).toBe(16)
     expect([close.card, close.rail, close.budget]).toEqual(['small', 8, 128])
-    mentions('tr2.l6', 'the night', `on a rail of ${close.rail} clips [measured] with a budget of ${close.budget} tokens [measured], and the room is ${fmt(close.graphRoomMiB, 3)} MiB [measured]`)
-    mentions('tr2.l6', 'the naive night', `loses ${close.naiveDarkPercent}% [measured] of its clock to dark stretches: ${fmt(close.naiveDarkUs)} µs [measured] of ${fmt(close.naiveClockUs)} µs [measured]`)
-    mentions('tr2.l6', 'the house', `\`FULL\` graphs at the sizes ${close.houseSizes.join(' and ')} [measured]. Its night takes ${fmt(close.houseClockUs)} µs [measured] with no dark stretch, and its two graphs take ${fmt(close.graphRoomMiB, 3)} MiB [derived], the whole room`)
+    mentions('tr2.l6', 'the night', `on ${close.rail} batch slots [measured] with a budget of ${close.budget} tokens [measured], and the room is ${fmt(close.graphRoomMiB, 3)} MiB [measured]`)
+    mentions('tr2.l6', 'the naive night', `loses ${close.naiveDarkPercent}% [measured] of its clock to bubbles: ${fmt(close.naiveDarkUs)} µs [measured] of ${fmt(close.naiveClockUs)} µs [measured]`)
+    mentions('tr2.l6', 'the house', `\`FULL\` graphs at the sizes ${close.houseSizes.join(' and ')} [measured]. Its run takes ${fmt(close.houseClockUs)} µs [measured] with no bubble, and its two graphs take ${fmt(close.graphRoomMiB, 3)} MiB [derived], the whole room`)
     expect([close.houseMode, close.houseDarkUs, close.houseLevers.async, close.houseLevers.inputIds, close.houseLevers.runner]).toEqual(['FULL', 0, true, 'device', 'mrv2'])
     expect([close.naiveLevers.async, close.naiveLevers.inputIds, close.naiveLevers.runner, close.naiveLevers.graphMode]).toEqual([false, 'host', 'v1', 'NONE'])
     const refused = closeRefusals()
     expect(refused.defaultSizes).toEqual([1, 2, 4, 8, 16])
     expect(Object.values(refused.defaultSizesRefused)).toEqual([true, true, true, true])
     expect(refused.defaultModeAtHouseSizesRefused).toBe(true)
-    mentions('tr2.l6', 'the default sizes', `vLLM's default sizes for that rail are ${refused.defaultSizes.slice(0, 4).join(', ')} and ${refused.defaultSizes[4]} [derived], and the engine refuses to start in each of the four modes that use graphs`)
-    mentions('tr2.l6', 'the hand ids', `the night is served and has ${refused.handIdsViolations} dependency violations [measured]`)
+    mentions('tr2.l6', 'the default sizes', `vLLM's default sizes for those ${close.rail} slots are ${refused.defaultSizes.slice(0, 4).join(', ')} and ${refused.defaultSizes[4]} [derived], and the engine refuses to start in each of the four modes that use graphs`)
+    mentions('tr2.l6', 'the hand ids', `the run is served and has ${refused.handIdsViolations} dependency violations [measured]`)
     expect(refused.handIdsViolations).toBeGreaterThan(0)
   })
 })
