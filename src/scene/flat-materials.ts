@@ -20,7 +20,7 @@ import { roleColor } from './materials'
 /** A hollow or grooved box's rim, in world units [estimated]: about 1.5 px of the diagram. */
 export const FLAT_RIM = 0.015
 /** The contact shadow's darkest, and how far past a footprint it fades, in world units [estimated]. */
-export const SHADOW = { strength: 0.2, reach: 0.07 } as const
+export const SHADOW = { strength: 0.34, reach: 0.09 } as const
 /** Baked occlusion at a solid's foot, as a share of its colour [estimated]: the sides go from this at the foot to full at the top. */
 export const FOOT_SHADE = 0.66
 /** The dashes of a wire outline, in world units [estimated]: 4 px on, 3 px off, as the 2D diagram's dashed boxes. */
@@ -42,7 +42,7 @@ const UNTINTED = () => new Color(1, 1, 1)
 
 /** The forms and the baked occlusion, patched into the Lambert material's colour. */
 function patchSolid(material: MeshLambertMaterial) {
-  material.customProgramCacheKey = () => 'es-flat-solid-v1'
+  material.customProgramCacheKey = () => 'es-flat-solid-v2'
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uRim = { value: FLAT_RIM }
     shader.uniforms.uFoot = { value: FOOT_SHADE }
@@ -95,6 +95,13 @@ varying vec3 vBoxScale;`,
   if (axis.y < 0.5) diffuseColor.rgb *= mix(uFoot, 1.0, smoothstep(0.0, 0.9, vFaceUv.y));
 }`,
       )
+      // A solid's top is the diagram's own colour, as the 2D view fills it: unlit, so the code's colours do not drift; its sides take the
+      // light and the baked occlusion, which is where the depth reads.
+      .replace(
+        '#include <opaque_fragment>',
+        `if (abs(vFaceNormal.y) > 0.5) outgoingLight = diffuseColor.rgb;
+#include <opaque_fragment>`,
+      )
   }
 }
 
@@ -130,14 +137,16 @@ void main() {
 }
 
 export function createFlatMaterials(tokens: SceneTokens): FlatMaterials {
-  const solid = new MeshLambertMaterial({ name: 'flat-solid', color: UNTINTED(), flatShading: true, side: DoubleSide })
+  // Not tone-mapped: a top is the role's colour exactly (#237a37 is #237a37), and the lit sides stay matte.
+  const solid = new MeshLambertMaterial({ name: 'flat-solid', color: UNTINTED(), flatShading: true, side: DoubleSide, toneMapped: false })
   patchSolid(solid)
   const shadow = shadowMaterial(tokens)
   const wire = new LineDashedMaterial({ name: 'flat-wire', color: roleColor(tokens, 'edge'), dashSize: DASH.dash, gapSize: DASH.gap })
   const rule = new LineBasicMaterial({ name: 'flat-rule', color: roleColor(tokens, 'paper-rule') })
   const ink = new LineBasicMaterial({ name: 'flat-ink', color: roleColor(tokens, 'edge') })
-  const cursor = new MeshBasicMaterial({ name: 'flat-cursor', color: roleColor(tokens, 'lamp'), toneMapped: false })
-  const cursorEdge = new MeshBasicMaterial({ name: 'flat-cursor-edge', color: roleColor(tokens, 'lamp-ring'), toneMapped: false })
+  // The cursor's colour comes per instance, from its role (the marker, #ffb547, and its edge), so the material only multiplies it by white.
+  const cursor = new MeshBasicMaterial({ name: 'flat-cursor', color: UNTINTED(), toneMapped: false })
+  const cursorEdge = new MeshBasicMaterial({ name: 'flat-cursor-edge', color: UNTINTED(), toneMapped: false })
   const all = [solid, shadow, wire, rule, ink, cursor, cursorEdge]
   return {
     solid,

@@ -240,6 +240,11 @@
     padding-inline: var(--es-space-2);
   }
 
+  /* The 3D view waits for a layout a phone can read (REDESIGN §2.9: 2D on a phone): its switch is not drawn here. */
+  .es-front-strip__tools [role='group'] {
+    display: none;
+  }
+
   .es-front-strip__tools [role='group'] > span {
     position: absolute;
     width: 1px;
@@ -517,9 +522,21 @@
 }
 
 @media (max-width: 47.999rem) {
+  /* Step, Undo and Auto-step share one row, so the coach line under them is on the first screen (REDESIGN §3.1). */
+  .es-front-controls__row {
+    flex-wrap: nowrap;
+    gap: var(--es-space-1);
+  }
+
+  .es-front-controls__row > .es-button {
+    flex: none;
+    padding-inline: var(--es-space-2);
+  }
+
   .es-front-controls__step {
     position: relative;
-    flex: 1 1 9rem;
+    flex: 1 1 7rem;
+    min-width: 0;
   }
 
   .es-front-controls__step .es-stub,
@@ -529,8 +546,32 @@
     min-width: 0;
   }
 
-  .es-front-controls__step .es-button {
-    font-size: var(--es-size-note);
+  /* Step's reason may take two short lines inside the control's height, so Undo and Auto-step keep the row. */
+  .es-front-controls__step .es-button[data-size] {
+    padding-inline: var(--es-space-2);
+    font-size: var(--es-size-caption);
+    line-height: 1.15;
+    white-space: normal;
+  }
+
+  /* Step at the phone's control height, so the coach line under the dock is on the first screen. */
+  .es-front-controls__step .es-stub__pull,
+  .es-front-controls__step .es-button[data-size] {
+    min-height: 2.75rem;
+    padding-block: 0.125rem;
+  }
+
+  .es-front-dock {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .es-front-dock {
+    gap: var(--es-space-2);
+  }
+
+
+  .es-front-first {
+    padding-top: var(--es-space-2);
   }
 
   /* Step's disc sits on its corner, so the row keeps its room for Undo and Auto-step. */
@@ -662,8 +703,19 @@
     display: none;
   }
 
+  /* A tight coach line, so it lands on the phone's first screen under Step (REDESIGN §3.1). */
   .es-front-coach {
-    min-height: 4.5rem;
+    min-height: 0;
+    padding-block: var(--es-space-1);
+  }
+
+  .es-front-coach__buttons {
+    margin-top: 0;
+  }
+
+  /* The desk's first move and Skip intro are the phone's coach line's own: their row is not drawn. */
+  .es-front-coach__foot {
+    display: none;
   }
 }
 
@@ -688,10 +740,26 @@
 }
 
 .es-front-result__verdict {
-  font-family: var(--es-font-display);
+  font-family: var(--es-font-label);
   font-size: var(--es-size-title);
-  font-weight: var(--es-font-display-weight);
-  line-height: 1.1;
+  font-weight: var(--es-font-label-weight);
+  line-height: 1.2;
+}
+
+/* The display face is for titles only (REDESIGN §2.8): the verdict is a section head. A "Not yet." is the second ink. */
+.es-front-result__verdict[data-verdict='not-yet'] {
+  color: var(--es-paper-ink-2);
+}
+
+/* On a phone the way on comes straight under the verdict, so the next demo level is on the first screen with the diagram (P5). */
+@media (max-width: 47.999rem) {
+  .es-front-result__ways {
+    order: 1;
+  }
+
+  .es-front-result__sentence {
+    order: 2;
+  }
 }
 
 .es-front-result__ways {

@@ -205,7 +205,8 @@ describe('the diagram draws the engine\'s page pool (REDESIGN §2.9, §3.5)', ()
 
   test('the drawing is hidden from a reader, and the table lists it; its only inline styles are its custom properties', () => {
     expect(count(markup, /class="es-pool__grid" aria-hidden="true"/g)).toBe(1)
-    expect(count(markup, /class="es-pool__strip" aria-hidden="true"/g)).toBe(1)
+    // Two strips: the free queue, and the waiting queue the parts list's third part points at (build B's finish review).
+    expect(count(markup, /class="es-pool__strip" aria-hidden="true"/g)).toBe(2)
     for (const style of markup.match(/style="[^"]*"/g) ?? []) expect(style).toMatch(/^style="(--es-[a-z-]+:[^;"]+;?)+"$/)
   })
 

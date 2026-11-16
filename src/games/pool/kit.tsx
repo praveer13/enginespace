@@ -13,9 +13,9 @@ import { DockView } from './DockView'
 const ANCHORS: Readonly<Record<string, string>> = {
   pool: '[data-pool-grid] .es-pool__label',
   page: '[data-pool-legend] .es-legend, [data-pool-legend]',
-  waiting: '[data-ask-list="admit"]',
+  waiting: '[data-pool-waiting] .es-pool__label, [data-ask-list="admit"]',
   batch: '[data-pool-batch] .es-pool__label',
-  cost: '[data-pool-readout] [data-readout-id="recomputed"] dd, [data-pool-readout] [data-readout-id="cost"] dd',
+  cost: '[data-pool-readout] [data-readout-id="recomputed"], [data-pool-readout] [data-readout-id="cost"]',
   'free-queue': '[data-pool-queue] .es-pool__label',
   conversation: '[data-ask-list="admit"] .es-dock__option-meta',
   'kv-group': '[data-pool-legend] .es-pool__groups',

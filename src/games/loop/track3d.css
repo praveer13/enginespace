@@ -23,7 +23,7 @@
 
 @media (max-width: 63.999rem) and (min-height: 700px) {
   .es-frame[data-placement='page'] .es-track-stage {
-    height: max(9rem, calc(67svh - 21rem));
+    height: max(9rem, calc(67svh - 19.5rem));
   }
 }
 
@@ -41,9 +41,15 @@
   line-height: 1.2;
 }
 
-/* A row's name in the label column, and the axis's unit under it. */
+/* A row's name in the label column, and the axis's unit under it. A long name wraps inside the column as the 2D label does, so it never
+   runs over the first slab of its row, which the tilt brings closer to the column on the far rows. */
 .es-track-label--row {
   font-size: var(--es-size-caption);
+}
+
+.es-label.es-track-label--row {
+  max-width: 8.5rem;
+  white-space: normal;
 }
 
 .es-track-label--axis {

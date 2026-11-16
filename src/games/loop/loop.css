@@ -329,15 +329,33 @@ button.es-lanes__chip:disabled {
   stroke-width: 1;
 }
 
-.es-lanes__dim-slip {
-  fill: var(--es-paper);
-  stroke: var(--es-edge);
-  stroke-width: 1;
-}
-
 .es-lanes__dim-text {
   fill: var(--es-paper-ink);
   font-weight: 700;
+  paint-order: stroke;
+  stroke: var(--es-paper);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+/* A slab's glyph, in the ink that reads on its colour. */
+.es-lanes__slab-glyph[data-on='blue'] {
+  fill: var(--es-cat-blue-ink);
+}
+
+.es-lanes__slab-glyph[data-on='green'] {
+  fill: var(--es-cat-green-ink);
+}
+
+.es-lanes__slab-glyph[data-on='yellow'] {
+  fill: var(--es-cat-yellow-ink);
+}
+
+/* On a ghost token's hatch, the glyph is drawn in the code's own green, with its edge. */
+.es-lanes__slab-glyph[data-on='paper'] {
+  fill: var(--es-lane-gpu);
+  stroke: var(--es-cat-green-edge);
+  stroke-width: 2;
 }
 
 /* The plot: the SVG, and now's cursor laid over it (the marker's own, carrier 2 of the One Marker Rule). */
@@ -546,5 +564,95 @@ button.es-lanes__chip:disabled {
 
   .es-loopstrip__list {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------ the debrief */
+
+/*
+ * The result in the dock (REDESIGN §2.6): the verdict in the section heads' face, one sentence, and the one amber control, flat on the
+ * dock's paper. On a page at a desk they stay at the dock's head while the counters and the rest scroll under them; on a phone the way on
+ * comes straight under the verdict, so the pinned dock shows both (P5). Prose keeps to the reading measure.
+ */
+.es-loopdebrief {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-4);
+  max-width: 75ch;
+}
+
+.es-loopdebrief__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-2);
+}
+
+.es-loopdebrief__verdict {
+  margin: 0;
+  font-family: var(--es-font-label);
+  font-size: var(--es-size-title);
+  font-weight: var(--es-font-label-weight);
+  line-height: 1.2;
+  outline: none;
+}
+
+.es-loopdebrief__verdict[data-verdict='not-yet'] {
+  color: var(--es-paper-ink-2);
+}
+
+.es-loopdebrief__verdict:focus-visible {
+  outline: 3px solid var(--es-text-1);
+  outline-offset: 2px;
+}
+
+.es-loopdebrief__sentence {
+  margin: 0;
+  font-size: var(--es-size-note);
+  line-height: 1.45;
+}
+
+.es-loopdebrief__ways {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2);
+}
+
+/* A stub measures no width from its words (its container query), so its box is given one. */
+.es-loopdebrief__ways .es-stub {
+  flex: 1 1 15rem;
+  max-width: 24rem;
+}
+
+.es-loopdebrief__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-4);
+  font-size: var(--es-size-note);
+  line-height: 1.45;
+}
+
+.es-loopdebrief__body p {
+  margin: 0;
+}
+
+@media (min-width: 64rem) {
+  .es-frame[data-placement='page'] .es-loopdebrief__head {
+    position: sticky;
+    z-index: 2;
+    top: calc(-1 * var(--es-space-3));
+    margin-top: calc(-1 * var(--es-space-3));
+    padding-block: var(--es-space-3);
+    border-bottom: 1px solid var(--es-paper-rule);
+    background: var(--es-paper);
+  }
+}
+
+@media (max-width: 63.999rem) {
+  .es-loopdebrief__ways {
+    order: 1;
+  }
+
+  .es-loopdebrief__sentence {
+    order: 2;
   }
 }

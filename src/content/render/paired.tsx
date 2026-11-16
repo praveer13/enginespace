@@ -4,6 +4,7 @@ import type { LessonGuess } from '@/games/kit/lessonGuess'
 import type { Of } from './BlockFrame'
 import { commitPrediction, usePrediction } from './predicted'
 import { SurePlates } from './Sure'
+import { Tagged } from './Tagged'
 import { latestSeq } from './runs'
 
 type PredictBlock = Of<'predict'>
@@ -17,7 +18,7 @@ export function usePairedGuess(block: PredictBlock | undefined, scope: string): 
   const [conf, setConf] = useState<Confidence | null>(null)
   if (block === undefined || state.committed !== null) return null
   return {
-    ask: block.prompt,
+    ask: <Tagged text={block.prompt} />,
     sure: <SurePlates value={conf} onChange={setConf} />,
     commit: (value) => {
       commitPrediction(scope, block.id, { value, conf, after: latestSeq() })

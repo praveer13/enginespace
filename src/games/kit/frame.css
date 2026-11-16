@@ -103,6 +103,18 @@
   gap: var(--es-space-1) var(--es-space-2);
 }
 
+/* On a phone the reason 3D is not on offer is said to a reader only (the disabled 3D button points at it), so the tools keep one row. */
+@media (max-width: 63.999rem) {
+  .es-frame__tools [role='group'] > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
 /* The Parts and How to play sheets open under their buttons, over the page, and never wider than the screen. */
 .es-frame__tool .es-pop__panel {
   z-index: 30;
@@ -122,9 +134,14 @@
 }
 
 @media (min-width: 64rem) {
+  /* The title keeps its one line: its column is as wide as the title, the level menu takes what it can, and the tools stand at the right. */
   .es-frame__strip {
-    grid-template-columns: minmax(0, 1fr) minmax(18rem, 26rem) auto;
+    grid-template-columns: auto minmax(16rem, 26rem) minmax(0, 1fr);
     column-gap: var(--es-space-6);
+  }
+
+  .es-frame__title {
+    white-space: nowrap;
   }
 
   .es-frame__crumb {
@@ -146,6 +163,37 @@
   .es-frame__howto-keys {
     display: none;
   }
+
+  /*
+   * Inside a lesson the column is narrower than a page, so the strip takes the phone's arrangement: the title and its role line on one
+   * line, the level's words under them, and the tools at the right of both. The instrument starts high enough that its first control is
+   * on the first screen (P3).
+   */
+  .es-frame[data-placement='embed'] .es-frame__strip {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'name tools'
+      'menu tools';
+    row-gap: var(--es-space-1);
+  }
+
+  .es-frame[data-placement='embed'] .es-frame__name {
+    display: flex;
+    grid-area: name;
+  }
+
+  .es-frame[data-placement='embed'] .es-frame__role {
+    margin: 0;
+  }
+
+  .es-frame[data-placement='embed'] .es-frame__menu {
+    grid-area: menu;
+  }
+
+  .es-frame[data-placement='embed'] .es-frame__tools {
+    grid-area: tools;
+    align-self: center;
+  }
 }
 
 /* ------------------------------------------------------------------------------------------------ the goal line */
@@ -159,7 +207,7 @@
 }
 
 .es-frame__goal.es-goal {
-  max-width: 112ch;
+  max-width: 75ch;
 }
 
 .es-frame__goal-more {
@@ -282,6 +330,13 @@
     height: clamp(26rem, 100svh - 23.5rem, 44rem);
   }
 
+  /* During the first run the parts list is read whole: the row takes the room down to the readout's foot, and the foot strip waits under
+     the fold until the intro ends (P5 holds the diagram, the control and the readout, which stay in view). In the diagram only: a 3D
+     stage keeps the box it was mounted in, so its box never changes under it. */
+  .es-frame[data-placement='page'][data-intro][data-view='2d'] .es-frame__body {
+    height: clamp(26rem, 100svh - 17.5rem, 46rem);
+  }
+
   .es-frame[data-placement='page'] .es-frame__diagram {
     overflow: hidden;
   }
@@ -327,7 +382,7 @@
   /* Room for the whole page grid at 390 x 844, three rows of pages under the batch and the free queue [estimated]: the strip, the goal
      line and the pinned dock take the rest. */
   .es-frame[data-placement='page'] .es-frame__view {
-    max-height: calc(67svh - 21rem);
+    max-height: calc(67svh - 19.5rem);
     min-height: 9rem;
     overflow: auto;
   }
@@ -402,25 +457,31 @@
 }
 
 /*
- * A named moment (REDESIGN §2.6): one line beside the object it names, on paper with an ink edge, lifted over the drawing. It takes no
- * press and goes with the next action. It comes in on the quick duration, and under reduced motion it is drawn at once.
+ * A named moment (REDESIGN §2.6): the rule just felt, named once at the head of the dock, beside the drawing and never over it. A slip of
+ * paper with an ink edge; it takes no press and goes with the next action. It comes in on the quick duration, and under reduced motion it
+ * is drawn at once.
  */
 .es-frame__moment {
-  position: absolute;
-  z-index: 16;
-  max-width: min(22rem, calc(100% - 1rem));
-  margin: 0;
+  max-width: 75ch;
+  margin: 0 0 var(--es-space-3);
   padding: var(--es-space-2) var(--es-space-3);
   border: 1px solid var(--es-paper-ink);
   border-radius: var(--es-radius-paper);
   background: var(--es-paper);
-  box-shadow: var(--es-shadow-lift);
   color: var(--es-paper-ink);
   font-size: var(--es-size-note);
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.4;
-  pointer-events: none;
   animation: es-moment-in var(--es-dur-quick) var(--es-ease-settle) both;
+}
+
+/* A phone's pinned dock is short: the moment is its coach line, one tight slip over the decision. */
+@media (max-width: 63.999rem) {
+  .es-frame__moment {
+    margin-bottom: var(--es-space-2);
+    padding: var(--es-space-1) var(--es-space-2);
+    font-size: var(--es-size-caption);
+  }
 }
 
 @keyframes es-moment-in {

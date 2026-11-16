@@ -29,7 +29,7 @@ import { LONG_NIGHT_FIRES, specimenRun } from '@/scene/specimen-layout'
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /** How far each kind of mark stands off the paper, in the diagram's px [estimated, set by eye in Lifted]. */
-export const RISE = { cpu: 14, slot: 9, chip: 6, wire: 9, cursor: 40, plate: 10 } as const
+export const RISE = { cpu: 18, slot: 13, chip: 6, wire: 13, cursor: 26, plate: 10 } as const
 
 /** The figure's padding round the lanes, in px: the 2D view's (View2D.tsx), so the Side camera puts a tick where the 2D view does. */
 export const PAD = { desk: 12, phone: 8 } as const
@@ -205,12 +205,56 @@ export function trackGeometry(canvasWidth: number): { geometry: LaneGeometry; pa
   return { geometry: fitGeometry(base, Math.max(canvasWidth - pad * 2, base.labelWidth + 1)), pad, narrow }
 }
 
-/** The learner's run on the demo levels as the 3D track: the 2D view's diagram, at the 2D view's geometry for a canvas this wide. */
-export function demoTrack(source: LaneSource, canvasWidth: number): FlatModel {
+/**
+ * The learner's run on the demo levels as the 3D track: the 2D view's diagram, at the 2D view's geometry for a canvas this wide.
+ *
+ * With `reference`, the reference run's tokens up to the learner's now stand on the same plate as ink outlines at a token's height (REDESIGN
+ * §2.6, "you against the reference, drawn"): where the learner's slab fills one, the outline is inside the solid and does not show; where
+ * the learner left a slot empty or a step late, the hollow box stands in the gap. That is the job depth does here.
+ */
+export function demoTrack(source: LaneSource, canvasWidth: number, reference?: LaneSource): FlatModel {
   const { geometry, pad, narrow } = trackGeometry(canvasWidth)
   const layout = laneLayout(source, geometry)
   const marks = diagramModel(layout, { x: pad, z: pad, narrow })
-  return { ...marks, plates: platesOf(marks.bounds, pad) }
+  const outlines = reference === undefined ? [] : referenceOutlines(laneLayout(referenceUntil(reference, source.clockUs), geometry), pad)
+  return {
+    ...marks,
+    inks: [...marks.inks, ...outlines],
+    labels: outlines.length === 0 ? marks.labels : [...marks.labels, { id: 'reference', at: [marks.bounds.x0, 0, marks.bounds.z1 + pad * 2], text: REFERENCE_WORDS, kind: 'caption', place: 'right', minWidth: NARROW }],
+    plates: platesOf(marks.bounds, pad),
+  }
+}
+
+/** What the outlines are, in the caption under the plate. */
+export const REFERENCE_WORDS = 'Outlines: the reference run’s tokens by now'
+
+/** The reference run as far as the learner's now: its forwards and calls cut at that clock, with nothing waiting and nothing to admit. */
+export function referenceUntil(reference: LaneSource, untilUs: Us): LaneSource {
+  return {
+    ...reference,
+    clockUs: untilUs,
+    waiting: [],
+    cpu: [],
+    fires: reference.fires.filter((fire) => fire.startUs < untilUs).map((fire) => ({ ...fire, endUs: Math.min(fire.endUs, untilUs) })),
+  }
+}
+
+/** A token slab's outline at a slab's height: the four edges of its top and its four uprights, in the ink's solid line. */
+function referenceOutlines(layout: LaneLayout, pad: number): FlatSegment[] {
+  const out: FlatSegment[] = []
+  const y = RISE.slot
+  for (const slab of layout.slabs) {
+    if (slab.row === 'cpu' || slab.use !== 'token') continue
+    const x0 = pad + slab.x + 1.5
+    const x1 = pad + slab.x + slab.width - 1.5
+    const inset = Math.min(2, slab.height / 6) + 1
+    const z0 = pad + slab.y + inset
+    const z1 = pad + slab.y + slab.height - inset
+    if (x1 <= x0 || z1 <= z0) continue
+    out.push({ x0, z0, x1, z1: z0, y }, { x0: x1, z0, x1, z1, y }, { x0: x1, z0: z1, x1: x0, z1, y }, { x0, z0: z1, x1: x0, z1: z0, y })
+    out.push({ x0, z0: z1, x1, z1, y: 0.5 })
+  }
+  return out
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */

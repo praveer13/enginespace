@@ -140,8 +140,8 @@ describe('StationLight and Bell', () => {
   test('a station names its lane with a category mark beside its name, lit or dark, and never in its lens', () => {
     for (const lit of [true, false]) {
       const html = render(h(StationLight, { lit, lane: 'gpu', label: 'The line' }))
-      // The line is the GPU lane, and the GPU lane is the green board, whose glyph is a square.
-      expect(html).toContain('data-glyph="square"')
+      // The line is the GPU lane, and the GPU lane is green, whose glyph is the hexagon (REDESIGN §2.8, the one colour code).
+      expect(html).toContain('data-glyph="hexagon"')
       expect(html).toContain('color:var(--es-cat-green)')
       expect(html).toContain('data-lane="gpu"')
       expect(html).toMatch(/<span class="es-station__label"><svg[^>]*class="es-station__lane"[^>]*>.*<\/svg>The line<\/span>/)

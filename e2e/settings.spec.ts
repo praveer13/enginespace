@@ -547,6 +547,8 @@ test.describe('settings reach the game shell', () => {
   })
 
   test('with 3D off, a game opens in its 2D view, says why beside the disabled 3D button, shows no camera buttons and fetches no 3D chunk, and 3D on offers the 3D view again', async ({ page, context, requests }) => {
+    // At a desk's width: on a phone the step loop withholds its 3D switch until the time track has a phone layout (build B's finish review).
+    await page.setViewportSize({ width: 1280, height: 800 })
     await open(page, '/settings')
     await switchNamed(page, 'Draw the games in 3D').click()
     await expect.poll(() => settingsRecord(page)).toEqual({ 'settings:3d': false })

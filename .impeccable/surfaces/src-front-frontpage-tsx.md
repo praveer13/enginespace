@@ -46,6 +46,7 @@ FIRST VIEWPORT:
 
 FORM:
 - **Chosen form:** Data Book, the visual world of wave R's brief ("You Are Here", `docs/REDESIGN.md`), which replaces The Pass (D-047) if the owner confirms it at the look gate. No concept roll was dealt for it; the brief's judges, directions and review chose it (REDESIGN §2.2).
+- **Seed:** none. Data Book has no seed reference, because no concept roll was dealt for it, and nothing corroborates one. This is a disclosed deviation from impeccable's direction round, kept in front of the owner at the look gate (R-T20): the owner accepts the brief's choice in place of a roll, or asks for a roll to be dealt and recorded here before DESIGN.md is written. The Pass's seed below belongs to The Pass and is not Data Book's.
 - **Signature interaction:** put a waiting request into a slot (tap it, drag it or press its key), then Step. The step draws its slabs across the lanes, the readout steps to its new value with its delta, and the first time the rule is felt it is named once beside the drawing: a step costs the GPU about the same for one request as for four.
 - **The authored moment:** on demo level 3, async scheduling goes on and the dashed idle boxes on the GPU rows close.
 - **Motion grammar:** things move on an action and are still between actions; 120 ms for the hand, 240 ms for a step and 640 ms for the one authored moment, and every duration is 0 under reduced motion.

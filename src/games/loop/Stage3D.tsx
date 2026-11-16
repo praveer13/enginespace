@@ -1,4 +1,5 @@
-import { useCallback, useEffect, type ComponentType, type MutableRefObject, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, type ComponentType, type MutableRefObject, type ReactNode } from 'react'
+import { loopGhost, loopLevel, loopView } from '@es/play/loop/session'
 import { CameraButtons } from '@/scene/CameraButtons'
 import { Stage } from '@/scene/Stage'
 import type { Scene3DProps } from './Scene3D'
@@ -35,7 +36,9 @@ export default function LoopStage3D({ run, preset, scene, diagram }: LoopStage3D
     },
     [dispatch, view.canHang, view.waiting],
   )
-  return <Stage id="loop" className={`${STAGE_BOX} border border-edge`} view2d={diagram} scene={scene} sceneProps={{ view, preset: shown(preset), onHang }} announce={run.announce} />
+  // The reference run of this level and seed, played to its end once: the scene draws its tokens up to the learner's now.
+  const reference = useMemo(() => loopView(loopGhost(loopLevel(view.level, run.seed))), [view.level, run.seed])
+  return <Stage id="loop" className={`${STAGE_BOX} border border-edge`} view2d={diagram} scene={scene} sceneProps={{ view, preset: shown(preset), onHang, reference }} announce={run.announce} />
 }
 
 /** The camera's presets, a button each; and `C`, through `cycle`, steps to the next and says which. */

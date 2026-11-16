@@ -29,7 +29,7 @@ export function ReadoutStrip({ view }: { view: PoolView }) {
       </div>
       <dl className="es-strip__list">
         {items.map((item) => (
-          <div key={item.id} className="es-strip__item" data-readout-id={item.id}>
+          <div key={item.id} className="es-strip__item" data-readout-id={item.id} data-callout-above="">
             <dt className="es-strip__label">{item.label}</dt>
             <dd className="es-strip__value font-numeric">
               {item.value}

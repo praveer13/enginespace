@@ -233,6 +233,7 @@ function DemoLevel({ levelId, levelTitle, seed, embedded, rev, onFinish, menu, n
       modeSwitch={<span className="text-text-2">Practice: fixed numbers, undo allowed. Ticks are the model&apos;s, synthetic.</span>}
       allow3d={scene.allow3d}
       unavailable3d={scene.unavailable3d}
+      phone3d={false}
       view={view}
       onViewChange={scene.onView}
       onCommand={(command, run) => {

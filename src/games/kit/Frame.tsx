@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useId, useMemo, useRef, useState, type ComponentType, type ReactNode, type RefObject } from 'react'
+import { lazy, Suspense, useEffect, useId, useMemo, useRef, useState, type ComponentType, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { drawInBand, keymapOf } from '@es/play'
 import type { GameAction, GameFace, GameMode, KeyBinding, RunResult, Session } from '@es/play'
@@ -16,10 +16,11 @@ import { focusIsLost } from './focus'
 import type { IntroCoachProps } from './Intro'
 import type { KeysDialogProps } from './KeysDialog'
 import { LiveRegion } from './LiveRegion'
-import { boxIn, momentAt, useMeasure, type Named } from './moments'
+import { momentAt, type Named } from './moments'
 import { nextTouch, publishRun, retireRun, useRunPlace, type LiveRun } from './RunContext'
 import { useGameInput } from './useGameInput'
 import { useRun, type RunCore, type RunOutcome } from './useRun'
+import { usePhone } from './usePhone'
 import { ViewSwitch, type GameView } from './ViewSwitch'
 import './frame.css'
 
@@ -101,6 +102,8 @@ export interface FrameProps<Level, State, Action extends GameAction, View, Score
   /** Whether the tier and the browser allow 3D. The learner's setting ("3D off") is read here too. */
   allow3d?: boolean
   unavailable3d?: string
+  /** Whether the 3D view is offered on a phone. Where its scene has no legible layout at a phone's width, the switch is withheld there. */
+  phone3d?: boolean
   view?: GameView
   onViewChange?: (view: GameView) => void
   onFinish?: (result: RunResult, mode: GameMode) => void
@@ -225,7 +228,9 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
 
   // The learner's settings reach the game through the frame: 3D off turns the 3D view off, and the keys setting turns the keys off.
   const limits = shellLimits(useSettings(), props)
-  const can3d = game.has3d && props.scene3d !== undefined && limits.allow3d
+  const phone = usePhone()
+  const withheld = props.phone3d === false && phone
+  const can3d = game.has3d && props.scene3d !== undefined && limits.allow3d && !withheld
   const view: GameView = can3d ? (props.view ?? chosenView) : '2d'
 
   const swapAsked = useRef(false)
@@ -424,7 +429,7 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
           )}
         </div>
         <div className="es-frame__tools">
-          {game.has3d ? (
+          {game.has3d && !withheld ? (
             <ViewSwitch view={view} onViewChange={switchView} available3d={can3d} unavailableReason={limits.unavailable3d} labels={{ flat: 'Diagram', depth: '3D' }} />
           ) : null}
           <Popover trigger="Parts" title={`Parts of the ${game.title}`} className="es-frame__tool">
@@ -519,6 +524,8 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
                     )}
                   </Suspense>
                 ) : null}
+                {/* A named moment, said once, in the dock beside the drawing it names, so the drawing stays in view (REDESIGN §2.6). */}
+                {moment === null ? null : <MomentNote moment={moment} />}
                 {props.dock(api)}
               </>
             ) : (
@@ -563,7 +570,6 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
           <IntroCallouts host={container} parts={intro.parts.slice(0, MAX_CALLOUTS)} partAt={intro.partAt} embedded={embedded} />
         </Suspense>
       ) : null}
-      {moment === null ? null : <MomentNote host={container} moment={moment} />}
       <p className="sr-only" role="status" data-live="moment">
         {moment?.line ?? ''}
       </p>
@@ -574,35 +580,13 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
 }
 
 /**
- * A named moment, beside its object: under the object's box where it is drawn and in view, else at the top of the drawing. It takes no press,
- * so it never stands between the learner and a control, and it goes with the next action. Its words are said in the moment's status line.
+ * A named moment (REDESIGN §2.6): the rule the last action made felt, named once, at the head of the dock beside the drawing: on the coach
+ * strip at a desk, and on the coach line of a phone's pinned dock. It never lies over the diagram, so the gap or the slabs it names stay in
+ * view. It takes no press and goes with the next action; its words are said in the moment's status line.
  */
-function MomentNote({ host, moment }: { host: RefObject<HTMLElement | null>; moment: Named }) {
-  const [at, setAt] = useState<{ top: number; left: number } | null>(null)
-  const note = useRef<HTMLParagraphElement>(null)
-  useMeasure(host, () => {
-    const frame = host.current
-    if (frame === null) return
-    const drawing = frame.querySelector('[data-frame-diagram]')
-    const target = moment.anchor === null ? null : frame.querySelector(moment.anchor)
-    const room = drawing === null ? null : boxIn(frame, drawing)
-    let place = room === null ? { top: 0, left: 0 } : { top: room.top + 8, left: room.left + 8 }
-    if (target !== null) {
-      const box = boxIn(frame, target)
-      const clip = target.closest('.es-frame__view, .es-frame__dock-main')
-      const edge = clip === null ? null : boxIn(frame, clip)
-      const inView = box.height > 0 && (edge === null || (box.top >= edge.top - 4 && box.top + box.height <= edge.top + edge.height + 4))
-      // Beside the object where the row has room for the note, so it covers what is next to the object and not the object's own pages;
-      // else under it.
-      const wide = note.current?.offsetWidth ?? 352
-      if (inView) place = box.left + box.width + 8 + wide <= frame.clientWidth - 8 ? { top: box.top, left: box.left + box.width + 8 } : { top: box.top + box.height + 6, left: box.left }
-    }
-    const width = frame.clientWidth
-    const left = Math.max(8, Math.min(place.left, width - Math.min(note.current?.offsetWidth ?? 352, width - 16) - 8))
-    setAt((now) => (now !== null && now.top === place.top && now.left === left ? now : { top: place.top, left }))
-  }, [moment])
+function MomentNote({ moment }: { moment: Named }) {
   return (
-    <p ref={note} className="es-frame__moment" aria-hidden="true" data-moment={moment.id} style={at === null ? { visibility: 'hidden' } : { top: `${at.top}px`, left: `${at.left}px` }}>
+    <p className="es-frame__moment" aria-hidden="true" data-moment={moment.id}>
       {moment.line}
     </p>
   )

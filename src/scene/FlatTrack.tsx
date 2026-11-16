@@ -96,7 +96,7 @@ function Boxes({ boxes, material, name, onPick, forms = false }: { boxes: readon
 function Shadows({ boxes, material }: { boxes: readonly FlatBox[]; material: Material }) {
   const kit = useKit()
   const footprints = useMemo<FlatBox[]>(() => {
-    const reach = 7
+    const reach = 9
     return boxes
       .filter((box) => box.shadow !== false)
       .map((box) => ({ ...box, x0: box.x0 - reach, x1: box.x1 + reach, z0: box.z0 - reach, z1: box.z1 + reach, y0: box.y0 ?? 0, height: 0 }))
@@ -157,8 +157,9 @@ function wireSegments(wires: readonly FlatBox[]): FlatSegment[] {
 
 /** The now cursor: an amber sheet standing on its edge, in a strip of the marker's dark edge on the paper. */
 function Cursors({ cursors, materials }: { cursors: readonly FlatCursor[]; materials: FlatMaterials }) {
-  const sheets = useMemo<FlatBox[]>(() => cursors.map((c) => ({ id: c.id, x0: c.x - 1, x1: c.x + 1, z0: c.z0, z1: c.z1, height: c.height, role: 'lamp', form: 'solid', shadow: false })), [cursors])
-  const edges = useMemo<FlatBox[]>(() => cursors.map((c) => ({ id: c.id, x0: c.x - 2.5, x1: c.x + 2.5, z0: c.z0 - 1, z1: c.z1 + 1, height: 0.6, role: 'lamp-ring', form: 'solid', shadow: false })), [cursors])
+  // A thin sheet: 2 px of the marker, the 2D cursor's width, on a 1 px strip of its edge each side.
+  const sheets = useMemo<FlatBox[]>(() => cursors.map((c) => ({ id: c.id, x0: c.x - 0.75, x1: c.x + 0.75, z0: c.z0, z1: c.z1, height: c.height, role: 'lamp', form: 'solid', shadow: false })), [cursors])
+  const edges = useMemo<FlatBox[]>(() => cursors.map((c) => ({ id: c.id, x0: c.x - 1.75, x1: c.x + 1.75, z0: c.z0 - 1, z1: c.z1 + 1, height: 0.6, role: 'lamp-ring', form: 'solid', shadow: false })), [cursors])
   return (
     <>
       <Boxes boxes={edges} material={materials.cursorEdge} name="cursor-edge" />

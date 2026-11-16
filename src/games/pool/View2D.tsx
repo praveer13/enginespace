@@ -193,7 +193,40 @@ export function View2D({ run, dump, pointed, pick = true }: DiagramProps) {
           {order.length === 0 ? <li className="es-pool__free-run">empty: every page is in use</li> : null}
         </ol>
       </section>
+      <Waiting view={view} />
     </div>
+  )
+}
+
+/** The waiting queue shows this many requests, and counts the rest [estimated: one row at a desk]. */
+const WAITING_SHOWN = 12
+
+/**
+ * The waiting queue, as the drawing names it: the requests not yet admitted, in the order they wait, so the parts list's third part has its
+ * object on the drawing. The dock's list is where one is admitted; this row takes no press. At a desk only: on a phone the dock's list is on
+ * the screen with the grid, and the grid keeps the room.
+ */
+function Waiting({ view }: { view: PoolView }) {
+  const shown = view.waiting.slice(0, WAITING_SHOWN)
+  return (
+    <section className="es-pool__waiting" aria-label="Waiting queue" data-pool-waiting="">
+      <h3 className="es-pool__label">
+        <PartName id="waiting" /> <span className="es-pool__count">admit one each step it fits, in the dock</span>
+      </h3>
+      <ol className="es-pool__strip" aria-hidden="true">
+        {shown.map((id) => (
+          <li key={id} className="es-pool__wait" data-req={id}>
+            {reqName(id)}
+          </li>
+        ))}
+        {view.waiting.length > shown.length ? (
+          <li className="es-pool__free-run">
+            and <span className="font-numeric">{view.waiting.length - shown.length}</span> more
+          </li>
+        ) : null}
+        {view.waiting.length === 0 ? <li className="es-pool__free-run">none waiting</li> : null}
+      </ol>
+    </section>
   )
 }
 

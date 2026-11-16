@@ -229,6 +229,23 @@ describe('the demo track draws the run', () => {
     for (const req of view.waiting.slice(0, layout.queue.chips.length)) expect(model.boxes.some((b) => b.pick === `req:${req}`)).toBe(true)
   })
 
+  test('the reference run stands among the slabs as ink outlines up to now: hidden in a slab where the learner matched it, standing in a gap where not', () => {
+    // A learner who ran one step fewer than the reference: the reference's later tokens stand as hollow outlines in the learner's gap.
+    const behind = demoNight([5, 9, 3, 7, 12, 4], 3)
+    const ahead = demoNight([5, 9, 3, 7, 12, 4], 4)
+    const plain = demoTrack(behind, 868)
+    const drawn = demoTrack(behind, 868, { ...ahead, clockUs: ahead.clockUs })
+    const extra = drawn.inks.length - plain.inks.length
+    // Five segments a token: the four edges of its top and its foot's near edge.
+    expect(extra).toBeGreaterThan(0)
+    expect(extra % 5).toBe(0)
+    // Nothing past the learner's now is drawn: the reference is cut at the learner's clock.
+    const nowX = drawn.cursors[0].x
+    for (const ink of drawn.inks.slice(plain.inks.length)) expect(Math.max(ink.x0, ink.x1)).toBeLessThanOrEqual(nowX + 1)
+    expect(drawn.labels.some((label) => label.id === 'reference')).toBe(true)
+    expect(plain.labels.some((label) => label.id === 'reference')).toBe(false)
+  })
+
   test('every word is a label, in the engine\'s terms', () => {
     const words = [...model.labels, ...compareTrack().model.labels, ...scaleTrack().labels, ...fullTrack(fullNight('graphs', 3), 868).labels].map((label) => label.text)
     expect(words).toContain('CPU · engine core thread')
@@ -263,11 +280,15 @@ describe('what the scene is made of', () => {
     expect(scene).toContain('environment={false}')
     expect(scene).toContain('bloom={false}')
     for (const file of files) expect([file, /Steam|HeatLamps|HeatElements|emissive|LampLights/.test(read(file))]).toEqual([file, false])
-    // The one unlit material in the scene's own set is the marker's, amber with its edge.
+    // The one unlit material in the scene's own set is the marker's, amber with its edge. Its colour comes per instance from the roles
+    // (FlatTrack.tsx's cursor), on a white material, so the sheet is the marker's own #ffb547 and not that colour multiplied by itself.
     const materials = read('src/scene/flat-materials.ts')
     expect(materials.match(/new MeshBasicMaterial/g)).toHaveLength(2)
-    expect(materials).toContain("roleColor(tokens, 'lamp')")
-    expect(materials).toContain("roleColor(tokens, 'lamp-ring')")
+    expect(materials).toMatch(/name: 'flat-cursor', color: UNTINTED\(\), toneMapped: false/)
+    expect(materials).toMatch(/name: 'flat-cursor-edge', color: UNTINTED\(\), toneMapped: false/)
+    const track = read('src/scene/FlatTrack.tsx')
+    expect(track).toContain("role: 'lamp',")
+    expect(track).toContain("role: 'lamp-ring',")
   })
 
   test('the game\'s 3D switch points at the time track, which is the game\'s Scene3D.tsx, and the kitchen scene is gone', () => {
