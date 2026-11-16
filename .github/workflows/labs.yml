@@ -148,8 +148,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      # The interpreter that runs the grader's tests is pinned too (ARCHITECTURE §10.3): uv looks for this minor series among the interpreters the runner has, and never
-      # downloads one, so a runner image that moves to another series fails here and not in the tests. It is inside the lock's range (>=3.11,<3.15).
+      # The interpreter that runs the grader's tests is pinned too (ARCHITECTURE §10.3). The job installs it with actions/setup-python, which reads this
+      # value, so the series is written once. uv looks for it on the path, never downloads one (UV_PYTHON_DOWNLOADS), and fails the job when it is missing,
+      # so a runner image that moves to another series cannot change the tests' interpreter. It is inside the lock's range (>=3.11,<3.15).
       UV_PYTHON: '3.12'
       UV_PYTHON_DOWNLOADS: never
     steps:
@@ -175,6 +176,13 @@ jobs:
         env:
           BUN_VERSION: 1.3.14
         run: npm install --global --no-audit --no-fund "bun@$BUN_VERSION" && test "$(bun --version)" = "$BUN_VERSION"
+
+      # Before the uv steps, which find this interpreter and the fallback's `python3 -m venv` uses it. ubuntu-26.04's own python3 is not 3.12 [measured
+      # 2026-11-16: uv found no 3.12 on it], and uv is forbidden to download one.
+      - name: Set up the pinned Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ env.UV_PYTHON }}
 
       - name: Set up pinned uv
         id: uv
