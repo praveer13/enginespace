@@ -254,7 +254,7 @@ describe('the beats of First service, on the practice seed', () => {
     // Without overlap the stations sat dark: the lever is overlap. Without refilling, with overlap on, clips sat empty: the lever is the refill.
     expect(only(true, false).names).toEqual({ lever: 'async' })
     expect(only(false, true).names).toEqual({ lever: 'batching' })
-    expect(only(true, true).sentence).toContain('par')
+    expect(only(true, true).sentence).toContain('reference run')
   })
 
   test('the debrief\'s sentences carry no digit, so no number goes untagged: the counters beside them are Readouts', () => {

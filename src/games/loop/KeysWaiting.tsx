@@ -12,10 +12,10 @@ import { PRODUCTION } from './full/production-lines'
 export function KeysWaiting() {
   return (
     <div className="flex max-w-3xl flex-col gap-6" data-keys-waiting={DISPATCH_TABLES.status}>
-      <Ticket as="section" width="full" hole={false} head="Keys" meta="86'd tonight" titleAs="h2" title="Waiting for the owner's tables" lamp>
+      <Ticket as="section" width="full" hole={false} head="Keys" meta="not yet open" titleAs="h2" title="Waiting for the owner's tables" lamp>
         <p className="es-type-body">
-          This level drills routines per count of recipe kits: which adapter counts to capture as CUDA graphs when their space comes out of the reach-in before its pans are
-          counted. Every fire looks its routine up by a key, and the key is the runner's: MRV2's descriptor, or the legacy runner's, with has_lora.
+          This level drills graph replay per count of LoRA adapters: which adapter counts to capture as CUDA graphs when their space comes out of the KV page pool before its pages are
+          counted. Every step looks its graph up by a key, and the key is the runner's: MRV2's descriptor, or the legacy runner's, with has_lora.
         </p>
         <p className="es-type-body">
           The level grades you against the model's port of vLLM's two dispatchers, and a port is only as good as the pinned code's own answers. Those answers come from the owner

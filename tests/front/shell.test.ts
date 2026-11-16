@@ -17,7 +17,8 @@ import { CSP_META } from '../../scripts/pages/csp'
 import { inspect, policyProblems } from '../../scripts/pages/document'
 import { isFrontPage, preloadsFor, SHELL_MARK } from '../../scripts/pages/front-shell'
 import { renderPosters } from '../../scripts/posters'
-import { DECK, HERO, NEXT, ORDER, TAPE } from '../../src/front/copy'
+import { findBanned } from '../../src/copy/banned'
+import { COURSE, DECK, HERO, NEXT, ORDER, TAPE } from '../../src/front/copy'
 import { POSTER_LEVEL, POSTER_SEED } from '../../src/front/poster'
 import { renderFrontShell } from '../../src/front/shell'
 import { LOOP } from '../../packages/play/loop/entry'
@@ -46,10 +47,10 @@ describe('the shell, rendered', () => {
     const h1s = [...shell.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/g)].map((match) => textOf(match[1]).trim())
     expect(h1s).toEqual([HERO.headline])
     for (const line of HERO.promise) expect(textOf(shell)).toContain(line)
-    expect(shell).toMatch(/<button[^>]*class="es-stub__pull"[^>]*>[\s\S]*?Start service/)
+    expect(shell).toMatch(/<button[^>]*class="es-stub__pull"[^>]*>[\s\S]*?Start the demo/)
     const printer = /<div class="es-front-printer">([\s\S]*?)<\/div>/.exec(shell)?.[1] ?? ''
     expect(printer).toContain('href="/map"')
-    expect(textOf(printer)).toContain('Open the menu')
+    expect(textOf(printer)).toContain('Open the course')
   })
 
   test("draws the printer as a housing with volume, from the first paint: its cover, its top receding and its side in shade (the finish review, round 2)", () => {
@@ -97,7 +98,7 @@ describe('the shell, rendered', () => {
       const layer = frame.slice(frame.indexOf('</svg>'), frame.indexOf('</div></div>') + '</div></div>'.length)
       expect(layer).toMatch(/^<\/svg><div class="es-frame-labels" data-fit="fill" style="--es-frame-ratio:[\d.]+" aria-hidden="true">/)
       expect([...layer.matchAll(/data-tape="([a-z]+)"/g)].map((match) => match[1])).toEqual(['line', 'expo'])
-      expect([...layer.matchAll(/<span class="es-tape__text">([^<]+)<\/span>/g)].map((match) => match[1])).toEqual(['the line · gpu', 'the expo · cpu'])
+      expect([...layer.matchAll(/<span class="es-tape__text">([^<]+)<\/span>/g)].map((match) => match[1])).toEqual(['GPU lane', 'CPU lane'])
       // The first frame's rail is empty: a stub on each of its four clips, its word printed by the page, at every width.
       expect([...layer.matchAll(/<span class="es-frame-labels__tag" data-tag="([a-z0-9-]+)" data-kind="([a-z]+)" style="[^"]+">([^<]+)<\/span>/g)].map((match) => match.slice(1))).toEqual(
         [0, 1, 2, 3].map((slot) => [`empty-${slot}`, 'empty', 'empty']),
@@ -112,12 +113,25 @@ describe('the shell, rendered', () => {
 
   test('holds the printer\'s strip with the first three of the six waiting tickets, says the rest are inside, and has the bell beside it', () => {
     const expo = shell.slice(shell.indexOf('class="es-front-expo"'), shell.indexOf('class="es-front-pass__stage"'))
-    expect([...expo.matchAll(/aria-label="Hang ticket No\. \d+ on the rail"/g)].map((match) => match[0])).toEqual(
-      ['01', '02', '03'].map((no) => `aria-label="Hang ticket No. ${no} on the rail"`),
-    )
+    expect([...expo.matchAll(/aria-label="Admit request R\d on into a batch slot"/g)].map((match) => match[0])).toEqual([])
+    expect([...expo.matchAll(/aria-label="Admit request (R\d) into a batch slot"/g)].map((match) => match[1])).toEqual(['R1', 'R2', 'R3'])
     expect(expo).toContain('data-waiting="6"')
     expect(textOf(expo)).toContain(DECK.more)
-    expect(expo).toContain('Ring the bell')
+    expect(expo).toContain('Step: run the next step')
+  })
+
+  test('says nothing in the kitchen\'s words: no banned word or phrase in its text, its labels or its poster\'s name (R-T14)', () => {
+    const readable = [
+      ...shell
+        .replace(/<(script|style)[\s\S]*?<\/\1>/g, ' ')
+        .replace(/<[^>]+>/g, '\n')
+        .split('\n')
+        .map((line) => line.replaceAll('&#x27;', "'").replaceAll('&amp;', '&').trim())
+        .filter((line) => line !== ''),
+      ...[...shell.matchAll(/ (?:aria-label|alt|title)="([^"]*)"/g)].map((match) => match[1].replaceAll('&#x27;', "'").replaceAll('&amp;', '&')),
+    ]
+    expect(readable.length).toBeGreaterThan(30)
+    expect(readable.flatMap((text) => findBanned(text).map((found) => `${found.match} in "${text.slice(0, 80)}"`))).toEqual([])
   })
 
   test('holds the deck with the level\'s prompt and its switches, and says why the game needs scripts', () => {
@@ -194,8 +208,21 @@ describe('a real build', () => {
     expect(info.roots).toBe(1)
     expect(info.outside).toBe('')
     const inside = html.slice(html.indexOf('<div id="root">'), html.indexOf('<script type="module"', html.indexOf('<div id="root">')))
-    expect(inside).toContain('Fire the next step.')
+    expect(inside).toContain(HERO.headline)
     expect(svgsIn(inside).filter((svg) => svg.includes('aria-label="Fill the batch.'))).toEqual(renderPosters().map((poster) => poster.svg.trimEnd()))
+  })
+
+  test('names the first lesson, its minutes and what it needs in the one link into the course, from the compiled index', () => {
+    const index = JSON.parse(readFileSync(path.join(root, 'src/content/generated/index.json'), 'utf8')) as {
+      modules: { id: string; lessons: { route: string; title: string; minutes: number; needs?: string[] }[] }[]
+    }
+    const module = index.modules.find((candidate) => candidate.lessons.length > 0)
+    const lesson = module?.lessons[0]
+    if (module === undefined || lesson === undefined) throw new Error('the index has no lesson')
+    const ticket = html.slice(html.indexOf('class="es-ticket es-front-ticket"'), html.indexOf('class="es-front-expo"'))
+    const link = new RegExp(`<a [^>]*class="es-link es-front-course"[^>]*href="${lesson.route}"[^>]*>([\\s\\S]*?)</a>`).exec(ticket)
+    expect(textOf(link?.[1] ?? '')).toBe(`${COURSE.start}: TR${module.id.slice(2)} lesson 1, ${lesson.title.split(':')[0]} (${lesson.minutes} min, browser only)`)
+    expect([...ticket.matchAll(/class="es-link es-front-course"/g)]).toHaveLength(1)
   })
 
   test('keeps the policy first and runs no inline script', async () => {

@@ -85,10 +85,10 @@ test.describe('the 2D pass of the front page after a fire (W0 finding F1)', () =
       await withSettings(context, { view3d: false })
       await page.setViewportSize({ width, height: 800 })
       await open(page, '/')
-      await page.getByRole('button', { name: 'Start service' }).click()
+      await page.getByRole('button', { name: 'Start the demo' }).click()
       // The strip feeds the next ticket as one is hung, so its first ticket is always the next in line.
-      for (const no of ['01', '02']) await page.getByRole('button', { name: `Hang ticket No. ${no} on the rail` }).click()
-      await page.getByRole('button', { name: /Ring the bell/ }).click()
+      for (const no of ['R1', 'R2']) await page.getByRole('button', { name: `Admit request ${no} into a batch slot` }).click()
+      await page.getByRole('button', { name: /Step: run the next step/ }).click()
       await expect(page.locator('.es-front-tape [data-line="busy"] .es-front-pips__pip[data-lit]')).toHaveCount(2)
       await page.evaluate(() => window.scrollTo(0, 0))
       await quiet(page)

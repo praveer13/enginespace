@@ -30,6 +30,13 @@ const KeysWaiting = lazy(() => import('./KeysWaiting').then((module) => ({ defau
 /** Service as the first service's shell shows it: its keys without the full service's own, which do nothing on these levels. */
 const FIRST_FACE = { ...LOOP, keys: LOOP.keys.filter((key) => !FULL_SERVICE_KEYS.includes(key.id)) }
 
+/**
+ * The camera buttons' words (the scene's presets keep their own labels): the shots in the terms of what they show. Over the shoulder looks
+ * along the time axis of the lanes, the side shot is the side, and from under the lamps the scene is seen from above.
+ */
+const CAMERA_WORDS: Readonly<Record<string, string>> = { shoulder: 'Along time', side: 'Side', lamps: 'Top' }
+const CAMERA_PRESETS = LOOP_PRESETS.map((preset) => ({ ...preset, label: CAMERA_WORDS[preset.id] ?? preset.label }))
+
 /** The level that waits for the owner's tables: on the docket, behind its card, and not a level of the session. */
 const KEYS = { id: 'keys', title: 'Keys' } as const
 const isFull = (id: string): boolean => FULL_SERVICE.some((level) => level.id === id)
@@ -60,9 +67,9 @@ function Docket({ current, onOpen }: { current: string; onOpen: (id: string) => 
     </div>
   )
   return (
-    <nav aria-label="Levels of Service" className="flex flex-wrap items-start gap-x-8 gap-y-3" data-loop-docket="">
-      {group('First service', FIRST_SERVICE)}
-      {group('The full service', FULL_SERVICE, KEYS)}
+    <nav aria-label="Levels of the step loop" className="flex flex-wrap items-start gap-x-8 gap-y-3" data-loop-docket="">
+      {group('Demo', FIRST_SERVICE)}
+      {group('TR2 levels', FULL_SERVICE, KEYS)}
     </nav>
   )
 }
@@ -158,7 +165,7 @@ export default function Game({ level, mode, placement = 'page', rev, onFinish }:
   if (isFull(levelId)) {
     return (
       <div ref={host} className="contents">
-        <Suspense fallback={<p role="status">Setting up the full service…</p>}>
+        <Suspense fallback={<p role="status">Setting up the level…</p>}>
           <FullService level={levelId} mode={mode} placement={placement} rev={rev} onFinish={onFinish} docket={docket} onLevel={open} />
         </Suspense>
       </div>
@@ -194,7 +201,7 @@ export default function Game({ level, mode, placement = 'page', rev, onFinish }:
             if (view !== '3d') return false
             const next = nextPreset(LOOP_PRESETS, preset)
             setPreset(next)
-            run.announce(`Camera: ${presetById(LOOP_PRESETS, next).label}.`)
+            run.announce(`Camera: ${CAMERA_WORDS[next] ?? presetById(LOOP_PRESETS, next).label}.`)
             return true
           }
           return false
@@ -212,14 +219,14 @@ export default function Game({ level, mode, placement = 'page', rev, onFinish }:
         scene3d={(run) => <LoopStage run={run} preset={preset} />}
         controls={(run) => (
           <>
-            {view === '3d' ? <CameraButtons presets={LOOP_PRESETS} value={preset} onChange={setPreset} label="Camera on the pass" /> : null}
+            {view === '3d' ? <CameraButtons presets={CAMERA_PRESETS} value={preset} onChange={setPreset} label="Camera" /> : null}
             <Controls run={run} toggleAutoRef={toggleAuto} />
           </>
         )}
         mirror={(run) => <Mirror run={run} />}
         stage
         debrief={(run, outcome) => (
-          <Suspense fallback={<p role="status">Printing the debrief…</p>}>
+          <Suspense fallback={<p role="status">Loading the debrief…</p>}>
             <Debrief run={run} outcome={outcome} next={after === null ? null : { id: after.id, title: after.title }} onNext={advance} />
           </Suspense>
         )}

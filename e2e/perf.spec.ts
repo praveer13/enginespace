@@ -293,7 +293,7 @@ async function coldLoad(browser: Browser): Promise<Load> {
 async function playThrough(page: Page): Promise<number> {
   const service = page.locator('section.es-front-service')
   const tickets = page.locator('[data-loop-controls] ul button:not([disabled])')
-  const bell = page.getByRole('button', { name: /Ring the bell/ })
+  const bell = page.getByRole('button', { name: /Step: run the next step/ })
   const overlap = service.getByRole('switch')
   const debrief = page.getByRole('button', { name: 'See the debrief' }).first()
   const next = page.getByRole('button', { name: /^Next:/ })
@@ -303,7 +303,7 @@ async function playThrough(page: Page): Promise<number> {
     await target.tap()
     taps += 1
   }
-  await tap(page.getByRole('button', { name: 'Start service' }))
+  await tap(page.getByRole('button', { name: 'Start the demo' }))
   for (let turn = 0; turn < 400; turn++) {
     if ((await next.count()) > 0) await tap(next.first())
     else if ((await debrief.count()) > 0) {

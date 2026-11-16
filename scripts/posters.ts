@@ -18,6 +18,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { engineFrame } from '../packages/play/loop/words'
 import { frameSvg, layoutFrame } from '../packages/play/loop/layout'
 import type { Orientation } from '../packages/play/loop/layout'
 import { loopInit, loopLevel, loopView } from '../packages/play/loop/session'
@@ -39,7 +40,7 @@ export interface Poster {
 export function renderPosters(): Poster[] {
   const view = loopView(loopInit(loopLevel(POSTER_LEVEL, POSTER_SEED)))
   return (['landscape', 'portrait'] as const).map((orientation): Poster => {
-    const tree = frameSvg(layoutFrame(view, { orientation, shot: 'front' }))
+    const tree = frameSvg(engineFrame(layoutFrame(view, { orientation, shot: 'front' }), view))
     return { file: `loop-first-frame-${orientation}.svg`, orientation, svg: `${svgMarkup(tree)}\n`, marks: countMarks(tree) }
   })
 }

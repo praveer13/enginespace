@@ -118,7 +118,7 @@ describe('routes against ARCHITECTURE §3.1', () => {
    */
   const stubs: Record<string, { h1: string; shows?: string; title?: string }> = {
     // The front page's heading is printed on its order ticket (W0-T18).
-    '/': { h1: 'Fire the next step.', title: 'enginespace' },
+    '/': { h1: 'Run one step of an LLM inference engine.', title: 'enginespace' },
     '/map': { h1: 'Course' },
     // The module and lesson pages load their content in the browser (W0-T09), so the server renders the ticket that is still printing.
     '/m/:module': { h1: 'Module', shows: 'Printing the module' },

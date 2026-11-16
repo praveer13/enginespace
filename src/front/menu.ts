@@ -32,3 +32,15 @@ export const decimalsOf = (hours: number): number => (Number.isInteger(hours) ? 
 
 /** A module's id as the menu prints it: TR5a, capstone. */
 export const menuId = (id: string): string => (/^tr\d/.test(id) ? `TR${id.slice(2)}` : id)
+
+/**
+ * The course's first lesson as the front page names it: "TR1 lesson 1", its title up to the first colon ("Five mechanisms"), its
+ * minutes, what it needs in words ("browser only", "browser and GPU") and its route. Null when the index has no lesson.
+ */
+export function firstLesson(index: ContentIndex | null) {
+  const module = index?.modules.find((candidate) => candidate.lessons.length > 0)
+  const lesson = module?.lessons[0]
+  if (module === undefined || lesson === undefined) return null
+  const lanes = (lesson.needs ?? ['B']).map((lane) => MENU.lanes[lane])
+  return { name: `${menuId(module.id)} lesson 1`, title: lesson.title.split(':')[0], minutes: lesson.minutes, needs: `${lanes.join(' and ')}${lanes.length === 1 ? ' only' : ''}`, route: lesson.route }
+}

@@ -22,7 +22,7 @@ import { PR_WIDTHS } from './routes'
 import { front, playToTheDebrief, walkOf } from './support/front'
 import { clipped, expect, open, test, withSettings } from './support/site'
 
-const FIRE_IS_IN = 'The fire is in. The debrief is ready.'
+const LEVEL_IS_DONE = 'The level is done. The debrief is ready.'
 
 for (const width of PR_WIDTHS) {
   test.describe(`at ${width} px`, () => {
@@ -42,27 +42,27 @@ for (const width of PR_WIDTHS) {
       await expect(page).toHaveURL(/#main$/)
 
       // To the stub of the order ticket, and the start of service.
-      await walk.tabTo('Start service', 6)
+      await walk.tabTo('Start the demo', 6)
       const first = await walk.press('Enter')
-      expect(first.name).toBe('Hang ticket No. 01 on the rail')
+      expect(first.name).toBe('Admit request R1 into a batch slot')
       await expect(front.game(page)).toHaveAttribute('data-started', '')
-      await expect(page.getByRole('group', { name: "The printer's tape, in synthetic ticks" })).toBeVisible()
+      await expect(page.getByRole('group', { name: 'Step readout, in synthetic ticks' })).toBeVisible()
 
       // Four clips: Enter hangs a ticket, and focus follows to the next one, and then to the bell.
-      for (const next of ['No. 02', 'No. 03', 'No. 04']) expect((await walk.press('Enter')).name).toBe(`Hang ticket ${next} on the rail`)
-      expect((await walk.press('Enter')).name).toBe('Ring the bell: fire the next step')
-      await expect(page.getByText('Every clip is hung: ring the bell.')).toBeVisible()
+      for (const next of ['R2', 'R3', 'R4']) expect((await walk.press('Enter')).name).toBe(`Admit request ${next} into a batch slot`)
+      expect((await walk.press('Enter')).name).toBe('Step: run the next step')
+      await expect(page.getByText('Every slot is filled: press Step.')).toBeVisible()
 
       // The bell fires, and the level is over. Focus stays in the game, and the page says so to a reader.
       const after = await walk.press('Enter')
       expect(after.tag).toBe('section')
-      await expect(front.outcome(page)).toHaveText(FIRE_IS_IN)
+      await expect(front.outcome(page)).toHaveText(LEVEL_IS_DONE)
 
       // The debrief is one Tab away from the order ticket's stub, and Enter on the stub takes focus there.
       await walk.tabTo('See the debrief', 4)
       expect((await walk.press('Enter')).name).toBe('Debrief')
-      await expect(front.verdict(page)).toHaveText('Well fired.')
-      await expect(page.getByText('Every clip was hung before the bell')).toBeVisible()
+      await expect(front.verdict(page)).toHaveText('Passed.')
+      await expect(page.getByText('Every slot was filled, so the step ran a token for every request.')).toBeVisible()
 
       // The debrief reads at this width: no word of it is cut off (WCAG 1.4.10), and its way on is reachable by Tab.
       const found = await clipped(page, '.es-front-night__debrief')
@@ -84,8 +84,8 @@ for (const width of PR_WIDTHS) {
         await expect(page.locator('[data-loop-controls] ul li')).toHaveCount(Math.min(left, 3))
       }
       await page.keyboard.press('Period')
-      await expect(front.outcome(page)).toHaveText(FIRE_IS_IN)
-      await expect(front.verdict(page)).toHaveText('Well fired.')
+      await expect(front.outcome(page)).toHaveText(LEVEL_IS_DONE)
+      await expect(front.verdict(page)).toHaveText('Passed.')
     })
 
     test('? lists the keys, the digits among them, and Escape gives focus back to the button that opened it', async ({ page }) => {
@@ -107,7 +107,7 @@ for (const width of PR_WIDTHS) {
       expect(walk.problems()).toEqual([])
     })
 
-    test('all four levels are won in a row by the house\'s own strategy, and the last debrief points on to the course map', async ({ page }) => {
+    test('all four levels are won in a row by the house\'s own strategy, and the last debrief points on to the course', async ({ page }) => {
       test.setTimeout(120_000)
       await front.start(page).focus()
       await page.keyboard.press('Enter')
@@ -115,7 +115,7 @@ for (const width of PR_WIDTHS) {
       for (const [index, title] of titles.entries()) {
         await expect(front.level(page)).toContainText(title)
         await playToTheDebrief(page)
-        await expect(front.verdict(page), `${title} is won`).toHaveText('Well fired.')
+        await expect(front.verdict(page), `${title} is won`).toHaveText('Passed.')
         if (index < titles.length - 1) {
           await page.getByRole('button', { name: `Next: ${titles[index + 1]}` }).focus()
           await page.keyboard.press('Enter')
@@ -123,9 +123,9 @@ for (const width of PR_WIDTHS) {
           await expect.poll(() => page.evaluate(() => Boolean(document.activeElement?.closest('section.es-front-service')))).toBe(true)
         }
       }
-      await expect(page.getByText('The same night, served three ways')).toBeVisible()
+      await expect(page.getByText('The same requests, served three ways')).toBeVisible()
       await expect(page.getByText('The real engine', { exact: true })).toBeVisible()
-      await expect(page.getByRole('link', { name: 'Open the course map' })).toHaveAttribute('href', '/map')
+      await expect(page.getByRole('link', { name: 'Open the course' })).toHaveAttribute('href', '/map')
     })
   })
 }

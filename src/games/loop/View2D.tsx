@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { engineFrame } from '@es/play/loop/words'
 import { frameSvg, layoutFrame, PASS_LENS } from '@es/play/loop/layout'
 import { Readout } from '@/design/components/Readout'
 import { StationLight } from '@/design/components/StationLight'
@@ -28,7 +29,7 @@ export function View2D({ run }: { run: LoopRun }) {
   const { view } = run
   const orientation = useOrientation()
   const phone = orientation === 'portrait'
-  const frame = useMemo(() => layoutFrame(view, { orientation, shot: 'loop', ...(phone ? { lens: PASS_LENS } : {}) }), [view, orientation, phone])
+  const frame = useMemo(() => engineFrame(layoutFrame(view, { orientation, shot: 'loop', ...(phone ? { lens: PASS_LENS } : {}) }), view), [view, orientation, phone])
   const drawing = useMemo(() => svgToReact(frameSvg(frame, { cover: !phone })), [frame, phone])
   return (
     <div className="flex h-full min-h-0 flex-col gap-2" data-loop-view="" data-orientation={orientation}>
@@ -37,13 +38,13 @@ export function View2D({ run }: { run: LoopRun }) {
         <FrameLabels frame={frame} fit={phone ? 'contain' : 'cover'} />
       </div>
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 px-3 pb-2">
-        <StationLight lit={view.lineLit} label="The line" size="sm" />
+        <StationLight lit={view.lineLit} label="GPU lanes" size="sm" />
         <span className="flex flex-wrap items-baseline gap-x-2">
           <span>Clock</span>
           <Readout value={view.clockUs} unit="ticks" tag="synthetic" size="sm" />
           {view.par === null ? null : (
             <>
-              <span>against par</span>
+              <span>against the reference</span>
               <Readout value={view.par} unit="ticks" tag="synthetic" size="sm" />
             </>
           )}

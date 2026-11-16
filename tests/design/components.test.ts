@@ -106,7 +106,7 @@ describe('PrinterTape', () => {
     expect(html).toContain('aria-live="polite"')
     expect(html).toMatch(/<dt>clock<\/dt><dd>.*synthetic/s)
     expect(html).toContain('href="/map"')
-    expect(html).toContain('Open the menu')
+    expect(html).toContain('Open the course')
   })
 
   test('loading, error and empty print a line', () => {

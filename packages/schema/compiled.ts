@@ -150,6 +150,8 @@ export const indexLessonSchema = z.strictObject({
   title: nonBlank,
   route: z.string().regex(/^\/m\/[a-z0-9]+\/l[0-9]+(?:-[a-z0-9]+)*$/),
   minutes: z.int().positive(),
+  /** The lanes it is worked in, as the map's lesson row has them: the front page names them beside the first lesson's minutes. */
+  needs: z.array(z.enum(LANES)).min(1).optional(),
   status: z.enum(STATUSES),
 })
 

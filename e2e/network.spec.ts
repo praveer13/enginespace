@@ -55,13 +55,13 @@ test.describe('the front-page walk', () => {
       for (const [index, title] of levels.entries()) {
         await expect(front.level(page)).toContainText(title)
         await playToTheDebrief(page)
-        await expect(front.verdict(page)).toHaveText('Well fired.')
+        await expect(front.verdict(page)).toHaveText('Passed.')
         if (index < levels.length - 1) {
           await page.getByRole('button', { name: /^Next: / }).focus()
           await page.keyboard.press('Enter')
         }
       }
-      if (!threeD) await expect(page.getByText('The same night, served three ways')).toBeVisible()
+      if (!threeD) await expect(page.getByText('The same requests, served three ways')).toBeVisible()
 
       // The net was in place and the walk was real: the site's own files came, and among them the faces and, in 3D, the scene's chunks.
       expect(watch.requests.length, 'requests to the site').toBeGreaterThan(10)

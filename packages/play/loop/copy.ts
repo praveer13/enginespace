@@ -27,7 +27,7 @@ export const LOOP_COPY: Readonly<Record<LoopLevelId, LoopCopy>> = {
       beat: "The number to beat is the reference run's: every slot live in the first step.",
       ends: "Ends when the first step's tokens are read back.",
     },
-    prompt: 'Tap a waiting request to admit it into the running batch. Admit as many as there are batch slots, then press Step.',
+    prompt: 'Tap a waiting request to admit it into the running batch. Fill every slot, then press Step.',
   },
   'first-2-slot': {
     title: 'Refill a slot',
@@ -38,7 +38,7 @@ export const LOOP_COPY: Readonly<Record<LoopLevelId, LoopCopy>> = {
       ends: 'Ends when the step after the first finished request is read back.',
     },
     prompt:
-      'Press Step until a request finishes. Its slot frees at the step boundary and the loop waits for you: admit the next request into it (continuous batching), or press Step to leave the slot empty.',
+      'Press Step until a request finishes. Its slot frees and the loop waits for you: admit the next request into it (continuous batching), or press Step to leave it empty.',
   },
   'first-3-gap': {
     title: 'Close a bubble',
@@ -49,7 +49,7 @@ export const LOOP_COPY: Readonly<Record<LoopLevelId, LoopCopy>> = {
       ends: 'Ends when the first ghost token is read back.',
     },
     prompt:
-      'Between steps the GPU sits idle while the CPU schedules and prepares the next one: a bubble. Turn on async scheduling, then keep pressing Step until a ghost token appears, a token computed for a request that had already stopped.',
+      'Between steps the GPU idles while the CPU prepares the next one: a bubble. Turn on async scheduling, then press Step until a ghost token appears: a token computed for a request that had already stopped.',
   },
   'first-4-par': {
     title: 'Both levers',
@@ -60,6 +60,34 @@ export const LOOP_COPY: Readonly<Record<LoopLevelId, LoopCopy>> = {
       ends: 'Ends when every request is served.',
     },
     prompt:
-      'A burst of requests, and both levers: refill every slot the moment it frees, and schedule the next step while this one runs. Serve every request in no more ticks than the reference run.',
+      'A burst of requests, and both levers: refill every slot the moment it frees, and plan the next step while this one runs. Serve every request in no more ticks than the reference run.',
   },
 }
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* The words printed over the drawing, and the words the pages say about it (R-T14)                                    */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/**
+ * A request's name on screen: R1 for the first. The drawing's tags carry the layout's number (`ticketNo`, "01"), which is the layout's
+ * and stays the layout's; the page prints this name over it, so the chips, the buttons, the table and the live region say one thing.
+ */
+export const requestName = (id: number): string => `R${id + 1}`
+
+/**
+ * The words on the drawing's masking tape, by the layout's own text. The layout (and the 3D scene's) keep their strings, because they are
+ * ids of a drawing that does not change in this task; the page prints these in their place, in the engine's terms: the line is the GPU's
+ * lane, the expo is the CPU's, the fired rail is the step in flight and the bin holds the ghost tokens. A text with no entry is printed as it is.
+ */
+const TAPE_WORDS: Readonly<Record<string, string>> = {
+  'the line · gpu': 'GPU lane',
+  'the expo · cpu': 'CPU lane',
+  'fired rail': 'step in flight',
+  'binned · ghost': 'ghost tokens',
+}
+
+/** The tape's words as the page prints them. */
+export const tapeWords = (text: string): string => TAPE_WORDS[text] ?? text
+
+/** The print on a ticket's paper: a request's number in the layout's form ("03") is printed as its name ("R3"); every other print stays. */
+export const tagWords = (kind: string, text: string): string => (/^(ticket|fired|waiting)$/.test(kind) && /^\d+$/.test(text) ? `R${+text}` : text)
