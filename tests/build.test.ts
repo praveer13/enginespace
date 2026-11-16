@@ -170,13 +170,15 @@ describe('the app build', () => {
     // W1b-T01), which the lesson loads when the learner starts a level, with the games' registry, so that a lesson's first paint carries no
     // game; verify:bundle prints it with the lesson's route and each game it embeds; or the reveal of a lesson's prediction
     // (src/content/render/reveal.ts, W1b-T02) and the readings of a module's predictions (packages/play/predictions/<module>.ts), which the
-    // box loads when the learner pulls the stub after the game, because they bring the games' worlds and the ledger with them.
+    // box loads when the learner pulls the stub after the game, because they bring the games' worlds and the ledger with them; or the
+    // answers of the predictions that are revealed at commit (packages/play/predictions/commit-<module>.ts, R-T09), which the box loads when
+    // the learner commits, for the same reason.
     // The compiled content is lazy too, but it is not a page: the next test holds it to account.
     const named = Object.entries(app.manifest)
       .filter(([key, chunk]) => chunk.isDynamicEntry && chunk.src !== undefined && !key.startsWith(CONTENT))
       .map(([key]) => key)
     const onDemand =
-      /^(packages\/play\/[^/]+\/game\.ts|packages\/play\/items\/families\/(?:tr[0-8][ab]?|capstone)\/[a-z0-9-]+\.ts|src\/games\/[^/]+\/[A-Za-z0-9]+\.tsx|src\/scene\/[\w/-]+\.tsx?|src\/forge\/ForgeLabPage\.tsx|src\/items\/Attempt\.tsx|src\/content\/render\/(?:GameEmbed\.tsx|reveal\.ts)|packages\/play\/predictions\/tr[0-8][ab]?\.ts|src\/trace\/TraceView\.tsx|src\/route-change\.ts|node_modules\/three\/examples\/jsm\/[\w/-]+\.js)$/
+      /^(packages\/play\/[^/]+\/game\.ts|packages\/play\/items\/families\/(?:tr[0-8][ab]?|capstone)\/[a-z0-9-]+\.ts|src\/games\/[^/]+\/[A-Za-z0-9]+\.tsx|src\/scene\/[\w/-]+\.tsx?|src\/forge\/ForgeLabPage\.tsx|src\/items\/Attempt\.tsx|src\/content\/render\/(?:GameEmbed\.tsx|reveal\.ts)|packages\/play\/predictions\/(?:commit-)?tr[0-8][ab]?\.ts|src\/trace\/TraceView\.tsx|src\/route-change\.ts|node_modules\/three\/examples\/jsm\/[\w/-]+\.js)$/
     expect(named.filter((key) => !pages.includes(key) && !onDemand.test(key))).toEqual([])
   })
 
