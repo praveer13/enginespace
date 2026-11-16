@@ -32,6 +32,35 @@
   color: var(--es-text-1);
 }
 
+/* ---------------------------------------------------------------------------------------------- the legend */
+
+.es-trace__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-1) var(--es-space-4);
+  margin: calc(var(--es-space-2) * -1) 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--es-text-1);
+  font-size: var(--es-size-caption);
+}
+
+.es-trace__legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--es-space-1);
+}
+
+.es-trace__pennant {
+  flex: none;
+  width: 1em;
+  height: 1em;
+  fill: var(--es-lamp);
+  stroke: var(--es-lamp-ring);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
 /* ---------------------------------------------------------------------------------------------- the plates */
 
 /* The controls, on one flat strip above the diagram. */

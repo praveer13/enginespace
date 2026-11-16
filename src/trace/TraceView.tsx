@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useReducer, useRef, useState, useSyncExternalStore } from 'react'
 import type { EsTrace } from '@es/sim/trace'
-import { Legend } from '@/design/components/Legend'
-import type { LegendEntry } from '@/design/components/Legend'
+import type { Slot } from '@/design/code'
 import { Readout } from '@/design/components/Readout'
 import { formatReadout } from '@/design/format'
 import { DEFAULT_SETTINGS } from '@/settings/model'
@@ -10,6 +9,7 @@ import { CursorTape } from './CursorTape'
 import { KeysSheet } from './KeysSheet'
 import { MarksTicket } from './MarksTicket'
 import { SpanMirror } from './SpanMirror'
+import { SlotGlyph } from './SlotGlyph'
 import { Tape } from './Tape'
 import { Toolbar } from './Toolbar'
 import { TRACE_KEYS } from './keys'
@@ -65,7 +65,7 @@ export interface TraceViewProps {
 }
 
 /** The one colour code as this diagram uses it, each colour with its glyph, in the engine's words. */
-const LEGEND: readonly LegendEntry[] = [
+const LEGEND: readonly { slot: Slot; word: string }[] = [
   { slot: 'blue', word: 'CPU work: a frame or a call' },
   { slot: 'green', word: 'GPU work: a kernel' },
   { slot: 'brown', word: 'a copy' },
@@ -183,7 +183,23 @@ function Viewer({ trace, traceId, title, headingLevel = 2, initialWindow, defaul
       </header>
       <Toolbar state={state} readOnly={readOnly} onCommand={run} />
       <Tape index={index} state={state} dispatch={dispatch} rail={!readOnly} />
-      <Legend entries={LEGEND} label="Legend: trace" now="the cursor" />
+      {/* The legend is this sheet's own, and not the design Legend: that one's stylesheet would be attached to chunks that do not need it (bundle budgets). */}
+      <ul className="es-trace__legend" aria-label="Legend: trace">
+        {LEGEND.map(({ slot, word }) => (
+          <li key={slot}>
+            <SlotGlyph slot={slot} size="1em" />
+            <span>{word}</span>
+          </li>
+        ))}
+        <li>
+          <svg className="es-trace__pennant" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+            <path d="M3 2.5 13.5 8 3 13.5Z" />
+          </svg>
+          <span>
+            <strong>now</strong> the cursor
+          </span>
+        </li>
+      </ul>
       <div className="es-trace__panels">
         <CursorTape index={index} cursor={state.cursor} tag={provenance.tag} source={provenance.source} />
         {marks ? (

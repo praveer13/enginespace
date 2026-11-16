@@ -269,7 +269,7 @@ describe('the viewer reads in the engine’s words (REDESIGN 2.7, R-T27)', () =>
 
   test('has the one colour code in its legend, each colour with its glyph, and the cursor in it', () => {
     const markup = render()
-    expect(markup).toMatch(/<ul class="es-legend[^"]*" aria-label="Legend: trace">/)
+    expect(markup).toMatch(/<ul class="es-trace__legend" aria-label="Legend: trace">/)
     for (const glyph of ['circle', 'hexagon', 'square', 'diamond', 'ring']) expect(markup).toContain(`data-glyph="${glyph}"`)
     expect(markup).toContain('the cursor')
   })

@@ -638,7 +638,7 @@ test.describe('the paper (DESIGN.md, "The One Lamp Rule")', () => {
     for (const role of ['--es-cat-blue', '--es-cat-green', '--es-cat-brown']) {
       expect(await inkBox(page, role), `${role} on the paper`).not.toBeNull()
     }
-    await expect(viewer(page).locator('ul.es-legend li')).toHaveCount(6)
+    await expect(viewer(page).locator('ul.es-trace__legend li')).toHaveCount(6)
   })
 
   for (const width of [360, 1280]) {
