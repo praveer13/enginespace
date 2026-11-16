@@ -58,6 +58,8 @@ import { blockLinks, blockMarkdown, blockMinutes, compileDirective, GAME_IDS, LA
 import type { DirectiveBlock, LinkEnv, LinkProblem } from './directives.ts'
 import { formatDiagnostic, isRecord, loadYaml, locate, parseContentFile, problem, schemaDiagnostics } from './parse.ts'
 import type { ContentFile, Diagnostic, Gate } from './parse.ts'
+import { headingLines, pacingDiagnostics } from './pacing.ts'
+import type { PaceItem } from './pacing.ts'
 import { compileProse, countWords, numberMessage, untaggedNumbers, WORDS_PER_MINUTE, withoutCode } from './prose.ts'
 import type { ProseContext } from './prose.ts'
 
@@ -261,6 +263,8 @@ interface Body {
   skipped: number
   /** [estimated] minutes: the words read at WORDS_PER_MINUTE, plus what each block adds. */
   readingMinutes: number
+  /** The file in order for the pacing warnings (pacing.ts): the words between things, the `##` headings and the things the learner does. */
+  pace: PaceItem[]
 }
 
 /** Keys the compiler writes itself, which an author must not: the message says where each one comes from. */
@@ -287,13 +291,25 @@ function linkDiagnostics(problems: readonly LinkProblem[], file: string, yaml: s
 function compileBody(file: ContentFile, sources: Sources, lessonId: string | undefined, out: Diagnostic[]): Body {
   const cited = new Set<string>()
   const ctx: ProseContext = { file: file.file, claims: sources.claimIds, cited, outline: { depth: 1 }, words: { count: 0 }, out }
-  const body: Body = { file, blocks: [], directives: [], parts: [], cited, skipped: 0, readingMinutes: 0 }
+  const body: Body = { file, blocks: [], directives: [], parts: [], cited, skipped: 0, readingMinutes: 0, pace: [] }
   const predictIds = new Set<string>()
   let minutes = 0
 
   for (const segment of file.segments) {
     if (segment.kind === 'prose') {
       const flow = compileProse(segment.md, segment.line, ctx)
+      const headings = headingLines(segment.md, segment.line)
+      let heading = 0
+      let words = 0
+      for (const one of flow) {
+        if (one.type === 'heading' && one.depth === 2) {
+          body.pace.push({ kind: 'words', count: words }, { kind: 'heading', line: headings[heading] ?? segment.line })
+          heading += 1
+          words = 0
+        }
+        words += proseWords([one])
+      }
+      body.pace.push({ kind: 'words', count: words })
       if (flow.length > 0) {
         body.blocks.push({ type: 'prose', body: flow })
         body.parts.push({ kind: 'prose', md: segment.md })
@@ -323,6 +339,9 @@ function compileBody(file: ContentFile, sources: Sources, lessonId: string | und
       for (const finding of untaggedNumbers(withoutCode(field.text))) out.push(problem('numbers', 'error', 'untagged-number', file.file, line, numberMessage(finding)))
     }
 
+    if (block.type === 'predict' || block.type === 'game' || block.type === 'item' || block.type === 'trace') {
+      body.pace.push({ kind: 'do', what: block.type, line: segment.line, graded: block.type === 'game' && block.mode === 'graded' })
+    }
     body.blocks.push(block)
     body.directives.push(block)
     body.parts.push({ kind: 'block', block })
@@ -445,6 +464,8 @@ function compileLesson(abs: string, moduleId: string, sources: Sources, out: Dia
       problem('content', 'warning', 'minutes-drift', file, frontLine(parsedFile, ['minutes']), `the lesson says ${front.minutes} minutes and the compiler reads ${body.readingMinutes}: the words at ${WORDS_PER_MINUTE} a minute plus what each block adds`),
     )
   }
+
+  if (body.skipped === 0) pacingDiagnostics(file, body.pace, parsedFile.segments, out)
 
   return { slug, front, body, rev: revOf(front, body.blocks, body.cited, sources) }
 }

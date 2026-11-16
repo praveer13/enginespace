@@ -15,6 +15,7 @@
  *     names the lesson and the figure that went stale. The figure of lesson 5 is rebuilt from the step loop and held to its file.
  *   - The claims TR6 adds (content/claims/tr6.yaml) are read at the pins, at a tag or a commit, with the lines of their quotes.
  */
+import { PACING_CODES } from '../../scripts/content/pacing.ts'
 import { describe, expect, setDefaultTimeout, test } from 'bun:test'
 import { isAtCommit, planOf } from '@es/play/predictions/plan'
 import { spawnSync } from 'node:child_process'
@@ -166,7 +167,8 @@ describe('check 1: TR6 compiles with no diagnostic of any kind', () => {
   })
 
   test('nothing in the module, its lessons or its claims is reported', () => {
-    const mine = result.diagnostics.filter((d) => d.file.startsWith('content/modules/tr6/') || d.file === CLAIMS_FILE)
+    const mine = result.diagnostics.filter((d) => (d.file.startsWith('content/modules/tr6/') || d.file === CLAIMS_FILE) && !PACING_CODES.includes(d.code))
+    // R-T12: the pacing warnings are the worklist of the lesson tasks R-T34 to R-T39, so they are allowed here until each lesson is edited.
     expect(mine.map((d) => `${d.file}:${d.line} ${d.severity} ${d.code}`)).toEqual([])
   })
 })

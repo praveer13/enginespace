@@ -8,7 +8,7 @@
  *
  * Every test that changes content changes a copy. Nothing here writes into the repository.
  */
-import { afterAll } from 'bun:test'
+import { afterAll, test } from 'bun:test'
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -16,6 +16,13 @@ import { compileContent } from '../../scripts/content/build.ts'
 import type { CompileResult } from '../../scripts/content/build.ts'
 import { formatDiagnostic } from '../../scripts/content/parse.ts'
 import type { Diagnostic, Gate } from '../../scripts/content/parse.ts'
+
+/**
+ * `test.failing` and `test.todo` of Bun's runner, which the installed typings lack: a failing test passes while its body throws and fails
+ * once the body passes, so a mark of the openers table cannot outlive the task that clears it, and a todo runs nothing and is listed.
+ */
+export const failing = (test as unknown as { failing: (label: string, body: () => void) => void }).failing
+export const todo = (test as unknown as { todo: (label: string, body?: () => void) => void }).todo
 
 export const repo = path.resolve(import.meta.dirname, '../..')
 /** The root of the sample course: a `content/` and a `public/` that hold what the compiler tests copy, in the repo's own layout. */
