@@ -469,8 +469,23 @@ const BENCH: Record<(typeof WALKED)['broken-bench'][number], Walker> = {
 /* Service's full service (`loop`)                                                                                    */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** Calls the stage's prediction with the keys: a number typed into its slip, or a choice pressed and torn off with the stub. */
+/**
+ * A learner who has not met the parts gets the first run (R-T28): its Next, with the keys, walks the parts and the look to the ask, and the
+ * prediction opens. The game's own block finds it the same way inside a lesson. Where every part was met, the prediction is there already.
+ */
+async function firstRun(page: Page, walk: Walk): Promise<void> {
+  await page.locator('[data-game="loop"] :is(.es-intro, [data-full-prediction="open"])').first().waitFor()
+  const step = () => page.locator('[data-game="loop"] .es-intro').first().getAttribute('data-intro', { timeout: 2_000 }).catch(() => null)
+  for (let at = await step(), guard = 0; (at === 'parts' || at === 'look') && guard < 14; at = await step(), guard++) {
+    const focused = await page.evaluate(() => document.activeElement?.hasAttribute('data-intro-next') ?? false)
+    if (!focused) await tabTo(walk, /^(Next|Next part)$/, 60)
+    await page.keyboard.press('Enter')
+  }
+}
+
+/** Commits the stage's prediction with the keys: a number typed into its field, or a choice pressed and committed with its button. */
 async function call(page: Page, walk: Walk, answer: number): Promise<void> {
+  await firstRun(page, walk)
   const field = page.locator('[data-full-prediction="open"] input')
   if ((await field.count()) > 0) {
     await tabToLocator(walk, field)
@@ -479,7 +494,7 @@ async function call(page: Page, walk: Walk, answer: number): Promise<void> {
   } else {
     await tabToLocator(walk, page.locator('[data-full-prediction="open"] [role="radio"]').nth(answer))
     await page.keyboard.press('Enter')
-    await tabToLocator(walk, page.getByRole('button', { name: 'Call it' }))
+    await tabToLocator(walk, page.getByRole('button', { name: 'Commit prediction' }))
     await page.keyboard.press('Enter')
   }
   await expect(page.locator('[data-full-prediction="called"]')).toBeVisible()
@@ -488,12 +503,12 @@ async function call(page: Page, walk: Walk, answer: number): Promise<void> {
 /** A key of the game's, pressed with focus inside the game but on no text field. */
 async function gameKey(page: Page, walk: Walk, code: string): Promise<void> {
   const active = await page.evaluate(() => document.activeElement?.tagName ?? '')
-  if (active === 'INPUT' || active === 'BODY') await tabToLocator(walk, page.locator('[data-full-levers] button, [data-full-controls] .es-bell__button').first())
+  if (active === 'INPUT' || active === 'BODY') await tabToLocator(walk, page.locator('[data-full-levers] button, [data-full-levers] [role="switch"], [data-full-step] button').first())
   await page.keyboard.press(code)
 }
 
 async function serve(page: Page, walk: Walk): Promise<void> {
-  await tabToLocator(walk, page.getByRole('button', { name: 'Serve the rest' }))
+  await tabToLocator(walk, page.getByRole('button', { name: 'Run to the end' }))
   await page.keyboard.press('Enter')
 }
 
@@ -502,18 +517,18 @@ async function nextStage(page: Page, walk: Walk, id: string): Promise<void> {
   await expect(page.locator(`[data-stage-tab="${id}"][aria-current="step"]`)).toBeVisible()
 }
 
-async function fullDebrief(page: Page, walk: Walk): Promise<void> {
-  await tabToLocator(walk, page.getByRole('button', { name: 'See the debrief' }))
-  await page.keyboard.press('Enter')
+async function fullDebrief(page: Page, walk: Walk, word = 'Finished (practice)'): Promise<void> {
+  // The frame puts the result in the dock, and focus on its verdict, when the last stage closes.
   await expect(page.locator('[data-full-debrief]')).toBeVisible({ timeout: 30_000 })
-  await expect(page.locator('[data-full-debrief]')).toContainText('Well served.')
+  await expect(page.locator('[data-full-debrief] [data-result-heading]')).toHaveText(word)
+  await walk.see()
 }
 
-/** Cycles the graph mode with `G` until the panel asks for `wanted`. (`FULL` is the start of `FULL_DECODE_ONLY`, so the plate's word is matched whole.) */
+/** Cycles the graph mode with `G` until the panel asks for `wanted`. (`FULL` is the start of `FULL_DECODE_ONLY`, so the button's word is matched whole.) */
 async function graphMode(page: Page, walk: Walk, wanted: string): Promise<void> {
   for (let i = 0; i < MODES.length; i++) {
     const asked = (await page.locator('[data-full-levers] [role="radio"][aria-checked="true"]').textContent()) ?? ''
-    if (asked.split(' ')[0] === wanted) return
+    if (asked.split(/[ :]/)[0] === wanted) return
     await gameKey(page, walk, 'KeyG')
   }
   throw new Error(`G never reached ${wanted}`)
@@ -544,9 +559,10 @@ const LOOP: Record<(typeof WALKED)['loop'][number], Walker> = {
       if (i > 0) await nextStage(page, walk, world.id)
       await call(page, walk, world.answer)
       await gameKey(page, walk, 'KeyO')
-      await expect(page.getByRole('switch', { name: /Write the next call during this fire/ })).toHaveAttribute('aria-checked', 'true')
+      await expect(page.getByRole('switch', { name: /Async scheduling/ })).toHaveAttribute('aria-checked', 'true')
       await serve(page, walk)
-      await expect(page.locator(`[data-stage-tab="${world.id}"] .es-full-stages__done`)).toHaveCount(1)
+      // The last stage closes the level, and the result takes the dock: its tabs are gone.
+      if (i < full('async').stages.length - 1) await expect(page.locator(`[data-stage-tab="${world.id}"] .es-full-stages__done`)).toHaveCount(1)
     }
     await fullDebrief(page, walk)
   },
@@ -557,7 +573,7 @@ const LOOP: Record<(typeof WALKED)['loop'][number], Walker> = {
     await serve(page, walk)
     await nextStage(page, walk, 'sizes')
     await call(page, walk, sizes.answer)
-    // The ladder: take the naive molds off, then put the house's on, walking it with the arrows.
+    // The ladder: take the naive capture sizes off, then put the reference run's on, walking it with the arrows.
     await pressSizes(page, walk, sizes.start.captureSizes)
     await pressSizes(page, walk, sizes.house.captureSizes)
     for (const size of sizes.house.captureSizes) await expect(page.locator('[aria-label="Capture sizes"] button', { hasText: new RegExp(`^${size}$`) })).toHaveAttribute('aria-pressed', 'true')
@@ -572,7 +588,7 @@ const LOOP: Record<(typeof WALKED)['loop'][number], Walker> = {
     const [small, big] = full('mrv2').stages
     await call(page, walk, small.answer)
     await gameKey(page, walk, 'KeyM')
-    await expect(page.getByRole('switch', { name: /The V2 runner/ })).toHaveAttribute('aria-checked', 'true')
+    await expect(page.getByRole('switch', { name: /V2 model runner/ })).toHaveAttribute('aria-checked', 'true')
     await serve(page, walk)
     await nextStage(page, walk, big.id)
     await call(page, walk, big.answer)
@@ -583,28 +599,27 @@ const LOOP: Record<(typeof WALKED)['loop'][number], Walker> = {
     const [world] = full('close').stages
     await call(page, walk, world.answer)
     await gameKey(page, walk, 'KeyO')
-    await expect(page.getByRole('switch', { name: /Write the next call during this fire/ })).toHaveAttribute('aria-checked', String(world.house.async))
+    await expect(page.getByRole('switch', { name: /Async scheduling/ })).toHaveAttribute('aria-checked', String(world.house.async))
     await gameKey(page, walk, 'KeyM')
-    await expect(page.getByRole('switch', { name: /The V2 runner/ })).toHaveAttribute('aria-checked', String(world.house.runner === 'mrv2'))
-    await tabToLocator(walk, page.getByRole('switch', { name: /The line fills the next call's input ids/ }))
+    await expect(page.getByRole('switch', { name: /V2 model runner/ })).toHaveAttribute('aria-checked', String(world.house.runner === 'mrv2'))
+    await tabToLocator(walk, page.getByRole('switch', { name: /Input ids filled on the GPU/ }))
     await page.keyboard.press('Space')
-    await expect(page.getByRole('switch', { name: /The line fills the next call's input ids/ })).toHaveAttribute('aria-checked', String(world.house.inputIds === 'device'))
+    await expect(page.getByRole('switch', { name: /Input ids filled on the GPU/ })).toHaveAttribute('aria-checked', String(world.house.inputIds === 'device'))
     await graphMode(page, walk, world.house.graphMode)
-    // The ladder: lift the engine's own sizes that the house does not drill, and press the house's.
+    // The ladder: lift the engine's own sizes that the reference run does not capture, and press the reference run's.
     await pressSizes(page, walk, world.start.captureSizes.filter((size) => !world.house.captureSizes.includes(size)))
     await pressSizes(page, walk, world.house.captureSizes.filter((size) => !world.start.captureSizes.includes(size)))
-    // One ring serves the whole night, with no bell and no Auto.
-    await tabToLocator(walk, page.getByRole('button', { name: 'Serve the night' }))
+    // One press runs the whole stage, with no Step and no Auto.
+    await tabToLocator(walk, page.getByRole('button', { name: 'Run it', exact: true }))
     await page.keyboard.press('Enter')
-    await expect(page.locator('[data-full-verdict="pass"]')).toBeVisible({ timeout: 30_000 })
-    await fullDebrief(page, walk)
-    await expect(page.locator('[data-full-verdict-debrief]')).toContainText('The night meets the bar.')
+    await fullDebrief(page, walk, 'Passed')
+    await expect(page.locator('[data-full-verdict-debrief]')).toContainText('The run meets the bar.')
   },
   mask: async (page, walk) => {
     const [mask] = full('mask').stages
     await call(page, walk, mask.answer)
     await gameKey(page, walk, 'KeyO')
-    await expect(page.getByRole('switch', { name: /Write the allergy card during the fire/ })).toHaveAttribute('aria-checked', 'true')
+    await expect(page.getByRole('switch', { name: /Build the grammar mask during the forward/ })).toHaveAttribute('aria-checked', 'true')
     await serve(page, walk)
     await fullDebrief(page, walk)
   },

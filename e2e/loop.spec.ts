@@ -31,7 +31,6 @@ import { buildLevel } from '../packages/play/loop/levels'
 import { loopSession, loopView } from '../packages/play/loop/session'
 import type { LoopAction } from '../packages/play/loop/types'
 import { bannedOn } from './support/copy-scan'
-import { withSettings } from './support/site'
 
 const root = path.resolve(import.meta.dirname, '..')
 
@@ -380,80 +379,6 @@ test.describe('action, state and result share one screen', () => {
       expect(await inView('[data-lane-now] .es-marker__word')).toBe(true)
       expect(await inView('[data-loop-step]')).toBe(true)
       expect(await inView('[data-loop-readout]')).toBe(true)
-    })
-  }
-})
-
-/*
- * The kitchen's names on the full levels' 2D drawing (W1b's finish review of the lesson blocks, round 2; the demo levels draw the timing
- * diagram since R-T17, and the kitchen drawing's print is held for the front page by tests/play/loop-layout.test.ts): the line's, the fired rail's and the expo's are
- * the design system's masking tape in the DOM over the drawing, as the 3D scene's are, never print in the SVG, which a phone's wider lens
- * shrank to 2 or 3 px. Each is stuck where the frame says, as the SVG lays the frame out in its box (covering it in landscape, fitted on a
- * phone), inside the box, apart from the others, and printed between the size ramp's smallest step and its caption step. The close-out's
- * verdict found the rest of the drawing's print as small (the stubs' word at about 4 px at 1440 and 2 px at 390, the tickets' numbers and
- * the printer's counts likewise), so every number and word of it is print in the DOM too, held to the same checks (W1b close-out, Service's
- * 2D labels).
- */
-test.describe("the kitchen's names and print on the 2D drawing", () => {
-  /**
-   * The drawing's box, the size ramp's two steps in px, the SVG's markup, each tape as the page prints it, and each piece of print on the
-   * kitchen's paper and steel that the page shows (a piece that needs room is not shown in a small box).
-   */
-  const measure = (page: Page) =>
-    page.evaluate(() => {
-      const box = document.querySelector('[data-loop-drawing]')!.getBoundingClientRect()
-      const root = getComputedStyle(document.documentElement)
-      const px = (name: string) => parseFloat(root.getPropertyValue(name)) * parseFloat(root.fontSize)
-      const seen = (element: HTMLElement, id: string) => {
-        const r = element.getBoundingClientRect()
-        return { id, text: element.textContent ?? '', size: parseFloat(getComputedStyle(element).fontSize), x: r.x, y: r.y, w: r.width, h: r.height }
-      }
-      const tags = [...document.querySelectorAll<HTMLElement>('[data-loop-drawing] .es-frame-labels__tag')]
-      return {
-        box: { x: box.x, y: box.y, w: box.width, h: box.height },
-        micro: px('--es-size-micro'),
-        caption: px('--es-size-caption'),
-        svg: document.querySelector('[data-loop-drawing] svg')!.outerHTML,
-        tapes: [...document.querySelectorAll<HTMLElement>('[data-loop-drawing] .es-frame-labels__tape')].map((holder) => seen(holder.querySelector<HTMLElement>('.es-tape')!, holder.dataset.tape ?? '')),
-        tags: tags.filter((tag) => getComputedStyle(tag).display !== 'none').map((tag) => ({ ...seen(tag, tag.dataset.tag ?? ''), kind: tag.dataset.kind ?? '' })),
-        hidden: tags.filter((tag) => getComputedStyle(tag).display === 'none').map((tag) => tag.dataset.tag ?? ''),
-      }
-    })
-  type Seen = Awaited<ReturnType<typeof measure>>
-
-  /** Every tape and every piece of print shown on the size ramp, inside the drawing, and apart from every other: none covers another's words. */
-  function keepsTo(seen: Seen) {
-    const labels = [...seen.tapes, ...seen.tags]
-    for (const [i, label] of labels.entries()) {
-      expect([label.id, label.size >= seen.micro - 0.01, label.size <= seen.caption + 0.01]).toEqual([label.id, true, true])
-      expect([label.id, label.x >= seen.box.x, label.y >= seen.box.y, label.x + label.w <= seen.box.x + seen.box.w, label.y + label.h <= seen.box.y + seen.box.h]).toEqual([label.id, true, true, true, true])
-      for (const other of labels.slice(i + 1)) {
-        const apart = label.x + label.w <= other.x || other.x + other.w <= label.x || label.y + label.h <= other.y || other.y + other.h <= label.y
-        expect([label.id, other.id, apart]).toEqual([label.id, other.id, true])
-      }
-    }
-  }
-
-  for (const width of [360, 1280]) {
-    test(`at ${width} px the full service's names, the rack's under the line's and the comb's beside the expo's, stand inside the drawing and apart`, async ({ page, context }) => {
-      await withSettings(context, { view3d: false })
-      await page.setViewportSize({ width, height: 800 })
-      await open(page, 'async')
-      const field = page.locator('[data-full-prediction="open"] input')
-      await field.fill('100')
-      await field.press('Enter')
-      await expect(page.locator('[data-full-prediction="called"]')).toBeVisible()
-      await page.getByRole('button', { name: /Ring the bell/ }).click()
-      await expect(page.locator('[data-loop-drawing] .es-frame-labels__tape')).toHaveCount(4)
-      const seen = await measure(page)
-      expect(seen.tapes.map((tape) => tape.text).sort()).toEqual(['comb · launches', 'molds · sizes', 'the expo · cpu', 'the line · gpu'])
-      expect(seen.svg).not.toMatch(/comb · launches|molds · sizes/i)
-      // The tickets' numbers and the molds' sizes are print over the drawing too: on the twelve clips they need room, so the phone's drawing
-      // leaves them to the mirror, and the laptop's shows them, apart from each other and from the names.
-      expect(seen.svg).not.toContain('<text')
-      if (width < 480) expect(seen.tags.filter((tag) => tag.kind === 'ticket' || tag.kind === 'mold')).toEqual([])
-      else expect(seen.tags.filter((tag) => tag.kind === 'ticket').length).toBeGreaterThan(0)
-      keepsTo(seen)
     })
   }
 })

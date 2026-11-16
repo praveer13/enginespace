@@ -1,67 +1,56 @@
-import type { ReactNode } from 'react'
+import { useDeltas } from '@/games/kit/moments'
+import { DeltaChip } from '@/design/components/DeltaChip'
+import { Stamp } from '@/design/components/Stamp'
+import { formatReadout } from '@/design/format'
 import type { FullView } from '@es/play/loop/full/types'
-import { PrinterTape, type PrinterTapeLine } from '@/design/components/PrinterTape'
-import { Readout } from '@/design/components/Readout'
-import { stampOf, tagOf } from './tags'
+import { fullStripItems, hiddenReadout } from './strip'
+import { stampWord, tagOf } from './tags'
 
 /*
- * The full service's printer tape (GAMES.md §2.6, "the printer tape"; D-048): the live readout in µs on the model's clock, with the
- * cost card's tags. It prints the fire's number, the µs between the last two fires, the clock against the house's, the line busy and the
- * dark stretches, plates and binned plates, padded places, the expo's calls and the fires it called dish by dish; on the mold rack the
- * capture cost, and on the mask level the allergy card's µs. Stamped once at its head; each figure keeps its tag for a screen reader.
+ * The full levels' readout strip (REDESIGN §2.6, §3.7): the stage's own metric, median TPOT, GPU busy, the bubble per step and one more, under
+ * one stamp. Each number steps to its new value at once and its change stands over it for a second. Each µs keeps its tag for a screen reader.
+ * A closed-book stage hides the live numbers, says so, and prints them once its run is served.
  */
-
-const pair = (kitchen: string, engine: string): ReactNode => (
-  <>
-    {kitchen} <span className="text-text-2">· {engine}</span>
-  </>
-)
-
-function linesOf(view: FullView): PrinterTapeLine[] {
-  const c = view.counters
-  const us = (value: number, kind: 'line' | 'expo') => <Readout value={value} unit="µs" tag={tagOf(view, kind)} size="sm" />
-  const count = (value: number) => <Readout value={value} tag={tagOf(view, 'count')} size="sm" />
-  const capture = view.stage.metric === 'capture'
-  // A closed-book stage keeps the house's clock to itself until its night is served.
-  const hidden = view.stage.sealed && !view.stage.closed
-  const lines: PrinterTapeLine[] = [
-    {
-      id: 'fire',
-      label: pair('fire', 'step'),
-      value:
-        view.nightFires === null ? (
-          <span>not yet</span>
-        ) : (
-          <>
-            <Readout value={view.step} pad={2} tag={tagOf(view, 'count')} size="sm" /> <span>of</span> <Readout value={view.nightFires} pad={2} tag={tagOf(view, 'count')} size="sm" />
-          </>
-        ),
-    },
-    { id: 'step-us', label: pair('step time', 'between two fires'), value: view.stepUs === null ? <span>not yet</span> : us(view.stepUs, 'expo') },
-    {
-      id: 'clock',
-      label: pair(capture ? 'cost' : 'clock', hidden ? 'the night so far' : 'against the house'),
-      value: hidden ? (
-        us(capture ? c.captureUs : c.clockUs, 'expo')
-      ) : (
-        <>
-          {us(capture ? c.captureUs : c.clockUs, 'expo')} <span>against</span> {us(view.stage.houseMetric, 'expo')}
-        </>
-      ),
-    },
-    { id: 'busy', label: pair('line busy', 'GPU busy'), value: us(c.gpuBusyUs, 'line') },
-    { id: 'dark', label: pair('dark stretches', 'bubble'), value: us(c.bubbleUs, 'expo'), tone: c.bubbleUs > 0 ? 'ink-2' : 'ink' },
-    { id: 'plates', label: pair('plates', 'useful tokens'), value: count(c.usefulTokens) },
-    { id: 'binned', label: pair('binned plates', 'ghost tokens'), value: count(c.ghostTokens), tone: c.ghostTokens > 0 ? 'ink-2' : 'ink' },
-    { id: 'padded', label: pair('empty mold places', 'padded tokens'), value: count(c.paddedTokens), tone: c.paddedTokens > 0 ? 'ink-2' : 'ink' },
-    { id: 'calls', label: pair('calls', 'launches'), value: count(c.launches) },
-    { id: 'eager', label: pair('dish by dish', 'eager fires'), value: count(c.eagerSteps), tone: c.eagerSteps > 0 ? 'ink-2' : 'ink' },
-  ]
-  if (view.allergy !== null) lines.push({ id: 'mask', label: pair('allergy card', 'mask µs'), value: us(c.maskUs, 'expo') })
-  if (view.counters.tpotP50Us !== null) lines.push({ id: 'tpot', label: pair('per course', 'TPOT p50'), value: us(view.counters.tpotP50Us, 'expo') })
-  return lines
-}
-
-export function FullTape({ view }: { view: FullView }) {
-  return <PrinterTape label="The printer: the night so far, in µs on the model's clock" lines={linesOf(view)} feed={`${view.at}|${view.step}`} empty="Nothing printed yet" stamp={stampOf(view)} />
+export function FullReadout({ view }: { view: FullView }) {
+  const items = fullStripItems(view)
+  const deltas = useDeltas(Object.fromEntries(items.flatMap((item) => (item.value === null ? [] : [[item.id, item.value] as const]))))
+  const hidden = hiddenReadout(view)
+  const against = view.stage.sealed && !view.stage.closed ? null : view.stage.houseMetric
+  return (
+    <div className="es-loopstrip" data-loop-readout="" data-full-readout="" data-hidden={hidden || undefined}>
+      <div className="es-loopstrip__head">
+        <span>Readout</span>
+        <Stamp word={stampWord(view)} />
+      </div>
+      {hidden ? (
+        <p className="es-loopstrip__hidden" data-readout-hidden="">
+          The live readout is hidden: this run is graded. Its numbers print once the run is served.
+        </p>
+      ) : null}
+      <dl className="es-loopstrip__list">
+        {items.map((item) => (
+          <div key={item.id} className="es-loopstrip__item" data-readout-id={item.id}>
+            <dt className="es-loopstrip__label">
+              {item.label}
+              {(item.id === 'clock' || item.id === 'capture') && against !== null ? <span className="es-loopstrip__ref"> · reference</span> : null}
+            </dt>
+            <dd className="es-loopstrip__value">
+              {item.value === null ? <span className="es-loopstrip__unit">not yet</span> : formatReadout(item.value)}
+              {item.unit === null || item.value === null ? null : <span className="es-loopstrip__unit">{item.unit}</span>}
+              {item.unit === 'µs' && item.value !== null ? <span className="sr-only">, {tagOf(view, item.kind)}</span> : null}
+              {(item.id === 'clock' || item.id === 'capture') && against !== null ? (
+                <span className="es-loopstrip__unit es-loopstrip__ref">
+                  {' · '}
+                  <span className="font-numeric">{formatReadout(against)}</span>
+                  <span className="sr-only"> µs for the reference run, {tagOf(view, 'host')}</span>
+                </span>
+              ) : null}
+              {deltas[item.id] === undefined ? null : <DeltaChip key={deltas[item.id].key} value={deltas[item.id].value} className="es-loopstrip__delta" />}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      {against !== null ? <span className="sr-only">The second figure of the lead number is the reference run’s.</span> : null}
+    </div>
+  )
 }

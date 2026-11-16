@@ -22,6 +22,7 @@ const ANCHORS: Readonly<Record<string, string>> = {
   bubble: '[data-lane-idle]',
   async: '[data-loop-async]',
   ghost: '[data-use="ghost"]',
+  reference: '[data-loop-readout] [data-readout-id="clock"]',
 }
 
 /** The parts a demo level draws, as the Parts list shows them, with vLLM's identifier set as code. */

@@ -109,8 +109,8 @@ export interface FrameProps<Level, State, Action extends GameAction, View, Score
   onFinish?: (result: RunResult, mode: GameMode) => void
   /** A key the frame does not take itself. Return true when the command was handled. */
   onCommand?: (command: string, run: FrameRun<Action, View, Score, Ask>) => boolean | void
-  /** The level menu: one control (LevelMenu). Left out inside a lesson, where the block names the level. */
-  menu?: ReactNode
+  /** The level menu: one control (LevelMenu). Left out inside a lesson, where the block names the level. A function reads the run (a stage in the face). */
+  menu?: ReactNode | ((run: FrameRun<Action, View, Score, Ask>) => ReactNode)
   /** The way to switch between practice and a graded run, for a level that can be graded; it stands in the foot strip. */
   modeSwitch?: ReactNode
   goal: (run: FrameRun<Action, View, Score, Ask>) => FrameGoal
@@ -422,7 +422,7 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
           <p className="es-frame__role">{props.role}</p>
         </div>
         <div className="es-frame__menu">
-          {props.menu ?? (
+          {(typeof props.menu === 'function' ? props.menu(api) : props.menu) ?? (
             <p className="es-frame__level" data-level-words="">
               {levelTitle} · {modeWord}
             </p>

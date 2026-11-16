@@ -3,7 +3,6 @@ import type { FullLevelId } from '@es/play/loop/full/types'
 import { useClaims } from '@/content/load'
 import { ClaimChip } from '@/content/render/ClaimChip'
 import { renderEnv, todayIso } from '@/content/render/model'
-import { Ticket } from '@/design/components/Ticket'
 import { PRODUCTION, type Line } from './production-lines'
 
 /*
@@ -41,9 +40,9 @@ export function ProductionLines({ lines }: { lines: readonly Line[] }) {
 
 export function Production({ level }: { level: FullLevelId }) {
   return (
-    <Ticket as="section" width="full" hole={false} titleAs="h3" title="In production: the pinned engines' settings" data-full-production="">
-      <p>The browser world is a model, and the real engines are the judge. These are the settings behind tonight's levers, as the engines stood at the pins on the day each claim was read.</p>
+    <section className="es-fd-after__body" aria-label="In production: the pinned engines’ settings" data-full-production="">
+      <p>The browser world is a model, and the real engines are the judge. These are the settings behind this level’s levers, as the engines stood at the pins on the day each claim was read.</p>
       <ProductionLines lines={PRODUCTION[level]} />
-    </Ticket>
+    </section>
   )
 }

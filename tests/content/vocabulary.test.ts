@@ -5,12 +5,19 @@
  *
  * It checks words, not whether the level can be solved. The levels it holds are the openers of the table (tests/content/openers-table.ts): the
  * levels of an A or B row. A game that has no parts table yet is marked as waiting on the task that gives it one (`test.todo`, which runs
- * nothing), and that task replaces the mark with a table: R-T28 for the step loop, R-T29 for the request path, R-T30 for the rejection
- * sampler and R-T31 for the broken benchmark. The pool's parts list is the one that exists, and every pool level of an A or B row passes.
+ * nothing), and that task replaces the mark with a table: R-T29 for the request path, R-T30 for the rejection sampler and R-T31 for the
+ * broken benchmark. The pool's parts list and the step loop's (R-T28: the demo levels' and the full levels') exist, and every level of an A or B
+ * row of those games passes.
  */
 import { describe, expect, test } from 'bun:test'
 import { compiledLessonSchema } from '@es/schema'
 import type { CompiledLesson, ProseFlow, ProseInline } from '@es/schema'
+import { LOOP_COPY } from '@es/play/loop/copy'
+import { FULL_COPY } from '@es/play/loop/full/copy'
+import { fullPartsOf } from '@es/play/loop/full/parts'
+import { loopPartsOf } from '@es/play/loop/parts'
+import type { LoopLevelId } from '@es/play/loop/types'
+import type { FullLevelId } from '@es/play/loop/full/types'
 import { POOL_COPY, partsOf } from '@es/play/pool/copy'
 import type { PoolLevelId } from '@es/play/pool/types'
 import { TERMS } from '@/copy/terms'
@@ -47,10 +54,15 @@ function setupOf(lesson: CompiledLesson): string {
   return before.map((block) => (block.type === 'prose' ? flowText(block.body) : '')).join(' ')
 }
 
+const isFull = (level: string): boolean => level in FULL_COPY
+
 /** What each game has as a parts table: the words of a level's parts list, or undefined while the game has none. */
 const PARTS: Record<string, { at: (level: string) => string; waiting?: string }> = {
   pool: { at: (level) => partsOf(level as PoolLevelId).map((part) => `${part.name} ${part.sentence} ${part.engine ?? ''}`).join(' ') },
-  loop: { at: () => '', waiting: 'R-T28' },
+  loop: {
+    at: (level) =>
+      (isFull(level) ? fullPartsOf(level as FullLevelId) : loopPartsOf(level as LoopLevelId)).map((part) => `${part.name} ${part.sentence} ${part.engine ?? ''}`).join(' '),
+  },
   'engine-floor': { at: () => '', waiting: 'R-T29' },
   verifier: { at: () => '', waiting: 'R-T30' },
   'broken-bench': { at: () => '', waiting: 'R-T31' },
@@ -58,6 +70,16 @@ const PARTS: Record<string, { at: (level: string) => string; waiting?: string }>
 
 /** The words of a level that the learner reads before and during a run: its goal line, its prompt and the question it asks first. */
 const LEVEL_WORDS: Record<string, (level: string) => string> = {
+  loop: (level) => {
+    if (!isFull(level)) {
+      const copy = LOOP_COPY[level as LoopLevelId]
+      return [copy.goal.aim, copy.goal.controls, copy.goal.beat, copy.prompt].join(' ')
+    }
+    // A full level asks the stage's prediction first: its goal line, its prompt, and the question, for every stage.
+    const copy = FULL_COPY[level as FullLevelId]
+    const stages = Object.values(copy.stages).flatMap((stage) => [stage.goal.aim, stage.goal.controls, stage.goal.beat, 'question' in stage.prediction ? stage.prediction.question : ''])
+    return [copy.goal.aim, copy.goal.controls, copy.goal.beat, copy.prompt, ...stages].join(' ')
+  },
   pool: (level) => {
     const copy = POOL_COPY[level as PoolLevelId]
     return [copy.goal.aim, copy.goal.controls, copy.prompt, copy.predict.ask].join(' ')

@@ -3,7 +3,7 @@ import { SMALL_CARD } from '@es/sim/steploop'
 import { Readout } from '@/design/components/Readout'
 
 /*
- * The full service's notional-machine card, on the page (A§5.9, D-012): what the world models, what it ignores and what calibrated it.
+ * The full levels' notional-machine card, on the page (A§5.9, D-012): what the world models, what it ignores and what calibrated it.
  * The full card is content/cards/trace-room-steploop.md. The cost cards' figures print as Readouts with their tags: the S5 fit's are
  * derived from kernelspace's report, the small model's are synthetic, and every host µs is estimated (WORLD §2.11).
  */
@@ -14,9 +14,9 @@ export function FullCard() {
   return (
     <div className="flex flex-col gap-3" data-full-card="">
       <p>
-        <strong>Models.</strong> The engine core's step loop at vLLM v0.33.0, in µs on the model's clock: the scheduler, async scheduling, the five CUDA-graph modes and their
-        downgrades, capture sizes and padding, both runners' dispatchers, the structured-output mask, and the two runners' host cards. Two cost cards price the line: "70B on
-        H100", kernelspace's S5 fit at tensor-parallel size 4 with its per-sequence host term on the expo's side (D-044, proposed), and a small model on a 24 GB card, a napkin
+        <strong>Models.</strong> The engine core's step loop at vLLM v0.33.0, in µs on the model's clock: the scheduler, async scheduling, the five CUDA graph modes and their
+        downgrades, capture sizes and padding, both runners' dispatchers, the structured-output mask, and the two runners' host cards. Two cost cards price the GPU: "70B on
+        H100", kernelspace's S5 fit at tensor-parallel size 4 with its per-sequence host term on the CPU's side, and a small model on a 24 GB card, a napkin
         at the datasheet bound.
       </p>
       <dl className="grid max-w-md grid-cols-[1fr_auto] gap-x-4 gap-y-1">
@@ -50,13 +50,13 @@ export function FullCard() {
         </dd>
       </dl>
       <p>
-        <strong>Ignores.</strong> S5's own list on the line, CUDA-graph padding among it (the model prices a padded step by giving S5 the padded batch, an extrapolation), host
-        variance, the KV manager (no capacity limit and no preemption), capture time and graph memory as limits, and SGLang's own loop. The mold rack's budget of molds and the
+        <strong>Ignores.</strong> S5's own list for the GPU, CUDA graph padding among it (the model prices a padded step by giving S5 the padded batch, an extrapolation), host
+        variance, the KV manager (no capacity limit and no preemption), capture time and graph memory as limits, and SGLang's own loop. The budget of capture sizes and the
         mask level's grammar weights are the levels' own [estimated].
       </p>
       <p>
-        <strong>Calibrated against.</strong> S5's H100 row for the 70B card's line; nothing for the small card, which is synthetic; nothing yet for the host card, which W2-T22
-        fits to the owner's traces. The real engine is the judge.
+        <strong>Calibrated against.</strong> S5's H100 row for the 70B card's GPU time; nothing for the small card, which is synthetic; nothing yet for the host card, whose numbers
+        wait for a fit to real traces. The real engine is the judge.
       </p>
     </div>
   )

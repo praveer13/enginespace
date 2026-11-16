@@ -1,21 +1,30 @@
+import { lazy, Suspense, useContext, useId } from 'react'
 import { drawInBand } from '@es/play'
-import { buildFullLevel } from '@es/play/loop/full/levels'
+import { FULL_COPY } from '@es/play/loop/full/copy'
 import { fullSession, leverWords, predictionClose, wordsOf } from '@es/play/loop/full/session'
 import type { LeverName, Levers } from '@es/play/loop/full/types'
 import { Button } from '@/design/components/Button'
-import { Readout } from '@/design/components/Readout'
-import { Stub } from '@/design/components/Stub'
+import { Stamp } from '@/design/components/Stamp'
 import { TextLink } from '@/design/components/TextLink'
-import { Ticket } from '@/design/components/Ticket'
 import { formatReadout } from '@/design/format'
+import { Debrief as Result } from '@/games/kit/Debrief'
+import { LessonRunContext } from '@/games/kit/lessonRun'
+import { Versus } from '@/games/kit/Versus'
+import { verdictOf } from '@/games/kit/verdict'
+import { Us } from './FullView2D'
 import { VerdictLines } from './NightVerdict'
-import { tagOf } from './tags'
+import { stampWord, tagOf } from './tags'
 import type { FullOutcome, FullRun } from './types'
+import { levelOn } from './world'
+
+// What comes after the debrief (the policy as the engines read it, their settings, what to run on a real engine) is its own chunk, loaded
+// when the learner opens it.
+const After = lazy(() => import('../FullAfter'))
 
 /*
- * The full service's debrief (GAMES.md §2.1; §3, "Core loop", step 3): one sentence on what the run did and the lever worth the most, then
- * each stage: the best night served against the house's, and the call against the model's answer. The house is the ghost, read only here.
- * Every µs is a Readout with its card's tag (D-048).
+ * The full levels' result (REDESIGN §2.6, "The debrief"), in the dock once every stage has closed: the verdict word, one plain sentence that
+ * names the engine term, the one primary control, yours against the reference run on one axis, each stage's call against the model's, and,
+ * for the graded level, the configuration against the reference's. The reference is read only here. Every µs keeps its tag.
  */
 
 export interface FullDebriefProps {
@@ -27,85 +36,141 @@ export interface FullDebriefProps {
   onGraded?: (() => void) | null
   /** Goes back to practice from a graded run; null in practice. */
   onPractice?: (() => void) | null
+  embedded?: boolean
 }
 
-/** The levers of a configuration in words, for the table of what the learner served against what the house did. */
+/** The levers of a configuration in words, for the table of what the learner ran against what the reference did. */
 function configRows(levers: Levers): { name: string; value: string }[] {
   return [
     { name: 'Async scheduling', value: levers.async ? 'on' : 'off' },
-    { name: 'The next call\'s input ids', value: levers.inputIds === 'device' ? 'filled by the line' : 'written by the expo' },
-    { name: 'The runner', value: levers.runner === 'mrv2' ? 'MRV2' : 'V1, the legacy runner' },
-    { name: 'The graph mode', value: levers.graphMode },
-    { name: 'The molds on the rack', value: levers.graphMode === 'NONE' || levers.captureSizes.length === 0 ? 'none drilled' : levers.captureSizes.join(', ') },
+    { name: 'Input ids', value: levers.inputIds === 'device' ? 'filled on the GPU' : 'written by the CPU' },
+    { name: 'Model runner', value: levers.runner === 'mrv2' ? 'MRV2' : 'V1, the legacy runner' },
+    { name: 'CUDA graph mode', value: levers.graphMode },
+    { name: 'Capture sizes', value: levers.graphMode === 'NONE' || levers.captureSizes.length === 0 ? 'none captured' : levers.captureSizes.join(', ') },
   ]
 }
 
-export function FullDebrief({ run, outcome, next, onNext, onGraded = null, onPractice = null }: FullDebriefProps) {
+export function FullDebrief({ run, outcome, next, onNext, onGraded = null, onPractice = null, embedded = false }: FullDebriefProps) {
+  const againId = useId()
   const { view } = run
   const { debrief, grade } = outcome
-  const level = buildFullLevel(view.level, run.seed)
+  const level = levelOn(view.level, run.seed)
   const lever = debrief.names !== null && 'lever' in debrief.names ? leverWords(debrief.names.lever as LeverName) : null
   const newNumbers = () => run.restart(drawInBand(fullSession, view.level, crypto.getRandomValues(new Uint32Array(1))[0]))
-  // A closed-book stage (`close`) is the only stage of its level: its verdict is the current stage's, and its policy is what it was served with.
+  // A closed-book stage (`close`) is the only stage of its level: its verdict is the current stage's, and its configuration is what it was run with.
   const sealed = level.stages.find((world) => world.sealed)
   const sealedIndex = sealed === undefined ? -1 : level.stages.indexOf(sealed)
   const verdict = sealed !== undefined && view.stage.id === sealed.id ? view.stage.verdict : null
   const mine = sealedIndex < 0 ? null : view.stages[sealedIndex].levers
+  const word = verdictOf(grade, FULL_COPY[view.level].passRule !== undefined)
+  const lesson = useContext(LessonRunContext)
+  const onward = lesson?.onward ?? null
+  const stamp = <Stamp word={stampWord(view)} />
+
+  const best = level.stages.map((world, i) => {
+    const stage = view.stages[i]
+    const served = stage.served.filter((night) => night.metric > 0)
+    return { world, stage, best: served.length === 0 ? null : Math.min(...served.map((night) => night.metric)) }
+  })
+  const behind = best.filter((row) => row.best !== null && row.best > row.world.houseMetric)
+
+  const primary =
+    onward !== null ? (
+      <Button variant="ink" onClick={() => onward.select()}>
+        {onward.label}
+      </Button>
+    ) : next !== null ? (
+      <Button variant="ink" onClick={onNext}>
+        {`Next level: ${next.title}`}
+      </Button>
+    ) : embedded ? null : (
+      <TextLink to="/map">Open the course</TextLink>
+    )
+
   return (
-    <div className="flex max-w-3xl flex-col gap-6" data-full-debrief="">
-      <Ticket
-        as="section"
-        width="full"
-        hole={false}
-        head="Debrief"
-        meta={view.title}
-        titleAs="h3"
-        title={grade.ok ? 'Well served.' : 'Serve it again.'}
-        className="es-full-debrief"
-        stub={next === null ? <Stub to="/m/tr2">Back to TR2</Stub> : <Stub onClick={onNext}>{`Next: ${next.title}`}</Stub>}
+    <div className="es-fd-result" data-full-debrief="">
+      <Result
+        className="es-fd-debrief"
+        verdict={word}
+        sentence={debrief.sentence}
+        actions={
+          <>
+            {primary}
+            {run.mode === 'graded' ? (
+              <>
+                {onPractice === null ? null : (
+                  <Button variant="quiet" onClick={onPractice}>
+                    Practice this level
+                  </Button>
+                )}
+                {onGraded === null ? null : (
+                  <Button variant="quiet" aria-describedby={againId} onClick={onGraded}>
+                    Another graded run
+                  </Button>
+                )}
+              </>
+            ) : (
+              <>
+                <Button variant="quiet" aria-describedby={againId} onClick={() => run.restart()}>
+                  Run again
+                </Button>
+                <Button variant="quiet" onClick={newNumbers}>
+                  New numbers
+                </Button>
+                {onGraded === null ? null : (
+                  <Button variant="quiet" onClick={onGraded}>
+                    Start a graded run
+                  </Button>
+                )}
+              </>
+            )}
+          </>
+        }
       >
-        <p className="es-type-body">{debrief.sentence}</p>
+        <p id={againId} className="es-fd-result__again" data-run-again="">
+          <strong>Run again:</strong>{' '}
+          {behind.length === 0 ? 'every stage met the reference run’s clock within its margin.' : `${behind.length === 1 ? 'one stage ran' : `${behind.length} stages ran`} over the reference run’s.`}
+        </p>
         {lever ? (
           <p>
             <strong>The lever worth the most:</strong> {lever}.
           </p>
         ) : null}
         {verdict !== null ? (
-          <div className="flex flex-col gap-2" data-full-verdict-debrief="">
+          <section aria-label="Verdict on the run" data-full-verdict-debrief="">
             <VerdictLines verdict={verdict} view={view} />
-          </div>
+          </section>
         ) : null}
+        <Versus
+          caption="Your best run of each stage and the reference run’s, on one axis, in µs"
+          stamp={stamp}
+          rows={best.flatMap((row) =>
+            row.best === null ? [] : [{ id: row.world.id, label: row.stage.title, mine: row.best, reference: row.world.houseMetric }],
+          )}
+        />
         {sealed !== undefined && mine !== null ? (
-          <div role="region" aria-label="Your configuration against the house's" tabIndex={0} className="overflow-x-auto" data-full-config-table="">
-            <table className="w-full border-collapse text-left">
-              <caption className="pb-2 text-left font-bold">Your configuration, lever by lever, against the house's</caption>
+          <div role="region" aria-label="Your configuration against the reference run’s" tabIndex={0} className="es-fd-result__scroll" data-full-config-table="">
+            <table className="es-fd-result__table">
+              <caption>Your configuration, lever by lever, against the reference run’s</caption>
               <thead>
                 <tr>
-                  <th scope="col" className="border-b border-edge py-2 pr-4 font-bold">
-                    Lever
-                  </th>
-                  <th scope="col" className="border-b border-edge py-2 pr-4 font-bold">
-                    Yours
-                  </th>
-                  <th scope="col" className="border-b border-edge py-2 font-bold">
-                    The house's
-                  </th>
+                  <th scope="col">Lever</th>
+                  <th scope="col">Yours</th>
+                  <th scope="col">The reference run’s</th>
                 </tr>
               </thead>
               <tbody>
                 {configRows(mine).map((row, i) => {
-                  const house = configRows(sealed.house)[i]
-                  const same = row.value === house.value
+                  const reference = configRows(sealed.house)[i]
+                  const same = row.value === reference.value
                   return (
-                    <tr key={row.name} className="border-b border-paper-rule" data-differs={same ? undefined : ''}>
-                      <th scope="row" className="py-2 pr-4 text-left font-normal">
-                        {row.name}
-                      </th>
-                      <td className="py-2 pr-4">
+                    <tr key={row.name} data-differs={same ? undefined : ''}>
+                      <th scope="row">{row.name}</th>
+                      <td>
                         {row.value}
-                        <span className="sr-only">{same ? ', the same as the house' : ', not what the house did'}</span>
+                        <span className="sr-only">{same ? ', the same as the reference run' : ', not what the reference run did'}</span>
                       </td>
-                      <td className="py-2">{house.value}</td>
+                      <td>{reference.value}</td>
                     </tr>
                   )
                 })}
@@ -113,54 +178,34 @@ export function FullDebrief({ run, outcome, next, onNext, onGraded = null, onPra
             </table>
           </div>
         ) : null}
-        {/*
-         * On narrow paper (under 36rem, the debrief's ticket being a size container) each stage prints as a block of its own, as the mirror's
-         * rows do (components.css, "the mirror's table"): the stage, then each figure after its column's name, so the call against the model's
-         * reads without a sideways scroll. The table keeps its roles, so it reads as a table in either layout.
-         */}
-        <div role="region" aria-label="Each stage against the house" tabIndex={0} className="es-mirror__region">
-          <table role="table" className="es-mirror__table w-full border-collapse text-left">
-            <caption className="es-mirror__caption pb-2 text-left font-bold">Each stage: your best night against the house's, and your call against the model's</caption>
-            <thead role="rowgroup">
-              <tr role="row">
-                <th scope="col" role="columnheader" className="border-b border-edge py-2 pr-4 font-bold">
-                  Stage
-                </th>
-                <th scope="col" role="columnheader" className="border-b border-edge py-2 pr-4 text-right font-bold">
-                  Yours
-                  <span className="block text-sm font-normal text-text-2">µs, best night</span>
-                </th>
-                <th scope="col" role="columnheader" className="border-b border-edge py-2 pr-4 text-right font-bold">
-                  The house
-                  <span className="block text-sm font-normal text-text-2">µs</span>
-                </th>
-                <th scope="col" role="columnheader" className="border-b border-edge py-2 text-right font-bold">
-                  Your call
-                  <span className="block text-sm font-normal text-text-2">and the model's</span>
-                </th>
+        <div role="region" aria-label="Each stage against the reference run" tabIndex={0} className="es-fd-result__scroll">
+          <table className="es-fd-result__table" data-full-stages-table="">
+            <caption>Each stage: your best run against the reference run’s, and your prediction against the model’s</caption>
+            <thead>
+              <tr>
+                <th scope="col">Stage</th>
+                <th scope="col">Yours</th>
+                <th scope="col">Reference</th>
+                <th scope="col">Your prediction, and the model’s</th>
               </tr>
             </thead>
-            <tbody role="rowgroup">
-              {level.stages.map((world, i) => {
-                const stage = view.stages[i]
-                const best = stage.served.length === 0 ? null : Math.min(...stage.served.map((night) => night.metric))
+            <tbody>
+              {best.map(({ world, stage, best: bestRun }) => {
                 const p = wordsOf(view.level, world).prediction
                 const said = (value: number) => (p.kind === 'choice' ? p.options[value] : `${formatReadout(value)} ${p.unit}`)
-                const tag = tagOf({ synthetic: world.card === 'small' }, 'expo')
+                const tag = tagOf({ synthetic: world.card === 'small' }, 'host')
                 return (
-                  <tr key={world.id} role="row" className="border-b border-paper-rule" data-stage-row={world.id} data-passed={stage.passed || undefined}>
-                    <th scope="row" role="rowheader" className="py-2 pr-4 text-left font-normal">
+                  <tr key={world.id} data-stage-row={world.id} data-passed={stage.passed || undefined}>
+                    <th scope="row">
                       {stage.title}
-                      <span className="block text-sm text-text-2">{stage.passed ? 'at the bar' : 'missed the bar'}</span>
+                      <span className="es-fd-result__sub">{stage.passed ? 'at the bar' : 'missed the bar'}</span>
                     </th>
-                    <td role="cell" data-label="Yours, best night" className="py-2 pr-4 text-right">
-                      {best === null ? 'none served' : <Readout value={best} unit="µs" tag={tag} size="sm" tone={stage.passed ? 'ink' : 'ink-2'} />}
+                    <td data-label="Yours, best run">{bestRun === null ? 'none run' : <Us value={bestRun} tag={tag} />}</td>
+                    <td data-label="Reference">
+                      <Us value={world.houseMetric} tag={tag} />
                     </td>
-                    <td role="cell" data-label="The house" className="py-2 pr-4 text-right">
-                      <Readout value={world.houseMetric} unit="µs" tag={tag} size="sm" />
-                    </td>
-                    <td role="cell" data-label="Your call, and the model's" className="py-2 text-right">
-                      {stage.predicted === null ? 'not called' : `${said(stage.predicted)}; the model: ${said(world.answer)}${predictionClose(view.level, world, stage.predicted) ? ', on the money' : ''}`}
+                    <td data-label="Your prediction, and the model’s">
+                      {stage.predicted === null ? 'not committed' : `${said(stage.predicted)}; the model: ${said(world.answer)}${predictionClose(view.level, world, stage.predicted) ? ', on target' : ''}`}
                     </td>
                   </tr>
                 )
@@ -168,38 +213,10 @@ export function FullDebrief({ run, outcome, next, onNext, onGraded = null, onPra
             </tbody>
           </table>
         </div>
-      </Ticket>
-      <div className="flex flex-wrap items-center gap-4">
-        {run.mode === 'graded' ? (
-          <>
-            {onPractice === null ? null : (
-              <Button variant="plate" onClick={onPractice}>
-                Practice this level
-              </Button>
-            )}
-            {onGraded === null ? null : (
-              <Button variant="ink" onClick={onGraded}>
-                Another graded run
-              </Button>
-            )}
-          </>
-        ) : (
-          <>
-            <Button variant="plate" onClick={() => run.restart()}>
-              Play this level again
-            </Button>
-            <Button variant="ink" onClick={newNumbers}>
-              New numbers
-            </Button>
-            {onGraded === null ? null : (
-              <Button variant="plate" onClick={onGraded}>
-                Start a graded run
-              </Button>
-            )}
-          </>
-        )}
-        <TextLink to="/m/tr2">TR2: the step loop</TextLink>
-      </div>
+        <Suspense fallback={null}>
+          <After run={run} />
+        </Suspense>
+      </Result>
     </div>
   )
 }
