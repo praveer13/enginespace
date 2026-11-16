@@ -53,6 +53,7 @@ import { kcGraphSchema } from '../../packages/schema/kc.ts'
 import type { Kc } from '../../packages/schema/kc.ts'
 import { kcIdSchema, moduleOfKc } from '../../packages/schema/refs.ts'
 import { compileCard } from './cards.ts'
+import { isRegularFile } from './files.ts'
 import type { CardResult } from './cards.ts'
 import { blockLinks, blockMarkdown, blockMinutes, compileDirective, GAME_IDS, LAB_IDS, textFields, unknownGame, unknownKcs, unknownLab } from './directives.ts'
 import type { DirectiveBlock, LinkEnv, LinkProblem } from './directives.ts'
@@ -118,14 +119,17 @@ const json = (value: unknown): string => `${JSON.stringify(value)}\n`
 /* Reading the sources                                                                                                */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** The files under a directory that `accept` takes, sorted, as absolute paths. A missing directory holds none. */
+/**
+ * The files under a directory that `accept` takes, sorted, as absolute paths. A missing directory holds none, and a name that is not
+ * a regular file once a link is followed (a dangling link such as Emacs's `.#name.md`, a socket, a pipe) is not a file to compile.
+ */
 function walk(dir: string, accept: (name: string) => boolean): string[] {
   if (!existsSync(dir)) return []
   const found: string[] = []
   for (const entry of readdirSync(dir, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))) {
     const full = path.join(dir, entry.name)
     if (entry.isDirectory()) found.push(...walk(full, accept))
-    else if (accept(entry.name)) found.push(full)
+    else if (accept(entry.name) && isRegularFile(full)) found.push(full)
   }
   return found
 }
