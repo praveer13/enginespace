@@ -1,10 +1,11 @@
 /*
- * When the front page's pass turns 3D (ARCHITECTURE §6.10 and §6.11, D-023; TRACKER W0-T18).
+ * When the front page's diagram turns 3D (ARCHITECTURE §6.10 and §6.11, D-023; REDESIGN §3.1).
  *
- * The first paint is the static HTML: the order ticket with the heading, and the poster in the pass's box. The 2D game takes the box
- * over when the entry and the front page's chunk have run. The 3D scene comes last: after the largest contentful paint and on idle
- * (`requestIdleCallback`, or after IDLE_TIMEOUT_MS where there is none), and only
+ * The first paint is the static HTML: the heading, and the step loop's timing diagram in its box. The live 2D diagram takes the box over
+ * when the entry and the front page's chunk have run. The 3D time track comes last, in the same box: after the largest contentful paint
+ * and on idle (`requestIdleCallback`, or after IDLE_TIMEOUT_MS where there is none), and only
  *   - at tier 1 or above (tiers.ts: WebGL2 in hardware, and the learner has not chosen 2D in Settings);
+ *   - not on a coarse pointer under 48rem: a phone opens in 2D, with 3D one tap away (REDESIGN §3.1);
  *   - without data saver: the Stage then shows its note and loads the scene only when asked (A§6.6);
  *   - on a connection that is not reported as 2G: the scene then waits for the 3D button.
  * Whatever the device, the learner's own choice of view wins: the 3D button asks for the scene at once, and `V` swaps the views.
@@ -31,17 +32,30 @@ export function readConnection(nav: NavigatorWithConnection | undefined = typeof
   return { saveData: connection?.saveData === true, effectiveType: typeof connection?.effectiveType === 'string' ? connection.effectiveType : null }
 }
 
+/** The query of a phone held in the hand: a coarse pointer on a screen under 48rem. Such a screen stays in 2D until asked. */
+export const HANDHELD_QUERY = '(pointer: coarse) and (max-width: 47.999rem)'
+
+/** Whether this screen is a phone in the hand (false on the server, and where the browser cannot say). */
+export function isHandheld(win: { matchMedia?: (query: string) => { matches: boolean } } | undefined = typeof window === 'undefined' ? undefined : window): boolean {
+  try {
+    return win?.matchMedia?.(HANDHELD_QUERY).matches === true
+  } catch {
+    return false
+  }
+}
+
 /**
- * What the pass does once the page has settled:
+ * What the diagram does once the page has settled:
  *   load   mount the Stage, which loads the scene and swaps it in;
  *   offer  mount the Stage, which keeps the 2D view and offers the scene behind a button (data saver);
- *   wait   stay 2D until the learner asks for 3D (a 2G connection);
+ *   wait   stay 2D until the learner asks for 3D (a phone in the hand, or a 2G connection);
  *   never  stay 2D: the device draws no 3D, or has not said yet.
  */
 export type Upgrade = 'load' | 'offer' | 'wait' | 'never'
 
-export function upgradeOf(device: DeviceTier, connection: Connection): Upgrade {
+export function upgradeOf(device: DeviceTier, connection: Connection, handheld = false): Upgrade {
   if (!device.known || device.tier < 1) return 'never'
+  if (handheld) return 'wait'
   if (connection.saveData || device.hints?.saveData === true) return 'offer'
   if (connection.effectiveType === '2g' || connection.effectiveType === 'slow-2g') return 'wait'
   return 'load'

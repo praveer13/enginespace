@@ -239,3 +239,12 @@ By route:
 ### 2.6 The tag
 
 `wave-r-stage1` is a local tag on the `wave-r` commit that holds this task's merge, which is the stage-1 head (the walk's fixes included). This task changes no source file under `src/`, `packages/`, `content/` or `scripts/`.
+
+## 3. The loop's kitchen scene leaves with R-T19 (2026-11-16)
+
+R-T19 rebuilt the front page around the time track, and the old front page was the last module that imported the step loop's kitchen scene: `/play/loop` had pointed its 3D switch at the time track since R-T18. A scene in the tree that nothing loads is a row verify:bundle cannot measure, and keeping one dead lazy import to make it a chunk measured it at 45,237 B against its 40 KB gate [measured 2026-11-16, over `e963820`], since the kitchen's layout no longer sat in the front page's static closure. So the loop's part of R-T44 moved ahead of it, and R-T19 carries it:
+
+- **Deleted:** `src/games/loop/Scene3D.tsx` (the kitchen scene), `scene-layout.ts`, `scene-presets.ts`, `scene3d.css`, `full/scene.ts`, and the front page's landmark anchors (`src/front/anchors.ts`, which read `scene-presets.ts`), with the tests that read only them (`tests/play/loop-scene.test.ts`, `tests/front/anchors.test.ts`, and the 3D-layout half of `tests/play/loop-full-layout.test.ts`). Before the delete, each file's importers were listed; every one was another file of the same set, a test of it, or the old front page that R-T19 replaced.
+- **Renamed:** the time track, `src/games/loop/TrackScene3D.tsx`, is now `src/games/loop/Scene3D.tsx`, the step loop's scene, so the gate's row `scene-loop` measures the scene the game draws. Its props type is `Scene3DProps`, as in the other games.
+- **Measured** (`npm run build`, `bun scripts/verify.ts bundle`, 2026-11-16, R-T19's branch over `wave-r` at `e963820`): `scene-loop` 22,045 B [measured], gate 40 KB, 17,955 B under, with no edit to BUDGETS, the gate script or tests/bundle; the front page's first-paint JS 147,548 B and CSS 24,037 B [measured]; `three-vendor` 238,659 B [measured].
+- **Left for R-T44:** `packages/play/loop/layout.ts` and `kitchen.ts` (the Debrief and the full service still read them), `src/scene/props`, the kitchen specimen on `/design`, the lamps, textures, environment and post-processing. When `src/scene/Lights.tsx` goes, `FlatLights` needs lights of its own (R-T18's note). The kitchen stays whole in build A, the tag `wave-r-stage1`.

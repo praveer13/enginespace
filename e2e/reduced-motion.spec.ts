@@ -7,8 +7,8 @@
  *     that repeats, or a transition, and no animation is running.
  *   - A 3D pass draws a first frame, comes to rest, and then asks for no animation frame at all: a counter on `requestAnimationFrame`
  *     reads the same after the scene has rested as it did when it did, for a second and a half.
- *   - The front page's game plays under it: Auto, which rings the bell by itself, is off until it is asked for (WCAG 2.2.2), the keys
- *     play the level to its debrief, and the bell's strike does not run.
+ *   - The front page's game plays under it: Auto-step, which steps by itself, is off until it is asked for (WCAG 2.2.2), the keys
+ *     play the level to its result, and nothing on the diagram is still moving.
  *   - A check that cannot fail proves nothing: the same scan and the same counter are run on a page that animates, and see it.
  *
  * The routes are the pull-request eight and what W1 added (e2e/routes.ts: W1-T36's sixteen pages, and the pages of the full service's
@@ -116,19 +116,16 @@ test.describe('a 3D pass asks for no frame once it has settled', () => {
 })
 
 test.describe('the front page\'s game under reduced motion', () => {
-  test('Auto is off until it is asked for, the keys play the level, and the bell\'s strike does not run', async ({ page, context }) => {
+  test('Auto-step is off until it is asked for, the keys play the level, and nothing on the diagram moves', async ({ page, context }) => {
     await withSettings(context, { view3d: false })
     await open(page, '/')
-    await expect(page.getByRole('button', { name: 'Auto' })).toHaveAttribute('aria-pressed', 'false')
-    await front.start(page).focus()
-    await page.keyboard.press('Enter')
+    await expect(page.getByRole('button', { name: 'Auto-step' })).toHaveAttribute('aria-pressed', 'false')
     await playToTheDebrief(page)
     await expect(front.verdict(page)).toHaveText('Passed.')
-    // The strike of the bell and the printer's feed are CSS animations, 1 ms long under the setting, so none is still running.
+    // The step's slabs and the readout's delta are drawn at their end under the setting, so none is still running.
     await expect.poll(async () => (await movingThings(page)).running).toEqual([])
-    expect(await page.evaluate(() => getComputedStyle(document.querySelector('.es-bell__body') as Element).animationDuration)).toBe('0.001s')
-    // Auto never started by itself: the clock moved by the one ring that the level took.
-    await expect(page.getByRole('button', { name: 'Auto' })).toHaveAttribute('aria-pressed', 'false')
+    // Auto-step never started by itself: the run took the one step the level asked for.
+    await expect(page.locator('[data-loop-readout] [data-readout-id="step"]')).toContainText('1')
   })
 })
 

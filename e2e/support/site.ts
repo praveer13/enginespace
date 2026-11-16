@@ -211,7 +211,8 @@ export async function quiet(page: Page, ms = 500, cap = 20_000): Promise<void> {
  */
 export async function settled3d(page: Page, { rested = true, timeout = 60_000 }: { rested?: boolean; timeout?: number } = {}): Promise<void> {
   // A game in the instrument frame opens on its diagram (REDESIGN §2.9), with 3D one switch away: the switch is pressed, as a learner would.
-  const switch3d = page.locator('section[data-view="2d"] .es-frame__strip').getByRole('button', { name: '3D', exact: true })
+  // The front page's instrument opens on the diagram on a first visit too, until its intro has handed over: its 3D is pressed the same way.
+  const switch3d = page.locator('section[data-view="2d"] :is(.es-frame__strip, .es-front-strip)').getByRole('button', { name: '3D', exact: true })
   if ((await page.locator('[data-stage]').count()) === 0 && (await switch3d.count()) > 0) await switch3d.first().click()
   await expect(page.locator('[data-stage]').first(), 'a 3D pass was expected on this page').toBeAttached({ timeout })
   const live = rested ? '[data-stage][data-stage-phase="live"][data-settled="true"]' : '[data-stage][data-stage-phase="live"]'

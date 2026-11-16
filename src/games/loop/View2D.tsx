@@ -91,13 +91,25 @@ export interface LanesProps {
   ring?: number | null
   /** Where focus goes once the queue has no chip left to take it: the Step control, outside the drawing. */
   focusAfter?: () => void
+  /**
+   * The geometries a page draws at, wide and narrow: the frame's by default; the front page passes the brief's own (DESK and PHONE, §3.1).
+   */
+  geometry?: { readonly wide: LaneGeometry; readonly narrow: LaneGeometry }
+  /** Draw at one of the two geometries whatever the box's width: the static HTML draws both, and the stylesheet shows the one that fits. */
+  fit?: 'wide' | 'narrow'
+  /** A node laid on a part's label (the first run's callout discs), by the part's id. */
+  callouts?: Partial<Record<CalloutPart, ReactNode>>
 }
 
+/** The parts of the diagram a page may lay a callout on: the queue's name, the first slot's holder, the CPU row's name and a GPU row's. */
+export type CalloutPart = 'waiting' | 'slot' | 'cpu' | 'gpu'
+
 /** The step loop's timing diagram. */
-export function Lanes({ view, size = 'page', onAdmit, ring = null, focusAfter }: LanesProps) {
-  const [box, boxWidth] = useWidth(size === 'dock' ? DOCK.width : FRAME_DESK.width)
-  const base: LaneGeometry = size === 'dock' ? DOCK : boxWidth < NARROW ? FRAME_PHONE : FRAME_DESK
-  const sizeName = size === 'dock' ? 'dock' : base === FRAME_PHONE ? 'phone' : 'desk'
+export function Lanes({ view, size = 'page', onAdmit, ring = null, focusAfter, geometry: pair = FRAME_PAIR, fit, callouts = {} }: LanesProps) {
+  const [box, measured] = useWidth(size === 'dock' ? DOCK.width : pair.wide.width)
+  const boxWidth = fit === undefined ? measured : fit === 'wide' ? pair.wide.width : pair.narrow.width
+  const base: LaneGeometry = size === 'dock' ? DOCK : boxWidth < NARROW ? pair.narrow : pair.wide
+  const sizeName = size === 'dock' ? 'dock' : base === pair.narrow ? 'phone' : 'desk'
   const narrow = sizeName !== 'desk'
   // The figure's padding takes a little of its width; the rest is the label column and the track. A track that would draw a tick too
   // narrow is laid out wider than the room, and scrolls.
@@ -126,9 +138,9 @@ export function Lanes({ view, size = 'page', onAdmit, ring = null, focusAfter }:
       aria-label={figureLabel(view)}
       style={{ '--es-lanes-label': `${base.labelWidth}px`, '--es-lanes-pad': `${pad}px`, '--es-lanes-head': `${HEAD}px` } as CSSProperties}
     >
-      <Queue layout={layout} view={view} onAdmit={onAdmit} ring={ring} focusAfter={focusAfter} interactive={size === 'page'} narrow={narrow} />
+      <Queue layout={layout} view={view} onAdmit={onAdmit} ring={ring} focusAfter={focusAfter} interactive={size === 'page'} narrow={narrow} callout={callouts.waiting} />
       <div className="es-lanes__body" style={{ height: `${layout.height - layout.geometry.queueHeight - layout.geometry.queueGap + HEAD}px` }}>
-        <RowLabels layout={layout} interactive={size === 'page'} narrow={narrow} />
+        <RowLabels layout={layout} interactive={size === 'page'} narrow={narrow} callouts={callouts} />
         <div
           ref={track}
           className="es-lanes__track"
@@ -147,6 +159,8 @@ export function Lanes({ view, size = 'page', onAdmit, ring = null, focusAfter }:
 /** The figure's inner padding, in px: the lanes are laid out in what is left [estimated, the space steps 3 and 2]. */
 const PAD = 12
 const PAD_NARROW = 8
+/** The frame's geometries (lanes.ts): the default pair. */
+const FRAME_PAIR = { wide: FRAME_DESK, narrow: FRAME_PHONE } as const
 /** Room over the lanes for now's word at the cursor's head, in px [estimated]. */
 const HEAD = 14
 
@@ -158,10 +172,11 @@ interface QueueProps {
   focusAfter?: () => void
   interactive: boolean
   narrow: boolean
+  callout?: ReactNode
 }
 
 /** The waiting queue: its name, then a chip per request that fits, and a count of the rest. */
-function Queue({ layout, view, onAdmit, ring, focusAfter, interactive, narrow }: QueueProps) {
+function Queue({ layout, view, onAdmit, ring, focusAfter, interactive, narrow, callout }: QueueProps) {
   const g = layout.geometry
   const list = useRef<HTMLUListElement>(null)
   const [stop, setStop] = useState(0)
@@ -196,6 +211,7 @@ function Queue({ layout, view, onAdmit, ring, focusAfter, interactive, narrow }:
   return (
     <div className="es-lanes__queue" style={{ minHeight: `${g.queueHeight + g.queueGap}px` }}>
       <div className="es-lanes__name" data-lane-label="queue">
+        {callout}
         <PartName id="waiting" interactive={interactive} />
       </div>
       {chips.length === 0 ? (
@@ -305,15 +321,17 @@ function PartName({ id, interactive, children }: { id: string; interactive: bool
 }
 
 /** The label column: the CPU row's name, each slot's name with the request it holds, and the axis's unit. */
-function RowLabels({ layout, interactive, narrow }: { layout: LaneLayout; interactive: boolean; narrow: boolean }) {
+function RowLabels({ layout, interactive, narrow, callouts }: { layout: LaneLayout; interactive: boolean; narrow: boolean; callouts: Partial<Record<CalloutPart, ReactNode>> }) {
   const top = layout.geometry.queueHeight + layout.geometry.queueGap - HEAD
   const firstSlot = layout.rows.find((row) => row.lane === 'gpu')
+  const secondSlot = layout.rows.find((row) => row.lane === 'gpu' && row !== firstSlot && row.label !== null)
   return (
     <div className="es-lanes__labels" data-lane-labels="">
       {layout.rows.map((row) => (
         <div key={row.id} className="es-lanes__row-label es-lanes__name" data-lane-label={row.id} style={{ top: `${row.y - top}px`, height: `${row.height}px` }}>
           {row.lane === 'cpu' ? (
             <>
+              {callouts.cpu}
               <Glyph shape={SLOT_MARKS.blue.glyph} className="es-lanes__glyph" style={{ color: 'var(--es-lane-cpu)' }} edge="var(--es-cat-blue-edge)" />
               <PartName id="cpu" interactive={interactive}>
                 {narrow ? LANE_WORDS.cpuShort : LANE_WORDS.cpu}
@@ -321,14 +339,17 @@ function RowLabels({ layout, interactive, narrow }: { layout: LaneLayout; intera
             </>
           ) : row.label === null ? null : (
             <>
+              {row === secondSlot ? callouts.gpu : null}
               {row === firstSlot ? <Glyph shape={SLOT_MARKS.green.glyph} className="es-lanes__glyph" style={{ color: 'var(--es-lane-gpu)' }} edge="var(--es-cat-green-edge)" /> : <span className="es-lanes__glyph" />}
               <span className="es-lanes__slotname">{narrow ? String((row.slot ?? 0) + 1) : LANE_WORDS.slot(row.slot ?? 0)}</span>
               {row.req === null ? (
                 <span className="es-lanes__holds" data-empty="">
+                  {row === firstSlot ? callouts.slot : null}
                   {LANE_WORDS.empty}
                 </span>
               ) : (
                 <span className="es-lanes__holds" data-req={row.req}>
+                  {row === firstSlot ? callouts.slot : null}
                   {requestName(row.req)}
                 </span>
               )}
@@ -419,7 +440,7 @@ function Track({ layout }: { layout: LaneLayout }) {
         {layout.axis.ticks.map((tick) => (
           <g key={tick.t}>
             <line className="es-lanes__tick" x1={tick.x} x2={tick.x} y1={lanesBottom} y2={lanesBottom + 4} />
-            <text className="es-lanes__tick-label" x={tick.x} y={lanesBottom + 6} textAnchor={tick.x <= scale.x + 4 ? 'start' : 'middle'} dominantBaseline="hanging">
+            <text className="es-lanes__tick-label" x={tick.x} y={lanesBottom + 6} textAnchor={tick.x <= scale.x + 4 ? 'start' : tick.x >= scale.x + scale.width - 4 ? 'end' : 'middle'} dominantBaseline="hanging">
               {tick.t}
             </text>
           </g>

@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 
 /*
- * The front page's below-the-loop parts: the run as a table (the step loop's mirror) and the card of what the world models, which opens
- * from a closed disclosure. The first paint draws the step loop without them; the page asks for them as soon as it has rendered, and each
- * shows its loading line in its own box until they are in, so the first-paint closure keeps its room under its budget (A§6.10,
- * verify:bundle's front row). They are the loop game's own parts, loaded on demand as a game's parts are. The static shell (shell.ts)
- * loads them before it renders, so the document holds the table and the card in full.
+ * The instrument's parts that the first paint does not draw: the run as a table (the step loop's mirror) and the card of what the model
+ * leaves out, each in a closed disclosure under the instrument. The page asks for them as soon as it has rendered, and each shows its
+ * loading line in its own box until they are in, so the first-paint closure keeps its room under its budget (A§6.10, verify:bundle's front
+ * row). They are the loop game's own parts, loaded on demand as a game's parts are. The static shell (shell.ts) loads them before it
+ * renders, so the document holds the table and the card in full.
  */
 export interface NightParts {
   readonly Mirror: typeof import('@/games/loop/Mirror').Mirror

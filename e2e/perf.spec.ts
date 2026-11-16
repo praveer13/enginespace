@@ -6,10 +6,11 @@
  * The profile is the "mobile lab profile" of §11.1: Chromium with the CPU slowed 4×, a link of 1.6 Mbit/s and 150 ms of round trip,
  * on a 360 × 800 touch screen (W0-T21's default phone). It prints three numbers and holds them to §11.1's gates:
  *
- *   LCP  ≤ 2.5 s  (target 1.5 s)  cold loads of `/`, three of them, and the median is the number.
- *   CLS  ≤ 0.1    (target 0)      the same loads, which run on until the 2D pass has swapped to the 3D one, so the swap is in it.
- *   INP  ≤ 200 ms (target 100 ms) a player taps through the front page's four levels: the tickets, the bell and the overlap switch,
- *                                 with "Start service" and "Next" between them. Three players, and the median is the number.
+ *   LCP  ≤ 2.5 s  (target 1.5 s)  cold loads of `/`, three of them, and the median is the number. The largest paint is the heading.
+ *   CLS  ≤ 0.1    (target 0)      the same loads, which run on for some seconds after the page has settled. A phone in the hand stays in
+ *                                 2D (REDESIGN §3.1), so the loads check that no 3D view takes the box on its own.
+ *   INP  ≤ 200 ms (target 100 ms) a player taps through the front page's four demo levels: the waiting requests, Step and the async
+ *                                 scheduling switch, with "Next demo level" between them. Three players, and the median is the number.
  *
  * What it measures, and what it cannot:
  *   - The site is the production build (no test hooks, so no forced tier), built here into a temporary folder, or the folder that
@@ -212,7 +213,7 @@ interface Transfer {
 interface Load {
   lcp: LargestPaint | null
   cls: number
-  /** When the 3D pass was drawn and settled, in ms from the navigation's start, or null when it never was. */
+  /** When a 3D view was drawn and settled, in ms from the navigation's start, or null when it never was (a phone stays in 2D). */
   swappedAt: number | null
   view: string | null
   tier: string | null
@@ -233,7 +234,7 @@ async function swapTo3d(page: Page): Promise<number | null> {
   try {
     const handle = await page.waitForFunction(
       () => {
-        const stage = document.querySelector('[data-stage="front"]')
+        const stage = document.querySelector('section.es-front-service [data-stage]')
         return stage?.getAttribute('data-stage-phase') === 'live' && stage.getAttribute('data-settled') === 'true' ? performance.now() : false
       },
       undefined,
@@ -261,12 +262,16 @@ async function transfers(page: Page, lcp: number): Promise<{ before: Transfer; a
   return { before: sum(entries.filter((entry) => entry.end <= lcp)), after: sum(entries.filter((entry) => entry.end > lcp)) }
 }
 
-/** One cold load of `/` under the profile, run on until the 3D pass has replaced the 2D one and settled, and a second longer. */
+/** How long a load runs on after the page has loaded, for anything that would take the diagram's box on its own [estimated]. */
+const SETTLE_MS = 6000
+
+/** One cold load of `/` under the profile, run on for some seconds after the load, and a second longer. */
 async function coldLoad(browser: Browser): Promise<Load> {
   const { context, page } = await labPage(browser)
   try {
     await page.goto(`${site.origin}/`, { waitUntil: 'load' })
-    const swappedAt = await swapTo3d(page)
+    await page.waitForTimeout(SETTLE_MS)
+    const swappedAt = (await page.locator('section.es-front-service [data-stage]').count()) > 0 ? await swapTo3d(page) : null
     await page.waitForTimeout(1000)
     const raw = (await page.evaluate(() => window.__vitals?.())) as Raw
     const lcp = largestContentfulPaint(raw.lcp)
@@ -277,7 +282,7 @@ async function coldLoad(browser: Browser): Promise<Load> {
       cls: cumulativeLayoutShift(raw.shifts),
       swappedAt,
       view: await service.getAttribute('data-view'),
-      tier: await page.locator('[data-stage="front"]').getAttribute('data-tier'),
+      tier: (await page.locator('section.es-front-service [data-stage]').count()) > 0 ? await page.locator('section.es-front-service [data-stage]').getAttribute('data-tier') : null,
       beforeLcp: before,
       afterLcp: after,
     }
@@ -287,33 +292,30 @@ async function coldLoad(browser: Browser): Promise<Load> {
 }
 
 /**
- * Taps through the front page's four levels like a player: "Start service", then the waiting tickets, the bell, the overlap switch
- * once it is there, the debrief stub and "Next". Returns how many taps it made. The levels end by themselves: nothing here is timed.
+ * Taps through the front page's four demo levels like a player: the waiting requests, Step, the async scheduling switch once it is there,
+ * and "Next demo level". Returns how many taps it made. The levels end by themselves: nothing here is timed.
  */
 async function playThrough(page: Page): Promise<number> {
   const service = page.locator('section.es-front-service')
-  const tickets = page.locator('[data-loop-controls] ul button:not([disabled])')
-  const bell = page.getByRole('button', { name: /Step: run the next step/ })
+  const chips = service.locator(':is(.es-lanes__chips, .es-front-controls__waiting) button:not([disabled])')
+  const step = service.locator('[data-front-step]').getByRole('button', { name: 'Step', exact: true })
   const overlap = service.getByRole('switch')
-  const debrief = page.getByRole('button', { name: 'See the debrief' }).first()
-  const next = page.getByRole('button', { name: /^Next:/ })
+  const result = service.locator('[data-result]')
+  const next = page.getByRole('button', { name: /^Next demo level:/ })
   let taps = 0
   const tap = async (target: ReturnType<Page['locator']>) => {
     await page.waitForTimeout(THINK_MS)
     await target.tap()
     taps += 1
   }
-  await tap(page.getByRole('button', { name: 'Start the demo' }))
   for (let turn = 0; turn < 400; turn++) {
-    if ((await next.count()) > 0) await tap(next.first())
-    else if ((await debrief.count()) > 0) {
-      await tap(debrief)
-      // The last level has no next: opening its debrief ends the play. The debrief is a lazy chunk, so "Next" can be a moment away.
+    if ((await result.count()) > 0) {
+      // The last level has no next: its result ends the play.
       if ((await service.getAttribute('data-level')) === 'first-4-par') return taps
-      await next.first().waitFor({ state: 'visible', timeout: 30_000 })
+      await tap(next.first())
     } else if ((await overlap.count()) > 0 && (await overlap.getAttribute('aria-checked')) === 'false' && (await overlap.isEnabled())) await tap(overlap)
-    else if ((await tickets.count()) > 0) await tap(tickets.first())
-    else if (await bell.isEnabled()) await tap(bell)
+    else if ((await chips.count()) > 0) await tap(chips.first())
+    else if ((await step.count()) > 0) await tap(step)
     else break
   }
   throw new Error(`the player did not reach the end of the last level in 400 turns (${taps} taps)`)
@@ -324,8 +326,8 @@ async function playOnce(browser: Browser): Promise<Play> {
   const { context, page } = await labPage(browser)
   try {
     await page.goto(`${site.origin}/`, { waitUntil: 'load' })
-    const swapped = (await swapTo3d(page)) !== null
-    await page.waitForTimeout(1000)
+    await page.waitForTimeout(SETTLE_MS)
+    const swapped = (await page.locator('section.es-front-service [data-stage]').count()) > 0
     const taps = await playThrough(page)
     await page.waitForTimeout(500)
     const raw = (await page.evaluate(() => window.__vitals?.())) as Raw
@@ -381,11 +383,11 @@ base.afterAll(() => {
     // A shift of a few millionths is a sub-pixel move, and CLS is judged at the four decimals it is printed with. The JSON keeps the raw value.
     const cls = Number(Math.max(...loads.map((load) => load.cls)).toFixed(4))
     lines.push(
-      `  CLS  ${cls.toFixed(4).padStart(9)}  worst of ${loads.map((load) => load.cls.toFixed(4)).join(', ')}, with the swap to 3D at ${loads.map((load) => (load.swappedAt === null ? 'never' : ms(load.swappedAt))).join(', ')}; ${verdict(cls, GATES.cls, TARGETS.cls)} (gate ${GATES.cls}, target ${TARGETS.cls})`,
+      `  CLS  ${cls.toFixed(4).padStart(9)}  worst of ${loads.map((load) => load.cls.toFixed(4)).join(', ')}, the 3D view drawn at ${loads.map((load) => (load.swappedAt === null ? 'never (a phone stays in 2D)' : ms(load.swappedAt))).join(', ')}; ${verdict(cls, GATES.cls, TARGETS.cls)} (gate ${GATES.cls}, target ${TARGETS.cls})`,
     )
     if (last) {
       lines.push(
-        `  first paint: ${last.beforeLcp.requests} requests and ${kb(last.beforeLcp.bytes)} came over the link before the largest paint (JS ${kb(last.beforeLcp.js)}, CSS ${kb(last.beforeLcp.css)}, fonts ${kb(last.beforeLcp.fonts)}, the rest is the document); after it, ${last.afterLcp.requests} requests and ${kb(last.afterLcp.bytes)} (JS ${kb(last.afterLcp.js)}); the pass is ${last.view} at tier ${last.tier}`,
+        `  first paint: ${last.beforeLcp.requests} requests and ${kb(last.beforeLcp.bytes)} came over the link before the largest paint (JS ${kb(last.beforeLcp.js)}, CSS ${kb(last.beforeLcp.css)}, fonts ${kb(last.beforeLcp.fonts)}, the rest is the document); after it, ${last.afterLcp.requests} requests and ${kb(last.afterLcp.bytes)} (JS ${kb(last.afterLcp.js)}); the diagram is ${last.view}${last.tier === null ? '' : ` at tier ${last.tier}`}`,
       )
     }
   }
@@ -415,25 +417,25 @@ base.describe('the front page under the mobile lab profile', () => {
     results.version = browser.version()
   })
 
-  base('LCP and CLS on cold loads of `/`, with the swap to 3D in them', async ({ browser }) => {
-    base.setTimeout(LOADS * (SWAP_TIMEOUT_MS + 30_000))
+  base('LCP and CLS on cold loads of `/`: the heading is the largest paint, and a phone stays in 2D', async ({ browser }) => {
+    base.setTimeout(LOADS * (SETTLE_MS + 60_000))
     for (let run = 0; run < LOADS; run++) results.loads.push(await coldLoad(browser))
 
     const lcps = results.loads.flatMap((load) => (load.lcp === null ? [] : [load.lcp.startTime]))
     expect(lcps.length, 'every load paints something').toBe(LOADS)
-    // The page promises that its heading or its poster is the largest paint, never the canvas (W0-T18).
-    for (const load of results.loads) expect(load.lcp?.element, 'the largest paint').not.toMatch(/^canvas/)
-    // CLS is "the 2D-to-3D swap included": the loads must have swapped.
-    for (const load of results.loads) expect(load.swappedAt, `the pass swapped to 3D within ${SWAP_TIMEOUT_MS / 1000} s, so the swap is in the CLS`).not.toBeNull()
+    // The page promises that its heading is the largest paint, never the diagram or a canvas (REDESIGN §5.2).
+    for (const load of results.loads) expect(load.lcp?.element, 'the largest paint').toMatch(/^h1\b/)
+    // A phone in the hand stays in 2D, with 3D one tap away (REDESIGN §3.1): no load took the box on its own.
+    for (const load of results.loads) expect(load.view, 'the diagram stays 2D on a phone').toBe('2d')
     expect(median(lcps), 'LCP, the median of the loads').toBeLessThanOrEqual(GATES.lcpMs)
     expect(Math.max(...results.loads.map((load) => load.cls)), 'CLS, the worst of the loads').toBeLessThanOrEqual(GATES.cls)
   })
 
-  base('INP of the lever presses of the four levels', async ({ browser }) => {
-    base.setTimeout(PLAYS * (SWAP_TIMEOUT_MS + 300_000))
+  base('INP of the presses of the four demo levels', async ({ browser }) => {
+    base.setTimeout(PLAYS * (SETTLE_MS + 300_000))
     for (let play = 0; play < PLAYS; play++) results.plays.push(await playOnce(browser))
     for (const play of results.plays) {
-      expect(play.swapped, 'the levers were pressed with the 3D pass live').toBe(true)
+      expect(play.swapped, 'the levels were played on the diagram, which a phone keeps').toBe(false)
       expect(play.interactions, 'the browser counted the taps as interactions').toBeGreaterThan(play.taps / 2)
     }
     expect(median(results.plays.map((play) => play.ms ?? 0)), 'INP, the median of the plays').toBeLessThanOrEqual(GATES.inpMs)

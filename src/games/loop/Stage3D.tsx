@@ -1,14 +1,14 @@
 import { useCallback, useEffect, type ComponentType, type MutableRefObject, type ReactNode } from 'react'
 import { CameraButtons } from '@/scene/CameraButtons'
 import { Stage } from '@/scene/Stage'
-import type { TrackSceneProps } from './TrackScene3D'
+import type { Scene3DProps } from './Scene3D'
 import { cameraLabel, DEFAULT_CAMERA, nextCamera, TRACK_CAMERAS } from './track-presets'
 import type { LoopRunCore } from './types'
 import './track3d.css'
 
 /*
  * The step loop's 3D view and its cameras, a chunk of their own: the diagram is the default view (REDESIGN §2.9), so the Stage and the
- * cameras' buttons load only when the learner switches to 3D. The scene itself is the time track (TrackScene3D.tsx), a chunk over three's,
+ * cameras' buttons load only when the learner switches to 3D. The scene itself is the time track (Scene3D.tsx), a chunk over three's,
  * which the Stage loads on a device whose tier draws 3D; the diagram is its first paint and its fallback (A§6.7).
  */
 
@@ -21,7 +21,7 @@ const STAGE_BOX = 'es-track-stage'
 export interface LoopStage3DProps {
   run: LoopRunCore
   preset: string | null
-  scene: ComponentType<TrackSceneProps>
+  scene: ComponentType<Scene3DProps>
   /** The diagram, which the Stage paints first and keeps as its fallback. */
   diagram: ReactNode
 }

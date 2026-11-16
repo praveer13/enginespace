@@ -10,7 +10,10 @@ import { LAMP_GLOW } from '@/scene/props/Service'
 
 const root = path.resolve(import.meta.dirname, '../..')
 const read = (file: string) => readFileSync(path.join(root, file), 'utf8')
+/** Every game's 3D scene. The step loop's is the time track, which hangs no lamp (tests/play/loop-track.test.ts holds it unlit). */
 const GAMES = ['loop', 'verifier', 'engine-floor', 'pool'] as const
+/** The scenes that hang the kit's heat lamps. */
+const LAMPED = ['verifier', 'engine-floor', 'pool'] as const
 /** The inside of the kit's heat-lamp shade's rolled lip, in metres (build.ts's heatLamp profile, at its narrowest under the roll). */
 const LIP = 0.11
 
@@ -46,7 +49,7 @@ describe("the heat lamps' light (W1b-T10)", () => {
 
   test("every game's pool keeps its cone's mouth inside the shade's lip, and every game takes the kit's light with its own spread", () => {
     const top = Math.max(...vertices().filter((v) => !v.flat && v.y > -0.5).map((v) => v.r))
-    for (const game of GAMES) {
+    for (const game of LAMPED) {
       const scene = read(`src/games/${game}/Scene3D.tsx`)
       const pool = /const POOL = \[([\d.]+), ([\d.]+)\] as const/.exec(scene)
       expect(pool, game).not.toBeNull()

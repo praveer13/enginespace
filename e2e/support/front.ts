@@ -1,6 +1,6 @@
 /*
- * The front page's game, "First service", played with the keyboard alone, and the record of where focus went (A§11.2: "every game's
- * level completable by keyboard alone; focus always visible and never obscured"). e2e/keyboard-loop.spec.ts walks it, and
+ * The front page's game, the step loop's four demo levels, played with the keyboard alone, and the record of where focus went (A§11.2:
+ * "every game's level completable by keyboard alone; focus always visible and never obscured"). e2e/keyboard-loop.spec.ts walks it, and
  * e2e/network.spec.ts walks it again to see that nothing leaves the origin while a visitor plays.
  */
 import { expect } from '@playwright/test'
@@ -95,27 +95,29 @@ export function walkOf(page: Page) {
 /** The front page's pieces, by what a reader calls them. */
 export const front = {
   game: (page: Page) => page.locator('section.es-front-service'),
-  start: (page: Page) => page.getByRole('button', { name: 'Start the demo' }),
-  bell: (page: Page) => page.getByRole('button', { name: /Step: run the next step/ }),
-  /** The tickets that can be hung now: the waiting ones, while the rail has a free clip. */
-  tickets: (page: Page) => page.locator('[data-loop-controls] ul button:not([disabled])'),
-  debriefStub: (page: Page) => page.getByRole('button', { name: 'See the debrief' }),
-  /** The debrief's headline: "Passed." when the run reached the reference run's mark, "Not yet." when it did not. */
-  verdict: (page: Page) => page.locator('[data-loop-debrief] h3').first(),
-  level: (page: Page) => page.locator('.es-front-deck__level'),
-  outcome: (page: Page) => page.locator('[data-live="outcome"]'),
+  /** The waiting requests that can be admitted now, while a slot is free: the queue's chips, or in 3D the dock's buttons. */
+  chips: (page: Page) => page.locator('section.es-front-service :is(.es-lanes__chips, .es-front-controls__waiting) button:not([disabled])'),
+  /** Step: the amber button once a slot holds a request. */
+  step: (page: Page) => page.locator('section.es-front-service [data-front-step]').getByRole('button', { name: 'Step', exact: true }),
+  /** A level's result in the dock. */
+  result: (page: Page) => page.locator('section.es-front-service [data-result]'),
+  /** The result's verdict: "Passed." when the run reached the reference run's mark, "Not yet." when it did not. */
+  verdict: (page: Page) => page.locator('.es-front-result__verdict'),
+  /** The next demo level, the amber control at a result. */
+  next: (page: Page) => page.getByRole('button', { name: /^Next demo level: / }),
+  level: (page: Page) => page.locator('section.es-front-service [data-level-words]'),
+  outcome: (page: Page) => page.locator('section.es-front-service [data-live="outcome"]'),
 }
 
 /**
- * Plays the level that is open to its end with keys: Enter on a waiting ticket hangs it, and Enter on the bell rings it. This is the
- * house's own strategy: hang a ticket whenever a clip is free, ring otherwise, and write the next call during the fire on a level
- * that has the switch (`O`). Each level of the front page is won by it, and the walk says so, so a level that stopped being winnable
- * by the plain strategy shows here.
+ * Plays the level that is open to its end with keys: Enter on a waiting request admits it, and Enter on Step runs a step. This is the
+ * reference run's own strategy: admit a request whenever a slot is free, step otherwise, and on a level that has async scheduling switch it
+ * on first (`O`). Each demo level is won by it, and the walk says so, so a level that stopped being winnable by the plain strategy shows here.
  */
 export async function playToTheDebrief(page: Page): Promise<void> {
   const game = front.game(page)
-  const overlap = page.getByRole('switch')
-  // The later levels have the overlap switch, which the front page loads with its own chunk: wait for it there.
+  const overlap = game.getByRole('switch')
+  // The later levels have the async scheduling switch, which loads with its own chunk: wait for it there.
   const level = (await game.getAttribute('data-level')) ?? ''
   if (level === 'first-3-gap' || level === 'first-4-par') await expect(overlap).toBeVisible()
   if ((await overlap.count()) > 0 && (await overlap.getAttribute('aria-checked')) !== 'true') {
@@ -124,10 +126,10 @@ export async function playToTheDebrief(page: Page): Promise<void> {
     await expect(overlap).toHaveAttribute('aria-checked', 'true')
   }
   for (let turn = 0; turn < 400; turn++) {
-    if ((await front.debriefStub(page).count()) > 0) return
-    const tickets = front.tickets(page)
-    if ((await tickets.count()) > 0) await enter(tickets.first(), page)
-    else await enter(front.bell(page), page)
+    if ((await front.result(page).count()) > 0) return
+    const chips = front.chips(page)
+    if ((await chips.count()) > 0) await enter(chips.first(), page)
+    else await enter(front.step(page), page)
   }
   throw new Error('the level did not end in 400 turns')
 }

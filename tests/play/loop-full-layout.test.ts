@@ -1,19 +1,17 @@
 /*
  * The full service's kitchen, drawn (GAMES.md §2.6, "TR2's levels in the kitchen"; §3, "2D path"): the mold rack, the padding's molds, the
- * comb and the allergy card, in the 2D frame (packages/play/loop/full/layout.ts) and in the 3D scene's layout (src/games/loop/full/scene.ts),
- * from one plan (packages/play/loop/full/kitchen.ts). Neither prints a number but a ticket's or a mold's size, both of them DOM over the
- * picture, and the 2D view stays under its mark cap.
+ * comb and the allergy card, in the 2D frame (packages/play/loop/full/layout.ts), from its plan (packages/play/loop/full/kitchen.ts). It
+ * prints no number but a ticket's or a mold's size, as DOM over the picture, and stays under its mark cap. (The kitchen's 3D layout of
+ * the same tools, src/games/loop/full/scene.ts, left the tree with the loop's kitchen scene: the 3D view is the time track.)
  */
 import { describe, expect, test } from 'bun:test'
-import { COMB, RACK, rackOf, teethOf } from '@es/play/loop/full/kitchen'
-import { PASS } from '@es/play/loop/kitchen'
+import { rackOf } from '@es/play/loop/full/kitchen'
 import { fullFrame } from '@es/play/loop/full/layout'
 import { fullSession } from '@es/play/loop/full/session'
 import type { FullAction, FullLevelId, FullState } from '@es/play/loop/full/types'
 import { MARK_CAP, PASS_LENS } from '@es/play/loop/layout'
 import { countMarks, svgMarkup } from '@es/play/loop/svg'
 import { frameSvg } from '@es/play/loop/layout'
-import { sceneOfFull } from '@/games/loop/full/scene'
 
 const play = (state: FullState, ...actions: FullAction[]): FullState => actions.reduce((s, a) => fullSession.reduce(s, a), state)
 const start = (id: FullLevelId, seed = 0): FullState => fullSession.init(fullSession.level(id, seed))
@@ -113,59 +111,5 @@ describe('the 2D frame', () => {
     }
     // No tape names a tool that is not on the pass.
     expect(fullFrame({ ...view, rack: null, comb: null }).tapes.map((tape) => tape.id)).toEqual(['line', 'fired', 'expo'].filter((id) => id !== 'fired' || view.firedRail !== null))
-  })
-})
-
-describe('the 3D scene\'s layout', () => {
-  test('a mold for every captured size, each with its size as a label, the fire\'s mold under the lamp, and the padding\'s molds on the pass', () => {
-    let s = play(start('graphs'), { t: 'stage', to: 'sizes' }, { t: 'commit', prediction: 0 }, { t: 'capture', sizes: [6, 12] })
-    for (let i = 0; i < 40 && !fullSession.view(s).fires.some((fire) => fire.padded > 0 && !fire.onLine); i++) s = play(s, { t: 'run', until: 'step' })
-    const view = fullSession.view(s)
-    const scene = sceneOfFull(view)
-    const served = [...view.fires].reverse().find((fire) => !fire.onLine)!
-    const pads = Math.min(served.padded, served.places.filter((place) => place.state === 'empty').length)
-    expect(scene.molds).toHaveLength(rackOf(view.levers.captureSizes).molds.length + pads)
-    expect(scene.moldShadows).toHaveLength(scene.molds.length)
-    const sizes = scene.anchors.filter((anchor) => anchor.kind === 'mold' || anchor.kind === 'pick').map((anchor) => anchor.text)
-    expect(sizes).toEqual(['6', '12'])
-    expect(scene.anchors.filter((anchor) => anchor.kind === 'pick').length).toBe(view.rack?.picked === null ? 0 : 1)
-  })
-
-  test('the comb: a spine and a tooth a layer as tall as its calls, or one word; and its calls in the DOM', () => {
-    const eager = sceneOfFull(fullSession.view(play(start('graphs'), { t: 'commit', prediction: 0 }, { t: 'run', until: 'step' }, { t: 'run', until: 'step' })))
-    expect(eager.comb).toHaveLength(1 + 28)
-    expect(eager.comb[1].size[1]).toBeCloseTo(COMB.tooth, 6)
-    expect(eager.anchors.find((anchor) => anchor.id === 'calls')?.text).toBe('336 calls')
-    const view = fullSession.view(play(start('graphs'), { t: 'commit', prediction: 0 }, { t: 'lever', name: 'graphMode', value: 'FULL_AND_PIECEWISE' }, { t: 'run', until: 'step' }, { t: 'run', until: 'step' }))
-    const word = sceneOfFull(view)
-    expect(word.comb).toHaveLength(1 + 1)
-    expect(teethOf(view.comb!)).toHaveLength(1)
-    expect(word.anchors.find((anchor) => anchor.id === 'calls')?.text).toBe('1 call')
-  })
-
-  test('the comb and the rack carry their names on tape, stuck on themselves: the comb\'s on the expo\'s edge under it, the rack\'s at its row\'s end', () => {
-    const view = fullSession.view(play(start('graphs'), { t: 'commit', prediction: 0 }, { t: 'lever', name: 'graphMode', value: 'FULL_AND_PIECEWISE' }, { t: 'run', until: 'step' }))
-    const scene = sceneOfFull(view)
-    const comb = scene.anchors.find((anchor) => anchor.id === 'tape-comb')
-    expect(comb).toMatchObject({ kind: 'tape', text: 'comb · launches' })
-    // Under the comb's middle, on the pass's rolled front edge, in front of where the comb lies.
-    expect(comb!.at[0]).toBeCloseTo((COMB.x0 + COMB.x1) / 2, 6)
-    expect(comb!.at[2]).toBeGreaterThan(COMB.z)
-    expect(Math.abs(comb!.at[1] - PASS.top)).toBeLessThan(0.05)
-    const molds = scene.anchors.find((anchor) => anchor.id === 'tape-molds')
-    expect(molds).toMatchObject({ kind: 'tape', text: 'molds · sizes', place: 'right' })
-    // At the right end of the rack's row, level with it, wherever the night's sizes put that end.
-    expect(molds!.at[0]).toBeCloseTo(rackOf(view.rack!.sizes).x1, 6)
-    expect(molds!.at[2]).toBe(RACK.z)
-    // No tape names a tool that is not on the pass.
-    const bare = sceneOfFull({ ...view, rack: null, comb: null })
-    expect(bare.anchors.filter((anchor) => anchor.kind === 'tape')).toEqual([])
-  })
-
-  test('the allergy card lies in front of the expo with ALLERGY printed in its head, on the mask level alone', () => {
-    const mask = sceneOfFull(fullSession.view(play(start('mask'), { t: 'commit', prediction: 0 }, { t: 'run', until: 'step' })))
-    expect(mask.card?.ticket.id).toBe('allergy')
-    expect(mask.anchors.find((anchor) => anchor.kind === 'card')).toMatchObject({ frame: 'ticket:allergy', text: 'allergy' })
-    expect(sceneOfFull(fullSession.view(start('async'))).card).toBeNull()
   })
 })
