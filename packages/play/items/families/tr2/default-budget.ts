@@ -352,7 +352,7 @@ function tierOptions(scene: Scene, level: Level, seed: Seed): ChoiceOption[] {
       (pair): ChoiceOption => ({
         id: pair.id,
         text: PAIR_OPTION(pair),
-        why: pair.id === key.id ? rich(...reason) : rich('That is ', ...PAIR_TEXT[pair.id], '. This ticket is not that: ', ...tierSentence(scene.card)),
+        why: pair.id === key.id ? rich(...reason) : rich('That is ', ...PAIR_TEXT[pair.id], '. This card is not that: ', ...tierSentence(scene.card)),
         ...(pair.id === key.id ? {} : { miss: `${FAMILY}.${pair.id}-taken-for` }),
       }),
     ),

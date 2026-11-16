@@ -26,7 +26,7 @@ export function isAbout(value: number, target: number, rel = 0.02): boolean {
   return withinTolerance(target, value, { rel })
 }
 
-const WRONG_KIND: Grade = { ok: false, score: 0, feedback: rich('This ticket asks for a different kind of answer.') }
+const WRONG_KIND: Grade = { ok: false, score: 0, feedback: rich('This question asks for a different kind of answer.') }
 
 /** Grades a numeric answer against the item's key, with the family's rules for naming what went wrong. */
 export function gradeNumeric(item: Item, response: Response, rules: readonly DiagnosisRule[] = []): Grade {
@@ -50,10 +50,10 @@ export function gradeChoice(item: Item, response: Response): Grade {
   if (answer.kind !== 'choice') throw new TypeError(`${item.family}/${item.variant} is not a choice item`)
   if (response.kind !== 'choice') return WRONG_KIND
   const picked = answer.options.find((option) => option.id === response.pick)
-  if (picked === undefined) return { ok: false, score: 0, feedback: rich('That option is not on this ticket.') }
+  if (picked === undefined) return { ok: false, score: 0, feedback: rich('That option is not one of this question\'s options.') }
   if (picked.id === answer.correct) return { ok: true, score: 1, feedback: rich('Right.') }
   const key = answer.options.find((option) => option.id === answer.correct)
-  const feedback = rich('The ticket says: ', ...(key === undefined ? [] : key.text), '.')
+  const feedback = rich('The answer is: ', ...(key === undefined ? [] : key.text), '.')
   return { ok: false, score: 0, feedback, ...(picked.miss === undefined ? {} : { diagnosis: { id: picked.miss, message: picked.why } }) }
 }
 

@@ -361,7 +361,7 @@ function roleOptions(scene: RoleScene, level: Level, seed: Seed): ChoiceOption[]
         (call): ChoiceOption => ({
           id: slug(call),
           text: rich(...DOES[call].of),
-          why: call === scene.call ? rich(code(call), ' ', ...DOES[call].of, '. ', ...LANES[call]) : rich('That is what ', code(call), ' does, and this ticket is about ', code(scene.call), '. ', ...LANES[call]),
+          why: call === scene.call ? rich(code(call), ' ', ...DOES[call].of, '. ', ...LANES[call]) : rich('That is what ', code(call), ' does, and this question is about ', code(scene.call), '. ', ...LANES[call]),
           ...(call === scene.call ? {} : { miss: `${FAMILY}.${slug(call)}-taken-for-${slug(scene.call)}` }),
         }),
       ),
