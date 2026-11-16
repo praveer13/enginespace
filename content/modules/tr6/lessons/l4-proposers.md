@@ -71,7 +71,7 @@ answer:
     - { id: mrv1-on, text: "MRV1, with async scheduling on" }
     - { id: mrv1-off, text: "MRV1, with async scheduling off" }
     - { id: refused, text: "The engine refuses to start" }
-reveal: after-game
+reveal: at-commit
 kcs: [tr6.proposer-families]
 :::
 

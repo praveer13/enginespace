@@ -18,6 +18,7 @@
  *     each quote is in those lines is `tests/content/tr1-sources.test.ts`'s check, which needs the pinned trees.
  */
 import { describe, expect, test } from 'bun:test'
+import { isAtCommit, planOf } from '@es/play/predictions/plan'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import type { ProseInline } from '@es/schema'
@@ -94,7 +95,7 @@ describe('check 2: every lesson has a prediction, a game or an item, and an exit
       for (const block of predictions) {
         if (block.type !== 'predict') continue
         expect(block.id.startsWith(`${lesson.id}.`)).toBe(true)
-        expect(block.reveal).toBe('after-game')
+        expect([block.id, block.reveal]).toEqual([block.id, isAtCommit(planOf(block.id)) ? 'at-commit' : 'after-game'])
       }
     })
 

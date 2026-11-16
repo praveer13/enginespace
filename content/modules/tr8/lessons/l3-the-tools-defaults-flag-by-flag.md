@@ -18,7 +18,7 @@ Start with one piece of arithmetic, and commit to it before you read on.
 id: tr8.l3.p1
 prompt: You run vllm bench serve with a request rate of 10 a second [estimated] and a cap of 8 requests in flight [estimated], against a server that answers each request in 1.2 s [estimated], whatever the load. In steady state, at what rate in requests a second does the run send?
 answer: { kind: numeric, unit: requests/s, rel_tol: 0.05 }
-reveal: after-game
+reveal: at-commit
 kcs: [tr8.client-queue, tr8.tool-defaults]
 :::
 

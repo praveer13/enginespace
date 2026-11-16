@@ -23,6 +23,12 @@ export interface FloorCopy {
   readonly passRule?: string
 }
 
+/**
+ * The question every practice level opens on: the process boundaries a sampled token crosses. The lessons' guesses that ask the same
+ * quantity of one engine are paired with it in packages/play/predictions/same.ts, and a test fails when either wording changes alone.
+ */
+export const FLOOR_QUESTION = 'How many process boundaries does a sampled token cross on its way to the client?'
+
 const CONTROLS = 'You lay each stage from the stage list: its mechanism, and where it runs.'
 const BEAT = "The number to beat is the engine's own path: the run stops at the first stage that departs from it."
 const ENDS = 'Ends when the request reaches the client.'

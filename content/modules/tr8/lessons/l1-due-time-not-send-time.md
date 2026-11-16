@@ -29,7 +29,7 @@ In The Inspection every report brings its log, and the log keeps both times for 
 id: tr8.l1.p1
 prompt: "A client sends 200 requests, one due every 500 ms [estimated], and waits for each reply before it sends the next. The server answers each in 100 ms [estimated], except that it freezes for 2 s [estimated] as the third request is sent, so that reply arrives 2,100 ms [estimated] after its send. A stopwatch started at each send reports a p99 latency for the whole run. What does it report?"
 answer: { kind: numeric, unit: ms, rel_tol: 0.1 }
-reveal: after-game
+reveal: at-commit
 kcs: [tr8.latency-from-due, tr8.open-vs-closed]
 :::
 

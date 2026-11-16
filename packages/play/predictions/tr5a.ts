@@ -1,9 +1,9 @@
 /**
- * TR5a's predictions, read from The Reach-In's runs (W1b-T02; plan.ts says which run answers which).
+ * TR5a's predictions, read from KV page pool's runs (W1b-T02; plan.ts says which run answers which).
  *
  * The world of a run is the model the level plays: the hybrid KV model's spec for its preset (the groups, their block sizes and windows,
- * the bytes of a page) and the recipe kits on offer. A question that the lesson asks about that model is answered by `packages/sim/kv`
- * on the run's own spec, and the size of the request or the rank of the kit that the question names is the prompt's. The levels build the
+ * the bytes of a page) and the LoRA adapters on offer. A question that the lesson asks about that model is answered by `packages/sim/kv`
+ * on the run's own spec, and the size of the request or the rank of the adapter that the question names is the prompt's. The levels build the
  * same model whatever the seed (the seed draws the night, and for `manager` the model, which no prediction here is read from).
  */
 import { kvAdapterCatalog, kvFindHit, kvPagesHeld } from '@es/sim/kv'
@@ -58,7 +58,7 @@ export const REFERENCES: Readonly<Record<string, Reference>> = {
   },
   'tr5a.l4.p2': {
     says: ['sized for rank 64', 'rank 8'],
-    reads: "Read from the recipe kits on offer: a slot is as wide as the largest kit, and the share of it that the smallest kit leaves empty.",
+    reads: "Read from the LoRA adapters on offer: a slot is as wide as the largest adapter, and the share of it that the smallest adapter leaves empty.",
     truth: (run) => {
       const bytes = levelOf(run, 'adapters').kits.map((kit) => kit.bytes)
       const slot = Math.max(...bytes)

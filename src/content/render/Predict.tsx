@@ -3,8 +3,8 @@ import type { KeyboardEvent, ReactNode, Ref } from 'react'
 import type { CompiledBlock } from '@es/schema'
 import { CONFIDENCE_NAMES, CONFIDENCES } from '@es/play/items/types'
 import type { Confidence } from '@es/play/items/types'
-import { isAnswered, NO_BLOCK, planOf } from '@es/play/predictions/plan'
-import type { Answered, Waiting } from '@es/play/predictions/plan'
+import { isAnswered, isAtCommit, NO_BLOCK, planOf } from '@es/play/predictions/plan'
+import type { Answered, Held } from '@es/play/predictions/plan'
 import { rosterEntry } from '@es/play/roster'
 import { Button } from '@/design/components/Button'
 import { Field } from '@/design/components/Field'
@@ -22,6 +22,7 @@ import type { Commitment, Revealed } from './predicted'
 import { latestSeq, useBlockRun } from './runs'
 import { optionText, readoutName, readSlip, unitName } from './slip'
 import type { Slip } from './slip'
+import { TagChip } from './TagChip'
 
 /*
  * A lesson's `predict` block (ARCHITECTURE §4.3; W1b-T02): a ticket that takes one answer before a game is played and scores it after.
@@ -32,8 +33,11 @@ import type { Slip } from './slip'
  *   - The reveal waits for the game. The game block that answers the prediction (packages/play/predictions/plan.ts) is the first of its
  *     game and level after the ticket, and the reveal opens when a run of it ends after the commit (runs.ts). The learner then pulls the
  *     stub, the pure model reads the answer from that run (reveal.ts, loaded then), and the ticket prints it beside what was written.
- *   - A prediction that no run of its lesson's game can answer says so, and names the task that gives it one. It takes no answer: there
- *     would be nothing to score it against, and a score against a number that is not the question's would mark a right answer wrong.
+ *   - A prediction that no run of its lesson's game answers is revealed at commit (D-067): the pure model computes the answer from the
+ *     question's own numbers, or it is read from the claim the question is about, and the ticket prints it with its working the moment the
+ *     answer is committed. No stub is ever held down: COMMIT is always there.
+ *   - A question that has no answer to show at all (a prediction the table has no row for) is held: its stem, and no input, no lock and
+ *     no task id. No lesson has one today.
  *
  * A prediction moves no completion and no credit (ASSESSMENT §4.7): the event the reveal writes is read by the module page's loop and the
  * course map, and earns nothing (reveal.ts says who else reads it, and which readers W2-T44 builds).
@@ -54,10 +58,11 @@ export interface PredictTicketProps {
 
 export function PredictTicket({ block, scope, at, blocks, rev }: PredictTicketProps) {
   const plan = planOf(block.id)
-  if (!isAnswered(plan)) return <WaitingTicket block={block} scope={scope} waiting={plan} />
+  if (isAtCommit(plan)) return <AtCommitTicket block={block} scope={scope} rev={rev} />
+  if (!isAnswered(plan)) return <HeldTicket block={block} scope={scope} held={plan} />
   const place = answeringBlock(blocks, at, plan)
-  // A row that names a block the lesson does not have cannot be revealed: it waits like the rest, for the table to be put right.
-  if (place < 0) return <WaitingTicket block={block} scope={scope} waiting={NO_BLOCK} />
+  // A row that names a block the lesson does not have cannot be revealed after a run: the question is held, until the table is put right.
+  if (place < 0) return <HeldTicket block={block} scope={scope} held={NO_BLOCK} />
   const mode = (blocks[place] as Of<'game'>).mode
   return <AnsweredTicket block={block} scope={scope} rev={rev} plan={plan} place={place} mode={mode} />
 }
@@ -69,6 +74,9 @@ export function PredictTicket({ block, scope, at, blocks, rev }: PredictTicketPr
 /** 0.15 as 15, without the 15.000000000000002 that multiplying gives. */
 const percent = (ratio: number): number => Number((ratio * 100).toPrecision(12))
 
+/** How a reveal point reads on the ticket: in words, and not as the schema spells it. */
+const REVEAL_WORDS: Readonly<Record<PredictBlock['reveal'], string>> = { 'after-game': 'after the run', 'at-commit': 'at commit' }
+
 /** The block's facts on tape, and its tolerance as a tagged number: what kind of answer it takes and how close it must be. */
 function Facts({ block }: { block: PredictBlock }) {
   const { answer } = block
@@ -76,7 +84,7 @@ function Facts({ block }: { block: PredictBlock }) {
     <>
       <Tapes
         label="About this prediction"
-        items={[`answer · ${answer.kind}`, ...(answer.kind === 'choice' ? [] : [`unit · ${unitName(answer.unit)}`]), `reveal · ${block.reveal}`, ...block.kcs]}
+        items={[`answer · ${answer.kind}`, ...(answer.kind === 'choice' ? [] : [`unit · ${unitName(answer.unit)}`]), `reveal · ${REVEAL_WORDS[block.reveal]}`, ...block.kcs]}
       />
       {answer.kind === 'numeric' ? (
         <p className="es-c-line">
@@ -97,11 +105,11 @@ function Facts({ block }: { block: PredictBlock }) {
 const rounded = (value: number): number => Number(value.toFixed(2))
 
 /** A figure the model gave, as a readout that tags itself; a unit that the readout has no name for is printed after it, as the lesson writes it. */
-function Figure({ value, unit }: { value: number; unit: string }) {
+function Figure({ value, unit, tag = 'derived' }: { value: number; unit: string; tag?: 'derived' | 'measured' }) {
   const known = readoutName(unit)
   return (
     <>
-      <Readout value={rounded(value)} digits={decimals(rounded(value))} unit={known} tag="derived" size="sm" />
+      <Readout value={rounded(value)} digits={decimals(rounded(value))} unit={known} tag={tag} size="sm" />
       {known === undefined ? <span className="es-item__unit">{unit}</span> : null}
     </>
   )
@@ -165,25 +173,14 @@ function Unsaved({ detail }: { detail: string }) {
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* A prediction that waits                                                                                            */
+/* A question to hold                                                                                                 */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** The red line that says the reveal waits for a task. */
-function WaitsLine({ task }: { task: string }) {
-  return (
-    <p className="es-c-pending">
-      <TicketLine tone="ink-2" qty={<Icon name="lock" className="es-c-pending__mark" />} note={task}>
-        Its reveal waits on
-      </TicketLine>
-    </p>
-  )
-}
-
-/** A prediction with no run to read: its prompt and the shape of its answer, the task its reveal waits for, and why, and a stub that is held down. */
-function WaitingTicket({ block, scope, waiting }: { block: PredictBlock; scope: string; waiting: Waiting }) {
+/** A question with no answer to show: the stem, and the lines of a choice, and why. It takes no input, and nothing on it is locked or held down. */
+function HeldTicket({ block, scope, held }: { block: PredictBlock; scope: string; held: Held }) {
   const { answer } = block
   return (
-    <Frame block="predict" scope={scope} meta={block.id} title="Predict" pending={waiting.task} data={{ phase: 'unbuilt', predict: block.id }} stub={<Stub disabled>Commit answer</Stub>}>
+    <Frame block="predict" scope={scope} meta={block.id} title="Predict" data={{ phase: 'held', predict: block.id }}>
       <p>{block.prompt}</p>
       {answer.kind === 'choice' ? (
         <ol className="es-c-options">
@@ -193,8 +190,7 @@ function WaitingTicket({ block, scope, waiting }: { block: PredictBlock; scope: 
         </ol>
       ) : null}
       <Facts block={block} />
-      <WaitsLine task={waiting.task} />
-      <p className="es-c-predict__why">{waiting.why}</p>
+      <p className="es-c-predict__why">{held.why}</p>
     </Frame>
   )
 }
@@ -311,10 +307,32 @@ interface RevealViewProps {
   headingRef: Ref<HTMLHeadingElement>
 }
 
-/** What the reveal prints: the verdict, what was written beside what the model says, how the model read that, and the run it read it from. */
+/** The working of an answer revealed at commit: its lines, the source when it has one, and one stamp that says what kind of number the answer is. */
+function Working({ revealed, stamp }: { revealed: Revealed; stamp: boolean }) {
+  return (
+    <div className="es-c-predict__working">
+      <p className="es-c-predict__working-head">
+        <span>The working</span>
+        {revealed.tag === null || !stamp ? null : <TagChip tag={revealed.tag} />}
+      </p>
+      <ol>
+        {revealed.working.map((line) => (
+          <li key={line}>{line}</li>
+        ))}
+      </ol>
+      {revealed.sources.map((source) => (
+        <p key={source.text} className="es-c-predict__source" data-claim={source.claim}>
+          Source: {source.text}
+        </p>
+      ))}
+    </div>
+  )
+}
+
+/** What the reveal prints: the verdict, what was written beside what the model says, how the model read that, and the run it read it from or the working it came from. */
 function RevealView({ block, committed, revealed, headingRef }: RevealViewProps) {
   const { answer } = block
-  const title = rosterEntry(revealed.run.game)?.title ?? revealed.run.game
+  const { run } = revealed
   return (
     <div className="es-item__reveal" data-ok={revealed.ok}>
       <h3 className="es-item__verdict" tabIndex={-1} ref={headingRef}>
@@ -326,15 +344,23 @@ function RevealView({ block, committed, revealed, headingRef }: RevealViewProps)
         committed={committed}
         extra={
           <div>
-            <dt>the model</dt>
-            <dd data-truth="">{answer.kind === 'choice' ? optionText(block, String(revealed.truth)) : <Figure value={Number(revealed.truth)} unit={answer.unit} />}</dd>
+            <dt>{run === null ? 'the answer' : 'the model'}</dt>
+            <dd data-truth="">
+              {answer.kind === 'choice' ? optionText(block, String(revealed.truth)) : <Figure value={Number(revealed.truth)} unit={answer.unit} tag={revealed.tag === 'measured' ? 'measured' : 'derived'} />}
+            </dd>
           </div>
         }
       />
-      <p className="es-c-predict__reads">{revealed.reads}</p>
-      <p className="es-c-predict__run">
-        Read from your run of {title}, level {revealed.run.level}, on seed {seedLabel(revealed.run.seed)}.
-      </p>
+      {run === null ? (
+        <Working revealed={revealed} stamp={answer.kind === 'choice'} />
+      ) : (
+        <>
+          <p className="es-c-predict__reads">{revealed.reads}</p>
+          <p className="es-c-predict__run">
+            Read from your run of {rosterEntry(run.game)?.title ?? run.game}, level {run.level}, on seed {seedLabel(run.seed)}.
+          </p>
+        </>
+      )}
       {revealed.unsaved === null ? null : <Unsaved detail={revealed.unsaved} />}
     </div>
   )
@@ -453,6 +479,106 @@ export function AnsweredTicket({ block, scope, rev, plan, place, mode = 'practic
           <Written block={block} committed={committed} />
           <p className="es-c-predict__status" role="status">
             {ended ? 'The run ended. Pull the stub to reveal the answer.' : `Play ${title}, level ${plan.level}${mode === 'graded' ? ' (graded)' : ''}, below. The reveal opens when a run of it ends.`}
+          </p>
+        </>
+      )}
+    </Frame>
+  )
+}
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* A prediction revealed at commit                                                                                    */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/**
+ * A prediction with no run to wait for (D-067): the learner commits, and the answer is on the ticket at once, with the learner's value
+ * beside it and the working under it. The stub is always live: COMMIT is never held down, and a reveal that did not come (the model's part
+ * failed to load) leaves the commitment standing and offers the stub again, with the reason.
+ */
+function AtCommitTicket({ block, scope, rev }: { block: PredictBlock; scope: string; rev?: string }) {
+  const state = usePrediction(scope, block.id)
+  const { committed, revealed } = state
+  const [slip, setSlip] = useState<Slip>({ text: '', pick: null, lo: '', hi: '' })
+  const [conf, setConf] = useState<Confidence | null>(null)
+  const [problem, setProblem] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [failed, setFailed] = useState<string | null>(null)
+  const heading = useRef<HTMLHeadingElement>(null)
+  const focusNext = useRef(false)
+  const phase = phaseOf(state, null)
+
+  useEffect(() => {
+    if (!focusNext.current) return
+    focusNext.current = false
+    heading.current?.focus()
+  }, [phase])
+
+  const show = async (commitment: Commitment) => {
+    if (busy) return
+    setBusy(true)
+    setFailed(null)
+    try {
+      const { revealAtCommit } = await import('./reveal')
+      const result = await revealAtCommit({ block, scope, rev, committed: commitment })
+      focusNext.current = true
+      revealPrediction(scope, block.id, result)
+    } catch (error) {
+      setFailed(error instanceof Error ? error.message : String(error))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const commit = () => {
+    if (committed !== null) return
+    const read = readSlip(block.answer, slip)
+    if (!read.ok) {
+      setProblem(read.problem)
+      return
+    }
+    setProblem(null)
+    focusNext.current = true
+    const commitment = commitPrediction(scope, block.id, { value: read.value, conf, after: latestSeq() })
+    void show(commitment)
+  }
+
+  let stub: ReactNode = null
+  if (phase === 'asking') stub = <Stub onClick={commit}>Commit answer</Stub>
+  else if (phase === 'committed')
+    stub = (
+      <Stub onClick={() => committed !== null && void show(committed)} loading={busy} error={failed === null ? undefined : `The answer did not come. ${failed}`}>
+        Show the answer
+      </Stub>
+    )
+
+  return (
+    <Frame block="predict" scope={scope} meta={block.id} title="Predict" lamp={phase === 'asking'} data={{ phase, predict: block.id, reveal: 'at-commit', ...(revealed === null ? {} : { ok: String(revealed.ok) }) }} stub={stub}>
+      <p>{block.prompt}</p>
+      <Facts block={block} />
+      {committed === null ? (
+        <>
+          <SlipFields
+            block={block}
+            slip={slip}
+            problem={problem}
+            onSlip={(next) => {
+              setSlip(next)
+              setProblem(null)
+            }}
+            onSubmit={commit}
+          />
+          <SurePlates value={conf} onChange={setConf} />
+        </>
+      ) : revealed !== null ? (
+        <RevealView block={block} committed={committed} revealed={revealed} headingRef={heading} />
+      ) : (
+        <>
+          <h3 className="es-item__count" tabIndex={-1} ref={heading}>
+            <span>Committed</span> <span className="es-item__level">it does not change now</span>
+          </h3>
+          <Written block={block} committed={committed} />
+          <p className="es-c-predict__status" role="status">
+            {failed === null ? 'Working out the answer.' : 'The answer did not come. Pull the stub to try again.'}
           </p>
         </>
       )}

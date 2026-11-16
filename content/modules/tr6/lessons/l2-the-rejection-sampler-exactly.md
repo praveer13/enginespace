@@ -26,7 +26,7 @@ The paper says it in one sentence, and says the output is distributed as p. {{cl
 id: tr6.l2.p1
 prompt: The target's distribution over three tokens is 0.6, 0.3 and 0.1 [estimated], and the draft's is 0.2, 0.3 and 0.5 [estimated]. The proposer draws a token from its own distribution, and the sampler accepts or rejects it by the rule above. What is the probability that it accepts?
 answer: { kind: numeric, unit: probability, rel_tol: 0.02 }
-reveal: after-game
+reveal: at-commit
 kcs: [tr6.exact-acceptance]
 :::
 

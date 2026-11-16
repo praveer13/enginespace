@@ -28,7 +28,12 @@ import { FLOOR_COPY } from '@es/play/engine-floor/copy'
 import { LOOP_COPY } from '@es/play/loop/copy'
 import { FULL_COPY, MASK_CHOICES, MODE_CHOICES } from '@es/play/loop/full/copy'
 import { POOL_COPY } from '@es/play/pool/copy'
-import { PLAN } from '@es/play/predictions/plan'
+import { isHeld, NO_BLOCK, PLAN, UNLISTED } from '@es/play/predictions/plan'
+import { COMMITS as TR1_COMMITS } from '@es/play/predictions/commit-tr1'
+import { COMMITS as TR2_COMMITS } from '@es/play/predictions/commit-tr2'
+import { COMMITS as TR5A_COMMITS } from '@es/play/predictions/commit-tr5a'
+import { COMMITS as TR6_COMMITS } from '@es/play/predictions/commit-tr6'
+import { COMMITS as TR8_COMMITS } from '@es/play/predictions/commit-tr8'
 import { REFERENCES as TR1_READINGS } from '@es/play/predictions/tr1'
 import { REFERENCES as TR2_READINGS } from '@es/play/predictions/tr2'
 import { REFERENCES as TR5A_READINGS } from '@es/play/predictions/tr5a'
@@ -198,9 +203,12 @@ function itemTexts(): Text[] {
 }
 
 function predictionTexts(): Text[] {
-  const whys = Object.entries(PLAN).flatMap(([id, plan]) => ('why' in plan ? [`${id}: ${plan.why}`] : []))
+  const whys = [...Object.entries(PLAN).flatMap(([id, plan]) => (isHeld(plan) ? [`${id}: ${plan.why}`] : [])), UNLISTED.why, NO_BLOCK.why]
   const reads = [TR1_READINGS, TR2_READINGS, TR5A_READINGS].flatMap((table) => Object.entries(table).map(([id, ref]) => `${id}: ${ref.reads}`))
-  return [{ area: 'predictions', where: 'packages/play/predictions', text: [...whys, ...reads].join('\n') }]
+  const working = [TR1_COMMITS, TR2_COMMITS, TR5A_COMMITS, TR6_COMMITS, TR8_COMMITS].flatMap((table) =>
+    Object.entries(table).flatMap(([id, commit]) => [...commit.working, ...commit.sources.map((source) => source.text)].map((line) => `${id}: ${line}`)),
+  )
+  return [{ area: 'predictions', where: 'packages/play/predictions', text: [...whys, ...reads, ...working].join('\n') }]
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */

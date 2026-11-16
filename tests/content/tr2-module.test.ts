@@ -17,6 +17,7 @@
  *   - What the lessons name but nobody has built yet is named here: the `keys` level (Q-10). The nine item families they name are built (W1-T14, W1b-T04).
  */
 import { describe, expect, test } from 'bun:test'
+import { isAtCommit, planOf } from '@es/play/predictions/plan'
 import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -193,7 +194,7 @@ describe('check 2: every lesson has a prediction, a game or an item, and an exit
       for (const block of predictions) {
         if (block.type !== 'predict') continue
         expect(block.id.startsWith(`${lesson.id}.`)).toBe(true)
-        expect(block.reveal).toBe('after-game')
+        expect([block.id, block.reveal]).toEqual([block.id, isAtCommit(planOf(block.id)) ? 'at-commit' : 'after-game'])
       }
     })
 
@@ -589,10 +590,10 @@ describe('lesson 1: one step, and what the GPU waits for', () => {
     for (const id of ['vllm.executor.uni-default', 'vllm.executor.uni-inline']) expect([id, text.includes(`{{claim:${id}}}`)]).toEqual([id, true])
   })
 
-  test('the prediction: 700 µs before the forward, 300 µs after, a forward of 2,000 µs, nothing overlapped, a GPU busy for two thirds of the clock', () => {
+  test("the prediction: the front page's ticks, a plan of 2, a forward of 4 and a read of 1, nothing overlapped, a GPU busy for 4 of 7 ticks", () => {
     const prompt = promptOf('tr2.l1', 'tr2.l1.p1')
-    for (const fact of ['700 µs [estimated]', '300 µs [estimated]', '2,000 µs [estimated]']) expect(prompt).toContain(fact)
-    expect(PREDICTIONS['tr2.l1.p1'].reference()).toBeCloseTo(66.667, 3)
+    for (const fact of ['2 ticks [estimated]', '4 ticks [estimated]', '1 tick [estimated]']) expect(prompt).toContain(fact)
+    expect(PREDICTIONS['tr2.l1.p1'].reference()).toBeCloseTo(57.143, 3)
   })
 
   test('the steady step of the async level, on the two cards: its phases, the CPU work added up, the forward and the idle time', () => {

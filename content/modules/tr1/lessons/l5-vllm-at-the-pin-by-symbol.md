@@ -40,7 +40,7 @@ kcs: [tr1.vllm-lifecycle]
 id: tr1.l5.p2
 prompt: Two requests are in the middle of decoding in vLLM v0.33.0, and a new prompt of 300 tokens [estimated] has just joined the waiting queue. The token budget of a step is large enough to hold it. How many tokens does the next step run?
 answer: { kind: numeric, unit: tokens, rel_tol: 0 }
-reveal: after-game
+reveal: at-commit
 kcs: [tr1.phases-vs-one-budget]
 :::
 
@@ -48,7 +48,7 @@ kcs: [tr1.phases-vs-one-budget]
 id: tr1.l5.p3
 prompt: A vLLM request at v0.33.0 is always in one of twelve statuses. How many of the twelve count as finished?
 answer: { kind: numeric, unit: statuses, rel_tol: 0 }
-reveal: after-game
+reveal: at-commit
 kcs: [tr1.request-states]
 :::
 

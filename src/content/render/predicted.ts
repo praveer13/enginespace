@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import type { Confidence } from '@es/ledger'
 import type { PredictValue } from '@es/play/predictions/grade'
-import type { Truth } from '@es/play/predictions/types'
+import type { Source, Truth } from '@es/play/predictions/types'
 import type { BlockRun } from './runs'
 
 /*
@@ -10,6 +10,9 @@ import type { BlockRun } from './runs'
  * (ARCHITECTURE §4.3), so it must not change in between: the box commits once, and a second commit of the same prediction is refused here,
  * whatever the page does. Nothing here is stored: the ledger holds the evidence, a `predict` event written at the reveal, and this holds
  * what the tab has done until it closes. A reload is a new tab for it, and a prediction that was committed and not revealed is gone.
+ *
+ * A prediction revealed at commit (D-067) is committed and revealed in one go, and has no run to wait for: the ticket goes from asking to
+ * revealed, and the committed state it passes through lasts as long as the model's part takes to load.
  *
  * A commitment notes `latestSeq()` of the runs (runs.ts) at the moment it is made. A run that ended before it was played in sight of the
  * answer, and is no run to reveal after: only one whose `seq` is greater counts.
@@ -31,8 +34,14 @@ export interface Revealed {
   readonly score: number
   /** The model's sentence about what it read. */
   readonly reads: string
-  /** The run the answer was read from. */
-  readonly run: { readonly game: string; readonly level: string; readonly seed: number }
+  /** The run the answer was read from, or null for an answer revealed at commit (D-067), which reads no run. */
+  readonly run: { readonly game: string; readonly level: string; readonly seed: number } | null
+  /** The working of an answer revealed at commit, a line each: the arithmetic on the question's own numbers, or the claim in words. Empty after a run. */
+  readonly working: readonly string[]
+  /** Where an at-commit answer is read from, when it is a claim or a count of the lesson's own. */
+  readonly sources: readonly Source[]
+  /** The tag that an at-commit answer carries; null after a run, where the reading's figure tags itself as derived. */
+  readonly tag: 'derived' | 'measured' | null
   /** Why the ledger would not take the event, or null when it did. The reveal stands either way. */
   readonly unsaved: string | null
 }

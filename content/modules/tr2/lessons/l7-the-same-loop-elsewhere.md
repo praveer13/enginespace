@@ -43,7 +43,7 @@ Commit to a number. The sizes are the ones just above.
 id: tr2.l7.p1
 prompt: "Near the bottom, vLLM's default list has 8, 16 and 24, and SGLang's has 8, 12, 16 and 24 [derived]. A decode batch of 10 rows [estimated] is padded up to the next size in each list. How many fewer rows does SGLang waste than vLLM?"
 answer: { kind: numeric, unit: rows, rel_tol: 0 }
-reveal: after-game
+reveal: at-commit
 kcs: [tr2.capture-padding]
 :::
 

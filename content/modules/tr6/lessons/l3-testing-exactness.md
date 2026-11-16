@@ -40,7 +40,7 @@ Commit to one number before you read on.
 id: tr6.l3.p1
 prompt: A token of probability 0.25 [estimated] has a frequency with a standard error of 3,062 parts per million [derived] over 20,000 draws [estimated]. A bug moves that frequency by one part in 65,536 [estimated], which is 15 parts per million [derived]. About how many draws until the standard error is no bigger than the bug, in millions?
 answer: { kind: numeric, unit: Mdraws, rel_tol: 0.05 }
-reveal: after-game
+reveal: at-commit
 kcs: [tr6.exactness-testing]
 :::
 

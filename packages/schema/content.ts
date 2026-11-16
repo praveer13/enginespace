@@ -125,8 +125,11 @@ export const moduleFrontMatterSchema = z
 /* Blocks                                                                                                             */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** When a prediction's answer is shown. A§4.2's example is the only one the architecture names; a task that needs another adds it here. */
-export const REVEAL_POINTS = ['after-game'] as const
+/**
+ * When a prediction's answer is shown: after the run of the game that answers it (A§4.2), or at once when it is committed, from the
+ * question's own numbers or from the claim it is about (D-067).
+ */
+export const REVEAL_POINTS = ['after-game', 'at-commit'] as const
 /** A game block is a practice run, or a graded one on a fresh seed (A§6.3). */
 export const GAME_MODES = ['practice', 'graded'] as const
 /** Who made a figure's SVG. */

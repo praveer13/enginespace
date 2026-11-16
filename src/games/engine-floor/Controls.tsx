@@ -1,4 +1,5 @@
 import { useId, type ReactNode } from 'react'
+import { FLOOR_QUESTION } from '@es/play/engine-floor/copy'
 import { ENGINE_NAMES } from '@es/play/engine-floor/engine'
 import type { FloorView, LaidView, TileView } from '@es/play/engine-floor/types'
 import { placeName } from '@es/play/engine-floor/words'
@@ -62,7 +63,7 @@ function Prediction({ controls }: { controls: FloorControls }) {
   return (
     <div className="flex flex-col gap-2" data-prediction="">
       <p id={question} className="font-bold">
-        How many process boundaries does a sampled token cross on its way to the client?
+        {FLOOR_QUESTION}
       </p>
       <p className="text-text-2">Count each hop from one process to another, the last one into the client included. A hop between threads of one process does not count.</p>
       <div role="group" aria-labelledby={question} className="flex flex-wrap gap-2">

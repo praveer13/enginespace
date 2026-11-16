@@ -54,7 +54,7 @@ When the next step cannot start until this one has been read, every microsecond 
 
 Commit to a number before you look at the model's. The numbers in this question are round and made up.
 
-> **Predict `tr2.l1.p1`.** A step's CPU work is 700 µs [estimated] before its forward (schedule, prepare and launch) and 300 µs [estimated] after it (sync and sample). The forward takes 2,000 µs [estimated]. Nothing overlaps: each step starts when the last one has been read. For what share of the clock is the GPU busy, in per cent?
+> **Predict `tr2.l1.p1`.** In the front page's step loop, a step plans for 2 ticks [estimated], runs its forward for 4 ticks [estimated] and reads the result for 1 tick [estimated]. Nothing overlaps: each step starts when the last one has been read. For what share of the clock is the GPU busy, in per cent?
 >
 > The learner commits to a number in `percent`, graded within a relative tolerance of `0.05` [estimated] before the reveal. Ask them to commit to an answer and say why before you discuss it.
 

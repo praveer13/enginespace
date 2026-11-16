@@ -51,7 +51,7 @@ Commit to one number before you read the table.
 id: tr6.l5.p1
 prompt: A plain step, with async scheduling off and the fill built while the forward runs, has a plan of 100 µs [estimated], a read of 60 µs [estimated] and a forward of 500 µs [estimated]. It holds 12 structured requests [estimated] with no drafts, and the grammar costs 60 µs [estimated] a row. For how many µs does the GPU idle between two forwards?
 answer: { kind: numeric, unit: us, rel_tol: 0.1 }
-reveal: after-game
+reveal: at-commit
 kcs: [tr6.mask-overlap]
 :::
 

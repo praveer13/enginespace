@@ -1,9 +1,9 @@
 /**
- * TR1's predictions, read from Back of House's runs (W1b-T02; plan.ts says which run answers which).
+ * TR1's predictions, read from Request path's runs (W1b-T02; plan.ts says which run answers which).
  *
  * The world of a run is the lifecycle model's path for the scenario its level lays: the engine and the request, as `packages/sim/lifecycle`
  * cites them at the pins. A question about that engine is answered by counting that path, and a question that moves one lever of the request
- * (a second rank, two samples) by counting the path of the same request with the lever moved. The levels of Back of House lay the same
+ * (a second rank, two samples) by counting the path of the same request with the lever moved. The levels of Request path lay the same
  * scenario whatever the seed, so the seed picks only the tray and the reading does not depend on it.
  */
 import { boundaryOf, entryOf } from '@es/sim/lifecycle'

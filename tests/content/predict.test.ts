@@ -4,7 +4,9 @@
  * writes its event; nothing of the answer on the page before; axe at 360 and 1280 px) is e2e/lesson-predict.spec.ts.
  *
  *   - Before anything is played the ticket asks, and nothing of the answer is in its markup or in what it loaded.
- *   - A prediction that no run answers prints no slip, names the open task its reveal waits on, and holds its stub down.
+ *   - A prediction revealed at commit (D-067) asks like the rest, with a stub that is never held down, and shows no lock and no task id.
+ *   - A question that is held (no row, or no run below it) prints its stem and no input, no lock and no task id.
+ *   - An answer revealed at commit writes one `predict` event with the learner's value and the truth, and no seed, because it read no run.
  *   - A committed prediction is final; the reveal opens only for a run that ended after the commit.
  *   - The `predict` event carries the value and the outcome (A§7.2), passes the ledger's codec, and is written at the reveal.
  */
@@ -18,11 +20,12 @@ import type { CompiledBlock } from '@es/schema'
 import { gradePrediction } from '@es/play/predictions/grade'
 import type { PredictAnswer } from '@es/play/predictions/grade'
 import { NO_BLOCK, PLAN, UNLISTED } from '@es/play/predictions/plan'
+import { commitFor } from '@es/play/predictions/truth'
 import { Blocks } from '@/content/render/Blocks'
 import { renderEnv } from '@/content/render/model'
 import { commitPrediction, forgetPredictions, phaseOf, predictionState, revealPrediction } from '@/content/render/predicted'
 import { AnsweredTicket } from '@/content/render/Predict'
-import { predictDraft, reveal } from '@/content/render/reveal'
+import { predictDraft, reveal, revealAtCommit } from '@/content/render/reveal'
 import { finishBlockRun, forgetBlockRuns, latestSeq } from '@/content/render/runs'
 import type { BlockRun } from '@/content/render/runs'
 import { readSlip, unitName } from '@/content/render/slip'
@@ -39,12 +42,12 @@ type PredictBlock = Extract<CompiledBlock, { type: 'predict' }>
 
 const render = (...blocks: CompiledBlock[]) => renderToString(h(StaticRouter, { location: '/' }, h(Blocks, { blocks, env: renderEnv(blocks, null, '2026-11-09'), scope: 'tr2.l4', rev: 'a1b2c3d4' }))).replaceAll('<!-- -->', '')
 
-const numeric = (id: string, unit: string, rel_tol: number): PredictBlock => ({
+const numeric = (id: string, unit: string, rel_tol: number, reveal: PredictBlock['reveal'] = 'after-game'): PredictBlock => ({
   type: 'predict',
   id,
   prompt: 'How many?',
   answer: { kind: 'numeric', unit, rel_tol },
-  reveal: 'after-game',
+  reveal,
   kcs: ['tr2.mrv2-delta'],
 })
 const game = (id: string, level: string): CompiledBlock => ({ type: 'game', id, level, mode: 'practice' })
@@ -72,7 +75,7 @@ describe('a prediction that a run answers, before anything is played', () => {
   })
 
   test('says what its facts are, as the block always did: the shape of the answer, its unit, the reveal and the tolerance as a tagged number', () => {
-    for (const fact of ['answer · numeric', 'unit · µs', 'reveal · after-game', 'tr2.mrv2-delta']) expect(html).toContain(fact)
+    for (const fact of ['answer · numeric', 'unit · µs', 'reveal · after the run', 'tr2.mrv2-delta']) expect(html).toContain(fact)
     expect(html).toContain('<data class="es-readout__value" value="5">5%</data><span class="es-readout__tag" data-tag="estimated">estimated</span>')
   })
 
@@ -85,41 +88,74 @@ describe('a prediction that a run answers, before anything is played', () => {
   })
 })
 
-describe('a prediction that no run answers', () => {
-  test('prints no slip, names the open task its reveal waits on and says why, and holds its stub down', () => {
-    const html = render(numeric('tr8.l1.p1', 'ms', 0.1), game('broken-bench', 'due'))
-    const why = (PLAN['tr8.l1.p1'] as { why: string }).why
-    expect(html).toContain('data-phase="unbuilt"')
-    expect(html).toContain('data-placeholder="W2-T43"')
-    expect(html).toContain('Its reveal waits on')
-    expect(html).toContain('<span class="es-ticket-line__note">W2-T43</span>')
-    expect(html).toContain(why.replaceAll("'", '&#x27;'))
+describe('a prediction revealed at commit, before anything is played', () => {
+  const html = render(numeric('tr8.l1.p1', 'ms', 0.1, 'at-commit'), game('broken-bench', 'due'))
+
+  test('asks like the rest: a slip with its unit, the three plates and a live stub, and no lock, no held-down stub and no task id', () => {
+    expect(html).toContain('data-phase="asking"')
+    expect(html).toContain('data-reveal="at-commit"')
+    expect(html).toContain('Your number')
+    expect(html).toContain('How sure are you?')
+    expect(html).toMatch(/<button type="button" class="es-stub__pull"><span class="es-stub__label">Commit answer<\/span>/)
+    expect(html).not.toMatch(/<button type="button" class="es-stub__pull"[^>]*disabled=""/)
+    expect(html).not.toContain('data-placeholder')
+    expect(html).not.toContain('Its reveal waits')
+    expect(html).not.toMatch(/W\d-T\d\d|R-T\d\d/)
+    expect(html).toContain('reveal · at commit')
+  })
+
+  test('holds nothing of the answer: the model\'s answer, its working and its source are not in the markup, and none of it was asked for', () => {
+    // The toy log's p99 is 100 ms, and the working says how it is counted.
+    expect(html).not.toContain('data-truth')
+    expect(html).not.toContain('The working')
+    expect(html).not.toContain('nearest rank')
+    expect(html).not.toContain('es-item__reveal')
+  })
+
+  test('every prediction of the table that is revealed at commit has the same ticket, in the block of its own lesson, whatever game follows it', () => {
+    for (const id of ['tr1.l2.p1', 'tr2.l7.p1', 'tr6.l4.p1', 'tr8.l4.p1']) {
+      const out = render(numeric(id, 'ms', 0, 'at-commit'))
+      expect([id, out.includes('data-reveal="at-commit"'), out.includes('data-phase="asking"')]).toEqual([id, true, true])
+    }
+  })
+})
+
+/** The prediction's own ticket, out of a page that has a game block beside it. */
+const ticketOf = (html: string): string => /<section[^>]*data-block="predict".*?<\/section>/s.exec(html)?.[0] ?? ''
+
+describe('a question to hold', () => {
+  test('prints its stem and why it has no answer, and no slip, no lock, no task id and no stub', () => {
+    const html = ticketOf(render(numeric('tr9.l9.p9', 'us', 0.05), game('loop', 'mrv2')))
+    expect(html).toContain('data-phase="held"')
+    expect(html).toContain('How many?')
+    expect(html).toContain(UNLISTED.why)
     expect(html).not.toContain('Your number')
     expect(html).not.toContain('How sure are you?')
-    expect(html).toMatch(/<button type="button" class="es-stub__pull"[^>]*disabled=""/)
+    expect(html).not.toContain('es-stub__pull')
+    expect(html).not.toContain('data-placeholder')
     expect(html).not.toContain('data-lamp')
+    expect(html).not.toMatch(/W\d-T\d\d|R-T\d\d|waits/)
   })
 
-  test('a prediction that the table has no row for waits for the same task, and a row whose game block the lesson lacks says so', () => {
-    expect(render(numeric('tr9.l9.p9', 'us', 0.05), game('loop', 'mrv2'))).toContain(UNLISTED.why)
-    // tr2.l4.p1 is answered by loop/mrv2, which this page has no block of after the prediction: the game block comes before it.
-    const lacking = render(game('loop', 'mrv2'), numeric('tr2.l4.p1', 'us', 0.05))
-    expect(lacking).toContain('data-phase="unbuilt"')
+  test('a row whose game block the lesson lacks is held too: tr2.l4.p1 is answered by loop/mrv2, and this page has no block of it after the prediction', () => {
+    const lacking = ticketOf(render(game('loop', 'mrv2'), numeric('tr2.l4.p1', 'us', 0.05)))
+    expect(lacking).toContain('data-phase="held"')
     expect(lacking).toContain(NO_BLOCK.why)
+    expect(lacking).not.toContain('es-stub__pull')
   })
 
-  test('a choice prediction that waits lists its options, as it did', () => {
+  test('a choice that is held lists its options, as it did', () => {
     const block: PredictBlock = {
       type: 'predict',
-      id: 'tr6.l4.p1',
+      id: 'tr9.l9.p8',
       prompt: 'Which runner?',
       answer: { kind: 'choice', options: [{ id: 'mrv2-on', text: 'MRV2, with async scheduling on' }, { id: 'refused', text: 'The engine refuses to start' }] },
       reveal: 'after-game',
       kcs: ['tr6.proposer-families'],
     }
-    const html = render(block, game('verifier', 'greedy-ngram'))
+    const html = render(block)
     expect(html).toContain('<ol class="es-c-options"><li>MRV2, with async scheduling on</li><li>The engine refuses to start</li></ol>')
-    expect(html).toContain('data-phase="unbuilt"')
+    expect(html).toContain('data-phase="held"')
   })
 })
 
@@ -206,7 +242,7 @@ describe('a committed prediction', () => {
   })
 
   test('is revealed once, and only after it was committed', () => {
-    const revealed = { truth: 304, ok: true, score: 1, reads: 'Read.', run: { game: 'loop', level: 'mrv2', seed: 0 }, unsaved: null }
+    const revealed = { truth: 304, ok: true, score: 1, reads: 'Read.', run: { game: 'loop', level: 'mrv2', seed: 0 }, working: [], sources: [], tag: null, unsaved: null }
     expect(() => revealPrediction('tr2.l4', 'tr2.l4.p1', revealed)).toThrow('after it is committed')
     commitPrediction('tr2.l4', 'tr2.l4.p1', commitment)
     revealPrediction('tr2.l4', 'tr2.l4.p1', revealed)
@@ -228,7 +264,7 @@ describe('a committed prediction', () => {
     const late = play()
     expect(late.seq).toBeGreaterThan(early.seq)
     expect(phaseOf(state, late)).toBe('ready')
-    revealPrediction('tr2.l4', 'tr2.l4.p1', { truth: 304, ok: true, score: 1, reads: 'Read.', run: { game: 'loop', level: 'mrv2', seed: 0 }, unsaved: null })
+    revealPrediction('tr2.l4', 'tr2.l4.p1', { truth: 304, ok: true, score: 1, reads: 'Read.', run: { game: 'loop', level: 'mrv2', seed: 0 }, working: [], sources: [], tag: null, unsaved: null })
     expect(phaseOf(predictionState('tr2.l4', 'tr2.l4.p1'), late)).toBe('revealed')
   })
 })
@@ -313,6 +349,79 @@ describe('the event a reveal writes (A§7.2)', () => {
     const mismatched: BlockRun = { ...run, scope: 'tr2.l4', game: 'loop', result: { ...run.result, record: { game: 'broken-bench', level: 'due', seed: 1, actions: [] } } }
     await expect(reveal({ block: numeric('tr2.l4.p1', 'us', 0.05), scope: 'tr2.l4', committed: { value: 1, conf: null, after: 0 }, run: mismatched })).rejects.toThrow('answered by a run of loop/mrv2')
     expect((await store.readAll()).events).toEqual([])
+  })
+})
+
+describe('the event an at-commit reveal writes (D-067)', () => {
+  const writer = { clock: fixedClock(), newId: seededIds(9), dev: 'dev-commit' }
+  const setup = (store: MemoryStore) => configureEvidence({ store, clock: fixedClock(), newId: seededIds(5), tabId: 'tab-commit', channelFactory: null, storageManager: null })
+
+  test('is one `predict` event with the value and the truth both, the outcome and the lesson\'s revision, stamped as practice, and no seed, because no run was read', async () => {
+    const store = new MemoryStore()
+    setup(store)
+    const result = await revealAtCommit({ block: numeric('tr2.l2.p1', 'tokens', 0), scope: 'tr2.l2', rev: 'a1b2c3d4', committed: { value: 1948, conf: 'sure', after: 0 } })
+    expect(result).toMatchObject({ truth: 1948, ok: true, score: 1, run: null, unsaved: null, tag: 'derived' })
+    expect(result.working.length).toBeGreaterThanOrEqual(2)
+    expect(result.working[result.working.length - 1]).toContain('1,948')
+    const events = (await store.readAll()).events
+    expect(events.length).toBe(1)
+    expect(events[0]).toMatchObject({ kind: 'predict', ref: 'predict:tr2.l2#tr2.l2.p1', score: 1, ok: true, provenance: 'practice', conf: 'sure', rev: 'a1b2c3d4', data: { value: 1948, truth: 1948, unit: 'tokens' } })
+    expect(Object.keys(events[0])).not.toContain('seed')
+    expect(decodeEvent(JSON.parse(JSON.stringify(events[0]))).ok).toBe(true)
+  })
+
+  test('a miss is written too, and a choice reveals its option by id', async () => {
+    const store = new MemoryStore()
+    setup(store)
+    const miss = await revealAtCommit({ block: numeric('tr8.l3.p1', 'requests/s', 0.05), scope: 'tr8.l3', committed: { value: 10, conf: null, after: 0 } })
+    expect(miss).toMatchObject({ ok: false, score: 0, run: null })
+    const choice: PredictBlock = {
+      type: 'predict',
+      id: 'tr6.l4.p1',
+      prompt: 'Which runner?',
+      answer: { kind: 'choice', options: [{ id: 'mrv2-on', text: 'MRV2' }, { id: 'mrv1-off', text: 'MRV1, async off' }] },
+      reveal: 'at-commit',
+      kcs: ['tr6.proposer-families'],
+    }
+    const hit = await revealAtCommit({ block: choice, scope: 'tr6.l4', committed: { value: 'mrv1-off', conf: 'think', after: 0 } })
+    expect(hit).toMatchObject({ truth: 'mrv1-off', ok: true, tag: 'measured' })
+    expect(hit.sources.map((source) => source.claim)).toEqual(['vllm.mrv2.fallback-reasons', 'vllm.async-scheduling.mrv1-limits'])
+    const events = (await store.readAll()).events
+    expect(events.map((event) => [event.ref, 'ok' in event ? event.ok : null])).toEqual([['predict:tr8.l3#tr8.l3.p1', false], ['predict:tr6.l4#tr6.l4.p1', true]])
+    expect(events[1]).toMatchObject({ data: { value: 'mrv1-off', truth: 'mrv1-off' } })
+  })
+
+  test('a ledger that would not take the event says so and the reveal stands, as after a run', async () => {
+    const store = new MemoryStore()
+    await store.commit({ putMeta: { deviceId: 'dev-a1', createdAt: '2026-10-01T00:00:00.000Z', schemaVersion: 2 } }, { event: (existing) => existing, receipt: (existing) => existing, working: (existing) => existing })
+    setup(store)
+    const result = await revealAtCommit({ block: numeric('tr2.l2.p1', 'tokens', 0), scope: 'tr2.l2', committed: { value: 1948, conf: null, after: 0 } })
+    expect(result).toMatchObject({ truth: 1948, ok: true })
+    expect(result.unsaved).toContain('read-only')
+    expect((await store.readAll()).events).toEqual([])
+  })
+
+  test('a prediction that a run answers, or that the model does not know, has no answer at commit, and writes nothing', async () => {
+    const store = new MemoryStore()
+    setup(store)
+    await expect(revealAtCommit({ block: numeric('tr2.l4.p1', 'us', 0.05), scope: 'tr2.l4', committed: { value: 1, conf: null, after: 0 } })).rejects.toThrow('no answer at commit')
+    await expect(revealAtCommit({ block: numeric('tr9.l9.p9', 'us', 0.05), scope: 'tr9.l9', committed: { value: 1, conf: null, after: 0 } })).rejects.toThrow('no answer at commit')
+    expect(await commitFor('tr2.l4.p1')).toBeUndefined()
+    expect((await store.readAll()).events).toEqual([])
+    expect(decodeEvent(JSON.parse(JSON.stringify(stampEvent(writer, predictDraft({ block: numeric('tr2.l2.p1', 'tokens', 0), scope: 'tr2.l2', committed: { value: 1948, conf: null, after: 0 } }, 1948, gradePrediction({ kind: 'numeric', unit: 'tokens', rel_tol: 0 }, 1948, 1948))))) ).ok).toBe(true)
+  })
+
+  test('the page that reads predictions reads it: the loop counts it, the KCs are practised, and nothing is earned', async () => {
+    const store = new MemoryStore()
+    setup(store)
+    await revealAtCommit({ block: numeric('tr2.l2.p1', 'tokens', 0), scope: 'tr2.l2', rev: 'a1b2c3d4', committed: { value: 1948, conf: null, after: 0 } })
+    const events = (await store.readAll()).events
+    const compiled = compileContent({ root: repo })
+    const map = courseMapSchema.parse(JSON.parse(compiled.outputs.find((output) => output.path === 'src/content/generated/map.json')!.text))
+    const progress = deriveProgress(events, map, appSources(map), homeModule)
+    expect(progress.modules.get('tr2')?.loop.predicted).toBe(1)
+    expect(progress.kcs.get('tr2.one-budget')).toMatchObject({ state: 'practised', events: 1 })
+    expect(progress.counts.earned).toBe(0)
   })
 })
 

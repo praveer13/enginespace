@@ -62,7 +62,7 @@ A percentile by nearest rank is the ceil(p × n)-th smallest of n values. For th
 id: tr8.l2.p1
 prompt: A run of 250 requests [estimated] reports a p99 by nearest rank. How many of its requests lie beyond that p99?
 answer: { kind: numeric, unit: requests, rel_tol: 0 }
-reveal: after-game
+reveal: at-commit
 kcs: [tr8.min-n-tail]
 :::
 

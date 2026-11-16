@@ -9,6 +9,7 @@
 import { applyAction, drawInBand, finishRun, GAMES, levelOf, startRun } from '@es/play'
 import type { AnySession, GameAction, GameMode, RunRecord } from '@es/play'
 import { buildLevel as floorLevel } from '@es/play/engine-floor/levels'
+import type { LoopAction, LoopAsk } from '@es/play/loop/types'
 import { stageClosed } from '@es/play/loop/full/session'
 import type { FullAction, FullState } from '@es/play/loop/full/types'
 import { buildLevel as poolLevel } from '@es/play/pool/levels'
@@ -41,6 +42,26 @@ function fullActions(session: AnySession, record: Pick<RunRecord, 'game' | 'leve
   return actions
 }
 
+/**
+ * The actions that play one of the step loop's front-page levels to its end: async scheduling on, a waiting request admitted into every free
+ * batch slot at each decision, and a step run until the level's own goal ends the run (the first ghost token, or every request served).
+ */
+function frontActions(session: AnySession, record: Pick<RunRecord, 'game' | 'level' | 'seed'>): GameAction[] {
+  let run = startRun(session, record)
+  const actions: GameAction[] = []
+  const push = (action: LoopAction) => {
+    actions.push(action)
+    run = applyAction(session, run, action)
+  }
+  push({ t: 'lever', name: 'async', value: true })
+  for (let guard = 0; guard < 500 && !session.done(run.state); guard++) {
+    const ask = session.ask(run.state) as LoopAsk | null
+    if (ask !== null && ask.free.length > 0 && ask.waiting.length > 0) push({ t: 'admit', req: ask.waiting[0] })
+    else push({ t: 'run', until: 'step' })
+  }
+  return actions
+}
+
 /** The actions that play a level of a game to its end on a seed. */
 function actionsFor(session: AnySession, game: string, level: string, seed: number): GameAction[] {
   switch (game) {
@@ -49,7 +70,7 @@ function actionsFor(session: AnySession, game: string, level: string, seed: numb
     case 'pool':
       return poolHouse(poolLevel(level, seed))
     case 'loop':
-      return fullActions(session, { game, level, seed })
+      return level.startsWith('first-') ? frontActions(session, { game, level, seed }) : fullActions(session, { game, level, seed })
     default:
       throw new Error(`no player for ${game}: only the games with a prediction that a run answers are played here`)
   }

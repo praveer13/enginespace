@@ -94,18 +94,19 @@ describe('/m/tr2/l0-sample', () => {
   })
 
   test('a block whose feature is not built yet says which open task builds it, and holds its action down', () => {
-    // The sample lesson's prediction is no prediction of the course's: the table of which run answers which (W1b-T02) has no row for it, so its reveal waits.
-    expect(placeholders(html)).toEqual({ predict: 'W2-T43', trace: 'W2-T42', lab: 'W2-T23' })
+    // The sample lesson's prediction is no prediction of the course's: the table has no row for it, so it is a question to hold, with no task id and no lock.
+    expect(placeholders(html)).toEqual({ trace: 'W2-T42', lab: 'W2-T23' })
+    expect(html).toContain('data-phase="held"')
+    expect(html).not.toContain('Its reveal waits on')
     for (const [what, task] of [
-      ['Its reveal waits on', 'W2-T43'],
       ['Not built yet: the trace block', 'W2-T42'],
       ['Not built yet: the lab', 'W2-T23'],
     ]) {
       expect(html).toContain(what)
       expect(html).toContain(`<span class="es-ticket-line__note">${task}</span>`)
     }
-    // The prediction and the trace each have a stub that is held down. The lab's stub is a link, and the item set and the game are built.
-    expect(html.match(/<button type="button" class="es-stub__pull"[^>]*disabled=""/g)?.length).toBe(2)
+    // The trace has a stub that is held down. The lab's stub is a link, the held question has none, and the item set and the game are built.
+    expect(html.match(/<button type="button" class="es-stub__pull"[^>]*disabled=""/g)?.length).toBe(1)
     expect(html).toContain('href="/labs/tr3.profile"')
     expect(html).not.toContain('Not built yet: the game')
   })
@@ -118,7 +119,7 @@ describe('/m/tr2/l0-sample', () => {
 
   test('the predict block prints its prompt, the shape of its answer, its tolerance as a tagged number and its KCs', () => {
     expect(html).toContain('With async scheduling on, how many µs of the CPU&#x27;s per-step work stay on the critical path?')
-    for (const fact of ['answer · numeric', 'unit · µs', 'reveal · after-game', 'tr2.async-overlap']) expect(html).toContain(fact)
+    for (const fact of ['answer · numeric', 'unit · µs', 'reveal · after the run', 'tr2.async-overlap']) expect(html).toContain(fact)
     expect(html).toContain('<data class="es-readout__value" value="15">15%</data><span class="es-readout__tag" data-tag="estimated">estimated</span>')
   })
 
