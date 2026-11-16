@@ -95,7 +95,7 @@ describe('the registry\'s record of The Inspection', () => {
   test('names the benchmark model\'s card, which exists and says its numbers are synthetic and which tools it models (A§5.9)', () => {
     expect(BROKEN_BENCH.card).toBe('trace-room-bench')
     const card = readFileSync(path.join(root, 'content/cards', `${BROKEN_BENCH.card}.md`), 'utf8')
-    expect(card).toContain('The Inspection')
+    expect(card).toContain('the broken benchmark game (`broken-bench`)')
     expect(card).toContain('synthetic')
     expect(readFileSync(path.join(root, 'src/games/broken-bench/Card.tsx'), 'utf8')).toContain('trace-room-bench.md')
   })

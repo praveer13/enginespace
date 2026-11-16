@@ -1027,7 +1027,7 @@ describe('check 3: the notional-machine card (content/cards/trace-room-steploop.
       expect(models, phrase).toContain(phrase)
     }
     expect(models.toLowerCase()).toContain('graph memory')
-    expect(models).toContain('proposed')
+    expect(models).toContain('not yet confirmed against a real engine')
   })
 
   test('no longer says v0 leaves the graph modes, the dispatch keys, the mask, speculation, adapters, the runner presets or the per-GPU defaults out', () => {

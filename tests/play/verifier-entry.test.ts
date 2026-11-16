@@ -90,7 +90,7 @@ describe('the registry\'s record of The Tasting', () => {
   test('names the speculation model\'s card, which exists and says its numbers are synthetic and its bugs are the bestiary\'s (A§5.9)', () => {
     expect(VERIFIER.card).toBe(SPEC_CARD_ID)
     const card = readFileSync(path.join(root, 'content/cards', `${VERIFIER.card}.md`), 'utf8')
-    expect(card).toContain('The Tasting')
+    expect(card).toContain('the rejection sampler game (`verifier`)')
     expect(card).toContain('synthetic')
   })
 
