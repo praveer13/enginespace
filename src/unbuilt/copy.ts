@@ -23,7 +23,7 @@ export interface UnbuiltCopy {
 /** The pages with a route of their own. A page's `lead` is the sentence its meta description gives too (scripts/pages/plan.ts), and a test holds the two together. */
 export const UNBUILT = {
   traceRoom: {
-    title: 'The Trace Room',
+    title: 'Traces',
     lead: 'Read engine traces beside the seeded step-loop world, and hunt for the gaps. A trace without a real capture behind it is labelled synthetic.',
     heading: 'What it will hold',
     holds: [

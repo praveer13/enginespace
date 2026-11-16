@@ -137,7 +137,7 @@ function moveTo(state: TapeState, index: TraceIndex, cursor: Cursor, focus: bool
   return { ...state, cursor, win, mirrorWin: sameWindow(win, state.win) ? state.mirrorWin : win, focusSeq: focus ? state.focusSeq + 1 : state.focusSeq }
 }
 
-const NO_MARKING = 'This tape is for reading. It takes no marks.'
+const NO_MARKING = 'This trace is for reading. It takes no marks.'
 
 export function reduce(state: TapeState, command: Command, index: TraceIndex, options: { readOnly?: boolean } = {}): TapeState {
   switch (command.t) {
@@ -146,7 +146,7 @@ export function reduce(state: TapeState, command: Command, index: TraceIndex, op
       const anchor = command.t === 'zoomAt' ? command.ns : anchorOf(state, index)
       const win = zoomWindow(state.win, command.dir > 0 ? 0.5 : 2, anchor, index.extent)
       return sameWindow(win, state.win)
-        ? say(state, command.dir > 0 ? 'Zoomed in as far as it goes.' : 'The whole tape is in view.')
+        ? say(state, command.dir > 0 ? 'Zoomed in as far as it goes.' : 'The whole trace is in view.')
         : say({ ...state, win, mirrorWin: command.t === 'zoom' ? win : state.mirrorWin }, `${ns(win.toNs - win.fromNs)} across.`)
     }
     case 'pan':
@@ -158,11 +158,11 @@ export function reduce(state: TapeState, command: Command, index: TraceIndex, op
     case 'fit': {
       const centre = Math.round((state.win.fromNs + state.win.toNs) / 2)
       const at = windowAt(index, centre)
-      if (command.what === 'all' || at < 0) return say(withWindow(state, fitWindow(index.extent, index.extent)), 'The whole tape is in view.')
+      if (command.what === 'all' || at < 0) return say(withWindow(state, fitWindow(index.extent, index.extent)), 'The whole trace is in view.')
       return say(withWindow(state, fitWindow(index.steps[at], index.extent)), `Step ${at + 1} of ${index.steps.length}.`)
     }
     case 'bell': {
-      if (index.steps.length === 0) return say(state, 'This tape has no step marks.')
+      if (index.steps.length === 0) return say(state, 'This trace has no step marks.')
       const at = windowAt(index, Math.round((state.win.fromNs + state.win.toNs) / 2))
       const next = Math.min(index.steps.length - 1, Math.max(0, at + command.dir))
       if (next === at) return say(state, command.dir > 0 ? 'That is the last step.' : 'That is the first step.')
@@ -173,7 +173,7 @@ export function reduce(state: TapeState, command: Command, index: TraceIndex, op
     }
     case 'edge': {
       const found = state.cursor === null ? firstCursor(index) : stepEdge(index, state.cursor, command.dir)
-      if (found === null) return say(state, state.cursor === null ? 'This tape has no events.' : command.dir > 0 ? 'That is the last edge on this lane.' : 'That is the first edge on this lane.')
+      if (found === null) return say(state, state.cursor === null ? 'This trace has no events.' : command.dir > 0 ? 'That is the last edge on this lane.' : 'That is the first edge on this lane.')
       return say(moveTo(state, index, found, true), describeCursor(index, found))
     }
     case 'lane': {

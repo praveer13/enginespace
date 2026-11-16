@@ -1,8 +1,8 @@
 /*
- * The trace viewer, in The Pass's materials (DESIGN.md): a strip of bond paper on brushed stainless, with the lane names on masking
- * tape in a steel gutter, and the plates, tickets and printer tape of the design system around it. Every colour, face, radius,
- * shadow and duration is a token role (tokens.css). The canvas draws the paper's dots and holes (paint.ts); this file lays out the
- * DOM over it and around it.
+ * The trace viewer, in Data Book (REDESIGN 2.8): flat paper with a graticule, the lane names in a quiet label column, the one colour
+ * code with its glyphs, and one amber marker for the cursor. It is the model of every lane diagram on the site. Every colour, face,
+ * radius, shadow and duration is a token role (tokens.css). The canvas draws the paper, the spans and the cursor (paint.ts); this
+ * file lays out the DOM over it and around it.
  */
 
 .es-trace {
@@ -34,7 +34,7 @@
 
 /* ---------------------------------------------------------------------------------------------- the plates */
 
-/* A raised sheet of brushed steel that the plates sit on: the menu board of the design system. */
+/* The controls, on one flat strip above the diagram. */
 .es-trace__bar {
   display: flex;
   flex-wrap: wrap;
@@ -42,10 +42,8 @@
   gap: var(--es-space-2) var(--es-space-6);
   padding: var(--es-space-2) var(--es-space-3);
   border: 1px solid var(--es-edge);
-  border-radius: var(--es-radius-plate);
+  border-radius: var(--es-radius-trim);
   background-color: var(--es-surface-1);
-  background-size: 100% 360px;
-  box-shadow: var(--es-shadow-paper);
 }
 
 .es-trace__group {
@@ -71,9 +69,8 @@
   }
 
   .es-trace__bar .es-button {
-    padding: 0.3rem 0.55rem 0.2rem;
+    padding: 0.3rem 0.55rem;
     font-size: var(--es-size-caption);
-    letter-spacing: 0.05em;
   }
 }
 
@@ -84,10 +81,9 @@
   width: 100%;
   overflow: hidden;
   border: 1px solid var(--es-edge);
-  border-radius: var(--es-radius-plate);
-  background-color: var(--es-surface-2);
-  background-size: 100% 360px;
-  box-shadow: var(--es-shadow-lift);
+  border-radius: var(--es-radius-paper);
+  background-color: var(--es-paper);
+  box-shadow: var(--es-shadow-paper);
   cursor: grab;
   user-select: none;
   -webkit-user-select: none;
@@ -107,7 +103,7 @@
   display: block;
 }
 
-/* The lane names stand in the gutter at the left of the paper, or above their lanes when the paper takes the whole width. */
+/* The lane names stand in the label column at the left of the paper, or above their lanes when the paper takes the whole width. */
 .es-trace__lanes {
   position: absolute;
   inset: 0;
@@ -123,18 +119,20 @@
   justify-content: center;
   gap: var(--es-space-1);
   padding: 0 var(--es-space-3);
-  color: var(--es-text-2);
+  color: var(--es-text-1);
   font-size: var(--es-size-caption);
   line-height: 1.25;
 }
 
-/* The engine's term under the kitchen's word: two lines at most, so a lane's name never reaches the next lane's. */
+/* The track's own name under the lane's word: two lines at most, so a lane's name never reaches the next lane's. */
 .es-trace__lane-name {
   display: -webkit-box;
   max-width: 100%;
   overflow: hidden;
   overflow-wrap: anywhere;
+  color: var(--es-text-2);
   font-size: var(--es-size-stamp);
+  font-weight: 400;
   line-height: 1.25;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -149,10 +147,9 @@
   align-content: flex-start;
   gap: var(--es-space-1) var(--es-space-2);
   padding-top: 0.2rem;
-  color: var(--es-text-2);
 }
 
-/* The numbers and the tape stuck on it sit over the paper itself. */
+/* The numbers, the cursor's word and the marks' words sit over the paper itself. */
 .es-trace__plot {
   position: absolute;
   top: 0;
@@ -173,13 +170,28 @@
   white-space: nowrap;
 }
 
+/* The word "now", in the foot beside the cursor's line. */
+.es-trace__now {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  height: 18px;
+  padding-inline: 0.25rem;
+  background: var(--es-paper);
+  color: var(--es-paper-ink);
+  font-family: var(--es-font-label);
+  font-size: var(--es-size-caption);
+  font-weight: 700;
+  line-height: 1;
+}
+
 .es-trace__mark {
   position: absolute;
   display: flex;
   align-items: center;
   gap: 0.25rem;
   overflow: hidden;
-  padding: 0 0.5rem 3px 0.4rem;
+  padding: 0 0.5rem 4px 0.4rem;
   color: var(--es-text-1);
   font-family: var(--es-font-label);
   font-size: var(--es-size-caption);
@@ -223,17 +235,14 @@
 }
 
 .es-trace__lane-row {
-  font-family: var(--es-font-display);
+  font-family: var(--es-font-body);
   font-size: var(--es-size-body);
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .es-trace__lane-row > span {
-  font-family: var(--es-font-body);
   font-size: var(--es-size-print);
   font-weight: 400;
-  letter-spacing: 0;
-  text-transform: none;
 }
 
 .es-trace__spans [data-lane-row] {
@@ -244,7 +253,7 @@
 .es-trace__marks button[data-mark-button] {
   min-height: 1.5rem;
   padding: 0 0.15rem;
-  border-radius: var(--es-radius-plate);
+  border-radius: var(--es-radius-trim);
 }
 
 .es-trace__spans tr[data-cursor-row] button[data-row-button] {

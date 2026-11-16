@@ -6,8 +6,8 @@ import { Ticket } from '@/design/components/Ticket'
 import { KEY_GROUPS } from './keys'
 
 /*
- * The help dialog (ARCHITECTURE §6.8): every key the tape answers to, in the groups a learner thinks in. It is a Radix dialog, so it
- * traps focus and closes on Escape, and it gives focus back to whatever had it. It is the kit's help dialog in shape and says "tape"
+ * The keyboard sheet (ARCHITECTURE §6.8): every key the viewer answers to, in the groups a learner thinks in. It is a Radix dialog, so it
+ * traps focus and closes on Escape, and it gives focus back to whatever had it. It is the kit's help dialog in shape and says "trace"
  * where the kit's says "game", because the viewer is not always inside a game.
  */
 
@@ -41,7 +41,6 @@ export function KeysSheet({ keys, open, onOpenChange }: KeysSheetProps) {
             as="div"
             width="full"
             hole={false}
-            head="Keys"
             title={
               <Dialog.Title asChild>
                 <span>Keyboard</span>
@@ -50,7 +49,7 @@ export function KeysSheet({ keys, open, onOpenChange }: KeysSheetProps) {
             titleAs="h2"
           >
             <Dialog.Description>
-              Keys work while focus is inside the tape. A key is left alone where the focused control uses it itself: every key in the label field, and Space and Enter on a button.
+              Keys work while focus is inside the trace. A key is left alone where the focused control uses it itself: every key in the label field, and Space and Enter on a button.
             </Dialog.Description>
             {KEY_GROUPS.map((group) => (
               <section key={group.title} aria-label={group.title} className="mt-4">
