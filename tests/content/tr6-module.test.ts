@@ -757,12 +757,10 @@ describe('lesson 5: the mask against the forward', () => {
     mentions('tr6.l5', 'the gap', '`100 + 60 + (1,200 − 500)` = 860 µs [derived], and the step loop measures 860 µs [measured], against 160 µs [measured] for the same grammar without drafts')
   })
 
-  test('the figure is the step loop\'s own picture: rebuilt here, it is the file byte for byte, and it is drawn in the page\'s ink', () => {
+  test('the figure is the step loop\'s own picture: rebuilt here, it is the file byte for byte', () => {
     const svg = read(FIGURE_PATH)
     expect(svg).toBe(maskTimelineSvg())
-    // A figure is drawn in the page's ink: no colour and no typeface of its own (DESIGN.md; AGENTS.md rule 9).
-    expect(svg).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(|font-family/)
-    expect(svg).toContain('currentColor')
+    // It is drawn in the diagram language, which tests/content/figures.test.ts holds every figure to.
     expect(svg).toContain('<title>')
     expect(svg).toContain('<desc>')
     // Its four panels are the cases of the table, and its description names their gaps.
@@ -772,7 +770,9 @@ describe('lesson 5: the mask against the forward', () => {
       ['serial', 20],
       ['async', 20],
     ])
-    for (const gap of [160, 380, 400, 0]) expect(svg).toContain(`GPU idle ${gap} µs`)
+    for (const gap of [160, 380, 400, 0]) expect(svg).toContain(`>GPU idle ${gap} µs</text>`)
+    // Each gap that exists is a dashed hollow box under a dimension line that carries its value; the async panel has none.
+    expect((svg.match(/<g class="dim" data-value="GPU idle \d+ µs">/g) ?? []).length).toBe(3)
     const figure = lessonOf('tr6.l5').lesson.blocks.find((b) => b.type === 'figure')
     expect(figure?.type === 'figure' ? [figure.src, figure.origin] : null).toEqual(['figures/tr6/l5-mask-timeline.svg', 'generated'])
   })

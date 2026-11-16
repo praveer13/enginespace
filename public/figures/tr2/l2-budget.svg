@@ -1,27 +1,35 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 130" width="360" height="130" fill="none" stroke="currentColor" stroke-width="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 230" width="360" height="230">
   <title>The token budget of two steps: the running requests first, then the prompt's chunk</title>
-  <desc>Two bars, one for each of the two steps that carry the prompt of 3,000 tokens, each as long as the budget of 2,048 tokens. In each the first segment, narrow and dark, is the 100 running requests' one token each. In the first step the rest of the budget is the prompt's first chunk, 1,948 tokens. In the second step the prompt's remaining 1,052 tokens follow the decodes and 896 tokens of the budget are left, drawn as a dashed box.</desc>
-  <g fill="currentColor" fill-opacity="0.55">
-    <rect x="52" y="26" width="14.65" height="24"/>
-    <rect x="52" y="78" width="14.65" height="24"/>
-  </g>
-  <g fill="currentColor" fill-opacity="0.16">
-    <rect x="66.65" y="26" width="285.35" height="24"/>
-    <rect x="66.65" y="78" width="154.10" height="24"/>
-  </g>
-  <g stroke-dasharray="3 3">
-    <rect x="220.75" y="78" width="131.25" height="24"/>
-  </g>
-  <g stroke="none" fill="currentColor" font-size="9">
-    <text x="4" y="42">step 1</text>
-    <text x="209.3" y="42" text-anchor="middle">the prompt's chunk: 1,948 tokens</text>
-    <text x="52" y="22">100 decodes, one token each</text>
-    <text x="4" y="94">step 2</text>
-    <text x="143.7" y="94" text-anchor="middle">the prompt's chunk: 1,052 tokens</text>
-    <text x="286.4" y="94" text-anchor="middle">896 left</text>
-    <text x="52" y="74">100 decodes, one token each</text>
-  </g>
-  <g stroke="none" fill="currentColor" font-size="8">
-    <text x="52" y="124">the bar is the budget: 2,048 tokens a step</text>
-  </g>
+  <desc>Two bars, one for each of the two steps that carry the prompt of 3,000 tokens, each as long as the budget of 2,048 tokens. In each the first segment, narrow, is the 100 running requests' one token each. In the first step the rest of the budget is the prompt's first chunk, 1,948 tokens. In the second step the prompt's remaining 1,052 tokens follow the decodes and 896 tokens of the budget are left, drawn as a dashed box.</desc>
+  <rect width="360" height="230" fill="#fafaf6"/>
+  <g class="graticule" fill="none" stroke="#c2c8bd"><path d="M48 26v32M56 26v32M64 26v32M72 26v32M80 26v32M88 26v32M96 26v32M104 26v32M112 26v32M120 26v32M128 26v32M136 26v32M144 26v32M152 26v32M160 26v32M168 26v32M176 26v32M184 26v32M192 26v32M200 26v32M208 26v32M216 26v32M224 26v32M232 26v32M240 26v32M248 26v32M256 26v32M264 26v32M272 26v32M280 26v32M288 26v32M296 26v32M304 26v32M312 26v32M320 26v32M328 26v32M336 26v32M344 26v32M352 26v32M48 26h306M48 34h306M48 42h306M48 50h306M48 58h306" stroke-width="0.5" stroke-opacity="0.55"/><path d="M48 26v32M88 26v32M128 26v32M168 26v32M208 26v32M248 26v32M288 26v32M328 26v32M48 26h306" stroke-width="0.75"/></g>
+  <text x="4" y="46" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">step 1</text>
+  <g class="dim" data-value="100 decodes, one token each"><path d="M48 12v8M62.94 12v8M48 16H62.94" fill="none" stroke="#5f666d" stroke-width="1"/></g>
+  <text x="48" y="9" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">100 decodes, one token each</text>
+  <g class="span" data-slot="blue"><rect x="48" y="30" width="14.94" height="24" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="green"><rect x="62.94" y="30" width="291.06" height="24" fill="#237a37" stroke="#185e2c" stroke-width="1"/><g class="glyph" data-slot="green"><polygon points="67.44,42 69.19,38.95 72.69,38.95 74.44,42 72.69,45.05 69.19,45.05" fill="#fafaf6"/></g><text x="216.47" y="45.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#fafaf6" text-anchor="middle">the prompt's chunk</text></g>
+  <g class="dim" data-value="1,948 tokens of the prompt"><path d="M62.94 62v8M354 62v8M62.94 66H354" fill="none" stroke="#5f666d" stroke-width="1"/></g>
+  <text x="208.47" y="81" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">1,948 tokens of the prompt</text>
+  <g class="graticule" fill="none" stroke="#c2c8bd"><path d="M48 118v32M56 118v32M64 118v32M72 118v32M80 118v32M88 118v32M96 118v32M104 118v32M112 118v32M120 118v32M128 118v32M136 118v32M144 118v32M152 118v32M160 118v32M168 118v32M176 118v32M184 118v32M192 118v32M200 118v32M208 118v32M216 118v32M224 118v32M232 118v32M240 118v32M248 118v32M256 118v32M264 118v32M272 118v32M280 118v32M288 118v32M296 118v32M304 118v32M312 118v32M320 118v32M328 118v32M336 118v32M344 118v32M352 118v32M48 118h306M48 126h306M48 134h306M48 142h306M48 150h306" stroke-width="0.5" stroke-opacity="0.55"/><path d="M48 118v32M88 118v32M128 118v32M168 118v32M208 118v32M248 118v32M288 118v32M328 118v32M48 118h306" stroke-width="0.75"/></g>
+  <text x="4" y="138" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">step 2</text>
+  <g class="dim" data-value="100 decodes, one token each"><path d="M48 104v8M62.94 104v8M48 108H62.94" fill="none" stroke="#5f666d" stroke-width="1"/></g>
+  <text x="48" y="101" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">100 decodes, one token each</text>
+  <g class="span" data-slot="blue"><rect x="48" y="122" width="14.94" height="24" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="green"><rect x="62.94" y="122" width="157.18" height="24" fill="#237a37" stroke="#185e2c" stroke-width="1"/><g class="glyph" data-slot="green"><polygon points="67.44,134 69.19,130.96 72.69,130.96 74.44,134 72.69,137.04 69.19,137.04" fill="#fafaf6"/></g><text x="149.53" y="137.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#fafaf6" text-anchor="middle">the prompt's chunk</text></g>
+  <g class="idle hollow" data-slot="white"><rect x="220.13" y="122" width="133.88" height="24" fill="#fafaf6" stroke="#5f666d" stroke-width="1" stroke-dasharray="3 3"/></g>
+  <g class="dim" data-value="1,052 tokens of the prompt"><path d="M62.94 154v8M220.13 154v8M62.94 158H220.13" fill="none" stroke="#5f666d" stroke-width="1"/></g>
+  <text x="141.53" y="173" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">1,052 tokens of the prompt</text>
+  <g class="dim" data-value="896 left"><path d="M220.13 154v8M354 154v8M220.13 158H354" fill="none" stroke="#5f666d" stroke-width="1"/></g>
+  <text x="354" y="173" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="end" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">896 left</text>
+  <g class="dim" data-value="the bar is the budget: 2,048 tokens a step"><path d="M48 192v8M354 192v8M48 196H354" fill="none" stroke="#5f666d" stroke-width="1"/></g>
+  <text x="48" y="189" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">the bar is the budget: 2,048 tokens a step</text>
+  <g class="key" data-slot="blue"><rect x="4" y="210" width="16" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="glyph" data-slot="blue"><circle cx="12" cy="216" r="3.5" fill="#fafaf6"/></g>
+  <text x="24" y="220" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">decode</text>
+  <g class="key" data-slot="green"><rect x="72" y="210" width="16" height="12" fill="#237a37" stroke="#185e2c" stroke-width="1"/></g>
+  <g class="glyph" data-slot="green"><polygon points="76.5,216 78.25,212.96 81.75,212.96 83.5,216 81.75,219.04 78.25,219.04" fill="#fafaf6"/></g>
+  <text x="92" y="220" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">prompt chunk</text>
+  <g class="key hollow" data-slot="white"><rect x="176" y="210" width="16" height="12" fill="#fafaf6" stroke="#5f666d" stroke-width="1" stroke-dasharray="3 3"/></g>
+  <g class="glyph" data-slot="white"><circle cx="184" cy="216" r="3" fill="none" stroke="#5f666d" stroke-width="1.5"/></g>
+  <text x="196" y="220" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">budget left</text>
 </svg>

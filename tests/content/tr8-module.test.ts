@@ -56,6 +56,7 @@ import {
   warmDemo,
   widthDemo,
 } from './tr8-demos.ts'
+import { SLIP_SCALE, SLIP_X0 } from './authored-figures.ts'
 import { read, repo } from './support.ts'
 
 const SLOW = 120_000
@@ -632,21 +633,21 @@ describe('lesson 1: the toy log, the pause and the cap', () => {
     expect(matches.length).toBe(1)
   })
 
-  test('the figure draws the table: a tick per due time, a bar per send as long as the request took, at 0.088 px a millisecond', () => {
+  test('the figure draws the table: a tick per due time, a bar per send as long as the request took, at 0.08 px a millisecond', () => {
     const svg = read('public/figures/tr8/l1-slip.svg')
-    const scale = 0.088
-    const x = (ms: number) => 24 + scale * ms
-    const dueTicks = [...svg.matchAll(/M(\d+(?:\.\d+)?) 28V44/g)].map((m) => Number(m[1]))
-    expect(dueTicks).toEqual(toy.slice(0, 8).map((r) => x(r.dueMs)))
-    const bars = [...svg.matchAll(/<rect x="([\d.]+)" y="96" width="([\d.]+)" height="8"\/>/g)].map((m) => [Number(m[1]), Number(m[2])])
+    const scale = SLIP_SCALE
+    const x = (ms: number) => SLIP_X0 + scale * ms
+    const dueTicks = [...svg.matchAll(/M(\d+(?:\.\d+)?) 38V52/g)].map((m) => Number(m[1]))
+    expect(dueTicks).toEqual(toy.slice(0, 8).map((r) => Number(x(r.dueMs).toFixed(2))))
+    const bars = [...svg.matchAll(/<g class="bar" data-slot="blue"><rect x="([\d.]+)" y="100" width="([\d.]+)" height="14"/g)].map((m) => [Number(m[1]), Number(m[2])])
     expect(bars.length).toBe(8)
     toy.slice(0, 8).forEach((r, at) => {
       expect(bars[at][0]).toBeCloseTo(x(r.sentMs), 6)
       expect(bars[at][1]).toBeCloseTo(scale * r.fromSentMs, 6)
     })
-    // A figure is drawn in the page's ink: no colour and no typeface of its own (DESIGN.md; AGENTS.md rule 9).
-    expect(svg).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(|font-family/)
-    expect(svg).toContain('currentColor')
+    // The third reply blocks the client for 2,100 ms, and a dimension line says so.
+    expect(svg).toContain('data-value="blocked on reply 3: 2,100 ms"')
+    // It is drawn in the diagram language, which tests/content/figures.test.ts holds every figure to.
   })
 })
 

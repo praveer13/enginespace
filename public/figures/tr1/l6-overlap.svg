@@ -1,47 +1,39 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 152" width="360" height="152" fill="none" stroke="currentColor" stroke-width="1.5">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 198" width="360" height="198">
   <title>SGLang's overlap loop: the host launches the next batch before it reads the last one</title>
   <desc>Two lanes against time, the host above and the GPU below, in three turns of the loop. In each turn the host lane has a schedule block and a launch block, and from the second turn on a dashed wait block and a process block for the batch before. The GPU lane has three forward blocks end to end with no gap. An arrow runs from each launch block to the start of its forward, and the arrow from the second launch is labelled queued, because the first forward is still running. Each wait block ends where the forward it waits for ends. The copy back to the host is not drawn, and nothing is to scale.</desc>
-  <rect x="34" y="24" width="22" height="24"/>
-  <rect x="56" y="24" width="18" height="24"/>
-  <rect x="74" y="24" width="22" height="24"/>
-  <rect x="96" y="24" width="18" height="24"/>
-  <rect x="114" y="24" width="50" height="24" stroke-dasharray="4 3"/>
-  <rect x="164" y="24" width="22" height="24"/>
-  <rect x="186" y="24" width="22" height="24"/>
-  <rect x="208" y="24" width="18" height="24"/>
-  <rect x="226" y="24" width="28" height="24" stroke-dasharray="4 3"/>
-  <rect x="254" y="24" width="22" height="24"/>
-  <rect x="74" y="86" width="90" height="24"/>
-  <rect x="164" y="86" width="90" height="24"/>
-  <rect x="254" y="86" width="90" height="24"/>
-  <g stroke="none" fill="currentColor" font-size="10" text-anchor="middle">
-    <text x="45" y="40">S1</text>
-    <text x="65" y="40">L1</text>
-    <text x="85" y="40">S2</text>
-    <text x="105" y="40">L2</text>
-    <text x="139" y="40">W1</text>
-    <text x="175" y="40">P1</text>
-    <text x="197" y="40">S3</text>
-    <text x="217" y="40">L3</text>
-    <text x="240" y="40">W2</text>
-    <text x="265" y="40">P2</text>
-    <text x="119" y="102">forward 1</text>
-    <text x="209" y="102">forward 2</text>
-    <text x="299" y="102">forward 3</text>
-    <text x="180" y="132">S schedule, L launch, W wait for the copy, P process</text>
-    <text x="180" y="148">the number is the batch; a sketch, not to scale</text>
-  </g>
-  <g stroke="none" fill="currentColor" font-size="10">
-    <text x="4" y="40">host</text>
-    <text x="4" y="102">GPU</text>
-  </g>
-  <g stroke="none" fill="currentColor" font-size="9">
-    <text x="34" y="18">turn 1</text>
-    <text x="74" y="18">turn 2</text>
-    <text x="186" y="18">turn 3</text>
-    <text x="112" y="79">queued</text>
-  </g>
-  <path d="M65 48V66H74V84M70 79L74 84L78 79"/>
-  <path d="M105 48V66H164V84M160 79L164 84L168 79"/>
-  <path d="M217 48V66H254V84M250 79L254 84L258 79"/>
+  <defs><pattern id="code-yellow" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 0V6" stroke="#685000" stroke-width="1.5" stroke-opacity="0.7"/></pattern></defs>
+  <rect width="360" height="198" fill="#fafaf6"/>
+  <text x="4" y="44" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">host</text>
+  <text x="4" y="108" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">GPU</text>
+  <g class="box" data-slot="blue"><rect x="34" y="28" width="22" height="24" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><text x="45" y="43.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#fafaf6" text-anchor="middle">S1</text></g>
+  <g class="box" data-slot="blue"><rect x="56" y="28" width="18" height="24" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><text x="65" y="43.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#fafaf6" text-anchor="middle">L1</text></g>
+  <g class="box" data-slot="blue"><rect x="74" y="28" width="22" height="24" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><text x="85" y="43.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#fafaf6" text-anchor="middle">S2</text></g>
+  <g class="box" data-slot="blue"><rect x="96" y="28" width="18" height="24" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><text x="105" y="43.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#fafaf6" text-anchor="middle">L2</text></g>
+  <g class="box" data-slot="yellow"><rect x="114" y="28" width="50" height="24" fill="#f5c400" stroke="#685000" stroke-width="1"/><rect x="114" y="28" width="50" height="24" fill="url(#code-yellow)" stroke="none"/><text x="139" y="43.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#1d1b22" text-anchor="middle" stroke="#f5c400" stroke-width="3" paint-order="stroke" stroke-linejoin="round">W1</text></g>
+  <g class="box" data-slot="blue"><rect x="164" y="28" width="22" height="24" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><text x="175" y="43.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#fafaf6" text-anchor="middle">P1</text></g>
+  <g class="box" data-slot="blue"><rect x="186" y="28" width="22" height="24" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><text x="197" y="43.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#fafaf6" text-anchor="middle">S3</text></g>
+  <g class="box" data-slot="blue"><rect x="208" y="28" width="18" height="24" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><text x="217" y="43.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#fafaf6" text-anchor="middle">L3</text></g>
+  <g class="box" data-slot="yellow"><rect x="226" y="28" width="28" height="24" fill="#f5c400" stroke="#685000" stroke-width="1"/><rect x="226" y="28" width="28" height="24" fill="url(#code-yellow)" stroke="none"/><text x="240" y="43.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#1d1b22" text-anchor="middle" stroke="#f5c400" stroke-width="3" paint-order="stroke" stroke-linejoin="round">W2</text></g>
+  <g class="box" data-slot="blue"><rect x="254" y="28" width="22" height="24" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><text x="265" y="43.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#fafaf6" text-anchor="middle">P2</text></g>
+  <g class="box" data-slot="green"><rect x="74" y="92" width="90" height="24" fill="#237a37" stroke="#185e2c" stroke-width="1"/><g class="glyph" data-slot="green"><polygon points="78.5,104 80.25,100.95 83.75,100.95 85.5,104 83.75,107.05 80.25,107.05" fill="#fafaf6"/></g><text x="127" y="107.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#fafaf6" text-anchor="middle">forward 1</text></g>
+  <g class="box" data-slot="green"><rect x="164" y="92" width="90" height="24" fill="#237a37" stroke="#185e2c" stroke-width="1"/><g class="glyph" data-slot="green"><polygon points="168.5,104 170.25,100.95 173.75,100.95 175.5,104 173.75,107.05 170.25,107.05" fill="#fafaf6"/></g><text x="217" y="107.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#fafaf6" text-anchor="middle">forward 2</text></g>
+  <g class="box" data-slot="green"><rect x="254" y="92" width="90" height="24" fill="#237a37" stroke="#185e2c" stroke-width="1"/><g class="glyph" data-slot="green"><polygon points="258.5,104 260.25,100.95 263.75,100.95 265.5,104 263.75,107.05 260.25,107.05" fill="#fafaf6"/></g><text x="307" y="107.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#fafaf6" text-anchor="middle">forward 3</text></g>
+  <text x="34" y="22" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">turn 1</text>
+  <text x="74" y="22" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">turn 2</text>
+  <text x="186" y="22" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">turn 3</text>
+  <path class="arrow" d="M65 52L65 90M67.61 84.6L65 90L62.39 84.6" fill="none" stroke="#3b4148" stroke-width="1.25"/>
+  <path class="arrow" d="M105 52L105 90M107.61 84.6L105 90L102.39 84.6" fill="none" stroke="#3b4148" stroke-width="1.25"/>
+  <path class="arrow" d="M217 52L217 90M219.61 84.6L217 90L214.39 84.6" fill="none" stroke="#3b4148" stroke-width="1.25"/>
+  <text x="111" y="84" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">queued</text>
+  <text x="4" y="150" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">S schedule, L launch, W wait for the copy, P process</text>
+  <text x="4" y="166" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">the number is the batch; a sketch, not to scale</text>
+  <g class="key" data-slot="blue"><rect x="4" y="178" width="16" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="glyph" data-slot="blue"><circle cx="12" cy="184" r="3.5" fill="#fafaf6"/></g>
+  <text x="24" y="188" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">host work</text>
+  <g class="key" data-slot="yellow"><rect x="90" y="178" width="16" height="12" fill="#f5c400" stroke="#685000" stroke-width="1"/><rect x="90" y="178" width="16" height="12" fill="url(#code-yellow)" stroke="none"/></g>
+  <g class="glyph" data-slot="yellow"><polygon points="98,180 102,184 98,188 94,184" fill="#685000"/></g>
+  <text x="110" y="188" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">wait</text>
+  <g class="key" data-slot="green"><rect x="146" y="178" width="16" height="12" fill="#237a37" stroke="#185e2c" stroke-width="1"/></g>
+  <g class="glyph" data-slot="green"><polygon points="150.5,184 152.25,180.96 155.75,180.96 157.5,184 155.75,187.04 152.25,187.04" fill="#fafaf6"/></g>
+  <text x="166" y="188" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">forward</text>
 </svg>

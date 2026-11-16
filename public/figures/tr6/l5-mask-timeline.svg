@@ -1,110 +1,82 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 268" width="360" height="268" fill="none" stroke="currentColor" stroke-width="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 404" width="360" height="404">
   <title>One step of the loop with a grammar mask: whether its fill hides under the forward</title>
   <desc>Four timelines of one step of the loop, each a CPU lane above a GPU lane on the same scale in microseconds. The CPU plans a step, fills the grammar's bitmask, and reads the result back, and the GPU runs the forward. When the fill is overlapped and light, it sits under the forward, and the GPU idles 160 microseconds between forwards, as it would with no grammar. When the fill is overlapped and heavy, it outlasts the forward, and the GPU idles 380 microseconds. When the fill comes after the forward, none of it hides, and the GPU idles 400 microseconds. With async scheduling the CPU runs a step ahead and the light fill hides, so the GPU idles 0 microseconds.</desc>
-  <g>
-    <rect x="30" y="3" width="10" height="8"/>
-    <rect x="92" y="3" width="10" height="8" stroke-dasharray="2 1.5"/>
-    <rect x="154" y="3" width="10" height="8" fill="currentColor" fill-opacity="0.45"/>
-    <rect x="216" y="3" width="10" height="8" fill="currentColor" fill-opacity="0.18"/>
-  </g>
-  <g stroke="none" fill="currentColor" font-size="8">
-    <text x="44" y="10">plan</text>
-    <text x="106" y="10">read</text>
-    <text x="168" y="10">fill</text>
-    <text x="230" y="10">forward</text>
-  </g>
-  <g>
-    <rect x="30" y="30" width="18" height="11"/>
-    <rect x="48" y="30" width="43.2" height="11" fill="currentColor" fill-opacity="0.45"/>
-    <rect x="138" y="30" width="10.8" height="11" stroke-dasharray="2 1.5"/>
-    <rect x="148.8" y="30" width="18" height="11"/>
-    <rect x="166.8" y="30" width="43.2" height="11" fill="currentColor" fill-opacity="0.45"/>
-    <rect x="256.8" y="30" width="10.8" height="11" stroke-dasharray="2 1.5"/>
-    <rect x="48" y="44" width="90" height="11" fill="currentColor" fill-opacity="0.18"/>
-    <rect x="166.8" y="44" width="90" height="11" fill="currentColor" fill-opacity="0.18"/>
-    <path d="M138 57V60H166.8V57" stroke-width="0.75"/>
-  </g>
-  <g stroke="none" fill="currentColor" font-size="8">
-    <text x="2" y="25" font-size="9">Overlapped, light grammar: the fill hides under the forward</text>
-    <text x="2" y="38">CPU</text>
-    <text x="2" y="52">GPU</text>
-    <text x="69.6" y="38">fill</text>
-    <text x="188.4" y="38">fill</text>
-    <text x="93" y="52">forward</text>
-    <text x="211.8" y="52">forward</text>
-    <text x="152.4" y="69" text-anchor="middle">GPU idle 160 µs</text>
-  </g>
-  <g>
-    <rect x="30" y="86" width="18" height="11"/>
-    <rect x="48" y="86" width="129.6" height="11" fill="currentColor" fill-opacity="0.45"/>
-    <rect x="177.6" y="86" width="10.8" height="11" stroke-dasharray="2 1.5"/>
-    <rect x="188.4" y="86" width="18" height="11"/>
-    <rect x="206.4" y="86" width="129.6" height="11" fill="currentColor" fill-opacity="0.45"/>
-    <rect x="336" y="86" width="10.8" height="11" stroke-dasharray="2 1.5"/>
-    <rect x="48" y="100" width="90" height="11" fill="currentColor" fill-opacity="0.18"/>
-    <rect x="206.4" y="100" width="90" height="11" fill="currentColor" fill-opacity="0.18"/>
-    <path d="M138 113V116H206.4V113" stroke-width="0.75"/>
-  </g>
-  <g stroke="none" fill="currentColor" font-size="8">
-    <text x="2" y="81" font-size="9">Overlapped, heavy grammar: the fill outlasts the forward</text>
-    <text x="2" y="94">CPU</text>
-    <text x="2" y="108">GPU</text>
-    <text x="112.8" y="94">fill</text>
-    <text x="271.2" y="94">fill</text>
-    <text x="93" y="108">forward</text>
-    <text x="251.4" y="108">forward</text>
-    <text x="172.2" y="125" text-anchor="middle">GPU idle 380 µs</text>
-  </g>
-  <g>
-    <rect x="30" y="142" width="18" height="11"/>
-    <rect x="138" y="142" width="10.8" height="11" stroke-dasharray="2 1.5"/>
-    <rect x="148.8" y="142" width="43.2" height="11" fill="currentColor" fill-opacity="0.45"/>
-    <rect x="192" y="142" width="18" height="11"/>
-    <rect x="300" y="142" width="10.8" height="11" stroke-dasharray="2 1.5"/>
-    <rect x="310.8" y="142" width="43.2" height="11" fill="currentColor" fill-opacity="0.45"/>
-    <rect x="48" y="156" width="90" height="11" fill="currentColor" fill-opacity="0.18"/>
-    <rect x="210" y="156" width="90" height="11" fill="currentColor" fill-opacity="0.18"/>
-    <path d="M138 169V172H210V169" stroke-width="0.75"/>
-  </g>
-  <g stroke="none" fill="currentColor" font-size="8">
-    <text x="2" y="137" font-size="9">Serial, light grammar: the fill comes after the forward</text>
-    <text x="2" y="150">CPU</text>
-    <text x="2" y="164">GPU</text>
-    <text x="170.4" y="150">fill</text>
-    <text x="332.4" y="150">fill</text>
-    <text x="93" y="164">forward</text>
-    <text x="255" y="164">forward</text>
-    <text x="174" y="181" text-anchor="middle">GPU idle 400 µs</text>
-  </g>
-  <g>
-    <rect x="30" y="198" width="18" height="11"/>
-    <rect x="76.8" y="198" width="43.2" height="11" fill="currentColor" fill-opacity="0.45"/>
-    <rect x="120" y="198" width="18" height="11"/>
-    <rect x="156" y="198" width="10.8" height="11" stroke-dasharray="2 1.5"/>
-    <rect x="166.8" y="198" width="43.2" height="11" fill="currentColor" fill-opacity="0.45"/>
-    <rect x="246" y="198" width="10.8" height="11" stroke-dasharray="2 1.5"/>
-    <rect x="66" y="212" width="90" height="11" fill="currentColor" fill-opacity="0.18"/>
-    <rect x="156" y="212" width="90" height="11" fill="currentColor" fill-opacity="0.18"/>
-  </g>
-  <g stroke="none" fill="currentColor" font-size="8">
-    <text x="2" y="193" font-size="9">Async scheduling, light grammar: the CPU runs a step ahead</text>
-    <text x="2" y="206">CPU</text>
-    <text x="2" y="220">GPU</text>
-    <text x="98.4" y="206">fill</text>
-    <text x="188.4" y="206">fill</text>
-    <text x="111" y="220">forward</text>
-    <text x="201" y="220">forward</text>
-    <text x="156" y="237" text-anchor="middle">GPU idle 0 µs</text>
-  </g>
-  <g stroke-width="0.75">
-    <path d="M30 244H354"/>
-    <path d="M30 244V248M120 244V248M210 244V248M300 244V248"/>
-  </g>
-  <g stroke="none" fill="currentColor" font-size="8">
-    <text x="30" y="257" text-anchor="middle">0</text>
-    <text x="120" y="257" text-anchor="middle">500</text>
-    <text x="210" y="257" text-anchor="middle">1,000</text>
-    <text x="300" y="257" text-anchor="middle">1,500</text>
-    <text x="354" y="266" text-anchor="end">µs from the start of the step's plan</text>
-  </g>
+  <defs><pattern id="code-yellow" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 0V6" stroke="#685000" stroke-width="1.5" stroke-opacity="0.7"/></pattern></defs>
+  <rect width="360" height="404" fill="#fafaf6"/>
+  <g class="graticule" fill="none" stroke="#c2c8bd"><path d="M30 14v56M38 14v56M46 14v56M54 14v56M62 14v56M70 14v56M78 14v56M86 14v56M94 14v56M102 14v56M110 14v56M118 14v56M126 14v56M134 14v56M142 14v56M150 14v56M158 14v56M166 14v56M174 14v56M182 14v56M190 14v56M198 14v56M206 14v56M214 14v56M222 14v56M230 14v56M238 14v56M246 14v56M254 14v56M262 14v56M270 14v56M278 14v56M286 14v56M294 14v56M302 14v56M310 14v56M318 14v56M326 14v56M334 14v56M342 14v56M350 14v56M30 14h324M30 22h324M30 30h324M30 38h324M30 46h324M30 54h324M30 62h324M30 70h324" stroke-width="0.5" stroke-opacity="0.55"/><path d="M30 14v56M70 14v56M110 14v56M150 14v56M190 14v56M230 14v56M270 14v56M310 14v56M350 14v56M30 14h324M30 54h324" stroke-width="0.75"/></g>
+  <text x="2" y="11" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">Overlapped, light grammar: the fill hides under the forward</text>
+  <text x="2" y="29" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">CPU</text>
+  <text x="2" y="49" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">GPU</text>
+  <g class="span" data-slot="blue"><rect x="30" y="18" width="18" height="14" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="38" cy="25" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="span" data-slot="blue"><rect x="48" y="18" width="43.2" height="14" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="56" cy="25" r="3.5" fill="#fafaf6"/></g><text x="77.6" y="28.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#fafaf6" text-anchor="middle">fill</text></g>
+  <g class="span" data-slot="yellow"><rect x="138" y="18" width="10.8" height="14" fill="#f5c400" stroke="#685000" stroke-width="1"/><rect x="138" y="18" width="10.8" height="14" fill="url(#code-yellow)" stroke="none"/></g>
+  <g class="span" data-slot="blue"><rect x="148.8" y="18" width="18" height="14" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="156.8" cy="25" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="span" data-slot="blue"><rect x="166.8" y="18" width="43.2" height="14" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="174.8" cy="25" r="3.5" fill="#fafaf6"/></g><text x="196.4" y="28.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#fafaf6" text-anchor="middle">fill</text></g>
+  <g class="span" data-slot="yellow"><rect x="256.8" y="18" width="10.8" height="14" fill="#f5c400" stroke="#685000" stroke-width="1"/><rect x="256.8" y="18" width="10.8" height="14" fill="url(#code-yellow)" stroke="none"/></g>
+  <g class="span" data-slot="green"><rect x="48" y="38" width="90" height="14" fill="#237a37" stroke="#185e2c" stroke-width="1"/><g class="glyph" data-slot="green"><polygon points="52.5,45 54.25,41.95 57.75,41.95 59.5,45 57.75,48.05 54.25,48.05" fill="#fafaf6"/></g><text x="101" y="48.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#fafaf6" text-anchor="middle">forward</text></g>
+  <g class="span" data-slot="green"><rect x="166.8" y="38" width="90" height="14" fill="#237a37" stroke="#185e2c" stroke-width="1"/><g class="glyph" data-slot="green"><polygon points="171.3,45 173.05,41.95 176.55,41.95 178.3,45 176.55,48.05 173.05,48.05" fill="#fafaf6"/></g><text x="219.8" y="48.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#fafaf6" text-anchor="middle">forward</text></g>
+  <g class="idle hollow" data-slot="white"><rect x="138" y="38" width="28.8" height="14" fill="#fafaf6" stroke="#5f666d" stroke-width="1" stroke-dasharray="3 3"/></g>
+  <g class="dim" data-value="GPU idle 160 µs"><path d="M138 60v8M166.8 60v8M138 64H166.8" fill="none" stroke="#5f666d" stroke-width="1"/></g>
+  <text x="152.4" y="79" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">GPU idle 160 µs</text>
+  <g class="graticule" fill="none" stroke="#c2c8bd"><path d="M30 98v56M38 98v56M46 98v56M54 98v56M62 98v56M70 98v56M78 98v56M86 98v56M94 98v56M102 98v56M110 98v56M118 98v56M126 98v56M134 98v56M142 98v56M150 98v56M158 98v56M166 98v56M174 98v56M182 98v56M190 98v56M198 98v56M206 98v56M214 98v56M222 98v56M230 98v56M238 98v56M246 98v56M254 98v56M262 98v56M270 98v56M278 98v56M286 98v56M294 98v56M302 98v56M310 98v56M318 98v56M326 98v56M334 98v56M342 98v56M350 98v56M30 98h324M30 106h324M30 114h324M30 122h324M30 130h324M30 138h324M30 146h324M30 154h324" stroke-width="0.5" stroke-opacity="0.55"/><path d="M30 98v56M70 98v56M110 98v56M150 98v56M190 98v56M230 98v56M270 98v56M310 98v56M350 98v56M30 98h324M30 138h324" stroke-width="0.75"/></g>
+  <text x="2" y="95" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">Overlapped, heavy grammar: the fill outlasts the forward</text>
+  <text x="2" y="113" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">CPU</text>
+  <text x="2" y="133" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">GPU</text>
+  <g class="span" data-slot="blue"><rect x="30" y="102" width="18" height="14" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="38" cy="109" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="span" data-slot="blue"><rect x="48" y="102" width="129.6" height="14" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="56" cy="109" r="3.5" fill="#fafaf6"/></g><text x="120.8" y="112.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#fafaf6" text-anchor="middle">fill</text></g>
+  <g class="span" data-slot="yellow"><rect x="177.6" y="102" width="10.8" height="14" fill="#f5c400" stroke="#685000" stroke-width="1"/><rect x="177.6" y="102" width="10.8" height="14" fill="url(#code-yellow)" stroke="none"/></g>
+  <g class="span" data-slot="blue"><rect x="188.4" y="102" width="18" height="14" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="196.4" cy="109" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="span" data-slot="blue"><rect x="206.4" y="102" width="129.6" height="14" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="214.4" cy="109" r="3.5" fill="#fafaf6"/></g><text x="279.2" y="112.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#fafaf6" text-anchor="middle">fill</text></g>
+  <g class="span" data-slot="yellow"><rect x="336" y="102" width="10.8" height="14" fill="#f5c400" stroke="#685000" stroke-width="1"/><rect x="336" y="102" width="10.8" height="14" fill="url(#code-yellow)" stroke="none"/></g>
+  <g class="span" data-slot="green"><rect x="48" y="122" width="90" height="14" fill="#237a37" stroke="#185e2c" stroke-width="1"/><g class="glyph" data-slot="green"><polygon points="52.5,129 54.25,125.95 57.75,125.95 59.5,129 57.75,132.04 54.25,132.04" fill="#fafaf6"/></g><text x="101" y="132.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#fafaf6" text-anchor="middle">forward</text></g>
+  <g class="span" data-slot="green"><rect x="206.4" y="122" width="90" height="14" fill="#237a37" stroke="#185e2c" stroke-width="1"/><g class="glyph" data-slot="green"><polygon points="210.9,129 212.65,125.95 216.15,125.95 217.9,129 216.15,132.04 212.65,132.04" fill="#fafaf6"/></g><text x="259.4" y="132.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#fafaf6" text-anchor="middle">forward</text></g>
+  <g class="idle hollow" data-slot="white"><rect x="138" y="122" width="68.4" height="14" fill="#fafaf6" stroke="#5f666d" stroke-width="1" stroke-dasharray="3 3"/></g>
+  <g class="dim" data-value="GPU idle 380 µs"><path d="M138 144v8M206.4 144v8M138 148H206.4" fill="none" stroke="#5f666d" stroke-width="1"/></g>
+  <text x="172.2" y="163" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">GPU idle 380 µs</text>
+  <g class="graticule" fill="none" stroke="#c2c8bd"><path d="M30 182v56M38 182v56M46 182v56M54 182v56M62 182v56M70 182v56M78 182v56M86 182v56M94 182v56M102 182v56M110 182v56M118 182v56M126 182v56M134 182v56M142 182v56M150 182v56M158 182v56M166 182v56M174 182v56M182 182v56M190 182v56M198 182v56M206 182v56M214 182v56M222 182v56M230 182v56M238 182v56M246 182v56M254 182v56M262 182v56M270 182v56M278 182v56M286 182v56M294 182v56M302 182v56M310 182v56M318 182v56M326 182v56M334 182v56M342 182v56M350 182v56M30 182h324M30 190h324M30 198h324M30 206h324M30 214h324M30 222h324M30 230h324M30 238h324" stroke-width="0.5" stroke-opacity="0.55"/><path d="M30 182v56M70 182v56M110 182v56M150 182v56M190 182v56M230 182v56M270 182v56M310 182v56M350 182v56M30 182h324M30 222h324" stroke-width="0.75"/></g>
+  <text x="2" y="179" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">Serial, light grammar: the fill comes after the forward</text>
+  <text x="2" y="197" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">CPU</text>
+  <text x="2" y="217" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">GPU</text>
+  <g class="span" data-slot="blue"><rect x="30" y="186" width="18" height="14" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="38" cy="193" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="span" data-slot="yellow"><rect x="138" y="186" width="10.8" height="14" fill="#f5c400" stroke="#685000" stroke-width="1"/><rect x="138" y="186" width="10.8" height="14" fill="url(#code-yellow)" stroke="none"/></g>
+  <g class="span" data-slot="blue"><rect x="148.8" y="186" width="43.2" height="14" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="156.8" cy="193" r="3.5" fill="#fafaf6"/></g><text x="178.4" y="196.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#fafaf6" text-anchor="middle">fill</text></g>
+  <g class="span" data-slot="blue"><rect x="192" y="186" width="18" height="14" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="200" cy="193" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="span" data-slot="yellow"><rect x="300" y="186" width="10.8" height="14" fill="#f5c400" stroke="#685000" stroke-width="1"/><rect x="300" y="186" width="10.8" height="14" fill="url(#code-yellow)" stroke="none"/></g>
+  <g class="span" data-slot="blue"><rect x="310.8" y="186" width="43.2" height="14" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="318.8" cy="193" r="3.5" fill="#fafaf6"/></g><text x="340.4" y="196.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#fafaf6" text-anchor="middle">fill</text></g>
+  <g class="span" data-slot="green"><rect x="48" y="206" width="90" height="14" fill="#237a37" stroke="#185e2c" stroke-width="1"/><g class="glyph" data-slot="green"><polygon points="52.5,213 54.25,209.96 57.75,209.96 59.5,213 57.75,216.04 54.25,216.04" fill="#fafaf6"/></g><text x="101" y="216.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#fafaf6" text-anchor="middle">forward</text></g>
+  <g class="span" data-slot="green"><rect x="210" y="206" width="90" height="14" fill="#237a37" stroke="#185e2c" stroke-width="1"/><g class="glyph" data-slot="green"><polygon points="214.5,213 216.25,209.96 219.75,209.96 221.5,213 219.75,216.04 216.25,216.04" fill="#fafaf6"/></g><text x="263" y="216.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#fafaf6" text-anchor="middle">forward</text></g>
+  <g class="idle hollow" data-slot="white"><rect x="138" y="206" width="72" height="14" fill="#fafaf6" stroke="#5f666d" stroke-width="1" stroke-dasharray="3 3"/></g>
+  <g class="dim" data-value="GPU idle 400 µs"><path d="M138 228v8M210 228v8M138 232H210" fill="none" stroke="#5f666d" stroke-width="1"/></g>
+  <text x="174" y="247" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">GPU idle 400 µs</text>
+  <g class="graticule" fill="none" stroke="#c2c8bd"><path d="M30 266v56M38 266v56M46 266v56M54 266v56M62 266v56M70 266v56M78 266v56M86 266v56M94 266v56M102 266v56M110 266v56M118 266v56M126 266v56M134 266v56M142 266v56M150 266v56M158 266v56M166 266v56M174 266v56M182 266v56M190 266v56M198 266v56M206 266v56M214 266v56M222 266v56M230 266v56M238 266v56M246 266v56M254 266v56M262 266v56M270 266v56M278 266v56M286 266v56M294 266v56M302 266v56M310 266v56M318 266v56M326 266v56M334 266v56M342 266v56M350 266v56M30 266h324M30 274h324M30 282h324M30 290h324M30 298h324M30 306h324M30 314h324M30 322h324" stroke-width="0.5" stroke-opacity="0.55"/><path d="M30 266v56M70 266v56M110 266v56M150 266v56M190 266v56M230 266v56M270 266v56M310 266v56M350 266v56M30 266h324M30 306h324" stroke-width="0.75"/></g>
+  <text x="2" y="263" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">Async scheduling, light grammar: the CPU runs a step ahead</text>
+  <text x="2" y="281" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">CPU</text>
+  <text x="2" y="301" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">GPU</text>
+  <g class="span" data-slot="blue"><rect x="30" y="270" width="18" height="14" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="38" cy="277" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="span" data-slot="blue"><rect x="76.8" y="270" width="43.2" height="14" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="84.8" cy="277" r="3.5" fill="#fafaf6"/></g><text x="106.4" y="280.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#fafaf6" text-anchor="middle">fill</text></g>
+  <g class="span" data-slot="blue"><rect x="120" y="270" width="18" height="14" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="128" cy="277" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="span" data-slot="yellow"><rect x="156" y="270" width="10.8" height="14" fill="#f5c400" stroke="#685000" stroke-width="1"/><rect x="156" y="270" width="10.8" height="14" fill="url(#code-yellow)" stroke="none"/></g>
+  <g class="span" data-slot="blue"><rect x="166.8" y="270" width="43.2" height="14" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="174.8" cy="277" r="3.5" fill="#fafaf6"/></g><text x="196.4" y="280.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#fafaf6" text-anchor="middle">fill</text></g>
+  <g class="span" data-slot="yellow"><rect x="246" y="270" width="10.8" height="14" fill="#f5c400" stroke="#685000" stroke-width="1"/><rect x="246" y="270" width="10.8" height="14" fill="url(#code-yellow)" stroke="none"/></g>
+  <g class="span" data-slot="green"><rect x="66" y="290" width="90" height="14" fill="#237a37" stroke="#185e2c" stroke-width="1"/><g class="glyph" data-slot="green"><polygon points="70.5,297 72.25,293.95 75.75,293.95 77.5,297 75.75,300.05 72.25,300.05" fill="#fafaf6"/></g><text x="119" y="300.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#fafaf6" text-anchor="middle">forward</text></g>
+  <g class="span" data-slot="green"><rect x="156" y="290" width="90" height="14" fill="#237a37" stroke="#185e2c" stroke-width="1"/><g class="glyph" data-slot="green"><polygon points="160.5,297 162.25,293.95 165.75,293.95 167.5,297 165.75,300.05 162.25,300.05" fill="#fafaf6"/></g><text x="209" y="300.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#fafaf6" text-anchor="middle">forward</text></g>
+  <text x="156" y="331" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">GPU idle 0 µs</text>
+  <path class="axis" d="M30 342H354M30 342v4M120 342v4M210 342v4M300 342v4" fill="none" stroke="#5f666d" stroke-width="1"/>
+  <text x="30" y="357" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">0</text>
+  <text x="120" y="357" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">500</text>
+  <text x="210" y="357" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">1,000</text>
+  <text x="300" y="357" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">1,500</text>
+  <text x="354" y="371" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="end" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">µs from the start of the step's plan</text>
+  <g class="key" data-slot="blue"><rect x="4" y="384" width="16" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="glyph" data-slot="blue"><circle cx="12" cy="390" r="3.5" fill="#fafaf6"/></g>
+  <text x="24" y="394" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">CPU: plan, fill</text>
+  <g class="key" data-slot="yellow"><rect x="126" y="384" width="16" height="12" fill="#f5c400" stroke="#685000" stroke-width="1"/><rect x="126" y="384" width="16" height="12" fill="url(#code-yellow)" stroke="none"/></g>
+  <g class="glyph" data-slot="yellow"><polygon points="134,386 138,390 134,394 130,390" fill="#685000"/></g>
+  <text x="146" y="394" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">read</text>
+  <g class="key" data-slot="green"><rect x="182" y="384" width="16" height="12" fill="#237a37" stroke="#185e2c" stroke-width="1"/></g>
+  <g class="glyph" data-slot="green"><polygon points="186.5,390 188.25,386.95 191.75,386.95 193.5,390 191.75,393.05 188.25,393.05" fill="#fafaf6"/></g>
+  <text x="202" y="394" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">forward</text>
+  <g class="key hollow" data-slot="white"><rect x="256" y="384" width="16" height="12" fill="#fafaf6" stroke="#5f666d" stroke-width="1" stroke-dasharray="3 3"/></g>
+  <g class="glyph" data-slot="white"><circle cx="264" cy="390" r="3" fill="none" stroke="#5f666d" stroke-width="1.5"/></g>
+  <text x="276" y="394" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">idle</text>
 </svg>

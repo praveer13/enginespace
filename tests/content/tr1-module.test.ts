@@ -683,7 +683,7 @@ describe('the numbers that the lessons compute', () => {
 /* The figures                                                                                                        */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-describe('the figures draw in the page\'s ink and describe themselves as their blocks do', () => {
+describe('the figures describe themselves as their blocks do', () => {
   const figures = lessons.flatMap(({ lesson }) => lesson.blocks.flatMap((block) => (block.type === 'figure' ? [{ lesson: lesson.id, block }] : [])))
 
   test('there is a figure for the boundaries, for Mini-SGLang, for vLLM, for the overlap loop and for the abort', () => {
@@ -697,7 +697,7 @@ describe('the figures draw in the page\'s ink and describe themselves as their b
   })
 
   for (const { lesson, block } of figures) {
-    test(`${block.src}: a title and a description that are the block's, no colour and no typeface of its own`, () => {
+    test(`${block.src}: a title and a description that are the block's`, () => {
       const svg = read(`public/${block.src}`)
       const title = /<title>([\s\S]*?)<\/title>/.exec(svg)?.[1] ?? ''
       const desc = /<desc>([\s\S]*?)<\/desc>/.exec(svg)?.[1] ?? ''
@@ -705,9 +705,7 @@ describe('the figures draw in the page\'s ink and describe themselves as their b
       expect([lesson, block.src, desc.trim()]).toEqual([lesson, block.src, block.description.trim()])
       expect(block.alt).not.toBe(block.description)
       expect(block.origin).toBe('authored')
-      // A figure is drawn in the page's ink (DESIGN.md; AGENTS.md rule 9).
-      expect(svg).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(|font-family/)
-      expect(svg).toContain('currentColor')
+      // It is drawn in the diagram language, which tests/content/figures.test.ts holds every figure to.
       expect(svg).toMatch(/viewBox="0 0 \d+ \d+"/)
     })
   }
