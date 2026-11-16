@@ -125,7 +125,7 @@ for (const width of PR_WIDTHS) {
       }
       await expect(page.getByText('The same requests, served three ways')).toBeVisible()
       await expect(page.getByText('The real engine', { exact: true })).toBeVisible()
-      await expect(page.getByRole('link', { name: 'Open the course' })).toHaveAttribute('href', '/map')
+      await expect(page.getByRole('link', { name: 'Open the course', exact: true })).toHaveAttribute('href', '/map')
     })
   })
 }

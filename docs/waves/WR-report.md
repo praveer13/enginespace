@@ -152,3 +152,90 @@ Measured on this task's branch over `b448d90`, 2026-11-15, by the gate's own cou
 | `scene-engine-floor` | 39,365 B | 39,367 B | +2 B | 40 KB | 633 B |
 
 The games' routes grew because the loop's `Mirror` and `Card` are now chunks of their own, which the loop's game and the front page both load, and each file carries its own gzip overhead [derived]; every other row moved by less than 200 B. The later tasks that change the front page have 5,164 B under its gate and 1,664 B under this fix's 146,500 B line [derived]; the largest pieces of what is left are react-vendor (62.2 KB), the entry (37.9 KB), the kitchen drawing's shared chunk (`layout.ts` and the loop's controls, 10.2 KB) and the Front page's own chunk (9.3 KB) [measured].
+
+---
+
+## 2. Stage 1 closes (R-T15)
+
+Stage 1 is the look-independent stage: the new names, the way on, the lesson template and the frame. It is **build A** of the look gate (R-T20). Every figure below was measured on 2026-11-16 at `c49554a` (the merge of the stage-1 walk's fixes into `wave-r`); this task changes only two e2e specs and four screenshot baselines, so the build is byte-identical to that commit's [derived]. Sizes are `verify:bundle`'s, as in section 1.
+
+### 2.1 The gates, on the stage's head
+
+| Gate | Result [measured, `c49554a`] |
+|---|---|
+| `npm run lint` | passes |
+| `npm run typecheck` | passes |
+| `npm run test` (bun test, `CI=1`) | 10,498 pass, 28 skip, 14 todo, 0 fail, in 374 files |
+| `npm run build` | passes |
+| `bun scripts/verify.ts all` | 16 gates, 16 passed, 0 failed |
+| `bun scripts/verify.ts bundle` | 64 budgets gated, 2 over a target, 0 skipped |
+| e2e `smoke` project, `--workers=2` | 198 tests: 191 passed and 7 failed at first; after the three repairs of 2.2, all pass |
+
+### 2.2 What the first smoke run found, and what became of each
+
+| Test | Cause | Closed by |
+|---|---|---|
+| `network.spec.ts` "the navigation and the footer lead to every page they name" | The spec still listed `/receipts` and `/design`, which left the navigation in R-T06, and clicked header links at 360 px without opening the Navigation button. | Here: the list names what the navigation holds now, and the spec opens the button first. |
+| `keyboard-loop.spec.ts` (two tests, 360 and 1280 px) | The link "Open the course" now matches the front page's menu links too, so the locator was ambiguous. | Here: the locator is `exact: true`. |
+| `screenshots.spec.ts` front page, four baselines (`front-360`, `front-1280`, `front-fired-360`, `front-fired-1280`) | The front page's words changed in R-T14 and the stage-1 walk's fixes. The change is intended. | Here: re-blessed at the unchanged tolerance. R-T19 rebuilds the page and re-blesses them again. |
+
+The other known failures of the brief (`map.spec.ts`, `lesson-predict.spec.ts` on tr2 l5, `verifier.spec.ts:403`) passed in this run; no later task owns them.
+
+### 2.3 The budget table, stage 1 against the ledger
+
+Stage 0 is section 1's column [measured at `dcba8ef`]; stage 1 is measured at `c49554a`. No row is over its gate.
+
+| Row | Stage 0 | Stage 1 | Gate | Room at stage 1 |
+|---|---|---|---|---|
+| Entry closure | 99,177 B | 100,183 B | 110 KB | 9,817 B |
+| Front page first-paint JS (23 chunks) | 148,189 B | 145,194 B | 150 KB (target 130 KB) | 4,806 B |
+| Front page first-paint CSS | 18,843 B | 19,388 B | 30 KB (target 20 KB) | 10,612 B |
+| Front page JS and CSS together | 167,032 B | 164,582 B | none | |
+| Course index | 2,304 B | 2,317 B | target 6 KB | 3,683 B under |
+| `/m/:module/:lesson` | 147,482 B | 150,481 B | 200 KB | 49,519 B |
+| `/m/:module` | 191,438 B | 195,722 B | 200 KB | 4,278 B |
+| `/map` | 171,986 B | 178,574 B | 200 KB | 21,426 B |
+| `/play` | 135,224 B | 137,462 B | 200 KB | 62,538 B |
+| `/play/engine-floor` | 192,116 B | 195,408 B | 200 KB | 4,592 B |
+| `/play/verifier` | 187,889 B | 191,701 B | 200 KB | 8,299 B |
+| `/play/pool` | 186,019 B | 190,677 B | 200 KB | 9,323 B |
+| `/play/broken-bench` | 190,068 B | 193,468 B | 200 KB | 6,532 B |
+| `/play/loop` | 185,649 B | 189,824 B | 200 KB | 10,176 B |
+| `/today` | 184,951 B | 187,839 B | 200 KB | 12,161 B |
+| `/labs/:lab` | 125,117 B | 126,683 B | 200 KB | 73,317 B |
+| `/trace-room` | 121,402 B | 122,957 B | 200 KB | 77,043 B |
+| `/receipts` | 188,487 B | 190,152 B | 200 KB | 9,848 B |
+| `/evidence` | 168,520 B | 170,378 B | 200 KB | 29,622 B |
+| `/design` | 176,467 B | 192,380 B | 200 KB | 7,620 B |
+| `/settings` | 176,702 B | 178,456 B | 200 KB | 21,544 B |
+| `/about` | 121,965 B | 123,517 B | 200 KB | 76,483 B |
+| `/changes` | 121,351 B | 122,905 B | 200 KB | 77,095 B |
+| scene-engine-floor | 39,365 B (after section 1.8) | 39,371 B | 40 KB | 629 B |
+| scene-pool | 39,761 B (after section 1.8) | 39,768 B | 40 KB | 232 B |
+| scene-loop, -verifier, -kitchen | see the gate's output | 37,600 B, 38,695 B, 36,593 B | 40 KB | 2,400 B, 1,305 B, 3,407 B |
+| three-vendor | | 238,646 B | 245 KB | 6,354 B |
+| receipt.worker | | 55,839 B | 60 KB | 4,161 B |
+
+Two rows are close for the stage that follows: `/m/:module` has 4,278 B and `/play/engine-floor` 4,592 B under their gate, and `/design` grew by 15,913 B for the new components' specimens. The front page's first paint has 4,806 B; R-T17 and R-T19 take the kitchen drawing's bytes back.
+
+### 2.4 Build and serve build A from a second worktree
+
+```
+git worktree add ../enginespace-build-a wave-r-stage1 --detach
+cd ../enginespace-build-a && cp -al ../enginespace/node_modules node_modules && npm run build && npm run preview
+```
+
+The first line makes the worktree at the tag; the second hard-links the packages (never a symlink), builds, and serves `dist/` with `vite preview`. The tag is local and is not pushed.
+
+### 2.5 What stage 1 leaves in the old world
+
+By route:
+
+- **Games in the new frame:** `/play/pool` (KV page pool) only, with the first-run intro and the feedback kit. **Still on the old shell:** `/play/engine-floor` (Request path, until R-T29), `/play/verifier` (R-T30), `/play/broken-bench` (R-T31) and `/play/loop` (Step loop, R-T17, R-T18 and R-T28). The loop's demo and the front page have engine words on the existing kitchen drawing (R-T14); the kitchen leaves the tree at R-T44.
+- **Lessons in the new template:** `/m/tr5a/l1-why-one-model-needs-several-kv-caches` only (R-T10). Every lesson has its predict blocks rewritten with a reveal (R-T09, 18 after the run and 21 at commit), and no other part of a lesson is edited. Not yet in the template: TR1 lessons 1 to 7 (R-T34, R-T35), TR2 lessons 1 to 7 (R-T36), TR5a lessons 2 to 4 (R-T37), TR6 lessons 1 to 5 (R-T38) and TR8 lessons 1 to 4 (R-T39). The build still warns, per lesson, of build-log ids in prose and pacing gaps; those warnings are the work of the lesson tasks.
+- **Pages in the old look:** the course (`/map`, R-T21), the module page (R-T22), the Games index (R-T23), Review (`/today`, R-T24), Progress, Evidence and the small pages (R-T25), the labs (R-T26) and the traces (R-T27) keep the Kitchen look until stage 2 restyles them under The Pass (R-T16).
+- **Files left under `tests/copy/allow/`** (each is a per-area record of display words the copy guard still lets through, with its area, task and `covers` lists): `broken-bench.json`, `cards.json`, `engine-floor.json`, `items.json`, `labs.json`, `loop.json`, `tr1.json`, `tr2.json`, `tr5a.json`, `tr6.json`, `tr8.json` and `verifier.json`: twelve files. They go as their area's task edits the words (R-T26 labs, R-T28 loop, R-T29 to R-T31 the games, R-T32 items and cards, R-T34 to R-T39 the lessons); R-T47 requires none to be left.
+
+### 2.6 The tag
+
+`wave-r-stage1` is a local tag on the `wave-r` commit that holds this task's merge, which is the stage-1 head (the walk's fixes included). This task changes no source file under `src/`, `packages/`, `content/` or `scripts/`.
