@@ -52,7 +52,7 @@ Commit to a number. The numbers are round and made up.
 id: tr2.l3.p1
 prompt: "A step's CPU work is 1,000 µs [estimated] before the forward and 500 µs [estimated] after it, and the forward takes 1,200 µs [estimated]. Async scheduling is on. How many µs of the CPU's work stay on the critical path, as idle time between two forwards?"
 answer: { kind: numeric, unit: us, rel_tol: 0.05 }
-reveal: after-game
+reveal: at-commit
 kcs: [tr2.async-overlap]
 :::
 

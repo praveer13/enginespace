@@ -48,7 +48,7 @@ Now a question about those blocks, because blocks are what make a prefix reusabl
 id: tr1.l2.p1
 prompt: An earlier request with a 700-token prompt [estimated] has finished. A new request has a 700-token prompt [estimated] that shares its first 600 tokens [estimated] with the earlier one and then differs. With nano-vllm's blocks of 256 tokens [measured], how many of the new prompt's tokens does the model have to compute?
 answer: { kind: numeric, unit: tokens, rel_tol: 0 }
-reveal: after-game
+reveal: at-commit
 kcs: [tr1.small-engine-anatomy]
 :::
 
@@ -207,7 +207,7 @@ Two questions are left to commit to before the second level. The first is the on
 id: tr1.l2.p2
 prompt: Two sequences are in the middle of decoding in nano-vllm, and a new prompt of 300 tokens [estimated] has just joined the waiting deque. The token budget of a step is large enough to hold it. How many tokens does the next step run?
 answer: { kind: numeric, unit: tokens, rel_tol: 0 }
-reveal: after-game
+reveal: at-commit
 kcs: [tr1.phases-vs-one-budget]
 :::
 

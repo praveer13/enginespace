@@ -32,7 +32,7 @@ kcs: [tr1.abort-path]
 id: tr1.l7.p2
 prompt: In SGLang at the pin, an abort reaches the scheduler while its request is running. How many more forward passes does the request run before its blocks are freed?
 answer: { kind: numeric, unit: passes, rel_tol: 0 }
-reveal: after-game
+reveal: at-commit
 kcs: [tr1.abort-path]
 :::
 

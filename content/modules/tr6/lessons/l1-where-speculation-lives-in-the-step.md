@@ -61,7 +61,7 @@ Commit to one number before you read on.
 id: tr6.l1.p1
 prompt: Each draft is accepted with probability 0.8 [estimated], independently of the others, and a round drafts three tokens [estimated]. On average, how many tokens does a round emit, counting the extra token that every round ends with?
 answer: { kind: numeric, unit: tokens, rel_tol: 0.02 }
-reveal: after-game
+reveal: at-commit
 kcs: [tr6.acceptance-length]
 :::
 

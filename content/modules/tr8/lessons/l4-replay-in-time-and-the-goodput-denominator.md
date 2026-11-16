@@ -16,7 +16,7 @@ Two quiet ways a number gets redefined, and one check that any log can run on it
 id: tr8.l4.p1
 prompt: A run offers 1,000 requests [estimated] over an arrival window of 60 s [estimated]. Of them, 600 [estimated] meet both objectives. The queue drains after the window, and the last reply comes 100 s [estimated] after the first request was generated. A tool divides the requests that met both objectives by the duration of the whole run. What goodput does it report, in requests a second?
 answer: { kind: numeric, unit: requests/s, rel_tol: 0.02 }
-reveal: after-game
+reveal: at-commit
 kcs: [tr8.goodput-denominator]
 :::
 

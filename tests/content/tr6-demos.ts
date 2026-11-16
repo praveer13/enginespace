@@ -405,8 +405,8 @@ export interface ChoicePrediction {
 /**
  * What each lesson's prediction is worth, computed from the course's own models: the reveal's reference answer, which no content file stores
  * (A§1, I3). None of TR6's five has a run to read it from (the questions carry numbers of their own that no level of The Tasting or of the
- * allergy card holds), so the lesson's box says that its reveal waits for W2-T43 (packages/play/predictions/plan.ts), and these figures are
- * what that task starts from.
+ * allergy card holds), so the lesson's box reveals each at commit (packages/play/predictions/commit-tr6.ts, D-067), and
+ * tests/play/predictions.test.ts holds each answer to these figures.
  */
 export const PREDICTIONS: Readonly<Record<string, NumericPrediction | ChoicePrediction>> = {
   // Each draft kept with probability 0.8, three drafts: 1 + 0.8 + 0.64 + 0.512.

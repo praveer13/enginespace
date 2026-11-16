@@ -22,7 +22,7 @@ In a model of full attention alone there is nothing to reach, because every bloc
 id: tr5a.l2.p1
 prompt: A model has 12 sliding-window layers and 13 full-attention layers [estimated], and every layer costs the same bytes for a token. The planner gives each group the same number of layers, and pads a group that comes up short. How many KV cache groups does it make of this model?
 answer: { kind: numeric, unit: groups, rel_tol: 0 }
-reveal: after-game
+reveal: at-commit
 kcs: [tr5a.page-size-unification]
 :::
 

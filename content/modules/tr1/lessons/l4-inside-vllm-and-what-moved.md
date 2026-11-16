@@ -36,7 +36,7 @@ kcs: [tr1.vllm-lifecycle]
 id: tr1.l4.p2
 prompt: The post's vllm/v1/core/sched/scheduler.py has 1,163 lines [measured] at commit 42172ad. By what factor has the file grown by v0.33.0?
 answer: { kind: numeric, unit: x, rel_tol: 0.15 }
-reveal: after-game
+reveal: at-commit
 kcs: [tr1.read-at-the-pin]
 :::
 

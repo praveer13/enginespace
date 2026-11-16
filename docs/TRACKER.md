@@ -1272,6 +1272,8 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   1. `PLAN` has no waiting row left, or each one that is left has a record in DECISIONS that says why.
   2. `tests/play/predictions.test.ts` plays the game of each row it adds on a seed, and holds the reading to the lesson's own figure.
 
+- **Closed by R-T09 (wave R).** The owner's call under the third way (D-067) was taken: 18 predictions are revealed after their run (the 17 that a run answered, and TR2 lesson 1's, reworded onto the ticks of `first-3-gap` by the second way) and 21 at commit, from the question's own numbers or from the claim it is about. `PLAN` has no waiting row left, so the first check holds with no record to write, and `tests/play/predictions.test.ts` plays each run it holds on a seed and holds the reading to the lesson's own figure, and each at-commit answer to the same figure.
+
 #### [ ] W2-T44 · Readers of the prediction event: Today's rescheduling and the Mirror's calibration · S · sonnet · deps: W1b-T02
 - **Goal:** W1b-T02's box writes a `predict` event at each reveal (A§7.2: the value and the truth). The module page's loop and the course map's practised KCs read it (`src/progress`), and so does the Evidence page's count of events by kind. Two readers of it do not exist yet:
   - Today (`src/items/today/kcs.ts`) maps no `predict:` ref to a KC, so a prediction reschedules no idea. ASSESSMENT §4.7 says that it may reschedule an idea that is earned, and never earns one. Give Today the compiled map's refs for them, inside `/today`'s gate.

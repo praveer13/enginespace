@@ -459,6 +459,51 @@
   color: var(--es-paper-ink);
 }
 
+/*
+ * The working of an answer revealed at commit (D-067): the lines that lead from the question's own numbers, or from a claim, to the answer,
+ * numbered so that a learner can say which line they would have written differently, and the source of a claim under them. One stamp, at the
+ * head, says what kind of number the answer is.
+ */
+.es-c-predict__working {
+  display: grid;
+  gap: var(--es-space-2);
+  max-width: 68ch;
+  margin-top: var(--es-space-3);
+}
+
+.es-c-predict__working-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-3);
+  margin: 0;
+  font-weight: 700;
+}
+
+.es-c-predict__working ol {
+  display: grid;
+  gap: var(--es-space-2);
+  margin: 0;
+  padding-left: 1.5em;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+.es-c-predict__working li::marker {
+  color: var(--es-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.es-c-predict__source {
+  max-width: 68ch;
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--es-text-2);
+  overflow-wrap: anywhere;
+}
+
 /* A range has two slips side by side, and one under the other on a phone. */
 .es-c-predict__range {
   flex-wrap: wrap;

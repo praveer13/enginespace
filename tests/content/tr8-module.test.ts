@@ -15,6 +15,7 @@
  *   - The claims TR8 adds (content/claims/tr8.yaml) are read at the pins, at a tag or a commit, with the lines of their quotes.
  */
 import { describe, expect, test } from 'bun:test'
+import { isAtCommit, planOf } from '@es/play/predictions/plan'
 import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -178,7 +179,7 @@ describe('check 2: every lesson has a prediction, a game or an item, and an exit
       for (const block of predictions) {
         if (block.type !== 'predict') continue
         expect(block.id.startsWith(`${lesson.id}.`)).toBe(true)
-        expect(block.reveal).toBe('after-game')
+        expect([block.id, block.reveal]).toEqual([block.id, isAtCommit(planOf(block.id)) ? 'at-commit' : 'after-game'])
       }
     })
 

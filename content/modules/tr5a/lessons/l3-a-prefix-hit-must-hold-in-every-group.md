@@ -37,7 +37,7 @@ kcs: [tr5a.hit-intersection]
 id: tr5a.l3.p2
 prompt: The model is the `state` level's, one full group and three state groups, with 32 tokens in a block [estimated]. A returning request has a prompt of 330 tokens [estimated]. The full group holds the blocks numbered 0 to 7 [estimated]. Each state group holds only the blocks 2 and 5 [estimated], which are the states at two edges. How many tokens does the prefix hit cover?
 answer: { kind: numeric, unit: tokens, rel_tol: 0 }
-reveal: after-game
+reveal: at-commit
 kcs: [tr5a.hit-intersection]
 :::
 

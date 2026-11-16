@@ -37,3 +37,33 @@ export function requireRun(run: RunRecord, game: string, level: string): void {
     throw new RangeError(`this prediction is answered by a run of ${game}/${level}, and the run is of ${run.game}/${run.level}`)
   }
 }
+
+/**
+ * Where a revealed answer's working comes from, when it is more than the question's own numbers: a claim of the course (the id, and the
+ * title of its source as the claim gives it), or a count the lesson makes in a table of its own, with no claim.
+ */
+export interface Source {
+  /** The claim's id, or undefined for a count of the lesson's own. */
+  readonly claim?: string
+  /** The source as a reader sees it: the engine, its version, the file and the symbol. */
+  readonly text: string
+}
+
+/**
+ * A prediction revealed at commit (`reveal: at-commit`, D-067): the answer is computed from the question's own numbers by the course's pure
+ * model, or read from the claim the question is about, and no run is read. It lives in the lazy part of the module it belongs to, because the
+ * model it computes with is loaded when the learner commits, and a lesson page loads none of it before.
+ */
+export interface Commit {
+  /** The phrases of the prompt that the working takes its numbers from, and tests/play/predictions.test.ts fails when the prompt no longer says them. */
+  readonly says: readonly string[]
+  /** The working, a line each: the arithmetic on the question's own numbers, or the claim in words. The last line ends in the answer. */
+  readonly working: readonly string[]
+  /** Where the answer is read from when it is read from a claim, or a count; none for an answer that is arithmetic on the question's numbers alone. */
+  readonly sources: readonly Source[]
+  /** The tag of the answer: `derived` when it is worked out from numbers, `measured` when it is a figure that the cited source holds. */
+  readonly tag: 'derived' | 'measured'
+  /** The model's answer. It takes no run: the question carries what it needs. */
+  readonly truth: () => Truth
+}
+

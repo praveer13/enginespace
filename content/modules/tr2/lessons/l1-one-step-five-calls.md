@@ -67,7 +67,7 @@ Commit to a number before you look at the model's. The numbers in this question 
 
 :::predict
 id: tr2.l1.p1
-prompt: "A step's CPU work is 700 µs [estimated] before its forward (schedule, prepare and launch) and 300 µs [estimated] after it (sync and sample). The forward takes 2,000 µs [estimated]. Nothing overlaps: each step starts when the last one has been read. For what share of the clock is the GPU busy, in per cent?"
+prompt: "In the front page's step loop, a step plans for 2 ticks [estimated], runs its forward for 4 ticks [estimated] and reads the result for 1 tick [estimated]. Nothing overlaps: each step starts when the last one has been read. For what share of the clock is the GPU busy, in per cent?"
 answer: { kind: numeric, unit: percent, rel_tol: 0.05 }
 reveal: after-game
 kcs: [tr2.bubble]

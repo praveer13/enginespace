@@ -8,9 +8,10 @@
  *   2. A committed prediction cannot change, and nothing of the answer is on the page before the game ends: no model's number in the ticket,
  *      and not even the reading's code asked for (the reveal and the module's reading are lazy parts).
  *   3. A run that ended before the commit is no run to reveal after: the ticket waits for another.
- *   4. A prediction that no run answers prints the honest ticket: the task its reveal waits on, and no slip.
- *   5. axe finds no serious or critical violation on a lesson with its predictions asking, committed and revealed, and waiting, at 360 and
- *      1280 px.
+ *   4. A prediction that no run answers is revealed at commit (R-T09, D-067): COMMIT is live, and after it the ticket shows the learner's value,
+ *      the answer and its working at once, and writes one `predict` event with both. No lock, no held-down stub and no task id is on it.
+ *   5. axe finds no serious or critical violation on a lesson with its predictions asking, committed and revealed, and revealed at commit,
+ *      at 360 and 1280 px.
  *
  * The truth that the page prints is compared with the truth that the pure model reads from the same run, taken here from the ledger's `play`
  * event: the log is replayed into a record, and the model is asked (packages/play/predictions). The walks are e2e/support/walks.ts's. Every
@@ -37,7 +38,7 @@ const revealStub = (page: Page, id: string): Locator => ticketOf(page, id).getBy
 const printedTruth = async (page: Page, id: string): Promise<string> => (await ticketOf(page, id).locator('[data-truth]').innerText()).replace(/,/g, '')
 
 /** The code that a reveal loads: the reveal itself, and a module's readings. A page that has not revealed anything has asked for none of it. */
-const READING = /\/assets\/(reveal|tr1|tr2|tr5a)-[\w-]+\.js$/
+const READING = /\/assets\/(reveal|tr1|tr2|tr5a|commit-tr[0-9a-z]+)-[\w-]+\.js$/
 
 /** Presses Tab until `target` has focus: the walk reads every stop on the way. */
 async function tabToLocator(walk: Walk, target: Locator, limit: number): Promise<void> {
@@ -264,35 +265,82 @@ test.describe('the block that answers a prediction is the first of its game and 
   })
 })
 
-test.describe('a prediction that no run answers prints the honest ticket (acceptance 3)', () => {
+test.describe('a prediction that no run answers is revealed at commit (acceptance 4)', () => {
   test.use({ viewport: { width: 1280, height: 800 } })
 
-  test('/m/tr8/l1-due-time-not-send-time: no slip, the task its reveal waits on, a stub held down, and nothing to commit', async ({ page, context }) => {
+  test('/m/tr8/l1-due-time-not-send-time: a live stub, no lock and no task id, and the answer with its working the moment it is committed, by keys', async ({ page, context, watch }) => {
     await withSettings(context, { view3d: false })
     await open(page, '/m/tr8/l1-due-time-not-send-time')
+    await quiet(page)
     const ticket = ticketOf(page, 'tr8.l1.p1')
-    await expect(ticket).toHaveAttribute('data-phase', 'unbuilt')
-    await expect(ticket).toHaveAttribute('data-placeholder', 'W2-T43')
-    await expect(ticket).toContainText('Its reveal waits on')
-    await expect(ticket).toContainText('W2-T43')
-    await expect(ticket.getByRole('button', { name: 'Commit answer' })).toBeDisabled()
-    await expect(ticket.getByLabel('Your number')).toHaveCount(0)
-    expect(await predictEvents(page)).toEqual([])
+    await expect(ticket).toHaveAttribute('data-phase', 'asking')
+    await expect(ticket).not.toContainText('waits on')
+    await expect(ticket).not.toContainText(/W\d-T\d\d/)
+    await expect(ticket.getByRole('button', { name: 'Commit answer' })).toBeEnabled()
+    // Nothing of the answer, and none of the model's part, before the commit.
+    await expect(ticket.locator('[data-truth]')).toHaveCount(0)
+    expect(watch.requests.filter((path) => READING.test(path))).toEqual([])
+    // A slip that is not an answer is asked about again.
+    await ticket.getByRole('button', { name: 'Commit answer' }).click()
+    await expect(ticket).toContainText('Write a number, in ms, and then commit.')
+    await expect(ticket).toHaveAttribute('data-phase', 'asking')
+    const walk = walkOf(page)
+    await tabToLocator(walk, ticket.getByLabel('Your number'), 400)
+    await page.keyboard.type('100 ms')
+    await page.keyboard.press('Enter')
+    await expect(ticket).toHaveAttribute('data-phase', 'revealed')
+    await expect.poll(() => page.evaluate(() => document.activeElement?.className ?? '')).toContain('es-item__verdict')
+    await expect(ticket).toContainText('Within the tolerance.')
+    await expect(ticket.locator('dl')).toContainText('you wrote')
+    await expect(ticket.locator('[data-truth]')).toContainText('100')
+    await expect(ticket.locator('.es-c-predict__working li').first()).toBeVisible()
+    await expect(ticket.locator('[data-truth]')).toContainText('derived')
+    await expect(ticket.getByRole('button', { name: 'Commit answer' })).toHaveCount(0)
+    expect(watch.requests.some((path) => READING.test(path)), "the model's part is asked for when the answer is committed").toBe(true)
+    // One event, with the value and the truth, and no seed: no run was read.
+    await expect.poll(async () => (await predictEvents(page)).length).toBe(1)
+    const [event] = await predictEvents(page)
+    expect(event).toMatchObject({ ref: 'predict:tr8.l1#tr8.l1.p1', ok: true, score: 1, provenance: 'practice', data: { value: 100, truth: 100, unit: 'ms' } })
+    expect(event.seed).toBeUndefined()
+    expect(walk.problems(), 'a focus stop that a keyboard user cannot see').toEqual([])
+  })
+
+  test('/m/tr6/l4-proposers: a choice is committed and revealed at once, with the claims it is read from', async ({ page, context }) => {
+    await withSettings(context, { view3d: false })
+    await open(page, '/m/tr6/l4-proposers')
+    const ticket = ticketOf(page, 'tr6.l4.p1')
+    await ticket.getByLabel('MRV1, with async scheduling off').check()
+    await ticket.getByRole('button', { name: 'Sure' }).click()
+    await ticket.getByRole('button', { name: 'Commit answer' }).click()
+    await expect(ticket).toHaveAttribute('data-phase', 'revealed')
+    await expect(ticket).toContainText('Right.')
+    await expect(ticket.locator('.es-c-predict__source').first()).toContainText('vLLM v0.33.0')
+    await expect(ticket.locator('.es-c-predict__working-head')).toContainText('measured')
+    const [event] = await predictEvents(page)
+    expect(event).toMatchObject({ ref: 'predict:tr6.l4#tr6.l4.p1', ok: true, conf: 'sure', data: { value: 'mrv1-off', truth: 'mrv1-off' } })
   })
 })
 
-test.describe('with predictions asking and waiting, axe finds no serious or critical violation (acceptance 5)', () => {
+test.describe('with predictions asking and revealed at commit, axe finds no serious or critical violation (acceptance 5)', () => {
   const IMPACTS = new Set(['serious', 'critical'])
   for (const width of PR_WIDTHS) {
     test.describe(`at ${width} px`, () => {
       test.use({ viewport: { width, height: 800 } })
-      // tr6.l4 holds the one choice prediction, which waits; tr5a.l4 two that a run answers; tr2.l7 the one whose lesson has no game.
+      // tr6.l4 holds the one choice prediction, revealed at commit; tr5a.l4 two that a run answers; tr2.l7 the one whose lesson has no game, also revealed at commit.
       for (const route of ['/m/tr6/l4-proposers', '/m/tr5a/l4-adapters-as-pages-and-upstreams-slots', '/m/tr2/l7-the-same-loop-elsewhere']) {
         test(route, async ({ page, context }) => {
           await withSettings(context, { view3d: false })
           await open(page, route)
           await quiet(page)
           expect(await page.locator('section[data-block="predict"]').count()).toBeGreaterThan(0)
+          // A prediction that is revealed at commit is committed first, so that axe reads the ticket with its working too.
+          const atCommit = page.locator('section[data-block="predict"][data-reveal="at-commit"]').first()
+          if ((await atCommit.count()) > 0) {
+            if ((await atCommit.getByLabel('Your number').count()) > 0) await atCommit.getByLabel('Your number').fill('1')
+            else await atCommit.getByRole('radio').first().check()
+            await atCommit.getByRole('button', { name: 'Commit answer' }).click()
+            await expect(atCommit).toHaveAttribute('data-phase', 'revealed')
+          }
           const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']).analyze()
           expect(results.passes.length + results.violations.length, 'the rules that axe ran').toBeGreaterThan(20)
           const blocking = results.violations.filter((violation) => IMPACTS.has(violation.impact ?? ''))

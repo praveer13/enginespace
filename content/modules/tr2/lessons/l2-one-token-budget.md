@@ -30,7 +30,7 @@ Commit to a number before you read on. The numbers in this question are round an
 id: tr2.l2.p1
 prompt: "The budget of a step is 2,048 tokens [estimated], and 100 requests [estimated] are decoding, one token each. A prompt of 3,000 tokens [estimated] arrives and chunked prefill is on. How many tokens of the prompt does the first step that carries it take?"
 answer: { kind: numeric, unit: tokens, rel_tol: 0 }
-reveal: after-game
+reveal: at-commit
 kcs: [tr2.one-budget]
 :::
 

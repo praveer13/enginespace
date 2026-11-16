@@ -132,7 +132,7 @@ Commit to a number again, and then work it.
 id: tr2.l6.p2
 prompt: "A card of 24 GB [estimated] has 0.92 [measured] of its memory requested, as vLLM does by default. The weights and the activations take 3.2 GB [estimated]. The graphs' estimate is 0.96 GB [estimated]. One token of KV cache takes 114,688 bytes [estimated]. How many tokens of KV cache do the graphs cost?"
 answer: { kind: numeric, unit: tokens, rel_tol: 0.03 }
-reveal: after-game
+reveal: at-commit
 kcs: [tr2.graph-memory]
 :::
 
