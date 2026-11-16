@@ -256,7 +256,7 @@ describe('grading', () => {
     const wrong = gradeChoice(item, { kind: 'choice', pick: wrongId })
     expect(wrong).toMatchObject({ ok: false, score: 0, diagnosis: { id: `tr2.toy-sum.not-${wrongId}` } })
     expect(plain(wrong.diagnosis?.message ?? [])).toContain('smaller')
-    expect(gradeChoice(item, { kind: 'choice', pick: 'nope' })).toMatchObject({ ok: false, feedback: [{ t: 'text', text: 'That option is not on this ticket.' }] })
+    expect(gradeChoice(item, { kind: 'choice', pick: 'nope' })).toMatchObject({ ok: false, feedback: [{ t: 'text', text: 'That option is not one of this question\'s options.' }] })
     expect(keyText(item)).toContain('The one called')
   })
 

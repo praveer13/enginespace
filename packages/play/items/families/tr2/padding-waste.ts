@@ -11,7 +11,7 @@
  * What the variants ask:
  *   padded-size   the size one step of `n` tokens is padded to, under a list of sizes (levels 0 to 3);
  *   night-waste   the padded tokens a night of six steps wastes in all, under a list of sizes (levels 0 to 3);
- *   choose-sizes  of four lists of sizes that all fit the same budget of graphs, the one that holds every step of the night and wastes the
+ *   choose-sizes  of four lists of sizes that all fit the same budget of graphs, the one that holds every step and wastes the
  *                 fewest padded tokens (levels 2 and 3). The key is the exact optimum over every list of that many sizes, found by looking
  *                 at all of them, and the other three are a list that leaves the biggest step uncaptured and two that waste more.
  * At level 0 a worked example with other numbers comes first, at level 1 the first step of the solution is shown, at level 2 the learner is
@@ -297,7 +297,7 @@ function paddedSteps(scene: PaddedScene, level: Level): Step[] {
 
 function nightSteps(scene: NightScene, level: Level): Step[] {
   const parts: Step[] = []
-  if (level === 3) parts.push({ text: rich('The tally lists a size and how many fires ran at it: ', derived(scene.steps.length, 'fires'), ' in all.') })
+  if (level === 3) parts.push({ text: rich('The tally lists a size and how many launches ran at it: ', derived(scene.steps.length, 'launches'), ' in all.') })
   parts.push({ text: rich('Each step is padded up to the smallest captured size that holds it, and wastes the difference.') })
   const rows = scene.steps.map((tokens) => {
     const padded = paddingModel.padded(scene.sizes, tokens) ?? tokens
@@ -305,7 +305,7 @@ function nightSteps(scene: NightScene, level: Level): Step[] {
   })
   const waste = paddingModel.night(scene.sizes, scene.steps).waste
   parts.push({
-    text: rich('The steps pad as ', code(rows.join(', ')), ', so the night wastes ', derived(waste, 'tokens'), ' in all.'),
+    text: rich('The steps pad as ', code(rows.join(', ')), ', so the steps waste ', derived(waste, 'tokens'), ' in all.'),
     result: derived(waste, 'tokens'),
   })
   return parts
@@ -360,9 +360,9 @@ const RULES: readonly DiagnosisRule[] = [
       const padded = steps.map((tokens) => paddingModel.padded(sizes, tokens) ?? tokens)
       const total = padded.reduce((sum, size) => sum + size, 0)
       const one = padded[0] - steps[0]
-      if (near(value, total)) return { id: `${FAMILY}.padded-total`, message: rich('That is the tokens the night computes, padding included. The waste is only what is computed for nothing: the padded total less the steps.') }
-      if (near(value, one)) return { id: `${FAMILY}.first-step-only`, message: rich('That is the waste of the first step. Every step of the night pads, and the night wastes them all.') }
-      if (value === 0) return { id: `${FAMILY}.no-waste`, message: rich('A step that no size holds exactly wastes the difference. The night is not free.') }
+      if (near(value, total)) return { id: `${FAMILY}.padded-total`, message: rich('That is the tokens the run computes, padding included. The waste is only what is computed for nothing: the padded total less the steps.') }
+      if (near(value, one)) return { id: `${FAMILY}.first-step-only`, message: rich('That is the waste of the first step. Every step pads, and the run wastes them all.') }
+      if (value === 0) return { id: `${FAMILY}.no-waste`, message: rich('A step that no size holds exactly wastes the difference. The run is not free.') }
       return null
     }
     return null
@@ -454,9 +454,9 @@ function build(spec: VariantSpec, scene: Scene, level: Level, seed: Seed): Item 
       ...base,
       stem:
         level === 3
-          ? rich('An engine captured graphs at the sizes listed, and each step replays the graph of the smallest size that holds it. The night is a tally of its fires and their tokens. How many tokens does the night compute for nothing?')
-          : rich('An engine captured graphs at the sizes listed, and each step replays the graph of the smallest size that holds it. How many tokens does the night of six steps compute for nothing?'),
-      givens: [{ label: 'captured sizes', value: listText(scene.sizes) }, { label: level === 3 ? 'the night, fires × tokens' : 'tokens in each step of the night', value: stepsText(scene.steps, level) }],
+          ? rich('An engine captured graphs at the sizes listed, and each step replays the graph of the smallest size that holds it. The run is a tally of its launches and their tokens. How many tokens does the run compute for nothing?')
+          : rich('An engine captured graphs at the sizes listed, and each step replays the graph of the smallest size that holds it. How many tokens do the six steps compute for nothing?'),
+      givens: [{ label: 'captured sizes', value: listText(scene.sizes) }, { label: level === 3 ? 'the run, launches × tokens' : 'tokens in each step', value: stepsText(scene.steps, level) }],
       worked: workedFor(scene, level, seed),
       answer: { kind: 'numeric', label: 'tokens wasted', unit: 'tokens', truth: waste, tolerance: EXACT },
     })
@@ -466,10 +466,10 @@ function build(spec: VariantSpec, scene: Scene, level: Level, seed: Seed): Item 
     const largest = Math.max(...scene.steps)
     const isKey = at === scene.key
     const why: Rich = isKey
-      ? rich('Every step is held, and the night wastes ', derived(entry.waste, 'tokens'), ', fewer than any other list that holds them all.')
+      ? rich('Every step is held, and the run wastes ', derived(entry.waste, 'tokens'), ', fewer than any other list that holds them all.')
       : entry.uncaptured > 0
         ? rich('Its largest size is under the biggest step, ', given(largest, 'tokens'), ', so ', derived(entry.uncaptured, 'steps'), ' would be launched kernel by kernel. The padding it counts is only on the steps it holds.')
-        : rich('Every step is held, but the night wastes ', derived(entry.waste, 'tokens'), ', more than the best list.')
+        : rich('Every step is held, but the run wastes ', derived(entry.waste, 'tokens'), ', more than the best list.')
     return {
       id: LETTERS[at],
       text: rich('Capture ', alignedText(entry.list)),
@@ -481,9 +481,9 @@ function build(spec: VariantSpec, scene: Scene, level: Level, seed: Seed): Item 
     ...base,
     stem:
       level === 3
-        ? rich('An engine may capture ', given(scene.molds, 'graphs'), '. The night is a tally of its fires and their tokens. Which list holds every step and wastes the fewest padded tokens?')
-        : rich('An engine may capture ', given(scene.molds, 'graphs'), '. Which list of sizes holds every step of the night and wastes the fewest padded tokens?'),
-    givens: [{ label: level === 3 ? 'the night, fires × tokens' : 'tokens in each step of the night', value: stepsText(scene.steps, level) }],
+        ? rich('An engine may capture ', given(scene.molds, 'graphs'), '. The run is a tally of its launches and their tokens. Which list holds every step and wastes the fewest padded tokens?')
+        : rich('An engine may capture ', given(scene.molds, 'graphs'), '. Which list of sizes holds every step and wastes the fewest padded tokens?'),
+    givens: [{ label: level === 3 ? 'the run, launches × tokens' : 'tokens in each step', value: stepsText(scene.steps, level) }],
     worked: [],
     answer: { kind: 'choice', label: 'the list to capture', options, correct: LETTERS[scene.key] },
   })
