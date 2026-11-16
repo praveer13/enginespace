@@ -97,3 +97,48 @@ test.describe('the check can fail', () => {
     ])
   })
 })
+
+/*
+ * R-T22: a module page's first screen and its keyboard walk (REDESIGN section 3.3). On TR1 and TR2 the lessons start inside the first
+ * 700 px at a desk, the amber button is the first thing the keys reach after the header, and the Reference opens and closes by key with its
+ * words in the document while it is closed.
+ */
+for (const [width, height, within] of [
+  [1440, 900, 700],
+  [390, 844, 700],
+] as const) {
+  test.describe(`a module page at ${width} px`, () => {
+    test.use({ viewport: { width, height } })
+
+    for (const module of ['tr1', 'tr2']) {
+      test(`/m/${module}: the lessons start within ${within} px, and the keys walk the button, a lesson and the Reference`, async ({ page }) => {
+        await page.goto(`/m/${module}`)
+        await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+        await expect(page.locator('.es-module__lesson').first()).toBeVisible()
+        const top = await page.locator('#lessons').evaluate((node) => node.getBoundingClientRect().top + window.scrollY)
+        expect(top, 'where the lesson list starts').toBeLessThan(within)
+
+        const walk = walkOf(page)
+        const way = page.locator('.es-module__way a.es-next__action')
+        await way.focus()
+        await walk.see()
+        await expect(way).toHaveAttribute('data-emphasis', 'primary')
+        await expect(way).not.toContainText('Continue')
+        await page.keyboard.press('Tab')
+        await walk.see()
+        await expect(page.locator('.es-module__lesson-link').first()).toBeFocused()
+
+        const first = page.locator('.es-module__part').first()
+        await expect(first).not.toHaveAttribute('open', '')
+        await expect(first.locator('.es-module__prose')).toHaveCount(1)
+        await first.locator('summary').focus()
+        await walk.see()
+        await page.keyboard.press('Enter')
+        await expect(first).toHaveAttribute('open', '')
+        await page.keyboard.press('Enter')
+        await expect(first).not.toHaveAttribute('open', '')
+        expect(walk.problems(), 'a focus stop that a keyboard user cannot see').toEqual([])
+      })
+    }
+  })
+}

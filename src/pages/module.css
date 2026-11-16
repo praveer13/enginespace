@@ -1,0 +1,506 @@
+/*
+ * The module page's layout (REDESIGN section 3.3): the head, the lessons beside what you will be able to do, the four rows and the Reference.
+ * The components draw themselves; this file places them. Every colour, face, size and duration is a token role, so the page follows the
+ * design system's values when they change.
+ *
+ * Plain CSS outside Tailwind's layers: it loads with the module route, never with the entry.
+ */
+
+.es-shell__main:has(.es-module) {
+  max-width: 90rem;
+}
+
+@media (min-width: 64rem) {
+  .es-shell__main:has(.es-module) {
+    padding-inline: var(--es-space-12);
+  }
+}
+
+.es-module {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-8);
+  color: var(--es-text-1);
+}
+
+.es-module :is(h1, h2, h3, h4) {
+  text-transform: none;
+}
+
+/* ---------------------------------------------------------------------------------------------- the head */
+
+.es-module__head {
+  display: grid;
+  gap: var(--es-space-3);
+  justify-items: start;
+}
+
+.es-module__crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-1) var(--es-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--es-text-2);
+  font-size: var(--es-size-print);
+}
+
+.es-module__crumbs li + li::before {
+  content: '/';
+  content: '/' / '';
+  margin-inline-end: var(--es-space-2);
+  color: var(--es-text-3);
+}
+
+.es-module__crumbs [aria-current='page'] {
+  color: var(--es-text-1);
+  font-weight: 700;
+}
+
+.es-module__titleline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--es-space-1) var(--es-space-4);
+}
+
+.es-module__title {
+  margin: 0;
+  font-family: var(--es-font-heading);
+  font-size: clamp(2rem, 1.4rem + 2.2vw, 2.75rem);
+  font-weight: var(--es-font-heading-weight);
+  line-height: 1.02;
+  letter-spacing: 0.005em;
+  text-wrap: balance;
+}
+
+.es-module__size {
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-print);
+}
+
+.es-module__sentences {
+  max-width: 50rem;
+  margin: 0;
+  font-size: var(--es-size-body);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+/* The button's place is kept while the ledger is read, so nothing under it moves when it arrives. */
+.es-module__way {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  width: 100%;
+  min-height: 4.5rem;
+  margin-top: var(--es-space-2);
+}
+
+.es-module__way .es-next__action {
+  width: fit-content;
+}
+
+.es-module__way-wait {
+  margin: 0;
+  color: var(--es-text-2);
+}
+
+@media (max-width: 39.99rem) {
+  .es-module__way .es-next,
+  .es-module__way .es-next__action {
+    width: 100%;
+  }
+
+  .es-module__way .es-next__action {
+    justify-content: space-between;
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------- lessons and outcomes */
+
+.es-module__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-8);
+  align-items: start;
+}
+
+@media (min-width: 64rem) {
+  .es-module__grid {
+    grid-template-columns: minmax(0, 1fr) 31rem;
+    column-gap: var(--es-space-12);
+  }
+}
+
+.es-module__h {
+  margin: 0 0 var(--es-space-3);
+  font-family: var(--es-font-body);
+  font-size: var(--es-size-large);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0;
+  text-wrap: balance;
+}
+
+.es-module__outcomes .es-module__h:not(:first-child) {
+  margin-top: var(--es-space-6);
+}
+
+.es-module__lesson-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--es-paper-rule);
+}
+
+.es-module__lesson {
+  border-bottom: 1px solid var(--es-paper-rule);
+}
+
+.es-module__lesson-link {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  grid-template-areas:
+    'n title'
+    '. facts';
+  align-items: baseline;
+  column-gap: var(--es-space-3);
+  row-gap: var(--es-space-1);
+  min-height: 4rem;
+  padding: var(--es-space-3) var(--es-space-3) var(--es-space-3) var(--es-space-2);
+  color: var(--es-text-1);
+  text-decoration: none;
+  transition: background-color var(--es-dur-quick) var(--es-ease-settle);
+}
+
+.es-module__lesson-link:is(:hover, :focus-visible) {
+  background: color-mix(in srgb, var(--es-surface-2) 55%, transparent);
+}
+
+.es-module__lesson-link:hover .es-module__lesson-title {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+/* The next lesson: the marker's edge as a bar at the row's start, a tint, and the word "Next", so it does not rest on colour. The one amber
+   fill of the viewport stays the button above (tests/design/one-lamp.test.ts), so the row draws the marker's edge and never its fill. */
+.es-module__lesson[data-next] .es-module__lesson-link {
+  box-shadow: inset 0.25rem 0 0 var(--es-lamp-ring);
+  background: color-mix(in srgb, var(--es-lamp-ring) 9%, transparent);
+}
+
+.es-module__n {
+  grid-area: n;
+  color: var(--es-text-2);
+  font-family: var(--es-font-numeric);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.es-module__lesson-title {
+  grid-area: title;
+  font-size: var(--es-size-plate);
+  font-weight: 700;
+  line-height: 1.25;
+  text-wrap: pretty;
+}
+
+.es-module__lesson-facts {
+  grid-area: facts;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--es-space-3);
+  color: var(--es-text-2);
+  font-size: var(--es-size-print);
+}
+
+.es-module__lesson-facts > :empty {
+  display: none;
+}
+
+.es-module__state {
+  color: var(--es-text-1);
+  font-weight: 700;
+}
+
+.es-module__lesson[data-next] .es-module__state[data-lesson-state]::before {
+  content: 'Next · ';
+  content: 'Next · ' / '';
+}
+
+@media (min-width: 64rem) {
+  .es-module__lesson-link {
+    grid-template-columns: 2rem minmax(0, 1fr) auto;
+    grid-template-areas: 'n title facts';
+    min-height: 3.25rem;
+    padding-block: var(--es-space-2);
+    column-gap: var(--es-space-3);
+  }
+
+  .es-module__lesson-facts {
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    gap: var(--es-space-3);
+    white-space: nowrap;
+  }
+
+  .es-module__minutes {
+    min-width: 3.5rem;
+    text-align: right;
+  }
+
+  .es-module__needs {
+    min-width: 5.5rem;
+  }
+
+  .es-module__state {
+    min-width: 7.5rem;
+  }
+}
+
+.es-module__legend,
+.es-module__note {
+  margin: var(--es-space-3) 0 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+}
+
+/* A tagged number: a dotted underline, and the tag for a screen reader. It is text, never a tab stop. */
+.es-module .es-num {
+  text-decoration: underline dotted;
+  text-decoration-color: var(--es-text-3);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+}
+
+.es-module__list {
+  display: grid;
+  gap: var(--es-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-module__list li {
+  display: grid;
+  grid-template-columns: 1.25rem minmax(0, 1fr);
+  column-gap: var(--es-space-3);
+  font-size: var(--es-size-body);
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+/* A ring for an outcome still to come; a drawn tick in a solid disc for one you can do. Shape tells them apart, never colour alone. */
+.es-module__tick {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 0.2rem;
+  border: 2px solid var(--es-edge);
+  border-radius: var(--es-radius-round);
+}
+
+.es-module__tick[data-done] {
+  border-color: var(--es-status-ok);
+  background: var(--es-status-ok);
+  color: var(--es-paper);
+}
+
+.es-module__tick svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+/* ---------------------------------------------------------------------------------------------- the four rows */
+
+.es-module__rows {
+  display: grid;
+  margin: 0;
+  max-width: 50rem;
+  border-top: 1px solid var(--es-paper-rule);
+}
+
+.es-module__row {
+  display: grid;
+  grid-template-columns: 5rem minmax(0, 1fr);
+  gap: var(--es-space-3);
+  padding: var(--es-space-3) 0;
+  border-bottom: 1px solid var(--es-paper-rule);
+  font-size: var(--es-size-body);
+}
+
+.es-module__row dt {
+  font-weight: 700;
+}
+
+.es-module__row dd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-1) var(--es-space-4);
+  margin: 0;
+  min-width: 0;
+}
+
+/* ---------------------------------------------------------------------------------------------- the Reference */
+
+.es-module__parts {
+  display: grid;
+  max-width: 50rem;
+  border-top: 1px solid var(--es-paper-rule);
+}
+
+.es-module__part {
+  border-bottom: 1px solid var(--es-paper-rule);
+}
+
+.es-module__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--es-space-3);
+  min-height: 3rem;
+  padding: var(--es-space-2) var(--es-space-1);
+  cursor: pointer;
+  list-style: none;
+}
+
+.es-module__summary::-webkit-details-marker {
+  display: none;
+}
+
+.es-module__summary::after {
+  content: '';
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-inline-end: var(--es-space-2);
+  border-right: 2px solid var(--es-text-2);
+  border-bottom: 2px solid var(--es-text-2);
+  rotate: 45deg;
+  transition: rotate var(--es-dur-quick) var(--es-ease-settle);
+}
+
+.es-module__part[open] > .es-module__summary::after {
+  rotate: -135deg;
+}
+
+.es-module__summary:is(:hover, :focus-visible) {
+  background: color-mix(in srgb, var(--es-surface-2) 55%, transparent);
+}
+
+.es-module__part-title {
+  margin: 0;
+  font-family: var(--es-font-body);
+  font-size: var(--es-size-title);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.es-module__prose {
+  display: grid;
+  gap: var(--es-space-3);
+  max-width: 66ch;
+  padding: var(--es-space-2) var(--es-space-1) var(--es-space-6);
+  font-size: var(--es-font-body-size);
+  line-height: var(--es-font-body-leading);
+}
+
+.es-module__prose > * {
+  margin: 0;
+}
+
+.es-module__prose :is(p, li) {
+  text-wrap: pretty;
+}
+
+.es-module__prose :is(ul, ol) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-2);
+  padding-inline-start: 1.4em;
+}
+
+.es-module__prose code {
+  font-family: var(--es-font-mono);
+  font-size: 0.92em;
+}
+
+.es-module__card-title {
+  margin: var(--es-space-3) 0 0;
+  font-size: var(--es-size-base);
+  font-weight: 700;
+}
+
+.es-module__claim {
+  font-variant-numeric: tabular-nums;
+}
+
+.es-module__tag {
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+}
+
+.es-module__sources {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  overflow-wrap: anywhere;
+  gap: var(--es-space-3);
+}
+
+.es-module__origin {
+  display: block;
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+}
+
+.es-module .es-table {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.es-module .es-table table {
+  border-collapse: collapse;
+  font-size: var(--es-size-print);
+  font-variant-numeric: tabular-nums;
+}
+
+.es-module .es-table :is(th, td) {
+  padding: var(--es-space-2) var(--es-space-3);
+  border-bottom: 1px solid var(--es-paper-rule);
+  text-align: left;
+}
+
+.es-module .es-ks {
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .es-module__summary::after,
+  .es-module__lesson-link {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .es-module__lesson[data-next] .es-module__lesson-link {
+    border-inline-start: 0.25rem solid Highlight;
+  }
+
+  .es-module__tick[data-done] {
+    forced-color-adjust: none;
+    background: Highlight;
+    border-color: Highlight;
+    color: HighlightText;
+  }
+}
+
+@media (min-width: 40rem) {
+  .es-module__sentences {
+    font-size: var(--es-size-plate);
+  }
+}
