@@ -32,28 +32,28 @@ export interface CardCopy {
 
 export const CARD_COPY: Readonly<Record<MutantId, CardCopy>> = {
   'accept-if-p-over-q': {
-    accept: 'Keep the plate when p(x) > q(x) and send it back otherwise, with no coin.',
-    recover: 'Re-plate from (p − q)⁺.',
-    bug: 'Keeps a plate by comparing p and q, with no coin',
+    accept: 'Accept the draft token when p(x) > q(x) and reject it otherwise, with no random draw.',
+    recover: 'Resample from (p − q)⁺.',
+    bug: 'Accepts by comparing p and q, with no random draw',
   },
   'resample-from-p': {
-    accept: 'Draw a coin u below q(x), and keep the plate when u < p(x).',
-    recover: 'Re-plate from p.',
-    bug: 'Re-plates from p instead of the residual',
+    accept: 'Draw u below q(x), and accept the draft token when u < p(x).',
+    recover: 'Resample from p.',
+    bug: 'Resamples from p instead of the residual',
   },
   'resample-from-q': {
-    accept: 'Draw a coin u below q(x), and keep the plate when u < p(x).',
-    recover: 'Re-plate from q.',
-    bug: 'Re-plates from q',
+    accept: 'Draw u below q(x), and accept the draft token when u < p(x).',
+    recover: 'Resample from q.',
+    bug: 'Resamples from q',
   },
   'residual-off-by-one': {
-    accept: 'Draw a coin u below q(x), and keep the plate when u < p(x).',
-    recover: 'Re-plate from (p − q)⁺, then serve the dish one along from the one drawn.',
-    bug: 'Serves the dish one along from the residual draw',
+    accept: 'Draw u below q(x), and accept the draft token when u < p(x).',
+    recover: 'Resample from (p − q)⁺, then emit the token one along from the one drawn.',
+    bug: 'Emits the token one along from the residual draw',
   },
   'boundary-inclusive': {
-    accept: 'Draw a coin u below q(x), and keep the plate when u ≤ p(x).',
-    recover: 'Re-plate from (p − q)⁺, walking its running total with ≤.',
+    accept: 'Draw u below q(x), and accept the draft token when u ≤ p(x).',
+    recover: 'Resample from (p − q)⁺, walking its running total with ≤.',
     bug: 'Compares with ≤ where < is right (SGLang PR #35798)',
   },
 }

@@ -510,6 +510,7 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
                         ask={kit.askWords?.(run.view) ?? null}
                         skip={kit.firstAsk === 'optional' ? 'allowed' : 'The session needs this guess before the run, so it cannot be skipped.'}
                         moveWords={kit.firstMoveWords}
+                        moveKind={kit.firstMoveKind}
                         embedded={embedded}
                         partAt={intro.partAt}
                         onPartAt={(partAt) => setIntro({ ...intro, partAt })}

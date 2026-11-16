@@ -19,7 +19,7 @@ import { equals, fracText, ratio } from '@es/play/verifier/ratio'
 import { MARKER_ROUNDS } from '@es/play/verifier/view'
 import { verifierAsk, verifierDebrief, verifierDone, verifierGhost, verifierGrade, verifierInit, verifierReduce, verifierScore, verifierSession } from '@es/play/verifier/session'
 import { excessPlates, keptPlates, modelOf, recipeTv, sweepOfLevel, thousandths, tokensOf } from '@es/play/verifier/state'
-import { DISHES, DRAW_CAP, GAMMA_MAX, MUTANT_IDS, PLATES } from '@es/play/verifier/types'
+import { DRAW_CAP, GAMMA_MAX, MUTANT_IDS, PLATES } from '@es/play/verifier/types'
 import type { VerifierAction, VerifierLevelId } from '@es/play/verifier/types'
 import { houseActions, PRACTICE, sculpt, sculptActions, stateAfter, textOf } from './verifier-support'
 import { SEED_COUNT, seeds } from '../seeds'
@@ -359,7 +359,7 @@ describe('the debrief says what the run did, and names what mattered', () => {
     const debrief = verifierDebrief(wrong)
     // On the practice seed the recipe of p puts out 5.34 plates of soup against the chef's 10: the soup is the furthest out.
     expect(debrief.names).toEqual({ lever: 'dish:0' })
-    expect(debrief.sentence).toContain(`The dish furthest out is the ${DISHES[0]}`)
+    expect(debrief.sentence).toContain('The token furthest out is named under the sentence.')
     expect(verifierDebrief(verifierGhost(level)).names).toBeNull()
     expect(debrief.sentence).not.toMatch(/\d/)
   })

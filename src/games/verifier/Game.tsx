@@ -1,54 +1,60 @@
-import { lazy, useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { drawInBand, levelOf } from '@es/play'
 import type { GameMode } from '@es/play'
+import { VERIFIER_COPY } from '@es/play/verifier/copy'
 import { VERIFIER } from '@es/play/verifier/entry'
 import { verifierSession } from '@es/play/verifier/session'
+import type { VerifierLevelId } from '@es/play/verifier/types'
+import { ROSTER } from '@es/play/roster'
 import type { Seed } from '@es/sim/core'
-import { GameShell } from '@/games/kit/GameShell'
+import { Button } from '@/design/components/Button'
+import { LevelMenu } from '@/design/components/LevelMenu'
+import { Frame } from '@/games/kit/Frame'
 import type { GameView } from '@/games/kit/ViewSwitch'
 import type { GameProps } from '@/games/registry'
 import { CameraButtons } from '@/scene/CameraButtons'
-import { Stage } from '@/scene/Stage'
 import { unavailableReason, useDeviceTier } from '@/scene/tiers'
 import { WorldCard } from './Card'
 import { Controls } from './Controls'
-import { Debrief } from './Debrief'
-import { LevelRail } from './LevelRail'
+import { partRows, verifierKit } from './kit'
 import { Mirror } from './Mirror'
+import { ReadoutStrip } from './ReadoutStrip'
 import { showDraws, showMeter, showScaffold } from './rules'
 import type { Scene3DProps } from './Scene3D'
 import { DEFAULT_PRESET, TASTING_SHOTS } from './scene-shots'
 import type { VerifierRun } from './types'
-import { View2D } from './View2D'
+import { View2D, VerifierLegend } from './View2D'
 import './verifier.css'
 
-// The 3D scene is its own chunk over three's (A§6.10): the Stage loads it only on a device whose tier draws 3D.
+// The result loads when a run ends, not before.
+const Debrief = lazy(() => import('./Debrief').then((module) => ({ default: module.Debrief })))
+// The 3D scene is its own chunk over three's (A§6.10). The Stage loads only when the learner switches to 3D, since the diagram is the
+// default view.
 const Scene3D = lazy(() => import('./Scene3D'))
+const VerifierStage = lazy(() => import('./Stage3D'))
 
 /** The scene as the Stage mounts it, inside the Stage's canvas box. */
-function TastingScene(props: Scene3DProps) {
+function SamplerScene(props: Scene3DProps) {
   return <Scene3D {...props} />
 }
 
 /*
- * The Tasting, speculative decoding's verifier (`verifier`, D-049). Its page is Play → Debrief, around the 2D view, the controls and the
- * mirror (D-018: one session, drawn by every view). The shell owns the run and its action log; this file wires The Tasting's parts into it,
- * and the keys that are its own: `D` draws a batch of rounds, `.` draws one, and Enter submits the answer.
+ * The rejection sampler (`verifier`, D-063): the learner is the verifier. The page is the instrument frame (src/games/kit/Frame.tsx) around
+ * the sampler's diagram, its dock, its readout and its table (D-018: one session, drawn by every view). The frame owns the run and its
+ * action log; this file wires the sampler's parts into it, and the keys that are its own: `D` draws a batch of rounds, `.` draws one, and
+ * Enter submits the answer.
  *
  * A level opens in practice on its pinned seed. A level that can be graded also opens a graded run on a seed drawn when it starts, in
  * band (GAMES.md §2.1), with no undo and no live meter. Whether a page records the run is its own business: the game's page and a lesson's
- * block each pass the recorder as `onFinish` (src/games/kit/record.ts, W1b-T01). Inside a lesson the block names the level, so the row of
- * levels and the next level are left out, and the way into a graded run and back stays.
+ * block each pass the recorder as `onFinish` (src/games/kit/record.ts). Inside a lesson the block names the level, so the level menu and
+ * the next level are left out, and the way into a graded run and back stays.
  *
- * The 3D view (W1-T29) is the pass where the chef tastes, in a Stage that paints the 2D drawing first and keeps it as the fallback (A§6.7). It opens
- * on its own on a device whose tier draws 3D, and `V` or the switch swaps the two views; the session lives in the shell, above both, so a
- * swap keeps every weight and every round. The camera's preset lives here too: `C` and the preset buttons move it, in 3D only.
- *
- * The debrief is imported here and not behind React.lazy, as Service's is, because it prints fractions with the same `Fraction` as the 2D
- * view and the mirror. As a chunk of its own it would import that module from this game's chunk, which would then export a binding this
- * file does not, and Rollup gives such a chunk no entry module: the bundle manifest would have no `src/games/verifier/Game.tsx`, and
- * verify:bundle could not find the game. Whatever a lazy part of this game shares with its figure has the same cost.
+ * The diagram is the default view (REDESIGN §2.9). The 3D view is one switch away, unchanged: a Stage that paints the diagram first and
+ * keeps it as the fallback (A§6.7). The session lives in the frame, above both, so a swap keeps every weight and every round. The
+ * camera's preset lives here too: `C` and the preset buttons move it, in 3D only.
  */
+
+const ROLE = ROSTER.find((entry) => entry.id === VERIFIER.id)?.role ?? ''
 
 interface Attempt {
   readonly level: string
@@ -59,14 +65,12 @@ interface Attempt {
 const known = (id: string | undefined): string => VERIFIER.levels.find((entry) => entry.id === id)?.id ?? VERIFIER.levels[0].id
 const fresh = (): Seed => crypto.getRandomValues(new Uint32Array(1))[0]
 const practice = (id: string): Attempt => ({ level: id, mode: 'practice', seed: levelOf(VERIFIER, id)?.practiceSeed ?? 0 })
-/** A practice run on a seed in band that the learner has not seen. */
-const newNumbers = (id: string): Attempt => ({ level: id, mode: 'practice', seed: drawInBand(verifierSession, id, fresh()) })
 /** A graded run: a seed drawn at the start, in band, and stamped unseen by whoever records it (ARCHITECTURE §8.2). */
 const graded = (id: string): Attempt => ({ level: id, mode: 'graded', seed: drawInBand(verifierSession, id, fresh()) })
 
 const startOf = (id: string, mode: GameMode | undefined): Attempt => (mode === 'graded' && levelOf(VERIFIER, id)?.graded ? graded(id) : practice(id))
 
-/** What the shell's key commands do in this game. Returns whether the key was taken. */
+/** What the frame's key commands do in this game. Returns whether the key was taken. */
 function command(name: string, run: VerifierRun): boolean {
   const { view, dispatch } = run
   if (name === 'step' || name === 'draw') {
@@ -88,33 +92,6 @@ function command(name: string, run: VerifierRun): boolean {
   return false
 }
 
-/**
- * The scene's box: about a pass's 16:10 beside the mirror; on a phone a little taller than wide, the same shape from 320 to 479 px, so the
- * portrait shot keeps the whole course in it, at least 300 px and at most 60% of the screen's height [estimated].
- */
-const STAGE_BOX = 'h-[clamp(18rem,min(56svh,34vw),32rem)] max-[479px]:h-[clamp(18.75rem,112vw,60svh)]'
-
-/**
- * The 3D view's box: the Stage, with the 2D drawing as its first paint and its fallback, and the scene behind it; the key and the figures
- * stand under it, as they stand under the drawing. A dish picked in the scene while there is a recipe hands focus to its weight.
- */
-function TastingStage({ run, preset }: { run: VerifierRun; preset: string }) {
-  const onPick = useCallback((dish: number) => document.querySelector<HTMLInputElement>(`[data-vf-dish="${dish}"]`)?.focus(), [])
-  return (
-    <div className="flex flex-col gap-3">
-      <Stage
-        id="verifier"
-        className={`${STAGE_BOX} border border-edge shadow-shelf`}
-        view2d={<View2D run={run} part="drawing" />}
-        scene={TastingScene}
-        sceneProps={{ view: run.view, shots: TASTING_SHOTS, preset, scaffold: showScaffold(run), outcome: showMeter(run), onPick }}
-        announce={run.announce}
-      />
-      <View2D run={run} part="notes" />
-    </div>
-  )
-}
-
 export default function Game({ level, mode, placement = 'page', rev, onFinish }: GameProps) {
   const [asked, setAsked] = useState({ level, mode })
   const [attempt, setAttempt] = useState<Attempt>(() => startOf(known(level), mode))
@@ -123,7 +100,7 @@ export default function Game({ level, mode, placement = 'page', rev, onFinish }:
     setAsked({ level, mode })
     setAttempt(startOf(known(level), mode))
   }
-  // Moving to another level replaces the page's content, and the button that was pressed goes with it: focus goes back to the game. This
+  // Moving to another level replaces the page's content, and the control that was pressed may go with it: focus goes back to the game, this
   // game's own, found from its box, since a lesson can hold two of it.
   const host = useRef<HTMLDivElement>(null)
   const moved = useRef(false)
@@ -137,33 +114,69 @@ export default function Game({ level, mode, placement = 'page', rev, onFinish }:
     setAttempt(next)
   }
 
-  // 3D opens by itself where the device draws it, and a learner's own choice of view wins from then on. Under `saveData` the Stage
-  // waits to be asked, so the page opens on the 2D view there.
+  // The diagram is the default view; the learner's own choice wins from then on. 3D is offered where the device draws it.
   const device = useDeviceTier()
   const draws3d = device.known && device.tier >= 1
-  const [chosenView, setChosenView] = useState<GameView | null>(null)
-  const view: GameView = chosenView ?? (draws3d && device.hints?.saveData !== true ? '3d' : '2d')
-  const unavailable3d = device.known && !draws3d ? unavailableReason(device.reason) : undefined
+  const [view, setView] = useState<GameView>('2d')
   const [preset, setPreset] = useState<string>(DEFAULT_PRESET)
 
   const embedded = placement === 'embed'
   const entry = levelOf(VERIFIER, attempt.level) ?? VERIFIER.levels[0]
+  const levelId = entry.id as VerifierLevelId
   const at = VERIFIER.levels.findIndex((candidate) => candidate.id === entry.id)
   const after = embedded ? null : (VERIFIER.levels[at + 1] ?? null)
+  const isGraded = attempt.mode === 'graded' && entry.graded
+  const copy = VERIFIER_COPY[levelId]
+  const kit = useCallback(() => verifierKit(levelId), [levelId])
+
+  const menu = embedded ? undefined : (
+    <LevelMenu
+      label="Level"
+      value={entry.id}
+      levels={VERIFIER.levels.map((candidate) => ({ id: candidate.id, title: candidate.title, mode: candidate.id === entry.id ? (isGraded ? 'graded' : 'practice') : candidate.graded ? 'graded' : 'practice' }))}
+      onChange={(id) => go(practice(id))}
+    />
+  )
+
+  // Practice or a graded run, for a level that can be graded; a level that cannot says what practice is.
+  const modeSwitch = (
+    <>
+      <span className="es-vf__mode" data-vf-mode={isGraded ? 'graded' : 'practice'}>
+        {isGraded
+          ? 'Graded: fresh numbers, no undo, no live distance, one submission.'
+          : entry.graded
+            ? 'Practice: fixed numbers, undo, and the live distance from p.'
+            : 'Practice: fixed numbers and undo.'}
+      </span>
+      {entry.graded ? (
+        <Button size="sm" variant="plate" onClick={() => go(isGraded ? practice(entry.id) : graded(entry.id))}>
+          {isGraded ? 'Back to practice' : 'Start a graded run'}
+        </Button>
+      ) : null}
+    </>
+  )
 
   return (
-    <div ref={host} className="contents">
-      <GameShell
+    <div ref={host} className="flex flex-col gap-6">
+      <Frame
         game={VERIFIER}
+        role={ROLE}
         session={verifierSession}
         level={entry.id}
         levelTitle={entry.title}
         seed={attempt.seed}
         mode={attempt.mode}
         rev={rev}
-        headingLevel={embedded ? 3 : 2}
         embedded={embedded}
         onFinish={onFinish}
+        ledger={onFinish !== undefined}
+        kit={kit}
+        menu={menu}
+        modeSwitch={modeSwitch}
+        allow3d={draws3d}
+        unavailable3d={device.known && !draws3d ? unavailableReason(device.reason) : undefined}
+        view={view}
+        onViewChange={setView}
         onCommand={(name, run) => {
           if (name !== 'camera') return command(name, run)
           if (view !== '3d') return false
@@ -172,46 +185,72 @@ export default function Game({ level, mode, placement = 'page', rev, onFinish }:
           run.announce(`Camera: ${next.label}.`)
           return true
         }}
-        allow3d={draws3d}
-        unavailable3d={unavailable3d}
-        view={view}
-        onViewChange={setChosenView}
-        view2d={(run) => <View2D run={run} />}
-        scene3d={(run) => <TastingStage run={run} preset={preset} />}
-        controls={(run) => (
-          <>
-            {view === '3d' ? <CameraButtons presets={TASTING_SHOTS} value={preset} onChange={setPreset} label="Camera on the pass" /> : null}
-            <Controls
+        goal={(run) => ({
+          aim: copy.goal.aim,
+          control: copy.goal.controls,
+          target: copy.goal.beat,
+          ends: copy.goal.ends,
+          met: run.done ? 'Your answer is in.' : undefined,
+        })}
+        diagram={(run) => <View2D run={run} />}
+        scene3d={(run) => (
+          <Suspense fallback={<View2D run={run} />}>
+            <VerifierStage
               run={run}
-              rail={
-                <LevelRail
-                  levels={VERIFIER.levels}
-                  current={entry.id}
-                  mode={attempt.mode}
-                  done={run.done}
-                  onLevel={(id) => go(practice(id))}
-                  onGraded={() => go(graded(entry.id))}
-                  onPractice={() => go(practice(entry.id))}
-                  showLevels={!embedded}
-                />
-              }
+              preset={preset}
+              shots={TASTING_SHOTS}
+              scaffold={showScaffold(run)}
+              outcome={showMeter(run)}
+              diagram={<View2D run={run} part="drawing" />}
+              scene={SamplerScene}
             />
-          </>
+          </Suspense>
+        )}
+        legend={(run) =>
+          view === '3d' ? (
+            <div className="es-vf__cameras">
+              <CameraButtons presets={TASTING_SHOTS} value={preset} onChange={setPreset} label="Camera on the sampler" />
+              <VerifierLegend run={run} scene />
+            </div>
+          ) : (
+            <VerifierLegend run={run} />
+          )
+        }
+        dock={(run) => <Controls run={run} />}
+        readout={(run) => <ReadoutStrip view={run.view} meter={showMeter(run)} />}
+        result={(run, outcome) => (
+          <Suspense fallback={<p role="status">Reading the run…</p>}>
+            <Debrief
+              run={run}
+              outcome={outcome}
+              next={after === null ? null : { id: after.id, title: after.title }}
+              onNext={() => after !== null && go(practice(after.id))}
+              onGraded={entry.graded && !isGraded ? () => go(graded(entry.id)) : null}
+              embedded={embedded}
+            />
+          </Suspense>
         )}
         mirror={(run) => <Mirror run={run} />}
-        debrief={(run, outcome) => (
-          <Debrief
-            run={run}
-            outcome={outcome}
-            next={after === null ? null : { id: after.id, title: after.title }}
-            onNext={() => after !== null && go(practice(after.id))}
-            onPracticeAgain={() => (attempt.mode === 'practice' ? run.restart() : go(practice(entry.id)))}
-            onNewNumbers={() => go(newNumbers(entry.id))}
-            onGraded={entry.graded ? () => go(graded(entry.id)) : null}
-          />
-        )}
-        card={<WorldCard />}
+        parts={partRows(levelId)}
+        howTo={<HowTo levelId={levelId} />}
+        titleBlock={{ model: 'Model of a rejection sampler, after vLLM v0.33.0', clock: 'Clock: rounds, synthetic', leavesOut: <WorldCard /> }}
       />
+    </div>
+  )
+}
+
+/** How to play: the level's own opening line, then the round of one decision. */
+function HowTo({ levelId }: { levelId: VerifierLevelId }) {
+  return (
+    <div className="flex flex-col gap-3" data-vf-howto="">
+      <p data-verifier-prompt="">{VERIFIER_COPY[levelId].prompt}</p>
+      <ol className="list-decimal pl-5">
+        <li>Read the goal line: it says what to beat and when the level ends.</li>
+        <li>Each token has two bars: the draft&apos;s q and the target&apos;s p. Where the level allows it, the bars are cut into the accepted part and the residual.</li>
+        <li>Make the level&apos;s decision in the dock. A prediction comes first where the level asks one, and it cannot be skipped.</li>
+        <li>Draw rounds to watch the rule at work: each draft token is a dot, accepted below the accepted part and rejected above it.</li>
+        <li>At the end, the dock shows your result beside the reference&apos;s.</li>
+      </ol>
     </div>
   )
 }

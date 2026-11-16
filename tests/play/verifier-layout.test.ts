@@ -7,7 +7,8 @@
  *     dispenser, its foot in the target blue (W1's finish review, round 1: a stack drawn as one solid bar is a bar chart);
  *   - it has no axis and no legend of its own: the text it writes is a dish's plates on a paper tag, and names on masking tape;
  *   - it stays in its frame and under the cap of 2,000 marks (A§6.4), in both orientations, with the decomposition on and off;
- *   - the SVG is what the page paints: the React view writes the markup that `frameSvg` writes.
+ *   - the markup of a frame is SVG's own spelling. The page no longer paints this layout (R-T30: its 2D view is the bars of View2D.tsx);
+ *     the layout stays, with these tests, until the kitchen's files leave the tree.
  *
  * Measured by the cap test [measured 2026-11-05 on the branch of W1's finish fixes for The Tasting, round 1, over wave-1 at 905b782]: at
  * most 1,199 marks (a run of three drafts and the chef's extra course, landscape, decomposition on, with every plate's rim, the
@@ -15,10 +16,7 @@
  * every state of the house's runs, against the cap of 2,000. W1-T28's flat stacks drew at most 637.
  */
 import { describe, expect, test } from 'bun:test'
-import { createElement as h } from 'react'
-import { renderToStaticMarkup } from 'react-dom/server'
 import { ROLES } from '@/design/tokens'
-import { View2D } from '@/games/verifier/View2D'
 import { MARK_CAP, PAINTS, frameSvg, layoutFrame, layoutGamma, markCount } from '@es/play/verifier/layout'
 import type { Frame, Mark, Orientation } from '@es/play/verifier/layout'
 import { svgMarkup } from '@es/play/loop/svg'
@@ -26,7 +24,7 @@ import { buildLevel } from '@es/play/verifier/levels'
 import { verifierInit, verifierReduce, verifierSession } from '@es/play/verifier/session'
 import { PLATES } from '@es/play/verifier/types'
 import type { VerifierAction, VerifierState, VerifierView } from '@es/play/verifier/types'
-import { PRACTICE, fakeRun, houseActions, sculptActions, stateAfter } from './verifier-support'
+import { PRACTICE, houseActions, sculptActions, stateAfter } from './verifier-support'
 import { excessPlates } from '@es/play/verifier/state'
 
 const ORIENTATIONS: readonly Orientation[] = ['landscape', 'portrait']
@@ -354,10 +352,7 @@ describe('the draft-length level draws a stack of sixty-four for each position o
   })
 })
 
-describe('the SVG is what the page paints', () => {
-  /** The drawing: the first <svg> of the page's markup (the key under it has glyphs of its own). */
-  const svgIn = (markup: string): string => markup.slice(markup.indexOf('<svg'), markup.indexOf('</svg>') + '</svg>'.length)
-
+describe('the markup of a frame', () => {
   test('the markup of a frame writes the hatching once as a pattern in `defs`, the lamp\'s blur once, and every attribute in SVG\'s own spelling', () => {
     const view = viewOf(stateAfter(buildLevel('exact', 0)))
     const markup = svgMarkup(frameSvg(layoutFrame(view, { orientation: 'landscape' })))
@@ -371,31 +366,5 @@ describe('the SVG is what the page paints', () => {
     expect(markup).not.toMatch(/ (?:strokeWidth|strokeDasharray|strokeOpacity|fillOpacity|fontFamily|fontSize|textAnchor)=/)
     expect(markup).toContain(' stroke-width="')
     expect(markup).not.toMatch(/#[0-9a-fA-F]{3,6}["']/)
-  })
-
-  test('the page paints, on its first render, the landscape frame of the view: byte for byte what `frameSvg` writes', () => {
-    for (const [id, seed] of PRACTICE) {
-      const state = verifierInit(buildLevel(id, seed))
-      const painted = renderToStaticMarkup(h(View2D, { run: fakeRun(state) }))
-      const view = viewOf(state)
-      const frame = view.level === 'gamma' ? layoutGamma(view, { orientation: 'landscape' }) : layoutFrame(view, { orientation: 'landscape', scaffold: !(id === 'greedy-ngram'), outcome: true })
-      expect([id, svgIn(painted)]).toEqual([id, svgMarkup(frameSvg(frame))])
-    }
-  })
-
-  test('a graded run is painted with the plain stacks and no rings: the page asks the layout for what the rules allow', () => {
-    const level = buildLevel('exact', 0)
-    const state = stateAfter(level, { t: 'preset', from: 'p' })
-    const graded = renderToStaticMarkup(h(View2D, { run: fakeRun(state, { mode: 'graded' }) }))
-    expect(graded).not.toContain('agreed')
-    expect(graded).not.toContain('what went out')
-    expect(graded).not.toContain('Distance from her tasting')
-    expect(svgIn(graded)).not.toContain('var(--es-probability-overlap)')
-    expect(svgIn(graded)).not.toContain('var(--es-probability-residual)')
-    const practice = renderToStaticMarkup(h(View2D, { run: fakeRun(state) }))
-    expect(practice).toContain('agreed')
-    expect(practice).toContain('what went out')
-    expect(practice).toContain('Distance from her tasting')
-    expect(svgIn(practice)).toContain('var(--es-probability-overlap)')
   })
 })
