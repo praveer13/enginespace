@@ -19,7 +19,7 @@ export interface Provenance {
 
 export function provenanceOf(meta: TraceMeta): Provenance {
   if (meta.source === 'synthetic') {
-    return { tag: 'synthetic', word: 'synthetic', line: 'A synthetic tape: the step-loop model with seeded jitter. It is not a measurement of any engine.' }
+    return { tag: 'synthetic', word: 'synthetic', line: 'A synthetic trace: the step-loop model with seeded jitter. It is not a measurement of any engine.' }
   }
   const date = meta.capturedAt === undefined ? 'undated' : meta.capturedAt.slice(0, 10)
   const hash = meta.sha256 === undefined ? null : meta.sha256.slice(0, 12)

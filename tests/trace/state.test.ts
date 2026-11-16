@@ -66,7 +66,7 @@ describe('the window', () => {
     expect(text(z)).toBe('Zoomed in as far as it goes.')
     let o = s
     for (let i = 0; i < 40; i++) o = run(o, { t: 'zoom', dir: -1 })
-    expect(text(o)).toBe('The whole tape is in view.')
+    expect(text(o)).toBe('The whole trace is in view.')
   })
 
   test('pan moves a quarter of the window, back and on, and says nothing', () => {
@@ -270,7 +270,7 @@ describe('marking', () => {
     for (const command of [{ t: 'mark' }, { t: 'cause' }, { t: 'remove' }, { t: 'category', category: 'copy' }, { t: 'label', text: 'x' }] as Command[]) {
       const read = reduce(start, command, index, { readOnly: true })
       expect(read.notes).toBe(start.notes)
-      expect(text(read)).toBe('This tape is for reading. It takes no marks.')
+      expect(text(read)).toBe('This trace is for reading. It takes no marks.')
     }
   })
 })

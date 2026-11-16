@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useReducer, useRef, useState, useSyncExternalStore } from 'react'
 import type { EsTrace } from '@es/sim/trace'
+import type { Slot } from '@/design/code'
 import { Readout } from '@/design/components/Readout'
 import { formatReadout } from '@/design/format'
 import { DEFAULT_SETTINGS } from '@/settings/model'
@@ -8,6 +9,7 @@ import { CursorTape } from './CursorTape'
 import { KeysSheet } from './KeysSheet'
 import { MarksTicket } from './MarksTicket'
 import { SpanMirror } from './SpanMirror'
+import { SlotGlyph } from './SlotGlyph'
 import { Tape } from './Tape'
 import { Toolbar } from './Toolbar'
 import { TRACE_KEYS } from './keys'
@@ -23,7 +25,7 @@ import { useViewerKeys } from './useViewerKeys'
 import './trace.css'
 
 /*
- * The trace viewer (TRACKER W1-T09; GAMES.md §2.6 "The Tape"; ARCHITECTURE §6.1, §6.9): a `trace@1` drawn as the night's tape, with
+ * The trace viewer (TRACKER W1-T09; GAMES.md §2.6 "The Tape"; ARCHITECTURE §6.1, §6.9): a `trace@1` drawn as lanes of spans, with
  * Canvas2D lanes that zoom and pan by keys and buttons, spans that are selected, marked and labelled, a DOM mirror of the spans in
  * the window, keyboard movement from edge to edge, and marks that leave in the shape of a `trace-mark` event's data.
  *
@@ -61,6 +63,15 @@ export interface TraceViewProps {
   /** Whether the keys are bound. The learner's setting ("Game keys", WCAG 2.1.4) turns them off as well. */
   shortcuts?: boolean
 }
+
+/** The one colour code as this diagram uses it, each colour with its glyph, in the engine's words. */
+const LEGEND: readonly { slot: Slot; word: string }[] = [
+  { slot: 'blue', word: 'CPU work: a frame or a call' },
+  { slot: 'green', word: 'GPU work: a kernel' },
+  { slot: 'brown', word: 'a copy' },
+  { slot: 'yellow', word: 'a sync' },
+  { slot: 'white', word: 'a note' },
+]
 
 /** How long after the last continuous move the span table lists the window the tape shows [estimated]. */
 const MIRROR_SETTLE_MS = 150
@@ -149,7 +160,7 @@ function Viewer({ trace, traceId, title, headingLevel = 2, initialWindow, defaul
   }, [state.win, state.mirrorWin])
 
   const step = windowAt(index, Math.round((state.win.fromNs + state.win.toNs) / 2))
-  const heading = title ?? (trace.meta.synthetic ? 'The night’s tape' : 'A captured tape')
+  const heading = title ?? (trace.meta.synthetic ? 'A synthetic trace' : 'A captured trace')
 
   return (
     <section ref={container} tabIndex={-1} aria-labelledby={headingId} className="es-trace" data-trace-view="" data-trace={traceId} data-readonly={readOnly || undefined}>
@@ -172,6 +183,23 @@ function Viewer({ trace, traceId, title, headingLevel = 2, initialWindow, defaul
       </header>
       <Toolbar state={state} readOnly={readOnly} onCommand={run} />
       <Tape index={index} state={state} dispatch={dispatch} rail={!readOnly} />
+      {/* The legend is this sheet's own, and not the design Legend: that one's stylesheet would be attached to chunks that do not need it (bundle budgets). */}
+      <ul className="es-trace__legend" aria-label="Legend: trace">
+        {LEGEND.map(({ slot, word }) => (
+          <li key={slot}>
+            <SlotGlyph slot={slot} size="1em" />
+            <span>{word}</span>
+          </li>
+        ))}
+        <li>
+          <svg className="es-trace__pennant" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+            <path d="M3 2.5 13.5 8 3 13.5Z" style={{ fill: 'var(--es-lamp)', stroke: 'var(--es-lamp-ring)' }} />
+          </svg>
+          <span>
+            <strong>now</strong> the cursor
+          </span>
+        </li>
+      </ul>
       <div className="es-trace__panels">
         <CursorTape index={index} cursor={state.cursor} tag={provenance.tag} source={provenance.source} />
         {marks ? (

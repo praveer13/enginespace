@@ -19,6 +19,9 @@ import { syntheticId, syntheticSeed } from '@/trace/ids'
 import { specimenTrace } from '@/trace/specimen'
 import { buildIndex } from '@/trace/model'
 import { encodeTrace, traceChecks, validateTrace } from '@es/sim/trace'
+import { findBanned } from '@/copy/banned'
+import { CATEGORY_WORDS } from '@/trace/marks'
+import { LANE_WORDS, slotOfCategory, slotOfLane, slotOfStyle } from '@/trace/words'
 import { night } from './support'
 
 const trace = specimenTrace(7)
@@ -29,8 +32,8 @@ const count = (markup: string, pattern: RegExp) => markup.match(pattern)?.length
 describe('the viewer’s page', () => {
   const markup = render()
 
-  test('has a heading at the level it is given, over the line that says what the tape is', () => {
-    expect(markup).toMatch(/<h2 id="[^"]+" class="es-type-heading">The night’s tape<\/h2><p class="es-type-body[^"]*">A synthetic tape: the step-loop model with seeded jitter/)
+  test('has a heading at the level it is given, over the line that says what the trace is', () => {
+    expect(markup).toMatch(/<h2 id="[^"]+" class="es-type-heading">A synthetic trace<\/h2><p class="es-type-body[^"]*">A synthetic trace: the step-loop model with seeded jitter/)
     expect(render({ headingLevel: 3, title: 'A lifecycle' })).toMatch(/<h3 id="[^"]+" class="es-type-heading">A lifecycle<\/h3>/)
     expect(count(markup, /<h1/g)).toBe(0)
   })
@@ -41,12 +44,12 @@ describe('the viewer’s page', () => {
 
   test('hides the drawing from assistive technology and says that the table lists what it shows', () => {
     expect(markup).toMatch(/<div class="es-trace__tape" aria-hidden="true" tabindex="-1"[^>]*data-trace-tape=""[^>]*>/)
-    expect(markup).toContain('The tape is drawn on a canvas. The table of spans below lists every span in the window')
+    expect(markup).toContain('The trace is drawn on a canvas. The table of spans below lists every span in the window')
     expect(count(markup, /<canvas /g)).toBe(1)
   })
 
-  test('names every lane in the kitchen’s words with the engine’s term beside it', () => {
-    for (const word of ['expo&#x27;s lane', 'the calls', 'the line']) expect(markup).toContain(word)
+  test('names every lane in the engine’s own term, with the track’s name beside it', () => {
+    for (const word of ['CPU lane', 'CUDA calls', 'GPU lane']) expect(markup).toContain(word)
     for (const name of ['engine core main thread', 'CUDA API', 'GPU stream 0']) expect(markup).toContain(name)
   })
 
@@ -68,7 +71,7 @@ describe('the viewer’s page', () => {
   })
 
   test('has no label field until there is a mark to write on, and says so', () => {
-    expect(markup).toContain('Start a mark, or choose one below, to write words on its tape.')
+    expect(markup).toContain('Start a mark, or choose one below, to write words on it.')
     expect(markup).not.toContain('es-field')
   })
 
@@ -89,13 +92,13 @@ describe('the plates', () => {
   })
 
   test('name what they do in words that begin with what they print', () => {
-    expect(markup).toMatch(/data-command="bell-prev"[^>]*aria-label="Step back: go to the previous step"|aria-label="Step back: go to the previous step"[^>]*data-command="bell-prev"/)
+    expect(markup).toMatch(/data-command="bell-prev"[^>]*aria-label="Previous step: go to the previous step"|aria-label="Previous step: go to the previous step"[^>]*data-command="bell-prev"/)
     expect(markup).toContain('aria-keyshortcuts="J"')
     expect(markup).toContain('aria-keyshortcuts="M"')
   })
 
-  test('are grouped for a screen reader without being an ARIA toolbar, which would promise arrow keys that pan the tape', () => {
-    for (const group of ['Window', 'Cursor', 'Marks', 'Tag the mark']) expect(markup).toContain(`role="group" aria-label="${group}"`)
+  test('are grouped for a screen reader without being an ARIA toolbar, which would promise arrow keys that move the view', () => {
+    for (const group of ['View', 'Cursor', 'Marks', 'Tag the mark']) expect(markup).toContain(`role="group" aria-label="${group}"`)
     expect(markup).not.toContain('role="toolbar"')
   })
 
@@ -104,7 +107,7 @@ describe('the plates', () => {
     expect(reading).not.toContain('data-command="mark"')
     expect(reading).not.toContain('data-command="category-kernel"')
     expect(reading).toContain('data-command="zoom-in"')
-    expect(reading).toContain('This tape is for reading')
+    expect(reading).toContain('This trace is for reading')
   })
 
   test('start with the tag plates, Cancel and Remove disabled: there is no mark to act on', () => {
@@ -221,12 +224,12 @@ describe('the specimen tapes', () => {
 })
 
 describe('a host\'s own line, and a tape with no marks ticket (W1-T19: Back of House shows a lifecycle tape)', () => {
-  const line = 'A synthetic tape: the lifecycle model’s path for this request. It is not a measurement of any engine.'
+  const line = 'A synthetic trace: the lifecycle model’s path for this request. It is not a measurement of any engine.'
 
   test('the line under the heading is the host\'s when it gives one, and the provenance\'s own when it does not', () => {
     expect(render({ about: line })).toContain(`${line}</p>`)
     expect(render({ about: line })).not.toContain('the step-loop model with seeded jitter')
-    expect(render()).toContain('A synthetic tape: the step-loop model with seeded jitter')
+    expect(render()).toContain('A synthetic trace: the step-loop model with seeded jitter')
   })
 
   test('the figures still carry the tape\'s own provenance, whatever the host says: the ns are synthetic', () => {
@@ -244,5 +247,39 @@ describe('a host\'s own line, and a tape with no marks ticket (W1-T19: Back of H
     expect(without).not.toContain('Marks, in time order')
     expect(without).toContain('data-cursor-row="true"')
     expect(without).toContain('data-trace-tape')
+  })
+})
+
+describe('the viewer reads in the engine’s words (REDESIGN 2.7, R-T27)', () => {
+  /** The words a learner reads in the markup: its text and its labels. */
+  const words = (markup: string): string[] => [...markup.matchAll(/>([^<>]+)</g), ...markup.matchAll(/(?:aria-label|title)="([^"]+)"/g)].map((match) => match[1].replace(/&#x27;/g, "'"))
+  const clean = (texts: readonly string[]) => texts.flatMap((text) => findBanned(text).map((found) => `"${found.match}" in "${text}"`))
+
+  test('the viewer, with marks and for reading, uses no banned word or phrase', () => {
+    expect(clean(words(render()))).toEqual([])
+    expect(clean(words(render({ readOnly: true, marks: false })))).toEqual([])
+  })
+
+  test('the keys, the categories and the lanes use none either', () => {
+    expect(clean(TRACE_KEYS.map((key) => key.description))).toEqual([])
+    expect(clean(KEY_GROUPS.map((group) => group.title))).toEqual([])
+    expect(clean(Object.values(CATEGORY_WORDS).flatMap((word) => [word.term, word.kitchen]))).toEqual([])
+    expect(clean(Object.values(LANE_WORDS))).toEqual([])
+  })
+
+  test('has the one colour code in its legend, each colour with its glyph, and the cursor in it', () => {
+    const markup = render()
+    expect(markup).toMatch(/<ul class="es-trace__legend" aria-label="Legend: trace">/)
+    for (const glyph of ['circle', 'hexagon', 'square', 'diamond', 'ring']) expect(markup).toContain(`data-glyph="${glyph}"`)
+    expect(markup).toContain('the cursor')
+  })
+
+  test('a lane, a span and a category each take a slot of the code, so none is told by colour alone', () => {
+    expect(slotOfLane('cpu-thread')).toBe('blue')
+    expect(slotOfLane('gpu-stream')).toBe('green')
+    expect(slotOfStyle('copy')).toBe('brown')
+    expect(slotOfStyle('sync')).toBe('yellow')
+    expect(slotOfCategory('both-idle')).toBe('white')
+    expect(render()).toMatch(/es-tape__glyph[\s\S]*?<span class="es-tape__text">CPU lane/)
   })
 })

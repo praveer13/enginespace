@@ -80,7 +80,7 @@ export function SpanMirror({ index, win, cursor, provenance, dispatch }: SpanMir
   }
 
   return (
-    <Ticket as="section" width="full" hole={false} foot={['Mirror · the spans in the window']} className="es-mirror es-trace__spans" data-mirror="" data-trace-mirror="">
+    <Ticket as="section" width="full" hole={false} foot={['Spans in the window']} className="es-mirror es-trace__spans" data-mirror="" data-trace-mirror="">
       <p data-mirror-summary="">
         {num(touching)} spans touch the window, in {num(groups.length)} lanes. The table lists {num(listed)}
         {touching > listed ? <>: the first {num(ROWS_PER_LANE)} of each lane, and a button under a lane lists more</> : null}. Every ns is {provenance}.
@@ -116,7 +116,7 @@ export function SpanMirror({ index, win, cursor, provenance, dispatch }: SpanMir
             <tbody role="rowgroup">
               <tr role="row" data-empty="">
                 <td colSpan={6} className="py-3" role="cell">
-                  No span touches this window. Pan or zoom out to find the tape.
+                  No span touches this window. Move the view or zoom out to find the trace.
                 </td>
               </tr>
             </tbody>
@@ -144,7 +144,7 @@ export function SpanMirror({ index, win, cursor, provenance, dispatch }: SpanMir
                     role="row"
                     data-lamp={here || undefined}
                     data-cursor-row={here || undefined}
-                    className={clsx('border-b border-paper-rule', here && 'bg-lamp text-paper-ink')}
+                    className={clsx('border-b border-paper-rule', here && 'bg-surface-2 text-paper-ink')}
                   >
                     <th scope="row" role="rowheader" className={clsx('py-2 pr-4 text-left', here ? 'font-bold' : 'font-normal')}>
                       <button

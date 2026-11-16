@@ -9,9 +9,8 @@ import { SlotGlyph } from './SlotGlyph'
 import { LANE_WORDS, slotOfStyle, STYLE_WORDS } from './words'
 
 /*
- * The cursor on the printer's tape (GAMES.md §2.6: "the printer tape is the live readout"): the event the lamp is on, as the
- * printer prints it. The kitchen's word for the lane leads and the engine's term follows (rule 2), the figures are Readouts
- * in ns with the tape's provenance, and nothing here is the true partition of the step, only what the trace says of one event.
+ * The cursor's readout strip: the event the cursor is on, one ruled row for each of its facts. The figures are Readouts in ns with the
+ * trace's provenance, and nothing here is the true partition of the step, only what the trace says of one event.
  */
 
 export interface CursorTapeProps {
@@ -22,7 +21,7 @@ export interface CursorTapeProps {
 }
 
 export function CursorTape({ index, cursor, tag, source }: CursorTapeProps) {
-  if (cursor === null) return <PrinterTape label="The printer: the event under the lamp" lines={[]} empty="No event under the lamp. The tape has none." />
+  if (cursor === null) return <PrinterTape label="The event at the cursor" lines={[]} empty="No event at the cursor. The trace has none." />
   const span = cursor.span
   const lane = index.lanes[index.spanLane[span]]
   const style = styleName(index, span)
@@ -62,5 +61,5 @@ export function CursorTape({ index, cursor, tag, source }: CursorTapeProps) {
     { id: 'duration', label: 'lasts', value: ns(index.trace.spans.durNs[span]) },
     { id: 'corr', label: 'correlation id', value: corr < 0 ? <span>none</span> : <span className="font-numeric">{formatReadout(corr)}</span> },
   ]
-  return <PrinterTape label="The printer: the event under the lamp" lines={lines} />
+  return <PrinterTape label="The event at the cursor" lines={lines} />
 }

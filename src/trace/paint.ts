@@ -1,18 +1,21 @@
 /*
- * The painter: one frame of the tape on a Canvas2D context (GAMES.md §2.6, The Tape; DESIGN.md). It draws the paper and its feed holes,
- * the lanes' perforation, the marks' washes, the bells, the plan's blocks of printer dots, the cursor's lamp and the marks stuck on
- * the rail. It writes no text: every number and every name is DOM over the canvas (D-021, §2.6 rule 7), and the canvas holds
+ * The painter: one frame of the trace on a Canvas2D context (REDESIGN 2.8, "Data Book"). It draws the flat paper and its graticule, the
+ * ruler's ticks, the lanes' rules, the marks' washes, the step boundaries, the spans in the one colour code, the cursor and the marks
+ * on the rail. It writes no text: every number and every name is DOM over the canvas (D-021, §2.6 rule 7), and the canvas holds
  * nothing the table beside it does not.
  *
- * A span is a block of dots in its board colour with an edge in the code's edge colour. Solid kinds are dense dots over their
- * colour, a copy is sparse dots on the paper, a sync is hatching, and a note is an outline. The dots are one pattern tile per kind,
- * shifted with the window so that they travel with the paper as it feeds past. All of it is drawn from the token roles in the theme.
+ * A span is a block in its code colour with an edge in the code's edge colour and the code's glyph repeated across it, in the ink
+ * that reads on the colour, so that no span is told by its colour alone (WCAG 1.4.1). A note is a dashed outline. The glyphs are one
+ * pattern tile per kind, shifted with the window so that they travel with the time as it moves. The cursor is the marker: amber with
+ * its dark edge, a 2 px line and a ring round the span it stands on. All of it is drawn from the token roles in the theme.
  */
+import type { GlyphShape } from '@/design/code'
 import { rowY } from './geometry'
 import type { LaneBox, TapeGeometry } from './geometry'
 import { correlated, spanEnd, spanStart } from './model'
 import type { Cursor, TraceIndex, Win } from './model'
 import { SPAN_STYLES } from './model'
+import type { SpanStyle } from './model'
 import type { Mark } from './marks'
 import { WIDE_PX } from './plan'
 import type { DrawPlan } from './plan'
@@ -20,16 +23,11 @@ import { wash } from './theme'
 import type { TapeTheme } from './theme'
 
 const TAU = Math.PI * 2
-/** The pitch of the dots, in CSS px. */
-const PITCH = 3
-const SPARSE_PITCH = 5
-const HATCH_PITCH = 5
+/** The pitch of the glyphs across a span, in CSS px, and their size. */
+const PITCH = 11
+const GLYPH_R = 2.7
 
-export interface Patterns {
-  readonly dots: CanvasPattern | null
-  readonly sparse: CanvasPattern | null
-  readonly hatch: CanvasPattern | null
-}
+export type Patterns = Readonly<Record<SpanStyle, CanvasPattern | null>>
 
 const cache = new WeakMap<TapeTheme, Map<number, Patterns>>()
 
@@ -44,7 +42,38 @@ function tile(size: number, dpr: number, draw: (c: CanvasRenderingContext2D, px:
   return c.createPattern(canvas, 'repeat')
 }
 
-/** The three pattern tiles of a theme at a pixel ratio, made once. */
+/** One of the code's glyphs, drawn at (x, y) and `r` from its centre to its widest point. */
+function glyph(c: CanvasRenderingContext2D, shape: GlyphShape, x: number, y: number, r: number, color: string): void {
+  c.fillStyle = color
+  c.strokeStyle = color
+  c.lineWidth = Math.max(1, r * 0.45)
+  c.beginPath()
+  if (shape === 'circle' || shape === 'ring') c.arc(x, y, r, 0, TAU)
+  else if (shape === 'square') c.rect(x - r * 0.85, y - r * 0.85, r * 1.7, r * 1.7)
+  else if (shape === 'diamond') {
+    c.moveTo(x, y - r * 1.2)
+    c.lineTo(x + r * 1.2, y)
+    c.lineTo(x, y + r * 1.2)
+    c.lineTo(x - r * 1.2, y)
+    c.closePath()
+  } else if (shape === 'triangle') {
+    c.moveTo(x, y - r * 1.1)
+    c.lineTo(x + r * 1.1, y + r * 0.85)
+    c.lineTo(x - r * 1.1, y + r * 0.85)
+    c.closePath()
+  } else {
+    for (let i = 0; i < 6; i++) {
+      const angle = (TAU * i) / 6
+      if (i === 0) c.moveTo(x + r * Math.cos(angle), y + r * Math.sin(angle))
+      else c.lineTo(x + r * Math.cos(angle), y + r * Math.sin(angle))
+    }
+    c.closePath()
+  }
+  if (shape === 'ring') c.stroke()
+  else c.fill()
+}
+
+/** The glyph tiles of a theme at a pixel ratio, one per kind of span, made once. */
 export function patternsFor(theme: TapeTheme, dpr: number): Patterns {
   let byRatio = cache.get(theme)
   if (byRatio === undefined) {
@@ -53,36 +82,20 @@ export function patternsFor(theme: TapeTheme, dpr: number): Patterns {
   }
   const known = byRatio.get(dpr)
   if (known !== undefined) return known
-  const made: Patterns = {
-    // Printer dots, in the ink of the block's edge, over the block's colour.
-    dots: tile(PITCH, dpr, (c, px) => {
-      c.fillStyle = theme.paperInk
-      c.globalAlpha = 0.32
-      c.beginPath()
-      c.arc(px / 2, px / 2, 0.62 * dpr, 0, TAU)
-      c.fill()
+  const made = Object.fromEntries(
+    SPAN_STYLES.map((style) => {
+      const ink = theme.styles[style]
+      // A note is hollow: its ring is in the neutral edge. Every other kind's glyph is in the ink that reads on its colour.
+      const color = style === 'note' ? theme.edge : ink.ink
+      return [
+        style,
+        tile(PITCH, dpr, (c, px) => {
+          c.scale(px / PITCH, px / PITCH)
+          glyph(c, ink.glyph, PITCH / 2, PITCH / 2, GLYPH_R, color)
+        }),
+      ]
     }),
-    // A copy: large sparse dots on the paper, the dumbwaiter running with nothing cooking.
-    sparse: tile(SPARSE_PITCH, dpr, (c, px) => {
-      c.fillStyle = theme.styles.copy.edge
-      c.beginPath()
-      c.arc(px / 2, px / 2, 1.35 * dpr, 0, TAU)
-      c.fill()
-    }),
-    // A sync: hatching, "Heard!".
-    hatch: tile(HATCH_PITCH, dpr, (c, px) => {
-      c.strokeStyle = theme.styles.sync.edge
-      c.lineWidth = 1.2 * dpr
-      c.beginPath()
-      c.moveTo(-1, px + 1)
-      c.lineTo(px + 1, -1)
-      c.moveTo(-1, 1)
-      c.lineTo(1, -1)
-      c.moveTo(px - 1, px + 1)
-      c.lineTo(px + 1, px - 1)
-      c.stroke()
-    }),
-  }
+  ) as Record<SpanStyle, CanvasPattern | null>
   byRatio.set(dpr, made)
   return made
 }
@@ -109,23 +122,25 @@ export interface PaintInput {
 /** The x of a time, unclamped. */
 const xOf = (g: TapeGeometry, win: Win, ns: number): number => g.plotX + ((ns - win.fromNs) * g.plotW) / (win.toNs - win.fromNs)
 
-function holes(ctx: CanvasRenderingContext2D, xs: readonly number[], y: number, r: number): void {
-  ctx.beginPath()
-  for (const x of xs) {
-    ctx.moveTo(x + r, y)
-    ctx.arc(x, y, r, 0, TAU)
-  }
-  ctx.fill()
-}
-
-function perforation(ctx: CanvasRenderingContext2D, x0: number, x1: number, y: number): void {
+function rule(ctx: CanvasRenderingContext2D, x0: number, x1: number, y: number): void {
   ctx.beginPath()
   ctx.moveTo(x0, y)
   ctx.lineTo(x1, y)
   ctx.stroke()
 }
 
-/** The ticks of the ruler as holes, major and minor, and the foot's holes, which are the same marks without numbers. */
+/** Short vertical ticks from `y` for `length` px (up when negative), one per x: the axis's graduations. */
+function ticks(ctx: CanvasRenderingContext2D, xs: readonly number[], y: number, length: number): void {
+  ctx.beginPath()
+  for (const x of xs) {
+    const at = Math.round(x) + 0.5
+    ctx.moveTo(at, y)
+    ctx.lineTo(at, y + length)
+  }
+  ctx.stroke()
+}
+
+/** The ticks of the ruler, major and minor. */
 export interface RulerHoles {
   readonly minor: readonly number[]
   readonly major: readonly number[]
@@ -136,33 +151,35 @@ export function paintTape(input: PaintInput, holesOf: RulerHoles): void {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
   ctx.clearRect(0, 0, g.width, g.height)
 
-  // The paper, with its left edge lifted off the steel.
+  // The paper, flat, and the label column beside it.
   const paperX = g.gutter
   ctx.fillStyle = theme.paper
   ctx.fillRect(paperX, 0, g.width - paperX, g.height)
   if (g.gutter > 0) {
-    const shade = ctx.createLinearGradient(paperX - 8, 0, paperX, 0)
-    shade.addColorStop(0, wash(theme.paperInk, 0))
-    shade.addColorStop(1, wash(theme.paperInk, 26))
-    ctx.fillStyle = shade
-    ctx.fillRect(paperX - 8, 0, 8, g.height)
+    ctx.fillStyle = theme.gutter
+    ctx.fillRect(0, 0, paperX, g.height)
     ctx.fillStyle = theme.edge
     ctx.fillRect(paperX, 0, 1, g.height)
   }
 
-  // The feed-hole rails: the ruler along the top, and the foot. A hole shows the steel under the paper.
-  ctx.fillStyle = theme.steelDeep
-  holes(ctx, holesOf.minor, 11, 2.1)
-  holes(ctx, holesOf.major, 11, 3.5)
-  holes(ctx, holesOf.minor, g.foot.y + g.foot.h / 2, 2.1)
-  holes(ctx, holesOf.major, g.foot.y + g.foot.h / 2, 3.5)
+  // The graticule: a faint rule down the lanes at each major tick, where the time axis is read.
   ctx.strokeStyle = theme.paperRule
   ctx.lineWidth = 1
-  ctx.setLineDash([1.5, 3])
-  perforation(ctx, paperX, g.width, g.ruler.h - 0.5)
-  perforation(ctx, paperX, g.width, g.foot.y + 0.5)
-  for (const lane of g.lanes) perforation(ctx, paperX, g.width, lane.y + 0.5)
-  ctx.setLineDash([])
+  const lanesStart = g.lanes.length > 0 ? g.lanes[0].y : g.ruler.h
+  ticks(ctx, holesOf.major, lanesStart, g.foot.y - lanesStart)
+
+  // The axis: its line along the foot of the ruler, and ticks up from it, the major ones longer.
+  ctx.strokeStyle = theme.edge
+  ctx.beginPath()
+  ctx.moveTo(paperX, g.ruler.h - 0.5)
+  ctx.lineTo(g.width, g.ruler.h - 0.5)
+  ctx.stroke()
+  ticks(ctx, holesOf.minor, g.ruler.h - 1, -5)
+  ticks(ctx, holesOf.major, g.ruler.h - 1, -10)
+  // Each lane is ruled off from the next; the foot closes the last.
+  ctx.strokeStyle = theme.paperRule
+  for (const lane of g.lanes) rule(ctx, paperX, g.width, lane.y + 0.5)
+  rule(ctx, paperX, g.width, g.foot.y + 0.5)
 
   const lanesTop = g.lanes.length > 0 ? g.lanes[0].y : g.ruler.h
   const lanesBottom = g.foot.y
@@ -180,32 +197,30 @@ export function paintTape(input: PaintInput, holesOf: RulerHoles): void {
     if (xOf(g, win, mark.toNs) <= g.plotX + g.plotW) ctx.fillRect(x1 - 1.5, lanesTop, 1.5, lanesBottom - lanesTop)
   }
 
-  paintLamp(input, lanesBottom)
-
-  // The bells: a perforation rule down every lane at each step mark, and a small bell at its head.
+  // The step boundaries: a dashed rule down every lane, with a short cap at its head.
   ctx.strokeStyle = theme.edge
   ctx.lineWidth = 1
   ctx.setLineDash([2, 3])
-  const bells: number[] = []
+  const edges: number[] = []
   for (const step of index.steps) {
     for (const ns of [step.fromNs, step.toNs]) {
       if (ns < win.fromNs || ns > win.toNs) continue
       const x = Math.round(xOf(g, win, ns)) + 0.5
-      if (bells[bells.length - 1] === x) continue
-      bells.push(x)
+      if (edges[edges.length - 1] === x) continue
+      edges.push(x)
     }
   }
   ctx.beginPath()
-  for (const x of bells) {
+  for (const x of edges) {
     ctx.moveTo(x, lanesTop)
     ctx.lineTo(x, lanesBottom)
   }
   ctx.stroke()
   ctx.setLineDash([])
-  ctx.fillStyle = theme.steelDeep
-  for (const x of bells) bell(ctx, x, lanesTop + 1)
+  ctx.fillStyle = theme.edge
+  for (const x of edges) ctx.fillRect(x - 3.5, lanesTop, 7, 2)
 
-  // The spans: dots in the board colour, outlined in the code's edge. Wide blocks first, then the lines that are too thin to be blocks.
+  // The spans: blocks in the code's colour with its glyph, outlined in the code's edge. Wide blocks first, then the lines that are too thin to be blocks.
   const scale = g.plotW / (win.toNs - win.fromNs)
   const phase = -win.fromNs * scale
   for (let style = 0; style < SPAN_STYLES.length; style++) {
@@ -232,19 +247,9 @@ export function paintTape(input: PaintInput, holesOf: RulerHoles): void {
       }
     }
     if (wideCount > 0) {
-      if (name === 'frame' || name === 'launch' || name === 'kernel') {
-        ctx.fillStyle = ink.fill
-        ctx.fill(wide)
-        paintPattern(ctx, patterns.dots, wide, phase, dpr)
-      } else if (name === 'copy') {
-        ctx.fillStyle = theme.paper
-        ctx.fill(wide)
-        paintPattern(ctx, patterns.sparse, wide, phase, dpr)
-      } else if (name === 'sync') {
-        ctx.fillStyle = ink.fill
-        ctx.fill(wide)
-        paintPattern(ctx, patterns.hatch, wide, phase, dpr)
-      }
+      ctx.fillStyle = name === 'note' ? theme.paper : ink.fill
+      ctx.fill(wide)
+      paintPattern(ctx, patterns[name], wide, phase, dpr)
       ctx.strokeStyle = ink.edge
       ctx.lineWidth = 1
       if (name === 'note') ctx.setLineDash([3, 2])
@@ -255,7 +260,7 @@ export function paintTape(input: PaintInput, holesOf: RulerHoles): void {
     ctx.fill(thin)
   }
 
-  paintCursor(input, lanesTop, lanesBottom)
+  paintCursor(input, lanesTop)
   if (input.pendingNs !== null && input.pendingNs >= win.fromNs && input.pendingNs <= win.toNs) {
     const x = Math.round(xOf(g, win, input.pendingNs)) + 0.5
     ctx.strokeStyle = theme.paperInk
@@ -272,7 +277,7 @@ export function paintTape(input: PaintInput, holesOf: RulerHoles): void {
   paintPending(input)
 }
 
-/** The mark being made: a strip of tape, dashed, from where it began to the edge the cursor is on, which stretches as the cursor walks. */
+/** The mark being made: a slip, dashed, from where it began to the edge the cursor is on, which stretches as the cursor walks. */
 function paintPending(input: PaintInput): void {
   const { ctx, g, theme, win, cursor, index, pendingNs } = input
   if (pendingNs === null || cursor === null || g.rail.h === 0) return
@@ -286,7 +291,7 @@ function paintPending(input: PaintInput): void {
   ctx.clip()
   const x0 = Math.max(g.plotX, a)
   const x1 = Math.max(Math.min(g.plotX + g.plotW, b), x0 + 2)
-  ctx.fillStyle = wash(theme.tape, 70)
+  ctx.fillStyle = theme.well
   ctx.fillRect(x0, g.rail.y + 4, x1 - x0, g.rail.h - 8)
   ctx.strokeStyle = theme.paperInk
   ctx.lineWidth = 1.5
@@ -301,17 +306,6 @@ function paintPattern(ctx: CanvasRenderingContext2D, pattern: CanvasPattern | nu
   pattern.setTransform(new DOMMatrix().translate(phase, 0).scale(1 / dpr))
   ctx.fillStyle = pattern
   ctx.fill(path)
-}
-
-/** A bell: a dome on a rim, the step mark's head. */
-function bell(ctx: CanvasRenderingContext2D, x: number, y: number): void {
-  ctx.beginPath()
-  ctx.moveTo(x - 4.5, y + 8)
-  ctx.quadraticCurveTo(x - 4.5, y + 0.5, x, y + 0.5)
-  ctx.quadraticCurveTo(x + 4.5, y + 0.5, x + 4.5, y + 8)
-  ctx.closePath()
-  ctx.fill()
-  ctx.fillRect(x - 5.5, y + 8, 11, 1.5)
 }
 
 interface CursorBox {
@@ -342,34 +336,11 @@ function cursorBoxOf(input: PaintInput): CursorBox | null {
 }
 
 /**
- * The heat lamp's light (DESIGN.md, "The One Lamp Rule"): the cursor's span in an edgeless pool on the paper. It is painted under
- * the ink, as light falls on paper, so the blocks keep their board colours.
+ * The cursor, which is the marker (REDESIGN 2.8, the One Marker Rule): a ring round the span it stands on, and the "now" line down
+ * the lanes at the edge it is on, each amber with its dark edge. The partners of the span's correlation id are joined to it by a
+ * dashed link, which joins a call to its kernel.
  */
-function paintLamp(input: PaintInput, lanesBottom: number): void {
-  const { ctx, g, theme } = input
-  const at = cursorBoxOf(input)
-  if (at === null || !at.visible) return
-  const reach = Math.max(34, (at.x1 - at.x0) / 2 + 22)
-  ctx.save()
-  ctx.beginPath()
-  ctx.rect(g.plotX, g.ruler.h, g.plotW, lanesBottom - g.ruler.h)
-  ctx.clip()
-  ctx.translate(at.cx, at.cy)
-  ctx.scale(reach / 24, 1)
-  const pool = ctx.createRadialGradient(0, 0, 0, 0, 0, 24)
-  pool.addColorStop(0, wash(theme.lamp, 88))
-  pool.addColorStop(0.55, wash(theme.lamp, 42))
-  pool.addColorStop(1, wash(theme.lamp, 0))
-  ctx.fillStyle = pool
-  ctx.fillRect(-24, -at.box.rowH / 2 - 20, 48, at.box.rowH + 40)
-  ctx.restore()
-}
-
-/**
- * The lamp's filament: a ring round the cursor's span, and the reading line down the lanes at the edge the cursor stands on. The
- * partners of the span's correlation id are joined to it by a dashed link, which joins a call to its dish.
- */
-function paintCursor(input: PaintInput, lanesTop: number, lanesBottom: number): void {
+function paintCursor(input: PaintInput, lanesTop: number): void {
   const { ctx, g, theme, index, win } = input
   const at = cursorBoxOf(input)
   if (at === null) return
@@ -391,35 +362,28 @@ function paintCursor(input: PaintInput, lanesTop: number, lanesBottom: number): 
       ctx.stroke()
       ctx.setLineDash([])
     }
-    // The filament: a ring of paper under a ring of lamp-ring, so that it stands out on any block, and the lamp's own light
-    // spilling above it, as it does above a focused control (DESIGN.md, "Do": the focus ring with the lamp's glow above it).
+    // The ring: paper under the marker's edge under its amber, so that it stands out on any block, and tells from the focus ring, which is ink.
     const w = Math.max(at.x1 - at.x0, 2) + 3
-    ctx.save()
-    ctx.shadowColor = wash(theme.lamp, 85)
-    ctx.shadowBlur = 14
-    ctx.shadowOffsetY = -3
-    ctx.strokeStyle = theme.paper
-    ctx.lineWidth = 4
-    ctx.strokeRect(at.x0 - 2.5, at.y - 2.5, w + 2, at.box.rowH + 5)
-    ctx.restore()
-    ctx.strokeStyle = theme.lampRing
-    ctx.lineWidth = 2
-    ctx.strokeRect(at.x0 - 1.5, at.y - 1.5, w, at.box.rowH + 3)
+    const ring = (x: number, y: number, width: number, height: number, color: string, line: number) => {
+      ctx.strokeStyle = color
+      ctx.lineWidth = line
+      ctx.strokeRect(x, y, width, height)
+    }
+    ring(at.x0 - 1.5, at.y - 1.5, w, at.box.rowH + 3, theme.paper, 7)
+    ring(at.x0 - 1.5, at.y - 1.5, w, at.box.rowH + 3, theme.lampRing, 5)
+    ring(at.x0 - 1.5, at.y - 1.5, w, at.box.rowH + 3, theme.lamp, 3)
   }
   if (at.edgeX >= g.plotX && at.edgeX <= g.plotX + g.plotW) {
-    const x = Math.round(at.edgeX) + 0.5
+    // The line: 2 px of amber with a 1 px edge on each side, from the top of the lanes to the foot, where its word stands.
+    const x = Math.round(at.edgeX)
     ctx.fillStyle = theme.lampRing
-    ctx.fillRect(x - 0.75, lanesTop, 1.5, lanesBottom - lanesTop)
-    ctx.beginPath()
-    ctx.moveTo(x - 5, lanesTop - 6)
-    ctx.lineTo(x + 5, lanesTop - 6)
-    ctx.lineTo(x, lanesTop)
-    ctx.closePath()
-    ctx.fill()
+    ctx.fillRect(x - 2, lanesTop, 4, g.foot.y + g.foot.h - lanesTop)
+    ctx.fillStyle = theme.lamp
+    ctx.fillRect(x - 1, lanesTop, 2, g.foot.y + g.foot.h - lanesTop)
   }
 }
 
-/** The rail: each mark as masking tape stuck across it, torn at both ends, with its category's edge below. */
+/** The rail: each mark as a paper slip across it, with its category's edge below. */
 function paintRail(input: PaintInput): void {
   const { ctx, g, theme, win, marks, active, cause, index } = input
   const top = g.rail.y + 4
@@ -433,9 +397,13 @@ function paintRail(input: PaintInput): void {
     const x0 = xOf(g, win, mark.fromNs)
     const x1 = Math.max(xOf(g, win, mark.toNs), x0 + 14)
     const category = mark.category === null ? null : theme.categories[mark.category]
-    tape(ctx, x0, x1, top, h, theme.tape)
+    ctx.fillStyle = theme.well
+    ctx.fillRect(x0, top, x1 - x0, h)
+    ctx.strokeStyle = theme.edge
+    ctx.lineWidth = 1
+    ctx.strokeRect(x0 + 0.5, top + 0.5, x1 - x0 - 1, h - 1)
     ctx.fillStyle = category === null ? theme.edge : category.edge
-    ctx.fillRect(x0 + 2, top + h - 3, Math.max(0, x1 - x0 - 4), 3)
+    ctx.fillRect(x0 + 1, top + h - 4, Math.max(0, x1 - x0 - 2), 3)
     if (mark.id === active) {
       ctx.strokeStyle = theme.paperInk
       ctx.lineWidth = 2
@@ -460,7 +428,7 @@ function paintRail(input: PaintInput): void {
   paintCause(input)
 }
 
-/** The span named as the cause: a ring of ink in dashes round it, the learner's own mark, which is not the lamp's. */
+/** The span named as the cause: a ring of ink in dashes round it, the learner's own mark, which is not the cursor's. */
 function paintCause(input: PaintInput): void {
   const { ctx, g, theme, win, cause, index } = input
   if (cause === null) return
@@ -481,19 +449,4 @@ function paintCause(input: PaintInput): void {
   ctx.setLineDash([4, 2])
   ctx.strokeRect(x0 - 3.5, y - 3.5, x1 - x0 + 7, box.rowH + 7)
   ctx.restore()
-}
-
-/** A strip of masking tape: the roll's colour, a lit top edge and a torn end at each side. */
-function tape(ctx: CanvasRenderingContext2D, x0: number, x1: number, y: number, h: number, color: string): void {
-  const tooth = 3
-  const teeth = Math.max(2, Math.floor(h / 4))
-  ctx.fillStyle = color
-  ctx.beginPath()
-  ctx.moveTo(x0, y)
-  ctx.lineTo(x1, y)
-  for (let i = 1; i <= teeth; i++) ctx.lineTo(x1 - (i % 2 === 0 ? 0 : tooth), y + (h * i) / teeth)
-  ctx.lineTo(x0, y + h)
-  for (let i = teeth - 1; i >= 0; i--) ctx.lineTo(x0 + (i % 2 === 0 ? 0 : tooth), y + (h * i) / teeth)
-  ctx.closePath()
-  ctx.fill()
 }
