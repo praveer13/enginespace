@@ -1,71 +1,61 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 146" width="360" height="146" fill="none" stroke="currentColor" stroke-width="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 240" width="360" height="240">
   <title>Rows wasted by a decode batch of 1 to 24 rows under vLLM's list and under SGLang's, drawn to one scale</title>
   <desc>Two rows of bars, one bar for each batch size from 1 to 24 rows, as tall as the rows the batch is padded by. The top row is vLLM's default list of sizes and the bottom row SGLang's decode buckets. They differ only for the batches of 9 to 12 rows, which vLLM pads to 16 and SGLang to 12, because SGLang has a bucket at 12 and vLLM has none.</desc>
-  <g fill="currentColor" fill-opacity="0.34">
-    <rect x="30" y="52" width="10" height="0"/>
-    <rect x="43" y="52" width="10" height="0"/>
-    <rect x="56" y="46" width="10" height="6"/>
-    <rect x="69" y="52" width="10" height="0"/>
-    <rect x="82" y="34" width="10" height="18"/>
-    <rect x="95" y="40" width="10" height="12"/>
-    <rect x="108" y="46" width="10" height="6"/>
-    <rect x="121" y="52" width="10" height="0"/>
-    <rect x="134" y="10" width="10" height="42"/>
-    <rect x="147" y="16" width="10" height="36"/>
-    <rect x="160" y="22" width="10" height="30"/>
-    <rect x="173" y="28" width="10" height="24"/>
-    <rect x="186" y="34" width="10" height="18"/>
-    <rect x="199" y="40" width="10" height="12"/>
-    <rect x="212" y="46" width="10" height="6"/>
-    <rect x="225" y="52" width="10" height="0"/>
-    <rect x="238" y="10" width="10" height="42"/>
-    <rect x="251" y="16" width="10" height="36"/>
-    <rect x="264" y="22" width="10" height="30"/>
-    <rect x="277" y="28" width="10" height="24"/>
-    <rect x="290" y="34" width="10" height="18"/>
-    <rect x="303" y="40" width="10" height="12"/>
-    <rect x="316" y="46" width="10" height="6"/>
-    <rect x="329" y="52" width="10" height="0"/>
-    <rect x="30" y="118" width="10" height="0"/>
-    <rect x="43" y="118" width="10" height="0"/>
-    <rect x="56" y="112" width="10" height="6"/>
-    <rect x="69" y="118" width="10" height="0"/>
-    <rect x="82" y="100" width="10" height="18"/>
-    <rect x="95" y="106" width="10" height="12"/>
-    <rect x="108" y="112" width="10" height="6"/>
-    <rect x="121" y="118" width="10" height="0"/>
-    <rect x="134" y="100" width="10" height="18"/>
-    <rect x="147" y="106" width="10" height="12"/>
-    <rect x="160" y="112" width="10" height="6"/>
-    <rect x="173" y="118" width="10" height="0"/>
-    <rect x="186" y="100" width="10" height="18"/>
-    <rect x="199" y="106" width="10" height="12"/>
-    <rect x="212" y="112" width="10" height="6"/>
-    <rect x="225" y="118" width="10" height="0"/>
-    <rect x="238" y="76" width="10" height="42"/>
-    <rect x="251" y="82" width="10" height="36"/>
-    <rect x="264" y="88" width="10" height="30"/>
-    <rect x="277" y="94" width="10" height="24"/>
-    <rect x="290" y="100" width="10" height="18"/>
-    <rect x="303" y="106" width="10" height="12"/>
-    <rect x="316" y="112" width="10" height="6"/>
-    <rect x="329" y="118" width="10" height="0"/>
-  </g>
-  <path d="M30 52H342M30 118H342"/>
-  <g stroke="none" fill="currentColor" font-size="9">
-    <text x="4" y="14">vLLM</text>
-    <text x="4" y="80">SGLang</text>
-  </g>
-  <g stroke="none" fill="currentColor" font-size="8" text-anchor="middle">
-    <text x="35" y="130">1</text>
-    <text x="74" y="130">4</text>
-    <text x="126" y="130">8</text>
-    <text x="178" y="130">12</text>
-    <text x="230" y="130">16</text>
-    <text x="282" y="130">20</text>
-    <text x="334" y="130">24</text>
-  </g>
-  <g stroke="none" fill="currentColor" font-size="8">
-    <text x="30" y="142">rows in the batch</text>
-  </g>
+  <rect width="360" height="240" fill="#fafaf6"/>
+  <g class="graticule" fill="none" stroke="#c2c8bd"><path d="M52 14v56M60 14v56M68 14v56M76 14v56M84 14v56M92 14v56M100 14v56M108 14v56M116 14v56M124 14v56M132 14v56M140 14v56M148 14v56M156 14v56M164 14v56M172 14v56M180 14v56M188 14v56M196 14v56M204 14v56M212 14v56M220 14v56M228 14v56M236 14v56M244 14v56M252 14v56M260 14v56M268 14v56M276 14v56M284 14v56M292 14v56M300 14v56M308 14v56M316 14v56M324 14v56M332 14v56M340 14v56M348 14v56M52 14h297.6M52 22h297.6M52 30h297.6M52 38h297.6M52 46h297.6M52 54h297.6M52 62h297.6M52 70h297.6" stroke-width="0.5" stroke-opacity="0.55"/><path d="M52 14v56M92 14v56M132 14v56M172 14v56M212 14v56M252 14v56M292 14v56M332 14v56M52 14h297.6M52 54h297.6" stroke-width="0.75"/></g>
+  <text x="4" y="46" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">vLLM</text>
+  <text x="47" y="18" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="end" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">7</text>
+  <g class="bar" data-slot="white"><rect x="77.8" y="62" width="10.4" height="8" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="102.6" y="46" width="10.4" height="24" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="115" y="54" width="10.4" height="16" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="127.4" y="62" width="10.4" height="8" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="152.2" y="14" width="10.4" height="56" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="164.6" y="22" width="10.4" height="48" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="177" y="30" width="10.4" height="40" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="189.4" y="38" width="10.4" height="32" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="201.8" y="46" width="10.4" height="24" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="214.2" y="54" width="10.4" height="16" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="226.6" y="62" width="10.4" height="8" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="251.4" y="14" width="10.4" height="56" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="263.8" y="22" width="10.4" height="48" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="276.2" y="30" width="10.4" height="40" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="288.6" y="38" width="10.4" height="32" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="301" y="46" width="10.4" height="24" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="313.4" y="54" width="10.4" height="16" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="325.8" y="62" width="10.4" height="8" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <path d="M52 70H349.6" fill="none" stroke="#5f666d" stroke-width="1"/>
+  <g class="graticule" fill="none" stroke="#c2c8bd"><path d="M52 94v56M60 94v56M68 94v56M76 94v56M84 94v56M92 94v56M100 94v56M108 94v56M116 94v56M124 94v56M132 94v56M140 94v56M148 94v56M156 94v56M164 94v56M172 94v56M180 94v56M188 94v56M196 94v56M204 94v56M212 94v56M220 94v56M228 94v56M236 94v56M244 94v56M252 94v56M260 94v56M268 94v56M276 94v56M284 94v56M292 94v56M300 94v56M308 94v56M316 94v56M324 94v56M332 94v56M340 94v56M348 94v56M52 94h297.6M52 102h297.6M52 110h297.6M52 118h297.6M52 126h297.6M52 134h297.6M52 142h297.6M52 150h297.6" stroke-width="0.5" stroke-opacity="0.55"/><path d="M52 94v56M92 94v56M132 94v56M172 94v56M212 94v56M252 94v56M292 94v56M332 94v56M52 94h297.6M52 134h297.6" stroke-width="0.75"/></g>
+  <text x="4" y="126" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">SGLang</text>
+  <text x="47" y="98" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="end" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">7</text>
+  <g class="bar" data-slot="white"><rect x="77.8" y="142" width="10.4" height="8" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="102.6" y="126" width="10.4" height="24" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="115" y="134" width="10.4" height="16" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="127.4" y="142" width="10.4" height="8" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="152.2" y="126" width="10.4" height="24" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="164.6" y="134" width="10.4" height="16" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="177" y="142" width="10.4" height="8" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="201.8" y="126" width="10.4" height="24" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="214.2" y="134" width="10.4" height="16" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="226.6" y="142" width="10.4" height="8" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="251.4" y="94" width="10.4" height="56" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="263.8" y="102" width="10.4" height="48" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="276.2" y="110" width="10.4" height="40" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="288.6" y="118" width="10.4" height="32" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="301" y="126" width="10.4" height="24" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="313.4" y="134" width="10.4" height="16" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="325.8" y="142" width="10.4" height="8" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <path d="M52 150H349.6" fill="none" stroke="#5f666d" stroke-width="1"/>
+  <text x="58.2" y="165" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">1</text>
+  <text x="95.4" y="165" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">4</text>
+  <text x="145" y="165" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">8</text>
+  <text x="194.6" y="165" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">12</text>
+  <text x="244.2" y="165" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">16</text>
+  <text x="293.8" y="165" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">20</text>
+  <text x="343.4" y="165" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">24</text>
+  <text x="349.6" y="179" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="end" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">rows in the batch</text>
+  <g class="dim" data-value="9 to 12 rows: 16 against 12"><path d="M151.2 192v8M200.8 192v8M151.2 196H200.8" fill="none" stroke="#5f666d" stroke-width="1"/></g>
+  <text x="176" y="211" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">9 to 12 rows: 16 against 12</text>
+  <g class="key" data-slot="white"><rect x="4" y="220" width="16" height="12" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="glyph" data-slot="white"><circle cx="12" cy="226" r="3" fill="none" stroke="#5f666d" stroke-width="1.5"/></g>
+  <text x="24" y="230" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">padding rows, wasted</text>
 </svg>

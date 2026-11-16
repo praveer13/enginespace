@@ -63,6 +63,7 @@ import {
   warningHundredths,
   wrongHits,
 } from './tr5a-demos.ts'
+import { cells } from './figure-kit.ts'
 import { FIGURES } from './tr5a-figures.ts'
 import { read, repo } from './support.ts'
 
@@ -563,11 +564,14 @@ describe('lesson 1: what each kind of group holds', () => {
 
   test('the figure draws the document\'s request: the kept blocks, and the pages that hold them', () => {
     const svg = read('public/figures/tr5a/l1-block-tables.svg')
-    const kept = [...svg.matchAll(/<text x="[\d.]+" y="[\d.]+">p(\d+)<\/text>/g)].map((m) => Number(m[1]))
+    const kept = [...svg.matchAll(/>p(\d+)<\/text>/g)].map((m) => Number(m[1]))
     expect(kept).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
-    // Seven filled squares in the full row, and two in each sliding row; five struck through in each of those.
-    expect((svg.match(/<rect /g) ?? []).length).toBe(21)
-    expect((svg.match(/L\d+ \d+/g) ?? []).length).toBe(10)
+    // Seven held cells in the full row, and two in each sliding row; five let go and struck through in each of those.
+    expect(cells(svg, 'blue')).toBe(11)
+    expect(cells(svg, 'white')).toBe(10)
+    expect((svg.match(/L[\d.]+ [\d.]+/g) ?? []).length).toBe(10)
+    // Each row says how many it keeps, with a dimension line.
+    expect([...svg.matchAll(/data-value="(\d+ kept)"/g)].map((m) => m[1])).toEqual(['7 kept', '2 kept', '2 kept'])
   })
 })
 
@@ -652,8 +656,13 @@ describe('lesson 2: how the layers become groups of one page size', () => {
 
   test('the figure is the document\'s memory layout: eleven rows of ten pieces, in three groups of 7, 2 and 2', () => {
     const svg = read('public/figures/tr5a/l2-one-block-many-pieces.svg')
-    const groups = [...svg.matchAll(/<g fill="currentColor" fill-opacity="([\d.]+)">([\s\S]*?)<\/g>/g)].map((m) => (m[2].match(/<rect /g) ?? []).length)
-    expect(groups).toEqual([70, 20, 20])
+    expect(cells(svg, 'blue')).toBe(110)
+    // The rows fall in three groups, set apart by a gap, and each group has a dimension line named for it.
+    const ys = [...new Set([...svg.matchAll(/<g class="cell" data-slot="blue"><rect x="[\d.]+" y="([\d.]+)"/g)].map((m) => Number(m[1])))].sort((a, b) => a - b)
+    const sizes: number[] = []
+    ys.forEach((y, i) => (i > 0 && y - ys[i - 1] > 14 ? sizes.push(1) : sizes.length === 0 ? sizes.push(1) : sizes[sizes.length - 1]++))
+    expect(sizes).toEqual([7, 2, 2])
+    expect([...svg.matchAll(/<g class="dim" data-value="(full|sliding)"/g)].map((m) => m[1])).toEqual(['full', 'sliding', 'sliding'])
   })
 })
 
@@ -695,17 +704,19 @@ describe('lesson 3: the hit that every group accepts', () => {
 
   test('the figure draws both caches: the cached blocks, the edges each group accepts, and the one edge that all three accept', () => {
     const svg = read('public/figures/tr5a/l3-intersection.svg')
-    const cachedSquares = (svg.match(/<g fill="currentColor" fill-opacity="0\.16">([\s\S]*?)<\/g>/)?.[1].match(/<rect /g) ?? []).length
-    const gaps = (svg.match(/<g stroke-width="1" stroke-dasharray="3 3">([\s\S]*?)<\/g>/)?.[1].match(/<rect /g) ?? []).length
     const cachedBlocks = (c: typeof HIT_A) => c.full.length + c.sw0.length + c.sw1.length
+    const cachedSquares = cells(svg, 'green') + cells(svg, 'yellow')
     expect(cachedSquares).toBe(cachedBlocks(HIT_A) + cachedBlocks(HIT_B))
-    expect(cachedSquares + gaps).toBe(2 * 3 * 11)
-    const triangles = (svg.match(/Z/g) ?? []).length
+    expect(cachedSquares + cells(svg, 'white')).toBe(2 * 3 * 11)
+    // A cached block is green where the hit that every group accepts covers it, and yellow where it does not: the first cache's hit is 9 blocks.
+    const sharedBy = (c: typeof HIT_A) => [c.full, c.sw0, c.sw1].reduce((sum, row) => sum + row.filter((b) => b < hitLoop(c).blocks).length, 0)
+    expect(cells(svg, 'green')).toBe(sharedBy(HIT_A) + sharedBy(HIT_B))
+    // A bar under a row is an edge that the group accepts (the key's bar is not one).
     const edges = (c: typeof HIT_A) => Object.values(acceptedEdges(c)).reduce((sum, e) => sum + e.length, 0)
-    expect(triangles).toBe(edges(HIT_A) + edges(HIT_B))
-    // One vertical line, for the first cache's edge 9, and the second's note says there is none.
-    expect((svg.match(/V\d+/g) ?? []).length).toBe(1)
-    expect(svg).toContain('edge 9')
+    expect((svg.match(/<rect class="edge" /g) ?? []).length).toBe(edges(HIT_A) + edges(HIT_B))
+    // One dashed vertical line, for the first cache's edge 9, and the second's note says there is none.
+    expect((svg.match(/d="M[\d.]+ [\d.]+V[\d.]+" fill="none" stroke="#[0-9a-f]+" stroke-width="1" stroke-dasharray="4 3"/g) ?? []).length).toBe(1)
+    expect(svg).toContain('the hit: 9 blocks')
     expect(svg).toContain('no edge that all three accept')
   })
 })
@@ -778,10 +789,11 @@ describe('lesson 4: adapters as pages, and as slots', () => {
   test("the figure draws a slot as wide as the largest adapter: each row's solid squares are the pages the adapter takes", () => {
     const svg = read('public/figures/tr5a/l4-slot-width.svg')
     const rows = adapterRows()
-    const solid = (svg.match(/<g fill="currentColor" fill-opacity="0\.16">([\s\S]*?)<\/g>/)?.[1].match(/<rect /g) ?? []).length
-    const dashed = (svg.match(/<g stroke-width="1" stroke-dasharray="2 2">([\s\S]*?)<\/g>/)?.[1].match(/<rect /g) ?? []).length
+    const solid = cells(svg, 'brown')
+    const dashed = cells(svg, 'white')
     expect(solid).toBe(rows.reduce((sum, r) => sum + r.pages, 0))
     expect(solid + dashed).toBe(3 * rows[rows.length - 1].pages)
+    expect([...svg.matchAll(/data-value="(\d+ pages)"/g)].map((m) => m[1])).toEqual(rows.map((r) => `${r.pages} pages`))
     expect(svg).toContain('a slot sized for the largest rank, 26 pages wide')
   })
 })
@@ -801,12 +813,9 @@ describe('the module says what is graded, and the levels it names are those of t
 
 describe('the figures', () => {
   for (const [file, draw] of Object.entries(FIGURES)) {
-    test(`${file} is the one the model draws, and it is drawn in the page's ink`, () => {
+    test(`${file} is the one the model draws; tests/content/figures.test.ts holds it to the diagram language`, () => {
       const svg = read(`public/${file}`)
       expect(svg).toBe(draw())
-      // A figure has no colour and no typeface of its own (DESIGN.md; AGENTS.md rule 9).
-      expect(svg).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(|font-family/)
-      expect(svg).toContain('currentColor')
     })
   }
 

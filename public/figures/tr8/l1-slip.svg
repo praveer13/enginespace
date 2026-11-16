@@ -1,54 +1,61 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 152" width="360" height="152" fill="none" stroke="currentColor" stroke-width="1.5">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 242" width="360" height="242">
   <title>Eight requests, when each was due and when each was sent, with the client blocked on the third reply</title>
   <desc>Two timelines on one time axis. The top one marks when each of eight requests was due, evenly spaced. The bottom one marks when the client sent each, and how long each took. The third request takes most of the width, and the four after it are sent one after another at the end, each joined by a line back to its due tick.</desc>
-  <g stroke="none" fill="currentColor" font-size="10">
-    <text x="24" y="12">due</text>
-    <text x="24" y="66">sent, and the time each took</text>
-  </g>
-  <g stroke-width="1">
-    <path d="M16 44H348"/>
-    <path d="M24 28V44M68 28V44M112 28V44M156 28V44M200 28V44M244 28V44M288 28V44M332 28V44"/>
-  </g>
-  <g stroke="none" fill="currentColor" font-size="10" text-anchor="middle">
-    <text x="24" y="24">1</text>
-    <text x="68" y="24">2</text>
-    <text x="112" y="24">3</text>
-    <text x="156" y="24">4</text>
-    <text x="200" y="24">5</text>
-    <text x="244" y="24">6</text>
-    <text x="288" y="24">7</text>
-    <text x="332" y="24">8</text>
-  </g>
-  <g stroke-width="1" stroke-dasharray="3 3">
-    <path d="M156 44L296.8 88M200 44L305.6 88M244 44L314.4 88M288 44L323.2 88"/>
-  </g>
-  <g stroke-width="1">
-    <path d="M24 88V96M68 88V96M112 88V96M296.8 88V96M305.6 88V96M314.4 88V96M323.2 88V96M332 88V96"/>
-  </g>
-  <g fill="currentColor" stroke="none">
-    <rect x="24" y="96" width="8.8" height="8"/>
-    <rect x="68" y="96" width="8.8" height="8"/>
-    <rect x="112" y="96" width="184.8" height="8"/>
-    <rect x="296.8" y="96" width="8.8" height="8"/>
-    <rect x="305.6" y="96" width="8.8" height="8"/>
-    <rect x="314.4" y="96" width="8.8" height="8"/>
-    <rect x="323.2" y="96" width="8.8" height="8"/>
-    <rect x="332" y="96" width="8.8" height="8"/>
-  </g>
-  <g stroke="none" fill="currentColor" font-size="10" text-anchor="middle">
-    <text x="28" y="118">1</text>
-    <text x="72" y="118">2</text>
-    <text x="204" y="118">3</text>
-    <text x="301" y="118">4</text>
-    <text x="310" y="118">5</text>
-    <text x="319" y="118">6</text>
-    <text x="328" y="118">7</text>
-    <text x="337" y="118">8</text>
-  </g>
-  <g stroke-width="1">
-    <path d="M112 126V132H296.8V126"/>
-  </g>
-  <g stroke="none" fill="currentColor" font-size="10" text-anchor="middle">
-    <text x="204" y="146">the client is blocked on the third reply</text>
-  </g>
+  <rect width="360" height="242" fill="#fafaf6"/>
+  <g class="graticule" fill="none" stroke="#c2c8bd"><path d="M24 18v152M32 18v152M40 18v152M48 18v152M56 18v152M64 18v152M72 18v152M80 18v152M88 18v152M96 18v152M104 18v152M112 18v152M120 18v152M128 18v152M136 18v152M144 18v152M152 18v152M160 18v152M168 18v152M176 18v152M184 18v152M192 18v152M200 18v152M208 18v152M216 18v152M224 18v152M232 18v152M240 18v152M248 18v152M256 18v152M264 18v152M272 18v152M280 18v152M288 18v152M296 18v152M304 18v152M312 18v152M320 18v152M328 18v152M336 18v152M344 18v152M24 18h320M24 26h320M24 34h320M24 42h320M24 50h320M24 58h320M24 66h320M24 74h320M24 82h320M24 90h320M24 98h320M24 106h320M24 114h320M24 122h320M24 130h320M24 138h320M24 146h320M24 154h320M24 162h320M24 170h320" stroke-width="0.5" stroke-opacity="0.55"/><path d="M24 18v152M64 18v152M104 18v152M144 18v152M184 18v152M224 18v152M264 18v152M304 18v152M344 18v152M24 18h320M24 58h320M24 98h320M24 138h320" stroke-width="0.75"/></g>
+  <text x="26" y="12" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">due</text>
+  <text x="64" y="12" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">the time each request was meant to go</text>
+  <text x="24" y="34" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">1</text>
+  <text x="64" y="34" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">2</text>
+  <text x="104" y="34" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">3</text>
+  <text x="144" y="34" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">4</text>
+  <text x="184" y="34" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">5</text>
+  <text x="224" y="34" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">6</text>
+  <text x="264" y="34" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">7</text>
+  <text x="304" y="34" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">8</text>
+  <path d="M16 52H344M24 38V52M64 38V52M104 38V52M144 38V52M184 38V52M224 38V52M264 38V52M304 38V52" fill="none" stroke="#5f666d" stroke-width="1"/>
+  <text x="26" y="84" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">sent, and the time each took</text>
+  <path d="M144 52L272 96" fill="none" stroke="#5f666d" stroke-width="1" stroke-dasharray="4 3"/>
+  <path d="M184 52L280 96" fill="none" stroke="#5f666d" stroke-width="1" stroke-dasharray="4 3"/>
+  <path d="M224 52L288 96" fill="none" stroke="#5f666d" stroke-width="1" stroke-dasharray="4 3"/>
+  <path d="M264 52L296 96" fill="none" stroke="#5f666d" stroke-width="1" stroke-dasharray="4 3"/>
+  <path d="M24 92V100" fill="none" stroke="#5f666d" stroke-width="1"/>
+  <path d="M64 92V100" fill="none" stroke="#5f666d" stroke-width="1"/>
+  <path d="M104 92V100" fill="none" stroke="#5f666d" stroke-width="1"/>
+  <path d="M272 92V100" fill="none" stroke="#5f666d" stroke-width="1"/>
+  <path d="M280 92V100" fill="none" stroke="#5f666d" stroke-width="1"/>
+  <path d="M288 92V100" fill="none" stroke="#5f666d" stroke-width="1"/>
+  <path d="M296 92V100" fill="none" stroke="#5f666d" stroke-width="1"/>
+  <path d="M304 92V100" fill="none" stroke="#5f666d" stroke-width="1"/>
+  <g class="bar" data-slot="blue"><rect x="24" y="100" width="8" height="14" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="bar" data-slot="blue"><rect x="64" y="100" width="8" height="14" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="bar" data-slot="blue"><rect x="104" y="100" width="168" height="14" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="112" cy="107" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="bar" data-slot="blue"><rect x="272" y="100" width="8" height="14" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="bar" data-slot="blue"><rect x="280" y="100" width="8" height="14" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="bar" data-slot="blue"><rect x="288" y="100" width="8" height="14" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="bar" data-slot="blue"><rect x="296" y="100" width="8" height="14" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="bar" data-slot="blue"><rect x="304" y="100" width="8" height="14" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <text x="28" y="128" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">1</text>
+  <text x="68" y="128" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">2</text>
+  <text x="188" y="128" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">3</text>
+  <text x="276" y="128" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">4</text>
+  <text x="284" y="128" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">5</text>
+  <text x="292" y="128" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">6</text>
+  <text x="300" y="128" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">7</text>
+  <text x="308" y="128" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">8</text>
+  <g class="dim" data-value="blocked on reply 3: 2,100 ms"><path d="M104 142v8M272 142v8M104 146H272" fill="none" stroke="#5f666d" stroke-width="1"/></g>
+  <text x="188" y="161" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">blocked on reply 3: 2,100 ms</text>
+  <path class="axis" d="M24 180H304M24 180v4M64 180v4M104 180v4M144 180v4M184 180v4M224 180v4M264 180v4M304 180v4" fill="none" stroke="#5f666d" stroke-width="1"/>
+  <text x="24" y="195" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">0</text>
+  <text x="64" y="195" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">500</text>
+  <text x="104" y="195" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">1,000</text>
+  <text x="144" y="195" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">1,500</text>
+  <text x="184" y="195" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">2,000</text>
+  <text x="224" y="195" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">2,500</text>
+  <text x="264" y="195" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">3,000</text>
+  <text x="304" y="195" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">3,500</text>
+  <text x="304" y="209" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="end" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">ms from the first due time</text>
+  <g class="key" data-slot="blue"><rect x="4" y="222" width="16" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="glyph" data-slot="blue"><circle cx="12" cy="228" r="3.5" fill="#fafaf6"/></g>
+  <text x="24" y="232" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">a request, sent to its reply</text>
 </svg>

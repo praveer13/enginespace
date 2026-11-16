@@ -1,28 +1,39 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 118" width="360" height="118" fill="none" stroke="currentColor" stroke-width="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 252" width="360" height="252">
   <title>How the memory of a 24 GB card is divided, with the CUDA graphs ignored and with their estimate taken off before the KV cache is sized</title>
-  <desc>Two bars, each the whole card. In both, the weights and the activations come first, 3.2 GB together, and the last 1.9 GB are not requested, drawn dashed. In the first bar the rest, 18.9 GB, is the KV cache. In the second the graphs' estimate, 1.0 GB, is a mid-dark box before the cache, and the KV cache is 17.9 GB.</desc>
-  <g fill="currentColor" fill-opacity="0.55">
-    <rect x="28.00" y="28" width="16.20" height="22"/>
-    <rect x="44.20" y="28" width="27.00" height="22"/>
-    <rect x="28.00" y="76" width="16.20" height="22"/>
-    <rect x="44.20" y="76" width="27.00" height="22"/>
-  </g>
-  <g fill="currentColor" fill-opacity="0.34">
-    <rect x="71.20" y="76" width="13.00" height="22"/>
-  </g>
-  <g fill="currentColor" fill-opacity="0.12">
-    <rect x="71.20" y="28" width="254.88" height="22"/>
-    <rect x="84.20" y="76" width="241.88" height="22"/>
-  </g>
-  <g stroke-dasharray="3 3">
-    <rect x="326.08" y="28" width="25.92" height="22"/>
-    <rect x="326.08" y="76" width="25.92" height="22"/>
-  </g>
-  <g stroke="none" fill="currentColor" font-size="9">
-    <text x="28" y="23">the graphs ignored: KV cache 18.9 GB</text>
-    <text x="28" y="71">the graphs taken off first: KV cache 17.9 GB</text>
-  </g>
-  <g stroke="none" fill="currentColor" font-size="8">
-    <text x="28" y="112">dark: weights and activations · mid: graphs · light: KV cache · dashed: not requested</text>
-  </g>
+  <desc>Two bars, each the whole card. In both, the weights and the activations come first, 3.2 GB together, and the last 1.9 GB are not requested, drawn dashed. In the first bar the rest, 18.9 GB, is the KV cache. In the second the graphs' estimate, 1.0 GB, is a box before the cache, and the KV cache is 17.9 GB.</desc>
+  <defs><pattern id="code-yellow" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 0V6" stroke="#685000" stroke-width="1.5" stroke-opacity="0.7"/></pattern></defs>
+  <rect width="360" height="252" fill="#fafaf6"/>
+  <g class="graticule" fill="none" stroke="#c2c8bd"><path d="M6 38v30M14 38v30M22 38v30M30 38v30M38 38v30M46 38v30M54 38v30M62 38v30M70 38v30M78 38v30M86 38v30M94 38v30M102 38v30M110 38v30M118 38v30M126 38v30M134 38v30M142 38v30M150 38v30M158 38v30M166 38v30M174 38v30M182 38v30M190 38v30M198 38v30M206 38v30M214 38v30M222 38v30M230 38v30M238 38v30M246 38v30M254 38v30M262 38v30M270 38v30M278 38v30M286 38v30M294 38v30M302 38v30M310 38v30M318 38v30M326 38v30M334 38v30M342 38v30M350 38v30M6 38h348M6 46h348M6 54h348M6 62h348" stroke-width="0.5" stroke-opacity="0.55"/><path d="M6 38v30M46 38v30M86 38v30M126 38v30M166 38v30M206 38v30M246 38v30M286 38v30M326 38v30M6 38h348" stroke-width="0.75"/></g>
+  <text x="6" y="14" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">the graphs ignored</text>
+  <g class="span" data-slot="blue"><rect x="6" y="42" width="46.4" height="22" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="14" cy="53" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="dim" data-value="3.2 GB weights and activations"><path d="M6 28v8M52.4 28v8M6 32H52.4" fill="none" stroke="#5f666d" stroke-width="1"/></g>
+  <text x="6" y="25" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">3.2 GB weights and activations</text>
+  <g class="span" data-slot="yellow"><rect x="52.4" y="42" width="273.76" height="22" fill="#f5c400" stroke="#685000" stroke-width="1"/><rect x="52.4" y="42" width="273.76" height="22" fill="url(#code-yellow)" stroke="none"/><g class="glyph" data-slot="yellow"><polygon points="60.4,49 64.4,53 60.4,57 56.4,53" fill="#685000"/></g><text x="197.28" y="56.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#1d1b22" text-anchor="middle" stroke="#f5c400" stroke-width="3" paint-order="stroke" stroke-linejoin="round">KV cache</text></g>
+  <g class="dim" data-value="KV cache 18.9 GB"><path d="M52.4 72v8M326.16 72v8M52.4 76H326.16" fill="none" stroke="#5f666d" stroke-width="1"/></g>
+  <text x="189.28" y="91" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">KV cache 18.9 GB</text>
+  <g class="idle hollow" data-slot="white"><rect x="326.16" y="42" width="27.84" height="22" fill="#fafaf6" stroke="#5f666d" stroke-width="1" stroke-dasharray="3 3"/></g>
+  <g class="graticule" fill="none" stroke="#c2c8bd"><path d="M6 142v30M14 142v30M22 142v30M30 142v30M38 142v30M46 142v30M54 142v30M62 142v30M70 142v30M78 142v30M86 142v30M94 142v30M102 142v30M110 142v30M118 142v30M126 142v30M134 142v30M142 142v30M150 142v30M158 142v30M166 142v30M174 142v30M182 142v30M190 142v30M198 142v30M206 142v30M214 142v30M222 142v30M230 142v30M238 142v30M246 142v30M254 142v30M262 142v30M270 142v30M278 142v30M286 142v30M294 142v30M302 142v30M310 142v30M318 142v30M326 142v30M334 142v30M342 142v30M350 142v30M6 142h348M6 150h348M6 158h348M6 166h348" stroke-width="0.5" stroke-opacity="0.55"/><path d="M6 142v30M46 142v30M86 142v30M126 142v30M166 142v30M206 142v30M246 142v30M286 142v30M326 142v30M6 142h348" stroke-width="0.75"/></g>
+  <text x="6" y="118" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">the graphs taken off first</text>
+  <g class="span" data-slot="blue"><rect x="6" y="146" width="46.4" height="22" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="14" cy="157" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="dim" data-value="3.2 GB weights and activations"><path d="M6 132v8M52.4 132v8M6 136H52.4" fill="none" stroke="#5f666d" stroke-width="1"/></g>
+  <text x="6" y="129" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">3.2 GB weights and activations</text>
+  <g class="span" data-slot="green"><rect x="52.4" y="146" width="13.96" height="22" fill="#237a37" stroke="#185e2c" stroke-width="1"/></g>
+  <g class="dim" data-value="graphs 1.0 GB"><path d="M52.4 176v8M66.36 176v8M52.4 180H66.36" fill="none" stroke="#5f666d" stroke-width="1"/></g>
+  <text x="52.4" y="195" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">graphs 1.0 GB</text>
+  <g class="span" data-slot="yellow"><rect x="66.36" y="146" width="259.8" height="22" fill="#f5c400" stroke="#685000" stroke-width="1"/><rect x="66.36" y="146" width="259.8" height="22" fill="url(#code-yellow)" stroke="none"/><g class="glyph" data-slot="yellow"><polygon points="74.36,153 78.36,157 74.36,161 70.36,157" fill="#685000"/></g><text x="204.26" y="160.5" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#1d1b22" text-anchor="middle" stroke="#f5c400" stroke-width="3" paint-order="stroke" stroke-linejoin="round">KV cache</text></g>
+  <g class="dim" data-value="KV cache 17.9 GB"><path d="M66.36 176v8M326.16 176v8M66.36 180H326.16" fill="none" stroke="#5f666d" stroke-width="1"/></g>
+  <text x="196.26" y="195" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">KV cache 17.9 GB</text>
+  <g class="idle hollow" data-slot="white"><rect x="326.16" y="146" width="27.84" height="22" fill="#fafaf6" stroke="#5f666d" stroke-width="1" stroke-dasharray="3 3"/></g>
+  <g class="key" data-slot="blue"><rect x="4" y="214" width="16" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="glyph" data-slot="blue"><circle cx="12" cy="220" r="3.5" fill="#fafaf6"/></g>
+  <text x="24" y="224" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">weights, activations</text>
+  <g class="key" data-slot="green"><rect x="156" y="214" width="16" height="12" fill="#237a37" stroke="#185e2c" stroke-width="1"/></g>
+  <g class="glyph" data-slot="green"><polygon points="160.5,220 162.25,216.96 165.75,216.96 167.5,220 165.75,223.04 162.25,223.04" fill="#fafaf6"/></g>
+  <text x="176" y="224" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">graphs</text>
+  <g class="key" data-slot="yellow"><rect x="224" y="214" width="16" height="12" fill="#f5c400" stroke="#685000" stroke-width="1"/><rect x="224" y="214" width="16" height="12" fill="url(#code-yellow)" stroke="none"/></g>
+  <g class="glyph" data-slot="yellow"><polygon points="232,216 236,220 232,224 228,220" fill="#685000"/></g>
+  <text x="244" y="224" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">KV cache</text>
+  <g class="key hollow" data-slot="white"><rect x="4" y="232" width="16" height="12" fill="#fafaf6" stroke="#5f666d" stroke-width="1" stroke-dasharray="3 3"/></g>
+  <g class="glyph" data-slot="white"><circle cx="12" cy="238" r="3" fill="none" stroke="#5f666d" stroke-width="1.5"/></g>
+  <text x="24" y="242" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">not requested</text>
 </svg>

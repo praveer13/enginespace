@@ -915,12 +915,9 @@ describe('lesson 7: the same loop in other engines', () => {
 
 describe('the figures', () => {
   for (const [file, draw] of Object.entries(FIGURES)) {
-    test(`${file} is the one the model draws, and it is drawn in the page's ink`, () => {
+    test(`${file} is the one the model draws; tests/content/figures.test.ts holds it to the diagram language`, () => {
       const svg = read(`public/figures/tr2/${file}`)
       expect(svg).toBe(draw())
-      // A figure has no colour and no typeface of its own (DESIGN.md; AGENTS.md rule 9).
-      expect(svg).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(|font-family/)
-      expect(svg).toContain('currentColor')
     })
   }
 
