@@ -3,8 +3,8 @@
  * stands on, and the drawn mark each hand-off has. All of it is data, so the 2D view, the tray, the mirror and (W1-T18) the 3D scene
  * say the same things.
  *
- * Two vocabularies, one meaning (§2.6, rule 2): the kitchen word names the object and the engine's term names the concept. A tile gives
- * both ("spike · queue"), and the mirror, the debrief and the claims lead with the engine's.
+ * One vocabulary (REDESIGN §2.7): what a learner reads is the engine's term. A tile names its mechanism as TR1 lesson 1 names it, one of
+ * five, with the kind where one of them splits ("IPC · socket", "copy · host to device"). The ids (`FloorKind`, `Mechanism`) stay as they are.
  */
 import type { Mechanism, Place, Scenario } from '@es/sim/lifecycle'
 
@@ -13,8 +13,11 @@ import type { Mechanism, Place, Scenario } from '@es/sim/lifecycle'
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 export interface MechanismWords {
-  /** The kitchen's word for the hand-off: what the ticket goes through. */
-  readonly kitchen: string
+  /**
+   * The tile's word: which of TR1's five mechanisms (compute, a queue, IPC, a copy, a sync) the hand-off is, and, where one of the five
+   * splits, which kind of it ("IPC · socket", "copy · host to device"). It is what a stage's tile, the stage list and the key lead with.
+   */
+  readonly tile: string
   /** The engine's term, spelled out for a reader who is not looking at the tile. */
   readonly engine: string
   /** What the mechanism does, in a clause, for the legend and for assistive technology. */
@@ -26,15 +29,15 @@ export interface MechanismWords {
  * the ticket already stands. The dumbwaiter goes down to the line (a host-to-device copy) or comes up from it (device to host).
  */
 export const MECHANISM_WORDS: Readonly<Record<Mechanism, MechanismWords>> = {
-  call: { kitchen: 'hands at work', engine: 'call', does: 'work done where the ticket already stands' },
-  queue: { kitchen: 'spike', engine: 'queue', does: 'a buffer between two threads, or between two steps of one' },
-  ipc: { kitchen: 'ticket window', engine: 'IPC', does: 'a hop between processes, over a socket' },
-  shm: { kitchen: 'window shelf', engine: 'shared memory', does: 'a hop between processes, through memory both reach' },
-  h2d: { kitchen: 'dumbwaiter down', engine: 'host-to-device copy', does: 'a copy from the host down to the GPU' },
-  d2h: { kitchen: 'dumbwaiter up', engine: 'device-to-host copy', does: 'a copy from the GPU up to the host' },
-  launch: { kitchen: 'call to the line', engine: 'launch', does: 'work handed to the GPU, which runs it there' },
-  collective: { kitchen: 'halves across', engine: 'collective', does: 'a hop between the GPUs of two ranks' },
-  sync: { kitchen: '"Heard!"', engine: 'sync', does: 'the host waits until the GPU has called back' },
+  call: { tile: 'compute · call', engine: 'call', does: 'work done where the request already is, on the host' },
+  queue: { tile: 'queue', engine: 'queue', does: 'a buffer between two threads, or between two steps of one' },
+  ipc: { tile: 'IPC · socket', engine: 'IPC', does: 'a hop between processes, over a socket' },
+  shm: { tile: 'IPC · shared memory', engine: 'shared memory', does: 'a hop between processes, through memory both reach' },
+  h2d: { tile: 'copy · host to device', engine: 'host-to-device copy', does: 'a copy from the host to the GPU' },
+  d2h: { tile: 'copy · device to host', engine: 'device-to-host copy', does: 'a copy from the GPU back to the host' },
+  launch: { tile: 'compute · launch', engine: 'launch', does: 'work handed to the GPU, which runs it there' },
+  collective: { tile: 'compute · collective', engine: 'collective', does: 'a hop between the GPUs of two ranks' },
+  sync: { tile: 'sync', engine: 'sync', does: 'the host waits until the GPU has finished' },
 }
 
 /** The order the legend lists the hand-offs in: the ticket's way down the house and back. */
@@ -81,14 +84,18 @@ export type FloorKind = 'dining' | 'host' | 'desk' | 'pass' | 'cooks' | 'kitchen
 
 export const FLOOR_KINDS: readonly FloorKind[] = ['dining', 'host', 'desk', 'pass', 'cooks', 'kitchen', 'line']
 
+/**
+ * What the screen calls each floor: the engine's name for the process (REDESIGN §2.7). The ids stay the kitchen's, because they are ids;
+ * the words a learner reads are these. A program that is one process end to end (nano-vllm's offline library) is "One process".
+ */
 export const FLOOR_NAMES: Readonly<Record<FloorKind, string>> = {
-  dining: 'The dining room',
-  host: 'The host stand',
-  desk: 'The order desk',
-  pass: 'The pass',
-  cooks: "The cooks' floor",
-  kitchen: 'The whole kitchen',
-  line: 'The line',
+  dining: 'Client',
+  host: 'API server',
+  desk: 'Tokenizer process',
+  pass: 'Engine core',
+  cooks: 'Worker',
+  kitchen: 'One process',
+  line: 'GPU',
 }
 
 /** The floor a process stands on, from its name. A process the table does not know is a cook's floor. */

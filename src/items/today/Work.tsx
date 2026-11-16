@@ -84,13 +84,13 @@ export default function Work({ line, index, total, entropy, met, card, today, la
     if (spec.kind === 'numeric') {
       const value = parseNumber(text, spec.unit)
       if (value === null) {
-        setProblem(`Write a number, in ${spec.unit}, and then check the ticket.`)
+        setProblem(`Write a number, in ${spec.unit}, then check it.`)
         return
       }
       response = { kind: 'numeric', value }
     } else {
       if (pick === null) {
-        setProblem('Tick one line, and then check the ticket.')
+        setProblem('Choose one answer, then check it.')
         return
       }
       response = { kind: 'choice', pick }
@@ -127,7 +127,7 @@ export default function Work({ line, index, total, entropy, met, card, today, la
       data-rev={item.rev}
       data-ok={revealed ? String(answered.grade.ok) : undefined}
       width="wide"
-      head={<span aria-hidden="true">Prep list</span>}
+      head={<span aria-hidden="true">Review set</span>}
       meta={line.kc}
       title={gen.title}
       titleAs="h2"

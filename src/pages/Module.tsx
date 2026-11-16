@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useParams } from 'react-router'
 import type { Claim, CompiledModule, IndexLesson, IndexModule, MapKc, MapLesson } from '@es/schema'
+import { rosterEntry } from '@es/play/roster'
 import { ContinueLink } from '@/design/components/Board'
 import { PrinterTape, type PrinterTapeLine } from '@/design/components/PrinterTape'
 import { Readout } from '@/design/components/Readout'
@@ -181,7 +182,7 @@ export function ModuleView({ id, module, entry, claims, today, kcs, progress, re
         <LinkRow>
           {games.map((game) => (
             <TextLink key={game} to={`/play/${game}`}>
-              {game}
+              {rosterEntry(game)?.title ?? game}
             </TextLink>
           ))}
         </LinkRow>

@@ -122,11 +122,11 @@ export function DoneTicket({ day, lines, right, total, next, more, ahead }: Done
       </Ticket>
       <PrinterTape
         className="es-prep__tape"
-        label="The prep, printed"
+        label="The review, in numbers"
         lines={[
-          { id: 'tickets', label: 'tickets', value: <Readout value={total} tag="measured" source="this prep" size="sm" /> },
-          { id: 'right', label: 'right', value: <Readout value={right} tag="measured" source="this prep" size="sm" /> },
-          ...(next === null ? [] : [{ id: 'next', label: 'next prep', value: formatDay(next) }]),
+          { id: 'tickets', label: 'questions', value: <Readout value={total} tag="measured" source="this review" size="sm" /> },
+          { id: 'right', label: 'right', value: <Readout value={right} tag="measured" source="this review" size="sm" /> },
+          ...(next === null ? [] : [{ id: 'next', label: 'next review', value: formatDay(next) }]),
         ]}
       />
     </>

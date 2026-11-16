@@ -84,7 +84,7 @@ describe('/evidence', () => {
   })
 
   test('is the page of panels: one h1, and a ticket that is still printing until the ledger has opened', () => {
-    expect(headings(html, 1)).toEqual(['Evidence'])
+    expect(headings(html, 1)).toEqual(['Progress'])
     expect(html).toContain('aria-busy="true"')
     expect(html).toContain('Printing your evidence')
     expect(html).not.toContain('Nothing in the ledger yet')

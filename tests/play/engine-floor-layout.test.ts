@@ -196,13 +196,13 @@ describe('the map builds as the request moves, and the page below it holds still
     expect(layoutMap(before, { orientation: 'portrait' }).height).toBeLessThan(260)
     // The prediction asks how many floors a token crosses, so the drawing names no other floor.
     const names = marksOf(landscape, 'floors').filter((mark) => mark.kind === 'text').map((mark) => mark.kind === 'text' && mark.text)
-    expect(names).toEqual(['THE DINING ROOM · CLIENT'])
+    expect(names).toEqual(['CLIENT'])
   })
 
   test('once the prediction is written the house is built: every floor and lane of the engine\'s path, in the order its path first visits them', () => {
     const frame = layoutMap(states[1][1], { orientation: 'landscape' })
     const floors = marksOf(frame, 'floors').filter((mark) => mark.kind === 'text').map((mark) => mark.kind === 'text' && mark.text)
-    expect(floors).toEqual(['THE DINING ROOM · CLIENT', 'THE HOST STAND · API-SERVER', 'THE PASS · ENGINE-CORE', 'THE LINE'])
+    expect(floors).toEqual(['CLIENT', 'API SERVER', 'ENGINE CORE', 'GPU'])
     const lanes = marksOf(frame, 'lanes').filter((mark) => mark.kind === 'text').map((mark) => mark.kind === 'text' && mark.text)
     expect(lanes).toEqual(['http-client', 'handler-task', 'socket-task', 'output-handler-task', 'input-thread', 'main', 'output-thread', 'engine-core stream'])
   })

@@ -28,7 +28,7 @@ The course's lifecycle model (`packages/sim/lifecycle`, the machine under this m
 | A copy | The host and a GPU: down before the work, up after it | A call to a machine with memory of its own | `.cuda(non_blocking=True)`, `.tolist()` |
 | A sync | A value that is still being produced, and the code that wants to read it | A `future.get()`, an `await` | `event.synchronize()`, `future.result()` |
 
-The game's tiles use nine words for these five, because three of them split. IPC is a socket or shared memory, a copy is down or up, and compute is a call on the host, a launch on a GPU, or a collective between the GPUs of two ranks. Back of House (`engine-floor`) draws the five as a house. The request is a ticket. IPC is a ticket window between floors, a queue is a spike where a ticket waits for the next pair of hands, a copy is the dumbwaiter between the floors and the line, and a sync is the hands stopping at "Heard!" until the line calls back. The kitchen's words name the objects, and the engine's words lead everywhere you will meet them again.
+The game's tiles use nine words for these five, because three of them split. IPC is a socket or shared memory, a copy is host to device or device to host, and compute is a call on the host, a launch on a GPU, or a collective between the GPUs of two ranks. In the game, Request path (`engine-floor`), a tile names the mechanism first and the kind after it: "IPC · socket" is the table's IPC row, over a socket.
 
 ## The five rules
 

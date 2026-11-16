@@ -16,7 +16,7 @@ import type { FloorRun } from './types'
  * Column heads are the engine's terms (GAMES.md §2.6, rule 2), and the cells say them too.
  */
 
-const WORD: Readonly<Record<LaidView['state'], string>> = { ran: 'held', struck: 'stopped the ticket', pending: 'not run yet' }
+const WORD: Readonly<Record<LaidView['state'], string>> = { ran: 'held', struck: 'stopped the request', pending: 'not run yet' }
 
 const COLUMNS: readonly MirrorColumn[] = [
   { key: 'step', head: 'Stage', label: 'Stage' },
@@ -59,7 +59,7 @@ function rowOf(stage: LaidView, lamp: boolean): MirrorRow {
   }
 }
 
-/** The key to the marks of the drawing: each hand-off's drawn mark with the kitchen's word and the engine's term. */
+/** The key to the marks of the drawing: each hand-off's drawn mark with its tile's word and the engine's term. */
 function Key() {
   const heading = useId()
   return (
@@ -72,7 +72,7 @@ function Key() {
           <div key={mechanism} className="col-span-2 grid grid-cols-subgrid items-baseline">
             <dt className="flex items-center gap-2">
               <HandoffGlyph mechanism={mechanism} className="size-5 flex-none" />
-              <span className="es-type-ticket text-size-caption">{MECHANISM_WORDS[mechanism].kitchen}</span>
+              <span className="es-type-ticket text-size-caption">{MECHANISM_WORDS[mechanism].tile}</span>
             </dt>
             <dd className="text-text-2">
               <span className="font-bold text-text-1">{MECHANISM_WORDS[mechanism].engine}</span>: {MECHANISM_WORDS[mechanism].does}
@@ -101,7 +101,7 @@ export function Mirror({ run }: { run: FloorRun }) {
           <>
             {view.step === 'predict' ? 'The prediction is still to be written. ' : null}
             {num(laid.length)} {laid.length === 1 ? 'stage' : 'stages'} laid{view.sealed ? '' : <>, of the {num(view.stages)} in the engine&apos;s path</>}. {num(view.reached)} held in the last run
-            {view.stop === null ? '' : <>, and stage {num(view.stop.at + 1)} stopped the ticket</>}. The ticket stands at{' '}
+            {view.stop === null ? '' : <>, and stage {num(view.stop.at + 1)} stopped the request</>}. The request stands at{' '}
             <code className="es-type-mono">{placeName(view.capsule)}</code>. Every figure is a count of stages in the model.
           </>
         }

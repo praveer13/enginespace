@@ -151,33 +151,33 @@ function Tile({ tile, onLay, tabIndex }: { tile: TileView; onLay: () => void; ta
   )
 }
 
-/** The tray: the stages left to lay, narrowed by a platform. */
+/** The stage list (the code's `tray`): the stages left to lay, narrowed by a process. */
 export function Tray({ controls }: { controls: FloorControls }) {
   const { view, platforms, filter, setFilter, tiles, tabStop, tray, chips, onTrayKey, lay } = controls
   // Until the prediction is written the tray is closed, and its cards are not shown: their places would answer it. Once the ticket is
   // home it is closed again: the cards left in it are stages of other engines, which the debrief sets beside this one's.
   if (view.step !== 'lay') {
     return (
-      <section aria-label="The tray: stages to lay" className="es-floor-tray flex flex-col gap-3" data-floor-tray="" data-count={view.tray.length}>
+      <section aria-label="Stage list: the stages left to lay" className="es-floor-tray flex flex-col gap-3" data-floor-tray="" data-count={view.tray.length}>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <TapeLabel>The tray</TapeLabel>
+          <TapeLabel>Stage list</TapeLabel>
           <span className="text-text-2">
             {view.step === 'predict'
-              ? 'The tray opens when the prediction is written down.'
+              ? 'The stage list opens when the prediction is committed.'
               : view.served
                 ? view.level === 'map'
-                  ? 'The ticket is home. The stages left in the tray are not on this request’s path.'
-                  : 'The ticket is home. The stages left in the tray belong to other engines.'
-                : 'The run is over, and the tray is closed.'}
+                  ? 'The request reached the client. The stages left in the list are not on this request’s path.'
+                  : 'The request reached the client. The stages left in the list belong to other engines.'
+                : 'The run is over, and the stage list is closed.'}
           </span>
         </div>
       </section>
     )
   }
   return (
-    <section aria-label="The tray: stages to lay" className="es-floor-tray flex flex-col gap-3" data-floor-tray="" data-count={view.tray.length}>
+    <section aria-label="Stage list: the stages left to lay" className="es-floor-tray flex flex-col gap-3" data-floor-tray="" data-count={view.tray.length}>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <TapeLabel>The tray</TapeLabel>
+        <TapeLabel>Stage list</TapeLabel>
         <span className="text-text-2">
           <span className="font-numeric">{view.tray.length}</span> {view.tray.length === 1 ? 'stage' : 'stages'} left
         </span>
@@ -194,7 +194,7 @@ export function Tray({ controls }: { controls: FloorControls }) {
             aria-pressed={filter === platform.key}
             onClick={() => setFilter(platform.key)}
           >
-            {platform.key === 'GPU' ? 'the line · GPU' : platform.key}
+            {platform.key}
             {platform.here ? <span className="text-size-caption"> · here</span> : null}
             <span className="font-numeric text-size-caption" aria-hidden="true">
               {' '}
@@ -214,7 +214,7 @@ export function Tray({ controls }: { controls: FloorControls }) {
   )
 }
 
-const STATE_WORDS: Readonly<Record<LaidView['state'], string>> = { ran: 'held', struck: 'stopped the ticket', pending: 'not run yet' }
+const STATE_WORDS: Readonly<Record<LaidView['state'], string>> = { ran: 'held', struck: 'stopped the request', pending: 'not run yet' }
 
 /** One laid stage: its number, its mark and words, and what the last run found of it. The selected row offers to move. */
 function PathRow({ stage, selected, controls }: { stage: LaidView; selected: boolean; controls: FloorControls }) {
@@ -270,11 +270,11 @@ function StopNote({ controls }: { controls: FloorControls }) {
   const stop = view.stop
   if (stop === null) return null
   return (
-    <section aria-label="Why the ticket stopped" className="es-floor-stop" data-stop={stop.failure} data-floor-stop="">
+    <section aria-label="Why the request stopped" className="es-floor-stop" data-stop={stop.failure} data-floor-stop="">
       <p className="es-type-ticket es-floor-stop__head">
         <Icon name="alert" className="size-5 flex-none" />
         <span>
-          The ticket stopped at stage <span className="font-numeric">{stop.at + 1}</span>
+          The request stopped at stage <span className="font-numeric">{stop.at + 1}</span>
           {stop.failure === 'path' ? ': not the engine’s next.' : `: the ${stop.failure} rule.`}
         </span>
       </p>
@@ -337,7 +337,7 @@ export function PathTicket({ controls }: { controls: FloorControls }) {
       </div>
       {view.runsAllowed === 1 && !view.done ? (
         <p className="text-text-2" data-floor-once="">
-          One run. The ticket goes once, and the level is over when it does, so lay every stage you mean to before you pull the stub.
+          One run. The request goes once, and the level is over when it does, so lay every stage you mean to before you run the path.
         </p>
       ) : null}
       <StopNote controls={controls} />

@@ -243,7 +243,7 @@ const floorNight = (id: (typeof WALKED)['engine-floor'][number]): Walker => asyn
   await tabTo(walk, /^Run the path$/)
   await page.keyboard.press('Enter')
   await expect(outcome(page)).toHaveText(OVER)
-  await expect(liveLine(page)).toContainText('The ticket is home')
+  await expect(liveLine(page)).toContainText('The request is home')
   // The way into the debrief is the stub's button.
   await page.getByRole('button', { name: 'See the debrief' }).focus()
   await walk.see()

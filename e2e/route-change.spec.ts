@@ -96,7 +96,7 @@ test.describe('a link of the board', () => {
     await arrives(page, 'Review')
     const first = await said(page).locator('p').elementHandle()
     await board(page, 'Primary', 'Progress').click()
-    await arrives(page, 'Evidence')
+    await arrives(page, 'Progress')
     // The paragraph is a new element, which is what a reader announces; the same element with new text may not be.
     expect(await first?.evaluate((element) => element.isConnected)).toBe(false)
     await expect(said(page).locator('p')).toHaveCount(1)

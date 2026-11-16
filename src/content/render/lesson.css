@@ -730,22 +730,25 @@
   }
 }
 
+/* The label names its target in full: a long part title wraps to a second line inside the bar, and is never cut at either end. */
 .es-lesson__foot-action {
   display: flex;
   flex: 1;
   align-items: center;
   justify-content: center;
+  min-width: 0;
   min-height: 2.75rem;
-  padding: var(--es-space-2) var(--es-space-4);
-  overflow: hidden;
+  padding: var(--es-space-1) var(--es-space-3);
   border: 2px solid var(--es-lamp-ring);
   border-radius: var(--es-radius-plate);
   background: var(--es-lamp);
   color: var(--es-text-1);
+  font-size: var(--es-size-note);
   font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
   text-decoration: none;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-wrap: balance;
 }
 
 .es-lesson__foot-action:focus-visible {

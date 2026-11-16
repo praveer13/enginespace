@@ -177,7 +177,7 @@ describe('the bestiary: known-wrong paths, each stopped by the rule it breaks (G
     expect(own?.source.repo).toBe('vllm-project/vllm')
     expect(own?.source.ref).toMatch(/^[0-9a-f]{40}$/)
     expect(own?.source.quote).toBe('self.input_queue.put_nowait((request_type, request))')
-    expect(MECHANISM_WORDS[own?.mechanism ?? 'call'].kitchen).toBe('spike')
+    expect(MECHANISM_WORDS[own?.mechanism ?? 'call'].tile).toBe('queue')
     expect(placeName(own?.to ?? stop.laid.to)).toBe('engine-core · main')
   })
 

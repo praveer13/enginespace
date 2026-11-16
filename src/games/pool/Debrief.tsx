@@ -1,4 +1,4 @@
-import { useId, useMemo } from 'react'
+import { useContext, useEffect, useId, useMemo } from 'react'
 import { drawInBand } from '@es/play'
 import { engineBaseline } from '@es/play/pool/debrief'
 import { POOL_COPY } from '@es/play/pool/copy'
@@ -10,6 +10,7 @@ import { Stamp } from '@/design/components/Stamp'
 import { TextLink } from '@/design/components/TextLink'
 import { useBest } from '@/games/kit/best'
 import { Debrief as Result } from '@/games/kit/Debrief'
+import { LessonRunContext } from '@/games/kit/lessonRun'
 import { Versus } from '@/games/kit/Versus'
 import { verdictOf } from '@/games/kit/verdict'
 import { MirrorTable, type MirrorColumn, type MirrorRow } from '@/games/kit/MirrorTable'
@@ -17,8 +18,9 @@ import type { PoolOutcome, PoolRun } from './types'
 
 /*
  * KV page pool's result (GAMES.md §8; REDESIGN §2.6): the kit's debrief, filled. The verdict word from the grade, one sentence that says
- * what the run did and the decision that mattered, the ways on (the next level first), then the guess beside the model's answer on one
- * number line, your cost against the reference's, "In vLLM today" with its source, and the counts against the reference's and the engine's
+ * what the run did and the decision that mattered, the ways on (the next level first; in a lesson, the lesson's way on), then the guess
+ * beside the model's answer on one number line (in a lesson whose guess this level's slot asked, the lesson's reveal), your cost against the
+ * reference's, "In vLLM today" with its source, and the counts against the reference's and the engine's
  * own pool's. Where LoRA adapters are in play, the same run with the adapters in fixed slots, as the engines keep them at the pins (D-042).
  * The reference is read only here. Every count is a count of the synthetic model, and the table's stamp says so.
  *
@@ -32,6 +34,8 @@ export interface DebriefProps {
   /** The level after this one, or null on the last. */
   next: { id: string; title: string } | null
   onNext: () => void
+  /** Inside a lesson: the ways on are the lesson's, and none of them leaves it. */
+  embedded?: boolean
 }
 
 const figure = (value: number) => <span className="font-numeric">{value}</span>
@@ -95,7 +99,7 @@ function Best({ level }: { level: PoolLevelId }) {
   )
 }
 
-export function Debrief({ run, outcome, next, onNext }: DebriefProps) {
+export function Debrief({ run, outcome, next, onNext, embedded = false }: DebriefProps) {
   const againId = useId()
   const { view } = run
   const { debrief, grade } = outcome
@@ -114,6 +118,52 @@ export function Debrief({ run, outcome, next, onNext }: DebriefProps) {
 
   const newNumbers = () => run.restart(drawFresh(level))
 
+  // In a lesson: its way on leads the result, and a guess the lesson asked in this level's slot is revealed here, in the lesson's numbers,
+  // in place of the level's own number line (whose answer is for this level's first request, a different quantity).
+  const lesson = useContext(LessonRunContext)
+  const onward = lesson?.onward ?? null
+  const lessonReveal = lesson !== null && lesson.reveal !== null && lesson.reveal !== undefined
+  const showsReveal = lesson?.showsReveal
+  useEffect(() => {
+    if (!lessonReveal || showsReveal === undefined) return
+    showsReveal(true)
+    return () => showsReveal(false)
+  }, [lessonReveal, showsReveal])
+
+  const primary =
+    onward !== null ? (
+      <Button variant="ink" onClick={() => onward.select()}>
+        {onward.label}
+      </Button>
+    ) : next !== null ? (
+      <Button variant="ink" onClick={onNext}>
+        {`Next level: ${next.title}`}
+      </Button>
+    ) : embedded ? null : (
+      <TextLink to="/map">Open the course</TextLink>
+    )
+
+  const guessLine = lessonReveal ? (
+    <div className="es-pool-debrief__lesson-guess" data-pool-lesson-guess="">
+      {lesson?.reveal}
+    </div>
+  ) : guess === null ? (
+    <p data-pool-guess="">
+      You skipped the guess. The answer: {figure(answer)} {unit}.
+    </p>
+  ) : (
+    <NumberLine
+      caption={`Your guess and the model's answer, in ${unit}`}
+      min={Math.min(0, guess, answer)}
+      max={Math.max(guess, answer, 1) * 1.25}
+      pins={[
+        { id: 'guess', kind: 'guess', value: guess, label: 'your guess' },
+        { id: 'answer', kind: 'result', value: answer, label: 'the answer' },
+      ]}
+      stamp={<Stamp word="synthetic" />}
+    />
+  )
+
   return (
     <Result
       className="es-pool-debrief"
@@ -121,13 +171,7 @@ export function Debrief({ run, outcome, next, onNext }: DebriefProps) {
       sentence={debrief.sentence}
       actions={
         <>
-          {next === null ? (
-            <TextLink to="/map">Open the course</TextLink>
-          ) : (
-            <Button variant="ink" onClick={onNext}>
-              {`Next level: ${next.title}`}
-            </Button>
-          )}
+          {primary}
           <Button variant="quiet" aria-describedby={againId} onClick={() => (run.mode === 'graded' ? newNumbers() : run.restart())}>
             Run again
           </Button>
@@ -138,6 +182,7 @@ export function Debrief({ run, outcome, next, onNext }: DebriefProps) {
       }
     >
       <div className="es-pool-debrief__body" data-pool-debrief="">
+        {guessLine}
         <p id={againId} className="es-pool-debrief__again" data-run-again="">
           <strong>Run again:</strong> {againLine(view.counts.cost, reference.cost)}
           {run.ledger ? <Best level={level} /> : null}
@@ -166,22 +211,6 @@ export function Debrief({ run, outcome, next, onNext }: DebriefProps) {
             { id: 'hit', label: 'Prefix-hit tokens', mine: view.counts.hitTokens, reference: reference.hitTokens },
           ]}
         />
-        {guess === null ? (
-          <p data-pool-guess="">
-            You skipped the guess. The answer: {figure(answer)} {unit}.
-          </p>
-        ) : (
-          <NumberLine
-            caption={`Your guess and the model's answer, in ${unit}`}
-            min={Math.min(0, guess, answer)}
-            max={Math.max(guess, answer, 1) * 1.25}
-            pins={[
-              { id: 'guess', kind: 'guess', value: guess, label: 'your guess' },
-              { id: 'answer', kind: 'result', value: answer, label: 'the answer' },
-            ]}
-            stamp={<Stamp word="synthetic" />}
-          />
-        )}
         <section aria-label="In vLLM today" className="es-pool-debrief__engine">
           <h4>In vLLM today</h4>
           <p>

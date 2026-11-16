@@ -283,7 +283,7 @@ function PoolLevel({ levelId, levelTitle, seed, mode, embedded, rev, onFinish, l
       readout={(run) => <ReadoutStrip view={run.view} />}
       result={(run, outcome) => (
         <Suspense fallback={<p role="status">Reading the run…</p>}>
-          <Debrief run={run} outcome={outcome} next={next} onNext={onNext} />
+          <Debrief run={run} outcome={outcome} next={next} onNext={onNext} embedded={embedded} />
         </Suspense>
       )}
       mirror={(run) => <Mirror run={run} />}

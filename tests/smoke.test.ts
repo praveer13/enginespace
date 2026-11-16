@@ -133,7 +133,7 @@ describe('routes against ARCHITECTURE §3.1', () => {
     // The page opens the ledger in the browser (W2-T06), so the server renders the tickets that are still printing.
     '/receipts': { h1: 'Receipts', shows: 'Printing your challenges' },
     '/today': { h1: 'Review' },
-    '/evidence': { h1: 'Evidence' },
+    '/evidence': { h1: 'Progress' },
     '/design': { h1: 'Design system' },
     '/settings': { h1: 'Settings' },
     '/about': { h1: 'About', shows: 'W3-T15' },

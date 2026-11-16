@@ -415,7 +415,7 @@ test.describe('the Play index', () => {
     const arriving = page.locator('li.es-line[data-status="arriving"]')
     expect(await arriving.count()).toBeGreaterThanOrEqual(4)
     await expect(arriving.locator('a[href^="/play/"]')).toHaveCount(0)
-    await expect(page.locator('li.es-line[data-game="shape-shifter"]')).toContainText('arriving with W2')
+    await expect(page.locator('li.es-line[data-game="shape-shifter"]')).toContainText('Not published yet')
     const links = await page.locator('a[href^="/play/"]').evaluateAll((anchors) => anchors.map((anchor) => anchor.getAttribute('href')))
     expect(links).toContain('/play/loop')
     // Every link on the page is to a game that opens: none is a page that says "Game not found".

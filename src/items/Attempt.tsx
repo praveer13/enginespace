@@ -70,13 +70,13 @@ export default function AttemptView({ gen, level, entropy, scope, onRestart }: A
     if (spec.kind === 'numeric') {
       const value = parseNumber(text, spec.unit)
       if (value === null) {
-        setProblem(`Write a number, in ${spec.unit}, and then check the ticket.`)
+        setProblem(`Write a number, in ${spec.unit}, then check it.`)
         return
       }
       response = { kind: 'numeric', value }
     } else {
       if (pick === null) {
-        setProblem('Tick one line, and then check the ticket.')
+        setProblem('Choose one answer, then check it.')
         return
       }
       response = { kind: 'choice', pick }
@@ -127,16 +127,16 @@ export default function AttemptView({ gen, level, entropy, scope, onRestart }: A
       foot={[`seed ${seedLabel(item.seed)}`, attempt.provenance]}
       stub={
         phase === 'asking' ? (
-          <Stub onClick={check}>Check the ticket</Stub>
+          <Stub onClick={check}>Check answer</Stub>
         ) : (
-          <Stub onClick={advance}>{last ? 'Tally the tickets' : 'Next ticket'}</Stub>
+          <Stub onClick={advance}>{last ? 'See the tally' : 'Next question'}</Stub>
         )
       }
       data={{ seed: String(item.seed), level: String(item.level), variant: item.variant, kind: item.answer.kind, rev: item.rev, ...(revealed ? { ok: String(answered.grade.ok) } : {}) }}
     >
       <h3 className="es-item__count" tabIndex={-1} ref={phase === 'asking' ? focusTarget : undefined}>
         <span>
-          Item {shown + 1} of {attempt.served.length}
+          Question {shown + 1} of {attempt.served.length}
         </span>{' '}
         <span className="es-item__level">{LEVEL_NAMES[item.level]}</span>
       </h3>

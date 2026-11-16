@@ -349,7 +349,7 @@ describe('the item blocks, as the lessons print them (W1b-T06)', () => {
         const first = startAttempt(gen, level, entropy.slice(0, block.count)).served[0].item
         expect(page).toContain('data-phase="asking"')
         expect(page).toContain(`data-seed="${first.seed}"`)
-        expect(page).toContain(`Item 1 of ${block.count}`)
+        expect(page).toContain(`Question 1 of ${block.count}`)
         // The stem is drawn part by part: words as words, and code in a code element.
         for (const part of first.stem) {
           if (part.t === 'text') expect(page).toContain(escaped(part.text))

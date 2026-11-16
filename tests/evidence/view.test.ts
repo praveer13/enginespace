@@ -135,7 +135,7 @@ describe('the page', () => {
 
   test('has one h1, "Evidence", and the counts, then the means to keep a copy', () => {
     const html = view()
-    expect([...html.matchAll(/<h1[^>]*>(.*?)<\/h1>/gs)].map((match) => match[1])).toEqual(['Evidence'])
+    expect([...html.matchAll(/<h1[^>]*>(.*?)<\/h1>/gs)].map((match) => match[1])).toEqual(['Progress'])
     expect([...html.matchAll(/<h2[^>]*>(.*?)<\/h2>/gs)].map((match) => match[1])).toEqual(['By kind', 'By module', 'Keep a copy'])
     expect(html).toContain('data-slot="files"')
     expect(html).toContain('<aside class="es-page__side" aria-label="The ledger"><p data-slot="side">')
@@ -147,9 +147,11 @@ describe('the page', () => {
     expect(body).toContain('Events written, not credit:')
   })
 
-  test('derives nothing about credit: no score, no percent, no weight, no progress', () => {
+  test('derives nothing about credit: no score, no percent, no weight, no progress, beyond the page\'s own name', () => {
+    // The page is named Progress, as the header's link is (REDESIGN §2.3). Under its name, it derives nothing.
     const body = text(view())
-    expect(body).not.toMatch(/\bXP\b|percent|%|\bscore\b|weight|progress|complete/i)
+    expect(body.startsWith('Progress ')).toBe(true)
+    expect(body.slice('Progress '.length)).not.toMatch(/\bXP\b|percent|%|\bscore\b|weight|progress|complete/i)
   })
 
   test('an empty ledger is a blank ticket with the way to the course, and still offers the means to import', () => {

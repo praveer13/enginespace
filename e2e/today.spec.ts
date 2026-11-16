@@ -160,7 +160,7 @@ const root = (page: Page): Locator => page.locator('[data-page="today"]')
 const phase = (page: Page, name: string): Locator => page.locator(`.es-prep[data-phase="${name}"]`)
 const block = (page: Page): Locator => page.locator('section[data-block="item"]')
 const stub = (page: Page, name: RegExp | string): Locator => page.locator('main').getByRole('button', { name })
-const start = (page: Page): Locator => stub(page, 'Start the prep')
+const start = (page: Page): Locator => stub(page, 'Start review')
 const field = (page: Page): Locator => block(page).locator('input.es-field__input')
 
 interface Ticket {
@@ -213,7 +213,7 @@ async function fill(page: Page, which: 'right' | 'wrong', sure?: string): Promis
 }
 
 async function check(page: Page): Promise<void> {
-  await stub(page, /Check the ticket/).click()
+  await stub(page, /Check answer/).click()
   await expect(block(page)).toHaveAttribute('data-phase', 'revealed')
   await quiet(page, 300)
 }
@@ -248,7 +248,7 @@ test.describe('the prep list', () => {
     await visit(page, earned({ bubble: 6, overlap: 5 }))
     await expect(phase(page, 'list')).toBeVisible()
     await expect(page.getByRole('heading', { level: 1, name: 'Today' })).toBeVisible()
-    await expect(page.getByRole('heading', { level: 2, name: 'Prep list' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 2, name: 'Review set' })).toBeVisible()
     const lines = page.locator('.es-prep__list .es-prep__line')
     await expect(lines).toHaveCount(2)
     for (const kc of [BUBBLE, OVERLAP]) await expect(page.locator('.es-prep__list .es-prep__kc', { hasText: kc })).toBeVisible()
@@ -273,7 +273,7 @@ test.describe('the prep list', () => {
   test('has nothing to prep before anything is earned, and says what earns something', async ({ page }) => {
     await visit(page, [])
     await expect(phase(page, 'empty')).toBeVisible()
-    await expect(page.getByRole('heading', { level: 2, name: 'Nothing to prep yet' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 2, name: 'Nothing to review yet' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Start with TR2' })).toHaveAttribute('href', '/m/tr2')
     await expect(page.getByRole('link', { name: 'Open the course map' })).toHaveAttribute('href', '/map')
     await expect(start(page)).toHaveCount(0)
@@ -285,7 +285,7 @@ test.describe('the prep list', () => {
     await expect(phase(page, 'rest')).toBeVisible()
     await expect(page.getByRole('heading', { level: 2, name: 'Nothing is due today' })).toBeVisible()
     // Two Good first reviews are due in two days.
-    await expect(page.locator('.es-prep__next')).toHaveText(`Your next prep is ${formatDay(dayOffset(2))}.`)
+    await expect(page.locator('.es-prep__next')).toHaveText(`Your next review is ${formatDay(dayOffset(2))}.`)
     await expect(stub(page, 'Review ahead')).toBeVisible()
   })
 
@@ -313,7 +313,7 @@ test.describe('a prep', () => {
     await expect(block(page)).toHaveAttribute('data-lamp', 'true')
     await expect(block(page)).toHaveAttribute('data-kc', first)
     await expect(block(page).locator('h3.es-item__count')).toBeFocused()
-    await expect(block(page).locator('h3.es-item__count')).toContainText('Item 1 of 2')
+    await expect(block(page).locator('h3.es-item__count')).toContainText('Question 1 of 2')
     const one = await ticket(page)
     await expect(block(page).locator('.es-ticket__foot')).toContainText(`seed ${one.seed.toString(16).toUpperCase().padStart(8, '0')}`)
     await expect(block(page).locator('.es-ticket__foot')).toContainText('unseen')
@@ -325,18 +325,18 @@ test.describe('a prep', () => {
     const today = dayOffset(0)
     const card = deriveCards(events, appKcsOfRef, today).cards.get(first)
     await expect(block(page).locator('.es-prep__back')).toContainText(formatDay(returnDay(card, today, 4)))
-    await stub(page, /Next ticket/).click()
+    await stub(page, /Next question/).click()
 
     // Ticket 2: a line to tick, and a wrong answer, said with a guess.
     await expect(block(page)).toHaveAttribute('data-phase', 'asking')
     await expect(block(page)).toHaveAttribute('data-kc', second)
-    await expect(block(page).locator('h3.es-item__count')).toContainText('Item 2 of 2')
+    await expect(block(page).locator('h3.es-item__count')).toContainText('Question 2 of 2')
     await expect(block(page).locator('h3.es-item__count')).toBeFocused()
     const two = await fill(page, 'wrong', 'guess')
     expect(two.kind).toBe('choice')
     await check(page)
     await expect(block(page).getByRole('heading', { name: 'Not this one.' })).toBeFocused()
-    await stub(page, /Finish the prep/).click()
+    await stub(page, /Finish the review/).click()
 
     // The close: the tally, what became of each idea, the printer's counts, and when the list is pinned up again.
     await expect(phase(page, 'done')).toBeVisible()
@@ -346,8 +346,8 @@ test.describe('a prep', () => {
     await expect(done.locator('.es-prep__line[data-line="done"][data-ok="true"]')).toHaveCount(1)
     await expect(done.locator('.es-prep__line[data-line="done"][data-ok="false"]')).toHaveCount(1)
     await expect(done.locator('.es-prep__return')).toHaveCount(2)
-    await expect(page.getByRole('figure', { name: 'The prep, printed' })).toContainText('tickets')
-    await expect(page.locator('.es-prep__next')).toContainText('Your next prep is')
+    await expect(page.getByRole('figure', { name: 'The review, in numbers' })).toContainText('questions')
+    await expect(page.locator('.es-prep__next')).toContainText('Your next review is')
     await expect(stub(page, 'Review ahead')).toBeVisible()
 
     // The ledger holds one review for each ticket, with the model's grade, the seed that was drawn, the tap, and no key.
@@ -377,7 +377,7 @@ test.describe('a prep', () => {
         const current = await fill(page, 'right')
         seeds.push(current.seed)
         await check(page)
-        await stub(page, at === 0 ? /Next ticket/ : /Finish the prep/).click()
+        await stub(page, at === 0 ? /Next question/ : /Finish the review/).click()
       }
       await expect(phase(page, 'done')).toBeVisible()
     }
@@ -415,7 +415,7 @@ test.describe('a prep', () => {
     await start(page).click()
     await expect(block(page)).toHaveAttribute('data-kind', 'numeric')
     await field(page).fill('plenty')
-    await stub(page, /Check the ticket/).click()
+    await stub(page, /Check answer/).click()
     await expect(block(page).locator('.es-field__error')).toContainText('Write a number')
     await expect(block(page)).toHaveAttribute('data-phase', 'asking')
     expect(await ledger(page)).toHaveLength(0)
@@ -440,7 +440,7 @@ test.describe('the keyboard, at 360 px', () => {
     // The way in: the skip link first, and it works. Then Tab reaches the stub that starts the prep, and Enter pulls it.
     expect((await walk.press('Tab')).name).toBe('Skip to main content')
     expect((await walk.press('Enter')).tag).toBe('main')
-    await walk.tabTo('Start the prep', 12)
+    await walk.tabTo('Start review', 12)
     await page.keyboard.press('Enter')
     await expect(block(page)).toHaveAttribute('data-phase', 'asking')
     await expect(block(page).locator('h3.es-item__count')).toBeFocused()
@@ -457,11 +457,11 @@ test.describe('the keyboard, at 360 px', () => {
     await tabToButton(page, walk, 'sure')
     await page.keyboard.press('Space')
     await expect(stub(page, 'sure')).toHaveAttribute('aria-pressed', 'true')
-    await tabToButton(page, walk, /Check the ticket/)
+    await tabToButton(page, walk, /Check answer/)
     await page.keyboard.press('Enter')
     await expect(block(page)).toHaveAttribute('data-phase', 'revealed')
     await expect(block(page).getByRole('heading', { name: 'Right.' })).toBeFocused()
-    await tabToButton(page, walk, /Next ticket/)
+    await tabToButton(page, walk, /Next question/)
     await page.keyboard.press('Enter')
 
     // Ticket 2, a choice: the radios are one group and the arrow keys move through it.
@@ -475,10 +475,10 @@ test.describe('the keyboard, at 360 px', () => {
     await walk.press('Tab')
     for (let presses = 0; presses < 5 && !(await radio.isChecked()); presses += 1) await walk.press('ArrowDown')
     await expect(radio).toBeChecked()
-    await tabToButton(page, walk, /Check the ticket/)
+    await tabToButton(page, walk, /Check answer/)
     await page.keyboard.press('Enter')
     await expect(block(page)).toHaveAttribute('data-phase', 'revealed')
-    await tabToButton(page, walk, /Finish the prep/)
+    await tabToButton(page, walk, /Finish the review/)
     await page.keyboard.press('Enter')
 
     // The close: its headline takes focus, and the way on is one Tab away.
@@ -510,7 +510,7 @@ test.describe('motion', () => {
     await visit(page, earned({ bubble: 6, overlap: 5 }))
     await start(page).click()
     await fill(page, 'right')
-    await stub(page, /Check the ticket/).click()
+    await stub(page, /Check answer/).click()
     const reveal = block(page).locator('.es-item__reveal')
     await expect(reveal).toBeVisible()
     const motion = await reveal.evaluate((element) => ({
@@ -564,20 +564,20 @@ for (const width of [360, 1280]) {
       await start(page).click()
       await expect(block(page)).toHaveAttribute('data-phase', 'asking')
       await audit(page, 'asking, a number')
-      await stub(page, /Check the ticket/).click()
+      await stub(page, /Check answer/).click()
       await audit(page, 'asking, a word where a number belongs')
       await fill(page, 'wrong', 'sure')
       await check(page)
       await audit(page, 'checked, wrong, a number')
-      await stub(page, /Next ticket/).click()
+      await stub(page, /Next question/).click()
       await expect(block(page)).toHaveAttribute('data-phase', 'asking')
       await audit(page, 'asking, a choice')
-      await stub(page, /Check the ticket/).click()
+      await stub(page, /Check answer/).click()
       await audit(page, 'asking, a choice with no tick')
       await fill(page, 'right', 'think')
       await check(page)
       await audit(page, 'checked, right, a choice')
-      await stub(page, /Finish the prep/).click()
+      await stub(page, /Finish the review/).click()
       await expect(phase(page, 'done')).toBeVisible()
       await audit(page, 'the close of a prep')
       await stub(page, 'Review ahead').click()

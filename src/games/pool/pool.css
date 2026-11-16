@@ -29,7 +29,7 @@
   }
 
   .es-pool__slot {
-    min-height: 2.25rem;
+    min-height: 2rem;
   }
 
   .es-pool__legend .es-legend {
@@ -40,9 +40,21 @@
     display: none;
   }
 
-  /* The free queue, where an eviction is decided, comes before the grid, so it is on the screen when the view is short. */
+  /* The free queue, where an eviction is decided, comes before the grid, so it is on the screen when the view is short. It keeps to one
+     row, the next to evict at the left, and the rest scroll sideways inside it, so it never pushes the grid out of the view. */
   .es-pool__queue {
     order: 1;
+  }
+
+  .es-pool__queue .es-pool__strip {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+  }
+
+  .es-pool__queue .es-pool__strip > * {
+    flex: none;
   }
 
   .es-pool__grid-box {

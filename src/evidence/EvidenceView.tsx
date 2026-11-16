@@ -148,7 +148,7 @@ export function EvidenceView({ ready, counts, modules, side, files }: EvidenceVi
   return (
     <div className="es-page" data-page="evidence">
       <header className="es-page__header">
-        <h1 className="es-page__title">Evidence</h1>
+        <h1 className="es-page__title">Progress</h1>
         <p className="es-page__lead">
           What this browser holds of your graded work. It stays on this device: nothing here is sent anywhere, and nothing is collected.
         </p>
