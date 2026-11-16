@@ -231,7 +231,7 @@ const SAMPLER: Record<(typeof WALKED)['verifier'][number], Walker> = {
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* Back of House (`engine-floor`)                                                                                     */
+/* Request path (`engine-floor`)                                                                                      */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 const stageCard = (page: Page, id: string) => page.locator(`[data-floor-tray] [data-stage="${id}"]`)
@@ -249,7 +249,7 @@ async function arrowToStage(page: Page, walk: Walk, id: string): Promise<void> {
   await expect.poll(() => focusedAttribute(page, 'data-stage')).toBe(id)
 }
 
-/** The prediction by keys: Tab to the plate, Enter to pick it, Tab to the stub and Enter to commit. Focus lands on the first card. */
+/** The prediction by keys: Tab to the number, Enter to pick it, Tab to Commit and Enter to commit. Focus lands on the first tile. */
 async function commitBoundaries(page: Page, walk: Walk, n: number): Promise<void> {
   await tabTo(walk, new RegExp(`^${n} ${n === 1 ? 'boundary' : 'boundaries'}$`))
   await page.keyboard.press('Enter')
@@ -259,25 +259,32 @@ async function commitBoundaries(page: Page, walk: Walk, n: number): Promise<void
   await expect.poll(() => page.evaluate(() => document.activeElement?.getAttribute('data-stage') !== null)).toBe(true)
 }
 
-/** The whole level: the prediction (the true count), the engine's path laid card by card, the run, and the debrief. */
+/** The whole level: the first run's intro if it shows, the prediction (the true count), the engine's path laid tile by tile, the run, and the result. */
 const floorNight = (id: (typeof WALKED)['engine-floor'][number]): Walker => async (page, walk) => {
   const level = floorLevel(id, practiceSeed('engine-floor', id))
+  // A learner who has not met the parts gets the first run (R-T29): Next, with the keys, walks the parts and the look; the prediction follows.
+  const step = () => page.locator('[data-game="engine-floor"] .es-intro').first().getAttribute('data-intro', { timeout: 2_000 }).catch(() => null)
+  await page.locator('[data-game="engine-floor"] :is(.es-intro, [data-prediction])').first().waitFor()
+  for (let at = await step(), guard = 0; (at === 'parts' || at === 'look') && guard < 12; at = await step(), guard++) {
+    const focused = await page.evaluate(() => document.activeElement?.hasAttribute('data-intro-next') ?? false)
+    if (!focused) await tabTo(walk, /^(Next|Next part)$/, 60)
+    await page.keyboard.press('Enter')
+  }
   await commitBoundaries(page, walk, floorGhost(level).prediction ?? 0)
   for (const stageId of level.reference) {
     await arrowToStage(page, walk, stageId)
     await page.keyboard.press('Enter')
     await expect(stageCard(page, stageId)).toHaveCount(0)
   }
-  await expect(page.locator('[data-floor-path] li[data-state]')).toHaveCount(level.reference.length)
+  await expect(page.locator('[data-game="engine-floor"] [data-floor-lanes] [data-lane-row]')).toHaveCount(level.reference.length)
   await tabTo(walk, /^Run the path$/)
   await page.keyboard.press('Enter')
-  await expect(outcome(page)).toHaveText(OVER)
-  await expect(liveLine(page)).toContainText('The request is home')
-  // The way into the debrief is the stub's button.
-  await page.getByRole('button', { name: 'See the debrief' }).focus()
+  // The instrument frame puts the result in the dock and focus on its verdict: the graded map has a pass rule, a practice level a number to beat.
+  await expect(outcome(page)).toHaveText('The run is over. The result is in the dock.')
+  const verdict = page.locator('[data-game="engine-floor"] [data-result] [data-result-heading]')
+  await expect(verdict).toHaveText(id === 'map' ? 'Passed' : 'Finished (practice)')
+  await expect.poll(() => page.evaluate(() => document.activeElement?.hasAttribute('data-result-heading') ?? false)).toBe(true)
   await walk.see()
-  await page.keyboard.press('Enter')
-  await expect(page.getByRole('heading', { level: 3, name: 'Every hand-off held.' })).toBeVisible()
 }
 
 const FLOOR: Record<(typeof WALKED)['engine-floor'][number], Walker> = {

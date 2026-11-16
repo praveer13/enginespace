@@ -851,11 +851,13 @@ describe('the 3D chunk and the page', () => {
     }
   })
 
-  test('the game loads its scene lazily, the page computes the house the scene draws, keeps the scene in sight, and a run from the cutaway follows the ticket', () => {
+  test('the game loads its scene and its Stage lazily, the Stage computes the house the scene draws, and a run from the cutaway follows the request', () => {
+    // R-T29: the swimlane is the default view, so the 3D view's Stage (Stage3D.tsx) is a chunk of its own, loaded on the switch to 3D.
     const game = readFileSync(path.join(root, 'src/games/engine-floor/Game.tsx'), 'utf8')
     expect(game).toContain("lazy(() => import('./Scene3D'))")
-    expect(game).toContain('sceneModelOf(')
-    expect(game).toContain('stage="sticky"')
-    expect(game).toMatch(/runs > ran\.current && stop === 'cutaway'\) onStop\('follow'\)/)
+    expect(game).toContain("lazy(() => import('./Stage3D'))")
+    const stage = readFileSync(path.join(root, 'src/games/engine-floor/Stage3D.tsx'), 'utf8')
+    expect(stage).toContain('sceneModelOf(')
+    expect(stage).toMatch(/runs > seenAt\.runs && stop === 'cutaway'\) setStop\('follow'\)/)
   })
 })

@@ -1,5 +1,5 @@
 /**
- * Shared by Back of House's tests (tests/play/engine-floor*.test.ts): a session walked by actions, the engine's own path laid up to a
+ * Shared by Request path's tests (tests/play/engine-floor*.test.ts): a session walked by actions, the engine's own path laid up to a
  * stage, a run as the pieces of the page receive it, and every scenario of the lifecycle model.
  */
 import { applyAction, startRun } from '@es/play'
@@ -44,7 +44,7 @@ export function houseActions(level: FloorLevel): FloorAction[] {
   return [{ t: 'commit', prediction: truthOf(level.scenario) }, ...level.reference.map((stage): FloorAction => ({ t: 'lay', stage })), { t: 'run' }]
 }
 
-/** A run as the pieces of the page receive it (GameShell's `RunApi`), for a state, with every action a no-op: for server-rendering the page. */
+/** A run as the pieces of the page receive it (the frame's `FrameRun`), for a state, with every action a no-op: for server-rendering the page. */
 export function fakeRun(state: FloorState, over: Partial<FloorRun> = {}): FloorRun {
   const view = floorView(state)
   return {
@@ -63,9 +63,11 @@ export function fakeRun(state: FloorState, over: Partial<FloorRun> = {}): FloorR
     announce: () => undefined,
     setAutoplay: () => undefined,
     mirrorId: 'mirror',
-    phase: 'play',
     restart: () => undefined,
-    goTo: () => undefined,
+    ledger: false,
+    intro: { askShown: true, ring: null },
+    guessSkipped: false,
+    skipGuess: () => undefined,
     ...over,
   }
 }

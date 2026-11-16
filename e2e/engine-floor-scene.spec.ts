@@ -29,6 +29,7 @@ import AxeBuilder from '@axe-core/playwright'
 import { test as base, expect } from '@playwright/test'
 import type { BrowserContext, Page } from '@playwright/test'
 import { build } from 'vite'
+import { FLOOR_PARTS } from '../packages/play/engine-floor/copy'
 import { buildLevel } from '../packages/play/engine-floor/levels'
 import type { FrameStats } from '../src/scene/stage-runtime'
 import type { SceneHook } from '../src/scene/test-hook'
@@ -105,13 +106,24 @@ const test = base.extend<{ requests: string[] }>({
 const stage = (page: Page) => page.locator('[data-stage="engine-floor"]')
 const game = (page: Page) => page.locator('section[data-game="engine-floor"]')
 const probe = (page: Page) => page.evaluate(() => window.__esScene?.probes['engine-floor']?.info() ?? null)
-const camera = (page: Page) => page.getByRole('group', { name: 'Camera on the house' })
+const camera = (page: Page) => page.getByRole('group', { name: 'Camera' })
 const reference = (level: string) => buildLevel(level, 0).reference
 
 async function open(page: Page, level: string, tier: number) {
+  // A learner who has met the parts: the first run's intro does not stand over the scene's tests (R-T29).
+  await page.addInitScript((flag) => {
+    try {
+      localStorage.setItem('es:intro', flag)
+    } catch {
+      // No storage: the intro shows, and nothing here presses through it.
+    }
+  }, JSON.stringify({ 'engine-floor': FLOOR_PARTS.map((part) => part.id) }))
   await page.goto(`${ORIGIN}/play/engine-floor?level=${level}&es-tier=${tier}`)
   await page.evaluate(() => document.fonts.ready)
   await expect(game(page)).toBeVisible()
+  // The swimlane is the page's view (R-T29, REDESIGN §2.9): the 3D view is one switch away, and a learner presses it.
+  const switch3d = game(page).locator('.es-frame__strip').getByRole('button', { name: '3D', exact: true })
+  if ((await switch3d.count()) > 0 && (await switch3d.isEnabled())) await switch3d.click()
 }
 
 /** The scene pauses while it is scrolled away, so a test looks at it from the top of the page, with the game's keys in hand. */
@@ -249,7 +261,7 @@ test.describe('the draw-call budget (A§11.1, D-023): at most 100', () => {
       await settle(page)
       frames.push(await frame(page))
       await run(page)
-      await expect(page.locator('[data-live="outcome"]')).toHaveText('The run is over. The debrief is ready.')
+      await expect(page.locator('[data-live="outcome"]')).toHaveText('The run is over. The result is in the dock.')
       await settle(page)
       frames.push(await frame(page))
       const most = frames.reduce((a, b) => (b.sceneCalls > a.sceneCalls ? b : a))
@@ -285,7 +297,7 @@ test.describe('the moment, on the bell (GAMES.md §5, "Motion")', () => {
     await expect(stage(page).locator('.es-floor-chit__n[data-state="ran"]')).toHaveCount(13)
   })
 
-  test('the stub pulled far down the column sends a run that is seen: the scene stays in sight on a wide screen, and the camera takes the follow from the cutaway', async ({ page }) => {
+  test('Run the path, in the dock beside the scene, sends a run that is seen: the scene stays in sight on a wide screen, and the camera takes the follow from the cutaway', async ({ page }) => {
     test.setTimeout(180_000)
     await open(page, 'vllm', 2)
     await settle(page)
@@ -294,8 +306,7 @@ test.describe('the moment, on the bell (GAMES.md §5, "Motion")', () => {
     await settle(page)
     const stub = page.getByRole('button', { name: 'Run the path' })
     await stub.scrollIntoViewIfNeeded()
-    expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(400)
-    // Scrolled to the stub, the 3D view is still whole in the viewport: its column sticks.
+    // The run control stands in the dock beside the 3D view (R-T29's frame), so with it in hand the 3D view is still whole in the viewport.
     const box = await stage(page).boundingBox()
     const height = page.viewportSize()?.height ?? 0
     expect(box?.y ?? -1).toBeGreaterThanOrEqual(0)
@@ -303,7 +314,7 @@ test.describe('the moment, on the bell (GAMES.md §5, "Motion")', () => {
     await expect(camera(page).locator('button[aria-pressed="true"]')).toHaveText('Cutaway')
     await stub.click()
     await expect(camera(page).locator('button[aria-pressed="true"]')).toHaveText('Follow the request')
-    await expect(page.locator('[data-floor-path] li[data-state="ran"]')).toHaveCount(13)
+    await expect(page.locator('[data-state-table] [data-row-state="ran"]')).toHaveCount(13)
     // The run plays where it is seen: frames come while the ticket travels, and the house settles where it stopped.
     await expect(stage(page)).not.toHaveAttribute('data-settled', 'true', { timeout: 10_000 })
     await expect(stage(page)).toHaveAttribute('data-settled', 'true', { timeout: 60_000 })
@@ -320,14 +331,15 @@ test.describe('the views and the camera (A§6.8)', () => {
     await lay(page, reference('vllm').slice(0, 5))
     await run(page)
     await settle(page)
-    const rows = () => page.locator('[data-floor-path] li[data-state]').evaluateAll((items) => items.map((item) => item.getAttribute('data-state')))
+    // The laid path as the table under the frame lists it: the swimlane is the 3D view's fallback, so the table is what both views keep.
+    const rows = () => page.locator('[data-state-table] [data-row-state]').evaluateAll((items) => items.map((item) => item.getAttribute('data-row-state')))
     const before = { prediction: await page.locator('[data-prediction]').textContent(), rows: await rows() }
     expect(before.rows).toEqual(['ran', 'ran', 'ran', 'ran', 'ran'])
 
     await home(page)
     await page.keyboard.press('KeyV')
     await expect(game(page)).toHaveAttribute('data-view', '2d')
-    await expect(page.locator('[data-surface="2d"] [data-floor-view] svg')).toBeVisible()
+    await expect(page.locator('[data-surface="2d"] [data-floor-lanes]')).toBeVisible()
     await expect(stage(page)).toHaveCount(0)
     expect({ prediction: await page.locator('[data-prediction]').textContent(), rows: await rows() }).toEqual(before)
 
@@ -490,7 +502,7 @@ test.describe('on a phone, 390 by 844 (the finish review\'s W1b round 1)', () =>
     await settle(page)
     expect(await handsShown(page)).toEqual([])
     await run(page)
-    await expect(page.locator('[data-floor-path] li[data-state="ran"]')).toHaveCount(13)
+    await expect(page.locator('[data-state-table] [data-row-state="ran"]')).toHaveCount(13)
     await settle(page)
     expect(await handsShown(page)).toEqual(['main'])
     expect(await covered(page)).toEqual([])
@@ -517,7 +529,7 @@ test.describe('reduced motion (A§6.9): every change cuts, and the camera cuts b
     await lay(page, reference('vllm').slice(0, 13))
     await settle(page)
     await run(page)
-    await expect(page.locator('[data-floor-path] li[data-state="ran"]')).toHaveCount(13)
+    await expect(page.locator('[data-state-table] [data-row-state="ran"]')).toHaveCount(13)
     await settle(page)
     // The ticket and the camera are where the run left them, and the house is still: no frame is asked for after it settles.
     const after = await page.evaluate(() => window.__raf ?? 0)

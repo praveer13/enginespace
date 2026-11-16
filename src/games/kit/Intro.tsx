@@ -162,11 +162,15 @@ export function IntroCoach({ title, step, parts, replay, look, ask, skip, moveWo
       )
       break
     case 'point':
-      body = (
-        <p className="es-intro__lead">
-          <strong>{moveWords}</strong>, in the ring, is {moveKind === undefined ? 'the reference run’s first move' : moveKind}. From here the level is yours.
-        </p>
-      )
+      // A level whose reference is its answer (the graded map of a request's path) points at nothing.
+      body =
+        moveWords === '' ? (
+          <p className="es-intro__lead">Nothing is pointed at on this level: finding the first move is part of it. From here the level is yours.</p>
+        ) : (
+          <p className="es-intro__lead">
+            <strong>{moveWords}</strong>, in the ring, is {moveKind === undefined ? 'the reference run’s first move' : moveKind}. From here the level is yours.
+          </p>
+        )
       break
   }
 

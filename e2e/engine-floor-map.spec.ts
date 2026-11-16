@@ -1,20 +1,14 @@
 /*
- * Back of House's graded `map` in a browser (GAMES.md §5; ASSESSMENT §4.3; A§6.2, A§6.8, A§6.9): the walks that need a page, and W1-T19's
- * acceptance checks that need one.
+ * Request path's graded `map` in a browser (GAMES.md §5; ASSESSMENT §4.3; REDESIGN §3.6; A§6.2, A§6.8, A§6.9): the walks that need a page.
  *
- *   1. A graded run by keyboard alone: start it, write the prediction, lay the whole path with the arrows and Enter, pull the stub once, and
- *      read the debrief: passed, the path against the tape row by row, and the lifecycle trace in the trace viewer. There is no Undo, and the
- *      comma, which undoes in practice, does nothing. The way on is another fresh scenario, which is another seed.
- *   2. A wrong stage ends the run: the stage of the engine's own that belongs to another request is named for what it needs, the level is
- *      over, nothing can be taken back, and the debrief marks the stage where the path parted from the tape with a word and a drawn mark.
- *   3. The path stays a secret until the run is judged: the house is drawn only as far as the route has gone, and the mirror does not say how
- *      long the path is. Once the run is judged the whole house is there.
- *   4. Reduced motion: nothing animates, and the graded run is played to the end.
- *   5. A phone: nothing scrolls sideways before the run, and nothing does in the debrief either, where the table of the check has a region
- *      of its own to scroll in.
- *   6. axe finds nothing serious at 360 and 1280 px, on the graded page at rest and on the debrief with the tape in it.
- *   7. Nothing leaves the origin, the lazy chunk of the viewer included.
- *   8. The same seed and the same actions give the same state hash in the browser as under Node (A§5.10).
+ *   1. A graded run by keyboard alone: start it, see the pass rule and that it has one run, no undo and no live readout, write the prediction,
+ *      lay the whole path with the arrows and Enter, run it once, and read the result: passed, the path against the trace row by row, and
+ *      the lifecycle trace in the trace viewer. The comma, which undoes in practice, does nothing. The way on is another fresh scenario.
+ *   2. A wrong stage ends the run: the stage of the engine's own that belongs to another request is named for what it needs, its row is
+ *      marked stopped, nothing can be taken back, and the result marks the stage where the path parted from the trace.
+ *   3. The path stays a secret until the run is judged: the swimlane draws a column only once the route reaches it, and the table does not
+ *      say how long the path is. Once the run is judged every column is there.
+ *   4. Reduced motion, a phone, axe at 360 and 1280 px, the origin, and the state hash against Node's.
  *
  * How it runs. Like e2e/engine-floor.spec.ts, the spec starts the app's own Vite dev server on a free port and drives `/play/engine-floor`.
  * A graded run draws its seed from `crypto.getRandomValues` when it starts, so a test that wants a known scenario hands the page the entropy
@@ -29,6 +23,7 @@ import { createServer } from 'vite'
 import type { ViteDevServer } from 'vite'
 import { withSettings } from './support/site'
 import { applyAction, startRun, stateHash } from '../packages/play'
+import { FLOOR_PARTS } from '../packages/play/engine-floor/copy'
 import { buildLevel, scenarioFor } from '../packages/play/engine-floor/levels'
 import { floorSession } from '../packages/play/engine-floor/session'
 import type { FloorAction } from '../packages/play/engine-floor/types'
@@ -69,10 +64,8 @@ const entropyFor = (wanted: (sc: Scenario) => boolean): number => {
 const NANO = entropyFor((sc) => sc.engine === 'nano-vllm' && !sc.prefixHit)
 
 const game = (page: Page) => page.locator('section[data-game="engine-floor"]')
-/** The tape that names the level and its mode, under the view (the view leads the page, W1-T18). */
-const levelTape = (page: Page) => game(page).locator('.es-tape', { hasText: /· (practice|graded)$/ })
 const outcome = (page: Page) => page.locator('[data-live="outcome"]')
-const line = (page: Page) => page.locator('[data-live="line"]')
+const line = (page: Page) => game(page).locator('[data-live="line"]').last()
 const stage = (page: Page, id: string) => page.locator(`[data-floor-tray] [data-stage="${id}"]`)
 const activeName = (page: Page) =>
   page.evaluate(() => {
@@ -95,7 +88,15 @@ async function open(page: Page, entropy: number | null = null) {
       return real(array as Uint32Array)
     }) as typeof crypto.getRandomValues
   }, entropy)
-  // These walks are the graded map and its 2D house: the 3D house (W1-T18) has its own spec, e2e/engine-floor-scene.spec.ts.
+  // A learner who has met the parts: the first run's intro does not stand between these walks and the level.
+  await page.addInitScript((flag) => {
+    try {
+      localStorage.setItem('es:intro', flag)
+    } catch {
+      // No storage: the intro shows, and the walk Tabs past it.
+    }
+  }, JSON.stringify({ 'engine-floor': FLOOR_PARTS.map((part) => part.id) }))
+  // These walks are the graded map on its swimlane: the 3D view has its own spec, e2e/engine-floor-scene.spec.ts.
   await withSettings(page.context(), { view3d: false })
   await page.goto(`${origin}/play/engine-floor?level=map`, { waitUntil: 'networkidle' })
   await page.evaluate(() => document.fonts.ready)
@@ -116,7 +117,7 @@ async function startGraded(page: Page) {
   await game(page).focus()
   await tabTo(page, /^Start a graded run$/)
   await page.keyboard.press('Enter')
-  await expect(levelTape(page)).toContainText('graded')
+  await expect(game(page)).toHaveAttribute('data-mode', 'graded')
   await expect.poll(() => page.evaluate(() => document.activeElement?.getAttribute('data-game'))).toBe('engine-floor')
 }
 
@@ -164,11 +165,12 @@ async function lay(page: Page, ids: readonly string[]) {
 
 const pathOf = (sc: Scenario): string[] => referencePath(sc).map((s) => s.id)
 
-/** The floors the drawing has: one tape for each, in the group that draws them. */
-const floorsDrawn = (page: Page) => page.locator('[data-floor-view] svg [data-part="floors"] text').count()
+/** The columns the swimlane draws: one head for each process, and one for the GPU. */
+const floorsDrawn = (page: Page) => page.locator('[data-lane-head] [data-process]').count()
+const laidRows = (page: Page) => page.locator('[data-floor-lanes] [data-lane-row]')
 
 test.describe('a graded run by keyboard alone', () => {
-  test('starts on a fresh scenario with no undo, lays the whole path with the arrows, runs it once, and reads the debrief: passed, the path against the tape, and the tape in the viewer', async ({ page }) => {
+  test('starts on a fresh scenario with no undo, lays the whole path with the arrows, runs it once, and reads the result: passed, the path against the trace, and the trace in the viewer', async ({ page }) => {
     test.setTimeout(180_000)
     await open(page, NANO)
     // In practice the level has an Undo plate and offers a graded run. A graded run has no plate and no undo.
@@ -176,7 +178,9 @@ test.describe('a graded run by keyboard alone', () => {
     await startGraded(page)
     await expect(page.getByRole('button', { name: 'Undo' })).toHaveCount(0)
     await expect(page.locator('[data-floor-mode]')).toHaveAttribute('data-floor-mode', 'graded')
-    await expect(page.getByText('A graded run: a fresh scenario, no undo and one run.')).toBeVisible()
+    await expect(page.locator('[data-floor-graded-note="graded"]')).toContainText('A graded run: a fresh scenario, one run and no undo.')
+    await expect(page.locator('[data-floor-graded-note]')).toContainText('Pass rule:')
+    await expect(page.locator('[data-floor-readout]')).toContainText('No live readout in a graded run')
     const sc = await scenarioOnPage(page)
     expect(sc).toEqual(scenarioFor(NANO, 'map'))
     const ids = pathOf(sc)
@@ -185,35 +189,30 @@ test.describe('a graded run by keyboard alone', () => {
     await expect(page.locator('[data-floor-tray] [data-stage]')).toHaveCount(0)
     await commit(page, 0)
     await expect(page.locator('[data-floor-tray] [data-stage]')).toHaveCount(buildLevel('map', NANO).tray.length)
-    await expect(page.locator('[data-floor-once]')).toContainText('One run.')
+    await expect(page.locator('[data-floor-once]')).toContainText('One run')
     await lay(page, ids)
-    await expect(page.locator('[data-floor-path] li[data-state]')).toHaveCount(ids.length)
+    await expect(laidRows(page)).toHaveCount(ids.length)
 
     // The comma undoes in practice. Here it does nothing.
     await game(page).focus()
     await page.keyboard.press('Comma')
-    await expect(page.locator('[data-floor-path] li[data-state]')).toHaveCount(ids.length)
+    await expect(laidRows(page)).toHaveCount(ids.length)
 
     await tabTo(page, /^Run the path$/)
     await page.keyboard.press('Enter')
-    await expect(outcome(page)).toHaveText('The run is over. The debrief is ready.')
+    await expect(outcome(page)).toHaveText('The run is over. The result is in the dock.')
     await expect(line(page)).toContainText('The request is home')
-    await expect(page.getByText('The request reached the client. The stages left in the list are not on this request’s path.')).toBeVisible()
-    await page.getByRole('button', { name: 'See the debrief' }).focus()
-    await page.keyboard.press('Enter')
-
-    await expect(page.getByRole('heading', { level: 3, name: 'Every hand-off held.' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 3, name: 'Passed' })).toBeFocused()
     await expect(page.locator('[data-floor-graded]')).toHaveAttribute('data-floor-graded', 'passed')
-    await expect(page.locator('[data-floor-graded]')).toContainText('Passed.')
-    // The path against the tape: a row for each laid stage, all the tape's, with the ns of the synthetic trace.
+    // The path against the trace: a row for each laid stage, all the trace's, with the ns of the synthetic trace.
     const table = page.locator('[data-floor-tape-table] tbody tr')
     await expect(table).toHaveCount(ids.length)
     await expect(page.locator('[data-floor-tape-table] [data-row-state="matched"]')).toHaveCount(ids.length)
     await expect(page.locator('[data-floor-tape]')).toHaveAttribute('data-whole', 'true')
-    // The tape is in the viewer: a lazy chunk, so it arrives after the debrief. It says what it is, and it has no marks ticket.
+    // The trace is in the viewer: a lazy chunk, so it arrives after the result. It says what it is, and it has no marks sheet.
     const viewer = page.locator('section[data-trace-view]')
     await expect(viewer).toBeVisible({ timeout: 30_000 })
-    await expect(viewer).toContainText('A synthetic tape: the lifecycle model’s path for this request')
+    await expect(viewer).toContainText('A synthetic trace: the lifecycle model’s path for this request')
     await expect(viewer).toHaveAttribute('data-readonly', 'true')
     await expect(viewer.locator('[data-trace-marks]')).toHaveCount(0)
     await expect(viewer.locator('canvas')).toHaveCount(1)
@@ -223,7 +222,7 @@ test.describe('a graded run by keyboard alone', () => {
     // The way on is another fresh scenario: a new graded run, not yet predicted, with focus kept in the game.
     await page.getByRole('button', { name: 'Another fresh scenario' }).first().focus()
     await page.keyboard.press('Enter')
-    await expect(levelTape(page)).toContainText('graded')
+    await expect(game(page)).toHaveAttribute('data-mode', 'graded')
     await expect(page.locator('[data-floor-tray] [data-stage]')).toHaveCount(0)
     await expect.poll(() => page.evaluate(() => document.activeElement?.getAttribute('data-game'))).toBe('engine-floor')
   })
@@ -242,8 +241,7 @@ test.describe('a graded run by keyboard alone', () => {
     await lay(page, ids)
     await game(page).focus()
     await page.keyboard.press('KeyR')
-    await expect(outcome(page)).toHaveText('The run is over. The debrief is ready.')
-    await page.getByRole('button', { name: 'See the debrief' }).click()
+    await expect(outcome(page)).toHaveText('The run is over. The result is in the dock.')
     await expect(page.locator('[data-floor-graded]')).toHaveAttribute('data-floor-graded', 'passed')
     await expect(page.locator('[data-floor-tape-table] tbody tr')).toHaveCount(ids.length)
     // Another: its tray is another draw.
@@ -254,7 +252,7 @@ test.describe('a graded run by keyboard alone', () => {
 })
 
 test.describe('a wrong stage ends the run', () => {
-  test('a stage of the engine\'s own that belongs to another request is named for what it needs; nothing can be taken back; the debrief marks where the path parted from the tape', async ({ page }) => {
+  test('a stage of the engine\'s own that belongs to another request is named for what it needs; nothing can be taken back; the result marks where the path parted from the trace', async ({ page }) => {
     test.setTimeout(120_000)
     await open(page, NANO)
     await startGraded(page)
@@ -267,37 +265,32 @@ test.describe('a wrong stage ends the run', () => {
     await lay(page, [ids[0], ids[1], 'nano.prefix-hit'])
     await game(page).focus()
     await page.keyboard.press('KeyR')
-    await expect(outcome(page)).toHaveText('The run is over. The debrief is ready.')
+    await expect(outcome(page)).toHaveText('The run is over. The result is in the dock.')
     await expect(line(page)).toContainText('The request stopped at stage 3, after 2 stages that held.')
     await expect(line(page)).toContainText('The level is over.')
-    const stop = page.locator('[data-floor-stop]')
-    await expect(stop).toBeVisible()
-    await expect(stop).toHaveAttribute('data-stop', 'path')
-    await expect(stop).toContainText('only for a request with a prefix hit. This request has no prefix hit.')
-    // The run is the one run: nothing on the page takes the path back, and the keys that did nothing now do nothing.
+    // The run is the one run, so the result takes the dock at once: its sentence says the rule, and the row is marked stopped.
+    await expect(page.locator('.es-debrief__sentence')).toContainText('only for a request with a prefix hit. This request has no prefix hit.')
+    await expect(laidRows(page).nth(2)).toHaveAttribute('data-state', 'struck')
+    // Nothing on the page takes the path back, and the keys that did nothing now do nothing.
     await expect(page.getByRole('button', { name: /Take the path back/ })).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Undo' })).toHaveCount(0)
     await page.keyboard.press('Backspace')
     await page.keyboard.press('Comma')
-    await expect(page.locator('[data-floor-path] li[data-state]')).toHaveCount(3)
-    await expect(page.getByText('The run is over, and the tray is closed.')).toBeVisible()
-
-    await page.getByRole('button', { name: 'See the debrief' }).click()
-    await expect(page.getByRole('heading', { level: 3, name: 'A hand-off broke.' })).toBeVisible()
+    await expect(laidRows(page)).toHaveCount(3)
+    await expect(page.getByRole('heading', { level: 3, name: 'Not yet' })).toBeVisible()
     await expect(page.locator('[data-floor-graded]')).toHaveAttribute('data-floor-graded', 'missed')
-    await expect(page.locator('[data-floor-graded]')).toContainText('Not passed.')
     await expect(page.locator('[data-floor-tape]')).toHaveAttribute('data-whole', 'false')
     await expect(page.locator('[data-floor-tape-table] [data-row-state="matched"]')).toHaveCount(2)
     const parted = page.locator('[data-floor-tape-table] tbody tr:has([data-row-state="differs"])')
     await expect(parted).toHaveCount(1)
-    // The row says it in words as well as with the drawn mark, and says what the tape has there.
-    await expect(parted).toContainText('not the tape’s stage')
+    // The row says it in words as well as with the drawn mark, and says what the trace has there.
+    await expect(parted).toContainText('not the trace’s stage')
     await expect(parted.locator('svg[data-icon="strike"]')).toHaveCount(1)
     await expect(parted).toContainText('Scheduler.schedule')
     await expect(page.locator('[data-floor-first-wrong]')).toContainText('What nano-vllm does there')
   })
 
-  test('a path that held and stopped short is over too, and the debrief says the tape goes on', async ({ page }) => {
+  test('a path that held and stopped short is over too, and the result says the trace goes on', async ({ page }) => {
     await open(page, NANO)
     await startGraded(page)
     const ids = pathOf(await scenarioOnPage(page))
@@ -305,17 +298,16 @@ test.describe('a wrong stage ends the run', () => {
     await lay(page, ids.slice(0, 5))
     await game(page).focus()
     await page.keyboard.press('KeyR')
-    await expect(outcome(page)).toHaveText('The run is over. The debrief is ready.')
+    await expect(outcome(page)).toHaveText('The run is over. The result is in the dock.')
     await expect(line(page)).toContainText('Every stage held, and the path ends before the request is back where it began. The level is over.')
-    await page.getByRole('button', { name: 'See the debrief' }).click()
-    await expect(page.getByRole('heading', { level: 3, name: 'The path stopped short.' })).toBeVisible()
-    await expect(page.locator('[data-floor-tape-verdict]')).toContainText('the tape goes on')
+    await expect(page.getByRole('heading', { level: 3, name: 'Not yet' })).toBeVisible()
+    await expect(page.locator('[data-floor-tape-verdict]')).toContainText('the trace goes on')
     await expect(page.locator('[data-floor-tape-table] [data-row-state="matched"]')).toHaveCount(5)
   })
 })
 
-test.describe('the tape', () => {
-  test('if the viewer\'s chunk does not load, the debrief still reads, says so, and keeps the table of the check', async ({ page }) => {
+test.describe('the trace', () => {
+  test('if the viewer\'s chunk does not load, the result still reads, says so, and keeps the table of the check', async ({ page }) => {
     test.setTimeout(120_000)
     // The viewer is a lazy chunk. In the dev server its module is src/trace/TraceView.tsx, and in a build it is a file of its own.
     await page.route(/\/(?:src\/trace\/TraceView\.tsx|assets\/TraceView-[^/]*\.js)(?:\?.*)?$/, (route) => route.abort())
@@ -329,30 +321,28 @@ test.describe('the tape', () => {
     await lay(page, ids)
     await game(page).focus()
     await page.keyboard.press('KeyR')
-    await page.getByRole('button', { name: 'See the debrief' }).click()
-    await expect(page.locator('[data-floor-tape-missing]')).toContainText('The tape could not be loaded.')
+    await expect(page.locator('[data-floor-tape-missing]')).toContainText('The trace could not be loaded.')
     await expect(page.locator('[data-floor-tape-table] tbody tr')).toHaveCount(ids.length)
-    await expect(page.getByRole('heading', { level: 3, name: 'Every hand-off held.' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 3, name: 'Passed' })).toBeVisible()
     await expect(page.locator('section[data-trace-view]')).toHaveCount(0)
   })
 })
 
 test.describe('the path stays a secret until the run is judged', () => {
-  // The floors' names are tapes in the group that draws the floors in landscape; a phone's portrait drawing names them upright in the lanes.
   test.use({ viewport: { width: 1280, height: 900 } })
 
-  test('the house is drawn only as far as the route has gone, and the mirror does not say how long the path is; the whole house is there once the run is judged', async ({ page }) => {
+  test('the swimlane draws a column only once the route reaches it, and the table does not say how long the path is; every column is there once the run is judged', async ({ page }) => {
     test.setTimeout(120_000)
     await open(page, NANO)
     await startGraded(page)
     const ids = pathOf(await scenarioOnPage(page))
     await commit(page, 0)
-    // Only the floor the request begins on.
+    // Only the column the request begins in.
     expect(await floorsDrawn(page)).toBe(1)
     await expect(page.locator('[data-mirror-summary]')).not.toContainText("in the engine's path")
     await lay(page, ids.slice(0, 3))
     expect(await floorsDrawn(page)).toBe(1)
-    // The route reaches the worker's floor and then the line: the drawing grows with it.
+    // The route reaches the worker's process: the swimlane grows with it.
     const toWorker = ids.indexOf('nano.broadcast') + 1
     await lay(page, ids.slice(3, toWorker))
     expect(await floorsDrawn(page)).toBe(2)
@@ -361,12 +351,12 @@ test.describe('the path stays a secret until the run is judged', () => {
     await expect(page.locator('[data-mirror-summary]')).not.toContainText("in the engine's path")
     await game(page).focus()
     await page.keyboard.press('KeyR')
-    await expect(outcome(page)).toHaveText('The run is over. The debrief is ready.')
+    await expect(outcome(page)).toHaveText('The run is over. The result is in the dock.')
     expect(await floorsDrawn(page)).toBe(3)
     await expect(page.locator('[data-mirror-summary]')).toContainText(`of the ${ids.length} in the engine's path`)
   })
 
-  test('the practice run of the level keeps it too: a pinned scenario, with undo, and no house ahead of the route', async ({ page }) => {
+  test('the practice run of the level keeps it too: a pinned scenario, with undo, and no column ahead of the route', async ({ page }) => {
     await open(page)
     await commit(page, 0)
     expect(await floorsDrawn(page)).toBe(1)
@@ -377,7 +367,7 @@ test.describe('the path stays a secret until the run is judged', () => {
 test.describe('reduced motion', () => {
   test.use({ reducedMotion: 'reduce' })
 
-  test('nothing animates, and a graded run is played to the end: the debrief is read and the tape is drawn', async ({ page }) => {
+  test('nothing animates, and a graded run is played to the end: the result is read and the trace is drawn', async ({ page }) => {
     test.setTimeout(120_000)
     await open(page, NANO)
     expect(await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(true)
@@ -387,8 +377,7 @@ test.describe('reduced motion', () => {
     await lay(page, ids)
     await game(page).focus()
     await page.keyboard.press('KeyR')
-    await expect(outcome(page)).toHaveText('The run is over. The debrief is ready.')
-    await page.getByRole('button', { name: 'See the debrief' }).click()
+    await expect(outcome(page)).toHaveText('The run is over. The result is in the dock.')
     await expect(page.locator('section[data-trace-view]')).toBeVisible({ timeout: 30_000 })
     await expect.poll(() => page.evaluate(() => document.getAnimations().filter((animation) => animation.playState === 'running').length)).toBe(0)
   })
@@ -397,7 +386,7 @@ test.describe('reduced motion', () => {
 test.describe('a phone', () => {
   test.use({ viewport: { width: 390, height: 844 } })
 
-  test('scrolls nowhere sideways, before the run and in the debrief with the tape in it', async ({ page }) => {
+  test('scrolls nowhere sideways, before the run and in the result with the trace in it', async ({ page }) => {
     test.setTimeout(120_000)
     const fits = () => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)
     await open(page, NANO)
@@ -409,7 +398,6 @@ test.describe('a phone', () => {
     expect(await fits()).toBe(true)
     await game(page).focus()
     await page.keyboard.press('KeyR')
-    await page.getByRole('button', { name: 'See the debrief' }).click()
     await expect(page.locator('section[data-trace-view]')).toBeVisible({ timeout: 30_000 })
     expect(await fits()).toBe(true)
     // The table of the check scrolls in a region of its own, which a keyboard can reach.
@@ -421,7 +409,7 @@ for (const width of [360, 1280]) {
   test.describe(`axe at ${width} px`, () => {
     test.use({ viewport: { width, height: 900 } })
 
-    test('finds no serious or critical violation on the graded page at rest, and on the debrief with the tape in it', async ({ page }) => {
+    test('finds no serious or critical violation on the graded page at rest, and on the result with the trace in it', async ({ page }) => {
       test.setTimeout(180_000)
       await open(page, NANO)
       await startGraded(page)
@@ -448,9 +436,8 @@ for (const width of [360, 1280]) {
       await lay(page, ids.slice(4))
       await game(page).focus()
       await page.keyboard.press('KeyR')
-      await page.getByRole('button', { name: 'See the debrief' }).click()
-      await expect(page.locator('section[data-trace-view]')).toBeVisible({ timeout: 30_000 })
-      await audit('the debrief of a graded run, with the tape')
+        await expect(page.locator('section[data-trace-view]')).toBeVisible({ timeout: 30_000 })
+      await audit('the result of a graded run, with the trace')
     })
   })
 }
@@ -474,7 +461,6 @@ test.describe('the page keeps to its origin', () => {
     await lay(page, ids)
     await game(page).focus()
     await page.keyboard.press('KeyR')
-    await page.getByRole('button', { name: 'See the debrief' }).click()
     await expect(page.locator('section[data-trace-view]')).toBeVisible({ timeout: 30_000 })
     expect(away).toEqual([])
     expect(refused).toEqual([])

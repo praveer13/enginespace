@@ -130,7 +130,14 @@ test.describe('a guess is committed, played for, and revealed, by keys alone (ac
         await tabToLocator(walk, page.getByRole('button', { name: /^Play: / }), 400)
         await page.keyboard.press('Enter')
         await expect(page.locator('section[data-game="engine-floor"]')).toBeVisible({ timeout: 60_000 })
-        await expect(page.locator('section[data-game="engine-floor"] [data-prediction]')).toContainText("In nano-vllm's offline LLM.generate on one GPU")
+        // A first meeting with the game names its parts before the slot asks (R-T29, P4): Next walks them, then the slot holds the lesson's words.
+        const floor = page.locator('section[data-game="engine-floor"]')
+        await floor.locator('[data-prediction]').first().waitFor({ state: 'attached' })
+        for (let guard = 0; guard < 40 && (await floor.locator('[data-prediction][data-waiting]').count()) > 0; guard++) {
+          if ((await floor.locator('[data-intro-next]').count()) > 0) await floor.locator('[data-intro-next]').click()
+          else await page.waitForTimeout(100)
+        }
+        await expect(floor.locator('[data-prediction]')).toContainText("In nano-vllm's offline LLM.generate on one GPU")
         await WALKS['engine-floor'].nano(page, walk)
 
         // A run ended after the commits: both reveal on their own, beside the run.
@@ -151,7 +158,7 @@ test.describe('a guess is committed, played for, and revealed, by keys alone (ac
 
         // The events are in the ledger: the value, the truth read from the run, the outcome and the lesson's revision. A guess earns nothing.
         const rev = await page.locator('.es-lesson').getAttribute('data-rev')
-        await expect.poll(async () => (await predictEvents(page)).length).toBe(2)
+        await expect.poll(async () => (await predictEvents(page)).map((event) => event.ref).sort()).toEqual(['predict:tr1.l1#tr1.l1.p1', 'predict:tr1.l1#tr1.l1.p2'])
         const events = await predictEvents(page)
         const one = events.find((event) => event.ref === 'predict:tr1.l1#tr1.l1.p1')
         const two = events.find((event) => event.ref === 'predict:tr1.l1#tr1.l1.p2')
