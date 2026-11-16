@@ -92,7 +92,7 @@
 }
 
 .es-floor-row__main:focus-visible {
-  outline: 2px solid var(--es-focus);
+  outline: 3px solid var(--es-focus);
   outline-offset: 2px;
 }
 

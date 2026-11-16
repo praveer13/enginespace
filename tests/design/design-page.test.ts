@@ -222,9 +222,13 @@ describe('/design: landmarks, and what the lights say', () => {
     expect(landmarks(html).filter((landmark) => landmark === 'region: Motion')).toHaveLength(1)
   })
 
-  test('the toggle and the station light say that a light that is on burns the heat lamp, and a lane is a mark beside it', () => {
-    expect(text).toContain("a pilot light that burns the heat lamp's amber when it is on")
-    expect(text).toContain("it burns the heat lamp's amber while it cooks")
+  // R-T16 (REDESIGN 2.8): the switch says its state in a word and has no light, and a busy light is a solid ink disc, never amber.
+  test('the switch and the busy light say their state as a shape and a word, and a lane is a mark beside it', () => {
+    expect(text).toContain('A switch: a flat track, a square thumb, and the state as a word. On, the track is dark. No light.')
+    expect(text).toContain('a solid ink disc while it works, an open ring while it waits')
+    const toggle = html.slice(html.indexOf('aria-label="Toggle"'), html.indexOf('aria-label="Field"'))
+    expect(toggle.length).toBeGreaterThan(0)
+    expect(toggle).not.toMatch(/pilot|heat lamp|es-toggle__pilot/)
     expect(text).toContain("dark, the lane's mark stays")
     expect(text).not.toContain('burns green')
     expect(text).not.toContain("lit in its lane's colour")

@@ -97,8 +97,6 @@
 .es-full-config figcaption {
   font-family: var(--es-font-display);
   font-weight: var(--es-font-display-weight);
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
 }
 
 .es-full-config pre {
@@ -233,6 +231,4 @@
 .es-loop-label.es-loop-label--card {
   color: var(--es-paper-ink-2);
   font-size: clamp(0.5rem, 0.8cqi, var(--es-size-stamp)); /* impeccable-disable-line design-system-font-size -- the head of a card a few centimetres wide */
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
 }

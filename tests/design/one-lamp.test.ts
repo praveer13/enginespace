@@ -1,26 +1,39 @@
 /*
- * W1's design carry-over (W0 finish findings F3 and F4): the One Lamp Rule in DESIGN.md says that heat-lamp amber is the only active
- * state, so a switch that is on and a station that is lit burn in the lamp, never in a board colour of the categorical code. The
- * finish review found the switch's pilot in board green and the station's lens in the GPU lane's green; this keeps them out of both.
+ * R-T16: the One Marker Rule (REDESIGN 2.8, "Named rules"; it replaces W1's One Lamp Rule, which this file held). Amber means now. It has
+ * three carriers and no others:
+ *   1. the control to act on now: the one amber-filled button (the primary button, a page's way on), or the amber ring on the control an
+ *      intro points at;
+ *   2. the "now" mark on a diagram: the cursor with its word, and the mark on the object the next move acts on;
+ *   3. the current position in the rail and on the course track.
+ * Callouts are ink discs, never amber, and focus is ink (tests/design/focus.test.ts).
  *
- * A lane's colour may say which lane a light belongs to, as a category mark beside the light and the same lit or dark; it never says
- * whether the light is on. The rule is read off the stylesheets, rule by rule, so a state rule that names a board colour fails whoever
- * writes it and wherever it is.
+ * The rule is read off the stylesheets, rule by rule: every rule under src/ that fills with the marker (`var(--es-lamp)`) must be one of
+ * the carriers below, each named with the carrier it is. The kitchen scene's own files are not read (tests/design/sheets.ts).
  */
 import { describe, expect, test } from 'bun:test'
-import { readdirSync, readFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import path from 'node:path'
-import postcss, { type AtRule, type Rule } from 'postcss'
+import postcss, { type Rule } from 'postcss'
+import { contrastRatio } from '@/design/contrast'
+import { resolveColor } from '@/design/tokens'
+import { kitchen, repo, sheets } from './sheets'
 
-const repo = path.resolve(import.meta.dirname, '../..')
+const SHEETS = sheets()
+const MARKER = /var\(--es-lamp\)/
 
-function cssUnder(dir: string): string[] {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const full = path.join(dir, entry.name)
-    if (entry.isDirectory()) return cssUnder(full)
-    return entry.name.endsWith('.css') ? [full] : []
-  })
-}
+/** The carriers, each with the carrier of the rule it is (1, 2 or 3) and what it is. */
+const CARRIERS: { carrier: 1 | 2 | 3; what: string; selector: RegExp }[] = [
+  { carrier: 1, what: 'the primary button', selector: /^\.es-stub__pull(?::is\(|$)/ },
+  { carrier: 1, what: "a page's way on, where it has no move in hand", selector: /^\.es-board__next\[data-emphasis='primary'\]/ },
+  { carrier: 1, what: 'the way on beside a lesson (NextStep)', selector: /^a?\.es-next__action(?::is\(|$)/ },
+  { carrier: 1, what: "the lesson's foot bar: its way on", selector: /^\.es-lesson__foot-action$/ },
+  { carrier: 1, what: 'the ring on the control an intro points at', selector: /^\.es-marker__ring$/ },
+  { carrier: 2, what: 'the marker on a diagram: its shape and the cursor', selector: /^\.es-marker(?:__shape|\[data-kind='cursor'\]::before)$/ },
+  { carrier: 2, what: "a drawing's picked size", selector: /^\.es-frame-labels__tag\[data-kind='pick'\]$|^\.es-loop-label\.es-loop-label--pick$/ },
+  { carrier: 2, what: 'the page or the light the next move acts on', selector: /^\.es-(?:pan|station)\[data-lamp\] / },
+  { carrier: 2, what: 'the pages an eviction is about to take', selector: /^\.es-pool__cell\[data-chosen\]$/ },
+  { carrier: 3, what: 'the current section in the rail', selector: /^\.es-srail__segment\[data-at='now'\]$/ },
+]
 
 interface Found {
   file: string
@@ -28,84 +41,83 @@ interface Found {
   rule: Rule
 }
 
-/** Every rule of every stylesheet under src/ whose selector names an on state: a switch's `checked`, a light's `lit`, a pip's `data-lit`. */
-function onStateRules(): Found[] {
+function markerRules(): Found[] {
   const found: Found[] = []
-  for (const file of cssUnder(path.join(repo, 'src'))) {
-    postcss.parse(readFileSync(file, 'utf8'), { from: file }).walkRules((rule) => {
-      if (/\[data-state=['"](?:checked|lit)['"]\]|\[data-lit\]/.test(rule.selector)) found.push({ file: path.relative(repo, file), selector: rule.selector, rule })
+  for (const file of SHEETS) {
+    postcss.parse(readFileSync(path.join(repo, file), 'utf8'), { from: file }).walkRules((rule) => {
+      const fills = rule.nodes.some((node) => node.type === 'decl' && MARKER.test(node.value))
+      if (fills) for (const selector of rule.selectors) found.push({ file, selector: selector.trim(), rule })
     })
   }
   return found
 }
 
-/** The colour roles of the categorical code, and the status that is one of its edges: what a lane, a memory state or a check is drawn in. */
-const CODE_COLOUR = /--es-(?:cat-|lane-|memory-|probability-|status-ok)/
+describe('the One Marker Rule: amber means now, on its three carriers only', () => {
+  const rules = markerRules()
 
-const declarations = (rule: Rule) => {
-  const found: { prop: string; value: string }[] = []
-  rule.walkDecls((decl) => void found.push({ prop: decl.prop, value: decl.value }))
-  return found
-}
-
-describe('an on state burns in the heat lamp, never in the code', () => {
-  const rules = onStateRules()
-
-  test('the scan reads the switch and the station light of the design system, among other on states', () => {
+  test('the scan reads every stylesheet outside the kitchen scene, and finds the carriers', () => {
+    expect(SHEETS).toContain('src/design/components.css')
+    expect(SHEETS).toContain('src/design/parts.css')
+    expect(SHEETS).toContain('src/front/front.css')
+    expect(SHEETS.some(kitchen)).toBe(false)
     const selectors = rules.map(({ selector }) => selector)
-    expect(selectors).toContain(".es-toggle__switch[data-state='checked'] .es-toggle__pilot")
-    expect(selectors).toContain(".es-station[data-state='lit'] .es-station__lens")
-    expect(rules.length).toBeGreaterThanOrEqual(4)
+    expect(selectors).toContain('.es-stub__pull')
+    expect(selectors).toContain(".es-srail__segment[data-at='now']")
+    expect(selectors).toContain(".es-marker[data-kind='cursor']::before")
+    for (const carrier of [1, 2, 3]) expect(CARRIERS.some((entry) => entry.carrier === carrier)).toBe(true)
   })
 
-  test.each(rules.map((found) => [`${found.file}: ${found.selector}`, found] as const))('%s names no colour of the code', (_, { rule }) => {
-    const named = declarations(rule).filter(({ value }) => CODE_COLOUR.test(value))
-    expect(named.map(({ prop, value }) => `${prop}: ${value}`)).toEqual([])
+  test.each(rules.map((found) => [`${found.file}: ${found.selector}`, found] as const))('%s is a carrier', (_, { selector }) => {
+    const carrier = CARRIERS.find((candidate) => candidate.selector.test(selector))
+    expect(carrier, `${selector} fills with amber and is none of the three carriers`).toBeDefined()
   })
 
-  const lit = (selector: string) => {
-    const found = rules.find((candidate) => candidate.selector === selector)
-    if (!found) throw new Error(`no rule for ${selector}`)
-    return declarations(found.rule)
-  }
-
-  test("a switch's pilot lights in the lamp, with the filament's edge", () => {
-    const pilot = lit(".es-toggle__switch[data-state='checked'] .es-toggle__pilot")
-    expect(pilot.find(({ prop }) => prop === 'background')?.value).toContain('var(--es-lamp)')
-    expect(pilot.find(({ prop }) => prop === 'box-shadow')?.value).toContain('var(--es-lamp-ring)')
+  test('amber never stands alone: each carrier at rest draws the marker\'s edge with it', () => {
+    const atRest = rules.filter(({ selector }) => !/:is\(|:hover|:active/.test(selector))
+    expect(atRest.length).toBeGreaterThan(5)
+    for (const { file, selector, rule } of atRest) expect(rule.toString(), `${file}: ${selector}`).toContain('var(--es-lamp-ring)')
   })
 
-  test("a lit station's lens burns in the lamp, with the filament's edge", () => {
-    const lens = lit(".es-station[data-state='lit'] .es-station__lens")
-    expect(lens.find(({ prop }) => prop === 'background')?.value).toContain('var(--es-lamp)')
-    expect(lens.find(({ prop }) => prop === 'box-shadow')?.value).toContain('var(--es-lamp-ring)')
-  })
-
-  test('in forced colours the on states are solid Highlight, the lamp\'s mapping, in a block that wins the cascade', () => {
-    // The system's gradients are dropped under forced colours, so a lit lens needs a colour of its own. The block must come after the rules
-    // it overrides: Tailwind's build moves the rules of `@layer components` behind everything that is outside the layer, so a block outside
-    // it loses to a rule of the same weight (which is how the pilot's mapping once did nothing).
-    const sheet = postcss.parse(readFileSync(path.join(repo, 'src/design/components.css'), 'utf8'))
-    const layer = sheet.nodes.find((node): node is AtRule => node.type === 'atrule' && node.name === 'layer' && node.params === 'components')
-    if (!layer) throw new Error('components.css has no @layer components')
-    const media = layer.nodes?.find(
-      (node): node is AtRule => node.type === 'atrule' && node.name === 'media' && /forced-colors:\s*active/.test(node.params),
-    )
-    expect(media, 'a forced-colors block inside the layer').toBeDefined()
-    const mapped = new Map<string, string>()
-    media?.walkRules((rule) => {
-      for (const selector of rule.selectors) mapped.set(selector, rule.nodes.map((node) => node.toString()).join(';'))
-    })
-    for (const selector of [".es-toggle__switch[data-state='checked'] .es-toggle__pilot", ".es-station[data-state='lit'] .es-station__lens"]) {
-      expect(mapped.get(selector), selector).toBe('background: Highlight')
-      const base = layer.nodes?.findIndex((node) => node.type === 'rule' && node.selector === selector)
-      expect(base, `${selector} has a rule in the layer`).toBeGreaterThanOrEqual(0)
-      expect(layer.nodes?.indexOf(media as AtRule), `the block comes after ${selector}`).toBeGreaterThan(base ?? Number.POSITIVE_INFINITY)
+  test('callouts are ink discs: no callout rule names the marker', () => {
+    const callouts: string[] = []
+    for (const file of SHEETS) {
+      postcss.parse(readFileSync(path.join(repo, file), 'utf8')).walkRules((rule) => {
+        if (/\.es-callout/.test(rule.selector) && /--es-lamp/.test(rule.toString())) callouts.push(`${file}: ${rule.selector}`)
+      })
     }
+    expect(callouts).toEqual([])
+    const parts = readFileSync(path.join(repo, 'src/design/parts.css'), 'utf8')
+    expect(parts).toMatch(/\.es-callout__disc \{[^}]*background: var\(--es-text-1\)/)
   })
 
-  test('no stylesheet gives a station light a colour of its own to burn in', () => {
-    const own = cssUnder(path.join(repo, 'src')).filter((file) => readFileSync(file, 'utf8').includes('--es-station-light'))
-    expect(own.map((file) => path.relative(repo, file))).toEqual([])
+  test("the header's Continue and the page you are on are not amber: the outline, and an ink bar", () => {
+    const sheet = postcss.parse(readFileSync(path.join(repo, 'src/design/components.css'), 'utf8'))
+    const text = (selector: string) => {
+      let found = ''
+      sheet.walkRules((rule) => {
+        if (rule.selectors.includes(selector)) found += rule.toString()
+      })
+      return found
+    }
+    expect(text('.es-board__next')).not.toMatch(/--es-lamp/)
+    expect(text(".es-board__link[aria-current='page']::after")).toContain('var(--es-text-1)')
+    expect(text(".es-board__link[aria-current='page']::after")).not.toMatch(/--es-lamp/)
+  })
+
+  test('a switch that is on and a busy light are not amber: the state is a shape and a word', () => {
+    const components = readFileSync(path.join(repo, 'src/design/components.css'), 'utf8')
+    const toggle = /\.es-toggle__switch\[data-state='checked'\] \{[^}]*\}/.exec(components)?.[0] ?? ''
+    expect(toggle).toContain('var(--es-surface-3)')
+    expect(toggle).not.toMatch(/--es-lamp/)
+    expect(components).not.toContain('es-toggle__pilot')
+    const lit = /\.es-station\[data-state='lit'\] \.es-station__lens \{[^}]*\}/.exec(components)?.[0] ?? ''
+    expect(lit).toContain('var(--es-text-1)')
+  })
+
+  test('the marker on paper is under 3:1, so it always carries its edge, which holds 3:1 on paper and on the marker', () => {
+    expect(contrastRatio(resolveColor('lamp'), resolveColor('paper'))).toBeLessThan(3)
+    expect(contrastRatio(resolveColor('lamp-ring'), resolveColor('paper'))).toBeGreaterThanOrEqual(3)
+    expect(contrastRatio(resolveColor('lamp-ring'), resolveColor('lamp'))).toBeGreaterThanOrEqual(3)
+    expect(contrastRatio(resolveColor('text-1'), resolveColor('lamp'))).toBeGreaterThanOrEqual(4.5)
   })
 })

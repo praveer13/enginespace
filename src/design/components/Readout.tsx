@@ -2,9 +2,9 @@ import clsx from 'clsx'
 import { formatReadout } from '../format'
 
 /*
- * The numeral readout: every count, tick, µs and percentage on screen passes through it, set in the printer's dot
- * matrix with tabular figures. It will not print a number without its tag (the agent brief's rule 7), and ticks can
- * only ever be tagged synthetic (D-048): both are type errors, not conventions.
+ * The numeral readout: every count, tick, µs and percentage on screen passes through it, set in the mono face with
+ * tabular figures. It will not print a number without its tag (the agent brief's rule 7), and ticks can only ever be
+ * tagged synthetic (D-048): both are type errors, not conventions. A change's delta is DeltaChip, beside it.
  */
 
 /** Where a number comes from (ARCHITECTURE §4.4's tags, plus `synthetic` for the seeded worlds' own clocks and data). */
@@ -43,7 +43,7 @@ interface ReadoutCommon {
   /** For a measured number: the date and build SHA it was measured at, printed after the tag. */
   source?: string
   size?: 'sm' | 'md' | 'lg' | 'xl'
-  /** `ink-2` prints in the ribbon's red; `quiet` in the secondary text colour. */
+  /** `ink-2` prints in the second ink; `quiet` in the secondary text colour. */
   tone?: 'ink' | 'ink-2' | 'quiet'
   className?: string
 }

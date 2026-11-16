@@ -68,9 +68,9 @@ export function Component() {
       <header className="es-spec__intro">
         <h1>Design system</h1>
         <p className="es-prose">
-          The Pass: a line kitchen and its expo pass. The ground is brushed stainless under fluorescent tubes, the text you read is printed on ticket
-          paper, the heat lamp falls only on the present, masking tape and marker label the objects, and the cutting-board colours are the one
-          categorical code. Every role below reaches a CSS variable, a Tailwind key and the scenes, and pages use nothing else.
+          Data Book: the engine drawn as engineers already draw it, on flat paper, with one amber mark that means now. The ground is flat, the text
+          you read and every diagram sit on paper, focus is ink, and six fills, each with its glyph, are the one colour code. Every role below
+          reaches a CSS variable, a Tailwind key and the scenes, and pages use nothing else.
         </p>
       </header>
 
@@ -808,7 +808,7 @@ function ComponentSpecimens() {
     <div className="es-spec__components">
       <Specimen
         title="Ticket"
-        about="Bond paper off the impact printer, with its clip hole and a perforated stub: the surface the text you read sits on."
+        about="A sheet: a plain paper panel, cut square, with a soft shadow and a title. The surface the text you read sits on."
       >
         <State label="default">
           <Ticket head="No. 0042" meta="TBL 7" title="Fire the next step.">
@@ -834,12 +834,12 @@ function ComponentSpecimens() {
           </Ticket>
         </State>
         <State label="error">
-          <Ticket head="No. 0048" state="error" error="PAPER OUT. LOAD A ROLL, THEN PRINT AGAIN.">
+          <Ticket head="No. 0048" state="error" error="This sheet could not load. Reload the page to try again.">
             <TicketLine qty="2x">DECODE</TicketLine>
           </Ticket>
         </State>
         <State label="empty">
-          <Ticket head="No. 0000" state="empty" empty="NO TICKETS YET" />
+          <Ticket head="No. 0000" state="empty" empty="Nothing here yet" />
         </State>
         <State label="disabled">
           <Ticket as="button" head="No. 0049" state="disabled">
@@ -848,7 +848,7 @@ function ComponentSpecimens() {
         </State>
       </Specimen>
 
-      <Specimen title="Stub" about="The tear-off primary action, printed in the ribbon's red below the perforations.">
+      <Specimen title="Stub" about="The primary button: amber with its dark edge and an ink label, the control to act on now. Held down, it is a well with no amber.">
         {(['default', ...FORCED] as const).map((force) => (
           <State key={force} label={force}>
             <Stub standalone onClick={() => undefined} data-force={force === 'default' ? undefined : force}>
@@ -878,7 +878,7 @@ function ComponentSpecimens() {
         </State>
       </Specimen>
 
-      <Specimen title="Rail" about="A stainless bar with a fixed number of clips, one per batch slot. An empty clip says so in words." wide>
+      <Specimen title="Rail" about="A row of slots under a hairline, one per batch slot. An empty slot is a dashed box that says so in words." wide>
         <State label="two tickets hung, two clips paid for and empty" span>
           <Rail
             clips={4}
@@ -907,7 +907,7 @@ function ComponentSpecimens() {
         </State>
       </Specimen>
 
-      <Specimen title="Printer tape" about="The live readout: the printer feeds one line at a time, and its housing carries the menu link.">
+      <Specimen title="Printer tape" about="The readout strip: terms and their values on one paper strip, a ruled row each. A value changes at once.">
         <State label="default">
           <PrinterTape
             label="The printer"
@@ -930,7 +930,7 @@ function ComponentSpecimens() {
         </State>
       </Specimen>
 
-      <Specimen title="Readout" about="Every number passes through it in the printer's dots, with its tag. Ticks are always synthetic.">
+      <Specimen title="Readout" about="Every number passes through it in the mono face with tabular figures, and its tag. Ticks are always synthetic.">
         <State label="ticks, synthetic" ground="paper">
           <Readout value={7} unit="ticks" tag="synthetic" size="lg" />
         </State>
@@ -951,7 +951,7 @@ function ComponentSpecimens() {
         </State>
       </Specimen>
 
-      <Specimen title="Tape label" about="Masking tape and marker, torn off the roll: names on pans and objects, and the label of a field.">
+      <Specimen title="Tape label" about="A plain label: the name of a part, a state word, and the label of a field. It never moves and never lights.">
         <State label="plain">
           <TapeLabel>prep · KV page</TapeLabel>
         </State>
@@ -970,7 +970,7 @@ function ComponentSpecimens() {
         </State>
       </Specimen>
 
-      <Specimen title="Pan" about="A hotel pan in the reach-in: one KV page. It never moves; its state is its fill, its pattern and its tape." wide>
+      <Specimen title="Pan" about="A KV page as a square cell. It never moves; its state is its fill, its pattern, its glyph and its label." wide>
         {MEMORY_STATES.map((state) => (
           <State key={state} label={state}>
             <Pan
@@ -1009,7 +1009,7 @@ function ComponentSpecimens() {
 
       <Specimen
         title="Station light"
-        about="A station's pilot light: it burns the heat lamp's amber while it cooks and is an open dark ring while it waits. The lane it belongs to is a mark beside its name, the same lit or dark."
+        about="Busy or idle as a shape and a word: a solid ink disc while it works, an open ring while it waits. The lane it belongs to is a mark beside its name, the same either way."
       >
         <State label="busy">
           <StationLight lit label="Station 1" />
@@ -1054,7 +1054,7 @@ function ComponentSpecimens() {
         </State>
       </Specimen>
 
-      <Specimen title="Button" about="A stamped steel plate. The ink plate is the control a game leans on; the quiet stamp has no plate." wide>
+      <Specimen title="Button" about="Flat, with a 1 px edge and a 3 px radius: the outline, the ink button an instrument leans on, and the quiet label alone." wide>
         {(['plate', 'ink', 'quiet'] as const).flatMap((variant) => [
           ...(['default', ...FORCED] as const).map((force) => (
             <State key={`${variant}-${force}`} label={`${variant}, ${force}`}>
@@ -1110,7 +1110,7 @@ function ComponentSpecimens() {
         </State>
       </Specimen>
 
-      <Specimen title="Toggle" about="An equipment switch: the lever, the stamped word, and a pilot light that burns the heat lamp's amber when it is on.">
+      <Specimen title="Toggle" about="A switch: a flat track, a square thumb, and the state as a word. On, the track is dark. No light.">
         <State label="live">
           <Toggle label="Write the next call during this fire" hint="overlap (async scheduling)" checked={overlap} onCheckedChange={setOverlap} />
         </State>
@@ -1133,7 +1133,7 @@ function ComponentSpecimens() {
         </State>
       </Specimen>
 
-      <Specimen title="Field" about="Masking tape over a slip of ticket paper with a ruled line. A number field types in the printer's dots." wide>
+      <Specimen title="Field" about="A plain label over a paper slip with a 2 px foot line. A number field types in the mono face." wide>
         <State label="empty">
           <Field label="Your prediction" placeholder="ticks per step" hint="Commit it before the reveal." numeric />
         </State>
@@ -1159,7 +1159,7 @@ function ComponentSpecimens() {
 
       <Specimen
         title="The board and the menu"
-        about="The navigation: the board along the top with the house's nameplate, the page you are on under the lamp, and the kick-plate below. The menu is the kitchen's word for the course map."
+        about="The navigation: the header along the top with the site's name, the page you are on marked in ink, and the footer below."
         wide
       >
         <State label="the board" span>

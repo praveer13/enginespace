@@ -152,7 +152,6 @@
     var(--es-surface-3) 100%
   );
   box-shadow:
-    var(--es-shadow-plate),
     0 8px 10px -8px color-mix(in srgb, var(--es-text-1) 45%, transparent);
 }
 
@@ -224,11 +223,6 @@
 .es-map__ticket .es-ticket__title {
   font-size: clamp(1.375rem, 1.2rem + 0.4vw, 1.625rem);
   overflow-wrap: anywhere;
-}
-
-/* The ids on a head line print in capitals, as the printer prints a table. */
-.es-map__ticket .es-ticket__head {
-  text-transform: uppercase;
 }
 
 /* The lamp's pool reaches no further than the rod's stretch, so a ticket at the edge of the page does not light the page's margin. */
@@ -470,7 +464,6 @@
   line-height: 1;
   letter-spacing: var(--es-font-heading-tracking);
   font-weight: var(--es-font-heading-weight);
-  text-transform: uppercase;
 }
 
 .es-steps__what {

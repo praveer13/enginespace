@@ -135,9 +135,7 @@
   border: 1px solid var(--es-edge);
   border-radius: var(--es-radius-plate);
   background-color: var(--es-surface-1);
-  background-image: var(--es-texture-sheen), var(--es-texture-brushed);
-  background-size: 100% auto, 100% 720px;
-  box-shadow: var(--es-shadow-plate);
+  box-shadow: var(--es-shadow-paper);
   color: var(--es-text-1);
 }
 
@@ -217,9 +215,7 @@
   font-family: var(--es-font-heading);
   font-size: var(--es-size-large);
   line-height: 1;
-  letter-spacing: 0.03em;
   font-weight: 800;
-  text-transform: uppercase;
 }
 
 .es-xfer__about,
@@ -313,7 +309,6 @@
   font-size: 0.9375rem;
   font-weight: var(--es-font-ticket-weight);
   letter-spacing: var(--es-font-ticket-tracking);
-  text-transform: uppercase;
 }
 
 .es-ledger tbody th {
@@ -327,7 +322,6 @@
   font-family: var(--es-font-ticket);
   font-weight: var(--es-font-ticket-weight);
   letter-spacing: var(--es-font-ticket-tracking);
-  text-transform: uppercase;
 }
 
 .es-ledger .es-ledger__n {
@@ -422,7 +416,6 @@
    off from the list above it by a line more than the ticket puts between its parts. */
 .es-unbuilt__pending {
   margin-top: var(--es-space-4);
-  text-transform: uppercase;
 }
 
 .es-unbuilt__mark {

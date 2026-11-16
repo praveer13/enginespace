@@ -1,16 +1,16 @@
 ---
 name: enginespace
-description: The Engine Internals course, set on the pass of a line kitchen in the middle of service.
+description: The Engine Internals course, drawn as the engine's own data book on flat paper, with one amber mark that means now.
 colors:
-  surface-0: "#ccd1d4"
-  surface-1: "#dde1e4"
-  surface-2: "#b2b9be"
-  surface-3: "#59616a"
+  surface-0: "#e9ece6"
+  surface-1: "#f4f5f0"
+  surface-2: "#d9ddd4"
+  surface-3: "#2b3138"
   edge: "#5f666d"
   paper: "#fafaf6"
   paper-ink: "#1d1b22"
   paper-ink-2: "#a30f1a"
-  paper-rule: "#bcb9b1"
+  paper-rule: "#c2c8bd"
   lamp: "#ffb547"
   lamp-ring: "#9a3d00"
   tape: "#e6d6ad"
@@ -35,16 +35,16 @@ colors:
 typography:
   display:
     fontFamily: "'Big Shoulders Display', sans-serif"
-    fontSize: "clamp(2.75rem, 1.5rem + 5vw, 6rem)"
+    fontSize: "clamp(2rem, 1.2rem + 3.4vw, 3.5rem)"
     fontWeight: 800
-    lineHeight: 0.88
-    letterSpacing: "0.004em"
+    lineHeight: 1
+    letterSpacing: "0.005em"
   heading:
     fontFamily: "'Big Shoulders Display', sans-serif"
-    fontSize: "clamp(1.75rem, 1.35rem + 1.6vw, 2.5rem)"
+    fontSize: "clamp(1.625rem, 1.3rem + 1.4vw, 2.25rem)"
     fontWeight: 800
-    lineHeight: 0.95
-    letterSpacing: "0.01em"
+    lineHeight: 1.05
+    letterSpacing: "0.005em"
   body:
     fontFamily: "'Atkinson Hyperlegible', sans-serif"
     fontSize: "1.0625rem"
@@ -58,24 +58,24 @@ typography:
     lineHeight: 1.55
     letterSpacing: "0em"
   numeric:
-    fontFamily: "'Doto', 'Handjet', monospace"
+    fontFamily: "'Atkinson Hyperlegible Mono', 'Atkinson Hyperlegible', monospace"
     fontSize: "1.125rem"
-    fontWeight: 900
-    lineHeight: 1.2
-    letterSpacing: "0.02em"
+    fontWeight: 500
+    lineHeight: 1.25
+    letterSpacing: "0em"
     fontFeature: "'tnum'"
   ticket:
-    fontFamily: "'Doto', 'Handjet', monospace"
-    fontSize: "1.0625rem"
-    fontWeight: 900
-    lineHeight: 1.45
-    letterSpacing: "0.02em"
-  label:
-    fontFamily: "'Permanent Marker', cursive"
+    fontFamily: "'Atkinson Hyperlegible Mono', 'Atkinson Hyperlegible', monospace"
     fontSize: "0.9375rem"
     fontWeight: 400
-    lineHeight: 1.2
-    letterSpacing: "0.02em"
+    lineHeight: 1.45
+    letterSpacing: "0em"
+  label:
+    fontFamily: "'Atkinson Hyperlegible', sans-serif"
+    fontSize: "0.875rem"
+    fontWeight: 700
+    lineHeight: 1.25
+    letterSpacing: "0em"
 rounded:
   paper: "0px"
   trim: "2px"
@@ -94,54 +94,42 @@ spacing:
   "16": "4rem"
   "24": "6rem"
 components:
-  button-plate:
-    backgroundColor: "{colors.surface-1}"
+  button-primary:
+    backgroundColor: "{colors.lamp}"
     textColor: "{colors.text-1}"
     rounded: "{rounded.plate}"
-    padding: "0.55rem 1.15rem 0.45rem"
+    padding: "0.5rem 1rem"
     height: "2.75rem"
-  button-plate-active:
+  button-primary-disabled:
+    backgroundColor: "{colors.surface-2}"
+    textColor: "{colors.text-3}"
+  button-outline:
+    textColor: "{colors.text-1}"
+    rounded: "{rounded.plate}"
+    padding: "0.5rem 1rem"
+    height: "2.75rem"
+  button-outline-active:
     backgroundColor: "{colors.surface-2}"
     textColor: "{colors.text-1}"
-  button-plate-disabled:
-    backgroundColor: "{colors.surface-0}"
-    textColor: "{colors.text-3}"
   button-ink:
     backgroundColor: "{colors.surface-3}"
     textColor: "{colors.paper}"
     rounded: "{rounded.plate}"
-    padding: "0.55rem 1.15rem 0.45rem"
+    padding: "0.5rem 1rem"
     height: "2.75rem"
   button-quiet:
     textColor: "{colors.text-1}"
     rounded: "{rounded.plate}"
-    padding: "0.55rem 1.15rem 0.45rem"
-  button-quiet-active:
-    textColor: "{colors.paper-ink-2}"
-  stub:
-    backgroundColor: "{colors.paper}"
-    textColor: "{colors.paper-ink-2}"
-    typography: "{typography.ticket}"
-    rounded: "{rounded.paper}"
-    padding: "1.15rem 1.5rem 1rem"
-    height: "3.5rem"
-  stub-disabled:
-    backgroundColor: "{colors.paper}"
-    textColor: "{colors.text-3}"
-  ticket:
+    padding: "0.5rem 1rem"
+  sheet:
     backgroundColor: "{colors.paper}"
     textColor: "{colors.paper-ink}"
     rounded: "{rounded.paper}"
     padding: "1.5rem 1.5rem 1rem"
     width: "24rem"
-  ticket-lamp:
-    backgroundColor: "{colors.paper}"
-    textColor: "{colors.paper-ink}"
-  tape-label:
-    backgroundColor: "{colors.tape}"
-    textColor: "{colors.tape-ink}"
+  label:
+    textColor: "{colors.text-1}"
     typography: "{typography.label}"
-    padding: "0.28em 0.85em 0.2em"
   field:
     backgroundColor: "{colors.paper}"
     textColor: "{colors.paper-ink}"
@@ -152,91 +140,90 @@ components:
   readout:
     textColor: "{colors.text-1}"
     typography: "{typography.numeric}"
-  board:
+  readout-strip:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.paper-ink}"
+    padding: "0.75rem 1rem"
+  switch:
+    backgroundColor: "{colors.surface-2}"
+    rounded: "{rounded.plate}"
+    width: "4.5rem"
+    height: "2.5rem"
+  switch-on:
+    backgroundColor: "{colors.surface-3}"
+    textColor: "{colors.paper}"
+  header:
     backgroundColor: "{colors.surface-1}"
     textColor: "{colors.text-2}"
     padding: "0.75rem 1rem"
-  board-link-current:
+  header-link-current:
     textColor: "{colors.text-1}"
-  board-plate:
-    backgroundColor: "{colors.surface-2}"
-    textColor: "{colors.text-1}"
-    rounded: "{rounded.plate}"
-    padding: "0.3rem 0.95rem 0.2rem"
-    height: "2.5rem"
-  kickplate:
+  footer:
     backgroundColor: "{colors.surface-3}"
     textColor: "{colors.paper}"
     padding: "0.75rem 1rem"
-  printer-housing:
-    backgroundColor: "{colors.surface-3}"
-    textColor: "{colors.paper}"
-    padding: "0.75rem 0.75rem 1.35rem"
-  pan:
-    backgroundColor: "{colors.surface-1}"
-    rounded: "{rounded.pan}"
-    width: "4.75rem"
-    height: "3.4rem"
 ---
 
 # Design System: enginespace
 
 ## Overview
 
-**Creative North Star: "The Pass"**
+**Creative North Star: "Data Book"**
 
-The site is the expo pass of a line kitchen in the middle of service, lit by fluorescent tubes overhead and heat lamps over the one place the next decision acts on. Every surface is a kitchen object, and each object brings its own material and its own face: the ground and every panel are brushed stainless, the text you read is printed on white bond ticket paper in the ribbon's black and red, labels are marker on torn masking tape, headings are stamped equipment plates, and every number comes out of the impact printer in dots. The learner is the expediter, not a reader: the components are things you pick up, hang, tear and ring.
+The engine's own data book, printed on flat paper, with one amber mark. The site draws the engine as engineers already draw it: timing diagrams, page maps, distribution bars and latency plots, on paper over a flat ground. The look names nothing on screen: every object carries the engine's own name, and the picture is the engine's own diagram (REDESIGN 2.8).
 
-The system is a bright one. It ships a single light scheme, the line under its tubes, plus a more-contrast variant and a forced-colours mapping; there is no dark scheme. Density is a working kitchen's: objects sit close on the steel and stack on a phone, but every object stays a whole object with its own edge and shadow, and nothing is a neutral template region. Colour is spent sparingly and always as meaning: amber for the active state, the ribbon red for what must not be missed, and the six HACCP cutting-board colours as the only categorical code.
+The system is a bright one. It ships a single light scheme, paper under daylight, plus a more-contrast variant and a forced-colours mapping; there is no dark scheme. Density is a reference book's: a calm reading column, diagrams with a faint graticule, tables in tabular figures. Colour is spent as meaning only: amber for now, the second ink for what must not be missed, and six fills, each with its glyph, as the one colour code.
 
-Motion keeps the kitchen's clock. Everything moves on the bell, the step; between bells only the printer feeds, in line steps rather than a glide. Under reduced motion every duration token is 0 and the scene cuts.
+Motion keeps to the action. Things move when the learner acts and are still between actions, and every duration is 0 under reduced motion, with the state drawn at its end.
+
+This body describes the values R-T16 built. It is rewritten in full from the built world at the wave's finish (R-T50); until the owner's look gate (R-T20), the kitchen scene and its files stay in the tree, and the roles it reads (tape, tape ink, glint, the fluorescent light) stay in tokens.ts for it alone.
 
 **Key Characteristics:**
-- Brushed stainless ground with a generated grain texture and a fluorescent sheen, never a flat fill.
-- Ticket paper cut square (0px) for everything you read; sheet metal at 3px; hotel pans at 10px.
-- Heat-lamp amber appears only where the present is: the active ticket, the current page, the focused control, the lit station and the switch that is on.
-- One face per kitchen object: Big Shoulders Display, Doto, Permanent Marker, Atkinson Hyperlegible and its Mono, all self-hosted.
-- The HACCP board colours are the only categorical code, and every category also carries a drawn shape.
-- Motion runs on the bell (240ms) and the printer's stepped feed; nothing drifts between bells.
+- A flat ground with no texture, and paper cut square with one soft sheet shadow.
+- Amber means now: it has three carriers, always with its dark edge, a shape and a word.
+- Focus is ink: 3 px of text-1 at a 2 px offset, with a paper halo.
+- Three faces: Big Shoulders Display for titles, Atkinson Hyperlegible for reading and labels, Atkinson Hyperlegible Mono for code and every number.
+- Sentence case everywhere: nothing is transformed to upper case, so vLLM, SGLang and v0.33.0 keep their casing.
+- Six fills with their glyphs are the one colour code, and appear only where the model's state is drawn.
 
 ## Colors
 
-Cool stainless greys under a warm amber pool, with paper white, two ribbon inks, and the six cutting-board colours held in reserve for meaning.
+Pale paper greys, paper white, two inks, one amber mark, and six fills held in reserve for the model's state.
 
 ### Primary
-- **Heat-Lamp Amber** (lamp): the active state and only that. It pools as an edgeless radial light behind the ticket under the lamp, warms the top of that ticket's paper, glows above a focused control, fills the current page's link on the board, backs text selection, and is the colour of the 3D heat lamps, of a lit station's element on the line and of the pilot light of a switch that is on.
-- **Lamp Filament** (lamp-ring): the hard edge of the active state, at 3:1 on every ground. It is the focus ring (focus refers to it), the bar under the current page, the caret, the bell's sound waves, the rim of a lit lens, and the dashed edge round the pass while a ticket is dragged.
+- **The Marker** (lamp): now, and only now. It has three carriers: the control to act on now (one amber-filled button per viewport, or one amber ring on the control an intro points at), the "now" cursor on a diagram (a 2 px line with the word "now", and the mark on the object the next move acts on), and the current-position mark in the rail and on the course track. On paper it is 1.68:1 [derived], so it never carries anything alone.
+- **The Marker's Edge** (lamp-ring): amber's dark edge, 6.60:1 on paper and 3.93:1 on the marker [derived]. Every amber fill draws it.
 
 ### Secondary
-- **Ribbon Red** (paper-ink-2): the impact printer's second colour, for what must not be missed: the primary action's stub label, a voided ticket, errors and their marks, the "synthetic" provenance stamp, the line that says a level is over. Status-bad refers to it.
+- **The Second Ink** (paper-ink-2): errors, "Not yet", "unverified". It is never the colour of an action.
 
 ### Tertiary
-The HACCP cutting boards, the system's only categorical code. Each slot has a fill, an edge for outlines and text in the code's colour, and an ink that reads on the fill (paper on red, blue, green and brown; paper-ink on yellow and white). Lanes, memory states, probability parts and status all point at these slots; nothing else gets a colour of its own.
-- **Board Red** (cat-red, edge cat-red-edge): an evicted pan, the residual well.
-- **Board Blue** (cat-blue, edge cat-blue-edge): the CPU's lane, a used pan, the target distribution; its edge is status-info.
-- **Board Yellow** (cat-yellow, edge cat-yellow-edge): a sync, a cached pan, the draft; too light to stand alone on steel, so its marks always carry the edge, which is status-warn.
-- **Board Green** (cat-green, edge cat-green-edge): the GPU's lane as a category, a shared pan, the overlap; its edge is status-ok.
-- **Board White** (cat-white, edge cat-white-edge): idle, a free pan, what was observed, drawn hollow; its marks carry the edge.
-- **Board Brown** (cat-brown, edge cat-brown-edge): copies, an adapter's pan.
+The one colour code, shown in every diagram's legend. Each slot has a fill, an edge for outlines and text in the code's colour, and an ink that reads on the fill.
+- **Blue, circle** (cat-blue, edge cat-blue-edge): CPU work; a page in use; the target p.
+- **Green, hexagon** (cat-green, edge cat-green-edge): GPU work; a page shared by a prefix hit; the accepted overlap min(p, q).
+- **Yellow, diamond** (cat-yellow, edge cat-yellow-edge): a sync; a cached page; the draft q. Its marks carry the edge.
+- **Red, triangle** (cat-red, edge cat-red-edge): evicted; the residual (p - q)+; a violation.
+- **White, hollow ring** (cat-white, edge cat-white-edge): idle; free; observed. Its marks carry the edge.
+- **Brown, square** (cat-brown, edge cat-brown-edge): a copy between host and GPU; an adapter's page.
 
 ### Neutral
-- **Ground Stainless** (surface-0): the page, the pass, the line, under the brushed texture and the tubes' sheen.
-- **Raised Stainless** (surface-1): the board, panels, the top of the pass, a plate button, a pan's rim.
-- **Shaded Stainless** (surface-2): the underside of the rail, the name plate, a pressed plate, a pan's empty well.
-- **Deep Stainless** (surface-3): the printer's housing, the kick-plate, rail clips, a dark station; paper-white text sits on it.
-- **Boundary Grey** (edge): a control's edge on steel or paper, at 3:1.
-- **Bond Paper** (paper): tickets, stubs, the printer's tape, field slips.
-- **Ribbon Black** (paper-ink): print on a ticket, and text under the lamp.
-- **Perforation** (paper-rule): dotted rules, feed marks and the stub's perforation; never the only carrier of anything.
-- **Masking Tape** (tape) with **Marker** (tape-ink): labels stuck on pans and objects.
-- **Tube White** (light-fluorescent): the 3D scene's ambient sky light; not used in the DOM.
-- **Tube Glint** (glint): the white of the tubes' reflection on steel, laid on only at part strength: the lit top edge of a plate, the sheen along the board, the crepe ridges of masking tape. Never a surface and never a mark; a gradient or a shadow takes it through `color-mix`.
-- **Text on Steel** (text-1, text-2, text-3): primary, secondary and quiet text. Quiet text is not used on surface-2.
+- **Ground** (surface-0): the page, flat.
+- **Raised** (surface-1): the header, the frame round an instrument.
+- **Well** (surface-2): an empty slot, a pressed control, a selected row, the 3D base plate.
+- **Dark** (surface-3): the footer and a selected tab, with paper-white text on it.
+- **Paper** (paper): everything read, and every diagram.
+- **Ink** (paper-ink): text on paper.
+- **Graticule** (paper-rule): faint lines inside diagrams and figures, and a sheet's rules; never the only carrier of anything.
+- **Edge** (edge): hairlines, control borders, dimension lines, at 3:1.
+- **Text** (text-1, text-2, text-3): primary, secondary and quiet text. text-1 is also the focus ring.
+- **Retired** (tape, tape-ink, glint, light-fluorescent): no stylesheet draws with them; the kitchen scene reads them until stage 4.
 
 ### Named Rules
-**The One Lamp Rule.** Amber marks the present, the place the next decision acts on, and nowhere else. A lit station on the line and a switch that is on burn in the lamp's amber, not in a code colour. A lane's colour may say which lane a light belongs to, as a category mark beside it, and never whether it is on.
+**The One Marker Rule.** Amber means now. It has three carriers and no others: the control to act on now, the "now" cursor on a diagram, and the current-position mark in the rail and on the course track. The header's Continue is an outline, and an intro's callouts are ink discs.
 
-**The Only Code Rule.** The six board colours are the only categorical code, every category also carries its drawn glyph (triangle, circle, diamond, square, ring, hexagon), and no element is coloured for decoration.
+**The Ink Focus Rule.** The focus ring is 3 px of text-1 at a 2 px offset, with a paper halo. It is never amber, so focus is not mistaken for now, and it reads against the amber button's own edge.
+
+**The Colour Is State Rule.** A code colour appears only where the model's state is drawn, and always with its glyph or hatch.
 
 **The Declared Pair Rule.** A foreground goes on a background only through a pair tokens.ts declares and verify-tokens checks: 4.5:1 for text, 3:1 for marks and edges, in both shipped schemes.
 
@@ -244,198 +231,95 @@ The HACCP cutting boards, the system's only categorical code. Each slot has a fi
 
 **Display Font:** Big Shoulders Display (with sans-serif)
 **Body Font:** Atkinson Hyperlegible (with sans-serif)
-**Label/Mono Font:** Doto with Handjet for µ and ± (numerals and print), Permanent Marker (tape labels), Atkinson Hyperlegible Mono (code)
+**Label/Mono Font:** Atkinson Hyperlegible Mono (code, identifiers and every number), Atkinson Hyperlegible 700 (labels)
 
-**Character:** A heavy condensed grotesk stamped like an equipment plate over a reading face drawn for legibility, with the printer's round dot matrix for every number and line of print and a marker hand for labels. Each face belongs to one kitchen object, so the face tells you what the thing is.
+**Character:** A condensed grotesk for titles in sentence case, over a reading face drawn for legibility, with its mono for every number the learner compares. Three faces, all self-hosted.
 
 ### Hierarchy
-- **Display** (800, clamp(2.75rem, 1.5rem + 5vw, 6rem), 0.88, uppercase): the h1, the headline printed on the order ticket (where it sizes to the paper up to 6rem), and the menu's title.
-- **Heading** (800, clamp(1.75rem, 1.35rem + 1.6vw, 2.5rem), 0.95, uppercase): h2 and a ticket's title: a section's plate.
-- **Title** (Atkinson Hyperlegible 700, 1.25rem, 1.3): h3.
-- **Body** (400, 1.0625rem, 1.6): long reading on steel and paper; prose holds a 68ch measure.
-- **Numeric** (Doto 900, 1.125rem, 1.2, tabular): every count, tick, timestamp and microsecond in a readout; readouts step to 0.9375rem, 1.5rem and clamp(2rem, 1.4rem + 2.4vw, 3rem).
-- **Ticket** (Doto 900, 1.0625rem, 1.45): ticket lines and the printer's tape; head, foot and tape lines print at 0.9375rem, captions at 0.8125rem uppercase with 0.04em tracking.
-- **Label** (Permanent Marker 400, 0.9375rem, 1.2): marker on masking tape, and the engine term written beside a kitchen word.
+- **Display** (Big Shoulders Display 800, clamp(2rem, 1.2rem + 3.4vw, 3.5rem), 1.0): page, lesson and game titles only.
+- **Heading** (Big Shoulders Display 800, clamp(1.625rem, 1.3rem + 1.4vw, 2.25rem), 1.05): a title one step under a page's.
+- **Section heads** (Atkinson Hyperlegible 700, 1.5rem and 1.25rem): h2 and h3, and a sheet's title.
+- **Body** (Atkinson Hyperlegible 400, 1.0625rem, 1.6): reading, at a 66ch measure.
+- **Label** (Atkinson Hyperlegible 700, 0.875rem, 1.25): buttons, labels, lane and axis names, from 0.8125rem to 1rem. A button says what it does: "Step", "Check answer", "Start: TR1 lesson 1".
+- **Numeric** (Atkinson Hyperlegible Mono 500, 1.125rem, tabular): every number the learner compares, falling back to Atkinson Hyperlegible for µ and ±.
+- **Ticket** (Atkinson Hyperlegible Mono 400, 0.9375rem, 1.45): a readout strip's values, a sheet's numbered lines.
 - **Mono** (Atkinson Hyperlegible Mono 400, 0.9375rem, 1.55): code from vLLM and SGLang, and identifiers.
-- **Plate lettering** (Big Shoulders Display 800, uppercase, 0.07em to 0.1em tracking): button labels at 0.9375rem, 1.125rem and 1.375rem, board links at 1.125rem, the name plate at 1.3125rem, toggle words at 0.875rem.
-- **Size ramp** (`--es-size-*`): the sizes that a component's own lines take, and the only ones. Print and below: micro (0.6875rem), stamp (0.75rem), caption (0.8125rem), note (0.875rem), print (0.9375rem, the mono and label size) and base (1rem). Reading and plates: body (1.0625rem, the body and ticket size), plate (1.125rem, the numeric size), title (1.25rem), action (1.375rem) and large (1.5rem). Fluid, for display lettering: count (clamp(2rem, 1.4rem + 2.4vw, 3rem), the biggest readout), page (clamp(2rem, 1.2rem + 3.4vw, 3.75rem), a page's title) and course (clamp(2.5rem, 1.8rem + 3vw, 4.5rem), the front page's section titles).
+- **Size ramp** (`--es-size-*`): the sizes that a component's own lines take, and the only ones. Small: micro (0.6875rem), stamp (0.75rem), caption (0.8125rem), note (0.875rem), print (0.9375rem, the mono size) and base (1rem). Reading and controls: body (1.0625rem, the body size), plate (1.125rem, the numeric size), title (1.25rem), action (1.375rem) and large (1.5rem). Fluid: count (clamp(2rem, 1.4rem + 2.4vw, 3rem), the biggest readout), page (clamp(2rem, 1.2rem + 3.4vw, 3.5rem), a page's title) and course (clamp(2.5rem, 1.8rem + 3vw, 4.5rem), the front page's section titles).
 
 ### Named Rules
-**The One Face Per Object Rule.** A face is chosen by the object that carries it: stamped steel takes Big Shoulders, print takes Doto, tape takes Permanent Marker, reading takes Atkinson. A generic family is never first in a stack, and a single-weight face is declared across the weight range so no bold is faked.
-
-**The Dots For Numbers Rule.** Every number a learner compares prints in the dot matrix with tabular figures, and carries its provenance (synthetic, measured, derived, estimated) beside it.
+**The Sentence Case Rule.** No text is transformed to upper case, anywhere. Engine names keep their own casing.
 
 **The Ramp Rule.** A size is a step of the ramp: `font-size` takes a `--es-size-*` token or a type role's own size, and a size outside the ramp is a one-off that keeps a one-line comment saying why.
 
 ## Layout
 
-The shell's main column holds an 80rem maximum with a 1rem gutter on a phone and 2rem from 48rem; the board across the top and the kick-plate at the foot run full width. The front page gives up that measure and runs edge to edge with its own gutter (clamp(1rem, 3.2vw, 2.75rem)) and a 66rem measure for the sections below the pass.
-
-The front page has two layouts in one document. Below 80rem it stacks in kitchen order: the order ticket on its rail, then the printer with its tape, its strip of waiting tickets and the bell, then the pass, then the deck, so on a phone the scene, a ticket to hang and the bell share the first screen. From 80rem the pass fills the first viewport and the DOM objects stand in front of the 3D scene, positioned on the scene's own landmarks through container units. Other observed breakpoints are 56rem (an order line gains its side column) and 64rem (the night's table widens). Components switch on container queries where their own width matters: the stub under 17rem, the mirror table under 36rem.
-
-Spacing runs on a 4px step (the spacing scale): 1rem gutters on a phone, 1.5rem inside a ticket and between items of a group, 3rem between groups and section paddings, 4rem above a section heading, 6rem between sections at desktop width.
+The shell's main column holds an 80rem maximum with a 1rem gutter on a phone and 2rem from 48rem; the header across the top and the footer at the foot run full width. Reading holds a 66ch measure. Spacing runs on a 4px step: 1rem gutters on a phone, 1.5rem inside a sheet and between items of a group, 3rem between groups, 4rem above a section head, 6rem between sections at desktop width. Under 600 px of viewport height nothing is sticky or pinned.
 
 ## Elevation & Depth
 
-Depth is physical: paper lifts off steel, plates are stamped with a lit top edge and a shaded foot, things you press go in. Shadows are offset and softly blurred, cast by the tubes above, and the steel itself carries depth through gradients (a polished rail rod, a domed bezel, a recessed well). Glow belongs only to light sources: the heat lamp's pool, a lit station, the lamp's glow above a focused control.
+Depth is paper on a flat ground. There are two shadows and no more, each with an offset and a soft blur, never a zero-offset halo.
 
 ### Shadow Vocabulary
-- **Paper** (`box-shadow: 0 1px 1px rgb(23 25 29 / 0.16), 0 8px 18px -8px rgb(23 25 29 / 0.38)`): paper lifted off the steel: a standalone stub, a field slip, the menu board.
-- **Lift** (`box-shadow: 0 2px 3px rgb(23 25 29 / 0.16), 0 16px 28px -12px rgb(23 25 29 / 0.42)`): paper or a plate picked up, and the printer standing in front of the pass.
-- **Plate** (`box-shadow: inset 0 1px 0 color-mix(in srgb, var(--es-glint) 70%, transparent), inset 0 -1px 0 rgb(23 25 29 / 0.12), 0 1px 2px rgb(23 25 29 / 0.3)`): a stamped steel plate at rest.
-- **Press** (`box-shadow: inset 0 2px 4px rgb(23 25 29 / 0.32), inset 0 0 0 1px rgb(23 25 29 / 0.08)`): a plate or stub pressed in.
-- **Shelf** (`box-shadow: 0 1px 0 color-mix(in srgb, var(--es-glint) 55%, transparent), 0 6px 12px -6px rgb(23 25 29 / 0.35)`): the board's lip over the ground.
-- **Ticket sheet** (`filter: drop-shadow(0 1px 1px rgb(23 25 29 / 0.22)) drop-shadow(0 9px 10px rgb(23 25 29 / 0.2))`): a ticket's shadow is a drop-shadow on the sheet, so its punched hole and torn edges cast too.
-
-### The Kitchen in 3D
-Scene kit v1 gives every 3D game the same line kitchen, built in code with no image or model asset, and every value in it traces to a role.
-- **Materials:** each part takes a tone of a kitchen material, coloured from a colour role and only ever darkened from it: brushed steel in the three stainless tones (surface-1, surface-2, surface-3), spun aluminium, chrome, cast iron and the seasoned griddle (deep steel darkened), bakelite knobs and oil, glazed ceramic and subway tile (paper, with paper-rule grout), the sealed floor (deep steel), ticket paper, ribbon ink and masking tape. A metal differs from brushed stainless only by its finish, a factor on roughness, grain and metalness: chrome carries no grain, cast iron almost none.
-- **Light:** the fluorescent tubes' hemisphere light and a procedural reflected room (tubes overhead, steel-grey walls, and the lamps' glow in front where a scene keeps it) give the steel something to mirror; a scene whose amber belongs to its lamps alone reflects the tubes only, so its steel warms under a lit lamp and nowhere else. A heat lamp's light is no spot light: under each lit lamp hangs a cone of warm haze from inside its shade's lip down to the surface, and where it lands an edgeless pool, a counter's depth across and longer along the grain, lit in its middle and gone at its rim. The pool brightens the steel and its grain under it and lays no colour of its own; it lies under paper, so a ticket in it stays white bond. The light is drawn at every tier, three times over from T2, where it goes through the tone curve with the frame, and at a little over half its strength at T1. At T1 the light adds after the tone curve, where amber laid on pale steel reads as a pale smudge, so Service's pass also warms the steel in each pool, scaling the steel's own colour toward the lamp's amber so that its grain keeps its light and dark. A scene's lamps burn only while the present lies under them. The kitchen specimen on /design keeps scene kit v1's spot lamps, whose soft shadow maps start at T2 (three lights at T2, four at T3, none at T1).
-- **Glow:** only the heat lamp's amber glows: a lit station's element, a lamp's bulb, the heat strip over the pass. Each glowing part sits on a channel and a scene lights channels by a mask, so a station fires without new geometry. The hood's tubes glow in tube white below bloom's threshold: light, but not the present. Bloom (T2 and up, at half resolution) catches only what glows, holds a constant strength, and is off under more contrast and forced colours.
-- **Atmosphere:** the room's light is baked into its tile and floor, full behind the line's worktops and falling away to the sides, up the tile to the hood and behind into a veil of deep steel, so the wall over the line and the far corners recede rather than only darkening. Fog begins past the camera's focus, so the far end of the line and the floor beyond the subject soften from every shot: the games haze into deep steel (surface-3), Service into the shadows' ink (text-1), darker than its floor's tile, with the aisle between its pass and its line in shade, and the /design kitchen into the ground (surface-0). The Reach-In's room lifts instead into a haze of shaded steel (surface-2) from a little in front of its focus, which also gathers with height over its line; its reach-in, its pass and what lies on them stay clear of it. Steam is a few soft puffs of pale steel off a lit station when a fire lands, at T2 only and never under reduced motion.
-- **Contact:** every prop, static or moving, stands on a soft rounded contact shadow in the shadows' own ink over its baked ambient occlusion, at every 3D tier. T1 keeps the props, their occlusion, their contact shadows and the lamps' light, and gives up shadow maps, bloom and steam.
-- **Print:** every word and number a learner reads in a scene is DOM over the canvas: marker on strips of masking tape and Doto on paper tags, sized from the scene's box (a size container) and never below the ramp's smallest step. A prop's ticket carries only a texture of generic order lines in dots that nobody needs to read, on bond paper with its tooth (a soft mottle of fibres, and a normal that catches a raking light), a shade darker toward its cut edges, a millimetre thick at a scene's scale [estimated] so its edge reads, curled at its foot and cupped across as paper off a roll is. The Reach-In's tickets on the line are thicker slips, ten millimetres at its scale [estimated], each turned on its clip so the cut edge stands to the room as a lit strip of paper, never a drawn outline.
+- **Paper** (`box-shadow: 0 1px 2px rgb(23 25 29 / 0.12), 0 6px 14px -8px rgb(23 25 29 / 0.28)`): a sheet on the ground.
+- **Lift** (`box-shadow: 0 2px 4px rgb(23 25 29 / 0.14), 0 16px 32px -12px rgb(23 25 29 / 0.36)`): a popover over the page, and a sheet under the hand.
 
 ### Named Rules
-**The Paper Lifts Rule.** Under the hand, paper rises (translateY(-3px), a slight turn, a deeper drop-shadow) and plates brighten; on press, both go down 1-2px into the press shadow.
+**The Flat Paper Rule.** No texture anywhere. One shadow for a sheet and one for a popover. Paper is cut square.
 
-**The Edgeless Pool Rule.** The lamp's light is a radial gradient that fades out inside its own box, so it reads as light falling on steel and never as a coloured panel.
+**The Moves On Step Rule.** Things move on an action and are still between actions: 120 ms for the hand, 240 ms for a step, 640 ms for the one authored moment of an instrument. A readout changes at once. Every duration is 0 under reduced motion, and the state is drawn at its end.
 
-**The Nothing Floats Rule.** Every prop in a scene stands on its contact shadow and its baked occlusion at every 3D tier; shadow maps, bloom and steam are what a lower tier gives up, never the contact.
-
-**The Still Kitchen Rule.** A prop moves only on a duration token, starting on the bell or the printer's feed, and holds the frame loop only while it moves: between bells the kitchen draws nothing, and under reduced motion a move is never started and the change is drawn at its end.
-
-**The Words Are DOM Rule.** Every word or number a learner reads in a 3D scene is DOM over the canvas; a texture carries only print nobody needs to read.
+**The Words Are DOM Rule.** Every word or number a learner reads in a 3D scene is DOM over the canvas; a texture carries only marks nobody needs to read.
 
 ## Shapes
 
-Shapes follow the material. Paper is cut square (0px): tickets, stubs, the tape, field slips. Sheet metal takes a 3px edge: buttons, the name plate, toggles, the rail rod, the menu board. Small parts, a lever, a stamp, a bar, a slot, take a 2px trim edge, and the shoulders of large sheet-metal parts, the printer's housing and a clip's heel, take 8px. Hotel pans have drawn 10px corners with a well 4px tighter inside. Lights, bells, rivets and printing dots are round (999px). Paper edges are drawn as the paper is: a punched hole at a ticket's top (a radial mask), a perforated stub (a dotted repeat in paper-rule), a torn foot of teeth on the printer's tape, dotted 2px rules between a ticket's head, body and foot, and jagged torn ends masked onto masking tape, which sits tilted (-1.2deg by default, 0.9deg or 0 as variants). Small icons and category glyphs are drawn SVG on one 24-unit grid with one stroke weight, inheriting currentColor; Unicode stand-ins are not used.
+Paper is cut square (0px): sheets, diagrams, fields, the readout strip. Small parts take 2px: a stamp, a chip, a page cell. Controls take 3px: buttons, switches, menus. Dots, discs and pills are round. The shoulder (8px) and pan (10px) radii are retired with the components that used them. Inside diagrams and figures the graticule runs in paper-rule, 8 px minor and 40 px major; an interval is marked as an engineering drawing marks it, with end ticks and its value; an idle stretch is a dashed hollow box. Icons and category glyphs are drawn SVG on one 24-unit grid with one stroke weight, inheriting currentColor.
 
 ## Components
 
+The old components keep their file and export names until R-T46's rename; each is drawn as its Data Book part.
+
 ### Buttons
-A stamped steel plate you press.
-- **Shape:** sheet-metal edge (3px), a 1px edge-coloured border, minimum height 2.75rem (2rem small, 3.25rem large).
-- **Plate:** raised stainless under its brushed grain and a top-light gradient, plate shadow, text-1 lettering in Big Shoulders 800 uppercase at 0.07em.
-- **Hover / Focus:** hover brightens the plate toward paper and adds a soft drop; focus draws the 2px filament ring at 2px offset with the lamp's glow above it; active drops 1px into the press shadow on shaded stainless.
-- **Ink:** deep stainless with paper-white lettering and a paper-ink border.
-- **Quiet:** the lettering without its plate; hover underlines at 2px, active prints in ribbon red.
-- **Disabled / Error:** disabled is ground stainless with a dashed border, no grain and quiet text; error takes a ribbon-red border and inner line, with the message and its drawn mark printed beside it in ribbon red.
+- **Primary** (Stub): amber fill, a 2 px marker edge, a text-1 label in Atkinson Hyperlegible 700, 44 px or taller, and an arrow. Hover deepens the amber; held down it is a well with a dashed edge and no amber.
+- **Outline** (Button, the default): flat, a 1 px edge, a 3 px radius, a text-1 label. Hover lays a faint well; pressed is the well.
+- **Ink**: the dark surface with a paper-white label, for the control an instrument leans on.
+- **Quiet**: the label alone, underlined under the hand.
 
-### The Stub
-The primary action, printed on a ticket's tear-off stub.
-- **Style:** bond paper with a perforated top edge, label in Doto 900 uppercase at 1.375rem and 0.04em in ribbon red, a drawn arrow at the end, minimum height 3.5rem.
-- **States:** hover starts to tear (the perforation darkens to edge, the stub turns -0.8deg and the arrow moves 3px); active presses in; focus draws the filament ring inset 5px and warms the paper with 32% lamp; disabled prints in quiet text with a faint perforation and no arrow.
+### Sheet
+Ticket is the sheet: a plain paper panel with a title in Atkinson Hyperlegible 700, no hole and no torn edge, a quiet head line and foot line over hairline rules. The sheet the next decision acts on takes an ink rule across its top.
 
-### Cards / Containers
-Containers are kitchen objects, never generic cards.
-- **Ticket:** bond paper cut square, up to 24rem wide (36rem wide, or full), 1.5rem padding, ribbon-black print; a heading-face title that leads the paper, with no head line over it, an Atkinson body, and a Doto foot line under a dotted rule that prints the ticket's number, table and time. A ticket with no title opens on that line instead, as a Doto head line over a dotted rule (`src/design/components/Ticket.tsx`, since 81e54e9). Under the lamp it gains the edgeless amber pool behind it and warmed paper at its top. Loading prints faint in quiet text; voided prints a ribbon-red line under a red dotted rule.
-- **Board (top) and kick-plate (foot):** the board is raised brushed stainless with an edge line and the shelf shadow; the kick-plate is deep brushed stainless with paper-white text.
-- **Menu board:** a flat sheet of raised brushed stainless with a 3px edge and the paper shadow.
-- **Printer:** a deep-stainless housing with rounded upper corners (8px 8px 3px 3px), the menu link printed on its face in paper white, a dark mouth, and the tape feeding from it in steps.
+### Readout and readout strip
+A readout sets its number in the mono face with tabular figures, its unit at 0.8em and its tag as a quiet word under a dotted line; only "unverified" takes the second ink. A change's delta is DeltaChip, beside it. PrinterTape is the readout strip: terms and values on one paper strip, a hairline between rows, with one provenance stamp at its head.
 
-### Inputs / Fields
-- **Style:** masking tape over a paper slip: the label is a tape label overlapping the slip's top-left, the slip is bond paper with the paper shadow and a 2px edge-coloured foot line; the input is Atkinson at 1.0625rem (Doto 900 for numeric fields), placeholder in quiet text.
-- **Focus:** the foot line turns filament, the slip takes the 2px filament ring and the lamp's glow.
-- **Error / Disabled:** error turns the foot line ribbon red with the message below; disabled dashes the foot line on raised stainless with no shadow.
-- **Numeric:** a number is typed on the slip in Doto and never spun: the browser's spinner is removed.
+### Label and stamp
+TapeLabel is the plain label: Atkinson Hyperlegible 700 in sentence case, still and unlit, with a slot's glyph when it names a category. On a drawing it sits on a slip of paper so the lines never cross its words. Provenance is the Stamp: a small bordered word, one per instrument, table or figure, which opens the tag legend.
 
-### Toggle
-An equipment switch: a recessed brushed-steel well (5.25rem by 2.5rem, 3px edge), a polished lever that throws side to side on the quick duration, the word in force (ON or OFF) stamped in the open half in Big Shoulders 800 at 0.1em, and a pilot light at the well's end: a hollow ring of deep steel when off, burning the heat lamp's amber with the filament's edge when on.
+### Inputs
+- **Field**: a plain label over a paper slip with a 2 px foot line at 3:1; a number field types in the mono face and is never spun.
+- **Switch** (Toggle): a flat track with a square thumb, and the state as a word, Off or On, in the open half. On, the track is dark. No light.
 
-### Station Light
-A pilot light in a stainless bezel, with the station's name and the word for its state beside it (busy, dark or fault).
-- **Lit / dark:** lit, the lens burns the heat lamp's amber with a solid core and the filament's edge; dark, it is a hollow ring of deep steel. A fault prints in ribbon red with its drawn mark. The state is the shape and the word as well as the colour.
-- **Lane:** the lane a station belongs to rides beside its name as a category mark, the lane's board colour and its glyph, the same lit or dark. The name says the lane in words and the mark is a second carrier. It is never the lens's colour.
-- **Under the lamp:** the station the next decision acts on takes the filament ring and the amber glow round its bezel.
+### Header and footer
+Board is the header: the raised surface over a hairline, the site's name in the display face, the places in Atkinson Hyperlegible 700, the page you are on in ink with an ink bar under it, and Continue at the right as an outline. The kick-plate is the footer: the dark surface with paper-white links.
 
-### Navigation
-- **Board links:** Big Shoulders 800 uppercase at 1.125rem and 0.08em in text-2, at least 2.75rem tall; hover darkens to text-1 and underlines at 2px; the current page sits under the heat lamp, with an amber pool above it and a 3px filament bar below.
-- **Name plate:** the house's name stamped into a flat shaded-steel plate at 1.3125rem and 0.1em.
-- **Text link:** underlined at 0.08em with a 0.24em offset, thickening under the hand; active prints in ribbon red; external links carry a drawn mark, and a link to a file of the site itself (a document that is not a page) opens in the same tab and carries none.
+### The parts of a lesson and an instrument
+Marker, Callout, PartsList, Legend, Note, Popover, Stamp, TitleBlock, SectionRail, LevelMenu, GoalLine, DeltaChip, NumberLine and NextStep (stage 1, src/design/parts.css) draw in the same roles. Callouts are ink discs with a numeral; the marker and the rail's current section are the only amber among them.
 
-### Rail
-A polished stainless rod lit from the tubes, with deep-steel spring clips that grip each ticket through its punched hole. An empty clip shows a 2px dashed edge box with Doto print. The rail can sit under the lamp.
-
-### Printer Tape
-The live readout: bond paper fed from the printer's mouth, Doto 900 lines of term and value, uppercase terms, a torn foot. It feeds on the feed duration with the stepped easing. The provenance stamp ("synthetic ticks") is a small bordered stamp in Atkinson 700 uppercase in ribbon red. With a stamp, it prints once at the tape's head and each line's own tag is kept for a screen reader and left off the paper.
-
-### Readout
-Doto with tabular figures, four sizes, an optional unit at 0.8em, and a provenance tag: a 1px-bordered Atkinson 700 uppercase stamp at 0.75rem (synthetic in ribbon red, measured in status-ok; derived and estimated print without the border).
-
-### Hotel Pan
-A KV block: a raised-steel rim with 10px drawn corners around a recessed well. The well is empty steel when free, filled with the memory role's board colour when used, cached, shared or the adapter's, hatched or dotted as a second carrier, and a dashed red outline when evicted, with the category's glyph at its centre and a tape label below. Pans never move: hover and press change only the rim's line, and the lamp falls on the active pan as a filament ring and an amber glow from above.
-
-### Bell
-The step clock: a drawn chrome bell on deep steel. A strike drops the plunger and rings the dome on the bell duration with the strike easing (no overshoot), and filament sound waves expand on 2.5 times that.
-
-### Tape Label
-Masking tape torn off the roll: tape fill with faint crepe ridges and a top light, Permanent Marker in tape-ink, jagged masked ends, tilted -1.2deg by default.
-
-### Scene Kit Props
-The line's equipment, built from the kit's shape helpers (rounded boxes, lathes, sweeps round a rounded rectangle, bent tubes) and listed as data for one static set: the pass with its heat strip, heat lamps, the ticket rail and its spring clips, the impact printer, the bell's base, a ticket spike, hotel pans (full, half and third) with tape slots, plate stacks, the griddle, burner and fryer stations, the hood with its tube lights, the subway-tile wall, the sealed floor, a speed rack and worktops. A later game's prop joins as a custom piece of the same set: coloured through the palette's tones, its glowing parts on a channel, a footprint for its contact shadow, and its label on tape in a slot, in DOM.
-- **Moving props:** tickets that print, tear and hang on the rail's clips; the printer's feed, in six line steps; lathe-turned plates that slide down the pass and come to rest on the settle curve, their contact shadows sliding with them; the service bell, whose strike drops the plunger and rings the chrome dome on the bell duration and the strike curve.
-- **Specimen:** /design shows each piece alone and the whole pass assembled, at T1 and T2, each beside its 2D note; a rail of equipment tickets (bond paper cut square, a number in dots over a name) picks the piece, the one in view under the lamp, and the bell runs one fire.
-
-### Game Shell
-The frame round every game's views: its display name stamped over its engine concept, its mode or its own docket, the 2D and 3D switch (two plates in a labelled group, the current one pressed, and a disabled 3D plate that says why in words beside it), and the Keys button, which opens the key list on a ticket. Levels are a row of plates that wraps, and the way into a graded run is a line of words and one button.
-- **Mirror table:** the whole state as a DOM table on a ticket, its name on the printed foot line, engine terms for column heads and every figure a readout with its tag. On narrow paper each row prints as a block of its own; selectable rows form one roving tab stop.
-- **Debrief:** where the next level's title outruns the stub's line at 320px, the stub's label wraps beside its arrow.
-
-### The Lesson's Game Block
-A game inside a lesson: a ticket that starts it, and the game itself on the steel under that ticket once it has started (`src/content/render/GameBlock.tsx`).
-- **The waiting ticket:** a wide ticket (36rem) whose stamped title, Play, leads the paper, with the lesson's id and the block's own, the game and its level, on the foot line. The body names the game as the learner meets it, its display name over its engine concept, then the level and the mode on two strips of masking tape, one line that says what the mode is (practice runs on the level's own numbers, with undo; graded draws new numbers when it starts, with no undo; neither is timed), and a text link to every level of the game on its own page. The stub, Start level, is the one thing to pull. The ticket is not under the lamp. A game that no task has built keeps the ticket with its stub held down and one line in ribbon red, with the drawn lock, that names the task, as the unbuilt page does.
-- **The compact open ticket:** the pulled stub is gone, and the ticket shrinks to its title, the link to the game's own page and its foot line, because the game under it names itself, its level and its mode. While the game's code comes, the printer's dots and a line in secondary text, "Setting up", stand where the game will be and take focus; focus then goes to the game, so that its keys work. A game that does not load turns the ticket to its error state: the ribbon-red line with its drawn mark, and a stub that reloads the page.
-- **The game under the ticket:** the game's own shell, on the steel and not on paper, 1.5rem under the ticket. Its heading is a level lower, and its view, controls, switches and mirror table stack at the column's width at every width, as they do on a phone. Its region and its stages are named with the level and the mode, because a lesson can hold two of one game. A page keeps one live 3D scene: the level started last has it, and a game opened before shows its 2D view, with the Stage's button that takes 3D back.
-- **The column that widens:** from 64rem a lesson sets its tickets in a column of 36rem beside the 20rem tape of the page's facts. While a game is open the column takes the room the tape leaves, so that the game's view has about the width it has on its own page; the tickets keep their 36rem and the tape its 20rem. Under 64rem the page is one column and nothing changes.
-
-### The Prediction Box
-A ticket that takes one answer before a game is played and scores it after (`src/content/render/Predict.tsx`). It is filled in as an item is, and borrows the item ticket's slip, plates, keys and verdict. The stamped title, Predict, leads the paper, the prompt follows in Atkinson, and the facts print on masking tape: the kind of answer, its unit, when it reveals and the KCs it touches. A numeric answer's tolerance prints as a readout with its tag.
-- **Asking:** the slip is a field under a tape label, in Doto and never spun: a number, a range as two slips side by side (one under the other on a phone), or a choice as printed lines with tick boxes. Under it, "How sure are you?" is three stamped plates, one pressed in; it is optional and never gates the stub. The heat lamp falls on the ticket while it waits for an answer, because that is where the next decision acts. The stub, Commit answer, commits it, and so does Enter on a slip.
-- **Committed:** the lamp goes out, because the next decision is in the game. The heading, Committed, says that the answer does not change now, what was written and how sure print in the printer's dots, and a line in ribbon black names the game and the level to play. The stub, Reveal the answer, is held down until a run of that game ends after the commit. Then the lamp falls on the ticket again and the stub is live.
-- **Revealed:** below a dotted perforation, fed out in the printer's line steps and there at once under reduced motion: the verdict in the heading face, with a drawn tick in ribbon black or a drawn strike in ribbon red and never a board colour, the lines "you wrote", "the model" (a derived readout) and "you said", a line on how the model read the answer, and which run of the learner's it read, with its seed. The verdict takes focus, and its ring is whole on all four sides. A prediction that the ledger would not take says so in a line of the second ink, and the reveal stands.
-- **Waiting:** a prediction that no run of its lesson's game can answer prints its prompt, a choice's options as a lettered list, and the red line with the drawn lock, "Its reveal waits on", with the task. Its stub is held down, and the ticket takes no answer.
-
-### Specials Board
-The Play index: the page's name stamped on a plate with the kitchen's word for it on tape beside it, and a sheet of steel holding each game's line, its poster in a recessed well that keeps the drawing's shape before the file arrives and says so in words if it never does.
-
-### Back of House
-A request's path through the kitchen. Hand-off cards are small tickets you pick up, tighter than the order's, in two columns where the tray is wide enough. The laid path is an ordered list on paper, one row per stage with a dotted rule between: the selected row prints bold and underlined, never with a stripe down its side; a stage laid and not run is pencilled in quiet text; the stage that stopped the ticket prints in ribbon red with its drawn mark, and the run's finding as a voided ticket's red line. A run's new stops ink in one after another on the printer's line steps.
-
-### The Reach-In
-The cabinet of hotel pans: rows of sixteen at every width, the cabinet a size container so the pans scale with it (about 20px each on a phone), the rotation along its base and the pass in front. A pan's state is its form (bare, solid, hatched with a hash mark, shared, or a kit's with its pin), and the station that keeps it is a marker glyph at its corner (circle, square or hexagon), matched in the key. A ticket's ruler draws one row per station: held is solid, shared mise dotted, to prep a dashed hollow outline, let go an open groove. Pans never move and nothing in the cabinet animates; the lamp falls on the pans an open eviction would dump, and on nothing else.
-
-### The Tasting
-The dishes are keyed on masking tape, each with the drawn shape that carries its colour; the recipe sets a column per dish as wide as the dish in the drawing, and each weight is typed on a ticket-paper slip in Doto. The audit's cards are tickets, in as many columns as fit. In the scene, dish and course names are marker on tape strips and counts are Doto on paper tags.
-
-### The Inspection
-The clipboard: a steel board with a drawn spring clip (a riveted plate, a barrel wound with its spring, a jaw with a rolled lip) holding a form of ticket paper, the clip casting a soft drop-shadow onto the paper. The claim on trial is stamped large in Doto, and one synthetic stamp covers every figure on the form. Graph-paper sheets are pinned to the pass, cut square and lifted; the selected order's times sit on a small ticket under the lamp, the board's only amber.
-
-### The Order Window
-The receipts page: a chit goes out to the learner's own machine, and a receipt comes back. The deck is brushed stainless with two slips (masking tape over bond paper, each with the platform's own select in it) and a deep-steel plate that asks for a chit. The chit is a ticket under the lamp, the page's only amber: the stage's name stamped over its id and its life in dots, the token in the printer's dots, broken at its colons and selected whole by one click, the grader's command in a recessed slip, a plate that copies the command and a stub that copies the token. Under it the challenges are ruled lines on a ticket, each with its state on masking tape (open, used or expired: the word carries it, never a board colour), and the day a lapsed one expired in the ribbon's red. A receipt opens as one long ticket, stamped once in the ribbon's red as the grader's own report, with each figure's tag kept for a screen reader and not printed; its lists are tables that print each row as a block of its own on narrow paper. The printer's tape beside the page counts the challenges by state and the receipts held. The slip that takes a receipt back is the last ticket on the page, bond paper with a stub that chooses a file and the site's two caps in the printer's dots on its foot, and the file may be dropped on it too: the drop is the lamp's filament drawn dashed round the slip. What becomes of a file is printed on the slip. A file that is not a receipt is stamped in the ribbon's red with the rule that stopped it, and the rules after it say they did not run; a receipt that was read whole lists its nine rules as ruled lines, each a number in the dots, a name, and a word with a drawn mark, so that a rule that failed is a word and a mark before it is a colour, and under them, as a tenth ruled line with the worth on masking tape, what the receipt is worth now and why, and each check listed once under it: an id in the dots, a word with its mark, the bound it was held to, and a badge that says whether this browser re-ran it or the grader attested it. On narrow paper a check's bound prints under its id and its word, across the whole width.
-
-### The Unbuilt Page
-A page whose task has not landed: Changes, the Trace Room, the part of About that is still to come, and the labs that the later waves build. Its name is stamped on a plate over one line that says what the page is for, and one ticket lists what it will hold in square bullets of Atkinson. The ticket says in the ribbon's red, with a drawn lock, that the page is not built, prints the wave it arrives with and the task that builds it on its foot line, and ends in one stub that leads to a page that is built. A lab's lane and module ride under the lead on masking tape. Nothing on it is lit, because the lamp has nothing to act on.
+### Retired with the kitchen
+Rail, Pan, StationLight, Bell and PrintingDots are drawn flat until stage 4 removes them: a row of slots under a hairline, a square page cell with its glyph, a solid ink disc for busy and an open ring for idle, a flat step control, and still dots beside a line of text that says what is loading.
 
 ## Do's and Don'ts
 
 ### Do:
 - **Do** take every colour, face, shadow, radius and duration from a token role in src/design/tokens.ts; tokens.css is generated from it and verify-tokens fails when they disagree.
-- **Do** keep amber for the present alone: the ticket under the lamp, the current page, the focused control, a lit station on the line, a switch that is on.
-- **Do** print every number in Doto with tabular figures and its provenance tag; the front page's readouts are synthetic ticks.
-- **Do** give every category its board colour and its drawn glyph, and carry yellow and white marks on their edge colour.
-- **Do** put the brushed grain (texture-brushed) on the ground and on stainless panels, plates and housings, sized to the full width so no tile edge shows.
-- **Do** move on the bell: the quick duration (120ms) for the hand, the bell (240ms) for a step, the feed (420ms, steps(6, end)) for the printer, the settle (640ms) for a course coming to rest, all 0 under reduced motion.
-- **Do** draw focus as the 2px filament ring at 2px offset with the lamp's glow above it.
+- **Do** keep amber for now alone, on its three carriers, always with its dark edge, a shape and a word.
+- **Do** draw focus as 3 px of text-1 at a 2 px offset, with a paper halo.
+- **Do** set every number the learner compares in the mono face with tabular figures, with its tag.
+- **Do** give every category its fill and its glyph, and carry yellow and white marks on their edge colour.
 - **Do** give every `font-size` a step of the size ramp and every radius a step of the rounded scale; a deliberate one-off keeps a one-line comment saying why.
-- **Do** build a new 3D prop from the kit's shape helpers and the palette's tones, with its glow on a channel, a footprint for its contact shadow, and its label on tape in DOM.
 
 ### Don't:
-- **Don't** add a dark scheme; the line is lit by its tubes, and the system ships light and more-contrast only.
-- **Don't** colour anything for decoration, or give a lane, a state or a status a colour outside the six boards and the ribbon red.
-- **Don't** light an on state in a board colour: a switch or a station that is on burns in the lamp's amber, and a lane's colour only says which lane.
-- **Don't** move a hotel pan; a moving pan would misteach copying.
-- **Don't** round paper, or set a ticket's body in the dot matrix; Doto is for print lines and numbers, Atkinson for reading.
+- **Don't** add a dark scheme; the system ships light and more-contrast only.
+- **Don't** transform text to upper case, or track a label out as if it were.
+- **Don't** lay a texture, a glint or a gradient sheen on any surface.
+- **Don't** colour anything for decoration, or make a selected, current or focused thing amber.
 - **Don't** fade text with opacity to show a state; use the quiet text role, which keeps 4.5:1.
 - **Don't** use Unicode characters or an icon font as icons; draw them on the 24-unit grid.
-- **Don't** print a small label above a headline to introduce a section; a tape label names an object, not a section.
