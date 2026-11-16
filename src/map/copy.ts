@@ -1,59 +1,47 @@
 /*
- * The course map's words (W1-T06), in one place so that the page, its tests and the module page read the same copy. The kitchen word
- * names the object and the engine term names the concept (GAMES.md §2.6, rule 2): the course map is the menu, a module is a ticket on
- * the rail, and a knowledge component is the thing the learner can do once they hold it. The copy holds no number: every count, hour
- * and total is printed through the dot matrix from the course and the ledger.
+ * The words of Course and of a module's page, in one place so that the pages, their tests and the copy guard read the same copy. Course
+ * is one column of modules, and each row says in words what the module needs and where the learner stands. The copy holds no number:
+ * every count, hour and total is worked out from the course and the ledger when the page draws.
  */
 
 import { SKILL_WORDS } from '@/progress/words'
 
 export const MAP = {
   title: 'Course',
-  /** The kitchen's word for the map, on tape beside the engine's term (GAMES.md §2.6). */
-  term: 'the menu',
-  lede: [
-    'Every module hangs on the rail in the order you meet them. What a ticket advises you to do first never locks it: any ticket opens.',
-    'The dots are a ticket’s knowledge components, counted from the events in this browser each time the page draws: a ring is one you have not started, a ringed dot one you have tried, a solid dot one you have passed, and a ticked dot one you have kept.',
-  ],
   modules: 'The modules, in order',
-  /** The tape's name, and its lines. */
-  tape: {
-    name: 'The course so far',
-    hours: 'hours, all',
-    lanes: { B: 'browser', L: 'laptop', F: 'GPU' },
-    earned: 'passed',
-    kept: 'kept',
-    next: 'next ticket',
-    of: 'of',
-    none: 'none yet',
-    reading: 'reading your ledger',
-  },
-  /** On the ticket that the lamp is over. */
-  next: 'next ticket',
   /** The way on at the top of the page: `nextStep`'s answer, told back as a sentence. */
   way: {
     fresh: 'You have not started.',
     next: 'Next:',
     skipped: (n: number) => `${n} earlier ${n === 1 ? 'lesson' : 'lessons'} not finished`,
-  },
-  advised: 'Advised first',
-  kernelspace: 'kernelspace',
-  hoursNote: 'hours estimated',
-  open: 'Open',
-  holding: {
     reading: 'Reading your ledger',
-    none: 'No knowledge components yet',
-    earned: 'passed',
-    of: 'of',
-    practising: 'tried',
-    kept: 'kept',
-    nothing: 'Nothing passed yet',
+    reviews: (n: number, minutes: number) => `${n} ${n === 1 ? 'review' : 'reviews'} due, about ${minutes} min`,
+    mark: 'You are here',
   },
+  /** The line of hours, and the one sentence under the legends. */
+  hours: { all: 'hours in all', browser: 'in the browser', laptop: 'on a laptop', gpu: 'on a GPU', note: { before: 'Module hours are', between: 'and these totals are' }, estimated: 'estimated', derived: 'derived' },
+  nothing: 'Nothing is locked. Prerequisites advise.',
+  /** What a module needs, in words. */
+  needs: { only: { B: 'browser only', L: 'laptop only', F: 'GPU only' }, in: { B: 'in the browser', L: 'on a laptop', F: 'on a GPU' }, then: 'then' },
+  /** Where the learner stands in a module, in words. */
+  state: {
+    unpublished: 'Not published yet',
+    reading: 'Reading your ledger',
+    lessons: (done: number, total: number) => `${done} of ${total} ${total === 1 ? 'lesson' : 'lessons'} done`,
+    lessonsTotal: (total: number) => `${total} ${total === 1 ? 'lesson' : 'lessons'}`,
+    skills: (passed: number, total: number) => `${passed} of ${total} ${total === 1 ? 'skill' : 'skills'} passed`,
+    skillsTotal: (total: number) => `${total} ${total === 1 ? 'skill' : 'skills'}`,
+  },
+  outcome: 'You will be able to',
+  lessonsOf: (module: string) => `Lessons of ${module}`,
+  next: 'Next',
+  buildsOn: 'Builds on',
+  kernelspace: 'kernelspace',
   notice: {
     loadingTitle: 'Course',
     loadingWhat: 'course',
     failedTitle: 'The course did not load',
-    failedMessage: 'The map would not print. Check your connection and reload the page.',
+    failedMessage: 'The course would not load. Check your connection and reload the page.',
   },
 } as const
 

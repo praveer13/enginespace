@@ -43,3 +43,26 @@ export interface Holding {
 export function holdingOf(counts: KcCounts): Holding {
   return { total: counts.total, earned: counts.earned, practising: counts.practised - counts.earned, kept: counts.kept }
 }
+
+/** A module's hours, and what they need, in words: "10 h, browser only" or "10 h: 7.5 h in the browser, then 2.5 h on a GPU". */
+export function needsWords(module: Pick<IndexModule, 'hours' | 'hours_by_lane'>, words: { only: Record<Lane, string>; in: Record<Lane, string>; then: string }): string {
+  const lanes = lanesOf(module)
+  const hours = (value: number) => `${formatHours(value)} h`
+  if (lanes.length === 0) return hours(module.hours)
+  if (lanes.length === 1) return `${hours(module.hours)}, ${words.only[lanes[0].lane]}`
+  return `${hours(module.hours)}: ${lanes.map(({ lane, hours: value }, at) => `${at === 0 ? '' : `${words.then} `}${hours(value)} ${words.in[lane]}`).join(', ')}`
+}
+
+/** An hour count as the page prints it: a whole number plain, a half with one digit. */
+export const formatHours = (hours: number): string => (Number.isInteger(hours) ? String(hours) : hours.toFixed(1))
+
+/** The first outcome of a module as the end of "You will be able to ...": its first letter lowered, unless it begins an acronym. */
+export function outcomeClause(outcome: string): string {
+  const text = outcome.trim().replace(/[.]$/, '')
+  return /^[A-Z][a-z]/.test(text) ? text.charAt(0).toLowerCase() + text.slice(1) : text
+}
+
+/** How many of a module's lessons are done, from the states by lesson id. */
+export function lessonCounts(lessons: readonly { id: string }[], states: ReadonlyMap<string, string>): { total: number; done: number } {
+  return { total: lessons.length, done: lessons.filter((lesson) => states.get(lesson.id) === 'done').length }
+}

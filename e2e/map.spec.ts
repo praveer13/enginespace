@@ -1,14 +1,13 @@
 /*
- * W1-T06's acceptance checks in a browser: the course map (`/map`), the module page's loop and progress, and the Play index (`/play`).
+ * W1-T06's acceptance checks in a browser, as R-T21 redrew them: Course (`/map`), the module page's loop and progress, and the Play index (`/play`).
  *
  *   2. There is no sideways scroll at 320 px (WCAG 1.4.10), on the map, a module's page and the Play index, and nothing is cut off.
- *   3. Every node links to its module: each ticket of the rail opens its module, with the mouse and with the keyboard.
+ *   3. Every published module links to its module from its title, with the mouse and with the keyboard.
  *   (1. No status is stored: tests/progress/read-only.test.ts. Here the same line is held in a browser: what the page shows of the
  *    learner comes back from the ledger after a reload, and goes when the ledger does.)
  *
- * And what the checks cannot see from the markup: the rail is a rail (the tickets of a row hang from one rod, edge to edge, in the order
- * of the course), the Play index is a board of lines and not a grid of cards, the lamp is over one ticket, the pictures are drawn, and
- * axe finds no serious or critical violation at 320, 360 and 1280 px on the three pages, with the learner's evidence on them as well.
+ * And what the checks cannot see from the markup: Course is one column in the order of the course with its first lesson inside 700 px,
+ * the Play index is a board of lines and not a grid of cards, the pictures are drawn, and axe finds no serious or critical violation at 320, 360 and 1280 px on the three pages, with the learner's evidence on them as well.
  *
  *   npx playwright test e2e/map.spec.ts
  *
@@ -80,7 +79,7 @@ async function readTheLedger(page: Page): Promise<void> {
   await quiet(page)
 }
 
-const stop = (page: Page, module: string) => page.locator(`li.es-map__stop[data-module="${module}"]`)
+const row = (page: Page, module: string) => page.locator(`li.es-course__row[data-module="${module}"]`)
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Accept 2: no sideways scroll at 320 px                                                                              */
@@ -130,114 +129,88 @@ for (const width of WIDTHS) {
 /* Accept 3: every node links to its module                                                                            */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-test.describe('the course map', () => {
+test.describe('Course', () => {
   test.use({ viewport: { width: 1440, height: 900 } })
 
-  test('hangs one ticket on the rail for every module, in the order of the course, and each ticket\'s stub opens its module', async ({ page, context }) => {
+  test('lists every module in one column, in the order of the course, and a published module opens from its title', async ({ page, context }) => {
     await withSettings(context, { view3d: false })
     await open(page, '/map')
     await readTheLedger(page)
-    await expect(page.locator('li.es-map__stop')).toHaveCount(MODULES.length)
-    expect(await page.locator('li.es-map__stop').evaluateAll((items) => items.map((item) => item.getAttribute('data-module')))).toEqual(MODULES)
-    for (const module of MODULES) {
-      const link = stop(page, module).locator('a.es-stub__pull')
-      await expect(link).toHaveCount(1)
-      await expect(link).toHaveAttribute('href', `/m/${module}`)
+    await expect(page.locator('li.es-course__row')).toHaveCount(MODULES.length)
+    expect(await page.locator('li.es-course__row').evaluateAll((items) => items.map((item) => item.getAttribute('data-module')))).toEqual(MODULES)
+    // One column: every row is as wide as the one before, and each stands below the last.
+    const boxes = await page.locator('li.es-course__row').evaluateAll((items) => items.map((item) => item.getBoundingClientRect()).map((box) => ({ left: box.left, width: box.width, top: box.top })))
+    for (let at = 1; at < boxes.length; at += 1) {
+      expect(boxes[at].top).toBeGreaterThan(boxes[at - 1].top)
+      expect(Math.abs(boxes[at].left - boxes[0].left)).toBeLessThan(1)
+      expect(Math.abs(boxes[at].width - boxes[0].width)).toBeLessThan(1)
     }
-  })
-
-  test('opens a module from its stub with the mouse, and a planned module as well, and the way back is the map', async ({ page, context }) => {
-    await withSettings(context, { view3d: false })
-    await open(page, '/map')
-    await stop(page, 'tr2').locator('a.es-stub__pull').click()
+    await row(page, 'tr2').getByRole('link', { name: /The step loop/ }).click()
     await expect(page).toHaveURL(/\/m\/tr2$/)
     await expect(page.getByRole('heading', { level: 1, name: 'The step loop' })).toBeVisible()
-    await page.getByRole('navigation', { name: 'Breadcrumb' }).getByRole('link', { name: 'Course map' }).click()
-    await expect(page).toHaveURL(/\/map$/)
-    await stop(page, 'tr0').locator('a.es-stub__pull').click()
-    await expect(page).toHaveURL(/\/m\/tr0$/)
-    await expect(page.getByText('Planned: not written yet.')).toBeVisible()
   })
 
-  test('opens a module with the keyboard alone: the stub is reached by Tab and pulled by Enter', async ({ page, context }) => {
+  test('a module that is not published says so and is not a link', async ({ page, context }) => {
     await withSettings(context, { view3d: false })
     await open(page, '/map')
     await readTheLedger(page)
-    const first = stop(page, 'tr0').locator('a.es-stub__pull')
+    for (const module of ['tr0', 'tr3', 'capstone']) {
+      const planned = row(page, module)
+      await expect(planned).toContainText('Not published yet')
+      await expect(planned.locator('h3 a')).toHaveCount(0)
+    }
+  })
+
+  test('opens with the way on: the sentence, the one amber Continue, and Continue is the header\'s link; the first lesson is within 700 px', async ({ page, context }) => {
+    await withSettings(context, { view3d: false })
+    await open(page, '/map')
+    await readTheLedger(page)
+    await expect(page.locator('.es-course__sentence')).toContainText('You have not started. Next:')
+    const way = page.locator('.es-course__way a.es-board__next')
+    await expect(way).toHaveCount(1)
+    await expect(way).toHaveAttribute('data-emphasis', 'primary')
+    await expect(page.getByText('Nothing is locked. Prerequisites advise.')).toBeVisible()
+    await expect(page.getByText(/^Skills: tried is/)).toBeVisible()
+    await expect(page.getByText(/^A lesson is not started/)).toBeVisible()
+    // The module the way on points into is open, and its next lesson carries the marker.
+    const open1 = page.locator('li.es-course__row[data-open="true"]')
+    await expect(open1).toHaveCount(1)
+    const lessons = open1.locator('li.es-course__lesson')
+    expect(await lessons.count()).toBeGreaterThan(0)
+    await expect(lessons.first()).toHaveAttribute('data-at', 'now')
+    await expect(page.locator('[data-at="now"]')).toHaveCount(2)
+    const top = await lessons.first().locator('a').evaluate((link) => link.getBoundingClientRect().top)
+    expect(top, 'the first lesson link starts within 700 px of the top').toBeLessThan(700)
+  })
+
+  test('the way on and the page agree: the amber button\'s link is the way on\'s, and Tab reaches every lesson of the open module', async ({ page, context }) => {
+    await withSettings(context, { view3d: false })
+    await open(page, '/map')
+    await readTheLedger(page)
+    const href = await page.locator('.es-course__way a.es-board__next').getAttribute('href')
+    expect(href).toMatch(/^\/m\/[a-z0-9]+\/l1-/)
+    const links = page.locator('li.es-course__row[data-open="true"] a.es-course__lesson-link')
+    const first = links.first()
     await first.focus()
     await expect(first).toBeFocused()
-    // From the first stub, Tab visits what is on the ticket after it and then the next ticket's links, and a stub is one of them.
-    const seen: string[] = []
-    for (let press = 0; press < 160 && seen.length < MODULES.length - 1; press += 1) {
-      await page.keyboard.press('Tab')
-      const href = await page.evaluate(() => (document.activeElement as HTMLAnchorElement | null)?.getAttribute('href') ?? '')
-      const isStub = await page.evaluate(() => document.activeElement?.classList.contains('es-stub__pull') ?? false)
-      if (isStub) seen.push(href)
-    }
-    expect(seen).toEqual(MODULES.slice(1).map((module) => `/m/${module}`))
-    await page.keyboard.press('Shift+Tab')
-    await stop(page, 'tr3').locator('a.es-stub__pull').focus()
     await page.keyboard.press('Enter')
-    await expect(page).toHaveURL(/\/m\/tr3$/)
+    await expect(page).toHaveURL(/\/m\/[a-z0-9]+\/l1-/)
   })
 
-  test('is a rail: the first row hangs four tickets from one rod, edge to edge, left to right, and the lamp is over one of them', async ({ page, context }) => {
-    await withSettings(context, { view3d: false })
-    await open(page, '/map')
-    await readTheLedger(page)
-    const boxes = await page.locator('li.es-map__stop').evaluateAll((items) => items.map((item) => {
-      const rod = item.querySelector('.es-map__rod')?.getBoundingClientRect()
-      const box = item.getBoundingClientRect()
-      return { module: item.getAttribute('data-module'), left: box.left, right: box.right, top: box.top, rodLeft: rod?.left ?? 0, rodRight: rod?.right ?? 0, rodTop: rod?.top ?? 0, rodHeight: rod?.height ?? 0 }
-    }))
-    const row = boxes.filter((box) => Math.abs(box.top - boxes[0].top) < 2)
-    expect(row.map((box) => box.module)).toEqual(['tr0', 'tr1', 'tr2', 'tr3'])
-    for (let at = 1; at < row.length; at += 1) {
-      expect(row[at].left, 'a ticket stands to the right of the one before it').toBeGreaterThan(row[at - 1].left)
-      expect(Math.abs(row[at].rodLeft - row[at - 1].rodRight), 'the rod is one piece across a row').toBeLessThan(1)
-      expect(row[at].rodTop).toBeCloseTo(row[0].rodTop, 0)
-    }
-    expect(row[0].rodHeight).toBeGreaterThan(15)
-    // The rows go down the page: the next row starts below the first.
-    expect(boxes[4].top).toBeGreaterThan(boxes[0].top + 200)
-    // One lamp, over one ticket.
-    await expect(page.locator('li.es-map__stop[data-next]')).toHaveCount(1)
-    await expect(page.locator('li.es-map__stop .es-ticket[data-lamp]')).toHaveCount(1)
-    await expect(page.locator('li.es-map__stop[data-next] .es-ticket[data-lamp]')).toHaveCount(1)
-  })
-
-  test('takes its columns from the width of the page: one, two, three, then four tickets to a row', async ({ page, context }) => {
-    await withSettings(context, { view3d: false })
-    const perRow = async (width: number) => {
-      await page.setViewportSize({ width, height: 900 })
-      await open(page, '/map')
-      return page.locator('li.es-map__stop').evaluateAll((items) => {
-        const tops = items.map((item) => Math.round(item.getBoundingClientRect().top))
-        return tops.filter((top) => Math.abs(top - tops[0]) < 3).length
-      })
-    }
-    expect([await perRow(390), await perRow(700), await perRow(1100), await perRow(1440)]).toEqual([1, 2, 3, 4])
-  })
-
-  test('shows the learner\'s evidence, from the ledger, and the same after a reload; reset takes it away', async ({ page, context }) => {
+  test('says in words what a module needs and where the learner stands, from the ledger, and the same after a reload; reset takes it away', async ({ page, context }) => {
     await withSettings(context, { view3d: false })
     await putIn(page, EVIDENCE)
     await open(page, '/map')
     await readTheLedger(page)
-    const tr2 = stop(page, 'tr2')
-    await expect(tr2.locator('.es-pip[data-state="practised"]')).toHaveCount(1)
-    await expect(tr2.locator('.es-pip[data-state="earned"]')).toHaveCount(1)
-    await expect(tr2.locator('.es-pip[data-state="kept"]')).toHaveCount(1)
-    await expect(tr2.locator('.es-map__count')).toContainText('2 of 11 earned')
-    await expect(tr2.locator('.es-map__count')).toContainText('1 practised')
-    await expect(tr2.locator('.es-map__count')).toContainText('1 kept')
+    await expect(row(page, 'tr2')).toContainText('10 h, browser only')
+    await expect(row(page, 'tr1')).toContainText('7.5 h in the browser, then 2.5 h on a GPU')
+    await expect(row(page, 'tr2').locator('.es-course__standing')).toContainText('2 of 11 skills passed')
     // Another module is untouched.
-    await expect(stop(page, 'tr1').locator('.es-pip[data-state="none"]')).toHaveCount(8)
+    await expect(row(page, 'tr1').locator('.es-course__standing')).toContainText('0 of 8 skills passed')
 
     await page.reload()
     await readTheLedger(page)
-    await expect(stop(page, 'tr2').locator('.es-map__count')).toContainText('2 of 11 earned')
-    await expect(page.getByRole('figure', { name: 'The course so far' })).toContainText('earned')
+    await expect(row(page, 'tr2').locator('.es-course__standing')).toContainText('2 of 11 skills passed')
 
     // Taking the events away takes the progress away: nothing else held it.
     await open(page, '/settings')
@@ -247,8 +220,25 @@ test.describe('the course map', () => {
     await expect(dialog).toBeHidden()
     await open(page, '/map')
     await readTheLedger(page)
-    await expect(stop(page, 'tr2').locator('.es-map__count')).toContainText('0 of 11 earned')
-    await expect(stop(page, 'tr2').locator('.es-pip[data-state="none"]')).toHaveCount(11)
+    await expect(row(page, 'tr2').locator('.es-course__standing')).toContainText('0 of 11 skills passed')
+  })
+})
+
+test.describe('Course on a phone', () => {
+  test.use({ viewport: { width: 390, height: 844 } })
+
+  test('the way on comes first with its button the full width, and the lesson links are tall enough to press', async ({ page, context }) => {
+    await withSettings(context, { view3d: false })
+    await open(page, '/map')
+    await readTheLedger(page)
+    const way = page.locator('.es-course__way')
+    const button = page.locator('.es-course__way a.es-board__next')
+    const [wayBox, buttonBox] = await Promise.all([way.boundingBox(), button.boundingBox()])
+    expect(wayBox && buttonBox && buttonBox.width > wayBox.width - 40, 'the button spans the sheet').toBe(true)
+    const links = page.locator('li.es-course__row[data-open="true"] a.es-course__lesson-link')
+    expect(await links.count()).toBeGreaterThan(0)
+    const box = await links.first().boundingBox()
+    expect(box?.height ?? 0).toBeGreaterThanOrEqual(44)
   })
 })
 
@@ -273,15 +263,10 @@ test.describe('progress from items and lab checks', () => {
     await putIn(page, EVIDENCE_OF_ITEMS_AND_LABS)
     await open(page, '/map')
     await readTheLedger(page)
-    const tr2 = stop(page, 'tr2')
-    await expect(tr2.locator('.es-pip[data-state="earned"]')).toHaveCount(1)
-    await expect(tr2.locator('.es-pip[data-state="practised"]')).toHaveCount(1)
-    await expect(tr2.locator('.es-map__count')).toContainText('1 of 11 earned')
-    await expect(tr2.locator('.es-map__count')).toContainText('1 practised')
-    await expect(stop(page, 'tr5a').locator('.es-pip[data-state="earned"]')).toHaveCount(5)
-    await expect(stop(page, 'tr5a').locator('.es-map__count')).toContainText('5 of 8 earned')
+    await expect(row(page, 'tr2').locator('.es-course__standing')).toContainText('1 of 11 skills passed')
+    await expect(row(page, 'tr5a').locator('.es-course__standing')).toContainText('5 of 8 skills passed')
     // A module that neither touched is as it was.
-    await expect(stop(page, 'tr1').locator('.es-pip[data-state="none"]')).toHaveCount(8)
+    await expect(row(page, 'tr1').locator('.es-course__standing')).toContainText('0 of 8 skills passed')
 
     await open(page, '/m/tr2')
     await readTheLedger(page)
@@ -297,7 +282,7 @@ test.describe('progress from items and lab checks', () => {
     await expect(tr5aKcs.locator('[data-kc="tr5a.adapter-pages"]')).toHaveAttribute('data-state', 'earned')
     await expect(tr5aKcs.locator('[data-kc="tr5a.kv-groups"]')).toHaveAttribute('data-state', 'none')
     // The lab run is the Build step of its module's loop (the third of the five).
-    await expect(page.locator('[data-block="loop"] .es-steps__item').nth(2)).toContainText('1 credited of 1 tried')
+    await expect(page.locator('[data-block="loop"] .es-steps__item').nth(2)).toContainText('1 passed of 1 tried')
   })
 })
 
@@ -315,14 +300,14 @@ test.describe('a module page', () => {
     await readTheLedger(page)
     const loop = page.locator('[data-block="loop"]')
     await expect(loop.locator('.es-steps__name')).toHaveText(['Predict', 'Play', 'Build', 'Prove', 'Keep'])
-    await expect(loop.locator('.es-steps__item').nth(4)).toContainText('3 credited of 4 tried')
+    await expect(loop.locator('.es-steps__item').nth(4)).toContainText('3 passed of 4 tried')
     await expect(loop.getByRole('link', { name: 'Step loop' })).toHaveAttribute('href', '/play/loop')
     const kcs = page.locator('[data-block="kcs"]')
     await expect(kcs.locator('[data-kc="tr2.one-budget"]')).toHaveAttribute('data-state', 'practised')
     await expect(kcs.locator('[data-kc="tr2.async-overlap"]')).toHaveAttribute('data-state', 'earned')
     await expect(kcs.locator('[data-kc="tr2.graph-replay"]')).toHaveAttribute('data-state', 'kept')
     await expect(kcs.locator('[data-kc="tr2.step-calls"]')).toHaveAttribute('data-state', 'none')
-    await expect(page.getByRole('figure', { name: 'About this module' })).toContainText('earned')
+    await expect(page.getByRole('figure', { name: 'About this module' })).toContainText('passed')
   })
 })
 

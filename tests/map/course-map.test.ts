@@ -1,11 +1,9 @@
 /*
- * W1-T06: the course map, `/map` (ARCHITECTURE §3.1). TR0 to the capstone, with the lanes, hours, kernelspace lessons and artifacts of
- * each module, and what the learner holds of it, derived at read time. The page is drawn on the server renderer here, from the
- * repository's compiled content; the layout (no sideways scroll at 320 px, the rail, the look) is checked in a browser by
- * e2e/map.spec.ts.
- *
- * Accept 3: every node links to its module. The tickets are an ordered list, so a reader who cannot see the rail gets the course in
- * its order, each ticket with its facts and one link to its module.
+ * R-T21: Course, `/map` (REDESIGN 3.2). One column of modules in course order on a track line, opened by the way on. Each row says in
+ * words what the module needs and where the learner stands; the module the way on points into is open and lists its lessons, the
+ * next one under the marker; an unpublished module says so and is not a link. The page is drawn on the server renderer here, from the
+ * repository's compiled content; the layout (the first lesson within 700 px, no sideways scroll at 390 and 320) is checked in a
+ * browser by e2e/map.spec.ts.
  */
 import { describe, expect, test } from 'bun:test'
 import { createElement as h } from 'react'
@@ -13,9 +11,12 @@ import type { LedgerEvent } from '@es/ledger'
 import { CourseMapView } from '@/map/CourseMap'
 import type { CourseMapViewProps } from '@/map/CourseMap'
 import { MAP as COPY } from '@/map/copy'
-import { nextStep } from '@/progress/next'
+import { findBanned } from '@/copy/banned'
+import { nextStep, standings, indexLessons } from '@/progress/next'
 import { made } from '../progress/support'
-import { INDEX, MAP, opening, attribute, progressOf, render, stopOf, textOf } from './support'
+import { INDEX, MAP, opening, attribute, progressOf, render, textOf } from './support'
+
+const states = (events: readonly LedgerEvent[]) => new Map([...standings(events, indexLessons(MAP.lessons))].map(([id, standing]) => [id, standing.state]))
 
 const view = (events: readonly LedgerEvent[] | null, overrides: Partial<CourseMapViewProps> = {}) =>
   render(
@@ -26,216 +27,173 @@ const view = (events: readonly LedgerEvent[] | null, overrides: Partial<CourseMa
       progress: events === null ? null : progressOf(events),
       ready: events !== null,
       step: events === null ? null : nextStep(events, MAP.lessons, null),
+      states: events === null ? new Map() : states(events),
       ...overrides,
     }),
     '/map',
   )
 
+const rowOf = (html: string, module: string): string => {
+  const start = html.indexOf(`<li class="es-course__row" data-module="${module}"`)
+  if (start < 0) throw new Error(`no row for ${module}`)
+  const next = html.indexOf('<li class="es-course__row"', start + 10)
+  return html.slice(start, next < 0 ? html.length : next)
+}
+
 const empty = view([])
 
-describe('the course map lists the whole course', () => {
-  test('one stop for every module of the index, in the index\'s order, in an ordered list', () => {
-    const stops = [...empty.matchAll(/<li class="es-map__stop" data-module="([a-z0-9]+)"/g)].map((match) => match[1])
-    expect(stops).toEqual(INDEX.modules.map((module) => module.id))
-    expect(stops).toEqual(['tr0', 'tr1', 'tr2', 'tr3', 'tr4', 'tr5a', 'tr5b', 'tr6', 'tr7', 'tr8', 'capstone'])
-    expect(empty).toContain('<ol class="es-map__rails">')
+describe('Course is one column of modules in course order', () => {
+  test('one row for every module of the index, in the index\'s order, in an ordered list, and no grid of cards', () => {
+    const rows = [...empty.matchAll(/<li class="es-course__row" data-module="([a-z0-9]+)"/g)].map((match) => match[1])
+    expect(rows).toEqual(INDEX.modules.map((module) => module.id))
+    expect(rows).toEqual(['tr0', 'tr1', 'tr2', 'tr3', 'tr4', 'tr5a', 'tr5b', 'tr6', 'tr7', 'tr8', 'capstone'])
+    expect(empty).toContain('<ol class="es-course__rows">')
+    expect(empty).not.toContain('es-ticket')
   })
 
-  test('accept 3: every node links to its module, once, by its stub', () => {
-    for (const module of INDEX.modules) {
-      const stop = stopOf(empty, module.id)
-      const links = opening(stop, 'a').filter((tag) => attribute(tag, 'class')?.includes('es-stub__pull'))
-      expect(links.map((tag) => attribute(tag, 'href'))).toEqual([module.route])
-      expect(module.route).toBe(`/m/${module.id}`)
-    }
-  })
-
-  test('the stub says which module it opens, in words that a list of links can be told apart by', () => {
-    for (const module of INDEX.modules) {
-      const printed = module.id === 'capstone' ? 'capstone' : `TR${module.id.slice(2)}`
-      expect(textOf(stopOf(empty, module.id))).toContain(`${COPY.open} ${printed}`)
-    }
-  })
-
-  test('a planned module has its ticket, marked planned, with the same stub as a module that is written', () => {
-    for (const module of INDEX.modules.filter((candidate) => candidate.status === 'planned')) {
-      const stop = stopOf(empty, module.id)
-      expect(attribute(opening(stop, 'li')[0], 'data-status')).toBe('planned')
-      expect(stop).toContain('es-stub__pull')
-    }
-    expect(INDEX.modules.some((module) => module.status === 'planned')).toBe(true)
-  })
-
-  test('each ticket prints its title as a heading, and the page has one h1 and a hidden h2 for the list', () => {
-    expect(opening(empty, 'h1')).toHaveLength(1)
-    expect(opening(empty, 'h2')).toHaveLength(1)
-    expect(opening(empty, 'h3')).toHaveLength(INDEX.modules.length)
-    for (const module of INDEX.modules) expect(stopOf(empty, module.id)).toContain(`<h3 class="es-ticket__title">${module.title.replaceAll("'", '&#x27;')}</h3>`)
+  test('the page has one h1, a hidden h2 for the list and an h3 for each module', () => {
     expect([...empty.matchAll(/<h([1-6])[\s>]/g)].map((match) => Number(match[1]))).toEqual([1, 2, ...INDEX.modules.map(() => 3)])
   })
+
+  test('the css lays the rows in one column, with no grid of cards', async () => {
+    const css = await Bun.file(`${import.meta.dir}/../../src/map/map.css`).text()
+    expect(css).toContain('.es-course__rows')
+    expect(css).not.toMatch(/repeat\(\s*(auto-fill|auto-fit|[2-9])/)
+  })
 })
 
-describe('a ticket tells where the work is done, and what the module asks for there', () => {
-  test('its lanes are the ones with hours, in the architecture\'s order, each with its hours', () => {
-    for (const module of INDEX.modules) {
-      const stop = stopOf(empty, module.id)
-      const lanes = [...stop.matchAll(/class="es-map__lane" data-lane="([BLF])"/g)].map((match) => match[1])
-      expect(lanes).toEqual((['B', 'L', 'F'] as const).filter((lane) => (module.hours_by_lane[lane] ?? 0) > 0))
-    }
-    // TR1 works in the browser and on a GPU: 7.5 hours and 2.5 [estimated].
-    const tr1 = textOf(stopOf(empty, 'tr1'))
-    expect(tr1).toContain('browser 7.5 h hours')
-    expect(tr1).toContain('GPU 2.5 h hours')
-    expect(tr1).not.toContain('laptop')
+describe('a row says what the module needs, in words', () => {
+  test('a module worked in one lane says "browser only"; one worked in two says the hours of each, in order', () => {
+    expect(textOf(rowOf(empty, 'tr2'))).toContain('10 h, browser only')
+    expect(textOf(rowOf(empty, 'tr1'))).toContain('10 h: 7.5 h in the browser, then 2.5 h on a GPU')
+    expect(textOf(rowOf(empty, 'tr0'))).toContain('7 h: 4 h in the browser, then 3 h on a laptop')
   })
 
-  test('an artifact is printed under its lane', () => {
-    for (const detail of MAP.modules) {
-      const stop = stopOf(empty, detail.id)
-      for (const artifact of detail.artifacts) {
-        expect(stop).toContain(`<li>${artifact.title.replaceAll("'", '&#x27;')}</li>`)
-        const lane = new RegExp(`data-lane="${artifact.lane}"[\\s\\S]*?<li>${artifact.title.replaceAll("'", '&#x27;').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}</li>`)
-        expect(stop).toMatch(lane)
-      }
-    }
-  })
-
-  test('the hours of a ticket are printed in dots with their unit read out, and said to be estimated', () => {
-    const tr3 = stopOf(empty, 'tr3')
-    expect(tr3).toContain('<span>12</span><span aria-hidden="true"> h</span><span class="sr-only"> hours</span>')
-    expect(tr3).toContain(COPY.hoursNote)
-  })
-
-  test('the kernelspace lessons a module advises first are links out, and the modules are links in', () => {
-    const tr3 = stopOf(empty, 'tr3')
-    expect(textOf(tr3)).toContain('Advised first kernelspace T0.L6')
+  test('says what the module builds on: kernelspace lessons link out, modules of the course open', () => {
+    const tr3 = rowOf(empty, 'tr3')
+    expect(textOf(tr3)).toContain('Builds on kernelspace T0.L6')
     expect(tr3).toContain('href="https://kernelspace.naigap.com/lesson/t0.l6"')
-    expect(tr3).toContain('href="https://kernelspace.naigap.com/lesson/t4.l3"')
     expect(tr3).toContain('rel="noreferrer noopener"')
     expect(tr3).toContain('href="/m/tr2"')
-    // A link out says so in words, and a module needs no such word.
-    expect(tr3.match(/\(opens in a new tab\)/g)).toHaveLength(2)
   })
 
-  test('the map shows each module\'s prerequisites exactly as the compiled map has them', () => {
-    for (const detail of MAP.modules) {
-      const stop = stopOf(empty, detail.id)
-      const lessons = detail.prereqs.filter((prereq) => prereq.startsWith('ks:')).map((prereq) => prereq.slice(3))
-      const found = [...stop.matchAll(/href="https:\/\/kernelspace\.naigap\.com\/lesson\/([a-z0-9.]+)"/g)].map((match) => match[1].toUpperCase())
-      expect(found).toEqual(lessons)
-      const modules = detail.prereqs.filter((prereq) => !prereq.startsWith('ks:'))
-      const linked = opening(stop, 'a')
-        .map((tag) => attribute(tag, 'href'))
-        .filter((href): href is string => href?.startsWith('/m/') === true && href !== `/m/${detail.id}`)
-      expect(linked).toEqual(modules.map((module) => `/m/${module}`))
-    }
+  test('says what you will be able to do, from the module\'s first outcome, where the module is written', () => {
+    const tr2 = MAP.modules.find((module) => module.id === 'tr2')
+    expect(tr2?.outcome).toBeDefined()
+    expect(textOf(rowOf(empty, 'tr2'))).toContain(`${COPY.outcome} `)
   })
 })
 
-describe('the printer\'s tape of the course', () => {
-  test('adds up the hours of the course by lane: browser, laptop and GPU, each derived', () => {
-    const tape = textOf(/<figure[\s\S]*?<\/figure>/.exec(empty)?.[0] ?? '')
-    expect(tape).toContain('hours, all 91 derived')
-    expect(tape).toContain('browser 53.5 derived')
-    expect(tape).toContain('laptop 3 derived')
-    expect(tape).toContain('GPU 34.5 derived')
+describe('a row says where the learner stands, in words', () => {
+  test('with an empty ledger: nothing done, nothing passed', () => {
+    const tr2 = textOf(rowOf(empty, 'tr2'))
+    expect(tr2).toContain(`0 of ${MAP.lessons.filter((lesson) => lesson.module === 'tr2').length} lesson done`)
+    expect(tr2).toContain(`0 of ${MAP.modules.find((module) => module.id === 'tr2')?.kcs.length} skills passed`)
   })
 
-  test('the three lanes add up to the whole', () => {
-    expect(53.5 + 3 + 34.5).toBe(INDEX.totalHours)
-  })
-})
-
-describe('what the learner holds, drawn from the events', () => {
-  test('before the ledger is read, every ticket with KCs says so, the lamp is out, and no pip is earned', () => {
-    const waiting = view(null)
-    expect(waiting).toContain(COPY.holding.reading)
-    expect(waiting).not.toContain('data-next')
-    expect(waiting).not.toContain('data-state="earned"')
-    expect(textOf(waiting)).toContain(`${COPY.tape.earned} ${COPY.tape.reading}`)
-  })
-
-  test('with an empty ledger, a module with KCs counts none earned, with a ring for each; a module with none says so', () => {
-    for (const detail of MAP.modules) {
-      const stop = stopOf(empty, detail.id)
-      if (detail.kcs.length === 0) {
-        expect(stop).toContain(COPY.holding.none)
-        expect(stop).not.toContain('class="es-pip"')
-        continue
-      }
-      expect(stop.match(/class="es-pip" data-state="none"/g)).toHaveLength(detail.kcs.length)
-      expect(textOf(stop)).toContain(`0 ${COPY.holding.of} ${detail.kcs.length} ${COPY.holding.earned}`)
-    }
-  })
-
-  test('a review that passed earns its KC: its pip is solid, and the count and the tape say so', () => {
+  test('a review that passed counts as a skill passed', () => {
     const html = view([made('review', 'review:tr2.async-overlap')])
-    const stop = stopOf(html, 'tr2')
-    expect(stop.match(/data-state="earned"/g)).toHaveLength(1)
-    expect(textOf(stop)).toContain(`1 ${COPY.holding.of} 11 ${COPY.holding.earned}`)
-    expect(textOf(/<figure[\s\S]*?<\/figure>/.exec(html)?.[0] ?? '')).toContain('passed 1 measured of 45')
-    // The KCs are in the graph's order, so it is the fifth pip of TR2.
-    const order = [...stop.matchAll(/class="es-pip" data-state="(\w+)"/g)].map((match) => match[1])
-    expect(order).toEqual(['none', 'none', 'none', 'none', 'earned', 'none', 'none', 'none', 'none', 'none', 'none'].slice(0, 11))
+    expect(textOf(rowOf(html, 'tr2'))).toContain('1 of 11 skills passed')
   })
 
-  test('practised, earned and kept are told apart by shape: a ring, a ringed dot, a dot, a ticked dot', () => {
-    const events = [
-      made('review', 'review:tr2.step-calls', { ok: false }),
-      made('review', 'review:tr2.one-budget'),
-      made('review', 'review:tr2.gpu-dependent-defaults', { day: 0 }),
-      made('review', 'review:tr2.gpu-dependent-defaults', { day: 31 }),
-    ]
-    const stop = stopOf(view(events), 'tr2')
-    const states = [...stop.matchAll(/class="es-pip" data-state="(\w+)"/g)].map((match) => match[1])
-    expect(states.slice(0, 3)).toEqual(['practised', 'earned', 'kept'])
-    expect(stop).toContain('data-icon="check"')
-    expect(textOf(stop)).toContain(`2 ${COPY.holding.of} 11 ${COPY.holding.earned}`)
-    expect(textOf(stop)).toContain(`1 ${COPY.holding.practising}`)
-    expect(textOf(stop)).toContain(`1 ${COPY.holding.kept}`)
+  test('before the ledger is read the row gives the totals and does not say the learner has done nothing', () => {
+    const waiting = view(null)
+    expect(textOf(rowOf(waiting, 'tr2'))).toContain('11 skills')
+    expect(waiting).not.toContain('0 of 11')
+    expect(waiting).not.toContain('data-open')
+    expect(waiting).not.toContain('data-at="now"')
+    expect(textOf(waiting)).toContain(COPY.way.reading)
+    expect(waiting).not.toContain('data-way="continue"')
+  })
+})
+
+describe('the module the way on points into is open', () => {
+  test('lists its lessons, with the next one under the marker, and no other row is open', () => {
+    const open = [...empty.matchAll(/<li class="es-course__row" data-module="([a-z0-9]+)"[^>]*data-open="true"/g)].map((match) => match[1])
+    expect(open).toEqual(['tr2'])
+    const tr2 = rowOf(empty, 'tr2')
+    const lessons = MAP.lessons.filter((lesson) => lesson.module === 'tr2')
+    expect(tr2.match(/<li class="es-course__lesson"/g)).toHaveLength(lessons.length)
+    for (const lesson of lessons) expect(tr2).toContain(`href="${lesson.route}"`)
+    expect(tr2.match(/data-at="now"/g)).toHaveLength(lessons.length > 0 ? 2 : 1)
+    expect(textOf(tr2)).toContain(`${COPY.next}`)
+    expect(empty.match(/data-at="now"/g)).toHaveLength(2)
   })
 
-  test('the pips are a drawing of the count, so assistive technology is spared them', () => {
-    for (const tag of opening(empty, 'span').filter((candidate) => attribute(candidate, 'class')?.includes('es-pips'))) expect(attribute(tag, 'aria-hidden')).toBe('true')
-  })
-
-  test('the lamp falls on the module that nextStep points into, and on no other, with the words "next ticket" printed on it', () => {
-    const events: LedgerEvent[] = []
-    // The sample course compiles one lesson, TR2's, so the way on of an empty ledger points into TR2.
-    const expected = nextStep(events, MAP.lessons, null).module
-    expect(expected).toBe('tr2')
-    const html = view(events)
-    const lit = [...html.matchAll(/<li class="es-map__stop" data-module="([a-z0-9]+)"[^>]*data-next="true"/g)].map((match) => match[1])
-    expect(lit).toEqual([expected as string])
-    expect(stopOf(html, expected as string)).toContain(`data-lamp="true"`)
-    expect(stopOf(html, expected as string)).toContain(COPY.next)
-    expect(html.match(/data-lamp="true"/g)).toHaveLength(1)
-    // And the tape names it.
-    expect(textOf(/<figure[\s\S]*?<\/figure>/.exec(html)?.[0] ?? '')).toContain(`next ticket TR2`)
-  })
-
-  test('the lamp moves on with the way on: an answer that points into TR5a lights TR5a', () => {
+  test('the marker moves with the way on: an answer that points into TR5a opens TR5a', () => {
     const step = { ...nextStep([], MAP.lessons, null), module: 'tr5a', lesson: 'tr5a.l1' }
     const html = view([], { step })
-    const lit = [...html.matchAll(/<li class="es-map__stop" data-module="([a-z0-9]+)"[^>]*data-next="true"/g)].map((match) => match[1])
-    expect(lit).toEqual(['tr5a'])
+    expect([...html.matchAll(/<li class="es-course__row" data-module="([a-z0-9]+)"[^>]*data-open="true"/g)].map((match) => match[1])).toEqual(['tr5a'])
   })
 
-  test('the way on heads the page: the sentence, then Continue with nextStep\'s link and words, and it waits for the ledger', () => {
+  test('a lesson says its minutes, what it needs and its state in words', () => {
+    const lesson = MAP.lessons.find((candidate) => candidate.module === 'tr2')
+    expect(lesson).toBeDefined()
+    const tr2 = textOf(rowOf(empty, 'tr2'))
+    expect(tr2).toContain(`${lesson?.minutes} min`)
+    expect(tr2).toContain('not started')
+  })
+})
+
+describe('an unpublished module', () => {
+  test('says "Not published yet" and is not a link', () => {
+    const planned = INDEX.modules.filter((module) => module.status === 'planned')
+    expect(planned.length).toBeGreaterThan(0)
+    for (const module of planned) {
+      const row = rowOf(empty, module.id)
+      expect(textOf(row)).toContain('Not published yet')
+      expect(row).not.toContain(`href="${module.route}"`)
+      expect(attribute(opening(row, 'li')[0], 'data-status')).toBe('planned')
+    }
+  })
+
+  test('a published module is a link to its module, with no lock on any other', () => {
+    for (const module of INDEX.modules.filter((candidate) => candidate.status !== 'planned')) expect(rowOf(empty, module.id)).toContain(`href="${module.route}"`)
+  })
+})
+
+describe('the way on opens the page', () => {
+  test('Continue is nextStep\'s link and words, in the one amber control, with the sentence beside it', () => {
     const events = [made('predict', 'predict:tr2.l0#tr2.l0.p1')]
     const step = nextStep(events, MAP.lessons, null)
     expect(step.word).toBe('Continue')
     const html = view(events)
-    const way = /<div class="es-way es-map__way">[\s\S]*?<\/div>/.exec(html)?.[0] ?? ''
+    const way = /<div class="es-course__way">[\s\S]*?<\/a><\/div>/.exec(html)?.[0] ?? ''
     expect(way).toContain(`href="${step.href}"`)
+    expect(way).toContain('data-emphasis="primary"')
     expect(textOf(way)).toContain(step.label)
-    expect(textOf(way)).toContain(`Next: ${step.reason}.`)
-    expect(textOf(view([]))).toContain('You have not started. Next: TR2 lesson 1, A sample lesson that uses every block.')
-    expect(view(null)).not.toContain('data-way="continue"')
+    expect(textOf(way)).toContain(`Next: ${step.reason}`)
+    expect(html.indexOf('es-course__way')).toBeLessThan(html.indexOf('es-course__rows'))
   })
 
-  test('nothing is locked: the lamp advises, and a ticket that is not lit is a link all the same', () => {
-    const html = view([])
-    for (const module of INDEX.modules) expect(stopOf(html, module.id)).toContain(`href="${module.route}"`)
+  test('a first visit says so and names the lesson with its minutes and what it needs', () => {
+    expect(textOf(empty)).toContain('You have not started. Next: TR2 lesson 1, A sample lesson that uses every block (45 min, browser and GPU).')
+  })
+
+  test('says how many lessons were skipped, and how many reviews are due, in quiet lines', () => {
+    const step = { ...nextStep([], MAP.lessons, null), skipped: 2 }
+    const html = view([], { step, due: { count: 3, minutes: 4 } })
+    expect(textOf(html)).toContain('3 reviews due, about 4 min')
+    expect(textOf(html)).toContain('2 earlier lessons not finished')
+    expect(html).toContain('href="/today"')
+    expect(textOf(view([]))).not.toContain('reviews due')
+    expect(textOf(view([]))).not.toContain('earlier lessons')
+  })
+})
+
+describe('the notes under the way on', () => {
+  test('hours in all and by lane, the two legends and the sentence that nothing is locked', () => {
+    const text = textOf(empty).replace(/ ([,.;])/g, '$1')
+    expect(text).toContain('91 hours in all: 53.5 in the browser, 3 on a laptop, 34.5 on a GPU')
+    expect(53.5 + 3 + 34.5).toBe(INDEX.totalHours)
+    expect(text).toContain('A lesson is not started, started or done, and done is its Test passed.')
+    expect(text).toContain('Skills: tried is answered or played')
+    expect(text).toContain('Nothing is locked. Prerequisites advise.')
+    expect(text).toContain('Module hours are estimated and these totals are derived.')
+  })
+
+  test('no banned word or phrase appears on the page', () => {
+    expect(findBanned(textOf(empty))).toEqual([])
+    expect(findBanned(textOf(view([made('review', 'review:tr2.async-overlap')])))).toEqual([])
   })
 })
