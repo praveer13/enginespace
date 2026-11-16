@@ -6,9 +6,19 @@ Builds on kernelspace: `ks:T5.L5`, `ks:T5.L4`, `ks:t5.attention-variants`, `ks:t
 
 Knowledge components: `tr5a.kv-groups`, `tr5a.sliding-free`, `tr5a.state-pages`.
 
-kernelspace T5.L5 gave a request one block table, a list of physical blocks that the attention kernel followed in every layer, and `lab 02` had you write the manager behind it: a pool of blocks, a table for each request, a free queue. That design assumes that every layer reads every token. Many recent models mix in layers that do not, and the manager that serves them keeps several tables for one request and draws all of them from one pool. This lesson is why, and how many pages each table holds.
+Many recent models mix full-attention layers with sliding-window layers, and one pool of KV pages serves them all. **one pool, one page size** [measured] Run the pool twice: first a model with one full-attention KV group, then one that adds two sliding-window groups. Before the second run, guess how many pages one long request holds.
+
+> **Predict `tr5a.l1.p1`.** A request holds 4,096 tokens [estimated]. The model is the design document's, one full-attention group and two sliding-window groups with 16 tokens in a block [estimated] and a 32-token window [estimated]. How many pages does the request hold across the three groups?
+>
+> The learner commits to a number in `pages`, graded within a relative tolerance of `0.05` [estimated] before the reveal. Ask them to commit to an answer and say why before you discuss it.
+
+> **Play.** The game `pool`, level `one-group`, in `practice` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.
+
+> **Play.** The game `pool`, level `two-kinds`, in `practice` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.
 
 ## What the next token reads
+
+kernelspace T5.L5 gave a request one block table, a list of physical blocks that the attention kernel followed in every layer, and `lab 02` had you write the manager behind it: a pool of blocks, a table for each request, a free queue. That design assumes that every layer reads every token. The second run's model mixes in layers that do not, and the manager that serves it keeps several tables for one request and draws all of them from one pool. The parts below say why, and how many pages each table holds.
 
 A layer needs a token's key and value in the cache only if a later token will read them. kernelspace T5.L4 counted what one token costs in a full-attention layer. This lesson asks how many tokens a layer has to pay for, and the answer depends on the kind of layer.
 
@@ -22,19 +32,9 @@ A model that mixes the kinds is a hybrid, and they are common. vLLM's design doc
 
 A **KV cache group** is a set of layers of one kind. They need the same blocks for a request, so they share one block table, and a block id names one block-sized piece in every layer of the group. A request on a hybrid model holds one table for each group. **one attention type in a group, one page size across groups** [measured] vLLM has a manager class for each kind of group. **one manager class for each kind of cache spec** [measured]
 
-The design document's example model has 10 full-attention layers and 20 sliding-window layers, with 16-token blocks and a 32-token window [measured]. **11 blocks** [measured] Its layers make three groups: one full group and two sliding groups of equal size. Why two sliding groups and not one is the next lesson's question, so take the grouping as given, and commit to one prediction before you read the rule.
+The design document's example model has 10 full-attention layers and 20 sliding-window layers, with 16-token blocks and a 32-token window [measured]. **11 blocks** [measured] Its layers make three groups: one full group and two sliding groups of equal size. Why two sliding groups and not one is the next lesson's question, so take the grouping as given.
 
-> **Predict `tr5a.l1.p1`.** A request holds 4,096 tokens [estimated]. The model is the design document's, one full-attention group and two sliding-window groups with 16 tokens in a block [estimated] and a 32-token window [estimated]. How many pages does the request hold across the three groups?
->
-> The learner commits to a number in `pages`, graded within a relative tolerance of `0.05` [estimated] before the reveal. Ask them to commit to an answer and say why before you discuss it.
-
-Play the two levels in order. `one-group` is the model you know from `lab 02` and `lab 07`, one full group, and it teaches the game's words. `two-kinds` is this model. The game dresses the manager as a line kitchen: a group is a **station**, a page is a **hotel pan** in the reach-in, a request is a **ticket**, and a sliding group's window is its station's **hold window**. The engine words come first everywhere else on the page.
-
-> **Play.** The game `pool`, level `one-group`, in `practice` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.
-
-> **Play.** The game `pool`, level `two-kinds`, in `practice` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.
-
-## What the game showed
+## What the two runs showed
 
 The rule of each group is a function of the request's length alone. Write `L` for the tokens the request holds, `B` for the tokens in a block, `W` for a window and `S` for the pages of a state.
 
@@ -74,28 +74,19 @@ The groups hold different numbers of pages, and they all draw from one free queu
 
 The obvious design for a window is a ring of window-sized blocks that new tokens overwrite in turn, and vLLM's document rejects it, because a ring is not compatible with prefix caching. A block that new tokens overwrite no longer holds the tokens its hash named, so it could not be kept for another request. The manager allocates different blocks for different tokens, as for full attention, and frees the ones outside the window. **a ring of window blocks was not picked** [measured]
 
+In the lab you write these rules in Rust. `one_group` (`s1`) is the full group alone, with the paging, the prefix hashes and the shared blocks of `lab 02` and `lab 07` in one module, and the rule of `lab 02` still binds: an operation either succeeds or leaves everything as it was. **all or nothing** [measured] `sliding` (`s2`) makes a window give its blocks back, and counts them when an append is judged. `state` (`s3`) holds a fixed number of pages.
+
 > **Three ways to keep a stream.** Keeping every event of a stream is an append-only log. Keeping the last few is a retention window, as a log with a size or time limit does. Keeping a running aggregate, such as a counter or a rolling checksum, is a fold, and its size is the same for a short stream and a long one. The three kinds of layer are these three policies.
 >
 > Where it breaks: A log's retention is a choice for its operator, and a layer's window is part of the model, so dropping what lies behind it loses nothing that the layer would read. A fold cannot be rewound either. A state at one point gives no state at another, so a request can resume only from a point where a state was saved.
 
 > **Card.** The notional-machine card `kv`.
 
-## Build
-
-The first three stages of the lab are this lesson's rules, written in Rust. `one_group` (`s1`) is the full group alone, with the paging, the prefix hashes and the shared blocks of `lab 02` and `lab 07` in one module, and the rule of `lab 02` still binds: an operation either succeeds or leaves everything as it was. **all or nothing** [measured] `sliding` (`s2`) makes a window give its blocks back, and counts them when an append is judged. `state` (`s3`) holds a fixed number of pages.
-
 > **Build.** The lab `hybrid-kv` (lane B), stages `s1`, `s2`, `s3`. The lab page grades it.
-
-## What to carry
-
-- What the next token reads decides what a layer keeps: every earlier token, the last window, or a fixed state.
-- A request holds one table for each group, and a sliding group's table has its oldest entries let go.
-- A window is not a block count. Here it holds two blocks or three, depending on the length.
-- Every group draws its pages from one pool, so a page that a window lets go can serve a full group.
 
 ## Exit check
 
-This lesson tests three skills: saying what each kind of layer needs of the cache (`tr5a.kv-groups`), working out the pages that a sliding group still holds (`tr5a.sliding-free`), and saying why a state group's pages stay fixed (`tr5a.state-pages`). The exit ticket is three items on fresh seeds, each a request and a model, asking for the pages it holds in one group or across the groups. It is passed with at least two right, one of them numeric (ASSESSMENT §4.2). The lab's stages `sliding` and `state` then grade the last two skills on seeds drawn when you run them.
+Three questions on new numbers, each a request and a model, ask for the pages it holds in one group or across the groups: what each kind of layer needs of the cache, the pages a sliding group still holds, and why a state group's pages stay fixed. Two right, one of them numeric, passes. The lab's stages `sliding` and `state` then test the last two on seeds drawn when you run them.
 
 > **Practice.** Items from the generator family `tr5a.blocks-held`, level `2`, `3` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 

@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { KeyboardEvent, ReactNode, Ref } from 'react'
 import type { CompiledBlock } from '@es/schema'
-import { CONFIDENCE_NAMES, CONFIDENCES } from '@es/play/items/types'
+import { CONFIDENCE_NAMES } from '@es/play/items/types'
 import type { Confidence } from '@es/play/items/types'
 import { isAnswered, isAtCommit, NO_BLOCK, planOf } from '@es/play/predictions/plan'
 import type { Answered, Held } from '@es/play/predictions/plan'
@@ -9,166 +9,160 @@ import { rosterEntry } from '@es/play/roster'
 import { Button } from '@/design/components/Button'
 import { Field } from '@/design/components/Field'
 import { Icon } from '@/design/components/Glyph'
-import { Readout } from '@/design/components/Readout'
-import { Stub } from '@/design/components/Stub'
-import { TapeLabel } from '@/design/components/TapeLabel'
-import { TicketLine } from '@/design/components/Ticket'
-import { formatReadout } from '@/design/format'
-import { seedLabel } from '@/items/answer'
-import { Frame, Tapes, type Of } from './BlockFrame'
+import type { Of } from './BlockFrame'
 import { answeringBlock, decimals } from './model'
 import { commitPrediction, phaseOf, revealPrediction, usePrediction } from './predicted'
-import type { Commitment, Revealed } from './predicted'
+import type { Commitment, Phase, Revealed } from './predicted'
 import { latestSeq, useBlockRun } from './runs'
-import { optionText, readoutName, readSlip, unitName } from './slip'
+import { optionText, readSlip, unitName } from './slip'
+import { SurePlates } from './Sure'
 import type { Slip } from './slip'
-import { TagChip } from './TagChip'
 
 /*
- * A lesson's `predict` block (ARCHITECTURE §4.3; W1b-T02): a ticket that takes one answer before a game is played and scores it after.
+ * A lesson's `predict` block, a guess (REDESIGN §2.5; W1b-T02, R-T09, R-T10): one answer before the run, and a reveal.
  *
- *   - It takes the prediction the block asks for: a number within its tolerance, one option of a few, or a range. The slip is checked,
- *     the learner says how sure they are if they like (the tap never gates), and the stub commits it. A committed prediction cannot
- *     change (predicted.ts), and nothing of the answer is on the page before the reveal: the model's reading is not even loaded.
- *   - The reveal waits for the game. The game block that answers the prediction (packages/play/predictions/plan.ts) is the first of its
- *     game and level after the ticket, and the reveal opens when a run of it ends after the commit (runs.ts). The learner then pulls the
- *     stub, the pure model reads the answer from that run (reveal.ts, loaded then), and the ticket prints it beside what was written.
- *   - A prediction that no run of its lesson's game answers is revealed at commit (D-067): the pure model computes the answer from the
- *     question's own numbers, or it is read from the claim the question is about, and the ticket prints it with its working the moment the
- *     answer is committed. No stub is ever held down: COMMIT is always there.
- *   - A question that has no answer to show at all (a prediction the table has no row for) is held: its stem, and no input, no lock and
- *     no task id. No lesson has one today.
+ *   - It takes the answer the block asks for: a number within its tolerance, one option of a few, or a range. How sure the learner is
+ *     is optional, and never gates. A committed guess cannot change (predicted.ts): "Locked in: 300 pages, think so."
+ *   - A guess a run answers is revealed when a run of that level ends after the commit: the pure model reads the answer from the run
+ *     (reveal.ts, loaded then) and the guess shows it beside what was written. Where it sits is the page's choice (sections.ts):
+ *       `above`   in the run's guess slot, just above the instrument;
+ *       `paired`  the level's opening guess asks the same quantity (same.ts), so the instrument's slot asks it in the lesson's words, and
+ *                 this block shows only what follows the commit, under the instrument;
+ *       `written` where the author wrote it, when its run is further down: after commit it says which run answers it.
+ *   - A guess revealed at commit (D-067) shows its answer and the working the moment it is committed.
+ *   - A question with no answer to show is held: its stem, and no input and no lock.
  *
- * A prediction moves no completion and no credit (ASSESSMENT §4.7): the event the reveal writes is read by the module page's loop and the
- * course map, and earns nothing (reveal.ts says who else reads it, and which readers W2-T44 builds).
+ * A prediction moves no completion and no credit (ASSESSMENT §4.7). Nothing here is a heading: a guess is part of the run or the part it
+ * sits in, and the page's headings are its sections and parts.
  */
 
 type PredictBlock = Of<'predict'>
+export type GuessSlot = 'written' | 'above' | 'paired'
 
 export interface PredictTicketProps {
   block: PredictBlock
-  /** The lesson's id: the foot line's, the event's ref, and what the page's runs are found by. */
+  /** The lesson's id: the event's ref, and what the page's runs are found by. */
   scope: string
   /** The block's place among the page's blocks, and the page's blocks, to find the game block that answers it. */
   at: number
   blocks: readonly CompiledBlock[]
   /** The lesson's content revision, which the event carries (A§4.2). */
   rev?: string
+  slot?: GuessSlot
+  /** For a guess left where it was written: the run that answers it, in words ("the run in part 4"). */
+  where?: string
 }
 
-export function PredictTicket({ block, scope, at, blocks, rev }: PredictTicketProps) {
+export function PredictTicket({ block, scope, at, blocks, rev, slot = 'written', where }: PredictTicketProps) {
   const plan = planOf(block.id)
   if (isAtCommit(plan)) return <AtCommitTicket block={block} scope={scope} rev={rev} />
-  if (!isAnswered(plan)) return <HeldTicket block={block} scope={scope} held={plan} />
+  if (!isAnswered(plan)) return <HeldTicket block={block} held={plan} />
   const place = answeringBlock(blocks, at, plan)
   // A row that names a block the lesson does not have cannot be revealed after a run: the question is held, until the table is put right.
-  if (place < 0) return <HeldTicket block={block} scope={scope} held={NO_BLOCK} />
+  if (place < 0) return <HeldTicket block={block} held={NO_BLOCK} />
   const mode = (blocks[place] as Of<'game'>).mode
-  return <AnsweredTicket block={block} scope={scope} rev={rev} plan={plan} place={place} mode={mode} />
+  return <AnsweredTicket block={block} scope={scope} rev={rev} plan={plan} place={place} mode={mode} slot={slot} where={where} />
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* What every phase prints                                                                                            */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
+/** A number as the page prints it: thousands grouped, to the places it was written with. */
+const formatReadout = (value: number, places: number): string => value.toLocaleString('en-US', { minimumFractionDigits: places, maximumFractionDigits: places })
+
 /** 0.15 as 15, without the 15.000000000000002 that multiplying gives. */
 const percent = (ratio: number): number => Number((ratio * 100).toPrecision(12))
 
-/** How a reveal point reads on the ticket: in words, and not as the schema spells it. */
-const REVEAL_WORDS: Readonly<Record<PredictBlock['reveal'], string>> = { 'after-game': 'after the run', 'at-commit': 'at commit' }
-
-/** The block's facts on tape, and its tolerance as a tagged number: what kind of answer it takes and how close it must be. */
-function Facts({ block }: { block: PredictBlock }) {
+/** What counts as right, in words. */
+function Tolerance({ block }: { block: PredictBlock }) {
   const { answer } = block
-  return (
-    <>
-      <Tapes
-        label="About this prediction"
-        items={[`answer · ${answer.kind}`, ...(answer.kind === 'choice' ? [] : [`unit · ${unitName(answer.unit)}`]), `reveal · ${REVEAL_WORDS[block.reveal]}`, ...block.kcs]}
-      />
-      {answer.kind === 'numeric' ? (
-        <p className="es-c-line">
-          {answer.rel_tol === 0 ? (
-            <TicketLine>tolerance: the exact value</TicketLine>
-          ) : (
-            <TicketLine qty={<Readout value={percent(answer.rel_tol)} digits={decimals(percent(answer.rel_tol))} unit="%" tag="estimated" size="sm" />}>
-              tolerance
-            </TicketLine>
-          )}
-        </p>
-      ) : null}
-    </>
-  )
+  if (answer.kind !== 'numeric') return null
+  return <p className="es-guess__rule">{answer.rel_tol === 0 ? 'Only the exact value counts as right.' : `Within ${percent(answer.rel_tol)}% of the answer counts as right.`}</p>
 }
 
 /** The model's number, whole when it is whole and to two places when it is not. */
 const rounded = (value: number): number => Number(value.toFixed(2))
 
-/** A figure the model gave, as a readout that tags itself; a unit that the readout has no name for is printed after it, as the lesson writes it. */
-function Figure({ value, unit, tag = 'derived' }: { value: number; unit: string; tag?: 'derived' | 'measured' }) {
-  const known = readoutName(unit)
-  return (
-    <>
-      <Readout value={rounded(value)} digits={decimals(rounded(value))} unit={known} tag={tag} size="sm" />
-      {known === undefined ? <span className="es-item__unit">{unit}</span> : null}
-    </>
-  )
+/** A figure in a unit: "260 pages". */
+function figureText(value: number, unit: string): string {
+  const shown = unitName(unit)
+  return `${formatReadout(value, decimals(value))}${shown === '%' ? '' : ' '}${shown}`
 }
 
-/** What the learner wrote, printed as the printer prints a number: in the dots, with no tag, since it is theirs. */
-function Wrote({ block, value }: { block: PredictBlock; value: Commitment['value'] }) {
+/** What the learner wrote, as text. */
+function wroteText(block: PredictBlock, value: Commitment['value']): string {
   const { answer } = block
-  if (answer.kind === 'choice') return <>{optionText(block, String(value))}</>
-  const unit = unitName(answer.unit)
-  const figure = (n: number) => formatReadout(n, decimals(n))
-  // A per cent sign is set tight against its number, as the readout sets it; every other unit follows a space.
-  const gap = unit === '%' ? '' : ' '
+  if (answer.kind === 'choice') return optionText(block, String(value))
   if (typeof value === 'object') {
-    return (
-      <data className="es-item__yours" value={`${value.lo} ${value.hi}`}>
-        {figure(value.lo)} to {figure(value.hi)}
-        {gap}
-        {unit}
-      </data>
-    )
+    const unit = unitName(answer.unit)
+    return `${formatReadout(value.lo, decimals(value.lo))} to ${formatReadout(value.hi, decimals(value.hi))}${unit === '%' ? '' : ' '}${unit}`
   }
-  return (
-    <data className="es-item__yours" value={String(value)}>
-      {figure(Number(value))}
-      {gap}
-      {unit}
-    </data>
-  )
+  return figureText(Number(value), answer.unit)
 }
 
-/** "you wrote", and what the caller adds, and "you said": lines of the printer's dots. */
+/** "you wrote", what the caller adds, and "you said". */
 function Written({ block, committed, extra }: { block: PredictBlock; committed: Commitment; extra?: ReactNode }) {
+  const value = committed.value
   return (
-    <dl className="es-item__keys">
+    <dl className="es-guess__keys">
       <div>
         <dt>you wrote</dt>
         <dd>
-          <Wrote block={block} value={committed.value} />
+          <data className="es-guess__yours" value={typeof value === 'object' ? `${value.lo} ${value.hi}` : String(value)}>
+            {wroteText(block, value)}
+          </data>
         </dd>
       </div>
       {extra}
       {committed.conf === null ? null : (
         <div>
           <dt>you said</dt>
-          <dd className="es-item__said">{CONFIDENCE_NAMES[committed.conf]}</dd>
+          <dd>{CONFIDENCE_NAMES[committed.conf]}</dd>
         </div>
       )}
     </dl>
   )
 }
 
+/** "Locked in: 300 pages, think so. It does not change now." */
+function LockedIn({ block, committed, then, headingRef }: { block: PredictBlock; committed: Commitment; then: ReactNode; headingRef?: Ref<HTMLParagraphElement> }) {
+  const sure = committed.conf === null ? '' : `, ${CONFIDENCE_NAMES[committed.conf]}`
+  return (
+    <>
+      <p className="es-guess__locked" tabIndex={-1} ref={headingRef}>
+        <Icon name="lock" />
+        <span>
+          Locked in: {wroteText(block, committed.value)}
+          {sure}. It does not change now.
+        </span>
+      </p>
+      <p className="es-guess__status" role="status">
+        {then}
+      </p>
+    </>
+  )
+}
+
 /** The note printed when the ledger would not take the event. The reveal stands; the learner is told, and knows what to do. */
 function Unsaved({ detail }: { detail: string }) {
   return (
-    <p className="es-item__problem" role="status">
+    <p className="es-guess__problem" role="status">
       <Icon name="alert" />
-      <span>This prediction was not saved. {detail} Reload the page to keep your predictions.</span>
+      <span>This guess was not saved. {detail} Reload the page to keep your guesses.</span>
     </p>
+  )
+}
+
+/** The guess's frame: the label, then the stem, then whatever the phase holds. Data attributes say the phase, for a test and a style. */
+function GuessFrame({ block, label, data, children }: { block: PredictBlock; label: string; data: Record<string, string | undefined>; children: ReactNode }) {
+  const attributes = Object.fromEntries(Object.entries(data).map(([name, value]) => [`data-${name}`, value]))
+  return (
+    <section className="es-guess" data-block="predict" data-predict={block.id} aria-label={label} {...attributes}>
+      <p className="es-guess__label">{label}</p>
+      <p className="es-guess__ask">{block.prompt}</p>
+      {children}
+    </section>
   )
 }
 
@@ -176,47 +170,26 @@ function Unsaved({ detail }: { detail: string }) {
 /* A question to hold                                                                                                 */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** A question with no answer to show: the stem, and the lines of a choice, and why. It takes no input, and nothing on it is locked or held down. */
-function HeldTicket({ block, scope, held }: { block: PredictBlock; scope: string; held: Held }) {
+/** A question with no answer to show: the stem, the lines of a choice, and why. It takes no input, and nothing on it is locked. */
+function HeldTicket({ block, held }: { block: PredictBlock; held: Held }) {
   const { answer } = block
   return (
-    <Frame block="predict" scope={scope} meta={block.id} title="Predict" data={{ phase: 'held', predict: block.id }}>
-      <p>{block.prompt}</p>
+    <GuessFrame block={block} label="A question to hold" data={{ phase: 'held' }}>
       {answer.kind === 'choice' ? (
-        <ol className="es-c-options">
+        <ol className="es-guess__options">
           {answer.options.map((option) => (
             <li key={option.id}>{option.text}</li>
           ))}
         </ol>
       ) : null}
-      <Facts block={block} />
-      <p className="es-c-predict__why">{held.why}</p>
-    </Frame>
+      <p className="es-guess__status">{held.why}</p>
+    </GuessFrame>
   )
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Asking                                                                                                             */
 /* ------------------------------------------------------------------------------------------------------------------ */
-
-/** How sure the learner is, said before the answer is committed: three stamped plates, one pressed in. Optional, and never a gate. */
-function SurePlates({ value, onChange }: { value: Confidence | null; onChange: (value: Confidence | null) => void }) {
-  const label = useId()
-  return (
-    <div className="es-item__sure">
-      <span className="es-item__sure-label" id={label}>
-        How sure are you?
-      </span>
-      <div role="group" aria-labelledby={label} className="es-item__plates">
-        {CONFIDENCES.map((tap) => (
-          <Button key={tap} variant={value === tap ? 'ink' : 'plate'} aria-pressed={value === tap} onClick={() => onChange(value === tap ? null : tap)}>
-            {CONFIDENCE_NAMES[tap]}
-          </Button>
-        ))}
-      </div>
-    </div>
-  )
-}
 
 interface SlipFieldsProps {
   block: PredictBlock
@@ -226,11 +199,11 @@ interface SlipFieldsProps {
   onSubmit: () => void
 }
 
-/** The slip the learner writes on: a number in a tape-labelled field, one line ticked, or the two ends of a range. */
+/** The slip the learner writes on: a number, one line ticked, or the two ends of a range. */
 function SlipFields({ block, slip, problem, onSlip, onSubmit }: SlipFieldsProps) {
   const name = useId()
   const { answer } = block
-  // Enter on a field commits, as it checks an item: a slip is a form, and the stub is its button.
+  // Enter on a field commits, as it checks an item.
   const enter = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
       event.preventDefault()
@@ -239,25 +212,24 @@ function SlipFields({ block, slip, problem, onSlip, onSubmit }: SlipFieldsProps)
   }
   if (answer.kind === 'choice') {
     return (
-      <fieldset className="es-item__choice" aria-describedby={problem === null ? undefined : `${name}-problem`}>
-        <legend>
-          <TapeLabel size="sm" tilt="left">
-            Your pick
-          </TapeLabel>
-        </legend>
+      <fieldset className="es-guess__choice" aria-describedby={problem === null ? undefined : `${name}-problem`}>
+        <legend className="es-guess__legend">Your pick</legend>
         {answer.options.map((option) => (
-          <div key={option.id} className="es-item__option">
-            <label>
-              <input type="radio" name={name} value={option.id} checked={slip.pick === option.id} onChange={() => onSlip({ ...slip, pick: option.id })} />
-              <span className="es-item__tick" aria-hidden="true">
-                <Icon name="check" />
-              </span>
-              <span className="es-item__option-text">{option.text}</span>
-            </label>
-          </div>
+          <label key={option.id} className="es-guess__option">
+            {/* The click sets the pick too: a re-render between a pointer's focus and its click would otherwise leave React's change tracker behind. */}
+            <input
+              type="radio"
+              name={name}
+              value={option.id}
+              checked={slip.pick === option.id}
+              onChange={() => onSlip({ ...slip, pick: option.id })}
+              onClick={() => slip.pick !== option.id && onSlip({ ...slip, pick: option.id })}
+            />
+            <span>{option.text}</span>
+          </label>
         ))}
         {problem === null ? null : (
-          <p className="es-item__problem" id={`${name}-problem`} role="alert">
+          <p className="es-guess__problem" id={`${name}-problem`} role="alert">
             <Icon name="alert" />
             <span>{problem}</span>
           </p>
@@ -269,16 +241,53 @@ function SlipFields({ block, slip, problem, onSlip, onSubmit }: SlipFieldsProps)
   const typing = { numeric: true, placeholder: 'write it here', autoComplete: 'off', autoCapitalize: 'off', spellCheck: false, onKeyDown: enter } as const
   if (answer.kind === 'interval') {
     return (
-      <div className="es-item__slip es-c-predict__range">
+      <div className="es-guess__slip es-guess__range">
         <Field {...typing} label="Low end" hint={hint} value={slip.lo} onChange={(event) => onSlip({ ...slip, lo: event.target.value })} />
         <Field {...typing} label="High end" hint={hint} value={slip.hi} onChange={(event) => onSlip({ ...slip, hi: event.target.value })} error={problem ?? undefined} />
       </div>
     )
   }
   return (
-    <div className="es-item__slip">
+    <div className="es-guess__slip">
       <Field {...typing} label="Your number" hint={hint} value={slip.text} onChange={(event) => onSlip({ ...slip, text: event.target.value })} error={problem ?? undefined} />
     </div>
+  )
+}
+
+/** The slip, how sure, and Commit: what a guess asks with, in every kind. */
+function AskForm({ block, onCommit }: { block: PredictBlock; onCommit: (commitment: Omit<Commitment, 'after'>) => void }) {
+  const [slip, setSlip] = useState<Slip>({ text: '', pick: null, lo: '', hi: '' })
+  const [conf, setConf] = useState<Confidence | null>(null)
+  const [problem, setProblem] = useState<string | null>(null)
+  const commit = () => {
+    const read = readSlip(block.answer, slip)
+    if (!read.ok) {
+      setProblem(read.problem)
+      return
+    }
+    setProblem(null)
+    onCommit({ value: read.value, conf })
+  }
+  return (
+    <>
+      <Tolerance block={block} />
+      <SlipFields
+        block={block}
+        slip={slip}
+        problem={problem}
+        onSlip={(next) => {
+          setSlip(next)
+          setProblem(null)
+        }}
+        onSubmit={commit}
+      />
+      <SurePlates value={conf} onChange={setConf} />
+      <p className="es-guess__actions">
+        <Button variant="ink" onClick={commit}>
+          Commit answer
+        </Button>
+      </p>
+    </>
   )
 }
 
@@ -300,20 +309,13 @@ function verdictWords(block: PredictBlock, ok: boolean): string {
   }
 }
 
-interface RevealViewProps {
-  block: PredictBlock
-  committed: Commitment
-  revealed: Revealed
-  headingRef: Ref<HTMLHeadingElement>
-}
-
-/** The working of an answer revealed at commit: its lines, the source when it has one, and one stamp that says what kind of number the answer is. */
-function Working({ revealed, stamp }: { revealed: Revealed; stamp: boolean }) {
+/** The working of an answer revealed at commit: its lines, the source when it has one, and one stamp for what kind of number the answer is. */
+function Working({ revealed }: { revealed: Revealed }) {
   return (
-    <div className="es-c-predict__working">
-      <p className="es-c-predict__working-head">
+    <div className="es-guess__working">
+      <p className="es-guess__working-head">
         <span>The working</span>
-        {revealed.tag === null || !stamp ? null : <TagChip tag={revealed.tag} />}
+        {revealed.tag === null ? null : <span className="es-guess__tag">{revealed.tag}</span>}
       </p>
       <ol>
         {revealed.working.map((line) => (
@@ -321,7 +323,7 @@ function Working({ revealed, stamp }: { revealed: Revealed; stamp: boolean }) {
         ))}
       </ol>
       {revealed.sources.map((source) => (
-        <p key={source.text} className="es-c-predict__source" data-claim={source.claim}>
+        <p key={source.text} className="es-guess__source" data-claim={source.claim}>
           Source: {source.text}
         </p>
       ))}
@@ -329,16 +331,24 @@ function Working({ revealed, stamp }: { revealed: Revealed; stamp: boolean }) {
   )
 }
 
-/** What the reveal prints: the verdict, what was written beside what the model says, how the model read that, and the run it read it from or the working it came from. */
+interface RevealViewProps {
+  block: PredictBlock
+  committed: Commitment
+  revealed: Revealed
+  headingRef: Ref<HTMLParagraphElement>
+}
+
+/** What the reveal shows: the verdict, what was written beside the answer, and the run or the working it came from. */
 function RevealView({ block, committed, revealed, headingRef }: RevealViewProps) {
   const { answer } = block
   const { run } = revealed
+  const truth = answer.kind === 'choice' ? optionText(block, String(revealed.truth)) : figureText(rounded(Number(revealed.truth)), answer.unit)
   return (
-    <div className="es-item__reveal" data-ok={revealed.ok}>
-      <h3 className="es-item__verdict" tabIndex={-1} ref={headingRef}>
+    <div className="es-guess__reveal" data-ok={revealed.ok}>
+      <p className="es-guess__verdict" tabIndex={-1} ref={headingRef}>
         <Icon name={revealed.ok ? 'check' : 'strike'} />
         <span>{verdictWords(block, revealed.ok)}</span>
-      </h3>
+      </p>
       <Written
         block={block}
         committed={committed}
@@ -346,18 +356,19 @@ function RevealView({ block, committed, revealed, headingRef }: RevealViewProps)
           <div>
             <dt>{run === null ? 'the answer' : 'the model'}</dt>
             <dd data-truth="">
-              {answer.kind === 'choice' ? optionText(block, String(revealed.truth)) : <Figure value={Number(revealed.truth)} unit={answer.unit} tag={revealed.tag === 'measured' ? 'measured' : 'derived'} />}
+              {truth}
+              {answer.kind === 'choice' ? null : <span className="sr-only">, {revealed.tag === 'measured' ? 'measured' : 'derived'}</span>}
             </dd>
           </div>
         }
       />
       {run === null ? (
-        <Working revealed={revealed} stamp={answer.kind === 'choice'} />
+        <Working revealed={revealed} />
       ) : (
         <>
-          <p className="es-c-predict__reads">{revealed.reads}</p>
-          <p className="es-c-predict__run">
-            Read from your run of {rosterEntry(run.game)?.title ?? run.game}, level {run.level}, on seed {seedLabel(run.seed)}.
+          <p className="es-guess__reads">{revealed.reads}</p>
+          <p className="es-guess__run">
+            Read from your run of {rosterEntry(run.game)?.title ?? run.game}, on seed {run.seed.toString(16).toUpperCase().padStart(8, '0')}.
           </p>
         </>
       )}
@@ -366,8 +377,25 @@ function RevealView({ block, committed, revealed, headingRef }: RevealViewProps)
   )
 }
 
+/** Focus follows the learner's own action to the line that replaced the control they used: the commit's lock, then the verdict. */
+function useFocusOnPhase(phase: Phase) {
+  const heading = useRef<HTMLParagraphElement>(null)
+  const focusNext = useRef(false)
+  useEffect(() => {
+    if (!focusNext.current) return
+    focusNext.current = false
+    heading.current?.focus()
+  }, [phase])
+  return {
+    heading,
+    arm: () => {
+      focusNext.current = true
+    },
+  }
+}
+
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* A prediction a run answers                                                                                         */
+/* A guess a run answers                                                                                              */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 interface AnsweredTicketProps {
@@ -375,55 +403,33 @@ interface AnsweredTicketProps {
   scope: string
   rev?: string
   plan: Answered
-  /** The place, among the page's blocks, of the game block whose run answers it, and that block's mode: a graded one is named, since the lesson may hold a practice block of the same level above it. */
+  /** The place, among the page's blocks, of the game block whose run answers it, and that block's mode. */
   place: number
   mode?: 'practice' | 'graded'
+  slot?: GuessSlot
+  where?: string
 }
 
-/** A prediction that a run answers, once the page has found the game block of that run: the ticket in each of its phases. */
-export function AnsweredTicket({ block, scope, rev, plan, place, mode = 'practice' }: AnsweredTicketProps) {
+/**
+ * A guess that a run answers: asking, locked in while the run is played, and revealed when a run of its level ends after the commit. The
+ * reveal opens by itself: the run's end is the learner's action, and the answer belongs beside it.
+ */
+export function AnsweredTicket({ block, scope, rev, plan, place, mode = 'practice', slot = 'written', where }: AnsweredTicketProps) {
   const state = usePrediction(scope, block.id)
   const { committed, revealed } = state
   const run = useBlockRun(scope, place)
-  const [slip, setSlip] = useState<Slip>({ text: '', pick: null, lo: '', hi: '' })
-  const [conf, setConf] = useState<Confidence | null>(null)
-  const [problem, setProblem] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState<string | null>(null)
-  // The heading that takes focus when the learner's own action changes the ticket: the stub they pulled has gone, and a keyboard would be left behind.
-  const heading = useRef<HTMLHeadingElement>(null)
-  const focusNext = useRef(false)
-
-  // A run that ended after the commit is the game, played: the reveal opens. One that ended before it was played in sight of the answer.
   const phase = phaseOf(state, run)
-  const ended = phase === 'ready'
-
-  useEffect(() => {
-    if (!focusNext.current) return
-    focusNext.current = false
-    heading.current?.focus()
-  }, [phase])
-
-  const commit = () => {
-    if (committed !== null) return
-    const read = readSlip(block.answer, slip)
-    if (!read.ok) {
-      setProblem(read.problem)
-      return
-    }
-    setProblem(null)
-    focusNext.current = true
-    commitPrediction(scope, block.id, { value: read.value, conf, after: latestSeq() })
-  }
+  const { heading, arm } = useFocusOnPhase(phase)
 
   const open = async () => {
-    if (committed === null || run === null || !ended || busy || revealed !== null) return
+    if (committed === null || run === null || phase !== 'ready' || busy || revealed !== null) return
     setBusy(true)
     setFailed(null)
     try {
       const { reveal } = await import('./reveal')
       const result = await reveal({ block, scope, rev, committed, run })
-      focusNext.current = true
       revealPrediction(scope, block.id, result)
     } catch (error) {
       setFailed(error instanceof Error ? error.message : String(error))
@@ -431,87 +437,70 @@ export function AnsweredTicket({ block, scope, rev, plan, place, mode = 'practic
       setBusy(false)
     }
   }
+  // The run that answers it has ended: the reveal opens on its own, once.
+  const tried = useRef(false)
+  useEffect(() => {
+    if (phase !== 'ready' || tried.current) return
+    tried.current = true
+    void open()
+  })
 
-  let stub: ReactNode = null
-  if (phase === 'asking') stub = <Stub onClick={commit}>Commit answer</Stub>
-  else if (phase === 'committed') stub = <Stub disabled>Reveal the answer</Stub>
-  else if (phase === 'ready')
-    stub = (
-      <Stub onClick={() => void open()} loading={busy} error={failed === null ? undefined : `The reveal did not come. ${failed}`}>
-        Reveal the answer
-      </Stub>
-    )
-
+  // Paired with the level's own guess: the instrument's slot asks it, and this shows what follows the commit.
+  if (slot === 'paired' && committed === null) return null
   const title = rosterEntry(plan.game)?.title ?? plan.game
+  const label = slot === 'written' ? 'Your guess' : 'Your guess for this run'
+  const data = { phase, slot, ...(revealed === null ? {} : { ok: String(revealed.ok) }) }
+  const then =
+    phase === 'ready'
+      ? failed === null
+        ? 'The run ended. Reading the answer from it.'
+        : `The answer did not come. ${failed}`
+      : slot === 'written'
+        ? `${where === undefined ? `The run of ${title} further down` : where.charAt(0).toUpperCase() + where.slice(1)} answers it${mode === 'graded' ? ', in its graded run' : ''}.`
+        : 'The run answers it when it ends.'
   return (
-    <Frame
-      block="predict"
-      scope={scope}
-      meta={block.id}
-      title="Predict"
-      lamp={phase === 'asking' || phase === 'ready'}
-      data={{ phase, predict: block.id, ...(revealed === null ? {} : { ok: String(revealed.ok) }) }}
-      stub={stub}
-    >
-      <p>{block.prompt}</p>
-      <Facts block={block} />
+    <GuessFrame block={block} label={label} data={data}>
       {committed === null ? (
-        <>
-          <SlipFields
-            block={block}
-            slip={slip}
-            problem={problem}
-            onSlip={(next) => {
-              setSlip(next)
-              setProblem(null)
-            }}
-            onSubmit={commit}
-          />
-          <SurePlates value={conf} onChange={setConf} />
-        </>
+        <AskForm
+          block={block}
+          onCommit={({ value, conf }) => {
+            arm()
+            commitPrediction(scope, block.id, { value, conf, after: latestSeq() })
+          }}
+        />
       ) : revealed !== null ? (
         <RevealView block={block} committed={committed} revealed={revealed} headingRef={heading} />
       ) : (
         <>
-          <h3 className="es-item__count" tabIndex={-1} ref={heading}>
-            <span>Committed</span> <span className="es-item__level">it does not change now</span>
-          </h3>
-          <Written block={block} committed={committed} />
-          <p className="es-c-predict__status" role="status">
-            {ended ? 'The run ended. Pull the stub to reveal the answer.' : `Play ${title}, level ${plan.level}${mode === 'graded' ? ' (graded)' : ''}, below. The reveal opens when a run of it ends.`}
-          </p>
+          <LockedIn block={block} committed={committed} then={then} headingRef={heading} />
+          {failed === null ? null : (
+            <p className="es-guess__actions">
+              <Button variant="ink" onClick={() => void open()} loading={busy}>
+                Show the answer
+              </Button>
+            </p>
+          )}
         </>
       )}
-    </Frame>
+    </GuessFrame>
   )
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* A prediction revealed at commit                                                                                    */
+/* A guess revealed at commit                                                                                         */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /**
- * A prediction with no run to wait for (D-067): the learner commits, and the answer is on the ticket at once, with the learner's value
- * beside it and the working under it. The stub is always live: COMMIT is never held down, and a reveal that did not come (the model's part
- * failed to load) leaves the commitment standing and offers the stub again, with the reason.
+ * A guess with no run to wait for (D-067): the learner commits, and the answer is there at once, beside the learner's value, with the
+ * working under it. A reveal that did not come (the model's part failed to load) leaves the commitment standing and offers it again.
  */
 function AtCommitTicket({ block, scope, rev }: { block: PredictBlock; scope: string; rev?: string }) {
   const state = usePrediction(scope, block.id)
   const { committed, revealed } = state
-  const [slip, setSlip] = useState<Slip>({ text: '', pick: null, lo: '', hi: '' })
-  const [conf, setConf] = useState<Confidence | null>(null)
-  const [problem, setProblem] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState<string | null>(null)
-  const heading = useRef<HTMLHeadingElement>(null)
-  const focusNext = useRef(false)
   const phase = phaseOf(state, null)
-
-  useEffect(() => {
-    if (!focusNext.current) return
-    focusNext.current = false
-    heading.current?.focus()
-  }, [phase])
+  const { heading, arm } = useFocusOnPhase(phase)
 
   const show = async (commitment: Commitment) => {
     if (busy) return
@@ -520,7 +509,7 @@ function AtCommitTicket({ block, scope, rev }: { block: PredictBlock; scope: str
     try {
       const { revealAtCommit } = await import('./reveal')
       const result = await revealAtCommit({ block, scope, rev, committed: commitment })
-      focusNext.current = true
+      arm()
       revealPrediction(scope, block.id, result)
     } catch (error) {
       setFailed(error instanceof Error ? error.message : String(error))
@@ -529,59 +518,30 @@ function AtCommitTicket({ block, scope, rev }: { block: PredictBlock; scope: str
     }
   }
 
-  const commit = () => {
-    if (committed !== null) return
-    const read = readSlip(block.answer, slip)
-    if (!read.ok) {
-      setProblem(read.problem)
-      return
-    }
-    setProblem(null)
-    focusNext.current = true
-    const commitment = commitPrediction(scope, block.id, { value: read.value, conf, after: latestSeq() })
-    void show(commitment)
-  }
-
-  let stub: ReactNode = null
-  if (phase === 'asking') stub = <Stub onClick={commit}>Commit answer</Stub>
-  else if (phase === 'committed')
-    stub = (
-      <Stub onClick={() => committed !== null && void show(committed)} loading={busy} error={failed === null ? undefined : `The answer did not come. ${failed}`}>
-        Show the answer
-      </Stub>
-    )
-
   return (
-    <Frame block="predict" scope={scope} meta={block.id} title="Predict" lamp={phase === 'asking'} data={{ phase, predict: block.id, reveal: 'at-commit', ...(revealed === null ? {} : { ok: String(revealed.ok) }) }} stub={stub}>
-      <p>{block.prompt}</p>
-      <Facts block={block} />
+    <GuessFrame block={block} label="Your guess" data={{ phase, reveal: 'at-commit', ...(revealed === null ? {} : { ok: String(revealed.ok) }) }}>
       {committed === null ? (
-        <>
-          <SlipFields
-            block={block}
-            slip={slip}
-            problem={problem}
-            onSlip={(next) => {
-              setSlip(next)
-              setProblem(null)
-            }}
-            onSubmit={commit}
-          />
-          <SurePlates value={conf} onChange={setConf} />
-        </>
+        <AskForm
+          block={block}
+          onCommit={({ value, conf }) => {
+            arm()
+            void show(commitPrediction(scope, block.id, { value, conf, after: latestSeq() }))
+          }}
+        />
       ) : revealed !== null ? (
         <RevealView block={block} committed={committed} revealed={revealed} headingRef={heading} />
       ) : (
         <>
-          <h3 className="es-item__count" tabIndex={-1} ref={heading}>
-            <span>Committed</span> <span className="es-item__level">it does not change now</span>
-          </h3>
-          <Written block={block} committed={committed} />
-          <p className="es-c-predict__status" role="status">
-            {failed === null ? 'Working out the answer.' : 'The answer did not come. Pull the stub to try again.'}
-          </p>
+          <LockedIn block={block} committed={committed} then={failed === null ? 'Working out the answer.' : `The answer did not come. ${failed}`} headingRef={heading} />
+          {failed === null ? null : (
+            <p className="es-guess__actions">
+              <Button variant="ink" onClick={() => void show(committed)} loading={busy}>
+                Show the answer
+              </Button>
+            </p>
+          )}
         </>
       )}
-    </Frame>
+    </GuessFrame>
   )
 }

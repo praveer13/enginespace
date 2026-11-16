@@ -1,6 +1,5 @@
 import type { ClaimTag } from '@es/schema'
 import { TapeLabel } from '@/design/components/TapeLabel'
-import './content.css'
 
 /*
  * One of the four tags (ARCHITECTURE §0) that an author wrote after a number: a strip of masking tape with the word in

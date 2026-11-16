@@ -17,6 +17,7 @@ import type { Claim, CompiledBlock, CompiledCard, CompiledLesson, CompiledModule
 import { Blocks, NotionalMachineView } from '@/content/render/Blocks'
 import { renderEnv } from '@/content/render/model'
 import { PageNotice } from '@/content/render/Page'
+import { PredictTicket } from '@/content/render/Predict'
 import { Prose } from '@/content/render/Prose'
 import { LessonView } from '@/pages/Lesson'
 import { ModuleView } from '@/pages/Module'
@@ -55,7 +56,7 @@ const drawn = (...body: ProseFlow[]) => render(h(Prose, { body, env: renderEnv([
 /** Blocks drawn on their own. */
 const drawnBlocks = (...blocks: CompiledBlock[]) => render(h(Blocks, { blocks, env: renderEnv(blocks, claims, TODAY), scope: 'tr9.l1' }))
 
-describe('/m/tr2/l0-sample', () => {
+describe('/m/tr2/l0-sample, the lesson template (REDESIGN §2.5)', () => {
   const html = render(h(LessonView, { lesson, module: entry('tr2'), claims, today: TODAY }), '/m/tr2/l0-sample')
 
   test('the sample lesson uses all eight block types, so the page has something of each to draw', () => {
@@ -63,77 +64,30 @@ describe('/m/tr2/l0-sample', () => {
     expect([...used].sort()).toEqual([...BLOCK_TYPES].sort())
   })
 
-  test('draws every block type', () => {
-    const drawnTypes = new Set([...html.matchAll(/data-block="([a-z]+)"/g)].map((match) => match[1]))
-    for (const type of BLOCK_TYPES) expect(drawnTypes).toContain(type)
+  test('is one page in sections: Read and Test with their ids, then Keep and Sources, and no Run (its first game follows its first heading)', () => {
+    const ids = opening(html, 'section').map((tag) => attribute(tag, 'id')).filter((id) => id !== undefined)
+    expect(ids).toEqual(['read', 'test', 'keep', 'sources'])
+    expect(html).toContain('data-opener="C"')
+    expect(html).not.toContain('id="run"')
   })
 
-  test('draws a ticket for each block, whose stamped title leads the paper with the lesson named on its foot line, and a section\'s heading as its title', () => {
-    const tickets = opening(html, 'section').filter((tag) => attribute(tag, 'data-block') !== undefined)
-    // Two prose blocks (one of them in two tickets), the seven other blocks (the sample has two cards), and the closing ticket.
-    expect(tickets.length).toBe(12)
-    for (const tag of tickets) expect(tag).toContain('class="es-ticket es-c-block"')
-    // Each ticket's own markup, from its opening tag to the next ticket's.
-    const papers = html.split('<section class="es-ticket es-c-block"').slice(1)
-    expect(papers.length).toBe(12)
-    const scope = '<span aria-hidden="true">tr2.l0</span>'
-    const titled = papers.filter((paper) => paper.includes('class="es-ticket__title"'))
-    const untitled = papers.filter((paper) => !paper.includes('class="es-ticket__title"'))
-    // A title leads the paper (DESIGN.md, Ticket): no head line over it, and the lesson's id on the foot line, for the eye and hidden from
-    // assistive tech, which has the page's name once. A ticket with no title opens on it: the prose before the first heading, the prose
-    // after the last block, and the figure.
-    expect(titled.length).toBe(9)
-    for (const paper of titled) {
-      expect(paper).not.toContain('es-ticket__head')
-      expect(paper).toContain(`<div class="es-ticket__foot"><span>${scope}</span>`)
-    }
-    expect(untitled.length).toBe(12 - titled.length)
-    for (const paper of untitled) expect(paper).toContain(`<div class="es-ticket__head"><span>${scope}</span>`)
-    expect(html.match(/class="es-ticket__head"/g)?.length).toBe(untitled.length)
-    expect(html).toContain('<h2 class="es-ticket__title">The bubble</h2>')
-  })
-
-  test('a block whose feature is not built yet says which open task builds it, and holds its action down', () => {
-    // The sample lesson's prediction is no prediction of the course's: the table has no row for it, so it is a question to hold, with no task id and no lock.
-    expect(placeholders(html)).toEqual({ trace: 'W2-T42', lab: 'W2-T23' })
-    expect(html).toContain('data-phase="held"')
-    expect(html).not.toContain('Its reveal waits on')
-    for (const [what, task] of [
-      ['Not built yet: the trace block', 'W2-T42'],
-      ['Not built yet: the lab', 'W2-T23'],
-    ]) {
-      expect(html).toContain(what)
-      expect(html).toContain(`<span class="es-ticket-line__note">${task}</span>`)
-    }
-    // The trace has a stub that is held down. The lab's stub is a link, the held question has none, and the item set and the game are built.
-    expect(html.match(/<button type="button" class="es-stub__pull"[^>]*disabled=""/g)?.length).toBe(1)
-    expect(html).toContain('href="/labs/tr3.profile"')
-    expect(html).not.toContain('Not built yet: the game')
-  })
-
-  test('a block that is complete carries no placeholder: prose, the item set, the game, the two cards (the warning, and the notional-machine card that prints while it loads) and the figure', () => {
-    const complete = opening(html, 'section').filter((tag) => ['prose', 'item', 'game', 'card', 'figure'].includes(attribute(tag, 'data-block') ?? ''))
-    expect(complete.length).toBe(8)
-    for (const tag of complete) expect(tag).not.toContain('data-placeholder')
-  })
-
-  test('the predict block prints its prompt, the shape of its answer, its tolerance as a tagged number and its KCs', () => {
-    expect(html).toContain('With async scheduling on, how many µs of the CPU&#x27;s per-step work stay on the critical path?')
-    for (const fact of ['answer · numeric', 'unit · µs', 'reveal · after the run', 'tr2.async-overlap']) expect(html).toContain(fact)
-    expect(html).toContain('<data class="es-readout__value" value="15">15%</data><span class="es-readout__tag" data-tag="estimated">estimated</span>')
-  })
-
-  test('the item, game, trace and lab blocks print what they are told', () => {
-    expect(html).toContain('3x')
-    expect(html).toContain('tr2.bubble-width')
-    for (const fact of ['level · async', 'practice', 'synthetic', 'seed · 7', 'task · gap', 'lane · F GPU', 'stage · s1']) expect(html).toContain(fact)
-  })
-
-  test('the warning card and the figure are drawn in full', () => {
-    expect(html).toContain('<h2 class="es-ticket__title">A model</h2>')
-    expect(html).toContain('The browser world is a model, and the real engine is the judge.')
+  test('draws the blocks as what they are: the game as a run, the warning as a note, the figure in its part, the lab as Keep’s Build row', () => {
+    expect(html).toContain('data-play="loop/async"')
+    expect(html).toContain('class="es-note" data-kind="watch"')
+    expect(html).toContain('Watch out: a model')
     expect(html).toMatch(/<img src="\/figures\/tr2\/l0-sample\.svg" alt="Two steps on a CPU lane and a GPU lane"[^>]*>/)
-    expect(html).toContain('<figcaption>The CPU lane prepares a step, then the next one.')
+    expect(html).toContain('Build: Lab tr3.profile')
+    expect(html).toContain('Not published yet.')
+  })
+
+  test('no notional-machine card is inlined: the title block’s line opens it, and nothing else draws it', () => {
+    expect(html).not.toContain('data-kind="notional-machine"')
+    expect(html).not.toContain('es-ticket')
+  })
+
+  test('no build-log word reaches the learner: no task id and no "not built yet"', () => {
+    expect(html).not.toMatch(/\bW\d-T\d\d\b|\bR-T\d\d\b|\bD-\d{3}\b/)
+    expect(html.toLowerCase()).not.toContain('not built yet')
   })
 
   test('draws the prose: its table, its code block, its list and its inline code', () => {
@@ -144,98 +98,104 @@ describe('/m/tr2/l0-sample', () => {
     expect(html).toContain('<strong>critical path</strong>')
   })
 
-  test('draws the claims as chips with their sources, and the four tags as tape', () => {
-    for (const id of ['sample.world.host-step-us', 'sample.world.decode-step-us', 'vllm.release.requires-python']) expect(html).toContain(`data-claim="${id}"`)
-    expect([...html.matchAll(/class="es-tag" data-tag="(\w+)"/g)].map((match) => match[1])).toEqual(['estimated', 'estimated', 'unverified', 'measured', 'estimated'])
-    // A screen reader hears a tag as "tagged estimated", so that it reads as the tag of the number before it.
-    expect(html).toContain('<span class="es-tape__text"><span class="sr-only">tagged </span>estimated</span>')
-    expect(html).toContain('vllm 0.33.0 on PyPI (JSON API)')
-    expect(html).toContain('verified <time dateTime="2026-11-04">2026-11-04</time>')
-    // Two of the three claims are the course's own synthetic world, and say so on the number.
-    expect(html.match(/data-tag="synthetic">synthetic</g)?.length).toBe(2)
+  test('a claim is a numbered link to its entry in Sources, with a popover on activation, and no paragraph holds a chip', () => {
+    const marks = [...html.matchAll(/<a href="#source-(\d+)" class="es-pop__trigger"[^>]*data-claim="([^"]+)"/g)].map((match) => [Number(match[1]), match[2]])
+    expect(marks).toEqual([
+      [1, 'sample.world.host-step-us'],
+      [2, 'sample.world.decode-step-us'],
+      [3, 'vllm.release.requires-python'],
+    ])
+    expect(html).toContain('aria-haspopup="dialog"')
+    for (const n of [1, 2, 3]) expect(html).toContain(`id="source-${n}"`)
+    expect(html).not.toContain('class="es-claim"')
+    expect(html).not.toContain('class="es-tag"')
+    const paragraphs = [...html.matchAll(/<p[\s>][\s\S]*?<\/p>/g)].map((match) => match[0])
+    for (const paragraph of paragraphs) expect(paragraph).not.toMatch(/es-tape|es-claim\b|es-stamp/)
   })
 
-  test('links: a kernelspace lesson goes out to kernelspace, a route is the router\'s, and the page says where the module is', () => {
+  test('a tagged number carries a dotted underline and its tag as hidden text, and is not a tab stop', () => {
+    expect(html).toContain('<span class="es-num" data-tag="estimated">300<span class="sr-only"> (estimated)</span></span>')
+    expect(html).toContain('<span class="es-num" data-tag="unverified">1<span class="sr-only"> (unverified)</span></span>')
+    expect(html).not.toMatch(/class="es-num"[^>]*tabindex/)
+  })
+
+  test('the Sources list holds every claim the lesson cites', () => {
+    const sources = /<section class="es-lesson__sources"[\s\S]*?<\/section>/.exec(html)?.[0] ?? ''
+    for (const id of ['sample.world.host-step-us', 'sample.world.decode-step-us', 'vllm.release.requires-python']) expect(sources).toContain(`data-claim="${id}"`)
+    expect(sources).toContain('vllm 0.33.0 on PyPI (JSON API)')
+    expect(sources).toContain('Checked <time dateTime="2026-11-04">2026-11-04</time>')
+  })
+
+  test('links: a kernelspace lesson goes out to kernelspace, a route is the router’s, and the breadcrumb names the module by its title', () => {
     expect(html).toContain('href="https://kernelspace.naigap.com/lesson/t5.l7"')
     expect(html).toContain('<a class="es-link" href="/map" data-discover="true">the course map</a>')
     expect(html).toContain('<a class="es-link" href="/m/tr2" data-discover="true">TR2 The step loop</a>')
+    expect(html).toContain('Builds on ')
   })
 
-  test('the facts of the lesson are the printer\'s tape: its module, minutes, status, lanes and what it builds on', () => {
-    const tape = /<figure class="es-printer"[^>]*aria-label="About this lesson">[\s\S]*?<\/figure>/.exec(html)?.[0] ?? ''
-    expect(tape).not.toBe('')
-    for (const line of ['<dt>module</dt>', '<dt>minutes</dt>', '<dt>status</dt>', '<dt>lanes</dt>', '<dt>builds on</dt>']) expect(tape).toContain(line)
-    // The minutes are an estimate, and say so.
-    expect(tape).toContain('<data class="es-readout__value" value="45">45</data><span class="es-readout__tag" data-tag="estimated">estimated</span>')
-    expect(tape).toContain('<dd>browser, GPU</dd>')
-    expect(tape).toContain('kernelspace T5.L7')
-    expect(tape).toContain('kernelspace T0.L6')
-    // A draft lesson is flagged in the second ink.
-    expect(tape).toContain('<div class="es-printer__line" data-tone="ink-2"><dt>status</dt><dd>draft</dd>')
-  })
-
-  test('headings form a valid outline: one h1, and no level skipped on the way down', () => {
+  test('headings form a valid outline, and every heading has an anchor', () => {
     const found = levels(html)
     expect(found[0]).toBe(1)
     expect(found.filter((level) => level === 1).length).toBe(1)
     found.forEach((level, at) => {
       if (at > 0) expect(level).toBeLessThanOrEqual(found[at - 1] + 1)
     })
-    expect(found).toContain(3)
+    const headings = [...html.matchAll(/<h[1-6]([^>]*)>/g)].map((match) => match[1])
+    for (const tag of headings) expect(tag).toMatch(/\sid="[^"]+"/)
   })
 
-  test('ids are unique, and a section\'s ticket carries the id a link to its heading needs', () => {
+  test('ids are unique', () => {
     const ids = [...html.matchAll(/\sid="([^"]+)"/g)].map((match) => match[1])
     expect(new Set(ids).size).toBe(ids.length)
     expect(ids).toContain('the-bubble')
   })
 
-  test('is built from the design system: every class on the page is one of its own, and the page is tickets, tape and a printer', () => {
-    const classes = new Set([...html.matchAll(/\sclass="([^"]*)"/g)].flatMap((match) => match[1].split(/\s+/)))
-    const strangers = [...classes].filter((name) => !/^(es-|sr-only$)/.test(name))
-    expect(strangers).toEqual([])
-    for (const part of ['es-ticket', 'es-tape', 'es-printer', 'es-stub', 'es-readout', 'es-ticket-line']) expect(classes).toContain(part)
+  test('nothing is collapsed: the last paragraph is in the page’s text with no interaction, and nothing is hidden or a closed disclosure', () => {
+    expect(html).toContain('The sample ends here. A real lesson closes with an exit check')
+    expect(html).not.toContain('<details')
+    expect(html).not.toMatch(/<section[^>]*\shidden/)
   })
 
-  test('the lesson\'s revision is on the page, for the evidence that will be graded against it', () => {
+  test('is built from the design system: every class on the page is one of its own', () => {
+    const classes = new Set([...html.matchAll(/\sclass="([^"]*)"/g)].flatMap((match) => match[1].split(/\s+/)))
+    const strangers = [...classes].filter((name) => !/^(es-|sr-only$|font-numeric$)/.test(name))
+    expect(strangers).toEqual([])
+  })
+
+  test('the lesson’s revision is on the page, for the evidence that will be graded against it', () => {
     expect(html).toContain(`data-rev="${lesson.rev}"`)
   })
 
-  test('closes with what the lesson teaches and the way on: a stub to the module, as it is the module\'s only lesson', () => {
-    expect(html).toContain('<h2 class="es-ticket__title">Next</h2>')
-    for (const kc of lesson.kcs) expect(html).toContain(kc)
-    expect(html).toMatch(/<a class="es-stub__pull" href="\/m\/tr2"[^>]*>[\s\S]*?To the module/)
-  })
-
-  test('with lessons on either side, the closing ticket points to both, and its stub opens the next', () => {
+  test('Keep: with the Test not passed, the amber control goes to the questions and the next lesson is an outline beside it', () => {
     const own = entry('tr2')
     if (own === undefined) throw new Error('the sample module is not in the index')
-    const around = {
-      ...own,
-      lessons: [
-        { id: 'tr2.l_', slug: 'l_-before', title: 'The lesson before', route: '/m/tr2/l_-before', minutes: 10, status: 'draft' as const },
-        ...own.lessons,
-        { id: 'tr2.l9', slug: 'l9-after', title: 'The lesson after', route: '/m/tr2/l9-after', minutes: 10, status: 'draft' as const },
-      ],
-    }
-    const html = render(h(LessonView, { lesson, module: around, claims, today: TODAY }))
-    expect(html).toMatch(/<a class="es-stub__pull" href="\/m\/tr2\/l9-after"[^>]*>[\s\S]*?Next lesson/)
-    expect(html).toContain('Next: <a class="es-link" href="/m/tr2/l9-after" data-discover="true">The lesson after</a>')
-    expect(html).toContain('Before this: <a class="es-link" href="/m/tr2/l_-before" data-discover="true">The lesson before</a>')
-    expect(html).not.toContain('To the module')
+    const around = { ...own, lessons: [...own.lessons, { id: 'tr2.l9', slug: 'l9-after', title: 'The lesson after', route: '/m/tr2/l9-after', minutes: 10, status: 'draft' as const }] }
+    const page = render(h(LessonView, { lesson, module: around, claims, today: TODAY }))
+    const keep = /<section id="keep"[\s\S]*?<\/section>/.exec(page)?.[0] ?? ''
+    expect(keep).toMatch(/<a class="es-next__action" data-emphasis="primary" href="#the-bubble">[\s\S]*?Go to the 3 questions/)
+    expect(keep).toMatch(/<a class="es-next__action" data-emphasis="outline" href="\/m\/tr2\/l9-after"[\s\S]*?Next: lesson 2, The lesson after/)
+    expect(keep.match(/data-emphasis="primary"/g)?.length).toBe(1)
   })
 
-  test('when the claims did not load the page still stands, and each chip names its claim and says so', () => {
+  test('Keep: with the Test passed, the one amber control is nextStep’s answer', () => {
+    const step = { href: '/m/tr2/l9-after', label: 'Continue: TR2 lesson 2', word: 'Continue', needs: ['B'], reason: '', skipped: 0, place: 'lesson', lesson: 'tr2.l9', module: 'tr2' } as const
+    const reading = { step, passed: true, runDone: null, runAnswers: [], readAnswers: [], testWords: '3 of 3: passed', record: ['TR2 lesson 1', 'questions 3 of 3 passed'] }
+    const page = render(h(LessonView, { lesson, module: entry('tr2'), claims, today: TODAY, reading }))
+    const keep = /<section id="keep"[\s\S]*?<\/section>/.exec(page)?.[0] ?? ''
+    expect(keep).toMatch(/<a class="es-next__action" data-emphasis="primary" href="\/m\/tr2\/l9-after"[\s\S]*?Continue: TR2 lesson 2/)
+    expect(keep.match(/data-emphasis="primary"/g)?.length).toBe(1)
+    expect(keep).toContain('<code>questions 3 of 3 passed</code>')
+    expect(page).toContain('3 of 3: passed')
+  })
+
+  test('when the claims did not load the page still stands, and each mark says so in its sheet and in Sources', () => {
     const without = render(h(LessonView, { lesson, module: entry('tr2'), claims: null, today: TODAY }))
-    expect(without.match(/data-state="unavailable"/g)?.length).toBe(3)
-    expect(without.match(/the claims did not load/g)?.length).toBe(3)
-    expect(without).toContain('<h2 class="es-ticket__title">Predict</h2>')
+    expect(without.match(/The sources did not load\./g)?.length).toBe(3)
   })
 
-  test('a lesson drawn without its module\'s index entry falls back to the ids', () => {
+  test('a lesson drawn without its module’s index entry falls back to the module’s code', () => {
     const alone = render(h(LessonView, { lesson, claims, today: TODAY }))
-    expect(alone).toContain('<a class="es-link" href="/m/tr2" data-discover="true">tr2</a>')
-    expect(alone).toMatch(/<a class="es-stub__pull" href="\/m\/tr2"/)
+    expect(alone).toContain('<a class="es-link" href="/m/tr2" data-discover="true">TR2</a>')
   })
 })
 
@@ -417,37 +377,28 @@ describe('the blocks, one at a time', () => {
     expect(opening(html, 'section').map((tag) => attribute(tag, 'id'))).toEqual([undefined, 'one', 'two'])
   })
 
-  test('a prediction with choices lists them, and one with no tolerance says it needs the exact value', () => {
-    const choice = drawnBlocks({
+  // A prediction's code loads with the page that draws one (Blocks.tsx), so these draw the guess itself.
+  const guess = (block: Extract<CompiledBlock, { type: 'predict' }>) => render(h(PredictTicket, { block, scope: 'tr9.l1', at: 0, blocks: [block] }))
+
+  test('a prediction with choices lists them as a question to hold when nothing answers it, and one with no tolerance says it needs the exact value', () => {
+    const choice = guess({
       type: 'predict',
-      id: 'tr2.l1.p1',
+      id: 'tr2.l1.p9',
       prompt: 'Which?',
       answer: { kind: 'choice', options: [{ id: 'a', text: 'First' }, { id: 'b', text: 'Second' }] },
       reveal: 'after-game',
       kcs: ['tr2.bubble'],
     })
-    expect(choice).toContain('<ol class="es-c-options"><li>First</li><li>Second</li></ol>')
-    expect(choice).toContain('answer · choice')
-    expect(choice).not.toContain('unit ·')
-    expect(choice).not.toContain('tolerance')
-    const exact = drawnBlocks({
-      type: 'predict',
-      id: 'tr2.l1.p2',
-      prompt: 'How many?',
-      answer: { kind: 'numeric', unit: 'tokens', rel_tol: 0 },
-      reveal: 'after-game',
-      kcs: ['tr2.bubble'],
-    })
-    expect(exact).toContain('tolerance: the exact value')
-    expect(exact).toContain('unit · tokens')
-    const interval = drawnBlocks({ type: 'predict', id: 'tr2.l1.p3', prompt: 'Between?', answer: { kind: 'interval', unit: 'ms' }, reveal: 'after-game', kcs: ['tr2.bubble'] })
-    expect(interval).toContain('answer · interval')
-    expect(interval).toContain('unit · ms')
+    expect(choice).toContain('<ol class="es-guess__options"><li>First</li><li>Second</li></ol>')
+    expect(choice).not.toContain('tr2.bubble')
+    const exact = guess({ type: 'predict', id: 'tr2.l2.p1', prompt: 'How many?', answer: { kind: 'numeric', unit: 'tokens', rel_tol: 0 }, reveal: 'at-commit', kcs: ['tr2.bubble'] })
+    expect(exact).toContain('Only the exact value counts as right.')
+    expect(exact).toContain('in tokens')
   })
 
   test('a tolerance that is not a whole percent keeps its digits', () => {
-    const html = drawnBlocks({ type: 'predict', id: 'tr2.l1.p4', prompt: 'p', answer: { kind: 'numeric', unit: 'us', rel_tol: 0.125 }, reveal: 'after-game', kcs: ['tr2.bubble'] })
-    expect(html).toContain('<data class="es-readout__value" value="12.5">12.5%</data>')
+    const html = guess({ type: 'predict', id: 'tr2.l2.p1', prompt: 'p', answer: { kind: 'numeric', unit: 'us', rel_tol: 0.125 }, reveal: 'at-commit', kcs: ['tr2.bubble'] })
+    expect(html).toContain('Within 12.5% of the answer counts as right.')
   })
 
   test('a game block of a game that is built waits for the learner: its display name, its level and its mode, and the stub that starts it (W1b-T01)', () => {

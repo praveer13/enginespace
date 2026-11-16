@@ -11,23 +11,7 @@ games: [pool]
 labs: [hybrid-kv]
 ---
 
-{{ks:T5.L5}} gave a request one block table, a list of physical blocks that the attention kernel followed in every layer, and `lab 02` had you write the manager behind it: a pool of blocks, a table for each request, a free queue. That design assumes that every layer reads every token. Many recent models mix in layers that do not, and the manager that serves them keeps several tables for one request and draws all of them from one pool. This lesson is why, and how many pages each table holds.
-
-## What the next token reads
-
-A layer needs a token's key and value in the cache only if a later token will read them. {{ks:T5.L4}} counted what one token costs in a full-attention layer. This lesson asks how many tokens a layer has to pay for, and the answer depends on the kind of layer.
-
-- **Full attention** reads every earlier token. Its blocks stay until the request ends, so its cache grows with the request, a block for every block of tokens.
-- **Sliding-window attention** reads the last `W` tokens and no others. A block that lies wholly behind the window will not be read again by this layer, so the manager can take it back while the request is still running. The cache stops growing at about one window.
-- **A recurrent layer**, the kind in Mamba and its relatives, reads a state: a fixed-size summary of everything before. It keeps no cache per token, so it needs the same memory for a short request and for a long one.
-
-A model that mixes the kinds is a hybrid, and they are common. vLLM's design document names three families: sliding-window with full attention (gpt-oss, Gemma-2 and Gemma-3 among them), Mamba with full attention, and local chunked attention with full attention (Llama-4). {{claim:vllm.hybrid-kv.hybrid-models}} The layers come in small fixed ratios, which the planner's authors put at {{claim:vllm.hybrid-kv.layer-ratios}}. A manager for them has to reserve slots for all tokens in a full layer and for the last window only in a sliding one, and to follow a prefix-cache rule for each. {{claim:vllm.hybrid-kv.layer-slots}}
-
-## Three tables for one request
-
-A **KV cache group** is a set of layers of one kind. They need the same blocks for a request, so they share one block table, and a block id names one block-sized piece in every layer of the group. A request on a hybrid model holds one table for each group. {{claim:vllm.hybrid-kv.group-rules}} vLLM has a manager class for each kind of group. {{claim:vllm.hybrid-kv.manager-per-spec}}
-
-The design document's example model has 10 full-attention layers and 20 sliding-window layers, with 16-token blocks and a 32-token window [measured]. {{claim:vllm.hybrid-kv.doc-example-blocks}} Its layers make three groups: one full group and two sliding groups of equal size. Why two sliding groups and not one is the next lesson's question, so take the grouping as given, and commit to one prediction before you read the rule.
+Many recent models mix full-attention layers with sliding-window layers, and one pool of KV pages serves them all. {{claim:vllm.hybrid-kv.single-pool}} Run the pool twice: first a model with one full-attention KV group, then one that adds two sliding-window groups. Before the second run, guess how many pages one long request holds.
 
 :::predict
 id: tr5a.l1.p1
@@ -36,8 +20,6 @@ answer: { kind: numeric, unit: pages, rel_tol: 0.05 }
 reveal: after-game
 kcs: [tr5a.kv-groups, tr5a.sliding-free]
 :::
-
-Play the two levels in order. `one-group` is the model you know from `lab 02` and `lab 07`, one full group, and it teaches the game's words. `two-kinds` is this model. The game dresses the manager as a line kitchen: a group is a **station**, a page is a **hotel pan** in the reach-in, a request is a **ticket**, and a sliding group's window is its station's **hold window**. The engine words come first everywhere else on the page.
 
 :::game
 id: pool
@@ -51,7 +33,25 @@ level: two-kinds
 mode: practice
 :::
 
-## What the game showed
+## What the next token reads
+
+{{ks:T5.L5}} gave a request one block table, a list of physical blocks that the attention kernel followed in every layer, and `lab 02` had you write the manager behind it: a pool of blocks, a table for each request, a free queue. That design assumes that every layer reads every token. The second run's model mixes in layers that do not, and the manager that serves it keeps several tables for one request and draws all of them from one pool. The parts below say why, and how many pages each table holds.
+
+A layer needs a token's key and value in the cache only if a later token will read them. {{ks:T5.L4}} counted what one token costs in a full-attention layer. This lesson asks how many tokens a layer has to pay for, and the answer depends on the kind of layer.
+
+- **Full attention** reads every earlier token. Its blocks stay until the request ends, so its cache grows with the request, a block for every block of tokens.
+- **Sliding-window attention** reads the last `W` tokens and no others. A block that lies wholly behind the window will not be read again by this layer, so the manager can take it back while the request is still running. The cache stops growing at about one window.
+- **A recurrent layer**, the kind in Mamba and its relatives, reads a state: a fixed-size summary of everything before. It keeps no cache per token, so it needs the same memory for a short request and for a long one.
+
+A model that mixes the kinds is a hybrid, and they are common. vLLM's design document names three families: sliding-window with full attention (gpt-oss, Gemma-2 and Gemma-3 among them), Mamba with full attention, and local chunked attention with full attention (Llama-4). {{claim:vllm.hybrid-kv.hybrid-models}} The layers come in small fixed ratios, which the planner's authors put at {{claim:vllm.hybrid-kv.layer-ratios}}. A manager for them has to reserve slots for all tokens in a full layer and for the last window only in a sliding one, and to follow a prefix-cache rule for each. {{claim:vllm.hybrid-kv.layer-slots}}
+
+## Three tables for one request
+
+A **KV cache group** is a set of layers of one kind. They need the same blocks for a request, so they share one block table, and a block id names one block-sized piece in every layer of the group. A request on a hybrid model holds one table for each group. {{claim:vllm.hybrid-kv.group-rules}} vLLM has a manager class for each kind of group. {{claim:vllm.hybrid-kv.manager-per-spec}}
+
+The design document's example model has 10 full-attention layers and 20 sliding-window layers, with 16-token blocks and a 32-token window [measured]. {{claim:vllm.hybrid-kv.doc-example-blocks}} Its layers make three groups: one full group and two sliding groups of equal size. Why two sliding groups and not one is the next lesson's question, so take the grouping as given.
+
+## What the two runs showed
 
 The rule of each group is a function of the request's length alone. Write `L` for the tokens the request holds, `B` for the tokens in a block, `W` for a window and `S` for the pages of a state.
 
@@ -98,6 +98,8 @@ The groups hold different numbers of pages, and they all draw from one free queu
 
 The obvious design for a window is a ring of window-sized blocks that new tokens overwrite in turn, and vLLM's document rejects it, because a ring is not compatible with prefix caching. A block that new tokens overwrite no longer holds the tokens its hash named, so it could not be kept for another request. The manager allocates different blocks for different tokens, as for full attention, and frees the ones outside the window. {{claim:vllm.hybrid-kv.no-ring-buffer}}
 
+In the lab you write these rules in Rust. `one_group` (`s1`) is the full group alone, with the paging, the prefix hashes and the shared blocks of `lab 02` and `lab 07` in one module, and the rule of `lab 02` still binds: an operation either succeeds or leaves everything as it was. {{claim:kv.kernelspace.lab02-all-or-nothing}} `sliding` (`s2`) makes a window give its blocks back, and counts them when an append is judged. `state` (`s3`) holds a fixed number of pages.
+
 :::card
 kind: isomorphism
 title: Three ways to keep a stream
@@ -110,26 +112,15 @@ kind: notional-machine
 id: kv
 :::
 
-## Build
-
-The first three stages of the lab are this lesson's rules, written in Rust. `one_group` (`s1`) is the full group alone, with the paging, the prefix hashes and the shared blocks of `lab 02` and `lab 07` in one module, and the rule of `lab 02` still binds: an operation either succeeds or leaves everything as it was. {{claim:kv.kernelspace.lab02-all-or-nothing}} `sliding` (`s2`) makes a window give its blocks back, and counts them when an append is judged. `state` (`s3`) holds a fixed number of pages.
-
 :::lab
 id: hybrid-kv
 lane: B
 stages: [s1, s2, s3]
 :::
 
-## What to carry
-
-- What the next token reads decides what a layer keeps: every earlier token, the last window, or a fixed state.
-- A request holds one table for each group, and a sliding group's table has its oldest entries let go.
-- A window is not a block count. Here it holds two blocks or three, depending on the length.
-- Every group draws its pages from one pool, so a page that a window lets go can serve a full group.
-
 ## Exit check
 
-This lesson tests three skills: saying what each kind of layer needs of the cache (`tr5a.kv-groups`), working out the pages that a sliding group still holds (`tr5a.sliding-free`), and saying why a state group's pages stay fixed (`tr5a.state-pages`). The exit ticket is three items on fresh seeds, each a request and a model, asking for the pages it holds in one group or across the groups. It is passed with at least two right, one of them numeric (ASSESSMENT §4.2). The lab's stages `sliding` and `state` then grade the last two skills on seeds drawn when you run them.
+Three questions on new numbers, each a request and a model, ask for the pages it holds in one group or across the groups: what each kind of layer needs of the cache, the pages a sliding group still holds, and why a state group's pages stay fixed. Two right, one of them numeric, passes. The lab's stages `sliding` and `state` then test the last two on seeds drawn when you run them.
 
 :::item
 family: tr5a.blocks-held

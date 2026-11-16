@@ -1,4 +1,4 @@
-import { Fragment } from 'react'
+import { Fragment, lazy, Suspense } from 'react'
 import type { CompiledBlock, CompiledCard } from '@es/schema'
 import { publicUrl, useClaims } from '../load'
 import { useCard } from '../load-lessons'
@@ -6,11 +6,11 @@ import { ItemBlock } from '@/items/ItemBlock'
 import { Icon } from '@/design/components/Glyph'
 import { Stub } from '@/design/components/Stub'
 import { TapeLabel } from '@/design/components/TapeLabel'
+import { ClaimChip } from './ClaimChip'
 import './content.css'
 import { Frame, PendingLine, Tapes, type Of } from './BlockFrame'
 import { GameBlock } from './GameBlock'
 import { cardClaimIds, laneName, PENDING, pendingLab, sections, type RenderEnv } from './model'
-import { PredictTicket } from './Predict'
 import { Inline, Prose } from './Prose'
 
 /*
@@ -26,6 +26,9 @@ import { Inline, Prose } from './Prose'
  * block's placeholder below and leaves the others alone.
  */
 
+/* A module page's blocks are prose, cards and figures: a prediction there is rare, so its code loads only where one is drawn. */
+const PredictTicket = lazy(() => import('./Predict').then((module) => ({ default: module.PredictTicket })))
+
 export interface BlocksProps {
   blocks: readonly CompiledBlock[]
   env: RenderEnv
@@ -35,8 +38,17 @@ export interface BlocksProps {
   rev?: string
 }
 
-export function Blocks({ blocks, env, scope, rev }: BlocksProps) {
+export function Blocks({ blocks, env: given, scope, rev }: BlocksProps) {
+  const env = withChips(given)
   return blocks.map((block, at) => <BlockTicket key={at} block={block} at={at} blocks={blocks} env={env} scope={scope} rev={rev} />)
+}
+
+/** On a page of tickets a claim is a chip with its source under it (ClaimChip.tsx). */
+function withChips(env: RenderEnv): RenderEnv {
+  if (env.claim !== undefined) return env
+  const chips: RenderEnv = { ...env }
+  chips.claim = (id) => <ClaimChip id={id} env={chips} />
+  return chips
 }
 
 function BlockTicket({ block, at, blocks, env, scope, rev }: { block: CompiledBlock; at: number; blocks: readonly CompiledBlock[]; env: RenderEnv; scope: string; rev?: string }) {
@@ -44,7 +56,11 @@ function BlockTicket({ block, at, blocks, env, scope, rev }: { block: CompiledBl
     case 'prose':
       return <ProseTickets block={block} env={env} scope={scope} />
     case 'predict':
-      return <PredictTicket block={block} scope={scope} at={at} blocks={blocks} rev={rev} />
+      return (
+        <Suspense fallback={<p>{block.prompt}</p>}>
+          <PredictTicket block={block} scope={scope} at={at} blocks={blocks} rev={rev} />
+        </Suspense>
+      )
     case 'item':
       return <ItemBlock block={block} scope={scope} />
     case 'game':
@@ -179,7 +195,7 @@ function NotionalMachine({ id, env, scope }: { id: string; env: RenderEnv; scope
     return <Frame {...frame} state="loading" loadingLabel="Printing the card" />
   }
   if (loaded === null) return <Frame {...frame} state="empty" empty={`No card called ${id}.`} />
-  return <NotionalMachineView card={loaded} env={claims.status === 'ready' ? { ...env, claims: claims.value } : env} scope={scope} />
+  return <NotionalMachineView card={loaded} env={claims.status === 'ready' ? { ...env, claims: claims.value, claim: undefined } : env} scope={scope} />
 }
 
 /** The parts of a card, in order, with the field of the compiled card that holds each (`CARD_PARTS` in packages/schema). */
@@ -190,7 +206,8 @@ const CARD_PARTS = [
 ] as const
 
 /** A compiled card on its ticket. `NotionalMachine` loads the card and the claims it needs; this draws them. */
-export function NotionalMachineView({ card, env, scope }: { card: CompiledCard; env: RenderEnv; scope: string }) {
+export function NotionalMachineView({ card, env: given, scope }: { card: CompiledCard; env: RenderEnv; scope: string }) {
+  const env = withChips(given)
   // A card's headings are its three parts and nothing deeper, so the page's heading ids are not the card's to make.
   return (
     <Frame block="card" kind="notional-machine" scope={scope} meta={card.id} title={CARD_TITLES['notional-machine']}>

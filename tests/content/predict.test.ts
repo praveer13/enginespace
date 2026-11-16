@@ -21,10 +21,8 @@ import { gradePrediction } from '@es/play/predictions/grade'
 import type { PredictAnswer } from '@es/play/predictions/grade'
 import { NO_BLOCK, PLAN, UNLISTED } from '@es/play/predictions/plan'
 import { commitFor } from '@es/play/predictions/truth'
-import { Blocks } from '@/content/render/Blocks'
-import { renderEnv } from '@/content/render/model'
 import { commitPrediction, forgetPredictions, phaseOf, predictionState, revealPrediction } from '@/content/render/predicted'
-import { AnsweredTicket } from '@/content/render/Predict'
+import { AnsweredTicket, PredictTicket } from '@/content/render/Predict'
 import { predictDraft, reveal, revealAtCommit } from '@/content/render/reveal'
 import { finishBlockRun, forgetBlockRuns, latestSeq } from '@/content/render/runs'
 import type { BlockRun } from '@/content/render/runs'
@@ -40,7 +38,16 @@ import { repo } from './support.ts'
 
 type PredictBlock = Extract<CompiledBlock, { type: 'predict' }>
 
-const render = (...blocks: CompiledBlock[]) => renderToString(h(StaticRouter, { location: '/' }, h(Blocks, { blocks, env: renderEnv(blocks, null, '2026-11-09'), scope: 'tr2.l4', rev: 'a1b2c3d4' }))).replaceAll('<!-- -->', '')
+/** The page's predictions, each drawn as the lesson draws it, among the page's blocks (a prediction finds the run that answers it by them). */
+const render = (...blocks: CompiledBlock[]) =>
+  renderToString(
+    h(
+      StaticRouter,
+      { location: '/' },
+      blocks.flatMap((block, at) => (block.type === 'predict' ? [h(PredictTicket, { key: at, block, scope: 'tr2.l4', at, blocks, rev: 'a1b2c3d4' })] : [])),
+    ),
+  ).replaceAll('<!-- -->', '')
+const COMMIT = /<button[^>]*>(?:<[^>]+>)*Commit answer/
 
 const numeric = (id: string, unit: string, rel_tol: number, reveal: PredictBlock['reveal'] = 'after-game'): PredictBlock => ({
   type: 'predict',
@@ -61,22 +68,21 @@ afterEach(() => {
 describe('a prediction that a run answers, before anything is played', () => {
   const html = render(numeric('tr2.l4.p1', 'us', 0.05), game('loop', 'mrv2'))
 
-  test('asks: a slip with its unit, the three plates, a live stub, the lamp on its ticket, and no placeholder', () => {
+  test('asks: a slip with its unit, the three plates, a live Commit, and no placeholder', () => {
     expect(html).toContain('data-phase="asking"')
     expect(html).toContain('data-predict="tr2.l4.p1"')
     expect(html).toContain('Your number')
     expect(html).toContain('in µs')
     for (const plate of ['guess', 'think so', 'sure']) expect(html).toContain(`>${plate}<`)
-    expect(html).toMatch(/<button type="button" class="es-stub__pull"><span class="es-stub__label">Commit answer<\/span>/)
-    expect(html).not.toMatch(/<button type="button" class="es-stub__pull"[^>]*disabled=""/)
-    expect(html).toContain('data-lamp="true"')
+    expect(html).toMatch(COMMIT)
+    expect(html).not.toMatch(/<button[^>]*disabled=""/)
     expect(html).not.toContain('data-placeholder')
     expect(html).not.toContain('Its reveal waits')
   })
 
-  test('says what its facts are, as the block always did: the shape of the answer, its unit, the reveal and the tolerance as a tagged number', () => {
-    for (const fact of ['answer · numeric', 'unit · µs', 'reveal · after the run', 'tr2.mrv2-delta']) expect(html).toContain(fact)
-    expect(html).toContain('<data class="es-readout__value" value="5">5%</data><span class="es-readout__tag" data-tag="estimated">estimated</span>')
+  test('says what counts as right in words, and shows no KC id and no tape of facts', () => {
+    expect(html).toContain('Within 5% of the answer counts as right.')
+    for (const fact of ['answer · numeric', 'reveal · after the run', 'tr2.mrv2-delta']) expect(html).not.toContain(fact)
   })
 
   test('holds nothing of the answer: the model\'s number is not on the page, and no reading has been asked for', () => {
@@ -84,24 +90,23 @@ describe('a prediction that a run answers, before anything is played', () => {
     for (const answer of ['304', '1,986', '1986']) expect(html).not.toContain(answer)
     expect(html).not.toContain('data-truth')
     expect(html).not.toContain('the model')
-    expect(html).not.toContain('es-item__reveal')
+    expect(html).not.toContain('es-guess__reveal')
   })
 })
 
 describe('a prediction revealed at commit, before anything is played', () => {
   const html = render(numeric('tr8.l1.p1', 'ms', 0.1, 'at-commit'), game('broken-bench', 'due'))
 
-  test('asks like the rest: a slip with its unit, the three plates and a live stub, and no lock, no held-down stub and no task id', () => {
+  test('asks like the rest: a slip with its unit, the three plates and a live Commit, and no lock and no task id', () => {
     expect(html).toContain('data-phase="asking"')
     expect(html).toContain('data-reveal="at-commit"')
     expect(html).toContain('Your number')
     expect(html).toContain('How sure are you?')
-    expect(html).toMatch(/<button type="button" class="es-stub__pull"><span class="es-stub__label">Commit answer<\/span>/)
-    expect(html).not.toMatch(/<button type="button" class="es-stub__pull"[^>]*disabled=""/)
+    expect(html).toMatch(COMMIT)
+    expect(html).not.toMatch(/<button[^>]*disabled=""/)
     expect(html).not.toContain('data-placeholder')
     expect(html).not.toContain('Its reveal waits')
     expect(html).not.toMatch(/W\d-T\d\d|R-T\d\d/)
-    expect(html).toContain('reveal · at commit')
   })
 
   test('holds nothing of the answer: the model\'s answer, its working and its source are not in the markup, and none of it was asked for', () => {
@@ -109,7 +114,7 @@ describe('a prediction revealed at commit, before anything is played', () => {
     expect(html).not.toContain('data-truth')
     expect(html).not.toContain('The working')
     expect(html).not.toContain('nearest rank')
-    expect(html).not.toContain('es-item__reveal')
+    expect(html).not.toContain('es-guess__reveal')
   })
 
   test('every prediction of the table that is revealed at commit has the same ticket, in the block of its own lesson, whatever game follows it', () => {
@@ -124,16 +129,15 @@ describe('a prediction revealed at commit, before anything is played', () => {
 const ticketOf = (html: string): string => /<section[^>]*data-block="predict".*?<\/section>/s.exec(html)?.[0] ?? ''
 
 describe('a question to hold', () => {
-  test('prints its stem and why it has no answer, and no slip, no lock, no task id and no stub', () => {
+  test('prints its stem and why it has no answer, and no slip, no lock, no task id and no Commit', () => {
     const html = ticketOf(render(numeric('tr9.l9.p9', 'us', 0.05), game('loop', 'mrv2')))
     expect(html).toContain('data-phase="held"')
     expect(html).toContain('How many?')
     expect(html).toContain(UNLISTED.why)
     expect(html).not.toContain('Your number')
     expect(html).not.toContain('How sure are you?')
-    expect(html).not.toContain('es-stub__pull')
+    expect(html).not.toMatch(COMMIT)
     expect(html).not.toContain('data-placeholder')
-    expect(html).not.toContain('data-lamp')
     expect(html).not.toMatch(/W\d-T\d\d|R-T\d\d|waits/)
   })
 
@@ -141,7 +145,7 @@ describe('a question to hold', () => {
     const lacking = ticketOf(render(game('loop', 'mrv2'), numeric('tr2.l4.p1', 'us', 0.05)))
     expect(lacking).toContain('data-phase="held"')
     expect(lacking).toContain(NO_BLOCK.why)
-    expect(lacking).not.toContain('es-stub__pull')
+    expect(lacking).not.toMatch(COMMIT)
   })
 
   test('a choice that is held lists its options, as it did', () => {
@@ -154,7 +158,7 @@ describe('a question to hold', () => {
       kcs: ['tr6.proposer-families'],
     }
     const html = render(block)
-    expect(html).toContain('<ol class="es-c-options"><li>MRV2, with async scheduling on</li><li>The engine refuses to start</li></ol>')
+    expect(html).toContain('<ol class="es-guess__options"><li>MRV2, with async scheduling on</li><li>The engine refuses to start</li></ol>')
     expect(html).toContain('data-phase="held"')
   })
 })
@@ -172,7 +176,7 @@ describe('the slip of each shape of answer', () => {
       reveal: 'after-game',
       kcs: ['tr2.bubble'],
     })
-    expect(html).toContain('<fieldset class="es-item__choice"')
+    expect(html).toContain('<fieldset class="es-guess__choice"')
     expect(html).toContain('Your pick')
     expect(html.match(/type="radio"/g)?.length).toBe(2)
     expect(html).toContain('Yes, it fits')

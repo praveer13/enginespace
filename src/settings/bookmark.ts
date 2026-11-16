@@ -40,13 +40,14 @@ export const DWELL_MS = 2000
 
 /**
  * Keeps the place last in view on the lesson at `route`: the `h2` headings with an id inside `root` are its parts. `test` is the id of
- * the heading that opens the lesson's Test, so a place there says so. Before the first heading the place is the Run.
+ * the heading that opens the lesson's Test, so a place there says so. Before the first heading the place is the Run. A section's own
+ * heading that names no part (Run, Keep) carries `data-bookmark="skip"`.
  */
 export function useBookmark(route: string, root: HTMLElement | null, test?: string): Place | null {
   const [place, setPlace] = useState<Place | null>(null)
   useEffect(() => {
     if (root === null || typeof IntersectionObserver === 'undefined') return
-    const headings = [...root.querySelectorAll<HTMLHeadingElement>('h2[id]')]
+    const headings = [...root.querySelectorAll<HTMLHeadingElement>('h2[id]:not([data-bookmark="skip"])')]
     const keep = (heading: HTMLHeadingElement | null) => {
       const at = new Date().toISOString()
       const next: Place =
@@ -75,12 +76,21 @@ export function useBookmark(route: string, root: HTMLElement | null, test?: stri
       }
     })
     for (const heading of headings) observer.observe(heading)
-    const act = () => keep(current())
+    // After the action's own handlers have run: a page that redraws in the middle of a click would undo a radio's change before React reads it.
+    let pending = 0
+    const act = () => {
+      if (pending !== 0) return
+      pending = window.setTimeout(() => {
+        pending = 0
+        keep(current())
+      }, 0)
+    }
     root.addEventListener('click', act)
     root.addEventListener('change', act)
     return () => {
       observer.disconnect()
       for (const timer of timers.values()) window.clearTimeout(timer)
+      window.clearTimeout(pending)
       root.removeEventListener('click', act)
       root.removeEventListener('change', act)
     }

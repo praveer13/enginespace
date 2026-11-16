@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from 'react'
+import { useContext, useId, type ReactNode } from 'react'
 import { FLOOR_QUESTION } from '@es/play/engine-floor/copy'
 import { ENGINE_NAMES } from '@es/play/engine-floor/engine'
 import type { FloorView, LaidView, TileView } from '@es/play/engine-floor/types'
@@ -7,6 +7,7 @@ import { Button } from '@/design/components/Button'
 import { Icon } from '@/design/components/Glyph'
 import { Stub } from '@/design/components/Stub'
 import { TapeLabel } from '@/design/components/TapeLabel'
+import { LessonGuessContext } from '@/games/kit/lessonGuess'
 import { Ticket, TicketLine } from '@/design/components/Ticket'
 import { Cite } from './Cite'
 import { Code } from './Code'
@@ -51,6 +52,8 @@ function scenarioLines(view: FloorView): { term: string; value: string }[] {
 function Prediction({ controls }: { controls: FloorControls }) {
   const { view, choices, pick, setPick } = controls
   const question = useId()
+  // In a lesson whose guess asks this question, the lesson's words stand in, and how sure the learner is goes with it.
+  const lesson = useContext(LessonGuessContext)
   if (view.prediction !== null) {
     return (
       <p className="flex flex-wrap items-baseline gap-x-2" data-prediction="">
@@ -63,7 +66,7 @@ function Prediction({ controls }: { controls: FloorControls }) {
   return (
     <div className="flex flex-col gap-2" data-prediction="">
       <p id={question} className="font-bold">
-        {FLOOR_QUESTION}
+        {lesson?.ask ?? FLOOR_QUESTION}
       </p>
       <p className="text-text-2">Count each hop from one process to another, the last one into the client included. A hop between threads of one process does not count.</p>
       <div role="group" aria-labelledby={question} className="flex flex-wrap gap-2">
@@ -73,6 +76,7 @@ function Prediction({ controls }: { controls: FloorControls }) {
           </Button>
         ))}
       </div>
+      {lesson?.sure}
     </div>
   )
 }
