@@ -3,19 +3,16 @@ import { traceOf } from '@es/play/engine-floor/spans'
 import { stageIn } from '@es/play/engine-floor/stages'
 import type { FloorView, SpanCheckView, SpanRowView } from '@es/play/engine-floor/types'
 import { Icon } from '@/design/components/Glyph'
-import { Readout } from '@/design/components/Readout'
-import { formatReadout } from '@/design/format'
+import { Stamp } from '@/design/components/Stamp'
 import { MirrorTable, type MirrorColumn, type MirrorRow } from '@/games/kit/MirrorTable'
-import { Code } from './Code'
-import { HandoffGlyph } from './HandoffGlyph'
-import { handoffWords } from './text'
+import { handoffWords, splitCode } from '@es/play/engine-floor/words'
 
 /*
- * The graded map against its tape (GAMES.md §5 "Scoring and pass"; ASSESSMENT §4.3, §4.4): once the one run has been judged, the stages the
+ * The graded map against its trace (GAMES.md §5 "Scoring and pass"; ASSESSMENT §4.3, §4.4): once the one run has been judged, the stages the
  * learner laid are read against the stage spans of the scenario's lifecycle trace, in order (`spanCheck`), and the trace itself is on the
- * page in the trace viewer. This is the table of that reading, a row for each laid stage, and the tape under it.
+ * page in the trace viewer. This is the table of that reading, a row for each laid stage, and the trace under it.
  *
- * The tape is synthetic: the lifecycle model writes the path out with made-up durations, and the viewer and every figure here say so.
+ * The trace is synthetic: the lifecycle model writes the path out with made-up durations, and the viewer and every figure here say so.
  * Nothing is shown before the run is judged, because the spans are named for the stages in the engine's order, which is the answer.
  *
  * The viewer is a lazy chunk. It is a whole instrument of its own, and a learner who does not open the debrief of a graded run should not
@@ -36,7 +33,7 @@ class TapeBoundary extends Component<{ children: ReactNode }, { failed: boolean 
   render() {
     return this.state.failed ? (
       <p role="status" className="text-text-2" data-floor-tape-missing="">
-        The tape could not be loaded. The table above is the same check, row by row.
+        The trace could not be loaded. The table above is the same check, row by row.
       </p>
     ) : (
       this.props.children
@@ -46,48 +43,48 @@ class TapeBoundary extends Component<{ children: ReactNode }, { failed: boolean 
 
 type RowState = 'matched' | 'differs' | 'unread'
 
-/** A row's state: it is the tape's stage there, it is the first that is not, or an earlier stage already parted from the tape and this one was not read. */
+/** A row's state: it is the trace's stage there, it is the first that is not, or an earlier stage already parted from the trace and this one was not read. */
 const stateOf = (row: SpanRowView, check: SpanCheckView): RowState => (row.matched ? 'matched' : row.index === check.firstMismatch ? 'differs' : 'unread')
 
-const count = (value: number) => <Readout value={value} tag="derived" size="sm" />
+const count = (value: number) => <span className="font-numeric">{value}</span>
 
-/** A figure of the tape, in ns of the synthetic trace: the column's head says so once, as the viewer's own tables do. */
-const ns = (value: number | null) => (value === null ? <span className="text-text-2">no span</span> : <span className="font-numeric">{formatReadout(value)}</span>)
+/** A figure of the trace, in ns of the synthetic trace: the column's head says so once, as the viewer's own tables do. */
+const ns = (value: number | null) => (value === null ? <span className="text-text-2">no span</span> : <span className="font-numeric">{grouped(value)}</span>)
 
-/** The stage with this id as the scenario has it, as a hand-off and a label; nothing when the tape has no stage there. */
+/** A whole number grouped by thousands, as a readout prints it (src/design/format.ts); written here so the result's chunk needs no other. */
+const grouped = (value: number): string => String(Math.round(value)).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+
+/** The stage with this id as the scenario has it, as a mechanism and a label; nothing when the trace has no stage there. */
 function Stage({ view, id }: { view: FloorView; id: string | null }) {
-  if (id === null) return <span className="text-text-2">the tape has no stage here</span>
+  if (id === null) return <span className="text-text-2">the trace has no stage here</span>
   const stage = stageIn(view.scenario, id)
   if (stage === undefined) return <code className="es-type-mono">{id}</code>
   return (
     <span className="inline-flex flex-wrap items-baseline gap-x-2">
-      <HandoffGlyph mechanism={stage.mechanism} className="size-4 flex-none self-center" />
-      <span className="es-type-ticket text-size-caption">{handoffWords(stage.mechanism)}</span>
-      <span>
-        <Code>{stage.label}</Code>
-      </span>
+      <strong className="text-size-caption">{handoffWords(stage.mechanism)}</strong>
+      <span>{splitCode(stage.label).map((piece, index) => (piece.code ? <code key={index}>{piece.text}</code> : <span key={index}>{piece.text}</span>))}</span>
     </span>
   )
 }
 
-/** What the check says in a sentence: the whole path, a part that parted from the tape at a stage, or a prefix of the tape. */
+/** What the check says in a sentence: the whole path, a part that parted from the trace at a stage, or a prefix of it. */
 function Verdict({ check }: { check: SpanCheckView }) {
   const laid = check.rows.length
   if (check.whole) {
-    return <>Every stage you laid is the tape’s stage at that place, and the tape has none left over: your path is the tape’s, span for span.</>
+    return <>Every stage you laid is the trace’s stage at that place, and the trace has none left over: your path is the trace’s, span for span.</>
   }
   if (check.firstMismatch !== null) {
     const row = check.rows[check.firstMismatch]
     return (
       <>
-        Your path and the tape part at stage <span className="font-numeric">{check.firstMismatch + 1}</span>
-        {row.tape === null ? ': the tape has no stage there.' : ': the tape has a different stage there.'} The stages before it are the tape’s.
+        Your path and the trace part at stage <span className="font-numeric">{check.firstMismatch + 1}</span>
+        {row.tape === null ? ': the trace has no stage there.' : ': the trace has a different stage there.'} The stages before it are the trace’s.
       </>
     )
   }
   return (
     <>
-      Every stage you laid is the tape’s, and the tape goes on: it has {count(check.spans - laid)} more {check.spans - laid === 1 ? 'stage span' : 'stage spans'} after your last.
+      Every stage you laid is the trace’s, and the trace goes on: it has {count(check.spans - laid)} more {check.spans - laid === 1 ? 'stage span' : 'stage spans'} after your last.
     </>
   )
 }
@@ -118,8 +115,8 @@ const COLUMNS: readonly MirrorColumn[] = [
   },
 ]
 
-/** The words a row says of its stage, in print and not in colour alone: the tape's stage (for a screen reader, with a drawn tick), or why it is not. */
-const SAYS: Readonly<Record<RowState, string>> = { matched: 'the tape’s stage', differs: 'not the tape’s stage', unread: 'not read: an earlier stage parted from the tape' }
+/** The words a row says of its stage, in print and not in colour alone: the trace's stage (for a screen reader, with a drawn tick), or why it is not. */
+const SAYS: Readonly<Record<RowState, string>> = { matched: 'the trace’s stage', differs: 'not the trace’s stage', unread: 'not read: an earlier stage parted from the trace' }
 
 function rowOf(view: FloorView, row: SpanRowView, state: RowState): MirrorRow {
   return {
@@ -135,10 +132,10 @@ function rowOf(view: FloorView, row: SpanRowView, state: RowState): MirrorRow {
       laid: (
         <span className="flex flex-col gap-1">
           <Stage view={view} id={row.stage} />
-          {/* A stage that is the tape's own and was not read, because an earlier one parted, has nothing to set beside it. */}
+          {/* A stage that is the trace's own and was not read, because an earlier one parted, has nothing to set beside it. */}
           {state === 'matched' || row.stage === row.tape ? null : (
             <span className="flex flex-col gap-1 text-text-2" data-tape-has="">
-              <span className="font-bold">The tape has, at this place:</span>
+              <span className="font-bold">The trace has, at this place:</span>
               <Stage view={view} id={row.tape} />
             </span>
           )}
@@ -158,7 +155,9 @@ export function TapeCheck({ view }: { view: FloorView }) {
   if (check === null || trace === null) return null
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-4" data-floor-tape="" data-whole={check.whole}>
-      <h3 id={headingId}>The ticket against the tape</h3>
+      <h4 id={headingId} className="es-floor-pair__head">
+        Your path against the trace <Stamp word="synthetic" />
+      </h4>
       <p className="max-w-prose" data-floor-tape-verdict="">
         <Verdict check={check} />
       </p>
@@ -166,23 +165,23 @@ export function TapeCheck({ view }: { view: FloorView }) {
         <span>
           Stages matched, in order: <span className="font-numeric">{check.matched}</span> of {count(check.rows.length)}
         </span>
-        <span>Stage spans on the tape: {count(check.spans)}</span>
+        <span>Stage spans in the trace: {count(check.spans)}</span>
       </p>
       <div data-floor-tape-table="">
         <MirrorTable
-          head="The tape check"
-          caption="Each stage you laid, against the span the tape has at that place"
+          head="The trace check"
+          caption="Each stage you laid, against the span the trace has at that place"
           columns={COLUMNS}
           rows={check.rows.map((row) => rowOf(view, row, stateOf(row, check)))}
         />
       </div>
       <TapeBoundary>
-        <Suspense fallback={<p role="status" className="text-text-2">Loading the tape.</p>}>
+        <Suspense fallback={<p role="status" className="text-text-2">Loading the trace.</p>}>
           <TraceView
             trace={trace}
             traceId={`lifecycle-${check.seed}`}
-            title="The tape of this request"
-            about="A synthetic tape: the lifecycle model’s path for this request, one span for each stage, with made-up durations. It is not a measurement of any engine."
+            title="The trace of this request"
+            about="A synthetic trace: the lifecycle model’s path for this request, one span for each stage, with made-up durations. It is not a measurement of any engine."
             headingLevel={3}
             readOnly
             marks={false}

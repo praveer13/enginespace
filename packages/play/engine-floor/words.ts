@@ -1,12 +1,12 @@
 /**
- * Back of House's words and marks (GAMES.md §2.6, "Back of House"; D-049): the kitchen's name for each hand-off, the floor each process
- * stands on, and the drawn mark each hand-off has. All of it is data, so the 2D view, the tray, the mirror and (W1-T18) the 3D scene
- * say the same things.
+ * Request path's words and marks (REDESIGN §2.7, §3.6): the engine's name for each mechanism, the name of each process, and the mark each
+ * mechanism has. All of it is data, so the swimlane, the stage list, the table and the result say the same things.
  *
- * One vocabulary (REDESIGN §2.7): what a learner reads is the engine's term. A tile names its mechanism as TR1 lesson 1 names it, one of
- * five, with the kind where one of them splits ("IPC · socket", "copy · host to device"). The ids (`FloorKind`, `Mechanism`) stay as they are.
+ * What a learner reads is the engine's term. A stage list tile names its mechanism as TR1 lesson 1 names it, one of five, with the kind where
+ * one of them splits ("IPC · socket", "copy · host to device"). The ids (`FloorKind`, `Mechanism`, the stage ids) stay as they are: the 3D
+ * scene and a learner's stored runs read them.
  */
-import type { Mechanism, Place, Scenario } from '@es/sim/lifecycle'
+import type { Mechanism, Place, Scenario, SourceRef } from '@es/sim/lifecycle'
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Hand-offs                                                                                                          */
@@ -24,10 +24,7 @@ export interface MechanismWords {
   readonly does: string
 }
 
-/**
- * The seven hand-offs of GAMES.md §2.6 (spike, window, shelf, dumbwaiter, call, "Heard!", halves) and the work a pair of hands does where
- * the ticket already stands. The dumbwaiter goes down to the line (a host-to-device copy) or comes up from it (device to host).
- */
+/** Each mechanism in words: the tile's, the engine's term, and what it does. A copy goes to the GPU (host to device) or comes back (device to host). */
 export const MECHANISM_WORDS: Readonly<Record<Mechanism, MechanismWords>> = {
   call: { tile: 'compute · call', engine: 'call', does: 'work done where the request already is, on the host' },
   queue: { tile: 'queue', engine: 'queue', does: 'a buffer between two threads, or between two steps of one' },
@@ -40,34 +37,39 @@ export const MECHANISM_WORDS: Readonly<Record<Mechanism, MechanismWords>> = {
   sync: { tile: 'sync', engine: 'sync', does: 'the host waits until the GPU has finished' },
 }
 
-/** The order the legend lists the hand-offs in: the ticket's way down the house and back. */
+/** The order the legend lists the mechanisms in: a request's way from the client to the GPU and back. */
 export const MECHANISM_ORDER: readonly Mechanism[] = ['ipc', 'shm', 'queue', 'call', 'h2d', 'launch', 'collective', 'd2h', 'sync']
 
 /**
- * The mark each hand-off has, drawn on the design system's 24-unit grid: strokes only, one weight (2), round caps and joins, in
- * whatever colour the mark is set in (`currentColor` in the DOM, an ink role in the drawing). A mark is a few paths. None of them is a
- * categorical glyph (a plain triangle, circle, diamond, square, ring or hexagon): the board colours are the only code (§2.6, rule 6),
- * and a hand-off is told by its drawn object and by its word, never by a colour.
+ * The mark each mechanism has, on the design system's 24-unit grid: strokes only, one weight (2), round caps and joins, in whatever colour
+ * the mark is set in. None of them is a categorical glyph (a plain triangle, circle, diamond, square, ring or hexagon): those belong to the
+ * colour code, and a mechanism is told by its mark and its word, never by a colour.
  */
 export const GLYPHS: Readonly<Record<Mechanism, readonly string[]>> = {
-  // A pencil: the hands at work writing the order (tokenizing, scheduling, naming the plates).
-  call: ['M5 19.5l1.1-4.3L16.4 4.9a1.7 1.7 0 0 1 2.4 0l.3.3a1.7 1.7 0 0 1 0 2.4L8.8 17.9z', 'M14.6 6.7l2.7 2.7'],
-  // A spike through a ticket, on its base.
-  queue: ['M12 3.5v15', 'M6.5 20.5h11', 'M7.5 9h9v5.5h-9z'],
-  // A ticket window: the frame, the sill, and the opening.
-  ipc: ['M4 4.5h16v15H4z', 'M4 14.5h16', 'M8 9.5h8v5H8z'],
-  // A ticket on a shelf both floors reach, on its brackets.
-  shm: ['M3 13h18', 'M6.5 13v6.5', 'M17.5 13v6.5', 'M9.5 6.5h5v6.5h-5z'],
-  // The dumbwaiter: a car in its shaft, going down.
-  h2d: ['M5 3v18', 'M19 3v18', 'M8.5 6.5h7v6h-7z', 'M9.5 16l2.5 2.5 2.5-2.5'],
-  // ...and coming up.
-  d2h: ['M5 3v18', 'M19 3v18', 'M8.5 11.5h7v6h-7z', 'M9.5 8l2.5-2.5L14.5 8'],
-  // A call: a shout across the kitchen to the line.
-  launch: ['M4 9.5v5h3.5l6 4.5V5l-6 4.5z', 'M16.8 9.2a4.2 4.2 0 0 1 0 5.6', 'M19.6 6.4a8.2 8.2 0 0 1 0 11.2'],
-  // Two halves of a dish, passed across.
-  collective: ['M10.8 4.5a7.5 7.5 0 0 0 0 15z', 'M13.2 4.5a7.5 7.5 0 0 1 0 15z'],
-  // A boom gate: the post, the arm across, and its stripes. The hands that asked stop here until the line calls back.
-  sync: ['M6 21V4', 'M6 8.5h14', 'M10.5 6.5v4', 'M14.5 6.5v4', 'M18.5 6.5v4'],
+  // A call: a function's parentheses round its argument.
+  call: ['M9 4.5c-3.4 3.6-3.4 11.4 0 15', 'M15 4.5c3.4 3.6 3.4 11.4 0 15', 'M12 12h.01'],
+  // A queue: three slots in a row, first in at the left.
+  queue: ['M3 8.5h5v7H3z', 'M9.5 8.5h5v7h-5z', 'M16 8.5h5v7h-5z'],
+  // IPC over a socket: two ends joined across a process boundary.
+  ipc: ['M2.5 8.5h6v7h-6z', 'M15.5 8.5h6v7h-6z', 'M8.5 12h7', 'M12 3.5v3', 'M12 17.5v3'],
+  // Shared memory: one buffer that stands across the boundary, so both sides reach it.
+  shm: ['M12 3v18', 'M5.5 8h13v8h-13z'],
+  // A copy from the host down to the GPU.
+  h2d: ['M4 4h16', 'M12 7v12', 'M7.5 14.5 12 19l4.5-4.5'],
+  // A copy from the GPU back up to the host.
+  d2h: ['M4 20h16', 'M12 17V5', 'M7.5 9.5 12 5l4.5 4.5'],
+  // A launch: work handed on to run ahead, two chevrons.
+  launch: ['M5 6l6 6-6 6', 'M12 6l6 6-6 6'],
+  // A collective: the ranks swap what they hold.
+  collective: ['M4 8h15', 'M16 5l3 3-3 3', 'M20 16H5', 'M8 13l-3 3 3 3'],
+  // A sync: the host waits, as an hourglass does, until the GPU's work has run through.
+  sync: ['M6.5 3.5h11', 'M6.5 20.5h11', 'M8 3.5 16 20.5', 'M16 3.5 8 20.5'],
+}
+
+/** A stage's name as code: the first identifier its label sets in backticks, or the label itself where it sets none. */
+export function stageName(label: string): string {
+  const code = /`([^`]+)`/.exec(label)
+  return code === null ? label : code[1]
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -75,19 +77,15 @@ export const GLYPHS: Readonly<Record<Mechanism, readonly string[]>> = {
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /**
- * The floors of the house, from the dining room at the top to the line at the bottom (GAMES.md §2.6): the client; the host stand, which
- * is the API server; the order desk, where a tokenizer or a detokenizer works as a process of its own; the pass, where the expo (the
- * scheduler, the engine core) works; the cooks' floors, one for each worker rank; and the line, the GPU, whose burners are its streams.
- * A program that is one process end to end, as nano-vllm's offline library is, is the whole kitchen on one floor.
+ * The kinds of process a path visits, by id: the client; the API server; a tokenizer or detokenizer that is a process of its own; the
+ * engine core (or a rank's scheduler); a worker for another rank; a program that is one process end to end (nano-vllm's offline library);
+ * and the GPU, whose streams have a column of their own. The ids are the old drawing's and stay, since the 3D scene reads them.
  */
 export type FloorKind = 'dining' | 'host' | 'desk' | 'pass' | 'cooks' | 'kitchen' | 'line'
 
 export const FLOOR_KINDS: readonly FloorKind[] = ['dining', 'host', 'desk', 'pass', 'cooks', 'kitchen', 'line']
 
-/**
- * What the screen calls each floor: the engine's name for the process (REDESIGN §2.7). The ids stay the kitchen's, because they are ids;
- * the words a learner reads are these. A program that is one process end to end (nano-vllm's offline library) is "One process".
- */
+/** What the screen calls each kind of process: the engine's name (REDESIGN §2.7). A program that is one process end to end is "One process". */
 export const FLOOR_NAMES: Readonly<Record<FloorKind, string>> = {
   dining: 'Client',
   host: 'API server',
@@ -98,7 +96,7 @@ export const FLOOR_NAMES: Readonly<Record<FloorKind, string>> = {
   line: 'GPU',
 }
 
-/** The floor a process stands on, from its name. A process the table does not know is a cook's floor. */
+/** The kind of a process, from its id. A process the table does not know is a worker. */
 export function floorKindOfProcess(process: string): FloorKind {
   if (process === 'client') return 'dining'
   if (process === 'api-server') return 'host'
@@ -108,7 +106,7 @@ export function floorKindOfProcess(process: string): FloorKind {
   return 'cooks'
 }
 
-/** The floor a place is on: a GPU is always the line, whichever process owns it. */
+/** The kind of a place: a GPU is always the GPU, whichever process owns it. */
 export const floorKindOf = (place: Place): FloorKind => (place.device === 'gpu' ? 'line' : floorKindOfProcess(place.process))
 
 /** A place's key, for maps and sets. */
@@ -150,3 +148,24 @@ export function requestWords(flag: RequestFlag, value: Scenario[RequestFlag]): s
       return value === 2 ? 'two samples' : 'one sample'
   }
 }
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* Words in a line                                                                                                    */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/** The pieces of a text, alternating plain and code: the lifecycle model writes a symbol, a path or a place in backticks. */
+export function splitCode(text: string): { code: boolean; text: string }[] {
+  return text
+    .split('`')
+    .map((piece, index) => ({ code: index % 2 === 1, text: piece }))
+    .filter((piece) => piece.text !== '')
+}
+
+/** The same line as plain words, for a live region or an accessible name: the backticks go, and the words stay. */
+export const plain = (text: string): string => text.replaceAll('`', '')
+
+/** A mechanism in words: one of TR1's five, and its kind where the five split (`IPC · socket`, `copy · host to device`). */
+export const handoffWords = (mechanism: Mechanism): string => MECHANISM_WORDS[mechanism].tile
+
+/** The permalink of a stage's line at the commit it is cited at (A§4.4, TR1's "every code reference is a pinned permalink"). */
+export const permalink = (source: SourceRef): string => `https://github.com/${source.repo}/blob/${source.ref}/${source.path}#L${source.line}`

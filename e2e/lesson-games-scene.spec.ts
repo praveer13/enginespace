@@ -131,7 +131,7 @@ test.describe('one live 3D canvas on a page of two games (acceptance 2)', () => 
 const SCENES = [
   { route: ROUTE, block: FIRST, name: 'Step loop, demo', probe: 'loop' },
   { route: ROUTE, block: SECOND, name: 'Service, the full service', probe: 'loop' },
-  { route: '/m/tr1/l1-five-mechanisms', block: { game: 'engine-floor', level: 'nano', mode: 'practice' }, name: 'Back of House', probe: 'engine-floor' },
+  { route: '/m/tr1/l1-five-mechanisms', block: { game: 'engine-floor', level: 'nano', mode: 'practice' }, name: 'Request path', probe: 'engine-floor' },
   { route: '/m/tr5a/l1-why-one-model-needs-several-kv-caches', block: { game: 'pool', level: 'one-group', mode: 'practice' }, name: 'KV page pool', probe: 'pool' },
   { route: '/m/tr6/l2-the-rejection-sampler-exactly', block: { game: 'verifier', level: 'overlap', mode: 'practice' }, name: 'Rejection sampler', probe: 'verifier' },
 ] as const

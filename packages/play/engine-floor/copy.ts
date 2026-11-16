@@ -13,7 +13,7 @@
  * digit. Neither answers the prediction.
  */
 import type { GoalLine } from '../types'
-import type { FloorLevelId } from './types'
+import type { FloorLevelId, FloorView, LaidView } from './types'
 
 export interface FloorCopy {
   readonly title: string
@@ -100,3 +100,170 @@ export const FLOOR_COPY: Readonly<Record<FloorLevelId, FloorCopy>> = {
     passRule: MAP_PASS,
   },
 }
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* The parts of the swimlane (R-T29, REDESIGN §2.6, §3.5, §3.6)                                                       */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/**
+ * A part of the swimlane, as the parts list names it: an id, the engine's name, one sentence, the levels it is drawn on, and the claim that
+ * sources it on each level. The Parts list, the first-run intro and the source popover all read these rows. A part with no claim on a level
+ * is a model object: the course's model draws it, and the popover says so.
+ */
+export interface FloorPart {
+  readonly id: string
+  readonly name: string
+  readonly sentence: string
+  /** The levels that draw it, or every level. */
+  readonly levels: readonly FloorLevelId[] | 'all'
+  /** The claim (content/claims) that holds it, by level: a fact of the engine that level lays. */
+  readonly claims?: Partial<Readonly<Record<FloorLevelId, string>>>
+}
+
+const THREADED: readonly FloorLevelId[] = ['mini', 'inside', 'vllm', 'sglang', 'abort', 'map']
+
+/** The parts, in the order the list shows them: the five the first level names (REDESIGN §3.5), then what a level adds. */
+export const FLOOR_PARTS: readonly FloorPart[] = [
+  { id: 'request', name: 'The request', sentence: 'One request, drawn as the first node at the top: where it begins. Time runs down the page from it.', levels: 'all' },
+  {
+    id: 'processes',
+    name: 'Processes',
+    sentence: 'One column each, named at its head; the GPU has a column of its own at the right. A change of process needs IPC or shared memory.',
+    levels: 'all',
+    claims: {
+      'nano-tp': 'nano-vllm.tp-worker-process',
+      mini: 'mini-sglang.processes',
+      inside: 'vllm.request.engine-core-process',
+      vllm: 'vllm.request.engine-core-process',
+      sglang: 'sglang.engine.components',
+      abort: 'vllm.request.engine-core-process',
+    },
+  },
+  { id: 'stage-list', name: 'Stage list', sentence: 'What can happen next: every stage you may lay, with its mechanism and where it runs. Filter it by process or by typing.', levels: 'all' },
+  {
+    id: 'hop',
+    name: 'A hop',
+    sentence: 'An arrow from one stage to the next, labelled with its mechanism as a mark and a word: compute (a call or a launch), a queue, IPC, a copy or a sync.',
+    levels: 'all',
+    claims: { mini: 'mini-sglang.transport', sglang: 'sglang.engine.ipc', inside: 'vllm.engine-core.queues', vllm: 'vllm.engine-core.queues', abort: 'vllm.engine-core.queues' },
+  },
+  {
+    id: 'boundaries',
+    name: 'Boundaries crossed',
+    sentence: 'The count you will predict: the hops from one process to another on a sampled token’s way to the client.',
+    levels: 'all',
+  },
+  {
+    id: 'threads',
+    name: 'Threads',
+    sentence: 'The thin sub-columns of a process. A change of thread inside a process needs a queue.',
+    levels: THREADED,
+    claims: { inside: 'vllm.engine-core.queues', vllm: 'vllm.engine-core.queues', abort: 'vllm.engine-core.queues' },
+  },
+  {
+    id: 'sync',
+    name: 'Sync',
+    sentence: 'The host waits for the GPU before it reads what a copy brought back to it.',
+    levels: 'all',
+    claims: {
+      nano: 'lifecycle.torch.copy-synchronizes',
+      'nano-tp': 'lifecycle.torch.copy-synchronizes',
+      inside: 'lifecycle.torch.copy-synchronizes',
+      vllm: 'vllm.async-output.event-sync',
+      abort: 'vllm.async-output.event-sync',
+      mini: 'mini-sglang.overlap-default',
+      sglang: 'sglang.overlap.loop',
+    },
+  },
+  {
+    id: 'copy',
+    name: 'Copy',
+    sentence: 'A host-to-device copy sends a step’s inputs to the GPU, and a device-to-host copy brings the sampled ids back to the host.',
+    levels: 'all',
+    claims: { vllm: 'vllm.async-output.copy-stream', abort: 'vllm.async-output.copy-stream' },
+  },
+  {
+    id: 'one-process',
+    name: 'One process',
+    sentence: 'nano-vllm as an offline library: the caller, the scheduler and the model runner share one process and one thread.',
+    levels: ['nano', 'nano-tp'],
+    claims: { 'nano-tp': 'nano-vllm.tp-worker-process' },
+  },
+  {
+    id: 'async',
+    name: 'Async scheduling',
+    sentence: 'The busy loop launches a step and plans the next before it reads the last back; the step’s future waits in `batch_queue`.',
+    levels: ['vllm', 'abort'],
+    claims: { vllm: 'vllm.step.batch-queue', abort: 'vllm.step.batch-queue' },
+  },
+  { id: 'shm', name: 'Shared memory', sentence: 'A buffer two processes both reach: how nano-vllm passes each call to the second rank’s worker.', levels: ['nano-tp'], claims: { 'nano-tp': 'nano-vllm.tp-shared-memory' } },
+  { id: 'collective', name: 'Collective', sentence: 'A hop between the GPUs of two ranks: each layer’s partial results gathered to rank 0.', levels: ['nano-tp'], claims: { 'nano-tp': 'nano-vllm.logits-gather' } },
+  { id: 'now', name: 'now', sentence: 'The amber line on the row the next stage starts from: the end of the laid path, or where a run stopped.', levels: 'all' },
+]
+
+/** The parts a level draws, in the list's order. */
+export const floorPartsOf = (level: FloorLevelId): readonly FloorPart[] => FLOOR_PARTS.filter((part) => part.levels === 'all' || part.levels.includes(level))
+
+/** The claim a part has on a level, or undefined for a model object. */
+export const partClaim = (part: FloorPart, level: FloorLevelId): string | undefined => part.claims?.[level]
+
+/** Why the prediction cannot be skipped, said beside it (REDESIGN §2.6: where the session allows no skip, the dock says why). */
+export const NO_SKIP = 'No skip here: the level needs your prediction before the first stage, and the stage list opens once it is in. The run answers it.'
+
+/** The prediction's hint: what counts. */
+export const PREDICT_HINT = 'Count each hop from one process to another, the last one into the client included. A hop between threads of one process does not count.'
+
+/** What the dock says on the graded run of the map, before it starts (REDESIGN §3.6). */
+export const GRADED_LINE = 'A graded run: a fresh scenario, one run and no undo. It has no live readout: the counts come with the result.'
+
+/** What the lesson dock's Step does here. */
+export const FLOOR_DOCK_STEP = 'Step runs the path as laid. Lay the stages in the run itself.'
+
+/** The readout strip's numbers, by id (REDESIGN §3.5: stages laid · boundaries crossed · copies · syncs). */
+export const READOUT_WORDS = { laid: 'stages laid', boundaries: 'boundaries crossed', copies: 'copies', syncs: 'syncs' } as const
+
+/** A stage the source of which is shown only once a run has judged it: its file names a repository, which would say whose stage it is. */
+export const SOURCE_LATER = 'Its source shows once a run has judged it: the file would say whose stage it is.'
+
+/** The head of a stop that broke no rule: the stage is legal where the request is, and is not the engine's next (a rule's head is its own words). */
+export const PATH_HEAD = 'Legal here, and not the stage this engine makes next.'
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* Named moments (REDESIGN §2.6, §3.5)                                                                                */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/** A rule named the first time it is felt in a level: the line, and the row it is said beside. */
+export interface FloorMoment {
+  readonly id: string
+  /** The row the moment is about, or null when it did not occur between these two views. */
+  readonly at: (before: FloorView, after: FloorView) => number | null
+  readonly line: (after: FloorView, row: number) => string
+}
+
+/** The stages a run took the request through that it had not been through before. */
+const newlyRan = (before: FloorView, after: FloorView): readonly LaidView[] => (after.runs > before.runs ? after.laid.filter((stage) => stage.state === 'ran' && stage.index >= before.reached) : [])
+
+const firstOf = (stages: readonly LaidView[], test: (stage: LaidView) => boolean): number | null => stages.find(test)?.index ?? null
+
+export const FLOOR_MOMENTS: readonly FloorMoment[] = [
+  {
+    id: 'process',
+    at: (before, after) => firstOf(newlyRan(before, after), (stage) => stage.from.process !== stage.to.process && (stage.mechanism === 'ipc' || stage.mechanism === 'shm')),
+    line: (after, row) => `That hop crosses a process boundary: it is ${after.laid[row]?.mechanism === 'shm' ? 'shared memory' : 'IPC'}, not a function call.`,
+  },
+  {
+    id: 'copy',
+    at: (before, after) => firstOf(newlyRan(before, after), (stage) => stage.mechanism === 'h2d'),
+    line: () => 'That hop is a copy: the step’s inputs move from host memory to the GPU.',
+  },
+  {
+    id: 'sync',
+    at: (before, after) => firstOf(newlyRan(before, after), (stage) => stage.mechanism === 'sync'),
+    line: () => 'The host waits here: a sync, so nothing reads what the copy brought back before it has landed.',
+  },
+  {
+    id: 'stopped',
+    at: (before, after) => (after.runs > before.runs && after.stop !== null ? after.stop.at : null),
+    line: () => 'A run stops at the first stage that does not hold, and says which rule it broke.',
+  },
+]

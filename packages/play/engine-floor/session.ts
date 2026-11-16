@@ -251,8 +251,8 @@ export function floorGrade(mine: FloorState, ghost: FloorState): Grade {
 export function floorDebrief(mine: FloorState): Debrief {
   if (mine.mistake === null) {
     return mine.served
-      ? { sentence: 'Every hand-off held on the first run: the ticket crossed each boundary through the mechanism the engine uses there, and in the order the engine uses them.', names: null }
-      : { sentence: 'The ticket stopped short: the stages laid all held, and the path ends before the request is back where it began.', names: null }
+      ? { sentence: 'Every hand-off held on the first run: the request crossed each boundary through the mechanism the engine uses there, and in the order the engine uses them.', names: null }
+      : { sentence: 'The path stopped short: the stages laid all held, and the path ends before the request is back where it began.', names: null }
   }
   return { sentence: `The first stage that did not hold. ${stopOfMistake(mine.level.scenario, mine.mistake).sentence}`, names: { turn: mine.mistake.turn } }
 }

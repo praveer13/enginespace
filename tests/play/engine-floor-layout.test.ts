@@ -1,6 +1,12 @@
 /*
- * Back of House's drawing (GAMES.md §5 "2D path", §2.6 "Back of House"; A§6.3, A§6.4): the layout holds its promises on every scenario of the
- * model, in both orientations, and in the states a run passes through.
+ * Request path's two drawings.
+ *
+ * The swimlane (packages/play/engine-floor/lanes.ts, REDESIGN §3.6, R-T29), which the page plays on: one column per process, a row per laid
+ * stage, an arrow labelled with its mechanism's mark and word, and nothing named that the old house drawing did not name at the same moment,
+ * for every level's states including a sealed map run. Its tests are the last groups of this file.
+ *
+ * The old house drawing (layout.ts), which the 3D scene still reads until R-T43 removes it (GAMES.md §5 "2D path"; A§6.3, A§6.4): the layout
+ * holds its promises on every scenario of the model, in both orientations, and in the states a run passes through.
  *
  *   - It paints with token roles and nothing else, stays inside its frame, and stays under the cap of 2,000 marks.
  *   - Nothing overlaps: the stops' tiles and chits, and the ticket, stand clear of one another on every path.
@@ -14,19 +20,16 @@
  * 88 scenarios is printed by the test.
  */
 import { describe, expect, test } from 'bun:test'
-import { createElement as h } from 'react'
-import { renderToStaticMarkup } from 'react-dom/server'
-import { StaticRouter } from 'react-router'
 import { MARK_CAP, PAINTS, frameSvg, layoutMap, mapOfScenario, mapOfView, markCount } from '@es/play/engine-floor/layout'
+import { ARROW_WORDS, LANES_DESK, LANES_PHONE, ROWS_IN_VIEW, ROW_MIN, fitRow, lanesOfScenario, lanesOfView, layoutLanes, namedOn, nameWidth, tagWidth } from '@es/play/engine-floor/lanes'
+import { floorReduce } from '@es/play/engine-floor/session'
+import type { FloorAction, FloorState } from '@es/play/engine-floor/types'
 import type { Frame, Mark, MapInput, Orientation } from '@es/play/engine-floor/layout'
 import { floorView } from '@es/play/engine-floor/session'
-import { referenceOf } from '@es/play/engine-floor/stages'
-import { GLYPHS } from '@es/play/engine-floor/words'
+import { GLYPHS, MECHANISM_WORDS, stageName } from '@es/play/engine-floor/words'
 import { MECHANISMS, describeScenario } from '@es/sim/lifecycle'
 import { ROLES } from '@/design/tokens'
-import { svgToReact } from '@/games/engine-floor/svg'
-import { View2D } from '@/games/engine-floor/View2D'
-import { ALL_SCENARIOS, fakeRun, laidTo, levelOf, ranTo, walk } from './engine-floor-support'
+import { ALL_SCENARIOS, laidTo, levelOf, ranTo, walk } from './engine-floor-support'
 
 const ORIENTATIONS: readonly Orientation[] = ['landscape', 'portrait']
 
@@ -297,15 +300,158 @@ describe('the SVG', () => {
     for (const mechanism of MECHANISMS) expect([mechanism, drawn.has(mechanism)]).toEqual([mechanism, true])
     for (const mechanism of MECHANISMS) expect(GLYPHS[mechanism].length).toBeGreaterThan(0)
   })
+})
 
-  test('is the same tree on the server as in the page: View2D paints the SVG that frameSvg writes, and its first frame is the house before the prediction', () => {
-    const state = walk(vllm)
-    const markup = renderToStaticMarkup(h(StaticRouter, { location: '/play/engine-floor' }, h(View2D, { run: fakeRun(state) })))
-    expect(markup).toContain('data-orientation="landscape"')
-    expect(markup).toContain('aria-label="vLLM at the pin. No stage is laid. The ticket stands at client · http-client."')
-    const alone = renderToStaticMarkup(svgToReact(frameSvg(layoutMap(mapOfView(floorView(state))), 'x')))
-    expect(alone).toContain('<svg')
-    expect(markup).toContain('stands at')
-    expect(referenceOf(vllm.scenario).length).toBe(22)
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* The swimlane                                                                                                       */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+const lay = (stage: string): FloorAction => ({ t: 'lay', stage })
+
+/** A level's states as a learner passes through them: before and after the prediction, laid, run, stopped, a stranger laid, and over. */
+function statesOf(id: string, seed = 0): [string, FloorState][] {
+  const level = levelOf(id, seed)
+  const ref = level.reference
+  const stranger = level.tray.find((stage) => !ref.includes(stage)) as string
+  const stopped = walk(level, { t: 'commit', prediction: 2 }, ...ref.slice(0, 3).map(lay), lay(ref[5]), { t: 'run' })
+  const out: [string, FloorState][] = [
+    ['before the prediction', walk(level)],
+    ['the prediction in', laidTo(level, 0)],
+    ['three laid', laidTo(level, 3)],
+    ['five run', ranTo(level, 5)],
+    ['a stage of another engine laid', walk(level, { t: 'commit', prediction: 1 }, lay(ref[0]), lay(stranger))],
+  ]
+  // The graded map allows one run: a stopped run there is the end of it.
+  out.push(['stopped', stopped])
+  if (level.attempts === null) out.push(['stopped, then laid on', floorReduce(stopped, lay(ref[6]))])
+  out.push(['over', ranTo(level, ref.length)])
+  return out
+}
+
+const LEVEL_IDS = ['nano', 'nano-tp', 'mini', 'inside', 'vllm', 'sglang', 'abort', 'map'] as const
+
+/** What the old house drawing named in the same view: its floors' and lanes' tapes, and a stop for each laid stage. */
+function oldNames(state: FloorState): { words: Set<string>; stages: Set<number> } {
+  const frame = layoutMap(mapOfView(floorView(state)))
+  const words = new Set(marksOf(frame, 'floors').concat(marksOf(frame, 'lanes')).flatMap((mark) => (mark.kind === 'text' ? [mark.text.toLowerCase()] : [])))
+  const stages = new Set(marksOf(frame).flatMap((mark) => (mark.stage === undefined ? [] : [mark.stage])))
+  return { words, stages }
+}
+
+describe('the swimlane names nothing the old 2D view did not, in the same state (REDESIGN §3.6)', () => {
+  for (const id of LEVEL_IDS) {
+    // The graded map on its practice seed and on a few drawn seeds: a sealed run of other engines too.
+    const seeds = id === 'map' ? [0, 1, 7, 40] : [0]
+    for (const seed of seeds) {
+      test(`${id}${seed === 0 ? '' : ` on seed ${seed}`}: every process, thread and stage the swimlane names, the house drawing named`, () => {
+        for (const [label, state] of statesOf(id, seed)) {
+          const view = floorView(state)
+          const named = namedOn(layoutLanes(lanesOfView(view)))
+          const old = oldNames(state)
+          for (const name of [...named.processes, ...named.threads]) expect([label, name, old.words.has(name.toLowerCase())]).toEqual([label, name, true])
+          const laid = new Set(view.laid.map((stage) => stage.id))
+          for (const stage of named.stages) expect([label, stage, laid.has(stage)]).toEqual([label, stage, true])
+          expect([label, named.stages.length]).toEqual([label, old.stages.size])
+        }
+      })
+    }
+  }
+
+  test('before the prediction no column is drawn, only the request, which the old drawing drew too', () => {
+    for (const id of LEVEL_IDS) {
+      const lanes = layoutLanes(lanesOfView(floorView(walk(levelOf(id)))))
+      expect([id, lanes.columns.length, lanes.rows.length]).toEqual([id, 0, 0])
+    }
+  })
+
+  test('in practice the columns of the whole path stand once the prediction is in, and laying a stage moves none of them', () => {
+    const level = levelOf('vllm')
+    const first = layoutLanes(lanesOfView(floorView(laidTo(level, 0))))
+    expect(first.columns.map((column) => column.key)).toEqual(['client', 'api-server', 'engine-core', 'gpu'])
+    for (const n of [3, 9, level.reference.length]) {
+      const later = layoutLanes(lanesOfView(floorView(laidTo(level, n))))
+      expect(later.columns).toEqual(first.columns)
+    }
+  })
+
+  test('in a sealed run a column appears when the route first reaches it, and the path\'s length is never in the layout', () => {
+    for (const seed of [0, 1, 7, 40]) {
+      const level = levelOf('map', seed)
+      const before = floorView(laidTo(level, 0))
+      expect(before.sealed).toBe(true)
+      const empty = layoutLanes(lanesOfView(before))
+      expect(empty.columns.map((column) => column.process)).toEqual([before.entry.process])
+      let seen = empty.columns.length
+      for (let n = 1; n <= level.reference.length; n++) {
+        const view = floorView(laidTo(level, n))
+        const lanes = layoutLanes(lanesOfView(view))
+        expect(lanes.columns.length).toBeGreaterThanOrEqual(seen)
+        seen = lanes.columns.length
+        // The layout is a function of what is laid: the same if the path were any other length.
+        expect(layoutLanes(lanesOfView({ ...view, stages: view.stages + 13 }))).toEqual(lanes)
+        expect(lanes.height).toBe(LANES_DESK.head + LANES_DESK.start + n * LANES_DESK.row + LANES_DESK.pad)
+      }
+    }
+  })
+})
+
+describe('the swimlane\'s geometry (REDESIGN §3.6)', () => {
+  test('one column per process, its threads as sub-columns, the GPU\'s streams last, and the request\'s node in the column it begins in', () => {
+    const lanes = layoutLanes(lanesOfScenario(levelOf('inside').scenario))
+    expect(lanes.columns.map((column) => [column.key, column.threads.map((thread) => thread.name)])).toEqual([
+      ['client', ['http-client']],
+      ['api-server', ['handler-task', 'socket-task', 'output-handler-task']],
+      ['engine-core', ['input-thread', 'main', 'output-thread']],
+      ['gpu', ['engine-core stream']],
+    ])
+    expect(lanes.start.x).toBe(lanes.columns[0].threads[0].x)
+  })
+
+  test('time runs down: each row is one row lower than the last, and its arrow runs from the node before to its own', () => {
+    for (const sc of ALL_SCENARIOS) {
+      const lanes = layoutLanes(lanesOfScenario(sc))
+      let prev = lanes.start
+      for (const row of lanes.rows) {
+        expect(row.y - (row.index === 0 ? lanes.start.y : lanes.rows[row.index - 1].y)).toBe(row.index === 0 ? LANES_DESK.start / 2 + LANES_DESK.row / 2 : LANES_DESK.row)
+        expect(row.path[0][0]).toBe(prev.x)
+        expect(row.path.at(-1)?.[0]).toBe(row.x)
+        expect(row.joined).toBe(true)
+        prev = row
+      }
+    }
+  })
+
+  test('fourteen rows fit in the box the frame gives the diagram at 1440 x 900, and the row is never cramped', () => {
+    // The frame's body at 900 px is 100svh - 23.5rem = 524 px high, and the legend takes about 40 of it [estimated from frame.css].
+    const box = 524 - 40
+    const row = fitRow(box, LANES_DESK)
+    expect(row).toBeGreaterThanOrEqual(ROW_MIN)
+    expect(LANES_DESK.head + LANES_DESK.start + ROWS_IN_VIEW * row + LANES_DESK.pad).toBeLessThanOrEqual(box)
+  })
+
+  test('on every path an arrow\'s word never shares a line with a node\'s name, and both stay on the diagram, at desk and phone widths', () => {
+    for (const geometry of [LANES_DESK, LANES_PHONE]) {
+      for (const sc of ALL_SCENARIOS) {
+        const lanes = layoutLanes(lanesOfScenario(sc), geometry)
+        for (const row of lanes.rows) {
+          const tag = row.tag.side === 'left' ? { from: row.tag.x - tagWidth(row.mechanism), to: row.tag.x } : { from: row.tag.x, to: row.tag.x + tagWidth(row.mechanism) }
+          expect([describeScenario(sc), row.id, tag.from >= geometry.gutter - 1, tag.to <= lanes.width]).toEqual([describeScenario(sc), row.id, true, true])
+          // The name reads on one side of the node and the arrow's word on the other, or a quarter row above it.
+          if (row.side === row.tag.side) expect(row.y - row.tag.y).toBeGreaterThanOrEqual(geometry.row / 4)
+          expect(row.room).toBeGreaterThan(0)
+          expect(stageName(row.label).length).toBeGreaterThan(0)
+          expect(nameWidth(row.name)).toBeGreaterThan(0)
+        }
+      }
+    }
+  })
+
+  test('each mechanism has a mark of its own and a word, and none is told apart by colour: the arrows are drawn in ink', () => {
+    const marks = new Set(MECHANISMS.map((mechanism) => GLYPHS[mechanism].join(' ')))
+    expect(marks.size).toBe(MECHANISMS.length)
+    for (const mechanism of MECHANISMS) {
+      expect(ARROW_WORDS[mechanism].length).toBeGreaterThan(1)
+      expect(MECHANISM_WORDS[mechanism].tile.length).toBeGreaterThan(1)
+    }
   })
 })
