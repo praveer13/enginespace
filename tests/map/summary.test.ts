@@ -68,11 +68,11 @@ describe('the copy', () => {
     expect(MAP.title).toBe('Course')
   })
 
-  test('of the Play index holds no such number either, and names the board', () => {
+  test('of the Play index holds no such number either, and names the page', () => {
     expect(specialsCopy().length).toBeGreaterThan(8)
     expect(specialsCopy().flatMap((text) => untaggedNumbers(text))).toEqual([])
     expect(SPECIALS.title).toBe('Games')
-    expect(SPECIALS.poster.none).toBe('No picture yet')
+    expect(SPECIALS.notPublished).toBe('Not published yet')
   })
 
   test('reads in the words the architecture uses: the three lanes, and the four states', () => {

@@ -7,7 +7,7 @@
  *    learner comes back from the ledger after a reload, and goes when the ledger does.)
  *
  * And what the checks cannot see from the markup: Course is one column in the order of the course with its first lesson inside 700 px,
- * the Play index is a board of lines and not a grid of cards, the pictures are drawn, and axe finds no serious or critical violation at 320, 360 and 1280 px on the three pages, with the learner's evidence on them as well.
+ * the Games index is a plain list with no picture boxes, and axe finds no serious or critical violation at 320, 360 and 1280 px on the three pages, with the learner's evidence on them as well.
  *
  *   npx playwright test e2e/map.spec.ts
  *
@@ -315,112 +315,120 @@ test.describe('a module page', () => {
 /* The Play index                                                                                                      */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-test.describe('the Play index', () => {
+test.describe('the Games index', () => {
   test.use({ viewport: { width: 1440, height: 900 } })
 
-  test('is a board of lines, one under the next, and not a grid of cards', async ({ page, context }) => {
+  test('is a plain list of nine rows, one under the next, with no picture box', async ({ page, context }) => {
     await withSettings(context, { view3d: false })
     await open(page, '/play')
     const lines = await page.locator('li.es-line').evaluateAll((items) => items.map((item) => ({ game: item.getAttribute('data-game'), ...(({ left, right, top, bottom }) => ({ left, right, top, bottom }))(item.getBoundingClientRect()) })))
     expect(lines.length).toBe(9)
     for (let at = 1; at < lines.length; at += 1) {
-      // Each line stands under the one before it, as wide as the board, and does not overlap it.
       expect(lines[at].top, `${lines[at].game} starts below ${lines[at - 1].game}`).toBeGreaterThanOrEqual(lines[at - 1].bottom - 1)
       expect(Math.abs(lines[at].left - lines[0].left)).toBeLessThan(2)
       expect(Math.abs(lines[at].right - lines[0].right)).toBeLessThan(2)
     }
-    const board = await page.locator('.es-specials__board').boundingBox()
-    expect(lines[0].right - lines[0].left).toBeGreaterThan((board?.width ?? 0) * 0.8)
+    await expect(page.locator('.es-poster, .es-line__well')).toHaveCount(0)
+    await expect(page.getByText('No picture yet')).toHaveCount(0)
   })
 
-  test('shows each game\'s name over its subtitle, with its module and its view, and Service\'s poster is drawn in its well', async ({ page, context }) => {
+  test('shows each game\'s name, role line and rule, and its levels as practice or graded', async ({ page, context }) => {
     await withSettings(context, { view3d: false })
     await open(page, '/play')
     const service = page.locator('li.es-line[data-game="loop"]')
-    const name = await service.locator('.es-line__title').boundingBox()
-    const subtitle = await service.locator('.es-line__subtitle').boundingBox()
-    expect(name && subtitle && subtitle.y >= name.y + name.height - 1).toBe(true)
     await expect(service.locator('.es-line__title')).toHaveText('Step loop')
-    await expect(service.locator('.es-line__subtitle')).toHaveText('Keep every slot live, and never make the GPU wait for the CPU.')
+    await expect(service.locator('.es-line__role')).toHaveText('You are the scheduler.')
+    await expect(service.locator('.es-line__rule')).toHaveText('Keep every slot live, and never make the GPU wait for the CPU.')
     await expect(service.locator('.es-line__facts')).toContainText('TR2')
-    await expect(service.locator('.es-line__facts')).toContainText('3D')
-    await expect(service.locator('.es-poster')).toHaveAttribute('data-state', 'drawn')
-    const poster = await service.locator('.es-poster svg').boundingBox()
-    expect(poster?.width ?? 0).toBeGreaterThan(200)
-    expect(poster?.height ?? 0).toBeGreaterThan(80)
-    // The drawing has marks, so it is a picture and not an empty box.
-    expect(await service.locator('.es-poster svg rect, .es-poster svg path, .es-poster svg line').count()).toBeGreaterThan(20)
-    // It has a name for a reader that cannot see it.
-    await expect(service.locator('.es-poster svg')).toHaveAttribute('role', 'img')
-    expect(((await service.locator('.es-poster svg').getAttribute('aria-label')) ?? '').length).toBeGreaterThan(10)
+    const order = await service.locator('.es-line__title, .es-line__role, .es-line__rule').evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().top))
+    expect([...order].sort((a, b) => a - b)).toEqual(order)
+    await expect(service.locator('.es-gl[data-kind="graded"]')).not.toHaveCount(0)
+    await expect(service.locator('.es-gl[data-kind="practice"]')).not.toHaveCount(0)
+    await expect(service.locator('.es-gl').first().locator('.es-gl__kind')).toHaveText('practice')
   })
 
-  test('the poster is a file that comes after the page, and its well keeps its shape while it comes', async ({ page, context }) => {
+  test('says a level is not yet, passed in practice or passed, from the ledger', async ({ page, context }) => {
     await withSettings(context, { view3d: false })
-    let release: () => void = () => undefined
-    const held = new Promise<void>((resolve) => {
-      release = resolve
-    })
-    await page.route('**/posters/loop-first-frame-landscape.svg', async (route) => {
-      await held
-      await route.continue()
-    })
+    const run = (id: string, level: string, provenance: 'unseen' | 'practice'): LedgerEvent => ({
+      id,
+      v: 1,
+      kind: 'play',
+      ref: `play:loop/${level}`,
+      at: AT,
+      tz: 0,
+      day: AT.slice(0, 10),
+      dev: 'dev-e2e-0001',
+      score: 1,
+      ok: true,
+      provenance,
+      seed: 1,
+      data: { actions: '', actionsSha256: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855' },
+    } as unknown as LedgerEvent)
+    await putIn(page, [run('e2e-p1', 'first-1-fill', 'practice'), run('e2e-p2', 'close', 'unseen')])
     await open(page, '/play')
-    const line = page.locator('li.es-line[data-game="loop"]')
-    const poster = line.locator('.es-poster')
-    await expect(poster).toHaveAttribute('data-state', 'reading')
-    const before = { line: await line.boundingBox(), poster: await poster.boundingBox() }
-    expect(before.poster?.height ?? 0).toBeGreaterThan(80)
-    release()
-    await expect(poster).toHaveAttribute('data-state', 'drawn')
-    const after = { line: await line.boundingBox(), poster: await poster.boundingBox() }
-    // Nothing on the board moved when the picture came.
-    expect(Math.abs((after.poster?.width ?? 0) - (before.poster?.width ?? 0))).toBeLessThan(1)
-    expect(Math.abs((after.poster?.height ?? 0) - (before.poster?.height ?? 0))).toBeLessThan(1.5)
-    expect(Math.abs((after.line?.height ?? 0) - (before.line?.height ?? 0))).toBeLessThan(1.5)
-    expect(Math.abs((after.line?.y ?? 0) - (before.line?.y ?? 0))).toBeLessThan(1.5)
+    const service = page.locator('li.es-line[data-game="loop"]')
+    await expect(service.locator('.es-gl[data-level="first-1-fill"] .es-gl__attempt')).toHaveText('passed in practice')
+    await expect(service.locator('.es-gl[data-level="close"] .es-gl__attempt')).toHaveText('passed')
+    await expect(service.locator('.es-gl[data-level="first-2-slot"] .es-gl__attempt')).toHaveText('not yet')
   })
 
-  test('a poster that does not come leaves a well that says so, and the game can still be played', async ({ page, context }) => {
-    await withSettings(context, { view3d: false })
-    // A static host that has no such file answers with the page's own document, and not with a poster (the unit tests also cover a 404 and a refused fetch).
-    await page.route('**/posters/loop-first-frame-landscape.svg', (route) => route.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><html><head></head><body></body></html>' }))
-    await open(page, '/play')
-    const line = page.locator('li.es-line[data-game="loop"]')
-    await expect(line.locator('.es-poster')).toHaveAttribute('data-state', 'missing')
-    await expect(line.locator('.es-poster')).toContainText('No picture yet')
-    await expect(line.locator('.es-poster svg')).toHaveCount(0)
-    await line.locator('a.es-stub__pull').click()
-    await expect(page).toHaveURL(/\/play\/loop$/)
-  })
-
-  test('links Service to /play/loop, and a game that is not built is arriving and has no link', async ({ page, context }) => {
+  test('links a published game to /play/<id>, and a game that is not published says so and has no link', async ({ page, context }) => {
     await withSettings(context, { view3d: false })
     await open(page, '/play')
-    const arriving = page.locator('li.es-line[data-status="arriving"]')
-    expect(await arriving.count()).toBeGreaterThanOrEqual(4)
-    await expect(arriving.locator('a[href^="/play/"]')).toHaveCount(0)
+    const unpublished = page.locator('li.es-line[data-status="unpublished"]')
+    expect(await unpublished.count()).toBeGreaterThanOrEqual(4)
+    await expect(unpublished.locator('a[href^="/play/"]')).toHaveCount(0)
     await expect(page.locator('li.es-line[data-game="shape-shifter"]')).toContainText('Not published yet')
-    const links = await page.locator('a[href^="/play/"]').evaluateAll((anchors) => anchors.map((anchor) => anchor.getAttribute('href')))
+    const links = await page.locator('a[href^="/play/"]').evaluateAll((anchors) => anchors.map((anchor) => anchor.getAttribute('href') as string))
     expect(links).toContain('/play/loop')
-    // Every link on the page is to a game that opens: none is a page that says "Game not found".
     for (const href of links) {
-      await page.goto(href as string)
+      await page.goto(href)
       await expect(page.getByRole('heading', { level: 1 })).not.toHaveText('Game not found')
     }
     await open(page, '/play')
-    await page.locator('li.es-line[data-game="loop"] a.es-stub__pull').click()
+    await page.locator('li.es-line[data-game="loop"] a.es-line__play').click()
     await expect(page).toHaveURL(/\/play\/loop$/)
   })
 
-  test('is reached by the keyboard: the Play stub takes focus and Enter opens the game', async ({ page, context }) => {
+  test('links Traces from the foot, and a level opens at its own level', async ({ page, context }) => {
     await withSettings(context, { view3d: false })
     await open(page, '/play')
-    const stub = page.locator('li.es-line[data-game="loop"] a.es-stub__pull')
-    await stub.focus()
-    await expect(stub).toBeFocused()
+    await expect(page.getByRole('link', { name: 'Traces' })).toHaveAttribute('href', '/trace-room')
+    await page.locator('li.es-line[data-game="loop"] a.es-gl__name', { hasText: 'Refill a slot' }).click()
+    await expect(page).toHaveURL(/\/play\/loop\?level=first-2-slot$/)
+  })
+
+  test('is reached by the keyboard: the Play link takes focus and Enter opens the game', async ({ page, context }) => {
+    await withSettings(context, { view3d: false })
+    await open(page, '/play')
+    const play = page.locator('li.es-line[data-game="loop"] a.es-line__play')
+    await play.focus()
+    await expect(play).toBeFocused()
     await page.keyboard.press('Enter')
     await expect(page).toHaveURL(/\/play\/loop$/)
+  })
+})
+
+test.describe('a page that is not published yet', () => {
+  test.use({ viewport: { width: 1440, height: 900 } })
+
+  test('says Not published yet, names no task or wave, and hands the learner back to Continue', async ({ page, context }) => {
+    await withSettings(context, { view3d: false })
+    await context.addInitScript(() => {
+      try {
+        localStorage.setItem('es:next', JSON.stringify({ href: '/m/tr2/l1-why-the-loop-is-a-loop', label: 'Continue: TR2 lesson 1, read why', word: 'Continue', minutes: 20 }))
+      } catch {
+        // A browser without storage keeps the way on of an empty ledger.
+      }
+    })
+    for (const route of ['/trace-room', '/changes', '/labs/tr8.replay']) {
+      await open(page, route)
+      await expect(page.getByText('Not published yet')).toBeVisible()
+      await expect(page.getByText(/\bW\d(-T\d+)?\b|Arriving with|Not built yet/)).toHaveCount(0)
+      const way = page.getByRole('navigation', { name: 'The way on' }).getByRole('link')
+      await expect(way).toContainText('Continue: TR2 lesson 1')
+      await expect(way).toHaveAttribute('href', '/m/tr2/l1-why-the-loop-is-a-loop')
+    }
   })
 })
 

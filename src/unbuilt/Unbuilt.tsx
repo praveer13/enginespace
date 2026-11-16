@@ -1,15 +1,17 @@
 import type { ReactNode } from 'react'
 import { Icon } from '@/design/components/Glyph'
-import { Stub } from '@/design/components/Stub'
+import { ContinueLink } from '@/design/components/Board'
 import { TapeLabel } from '@/design/components/TapeLabel'
 import { Ticket, TicketLine } from '@/design/components/Ticket'
 import '@/pages/panels.css'
-import { waveOf, type UnbuiltCopy } from './copy'
+import { usePointer } from '@/settings/usePlace'
+import type { UnbuiltCopy } from './copy'
 
 /*
- * A page that is not built yet (W1b-T09): its name stamped on a plate over what it is for, then one ticket that lists what it will hold,
- * says in the ribbon's red that it is not built, and names the task and the wave that build it. The stub at the ticket's foot is the
- * way on to a page that is built, so a visitor who followed a link here has somewhere to go. The words are src/unbuilt/copy.ts's.
+ * A page that is not published yet: its name over what it is for, then one sheet that lists what it will hold and says, in the second
+ * ink, that it is not published yet. Under the sheet is Continue, the same control as the header's and the same answer (the pointer),
+ * so a visitor who followed a link here is handed back to the course. The words are src/unbuilt/copy.ts's, and none of them names a
+ * task or a wave.
  *
  * It sets no title of its own: the route names one, and a page whose title depends on its address (a lab's) sets it itself.
  */
@@ -23,7 +25,8 @@ export interface UnbuiltProps extends UnbuiltCopy {
   children?: ReactNode
 }
 
-export function Unbuilt({ title, lead, heading, holds, tasks, next, facts = [], tapes = [], children }: UnbuiltProps) {
+export function Unbuilt({ title, lead, heading, holds, facts = [], tapes = [], children }: UnbuiltProps) {
+  const pointer = usePointer()
   return (
     <div className="es-page es-unbuilt" data-page="unbuilt">
       <header className="es-page__header">
@@ -45,8 +48,6 @@ export function Unbuilt({ title, lead, heading, holds, tasks, next, facts = [], 
         width="wide"
         title={heading}
         titleAs="h2"
-        foot={[`Arriving with ${waveOf(tasks[0])}`, tasks.join(' · ')]}
-        stub={<Stub to={next.to}>{next.label}</Stub>}
       >
         {facts.map((fact) => (
           <p key={fact}>
@@ -60,10 +61,13 @@ export function Unbuilt({ title, lead, heading, holds, tasks, next, facts = [], 
         </ul>
         <p className="es-unbuilt__pending">
           <TicketLine tone="ink-2" qty={<Icon name="lock" className="es-unbuilt__mark" />}>
-            Not built yet
+            Not published yet
           </TicketLine>
         </p>
       </Ticket>
+      <nav aria-label="The way on" className="es-unbuilt__next">
+        <ContinueLink target={pointer} emphasis="primary" minutes={pointer.minutes} />
+      </nav>
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Link, useParams } from 'react-router'
 import { useDocumentTitle } from '@/content/load'
-import { LAB_TASKS, labName, laneName, titled } from '@/content/render/model'
+import { labName, laneName, titled } from '@/content/render/model'
 import { TextLink } from '@/design/components/TextLink'
 import { Ticket } from '@/design/components/Ticket'
 import { isForgeLab } from '@/forge/ids'
@@ -32,10 +32,11 @@ function LabStubPage({ id, stub }: { id: string; stub: LabStub }) {
       lead={`${stub.handIn}.`}
       heading="What it will hold"
       holds={stub.lane === 'B' ? LAB_HOLDS.forge : LAB_HOLDS.graded}
-      tasks={[LAB_TASKS[id]]}
-      next={{ to: `/m/${stub.module}`, label: `Open ${printedId(stub.module)}` }}
       tapes={[`lane · ${laneName(stub.lane)}`, `module · ${printedId(stub.module)}`]}
     >
+      <p>
+        This lab belongs to <TextLink to={`/m/${stub.module}`}>{printedId(stub.module)}</TextLink>.
+      </p>
       {stub.lane === 'B' ? null : (
         <p className="es-panel__lead" data-link="gpu-lab-results">
           This lab runs on your own machine. Get its challenge and bring its receipt file back on <TextLink to={`/receipts${stageQuery(id)}`}>GPU lab results</TextLink>.

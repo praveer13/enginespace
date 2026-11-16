@@ -1,11 +1,11 @@
 /*
  * The step loop's poster (ARCHITECTURE §6.11): the first frame of the front page's timing diagram, as a file. scripts/posters.ts writes it to
- * public/posters/, and the Games index draws it in the step loop's well (src/games/specials/posters.ts).
+ * public/posters/, and the front page inlines it.
  *
  * It is the lane layout's own drawing (packages/play/loop/lanes.ts, REDESIGN §2.9): the practice seed of the first demo level, as a view of
  * the session, laid out at the front page's two geometries (DESK for the landscape poster, PHONE for the portrait one) and written as SVG
  * from the same boxes the 2D diagram draws: the waiting queue's chips, the CPU row and the four slot rows on the graticule, each empty slot's
- * dashed holder, the now line at tick 0, and the axis in synthetic ticks. So a poster cannot drift from the diagram: tests/map/posters.test.ts
+ * dashed holder, the now line at tick 0, and the axis in synthetic ticks. So a poster cannot drift from the diagram: tests/play/loop-layout.test.ts
  * holds the file to this code, byte for byte.
  *
  * The front page itself draws no poster: its static HTML is the diagram, rendered once by the build from the same session. Nothing in the

@@ -1,14 +1,14 @@
 /*
- * W1b-T09: the pages that are not built yet say what they will hold and which task builds it, and no page says only that it is not built.
+ * R-T23: the pages that are not published yet say what they will hold, say "Not published yet" in the learner's words, name no task
+ *     and no wave, and hand the learner back to Continue.
  *
- *   - /trace-room and the ten labs that W2 and W3 build each render a heading, a lead, a list of what the page
- *     will hold, the red line that says it is not built, the task and the wave that build it, and a way on to a page that is. (/receipts, /about and /changes
- *     are built pages: tests/receipts/ and tests/pages/about-changes.test.ts hold what they say.)
- *   - The words are src/unbuilt/copy.ts's, and they come from somewhere: each task is a task of docs/TRACKER.md whose text is about
- *     that page, and each lab's module, lane and one line are the course's own (the compiled map). A task renamed, or a lab whose artifact
- *     changes, fails here and not in front of a learner.
+ *   - /trace-room and the ten labs not published yet each render a heading, a lead, a list of what the page will
+ *     hold, the line that says "Not published yet", and the way on: the pointer's own link and label, the one the header shows.
+ *   - The words are src/unbuilt/copy.ts's. Each lab's module, lane and one line are the course's own (the compiled map): a lab whose
+ *     artifact changes fails here and not in front of a learner. Which tracker task builds a page is the tracker's, and is tested here
+ *     (it is not on the page).
  *   - A page's lead is the sentence of its served document (scripts/pages/plan.ts), and its heading is the document's heading, so the page
- *     does not change when the app takes over. /about's says what the page holds today.
+ *     does not change when the app takes over.
  *   - The words hold no number that no tag covers (rule 7).
  *
  * The pages render on the server renderer with the static router, as tests/smoke.test.ts renders them. What needs a browser (the titles
@@ -18,6 +18,7 @@ import { describe, expect, test } from 'bun:test'
 import { createElement } from 'react'
 import { renderToString } from 'react-dom/server'
 import { createStaticHandler, createStaticRouter, matchRoutes, StaticRouterProvider } from 'react-router'
+import { findBanned } from '../../src/copy/banned'
 import { LAB_IDS } from '../../scripts/content/directives'
 import { untaggedNumbers } from '../../scripts/content/prose'
 import { planPages } from '../../scripts/pages/plan'
@@ -25,8 +26,9 @@ import type { Page, Written } from '../../scripts/pages/plan'
 import { loadSources } from '../../scripts/pages/sources'
 import { LAB_TASKS, labName } from '../../src/content/render/model'
 import { FORGE_LAB_IDS } from '../../src/forge/ids'
-import { LAB_HOLDS, LAB_STUBS, UNBUILT, unbuiltCopy, waveOf } from '../../src/unbuilt/copy'
+import { LAB_HOLDS, LAB_STUBS, UNBUILT, unbuiltCopy } from '../../src/unbuilt/copy'
 import { routes } from '../../src/routes'
+import { START_POINTER } from '../../src/settings/store'
 import { read, trackerTasks } from '../ci/support'
 import { MAP, textOf } from '../map/support'
 
@@ -72,6 +74,9 @@ const PAGES = [
   ['/trace-room', UNBUILT.traceRoom],
 ] as const
 
+/** The tracker task that builds each page. It is the tracker's, and no page shows it. */
+const BUILT_BY: Readonly<Record<string, string>> = { '/trace-room': 'W2-T20' }
+
 describe.each(PAGES)('%s, which is not built yet', (url, copy) => {
   test('has one heading, a lead, the list of what it will hold, and the red line that says it is not built', async () => {
     const html = mainOf(await render(url))
@@ -80,18 +85,19 @@ describe.each(PAGES)('%s, which is not built yet', (url, copy) => {
     expect(headingsIn(html, 2)).toContain(copy.heading)
     expect(holdsIn(html)).toEqual([...copy.holds])
     expect(copy.holds.length).toBeGreaterThanOrEqual(2)
-    expect(html).toMatch(/class="es-unbuilt__pending">.*Not built yet/s)
+    expect(html).toMatch(/class="es-unbuilt__pending">.*Not published yet/s)
   })
 
-  test('names the tasks that build it and the wave they arrive with, and leads to a page that is built', async () => {
+  test('says Not published yet and names no task and no wave, and offers Continue, the pointer of an empty ledger here', async () => {
     const html = mainOf(await render(url))
     const text = textOf(html)
-    for (const task of copy.tasks) expect(text).toContain(task)
-    expect(text).toContain(`Arriving with ${waveOf(copy.tasks[0])}`)
-    expect(html).toContain(`href="${copy.next.to}"`)
-    expect(text).toContain(copy.next.label)
+    expect(text).toContain('Not published yet')
+    expect(text).not.toMatch(/Not built yet|Arriving with|\bW\d+b?\b|\bW\d+-T\d+\b|\bR-T\d+\b/)
+    const nav = /<nav aria-label="The way on"[^>]*>(.*?)<\/nav>/s.exec(html)?.[1] ?? ''
+    expect(nav).toContain(`href="${START_POINTER.href}"`)
+    expect(textOf(nav)).toContain(START_POINTER.label)
     // Not the page that every unknown address gets.
-    expect(matchRoutes(routes, copy.next.to)?.at(-1)?.route.path).not.toBe('*')
+    expect(matchRoutes(routes, START_POINTER.href)?.at(-1)?.route.path).not.toBe('*')
   })
 
   test('says more than that it is not built: the old sentence is gone, and the page holds words besides the red line', async () => {
@@ -105,21 +111,18 @@ describe.each(PAGES)('%s, which is not built yet', (url, copy) => {
   })
 })
 
-describe('the tasks the pages name', () => {
+describe('the tasks that build the pages', () => {
   test('are tasks of the tracker, and the tracker\'s text for each is about the page', () => {
     expect(heading('W2-T20')).toContain('Traces, and Trace attribution')
-    expect(tasks.get('W3-T06')).toContain('`/changes` renders change cards')
-    expect(tasks.get('W3-T15')).toContain('`/about`')
   })
 
-  test('are all named by a page, and all sit in the wave the page says it arrives with', () => {
-    for (const [, copy] of PAGES) {
-      for (const task of copy.tasks) {
-        expect(tasks.has(task), `${task} is in docs/TRACKER.md`).toBe(true)
-        expect([task, waveSectionOf(task)]).toEqual([task, waveOf(task)])
-      }
+  test('each page has one, and it sits in the wave section of the tracker that it names', () => {
+    for (const [url] of PAGES) {
+      const task = BUILT_BY[url]
+      expect(tasks.has(task), `${task} is in docs/TRACKER.md`).toBe(true)
+      expect([task, waveSectionOf(task)]).toEqual([task, task.split('-')[0]])
     }
-    for (const [lab, task] of Object.entries(LAB_TASKS)) expect([lab, waveSectionOf(task)]).toEqual([lab, waveOf(task)])
+    for (const [lab, task] of Object.entries(LAB_TASKS)) expect([lab, waveSectionOf(task)]).toEqual([lab, task.split('-')[0]])
   })
 })
 
@@ -148,9 +151,9 @@ describe('the labs that W2 and W3 build', () => {
       expect(html).toContain(leadOf(`${stub.handIn}.`))
       expect(holdsIn(html)).toEqual([...(stub.lane === 'B' ? LAB_HOLDS.forge : LAB_HOLDS.graded)])
       const text = textOf(html)
-      expect(text).toContain(LAB_TASKS[id])
-      expect(text).toContain(`Arriving with ${waveOf(LAB_TASKS[id])}`)
-      expect(text).toContain('Not built yet')
+      expect(text).not.toContain(LAB_TASKS[id])
+      expect(text).not.toContain('Arriving with')
+      expect(text).toContain('Not published yet')
       expect(html).not.toContain('This page is not built yet')
     })
 
@@ -167,7 +170,7 @@ describe('the labs that W2 and W3 build', () => {
       const html = mainOf(await render(`/labs/${id}`))
       expect(headingsIn(html, 1)).toEqual(['Lab not found'])
       expect(html).toContain('href="/map"')
-      expect(textOf(html)).not.toContain('Not built yet')
+      expect(textOf(html)).not.toContain('Not published yet')
     }
   })
 })
@@ -179,6 +182,11 @@ describe('the games', () => {
 })
 
 describe('the copy', () => {
+  test('uses no banned word, and names no task or wave', () => {
+    expect(unbuiltCopy().flatMap((text) => findBanned(text))).toEqual([])
+    expect(unbuiltCopy().join(' ')).not.toMatch(/\bW\d+b?(-T\d+)?\b|\bR-T\d+\b|not built|arriving/i)
+  })
+
   test('holds no number that no tag covers: a wave, a task and a module are identifiers', () => {
     expect(unbuiltCopy().length).toBeGreaterThan(40)
     expect(unbuiltCopy().flatMap((text) => untaggedNumbers(text))).toEqual([])
