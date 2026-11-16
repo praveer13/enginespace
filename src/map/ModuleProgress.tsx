@@ -128,6 +128,7 @@ export function Rows({ games, labs, progress, ready }: RowsProps) {
       )}
       <Row name={MODULE.rows.keep}>
         <TextLink to="/today">{MODULE.review}</TextLink>
+        {loop !== undefined && loop.keep.tried > 0 ? <span>{`${loop.keep.credited} passed of ${loop.keep.tried} tried`}</span> : null}
         <span>
           {counts === undefined || counts.total === 0 ? MODULE.keepWhat : `${counts.kept} of ${plural(counts.total, 'skill')} kept. ${MODULE.keepWhat}`}
         </span>

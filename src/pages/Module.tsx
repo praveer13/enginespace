@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useParams } from 'react-router'
 import type { Claim, CompiledModule, IndexLesson, IndexModule, MapKc, MapLesson } from '@es/schema'
-import { NextStep } from '@/design/components/NextStep'
+import { ContinueLink } from '@/design/components/Board'
 import { Readout } from '@/design/components/Readout'
 import { TextLink } from '@/design/components/TextLink'
 import { useClaims, useDocumentTitle, useIndex } from '@/content/load'
@@ -139,11 +139,16 @@ function WayOn({ id, way, ready, lessons }: { id: string; way: ModuleWay | undef
   const step = way?.step ?? null
   if (step !== null && (step.module === id || target === undefined)) {
     const sentence = step.module === id ? (way?.last === null || way?.last === undefined ? undefined : `${way.last} Next: ${step.reason}.`) : `Every lesson of ${moduleCode(id)} is done. Next: ${step.reason}.`
-    return <NextStep to={step.href} label={step.label} minutes={step.minutes} lastTime={sentence} />
+    return (
+      <>
+        {sentence === undefined ? null : <p className="es-module__last">{sentence}</p>}
+        <ContinueLink target={step} emphasis="primary" minutes={step.minutes} />
+      </>
+    )
   }
   if (target === undefined) return null
   // A local way on names its target and never says Continue (REDESIGN section 2.4).
-  return <NextStep to={target.route} label={`Open lesson ${at + 1}: ${target.title}`} minutes={target.minutes} />
+  return <ContinueLink target={{ href: target.route, label: `Open lesson ${at + 1}: ${target.title}`, word: 'Open' }} emphasis="primary" minutes={target.minutes} />
 }
 
 /** Hours, printed through the readout. They are [estimated] (docs/PLAN.md section 4). */

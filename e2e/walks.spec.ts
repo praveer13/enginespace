@@ -119,7 +119,7 @@ for (const [width, height, within] of [
         expect(top, 'where the lesson list starts').toBeLessThan(within)
 
         const walk = walkOf(page)
-        const way = page.locator('.es-module__way a.es-next__action')
+        const way = page.locator('.es-module__way a.es-board__next')
         await way.focus()
         await walk.see()
         await expect(way).toHaveAttribute('data-emphasis', 'primary')

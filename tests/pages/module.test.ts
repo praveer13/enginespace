@@ -77,7 +77,7 @@ describe('the order of the page', () => {
 describe('the amber button', () => {
   test('is Start from nothing, as the way on words it, and never Continue from an empty ledger', () => {
     const tr1 = way(page('tr1', []))
-    expect(tr1).toContain('es-next__action')
+    expect(tr1).toContain('es-board__next')
     expect(tr1).toContain('data-emphasis="primary"')
     expect(textOf(tr1)).not.toContain('Continue')
   })
@@ -107,7 +107,7 @@ describe('the amber button', () => {
   test('waits for the ledger and says so, and offers no place it has not read', () => {
     const html = page('tr2', null)
     expect(way(html)).toContain('role="status"')
-    expect(way(html)).not.toContain('es-next__action')
+    expect(way(html)).not.toContain('es-board__next')
   })
 })
 
