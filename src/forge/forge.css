@@ -1,24 +1,102 @@
 /*
- * A forge lab's page (W1-T10): the module slip, the checks printed on paper, and the printer's tape beside them. The heading and the
- * panels come from panels.css, and this file places what only a forge lab has. Every colour, face, space and shadow is a token role
- * (src/design/tokens.css), and the design system is not edited. Amber appears in three places: the slip's own lamp, the dashed
- * filament round it while a file is dragged over it, and the first check that did not pass. The lab's crate under the slip (Crate.tsx) and the
- * slot readout after the checks (SlotReadout.tsx) are paper and steel and carry none.
+ * A forge lab's page (W1-T10, R-T26): five numbered steps, the sheet that takes the module, the checks printed on paper, and the run's
+ * readout beside them. The heading and the panels come from panels.css, and this file places what only a lab page has. Every colour, face,
+ * space and shadow is a token role (src/design/tokens.css), and the design system is not edited. The marker carries nothing here: the
+ * sheet that takes the module and the first check that did not pass wear an ink rule, and a file dragged over the sheet draws a dashed ink
+ * edge round it. The crate in step 1 (Crate.tsx) and the slot readout after the steps (SlotReadout.tsx) are plain paper.
  */
 
-/* ---------------------------------------------------------------------------------------------- the page's three places */
+/* ---------------------------------------------------------------------------------------------- the five steps */
 
 /*
- * The slip you hand in, the tape that prints the run, and the checks. On a wide screen the slip and the checks run down the left and the
- * tape stands beside them, held in place as the checks scroll. On a phone the order is the order of the work: the slip first, so that the
- * one thing to do is in the first screen, then what the run printed, then the checks. Before a file the tape has nothing to say, and on
- * a phone it is left out.
+ * The page is one ordered list: download, edit, build, drop, check. Each step has its number in a dark square at the left, its heading, and
+ * its body at the measure of a sentence, so the eye runs down the numbers and a step's work stands beside its number. The last step is
+ * wider: on a wide screen the run's readout stands beside the checks, held in place as the checks scroll. On a phone it comes first,
+ * once there is a run to read, and says nothing before one.
  */
 .es-forge-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: var(--es-space-12);
   align-items: start;
+}
+
+.es-forge-steps {
+  display: grid;
+  gap: var(--es-space-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: forge-step;
+}
+
+.es-forge-step {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  column-gap: var(--es-space-4);
+  row-gap: var(--es-space-3);
+  min-width: 0;
+  counter-increment: forge-step;
+}
+
+/* The number: the list's own, drawn as a dark square so that it is read at a glance and never taken for text. */
+.es-forge-step::before {
+  content: counter(forge-step);
+  grid-column: 1;
+  grid-row: 1;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  background-color: var(--es-surface-3);
+  color: var(--es-paper);
+  font-family: var(--es-font-numeric);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.es-forge-step__title {
+  grid-column: 2;
+  align-self: center;
+  margin: 0;
+  min-height: 2rem;
+  display: flex;
+  align-items: center;
+}
+
+.es-forge-step__body {
+  grid-column: 2;
+  display: grid;
+  gap: var(--es-space-3);
+  min-width: 0;
+  max-width: 44rem;
+}
+
+.es-forge-step__body > *,
+.es-forge-step__lead {
+  margin: 0;
+}
+
+.es-forge-step__lead {
+  max-width: 62ch;
+  color: var(--es-text-2);
+}
+
+.es-forge-checks-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-6);
+  align-items: start;
+  min-width: 0;
+}
+
+.es-forge-layout[data-step='idle'] .es-forge-tape {
+  display: none;
+}
+
+.es-forge-step.es-forge-run .es-forge-step__body {
+  max-width: none;
 }
 
 .es-forge-slip,
@@ -28,38 +106,15 @@
   min-width: 0;
 }
 
-.es-forge-layout[data-step='idle'] .es-forge-tape {
-  display: none;
-}
-
 @media (min-width: 64rem) {
-  .es-forge-layout {
-    grid-template-columns: minmax(0, 44rem) minmax(0, 20rem);
-    grid-template-areas:
-      'slip tape'
-      'checks tape';
-    column-gap: var(--es-space-16);
-    row-gap: var(--es-space-16);
+  .es-forge-checks-row {
+    grid-template-columns: minmax(0, 40rem) minmax(0, 20rem);
+    column-gap: var(--es-space-12);
   }
 
-  .es-forge-slip {
-    grid-area: slip;
-  }
-
-  .es-forge-run {
-    grid-area: checks;
-  }
-
-  /* A lab with a readout gives it a place of its own after the checks, and the tape stands beside all three. */
-  .es-forge-layout[data-readout] {
-    grid-template-areas:
-      'slip tape'
-      'checks tape'
-      'readout tape';
-  }
-
-  .es-forge-readout {
-    grid-area: readout;
+  .es-forge-checks-row > .es-ticket {
+    grid-column: 1;
+    grid-row: 1;
   }
 
   .es-forge-layout[data-step='idle'] .es-forge-tape {
@@ -67,22 +122,23 @@
   }
 
   .es-forge-tape {
-    grid-area: tape;
+    grid-column: 2;
+    grid-row: 1;
     position: sticky;
     top: var(--es-space-6);
   }
 }
 
-/* ---------------------------------------------------------------------------------------------- the slip, and the drop */
+/* ---------------------------------------------------------------------------------------------- the sheet that takes the module, and the drop */
 
-/* The drop target is as wide as the slip, so that the filament and the pool of light round it hug the paper. */
+/* The drop target is as wide as the sheet, so that the dashed edge round it hugs the paper. */
 .es-forge-drop {
   position: relative;
   isolation: isolate;
   max-width: 36rem;
 }
 
-/* While a file is over the slip: the lamp's filament drawn dashed round it, and the pool of light behind. */
+/* While a file is over the sheet: a dashed ink edge drawn round it, and a well behind. */
 .es-forge-drop[data-over]::before {
   content: '';
   position: absolute;
@@ -96,7 +152,7 @@
   content: '';
   position: absolute;
   inset: -0.5rem;
-  border: 2px dashed var(--es-lamp-ring);
+  border: 2px dashed var(--es-text-1);
   pointer-events: none;
 }
 
@@ -115,11 +171,18 @@
   overflow-wrap: anywhere;
 }
 
-/* The hash on masking tape: the tape names the digits, which stay in the code face, because marker is no hand to read hex in. */
+/* A hash: a quiet name over the digits, which stay in the code face. */
 .es-forge-hash {
   display: grid;
   justify-items: start;
-  gap: var(--es-space-2);
+  gap: var(--es-space-1);
+}
+
+.es-forge-hash__name {
+  color: var(--es-text-2);
+  font-family: var(--es-font-label);
+  font-size: var(--es-size-note);
+  font-weight: var(--es-font-label-weight);
 }
 
 .es-forge-hash__digits,
@@ -129,7 +192,7 @@
   user-select: all;
 }
 
-/* The build command, printed on the slip. It wraps and never scrolls sideways, because a line that is hard to read is hard to copy. */
+/* A command, printed on its own paper. It wraps and never scrolls sideways, because a line that is hard to read is hard to copy. */
 .es-forge-cmd {
   margin: 0;
   padding: var(--es-space-3);
@@ -177,7 +240,7 @@
   box-shadow: inset 0 3px 0 var(--es-text-1);
 }
 
-/* A check's number, as the printer numbers a line. */
+/* A check's number. */
 .es-forge-check__n {
   grid-area: n;
   font-family: var(--es-font-ticket);
@@ -195,7 +258,7 @@
   overflow-wrap: anywhere;
 }
 
-/* Words in the printer's dots: a status, a quiet "not run". */
+/* A status as a word with its mark, or a quiet "not run". */
 .es-forge-check__result {
   grid-area: result;
   display: inline-flex;
@@ -223,7 +286,7 @@
   color: var(--es-text-3);
 }
 
-/* What the run found, under the line, across its whole width. */
+/* What the run found, and the bug the check catches, under the line, across its whole width. */
 .es-forge-check__detail {
   grid-area: detail;
   display: grid;
@@ -239,6 +302,21 @@
   overflow-wrap: anywhere;
 }
 
+.es-forge-check__id {
+  margin-left: var(--es-space-2);
+  color: var(--es-text-2);
+  font-family: var(--es-font-mono);
+  font-size: var(--es-font-mono-size);
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+/* The word that opens the bug a check catches: a quiet label, so the sentence after it reads as a sentence. */
+.es-forge-check__catches {
+  color: var(--es-text-1);
+  font-weight: 700;
+}
+
 .es-forge-check__note,
 .es-forge-check__seed {
   color: var(--es-text-2);
@@ -246,7 +324,7 @@
   line-height: 1.45;
 }
 
-/* Seeds and counts print in the dot matrix, with tabular figures. */
+/* Seeds and counts are set in the numeric face, with tabular figures. */
 .es-forge-seed,
 .es-forge-figure {
   font-family: var(--es-font-numeric);
@@ -287,9 +365,30 @@
 
 /* ---------------------------------------------------------------------------------------------- the crate, handed over */
 
-/* The crate is its own sheet under the slip, with a little more steel between them than two panels of a column have. */
+/* Step 1: the zip's name and size, its hash, and the line that checks the download behind a disclosure. */
 .es-forge-crate {
-  margin-top: var(--es-space-4);
+  display: grid;
+  gap: var(--es-space-3);
+  min-width: 0;
+}
+
+.es-forge-crate > p {
+  margin: 0;
+}
+
+.es-forge-crate__check > summary {
+  min-height: 1.5rem;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.es-forge-crate__check[open] > summary {
+  margin-bottom: var(--es-space-3);
+}
+
+.es-forge-copy {
+  display: grid;
+  gap: var(--es-space-3);
 }
 
 /* The zip's name is the link, and the size is a count beside it. The name is an identifier, so it is set in the code face. */
@@ -334,12 +433,21 @@
   white-space: nowrap;
 }
 
-.es-forge-crate__check > * {
-  margin: 0;
+/* A path in a step's sentence breaks where it must, at a phone's width. */
+.es-forge-step__body p code {
+  overflow-wrap: anywhere;
 }
 
-.es-forge-crate__check .es-forge-again {
+.es-forge-crate__check > p {
+  margin: 0 0 var(--es-space-3);
+}
+
+.es-forge-copy .es-forge-again {
   margin-top: 0;
+}
+
+.es-forge-copy .es-forge-cmd {
+  margin: 0;
 }
 
 /* ---------------------------------------------------------------------------------------------- against the slots */
@@ -350,7 +458,7 @@
   margin: 0;
 }
 
-/* A column head's kitchen word, under the engine's term. */
+/* A row head's second line: what the row is. */
 .es-forge-sub {
   display: block;
   flex-basis: 100%;
@@ -375,4 +483,10 @@
 
 .es-forge-recorded[data-kind='failed'] {
   color: var(--es-paper-ink-2);
+}
+
+/* The build command breaks between its words, and inside one only when a single word is wider than the line. */
+.es-forge-build .es-forge-crate__line code {
+  word-break: normal;
+  overflow-wrap: anywhere;
 }

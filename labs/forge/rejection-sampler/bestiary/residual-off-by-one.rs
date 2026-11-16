@@ -1,6 +1,6 @@
-//! Bestiary: an off-by-one in the residual. The excess of each dish is written one place along, wrapping at the end of the vocabulary: a
-//! 1-based position taken for a 0-based one. The plates are kept as they should be, and the walk over the weights is right, so the dish
-//! that replaces a plate is the one after the dish it should be.
+//! Bestiary: an off-by-one in the residual. The excess of each token is written one place along, wrapping at the end of the vocabulary: a
+//! 1-based position taken for a 0-based one. The draft tokens are accepted as they should be, and the walk over the weights is right, so the
+//! token that replaces a rejected one is the one after the token it should be.
 //! `residual`, `round` and `exact` must fail it. `accept` and `pick` are the reference's and pass.
 
 use crate::TOTAL;
@@ -11,7 +11,7 @@ pub fn accept(px: u32, _qx: u32, u: u32) -> bool {
 }
 
 pub fn residual(p: &[u32], q: &[u32]) -> Vec<u32> {
-    // The mistake: the excess of dish x is written at x + 1, and the last dish's at 0.
+    // The mistake: the excess of token x is written at x + 1, and the last token's at 0.
     let n = p.len();
     let mut out = vec![0; n];
     for x in 0..n {

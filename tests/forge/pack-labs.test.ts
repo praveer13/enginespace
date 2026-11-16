@@ -260,7 +260,7 @@ describe('what a zip holds', () => {
   test('the workspace is the kit and the crate, with the repository\'s release profile and a lockfile of those two and nothing fetched', () => {
     expect(text(member(archive, 'Cargo.toml'))).toBe(
       [
-        '# The Rotation: a Cargo workspace of the kit (kslab) and the crate you edit.',
+        '# Build an LRU free queue: a Cargo workspace of the kit (kslab) and the crate you edit.',
         '[workspace]',
         'members = ["kit", "toy"]',
         'resolver = "2"',
@@ -293,11 +293,16 @@ describe('what a learner reads', () => {
   const agents = text(member(archive, 'AGENTS.md'))
   const ids = toy.checks.map((check) => check.id)
   /** What is the repository's own business: a task id (W1-T14, and W1b's, W1b-T08), a document of the repository, a gate, a record and a question of the owner's. */
-  const REPOSITORY_BUSINESS = /W\d+b?-T\d\d|ARCHITECTURE|DECISIONS|verify:|\bD-0\d\d\b|\bO-\d+\b/
+  const REPOSITORY_BUSINESS = /W\d+b?-T\d\d|\bR-T\d\d\b|ARCHITECTURE|DECISIONS|verify:|\bD-0\d\d\b|\bO-\d+\b/
 
   test('no placeholder is left in anything, and nothing is the repository\'s own business', () => {
     for (const m of archive.members) expect([m.path, text(m.data).match(/\{\{[A-Z_]+\}\}/)]).toEqual([m.path, null])
     for (const file of ['README.md', 'AGENTS.md']) expect(text(member(archive, file))).not.toMatch(REPOSITORY_BUSINESS)
+  })
+
+  test('the check would find a task id of wave R, which the pattern of before read only for W ids', () => {
+    expect('built by R-T26').toMatch(REPOSITORY_BUSINESS)
+    expect('the TR6 lesson').not.toMatch(REPOSITORY_BUSINESS)
   })
 
   test('the check would find a task id of W1b, which the pattern of before (W\\d-T\\d\\d) did not read', () => {
@@ -332,7 +337,7 @@ describe('what a learner reads', () => {
     expect(readme).toContain(`# ${toy.title}`)
     expect(readme).toContain(toy.lead)
     for (const check of toy.checks) expect(readme).toContain(`| \`${check.id}\` | ${check.stage} | ${check.seeded ? 'yes, new inputs on every run' : 'no'} | ${check.catches} |`)
-    expect(readme).toContain('cargo build --release --target wasm32-unknown-unknown')
+    expect(readme).toContain(`${toy.build}`)
     expect(readme).toContain('target/wasm32-unknown-unknown/release/toy.wasm')
     expect(readme).toContain(`${CHECK_BUDGET_MS / 1000} s [estimated]`)
     expect(readme).toContain('/labs/toy')

@@ -27,8 +27,8 @@ describe('the registry', () => {
     expect(lab.checks.map((check) => check.id)).toEqual(['accept', 'residual', 'pick', 'round', 'exact'])
   })
 
-  test('the lab\'s words are the kitchen\'s and the engine\'s, in two sentences (GAMES.md §2.6)', () => {
-    expect(lab.title).toBe('Keep or Re-plate')
+  test('the lab\'s words are the engine\'s, in two sentences', () => {
+    expect(lab.title).toBe('Build the rejection sampler')
     expect(lab.lead.split(/(?<=[.])\s+/)).toHaveLength(2)
     expect(lab.engineTerm).toContain('rejection sampler')
   })
@@ -76,7 +76,7 @@ describe('the checks, in Rust and in TypeScript', () => {
     expect(num('MAX_TOKENS')).toBe(SAMPLER_LIMITS.maxTokens)
     expect(num('MAX_DRAFTS')).toBe(SAMPLER_LIMITS.maxDrafts)
     expect(num('ROUNDS')).toBe(LAB_DRAWS)
-    // The crate's own exactness check uses six dishes, so 5 degrees of freedom, at the level the site tests at.
+    // The crate's own exactness check uses six tokens, so 5 degrees of freedom, at the level the site tests at.
     const limit = CRITICAL[LAB_LEVEL][5] / 1000
     expect(Number(/const LIMIT: f64 = ([\d.]+);/.exec(source)?.[1])).toBe(limit)
     expect(/const LIMIT_TEXT: &str = "([\d.]+)";/.exec(source)?.[1]).toBe(String(limit))

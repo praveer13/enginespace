@@ -58,7 +58,7 @@ fn the_bridge_speaks_the_wire() {
     assert_eq!(say(&mut state, "weights 3,0,2"), "ok");
     assert_eq!(say(&mut state, "pick 2"), "0");
     assert_eq!(say(&mut state, "pick 3"), "2");
-    // A chain of one draft over two dishes: the plate 1 has p = 0, so it is sent back for sure, and the residual is dish 0 alone.
+    // A chain of one draft over two tokens: the draft token 1 has p = 0, so it is rejected for sure, and the residual is token 0 alone.
     assert_eq!(say(&mut state, "chain 65536,0|0,65536 32768,32768"), "ok");
     assert_eq!(say(&mut state, "seed 7"), "ok");
     assert_eq!(say(&mut state, "round 1"), "0");
@@ -91,5 +91,5 @@ fn the_bridge_refuses_what_it_cannot_read() {
     assert_eq!(say(&mut state, "round 0,0"), "err the chain has 1 drafts, and the round got 2");
     assert_eq!(say(&mut state, "seed -1"), "err bad seed '-1'");
     assert_eq!(say(&mut state, ""), "err empty command");
-    assert_eq!(say(&mut state, "plate 1"), "err unknown command 'plate 1'");
+    assert_eq!(say(&mut state, "frobnicate 1"), "err unknown command 'frobnicate 1'");
 }

@@ -1,5 +1,5 @@
-//! Bestiary: first in, first out. A hit changes nothing, so the rotation dumps by arrival and not by use.
-//! `hits`, `recency` and `churn` must fail it. `fill` and `dump` cannot tell, because nothing is touched twice before the first dump.
+//! Bestiary: first in, first out. A hit changes nothing, so the free queue evicts by arrival and not by use.
+//! `hits`, `recency` and `churn` must fail it. `fill` and `dump` cannot tell, because nothing is touched twice before the first eviction.
 
 use crate::Touch;
 

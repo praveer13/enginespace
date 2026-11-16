@@ -69,12 +69,12 @@ describe('the readout\'s place on the page', () => {
     }
   })
 
-  test('a lab with a readout names it after the checks, in an h2 of its own, and says what it is before there is anything to read', () => {
+  test('a lab with a readout names it after the steps, in an h2 of its own, and says what it is before there is anything to read', () => {
     const html = render({ step: 'idle' })
     expect(html).toContain('id="forge-readout"')
     expect(html.indexOf('id="forge-readout"')).toBeGreaterThan(html.indexOf('id="forge-checks"'))
     expect(text(html)).toContain('Measured against the slots')
-    expect(text(html)).toContain('Once check 5 (adapters take pages of the same pool) passes, the page plays one night of adapter churn on your module and the same night on a model that keeps adapters in fixed slots')
+    expect(text(html)).toContain('Once check 5 (adapters take pages of the same pool) passes, the page plays one stream of adapter churn on your module and the same stream on a model that keeps adapters in fixed slots')
     expect(text(html)).toContain('It is a readout and not a check: it earns nothing, and it is not written to your ledger.')
     expect(html).not.toContain('<table')
     expect(html).toContain('data-readout=""')
@@ -93,9 +93,9 @@ describe('the readout\'s place on the page', () => {
     }
   })
 
-  test('a run that did not pass the adapter check says that there is no night to play yet', () => {
+  test('a run that did not pass the adapter check says that there is nothing to play yet', () => {
     const html = render(done(checks([4])))
-    expect(text(html)).toContain('This run did not pass check 5, so there is no night to play yet.')
+    expect(text(html)).toContain('This run did not pass check 5, so there is nothing to play yet.')
     expect(html).not.toContain('<table')
   })
 })
@@ -111,16 +111,17 @@ describe('the night, played', () => {
     expect(rows).toContain('Two slots one for each adapter, outside the pool')
   })
 
-  test('the heads carry the engine\'s term and the kitchen\'s word, and every figure of the table is tagged as a count of the synthetic world', () => {
-    expect(text(ready)).toContain('Admitted requests tickets hung')
-    expect(text(ready)).toContain('Adapter loads kits brought in')
+  test('the heads are the engine\'s terms alone, and every figure of the table is tagged as a count of the synthetic world', () => {
+    expect(text(ready)).toContain('Admitted requests')
+    expect(text(ready)).toContain('Adapter loads')
+    expect(text(ready)).not.toContain('tickets hung')
     const table = ready.slice(ready.indexOf('<tbody'), ready.indexOf('</tbody>'))
     expect((table.match(/data-tag="synthetic"/g) ?? []).length).toBe(2 * (1 + night.slots.length))
   })
 
-  test('the notes give the night\'s size from the sim, and what the free slots hide, with the arithmetic tagged as derived', () => {
-    expect(text(ready)).toContain(`The night: ${night.arrivals} tickets over ${night.steps} steps, on a pool of ${night.spec.poolPages} pans.`)
-    expect(text(ready)).toContain('A slot costs no pans here. A real slot is as wide as the widest adapter the engine will accept, and is paid for before the first request')
+  test('the notes give the stream\'s size from the sim, and what the free slots hide, with the arithmetic tagged as derived', () => {
+    expect(text(ready)).toContain(`The stream: ${night.arrivals} requests over ${night.steps} steps, on a pool of ${night.spec.poolPages} pages.`)
+    expect(text(ready)).toContain('A slot costs no pages here. A real slot is as wide as the widest adapter the engine will accept, and is paid for before the first request')
     const widest = Math.max(...night.adapters.map((a) => a.pages))
     expect(ready).toContain(`<data class="es-readout__value" value="${2 * widest}">`)
     expect(ready).toContain('data-tag="derived"')
@@ -150,12 +151,12 @@ describe('the night, played', () => {
 })
 
 describe('the night, being played, and not played', () => {
-  test('while the night is played the page is held, as it is during a run: no new run, no new seeds, no file', () => {
+  test('while the stream is played the page is held, as it is during a run: no new run, no new seeds, no file', () => {
     const html = render(done(checks(), { status: 'running' }))
     expect(html).toContain('aria-busy="true"')
-    expect(text(html)).toContain('Playing the night on your module')
+    expect(text(html)).toContain('Playing the request stream on your module')
     expect(html).not.toContain('<table')
-    // Run on new seeds, Tell these seeds again and Choose another file are dull plates until the night is over.
+    // Run on new seeds, Tell these seeds again and Choose another file are disabled until the stream is over.
     for (const name of ['Run on new seeds', 'Tell these seeds again', 'Choose another file']) {
       const at = html.indexOf(name)
       expect(at, name).toBeGreaterThan(0)
@@ -163,7 +164,7 @@ describe('the night, being played, and not played', () => {
     }
   })
 
-  test('with the night over they are live again', () => {
+  test('with the stream over they are live again', () => {
     const html = render(done(checks(), { status: 'ready', night, yours: { ...night.pool, differs: null } }))
     for (const name of ['Run on new seeds', 'Tell these seeds again', 'Choose another file']) {
       const at = html.indexOf(name)
@@ -171,9 +172,9 @@ describe('the night, being played, and not played', () => {
     }
   })
 
-  test('a module that could not play the night costs the readout its row and the checks nothing, and the ribbon says why', () => {
+  test('a module that could not play the stream costs the readout its row and the checks nothing, and the ribbon says why', () => {
     const html = render(done(checks(), { status: 'failed', night, message: 'not implemented yet: build the manager (hybrid-kv/src/manager.rs:12:9)' }))
-    expect(text(html)).toContain('The night could not be played on your module: not implemented yet: build the manager (hybrid-kv/src/manager.rs:12:9)')
+    expect(text(html)).toContain('The request stream could not be played on your module: not implemented yet: build the manager (hybrid-kv/src/manager.rs:12:9)')
     expect(text(html)).toContain('The checks above stand as they are.')
     expect(html).toContain('role="alert"')
     expect(html).not.toContain('<table')

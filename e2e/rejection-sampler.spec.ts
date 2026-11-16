@@ -78,15 +78,15 @@ async function audit(page: Page, label: string): Promise<void> {
 }
 
 test.describe('the page', () => {
-  test('names the lab in the kitchen\'s words and the engine\'s, and lists the five checks that have not run', async ({ page }) => {
+  test('names the lab in the engine\'s words, and lists the five checks that have not run', async ({ page }) => {
     await open(page, '/labs/rejection-sampler')
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Keep or Re-plate')
-    await expect(page.locator('.es-page__lead')).toContainText("speculative decoding's exact verifier")
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Build the rejection sampler')
+    await expect(page.locator('.es-page__lead')).toContainText('draft model')
     await expect(page.locator('.es-forge-drop')).toContainText('rejection_sampler.wasm')
     await expect(rows(page)).toHaveCount(5)
     expect(await statusOf(page)).toEqual(['not run', 'not run', 'not run', 'not run', 'not run'])
-    await expect(rows(page).first()).toContainText('keeping a plate keeps exactly min(p, q) of the coins')
-    await expect(rows(page).last()).toContainText("what goes out is the chef's tasting: chi-square on two seeds")
+    await expect(rows(page).first()).toContainText('accepting a draft token accepts exactly min(p, q) of the coins')
+    await expect(rows(page).last()).toContainText("what comes out follows the target model: chi-square on two seeds")
   })
 })
 
@@ -162,7 +162,7 @@ test.describe('a wrong module', () => {
     await expect(rows(page).nth(3)).toContainText('the first plate is sent back for sure')
     await expect(rows(page).nth(4)).toContainText('over 20000 rounds the first token that goes out should follow p, and it does not: chi-square')
     await expect(rows(page).nth(4)).toContainText('The dish furthest from its share is token')
-    await expect(rows(page).nth(4)).toContainText('Catches:')
+    await expect(rows(page).nth(4)).toContainText('Catches')
   })
 
   test('can be told on the same seeds again: the same failure, and no new record', async ({ page }) => {
@@ -185,7 +185,7 @@ test.describe('limits', () => {
     await drop(page, 'template')
     await finished(page)
     expect(await statusOf(page)).toEqual(['trap', 'trap', 'trap', 'trap', 'trap'])
-    await expect(rows(page).first()).toContainText('not implemented yet: keep a plate')
+    await expect(rows(page).first()).toContainText('not implemented yet: accept a draft token')
     await expect(rows(page).first()).toContainText('rejection-sampler/src/verify.rs')
   })
 

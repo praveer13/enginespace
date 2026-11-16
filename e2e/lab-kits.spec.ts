@@ -116,6 +116,7 @@ test.describe('every file in the manifest is linked from its lab page', () => {
         expect(sha256(bytes)).toBe(file.sha256)
 
         // The line on the page, run where the zip was saved, says OK.
+        await page.getByText('Check the download', { exact: true }).click()
         const line = await page.locator('[data-check-line]').innerText()
         expect(line).toBe(`echo '${file.sha256}  ${file.name}' | sha256sum -c`)
         if (hasSha256sum) {
@@ -134,6 +135,7 @@ test.describe('the line to copy', () => {
   test('the plate copies the line, and where the browser refuses it selects the line for the learner to copy', async ({ page, context }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write'])
     await open(page, '/labs/hybrid-kv')
+    await page.getByText('Check the download', { exact: true }).click()
     const line = await page.locator('[data-check-line]').innerText()
     const copy = page.getByRole('button', { name: 'Copy the line' })
     await copy.click()
@@ -150,8 +152,10 @@ test.describe('the line to copy', () => {
     expect(await page.evaluate(() => window.getSelection()?.toString())).toBe(line)
   })
 
-  test('the plate is a button that the keyboard reaches', async ({ page }) => {
+  test('the copy button is a button that the keyboard reaches, after the disclosure opens', async ({ page }) => {
     await open(page, '/labs/toy')
+    await page.getByText('Check the download', { exact: true }).focus()
+    await page.keyboard.press('Enter')
     const copy = page.getByRole('button', { name: 'Copy the line' })
     await copy.focus()
     await expect(copy).toBeFocused()
@@ -160,14 +164,14 @@ test.describe('the line to copy', () => {
 
 test.describe('where the crate stands', () => {
   for (const id of ['toy', 'rejection-sampler', 'hybrid-kv']) {
-    test(`/labs/${id}: on a phone the crate is under the chooser, and the page reflows to 320 px with no sideways scroll`, async ({ page }) => {
+    test(`/labs/${id}: on a phone the crate is step 1, above the chooser and in the first screen, and the page reflows to 320 px with no sideways scroll`, async ({ page }) => {
       await page.setViewportSize({ width: 390, height: 844 })
       await open(page, `/labs/${id}`)
       await quiet(page)
       const choose = await page.getByRole('button', { name: 'Choose a file' }).boundingBox()
       const crate = await page.locator('.es-forge-crate').boundingBox()
-      expect(choose!.y + choose!.height, 'the chooser is above the crate').toBeLessThanOrEqual(crate!.y)
-      if (id === 'toy') expect(choose!.y + choose!.height, 'and the toy lab\'s chooser is still in the first screen').toBeLessThanOrEqual(844)
+      expect(crate!.y + crate!.height, 'the crate is above the chooser').toBeLessThanOrEqual(choose!.y)
+      expect(crate!.y, 'and its link is in the first screen').toBeLessThan(844)
 
       await page.setViewportSize({ width: 320, height: 900 })
       await quiet(page)
@@ -184,16 +188,16 @@ test.describe('where the crate stands', () => {
     }
   }
 
-  test('on a laptop the crate stands under the slip in the slip\'s column, and the tape beside both', async ({ page }) => {
+  test('on a laptop the crate stands above the sheet that takes the module, in the same column, and the readout beside the checks', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 })
     await open(page, '/labs/hybrid-kv')
     const slip = await page.locator('.es-forge-drop .es-ticket').boundingBox()
     const crate = await page.locator('.es-forge-crate').boundingBox()
     const tape = await page.locator('.es-forge-tape').boundingBox()
+    const sheet = await page.locator('.es-forge-checks-row > .es-ticket').boundingBox()
     expect(crate!.x).toBeCloseTo(slip!.x, 0)
-    expect(crate!.y).toBeGreaterThanOrEqual(slip!.y + slip!.height)
-    expect(tape!.x).toBeGreaterThanOrEqual(slip!.x + slip!.width)
-    expect(tape!.x).toBeGreaterThanOrEqual(crate!.x + crate!.width)
+    expect(crate!.y + crate!.height).toBeLessThanOrEqual(slip!.y)
+    expect(tape!.x).toBeGreaterThanOrEqual(sheet!.x + sheet!.width)
   })
 
   test('when the manifest cannot be read, the page still links the zip and says what it cannot print', async ({ page }) => {
@@ -205,7 +209,7 @@ test.describe('where the crate stands', () => {
     await expect(page.locator('[data-check-line]')).toHaveCount(0)
   })
 
-  test('the crate goes once a module is accepted, and comes back with a refusal', async ({ page }) => {
+  test('the crate stays through a refusal and a run: step 1 never leaves the page', async ({ page }) => {
     await open(page, '/labs/hybrid-kv')
     await expect(page.locator('.es-forge-crate')).toHaveCount(1)
     await page.locator('input[type="file"]').setInputFiles({ name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from('not wasm') })
@@ -213,7 +217,7 @@ test.describe('where the crate stands', () => {
     await expect(page.locator('.es-forge-crate')).toHaveCount(1)
     await page.locator('input[type="file"]').setInputFiles(path.join(FIXTURES, 'solved.wasm'))
     await expect(page.locator('.es-forge-check[data-state="result"]')).toHaveCount(6, { timeout: 60_000 })
-    await expect(page.locator('.es-forge-crate')).toHaveCount(0)
+    await expect(page.locator('.es-forge-crate')).toHaveCount(1)
   })
 })
 
@@ -258,7 +262,7 @@ test.describe('the slot readout of the hybrid-kv page', () => {
     await drop(page, 'double-counted')
     await expect(page.locator('.es-forge-readout')).not.toHaveAttribute('data-readout', 'ready', { timeout: 30_000 })
     await finished(page)
-    await expect(page.locator('.es-forge-readout')).toContainText('This run did not pass check 5, so there is no night to play yet.')
+    await expect(page.locator('.es-forge-readout')).toContainText('This run did not pass check 5, so there is nothing to play yet.')
     await expect(page.locator('.es-forge-readout table')).toHaveCount(0)
   })
 

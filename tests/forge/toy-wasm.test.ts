@@ -49,7 +49,7 @@ describe('acceptance 1: the reference passes and the bestiary fails', () => {
   test('the template traps in every check, with the words of its todo!()', async () => {
     const verdict = await judge(host, lab, 'template', read('template'), { runs: 1 })
     expect(verdict.problems).toEqual([])
-    expect(verdict.summary).toContain('not implemented yet: build the rotation')
+    expect(verdict.summary).toContain('not implemented yet: build the free queue')
   })
 
   test('the reference build passes every check on twenty runs on fresh seeds', async () => {
