@@ -30,6 +30,8 @@ export type SpecimenClips = 4 | 64
 export interface SpecimenSettings {
   readonly clips: SpecimenClips
   readonly overlap: boolean
+  /** How the engine admits: continuous batching (the default), or static, which waits for the whole batch to finish. */
+  readonly batching?: 'continuous' | 'static'
 }
 
 /** The short service: when each ticket is due (ticks) and how many courses it wants. Authored, synthetic. */
@@ -68,8 +70,8 @@ export function specimenWorkload(clips: SpecimenClips): Workload {
   return { seed: 0x5ce7e, origin: { kind: 'synthetic' }, reqs }
 }
 
-/** The model's run of a load, with overlap (async scheduling) on or off. */
-export function specimenRun({ clips, overlap }: SpecimenSettings): StepLoopRun {
+/** The model's run of a load, with overlap (async scheduling) on or off, and continuous batching unless it says static. */
+export function specimenRun({ clips, overlap, batching = 'continuous' }: SpecimenSettings): StepLoopRun {
   return runStepLoop(
     specimenWorkload(clips),
     {
@@ -79,7 +81,7 @@ export function specimenRun({ clips, overlap }: SpecimenSettings): StepLoopRun {
       asyncScheduling: overlap,
       inputIds: 'device',
       graphs: { mode: 'NONE', captureSizes: [] },
-      batching: 'continuous',
+      batching,
     },
     TICK_CARD,
     TICK_CARD,

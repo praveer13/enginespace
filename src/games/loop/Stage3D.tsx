@@ -1,34 +1,27 @@
 import { useCallback, useEffect, type ComponentType, type MutableRefObject, type ReactNode } from 'react'
-import { nextPreset, presetById } from '@/scene/camera-rig'
 import { CameraButtons } from '@/scene/CameraButtons'
 import { Stage } from '@/scene/Stage'
-import type { Scene3DProps } from './Scene3D'
-import { DEFAULT_PRESET, LOOP_PRESETS } from './scene-presets'
+import type { TrackSceneProps } from './TrackScene3D'
+import { cameraLabel, DEFAULT_CAMERA, nextCamera, TRACK_CAMERAS } from './track-presets'
 import type { LoopRunCore } from './types'
+import './track3d.css'
 
 /*
- * The step loop's 3D view and its cameras, a chunk of their own: the diagram is the default view (REDESIGN §2.9), so the Stage, the scene's
- * camera presets and the kitchen's shots they are framed on load only when the learner switches to 3D. The scene itself is a chunk over
- * three's, which the Stage loads on a device whose tier draws 3D; the diagram is its first paint and its fallback (A§6.7).
+ * The step loop's 3D view and its cameras, a chunk of their own: the diagram is the default view (REDESIGN §2.9), so the Stage and the
+ * cameras' buttons load only when the learner switches to 3D. The scene itself is the time track (TrackScene3D.tsx), a chunk over three's,
+ * which the Stage loads on a device whose tier draws 3D; the diagram is its first paint and its fallback (A§6.7).
  */
-
-/**
- * The camera buttons' words (the scene's presets keep their own labels): the shots in the terms of what they show. Over the shoulder looks
- * along the time axis of the lanes, the side shot is the side, and from under the lamps the scene is seen from above.
- */
-const CAMERA_WORDS: Readonly<Record<string, string>> = { shoulder: 'Along time', side: 'Side', lamps: 'Top' }
-const CAMERA_PRESETS = LOOP_PRESETS.map((preset) => ({ ...preset, label: CAMERA_WORDS[preset.id] ?? preset.label }))
 
 /** The preset a page holds, or the default where it holds none yet. */
-const shown = (preset: string | null): string => preset ?? DEFAULT_PRESET
+const shown = (preset: string | null): string => preset ?? DEFAULT_CAMERA
 
-/** The scene's box: about 16:10 in the first screen, and on a phone 55% of the screen's height, at least 300 px [estimated]. */
-const STAGE_BOX = 'h-[clamp(20rem,min(62svh,46vw),46rem)] max-[479px]:h-[max(18.75rem,55svh)]'
+/** The scene's box: the frame's diagram view, whatever its room (track3d.css). */
+const STAGE_BOX = 'es-track-stage'
 
 export interface LoopStage3DProps {
   run: LoopRunCore
   preset: string | null
-  scene: ComponentType<Scene3DProps>
+  scene: ComponentType<TrackSceneProps>
   /** The diagram, which the Stage paints first and keeps as its fallback. */
   diagram: ReactNode
 }
@@ -50,13 +43,13 @@ export function LoopCameras({ preset, onPreset, cycle: cycleRef }: { preset: str
   const at = shown(preset)
   useEffect(() => {
     cycleRef.current = () => {
-      const next = nextPreset(LOOP_PRESETS, at)
+      const next = nextCamera(at)
       onPreset(next)
-      return CAMERA_WORDS[next] ?? presetById(LOOP_PRESETS, next).label
+      return cameraLabel(next)
     }
     return () => {
       cycleRef.current = null
     }
   }, [cycleRef, at, onPreset])
-  return <CameraButtons presets={CAMERA_PRESETS} value={at} onChange={onPreset} label="Camera" />
+  return <CameraButtons presets={TRACK_CAMERAS} value={at} onChange={onPreset} label="Camera" />
 }

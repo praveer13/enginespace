@@ -17,7 +17,7 @@ import { WorldCard } from './Card'
 import { Controls, type AutoToggleRef } from './Controls'
 import { loopKit, partRows } from './kit'
 import { Mirror } from './Mirror'
-import type { Scene3DProps } from './Scene3D'
+import type { TrackSceneProps } from './TrackScene3D'
 import { readoutItems } from './strip'
 import { LoopReadout } from './Tape'
 import type { LoopRunCore } from './types'
@@ -25,8 +25,9 @@ import { LoopLegend, View2D } from './View2D'
 
 // The debrief is the stage after the run: its compare strips and the real engine's numbers load when a run ends, not before.
 const Debrief = lazy(() => import('./Debrief').then((module) => ({ default: module.Debrief })))
-// The 3D scene is its own chunk over three's (A§6.10): the Stage loads it only on a device whose tier draws 3D.
-const Scene3D = lazy(() => import('./Scene3D'))
+// The 3D scene is the time track (REDESIGN §2.9), its own chunk over three's (A§6.10): the Stage loads it only on a device whose tier draws
+// 3D. The kitchen's scene (Scene3D.tsx) stays in the tree until the look gate, and this page no longer loads it.
+const Scene3D = lazy(() => import('./TrackScene3D'))
 // The full levels (TR2's and TR6's mask lane) are a chunk of their own: their rules are the step loop v1 and the cost cards, which the
 // demo levels and the front page never load. The `keys` level waits behind its card for the owner's dispatcher tables (Q-10).
 const FullService = lazy(() => import('./FullService'))
@@ -71,7 +72,7 @@ export function Docket({ current, onOpen }: { current: string; onOpen: (id: stri
 }
 
 /** The scene as the Stage mounts it, inside the Stage's canvas box. */
-function LoopScene(props: Scene3DProps) {
+function LoopScene(props: TrackSceneProps) {
   return <Scene3D {...props} />
 }
 
