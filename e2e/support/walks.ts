@@ -90,15 +90,6 @@ async function tabToLocator(walk: Walk, target: Locator, limit = 120): Promise<v
   throw new Error(`Tab never reached ${String(target)} in ${limit} presses; it went through ${walk.trail.map((stop) => stop.name).join(' > ')}`)
 }
 
-/** Waits for the control that begins the way into the debrief to have focus, presses it, and waits for the verdict. */
-async function intoTheDebrief(page: Page, walk: Walk, verdict: Locator, title: string): Promise<void> {
-  // Focus has moved on its own to the way into the debrief, which is one key away.
-  await expect.poll(() => activeName(page)).toBe('See the debrief')
-  await walk.see()
-  await page.keyboard.press('Enter')
-  await expect(verdict).toHaveText(title)
-}
-
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Rejection sampler (`verifier`)                                                                                     */
 /* ------------------------------------------------------------------------------------------------------------------ */
