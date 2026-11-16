@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type MutableRefObject, type RefObject } from 'react'
 import type { LoopAction, LoopView } from '@es/play/loop/types'
 import { changeLine } from './announce'
-import type { LoopRun } from './types'
+import type { LoopRunCore } from './types'
 
 /*
  * The state behind Service's controls (Controls.tsx): Auto, the bell, hanging a ticket and where focus goes after it, and the roving tab
@@ -17,7 +17,7 @@ const RING: LoopAction = { t: 'run', until: 'step' }
 export type AutoToggleRef = MutableRefObject<(() => void) | null>
 
 /** The announcement for every change of the view, once the first one has been seen. */
-function useAnnouncements(run: LoopRun): void {
+function useAnnouncements(run: LoopRunCore): void {
   const seen = useRef<LoopView | null>(null)
   const { view, announce } = run
   useEffect(() => {
@@ -31,7 +31,7 @@ function useAnnouncements(run: LoopRun): void {
 
 /** The controls' state and handlers, shared by the pieces wherever a page puts them. */
 export interface LoopControls {
-  readonly run: LoopRun
+  readonly run: LoopRunCore
   readonly view: LoopView
   readonly auto: boolean
   readonly ring: () => void
@@ -46,7 +46,7 @@ export interface LoopControls {
   readonly hint: string | null
 }
 
-export function useLoopControls(run: LoopRun, toggleAutoRef?: AutoToggleRef): LoopControls {
+export function useLoopControls(run: LoopRunCore, toggleAutoRef?: AutoToggleRef): LoopControls {
   const { view, dispatch } = run
   const [auto, setAuto] = useState(false)
   const [stop, setStop] = useState(0)

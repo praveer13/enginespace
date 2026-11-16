@@ -82,8 +82,8 @@ const served = (state: FullState, mutate: Partial<FullState['stages'][0]['levers
 
 describe('the page of `close`', () => {
   test('is Service\'s, with the level on its docket, a way into a graded run, and every stage of the play sequence', () => {
-    const docket = render(h(Game, null))
-    expect(docket.slice(docket.indexOf('data-loop-docket'))).toContain('Every lever, on new numbers')
+    // The demo levels' level menu lists it, graded (R-T17); the full levels' own page keeps the docket (tests/play/loop-full-ui.test.ts).
+    expect(render(h(Game, null))).toContain('Every lever, on new numbers')
     const markup = render(h(FullService, { level: 'close', onLevel: () => undefined }))
     expect(markup).toContain('Every lever, on new numbers · practice')
     expect(markup).toContain('data-full-mode="practice"')

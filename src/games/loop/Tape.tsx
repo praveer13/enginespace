@@ -1,7 +1,11 @@
 import type { ReactNode } from 'react'
 import type { LoopView } from '@es/play/loop/types'
+import { DeltaChip } from '@/design/components/DeltaChip'
 import { PrinterTape, type PrinterTapeLine } from '@/design/components/PrinterTape'
 import { Readout } from '@/design/components/Readout'
+import { Stamp } from '@/design/components/Stamp'
+import { formatReadout } from '@/design/format'
+import { readoutItems } from './strip'
 import { stepClockOf } from './readout'
 
 /*
@@ -57,4 +61,43 @@ function linesOf(view: LoopView): PrinterTapeLine[] {
 
 export function Tape({ view }: { view: LoopView }) {
   return <PrinterTape label="Step readout, in synthetic ticks" lines={linesOf(view)} feed={view.step} empty="Nothing has run yet" stamp="synthetic ticks" />
+}
+
+/**
+ * The readout strip in the instrument frame's dock (REDESIGN §2.6, §3.1): step · tokens out · GPU busy · GPU idle, and on the levels with
+ * async scheduling the ghost tokens, with the clock against the reference's where the level has one. One stamp for the strip; each number
+ * steps to its new value at once and its change stands over it for a second (the kit's delta).
+ */
+export function LoopReadout({ view, deltas }: { view: LoopView; deltas: Readonly<Record<string, { value: number; key: number }>> }) {
+  const c = view.counters
+  const items = readoutItems(view)
+  return (
+    <div className="es-loopstrip" data-loop-readout="">
+      <div className="es-loopstrip__head">
+        <span>Readout</span>
+        <Stamp word="synthetic" />
+      </div>
+      <dl className="es-loopstrip__list">
+        {items.map((item) => (
+          <div key={item.id} className="es-loopstrip__item" data-readout-id={item.id}>
+            <dt className="es-loopstrip__label">{item.label}</dt>
+            <dd className="es-loopstrip__value">
+              {formatReadout(item.value)}
+              {item.unit === null ? null : <span className="es-loopstrip__unit">{item.unit}</span>}
+              {item.id === 'clock' && view.par !== null ? (
+                <span className="es-loopstrip__unit">
+                  {' · '}
+                  <span className="font-numeric">{formatReadout(view.par)}</span>
+                </span>
+              ) : null}
+              {deltas[item.id] === undefined ? null : <DeltaChip key={deltas[item.id].key} value={deltas[item.id].value} className="es-loopstrip__delta" />}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      <span className="sr-only">
+        Every figure is a synthetic tick or token. GPU busy {c.gpuBusyUs} ticks, idle {c.bubbleUs} ticks.
+      </span>
+    </div>
+  )
 }

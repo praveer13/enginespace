@@ -1,11 +1,11 @@
 import clsx from 'clsx'
 import { requestName } from '@es/play/loop/copy'
-import { MIRROR_TICKS, windowOf } from '@es/play/loop/layout'
+import { stepsWindow, TABLE_TICKS } from '@es/play/loop/lanes'
 import type { FireView, LoopView, PlaceView } from '@es/play/loop/types'
 import { formatReadout } from '@/design/format'
 import { MirrorTable, type MirrorColumn, type MirrorRow } from '@/games/kit/MirrorTable'
 import { Tape } from './Tape'
-import type { LoopRun } from './types'
+import type { LoopRunCore } from './types'
 
 /*
  * Service's mirror (GAMES.md §2.3, §3; A§6.9): a DOM table of the whole night, so a screen reader, a zoomed page and a phone read
@@ -82,7 +82,7 @@ function rowOf(fire: FireView, lamp: boolean): MirrorRow {
 
 /** The rows of the mirror: the fires in the window the drawing shows, and one row that adds up the older ones. */
 function rowsOf(view: LoopView): MirrorRow[] {
-  const shown = windowOf(view, MIRROR_TICKS)
+  const shown = stepsWindow(view, TABLE_TICKS)
   const rows: MirrorRow[] = []
   if (shown.hidden > 0) {
     const older = view.fires.slice(0, shown.hidden)
@@ -106,7 +106,7 @@ function rowsOf(view: LoopView): MirrorRow[] {
 /** A figure inside a sentence: the reading face's own tabular figures, so a zero reads as a zero beside the words around it. */
 const num = (value: number) => <span className="tabular-nums">{formatReadout(value)}</span>
 
-export function Mirror({ run }: { run: LoopRun }) {
+export function Mirror({ run }: { run: LoopRunCore }) {
   const { view } = run
   const c = view.counters
   return (

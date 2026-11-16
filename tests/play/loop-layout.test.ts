@@ -8,9 +8,10 @@
  * each pool is drawn on the steel, flat washes of the lamp's amber and the brushed lines the light catches, with no radial glow.
  *
  * The poster is `scripts/posters.ts`: the practice seed of the first level as a view, laid out through the front page's shot and
- * written as SVG text. The 2D view is `View2D`, which draws Service's own shot as React elements. The first group renders the real
- * component on the server and cuts the <svg> out of its markup, so what is compared is what the page paints and not a second copy of
- * the code.
+ * written as SVG text. The React side is the kitchen drawing as the front page paints it: the frame's tree as React elements
+ * (`svgToReact`) with the page's print laid over it (`FrameLabels`), here through Service's own shot, as `/play/loop` drew it until R-T17
+ * redrew that page as the timing diagram (packages/play/loop/lanes.ts, tests/play/loop-lanes.test.ts). The kitchen drawing stays in the
+ * tree for the front page until the look gate, so these hold it there.
  *
  * Measured by the poster script [measured 2026-11-05 on the finish review's round-2 tree, over wave-1 at cc1d29d]: the two posters are
  * 142 and 141 marks and 30,324 and 21,952 characters (`bun scripts/posters.ts`), 7,129 and 5,226 bytes under `gzip -9`. The side
@@ -21,8 +22,8 @@ import { describe, expect, test } from 'bun:test'
 import { createElement as h } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { ROLES } from '@/design/tokens'
+import { FrameLabels } from '@/games/loop/FrameLabels'
 import { svgToReact } from '@/games/loop/svg'
-import { View2D } from '@/games/loop/View2D'
 import { hang, initState, setOverlap, step } from '@es/play/loop/engine'
 import { clipX, FIRED, GRIP, LINE, lineOf, PASS, RAIL, SHOTS, TICKET, viewOf } from '@es/play/loop/kitchen'
 import { FRAMES, MARK_CAP, MIRROR_TICKS, PAINTS, PASS_LENS, STRIP, WINDOW_TICKS, frameSvg, layoutFrame, layoutStrip, markCount, ticketNo, windowOf } from '@es/play/loop/layout'
@@ -36,7 +37,7 @@ import { countMarks, escapeText, svgMarkup } from '@es/play/loop/svg'
 import type { SvgNode } from '@es/play/loop/svg'
 import type { FireView, LoopState, LoopView, PlaceView } from '@es/play/loop/types'
 import { POSTER_LEVEL, POSTER_SEED, renderPosters, stalePosters } from '../../scripts/posters'
-import { fakeRun, handLevel, houseNight, statesOfHouseNight } from './loop-support'
+import { handLevel, houseNight, statesOfHouseNight } from './loop-support'
 
 const ORIENTATIONS: readonly Orientation[] = ['landscape', 'portrait']
 const SHOT_NAMES: readonly ShotName[] = ['front', 'loop']
@@ -60,6 +61,12 @@ const fill = (s: LoopState, n = Number.POSITIVE_INFINITY): LoopState => {
 /** Half a rail fired: clips 0 and 1 hung and rung, so stations 0 and 1 burn and 2 and 3 stand dark. */
 const half = () => loopView(step(fill(initState(buildLevel(POSTER_LEVEL, POSTER_SEED)), 2)))
 
+/** The kitchen drawing through Service's own shot, landscape, as React elements with its print over it: what `/play/loop` painted before R-T17. */
+function KitchenDrawing({ view }: { view: ReturnType<typeof loopView> }) {
+  const frame = engineFrame(layoutFrame(view, { orientation: 'landscape', shot: 'loop' }), view)
+  return h('div', { 'data-loop-drawing': '' }, svgToReact(frameSvg(frame, { cover: true })), h(FrameLabels, { frame, fit: 'cover' }))
+}
+
 describe("the poster is the front page's first frame, and the 2D view draws the same code", () => {
   test('scripts/posters.ts draws the practice seed of the first level, in both orientations, through the front shot', () => {
     expect([POSTER_LEVEL, POSTER_SEED]).toEqual(['first-1-fill', 1])
@@ -72,8 +79,8 @@ describe("the poster is the front page's first frame, and the 2D view draws the 
     }
   })
 
-  test("View2D paints, byte for byte, Service's own shot of the same night on its first render (which is landscape), covering its box", () => {
-    const painted = renderToStaticMarkup(h(View2D, { run: fakeRun(initState(buildLevel(POSTER_LEVEL, POSTER_SEED))) }))
+  test("the kitchen drawing paints, byte for byte, Service's own shot of the same night in React (landscape), covering its box", () => {
+    const painted = renderToStaticMarkup(h(KitchenDrawing, { view: loopView(initState(buildLevel(POSTER_LEVEL, POSTER_SEED))) }))
     expect(svgIn(painted)).toBe(svgMarkup(frameSvg(engineFrame(layoutFrame(first, { orientation: 'landscape', shot: 'loop' }), first), { cover: true })))
     expect(svgIn(painted)).toContain('preserveAspectRatio="xMidYMid slice"')
   })
@@ -546,14 +553,12 @@ describe("the kitchen's names are tape in the DOM, each stuck on what it names (
     expect(checked).toBeGreaterThan(100)
   })
 
-  test("View2D prints them as the design system's tape over the drawing, outside its SVG, in a layer laid over the frame as the SVG lays it out", () => {
+  test("the kitchen drawing prints them as the design system's tape over the drawing, outside its SVG, in a layer laid over the frame as the SVG lays it out", () => {
     const state = step(fill(setOverlap(initState(buildLevel('first-3-gap', 1)), true)))
-    const markup = renderToStaticMarkup(h(View2D, { run: fakeRun(state) }))
+    const markup = renderToStaticMarkup(h(KitchenDrawing, { view: loopView(state) }))
     // The page prints the engine's words on the tapes (R-T14): the layout's own strings are its ids, and the frame the page draws is reworded.
     const frame = engineFrame(layoutFrame(loopView(state), { orientation: 'landscape', shot: 'loop' }), loopView(state))
     expect(frame.tapes.map((tape) => [tape.id, tape.text])).toEqual([['line', 'GPU lane'], ['fired', 'step in flight'], ['expo', 'CPU lane']])
-    // The drawing box is a size container, so the print scales with it (components.css, "print stuck on a drawing").
-    expect(markup).toMatch(/<div class="[^"]*\[container-type:size\][^"]*" data-loop-drawing="">/)
     const layer = markup.slice(markup.indexOf('</svg>'))
     expect(layer).toMatch(/^<\/svg><div class="es-frame-labels" data-fit="cover" style="--es-frame-ratio:2.4" aria-hidden="true">/)
     const share = (value: number, of: number) => Math.round((value / of) * 10000) / 100
@@ -604,10 +609,10 @@ describe("the drawing's numbers and words are print in the DOM over it, each on 
     expect(frames.length).toBeGreaterThan(400)
   })
 
-  test("View2D prints each as print over the drawing, in the layer with the tapes, stuck where the frame says, the print that needs room marked so", () => {
+  test("the kitchen drawing prints each as print over the drawing, in the layer with the tapes, stuck where the frame says, the print that needs room marked so", () => {
     // Mid-night on Your turn: two tickets hung, two clips empty, five fed tickets on the counter and three more in the printer.
     const state = step(step(step(fill(initState(buildLevel('first-4-par', 1))))))
-    const markup = renderToStaticMarkup(h(View2D, { run: fakeRun(state) }))
+    const markup = renderToStaticMarkup(h(KitchenDrawing, { view: loopView(state) }))
     const frame = engineFrame(layoutFrame(loopView(state), { orientation: 'landscape', shot: 'loop' }), loopView(state))
     // A request's number is printed as its name, R1 for the first (R-T14): the layout's "01" is its own.
     expect(frame.tags.map((tag) => [tag.id, tag.text])).toEqual([

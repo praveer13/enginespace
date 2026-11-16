@@ -103,15 +103,23 @@ const test = base.extend<{ requests: string[] }>({
 const stage = (page: Page) => page.locator('[data-stage="loop"]')
 const game = (page: Page) => page.locator('section[data-game="loop"]')
 const probe = (page: Page) => page.evaluate(() => window.__esScene?.probes.loop?.info() ?? null)
-const bell = (page: Page) => page.getByRole('button', { name: /Step: run the next step/ })
-const bellCount = (page: Page) => page.locator('[data-loop-controls] .es-bell__count .es-readout__value').textContent()
+const bell = (page: Page) => page.locator('[data-loop-step] button')
+const bellCount = (page: Page) => page.locator('[data-loop-readout] [data-readout-id="step"] dd').evaluate((dd) => dd.firstChild?.textContent ?? '')
 const overlap = (page: Page) => page.getByRole('switch', { name: /Async scheduling/ })
 const camera = (page: Page) => page.getByRole('group', { name: 'Camera' })
 
+/**
+ * Opens a level on a device of the tier given. The diagram is the default view since R-T17 (REDESIGN §2.9), so where the tier draws 3D the
+ * view switch turns the scene on, as a learner does.
+ */
 async function open(page: Page, level: string, tier: number) {
   await page.goto(`${ORIGIN}/play/loop?level=${level}&es-tier=${tier}`)
   await page.evaluate(() => document.fonts.ready)
   await expect(game(page)).toBeVisible()
+  if (tier >= 1) {
+    await page.getByRole('button', { name: '3D', exact: true }).click()
+    await expect(game(page)).toHaveAttribute('data-view', '3d')
+  }
 }
 
 /** Waits until the scene is drawn, the Stage says it is settled, and no frame has been drawn for half a second. */
@@ -157,7 +165,7 @@ test.describe('the draw-call budget at the practice seed (A§11.1)', () => {
       let most: FrameStats | null = null
       let instances = 0
       // The house's way: every free clip hung, then the bell, until every ticket is served.
-      for (let turn = 0; turn < 80 && (await page.getByRole('button', { name: 'See the debrief' }).count()) === 0; turn++) {
+      for (let turn = 0; turn < 80 && (await page.locator('[data-result] [data-loop-debrief]').count()) === 0; turn++) {
         await hangAll(page)
         if (await bell(page).isEnabled()) await bell(page).click()
         await settle(page)
@@ -165,7 +173,7 @@ test.describe('the draw-call budget at the practice seed (A§11.1)', () => {
         if (most === null || stats.sceneCalls > most.sceneCalls) most = stats
         instances = Math.max(instances, stats.instances)
       }
-      expect(await page.getByRole('button', { name: 'See the debrief' }).count()).toBe(1)
+      expect(await page.locator('[data-result] [data-loop-debrief]').count()).toBe(1)
       if (most === null) throw new Error('no frame was drawn')
       expect(most.sceneCalls).toBeLessThanOrEqual(100)
       expect(most.calls).toBeLessThanOrEqual(100)
@@ -187,7 +195,7 @@ test.describe('the views and the camera (A§6.8)', () => {
     await page.keyboard.press('Period')
     await settle(page)
     const before = { count: await bellCount(page), overlap: await overlap(page).getAttribute('aria-checked') }
-    expect(before).toEqual({ count: '0003', overlap: 'true' })
+    expect(before).toEqual({ count: '3', overlap: 'true' })
 
     await game(page).focus()
     await page.keyboard.press('KeyV')

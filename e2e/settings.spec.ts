@@ -546,7 +546,7 @@ test.describe('settings reach the game shell', () => {
     await settings.close()
   })
 
-  test('with 3D off, a game opens in its 2D view, says why beside the disabled 3D button, shows no camera buttons and fetches no 3D chunk, and 3D on brings the 3D view back', async ({ page, context, requests }) => {
+  test('with 3D off, a game opens in its 2D view, says why beside the disabled 3D button, shows no camera buttons and fetches no 3D chunk, and 3D on offers the 3D view again', async ({ page, context, requests }) => {
     await open(page, '/settings')
     await switchNamed(page, 'Draw the games in 3D').click()
     await expect.poll(() => settingsRecord(page)).toEqual({ 'settings:3d': false })
@@ -554,8 +554,9 @@ test.describe('settings reach the game shell', () => {
     const game = page.locator('section[data-game="loop"]')
     await expect(game).toHaveAttribute('data-view', '2d')
     const views = page.getByRole('group', { name: 'View', exact: true })
-    await expect(views.getByRole('button', { name: '3D view' })).toBeDisabled()
-    await expect(views.getByRole('button', { name: '2D view' })).toHaveAttribute('aria-pressed', 'true')
+    // The step loop's demo levels sit in the instrument frame (R-T17), whose switch reads Diagram and 3D.
+    await expect(views.getByRole('button', { name: '3D', exact: true })).toBeDisabled()
+    await expect(views.getByRole('button', { name: 'Diagram' })).toHaveAttribute('aria-pressed', 'true')
     await expect(views).toContainText('3D is off in Settings')
     await expect(page.getByRole('group', { name: 'Camera' })).toHaveCount(0)
     // `V` has nowhere to go, and `C` has no camera to move.
@@ -566,13 +567,14 @@ test.describe('settings reach the game shell', () => {
     await page.waitForTimeout(1500)
     expect(requests.filter((request) => /three-vendor|Scene3D|postfx/.test(request))).toEqual([])
 
-    // 3D on, in another tab: the open game goes to its 3D view by itself, as it does on a device that draws it.
+    // 3D on, in another tab: the open game offers its 3D view again. The diagram stays the default (REDESIGN §2.9), so the learner asks.
     const settings = await context.newPage()
     await open(settings, '/settings')
     await switchNamed(settings, 'Draw the games in 3D').click()
     await expect(switchNamed(settings, 'Draw the games in 3D')).toHaveAttribute('aria-checked', 'true')
+    await expect(views.getByRole('button', { name: '3D', exact: true })).toBeEnabled({ timeout: 20_000 })
+    await views.getByRole('button', { name: '3D', exact: true }).click()
     await expect(game).toHaveAttribute('data-view', '3d', { timeout: 20_000 })
-    await expect(views.getByRole('button', { name: '3D view' })).toBeEnabled()
     await expect(page.getByRole('group', { name: 'Camera' })).toBeVisible()
     await settings.close()
   })
