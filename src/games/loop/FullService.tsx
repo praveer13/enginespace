@@ -1,4 +1,4 @@
-import { lazy, useCallback, useMemo, useRef, useState, type ReactNode } from 'react'
+import { lazy, useCallback, useRef, useState, type ReactNode } from 'react'
 import { drawInBand, levelOf } from '@es/play'
 import type { GameMode } from '@es/play'
 import { FULL_SERVICE, LOOP } from '@es/play/loop/entry'
@@ -9,12 +9,11 @@ import { Button } from '@/design/components/Button'
 import type { GameView } from '@/games/kit/ViewSwitch'
 import { GameShell } from '@/games/kit/GameShell'
 import type { GameProps } from '@/games/registry'
-import { nextPreset, presetById } from '@/scene/camera-rig'
 import { CameraButtons } from '@/scene/CameraButtons'
 import { Stage } from '@/scene/Stage'
 import { unavailableReason, useDeviceTier } from '@/scene/tiers'
-import type { Scene3DProps } from './Scene3D'
-import { DEFAULT_PRESET, LOOP_PRESETS } from './scene-presets'
+import type { TrackSceneProps } from './TrackScene3D'
+import { cameraLabel, DEFAULT_CAMERA, nextCamera, TRACK_CAMERAS } from './track-presets'
 import { BuildThis } from './full/BuildThis'
 import { Compose } from './full/Compose'
 import { FullCard } from './full/FullCard'
@@ -24,21 +23,21 @@ import { FullMirror } from './full/FullMirror'
 import { FullTape } from './full/FullTape'
 import { FullView2D } from './full/FullView2D'
 import { Production } from './full/Production'
-import { sceneOfFull } from './full/scene'
 import type { FullRun } from './full/types'
 import './full/full.css'
 
-// The 3D scene is Service's own lazy chunk (A§6.10), the one the front page and the first service load: the full service adds its objects.
-const Scene3D = lazy(() => import('./Scene3D'))
+// The 3D scene is the step loop's time track (REDESIGN §2.9), the demo levels' lazy chunk (A§6.10): it draws the full levels from their own
+// lanes, in µs. The kitchen's scene stays in the tree until the look gate, and this page no longer loads it.
+const Scene3D = lazy(() => import('./TrackScene3D'))
 
-function FullScene(props: Scene3DProps) {
+function FullScene(props: TrackSceneProps) {
   return <Scene3D {...props} />
 }
 
 /*
  * The full service: TR2's levels and TR6's mask lane on Service's page (GAMES.md §3.2, §2.6). Play → Debrief → Compose → In production →
- * Build this, around the same pass as the first service, drawn by the same 2D kitchen and the same 3D scene, with the mold rack, the comb
- * and the allergy card added (D-018: one session, drawn by every view). The shell owns the run; this file wires the full service's parts
+ * Build this, drawn by the 2D kitchen with the mold rack, the comb and the allergy card, and in 3D by the step loop's time track from the
+ * full levels' own lanes (D-018: one session, drawn by every view). The shell owns the run; this file wires the full service's parts
  * into it, and its keys: `.` rings the bell, Space toggles Auto, `O` flips the stage's overlap switch (async scheduling, or the allergy
  * card's), `G` cycles the graph mode, `M` switches the runner, and `[` and `]` move between the level's stages.
  *
@@ -96,14 +95,13 @@ const STAGE_BOX = 'h-[clamp(22rem,min(72svh,50vw),52rem)] max-[479px]:h-[max(18.
 
 function FullStage({ run, preset }: { run: FullRun; preset: string }) {
   const { view } = run
-  const full = useMemo(() => sceneOfFull(view), [view])
   return (
     <Stage
       id="loop"
       className={`${STAGE_BOX} border border-edge shadow-shelf`}
       view2d={<FullView2D run={run} />}
       scene={FullScene}
-      sceneProps={{ view, preset, full }}
+      sceneProps={{ full: view, preset }}
       announce={run.announce}
     />
   )
@@ -174,7 +172,7 @@ export default function FullService({ level, mode, placement = 'page', rev, onFi
   const [chosenView, setChosenView] = useState<GameView | null>(null)
   const view: GameView = chosenView ?? (draws3d && device.hints?.saveData !== true ? '3d' : '2d')
   const unavailable3d = device.known && !draws3d ? unavailableReason(device.reason) : undefined
-  const [preset, setPreset] = useState(DEFAULT_PRESET)
+  const [preset, setPreset] = useState<string>(DEFAULT_CAMERA)
   // Inside a lesson the block names the level, so no other level is offered (W1b-T01).
   const embedded = placement === 'embed'
   const at = FULL_SERVICE.findIndex((candidate) => candidate.id === entry.id)
@@ -215,9 +213,9 @@ export default function FullService({ level, mode, placement = 'page', rev, onFi
             return stageStep(run, -1)
           case 'camera': {
             if (view !== '3d') return false
-            const next = nextPreset(LOOP_PRESETS, preset)
+            const next = nextCamera(preset)
             setPreset(next)
-            run.announce(`Camera: ${presetById(LOOP_PRESETS, next).label}.`)
+            run.announce(`Camera: ${cameraLabel(next)}.`)
             return true
           }
           default:
@@ -236,7 +234,7 @@ export default function FullService({ level, mode, placement = 'page', rev, onFi
       scene3d={(run) => <FullStage run={run} preset={preset} />}
       controls={(run) => (
         <>
-          {view === '3d' ? <CameraButtons presets={LOOP_PRESETS} value={preset} onChange={setPreset} label="Camera on the pass" /> : null}
+          {view === '3d' ? <CameraButtons presets={TRACK_CAMERAS} value={preset} onChange={setPreset} label="Camera" /> : null}
           <GradedBar
             graded={entry.graded}
             mode={run.mode}

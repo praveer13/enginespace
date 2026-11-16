@@ -63,6 +63,11 @@ export interface SceneCanvasProps {
    * does not ask draws exactly as before. The lights that cast are the scene's to choose, through the kit's `shadowLights`.
    */
   shadows?: boolean
+  /**
+   * Bloom at T2 and up, where the tier's plan has it (postfx/plan.ts). On by default, so a scene that does not say draws as before; a scene
+   * in which nothing glows but one unlit mark (Data Book's time track) turns it off, and keeps the final pass's anti-aliasing.
+   */
+  bloom?: boolean
   className?: string
 }
 
@@ -217,7 +222,7 @@ class RootBoundary extends Component<{ onError: (error: unknown) => void; childr
   }
 }
 
-export function SceneCanvas({ children, labels = [], background = 'surface-0', fog = null, exposure = 1, environment = true, environmentIntensity = 0.9, shadows = false, className }: SceneCanvasProps) {
+export function SceneCanvas({ children, labels = [], background = 'surface-0', fog = null, exposure = 1, environment = true, environmentIntensity = 0.9, shadows = false, bloom = true, className }: SceneCanvasProps) {
   const runtime = useStageRuntime()
   const tokens = useSceneTokens()
   const host = useRef<HTMLDivElement>(null)
@@ -257,6 +262,7 @@ export function SceneCanvas({ children, labels = [], background = 'surface-0', f
           environment={environment}
           environmentIntensity={environmentIntensity}
           shadows={shadows}
+          bloom={bloom}
         >
           {children}
         </KitRoot>
@@ -283,6 +289,7 @@ interface KitRootProps {
   environment: boolean | 'tubes'
   environmentIntensity: number
   shadows: boolean
+  bloom: boolean
   children: ReactNode
 }
 
@@ -306,7 +313,7 @@ function countShadows(scene: THREE.Scene, gl: THREE.WebGLRenderer): number {
 }
 
 /** Everything inside the root: renderer settings, materials, light from the environment, post-processing and the loop. */
-function KitRoot({ runtime, tokens, paused, store, bridge, background, fog, exposure, environment, environmentIntensity, shadows, children }: KitRootProps) {
+function KitRoot({ runtime, tokens, paused, store, bridge, background, fog, exposure, environment, environmentIntensity, shadows, bloom, children }: KitRootProps) {
   const gl = useThree((state) => state.gl)
   const scene = useThree((state) => state.scene)
   const size = useThree((state) => state.size)
@@ -365,7 +372,8 @@ function KitRoot({ runtime, tokens, paused, store, bridge, background, fog, expo
   }, [scene, tokens, background, fogNear, fogFar, fogColor, invalidate])
 
   // Post-processing at T2 and up: the `postfx` chunk is imported here, and only here.
-  const plan = postFxPlan(tier, { contrastMore: runtime.contrastMore, forcedColors: runtime.forcedColors })
+  // Without bloom the plan is the one `prefers-contrast: more` gets: the final pass alone, with its anti-aliasing.
+  const plan = postFxPlan(tier, { contrastMore: runtime.contrastMore || !bloom, forcedColors: runtime.forcedColors })
   const planKey = planId(plan)
   const get = useThree((state) => state.get)
   const postfx = useRef<PostFx | null>(null)
