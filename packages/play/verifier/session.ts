@@ -269,8 +269,8 @@ export function verifierDebrief(mine: VerifierState): Debrief {
     case 'overlap':
       return {
         sentence: grade.ok
-          ? 'You counted the plates both stacks share. That overlap, min(p, q), is the share of the commis\'s plates the chef keeps, and it is α: she keeps what she and the commis agree on and sends back only the commis\'s extra.'
-          : 'The chef keeps the plates both stacks share and sends back only the commis\'s extra. Count what the two stacks have in common dish by dish: that overlap, min(p, q), is α.',
+          ? 'You counted what the draft and the target share. That overlap, min(p, q), is the share of the draft the target accepts, and it is the acceptance rate α: the target accepts what it already agrees with and rejects only the draft\'s excess.'
+          : 'The target accepts what the draft and the target share and rejects only the draft\'s excess. Count what the two bars have in common token by token: that overlap, min(p, q), is the acceptance rate α.',
         names: null,
       }
     case 'exact': {
@@ -278,12 +278,12 @@ export function verifierDebrief(mine: VerifierState): Debrief {
       if (grade.ok) {
         return {
           sentence:
-            'What goes out is the chef\'s tasting exactly. She keeps every plate she and the commis agree on, and she re-plates from what the commis under-plated, (p − q)⁺, dish by dish. Any other recipe, even one that looks fair, leaves a bias.',
+            'The output is the target\'s distribution exactly. The sampler accepts each draft token with the probability the accept rule gives, and resamples a rejection from what the draft left out of the target, the residual (p − q)⁺, token by token. Any other weights, even fair-looking ones, leave a bias.',
           names: null,
         }
       }
       return {
-        sentence: `The distance from her tasting is not zero. A plate that is sent back must be re-plated from exactly what the commis under-plated, (p − q)⁺, dish by dish, and not from p, from q, or from anything renormalised. The dish furthest out is the ${facts.worst === null ? 'one you left empty' : DISHES[facts.worst]}.`,
+        sentence: `The output's distance from the target is not zero. A rejected token must be resampled from exactly the residual, (p − q)⁺, token by token, and not from p, from q, or from anything renormalised. ${facts.worst === null ? 'You left every token without weight.' : 'The token furthest out is named under the sentence.'}`,
         names: facts.worst === null ? null : { lever: `dish:${facts.worst}` },
       }
     }
@@ -294,17 +294,17 @@ export function verifierDebrief(mine: VerifierState): Debrief {
       if (grade.ok) {
         return {
           sentence:
-            'Each round serves the course the chef always plates, plus every draft the walk reaches and keeps, so each position adds the product of the acceptances up to it. You summed them within one part in a hundred.',
+            'Each round yields the token the target always adds, plus every draft token the walk reaches and accepts, so each position adds the product of the acceptances up to it. You summed them within one part in a hundred.',
           names: null,
         }
       }
       if (near(facts.naive?.first)) {
-        return { sentence: 'That is the count you get by reading every position as accepting like the first. The acceptances differ down the run, and the walk only gets as far as the plates it keeps, so each position adds the product of its own and every one before it.', names: { lever: 'alpha-of-the-first' } }
+        return { sentence: 'That is the count you get by reading every position as accepting like the first. The acceptances differ down the round, and the walk only gets as far as the tokens it accepts, so each position adds the product of its own acceptance and every one before it.', names: { lever: 'alpha-of-the-first' } }
       }
       if (near(facts.naive?.mean)) {
-        return { sentence: 'That is the count you get by averaging the acceptances and using the average at every position. A product of different acceptances is not the product of their average, so work each position out and multiply along the run.', names: { lever: 'alpha-mean' } }
+        return { sentence: 'That is the count you get by averaging the acceptances and using the average at every position. A product of different acceptances is not the product of their average, so work each position out and multiply along the round.', names: { lever: 'alpha-mean' } }
       }
-      return { sentence: 'Each round serves the course the chef always plates, plus every draft the walk reaches and keeps. Work out each position\'s acceptance, multiply along the run, and add up the running products.', names: null }
+      return { sentence: 'Each round yields the token the target always adds, plus every draft token the walk reaches and accepts. Work out each position\'s acceptance, multiply along the round, and add up the running products.', names: null }
     }
     case 'greedy-ngram': {
       const facts = finalFacts(mine)
@@ -314,23 +314,23 @@ export function verifierDebrief(mine: VerifierState): Debrief {
       if (right && exact) {
         return {
           sentence:
-            'At temperature zero the chef sends her favourite and nothing else, so the copier\'s plate is kept exactly when it is the favourite. At full temperature its q is a single dish, so the plate is kept as often as p likes that dish, and a plate sent back is re-plated from p with the copied dish taken out.',
+            'At temperature zero the target emits its most likely token and nothing else, so the n-gram\'s token is accepted exactly when it is that token. At full temperature its q is a single token, so it is accepted as often as p likes that token, and a rejection is resampled from p with the drafted token taken out.',
           names: null,
         }
       }
       if (!right) {
-        return { sentence: 'At temperature zero the chef sends her favourite every time, the tallest stack of her tasting, so the copier\'s plate is kept exactly when it copied that dish and sent back otherwise.', names: { lever: 'temperature-zero' } }
+        return { sentence: 'At temperature zero the target emits its most likely token every time, the tallest bar of p, so the n-gram\'s token is accepted exactly when it drafted that token and rejected otherwise.', names: { lever: 'temperature-zero' } }
       }
       return {
-        sentence: `The copier names one dish, so the commis under-plated every other dish by exactly what the chef would send: the residual is p with the copied dish taken out. The dish furthest out is the ${facts.worst === null ? 'one you left empty' : DISHES[facts.worst]}.`,
+        sentence: `The n-gram names one token, so the draft left out every other token by exactly what the target would give it: the residual is p with the drafted token taken out. ${facts.worst === null ? 'You left every token without weight.' : 'The token furthest out is named under the sentence.'}`,
         names: facts.worst === null ? null : { lever: `dish:${facts.worst}` },
       }
     }
     case 'mutants':
       return {
         sentence: grade.ok
-          ? 'Every rule named. The rules that are wrong in their recipe or their accept step show in a taste of twenty thousand rounds, and the boundary-inclusive comparison hides from it: it moves a dish by a single coin, and only a look at every coin of the accept step finds it.'
-          : 'Some rules went unnamed. A taste shows a bias of a few parts in a hundred and cannot see a single coin, and a look at every coin of the accept step sees the accept rule and cannot see a wrong recipe: use both on each card.',
+          ? 'Every rule named. The rules wrong in their resample or their accept step show in a sample of twenty thousand rounds, and the boundary-inclusive comparison hides from it: it moves a token by a single draw of u, and only a check of every draw of the accept step finds it.'
+          : 'Some rules went unnamed. A sample shows a bias of a few parts in a hundred and cannot see a single draw, and a check of every draw of the accept step sees the accept rule and cannot see a wrong resample: use both on each card.',
         names: null,
       }
     case 'gamma': {
@@ -338,14 +338,14 @@ export function verifierDebrief(mine: VerifierState): Debrief {
       if (grade.ok) {
         return {
           sentence:
-            'A longer draft adds the product of the acceptances up to it, and only if the walk gets that far, while it adds its cost to every round. The best length is where the next plate stops paying for itself.',
+            'A longer draft adds the product of the acceptances up to it, and only if the walk gets that far, while it adds its cost to every round. The best length is where the next draft token stops paying for itself.',
           names: null,
         }
       }
       return {
         sentence: mine.gamma < best
-          ? 'The next plate still paid for itself: the courses it adds, weighted by the chance the walk reaches it, outweighed what it costs every round. Plate further ahead.'
-          : 'That plate no longer paid for itself: the chance the walk reaches it was too small to outweigh its cost, which every round pays. Plate fewer ahead.',
+          ? 'The next draft token still paid for itself: the tokens it adds, weighted by the chance the walk reaches it, outweighed what it costs every round. Draft further ahead.'
+          : 'That draft token no longer paid for itself: the chance the walk reaches it was too small to outweigh its cost, which every round pays. Draft fewer tokens.',
         names: { lever: mine.gamma < best ? 'too-short' : 'too-long' },
       }
     }

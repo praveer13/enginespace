@@ -51,7 +51,7 @@ function rowsOf(s: VerifierState, reveal: boolean): RowView[] {
     return {
       index: i,
       kind: bonus ? 'bonus' : 'draft',
-      label: bonus ? "the chef's extra course" : chain ? `plate ${i + 1}` : 'the tasting',
+      label: bonus ? 'the bonus token' : chain ? `draft position ${i + 1}` : 'the draft position',
       p,
       q,
       agreed: reveal ? agreed : null,

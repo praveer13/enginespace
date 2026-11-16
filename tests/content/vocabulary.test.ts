@@ -5,9 +5,9 @@
  *
  * It checks words, not whether the level can be solved. The levels it holds are the openers of the table (tests/content/openers-table.ts): the
  * levels of an A or B row. A game that has no parts table yet is marked as waiting on the task that gives it one (`test.todo`, which runs
- * nothing), and that task replaces the mark with a table: R-T29 for the request path, R-T30 for the rejection sampler and R-T31 for the
- * broken benchmark. The pool's parts list and the step loop's (R-T28: the demo levels' and the full levels') exist, and every level of an A or B
- * row of those games passes.
+ * nothing), and that task replaces the mark with a table: R-T29 for the request path and R-T31 for the broken benchmark. The pool's, the
+ * step loop's (R-T28: the demo levels' and the full levels') and the rejection sampler's parts lists exist, and every level of an A or B row of
+ * those games passes.
  */
 import { describe, expect, test } from 'bun:test'
 import { compiledLessonSchema } from '@es/schema'
@@ -20,6 +20,8 @@ import type { LoopLevelId } from '@es/play/loop/types'
 import type { FullLevelId } from '@es/play/loop/full/types'
 import { POOL_COPY, partsOf } from '@es/play/pool/copy'
 import type { PoolLevelId } from '@es/play/pool/types'
+import { ASK_WORDS, VERIFIER_COPY, partsOf as samplerPartsOf } from '@es/play/verifier/copy'
+import type { VerifierLevelId } from '@es/play/verifier/types'
 import { TERMS } from '@/copy/terms'
 import { compileContent } from '../../scripts/content/build.ts'
 import { OPENERS } from './openers-table.ts'
@@ -64,7 +66,7 @@ const PARTS: Record<string, { at: (level: string) => string; waiting?: string }>
       (isFull(level) ? fullPartsOf(level as FullLevelId) : loopPartsOf(level as LoopLevelId)).map((part) => `${part.name} ${part.sentence} ${part.engine ?? ''}`).join(' '),
   },
   'engine-floor': { at: () => '', waiting: 'R-T29' },
-  verifier: { at: () => '', waiting: 'R-T30' },
+  verifier: { at: (level) => samplerPartsOf(level as VerifierLevelId).map((part) => `${part.name} ${part.sentence} ${part.engine ?? ''}`).join(' ') },
   'broken-bench': { at: () => '', waiting: 'R-T31' },
 }
 
@@ -83,6 +85,10 @@ const LEVEL_WORDS: Record<string, (level: string) => string> = {
   pool: (level) => {
     const copy = POOL_COPY[level as PoolLevelId]
     return [copy.goal.aim, copy.goal.controls, copy.prompt, copy.predict.ask].join(' ')
+  },
+  verifier: (level) => {
+    const copy = VERIFIER_COPY[level as VerifierLevelId]
+    return [copy.goal.aim, copy.goal.controls, copy.prompt, ASK_WORDS[level as VerifierLevelId]].join(' ')
   },
 }
 

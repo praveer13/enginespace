@@ -100,29 +100,55 @@ async function intoTheDebrief(page: Page, walk: Walk, verdict: Locator, title: s
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* The Tasting (`verifier`)                                                                                           */
+/* Rejection sampler (`verifier`)                                                                                     */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-const verdictOfTasting = (page: Page) => page.locator('[data-verifier-debrief] h3').first()
-const tastingDebrief = (page: Page, walk: Walk) => intoTheDebrief(page, walk, verdictOfTasting(page), 'Well tasted.')
+/** The run is over: the instrument frame puts the result in the dock and focus on its verdict, which the grade gives. */
+async function samplerResult(page: Page, walk: Walk, word: 'Passed' | 'Finished (practice)'): Promise<void> {
+  await expect(outcome(page)).toHaveText('The run is over. The result is in the dock.')
+  await expect(page.locator('[data-result] [data-result-heading]')).toHaveText(word)
+  await expect.poll(() => page.evaluate(() => document.activeElement?.hasAttribute('data-result-heading') ?? false)).toBe(true)
+  await walk.see()
+}
 
-/** Types a recipe into the six weight fields with the keys alone: digits, and the right arrow to the next dish. */
-async function typeRecipe(page: Page, walk: Walk, recipe: readonly number[]): Promise<void> {
-  await tabTo(walk, /^Recipe weight for soup$/)
-  for (const [token, weight] of recipe.entries()) {
-    await page.keyboard.type(String(weight))
-    if (token < recipe.length - 1) await walk.press('ArrowRight')
+/**
+ * A learner who has not met the parts gets the first run (R-T30): its Next, with the keys, walks the parts and the look, and the ask's step
+ * puts focus in the level's first field. The game's block finds it the same way inside a lesson.
+ */
+async function throughFirstRun(page: Page, walk: Walk): Promise<void> {
+  const step = () => page.locator('[data-game="verifier"] .es-intro').first().getAttribute('data-intro', { timeout: 2_000 }).catch(() => null)
+  await page.locator('[data-game="verifier"] :is(.es-intro, [data-verifier-controls])').first().waitFor()
+  for (let at = await step(), guard = 0; (at === 'parts' || at === 'look') && guard < 12; at = await step(), guard++) {
+    const focused = await page.evaluate(() => document.activeElement?.hasAttribute('data-intro-next') ?? false)
+    if (!focused) await tabTo(walk, /^(Next|Next part)$/, 60)
+    await page.keyboard.press('Enter')
   }
 }
 
-const tasting = (level: string) => verifierLevel(level, practiceSeed('verifier', level))
+/** Puts focus on the control named `name`: where the first run left it, or by Tab. */
+async function reach(page: Page, walk: Walk, name: RegExp, limit = 60): Promise<void> {
+  if (name.test(await activeName(page))) return
+  await tabTo(walk, name, limit)
+}
 
-const TASTING: Record<(typeof WALKED)['verifier'][number], Walker> = {
+/** Types the weights into the six fields with the keys alone: digits, and the right arrow to the next token. */
+async function typeWeights(page: Page, walk: Walk, weights: readonly number[]): Promise<void> {
+  await reach(page, walk, /^Resample weight for token 0$/)
+  for (const [token, weight] of weights.entries()) {
+    await page.keyboard.type(String(weight))
+    if (token < weights.length - 1) await walk.press('ArrowRight')
+  }
+}
+
+const sampler = (level: string) => verifierLevel(level, practiceSeed('verifier', level))
+
+const SAMPLER: Record<(typeof WALKED)['verifier'][number], Walker> = {
   overlap: async (page, walk) => {
-    await tabTo(walk, /^Plates kept$/)
-    await page.keyboard.type(String(keptPlates(tasting('overlap'))))
+    await throughFirstRun(page, walk)
+    await reach(page, walk, /^Accepted, in sixty-fourths$/)
+    await page.keyboard.type(String(keptPlates(sampler('overlap'))))
     await page.keyboard.press('Enter')
-    await expect(liveLine(page)).toContainText(/^Committed: \d+ plates kept\./)
+    await expect(liveLine(page)).toContainText(/^Committed: \d+ of 64 accepted\./)
     // Focus moves to the first batch of rounds, which is the next thing to do.
     await expect.poll(() => activeName(page)).toBe('Draw 10')
     await walk.see()
@@ -132,51 +158,53 @@ const TASTING: Record<(typeof WALKED)['verifier'][number], Walker> = {
     await tabTo(walk, /^Draw 1,000$/, 3)
     await tabTo(walk, /^Finish$/, 3)
     await page.keyboard.press('Enter')
-    await expect(outcome(page)).toHaveText(OVER)
-    await tastingDebrief(page, walk)
+    await samplerResult(page, walk, 'Finished (practice)')
   },
   exact: async (page, walk) => {
-    await typeRecipe(page, walk, excessPlates(tasting('exact')))
-    await expect(liveLine(page)).toContainText("What goes out is the chef's tasting exactly.")
+    await throughFirstRun(page, walk)
+    await typeWeights(page, walk, excessPlates(sampler('exact')))
+    await expect(liveLine(page)).toContainText('The output is p exactly.')
     await page.keyboard.press('Enter')
-    await expect(outcome(page)).toHaveText(OVER)
-    await tastingDebrief(page, walk)
-    await expect(page.getByText('Your recipe against the house')).toBeVisible()
+    await samplerResult(page, walk, 'Passed')
+    await expect(page.getByText("Your weights against the reference's")).toBeVisible()
   },
   chain: async (page, walk) => {
-    const truth = tokensOf(tasting('chain'))
-    await tabTo(walk, /^Courses per round$/)
+    const truth = tokensOf(sampler('chain'))
+    await throughFirstRun(page, walk)
+    await reach(page, walk, /^Tokens per round$/)
     await page.keyboard.type((Number(truth.num) / Number(truth.den)).toFixed(3))
     await page.keyboard.press('Enter')
     await expect(liveLine(page)).toContainText('Prediction committed.')
     await expect.poll(() => activeName(page)).toBe('Draw 10')
     await tabTo(walk, /^Finish$/, 4)
     await page.keyboard.press('Enter')
-    await tastingDebrief(page, walk)
+    await samplerResult(page, walk, 'Passed')
   },
   'greedy-ngram': async (page, walk) => {
-    const level = tasting('greedy-ngram')
-    if (level.id !== 'greedy-ngram') throw new Error('not the copier level')
+    const level = sampler('greedy-ngram')
+    if (level.id !== 'greedy-ngram') throw new Error('not the n-gram level')
     const favourite = level.p[0].indexOf(Math.max(...level.p[0]))
-    await tabTo(walk, level.draft === favourite ? /^Kept$/ : /^Sent back$/)
+    await throughFirstRun(page, walk)
+    await reach(page, walk, level.draft === favourite ? /^Accepted$/ : /^Rejected$/)
     await page.keyboard.press('Enter')
-    await expect(liveLine(page)).toContainText(level.draft === favourite ? 'You called it kept.' : 'You called it sent back.')
-    // Focus moved to the first weight, so the recipe is typed from where it is.
-    await expect.poll(() => activeName(page)).toBe('Recipe weight for soup')
+    await expect(liveLine(page)).toContainText(level.draft === favourite ? 'You said it is accepted.' : 'You said it is rejected.')
+    // Focus moved to the first weight, so the weights are typed from where it is.
+    await expect.poll(() => activeName(page)).toBe('Resample weight for token 0')
     for (const [token, weight] of level.p[0].map((w, x) => (x === level.draft ? 0 : w)).entries()) {
       await page.keyboard.type(String(weight))
       if (token < level.p[0].length - 1) await walk.press('ArrowRight')
     }
     await page.keyboard.press('Enter')
-    await tastingDebrief(page, walk)
+    await samplerResult(page, walk, 'Finished (practice)')
   },
   mutants: async (page, walk) => {
-    const level = tasting('mutants')
+    const level = sampler('mutants')
     if (level.id !== 'mutants') throw new Error('not the mutants level')
-    await tabTo(walk, /^Taste 20,000$/)
+    await throughFirstRun(page, walk)
+    await reach(page, walk, /^Sample 20,000$/)
     await page.keyboard.press('Enter')
-    await expect(liveLine(page)).toContainText('Card 1 tasted:')
-    await tabTo(walk, /^Check every coin$/, 3)
+    await expect(liveLine(page)).toContainText('Card 1 sampled:')
+    await tabTo(walk, /^Check every draw$/, 3)
     await page.keyboard.press('Enter')
     await expect(liveLine(page)).toContainText('Card 1:')
     for (const [card, bug] of level.cards.entries()) {
@@ -186,18 +214,19 @@ const TASTING: Record<(typeof WALKED)['verifier'][number], Walker> = {
     await expect(page.getByRole('button', { name: 'Submit the five names' })).toBeEnabled()
     await tabTo(walk, /^Submit the five names$/, 3)
     await page.keyboard.press('Enter')
-    await tastingDebrief(page, walk)
+    await samplerResult(page, walk, 'Finished (practice)')
   },
   gamma: async (page, walk) => {
-    const best = sweepOfLevel(tasting('gamma')).best
-    await tabTo(walk, /^Draft length, plates ahead$/)
+    const best = sweepOfLevel(sampler('gamma')).best
+    await throughFirstRun(page, walk)
+    await reach(page, walk, /^Draft length, tokens proposed$/)
     await walk.press('ArrowUp')
-    await expect(liveLine(page)).toContainText('Plating 1 course ahead.')
+    await expect(liveLine(page)).toContainText('Drafting 1 token a round.')
     await page.keyboard.type(String(best))
-    await expect(liveLine(page)).toContainText(`Plating ${best} courses ahead.`)
+    await expect(liveLine(page)).toContainText(`Drafting ${best} tokens a round.`)
     await page.keyboard.press('Enter')
-    await tastingDebrief(page, walk)
-    await expect(page.getByText('Every draft length, in courses per tasting')).toBeVisible()
+    await samplerResult(page, walk, 'Passed')
+    await expect(page.getByText('Every draft length, in tokens per round')).toBeVisible()
   },
 }
 
@@ -632,7 +661,7 @@ const LOOP: Record<(typeof WALKED)['loop'][number], Walker> = {
 /** The walk of each level, by game and level: e2e/levels.ts' `WALKED` has exactly these. */
 export const WALKS: { readonly [game: string]: { readonly [level: string]: Walker } } = {
   loop: LOOP,
-  verifier: TASTING,
+  verifier: SAMPLER,
   'engine-floor': FLOOR,
   pool: POOL,
   'broken-bench': BENCH,

@@ -1,11 +1,9 @@
 import { useState, type KeyboardEvent, type ReactNode, type Ref } from 'react'
 import { Button } from '@/design/components/Button'
-import { TapeLabel } from '@/design/components/TapeLabel'
 
 /*
- * A whole-number stepper (GAMES.md §10, "Controls"): a number field on a paper slip with a 44 px plate on each side that adds one or
- * takes one away. No bar is dragged to height. The plates are for a pointer and a thumb; a keyboard uses the field, which is the
- * one tab stop:
+ * A whole-number stepper (GAMES.md §10, "Controls"): a number field with a 44 px button on each side that adds one or takes one away.
+ * No bar is dragged to height. The buttons are for a pointer and a thumb; a keyboard uses the field, which is the one tab stop:
  *
  *   ↑ and ↓                     one more, one less (an empty field starts from none)
  *   + and −                     the same, from the keys that say so
@@ -21,11 +19,11 @@ import { TapeLabel } from '@/design/components/TapeLabel'
 
 export interface StepperProps {
   id: string
-  /** The dish or thing the number belongs to, written on masking tape above the field. */
+  /** The token or thing the number belongs to, written above the field. */
   label: ReactNode
-  /** What a reader hears for the field: "Recipe weight for soup". */
+  /** What a reader hears for the field: "Resample weight for token 3". */
   name: string
-  /** What the two plates say to a reader: "Add one to soup", "Take one from soup". They do not repeat the field's name, so that one name never matches all three. */
+  /** What the two buttons say to a reader: "Add one to token 3", "Take one from token 3". They do not repeat the field's name, so that one name never matches all three. */
   moreLabel: string
   lessLabel: string
   value: number | null
@@ -40,7 +38,7 @@ export interface StepperProps {
   inputRef?: Ref<HTMLInputElement>
   /** Marks the field the controls move focus to when this step begins. */
   autoFocusTarget?: boolean
-  /** The dish this field is for: a tap on its column in the drawing focuses it (GAMES.md §10, "Controls"). */
+  /** The token this field is for: a tap on its column in the drawing focuses it (GAMES.md §10, "Controls"). */
   dish?: number
   className?: string
 }
@@ -74,9 +72,9 @@ export function Stepper({ id, label, name, moreLabel, lessLabel, value, min, max
   const shown = draft ?? (value === null ? '' : String(value))
   return (
     <div className={['es-vf-stepper', className].filter(Boolean).join(' ')} data-layout={layout}>
-      <TapeLabel as="label" htmlFor={id} size="sm" tilt="none" className="es-vf-stepper__label">
+      <label htmlFor={id} className="es-vf-stepper__label">
         {label}
-      </TapeLabel>
+      </label>
       <Button className="es-vf-step" size="md" tabIndex={-1} aria-label={moreLabel} disabled={value !== null && value >= max} onClick={() => move(1)}>
         +
       </Button>

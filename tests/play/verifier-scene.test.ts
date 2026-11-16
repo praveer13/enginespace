@@ -78,8 +78,8 @@ describe('the plan: the pass, its courses and the room, in metres', () => {
       const presets = presetsOf(plan, TASTING_SHOTS)
       expect(presets.map((preset) => [preset.id, preset.label, preset.shot])).toEqual([
         ['run', 'Over the run', 'establish'],
-        ['course', 'One course', 'focus'],
-        ['walk', 'Walk with the chef', 'follow'],
+        ['course', 'One draft position', 'focus'],
+        ['walk', 'Follow the target', 'follow'],
       ])
       // The page's boxes: about 715 by 490 px beside the mirror at 1440, 358 by 437 px on a 390 px phone, and 288 by 358 px at 320 px.
       for (const [width, height] of [
@@ -567,7 +567,7 @@ describe('the tasting: each dish\'s stacks, as the view says', () => {
   test('every word is an anchor for a DOM label: the dishes on the pass\'s edge, and a single course\'s counts on paper', () => {
     const view = viewOf('overlap', 0)
     const scene = sceneOf(view)
-    expect(scene.anchors.filter((anchor) => anchor.kind === 'tape' && anchor.id.startsWith('tape-col-')).map((anchor) => anchor.text)).toEqual([...DISHES])
+    expect(scene.anchors.filter((anchor) => anchor.kind === 'tape' && anchor.id.startsWith('tape-col-')).map((anchor) => anchor.text)).toEqual(DISHES.map((_, d) => String(d)))
     // One paper tag a dish, the commis's plates and then the chef's, hung from the pass's edge under the dish's tape, so that no tag
     // stands between a tape and its stacks, from any height (W1's finish review, round 1: at 390 px the tags met the tape).
     const counts = scene.anchors.filter((anchor) => anchor.kind === 'count')

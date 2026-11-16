@@ -64,6 +64,8 @@ export interface GameKit<Action extends GameAction, View, Props = never> {
   readonly firstMove: Action | null
   /** The first move in words, from the action kind's row in the game's copy: "Admit request 1". */
   readonly firstMoveWords: string
+  /** What the pointed move is, where it is not the reference run's first move: a game whose reference moves are the answers points at a move that gives none away. */
+  readonly firstMoveKind?: string
   readonly firstAsk: FirstAsk
   /** Whether the session's first ask is still open in this view (before the frame's own Skip). None: it has no ask. */
   readonly askOpen?: (view: View) => boolean

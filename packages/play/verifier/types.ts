@@ -16,8 +16,8 @@ import type { Frac } from './ratio'
 export const LEVEL_IDS = ['overlap', 'exact', 'chain', 'greedy-ngram', 'mutants', 'gamma'] as const
 export type VerifierLevelId = (typeof LEVEL_IDS)[number]
 
-/** The six dishes of the vocabulary (GAMES.md §10: "the six dishes"): their names are the game's, and a token's number rides beside the name. */
-export const DISHES = ['soup', 'salad', 'fish', 'steak', 'pasta', 'tart'] as const
+/** The six tokens of the vocabulary, as the page names them: a token is its number, 0 to 5 (REDESIGN §2.9). Display only: no state holds a name. */
+export const DISHES = ['token 0', 'token 1', 'token 2', 'token 3', 'token 4', 'token 5'] as const
 /** The vocabulary's size. */
 export const VOCAB = DISHES.length
 

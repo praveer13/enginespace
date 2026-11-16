@@ -45,6 +45,8 @@ export interface IntroCoachProps {
   /** Whether the session lets the learner skip its ask, and if not, why. */
   skip: 'allowed' | string
   moveWords: string
+  /** What the pointed move is, where it is not the reference run's first move (a game whose reference moves are the answers): "a first move that gives no answer away". */
+  moveKind?: string
   /** Inside a lesson the column sets the room, and the list is shown whole. */
   embedded: boolean
   /** On a phone, the part the list shows. */
@@ -65,7 +67,7 @@ const TITLES: Readonly<Record<IntroStep, string>> = {
 }
 
 /** The coach strip. Focus follows its Next onto the step it opens, and leaves the strip alone otherwise. */
-export function IntroCoach({ title, step, parts, replay, look, ask, skip, moveWords, embedded, partAt, onPartAt, onNext, onEnd, onAct }: IntroCoachProps) {
+export function IntroCoach({ title, step, parts, replay, look, ask, skip, moveWords, moveKind, embedded, partAt, onPartAt, onNext, onEnd, onAct }: IntroCoachProps) {
   const wide = useWideFrame() || embedded
   const headingId = useId()
   const root = useRef<HTMLElement>(null)
@@ -152,7 +154,7 @@ export function IntroCoach({ title, step, parts, replay, look, ask, skip, moveWo
       )
       break
     case 'move':
-      body = <p className="es-intro__lead">{moveWords}: the control with the ring. It is a real move, the reference run&apos;s first, and it goes into your run.</p>
+      body = <p className="es-intro__lead">{moveWords}: the control with the ring. It is a real move, {moveKind ?? 'the reference run’s first'}, and it goes into your run.</p>
       primary = (
         <Button variant="plate" onClick={onAct}>
           {moveWords}
@@ -162,7 +164,7 @@ export function IntroCoach({ title, step, parts, replay, look, ask, skip, moveWo
     case 'point':
       body = (
         <p className="es-intro__lead">
-          <strong>{moveWords}</strong>, in the ring, is the reference run&apos;s first move. From here the level is yours.
+          <strong>{moveWords}</strong>, in the ring, is {moveKind === undefined ? 'the reference run’s first move' : moveKind}. From here the level is yours.
         </p>
       )
       break

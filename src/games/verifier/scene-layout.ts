@@ -223,7 +223,8 @@ export function tastingScene(view: VerifierView, plan: Plan, flags: SceneFlags):
   const dispensers: Dispenser[] = []
   const served: Served[] = []
   const markers = new Map<string, Marker>()
-  const tapes: Tape[] = view.dishes.map((name, d) => edgeTape(plan, d, name))
+  // A token's tape carries its number alone, so that six of them stand whole in a phone's box; the legend says the columns are tokens 0 to 5.
+  const tapes: Tape[] = view.dishes.map((_, d) => edgeTape(plan, d, String(d)))
   const anchors: Anchor[] = []
   const single = view.rows.length === 1
   view.rows.forEach((row: RowView, r) => {

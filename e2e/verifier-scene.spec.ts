@@ -103,13 +103,23 @@ const test = base.extend<{ requests: string[] }>({
 const stage = (page: Page) => page.locator('[data-stage="verifier"]')
 const game = (page: Page) => page.locator('section[data-game="verifier"]')
 const probe = (page: Page) => page.evaluate(() => window.__esScene?.probes.verifier?.info() ?? null)
-const camera = (page: Page) => page.getByRole('group', { name: 'Camera on the pass' })
+const camera = (page: Page) => page.getByRole('group', { name: 'Camera on the sampler' })
 const weight = (page: Page, dish: number) => page.locator(`[data-vf-dish="${dish}"]`)
 
 async function open(page: Page, level: string, tier: number) {
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem('es:intro', JSON.stringify({ verifier: ['draft', 'target', 'token', 'accepted', 'residual', 'alpha', 'round', 'output', 'position', 'bonus', 'gamma'] }))
+    } catch {
+      // No storage: the intro shows.
+    }
+  })
   await page.goto(`${ORIGIN}/play/verifier?level=${level}&es-tier=${tier}`)
   await page.evaluate(() => document.fonts.ready)
   await expect(game(page)).toBeVisible()
+  // The diagram is the default view (R-T30, REDESIGN §2.9): 3D is one switch away.
+  await page.getByRole('button', { name: '3D', exact: true }).click()
+  await expect(game(page)).toHaveAttribute('data-view', '3d')
 }
 
 /** Scrolls the scene into view, waits until it is drawn and settled, and until no frame has been drawn for half a second. */
@@ -148,23 +158,23 @@ async function draw(page: Page, presses = 1) {
 async function play(page: Page, level: string) {
   if (level === 'overlap' || level === 'chain') {
     const answer = level === 'overlap' ? String(keptPlates(buildLevel('overlap', 0))) : (thousandths(tokensOf(buildLevel('chain', 1))) / 1000).toFixed(3)
-    await page.getByLabel(level === 'overlap' ? 'Plates kept' : 'Courses per round').fill(answer)
+    await page.getByLabel(level === 'overlap' ? 'Accepted, in sixty-fourths' : 'Tokens per round').fill(answer)
     await page.keyboard.press('Enter')
     await draw(page, 5)
   } else if (level === 'exact' || level === 'greedy-ngram') {
     const built = buildLevel(level, 0)
     if (built.id === 'greedy-ngram') {
       const favourite = built.p[0].indexOf(Math.max(...built.p[0]))
-      await page.getByRole('button', { name: built.draft === favourite ? 'Kept' : 'Sent back', exact: true }).click()
+      await page.getByRole('button', { name: built.draft === favourite ? 'Accepted' : 'Rejected', exact: true }).click()
     }
     const recipe = built.id === 'greedy-ngram' ? built.p[0].map((w, x) => (x === built.draft ? 0 : w)) : excessPlates(built)
     for (const [dish, value] of recipe.entries()) if (value > 0) await weight(page, dish).fill(String(value))
     await draw(page, 5)
   } else if (level === 'mutants') {
-    await page.getByRole('button', { name: /^Taste/ }).first().click()
+    await page.getByRole('button', { name: /^Sample/ }).first().click()
   } else if (level === 'gamma') {
     const built = buildLevel('gamma', 0)
-    for (let k = 0; k < sweepOfLevel(built).best; k++) await page.getByRole('button', { name: 'Plate one course further ahead' }).click()
+    for (let k = 0; k < sweepOfLevel(built).best; k++) await page.getByRole('button', { name: 'Propose one more token' }).click()
   }
 }
 
@@ -194,7 +204,7 @@ test.describe('batches (W1-T29, accept 2): the observed skyline moves once for a
   test('a hundred rounds drawn at once move the scene once, and it settles', async ({ page }) => {
     await open(page, 'overlap', 1)
     await settle(page)
-    await page.getByLabel('Plates kept').fill(String(keptPlates(buildLevel('overlap', 0))))
+    await page.getByLabel('Accepted, in sixty-fourths').fill(String(keptPlates(buildLevel('overlap', 0))))
     await page.keyboard.press('Enter')
     await settle(page)
     // Every time the scene starts to move, the Stage takes its "settled" mark away: count those.
@@ -231,7 +241,7 @@ test.describe('reduced motion (A§6.9; W1-T29, accept 3): a batch cuts to its fi
     })
     await open(page, 'chain', 1)
     await settle(page)
-    await page.getByLabel('Courses per round').fill('2.4')
+    await page.getByLabel('Tokens per round').fill('2.4')
     await page.keyboard.press('Enter')
     await settle(page)
     const before = (await probe(page))?.frames ?? 0
@@ -247,20 +257,20 @@ test.describe('reduced motion (A§6.9; W1-T29, accept 3): a batch cuts to its fi
 })
 
 test.describe('the views and the camera (A§6.8)', () => {
-  test('`V` swaps 2D and 3D and keeps the run: the recipe and the rounds drawn', async ({ page }) => {
+  test('`V` swaps 2D and 3D and keeps the run: the weights and the rounds drawn', async ({ page }) => {
     await open(page, 'exact', 2)
     await settle(page)
     await expect(game(page)).toHaveAttribute('data-view', '3d')
     await weight(page, 0).fill('7')
     await draw(page)
     await settle(page)
-    const rounds = () => page.locator('.es-vf-under__count').first().textContent()
+    const rounds = () => page.locator('[data-readout-id="rounds"] dd').first().textContent()
     const before = { recipe: await weight(page, 0).inputValue(), rounds: await rounds() }
     expect(before.recipe).toBe('7')
     await focusGame(page)
     await page.keyboard.press('KeyV')
     await expect(game(page)).toHaveAttribute('data-view', '2d')
-    await expect(page.locator('[data-surface="2d"] [data-verifier-view] .es-vf-drawing > svg')).toBeVisible()
+    await expect(page.locator('[data-surface="2d"] [data-verifier-view] .es-vf__bar').first()).toBeVisible()
     await expect(stage(page)).toHaveCount(0)
     expect({ recipe: await weight(page, 0).inputValue(), rounds: await rounds() }).toEqual(before)
     await focusGame(page)
@@ -273,7 +283,7 @@ test.describe('the views and the camera (A§6.8)', () => {
   test('`C` cycles every shot and each button reaches its own', async ({ page }) => {
     await open(page, 'chain', 2)
     await settle(page)
-    const names = ['Over the run', 'One course', 'Walk with the chef']
+    const names = ['Over the run', 'One draft position', 'Follow the target']
     const pressed = () => camera(page).locator('button[aria-pressed="true"]').textContent()
     expect(await pressed()).toBe(names[0])
     for (const name of [...names.slice(1), names[0]]) {
@@ -292,14 +302,14 @@ test.describe('the views and the camera (A§6.8)', () => {
 })
 
 test.describe('labels (W1\'s finish review, round 2): every name stands whole inside the box, in every shot', () => {
-  test('over the run, one course and walking with the chef, no tape or tag on the pass is cut by the box\'s edge', async ({ page }) => {
+  test('over the run, one draft position and following the target, no tape or tag on the pass is cut by the box\'s edge', async ({ page }) => {
     await open(page, 'chain', 2)
     await settle(page)
-    await page.getByLabel('Courses per round').fill('2.4')
+    await page.getByLabel('Tokens per round').fill('2.4')
     await page.keyboard.press('Enter')
     await draw(page)
     await settle(page)
-    for (const name of ['Over the run', 'One course', 'Walk with the chef']) {
+    for (const name of ['Over the run', 'One draft position', 'Follow the target']) {
       await camera(page).getByRole('button', { name }).click()
       await settle(page)
       await frame(page)
@@ -321,6 +331,8 @@ test.describe('labels (W1\'s finish review, round 2): every name stands whole in
 
 test.describe('picks (A§6.8, GAMES.md §10 "Controls"): a dish picked in the scene hands focus to its weight', () => {
   test('picking the fish\'s tape on the pass\'s edge focuses the fish\'s weight', async ({ page }) => {
+    // The frame's dock stands over the foot of a phone's screen, where the tape is; beside the scene, at a desk's width, it covers nothing.
+    await page.setViewportSize({ width: 1280, height: 900 })
     await open(page, 'exact', 2)
     await settle(page)
     const plan = planOf('rows', 1)
@@ -410,7 +422,7 @@ test.describe('`gamma`: a run of stacks, the kept plates at the bottom whether a
   test('past the pick, a stack turned over still has the overlap\'s plates at the counter and the draft\'s above them', async ({ page }) => {
     await open(page, 'gamma', 2)
     await settle(page)
-    for (let k = 0; k < 3; k++) await page.getByRole('button', { name: 'Plate one course further ahead' }).click()
+    for (let k = 0; k < 3; k++) await page.getByRole('button', { name: 'Propose one more token' }).click()
     await settle(page)
     await page.addStyleTag({ content: '.es-labels { visibility: hidden !important; }' })
     await frame(page)
@@ -458,7 +470,7 @@ test.describe('the picture (A§10.1; GAMES.md §2.6 rule 7)', () => {
   test('the 3D capture is not blank: its pixels vary, and it is kept as an artifact', async ({ page }, info) => {
     await open(page, 'chain', 2)
     await settle(page)
-    await page.getByLabel('Courses per round').fill('2.4')
+    await page.getByLabel('Tokens per round').fill('2.4')
     await page.keyboard.press('Enter')
     await draw(page, 5)
     await settle(page)
@@ -478,7 +490,8 @@ test.describe('the picture (A§10.1; GAMES.md §2.6 rule 7)', () => {
     await open(page, 'overlap', 2)
     await settle(page)
     const labels = stage(page).locator('.es-labels')
-    for (const dish of ['soup', 'salad', 'fish', 'steak', 'pasta', 'tart']) await expect(labels.locator('.es-vf-label--tape', { hasText: dish })).toHaveCount(1)
+    // A token's tape carries its number alone, so that six of them stand whole in a phone's box; the legend says the columns are tokens 0 to 5.
+    for (const token of ['0', '1', '2', '3', '4', '5']) await expect(labels.locator('.es-vf-label--tape', { hasText: new RegExp(`^${token}$`) })).toHaveCount(1)
     // One paper tag a dish, hung under its tape: the commis's plates, then the chef's.
     const level = buildLevel('overlap', 0)
     const counts = await labels.locator('.es-vf-label--count').allTextContents()
