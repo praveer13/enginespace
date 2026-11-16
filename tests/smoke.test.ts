@@ -131,13 +131,13 @@ describe('routes against ARCHITECTURE §3.1', () => {
     '/trace-room': { h1: 'The Trace Room', shows: 'W2-T20' },
     '/trace-room/:trace': { h1: 'The Trace Room', shows: 'Trace id: sample' },
     // The page opens the ledger in the browser (W2-T06), so the server renders the tickets that are still printing.
-    '/receipts': { h1: 'Receipts', shows: 'Printing your challenges' },
+    '/receipts': { h1: 'GPU lab results', shows: 'Loading your challenges', title: 'GPU lab results · enginespace' },
     '/today': { h1: 'Review' },
     '/evidence': { h1: 'Progress' },
     '/design': { h1: 'Design system' },
     '/settings': { h1: 'Settings' },
-    '/about': { h1: 'About', shows: 'W3-T15' },
-    '/changes': { h1: 'Sources and changes', shows: 'W3-T06' },
+    '/about': { h1: 'About', shows: 'How numbers are tagged' },
+    '/changes': { h1: 'Sources and changes', shows: 'What the course pins' },
     '*': { h1: 'Page not found' },
   }
   const params: Record<string, string> = { module: 'tr2', lesson: 'l0-sample', game: 'loop', lab: 'tr8.replay', trace: 'sample' }
@@ -224,7 +224,7 @@ describe('routes against ARCHITECTURE §3.1', () => {
     }
 
     // REDESIGN §2.3 (R-T06): Course, Games, Review and Progress, then Continue; tests/app/shell.test.ts holds every route's chrome.
-    test('the primary navigation is Course, Games, Review and Progress, then Continue, and the footer is About, Sources and changes, Settings', async () => {
+    test('the primary navigation is Course, Games, Review and Progress, then Continue, and the footer is About, How numbers are tagged, Sources and changes, Settings', async () => {
       const html = await render('/')
       expect(linksIn(html, 'Primary').map(([href, text]) => [href, text.replace(/<[^>]+>/g, '')])).toEqual([
         ['/', 'enginespace'],
@@ -236,6 +236,7 @@ describe('routes against ARCHITECTURE §3.1', () => {
       ])
       expect(linksIn(html, 'Footer')).toEqual([
         ['/about', 'About'],
+        ['/about#numbers', 'How numbers are tagged'],
         ['/changes', 'Sources and changes'],
         ['/settings', 'Settings'],
       ])

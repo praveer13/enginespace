@@ -67,9 +67,9 @@ describe('the page while the ledger opens', () => {
   const html = view({ ready: false })
 
   test('is one heading and its lead, and the lists are tickets that are still printing', () => {
-    expect(headings(html, 1)).toEqual(['Receipts'])
-    expect(html).toContain('Printing your challenges')
-    expect(html).toContain('Printing your receipts')
+    expect(headings(html, 1)).toEqual(['GPU lab results'])
+    expect(html).toContain('Loading your challenges')
+    expect(html).toContain('Loading your results')
     expect(html).not.toContain('class="es-held"')
     expect(html).toContain('aria-busy="true"')
   })
@@ -88,7 +88,7 @@ describe('the page with nothing in the ledger', () => {
     expect(html).toContain('Choose a lab first.')
     expect(text(html)).toContain('Get a challenge')
     expect(text(html)).toContain('No challenge issued yet')
-    expect(text(html)).toContain('No receipt yet')
+    expect(text(html)).toContain('No result yet')
     expect(text(html)).toContain('Nothing issued yet')
   })
 
@@ -101,10 +101,10 @@ describe('the page with nothing in the ledger', () => {
   })
 
   test('has the slip that a receipt comes back on, after the two lists, and no part of the page is left unbuilt', () => {
-    expect(headings(html, 2)).toEqual(['Get a challenge', 'Your challenges', 'Your receipts', 'Bring a receipt back'])
+    expect(headings(html, 2)).toEqual(['Get a challenge', 'Your challenges', 'Your results', 'Bring a result back'])
     expect(text(html)).not.toContain('Not built yet')
     expect(text(html)).not.toContain('Arriving with')
-    expect(text(html)).toContain('Drop a receipt')
+    expect(text(html)).toContain('Drop a receipt file')
     expect(text(html)).toContain('Choose a file')
     expect(html).toContain('type="file"')
   })
@@ -136,7 +136,7 @@ describe('the challenges', () => {
     expect(held.map((entry) => entry.event.id)).toEqual([open.id, used.id, expired.id])
     expect([...html.matchAll(/class="es-tape es-held__state"[^>]*>.*?<span class="es-tape__text">(\w+)<\/span>/g)].map((match) => match[1])).toEqual(['open', 'used', 'expired'])
     // The lists have no headings of their own: the only one below the panels' is the slip's.
-    expect(headings(html, 3)).toEqual(['Drop a receipt'])
+    expect(headings(html, 3)).toEqual(['Drop a receipt file'])
   })
 
   test('offer a copy only for the open one, named for its stage', () => {
@@ -153,13 +153,13 @@ describe('the challenges', () => {
 
   test('send a used one to the receipt that used it, by its hash', () => {
     expect(html).toContain(`href="/receipts#${record.sha256}"`)
-    expect(text(html)).toContain(`used by receipt ${record.sha256.slice(0, 8)}`)
+    expect(text(html)).toContain(`used by result ${record.sha256.slice(0, 8)}`)
   })
 
   test('are counted on the tape by state, and the receipts held with them', () => {
-    const tape = /<figure[^>]*aria-label="Challenges and receipts, counted"[^>]*>(.*?)<\/figure>/s.exec(html)?.[1] ?? ''
-    expect(text(tape)).toMatch(/open 1 .*measured.* used 1 .*measured.* expired 1 .*measured.* receipts 1/i)
-    expect(tape).toContain('counted in this browser')
+    const tape = /<figure[^>]*aria-label="Challenges and results, counted"[^>]*>(.*?)<\/figure>/s.exec(html)?.[1] ?? ''
+    expect(text(tape)).toMatch(/open 1 used 1 expired 1 results 1/i)
+    expect(tape).not.toContain('data-tag')
   })
 
   test('show eight and offer the rest, when there are more', () => {
@@ -218,10 +218,10 @@ describe('one receipt, opened at its hash', () => {
   const html = view({ held, receipts: [record], open: record.sha256 })
 
   test('is the page with the way back, and not the lists', () => {
-    expect(headings(html, 1)).toEqual(['Receipts'])
+    expect(headings(html, 1)).toEqual(['GPU lab results'])
     expect(html).toContain('data-view="receipt"')
-    expect(html).toContain('<a class="es-link" href="/receipts" data-discover="true">All receipts</a>')
-    expect(html).not.toContain('Get a challenge')
+    expect(html).toContain('<a class="es-link" href="/receipts" data-discover="true">All results</a>')
+    expect(html).not.toContain('>Get a challenge</h2>')
     expect(html).not.toContain('class="es-held"')
   })
 
@@ -271,7 +271,7 @@ describe('one receipt, opened at its hash', () => {
   })
 
   test('says it has not been checked in this browser, and how to have it checked', () => {
-    expect(text(html)).toContain("Not checked in this browser yet. Bring the grader's file back on the receipts page, and the rules it was checked by will be listed here.")
+    expect(text(html)).toContain("Not checked in this browser yet. Bring the grader's receipt file back on this page, and the rules it was checked by will be listed here.")
   })
 
   test('lists the times it was checked, once there are reports', () => {
@@ -318,9 +318,9 @@ describe('one receipt, opened at its hash', () => {
 
   test('says so when the hash names no receipt this browser holds, with a way back and no lists', () => {
     const none = view({ held, receipts: [], open: sha256('nothing') })
-    expect(headings(none, 2)).toEqual(['This browser holds no receipt with that hash'])
+    expect(headings(none, 2)).toEqual(['This browser holds no result with that hash'])
     expect(none).toContain('href="/receipts"')
-    expect(text(none)).toContain('A receipt is kept on the device that imported it, so its address opens there and nowhere else.')
+    expect(text(none)).toContain('A result is kept on the device that imported it, so its address opens there and nowhere else.')
   })
 
   test('says why a record is not a receipt, and shows its hash, when the hash names one', () => {
@@ -334,12 +334,12 @@ describe('one receipt, opened at its hash', () => {
 
   test('is still printing while the ledger opens, and names no receipt until it has', () => {
     const waiting = view({ ready: false, open: record.sha256 })
-    expect(text(waiting)).toContain('Printing the receipt')
-    expect(waiting).not.toContain('This browser holds no receipt')
+    expect(text(waiting)).toContain('Loading the result')
+    expect(waiting).not.toContain('This browser holds no result')
   })
 
   test('has the one heading of the page, whichever view', () => {
-    for (const page of [html, view({ ready: false, open: record.sha256 }), view({ open: sha256('nothing') })]) expect(headings(page, 1)).toEqual(['Receipts'])
+    for (const page of [html, view({ ready: false, open: record.sha256 }), view({ open: sha256('nothing') })]) expect(headings(page, 1)).toEqual(['GPU lab results'])
   })
 })
 
@@ -367,9 +367,9 @@ describe('the issue panel', () => {
   })
 
   test('warns when the ledger is in memory only, and when it is read-only, and holds the button in the second case', () => {
-    expect(text(panel({ memoryOnly: true }))).toContain('This browser is not keeping your ledger.')
+    expect(text(panel({ memoryOnly: true }))).toContain('This browser is not keeping your record.')
     const locked = panel({ readOnly: true })
-    expect(text(locked)).toContain('has handed your ledger to a newer version of the site')
+    expect(text(locked)).toContain('has handed your record to a newer version of the site')
     expect(locked).toMatch(/<button[^>]*disabled=""[^>]*>/)
   })
 })

@@ -58,12 +58,12 @@ describe('/settings', () => {
   })
 
   test('offers this device`s data: the tape of where it is kept, export, import and reset, none of which needs the ledger yet', () => {
-    expect(decode(html)).toContain('Where your evidence is kept')
+    expect(decode(html)).toContain('Where your progress is kept')
     expect(html).toMatch(/<button[^>]*>Export evidence<\/button>/)
     expect(html).toMatch(/<button[^>]*>Choose a file<\/button>/)
     expect(html).toMatch(/<button[^>]*>.*Reset this device.*<\/button>/s)
     // The tape is a printer warming up until the ledger has opened: it prints no line it does not know.
-    expect(html).toMatch(/aria-label="Where your evidence is kept" aria-busy="true"/)
+    expect(html).toMatch(/aria-label="Where your progress is kept" aria-busy="true"/)
   })
 
   test('shows no dialog and no problem until there is one', () => {
@@ -83,18 +83,17 @@ describe('/evidence', () => {
     html = await render('/evidence')
   })
 
-  test('is the page of panels: one h1, and a ticket that is still printing until the ledger has opened', () => {
+  test('is the page of panels: one h1, and a line that says it is reading until the ledger has opened', () => {
     expect(headings(html, 1)).toEqual(['Progress'])
-    expect(html).toContain('aria-busy="true"')
-    expect(html).toContain('Printing your evidence')
-    expect(html).not.toContain('Nothing in the ledger yet')
+    expect(html).toContain('Reading your record.')
+    expect(html).not.toContain('Nothing yet.')
     expect(html).not.toContain('<table')
   })
 
   test('offers the means to keep a copy straight away, and the tape is a printer warming up until the ledger has opened', () => {
-    expect(headings(html, 2)).toEqual(['Keep a copy'])
+    expect(headings(html, 2)).toEqual(['What you did', 'GPU lab results', 'Keep a copy'])
     expect(html).toMatch(/<button[^>]*>Export evidence<\/button>/)
-    expect(html).toMatch(/aria-label="Where your evidence is kept" aria-busy="true"/)
+    expect(html).toMatch(/aria-label="Where your progress is kept" aria-busy="true"/)
     expect(html).toContain('Warming up')
   })
 

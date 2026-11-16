@@ -8,6 +8,7 @@ import { decodeSettings, sameSettings, SETTING_KEYS, settingValue } from '@/sett
 import type { SettingName, Settings } from '@/settings/model'
 import { SettingsView } from '@/settings/SettingsView'
 import { settingsStore } from '@/settings/store'
+import { usePointer } from '@/settings/usePlace'
 import { useSettings, useSystemReducedMotion } from '@/settings/useSettings'
 import './panels.css'
 
@@ -24,6 +25,7 @@ export function Component() {
   const evidence = useEvidence()
   const systemReduces = useSystemReducedMotion()
   const device = useDeviceTier()
+  const pointer = usePointer()
   const [problem, setProblem] = useState<{ setting: SettingName; detail: string } | null>(null)
 
   // `working` is the record. When it changes (and the first time it can be read), the store follows it. A memory-backed ledger is
@@ -77,13 +79,14 @@ export function Component() {
       systemReduces={systemReduces}
       onChange={(patch) => void change(patch)}
       problem={problem}
+      way={pointer}
       data={
         <section aria-labelledby="set-data" className="es-panel">
           <h2 id="set-data" className="es-panel__title">
             This device
           </h2>
           <p className="es-panel__lead">
-            Your evidence and these settings are kept in this browser and nowhere else. Clearing this site&apos;s data erases them, so keep a copy.
+            Your progress and these settings are kept in this browser and nowhere else. Clearing this site&apos;s data erases them, so keep a copy.
           </p>
           <StorageTape ledger={evidence} />
           <LedgerFiles api={evidence} checkpoints={evidence.checkpoints} />

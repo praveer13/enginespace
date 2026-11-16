@@ -1,5 +1,5 @@
 import type { PrinterTapeLine } from '@/design/components/PrinterTape'
-import { Readout } from '@/design/components/Readout'
+import { Count } from './Count'
 import type { EvidenceSnapshot } from './engine'
 import { formatWhen } from './transfer'
 
@@ -32,10 +32,10 @@ export function storageLines(
     })
   }
   lines.push(
-    { id: 'events', label: 'events', value: <Readout value={ledger.events.length} tag="measured" source="in this browser" size="sm" /> },
-    { id: 'receipts', label: 'receipts', value: <Readout value={ledger.receipts.length} tag="measured" source="in this browser" size="sm" /> },
+    { id: 'events', label: 'events', value: <Count value={ledger.events.length} /> },
+    { id: 'receipts', label: 'GPU lab results', value: <Count value={ledger.receipts.length} /> },
   )
-  if (ledger.unsaved > 0) lines.push({ id: 'unsaved', label: 'waiting to save', value: <Readout value={ledger.unsaved} tag="measured" size="sm" />, tone: 'ink-2' })
+  if (ledger.unsaved > 0) lines.push({ id: 'unsaved', label: 'waiting to save', value: <Count value={ledger.unsaved} />, tone: 'ink-2' })
   lines.push({
     id: 'export',
     label: 'last export',

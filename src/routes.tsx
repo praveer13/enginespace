@@ -10,8 +10,8 @@ const titled = (page: string): RouteHandle => ({ title: `${page} · ${SITE}` })
  * The route table (ARCHITECTURE §3.1). Every page is its own lazy chunk, so the entry holds only the shell
  * and the not-found page. The routes carry no guards: prerequisites advise and never block (I9).
  * Adding a route here means adding it to §3.1 and to tests/smoke.test.ts, which compares the two. A route's title is the label the
- * header and the footer give it (REDESIGN §2.3): /map is Course, /today Review and /changes Sources and changes. /evidence keeps its
- * title, Evidence, until its page is rebuilt as Progress (R-T25), because that page's own words say it derives no progress.
+ * header and the footer give it (REDESIGN §2.3): /map is Course, /today Review and /changes Sources and changes. /evidence is Progress and /receipts is
+ * GPU lab results.
  * The table is one shell route whose children are the pages, so it is typed as routes that are not index routes: a copy of the
  * shell with other children is a route too.
  */
@@ -31,7 +31,7 @@ export const routes: NonIndexRouteObject[] = [
       { path: 'labs/:lab', lazy: () => import('./pages/Lab'), handle: titled('Lab') },
       { path: 'trace-room', lazy: () => import('./pages/TraceRoom'), handle: titled('The Trace Room') },
       { path: 'trace-room/:trace', lazy: () => import('./pages/TraceRoom'), handle: titled('The Trace Room') },
-      { path: 'receipts', lazy: () => import('./pages/Receipts'), handle: titled('Receipts') },
+      { path: 'receipts', lazy: () => import('./pages/Receipts'), handle: titled('GPU lab results') },
       { path: 'today', lazy: () => import('./pages/Today'), handle: titled('Review') },
       { path: 'evidence', lazy: () => import('./pages/Evidence'), handle: titled('Progress') },
       { path: 'design', lazy: () => import('./pages/Design'), handle: titled('Design system') },

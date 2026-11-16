@@ -12,6 +12,8 @@ import type { CheckpointMeta, LedgerEvent } from '@es/ledger'
 import { GAMES } from '@es/play'
 import { countEvents, KIND_FACTS } from '@/evidence/counts'
 import { EvidenceView, KindTable, ModuleTable } from '@/evidence/EvidenceView'
+import type { ActivityRow } from '@/evidence/rows'
+import { LEGENDS } from '@/progress/words'
 import { ExportPanel, SavedTape } from '@/evidence/ExportPanel'
 import { ImportedTape, ImportPanel, ImportStatus, PreviewTicket } from '@/evidence/ImportPanel'
 import { ResetPanel, ErasedLines } from '@/evidence/ResetPanel'
@@ -57,30 +59,26 @@ function rows(html: string): Map<string, string> {
 describe('the counts by kind', () => {
   const html = render(createElement(KindTable, { all: counts().all }))
 
-  test('lists every kind, in the ledger`s order, each with its name, its id and what it is', () => {
+  test('lists every kind, in the ledger`s order, each with its name and what it is, and shows no kind id', () => {
     expect([...html.matchAll(/data-kind="([^"]+)"/g)].map((match) => match[1])).toEqual([...KINDS])
     for (const kind of KINDS) {
       expect(decode(html)).toContain(KIND_FACTS[kind].name)
-      expect(html).toContain(`<code class="es-ledger__id">${kind}</code>`)
+      expect(html).not.toContain(`<code class="es-ledger__id">${kind}</code>`)
       expect(decode(html)).toContain(KIND_FACTS[kind].what)
     }
   })
 
   test('is a table with a caption and column heads that a screen reader can use', () => {
-    expect(html).toContain('<caption class="sr-only">Events in the ledger, by kind</caption>')
+    expect(html).toContain('<caption class="sr-only">Events in your record, by kind</caption>')
     expect([...html.matchAll(/<th scope="col"/g)]).toHaveLength(2)
     expect([...html.matchAll(/<th scope="row"/g)].length).toBe(KINDS.length + 1)
   })
 
-  test('counts through the readout, tagged measured, and ends with the total', () => {
-    expect([...html.matchAll(/data-tag="measured"/g)]).toHaveLength(KINDS.length + 1)
-    expect(rows(html).get('All events')).toBe('10 measured in this browser')
-    expect(rows(html).get(`${KIND_FACTS.play.name} play ${KIND_FACTS.play.what}`)).toBe('1 measured')
-  })
-
-  test('marks the two kinds that carry no result as not graded, and no other', () => {
-    expect([...html.matchAll(/not graded/g)]).toHaveLength(2)
-    for (const kind of ['challenge', 'ack']) expect(new RegExp(`data-kind="${kind}".*?not graded`, 's').test(html)).toBe(true)
+  test('counts the learner`s own events with no tag, and ends with the total', () => {
+    expect(html).not.toContain('data-tag')
+    expect(html).not.toContain('es-stamp')
+    expect(rows(html).get('All events')).toBe('10')
+    expect(rows(html).get(`${KIND_FACTS.play.name} ${KIND_FACTS.play.what}`)).toBe('1')
   })
 
   test('a kind with none is a dash that a screen reader reads as "none", and is quiet', () => {
@@ -88,8 +86,8 @@ describe('the counts by kind', () => {
     expect(empty).toContain('<span aria-hidden="true">—</span><span class="sr-only">none</span>')
     expect(empty).toContain('data-kind="item" data-empty="true"')
     expect(empty).not.toContain('data-kind="play" data-empty')
-    // A number is never printed without its tag: only the played kind and the total are numbers.
-    expect([...empty.matchAll(/data-tag="measured"/g)]).toHaveLength(2)
+    // Only the played kind and the total are numbers.
+    expect([...empty.matchAll(/class="es-count"/g)]).toHaveLength(2)
   })
 })
 
@@ -100,16 +98,16 @@ describe('the counts by module', () => {
     expect(html).toContain('href="/m/tr2"')
     expect(decode(html)).toContain('The step loop')
     const table = rows(html)
-    expect(table.get('tr2 The step loop')).toBe('4 measured')
-    expect(table.get('tr8 Benchmark like you mean it')).toBe('2 measured')
+    expect(table.get('tr2 The step loop')).toBe('4')
+    expect(table.get('tr8 Benchmark like you mean it')).toBe('2')
     expect(table.get('tr0 PyTorch for the Rust-first, and reading Triton')).toBe('— none')
-    expect(table.get('All events')).toBe('10 measured in this browser')
+    expect(table.get('All events')).toBe('10')
   })
 
   test('the events that name no module have a row of their own, and the rows add up to the total', () => {
     const html = render(createElement(ModuleTable, { counts: counts(), modules: MODULES }))
-    expect(rows(html).get('No module Traces, forge labs and acknowledgements belong to no one module.')).toBe('4 measured')
-    const parts = ['tr2 The step loop', 'tr8 Benchmark like you mean it', 'No module Traces, forge labs and acknowledgements belong to no one module.'].map((key) => Number.parseInt(rows(html).get(key) ?? '0', 10))
+    expect(rows(html).get('No module Traces, GPU labs and acknowledgements belong to no one module.')).toBe('4')
+    const parts = ['tr2 The step loop', 'tr8 Benchmark like you mean it', 'No module Traces, GPU labs and acknowledgements belong to no one module.'].map((key) => Number.parseInt(rows(html).get(key) ?? '0', 10))
     expect(parts.reduce((a, b) => a + b, 0)).toBe(10)
   })
 
@@ -125,20 +123,72 @@ describe('the counts by module', () => {
 
   test('a module that is not in the index is still shown by its id when it has no title to give', () => {
     const html = render(createElement(ModuleTable, { counts: counts(), modules: [{ id: 'tr2', title: '' }] }))
-    expect(rows(html).get('tr2')).toBe('4 measured')
+    expect(rows(html).get('tr2')).toBe('4')
   })
 })
 
 describe('the page', () => {
+  const ROWS: ActivityRow[] = [
+    { id: 'a', day: '2026-11-04', what: 'Played KV page pool, One KV group', where: 'TR5a lesson 1', kind: 'practice', result: 'passed in practice' },
+    { id: 'b', day: '2026-11-03', what: 'Answered a question', where: 'TR5a lesson 1', result: 'not yet' },
+  ]
+  const SKILLS = { total: 12, notStarted: 8, tried: 2, passed: 1, kept: 1 }
+  const ATTEMPTS = { notYet: 1, practice: 1, passed: 0 }
   const view = (patch: Partial<Parameters<typeof EvidenceView>[0]> = {}) =>
-    render(createElement(EvidenceView, { ready: true, counts: counts(), modules: MODULES, side: createElement('p', { 'data-slot': 'side' }, 'tape'), files: createElement('p', { 'data-slot': 'files' }, 'files'), ...patch }))
+    render(
+      createElement(EvidenceView, {
+        ready: true,
+        counts: counts(),
+        rows: ROWS,
+        skills: SKILLS,
+        attempts: ATTEMPTS,
+        modules: MODULES,
+        step: { href: '/m/tr5a/l1-why-one-model-needs-several-kv-caches', label: 'Continue: TR5a lesson 1, retry the questions', word: 'Continue', minutes: 5 },
+        last: 'Last time: you ran KV page pool, One KV group (passed in practice) in TR5a lesson 1.',
+        side: createElement('p', { 'data-slot': 'side' }, 'tape'),
+        files: createElement('p', { 'data-slot': 'files' }, 'files'),
+        ...patch,
+      }),
+    )
+  const h2s = (html: string) => [...html.matchAll(/<h2[^>]*>(.*?)<\/h2>/gs)].map((match) => match[1])
 
-  test('has one h1, "Evidence", and the counts, then the means to keep a copy', () => {
+  test('has one h1, "Progress", then the dated rows, then the counts, then the means to keep a copy', () => {
     const html = view()
     expect([...html.matchAll(/<h1[^>]*>(.*?)<\/h1>/gs)].map((match) => match[1])).toEqual(['Progress'])
-    expect([...html.matchAll(/<h2[^>]*>(.*?)<\/h2>/gs)].map((match) => match[1])).toEqual(['By kind', 'By module', 'Keep a copy'])
+    expect(h2s(html)).toEqual(['What you did', 'Where that leaves you', 'Everything counted', 'GPU lab results', 'Keep a copy'])
+    expect(html.indexOf('data-table="activity"')).toBeLessThan(html.indexOf('data-table="skills"'))
     expect(html).toContain('data-slot="files"')
-    expect(html).toContain('<aside class="es-page__side" aria-label="The ledger"><p data-slot="side">')
+    expect(html).toContain('<aside class="es-page__side" aria-label="Where your progress is kept"><p data-slot="side">')
+  })
+
+  test('opens with the way on and the sentence that tells the last time back', () => {
+    const body = decode(view())
+    expect(body).toContain('Last time: you ran KV page pool, One KV group (passed in practice) in TR5a lesson 1.')
+    expect(body).toContain('Continue: TR5a lesson 1, retry the questions')
+    expect(body).toContain('about 5 min')
+  })
+
+  test('the rows are a table of the date, what was done and the result, in words, newest first', () => {
+    const html = view()
+    expect([...html.matchAll(/<th scope="col">(.*?)<\/th>/g)].slice(0, 3).map((match) => match[1])).toEqual(['Date', 'What you did', 'Result'])
+    expect(html).toContain('<time dateTime="2026-11-04">4 Nov 2026</time>')
+    expect(text(html)).toContain('Played KV page pool, One KV group TR5a lesson 1 · practice passed in practice')
+    expect(html.indexOf('4 Nov 2026')).toBeLessThan(html.indexOf('3 Nov 2026'))
+  })
+
+  test('offers the rest of a long list of rows one button away', () => {
+    const many = Array.from({ length: 30 }, (_, at) => ({ id: `r${at}`, day: '2026-11-04', what: 'Answered a question', result: 'passed' }))
+    const html = view({ rows: many })
+    expect([...html.matchAll(/<tr data-result/g)]).toHaveLength(12)
+    expect(html).toContain('Show all 30 rows')
+  })
+
+  test('the counts use the words for a skill and for an attempt, each with its legend line', () => {
+    const body = decode(view())
+    for (const word of ['not started', 'tried', 'passed', 'kept', 'not yet', 'passed in practice']) expect(body).toContain(word)
+    expect(body).toContain(LEGENDS.skill)
+    expect(body).toContain(LEGENDS.attempt)
+    expect(rows(view()).get('All skills')).toBe('12')
   })
 
   test('says that it stays on this device, and that a count is a count of events and not credit', () => {
@@ -147,29 +197,32 @@ describe('the page', () => {
     expect(body).toContain('Events written, not credit:')
   })
 
-  test('derives nothing about credit: no score, no percent, no weight, no progress, beyond the page\'s own name', () => {
-    // The page is named Progress, as the header's link is (REDESIGN §2.3). Under its name, it derives nothing.
+  test('is read without a build-log word, a kind id or an old name of the page', () => {
     const body = text(view())
-    expect(body.startsWith('Progress ')).toBe(true)
-    expect(body.slice('Progress '.length)).not.toMatch(/\bXP\b|percent|%|\bscore\b|weight|progress|complete/i)
+    expect(body).not.toMatch(/\bXP\b|percent|%|\bscore\b|\bW\d|\bR-T\d|\bD-0\d|Evidence|ledger|Mirror/)
   })
 
-  test('an empty ledger is a blank ticket with the way to the course, and still offers the means to import', () => {
-    const html = view({ counts: counts([]) })
-    expect(html).toContain('Nothing in the ledger yet')
-    expect(html).toContain('Open the course')
-    expect(html).toContain('href="/map"')
+  test('links GPU lab results, and every figure of the page is a count of the learner`s own events with no tag', () => {
+    const html = view()
+    expect(html).toContain('href="/receipts"')
+    expect(html).not.toContain('data-tag')
+  })
+
+  test('an empty record says what lands here, and still offers the means to import and the way on', () => {
+    const html = view({ counts: counts([]), rows: [], skills: null })
+    expect(text(html)).toContain('Nothing yet. Play a level, answer a question or commit a guess')
+    expect(html).toContain('Continue: TR5a lesson 1')
     expect(html).not.toContain('es-ledger')
-    expect([...html.matchAll(/<h2[^>]*>(.*?)<\/h2>/gs)].map((match) => match[1])).toEqual(['Nothing in the ledger yet', 'Keep a copy'])
+    expect(h2s(html)).toEqual(['What you did', 'GPU lab results', 'Keep a copy'])
     expect(html).toContain('data-slot="files"')
   })
 
-  test('says it is printing while the ledger opens, and shows no count it does not have', () => {
-    const html = view({ ready: false, counts: counts([]) })
-    expect(html).toContain('aria-busy="true"')
-    expect(html).toContain('Printing your evidence')
+  test('says it is reading while the record opens, and shows no count it does not have', () => {
+    const html = view({ ready: false, counts: counts([]), rows: null, skills: null })
+    expect(html).toContain('role="status"')
+    expect(text(html)).toContain('Reading your record.')
     expect(html).not.toContain('es-ledger')
-    expect(html).not.toContain('Nothing in the ledger yet')
+    expect(html).not.toContain('Nothing yet')
   })
 })
 
@@ -222,10 +275,11 @@ describe('the tape that says where the evidence is kept', () => {
     expect(line(storageLines(ledger({ unsaved: 0 })), 'unsaved')).toBeUndefined()
   })
 
-  test('as a tape: the counts are readouts, and a ledger still opening is a printer warming up', () => {
+  test('as a tape: the counts are plain figures with no tag, and a ledger still opening is a printer warming up', () => {
     const html = render(createElement(StorageTape, { ledger: ledger() }))
-    expect(html).toContain('aria-label="Where your evidence is kept"')
-    expect([...html.matchAll(/data-tag="measured"/g)]).toHaveLength(2)
+    expect(html).toContain('aria-label="Where your progress is kept"')
+    expect(html).not.toContain('data-tag')
+    expect([...html.matchAll(/class="es-count/g)]).toHaveLength(2)
     expect(render(createElement(StorageTape, { ledger: ledger({ ready: false, backend: null, events: [] }) }))).toContain('Warming up')
   })
 })

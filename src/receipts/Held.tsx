@@ -92,7 +92,7 @@ function ChallengeLine({ challenge }: { challenge: HeldChallenge }) {
           </>
         ) : usedBy !== undefined ? (
           <>
-            , used by <TextLink to={detailAddress(usedBy)}>receipt {shortHash(usedBy)}</TextLink>
+            , used by <TextLink to={detailAddress(usedBy)}>result {shortHash(usedBy)}</TextLink>
           </>
         ) : null}
       </p>
@@ -181,9 +181,9 @@ function ReceiptLine({ held }: { held: HeldReceipt }) {
 /** The receipts, newest first. Exported for the tests. */
 export function ReceiptList({ held }: { held: readonly HeldReceipt[] }) {
   return (
-    <More items={held} label="receipts">
+    <More items={held} label="results">
       {(shown) => (
-        <ul className="es-held" aria-label="Receipts held by this browser">
+        <ul className="es-held" aria-label="Results held by this browser">
           {shown.map((entry) => (
             <ReceiptLine key={entry.sha256} held={entry} />
           ))}

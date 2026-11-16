@@ -1,9 +1,9 @@
 /*
  * W1b-T09: the pages that are not built yet say what they will hold and which task builds it, and no page says only that it is not built.
  *
- *   - /changes, /about, /trace-room and the ten labs that W2 and W3 build each render a heading, a lead, a list of what the page
- *     will hold, the red line that says it is not built, the task and the wave that build it, and a way on to a page that is. (/receipts
- *     was the fifth until W2-T06 built it: tests/receipts/ holds what it says.)
+ *   - /trace-room and the ten labs that W2 and W3 build each render a heading, a lead, a list of what the page
+ *     will hold, the red line that says it is not built, the task and the wave that build it, and a way on to a page that is. (/receipts, /about and /changes
+ *     are built pages: tests/receipts/ and tests/pages/about-changes.test.ts hold what they say.)
  *   - The words are src/unbuilt/copy.ts's, and they come from somewhere: each task is a task of docs/TRACKER.md whose text is about
  *     that page, and each lab's module, lane and one line are the course's own (the compiled map). A task renamed, or a lab whose artifact
  *     changes, fails here and not in front of a learner.
@@ -69,8 +69,6 @@ const documentOf = (url: string): Written => {
 
 /** The pages with a route of their own, with their copy. */
 const PAGES = [
-  ['/changes', UNBUILT.changes],
-  ['/about', UNBUILT.about],
   ['/trace-room', UNBUILT.traceRoom],
 ] as const
 
@@ -122,26 +120,6 @@ describe('the tasks the pages name', () => {
       }
     }
     for (const [lab, task] of Object.entries(LAB_TASKS)) expect([lab, waveSectionOf(task)]).toEqual([lab, waveOf(task)])
-  })
-})
-
-describe('/about, which holds its licences today', () => {
-  test('keeps the licences paragraph it had, in a ticket of its own, beside the one that says what is still to come', async () => {
-    const html = mainOf(await render('/about'))
-    expect(headingsIn(html, 2)).toEqual(['Licences', 'Still to come'])
-    const text = textOf(html)
-    expect(text).toContain('The licences of the third-party code in this site are in third-party-licenses.txt')
-    expect(text).toContain('the typefaces are under the SIL Open Font License 1.1')
-    expect(html).toContain('href="/third-party-licenses.txt"')
-  })
-
-  test('has a description that says only what it holds today: the licences, and none of what W3-T15 will bring', () => {
-    const { description } = documentOf('/about')
-    expect(description).toMatch(/licences/)
-    expect(description).not.toMatch(/privacy|claims|models|ignores|world/i)
-    // The worlds' cards, the claims and the privacy promise are the list of what is still to come.
-    expect(UNBUILT.about.holds.join(' ')).toMatch(/world.*models.*ignores/i)
-    expect(UNBUILT.about.holds.join(' ')).toMatch(/privacy/i)
   })
 })
 
@@ -206,8 +184,7 @@ describe('the copy', () => {
     expect(unbuiltCopy().flatMap((text) => untaggedNumbers(text))).toEqual([])
   })
 
-  test("names no licence for the site's own code and content: that is the owner's to decide (O-3), and the page only says it will hold them", () => {
+  test("names no licence for the site's own code and content: that is the owner's to decide (O-3)", () => {
     expect(unbuiltCopy().join(' ')).not.toMatch(/\bMIT\b|CC BY|all rights reserved|\bGPL\b|\bBSD\b|Apache/i)
-    expect(UNBUILT.about.holds).toContain("The licences of the site's own code and content.")
   })
 })
