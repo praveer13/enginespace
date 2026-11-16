@@ -11,9 +11,10 @@
  *   - Then it waits until Vite's watcher watches every file of `content/` and every file the compile wrote, compiles again, and
  *     logs "watching content/". The second compile takes in a save that landed before the watcher reached the file, which the
  *     watcher can take for the file's first state, and then does not report. It asks only for files a watcher can list (a regular
- *     file, once a link is followed). If it is still waiting after WATCH_WAIT_MS, as when a file is under Vite's `server.watch.ignored`,
- *     it compiles, warns with the first file it waited for, acts on changes, and stops polling. Neither Vite's "Local:" banner nor the watcher's own `ready`
- *     event means that the walk has reached these files, and often it has not (docs/TRACKER.md, W0-T08's follow-up).
+ *     file, once a link is followed). If it is still waiting after WATCH_WAIT_MS, as when a file is under Vite's
+ *     `server.watch.ignored`, it compiles, warns with the first file it waited for, acts on changes, and stops polling. A server
+ *     that closes during the wait ends it, with nothing compiled or logged. Neither Vite's "Local:" banner nor the watcher's own
+ *     `ready` event means that the walk has reached these files, and often it has not (docs/TRACKER.md, W0-T08's follow-up).
  *   - From then on a change in `content/` recompiles after a short pause that gathers an editor's several writes, and the files it
  *     writes under `src/content/generated/` reach the browser through Vite's own watcher, so an edit to a lesson reloads it. A
  *     change that comes while the plugin waits for the watcher is left to the compile that ends the wait, so that nothing is
@@ -26,10 +27,12 @@
  * It does nothing in a project that has no `content/course.yaml`, such as the fixture that tests/build.test.ts builds, nor under
  * `vite preview`.
  */
-import { existsSync, readdirSync, statSync } from 'node:fs'
+import type { Dirent } from 'node:fs'
+import { existsSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 import type { Logger, Plugin, ViteDevServer } from 'vite'
 import { compileContent, writeOutputs } from './build.ts'
+import { isRegularFile } from './files.ts'
 import { formatDiagnostic } from './parse.ts'
 import type { Diagnostic } from './parse.ts'
 
@@ -75,12 +78,18 @@ export function compileAndWrite(root: string): Compiled {
  * Every file under `dir` that a watcher can list: a regular file once a symbolic link is followed. A dangling link (Emacs writes
  * `.#name.md` beside a file it edits), a link to a folder, a socket and a pipe are left out, since chokidar never lists them.
  */
-function filesUnder(dir: string): string[] {
-  if (!existsSync(dir)) return []
-  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+export function filesUnder(dir: string, list: (dir: string) => Dirent[] = (folder) => readdirSync(folder, { withFileTypes: true })): string[] {
+  let entries: Dirent[]
+  try {
+    entries = list(dir)
+  } catch {
+    // A folder that is gone (removed between the listing of its parent and now), or one that cannot be read: nothing to list.
+    return []
+  }
+  return entries.flatMap((entry) => {
     const full = path.join(dir, entry.name)
-    if (entry.isDirectory()) return filesUnder(full)
-    return existsSync(full) && statSync(full).isFile() ? [full] : []
+    if (entry.isDirectory()) return filesUnder(full, list)
+    return isRegularFile(full) ? [full] : []
   })
 }
 
@@ -103,6 +112,9 @@ export function contentPlugin(options: ContentPluginOptions = {}): Plugin {
   let active = false
   let building = false
   let previewing = false
+  /** Set when Vite closes the dev server: its plugin container calls `buildEnd` and then `closeBundle` on every plugin (vite 7.3.0). */
+  let closed = false
+  let stop = () => {}
   let logger: Logger
   /** The dev server's first compile, made before Vite's watcher starts. */
   let first: Compiled | undefined
@@ -133,9 +145,18 @@ export function contentPlugin(options: ContentPluginOptions = {}): Plugin {
       if (errors.length > 0) this.error(summary(errors))
     },
 
+    buildEnd() {
+      if (!building) stop()
+    },
+
+    closeBundle() {
+      if (!building) stop()
+    },
+
     configureServer(server) {
       // A dev server with `server.watch: null` has no watcher, so nothing here would ever hear of a change.
       if (!active || server.config.server.watch === null) return
+      closed = false
       const content = path.join(root, 'content') + path.sep
       server.watcher.add(content)
 
@@ -172,6 +193,7 @@ export function contentPlugin(options: ContentPluginOptions = {}): Plugin {
         if (compiled.written.length > 0 || !first || said(compiled) !== said(first)) report(compiled)
       }
       const wait = () => {
+        if (closed) return
         const file = missing()
         if (file === undefined) {
           catchUp()
@@ -184,14 +206,23 @@ export function contentPlugin(options: ContentPluginOptions = {}): Plugin {
           logger.warn(`Vite's watcher has not listed ${path.relative(root, file).split(path.sep).join('/')} after ${watchWaitMs} ms, so a save to a file it has not listed may not reload`, { timestamp: true })
           return
         }
-        setTimeout(wait, WATCH_POLL_MS).unref?.()
+        poll = setTimeout(wait, WATCH_POLL_MS)
+        poll.unref?.()
       }
 
       let timer: ReturnType<typeof setTimeout> | undefined
+      let poll: ReturnType<typeof setTimeout> | undefined
       const changed = (file: string) => {
-        if (!watching || !path.resolve(file).startsWith(content)) return
+        if (closed || !watching || !path.resolve(file).startsWith(content)) return
         clearTimeout(timer)
-        timer = setTimeout(() => report(compileAndWrite(root)), DEBOUNCE_MS)
+        timer = setTimeout(() => {
+          if (!closed) report(compileAndWrite(root))
+        }, DEBOUNCE_MS)
+      }
+      stop = () => {
+        closed = true
+        clearTimeout(timer)
+        clearTimeout(poll)
       }
       server.watcher.on('add', changed).on('change', changed).on('unlink', changed)
       wait()

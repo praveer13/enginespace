@@ -11,7 +11,7 @@
  */
 import { describe, expect, test } from 'bun:test'
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { gzipSync } from 'node:zlib'
 import { claimsOutputSchema, compiledLessonSchema, compiledModuleSchema, contentIndexSchema } from '@es/schema'
@@ -642,5 +642,36 @@ describe('compileContent on the repo itself', () => {
     const result = compileContent({ root: repo })
     expect(report(result)).toBe('')
     expect(result.outputs.length).toBe(REPO_OUTPUT_COUNT)
+  })
+})
+
+describe('a name that is not a regular file, once a link is followed', () => {
+  // Emacs writes `.#name.md`, a link to a file that does not exist, beside the file it edits. The compiler takes names by their
+  // filter and not by pattern, so such an entry is left out because it is not a file, and a regular file with a bad name is still
+  // an error (see 'a file name that is not a lesson number').
+  const links = ['content/modules/tr2/lessons/.#l0-sample.md', 'content/claims/.#sample.yaml', 'content/cards/.#kv.md']
+  test.each(links)('a dangling link at %s changes no output and gives no diagnostic', (link) => {
+    const root = project()
+    const before = compileContent({ root })
+    symlinkSync('nobody@example-host.1', path.join(root, link))
+    const after = compileContent({ root })
+    expect(after.diagnostics).toEqual(before.diagnostics)
+    expect(report(after)).toBe(report(before))
+    expect(after.outputs).toEqual(before.outputs)
+  })
+
+  test('a link to a folder under a name that the filter takes is left out too', () => {
+    const root = project()
+    const before = compileContent({ root })
+    symlinkSync('lessons', path.join(root, 'content/modules/tr2/l9-folder.md'))
+    symlinkSync('..', path.join(root, 'content/claims/folder.yaml'))
+    const after = compileContent({ root })
+    expect(after.diagnostics).toEqual(before.diagnostics)
+    expect(after.outputs).toEqual(before.outputs)
+  })
+
+  test('a regular file with a bad name is still an error', () => {
+    const result = compile({ 'content/modules/tr2/lessons/.#l0-sample.md': lesson })
+    expect(where(result)).toContain('content/modules/tr2/lessons/.#l0-sample.md:1 bad-file-name')
   })
 })
