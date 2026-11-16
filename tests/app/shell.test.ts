@@ -29,7 +29,7 @@ const linksOf = (nav: string) => [...nav.matchAll(/<a [^>]*href="([^"]+)"[^>]*>(
 
 describe('the chrome of every route', () => {
   for (const url of URLS) {
-    test(`${url}: the header has Course, Games, Review, Progress and Continue, and the footer About, Sources and changes, Settings`, async () => {
+    test(`${url}: the header has Course, Games, Review, Progress and Continue, and the footer About, How numbers are tagged, Sources and changes, Settings`, async () => {
       const html = await render(url)
       const header = navOf(html, 'Primary')
       const links = linksOf(header)
@@ -46,6 +46,7 @@ describe('the chrome of every route', () => {
       expect(links).toHaveLength(6)
       expect(linksOf(navOf(html, 'Footer'))).toEqual([
         ['/about', 'About'],
+        ['/about#numbers', 'How numbers are tagged'],
         ['/changes', 'Sources and changes'],
         ['/settings', 'Settings'],
       ])

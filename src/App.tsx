@@ -12,7 +12,7 @@ export interface RouteHandle {
 }
 
 // REDESIGN §2.3: the header is the wordmark, then Course, Games, Review and Progress, then Continue at the right. The footer links
-// About, Sources and changes, and Settings. The design system's page (/design) and the GPU lab results (/receipts) are reached from
+// About, How numbers are tagged (a place on About), Sources and changes, and Settings. The design system's page (/design) and the GPU lab results (/receipts) are reached from
 // where they are used, never from the chrome.
 const PRIMARY_LINKS = [
   { to: '/map', label: 'Course' },
@@ -22,6 +22,7 @@ const PRIMARY_LINKS = [
 ]
 const FOOTER_LINKS = [
   { to: '/about', label: 'About' },
+  { to: '/about#numbers', label: 'How numbers are tagged', within: true },
   { to: '/changes', label: 'Sources and changes' },
   { to: '/settings', label: 'Settings' },
 ]

@@ -3,6 +3,7 @@ import type { ReceiptRecord, Sha256 } from '@es/ledger'
 import { PrinterTape } from '@/design/components/PrinterTape'
 import type { PrinterTapeLine } from '@/design/components/PrinterTape'
 import { Readout } from '@/design/components/Readout'
+import { Count } from '@/evidence/Count'
 import { Ticket } from '@/design/components/Ticket'
 import { CHALLENGE_TTL_DAYS, countChallenges } from './challenge'
 import type { HeldChallenge } from './challenge'
@@ -51,14 +52,13 @@ function Tape({ ready, counts, receipts }: { ready: boolean; counts: ReturnType<
   const lines: PrinterTapeLine[] = (['open', 'used', 'expired'] as const).map((state) => ({
     id: state,
     label: CHALLENGES[state],
-    value: <Readout value={counts[state]} tag="measured" size="sm" />,
+    value: <Count value={counts[state]} />,
   }))
-  lines.push({ id: 'receipts', label: 'receipts', value: <Readout value={receipts} tag="measured" size="sm" /> })
+  lines.push({ id: 'receipts', label: 'results', value: <Count value={receipts} /> })
   const empty = counts.open + counts.used + counts.expired + receipts === 0
   return (
     <PrinterTape
       label={TAPE.label}
-      stamp={TAPE.stamp}
       state={!ready ? 'loading' : empty ? 'empty' : 'default'}
       empty={TAPE.empty}
       lines={ready && !empty ? lines : []}
@@ -76,7 +76,7 @@ function Lists({ props, held, records }: { props: ReceiptsViewProps; held: reado
           {CHALLENGES.title}
         </h2>
         <p className="es-panel__lead">
-          Every challenge this browser has issued. A token is open until a receipt uses it, and expires <Readout value={CHALLENGE_TTL_DAYS} tag="estimated" size="sm" /> days after it is issued.
+          Every challenge this browser has issued. A token is open until a receipt file uses it, and expires <Readout value={CHALLENGE_TTL_DAYS} tag="estimated" size="sm" /> days after it is issued.
         </p>
         {!ready ? (
           <Ticket as="div" width="full" hole={false} state="loading" loadingLabel={CHALLENGES.loading} />
@@ -151,7 +151,7 @@ export function ReceiptsView(props: ReceiptsViewProps) {
   return (
     <div className="es-page es-receipts" data-page="receipts" data-view={open === null ? 'lists' : 'receipt'}>
       <header className="es-page__header">
-        <h1 className="es-page__title">Receipts</h1>
+        <h1 className="es-page__title">GPU lab results</h1>
         <p className="es-page__lead">{LEAD}</p>
       </header>
       {open !== null ? (
@@ -163,7 +163,7 @@ export function ReceiptsView(props: ReceiptsViewProps) {
           <div className="es-page__main">
             <Lists props={props} held={held} records={records} />
           </div>
-          <aside className="es-page__side" aria-label="Your challenges and receipts, counted">
+          <aside className="es-page__side" aria-label="Your challenges and results, counted">
             <Tape ready={ready} counts={counts} receipts={records.length} />
           </aside>
         </div>

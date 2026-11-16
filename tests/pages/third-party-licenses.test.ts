@@ -1288,7 +1288,7 @@ describe('the file, named where a reader looks', () => {
     const html = renderToString(createElement(StaticRouter, { location: '/about' }, createElement(About)))
 
     test('links the file at the site\'s root as a link of the site itself: the same tab, no external mark, and not the router\'s link (which answers the address with its not-found page)', () => {
-      const link = /<a ([^>]*)>(.*?)<\/a>/s.exec(html)
+      const link = [...html.matchAll(/<a ([^>]*)>(.*?)<\/a>/gs)].find((candidate) => candidate[2] === 'third-party-licenses.txt')
       const attributes = link?.[1] ?? ''
       expect(/href="([^"]+)"/.exec(attributes)?.[1]).toBe('/third-party-licenses.txt')
       // The text of the link and nothing else in it: no drawn mark, and no words about a new tab.

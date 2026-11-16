@@ -1,6 +1,6 @@
 /*
  * The words of the pages that are not built yet (W1b-T09): what each will hold, and the task that builds it. The pages are
- * src/pages/Changes.tsx, About.tsx, TraceRoom.tsx and Lab.tsx (for the labs that W2 and W3 build), and src/unbuilt/Unbuilt.tsx draws
+ * src/pages/TraceRoom.tsx and Lab.tsx (for the labs that W2 and W3 build), and src/unbuilt/Unbuilt.tsx draws
  * them. A page that is built takes its words out of here with its stub: /receipts did with W2-T06, and has its words in src/receipts/copy.ts.
  *
  * Nothing in these words is new. What a page holds is what ARCHITECTURE §3.1 and §8.4 say of it and what its tasks in docs/TRACKER.md
@@ -26,32 +26,6 @@ export interface UnbuiltCopy {
 
 /** The pages with a route of their own. A page's `lead` is the sentence its meta description gives too (scripts/pages/plan.ts), and a test holds the two together. */
 export const UNBUILT = {
-  /** ARCHITECTURE §3.1, ASSESSMENT §8; W3-T06. */
-  changes: {
-    title: 'Sources and changes',
-    lead: 'The claims and the pins that have moved, as change cards.',
-    heading: 'What it will hold',
-    holds: [
-      'A card for each claim or pin that moved: the struck line, the new line and its source.',
-      'A retrieval item or two on each card, and a way to acknowledge it.',
-    ],
-    tasks: ['W3-T06'],
-    next: { to: '/map', label: 'Open the course map' },
-  },
-  /** ARCHITECTURE §3.1; W3-T15. The page holds its licences paragraph today (src/pages/About.tsx), and the lead says so. */
-  about: {
-    title: 'About',
-    lead: 'The licences of the third-party code and the typefaces that this site uses.',
-    heading: 'Still to come',
-    holds: [
-      'What each simulated world models and ignores.',
-      'The claims and their sources.',
-      'The privacy promise.',
-      "The licences of the site's own code and content.",
-    ],
-    tasks: ['W3-T15'],
-    next: { to: '/settings', label: 'Open the settings' },
-  },
   /** ARCHITECTURE §3.1, GAMES.md §0 (The Tape is `gap-hunt`, D-049); W2-T20. */
   traceRoom: {
     title: 'The Trace Room',

@@ -19,6 +19,8 @@ import { Icon } from './Glyph'
 export interface BoardLink {
   to: string
   label: string
+  /** A link to a place inside another link's page ("/about#numbers"): a plain link, never marked as the current page. */
+  within?: boolean
 }
 
 export interface BoardProps {
@@ -70,11 +72,17 @@ export function Board({ label, links, brand, variant = 'board', action, fold = f
         </button>
       ) : null}
       <ul id={listId} className="es-board__links">
-        {links.map(({ to, label: text }) => (
+        {links.map(({ to, label: text, within }) => (
           <li key={to}>
-            <NavLink to={to} className="es-board__link">
-              {text}
-            </NavLink>
+            {within ? (
+              <Link to={to} className="es-board__link">
+                {text}
+              </Link>
+            ) : (
+              <NavLink to={to} className="es-board__link">
+                {text}
+              </NavLink>
+            )}
           </li>
         ))}
       </ul>

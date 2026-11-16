@@ -29,12 +29,12 @@ const documentOf = (url: string): Written => {
 
 describe('the lead', () => {
   test("is the served document's description, and the document is headed as the page is", () => {
-    expect(documentOf('/receipts')).toMatchObject({ heading: 'Receipts', description: LEAD })
+    expect(documentOf('/receipts')).toMatchObject({ heading: 'GPU lab results', description: LEAD })
   })
 
   test('says what the page does and that nothing leaves the browser, and holds no number', () => {
     expect(LEAD).toMatch(/challenge/)
-    expect(LEAD).toMatch(/receipts/)
+    expect(LEAD).toMatch(/receipt file/)
     expect(LEAD).toMatch(/Nothing here is sent anywhere/)
     expect(untaggedNumbers(LEAD)).toEqual([])
   })
@@ -67,12 +67,12 @@ describe('the slip that takes a receipt back', () => {
     expect(task.split('\n', 1)[0]).toContain('Receipt worker and import')
     expect(task).toContain('Import works by drop or by file picker')
     expect(task).toContain('the parsed receipt and its report are stored')
-    expect(IMPORT.title).toBe('Bring a receipt back')
-    expect(IMPORT.dropNote).toMatch(/Drop it on this slip, or choose it\./)
+    expect(IMPORT.title).toBe('Bring a result back')
+    expect(IMPORT.dropNote).toMatch(/Drop it here, or choose it\./)
   })
 
   test('is in the lead, which the served document says too', () => {
-    expect(LEAD).toMatch(/bring back the receipt that your grader writes/)
+    expect(LEAD).toMatch(/bring back the receipt file that your grader writes/)
     expect(LEAD).toMatch(/how this browser checked it/)
   })
 

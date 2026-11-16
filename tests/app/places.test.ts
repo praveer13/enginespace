@@ -146,11 +146,11 @@ describe('who writes them', () => {
     expect(callers('keepPointer')).toEqual(['src/progress/useWayOn.ts'])
     expect(callers('keepPlace')).toEqual(['src/settings/bookmark.ts'])
     expect(callers('useBookmark')).toEqual(['src/pages/Lesson.tsx'])
-    // Every page that keeps the pointer opens the ledger to do it: Course and a module, through useProgress, and a lesson once it loads the
+    // Every page that keeps the pointer opens the ledger to do it: Course, a module and Progress, through useProgress, and a lesson once it loads the
     // ledger after its first paint (R-T10).
     // Review keeps it too (R-T24): it is told how many reviews are due, which only it knows.
     expect(callers('useWayOn')).toEqual(['src/content/render/LessonLedger.tsx', 'src/items/today/TodayView.tsx', 'src/progress/useProgress.ts'])
-    expect(callers('useProgress')).toEqual(['src/pages/Map.tsx', 'src/pages/Module.tsx'])
+    expect(callers('useProgress')).toEqual(['src/pages/Evidence.tsx', 'src/pages/Map.tsx', 'src/pages/Module.tsx'])
     expect(code('src/progress/useWayOn.ts')).toMatch(/useEvidence\(\)/)
   })
 

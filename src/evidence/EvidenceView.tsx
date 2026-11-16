@@ -1,52 +1,156 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { KINDS } from '@es/ledger'
-import { MenuLink } from '@/design/components/Board'
-import { Readout } from '@/design/components/Readout'
-import { TapeLabel } from '@/design/components/TapeLabel'
+import { ContinueLink, type ContinueTarget } from '@/design/components/Board'
 import { TextLink } from '@/design/components/TextLink'
-import { Ticket } from '@/design/components/Ticket'
-import { isGradedKind, KIND_FACTS } from './counts'
+import { LEGENDS, ATTEMPT_WORDS, SKILL_WORDS } from '@/progress/words'
+import { Button } from '@/design/components/Button'
+import { KIND_FACTS } from './counts'
+import { Count } from './Count'
 import type { EventCounts, Tally } from './counts'
+import { dayWords } from './rows'
+import type { ActivityRow, AttemptCounts, SkillCounts } from './rows'
 
 /*
- * /evidence, version 0 (ARCHITECTURE §3.1: "the learner's evidence (the Mirror): progress derived from the ledger; export, import
- * and undo"). This first version says what the ledger holds: how many events of each kind, and how many under each module, then
- * the means to keep a copy. It derives nothing about credit. What an event is worth comes from its provenance, and the map and
- * the module pages show those states (W1-T06), so a count here is a count of events written and never a score.
+ * /evidence, drawn as Progress (REDESIGN 2.3, 2.4): what the learner did, as dated rows in words (the day, what they did, how it came out),
+ * then the counts those rows add up to, in the words for a skill and for an attempt with a line each that says what the words mean, then the
+ * means to keep a copy. A count of the learner's own events is no measurement, so it carries no tag and no stamp.
  *
- * `EvidenceView` is the page once it has what it shows, and takes all of it as props, as the module page's view does.
+ * The page derives nothing here: `EvidenceView` takes the rows and counts as props, as the module page's view does, so the server renderer
+ * draws any state of it. The way on is `nextStep`'s answer, and "Last time" is `lastTime`'s sentence (src/progress/next.ts).
  */
 
 export interface EvidenceViewProps {
   /** False until the ledger has opened. */
   ready: boolean
   counts: EventCounts
+  /** The rows, newest first; null while the course map that names a lesson and a level has not loaded. */
+  rows: readonly ActivityRow[] | null
+  /** How the skills and the attempts stand; null while the map has not loaded. */
+  skills: SkillCounts | null
+  attempts: AttemptCounts
   /** The course's modules in order, with their titles; null when the course index has not loaded. */
   modules: readonly { id: string; title: string }[] | null
-  /** The printer's tape beside the page: where the evidence is kept. */
+  /** The way on: where Continue goes, with the sentence that tells the last time's work back. */
+  step: (ContinueTarget & { minutes?: number }) | null
+  last: string | null
+  /** The storage line beside the page: where the evidence is kept. */
   side: ReactNode
   /** The export and import controls. */
   files: ReactNode
 }
 
-/** A count: printed through the readout, or a dash where there is none. A total says where it was counted. */
-function Count({ value, source }: { value: number; source?: string }) {
-  if (value === 0) {
-    return (
-      <span className="es-ledger__none">
-        <span aria-hidden="true">—</span>
-        <span className="sr-only">none</span>
-      </span>
-    )
-  }
-  return <Readout value={value} tag="measured" source={source} size="sm" />
+/** How many dated rows show before the rest are one button away [estimated]. A learner's recent work is what the rows are for. */
+export const ROWS_SHOWN = 12
+
+/** The dated rows: the day, what the learner did and, in the lesson where it sits, which, and how it came out. */
+export function ActivityTable({ rows }: { rows: readonly ActivityRow[] }) {
+  const [all, setAll] = useState(false)
+  const shown = all || rows.length <= ROWS_SHOWN ? rows : rows.slice(0, ROWS_SHOWN)
+  return (
+    <>
+      <table className="es-activity" data-table="activity">
+        <caption className="sr-only">What you did, newest first</caption>
+        <thead>
+          <tr>
+            <th scope="col">Date</th>
+            <th scope="col">What you did</th>
+            <th scope="col">Result</th>
+          </tr>
+        </thead>
+        <tbody>
+          {shown.map((row) => (
+            <tr key={row.id} data-result={row.result}>
+              <td className="es-activity__day">
+                <time dateTime={row.day}>{dayWords(row.day)}</time>
+              </td>
+              <th scope="row" className="es-activity__what">
+                <span>{row.what}</span>
+                {row.where === undefined && row.kind === undefined ? null : (
+                  <span className="es-activity__where">{[row.where, row.kind].filter(Boolean).join(' · ')}</span>
+                )}
+              </th>
+              <td className="es-activity__result">{row.result}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {rows.length > ROWS_SHOWN ? (
+        <Button variant="plate" size="sm" aria-expanded={all} onClick={() => setAll(!all)}>
+          {all ? `Show the newest ${ROWS_SHOWN}` : `Show all ${rows.length} rows`}
+        </Button>
+      ) : null}
+    </>
+  )
+}
+
+/** One small table of counts under the words for a state, and the one line that says what the words mean. */
+function WordsTable({ title, legend, rows, total }: { title: string; legend: string; rows: readonly (readonly [word: string, count: number])[]; total?: [string, number] }) {
+  return (
+    <div className="es-words">
+      <table className="es-ledger" data-table={title.toLowerCase()}>
+        <caption className="es-words__caption">{title}</caption>
+        <tbody>
+          {rows.map(([word, count]) => (
+            <tr key={word}>
+              <th scope="row">{word}</th>
+              <td className="es-ledger__n">
+                <Count value={count} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+        {total === undefined ? null : (
+          <tfoot>
+            <tr>
+              <th scope="row">{total[0]}</th>
+              <td className="es-ledger__n">
+                <Count value={total[1]} />
+              </td>
+            </tr>
+          </tfoot>
+        )}
+      </table>
+      <p className="es-words__legend">{legend}</p>
+    </div>
+  )
+}
+
+export function SkillsTable({ skills }: { skills: SkillCounts }) {
+  return (
+    <WordsTable
+      title="Skills"
+      legend={LEGENDS.skill}
+      rows={[
+        [SKILL_WORDS.none, skills.notStarted],
+        [SKILL_WORDS.practised, skills.tried],
+        [SKILL_WORDS.earned, skills.passed],
+        [SKILL_WORDS.kept, skills.kept],
+      ]}
+      total={['All skills', skills.total]}
+    />
+  )
+}
+
+export function AttemptsTable({ attempts }: { attempts: AttemptCounts }) {
+  return (
+    <WordsTable
+      title="Attempts"
+      legend={LEGENDS.attempt}
+      rows={[
+        [ATTEMPT_WORDS.no, attempts.notYet],
+        [ATTEMPT_WORDS.practice, attempts.practice],
+        [ATTEMPT_WORDS.yes, attempts.passed],
+      ]}
+      total={['All attempts', attempts.notYet + attempts.practice + attempts.passed]}
+    />
+  )
 }
 
 /** The kinds of event, each with its name, what it is, and how many there are. */
 export function KindTable({ all }: { all: Tally }) {
   return (
     <table className="es-ledger" data-table="kind">
-      <caption className="sr-only">Events in the ledger, by kind</caption>
+      <caption className="sr-only">Events in your record, by kind</caption>
       <thead>
         <tr>
           <th scope="col">Kind</th>
@@ -59,14 +163,7 @@ export function KindTable({ all }: { all: Tally }) {
         {KINDS.map((kind) => (
           <tr key={kind} data-kind={kind} data-empty={all.kinds[kind] === 0 || undefined}>
             <th scope="row">
-              <span className="es-ledger__name">
-                {KIND_FACTS[kind].name} <code className="es-ledger__id">{kind}</code>
-                {isGradedKind(kind) ? null : (
-                  <TapeLabel size="sm" tilt="none" className="es-ledger__tape">
-                    not graded
-                  </TapeLabel>
-                )}
-              </span>
+              <span className="es-ledger__name">{KIND_FACTS[kind].name}</span>
               <span className="es-ledger__what">{KIND_FACTS[kind].what}</span>
             </th>
             <td className="es-ledger__n">
@@ -79,7 +176,7 @@ export function KindTable({ all }: { all: Tally }) {
         <tr>
           <th scope="row">All events</th>
           <td className="es-ledger__n">
-            <Count value={all.total} source="in this browser" />
+            <Count value={all.total} />
           </td>
         </tr>
       </tfoot>
@@ -93,7 +190,7 @@ export function ModuleTable({ counts, modules }: { counts: EventCounts; modules:
   const rows = modules ?? [...counts.byModule.keys()].sort().map((id) => ({ id, title: '' }))
   return (
     <table className="es-ledger" data-table="module">
-      <caption className="sr-only">Events in the ledger, by module</caption>
+      <caption className="sr-only">Events in your record, by module</caption>
       <thead>
         <tr>
           <th scope="col">Module</th>
@@ -123,7 +220,7 @@ export function ModuleTable({ counts, modules }: { counts: EventCounts; modules:
           <tr data-module="none">
             <th scope="row">
               <span className="es-ledger__name">No module</span>
-              <span className="es-ledger__what">Traces, forge labs and acknowledgements belong to no one module.</span>
+              <span className="es-ledger__what">Traces, GPU labs and acknowledgements belong to no one module.</span>
             </th>
             <td className="es-ledger__n">
               <Count value={counts.unplaced.total} />
@@ -135,7 +232,7 @@ export function ModuleTable({ counts, modules }: { counts: EventCounts; modules:
         <tr>
           <th scope="row">All events</th>
           <td className="es-ledger__n">
-            <Count value={counts.all.total} source="in this browser" />
+            <Count value={counts.all.total} />
           </td>
         </tr>
       </tfoot>
@@ -143,56 +240,80 @@ export function ModuleTable({ counts, modules }: { counts: EventCounts; modules:
   )
 }
 
-export function EvidenceView({ ready, counts, modules, side, files }: EvidenceViewProps) {
+export function EvidenceView({ ready, counts, rows, skills, attempts, modules, step, last, side, files }: EvidenceViewProps) {
   const empty = ready && counts.all.total === 0
   return (
     <div className="es-page" data-page="evidence">
       <header className="es-page__header">
         <h1 className="es-page__title">Progress</h1>
         <p className="es-page__lead">
-          What this browser holds of your graded work. It stays on this device: nothing here is sent anywhere, and nothing is collected.
+          What you have done, in the order you did it, and how each came out. It stays on this device: nothing here is sent anywhere, and nothing is collected.
         </p>
+        {step === null ? null : (
+          <div className="es-page__way">
+            {last === null ? null : <p className="es-page__last">{last}</p>}
+            <ContinueLink target={step} emphasis="primary" minutes={step.minutes} />
+          </div>
+        )}
       </header>
       <div className="es-page__columns">
         <div className="es-page__main">
-          {!ready ? (
-            <Ticket as="section" width="wide" head="The ledger" state="loading" loadingLabel="Printing your evidence" />
-          ) : empty ? (
-            <Ticket as="section" width="wide" head="The ledger" meta="this browser" title="Nothing in the ledger yet" titleAs="h2">
-              <p>Play a level, answer an item or make a prediction, and each graded result lands in this ledger. Reading and looking write nothing.</p>
-              <MenuLink />
-            </Ticket>
-          ) : (
-            <>
-              <section aria-labelledby="ev-kind" className="es-panel">
-                <h2 id="ev-kind" className="es-panel__title">
-                  By kind
-                </h2>
-                <p className="es-panel__lead">Events written, not credit: what an event is worth depends on how it was made.</p>
-                <Ticket as="div" width="full" hole={false} className="es-ledger-ticket">
-                  <KindTable all={counts.all} />
-                </Ticket>
-              </section>
-              <section aria-labelledby="ev-module" className="es-panel">
-                <h2 id="ev-module" className="es-panel__title">
-                  By module
-                </h2>
-                <p className="es-panel__lead">An event names its module through its ref. A game run counts under the game&apos;s home module.</p>
-                <Ticket as="div" width="full" hole={false} className="es-ledger-ticket">
-                  <ModuleTable counts={counts} modules={modules} />
-                </Ticket>
-              </section>
-            </>
-          )}
+          <section aria-labelledby="ev-did" className="es-panel">
+            <h2 id="ev-did" className="es-panel__title">
+              What you did
+            </h2>
+            {!ready || rows === null ? (
+              <p role="status" className="es-panel__lead">
+                Reading your record.
+              </p>
+            ) : empty || rows.length === 0 ? (
+              <p className="es-panel__lead">
+                Nothing yet. Play a level, answer a question or commit a guess, and it is listed here with its date. Reading and looking write nothing.
+              </p>
+            ) : (
+              <ActivityTable rows={rows} />
+            )}
+          </section>
+          {ready && !empty ? (
+            <section aria-labelledby="ev-counts" className="es-panel">
+              <h2 id="ev-counts" className="es-panel__title">
+                Where that leaves you
+              </h2>
+              <div className="es-wordsets">
+                {skills === null ? null : <SkillsTable skills={skills} />}
+                <AttemptsTable attempts={attempts} />
+              </div>
+            </section>
+          ) : null}
+          {ready && !empty ? (
+            <section aria-labelledby="ev-kind" className="es-panel">
+              <h2 id="ev-kind" className="es-panel__title">
+                Everything counted
+              </h2>
+              <p className="es-panel__lead">Events written, not credit: what an event is worth depends on how it was made. A game run counts under the game&apos;s home module.</p>
+              <div className="es-wordsets">
+                <KindTable all={counts.all} />
+                <ModuleTable counts={counts} modules={modules} />
+              </div>
+            </section>
+          ) : null}
+          <section aria-labelledby="ev-gpu" className="es-panel">
+            <h2 id="ev-gpu" className="es-panel__title">
+              GPU lab results
+            </h2>
+            <p className="es-panel__lead">
+              A lab that runs on your own GPU hands back a result file. <TextLink to="/receipts">Open GPU lab results</TextLink> to get a challenge, bring that file back and see how this browser checked it.
+            </p>
+          </section>
           <section aria-labelledby="ev-files" className="es-panel">
             <h2 id="ev-files" className="es-panel__title">
               Keep a copy
             </h2>
-            <p className="es-panel__lead">Export, import and undo. A file is the only way evidence leaves this browser, and only if you send it somewhere.</p>
+            <p className="es-panel__lead">Export, import and undo. A file is the only way your progress leaves this browser, and only if you send it somewhere.</p>
             {files}
           </section>
         </div>
-        <aside className="es-page__side" aria-label="The ledger">
+        <aside className="es-page__side" aria-label="Where your progress is kept">
           {side}
         </aside>
       </div>

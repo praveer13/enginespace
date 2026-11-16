@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
+import { ContinueLink, type ContinueTarget } from '@/design/components/Board'
 import { PrinterTape, type PrinterTapeLine } from '@/design/components/PrinterTape'
 import { Readout } from '@/design/components/Readout'
+import { Stamp } from '@/design/components/Stamp'
 import { Toggle } from '@/design/components/Toggle'
 import { DEFAULT_CHOICE, startingTier, TIERS, unavailableReason } from '@/scene/tiers'
 import type { DeviceTier } from '@/scene/tiers'
@@ -30,11 +32,13 @@ export interface SettingsViewProps {
   problem: { setting: SettingName; detail: string } | null
   /** The panel for this device's data: export, import and reset. */
   data: ReactNode
+  /** The way on, so a learner who has changed a setting knows where to go: Continue, from the pointer. */
+  way?: ContinueTarget
 }
 
 const TIER_OPTIONS: readonly { value: TierCap; label: string; hint: string }[] = [
   { value: 1, label: 'Tier 1 · light', hint: 'The lightest 3D view: a lower frame rate, no anti-aliasing and no glow. Phones and small machines start here.' },
-  { value: 2, label: 'Tier 2 · standard', hint: 'Smoother, with anti-aliasing and a soft glow on the heat lamps. Larger machines start here.' },
+  { value: 2, label: 'Tier 2 · standard', hint: 'Smoother, with anti-aliasing and a soft glow. Larger machines start here.' },
   { value: 3, label: 'Tier 3 · full', hint: 'The sharpest view. A device reaches it only by running tier 2 smoothly first, so this is no cap at all.' },
 ]
 
@@ -75,10 +79,10 @@ export function EffectTape({ settings, device, systemReduces }: Pick<SettingsVie
     { id: 'motion', label: 'motion', value: `${motion.reduced ? 'reduced' : 'full'} · ${motion.source === 'settings' ? 'your choice' : 'your system'}` },
     { id: 'keys', label: 'game keys', value: settings.gameKeys ? 'on' : 'off', tone: settings.gameKeys ? 'ink' : 'ink-2' },
   )
-  return <PrinterTape label="What these settings do now" lines={lines} state={device.known ? 'default' : 'loading'} />
+  return <PrinterTape label="What these settings do now" lines={lines} stamp={threeD ? <Stamp word="estimated" /> : undefined} state={device.known ? 'default' : 'loading'} />
 }
 
-export function SettingsView({ settings, device, systemReduces, onChange, problem, data }: SettingsViewProps) {
+export function SettingsView({ settings, device, systemReduces, onChange, problem, data, way }: SettingsViewProps) {
   const problemAt = (setting: SettingName) => (problem?.setting === setting ? `Not saved: ${problem.detail}` : undefined)
   return (
     <div className="es-page" data-page="settings">
@@ -87,6 +91,7 @@ export function SettingsView({ settings, device, systemReduces, onChange, proble
         <p className="es-page__lead">
           Choices for this browser. They are kept on this device and sent nowhere, and each one applies at once, in every tab you have open.
         </p>
+        {way === undefined ? null : <ContinueLink target={way} />}
       </header>
       <div className="es-page__columns">
         <div className="es-page__main">
@@ -94,7 +99,7 @@ export function SettingsView({ settings, device, systemReduces, onChange, proble
             <h2 id="set-view" className="es-panel__title">
               View
             </h2>
-            <p className="es-panel__lead">How the pass is drawn: the 3D scenes of the games.</p>
+            <p className="es-panel__lead">How the games are drawn: in 3D, or in 2D, which teaches the same concept.</p>
             <div className="es-deck">
               <Toggle
                 label="Draw the games in 3D"
@@ -119,7 +124,7 @@ export function SettingsView({ settings, device, systemReduces, onChange, proble
             <h2 id="set-motion" className="es-panel__title">
               Motion
             </h2>
-            <p className="es-panel__lead">Everything on the pass moves on the bell. Reduced, the cameras cut, time advances in steps, and nothing moves until you press something.</p>
+            <p className="es-panel__lead">Reduced, the cameras cut, time advances in steps, and nothing moves until you press something.</p>
             <div className="es-deck">
               <Choice label="Reduced motion" options={motionOptions(systemReduces)} value={settings.motion} onChange={(motion) => onChange({ motion })} error={problemAt('motion')} />
             </div>

@@ -193,7 +193,7 @@ export function ImportPanel({ ready, readOnly, memoryOnly, state, onChoose, onCl
         head={IMPORT.keptHead}
         title={state.recheck ? IMPORT.recheckTitle : IMPORT.keptTitle}
         titleAs="h3"
-        foot={[`Receipt ${shortHash(state.sha256)}`]}
+        foot={[`Result ${shortHash(state.sha256)}`]}
         stub={<Stub to={detailAddress(state.sha256)}>{IMPORT.open}</Stub>}
       >
         <FileLine file={state.file} />

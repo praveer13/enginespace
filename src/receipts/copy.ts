@@ -8,7 +8,7 @@ import { labForStage, stageOf } from './labs'
 
 /** The page's lead, and the description of its document. */
 export const LEAD =
-  'Issue a challenge for a lab that runs on your own machine, bring back the receipt that your grader writes and see how this browser checked it, and read the receipts that you hold. Nothing here is sent anywhere.'
+  'Get a challenge for a lab that runs on your own machine, bring back the receipt file that your grader writes and see how this browser checked it, and read the results you hold. Nothing here is sent anywhere.'
 
 export const ISSUE = {
   title: 'Get a challenge',
@@ -22,10 +22,10 @@ export const ISSUE = {
   action: 'Get a challenge',
   where: { L: "It runs on your laptop's CPU.", F: 'It needs a GPU, yours or a rented one.' },
   optional: 'The module does not need it.',
-  /** The ledger could not keep the challenge, so a receipt could not be matched with it. */
-  memoryOnly: 'This browser is not keeping your ledger. A challenge issued now is lost when this tab closes, and a receipt could not be matched with it. Export your evidence to keep it.',
-  readOnly: 'This browser has handed your ledger to a newer version of the site. Reload the page to get a challenge.',
-  refused: 'The ledger would not take the challenge.',
+  /** The record could not keep the challenge, so a receipt file could not be matched with it. */
+  memoryOnly: 'This browser is not keeping your record. A challenge issued now is lost when this tab closes, and its receipt file could not be matched with it. Export your progress to keep it.',
+  readOnly: 'This browser has handed your record to a newer version of the site. Reload the page to get a challenge.',
+  refused: 'Your record would not take the challenge.',
 } as const
 
 export const TICKET = {
@@ -42,7 +42,7 @@ export const TICKET = {
 
 export const CHALLENGES = {
   title: 'Your challenges',
-  loading: 'Printing your challenges',
+  loading: 'Loading your challenges',
   empty: 'No challenge issued yet',
   open: 'open',
   used: 'used',
@@ -51,32 +51,32 @@ export const CHALLENGES = {
 } as const
 
 export const RECEIPTS = {
-  title: 'Your receipts',
-  lead: 'The receipts this browser holds, newest first. A receipt is the file that a grader writes after a stage, kept as it wrote it. One that you bring back is listed here, and opens at an address of its own.',
-  loading: 'Printing your receipts',
-  empty: 'No receipt yet',
+  title: 'Your results',
+  lead: 'The results this browser holds, newest first. Each is the receipt file that a grader writes after a stage, kept as it wrote it. One that you bring back is listed here, and opens at an address of its own.',
+  loading: 'Loading your results',
+  empty: 'No result yet',
   unreadable: 'Not a receipt this build can read',
   unchecked: 'Not checked in this browser yet',
-  back: 'All receipts',
-  notFound: 'This browser holds no receipt with that hash',
-  notFoundNote: 'A receipt is kept on the device that imported it, so its address opens there and nowhere else.',
-  loadingDetail: 'Printing the receipt',
+  back: 'All results',
+  notFound: 'This browser holds no result with that hash',
+  notFoundNote: 'A result is kept on the device that imported it, so its address opens there and nowhere else.',
+  loadingDetail: 'Loading the result',
 } as const
 
 /** Bringing a receipt back (src/receipts/ImportPanel.tsx): the slip that takes the grader's file, and what it says of each outcome. */
 export const IMPORT = {
-  title: 'Bring a receipt back',
-  lead: 'Drop the file that your grader writes after a stage. This browser reads it here, checks it against the challenge you issued, and keeps it with how it was checked. The file never leaves the tab.',
-  head: 'Receipt slip',
+  title: 'Bring a result back',
+  lead: 'Drop the receipt file that your grader writes after a stage. This browser reads it here, checks it against the challenge you issued, and keeps it with how it was checked. The file never leaves the tab.',
+  head: 'Receipt file',
   meta: '.es.json.gz',
-  drop: 'Drop a receipt',
-  dropNote: 'Your grader writes it to its receipts folder as one file that ends in .es.json.gz. Drop it on this slip, or choose it.',
+  drop: 'Drop a receipt file',
+  dropNote: 'Your grader writes it to its receipts folder as one file that ends in .es.json.gz. Drop it here, or choose it.',
   inputLabel: 'The receipt file',
   choose: 'Choose a file',
   chooseAnother: 'Choose another file',
-  waiting: 'The ledger is opening, and the slip takes a file as soon as it has.',
-  readOnly: 'This browser has handed your ledger to a newer version of the site. Reload the page to bring a receipt back.',
-  memoryOnly: 'This browser is not keeping your ledger. A receipt kept now is lost when this tab closes. Export your evidence to keep it.',
+  waiting: 'Your record is opening, and the page takes a file as soon as it has.',
+  readOnly: 'This browser has handed your record to a newer version of the site. Reload the page to bring a result back.',
+  memoryOnly: 'This browser is not keeping your record. A result kept now is lost when this tab closes. Export your progress to keep it.',
   capsLabel: 'The site reads at most',
   capsFile: 'as a file',
   capsInside: 'inside it',
@@ -88,11 +88,11 @@ export const IMPORT = {
   failedTitle: 'Not kept',
   failedNote: 'Nothing was kept. The file may be a good one: bring it back to try again.',
   keptHead: 'Kept',
-  keptTitle: 'Kept in your ledger',
+  keptTitle: 'Kept in your record',
   recheckTitle: 'Checked again',
-  keptNote: 'The receipt is in your ledger with this check beside it.',
-  recheckNote: 'This receipt was in your ledger already. This check is added to it, and nothing else is written.',
-  open: 'Open the receipt',
+  keptNote: 'The result is in your record with this check beside it.',
+  recheckNote: 'This result was in your record already. This check is added to it, and nothing else is written.',
+  open: 'Open the result',
   clear: 'Clear this',
 } as const
 
@@ -105,7 +105,7 @@ export const VERDICT_WORDS = { unchecked: 'unchecked', 'gpu-unverified': 'not co
 /** The "How this browser checked it" part of a receipt's page. */
 export const REPORTS = {
   title: 'How this browser checked it',
-  none: 'Not checked in this browser yet. Bring the grader\'s file back on the receipts page, and the rules it was checked by will be listed here.',
+  none: 'Not checked in this browser yet. Bring the grader\'s receipt file back on this page, and the rules it was checked by will be listed here.',
   unreadable: 'A check that a version of the site wrote, and this one cannot read.',
   verdict: 'What it is worth now',
   /** The list of the verdict's checks under the reasons: each is a word, the bound it was held to, and who checked it. */
@@ -120,8 +120,7 @@ export const REPORTS = {
 export const CHECK_WORDS = { pass: 'pass', fail: 'fail', attested: 'attested' } as const
 
 export const TAPE = {
-  label: 'Challenges and receipts, counted',
-  stamp: 'counted in this browser',
+  label: 'Challenges and results, counted',
   empty: 'Nothing issued yet',
 } as const
 

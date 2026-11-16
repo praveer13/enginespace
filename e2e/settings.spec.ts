@@ -742,14 +742,14 @@ async function downloaded(download: Download): Promise<{ name: string; text: str
 }
 
 test.describe('/evidence: counts by kind and module, with export and import', () => {
-  test('an empty ledger is a blank ticket with the way to the menu, and the means to import', async ({ page }) => {
+  test('an empty record says what lands here, with the way on, and the means to import', async ({ page }) => {
     await open(page, '/evidence')
     await expect(page.getByRole('heading', { level: 1, name: 'Progress' })).toBeVisible()
-    await expect(page.getByRole('heading', { level: 2, name: 'Nothing in the ledger yet' })).toBeVisible()
-    await expect(page.getByRole('link', { name: /Open the course/ })).toHaveAttribute('href', '/map')
+    await expect(page.getByText('Nothing yet. Play a level, answer a question or commit a guess')).toBeVisible()
+    await expect(page.getByRole('link', { name: /^Start: TR1 lesson 1/ }).last()).toHaveAttribute('href', /\/m\/tr1\//)
     await expect(page.locator('table')).toHaveCount(0)
-    await expect(tapeLine(page, 'Where your evidence is kept', 'kept in')).toContainText('IndexedDB')
-    await expect(tapeLine(page, 'Where your evidence is kept', 'last export')).toContainText('never')
+    await expect(tapeLine(page, 'Where your progress is kept', 'kept in')).toContainText('IndexedDB')
+    await expect(tapeLine(page, 'Where your progress is kept', 'last export')).toContainText('never')
     await expect(page.getByRole('button', { name: 'Export evidence' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Choose a file' })).toBeVisible()
   })
@@ -768,16 +768,13 @@ test.describe('/evidence: counts by kind and module, with export and import', ()
 
     await preview.getByRole('button', { name: 'Import and merge' }).click()
     await expect(page.getByRole('figure', { name: 'The import, printed' })).toContainText('merge')
-    await expect(page.getByRole('heading', { level: 2, name: 'By kind' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 2, name: 'Everything counted' })).toBeVisible()
     expect(await idsStored(page)).toEqual(events.map((event) => event.id).sort())
 
-    // By kind: one of each, ten in all; the two that carry no result are marked.
+    // By kind: one of each, ten in all.
     for (const kind of ['predict', 'item', 'play', 'lab-check', 'prove', 'trace-mark', 'challenge', 'receipt', 'review', 'ack']) expect(await counted(kindRow(page, kind)), kind).toBe(1)
     await expect(page.locator('table[data-table="kind"] tfoot')).toContainText('All events')
     expect(await counted(page.locator('table[data-table="kind"] tfoot tr'))).toBe(10)
-    await expect(kindRow(page, 'challenge')).toContainText('not graded')
-    await expect(kindRow(page, 'ack')).toContainText('not graded')
-    await expect(kindRow(page, 'play')).not.toContainText('not graded')
     // By module: the prediction, the item, the game run and the review are tr2's, the challenge and the receipt tr8's.
     expect(await counted(moduleRow(page, 'tr2'))).toBe(4)
     expect(await counted(moduleRow(page, 'tr8'))).toBe(2)
@@ -787,13 +784,13 @@ test.describe('/evidence: counts by kind and module, with export and import', ()
     await expect(moduleRow(page, 'tr2').getByRole('link', { name: 'tr2' })).toHaveAttribute('href', '/m/tr2')
     expect(await counted(page.locator('table[data-table="module"] tfoot tr'))).toBe(10)
     // The tape agrees with the tables.
-    await expect(tapeLine(page, 'Where your evidence is kept', 'events').locator('data')).toHaveAttribute('value', '10')
+    await expect(tapeLine(page, 'Where your progress is kept', 'events').locator('data')).toHaveAttribute('value', '10')
 
     // The import can be taken back.
     await expect(page.getByText(/Last import: a merge on/)).toBeVisible()
     await page.getByRole('button', { name: 'Undo the last import' }).click()
     await expect(page.getByText('The import was undone.')).toBeVisible()
-    await expect(page.getByRole('heading', { level: 2, name: 'Nothing in the ledger yet' })).toBeVisible()
+    await expect(page.getByText('Nothing yet. Play a level')).toBeVisible()
     expect(await idsStored(page)).toEqual([])
     await expect(page.getByRole('button', { name: 'Undo the last import' })).toHaveCount(0)
   })
@@ -802,9 +799,9 @@ test.describe('/evidence: counts by kind and module, with export and import', ()
     await open(page, '/evidence')
     const other = await context.newPage()
     await open(other, '/evidence')
-    await expect(other.getByRole('heading', { level: 2, name: 'Nothing in the ledger yet' })).toBeVisible()
+    await expect(other.getByText('Nothing yet. Play a level')).toBeVisible()
     await importEvents(page, everyKind())
-    await expect(other.getByRole('heading', { level: 2, name: 'By kind' })).toBeVisible({ timeout: 1000 })
+    await expect(other.getByRole('heading', { level: 2, name: 'Everything counted' })).toBeVisible({ timeout: 1000 })
     expect(await counted(kindRow(other, 'play'))).toBe(1)
     await other.close()
   })
@@ -823,14 +820,14 @@ test.describe('/evidence: counts by kind and module, with export and import', ()
     // The tape prints what was saved, and the last export is dated.
     await expect(page.getByRole('figure', { name: 'The export, printed' })).toContainText(file.name)
     await expect(page.getByRole('figure', { name: 'The export, printed' }).locator('.es-printer__line', { hasText: 'events' }).locator('data')).toHaveAttribute('value', '10')
-    await expect(tapeLine(page, 'Where your evidence is kept', 'last export')).not.toContainText('never')
+    await expect(tapeLine(page, 'Where your progress is kept', 'last export')).not.toContainText('never')
 
     // The file goes back in: everything in it is here already, so nothing changes and nothing is kept to undo.
     await page.getByRole('button', { name: 'Undo the last import' }).click()
-    await expect(page.getByRole('heading', { level: 2, name: 'Nothing in the ledger yet' })).toBeVisible()
+    await expect(page.getByText('Nothing yet. Play a level')).toBeVisible()
     await choose(page, file.text, file.name)
     await importPreview(page).getByRole('button', { name: 'Import and merge' }).click()
-    await expect(page.getByRole('heading', { level: 2, name: 'By kind' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 2, name: 'Everything counted' })).toBeVisible()
     expect(await idsStored(page)).toEqual(events.map((event) => event.id).sort())
     await choose(page, file.text, file.name)
     await expect(importPreview(page).locator('.es-ticket-line', { hasText: 'new here' }).locator('data')).toHaveAttribute('value', '0')
@@ -852,7 +849,7 @@ test.describe('/evidence: counts by kind and module, with export and import', ()
     await expect(page.getByRole('figure', { name: 'The export, printed' })).toContainText('size, gzip')
 
     await page.getByRole('button', { name: 'Undo the last import' }).click()
-    await expect(page.getByRole('heading', { level: 2, name: 'Nothing in the ledger yet' })).toBeVisible()
+    await expect(page.getByText('Nothing yet. Play a level')).toBeVisible()
     await fileInput(page).setInputFiles({ name: 'renamed.txt', mimeType: 'application/octet-stream', buffer: file.raw })
     await expect(importPreview(page)).toBeVisible()
     await expect(importPreview(page)).toContainText('renamed.txt')
@@ -889,7 +886,7 @@ test.describe('/evidence: counts by kind and module, with export and import', ()
     await importPreview(page).getByRole('button', { name: 'Cancel' }).click()
     await expect(importPreview(page)).toBeHidden()
     expect(await idsStored(page)).toEqual([])
-    await expect(page.getByRole('heading', { level: 2, name: 'Nothing in the ledger yet' })).toBeVisible()
+    await expect(page.getByText('Nothing yet. Play a level')).toBeVisible()
   })
 
   test('a clash, where one id says two things, is counted in the preview', async ({ page }) => {
@@ -1000,14 +997,14 @@ test.describe('reset asks first, and offers an export (accept 2)', () => {
     await expect(plate(page, 'Reduced motion', 'Follow my system')).toHaveAttribute('aria-pressed', 'true')
     await expect(switchNamed(page, 'Game keys')).toHaveAttribute('aria-checked', 'true')
     expect(await motionAttribute(page)).toBeNull()
-    await expect(tapeLine(page, 'Where your evidence is kept', 'events').locator('data')).toHaveCount(1)
-    await expect(tapeLine(page, 'Where your evidence is kept', 'events').locator('data')).toHaveAttribute('value', '0')
+    await expect(tapeLine(page, 'Where your progress is kept', 'events').locator('data')).toHaveCount(1)
+    await expect(tapeLine(page, 'Where your progress is kept', 'events').locator('data')).toHaveAttribute('value', '0')
 
     // The file brings it all back.
     await open(page, '/evidence')
     await choose(page, file.text, file.name)
     await importPreview(page).getByRole('button', { name: 'Import and merge' }).click()
-    await expect(page.getByRole('heading', { level: 2, name: 'By kind' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 2, name: 'Everything counted' })).toBeVisible()
     expect(await idsStored(page)).toEqual(events.map((event) => event.id).sort())
   })
 
@@ -1143,7 +1140,7 @@ test.describe('axe finds no serious or critical violation (A§11.2)', () => {
     test(`/evidence at ${width} px, empty and with a ledger and a preview`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 })
       await open(page, '/evidence')
-      await expect(page.getByRole('heading', { level: 2, name: 'Nothing in the ledger yet' })).toBeVisible()
+      await expect(page.getByText('Nothing yet. Play a level')).toBeVisible()
       expect(await violations(page)).toEqual([])
       await importEvents(page, everyKind())
       await expect(moduleRow(page, 'tr2')).toContainText('The step loop')
