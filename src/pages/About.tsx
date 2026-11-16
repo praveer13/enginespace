@@ -19,8 +19,8 @@ export function Component() {
     <Unbuilt {...UNBUILT.about}>
       <Ticket as="section" width="wide" title="Licences" titleAs="h2">
         <p>
-          The licences of the third-party code in this site are in <TextLink file={LICENCES}>third-party-licenses.txt</TextLink>; the typefaces are under the SIL Open Font License 1.1 (Permanent Marker, the Apache
-          License 2.0), and the text of each is a file in <code>{FONTS}</code>.
+          The licences of the third-party code in this site are in <TextLink file={LICENCES}>third-party-licenses.txt</TextLink>; the typefaces are under the SIL Open Font License 1.1, and the text
+          of each is a file in <code>{FONTS}</code>.
         </p>
       </Ticket>
     </Unbuilt>

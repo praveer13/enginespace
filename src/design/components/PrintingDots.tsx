@@ -1,4 +1,4 @@
-/** The printer at work: three dots fed one line at a time. Static, at full ink, under reduced motion. */
+/** Loading: three still dots beside a line of text that says what is happening. */
 export function PrintingDots() {
   return (
     <span className="es-printing" aria-hidden="true">

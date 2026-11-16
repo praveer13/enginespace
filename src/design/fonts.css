@@ -1,11 +1,8 @@
 /*
- * The faces of The Pass, self-hosted (D-033, D-050): one per kitchen object.
- *   Big Shoulders Display   stamped equipment plates and signage: display and headings
- *   Doto                    the impact printer's dot matrix: numerals, ticket lines, the printer tape
- *   Handjet                 two dot-matrix glyphs Doto lacks, µ and ±, so a microsecond stays in dots
- *   Permanent Marker        marker on masking tape: labels
- *   Atkinson Hyperlegible   long reading, drawn for legibility
- *   Atkinson Hyperlegible Mono   code and identifiers
+ * The faces of Data Book, self-hosted (D-033; REDESIGN 2.8 supersedes D-050's five with three):
+ *   Big Shoulders Display        page, lesson and game titles, in sentence case
+ *   Atkinson Hyperlegible        reading, section heads, buttons and labels; µ and ± where the mono face falls back
+ *   Atkinson Hyperlegible Mono   code, identifiers, and every number the learner compares, with tabular figures
  *
  * public/fonts/fonts.json pins every file by SHA-256 with its source package and version, and its licence file sits
  * beside it; NOTICE carries each licence. Every url() here is on the site's own origin: no font request leaves it.
@@ -15,31 +12,6 @@
 @font-face {
   font-family: 'Big Shoulders Display';
   src: url('/fonts/big-shoulders-display-latin-800-normal.woff2') format('woff2');
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Doto';
-  src: url('/fonts/doto-latin-round-900.woff2') format('woff2');
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Handjet';
-  src: url('/fonts/handjet-latin-micro-300.woff2') format('woff2');
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-  unicode-range: U+00B5, U+00B1;
-}
-
-@font-face {
-  font-family: 'Permanent Marker';
-  src: url('/fonts/permanent-marker-latin-400-normal.woff2') format('woff2');
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;

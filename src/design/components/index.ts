@@ -1,6 +1,8 @@
 /*
- * The Pass's components (D-047): the world's objects as the site's atoms. Pages and games build from these and from
- * the token roles in ../tokens.ts, and set no colour or face of their own.
+ * Data Book's components (REDESIGN 2.8): the site's atoms. Pages and games build from these and from the token roles in
+ * ../tokens.ts, and set no colour or face of their own. The old components keep their file and export names until R-T46's
+ * rename: Ticket is the sheet, Stub the primary button, PrinterTape the readout strip, TapeLabel the plain label, Toggle the
+ * switch, and Board the header and the footer.
  */
 export { Bell, type BellProps } from './Bell'
 export { Board, MenuLink, type BoardLink, type BoardProps } from './Board'

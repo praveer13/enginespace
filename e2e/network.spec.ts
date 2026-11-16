@@ -116,8 +116,8 @@ test.describe('the faces', () => {
     const requested = [...new Set(watch.requests.filter((request) => request.endsWith('.woff2')))]
     const declared = FACES.map((face) => `/fonts/${face.file}`)
     expect(requested.filter((request) => !declared.includes(request)), 'font files that fonts.json does not list').toEqual([])
-    // The three faces that every page uses: the display face, the numerals, and the reading face.
-    for (const family of ['Big Shoulders Display', 'Doto', 'Atkinson Hyperlegible']) {
+    // The three faces that every page uses: the display face, the numerals' mono face, and the reading face.
+    for (const family of ['Big Shoulders Display', 'Atkinson Hyperlegible Mono', 'Atkinson Hyperlegible']) {
       expect(loaded, `${family} loaded`).toContain(family)
       const files = FACES.filter((face) => face.family === family).map((face) => `/fonts/${face.file}`)
       expect(

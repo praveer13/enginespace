@@ -140,15 +140,6 @@
 
 /* ---------------------------------------------------------------------------------------------- a ticket's head and text */
 
-/*
- * The ids on a page's foot lines (or on the head line of a ticket with no title) are lower case in the source and print in capitals, as
- * the printer prints a table.
- */
-.es-c-block .es-ticket__head,
-.es-doc .es-c-block .es-ticket__foot {
-  text-transform: uppercase;
-}
-
 .es-c-block .es-ticket__body > * + :is(h3, h4) {
   margin-top: var(--es-space-6);
 }
@@ -157,8 +148,6 @@
   font-size: var(--es-size-base);
   line-height: 1.4;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
 .es-c-block .es-ticket__body :is(ul, ol) {
@@ -343,11 +332,6 @@
 }
 
 /* ---------------------------------------------------------------------------------------------- the blocks */
-
-/* What a placeholder lacks, printed in the ribbon's red, in capitals as the printer prints a warning. */
-.es-c-pending {
-  text-transform: uppercase;
-}
 
 .es-c-pending .es-ticket-line__note {
   white-space: nowrap;

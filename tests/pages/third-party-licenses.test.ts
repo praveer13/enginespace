@@ -1300,11 +1300,12 @@ describe('the file, named where a reader looks', () => {
 
     test('names the font licences that sit in /fonts/, as fonts.json and NOTICE have them, each a file that the site serves', () => {
       const faces = (JSON.parse(read('public/fonts/fonts.json')) as { faces: { licence: { id: string; file: string } }[] }).faces
-      // Five faces are under the OFL and one under the Apache License: the line names those two licences and no other.
-      const names: Record<string, string> = { 'OFL-1.1': 'SIL Open Font License 1.1', 'Apache-2.0': 'Apache License 2.0' }
+      // Since R-T16 (Data Book's three faces) every face is under the OFL: the line names that licence and no other.
+      const names: Record<string, string> = { 'OFL-1.1': 'SIL Open Font License 1.1' }
       expect([...new Set(faces.map((face) => face.licence.id))].sort()).toEqual(Object.keys(names).sort())
       const text = html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ')
       for (const name of Object.values(names)) expect(text).toContain(name)
+      expect(text).not.toContain('Apache License 2.0')
       expect(html).toContain('<code>/fonts/</code>')
       const served = readdirSync(path.join(root, 'public/fonts'))
       expect(faces.filter((face) => !served.includes(face.licence.file))).toEqual([])

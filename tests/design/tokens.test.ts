@@ -236,8 +236,8 @@ describe('verify:tokens', () => {
     const { status, out } = run()
     expect(status).toBe(0)
     for (const name of ROLE_NAMES) expect(out).toContain(`  ${name} `)
-    expect(out).toContain('#ccd1d4')
-    expect(out).toContain('Doto, Handjet, monospace')
+    expect(out).toContain('#e9ece6')
+    expect(out).toContain('Atkinson Hyperlegible Mono, Atkinson Hyperlegible, monospace')
     expect(out).toContain('verify:tokens passed')
   })
 
@@ -257,7 +257,7 @@ describe('verify:tokens', () => {
   }
 
   const fixtures: [string, (css: string) => string, RegExp][] = [
-    ['system-colour', (css) => css.replace('--es-surface-0: #ccd1d4;', '--es-surface-0: Canvas;'), /system colour.*Canvas/],
+    ['system-colour', (css) => css.replace('--es-surface-0: #e9ece6;', '--es-surface-0: Canvas;'), /system colour.*Canvas/],
     ['system-colour-text', (css) => css.replace('--es-text-1: #17191d;', '--es-text-1: CanvasText;'), /system colour.*CanvasText/],
     [
       'system-font-stack',

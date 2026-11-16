@@ -58,7 +58,6 @@
   border: 1px solid var(--es-edge);
   border-radius: var(--es-radius-plate);
   background-color: var(--es-surface-1);
-  background-image: var(--es-texture-brushed);
   background-size: 100% 720px;
   box-shadow: var(--es-shadow-paper);
 }
@@ -122,9 +121,7 @@
   overflow: hidden;
   border-radius: var(--es-radius-plate);
   background-color: var(--es-surface-2);
-  background-image: var(--es-texture-brushed);
-  background-size: 100% 360px;
-  box-shadow: var(--es-shadow-press);
+  box-shadow: inset 0 0 0 1px var(--es-edge);
 }
 
 @media (min-width: 56rem) {
@@ -185,7 +182,6 @@
   line-height: 0.95;
   letter-spacing: var(--es-font-heading-tracking);
   font-weight: var(--es-font-heading-weight);
-  text-transform: uppercase;
   overflow-wrap: anywhere;
 }
 

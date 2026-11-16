@@ -176,12 +176,12 @@
 }
 
 .es-vf-slip:focus-within {
-  border-bottom-color: var(--es-lamp-ring);
-  outline: 2px solid var(--es-focus);
+  border-bottom-color: var(--es-text-1);
+  outline: 3px solid var(--es-focus);
   outline-offset: 2px;
   box-shadow:
     var(--es-shadow-paper),
-    0 -3px 14px 1px color-mix(in srgb, var(--es-lamp) 70%, transparent);
+    0 0 0 7px var(--es-paper);
 }
 
 .es-vf-draws {
@@ -235,7 +235,7 @@
 }
 
 .es-vf-select:focus-visible {
-  border-bottom-color: var(--es-lamp-ring);
+  border-bottom-color: var(--es-text-1);
 }
 
 /* The levels: a row of plates that wraps, with the way into a graded run under it. */

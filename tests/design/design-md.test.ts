@@ -13,8 +13,8 @@
  *     system without its document.
  *   - The size ramp (`--es-size-*`, which the front matter's type roles do not carry) is listed in the Typography section with its
  *     values, and the sidecar's `typeScale` is the same list.
- *   - The sidecar follows the tokens and the document: a tonal ramp for every colour, the shadows and the grain as the roles hold them,
- *     and the narrative (rules, dos and don'ts) word for word.
+ *   - The sidecar follows the tokens and the document: a tonal ramp for every colour, the shadows as the roles hold them (and, since
+ *     R-T16's Data Book, no grain), and the narrative (rules, dos and don'ts) word for word.
  */
 import { describe, expect, test } from 'bun:test'
 import { existsSync, readFileSync } from 'node:fs'
@@ -219,14 +219,13 @@ describe('the sidecar follows the tokens and the document', () => {
     }
   })
 
-  test('its shadows and its grain are the roles of tokens.ts, as written there', () => {
+  // R-T16: Data Book's two shadows (paper and lift) and no grain (REDESIGN 2.8, the Flat Paper Rule).
+  test('its shadows are the roles of tokens.ts, as written there, and it has no grain', () => {
     for (const shadow of sidecar.extensions.shadows) {
       if (shadow.name in ROLES) expect(shadow.value, shadow.name).toBe((ROLES[shadow.name as RoleName] as { value: string }).value)
     }
-    for (const texture of sidecar.extensions.textures) {
-      if (texture.name === 'texture-sheen') expect(texture.value).toBe((ROLES['texture-sheen'] as { value: string }).value)
-    }
-    expect(sidecar.extensions.shadows.filter((shadow) => shadow.name in ROLES).length).toBe(5)
+    expect(sidecar.extensions.shadows.filter((shadow) => shadow.name in ROLES).map((shadow) => shadow.name)).toEqual(['shadow-paper', 'shadow-lift'])
+    expect(sidecar.extensions.textures).toEqual([])
   })
 
   test("its narrative carries DESIGN.md's named rules, key characteristics, dos and don'ts word for word", () => {

@@ -4,13 +4,13 @@ import { Icon, type IconName } from './Glyph'
 import { PrintingDots } from './PrintingDots'
 
 /*
- * A stamped steel plate: the button of the kitchen's equipment. The label is stamped in the plate face (the display
- * face, in capitals); the plate has a lit top edge, a shaded foot and a 3:1 edge. `ink` is a deep-steel plate with a
- * paper-white label, for the control a game leans on; `quiet` is the stamp without the plate.
+ * A button (REDESIGN 2.8): flat, a 1 px edge at 3:1, a 3 px radius, and a label in sentence case that says what it does.
+ * `plate` (the default) is the outline; `ink` is the dark surface with a paper-white label, for the control an instrument
+ * leans on; `quiet` is the label alone. The variant names stay until R-T46's rename.
  *
- * States: hover (the plate catches the tubes), focus (the heat lamp), active (pressed into the panel), disabled (a dull
- * plate), loading (the printer's dots beside the label; the press is ignored), error (a red line beside it, and a red
- * edge). The primary action of a ticket is its Stub, not a Button.
+ * States: hover (a faint well), focus (the ink ring), active or pressed (a well), disabled (a dashed edge, quiet words),
+ * loading (dots beside the label; the press is ignored), error (a line in the second ink beside it, and that ink's edge).
+ * The primary action is the amber Stub, not a Button.
  */
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

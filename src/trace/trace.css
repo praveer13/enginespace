@@ -44,7 +44,6 @@
   border: 1px solid var(--es-edge);
   border-radius: var(--es-radius-plate);
   background-color: var(--es-surface-1);
-  background-image: var(--es-texture-brushed);
   background-size: 100% 360px;
   box-shadow: var(--es-shadow-paper);
 }
@@ -87,7 +86,6 @@
   border: 1px solid var(--es-edge);
   border-radius: var(--es-radius-plate);
   background-color: var(--es-surface-2);
-  background-image: var(--es-texture-brushed);
   background-size: 100% 360px;
   box-shadow: var(--es-shadow-lift);
   cursor: grab;
@@ -182,7 +180,7 @@
   gap: 0.25rem;
   overflow: hidden;
   padding: 0 0.5rem 3px 0.4rem;
-  color: var(--es-tape-ink);
+  color: var(--es-text-1);
   font-family: var(--es-font-label);
   font-size: var(--es-size-caption);
   line-height: 1;
@@ -228,8 +226,6 @@
   font-family: var(--es-font-display);
   font-size: var(--es-size-body);
   font-weight: 800;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
 }
 
 .es-trace__lane-row > span {

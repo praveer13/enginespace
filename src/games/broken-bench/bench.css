@@ -61,10 +61,6 @@
   padding: var(--es-space-8) var(--es-space-3) var(--es-space-3);
   border-radius: var(--es-radius-shoulder);
   background-color: var(--es-surface-3);
-  background-image:
-    linear-gradient(180deg, color-mix(in srgb, var(--es-glint) 18%, transparent), transparent 40%),
-    var(--es-texture-brushed);
-  background-size: auto, 100% 720px;
   box-shadow: var(--es-shadow-lift);
 }
 
@@ -87,7 +83,7 @@
 }
 
 .es-bench-spring__lit {
-  stop-color: color-mix(in srgb, var(--es-glint) 55%, var(--es-surface-1));
+  stop-color: color-mix(in srgb, var(--es-paper) 55%, var(--es-surface-1));
 }
 
 .es-bench-spring__mid {
@@ -120,7 +116,7 @@
 /* The light along a stamped edge and the lip, and the shade in the jaw's pressed groove and under its rolled lip. */
 .es-bench-spring__ridge {
   fill: none;
-  stroke: color-mix(in srgb, var(--es-glint) 65%, transparent);
+  stroke: color-mix(in srgb, var(--es-paper) 65%, transparent);
   stroke-width: 1;
 }
 
@@ -140,7 +136,7 @@
 
 .es-bench-spring__shine {
   fill: none;
-  stroke: color-mix(in srgb, var(--es-glint) 70%, transparent);
+  stroke: color-mix(in srgb, var(--es-paper) 70%, transparent);
   stroke-width: 0.7;
   stroke-linecap: round;
 }
@@ -175,8 +171,6 @@
   font-family: var(--es-font-ticket);
   font-size: var(--es-size-print);
   font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 .es-bench-claim__basis {
@@ -211,8 +205,6 @@
   font-family: var(--es-font-ticket);
   font-size: var(--es-size-caption);
   font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   color: var(--es-text-2);
 }
 
@@ -327,8 +319,6 @@
   font-family: var(--es-font-ticket);
   font-size: var(--es-size-caption);
   font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   color: var(--es-text-2);
 }
 
@@ -358,10 +348,6 @@
   height: 1.75rem;
   border-radius: var(--es-radius-shoulder) var(--es-radius-shoulder) var(--es-radius-plate) var(--es-radius-plate);
   background-color: var(--es-surface-3);
-  background-image:
-    linear-gradient(180deg, color-mix(in srgb, var(--es-glint) 20%, transparent), transparent 45%),
-    var(--es-texture-brushed);
-  background-size: auto, 100% 360px;
   box-shadow: var(--es-shadow-lift);
 }
 
@@ -371,7 +357,7 @@
   height: 0.3rem;
   border-radius: var(--es-radius-trim);
   background-color: var(--es-paper-ink);
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--es-glint) 18%, transparent);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--es-paper) 18%, transparent);
 }
 
 .es-bench-tape__paper {
@@ -401,8 +387,6 @@
   font-family: var(--es-font-ticket);
   font-size: var(--es-size-micro);
   font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   color: var(--es-text-2);
 }
 
@@ -464,23 +448,17 @@
   position: absolute;
   z-index: -1;
   inset: -0.85rem calc(-1 * var(--es-space-3));
-  background: radial-gradient(
-    closest-side,
-    color-mix(in srgb, var(--es-lamp) 82%, transparent) 0%,
-    color-mix(in srgb, var(--es-lamp) 60%, transparent) 42%,
-    color-mix(in srgb, var(--es-lamp) 24%, transparent) 74%,
-    transparent 100%
-  );
+  background: var(--es-surface-2);
   pointer-events: none;
 }
 
 .es-bench-tape__line[data-selected] > span:first-child {
-  text-decoration: underline 2px var(--es-lamp-ring);
+  text-decoration: underline 2px var(--es-text-1);
   text-underline-offset: 0.3em;
 }
 
 .es-bench-tape__line:focus-visible {
-  outline: 2px solid var(--es-focus);
+  outline: 3px solid var(--es-focus);
   outline-offset: 1px;
 }
 
@@ -513,8 +491,6 @@
     content: attr(data-label) ' ';
     color: var(--es-text-2);
     font-size: var(--es-size-micro);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
   }
 
   .es-bench-tape__line > span:first-child,
@@ -578,7 +554,7 @@
  * the lever's side and the stamped word say the same.
  */
 .es-bench-desk .es-toggle__switch[data-state='checked'] .es-toggle__pilot {
-  background: radial-gradient(circle at 38% 32%, color-mix(in srgb, var(--es-glint) 55%, var(--es-paper-ink)) 0 18%, var(--es-paper-ink) 52%);
+  background: radial-gradient(circle at 38% 32%, color-mix(in srgb, var(--es-paper) 55%, var(--es-paper-ink)) 0 18%, var(--es-paper-ink) 52%);
   box-shadow:
     inset 0 0 0 1px var(--es-paper-ink),
     0 0 0 2px color-mix(in srgb, var(--es-paper-ink) 18%, transparent);
@@ -617,8 +593,6 @@
   font-family: var(--es-font-heading);
   font-size: var(--es-size-title);
   font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
   background-color: var(--es-paper);
 }
 
@@ -656,7 +630,7 @@
 }
 
 .es-bench-cite__option:has(input:focus-visible) {
-  outline: 2px solid var(--es-focus);
+  outline: 3px solid var(--es-focus);
   outline-offset: 2px;
 }
 

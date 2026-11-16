@@ -88,12 +88,7 @@
   position: absolute;
   inset: -2.5rem -2.25rem 0;
   z-index: -1;
-  background: radial-gradient(
-    48% 38% at 50% 40%,
-    color-mix(in srgb, var(--es-lamp) 82%, transparent) 0%,
-    color-mix(in srgb, var(--es-lamp) 42%, transparent) 50%,
-    transparent 100%
-  );
+  background: color-mix(in srgb, var(--es-surface-2) 60%, transparent);
   pointer-events: none;
 }
 
@@ -177,9 +172,9 @@
   border-bottom: 0;
 }
 
-/* The first check that is not green is the present: the paper warmed under the lamp. */
+/* The first check that is not green is the one to look at now: an ink rule across its top. */
 .es-forge-check[data-lamp] {
-  background-image: linear-gradient(180deg, color-mix(in srgb, var(--es-lamp) 30%, var(--es-paper)), var(--es-paper) 92%);
+  box-shadow: inset 0 3px 0 var(--es-text-1);
 }
 
 /* A check's number, as the printer numbers a line. */
@@ -211,7 +206,6 @@
   font-weight: var(--es-font-ticket-weight);
   letter-spacing: var(--es-font-ticket-tracking);
   line-height: 1.5;
-  text-transform: uppercase;
   white-space: nowrap;
 }
 

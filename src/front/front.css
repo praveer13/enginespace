@@ -100,11 +100,11 @@
   inset: var(--printer-dy) var(--printer-dx) 0 0;
   border-radius: var(--es-radius-trim) var(--es-radius-trim) var(--es-radius-plate) var(--es-radius-plate);
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--es-glint) 24%, transparent), transparent 0.45rem),
+    linear-gradient(180deg, color-mix(in srgb, var(--es-paper) 24%, transparent), transparent 0.45rem),
     linear-gradient(0deg, transparent calc(var(--printer-foot) - 0.15rem), color-mix(in srgb, var(--es-paper-ink) 70%, transparent) 0 calc(var(--printer-foot) - 0.05rem), transparent 0),
     linear-gradient(180deg, color-mix(in srgb, var(--es-surface-3) 92%, var(--es-surface-1)), var(--es-surface-3) 55%, color-mix(in srgb, var(--es-surface-3) 72%, var(--es-paper-ink)));
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--es-glint) 45%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--es-paper) 45%, transparent),
     inset -1px 0 0 color-mix(in srgb, var(--es-paper-ink) 50%, transparent),
     inset 0 -2px 0 color-mix(in srgb, var(--es-paper-ink) 60%, transparent);
 }
@@ -120,7 +120,7 @@
   background: linear-gradient(180deg, color-mix(in srgb, var(--es-paper-ink) 88%, var(--es-surface-3)), color-mix(in srgb, var(--es-paper-ink) 62%, var(--es-surface-3)));
   box-shadow:
     inset 0 3px 4px var(--es-paper-ink),
-    0 1px 0 color-mix(in srgb, var(--es-glint) 30%, transparent);
+    0 1px 0 color-mix(in srgb, var(--es-paper) 30%, transparent);
 }
 
 .es-front-printer__window::before,
@@ -137,7 +137,7 @@
 
 .es-front-printer__window::after {
   inset: 0;
-  background: linear-gradient(115deg, transparent 32%, color-mix(in srgb, var(--es-glint) 20%, transparent) 44%, transparent 58%);
+  background: linear-gradient(115deg, transparent 32%, color-mix(in srgb, var(--es-paper) 20%, transparent) 44%, transparent 58%);
 }
 
 /* The feed button, standing proud of the cover, and its lamp over it (unlit: the printer feeds when a ticket is hung). */
@@ -176,7 +176,7 @@
   background: conic-gradient(from 135deg at 50% 0, transparent 0 90deg, var(--es-surface-1) 0) 0 0 / 7px 4px repeat-x, var(--es-paper-ink);
   box-shadow:
     inset 0 2px 3px var(--es-paper-ink),
-    0 1px 0 color-mix(in srgb, var(--es-glint) 35%, transparent);
+    0 1px 0 color-mix(in srgb, var(--es-paper) 35%, transparent);
 }
 
 /* On a small housing the menu takes the whole cover: the window and the button are left out, and the box is shallower. */
@@ -210,7 +210,6 @@
   line-height: 1.2;
   letter-spacing: var(--es-font-ticket-tracking);
   font-weight: var(--es-font-ticket-weight);
-  text-transform: uppercase;
 }
 
 /* ---------------------------------------------------------------------------------------------- the printer's tape */
@@ -257,8 +256,6 @@
   font-size: var(--es-size-micro);
   line-height: 1.4;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .es-front-tape__lines {
@@ -275,10 +272,6 @@
   gap: 0 var(--es-space-2);
   font-size: var(--es-size-stamp);
   line-height: 1.35;
-}
-
-.es-front-tape__line dt {
-  text-transform: uppercase;
 }
 
 .es-front-tape__line dd {
@@ -340,7 +333,6 @@
 .es-front-tape__head {
   margin: 0;
   font-size: var(--es-size-stamp);
-  text-transform: uppercase;
 }
 
 .es-front-tape__preview {
@@ -350,7 +342,6 @@
   justify-content: space-between;
   gap: 0.25rem var(--es-space-2);
   font-size: var(--es-size-stamp);
-  text-transform: uppercase;
 }
 
 /* Once the level is over the rail fires no more, and the line under the perforation says so in the ribbon's red, where to go next. */
@@ -391,7 +382,7 @@
 }
 
 .es-front-tape__fill:focus-visible {
-  outline: 2px solid var(--es-focus);
+  outline: 3px solid var(--es-focus);
   outline-offset: 1px;
 }
 
@@ -441,7 +432,6 @@
 .es-front-strip__list .es-ticket[data-size] .es-ticket-line {
   color: var(--es-paper-ink-2);
   font-size: var(--es-size-caption);
-  text-transform: uppercase;
 }
 
 .es-front-strip__list .es-ticket[data-size][data-state='disabled'] .es-ticket-line {
@@ -1113,13 +1103,12 @@
   gap: var(--es-space-4) var(--es-space-8);
   padding: var(--es-space-8) var(--front-gutter) var(--es-space-6);
   background-color: var(--es-surface-1);
-  background-image: var(--es-texture-sheen), var(--es-texture-brushed);
   background-size:
     100% auto,
     100% 720px;
   box-shadow:
     inset 0 2px 0 color-mix(in srgb, var(--es-paper) 70%, transparent),
-    var(--es-shadow-shelf);
+    var(--es-shadow-paper);
 }
 
 /* The run's name, on masking tape stuck across the lip. */
@@ -1155,7 +1144,6 @@
   font-family: var(--es-font-ticket);
   font-weight: var(--es-font-ticket-weight);
   letter-spacing: var(--es-font-ticket-tracking);
-  text-transform: uppercase;
 }
 
 @media (min-width: 80rem) {
@@ -1349,7 +1337,6 @@
   border: 1px solid var(--es-edge);
   border-radius: var(--es-radius-plate);
   background-color: var(--es-surface-1);
-  background-image: var(--es-texture-brushed);
   background-size: 100% 720px;
   box-shadow: var(--es-shadow-paper);
 }
@@ -1365,7 +1352,6 @@
   line-height: var(--es-font-display-leading);
   letter-spacing: 0.02em;
   font-weight: var(--es-font-display-weight);
-  text-transform: uppercase;
 }
 
 .es-front-menu__term {
@@ -1395,8 +1381,6 @@
   color: var(--es-text-2);
   font-size: var(--es-size-note);
   font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   border-bottom: 2px solid var(--es-edge);
 }
 

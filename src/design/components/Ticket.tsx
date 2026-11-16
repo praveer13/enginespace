@@ -4,16 +4,13 @@ import { Icon } from './Glyph'
 import { PrintingDots } from './PrintingDots'
 
 /*
- * A kitchen ticket: white bond paper off the impact printer, with the clip hole it hangs by, the printed head line, and
- * a perforated stub below for the action it asks for. It is the surface reading text sits on (D-047). A ticket can be
- * a container (article, section) or the thing you pick up (`as="button"`, as the front page's tickets are).
+ * A sheet (REDESIGN 2.8): a plain paper panel, cut square, with the soft sheet shadow and a title. It is the surface reading
+ * text sits on. A sheet can be a container (article, section) or a thing you choose (`as="button"`). The name stays Ticket
+ * until R-T46's rename; `hole` is accepted and draws nothing.
  *
- * A ticket with a stamped headline prints its table and its time on the foot line, under the body, and not as a row above
- * the headline: the headline leads the paper.
- *
- * States: default; under the lamp (`lamp`: the present); loading (the printer is still printing it); error (a line
- * printed in the red second colour); empty (a blank ticket); disabled (faded ribbon). A button ticket also lifts
- * under the hand, and presses down.
+ * States: default; `lamp` (the sheet the next decision acts on: an ink rule across its top); loading (a line of text); error
+ * (a line in the second ink); empty (a dashed blank); disabled (no shadow, a dashed edge). A button sheet also lifts under
+ * the hand.
  */
 
 export type TicketState = 'default' | 'loading' | 'error' | 'empty' | 'disabled'
@@ -63,7 +60,7 @@ export function Ticket({
   state = 'default',
   error,
   empty,
-  loadingLabel = 'Printing',
+  loadingLabel = 'Getting this ready',
   width = 'narrow',
   compact = false,
   className,
@@ -101,7 +98,7 @@ export function Ticket({
           ) : null}
           {title ? <Title className="es-ticket__title">{title}</Title> : null}
           {state === 'empty' ? (
-            <Box className="es-ticket__blank">{empty ?? 'No tickets yet'}</Box>
+            <Box className="es-ticket__blank">{empty ?? 'Nothing here yet'}</Box>
           ) : (
             <Box className="es-ticket__body">{children}</Box>
           )}
@@ -130,7 +127,7 @@ export function Ticket({
   )
 }
 
-/** One printed line of a ticket: a quantity, the item, and a note at the right, in the printer's dots. */
+/** One numbered line of a sheet: a quantity, the item, and a note at the right, in the mono face. */
 export function TicketLine({
   qty,
   children,

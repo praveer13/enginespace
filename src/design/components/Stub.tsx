@@ -5,12 +5,13 @@ import { Icon } from './Glyph'
 import { PrintingDots } from './PrintingDots'
 
 /*
- * The tear-off stub: a ticket's primary action, printed in the ribbon's red under a line of perforations. It is the one
- * thing on a ticket that asks to be pulled. Inside a Ticket it shares the ticket's paper; on its own (`standalone`) it
- * is a stub torn off with its own paper.
+ * The primary button (REDESIGN 2.8): amber with its 2 px edge and an ink label, 44 px or taller, and an arrow. It is the
+ * control to act on now, one of the marker's three carriers (the One Marker Rule). The name stays Stub until R-T46's rename;
+ * `standalone` is accepted and changes nothing.
  *
- * States: hover (it starts to tear), focus (the heat lamp), active (pulled), disabled (faded ribbon, the perforation
- * dashed), loading (the printer still printing; the press is ignored), error (a red line under it).
+ * States: hover (a deeper amber, the arrow steps on), focus (the ink ring), active (deeper still), disabled (no amber: a well
+ * with a dashed edge, because there is nothing to act on now), loading (dots; the press is ignored), error (a line in the
+ * second ink under it).
  */
 
 interface StubCommon {

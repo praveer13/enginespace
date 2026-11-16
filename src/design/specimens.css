@@ -1,6 +1,6 @@
 /*
- * The /design page's layout: the roles printed on spec tickets, the contrast pairs, and the components standing on the
- * steel in each of their states. Loaded with that page only, as its own stylesheet, so it is plain CSS outside
+ * The /design page's layout: the roles on spec sheets, the contrast pairs, and the components on the ground in each of
+ * their states. Loaded with that page only, as its own stylesheet, so it is plain CSS outside
  * Tailwind's layers.
  */
 
@@ -30,12 +30,11 @@
   gap: var(--es-space-8);
 }
 
-/* A section's plate, over a machined groove in the steel. */
+/* A section's head, over a hairline. */
 .es-spec__section > h2 {
   margin: 0;
   padding-bottom: var(--es-space-3);
   border-bottom: 1px solid var(--es-edge);
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--es-glint) 60%, transparent);
 }
 
 .es-spec__section > p {
@@ -54,12 +53,10 @@
 .es-spec__group-title {
   margin: 0 0 var(--es-space-6);
   padding-bottom: var(--es-space-2);
-  border-bottom: 2px dotted var(--es-paper-rule);
-  font-family: var(--es-font-ticket);
+  border-bottom: 1px solid var(--es-paper-rule);
+  font-family: var(--es-font-body);
   font-size: var(--es-size-plate);
-  letter-spacing: 0.05em;
-  font-weight: 900;
-  text-transform: uppercase;
+  font-weight: 700;
 }
 
 .es-spec__roles {
@@ -138,12 +135,7 @@
     0 1px 2px rgb(23 25 29 / 0.25);
 }
 
-.es-spec__swatch--texture {
-  background-color: var(--es-surface-1);
-  background-size: 360px 360px;
-}
-
-/* A cutting board: the code's colour, its edge, its hanging hole and its glyph. */
+/* A slot of the code: its fill, its edge and its glyph. */
 .es-spec__board {
   position: relative;
   display: grid;
@@ -152,20 +144,7 @@
   height: 2.6rem;
   margin-top: 0.4rem;
   border: 2px solid;
-  border-radius: var(--es-radius-shoulder);
-  box-shadow: 0 2px 3px rgb(23 25 29 / 0.25);
-}
-
-.es-spec__board::before {
-  content: '';
-  position: absolute;
-  top: 0.3rem;
-  right: 0.35rem;
-  width: 0.45rem;
-  height: 0.45rem;
-  border-radius: var(--es-radius-round);
-  background-color: var(--es-paper);
-  box-shadow: inset 0 1px 1px rgb(23 25 29 / 0.35);
+  border-radius: var(--es-radius-trim);
 }
 
 .es-spec__board-glyph {
@@ -366,12 +345,10 @@
 
 .es-spec__component-title {
   margin: 0;
-  font-family: var(--es-font-heading);
+  font-family: var(--es-font-body);
   font-size: var(--es-size-large);
-  line-height: 1;
-  letter-spacing: 0.03em;
-  font-weight: 800;
-  text-transform: uppercase;
+  line-height: 1.2;
+  font-weight: 700;
 }
 
 .es-spec__component-about {
@@ -433,12 +410,10 @@
 
 .es-spec__state-label {
   color: var(--es-text-2);
-  font-family: var(--es-font-ticket);
+  font-family: var(--es-font-body);
   font-size: var(--es-size-caption);
   line-height: 1.3;
-  letter-spacing: 0.04em;
-  font-weight: 900;
-  text-transform: uppercase;
+  font-weight: 700;
 }
 
 .es-spec__pan-row {
@@ -505,12 +480,10 @@
 
 .es-spec__motion-title {
   margin: 0;
-  font-family: var(--es-font-heading);
+  font-family: var(--es-font-body);
   font-size: var(--es-size-large);
-  line-height: 1;
-  letter-spacing: 0.03em;
-  font-weight: 800;
-  text-transform: uppercase;
+  line-height: 1.2;
+  font-weight: 700;
 }
 
 .es-spec__motion-about {
@@ -597,7 +570,6 @@
   height: 1.75rem;
   border-radius: var(--es-radius-round);
   background-color: var(--es-surface-3);
-  box-shadow: var(--es-shadow-plate);
   animation-name: es-spec-motion-run;
   animation-fill-mode: both;
   animation-iteration-count: 1;

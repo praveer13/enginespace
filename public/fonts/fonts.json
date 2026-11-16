@@ -1,15 +1,8 @@
 {
   "schema": "enginespace/fonts@1",
-  "about": "The self-hosted faces of The Pass (D-047, D-050), each pinned by SHA-256 with its source: a Fontsource package at an exact version, fetched once from its jsDelivr mirror on 2026-11-03 with the User-Agent below, Latin subset. Two files are derived with the pinned fonttools below, as each transform says. src/design/fonts.css declares exactly these files, and tests/design/fonts.test.ts checks every hash, every licence file and NOTICE.",
+  "about": "The self-hosted faces of Data Book (REDESIGN 2.8, which supersedes D-050's five faces with three), each pinned by SHA-256 with its source: a Fontsource package at an exact version, fetched once from its jsDelivr mirror on 2026-11-03 with the User-Agent below, Latin subset. Every file is the package's own, unchanged. src/design/fonts.css declares exactly these files, and tests/design/fonts.test.ts checks every hash, every licence file and NOTICE.",
   "fetched": "2026-11-03",
   "userAgent": "Mozilla/5.0 (X11; Linux x86_64)",
-  "tools": {
-    "fonttools": "4.60.1",
-    "brotli": "1.1.0",
-    "uv": "0.10.2",
-    "env": "SOURCE_DATE_EPOCH=1793664000",
-    "run": "uv run --no-project --with fonttools==4.60.1 --with brotli==1.1.0 fonttools <args>"
-  },
   "faces": [
     {
       "family": "Big Shoulders Display",
@@ -40,98 +33,13 @@
       }
     },
     {
-      "family": "Doto",
-      "roles": [
-        "font-numeric",
-        "font-ticket"
-      ],
-      "file": "doto-latin-round-900.woff2",
-      "weight": "900",
-      "style": "normal",
-      "unicodeRange": null,
-      "sha256": "79d28001247ac606c447996c6dcd2851737fb8f3e685ec3ec89c92ca9fbda667",
-      "bytes": 3984,
-      "source": {
-        "package": "@fontsource-variable/doto",
-        "version": "5.3.0",
-        "path": "files/doto-latin-full-normal.woff2",
-        "url": "https://cdn.jsdelivr.net/npm/@fontsource-variable/doto@5.3.0/files/doto-latin-full-normal.woff2",
-        "sha256": "b565f9b6af8d9d1aa9d33b12fb1691ab1974c388cd2c7713aa284fb88a2a5a02"
-      },
-      "transform": [
-        "varLib.instancer doto-latin-full-normal.woff2 ROND=100 wght=900 -o doto-latin-round-900.woff2"
-      ],
-      "licence": {
-        "id": "OFL-1.1",
-        "file": "OFL-Doto.txt",
-        "copyright": "Copyright 2024-2024 The Doto Project Authors (https://github.com/oliverlalan/Doto)",
-        "source": "https://cdn.jsdelivr.net/npm/@fontsource-variable/doto@5.3.0/LICENSE",
-        "sha256": "33cbb094aa3c5d82a2f2f80ae4c0310e6a4aedf54eac49c52662d5f77ee7265f"
-      }
-    },
-    {
-      "family": "Handjet",
-      "roles": [
-        "font-numeric",
-        "font-ticket"
-      ],
-      "file": "handjet-latin-micro-300.woff2",
-      "weight": "300",
-      "style": "normal",
-      "unicodeRange": "U+00B5, U+00B1",
-      "sha256": "8b725d50b9b56a4ba44f777ce18b8a59d6d5b23af4771858d9f116bab8d35e45",
-      "bytes": 824,
-      "source": {
-        "package": "@fontsource-variable/handjet",
-        "version": "5.3.0",
-        "path": "files/handjet-latin-full-normal.woff2",
-        "url": "https://cdn.jsdelivr.net/npm/@fontsource-variable/handjet@5.3.0/files/handjet-latin-full-normal.woff2",
-        "sha256": "a003586f13615b4a95675dc8f5d409164fe87b2be6210143366b50922be5f193"
-      },
-      "transform": [
-        "varLib.instancer handjet-latin-full-normal.woff2 ELSH=2 ELGR=1 wght=300 -o handjet-300.woff2",
-        "subset handjet-300.woff2 --unicodes=U+00B5,U+00B1 --flavor=woff2 --layout-features= --no-hinting --output-file=handjet-latin-micro-300.woff2"
-      ],
-      "licence": {
-        "id": "OFL-1.1",
-        "file": "OFL-Handjet.txt",
-        "copyright": "Copyright 2018 The Handjet Project Authors (https://github.com/rosettatype/Handjet/)",
-        "source": "https://cdn.jsdelivr.net/npm/@fontsource-variable/handjet@5.3.0/LICENSE",
-        "sha256": "33da8fa576faeeb46d111ad12328e30b07ab059b13d6a0f77c562b5e6ce8e3ee"
-      }
-    },
-    {
-      "family": "Permanent Marker",
-      "roles": [
-        "font-label"
-      ],
-      "file": "permanent-marker-latin-400-normal.woff2",
-      "weight": "400",
-      "style": "normal",
-      "unicodeRange": null,
-      "sha256": "4884fec2c73aa52a2461073c1b87d1ceb80f400520391b43f97ca7d3c39eeb24",
-      "bytes": 29564,
-      "source": {
-        "package": "@fontsource/permanent-marker",
-        "version": "5.3.0",
-        "path": "files/permanent-marker-latin-400-normal.woff2",
-        "url": "https://cdn.jsdelivr.net/npm/@fontsource/permanent-marker@5.3.0/files/permanent-marker-latin-400-normal.woff2",
-        "sha256": "4884fec2c73aa52a2461073c1b87d1ceb80f400520391b43f97ca7d3c39eeb24"
-      },
-      "transform": null,
-      "licence": {
-        "id": "Apache-2.0",
-        "file": "LICENSE-PermanentMarker.txt",
-        "copyright": "Copyright (c) 2010 by Font Diner, Inc. All rights reserved.",
-        "source": "https://cdn.jsdelivr.net/npm/@fontsource/permanent-marker@5.3.0/LICENSE",
-        "sha256": "044195cfd809d76ea2aaf1c8e3dd80b9fd9447227efc05e51fc906c4a451d451"
-      }
-    },
-    {
       "family": "Atkinson Hyperlegible",
       "roles": [
         "font-body",
-        "font-mono"
+        "font-label",
+        "font-mono",
+        "font-numeric",
+        "font-ticket"
       ],
       "file": "atkinson-hyperlegible-latin-400-normal.woff2",
       "weight": "400",
@@ -158,7 +66,8 @@
     {
       "family": "Atkinson Hyperlegible",
       "roles": [
-        "font-body"
+        "font-body",
+        "font-label"
       ],
       "file": "atkinson-hyperlegible-latin-700-normal.woff2",
       "weight": "700",
@@ -239,7 +148,9 @@
     {
       "family": "Atkinson Hyperlegible Mono",
       "roles": [
-        "font-mono"
+        "font-mono",
+        "font-numeric",
+        "font-ticket"
       ],
       "file": "atkinson-hyperlegible-mono-latin-wght-normal.woff2",
       "weight": "200 800",

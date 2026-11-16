@@ -681,7 +681,7 @@
 
 .es-guess__locked:focus-visible,
 .es-guess__verdict:focus-visible {
-  outline: 2px solid var(--es-focus);
+  outline: 3px solid var(--es-focus);
   outline-offset: 2px;
 }
 
@@ -752,7 +752,7 @@
 }
 
 .es-lesson__foot-action:focus-visible {
-  outline: 2px solid var(--es-focus);
+  outline: 3px solid var(--es-focus);
   outline-offset: 2px;
 }
 
@@ -833,7 +833,7 @@
 }
 
 .es-sources__entry:target {
-  outline: 2px solid var(--es-focus);
+  outline: 3px solid var(--es-focus);
   outline-offset: 4px;
 }
 
@@ -858,7 +858,7 @@
 }
 
 .es-run__next .es-next__action:focus-visible {
-  outline: 2px solid var(--es-focus);
+  outline: 3px solid var(--es-focus);
   outline-offset: 2px;
 }
 

@@ -24,11 +24,6 @@
   min-width: 0;
 }
 
-/* The printer prints a ticket's ids in capitals, as a lesson's tickets do. */
-.es-prep .es-ticket__head {
-  text-transform: uppercase;
-}
-
 /* On a phone the strip stands for the list while a prep goes on, and the blank ticket has no use. The wide layout is at the end of the file. */
 .es-prep__list[data-phase='work'],
 .es-prep__blank {
@@ -190,7 +185,6 @@
   line-height: 1.3;
   letter-spacing: var(--es-font-ticket-tracking);
   font-weight: var(--es-font-ticket-weight);
-  text-transform: uppercase;
 }
 
 .es-prep__boxes {

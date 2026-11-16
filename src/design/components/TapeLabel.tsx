@@ -4,9 +4,9 @@ import { SLOT_MARKS, type GlyphShape, type Slot } from '../code'
 import { Glyph } from './Glyph'
 
 /*
- * Masking tape and marker: the label torn off the roll and stuck on a pan, an object or a control. The kitchen word
- * names the object; the engine term can ride on the same strip (GAMES.md §2.6, rule 2). A tape label never moves and
- * never lights: the heat lamp belongs to what it labels.
+ * A plain label (REDESIGN 2.8): the name of a part, a state word or a lane, in the reading face at 700, sentence case. It
+ * never moves and never lights. `tilt` is accepted and draws nothing. The name stays TapeLabel until R-T46's rename; the
+ * provenance stamp is Stamp.
  */
 
 export interface TapeLabelProps {
