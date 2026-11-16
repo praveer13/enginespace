@@ -535,6 +535,16 @@ describe('labs.yml (§10.1)', () => {
     expect(env?.UV_PYTHON).toBe(tool('Python (the grader\'s tests in CI)'))
     expect(env?.UV_PYTHON).toMatch(/^3\.\d+$/)
     expect(env?.UV_PYTHON_DOWNLOADS).toBe('never')
+    // uv may not download an interpreter, so the job installs it: setup-python, pinned by its 40-character SHA, before any uv step, and
+    // reading the version from UV_PYTHON, so that the series is written once and the two cannot drift. Its first CI run found no 3.12 on ubuntu-26.04.
+    const steps = jobsOf('labs.yml').find(([job]) => job === 'grader')?.[1].steps ?? []
+    const python = steps.findIndex((step) => step.uses?.startsWith('actions/setup-python@'))
+    expect(python).toBeGreaterThan(-1)
+    expect(steps[python].uses).toMatch(/^actions\/setup-python@[0-9a-f]{40}$/)
+    expect(String(steps[python].with?.['python-version'])).toBe('${{ env.UV_PYTHON }}')
+    expect(steps[python].with?.['python-version-file']).toBeUndefined()
+    const firstUv = steps.findIndex((step) => step.uses?.startsWith('astral-sh/setup-uv@') || /\buv\b/.test(step.run ?? ''))
+    expect(firstUv).toBeGreaterThan(python)
     expect(read('labs/grader/pyproject.toml')).toContain('requires-python = ">=3.11,<3.15"')
   })
 
@@ -568,10 +578,10 @@ describe('labs.yml (§10.1)', () => {
     expect(task).toContain('`uv lock --check` is clean')
   })
 
-  test('the grader job sets up Node, Bun and then uv, and has a numeric timeout that is not longer than the forge job\'s', () => {
+  test('the grader job sets up Node, Bun, Python and then uv, and has a numeric timeout that is not longer than the forge job\'s', () => {
     const jobs = Object.fromEntries(jobsOf('labs.yml'))
     const uses = (jobs.grader.steps ?? []).map((step) => step.uses?.split('@')[0]).filter((name) => name !== undefined)
-    expect(uses).toEqual(['actions/checkout', 'actions/setup-node', 'oven-sh/setup-bun', 'astral-sh/setup-uv'])
+    expect(uses).toEqual(['actions/checkout', 'actions/setup-node', 'oven-sh/setup-bun', 'actions/setup-python', 'astral-sh/setup-uv'])
     expect(typeof jobs.grader['timeout-minutes']).toBe('number')
     expect(jobs.grader['timeout-minutes']).toBeLessThanOrEqual(jobs.forge['timeout-minutes'] ?? 0)
     expect(jobs.grader['timeout-minutes']).toBeLessThanOrEqual(20)
