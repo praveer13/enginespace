@@ -1,5 +1,5 @@
 /*
- * R-T18: the step loop's 3D time track (src/games/loop/TrackScene3D.tsx; REDESIGN §2.8, §2.9, P7). The scene draws a flat model of the
+ * R-T18: the step loop's 3D time track (src/games/loop/Scene3D.tsx; REDESIGN §2.8, §2.9, P7). The scene draws a flat model of the
  * 2D diagram (track-layout.ts, full/track.ts) through six cameras (track-presets.ts). These tests hold it to the brief:
  *   - the Side camera is the 2D diagram: a tick's x through its projection equals the 2D layout's x within 1 px, on a demo level and on a
  *     full level;
@@ -10,7 +10,7 @@
  *   - every word is a label (DOM), in the engine's terms, and the scene imports nothing from src/scene/props.
  */
 import { describe, expect, test } from 'bun:test'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { OrthographicCamera, PerspectiveCamera, Vector3, type Camera } from 'three'
 import { hang, initState, step } from '@es/play/loop/engine'
@@ -184,7 +184,7 @@ describe('Compare: static, continuous and async, and the gaps close', () => {
   })
 
   test('the scene plays it on Compare and draws it at its end under reduced motion', () => {
-    const scene = read('src/games/loop/TrackScene3D.tsx')
+    const scene = read('src/games/loop/Scene3D.tsx')
     expect(scene).toContain("from={camera === 'compare' ? compare?.from : null}")
     const track = read('src/scene/FlatTrack.tsx')
     expect(track).toMatch(/const moving = !!from && !kit\.reducedMotion/)
@@ -239,7 +239,7 @@ describe('the demo track draws the run', () => {
 
 describe('what the scene is made of', () => {
   const files = [
-    'src/games/loop/TrackScene3D.tsx',
+    'src/games/loop/Scene3D.tsx',
     'src/games/loop/track-layout.ts',
     'src/games/loop/track-presets.ts',
     'src/games/loop/full/track.ts',
@@ -258,7 +258,7 @@ describe('what the scene is made of', () => {
   })
 
   test('nothing glows but the cursor: no environment map, fog, bloom, steam, lamp or emissive', () => {
-    const scene = read('src/games/loop/TrackScene3D.tsx')
+    const scene = read('src/games/loop/Scene3D.tsx')
     expect(scene).toContain('fog={null}')
     expect(scene).toContain('environment={false}')
     expect(scene).toContain('bloom={false}')
@@ -270,9 +270,13 @@ describe('what the scene is made of', () => {
     expect(materials).toContain("roleColor(tokens, 'lamp-ring')")
   })
 
-  test('the game\'s 3D switch points at the time track, and the kitchen scene stays in the tree', () => {
-    expect(read('src/games/loop/Game.tsx')).toContain("const Scene3D = lazy(() => import('./TrackScene3D'))")
-    expect(read('src/games/loop/FullService.tsx')).toContain("const Scene3D = lazy(() => import('./TrackScene3D'))")
+  test('the game\'s 3D switch points at the time track, which is the game\'s Scene3D.tsx, and the kitchen scene is gone', () => {
+    expect(read('src/games/loop/Game.tsx')).toContain("const Scene3D = lazy(() => import('./Scene3D'))")
+    expect(read('src/games/loop/FullService.tsx')).toContain("const Scene3D = lazy(() => import('./Scene3D'))")
     expect(read('src/games/loop/Scene3D.tsx')).toContain('export interface Scene3DProps')
+    expect(read('src/games/loop/Scene3D.tsx')).toContain('<FlatTrack')
+    for (const file of ['src/games/loop/TrackScene3D.tsx', 'src/games/loop/scene-layout.ts', 'src/games/loop/scene-presets.ts', 'src/games/loop/scene3d.css', 'src/games/loop/full/scene.ts']) {
+      expect([file, existsSync(path.join(root, file))]).toEqual([file, false])
+    }
   })
 })

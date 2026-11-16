@@ -12,7 +12,7 @@ import type { GameProps } from '@/games/registry'
 import { CameraButtons } from '@/scene/CameraButtons'
 import { Stage } from '@/scene/Stage'
 import { unavailableReason, useDeviceTier } from '@/scene/tiers'
-import type { TrackSceneProps } from './TrackScene3D'
+import type { Scene3DProps } from './Scene3D'
 import { cameraLabel, DEFAULT_CAMERA, nextCamera, TRACK_CAMERAS } from './track-presets'
 import { BuildThis } from './full/BuildThis'
 import { Compose } from './full/Compose'
@@ -28,9 +28,9 @@ import './full/full.css'
 
 // The 3D scene is the step loop's time track (REDESIGN §2.9), the demo levels' lazy chunk (A§6.10): it draws the full levels from their own
 // lanes, in µs. The kitchen's scene stays in the tree until the look gate, and this page no longer loads it.
-const Scene3D = lazy(() => import('./TrackScene3D'))
+const Scene3D = lazy(() => import('./Scene3D'))
 
-function FullScene(props: TrackSceneProps) {
+function FullScene(props: Scene3DProps) {
   return <Scene3D {...props} />
 }
 

@@ -74,7 +74,7 @@ base.beforeAll(async () => {
   await build({ root, configFile: path.join(root, 'vite.config.ts'), logLevel: 'error', build: { outDir: dist, emptyOutDir: true } })
   const manifest = JSON.parse(readFileSync(path.join(dist, '.vite/manifest.json'), 'utf8')) as Record<string, { file: string; name?: string }>
   chunks3d = Object.entries(manifest)
-    .filter(([key, chunk]) => key === 'src/games/loop/TrackScene3D.tsx' || chunk.name === 'three-vendor')
+    .filter(([key, chunk]) => key === 'src/games/loop/Scene3D.tsx' || chunk.name === 'three-vendor')
     .map(([, chunk]) => `/${chunk.file}`)
   expect(chunks3d.length).toBe(2)
 })

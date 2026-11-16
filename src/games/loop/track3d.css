@@ -1,5 +1,5 @@
 /*
- * The step loop's 3D time track, its page layer (TrackScene3D.tsx): every word and number on the plate, as DOM over the canvas (D-021),
+ * The step loop's 3D time track, its page layer (Scene3D.tsx): every word and number on the plate, as DOM over the canvas (D-021),
  * set as the 2D diagram sets them (loop.css), so a row's name, a request and a tick read the same in either view. Every colour, face and
  * size is a token role; this file names none of its own. No amber here: the cursor's sheet is the marker, and its word is ink.
  */

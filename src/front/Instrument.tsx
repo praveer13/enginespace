@@ -24,7 +24,7 @@ import { changeLine } from '@/games/loop/announce'
 import type { LoopStage3DProps } from '@/games/loop/Stage3D'
 import { readoutItems } from '@/games/loop/strip'
 import { LoopReadout } from '@/games/loop/Tape'
-import type { TrackSceneProps } from '@/games/loop/TrackScene3D'
+import type { Scene3DProps } from '@/games/loop/Scene3D'
 import type { LoopRunCore } from '@/games/loop/types'
 import { useLoopControls, type AutoToggleRef } from '@/games/loop/useLoopControls'
 import { Lanes, type CalloutPart } from '@/games/loop/View2D'
@@ -61,13 +61,13 @@ const LoopStage3D = lazy(() =>
     default: module.default as ComponentType<LoopStage3DProps>,
   })),
 )
-const TrackScene = lazy(() => import('@/games/loop/TrackScene3D'))
+const TrackScene = lazy(() => import('@/games/loop/Scene3D'))
 /** Demo level 3's guess field, with that level. */
 const GuessForm = lazy(() => import('@/games/loop/GuessForm'))
 /** The async scheduling switch: only the later levels have it. */
 const LoopOverlap = lazy(() => import('@/games/loop/LoopOverlap'))
 
-function FrontTrack(props: TrackSceneProps) {
+function FrontTrack(props: Scene3DProps) {
   return <TrackScene {...props} />
 }
 

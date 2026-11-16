@@ -9,7 +9,6 @@
  *   - Compare stacks three schedulers, and Scale draws more than 10,000 instances in the kit's budget of 10 calls;
  *   - nothing blooms: at T2 the frame is the scene and the final pass;
  *   - under reduced motion a step and Compare's move are drawn in place, and then no animation frame is asked for.
- * And, while the front page still draws the kitchen (until R-T19), W0's finding F5 there: on a phone its two tapes never meet.
  *
  * How it runs, as e2e/scene-kit.spec.ts does: one test build with `VITE_ES_TEST_HOOKS=1` (it exposes `window.__esScene` and honours
  * `?es-tier=<0-3>`), served by `context.route` so no server runs, with any request off the origin failing the test. Chromium renders
@@ -308,25 +307,6 @@ test.describe('Compare and Scale: the model\'s own runs', () => {
       console.log(`Scale T${tier}: ${stats.instances} instances, ${stats.sceneCalls} scene draw calls, ${stats.calls} in the frame`)
     })
   }
-})
-
-test.describe('the tapes naming the line and the expo never meet on a phone (W0 finding F5), on the front page\'s kitchen', () => {
-  test.use({ viewport: { width: 390, height: 844 } })
-
-  test('/?es-tier=1', async ({ page }) => {
-    test.setTimeout(120_000)
-    await page.goto(`${ORIGIN}/?es-tier=1`)
-    await page.evaluate(() => document.fonts.ready)
-    const box = page.locator('[data-stage="front"]')
-    await box.scrollIntoViewIfNeeded()
-    await expect(box).toHaveAttribute('data-stage-phase', 'live', { timeout: 60_000 })
-    await expect(box).toHaveAttribute('data-settled', 'true', { timeout: 60_000 })
-    const line = await box.locator('.es-loop-label--tape', { hasText: 'GPU lane' }).boundingBox()
-    const expo = await box.locator('.es-loop-label--tape', { hasText: 'CPU lane' }).boundingBox()
-    if (line === null || expo === null) throw new Error('a tape is not drawn')
-    const apart = line.y + line.height <= expo.y || expo.y + expo.height <= line.y || line.x + line.width <= expo.x || expo.x + expo.width <= line.x
-    expect(apart).toBe(true)
-  })
 })
 
 test.describe('reduced motion (A§6.9): changes cut, and nothing moves without input', () => {
