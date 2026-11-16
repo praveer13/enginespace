@@ -72,15 +72,15 @@ describe('the games', () => {
 describe('the labs', () => {
   /** The words of each lab's task title, for the labs that have no page yet: a forge lab by its id, a laptop or GPU lab by its module and what it does. */
   const titles: Record<string, RegExp> = {
-    'kv-publisher': /Forge lab `kv-publisher`/,
-    'tr0.forward': /TR0 lab: the Qwen3-0\.6B forward pass/,
-    'tr1.fork': /TR1 lab: a nano-vllm fork/,
-    'tr3.profile': /TR3 lab: profile vLLM/,
-    'tr4.sweep': /TR4 lab: backend sweeps/,
-    'tr5b.connector': /TR5b lab: a toy connector/,
-    'tr6.proposer': /TR6 lab: a proposer/,
-    'tr7.reproduce': /TR7 lab: reproduce a published number/,
-    'tr8.replay': /TR8 lab: BurstGPT open-loop replay/,
+    'kv-publisher': /Build a KV events publisher \(lab `kv-publisher`\)/,
+    'tr0.forward': /Build the Qwen3-0\.6B forward pass on CPU \(TR0 lab\)/,
+    'tr1.fork': /Build an instrumented nano-vllm fork \(TR1 lab\)/,
+    'tr3.profile': /Build an attribution report from a vLLM profile \(TR3 lab\)/,
+    'tr4.sweep': /Build an attention backend sweep \(TR4 lab\)/,
+    'tr5b.connector': /Build a toy connector in vLLM \(TR5b lab\)/,
+    'tr6.proposer': /Build a speculative-decoding proposer \(TR6 lab\)/,
+    'tr7.reproduce': /Build a reproduction of a published number \(TR7 lab\)/,
+    'tr8.replay': /Build a BurstGPT open-loop replay \(TR8 lab\)/,
     'capstone.pair': /Capstone harness/,
   }
 

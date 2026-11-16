@@ -461,11 +461,11 @@ describe('the pages that read predictions read this event', () => {
     expect(progress.modules.get('tr2')?.counts.earned).toBe(0)
   })
 
-  test('the two readers that do not exist yet, Today\'s rescheduling and the Mirror\'s calibration, are one open task of the tracker that says so', () => {
+  test('the two readers that do not exist yet, Review\'s rescheduling and the calibration view on Progress, are one open task of the tracker that says so', () => {
     const text = trackerTasks().get('W2-T44') ?? ''
     expect(text.split('\n', 1)[0]).toMatch(/^#### \[[ ~]\] W2-T44 · Readers of the prediction event/)
-    expect(text).toContain('Today')
-    expect(text).toContain("The Mirror's calibration")
+    expect(text).toContain('Review (`/today`)')
+    expect(text).toContain('calibration view on Progress')
     expect(text).toContain('src/items/today/kcs.ts')
   })
 })
