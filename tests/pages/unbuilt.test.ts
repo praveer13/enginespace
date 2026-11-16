@@ -109,7 +109,7 @@ describe.each(PAGES)('%s, which is not built yet', (url, copy) => {
 
 describe('the tasks the pages name', () => {
   test('are tasks of the tracker, and the tracker\'s text for each is about the page', () => {
-    expect(heading('W2-T20')).toContain('The Trace Room')
+    expect(heading('W2-T20')).toContain('Traces, and Trace attribution')
     expect(tasks.get('W3-T06')).toContain('`/changes` renders change cards')
     expect(tasks.get('W3-T15')).toContain('`/about`')
   })
