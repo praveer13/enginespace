@@ -37,6 +37,39 @@ Front matter, then Markdown with `:::name … :::` directives (ARCHITECTURE §4.
 - **Minutes.** The compiler adds up the words at a reading speed and what each block takes (`scripts/content/directives.ts`), and warns when `minutes` is further from the sum than a fifth.
 - **`rev`** is added by the compiler: a SHA-256 over the authored fields, the blocks and the claims the page cites. It does not change when the Markdown is rewrapped, and it leaves out `status` and `minutes`.
 
+## How a lesson opens, and the authoring rules
+
+A lesson opens in one of three ways, and a test holds each of the 27 built lessons to its row of the table in REDESIGN §2.5 (`tests/content/openers.test.ts`, which reads `tests/content/openers-table.ts`). The opener is read from the file's shape and is never written in the front matter.
+
+| Opener | Shape in the file | What the page does |
+|---|---|---|
+| **A. Run first** | At most 60 words, then guesses and the game, before the first `##` | The setup states the question in the engine's words. The instrument's first control is in the first viewport. |
+| **B. Primer, then run** | 61 to 200 words, then guesses and the game, before the first `##` | The words render under "Before you run": the three to six facts the level needs, as a list or a small table, taken from the lesson's own prose. No new claim. |
+| **C. Read first** | The first game is after the first `##`, or there is none | The lesson opens on Read. Its first part ends in something to do within 450 words: a guess with a reveal, or a one-question checkpoint. |
+
+The seven rules, for every lesson of the course:
+
+1. Choose the opener by one question: can a reader who has finished the earlier lessons finish this level from its parts list, its goal line and at most 200 words? If yes, A or B. If no, C.
+2. A setup states the question. A primer states facts the level needs. Neither explains the answer. Every engine term the level's controls and prompts use is in the level's parts list or in the setup or primer (`tests/content/vocabulary.test.ts`).
+3. A part aims for 600 words or fewer between two things the learner does. A C lesson's first part ends in one.
+4. Graded game blocks and the question set close the file, under its last `##`. Every lesson has a Test.
+5. No kitchen sentence, no build-log id: no task, decision or design-document section in prose.
+6. After moving a block, re-read the prose for words that assume the old order ("above", "below", "you just", "the level that follows").
+7. Moving blocks changes a lesson's `rev`, so earlier evidence for it shows "re-check". Nothing is lost.
+
+The compiler warns about the rules it can see, and never fails on one. Each warning prints `file:line`:
+
+| Warning | When |
+|---|---|
+| `opener-setup-long` | more than 200 words precede an opener's game (rule 1) |
+| `opener-c-slow` | an opener C lesson's first thing to do comes after 450 words (rule 3) |
+| `pacing-gap` | more than 600 words lie between two things the learner does: a guess, a run, a question or a trace (rule 3) |
+| `graded-not-last` | a graded game block is not under the file's last `##` (rule 4) |
+| `no-test` | the lesson has no Test (rule 4) |
+| `build-log-id` | prose holds a task id, a decision id or a design-document section (rule 5) |
+
+The numbers are [estimated] and live in `scripts/content/pacing.ts`. A lesson that has not yet been edited to its row is marked `waiting` on the task that does it, in `tests/content/openers-table.ts`, and that task removes its own mark.
+
 ## A card
 
 Every world that the site draws has a notional-machine card: what it models, what it ignores and what it was calibrated against (ARCHITECTURE §5.9, D-012). A card is prose and nothing else: the front matter below, a few words, and three parts under `##` headings, in this order.

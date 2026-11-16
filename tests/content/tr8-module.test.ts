@@ -14,6 +14,7 @@
  *     generator, so when the generator moves a number, this file names the lesson and the figure that went stale.
  *   - The claims TR8 adds (content/claims/tr8.yaml) are read at the pins, at a tag or a commit, with the lines of their quotes.
  */
+import { PACING_CODES } from '../../scripts/content/pacing.ts'
 import { describe, expect, test } from 'bun:test'
 import { isAtCommit, planOf } from '@es/play/predictions/plan'
 import { spawnSync } from 'node:child_process'
@@ -166,7 +167,8 @@ describe('check 1: TR8 compiles with no diagnostic of any kind', () => {
   })
 
   test('nothing in the module, its lessons or its claims is reported', () => {
-    const mine = result.diagnostics.filter((d) => d.file.startsWith('content/modules/tr8/') || d.file === CLAIMS_FILE)
+    const mine = result.diagnostics.filter((d) => (d.file.startsWith('content/modules/tr8/') || d.file === CLAIMS_FILE) && !PACING_CODES.includes(d.code))
+    // R-T12: the pacing warnings are the worklist of the lesson tasks R-T34 to R-T39, so they are allowed here until each lesson is edited.
     expect(mine.map((d) => `${d.file}:${d.line} ${d.severity} ${d.code}`)).toEqual([])
   })
 })

@@ -135,7 +135,7 @@ export const POOL_PARTS: readonly PoolPart[] = [
   {
     id: 'free-queue',
     name: 'Free queue',
-    sentence: 'The pages nobody holds, in the order they are evicted, the next on the left: free pages first, then cached ones.',
+    sentence: 'The pages nobody holds, in the order they are evicted, the next on the left: free pages first, then cached pages.',
     engine: 'FreeKVCacheBlockQueue',
     levels: 'all',
   },
