@@ -1,12 +1,14 @@
-import { Suspense, useEffect, useRef } from 'react'
+import { Suspense, useEffect, useMemo, useRef } from 'react'
 import type { GameMode, RunResult } from '@es/play'
 import { NotRecorded } from '@/games/kit/NotRecorded'
+import { RunPlaceContext, type RunPlace } from '@/games/kit/RunContext'
 import { useRecorder } from '@/games/kit/useRecorder'
 import { resolveGame } from '@/games/registry'
 import { ClaimLease } from '@/scene/lease'
 import type { Of } from './BlockFrame'
 import { GameLoading } from './GameBlock'
 import { finishBlockRun } from './runs'
+import { runAnchor } from './sections'
 
 /*
  * The game of a lesson's game block, at the block's level and in its mode (A§4.3; W1b-T01). This is the block's lazy half: it loads when
@@ -18,6 +20,8 @@ import { finishBlockRun } from './runs'
  *   - A run that ends goes to the ledger through the recorder, as from the game's own page, and to the page's runs (runs.ts), where the
  *     prediction box finds it.
  *   - Focus goes to the game once it is on the page, so its keys work at once: the stub that was pulled has gone.
+ *   - The game's frame publishes its run for the lesson's dock (RunPlace, src/games/kit/RunContext.tsx): the dock is a second view of the
+ *     same run, and its "Back to my run" comes back to this block's box.
  */
 
 export interface GameEmbedProps {
@@ -38,6 +42,7 @@ export default function GameEmbed({ block, scope, at, rev, title, autoFocus = tr
   const box = useRef<HTMLDivElement>(null)
   const recorder = useRecorder()
   const { record } = recorder
+  const place: RunPlace = useMemo(() => ({ scope, key: `${scope}#${at}`, anchor: runAnchor(at) }), [scope, at])
 
   // Focus moves to the game when it appears, unless the learner has put it somewhere else of their own while it loaded.
   useEffect(() => {
@@ -72,9 +77,11 @@ export default function GameEmbed({ block, scope, at, rev, title, autoFocus = tr
   return (
     <div ref={box} className="es-c-game__embed">
       <ClaimLease.Provider value>
-        <Suspense fallback={<GameLoading title={title} />}>
-          <Game level={block.level} mode={block.mode} placement="embed" rev={rev} onFinish={finish} />
-        </Suspense>
+        <RunPlaceContext.Provider value={place}>
+          <Suspense fallback={<GameLoading title={title} />}>
+            <Game level={block.level} mode={block.mode} placement="embed" rev={rev} onFinish={finish} />
+          </Suspense>
+        </RunPlaceContext.Provider>
       </ClaimLease.Provider>
       {recorder.problem === null ? null : <NotRecorded detail={recorder.problem} />}
     </div>

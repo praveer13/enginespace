@@ -17,6 +17,7 @@ import type { IntroCoachProps } from './Intro'
 import type { KeysDialogProps } from './KeysDialog'
 import { LiveRegion } from './LiveRegion'
 import { boxIn, momentAt, useMeasure, type Named } from './moments'
+import { nextTouch, publishRun, retireRun, useRunPlace, type LiveRun } from './RunContext'
 import { useGameInput } from './useGameInput'
 import { useRun, type RunCore, type RunOutcome } from './useRun'
 import { ViewSwitch, type GameView } from './ViewSwitch'
@@ -69,6 +70,9 @@ export type FrameRun<Action extends GameAction, View, Score, Ask> = RunCore<Acti
 }
 
 export type { RunOutcome }
+
+/** A game's compact view, as the dock draws it for any game. */
+type LiveRunView = NonNullable<LiveRun['DockView']>
 
 /** The goal line's four parts (REDESIGN §2.6, P4), and the words for the end once it is met. */
 export interface FrameGoal {
@@ -261,6 +265,35 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
       tellIntro({ moved: false, askOpen: false })
     },
   }
+
+  // Inside a lesson, the run is published for the lesson's dock (RunContext.tsx): a second view of the same run, whose actions are the
+  // frame's own. A run that starts or moves is touched, and the dock follows the run touched last.
+  const place = useRunPlace()
+  const touch = useRef({ turns: -1, at: 0 })
+  useEffect(() => {
+    if (place === null) return
+    if (touch.current.turns !== run.turns) touch.current = { turns: run.turns, at: nextTouch() }
+    publishRun({
+      place,
+      game: game.id,
+      gameTitle: game.title,
+      levelTitle,
+      mode,
+      view: run.view,
+      done: run.done,
+      turns: run.turns,
+      canUndo: run.canUndo,
+      askOpen,
+      step: mode === 'practice' && !run.done ? (kit?.step?.(run.view) ?? null) : null,
+      stepWords: kit?.stepWords ?? '',
+      dispatch: (action) => dispatch(action as A),
+      undo: run.undo,
+      restart: () => onRestart(),
+      DockView: (kit?.DockView as LiveRunView | undefined) ?? null,
+      touched: touch.current.at,
+    })
+  })
+  useEffect(() => () => (place === null ? undefined : retireRun(place.key)), [place])
 
   /** New numbers: a fresh seed that the level's band accepts, from the browser's entropy (unseen, not secret). */
   const newNumbers = () => onRestart(drawInBand(session, level, crypto.getRandomValues(new Uint32Array(1))[0]))

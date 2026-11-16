@@ -207,8 +207,40 @@
 }
 
 .es-lesson__section > .es-lesson__part + .es-lesson__part,
+.es-lesson__read-flow > .es-lesson__part + .es-lesson__part,
 .es-lesson__intro + .es-lesson__part {
   margin-top: var(--es-space-12);
+}
+
+/* Read's parts, in one column; from 80rem wide and 44rem tall the dock (Dock.tsx) stands in a second, sticky beside them. */
+.es-lesson__read-flow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-6);
+  min-width: 0;
+}
+
+@media (min-width: 80rem) and (min-height: 44rem) {
+  .es-lesson__section[data-docked] {
+    --lesson-dock: 24rem;
+    isolation: isolate;
+    grid-template-columns: minmax(0, 1fr) var(--lesson-dock);
+    column-gap: var(--es-space-8);
+    align-items: start;
+  }
+
+  /* A run open in Read keeps the column's whole width: it passes through the dock's margin, and the dock steps back (it is hidden) while it
+     does, so neither covers the other. */
+  .es-lesson__section[data-docked] .es-run:is([data-phase='open'], [data-phase='failed']) {
+    width: calc(100% + var(--lesson-dock) + var(--es-space-8));
+    max-width: none;
+  }
+}
+
+/* Where there is no dock, a part's way back to the run the learner touched last. */
+.es-lesson__back {
+  margin: calc(var(--es-space-4) * -1) 0 0;
+  font-size: var(--es-size-note);
 }
 
 .es-lesson__section-title,

@@ -103,8 +103,8 @@ export const POOL_COPY: Readonly<Record<PoolLevelId, PoolCopy>> = {
 
 /**
  * A part of the diagram, as the parts list names it (REDESIGN §2.6): an id, the engine's name, one sentence, the identifier the pinned
- * vLLM gives it where it has one, and the levels it is drawn on. The Parts list reads these rows; the first-run intro and the source
- * popover will read the same ones.
+ * vLLM gives it where it has one, the levels it is drawn on, and the claim that sources it. The Parts list, the first-run intro and the
+ * source popover all read these rows. A part with no claim is a model object: the course's model draws it, and the popover says so.
  */
 export interface PoolPart {
   readonly id: string
@@ -114,6 +114,8 @@ export interface PoolPart {
   readonly engine?: string
   /** The levels that draw it, or every level. */
   readonly levels: readonly PoolLevelId[] | 'all'
+  /** The claim (content/claims) that holds its value, its tag and its file and symbol at the pinned commit. */
+  readonly claim?: string
 }
 
 const SLIDING: readonly PoolLevelId[] = ['two-kinds', 'evict', 'same-size', 'adapters', 'manager']
@@ -122,15 +124,35 @@ const ADAPTERS: readonly PoolLevelId[] = ['adapters', 'manager']
 
 /** The parts, in the order the list shows them: the five every level draws, then what a level adds. */
 export const POOL_PARTS: readonly PoolPart[] = [
-  { id: 'pool', name: 'KV page pool', sentence: 'Every KV page on the GPU, in rows of 16. A page holds one block of tokens for one KV group.', engine: 'BlockPool', levels: 'all' },
+  {
+    id: 'pool',
+    name: 'KV page pool',
+    sentence: 'Every KV page on the GPU, in rows of 16. A page holds one block of tokens for one KV group.',
+    engine: 'BlockPool',
+    levels: 'all',
+    claim: 'vllm.hybrid-kv.single-pool',
+  },
   {
     id: 'page',
-    name: "A page's state",
-    sentence: 'Free, in use by a request, cached for a later prefix hit, or about to be shared by one. The legend under the diagram gives each its colour and mark.',
+    name: 'KV page',
+    sentence: 'One page holds one block of tokens for one KV group. Its state is its colour and mark in the legend: free, in use, cached, or waited on by a prefix hit.',
     levels: 'all',
+    claim: 'vllm.cache.block-size-default',
   },
-  { id: 'waiting', name: 'Waiting queue', sentence: 'Requests not yet admitted. Admit one each step it fits; before you do, its row shows the prefix it would reuse.', levels: 'all' },
-  { id: 'batch', name: 'Running batch', sentence: 'The admitted requests, one to a slot. Each draws its block table: a row for each KV group, a segment for each block.', levels: 'all' },
+  {
+    id: 'waiting',
+    name: 'Waiting queue',
+    sentence: 'Requests not yet admitted. Admit one each step it fits; before you do, its row shows the prefix it would reuse.',
+    levels: 'all',
+    claim: 'vllm.scheduler.order',
+  },
+  {
+    id: 'batch',
+    name: 'Running batch',
+    sentence: 'The admitted requests, one to a slot. Each draws its block table: a row for each KV group, a segment for each block.',
+    levels: 'all',
+    claim: 'vllm.scheduler.order',
+  },
   { id: 'cost', name: 'Cost', sentence: 'Recomputed tokens, plus a weight for each step a request waits for its adapter. Lower is better.', levels: 'all' },
   {
     id: 'free-queue',
@@ -138,14 +160,39 @@ export const POOL_PARTS: readonly PoolPart[] = [
     sentence: 'The pages nobody holds, in the order they are evicted, the next on the left: free pages first, then cached ones.',
     engine: 'FreeKVCacheBlockQueue',
     levels: 'all',
+    claim: 'vllm.kv-pool.free-order',
   },
   { id: 'conversation', name: 'Conversation', sentence: "Requests that share a growing prefix: each turn opens with the whole of the turn before it. A page's label names its conversation and block.", levels: 'all' },
-  { id: 'kv-group', name: 'KV group', sentence: 'Layers that share one block table. Each group holds its own pages for a request, all from the one pool.', levels: GROUPS },
-  { id: 'sliding', name: 'Sliding window', sentence: 'A group that keeps only the pages inside its window and returns the rest to the free queue.', levels: SLIDING },
-  { id: 'state', name: 'State group', sentence: "A recurrent layer's group: a fixed number of pages for each request, however long it runs.", levels: ['state'] },
-  { id: 'padding', name: 'Padding', sentence: 'Layers added to a group so that every group fills the same page size. They hold no KV.', levels: ['same-size'] },
-  { id: 'adapter', name: 'LoRA adapter', sentence: 'Its weights take pages from the same pool. A request that needs one waits until it has loaded.', levels: ADAPTERS },
+  {
+    id: 'kv-group',
+    name: 'KV group',
+    sentence: 'Layers that share one block table. Each group holds its own pages for a request, all from the one pool.',
+    levels: GROUPS,
+    claim: 'vllm.hybrid-kv.group-rules',
+  },
+  {
+    id: 'sliding',
+    name: 'Sliding window',
+    sentence: 'A group that keeps only the pages inside its window and returns the rest to the free queue.',
+    levels: SLIDING,
+    claim: 'vllm.hybrid-kv.sliding-skipped-tokens',
+  },
+  { id: 'state', name: 'State group', sentence: "A recurrent layer's group: a fixed number of pages for each request, however long it runs.", levels: ['state'], claim: 'vllm.hybrid-kv.mamba-hit' },
+  { id: 'padding', name: 'Padding', sentence: 'Layers added to a group so that every group fills the same page size. They hold no KV.', levels: ['same-size'], claim: 'vllm.hybrid-kv.padding-layers' },
+  { id: 'adapter', name: 'LoRA adapter', sentence: 'Its weights take pages from the same pool. A request that needs one waits until it has loaded.', levels: ADAPTERS, claim: 'kv.slora.page-vector' },
 ]
+
+/** A part's row by id. */
+export const partOf = (id: string): PoolPart | undefined => POOL_PARTS.find((part) => part.id === id)
+
+/**
+ * A page's popover names the pool's class once: a page is a block that vLLM's `BlockPool` hands out (REDESIGN §2.2: the pool is vLLM's
+ * `BlockPool`, and the game calls its unit a page).
+ */
+export const PAGE_ENGINE_LINE = { before: 'In vLLM a page is a block, and the class that hands blocks out is ', engine: 'BlockPool', after: '.' } as const
+
+/** What the dock's Step does, in the engine's words: the first option each decision lists. */
+export const DOCK_STEP_WORDS = 'Step takes the first option the decision lists: the first request that fits, or the pages at the front of the free queue.'
 
 /** The parts a level draws, in the list's order. */
 export const partsOf = (level: PoolLevelId): readonly PoolPart[] => POOL_PARTS.filter((part) => part.levels === 'all' || part.levels.includes(level))

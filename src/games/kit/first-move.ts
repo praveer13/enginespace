@@ -1,6 +1,7 @@
 import type { ComponentType, ReactNode } from 'react'
 import type { GameAction } from '@es/play'
 import type { PartRow } from '@/design/components/PartsList'
+import type { DockViewProps } from './RunContext'
 import { isObject, PLACE_KEYS, readJson, writeJson } from '@/settings/store'
 
 /*
@@ -51,7 +52,12 @@ export interface KitMoment<View> {
  */
 export interface GameKit<Action extends GameAction, View, Props = never> {
   readonly Diagram2D?: ComponentType<Props>
-  readonly DockView?: ComponentType<Props>
+  /** The compact 2D view a lesson's dock draws, over the same run as the instrument (RunContext.tsx). */
+  readonly DockView?: ComponentType<DockViewProps<View>>
+  /** The move the dock's Step takes in this view, in practice, or null when there is none. */
+  readonly step?: (view: View) => Action | null
+  /** What Step does, in the game's words. */
+  readonly stepWords?: string
   readonly parts: readonly KitPart[]
   readonly moments: readonly KitMoment<View>[]
   /** The first action of the level's reference run: always legal, and pointed at once the ask is answered. */

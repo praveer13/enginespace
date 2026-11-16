@@ -1,7 +1,8 @@
-import { lookLine, moveWords, partsOf, POOL_MOMENTS, type PoolMoment } from '@es/play/pool/copy'
+import { DOCK_STEP_WORDS, lookLine, moveWords, partsOf, POOL_MOMENTS, type PoolMoment } from '@es/play/pool/copy'
 import { poolInit, poolReference, poolSession } from '@es/play/pool/session'
 import type { PoolAction, PoolLevelId, PoolView } from '@es/play/pool/types'
 import type { GameKit, KitMoment, KitPart } from '@/games/kit/first-move'
+import { DockView } from './DockView'
 
 /*
  * What KV page pool gives the instrument frame (REDESIGN §2.6, R-T08): its parts on a level with where each is drawn, its named moments
@@ -53,6 +54,25 @@ const MOMENTS: readonly KitMoment<PoolView>[] = POOL_MOMENTS.map((moment) => ({
 const levelParts = (level: string): readonly string[] => partsOf(level as PoolLevelId).map((part) => part.id)
 
 /**
+ * The move Step takes: the first option the open decision lists. Admit the first request that fits, evict the pages at the front of the free
+ * queue (the engine's own order), preempt the first request offered, load the first adapter. Null when no decision is open.
+ */
+export function poolStep(view: PoolView): PoolAction | null {
+  const ask = view.ask
+  if (ask === null) return null
+  switch (ask.kind) {
+    case 'admit':
+      return { t: 'admit', req: ask.candidates[0] ?? null }
+    case 'evict':
+      return { t: 'evict', pages: [...ask.candidates.slice(0, ask.need)].sort((a, b) => a - b) }
+    case 'preempt':
+      return ask.candidates.length === 0 ? null : { t: 'preempt', req: ask.candidates[0] }
+    case 'prefetch':
+      return { t: 'prefetch', adapter: ask.candidates[0] ?? null }
+  }
+}
+
+/**
  * What the pool gives the frame (REDESIGN §2.6): its drawing, its parts on this level, its named moments, and its first run. The first ask
  * is the level's guess, which the session lets the learner skip, and before it the learner looks at the first waiting request. The pointed
  * first move is the reference run's first action on this level and seed.
@@ -81,6 +101,9 @@ export function poolKit(levelId: PoolLevelId, seed: number): GameKit<PoolAction,
       }
     },
     levelParts,
+    DockView,
+    step: poolStep,
+    stepWords: DOCK_STEP_WORDS,
   }
 }
 

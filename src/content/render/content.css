@@ -552,3 +552,110 @@
     grid-template-columns: minmax(0, 1fr) minmax(0, 20rem);
   }
 }
+
+/* ---------------------------------------------------------------------------------------------- the lesson's dock */
+
+/*
+ * The dock (Dock.tsx, REDESIGN §2.5, §3.4): the learner's run beside Read, from 80rem wide and 44rem tall. It stands in Read's second
+ * column (lesson.css), sticky under the top of the viewport, a sheet of the same paper with a hairline edge: a second view of the run,
+ * never a second instrument. It fits a 44rem viewport whole, so it does not scroll, and a part's popover may open past its edge. A run
+ * open in Read is drawn over it where the run passes through its margin, and while it does the dock steps back (hidden).
+ */
+.es-ldock {
+  position: sticky;
+  /* Under Read's own content (lesson.css isolates the section): a run open in Read that passes through the margin is drawn over the dock. */
+  z-index: -1;
+  top: var(--es-space-6);
+  grid-column: 2;
+  grid-row: 1;
+  display: grid;
+  gap: var(--es-space-3);
+  padding: var(--es-space-4);
+  border: 1px solid var(--es-edge);
+  background: var(--es-paper);
+  color: var(--es-paper-ink);
+  transition: opacity var(--es-dur-quick) var(--es-ease-settle);
+}
+
+/* It steps back at once, and comes back with a short fade. */
+.es-ldock[data-covered] {
+  visibility: hidden;
+  opacity: 0;
+  transition: none;
+}
+
+.es-ldock__title {
+  margin: 0;
+  padding-bottom: var(--es-space-2);
+  border-bottom: 2px solid var(--es-paper-ink);
+  font-family: var(--es-font-body);
+  font-size: var(--es-size-plate);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.es-ldock__what {
+  margin: 0;
+  font-size: var(--es-size-note);
+  line-height: 1.35;
+}
+
+.es-ldock__game {
+  font-weight: 700;
+}
+
+.es-ldock__level::before {
+  content: '·';
+  content: '·' / '';
+  margin-inline-end: var(--es-space-1);
+  color: var(--es-text-3);
+}
+
+.es-ldock__mode {
+  color: var(--es-text-2);
+}
+
+.es-ldock__view {
+  min-width: 0;
+}
+
+.es-ldock__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2);
+  align-items: center;
+}
+
+.es-ldock__lead {
+  margin: 0;
+  font-weight: 700;
+}
+
+.es-ldock__note {
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+
+.es-ldock__empty {
+  display: grid;
+  gap: var(--es-space-2);
+  padding: var(--es-space-6) var(--es-space-4);
+  border: 1px dashed var(--es-edge);
+}
+
+.es-ldock__back {
+  margin: 0;
+  padding-top: var(--es-space-2);
+  border-top: 1px solid var(--es-paper-rule);
+  font-size: var(--es-size-note);
+}
+
+.es-ldock__back a {
+  color: inherit;
+  text-underline-offset: 0.2em;
+}

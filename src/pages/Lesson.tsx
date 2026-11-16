@@ -18,6 +18,7 @@ import type { LedgerReading } from '@/content/render/LessonLedger'
 import { citedClaimIds, claimNumbers, kernelspaceLabel, kernelspaceUrl, labName, pendingLab, plainText, renderEnv, titled, todayIso, type RenderEnv } from '@/content/render/model'
 import { Prose } from '@/content/render/Prose'
 import { useBlockRun } from '@/content/render/runs'
+import { useLatestRun } from '@/games/kit/RunContext'
 import { groupSections, proseWords, runAnchor, testLabel, type LessonSections, type Piece } from '@/content/render/sections'
 import '@/content/render/lesson.css'
 import { moduleCode } from '@/progress/words'
@@ -40,9 +41,14 @@ import { useBookmark } from '@/settings/bookmark'
  *
  * The ledger loads after the first paint, in a chunk of its own (LessonLedger.tsx): it keeps the pointer, and hands the rail, the Test and
  * Keep their words. The bookmark (`es:here`) is kept as the learner reads and acts.
+ *
+ * The dock (Dock.tsx), from 80rem wide and 44rem tall: the learner's most recent run in this lesson, live, sticky beside Read. Below that
+ * there is no dock and no sheet, and each part of Read has a "Back to my run" link instead, once there is a run to go back to.
  */
 
 const LessonLedger = lazy(() => import('@/content/render/LessonLedger'))
+/** The dock beside Read (Dock.tsx): its own chunk, loaded only where it is drawn, from 80rem wide and 44rem tall. */
+const Dock = lazy(() => import('@/content/render/Dock'))
 const PredictTicket = lazy(() => import('@/content/render/Predict').then((module) => ({ default: module.PredictTicket })))
 const ItemBlock = lazy(() => import('@/items/ItemBlock').then((module) => ({ default: module.ItemBlock })))
 
@@ -109,6 +115,33 @@ function useWide(): boolean {
     return () => list.removeEventListener('change', change)
   }, [])
   return wide
+}
+
+const DOCKED = '(min-width: 80rem) and (min-height: 44rem)'
+
+/** True from 80rem wide and 44rem tall: the dock stands beside Read. False on the server, which draws no dock. */
+function useDocked(): boolean {
+  const [docked, setDocked] = useState(false)
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return
+    const list = window.matchMedia(DOCKED)
+    const change = () => setDocked(list.matches)
+    change()
+    list.addEventListener('change', change)
+    return () => list.removeEventListener('change', change)
+  }, [])
+  return docked
+}
+
+/** "Back to my run", under a part's title where there is no dock: to the instrument of the run touched last in this lesson. */
+function BackToRun({ scope }: { scope: string }) {
+  const run = useLatestRun(scope)
+  if (run === null) return null
+  return (
+    <p className="es-lesson__back">
+      <a href={`#${run.place.anchor}`}>Back to my run</a>
+    </p>
+  )
 }
 
 /** The id of the last place whose top has passed the upper third of the viewport, and every place passed on this visit. */
@@ -189,6 +222,7 @@ export function LessonView({ lesson, module, claims, today, map = null, reading:
   const names = useLevelNames()
   const levelTitle = (game: string, level: string) => names(game, level) ?? rosterEntry(game)?.title ?? 'A level'
   const wide = useWide()
+  const docked = useDocked()
 
   const partId = (at: number) => env.headings.get(sections.read[at].heading) ?? `part-${at + 1}`
   const testId = sections.test.heading === null ? 'test-title' : (env.headings.get(sections.test.heading) ?? 'test-title')
@@ -326,34 +360,42 @@ export function LessonView({ lesson, module, claims, today, map = null, reading:
             </section>
           )}
 
-          <section id="read" className="es-lesson__section" aria-label="Read" data-section="read">
-            {sections.intro.length > 0 ? (
-              <div className="es-lesson__prose es-lesson__intro">
-                <Pieces pieces={sections.intro} {...pieceProps} />
-              </div>
+          <section id="read" className="es-lesson__section" aria-label="Read" data-section="read" data-docked={docked ? '' : undefined}>
+            <div className="es-lesson__read-flow">
+              {sections.intro.length > 0 ? (
+                <div className="es-lesson__prose es-lesson__intro">
+                  <Pieces pieces={sections.intro} {...pieceProps} />
+                </div>
+              ) : null}
+              {sections.read.map((part, at) => {
+                const id = partId(at)
+                const next = sections.read[at + 1]
+                return (
+                  <section key={id} className="es-lesson__part" aria-labelledby={id} data-part={at + 1}>
+                    <h2 id={id} className="es-lesson__part-title">
+                      {headingText(part.heading)}
+                    </h2>
+                    <p className="es-lesson__meta">
+                      Part {at + 1} of {sections.read.length}, about {readingMinutes(partWords[at])} min
+                    </p>
+                    {docked ? null : <BackToRun scope={lesson.id} />}
+                    <div className="es-lesson__prose">
+                      <Pieces pieces={part.pieces} {...pieceProps} />
+                    </div>
+                    <WayOn
+                      href={next === undefined ? `#${testId}` : `#${partId(at + 1)}`}
+                      label={next === undefined ? toTest : `Next part: ${headingText(next.heading)}`}
+                      emphasis={wide ? 'primary' : 'outline'}
+                    />
+                  </section>
+                )
+              })}
+            </div>
+            {docked ? (
+              <Suspense fallback={null}>
+                <Dock scope={lesson.id} />
+              </Suspense>
             ) : null}
-            {sections.read.map((part, at) => {
-              const id = partId(at)
-              const next = sections.read[at + 1]
-              return (
-                <section key={id} className="es-lesson__part" aria-labelledby={id} data-part={at + 1}>
-                  <h2 id={id} className="es-lesson__part-title">
-                    {headingText(part.heading)}
-                  </h2>
-                  <p className="es-lesson__meta">
-                    Part {at + 1} of {sections.read.length}, about {readingMinutes(partWords[at])} min
-                  </p>
-                  <div className="es-lesson__prose">
-                    <Pieces pieces={part.pieces} {...pieceProps} />
-                  </div>
-                  <WayOn
-                    href={next === undefined ? `#${testId}` : `#${partId(at + 1)}`}
-                    label={next === undefined ? toTest : `Next part: ${headingText(next.heading)}`}
-                    emphasis={wide ? 'primary' : 'outline'}
-                  />
-                </section>
-              )
-            })}
           </section>
 
           <section id="test" className="es-lesson__section" aria-labelledby={testId} data-section="test">
