@@ -3,6 +3,7 @@
  * their KCs are passed, and the Game, Build, Prove and Keep rows say what the learner has done in each. Both are derived from the events and
  * the compiled map each time the page draws, and the page stores nothing.
  */
+import { labName } from '@/content/render/model'
 import { describe, expect, test } from 'bun:test'
 import { createElement as h } from 'react'
 import { GAMES } from '@es/play'
@@ -84,7 +85,7 @@ describe('the four rows under the lessons', () => {
     expect(/data-row="build"[\s\S]*?<\/div>/.exec(html)?.[0]).toContain('href="/labs/hybrid-kv"')
     const prove = /data-row="prove"[\s\S]*?<\/div>/.exec(html)?.[0] ?? ''
     expect(prove).not.toContain('href')
-    expect(textOf(prove)).toContain(`tr1.fork: ${MODULE.waiting}`)
+    expect(textOf(prove)).toContain(`${labName('tr1.fork')}: ${MODULE.waiting}`)
     expect(textOf(prove)).toContain(MODULE.notYet)
   })
 
