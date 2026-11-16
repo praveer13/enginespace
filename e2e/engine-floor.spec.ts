@@ -121,7 +121,7 @@ test.describe('a keyboard-only walk', () => {
     await open(page, 'nano')
     // The tray waits behind the prediction, and shows no card until it is written down: their places would answer it.
     await expect(page.locator('[data-floor-tray] [data-stage]')).toHaveCount(0)
-    await expect(page.getByText('The tray opens when the prediction is written down.')).toBeVisible()
+    await expect(page.getByText('The stage list opens when the prediction is committed.')).toBeVisible()
     await expect(page.locator('[data-floor-prompt]')).toHaveCount(0)
     // nano-vllm is an offline library: the ticket crosses no process boundary on its way back.
     await commit(page, 0)
@@ -135,7 +135,7 @@ test.describe('a keyboard-only walk', () => {
     await tabTo(page, /^Run the path$/)
     await page.keyboard.press('Enter')
     await expect(outcome(page)).toHaveText('The run is over. The debrief is ready.')
-    await expect(line(page)).toContainText('The ticket is home')
+    await expect(line(page)).toContainText('The request is home')
     await page.getByRole('button', { name: 'See the debrief' }).focus()
     await page.keyboard.press('Enter')
     await expect(page.getByRole('heading', { level: 3, name: 'Every hand-off held.' })).toBeVisible()
@@ -183,7 +183,7 @@ test.describe('a keyboard-only walk', () => {
     await page.keyboard.press('KeyR')
     await page.keyboard.press('Backspace')
     await expect(page.locator('[data-floor-path] [data-empty]')).toBeVisible()
-    await expect(page.getByText('The tray opens when the prediction is written down.')).toBeVisible()
+    await expect(page.getByText('The stage list opens when the prediction is committed.')).toBeVisible()
   })
 })
 
@@ -211,7 +211,7 @@ test.describe('a wrong answer is explained from the stage\'s source', () => {
     await expect(own).toContainText('self.waiting.append(seq)')
     // The struck stage is marked in the path and in the mirror, with a word and not only a colour.
     await expect(page.locator('[data-floor-path] li[data-state="struck"]')).toHaveCount(1)
-    await expect(page.locator('[data-mirror]')).toContainText('stopped the ticket')
+    await expect(page.locator('[data-mirror]')).toContainText('stopped the request')
     // The way back: the path is taken back to where the ticket stopped, and focus goes to the tray.
     await page.getByRole('button', { name: 'Take the path back to where it stopped' }).click()
     await expect(page.locator('[data-floor-path] li[data-state]')).toHaveCount(1)

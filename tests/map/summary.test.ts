@@ -70,7 +70,7 @@ describe('the copy', () => {
   })
 
   test('of the Play index holds no such number either, and names the board', () => {
-    expect(specialsCopy().length).toBeGreaterThan(10)
+    expect(specialsCopy().length).toBeGreaterThan(8)
     expect(specialsCopy().flatMap((text) => untaggedNumbers(text))).toEqual([])
     expect(SPECIALS.title).toBe('Games')
     expect(SPECIALS.poster.none).toBe('No picture yet')

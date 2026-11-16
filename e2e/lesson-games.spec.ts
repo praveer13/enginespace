@@ -288,6 +288,10 @@ test.describe('the lesson template, at 1440 x 900', () => {
     await expect(rail).toContainText(/One KV group: (passed in practice|passed|not yet)/, { timeout: 30_000 })
     // The next level is now the way on, in amber, and starting it folds the first.
     await expect(next).toHaveAttribute('data-emphasis', 'primary')
+    // The run's own result leads with the lesson's way on, the next level, and never offers to leave the lesson.
+    const actions = first.locator('[data-result] .es-debrief__actions')
+    await expect(actions.getByRole('button').first()).toHaveText('Next level: Full attention and a sliding window')
+    await expect(first.getByRole('link', { name: 'Open the course' })).toHaveCount(0)
     await next.click()
     await expect(first).toHaveAttribute('data-phase', 'folded')
     await expect(second).toHaveAttribute('data-phase', 'open')

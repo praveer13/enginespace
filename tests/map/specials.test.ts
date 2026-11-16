@@ -143,27 +143,28 @@ describe('the Play index', () => {
     expect(links).toEqual(board().open.map((line) => `/play/${line.id}`))
   })
 
-  test('a game that is arriving has a bare pan, the wave that brings it, and no stub', () => {
+  test('a game that is arriving has an empty well, the words "Not published yet", and no stub', () => {
     for (const line of board().arriving) {
       const markup = lineOf(html, line.id)
       expect(attribute(opening(markup, 'li')[0], 'data-status')).toBe('arriving')
       expect(markup).toContain('data-picture="pan"')
       expect(markup).toContain('data-state="free"')
-      expect(textOf(markup)).toContain(`${SPECIALS.arrivesWith} W${line.wave}`)
+      expect(textOf(markup)).toContain(SPECIALS.notBuilt)
+      expect(textOf(markup)).not.toMatch(/\bW\d\b/)
       expect(markup).not.toContain('es-stub')
       expect(markup).not.toContain('href="/play/')
     }
   })
 
-  test('the games of W2 are all there, arriving with W2', () => {
+  test('the games of W2 are all there, each not published yet, and none names its wave', () => {
     for (const title of ['Tensor views', 'Trace attribution', 'Backend dispatch', 'KV offload']) {
       const markup = lineOf(html, ROSTER.find((entry) => entry.title === title)?.id as string)
-      expect(textOf(markup)).toContain(`${SPECIALS.arrivesWith} W2`)
+      expect(textOf(markup)).toContain('Not published yet')
     }
   })
 
-  test('says in words that the pans are bare, and that every game can be played flat', () => {
-    expect(textOf(html)).toContain('bare pans')
+  test('says in words which games are published, and that every game can be played flat', () => {
+    expect(textOf(html)).toContain('not published yet')
     expect(textOf(html)).toContain('Every game can be played flat')
   })
 

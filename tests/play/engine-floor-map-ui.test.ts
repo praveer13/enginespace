@@ -163,7 +163,7 @@ describe('before the run: the order names the engine, and the page keeps the pat
   test('the path says that the ticket goes once, and the mirror does not say how long the path is', () => {
     const controls = render(h(Controls, { run: graded(committed(ids.slice(0, 3))) }))
     expect(controls).toContain('data-floor-once')
-    expect(controls).toContain('One run. The ticket goes once')
+    expect(controls).toContain('One run. The request goes once')
     const mirror = render(h(Mirror, { run: graded(committed(ids.slice(0, 3))) }))
     expect(mirror).toContain('<span class="font-numeric">3</span> stages laid.')
     expect(mirror).not.toContain('in the engine&#x27;s path')
@@ -174,7 +174,7 @@ describe('before the run: the order names the engine, and the page keeps the pat
 
   test('the drawing builds with the route: before a stage is laid it has the floor the request begins on and no more, and it says nothing of the engine\'s other floors', () => {
     const before = render(h(View2D, { run: graded(committed()) }))
-    const engineCore = level.scenario.engine === 'vllm' ? 'ENGINE-CORE' : 'ENGINE-CORE'
+    const engineCore = 'ENGINE CORE'
     expect(before).toContain('data-floor-view')
     expect(before).not.toContain(engineCore)
     const after = render(h(View2D, { run: graded(ran(ids)) }))
@@ -186,8 +186,8 @@ describe('after the run: nothing can be edited, and the tray says why it is clos
   test('a run that stopped the ticket closes the tray with the words of a level that is over, and offers no way to take the path back', () => {
     const wrong = ran([...ids.slice(0, 4), ids[5]])
     const markup = render(h(Controls, { run: graded(wrong) }))
-    expect(markup).toContain('The run is over, and the tray is closed.')
-    expect(markup).not.toContain('The ticket is home')
+    expect(markup).toContain('The run is over, and the stage list is closed.')
+    expect(markup).not.toContain('The request reached the client')
     expect(markup).toContain('data-floor-stop')
     expect(markup).not.toContain('Take the path back to where it stopped')
     expect(markup).not.toContain('data-floor-once')
@@ -196,21 +196,21 @@ describe('after the run: nothing can be edited, and the tray says why it is clos
 
   test('a path that held and stopped short is over too, and is not home', () => {
     const markup = render(h(Controls, { run: graded(ran(ids.slice(0, 6))) }))
-    expect(markup).toContain('The run is over, and the tray is closed.')
+    expect(markup).toContain('The run is over, and the stage list is closed.')
     expect(markup).not.toContain('data-floor-stop')
   })
 
   test('a path that is home says so, in the words of a tray with other requests\' stages in it', () => {
     const markup = render(h(Controls, { run: graded(floorGhost(level)) }))
-    expect(markup).toContain('The ticket is home. The stages left in the tray are not on this request’s path.')
+    expect(markup).toContain('The request reached the client. The stages left in the list are not on this request’s path.')
   })
 
   test('the live line says that the level is over, whether the ticket stopped or the path ended short', () => {
     const before = (state: FloorState) => floorView(state)
     const wrong = [...ids.slice(0, 4), ids[5]]
-    expect(changeLine(before(committed(wrong)), before(ran(wrong)))).toMatch(/^The ticket stopped at stage 5, after 4 stages that held\. .* The level is over\.$/)
+    expect(changeLine(before(committed(wrong)), before(ran(wrong)))).toMatch(/^The request stopped at stage 5, after 4 stages that held\. .* The level is over\.$/)
     expect(changeLine(before(committed(ids.slice(0, 6))), before(ran(ids.slice(0, 6))))).toBe('Every stage held, and the path ends before the request is back where it began. The level is over.')
-    expect(changeLine(before(committed(ids)), before(ran(ids)))).toBe('The ticket is home: every hand-off held, and the request is back where it began.')
+    expect(changeLine(before(committed(ids)), before(ran(ids)))).toBe('The request is home: every hand-off held, and the request is back where it began.')
   })
 })
 

@@ -263,10 +263,12 @@ export function housePlan(places: readonly Place[]): Floor[] {
     }
     byProcess.get(place.process)?.push(place)
   }
+  // A process whose id says what its name says (`api-server`, "API server") is named once.
+  const sameName = (name: string, id: string): boolean => name.toLowerCase().replace(/[^a-z0-9]/g, '') === id.toLowerCase().replace(/[^a-z0-9]/g, '')
   const floorOf = (kind: FloorKind, process: string | null, here: readonly Place[]): Floor => ({
     kind,
     process,
-    title: process === null ? FLOOR_NAMES[kind] : `${FLOOR_NAMES[kind]} · ${process}`,
+    title: process === null || sameName(FLOOR_NAMES[kind], process) ? FLOOR_NAMES[kind] : `${FLOOR_NAMES[kind]} · ${process}`,
     lanes: here.map((place): Lane => ({ key: placeKey(place), place, name: laneName(place) })),
   })
   const floors = processes.map((process) => {

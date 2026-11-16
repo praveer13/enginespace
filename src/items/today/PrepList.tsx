@@ -109,7 +109,7 @@ export function PrepStrip({ marks, secondsLeft }: PrepStripProps) {
   return (
     <div className="es-prep__strip">
       <p className="es-prep__strip-head">
-        <span>Prep list</span>
+        <span>Review set</span>
         <About seconds={secondsLeft} left />
       </p>
       <ol className="es-prep__boxes" aria-hidden="true">

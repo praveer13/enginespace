@@ -57,26 +57,26 @@ describe('what Today says', () => {
 
   test('says the day a thing comes back the way the printer writes a day', () => {
     expect(copy.backLine('2026-11-06')).toBe('back Fri 6 Nov')
-    expect(copy.nextPrep('2026-11-06')).toBe('Your next prep is Fri 6 Nov.')
-    expect(copy.placeLine(0, 3)).toBe('Item 1 of 3')
+    expect(copy.nextPrep('2026-11-06')).toBe('Your next review is Fri 6 Nov.')
+    expect(copy.placeLine(0, 3)).toBe('Question 1 of 3')
   })
 
   test('names the modes of a list, and a plain one has no note', () => {
     expect(copy.modeNote('due')).toBeNull()
     expect(copy.modeNote('welcome-back')).toBe(copy.WELCOME_BACK)
     expect(copy.modeNote('ahead')).toBe(copy.AHEAD_NOTE)
-    expect(copy.listTitle('due')).toBe('Prep list')
-    expect(copy.listTitle('welcome-back')).toBe('Prep list')
+    expect(copy.listTitle('due')).toBe('Review set')
+    expect(copy.listTitle('welcome-back')).toBe('Review set')
     expect(copy.listTitle('ahead')).toBe('Review ahead')
   })
 
   test('asks for the actions by what they do', () => {
     expect([copy.START_PREP, copy.CHECK_TICKET, copy.NEXT_TICKET, copy.FINISH_PREP, copy.MORE_PREP, copy.START_AHEAD]).toEqual([
-      'Start the prep',
-      'Check the ticket',
-      'Next ticket',
-      'Finish the prep',
-      'Prep another list',
+      'Start review',
+      'Check answer',
+      'Next question',
+      'Finish the review',
+      'Review another set',
       'Review ahead',
     ])
   })

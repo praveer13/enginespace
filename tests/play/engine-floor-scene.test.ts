@@ -400,13 +400,13 @@ describe('the house: the 2D house\'s plan, in steel, in a kitchen', () => {
     }
   })
 
-  test('its tapes name every storey in the kitchen\'s words with the engine\'s, and every pair of hands by its thread with the lane\'s code', () => {
+  test('its tapes name every storey by the engine\'s name for its process, and every pair of hands by its thread with the lane\'s code', () => {
     const view = laidView(levelOf('vllm'))
     const house = houseOfView(view)
     const tapes = tapesOf(house)
-    expect(tapes.filter((tape) => tape.id.startsWith('storey-')).map((tape) => tape.text)).toEqual(['THE DINING ROOM · CLIENT', 'THE HOST STAND · API-SERVER', 'THE PASS · ENGINE-CORE', 'THE LINE'])
+    expect(tapes.filter((tape) => tape.id.startsWith('storey-')).map((tape) => tape.text)).toEqual(['CLIENT', 'API SERVER', 'ENGINE CORE', 'GPU'])
     // The line's name is masking tape stuck on the canopy's lip, as Service's is on its tile; the floors' tapes and the hands' are DOM tape.
-    const line = tapes.find((tape) => tape.text === 'THE LINE')
+    const line = tapes.find((tape) => tape.text === 'GPU')
     expect(line?.strip?.center).toEqual(line?.at)
     expect(tapes.filter((tape) => tape.strip)).toHaveLength(1)
     // Cut to its words, the strip is at most what the lip's band leaves it over the white tubes lit along the lip's foot, clear of their
@@ -695,7 +695,7 @@ describe('the camera\'s stops (GAMES.md §2.6, Cameras)', () => {
     const floors = floorsOf(view)
     const stops = stopsOf(floors)
     expect(stops.map((stop) => stop.id)).toEqual(['cutaway', ...floors.map((_, i) => `floor:${i}`), 'follow'])
-    expect(stops[1].label).toBe('The dining room · client')
+    expect(stops[1].label).toBe('Client')
     expect(nextStop(stops, 'follow')).toBe('cutaway')
     expect(nextStop(stops, 'cutaway')).toBe('floor:0')
     const house = houseOf(floors)

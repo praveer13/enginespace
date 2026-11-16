@@ -101,7 +101,7 @@ describe('before the prediction: the drawing does not answer it, and the tray is
   })
 
   test('the tray says it is closed and shows no card, so that no place on a card answers the prediction', () => {
-    expect(markup).toContain('The tray opens when the prediction is written down.')
+    expect(markup).toContain('The stage list opens when the prediction is committed.')
     expect(markup).not.toContain('data-stage=')
     expect(markup).not.toContain('es-floor-tile')
     // The path's head line, and no card's: the order's headline leads its paper with no head line over it.
@@ -135,8 +135,8 @@ describe('the tray: hand-off cards, one tab stop, and a platform to narrow them'
   test('has a card for every stage left, each a button named for its hand-off, its label and its places, and the cards are one tab stop', () => {
     expect(count(markup, /data-stage="/g)).toBe(vllm.tray.length)
     expect(markup).toContain('data-count="26"')
-    expect(markup).toContain('Lay spike · queue: the scheduler&#x27;s waiting queue. From engine-core · main to engine-core · main.')
-    expect(markup).toContain('Lay dumbwaiter down · h2d: step inputs to the GPU (prepare_inputs). From engine-core · main to GPU of engine-core.')
+    expect(markup).toContain('Lay queue: the scheduler&#x27;s waiting queue. From engine-core · main to engine-core · main.')
+    expect(markup).toContain('Lay copy · host to device: step inputs to the GPU (prepare_inputs). From engine-core · main to GPU of engine-core.')
     const tray = markup.slice(markup.indexOf('data-floor-tray'), markup.indexOf('data-floor-path'))
     expect(count(tray, /class="es-ticket es-floor-tile"[^>]*tabindex="0"/g) + count(tray, /tabindex="0"[^>]*class="es-ticket es-floor-tile"/g)).toBe(1)
     expect(count(tray, /tabindex="-1"/g)).toBe(vllm.tray.length - 1)
@@ -150,7 +150,7 @@ describe('the tray: hand-off cards, one tab stop, and a platform to narrow them'
     const names = [...chips.matchAll(/aria-pressed="(?:true|false)"[^>]*>([^<]*(?:<span[^>]*>[^<]*<\/span>)*)/g)].map((m) => m[1].replace(/<[^>]*>/g, '').trim())
     expect(names[0]).toBe('All')
     expect(names.some((name) => name.startsWith('client'))).toBe(true)
-    expect(names.some((name) => name.startsWith('the line · GPU'))).toBe(true)
+    expect(names.some((name) => name.startsWith('GPU'))).toBe(true)
     expect(chips).toContain(' · here')
     // The counts add up to the tray's cards.
     const counts = [...chips.matchAll(/aria-hidden="true"> (\d+)<\/span>/g)].map((m) => Number(m[1]))
@@ -160,7 +160,7 @@ describe('the tray: hand-off cards, one tab stop, and a platform to narrow them'
   test('the tray closes once the ticket is home: the cards left in it are other engines\' stages, and it shows none', () => {
     for (const level of [vllm, nano]) {
       const done = render(h(Controls, { run: fakeRun(floorGhost(level)) }))
-      expect(done).toContain('The ticket is home. The stages left in the tray belong to other engines.')
+      expect(done).toContain('The request reached the client. The stages left in the list belong to other engines.')
       expect(done).not.toContain('data-stage=')
     }
   })
@@ -172,7 +172,7 @@ describe('the path: an ordered list, one row for each stage, and the stub that r
     const path = markup.slice(markup.indexOf('data-floor-path'))
     expect(path).toContain('aria-label="The laid path, in order"')
     expect(path).toContain('3 stages laid')
-    expect(path).toContain('aria-label="Stage 1, not run yet: ticket window · ipc, POST /v1/completions (create_completion). From client · http-client to api-server · handler-task."')
+    expect(path).toContain('aria-label="Stage 1, not run yet: IPC · socket, POST /v1/completions (create_completion). From client · http-client to api-server · handler-task."')
     expect(count(path, /class="es-floor-row__main"[^>]*tabindex="0"/g) + count(path, /tabindex="0"[^>]*class="es-floor-row__main"/g)).toBe(1)
     expect(count(path, /class="es-floor-row__main"/g)).toBe(3)
     expect(path).not.toMatch(/<button[^>]*class="es-stub__pull"[^>]*disabled=""/)
@@ -186,7 +186,7 @@ describe('the path: an ordered list, one row for each stage, and the stub that r
     expect(count(path, /data-state="ran"/g)).toBe(5)
     expect(path).toContain('1 run')
     expect(path).toContain('5 held')
-    expect(path).toContain('held: ticket window')
+    expect(path).toContain('held: IPC · socket')
     expect(path).not.toContain('data-floor-stop')
     expect(path).toMatch(/<button[^>]*class="es-stub__pull"[^>]*disabled=""/)
   })
@@ -196,7 +196,7 @@ describe('the path: an ordered list, one row for each stage, and the stub that r
     const path = render(h(Controls, { run: fakeRun(state) }))
     const note = path.slice(path.indexOf('data-floor-stop'))
     expect(path).toContain('data-stop="thread"')
-    expect(note).toContain('The ticket stopped at stage')
+    expect(note).toContain('The request stopped at stage')
     expect(note).toContain('A change of thread inside a process needs a queue.')
     expect(note).toContain('What vLLM at the pin does here')
     expect(note).toContain('What was laid')
@@ -205,7 +205,7 @@ describe('the path: an ordered list, one row for each stage, and the stub that r
     expect(note).toContain('https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/engine/core.py#L')
     expect(note).toContain('Take the path back to where it stopped')
     expect(count(path, /data-state="struck"/g)).toBe(1)
-    expect(path).toMatch(/aria-label="Stage 5, stopped the ticket:/)
+    expect(path).toMatch(/aria-label="Stage 5, stopped the request:/)
   })
 })
 
@@ -234,15 +234,15 @@ describe('the mirror: the ordered stage table (GAMES.md §5, 2D path)', () => {
     const markup = render(h(Mirror, { run: fakeRun(state) }))
     expect(markup).toContain('<span class="font-numeric">5</span> stages laid')
     expect(markup).toContain('4</span> held in the last run')
-    expect(markup).toContain('stage <span class="font-numeric">5</span> stopped the ticket')
+    expect(markup).toContain('stage <span class="font-numeric">5</span> stopped the request')
     expect(markup).toContain('Every figure is a count of stages in the model.')
-    expect(markup).toContain('stopped the ticket')
+    expect(markup).toContain('stopped the request')
     expect(markup).toContain('data-lamp="true"')
   })
 
-  test('the key lists each hand-off with its kitchen word, its engine term and what it does', () => {
+  test('the key lists each hand-off with its tile\'s word, its engine term and what it does', () => {
     const markup = render(h(Mirror, { run: fakeRun(floorInit(nano)) }))
-    for (const word of ['ticket window', 'window shelf', 'spike', 'hands at work', 'dumbwaiter down', 'call to the line', 'halves across', 'dumbwaiter up', '&quot;Heard!&quot;']) {
+    for (const word of ['IPC · socket', 'IPC · shared memory', 'queue', 'compute · call', 'copy · host to device', 'compute · launch', 'compute · collective', 'copy · device to host', 'sync']) {
       expect([word, markup.includes(word)]).toEqual([word, true])
     }
     expect(markup).toContain('a hop between processes, over a socket')
@@ -287,7 +287,7 @@ describe('the debrief: the first wrong stage, the prediction, and two houses sid
     expect(markup).toContain('Two houses, side by side')
     expect(count(markup, /data-floor-house=""/g)).toBe(2)
     expect(count(markup, /data-floor-house=""><svg /g)).toBe(2)
-    expect(markup).toContain('SGLang at the pin</strong> has the order desk, which vLLM at the pin does not.')
+    expect(markup).toContain('SGLang at the pin</strong> has a tokenizer process, which vLLM at the pin does not.')
     for (const term of ['Where detokenizing runs', 'Hops over ZMQ', 'Spikes (queues) on the path', 'Stages in the path']) expect(markup).toContain(term)
     expect(markup).toContain('api-server · output-handler-task')
     expect(markup).toContain('detokenizer · main')
@@ -319,7 +319,7 @@ describe('the live line says what changed, one sentence for a turn (A§6.9)', ()
   test('the prediction, a stage laid, the path taken back, and a stage moved', () => {
     const start = floorInit(vllm)
     const committed = floorReduce(start, { t: 'commit', prediction: truthOf(vllm.scenario) })
-    expect(changeLine(view(start), view(committed))).toBe('Prediction written down: 2 process boundaries. The tray is open.')
+    expect(changeLine(view(start), view(committed))).toBe('Prediction written down: 2 process boundaries. The stage list is open.')
     const laid = floorReduce(committed, { t: 'lay', stage: vllm.reference[0] })
     expect(changeLine(view(committed), view(laid))).toBe('Laid stage 1: POST /v1/completions (create_completion).')
     expect(changeLine(view(laid), view(floorReduce(laid, { t: 'unlay' })))).toBe('The path is back to 0 stages.')
@@ -333,12 +333,12 @@ describe('the live line says what changed, one sentence for a turn (A§6.9)', ()
     expect(changeLine(view(laid), view(floorReduce(laid, { t: 'run' })))).toContain('3 stages held.')
     const wrong = walk(vllm, { t: 'commit', prediction: 2 }, ...vllm.reference.slice(0, 4).map((stage): FloorAction => ({ t: 'lay', stage })), { t: 'lay', stage: vllm.reference[5] })
     const stopped = changeLine(view(wrong), view(floorReduce(wrong, { t: 'run' })))
-    expect(stopped).toContain('The ticket stopped at stage 5, after 4 stages that held.')
+    expect(stopped).toContain('The request stopped at stage 5, after 4 stages that held.')
     expect(stopped).toContain('A change of thread inside a process needs a queue.')
     expect(stopped).not.toContain('`')
     const almost = ranTo(nano, nano.reference.length - 1)
     const home = floorReduce(floorReduce(almost, { t: 'lay', stage: nano.reference[nano.reference.length - 1] }), { t: 'run' })
-    expect(changeLine(view(almost), view(home))).toBe('The ticket is home: every hand-off held, and the request is back where it began.')
+    expect(changeLine(view(almost), view(home))).toBe('The request is home: every hand-off held, and the request is back where it began.')
     expect(changeLine(view(laidTo(nano, 0)), view(laidTo(levelOf('vllm'), 0)))).toBe('')
   })
 })
@@ -356,9 +356,11 @@ describe('the words of the page', () => {
     expect(splitCode('``')).toEqual([])
   })
 
-  test('a hand-off is said in the kitchen\'s word and then the engine\'s, and a source is linked at the commit it is cited at', () => {
-    expect(handoffWords('queue')).toBe('spike · queue')
-    expect(handoffWords('sync')).toBe('"Heard!" · sync')
+  test('a hand-off is said as its mechanism, with the kind where one of the five splits, and a source is linked at the commit it is cited at', () => {
+    expect(handoffWords('queue')).toBe('queue')
+    expect(handoffWords('ipc')).toBe('IPC · socket')
+    expect(handoffWords('h2d')).toBe('copy · host to device')
+    expect(handoffWords('sync')).toBe('sync')
     expect(permalink({ repo: 'a/b', ref: 'abc', path: 'x/y.py', symbol: 's', line: 7, quote: 'q' })).toBe('https://github.com/a/b/blob/abc/x/y.py#L7')
   })
 })

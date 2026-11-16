@@ -302,7 +302,7 @@ test.describe('the moment, on the bell (GAMES.md §5, "Motion")', () => {
     expect((box?.y ?? 0) + (box?.height ?? Infinity)).toBeLessThanOrEqual(height)
     await expect(camera(page).locator('button[aria-pressed="true"]')).toHaveText('Cutaway')
     await stub.click()
-    await expect(camera(page).locator('button[aria-pressed="true"]')).toHaveText('Follow the ticket')
+    await expect(camera(page).locator('button[aria-pressed="true"]')).toHaveText('Follow the request')
     await expect(page.locator('[data-floor-path] li[data-state="ran"]')).toHaveCount(13)
     // The run plays where it is seen: frames come while the ticket travels, and the house settles where it stopped.
     await expect(stage(page)).not.toHaveAttribute('data-settled', 'true', { timeout: 10_000 })
@@ -346,7 +346,7 @@ test.describe('the views and the camera (A§6.8)', () => {
     await settle(page)
     await commit(page, 2)
     await settle(page)
-    const names = ['Cutaway', 'The dining room · client', 'The host stand · api-server', 'The pass · engine-core', 'The line', 'Follow the ticket']
+    const names = ['Cutaway', 'Client', 'API server', 'Engine core', 'GPU', 'Follow the request']
     await expect(camera(page).getByRole('button')).toHaveText(names)
     const pressed = () => camera(page).locator('button[aria-pressed="true"]').textContent()
     expect(await pressed()).toBe(names[0])
@@ -392,7 +392,7 @@ test.describe('the picture', () => {
     await lay(page, reference('vllm').slice(0, 9))
     await settle(page)
     const labels = stage(page).locator('.es-labels')
-    for (const words of ['THE DINING ROOM · CLIENT', 'THE HOST STAND · API-SERVER', 'THE PASS · ENGINE-CORE', 'THE LINE', 'input-thread', 'output-handler-task']) await expect(labels.getByText(words, { exact: true })).toHaveCount(1)
+    for (const words of ['CLIENT', 'API SERVER', 'ENGINE CORE', 'GPU', 'input-thread', 'output-handler-task']) await expect(labels.getByText(words, { exact: true })).toHaveCount(1)
     await expect(labels.locator('.es-floor-chit__n')).toHaveCount(9)
     await expect(stage(page).locator('.es-stage__scene')).toHaveAttribute('aria-hidden', 'true')
     expect(await stage(page).locator('canvas').evaluate((canvas) => canvas.textContent)).toBe('')
@@ -478,7 +478,7 @@ test.describe('on a phone, 390 by 844 (the finish review\'s W1b round 1)', () =>
     await run(page)
     await expect(stage(page).locator('.es-floor-chit__n[data-state="struck"]')).toHaveCount(1)
     await settle(page)
-    await expect(camera(page).locator('button[aria-pressed="true"]')).toHaveText('Follow the ticket')
+    await expect(camera(page).locator('button[aria-pressed="true"]')).toHaveText('Follow the request')
     expect(await handsShown(page)).toEqual(['main'])
     expect(await covered(page)).toEqual([])
     // A tall house's cutaway is the whole house, where three would meet on a phone: its hands' tapes wait for a wider canvas. A run sent
@@ -513,7 +513,7 @@ test.describe('reduced motion (A§6.9): every change cuts, and the camera cuts b
     await open(page, 'vllm', 1)
     await settle(page)
     await commit(page, 2)
-    await camera(page).getByRole('button', { name: 'Follow the ticket' }).click()
+    await camera(page).getByRole('button', { name: 'Follow the request' }).click()
     await lay(page, reference('vllm').slice(0, 13))
     await settle(page)
     await run(page)

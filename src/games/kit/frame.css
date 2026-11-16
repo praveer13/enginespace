@@ -292,15 +292,42 @@
   }
 }
 
-/* Inside a lesson the column, not the screen, sets the room: the diagram and the dock stand one under the other, and nothing scrolls inside. */
+/*
+ * Inside a lesson the column, not the screen, sets the room. Where the column is wide enough (the Run, which spans the content), the dock
+ * stands beside the diagram while the run is played, so an Admit and what it did to the pool are in view together (P5); the result, which
+ * is long, goes under the diagram at the column's width (REDESIGN §3.4). In a narrower column (Read beside the lesson's dock, a phone) the
+ * diagram and the dock stand one under the other. Nothing scrolls inside.
+ */
+.es-frame[data-placement='embed'] {
+  container: es-frame / inline-size;
+}
+
 .es-frame[data-placement='embed'] .es-frame__dock-main {
   overflow: visible;
 }
 
+@container es-frame (min-width: 56rem) {
+  .es-frame[data-phase='play'] > .es-frame__body {
+    grid-template-columns: minmax(0, 1fr) minmax(19rem, 22rem);
+    align-items: start;
+  }
+
+  /* A long list of options scrolls inside the dock, so the readout under it stays on the screen with the diagram (P5). */
+  .es-frame[data-phase='play'] > .es-frame__body > .es-frame__dock {
+    max-height: max(26rem, min(34rem, 100svh - 8rem));
+  }
+
+  .es-frame[data-phase='play'] > .es-frame__body > .es-frame__dock > .es-frame__dock-main {
+    overflow-y: auto;
+  }
+}
+
 /* Narrow and at least 700 px tall: the dock is pinned to the foot and holds the decision over one readout line. */
 @media (max-width: 63.999rem) and (min-height: 700px) {
+  /* Room for the whole page grid at 390 x 844, three rows of pages under the batch and the free queue [estimated]: the strip, the goal
+     line and the pinned dock take the rest. */
   .es-frame[data-placement='page'] .es-frame__view {
-    max-height: calc(67svh - 23.5rem);
+    max-height: calc(67svh - 21rem);
     min-height: 9rem;
     overflow: auto;
   }

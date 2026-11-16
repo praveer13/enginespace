@@ -21,7 +21,7 @@ export function Cite({ title, note }: { title: string; note: StageNote }) {
       <p className="flex flex-wrap items-baseline gap-x-2">
         <HandoffGlyph mechanism={note.mechanism} className="size-4 flex-none self-center" />
         <span className="es-type-ticket">
-          {words.kitchen} · {note.mechanism}
+          {words.tile}
         </span>
         <span>
           <Code>{note.label}</Code>

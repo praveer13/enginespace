@@ -11,7 +11,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
-import { decodePlace, keepPlace, readPlace } from '@/settings/bookmark'
+import { decodePlace, isReadAt, keepPlace, readPlace } from '@/settings/bookmark'
 import { createSettingsStore, decodePointer, keepPointer, PLACE_KEYS, pointerSnapshot, readPointer, START_POINTER } from '@/settings/store'
 import type { SettingsEnv } from '@/settings/store'
 import { root } from '../ci/support'
@@ -109,6 +109,18 @@ describe('the bookmark, es:here', () => {
     withWindow(storage(true))
     expect(readPlace()).toBeNull()
     expect(() => keepPlace(PLACE)).not.toThrow()
+  })
+
+  test('follows a part being read, never a peek: a heading counts only in the upper part of the screen, so opening a lesson keeps no place', () => {
+    // A part's heading at the foot of the first screen of a lesson only opened (the walk of 2026-11-16 found the header's Continue then
+    // followed that lesson): no place.
+    expect(isReadAt({ top: 860, bottom: 890 }, 900)).toBe(false)
+    expect(isReadAt({ top: 500, bottom: 530 }, 900)).toBe(false)
+    // Scrolled to, in the upper part of the screen: the part being read.
+    expect(isReadAt({ top: 120, bottom: 150 }, 900)).toBe(true)
+    expect(isReadAt({ top: 360, bottom: 390 }, 900)).toBe(true)
+    // Scrolled past, off the top: not on the screen.
+    expect(isReadAt({ top: -60, bottom: -30 }, 900)).toBe(false)
   })
 })
 

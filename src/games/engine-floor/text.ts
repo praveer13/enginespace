@@ -17,8 +17,8 @@ export function splitCode(text: string): { code: boolean; text: string }[] {
 /** The same line as plain words, for a live region or an accessible name: the backticks go, and the words stay. */
 export const plain = (text: string): string => text.replaceAll('`', '')
 
-/** A hand-off in words, the kitchen's and then the engine's: `spike · queue`. */
-export const handoffWords = (mechanism: Mechanism): string => `${MECHANISM_WORDS[mechanism].kitchen} · ${mechanism}`
+/** A hand-off in words: its mechanism, one of TR1's five, and its kind where the five split (`IPC · socket`, `copy · host to device`). */
+export const handoffWords = (mechanism: Mechanism): string => MECHANISM_WORDS[mechanism].tile
 
 /** The permalink of a stage's line at the commit it is cited at (A§4.4, TR1's "every code reference is a pinned permalink"). */
 export const permalink = (source: SourceRef): string => `https://github.com/${source.repo}/blob/${source.ref}/${source.path}#L${source.line}`

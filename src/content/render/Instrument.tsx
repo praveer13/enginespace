@@ -5,6 +5,7 @@ import { Button } from '@/design/components/Button'
 import { PrintingDots } from '@/design/components/PrintingDots'
 import { TextLink } from '@/design/components/TextLink'
 import { LessonGuessContext } from '@/games/kit/lessonGuess'
+import { LessonRunContext, type LessonOnward, type LessonRun } from '@/games/kit/lessonRun'
 import type { Of } from './BlockFrame'
 import { useLevelNames } from './levelNames'
 import { pendingGame } from './model'
@@ -51,14 +52,27 @@ export interface InstrumentProps {
   onStart?: () => void
   /** The next opening level has started: this one folds to one line, so the Run holds one live instrument. */
   folded?: boolean
+  /** The lesson's way on from this run's result, which its debrief leads with: the next opening level, or "Read why". */
+  onward?: LessonOnward | null
+  /** The learner chose this level from the result of the one before it: it starts, and takes focus, as its own button would. */
+  requested?: boolean
 }
 
-export function Instrument({ block, at, blocks, scope, rev, kind, guesses = [], autoStart = false, after, onStart, folded = false }: InstrumentProps) {
+export function Instrument({ block, at, blocks, scope, rev, kind, guesses = [], autoStart = false, after, onStart, folded = false, onward = null, requested = false }: InstrumentProps) {
   const entry = rosterEntry(block.id)
   const title = useLevelNames()(block.id, block.level) ?? entry?.title ?? 'This level'
   const [started, setStarted] = useState(autoStart)
   const [failed, setFailed] = useState(false)
   const [focus, setFocus] = useState(false)
+  // Started from the result of the level before it (`requested`): the same as its own button. (Adjusting state to a prop, during render.)
+  const [asked, setAsked] = useState(requested)
+  if (requested && !asked) {
+    setAsked(true)
+    setStarted(true)
+    setFocus(true)
+  }
+  // The debrief draws the paired guess's reveal beside the run's result while it is up; the ticket under the instrument steps aside then.
+  const [revealShown, setRevealShown] = useState(false)
   const before = useBlockRun(scope, after ?? -1)
   const own = useBlockRun(scope, at)
   const paired = guesses.find((guess) => guess.paired)
@@ -66,6 +80,13 @@ export function Instrument({ block, at, blocks, scope, rev, kind, guesses = [], 
   const lessonGuess = usePairedGuess(pairedBlock, scope)
   const above = guesses.filter((guess) => !guess.paired)
   const loading = useRef<HTMLParagraphElement>(null)
+  const pairedTicket =
+    pairedBlock === undefined ? null : (
+      <Suspense fallback={null}>
+        <PredictTicket block={pairedBlock} scope={scope} at={paired?.at ?? 0} blocks={blocks} rev={rev} slot="paired" />
+      </Suspense>
+    )
+  const lessonRun: LessonRun = { onward, reveal: pairedTicket, showsReveal: setRevealShown }
   useEffect(() => {
     if (focus) loading.current?.focus()
   }, [focus])
@@ -123,7 +144,9 @@ export function Instrument({ block, at, blocks, scope, rev, kind, guesses = [], 
           <EmbedBoundary onError={() => setFailed(true)}>
             <Suspense fallback={<Loading title={entry.title} ref={loading} />}>
               <LessonGuessContext.Provider value={lessonGuess}>
-                <GameEmbed block={block} scope={scope} at={at} rev={rev} title={entry.title} autoFocus={focus} />
+                <LessonRunContext.Provider value={lessonRun}>
+                  <GameEmbed block={block} scope={scope} at={at} rev={rev} title={entry.title} autoFocus={focus} />
+                </LessonRunContext.Provider>
               </LessonGuessContext.Provider>
             </Suspense>
           </EmbedBoundary>
@@ -145,11 +168,7 @@ export function Instrument({ block, at, blocks, scope, rev, kind, guesses = [], 
           <span className="es-run__mode">{block.mode === 'graded' ? 'Graded, on new numbers.' : 'Practice, on the level’s own numbers, with undo.'}</span>
         </p>
       )}
-      {pairedBlock === undefined ? null : (
-        <Suspense fallback={null}>
-          <PredictTicket block={pairedBlock} scope={scope} at={paired?.at ?? 0} blocks={blocks} rev={rev} slot="paired" />
-        </Suspense>
-      )}
+      {revealShown ? null : pairedTicket}
       <p className="es-run__elsewhere">
         <TextLink to={`/play/${block.id}?level=${block.level}`}>Every level of {entry?.title ?? block.id}</TextLink>
       </p>

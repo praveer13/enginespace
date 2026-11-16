@@ -45,7 +45,7 @@ describe('the page before the ledger is open', () => {
     expect(html).toContain(PAGE_LEAD)
     expect(html).toContain('data-phase="loading"')
     expect(html).toContain('Reading your ledger')
-    expect(html).not.toContain('Start the prep')
+    expect(html).not.toContain('Start review')
     expect(html).not.toContain('es-prep__line')
   })
 
@@ -56,15 +56,15 @@ describe('the page before the ledger is open', () => {
 
 describe('the prep list', () => {
   const views: LineView[] = lineViews(lines, [], null)
-  const html = render(h(PrepList, { day: DAY, mode: 'due', lines: views, seconds: 100, phase: 'list', lamp: true, stub: h('button', { type: 'button' }, 'Start the prep') }))
+  const html = render(h(PrepList, { day: DAY, mode: 'due', lines: views, seconds: 100, phase: 'list', lamp: true, stub: h('button', { type: 'button' }, 'Start review') }))
 
   test('is a ticket with a stamped title, its day on the head line, and a line for each idea with its id on tape', () => {
-    expect(html).toContain('<h2 class="es-ticket__title">Prep list</h2>')
+    expect(html).toContain('<h2 class="es-ticket__title">Review set</h2>')
     expect(html).toContain('Wed 4 Nov')
     expect((html.match(/class="es-prep__line"/g) ?? []).length).toBe(2)
     for (const kc of [BUBBLE, OVERLAP]) expect(html).toContain(kc)
     expect(html).toContain('Bubble width')
-    expect(html).toContain('aria-label="Prep list, 2 ideas"')
+    expect(html).toContain('aria-label="Review set, 2 ideas"')
   })
 
   test('says about how long it takes through the readout, tagged estimated, and that nothing is timed', () => {
@@ -78,7 +78,7 @@ describe('the prep list', () => {
     expect(html).toContain('data-lamp="true"')
     const folded = render(h(PrepList, { day: DAY, mode: 'due', lines: views, seconds: 100, phase: 'work' }))
     expect(folded).not.toContain('data-lamp')
-    expect(folded).not.toContain('Start the prep')
+    expect(folded).not.toContain('Start review')
   })
 
   test('draws a waiting line as an empty box, and says in words that it is next; the box is a drawing and is hidden from assistive tech', () => {
@@ -147,7 +147,7 @@ describe('the strip', () => {
 describe('the tickets that stand when there is nothing to start', () => {
   test('nothing passed: says what passes something and offers the way on, Continue, from the pointer; nothing to start', () => {
     const html = render(h(EmptyTicket, { day: DAY, unserved: false }))
-    expect(html).toContain('Nothing to prep yet')
+    expect(html).toContain('Nothing to review yet')
     // With no pointer kept yet, the way on is the empty ledger's: the first lesson (src/settings/store.ts, START_POINTER).
     expect(html).toContain(`href="${START_POINTER.href}"`)
     expect(html).toContain(START_POINTER.label)
@@ -158,14 +158,14 @@ describe('the tickets that stand when there is nothing to start', () => {
 
   test('passed, and no ticket built for it yet: says so, and that the page picks them up once their modules publish them', () => {
     const html = render(h(EmptyTicket, { day: DAY, unserved: true }))
-    expect(html).toContain('No tickets yet for what you have passed')
+    expect(html).toContain('No review questions yet for what you have passed')
     expect(html).toContain('once their modules publish them')
   })
 
   test('nothing due: names the next prep, offers a review ahead when there is one, and holds the lamp back', () => {
     const html = render(h(RestTicket, { day: DAY, next: '2026-11-06', ahead: true, onAhead: () => undefined }))
     expect(html).toContain('Nothing is due today')
-    expect(html).toContain('Your next prep is Fri 6 Nov.')
+    expect(html).toContain('Your next review is Fri 6 Nov.')
     expect(html).toContain('Review ahead')
     expect(html).not.toContain('data-lamp')
     expect(html).not.toMatch(BACKLOG)
@@ -192,19 +192,19 @@ describe('the ticket that closes a prep', () => {
   const html = render(h(DoneTicket, { day: DAY, lines: done, right: 1, total: 2, next: '2026-11-05', more: { label: 'Review ahead', run: () => undefined }, ahead: false }))
 
   test('opens on the tally, in the heading that takes focus, and lists what became of each idea with the day it comes back', () => {
-    expect(html).toContain('Prep done')
+    expect(html).toContain('Review done')
     expect(html).toContain('1 of 2 right')
     expect(html).toContain('tabindex="-1"')
     expect(html).toContain('back Mon 9 Nov')
     expect(html).toContain('back Thu 5 Nov')
-    expect(html).toContain('Your next prep is Thu 5 Nov.')
+    expect(html).toContain('Your next review is Thu 5 Nov.')
   })
 
   test('prints the counts on the printer, each through the readout and tagged measured, with where they were measured', () => {
-    expect(html).toContain('aria-label="The prep, printed"')
+    expect(html).toContain('aria-label="The review, in numbers"')
     expect(html).toMatch(/data-tag="measured"/)
-    expect(html).toContain('this prep')
-    expect(html).toContain('next prep')
+    expect(html).toContain('this review')
+    expect(html).toContain('next review')
     expect(html).toContain('Thu 5 Nov')
   })
 
@@ -214,7 +214,7 @@ describe('the ticket that closes a prep', () => {
     const last = render(h(DoneTicket, { day: DAY, lines: done, right: 2, total: 2, next: null, more: null, ahead: false }))
     expect(last).not.toContain('es-stub')
     expect(last).not.toContain('Your next prep')
-    expect(last).not.toContain('next prep</dt>')
+    expect(last).not.toContain('next review</dt>')
   })
 
   test('says it was a review ahead when it was, and never what is overdue', () => {
@@ -239,7 +239,7 @@ describe('the ticket being prepped', () => {
     expect(html).toContain(`seed ${seedLabel(drawn.item.seed)}`)
     expect(html).toContain('unseen')
     expect(html).toContain('data-lamp="true"')
-    expect(html).toContain('Item 1 of 2')
+    expect(html).toContain('Question 1 of 2')
     expect(html).toContain(plain(drawn.item.stem).replace(/'/g, '&#x27;'))
     for (const given of drawn.item.givens) expect(html).toContain(given.label)
   })
@@ -247,14 +247,14 @@ describe('the ticket being prepped', () => {
   test('is titled by its family and the idea is on its head line, as an item served outside a lesson is', () => {
     expect(html).toContain('<h2 class="es-ticket__title">Bubble width</h2>')
     expect(html).toContain(BUBBLE)
-    expect(html).toContain('Prep list')
+    expect(html).toContain('Review set')
   })
 
   test('takes the answer on a slip or on lines with a tick box, three plates for how sure, and a stub to check it', () => {
     if (drawn.item.answer.kind === 'numeric') expect(html).toContain('class="es-field__input"')
     else expect(html).toContain('type="radio"')
     expect(html.match(/aria-pressed="false"/g)).toHaveLength(3)
-    expect(html).toContain('Check the ticket')
+    expect(html).toContain('Check answer')
     expect(html).toContain('How sure are you?')
   })
 
@@ -276,6 +276,6 @@ describe('the ticket being prepped', () => {
 
   test('says it is the last ticket by what its stub will do once it is checked, and prints nothing of the list around it', () => {
     expect(html).not.toContain('es-prep__line')
-    expect(html).not.toContain('Finish the prep')
+    expect(html).not.toContain('Finish the review')
   })
 })

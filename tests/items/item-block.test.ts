@@ -93,7 +93,7 @@ describe('the first ticket of an attempt', () => {
     expect(html).toContain(`data-seed="${first.seed}"`)
     expect(html).toContain(`seed ${seedLabel(first.seed)}`)
     expect(html).toContain('unseen')
-    expect(html).toContain('Item 1 of 3')
+    expect(html).toContain('Question 1 of 3')
     expect(html).toContain(plain(first.item.stem).replace(/'/g, '&#x27;'))
     for (const given of first.item.givens) expect(html).toContain(given.label)
   })
@@ -107,7 +107,7 @@ describe('the first ticket of an attempt', () => {
     }
     expect(html.match(/aria-pressed="false"/g)).toHaveLength(3)
     for (const tap of ['guess', 'think so', 'sure']) expect(html).toContain(`>${tap}<`)
-    expect(html).toContain('Check the ticket')
+    expect(html).toContain('Check answer')
     expect(html).toContain('How sure are you?')
     expect(html).toMatch(/aria-labelledby="[^"]+"/)
   })
@@ -133,10 +133,10 @@ describe('the first ticket of an attempt', () => {
 
   test('puts the question first, then the numbers, then the slip, so the page reads as a ticket is filled', () => {
     const at = (text: string) => html.indexOf(text)
-    expect(at('Item 1 of 3')).toBeLessThan(at(plain(first.item.stem).replace(/'/g, '&#x27;')))
+    expect(at('Question 1 of 3')).toBeLessThan(at(plain(first.item.stem).replace(/'/g, '&#x27;')))
     expect(at('es-item__givens')).toBeLessThan(at('How sure are you?'))
     expect(at('How sure are you?')).toBeLessThan(at('seed '))
-    expect(at('seed ')).toBeLessThan(at('Check the ticket'))
+    expect(at('seed ')).toBeLessThan(at('Check answer'))
   })
 })
 

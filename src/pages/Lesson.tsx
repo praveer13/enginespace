@@ -18,6 +18,7 @@ import type { LedgerReading } from '@/content/render/LessonLedger'
 import { citedClaimIds, claimNumbers, kernelspaceLabel, kernelspaceUrl, labName, pendingLab, plainText, renderEnv, titled, todayIso, type RenderEnv } from '@/content/render/model'
 import { Prose } from '@/content/render/Prose'
 import { useBlockRun } from '@/content/render/runs'
+import type { LessonOnward } from '@/games/kit/lessonRun'
 import { useLatestRun } from '@/games/kit/RunContext'
 import { groupSections, proseWords, runAnchor, testLabel, type LessonSections, type Piece } from '@/content/render/sections'
 import '@/content/render/lesson.css'
@@ -355,7 +356,7 @@ export function LessonView({ lesson, module, claims, today, map = null, reading:
               <h2 id="run-title" className="es-lesson__section-title" data-bookmark="skip">
                 Run
               </h2>
-              <RunSection {...pieceProps} />
+              <RunSection {...pieceProps} readHref={firstRead} />
               <WayOn href={firstRead} label="Read why" emphasis={wide ? 'after-run' : 'outline'} scope={lesson.id} game={lastGame} />
             </section>
           )}
@@ -511,11 +512,28 @@ interface PieceProps {
 }
 
 /** The Run: the setup (or the primer, under "Before you run"), then the levels in order, each with the guesses it answers. */
-function RunSection({ lesson, env, whereOf, sections }: PieceProps) {
+function RunSection({ lesson, env, whereOf, sections, readHref }: PieceProps & { readHref: string }) {
   // The opening levels play one after the other: starting the next folds the one before, so the Run holds one live instrument.
   const [active, setActive] = useState(0)
+  // The level the learner chose from the result of the one before it ("Next level: ..." in that run's debrief), which starts at once.
+  const [requested, setRequested] = useState(-1)
+  const names = useLevelNames()
   const run = sections.run
   if (run === null) return null
+  // The way on from each opening run's result (REDESIGN §2.4): the next opening level, and after the last one, "Read why". A run in the
+  // lesson never offers to leave it.
+  const onwardOf = (order: number): LessonOnward => {
+    const next = run.games[order + 1]
+    if (next === undefined) return { label: 'Read why', select: () => window.location.assign(readHref) }
+    const block = lesson.blocks[next] as Of<'game'>
+    return {
+      label: `Next level: ${names(block.id, block.level) ?? rosterEntry(block.id)?.title ?? 'the next level'}`,
+      select: () => {
+        setActive(order + 1)
+        setRequested(order + 1)
+      },
+    }
+  }
   const firstGame = run.pieces.findIndex((piece) => piece.kind === 'block' && lesson.blocks[piece.at].type === 'game')
   const lead = run.pieces.slice(0, firstGame)
   const rest = run.pieces.slice(firstGame)
@@ -546,6 +564,8 @@ function RunSection({ lesson, env, whereOf, sections }: PieceProps) {
             after={order > 0 ? run.games[order - 1] : undefined}
             onStart={() => setActive(order)}
             folded={order < active}
+            onward={onwardOf(order)}
+            requested={order === requested}
           />
         )
       })}

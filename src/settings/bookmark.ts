@@ -38,6 +38,12 @@ export function keepPlace(place: Place): void {
 /** How long a part's heading stays in view before it is the place: a glance on the way past is not [estimated]. */
 export const DWELL_MS = 2000
 
+/** The share of the viewport, from its top, that a part's heading must stand in to count as the part being read [estimated]. */
+export const READ_ZONE = 0.4
+
+/** Whether a heading with this box, in a viewport this tall, stands where a part is read: on the screen, in its upper `READ_ZONE`. */
+export const isReadAt = (box: { top: number; bottom: number }, viewportHeight: number): boolean => box.bottom > 0 && box.top <= viewportHeight * READ_ZONE
+
 /**
  * Keeps the place last in view on the lesson at `route`: the `h2` headings with an id inside `root` are its parts. `test` is the id of
  * the heading that opens the lesson's Test, so a place there says so. Before the first heading the place is the Run. A section's own
@@ -63,18 +69,31 @@ export function useBookmark(route: string, root: HTMLElement | null, test?: stri
       for (const heading of headings) if (heading.getBoundingClientRect().top <= window.innerHeight / 3) found = heading
       return found
     }
+    // A heading is read, not glimpsed, once it has reached the upper part of the viewport, where `current` finds the part in view. A
+    // heading at the foot of the first screen, or one that a late layout (a game's chunk) pushes down, is not a place: a learner who only
+    // opened the lesson has not started it, and the way on must not follow a peek.
     const timers = new Map<Element, number>()
-    const observer = new IntersectionObserver((entries) => {
-      for (const entry of entries) {
-        const known = timers.get(entry.target)
-        if (entry.isIntersecting && known === undefined) {
-          timers.set(entry.target, window.setTimeout(() => keep(entry.target as HTMLHeadingElement), DWELL_MS))
-        } else if (!entry.isIntersecting && known !== undefined) {
-          window.clearTimeout(known)
-          timers.delete(entry.target)
+    const reading = (heading: Element) => isReadAt(heading.getBoundingClientRect(), window.innerHeight)
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const known = timers.get(entry.target)
+          if (entry.isIntersecting && known === undefined) {
+            timers.set(
+              entry.target,
+              window.setTimeout(() => {
+                timers.delete(entry.target)
+                if (reading(entry.target)) keep(entry.target as HTMLHeadingElement)
+              }, DWELL_MS),
+            )
+          } else if (!entry.isIntersecting && known !== undefined) {
+            window.clearTimeout(known)
+            timers.delete(entry.target)
+          }
         }
-      }
-    })
+      },
+      { rootMargin: `0px 0px -${Math.round((1 - READ_ZONE) * 100)}% 0px` },
+    )
     for (const heading of headings) observer.observe(heading)
     // After the action's own handlers have run: a page that redraws in the middle of a click would undo a radio's change before React reads it.
     let pending = 0

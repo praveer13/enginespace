@@ -35,7 +35,7 @@ export const floorLabel = (floor: Floor): string => floor.title
 
 /** The stops the buttons show, in the order `C` cycles them. */
 export function stopsOf(floors: readonly Floor[]): readonly { id: CameraStop; label: string }[] {
-  return [{ id: 'cutaway', label: 'Cutaway' }, ...floors.map((floor, i) => ({ id: `floor:${i}` as const, label: floorLabel(floor) })), { id: 'follow', label: 'Follow the ticket' }]
+  return [{ id: 'cutaway', label: 'Cutaway' }, ...floors.map((floor, i) => ({ id: `floor:${i}` as const, label: floorLabel(floor) })), { id: 'follow', label: 'Follow the request' }]
 }
 
 /** The stop after `current`, wrapping: what `C` does. A stop the house no longer has starts from the cutaway. */

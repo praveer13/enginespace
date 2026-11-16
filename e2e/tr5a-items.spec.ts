@@ -210,13 +210,13 @@ for (const width of [360, 1280]) {
             // The first ticket of an attempt is answered right and the next wrong, so that both reveals are seen.
             const right = index % 2 === 0
             await fill(container, generator(block), item, right ? 'right' : 'wrong')
-            await control(container, /Check the ticket/).click()
+            await control(container, /Check answer/).click()
             await inPhase(container, 'revealed')
             await expectVerdict(container, item, right)
             // The solution is printed beneath the verdict, one line for each step, and ends with the key's own line.
             await expect(container.locator('.es-item__steps li')).not.toHaveCount(0)
             await audit(page, container, `${block.family}/${variant} revealed`, width === 360)
-            await control(container, index === attempt.variants.length - 1 ? /Tally the tickets/ : /Next ticket/).click()
+            await control(container, index === attempt.variants.length - 1 ? /See the tally/ : /Next question/).click()
             if (index < attempt.variants.length - 1) await inPhase(container, 'asking')
           }
           await inPhase(container, 'done')

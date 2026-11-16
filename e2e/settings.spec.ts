@@ -742,7 +742,7 @@ async function downloaded(download: Download): Promise<{ name: string; text: str
 test.describe('/evidence: counts by kind and module, with export and import', () => {
   test('an empty ledger is a blank ticket with the way to the menu, and the means to import', async ({ page }) => {
     await open(page, '/evidence')
-    await expect(page.getByRole('heading', { level: 1, name: 'Evidence' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'Progress' })).toBeVisible()
     await expect(page.getByRole('heading', { level: 2, name: 'Nothing in the ledger yet' })).toBeVisible()
     await expect(page.getByRole('link', { name: /Open the course/ })).toHaveAttribute('href', '/map')
     await expect(page.locator('table')).toHaveCount(0)

@@ -126,7 +126,7 @@ export function IntroCoach({ title, step, parts, replay, look, ask, skip, moveWo
           />
         </>
       )
-      primary = nextButton(walking ? 'Next part' : 'Next')
+      primary = nextButton('Next')
       break
     case 'look':
       body = (

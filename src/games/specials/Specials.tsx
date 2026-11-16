@@ -117,7 +117,7 @@ function ArrivingRow({ line }: { line: ArrivingLine }) {
       </div>
       <div className="es-line__act">
         <TapeLabel tilt="right" className="es-line__soon">
-          {line.wave > 0 ? `${SPECIALS.arrivesWith} W${line.wave}` : SPECIALS.notBuilt}
+          {SPECIALS.notBuilt}
         </TapeLabel>
       </div>
     </li>
@@ -132,9 +132,6 @@ export function SpecialsView({ board }: SpecialsViewProps) {
       <header className="es-specials__header">
         <div className="es-specials__heading">
           <h1 className="es-specials__title">{SPECIALS.title}</h1>
-          <TapeLabel tilt="left" className="es-specials__term">
-            {SPECIALS.term}
-          </TapeLabel>
         </div>
         {SPECIALS.lede.map((line) => (
           <p key={line} className="es-specials__lede">

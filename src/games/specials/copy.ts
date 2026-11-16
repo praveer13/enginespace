@@ -1,24 +1,21 @@
 /*
  * The Play index's words (W1-T06), in one place so that the page and its tests read the same copy. The display name leads over its
- * subtitle, the engine concept (D-049); the kitchen's board holds the games and the engine's terms name what each one plays.
+ * subtitle, the engine concept (D-049). The words are the engine's and the product's own (REDESIGN §2.7): no kitchen word, and no wave id.
  */
 
 export const SPECIALS = {
   title: 'Games',
-  /** The kitchen's word for the page, on tape beside the engine's term. */
-  term: 'the specials',
   lede: [
     'Each game plays one rule of the engine in a seeded world, and the rule is the concept itself. Every game can be played flat on the page, and the ones with a scene can be played in it as well.',
-    'The games on the board can be played now. The rest hang here as bare pans until the wave that brings them.',
+    'The published games can be played now. The rest are listed with what they will teach, and are not published yet.',
   ],
-  open: 'On the board',
-  arriving: 'Arriving',
+  open: 'Published',
+  arriving: 'Not published yet',
   play: 'Play',
   view: { d2: '2D', d3: '3D', twoToo: '2D view too' },
   modules: 'Module',
   also: 'also',
-  arrivesWith: 'arriving with',
-  notBuilt: 'Not built yet.',
+  notBuilt: 'Not published yet',
   poster: {
     /** In a well whose game has no picture, or whose picture did not come. A drawing that does come carries its own name for a reader that cannot see it. */
     none: 'No picture yet',

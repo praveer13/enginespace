@@ -94,8 +94,14 @@ function factRows(a: HouseFacts, b: HouseFacts): FactRow[] {
   ]
 }
 
-/** The floors that only one house has: the architecture's difference, in the kitchen's words. */
-const onlyIn = (facts: HouseFacts, other: HouseFacts): string[] => facts.floors.filter((kind) => !other.floors.includes(kind)).map((kind) => FLOOR_NAMES[kind].toLowerCase())
+/** A process's name in a sentence: "an API server", "a tokenizer process", "one process". An initialism keeps its capitals. */
+const inSentence = (name: string): string => {
+  const word = /^[A-Z][A-Z]/.test(name) ? name : name.charAt(0).toLowerCase() + name.slice(1)
+  return word.startsWith('one ') ? word : `${/^[aeiouAEIOU]/.test(word) ? 'an' : 'a'} ${word}`
+}
+
+/** The processes that only one engine's path has: the architecture's difference, in the engine's words. */
+const onlyIn = (facts: HouseFacts, other: HouseFacts): string[] => facts.floors.filter((kind) => !other.floors.includes(kind)).map((kind) => inSentence(FLOOR_NAMES[kind]))
 
 function Houses({ scenario }: { scenario: Scenario }) {
   const rival = rivalScenario(scenario)
