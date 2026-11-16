@@ -73,6 +73,9 @@ export const NIGHT = {
   title: 'The run so far',
   lede: 'The same run as a table, for reading and screen readers. Every tick is synthetic: this world models the loop, and the real engine is the judge.',
   card: 'What this world models',
+  /** What the table's box and the card's box say in the moment before their code is in. */
+  loadingTable: 'Loading the run as a table…',
+  loadingCard: 'Loading the card…',
 } as const
 
 export interface Dish {

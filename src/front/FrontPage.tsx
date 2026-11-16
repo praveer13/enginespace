@@ -22,10 +22,8 @@ import { LiveRegion } from '@/games/kit/LiveRegion'
 import { useGameInput } from '@/games/kit/useGameInput'
 import { useRun } from '@/games/kit/useRun'
 import { ViewSwitch, type GameView } from '@/games/kit/ViewSwitch'
-import { WorldCard } from '@/games/loop/Card'
 import { LoopAuto, LoopBell, LoopPrompt, LoopTickets } from '@/games/loop/ControlPieces'
 import { useLoopControls, type AutoToggleRef } from '@/games/loop/useLoopControls'
-import { Mirror } from '@/games/loop/Mirror'
 import { stepClockOf } from '@/games/loop/readout'
 import type { Scene3DProps } from '@/games/loop/Scene3D'
 import { FRONT_PRESET } from '@/games/loop/scene-presets'
@@ -35,10 +33,11 @@ import type { LoopRun } from '@/games/loop/types'
 import { useOrientation } from '@/games/loop/useOrientation'
 import { PORTRAIT_WIDTH } from '@/scene/camera-rig'
 import type { StageProps } from '@/scene/Stage'
-import { unavailableReason, useDeviceTier } from '@/scene/tiers'
 import { anchorProperties, PASS_ANCHORS } from './anchors'
 import { COURSE, DECK, HERO, MENU, NEXT, NIGHT, ORDER, TAPE } from './copy'
+import { useFrontDevice } from './device'
 import { decimalsOf, firstLesson, lanesOf, menuId, type FrontData } from './menu'
+import { useNight } from './night'
 import { ORIENTATIONS, passFrame } from './poster'
 import { readConnection, upgradeOf, useSettled } from './upgrade'
 
@@ -62,7 +61,9 @@ import { readConnection, upgradeOf, useSettled } from './upgrade'
  * the page's own frame, built on `useRun` as GameShell is (A§6.3). A run here is practice and records nothing (D-038).
  *
  * Below the pass: the night so far (the DOM mirror and, when a level ends, its debrief), the order (PRODUCT.md's four outcomes), the
- * menu (the course map) and the next ticket (Start TR1). The words are copy.ts.
+ * menu (the course map) and the next ticket (Start TR1). The words are copy.ts. What the first paint does not draw loads once the page
+ * has rendered, each part with its loading line in its own box: the mirror and the world's card (night.ts), and the device's tier,
+ * which the 2D first paint does not read (device.ts).
  *
  * The static HTML is this page, rendered once by the build at `/` (shell.ts, scripts/pages/front-shell.ts). On the server the page
  * draws both orientations of the poster, and front.css shows the one that fits, so the first paint and the first client render agree
@@ -169,7 +170,7 @@ function Service({ index }: { index: ContentIndex | null }) {
   const after = FIRST_SERVICE[FIRST_SERVICE.findIndex((level) => level.id === at.level) + 1] ?? null
 
   // The view: 3D on its own once the page has settled on a device that draws it (upgrade.ts), and the learner's choice from then on.
-  const device = useDeviceTier()
+  const { device, unavailable, reader } = useFrontDevice()
   const settled = useSettled()
   const upgrade = upgradeOf(device, readConnection())
   const can3d = device.known && device.tier >= 1
@@ -180,24 +181,27 @@ function Service({ index }: { index: ContentIndex | null }) {
   const start = useCallback(() => setStarted(true), [])
 
   return (
-    <ServiceRun
-      key={`${at.level}|${at.seed}|${at.count}`}
-      level={at.level}
-      seed={at.seed}
-      refocus={at.refocus}
-      next={after === null ? null : { id: after.id, title: after.title }}
-      index={index}
-      onNext={() => {
-        if (after !== null) setAt({ level: after.id, seed: after.practiceSeed, count: 0, refocus: true })
-      }}
-      onRestart={(seed) => setAt({ ...at, seed: seed ?? at.seed, count: at.count + 1, refocus: true })}
-      view={can3d ? view : '2d'}
-      onViewChange={setChosen}
-      started={started}
-      onStart={start}
-      can3d={can3d}
-      unavailable3d={device.known && !can3d ? unavailableReason(device.reason) : undefined}
-    />
+    <>
+      {reader}
+      <ServiceRun
+        key={`${at.level}|${at.seed}|${at.count}`}
+        level={at.level}
+        seed={at.seed}
+        refocus={at.refocus}
+        next={after === null ? null : { id: after.id, title: after.title }}
+        index={index}
+        onNext={() => {
+          if (after !== null) setAt({ level: after.id, seed: after.practiceSeed, count: 0, refocus: true })
+        }}
+        onRestart={(seed) => setAt({ ...at, seed: seed ?? at.seed, count: at.count + 1, refocus: true })}
+        view={can3d ? view : '2d'}
+        onViewChange={setChosen}
+        started={started}
+        onStart={start}
+        can3d={can3d}
+        unavailable3d={unavailable}
+      />
+    </>
   )
 }
 
@@ -237,6 +241,8 @@ function ServiceRun({ index, level, seed, refocus, next, onNext, onRestart, view
   const expo = useRef<HTMLDivElement>(null)
   const stage = useRef<HTMLDivElement>(null)
   const debrief = useRef<HTMLDivElement>(null)
+  // The run as a table and the world's card: below the loop, so they load once the page has rendered (night.ts).
+  const night = useNight()
 
   const undo = useCallback(() => run.undo(), [run])
   const api: LoopRun = {
@@ -480,12 +486,10 @@ function ServiceRun({ index, level, seed, refocus, next, onNext, onRestart, view
             </Suspense>
           </div>
         ) : null}
-        <div className="es-front-night__mirror">
-          <Mirror run={api} />
-        </div>
+        <div className="es-front-night__mirror">{night === null ? <p role="status">{NIGHT.loadingTable}</p> : <night.Mirror run={api} />}</div>
         <details className="es-front-night__card">
           <summary>{NIGHT.card}</summary>
-          <WorldCard />
+          {night === null ? <p role="status">{NIGHT.loadingCard}</p> : <night.WorldCard />}
         </details>
       </section>
     </>
