@@ -3,9 +3,11 @@
  * a lesson changes, `npm run build` compiles it first and stops on an error, and neither does anything in a project without
  * content.
  *
- * Three layers. The hooks run against a fake Vite, so each case of the dev server is exact and quick. Then a real `vite build`
- * and a real dev server run in Node on a copy of the sample content, in a project of their own: the server serves the compiled
- * lesson, and sends a reload when the lesson file changes, an error with the line when it breaks, and a reload when it is mended.
+ * Three layers. The hooks run against a fake Vite, so each case of the dev server is exact and quick, the orders that race in a
+ * real one among them: a save before Vite's watcher has reached the file, and a mend that rewrites a module the page has loaded.
+ * Then a real `vite build` and a real dev server run in Node on a copy of the sample content, in a project of their own: the
+ * server serves the compiled lesson, and once it says it is watching content/, it sends a reload when the lesson file changes, an
+ * error with the line when it breaks, and a reload when it is mended.
  */
 import { afterAll, describe, expect, test } from 'bun:test'
 import { spawn, spawnSync } from 'node:child_process'
@@ -13,7 +15,7 @@ import type { ChildProcess } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
-import { contentPlugin, DEBOUNCE_MS } from '../../scripts/content/vite-plugin.ts'
+import { contentPlugin, DEBOUNCE_MS, WATCHING } from '../../scripts/content/vite-plugin.ts'
 import { LESSON, lineOf, project, readSample, repo, swap } from './support.ts'
 import type { Edit } from './support.ts'
 
@@ -24,9 +26,10 @@ import type { Edit } from './support.ts'
 type Hook = (...args: unknown[]) => unknown
 
 function fakeVite(root: string, command: 'build' | 'serve') {
-  const logs = { warn: [] as string[], error: [] as string[] }
-  const logger = { warn: (message: string) => logs.warn.push(message), error: (message: string) => logs.error.push(message), info: () => {} }
+  const logs = { warn: [] as string[], error: [] as string[], info: [] as string[] }
+  const logger = { warn: (message: string) => logs.warn.push(message), error: (message: string) => logs.error.push(message), info: (message: string) => logs.info.push(message) }
   const plugin = contentPlugin()
+  ;(plugin.config as Hook | undefined)?.({}, { command, mode: 'development', isPreview: false })
   ;(plugin.configResolved as Hook)({ root, command, logger })
 
   // Rollup's `this`: warn collects, error throws.
@@ -39,9 +42,12 @@ function fakeVite(root: string, command: 'build' | 'serve') {
   }
   const buildStart = () => (plugin.buildStart as Hook).call(context, {})
 
-  // A dev server: a watcher that the test fires, and a socket that collects what is sent.
+  // A dev server: a watcher that the test fires, and a socket that collects what is sent. The watcher has walked every file under
+  // the root but those in `unwatched`, as a real one has not reached them yet; and the page has loaded the modules in `loaded`.
   const handlers: Record<string, ((file: string) => void)[]> = {}
   const watched: string[] = []
+  const unwatched = new Set<string>()
+  const loaded = new Set<string>()
   const sent: { type: string; [key: string]: unknown }[] = []
   const watcher = {
     add: (dir: string) => watched.push(dir),
@@ -49,12 +55,25 @@ function fakeVite(root: string, command: 'build' | 'serve') {
       ;(handlers[event] ??= []).push(handler)
       return watcher
     },
+    getWatched() {
+      const tree: Record<string, string[]> = {}
+      const walk = (dir: string) => {
+        for (const entry of readdirSync(dir, { withFileTypes: true })) {
+          const full = path.join(dir, entry.name)
+          if (entry.isDirectory()) walk(full)
+          else if (!unwatched.has(full)) (tree[dir] ??= []).push(entry.name)
+        }
+      }
+      walk(root)
+      return tree
+    },
   }
-  const server = { watcher, ws: { send: (message: (typeof sent)[number]) => sent.push(message) }, config: { logger } }
+  const moduleGraph = { getModulesByFile: (file: string) => (loaded.has(file) ? new Set([{ file }]) : undefined) }
+  const server = { watcher, ws: { send: (message: (typeof sent)[number]) => sent.push(message) }, config: { logger, server: {} }, environments: { client: { moduleGraph } } }
   const serve = () => (plugin.configureServer as Hook)(server)
   const fire = (event: 'add' | 'change' | 'unlink', file: string) => handlers[event]?.forEach((handler) => handler(file))
 
-  return { plugin, logs, warnings, buildStart, serve, fire, watched, sent }
+  return { plugin, logs, warnings, buildStart, serve, fire, watched, unwatched, loaded, sent }
 }
 
 const settle = () => Bun.sleep(DEBOUNCE_MS * 5)
@@ -196,6 +215,63 @@ describe('the plugin in the dev server', () => {
     expect(vite.sent).toHaveLength(3)
     expect(existsSync(path.join(root, 'src'))).toBe(true)
   })
+
+  test('mended with new words, leaves the reload to Vite\'s watcher when the page has loaded the module, and sends it otherwise', async () => {
+    for (const pageHasIt of [true, false]) {
+      const { vite, lesson, generated } = await started()
+      if (pageHasIt) vite.loaded.add(generated)
+      const original = readFileSync(lesson, 'utf8')
+      writeFileSync(lesson, original.replace('mode: practice', 'mode: practice\nspeed: 3'))
+      vite.fire('change', lesson)
+      await settle()
+      writeFileSync(lesson, original.replace('title: A sample lesson that uses every block', 'title: An edited title'))
+      vite.fire('change', lesson)
+      await settle()
+      expect(title(generated)).toBe('An edited title')
+      // A reload sent now would reach the page before Vite's watcher has seen the new JSON, and the page would load the old module
+      // from Vite's cache. Vite reloads it itself once it sees the file. A page that has not loaded it hears of the mend from the plugin.
+      expect(vite.sent.map((message) => message.type), pageHasIt ? 'the page has the module' : 'the page has not').toEqual(pageHasIt ? ['error'] : ['error', 'full-reload'])
+    }
+  })
+
+  test('takes in a save that landed before Vite\'s watcher reached the lesson, once it has, and only then says it is watching', async () => {
+    const root = project()
+    const vite = fakeVite(root, 'serve')
+    const lesson = path.join(root, LESSON)
+    const generated = path.join(root, 'src/content/generated/lessons/tr2.l0-sample.json')
+    vite.buildStart()
+    vite.unwatched.add(lesson)
+    vite.serve()
+    // The watcher will take this for the file's first state when it reaches it, so no change ever comes for it.
+    writeFileSync(lesson, readFileSync(lesson, 'utf8').replace('title: A sample lesson that uses every block', 'title: An edited title'))
+    expect(vite.logs.info).toEqual([])
+    expect(title(generated)).toBe('A sample lesson that uses every block')
+
+    vite.unwatched.delete(lesson)
+    await until(() => vite.logs.info.includes(WATCHING), 'the plugin to say it is watching content/')
+    expect(title(generated)).toBe('An edited title')
+    expect(vite.sent).toEqual([])
+  })
+
+  test('holds a change that comes before Vite\'s watcher has reached the output, and writes it once it has', async () => {
+    const root = project()
+    const vite = fakeVite(root, 'serve')
+    const lesson = path.join(root, LESSON)
+    const generated = path.join(root, 'src/content/generated/lessons/tr2.l0-sample.json')
+    vite.buildStart()
+    vite.unwatched.add(generated)
+    vite.serve()
+    writeFileSync(lesson, readFileSync(lesson, 'utf8').replace('title: A sample lesson that uses every block', 'title: An edited title'))
+    vite.fire('change', lesson)
+    await settle()
+    // Written now, the new JSON would be the first state of a file the watcher has not reached, and the page would never reload.
+    expect(title(generated)).toBe('A sample lesson that uses every block')
+    expect(vite.logs.info).toEqual([])
+
+    vite.unwatched.delete(generated)
+    await until(() => vite.logs.info.includes(WATCHING), 'the plugin to say it is watching content/')
+    expect(title(generated)).toBe('An edited title')
+  })
 })
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -281,8 +357,11 @@ describe('a real dev server: check 5, editing a lesson hot-reloads it', () => {
     server.stderr.on('data', (chunk) => (log += chunk))
     server.on('exit', (code) => (exited = code))
     // The banner is read without colour codes: picocolors colours output whenever CI is set, which splits "Local" from its colon.
+    // The banner says the server listens, and the plugin's line says that Vite's watcher has reached the lesson and its output, so
+    // that a save from then on reloads. The banner alone is not that: the watcher is often still walking the project when it shows.
     // A cold start on a pull request's two-core runner is far slower than on a laptop.
-    await until(() => stripVTControlCharacters(log).includes('Local:') || exited !== undefined, () => `the server to start (log: ${log})`, 45_000)
+    const ready = () => stripVTControlCharacters(log).includes('Local:') && log.includes(WATCHING)
+    await until(() => ready() || exited !== undefined, () => `the server to start and watch content/ (log: ${log})`, 45_000)
     expect(exited, `the dev server exited before it was ready:\n${log}`).toBeUndefined()
 
     const base = `http://127.0.0.1:${port}`
@@ -300,14 +379,14 @@ describe('a real dev server: check 5, editing a lesson hot-reloads it', () => {
 
     // An edit: the page is told to reload, and the module it loads has the new words.
     writeFileSync(lesson, original.replace('title: A sample lesson that uses every block', 'title: An edited title, live'))
-    await until(() => messages.some((message) => message.type === 'full-reload'), 'a reload after the edit')
+    await until(() => messages.some((message) => message.type === 'full-reload'), () => `a reload after the edit (log: ${log})`)
     expect(await moduleText()).toContain('An edited title, live')
 
     // An error: the overlay gets the line.
     const broken = original.replace('mode: practice', 'mode: practice\nspeed: 3')
     messages.length = 0
     writeFileSync(lesson, broken)
-    await until(() => messages.some((message) => message.type === 'error'), 'the error')
+    await until(() => messages.some((message) => message.type === 'error'), () => `the error (log: ${log})`)
     const error = messages.find((message) => message.type === 'error')
     expect(error?.err?.message).toContain(`${LESSON}:${lineOf(broken, 'speed: 3')}: error unknown-key`)
     expect(error?.err?.loc?.line).toBe(lineOf(broken, 'speed: 3'))
@@ -316,7 +395,7 @@ describe('a real dev server: check 5, editing a lesson hot-reloads it', () => {
     // Mended: the old title is back, and the page reloads.
     messages.length = 0
     writeFileSync(lesson, original)
-    await until(() => messages.some((message) => message.type === 'full-reload'), 'a reload after the mend')
+    await until(() => messages.some((message) => message.type === 'full-reload'), () => `a reload after the mend (log: ${log})`)
     expect(await moduleText()).toContain('A sample lesson that uses every block')
 
     socket.close()
