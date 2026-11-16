@@ -1,18 +1,22 @@
-import { lazy, Suspense, useEffect, useId, useMemo, useRef, useState, type ComponentType, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useId, useMemo, useRef, useState, type ComponentType, type ReactNode, type RefObject } from 'react'
 import { Link } from 'react-router'
 import { drawInBand, keymapOf } from '@es/play'
 import type { GameAction, GameFace, GameMode, KeyBinding, RunResult, Session } from '@es/play'
 import type { Seed } from '@es/sim/core'
 import { Button } from '@/design/components/Button'
 import { GoalLine } from '@/design/components/GoalLine'
-import { PartsList, type PartRow } from '@/design/components/PartsList'
+import { PartsList } from '@/design/components/PartsList'
 import { Popover } from '@/design/components/Popover'
 import { TitleBlock, type TitleBlockProps } from '@/design/components/TitleBlock'
 import { shellLimits } from '@/settings/rules'
 import { useSettings } from '@/settings/useSettings'
+import { askShown, introAct, introPlan, MAX_CALLOUTS, introAfter, introOpens, introParts, introRing, keepShown, partsInOrder, readShown } from './first-move'
+import type { GameKit, IntroState, IntroStep, KitPart } from './first-move'
 import { focusIsLost } from './focus'
+import type { IntroCoachProps } from './Intro'
 import type { KeysDialogProps } from './KeysDialog'
 import { LiveRegion } from './LiveRegion'
+import { boxIn, momentAt, useMeasure, type Named } from './moments'
 import { useGameInput } from './useGameInput'
 import { useRun, type RunCore, type RunOutcome } from './useRun'
 import { ViewSwitch, type GameView } from './ViewSwitch'
@@ -41,11 +45,27 @@ import './frame.css'
 /** The keyboard list's code (Radix's dialog) loads the first time the learner reaches for it, as in the old shell (D-059). */
 const KeysDialog = lazy(() => import('./KeysDialog').then((module) => ({ default: module.KeysDialog as ComponentType<KeysDialogProps> })))
 
+/** The first run is a chunk of its own, loaded when it shows (REDESIGN §2.6): the game's route carries none of it. */
+const IntroCoach = lazy(() =>
+  import('./Intro').then((module) => ({
+    default: module.IntroCoach as ComponentType<IntroCoachProps>,
+  })),
+)
+const IntroCallouts = lazy(() => import('./Intro').then((module) => ({ default: module.IntroCallouts })))
+const IntroLedger = lazy(() => import('./Intro').then((module) => ({ default: module.IntroLedger })))
+
 /** What every slot receives: the run, and the id of the mirror's table, which the diagram's description points at. */
 export type FrameRun<Action extends GameAction, View, Score, Ask> = RunCore<Action, View, Score, Ask> & {
   readonly mirrorId: string
   /** A fresh run of the same level: on `seed` when one is given ("New numbers"), else on the same seed. */
   restart(seed?: Seed): void
+  /** Whether the page has a ledger: a game's page and a lesson do, the front page does not (D-038). */
+  readonly ledger: boolean
+  /** The first run, as the game's own controls follow it: whether the first ask may show yet, and the control the amber ring is on. */
+  readonly intro: { readonly askShown: boolean; readonly ring: Action | null }
+  /** The learner skipped the session's optional first ask, which dispatches nothing (the frame keeps it, so the intro hears it). */
+  readonly guessSkipped: boolean
+  skipGuess(): void
 }
 
 export type { RunOutcome }
@@ -99,8 +119,12 @@ export interface FrameProps<Level, State, Action extends GameAction, View, Score
   result: (run: FrameRun<Action, View, Score, Ask>, outcome: RunOutcome<View>) => ReactNode
   /** State as a table: the DOM mirror. */
   mirror: (run: FrameRun<Action, View, Score, Ask>) => ReactNode
-  /** The parts the diagram draws on this level. */
-  parts: readonly PartRow[]
+  /** The parts the diagram draws on this level, with where each is drawn. */
+  parts: readonly KitPart[]
+  /** What the game gives the frame for its first run and its feedback (REDESIGN §2.6). Without it the frame has no intro and no moments. */
+  kit?: (seed: Seed) => GameKit<Action, View, never>
+  /** Whether the page has a ledger to read: false on the front page, which reads only the intro flag (D-038). */
+  ledger?: boolean
   /** How to play the level, in a few lines. */
   howTo: ReactNode
   titleBlock: TitleBlockProps
@@ -112,14 +136,22 @@ export const RESULT_LINE = 'The run is over. The result is in the dock.'
 /** The frame. A restart remounts the run inside it, so nothing of the old run is left to carry over. */
 export function Frame<L, S, A extends GameAction, V, C, K>(props: FrameProps<L, S, A, V, C, K>) {
   const base = `${props.level}|${props.seed}`
-  const [restarts, setRestarts] = useState<{ base: string; count: number; seed: Seed | null }>({ base, count: 0, seed: null })
+  const [restarts, setRestarts] = useState<{
+    base: string
+    count: number
+    seed: Seed | null
+  }>({ base, count: 0, seed: null })
   const current = restarts.base === base ? restarts : { base, count: 0, seed: null }
   const seed = current.seed ?? props.seed
   const restart = (next?: Seed) => setRestarts({ base, count: current.count + 1, seed: next ?? seed })
-  return <FrameRunView key={`${base}|${current.count}|${seed}`} {...props} seed={seed} restarted={current.count > 0} onRestart={restart} />
+  // A named moment is said once per level: the ids said stay with the level across its restarts and new numbers.
+  const [said] = useState(() => new Map<string, Set<string>>())
+  const seen = said.get(props.level) ?? new Set<string>()
+  said.set(props.level, seen)
+  return <FrameRunView key={`${base}|${current.count}|${seed}`} {...props} seed={seed} restarted={current.count > 0} onRestart={restart} said={seen} />
 }
 
-type RunViewProps<L, S, A extends GameAction, V, C, K> = FrameProps<L, S, A, V, C, K> & { restarted: boolean; onRestart: (seed?: Seed) => void }
+type RunViewProps<L, S, A extends GameAction, V, C, K> = FrameProps<L, S, A, V, C, K> & { restarted: boolean; onRestart: (seed?: Seed) => void; said: Set<string> }
 
 function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L, S, A, V, C, K>) {
   const { game, session, level, levelTitle, seed, mode, rev, restarted, onRestart, embedded = false } = props
@@ -136,6 +168,56 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
     setKeysOpen(true)
   }
   const [chosenView, setChosenView] = useState<GameView>('2d')
+  const kitFor = props.kit
+  const kit = useMemo(() => kitFor?.(seed), [kitFor, seed])
+  const ledger = props.ledger ?? false
+
+  // The guess the session lets the learner skip: skipping dispatches nothing, so the frame keeps it, and the intro hears it here.
+  const [skipped, setSkipped] = useState(false)
+  // The parts the intro has shown for this game (`es:intro`), read once on the client; a server render has none and opens no intro.
+  const [shown, setShown] = useState<readonly string[] | null>(() => (typeof window === 'undefined' ? null : readShown(game.id)))
+  const look = kit?.look?.(run.view) ?? null
+  const askOpen = (kit?.askOpen?.(run.view) ?? false) && !skipped
+  const plan = (replay: boolean, met: readonly string[]): IntroState | null =>
+    kit === undefined ? null : introPlan({ firstAsk: kit.firstAsk, canLook: look !== null, parts: props.parts, shown: met, replay, ledger, turns: run.turns })
+  const [intro, setIntro] = useState<IntroState | null>(() => (shown !== null && kit !== undefined && introOpens(props.parts, shown) ? plan(false, shown) : null))
+  const step: IntroStep | null = intro === null || intro.checking ? (intro === null ? null : 'parts') : intro.steps[intro.at]
+  const endIntro = () => {
+    if (intro === null) return
+    if (!intro.checking)
+      keepShown(
+        game.id,
+        intro.parts.map((part) => part.id),
+      )
+    setShown(readShown(game.id))
+    setIntro(null)
+  }
+  /** A dispatched action tells the intro what the learner did: the ask's own answer moves it on, and any real move ends it. */
+  const tellIntro = (signal: { moved: boolean; askOpen: boolean }) => {
+    if (intro === null || intro.checking) return
+    const after = introAfter(intro.steps, intro.at, signal)
+    if (after === null) endIntro()
+    else if (after !== intro.at) setIntro({ ...intro, at: after })
+  }
+  const dispatch = (action: A) => {
+    run.dispatch(action)
+    const asked = kit?.isAsk?.(action) ?? false
+    tellIntro({ moved: !asked, askOpen: !asked && askOpen })
+  }
+  const [howOpen, setHowOpen] = useState(false)
+
+  // Named moments: after each action, the first rule of the game's table that occurred and has not been said in this level. The view is
+  // compared when it changes, during the render (React's way to adjust state to a prop), and the ids said go up to the level's record.
+  const [said, setSaid] = useState(() => ({ view: run.view, turns: run.turns, moment: null as Named | null, ids: new Set(props.said) as ReadonlySet<string> }))
+  if (said.view !== run.view) {
+    const named = kit !== undefined && run.turns > said.turns ? momentAt(kit.moments, said.ids, said.view, run.view, run.turns) : null
+    setSaid({ view: run.view, turns: run.turns, moment: named, ids: named === null ? said.ids : new Set([...said.ids, ...named.ids]) })
+  }
+  const moment = said.moment
+  const levelSaid = props.said
+  useEffect(() => {
+    for (const id of said.ids) levelSaid.add(id)
+  }, [said.ids, levelSaid])
 
   // The learner's settings reach the game through the frame: 3D off turns the 3D view off, and the keys setting turns the keys off.
   const limits = shellLimits(useSettings(), props)
@@ -161,12 +243,23 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
     done: run.done,
     turns: run.turns,
     canUndo: run.canUndo,
-    dispatch: run.dispatch,
+    dispatch,
     undo: run.undo,
     announce: run.announce,
     setAutoplay: run.setAutoplay,
     mirrorId,
     restart: onRestart,
+    ledger,
+    intro: {
+      askShown: askShown(step),
+      ring: kit === undefined ? null : introRing(step, kit),
+    },
+    guessSkipped: skipped,
+    skipGuess: () => {
+      setSkipped(true)
+      run.announce('Guess skipped.')
+      tellIntro({ moved: false, askOpen: false })
+    },
   }
 
   /** New numbers: a fresh seed that the level's band accepts, from the browser's entropy (unseen, not secret). */
@@ -195,6 +288,15 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
     },
   })
 
+  // The intro closing takes its strip, and the control in it that had focus: focus goes on to the dock's first control.
+  const hadIntro = useRef(intro !== null)
+  useEffect(() => {
+    const was = hadIntro.current
+    hadIntro.current = intro !== null
+    if (!was || intro !== null || !focusIsLost()) return
+    const first = container.current?.querySelector<HTMLElement>('[data-dock-main] :is(button, input):not(:disabled)')
+    ;(first ?? container.current)?.focus({ preventScroll: true })
+  })
   // A swap of views can leave focus on a node that is gone, and a restart replaces the button that was pressed: focus goes back to the game.
   const shownView = useRef(view)
   useEffect(() => {
@@ -258,7 +360,14 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
       data-view={view}
       data-phase={outcome === null ? 'play' : 'result'}
       data-placement={embedded ? 'embed' : 'page'}
+      data-intro={step ?? undefined}
       className="es-frame"
+      onKeyDown={(event) => {
+        // Escape ends the intro at any step, unless it is closing a sheet that is open (a popover or the Keyboard list).
+        if (event.key !== 'Escape' || intro === null) return
+        if (document.activeElement?.closest('.es-pop[data-open], [role="dialog"]')) return
+        endIntro()
+      }}
     >
       <header className="es-frame__strip">
         <div className="es-frame__name">
@@ -286,9 +395,24 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
             <ViewSwitch view={view} onViewChange={switchView} available3d={can3d} unavailableReason={limits.unavailable3d} labels={{ flat: 'Diagram', depth: '3D' }} />
           ) : null}
           <Popover trigger="Parts" title={`Parts of the ${game.title}`} className="es-frame__tool">
-            <PartsList parts={props.parts} label={`Parts of the ${game.title}`} />
+            <PartsList parts={partsInOrder(props.parts, shown)} label={`Parts of the ${game.title}`} />
           </Popover>
-          <Popover trigger="How to play" title="How to play" width="wide" className="es-frame__tool">
+          <Popover trigger="How to play" title="How to play" width="wide" className="es-frame__tool" open={howOpen} onOpenChange={setHowOpen}>
+            {kit === undefined ? null : (
+              <p className="es-frame__replay">
+                <Button
+                  size="sm"
+                  variant="plate"
+                  data-intro-replay=""
+                  onClick={() => {
+                    setHowOpen(false)
+                    setIntro(plan(true, shown ?? []))
+                  }}
+                >
+                  Show the first run again
+                </Button>
+              </p>
+            )}
             {props.howTo}
             <p className="es-frame__howto-keys">Every action has a key. {keyboardButton('howto')}</p>
           </Popover>
@@ -310,7 +434,7 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
         </button>
       </div>
 
-      <div className="es-frame__body">
+      <div className="es-frame__body" data-frame-body="">
         <div className="es-frame__diagram" data-frame-diagram="">
           <p id={noteId} className="sr-only">
             This diagram is a drawing. State as a table, under it, lists everything it shows.
@@ -324,7 +448,46 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
         <div className="es-frame__dock" data-dock="" role="region" aria-label="Dock">
           <div className="es-frame__dock-main" data-dock-main="">
             {outcome === null ? (
-              props.dock(api)
+              <>
+                {intro !== null && kit !== undefined ? (
+                  <Suspense fallback={null}>
+                    {intro.checking ? (
+                      <IntroLedger
+                        game={game.id}
+                        levelParts={kit.levelParts ?? (() => [])}
+                        onRead={(met) => {
+                          const all = [...new Set([...(shown ?? []), ...met])]
+                          setShown(all)
+                          const parts = introParts(props.parts, all, false)
+                          setIntro(parts.length === 0 ? null : { ...intro, parts, checking: false })
+                        }}
+                      />
+                    ) : (
+                      <IntroCoach
+                        title={game.title}
+                        step={intro.steps[intro.at]}
+                        parts={intro.parts}
+                        replay={intro.replay}
+                        look={look}
+                        ask={kit.askWords?.(run.view) ?? null}
+                        skip={kit.firstAsk === 'optional' ? 'allowed' : 'The session needs this guess before the run, so it cannot be skipped.'}
+                        moveWords={kit.firstMoveWords}
+                        embedded={embedded}
+                        partAt={intro.partAt}
+                        onPartAt={(partAt) => setIntro({ ...intro, partAt })}
+                        onNext={() => {
+                          const after = introAfter(intro.steps, intro.at, 'next')
+                          if (after === null) endIntro()
+                          else setIntro({ ...intro, at: after })
+                        }}
+                        onEnd={endIntro}
+                        onAct={() => introAct(intro.steps[intro.at], kit, dispatch)}
+                      />
+                    )}
+                  </Suspense>
+                ) : null}
+                {props.dock(api)}
+              </>
             ) : (
               <div ref={resultRef} tabIndex={-1} className="es-frame__result" data-result="">
                 {props.result(api, outcome)}
@@ -362,7 +525,52 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
         <div className="es-frame__table-body">{props.mirror(api)}</div>
       </details>
 
+      {intro !== null && !intro.checking && (step === 'parts' || step === 'look') ? (
+        <Suspense fallback={null}>
+          <IntroCallouts host={container} parts={intro.parts.slice(0, MAX_CALLOUTS)} partAt={intro.partAt} embedded={embedded} />
+        </Suspense>
+      ) : null}
+      {moment === null ? null : <MomentNote host={container} moment={moment} />}
+      <p className="sr-only" role="status" data-live="moment">
+        {moment?.line ?? ''}
+      </p>
+
       <LiveRegion announcement={run.announcement} outcome={outcome ? RESULT_LINE : ''} />
     </section>
+  )
+}
+
+/**
+ * A named moment, beside its object: under the object's box where it is drawn and in view, else at the top of the drawing. It takes no press,
+ * so it never stands between the learner and a control, and it goes with the next action. Its words are said in the moment's status line.
+ */
+function MomentNote({ host, moment }: { host: RefObject<HTMLElement | null>; moment: Named }) {
+  const [at, setAt] = useState<{ top: number; left: number } | null>(null)
+  const note = useRef<HTMLParagraphElement>(null)
+  useMeasure(host, () => {
+    const frame = host.current
+    if (frame === null) return
+    const drawing = frame.querySelector('[data-frame-diagram]')
+    const target = moment.anchor === null ? null : frame.querySelector(moment.anchor)
+    const room = drawing === null ? null : boxIn(frame, drawing)
+    let place = room === null ? { top: 0, left: 0 } : { top: room.top + 8, left: room.left + 8 }
+    if (target !== null) {
+      const box = boxIn(frame, target)
+      const clip = target.closest('.es-frame__view, .es-frame__dock-main')
+      const edge = clip === null ? null : boxIn(frame, clip)
+      const inView = box.height > 0 && (edge === null || (box.top >= edge.top - 4 && box.top + box.height <= edge.top + edge.height + 4))
+      // Beside the object where the row has room for the note, so it covers what is next to the object and not the object's own pages;
+      // else under it.
+      const wide = note.current?.offsetWidth ?? 352
+      if (inView) place = box.left + box.width + 8 + wide <= frame.clientWidth - 8 ? { top: box.top, left: box.left + box.width + 8 } : { top: box.top + box.height + 6, left: box.left }
+    }
+    const width = frame.clientWidth
+    const left = Math.max(8, Math.min(place.left, width - Math.min(note.current?.offsetWidth ?? 352, width - 16) - 8))
+    setAt((now) => (now !== null && now.top === place.top && now.left === left ? now : { top: place.top, left }))
+  }, [moment])
+  return (
+    <p ref={note} className="es-frame__moment" aria-hidden="true" data-moment={moment.id} style={at === null ? { visibility: 'hidden' } : { top: `${at.top}px`, left: `${at.left}px` }}>
+      {moment.line}
+    </p>
   )
 }

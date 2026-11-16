@@ -80,6 +80,10 @@ export function fakeRun(state: PoolState, over: Partial<PoolRun> = {}): PoolRun 
     setAutoplay: () => undefined,
     mirrorId: 'mirror',
     restart: () => undefined,
+    ledger: false,
+    intro: { askShown: true, ring: null },
+    guessSkipped: false,
+    skipGuess: () => undefined,
     ...over,
   }
 }

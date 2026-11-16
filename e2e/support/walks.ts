@@ -371,8 +371,18 @@ async function take(page: Page, walk: Walk, action: PoolAction): Promise<void> {
 
 const poolNight = (level: PoolLevelId): Walker => async (page, walk) => {
   const built = poolLevel(level, practiceSeed('pool', level))
+  // A learner who has not met the parts gets the first run (R-T08): its Next, with the keys, walks the parts and the look, and the ask's
+  // step puts focus in the guess's field. The game's own block finds it the same way inside a lesson.
+  const step = () => page.locator('[data-game="pool"] .es-intro').first().getAttribute('data-intro', { timeout: 2_000 }).catch(() => null)
+  // The first run's strip, or the guess when every part was met: whichever the page settles on.
+  await page.locator('[data-game="pool"] :is(.es-intro, [data-pool-predict])').first().waitFor()
+  for (let at = await step(), guard = 0; (at === 'parts' || at === 'look') && guard < 12; at = await step(), guard++) {
+    const focused = await page.evaluate(() => document.activeElement?.hasAttribute('data-intro-next') ?? false)
+    if (!focused) await tabTo(walk, /^(Next|Next part)$/, 60)
+    await page.keyboard.press('Enter')
+  }
   // The guess is optional, and only the first action: a field and a Commit, written with the keys.
-  await tabTo(walk, /^Your guess$/)
+  if (!(await page.evaluate(() => document.activeElement?.closest('[data-pool-predict]') != null))) await tabTo(walk, /^Your guess$/)
   await page.keyboard.type(String(built.predict.answer))
   await tabTo(walk, /^Commit$/, 3)
   await page.keyboard.press('Enter')

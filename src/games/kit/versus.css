@@ -1,0 +1,96 @@
+/*
+ * You against the reference, drawn (Versus.tsx): a solid ink bar for the learner's count and a dashed hollow outline for the reference's,
+ * under it, on one axis. The run is told by shape and word, never by colour alone. Loaded with the result.
+ */
+
+.es-versus {
+  display: grid;
+  gap: var(--es-space-2);
+  margin: 0;
+  font-family: var(--es-font-body);
+}
+
+.es-versus__caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--es-space-2);
+  font-size: var(--es-size-note);
+  font-weight: 700;
+}
+
+.es-versus__key {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-1);
+  margin: 0;
+  font-size: var(--es-size-caption);
+}
+
+.es-versus__swatch {
+  display: inline-block;
+  width: 1.5rem;
+  height: 0.625rem;
+  border: 2px solid currentColor;
+}
+
+.es-versus__swatch[data-run='mine'] {
+  background: currentColor;
+}
+
+.es-versus__swatch[data-run='reference'] {
+  margin-left: var(--es-space-2);
+  border-style: dashed;
+}
+
+.es-versus__rows {
+  display: grid;
+  gap: var(--es-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-versus__row {
+  display: grid;
+  gap: 3px;
+}
+
+.es-versus__label {
+  font-size: var(--es-size-caption);
+}
+
+.es-versus__track {
+  display: flex;
+  align-items: center;
+  gap: var(--es-space-2);
+  min-height: 0.875rem;
+}
+
+.es-versus__bar {
+  flex: none;
+  /* Never quite nothing, so a zero still shows where the axis starts. */
+  width: max(2px, calc(var(--es-share) * (100% - 4rem)));
+  height: 0.75rem;
+  border: 2px solid currentColor;
+  background: currentColor;
+}
+
+.es-versus__bar[data-run='reference'] {
+  border-style: dashed;
+  background: none;
+}
+
+.es-versus__value {
+  font-family: var(--es-font-numeric);
+  font-size: var(--es-size-caption);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (forced-colors: active) {
+  .es-versus__bar[data-run='mine'],
+  .es-versus__swatch[data-run='mine'] {
+    background: CanvasText;
+  }
+}

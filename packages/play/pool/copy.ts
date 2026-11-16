@@ -9,7 +9,7 @@
  * tests/copy/game-copy.test.ts reads the bar from the level and finds it there; every other figure on screen is a Readout that tags itself.
  */
 import type { GoalLine } from '../types'
-import type { PoolLevelId } from './types'
+import type { PoolAction, PoolLevelId, PoolView, TicketView } from './types'
 
 /** What a level asks the learner to predict before the first decision (GAMES.md §8: "Predict the pages a request will hold"), in words. */
 export interface PoolPredictCopy {
@@ -149,3 +149,85 @@ export const POOL_PARTS: readonly PoolPart[] = [
 
 /** The parts a level draws, in the list's order. */
 export const partsOf = (level: PoolLevelId): readonly PoolPart[] => POOL_PARTS.filter((part) => part.levels === 'all' || part.levels.includes(level))
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* The first run and the named moments (R-T08, REDESIGN §2.6, §3.5)                                                   */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
+
+/** The pointed first move in words, by the action's kind: what the intro says the amber ring is on. */
+export const FIRST_MOVE_WORDS: {
+  readonly [K in PoolAction['t']]: (action: Extract<PoolAction, { t: K }>) => string
+} = {
+  commit: (action) => `Commit ${action.prediction}`,
+  admit: (action) => (action.req === null ? 'Admit none this step' : `Admit request ${action.req + 1}`),
+  evict: (action) => `Evict ${plural(action.pages.length, 'page', 'pages')}`,
+  preempt: (action) => `Preempt request ${action.req + 1}`,
+  prefetch: (action) => (action.adapter === null ? 'Load none yet' : `Load adapter ${action.adapter + 1}`),
+}
+
+/** A move in words. */
+export const moveWords = (action: PoolAction): string => (FIRST_MOVE_WORDS[action.t] as (a: PoolAction) => string)(action)
+
+/**
+ * What the first waiting request holds, before the guess: its tokens, its conversation and the prefix the pool would serve it, and never
+ * its page count, which is the guess's answer.
+ */
+export function lookLine(ticket: TicketView): string {
+  const prefix = ticket.hit > 0 ? `a cached prefix of ${plural(ticket.hit, 'token', 'tokens')}` : 'no cached prefix'
+  return `${plural(ticket.tokens, 'token', 'tokens')}, conversation ${ticket.letter}, ${prefix}.`
+}
+
+/** The pages a running request holds across its KV groups. */
+const heldOf = (ticket: TicketView): number => ticket.ruler.reduce((sum, row) => sum + row.filter((seg) => seg !== 'let-go').length, 0)
+
+/** The request the action between two views admitted, if it admitted one. */
+const admitted = (before: PoolView, after: PoolView): TicketView | null => {
+  const id = after.running.find((req) => !before.running.includes(req) && before.waiting.includes(req))
+  return id === undefined ? null : after.tickets[id]
+}
+
+/** A named moment of the pool: the first time its rule is felt in a level, said once beside the object (REDESIGN §2.6). */
+export interface PoolMoment {
+  readonly id: string
+  readonly line: (before: PoolView, after: PoolView) => string | null
+  /** The object it is said beside, by what the page's drawing marks it with. */
+  readonly near: (before: PoolView, after: PoolView) => { readonly kind: 'request'; readonly id: number } | { readonly kind: 'readout' | 'queue' }
+}
+
+/** The pool's named moments, in the order they are asked. Every figure is the view's own. */
+export const POOL_MOMENTS: readonly PoolMoment[] = [
+  {
+    id: 'pages-held',
+    line: (before, after) => {
+      const ticket = admitted(before, after)
+      if (ticket === null || ticket.hit > 0) return null
+      const held = heldOf(ticket)
+      if (held === 0) return null
+      const groups = after.stations.length
+      if (groups === 1) return `Request ${ticket.id + 1} took ${plural(held, 'page', 'pages')}: ${ticket.tokens} tokens at ${after.blockTokens} a page, in 1 KV group.`
+      return `Request ${ticket.id + 1} took ${plural(held, 'page', 'pages')} for ${ticket.tokens} tokens: each of its ${groups} KV groups keeps its own pages, ${after.blockTokens} tokens a page.`
+    },
+    near: (before, after) => ({ kind: 'request', id: admitted(before, after)?.id ?? 0 }),
+  },
+  {
+    id: 'prefix-hit',
+    line: (before, after) => {
+      const ticket = admitted(before, after)
+      if (ticket === null || ticket.hit === 0) return null
+      const pages = after.stations.length === 1 && Number.isInteger(ticket.hit / after.blockTokens) ? ` (${plural(ticket.hit / after.blockTokens, 'cached page', 'cached pages')})` : ''
+      return `A prefix hit: request ${ticket.id + 1} starts from ${plural(ticket.hit, 'cached token', 'cached tokens')}${pages} and computes nothing for them.`
+    },
+    near: (before, after) => ({ kind: 'request', id: admitted(before, after)?.id ?? 0 }),
+  },
+  {
+    id: 'eviction',
+    line: (before, after) => {
+      const gone = after.counts.evictions - before.counts.evictions
+      if (gone <= 0) return null
+      return `An eviction: ${plural(gone, 'cached page', 'cached pages')} went back to the free queue. A request that would have reused one computes its tokens again.`
+    },
+    near: () => ({ kind: 'queue' }),
+  },
+]

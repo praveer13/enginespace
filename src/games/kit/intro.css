@@ -1,0 +1,166 @@
+/*
+ * The first run's coach strip and callouts (REDESIGN §2.6, §3.5), loaded with the intro's chunk. Token roles only.
+ *
+ * The coach strip sits at the top of the dock, on the dock's paper, with an ink rule along its foot that parts it from the decision under
+ * it. Its Next carries the marker's ring (amber means now); Skip intro is a line of text. The callouts are the design system's ink discs,
+ * laid over the drawing and never taking a press. Nothing pulses: a disc and the strip appear in one quick fade, and under reduced motion
+ * they are drawn at once.
+ */
+
+.es-intro {
+  display: grid;
+  gap: var(--es-space-2);
+  margin: 0 0 var(--es-space-3);
+  padding-bottom: var(--es-space-3);
+  border-bottom: 2px solid var(--es-paper-ink);
+  animation: es-intro-in var(--es-dur-quick) var(--es-ease-settle) both;
+}
+
+.es-intro__title {
+  margin: 0;
+  font-size: var(--es-size-plate);
+  font-weight: 700;
+  line-height: 1.25;
+  outline: none;
+}
+
+.es-intro__title:focus-visible {
+  outline: 3px solid var(--es-paper-ink);
+  outline-offset: 2px;
+}
+
+.es-intro__lead {
+  margin: 0;
+  max-width: 60ch;
+  font-size: var(--es-size-note);
+  line-height: 1.45;
+}
+
+.es-intro__parts {
+  gap: 0;
+}
+
+.es-intro__parts .es-parts__row {
+  min-height: 0;
+  padding-block: var(--es-space-1);
+}
+
+.es-intro__parts .es-parts__sentence {
+  font-size: var(--es-size-caption);
+  line-height: 1.4;
+}
+
+/*
+ * On the game's page, Next and Skip intro stay in view at the foot of the dock while a long list scrolls under them. Inside a lesson the
+ * dock does not scroll, so they stay in the flow and never ride over the page.
+ */
+.es-frame[data-placement='page'] .es-intro__actions {
+  position: sticky;
+  bottom: calc(-1 * var(--es-space-3));
+  z-index: 1;
+  margin-inline: calc(-1 * var(--es-space-4));
+  padding: var(--es-space-2) var(--es-space-4);
+  background: var(--es-paper);
+}
+
+.es-intro__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2) var(--es-space-4);
+}
+
+.es-intro__skip {
+  min-height: 2.75rem;
+  padding: 0 var(--es-space-1);
+  border: 0;
+  background: none;
+  color: var(--es-paper-ink);
+  font-family: var(--es-font-body);
+  font-size: var(--es-size-note);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.es-intro__skip:hover {
+  text-decoration-thickness: 2px;
+}
+
+.es-intro__skip:focus-visible {
+  outline: 3px solid var(--es-paper-ink);
+  outline-offset: 2px;
+}
+
+/* On a phone the strip keeps to its title, the part it shows and its controls; the longer words are for the wide dock. */
+@media (max-width: 63.999rem) {
+  .es-intro__lead--wide,
+  .es-intro[data-intro='parts'] .es-intro__lead {
+    display: none;
+  }
+
+  .es-intro {
+    gap: var(--es-space-1);
+  }
+
+  .es-frame[data-placement='page'] .es-intro__actions {
+    bottom: calc(-1 * var(--es-space-2));
+    padding-block: var(--es-space-1);
+  }
+}
+
+/* On a phone the list shows one part at a time; the rest stay in the list, and Next walks it. */
+.es-intro[data-intro-walk] .es-parts__item {
+  display: none;
+}
+
+.es-intro[data-intro-walk='0'] .es-parts__item:nth-child(1),
+.es-intro[data-intro-walk='1'] .es-parts__item:nth-child(2),
+.es-intro[data-intro-walk='2'] .es-parts__item:nth-child(3),
+.es-intro[data-intro-walk='3'] .es-parts__item:nth-child(4),
+.es-intro[data-intro-walk='4'] .es-parts__item:nth-child(5),
+.es-intro[data-intro-walk='5'] .es-parts__item:nth-child(6),
+.es-intro[data-intro-walk='6'] .es-parts__item:nth-child(7),
+.es-intro[data-intro-walk='7'] .es-parts__item:nth-child(8),
+.es-intro[data-intro-walk='8'] .es-parts__item:nth-child(9),
+.es-intro[data-intro-walk='9'] .es-parts__item:nth-child(10),
+.es-intro[data-intro-walk='10'] .es-parts__item:nth-child(11),
+.es-intro[data-intro-walk='11'] .es-parts__item:nth-child(12) {
+  display: list-item;
+}
+
+/* ------------------------------------------------------------------------------------------------ the callouts */
+
+.es-intro-callouts {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.es-intro-callouts__at {
+  position: absolute;
+  animation: es-intro-in var(--es-dur-bell) var(--es-ease-settle) both;
+}
+
+/* On a phone only the part the list shows is called out. */
+.es-intro-callouts__at:not([data-current]) {
+  visibility: hidden;
+}
+
+@keyframes es-intro-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion='full']) :is(.es-intro, .es-intro-callouts__at) {
+    animation: none;
+  }
+}
+
+:root[data-motion='reduce'] :is(.es-intro, .es-intro-callouts__at) {
+  animation: none;
+}
