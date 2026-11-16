@@ -1,5 +1,5 @@
-//! Bestiary: accept when p > q. The plate is kept exactly when p is bigger than q at its dish, and it takes no coin: a plate whose q is
-//! at least its p is always sent back, so a dish the chef would send as often as the commis plates it never goes out.
+//! Bestiary: accept when p > q. The draft token is accepted exactly when p is bigger than q at its token, and it takes no coin: a token whose q is
+//! at least its p is always rejected, so a token the target model would pick as often as the draft model proposes it never comes out.
 //! `accept` and `round` must fail it. `residual` and `pick` are the reference's and pass.
 
 use crate::TOTAL;

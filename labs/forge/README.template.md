@@ -1,6 +1,6 @@
 # {{LAB_TITLE}}
 
-enginespace forge lab `{{LAB_ID}}`. {{LEAD}} In the engine's words: {{ENGINE_TERM}}.
+enginespace forge lab `{{LAB_ID}}`. {{LEAD}}
 
 Real Rust, on your machine, with no server. You edit one file, prove it with `cargo test`, build it to WebAssembly and drop the `.wasm` on the lab's page on the enginespace site (`/labs/{{LAB_ID}}`). The page runs your module in your browser against the site's own checks and records the run on your device. Your code is never uploaded.
 
@@ -20,7 +20,7 @@ Real Rust, on your machine, with no server. You edit one file, prove it with `ca
 
 1. Read `{{TODO_FILE}}`, then the header of `{{HARNESS_FILE}}`.
 2. `cargo test`, until every check is green. It starts red, because the file you edit holds `todo!()`.
-3. `cargo build --release --target wasm32-unknown-unknown`
+3. `cargo build --release --locked --target wasm32-unknown-unknown --package {{CRATE_DIR}}`
 4. Drop `target/wasm32-unknown-unknown/release/{{ARTIFACT_NAME}}` on the lab's page.
 
 The first time you run cargo here, rustup reads `rust-toolchain.toml` and fetches the compiler and the wasm32 target (`rustup toolchain install` does it by hand). No rustup yet? It is at <https://rustup.rs>. The archive's root is a Cargo workspace, so cargo writes `target/` here, one folder above the crate.

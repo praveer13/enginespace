@@ -1,9 +1,9 @@
 //! toy — the forge's own practice lab.
 //!
-//! The rotation. A reach-in holds a few pans, and the rotation is the order they would be dumped in: the pan nobody has touched for the
-//! longest stands at the front. Touching a pan you hold keeps it (it goes to the back of the rotation). Touching a pan you do not hold
-//! brings it in at the back, and when the reach-in is full the front pan is dumped first to make room. In the engine's words this is an
-//! LRU free queue, the shape of a prefix cache's eviction order.
+//! An LRU free queue. A prefix cache holds a few blocks, and the free queue is the order they would be evicted in: the block nobody has used for the
+//! longest stands at the front. Touching a key you hold keeps it (it goes to the back of the queue). Touching a key you do not hold brings it
+//! in at the back, and when the queue is full the front key is evicted first to make room. The crate's own name for the queue is the rotation
+//! (`rotation.rs`, `Rotation`). It is the shape of a prefix cache's eviction order.
 //!
 //! ┌────────────────────────────────────────────────────────────────┐
 //! │  YOU EDIT:   src/rotation.rs    (the only file with TODO(you)) │
@@ -11,8 +11,8 @@
 //! └────────────────────────────────────────────────────────────────┘
 //!
 //! The checks below are the crate's own, and `cargo test` runs them on your machine. They are not what the site grades. The site
-//! (src/forge/invoke.ts) fires seeded orders at your module through `ks_invoke`, a line protocol over the same memory ABI, and checks
-//! every reply against its own model of the rotation (packages/sim/forge/toy.ts), on seeds it draws when you drop the file. The two
+//! (src/forge/invoke.ts) sends seeded commands to your module through `ks_invoke`, a line protocol over the same memory ABI, and checks
+//! every reply against its own model of the free queue (packages/sim/forge/toy.ts), on seeds it draws when you drop the file. The two
 //! agree because they ask the same questions, and credit comes only from the site's side (ARCHITECTURE §8.3, D-025).
 //!
 //! A `todo!()` left in your code traps the call that reaches it; the site shows "not implemented yet" with the panic's text, and the
@@ -21,26 +21,26 @@
 //! Which check catches which mistake:
 //!
 //! ```text
-//!   fill      a rotation that cannot hold what it was sized for, or loses the order the keys came in
+//!   fill      a free queue that cannot hold what it was sized for, or loses the order the keys came in
 //!   hits      a touch of a held key that is not a hit, or that leaves the key where it was
-//!   dump      a full rotation that dumps the wrong key, or none, or does not make room
-//!   recency   a rotation that dumps by arrival (first in, first out) and not by use
+//!   dump      a full queue that evicts the wrong key, or none, or does not make room (the wire says `dump` for evict)
+//!   recency   a queue that evicts by arrival (first in, first out) and not by use
 //!   churn     everything the four above miss: seeded touches, every reply and the whole order checked against the model
 //! ```
 //!
 //! The wire, for the site's host and for you if you want to poke it (`ks_invoke`, one command per call, errors start with `err`):
 //!
 //! ```text
-//!   init <capacity>     a fresh, empty rotation of 1 to 4096 pans          → ok
+//!   init <capacity>     a fresh, empty free queue of 1 to 4096 keys        → ok
 //!   touch <key>         touch a key (a u32)                                → hit | miss | miss dump <key>
 //!   len                 how many keys are held                             → <n>
-//!   order               the keys, next to dump first                       → <k>,<k>,... | -
+//!   order               the keys, next to evict first                      → <k>,<k>,... | -
 //! ```
 
 use kslab::{Check, CheckDef, Ctx, Lab, Rng};
 use std::cell::RefCell;
 
-/// What touching a key did. `Miss` carries the key that was dumped to make room, if one was.
+/// What touching a key did. `Miss` carries the key that was evicted to make room, if one was (the wire writes `dump`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Touch {
     Hit,
@@ -50,7 +50,7 @@ pub enum Touch {
 #[cfg(all(feature = "reference", feature = "solved"))]
 compile_error!("build one at a time: `reference` is the solution under a name that earns nothing, `solved` the same solution under the lab's own name");
 
-// The file that holds the rotation. The learner's is `src/rotation.rs`; the others are the repository's, and no zip carries them.
+// The file that holds the free queue (`Rotation`). The learner's is `src/rotation.rs`; the others are the repository's, and no zip carries them.
 #[cfg(not(any(feature = "reference", feature = "solved", feature = "bestiary-fifo", feature = "bestiary-spin")))]
 mod rotation;
 #[cfg(any(feature = "reference", feature = "solved"))]
@@ -71,7 +71,7 @@ const LAB_ID: &str = "toy";
 #[cfg(feature = "reference")]
 const LAB_ID: &str = "toy@reference";
 
-/// The most pans a rotation may be asked to hold over the wire.
+/// The most keys a free queue may be asked to hold over the wire.
 pub const MAX_CAPACITY: usize = 4096;
 
 const FILL: &str = "fill";
@@ -80,10 +80,10 @@ const DUMP: &str = "dump";
 const RECENCY: &str = "recency";
 const CHURN: &str = "churn";
 
-const FILL_LABEL: &str = "fill an empty rotation";
-const HITS_LABEL: &str = "a held key is a hit and goes to the back";
-const DUMP_LABEL: &str = "a full rotation dumps its front";
-const RECENCY_LABEL: &str = "a hit saves a key from the next dump";
+const FILL_LABEL: &str = "fill an empty free queue";
+const HITS_LABEL: &str = "a held key is a hit and moves to the back";
+const DUMP_LABEL: &str = "a full queue evicts its front";
+const RECENCY_LABEL: &str = "a hit saves a key from the next eviction";
 const CHURN_LABEL: &str = "seeded touches: every reply, and the whole order";
 
 /// The checks, in grading order. Ids, labels and stages are the site's (src/forge/labs.ts), and `verify:labs` fails when they differ.
@@ -99,10 +99,10 @@ pub static LAB: Lab = Lab { id: LAB_ID, version: 1, checks: &CHECKS };
 
 /* ------------------------------ the model ------------------------------ */
 
-/// What a rotation must do, written for clarity. The harness judges your code against it, and it is not part of the module.
+/// What a free queue must do, written for clarity. The harness judges your code against it, and it is not part of the module.
 struct Model {
     capacity: usize,
-    /// The front is the next to dump.
+    /// The front is the next to evict.
     keys: Vec<u32>,
 }
 
@@ -134,7 +134,7 @@ pub fn show(touch: &Touch) -> String {
     }
 }
 
-/// An order as the wire writes it: next to dump first, or `-` when nothing is held.
+/// An order as the wire writes it: next to evict first, or `-` when nothing is held.
 pub fn list(keys: &[u32]) -> String {
     if keys.is_empty() {
         return "-".into();
@@ -157,7 +157,7 @@ fn order_is(rotation: &Rotation, want: &[u32]) -> Result<(), String> {
     if got == want {
         return Ok(());
     }
-    Err(format!("the order should be {}, and yours is {} (next to dump first)", list(want), list(&got)))
+    Err(format!("the order should be {}, and yours is {} (next to evict first)", list(want), list(&got)))
 }
 
 fn len_is(rotation: &Rotation, want: usize) -> Result<(), String> {
@@ -165,7 +165,7 @@ fn len_is(rotation: &Rotation, want: usize) -> Result<(), String> {
     if got == want {
         return Ok(());
     }
-    Err(format!("the rotation should hold {want} keys, and yours says {got}"))
+    Err(format!("the free queue should hold {want} keys, and yours says {got}"))
 }
 
 fn verdict(id: &'static str, label: &'static str, run: Result<&'static str, String>) -> Check {
@@ -175,7 +175,7 @@ fn verdict(id: &'static str, label: &'static str, run: Result<&'static str, Stri
     }
 }
 
-/// A touch that finds room: a miss that dumps nothing.
+/// A touch that finds room: a miss that evicts nothing.
 const ROOM: Touch = Touch::Miss { dumped: None };
 
 fn fill() -> Result<&'static str, String> {
@@ -209,7 +209,7 @@ fn dump() -> Result<&'static str, String> {
     len_is(&rotation, 3)?;
     touch_is(&mut rotation, 1, Touch::Miss { dumped: Some(2) })?;
     order_is(&rotation, &[3, 4, 1])?;
-    Ok("the front is dumped, and the rotation stays full")
+    Ok("the front is evicted, and the free queue stays full")
 }
 
 fn recency() -> Result<&'static str, String> {
@@ -241,7 +241,7 @@ fn churn(seed: u32) -> Result<String, String> {
         }
         if at % 25 == 24 {
             if rotation.len() != model.keys.len() {
-                return Err(format!("after touch {at}: the rotation should hold {} keys, and yours says {}", model.keys.len(), rotation.len()));
+                return Err(format!("after touch {at}: the free queue should hold {} keys, and yours says {}", model.keys.len(), rotation.len()));
             }
             let order = rotation.order();
             if order != model.keys {
@@ -249,7 +249,7 @@ fn churn(seed: u32) -> Result<String, String> {
             }
         }
     }
-    Ok(format!("{TOUCHES} touches on {capacity} pans, every reply and every order as the model has them"))
+    Ok(format!("{TOUCHES} touches on {capacity} keys, every reply and every order as the model has them"))
 }
 
 pub fn check_fill(_: &Ctx) -> Check {
@@ -296,7 +296,7 @@ thread_local! {
 }
 
 /// The site drives your module through this: it writes one command into module memory with `ks_alloc`, calls `ks_invoke`, and reads
-/// the reply. The commands call YOUR rotation, the same code the checks call, and the bridge has no rotation logic of its own.
+/// the reply. The commands call YOUR free queue, the same code the checks call, and the bridge has no queue logic of its own.
 #[no_mangle]
 pub extern "C" fn ks_invoke(in_ptr: u32, in_len: u32) -> u64 {
     kslab::install_panic_hook();
@@ -306,7 +306,7 @@ pub extern "C" fn ks_invoke(in_ptr: u32, in_len: u32) -> u64 {
     kslab::emit_str(&reply)
 }
 
-/// One command of the wire, on a rotation that may not exist yet. `cargo test` calls it too.
+/// One command of the wire, on a free queue that may not exist yet. `cargo test` calls it too.
 pub fn bridge(rotation: &mut Option<Rotation>, command: &str) -> String {
     const NOT_READY: &str = "err not initialized";
     let words: Vec<&str> = command.split_whitespace().collect();

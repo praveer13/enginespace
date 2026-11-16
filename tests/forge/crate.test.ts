@@ -7,7 +7,7 @@
  *   - what the page prints is the manifest's, and the manifest's is the file's (the zip on disk is the size and the hash that it says);
  *   - the line is a line that works: run in a shell, over the real zip, it prints OK, and over a zip with one byte changed it does not;
  *   - the manifest is read as the data it is: other kinds of file and entries that do not say their name, size and hash are passed over;
- *   - the crate stands under the slip while the slip waits for a module, and under the lamp's rule it carries no lamp and no heading.
+ *   - the crate is step 1 of the page and stays on it, before the sheet that takes the module, and it carries no lamp and no heading of its own.
  */
 import { createHash } from 'node:crypto'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -129,7 +129,7 @@ describe('the crate on the page', () => {
     // The line is one piece of text, whatever the markup that keeps the tail of it whole when it wraps.
     expect(decode((/<code data-check-line="">(.*?)<\/code>/.exec(html)?.[1] ?? '').replace(/<[^>]+>/g, ''))).toBe(checkLine(kit))
     expect(html).toContain('<span class="es-forge-crate__tail">| sha256sum -c</span>')
-    expect(text(html)).toContain('Take the crate')
+    expect(text(html)).toContain('Download the crate')
     expect(text(html)).toContain('Copy the line')
   })
 
@@ -148,28 +148,32 @@ describe('the crate on the page', () => {
     expect(html).not.toContain('es-forge-crate__digits')
   })
 
-  test('it stands under the slip while the slip waits for a module, and goes once a module is accepted', () => {
+  test('it is step 1 and stays on the page in every state, before the sheet that takes the module', () => {
     const file = { name: 'toy.wasm', bytes: 7 }
     const crate = (state: ForgeState) => render('toy', state, ready('toy')).includes('es-forge-crate')
     expect(crate(IDLE)).toBe(true)
     expect(crate({ step: 'reading', file })).toBe(true)
     expect(crate({ step: 'refused', file, message: 'no.' })).toBe(true)
     const module: LoadedModule = { sha256: 'b'.repeat(64), bytes: 7, lab: 'toy', reference: false, version: 1, list: { lab: 'toy', version: 1, abi: 2, checks: [] } }
-    expect(crate({ step: 'running', file, module, seeds: 'fresh', results: [], current: null })).toBe(false)
-    expect(crate({ step: 'done', file, module, run: { lab: 'toy', reference: false, version: 1, wasmSha256: module.sha256, seeds: 'fresh', complete: true, checks: [] }, recorded: { kind: 'saved', durable: true } })).toBe(false)
-    // And it comes after the slip in the page, so that the chooser stays in a phone's first screen.
-    const html = render('toy', IDLE, ready('toy'))
-    expect(html.indexOf('Choose a file')).toBeLessThan(html.indexOf('es-forge-crate'))
+    expect(crate({ step: 'running', file, module, seeds: 'fresh', results: [], current: null })).toBe(true)
+    expect(crate({ step: 'done', file, module, run: { lab: 'toy', reference: false, version: 1, wasmSha256: module.sha256, seeds: 'fresh', complete: true, checks: [] }, recorded: { kind: 'saved', durable: true } })).toBe(true)
+    // The download comes before the upload in the page, for every lab.
+    for (const id of FORGE_LAB_IDS) {
+      const html = render(id, IDLE, ready(id))
+      expect(html.indexOf('es-forge-crate'), id).toBeGreaterThan(-1)
+      expect(html.indexOf('es-forge-crate'), id).toBeLessThan(html.indexOf('Choose a file'))
+      expect(html.indexOf(kitName(id)), id).toBeLessThan(html.indexOf('type="file"'))
+    }
   })
 
-  test('it is paper and no lamp, and it adds no heading to the page: the slip keeps the lamp and the outline', () => {
+  test('the crate carries no lamp and no heading of its own: the sheet that takes the module keeps the one rule', () => {
     for (const id of FORGE_LAB_IDS) {
       const html = render(id, IDLE, ready(id))
       expect((html.match(/data-lamp="true"/g) ?? []).length, id).toBe(1)
       expect(html).toMatch(/class="es-ticket"[^>]*data-lamp="true"/)
       expect((html.match(/<h1[ >]/g) ?? []).length, id).toBe(1)
-      // The slip's title and the checks' are the h2s; a lab with a readout has a third, for the readout.
-      expect((html.match(/<h2[ >]/g) ?? []).length, id).toBe(FORGE_LABS[id].readout === undefined ? 2 : 3)
+      // The five steps are the h2s; a lab with a readout has a sixth, for the readout.
+      expect((html.match(/<h2[ >]/g) ?? []).length, id).toBe(FORGE_LABS[id].readout === undefined ? 5 : 6)
       expect(html, id).not.toMatch(/<h3[ >]/)
     }
   })

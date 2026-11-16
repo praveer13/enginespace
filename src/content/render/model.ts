@@ -9,6 +9,7 @@
 import type { ReactNode } from 'react'
 import type { Claim, CompiledBlock, CompiledCard, IndexLesson, IndexModule, ProseFlow, ProseInline } from '@es/schema'
 import type { ReadoutUnit } from '@/design/components/Readout'
+import { LAB_TITLES } from '@/forge/titles'
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* What every component of the renderer is handed                                                                     */
@@ -42,10 +43,11 @@ export function renderEnv(blocks: readonly CompiledBlock[], claims: ReadonlyMap<
 export const titled = (page: string): string => `${page} · enginespace`
 
 /**
- * A lab's page name, `Lab tr8.replay`: the heading of its served document, its tab, and the heading of its page until the lab is built.
- * scripts/pages/plan.ts writes the document from this, and src/pages/Lab.tsx the page, so that the two never say different things.
+ * A lab's page name: its title in the engine's words where the lab is built (`Build a hybrid KV cache manager`, src/forge/titles.ts), and
+ * `Lab tr8.replay` until it is. It is the heading of the lab's served document, its tab, and the heading of its page. scripts/pages/plan.ts
+ * writes the document from this, and src/pages/Lab.tsx the page, so that the two never say different things.
  */
-export const labName = (lab: string): string => `Lab ${lab}`
+export const labName = (lab: string): string => (Object.hasOwn(LAB_TITLES, lab) ? LAB_TITLES[lab] : `Lab ${lab}`)
 
 /** Today as YYYY-MM-DD in UTC, the grain a claim's age is counted in. */
 export const todayIso = (now: Date = new Date()): string => now.toISOString().slice(0, 10)

@@ -705,11 +705,11 @@ function BuildRow({ lab }: { lab: Of<'lab'> }) {
   return (
     <>
       <h3 id={`keep-build-${lab.id}`} className="es-lesson__keep-title">
-        Build: {labName(lab.id)}
+        {pending === null ? <TextLink to={`/labs/${lab.id}`}>{labName(lab.id)}</TextLink> : `Build: ${labName(lab.id)}`}
       </h3>
       <p className="es-lesson__build">
         {LANE_WORDS[lab.lane] === undefined ? '' : `Worked ${LANE_WORDS[lab.lane]}. `}This lesson prepares {lab.stages.length === 1 ? 'its stage' : 'its stages'} {lab.stages.join(', ')}.{' '}
-        {pending === null ? <TextLink to={`/labs/${lab.id}`}>Open lab</TextLink> : <span>Not published yet.</span>}
+        {pending === null ? <TextLink to={`/labs/${lab.id}`}>Open the lab</TextLink> : <span>Not published yet.</span>}
       </p>
     </>
   )

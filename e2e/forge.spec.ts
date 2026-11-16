@@ -81,14 +81,23 @@ async function audit(page: Page, label: string): Promise<void> {
 }
 
 test.describe('the page before a file', () => {
-  test('names the lab, puts the lamp on the slip, and lists five checks that have not run', async ({ page }) => {
+  test('names the lab, lists five steps in order, puts the rule on the sheet that takes the module, and lists five checks that have not run', async ({ page }) => {
     await open(page, '/labs/toy')
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('The Rotation')
-    await expect(page.getByRole('heading', { name: 'Drop a .wasm' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Build an LRU free queue')
+    await expect(page.locator('ol.es-forge-steps > li > h2')).toHaveText(['Download the crate', 'Edit one file', 'Build', 'Drop the .wasm here', 'The checks'])
+    // The download is before the upload: the file to take, then the file to give.
+    const order = await page.evaluate(() => {
+      const link = document.querySelector('a[href$="enginespace-toy.zip"]')
+      const input = document.querySelector('input[type="file"]')
+      return link !== null && input !== null && Boolean(link.compareDocumentPosition(input) & Node.DOCUMENT_POSITION_FOLLOWING)
+    })
+    expect(order).toBe(true)
+    await expect(page.getByText('src/rotation.rs', { exact: true }).first()).toBeVisible()
+    await expect(page.getByText('cargo build --release --locked --target wasm32-unknown-unknown --package toy')).toBeVisible()
     await expect(rows(page)).toHaveCount(5)
     expect(await statusOf(page)).toEqual(['not run', 'not run', 'not run', 'not run', 'not run'])
     await expect(page.locator('[data-lamp]')).toHaveCount(1)
-    await expect(page.locator('.es-ticket[data-lamp]')).toContainText('Module slip')
+    await expect(page.locator('.es-ticket[data-lamp]')).toContainText('Your module')
     await expect(page.locator('.es-printer')).toContainText('Nothing printed yet')
   })
 
@@ -119,42 +128,42 @@ test.describe('the page before a file', () => {
 })
 
 test.describe('where things are', () => {
-  test('on a phone the file chooser is in the first screen, and after a run the tape sits between the slip and the checks', async ({ page }) => {
+  test('on a phone the five steps run down the page in order, and after a run the readout sits above the checks of step 5', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await open(page, '/labs/toy')
-    const choose = await page.getByRole('button', { name: 'Choose a file' }).boundingBox()
-    expect(choose, 'the chooser is drawn').not.toBeNull()
-    expect(choose!.y + choose!.height, 'the chooser ends inside the first screen').toBeLessThanOrEqual(844)
-    // Before a file the tape has nothing to say, and on a phone it is left out.
+    const tops = await page.locator('ol.es-forge-steps > li').evaluateAll((items) => items.map((item) => item.getBoundingClientRect().top + window.scrollY))
+    expect(tops).toHaveLength(5)
+    expect([...tops].sort((a, b) => a - b)).toEqual(tops)
+    // The first step is in the first screen, with its number beside it.
+    expect(tops[0]).toBeLessThan(844)
+    // Before a file the readout has nothing to say, and on a phone it is left out.
     await expect(page.locator('.es-printer')).toBeHidden()
 
     await drop(page, 'solved')
     await finished(page)
     const slip = await page.locator('.es-forge-slip').boundingBox()
     const tape = await page.locator('.es-forge-tape').boundingBox()
-    const checks = await page.locator('.es-forge-run').boundingBox()
+    const sheet = await page.locator('.es-forge-checks-row > .es-ticket').boundingBox()
     expect(slip!.y).toBeLessThan(tape!.y)
-    expect(tape!.y).toBeLessThan(checks!.y)
-    expect(tape!.y + tape!.height).toBeLessThanOrEqual(checks!.y)
+    expect(tape!.y + tape!.height).toBeLessThanOrEqual(sheet!.y)
   })
 
-  test('on a laptop the tape stands beside the slip and the checks, and stays in view as the checks scroll', async ({ page }) => {
+  test('on a laptop the readout stands beside the checks, and stays in view as the checks scroll', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 })
     await open(page, '/labs/toy')
     await drop(page, 'fifo')
     await finished(page)
-    const slip = await page.locator('.es-forge-slip').boundingBox()
     const tape = await page.locator('.es-forge-tape').boundingBox()
-    const checks = await page.locator('.es-forge-run').boundingBox()
-    expect(tape!.x, 'beside the slip').toBeGreaterThanOrEqual(slip!.x + slip!.width)
-    expect(tape!.x, 'beside the checks').toBeGreaterThanOrEqual(checks!.x + checks!.width)
-    await page.evaluate(() => window.scrollTo(0, 700))
+    const sheet = await page.locator('.es-forge-checks-row > .es-ticket').boundingBox()
+    expect(tape!.x, 'beside the checks').toBeGreaterThanOrEqual(sheet!.x + sheet!.width)
+    const rowTop = await page.locator('.es-forge-checks-row').evaluate((row) => row.getBoundingClientRect().top + window.scrollY)
+    await page.evaluate((top) => window.scrollTo(0, top + 200), rowTop)
     const held = await page.locator('.es-forge-tape').boundingBox()
     expect(held!.y, 'held in place under the board').toBeGreaterThanOrEqual(0)
     expect(held!.y).toBeLessThan(120)
   })
 
-  test('the filament while a file is over the slip hugs the slip\'s paper', async ({ page }) => {
+  test('the dashed edge while a file is over the sheet hugs the sheet\'s paper', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 })
     await open(page, '/labs/toy')
     const zone = await page.locator('.es-forge-drop').boundingBox()
@@ -232,9 +241,9 @@ test.describe('a wrong module', () => {
 
     const lamp = page.locator('.es-forge-check[data-lamp]')
     await expect(lamp).toHaveCount(1)
-    await expect(lamp).toContainText('a held key is a hit and goes to the back')
+    await expect(lamp).toContainText('a held key is a hit and moves to the back')
     await expect(lamp).toContainText('order should answer "2,3,1", and the module answered "1,2,3"')
-    await expect(lamp).toContainText('Catches:')
+    await expect(lamp).toContainText('Catches')
     await wrote(page)
 
     const events = (await ledger(page)).filter((event) => event.kind === 'lab-check')
@@ -274,7 +283,7 @@ test.describe('limits', () => {
     // Three checks stopped at 2 s each, and the rest of the run in between.
     expect(spent).toBeGreaterThanOrEqual(6000)
     await expect(page.locator('.es-forge-check[data-status="timeout"]').first()).toContainText('was still running after 2 s')
-    await expect(page.locator('.es-forge-check[data-lamp]')).toContainText('a held key is a hit and goes to the back')
+    await expect(page.locator('.es-forge-check[data-lamp]')).toContainText('a held key is a hit and moves to the back')
   })
 
   test('a learner who leaves in the middle of a run writes nothing: the run is abandoned, and its worker with it', async ({ page }) => {
@@ -282,8 +291,8 @@ test.describe('limits', () => {
     await drop(page, 'spin')
     await expect(page.locator('.es-forge-check[data-state="running"]')).toBeVisible({ timeout: 15_000 })
     // By the router, as a learner goes: the page unmounts while the module is in its worker.
-    await page.getByRole('link', { name: 'Map' }).click()
-    await expect(page.getByRole('heading', { level: 1 })).not.toHaveText('The Rotation')
+    await page.getByRole('link', { name: 'About', exact: true }).click()
+    await expect(page.getByRole('heading', { level: 1 })).not.toHaveText('Build an LRU free queue')
     // The run would have ended by now, and recorded itself, if nothing had stopped it.
     await page.waitForTimeout(7000)
     expect((await ledger(page)).filter((event) => event.kind === 'lab-check')).toEqual([])
@@ -294,7 +303,7 @@ test.describe('limits', () => {
     await drop(page, 'template')
     await finished(page)
     expect(await statusOf(page)).toEqual(['trap', 'trap', 'trap', 'trap', 'trap'])
-    await expect(rows(page).first()).toContainText('not implemented yet: build the rotation')
+    await expect(rows(page).first()).toContainText('not implemented yet: build the free queue')
     await expect(rows(page).first()).toContainText('toy/src/rotation.rs')
   })
 })

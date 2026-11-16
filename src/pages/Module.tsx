@@ -13,7 +13,7 @@ import { useClaims, useDocumentTitle, useIndex } from '@/content/load'
 import { useModule } from '@/content/load-lessons'
 import { useMap } from '@/content/load-map'
 import { Blocks } from '@/content/render/Blocks'
-import { citedClaimIds, decimals, laneName, renderEnv, titled, todayIso } from '@/content/render/model'
+import { citedClaimIds, decimals, labName, laneName, renderEnv, titled, todayIso } from '@/content/render/model'
 import { Columns, LinkRow, PageHeader, PageNotice, RefLink, Scope } from '@/content/render/Page'
 import '@/content/render/content.css'
 import { Kcs, Loop } from '@/map/ModuleProgress'
@@ -197,7 +197,7 @@ export function ModuleView({ id, module, entry, claims, today, kcs, progress, re
         <LinkRow>
           {labs.map((lab) => (
             <TextLink key={lab} to={`/labs/${lab}`}>
-              {lab}
+              {labName(lab)}
             </TextLink>
           ))}
         </LinkRow>

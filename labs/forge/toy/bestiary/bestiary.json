@@ -4,7 +4,7 @@
     {
       "id": "fifo",
       "feature": "bestiary-fifo",
-      "mistake": "first in, first out: a hit leaves the key where it came in, so the rotation dumps by arrival and not by use",
+      "mistake": "first in, first out: a hit leaves the key where it came in, so the free queue evicts by arrival and not by use",
       "fails": { "hits": "fail", "recency": "fail", "churn": "fail" },
       "passes": ["fill", "dump"]
     },

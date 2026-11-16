@@ -1,8 +1,8 @@
 //! rejection-sampler — the forge's lab for the verify step of speculative decoding.
 //!
-//! The commis, a junior cook, plates a run of courses ahead of you, and you are the chef at the pass. Keep a commis plate with probability
-//! min(1, p/q). At the first plate you send back, re-plate from the dishes the commis under-plates, (p − q)⁺, and stop. If every plate
-//! is kept, plate one more course yourself. What goes out must be exactly what you would have plated alone. In the engine this is the
+//! A small draft model proposes a run of tokens ahead of the target model. Accept a draft token with probability min(1, p/q). At the first
+//! rejection, resample from the tokens the draft model under-proposes, (p − q)⁺, and stop. If every draft token is accepted, pick one more
+//! token from the target model. What comes out must be exactly what the target model would have produced alone. In the engine this is the
 //! rejection sampler that verifies a draft (Leviathan, Kalman and Matias 2023), and every weight here is a whole number out of 65,536.
 //!
 //! ┌────────────────────────────────────────────────────────────────┐
@@ -22,12 +22,12 @@
 //!
 //! ```text
 //!   accept     a rule that keeps the wrong number of the q[x] coins: p > q taken as yes or no with no coin, a comparison that includes
-//!              the boundary (u <= p, the bug of SGLang PR #35798), or a dish p rules out that is kept on coin 0
-//!   residual   a residual that is not max(0, p − q) for every dish: a subtraction that wraps below 0, or an excess written one place off
-//!   pick       a walk over the weights that picks a dish more or less often than its weight: the comparison off by one, a dish of
-//!              weight 0 picked on draw 0, or the last dish short
-//!   round      a round that does not stop at the first send-back, re-plates from p or from q and not from the residual, shifts the dish
-//!              by one, loses the bonus, keeps a dish that p rules out, or draws the bonus from the wrong distribution
+//!              the boundary (u <= p, the bug of SGLang PR #35798), or a token p rules out that is accepted on coin 0
+//!   residual   a residual that is not max(0, p − q) for every token: a subtraction that wraps below 0, or an excess written one place off
+//!   pick       a walk over the weights that picks a token more or less often than its weight: the comparison off by one, a token of
+//!              weight 0 picked on draw 0, or the last token short
+//!   round      a round that does not stop at the first rejection, resamples from p or from q and not from the residual, shifts the token
+//!              by one, loses the bonus, accepts a token that p rules out, or draws the bonus from the wrong distribution
 //!   exact      what the four above miss: 20,000 rounds on each of two seeds, and the first token that goes out must follow p, which
 //!              a chi-square test checks at α = 1e-4 on each [estimated]
 //! ```
@@ -104,11 +104,11 @@ const PICK: &str = "pick";
 const ROUND: &str = "round";
 const EXACT: &str = "exact";
 
-const ACCEPT_LABEL: &str = "keeping a plate keeps exactly min(p, q) of the coins";
-const RESIDUAL_LABEL: &str = "re-plating draws on p's excess over q";
-const PICK_LABEL: &str = "a draw picks each dish as often as its weight";
-const ROUND_LABEL: &str = "a run stops at the first send-back, and the chef finishes it";
-const EXACT_LABEL: &str = "what goes out is the chef's tasting: chi-square on two seeds";
+const ACCEPT_LABEL: &str = "accepting a draft token accepts exactly min(p, q) of the coins";
+const RESIDUAL_LABEL: &str = "resampling draws on the excess of p over q";
+const PICK_LABEL: &str = "a draw picks each token as often as its weight";
+const ROUND_LABEL: &str = "a round stops at the first rejection, and the target model finishes it";
+const EXACT_LABEL: &str = "what comes out follows the target model: chi-square on two seeds";
 
 /// The checks, in grading order. Ids, labels and stages are the site's (src/forge/labs.ts), and `verify:labs` fails when they differ.
 pub static CHECKS: [CheckDef; 5] = [
@@ -141,12 +141,12 @@ fn six(rng: &mut Rng) -> Vec<u32> {
     split(rng, 6, 58).into_iter().map(|spare| (1 + spare as u32) * (TOTAL / 64)).collect()
 }
 
-/// How much of the total p and q have in common: the weight of the plates that are kept, Σ min(p, q).
+/// How much of the total p and q have in common: the weight of the tokens that are accepted, Σ min(p, q).
 fn overlap(p: &[u32], q: &[u32]) -> u32 {
     p.iter().zip(q).map(|(&a, &b)| a.min(b)).sum()
 }
 
-/// A pair of six-dish distributions like the Verifier's: α from 0.4 to 0.9, and at least two dishes each way.
+/// A pair of six-token distributions like the Verifier's: α from 0.4 to 0.9, and at least two tokens each way.
 fn pair(rng: &mut Rng) -> (Vec<u32>, Vec<u32>) {
     loop {
         let (p, q) = (six(rng), six(rng));
@@ -159,12 +159,12 @@ fn pair(rng: &mut Rng) -> (Vec<u32>, Vec<u32>) {
     }
 }
 
-/// No dish has half of the weight: the stand-in for a high-entropy position, where a lossy rule is tempted to defer.
+/// No token has half of the weight: the stand-in for a high-entropy position, where a lossy rule is tempted to defer.
 fn flat(d: &[u32]) -> bool {
     d.iter().all(|&w| w * 2 < TOTAL)
 }
 
-/// The token whose running total first passes `draw`, written for clarity: the harness's own walk, which draws the commis's plates.
+/// The token whose running total first passes `draw`, written for clarity: the harness's own walk, which draws the draft model's tokens.
 fn walk(weights: &[u32], draw: u32) -> usize {
     let mut running = 0;
     for (token, &weight) in weights.iter().enumerate() {
@@ -176,12 +176,12 @@ fn walk(weights: &[u32], draw: u32) -> usize {
     weights.len() - 1
 }
 
-/// The commis plates one token from each `q`.
+/// The draft model proposes one token from each `q`.
 fn draft_from(q: &[Vec<u32>], rng: &mut Rng) -> Vec<usize> {
     q.iter().map(|d| walk(d, rng.below(TOTAL as usize) as u32)).collect()
 }
 
-/// A target for which the plate x is certain to be sent back and t is the one dish that replaces it: q with all of x's weight moved to t.
+/// A target for which the draft token x is certain to be rejected and t is the one token that replaces it: q with all of x's weight moved to t.
 /// The residual is then `q[x]` at t and 0 everywhere else.
 fn sure_reject(q: &[u32], x: usize, t: usize) -> Vec<u32> {
     let mut p = q.to_vec();
@@ -220,7 +220,7 @@ fn kept_is(px: u32, qx: u32) -> Result<(), String> {
     if kept == want {
         return Ok(());
     }
-    Err(format!("accept({px}, {qx}, u) keeps {kept} of the {qx} coins u in 0..{qx}, and a plate with p = {px} and q = {qx} is kept by exactly min(p, q) = {want} of them"))
+    Err(format!("accept({px}, {qx}, u) accepts {kept} of the {qx} coins u in 0..{qx}, and a draft token with p = {px} and q = {qx} is accepted by exactly min(p, q) = {want} of them"))
 }
 
 fn accept_check(seed: u32) -> Result<String, String> {
@@ -234,7 +234,7 @@ fn accept_check(seed: u32) -> Result<String, String> {
         kept_is(px, qx)?;
         coins += qx;
     }
-    Ok(format!("every coin of 6 hand cases and of the {coins} coins of a seeded pair: exactly min(p, q) of the coins keep a plate"))
+    Ok(format!("every coin of 6 hand cases and of the {coins} coins of a seeded pair: exactly min(p, q) of the coins accept a draft token"))
 }
 
 fn check_accept(ctx: &Ctx) -> Check {
@@ -247,7 +247,7 @@ fn residual_is(p: &[u32], q: &[u32]) -> Result<(), String> {
     if got == want {
         return Ok(());
     }
-    Err(format!("residual({}, {}) should be {}, the excess max(0, p - q) of every dish, and yours is {}", list(p), list(q), list(&want), list(&got)))
+    Err(format!("residual({}, {}) should be {}, the excess max(0, p - q) of every token, and yours is {}", list(p), list(q), list(&want), list(&got)))
 }
 
 fn residual_check(seed: u32) -> Result<String, String> {
@@ -259,7 +259,7 @@ fn residual_check(seed: u32) -> Result<String, String> {
         let (p, q) = pair(&mut rng);
         residual_is(&p, &q)?;
     }
-    Ok("the excess max(0, p - q) of 3 hand cases and 3 seeded pairs, dish by dish".into())
+    Ok("the excess max(0, p - q) of 3 hand cases and 3 seeded pairs, token by token".into())
 }
 
 fn check_residual(ctx: &Ctx) -> Check {
@@ -298,7 +298,7 @@ fn pick_check(seed: u32) -> Result<String, String> {
     picked_as_often_as_weighed(&excess)?;
     let small: Vec<u32> = split(&mut rng, 8, 120).into_iter().map(|w| w as u32).collect();
     picked_as_often_as_weighed(&small)?;
-    Ok(format!("every draw of 5 hand lists, of a residual with {} draws and of a list of 8 weights: each dish is picked as often as its weight", excess.iter().sum::<u32>()))
+    Ok(format!("every draw of 5 hand lists, of a residual with {} draws and of a list of 8 weights: each token is picked as often as its weight", excess.iter().sum::<u32>()))
 }
 
 fn check_pick(ctx: &Ctx) -> Check {
@@ -309,7 +309,7 @@ const ROUNDS_PER_CASE: usize = 8;
 
 /// One case of the `round` check: three drafts, of which at most one is sent back, and the words for what an exact verify step does.
 struct Case {
-    /// The position whose plate p rules out, so that it is sent back for sure and the residual has one dish. None: every plate is kept.
+    /// The position whose draft token p rules out, so that it is rejected for sure and the residual has one token. None: every draft token is accepted.
     sent_back: Option<usize>,
     /// The first target is flat, so that a rule which defers a send-back at a flat position has something to defer.
     flat: bool,
@@ -317,14 +317,14 @@ struct Case {
 }
 
 const CASES: [Case; 4] = [
-    Case { sent_back: Some(0), flat: false, why: "the first plate is sent back for sure, so the round stops there with the dish that replaces it" },
-    Case { sent_back: Some(1), flat: false, why: "the first plate is kept for sure and the second is sent back for sure, so the round emits the first and then the dish that replaces the second" },
-    Case { sent_back: None, flat: false, why: "every plate is kept for sure, so all of them go out and the bonus follows, picked from p after the last draft" },
-    Case { sent_back: Some(0), flat: true, why: "the first plate is sent back for sure, whatever follows it: a round never keeps a dish that p rules out" },
+    Case { sent_back: Some(0), flat: false, why: "the first draft token is rejected for sure, so the round stops there with the token that replaces it" },
+    Case { sent_back: Some(1), flat: false, why: "the first draft token is accepted for sure and the second is rejected for sure, so the round emits the first and then the token that replaces the second" },
+    Case { sent_back: None, flat: false, why: "every draft token is accepted for sure, so all of them go out and the bonus follows, picked from p after the last draft" },
+    Case { sent_back: Some(0), flat: true, why: "the first draft token is rejected for sure, whatever follows it: a round never accepts a token that p rules out" },
 ];
 
-/// The rounds whose outcome does not depend on a coin: a plate that p rules out is sent back for sure, a plate with p = q is kept for sure,
-/// and a residual with one dish picks it whatever the draw. What any exact verify step emits for each of them is known.
+/// The rounds whose outcome does not depend on a coin: a draft token that p rules out is rejected for sure, one with p = q is accepted for sure,
+/// and a residual with one token picks it whatever the draw. What any exact verify step emits for each of them is known.
 fn round_check(seed: u32) -> Result<String, String> {
     let mut rng = Rng::seeded(seed);
     let mut coins = Rng::seeded(seed ^ 0x5eed);
@@ -347,7 +347,7 @@ fn round_check(seed: u32) -> Result<String, String> {
             }
             q.push(d);
         }
-        // The bonus position has one dish with all the weight, so the bonus is known too.
+        // The bonus position has one token with all the weight, so the bonus is known too.
         let bonus = rng.below(6);
         let mut last = vec![0; 6];
         last[bonus] = TOTAL;
@@ -382,7 +382,7 @@ fn tenths(x: f64) -> String {
     format!("{}.{}", t / 10, t % 10)
 }
 
-/// Pearson's statistic of `counts` against `p`, a distribution of dishes that all have weight.
+/// Pearson's statistic of `counts` against `p`, a distribution of tokens that all have weight.
 fn chi_square(counts: &[u32], p: &[u32]) -> f64 {
     let n = f64::from(counts.iter().sum::<u32>());
     counts
@@ -421,11 +421,11 @@ fn exact_check(seed: u32) -> Result<String, String> {
         }
         let stat = chi_square(&counts, &p[0]);
         if stat > LIMIT {
-            // The dish whose count is furthest from its share, in whole counts: share = ROUNDS * weight / TOTAL.
+            // The token whose count is furthest from its share, in whole counts: share = ROUNDS * weight / TOTAL.
             let share = |t: usize| (ROUNDS as u64 * u64::from(p[0][t]) / u64::from(TOTAL)) as i64;
             let worst = (0..6).max_by_key(|&t| (i64::from(counts[t]) - share(t)).abs()).unwrap_or(0);
             return Err(format!(
-                "over {ROUNDS} rounds the first token should follow p: chi-square {} on 5 degrees of freedom is over the limit {LIMIT_TEXT}, and the dish furthest from its share is token {worst} (expected {}, seen {})",
+                "over {ROUNDS} rounds the first token should follow p: chi-square {} on 5 degrees of freedom is over the limit {LIMIT_TEXT}, and the token furthest from its share is token {worst} (expected {}, seen {})",
                 tenths(stat),
                 share(worst),
                 counts[worst]

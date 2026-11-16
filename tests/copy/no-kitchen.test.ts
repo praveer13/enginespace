@@ -7,7 +7,9 @@
  *   - the compiled lessons and modules, the Markdown export and llms.txt, compiled in memory from content/ as the build compiles them;
  *   - the model cards and the claims' sentences;
  *   - every item family's stem, givens, options, reasons and worked steps, over the seed count of tests/seeds.ts at every level;
- *   - the predictions' sentences: why a reveal waits, and what a reading read.
+ *   - the predictions' sentences: why a reveal waits, and what a reading read;
+ *   - the labs: each lab's title and lead, each check's label and the bug it catches, and the prose of the crates (the doc comments, the comments
+ *     and the Markdown of labs/forge, and what the bestiary says of each mistake).
  *
  * It reads rendered and compiled text, never a raw source file: a JSON node is read only through the keys that render (a text node, a
  * title, an alt), and a code node or a code span is skipped, so an id or an enum value inside state (`plate`) never trips it.
@@ -18,7 +20,7 @@
  * files stand for it until it runs.
  */
 import { describe, expect, test } from 'bun:test'
-import { readdirSync, readFileSync } from 'node:fs'
+import { readdirSync, readFileSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { GAMES } from '@es/play'
 import { FAMILIES, LEVELS, offeredAt } from '@es/play/items'
@@ -38,6 +40,7 @@ import { REFERENCES as TR1_READINGS } from '@es/play/predictions/tr1'
 import { REFERENCES as TR2_READINGS } from '@es/play/predictions/tr2'
 import { REFERENCES as TR5A_READINGS } from '@es/play/predictions/tr5a'
 import { ROSTER } from '@es/play/roster'
+import { FORGE_LABS } from '@/forge/labs'
 import { VERIFIER_COPY } from '@es/play/verifier/copy'
 import { BANNED_PHRASES, BANNED_WORDS, findBanned, isClean, stripCode } from '@/copy/banned'
 import { PRODUCT_WORDS, PROVENANCE_WORDS, STATE_WORDS, TERMS, VERDICT_WORDS } from '@/copy/terms'
@@ -211,6 +214,45 @@ function predictionTexts(): Text[] {
   return [{ area: 'predictions', where: 'packages/play/predictions', text: [...whys, ...reads, ...working].join('\n') }]
 }
 
+/** The files under a folder, depth first, without a build's `target`. */
+function filesUnder(dir: string): string[] {
+  return readdirSync(dir).flatMap((name) => {
+    const file = path.join(dir, name)
+    if (name === 'target') return []
+    return statSync(file).isDirectory() ? filesUnder(file) : [file]
+  })
+}
+
+/** What a Rust file says to a reader in prose: its doc comments and its comments. Code and string literals are the pinned source's spelling. */
+function rustProse(source: string): string {
+  const out: string[] = []
+  for (const line of source.split('\n')) {
+    const comment = /(?:^|\s)\/\/[/!]?\s?(.*)$/.exec(line)
+    // A `//` inside a string literal (a URL) has no space before it, so only a comment of its own or one after code is read.
+    if (comment !== null) out.push(comment[1])
+  }
+  return out.join('\n')
+}
+
+function labTexts(): Text[] {
+  const out: Text[] = []
+  for (const lab of Object.values(FORGE_LABS)) {
+    out.push({ area: 'labs', where: `lab ${lab.id}`, text: [lab.title, lab.lead, lab.editNote ?? ''].join('\n') })
+    out.push({ area: 'labs', where: `checks of ${lab.id}`, text: lab.checks.flatMap((check) => [check.label, check.catches]).join('\n') })
+  }
+  const forge = path.join(root, 'labs/forge')
+  for (const file of filesUnder(forge)) {
+    const rel = path.relative(root, file)
+    if (file.endsWith('.rs')) out.push({ area: 'labs', where: rel, text: rustProse(readFileSync(file, 'utf8')) })
+    else if (file.endsWith('.md')) out.push({ area: 'labs', where: rel, text: readFileSync(file, 'utf8') })
+    else if (file.endsWith('bestiary.json')) {
+      const members = (JSON.parse(readFileSync(file, 'utf8')) as { members: { mistake: string }[] }).members
+      out.push({ area: 'labs', where: rel, text: members.map((member) => member.mistake).join('\n') })
+    }
+  }
+  return out
+}
+
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* The allow files                                                                                                    */
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -232,7 +274,7 @@ const allows: Allow[] = readdirSync(ALLOW_DIR)
   })
 
 /** The areas this guard reads itself. Any other area's file stands for the e2e scan of rendered routes. */
-const READ_AREAS = ['copy', 'course', 'cards', 'items', 'predictions', 'tr0', 'tr1', 'tr2', 'tr3', 'tr4', 'tr5a', 'tr5b', 'tr6', 'tr7', 'tr8', 'capstone']
+const READ_AREAS = ['labs', 'copy', 'course', 'cards', 'items', 'predictions', 'tr0', 'tr1', 'tr2', 'tr3', 'tr4', 'tr5a', 'tr5b', 'tr6', 'tr7', 'tr8', 'capstone']
 
 describe('the allow files', () => {
   test('are one JSON file per area, each naming a wave R task of the tracker that deletes it and what it covers', () => {
@@ -253,13 +295,13 @@ describe('the allow files', () => {
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 describe('what a learner reads', () => {
-  const texts = [...copyTexts(), ...compiledTexts(), ...itemTexts(), ...predictionTexts()]
+  const texts = [...copyTexts(), ...compiledTexts(), ...itemTexts(), ...predictionTexts(), ...labTexts()]
   const findings = texts.flatMap((t) => findBanned(t.text).map((f) => ({ area: t.area, where: t.where, rule: f.rule, match: f.match })))
   const allowed = new Set(allows.map((allow) => allow.area))
 
   test('reads every area it names, with text in each', () => {
     const areas = new Set(texts.map((t) => t.area))
-    for (const area of ['copy', 'course', 'cards', 'items', 'predictions', 'tr1', 'tr2', 'tr5a', 'tr6', 'tr8']) expect([area, areas.has(area)]).toEqual([area, true])
+    for (const area of ['labs', 'copy', 'course', 'cards', 'items', 'predictions', 'tr1', 'tr2', 'tr5a', 'tr6', 'tr8']) expect([area, areas.has(area)]).toEqual([area, true])
     for (const area of areas) expect([area, READ_AREAS.includes(area)]).toEqual([area, true])
   })
 

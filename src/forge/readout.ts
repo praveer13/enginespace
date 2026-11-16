@@ -33,7 +33,7 @@ export async function runSlotReadout(host: ForgeHost, options: ReadoutOptions = 
   const held: { plan: SlotNightPlan | null } = { plan: null }
   const check: PlannedCheck = {
     id: 'slot-night',
-    label: 'one night of adapter churn',
+    label: 'one stream of adapter churn',
     stage: 5,
     seeded: false,
     defaultSeed: night.seed,

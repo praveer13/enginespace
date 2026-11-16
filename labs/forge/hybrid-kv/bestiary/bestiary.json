@@ -101,7 +101,7 @@
     {
       "id": "free-forward",
       "feature": "bestiary-free-forward",
-      "mistake": "blocks let go head first: a request gives its pages back first block first, so the head of a prefix is dumped before its tail",
+      "mistake": "blocks let go head first: a request gives its pages back first block first, so the head of a prefix is evicted before its tail",
       "fails": {
         "one_group": "fail",
         "sliding": "fail",
@@ -113,7 +113,7 @@
     {
       "id": "unhashed-back",
       "feature": "bestiary-unhashed-back",
-      "mistake": "a page with no hash sent to the back of the queue: it is reused after the cached pages, so the next allocation dumps a cached block before a bare page",
+      "mistake": "a page with no hash sent to the back of the queue: it is reused after the cached pages, so the next allocation evicts a cached block before a bare page",
       "fails": {
         "one_group": "fail",
         "sliding": "fail",
