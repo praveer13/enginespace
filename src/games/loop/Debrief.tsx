@@ -11,7 +11,7 @@ import { TextLink } from '@/design/components/TextLink'
 import { Ticket, TicketLine } from '@/design/components/Ticket'
 import { formatReadout } from '@/design/format'
 import { svgToReact } from './svg'
-import type { LoopOutcome, LoopRun } from './types'
+import type { LoopOutcome, LoopRunCore } from './types'
 
 /*
  * The step loop's debrief and, on the front page, its end card (GAMES.md §3, §3.1): one sentence that says what the run did and the
@@ -24,7 +24,7 @@ import type { LoopOutcome, LoopRun } from './types'
  */
 
 export interface DebriefProps {
-  run: LoopRun
+  run: LoopRunCore
   outcome: LoopOutcome
   /** The level after this one, or null on the last. */
   next: { id: string; title: string } | null

@@ -13,6 +13,8 @@
  *     GPU paid for and nothing used. Each slot's label holds the request in it now, or reads empty;
  *   - an idle box over the GPU rows wherever they wait between two forwards, as wide as the gap, which is the CPU's work in it when
  *     async scheduling is off; and an open one from the latest forward's end to now, while the GPU waits on the CPU;
+ *   - a dimension line across every closed idle box, with end ticks and its value ("bubble 3 ticks"), as an engineering drawing marks
+ *     an interval;
  *   - the now cursor at the CPU's clock, and the axis in ticks.
  *
  * The scale is fixed: the track shows `windowTicks` ticks, and once now passes three quarters of it the window slides, so now stays in
@@ -21,7 +23,7 @@
  */
 import type { Us } from '@es/sim/core'
 import type { Span, SpanKind } from '@es/sim/steploop'
-import type { FireView, PlaceView } from './types'
+import type { FireView, KitchenView, PlaceView } from './types'
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Input and geometry                                                                                                 */
@@ -97,6 +99,63 @@ export const PHONE: LaneGeometry = {
   axisLabelGap: 32,
 }
 
+/**
+ * The diagram inside the instrument frame on `/play/loop` at 1440 x 900 (REDESIGN §3.5: the diagram's box is y 216 to 760): the desk's
+ * label column, queue and axis, with the slot rows grown to fill the taller box [estimated: 64 px a slot fills it with the legend under it].
+ */
+export const FRAME_DESK: LaneGeometry = { ...DESK, slotHeight: 64 }
+
+/**
+ * The diagram inside the frame at 390 x 844, where the dock is pinned under it and the diagram's box is about 230 px tall: an 84 px label
+ * column, the queue at 40 px, and the lanes in 150 (the CPU row at 28, each slot at 26, the axis at 18), over 28 ticks that scroll
+ * sideways [estimated: the brief's phone geometry, compacted to the frame's box].
+ */
+export const FRAME_PHONE: LaneGeometry = {
+  width: 358,
+  labelWidth: 84,
+  queueHeight: 40,
+  queueGap: 6,
+  chipWidth: 48,
+  chipGap: 6,
+  lanesHeight: 150,
+  cpuHeight: 28,
+  slotHeight: 26,
+  axisHeight: 18,
+  windowTicks: 28,
+  axisLabelGap: 32,
+}
+
+/**
+ * The compact view a lesson's dock draws (REDESIGN §2.6, §3.4): the same lanes at 464 x 240, the queue at 32 px over a 200 px lane
+ * region (the CPU row at 32, each of four slots at 36, the axis at 20) [estimated: the brief's dock size, split by eye].
+ */
+export const DOCK: LaneGeometry = {
+  width: 464,
+  labelWidth: 96,
+  queueHeight: 32,
+  queueGap: 8,
+  chipWidth: 40,
+  chipGap: 4,
+  lanesHeight: 200,
+  cpuHeight: 32,
+  slotHeight: 36,
+  axisHeight: 20,
+  windowTicks: 24,
+  axisLabelGap: 32,
+}
+
+/**
+ * The narrowest a tick is drawn [estimated]: a track whose box would draw a tick narrower than this is laid out wider than the box, and
+ * the box scrolls sideways (REDESIGN §3.1 at 390: "the track scrolls sideways inside its box and keeps now in view").
+ */
+export const MIN_PX_PER_TICK = 16
+
+/** A geometry fitted to the room a page has: the width it is given, or wider where a tick would fall under `MIN_PX_PER_TICK`. */
+export function fitGeometry(base: LaneGeometry, width: number): LaneGeometry {
+  const least = base.labelWidth + base.windowTicks * MIN_PX_PER_TICK
+  return { ...base, width: Math.max(Math.floor(width), least) }
+}
+
 /** A slot row shorter than this carries no label of its own: every k-th row is labelled instead [estimated]. */
 export const MIN_LABELLED_ROW = 16
 
@@ -104,10 +163,18 @@ export const MIN_LABELLED_ROW = 16
 export const LANE_WORDS = {
   queue: 'Waiting queue',
   cpu: 'CPU · engine core thread',
+  /** The CPU row's name where the label column is narrow. */
+  cpuShort: 'CPU',
   slot: (slot: number) => `slot ${slot + 1}`,
   empty: 'empty',
   idle: 'idle',
+  /** A closed idle box's dimension: "bubble 3 ticks", and shorter where the box is narrow. */
+  bubble: (ticks: number) => `bubble ${ticks} ${ticks === 1 ? 'tick' : 'ticks'}`,
+  ticks: (ticks: number) => `${ticks} ${ticks === 1 ? 'tick' : 'ticks'}`,
+  /** What a slab on a slot row carried, where it was not a request's token. */
+  ghost: 'ghost',
   axis: 'synthetic ticks',
+  now: 'now',
 } as const
 
 /** A request's name on screen: R1 is request 0. */
@@ -191,6 +258,19 @@ export interface IdleBox {
   readonly clipped: boolean
 }
 
+/**
+ * A dimension line across a closed idle box: end ticks at its two edges and its value on the line, as an engineering drawing marks an
+ * interval (REDESIGN §2.8, "Dimension lines"). It stands at the middle of the GPU rows, which the box leaves empty.
+ */
+export interface Dimension {
+  readonly id: string
+  readonly x0: number
+  readonly x1: number
+  readonly y: number
+  readonly ticks: Us
+  readonly label: string
+}
+
 export interface AxisTick {
   readonly t: Us
   readonly x: number
@@ -204,6 +284,7 @@ export interface LaneLayout {
   readonly rows: readonly LaneRow[]
   readonly slabs: readonly LaneSlab[]
   readonly idle: readonly IdleBox[]
+  readonly dims: readonly Dimension[]
   readonly now: { readonly t: Us; readonly x: number; readonly y0: number; readonly y1: number }
   readonly axis: { readonly y: number; readonly step: number; readonly ticks: readonly AxisTick[] }
 }
@@ -303,6 +384,13 @@ export function laneLayout(source: LaneSource, geometry: LaneGeometry = DESK): L
   const last = source.fires[source.fires.length - 1]
   if (last !== undefined) gap(last.endUs, now, null)
 
+  // A dimension line across each closed idle box: the bubble's width, in ticks. Its end ticks stand at the box's edges, the left one cut at
+  // the track's edge where the box began before the window.
+  const midY = gpuY + (gpuBottom - gpuY) / 2
+  const dims: Dimension[] = idle
+    .filter((box) => box.before !== null)
+    .map((box) => ({ id: `dim/${box.before}`, x0: box.x, x1: box.x + box.width, y: midY, ticks: box.ticks, label: LANE_WORDS.bubble(box.ticks) }))
+
   // The axis.
   const step = axisStep(scale.pxPerTick, g.axisLabelGap)
   const ticks: AxisTick[] = []
@@ -316,7 +404,48 @@ export function laneLayout(source: LaneSource, geometry: LaneGeometry = DESK): L
     rows,
     slabs,
     idle,
+    dims,
     now: { t: now, x: xOf(scale, Math.min(now, scale.end)), y0: lanesY, y1: gpuBottom },
     axis: { y: gpuBottom, step, ticks },
   }
+}
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* The state table's window                                                                                           */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/**
+ * Ticks the state table lists step by step before it sums the older steps in one row [estimated]: the kitchen drawing's landscape window,
+ * which the front page's table has always used, so the table reads the same on every page.
+ */
+export const TABLE_TICKS = 76
+
+/** The steps the state table lists one by one, and how many older ones it sums. */
+export interface StepsWindow {
+  readonly startUs: Us
+  readonly windowTicks: number
+  /** The steps with any part inside the window, oldest first. */
+  readonly fires: readonly FireView[]
+  /** The CPU's spans inside the window. */
+  readonly cpu: readonly Span[]
+  /** Steps older than the window: summed in one row. */
+  readonly hidden: number
+}
+
+/**
+ * The last part of the run, which the state table lists step by step. While the run fits it starts at 0. After that it starts at the
+ * `schedule` of the oldest step that still lets the run end inside the window, so it moves by whole steps and never cuts one in half; a step
+ * on the GPU whose forward runs into the window from before it is kept. (The kitchen layout's `windowOf` is the same rule; the table reads it
+ * here so that a page with no kitchen drawing loads none of it.)
+ */
+export function stepsWindow(view: Pick<KitchenView, 'clockUs' | 'fires' | 'cpu'>, windowTicks: number): StepsWindow {
+  const end = view.clockUs
+  let startUs: Us = 0
+  if (end > windowTicks) {
+    const planStart = (fire: FireView): Us => view.cpu.find((span) => span.step === fire.index && span.kind === 'schedule')?.startUs ?? fire.startUs
+    const first = view.fires.find((fire) => planStart(fire) >= end - windowTicks)
+    startUs = first === undefined ? end - windowTicks : planStart(first)
+  }
+  const fires = view.fires.filter((fire) => fire.endUs > startUs)
+  return { startUs, windowTicks, fires, cpu: view.cpu.filter((span) => span.endUs > startUs), hidden: view.fires.length - fires.length }
 }

@@ -12,15 +12,24 @@ import { askOf, hang, initState, setOverlap, step } from '@es/play/loop/engine'
 import { buildLevel } from '@es/play/loop/levels'
 import { loopGhost, loopSession, loopView } from '@es/play/loop/session'
 import type { LoopLevelId, LoopState, LoopView } from '@es/play/loop/types'
+import { LOOP_COPY } from '@es/play/loop/copy'
+import { busyGuess, LOOP_MET, LOOP_MOMENTS, LOOP_PARTS, openingLine } from '@es/play/loop/parts'
+import { DOCK, laneLayout } from '@es/play/loop/lanes'
 import { findBanned } from '@/copy/banned'
+import { introParts, introSteps } from '@/games/kit/first-move'
+import { momentAt } from '@/games/kit/moments'
 import { changeLine } from '@/games/loop/announce'
 import { Controls } from '@/games/loop/Controls'
 import { Debrief } from '@/games/loop/Debrief'
+import { DockView } from '@/games/loop/DockView'
 import Game from '@/games/loop/Game'
+import { loopKit, loopStep, partRows } from '@/games/loop/kit'
 import { Mirror } from '@/games/loop/Mirror'
+import { readoutItems } from '@/games/loop/strip'
+import { LoopReadout } from '@/games/loop/Tape'
 import type { LoopOutcome } from '@/games/loop/types'
-import { View2D } from '@/games/loop/View2D'
-import { fakeRun, handLevel, houseNight, statesOfHouseNight } from './loop-support'
+import { LoopLegend, View2D } from '@/games/loop/View2D'
+import { fakeRun, houseNight, statesOfHouseNight } from './loop-support'
 
 const render = (element: ReactElement) => renderToStaticMarkup(h(StaticRouter, { location: '/play/loop' }, element))
 const count = (markup: string, pattern: RegExp) => markup.match(pattern)?.length ?? 0
@@ -43,79 +52,110 @@ function outcomeOf(state: LoopState): { outcome: LoopOutcome; ghost: LoopState }
   return { outcome: { record: finished.record, grade: finished.grade, debrief: finished.debrief, hash: finished.hash, ghostView: loopView(finished.ghost) }, ghost }
 }
 
-describe('the page names the game as D-049 says, and opens on the first level', () => {
-  test('the display name over its engine concept, the level and its mode on a tape label, and no working name', () => {
+describe('the page: the instrument frame around the timing diagram (REDESIGN §2.6, §3.5)', () => {
+  test('the title, its role line, the level menu over all nine levels, the goal line, and the frame\'s tools', () => {
     const markup = render(h(Game, null))
-    expect(markup).toMatch(/<h2 id="[^"]+" class="es-type-heading">Step loop<\/h2><p class="es-type-body[^"]*">Keep every slot live, and never make the GPU wait for the CPU.<\/p>/)
-    expect(markup).toContain('Fill the batch · practice')
+    expect(markup).toMatch(/<h2 id="[^"]+" class="es-frame__title">Step loop<\/h2><p class="es-frame__role">You are the scheduler.<\/p>/)
+    expect(markup).toContain('Level 1 of 9 · Fill the batch · practice')
     expect(markup).toContain('data-game="loop"')
+    // The goal line: the aim, what the learner controls, the number to beat, and when it ends.
+    for (const part of Object.values(LOOP_COPY['first-1-fill'].goal)) expect(markup).toContain(part.replaceAll("'", '&#x27;'))
+    for (const tool of ['>Diagram<', '>3D<', '>Parts<', '>How to play<', '>Keyboard<']) expect(markup).toContain(tool)
+    expect(markup).toContain('data-surface="2d"')
+    expect(markup).toContain('data-loop-view=""')
     expect(markup).not.toContain('The Loop')
-    expect(render(h(Game, { placement: 'embed' }))).toMatch(/<h3 id="[^"]+" class="es-type-heading">Step loop<\/h3>/)
+    expect(render(h(Game, { placement: 'embed' }))).toMatch(/<h3 id="[^"]+" class="es-frame__title">Step loop<\/h3>/)
   })
 
   test('opens the level it is given, and the first when the id is not one of its own', () => {
-    expect(render(h(Game, { level: 'first-3-gap' }))).toContain('Close a bubble · practice')
-    expect(render(h(Game, { level: 'first-4-par' }))).toContain('Both levers · practice')
-    expect(render(h(Game, { level: 'no-such-level' }))).toContain('Fill the batch · practice')
-    expect(render(h(Game, { level: 'constructor' }))).toContain('Fill the batch · practice')
+    expect(render(h(Game, { level: 'first-3-gap' }))).toContain('Level 3 of 9 · Close a bubble · practice')
+    expect(render(h(Game, { level: 'first-4-par' }))).toContain('Level 4 of 9 · Both levers · practice')
+    expect(render(h(Game, { level: 'no-such-level' }))).toContain('Level 1 of 9 · Fill the batch · practice')
+    expect(render(h(Game, { level: 'constructor' }))).toContain('Level 1 of 9 · Fill the batch · practice')
   })
 
-  test('has Play and Debrief and no other stage, the view switch of a game with a 3D scene, and the keys button', () => {
+  test('the title block says what the drawing models and its clock, and keeps the notional-machine card to hand', () => {
     const markup = render(h(Game, null))
-    expect(markup).toContain('>Play</button>')
-    expect(markup).toContain('>Debrief</button>')
-    expect(markup).not.toContain('>Compose<')
-    expect(markup).toContain('>Keys</button>')
-    // The first paint is the 2D view: until the browser has been asked what it can draw, the 3D button waits, disabled (W0-T17).
-    expect(markup).toMatch(/<div role="group" aria-label="View"[^>]*>.*aria-pressed="true" aria-keyshortcuts="V">2D view<\/button>/)
-    expect(markup).toMatch(/aria-pressed="false" aria-keyshortcuts="V" disabled="">3D view<\/button>/)
-    expect(markup).toContain('data-surface="2d"')
-    expect(markup).not.toContain('Camera on the pass')
-  })
-
-  test('keeps the notional-machine card to hand, in its three parts, with the tick costs as synthetic Readouts', () => {
-    const markup = render(h(Game, null))
-    expect(markup).toContain('What this world models')
-    for (const part of ['Models.', 'Ignores.', 'Calibrated against.']) expect(markup).toContain(part)
-    expect(count(markup.slice(markup.indexOf('data-loop-card')), /data-tag="synthetic"/g)).toBe(4)
+    expect(markup).toContain('Model of the step loop, after vLLM v0.33.0')
+    expect(markup).toContain('Clock: synthetic ticks, not a measurement')
+    expect(markup).toContain('What this model leaves out')
+    expect(markup).toContain('State as a table')
   })
 })
 
-describe('the controls: tap a waiting request to admit it into a batch slot', () => {
-  test('beat 1 offers six requests as buttons named for what they do, one tab stop among them, and no overlap switch', () => {
-    const markup = render(h(Controls, { run: fakeRun(levelState('first-1-fill')) }))
+describe('the timing diagram (REDESIGN §2.9, §3.1)', () => {
+  test('a waiting-queue row of request chips that admit, one tab stop among them, then the CPU row and a row per slot that reads empty', () => {
+    const markup = render(h(View2D, { run: fakeRun(levelState('first-1-fill')) }))
+    expect(markup).toMatch(/<figure[^>]*data-loop-view=""[^>]*aria-label="Timing diagram, Fill the batch\. Waiting: 6\. Slots filled: 0 of 4\. Steps: 0\. Clock: 0 ticks, synthetic\."/)
     for (const no of ['R1', 'R2', 'R3', 'R4', 'R5', 'R6']) expect(markup).toContain(`aria-label="Admit request ${no} into a batch slot"`)
-    expect(count(markup, /tabindex="0"/g)).toBe(1)
-    expect(count(markup, /tabindex="-1"/g)).toBe(5)
-    expect(markup).not.toContain('role="switch"')
-    expect(markup).toContain('Tap a waiting request to admit it into the running batch.')
-    expect(markup).toContain('aria-label="Step: run the next step"')
+    expect(count(markup, /class="es-lanes__chip"[^>]*tabindex="0"/g) + count(markup, /tabindex="0"[^>]*class="es-lanes__chip"/g)).toBe(1)
+    expect(markup).toContain('data-lane-label="queue"')
+    expect(markup).toContain('CPU · engine core thread')
+    for (let slot = 0; slot < 4; slot++) expect(markup).toMatch(new RegExp(`data-lane-label="slot-${slot}"[^]*?slot ${slot + 1}[^]*?data-empty="">empty<`))
+    expect(markup).toContain('synthetic ticks')
+    // Now: the marker's cursor, and nothing else on the drawing is amber.
+    expect(markup).toMatch(/data-lane-now=""[^]*?data-kind="cursor"/)
   })
 
-  test('Step cannot run and Auto cannot start while no slot is filled, and Auto says it is a switch and that Space works it', () => {
+  test('the intro\'s ring sits on the first move\'s chip, and a diagram drawn for the 3D view\'s fallback takes no press', () => {
+    const ringed = render(h(View2D, { run: fakeRun(levelState('first-1-fill')), ring: 0 }))
+    expect(ringed).toMatch(/data-kind="ring"[^]*?data-req="0"/)
+    const still = render(h(View2D, { run: fakeRun(levelState('first-1-fill')), interactive: false }))
+    expect(still).not.toContain('Admit request')
+    expect(still).toContain('data-req="0"')
+  })
+
+  test('mid-run: each slot\'s label holds the request in it, forwards draw a token per slot, and a bubble is a dashed box with its width on a dimension line', () => {
+    const s = levelState('first-3-gap')
+    const markup = render(h(View2D, { run: fakeRun(s) }))
+    expect(markup).toMatch(/data-lane-label="slot-0"[^]*?data-req="0">R1</)
+    expect(markup).toContain('data-use="token"')
+    expect(markup).toContain('data-call="schedule"')
+    expect(markup).toContain('data-call="sync"')
+    expect(markup).toMatch(/data-lane-idle="idle\/1"/)
+    expect(markup).toMatch(/data-lane-dim="dim\/1"[^]*?>(bubble )?3 ticks</)
+  })
+
+  test('the legend carries the code\'s colours as this diagram uses them, and the marker for now', () => {
+    const markup = renderToStaticMarkup(h(LoopLegend))
+    for (const word of ['CPU work: schedule', 'sync: tokens read back', 'GPU work: a forward, a token per slot', 'idle, or an empty slot', 'the CPU’s clock']) expect(markup).toContain(word)
+  })
+})
+
+describe('the dock: what to do now, Step, and the levers', () => {
+  test('before a slot holds a request, the prompt names the first request and Step is an outline that says why it waits', () => {
     const markup = render(h(Controls, { run: fakeRun(levelState('first-1-fill')) }))
-    const ringDisabled = /<button[^>]*class="es-bell__button"[^>]*disabled=""/
-    expect(markup).toMatch(ringDisabled)
+    expect(markup).toContain('Tap R1 to admit it into slot 1.')
+    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>Step: fill a slot first<\/button>/)
+    expect(markup).not.toContain('es-stub')
+    expect(markup).not.toContain('role="switch"')
     expect(markup).toMatch(/<button[^>]*aria-pressed="false"[^>]*aria-keyshortcuts="Space"[^>]*disabled=""[^>]*>Auto<\/button>/)
-    const hung = render(h(Controls, { run: fakeRun(fill(levelState('first-1-fill'), 2)) }))
-    expect(hung).not.toMatch(ringDisabled)
-    expect(hung).not.toMatch(/aria-pressed="false"[^>]*disabled=""/)
   })
 
-  test('with every slot filled the waiting requests are disabled and the page says why, and with none waiting it says so', () => {
-    const full = render(h(Controls, { run: fakeRun(fill(levelState('first-1-fill'), 4)) }))
-    expect(full).toContain('Every slot is filled: press Step.')
-    expect(count(full, /aria-label="Admit request[^>]*disabled=""/g) + count(full, /disabled=""[^>]*aria-label="Admit request/g)).toBe(2)
-    const none = render(h(Controls, { run: fakeRun(setOverlap(initState(handLevel([3])), true)) }))
-    expect(none).toContain('Admit request R1')
-    let allHung = hang(initState(handLevel([3, 3, 3, 3])), 0)
-    for (const id of [1, 2, 3]) allHung = hang(allHung, id)
-    expect(render(h(Controls, { run: fakeRun(allHung) }))).toContain('No requests are waiting.')
+  test('once a slot holds a request, Step is the amber primary button, the one control to act on now', () => {
+    const markup = render(h(Controls, { run: fakeRun(fill(levelState('first-1-fill'), 4)) }))
+    expect(markup).toContain('Press Step to run the next step.')
+    expect(markup).toMatch(/class="es-stub"[^]*?<span class="es-stub__label">Step<\/span>/)
+    expect(count(markup, /class="es-stub"/g)).toBe(1)
   })
 
-  test('from beat 3 on, one switch turns async scheduling on, and its state is the lever\'s', () => {
+  test('where the intro points at Step or the async switch, the marker\'s ring carries it and Step is not amber-filled', () => {
+    const atStep = render(h(Controls, { run: fakeRun(levelState('first-2-slot')), ring: { t: 'run', until: 'step' } }))
+    expect(atStep).toMatch(/data-kind="ring"[^]*?>Step<\/button>/)
+    expect(atStep).not.toContain('es-stub')
+    const atSwitch = render(h(Controls, { run: fakeRun(levelState('first-3-gap')), ring: { t: 'lever', name: 'async', value: true } }))
+    expect(atSwitch).toMatch(/data-kind="ring"[^]*?role="switch"/)
+  })
+
+  test('a level that opens mid-run says so in its first line, with its step and the tokens already out', () => {
+    expect(render(h(Controls, { run: fakeRun(levelState('first-2-slot')), opening: true }))).toContain('This run starts at step 2, with 4 tokens already out.')
+    expect(render(h(Controls, { run: fakeRun(levelState('first-3-gap')), opening: true }))).toContain('This run starts at step 3, with 8 tokens already out.')
+    expect(render(h(Controls, { run: fakeRun(levelState('first-1-fill')), opening: true }))).not.toContain('data-loop-opening')
+    expect(render(h(Controls, { run: fakeRun(levelState('first-2-slot')), opening: false }))).not.toContain('data-loop-opening')
+  })
+
+  test('from level 3 on, one switch turns async scheduling on, and its state is the lever\'s', () => {
     const off = render(h(Controls, { run: fakeRun(levelState('first-3-gap')) }))
-    expect(off).toContain('role="switch"')
     expect(off).toContain('Async scheduling')
     expect(off).toContain('plan the next step while this one runs')
     expect(off).toMatch(/role="switch"[^>]*aria-checked="false"/)
@@ -123,26 +163,122 @@ describe('the controls: tap a waiting request to admit it into a batch slot', ()
     expect(on).toMatch(/role="switch"[^>]*aria-checked="true"/)
     expect(render(h(Controls, { run: fakeRun(levelState('first-2-slot')) }))).not.toContain('role="switch"')
   })
-})
 
-describe('the 2D view: the picture, the line\'s light and the clock', () => {
-  test('is one image named by the state it shows, with the GPU lanes dark and the clock at 0 ticks, synthetic, before the first step', () => {
-    const markup = render(h(View2D, { run: fakeRun(levelState('first-1-fill')) }))
-    expect(markup).toContain('data-loop-view')
-    expect(markup).toContain('data-orientation="landscape"')
-    expect(markup).toContain('role="img"')
-    expect(markup).toContain('>dark<')
-    expect(markup).toMatch(/Clock[^]*data-tag="synthetic"/)
-    expect(markup).not.toContain('against the reference')
+  test('level 3 asks a guess in the view only: its numbers are the run\'s, and it is a form that dispatches nothing', () => {
+    const guess = busyGuess(loopView(levelState('first-3-gap')))
+    expect(guess).not.toBeNull()
+    expect(guess!.window).toBe(7)
+    expect(guess!.busy).toBe(4)
+    const markup = render(h(Controls, { run: fakeRun(levelState('first-3-gap'), { dispatch: () => { throw new Error('the guess dispatched') } }) }))
+    expect(markup).toContain('Async scheduling is off. Of the next 7 ticks, for how many is the GPU busy?')
+    expect(markup).toContain('nothing records it')
+    expect(render(h(Controls, { run: fakeRun(setOverlap(levelState('first-3-gap'), true)) }))).not.toContain('data-loop-guess')
+    for (const id of ['first-1-fill', 'first-2-slot', 'first-4-par'] as const) expect(render(h(Controls, { run: fakeRun(levelState(id)) }))).not.toContain('data-loop-guess')
   })
 
-  test('on the last level it shows the reference run\'s clock beside its own, and the GPU lanes lit while a step runs', () => {
-    let s = setOverlap(levelState('first-4-par'), true)
-    s = step(fill(s, 4))
-    const markup = render(h(View2D, { run: fakeRun(s) }))
-    expect(markup).toContain('against the reference')
-    expect(markup).toContain('>98<')
-    expect(markup).toContain('>busy<')
+  test('in the 3D view, which draws no chips, the dock lists the waiting requests as buttons', () => {
+    const markup = render(h(Controls, { run: fakeRun(levelState('first-1-fill')), queue: true }))
+    expect(markup).toContain('aria-label="Admit request R1 into a batch slot"')
+    expect(render(h(Controls, { run: fakeRun(levelState('first-1-fill')) }))).not.toContain('Admit request')
+  })
+
+  test('the readout strip: step, tokens out, GPU busy and GPU idle under one stamp, with ghost tokens and the reference\'s clock where the level has them', () => {
+    const ids = (id: LoopLevelId) => readoutItems(loopView(levelState(id))).map((item) => item.id)
+    expect(ids('first-1-fill')).toEqual(['step', 'tokens', 'busy', 'idle'])
+    expect(ids('first-3-gap')).toEqual(['step', 'tokens', 'busy', 'idle', 'ghost'])
+    expect(ids('first-4-par')).toEqual(['step', 'tokens', 'busy', 'idle', 'ghost', 'clock'])
+    const markup = renderToStaticMarkup(h(LoopReadout, { view: loopView(levelState('first-3-gap')), deltas: {} }))
+    expect(count(markup, /class="es-stamp/g)).toBe(1)
+    for (const label of ['step', 'tokens out', 'GPU busy', 'GPU idle', 'ghost tokens']) expect(markup).toContain(`>${label}</dt>`)
+  })
+})
+
+describe('the dock view, for a lesson: the same lanes at 464 x 240', () => {
+  test('draws the compact lanes with no control of their own, and the readout', () => {
+    const view = loopView(levelState('first-3-gap'))
+    const live = { view, place: { scope: 's', key: 'k', anchor: 'a' } } as unknown as Parameters<typeof DockView>[0]['run']
+    const markup = renderToStaticMarkup(h(DockView, { run: live }))
+    expect(markup).toContain('data-size="dock"')
+    expect(markup).not.toContain('Admit request')
+    expect(markup).not.toContain('es-partpop')
+    expect(markup).toContain('data-loop-readout')
+    const layout = laneLayout(view, DOCK)
+    expect(DOCK.width).toBe(464)
+    expect(DOCK.queueHeight + DOCK.queueGap + DOCK.lanesHeight).toBe(240)
+    expect(layout.height).toBeLessThanOrEqual(240)
+  })
+})
+
+describe('what the step loop gives the frame: parts, moments, the first move', () => {
+  test('the parts table has a row for every drawn object, each with its claim or as a model object, and a callout anchor', () => {
+    const ids = LOOP_PARTS.map((part) => part.id)
+    expect(ids).toEqual(['waiting', 'slot', 'cpu', 'gpu', 'step', 'now', 'empty', 'bubble', 'async', 'ghost'])
+    for (const part of LOOP_PARTS) {
+      expect(part.sentence.length).toBeGreaterThan(0)
+      if (part.claim !== undefined) expect(part.claim).toMatch(/^[a-z0-9.-]+$/)
+    }
+    // A model object has no claim: the popover says "model object" for it.
+    expect(LOOP_PARTS.filter((part) => part.claim === undefined).map((part) => part.id)).toEqual(['now', 'empty', 'ghost'])
+    for (const id of ['first-1-fill', 'first-2-slot', 'first-3-gap', 'first-4-par'] as const) for (const row of partRows(id)) expect(row.anchor).toBeDefined()
+  })
+
+  test('the first level\'s first run names the brief\'s five parts, and each later level adds what it draws', () => {
+    expect(introParts(partRows('first-1-fill'), [], false).map((part) => part.id)).toEqual(['waiting', 'slot', 'cpu', 'gpu', 'step'])
+    const met = ['waiting', 'slot', 'cpu', 'gpu', 'step']
+    expect(introParts(partRows('first-2-slot'), met, false).map((part) => part.id)).toEqual(['now', 'empty', 'bubble'])
+    expect(introParts(partRows('first-3-gap'), [...met, 'now', 'empty', 'bubble'], false).map((part) => part.id)).toEqual(['async', 'ghost'])
+  })
+
+  test('no demo level asks a guess of the session: the first run is parts, then a real first move, the reference run\'s first', () => {
+    for (const id of ['first-1-fill', 'first-2-slot', 'first-3-gap', 'first-4-par'] as const) {
+      const kit = loopKit(id, 1)
+      expect(kit.firstAsk).toBe('none')
+      expect(introSteps(kit.firstAsk, false)).toEqual(['parts', 'move'])
+      // The move is legal on the level's first state.
+      const start = initState(buildLevel(id, 1))
+      expect(() => loopSession.reduce(start, kit.firstMove!)).not.toThrow()
+    }
+    expect(loopKit('first-1-fill', 1).firstMove).toEqual({ t: 'admit', req: 0 })
+    expect(loopKit('first-1-fill', 1).firstMoveWords).toBe('Admit R1 into a batch slot')
+    expect(loopKit('first-2-slot', 1).firstMove).toEqual({ t: 'run', until: 'step' })
+    expect(loopKit('first-3-gap', 1).firstMove).toEqual({ t: 'lever', name: 'async', value: true })
+    expect(loopKit('first-4-par', 1).firstMoveWords).toBe('Turn async scheduling on')
+  })
+
+  test('the four named moments are each said once, the first time their rule occurs, over the four levels played in a row', () => {
+    const said = new Map<string, string>()
+    for (const id of ['first-1-fill', 'first-2-slot', 'first-3-gap', 'first-4-par'] as const) {
+      const kit = loopKit(id, 1)
+      const seen = new Set<string>()
+      const states = [...statesOfHouseNight(buildLevel(id, 1), { overlap: id === 'first-3-gap' || id === 'first-4-par' })]
+      // On level 2 a slot is left empty for a step, as a learner who does not refill would.
+      const views = (id === 'first-2-slot' ? [initState(buildLevel(id, 1)), step(step(initState(buildLevel(id, 1))))] : states).map((state) => loopView(state))
+      for (let i = 1; i < views.length; i++) {
+        const named = momentAt(kit.moments, seen, views[i - 1], views[i], i)
+        if (named === null) continue
+        for (const moment of named.ids) {
+          // Said once in the level, and never before its rule occurred: its line is the rule's own, for this pair of views.
+          expect(seen.has(moment)).toBe(false)
+          seen.add(moment)
+          if (!said.has(moment)) said.set(moment, id)
+        }
+      }
+    }
+    expect([...said.keys()].sort()).toEqual(['batching', 'bubble', 'empty', 'ghost'])
+    expect(said.get('batching')).toBe('first-1-fill')
+    expect(said.get('ghost')).toBe('first-3-gap')
+    // Each line is the brief's, in the engine's words.
+    const batching = LOOP_MOMENTS.find((moment) => moment.id === 'batching')!
+    const one = loopView(levelState('first-1-fill'))
+    const after = loopView(step(fill(levelState('first-1-fill'), 4)))
+    expect(batching.line(one, after)).toBe('A step costs the GPU about the same for one request as for four. That is batching.')
+    expect(LOOP_MOMENTS.find((moment) => moment.id === 'bubble')!.line(loopView(levelState('first-3-gap')), loopView(step(levelState('first-3-gap'))))).toBe('That gap is a bubble: the GPU waited 3 ticks for the CPU.')
+  })
+
+  test('the lesson dock\'s Step admits a waiting request while a slot is free, then steps, and stops at the end', () => {
+    expect(loopStep(loopView(levelState('first-1-fill')))).toEqual({ t: 'admit', req: 0 })
+    expect(loopStep(loopView(fill(levelState('first-1-fill'), 4)))).toEqual({ t: 'run', until: 'step' })
+    expect(loopStep(loopView(loopGhost(buildLevel('first-1-fill', 1))))).toBeNull()
   })
 })
 
@@ -378,6 +514,19 @@ describe('the demo levels say nothing in the kitchen\'s words', () => {
       const next = id === 'first-4-par' ? null : { id: 'first-2-slot', title: 'Refill a slot' }
       expect(banned(render(h(Debrief, { run: fakeRun(s), outcome: outcomeOf(s).outcome, next, onNext: () => undefined })))).toEqual([])
     }
+  })
+
+  test('the parts table, the named moments, the opening lines, the guess and the first moves', () => {
+    const lines: string[] = []
+    for (const part of LOOP_PARTS) lines.push(part.name, part.sentence)
+    for (const id of IDS) {
+      const states = [...statesOfHouseNight(buildLevel(id, 1), { overlap: id === 'first-3-gap' || id === 'first-4-par' })].map((state) => loopView(state))
+      for (let i = 1; i < states.length; i++) for (const moment of LOOP_MOMENTS) lines.push(moment.line(states[i - 1], states[i]) ?? '')
+      const kit = loopKit(id, 1)
+      lines.push(kit.firstMoveWords, kit.stepWords ?? '', openingLine(states[0]) ?? '', busyGuess(states[0])?.question ?? '', busyGuess(states[0])?.reveal ?? '', LOOP_MET[id])
+      lines.push(renderToStaticMarkup(h(LoopReadout, { view: states[states.length - 1], deltas: {} })))
+    }
+    expect(lines.flatMap((line) => findBanned(line).map((found) => `${found.match} in "${line.slice(0, 80)}"`))).toEqual([])
   })
 
   test('every line the live region says over a whole run', () => {

@@ -1,0 +1,550 @@
+/*
+ * The step loop in the instrument frame (REDESIGN §2.6, §2.9, §3.1, §3.5): the demo levels' timing diagram, its legend, the dock's controls
+ * and its readout strip, and the lesson dock's compact lanes. Token roles only. It loads with the game's chunk, never with the front page.
+ *
+ * The diagram is paper with the graticule. The label column is DOM and stays put; the time track is an SVG in a box of its own, which
+ * scrolls sideways where the screen is narrower than the track (on a phone), and the page keeps now in view.
+ */
+
+/* ------------------------------------------------------------------------------------------------ the timing diagram */
+
+.es-lanes {
+  --es-lanes-label: 10.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-2);
+  min-width: 0;
+  margin: 0;
+  padding: var(--es-space-3) var(--es-space-3) var(--es-space-2);
+  color: var(--es-paper-ink);
+}
+
+.es-lanes[data-size='dock'],
+.es-lanes[data-size='phone'] {
+  gap: var(--es-space-1);
+  padding: var(--es-space-2);
+}
+
+.es-lanes__queue,
+.es-lanes__body {
+  display: grid;
+  grid-template-columns: var(--es-lanes-label) minmax(0, 1fr);
+  min-width: 0;
+}
+
+.es-lanes__queue {
+  align-items: center;
+}
+
+.es-lanes__name {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--es-space-1);
+  padding-right: var(--es-space-2);
+  font-family: var(--es-font-label);
+  font-size: var(--es-size-caption);
+  font-weight: var(--es-font-label-weight);
+  line-height: 1.2;
+}
+
+.es-lanes[data-size='phone'] .es-lanes__name,
+.es-lanes[data-size='dock'] .es-lanes__name {
+  font-size: var(--es-size-micro);
+}
+
+/* A part's name is its popover's trigger, drawn as the popover's own before its chunk loads: the label keeps its weight and line. */
+.es-lanes__name .es-partpop[data-variant='quiet'] > .es-pop__trigger {
+  margin-block: -0.75rem;
+  font-weight: inherit;
+  vertical-align: baseline;
+}
+
+.es-lanes__glyph {
+  flex: none;
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.es-lanes__chips {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--es-space-2);
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  list-style: none;
+}
+
+.es-lanes[data-size='phone'] .es-lanes__chips,
+.es-lanes[data-size='dock'] .es-lanes__chips {
+  gap: var(--es-space-1);
+}
+
+.es-lanes__chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--es-edge);
+  border-radius: var(--es-radius-trim);
+  background: var(--es-paper);
+  color: var(--es-paper-ink);
+  font-family: var(--es-font-numeric);
+  font-size: var(--es-size-note);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+button.es-lanes__chip {
+  cursor: pointer;
+  transition: background-color var(--es-dur-quick) var(--es-ease-settle);
+}
+
+button.es-lanes__chip:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--es-surface-2) 45%, var(--es-paper));
+}
+
+button.es-lanes__chip:active:not(:disabled) {
+  background: var(--es-surface-2);
+}
+
+button.es-lanes__chip:focus-visible {
+  outline: 3px solid var(--es-text-1);
+  outline-offset: 2px;
+}
+
+button.es-lanes__chip:disabled {
+  border-style: dashed;
+  color: var(--es-text-3);
+  cursor: not-allowed;
+}
+
+.es-lanes__more {
+  flex: none;
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+}
+
+.es-lanes__empty-queue {
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+}
+
+/* The chip the intro points at sits in the marker's ring; the ring's word is the chip's own name, so the tab is left out here. */
+.es-lanes__ring {
+  margin: 4px;
+}
+
+.es-lanes__ring .es-marker__tab {
+  display: none;
+}
+
+.es-lanes__labels {
+  position: relative;
+  min-width: 0;
+}
+
+.es-lanes[data-size='phone'] .es-lanes__glyph,
+.es-lanes[data-size='dock'] .es-lanes__glyph {
+  width: 0.625rem;
+  height: 0.625rem;
+}
+
+.es-lanes__row-label {
+  position: absolute;
+  inset-inline: 0;
+  display: flex;
+  align-items: center;
+  border-top: 1px solid var(--es-paper-rule);
+}
+
+.es-lanes__slotname {
+  flex: none;
+  min-width: 3.25rem;
+}
+
+/* A slot's label holds the request in it: a chip, or a dashed box that reads "empty". */
+.es-lanes__holds {
+  display: inline-flex;
+  min-width: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  padding: 1px var(--es-space-1);
+  border: 1px solid var(--es-cat-green-edge);
+  border-radius: var(--es-radius-trim);
+  background: var(--es-paper);
+  font-family: var(--es-font-numeric);
+  font-size: var(--es-size-caption);
+  font-variant-numeric: tabular-nums;
+}
+
+.es-lanes__holds[data-empty] {
+  border: 1px dashed var(--es-cat-white-edge);
+  color: var(--es-text-2);
+  font-family: var(--es-font-body);
+  font-weight: 400;
+}
+
+.es-lanes[data-size='phone'] .es-lanes__slotname,
+.es-lanes[data-size='dock'] .es-lanes__slotname {
+  min-width: 0;
+  margin-right: var(--es-space-1);
+}
+
+.es-lanes[data-size='phone'] .es-lanes__holds,
+.es-lanes[data-size='dock'] .es-lanes__holds {
+  min-width: 0;
+  font-size: var(--es-size-micro);
+}
+
+.es-lanes__axis-name {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-micro);
+  line-height: 1.2;
+}
+
+/* The time track: an SVG in a box that scrolls sideways when the track is wider than the room. */
+.es-lanes__track {
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-color: var(--es-edge) var(--es-surface-1);
+  scrollbar-width: thin;
+}
+
+.es-lanes__track:focus-visible {
+  outline: 3px solid var(--es-text-1);
+  outline-offset: 2px;
+}
+
+.es-lanes__svg {
+  display: block;
+  overflow: visible;
+}
+
+.es-lanes__svg text {
+  font-family: var(--es-font-numeric);
+  font-size: var(--es-size-micro);
+  font-variant-numeric: tabular-nums;
+}
+
+.es-lanes__minor {
+  stroke: var(--es-paper-rule);
+  stroke-width: 1;
+  opacity: 0.55;
+}
+
+.es-lanes__major,
+.es-lanes__rule {
+  stroke: var(--es-paper-rule);
+  stroke-width: 1;
+}
+
+.es-lanes__tick {
+  stroke: var(--es-edge);
+  stroke-width: 1;
+}
+
+.es-lanes__tick-label {
+  fill: var(--es-text-2);
+}
+
+/* The CPU's calls, in the code's colours: blue for CPU work, yellow (with its edge) for a sync. */
+.es-lanes__slab {
+  stroke-width: 1;
+}
+
+.es-lanes__slab[data-call='schedule'],
+.es-lanes__slab[data-call='prepare'],
+.es-lanes__slab[data-call='launch'],
+.es-lanes__slab[data-call='sample'] {
+  fill: var(--es-lane-cpu);
+  stroke: var(--es-cat-blue-edge);
+}
+
+.es-lanes__slab[data-call='sync'] {
+  fill: var(--es-lane-sync);
+  stroke: var(--es-cat-yellow-edge);
+}
+
+.es-lanes__slab-text[data-on='blue'] {
+  fill: var(--es-cat-blue-ink);
+}
+
+.es-lanes__slab-text[data-on='yellow'] {
+  fill: var(--es-cat-yellow-ink);
+}
+
+.es-lanes__slab-text[data-on='green'] {
+  fill: var(--es-cat-green-ink);
+}
+
+.es-lanes__slab-text[data-on='paper'] {
+  fill: var(--es-text-2);
+}
+
+/* A forward on a slot's row: the request's token in green, a ghost token hatched in green, an empty slot a dashed hollow box. */
+.es-lanes__slab[data-use='token'] {
+  fill: var(--es-lane-gpu);
+  stroke: var(--es-cat-green-edge);
+}
+
+.es-lanes__slab[data-use='ghost'] {
+  fill: url(#es-lanes-ghost);
+  stroke: var(--es-cat-green-edge);
+  stroke-dasharray: 3 2;
+}
+
+.es-lanes__slab[data-use='empty'] {
+  fill: var(--es-surface-2);
+  stroke: var(--es-cat-white-edge);
+  stroke-dasharray: 3 3;
+}
+
+.es-lanes__hatch {
+  stroke: var(--es-cat-green-edge);
+  stroke-width: 1.5;
+}
+
+/* Idle: a dashed hollow box over the GPU rows, and the dimension line across a closed one. */
+.es-lanes__idle {
+  fill: none;
+  stroke: var(--es-cat-white-edge);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+}
+
+.es-lanes__idle-text {
+  fill: var(--es-text-2);
+}
+
+.es-lanes__dim {
+  stroke: var(--es-edge);
+  stroke-width: 1;
+}
+
+.es-lanes__dim-slip {
+  fill: var(--es-paper);
+  stroke: var(--es-edge);
+  stroke-width: 1;
+}
+
+.es-lanes__dim-text {
+  fill: var(--es-paper-ink);
+  font-weight: 700;
+}
+
+/* The plot: the SVG, and now's cursor laid over it (the marker's own, carrier 2 of the One Marker Rule). */
+.es-lanes__plot {
+  position: relative;
+}
+
+.es-lanes__now {
+  position: absolute;
+  inset-inline: 0;
+  pointer-events: none;
+}
+
+.es-lanes__now .es-marker {
+  font-size: var(--es-size-micro);
+}
+
+/* The step's one authored moment: the newest forward draws across its rows from its start, on the step's duration. */
+.es-lanes__slab[data-new] {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: es-lanes-draw var(--es-dur-settle) var(--es-ease-settle) both;
+}
+
+@keyframes es-lanes-draw {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion='full']) .es-lanes__slab[data-new] {
+    animation: none;
+  }
+}
+
+:root[data-motion='reduce'] .es-lanes__slab[data-new] {
+  animation: none;
+}
+
+.es-lanes__legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-1) var(--es-space-4);
+}
+
+/* ------------------------------------------------------------------------------------------------ the dock */
+
+.es-loopdock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-3);
+}
+
+.es-loopdock__opening {
+  margin: 0;
+  font-weight: 700;
+  font-size: var(--es-size-note);
+  line-height: 1.4;
+}
+
+.es-loopdock__prompt {
+  margin: 0;
+  font-size: var(--es-size-note);
+  line-height: 1.45;
+}
+
+.es-loopdock__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2) var(--es-space-3);
+}
+
+.es-loopdock__step .es-stub,
+.es-loopdock__step .es-button {
+  min-width: 10rem;
+}
+
+.es-loopdock__ring {
+  margin: 6px;
+}
+
+.es-loopdock__guess {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-2);
+  padding-bottom: var(--es-space-3);
+  border-bottom: 1px solid var(--es-paper-rule);
+}
+
+.es-loopdock__guess-title {
+  margin: 0;
+  font-size: var(--es-size-note);
+  font-weight: 700;
+}
+
+.es-loopdock__guess-form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--es-space-2);
+}
+
+.es-loopdock__guess-form .es-field {
+  width: min(100%, 12rem);
+}
+
+.es-loopdock__note {
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+}
+
+.es-loopdock__reveal {
+  margin: 0;
+  font-size: var(--es-size-note);
+  line-height: 1.45;
+}
+
+/* On a phone the dock is pinned to the foot: the controls take one row of 44 px controls. */
+@media (max-width: 63.999rem) {
+  .es-loopdock {
+    gap: var(--es-space-2);
+  }
+
+  .es-loopdock__step {
+    flex: 1 1 10rem;
+  }
+
+  .es-loopdock__step .es-stub,
+  .es-loopdock__step .es-stub__pull,
+  .es-loopdock__step .es-button {
+    width: 100%;
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------ the readout strip */
+
+.es-loopstrip {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-1);
+}
+
+.es-loopstrip__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--es-space-2);
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+  font-weight: 700;
+}
+
+.es-loopstrip__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(4.5rem, 1fr));
+  gap: 0 var(--es-space-2);
+  margin: 0;
+}
+
+/* Each number keeps a band over it for its delta, so a change on the second row covers no word of the first. */
+.es-loopstrip__item {
+  display: flex;
+  min-width: 0;
+  flex-direction: column-reverse;
+  padding-top: 1.125rem;
+}
+
+.es-loopstrip__label {
+  color: var(--es-text-2);
+  font-size: var(--es-size-micro);
+  line-height: 1.2;
+}
+
+.es-loopstrip__value {
+  position: relative;
+  margin: 0;
+  font-family: var(--es-font-numeric);
+  font-size: var(--es-size-plate);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.es-loopstrip__unit {
+  margin-left: 0.2em;
+  color: var(--es-text-2);
+  font-family: var(--es-font-body);
+  font-size: var(--es-size-micro);
+}
+
+.es-loopstrip__delta {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  font-size: var(--es-size-caption);
+}
+
+@media (max-width: 63.999rem) {
+  .es-loopstrip__value {
+    font-size: var(--es-size-base);
+  }
+
+  .es-loopstrip__list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

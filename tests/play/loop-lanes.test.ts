@@ -4,12 +4,13 @@
  */
 import { describe, expect, test } from 'bun:test'
 import { hang, initState, step } from '@es/play/loop/engine'
-import { DESK, LANE_WORDS, MIN_LABELLED_ROW, PHONE, axisStep, laneLayout, requestName, windowStart, xOf } from '@es/play/loop/lanes'
+import { DESK, DOCK, FRAME_DESK, FRAME_PHONE, LANE_WORDS, MIN_LABELLED_ROW, MIN_PX_PER_TICK, PHONE, TABLE_TICKS, axisStep, fitGeometry, laneLayout, requestName, stepsWindow, windowStart, xOf } from '@es/play/loop/lanes'
+import { MIRROR_TICKS, windowOf } from '@es/play/loop/layout'
 import type { LaneGeometry, LaneLayout } from '@es/play/loop/lanes'
 import { buildLevel, LEVEL_IDS } from '@es/play/loop/levels'
 import { loopGhost, loopView } from '@es/play/loop/session'
 import type { LoopState, LoopView } from '@es/play/loop/types'
-import { handLevel, houseNight } from './loop-support'
+import { handLevel, houseNight, statesOfHouseNight } from './loop-support'
 
 const EPS = 1e-9
 
@@ -263,5 +264,64 @@ describe('the demo levels', () => {
   test('the same view gives the same layout', () => {
     const view = night(4, [5, 9, 3, 7], 4)
     expect(JSON.stringify(laneLayout(view))).toBe(JSON.stringify(laneLayout(view)))
+  })
+})
+
+describe('a dimension line across every closed idle box, and the sizes the pages draw at', () => {
+  test('each closed idle box has one dimension line, edge to edge, at the middle of the GPU rows, with its value in ticks', () => {
+    const view = night(4, [6, 6, 6, 6], 3)
+    const layout = laneLayout(view)
+    const closed = layout.idle.filter((box) => box.before !== null)
+    expect(layout.dims.map((dim) => dim.id)).toEqual(closed.map((box) => `dim/${box.before}`))
+    const slots = layout.rows.filter((row) => row.lane === 'gpu')
+    const mid = slots[0].y + (slots[slots.length - 1].y + slots[slots.length - 1].height - slots[0].y) / 2
+    for (const [i, dim] of layout.dims.entries()) {
+      expect(dim.x0).toBeCloseTo(closed[i].x, 9)
+      expect(dim.x1).toBeCloseTo(closed[i].x + closed[i].width, 9)
+      expect(dim.y).toBeCloseTo(mid, 9)
+      expect(dim.ticks).toBe(closed[i].ticks)
+      expect(dim.label).toBe(LANE_WORDS.bubble(dim.ticks))
+    }
+    expect(LANE_WORDS.bubble(3)).toBe('bubble 3 ticks')
+    expect(LANE_WORDS.bubble(1)).toBe('bubble 1 tick')
+    // The open box, while the GPU waits, has no dimension yet: its width is still growing.
+    expect(layout.dims.some((dim) => dim.id === 'dim/null')).toBe(false)
+  })
+
+  test('the dock draws the lanes at 464 x 240, and the frame\'s sizes hold on every demo level', () => {
+    expect(DOCK.width).toBe(464)
+    expect(DOCK.queueHeight + DOCK.queueGap + DOCK.lanesHeight).toBe(240)
+    for (const id of LEVEL_IDS) {
+      const level = buildLevel(id, 1)
+      for (const state of [initState(level), loopGhost(level)]) {
+        const view = loopView(state)
+        for (const g of [DOCK, FRAME_DESK, FRAME_PHONE]) holds(laneLayout(view, g), g, level.slots)
+        expect(laneLayout(view, DOCK).height).toBeLessThanOrEqual(240)
+      }
+    }
+  })
+
+  test('a box narrower than the ticks need is laid out wider, so the track scrolls inside it; a wide box keeps its width', () => {
+    const phone = fitGeometry(FRAME_PHONE, 342)
+    expect(phone.width).toBe(FRAME_PHONE.labelWidth + FRAME_PHONE.windowTicks * MIN_PX_PER_TICK)
+    expect(phone.width).toBeGreaterThan(342)
+    expect(fitGeometry(FRAME_DESK, 872).width).toBe(872)
+    const layout = laneLayout(night(4, [8, 8, 8, 8], 4), phone)
+    expect(layout.scale.pxPerTick).toBeGreaterThanOrEqual(MIN_PX_PER_TICK - EPS)
+  })
+})
+
+describe("the state table's window", () => {
+  test('is the kitchen layout\'s window, on every state of every demo level, so the table reads the same on the front page', () => {
+    expect(TABLE_TICKS).toBe(MIRROR_TICKS)
+    for (const id of LEVEL_IDS) {
+      const level = buildLevel(id, 1)
+      for (const overlap of level.overlap === 'free' ? [false, true] : [false]) {
+        for (const state of statesOfHouseNight(level, { overlap })) {
+          const view = loopView(state)
+          expect(stepsWindow(view, TABLE_TICKS)).toEqual(windowOf(view, MIRROR_TICKS))
+        }
+      }
+    }
   })
 })

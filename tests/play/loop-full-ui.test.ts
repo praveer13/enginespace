@@ -16,7 +16,7 @@ import { buildFullLevel } from '@es/play/loop/full/levels'
 import { fullSession } from '@es/play/loop/full/session'
 import type { FullAction, FullLevelId, FullState } from '@es/play/loop/full/types'
 import FullService from '@/games/loop/FullService'
-import Game from '@/games/loop/Game'
+import Game, { Docket } from '@/games/loop/Game'
 import { KeysWaiting } from '@/games/loop/KeysWaiting'
 import { BuildThis } from '@/games/loop/full/BuildThis'
 import { Compose } from '@/games/loop/full/Compose'
@@ -68,7 +68,8 @@ function outcomeOf(state: FullState): FullOutcome {
 
 describe('the docket: the step loop\'s levels under its name', () => {
   test('the demo\'s four, TR2\'s five, and the keys behind their card, waiting', () => {
-    const markup = render(h(Game, null))
+    // The full levels' page carries the docket (R-T17 put the demo levels in the instrument frame, with its level menu).
+    const markup = render(h(Docket, { current: 'first-1-fill', onOpen: () => undefined }))
     const docket = markup.slice(markup.indexOf('data-loop-docket'), markup.indexOf('</nav>', markup.indexOf('data-loop-docket')))
     for (const title of ['Demo', 'Fill the batch', 'Both levers', 'TR2 levels', 'Async scheduling on two cost cards', 'CUDA graphs: launches against replay', 'The V2 model runner', 'Every lever, on new numbers', 'The grammar mask inside a step', 'Keys']) {
       expect(docket).toContain(title)
@@ -77,8 +78,17 @@ describe('the docket: the step loop\'s levels under its name', () => {
     expect(docket).toMatch(/aria-current="true"[^>]*>Fill the batch/)
   })
 
-  test('a lesson that embeds the game names its level, so the docket is left out', () => {
-    expect(render(h(Game, { placement: 'embed' }))).not.toContain('data-loop-docket')
+  test('the demo levels\' frame names all nine levels in its one level menu', () => {
+    const markup = render(h(Game, null))
+    for (const title of ['Fill the batch', 'Both levers', 'Async scheduling on two cost cards', 'CUDA graphs: launches against replay', 'The V2 model runner', 'Every lever, on new numbers', 'The grammar mask inside a step']) {
+      expect(markup).toContain(title)
+    }
+  })
+
+  test('a lesson that embeds the game names its level, so the docket and the level menu are left out', () => {
+    const markup = render(h(Game, { placement: 'embed' }))
+    expect(markup).not.toContain('data-loop-docket')
+    expect(markup).not.toContain('Level 1 of 9')
   })
 })
 

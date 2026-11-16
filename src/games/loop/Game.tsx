@@ -1,65 +1,61 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { levelOf } from '@es/play'
+import { LOOP_COPY } from '@es/play/loop/copy'
+import { LOOP_MET } from '@es/play/loop/parts'
 import { FIRST_SERVICE, FULL_SERVICE, FULL_SERVICE_KEYS, LOOP } from '@es/play/loop/entry'
 import { loopSession } from '@es/play/loop/session'
+import type { LoopAction, LoopLevelId, LoopView } from '@es/play/loop/types'
+import { ROSTER } from '@es/play/roster'
 import { Button } from '@/design/components/Button'
+import { LevelMenu } from '@/design/components/LevelMenu'
+import { Frame } from '@/games/kit/Frame'
+import { useDeltas } from '@/games/kit/moments'
 import type { GameView } from '@/games/kit/ViewSwitch'
-import { GameShell } from '@/games/kit/GameShell'
 import type { GameProps } from '@/games/registry'
-import { nextPreset, presetById } from '@/scene/camera-rig'
-import { CameraButtons } from '@/scene/CameraButtons'
-import { Stage } from '@/scene/Stage'
 import { unavailableReason, useDeviceTier } from '@/scene/tiers'
 import { WorldCard } from './Card'
 import { Controls, type AutoToggleRef } from './Controls'
+import { loopKit, partRows } from './kit'
 import { Mirror } from './Mirror'
 import type { Scene3DProps } from './Scene3D'
-import { DEFAULT_PRESET, LOOP_PRESETS } from './scene-presets'
-import type { LoopRun } from './types'
-import { View2D } from './View2D'
+import { readoutItems } from './strip'
+import { LoopReadout } from './Tape'
+import type { LoopRunCore } from './types'
+import { LoopLegend, View2D } from './View2D'
 
 // The debrief is the stage after the run: its compare strips and the real engine's numbers load when a run ends, not before.
 const Debrief = lazy(() => import('./Debrief').then((module) => ({ default: module.Debrief })))
 // The 3D scene is its own chunk over three's (A§6.10): the Stage loads it only on a device whose tier draws 3D.
 const Scene3D = lazy(() => import('./Scene3D'))
-// The full service (TR2's levels and TR6's mask lane) is a chunk of its own: its rules are the step loop v1 and the cost cards, which the
-// first service and the front page never load. The `keys` level waits behind its card for the owner's dispatcher tables (Q-10).
+// The full levels (TR2's and TR6's mask lane) are a chunk of their own: their rules are the step loop v1 and the cost cards, which the
+// demo levels and the front page never load. The `keys` level waits behind its card for the owner's dispatcher tables (Q-10).
 const FullService = lazy(() => import('./FullService'))
 const KeysWaiting = lazy(() => import('./KeysWaiting').then((module) => ({ default: module.KeysWaiting })))
+// The 3D view's Stage and its cameras load when the learner switches to 3D: the diagram is the default view.
+const LoopStage3D = lazy(() => import('./Stage3D'))
+const LoopCameras = lazy(() => import('./Stage3D').then((module) => ({ default: module.LoopCameras })))
 
-/** Service as the first service's shell shows it: its keys without the full service's own, which do nothing on these levels. */
+/** The step loop as the demo levels' frame shows it: its keys without the full levels' own, which do nothing on these levels. */
 const FIRST_FACE = { ...LOOP, keys: LOOP.keys.filter((key) => !FULL_SERVICE_KEYS.includes(key.id)) }
 
-/**
- * The camera buttons' words (the scene's presets keep their own labels): the shots in the terms of what they show. Over the shoulder looks
- * along the time axis of the lanes, the side shot is the side, and from under the lamps the scene is seen from above.
- */
-const CAMERA_WORDS: Readonly<Record<string, string>> = { shoulder: 'Along time', side: 'Side', lamps: 'Top' }
-const CAMERA_PRESETS = LOOP_PRESETS.map((preset) => ({ ...preset, label: CAMERA_WORDS[preset.id] ?? preset.label }))
+const ROLE = ROSTER.find((entry) => entry.id === LOOP.id)?.role ?? ''
 
-/** The level that waits for the owner's tables: on the docket, behind its card, and not a level of the session. */
+
+/** The level that waits for the owner's tables: on the full levels' docket, behind its card, and not a level of the session. */
 const KEYS = { id: 'keys', title: 'Keys' } as const
 const isFull = (id: string): boolean => FULL_SERVICE.some((level) => level.id === id)
 
-/** The row of Service's levels under its name: the first service's four, then the full service's, and the keys behind their card. */
-function Docket({ current, onOpen }: { current: string; onOpen: (id: string) => void }) {
+/** The row of the step loop's levels for the full levels' own page: the demo levels, then the full levels, and the keys behind their card. */
+export function Docket({ current, onOpen }: { current: string; onOpen: (id: string) => void }) {
   const group = (name: string, levels: readonly { readonly id: string; readonly title: string }[], extra?: { id: string; title: string }) => (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="font-display text-size-note uppercase tracking-[0.08em] text-text-2">{name}</span>
+      <span className="font-display text-size-note text-text-2">{name}</span>
       <ul className="flex flex-wrap gap-1">
         {[...levels, ...(extra ? [extra] : [])].map((level) => (
           <li key={level.id}>
-            <Button
-              size="sm"
-              variant={level.id === current ? 'ink' : 'quiet'}
-              aria-current={level.id === current ? 'true' : undefined}
-              onClick={() => onOpen(level.id)}
-            >
+            <Button size="sm" variant={level.id === current ? 'ink' : 'quiet'} aria-current={level.id === current ? 'true' : undefined} onClick={() => onOpen(level.id)}>
               {level.title}
-              {level.id === KEYS.id ? (
-                // Quieter than the name on the docket's plate; on the lit plate it takes the plate's own ink, as the name does.
-                <span className={`font-body normal-case tracking-normal ${level.id === current ? '' : 'text-text-2'}`}> · waiting</span>
-              ) : null}
+              {level.id === KEYS.id ? <span className={`font-body normal-case tracking-normal ${level.id === current ? '' : 'text-text-2'}`}> · waiting</span> : null}
             </Button>
           </li>
         ))}
@@ -79,26 +75,24 @@ function LoopScene(props: Scene3DProps) {
   return <Scene3D {...props} />
 }
 
-/*
- * Service, the front page's game (`loop`, D-049: "Service", the step loop). Its page is Play → Debrief, around the 2D view, the
- * controls and the mirror (D-018: one session, drawn by every view). The shell owns the run and its action log; this file wires
- * Service's parts into it, and the keys that are Service's: `.` rings the bell, Space toggles Auto, `O` flips the overlap switch.
- *
- * The four levels are the front-page run, "First service" (GAMES.md §3.1). Each is practice on its pinned seed, and a finished level
- * offers the next. A front-page run records nothing (D-038), so `onFinish` is only forwarded when a page passes one: the game's page and a
- * lesson's block each pass the recorder (src/games/kit/record.ts, W1b-T01). TR2's levels join this game with W1-T13. Inside a lesson the
- * block names the level, so the docket and the next level are left out.
- *
- * The 3D view (W0-T17) is the pass seen over the expediter's shoulder, in a Stage that paints the 2D view first and keeps it as the
- * fallback (A§6.7). It opens on its own on a device whose tier draws 3D, and `V` or the switch swaps the two views; the session lives
- * here, above both, so a swap keeps every lever. The camera's preset lives here too: `C` and the preset buttons move it, in 3D only.
- */
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* The page                                                                                                           */
+/* ------------------------------------------------------------------------------------------------------------------ */
 
-const ring = (run: LoopRun): boolean => {
-  if (!run.view.canFire) return false
-  run.dispatch({ t: 'run', until: 'step' })
-  return true
-}
+/*
+ * The step loop (`loop`): the learner is the scheduler. The demo levels sit in the instrument frame (src/games/kit/Frame.tsx) around the
+ * timing diagram, the dock and the readout, with the state as a table under them (D-018: one session, drawn by every view). The frame owns
+ * the run and its action log; this file wires the loop's parts into it, and the keys that are the loop's: `.` steps, Space toggles Auto, `O`
+ * flips async scheduling. The full levels (TR2's and TR6's) keep their own page, `FullService`, loaded when one is opened.
+ *
+ * Each demo level is practice on its pinned seed, and a finished level offers the next. A run records nothing unless the page passes an
+ * `onFinish`: the game's page and a lesson's block each pass the recorder (src/games/kit/record.ts). Inside a lesson the block names the
+ * level, so the level menu and the next level are left out.
+ *
+ * The diagram is the default view (REDESIGN §2.9: the picture is the engine's own diagram). The 3D view is one switch away where the
+ * device draws it: a Stage that paints the diagram first and keeps it as the fallback (A§6.7). The session lives here, above both, so a swap
+ * keeps every lever. The camera's preset lives here too: `C` and the preset buttons move it, in 3D only.
+ */
 
 export default function Game({ level, mode, placement = 'page', rev, onFinish }: GameProps) {
   const known = (id: string | undefined) => (id === KEYS.id ? KEYS.id : (LOOP.levels.find((entry) => entry.id === id)?.id ?? LOOP.levels[0].id))
@@ -109,7 +103,6 @@ export default function Game({ level, mode, placement = 'page', rev, onFinish }:
     setAsked(level)
     setLevelId(known(level))
   }
-  const toggleAuto: AutoToggleRef = useRef(null)
   // Moving on to the next level replaces the page's content, and the button that was pressed goes with it: focus goes back to the game.
   // This game's own, found from its box, since a lesson can hold two of it.
   const host = useRef<HTMLDivElement>(null)
@@ -120,30 +113,23 @@ export default function Game({ level, mode, placement = 'page', rev, onFinish }:
     host.current?.querySelector<HTMLElement>('[data-game]')?.focus({ preventScroll: true })
   }, [levelId])
 
-  // 3D opens by itself where the device draws it, and a learner's own choice of view wins from then on. Under `saveData` the Stage
-  // waits to be asked, so the page opens on the 2D view there.
+  // The diagram is the default view; the learner's own choice wins from then on. 3D is offered where the device draws it.
   const device = useDeviceTier()
   const draws3d = device.known && device.tier >= 1
-  const [chosenView, setChosenView] = useState<GameView | null>(null)
-  const view: GameView = chosenView ?? (draws3d && device.hints?.saveData !== true ? '3d' : '2d')
+  const [view, setView] = useState<GameView>('2d')
   const unavailable3d = device.known && !draws3d ? unavailableReason(device.reason) : undefined
-  const [preset, setPreset] = useState(DEFAULT_PRESET)
+  // The camera's preset: null for the scene's default, until the learner picks one.
+  const [preset, setPreset] = useState<string | null>(null)
 
   const embedded = placement === 'embed'
   const entry = levelOf(LOOP, levelId) ?? LOOP.levels[0]
-  // The first service walks its own four levels: its last one ends on the end card, as on the front page. A lesson names its level.
+  // The demo walks its own four levels: its last one ends on the end card. A lesson names its level.
   const at = FIRST_SERVICE.findIndex((candidate) => candidate.id === entry.id)
   const after = embedded ? null : (FIRST_SERVICE[at + 1] ?? null)
-  const advance = () => {
-    if (after === null) return
-    advanced.current = true
-    setLevelId(after.id)
-  }
   const open = (id: string) => {
     advanced.current = true
     setLevelId(id)
   }
-  // A lesson that embeds the game names its level; the page offers them all.
   const docket = embedded ? undefined : <Docket current={levelId} onOpen={open} />
 
   if (levelId === KEYS.id) {
@@ -172,94 +158,149 @@ export default function Game({ level, mode, placement = 'page', rev, onFinish }:
     )
   }
 
+  const menu = embedded ? undefined : (
+    <LevelMenu
+      label="Level"
+      value={entry.id}
+      levels={LOOP.levels.map((candidate) => ({ id: candidate.id, title: candidate.title, mode: candidate.graded ? 'graded' : 'practice' }))}
+      onChange={open}
+    />
+  )
+
   return (
     <div ref={host} className="contents">
-      <GameShell
-        game={FIRST_FACE}
-        session={loopSession}
-        level={entry.id}
+      <DemoLevel
+        key={entry.id}
+        levelId={entry.id as LoopLevelId}
         levelTitle={entry.title}
         seed={entry.practiceSeed}
-        mode="practice"
-        rev={rev}
-        headingLevel={embedded ? 3 : 2}
         embedded={embedded}
+        rev={rev}
         onFinish={onFinish}
-        docket={docket}
-        onCommand={(command, run) => {
-          if (command === 'step') return ring(run)
-          if (command === 'overlap') {
-            if (!run.view.overlapAvailable || run.view.done) return false
-            run.dispatch({ t: 'lever', name: 'async', value: !run.view.overlap })
-            return true
-          }
-          if (command === 'play-pause') {
-            toggleAuto.current?.()
-            return toggleAuto.current !== null
-          }
-          if (command === 'camera') {
-            if (view !== '3d') return false
-            const next = nextPreset(LOOP_PRESETS, preset)
-            setPreset(next)
-            run.announce(`Camera: ${CAMERA_WORDS[next] ?? presetById(LOOP_PRESETS, next).label}.`)
-            return true
-          }
-          return false
-        }}
-        allow3d={draws3d}
-        unavailable3d={unavailable3d}
-        view={view}
-        onViewChange={setChosenView}
-        view2d={(run) => (
-          // The 2D view in the box the scene would take, so it draws the kitchen at the scene's scale.
-          <div className={`${STAGE_BOX} overflow-hidden rounded-plate border border-edge bg-surface-0`}>
-            <View2D run={run} />
-          </div>
-        )}
-        scene3d={(run) => <LoopStage run={run} preset={preset} />}
-        controls={(run) => (
-          <>
-            {view === '3d' ? <CameraButtons presets={CAMERA_PRESETS} value={preset} onChange={setPreset} label="Camera" /> : null}
-            <Controls run={run} toggleAutoRef={toggleAuto} />
-          </>
-        )}
-        mirror={(run) => <Mirror run={run} />}
-        stage
-        debrief={(run, outcome) => (
-          <Suspense fallback={<p role="status">Loading the debrief…</p>}>
-            <Debrief run={run} outcome={outcome} next={after === null ? null : { id: after.id, title: after.title }} onNext={advance} />
-          </Suspense>
-        )}
-        card={<WorldCard />}
+        menu={menu}
+        next={after === null ? null : { id: after.id, title: after.title }}
+        onNext={() => (after === null ? undefined : open(after.id))}
+        scene={{ view, onView: setView, allow3d: draws3d, unavailable3d, preset, onPreset: setPreset }}
       />
     </div>
   )
 }
 
-/**
- * The 3D view's box: the Stage, with the 2D view as its first paint and its fallback, and the scene behind it. A waiting ticket picked in
- * the scene is hung, as a tap on it in the controls hangs it. The scene leads the page, the controls beside it: the box is about a pass's
- * 16:10 in the first screen, and on a phone 55% of the screen's height, at least 300 px (GAMES.md §3, "Controls", all [estimated]).
- */
-/** The scene's box: about a pass's 16:10 in the first screen, and on a phone 55% of the screen's height, at least 300 px [estimated]. */
-const STAGE_BOX = 'h-[clamp(20rem,min(62svh,46vw),46rem)] max-[479px]:h-[max(18.75rem,55svh)]'
+interface DemoProps {
+  levelId: LoopLevelId
+  levelTitle: string
+  seed: number
+  embedded: boolean
+  rev: string | undefined
+  onFinish: GameProps['onFinish']
+  menu: ReactNode
+  next: { id: string; title: string } | null
+  onNext: () => void
+  scene: { view: GameView; onView: (view: GameView) => void; allow3d: boolean; unavailable3d: string | undefined; preset: string | null; onPreset: (preset: string) => void }
+}
 
-function LoopStage({ run, preset }: { run: LoopRun; preset: string }) {
-  const { dispatch, view } = run
-  const onHang = useCallback(
-    (req: number) => {
-      if (view.canHang && view.waiting.includes(req)) dispatch({ t: 'admit', req })
-    },
-    [dispatch, view.canHang, view.waiting],
-  )
+/** A step through the run's own dispatch: false when nothing can run. */
+const stepRun = (run: LoopRunCore): boolean => {
+  if (!run.view.canFire) return false
+  run.dispatch({ t: 'run', until: 'step' })
+  return true
+}
+
+/** One demo level's frame. */
+function DemoLevel({ levelId, levelTitle, seed, embedded, rev, onFinish, menu, next, onNext, scene }: DemoProps) {
+  const { view, preset, onPreset } = scene
+  const copy = LOOP_COPY[levelId]
+  const toggleAuto: AutoToggleRef = useRef(null)
+  const cycleCamera = useRef<(() => string) | null>(null)
+  const kit = useCallback((at: number) => loopKit(levelId, at), [levelId])
+  const ringReq = (ring: LoopAction | null): number | null => (ring?.t === 'admit' ? ring.req : null)
   return (
-    <Stage
-      id="loop"
-      className={`${STAGE_BOX} border border-edge shadow-shelf`}
-      view2d={<View2D run={run} />}
-      scene={LoopScene}
-      sceneProps={{ view, preset, onHang }}
-      announce={run.announce}
+    <Frame
+      game={FIRST_FACE}
+      role={ROLE}
+      session={loopSession}
+      level={levelId}
+      levelTitle={levelTitle}
+      seed={seed}
+      mode="practice"
+      rev={rev}
+      embedded={embedded}
+      onFinish={onFinish}
+      ledger={onFinish !== undefined}
+      kit={kit}
+      menu={menu}
+      modeSwitch={<span className="text-text-2">Practice: fixed numbers, undo allowed. Ticks are the model&apos;s, synthetic.</span>}
+      allow3d={scene.allow3d}
+      unavailable3d={scene.unavailable3d}
+      view={view}
+      onViewChange={scene.onView}
+      onCommand={(command, run) => {
+        if (command === 'step') return stepRun(run)
+        if (command === 'overlap') {
+          if (!run.view.overlapAvailable || run.view.done) return false
+          run.dispatch({ t: 'lever', name: 'async', value: !run.view.overlap })
+          return true
+        }
+        if (command === 'play-pause') {
+          toggleAuto.current?.()
+          return toggleAuto.current !== null
+        }
+        if (command === 'camera') {
+          if (view !== '3d' || cycleCamera.current === null) return false
+          run.announce(`Camera: ${cycleCamera.current()}.`)
+          return true
+        }
+        return false
+      }}
+      goal={(run) => ({ aim: copy.goal.aim, control: copy.goal.controls, target: copy.goal.beat, ends: copy.goal.ends, met: run.done ? LOOP_MET[levelId] : undefined })}
+      diagram={(run) => <View2D run={run} ring={ringReq(run.intro.ring)} />}
+      scene3d={(run) => (
+        <Suspense fallback={<View2D run={run} interactive={false} />}>
+          <LoopStage3D run={run} preset={preset} scene={LoopScene} diagram={<View2D run={run} interactive={false} />} />
+        </Suspense>
+      )}
+      legend={() =>
+        view === '3d' ? (
+          <Suspense fallback={null}>
+            <LoopCameras preset={preset} onPreset={onPreset} cycle={cycleCamera} />
+          </Suspense>
+        ) : (
+          <LoopLegend />
+        )
+      }
+      dock={(run) => <Controls run={run} toggleAutoRef={toggleAuto} queue={view === '3d'} ring={run.intro.ring} opening={run.turns === 0} />}
+      readout={(run) => <Readout view={run.view} />}
+      result={(run, outcome) => (
+        <Suspense fallback={<p role="status">Reading the run…</p>}>
+          <Debrief run={run} outcome={outcome} next={next} onNext={onNext} />
+        </Suspense>
+      )}
+      mirror={(run) => <Mirror run={run} />}
+      parts={partRows(levelId)}
+      howTo={<HowTo levelId={levelId} />}
+      titleBlock={{ model: 'Model of the step loop, after vLLM v0.33.0', clock: 'Clock: synthetic ticks, not a measurement', leavesOut: <WorldCard /> }}
     />
+  )
+}
+
+/** The readout strip, with the change of each number for a second after it moves. */
+function Readout({ view }: { view: LoopView }) {
+  const deltas = useDeltas(Object.fromEntries(readoutItems(view).map((item) => [item.id, item.value])))
+  return <LoopReadout view={view} deltas={deltas} />
+}
+
+/** How to play: the level's own line, then the round of one step. */
+function HowTo({ levelId }: { levelId: LoopLevelId }) {
+  return (
+    <div className="flex flex-col gap-3" data-loop-howto="">
+      <p>{LOOP_COPY[levelId].prompt}</p>
+      <ol className="list-decimal pl-5">
+        <li>Read the goal line: it says what to beat and when the level ends.</li>
+        <li>Tap a request in the waiting queue to admit it into a free batch slot. Its slot&apos;s label names it.</li>
+        <li>Press Step. The CPU schedules, the GPU runs one forward across every slot, and the CPU syncs to read the tokens back.</li>
+        <li>Where the GPU waits for the CPU, the diagram draws a dashed box with its width: a bubble. Async scheduling, on the later levels, plans the next step while this one runs.</li>
+        <li>The readout under the dock counts the steps, the tokens out, and the ticks the GPU was busy and idle.</li>
+      </ol>
+    </div>
   )
 }
