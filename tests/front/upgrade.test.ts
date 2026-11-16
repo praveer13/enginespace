@@ -1,11 +1,12 @@
 /*
- * When the front page's pass turns 3D (src/front/upgrade.ts; ARCHITECTURE §6.10, §6.11): after the largest contentful paint and on
- * idle, at tier 1 or above, never under data saver on its own (the Stage then offers it), and not on a 2G connection until asked. The
- * browser's parts are stood in for, so the waits are checked step by step.
+ * When the front page's diagram turns 3D (src/front/upgrade.ts; ARCHITECTURE §6.10, §6.11; REDESIGN §3.1): after the largest contentful
+ * paint and on idle, at tier 1 or above, never under data saver on its own (the Stage then offers it), not on a 2G connection until asked,
+ * and not on a phone in the hand (a coarse pointer under 48rem), which opens in 2D with 3D one tap away. The browser's parts are stood in
+ * for, so the waits are checked step by step.
  */
 import { describe, expect, test } from 'bun:test'
 import type { DeviceTier } from '@/scene/tiers'
-import { IDLE_TIMEOUT_MS, readConnection, upgradeOf, whenSettled, type SettleWindow } from '@/front/upgrade'
+import { HANDHELD_QUERY, IDLE_TIMEOUT_MS, isHandheld, readConnection, upgradeOf, whenSettled, type SettleWindow } from '@/front/upgrade'
 
 const device = (tier: 0 | 1 | 2, known = true, saveData = false): DeviceTier => ({
   tier,
@@ -29,6 +30,22 @@ describe('what the pass does once the page has settled', () => {
   test('data saver offers the scene and never loads it on its own, whichever way the browser says so', () => {
     expect(upgradeOf(device(2), { saveData: true, effectiveType: '4g' })).toBe('offer')
     expect(upgradeOf(device(2, true, true), fast)).toBe('offer')
+  })
+
+  test('a phone in the hand stays in 2D and waits for the learner to ask, whatever its tier', () => {
+    expect(upgradeOf(device(2), fast, true)).toBe('wait')
+    expect(upgradeOf(device(0), fast, true)).toBe('never')
+    expect(HANDHELD_QUERY).toBe('(pointer: coarse) and (max-width: 47.999rem)')
+    expect(isHandheld({ matchMedia: (query) => ({ matches: query === HANDHELD_QUERY }) })).toBe(true)
+    expect(isHandheld({ matchMedia: () => ({ matches: false }) })).toBe(false)
+    expect(isHandheld(undefined)).toBe(false)
+    expect(
+      isHandheld({
+        matchMedia: () => {
+          throw new Error('no media queries here')
+        },
+      }),
+    ).toBe(false)
   })
 
   test('a 2G connection waits for the learner to ask', () => {

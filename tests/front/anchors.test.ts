@@ -7,12 +7,10 @@
  * ticket); and the page's layout to them, with the printer's column at the left and the order ticket short of the line's first
  * station.
  *
- * They also hold the 2D drawing's placement that front.css gives it to the scene's own picture: the drawing is the same shot's
- * picture (packages/play/loop/layout.ts), so where the page puts its frame is where the scene puts every point.
+ * They also hold the kitchen drawing's clips to the scene's own picture through the same shot (packages/play/loop/layout.ts). The front
+ * page no longer imports anchors.ts (R-T19 rebuilt it around the timing diagram); the module and these tests leave with the kitchen.
  */
 import { describe, expect, test } from 'bun:test'
-import { readFileSync } from 'node:fs'
-import path from 'node:path'
 import { PerspectiveCamera, Vector3 } from 'three'
 import { clipX, LINE, lineOf, RAIL, SHOTS, TICKET, viewOf } from '@es/play/loop/kitchen'
 import { FRAMES, frameSvg, layoutFrame } from '@es/play/loop/layout'
@@ -137,28 +135,12 @@ describe('the anchors fit the scene', () => {
 })
 
 describe("the 2D drawing stands where the scene's picture stands", () => {
-  const css = readFileSync(path.resolve(import.meta.dirname, '../../src/front/front.css'), 'utf8')
   const svg = (orientation: 'landscape' | 'portrait') => frameSvg(layoutFrame(posterView(), { orientation, shot: 'front' }))
 
   test("a frame is the shot's full height, 2.4 heights wide in landscape and 1 in portrait, its centre the camera's", () => {
     expect(FRAMES.landscape.width / (FRAMES.landscape.height / 2)).toBeCloseTo(4.8)
     expect(FRAMES.portrait.width / (FRAMES.portrait.height / 2)).toBeCloseTo(2)
     for (const orientation of ['landscape', 'portrait'] as const) expect(svg(orientation).attrs.viewBox).toBe(`0 0 ${FRAMES[orientation].width} ${FRAMES[orientation].height}`)
-  })
-
-  test('front.css sizes the landscape frame 240cqh wide and full height, centred under the stack and shifted by the lens from 80rem', () => {
-    expect(css).toContain('left: calc(50cqw - 120cqh);')
-    expect(css).toContain('width: 240cqh;')
-    expect(css).toContain('height: 100cqh;')
-    expect(css).toContain('left: calc(50cqw + (var(--pass-shift) - 2.4) * 50cqh);')
-  })
-
-  test("front.css places the phone's frame as the phone's shot shifts its lens: as wide as the box is tall, half a box height down", () => {
-    const [, down] = SHOTS.front.portrait.shift
-    expect(down).toBe(0.5)
-    expect(css).toContain(`top: ${down * 50}cqh;`)
-    expect(css).toContain('left: calc(50cqw - 50cqh);')
-    expect(css).toContain('width: 100cqh;')
   })
 
   test("the drawing's clips are the scene's clips: each clip's mark is centred where the shot puts the clip", () => {

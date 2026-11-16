@@ -47,21 +47,19 @@ test.describe('the front-page walk', () => {
       await open(page, '/')
       if (threeD) await settled3d(page)
 
-      // Start service, play the first level, read its debrief, and, with 3D off, play on to the end card. A frame of the 3D pass takes a
-      // software renderer most of a second, so the pass is walked through one level, and the four levels through the 2D pass.
-      await front.start(page).focus()
-      await page.keyboard.press('Enter')
+      // Play the first level and read its result, and, with 3D off, play on to the last. A frame of the 3D view takes a software renderer
+      // most of a second, so the 3D view is walked through one level, and the four levels through the diagram.
       const levels = threeD ? ['Fill the batch'] : ['Fill the batch', 'Refill a slot', 'Close a bubble', 'Both levers']
       for (const [index, title] of levels.entries()) {
         await expect(front.level(page)).toContainText(title)
         await playToTheDebrief(page)
         await expect(front.verdict(page)).toHaveText('Passed.')
         if (index < levels.length - 1) {
-          await page.getByRole('button', { name: /^Next: / }).focus()
+          await front.next(page).focus()
           await page.keyboard.press('Enter')
         }
       }
-      if (!threeD) await expect(page.getByText('The same requests, served three ways')).toBeVisible()
+      if (!threeD) await expect(page.getByText('You just ran the step loop by hand.')).toBeVisible()
 
       // The net was in place and the walk was real: the site's own files came, and among them the faces and, in 3D, the scene's chunks.
       expect(watch.requests.length, 'requests to the site').toBeGreaterThan(10)

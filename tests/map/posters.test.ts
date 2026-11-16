@@ -40,7 +40,7 @@ describe('the board reads the posters that scripts/posters.ts writes', () => {
     }
   })
 
-  test("Service's poster is the first frame of its 2D view: the front page's picture, as the pure code draws it", () => {
+  test("the step loop's poster is the first frame of its timing diagram, as the lane layout draws it", () => {
     expect(draw(fileOf(POSTERS.loop.file))).toBe(svgMarkup(passDrawing(posterView(), 'landscape')))
   })
 
@@ -113,10 +113,17 @@ describe('what the reader keeps', () => {
     expect(draw(markup)).toBe(markup)
   })
 
-  test("a frame's gradients are read and drawn back: the lamps' light on the pass and the side wall's shade (Service's finish review, round 2)", () => {
-    const markup = '<svg viewBox="0 0 4 4"><defs><radialGradient id="p"><stop offset="0" stop-color="var(--es-glint)" stop-opacity="0.5"></stop><stop offset="1" stop-color="var(--es-lamp)" stop-opacity="0"></stop></radialGradient><linearGradient id="w"><stop offset="0" stop-color="var(--es-surface-2)" stop-opacity="0.3"></stop></linearGradient></defs><ellipse cx="2" cy="2" rx="1" ry="1" fill="url(#p)"></ellipse></svg>'
+  test("gradients are read and drawn back, for a game whose poster has them", () => {
+    const markup = '<svg viewBox="0 0 4 4"><defs><radialGradient id="p"><stop offset="0" stop-color="var(--es-paper)" stop-opacity="0.5"></stop><stop offset="1" stop-color="var(--es-lamp)" stop-opacity="0"></stop></radialGradient><linearGradient id="w"><stop offset="0" stop-color="var(--es-surface-2)" stop-opacity="0.3"></stop></linearGradient></defs><ellipse cx="2" cy="2" rx="1" ry="1" fill="url(#p)"></ellipse></svg>'
     expect(draw(markup)).toBe(markup)
-    expect(fileOf(POSTERS.loop.file)).toContain('<linearGradient id="es-loop-lamp-streak-landscape">')
+  })
+
+  test("the step loop's poster is its timing diagram: the queue's chips, the rows on the graticule, the axis and the now line, and no kitchen", () => {
+    const text = fileOf(POSTERS.loop.file)
+    for (const part of ['data-part="queue"', 'data-part="graticule"', 'data-part="rows"', 'data-part="axis"', 'data-part="now"']) expect(text).toContain(part)
+    expect(text).toContain('Waiting queue')
+    expect(text).toContain('CPU · engine core thread')
+    expect(text).not.toMatch(/lamp-streak|ticket|pass|station/i)
   })
 })
 
@@ -169,7 +176,7 @@ describe('the poster in its well', () => {
 
   test('the well has the shape of the drawing until the file has come, and holds the drawing once it has', async () => {
     forgetPosters()
-    expect(render(h(Poster, { id: 'loop' }))).toBe('<div class="es-poster" data-state="reading" style="aspect-ratio:720 / 300"></div>')
+    expect(render(h(Poster, { id: 'loop' }))).toBe('<div class="es-poster" data-state="reading" style="aspect-ratio:848 / 352"></div>')
     globalThis.fetch = (async () => new Response(fileOf(POSTERS.loop.file))) as typeof fetch
     await loadPoster(POSTERS.loop.file)
     const drawn = render(h(Poster, { id: 'loop' }))

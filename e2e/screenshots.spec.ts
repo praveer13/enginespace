@@ -2,14 +2,14 @@
  * W0-T21, acceptance 4 and 5: screenshots of the front page, and the software renderer that draws them (ARCHITECTURE §10.1,
  * "Screenshots").
  *
- *   - The 2D pass of `/` at 360 and 1280 px is compared with a baseline, within a small tolerance. A baseline is a PNG in
+ *   - The 2D diagram of `/` at 360 and 1280 px is compared with a baseline, within a small tolerance. A baseline is a PNG in
  *     e2e/screenshots.spec.ts-snapshots/ rendered by Linux Chromium with the site's own faces, so the comparison is made on Linux only
  *     (A§10.1: "using self-hosted fonts on a fixed runner image"). The page is in the state a first visit leaves it in: the learner's
  *     "3D off", reduced motion, every entrance finished, the fonts in. The tolerance is the share of pixels that may differ. When a runner
  *     draws the page a little differently, the failure's artifact (uploaded by ci.yml) holds the actual image beside the expected one
  *     and their diff: copy the actual over the baseline, or make new baselines with `npx playwright test --project=smoke screenshots
  *     --update-snapshots` on a machine that draws as the runner does.
- *   - The 3D pass is never compared: SwiftShader's output is not a reference. It is captured as an artifact (attached to the report, and
+ *   - The 3D view is never compared: SwiftShader's output is not a reference. It is captured as an artifact (attached to the report, and
  *     uploaded by the workflow), and checked to be drawn and not blank by sampling the canvas's pixels (e2e/support/pixels.ts).
  *   - The renderer: the config gives Chromium `--use-angle=swiftshader` (playwright.config.ts says what was measured of it). This asks
  *     the Chromium that runs for what the specs rely on, and prints its build and renderer, so a runner's first log shows them.
@@ -60,7 +60,7 @@ test.describe('the software renderer', () => {
   })
 })
 
-test.describe('the 2D pass of the front page', () => {
+test.describe('the front page on its diagram', () => {
   test.use({ reducedMotion: 'reduce' })
 
   for (const width of PR_WIDTHS) {
@@ -76,44 +76,41 @@ test.describe('the 2D pass of the front page', () => {
   }
 })
 
-test.describe('the 2D pass of the front page after a fire (W0 finding F1)', () => {
+test.describe('the front page after its first step (W0 finding F1)', () => {
   test.use({ reducedMotion: 'reduce' })
 
   for (const width of PR_WIDTHS) {
-    test(`at ${width} px, two tickets hung and the bell rung, matches its baseline within ${TOLERANCE * 100}%`, async ({ page, context }) => {
+    test(`at ${width} px, two requests admitted and one step run, matches its baseline within ${TOLERANCE * 100}%`, async ({ page, context }) => {
       test.skip(process.platform !== 'linux', 'the baselines are Linux Chromium renderings')
       await withSettings(context, { view3d: false })
       await page.setViewportSize({ width, height: 800 })
       await open(page, '/')
-      await page.getByRole('button', { name: 'Start the demo' }).click()
-      // The strip feeds the next ticket as one is hung, so its first ticket is always the next in line.
+      // The queue moves up as a request is admitted, so its first chip is always the next in line.
       for (const no of ['R1', 'R2']) await page.getByRole('button', { name: `Admit request ${no} into a batch slot` }).click()
-      await page.getByRole('button', { name: /Step: run the next step/ }).click()
-      await expect(page.locator('.es-front-tape [data-line="busy"] .es-front-pips__pip[data-lit]')).toHaveCount(2)
+      await page.locator('[data-front-step]').getByRole('button', { name: 'Step', exact: true }).click()
+      // The step drawn: a forward on the two live slots, and the two empty slots the GPU paid for.
+      await expect(page.locator('.es-lanes__slab[data-use="token"]')).toHaveCount(2)
+      await expect(page.locator('.es-lanes__slab[data-use="empty"]')).toHaveCount(2)
       await page.evaluate(() => window.scrollTo(0, 0))
       await quiet(page)
       await page.evaluate(() => document.fonts.ready)
-      // The pass after the fire, as the scene draws it: two plates on the pass, each glazed with its rim round its well, and the two
-      // places whose clips rode empty.
-      await expect(page.locator('[data-front-poster] [data-part="plates"] ellipse[fill="var(--es-paper)"]')).toHaveCount(4)
-      await expect(page.locator('[data-front-poster] [data-part="plates"] ellipse[stroke-dasharray]')).toHaveCount(2)
       await expect(page).toHaveScreenshot(`front-fired-${width}.png`, { maxDiffPixelRatio: TOLERANCE, timeout: CAPTURE_TIMEOUT })
     })
   }
 })
 
-test.describe('the 3D pass of the front page', () => {
+test.describe('the 3D view of the front page', () => {
   for (const width of PR_WIDTHS) {
     test(`at ${width} px is drawn, not blank, and its capture is kept as an artifact`, async ({ page, context }, info) => {
       test.setTimeout(120_000)
       await page.setViewportSize({ width, height: 800 })
       await open(page, '/')
       await settled3d(page)
-      const stage = page.locator('[data-stage="front"]')
+      const stage = page.locator('section.es-front-service [data-stage]')
       const canvas = stage.locator('canvas')
       await expect(canvas).toBeVisible()
 
-      // The artifact: the pass as the learner sees it, with its labels over it.
+      // The artifact: the time track as the learner sees it, with its labels over it.
       await info.attach(`front-3d-${width}.png`, { body: await stage.screenshot(), contentType: 'image/png' })
 
       // The check: the canvas's own pixels, with the labels (page text over the canvas) out of the way.

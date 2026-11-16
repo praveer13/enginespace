@@ -37,6 +37,7 @@ import { countMarks, escapeText, svgMarkup } from '@es/play/loop/svg'
 import type { SvgNode } from '@es/play/loop/svg'
 import type { FireView, LoopState, LoopView, PlaceView } from '@es/play/loop/types'
 import { POSTER_LEVEL, POSTER_SEED, renderPosters, stalePosters } from '../../scripts/posters'
+import { passDrawing } from '@/front/poster'
 import { handLevel, houseNight, statesOfHouseNight } from './loop-support'
 
 const ORIENTATIONS: readonly Orientation[] = ['landscape', 'portrait']
@@ -67,14 +68,13 @@ function KitchenDrawing({ view }: { view: ReturnType<typeof loopView> }) {
   return h('div', { 'data-loop-drawing': '' }, svgToReact(frameSvg(frame, { cover: true })), h(FrameLabels, { frame, fit: 'cover' }))
 }
 
-describe("the poster is the front page's first frame, and the 2D view draws the same code", () => {
-  test('scripts/posters.ts draws the practice seed of the first level, in both orientations, through the front shot', () => {
+describe("the poster is the timing diagram's first frame (R-T19), and the kitchen drawing's two renderers still agree", () => {
+  test('scripts/posters.ts draws the practice seed of the first level, in both orientations, from the lane layout', () => {
     expect([POSTER_LEVEL, POSTER_SEED]).toEqual(['first-1-fill', 1])
     const posters = renderPosters()
     expect(posters.map((poster) => poster.orientation)).toEqual(['landscape', 'portrait'])
     for (const poster of posters) {
-      // The poster is the layout's frame with the engine's words on it (R-T14): its accessible name, its tapes and its tickets' numbers.
-      expect(poster.svg).toBe(`${svgMarkup(frameSvg(engineFrame(layoutFrame(first, { orientation: poster.orientation, shot: 'front' }), first)))}\n`)
+      expect(poster.svg).toBe(`${svgMarkup(passDrawing(first, poster.orientation))}\n`)
       expect(poster.file).toBe(`loop-first-frame-${poster.orientation}.svg`)
     }
   })
@@ -87,8 +87,7 @@ describe("the poster is the front page's first frame, and the 2D view draws the 
 
   test('the portrait poster is the same tree in React: the markup the React side writes is the markup the script writes', () => {
     const [, portrait] = renderPosters()
-    const tree = frameSvg(engineFrame(layoutFrame(first, { orientation: 'portrait', shot: 'front' }), first))
-    expect(renderToStaticMarkup(svgToReact(tree) as never)).toBe(portrait.svg.trimEnd())
+    expect(renderToStaticMarkup(svgToReact(passDrawing(first, 'portrait')) as never)).toBe(portrait.svg.trimEnd())
   })
 
   test('the two renderers agree on every state of a night, in both orientations, through both shots', () => {
@@ -116,18 +115,18 @@ describe("the poster is the front page's first frame, and the 2D view draws the 
     expect(stalePosters()).toEqual([])
   })
 
-  test("the first frame is the empty rail, a perforated stub on every clip with the page's word on it, and no printer: the front page holds its own", () => {
+  test('the first frame is the waiting queue, the CPU row and four empty slots on the graticule, the now line at tick 0, and no kitchen', () => {
     const [landscape, portrait] = renderPosters()
     expect(landscape.svg).toContain('role="img"')
-    expect(landscape.svg).toContain('aria-label="Fill the batch. Slots filled: 0 of 4. Waiting: 6.')
+    expect(landscape.svg).toContain('aria-label="Timing diagram of the step loop, first frame: 6 requests waiting, 4 empty batch slots, now at tick 0, in synthetic ticks."')
     for (const poster of [landscape, portrait]) {
-      const frame = layoutFrame(first, { orientation: poster.orientation, shot: 'front' })
-      expect(marksOf(frame, 'rail').filter((mark) => mark.kind === 'poly' && mark.fill === 'paper' && mark.dash !== undefined)).toHaveLength(4)
-      // The stubs' word is the page's, printed over the poster as the scene prints its own (W1b close-out, Service's 2D labels).
-      expect(tagsOf(frame, 'empty').map((tag) => [tag.id, tag.text])).toEqual([0, 1, 2, 3].map((slot) => [`empty-${slot}`, 'empty']))
-      expect(poster.svg).not.toContain('<text')
-      expect(poster.svg).not.toContain('data-part="printer"')
+      expect([...poster.svg.matchAll(/data-row="(slot-\d)"/g)].map((match) => match[1])).toEqual(['slot-0', 'slot-1', 'slot-2', 'slot-3'])
+      expect([...poster.svg.matchAll(/>empty</g)]).toHaveLength(4)
+      expect(poster.svg).toContain('data-part="now"')
+      expect(poster.svg).not.toMatch(/printer|ticket|station|lamp-streak/i)
     }
+    // A desk's poster shows all six requests; a phone's the ones its track has room for.
+    expect([...landscape.svg.matchAll(/data-req="(\d)"/g)].map((match) => match[1])).toEqual(['0', '1', '2', '3', '4', '5'])
   })
 
   test("Service's own shot draws the printer at the pass's left end and the tickets it has fed lying in front of it; the page prints their numbers on them and what it still holds on its housing", () => {
