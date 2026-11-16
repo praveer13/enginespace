@@ -135,7 +135,7 @@ describe('"everything on" fails graded seeds, through the memory budget (accepta
       if (night === null) {
         refused += 1
         expect(bytes).toBeGreaterThan(stage.graphBudget ?? 0)
-        expect(servingMode(stage, levers).changes.at(-1)).toContain('more memory than the reach-in can spare')
+        expect(servingMode(stage, levers).changes.at(-1)).toContain('more memory than the GPU can spare for them')
       } else hostPoor += nightMeetsBar(stage, night) ? 1 : 0
     }
     console.log(`everything on: the engine would not start on ${refused} of ${BANDED.length} served seeds (${pct(refused, BANDED.length)}); it met the bar on ${hostPoor}`)
@@ -420,7 +420,7 @@ describe('the session: one night, closed-book, graded by replay', () => {
     expect(() => fullSession.reduce(s, { t: 'lever', name: 'inputIds', value: 'both' })).toThrow('the input ids come from the "device" or the "host"')
     expect(play(s, { t: 'capture', sizes: ladder }).stages[0].levers.captureSizes).toEqual(ladder)
     expect(() => fullSession.reduce(s, { t: 'capture', sizes: [ladder[1], ladder[0]] })).toThrow('ascending order')
-    expect(() => fullSession.reduce(s, { t: 'capture', sizes: [stage.budget + 1] })).toThrow('there is no mold of')
+    expect(() => fullSession.reduce(s, { t: 'capture', sizes: [stage.budget + 1] })).toThrow('there is no capture size')
     expect(() => fullSession.reduce(play(fullSession.init(fullSession.level('async', 0))), { t: 'lever', name: 'inputIds', value: 'host' })).toThrow('has no lever "inputIds"')
   })
 
@@ -436,7 +436,7 @@ describe('the session: one night, closed-book, graded by replay', () => {
     expect(served).toMatchObject({ ok: false, refused: true, metric: 0, tokens: 0, violations: 0 })
     const view = fullSession.view(s)
     expect(view.stage.verdict).toMatchObject({ kind: 'refused', throughputPermille: null })
-    expect(view.stage.verdict?.reason).toContain('more memory than the reach-in can spare')
+    expect(view.stage.verdict?.reason).toContain('more memory than the GPU can spare for them')
     expect(fullSession.grade(s, fullSession.ghost(s.level))).toEqual({ score: 0, ok: false })
     const debrief = fullSession.debrief(s, fullSession.ghost(s.level))
     expect(debrief.sentence).toContain('would not start')

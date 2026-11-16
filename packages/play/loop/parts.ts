@@ -46,6 +46,7 @@ export const LOOP_PARTS: readonly LoopPart[] = [
   { id: 'bubble', name: 'Bubble', sentence: 'A dashed box on the GPU rows: the GPU idle while the CPU prepares the next step. Its width is marked across it, in ticks.', levels: LATER, claim: 'loop.world.step-ticks-serial' },
   { id: 'async', name: 'Async scheduling', sentence: 'The CPU schedules the next step while this one runs, so the GPU does not wait for it.', levels: ASYNC, claim: 'vllm.async-scheduling.default' },
   { id: 'ghost', name: 'Ghost token', sentence: 'A token computed for a request that had already finished, then thrown away: the price of scheduling ahead.', levels: ASYNC },
+  { id: 'reference', name: 'Reference run', sentence: 'The run the course holds up as the bar: its clock is the number to beat.', levels: ASYNC },
 ]
 
 /** The parts a level draws, in the list's order. */

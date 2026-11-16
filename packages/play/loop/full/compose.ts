@@ -46,7 +46,7 @@ export function compile(stages: readonly StageWorld[], policy: readonly Levers[]
       } else if (lever === 'inputIds') {
         notes.push(
           levers.inputIds === 'device'
-            ? "The ids on the line is how MRV2 prepares the inputs (it uses Triton kernels on the GPU), and async scheduling needs it: the next call is written before the last token is sampled."
+            ? 'Input ids filled on the GPU is how MRV2 prepares the inputs (it uses Triton kernels on the GPU), and async scheduling needs it: the next call is written before the last token is sampled.'
             : 'Writing the ids by hand has no flag in either engine: it is the model\'s counterfactual, and with async scheduling on it reads a token before it is sampled, which the graded level scores 0.',
         )
       } else if (lever === 'graphMode') {

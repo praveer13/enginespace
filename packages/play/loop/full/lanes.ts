@@ -80,11 +80,11 @@ export interface FullLaneGeometry {
 export const FULL_DESK: FullLaneGeometry = {
   width: 896,
   labelWidth: 164,
-  cpuHeight: 56,
+  cpuHeight: 72,
   copyHeight: 32,
-  forwardHeight: 64,
-  liveHeight: 16,
-  maskHeight: 32,
+  forwardHeight: 112,
+  liveHeight: 20,
+  maskHeight: 40,
   axisHeight: 24,
   axisLabelGap: 64,
 }
@@ -100,6 +100,19 @@ export const FULL_PHONE: FullLaneGeometry = {
   maskHeight: 24,
   axisHeight: 20,
   axisLabelGap: 48,
+}
+
+/** A lesson's dock: 464 px wide, the lanes pressed together [estimated: the demo dock's own width]. */
+export const FULL_DOCK: FullLaneGeometry = {
+  width: 464,
+  labelWidth: 64,
+  cpuHeight: 28,
+  copyHeight: 16,
+  forwardHeight: 36,
+  liveHeight: 8,
+  maskHeight: 16,
+  axisHeight: 16,
+  axisLabelGap: 56,
 }
 
 /** Steps the window holds at its fixed scale (REDESIGN §3.7: "the last three steps at a fixed scale"), with room after now [estimated]. */
@@ -220,6 +233,8 @@ export interface FullLaneLayout {
 export interface FullLaneOptions {
   /** Lay the whole run out ("Fit run"), instead of the last steps at the night's fixed scale. */
   readonly fit?: boolean
+  /** With `fit`: the run's end, in µs, when it is not this source's own clock: a result lays the reference's lanes on the learner's axis. */
+  readonly until?: Us
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -241,7 +256,7 @@ export function firstStepUs(source: FullLaneSource): Us | null {
 /** The window's length and its first microsecond for a source. */
 export function fullWindow(source: FullLaneSource, options: FullLaneOptions = {}): { start: Us; length: Us } {
   const now = source.clockUs
-  if (options.fit === true) return { start: 0, length: Math.max(1, now) }
+  if (options.fit === true) return { start: 0, length: Math.max(1, options.until ?? now) }
   const unit = firstStepUs(source)
   const length = unit === null ? Math.max(1, now) : unit * STEPS_SHOWN
   return { start: Math.max(0, now - Math.floor(length * NOW_AT)), length }

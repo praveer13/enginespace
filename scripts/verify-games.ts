@@ -250,7 +250,10 @@ export function lazyShells(entry: GameEntry, files: Files): string[] {
     if (file === null || found.includes(file)) continue
     // The text is looked at before the syntax tree is: most of what Game.tsx loads is a scene or a debrief, and a scene is long.
     const text = files.read(file)
-    if (text.includes('<GameShell') && readGameSource(file, text).tags.has('GameShell')) found.push(file)
+    // A shell is a page that mounts the old shell (`GameShell`) or the instrument frame (`Frame`, R-T07) around the game's views.
+    if (!text.includes('<GameShell') && !text.includes('<Frame')) continue
+    const { tags } = readGameSource(file, text)
+    if (tags.has('GameShell') || tags.has('Frame')) found.push(file)
   }
   return found
 }

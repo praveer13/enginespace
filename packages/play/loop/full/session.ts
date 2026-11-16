@@ -96,7 +96,7 @@ export function fullAsk(s: FullState): FullAsk | null {
 export const fullLevel = (id: string, seed: Seed): FullLevel => buildFullLevel(id, seed)
 
 export function fullInBand(id: string, seed: Seed): boolean {
-  if (!isFull(id)) throw new RangeError(`the full service has no level "${id}"`)
+  if (!isFull(id)) throw new RangeError(`the full levels have no level "${id}"`)
   return inFullBand(id, seed)
 }
 
@@ -141,14 +141,14 @@ function midNight(world: StageWorld, stage: StageState): boolean {
 }
 
 function setCapture(stage: StageState, world: StageWorld, sizes: readonly number[]): StageState {
-  // The mold rack of `graphs` · `sizes` holds a few molds; the ladder of `close` has no cap, because its budget is memory.
+  // The capture sizes of `graphs` · `sizes` are a few; the ladder of `close` has no cap, because its budget is memory.
   const ladder = world.ladder ?? world.sizes?.ladder ?? null
-  if (!world.levers.includes('capture') || ladder === null) throw new RangeError(`the ${world.id} stage has no mold rack`)
+  if (!world.levers.includes('capture') || ladder === null) throw new RangeError(`the ${world.id} stage has no capture sizes`)
   const molds = world.sizes === null ? ladder.length : world.sizes.molds
-  if (!Array.isArray(sizes) || sizes.length > molds) throw new RangeError(`the rack holds at most ${molds} molds`)
+  if (!Array.isArray(sizes) || sizes.length > molds) throw new RangeError(`at most ${molds} capture sizes`)
   sizes.forEach((size, i) => {
-    if (!ladder.includes(size)) throw new RangeError(`there is no mold of ${size}`)
-    if (i > 0 && size <= sizes[i - 1]) throw new RangeError('the molds stand in ascending order, each once')
+    if (!ladder.includes(size)) throw new RangeError(`there is no capture size ${size}`)
+    if (i > 0 && size <= sizes[i - 1]) throw new RangeError('capture sizes stand in ascending order, each once')
   })
   return { ...stage, levers: { ...stage.levers, captureSizes: [...sizes] }, night: midNight(world, stage) ? null : stage.night }
 }
@@ -175,7 +175,7 @@ function ring(stage: StageState, world: StageWorld, until: 'step' | 'decision'):
   if (night === null) {
     // A closed-book stage serves a configuration the engine would not start as a night that failed (ASSESSMENT §4.3): the learner is not told
     // beforehand, and the night is the one night. The practice stages refuse the ring, and the panel says why.
-    if (!world.sealed) throw new RangeError('this mode does not serve tonight: the backend cannot run it, or its routines leave the night no room')
+    if (!world.sealed) throw new RangeError('this mode does not serve this run: the backend cannot run it, or its graphs leave the run no room')
     const refused: Served = { levers, metric: 0, ok: false, tokens: 0, violations: 0, refused: true }
     return { ...stage, night: { levers, fires: 0 }, served: [...stage.served, refused] }
   }
@@ -209,7 +209,7 @@ export function fullReduce(s: FullState, a: FullAction): FullState {
       return { ...s, at }
     }
     default:
-      throw new RangeError(`the full service has no action "${String((a as { t?: unknown }).t)}"`)
+      throw new RangeError(`the full levels have no action "${String((a as { t?: unknown }).t)}"`)
   }
 }
 
@@ -261,22 +261,22 @@ export function predictionClose(level: FullLevelId, world: StageWorld, predicted
 
 /** What each lever is, with the engine's term first, for the debrief's sentence (GAMES.md §2.6, rule 2). */
 const LEVER_WORDS: Readonly<Record<LeverName, string>> = {
-  async: 'async scheduling: writing the next call during the fire',
-  inputIds: 'the next call\'s input ids: filled by the line from the tokens it sampled, or written by the expo',
-  graphMode: 'the CUDA-graph mode: the routines drilled, and how much of each fire one word starts',
-  capture: 'the capture sizes: the molds on the rack',
+  async: 'async scheduling: the CPU schedules the next step while this one runs',
+  inputIds: 'the next step\'s input ids: filled on the GPU from the tokens it sampled, or written by the CPU',
+  graphMode: 'the CUDA graph mode: which graphs are captured, and how much of each step one call launches',
+  capture: 'the capture sizes: the batch sizes a graph is captured at',
   runner: 'the model runner: MRV2 prepares the inputs on the GPU',
-  maskOverlap: 'the mask overlap: writing the allergy card while the line cooks',
+  maskOverlap: 'the mask overlap: building the grammar mask while the forward runs',
 }
 
 const SUMMARIES: Readonly<Record<string, string>> = {
-  async: 'With the next call written during the fire, the expo\'s work hides under the line\'s, so the dark stretches close; the price is one binned course for each ticket that ends. That is vLLM\'s async scheduling, on by default at the pin.',
+  async: 'With async scheduling on, the CPU schedules the next step while this one runs, so the bubbles close; the price is one ghost token for each request that ends. That is vLLM\'s async scheduling, on by default at the pin.',
   graphs:
-    'A drilled routine fires a whole fire with one word, where calling each dish takes a call per kernel; a fire drops into the smallest mold that holds it, its empty places are padding, and the mode you ask for runs only as far as the backend supports it.',
-  mrv2: 'The V2 runner prepares each fire\'s inputs on the GPU, so the expo writes less: the gain is large where the fire is short, and nearly nothing where the forward already hides the host\'s work.',
-  mask: 'The engine thread writes the allergy card after it launches the fire, so the card hides under the line\'s cooking when it is shorter than the fire; a heavy grammar outlasts the fire, and then the line waits for it.',
+    'A CUDA graph replays a whole step with one call, where eager launches take a call for each kernel; a step runs at the smallest captured size that holds its batch, the empty places are padding, and the mode you ask for runs only as far as the backend supports it.',
+  mrv2: 'The V2 runner prepares each step\'s inputs on the GPU, so the CPU has less to write: the gain is large where the step is short, and nearly nothing where the forward already hides the CPU\'s work.',
+  mask: 'The engine thread builds the grammar mask after it launches the forward, so the mask hides under the GPU\'s work when it is shorter than the forward; a heavy grammar outlasts the forward, and then the GPU waits for it.',
   close:
-    'The bubbles close when the expo\'s work for the next fire hides under the line\'s: async scheduling writes it during the fire, which needs the ids to come from the line, MRV2 shortens it, and a drilled routine for the rail and for the biggest fire replaces a call for each kernel. Every routine takes memory out of the reach-in before its pans are counted, so drill only the molds the night uses.',
+    'The bubbles close when the CPU\'s work for the next step hides under the GPU\'s: async scheduling does it during the forward, which needs the input ids to come from the GPU, MRV2 shortens it, and a CUDA graph at the batch\'s size replaces a launch for each kernel. Every graph takes memory from the KV cache, so capture only the sizes the run uses.',
 }
 
 /**
@@ -291,7 +291,7 @@ export function fullDebrief(mine: FullState): Debrief {
   if (world.bar === 'throughput') return gradedDebrief(level.id, world, mine.stages[missed])
   const lever = world.levers[0]
   return {
-    sentence: `${copyOf(level.id, world.id).title}: no night met the bar, which is the house's night within its margin. ${SUMMARIES[level.id]}`,
+    sentence: `${copyOf(level.id, world.id).title}: no run met the bar, which is the reference run's within its margin. ${SUMMARIES[level.id]}`,
     names: { lever },
   }
 }
@@ -315,12 +315,12 @@ function gradedDebrief(level: FullLevelId, world: StageWorld, stage: StageState)
   const verdict = last === undefined ? null : verdictOf(world, last, last.refused === true ? (servingMode(world, mine).changes.at(-1) ?? null) : null)
   const why =
     verdict === null
-      ? 'No night was served.'
+      ? 'No run was served.'
       : verdict.kind === 'refused'
-        ? `The engine would not start: ${verdict.reason ?? 'the routines took more memory than the reach-in could spare'}. A configuration that does not start serves nothing.`
+        ? `The engine would not start: ${verdict.reason ?? 'the graphs took more memory than the GPU could spare for them'}. A configuration that does not start serves nothing.`
         : verdict.kind === 'violation'
-          ? 'A fire read a token before it was sampled: the expo wrote the next call while the last fire was still on the line, and with the ids written by hand the call needed a token that did not exist yet. A night that breaks the dependency scores nothing.'
-          : 'Your night served fewer tokens for each ms than the bar allows against the house\'s.'
+          ? 'A step read a token before it was sampled: the CPU wrote the next step while the last step was still running, and with the ids written by the CPU the call needed a token that did not exist yet. A run that breaks the dependency scores nothing.'
+          : 'Your run served fewer tokens for each ms than the bar allows against the reference run\'s.'
   return { sentence: `${copyOf(level, world.id).title}: ${why} ${SUMMARIES.close}`, names: { lever } }
 }
 

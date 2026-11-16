@@ -212,13 +212,13 @@ describe('the dock view, for a lesson: the same lanes at 464 x 240', () => {
 describe('what the step loop gives the frame: parts, moments, the first move', () => {
   test('the parts table has a row for every drawn object, each with its claim or as a model object, and a callout anchor', () => {
     const ids = LOOP_PARTS.map((part) => part.id)
-    expect(ids).toEqual(['waiting', 'slot', 'cpu', 'gpu', 'step', 'now', 'empty', 'bubble', 'async', 'ghost'])
+    expect(ids).toEqual(['waiting', 'slot', 'cpu', 'gpu', 'step', 'now', 'empty', 'bubble', 'async', 'ghost', 'reference'])
     for (const part of LOOP_PARTS) {
       expect(part.sentence.length).toBeGreaterThan(0)
       if (part.claim !== undefined) expect(part.claim).toMatch(/^[a-z0-9.-]+$/)
     }
     // A model object has no claim: the popover says "model object" for it.
-    expect(LOOP_PARTS.filter((part) => part.claim === undefined).map((part) => part.id)).toEqual(['now', 'empty', 'ghost'])
+    expect(LOOP_PARTS.filter((part) => part.claim === undefined).map((part) => part.id)).toEqual(['now', 'empty', 'ghost', 'reference'])
     for (const id of ['first-1-fill', 'first-2-slot', 'first-3-gap', 'first-4-par'] as const) for (const row of partRows(id)) expect(row.anchor).toBeDefined()
   })
 
@@ -226,7 +226,7 @@ describe('what the step loop gives the frame: parts, moments, the first move', (
     expect(introParts(partRows('first-1-fill'), [], false).map((part) => part.id)).toEqual(['waiting', 'slot', 'cpu', 'gpu', 'step'])
     const met = ['waiting', 'slot', 'cpu', 'gpu', 'step']
     expect(introParts(partRows('first-2-slot'), met, false).map((part) => part.id)).toEqual(['now', 'empty', 'bubble'])
-    expect(introParts(partRows('first-3-gap'), [...met, 'now', 'empty', 'bubble'], false).map((part) => part.id)).toEqual(['async', 'ghost'])
+    expect(introParts(partRows('first-3-gap'), [...met, 'now', 'empty', 'bubble'], false).map((part) => part.id)).toEqual(['async', 'ghost', 'reference'])
   })
 
   test('no demo level asks a guess of the session: the first run is parts, then a real first move, the reference run\'s first', () => {

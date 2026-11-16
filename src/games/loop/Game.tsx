@@ -153,7 +153,7 @@ export default function Game({ level, mode, placement = 'page', rev, onFinish }:
     return (
       <div ref={host} className="contents">
         <Suspense fallback={<p role="status">Setting up the level…</p>}>
-          <FullService level={levelId} mode={mode} placement={placement} rev={rev} onFinish={onFinish} docket={docket} onLevel={open} />
+          <FullService level={levelId} mode={mode} placement={placement} rev={rev} onFinish={onFinish} onLevel={open} />
         </Suspense>
       </div>
     )
