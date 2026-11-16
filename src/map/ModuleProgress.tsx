@@ -8,7 +8,7 @@ import { Scope } from '@/content/render/Page'
 import type { LoopProgress, ModuleProgress, Tally } from '@/progress/derive'
 import { KCS, LOOP } from './copy'
 import { Pip } from './Pips'
-import './map.css'
+import './module.css'
 
 /*
  * What a module page shows of the learner (W1-T06): the module's loop, which is the same five steps in every module (ARCHITECTURE §3.1:

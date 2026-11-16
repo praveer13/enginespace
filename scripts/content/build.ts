@@ -832,6 +832,7 @@ function buildMap(course: Course, modules: ReadonlyMap<string, ModuleResult>, gr
         artifacts: written?.artifacts ?? entry.artifacts ?? [],
         labs: written?.labs ?? [],
         kcs: kcs.filter((kc) => kc.module === entry.id).map((kc) => kc.id),
+        ...(written === undefined ? {} : { outcome: written.outcomes[0] }),
       }
     }),
     kcs,

@@ -200,6 +200,8 @@ export const mapModuleSchema = z.strictObject({
   labs: z.array(labIdSchema),
   /** Its KCs, in the order of the graph. */
   kcs: z.array(kcIdSchema),
+  /** The first of the module's outcomes, which Course prints on the module's row. A planned module has none. */
+  outcome: nonBlank.optional(),
 })
 
 /** A KC as the module page lists it. `planned` is the task that will add its first graded reference, until W1-T38 (ARCHITECTURE §4.5). */
