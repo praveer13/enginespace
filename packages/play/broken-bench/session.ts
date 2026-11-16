@@ -90,8 +90,8 @@ export function benchReduce(s: BenchState, a: BenchAction): BenchState {
     case 'submit': {
       const named = s.picks[s.at]
       const prediction = s.predictions[s.at]
-      if (named === null) throw new RangeError('name a flaw before filing the ruling')
-      if (prediction === null) throw new RangeError('write down a p99 and its range before filing the ruling')
+      if (named === null) throw new RangeError('name a flaw before filing the report')
+      if (prediction === null) throw new RangeError('write down a p99 and its range before filing the report')
       const slot = s.level.slots[s.at]
       const { truth } = caseOf(slot)
       const verdict = judge({ p99Us: truth.correction.p99Us, ciLoUs: truth.interval.loUs, ciHiUs: truth.interval.hiUs }, slot.flaw, named, prediction)
@@ -214,14 +214,14 @@ export function benchDebrief(mine: BenchState, ghost: BenchState): Debrief {
   const miss = mine.rulings.findIndex((ruling) => ruling !== null && !stands(ruling))
   if (miss < 0) {
     if (cases > 1) {
-      return { sentence: "Every ruling stood. In each case you named the flaw the log showed (or found none), applied the rule that corrects it, and wrote down a number and a range that the court's own recomputation agreed with.", names: null }
+      return { sentence: "Every report stood. In each you named the flaw the log showed (or found none), applied the rule that corrects it, and wrote down a number and a range that the reference's recomputation agreed with.", names: null }
     }
-    // A single case's verdict is the ticket's heading ("The ruling stands."), so the sentence under it opens on what the learner did.
+    // The verdict word above the sentence comes from the grade (Passed or Not yet), so the sentence opens on what the learner did.
     return {
       sentence:
         mine.level.slots[0].flaw === 'none'
-          ? "You found no flaw, checked the log from the due times, and wrote down the number the report already had, with a range that the court's own recomputation agreed with."
-          : `You named ${FLAW_FACTS[mine.level.slots[0].flaw].phrase}, applied the rule that corrects it, and wrote down a number and a range that the court's own recomputation agreed with.`,
+          ? "You found no flaw, checked the log from the due times, and wrote down the number the report already had, with a range that the reference's recomputation agreed with."
+          : `You named ${FLAW_FACTS[mine.level.slots[0].flaw].phrase}, applied the rule that corrects it, and wrote down a number and a range that the reference's recomputation agreed with.`,
       names: null,
     }
   }
@@ -230,7 +230,8 @@ export function benchDebrief(mine: BenchState, ghost: BenchState): Debrief {
   if (ruling === null) throw new Error('internal: a missed case has no ruling')
   const facts = FLAW_FACTS[slot.flaw]
   const which = cases === 1 ? 'this case' : `the ${ORDINAL[miss] ?? 'last'} case`
-  const lead = grade.ok && cases > 1 ? 'The court passed you, with a ruling that did not stand. ' : ''
+  // A court of five can pass with one report that did not stand: the sentence says so, so the verdict word and the body agree.
+  const lead = grade.ok && cases > 1 ? 'Enough reports stood to pass, though one did not. ' : ''
   if (!ruling.flawOk) {
     return {
       sentence: `${lead}On ${which} you named ${FLAW_FACTS[ruling.named].phrase}, and the log showed ${facts.phrase}: ${facts.shows}. ${facts.rule}`,
@@ -244,7 +245,7 @@ export function benchDebrief(mine: BenchState, ghost: BenchState): Debrief {
     }
   }
   return {
-    sentence: `${lead}On ${which} the flaw and the number were right, but the range either missed the corrected p99 or was wider than the court's own bootstrap interval allows. A range is only worth writing down if it is about as tight as the sample it rests on.`,
+    sentence: `${lead}On ${which} the flaw and the number were right, but the range either missed the corrected p99 or was wider than the reference's bootstrap interval allows. A range is only worth writing down if it is about as tight as the sample it rests on.`,
     names: { lever: 'interval' },
   }
 }

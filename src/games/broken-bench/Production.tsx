@@ -2,14 +2,13 @@ import { useMemo } from 'react'
 import { useClaims } from '@/content/load'
 import { ClaimChip } from '@/content/render/ClaimChip'
 import { renderEnv, todayIso } from '@/content/render/model'
-import { Ticket } from '@/design/components/Ticket'
 
 /*
- * In production (GAMES.md §11 "Core loop", step 6): the flags of the real tools that would have produced a number the court admits. They
+ * In production (GAMES.md §11 "Core loop", step 6): the flags of the real tools that would have produced a p99 the reference admits. They
  * are cited as claims, each with its source and the day it was read, because an upstream fact belongs to a pin and not to this page
  * (AGENTS.md, "Pins"): a finite `--request-rate` draws the arrivals open-loop, `--max-concurrency` records the wait for a permit as
  * `client_queue_time`, and SGLang's `--goodput` counts the requests that meet every objective. Each flag's claims are a ledger, as the
- * ruling's real-world instances are (bench.css): a line for each, its figure beside its source.
+ * report's real-world instances are (bench.css): a line for each, its figure beside its source.
  */
 
 const FLAGS = [
@@ -20,7 +19,7 @@ const FLAGS = [
   },
   {
     flag: 'vllm bench serve --max-concurrency N',
-    says: 'A cap on orders in flight is a closed loop in disguise. The tool records the wait for a permit as client_queue_time, which a latency timed from the send leaves out.',
+    says: 'A cap on requests in flight is a closed loop in disguise. The tool records the wait for a permit as client_queue_time, which a latency timed from the send leaves out.',
     claims: ['vllm.bench.max-concurrency-closed-loop', 'vllm.bench.client-queue-time'],
   },
   {
@@ -35,7 +34,7 @@ export function Production() {
   const claims = useClaims(true)
   const env = useMemo(() => renderEnv([], claims.status === 'ready' ? claims.value : null, todayIso()), [claims])
   return (
-    <Ticket as="section" width="full" hole={false} titleAs="h3" title="The flags that would have made it admissible">
+    <section className="es-bench-production" aria-label="The flags that would have made it admissible">
       <p>
         The browser world is a model, and the real tools are the judge. These are the flags that bear on the flaws you just met, as the tools stood at the pins on the day each claim was read.
       </p>
@@ -57,6 +56,6 @@ export function Production() {
           </li>
         ))}
       </ul>
-    </Ticket>
+    </section>
   )
 }

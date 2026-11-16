@@ -35,6 +35,8 @@ export interface KitLook {
   readonly title: string
   readonly detail: ReactNode
   readonly anchor?: string
+  /** The look's own instruction, where selecting and reading is not all it is: "Flip the switch and watch the chart move". */
+  readonly lead?: ReactNode
 }
 
 /** A rule named the first time it is felt in a level (moments.ts reads the table). */
@@ -73,6 +75,8 @@ export interface GameKit<Action extends GameAction, View, Props = never> {
   readonly isAsk?: (action: Action) => boolean
   /** The first ask in the session's own words, for the intro's ask step. */
   readonly askWords?: (view: View) => ReactNode
+  /** What the ask step says in place of the guess's words, for an ask that is not a guess (a report to file). */
+  readonly askLead?: ReactNode
   /** The part to look at, where the session asks first. */
   readonly look?: (view: View) => KitLook | null
   /** The part ids a level draws: a level the ledger says was played has its parts met. */

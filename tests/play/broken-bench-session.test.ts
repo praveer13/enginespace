@@ -214,7 +214,7 @@ describe('grade and debrief', () => {
     const debrief = benchDebrief(run.state, ghost)
     expect(debrief.names).toEqual({ lever: slots[2].flaw })
     expect(debrief.sentence).toContain('the third case')
-    expect(debrief.sentence).toMatch(/^The court passed you/)
+    expect(debrief.sentence).toMatch(/^Enough reports stood to pass/)
     expect(debrief.sentence).not.toMatch(/\d/)
     for (const id of LEVEL_IDS) expect(benchDebrief(benchGhost(benchLevel(id, 0)), benchGhost(benchLevel(id, 0))).sentence).not.toMatch(/\d/)
   })

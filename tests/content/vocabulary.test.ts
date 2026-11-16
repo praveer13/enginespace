@@ -5,7 +5,7 @@
  *
  * It checks words, not whether the level can be solved. The levels it holds are the openers of the table (tests/content/openers-table.ts): the
  * levels of an A or B row. A game that has no parts table yet is marked as waiting on the task that gives it one (`test.todo`, which runs
- * nothing), and that task replaces the mark with a table: R-T31 for the broken benchmark. The pool's, the step loop's (R-T28: the demo
+ * nothing), and that task replaces the mark with a table: The pool's, the broken benchmark's, the step loop's (R-T28: the demo
  * levels' and the full levels'), the rejection sampler's and the request path's (R-T29) parts lists exist, and every level of an A or B row of
  * those games passes.
  */
@@ -20,6 +20,8 @@ import { fullPartsOf } from '@es/play/loop/full/parts'
 import { loopPartsOf } from '@es/play/loop/parts'
 import type { LoopLevelId } from '@es/play/loop/types'
 import type { FullLevelId } from '@es/play/loop/full/types'
+import { BENCH_COPY, partsOf as benchPartsOf } from '@es/play/broken-bench/copy'
+import type { BenchLevelId } from '@es/play/broken-bench/types'
 import { POOL_COPY, partsOf } from '@es/play/pool/copy'
 import type { PoolLevelId } from '@es/play/pool/types'
 import { ASK_WORDS, VERIFIER_COPY, partsOf as samplerPartsOf } from '@es/play/verifier/copy'
@@ -69,7 +71,7 @@ const PARTS: Record<string, { at: (level: string) => string; waiting?: string }>
   },
   'engine-floor': { at: (level) => floorPartsOf(level as FloorLevelId).map((part) => `${part.name} ${part.sentence}`).join(' ') },
   verifier: { at: (level) => samplerPartsOf(level as VerifierLevelId).map((part) => `${part.name} ${part.sentence} ${part.engine ?? ''}`).join(' ') },
-  'broken-bench': { at: () => '', waiting: 'R-T31' },
+  'broken-bench': { at: (level) => benchPartsOf(level as BenchLevelId).map((part) => `${part.name} ${part.sentence}`).join(' ') },
 }
 
 /** The words of a level that the learner reads before and during a run: its goal line, its prompt and the question it asks first. */
@@ -95,6 +97,10 @@ const LEVEL_WORDS: Record<string, (level: string) => string> = {
   'engine-floor': (level) => {
     const copy = FLOOR_COPY[level as FloorLevelId]
     return [copy.goal.aim, copy.goal.controls, copy.prompt, FLOOR_QUESTION].join(' ')
+  },
+  'broken-bench': (level) => {
+    const copy = BENCH_COPY[level as BenchLevelId]
+    return [copy.goal.aim, copy.goal.controls, copy.prompt].join(' ')
   },
 }
 
