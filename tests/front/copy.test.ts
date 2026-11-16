@@ -11,7 +11,7 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { untaggedNumbers } from '../../scripts/content/prose'
 import { FRONT_COPY, frontCopyDiagnostics, main } from '../../scripts/verify-numbers'
-import { frontCopy, HERO, MENU, NEXT, ORDER } from '../../src/front/copy'
+import { COURSE, frontCopy, HERO, MENU, NEXT, ORDER } from '../../src/front/copy'
 
 const root = path.resolve(import.meta.dirname, '../..')
 const read = (file: string) => readFileSync(path.join(root, file), 'utf8')
@@ -50,9 +50,10 @@ describe('verify:numbers reads the front page\'s copy', () => {
 })
 
 describe('the copy says what the course says', () => {
-  test('the headline is "Fire the next step.", and the primary action is "Start service"', () => {
-    expect(HERO.headline).toBe('Fire the next step.')
-    expect(HERO.start).toBe('Start service')
+  test('the headline is the brief\'s, the primary action starts the demo and says so, and the way into the course names the first lesson', () => {
+    expect(HERO.headline).toBe('Run one step of an LLM inference engine.')
+    expect(HERO.start).toBe('Start the demo')
+    expect(COURSE.start).toBe('Begin the course')
     expect(NEXT.start).toBe('Open TR1')
   })
 

@@ -1,6 +1,7 @@
 import type { ThreeEvent } from '@react-three/fiber'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { BoxGeometry, CircleGeometry, Matrix4, Quaternion, ShaderMaterial, Vector3, type InstancedMesh } from 'three'
+import { tagWords, tapeWords } from '@es/play/loop/copy'
 import { PLATE_R, plateRadius } from '@es/play/loop/kitchen'
 import type { KitchenView } from '@es/play/loop/types'
 import { CameraRig } from '@/scene/CameraRig'
@@ -224,14 +225,14 @@ function labelContent(anchor: Anchor): ReactNode {
   if (anchor.kind === 'tape') {
     return (
       <TapeLabel size="sm" tilt="none">
-        {anchor.text}
+        {tapeWords(anchor.text)}
       </TapeLabel>
     )
   }
   if (anchor.kind === 'ticket' || anchor.kind === 'fired' || anchor.kind === 'waiting') {
     return (
       <span className="es-loop-label__ticket">
-        <span className="es-loop-label__no">{anchor.text}</span>
+        <span className="es-loop-label__no">{tagWords(anchor.kind, anchor.text)}</span>
         {anchor.sub ? <span className="es-loop-label__sub">{anchor.sub}</span> : null}
       </span>
     )

@@ -95,12 +95,12 @@ export function walkOf(page: Page) {
 /** The front page's pieces, by what a reader calls them. */
 export const front = {
   game: (page: Page) => page.locator('section.es-front-service'),
-  start: (page: Page) => page.getByRole('button', { name: 'Start service' }),
-  bell: (page: Page) => page.getByRole('button', { name: /Ring the bell/ }),
+  start: (page: Page) => page.getByRole('button', { name: 'Start the demo' }),
+  bell: (page: Page) => page.getByRole('button', { name: /Step: run the next step/ }),
   /** The tickets that can be hung now: the waiting ones, while the rail has a free clip. */
   tickets: (page: Page) => page.locator('[data-loop-controls] ul button:not([disabled])'),
   debriefStub: (page: Page) => page.getByRole('button', { name: 'See the debrief' }),
-  /** The debrief's headline: "Well fired." when the run reached the house's mark, "Fire it again." when it did not. */
+  /** The debrief's headline: "Passed." when the run reached the reference run's mark, "Not yet." when it did not. */
   verdict: (page: Page) => page.locator('[data-loop-debrief] h3').first(),
   level: (page: Page) => page.locator('.es-front-deck__level'),
   outcome: (page: Page) => page.locator('[data-live="outcome"]'),

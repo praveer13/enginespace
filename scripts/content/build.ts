@@ -845,6 +845,7 @@ function buildOutputs(course: Course, modules: ReadonlyMap<string, ModuleResult>
       title: front.title,
       route: lessonRoute(entry.id, slug),
       minutes: front.minutes,
+      needs: front.lanes !== undefined && front.lanes.length > 0 ? [...front.lanes] : ['B'],
       status: front.status,
     }))
     indexModules.push({

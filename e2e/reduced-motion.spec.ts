@@ -123,7 +123,7 @@ test.describe('the front page\'s game under reduced motion', () => {
     await front.start(page).focus()
     await page.keyboard.press('Enter')
     await playToTheDebrief(page)
-    await expect(front.verdict(page)).toHaveText('Well fired.')
+    await expect(front.verdict(page)).toHaveText('Passed.')
     // The strike of the bell and the printer's feed are CSS animations, 1 ms long under the setting, so none is still running.
     await expect.poll(async () => (await movingThings(page)).running).toEqual([])
     expect(await page.evaluate(() => getComputedStyle(document.querySelector('.es-bell__body') as Element).animationDuration)).toBe('0.001s')

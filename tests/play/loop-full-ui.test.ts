@@ -66,11 +66,11 @@ function outcomeOf(state: FullState): FullOutcome {
   return { record: finished.record, grade: finished.grade, debrief: finished.debrief, hash: finished.hash, ghostView: fullSession.view(finished.ghost) }
 }
 
-describe('the docket: Service\'s levels under its name', () => {
-  test('the first service\'s four, the full service\'s five, and the keys behind their card, waiting', () => {
+describe('the docket: the step loop\'s levels under its name', () => {
+  test('the demo\'s four, TR2\'s five, and the keys behind their card, waiting', () => {
     const markup = render(h(Game, null))
     const docket = markup.slice(markup.indexOf('data-loop-docket'), markup.indexOf('</nav>', markup.indexOf('data-loop-docket')))
-    for (const title of ['First service', 'Fill the batch', 'Both levers', 'The full service', 'Async scheduling on two cost cards', 'CUDA graphs: launches against replay', 'The V2 model runner', 'Every lever, on new numbers', 'The grammar mask inside a step', 'Keys']) {
+    for (const title of ['Demo', 'Fill the batch', 'Both levers', 'TR2 levels', 'Async scheduling on two cost cards', 'CUDA graphs: launches against replay', 'The V2 model runner', 'Every lever, on new numbers', 'The grammar mask inside a step', 'Keys']) {
       expect(docket).toContain(title)
     }
     expect(docket).toContain('· waiting')

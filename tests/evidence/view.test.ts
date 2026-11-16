@@ -152,10 +152,10 @@ describe('the page', () => {
     expect(body).not.toMatch(/\bXP\b|percent|%|\bscore\b|weight|progress|complete/i)
   })
 
-  test('an empty ledger is a blank ticket with the way to the menu, and still offers the means to import', () => {
+  test('an empty ledger is a blank ticket with the way to the course, and still offers the means to import', () => {
     const html = view({ counts: counts([]) })
     expect(html).toContain('Nothing in the ledger yet')
-    expect(html).toContain('Open the menu')
+    expect(html).toContain('Open the course')
     expect(html).toContain('href="/map"')
     expect(html).not.toContain('es-ledger')
     expect([...html.matchAll(/<h2[^>]*>(.*?)<\/h2>/gs)].map((match) => match[1])).toEqual(['Nothing in the ledger yet', 'Keep a copy'])

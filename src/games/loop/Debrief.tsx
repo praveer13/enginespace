@@ -14,11 +14,11 @@ import { svgToReact } from './svg'
 import type { LoopOutcome, LoopRun } from './types'
 
 /*
- * Service's debrief and, on the front page, its end card (GAMES.md §3, §3.1): one sentence that says what the run did and the
- * lever worth the most; the counters against the house's (the hidden reference, read only here); on the last level the night served
- * three ways from the same seed (Compare); the one true thing; and the real engine's numbers beside it, each with its tag.
+ * The step loop's debrief and, on the front page, its end card (GAMES.md §3, §3.1): one sentence that says what the run did and the
+ * lever worth the most; the counters against the reference run's (the hidden reference, read only here); on the last level the same
+ * requests served three ways from the same seed (Compare); the one true thing; and the real engine's numbers beside it, each with its tag.
  *
- * The house is the ghost: its run plays the same night, and its clock is par. Every tick count is synthetic and every row says so
+ * The reference run is the ghost: it plays the same requests, and its clock is the number to beat. Every tick count is synthetic and every row says so
  * (D-048). The real anchor is the one place the page speaks about a real engine, and its numbers are measured and tagged with
  * their source and date (D-012), or derived from those.
  */
@@ -31,10 +31,10 @@ export interface DebriefProps {
   onNext: () => void
 }
 
-/** The engine's term leads in the debrief, and the kitchen's words follow (GAMES.md §2.6, rule 2). */
+/** The levers the debrief can name, in the engine's words. */
 const LEVER_NAME: Readonly<Record<string, string>> = {
-  async: 'Overlap (async scheduling): writing the next call during the fire',
-  batching: 'Continuous batching: refilling a clip the moment it opens',
+  async: 'Async scheduling: planning the next step while this one runs',
+  batching: 'Continuous batching: refilling a slot the moment it frees',
 }
 
 /** The one true thing, in a sentence (GAMES.md §3, "Module and concept"). */
@@ -46,15 +46,15 @@ const figure = (value: number) => <span className="font-numeric">{formatReadout(
 function CountersTable({ mine, house, par }: { mine: LoopCounters; house: LoopCounters; par: number | null }) {
   const rows: [string, number, number][] = [
     ['Clock (ticks, synthetic)', mine.clockUs, house.clockUs],
-    ['Useful tokens (plates, synthetic)', mine.usefulTokens, house.usefulTokens],
-    ['Ghost tokens (binned plates, synthetic)', mine.ghostTokens, house.ghostTokens],
-    ['Bubble (dark stretches, ticks, synthetic)', mine.bubbleUs, house.bubbleUs],
-    ['Empty slots (clips paid for, empty, synthetic)', mine.emptyClipSteps, house.emptyClipSteps],
+    ['Output tokens (synthetic)', mine.usefulTokens, house.usefulTokens],
+    ['Ghost tokens (synthetic)', mine.ghostTokens, house.ghostTokens],
+    ['Bubble (ticks, synthetic)', mine.bubbleUs, house.bubbleUs],
+    ['Empty slots, paid for (synthetic)', mine.emptyClipSteps, house.emptyClipSteps],
   ]
   return (
     <div role="region" aria-label="Counters" tabIndex={0} className="overflow-x-auto">
       <table className="w-full border-collapse text-left">
-        <caption className="pb-2 text-left font-bold">{par === null ? "Your service against the house's" : "Your service against par, the house's run"}</caption>
+        <caption className="pb-2 text-left font-bold">{par === null ? "Your run against the reference run's" : 'Your run against the reference run, whose clock is the number to beat'}</caption>
         <thead>
           <tr>
             <th scope="col" className="border-b border-edge py-2 pr-4 font-bold">
@@ -64,7 +64,7 @@ function CountersTable({ mine, house, par }: { mine: LoopCounters; house: LoopCo
               Yours
             </th>
             <th scope="col" className="border-b border-edge py-2 text-right font-bold">
-              The house
+              Reference run
             </th>
           </tr>
         </thead>
@@ -84,29 +84,28 @@ function CountersTable({ mine, house, par }: { mine: LoopCounters; house: LoopCo
   )
 }
 
-/** The night served three ways from the same seed, and yours: the lines side by side on one scale (GAMES.md §2.6, "Compare"). */
+/** The same requests served three ways from the same seed, and your run: the lanes side by side on one scale (GAMES.md §2.6, "Compare"). */
 function Compare({ seed, mine, clockUs, slots }: { seed: number; mine: readonly FireView[]; clockUs: number; slots: number }) {
   const lanes = useMemo(() => {
     const services = compareServices(seed)
     const scaleTicks = Math.max(clockUs, ...services.map((service) => service.run.summary.clockUs))
     const strip = (fires: readonly FireView[], label: string) => svgToReact(frameSvg(layoutStrip(fires, { slots, scaleTicks, label })))
     return [
-      { id: 'mine', heading: 'Your service', gloss: 'the run you just played', clock: clockUs, dark: null as number | null, binned: null as number | null, drawing: strip(mine, 'Your service: the line, with dark stretches between the fires') },
+      { id: 'mine', heading: 'Your run', gloss: 'the run you just played', clock: clockUs, dark: null as number | null, binned: null as number | null, drawing: strip(mine, 'Your run: the GPU lane, with bubbles between the steps') },
       ...services.map((service) => ({
         id: service.id,
-        // The engine's term leads, and the kitchen's name follows it.
         heading: service.term,
         gloss: service.name,
         clock: service.run.summary.clockUs,
         dark: service.run.summary.bubbleUs as number | null,
         binned: service.run.summary.ghostTokens as number | null,
-        drawing: strip(firesOfRun(service.run, slots), `${service.term}: the line, with dark stretches between the fires`),
+        drawing: strip(firesOfRun(service.run, slots), `${service.term}: the GPU lane, with bubbles between the steps`),
       })),
     ]
   }, [seed, mine, clockUs, slots])
   return (
-    <section aria-label="Compare: the same night, three services" className="flex flex-col gap-3">
-      <h3>The same night, served three ways</h3>
+    <section aria-label="Compare: the same requests, three schedulers" className="flex flex-col gap-3">
+      <h3>The same requests, served three ways</h3>
       <ol className="flex flex-col gap-4">
         {lanes.map((lane) => (
           <li key={lane.id} className="flex flex-col gap-1" data-service={lane.id}>
@@ -118,12 +117,12 @@ function Compare({ seed, mine, clockUs, slots }: { seed: number; mine: readonly 
               <Readout value={lane.clock} unit="ticks" tag="synthetic" size="sm" />
               {lane.dark === null ? null : (
                 <span>
-                  dark <span className="font-numeric">{formatReadout(lane.dark)}</span> ticks
+                  bubble <span className="font-numeric">{formatReadout(lane.dark)}</span> ticks
                 </span>
               )}
               {lane.binned === null ? null : (
                 <span>
-                  binned plates <span className="font-numeric">{formatReadout(lane.binned)}</span>
+                  ghost tokens <span className="font-numeric">{formatReadout(lane.binned)}</span>
                 </span>
               )}
             </p>
@@ -140,7 +139,7 @@ function Compare({ seed, mine, clockUs, slots }: { seed: number; mine: readonly 
  */
 function RealAnchor(): ReactNode {
   return (
-    <Ticket as="section" width="full" hole={false} head="The real engine" meta="not this world" titleAs="h3" title="What a real engine does with more tickets">
+    <Ticket as="section" width="full" hole={false} head="The real engine" meta="not this world" titleAs="h3" title="What a real engine does with more requests">
       <p>
         On H100 GPUs running Llama-3.3-70B in FP8 under vLLM, a heavier load made each token slower, and tokens per second still rose a great deal.
       </p>
@@ -207,10 +206,10 @@ export function Debrief({ run, outcome, next, onNext }: DebriefProps) {
         head="Debrief"
         meta={view.title}
         titleAs="h3"
-        title={grade.ok ? 'Well fired.' : 'Fire it again.'}
+        title={grade.ok ? 'Passed.' : 'Not yet.'}
         stub={
           last ? (
-            <Stub to="/map">Open the course map</Stub>
+            <Stub to="/map">Open the course</Stub>
           ) : (
             <Stub onClick={onNext}>{`Next: ${next.title}`}</Stub>
           )

@@ -37,8 +37,8 @@ import { PORTRAIT_WIDTH } from '@/scene/camera-rig'
 import type { StageProps } from '@/scene/Stage'
 import { unavailableReason, useDeviceTier } from '@/scene/tiers'
 import { anchorProperties, PASS_ANCHORS } from './anchors'
-import { DECK, HERO, MENU, NEXT, NIGHT, ORDER, TAPE } from './copy'
-import { decimalsOf, lanesOf, menuId, type FrontData } from './menu'
+import { COURSE, DECK, HERO, MENU, NEXT, NIGHT, ORDER, TAPE } from './copy'
+import { decimalsOf, firstLesson, lanesOf, menuId, type FrontData } from './menu'
 import { ORIENTATIONS, passFrame } from './poster'
 import { readConnection, upgradeOf, useSettled } from './upgrade'
 
@@ -116,8 +116,8 @@ function passStyle(): CSSProperties {
 
 /** `1` to `9` hang the waiting ticket at that place in the line (the signature interaction's keys). */
 const HANG_KEYS: readonly KeyBinding[] = Array.from({ length: 9 }, (_, i) => [
-  { id: `hang-${i + 1}`, code: `Digit${i + 1}`, label: String(i + 1), description: 'Hang that waiting ticket' },
-  { id: `hang-${i + 1}`, code: `Numpad${i + 1}`, label: String(i + 1), description: 'Hang that waiting ticket' },
+  { id: `hang-${i + 1}`, code: `Digit${i + 1}`, label: String(i + 1), description: 'Admit that waiting request' },
+  { id: `hang-${i + 1}`, code: `Numpad${i + 1}`, label: String(i + 1), description: 'Admit that waiting request' },
 ]).flat()
 /** Service's keys that the front page's levels use: no camera presets, no stages, and none of the full service's own. */
 const OWN_KEYS = keymapOf(LOOP).filter((key) => key.id !== 'camera' && !key.id.startsWith('stage-') && !FULL_SERVICE_KEYS.includes(key.id))
@@ -125,7 +125,7 @@ const KEYS: readonly KeyBinding[] = [...OWN_KEYS, ...HANG_KEYS]
 /** What the Keys dialog lists: the keys above, with the nine hanging keys on one line. */
 const SHOWN_KEYS: readonly KeyBinding[] = [
   ...OWN_KEYS,
-  { id: 'hang', code: 'Digit1', label: '1 to 9', description: 'Hang the waiting ticket at that place in the line' },
+  { id: 'hang', code: 'Digit1', label: '1 to 9', description: 'Admit the waiting request at that place in the line' },
 ]
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -137,7 +137,7 @@ export function FrontPage() {
   const index = data?.index ?? null
   return (
     <div className="es-front">
-      <Service />
+      <Service index={index} />
       <Order />
       <Menu index={index} />
       <NextTicket index={index} />
@@ -162,7 +162,7 @@ interface At {
  * The run of "First service". A new level, a new seed or a restart is a new run, so the run below is keyed by them; what the learner
  * chose about the view lives here, above it, and carries over from level to level.
  */
-function Service() {
+function Service({ index }: { index: ContentIndex | null }) {
   const first = FIRST_SERVICE[0]
   const [at, setAt] = useState<At>({ level: first.id, seed: first.practiceSeed, count: 0, refocus: false })
   // The front page walks "First service" alone: the full service's levels play on Service's own page.
@@ -186,6 +186,7 @@ function Service() {
       seed={at.seed}
       refocus={at.refocus}
       next={after === null ? null : { id: after.id, title: after.title }}
+      index={index}
       onNext={() => {
         if (after !== null) setAt({ level: after.id, seed: after.practiceSeed, count: 0, refocus: true })
       }}
@@ -201,6 +202,7 @@ function Service() {
 }
 
 interface ServiceRunProps {
+  index: ContentIndex | null
   level: string
   seed: Seed
   refocus: boolean
@@ -215,7 +217,7 @@ interface ServiceRunProps {
   unavailable3d?: string
 }
 
-function ServiceRun({ level, seed, refocus, next, onNext, onRestart, view: shown, onViewChange, started, onStart, can3d, unavailable3d }: ServiceRunProps) {
+function ServiceRun({ index, level, seed, refocus, next, onNext, onRestart, view: shown, onViewChange, started, onStart, can3d, unavailable3d }: ServiceRunProps) {
   const entry = levelOf(LOOP, level) ?? LOOP.levels[0]
   const run = useRun({ session: loopSession, game: LOOP.id, level: entry.id, seed, mode: 'practice' })
   const { view, outcome, dispatch, announce } = run
@@ -386,6 +388,7 @@ function ServiceRun({ level, seed, refocus, next, onNext, onRestart, view: shown
                   {line}
                 </p>
               ))}
+              <CourseLink index={index} />
               {started && !outcome ? <span className="es-front-ticket__tear" aria-hidden="true" /> : null}
             </Ticket>
             <span className="es-front-grip" aria-hidden="true" />
@@ -400,7 +403,7 @@ function ServiceRun({ level, seed, refocus, next, onNext, onRestart, view: shown
             <PassTape view={view} next={nextFire} onFill={fill} />
             <LoopTickets controls={controls} limit={STRIP_TICKETS} className="es-front-strip" listClassName="es-front-strip__list" />
             <div className="es-front-bell">
-              <LoopBell controls={controls} size="lg" caption="fire" />
+              <LoopBell controls={controls} size="lg" caption="Step" />
             </div>
           </div>
 
@@ -417,7 +420,7 @@ function ServiceRun({ level, seed, refocus, next, onNext, onRestart, view: shown
 
         <div className="es-front-deck">
           <TapeLabel className="es-front-deck__level" tilt="right">
-            {DECK.run} · {entry.title}
+            {DECK.run} {FIRST_SERVICE.findIndex((candidate) => candidate.id === entry.id) + 1} of {FIRST_SERVICE.length} · {entry.title}
           </TapeLabel>
           <LoopPrompt controls={controls} className="es-front-deck__prompt" />
           <div className="es-front-deck__switches">
@@ -472,7 +475,7 @@ function ServiceRun({ level, seed, refocus, next, onNext, onRestart, view: shown
         </div>
         {outcome ? (
           <div ref={debrief} tabIndex={-1} className="es-front-night__debrief" aria-label="Debrief">
-            <Suspense fallback={<p role="status">Printing the debrief…</p>}>
+            <Suspense fallback={<p role="status">Loading the debrief…</p>}>
               <Debrief run={api} outcome={outcome} next={next} onNext={onNext} />
             </Suspense>
           </div>
@@ -489,22 +492,23 @@ function ServiceRun({ level, seed, refocus, next, onNext, onRestart, view: shown
   )
 }
 
+/** The way into the course: one link, named for the first lesson, its minutes and what it needs ("Begin the course: TR1 lesson 1, Five mechanisms (35 min, browser only)"). */
+function CourseLink({ index }: { index: ContentIndex | null }) {
+  const lesson = firstLesson(index)
+  if (lesson === null) return null
+  return (
+    <TextLink to={lesson.route} className="es-front-course">
+      {COURSE.start}: {lesson.name}, {lesson.title} ({lesson.minutes} min, {lesson.needs})
+    </TextLink>
+  )
+}
+
 /** The Keys button: the dialog's trigger once its code is in, and a button that asks for it until then. */
 function KeysButton({ onClick, ...rest }: { onClick?: () => void }) {
   return (
     <Button size="sm" variant="quiet" aria-keyshortcuts="Shift+/" onClick={onClick} {...rest}>
       {DECK.keys}
     </Button>
-  )
-}
-
-/** The kitchen's word, then the engine's term (GAMES.md §2.6, rule 2). */
-function Pair({ words }: { words: { kitchen: string; engine: string | null } }) {
-  return (
-    <>
-      {words.kitchen}
-      {words.engine === null ? null : <span className="es-front-term"> · {words.engine}</span>}
-    </>
   )
 }
 
@@ -535,13 +539,11 @@ function PrinterBody() {
 /* The printer's tape                                                                                                 */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** One printed line of the tape: the kitchen word and the engine term, then its value at the right. */
-function TapeLine({ words, children, tone = 'ink', id }: { words: { kitchen: string; engine: string | null }; children: ReactNode; tone?: 'ink' | 'ink-2'; id: string }) {
+/** One printed line of the readout: the engine's term, then its value at the right. */
+function TapeLine({ words, children, tone = 'ink', id }: { words: string; children: ReactNode; tone?: 'ink' | 'ink-2'; id: string }) {
   return (
     <div className="es-front-tape__line" data-tone={tone} data-line={id}>
-      <dt>
-        <Pair words={words} />
-      </dt>
+      <dt>{words}</dt>
       <dd>{children}</dd>
     </div>
   )
@@ -592,7 +594,7 @@ function PassTape({ view, next, onFill }: { view: LoopView; next: LoopView | nul
     <div className="es-front-tape" role="group" aria-label={TAPE.name}>
       <p className="es-front-tape__stamp">{TAPE.stamp}</p>
       <dl className="es-front-tape__lines" data-part="last">
-        <TapeLine id="fire" words={TAPE.fire}>
+        <TapeLine id="fire" words={TAPE.step}>
           <Readout value={view.step} pad={4} tag="synthetic" size="sm" />
         </TapeLine>
         <TapeLine id="ticks" words={TAPE.ticksPerStep}>
@@ -938,7 +940,6 @@ function NextTicket({ index }: { index: ContentIndex | null }) {
       >
         {body}
       </Ticket>
-      {tr1?.status === 'planned' ? <p className="es-front-next__planned">{NEXT.planned}</p> : null}
     </section>
   )
 }

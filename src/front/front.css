@@ -520,8 +520,8 @@
 .es-front-ticket .es-ticket__title {
   margin: 0 0 var(--es-space-4);
   font-family: var(--es-font-display);
-  /* As large as the paper allows, and on the pass no taller than its box allows: it is the first viewport's largest text. */
-  font-size: clamp(2.5rem, min(19cqi, 13cqh), 6rem);
+  /* As large as the paper allows over three lines, and on the pass no taller than its box allows: it is the first viewport's largest text. */
+  font-size: clamp(2.25rem, min(11cqi, 7cqh), 3.5rem);
   line-height: var(--es-font-display-leading);
   letter-spacing: var(--es-font-display-tracking);
   font-weight: var(--es-font-display-weight);
@@ -544,6 +544,17 @@
 
 .es-front-promise + .es-front-promise {
   margin-top: var(--es-space-2);
+}
+
+/* The way into the course: one line of text under the promise, named for the lesson, its minutes and what it needs. */
+.es-front-course {
+  display: block;
+  width: fit-content;
+  max-width: 40ch;
+  margin-top: var(--es-space-3);
+  font-size: var(--es-size-base);
+  line-height: 1.4;
+  text-wrap: balance;
 }
 
 /* The stub has been pulled: the ticket's foot is the torn edge. */
@@ -809,10 +820,10 @@
     padding-top: 1.6rem;
   }
 
-  /* Two lines, as large as the paper allows: the heading stays the first screen's largest text (its largest contentful paint). */
+  /* Three lines, as large as the paper allows: the heading stays the first screen's largest text (its largest contentful paint). */
   .es-front-ticket .es-ticket__title {
     margin-bottom: var(--es-space-2);
-    font-size: clamp(3.25rem, 16cqi, 3.75rem); /* impeccable-disable-line design-system-font-size -- the headline's phone size, as the comment above says */
+    font-size: clamp(2.25rem, 10.5cqi, 2.75rem); /* impeccable-disable-line design-system-font-size -- the headline's phone size, as the comment above says */
   }
 
   .es-front-promise {

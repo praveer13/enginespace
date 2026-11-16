@@ -110,15 +110,12 @@ export function ContinueLink({ target, emphasis = 'outline', minutes, className 
   )
 }
 
-/**
- * The way to the course map in the kitchen's words: "open the menu", with the engine's term beside it. It is printed
- * on the printer on the front page, and wherever a run ends.
- */
+/** The way to the Course page: "Open the course", with what it holds beside it. It is on the front page, and wherever a run ends. */
 export function MenuLink({ to = '/map', className }: { to?: string; className?: string }) {
   return (
     <Link to={to} className={clsx('es-menu-link', className)}>
-      <span className="es-menu-link__words">Open the menu</span>
-      <span className="es-menu-link__term">course map</span>
+      <span className="es-menu-link__words">Open the course</span>
+      <span className="es-menu-link__term">every module</span>
       <Icon name="arrow" className="es-menu-link__arrow" />
     </Link>
   )

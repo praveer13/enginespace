@@ -1,5 +1,6 @@
 import clsx from 'clsx'
-import { MIRROR_TICKS, ticketNo, windowOf } from '@es/play/loop/layout'
+import { requestName } from '@es/play/loop/copy'
+import { MIRROR_TICKS, windowOf } from '@es/play/loop/layout'
 import type { FireView, LoopView, PlaceView } from '@es/play/loop/types'
 import { formatReadout } from '@/design/format'
 import { MirrorTable, type MirrorColumn, type MirrorRow } from '@/games/kit/MirrorTable'
@@ -16,7 +17,7 @@ import type { LoopRun } from './types'
  * The lamp falls on the present row: the fire on the line, or the latest one.
  */
 
-const WORD: Readonly<Record<PlaceView['state'], string>> = { plate: 'plate', empty: 'empty place', binned: 'binned plate' }
+const WORD: Readonly<Record<PlaceView['state'], string>> = { plate: 'output token', empty: 'empty slot', binned: 'ghost token' }
 
 /** A fire's slots: a glyph for each clip (a solid plate, an open groove or a hollow binned plate), its ticket's number, and the words for assistive technology. */
 function Slots({ places }: { places: readonly PlaceView[] }) {
@@ -31,10 +32,10 @@ function Slots({ places }: { places: readonly PlaceView[] }) {
         <li key={index} data-place={place.state}>
           <span className="sr-only">
             Slot {index + 1}: {WORD[place.state]}
-            {place.req === null ? '' : `, ticket ${ticketNo(place.req)}`}
+            {place.req === null ? '' : `, request ${requestName(place.req)}`}
           </span>
           <span aria-hidden="true" className={clsx('inline-flex h-6 min-w-7 items-center justify-center border-2 font-numeric text-size-micro leading-none', look[place.state])}>
-            {place.req === null ? '' : ticketNo(place.req)}
+            {place.req === null ? '' : requestName(place.req)}
           </span>
         </li>
       ))}
@@ -68,7 +69,7 @@ function rowOf(fire: FireView, lamp: boolean): MirrorRow {
       step: (
         <>
           <span className="font-numeric">{String(fire.index + 1).padStart(4, '0')}</span>
-          <span className="sr-only"> fire{fire.onLine ? ', on the line' : ''}</span>
+          <span className="sr-only"> step{fire.onLine ? ', on the GPU' : ''}</span>
         </>
       ),
       slots: <Slots places={fire.places} />,
@@ -118,17 +119,17 @@ export function Mirror({ run }: { run: LoopRun }) {
       <MirrorTable
         className="min-w-0 lg:col-start-1 lg:row-start-1"
         id={run.mirrorId}
-        head="Mirror · the night so far"
-        caption="Every fire in the window: its slots, how long the line was busy, the dark stretch before it, and its binned plates"
+        head="Run so far, as a table"
+        caption="Every step in the window: its slots, how long the GPU was busy, the bubble before it, and its ghost tokens"
         summary={
           <>
-            Fire {num(view.step)}. Clock {num(c.clockUs)} ticks{view.par === null ? '' : <> against par {num(view.par)}</>}. Plates {num(c.usefulTokens)}, binned plates {num(c.ghostTokens)}. Stations
-            busy {num(c.gpuBusyUs)} ticks, dark {num(c.bubbleUs)} ticks, clips paid for, empty {num(c.emptyClipSteps)}. Every figure is a synthetic tick or token.
+            Step {num(view.step)}. Clock {num(c.clockUs)} ticks{view.par === null ? '' : <> against the reference {num(view.par)}</>}. Output tokens {num(c.usefulTokens)}, ghost tokens {num(c.ghostTokens)}. GPU
+            busy {num(c.gpuBusyUs)} ticks, bubble {num(c.bubbleUs)} ticks, empty slots paid for {num(c.emptyClipSteps)}. Every figure is a synthetic tick or token.
           </>
         }
         columns={COLUMNS}
         rows={rowsOf(view)}
-        empty="No fire has been rung yet. Hang a ticket on the rail and ring the bell."
+        empty="No step has run yet. Admit a request into a slot and press Step."
       />
     </div>
   )

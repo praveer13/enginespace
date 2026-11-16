@@ -16,6 +16,7 @@
  * the DOM over the drawing, stuck on what they belong to, which the page prints from the frame's `tags` and `tapes` beside the inlined SVG
  * (FrontPage.tsx, src/games/loop/FrameLabels.tsx), as the 3D pass prints its own.
  */
+import { engineFrame } from '@es/play/loop/words'
 import { frameSvg, layoutFrame, type Frame, type Orientation } from '@es/play/loop/layout'
 import { loopInit, loopLevel, loopView } from '@es/play/loop/session'
 import type { SvgNode } from '@es/play/loop/svg'
@@ -34,7 +35,7 @@ export function posterView(): LoopView {
 
 /** The frame of a view in one orientation, through the front page's shot (it draws no printer: the page holds its own). */
 export function passFrame(view: LoopView, orientation: Orientation): Frame {
-  return layoutFrame(view, { orientation, shot: 'front' })
+  return engineFrame(layoutFrame(view, { orientation, shot: 'front' }), view)
 }
 
 /** The drawing of a view in one orientation: its frame written as SVG, which is the poster. */

@@ -31,6 +31,7 @@ import type { Frame, FrameTag, Mark, Orientation, ShotName } from '@es/play/loop
 import { firesOfRun } from '@es/play/loop/compare'
 import { buildLevel, services } from '@es/play/loop/levels'
 import { loopView } from '@es/play/loop/session'
+import { engineFrame } from '@es/play/loop/words'
 import { countMarks, escapeText, svgMarkup } from '@es/play/loop/svg'
 import type { SvgNode } from '@es/play/loop/svg'
 import type { FireView, LoopState, LoopView, PlaceView } from '@es/play/loop/types'
@@ -65,20 +66,21 @@ describe("the poster is the front page's first frame, and the 2D view draws the 
     const posters = renderPosters()
     expect(posters.map((poster) => poster.orientation)).toEqual(['landscape', 'portrait'])
     for (const poster of posters) {
-      expect(poster.svg).toBe(`${svgMarkup(frameSvg(layoutFrame(first, { orientation: poster.orientation, shot: 'front' })))}\n`)
+      // The poster is the layout's frame with the engine's words on it (R-T14): its accessible name, its tapes and its tickets' numbers.
+      expect(poster.svg).toBe(`${svgMarkup(frameSvg(engineFrame(layoutFrame(first, { orientation: poster.orientation, shot: 'front' }), first)))}\n`)
       expect(poster.file).toBe(`loop-first-frame-${poster.orientation}.svg`)
     }
   })
 
   test("View2D paints, byte for byte, Service's own shot of the same night on its first render (which is landscape), covering its box", () => {
     const painted = renderToStaticMarkup(h(View2D, { run: fakeRun(initState(buildLevel(POSTER_LEVEL, POSTER_SEED))) }))
-    expect(svgIn(painted)).toBe(svgMarkup(frameSvg(layoutFrame(first, { orientation: 'landscape', shot: 'loop' }), { cover: true })))
+    expect(svgIn(painted)).toBe(svgMarkup(frameSvg(engineFrame(layoutFrame(first, { orientation: 'landscape', shot: 'loop' }), first), { cover: true })))
     expect(svgIn(painted)).toContain('preserveAspectRatio="xMidYMid slice"')
   })
 
   test('the portrait poster is the same tree in React: the markup the React side writes is the markup the script writes', () => {
     const [, portrait] = renderPosters()
-    const tree = frameSvg(layoutFrame(first, { orientation: 'portrait', shot: 'front' }))
+    const tree = frameSvg(engineFrame(layoutFrame(first, { orientation: 'portrait', shot: 'front' }), first))
     expect(renderToStaticMarkup(svgToReact(tree) as never)).toBe(portrait.svg.trimEnd())
   })
 
@@ -110,7 +112,7 @@ describe("the poster is the front page's first frame, and the 2D view draws the 
   test("the first frame is the empty rail, a perforated stub on every clip with the page's word on it, and no printer: the front page holds its own", () => {
     const [landscape, portrait] = renderPosters()
     expect(landscape.svg).toContain('role="img"')
-    expect(landscape.svg).toContain('aria-label="Fill the batch. The rail has 4 clips and 0 are hung. 6 tickets wait.')
+    expect(landscape.svg).toContain('aria-label="Fill the batch. Slots filled: 0 of 4. Waiting: 6.')
     for (const poster of [landscape, portrait]) {
       const frame = layoutFrame(first, { orientation: poster.orientation, shot: 'front' })
       expect(marksOf(frame, 'rail').filter((mark) => mark.kind === 'poly' && mark.fill === 'paper' && mark.dash !== undefined)).toHaveLength(4)
@@ -547,8 +549,9 @@ describe("the kitchen's names are tape in the DOM, each stuck on what it names (
   test("View2D prints them as the design system's tape over the drawing, outside its SVG, in a layer laid over the frame as the SVG lays it out", () => {
     const state = step(fill(setOverlap(initState(buildLevel('first-3-gap', 1)), true)))
     const markup = renderToStaticMarkup(h(View2D, { run: fakeRun(state) }))
-    const frame = layoutFrame(loopView(state), { orientation: 'landscape', shot: 'loop' })
-    expect(frame.tapes.map((tape) => tape.id)).toEqual(['line', 'fired', 'expo'])
+    // The page prints the engine's words on the tapes (R-T14): the layout's own strings are its ids, and the frame the page draws is reworded.
+    const frame = engineFrame(layoutFrame(loopView(state), { orientation: 'landscape', shot: 'loop' }), loopView(state))
+    expect(frame.tapes.map((tape) => [tape.id, tape.text])).toEqual([['line', 'GPU lane'], ['fired', 'step in flight'], ['expo', 'CPU lane']])
     // The drawing box is a size container, so the print scales with it (components.css, "print stuck on a drawing").
     expect(markup).toMatch(/<div class="[^"]*\[container-type:size\][^"]*" data-loop-drawing="">/)
     const layer = markup.slice(markup.indexOf('</svg>'))
@@ -605,13 +608,14 @@ describe("the drawing's numbers and words are print in the DOM over it, each on 
     // Mid-night on Your turn: two tickets hung, two clips empty, five fed tickets on the counter and three more in the printer.
     const state = step(step(step(fill(initState(buildLevel('first-4-par', 1))))))
     const markup = renderToStaticMarkup(h(View2D, { run: fakeRun(state) }))
-    const frame = layoutFrame(loopView(state), { orientation: 'landscape', shot: 'loop' })
+    const frame = engineFrame(layoutFrame(loopView(state), { orientation: 'landscape', shot: 'loop' }), loopView(state))
+    // A request's number is printed as its name, R1 for the first (R-T14): the layout's "01" is its own.
     expect(frame.tags.map((tag) => [tag.id, tag.text])).toEqual([
-      ['ticket-0', '01'],
+      ['ticket-0', 'R1'],
       ['empty-1', 'empty'],
       ['empty-2', 'empty'],
-      ['ticket-3', '04'],
-      ...[4, 5, 6, 7, 8].map((req) => [`waiting-${req}`, ticketNo(req)]),
+      ['ticket-3', 'R4'],
+      ...[4, 5, 6, 7, 8].map((req) => [`waiting-${req}`, `R${req + 1}`]),
       ['more', '+3'],
     ])
     const layer = markup.slice(markup.indexOf('</svg>'))

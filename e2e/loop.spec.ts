@@ -2,7 +2,7 @@
  * Service (`loop`) in a browser: the walks that `verify:games` lists for every game and cannot run itself (A§6.2, A§6.8, A§6.9, GAMES.md §2.5).
  *
  *   1. A keyboard-only walk plays all four levels to their debriefs: the tickets are reached by Tab, hung with Enter, focus follows to
- *      the next ticket and then to the bell, `.` rings the bell, `O` flips overlap, Space toggles Auto, `,` undoes, `?` opens the keys
+ *      the next request and then to Step, `.` steps, `O` flips async scheduling, Space toggles Auto, `,` undoes, `?` opens the keys
  *      and Escape gives focus back, and "Next" moves on with focus kept in the game.
  *   2. Reduced motion: nothing animates, Auto is off until it is asked for, and the game still plays.
  *   3. Nothing leaves the origin (ARCHITECTURE §1, I1).
@@ -28,8 +28,10 @@ import { hang, initState, setOverlap, step } from '../packages/play/loop/engine'
 import { buildLevel } from '../packages/play/loop/levels'
 import { frameSvg, layoutFrame, PASS_LENS } from '../packages/play/loop/layout'
 import { loopInit, loopLevel, loopSession, loopView } from '../packages/play/loop/session'
+import { engineFrame } from '../packages/play/loop/words'
 import { svgMarkup } from '../packages/play/loop/svg'
 import type { LoopAction, LoopState } from '../packages/play/loop/types'
+import { bannedOn } from './support/copy-scan'
 import { withSettings } from './support/site'
 
 const root = path.resolve(import.meta.dirname, '..')
@@ -70,7 +72,7 @@ const test = base
  */
 const BOOT = 45_000
 
-const bell = (page: Page) => page.getByRole('button', { name: /Ring the bell/ })
+const bell = (page: Page) => page.getByRole('button', { name: /Step: run the next step/ })
 /** Every free clip hung, in the strip's order: what the page does when its tickets are tapped one after another. */
 const fill = (state: LoopState): LoopState => {
   let next = state
@@ -123,31 +125,31 @@ async function playToTheEnd(page: Page) {
 }
 
 test.describe('a keyboard-only walk', () => {
-  test('reaches the tickets by Tab, hangs them with Enter, and focus follows to the next ticket and then to the bell', async ({ page }) => {
+  test('reaches the requests by Tab, admits them with Enter, and focus follows to the next request and then to Step', async ({ page }) => {
     await open(page, 'first-1-fill')
-    await tabTo(page, /^Hang ticket No\. 01 on the rail$/)
-    for (const next of ['02', '03', '04']) {
+    await tabTo(page, /^Admit request R1 into a batch slot$/)
+    for (const next of ['R2', 'R3', 'R4']) {
       await page.keyboard.press('Enter')
-      await expect.poll(() => activeName(page)).toBe(`Hang ticket No. ${next} on the rail`)
+      await expect.poll(() => activeName(page)).toBe(`Admit request ${next} into a batch slot`)
     }
     await page.keyboard.press('Enter')
-    await expect.poll(() => activeName(page)).toBe('Ring the bell: fire the next step')
-    // The rail is full, so the waiting tickets are disabled and the page says why.
-    await expect(page.getByText('Every clip is hung: ring the bell.')).toBeVisible()
+    await expect.poll(() => activeName(page)).toBe('Step: run the next step')
+    // The batch is full, so the waiting requests are disabled and the page says why.
+    await expect(page.getByText('Every slot is filled: press Step.')).toBeVisible()
     await page.keyboard.press('Enter')
     await expect(outcome(page)).toHaveText('The run is over. The debrief is ready.')
-    await expect(page.locator('[data-live="line"]')).toContainText('Fire 1 rung: 4 plates.')
+    await expect(page.locator('[data-live="line"]')).toContainText('Step 1 ran: 4 output tokens.')
   })
 
-  test('the keys of the game: `.` rings, `,` undoes, `O` flips overlap, Space toggles Auto, and `?` shows them all', async ({ page }) => {
+  test('the keys of the game: `.` steps, `,` undoes, `O` flips async scheduling, Space toggles Auto, and `?` shows them all', async ({ page }) => {
     await open(page, 'first-3-gap')
     await game(page).focus()
-    // Overlap is a switch that the key flips, and the live region says so.
+    // Async scheduling is a switch that the key flips, and the live region says so.
     await page.keyboard.press('KeyO')
     await expect(page.getByRole('switch')).toHaveAttribute('aria-checked', 'true')
-    await expect(page.locator('[data-live="line"]')).toContainText('Overlap on')
+    await expect(page.locator('[data-live="line"]')).toContainText('Async scheduling on')
     await page.keyboard.press('Period')
-    await expect(page.locator('[data-live="line"]')).toContainText('Fire 3 rung')
+    await expect(page.locator('[data-live="line"]')).toContainText('Step 3 ran')
     // The comma takes the move back: the bell has been rung once, and the run is as it was.
     await page.keyboard.press('Comma')
     await expect(page.locator('[data-live="line"]')).toContainText('Undid the last move.')
@@ -192,17 +194,17 @@ test.describe('a keyboard-only walk', () => {
       await playToTheEnd(page)
       await debriefButton(page).focus()
       await page.keyboard.press('Enter')
-      await expect(page.getByRole('heading', { level: 3 }).first()).toHaveText(/^(WELL FIRED|FIRE IT AGAIN)\.$/i)
+      await expect(page.getByRole('heading', { level: 3 }).first()).toHaveText(/^(PASSED|NOT YET)\.$/i)
       if (index < 3) {
         await page.getByRole('button', { name: `Next: ${titles[index]}` }).focus()
         await page.keyboard.press('Enter')
         await expect.poll(() => page.evaluate(() => document.activeElement?.getAttribute('data-game'))).toBe('loop')
       }
     }
-    // The last debrief is the end card: par against the clock, the night served three ways, and the way on.
-    await expect(page.getByText('The same night, served three ways')).toBeVisible()
+    // The last debrief is the end card: the reference run against the clock, the same requests served three ways, and the way on.
+    await expect(page.getByText('The same requests, served three ways')).toBeVisible()
     await expect(page.getByText('The real engine', { exact: true })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'Open the course map' })).toHaveAttribute('href', '/map')
+    await expect(page.getByRole('link', { name: 'Open the course' })).toHaveAttribute('href', '/map')
     await expect(page.getByRole('button', { name: 'New numbers', exact: true })).toBeVisible()
   })
 })
@@ -229,7 +231,7 @@ test.describe('reduced motion', () => {
     await expect(page.locator('[data-loop-controls] .es-bell__count .es-readout__value')).toHaveText('0001')
     await page.getByRole('button', { name: 'Auto' }).focus()
     await page.keyboard.press('Enter')
-    await expect(page.locator('[data-live="line"]')).toContainText('A clip is open and a ticket waits.', { timeout: 15_000 })
+    await expect(page.locator('[data-live="line"]')).toContainText('A slot is free and a request waits.', { timeout: 15_000 })
     await expect(page.getByRole('button', { name: 'Auto' })).toHaveAttribute('aria-pressed', 'false')
   })
 })
@@ -302,7 +304,8 @@ test.describe('determinism and the poster', () => {
     // In landscape the drawing covers its box, as the scene does; on a phone it is fitted to the box's width, so the whole pass is in view.
     expect(drawn.fit).toBe(orientation === 'landscape' ? 'xMidYMid slice' : null)
     const phone = orientation === 'portrait'
-    const markup = svgMarkup(frameSvg(layoutFrame(loopView(loopInit(loopLevel('first-1-fill', 1))), { orientation, shot: 'loop', ...(phone ? { lens: PASS_LENS } : {}) }), { cover: !phone }))
+    const first = loopView(loopInit(loopLevel('first-1-fill', 1)))
+    const markup = svgMarkup(frameSvg(engineFrame(layoutFrame(first, { orientation, shot: 'loop', ...(phone ? { lens: PASS_LENS } : {}) }), first), { cover: !phone }))
     expect(markup).toContain(`aria-label="${drawn.label?.replace(/'/g, '&#x27;')}"`)
     expect(markup.match(/<(rect|circle|ellipse|line|path|polygon|text)[ >]/g)).toHaveLength(drawn.marks)
     expect([...markup.matchAll(/<g data-part="([a-z-]+)">/g)].map((match) => match[1])).toEqual(drawn.parts as string[])
@@ -370,7 +373,7 @@ test.describe("the kitchen's names and print on the 2D drawing", () => {
       await page.setViewportSize({ width, height: 800 })
       await open(page, 'first-3-gap')
       // Overlap on, the rail filled and the bell rung: the fire is on the line and its copies hang on the fired rail.
-      await page.getByRole('switch', { name: /Write the next call during this fire/ }).click()
+      await page.getByRole('switch', { name: /Async scheduling/ }).click()
       while ((await enabledTickets(page).count()) > 0) {
         const before = await enabledTickets(page).count()
         await enabledTickets(page).first().click()
@@ -380,10 +383,10 @@ test.describe("the kitchen's names and print on the 2D drawing", () => {
       await expect(page.locator('[data-loop-drawing] .es-frame-labels__tape')).toHaveCount(3)
       const orientation = width < 480 ? 'portrait' : 'landscape'
       const state = step(fill(setOverlap(initState(buildLevel('first-3-gap', 1)), true)))
-      const frame = layoutFrame(loopView(state), { orientation, shot: 'loop', ...(orientation === 'portrait' ? { lens: PASS_LENS } : {}) })
+      const frame = engineFrame(layoutFrame(loopView(state), { orientation, shot: 'loop', ...(orientation === 'portrait' ? { lens: PASS_LENS } : {}) }), loopView(state))
       const seen = await measure(page)
       expect(seen.tapes.map((tape) => [tape.id, tape.text])).toEqual(frame.tapes.map((tape) => [tape.id, tape.text]))
-      expect(seen.svg).not.toMatch(/the line · gpu|fired rail|the expo · cpu/i)
+      expect(seen.svg).not.toMatch(/GPU lane|step in flight|CPU lane|the line · gpu|fired rail|the expo · cpu/i)
       // Stuck where the frame says, across its point or ending there, with the frame in its box as the SVG lays it out: covering it in
       // landscape, fitted to it on a phone, centred either way.
       const { scale, left, top } = placed(seen, frame)
@@ -408,10 +411,11 @@ test.describe("the kitchen's names and print on the 2D drawing", () => {
       }
       for (const fire of [1, 2, 3]) {
         await bell(page).click()
-        await expect(page.locator('[data-live="line"]')).toContainText(`Fire ${fire} rung`)
+        await expect(page.locator('[data-live="line"]')).toContainText(`Step ${fire} ran`)
       }
       const orientation = width < 480 ? 'portrait' : 'landscape'
-      const frame = layoutFrame(loopView(step(step(step(fill(initState(buildLevel('first-4-par', 1))))))), { orientation, shot: 'loop', ...(orientation === 'portrait' ? { lens: PASS_LENS } : {}) })
+      const midRun = loopView(step(step(step(fill(initState(buildLevel('first-4-par', 1)))))))
+      const frame = engineFrame(layoutFrame(midRun, { orientation, shot: 'loop', ...(orientation === 'portrait' ? { lens: PASS_LENS } : {}) }), midRun)
       await expect(page.locator('[data-loop-drawing] .es-frame-labels__tag')).toHaveCount(frame.tags.length)
       const seen = await measure(page)
       // The drawing prints nothing; the page prints the tickets' numbers, the stubs' word and the printer's count over it.
@@ -439,7 +443,7 @@ test.describe("the kitchen's names and print on the 2D drawing", () => {
       await field.fill('100')
       await field.press('Enter')
       await expect(page.locator('[data-full-prediction="called"]')).toBeVisible()
-      await bell(page).click()
+      await page.getByRole('button', { name: /Ring the bell/ }).click()
       await expect(page.locator('[data-loop-drawing] .es-frame-labels__tape')).toHaveCount(4)
       const seen = await measure(page)
       expect(seen.tapes.map((tape) => tape.text).sort()).toEqual(['comb · launches', 'molds · sizes', 'the expo · cpu', 'the line · gpu'])
@@ -450,6 +454,25 @@ test.describe("the kitchen's names and print on the 2D drawing", () => {
       if (width < 480) expect(seen.tags.filter((tag) => tag.kind === 'ticket' || tag.kind === 'mold')).toEqual([])
       else expect(seen.tags.filter((tag) => tag.kind === 'ticket').length).toBeGreaterThan(0)
       keepsTo(seen)
+    })
+  }
+})
+
+/*
+ * R-T14: the four demo levels read in the engine's words (REDESIGN §2.7). The copy guard over what the page shows, at the start, while a
+ * level is played to its end, and at its debrief: its text, its labels and the lines its live regions say.
+ */
+test.describe('the demo levels say nothing in the kitchen\'s words', () => {
+  for (const level of ['first-1-fill', 'first-2-slot', 'first-3-gap', 'first-4-par']) {
+    test(`${level}: no banned word or phrase in its text, its labels or its live region, at the start, mid-run and at the debrief`, async ({ page }) => {
+      test.setTimeout(120_000)
+      await open(page, level)
+      expect(await bannedOn(page), 'at the start').toEqual([])
+      await playToTheEnd(page)
+      expect(await bannedOn(page), 'at the end of the run').toEqual([])
+      await debriefButton(page).click()
+      await expect(page.locator('[data-loop-debrief]')).toBeVisible()
+      expect(await bannedOn(page), 'at the debrief').toEqual([])
     })
   }
 })

@@ -193,31 +193,31 @@ export function loopDebrief(mine: LoopState, ghost: LoopState): Debrief {
     case 'first-1-fill': {
       const hungInFirst = mine.fires.length > 0 ? mine.fires[0].record.seqs : 0
       return hungInFirst >= level.slots
-        ? { sentence: 'Every clip was hung before the bell, so the fire cooked a course for every ticket. A fire costs the line about the same for one ticket as for four, so a full rail is the point: that is batching.', names: null }
+        ? { sentence: 'Every slot was filled, so the step ran a token for every request. A step costs the GPU about the same for one request or four: that is batching.', names: null }
         : {
             sentence:
-              'Some clips were empty when the bell rang. The line paid for those places and nobody ate them: a fire costs about the same for one ticket as for four, so hang a ticket in every clip you can. That is batching.',
+              'Some slots were empty when the step ran, and the GPU paid for them anyway. A step costs about the same for one request or four, so fill every slot you can: that is batching.',
             names: { lever: 'batching' },
           }
     }
     case 'first-2-slot':
       return grade.ok
-        ? { sentence: 'You hung the next ticket as soon as the clip opened. Refilling a slot the moment a request ends, at every step, is continuous batching: no clip rides empty while a ticket waits.', names: null }
+        ? { sentence: 'You admitted the next request the moment a slot freed. Refilling at every step is continuous batching: no slot runs empty while a request waits.', names: null }
         : {
             sentence:
-              'A clip rode empty while a ticket waited. The line paid for that place and nobody ate it. Hanging the next ticket the moment a clip opens is continuous batching.',
+              'A slot ran empty while a request waited. Admitting the next request the moment a slot frees is continuous batching.',
             names: { lever: 'batching' },
           }
     case 'first-3-gap':
       return overlapUsed(mine) && grade.ok
         ? {
             sentence:
-              'The next call was written during the fire, so the stations stayed lit. The price is the binned plate: the expo had already fired one more course for a ticket that had asked for the check. That is overlap, vLLM\'s async scheduling.',
+              'The next step was planned while this one ran, so the GPU stayed busy. The price is a ghost token: a token computed for a request that had finished. That is async scheduling.',
             names: null,
           }
         : {
             sentence:
-              'The stations went dark between fires while the expo wrote the next call. Writing it during the fire closes the dark stretches, at the price of one binned plate for each ticket that ends. That is overlap, vLLM\'s async scheduling.',
+              'The GPU sat idle between steps while the CPU planned the next: a bubble. Planning during the step closes it, at the price of a ghost token per finished request. That is async scheduling.',
             names: { lever: 'async' },
           }
     case 'first-4-par': {
@@ -226,7 +226,7 @@ export function loopDebrief(mine: LoopState, ghost: LoopState): Debrief {
       if (grade.ok) {
         return {
           sentence:
-            'You served the night at par or close to it: refilling kept every clip live and overlap wrote each call during the fire, at the price of one binned plate for each ticket that ended.',
+            'You matched the reference run or came close: refilling kept every slot live, and async scheduling planned each step during the last, at the price of a ghost token per finished request.',
           names: null,
         }
       }
@@ -235,18 +235,18 @@ export function loopDebrief(mine: LoopState, ghost: LoopState): Debrief {
       if (darkTicks >= emptyTicks && darkTicks > 0) {
         return {
           sentence:
-            'The stations sat dark while the expo wrote each call after the last fire ended. Writing the next call during the fire (overlap, async scheduling) is what par does, at the price of one binned plate for each ticket that ends.',
+            'The GPU sat idle while the CPU planned each step after the last ended. The reference run plans during the step (async scheduling), at the price of a ghost token per finished request.',
           names: { lever: 'async' },
         }
       }
       if (emptyTicks > 0) {
         return {
           sentence:
-            'Clips rode empty while tickets waited, and the line paid for every empty place. Refilling a slot the moment a request ends (continuous batching) is what par does.',
+            'Slots ran empty while requests waited, and the GPU paid for every one. The reference run refills a slot the moment its request finishes (continuous batching).',
           names: { lever: 'batching' },
         }
       }
-      return { sentence: 'The night ran longer than par. The counters beside this say where the line sat dark and where a clip rode empty.', names: null }
+      return { sentence: 'The run took longer than the reference run. The counters beside this say where the GPU sat idle and where a slot ran empty.', names: null }
     }
   }
 }

@@ -116,13 +116,13 @@ export function useLoopControls(run: LoopRun, toggleAutoRef?: AutoToggleRef): Lo
   // Once the level is over the bell rings no more, so the hint never asks for it.
   const hint =
     view.waiting.length === 0
-      ? 'No tickets are waiting.'
+      ? 'No requests are waiting.'
       : view.done
-        ? 'The level is over: the rail takes no more tickets.'
+        ? 'The level is over: the batch takes no more requests.'
         : !view.canHang
           ? railFull
-            ? 'Every clip is hung: ring the bell.'
-            : 'The rail takes no more tickets right now.'
+            ? 'Every slot is filled: press Step.'
+            : 'The batch takes no more requests right now.'
           : null
   const tabStop = Math.min(stop, Math.max(view.waiting.length - 1, 0))
   return { run, view, auto, ring, toggleAuto, hang, onListKey, tabStop, list, bell, hint }

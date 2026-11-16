@@ -103,10 +103,10 @@ const test = base.extend<{ requests: string[] }>({
 const stage = (page: Page) => page.locator('[data-stage="loop"]')
 const game = (page: Page) => page.locator('section[data-game="loop"]')
 const probe = (page: Page) => page.evaluate(() => window.__esScene?.probes.loop?.info() ?? null)
-const bell = (page: Page) => page.getByRole('button', { name: /Ring the bell/ })
+const bell = (page: Page) => page.getByRole('button', { name: /Step: run the next step/ })
 const bellCount = (page: Page) => page.locator('[data-loop-controls] .es-bell__count .es-readout__value').textContent()
-const overlap = (page: Page) => page.getByRole('switch', { name: /Write the next call during this fire/ })
-const camera = (page: Page) => page.getByRole('group', { name: 'Camera on the pass' })
+const overlap = (page: Page) => page.getByRole('switch', { name: /Async scheduling/ })
+const camera = (page: Page) => page.getByRole('group', { name: 'Camera' })
 
 async function open(page: Page, level: string, tier: number) {
   await page.goto(`${ORIGIN}/play/loop?level=${level}&es-tier=${tier}`)
@@ -208,7 +208,7 @@ test.describe('the views and the camera (A§6.8)', () => {
   test('`C` cycles every preset and each button reaches its own', async ({ page }) => {
     await open(page, 'first-2-slot', 2)
     await settle(page)
-    const names = ['Over the shoulder', 'Side of the pass', 'Under the lamps']
+    const names = ['Along time', 'Side', 'Top']
     const pressed = () => camera(page).locator('button[aria-pressed="true"]').textContent()
     expect(await pressed()).toBe(names[0])
     for (const name of [...names.slice(1), names[0]]) {
@@ -239,10 +239,10 @@ test.describe('picks (A§6.8, GAMES.md §2.3): a pick on the scene is the same a
     const box = await stage(page).locator('canvas').boundingBox()
     if (!box) throw new Error('no canvas')
     await page.mouse.click(box.x + at.x, box.y + at.y)
-    await expect(page.getByRole('button', { name: 'Hang ticket No. 01 on the rail' })).toHaveCount(0)
-    await expect(page.locator('[data-live="line"]')).toContainText('Ticket 01 hung on clip 1.')
+    await expect(page.getByRole('button', { name: 'Admit request R1 into a batch slot' })).toHaveCount(0)
+    await expect(page.locator('[data-live="line"]')).toContainText('Request R1 admitted into slot 1.')
     await settle(page)
-    await expect(stage(page).locator('.es-loop-label--ticket', { hasText: '01' })).toHaveCount(1)
+    await expect(stage(page).locator('.es-loop-label--ticket', { hasText: 'R1' })).toHaveCount(1)
   })
 })
 
@@ -275,9 +275,9 @@ test.describe('the picture (TRACKER W0-T17, accepts 4 and 5)', () => {
     await settle(page)
     const labels = stage(page).locator('.es-labels')
     // first-2-slot opens with the house's four tickets hung: their numbers are print on paper, as DOM.
-    for (const number of ['01', '02', '03', '04']) await expect(labels.locator('.es-loop-label--ticket', { hasText: number })).toHaveCount(1)
-    await expect(labels.getByText('the line · gpu')).toHaveCount(1)
-    await expect(labels.getByText('the expo · cpu')).toHaveCount(1)
+    for (const number of ['R1', 'R2', 'R3', 'R4']) await expect(labels.locator('.es-loop-label--ticket', { hasText: number })).toHaveCount(1)
+    await expect(labels.getByText('GPU lane')).toHaveCount(1)
+    await expect(labels.getByText('CPU lane')).toHaveCount(1)
     // The labels ride over the canvas, which carries no text and is hidden from assistive technology with its box.
     await expect(stage(page).locator('.es-stage__scene')).toHaveAttribute('aria-hidden', 'true')
     expect(await stage(page).locator('canvas').evaluate((canvas) => canvas.textContent)).toBe('')
@@ -328,7 +328,7 @@ test.describe('the night on the GPU is the night in the session (W0-T17)', () =>
     // Under the lamps the whole night is in view, the track's origin with it.
     await page.keyboard.press('KeyC')
     await page.keyboard.press('KeyC')
-    await expect(camera(page).locator('button[aria-pressed="true"]')).toHaveText('Under the lamps')
+    await expect(camera(page).locator('button[aria-pressed="true"]')).toHaveText('Top')
     await stage(page).scrollIntoViewIfNeeded()
     await settle(page)
     const played = await sampleCanvas(page)
@@ -363,8 +363,8 @@ test.describe('the tapes naming the line and the expo never meet on a phone (W0 
       await box.scrollIntoViewIfNeeded()
       await expect(box).toHaveAttribute('data-stage-phase', 'live', { timeout: 60_000 })
       await expect(box).toHaveAttribute('data-settled', 'true', { timeout: 60_000 })
-      const line = await box.locator('.es-loop-label--tape', { hasText: 'the line · gpu' }).boundingBox()
-      const expo = await box.locator('.es-loop-label--tape', { hasText: 'the expo · cpu' }).boundingBox()
+      const line = await box.locator('.es-loop-label--tape', { hasText: 'GPU lane' }).boundingBox()
+      const expo = await box.locator('.es-loop-label--tape', { hasText: 'CPU lane' }).boundingBox()
       if (line === null || expo === null) throw new Error('a tape is not drawn')
       const apart = line.y + line.height <= expo.y || expo.y + expo.height <= line.y || line.x + line.width <= expo.x || expo.x + expo.width <= line.x
       console.log(`${route} at 390 px: the line's tape at ${JSON.stringify(line)}, the expo's at ${JSON.stringify(expo)}`)

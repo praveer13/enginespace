@@ -26,6 +26,7 @@ import type { Page } from '@playwright/test'
 import { build } from 'vite'
 import { RAIL, TICKET, clipX } from '../src/games/loop/scene-layout'
 import type { SceneHook } from '../src/scene/test-hook'
+import { bannedOn } from './support/copy-scan'
 
 interface Lcp {
   tag: string
@@ -161,9 +162,9 @@ test.describe('accept 1: with JavaScript disabled, `/` shows the heading, the pr
       })
       const page = await context.newPage()
       await page.goto(`${ORIGIN}/`)
-      await expect(page.getByRole('heading', { level: 1, name: 'Fire the next step.' })).toBeVisible()
-      await expect(page.getByText('Every bell is one step of an LLM engine’s loop.')).toBeVisible()
-      await expect(page.getByText(/This course teaches vLLM and SGLang by having you run them yourself/)).toBeVisible()
+      await expect(page.getByRole('heading', { level: 1, name: 'Run one step of an LLM inference engine.' })).toBeVisible()
+      await expect(page.getByText('enginespace is a course on the internals of vLLM and SGLang, for engineers who finished kernelspace’s serving track.')).toBeVisible()
+      await expect(page.getByText(/You run each mechanism, read the code that implements it, then prove it on a real GPU/)).toBeVisible()
       const poster = page.locator(`[data-front-poster] [data-orientation="${orientation}"] svg`)
       await expect(poster).toBeVisible()
       const box = await poster.boundingBox()
@@ -283,13 +284,13 @@ test.describe('the pass is one object', () => {
       await page.goto(`${ORIGIN}/?es-tier=2`)
       await mounted(page)
       await swapped(page)
-      await page.getByRole('button', { name: 'Start service' }).click()
+      await page.getByRole('button', { name: 'Start the demo' }).click()
       for (let n = 0; n < hung; n++) await waiting(page).first().click()
       // Before the bell the tape prints the next fire: the stations it will light, of the rail's four, and the step it will take.
       const tape = page.locator('.es-front-tape')
       const figures = (where: string) => tape.locator(`${where} data`)
       await expect(figures('.es-front-tape__next')).toHaveText([String(hung), '4', '8'])
-      await page.getByRole('button', { name: /Ring the bell/ }).click()
+      await page.getByRole('button', { name: /Step: run the next step/ }).click()
       // After it, the fire as the line cooked it: its ticks per step, the stations it lit, and the ones it left dark, in the red.
       await expect(figures('[data-line="ticks"]')).toHaveText(['8'])
       await expect(figures('[data-line="busy"]')).toHaveText([String(hung), '4'])
@@ -307,11 +308,11 @@ test.describe('the signature interaction', () => {
     await page.goto(`${ORIGIN}/?es-tier=0`)
     await mounted(page)
     // The stub: service starts, the stub tears off, the tape prints, and focus is on the first ticket.
-    await page.getByRole('button', { name: 'Start service' }).click()
-    await expect(page.getByRole('button', { name: 'Start service' })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Start the demo' }).click()
+    await expect(page.getByRole('button', { name: 'Start the demo' })).toHaveCount(0)
     await expect(service(page)).toHaveAttribute('data-started', '')
     await expect(page.locator('.es-front-tape')).toBeVisible()
-    expect(await page.evaluate(() => document.activeElement?.getAttribute('aria-label'))).toBe('Hang ticket No. 01 on the rail')
+    expect(await page.evaluate(() => document.activeElement?.getAttribute('aria-label'))).toBe('Admit request R1 into a batch slot')
 
     // A drag onto the pass hangs ticket 01; a tap hangs 02; the key 1 hangs the first in line, 03.
     const first = await waiting(page).first().boundingBox()
@@ -323,16 +324,16 @@ test.describe('the signature interaction', () => {
     await page.mouse.move(pass.x + pass.width * 0.7, pass.y + pass.height * 0.3, { steps: 6 })
     await expect(service(page)).toHaveAttribute('data-dragging', '')
     await page.mouse.up()
-    await expect(page.getByRole('button', { name: 'Hang ticket No. 01 on the rail' })).toHaveCount(0)
-    await page.getByRole('button', { name: 'Hang ticket No. 02 on the rail' }).click()
-    await expect(page.getByRole('button', { name: 'Hang ticket No. 02 on the rail' })).toHaveCount(0)
-    await page.getByRole('button', { name: 'Hang ticket No. 04 on the rail' }).focus()
+    await expect(page.getByRole('button', { name: 'Admit request R1 into a batch slot' })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Admit request R2 into a batch slot' }).click()
+    await expect(page.getByRole('button', { name: 'Admit request R2 into a batch slot' })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Admit request R4 into a batch slot' }).focus()
     await page.keyboard.press('Digit1')
-    await expect(page.getByRole('button', { name: 'Hang ticket No. 03 on the rail' })).toHaveCount(0)
-    await page.getByRole('button', { name: 'Hang ticket No. 04 on the rail' }).click()
+    await expect(page.getByRole('button', { name: 'Admit request R3 into a batch slot' })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Admit request R4 into a batch slot' }).click()
 
     // The bell fires the step: the tape prints fire 0001 and its ticks, synthetic, and the level is over.
-    await page.getByRole('button', { name: /Ring the bell/ }).click()
+    await page.getByRole('button', { name: /Step: run the next step/ }).click()
     const tape = page.locator('.es-front-tape')
     await expect(tape).toContainText('0001')
     await expect(tape).toContainText('synthetic')
@@ -344,5 +345,72 @@ test.describe('the signature interaction', () => {
     await expect(page.locator('[data-loop-debrief]')).toBeVisible()
     await page.getByRole('button', { name: /^Next:/ }).click()
     await expect(service(page)).toHaveAttribute('data-level', 'first-2-slot')
+  })
+})
+
+test.describe('R-T14: the front page in the engine\'s words, and its first button does what it says', () => {
+  test('no banned word or phrase reaches a learner: at rest, while playing a whole level, at its debrief, and in every live-region line', async ({ page }) => {
+    test.setTimeout(120_000)
+    await page.goto(`${ORIGIN}/?es-tier=0`)
+    await mounted(page)
+    expect(await bannedOn(page), 'at rest').toEqual([])
+    await page.getByRole('button', { name: 'Start the demo' }).click()
+    expect(await bannedOn(page), 'after the first button').toEqual([])
+    const lines = page.locator('[data-live="line"]')
+    for (let n = 0; n < 4; n++) {
+      await waiting(page).first().click()
+      expect(await bannedOn(page), `after admitting request ${n + 1}`).toEqual([])
+    }
+    await page.getByRole('button', { name: /Step: run the next step/ }).click()
+    await expect(lines).toContainText('Step 1 ran')
+    await expect(page.getByRole('button', { name: 'See the debrief' }).first()).toBeVisible()
+    expect(await bannedOn(page), 'at the debrief').toEqual([])
+    for (let level = 2; level <= 4; level++) {
+      await page.getByRole('button', { name: /^Next:/ }).click()
+      for (let turn = 0; turn < 60 && (await page.locator('[data-loop-debrief]').count()) === 0; turn++) {
+        if ((await waiting(page).count()) > 0) await waiting(page).first().click()
+        else await page.getByRole('button', { name: /Step: run the next step/ }).click()
+      }
+      await expect(page.locator('[data-loop-debrief]')).toBeVisible()
+      expect(await bannedOn(page), `at the debrief of demo level ${level}`).toEqual([])
+    }
+  })
+
+  test('the first button starts the demo and does nothing else; one link names TR1 lesson 1, its minutes and what it needs, inside the first viewport at 1440', async ({ page }) => {
+    await page.goto(`${ORIGIN}/?es-tier=0`)
+    await mounted(page)
+    const start = page.getByRole('button', { name: 'Start the demo' })
+    await expect(start).toBeVisible()
+    const course = page.getByRole('link', { name: 'Begin the course: TR1 lesson 1, Five mechanisms (35 min, browser only)' })
+    await expect(course).toHaveCount(1)
+    await expect(course).toBeInViewport({ ratio: 1 })
+    await expect(course).toHaveAttribute('href', '/m/tr1/l1-five-mechanisms')
+    await start.click()
+    // The demo has started: the page is where it was, and the first request waits to be admitted.
+    expect(new URL(page.url()).pathname).toBe('/')
+    await expect(service(page)).toHaveAttribute('data-started', '')
+    await expect(page.getByRole('button', { name: 'Admit request R1 into a batch slot' })).toBeVisible()
+    // Every other control of the first screen is named for what it does.
+    const names = await page.getByRole('button').evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label') ?? button.textContent?.trim() ?? ''))
+    expect(names.filter((name) => /^(Start|Begin|Open)\b/.test(name))).toEqual([])
+  })
+
+  test('the header\'s Continue is on the page and reads from es:next, and the page opens no IndexedDB', async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem('es:next', JSON.stringify({ href: '/m/tr2/l1-one-step-five-calls', label: 'Continue: TR2 lesson 1, read why', word: 'Continue' }))
+      const opened: string[] = []
+      ;(window as unknown as { __opened: string[] }).__opened = opened
+      const open = IDBFactory.prototype.open
+      IDBFactory.prototype.open = function (...args: Parameters<IDBFactory['open']>) {
+        opened.push(String(args[0]))
+        return open.apply(this, args)
+      }
+    })
+    await page.goto(`${ORIGIN}/?es-tier=0`)
+    await mounted(page)
+    const next = page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'Continue: TR2 lesson 1, read why' })
+    await expect(next).toBeVisible()
+    await expect(next).toHaveAttribute('href', '/m/tr2/l1-one-step-five-calls')
+    expect(await page.evaluate(() => (window as unknown as { __opened: string[] }).__opened)).toEqual([])
   })
 })
