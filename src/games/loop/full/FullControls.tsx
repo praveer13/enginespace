@@ -348,7 +348,14 @@ export function FullControls({ run, toggleAutoRef }: { run: FullRun; toggleAutoR
           <strong>Pass rule:</strong> {FULL_COPY[view.level].passRule} The run is served once, whole, and the live readout waits for it.
         </p>
       ) : null}
-      <PredictionBlock run={run} />
+      {awaiting && !run.intro.askShown ? (
+        // The first run names the parts and shows the cost card's row before it asks (P4): the prediction opens once they have been on screen.
+        <p className="es-fd__sub" data-full-prediction="waiting">
+          The prediction opens after the parts list and the cost card.
+        </p>
+      ) : (
+        <PredictionBlock run={run} />
+      )}
       {awaiting ? null : <Levers run={run} />}
       {stage.sealed ? (
         <div className="es-fd__row" data-full-step="">

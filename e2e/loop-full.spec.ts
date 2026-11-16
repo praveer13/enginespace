@@ -185,7 +185,8 @@ test.describe('every level can be won by keyboard (practice seed, 2D view)', () 
       await key(page, 'KeyO')
       await expect(page.getByRole('switch', { name: /Async scheduling/ })).toHaveAttribute('aria-checked', 'true')
       await serve(page)
-      await expect(page.locator(`[data-stage-tab="${world.id}"] .es-full-stages__done`)).toHaveCount(1)
+      // The last stage closes the level, and the result takes the dock: its tabs are gone, and its ring is in the result.
+      if (i < level.stages.length - 1) await expect(page.locator(`[data-stage-tab="${world.id}"] .es-full-stages__done`)).toHaveCount(1)
     }
     await debrief(page)
   })
@@ -418,16 +419,20 @@ test.describe('the first run (REDESIGN §2.6, §3.7)', () => {
     await open(page, 'async', 0, { intro: true })
     await expect(page.locator('.es-intro[data-intro="parts"]')).toBeVisible()
     await expect(page.locator('.es-intro .es-parts li').first()).toContainText('Cost card')
-    // No session action stands before the prediction: the dock holds no lever, and Step says why it waits.
+    // No session action stands before the prediction: the dock holds no lever, the prediction itself waits for the parts and the look, and Step
+    // says why it waits.
     await expect(page.locator('[data-full-levers]')).toHaveCount(0)
+    await expect(page.locator('[data-full-prediction="open"]')).toHaveCount(0)
+    await expect(page.locator('[data-full-prediction="waiting"]')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Step: commit the prediction first' })).toBeDisabled()
     for (let i = 0; i < 12 && (await page.locator('.es-intro[data-intro="parts"]').count()) > 0; i++) await page.locator('[data-intro-next]').click()
     await expect(page.locator('.es-intro[data-intro="look"]')).toBeVisible()
     await page.locator('[data-intro-look]').click()
-    await expect(page.getByRole('dialog').or(page.locator('.es-pop[data-open]'))).toContainText('GPU forward')
+    await expect(page.getByRole('dialog', { name: /Cost card/ })).toContainText('GPU forward')
     await page.keyboard.press('Escape')
     await page.locator('[data-intro-next]').click()
     await expect(page.locator('.es-intro[data-intro="ask"]')).toBeVisible()
+    await expect(page.locator('[data-full-prediction="open"]')).toBeVisible()
     // The prediction is committed; the intro points at the reference run's first move, the async switch, and it is a real move.
     await page.locator('[data-full-prediction="open"] input').fill('1000')
     await page.getByRole('button', { name: 'Commit prediction' }).click()
@@ -511,16 +516,16 @@ test.describe('the full levels say nothing in the kitchen\'s words', () => {
       test.setTimeout(240_000)
       await open(page, level, 0, { intro: true })
       expect(await bannedOn(page), 'at the start').toEqual([])
-      await page.keyboard.press('Escape')
+      await page.getByRole('button', { name: 'Skip intro' }).click()
       const stages = LEVEL(level as FullLevelId).stages
       for (const [i, world] of stages.entries()) {
-        if (i > 0) await nextStage(page, world.id)
+        if (i > 0) await page.locator(`[data-stage-tab="${world.id}"]`).click()
         await call(page, world.answer)
-        if (world.sealed) {
-          await tabTo(page, page.getByRole('button', { name: 'Run it', exact: true }))
-          await page.keyboard.press('Enter')
-        } else {
-          await serve(page)
+        // Run the stage as it stands: a stage closes on a run at the bar or on its third run.
+        for (let run = 0; run < 3; run++) {
+          const button = page.getByRole('button', { name: world.sealed ? 'Run it' : 'Run to the end', exact: true })
+          if ((await button.count()) === 0 || !(await button.isEnabled())) break
+          await button.click()
         }
         if (i < stages.length - 1) expect(await bannedOn(page), `after stage ${world.id}`).toEqual([])
       }
