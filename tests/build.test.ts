@@ -174,13 +174,15 @@ describe('the app build', () => {
     // answers of the predictions that are revealed at commit (packages/play/predictions/commit-<module>.ts, R-T09), which the box loads when
     // the learner commits, for the same reason; or, on the lesson template (R-T10), the parts a lesson page loads after its first paint so its
     // route stays within its allowance: a guess (src/content/render/Predict.tsx), the question set (src/items/ItemBlock.tsx), the level titles
-    // (src/content/render/levels.ts, the games' registry) and the ledger's reading with the way on (src/content/render/LessonLedger.tsx).
+    // (src/content/render/levels.ts, the games' registry) and the ledger's reading with the way on (src/content/render/LessonLedger.tsx);
+    // or the lesson's dock (src/content/render/Dock.tsx, R-T11), which a lesson loads only where it is drawn, from 80rem wide and 44rem tall.
+    // A part's source in a game's popover (src/games/kit/PartSource.tsx, R-T11) is a part of a game, as above.
     // The compiled content is lazy too, but it is not a page: the next test holds it to account.
     const named = Object.entries(app.manifest)
       .filter(([key, chunk]) => chunk.isDynamicEntry && chunk.src !== undefined && !key.startsWith(CONTENT))
       .map(([key]) => key)
     const onDemand =
-      /^(packages\/play\/[^/]+\/game\.ts|packages\/play\/items\/families\/(?:tr[0-8][ab]?|capstone)\/[a-z0-9-]+\.ts|src\/games\/[^/]+\/[A-Za-z0-9]+\.tsx|src\/scene\/[\w/-]+\.tsx?|src\/forge\/ForgeLabPage\.tsx|src\/items\/Attempt\.tsx|src\/content\/render\/(?:GameEmbed\.tsx|reveal\.ts|Predict\.tsx|LessonLedger\.tsx|levels\.ts)|src\/items\/ItemBlock\.tsx|packages\/play\/predictions\/(?:commit-)?tr[0-8][ab]?\.ts|src\/trace\/TraceView\.tsx|src\/route-change\.ts|node_modules\/three\/examples\/jsm\/[\w/-]+\.js)$/
+      /^(packages\/play\/[^/]+\/game\.ts|packages\/play\/items\/families\/(?:tr[0-8][ab]?|capstone)\/[a-z0-9-]+\.ts|src\/games\/[^/]+\/[A-Za-z0-9]+\.tsx|src\/scene\/[\w/-]+\.tsx?|src\/forge\/ForgeLabPage\.tsx|src\/items\/Attempt\.tsx|src\/content\/render\/(?:GameEmbed\.tsx|reveal\.ts|Predict\.tsx|LessonLedger\.tsx|levels\.ts|Dock\.tsx)|src\/items\/ItemBlock\.tsx|packages\/play\/predictions\/(?:commit-)?tr[0-8][ab]?\.ts|src\/trace\/TraceView\.tsx|src\/route-change\.ts|node_modules\/three\/examples\/jsm\/[\w/-]+\.js)$/
     expect(named.filter((key) => !pages.includes(key) && !onDemand.test(key))).toEqual([])
   })
 

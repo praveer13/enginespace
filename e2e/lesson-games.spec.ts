@@ -21,6 +21,7 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Locator } from '@playwright/test'
 import { GAMES, drawInBand, levelOf } from '../packages/play'
+import { POOL_PARTS } from '../packages/play/pool/copy'
 import { benchSession } from '../packages/play/broken-bench/session'
 import { PR_WIDTHS } from './routes'
 import { walkOf } from './support/front'
@@ -410,6 +411,157 @@ test.describe('the reference lesson, axe', () => {
       const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']).analyze()
       const blocking = results.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? ''))
       expect(blocking.map((violation) => `${violation.id}: ${violation.nodes.slice(0, 3).map((node) => node.target.join(' ')).join(' ; ')}`)).toEqual([])
+    })
+  }
+})
+
+/*
+ * R-T11: the lesson's dock and the source popover (REDESIGN §2.5, §2.6, §3.4). From 80rem wide and 44rem tall the learner's run stays
+ * beside Read, a second view of the same run: an action taken in the instrument shows in the dock, and the dock's own Undo and Step show in
+ * the instrument. Below that there is no dock and each part of Read has "Back to my run". Selecting a part opens its source, by keyboard in
+ * the instrument and by pointer in the dock, and Escape hands focus back.
+ */
+const MET = JSON.stringify({ pool: POOL_PARTS.map((part) => part.id) })
+
+test.describe("the lesson's dock, at 1440 x 900", () => {
+  test.use({ viewport: { width: 1440, height: 900 } })
+
+  test('the dock shows the same run as the instrument: an action in either shows in both, the dock is 2D, and it never covers a focused control', async ({ page, context }) => {
+    test.setTimeout(180_000)
+    await withSettings(context, { view3d: false })
+    await context.addInitScript((flag) => {
+      try {
+        localStorage.setItem('es:intro', flag)
+      } catch {
+        // No storage: the intro shows, and nothing below depends on it.
+      }
+    }, MET)
+    await open(page, REFERENCE)
+    const game = embedOf(page, ONE_GROUP)
+    await expect(game).toBeVisible({ timeout: 60_000 })
+    const dock = page.locator('aside.es-ldock')
+    await expect(dock).toBeAttached({ timeout: 30_000 })
+    await expect(dock).toHaveAttribute('data-dock-state', 'live')
+    // Before any move the dock shows the level's opening state: every slot of the batch empty.
+    await expect(dock).toContainText('One KV group')
+    await expect(dock.locator('.es-pooldock__slot[data-req]')).toHaveCount(0)
+    // The dock is always 2D: no canvas and no 3D surface in it.
+    await expect(dock.locator('canvas, [data-surface="3d"]')).toHaveCount(0)
+
+    // An action in the instrument shows in the dock.
+    await game.getByRole('button', { name: 'Skip the guess' }).click()
+    await game.locator('[data-ask-list="admit"] button').first().click()
+    await expect(game.locator('[data-pool-batch] [data-req]')).toHaveCount(1)
+    await expect(dock.locator('.es-pooldock__slot[data-req]')).toHaveCount(1)
+
+    // And the dock's own controls act on the same run: Undo here takes the admit back there, and Step here admits there.
+    await page.evaluate(() => document.getElementById('what-the-next-token-reads')?.scrollIntoView({ block: 'start' }))
+    await expect(dock).toBeInViewport()
+    await dock.getByRole('button', { name: 'Undo' }).click()
+    await expect(game.locator('[data-pool-batch] [data-req]')).toHaveCount(0)
+    await expect(dock.locator('.es-pooldock__slot[data-req]')).toHaveCount(0)
+    const step = dock.getByRole('button', { name: 'Step' })
+    await expect(step).toBeEnabled()
+    await step.click()
+    await expect(game.locator('[data-pool-batch] [data-req]')).toHaveCount(1)
+    await expect(dock.locator('.es-pooldock__slot[data-req]')).toHaveCount(1)
+    await dock.getByRole('button', { name: 'Reset' }).click()
+    await expect(dock.locator('.es-pooldock__slot[data-req]')).toHaveCount(0)
+
+    // Back to my run goes to the instrument.
+    await expect(dock.getByRole('link', { name: 'Back to my run' })).toHaveAttribute('href', /^#run-\d+$/)
+
+    // A keyboard walk through Read: no focused control outside the dock lies under it.
+    const covered: string[] = []
+    await page.locator('#what-the-next-token-reads').focus()
+    for (let press = 0; press < 60; press++) {
+      await page.keyboard.press('Tab')
+      const hit = await page.evaluate(() => {
+        const active = document.activeElement
+        const dockBox = document.querySelector('aside.es-ldock')
+        if (active === null || dockBox === null || dockBox.contains(active) || dockBox.hasAttribute('data-covered')) return null
+        const a = active.getBoundingClientRect()
+        const d = dockBox.getBoundingClientRect()
+        const overlaps = a.right > d.left && a.left < d.right && a.bottom > d.top && a.top < d.bottom && a.width > 0
+        return overlaps ? `${active.tagName} ${(active.textContent ?? '').trim().slice(0, 40)}` : null
+      })
+      if (hit !== null) covered.push(hit)
+    }
+    expect(covered).toEqual([])
+  })
+
+  test('selecting a part opens its source: by keyboard in the instrument, by pointer in the dock, and Escape hands focus back', async ({ page, context }) => {
+    test.setTimeout(180_000)
+    await withSettings(context, { view3d: false })
+    await context.addInitScript((flag) => {
+      try {
+        localStorage.setItem('es:intro', flag)
+      } catch {
+        // No storage: the intro shows, and nothing below depends on it.
+      }
+    }, MET)
+    await open(page, REFERENCE)
+    const game = embedOf(page, ONE_GROUP)
+    await expect(game).toBeVisible({ timeout: 60_000 })
+
+    // The instrument: the pool's name is its popover's trigger, opened by Enter, never by focus alone.
+    const trigger = game.locator('[data-pool-grid] .es-pop__trigger[data-part="pool"]')
+    await trigger.focus()
+    const sheet = page.getByRole('dialog', { name: 'KV page pool' })
+    await expect(sheet).toHaveCount(0)
+    await page.keyboard.press('Enter')
+    await expect(sheet).toBeVisible()
+    await expect(sheet).toContainText('Every KV page on the GPU')
+    await expect(sheet).toContainText('BlockPool')
+    await expect(sheet).toContainText('measured')
+    await expect(sheet.getByRole('link')).toHaveAttribute('href', /^https:\/\/github\.com\/vllm-project\/vllm\/blob\/v0\.33\.0\//)
+    await page.keyboard.press('Escape')
+    await expect(sheet).toHaveCount(0)
+    await expect(trigger).toBeFocused()
+
+    // The dock: the free queue's name, then a page selected by the pointer.
+    await page.evaluate(() => document.getElementById('what-the-next-token-reads')?.scrollIntoView({ block: 'start' }))
+    const dock = page.locator('aside.es-ldock')
+    await expect(dock).toBeInViewport()
+    const queue = dock.locator('.es-pop__trigger[data-part="free-queue"]')
+    await queue.click()
+    const queueSheet = page.getByRole('dialog', { name: 'Free queue' })
+    await expect(queueSheet).toBeVisible()
+    await expect(queueSheet.getByRole('link')).toHaveAttribute('href', /block_pool\.py/)
+    await page.keyboard.press('Escape')
+    await expect(queueSheet).toHaveCount(0)
+    await expect(queue).toBeFocused()
+
+    await dock.locator('.es-pool__cell').nth(3).click()
+    const pageSheet = page.getByRole('dialog', { name: 'KV page' })
+    await expect(pageSheet).toBeVisible()
+    await expect(pageSheet).toContainText('Page 4: free.')
+    expect(((await pageSheet.textContent()) ?? '').match(/BlockPool/g)?.length).toBe(1)
+    await page.keyboard.press('Escape')
+    await expect(pageSheet).toHaveCount(0)
+  })
+})
+
+test.describe('below 80rem wide or 44rem tall there is no dock', () => {
+  for (const [width, height] of [
+    [1440, 700],
+    [1240, 900],
+    [390, 844],
+  ] as const) {
+    test(`at ${width} x ${height}: no dock and no sheet, and each part of Read has Back to my run`, async ({ page, context }) => {
+      test.setTimeout(120_000)
+      await withSettings(context, { view3d: false })
+      await page.setViewportSize({ width, height })
+      await open(page, REFERENCE)
+      await expect(embedOf(page, ONE_GROUP)).toBeVisible({ timeout: 60_000 })
+      await expect(page.locator('aside.es-ldock')).toHaveCount(0)
+      const parts = page.locator('#read .es-lesson__part')
+      const backs = page.locator('#read .es-lesson__part .es-lesson__back a')
+      await expect(backs).toHaveCount(await parts.count())
+      await expect(backs.first()).toHaveText('Back to my run')
+      const href = await backs.first().getAttribute('href')
+      expect(href).toMatch(/^#run-\d+$/)
+      await expect(page.locator(href ?? '#none')).toHaveCount(1)
     })
   }
 })

@@ -1,6 +1,8 @@
-import type { CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { Glyph } from '@/design/components/Glyph'
 import { Legend } from '@/design/components/Legend'
+import { PartPopover } from '@/games/kit/PartPopover'
+import { PAGE_ENGINE_LINE, partOf } from '@es/play/pool/copy'
 import type { PanView, PoolView, StationView, TicketView } from '@es/play/pool/types'
 import type { Dump } from './dump'
 import { groupNo, KIND_WORDS, pageTitle, STATE_SLOT, STATE_WORDS, stateGlyph } from './glyphs'
@@ -19,6 +21,10 @@ import { reqName } from './words'
  * It holds no fact the table does not: the drawing is hidden from assistive technology, and State as a table lists every figure. The
  * pages an open eviction would take are drawn in the evicted state with the marker's ring (now); a page a list row points at takes the
  * ink ring. On a wide screen a pointer may pick a page of the open eviction in the grid; the dock's list is the way for every other hand.
+ *
+ * Touch a part, get its source (REDESIGN §2.6): the name of each region (the running batch, the KV page pool, the free queue) is its part's
+ * popover, from the same rows of packages/play/pool/copy.ts that the parts list reads, and a page the pointer selects opens the KV page's
+ * popover with that page's owner and state. A lesson's dock draws the same parts (DockView.tsx).
  */
 
 /** The largest cell, by rows: a pool of three rows draws large cells, one of thirteen keeps the grid within the diagram [estimated]. */
@@ -33,9 +39,12 @@ interface CellProps {
   chosen: boolean
   pointed: boolean
   onPick?: () => void
+  /** A press on a page that is not being picked selects it, and its popover opens. */
+  onSelect?: () => void
+  selected?: boolean
 }
 
-function Cell({ page, view, chosen, pointed, onPick }: CellProps) {
+export function Cell({ page, view, chosen, pointed, onPick, onSelect, selected = false }: CellProps) {
   const state = chosen ? 'evicted' : page.state
   const group = page.station === null ? null : view.stations[page.station]
   return (
@@ -46,8 +55,9 @@ function Cell({ page, view, chosen, pointed, onPick }: CellProps) {
       data-chosen={chosen || undefined}
       data-pointed={pointed || undefined}
       data-pick={onPick === undefined ? undefined : ''}
+      data-selected={selected || undefined}
       title={pageTitle(page, view, chosen)}
-      onClick={onPick}
+      onClick={onPick ?? onSelect}
     >
       <Glyph shape={stateGlyph(state)} className="es-pool__glyph" />
       {group !== null && view.stations.length > 1 ? <span className="es-pool__group">{groupNo(group)}</span> : null}
@@ -79,7 +89,7 @@ function Batch({ view }: { view: PoolView }) {
   return (
     <section className="es-pool__batch" aria-label="Running batch" data-pool-batch="">
       <h3 className="es-pool__label">
-        Running batch{' '}
+        <PartName id="batch" />{' '}
         <span className="es-pool__count">
           <span className="font-numeric">{view.running.length}</span> of <span className="font-numeric">{view.cap}</span> slots
         </span>
@@ -118,6 +128,7 @@ export interface DiagramProps {
 
 export function View2D({ run, dump, pointed, pick = true }: DiagramProps) {
   const { view } = run
+  const [selected, setSelected] = useState<number | null>(null)
   const rows = Math.ceil(view.pans.length / view.cols)
   const open = dump.open && view.ask?.kind === 'evict' ? view.ask.candidates : []
   const stock = view.stock
@@ -130,7 +141,7 @@ export function View2D({ run, dump, pointed, pick = true }: DiagramProps) {
       <Batch view={view} />
       <section className="es-pool__grid-box" aria-label="Pages of the pool" data-pool-grid="">
         <h3 className="es-pool__label">
-          KV page pool{' '}
+          <PartName id="pool" />{' '}
           <span className="es-pool__count">
             <span className="font-numeric">{view.pans.length}</span> pages · free <span className="font-numeric">{stock.bare}</span> · in use{' '}
             <span className="font-numeric">{stock.held}</span> · cached <span className="font-numeric">{stock.cached}</span>
@@ -141,6 +152,7 @@ export function View2D({ run, dump, pointed, pick = true }: DiagramProps) {
               </>
             ) : null}
           </span>
+          <PagePick view={view} page={selected} onClose={() => setSelected(null)} />
         </h3>
         <ol className="es-pool__grid" aria-hidden="true">
           {view.pans.map((page) => {
@@ -153,6 +165,8 @@ export function View2D({ run, dump, pointed, pick = true }: DiagramProps) {
                 chosen={candidate && dump.isPicked(page.id)}
                 pointed={pointed.includes(page.id)}
                 onPick={pick && candidate ? () => dump.toggle(page.id) : undefined}
+                onSelect={() => setSelected(page.id)}
+                selected={selected === page.id}
               />
             )
           })}
@@ -160,7 +174,7 @@ export function View2D({ run, dump, pointed, pick = true }: DiagramProps) {
       </section>
       <section className="es-pool__queue" aria-label="Free queue" data-pool-queue="">
         <h3 className="es-pool__label">
-          Free queue <span className="es-pool__count">next to evict on the left</span>
+          <PartName id="free-queue" /> <span className="es-pool__count">next to evict on the left</span>
         </h3>
         <ol className="es-pool__strip" aria-hidden="true">
           {free > 0 ? (
@@ -180,6 +194,63 @@ export function View2D({ run, dump, pointed, pick = true }: DiagramProps) {
         </ol>
       </section>
     </div>
+  )
+}
+
+/** A region's name, as its part's popover: the part's row of the parts table (copy.ts), its sentence, value, tag and source. */
+export function PartName({ id, children }: { id: string; children?: ReactNode }) {
+  const part = partOf(id)
+  if (part === undefined) return <>{children}</>
+  return <PartPopover part={part} trigger={children} />
+}
+
+/** Who holds a page, who would start from it, and its KV group, in words. */
+function owners(page: PanView, view: PoolView): string {
+  const reqs = (ids: readonly number[]) => ids.map((id) => reqName(id)).join(', ')
+  const held = page.kit !== null ? `Adapter ${page.kit + 1} holds it.` : page.holders.length === 0 ? 'Nobody holds it.' : `Held by ${reqs(page.holders)}.`
+  const waits = page.spokenFor.length === 0 ? '' : ` ${reqs(page.spokenFor)} would start from it.`
+  const group = page.station === null ? '' : ` KV group ${view.stations[page.station].id}.`
+  return `${held}${waits}${group}`
+}
+
+/**
+ * The KV page's popover for the page a pointer selected: the page's row of the parts table, the page's own state and owner, and the pool's
+ * class in vLLM, named once. It opens when a page is pressed, and its trigger (the page's number, beside the pool's name) takes focus, so
+ * Escape closes it and leaves focus there. A keyboard reads every page's state in State as a table.
+ */
+export function PagePick({ view, page: id, onClose }: { view: PoolView; page: number | null; onClose: () => void }) {
+  const box = useRef<HTMLSpanElement>(null)
+  const part = partOf('page')
+  useEffect(() => {
+    if (id !== null) box.current?.querySelector<HTMLElement>('.es-pop__trigger')?.focus({ preventScroll: true })
+  }, [id])
+  const page = id === null ? undefined : view.pans[id]
+  if (part === undefined || page === undefined) return null
+  return (
+    <span ref={box} className="es-pool__pick">
+      <PartPopover
+        part={part}
+        trigger={`Page ${page.id + 1}`}
+        triggerLabel={`Page ${page.id + 1}, KV page`}
+        open
+        onOpenChange={(open) => {
+          if (!open) onClose()
+        }}
+        detail={
+          <>
+            Page <span className="font-numeric">{page.id + 1}</span>: {STATE_WORDS[page.state]}
+            {page.tape === null ? '' : `, ${page.tape}`}. {owners(page, view)}
+          </>
+        }
+        engineLine={
+          <>
+            {PAGE_ENGINE_LINE.before}
+            <code>{PAGE_ENGINE_LINE.engine}</code>
+            {PAGE_ENGINE_LINE.after}
+          </>
+        }
+      />
+    </span>
   )
 }
 

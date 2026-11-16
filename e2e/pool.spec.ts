@@ -881,7 +881,7 @@ test.describe('the first run', () => {
     await open(page, 'one-group', { intro: 'fresh' })
     await expect(coach(page).locator('ol li:visible')).toHaveCount(1)
     await page.locator('[data-intro-next]').click()
-    await expect(coach(page).locator('ol li:visible')).toContainText('A page')
+    await expect(coach(page).locator('ol li:visible')).toContainText('KV page')
     await page.setViewportSize({ width: 1440, height: 900 })
     await expect(coach(page)).toHaveAttribute('data-intro', 'parts')
     await page.locator('[data-intro-skip]').click()

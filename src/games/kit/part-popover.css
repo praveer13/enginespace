@@ -1,0 +1,88 @@
+/*
+ * A part's popover (PartPopover.tsx, REDESIGN §2.6): the sheet's lines, one under another, the value in the numeric face with its tag word,
+ * and the source as a link out. Token roles only; the sheet itself is the design system's Popover. It loads with the game that draws parts.
+ */
+
+.es-partpop__sentence,
+.es-partpop__engine,
+.es-partpop__detail,
+.es-partpop__model,
+.es-partpop__value,
+.es-partpop__source,
+.es-partpop__checked,
+.es-partpop__loading {
+  display: block;
+}
+
+.es-partpop__sentence {
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.es-partpop__engine,
+.es-partpop__detail {
+  margin-top: var(--es-space-2);
+  font-weight: 400;
+}
+
+.es-partpop__detail {
+  color: var(--es-text-1);
+  font-variant-numeric: tabular-nums;
+}
+
+.es-partpop__engine code,
+.es-partpop__detail code {
+  font-family: var(--es-font-mono);
+  font-size: 0.92em;
+}
+
+.es-partpop__value {
+  margin-top: var(--es-space-3);
+  padding-top: var(--es-space-2);
+  border-top: 1px solid var(--es-paper-rule);
+}
+
+.es-partpop__tag {
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+  font-weight: 700;
+}
+
+.es-partpop__tag[data-tag='unverified'] {
+  color: var(--es-paper-ink-2);
+}
+
+.es-partpop__source {
+  margin-top: var(--es-space-1);
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+
+.es-partpop__checked,
+.es-partpop__loading,
+.es-partpop__model {
+  margin-top: var(--es-space-2);
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+  font-weight: 400;
+}
+
+.es-partpop__model {
+  padding-top: var(--es-space-2);
+  border-top: 1px solid var(--es-paper-rule);
+  font-size: var(--es-size-note);
+}
+
+/* A part's name in a diagram's label is its popover's trigger: the label keeps its weight and its line, and the trigger its 44 px box. */
+.es-partpop[data-variant='quiet'] > .es-pop__trigger {
+  margin-block: -0.75rem;
+  font-weight: inherit;
+  vertical-align: baseline;
+}
+
+/* The sheet reads as a sheet, not as the label it opened from. */
+.es-partpop > .es-pop__panel {
+  font-size: var(--es-size-note);
+  text-align: left;
+  white-space: normal;
+}

@@ -634,3 +634,65 @@
     order: 3;
   }
 }
+
+/* ------------------------------------------------------------------------------------------------ a selected page */
+
+/* A page the pointer selected takes the ink ring, as a row's page does; its popover opens from its number beside the pool's name. */
+.es-pool__cell[data-selected] {
+  outline: 2px solid var(--es-text-1);
+  outline-offset: 1px;
+  z-index: 2;
+}
+
+.es-pool__cell:not([data-pick]) {
+  cursor: help;
+}
+
+.es-pool__pick {
+  font-weight: 400;
+}
+
+/* ------------------------------------------------------------------------------------------------ the lesson's dock (DockView.tsx) */
+
+.es-pooldock {
+  gap: var(--es-space-2);
+  min-height: 0;
+  padding: var(--es-space-3);
+  border: 1px solid var(--es-paper-rule);
+}
+
+.es-pooldock__slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-pooldock__slot {
+  min-width: 2.5rem;
+  padding: 0.125rem var(--es-space-2);
+  border: 1px solid var(--es-cat-blue-edge);
+  background: var(--es-memory-used);
+  color: var(--es-cat-blue-ink);
+  font-family: var(--es-font-mono);
+  font-size: var(--es-size-caption);
+  text-align: center;
+}
+
+.es-pooldock__slot[data-empty] {
+  border-style: dashed;
+  border-color: var(--es-edge);
+  background: transparent;
+  color: var(--es-text-2);
+  font-family: var(--es-font-body);
+}
+
+.es-pooldock .es-pool__grid {
+  gap: 2px;
+}
+
+.es-pooldock .es-strip {
+  margin-top: var(--es-space-1);
+}
