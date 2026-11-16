@@ -12,10 +12,14 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { createStaticHandler, createStaticRouter, StaticRouterProvider } from 'react-router'
+import { loadNight } from '@/front/night'
 import { routes } from '@/routes'
 
 /** The markup of the app at the front page, for a site served under `base` (`/` or `/enginespace/`). */
 export async function renderFrontShell(base: string): Promise<string> {
+  // What the page loads once it has rendered in the browser (src/front/night.ts) is in before the shell renders, so the document holds
+  // the run's table and the world's card in full.
+  await loadNight()
   const handler = createStaticHandler(routes, { basename: base })
   const context = await handler.query(new Request(new URL(base, 'http://localhost')))
   if (context instanceof Response) throw new Error(`the front page answered with a ${context.status} response, not a page`)

@@ -127,3 +127,28 @@ Build 5's namespace import of `src/scene/props` also moved `/play/engine-floor` 
 ### 1.7 The lane layout
 
 `packages/play/loop/lanes.ts` is pure (it compiles under `tsconfig.pure.json`) and draws from any view with the loop's slots, clock, waiting queue, slots' requests, CPU spans and fires, so the demo levels' `LoopView` feeds it as it stands. Two geometries carry the brief's 1440 and 390 numbers (§3.1): `DESK` (a 164 px label column, a 660 px track of 28 ticks, a CPU row of 56 px and slots of 44 px) and `PHONE` (72 px, 286 px of 16 ticks, 36 px and 32 px) [estimated]. It gives the waiting queue's chips and a count of the rest; one CPU row and one row per slot, each slot's label holding its request or "empty", and with more slots than fit at full height the rows share the room and every k-th is labelled; a slab per CPU phase and a slab per forward on every slot row, marked token, ghost or empty; an idle box over the slot rows for each gap between forwards and an open one from the latest forward to now; the now cursor; and an axis whose step is 1, 2 or 5 of a decade. The window shows a fixed number of ticks and slides once now passes three quarters of it, so the scale never changes. `tests/play/loop-lanes.test.ts` holds that one tick maps to one x on every row, that a gap between two forwards gives an idle box as wide as the CPU's sync and schedule in it (3 ticks on the tick card), that the layout holds for 4 and for 64 slots on both geometries, and that each demo level's first state and its reference run lay out.
+
+### 1.8 Room for the front page's first paint (stage 1's fix)
+
+Stage 1's way on, its engine-word copy and the intro took the row "front page first-paint JS" to 149,945 B at `b448d90` [measured], 55 B under its 150 KB gate, and the wave stopped on it. This fix defers two things the first paint does not draw; no gate, budget, target or `tests/bundle` file moved. Each part loads as soon as the page has rendered, and shows its loading line in its own box until then; the static shell loads both before it renders, so the document holds them in full and the page is as tall as before.
+
+- **The run as a table and the world's card** (`src/front/night.ts`): the step loop's mirror (`Mirror`, the kit's `MirrorTable`, the loop's `Tape` and `PrinterTape`) and `WorldCard`, which sits in a closed disclosure, all below the pass. Saved 3,387 B [measured, interim build].
+- **The device's tier** (`src/front/device.ts`): `src/scene/tiers.ts` and the settings it reads. The first paint is 2D on every device, because the tier is not known before the browser has been asked, so the page reads it once the code is in. Saved 1,772 B [measured, interim build].
+
+Measured on this task's branch over `b448d90`, 2026-11-15, by the gate's own count:
+
+| Row | Before (`b448d90`) | After | Change | Gate | Room after |
+|---|---|---|---|---|---|
+| Front page first-paint JS | 149,945 B in 25 chunks | 144,836 B in 22 chunks | −5,109 B | 150 KB | 5,164 B |
+| Entry closure | 100,164 B | 100,164 B | 0 | 110 KB | 9,836 B |
+| Front page CSS | 19,388 B | 19,388 B | 0 | 30 KB | 10,612 B |
+| `/play/loop` | 188,025 B | 189,228 B | +1,203 B | 200 KB | 10,772 B |
+| `/play/engine-floor` | 194,434 B | 194,904 B | +470 B | 200 KB | 5,096 B |
+| `/play/verifier` | 190,268 B | 190,724 B | +456 B | 200 KB | 9,276 B |
+| `/play/pool` | 186,905 B | 187,353 B | +448 B | 200 KB | 12,647 B |
+| `/play/broken-bench` | 192,313 B | 192,619 B | +306 B | 200 KB | 7,381 B |
+| `/m/:module` | 197,556 B | 197,529 B | −27 B | 200 KB | 2,471 B |
+| `scene-pool` | 39,761 B | 39,762 B | +1 B | 40 KB | 238 B |
+| `scene-engine-floor` | 39,365 B | 39,367 B | +2 B | 40 KB | 633 B |
+
+The games' routes grew because the loop's `Mirror` and `Card` are now chunks of their own, which the loop's game and the front page both load, and each file carries its own gzip overhead [derived]; every other row moved by less than 200 B. The later tasks that change the front page have 5,164 B under its gate and 1,664 B under this fix's 146,500 B line [derived]; the largest pieces of what is left are react-vendor (62.2 KB), the entry (37.9 KB), the kitchen drawing's shared chunk (`layout.ts` and the loop's controls, 10.2 KB) and the Front page's own chunk (9.3 KB) [measured].
