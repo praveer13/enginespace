@@ -80,6 +80,8 @@ const ICON_PATHS = {
   ),
   // A dumped pan: struck through.
   strike: <path d="M5 5l14 14M19 5 5 19" />,
+  // Three rules: the site's links, folded behind a button on a phone.
+  menu: <path d="M4 7h16M4 12h16M4 17h16" />,
 } satisfies Record<string, JSX.Element>
 
 export type IconName = keyof typeof ICON_PATHS

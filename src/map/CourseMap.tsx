@@ -4,7 +4,10 @@ import { PrinterTape, type PrinterTapeLine } from '@/design/components/PrinterTa
 import { Readout } from '@/design/components/Readout'
 import { TapeLabel } from '@/design/components/TapeLabel'
 import { TextLink } from '@/design/components/TextLink'
-import { nextModule, type Progress } from '@/progress/derive'
+import { ContinueLink } from '@/design/components/Board'
+import type { Progress } from '@/progress/derive'
+import type { Step } from '@/progress/next'
+import { LEGENDS } from '@/progress/words'
 import { MAP } from './copy'
 import { Stop } from './Stop'
 import { decimalsOf, LANE_ORDER, laneTotals, printedId } from './summary'
@@ -28,6 +31,26 @@ export interface CourseMapViewProps {
   progress: Progress | null
   /** True once the ledger has been read. Until then the page says so, and does not say the learner has done nothing. */
   ready: boolean
+  /** The way on, `nextStep`'s answer: null until the ledger has been read. */
+  step?: Step | null
+  /** "Last time: you ...", or null when no lesson has an event yet. */
+  last?: string | null
+}
+
+/**
+ * The way on, at the top of Course (REDESIGN §3.2): where the learner left off in a sentence, and Continue, with the lessons skipped
+ * as a quiet line under it. It waits for the ledger, and says so, so it never offers a place it has not read.
+ */
+export function WayOn({ step, last, ready }: { step: Step | null; last: string | null; ready: boolean }) {
+  if (!ready || step === null) return <p className="es-map__way" role="status">{MAP.tape.reading}</p>
+  const sentence = last === null ? (step.word === 'Start' ? `${MAP.way.fresh} ${MAP.way.next} ${step.reason}.` : `${MAP.way.next} ${step.reason}.`) : `${last} ${MAP.way.next} ${step.reason}.`
+  return (
+    <div className="es-way es-map__way">
+      <p className="es-way__last">{sentence}</p>
+      <ContinueLink target={step} emphasis="primary" minutes={step.minutes} />
+      {step.skipped > 0 ? <p className="es-way__aside">{MAP.way.skipped(step.skipped)}</p> : null}
+    </div>
+  )
 }
 
 function Tape({ modules, totalHours, progress, ready, next }: Pick<CourseMapViewProps, 'modules' | 'totalHours' | 'progress' | 'ready'> & { next: string | null }) {
@@ -44,7 +67,7 @@ function Tape({ modules, totalHours, progress, ready, next }: Pick<CourseMapView
       }),
     ),
     {
-      id: 'earned',
+      id: 'passed',
       label: MAP.tape.earned,
       value: reading ? (
         <>
@@ -68,10 +91,10 @@ function Tape({ modules, totalHours, progress, ready, next }: Pick<CourseMapView
   return <PrinterTape label={MAP.tape.name} lines={lines} className="es-map__tape" />
 }
 
-export function CourseMapView({ modules, totalHours, map, progress, ready }: CourseMapViewProps) {
+export function CourseMapView({ modules, totalHours, map, progress, ready, step = null, last = null }: CourseMapViewProps) {
   const listId = useId()
-  // The lamp waits for the ledger: a learner who has earned a module would see it light the wrong ticket for a moment.
-  const next = ready && progress !== null ? nextModule(modules, progress) : null
+  // The lamp falls on the module the way on points into, and waits for the ledger, so it never lights the wrong ticket for a moment.
+  const next = ready ? (step?.module ?? null) : null
   const details = new Map(map.modules.map((module) => [module.id, module]))
   return (
     <div className="es-map" data-page="map">
@@ -83,11 +106,15 @@ export function CourseMapView({ modules, totalHours, map, progress, ready }: Cou
               {MAP.term}
             </TapeLabel>
           </div>
+          <WayOn step={step} last={last} ready={ready} />
           {MAP.lede.map((line) => (
             <p key={line} className="es-map__lede">
               {line}
             </p>
           ))}
+          <p className="es-map__legend">
+            {LEGENDS.lesson} {LEGENDS.skill}
+          </p>
         </div>
         <Tape modules={modules} totalHours={totalHours} progress={progress} ready={ready} next={next} />
       </header>

@@ -167,12 +167,12 @@ describe('the module\'s tape of facts carries the evidence', () => {
   const tape = (events: readonly LedgerEvent[] | null) => textOf(/<figure[\s\S]*?<\/figure>/.exec(page(events))?.[0] ?? '')
 
   test('earned and kept, counted from the events, once the ledger is read', () => {
-    expect(tape([made('review', 'review:tr2.bubble')])).toContain('earned 1 measured of 11')
+    expect(tape([made('review', 'review:tr2.bubble')])).toContain('skills passed 1 measured of 11')
     expect(tape([made('review', 'review:tr2.bubble')])).toContain('kept 0 measured')
   })
 
   test('and reading, until it is', () => {
-    expect(tape(null)).toContain('earned reading your ledger')
+    expect(tape(null)).toContain('skills passed reading your ledger')
   })
 })
 

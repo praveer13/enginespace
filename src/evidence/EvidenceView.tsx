@@ -168,7 +168,7 @@ export function EvidenceView({ ready, counts, modules, side, files }: EvidenceVi
                 <h2 id="ev-kind" className="es-panel__title">
                   By kind
                 </h2>
-                <p className="es-panel__lead">Events written, not credit: what an event is worth depends on how it was earned.</p>
+                <p className="es-panel__lead">Events written, not credit: what an event is worth depends on how it was made.</p>
                 <Ticket as="div" width="full" hole={false} className="es-ledger-ticket">
                   <KindTable all={counts.all} />
                 </Ticket>

@@ -152,7 +152,7 @@ describe('the map and the module pages show it', () => {
     const stop = stopOf(html, 'tr5a')
     expect(textOf(stop)).toContain(`${labKcs('hybrid-kv').length} ${COPY.holding.of} ${kcsOf('tr5a').length} ${COPY.holding.earned}`)
     expect(stop.match(/class="es-pip" data-state="earned"/g)).toHaveLength(labKcs('hybrid-kv').length)
-    expect(textOf(/<figure[\s\S]*?<\/figure>/.exec(html)?.[0] ?? '')).toContain(`earned ${1 + labKcs('hybrid-kv').length} measured of ${MAP.kcs.length}`)
+    expect(textOf(/<figure[\s\S]*?<\/figure>/.exec(html)?.[0] ?? '')).toContain(`passed ${1 + labKcs('hybrid-kv').length} measured of ${MAP.kcs.length}`)
   })
 
   test('without the events, the same tickets count none: the numbers come from the item and the lab', () => {

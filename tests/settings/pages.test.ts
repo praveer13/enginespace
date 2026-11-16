@@ -98,8 +98,8 @@ describe('/evidence', () => {
     expect(html).toContain('Warming up')
   })
 
-  test('is in the shell, with Evidence lit on the board', () => {
-    expect(html).toMatch(/<nav aria-label="Primary"[^>]*>.*aria-current="page"[^>]*>Evidence</s)
+  test('is in the shell, with Progress lit on the board', () => {
+    expect(html).toMatch(/<nav aria-label="Primary"[^>]*>.*aria-current="page"[^>]*>Progress</s)
   })
 })
 

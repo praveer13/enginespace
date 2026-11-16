@@ -14,7 +14,7 @@ import { useProgress } from '@/progress/useProgress'
 export function Component() {
   const index = useIndex()
   const map = useMap()
-  const { ready, progress } = useProgress(map.status === 'ready' ? map.value : null)
+  const { ready, progress, next, last } = useProgress(map.status === 'ready' ? map.value : null)
 
   if (index.status === 'error' || map.status === 'error') {
     return <PageNotice kind="failed" title={MAP.notice.failedTitle} ticket="map" message={MAP.notice.failedMessage} />
@@ -22,5 +22,5 @@ export function Component() {
   if (index.status === 'loading' || map.status === 'loading') {
     return <PageNotice kind="loading" title={MAP.notice.loadingTitle} ticket="map" what={MAP.notice.loadingWhat} />
   }
-  return <CourseMapView modules={index.value.modules} totalHours={index.value.totalHours} map={map.value} progress={progress} ready={ready} />
+  return <CourseMapView modules={index.value.modules} totalHours={index.value.totalHours} map={map.value} progress={progress} ready={ready} step={next} last={last} />
 }

@@ -53,7 +53,7 @@ describe('the copy says what the course says', () => {
   test('the headline is "Fire the next step.", and the primary action is "Start service"', () => {
     expect(HERO.headline).toBe('Fire the next step.')
     expect(HERO.start).toBe('Start service')
-    expect(NEXT.start).toBe('Start TR1')
+    expect(NEXT.start).toBe('Open TR1')
   })
 
   test('the four outcomes are PRODUCT.md\'s, word for word and in its order', () => {

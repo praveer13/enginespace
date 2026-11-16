@@ -202,7 +202,7 @@ export function ImportPanel({
         <div className="es-xfer__undo">
           <p>
             Last import: {newest.reason === 'import-replace' ? 'a replace' : 'a merge'} on {formatWhen(newest.at)}. Undoing it takes out what it added and puts
-            back what it replaced; what you have earned since stays.
+            back what it replaced; what you have done since stays.
           </p>
           <Button loading={working === 'undoing'} disabled={working !== null} onClick={() => void run('undoing', () => undoImport(api, newest.id))}>
             Undo the last import

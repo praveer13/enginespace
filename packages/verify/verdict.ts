@@ -85,7 +85,7 @@ export function verdictOf(receipt: Receipt, rules: readonly RuleResult[], ran: n
     if (task === undefined && ran < RULES_IN_ALL && CHECK_IDS.includes(id)) continue
     const bound =
       task !== undefined
-        ? `${id} is not built yet: ${task} builds it, and a receipt of ${receipt.stage} is not credited until it exists.`
+        ? `${id} is not built yet: ${task} builds it, and a receipt of ${receipt.stage} does not count until it exists.`
         : CHECK_IDS.includes(id)
           ? `${id} is required, and the report holds no result for it, so it cannot be told whether the receipt passed it.`
           : `${id} is required, and this version of the site has no check of that name.`

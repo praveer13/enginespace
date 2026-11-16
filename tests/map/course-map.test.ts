@@ -13,7 +13,7 @@ import type { LedgerEvent } from '@es/ledger'
 import { CourseMapView } from '@/map/CourseMap'
 import type { CourseMapViewProps } from '@/map/CourseMap'
 import { MAP as COPY } from '@/map/copy'
-import { nextModule } from '@/progress/derive'
+import { nextStep } from '@/progress/next'
 import { made } from '../progress/support'
 import { INDEX, MAP, opening, attribute, progressOf, render, stopOf, textOf } from './support'
 
@@ -25,6 +25,7 @@ const view = (events: readonly LedgerEvent[] | null, overrides: Partial<CourseMa
       map: MAP,
       progress: events === null ? null : progressOf(events),
       ready: events !== null,
+      step: events === null ? null : nextStep(events, MAP.lessons, null),
       ...overrides,
     }),
     '/map',
@@ -151,7 +152,7 @@ describe('what the learner holds, drawn from the events', () => {
     expect(waiting).toContain(COPY.holding.reading)
     expect(waiting).not.toContain('data-next')
     expect(waiting).not.toContain('data-state="earned"')
-    expect(textOf(waiting)).toContain(`earned ${COPY.tape.reading}`)
+    expect(textOf(waiting)).toContain(`${COPY.tape.earned} ${COPY.tape.reading}`)
   })
 
   test('with an empty ledger, a module with KCs counts none earned, with a ring for each; a module with none says so', () => {
@@ -172,7 +173,7 @@ describe('what the learner holds, drawn from the events', () => {
     const stop = stopOf(html, 'tr2')
     expect(stop.match(/data-state="earned"/g)).toHaveLength(1)
     expect(textOf(stop)).toContain(`1 ${COPY.holding.of} 11 ${COPY.holding.earned}`)
-    expect(textOf(/<figure[\s\S]*?<\/figure>/.exec(html)?.[0] ?? '')).toContain('earned 1 measured of 45')
+    expect(textOf(/<figure[\s\S]*?<\/figure>/.exec(html)?.[0] ?? '')).toContain('passed 1 measured of 45')
     // The KCs are in the graph's order, so it is the fifth pip of TR2.
     const order = [...stop.matchAll(/class="es-pip" data-state="(\w+)"/g)].map((match) => match[1])
     expect(order).toEqual(['none', 'none', 'none', 'none', 'earned', 'none', 'none', 'none', 'none', 'none', 'none'].slice(0, 11))
@@ -198,10 +199,11 @@ describe('what the learner holds, drawn from the events', () => {
     for (const tag of opening(empty, 'span').filter((candidate) => attribute(candidate, 'class')?.includes('es-pips'))) expect(attribute(tag, 'aria-hidden')).toBe('true')
   })
 
-  test('the lamp falls on the ticket that nextModule names, and on no other, with the words "next ticket" printed on it', () => {
+  test('the lamp falls on the module that nextStep points into, and on no other, with the words "next ticket" printed on it', () => {
     const events: LedgerEvent[] = []
-    const expected = nextModule(INDEX.modules, progressOf(events))
-    expect(expected).not.toBeNull()
+    // The sample course compiles one lesson, TR2's, so the way on of an empty ledger points into TR2.
+    const expected = nextStep(events, MAP.lessons, null).module
+    expect(expected).toBe('tr2')
     const html = view(events)
     const lit = [...html.matchAll(/<li class="es-map__stop" data-module="([a-z0-9]+)"[^>]*data-next="true"/g)].map((match) => match[1])
     expect(lit).toEqual([expected as string])
@@ -209,17 +211,27 @@ describe('what the learner holds, drawn from the events', () => {
     expect(stopOf(html, expected as string)).toContain(COPY.next)
     expect(html.match(/data-lamp="true"/g)).toHaveLength(1)
     // And the tape names it.
-    expect(textOf(/<figure[\s\S]*?<\/figure>/.exec(html)?.[0] ?? '')).toContain(`next ticket ${expected === 'capstone' ? 'capstone' : `TR${(expected as string).slice(2)}`}`)
+    expect(textOf(/<figure[\s\S]*?<\/figure>/.exec(html)?.[0] ?? '')).toContain(`next ticket TR2`)
   })
 
-  test('the lamp moves on when a module\'s KCs are all earned', () => {
-    const first = nextModule(INDEX.modules, progressOf([])) as string
-    const all = MAP.modules.find((module) => module.id === first)?.kcs ?? []
-    expect(all.length).toBeGreaterThan(0)
-    const events = all.map((kc) => made('review', `review:${kc}`))
-    const after = nextModule(INDEX.modules, progressOf(events))
-    expect(after).not.toBe(first)
-    expect(view(events)).not.toContain(`data-module="${first}" data-status="${INDEX.modules.find((module) => module.id === first)?.status}" data-next`)
+  test('the lamp moves on with the way on: an answer that points into TR5a lights TR5a', () => {
+    const step = { ...nextStep([], MAP.lessons, null), module: 'tr5a', lesson: 'tr5a.l1' }
+    const html = view([], { step })
+    const lit = [...html.matchAll(/<li class="es-map__stop" data-module="([a-z0-9]+)"[^>]*data-next="true"/g)].map((match) => match[1])
+    expect(lit).toEqual(['tr5a'])
+  })
+
+  test('the way on heads the page: the sentence, then Continue with nextStep\'s link and words, and it waits for the ledger', () => {
+    const events = [made('predict', 'predict:tr2.l0#tr2.l0.p1')]
+    const step = nextStep(events, MAP.lessons, null)
+    expect(step.word).toBe('Continue')
+    const html = view(events)
+    const way = /<div class="es-way es-map__way">[\s\S]*?<\/div>/.exec(html)?.[0] ?? ''
+    expect(way).toContain(`href="${step.href}"`)
+    expect(textOf(way)).toContain(step.label)
+    expect(textOf(way)).toContain(`Next: ${step.reason}.`)
+    expect(textOf(view([]))).toContain('You have not started. Next: TR2 lesson 1, A sample lesson that uses every block.')
+    expect(view(null)).not.toContain('data-way="continue"')
   })
 
   test('nothing is locked: the lamp advises, and a ticket that is not lit is a link all the same', () => {

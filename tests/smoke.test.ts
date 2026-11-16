@@ -119,7 +119,7 @@ describe('routes against ARCHITECTURE §3.1', () => {
   const stubs: Record<string, { h1: string; shows?: string; title?: string }> = {
     // The front page's heading is printed on its order ticket (W0-T18).
     '/': { h1: 'Fire the next step.', title: 'enginespace' },
-    '/map': { h1: 'Course map' },
+    '/map': { h1: 'Course' },
     // The module and lesson pages load their content in the browser (W0-T09), so the server renders the ticket that is still printing.
     '/m/:module': { h1: 'Module', shows: 'Printing the module' },
     '/m/:module/:lesson': { h1: 'Lesson', shows: 'tr2 / l0-sample' },
@@ -132,12 +132,12 @@ describe('routes against ARCHITECTURE §3.1', () => {
     '/trace-room/:trace': { h1: 'The Trace Room', shows: 'Trace id: sample' },
     // The page opens the ledger in the browser (W2-T06), so the server renders the tickets that are still printing.
     '/receipts': { h1: 'Receipts', shows: 'Printing your challenges' },
-    '/today': { h1: 'Today' },
+    '/today': { h1: 'Review' },
     '/evidence': { h1: 'Evidence' },
     '/design': { h1: 'Design system' },
     '/settings': { h1: 'Settings' },
     '/about': { h1: 'About', shows: 'W3-T15' },
-    '/changes': { h1: 'Changes', shows: 'W3-T06' },
+    '/changes': { h1: 'Sources and changes', shows: 'W3-T06' },
     '*': { h1: 'Page not found' },
   }
   const params: Record<string, string> = { module: 'tr2', lesson: 'l0-sample', game: 'loop', lab: 'tr8.replay', trace: 'sample' }
@@ -223,21 +223,21 @@ describe('routes against ARCHITECTURE §3.1', () => {
       return [...nav.matchAll(/<a [^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/gs)].map((match) => [match[1], match[2]])
     }
 
-    test('the primary navigation is Map, Play, Today, Receipts and Evidence, and the footer has the other four', async () => {
+    // REDESIGN §2.3 (R-T06): Course, Games, Review and Progress, then Continue; tests/app/shell.test.ts holds every route's chrome.
+    test('the primary navigation is Course, Games, Review and Progress, then Continue, and the footer is About, Sources and changes, Settings', async () => {
       const html = await render('/')
-      expect(linksIn(html, 'Primary')).toEqual([
+      expect(linksIn(html, 'Primary').map(([href, text]) => [href, text.replace(/<[^>]+>/g, '')])).toEqual([
         ['/', 'enginespace'],
-        ['/map', 'Map'],
-        ['/play', 'Play'],
-        ['/today', 'Today'],
-        ['/receipts', 'Receipts'],
-        ['/evidence', 'Evidence'],
+        ['/map', 'Course'],
+        ['/play', 'Games'],
+        ['/today', 'Review'],
+        ['/evidence', 'Progress'],
+        ['/m/tr1/l1-five-mechanisms', 'Start: TR1 lesson 1Start'],
       ])
       expect(linksIn(html, 'Footer')).toEqual([
         ['/about', 'About'],
-        ['/changes', 'Changes'],
+        ['/changes', 'Sources and changes'],
         ['/settings', 'Settings'],
-        ['/design', 'Design'],
       ])
     })
 
@@ -250,7 +250,7 @@ describe('routes against ARCHITECTURE §3.1', () => {
 
     test('under /enginespace/ every link keeps the base path, so the site works on GitHub Pages', async () => {
       const html = await render('/enginespace/map', '/enginespace/')
-      expect(h1sIn(html)).toEqual(['Course map'])
+      expect(h1sIn(html)).toEqual(['Course'])
       const hrefs = [...html.matchAll(/<a [^>]*href="([^"]+)"/g)].map((match) => match[1])
       expect(hrefs.length).toBeGreaterThan(8)
       expect(hrefs.filter((href) => href !== '#main' && !href.startsWith('/enginespace/'))).toEqual([])

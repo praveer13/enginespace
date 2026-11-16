@@ -2122,6 +2122,203 @@
     display: none;
   }
 
+  /* The way on, at the right of the board: an outline control, never the amber fill (REDESIGN §2.4, "Which control is amber"). */
+  .es-board__action {
+    margin-inline-start: auto;
+    min-width: 0;
+  }
+
+  .es-board__next {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--es-space-2);
+    max-width: 100%;
+    min-height: 2.75rem;
+    padding: var(--es-space-2) var(--es-space-4);
+    border: 1px solid var(--es-edge);
+    border-radius: var(--es-radius-plate);
+    color: var(--es-text-1);
+    font-family: var(--es-font-body);
+    font-size: var(--es-size-base);
+    font-weight: 700;
+    line-height: 1.25;
+    text-decoration: none;
+    transition: background-color var(--es-dur-quick) var(--es-ease-settle);
+  }
+
+  .es-board__next:is(:hover, [data-force='hover']) {
+    background-color: color-mix(in srgb, var(--es-surface-2) 55%, transparent);
+  }
+
+  .es-board__next:is(:active, [data-force='active']) {
+    background-color: var(--es-surface-2);
+  }
+
+  .es-board__next:is(:focus-visible, [data-force='focus']) {
+    outline: 2px solid var(--es-focus);
+    outline-offset: 2px;
+  }
+
+  /* The amber fill, where the page has no move in hand: amber with its edge, the ink label (REDESIGN §2.4, "Which control is amber"). */
+  .es-board__next[data-emphasis='primary'] {
+    border: 2px solid var(--es-lamp-ring);
+    background: var(--es-lamp);
+  }
+
+  .es-board__next[data-emphasis='primary']:is(:hover, [data-force='hover']) {
+    background-color: color-mix(in srgb, var(--es-lamp) 80%, var(--es-lamp-ring));
+  }
+
+  .es-board__next-minutes {
+    font-size: var(--es-size-note);
+    font-weight: 400;
+    white-space: nowrap;
+  }
+
+  .es-board__next-label {
+    min-width: 0;
+  }
+
+  .es-board .es-board__next-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* In a page, the way on and what it says: the sentence above the control. */
+  .es-way {
+    display: grid;
+    justify-items: start;
+    gap: var(--es-space-2);
+    margin-block: var(--es-space-4);
+  }
+
+  .es-way__aside {
+    margin: 0;
+    color: var(--es-text-2);
+    font-size: var(--es-size-note);
+  }
+
+  .es-way__last {
+    max-width: 66ch;
+    margin: 0;
+    color: var(--es-text-1);
+    line-height: 1.5;
+  }
+
+  .es-board__next-word {
+    display: none;
+  }
+
+  .es-board__next-arrow {
+    flex: none;
+    width: 1.125rem;
+    height: 1.125rem;
+    transition: translate var(--es-dur-quick) var(--es-ease-settle);
+  }
+
+  .es-board__next:is(:hover, [data-force='hover']) .es-board__next-arrow {
+    translate: 0.1875rem 0;
+  }
+
+  .es-board__toggle {
+    display: none;
+  }
+
+  /*
+   * A phone: the nameplate, Start or Continue, and the Navigation button share a row, and the places fold below it. The label of
+   * Continue stays its accessible name, clipped out of sight, and the first word shows.
+   */
+  @media (max-width: 47.99rem) {
+    .es-board[data-fold] {
+      flex-wrap: wrap;
+      gap: var(--es-space-2);
+      padding-block: var(--es-space-2);
+    }
+
+    /* The nameplate gives up a little of its size so that it, Start or Continue, and Navigation fit one row at 360 px. */
+    .es-board[data-fold] .es-board__plate {
+      padding-inline: 0.6rem;
+      font-size: var(--es-size-plate);
+      letter-spacing: 0.06em;
+    }
+
+    .es-board[data-fold] .es-board__action {
+      order: 1;
+    }
+
+    .es-board[data-fold] .es-board__toggle {
+      order: 2;
+      display: inline-flex;
+      align-items: center;
+      gap: var(--es-space-2);
+      min-height: 2.75rem;
+      padding: 0 var(--es-space-2);
+      border: 1px solid var(--es-edge);
+      border-radius: var(--es-radius-plate);
+      background: transparent;
+      color: var(--es-text-1);
+      font-family: var(--es-font-body);
+      font-size: var(--es-size-base);
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .es-board__toggle[aria-expanded='true'] {
+      background-color: var(--es-surface-2);
+    }
+
+    .es-board__toggle:is(:focus-visible, [data-force='focus']) {
+      outline: 2px solid var(--es-focus);
+      outline-offset: 2px;
+    }
+
+    .es-board__toggle-icon {
+      width: 1.125rem;
+      height: 1.125rem;
+    }
+
+    .es-board[data-fold] .es-board__links {
+      order: 3;
+      flex-basis: 100%;
+      flex-direction: column;
+      padding-block-start: var(--es-space-1);
+      border-top: 1px solid var(--es-edge);
+    }
+
+    .es-board[data-fold='closed'] .es-board__links {
+      display: none;
+    }
+
+    .es-board[data-fold] .es-board__next {
+      padding-inline: var(--es-space-2);
+    }
+
+    .es-board[data-fold] .es-board__action {
+      margin-inline-start: auto;
+    }
+
+    .es-board[data-fold] .es-board__next-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    .es-board[data-fold] .es-board__next-word {
+      display: inline;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .es-board__next,
+    .es-board__next-arrow {
+      transition: none;
+    }
+  }
+
   /* ---------------------------------------------------------------------------------------------- the menu link */
 
   .es-menu-link {

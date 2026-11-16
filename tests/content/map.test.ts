@@ -10,9 +10,10 @@ import { describe, expect, test } from 'bun:test'
 import { readdirSync } from 'node:fs'
 import path from 'node:path'
 import { gzipSync } from 'node:zlib'
-import { courseMapSchema, courseSchema, kcGraphSchema } from '@es/schema'
-import type { CourseMap } from '@es/schema'
-import { BUDGETS } from '../../scripts/content/build.ts'
+import { compiledLessonSchema, courseMapSchema, courseSchema, kcGraphSchema } from '@es/schema'
+import type { ContentIndex, CourseMap } from '@es/schema'
+import { headingIds } from '@/content/render/model'
+import { BUDGETS, compileContent, lessonRow } from '../../scripts/content/build.ts'
 import { loadYaml } from '../../scripts/content/parse.ts'
 import { read as readRepo, root } from '../ci/support'
 import { COURSE, KCS, compile, lineOf, MODULE, output, read, swap, where } from './support.ts'
@@ -204,5 +205,87 @@ describe('the artifacts are the ones the module\'s curriculum file gives', () =>
     const entry = course.modules.find((module) => module.id === id)
     const lanes = [...new Set((entry?.artifacts ?? []).map((artifact) => artifact.lane))].sort()
     expect([...new Set(marks)].sort()).toEqual(lanes)
+  })
+})
+
+/*
+ * R-T06: the lessons table (REDESIGN §2.4), which `nextStep` reads. The repository's own course is compiled here, and each row is held to
+ * its lesson's compiled blocks by a reading of REDESIGN §2.5 written apart from the compiler's: the game blocks before the first `##` are
+ * the Run, the practice ones after it are inline runs, every graded game block and the items of the last `##` part are the Test, and the
+ * other items are checkpoints. The anchors are the ids the lesson page gives its headings (`headingIds`).
+ */
+describe('the lessons table', () => {
+  const real = compileContent({ root })
+  const realMap = courseMapSchema.parse(JSON.parse(output(real, MAP_JSON)))
+  const index = JSON.parse(output(real, 'src/content/generated/index.json')) as ContentIndex
+  const built = index.modules.flatMap((module) => module.lessons.map((lesson) => ({ module: module.id, lesson })))
+  const lessonJson = (module: string, slug: string) => compiledLessonSchema.parse(JSON.parse(output(real, `src/content/generated/lessons/${module}.${slug}.json`)))
+
+  test('has a row for each of the 27 built lessons, in course order, and the map stays within its budget', () => {
+    expect(realMap.lessons).toHaveLength(27)
+    expect(realMap.lessons.map((row) => row.id)).toEqual(built.map(({ lesson }) => lesson.id))
+    expect(realMap.lessons.map((row) => row.route)).toEqual(built.map(({ lesson }) => lesson.route))
+    expect(gzipSync(output(real, MAP_JSON)).length).toBeLessThanOrEqual(BUDGETS.map)
+  })
+
+  test('every row has a non-empty Test, and the compiler warns on none', () => {
+    for (const row of realMap.lessons) expect(row.test.questions.length + row.test.graded.length, row.id).toBeGreaterThan(0)
+    expect(real.diagnostics.filter((d) => d.code === 'no-test')).toEqual([])
+  })
+
+  test("each row is its lesson's blocks: place, size, rev, runs, guesses, checkpoints, Test and anchors", () => {
+    for (const { module, lesson: entry } of built) {
+      const lesson = lessonJson(module, entry.slug)
+      const row = realMap.lessons.find((candidate) => candidate.id === lesson.id)
+      expect(row, lesson.id).toBeDefined()
+      if (row === undefined) continue
+
+      // The part each block sits in: 0 before the first `##`.
+      const ids = headingIds(lesson.blocks)
+      const parts: number[] = []
+      const headings: string[] = []
+      for (const block of lesson.blocks) {
+        if (block.type === 'prose') {
+          for (const flow of block.body) if (flow.type === 'heading' && flow.depth === 2) headings.push(ids.get(flow) ?? '')
+        }
+        parts.push(headings.length)
+      }
+      // A block's part is the count of `##` before it; a prose block's own headings come after anything it precedes.
+      const partOf = (at: number) => (lesson.blocks[at].type === 'prose' ? -1 : parts[at])
+      const last = headings.length
+      const lastHolds = lesson.blocks.some((block, at) => partOf(at) === last && (block.type === 'item' || (block.type === 'game' && block.mode === 'graded')))
+      const games = lesson.blocks.flatMap((block, at) => (block.type === 'game' ? [{ ref: `play:${block.id}/${block.level}`, graded: block.mode === 'graded', part: partOf(at) }] : []))
+      const items = lesson.blocks.flatMap((block, at) => (block.type === 'item' ? [{ family: block.family, count: block.count, part: partOf(at) }] : []))
+      const unique = (refs: string[]) => [...new Set(refs)]
+      const sum = (rows: { family: string; count: number }[]) =>
+        [...new Set(rows.map((one) => one.family))].map((family) => ({ family, count: rows.filter((one) => one.family === family).reduce((n, one) => n + one.count, 0) }))
+
+      expect(row, lesson.id).toMatchObject({ module, route: entry.route, title: lesson.title, minutes: lesson.minutes, rev: lesson.rev })
+      expect(row.needs, lesson.id).toEqual(lesson.lanes?.length ? lesson.lanes : ['B'])
+      expect(row.run, lesson.id).toEqual(unique(games.filter((game) => !game.graded && game.part === 0).map((game) => game.ref)))
+      expect(row.inline, lesson.id).toEqual(unique(games.filter((game) => !game.graded && game.part > 0).map((game) => game.ref)))
+      expect(row.test.graded, lesson.id).toEqual(unique(games.filter((game) => game.graded).map((game) => game.ref)))
+      expect(row.predicts, lesson.id).toEqual(lesson.blocks.flatMap((block) => (block.type === 'predict' ? [`predict:${lesson.id}#${block.id}`] : [])))
+      const inTest = (part: number) => lastHolds && part === last
+      expect(row.test.questions, lesson.id).toEqual(sum(items.filter((item) => inTest(item.part))))
+      expect(row.checkpoints, lesson.id).toEqual(sum(items.filter((item) => !inTest(item.part))))
+      expect(row.anchors.read, lesson.id).toBe(headings[0])
+      expect(row.anchors.test, lesson.id).toBe(lastHolds ? headings.at(-1) : undefined)
+      expect(row.opener, lesson.id).toBe(row.run.length === 0 ? 'read' : row.opener === 'run' ? 'run' : 'primer')
+    }
+  })
+
+  test('the openers read from the shape of each file today: TR8 lesson 3 opens on a primer and a run, and the rest on reading', () => {
+    const openers = Object.fromEntries(realMap.lessons.map((row) => [row.id, row.opener]))
+    expect(openers['tr8.l3']).toBe('primer')
+    expect(Object.values(openers).filter((opener) => opener === 'read')).toHaveLength(26)
+  })
+
+  test('a lesson whose last part holds no question and no graded level has no Test, and the compiler warns', () => {
+    const plain = { type: 'prose' as const, body: [{ type: 'heading' as const, depth: 2 as const, children: [{ type: 'text' as const, text: 'Only part' }] }] }
+    const front = { id: 'tr2.l9', module: 'tr2', title: 'No test', minutes: 5, kcs: [], builds_on: [], status: 'draft' as const }
+    const row = lessonRow(front, 'l9-no-test', 'a'.repeat(64), [plain])
+    expect(row.test).toEqual({ questions: [], graded: [] })
+    expect(row.anchors).toEqual({ read: 'only-part' })
   })
 })

@@ -23,6 +23,7 @@ import type { Line } from '../../src/items/today/session'
 import { BlankTicket, DoneTicket, EmptyTicket, LoadingTicket, RestTicket } from '../../src/items/today/Tickets'
 import { TodayView } from '../../src/items/today/TodayView'
 import Work from '../../src/items/today/Work'
+import { START_POINTER } from '@/settings/store'
 
 const render = (element: ReactElement) => renderToString(h(StaticRouter, { location: '/today' }, element)).replaceAll('<!-- -->', '')
 const BUBBLE = 'tr2.bubble'
@@ -40,7 +41,7 @@ describe('the page before the ledger is open', () => {
   test('is the page\'s title and one ticket that is still printing, with nothing to start', () => {
     const html = render(h(TodayPage))
     expect(html).toContain('data-page="today"')
-    expect(html).toContain('<h1 class="es-page__title">Today</h1>')
+    expect(html).toContain('<h1 class="es-page__title">Review</h1>')
     expect(html).toContain(PAGE_LEAD)
     expect(html).toContain('data-phase="loading"')
     expect(html).toContain('Reading your ledger')
@@ -144,19 +145,21 @@ describe('the strip', () => {
 })
 
 describe('the tickets that stand when there is nothing to start', () => {
-  test('nothing earned: says what earns something and links the way in; nothing to start', () => {
+  test('nothing passed: says what passes something and offers the way on, Continue, from the pointer; nothing to start', () => {
     const html = render(h(EmptyTicket, { day: DAY, unserved: false }))
     expect(html).toContain('Nothing to prep yet')
-    expect(html).toContain('href="/m/tr2"')
+    // With no pointer kept yet, the way on is the empty ledger's: the first lesson (src/settings/store.ts, START_POINTER).
+    expect(html).toContain(`href="${START_POINTER.href}"`)
+    expect(html).toContain(START_POINTER.label)
     expect(html).toContain('href="/map"')
     expect(html).not.toContain('es-stub')
     expect(html).not.toMatch(BACKLOG)
   })
 
-  test('earned, and no ticket built for it yet: says so, and that they arrive with the modules', () => {
+  test('passed, and no ticket built for it yet: says so, and that the page picks them up once their modules publish them', () => {
     const html = render(h(EmptyTicket, { day: DAY, unserved: true }))
-    expect(html).toContain('No tickets yet for what you have earned')
-    expect(html).toContain('arrive with their modules')
+    expect(html).toContain('No tickets yet for what you have passed')
+    expect(html).toContain('once their modules publish them')
   })
 
   test('nothing due: names the next prep, offers a review ahead when there is one, and holds the lamp back', () => {
