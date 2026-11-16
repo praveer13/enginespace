@@ -10,7 +10,9 @@
  *     the walk lists a folder before it watches it, and a folder made in between is never watched, nor the files in it.
  *   - Then it waits until Vite's watcher watches every file of `content/` and every file the compile wrote, compiles again, and
  *     logs "watching content/". The second compile takes in a save that landed before the watcher reached the file, which the
- *     watcher takes for the file's first state and never reports. Neither Vite's "Local:" banner nor the watcher's own `ready`
+ *     watcher can take for the file's first state, and then does not report. It asks only for files a watcher can list (a regular
+ *     file, once a link is followed). If it is still waiting after WATCH_WAIT_MS, as when a file is under Vite's `server.watch.ignored`,
+ *     it compiles, warns with the first file it waited for, acts on changes, and stops polling. Neither Vite's "Local:" banner nor the watcher's own `ready`
  *     event means that the walk has reached these files, and often it has not (docs/TRACKER.md, W0-T08's follow-up).
  *   - From then on a change in `content/` recompiles after a short pause that gathers an editor's several writes, and the files it
  *     writes under `src/content/generated/` reach the browser through Vite's own watcher, so an edit to a lesson reloads it. A
@@ -24,7 +26,7 @@
  * It does nothing in a project that has no `content/course.yaml`, such as the fixture that tests/build.test.ts builds, nor under
  * `vite preview`.
  */
-import { existsSync, readdirSync } from 'node:fs'
+import { existsSync, readdirSync, statSync } from 'node:fs'
 import path from 'node:path'
 import type { Logger, Plugin, ViteDevServer } from 'vite'
 import { compileContent, writeOutputs } from './build.ts'
@@ -36,6 +38,15 @@ export const DEBOUNCE_MS = 40
 
 /** How often the dev server looks whether Vite's watcher has reached every file yet, until it has [estimated]. */
 export const WATCH_POLL_MS = 25
+
+/**
+ * The longest the dev server waits for Vite's watcher to list every file, before it goes on without that cover [estimated]. Cover
+ * came about 0.3 s after the server listened on one core and 0.83 s on two, on the real site [measured 2026-11-16, 0413aed]. The
+ * bound is ten times the larger, so that a slow machine does not bring back the race that the wait closes, and a false warning
+ * costs a line. It is the product's fallback, so that a file the watcher never lists (an ignored path) leaves the plugin as it
+ * was before the wait, and not silent; it is not a test's timeout.
+ */
+export const WATCH_WAIT_MS = 10_000
 
 /** The line the dev server logs once Vite's watcher has reached every file of `content/` and every file of the output. */
 export const WATCHING = 'watching content/'
@@ -60,12 +71,16 @@ export function compileAndWrite(root: string): Compiled {
   return { errors, warnings, outputs, written: [...written, ...removed] }
 }
 
-/** Every file under `dir`. */
+/**
+ * Every file under `dir` that a watcher can list: a regular file once a symbolic link is followed. A dangling link (Emacs writes
+ * `.#name.md` beside a file it edits), a link to a folder, a socket and a pipe are left out, since chokidar never lists them.
+ */
 function filesUnder(dir: string): string[] {
   if (!existsSync(dir)) return []
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const full = path.join(dir, entry.name)
-    return entry.isDirectory() ? filesUnder(full) : [full]
+    if (entry.isDirectory()) return filesUnder(full)
+    return existsSync(full) && statSync(full).isFile() ? [full] : []
   })
 }
 
@@ -77,7 +92,13 @@ function loaded(server: ViteDevServer, file: string): boolean {
   return (server.environments.client.moduleGraph.getModulesByFile(file.split(path.sep).join('/'))?.size ?? 0) > 0
 }
 
-export function contentPlugin(): Plugin {
+export interface ContentPluginOptions {
+  /** How long to wait for Vite's watcher to list every file; tests inject a short one. Defaults to WATCH_WAIT_MS. */
+  watchWaitMs?: number
+}
+
+export function contentPlugin(options: ContentPluginOptions = {}): Plugin {
+  const watchWaitMs = options.watchWaitMs ?? WATCH_WAIT_MS
   let root = ''
   let active = false
   let building = false
@@ -135,24 +156,35 @@ export function contentPlugin(): Plugin {
         }
       }
 
-      // Whether Vite's watcher watches every file of content/ and every file of the first compile's output.
-      const covered = () => {
+      // The first file of content/ or of the first compile's output that Vite's watcher does not list yet, if any.
+      const missing = (): string | undefined => {
         const watched = server.watcher.getWatched()
         const has = (file: string) => watched[path.dirname(file)]?.includes(path.basename(file)) === true
         const outputs = (first?.outputs ?? []).map((file) => path.join(root, file)).filter((file) => existsSync(file))
-        return filesUnder(content).every(has) && outputs.every(has)
+        return [...filesUnder(content), ...outputs].find((file) => !has(file))
       }
       let watching = false
-      const wait = () => {
-        if (!covered()) {
-          setTimeout(wait, WATCH_POLL_MS).unref?.()
-          return
-        }
+      const started = Date.now()
+      const catchUp = () => {
         watching = true
         const compiled = compileAndWrite(root)
         // Quiet when nothing has changed since the first compile, which has said all there was to say.
         if (compiled.written.length > 0 || !first || said(compiled) !== said(first)) report(compiled)
-        logger.info(WATCHING, { timestamp: true })
+      }
+      const wait = () => {
+        const file = missing()
+        if (file === undefined) {
+          catchUp()
+          logger.info(WATCHING, { timestamp: true })
+          return
+        }
+        if (Date.now() - started >= watchWaitMs) {
+          // Never silence: act on change events as the plugin did before it waited, and say what may go wrong.
+          catchUp()
+          logger.warn(`Vite's watcher has not listed ${path.relative(root, file).split(path.sep).join('/')} after ${watchWaitMs} ms, so a save to a file it has not listed may not reload`, { timestamp: true })
+          return
+        }
+        setTimeout(wait, WATCH_POLL_MS).unref?.()
       }
 
       let timer: ReturnType<typeof setTimeout> | undefined

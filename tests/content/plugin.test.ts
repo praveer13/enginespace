@@ -12,7 +12,7 @@
 import { afterAll, describe, expect, test } from 'bun:test'
 import { spawn, spawnSync } from 'node:child_process'
 import type { ChildProcess } from 'node:child_process'
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
 import { contentPlugin, DEBOUNCE_MS, WATCHING } from '../../scripts/content/vite-plugin.ts'
@@ -25,10 +25,10 @@ import type { Edit } from './support.ts'
 
 type Hook = (...args: unknown[]) => unknown
 
-function fakeVite(root: string, command: 'build' | 'serve') {
+function fakeVite(root: string, command: 'build' | 'serve', options: Parameters<typeof contentPlugin>[0] = {}) {
   const logs = { warn: [] as string[], error: [] as string[], info: [] as string[] }
   const logger = { warn: (message: string) => logs.warn.push(message), error: (message: string) => logs.error.push(message), info: (message: string) => logs.info.push(message) }
-  const plugin = contentPlugin()
+  const plugin = contentPlugin(options)
   ;(plugin.config as Hook | undefined)?.({}, { command, mode: 'development', isPreview: false })
   ;(plugin.configResolved as Hook)({ root, command, logger })
 
@@ -61,7 +61,7 @@ function fakeVite(root: string, command: 'build' | 'serve') {
         for (const entry of readdirSync(dir, { withFileTypes: true })) {
           const full = path.join(dir, entry.name)
           if (entry.isDirectory()) walk(full)
-          else if (!unwatched.has(full)) (tree[dir] ??= []).push(entry.name)
+          else if (existsSync(full) && !unwatched.has(full)) (tree[dir] ??= []).push(entry.name)
         }
       }
       walk(root)
@@ -271,6 +271,55 @@ describe('the plugin in the dev server', () => {
     vite.unwatched.delete(generated)
     await until(() => vite.logs.info.includes(WATCHING), 'the plugin to say it is watching content/')
     expect(title(generated)).toBe('An edited title')
+  })
+  
+  test('a dangling link under content/, as Emacs writes beside a file, does not delay the line', async () => {
+    const root = project()
+    symlinkSync('nobody@example-host.1', path.join(root, 'content/.#sample.md'))
+    const vite = fakeVite(root, 'serve')
+    vite.buildStart()
+    vite.serve()
+    await until(() => vite.logs.info.includes(WATCHING), 'the plugin to say it is watching content/')
+    expect(vite.logs.warn).toEqual([])
+  })
+
+  test('at the bound, a file the watcher never lists gives one warning naming it, and a lesson edited after it still recompiles', async () => {
+    const root = project()
+    const vite = fakeVite(root, 'serve', { watchWaitMs: 150 })
+    const lesson = path.join(root, LESSON)
+    const generated = path.join(root, 'src/content/generated/lessons/tr2.l0-sample.json')
+    const ignored = path.join(root, 'content/notes/ignored.md')
+    mkdirSync(path.dirname(ignored), { recursive: true })
+    writeFileSync(ignored, 'x\n')
+    vite.buildStart()
+    vite.unwatched.add(ignored)
+    vite.serve()
+    await until(() => vite.logs.warn.length > 0, 'the plugin to give up waiting')
+    expect(vite.logs.warn).toHaveLength(1)
+    expect(vite.logs.warn[0]).toContain('content/notes/ignored.md')
+    expect(vite.logs.warn[0]).toContain('may not reload')
+    expect(vite.logs.warn[0]).not.toContain(WATCHING)
+    expect(vite.logs.info.includes(WATCHING)).toBe(false)
+
+    writeFileSync(lesson, readFileSync(lesson, 'utf8').replace('title: A sample lesson that uses every block', 'title: An edited title'))
+    vite.fire('change', lesson)
+    await until(() => title(generated) === 'An edited title', 'the edited lesson to compile')
+    await Bun.sleep(300)
+    expect(vite.logs.warn).toHaveLength(1)
+  })
+
+  test('before the bound, with cover reached, there is no warning', async () => {
+    const root = project()
+    const vite = fakeVite(root, 'serve', { watchWaitMs: 400 })
+    const lesson = path.join(root, LESSON)
+    vite.buildStart()
+    vite.unwatched.add(lesson)
+    vite.serve()
+    await Bun.sleep(100)
+    vite.unwatched.delete(lesson)
+    await until(() => vite.logs.info.includes(WATCHING), 'the plugin to say it is watching content/')
+    await Bun.sleep(500)
+    expect(vite.logs.warn).toEqual([])
   })
 })
 
