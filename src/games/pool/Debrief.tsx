@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useId, useMemo } from 'react'
 import { drawInBand } from '@es/play'
 import { engineBaseline } from '@es/play/pool/debrief'
 import { POOL_COPY } from '@es/play/pool/copy'
@@ -8,7 +8,9 @@ import { Button } from '@/design/components/Button'
 import { NumberLine } from '@/design/components/NumberLine'
 import { Stamp } from '@/design/components/Stamp'
 import { TextLink } from '@/design/components/TextLink'
+import { useBest } from '@/games/kit/best'
 import { Debrief as Result } from '@/games/kit/Debrief'
+import { Versus } from '@/games/kit/Versus'
 import { verdictOf } from '@/games/kit/verdict'
 import { MirrorTable, type MirrorColumn, type MirrorRow } from '@/games/kit/MirrorTable'
 import type { PoolOutcome, PoolRun } from './types'
@@ -19,6 +21,9 @@ import type { PoolOutcome, PoolRun } from './types'
  * number line, your cost against the reference's, "In vLLM today" with its source, and the counts against the reference's and the engine's
  * own pool's. Where LoRA adapters are in play, the same run with the adapters in fixed slots, as the engines keep them at the pins (D-042).
  * The reference is read only here. Every count is a count of the synthetic model, and the table's stamp says so.
+ *
+ * A reason to run again (REDESIGN §2.6): the reference's counts are drawn as hollow outlines under yours on one axis, and the line that
+ * Run again points at says how far your cost is from the reference's and, on a page with a ledger, your best on this level.
  */
 
 export interface DebriefProps {
@@ -77,7 +82,21 @@ function versus(mine: number, theirs: number) {
   )
 }
 
+/** The learner's best on this level, from the ledger's runs of it. Rendered only on a page that has a ledger. */
+function Best({ level }: { level: PoolLevelId }) {
+  const best = useBest('pool', level)
+  if (best === null) return null
+  return (
+    <>
+      {' '}
+      Your best on this level: <span className="font-numeric">{best.score.toFixed(2)}</span>, the reference&apos;s cost over yours, where{' '}
+      <span className="font-numeric">1.00</span> is the reference&apos;s cost or lower ({figure(best.runs)} {best.runs === 1 ? 'run' : 'runs'} kept).
+    </>
+  )
+}
+
 export function Debrief({ run, outcome, next, onNext }: DebriefProps) {
+  const againId = useId()
   const { view } = run
   const { debrief, grade } = outcome
   const level: PoolLevelId = view.level
@@ -109,7 +128,7 @@ export function Debrief({ run, outcome, next, onNext }: DebriefProps) {
               {`Next level: ${next.title}`}
             </Button>
           )}
-          <Button variant="quiet" onClick={() => (run.mode === 'graded' ? newNumbers() : run.restart())}>
+          <Button variant="quiet" aria-describedby={againId} onClick={() => (run.mode === 'graded' ? newNumbers() : run.restart())}>
             Run again
           </Button>
           <Button variant="quiet" onClick={newNumbers}>
@@ -119,6 +138,10 @@ export function Debrief({ run, outcome, next, onNext }: DebriefProps) {
       }
     >
       <div className="es-pool-debrief__body" data-pool-debrief="">
+        <p id={againId} className="es-pool-debrief__again" data-run-again="">
+          <strong>Run again:</strong> {againLine(view.counts.cost, reference.cost)}
+          {run.ledger ? <Best level={level} /> : null}
+        </p>
         {number === null ? null : (
           <p>
             <strong>The decision that mattered:</strong> your decision {figure(number)}. Until then the reference, taking over, still met the bar; after it, it could not.
@@ -134,6 +157,15 @@ export function Debrief({ run, outcome, next, onNext }: DebriefProps) {
             </>
           ) : null}
         </p>
+        <Versus
+          caption="Yours and the reference's, on one axis, in tokens"
+          stamp={<Stamp word="synthetic" />}
+          rows={[
+            { id: 'cost', label: 'Cost', mine: view.counts.cost, reference: reference.cost },
+            { id: 'recomputed', label: 'Recomputed tokens', mine: view.counts.recomputedTokens, reference: reference.recomputedTokens },
+            { id: 'hit', label: 'Prefix-hit tokens', mine: view.counts.hitTokens, reference: reference.hitTokens },
+          ]}
+        />
         {guess === null ? (
           <p data-pool-guess="">
             You skipped the guess. The answer: {figure(answer)} {unit}.
@@ -177,6 +209,16 @@ export function Debrief({ run, outcome, next, onNext }: DebriefProps) {
         )}
       </div>
     </Result>
+  )
+}
+
+/** The difference to the reference, as the reason to run again: "4 tokens over the reference", or the reference's cost met. */
+function againLine(mine: number, theirs: number) {
+  if (mine <= theirs) return mine === theirs ? <>you matched the reference&apos;s cost; a run that costs less would beat it.</> : <>you beat the reference&apos;s cost by {figure(theirs - mine)} {tokens(theirs - mine)}.</>
+  return (
+    <>
+      {figure(mine - theirs)} {tokens(mine - theirs)} over the reference&apos;s cost.
+    </>
   )
 }
 

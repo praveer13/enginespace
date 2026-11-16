@@ -1,13 +1,12 @@
-import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { drawInBand, levelOf } from '@es/play'
-import { partsOf, POOL_COPY } from '@es/play/pool/copy'
+import { POOL_COPY } from '@es/play/pool/copy'
 import { POOL } from '@es/play/pool/entry'
 import { poolSession } from '@es/play/pool/session'
 import type { PoolLevelId, PoolView, StationView } from '@es/play/pool/types'
 import { ROSTER } from '@es/play/roster'
 import { Button } from '@/design/components/Button'
 import { LevelMenu } from '@/design/components/LevelMenu'
-import type { PartRow } from '@/design/components/PartsList'
 import { Frame } from '@/games/kit/Frame'
 import type { GameView } from '@/games/kit/ViewSwitch'
 import type { GameProps } from '@/games/registry'
@@ -18,6 +17,7 @@ import { Controls } from './Controls'
 import { dumpOf, type Chosen, type Dump } from './dump'
 import { focusOf } from './focus'
 import { groupNo, KIND_WORDS } from './glyphs'
+import { partRows, poolKit } from './kit'
 import { Mirror } from './Mirror'
 import { ReadoutStrip } from './ReadoutStrip'
 import type { Scene3DProps } from './Scene3D'
@@ -66,21 +66,6 @@ function freshSeed(level: string): number {
 function drawFor(level: string, mode: PoolMode): { level: string; seed: number } | null {
   return mode === 'graded' && levelOf(POOL, level)?.graded ? { level, seed: freshSeed(level) } : null
 }
-
-/** The parts the level draws, as the Parts list shows them, with vLLM's identifier set as code. */
-const partRows = (level: PoolLevelId): PartRow[] =>
-  partsOf(level).map((part) => ({
-    id: part.id,
-    name: part.name,
-    sentence:
-      part.engine === undefined ? (
-        part.sentence
-      ) : (
-        <>
-          {part.sentence} In vLLM: <code>{part.engine}</code>.
-        </>
-      ),
-  }))
 
 export default function Game({ level, mode: asked = 'practice', placement = 'page', rev, onFinish }: GameProps) {
   const known = (id: string | undefined) => POOL.levels.find((entry) => entry.id === id)?.id ?? POOL.levels[0].id
@@ -170,6 +155,7 @@ export default function Game({ level, mode: asked = 'practice', placement = 'pag
         embedded={embedded}
         rev={rev}
         onFinish={onFinish}
+        ledger={onFinish !== undefined}
         menu={menu}
         modeSwitch={modeSwitch}
         next={after === null ? null : { id: after.id, title: after.title }}
@@ -192,6 +178,8 @@ interface LevelProps {
   embedded: boolean
   rev: string | undefined
   onFinish: GameProps['onFinish']
+  /** Whether the page records runs, and so has a ledger to read. */
+  ledger: boolean
   menu: ReactNode
   modeSwitch: ReactNode
   next: { id: string; title: string } | null
@@ -208,7 +196,7 @@ interface LevelProps {
 }
 
 /** One level's frame. Its state (the pages chosen, the pointer) is the page's, and a new level starts it again. */
-function PoolLevel({ levelId, levelTitle, seed, mode, embedded, rev, onFinish, menu, modeSwitch, next, onNext, scene }: LevelProps) {
+function PoolLevel({ levelId, levelTitle, seed, mode, embedded, rev, onFinish, ledger, menu, modeSwitch, next, onNext, scene }: LevelProps) {
   const [pointed, setPointed] = useState<readonly number[]>([])
   const [chosen, setChosen] = useState<Chosen | null>(null)
   const [station, setStation] = useState(0)
@@ -216,6 +204,7 @@ function PoolLevel({ levelId, levelTitle, seed, mode, embedded, rev, onFinish, m
   const { view, preset, onPreset } = scene
   const copy = POOL_COPY[levelId]
   const dumpFor = (run: PoolRun): Dump => dumpOf(run.view, chosen, setChosen)
+  const kit = useCallback((at: number) => poolKit(levelId, at), [levelId])
   return (
     <Frame
       game={POOL}
@@ -228,6 +217,8 @@ function PoolLevel({ levelId, levelTitle, seed, mode, embedded, rev, onFinish, m
       rev={rev}
       embedded={embedded}
       onFinish={onFinish}
+      ledger={ledger}
+      kit={kit}
       menu={menu}
       modeSwitch={modeSwitch}
       allow3d={scene.allow3d}

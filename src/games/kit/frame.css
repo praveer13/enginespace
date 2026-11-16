@@ -362,3 +362,52 @@
   gap: var(--es-space-6);
   padding-top: var(--es-space-3);
 }
+
+/* ------------------------------------------------------------------------------------------------ the first run and the named moments */
+
+/* The intro's callouts and a named moment are laid over the frame, placed against it. */
+.es-frame {
+  position: relative;
+}
+
+.es-frame__replay {
+  margin: 0 0 var(--es-space-3);
+}
+
+/*
+ * A named moment (REDESIGN §2.6): one line beside the object it names, on paper with an ink edge, lifted over the drawing. It takes no
+ * press and goes with the next action. It comes in on the quick duration, and under reduced motion it is drawn at once.
+ */
+.es-frame__moment {
+  position: absolute;
+  z-index: 16;
+  max-width: min(22rem, calc(100% - 1rem));
+  margin: 0;
+  padding: var(--es-space-2) var(--es-space-3);
+  border: 1px solid var(--es-paper-ink);
+  border-radius: var(--es-radius-paper);
+  background: var(--es-paper);
+  box-shadow: var(--es-shadow-lift);
+  color: var(--es-paper-ink);
+  font-size: var(--es-size-note);
+  font-weight: 600;
+  line-height: 1.4;
+  pointer-events: none;
+  animation: es-moment-in var(--es-dur-quick) var(--es-ease-settle) both;
+}
+
+@keyframes es-moment-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion='full']) .es-frame__moment {
+    animation: none;
+  }
+}
+
+:root[data-motion='reduce'] .es-frame__moment {
+  animation: none;
+}

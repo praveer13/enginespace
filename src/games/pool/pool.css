@@ -66,6 +66,11 @@
   font-weight: 400;
 }
 
+/* While the first run names the parts, a label's count stands back from its name to leave room for the intro's numbered disc. */
+.es-frame:is([data-intro='parts'], [data-intro='look']) .es-pool__label > .es-pool__count {
+  margin-inline-start: 2.25rem;
+}
+
 /* The running batch: one slot to a batch slot, dashed while empty. */
 .es-pool__slots {
   display: grid;
@@ -505,6 +510,48 @@
   .es-strip__value {
     font-size: var(--es-size-base);
   }
+}
+
+/*
+ * The delta stands over its number for one second, in a band the list keeps free for it, so the strip does not move when it comes and goes
+ * and the delta covers no other number.
+ */
+.es-strip__list {
+  padding-top: 1.125rem;
+}
+
+.es-strip__value {
+  position: relative;
+}
+
+.es-strip__delta {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  font-size: var(--es-size-caption);
+}
+
+/* ------------------------------------------------------------------------------------------------ the first run's ring */
+
+/* The intro's amber ring sits on the reference run's first move, a whole row of the list wide, with its word under it. */
+.es-dock__ring {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--es-space-1);
+  margin: 6px 6px var(--es-space-1);
+}
+
+.es-dock__ring .es-marker__ring {
+  display: flex;
+}
+
+.es-dock__ring .es-marker__ring > * {
+  flex: 1 1 auto;
+}
+
+.es-pool-debrief__again {
+  margin: 0;
 }
 
 /* ------------------------------------------------------------------------------------------------ the result */

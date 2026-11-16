@@ -2,7 +2,9 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Button } from '@/design/components/Button'
 import { Field } from '@/design/components/Field'
 import { Glyph } from '@/design/components/Glyph'
-import type { AskView, PoolView, TicketView } from '@es/play/pool/types'
+import { Marker } from '@/design/components/Marker'
+import { sameAction } from '@/games/kit/first-move'
+import type { AskView, PoolAction, PoolView, TicketView } from '@es/play/pool/types'
 import { changeLine } from './announce'
 import type { Dump } from './dump'
 import { stateGlyph, unitWord } from './glyphs'
@@ -23,7 +25,22 @@ import { pagesWord, reqName, stepsWord, tokensWord } from './words'
  * shows its cost before it is chosen; in a graded run it does not, and the dock says so (ASSESSMENT §4.3).
  *
  * Before the guess is answered, a waiting request's row shows its tokens and its prefix hit, and not its page count, which is the answer.
+ *
+ * The first run (REDESIGN §2.6) holds the guess back until the parts have been named and the first request looked at, and then puts the
+ * amber ring on the reference run's first move. Skipping the guess dispatches nothing: the frame keeps it, so the intro hears it.
  */
+
+/** The control the intro points at, in the marker's ring; any other control as it is. */
+function Ringed({ on, children }: { on: boolean; children: ReactNode }) {
+  if (!on) return children
+  return (
+    <Marker kind="ring" word="first move" className="es-dock__ring">
+      {children}
+    </Marker>
+  )
+}
+
+const ringOn = (run: PoolRun, action: PoolAction) => sameAction(run.intro.ring, action)
 
 interface AskProps {
   run: PoolRun
@@ -107,50 +124,54 @@ function AdmitAsk({ run, mode, onPoint, guessing }: AskProps) {
           const why = ticket.kitReady === false ? 'its adapter has not loaded' : ticket.fits === false ? 'its pages do not fit yet' : null
           return (
             <li key={id}>
-              <button
-                type="button"
-                className="es-dock__option"
-                data-roving=""
-                disabled={!can}
-                tabIndex={can && at === stop ? 0 : -1}
-                aria-label={`Admit request ${id + 1}, ${convo(ticket)}${why === null ? '' : `, ${why}`}`}
-                onClick={() => run.dispatch({ t: 'admit', req: id })}
-                onFocus={() => {
-                  note(Math.max(at, 0))
-                  onPoint(hitPages(view, id))
-                }}
-                onBlur={() => onPoint([])}
-                onPointerEnter={() => onPoint(hitPages(view, id))}
-                onPointerLeave={() => onPoint([])}
-              >
-                <span className="es-dock__option-name">
-                  Admit <strong>{reqName(id)}</strong>
-                </span>
-                <span className="es-dock__option-meta">
-                  conversation {ticket.letter} · {num(ticket.tokens)} {tokensWord(ticket.tokens)}
-                  {graded ? null : (
-                    <>
-                      {' '}
-                      · prefix hit {num(ticket.hit)}
-                    </>
-                  )}
-                  {graded || guessing || ticket.fresh === null ? null : (
-                    <>
-                      {' '}
-                      · {num(ticket.fresh)} new {pagesWord(ticket.fresh)}
-                    </>
-                  )}
-                </span>
-                {why === null ? null : <span className="es-dock__option-why">{why}</span>}
-              </button>
+              <Ringed on={ringOn(run, { t: 'admit', req: id })}>
+                <button
+                  type="button"
+                  className="es-dock__option"
+                  data-roving=""
+                  disabled={!can}
+                  tabIndex={can && at === stop ? 0 : -1}
+                  aria-label={`Admit request ${id + 1}, ${convo(ticket)}${why === null ? '' : `, ${why}`}`}
+                  onClick={() => run.dispatch({ t: 'admit', req: id })}
+                  onFocus={() => {
+                    note(Math.max(at, 0))
+                    onPoint(hitPages(view, id))
+                  }}
+                  onBlur={() => onPoint([])}
+                  onPointerEnter={() => onPoint(hitPages(view, id))}
+                  onPointerLeave={() => onPoint([])}
+                >
+                  <span className="es-dock__option-name">
+                    Admit <strong>{reqName(id)}</strong>
+                  </span>
+                  <span className="es-dock__option-meta">
+                    conversation {ticket.letter} · {num(ticket.tokens)} {tokensWord(ticket.tokens)}
+                    {graded ? null : (
+                      <>
+                        {' '}
+                        · prefix hit {num(ticket.hit)}
+                      </>
+                    )}
+                    {graded || guessing || ticket.fresh === null ? null : (
+                      <>
+                        {' '}
+                        · {num(ticket.fresh)} new {pagesWord(ticket.fresh)}
+                      </>
+                    )}
+                  </span>
+                  {why === null ? null : <span className="es-dock__option-why">{why}</span>}
+                </button>
+              </Ringed>
             </li>
           )
         })}
       </ul>
       <div className="es-dock__row">
-        <Button variant="quiet" aria-keyshortcuts="W" onClick={() => run.dispatch({ t: 'admit', req: null })}>
-          Admit none this step
-        </Button>
+        <Ringed on={ringOn(run, { t: 'admit', req: null })}>
+          <Button variant="quiet" aria-keyshortcuts="W" onClick={() => run.dispatch({ t: 'admit', req: null })}>
+            Admit none this step
+          </Button>
+        </Ringed>
       </div>
     </>
   )
@@ -380,8 +401,8 @@ export function Controls({ run, dump, mode, onPoint }: ControlsProps) {
   const ask = view.ask
   const body = useRef<HTMLDivElement>(null)
   const titleId = useId()
-  const [skipped, setSkipped] = useState(false)
-  const guessing = view.predict.open && !skipped
+  // The guess holds the page counts back while it is open, and shows once the intro has named the parts.
+  const guessing = view.predict.open && !run.guessSkipped
   useAnnouncements(run)
   // When a new decision opens, focus goes to its first control if the learner's focus was in the dock or had nowhere to be. A pointer user
   // who is somewhere else on the page is not pulled away.
@@ -408,15 +429,7 @@ export function Controls({ run, dump, mode, onPoint }: ControlsProps) {
   }
   return (
     <div className="es-dock" data-pool-controls="" data-ask={ask === null ? 'none' : ask.kind}>
-      {guessing ? (
-        <Guess
-          run={run}
-          onSkip={() => {
-            setSkipped(true)
-            run.announce('Guess skipped.')
-          }}
-        />
-      ) : null}
+      {guessing && run.intro.askShown ? <Guess run={run} onSkip={run.skipGuess} /> : null}
       <section className="es-dock__decision" aria-labelledby={titleId} data-ask-card="" data-new={ask !== null && ask.kind !== 'admit' ? '' : undefined}>
         <h3 id={titleId} className="es-dock__title">
           {ask === null ? 'Nothing to decide this step' : HEADLINES[ask.kind]}

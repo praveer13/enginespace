@@ -17,6 +17,12 @@
  *   6. Reduced motion: nothing animates, and the game plays. Nothing leaves the origin (I1). The same seed and the same actions give the
  *      same state hash in the browser as under Node (A§5.10). axe finds no serious or critical violation at 360 and 1280 px, and nothing is
  *      cut off at the right edge at 320 (WCAG 1.4.10).
+ *   7. R-T08's first run and feedback: the parts named before any guess, the look, the guess, the first move pointed at, all in under a
+ *      minute; not modal (Skip intro, Escape, nothing disabled, focus free); the intro flag per level and How to play's replay; the intro
+ *      as a chunk of its own; a named moment once, the delta for a second, and at the result the reference drawn hollow and your best.
+ *
+ * Every walk but section 7's opens the page as a learner who has met every part (the intro flag holds them all), so that its own first
+ * run does not stand in the way; section 7 opens it as a learner who has met none.
  *
  * How it runs. The spec starts the app's own Vite dev server on a free port, so it needs no build and no preview server, and drives
  * `/play/pool` in whichever browser Playwright launches. Run it with `npx playwright test e2e/pool.spec.ts`. With ES_E2E_ORIGIN set to
@@ -28,9 +34,9 @@ import type { Page } from '@playwright/test'
 import { createServer } from 'vite'
 import type { ViteDevServer } from 'vite'
 import { applyAction, drawInBand, startRun, stateHash } from '../packages/play'
-import { POOL_COPY } from '../packages/play/pool/copy'
+import { POOL_COPY, POOL_PARTS, partsOf } from '../packages/play/pool/copy'
 import { buildLevel } from '../packages/play/pool/levels'
-import { poolSession } from '../packages/play/pool/session'
+import { poolGhost, poolSession } from '../packages/play/pool/session'
 import { POOL_LEVEL_IDS } from '../packages/play/pool/types'
 import type { PoolAction } from '../packages/play/pool/types'
 import { findBanned } from '../src/copy/banned'
@@ -79,7 +85,27 @@ const activeName = (page: Page) =>
     return named.trim().replace(/\s+/g, ' ')
   })
 
-async function open(page: Page, level: string) {
+/** Every part of the game, as the intro flag keeps them once shown: a learner who has met them all. */
+const MET = JSON.stringify({ pool: POOL_PARTS.map((part) => part.id) })
+
+/** Opens a level, as a learner who has met every part (the default) or as one who has met none (`fresh`). */
+async function open(page: Page, level: string, { intro = 'met' }: { intro?: 'met' | 'fresh' } = {}) {
+  if (intro === 'met')
+    await page.addInitScript((flag) => {
+      try {
+        localStorage.setItem('es:intro', flag)
+      } catch {
+        // No storage: the intro shows, and the walk Tabs past it.
+      }
+    }, MET)
+  else
+    await page.addInitScript(() => {
+      try {
+        localStorage.removeItem('es:intro')
+      } catch {
+        // No storage: nothing was kept.
+      }
+    })
   await page.goto(`${origin}/play/pool?level=${level}`, { waitUntil: 'networkidle' })
   await page.evaluate(() => document.fonts.ready)
   await expect(game(page)).toBeVisible()
@@ -714,6 +740,16 @@ test.describe('accessibility', () => {
           await open(page, level)
           await audit(page, `${level} at ${width} px`)
         }
+        const fresh = await page.context().newPage()
+        await open(fresh, 'one-group', { intro: 'fresh' })
+        await expect(fresh.locator('.es-intro')).toBeVisible()
+        await audit(fresh, `the first run's parts at ${width} px`)
+        if (width >= 1024) {
+          await fresh.locator('[data-intro-next]').click()
+          await fresh.locator('[data-intro-look]').click()
+          await audit(fresh, `the first run's look at ${width} px`)
+        }
+        await fresh.close()
         await open(page, 'evict')
         const evict = houseActions(buildLevel('evict', 10))
         for (const action of evict.slice(0, evict.findIndex((a) => a.t === 'evict'))) await take(page, action)
@@ -752,6 +788,190 @@ test.describe('accessibility', () => {
       const found = await clipped(page, '[data-game="pool"]')
       expect(found.text, 'an eviction being chosen: words past the right edge').toEqual([])
       expect(found.scrolls, 'an eviction being chosen: sideways scroll').toBeLessThanOrEqual(0)
+    })
+  })
+})
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* 7. The first run and the feedback kit (R-T08)                                                                     */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+const coach = (page: Page) => page.locator('.es-intro')
+const predictBox = (page: Page) => page.locator('[data-pool-predict]')
+
+test.describe('the first run', () => {
+  test('names the parts before any guess, then the look, the guess and the first move, in under a minute; nothing is modal', async ({ page }) => {
+    test.setTimeout(120_000)
+    await page.setViewportSize({ width: 1440, height: 900 })
+    const level = buildLevel('one-group', 2)
+    const first = poolGhost(level).history[0] as Extract<PoolAction, { t: 'admit' }>
+    // From the page's first node on, what the dock shows is noted: the parts list, the guess, or neither.
+    await page.addInitScript(() => {
+      const seen: string[] = []
+      ;(window as unknown as { esOrder: string[] }).esOrder = seen
+      const note = () => {
+        const now = document.querySelector('[data-pool-predict]') !== null ? 'guess' : document.querySelector('.es-intro ol') !== null ? 'parts' : 'none'
+        if (now !== seen[seen.length - 1]) seen.push(now)
+      }
+      new MutationObserver(note).observe(document, { subtree: true, childList: true })
+    })
+    const started = Date.now()
+    await page.goto(`${origin}/play/pool?level=one-group`)
+    await expect(coach(page)).toHaveAttribute('data-intro', 'parts')
+    // 1. What you are looking at: an ordered list in the dock, numbered as the discs on the drawing, which are decoration.
+    const list = coach(page).locator('ol')
+    await expect(list.locator('li')).toHaveCount(5)
+    await expect(list.locator('li').first()).toContainText('KV page pool')
+    await expect(page.locator('[data-intro-callouts]')).toHaveAttribute('aria-hidden', 'true')
+    await expect.poll(() => page.locator('[data-intro-callouts] .es-callout').count()).toBeGreaterThanOrEqual(3)
+    await expect(predictBox(page)).toHaveCount(0)
+    // Not modal: the decision under it is live, nothing is disabled, and Tab leaves the dock.
+    expect(await page.locator('[data-ask-list="admit"] button:not(:disabled)').count()).toBeGreaterThan(0)
+    await page.locator('[data-intro-next]').focus()
+    let left = false
+    for (let i = 0; i < 40 && !left; i++) {
+      await page.keyboard.press('Tab')
+      left = await page.evaluate(() => document.activeElement?.closest('[data-dock]') == null)
+    }
+    expect(left, 'Tab leaves the dock: focus is not trapped').toBe(true)
+    // 2. Look: request 1's popover holds its tokens and its prefix, and not its page count, which the guess asks for.
+    await page.locator('[data-intro-next]').click()
+    await expect(coach(page)).toHaveAttribute('data-intro', 'look')
+    await expect(predictBox(page)).toHaveCount(0)
+    await page.locator('[data-intro-look]').click()
+    const sheet = page.locator('.es-intro__look .es-pop__panel')
+    await expect(sheet).toContainText(/\d+ tokens, conversation A, (no cached prefix|a cached prefix of \d+ tokens?)\./)
+    await expect(sheet).not.toContainText('page')
+    // Before the guess, a waiting request's row shows its tokens and its prefix, and not its page count.
+    await expect(page.locator('[data-ask-list="admit"] li').first()).toContainText('prefix hit')
+    await expect(page.locator('[data-ask-list="admit"]')).not.toContainText('new page')
+    await page.keyboard.press('Escape')
+    await expect(coach(page)).toHaveAttribute('data-intro', 'look')
+    // 3. The level's own guess, its field in hand; then the first move, the reference run's first action, carries the ring.
+    await page.locator('[data-intro-next]').click()
+    await expect(coach(page)).toHaveAttribute('data-intro', 'ask')
+    await expect(predictBox(page)).toBeVisible()
+    await expect.poll(() => page.evaluate(() => document.activeElement?.closest('[data-pool-predict]') != null)).toBe(true)
+    await page.keyboard.type(String(level.predict.answer))
+    await page.getByRole('button', { name: 'Commit', exact: true }).click()
+    await expect(coach(page)).toHaveAttribute('data-intro', 'point')
+    const ringed = page.locator('.es-dock__ring button')
+    await expect(ringed).toHaveCount(1)
+    await expect(ringed).toHaveAttribute('aria-label', new RegExp(`^Admit request ${(first.req ?? 0) + 1},`))
+    await ringed.click()
+    await expect(coach(page)).toHaveCount(0)
+    const elapsed = Date.now() - started
+    expect(elapsed, 'the scripted first run, in ms').toBeLessThan(60_000)
+    // No prediction was shown before the parts list had been on screen.
+    const order = await page.evaluate(() => (window as unknown as { esOrder: string[] }).esOrder)
+    expect(order.indexOf('parts'), order.join(' > ')).toBeGreaterThanOrEqual(0)
+    expect(order.indexOf('parts'), order.join(' > ')).toBeLessThan(order.indexOf('guess'))
+    // The parts it showed are kept, per game.
+    expect(JSON.parse((await page.evaluate(() => localStorage.getItem('es:intro'))) ?? '{}')).toEqual({ pool: ['pool', 'page', 'waiting', 'batch', 'cost'] })
+    // The first rule felt is named once, beside the request; the cost's delta stands beside it for a second, and only there.
+    await expect(page.locator('[data-moment="pages-held"]')).toBeVisible()
+    await expect(page.locator('[data-live="moment"]')).toContainText(`Request ${(first.req ?? 0) + 1} took`)
+    await expect(page.locator('[data-readout-id="recomputed"] .es-strip__delta')).toBeVisible()
+    await expect(page.locator('[data-readout-id="evictions"] .es-strip__delta')).toHaveCount(0)
+    await expect(page.locator('.es-strip__delta')).toHaveCount(0, { timeout: 3_000 })
+  })
+
+  test('Skip intro and Escape end it at any step, and the flag keeps the parts it showed; on a phone Next walks the parts one at a time', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await open(page, 'one-group', { intro: 'fresh' })
+    await expect(coach(page).locator('ol li:visible')).toHaveCount(1)
+    await page.locator('[data-intro-next]').click()
+    await expect(coach(page).locator('ol li:visible')).toContainText('A page')
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await expect(coach(page)).toHaveAttribute('data-intro', 'parts')
+    await page.locator('[data-intro-skip]').click()
+    await expect(coach(page)).toHaveCount(0)
+    await expect(predictBox(page)).toBeVisible()
+    await page.evaluate(() => localStorage.removeItem('es:intro'))
+    await page.reload({ waitUntil: 'networkidle' })
+    await page.locator('[data-intro-next]').click()
+    await expect(coach(page)).toHaveAttribute('data-intro', 'look')
+    await page.keyboard.press('Escape')
+    await expect(coach(page)).toHaveCount(0)
+    expect(JSON.parse((await page.evaluate(() => localStorage.getItem('es:intro'))) ?? '{}').pool).toHaveLength(5)
+  })
+
+  test('a level whose parts were all met opens none; one new part is the only one called out; How to play replays the whole', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    const all = partsOf('two-kinds').map((part) => part.id)
+    await page.goto(`${origin}/play/pool?level=two-kinds`, { waitUntil: 'networkidle' })
+    await page.evaluate((flag) => localStorage.setItem('es:intro', flag), JSON.stringify({ pool: all.filter((id) => id !== 'sliding') }))
+    await page.reload({ waitUntil: 'networkidle' })
+    await expect(coach(page).locator('ol li')).toHaveCount(1)
+    await expect(coach(page).locator('ol li')).toContainText('Sliding window')
+    await page.locator('[data-intro-skip]').click()
+    await page.reload({ waitUntil: 'networkidle' })
+    await page.waitForTimeout(300)
+    await expect(coach(page)).toHaveCount(0)
+    await expect(predictBox(page)).toBeVisible()
+    await page.getByRole('button', { name: 'How to play' }).click()
+    await page.locator('[data-intro-replay]').click()
+    await expect(coach(page).locator('ol li')).toHaveCount(all.length)
+  })
+
+  test('the intro is a chunk of its own, loaded only when it shows', async ({ page }) => {
+    const asked: string[] = []
+    page.on('request', (request) => {
+      if (/\/Intro(\.tsx|-[\w-]+\.js)/.test(request.url())) asked.push(request.url())
+    })
+    await open(page, 'one-group')
+    await page.waitForTimeout(300)
+    expect(asked, 'with every part met').toEqual([])
+    await page.evaluate(() => localStorage.removeItem('es:intro'))
+    const fresh = await page.context().newPage()
+    fresh.on('request', (request) => {
+      if (/\/Intro(\.tsx|-[\w-]+\.js)/.test(request.url())) asked.push(request.url())
+    })
+    await fresh.goto(`${origin}/play/pool?level=one-group`, { waitUntil: 'networkidle' })
+    await expect(fresh.locator('.es-intro')).toBeVisible()
+    expect(asked.length).toBeGreaterThan(0)
+  })
+
+  for (const [width, height] of [
+    [1440, 900],
+    [390, 844],
+  ] as const) {
+    test(`at ${width} x ${height} the intro's Next, the diagram and the readout share the first screen`, async ({ page }) => {
+      await page.setViewportSize({ width, height })
+      await open(page, 'one-group', { intro: 'fresh' })
+      await expect(coach(page)).toBeVisible()
+      expect(await inView(page, '[data-intro-next]')).toEqual({ diagram: true, control: true, readout: true, scrolled: 0 })
+    })
+  }
+
+  test('a level the ledger says was played has its parts met, and the result draws the reference hollow, with Run again’s difference and your best', async ({ page }) => {
+    test.setTimeout(180_000)
+    await open(page, 'one-group')
+    await page.getByRole('button', { name: 'Skip the guess' }).click()
+    for (const action of houseActions(buildLevel('one-group', 2))) await take(page, action, { none: 'key', evict: 'key' })
+    await atTheResult(page, 'Finished (practice)')
+    await expect(page.locator('[data-result] [data-versus] [data-run="reference"]').first()).toBeAttached()
+    await expect(page.locator('[data-run-again]')).toContainText("Run again: you matched the reference's cost")
+    await expect(page.locator('[data-run-again]')).toContainText('Your best on this level: 1.00')
+    // The flag is lost, and the ledger still says the level was played: its parts are met, so no intro opens.
+    await page.evaluate(() => localStorage.removeItem('es:intro'))
+    await page.goto(`${origin}/play/pool?level=one-group`, { waitUntil: 'networkidle' })
+    await page.waitForTimeout(500)
+    await expect(coach(page)).toHaveCount(0)
+    await expect(predictBox(page)).toBeVisible()
+  })
+
+  test.describe('under reduced motion', () => {
+    test.use({ reducedMotion: 'reduce' })
+    test('nothing pulses or animates in the intro, the moments or the deltas', async ({ page }) => {
+      await open(page, 'one-group', { intro: 'fresh' })
+      await expect(coach(page)).toBeVisible()
+      await expect.poll(() => page.evaluate(() => document.getAnimations().filter((animation) => animation.playState === 'running').length)).toBe(0)
+      await page.locator('[data-intro-skip]').click()
+      await page.getByRole('button', { name: 'Skip the guess' }).click()
+      await page.locator('[data-ask-list="admit"] button:not(:disabled)').first().click()
+      await expect(page.locator('[data-moment]')).toBeVisible()
+      expect(await page.evaluate(() => document.getAnimations().filter((animation) => animation.playState === 'running').length)).toBe(0)
     })
   })
 })
