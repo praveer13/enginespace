@@ -1,24 +1,24 @@
 /*
- * The Play index's words (W1-T06), in one place so that the page and its tests read the same copy. The display name leads over its
- * subtitle, the engine concept (D-049). The words are the engine's and the product's own (REDESIGN §2.7): no kitchen word, and no wave id.
+ * The Games index's words, in one place so that the page and its tests read the same copy. The engine's name for a game leads, then
+ * the role the learner takes in it and the rule it plays (REDESIGN §2.7, §3.8): no kitchen word, no task, no wave.
  */
 
 export const SPECIALS = {
   title: 'Games',
   lede: [
-    'Each game plays one rule of the engine in a seeded world, and the rule is the concept itself. Every game can be played flat on the page, and the ones with a scene can be played in it as well.',
-    'The published games can be played now. The rest are listed with what they will teach, and are not published yet.',
+    'Each game puts you in one seat of the engine and plays a single rule in a seeded world. The rule is the concept itself.',
+    'A practice level can be replayed as often as you like. A graded level runs on a fresh seed with no undo, and passing it counts toward a skill.',
   ],
-  open: 'Published',
-  arriving: 'Not published yet',
   play: 'Play',
+  levels: 'Levels',
   view: { d2: '2D', d3: '3D', twoToo: '2D view too' },
   modules: 'Module',
   also: 'also',
-  notBuilt: 'Not published yet',
-  poster: {
-    /** In a well whose game has no picture, or whose picture did not come. A drawing that does come carries its own name for a reader that cannot see it. */
-    none: 'No picture yet',
+  notPublished: 'Not published yet',
+  kinds: { practice: 'practice', graded: 'graded' },
+  traces: {
+    link: 'Traces',
+    lead: 'Read engine traces beside the seeded step-loop world.',
   },
 } as const
 

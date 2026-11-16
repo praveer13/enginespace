@@ -126,9 +126,9 @@ describe('routes against ARCHITECTURE §3.1', () => {
     '/play': { h1: 'Games' },
     '/play/:game': { h1: 'Play Step loop', shows: 'Loading Step loop', title: 'Game · enginespace' },
     // A lab's page names itself as its served document does (`Lab tr8.replay`), and sets that title itself; the route's is the fallback.
-    // A page that is not built yet names the task that builds it (src/unbuilt/copy.ts).
-    '/labs/:lab': { h1: 'Lab tr8.replay', shows: 'W2-T36', title: 'Lab · enginespace' },
-    '/trace-room': { h1: 'The Trace Room', shows: 'W2-T20' },
+    // A page that is not published yet says so, names no task, and hands back to Continue (src/unbuilt/copy.ts).
+    '/labs/:lab': { h1: 'Lab tr8.replay', shows: 'Not published yet', title: 'Lab · enginespace' },
+    '/trace-room': { h1: 'The Trace Room', shows: 'Not published yet' },
     '/trace-room/:trace': { h1: 'The Trace Room', shows: 'Trace id: sample' },
     // The page opens the ledger in the browser (W2-T06), so the server renders the tickets that are still printing.
     '/receipts': { h1: 'GPU lab results', shows: 'Loading your challenges', title: 'GPU lab results · enginespace' },
