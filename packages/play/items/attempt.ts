@@ -12,6 +12,7 @@
  */
 import type { Seed } from '@es/sim/core'
 import { drawInBand, resolveVariant } from './draw'
+import type { Draw } from './draw'
 import { itemRef } from './types'
 import type { Confidence, Gen, Grade, Item, ItemProvenance, Level, Response, StoredAnswer } from './types'
 
@@ -57,14 +58,34 @@ export interface StartOptions {
   readonly provenance?: ItemProvenance
 }
 
+/** What makes two questions the same question to a reader: the words and numbers of the stem. */
+export const stemKey = (item: Pick<Item, 'stem'>): string => JSON.stringify(item.stem)
+
+/**
+ * The draw for one item of a set: the first seed in band that the learner has not met and whose stem is new to the set. A family with
+ * fewer distinct stems than the set asks for has none in `MAX_DRAWS` candidates, and then the repeat is allowed rather than the set refused.
+ */
+function drawFresh(gen: Gen, level: Level, entropy: number, met: (seed: Seed) => boolean, repeats: (seed: Seed) => boolean): Draw {
+  try {
+    return drawInBand(gen, level, entropy, (candidate) => met(candidate) || repeats(candidate))
+  } catch (error) {
+    if (!(error instanceof RangeError)) throw error
+    return drawInBand(gen, level, entropy, met)
+  }
+}
+
 /** Starts an attempt of `entropy.length` items: one fair, unseen item for each value of entropy. */
 export function startAttempt(gen: Gen, level: Level, entropy: readonly number[], options: StartOptions = {}): Attempt {
   const provenance = options.provenance ?? 'unseen'
   const met = new Set(provenance === 'unseen' ? options.seen : [])
   const served: Served[] = []
+  // A set never shows the same stem twice: a draw whose stem repeats one already in the set is passed over, and the set takes the next seed.
+  const stems = new Set<string>()
   for (const value of entropy) {
-    const draw = drawInBand(gen, level, value, (candidate) => met.has(seenKey(gen.id, resolveVariant(gen, candidate, level).id, candidate)))
+    const refused = (candidate: Seed) => met.has(seenKey(gen.id, resolveVariant(gen, candidate, level).id, candidate))
+    const draw = drawFresh(gen, level, value, refused, (candidate) => stems.has(stemKey(gen.make(candidate, level))))
     const item = gen.make(draw.seed, level)
+    stems.add(stemKey(item))
     met.add(seenKey(gen.id, item.variant, draw.seed))
     served.push({ entropy: value, seed: draw.seed, tries: draw.tries, item })
   }

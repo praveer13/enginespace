@@ -191,15 +191,15 @@ for (const width of [360, 1280]) {
         const attempts = plan(block)
         await open(page, block.route)
         const container = blockOf(page, block)
-        await expect(container).toContainText(block.family)
-        // The block draws items: it is not the waiting ticket of a family that no task has built.
-        await expect(container).not.toContainText('Not built yet')
+        await expect(container).toHaveAttribute('data-family', block.family)
+        // The block draws questions: it is not the waiting sheet of a family that is not published.
+        await expect(container).not.toContainText('not published yet')
         await inPhase(container, 'idle')
 
         let first = true
         for (const attempt of attempts) {
           await page.evaluate((entropy) => void (window.__queue = entropy.slice()), attempt.entropy)
-          await control(container, first ? 'Start items' : 'New numbers').click()
+          await control(container, first ? 'Start questions' : 'New numbers').click()
           first = false
           await inPhase(container, 'asking')
           for (const [index, variant] of attempt.variants.entries()) {
@@ -216,7 +216,7 @@ for (const width of [360, 1280]) {
             // The solution is printed beneath the verdict, one line for each step, and ends with the key's own line.
             await expect(container.locator('.es-item__steps li')).not.toHaveCount(0)
             await audit(page, container, `${block.family}/${variant} revealed`, width === 360)
-            await control(container, index === attempt.variants.length - 1 ? /See the tally/ : /Next question/).click()
+            await control(container, index === attempt.variants.length - 1 ? /See the result/ : /Next question/).click()
             if (index < attempt.variants.length - 1) await inPhase(container, 'asking')
           }
           await inPhase(container, 'done')

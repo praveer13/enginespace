@@ -4,7 +4,7 @@
  * welcome-back set after 7 idle days and never an overdue count" (kernelspace K2).
  *
  * The voice is the course's (REDESIGN §2.7): the product's own words (review, question, Check answer), and no kitchen word. A line says
- * what the learner will do or what happened, and an error says the problem and the way back.
+ * what the learner will do or what happened, and an error says the problem and the way back. An item is a question everywhere.
  */
 import type { LocalDay } from '@es/ledger'
 import { formatDay } from './days'
@@ -30,12 +30,11 @@ export const FINISH_PREP = 'Finish the review'
 export const MORE_PREP = 'Review another set'
 
 export const EMPTY_TITLE = 'Nothing to review yet'
-export const EMPTY_BODY =
-  "Review brings back what you have passed: answer a lesson's questions or pass a graded level, and the ideas you get right come back here before they fade."
+export const EMPTY_BODY = "Review brings back what you have passed: answer a lesson's questions or pass a graded level."
 export const EMPTY_UNSERVED_TITLE = 'No review questions yet for what you have passed'
 export const EMPTY_UNSERVED_BODY = 'The ideas you have passed so far have no review questions yet. This page picks them up on its own once their modules publish them.'
 
-export const REST_TITLE = 'Nothing is due today'
+export const REST_TITLE = 'Nothing is due today.'
 
 /** "Your next review is Fri 6 Nov." */
 export const nextPrep = (day: LocalDay): string => `Your next review is ${formatDay(day)}.`
@@ -43,6 +42,22 @@ export const nextPrep = (day: LocalDay): string => `Your next review is ${format
 export const REST_AHEAD = 'You can review ahead. The ideas closest to fading come first.'
 
 export const DONE_TITLE = 'Review done'
+
+/** "Next review: Fri 20 Nov.", the line that closes a set. */
+export const nextReview = (day: LocalDay): string => `Next review: ${formatDay(day)}.`
+
+/** "Next after this: Fri 20 Nov", in the quiet column beside a set that is waiting. */
+export const nextAfter = (day: LocalDay): string => `Next after this: ${formatDay(day)}`
+
+/** "last seen Mon 9 Nov", under an idea on the list. */
+export const lastSeen = (day: LocalDay): string => `last seen ${formatDay(day)}`
+
+/** The word that says where a question of a set stands, as a reader sees it. */
+export const stateWord = (state: 'waiting' | 'now' | 'done', ok?: boolean): string => (state === 'done' ? (ok === true ? 'right' : 'missed') : state === 'now' ? 'now' : 'next')
+
+export const KEPT_LABEL = 'Kept'
+export const KEPT_LEGEND = 'Ideas you have passed, which this page brings back before they fade.'
+export const SET_LABEL = 'The questions in this review'
 
 /** A question's line on the list, once it is checked: the day it comes back. */
 export const backLine = (day: LocalDay): string => `back ${formatDay(day)}`

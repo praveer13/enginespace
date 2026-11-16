@@ -475,19 +475,19 @@ describe('the blocks, one at a time', () => {
   test('an item block of a family that is built waits for the learner: its count, its level and its stub, and no seed yet', () => {
     const html = drawnBlocks({ type: 'item', family: 'tr2.bubble-width', level: 1, count: 5 })
     expect(html).toContain('<span class="es-ticket-line__qty">5x</span>')
-    expect(html).toContain('tr2.bubble-width')
-    expect(html).toContain('level 1')
+    expect(html).toContain('data-family="tr2.bubble-width"')
+    expect(html).toContain('faded')
     expect(html).toContain('data-phase="idle"')
-    expect(html).toContain('Start items')
+    expect(html).toContain('Start questions')
     expect(html).not.toContain('data-seed')
     expect(placeholders(html)).toEqual({})
   })
 
-  test('an item block of a family that no task has built yet says so, and holds its stub down', () => {
+  test('an item block of a family that is not published yet says so, and holds its button down', () => {
     // A family that a lesson names and nobody has built is the case, and none of TR2's is one now: the id is one no lesson names.
     const html = drawnBlocks({ type: 'item', family: 'tr2.no-such-family', level: 1, count: 5 })
     expect(html).toContain('data-phase="unbuilt"')
-    expect(html).toContain('Not built yet: the generator for tr2.no-such-family')
+    expect(html).toContain('These questions are not published yet.')
     expect(html).toMatch(/<button type="button" class="es-stub__pull"[^>]*disabled=""/)
   })
 

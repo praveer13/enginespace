@@ -92,7 +92,7 @@ async function ticket(page: Page): Promise<Ticket> {
 /** Pulls the first stub: an attempt starts, with the entropy the page reads then. A refusal by the policy is the ledger's, which loads now. */
 async function start(page: Page, watch: Watch, queue?: number[]): Promise<void> {
   if (queue !== undefined) await page.evaluate((seeds) => void (window.__queue = seeds), queue)
-  await stub(page, 'Start items').click()
+  await stub(page, 'Start questions').click()
   await expect(block(page)).toHaveAttribute('data-phase', 'asking')
   await expectNoRefusal(watch)
 }
@@ -171,7 +171,7 @@ async function play(page: Page, plan: ('right' | 'wrong')[]): Promise<number[]> 
     const current = await fill(page, which)
     seeds.push(current.seed)
     await check(page)
-    await stub(page, index === plan.length - 1 ? /See the tally/ : /Next question/).click()
+    await stub(page, index === plan.length - 1 ? /See the result/ : /Next question/).click()
     if (index < plan.length - 1) await expect(block(page)).toHaveAttribute('data-phase', 'asking')
   }
   await expect(block(page)).toHaveAttribute('data-phase', 'done')
@@ -191,11 +191,11 @@ test.describe('accept 2', () => {
 
     await start(page, watch)
     const first = await ticket(page)
-    await expect(block(page).locator('.es-ticket__foot')).toContainText(`seed ${first.seed.toString(16).toUpperCase().padStart(8, '0')}`)
-    await expect(block(page).locator('.es-ticket__foot')).toContainText('unseen')
+    await expect(block(page).locator('.es-ticket__foot')).toContainText(`Seed ${first.seed.toString(16).toUpperCase().padStart(8, '0')}`)
+    await expect(block(page).locator('.es-ticket__foot')).toContainText("new numbers")
     const attemptOne = await play(page, ['right', 'wrong', 'right'])
 
-    await expect(block(page).getByRole('heading', { name: '2 of 3 right' })).toBeVisible()
+    await expect(block(page).getByRole('heading', { name: '2 of 3: not yet. New numbers when you retry.' })).toBeVisible()
     await stub(page, 'New numbers').click()
     await expect(block(page)).toHaveAttribute('data-phase', 'asking')
     const attemptTwo = await play(page, ['right', 'right', 'right'])
@@ -357,8 +357,8 @@ test.describe('a ticket', () => {
     }
     await expect(block(page).locator('.es-item__option[data-yours="true"] .es-item__mark')).toContainText('Your pick.')
     await expect(block(page).locator('.es-item__option[data-key="true"] .es-item__mark')).toContainText('Right.')
-    await stub(page, /See the tally/).click()
-    await expect(block(page).getByRole('heading', { name: '2 of 3 right' })).toBeVisible()
+    await stub(page, /See the result/).click()
+    await expect(block(page).getByRole('heading', { name: '2 of 3: not yet. New numbers when you retry.' })).toBeVisible()
     await expect(block(page).locator('.es-item__lines li')).toHaveText([/1.*right/s, /2.*right/s, /3.*missed/s])
   })
 })
@@ -391,7 +391,7 @@ test.describe('the keyboard', () => {
       heading.tabIndex = -1
       heading.focus()
     })
-    await tabTo(page, stub(page, 'Start items'))
+    await tabTo(page, stub(page, 'Start questions'))
     await page.keyboard.press('Enter')
     await expect(block(page)).toHaveAttribute('data-phase', 'asking')
     await expectNoRefusal(watch)
@@ -438,9 +438,9 @@ test.describe('the keyboard', () => {
     await tabTo(page, stub(page, /Check answer/))
     await page.keyboard.press('Enter')
     await expect(block(page)).toHaveAttribute('data-phase', 'revealed')
-    await tabTo(page, stub(page, /See the tally/))
+    await tabTo(page, stub(page, /See the result/))
     await page.keyboard.press('Enter')
-    await expect(block(page).getByRole('heading', { name: '3 of 3 right' })).toBeFocused()
+    await expect(block(page).getByRole('heading', { name: '3 of 3: passed' })).toBeFocused()
     await tabTo(page, stub(page, 'New numbers'))
     await page.keyboard.press('Enter')
     await expect(block(page)).toHaveAttribute('data-phase', 'asking')
@@ -468,20 +468,20 @@ test.describe('motion', () => {
   })
 })
 
-test.describe('with motion, the reveal is fed out in steps', () => {
-  test('the feed runs on the printer\'s duration and ends with everything showing', async ({ page, watch }) => {
+test.describe('with motion, the reveal is drawn at its end', () => {
+  test('the printer\'s feed is retired: the reveal is there at once, with no clip and no animation, and the verdict\'s focus ring keeps its sides', async ({ page, watch }) => {
     await open(page, ROUTE)
     await start(page, watch, SEEDS)
     await fill(page, 'right')
     await stub(page, /Check answer/).click()
     const reveal = block(page).locator('.es-item__reveal')
     await expect(reveal).toBeVisible()
-    const duration = await reveal.evaluate((element) => getComputedStyle(element).animationDuration)
-    expect(duration).toBe('0.42s')
-    await quiet(page, 300)
-    expect(await page.evaluate(() => document.getAnimations().filter((animation) => (animation as CSSAnimation).animationName === 'es-item-feed' && animation.playState === 'running').length)).toBe(0)
-    // The feed holds no clip once it has run, so nothing of the reveal is cut off: the ring of the verdict that takes focus keeps its sides.
-    expect(await reveal.evaluate((element) => getComputedStyle(element).clipPath)).toBe('none')
+    const motion = await reveal.evaluate((element) => ({
+      name: getComputedStyle(element).animationName,
+      clip: getComputedStyle(element).clipPath,
+      running: document.getAnimations().filter((animation) => (animation as CSSAnimation).animationName === 'es-item-feed').length,
+    }))
+    expect(motion).toEqual({ name: 'none', clip: 'none', running: 0 })
   })
 })
 
@@ -523,7 +523,7 @@ for (const width of [360, 1280]) {
       await fill(page, 'wrong', 'guess')
       await check(page)
       await audit('revealed, wrong, a choice')
-      await stub(page, /See the tally/).click()
+      await stub(page, /See the result/).click()
       await audit('the tally')
     })
 
@@ -549,7 +549,7 @@ for (const width of [360, 1280]) {
       await fill(page, 'wrong', 'guess')
       await check(page)
       await reflows('revealed, a choice')
-      await stub(page, /See the tally/).click()
+      await stub(page, /See the result/).click()
       await reflows('the tally')
     })
   })

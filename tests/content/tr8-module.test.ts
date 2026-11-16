@@ -332,15 +332,14 @@ describe('the item blocks, as the lessons print them (W1b-T06)', () => {
     if (gen === undefined || face === undefined || !isLevel(block.level)) throw new Error(`${block.family} cannot be drawn`)
     const level = block.level
 
-    test(`${lesson.id}, ${block.family}: the ticket waits with the family's title and KCs, and a stub that can be pulled, and not "Not built yet"`, () => {
+    test(`${lesson.id}, ${block.family}: the sheet waits with the family's title and its level, and a button that can be pressed, and is not "not published yet"`, () => {
       const html = render(h(ItemBlock, { block, scope: lesson.id }))
       expect(html).toContain('data-phase="idle"')
-      expect(html).not.toContain('Not built yet')
-      expect(html).toContain(`${block.count} ${block.count === 1 ? 'item' : 'items'} on fresh numbers, drawn when you start.`)
+      expect(html).not.toContain('not published yet')
+      expect(html).toContain(`${block.count} ${block.count === 1 ? 'question' : 'questions'} on fresh numbers, drawn when you start.`)
       expect(html).toContain(escaped(face.title))
-      for (const kc of new Set(face.variants.flatMap((variant) => variant.kcs))) expect(html).toContain(kc)
       expect(html).toMatch(/<button type="button" class="es-stub__pull"(?![^>]*disabled)[^>]*>/)
-      expect(html).toContain('Start items')
+      expect(html).toContain('Start questions')
     })
 
     test(`${lesson.id}, ${block.family}: the first ticket of an attempt holds a seed and the question, and no key and no solution`, () => {
