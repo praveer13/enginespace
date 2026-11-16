@@ -52,11 +52,10 @@
 }
 
 .es-trace__pennant {
+  /* Its amber and its edge are on the path itself (TraceView.tsx): the marker, as the legend of any diagram draws it. */
   flex: none;
   width: 1em;
   height: 1em;
-  fill: var(--es-lamp);
-  stroke: var(--es-lamp-ring);
   stroke-width: 1.5;
   stroke-linejoin: round;
 }
