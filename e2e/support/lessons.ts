@@ -46,19 +46,23 @@ export function lessonGames(): LessonGame[] {
   return found
 }
 
-/** The block's ticket: one per block, since no lesson names a game, a level and a mode twice (tests/content/game-blocks.test.ts). */
+/** The block's run on the lesson page: one per block, since no lesson names a game, a level and a mode twice (tests/content/game-blocks.test.ts). */
 export const ticketOf = (page: Page, block: Pick<LessonGame, 'game' | 'level' | 'mode'>): Locator =>
-  page.locator(`section[data-block="game"][data-play="${block.game}/${block.level}"][data-mode="${block.mode}"]`)
+  page.locator(`[data-block="game"][data-play="${block.game}/${block.level}"][data-mode="${block.mode}"]`)
 
-/** The game a block opened, under its ticket. */
-export const embedOf = (page: Page, block: Pick<LessonGame, 'game' | 'level' | 'mode'>): Locator =>
-  page.locator('.es-c-game[data-open]').filter({ has: ticketOf(page, block) }).locator('section[data-game]')
+/** The game a block opened, inside its run. */
+export const embedOf = (page: Page, block: Pick<LessonGame, 'game' | 'level' | 'mode'>): Locator => ticketOf(page, block).locator('section[data-game]')
 
-/** Starts a block's level with the keys: focus on its stub, and Enter. Returns the game it opened, once it is on the page. */
+/**
+ * Starts a block's level with the keys, unless the lesson opened it already (an opening run starts with the page): focus on its control, and
+ * Enter. Returns the game it opened, once it is on the page.
+ */
 export async function startBlock(page: Page, block: Pick<LessonGame, 'game' | 'level' | 'mode'>): Promise<Locator> {
   const ticket = ticketOf(page, block)
-  await ticket.getByRole('button', { name: 'Start level' }).focus()
-  await page.keyboard.press('Enter')
+  if ((await ticket.getAttribute('data-phase')) !== 'open') {
+    await ticket.getByRole('button', { name: /^(Play|Next level)/ }).focus()
+    await page.keyboard.press('Enter')
+  }
   await expect(ticket).toHaveAttribute('data-phase', 'open')
   const game = embedOf(page, block)
   await expect(game).toBeVisible({ timeout: 60_000 })

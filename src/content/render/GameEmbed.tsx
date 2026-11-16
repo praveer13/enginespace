@@ -27,9 +27,14 @@ export interface GameEmbedProps {
   rev?: string
   /** The game's display name, for the line that waits for its code. */
   title: string
+  /**
+   * Whether focus moves to the game once it is on the page. True when the learner started the level; false for a lesson's opening run,
+   * which loads with the page and must not pull focus or the scroll away from where the reader is.
+   */
+  autoFocus?: boolean
 }
 
-export default function GameEmbed({ block, scope, at, rev, title }: GameEmbedProps) {
+export default function GameEmbed({ block, scope, at, rev, title, autoFocus = true }: GameEmbedProps) {
   const box = useRef<HTMLDivElement>(null)
   const recorder = useRecorder()
   const { record } = recorder
@@ -37,7 +42,7 @@ export default function GameEmbed({ block, scope, at, rev, title }: GameEmbedPro
   // Focus moves to the game when it appears, unless the learner has put it somewhere else of their own while it loaded.
   useEffect(() => {
     const element = box.current
-    if (element === null) return
+    if (element === null || !autoFocus) return
     const here = element.closest('.es-c-game') ?? element
     const settle = (): boolean => {
       const target = element.querySelector<HTMLElement>('[data-game]')
@@ -52,7 +57,7 @@ export default function GameEmbed({ block, scope, at, rev, title }: GameEmbedPro
     })
     watch.observe(element, { childList: true, subtree: true })
     return () => watch.disconnect()
-  }, [])
+  }, [autoFocus])
 
   const game = resolveGame(block.id)
   if (game.kind === 'unknown') {

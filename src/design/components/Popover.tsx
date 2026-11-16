@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent as KeyEvent, type MouseEvent as PressEvent, type ReactNode } from 'react'
 import { Icon } from './Glyph'
 import '../parts.css'
 
@@ -36,6 +36,11 @@ export interface PopoverProps {
   disabled?: boolean
   className?: string
   triggerClassName?: string
+  /**
+   * Make the trigger a link to this address, for a claim's mark whose entry is in the page's Sources: a plain click, Enter or Space opens
+   * the sheet, and a click that asks for a new tab (or a page with no script) follows the link.
+   */
+  href?: string
   /** Extra data on the trigger: the stamp's word, for its colour. */
   triggerData?: Record<`data-${string}`, string | undefined>
   'data-force'?: 'hover' | 'focus' | 'active'
@@ -58,6 +63,7 @@ export function Popover({
   className,
   triggerClassName,
   triggerData,
+  href,
   'data-force': force,
 }: PopoverProps) {
   const [uncontrolled, setUncontrolled] = useState(defaultOpen)
@@ -123,6 +129,7 @@ export function Popover({
   }, [open])
 
   const Wrap = inline ? 'span' : 'div'
+  const Trigger = (href === undefined ? 'button' : 'a') as 'button'
   const Part = inline ? 'span' : 'div'
   return (
     <Wrap
@@ -135,21 +142,27 @@ export function Popover({
         if (open && next && !event.currentTarget.contains(next)) setOpen(false)
       }}
     >
-      <button
+      <Trigger
         ref={triggerRef}
-        type="button"
+        {...(href === undefined ? { type: 'button', disabled } : { href, onKeyDown: (event: KeyEvent<HTMLElement>) => event.key === ' ' && (event.preventDefault(), setOpen(!open)) })}
         className={clsx('es-pop__trigger', triggerClassName)}
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
         aria-haspopup="dialog"
         aria-label={triggerLabel}
-        disabled={disabled}
         data-force={force}
-        onClick={() => setOpen(!open)}
+        onClick={(event: PressEvent<HTMLElement>) => {
+          // A link's click that asks for another tab, or a window, follows the link.
+          if (href !== undefined) {
+            if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+            event.preventDefault()
+          }
+          setOpen(!open)
+        }}
         {...triggerData}
       >
         {trigger}
-      </button>
+      </Trigger>
       {open ? (
         <Part ref={panelRef as never} className="es-pop__panel" id={panelId} role="dialog" aria-labelledby={titleId} data-width={width}>
           <Part className="es-pop__head">

@@ -1,9 +1,10 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Button } from '@/design/components/Button'
 import { Field } from '@/design/components/Field'
 import { Glyph } from '@/design/components/Glyph'
 import { Marker } from '@/design/components/Marker'
 import { sameAction } from '@/games/kit/first-move'
+import { LessonGuessContext } from '@/games/kit/lessonGuess'
 import type { AskView, PoolAction, PoolView, TicketView } from '@es/play/pool/types'
 import { changeLine } from './announce'
 import type { Dump } from './dump'
@@ -65,6 +66,8 @@ const convo = (ticket: TicketView) => `conversation ${ticket.letter}, turn ${tic
 
 function Guess({ run, onSkip }: { run: PoolRun; onSkip: () => void }) {
   const { predict } = run.view
+  // In a lesson whose guess asks this level's question, the lesson's words stand in, and its commit keeps the prediction (one prompt).
+  const lesson = useContext(LessonGuessContext)
   const [text, setText] = useState('')
   const value = text.trim() === '' ? null : Number(text)
   const bad = value !== null && (!Number.isInteger(value) || value < 0)
@@ -74,12 +77,15 @@ function Guess({ run, onSkip }: { run: PoolRun; onSkip: () => void }) {
       <h3 id={titleId} className="es-dock__title">
         Your guess
       </h3>
-      <p className="es-dock__text">{predict.ask}</p>
+      <p className="es-dock__text">{lesson?.ask ?? predict.ask}</p>
+      {lesson?.sure}
       <form
         className="es-dock__guess-form"
         onSubmit={(event) => {
           event.preventDefault()
-          if (value !== null && !bad) run.dispatch({ t: 'commit', prediction: value })
+          if (value === null || bad) return
+          lesson?.commit(value)
+          run.dispatch({ t: 'commit', prediction: value })
         }}
       >
         <Field

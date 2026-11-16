@@ -217,8 +217,13 @@ describe('check 2: every lesson has a prediction, a game or an item, and an exit
       expect(graded.length).toBeGreaterThanOrEqual(1)
       // The exit check is the end of the lesson: nothing else follows it but the blocks it is made of.
       for (const block of exit.blocks) expect(['item', 'game']).toContain(block.type)
+      // The lesson template names the KCs by their sentences, under Keep, and no KC id reaches the learner (REDESIGN §2.5): the reference
+      // lesson is written so. A lesson not yet edited to the template still names them by id in its exit check.
       const named = new Set(exit.prose.flatMap((flow) => flowInlines(flow).flatMap((node) => codeSpans([node]))))
-      for (const kc of lesson.kcs) expect([lesson.id, kc, named.has(kc)]).toEqual([lesson.id, kc, true])
+      for (const kc of lesson.kcs) {
+        if (lesson.id === 'tr5a.l1') expect([lesson.id, kc, named.has(kc)]).toEqual([lesson.id, kc, false])
+        else expect([lesson.id, kc, named.has(kc)]).toEqual([lesson.id, kc, true])
+      }
     })
   }
 })
@@ -368,9 +373,10 @@ describe('what the lessons teach', () => {
     }
   })
 
-  test('the Pool is called by its display name and its three vocabularies, with the engine word first', () => {
-    // GAMES.md §2.6: the kitchen word beside the engine term, once, where the game first appears in a lesson.
-    expect(lessonOf('tr5a.l1').text).toContain('a group is a **station**, a page is a **hotel pan** in the reach-in, a request is a **ticket**')
+  test('the Pool is called by its display name, and the reference lesson uses the engine words alone', () => {
+    // REDESIGN §2.7: the engine's term is the only name. TR5a lesson 1, the template's reference lesson, explains no kitchen word; the
+    // lessons not yet edited to the template still give it beside the engine term, once.
+    for (const word of ['station', 'hotel pan', 'reach-in', 'line kitchen', 'ticket']) expect([word, lessonOf('tr5a.l1').text.includes(word)]).toEqual([word, false])
     expect(lessonOf('tr5a.l3').text).toContain('the free queue is **the rotation**, evicting a page is **dumping a pan**, and a prefix hit is **shared mise**')
     expect(lessonOf('tr5a.l4').text).toContain('an adapter is a **recipe kit**')
     expect(POOL.title).toBe('KV page pool')

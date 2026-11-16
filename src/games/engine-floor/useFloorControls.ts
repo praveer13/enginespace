@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type RefObject } from 'react'
+import { useContext, useCallback, useEffect, useRef, useState, type KeyboardEvent, type RefObject } from 'react'
+import { LessonGuessContext } from '@/games/kit/lessonGuess'
 import { MAX_PREDICTION } from '@es/play/engine-floor/facts'
 import type { FloorView, TileView } from '@es/play/engine-floor/types'
 import { FLOOR_KINDS, floorKindOf } from '@es/play/engine-floor/words'
@@ -130,11 +131,14 @@ export function useFloorControls(run: FloorRun): FloorControls {
     tray.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus()
   }, [view.laid.length])
 
+  // In a lesson whose guess asks this level's question, its commit keeps the lesson's prediction too: one prompt (REDESIGN §2.5).
+  const lesson = useContext(LessonGuessContext)
   const commit = useCallback(() => {
     if (pick === null) return
     focusAfterCommit.current = true
+    lesson?.commit(pick)
     dispatch({ t: 'commit', prediction: pick })
-  }, [pick, dispatch])
+  }, [pick, dispatch, lesson])
 
   const lay = (id: string, index: number) => {
     focusAfterLay.current = index
