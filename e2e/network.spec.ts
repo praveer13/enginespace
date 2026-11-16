@@ -93,9 +93,12 @@ test.describe('the routes', () => {
   test('the navigation and the footer lead to every page they name, by the router, and none reaches out', async ({ page, watch }) => {
     await open(page, '/')
     const links = await page.locator('header a[href^="/"], footer a[href^="/"]').evaluateAll((anchors) => [...new Set(anchors.map((anchor) => anchor.getAttribute('href') ?? ''))])
-    // The primary navigation (§3.3) is the brand, Map, Play, Today, Receipts and Evidence; the footer adds About, Changes, Settings and Design.
-    expect(links).toEqual(expect.arrayContaining(['/', '/map', '/play', '/today', '/receipts', '/evidence', '/about', '/changes', '/settings', '/design']))
+    // The primary navigation (§3.3) is the brand, Map, Play, Today and Evidence, with Continue where the way on points; the footer adds About, Changes and Settings. Receipts and Design are not in the navigation.
+    expect(links).toEqual(expect.arrayContaining(['/', '/map', '/play', '/today', '/evidence', '/about', '/changes', '/settings']))
     for (const href of links.filter((link) => link !== '/')) {
+      // At a phone's width the header's links are folded behind the Navigation button.
+      const fold = page.getByRole('button', { name: 'Navigation' })
+      if ((await fold.isVisible()) && (await fold.getAttribute('aria-expanded')) === 'false') await fold.click()
       await page.locator(`header a[href="${href}"], footer a[href="${href}"]`).first().click()
       await expect(page).toHaveURL(new RegExp(`${href}$`))
       await ready(page, href)
