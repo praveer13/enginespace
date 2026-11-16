@@ -101,10 +101,17 @@ test.describe('the front page after its first step (W0 finding F1)', () => {
 
 test.describe('the 3D view of the front page', () => {
   for (const width of PR_WIDTHS) {
-    test(`at ${width} px is drawn, not blank, and its capture is kept as an artifact`, async ({ page, context }, info) => {
+    test(`at ${width} px is drawn, not blank, and its capture is kept as an artifact (on a phone's width: withheld)`, async ({ page, context }, info) => {
       test.setTimeout(120_000)
       await page.setViewportSize({ width, height: 800 })
       await open(page, '/')
+      if (width < 768) {
+        // A phone is offered no 3D until the time track has a layout a phone can read (build B's finish review): no switch, no stage.
+        await quiet(page)
+        await expect(page.locator('section.es-front-service').getByRole('button', { name: '3D', exact: true })).toHaveCount(0)
+        await expect(page.locator('section.es-front-service [data-stage]')).toHaveCount(0)
+        return
+      }
       await settled3d(page)
       const stage = page.locator('section.es-front-service [data-stage]')
       const canvas = stage.locator('canvas')

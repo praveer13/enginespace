@@ -383,11 +383,15 @@ export function LessonView({ lesson, module, claims, today, map = null, reading:
                     <div className="es-lesson__prose">
                       <Pieces pieces={part.pieces} {...pieceProps} />
                     </div>
-                    <WayOn
-                      href={next === undefined ? `#${testId}` : `#${partId(at + 1)}`}
-                      label={next === undefined ? toTest : `Next part: ${headingText(next.heading)}`}
-                      emphasis={wide ? 'primary' : 'outline'}
-                    />
+                    {/* One amber control per screen (the One Marker Rule): the part being read has it, a part passed or still ahead has
+                        an outline; on a phone the current part's way on is the foot bar's, so it is not drawn twice. */}
+                    {!wide && at === currentPart ? null : (
+                      <WayOn
+                        href={next === undefined ? `#${testId}` : `#${partId(at + 1)}`}
+                        label={next === undefined ? toTest : `Next part: ${headingText(next.heading)}`}
+                        emphasis={wide && at === currentPart ? 'primary' : 'outline'}
+                      />
+                    )}
                   </section>
                 )
               })}

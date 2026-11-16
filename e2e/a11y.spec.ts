@@ -45,6 +45,12 @@ const WIDTHS = NIGHTLY ? NIGHTLY_WIDTHS : PR_WIDTHS
 const AUDITED_IN_3D = (route: string) => SCENE_IN_RUN(route) && (NIGHTLY || route === '/' || W1_ROUTES.includes(route))
 
 /**
+ * The step loop's time track has no 3D on a phone's width until it has a layout a phone can read (build B's finish review), on the front
+ * page and on its own page: at those widths there is no 3D pass to audit, and its 2D pass is audited above. At a desk's width it is.
+ */
+const NO_3D_ON_A_PHONE = (route: string, width: number) => width < 768 && (route === '/' || route.startsWith('/play/loop'))
+
+/**
  * Defects that this spec found and that no task has fixed yet, keyed by `<route> at <width>`. A test that is listed here is expected to
  * fail, and Playwright fails it when it passes: whoever fixes the page deletes the entry, which is how a known defect leaves the list.
  */
@@ -94,7 +100,7 @@ for (const route of ROUTES) {
         await audit(page, `${route} at ${width} px`, route)
       })
 
-      if (AUDITED_IN_3D(route)) {
+      if (AUDITED_IN_3D(route) && !NO_3D_ON_A_PHONE(route, width)) {
         test(`${route}, with its 3D pass drawn: axe finds no serious or critical violation`, async ({ page }) => {
           test.setTimeout(120_000)
           await open(page, route)

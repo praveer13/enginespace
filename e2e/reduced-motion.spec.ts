@@ -100,6 +100,8 @@ test.describe('at rest, nothing moves', () => {
 })
 
 test.describe('a 3D pass asks for no frame once it has settled', () => {
+  // At a desk's width: the step loop offers no 3D on a phone's (build B's finish review), and the front page and /play/loop are its pages.
+  test.use({ viewport: { width: 1280, height: 800 } })
   for (const route of ROUTES.filter(SCENE_IN_RUN)) {
     test(`${route}: a first frame is drawn, and then none is asked for`, async ({ page }) => {
       test.setTimeout(120_000)

@@ -38,6 +38,8 @@ export interface Scene3DProps {
   preset: string
   /** A waiting request picked in the scene: admit it, as tapping it in the dock does. */
   onHang?: (req: number) => void
+  /** The reference run of the same level and seed, whose tokens up to now stand as outlines among the learner's slabs. */
+  reference?: LaneSource
 }
 
 /** A slab's words, an idle box's and a bubble's value are not drawn on a canvas narrower than this [estimated]: the state table carries every one. */
@@ -81,10 +83,10 @@ function labelsOf(model: FlatModel): LabelSpec[] {
   }))
 }
 
-export default function Scene3D({ view, full, preset, onHang }: Scene3DProps) {
+export default function Scene3D({ view, full, preset, onHang, reference }: Scene3DProps) {
   const [box, canvas] = useCanvasSize()
   const camera = preset || DEFAULT_CAMERA
-  const own = useMemo(() => (full ? fullTrack(full, canvas.width) : view ? demoTrack(view, canvas.width) : null), [full, view, canvas.width])
+  const own = useMemo(() => (full ? fullTrack(full, canvas.width) : view ? demoTrack(view, canvas.width, reference) : null), [full, view, canvas.width, reference])
 
   // Compare: each time it is chosen, the authored move plays again from the continuous band.
   const [visit, setVisit] = useState({ camera, count: 0 })

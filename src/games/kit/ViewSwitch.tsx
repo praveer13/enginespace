@@ -45,7 +45,7 @@ export function ViewSwitch({ view, onViewChange, available3d, unavailableReason,
         {labels.depth}
       </Button>
       {reason ? (
-        <span id={reasonId} className="text-text-2">
+        <span id={reasonId} className="text-size-caption text-text-2">
           {reason}
         </span>
       ) : null}

@@ -7,7 +7,7 @@
  *     numbered procedure. At first paint there is one amber ring (on R1), the now line and no amber fill, and five ink callouts.
  *   - At 390 the callout discs are on the diagram, the coach line steps through the parts one at a time, and Parts opens the whole list.
  *   - The LCP element is the heading, and nothing shifts (CLS at or under 0.1) when a capable desk turns the diagram's box 3D; a phone in
- *     the hand stays in 2D with a 3D switch; with data saver, or at tier 0, the 3D chunks are never requested.
+ *     the hand stays in 2D with no 3D switch until the track has a phone layout; with data saver, or at tier 0, the 3D chunks are never requested.
  *   - Every button does what it says: after a demo level the next one is the amber control and Start the course an outline that names
  *     TR1 lesson 1, its minutes and what it needs; after the fourth, Start the course is the amber one.
  *   - A returning learner reads where they left off and Continue, from `es:next`, with no intro; the page opens no IndexedDB.
@@ -312,7 +312,7 @@ test.describe('the largest paint is the heading, and nothing moves when the diag
     expect(await page.evaluate(() => window.__cls ?? 0)).toBeLessThanOrEqual(0.1)
   })
 
-  test('a phone in the hand stays in 2D, with the 3D switch one tap away', async ({ browser }) => {
+  test('a phone in the hand stays in 2D, and the 3D switch is withheld until the time track has a layout a phone can read', async ({ browser }) => {
     test.setTimeout(120_000)
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
     const requests: string[] = []
@@ -331,11 +331,12 @@ test.describe('the largest paint is the heading, and nothing moves when the diag
     await page.waitForTimeout(5000)
     await expect(service(page)).toHaveAttribute('data-view', '2d')
     expect(requests.filter((request) => chunks3d.includes(request))).toEqual([])
-    const three = service(page).getByRole('button', { name: '3D', exact: true })
-    await expect(three).toBeEnabled()
-    await three.tap()
-    await swapped(page)
-    await expect(service(page)).toHaveAttribute('data-view', '3d')
+    // The finish review of build B: at 390 the 3D track's labels collide and its rows are a few pixels deep, so a phone is offered no 3D.
+    await expect(service(page).getByRole('button', { name: '3D', exact: true })).toHaveCount(0)
+    await page.keyboard.press('v')
+    await page.waitForTimeout(1000)
+    await expect(service(page)).toHaveAttribute('data-view', '2d')
+    expect(requests.filter((request) => chunks3d.includes(request))).toEqual([])
     await context.close()
   })
 })

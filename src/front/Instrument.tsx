@@ -19,6 +19,7 @@ import { LiveRegion } from '@/games/kit/LiveRegion'
 import { useDeltas } from '@/games/kit/moments'
 import { useGameInput } from '@/games/kit/useGameInput'
 import { useRun } from '@/games/kit/useRun'
+import { usePhone } from '@/games/kit/usePhone'
 import { ViewSwitch, type GameView } from '@/games/kit/ViewSwitch'
 import { changeLine } from '@/games/loop/announce'
 import type { LoopStage3DProps } from '@/games/loop/Stage3D'
@@ -156,7 +157,9 @@ export function Instrument({ returning, course, onTouched }: InstrumentProps) {
   // The view: the diagram first, 3D on its own once the page has settled on a desk that draws it, and the learner's choice from then on.
   const { device, unavailable, reader } = useFrontDevice()
   const settled = useSettled()
-  const can3d = device.known && device.tier >= 1
+  // A phone opens in 2D (REDESIGN §3.1), and the 3D view is withheld there until it has a layout a phone can read.
+  const phone = usePhone()
+  const can3d = device.known && device.tier >= 1 && !phone
   const [chosen, setChosen] = useState<GameView | null>(null)
   const [boxHeight, setBoxHeight] = useState<number | null>(null)
   const upgrade = can3d ? upgradeOf(device, readConnection(), isHandheld()) : 'never'
@@ -683,7 +686,7 @@ function Result({
 }) {
   return (
     <div className="es-front-result__body" data-loop-debrief="">
-      <p className="es-front-result__verdict" id={verdictId} data-result-heading="">
+      <p className="es-front-result__verdict" id={verdictId} data-result-heading="" data-verdict={ok ? 'passed' : 'not-yet'}>
         {ok ? RESULT.passed : RESULT.notYet}
       </p>
       <p className="es-front-result__sentence">{next === null ? RESULT.bridge : sentence}</p>

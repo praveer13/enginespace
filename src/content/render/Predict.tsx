@@ -17,6 +17,7 @@ import { latestSeq, useBlockRun } from './runs'
 import { optionText, readSlip, unitName } from './slip'
 import { SurePlates } from './Sure'
 import type { Slip } from './slip'
+import { Tagged } from './Tagged'
 
 /*
  * A lesson's `predict` block, a guess (REDESIGN §2.5; W1b-T02, R-T09, R-T10): one answer before the run, and a reveal.
@@ -160,7 +161,9 @@ function GuessFrame({ block, label, data, children }: { block: PredictBlock; lab
   return (
     <section className="es-guess" data-block="predict" data-predict={block.id} aria-label={label} {...attributes}>
       <p className="es-guess__label">{label}</p>
-      <p className="es-guess__ask">{block.prompt}</p>
+      <p className="es-guess__ask">
+        <Tagged text={block.prompt} />
+      </p>
       {children}
     </section>
   )

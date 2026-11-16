@@ -229,6 +229,8 @@ const DISC = 30
  * never covers it; at the box's top right where the line runs to the edge. A game leaves room after a name the intro marks (pool.css).
  */
 function discAt(host: Element, target: Element, whole: Box): Box {
+  // A number in a readout keeps its digits clear: the disc stands over the middle of its item, in the strip's head room.
+  if (target instanceof HTMLElement && target.dataset.calloutAbove !== undefined) return { top: whole.top - DISC + 2, left: whole.left + whole.width / 2 - DISC / 2, width: DISC, height: DISC }
   // A part whose drawing starts with its own name is marked after the name; else after the first line of everything it shows.
   const range = document.createRange()
   const name = target.firstChild

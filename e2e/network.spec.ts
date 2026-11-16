@@ -44,6 +44,8 @@ test.describe('the front-page walk', () => {
     test(`makes no request outside the origin, ${name}`, async ({ page, context, watch }) => {
       test.setTimeout(180_000)
       if (!threeD) await withSettings(context, { view3d: false })
+      // The 3D pass at a desk's width: the step loop offers no 3D on a phone's (build B's finish review).
+      else await page.setViewportSize({ width: 1280, height: 800 })
       await open(page, '/')
       if (threeD) await settled3d(page)
 
@@ -75,12 +77,14 @@ test.describe('the routes', () => {
       test.setTimeout(120_000)
       // A level page whose scene this run does not look at (the full service's other levels) is visited in 2D, so it does not draw one for nothing.
       if (HAS_3D(route) && !SCENE_IN_RUN(route)) await withSettings(context, { view3d: false })
+      // The step loop's 3D pass is drawn at a desk's width: on a phone's it offers no 3D (build B's finish review).
+      if (SCENE_IN_RUN(route) && (route === '/' || route.startsWith('/play/loop'))) await page.setViewportSize({ width: 1280, height: 800 })
       await open(page, route)
       await page.waitForLoadState('networkidle')
       // A 3D pass loads its chunks and draws a first frame: all of it is part of the visit.
       // A game in the instrument frame opens on its diagram (REDESIGN §2.9): its 3D switch is pressed, so its scene's chunks are part of the visit too.
       if (SCENE_IN_RUN(route)) {
-        const switch3d = page.locator('section[data-view="2d"] .es-frame__strip').getByRole('button', { name: '3D', exact: true })
+        const switch3d = page.locator('section[data-view="2d"] :is(.es-frame__strip, .es-front-strip)').getByRole('button', { name: '3D', exact: true })
         if ((await page.locator('[data-stage]').count()) === 0 && (await switch3d.count()) > 0) await switch3d.first().click()
         await expect(page.locator('[data-stage][data-stage-phase="live"]').first()).toBeAttached({ timeout: 60_000 })
       }

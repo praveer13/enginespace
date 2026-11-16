@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { drawInBand } from '@es/play'
 import { compareServices, firesOfRun } from '@es/play/loop/compare'
 import { frameSvg, layoutStrip } from '@es/play/loop/layout'
@@ -191,57 +191,59 @@ export function Debrief({ run, outcome, next, onNext }: DebriefProps) {
   const house = outcome.ghostView.counters
   const lever = debrief.names !== null && 'lever' in debrief.names ? LEVER_NAME[debrief.names.lever] : null
   const last = next === null
+  // The frame moves focus to the result when the run ends; this chunk loads after that, so it takes focus on to its verdict, unless the
+  // learner's focus is already elsewhere.
+  const heading = useRef<HTMLHeadingElement>(null)
+  useEffect(() => {
+    const here = document.activeElement
+    const holder = heading.current?.closest('[data-result]') ?? null
+    if (here === null || here === document.body || here === holder) heading.current?.focus({ preventScroll: true })
+  }, [])
 
   function newNumbers() {
     const entropy = crypto.getRandomValues(new Uint32Array(1))[0]
     run.restart(drawInBand(loopSession, 'first-4-par', entropy))
   }
 
+  // The verdict, its sentence and the one amber control head the dock, flat on its paper and never in a card of their own; the counters
+  // and the rest scroll under them (P5: the result and the way on on one screen).
   return (
-    <div className="flex max-w-3xl flex-col gap-6" data-loop-debrief="">
-      <Ticket
-        as="section"
-        width="full"
-        hole={false}
-        head="Debrief"
-        meta={view.title}
-        titleAs="h3"
-        title={grade.ok ? 'Passed.' : 'Not yet.'}
-        stub={
-          last ? (
-            <Stub to="/map">Open the course</Stub>
-          ) : (
-            <Stub onClick={onNext}>{`Next: ${next.title}`}</Stub>
-          )
-        }
-      >
-        <p className="es-type-body">{debrief.sentence}</p>
+    <div className="es-loopdebrief" data-loop-debrief="">
+      <div className="es-loopdebrief__head">
+        <h3 ref={heading} className="es-loopdebrief__verdict" tabIndex={-1} data-result-heading="" data-verdict={grade.ok ? 'passed' : 'not-yet'}>
+          {grade.ok ? 'Passed.' : 'Not yet.'}
+        </h3>
+        <p className="es-loopdebrief__sentence">{debrief.sentence}</p>
+        <div className="es-loopdebrief__ways">{last ? <Stub to="/map">Open the course</Stub> : <Stub onClick={onNext}>{`Next: ${next.title}`}</Stub>}</div>
+      </div>
+
+      <div className="es-loopdebrief__body">
         {lever ? (
           <p>
             <strong>The lever worth the most:</strong> {lever}.
           </p>
         ) : null}
         <CountersTable mine={mine} house={house} par={view.par} />
-      </Ticket>
 
-      {view.level === 'first-4-par' ? <Compare seed={run.seed} mine={view.fires} clockUs={mine.clockUs} slots={view.slots} /> : null}
+        {view.level === 'first-4-par' ? <Compare seed={run.seed} mine={view.fires} clockUs={mine.clockUs} slots={view.slots} /> : null}
 
-      <section aria-label="What to take away" className="flex flex-col gap-2">
-        <p className="es-type-body max-w-prose">{ONE_TRUE_THING}</p>
-      </section>
+        <section aria-label="What to take away" className="flex flex-col gap-2">
+          <p>{ONE_TRUE_THING}</p>
+        </section>
 
-      {last ? <RealAnchor /> : null}
+        {last ? <RealAnchor /> : null}
 
-      <div className="flex flex-wrap items-center gap-4">
-        <Button variant="plate" onClick={() => run.restart()}>
-          Play this level again
-        </Button>
-        {view.level === 'first-4-par' ? (
-          <Button variant="ink" onClick={newNumbers}>
-            New numbers
+        <div className="flex flex-wrap items-center gap-4">
+          <Button variant="plate" onClick={() => run.restart()}>
+            Play this level again
           </Button>
-        ) : null}
-        {last ? <TextLink to="/m/tr2">Play the full loop (TR2)</TextLink> : null}
+          {view.level === 'first-4-par' ? (
+            <Button variant="ink" onClick={newNumbers}>
+              New numbers
+            </Button>
+          ) : null}
+          {last ? <TextLink to="/m/tr2">Play the full loop (TR2)</TextLink> : null}
+        </div>
       </div>
     </div>
   )

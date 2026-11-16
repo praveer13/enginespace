@@ -64,6 +64,26 @@ function useWidth(fallback: number): [RefObject<HTMLElement | null>, number] {
 /** The colour slot of a CPU call: a sync is yellow, every other call is CPU work. */
 const callSlot = (kind: string): Slot => (kind === 'sync' ? 'yellow' : 'blue')
 
+/** The glyph a slab carries with its colour (the Colour Is State Rule): a CPU call's circle, a sync's diamond, a forward's hexagon. */
+function slabGlyph(slab: LaneSlab): Slot | null {
+  if (slab.row === 'cpu') return callSlot(slab.kind)
+  if (slab.use === 'token' || slab.use === 'ghost') return 'green'
+  return null
+}
+
+/** The glyph's size on a slab, in px, and the least slab that carries one [estimated: the micro size's cap height, and room round it]. */
+const SLAB_GLYPH = 9
+
+/** A code glyph drawn on a slab, in the ink that reads on the slab's colour, at (x, y) its top left: the same shapes as Glyph.tsx. */
+function SlabMark({ slot, on, x, y }: { slot: Slot; on: string; x: number; y: number }) {
+  const shape = SLOT_MARKS[slot].glyph
+  const k = SLAB_GLYPH / 24
+  const transform = `translate(${x} ${y}) scale(${k})`
+  if (shape === 'circle') return <circle className="es-lanes__slab-glyph" data-on={on} data-glyph={shape} cx={x + SLAB_GLYPH / 2} cy={y + SLAB_GLYPH / 2} r={SLAB_GLYPH * 0.36} />
+  const d = shape === 'diamond' ? 'M12 2.75 21.25 12 12 21.25 2.75 12Z' : 'M12 2.75 20 7.375v9.25L12 21.25 4 16.625v-9.25Z'
+  return <path className="es-lanes__slab-glyph" data-on={on} data-glyph={shape} d={d} transform={transform} />
+}
+
 /** A slab's own words, where the slab is wide enough to hold them. */
 function slabWords(slab: LaneSlab): string | null {
   if (slab.row === 'cpu') return slab.kind
@@ -340,7 +360,7 @@ function RowLabels({ layout, interactive, narrow, callouts }: { layout: LaneLayo
           ) : row.label === null ? null : (
             <>
               {row === secondSlot ? callouts.gpu : null}
-              {row === firstSlot ? <Glyph shape={SLOT_MARKS.green.glyph} className="es-lanes__glyph" style={{ color: 'var(--es-lane-gpu)' }} edge="var(--es-cat-green-edge)" /> : <span className="es-lanes__glyph" />}
+              <Glyph shape={SLOT_MARKS.green.glyph} className="es-lanes__glyph" style={{ color: 'var(--es-lane-gpu)' }} edge="var(--es-cat-green-edge)" />
               <span className="es-lanes__slotname">{narrow ? String((row.slot ?? 0) + 1) : LANE_WORDS.slot(row.slot ?? 0)}</span>
               {row.req === null ? (
                 <span className="es-lanes__holds" data-empty="">
@@ -399,6 +419,10 @@ function Track({ layout }: { layout: LaneLayout }) {
           const words = slabWords(slab)
           const on = slab.row === 'cpu' ? callSlot(slab.kind) : slab.use === 'token' ? 'green' : 'paper'
           const inset = slab.row === 'cpu' ? 0 : 2
+          const mark = slabGlyph(slab)
+          // The glyph stands at the slab's left, where it has room; the words follow it.
+          const marked = mark !== null && slab.width >= SLAB_GLYPH + 6 && slab.height - inset * 2 >= SLAB_GLYPH + 4
+          const textX = slab.x + (marked ? SLAB_GLYPH + 7 : 5)
           return (
             <g key={slab.id}>
               <rect
@@ -412,8 +436,9 @@ function Track({ layout }: { layout: LaneLayout }) {
                 width={Math.max(0, slab.width - 1)}
                 height={Math.max(0, slab.height - inset * 2 - 1)}
               />
-              {words !== null && fits(words, slab.width) && slab.height >= 14 ? (
-                <text className="es-lanes__slab-text" data-on={on} x={slab.x + 5} y={slab.y + slab.height / 2} dominantBaseline="central">
+              {marked ? <SlabMark slot={mark} on={slab.use === 'ghost' ? 'paper' : mark} x={slab.x + 3} y={slab.y + slab.height / 2 - SLAB_GLYPH / 2} /> : null}
+              {words !== null && fits(words, slab.width - (textX - slab.x - 5)) && slab.height >= 14 ? (
+                <text className="es-lanes__slab-text" data-on={on} x={textX} y={slab.y + slab.height / 2} dominantBaseline="central">
                   {words}
                 </text>
               ) : null}
@@ -455,20 +480,32 @@ function Track({ layout }: { layout: LaneLayout }) {
   )
 }
 
-/** A dimension line: end ticks at the interval's two edges, and its value on a slip of paper on the line. */
+/**
+ * A dimension line, as an engineering drawing marks an interval (REDESIGN §2.8): end ticks at its two edges, the line between them broken
+ * for its value, and the value written in the gap with no box round it.
+ */
 function Dimension({ id, x0, x1, y, label, short, value }: { id: string; x0: number; x1: number; y: number; label: string; short: string; value: string }) {
   const width = x1 - x0
-  // The whole words where they fit across the box (a slip may run a little past its ends), else the ticks, else the number alone.
-  const words = [label, short].find((candidate) => fits(candidate, width + 16)) ?? value
-  const slip = words.length * 6.5 + 10
+  // The whole words where they fit inside the interval, else the ticks, else the number alone.
+  const words = [label, short].find((candidate) => fits(candidate, width - 4)) ?? value
+  const half = (words.length * 6.5) / 2 + 3
   const mid = x0 + width / 2
+  const a = x0 + 2
+  const b = x1 - 2
+  const broken = mid - half > a + 2 && mid + half < b - 2
   return (
     <g data-lane-dim={id}>
-      <line className="es-lanes__dim" x1={x0 + 2} x2={x1 - 2} y1={y} y2={y} />
-      <line className="es-lanes__dim" x1={x0 + 2} x2={x0 + 2} y1={y - 6} y2={y + 6} />
-      <line className="es-lanes__dim" x1={x1 - 2} x2={x1 - 2} y1={y - 6} y2={y + 6} />
-      <rect className="es-lanes__dim-slip" x={mid - slip / 2} y={y - 9} width={slip} height={18} />
-      <text className="es-lanes__dim-text" x={mid} y={y} textAnchor="middle" dominantBaseline="central">
+      {broken ? (
+        <>
+          <line className="es-lanes__dim" x1={a} x2={mid - half} y1={y} y2={y} />
+          <line className="es-lanes__dim" x1={mid + half} x2={b} y1={y} y2={y} />
+        </>
+      ) : (
+        <line className="es-lanes__dim" x1={a} x2={b} y1={y} y2={y} />
+      )}
+      <line className="es-lanes__dim" x1={a} x2={a} y1={y - 7} y2={y + 7} />
+      <line className="es-lanes__dim" x1={b} x2={b} y1={y - 7} y2={y + 7} />
+      <text className="es-lanes__dim-text" x={mid} y={broken ? y : y - 9} textAnchor="middle" dominantBaseline="central" data-dim-value="">
         {words}
       </text>
     </g>

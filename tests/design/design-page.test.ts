@@ -232,10 +232,10 @@ describe('/design: landmarks, and what the lights say', () => {
     expect(text).toContain("dark, the lane's mark stays")
     expect(text).not.toContain('burns green')
     expect(text).not.toContain("lit in its lane's colour")
-    // The marks of the lanes shown: the line's is the green board's square, the expo's the blue board's circle.
+    // The marks of the lanes shown: the line's is green's hexagon, the expo's blue's circle (REDESIGN §2.8, the one colour code).
     const station = html.slice(html.indexOf('aria-label="Station light"'), html.indexOf('aria-label="Bell"'))
     expect(station).toContain('data-lane="gpu"')
-    expect(station).toContain('data-glyph="square"')
+    expect(station).toContain('data-glyph="hexagon"')
     expect(station).toContain('data-lane="cpu"')
     expect(station).toContain('data-glyph="circle"')
   })
