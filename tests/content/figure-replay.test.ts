@@ -171,7 +171,7 @@ describe("the dock's view of a figure's state", () => {
 
   test('the lesson page reaches no game for the button: ShowOnMachine and the replay loader are chunks of their own', () => {
     const blocks = read('src/pages/Lesson.tsx')
-    expect(blocks).toMatch(/lazy\(\(\) => import\('\.\/ShowOnMachine'\)\)/)
+    expect(blocks).toMatch(/lazy\(\(\) => import\('@\/content\/render\/ShowOnMachine'\)\)/)
     expect(blocks).not.toMatch(/from '@\/games\/replay-dock'/)
     expect(statSync(path.join(repo, 'src/games/loop/replayDock.tsx')).isFile()).toBe(true)
   })

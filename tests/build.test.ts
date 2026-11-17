@@ -178,13 +178,15 @@ describe('the app build', () => {
     // or the lesson's dock (src/content/render/Dock.tsx, R-T11), which a lesson loads only where it is drawn, from 80rem wide and 44rem tall.
     // or the count of reviews due that Course shows under its way on (src/map/dueCount.ts, R-T21), which Course loads after it has read the
     // ledger, because it brings the deck and the item catalog with it.
+    // or the "Show on the machine" button of a figure that has a replay (src/content/render/ShowOnMachine.tsx, R-T45), which the lesson loads with
+    // that figure alone, and which loads the game's replay of the figure's state (src/games/<id>/replayDock.tsx, a part of the game, as above) on a click.
     // A part's source in a game's popover (src/games/kit/PartSource.tsx, R-T11) is a part of a game, as above.
     // The compiled content is lazy too, but it is not a page: the next test holds it to account.
     const named = Object.entries(app.manifest)
       .filter(([key, chunk]) => chunk.isDynamicEntry && chunk.src !== undefined && !key.startsWith(CONTENT))
       .map(([key]) => key)
     const onDemand =
-      /^(packages\/play\/[^/]+\/game\.ts|packages\/play\/items\/families\/(?:tr[0-8][ab]?|capstone)\/[a-z0-9-]+\.ts|src\/games\/[^/]+\/[A-Za-z0-9]+\.tsx|src\/scene\/[\w/-]+\.tsx?|src\/forge\/ForgeLabPage\.tsx|src\/items\/Attempt\.tsx|src\/map\/dueCount\.ts|src\/content\/render\/(?:GameEmbed\.tsx|reveal\.ts|Predict\.tsx|LessonLedger\.tsx|levels\.ts|Dock\.tsx)|src\/items\/ItemBlock\.tsx|packages\/play\/predictions\/(?:commit-)?tr[0-8][ab]?\.ts|src\/trace\/TraceView\.tsx|src\/route-change\.ts|node_modules\/three\/examples\/jsm\/[\w/-]+\.js)$/
+      /^(packages\/play\/[^/]+\/game\.ts|packages\/play\/items\/families\/(?:tr[0-8][ab]?|capstone)\/[a-z0-9-]+\.ts|src\/games\/[^/]+\/[A-Za-z0-9]+\.tsx|src\/scene\/[\w/-]+\.tsx?|src\/forge\/ForgeLabPage\.tsx|src\/items\/Attempt\.tsx|src\/map\/dueCount\.ts|src\/content\/render\/(?:GameEmbed\.tsx|reveal\.ts|Predict\.tsx|LessonLedger\.tsx|levels\.ts|Dock\.tsx|ShowOnMachine\.tsx)|src\/items\/ItemBlock\.tsx|packages\/play\/predictions\/(?:commit-)?tr[0-8][ab]?\.ts|src\/trace\/TraceView\.tsx|src\/route-change\.ts|node_modules\/three\/examples\/jsm\/[\w/-]+\.js)$/
     expect(named.filter((key) => !pages.includes(key) && !onDemand.test(key))).toEqual([])
   })
 
