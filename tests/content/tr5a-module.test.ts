@@ -220,12 +220,10 @@ describe('check 2: every lesson has a prediction, a game or an item, and an exit
       expect(graded.length).toBeGreaterThanOrEqual(1)
       // The exit check is the end of the lesson: nothing else follows it but the blocks it is made of.
       for (const block of exit.blocks) expect(['item', 'game']).toContain(block.type)
-      // The lesson template names the KCs by their sentences, under Keep, and no KC id reaches the learner (REDESIGN §2.5): the reference
-      // lesson is written so. A lesson not yet edited to the template still names them by id in its exit check.
+      // The lesson template names the KCs by their sentences, under Keep, and no KC id reaches the learner (REDESIGN §2.5).
       const named = new Set(exit.prose.flatMap((flow) => flowInlines(flow).flatMap((node) => codeSpans([node]))))
       for (const kc of lesson.kcs) {
-        if (lesson.id === 'tr5a.l1') expect([lesson.id, kc, named.has(kc)]).toEqual([lesson.id, kc, false])
-        else expect([lesson.id, kc, named.has(kc)]).toEqual([lesson.id, kc, true])
+        expect([lesson.id, kc, named.has(kc)]).toEqual([lesson.id, kc, false])
       }
     })
   }
@@ -377,11 +375,10 @@ describe('what the lessons teach', () => {
   })
 
   test('the Pool is called by its display name, and the reference lesson uses the engine words alone', () => {
-    // REDESIGN §2.7: the engine's term is the only name. TR5a lesson 1, the template's reference lesson, explains no kitchen word; the
-    // lessons not yet edited to the template still give it beside the engine term, once.
-    for (const word of ['station', 'hotel pan', 'reach-in', 'line kitchen', 'ticket']) expect([word, lessonOf('tr5a.l1').text.includes(word)]).toEqual([word, false])
-    expect(lessonOf('tr5a.l3').text).toContain('the free queue is **the rotation**, evicting a page is **dumping a pan**, and a prefix hit is **shared mise**')
-    expect(lessonOf('tr5a.l4').text).toContain('an adapter is a **recipe kit**')
+    // REDESIGN §2.7: the engine's term is the only name, so no lesson explains a kitchen word beside it.
+    for (const id of ['tr5a.l1', 'tr5a.l2', 'tr5a.l3', 'tr5a.l4']) {
+      for (const word of ['station', 'hotel pan', 'reach-in', 'line kitchen', 'ticket', 'mise', 'recipe kit', 'dumping a pan']) expect([id, word, lessonOf(id).text.toLowerCase().includes(word)]).toEqual([id, word, false])
+    }
     expect(POOL.title).toBe('KV page pool')
   })
 })
@@ -401,9 +398,9 @@ describe('the module says what it is, and what it is not (D-039, D-042)', () => 
     expect(moduleText).toContain('TR5a has no GPU part')
   })
 
-  test('it says that the engines are read and not run, and that the connector side is TR5b, which is not built yet', () => {
+  test('it says that the engines are read and not run, and that the connector side is TR5b\'s', () => {
     expect(moduleText).toContain('The pinned engines are read in their source and are not run.')
-    expect(moduleText).toContain('Both are TR5b\'s. That module is not built yet, and it arrives with the GPU modules in the second part of the course.')
+    expect(moduleText).toContain("Both are TR5b's, in the GPU part of the course.")
   })
 
   test("the module page and the fourth lesson say what the pins do with adapters: vLLM's slots, its CPU LRU and its admission cap, and SGLang's fixed-slot pool", () => {
@@ -779,8 +776,8 @@ describe('lesson 4: adapters as pages, and as slots', () => {
   test('over the first eight banded seeds: the totals, who costs less, and the paid pair 36% over pages', () => {
     const sweep = shelfSweep(8)
     expect(sweep.seeds).toEqual(bandedSeeds(8))
-    mentions('tr5a.l4', 'the totals', `the prices of the eight nights add up to ${fmt(sweep.total.pages)} for pages, ${fmt(sweep.total.oneSlot)} for one slot, ${fmt(sweep.total.twoSlots)} for two free slots and ${fmt(sweep.total.twoSlotsPaid)} for two slots that are paid for first [measured]`)
-    mentions('tr5a.l4', 'who is cheaper', `One slot costs less than pages on ${sweep.oneSlotCheaper} of the eight nights, two free slots on ${sweep.twoSlotsCheaper}, and the paid pair on ${sweep.twoSlotsPaidCheaper} [measured]`)
+    mentions('tr5a.l4', 'the totals', `the prices of the eight runs add up to ${fmt(sweep.total.pages)} for pages, ${fmt(sweep.total.oneSlot)} for one slot, ${fmt(sweep.total.twoSlots)} for two free slots and ${fmt(sweep.total.twoSlotsPaid)} for two slots that are paid for first [measured]`)
+    mentions('tr5a.l4', 'who is cheaper', `One slot costs less than pages on ${sweep.oneSlotCheaper} of the eight runs, two free slots on ${sweep.twoSlotsCheaper}, and the paid pair on ${sweep.twoSlotsPaidCheaper} [measured]`)
     const over = Math.round((100 * (sweep.total.twoSlotsPaid - sweep.total.pages)) / sweep.total.pages)
     mentions('tr5a.l4', 'the paid pair', `costs ${over}% more than pages over the eight [derived]`)
     expect(over).toBe(36)

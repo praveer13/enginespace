@@ -41,9 +41,9 @@ export const OPENERS: readonly OpenerRow[] = [
   { lesson: 'tr2.l7', opener: 'C', first: [], graded: [] },
   // TR5a, the KV page pool
   { lesson: 'tr5a.l1', opener: 'A', first: ['play:pool/one-group', 'play:pool/two-kinds'], graded: [] },
-  { lesson: 'tr5a.l2', opener: 'B', first: ['play:pool/same-size'], graded: [], waiting: 'R-T37' },
-  { lesson: 'tr5a.l3', opener: 'B', first: ['play:pool/evict'], graded: ['play:pool/evict'], waiting: 'R-T37' },
-  { lesson: 'tr5a.l4', opener: 'B', first: ['play:pool/adapters'], graded: ['play:pool/adapters', 'play:pool/manager'], waiting: 'R-T37' },
+  { lesson: 'tr5a.l2', opener: 'B', first: ['play:pool/same-size'], graded: [] },
+  { lesson: 'tr5a.l3', opener: 'B', first: ['play:pool/evict'], graded: ['play:pool/evict'] },
+  { lesson: 'tr5a.l4', opener: 'B', first: ['play:pool/adapters'], graded: ['play:pool/adapters', 'play:pool/manager'] },
   // TR6, the rejection sampler
   { lesson: 'tr6.l1', opener: 'C', first: ['play:verifier/chain'], graded: [] },
   { lesson: 'tr6.l2', opener: 'A', first: ['play:verifier/overlap'], graded: ['play:verifier/exact'], waiting: 'R-T38' },
