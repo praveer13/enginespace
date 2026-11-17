@@ -85,7 +85,7 @@ test.describe('a chunk that a deploy left behind', () => {
     // The router stays where it was until the page it was asked for has loaded, so the reload is of the page the learner is on.
     await footerLink(page, 'Settings').click()
     await expect.poll(loads, { message: 'the handler reloads' }).toBe(2)
-    await expect(page.getByRole('heading', { level: 1, name: 'Course map' })).toBeVisible(ARRIVE)
+    await expect(page.getByRole('heading', { level: 1, name: 'Course' })).toBeVisible(ARRIVE)
     expect(await flag(page)).not.toBeNull()
 
     await footerLink(page, 'Settings').click()

@@ -44,8 +44,10 @@ export type Walk = ReturnType<typeof walkOf>
 
 
 const gameOf = (page: Page, id: string) => page.locator(`section[data-game="${id}"]`)
-const liveLine = (page: Page) => page.locator('[data-live="line"]')
-const outcome = (page: Page) => page.locator('[data-live="outcome"]')
+/** Where a walk looks: the whole page, or the one game of it that the walk plays (a lesson can hold two runs of one game). */
+type Scope = Pick<Page, 'locator'>
+const liveLine = (scope: Scope) => scope.locator('[data-live="line"]')
+const outcome = (scope: Scope) => scope.locator('[data-live="outcome"]')
 
 /** The level's registry record: its pinned practice seed. */
 function practiceSeed(game: string, level: string): number {
@@ -456,14 +458,14 @@ const ms = (us: number): string => String(us / 1000)
  * A whole filing, by keys: the radios take focus (from the first run's ask step, or Tab), the arrows choose the flaw, digits write the p99
  * and its range, and Enter from the last field files it.
  */
-async function fileRuling(page: Page, walk: Walk, ruling: Ruling): Promise<void> {
+async function fileRuling(page: Page, walk: Walk, ruling: Ruling, scope: Scope = page): Promise<void> {
   const inFlaws = await page.evaluate(() => document.activeElement?.closest('[data-bench-flaws]') != null)
   if (!inFlaws) await tabTo(walk, new RegExp(`^${FLAW_FACTS[BENCH_FLAWS[0]].term}`))
   const at = BENCH_FLAWS.indexOf(ruling.flaw)
   if (at === 0) await page.keyboard.press('Space')
   for (let press = 0; press < at; press++) await walk.press('ArrowDown')
   await expect.poll(() => activeName(page)).toContain(FLAW_FACTS[ruling.flaw].term)
-  await expect(page.locator(`input[type="radio"][value="${ruling.flaw}"]`)).toBeChecked()
+  await expect(scope.locator(`input[type="radio"][value="${ruling.flaw}"]`)).toBeChecked()
   await tabTo(walk, /^Your p99 \(ms\)$/, 4)
   await page.keyboard.type(ms(ruling.p99Us))
   await walk.press('Tab')
@@ -476,29 +478,34 @@ async function fileRuling(page: Page, walk: Walk, ruling: Ruling): Promise<void>
 }
 
 /** The first run's strip: Next through the parts and the look, with the keys. Whatever the page settles on first (the strip, or the form when every part was met). */
-async function passTheIntro(page: Page, walk: Walk): Promise<void> {
-  const step = () => page.locator('[data-game="broken-bench"] .es-intro').first().getAttribute('data-intro', { timeout: 2_000 }).catch(() => null)
-  await page.locator('[data-game="broken-bench"] :is(.es-intro, [data-bench-form])').first().waitFor()
+async function passTheIntro(page: Page, walk: Walk): Promise<Locator> {
+  // A lesson can hold two runs of this game (its opening run and its graded block): the one the keys are in is the one to pass. On the game's
+  // own page there is one.
+  const inFocus = page.locator('[data-game="broken-bench"]:focus-within')
+  const game = (await inFocus.count()) > 0 ? inFocus.first() : page.locator('[data-game="broken-bench"]').first()
+  const step = () => game.locator('.es-intro').first().getAttribute('data-intro', { timeout: 2_000 }).catch(() => null)
+  await game.locator(':is(.es-intro, [data-bench-form])').first().waitFor()
   for (let at = await step(), guard = 0; (at === 'parts' || at === 'look') && guard < 12; at = await step(), guard++) {
     const focused = await page.evaluate(() => document.activeElement?.hasAttribute('data-intro-next') ?? false)
     if (!focused) await tabTo(walk, /^(Next|Next part)$/, 60)
     await page.keyboard.press('Enter')
   }
+  return game
 }
 
 /** Broken benchmark's level filed right, case by case: on its practice seed, or on the seed a graded run drew (e2e/lesson-games.spec.ts). */
 export const benchLevelWalk = (level: 'due' | 'warm' | 'sure' | 'court', seed = practiceSeed('broken-bench', level)): Walker => async (page, walk) => {
   const slots = benchLevel(level, seed).slots
-  await passTheIntro(page, walk)
+  const game = await passTheIntro(page, walk)
   for (const [at, slot] of slots.entries()) {
     if (at > 0) await expect.poll(() => activeName(page)).toBe(`Report form: report ${at + 1} of ${slots.length}`)
-    await fileRuling(page, walk, rightRuling(slot))
-    if (at < slots.length - 1) await expect(liveLine(page)).toContainText(`Report ${at + 1} of ${slots.length} filed.`)
+    await fileRuling(page, walk, rightRuling(slot), game)
+    if (at < slots.length - 1) await expect(liveLine(game)).toContainText(`Report ${at + 1} of ${slots.length} filed.`)
   }
-  await expect(liveLine(page)).toContainText('The last report is filed.')
+  await expect(liveLine(game)).toContainText('The last report is filed.')
   // The instrument frame puts the result in the dock and focus on its verdict, which the grade gives.
-  await expect(outcome(page)).toHaveText('The run is over. The result is in the dock.')
-  await expect(page.locator('[data-result] [data-result-heading]')).toHaveText('Passed')
+  await expect(outcome(game)).toHaveText('The run is over. The result is in the dock.')
+  await expect(game.locator('[data-result] [data-result-heading]')).toHaveText('Passed')
   await expect.poll(() => page.evaluate(() => document.activeElement?.hasAttribute('data-result-heading') ?? false)).toBe(true)
   await walk.see()
 }

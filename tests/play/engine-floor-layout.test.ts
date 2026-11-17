@@ -422,8 +422,8 @@ describe('the swimlane\'s geometry (REDESIGN §3.6)', () => {
   })
 
   test('fourteen rows fit in the box the frame gives the diagram at 1440 x 900, and the row is never cramped', () => {
-    // The frame's body at 900 px is 100svh - 23.5rem = 524 px high, and the legend takes about 40 of it [estimated from frame.css].
-    const box = 524 - 40
+    // The swimlane's box at 1440 x 900 is 398 px of scrolling room under 52 px of heads [measured 2026-11-16 with e2e/engine-floor.spec.ts].
+    const box = 398 + LANES_DESK.head
     const row = fitRow(box, LANES_DESK)
     expect(row).toBeGreaterThanOrEqual(ROW_MIN)
     expect(LANES_DESK.head + LANES_DESK.start + ROWS_IN_VIEW * row + LANES_DESK.pad).toBeLessThanOrEqual(box)

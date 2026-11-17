@@ -62,7 +62,8 @@ test.afterEach(async ({ page, watch }) => {
   await expectNoRefusal(watch)
 })
 
-const block = (page: Page): Locator => page.locator('section[data-block="item"]')
+/** The ticket of the lesson's Test. The Read section holds a ticket of its own beside its claims (REDESIGN §2.5), so the page has two. */
+const block = (page: Page): Locator => page.locator('#test section[data-block="item"]')
 const stub = (page: Page, name: RegExp | string): Locator => block(page).getByRole('button', { name })
 
 interface Ticket {
