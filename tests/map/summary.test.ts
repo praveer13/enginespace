@@ -69,7 +69,7 @@ describe('the copy', () => {
   })
 
   test('of the Play index holds no such number either, and names the page', () => {
-    expect(specialsCopy().length).toBeGreaterThan(8)
+    expect(specialsCopy().length).toBeGreaterThan(10)
     expect(specialsCopy().flatMap((text) => untaggedNumbers(text))).toEqual([])
     expect(SPECIALS.title).toBe('Games')
     expect(SPECIALS.notPublished).toBe('Not published yet')
