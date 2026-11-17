@@ -240,7 +240,7 @@ export function VerifierLegend({ run, scene = false }: { run: VerifierRun; scene
             <span className="es-vf__dotkey" aria-hidden="true" /> rejected above it.
           </>
         ) : null}
-        {scene ? ' The 3D view stands the same tokens in rows, one row for each draft position.' : ''}
+        {scene ? (view.rows.length > 1 ? ' The 3D view stands the same tokens in rows, one row for each draft position, the first in front.' : ' The 3D view stands the same bars up, at their heights.') : ''}
       </p>
     </div>
   )
