@@ -2,7 +2,7 @@ import { useRef, useState, type DragEvent, type ReactNode } from 'react'
 import { Button } from '@/design/components/Button'
 import { Icon, type IconName } from '@/design/components/Glyph'
 import { PrintingDots } from '@/design/components/PrintingDots'
-import { PrinterTape, type PrinterTapeLine } from '@/design/components/PrinterTape'
+import { ReadoutStrip, type ReadoutStripLine } from '@/design/components/ReadoutStrip'
 import { Readout } from '@/design/components/Readout'
 import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { Sheet } from '@/design/components/Sheet'
@@ -160,12 +160,12 @@ function CheckLine({ lab, index, row, lamp, same }: { lab: ForgeLab; index: numb
 }
 
 /** What the tape says of a run: which module, how many checks passed, which seeds were drawn, and what became of it in the ledger. */
-function tapeOf(lab: ForgeLab, state: ForgeState): PrinterTapeLine[] {
+function tapeOf(lab: ForgeLab, state: ForgeState): ReadoutStripLine[] {
   if (state.step !== 'running' && state.step !== 'done') return []
   const { module } = state
   const results = state.step === 'done' ? state.run.checks : state.results
   const passed = results.filter((result) => result.status === 'pass').length
-  const lines: PrinterTapeLine[] = [
+  const lines: ReadoutStripLine[] = [
     { id: 'lab', label: 'lab', value: module.list.lab, ...(module.reference ? { tone: 'ink-2' as const } : {}) },
     { id: 'module', label: 'module', value: `${module.sha256.slice(0, 12)}…` },
     {
@@ -353,7 +353,7 @@ export function ForgeView({ lab, state, kit = { status: 'loading' }, onChoose, o
             </p>
             <div className="es-forge-checks-row">
               <aside className="es-forge-tape" aria-label="The run">
-                <PrinterTape
+                <ReadoutStrip
                   label="The run, printed"
                   lines={tapeOf(lab, state)}
                   state={state.step === 'reading' ? 'loading' : state.step === 'refused' ? 'error' : 'default'}

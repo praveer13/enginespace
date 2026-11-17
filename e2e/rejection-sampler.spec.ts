@@ -101,7 +101,7 @@ test.describe('a solved module', () => {
     // Five checks inside 2 s each; the whole run is a few seconds on a quiet machine, and the bound is a backstop for a loaded one [estimated].
     expect(spent, 'the run, from the drop to the last check').toBeLessThan(30_000)
     await expect(page.locator('.es-forge-hash__digits')).toHaveText(sha256('solved'))
-    await expect(page.locator('.es-printer')).toContainText('seed · exact')
+    await expect(page.locator('.es-readout-strip')).toContainText('seed · exact')
     await expect(page.locator('.es-forge-check[data-lamp]')).toHaveCount(0)
     await wrote(page)
     await expect(page.locator('.es-forge-recorded')).toContainText('Written to your ledger on this device')

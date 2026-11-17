@@ -1,6 +1,6 @@
 import { lazy, useCallback, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent } from 'react'
 import { Button } from '@/design/components/Button'
-import { PrinterTape } from '@/design/components/PrinterTape'
+import { ReadoutStrip } from '@/design/components/ReadoutStrip'
 import { Readout } from '@/design/components/Readout'
 import { TapeLabel } from '@/design/components/TapeLabel'
 import { Sheet } from '@/design/components/Sheet'
@@ -85,7 +85,7 @@ function KitTape({ store, tier }: { store: StatsStore; tier: Tier | null }) {
         ]
       : []),
   ]
-  return <PrinterTape label="The kit's tape: what this browser measures of the frame" lines={lines} empty="No 3D frame yet" className="es-kit__tape" />
+  return <ReadoutStrip label="The kit's tape: what this browser measures of the frame" lines={lines} empty="No 3D frame yet" className="es-kit__tape" />
 }
 
 const isTyping = (target: EventTarget | null) =>
@@ -221,7 +221,7 @@ export function SceneSpecimen() {
       </div>
 
       <div className="es-kit__readouts">
-        <PrinterTape label="The run so far" lines={printer} className="es-kit__tape" />
+        <ReadoutStrip label="The run so far" lines={printer} className="es-kit__tape" />
         <KitTape store={stats} tier={tier} />
         <section className="es-kit__fires" aria-labelledby="es-kit-fires">
           <h3 id="es-kit-fires" className="es-kit__fires-title">

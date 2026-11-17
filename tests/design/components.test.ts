@@ -25,7 +25,7 @@ import { SectionRail } from '@/design/components/SectionRail'
 import { Stamp, TAG_LEGEND, TagLegend, UNVERIFIED_MEANS } from '@/design/components/Stamp'
 import { TitleBlock } from '@/design/components/TitleBlock'
 import { Pan } from '@/design/components/Pan'
-import { PrinterTape } from '@/design/components/PrinterTape'
+import { ReadoutStrip } from '@/design/components/ReadoutStrip'
 import { Rail } from '@/design/components/Rail'
 import { Readout } from '@/design/components/Readout'
 import { StationLight } from '@/design/components/StationLight'
@@ -93,10 +93,10 @@ describe('Rail', () => {
   })
 })
 
-describe('PrinterTape', () => {
+describe('ReadoutStrip', () => {
   test('lines are a description list, announced politely when live', () => {
     const html = render(
-      h(PrinterTape, {
+      h(ReadoutStrip, {
         label: 'The printer',
         live: true,
         housing: h(MenuLink),
@@ -110,9 +110,9 @@ describe('PrinterTape', () => {
   })
 
   test('loading, error and empty print a line', () => {
-    expect(render(h(PrinterTape, { label: 'p', lines: [], state: 'loading' }))).toContain('role="status"')
-    expect(render(h(PrinterTape, { label: 'p', lines: [], state: 'error', error: 'Paper jam.' }))).toContain('role="alert"')
-    expect(render(h(PrinterTape, { label: 'p', lines: [], empty: 'No fires yet' }))).toContain('No fires yet')
+    expect(render(h(ReadoutStrip, { label: 'p', lines: [], state: 'loading' }))).toContain('role="status"')
+    expect(render(h(ReadoutStrip, { label: 'p', lines: [], state: 'error', error: 'Paper jam.' }))).toContain('role="alert"')
+    expect(render(h(ReadoutStrip, { label: 'p', lines: [], empty: 'No fires yet' }))).toContain('No fires yet')
   })
 })
 

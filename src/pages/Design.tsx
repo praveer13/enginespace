@@ -21,7 +21,7 @@ import { Stamp } from '@/design/components/Stamp'
 import { TitleBlock } from '@/design/components/TitleBlock'
 import { Glyph, Icon, type IconName } from '@/design/components/Glyph'
 import { Pan } from '@/design/components/Pan'
-import { PrinterTape } from '@/design/components/PrinterTape'
+import { ReadoutStrip } from '@/design/components/ReadoutStrip'
 import { Rail } from '@/design/components/Rail'
 import { Readout } from '@/design/components/Readout'
 import { StationLight } from '@/design/components/StationLight'
@@ -895,9 +895,9 @@ function ComponentSpecimens() {
         </State>
       </Specimen>
 
-      <Specimen title="Printer tape" about="The readout strip: terms and their values on one paper strip, a ruled row each. A value changes at once.">
+      <Specimen title="Readout strip" about="The readout strip: terms and their values on one paper strip, a ruled row each. A value changes at once.">
         <State label="default">
-          <PrinterTape
+          <ReadoutStrip
             label="The printer"
             housing={<MenuLink />}
             lines={[
@@ -908,13 +908,13 @@ function ComponentSpecimens() {
           />
         </State>
         <State label="loading">
-          <PrinterTape label="The printer, warming up" state="loading" lines={[]} />
+          <ReadoutStrip label="The printer, warming up" state="loading" lines={[]} />
         </State>
         <State label="error">
-          <PrinterTape label="The printer, jammed" state="error" error="Paper jam. Open the printer and pull the tape." lines={[]} />
+          <ReadoutStrip label="The printer, jammed" state="error" error="Paper jam. Open the printer and pull the tape." lines={[]} />
         </State>
         <State label="empty">
-          <PrinterTape label="The printer, idle" lines={[]} empty="No fires yet" />
+          <ReadoutStrip label="The printer, idle" lines={[]} empty="No fires yet" />
         </State>
       </Specimen>
 

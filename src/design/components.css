@@ -624,17 +624,17 @@
     color: var(--es-text-3);
   }
 
-  /* ---------------------------------------------------------------------------------------------- readout strip (PrinterTape) */
+  /* ---------------------------------------------------------------------------------------------- readout strip */
 
   /* The readout strip: terms and their values on one paper strip, a ruled row each, numbers in the mono face. */
-  .es-printer {
+  .es-readout-strip {
     display: grid;
     width: 100%;
     max-width: 20rem;
     margin: 0;
   }
 
-  .es-printer__housing {
+  .es-readout-strip__housing {
     display: flex;
     align-items: center;
     justify-content: flex-end;
@@ -642,21 +642,21 @@
     padding-bottom: var(--es-space-2);
   }
 
-  .es-printer__housing:not(:has(.es-printer__housing-items)) {
+  .es-readout-strip__housing:not(:has(.es-readout-strip__housing-items)) {
     display: none;
   }
 
-  .es-printer__slot {
+  .es-readout-strip__slot {
     display: none;
   }
 
-  .es-printer__housing-items {
+  .es-readout-strip__housing-items {
     display: flex;
     gap: var(--es-space-3);
     align-items: center;
   }
 
-  .es-printer__tape {
+  .es-readout-strip__tape {
     position: relative;
     padding: var(--es-space-3) var(--es-space-4);
     background-color: var(--es-paper);
@@ -665,7 +665,7 @@
   }
 
   /* The provenance stamp: one per strip, a small bordered word that the tag legend explains. */
-  .es-printer__stamp {
+  .es-readout-strip__stamp {
     width: fit-content;
     margin: 0 0 var(--es-space-2);
     padding: 0 0.35rem;
@@ -679,7 +679,7 @@
   }
 
   /* Under a stamp each figure's own tag is kept for a screen reader and left off the strip. */
-  .es-printer[data-stamped] .es-readout__tag {
+  .es-readout-strip[data-stamped] .es-readout__tag {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -688,12 +688,12 @@
     white-space: nowrap;
   }
 
-  .es-printer__lines {
+  .es-readout-strip__lines {
     display: grid;
     margin: 0;
   }
 
-  .es-printer__line {
+  .es-readout-strip__line {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
@@ -704,54 +704,54 @@
     line-height: 1.35;
   }
 
-  .es-printer__lines > .es-printer__line + .es-printer__line {
+  .es-readout-strip__lines > .es-readout-strip__line + .es-readout-strip__line {
     border-top: 1px solid var(--es-paper-rule);
   }
 
-  .es-printer__line dt {
+  .es-readout-strip__line dt {
     color: var(--es-text-2);
     font-family: var(--es-font-body);
     font-weight: 700;
   }
 
-  .es-printer__line dd {
+  .es-readout-strip__line dd {
     margin: 0;
     font-family: var(--es-font-numeric);
     font-variant-numeric: tabular-nums;
     text-align: right;
   }
 
-  .es-printer__line dd > .es-readout {
+  .es-readout-strip__line dd > .es-readout {
     justify-content: flex-end;
   }
 
-  .es-printer__line[data-tone='ink-2'],
-  .es-printer__line[data-tone='ink-2'] dt {
+  .es-readout-strip__line[data-tone='ink-2'],
+  .es-readout-strip__line[data-tone='ink-2'] dt {
     color: var(--es-paper-ink-2);
   }
 
-  .es-printer__line--status,
-  .es-printer__line--blank {
+  .es-readout-strip__line--status,
+  .es-readout-strip__line--blank {
     justify-content: flex-start;
     color: var(--es-text-2);
   }
 
-  .es-printer__line--error {
+  .es-readout-strip__line--error {
     justify-content: flex-start;
     color: var(--es-paper-ink-2);
   }
 
-  .es-printer__mark {
+  .es-readout-strip__mark {
     flex: none;
     width: 1.1em;
     height: 1.1em;
   }
 
-  .es-printer__tear {
+  .es-readout-strip__tear {
     display: none;
   }
 
-  .es-printer__housing .es-menu-link {
+  .es-readout-strip__housing .es-menu-link {
     color: var(--es-text-1);
   }
 

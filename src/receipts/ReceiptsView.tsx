@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import type { ReceiptRecord, Sha256 } from '@es/ledger'
-import { PrinterTape } from '@/design/components/PrinterTape'
-import type { PrinterTapeLine } from '@/design/components/PrinterTape'
+import { ReadoutStrip } from '@/design/components/ReadoutStrip'
+import type { ReadoutStripLine } from '@/design/components/ReadoutStrip'
 import { Readout } from '@/design/components/Readout'
 import { Count } from '@/evidence/Count'
 import { Sheet } from '@/design/components/Sheet'
@@ -49,7 +49,7 @@ export interface ReceiptsViewProps {
 
 /** The page's tape: how many challenges are in each state and how many receipts the browser holds. */
 function Tape({ ready, counts, receipts }: { ready: boolean; counts: ReturnType<typeof countChallenges>; receipts: number }) {
-  const lines: PrinterTapeLine[] = (['open', 'used', 'expired'] as const).map((state) => ({
+  const lines: ReadoutStripLine[] = (['open', 'used', 'expired'] as const).map((state) => ({
     id: state,
     label: CHALLENGES[state],
     value: <Count value={counts[state]} />,
@@ -57,7 +57,7 @@ function Tape({ ready, counts, receipts }: { ready: boolean; counts: ReturnType<
   lines.push({ id: 'receipts', label: 'results', value: <Count value={receipts} /> })
   const empty = counts.open + counts.used + counts.expired + receipts === 0
   return (
-    <PrinterTape
+    <ReadoutStrip
       label={TAPE.label}
       state={!ready ? 'loading' : empty ? 'empty' : 'default'}
       empty={TAPE.empty}

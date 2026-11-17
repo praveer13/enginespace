@@ -98,7 +98,7 @@ test.describe('the page before a file', () => {
     expect(await statusOf(page)).toEqual(['not run', 'not run', 'not run', 'not run', 'not run'])
     await expect(page.locator('[data-lamp]')).toHaveCount(1)
     await expect(page.locator('.es-sheet[data-lamp]')).toContainText('Your module')
-    await expect(page.locator('.es-printer')).toContainText('Nothing printed yet')
+    await expect(page.locator('.es-readout-strip')).toContainText('Nothing printed yet')
   })
 
   for (const width of [360, 1280]) {
@@ -137,7 +137,7 @@ test.describe('where things are', () => {
     // The first step is in the first screen, with its number beside it.
     expect(tops[0]).toBeLessThan(844)
     // Before a file the readout has nothing to say, and on a phone it is left out.
-    await expect(page.locator('.es-printer')).toBeHidden()
+    await expect(page.locator('.es-readout-strip')).toBeHidden()
 
     await drop(page, 'solved')
     await finished(page)
@@ -181,8 +181,8 @@ test.describe('a solved module', () => {
 
     // The file, by its hash: on the slip, in full, and on the tape.
     await expect(page.locator('.es-forge-hash__digits')).toHaveText(sha256('solved'))
-    await expect(page.locator('.es-printer')).toContainText(`${sha256('solved').slice(0, 12)}…`)
-    await expect(page.locator('.es-printer')).toContainText('seed · churn')
+    await expect(page.locator('.es-readout-strip')).toContainText(`${sha256('solved').slice(0, 12)}…`)
+    await expect(page.locator('.es-readout-strip')).toContainText('seed · churn')
     await expect(page.locator('.es-forge-check').last()).toContainText('drawn when the run began')
 
     // Nothing is red, so the lamp is not on a check; the slip has lost it.
@@ -222,8 +222,8 @@ test.describe('a reference build', () => {
     await finished(page)
     expect(await statusOf(page)).toEqual(['pass', 'pass', 'pass', 'pass', 'pass'])
     await expect(page.getByText('toy@reference: no credit').first()).toBeVisible()
-    await expect(page.locator('.es-printer')).toContainText('toy@reference')
-    await expect(page.locator('.es-printer')).toContainText('no credit')
+    await expect(page.locator('.es-readout-strip')).toContainText('toy@reference')
+    await expect(page.locator('.es-readout-strip')).toContainText('no credit')
     // The slip is the voided ticket: the sentence is printed on it.
     await expect(page.locator('.es-forge-drop .es-sheet__void')).toContainText('toy@reference: no credit')
     await expect(page.getByRole('button', { name: 'Run on new seeds' })).toBeVisible()

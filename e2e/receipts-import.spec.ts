@@ -269,7 +269,7 @@ test.describe('an honest receipt', () => {
     await expect(receiptRows(page).first()).toContainText('not counted')
     await expect(challengeRows(page).first()).toHaveAttribute('data-state', 'used')
     await expect(challengeRows(page).first()).toContainText(`result ${found.receipts[0].sha256.slice(0, 8)}`)
-    await expect(page.getByRole('figure', { name: 'Challenges and results, counted' }).locator('.es-printer__line')).toHaveText([/open\s*(0|—none)/i, /used\s*1/i, /expired\s*(0|—none)/i, /results\s*1/i])
+    await expect(page.getByRole('figure', { name: 'Challenges and results, counted' }).locator('.es-readout-strip__line')).toHaveText([/open\s*(0|—none)/i, /used\s*1/i, /expired\s*(0|—none)/i, /results\s*1/i])
 
     // The check made no request: the worker reads the file it was handed, and the files of the site it was made of.
     await quiet(page)

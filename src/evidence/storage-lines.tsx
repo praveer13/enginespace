@@ -1,4 +1,4 @@
-import type { PrinterTapeLine } from '@/design/components/PrinterTape'
+import type { ReadoutStripLine } from '@/design/components/ReadoutStrip'
 import { Count } from './Count'
 import type { EvidenceSnapshot } from './engine'
 import { formatWhen } from './transfer'
@@ -13,9 +13,9 @@ import { formatWhen } from './transfer'
 /** The tape's lines for a ledger's state. Exported for the tests. */
 export function storageLines(
   ledger: Pick<EvidenceSnapshot, 'ready' | 'backend' | 'persisted' | 'events' | 'receipts' | 'lastExportAt' | 'unsaved'>,
-): PrinterTapeLine[] {
+): ReadoutStripLine[] {
   const memory = ledger.backend === 'memory'
-  const lines: PrinterTapeLine[] = [
+  const lines: ReadoutStripLine[] = [
     {
       id: 'kept',
       label: 'kept in',

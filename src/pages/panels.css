@@ -89,16 +89,16 @@
 }
 
 /* A line of the tape keeps its label whole. A value too long for the rest of the line drops under it, flush right. */
-.es-page .es-printer__line {
+.es-page .es-readout-strip__line {
   flex-wrap: wrap;
 }
 
-.es-page .es-printer__line dt {
+.es-page .es-readout-strip__line dt {
   flex: none;
   white-space: nowrap;
 }
 
-.es-page .es-printer__line dd {
+.es-page .es-readout-strip__line dd {
   margin-left: auto;
   text-align: right;
 }

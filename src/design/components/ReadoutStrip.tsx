@@ -5,14 +5,13 @@ import { PrintingDots } from './PrintingDots'
 
 /*
  * The readout strip (REDESIGN 2.8): terms and their values on one paper strip, a ruled row each, the values in the mono face.
- * A value changes at once; nothing feeds or glides (`feed` is accepted and moves nothing). The name stays PrinterTape until
- * R-T46's rename.
+ * A value changes at once; nothing feeds or glides (`feed` is accepted and moves nothing).
  *
  * States: default; loading (a line of text); error (a line in the second ink); empty (a line that says so); and live
  * (`live`: the lines are announced politely, for a strip that is the only place a change shows).
  */
 
-export interface PrinterTapeLine {
+export interface ReadoutStripLine {
   id: string
   /** The line's name: the engine term. */
   label: ReactNode
@@ -21,8 +20,8 @@ export interface PrinterTapeLine {
   tone?: 'ink' | 'ink-2'
 }
 
-export interface PrinterTapeProps {
-  lines: readonly PrinterTapeLine[]
+export interface ReadoutStripProps {
+  lines: readonly ReadoutStripLine[]
   /** The printer's accessible name. */
   label: string
   /** Changes when a new line is printed, to feed the tape one step. */
@@ -42,35 +41,35 @@ export interface PrinterTapeProps {
   className?: string
 }
 
-export function PrinterTape({ lines, label, feed, state = 'default', error, empty, live = false, housing, stamp, className }: PrinterTapeProps) {
+export function ReadoutStrip({ lines, label, feed, state = 'default', error, empty, live = false, housing, stamp, className }: ReadoutStripProps) {
   return (
-    <figure className={clsx('es-printer', className)} data-state={state} data-stamped={stamp ? '' : undefined} aria-label={label} aria-busy={state === 'loading' || undefined}>
-      <div className="es-printer__housing">
-        <span className="es-printer__slot" aria-hidden="true" />
-        {housing ? <div className="es-printer__housing-items">{housing}</div> : null}
+    <figure className={clsx('es-readout-strip', className)} data-state={state} data-stamped={stamp ? '' : undefined} aria-label={label} aria-busy={state === 'loading' || undefined}>
+      <div className="es-readout-strip__housing">
+        <span className="es-readout-strip__slot" aria-hidden="true" />
+        {housing ? <div className="es-readout-strip__housing-items">{housing}</div> : null}
       </div>
-      <div className="es-printer__tape" aria-live={live ? 'polite' : undefined}>
-        {stamp ? <p className="es-printer__stamp">{stamp}</p> : null}
-        <div className="es-printer__feed" key={feed ?? 'still'} data-feeding={feed !== undefined || undefined}>
+      <div className="es-readout-strip__tape" aria-live={live ? 'polite' : undefined}>
+        {stamp ? <p className="es-readout-strip__stamp">{stamp}</p> : null}
+        <div className="es-readout-strip__feed" key={feed ?? 'still'} data-feeding={feed !== undefined || undefined}>
           {state === 'loading' ? (
-            <p className="es-printer__line es-printer__line--status" role="status">
+            <p className="es-readout-strip__line es-readout-strip__line--status" role="status">
               <PrintingDots />
               <span>Warming up</span>
             </p>
           ) : null}
           {state === 'error' ? (
-            <p className="es-printer__line es-printer__line--error" role="alert">
-              <Icon name="alert" className="es-printer__mark" />
+            <p className="es-readout-strip__line es-readout-strip__line--error" role="alert">
+              <Icon name="alert" className="es-readout-strip__mark" />
               <span>{error ?? 'This readout could not load.'}</span>
             </p>
           ) : null}
           {state === 'empty' || (state === 'default' && lines.length === 0) ? (
-            <p className="es-printer__line es-printer__line--blank">{empty ?? 'Nothing printed yet'}</p>
+            <p className="es-readout-strip__line es-readout-strip__line--blank">{empty ?? 'Nothing printed yet'}</p>
           ) : null}
           {lines.length > 0 && state !== 'loading' ? (
-            <dl className="es-printer__lines">
+            <dl className="es-readout-strip__lines">
               {lines.map((line) => (
-                <div key={line.id} className="es-printer__line" data-tone={line.tone ?? 'ink'}>
+                <div key={line.id} className="es-readout-strip__line" data-tone={line.tone ?? 'ink'}>
                   <dt>{line.label}</dt>
                   <dd>{line.value}</dd>
                 </div>
@@ -78,7 +77,7 @@ export function PrinterTape({ lines, label, feed, state = 'default', error, empt
             </dl>
           ) : null}
         </div>
-        <span className="es-printer__tear" aria-hidden="true" />
+        <span className="es-readout-strip__tear" aria-hidden="true" />
       </div>
     </figure>
   )

@@ -710,7 +710,7 @@ async function counted(row: ReturnType<Page['locator']>): Promise<number> {
 
 const kindRow = (page: Page, kind: string) => page.locator(`table[data-table="kind"] tr[data-kind="${kind}"]`)
 const moduleRow = (page: Page, module: string) => page.locator(`table[data-table="module"] tr[data-module="${module}"]`)
-const tapeLine = (page: Page, tape: string, label: string) => page.getByRole('figure', { name: tape }).locator('.es-printer__line', { has: page.getByText(label, { exact: true }) })
+const tapeLine = (page: Page, tape: string, label: string) => page.getByRole('figure', { name: tape }).locator('.es-readout-strip__line', { has: page.getByText(label, { exact: true }) })
 
 /** Rows of one store of IndexedDB, as the browser holds them. */
 function stored(page: Page, store: 'events' | 'receipts' | 'working' | 'checkpoints'): Promise<{ id?: string; key?: string }[]> {
@@ -820,7 +820,7 @@ test.describe('/evidence: counts by kind and module, with export and import', ()
     expect(written.events).toEqual((JSON.parse(exportText(events)) as { events: LedgerEvent[] }).events)
     // The tape prints what was saved, and the last export is dated.
     await expect(page.getByRole('figure', { name: 'The export, printed' })).toContainText(file.name)
-    await expect(page.getByRole('figure', { name: 'The export, printed' }).locator('.es-printer__line', { hasText: 'events' }).locator('data')).toHaveAttribute('value', '10')
+    await expect(page.getByRole('figure', { name: 'The export, printed' }).locator('.es-readout-strip__line', { hasText: 'events' }).locator('data')).toHaveAttribute('value', '10')
     await expect(tapeLine(page, 'Where your progress is kept', 'last export')).not.toContainText('never')
 
     // The file goes back in: everything in it is here already, so nothing changes and nothing is kept to undo.

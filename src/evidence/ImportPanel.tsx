@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import type { CheckpointMeta, ImportMode } from '@es/ledger'
 import { Button } from '@/design/components/Button'
-import { PrinterTape } from '@/design/components/PrinterTape'
+import { ReadoutStrip } from '@/design/components/ReadoutStrip'
 import { Readout } from '@/design/components/Readout'
 import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { Sheet, SheetLine } from '@/design/components/Sheet'
@@ -106,7 +106,7 @@ export function ImportedTape({ flow }: { flow: Extract<ImportFlow, { step: 'done
   const { summary, clashes } = flow.result
   const replaced = summary.mode === 'replace'
   return (
-    <PrinterTape
+    <ReadoutStrip
       label="The import, printed"
       lines={[
         { id: 'file', label: 'file', value: flow.fileName },

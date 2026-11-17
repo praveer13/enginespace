@@ -64,7 +64,7 @@ describe('/design', () => {
       'Sheet',
       'Primary button',
       'Rail',
-      'Printer tape',
+      'Readout strip',
       'Readout',
       'Tape label',
       'Pan',
