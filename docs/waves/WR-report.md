@@ -248,3 +248,117 @@ R-T19 rebuilt the front page around the time track, and the old front page was t
 - **Renamed:** the time track, `src/games/loop/TrackScene3D.tsx`, is now `src/games/loop/Scene3D.tsx`, the step loop's scene, so the gate's row `scene-loop` measures the scene the game draws. Its props type is `Scene3DProps`, as in the other games.
 - **Measured** (`npm run build`, `bun scripts/verify.ts bundle`, 2026-11-16, R-T19's branch over `wave-r` at `e963820`): `scene-loop` 22,045 B [measured], gate 40 KB, 17,955 B under, with no edit to BUDGETS, the gate script or tests/bundle; the front page's first-paint JS 147,548 B and CSS 24,037 B [measured]; `three-vendor` 238,659 B [measured].
 - **Left for R-T44:** `packages/play/loop/layout.ts` and `kitchen.ts` (the Debrief and the full service still read them), `src/scene/props`, the kitchen specimen on `/design`, the lamps, textures, environment and post-processing. When `src/scene/Lights.tsx` goes, `FlatLights` needs lights of its own (R-T18's note). The kitchen stays whole in build A, the tag `wave-r-stage1`.
+
+## 4. Stage 5: the documents, the budgets as built, and what each task changed (R-T49, 2026-11-17)
+
+R-T49 brings README, PRODUCT.md, WORLD.md, ARCHITECTURE.md, GAMES.md and the content README in line with the built world. It changes no code, content, id, route, ledger ref, seed or golden hash. R-T48 adds the accessibility section to this report in parallel, and R-T50 rewrites DESIGN.md after this task.
+
+### 4.1 What the documents say now
+
+- **Names.** The documents use each game's title and no other name: Step loop, Request path, KV page pool, Rejection sampler, Broken benchmark, Tensor views, Trace attribution, Backend dispatch and KV offload. The kitchen's names stay in one place, the history table at the end of GAMES.md §2.6, and in decision records. GAMES.md §0's roster loses its working-name column, and ARCHITECTURE §6.1's loses its Game column.
+- **GAMES.md.** §0 says which games are built (five) and which are designs (four). §2.2 describes the two reveal kinds (`after-game` and `at-commit`, D-067). §2.3 describes the built diagram, the five mark forms, the materials and the cameras. The scene blocks of Step loop (§3), Request path (§5), KV page pool (§8) and Rejection sampler (§10) describe what was built: the objects, the materials, the named cameras, the motion and the measured rows. Request path's block is the swimlane, and its 3D scene is recorded as removed. Broken benchmark's 3D opener is marked not built. The older "As built" notes of the games that are not rewritten keep their kitchen words as a record, and §2.6's history table is their key.
+- **ARCHITECTURE.md.** §3.1 has the built route labels (Course, Games, Review, Progress, GPU lab results, Traces, Sources and changes) and the front page's sections; §3.3 has the header, Continue and the footer. §4.3 has the two reveal kinds, §4.6 the lessons table, and the new §4.8 the lessons table's row, the four sections and what "done" means. §6.1 lists five 3D games and four 2D, with the built objects and cameras. §6.4 names the flat-plate parts, §6.5 records that there is no post-processing, and §6.6 gives the tier table without a post-pass row, says MSAA at T2 and above, and says where a phone starts. §6.10 and §6.11 describe the front page as built.
+- **WORLD.md §7** says how the world appears: the instrument frame, the flat diagram lifted into 3D, the Traces page and the lessons.
+- **PRODUCT.md** gains two principles and rewords the first, each marked proposed for the owner's confirmation. Nothing else in it changes.
+- **README.md** (the games paragraph and the `src/` row) and **content/README.md** (the reveal kinds, how a lesson is shown, the `no-test` warning and the openers) are corrected.
+
+### 4.2 Every budget, on the tip
+
+`npm run build`, then `bun scripts/verify.ts bundle` on `wave-r` at `a564916` (R-T49's base; this task changes no file the gate reads), 2026-11-17: 60 budgets gated, all passing, three over a target (the entry, the front page's JavaScript and its CSS). The ledger column is section 1's row, measured on 2026-11-15 at `dcba8ef`. No gate, budget or `tests/bundle` file moved in wave R.
+
+| Row | Measured, 2026-11-17 at `a564916` | Gate | Room | Ledger row (§1, 2026-11-15 at `dcba8ef`) |
+|---|---|---|---|---|
+| Entry closure | 100,434 B [measured] | 110 KB (target 100 KB) | 9,566 B | 99,177 B |
+| Front page first-paint JS | 149,855 B [measured] | 150 KB (target 130 KB) | 145 B | 148,189 B |
+| Front page first-paint CSS | 23,149 B [measured] | 30 KB (target 20 KB) | 6,851 B | 18,843 B |
+| Course index | 2,327 B [measured] | target 6 KB | 3,673 B under | 2,304 B |
+| `/map` | 175,621 B [measured] | 200 KB | 24,379 B | 171,986 B |
+| `/m/:module` | 180,538 B [measured] | 200 KB | 19,462 B | 191,438 B |
+| `/m/:module/:lesson` | 149,977 B [measured] | 200 KB | 50,023 B | 147,482 B |
+| `/play` | 164,761 B [measured] | 200 KB | 35,239 B | 135,224 B |
+| `/play/engine-floor` | 192,655 B [measured] | 200 KB | 7,345 B | 192,116 B |
+| `/play/verifier` | 192,099 B [measured] | 200 KB | 7,901 B | 187,889 B |
+| `/play/pool` | 193,131 B [measured] | 200 KB | 6,869 B | 186,019 B |
+| `/play/broken-bench` | 198,930 B [measured] | 200 KB | 1,070 B | 190,068 B |
+| `/play/loop` | 192,471 B [measured] | 200 KB | 7,529 B | 185,649 B |
+| `/labs/:lab` | 146,326 B [measured] | 200 KB | 53,674 B | 125,117 B |
+| `/trace-room`, `/trace-room/:trace` | 120,984 B [measured] | 200 KB | 79,016 B | 121,402 B |
+| `/receipts` | 189,570 B [measured] | 200 KB | 10,430 B | 188,487 B |
+| `/today` | 191,279 B [measured] | 200 KB | 8,721 B | 184,951 B |
+| `/evidence` | 181,478 B [measured] | 200 KB | 18,522 B | 168,520 B |
+| `/design` | 177,804 B [measured] | 200 KB | 22,196 B | 176,467 B |
+| `/settings` | 183,230 B [measured] | 200 KB | 16,770 B | 176,702 B |
+| `/about` | 134,306 B [measured] | 200 KB | 65,694 B | 121,965 B |
+| `/changes` | 128,469 B [measured] | 200 KB | 71,531 B | 121,351 B |
+| `scene-loop` | 19,988 B [measured] | 40 KB | 20,012 B | 37,555 B (the kitchen's) |
+| `scene-pool` | 15,904 B [measured] | 40 KB | 24,096 B | 39,766 B |
+| `scene-verifier` | 14,356 B [measured] | 40 KB | 25,644 B | 38,694 B |
+| `scene-specimen` | 9,985 B [measured] | 40 KB | 30,015 B | 15,296 B |
+| `scene-engine-floor` | no row: the scene left the tree (R-T43) | 40 KB | | 39,370 B |
+| `scene-kitchen`, `scene-kit` | no row: deleted (R-T44) | 40 KB | | 36,532 B and 20,966 B |
+| `three-vendor` | 238,480 B [measured] | 245 KB | 6,520 B | 238,647 B |
+| `postfx` | skipped: `src/scene/postfx` does not exist (R-T44) | 25 KB | | 5,468 B |
+| `receipt.worker` | 55,839 B [measured] | 60 KB | 4,161 B | 55,226 B |
+| `forge.worker` | 2,595 B [measured] | 40 KB | 37,405 B | 2,595 B |
+| Lesson JSON, the largest (`tr1.l2-nano-vllm-in-one-sitting`; 27 rows gated) | 8,932 B [measured] | 40 KB each | 31,068 B | 9,289 B |
+| Module JSON, the largest (`tr6`; 5 rows gated) | 2,906 B [measured] | 40 KB each | 37,094 B | 3,027 B |
+| The site under `dist/` | 10,102,704 B in 372 files [measured] | Pages' 1 GB cap | | 6,532,453 B in 297 files |
+
+Rows that need watching: `/play/broken-bench` has 1,070 B under its gate and the front page's JavaScript has 145 B. Both are held by gates that no task may raise. The pool's 3D chunk went from 39,766 B to 15,904 B, so the 3D scenes now have the room the ledger lacked.
+
+### 4.3 What each task changed
+
+| Task | What it changed |
+|---|---|
+| R-T01 | Recorded wave R: D-062 to D-068, the agent brief's rule 9 for Data Book, the tracker's wave R section and Data Book's direction contract |
+| R-T02 | Display copy left the session state (it moved into a table for each game, keyed by level id), so a later rename moves no state hash |
+| R-T03 | The budget ledger (§1), the pure lane layout for the step loop's demo levels, and the lane spike's go |
+| R-T04 | The naming table, the roster, the terms (`src/copy/terms.ts`) and the copy guard |
+| R-T05 | The new components on the current token roles, with their specimens on `/design` |
+| R-T06 | The way on: the lessons table in `map.json`, `nextStep`, Continue in the header, breadcrumbs and the words for state |
+| R-T07 | The instrument frame, built on KV page pool |
+| R-T08 | The first-run intro and the feedback kit |
+| R-T09 | Every prediction gets a reveal: `after-game` and `at-commit` |
+| R-T10 | The lesson template, built on TR5a lesson 1: Run, Read, Test and Keep on one page, the rail, guesses in the run's slot, claims as numbered marks |
+| R-T11 | The lesson's dock and the source popover |
+| R-T12 | Pacing warnings, the openers and vocabulary tests, and the authoring rules |
+| R-T13 | The tracker's W2 and W3 tasks rewritten for the new design |
+| R-T14 | The step loop's demo and the front page in engine words, on the existing drawing |
+| R-T15 | Stage 1 closed: the budget table against the ledger, the stage's walk, and build A (the tag `wave-r-stage1`) |
+| R-T16 | Data Book: tokens, three faces, a flat ground, an ink focus ring, and every component restyled |
+| R-T17 | Step loop's timing diagram, drawn from the pure lane layouts, in the instrument frame |
+| R-T18 | Step loop's 3D time track: the diagram laid flat on an engraved plate, six cameras |
+| R-T19 | The front page rebuilt around the step loop's instrument; the kitchen scene left the tree and the time track took its name |
+| R-T20 | The look gate: two builds, the same screens, three questions; the owner chose Data Book (D-062) |
+| R-T21 | Course as one column of module rows on a track line, opened by the way on |
+| R-T22 | The module page: the way on, lessons with their state, and the outcomes with ticks |
+| R-T23 | The Games index as a plain list of the nine games; unpublished pages say so and hand back to Continue |
+| R-T24 | Review as five states and the question frame |
+| R-T25 | Progress as dated rows in words, GPU lab results, About with the tag legend, Sources and changes, Settings and the not-found page |
+| R-T26 | Labs in the engine's words: titles, check labels, crate prose, and five numbered steps |
+| R-T27 | Traces: the viewer in the system, with glyph-coded spans and an amber cursor with its word |
+| R-T28 | Step loop's TR2 and TR6 levels in the frame, on the timing diagram |
+| R-T29 | Request path plays on the swimlane, in the frame |
+| R-T30 | Rejection sampler in the frame, with bars as its 2D view |
+| R-T31 | Broken benchmark in the frame |
+| R-T32 | Item stems, options and whys in engine terms |
+| R-T33 | The lessons' figures in the diagram language |
+| R-T34 | TR1 lesson 1 in the template (opener B) |
+| R-T35 | TR1 lessons 2 to 7 in the template |
+| R-T36 | TR2's seven lessons in the template |
+| R-T37 | TR5a lessons 2 to 4 in the template |
+| R-T38 | TR6's five lessons in the template |
+| R-T39 | TR8's four lessons in the template |
+| R-T40 | Model cards and the worlds' claims in engine words |
+| R-T41 | KV page pool's 3D rack from kit primitives, with a fan and threads |
+| R-T42 | Rejection sampler's 3D skylines: a row of bars for each draft position into depth |
+| R-T43 | Request path's 3D scene removed; the game is 2D |
+| R-T44 | The kitchen left the tree: the props, the lamps, textures, environment, post-processing and the loop's kitchen layout |
+| R-T45 | "Show on the machine": a figure can load its state into the lesson's dock |
+| R-T46 | The components are named as DESIGN.md names them |
+| R-T47 | The first-visit walk, the per-screen checks, the keep-list and the baselines, and the findings they made |
+| R-T48 | The accessibility sweep of the surfaces the wave touched; its section is added in parallel |
+| R-T49 | These documents and this section |
+| R-T50 | Not started: the finish review, DESIGN.md and the cold-test pack |
+
+The fixes that merged between tasks (`wr/fix-build-b`, `wr/fix-build-b-2`, `wr/fix-stage1-walk`, `wr/fix-stage3-specs`, `wr/fix-stage4-specs`, `wr/fix-look-decision` and `wr/fix-final-walk`) are in `git log wave-r`.

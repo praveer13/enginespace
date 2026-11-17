@@ -110,7 +110,7 @@ vLLM v1's rules at v0.33.0 (vllm M8, M12), which kernelspace's lab 06 twin alrea
 - k drafted tokens per request per round, at a proposer cost: draft-model steps on the GPU lane or n-gram lookups on the CPU lane.
 - The verify step computes k + 1 positions per request (vllm M8).
 - Acceptance is drawn per position from the workload as integer permille, and expected tokens per round are the sum of repeated products, as kernelspace's `push-luck` computes them, never `Math.pow`.
-- The exact accept-and-recover rule lives in `packages/sim/spec` (A§5.5) for The Verifier and the forge lab; the step loop uses acceptance counts only.
+- The exact accept-and-recover rule lives in `packages/sim/spec` (A§5.5) for the rejection sampler and the forge lab; the step loop uses acceptance counts only.
 - At v0.33.0 a `custom_class` or `suffix` proposer flips the runner to MRV1, where async scheduling turns itself off for methods outside a named list (vllm S4, M6), and the world's presets do the same.
 
 ### 2.8 Structured-output mask
@@ -201,7 +201,7 @@ Each is a torch-profiler capture of a chosen window through `--profiler-config` 
 
 ### 3.4 Annotation and review
 
-The owner annotates with Gap Hunt's own tool. The browser recomputes each annotated partition from the trace; a disagreement is resolved before publication, and a trace whose annotation and computation still disagree is withdrawn from graded draws (ASSESSMENT §4.4). W2-T21's acceptance requires the annotations to be reviewed.
+The owner annotates with the trace attribution game's own tool. The browser recomputes each annotated partition from the trace; a disagreement is resolved before publication, and a trace whose annotation and computation still disagree is withdrawn from graded draws (ASSESSMENT §4.4). W2-T21's acceptance requires the annotations to be reviewed.
 
 ### 3.5 Synthetic traces
 
@@ -239,7 +239,7 @@ S5's rows cover Llama-3-70B on H100 FP8, B200 FP8 and B200 NVFP4 under vLLM 0.10
 2. **Inputs:** the owner's vLLM traces 1-6 (§3.2), with per-phase CPU spans located by the lifecycle names.
 3. **Outputs:** per-phase medians in integer µs with ranges, as claims, and the card's line "fitted on <traces>, <date>".
 4. **Validation:** leave one trace out; report the predicted against the measured step time, bubble share and gap count, with errors, positive or negative.
-5. **Use:** The Loop's goldens are regenerated with `--write` and reviewed (W2-T22). No item grades a fitted value.
+5. **Use:** The step loop's goldens are regenerated with `--write` and reviewed (W2-T22). No item grades a fitted value.
 
 ### 4.4 The host term's lane
 
@@ -257,37 +257,37 @@ New traces, a refit of the host card, regenerated goldens, re-checked claims, an
 
 Each world has a card in `content/cards/<world>.md` with three parts (A§5.9). These are the cards' substance; W1-T07 and W2 tasks write them with claim ids.
 
-**`steploop`** (The Loop; TR2, TR6's mask lane, TR8's server)
+**`steploop`** (step loop; TR2, TR6's mask lane, TR8's server)
 - *Models:* §2.1-§2.8: the step's phases and lanes, one token budget, chunked prefill, recompute preemption, async scheduling and its placeholders and extra token, graph modes, capture sizes, padding, per-runner dispatch keys, backend support levels, graph memory, speculation's step shape, the mask's four phases, and engine defaults per GPU class.
 - *Ignores:* kernel-level variation within a step; clocks and thermals; Python garbage collection and OS scheduling jitter (except as seeded jitter in synthetic traces); tokenization and detokenization cost inside the step; HTTP and streaming; multi-GPU parallelism, NCCL and MoE; memory fragmentation; graph capture's own transient cost beyond a budget; breakable graphs; S5's whole list of omissions on the GPU lane.
 - *Calibrated against:* S5's rows on the 70B card; nothing on the small-model card (napkin); the host card [estimated] until W2-T22.
 
-**`lifecycle`** (The Engine Floor; TR1)
+**`lifecycle`** (Request path; TR1)
 - *Models:* one request's stages through vLLM, SGLang, Mini-SGLang and nano-vllm at their pins, each with a location (process, thread, device) and a mechanism (queue, IPC, copy, sync, compute); abort paths; request states.
 - *Ignores:* durations (stage order only); batching with other requests; failure modes other than abort.
 - *Calibrated against:* the pinned source, stage by stage (W1-T16); one owner lifecycle trace per engine family once W2-T21 lands.
 
-**`kv`** (The Pool; TR5a)
+**`kv`** (KV page pool; TR5a)
 - *Models:* §2.4: one pool, groups, sliding release, state pages, adapter pages and the slot baseline, prefix hashing, the N-group hit, eviction, capacity after the graph reservation, events and invariants.
 - *Ignores:* the physical layout of bytes within a page; kernel efficiency per page size; copy-on-write costs; CPU swap (TR5b's `tiers` owns tiers).
 - *Calibrated against:* nothing numeric; its rules are claims from the pins.
 
-**`spec`** (The Verifier; TR6)
+**`spec`** (Rejection sampler; TR6)
 - *Models:* exact accept-and-recover in integer weights; the bonus token; draft chains; acceptance length; chi-square from counts with generated critical values.
 - *Ignores:* draft trees (a labelled stretch level); top-k and top-p processing, which vLLM applies to the target's logits before verification (vllm S3), except where a level says so; numerics of real logits.
 - *Calibrated against:* nothing; distributions are synthetic.
 
-**`bench`** (Broken Bench; TR8, receipt verification)
+**`bench`** (Broken benchmark; TR8, receipt verification)
 - *Models:* arrival processes; intended and actual send times; closed-loop clients; client queueing; warm-up; nearest-rank percentiles; a seeded percentile bootstrap; goodput under both denominators; Little's law; the broken-benchmark corpus; the server as `steploop` run coarse.
 - *Ignores:* network latency and its variance; client CPU contention except as a stated client cost; server-side batching detail beyond the coarse loop.
 - *Calibrated against:* the server model's own calibration; the corpus's flaws are grounded in kernelspace's `broken-bench` and the tools' source (sglang T5-T8, D3; vllm B1-B3).
 
-**`trace`** (Gap Hunt, the Trace Room; TR1's span checks, TR3, receipt verification)
+**`trace`** (Trace attribution, the Trace Room; TR1's span checks, TR3, receipt verification)
 - *Models:* `trace@1`; the partition of a step window; gap causes from the launch queue; structural checks; physics floors.
 - *Ignores:* events the profiler did not capture; hardware counters; NVTX inside captured graphs.
 - *Calibrated against:* the owner's annotations on pinned traces; exact ground truth on synthetic ones.
 
-**`tensor`** (Shape Shifter; TR0)
+**`tensor`** (Tensor views; TR0)
 - *Models:* storage, shape, strides and offset; which operations are views and which copy; broadcasting by stride 0; a Triton-style grid with masks.
 - *Ignores:* dtype promotion rules beyond a stated subset; device placement; autograd.
 - *Calibrated against:* a golden set of view and reshape outcomes generated once with the pinned torch (W2-T13).
@@ -297,7 +297,7 @@ Each world has a card in `content/cards/<world>.md` with three parts (A§5.9). T
 - *Ignores:* performance; numerics.
 - *Calibrated against:* the pinned docs' generated tables (vllm E2, G7; sglang A4).
 
-**`tiers`** (The Switchyard; TR5b)
+**`tiers`** (KV offload; TR5b)
 - *Models:* §2.9: GPU, host and disk tiers, connector operations, the five invariants, `kv-events@1` and a reference consumer.
 - *Ignores:* network transports between machines (The Wire owns them); storage backends' internals.
 - *Calibrated against:* bandwidths from atlas claims; the contract from the pin (vllm K6-K8).
@@ -317,9 +317,13 @@ Each world has a card in `content/cards/<world>.md` with three parts (A§5.9). T
 
 ## 7. How the world appears
 
-- **The Trace Room** (`/trace-room`): the list of pinned and synthetic traces, each with its card and provenance; the viewer (Canvas2D lanes, zoom and pan by keys and buttons, a span table as the mirror; TRACKER W1-T09); Gap Hunt; and, per pinned trace, the validation panel beside the world's run (§4.5).
-- **The Loop** on the front page and in TR2 and TR6, **The Pool** and **The Switchyard** in TR5a and TR5b, **The Verifier** in TR6 and **Broken Bench** in TR8 render the same models through their own scenes (GAMES.md).
-- **The card is one tap away** wherever the world is drawn (D-012).
+The world is drawn the way an engineer draws the mechanism, in the look the owner chose on 2026-11-16 (D-062, Data Book): a diagram on flat paper with the graticule showing, one amber mark for "now", and the engine's own term on every part. Nothing in the world is named by a metaphor (D-063). Four places draw it.
+
+- **The instrument.** The built games are instruments in one frame (`src/games/kit/Frame.tsx`): a goal line, the diagram, a dock of controls, a readout strip, a title block that says which model it is, what its clock is and what it leaves out, and a parts list in which each part carries its value, its tag and its pinned source. The step loop's model is drawn as a timing diagram: a waiting-queue row, a CPU row, a row for each batch slot, dashed boxes for idle, and the "now" cursor. KV page pool draws the page map, Rejection sampler draws bars for each draft position, and Request path draws a swimlane. Broken benchmark draws its report, its log and its plot. Each diagram is made by a pure layout in `packages/play/<game>`, so the 2D view, the 3D scene, the poster and the mirror cannot disagree (GAMES.md §2.3 and §2.6).
+- **3D is the same diagram lifted.** The step loop, KV page pool and Rejection sampler have a 3D view: the 2D diagram laid flat on an engraved plate and given depth, with matte slabs on contact shadows and no prop, glow or texture. The 2D view is the default, and a phone opens in 2D (ARCHITECTURE §6.6). Request path is 2D only.
+- **The Traces page** (`/trace-room`, titled Traces): the list of pinned and synthetic traces, each with its card and provenance; the viewer (Canvas2D lanes, zoom and pan by keys and buttons, a span table as the mirror; TRACKER W1-T09); the trace attribution game, which is designed and not yet built; and, per pinned trace, the validation panel beside the world's run (§4.5).
+- **The lessons.** A lesson's Run section holds the instrument on the model the lesson is about, and each guess is revealed after the run or at commit (GAMES.md §2.2). The Read section's figures use the same diagram language (R-T33), and "Show on the machine" loads a figure's state into the dock (R-T45).
+- **The card is one tap away** wherever the world is drawn (D-012): the instrument's title block opens the model's card with what it leaves out.
 
 ## 8. What the world deliberately does not do
 
@@ -328,7 +332,7 @@ Each world has a card in `content/cards/<world>.md` with three parts (A§5.9). T
 - It never says what the learner's GPU will do as a fact; GPU numbers come from receipts.
 - It never grades a fitted value.
 - It models no multi-node serving, MoE, expert parallelism or collectives; other specialisations own those (catalog §4).
-- It shows no photoreal hardware; scenes are schematic (D-019).
+- It shows no photoreal hardware; scenes are schematic diagrams (D-019).
 - It shows nothing synthetic without a label.
 
 ## 9. Build phases
@@ -337,7 +341,7 @@ Each world has a card in `content/cards/<world>.md` with three parts (A§5.9). T
 |---|---|
 | W0 | `core`, `physics` (S5 vendored), `host` (estimated presets), `workload`; `steploop` v0, which is the TR2 spike and W0-T13's acceptance (D-040) |
 | W1 | `steploop` v1 (graphs, keys, mask, speculation; W1-T12); `lifecycle` (W1-T16); `kv` (W1-T21); `spec` (W1-T26); `bench` (W1-T31); `trace` and synthetic traces (W1-T08); the cards (W1-T07) |
-| W2 | `tensor` (W2-T13); `backends` (W2-T25); `tiers` (W2-T28); the grader's trace exporter (W2-T19); the owner's traces (W2-T21); the host card's fit (W2-T22); the Trace Room and Gap Hunt (W2-T20) |
+| W2 | `tensor` (W2-T13); `backends` (W2-T25); `tiers` (W2-T28); the grader's trace exporter (W2-T19); the owner's traces (W2-T21); the host card's fit (W2-T22); the Traces page and trace attribution (W2-T20) |
 | W3 | the capstone pairs' traces (W3-T01); validation panels at full coverage; the re-pin runbook (W3-T06) |
 
 ## 10. Open items
