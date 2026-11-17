@@ -10,10 +10,10 @@ import { LAMP_GLOW } from '@/scene/props/Service'
 
 const root = path.resolve(import.meta.dirname, '../..')
 const read = (file: string) => readFileSync(path.join(root, file), 'utf8')
-/** Every game's 3D scene. The step loop's is the time track and the rejection sampler's the skylines, which hang no lamp (tests/play/loop-track.test.ts and verifier-scene.test.ts hold them so). */
+/** Every game's 3D scene. The step loop's is the time track, the rejection sampler's the skylines and the pool's the rack, which hang no lamp (tests/play/loop-track.test.ts, verifier-scene.test.ts and pool-scene.test.ts hold them so). */
 const GAMES = ['loop', 'verifier', 'pool'] as const
-/** The scenes that hang the kit's heat lamps. */
-const LAMPED = ['pool'] as const
+/** The scenes that hang the kit's heat lamps: none is left. */
+const LAMPED: readonly string[] = []
 /** The inside of the kit's heat-lamp shade's rolled lip, in metres (build.ts's heatLamp profile, at its narrowest under the roll). */
 const LIP = 0.11
 

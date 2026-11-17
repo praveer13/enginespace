@@ -9,3 +9,9 @@ export type PoolOutcome = RunOutcome<PoolView>
 
 /** How the page is being played: a practice level shows the cost of each eviction and has undo, a graded one has neither (ASSESSMENT §4.3). */
 export type PoolMode = 'practice' | 'graded'
+
+/** What the learner selected in the 3D view: a page, which fans into its layers, or a request, whose block table shows as threads to its pages. */
+export interface PoolPick {
+  readonly kind: 'page' | 'request'
+  readonly id: number
+}

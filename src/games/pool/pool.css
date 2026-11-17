@@ -345,8 +345,9 @@
 
 .es-pool__cameras {
   display: flex;
-  flex-direction: column;
-  gap: var(--es-space-2);
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--es-space-2) var(--es-space-4);
 }
 
 .es-pool__mode {

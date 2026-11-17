@@ -28,3 +28,8 @@ export function focusOf(view: PoolView, station: number | null): Focus {
   const head = tables.find((list) => list.length > 0)?.[0]
   return { ticket, tables, head, group: head?.station == null ? null : view.stations[head.station] }
 }
+
+/** A request's pages at each group, in the order of its blocks: empty for a group it holds nothing at, or one the filter leaves out. */
+export function tableFor(view: PoolView, req: number, station: number | null): PanView[][] {
+  return view.stations.map((_, g) => (station !== null && g !== station ? [] : view.pans.filter((pan) => pan.station === g && pan.holders.includes(req)).sort((a, b) => (a.block ?? 0) - (b.block ?? 0))))
+}

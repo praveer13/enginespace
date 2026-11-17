@@ -1,345 +1,390 @@
 /*
- * The Reach-In's kitchen (GAMES.md §2.6 "The Reach-In", §8 "3D scene"; scene kit v1): the session's view turned into what the scene
- * draws. A pure function of `PoolView`, the view that the 2D view and the mirror draw too, so the scene adds nothing the session did not
- * compute and decides nothing. No three here: it is tested under Bun, and only the scene's lazy chunk holds it.
+ * The KV page pool's 3D rack (REDESIGN §2.8, §2.9, §3.5): the session's view turned into what the scene draws. A pure function of
+ * `PoolView`, the view that the 2D diagram and the mirror draw too, so the scene adds nothing the session did not compute and decides
+ * nothing. No three here: it is tested under Bun, and only the scene's lazy chunk holds it.
  *
- * The room, in metres with y up and +z toward the expo, every length [estimated] on the kit's proportions:
+ * It is the 2D diagram laid on a base plate, in the diagram's own pixels (flat-track.ts: x across, z down the diagram, y up):
  *
- *   - The reach-in: a prep cabinet with reach-in doors, whose top is a cold rail of 1/9 hotel pans on adapter bars, sixteen to a row,
- *     each pan in its slot for its whole life (the scene's own prop, cabinet.ts). Pan 1 is at the back on the left, as in the 2D view.
- *     A pan holds mise, the food of its memory role, below its rim; a bare pan holds none. Tape goes only where a cook would put it: on a
- *     recipe kit's pans, with the kit's pin in marker, and on the pan at the head of the focus's order, whose fan carries its station's
- *     glyph. The slots a short last row leaves are under one cover with a rolled lip. The reach-in's own strip of tape, scrawled in
- *     marker, lies along its front edge.
- *   - The line's rail: along the front edge of the reach-in's overshelf, a clip for each batch slot, and the tickets on the line hung on
- *     them, tipped toward the expo and curling at the foot as paper off a roll does.
- *   - The pass, across an aisle in front: the waiting tickets lie along its front half, and two heat lamps hang low over its back half on
- *     short stems from a lamp bar across it, under the line's rail, burning only while the present lies on the pass (an admit, or the
- *     tickets a kit is wanted for): each aims forward and pools its amber on the steel under the tickets in front of it.
- *   - The room: tile, the line's burners under their hood to the left, the floor, and the room's light falling away from the line and
- *     the reach-in into the haze, across, up the wall and back.
+ *   - The running batch, at the back: a slot for each batch slot, a paper tile for a running request, a dashed wire for an empty slot.
+ *   - The rack, in the middle: a well holding every page in its cell, in rows of `view.cols`, each cell engraved in the sheet. A page
+ *     never moves: it stands in its cell for its whole life and only changes state where it stands. A state is a form as well as a
+ *     colour (WCAG 1.4.1): free is hollow, in use is solid, cached is hatched, shared by a prefix hit is dotted, an adapter's is a groove.
+ *   - The waiting queue, in front, as dashed wires: requests that are not in the pool yet.
+ *   - The threads: a request's block table, drawn as one thread from its slot to each page it holds, in the arch depth gives them. A page
+ *     two requests share has two threads end on it, which no flat drawing shows.
+ *   - The fan: a selected page opens into the layers it serves, one thin slab for each layer of its KV group, the padding layers last and
+ *     hollow, stacked above it. The page itself does not move; its layers rise out of it and spread.
  *
- * The present (GAMES.md §2.6 rule 5) is the open ask's candidates: the pans a dump would take ring in the lamp's amber, and so do the
- * tickets on the line that can be pulled; while a ticket can hang or a kit can be brought in, the pass burns under its lamps, where the
- * tickets wait. The focus is the ticket hung last: its twine, one string per station, runs from it to the pans it holds in the order of
- * its blocks, and the pan at the head of its order fans into the layers of its station.
- *
- * The scene carries no word and no number (D-021, GAMES.md §2.6 rule 7): a ticket's number is the page's, in the controls and the
- * mirror; the fan's meaning is the page's too (Game.tsx); and the tickets' print, the glyphs and the tape's scrawl are texture.
+ * Every word and number is DOM: the labels are the label layer's, and the page says what is selected (Stage3D.tsx).
  */
 import type { CameraPreset } from '@/scene/camera-rig'
-import type { RoomLight } from '@/scene/props/set'
-import type { LampLight } from '@/scene/props/Service'
-import type { PropSpec, Vec3 } from '@/scene/props/specs'
-import type { ClipPlace, TicketPose } from '@/scene/props/Tickets'
-import type { Sheet } from '@/scene/SheetInstances'
-import type { PanState, PoolView } from '@es/play/pool/types'
+import type { FlatBox, FlatLabel, FlatModel, FlatSegment } from '@/scene/flat-track'
+import { PX } from '@/scene/flat-track'
+import type { MarkForm } from '@/scene/marks'
+import type { ColorRoleName } from '@/design/tokens'
+import type { PanState, PanView, PoolView } from '@es/play/pool/types'
+import type { PoolPick } from './types'
 
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* The measures                                                                                                       */
+/* The measures, in the diagram's px [estimated, set by eye in the front shot at 1440 and 390]                        */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** Pans in a row of the rack (GAMES.md §8: "in rows of 16"). */
-export const COLS = 16
-/** The reach-in's work top: its adapter bars and the pans' rims. */
-export const TOP = 0.88
-/** A 1/9 hotel pan, 65 mm deep [estimated: GN 1/9 is 176 × 108 mm, unverified as the kit's sizes are], and its slot on the bars. */
-export const PAN = { w: 0.108, d: 0.176, h: 0.065 } as const
-export const PITCH = { x: 0.114, z: 0.182 } as const
-/** The top's frame round the cold rail: in front, at the sides, and behind, where the overshelf's posts stand. */
-export const FRAME = { front: 0.07, side: 0.07, back: 0.17 } as const
-/**
- * The mise in a pan: how far below the rim its edge lies, so the pan's wall and rolled rim stand round it as a line of steel, and how
- * high it heaps in the middle, a mound with round shoulders that the tubes catch (finish reviews, W1b rounds 1 and 2), each pan's a
- * little higher or lower than its neighbours' and the highest still under the rim; its crown, where a kit pan's tape lies.
- */
-export const MISE = { drop: 0.02, heap: 0.016 } as const
-export const CROWN = TOP - MISE.drop + MISE.heap
-/** A pan's tape: masking tape across the mise. */
-export const TAPE = { w: 0.074, d: 0.044 } as const
-/** The pass across the aisle: its top, its width, its depth and its middle, and the line the waiting tickets lie along, in its front half. */
-export const PASS = { top: 0.94, width: 1.5, depth: 0.54, z: 0.77, line: 0.88 } as const
-/**
- * The line's rail along the overshelf's front edge: its top, the distance between clips, how far under the top a clip grips a ticket,
- * and how far out from the wall it runs (the overshelf is 0.25 deep), so that nothing over it hides a hung ticket from the front shot.
- */
-export const RAIL = { y: 1.3, pitch: 0.16, grip: 0.045, out: 0.235 } as const
-/**
- * The tickets: the kit's, drawn `scale` times its size, so that a hung ticket's paper, its curl and its print read across the reach-in
- * at 1440 px, about 50 px tall in the front shot; the clips grow with them. A ticket's length at that size and the distance between two
- * lying on the pass; and how one stands: a hung one tipped forward off its clip by `tilt` radians and turned on it by about `turn`
- * radians, so that its cut edge stands toward the room (finish review, W1b round 2), and every one curled toward its face by `curl` of
- * its length, as paper off a roll is.
- */
-export const TICKET = { scale: 1.85, height: 0.222, gap: 0.165, tilt: 0.32, turn: 0.45, curl: 0.24 } as const
-/**
- * The heat lamps over the pass: their x, the mouth of each shade, under the line's rail, and the line under them; and the lamp bar they
- * hang from on short stems, a steel rod `bar` up across the pass's back half on two posts `span` apart that stand on its top (cabinet.ts's
- * `lampBar`). The lamps hang over the pass's back half, so that from every preset their shades stand over the pass and behind the waiting
- * tickets, and each throws its light forward and down on the tickets in front of it. Nothing over the pass stands higher than the bar,
- * so in the front shot no stem or post crosses the rack, where a rod from the ceiling ran across it (finish review, W1b round 2); the
- * tests project the shades, the bar and its posts.
- */
-export const LAMP = { x: 0.24, mouth: 1.17, z: 0.765, bar: 1.44, span: 1.42 } as const
+/** A page's cell: the page's footprint, the pitch of a row and a column, and the page's height over the well's floor. */
+export const PAGE = { size: 24, pitch: 30, height: 10 } as const
+/** The well the pages stand in: its height, and how far it reaches past the cells. */
+export const WELL = { height: 4, margin: 5 } as const
+/** The sheet's margin round the drawing. */
+export const MARGIN = 44
+/** A batch slot's tile, the widest it grows, and the gap between slots; the room under it for the threads' arch to start. */
+export const SLOT = { depth: 26, height: 14, widest: 92, gap: 8 } as const
+export const THREAD_ROOM = 58
+/** A waiting request's wire, and the room between the rack and the queue. */
+export const WAIT = { width: 46, depth: 20, height: 8, gap: 6, shown: 12, room: 26 } as const
+/** The fan: the layers' height, how far the lowest rises over the page, the step between layers, and how far it spreads and stands back. */
+export const FAN = { thick: 3, rise: 12, step: 9, tallest: 130, spread: 9, widest: 90, back: 4, size: 0.86 } as const
+/** A thread: how many straight pieces it is drawn in, and how high it arches over the straight line [estimated]. */
+export const THREAD = { pieces: 8, arch: 12, perPx: 0.18 } as const
+/** The rings round a page or a tile: how far they stand off it, and their height. */
+export const RING = { off: 1.5, edge: 1.4, height: 2.2 } as const
 
-/**
- * The presets' ids, as scene-presets.ts names them for the page's plates (a test holds the two lists equal). The scene does not import
- * that module: the page does, and a module both import would be bundled into the page's chunk, which the scene would then pull in.
- */
+/** The presets' ids, as scene-presets.ts names them for the page's plates (a test holds the two lists equal). */
 export const SHOTS = ['front', 'station', 'top'] as const
 
-/**
- * The atlas cells (Scene3D.tsx draws them): a station's kind on its torn tape, for the head pan's fan; a kit's pin, for the kit's tape;
- * the reach-in's own strip with its scrawl; a dumped pan's hollow well; and the mise of each memory role, as food.
- */
-export const CELL = { full: 0, sliding: 1, state: 2, pin: 4, scrawl: 5, hollow: 6 } as const
-export const FOOD: Readonly<Record<PanState, number>> = { free: CELL.hollow, used: 8, cached: 9, shared: 10, adapter: 11, evicted: CELL.hollow }
+/** The form a page's state is drawn in: the shape that carries it besides its colour. */
+export const PAGE_FORM: Readonly<Record<PanState, MarkForm>> = { free: 'hollow', used: 'solid', cached: 'marked', shared: 'dotted', adapter: 'groove', evicted: 'marked' }
+/** The colour role of a page's state: the design system's memory roles (free is drawn in its edge, since white would not show on paper). */
+export const PAGE_ROLE: Readonly<Record<PanState, ColorRoleName>> = {
+  free: 'cat-white-edge',
+  used: 'memory-used',
+  cached: 'memory-cached',
+  shared: 'memory-shared',
+  adapter: 'memory-adapter',
+  evicted: 'memory-evicted',
+}
 
-/** A ticket's print: its cell of the kit's atlas, from its number. */
-export const cellOf = (req: number): number => (req * 5) % 8
-/** A small, fixed lean, from a number, so a row never looks stamped out. */
-export const lean = (n: number, amount: number): number => (((n * 37) % 11) / 11 - 0.5) * amount
+/** A request's short name on the drawing and in the lists: request 0 is R1 (words.ts says it too, but the scene may not import the page). */
+const reqName = (id: number): string => `R${id + 1}`
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* Where things stand                                                                                                 */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+export interface Geometry {
+  readonly cols: number
+  readonly rows: number
+  /** The sheet's width and depth. */
+  readonly width: number
+  readonly depth: number
+  readonly slots: { readonly z0: number; readonly z1: number; readonly width: number; readonly x0: number }
+  readonly rack: { readonly x0: number; readonly x1: number; readonly z0: number; readonly z1: number }
+  readonly queue: { readonly z0: number; readonly z1: number }
+}
+
+/** The drawing's shape for a pool of `pages` pages in rows of `cols`, and a batch of `cap` slots: a function of the level, so no decision moves it. */
+export function geometryOf(pages: number, cols: number, cap: number): Geometry {
+  const rows = Math.ceil(pages / cols)
+  const rackWidth = cols * PAGE.pitch
+  const width = rackWidth + 2 * MARGIN
+  const slotZ0 = MARGIN
+  const slotZ1 = slotZ0 + SLOT.depth
+  const rackZ0 = slotZ1 + THREAD_ROOM
+  const rackZ1 = rackZ0 + rows * PAGE.pitch
+  const queueZ0 = rackZ1 + WAIT.room
+  const queueZ1 = queueZ0 + WAIT.depth
+  const slotWidth = Math.min(SLOT.widest, (rackWidth - (cap - 1) * SLOT.gap) / cap)
+  return {
+    cols,
+    rows,
+    width,
+    depth: queueZ1 + MARGIN,
+    slots: { z0: slotZ0, z1: slotZ1, width: slotWidth, x0: MARGIN },
+    rack: { x0: MARGIN, x1: MARGIN + rackWidth, z0: rackZ0, z1: rackZ1 },
+    queue: { z0: queueZ0, z1: queueZ1 },
+  }
+}
+
+/** A page's footprint on the sheet. */
+export function pageBox(g: Geometry, id: number): { x0: number; x1: number; z0: number; z1: number } {
+  const x = g.rack.x0 + (id % g.cols) * PAGE.pitch + (PAGE.pitch - PAGE.size) / 2
+  const z = g.rack.z0 + Math.floor(id / g.cols) * PAGE.pitch + (PAGE.pitch - PAGE.size) / 2
+  return { x0: x, x1: x + PAGE.size, z0: z, z1: z + PAGE.size }
+}
+
+/** A running request's slot tile: its footprint, by the slot it hangs in. */
+export function slotBox(g: Geometry, at: number): { x0: number; x1: number; z0: number; z1: number } {
+  const x0 = g.slots.x0 + at * (g.slots.width + SLOT.gap)
+  return { x0, x1: x0 + g.slots.width, z0: g.slots.z0, z1: g.slots.z1 }
+}
+
+/** The height of a page's top over the sheet. */
+export const PAGE_TOP = WELL.height + PAGE.height
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* Threads and the fan                                                                                                */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/** A thread from one point to another, drawn in `THREAD.pieces` straight pieces that arch between them. */
+export function thread(from: readonly [number, number, number], to: readonly [number, number, number]): FlatSegment[] {
+  const reach = Math.hypot(to[0] - from[0], to[2] - from[2])
+  const lift = THREAD.arch + THREAD.perPx * reach
+  const at = (t: number): [number, number, number] => [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t + lift * Math.sin(Math.PI * t), from[2] + (to[2] - from[2]) * t]
+  return Array.from({ length: THREAD.pieces }, (_, i) => {
+    const a = at(i / THREAD.pieces)
+    const b = at((i + 1) / THREAD.pieces)
+    return { x0: a[0], z0: a[2], y: a[1], x1: b[0], z1: b[2], y1: b[1] }
+  })
+}
+
+export interface Fan {
+  /** The page that opens. */
+  readonly page: number
+  readonly layers: number
+  readonly pads: number
+  /** The layer's state, which the real layers are drawn in. */
+  readonly state: PanState
+}
+
+/** The layers' step for a stack of `n`, so the tallest fan stays under `FAN.tallest`. */
+const stepFor = (n: number): number => Math.min(FAN.step, (FAN.tallest - FAN.rise) / Math.max(1, n))
+
+function fanBoxes(g: Geometry, fan: Fan, open: boolean): FlatBox[] {
+  const n = fan.layers + fan.pads
+  const at = pageBox(g, fan.page)
+  const cx = (at.x0 + at.x1) / 2
+  const cz = (at.z0 + at.z1) / 2
+  const half = (PAGE.size * FAN.size) / 2
+  const spread = Math.min(FAN.spread, FAN.widest / Math.max(1, n))
+  return Array.from({ length: n }, (_, k) => {
+    const x = open ? cx + (k - (n - 1) / 2) * spread : cx
+    const z = open ? cz - k * FAN.back : cz
+    const padding = k >= fan.layers
+    return {
+      id: `fan/${k}`,
+      x0: x - half,
+      x1: x + half,
+      z0: z - half,
+      z1: z + half,
+      y0: open ? PAGE_TOP + FAN.rise + k * stepFor(n) : PAGE_TOP,
+      height: FAN.thick,
+      role: padding ? 'cat-white-edge' : PAGE_ROLE[fan.state],
+      form: padding ? 'hollow' : PAGE_FORM[fan.state],
+      // A pick on a layer is a pick on its page: the same pick again closes the fan.
+      pick: `page:${fan.page}`,
+    } satisfies FlatBox
+  })
+}
+
+/** How tall the fan stands over the sheet, for the cameras. */
+export const fanTop = (n: number): number => PAGE_TOP + FAN.rise + n * stepFor(n) + FAN.thick
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* The rack                                                                                                           */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+export interface RackOptions {
+  /** The KV group that One KV group shows, by index, or null for every group's threads. */
+  readonly station: number | null
+  /** The pages chosen to be evicted, while an eviction is open. */
+  readonly chosen: readonly number[]
+  /** The pages a dock row points at. */
+  readonly pointed: readonly number[]
+  readonly pick: PoolPick | null
+}
+
+export interface Rack {
+  readonly model: FlatModel
+  /** The same drawing with the fan closed onto its page: where the move that opens it starts. */
+  readonly closed: FlatModel
+  readonly geometry: Geometry
+  readonly fan: Fan | null
+  /** The request whose threads are drawn: the one selected, else the one hung last. Null when none is on the line. */
+  readonly request: number | null
+  /** The pages that threads end on. */
+  readonly threaded: readonly number[]
+  /** Changes whenever the fan does: the move that opens it plays again. */
+  readonly moment: string
+}
+
+/** The pages a request holds in each group, in the order of its blocks. */
+function tableOf(view: PoolView, req: number, station: number | null): PanView[][] {
+  return view.stations.map((_, g) => (station !== null && g !== station ? [] : view.pans.filter((pan) => pan.station === g && pan.holders.includes(req)).sort((a, b) => (a.block ?? 0) - (b.block ?? 0))))
+}
+
+/** The request whose threads show: the one the learner selected, or while nothing is selected, the one hung last (none while a page is selected). */
+export function threadedRequest(view: PoolView, pick: PoolPick | null): number | null {
+  if (pick?.kind === 'request') return view.running.includes(pick.id) ? pick.id : null
+  return pick === null ? (view.running[view.running.length - 1] ?? null) : null
+}
+
+/** The fan of the selected page, when it is a page of a group (a bare page and an adapter's have no layers). */
+export function fanOf(view: PoolView, pick: PoolPick | null): Fan | null {
+  if (pick?.kind !== 'page') return null
+  const page = view.pans[pick.id] as PanView | undefined
+  if (page === undefined || page.station === null) return null
+  const group = view.stations[page.station]
+  return { page: page.id, layers: group.layers, pads: group.padLayers, state: page.state }
+}
+
+export function rackOf(view: PoolView, { station, chosen, pointed, pick }: RackOptions): Rack {
+  const g = geometryOf(view.pans.length, view.cols, view.cap)
+  const open = view.ask?.kind === 'evict' ? view.ask.candidates : []
+  const shownPick = pick !== null && (pick.kind === 'page' ? view.pans[pick.id] !== undefined : view.running.includes(pick.id)) ? pick : null
+  const request = threadedRequest(view, shownPick)
+  const fan = fanOf(view, shownPick)
+
+  const plates: FlatBox[] = [
+    { id: 'plate/base', x0: -14, x1: g.width + 14, z0: -14, z1: g.depth + 14, y0: -10, height: 9.4, role: 'surface-2', form: 'solid', shadow: false },
+    { id: 'plate/sheet', x0: 0, x1: g.width, z0: 0, z1: g.depth, y0: -0.6, height: 0.6, role: 'paper', form: 'solid', shadow: false },
+    { id: 'plate/well', x0: g.rack.x0 - WELL.margin, x1: g.rack.x1 + WELL.margin, z0: g.rack.z0 - WELL.margin, z1: g.rack.z1 + WELL.margin, y0: 0, height: WELL.height, role: 'surface-2', form: 'solid', shadow: false },
+  ]
+
+  const boxes: FlatBox[] = []
+  const rings: FlatBox[] = []
+  const ring = (id: string, box: { x0: number; x1: number; z0: number; z1: number }, role: ColorRoleName, off: number, y0: number, height: number) =>
+    rings.push({ id, x0: box.x0 - off, x1: box.x1 + off, z0: box.z0 - off, z1: box.z1 + off, y0, height, role, form: 'hollow', shadow: false })
+  const chosenSet = new Set(chosen)
+  for (const page of view.pans) {
+    const at = pageBox(g, page.id)
+    const state: PanState = chosenSet.has(page.id) ? 'evicted' : page.state
+    boxes.push({ id: `page/${page.id}`, ...at, y0: WELL.height, height: PAGE.height, role: PAGE_ROLE[state], form: PAGE_FORM[state], pick: `page:${page.id}` })
+  }
+  const lamp = (id: number, key: string) => {
+    ring(`${key}/${id}/lamp`, pageBox(g, id), 'lamp', RING.off, WELL.height, RING.height)
+    ring(`${key}/${id}/edge`, pageBox(g, id), 'lamp-ring', RING.off + 1.1, WELL.height, RING.edge)
+  }
+  for (const id of open) lamp(id, 'candidate')
+  for (const id of pointed) if (!open.includes(id)) lamp(id, 'pointed')
+
+  // The running batch: a tile for each request on the line, a dashed wire for each empty slot.
+  const wires: FlatBox[] = []
+  const labels: FlatLabel[] = []
+  const inks: FlatSegment[] = []
+  for (let at = 0; at < view.cap; at++) {
+    const box = slotBox(g, at)
+    const id = view.running[at]
+    if (id === undefined) {
+      wires.push({ id: `slot/${at}`, ...box, height: SLOT.height, role: 'edge', form: 'hollow' })
+      continue
+    }
+    boxes.push({ id: `slot/${at}`, ...box, height: SLOT.height, role: 'paper', form: 'solid', pick: `req:${id}` })
+    labels.push({ id: `chip/${id}`, at: [(box.x0 + box.x1) / 2, SLOT.height, (box.z0 + box.z1) / 2], text: reqName(id), kind: 'chip', place: 'center' })
+    if (id === request) ring(`ring/slot/${at}`, box, 'lamp-ring', RING.off, 0, RING.edge + 0.6)
+  }
+
+  // The threads of the request shown: one from its tile to each page of its block table, a page two requests hold with a thread from each.
+  const threaded: number[] = []
+  const throughSlot = (req: number, pages: readonly PanView[], spreadOver: number, offset: number) => {
+    const at = view.running.indexOf(req)
+    if (at < 0) return
+    const box = slotBox(g, at)
+    pages.forEach((page, i) => {
+      const n = spreadOver
+      const along = Math.min(5, (g.slots.width - 12) / Math.max(1, n))
+      const start: [number, number, number] = [(box.x0 + box.x1) / 2 + (offset + i - (n - 1) / 2) * along, SLOT.height, box.z1]
+      const to = pageBox(g, page.id)
+      inks.push(...thread(start, [(to.x0 + to.x1) / 2, PAGE_TOP, (to.z0 + to.z1) / 2]))
+      threaded.push(page.id)
+    })
+  }
+  if (request !== null) {
+    const table = tableOf(view, request, station)
+    const total = table.reduce((sum, list) => sum + list.length, 0)
+    let offset = 0
+    for (const list of table) {
+      throughSlot(request, list, total, offset)
+      offset += list.length
+    }
+  } else if (fan !== null) {
+    // A page selected: a thread from each request that holds it.
+    const page = view.pans[fan.page]
+    page.holders.forEach((req, i) => throughSlot(req, [page], page.holders.length, i))
+  }
+  for (const id of new Set(threaded)) ring(`held/${id}`, pageBox(g, id), 'lamp-ring', RING.off, WELL.height, RING.edge)
+  if (pick?.kind === 'page' && view.pans[pick.id] !== undefined) lamp(pick.id, 'selected')
+
+  // The waiting queue: requests not in the pool yet, as dashed wires.
+  const shown = view.waiting.slice(0, WAIT.shown)
+  shown.forEach((id, i) => {
+    const x0 = g.rack.x0 + i * (WAIT.width + WAIT.gap)
+    wires.push({ id: `wait/${id}`, x0, x1: x0 + WAIT.width, z0: g.queue.z0, z1: g.queue.z1, height: WAIT.height, role: 'edge', form: 'hollow' })
+    labels.push({ id: `wait-label/${id}`, at: [x0 + WAIT.width / 2, WAIT.height, (g.queue.z0 + g.queue.z1) / 2], text: reqName(id), kind: 'chip', place: 'center' })
+  })
+  if (view.waiting.length > shown.length) {
+    const x = g.rack.x0 + shown.length * (WAIT.width + WAIT.gap)
+    labels.push({ id: 'wait-more', at: [x, 0, (g.queue.z0 + g.queue.z1) / 2], text: `and ${view.waiting.length - shown.length} more`, kind: 'idle', place: 'right' })
+  }
+
+  // The cells, engraved in the sheet: a rule on each side of a cell.
+  const rules: FlatSegment[] = []
+  for (let c = 0; c <= g.cols; c++) rules.push({ x0: g.rack.x0 + c * PAGE.pitch, x1: g.rack.x0 + c * PAGE.pitch, z0: g.rack.z0, z1: g.rack.z1, y: WELL.height })
+  for (let r = 0; r <= g.rows; r++) rules.push({ x0: g.rack.x0, x1: g.rack.x1, z0: g.rack.z0 + r * PAGE.pitch, z1: g.rack.z0 + r * PAGE.pitch, y: WELL.height })
+
+  // The words: each region's name, and the fan's.
+  const left = g.rack.x0
+  labels.push(
+    { id: 'name/batch', at: [left, 0, g.slots.z0 - 38], text: 'Running batch', kind: 'band', place: 'right' },
+    { id: 'name/pool', at: [left, WELL.height, g.rack.z0 - 22], text: `KV page pool, ${view.pans.length} pages`, kind: 'band', place: 'right' },
+    { id: 'name/queue', at: [left, 0, g.queue.z0 - 18], text: 'Waiting queue', kind: 'band', place: 'right' },
+  )
+  const fanLabel = (n: number, f: Fan): FlatLabel => {
+    const at = pageBox(g, f.page)
+    return { id: 'fan/words', at: [at.x1 + 10, fanTop(n) * 0.55, (at.z0 + at.z1) / 2], text: `${f.layers} layers${f.pads > 0 ? ` + ${f.pads} padding` : ''}`, kind: 'dim', place: 'right' }
+  }
+  const stem = (f: Fan): FlatSegment => {
+    const at = pageBox(g, f.page)
+    const n = f.layers + f.pads
+    return { x0: (at.x0 + at.x1) / 2, x1: (at.x0 + at.x1) / 2, z0: (at.z0 + at.z1) / 2, z1: (at.z0 + at.z1) / 2, y: PAGE_TOP, y1: fanTop(n) - FAN.thick }
+  }
+
+  const base: Omit<FlatModel, 'boxes' | 'inks' | 'labels'> = {
+    plates,
+    wires,
+    rules,
+    cursors: [],
+    bounds: { x0: 0, x1: g.width, z0: 0, z1: g.depth },
+  }
+  const fanOpen = fan === null ? [] : fanBoxes(g, fan, true)
+  const fanShut = fan === null ? [] : fanBoxes(g, fan, false)
+  const common = { ...base, boxes: [...boxes, ...rings], inks, labels }
+  const model: FlatModel = fan === null ? common : { ...common, boxes: [...common.boxes, ...fanOpen], inks: [...inks, stem(fan)], labels: [...labels, fanLabel(fan.layers + fan.pads, fan)] }
+  const closed: FlatModel = fan === null ? common : { ...common, boxes: [...common.boxes, ...fanShut] }
+  return { model, closed, geometry: g, fan, request, threaded, moment: JSON.stringify([fan?.page ?? null, fan?.layers ?? null, fan?.pads ?? null, station]) }
+}
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* The camera                                                                                                         */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** A shot that looks down at `elevation` radians with up kept up, from `d` back from its target at (x, TOP, z), under a field of `fov`°. */
-const shot = (elevation: number, fov: number, d: number, z: number, x = 0) => ({
-  position: [x, TOP + d * Math.sin(elevation), z + d * Math.cos(elevation)] as Vec3,
-  target: [x, TOP, z] as Vec3,
-  fov,
-})
-
-/**
- * The presets' framings for a reach-in `depth` deep [estimated], front then top, each wide then on a phone: each distance and target
- * follows the depth along a straight line or two, fitted to the nearest camera that holds, for every pool size of the levels, the rack's
- * corners, the rail and its hung tickets clear of the overshelf, the waiting tickets, the pass's front lip and the heat lamps in its
- * frame, with the lamps' shades over the pass and hiding no pan, hung ticket or waiting ticket; the tests project those landmarks through
- * every preset at every pool size. Front of the reach-in looks down 35.5° at 1440 px, across the rack rather than down on it, so that the
- * pans show their rims, their depth and their heaped mise, where a steeper shot read them as a grid of tiles (finish review, W1b round 2);
- * the lamp bar over the pass stays under the front row's rims in the picture, which is as low as the shot goes. It stands to the left so
- * that the line and its hood come into the frame beside the rack. On a phone the rack runs across the width, and the frame's height,
- * which a low shot through a wide lens gave to the pass, its shelf and the lamps while the rack shrank to a strip at the top (finish
- * review, W1b close-out), goes to the rack: the shot looks down 48° through a 28° lens, near the camera grammar's Establish, from far
- * enough that the pass in front is drawn little larger than the rack, and stands so the pass's front lip lies along the frame's foot,
- * its shelf and legs out of the picture; the rack is the largest thing in the frame, and the lamp bar stands well below its front row.
- * From above looks down 76° (82°, stood back from the pass, which leaves it out of a phone's frame).
- */
-export const framings = (depth: number) => [
-  // 35.5° at 1440 px, 48° on a phone
-  [shot(0.62, 36, Math.max(3.48, 2.14 + 0.733 * depth), Math.min(-0.27, 0.28 - 0.29 * depth), -0.3), shot(0.838, 28, Math.max(5.6, 2.12 + 1.45 * depth), Math.min(-0.44, 0.48 - 0.386 * depth))],
-  // 76° and 82°
-  [shot(1.3265, 32, Math.max(2.5 + 0.1 * depth, 1.84 * depth), -0.47 * depth), shot(1.4312, 44, Math.max(3.28 + 0.06 * depth, 1.263 * depth), -0.4 - 0.34 * depth)],
-]
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-/* The reach-in: what stands still for a level                                                                        */
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/** A strip of tape, or a pan's mise, as an instance: where it lies, how it is turned and sized, and its atlas cell. */
-export interface Tape {
-  readonly at: Vec3
-  readonly rotation?: Vec3
-  readonly scale?: Vec3
-  readonly cell: number
-}
-
-export interface ReachIn {
-  readonly rows: number
+export interface Canvas {
   readonly width: number
-  readonly depth: number
-  /** Each pan's middle at its rim, in the order of its id: where it stands for its whole life. */
-  readonly pans: readonly Vec3[]
-  /** The room, the pass and its lamps, and the line's rail: the static set, without the reach-in itself (Scene3D.tsx's own prop). */
-  readonly items: readonly PropSpec[]
-  readonly lamps: readonly LampLight[]
-  readonly rail: Vec3
-  readonly clips: readonly ClipPlace[]
-  /** The reach-in's own strip of masking tape along its front edge, torn off the roll and scrawled in marker. */
-  readonly tape: Tape
-  readonly light: RoomLight
-  readonly presets: readonly CameraPreset[]
+  readonly height: number
 }
 
-/** The x of clip `k` of `cap` on the line's rail. */
-const clipX = (k: number, cap: number): number => (k - (cap - 1) / 2) * RAIL.pitch
+const FOV = 30
+const tan = (deg: number) => Math.tan((deg * Math.PI) / 180)
 
-/** The reach-in for a pool of `pages` pans and a line of `cap` slots: a function of the level's shape alone, so no decision rebuilds it. */
-export function reachInOf(pages: number, cap: number): ReachIn {
-  const rows = Math.ceil(pages / COLS)
-  const width = COLS * PITCH.x + 2 * FRAME.side
-  const depth = rows * PITCH.z + FRAME.front + FRAME.back
-  const back = -depth
-  const rail: Vec3 = [0, RAIL.y, back + RAIL.out]
-  const lamps = [-LAMP.x, LAMP.x]
-  const shots = framings(depth)
-  return {
-    rows,
-    width,
-    depth,
-    pans: Array.from({ length: pages }, (_, i) => [((i % COLS) - (COLS - 1) / 2) * PITCH.x, TOP, back + FRAME.back + (Math.floor(i / COLS) + 0.5) * PITCH.z]),
-    items: [
-      { kind: 'floor', id: 'floor', at: [0, 0, back + 2], width: 14, depth: 9 },
-      { kind: 'tile-wall', id: 'wall', at: [0, 0, back - 0.012], width: 14, height: 3.1 },
-      // The line beside the reach-in's left side, under its hood: its stations stand cold, because nothing the learner decides is cooking.
-      // The hood hangs low enough for the front shot to hold its lip and its lights over the burners.
-      { kind: 'burners', id: 'burners', at: [-1.45, 0, back + 0.42], width: 0.8, depth: 0.8, height: 0.9, channel: 0 },
-      { kind: 'hood', id: 'hood', at: [-1.48, 2.25, back], width: 1.1, depth: 1, height: 0.46 },
-      { kind: 'pass', id: 'pass', at: [0, 0, PASS.z], width: PASS.width, depth: PASS.depth, height: PASS.top, strip: 0 },
-      { kind: 'rail', id: 'rail', at: rail, length: cap * RAIL.pitch + 0.12 },
-      // Each lamp's canopy clasps the bar, its stem a few centimetres down to the shade.
-      ...lamps.map((x): PropSpec => ({ kind: 'heat-lamp', id: `lamp${x}`, at: [x, LAMP.bar, LAMP.z], drop: LAMP.bar - LAMP.mouth - 0.2015, hang: 'rod' })),
-    ],
-    lamps: lamps.map((x) => ({ id: `lamp${x}`, at: [x, LAMP.mouth - 0.02, LAMP.z], target: [x, PASS.top, PASS.line] })),
-    rail,
-    clips: Array.from({ length: cap }, (_, k) => ({ id: `clip${k}`, x: clipX(k, cap) })),
-    tape: { at: [-0.52, TOP + 0.0006, -FRAME.front / 2], rotation: [-Math.PI / 2, 0, 0.02], scale: [0.4, 0.05, 1], cell: CELL.scrawl },
-    // The room's light, baked into its tile and its floor: full over the line and the reach-in's left up to the rack's top, and falling
-    // away into the haze's deep steel across the room past the rack's middle, up the wall behind the overshelf to the frame's top, and
-    // back toward the far corner [estimated].
-    light: { x: -0.6, half: 0.7, above: 1, beyond: back, reach: [1, 0.45, 1.2], dim: 0.2, veil: 0.9 },
-    presets: SHOTS.map((id) => {
-      const [wide, portrait] = shots[id === 'top' ? 1 : 0]
-      return { id, label: id, shot: id === 'top' ? id : 'establish', projection: 'perspective', ...wide, portrait }
-    }),
-  }
+/** A shot from `deg` back from straight down, far enough to hold a sheet `w` by `d` and `up` high in a canvas of this aspect. */
+function shot(w: number, d: number, up: number, canvas: Canvas, deg: number, margin: number): Pick<CameraPreset, 'position' | 'target' | 'fov'> {
+  const aspect = canvas.width / Math.max(1, canvas.height)
+  const rad = (deg * Math.PI) / 180
+  const v = tan(FOV / 2)
+  // Seen tilted, the sheet's depth is foreshortened and what stands on it adds its height.
+  const dist = Math.max(w / 2 / (v * aspect), (d * Math.cos(rad) + up * Math.sin(rad)) / 2 / v) * margin
+  const target: [number, number, number] = [w / 2, up * 0.12, d / 2]
+  return { position: [target[0], dist * Math.cos(rad), target[2] + dist * Math.sin(rad)], target, fov: FOV }
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-/* The night: what a decision changes                                                                                 */
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/** A ring of the lamp: round a pan a dump would take, flat on its rim, or round a ticket that can be pulled, standing with it on the rail. */
-export interface Ring {
-  readonly at: Vec3
-  readonly rotation?: Vec3
-  readonly scale?: Vec3
-}
-
-/**
- * The fan over the focus's head pan: a tray for each layer of its station, its padding layers' trays empty; the head pan's food, and the
- * glyph of its station's kind on the tape stuck in the top tray.
- */
-export interface Fan {
-  readonly at: Vec3
-  readonly layers: number
-  readonly pads: number
-  readonly cell: number
-  readonly glyph: number
-}
-
-export interface Night {
-  /** Each held pan's mise: its food's cell. */
-  readonly fills: readonly Tape[]
-  /** The kits' pans' strips of masking tape (the kit's), and the marker on each, then the reach-in's own torn strip. */
-  readonly sheets: readonly Sheet[]
-  readonly tapes: readonly Tape[]
-  /** The lamp's rings: round the pans a dump would take, and round the tickets on the line that can be pulled. */
-  readonly rings: readonly Ring[]
-  readonly tickets: readonly TicketPose[]
-  /** The focus's twine, one string per station; and each landed kit's, through its pans. */
-  readonly twine: readonly (readonly Vec3[])[]
-  readonly kits: readonly (readonly Vec3[])[]
-  readonly fan: Fan | null
-  /** The pass's heat lamps burn: the present lies on the pass, the tickets that can hang or that want the kit to bring in. */
-  readonly lit: boolean
-  /** Changes whenever the focus's twine or its fan does: the moment plays again. */
-  readonly moment: string
-}
-
-/** A string from `from` through each point in turn, draped: it sags between the pans it touches and rises off them over a long span. */
-function strand(from: Vec3, points: readonly Vec3[]): Vec3[] {
-  const out: Vec3[] = [from]
-  let last = from
-  for (const p of points) {
-    out.push([(p[0] + last[0]) / 2, Math.max(p[1], last[1] - 0.12) + 0.02 + Math.min(0.12, 0.12 * Math.hypot(p[0] - last[0], p[2] - last[2])), (p[2] + last[2]) / 2], p)
-    last = p
-  }
-  return out
-}
-
-/**
- * Where a hung ticket's foot is from the clip that grips it, down and toward the expo: its length tipped forward by the tilt, and its
- * curl, which the kit draws as the foot's lift off the sheet's plane.
- */
-export const FOOT = [
-  TICKET.curl * TICKET.height * Math.sin(TICKET.tilt) - TICKET.height * Math.cos(TICKET.tilt),
-  TICKET.height * Math.sin(TICKET.tilt) + TICKET.curl * TICKET.height * Math.cos(TICKET.tilt),
-] as const
-
-export interface NightOptions {
-  /** One station's twine and fan only (the One station preset), by index, or every station's. */
-  readonly station: number | null
-  /** The pans chosen to be dumped, while an eviction is open. */
-  readonly chosen: readonly number[]
-}
-
-export function nightOf(view: PoolView, r: ReachIn, { station, chosen }: NightOptions): Night {
-  const { ask, stations, cap, pans } = view
-  const top = (id: number, lift: number): Vec3 => [r.pans[id][0], CROWN + lift, r.pans[id][2]]
-  const fills: Tape[] = []
-  const sheets: Sheet[] = []
-  const tapes: Tape[] = []
-  for (const pan of pans) {
-    if (pan.state === 'free') continue
-    // A pan's mise lies one way or end for end, by its number, so no two rows of the rack are stamped out alike; and it is heaped a
-    // little higher or lower than its neighbours', so the tubes glint on each mound in its own place (finish review, W1b round 2). A
-    // kit's pan is heaped as drawn, as its tape lies on its crown.
-    fills.push({ at: top(pan.id, -MISE.heap), rotation: [0, (pan.id * 5) % 3 ? 0 : Math.PI, 0], scale: [1, pan.kit === null ? 0.75 + ((pan.id * 7) % 5) / 10 : 1, 1], cell: FOOD[pan.state] })
-    // A kit's pans carry its tape, a degree or two off true, with the pin in marker on it. A kit's pan belongs to no station, so One
-    // station leaves its tape off with the other stations' marks.
-    if (pan.kit === null || station !== null) continue
-    const rotation: Vec3 = [-Math.PI / 2, 0, lean(pan.id, 0.06)]
-    sheets.push({ id: `${pan.id}`, center: top(pan.id, 0), size: [TAPE.w, TAPE.d], rotation })
-    tapes.push({ at: top(pan.id, 0.0004), rotation, scale: [TAPE.w, TAPE.d, 1], cell: CELL.pin })
-  }
-  tapes.push(r.tape)
-
-  // The present: the pans a dump would take, ringed by the lamp on their rims, and the tickets on the line that can be pulled, ringed
-  // where they hang. The tickets that can hang wait on the pass, under its lamps.
-  const rings: Ring[] = ask?.kind === 'evict' ? chosen.filter((id) => ask.candidates.includes(id)).map((id) => ({ at: [r.pans[id][0], TOP + 0.004, r.pans[id][2]] })) : []
-  // The tickets: waiting along the pass, the line's hung on the rail.
-  const poses = new Map<number, TicketPose>()
-  const reach = TICKET.height / 2
-  view.waiting.forEach((id, i) => {
-    const turn = lean(id, 0.36)
-    const x = (i - (view.waiting.length - 1) / 2) * TICKET.gap
-    // A ticket hangs from the middle of its top edge, so one lying flat reaches half its length toward the expo from there.
-    poses.set(id, { id: `t${id}`, at: [x - reach * Math.sin(turn), PASS.top + 0.0007 + i * 0.0002, PASS.line - reach * Math.cos(turn)], rotation: [-Math.PI / 2, 0, turn], cell: cellOf(id), arc: 0.08 })
-  })
-  const hang = r.rail[2] + 0.012
-  view.running.forEach((id, k) => {
-    poses.set(id, { id: `t${id}`, at: [clipX(k, cap), RAIL.y - RAIL.grip, hang], rotation: [-TICKET.tilt, TICKET.turn + lean(id, 0.16), lean(id, 0.07)], cell: cellOf(id), arc: 0.16 })
-    if (ask?.kind === 'preempt' && ask.candidates.includes(id)) rings.push({ at: [clipX(k, cap), RAIL.y - RAIL.grip + FOOT[0] / 2, hang + FOOT[1] / 2 + 0.01], rotation: [Math.PI / 2 - TICKET.tilt, 0, 0], scale: [1.45, 1, 1.35] })
-  })
-
-  // The focus, the ticket hung last: its pans at each station in the order of its blocks, its twine through them, its head pan's fan. The
-  // page says what the fan shows from focus.ts's `focusOf`, which works it out the same way (a test holds the two equal); the scene
-  // works it out here, since a module that both import would fold the page into a chunk the scene loads.
-  const ticket = view.running[view.running.length - 1] as number | undefined
-  const pose = ticket === undefined ? undefined : poses.get(ticket)
-  const tables = stations.map((_, g) =>
-    pose === undefined || (station !== null && g !== station) ? [] : pans.filter((pan) => pan.station === g && pan.holders.includes(ticket as number)).sort((a, b) => (a.block ?? 0) - (b.block ?? 0)),
-  )
-  const head = tables.find((list) => list.length > 0)?.[0]
-  const group = head?.station == null ? null : stations[head.station]
-  // Each string leaves the ticket's foot, where the paper curls toward the expo.
-  const twine = pose === undefined ? [] : tables.flatMap((list, g) => (list.length === 0 ? [] : [strand([pose.at[0] + (g - stations.length / 2) * 0.012, RAIL.y - RAIL.grip + FOOT[0] + 0.006, hang + FOOT[1]], list.map((pan) => top(pan.id, 0.004)))]))
-  const fan: Fan | null =
-    head === undefined || group === null ? null : { at: top(head.id, -MISE.heap), layers: group.layers, pads: group.padLayers, cell: FOOD[head.state], glyph: CELL[group.kind] }
-
-  return {
-    fills,
-    sheets,
-    tapes,
-    rings,
-    tickets: [...poses.values()],
-    twine,
-    // A landed kit's pans, pinned and joined by their own string, never side by side (S-LoRA's unified paging).
-    kits: station !== null ? [] : view.kits.flatMap((kit) => (kit.pageIds.length < 2 ? [] : [strand(top(kit.pageIds[0], 0.008), kit.pageIds.slice(1).map((id) => top(id, 0.008)))])),
-    fan,
-    lit: ask?.kind === 'admit' || ask?.kind === 'prefetch',
-    moment: JSON.stringify([ticket, tables.map((list) => list.map((pan) => pan.id)), fan?.cell]),
-  }
+/** The three cameras for a drawing in a canvas this size: Front of the page pool, One KV group (the same shot, with its group), From above. */
+export function presetsFor(bounds: FlatModel['bounds'], canvas: Canvas, tallest = PAGE_TOP + 60): CameraPreset[] {
+  const w = (bounds.x1 - bounds.x0) / PX
+  const d = (bounds.z1 - bounds.z0) / PX
+  const up = tallest / PX
+  const narrow = canvas.width < 560
+  const front = shot(w, d, up, canvas, narrow ? 38 : 46, narrow ? 1.2 : 1.3)
+  const above = shot(w, d, up * 0.4, canvas, 8, 1.14)
+  return [
+    { id: 'front', label: 'front', shot: 'establish', projection: 'perspective', ...front },
+    { id: 'station', label: 'station', shot: 'establish', projection: 'perspective', ...front },
+    { id: 'top', label: 'top', shot: 'top', projection: 'perspective', ...above },
+  ]
 }

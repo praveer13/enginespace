@@ -51,6 +51,8 @@ export interface FlatSegment {
   readonly z1: number
   /** Its height over the plate, in px. Default just above the sheet. */
   readonly y?: number
+  /** Its height at the end, in px, where it slopes (a thread from a request to its page). Default `y`. */
+  readonly y1?: number
 }
 
 /** The now cursor: a sheet standing at x, across the rows from z0 to z1. */

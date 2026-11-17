@@ -13,9 +13,9 @@ import { axisTicks, niceStep, scrollMs, tickLabel, trackOffset, trackZ } from '@
 import { ROLES } from '@/design/tokens'
 
 describe('marks: boxes and instance matrices', () => {
-  test('the four forms, in the order the mark shader numbers them', () => {
-    expect(MARK_FORMS).toEqual(['solid', 'hollow', 'groove', 'marked'])
-    expect(MARK_FORMS.map(formIndex)).toEqual([0, 1, 2, 3])
+  test('the five forms, in the order the mark shader numbers them', () => {
+    expect(MARK_FORMS).toEqual(['solid', 'hollow', 'groove', 'marked', 'dotted'])
+    expect(MARK_FORMS.map(formIndex)).toEqual([0, 1, 2, 3, 4])
   })
 
   test('a span becomes a box on its lane, from its start to its end along the track, standing on its base', () => {

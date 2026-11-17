@@ -3,7 +3,7 @@ import { drawInBand, levelOf } from '@es/play'
 import { POOL_COPY } from '@es/play/pool/copy'
 import { POOL } from '@es/play/pool/entry'
 import { poolSession } from '@es/play/pool/session'
-import type { PoolLevelId, PoolView, StationView } from '@es/play/pool/types'
+import type { PoolLevelId, StationView } from '@es/play/pool/types'
 import { ROSTER } from '@es/play/roster'
 import { Button } from '@/design/components/Button'
 import { LevelMenu } from '@/design/components/LevelMenu'
@@ -15,17 +15,15 @@ import { unavailableReason, useDeviceTier } from '@/scene/tiers'
 import { WorldCard } from './Card'
 import { Controls } from './Controls'
 import { dumpOf, type Chosen, type Dump } from './dump'
-import { focusOf } from './focus'
-import { groupNo, KIND_WORDS } from './glyphs'
+import { groupNo } from './glyphs'
 import { partRows, poolKit } from './kit'
 import { Mirror } from './Mirror'
 import { ReadoutStrip } from './ReadoutStrip'
 import type { Scene3DProps } from './Scene3D'
 import { DEFAULT_CAMERA, POOL_CAMERAS } from './scene-presets'
-import type { PoolMode, PoolRun } from './types'
+import type { PoolMode, PoolPick, PoolRun } from './types'
 import { useWide } from './useWide'
 import { PoolLegend, View2D } from './View2D'
-import { reqName } from './words'
 import './pool.css'
 
 // The result loads when a run ends, not before.
@@ -34,6 +32,7 @@ const Debrief = lazy(() => import('./Debrief').then((module) => ({ default: modu
 // only when the learner switches to 3D, since the diagram is the default view.
 const Scene3D = lazy(() => import('./Scene3D'))
 const PoolStage = lazy(() => import('./Stage3D'))
+const Select3D = lazy(() => import('./Select3D'))
 
 /** The scene as the Stage mounts it, inside the Stage's canvas box. */
 function PoolScene(props: Scene3DProps) {
@@ -200,6 +199,8 @@ function PoolLevel({ levelId, levelTitle, seed, mode, embedded, rev, onFinish, l
   const [pointed, setPointed] = useState<readonly number[]>([])
   const [chosen, setChosen] = useState<Chosen | null>(null)
   const [station, setStation] = useState(0)
+  // What the 3D view shows of the pool: a page's fan or a request's threads. The page holds it, so a swap of views keeps it.
+  const [pick, setPick] = useState<PoolPick | null>(null)
   const wide = useWide()
   const { view, preset, onPreset } = scene
   const copy = POOL_COPY[levelId]
@@ -264,6 +265,9 @@ function PoolLevel({ levelId, levelTitle, seed, mode, embedded, rev, onFinish, l
             dump={dumpFor(run)}
             preset={preset}
             station={Math.min(station, run.view.stations.length - 1)}
+            pointed={pointed}
+            pick={pick}
+            onPick={(next) => setPick(next)}
             diagram={<View2D run={run} dump={dumpFor(run)} pointed={[]} pick={wide} />}
             scene={PoolScene}
           />
@@ -273,7 +277,9 @@ function PoolLevel({ levelId, levelTitle, seed, mode, embedded, rev, onFinish, l
         view === '3d' ? (
           <div className="es-pool__cameras">
             <Cameras preset={preset} onPreset={onPreset} stations={run.view.stations} station={station} onStation={setStation} />
-            <FanNote view={run.view} station={preset === 'station' ? Math.min(station, run.view.stations.length - 1) : null} />
+            <Suspense fallback={null}>
+              <Select3D view={run.view} pick={pick} station={preset === 'station' ? Math.min(station, run.view.stations.length - 1) : null} onPick={setPick} />
+            </Suspense>
           </div>
         ) : (
           <PoolLegend view={run.view} />
@@ -326,27 +332,5 @@ function Cameras({ preset, onPreset, stations, station, onStation }: { preset: s
         </div>
       ) : null}
     </div>
-  )
-}
-
-/**
- * What the fan in the 3D view shows, in words: the scene draws the first page of the request admitted last opening into the layers of
- * its KV group and prints nothing itself, so the page says which request, which group and how many layers, from the same focus the scene
- * draws (focus.ts). Nothing while the batch is empty.
- */
-function FanNote({ view, station }: { view: PoolView; station: number | null }) {
-  const { ticket, group } = focusOf(view, station)
-  if (ticket === undefined || group === null) return null
-  return (
-    <p className="text-text-2" data-pool-fan="">
-      The fan: {reqName(ticket)}, admitted last, starts its block table with a page in KV group <code>{group.id}</code> ({KIND_WORDS[group.kind]}). That one page holds the block
-      for all <span className="font-numeric">{group.layers}</span> of the group&apos;s layers
-      {group.padLayers > 0 ? (
-        <>
-          , and <span className="font-numeric">{group.padLayers}</span> padding layers drawn hollow
-        </>
-      ) : null}
-      : one page per block, for the whole group.
-    </p>
   )
 }
