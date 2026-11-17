@@ -54,11 +54,11 @@ describe('the roster', () => {
     for (const row of rows) {
       const id = backticked(row[0])[0]
       const entry = rosterEntry(id)
-      expect([id, row[2]]).toEqual([id, `**${entry?.title}** · *${entry?.subtitle}*`])
-      const modules = [...row[3].matchAll(/\bTR(\d[ab]?)\b|\b(capstone)\b/g)].map((match) => (match[2] === undefined ? `tr${match[1]}` : 'capstone'))
+      expect([id, row[1]]).toEqual([id, `**${entry?.title}** · *${entry?.subtitle}*`])
+      const modules = [...row[2].matchAll(/\bTR(\d[ab]?)\b|\b(capstone)\b/g)].map((match) => (match[2] === undefined ? `tr${match[1]}` : 'capstone'))
       expect([id, entry?.modules]).toEqual([id, modules])
       // The 3D column is a dash for a game with no 3D scene.
-      expect([id, entry?.has3d]).toEqual([id, row[5].trim() !== '—'])
+      expect([id, entry?.has3d]).toEqual([id, row[4].trim() !== '—'])
     }
     expect(ROSTER.filter((entry) => entry.has3d).length).toBe(5)
   })

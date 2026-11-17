@@ -24,7 +24,7 @@ npm run verify:kc              # the KC graph: a DAG, and a graded reference or 
 | `kc/kernelspace.json` | the ids of kernelspace's KCs at the vendored pin, which the `ks:` edges of the graph may name. `scripts/kc/kernelspace.ts` writes and checks it |
 | `cards/<id>.md` | the notional-machine cards that a `card` block or a module's `worlds` names |
 
-A figure's `src` is a path under `public/`, such as `figures/tr2/bubble.svg`. A figure that is drawn from a model has `origin: generated`, and a test holds its file to the function that draws it: `tests/content/tr5a-figures.ts` writes TR5a's four with `bun tests/content/tr5a-figures.ts`, and `tr5a-module.test.ts` fails on a file that is not what the model draws. TR6's one figure, the mask timeline, is drawn the same way from the step loop: `tests/content/tr6-figure.ts` builds it, `bun tests/content/tr6-figure.ts --write` rewrites the file, and `tr6-module.test.ts` holds it byte for byte. TR2's seven are drawn from the step loop and from Service's levels by `tests/content/tr2-figures.ts`, which `bun tests/content/tr2-figures.ts` runs to write them, and `tr2-module.test.ts` holds each file to it. A figure that is drawn by hand (TR1's five and TR8's one) is a function too, in `tests/content/authored-figures.ts`, and `bun tests/content/authored-figures.ts` writes them. Every figure is drawn with `tests/content/figure-kit.ts` in the diagram language: the six-colour code with its glyphs and hatches, the graticule where the axis is a scale, dimension lines with their values, and words of at least 10 px at the column's width. `tests/content/figures.test.ts` holds every file under `public/figures` to that language and to the function that draws it, so a new figure needs a function and an entry there. A card's compiled JSON is written to `src/content/generated/cards/<id>.json`, one lazy chunk each, like a lesson's.
+A figure's `src` is a path under `public/`, such as `figures/tr2/bubble.svg`. A figure that is drawn from a model has `origin: generated`, and a test holds its file to the function that draws it: `tests/content/tr5a-figures.ts` writes TR5a's four with `bun tests/content/tr5a-figures.ts`, and `tr5a-module.test.ts` fails on a file that is not what the model draws. TR6's one figure, the mask timeline, is drawn the same way from the step loop: `tests/content/tr6-figure.ts` builds it, `bun tests/content/tr6-figure.ts --write` rewrites the file, and `tr6-module.test.ts` holds it byte for byte. TR2's seven are drawn from the step loop's levels by `tests/content/tr2-figures.ts`, which `bun tests/content/tr2-figures.ts` runs to write them, and `tr2-module.test.ts` holds each file to it. A figure that is drawn by hand (TR1's five and TR8's one) is a function too, in `tests/content/authored-figures.ts`, and `bun tests/content/authored-figures.ts` writes them. Every figure is drawn with `tests/content/figure-kit.ts` in the diagram language: the six-colour code with its glyphs and hatches, the graticule where the axis is a scale, dimension lines with their values, and words of at least 10 px at the column's width. `tests/content/figures.test.ts` holds every file under `public/figures` to that language and to the function that draws it, so a new figure needs a function and an entry there. A card's compiled JSON is written to `src/content/generated/cards/<id>.json`, one lazy chunk each, like a lesson's.
 
 ## A lesson
 
@@ -32,10 +32,15 @@ Front matter, then Markdown with `:::name … :::` directives (ARCHITECTURE §4.
 
 - **Blocks.** Prose, and the seven directives `predict`, `item`, `game`, `trace`, `lab`, `card` and `figure`. A ninth type needs a change to D-016.
 - **Prose** is paragraphs, headings (`##` to `####`, one level deeper at a time), lists, tables, code blocks, emphasis, code spans and links to https, to a route of the site or to an anchor. Raw HTML, an HTML entity, an image, a quote, a rule, a hard line break and a task list are errors. Put code, including `Vec<T>`, in backticks.
+- **Predictions.** A `predict` block has a `reveal` of `after-game` (the answer shows once the learner has played the level the guess is about) or `at-commit` (it shows at the commit, worked from the question's own numbers or from the claim it is about, and says its source). Neither earns credit (D-067, ARCHITECTURE §4.3).
 - **References.** `{{claim:vllm.async-scheduling.default}}` shows a claim as a chip. `{{ks:T5.L7}}` links to a kernelspace lesson.
 - **Links out of a block.** A `game` names a game of ARCHITECTURE §6.1, a `lab` names a lab of §9.2, a KC is in `kc/graph.yaml`, a card that lives in a file is in `cards/`, and a figure's file is under `public/`.
 - **Minutes.** The compiler adds up the words at a reading speed and what each block takes (`scripts/content/directives.ts`), and warns when `minutes` is further from the sum than a fifth.
 - **`rev`** is added by the compiler: a SHA-256 over the authored fields, the blocks and the claims the page cites. It does not change when the Markdown is rewrapped, and it leaves out `status` and `minutes`.
+
+## How a lesson is shown
+
+The page sorts a lesson's blocks into four sections without any key of its own (ARCHITECTURE §4.8): **Run** holds the game blocks before the first `##`, with the guesses that run answers; **Read** holds the prose, one part for each `##`, with its figures, code and practice game blocks; **Test** holds the file's last `##` part when it has an `item` block or a graded game block; **Keep** is generated. A lesson is *done* when its Test is passed, so a lesson with no `item` block and no graded level under its last heading can never be done, and the compiler warns `no-test`. Each lesson's row in the compiled map's lessons table says what it holds, and the way on (Continue) reads it.
 
 ## How a lesson opens, and the authoring rules
 
@@ -68,7 +73,7 @@ The compiler warns about the rules it can see, and never fails on one. Each warn
 | `no-test` | the lesson has no Test (rule 4) |
 | `build-log-id` | prose holds a task id, a decision id or a design-document section (rule 5) |
 
-The numbers are [estimated] and live in `scripts/content/pacing.ts`. A lesson that has not yet been edited to its row is marked `waiting` on the task that does it, in `tests/content/openers-table.ts`, and that task removes its own mark.
+The numbers are [estimated] and live in `scripts/content/pacing.ts`. Every built lesson is at its row: no lesson carries a `waiting` mark in `tests/content/openers-table.ts` now, and a lesson added later is held to a row of its own.
 
 ## A card
 
@@ -78,7 +83,7 @@ Every world that the site draws has a notional-machine card: what it models, wha
 ---
 id: spec                         # the file's name, without .md
 kind: notional-machine           # the only kind that has a file format so far
-title: The speculative-decoding verifier
+title: The speculative-decoding rejection sampler
 world: spec                      # the module of packages/sim that the card describes
 status: draft                    # draft | review | live
 ---
@@ -104,11 +109,11 @@ The compiler holds a card to these rules, and `verify:content` reports each brea
 
 Put each rule's claims at the end of its item, after the last full stop. A claim is drawn as a slip that interrupts the line, so a slip in the middle of a sentence breaks it. A number that the sentence needs is the exception, and it stays where it is.
 
-A card is named by the model that exports its id (ARCHITECTURE §5.1): `trace-room-steploop`, `trace-room-trace` and `trace-room-bench` for the models of W0-T13, W1-T08 and W1-T31, and the world's own name (`spec`, `lifecycle`, `kv`) for the rest. A `card` block draws a card as a ticket (`kind: notional-machine`, `id: spec`), and `verify:games` fails a registered game whose card file is missing, or is there and does not compile.
+A card is named by the model that exports its id (ARCHITECTURE §5.1): `trace-room-steploop`, `trace-room-trace` and `trace-room-bench` for the models of W0-T13, W1-T08 and W1-T31, and the world's own name (`spec`, `lifecycle`, `kv`) for the rest. A `card` block draws a card as a card (`kind: notional-machine`, `id: spec`), and `verify:games` fails a registered game whose card file is missing, or is there and does not compile.
 
 ## Items
 
-`:::item` names a generator family, a level from 0 to 3 and a count. The page draws a ticket that waits, and when the learner starts it reads fresh entropy, draws `count` seeds that make fair questions, and plays them one by one: an answer, a confidence tap that never gates, and a why on the reveal. Each answer is graded against a key that the family computes from the item, and is written to the ledger as an `item` event with its seed. The key and the solution are never in a file: the Markdown export, `llms.txt` and the compiled lessons hold the block's three fields and nothing of the items (`verify:items` reads them for it).
+`:::item` names a generator family, a level from 0 to 3 and a count. The page draws a question set that waits, and when the learner starts it reads fresh entropy, draws `count` seeds that make fair questions, and plays them one by one: an answer, a confidence tap that never gates, and a why on the reveal. Each answer is graded against a key that the family computes from the item, and is written to the ledger as an `item` event with its seed. The key and the solution are never in a file: the Markdown export, `llms.txt` and the compiled lessons hold the block's three fields and nothing of the items (`verify:items` reads them for it).
 
 A family is a `Gen` in `packages/play/items/` (ARCHITECTURE §8.2), registered in `registry.ts`. The `family` of a block must be a registered one, or the page says the generator is not built yet. The family says which levels it offers, so a block at another level says which levels it does. `verify:items` holds each family to its rules; `bun scripts/verify-items.ts --write` rewrites the golden vectors that pin what a seed means, after a change that moves it and a bump of the family's `version`.
 
@@ -129,7 +134,7 @@ A claim has an id of dotted words, a value, a sentence, a tag, a source with a q
 `kc/graph.yaml` is a list of knowledge components (ARCHITECTURE §4.5). Its header says what each key means, and `npm run verify:kc` holds it to the rules below. A KC takes an id of the form `<module>.<words>`, a description that begins "You can" and states a skill (a fact about an engine is a claim, so it is not written there), and these edges:
 
 - **`requires`** names the KCs to hold first: ours, or kernelspace's as `ks:t5.kv-capacity`. A prerequisite advises and never locks. The graph over `requires` is a DAG. A `ks:` id must be in `kc/kernelspace.json`, which is read at the commit that `vendor/kernelspace/VENDOR.md` pins. To re-pin, run `bun scripts/kc/kernelspace.ts print > content/kc/kernelspace.json` after vendoring, and `bun scripts/kc/kernelspace.ts check` to compare the file with a checkout of kernelspace (it reads that checkout with `git show` and writes nothing there).
-- **`confusable`** names the KCs that get mixed up with this one, which Today interleaves with it. The set is symmetric and has at most three entries [estimated; kernelspace's cap]. Say in a comment what the mix-up is.
+- **`confusable`** names the KCs that get mixed up with this one, which Review interleaves with it. The set is symmetric and has at most three entries [estimated; kernelspace's cap]. Say in a comment what the mix-up is.
 - **`threshold: true`** marks a KC that at least four others lean on, directly or through a chain [estimated]. The gate fails on a flag that fewer lean on and warns on a KC that qualifies and is not flagged.
 
 **A KC needs something that can earn it.** A KC is earned by a weight-1.0 event (ASSESSMENT §3.3), and a practice level writes at most practice credit, so `verify:kc` wants a graded reference behind every KC: an item family (the `Gen` of ARCHITECTURE §8.2, read from `packages/play/items/`), a game with a graded level (the `kcs` of its registry entry), or a lab check. Until one exists, the KC carries `planned: W1-T14`, which names the task that will add it and must be a task of `docs/TRACKER.md`. The gate warns once a graded reference has landed and the line is still there. `bun scripts/verify-kc.ts --final` is the wave-exit check: it fails on every `planned` that remains (W1-T38 runs it). An item, a game or a lab check that names no KC, or a KC that the graph lacks, is an error too. A lab's checks name their KCs in `packages/sim/forge/check-kcs.ts`, which `packages/sim/forge/kcs.ts` joins to the checks for this gate (W1-T38; the map reads the table alone, W1b-T07), and a lab that grades adds its table to the first and its row to the second.
