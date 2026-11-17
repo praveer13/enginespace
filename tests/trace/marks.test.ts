@@ -68,9 +68,9 @@ describe('a mark', () => {
     expect(removeMark(notes, 9)).toEqual(notes)
   })
 
-  test('has all four of Gap Hunt’s words, each with its kitchen word', () => {
+  test('has all four of Gap Hunt’s words, each with its meaning', () => {
     expect(CATEGORIES).toEqual(['kernel', 'copy', 'cpu-gap', 'both-idle'])
-    for (const c of CATEGORIES) expect(CATEGORY_WORDS[c].kitchen.length).toBeGreaterThan(3)
+    for (const c of CATEGORIES) expect(CATEGORY_WORDS[c].meaning.length).toBeGreaterThan(3)
   })
 })
 

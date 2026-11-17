@@ -263,7 +263,7 @@ describe('the viewer reads in the engine’s words (REDESIGN 2.7, R-T27)', () =>
   test('the keys, the categories and the lanes use none either', () => {
     expect(clean(TRACE_KEYS.map((key) => key.description))).toEqual([])
     expect(clean(KEY_GROUPS.map((group) => group.title))).toEqual([])
-    expect(clean(Object.values(CATEGORY_WORDS).flatMap((word) => [word.term, word.kitchen]))).toEqual([])
+    expect(clean(Object.values(CATEGORY_WORDS).flatMap((word) => [word.term, word.meaning]))).toEqual([])
     expect(clean(Object.values(LANE_WORDS))).toEqual([])
   })
 

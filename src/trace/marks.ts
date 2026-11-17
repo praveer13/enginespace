@@ -21,12 +21,12 @@ import type { Win } from './model'
 export type Category = AttributionCategory
 export const CATEGORIES: readonly Category[] = ['kernel', 'copy', 'cpu-gap', 'both-idle']
 
-/** What each category is called on screen: the engine's term, and under the field `kitchen` (a name kept for the tests that read it) a plain sentence of what it means. */
-export const CATEGORY_WORDS: Readonly<Record<Category, { term: string; kitchen: string }>> = {
-  kernel: { term: 'Kernel', kitchen: 'the GPU is running a kernel' },
-  copy: { term: 'Copy', kitchen: 'a copy runs and no kernel does' },
-  'cpu-gap': { term: 'CPU gap', kitchen: 'the GPU is idle while the CPU prepares the next call' },
-  'both-idle': { term: 'Both idle', kitchen: 'the CPU and the GPU are both waiting' },
+/** What each category is called on screen: the engine's term, and under the field `meaning` a plain sentence of what it means. */
+export const CATEGORY_WORDS: Readonly<Record<Category, { term: string; meaning: string }>> = {
+  kernel: { term: 'Kernel', meaning: 'the GPU is running a kernel' },
+  copy: { term: 'Copy', meaning: 'a copy runs and no kernel does' },
+  'cpu-gap': { term: 'CPU gap', meaning: 'the GPU is idle while the CPU prepares the next call' },
+  'both-idle': { term: 'Both idle', meaning: 'the CPU and the GPU are both waiting' },
 }
 
 export const MAX_MARKS = 200
