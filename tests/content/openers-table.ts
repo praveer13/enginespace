@@ -26,11 +26,11 @@ export const OPENERS: readonly OpenerRow[] = [
   // TR1, the request path
   { lesson: 'tr1.l1', opener: 'B', first: ['play:engine-floor/nano'], graded: [] },
   { lesson: 'tr1.l2', opener: 'C', first: ['play:engine-floor/nano-tp'], graded: [] },
-  { lesson: 'tr1.l3', opener: 'B', first: ['play:engine-floor/mini'], graded: [], waiting: 'R-T35' },
-  { lesson: 'tr1.l4', opener: 'B', first: ['play:engine-floor/inside'], graded: [], waiting: 'R-T35' },
-  { lesson: 'tr1.l5', opener: 'B', first: ['play:engine-floor/vllm'], graded: [], waiting: 'R-T35' },
-  { lesson: 'tr1.l6', opener: 'B', first: ['play:engine-floor/sglang'], graded: [], waiting: 'R-T35' },
-  { lesson: 'tr1.l7', opener: 'B', first: ['play:engine-floor/abort'], graded: ['play:engine-floor/map'], waiting: 'R-T35' },
+  { lesson: 'tr1.l3', opener: 'B', first: ['play:engine-floor/mini'], graded: [] },
+  { lesson: 'tr1.l4', opener: 'B', first: ['play:engine-floor/inside'], graded: [] },
+  { lesson: 'tr1.l5', opener: 'B', first: ['play:engine-floor/vllm'], graded: [] },
+  { lesson: 'tr1.l6', opener: 'B', first: ['play:engine-floor/sglang'], graded: [] },
+  { lesson: 'tr1.l7', opener: 'B', first: ['play:engine-floor/abort'], graded: ['play:engine-floor/map'] },
   // TR2, the step loop
   { lesson: 'tr2.l1', opener: 'A', first: ['play:loop/first-3-gap'], graded: [] },
   { lesson: 'tr2.l2', opener: 'C', first: ['play:loop/first-2-slot'], graded: [] },

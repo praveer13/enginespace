@@ -10,6 +10,30 @@ lanes: [B]
 games: [engine-floor]
 ---
 
+This lesson reads vLLM at the version the course pins, v0.33.0, one symbol at a time. The `vllm` level draws it:
+
+- **API server** and **engine core**: two processes, with sockets between them.
+- **Engine core threads**: an input thread, a main thread that runs the busy loop, and an output thread, joined by queues.
+- **Model runner**: `execute_model` launches the forward pass, and `sample_tokens` samples.
+
+New next to "Inside vLLM": the engine core launches the next batch before it has read the last one, so a queue holds the launched batch, and the sync that follows a copy is not in the same turn of the loop.
+
+:::predict
+id: tr1.l5.p1
+prompt: In vLLM v0.33.0, serving a streamed answer on two GPUs, how many process boundaries does a sampled token cross on its way to the client?
+answer: { kind: numeric, unit: boundaries, rel_tol: 0 }
+reveal: after-game
+kcs: [tr1.vllm-lifecycle]
+:::
+
+:::game
+id: engine-floor
+level: vllm
+mode: practice
+:::
+
+## Five files, read by symbol
+
 The post gave you vLLM's shape. Now you read it at the version the course pins, v0.33.0, by symbol. The shape is the one Mini-SGLang taught, in fewer boxes: an API server process, an engine core process that schedules and drives the GPU, and sockets between them. {{claim:vllm.request.engine-core-process}} Two things make the lap harder to read at the pin than in the post. The engine core launches the next batch before it has read the last one, and the model runner is not the one the post reads. This lesson walks one request through the symbols that matter, names every queue and every thread, and ends with the thing the whole module has been circling: the states a request passes through.
 
 Reading a large engine means choosing what not to read. These are the five files that a request's path crosses, counted on 2026-11-05 at `4ba787e`.
@@ -23,42 +47,6 @@ Reading a large engine means choosing what not to read. These are the five files
 | [`vllm/v1/worker/gpu/model_runner.py`](https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/worker/gpu/model_runner.py) | 2,519 | `execute_model` and `sample_tokens` |
 
 The five add up to 12,779 lines [derived]. The lesson reads named symbols and not whole files, and by the end you could read the rest of any of them with a map.
-
-## Before you play
-
-Three questions, to commit to before you lay the path. The first is the game's own, at two ranks. The second picks up where the second lesson left off. The third is about the last section of this one.
-
-:::predict
-id: tr1.l5.p1
-prompt: In vLLM v0.33.0, serving a streamed answer on two GPUs, how many process boundaries does a sampled token cross on its way to the client?
-answer: { kind: numeric, unit: boundaries, rel_tol: 0 }
-reveal: after-game
-kcs: [tr1.vllm-lifecycle]
-:::
-
-:::predict
-id: tr1.l5.p2
-prompt: Two requests are in the middle of decoding in vLLM v0.33.0, and a new prompt of 300 tokens [estimated] has just joined the waiting queue. The token budget of a step is large enough to hold it. How many tokens does the next step run?
-answer: { kind: numeric, unit: tokens, rel_tol: 0 }
-reveal: at-commit
-kcs: [tr1.phases-vs-one-budget]
-:::
-
-:::predict
-id: tr1.l5.p3
-prompt: A vLLM request at v0.33.0 is always in one of twelve statuses. How many of the twelve count as finished?
-answer: { kind: numeric, unit: statuses, rel_tol: 0 }
-reveal: at-commit
-kcs: [tr1.request-states]
-:::
-
-Then play the `vllm` level on its practice seed. The engine plans a step before it has read the last one, so the sync that follows a copy is not in the same turn of the loop, and a queue sits between the copy and the wait. The debrief lays this engine's floor plan beside the post's.
-
-:::game
-id: engine-floor
-level: vllm
-mode: practice
-:::
 
 ## The path, by symbol
 
@@ -89,9 +77,17 @@ Here is the whole path of one streamed request at one rank. The first column is 
 | `vllm.collector` | the request's collector hands it to the generator | queue | [`process_outputs`](https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/output_processor.py#L863) |
 | `vllm.sse-chunk` | the handler streams a chunk to the client | IPC | [`completion_stream_generator`](https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/entrypoints/openai/completion/serving.py#L487) |
 
+One question on the mechanism between two stages of the path.
+
+:::item
+family: tr1.which-mechanism
+level: 2
+count: 1
+:::
+
 ## Two processes, three threads, four queues
 
-The picture below is the part of the path that you will draw from memory in the graded map, so it is worth fixing now.
+The picture is the part of the path that you will draw from memory in the graded map, so it is worth fixing now.
 
 :::figure
 src: figures/tr1/l5-vllm-threads.svg
@@ -105,6 +101,14 @@ The API server is one process with one asyncio event loop, and the work in it is
 The engine core is the second process. It runs in the background with its own busy loop, and its client pushes requests to it and pulls outputs from it. {{claim:vllm.request.engine-core-process}} It has three threads. The input thread connects a DEALER socket to the client's ROUTER and puts what it reads on `input_queue`. {{claim:vllm.engine-core.zmq-dealer}} {{claim:vllm.engine-core.input-thread-queue}} The main thread runs the busy loop. The output thread takes `output_queue` and pushes each batch of outputs on a PUSH socket. {{claim:vllm.engine-core.zmq-push}} The queues are thread-safe queues that the process creates for them. {{claim:vllm.engine-core.queues}} The source gives the reason for the arrangement in a comment: socket I/O in background threads releases the GIL and overlaps with the GPU, and the busy loop reads only queues. {{claim:vllm.engine-core.io-threads}}
 
 A fourth queue, `aborts_queue`, carries aborts, and the seventh lesson reads it. That is the answer to a question you may have asked since the first lesson, which is why an engine needs a queue between two threads at all. The busy loop reads only queues, and the threads that wait on the sockets are what fill them.
+
+One question on where a stage runs.
+
+:::item
+family: tr1.where-does-it-run
+level: 2
+count: 1
+:::
 
 ## The busy loop and the batch queue
 
@@ -146,11 +150,29 @@ future, scheduler_output, exec_model_fut = batch_queue.pop()
 
 A launched batch's future goes into `batch_queue`. If the queue still has room, the method returns at once, and the loop comes back, schedules and launches the next batch. Only when the queue is full, or nothing more can be scheduled, does it pop the oldest future and wait for its result. {{claim:vllm.step.batch-queue}} The queue's size is the pipeline-parallel size plus one in the default runner, so two batches in flight when there is no pipeline parallelism [derived]. {{claim:vllm.step.max-concurrent-batches.mrv2}} That is the whole mechanism of async scheduling as far as the loop is concerned: one batch is on the GPU while the CPU plans the next. When a step ran no model but the scheduler still holds requests, for instance while they wait for remote KV, the loop sleeps for a moment so that background threads can make progress. {{claim:vllm.step.idle-sleep}}
 
+One more, on where a stage of vLLM's path runs.
+
+:::item
+family: tr1.where-does-it-run
+level: 2
+count: 1
+:::
+
 ## The runner, and where the wait sits
 
 In the default runner the step is two calls. `execute_model` launches the forward pass, keeps what it needs in `execute_model_state`, and returns nothing. `sample_tokens` then takes the grammar output, launches the sampler, and starts the copy of the sampled ids up to the host on a stream of its own, after that stream has waited for the main one. {{claim:vllm.step.execute-then-sample}} {{claim:vllm.async-output.copy-stream}} The result is an `AsyncOutput`, and its `get_output` is the wait: `copy_event.synchronize()`. {{claim:vllm.async-output.event-sync}}
 
-The part that is easy to miss is whose thread waits, because it depends on the number of ranks. With one rank the executor lives in the engine core's own process, and `execute_model(non_block=True)` hands back a future whose `result()` calls `get_output` in whichever thread asks for it. That thread is the busy loop's, so the sync is in the main thread. {{claim:vllm.executor.uniproc-future}} {{claim:vllm.engine-core.result-waits-in-busy-loop}} With two ranks the executor enqueues each step on a shared-memory queue that the workers read, and the engine core waits for the answer on another. {{claim:vllm.executor.rpc-broadcast}} {{claim:vllm.executor.message-queue-shm}} In a worker the main thread hands each output to a queue, and a thread of its own takes it, calls `get_output`, which waits for the copy, and sends the result back. {{claim:vllm.executor.worker-async-output-thread}} The model draws both as a sync stage, and the debrief shows which thread owns it. So the first prediction's answer is three. A token leaves the worker for the engine core through shared memory, leaves the engine core for the API server over a socket, and leaves the API server for the client, which is three process boundaries [derived] at two ranks and two at one.
+The part that is easy to miss is whose thread waits, because it depends on the number of ranks. With one rank the executor lives in the engine core's own process, and `execute_model(non_block=True)` hands back a future whose `result()` calls `get_output` in whichever thread asks for it. That thread is the busy loop's, so the sync is in the main thread. {{claim:vllm.executor.uniproc-future}} {{claim:vllm.engine-core.result-waits-in-busy-loop}} With two ranks the executor enqueues each step on a shared-memory queue that the workers read, and the engine core waits for the answer on another. {{claim:vllm.executor.rpc-broadcast}} {{claim:vllm.executor.message-queue-shm}} In a worker the main thread hands each output to a queue, and a thread of its own takes it, calls `get_output`, which waits for the copy, and sends the result back. {{claim:vllm.executor.worker-async-output-thread}} The model draws both as a sync stage, and the debrief shows which thread owns it. So the count of process boundaries is three. A token leaves the worker for the engine core through shared memory, leaves the engine core for the API server over a socket, and leaves the API server for the client, which is three process boundaries [derived] at two ranks and two at one.
+
+Next, the states of a request. One number to guess first.
+
+:::predict
+id: tr1.l5.p3
+prompt: A vLLM request at v0.33.0 is always in one of twelve statuses. How many of the twelve count as finished?
+answer: { kind: numeric, unit: statuses, rel_tol: 0 }
+reveal: at-commit
+kcs: [tr1.request-states]
+:::
 
 ## The states of a request
 
@@ -177,11 +199,21 @@ The table says what moves a request from one to the next.
 
 Read the claims behind the rows: the request is admitted where it joins the running list, {{claim:vllm.request.admitted}} and only a running request can be preempted. {{claim:vllm.request.preempted-status}} {{claim:vllm.scheduler.preemption-recompute}} A new request that has a grammar starts in the grammar wait. {{claim:vllm.request.grammar-wait}} {{claim:vllm.request.grammar-ready}} A remote load puts a request in its wait and takes it out again. {{claim:vllm.request.remote-kv-wait}} {{claim:vllm.request.remote-kv-ready}} The stop check sets three of the finished states. {{claim:vllm.request.check-stop}} A grammar can also finish a request with an error, {{claim:vllm.request.grammar-error}} and a stopped session can wait for its next input. {{claim:vllm.request.streaming-wait}}
 
-Twelve states, and one of them is never entered. FINISHED_IGNORED is in the enum and in the finish-reason map, where its comment says it stands for a prompt longer than the model's length cap, and nothing in the package assigns it. {{claim:vllm.request.ignored-unassigned}} That is a good habit to take from this lesson: read the transitions and not the enum, because an enum lists what someone once meant to have. The answer to the third prediction is six, and the table above shows why only five of them are ever assigned.
+Twelve states, and one of them is never entered. FINISHED_IGNORED is in the enum and in the finish-reason map, where its comment says it stands for a prompt longer than the model's length cap, and nothing in the package assigns it. {{claim:vllm.request.ignored-unassigned}} That is a good habit to take from this lesson: read the transitions and not the enum, because an enum lists what someone once meant to have. Six of the twelve count as finished, and the table shows why only five of them are ever assigned.
+
+Now the step. Two requests are decoding in vLLM, and a new prompt arrives.
+
+:::predict
+id: tr1.l5.p2
+prompt: Two requests are in the middle of decoding in vLLM v0.33.0, and a new prompt of 300 tokens [estimated] has just joined the waiting queue. The token budget of a step is large enough to hold it. How many tokens does the next step run?
+answer: { kind: numeric, unit: tokens, rel_tol: 0 }
+reveal: at-commit
+kcs: [tr1.phases-vs-one-budget]
+:::
 
 ## One budget, again
 
-The second prediction's answer is 302 tokens [derived]. The scheduler serves the running requests first, one token each, and then the waiting ones, out of the same budget. {{claim:vllm.scheduler.order}} The two decoders take two tokens, and the new prompt takes its 300 [estimated], so the step holds both. In nano-vllm the same queue gave a step of 300 tokens [derived] with nothing for the decoders, and a second step of three. The scheduler in this lesson has no notion of a prefill step. {{claim:vllm.scheduler.no-phases}}
+The answer is 302 tokens [derived]. The scheduler serves the running requests first, one token each, and then the waiting ones, out of the same budget. {{claim:vllm.scheduler.order}} The two decoders take two tokens, and the new prompt takes its 300 [estimated], so the step holds both. In nano-vllm the same queue gave a step of 300 tokens [derived] with nothing for the decoders, and a second step of three. The scheduler in this lesson has no notion of a prefill step. {{claim:vllm.scheduler.no-phases}}
 
 :::card
 kind: isomorphism
@@ -201,15 +233,9 @@ kind: notional-machine
 id: lifecycle
 :::
 
-## What to carry
-
-- Two processes, three threads in the second, and a queue between every pair of threads. The busy loop reads only queues, and the sockets are read by threads that release the GIL.
-- The step is two calls, a launch and a sample, and the wait sits at the oldest batch's result. Which thread waits depends on the executor.
-- A request has twelve statuses, six of them finished. Read the transitions, because one of the twelve is never assigned.
-
 ## Exit check
 
-This lesson tests three skills: tracing a request through vLLM at the pin, naming each queue, process boundary, copy and sync (`tr1.vllm-lifecycle`), naming the states of a request and what moves it from one to the next (`tr1.request-states`), and saying what one token budget makes of a step (`tr1.phases-vs-one-budget`). The exit ticket is three items on fresh seeds, two on states and one on the step. It is passed with at least two right (ASSESSMENT §4.2). The first skill is earned by the module's graded map, on its vLLM scenarios.
+Three questions on new numbers: two on the states of a request and one on what a step holds. Two right passes. The graded map at the end of the module tests the vLLM path on whole paths.
 
 :::item
 family: tr1.request-state

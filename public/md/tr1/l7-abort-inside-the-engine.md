@@ -6,27 +6,33 @@ Builds on kernelspace: `ks:T5.L7`, `ks:T2.L1`.
 
 Knowledge components: `tr1.abort-path`.
 
-A streamed answer is a promise to keep working, and the client can break it at any moment. A tab closes, a phone goes into a tunnel, a script gives up. From that moment every token the engine makes is paid for and thrown away, and the blocks of KV memory that the request holds are taken from requests that somebody still wants. An engine that cannot take a request back leaks capacity, so abort belongs to the lifecycle and not to its edge.
+This lesson follows an abort inside the engine: a client leaves in the middle of a stream. The `abort` level is vLLM at the pin with such a stream:
 
-nano-vllm has no abort. Its package has no way to take a request back, so every request in it runs to its end. **the library's front end is the engine class** [measured] The other four engines each have a path for the news, and the four paths are the best test of the lifecycle in this module, because an abort crosses sockets, queues and threads, the mechanisms of the first lesson, and then has to win a race against the GPU.
+- **Front end**: the API server's route and `AsyncLLM` notice that the client has gone and tell the engine core.
+- **Engine core**: its input thread puts the abort on two queues, and the busy loop drains `aborts_queue` between the forward and the update.
+- **Scheduler**: finishes the request with the status `FINISHED_ABORTED` and frees its blocks.
 
-This is a minimal version of a lesson that another course owns. The Data Plane specialization teaches the stream that survives: the disconnect at the HTTP or gRPC edge, `select!` safety, shutdown, hedging and retries, in its fifth lesson, `DP5`. That course has not shipped, so TR1 carries the part that happens inside the engine, in under an hour [estimated]. The story here starts when the engine's front end notices that the client has gone, and it ends when the blocks are back in the pool.
-
-## Before you play
-
-Two questions, to commit to before you lay the path. The first counts the places that the news has to cross. The second is about a race, because the GPU is busy with a step when the news arrives.
+New: no path so far has an abort stage. nano-vllm has no abort at all, and the other four engines each have one. Lay the way the first token took, then lay the abort.
 
 > **Predict `tr1.l7.p1`.** In vLLM at the pin, a client disconnects in the middle of a stream. How many process boundaries does the news cross between the client and the engine core?
 >
 > The learner commits to a number in `boundaries`, graded within a relative tolerance of `0` [estimated] before the reveal. Ask them to commit to an answer and say why before you discuss it.
 
+> **Play.** The game `engine-floor`, level `abort`, in `practice` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.
+
+## Why abort belongs to the lifecycle
+
+A streamed answer is a promise to keep working, and the client can break it at any moment. A tab closes, a phone goes into a tunnel, a script gives up. From that moment every token the engine makes is paid for and thrown away, and the blocks of KV memory that the request holds are taken from requests that somebody still wants. An engine that cannot take a request back leaks capacity, so abort belongs to the lifecycle and not to its edge.
+
+nano-vllm has no abort. Its package has no way to take a request back, so every request in it runs to its end. **the library's front end is the engine class** [measured] The other four engines each have a path for the news, and the four paths are the best test of the lifecycle in this module, because an abort crosses sockets, queues and threads, the mechanisms of the first lesson, and then has to win a race against the GPU.
+
+This is a minimal version of a lesson that another course owns. The Data Plane specialization teaches the stream that survives: the disconnect at the HTTP or gRPC edge, `select!` safety, shutdown, hedging and retries, in its fifth lesson, `DP5`. That is a separate course, so this lesson carries only the part that happens inside the engine, in under an hour [estimated]. The story here starts when the engine's front end notices that the client has gone, and it ends when the blocks are back in the pool.
+
+One number to guess before the path: the GPU is busy with a step when the news arrives.
+
 > **Predict `tr1.l7.p2`.** In SGLang at the pin, an abort reaches the scheduler while its request is running. How many more forward passes does the request run before its blocks are freed?
 >
 > The learner commits to a number in `passes`, graded within a relative tolerance of `0` [estimated] before the reveal. Ask them to commit to an answer and say why before you discuss it.
-
-Then play the `abort` level. It is vLLM at the pin with a stream whose client leaves. Lay the way the first token took, which you know from the fifth lesson, and then lay the abort.
-
-> **Play.** The game `engine-floor`, level `abort`, in `practice` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.
 
 ## The abort at the pin
 
@@ -41,7 +47,7 @@ Here are the stages that the level adds after the first token. The first column 
 | `vllm.process-aborts` | `_process_aborts_queue` runs before `update_from_output` | compute | [`step_with_batch_queue`](https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/core.py#L792) |
 | `vllm.finish-aborted` | the scheduler finishes the request as `FINISHED_ABORTED` | compute | [`abort_requests`](https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/core.py#L569) |
 
-Two of the six stages cross a process boundary, the client's disconnect and the ABORT message to the engine core, so the first prediction's answer is two [derived]. The first two stages are the front end's. The route that serves the completion is wrapped so that a client that disconnects cancels its handler task. **a route handler is cancelled when the client disconnects** [measured] Then `AsyncLLM.generate` catches the cancellation, or the generator being collected, and aborts the request in the engine before it re-raises. **a cancelled generate() aborts the request** [measured] `AsyncLLM.abort` forgets the request in its own output processor first, and only then sends the engine core a message with the request ids, so that both halves of the system forget it. **the output processor, then the engine core** [measured]
+Two of the six stages cross a process boundary, the client's disconnect and the ABORT message to the engine core, so the news crosses two process boundaries [derived]. The first two stages are the front end's. The route that serves the completion is wrapped so that a client that disconnects cancels its handler task. **a route handler is cancelled when the client disconnects** [measured] Then `AsyncLLM.generate` catches the cancellation, or the generator being collected, and aborts the request in the engine before it re-raises. **a cancelled generate() aborts the request** [measured] `AsyncLLM.abort` forgets the request in its own output processor first, and only then sends the engine core a message with the request ids, so that both halves of the system forget it. **the output processor, then the engine core** [measured]
 
 The next three stages are the engine core's, and they hold the idea of the lesson. The message arrives on the engine core's input thread, and the input thread does something that a request never gets. [These lines](https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/core.py#L2032-L2040) put an abort on two queues.
 
@@ -80,6 +86,10 @@ An engine that is idle empties `aborts_queue` without processing it, because eve
 
 The last stage is the scheduler's. The engine core tells the scheduler to finish the requests with the status `FINISHED_ABORTED`. **FINISHED_ABORTED** [measured] `finish_requests` skips an id that is unknown or already finished, takes each of the others out of `running` or the waiting queues, sets the status, and frees the request. **status set, request freed** [measured] The blocks go back to the pool through `kv_cache_manager.free`, unless a connector delays the free or a step in flight may still write them. **kv_cache_manager.free, unless the free is delayed** [measured] The client sees the status as the finish reason `abort`. **a finish reason for each finished state** [measured]
 
+One question on where a stage of the abort's path runs.
+
+> **Practice.** Items from the generator family `tr1.where-does-it-run`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+
 ## The step in flight
 
 The queue of its own exists because of a race. When the abort reaches the engine core, the GPU may be running a step that includes the request, and with async scheduling the engine may have planned the one after it. Whatever the engine does, it must end with no block leaked and no token sent to a client who has gone. The three engines that you have read that can abort give three different answers.
@@ -90,7 +100,11 @@ Mini-SGLang frees the request in the turn of its loop that handles the message. 
 
 SGLang does not free a running request at all. It marks the request to finish. The request runs one more forward pass, and the code that finishes any request cleans up its KV allocation, which the comment gives as the reason: the abort reuses all the existing code. **to_finish, one more forward** [measured] The price is one more step, and what it buys is one place that frees blocks. SGLang has two other methods for requests that have not started to run. A request in the waiting queue is popped straight out of it, and something is still sent back to the tokenizer manager to clean up its state. **a request that has not started is popped out of the queue** [measured] A request in the grammar queue still runs one prefill, cut down to one token to make it cheap. **a request in the grammar queue still runs one cheap prefill** [measured]
 
-So the second prediction's answer is one. Each of the three designs pays where you can point at it. vLLM needs a rule that the update skips a finished request, Mini-SGLang needs its scheduler to free in the middle of its loop, and SGLang pays a forward pass.
+So one more forward pass runs. Each of the three designs pays where you can point at it. vLLM needs a rule that the update skips a finished request, Mini-SGLang needs its scheduler to free in the middle of its loop, and SGLang pays a forward pass.
+
+One question on the status a request ends in.
+
+> **Practice.** Items from the generator family `tr1.request-state`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
 ## The same news, four ways
 
@@ -112,6 +126,10 @@ The count of process boundaries is the quickest way to tell the engines' paths a
 | vLLM | 2 [derived] | the engine core, between the forward and the update |
 | SGLang | 2 [derived] | the scheduler, by its finishing code, one forward pass later |
 
+One question on where a stage of an abort's path runs.
+
+> **Practice.** Items from the generator family `tr1.where-does-it-run`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+
 ## An abort the engine starts
 
 A client that leaves is not the only reason to abort a request. vLLM's engine core never sees text, so a stop string is found in the API server, in the output processor, whose comment says that its step turns each request's new token ids into text and performs the stop checks. **the output processor detokenizes and performs the stop checks** [measured] The output handler then sends the engine core an abort for each request that finished on a stop string, as its comment says. **the frontend aborts a request that hit a stop string** [measured] It is the same path with another cause, and it is the reason that the engine core has to survive an abort for a request that is already finished.
@@ -124,25 +142,17 @@ A client that leaves is not the only reason to abort a request. vLLM's engine co
 
 > **Card.** The notional-machine card `lifecycle`.
 
-## The graded map
-
-This is the end of the module's reading, and its proof. The `map` level draws a fresh scenario of any of the five engines: streaming or not, one rank or two, with an abort or without, with a prefix hit or without, and with one sample or two. You lay its whole path from the tray in one run. There is no undo and no live readout, and nothing is timed. Every stage you lay is matched, in order, to a span of the scenario's synthetic trace, and the tray holds real stages of the other engines, so knowing one engine's most common path is not enough. It passes when the whole path is right on its first run, on three fresh seeds [estimated] (ASSESSMENT §4.3).
-
-> **Play.** The game `engine-floor`, level `map`, in `graded` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.
-
-## What to carry
-
-- An abort is a message that travels beside the request, and it has to win a race against the step in flight. The engines differ in where they let it win.
-- vLLM at the pin gives the abort a queue of its own, drains it between the forward and the update, and skips the finished request in the update. Mini-SGLang frees at once. SGLang marks the request to finish and pays one more forward pass.
-- The pin is not the post. The post's engine looks for an abort at the top of the next turn, and the pin's looks before the update.
-
 ## Exit check
 
-This lesson tests one skill: tracing an abort from the front end to the freed blocks and saying what each engine does with a step in flight (`tr1.abort-path`). The exit ticket is three items on fresh seeds. Two ask which state a request is in, or which status it ends in, after an abort, and one asks in which process a stage of an abort's path runs. It is passed with at least two right (ASSESSMENT §4.2).
+Three questions on new numbers. Two ask which state a request is in, or which status it ends in, after an abort, and one asks in which process a stage of an abort's path runs. Two right passes.
 
 > **Practice.** Items from the generator family `tr1.request-state`, level `2`, `2` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
 > **Practice.** Items from the generator family `tr1.where-does-it-run`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+
+The module's last test is the graded map, and it is the proof of the module. The `map` level draws a fresh scenario of any of the five engines: streaming or not, one rank or two, with an abort or without, with a prefix hit or without, and with one sample or two. You lay its whole path from the stage list in one run. There is no undo and no live readout, and nothing is timed. Every stage you lay is matched, in order, to a span of the scenario's synthetic trace, and the stage list holds real stages of the other engines, so knowing one engine's most common path is not enough. It passes when the whole path is right on its first run, on three fresh seeds [estimated].
+
+> **Play.** The game `engine-floor`, level `map`, in `graded` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.
 
 ## Claims cited
 

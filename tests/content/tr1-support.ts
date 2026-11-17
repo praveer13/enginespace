@@ -26,7 +26,7 @@ export const MODULE_FILE = 'content/modules/tr1/module.md'
  * whose lead-in says what passes in words and names no KC id. Their pacing is held, where the other lessons' warnings are still allowed. A
  * content task that edits a lesson to the template adds it here.
  */
-export const IN_TEMPLATE: ReadonlySet<string> = new Set(['tr1.l1'])
+export const IN_TEMPLATE: ReadonlySet<string> = new Set(['tr1.l1', 'tr1.l2', 'tr1.l3', 'tr1.l4', 'tr1.l5', 'tr1.l6', 'tr1.l7'])
 export const CLAIMS_FILE = 'content/claims/tr1.yaml'
 
 export const result = compileContent({ root: repo })

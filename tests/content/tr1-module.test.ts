@@ -123,7 +123,8 @@ describe('check 2: every lesson has a prediction, a game or an item, and an exit
       const graded = exit.blocks.filter((block) => block.type === 'item' || (block.type === 'game' && block.mode === 'graded'))
       expect(graded.length).toBeGreaterThanOrEqual(1)
       // The exit check is the end of the lesson: nothing else follows it but the blocks it is made of.
-      for (const block of exit.blocks) expect(['item', 'game']).toContain(block.type)
+      // Lesson 7's Test also holds the paragraph that gives the pass rule of its graded level, before the run.
+      for (const block of exit.blocks) expect(lesson.id === 'tr1.l7' ? ['item', 'game', 'prose'] : ['item', 'game']).toContain(block.type)
       const named = new Set(exit.prose.flatMap((flow) => flowInlines(flow).flatMap((node) => codeSpans([node]).map((span) => span.text))))
       // A lesson in the template says what its Test asks in words, and the page names the skill from the KC's sentence: no id reaches the learner.
       if (IN_TEMPLATE.has(lesson.id)) {
@@ -181,7 +182,7 @@ describe('what the lessons teach', () => {
     expect(module_.pins).toEqual(['vllm', 'sglang', 'nano-vllm', 'mini-sglang', 'inside-vllm'])
   })
 
-  test('every game block is Back of House, names one of its levels, and a graded block names a level that grades', () => {
+  test('every game block is Request path, names one of its levels, and a graded block names a level that grades', () => {
     for (const { lesson } of lessons) {
       for (const block of lesson.blocks) {
         if (block.type !== 'game') continue
@@ -261,6 +262,26 @@ describe('what the lessons teach', () => {
     }
   })
 
+  test("lesson 7's Test holds its three questions and the graded map, with the pass rule before the run", () => {
+    const l7 = lessonOf('tr1.l7').lesson
+    const exit = exitCheck(l7.blocks)
+    expect(exit).not.toBeNull()
+    if (exit === null) return
+    expect(exit.blocks.flatMap((block) => (block.type === 'item' ? [block.count] : [])).reduce((a, b) => a + b, 0)).toBe(3)
+    // The graded map is the last block of the file, and the paragraph that gives its pass rule comes before it in the same Test.
+    const last = l7.blocks[l7.blocks.length - 1]
+    expect(last.type === 'game' && last.level === 'map' && last.mode === 'graded').toBe(true)
+    const rule = exit.blocks
+      .flatMap((block) => (block.type === 'prose' ? block.body : []))
+      .map((flow) => flowInlines(flow).map((node) => inlineText([node])).join(''))
+      .join(' ')
+    const at = exit.blocks.findIndex((block) => block.type === 'prose')
+    expect(at).toBeGreaterThanOrEqual(0)
+    expect(at).toBeLessThan(exit.blocks.findIndex((block) => block.type === 'game'))
+    expect(rule).toContain('It passes when the whole path is right on its first run, on three fresh seeds [estimated]')
+    expect(l7.blocks.filter((block) => block.type === 'game' && block.mode === 'graded')).toHaveLength(1)
+  })
+
   test("the module's graded map is the proof of the module and the lesson of abort holds it", () => {
     const l7 = lessonOf('tr1.l7').lesson
     expect(l7.blocks.some((block) => block.type === 'game' && block.level === 'map' && block.mode === 'graded')).toBe(true)
@@ -280,9 +301,11 @@ describe('the GPU part is announced and never faked (D-039)', () => {
     expect(labs).toEqual([{ type: 'lab', id: 'tr1.fork', lane: 'F', stages: ['s1', 's2', 's3'] }])
   })
 
-  test('the module says that it arrives with the grader, and that nothing pretends to run it', () => {
-    expect(moduleText).toContain('It arrives with the grader (W2, D-039)')
+  test('the module says that its Build card does not run the lab, and that nothing pretends to, in the engine\'s own words', () => {
     expect(moduleText).toContain('does not run it')
+    expect(moduleText).toContain('no lesson here pretends to')
+    // A learner reads the module page: no task, decision or design-document id, and no name of the game from before the redesign.
+    expect(moduleText).not.toMatch(/\b(?:W\d+[a-z]?-T\d+|R-T\d+|D-\d{2,3}|O-\d+|ASSESSMENT|Back of House)\b|\bW2\b/)
   })
 
   test('the GPU hours are an estimate, and the flash-attn build for the pin is said to be unchecked', () => {
@@ -532,18 +555,18 @@ describe('the predictions', () => {
     mentions('tr1.l1', 'p1', 'so a token crosses no process boundary on its way back')
     mentions('tr1.l1', 'p2', 'The line holds three stages, a launch, a copy and a sync')
     mentions('tr1.l2', 'p1', 'which is 188 tokens')
-    mentions('tr1.l2', 'p2', 'The second answer is 300 tokens [derived]')
+    mentions('tr1.l2', 'p2', 'The answer is 300 tokens [derived]')
     mentions('tr1.l3', 'p1', 'That is three process boundaries [derived]')
     mentions('tr1.l3', 'p2', 'That is two stages')
     mentions('tr1.l4', 'p1', 'so a token crosses two process boundaries [derived], and at two ranks it crosses three')
-    mentions('tr1.l4', 'p2', 'The second answer is 3.3 [derived]')
-    mentions('tr1.l5', 'p1', "So the first prediction's answer is three.")
-    mentions('tr1.l5', 'p2', "The second prediction's answer is 302 tokens [derived].")
-    mentions('tr1.l5', 'p3', 'A request has twelve statuses, six of them finished.')
+    mentions('tr1.l4', 'p2', 'The scheduler grew by a factor of 3.3 [derived]')
+    mentions('tr1.l5', 'p1', 'So the count of process boundaries is three.')
+    mentions('tr1.l5', 'p2', 'The answer is 302 tokens [derived].')
+    mentions('tr1.l5', 'p3', 'Six of the twelve count as finished')
     mentions('tr1.l6', 'p1', 'which is three process boundaries [derived]')
-    mentions('tr1.l6', 'p2', "The second prediction's answer is three.")
-    mentions('tr1.l7', 'p1', "so the first prediction's answer is two [derived]")
-    mentions('tr1.l7', 'p2', "So the second prediction's answer is one.")
+    mentions('tr1.l6', 'p2', 'The answer for two samples is three.')
+    mentions('tr1.l7', 'p1', 'so the news crosses two process boundaries [derived]')
+    mentions('tr1.l7', 'p2', 'So one more forward pass runs.')
   })
 })
 

@@ -20,7 +20,7 @@
  * files stand for it until it runs.
  */
 import { describe, expect, test } from 'bun:test'
-import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { GAMES } from '@es/play'
 import { FAMILIES, LEVELS, offeredAt } from '@es/play/items'
@@ -265,7 +265,10 @@ interface Allow {
   readonly covers: string
 }
 
-const allows: Allow[] = readdirSync(ALLOW_DIR)
+/** The directory is gone once the last area is clean: git keeps no empty folder, so a missing one is an empty list. */
+const allowFiles = (): string[] => (existsSync(ALLOW_DIR) ? readdirSync(ALLOW_DIR) : [])
+
+const allows: Allow[] = allowFiles()
   .filter((file) => file.endsWith('.json'))
   .map((file) => ({ file, body: JSON.parse(readFileSync(path.join(ALLOW_DIR, file), 'utf8')) as Allow }))
   .map(({ file, body }) => {
@@ -278,7 +281,7 @@ const READ_AREAS = ['labs', 'copy', 'course', 'cards', 'items', 'predictions', '
 
 describe('the allow files', () => {
   test('are one JSON file per area, each naming a wave R task of the tracker that deletes it and what it covers', () => {
-    expect(readdirSync(ALLOW_DIR).filter((file) => !file.endsWith('.json'))).toEqual([])
+    expect(allowFiles().filter((file) => !file.endsWith('.json'))).toEqual([])
     const tracker = read('docs/TRACKER.md')
     for (const allow of allows) {
       expect([allow.area, /^R-T\d\d$/.test(allow.task), tracker.includes(`#### [ ] ${allow.task} · `)]).toEqual([allow.area, true, true])
