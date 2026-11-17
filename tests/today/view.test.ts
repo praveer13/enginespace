@@ -185,7 +185,7 @@ describe('the sheets that stand when there is nothing to start', () => {
   test('with no way on of its own (every lesson done and Review the way), a review ahead is the one amber button', () => {
     const html = render(h(RestTicket, { next: null, ahead: true, onAhead: () => undefined, way: null }))
     expect(html).toContain('es-primary-button')
-    expect(html).not.toContain('es-board__next')
+    expect(html).not.toContain('es-header__next')
   })
 
   test('the loading sheet says what it is waiting for', () => {
@@ -224,7 +224,7 @@ describe('the sheet that closes a review', () => {
     const more = render(h(DoneTicket, { rows: done, right: 1, total: 2, next: null, more: { label: 'Review another set', run: () => undefined }, ahead: false, way: null }))
     expect(more).toContain('es-primary-button')
     expect(more).toContain('Review another set')
-    expect(more).not.toContain('es-board__next')
+    expect(more).not.toContain('es-header__next')
   })
 
   test('says it was a review ahead when it was, and never what is overdue', () => {

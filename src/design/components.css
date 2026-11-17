@@ -1,10 +1,9 @@
 /*
  * Data Book's components (REDESIGN 2.8): flat paper on a flat ground, ink for text, rules and focus, and one amber mark that means
- * now. Every colour, face, duration and radius is a token role (tokens.css). The class names are the old components' own, so no page
- * changes to take the new drawing; R-T46 renames them. `[data-force]` shows a pointer state without a pointer, for /design.
+ * now. Every colour, face, duration and radius is a token role (tokens.css). `[data-force]` shows a pointer state without a pointer, for /design.
  *
  * Amber (the marker) has three carriers and no others (the One Marker Rule): the control to act on now (`.es-primary-button__pull`, the primary
- * `.es-board__next`), the "now" mark on a diagram (a pan or a station under `[data-lamp]`, a drawing's picked tag), and the current
+ * `.es-header__next`), the "now" mark on a diagram (a pan or a station under `[data-lamp]`, a drawing's picked tag), and the current
  * position in a rail (parts.css). Focus is ink (base.css).
  */
 
@@ -1599,9 +1598,9 @@
     }
   }
 
-  /* ---------------------------------------------------------------------------------------------- header (Board) and footer */
+  /* ---------------------------------------------------------------------------------------------- header and footer */
 
-  .es-board {
+  .es-header {
     position: relative;
     z-index: 1;
     overflow: clip;
@@ -1613,19 +1612,19 @@
   }
 
   /* The header: the raised surface over a hairline. */
-  .es-board[data-variant='board'] {
+  .es-header[data-variant='board'] {
     border-bottom: 1px solid var(--es-edge);
     background-color: var(--es-surface-1);
   }
 
   /* The footer: the dark surface, with paper-white words. */
-  .es-board[data-variant='kickplate'] {
+  .es-header[data-variant='kickplate'] {
     background-color: var(--es-surface-3);
     color: var(--es-paper);
   }
 
   /* The site's name, in the display face, linking home. */
-  .es-board__plate {
+  .es-header__plate {
     position: relative;
     display: inline-flex;
     align-items: center;
@@ -1639,13 +1638,13 @@
     text-decoration: none;
   }
 
-  .es-board__plate:is(:hover, [data-force='hover']) {
+  .es-header__plate:is(:hover, [data-force='hover']) {
     text-decoration: underline;
     text-decoration-thickness: 2px;
     text-underline-offset: 0.2em;
   }
 
-  .es-board__links {
+  .es-header__links {
     display: flex;
     flex-wrap: wrap;
     gap: 0 clamp(0.75rem, 2.4vw, 1.75rem);
@@ -1654,7 +1653,7 @@
     list-style: none;
   }
 
-  .es-board__link {
+  .es-header__link {
     position: relative;
     display: inline-flex;
     align-items: center;
@@ -1668,23 +1667,23 @@
     text-decoration: none;
   }
 
-  .es-board__link:is(:hover, [data-force='hover']) {
+  .es-header__link:is(:hover, [data-force='hover']) {
     color: var(--es-text-1);
     text-decoration: underline;
     text-decoration-thickness: 2px;
     text-underline-offset: 0.35em;
   }
 
-  .es-board__link:is(:active, [data-force='active']) {
+  .es-header__link:is(:active, [data-force='active']) {
     background-color: var(--es-surface-2);
   }
 
   /* The page you are on: ink, with an ink bar under it. Amber is kept for now; where you are is not an action. */
-  .es-board__link[aria-current='page'] {
+  .es-header__link[aria-current='page'] {
     color: var(--es-text-1);
   }
 
-  .es-board__link[aria-current='page']::after {
+  .es-header__link[aria-current='page']::after {
     content: '';
     position: absolute;
     inset: auto 0.1rem 0.3rem;
@@ -1692,35 +1691,35 @@
     background-color: var(--es-text-1);
   }
 
-  .es-board[data-variant='kickplate'] .es-board__link {
+  .es-header[data-variant='kickplate'] .es-header__link {
     min-height: 2.75rem;
     color: var(--es-paper);
     font-weight: 400;
   }
 
-  .es-board[data-variant='kickplate'] .es-board__link:is(:hover, [data-force='hover']) {
+  .es-header[data-variant='kickplate'] .es-header__link:is(:hover, [data-force='hover']) {
     color: var(--es-paper);
   }
 
-  .es-board[data-variant='kickplate'] .es-board__link:is(:active, [data-force='active']) {
+  .es-header[data-variant='kickplate'] .es-header__link:is(:active, [data-force='active']) {
     background-color: transparent;
   }
 
-  .es-board[data-variant='kickplate'] .es-board__link[aria-current='page'] {
+  .es-header[data-variant='kickplate'] .es-header__link[aria-current='page'] {
     font-weight: 700;
   }
 
-  .es-board[data-variant='kickplate'] .es-board__link[aria-current='page']::after {
+  .es-header[data-variant='kickplate'] .es-header__link[aria-current='page']::after {
     background-color: var(--es-paper);
   }
 
   /* The way on, at the right of the header: an outline control, never the amber fill (REDESIGN 2.4, "Which control is amber"). */
-  .es-board__action {
+  .es-header__action {
     margin-inline-start: auto;
     min-width: 0;
   }
 
-  .es-board__next {
+  .es-header__next {
     display: inline-flex;
     align-items: center;
     gap: var(--es-space-2);
@@ -1738,41 +1737,41 @@
     transition: background-color var(--es-dur-quick) var(--es-ease-settle);
   }
 
-  .es-board__next:is(:hover, [data-force='hover']) {
+  .es-header__next:is(:hover, [data-force='hover']) {
     background-color: color-mix(in srgb, var(--es-surface-2) 55%, transparent);
   }
 
-  .es-board__next:is(:active, [data-force='active']) {
+  .es-header__next:is(:active, [data-force='active']) {
     background-color: var(--es-surface-2);
   }
 
-  .es-board__next:is(:focus-visible, [data-force='focus']) {
+  .es-header__next:is(:focus-visible, [data-force='focus']) {
     outline: 3px solid var(--es-focus);
     outline-offset: 2px;
     box-shadow: 0 0 0 7px var(--es-paper);
   }
 
   /* The amber fill, where the page has no move in hand: amber with its edge, the ink label (REDESIGN 2.4, "Which control is amber"). */
-  .es-board__next[data-emphasis='primary'] {
+  .es-header__next[data-emphasis='primary'] {
     border: 2px solid var(--es-lamp-ring);
     background: var(--es-lamp);
   }
 
-  .es-board__next[data-emphasis='primary']:is(:hover, [data-force='hover']) {
+  .es-header__next[data-emphasis='primary']:is(:hover, [data-force='hover']) {
     background-color: color-mix(in srgb, var(--es-lamp) 80%, var(--es-lamp-ring));
   }
 
-  .es-board__next-minutes {
+  .es-header__next-minutes {
     font-size: var(--es-size-note);
     font-weight: 400;
     white-space: nowrap;
   }
 
-  .es-board__next-label {
+  .es-header__next-label {
     min-width: 0;
   }
 
-  .es-board .es-board__next-label {
+  .es-header .es-header__next-label {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1799,22 +1798,22 @@
     line-height: 1.5;
   }
 
-  .es-board__next-word {
+  .es-header__next-word {
     display: none;
   }
 
-  .es-board__next-arrow {
+  .es-header__next-arrow {
     flex: none;
     width: 1.125rem;
     height: 1.125rem;
     transition: translate var(--es-dur-quick) var(--es-ease-settle);
   }
 
-  .es-board__next:is(:hover, [data-force='hover']) .es-board__next-arrow {
+  .es-header__next:is(:hover, [data-force='hover']) .es-header__next-arrow {
     translate: 0.1875rem 0;
   }
 
-  .es-board__toggle {
+  .es-header__toggle {
     display: none;
   }
 
@@ -1823,21 +1822,21 @@
    * Continue stays its accessible name, clipped out of sight, and the first word shows.
    */
   @media (max-width: 47.99rem) {
-    .es-board[data-fold] {
+    .es-header[data-fold] {
       flex-wrap: wrap;
       gap: var(--es-space-2);
       padding-block: var(--es-space-2);
     }
 
-    .es-board[data-fold] .es-board__plate {
+    .es-header[data-fold] .es-header__plate {
       font-size: var(--es-size-title);
     }
 
-    .es-board[data-fold] .es-board__action {
+    .es-header[data-fold] .es-header__action {
       order: 1;
     }
 
-    .es-board[data-fold] .es-board__toggle {
+    .es-header[data-fold] .es-header__toggle {
       order: 2;
       display: inline-flex;
       align-items: center;
@@ -1854,22 +1853,22 @@
       cursor: pointer;
     }
 
-    .es-board__toggle[aria-expanded='true'] {
+    .es-header__toggle[aria-expanded='true'] {
       background-color: var(--es-surface-2);
     }
 
-    .es-board__toggle:is(:focus-visible, [data-force='focus']) {
+    .es-header__toggle:is(:focus-visible, [data-force='focus']) {
       outline: 3px solid var(--es-focus);
       outline-offset: 2px;
       box-shadow: 0 0 0 7px var(--es-paper);
     }
 
-    .es-board__toggle-icon {
+    .es-header__toggle-icon {
       width: 1.125rem;
       height: 1.125rem;
     }
 
-    .es-board[data-fold] .es-board__links {
+    .es-header[data-fold] .es-header__links {
       order: 3;
       flex-basis: 100%;
       flex-direction: column;
@@ -1877,19 +1876,19 @@
       border-top: 1px solid var(--es-edge);
     }
 
-    .es-board[data-fold='closed'] .es-board__links {
+    .es-header[data-fold='closed'] .es-header__links {
       display: none;
     }
 
-    .es-board[data-fold] .es-board__next {
+    .es-header[data-fold] .es-header__next {
       padding-inline: var(--es-space-2);
     }
 
-    .es-board[data-fold] .es-board__action {
+    .es-header[data-fold] .es-header__action {
       margin-inline-start: auto;
     }
 
-    .es-board[data-fold] .es-board__next-label {
+    .es-header[data-fold] .es-header__next-label {
       position: absolute;
       width: 1px;
       height: 1px;
@@ -1898,14 +1897,14 @@
       white-space: nowrap;
     }
 
-    .es-board[data-fold] .es-board__next-word {
+    .es-header[data-fold] .es-header__next-word {
       display: inline;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .es-board__next,
-    .es-board__next-arrow {
+    .es-header__next,
+    .es-header__next-arrow {
       transition: none;
     }
   }
@@ -1978,7 +1977,7 @@
       padding-inline: var(--es-space-8);
     }
 
-    .es-board {
+    .es-header {
       padding-inline: var(--es-space-8);
     }
   }
@@ -1988,13 +1987,13 @@
    * Highlight, where tokens.ts maps it. The block sits in the layer, after the rules it overrides.
    */
   @media (forced-colors: active) {
-    .es-board__link[aria-current='page']::after,
+    .es-header__link[aria-current='page']::after,
     .es-station[data-state='lit'] .es-station__lens {
       background: CanvasText;
     }
 
     .es-primary-button__pull,
-    .es-board__next[data-emphasis='primary'] {
+    .es-header__next[data-emphasis='primary'] {
       border-color: Highlight;
     }
   }

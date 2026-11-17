@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { ContinueLink, type ContinueTarget } from '@/design/components/Board'
+import { ContinueLink, type ContinueTarget } from '@/design/components/Header'
 import { ReadoutStrip, type ReadoutStripLine } from '@/design/components/ReadoutStrip'
 import { Readout } from '@/design/components/Readout'
 import { Stamp } from '@/design/components/Stamp'

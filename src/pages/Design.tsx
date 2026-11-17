@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import '@/design/specimens.css'
 import { contrastRatio } from '@/design/contrast'
 import { Bell } from '@/design/components/Bell'
-import { Board, MenuLink } from '@/design/components/Board'
+import { Header, MenuLink } from '@/design/components/Header'
 import { Button } from '@/design/components/Button'
 import { Callout } from '@/design/components/Callout'
 import { DeltaChip } from '@/design/components/DeltaChip'
@@ -1151,7 +1151,7 @@ function ComponentSpecimens() {
         wide
       >
         <State label="the board" span>
-          <Board
+          <Header
             label="Specimen board"
             brand={{ to: '/', label: 'enginespace' }}
             links={[
@@ -1162,7 +1162,7 @@ function ComponentSpecimens() {
           />
         </State>
         <State label="the kick-plate" span>
-          <Board
+          <Header
             label="Specimen kick-plate"
             variant="kickplate"
             links={[

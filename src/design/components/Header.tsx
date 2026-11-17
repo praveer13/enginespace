@@ -4,7 +4,7 @@ import { Link, NavLink, useLocation } from 'react-router'
 import { Icon } from './Glyph'
 
 /*
- * The board: the site's navigation along the top, and the kick-plate below the page (REDESIGN §2.3). The nameplate links home, the
+ * The header: the site's navigation along the top, and the kick-plate below the page (REDESIGN §2.3). The nameplate links home, the
  * places sit beside it (Course, Games, Review, Progress), and the way on stands at the right: the outline Continue, whose words and link
  * are `nextStep`'s (src/progress/next.ts), read from the pointer so that no page has to open the ledger to label it. The page you are on
  * is marked current. Below the page, the kick-plate carries About, Sources and changes, and Settings.
@@ -16,19 +16,19 @@ import { Icon } from './Glyph'
  * States: hover (the link darkens and underlines), focus (the ring), active (pressed), current (the page you are on).
  */
 
-export interface BoardLink {
+export interface HeaderLink {
   to: string
   label: string
   /** A link to a place inside another link's page ("/about#numbers"): a plain link, never marked as the current page. */
   within?: boolean
 }
 
-export interface BoardProps {
+export interface HeaderProps {
   /** The landmark's name: "Primary", "Footer". */
   label: string
-  links: readonly BoardLink[]
+  links: readonly HeaderLink[]
   /** The nameplate: the house's name, linking home. */
-  brand?: BoardLink
+  brand?: HeaderLink
   variant?: 'board' | 'kickplate'
   /** What stands at the right of the board: the header's Continue. */
   action?: ReactNode
@@ -37,7 +37,7 @@ export interface BoardProps {
   className?: string
 }
 
-export function Board({ label, links, brand, variant = 'board', action, fold = false, className }: BoardProps) {
+export function Header({ label, links, brand, variant = 'board', action, fold = false, className }: HeaderProps) {
   const listId = useId()
   const { pathname } = useLocation()
   // The list is open on the page it was opened on: a new page closes it, because the place was chosen.
@@ -47,7 +47,7 @@ export function Board({ label, links, brand, variant = 'board', action, fold = f
   return (
     <nav
       aria-label={label}
-      className={clsx('es-board', className)}
+      className={clsx('es-header', className)}
       data-variant={variant}
       data-fold={fold ? (open ? 'open' : 'closed') : undefined}
       onKeyDown={
@@ -55,38 +55,38 @@ export function Board({ label, links, brand, variant = 'board', action, fold = f
           ? (event) => {
               if (event.key !== 'Escape') return
               setOpen(false)
-              event.currentTarget.querySelector<HTMLButtonElement>('.es-board__toggle')?.focus()
+              event.currentTarget.querySelector<HTMLButtonElement>('.es-header__toggle')?.focus()
             }
           : undefined
       }
     >
       {brand ? (
-        <NavLink to={brand.to} end className="es-board__plate">
+        <NavLink to={brand.to} end className="es-header__plate">
           {brand.label}
         </NavLink>
       ) : null}
       {fold ? (
-        <button type="button" className="es-board__toggle" aria-expanded={open} aria-controls={listId} onClick={() => setOpen(!open)}>
-          <Icon name="menu" className="es-board__toggle-icon" />
+        <button type="button" className="es-header__toggle" aria-expanded={open} aria-controls={listId} onClick={() => setOpen(!open)}>
+          <Icon name="menu" className="es-header__toggle-icon" />
           Navigation
         </button>
       ) : null}
-      <ul id={listId} className="es-board__links">
+      <ul id={listId} className="es-header__links">
         {links.map(({ to, label: text, within }) => (
           <li key={to}>
             {within ? (
-              <Link to={to} className="es-board__link">
+              <Link to={to} className="es-header__link">
                 {text}
               </Link>
             ) : (
-              <NavLink to={to} className="es-board__link">
+              <NavLink to={to} className="es-header__link">
                 {text}
               </NavLink>
             )}
           </li>
         ))}
       </ul>
-      {action ? <div className="es-board__action">{action}</div> : null}
+      {action ? <div className="es-header__action">{action}</div> : null}
     </nav>
   )
 }
@@ -107,13 +107,13 @@ export interface ContinueTarget {
  */
 export function ContinueLink({ target, emphasis = 'outline', minutes, className }: { target: ContinueTarget; emphasis?: 'outline' | 'primary'; minutes?: number; className?: string }) {
   return (
-    <Link to={target.href} className={clsx('es-board__next', className)} data-way={target.word === 'Start' || target.word === 'Continue' ? 'continue' : 'local'} data-emphasis={emphasis}>
-      <span className="es-board__next-label">{target.label}</span>
-      {minutes === undefined ? null : <span className="es-board__next-minutes">about {minutes} min</span>}
-      <span className="es-board__next-word" aria-hidden="true">
+    <Link to={target.href} className={clsx('es-header__next', className)} data-way={target.word === 'Start' || target.word === 'Continue' ? 'continue' : 'local'} data-emphasis={emphasis}>
+      <span className="es-header__next-label">{target.label}</span>
+      {minutes === undefined ? null : <span className="es-header__next-minutes">about {minutes} min</span>}
+      <span className="es-header__next-word" aria-hidden="true">
         {target.word}
       </span>
-      <Icon name="arrow" className="es-board__next-arrow" />
+      <Icon name="arrow" className="es-header__next-arrow" />
     </Link>
   )
 }

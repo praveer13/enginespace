@@ -1,10 +1,9 @@
 /*
  * Data Book's components (REDESIGN 2.8): the site's atoms. Pages and games build from these and from the token roles in
- * ../tokens.ts, and set no colour or face of their own. Sheet is the sheet, PrimaryButton the primary button, ReadoutStrip the readout strip,
- * Label the plain label, Toggle the switch, and Board the header and the footer.
+ * ../tokens.ts, and set no colour or face of their own.
  */
 export { Bell, type BellProps } from './Bell'
-export { Board, MenuLink, type BoardLink, type BoardProps } from './Board'
+export { Header, MenuLink, type HeaderLink, type HeaderProps } from './Header'
 export { Button, type ButtonProps } from './Button'
 export { Field, type FieldProps } from './Field'
 export { Glyph, Icon, type IconName } from './Glyph'

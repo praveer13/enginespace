@@ -24,7 +24,7 @@ const MARKER = /var\(--es-lamp\)/
 /** The carriers, each with the carrier of the rule it is (1, 2 or 3) and what it is. */
 const CARRIERS: { carrier: 1 | 2 | 3; what: string; selector: RegExp }[] = [
   { carrier: 1, what: 'the primary button', selector: /^\.es-primary-button__pull(?::is\(|$)/ },
-  { carrier: 1, what: "a page's way on, where it has no move in hand", selector: /^\.es-board__next\[data-emphasis='primary'\]/ },
+  { carrier: 1, what: "a page's way on, where it has no move in hand", selector: /^\.es-header__next\[data-emphasis='primary'\]/ },
   { carrier: 1, what: 'the way on beside a lesson (NextStep)', selector: /^a?\.es-next__action(?::is\(|$)/ },
   { carrier: 1, what: "the lesson's foot bar: its way on", selector: /^\.es-lesson__foot-action$/ },
   { carrier: 1, what: 'the ring on the control an intro points at', selector: /^\.es-marker__ring$/ },
@@ -99,9 +99,9 @@ describe('the One Marker Rule: amber means now, on its three carriers only', () 
       })
       return found
     }
-    expect(text('.es-board__next')).not.toMatch(/--es-lamp/)
-    expect(text(".es-board__link[aria-current='page']::after")).toContain('var(--es-text-1)')
-    expect(text(".es-board__link[aria-current='page']::after")).not.toMatch(/--es-lamp/)
+    expect(text('.es-header__next')).not.toMatch(/--es-lamp/)
+    expect(text(".es-header__link[aria-current='page']::after")).toContain('var(--es-text-1)')
+    expect(text(".es-header__link[aria-current='page']::after")).not.toMatch(/--es-lamp/)
   })
 
   test('a switch that is on and a busy light are not amber: the state is a shape and a word', () => {

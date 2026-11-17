@@ -277,8 +277,8 @@ test.describe('the prep list', () => {
     await expect(phase(page, 'empty')).toBeVisible()
     await expect(page.getByRole('heading', { level: 2, name: 'Nothing to review yet' })).toBeVisible()
     // The one amber control is the way on, from nextStep: on an empty ledger, the first lesson.
-    await expect(page.locator('.es-prep .es-board__next[data-emphasis="primary"]')).toHaveAttribute('href', '/m/tr1/l1-five-mechanisms')
-    await expect(page.locator('.es-prep .es-board__next')).toContainText('Start: TR1 lesson 1')
+    await expect(page.locator('.es-prep .es-header__next[data-emphasis="primary"]')).toHaveAttribute('href', '/m/tr1/l1-five-mechanisms')
+    await expect(page.locator('.es-prep .es-header__next')).toContainText('Start: TR1 lesson 1')
     await expect(page.getByRole('link', { name: 'Open the course' })).toHaveAttribute('href', '/map')
     await expect(start(page)).toHaveCount(0)
   })
@@ -292,7 +292,7 @@ test.describe('the prep list', () => {
     await expect(page.locator('.es-prep__next')).toHaveText(`Your next review is ${formatDay(dayOffset(2))}.`)
     await expect(stub(page, 'Review ahead')).toBeVisible()
     // The way on is the amber Continue; Review ahead is the quiet button beside it.
-    await expect(page.locator('.es-prep .es-board__next[data-emphasis="primary"]')).toBeVisible()
+    await expect(page.locator('.es-prep .es-header__next[data-emphasis="primary"]')).toBeVisible()
   })
 
   test('is a welcome-back after a week of no graded work, and says so, kindly, with no number in it', async ({ page }) => {
@@ -436,7 +436,7 @@ test.describe('a phone, 390 x 844', () => {
 
   /** The one amber control of the screen is inside the first screen, whole. */
   async function primaryInFirstScreen(page: Page, label: string): Promise<void> {
-    const amber = page.locator('main .es-primary-button__pull, main .es-board__next[data-emphasis="primary"]').first()
+    const amber = page.locator('main .es-primary-button__pull, main .es-header__next[data-emphasis="primary"]').first()
     await expect(amber, `${label}: the amber control`).toBeVisible()
     const box = await amber.boundingBox()
     expect(box, label).not.toBeNull()

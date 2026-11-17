@@ -1,7 +1,7 @@
 import { useCallback, useId, useState, useSyncExternalStore } from 'react'
 import { Link, useLoaderData } from 'react-router'
 import type { ContentIndex } from '@es/schema'
-import { ContinueLink } from '@/design/components/Board'
+import { ContinueLink } from '@/design/components/Header'
 import { Readout } from '@/design/components/Readout'
 import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { TextLink } from '@/design/components/TextLink'

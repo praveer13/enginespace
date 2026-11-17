@@ -7,7 +7,7 @@ import { createElement, type ReactElement } from 'react'
 import { renderToString } from 'react-dom/server'
 import { StaticRouter } from 'react-router'
 import { Bell } from '@/design/components/Bell'
-import { Board, MenuLink } from '@/design/components/Board'
+import { Header, MenuLink } from '@/design/components/Header'
 import { Button } from '@/design/components/Button'
 import { Callout } from '@/design/components/Callout'
 import { DeltaChip } from '@/design/components/DeltaChip'
@@ -227,10 +227,10 @@ describe('Button, TextLink, Toggle, Field and Label', () => {
   })
 })
 
-describe('Board', () => {
+describe('Header', () => {
   test('the page you are on is marked current, and the nameplate links home', () => {
     const html = render(
-      h(Board, {
+      h(Header, {
         label: 'Primary',
         brand: { to: '/', label: 'enginespace' },
         links: [
@@ -241,7 +241,7 @@ describe('Board', () => {
       '/map',
     )
     expect(html).toMatch(/^<nav aria-label="Primary"/)
-    expect(html).toMatch(/<a aria-current="page" class="es-board__link[^"]*" href="\/map"[^>]*>Map<\/a>/)
+    expect(html).toMatch(/<a aria-current="page" class="es-header__link[^"]*" href="\/map"[^>]*>Map<\/a>/)
     expect(html).toMatch(/href="\/"[^>]*>enginespace<\/a>/)
     expect(html).not.toMatch(/aria-current="page"[^>]*href="\/play"/)
   })

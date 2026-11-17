@@ -1,6 +1,6 @@
 import { useId } from 'react'
 import type { CourseMap, IndexModule } from '@es/schema'
-import { ContinueLink } from '@/design/components/Board'
+import { ContinueLink } from '@/design/components/Header'
 import { TextLink } from '@/design/components/TextLink'
 import type { Progress } from '@/progress/derive'
 import type { LessonState, Step } from '@/progress/next'

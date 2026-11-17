@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Icon } from '@/design/components/Glyph'
-import { ContinueLink } from '@/design/components/Board'
+import { ContinueLink } from '@/design/components/Header'
 import { Label } from '@/design/components/Label'
 import { Sheet, SheetLine } from '@/design/components/Sheet'
 import '@/pages/panels.css'

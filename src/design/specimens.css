@@ -393,11 +393,11 @@
 .es-spec__state-stage > .es-primary-button,
 .es-spec__state-stage > .es-rail,
 .es-spec__state-stage > .es-readout-strip,
-.es-spec__state-stage > .es-board {
+.es-spec__state-stage > .es-header {
   flex: 1;
 }
 
-.es-spec__state-stage > .es-board {
+.es-spec__state-stage > .es-header {
   border: 1px solid var(--es-edge);
 }
 

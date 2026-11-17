@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useParams } from 'react-router'
 import type { Claim, CompiledModule, IndexLesson, IndexModule, MapKc, MapLesson } from '@es/schema'
-import { ContinueLink } from '@/design/components/Board'
+import { ContinueLink } from '@/design/components/Header'
 import { Readout } from '@/design/components/Readout'
 import { TextLink } from '@/design/components/TextLink'
 import { useClaims, useDocumentTitle, useIndex } from '@/content/load'
