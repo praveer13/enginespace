@@ -416,6 +416,20 @@
   cursor: pointer;
 }
 
+/* The radio is invisible and fills its row, so that the row is its box: a pointer lands on it, and the middle of the focused control is the
+   control itself and not the drawn box beside it. */
+.es-bench-flaws__option > input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  clip: auto;
+  clip-path: none;
+  opacity: 0;
+  cursor: pointer;
+}
+
 .es-bench-flaws__option:last-child {
   border-bottom: 0;
 }
