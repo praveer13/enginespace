@@ -111,7 +111,7 @@ function Row({ row, ...draw }: DrawProps & { row: RowView }) {
   const shown = draw.scaffold && row.agreed !== null && row.alpha !== null
   const total = shown && row.agreed !== null ? row.agreed.reduce((a, b) => a + b, 0) : null
   return (
-    <section className="es-vf__row" aria-label={row.label} data-vf-row={row.index} data-kind={row.kind}>
+    <section className="es-vf__row" role="group" aria-label={row.label} data-vf-row={row.index} data-kind={row.kind}>
       <h3 className="es-vf__label">
         <span className="es-vf__label-name">{row.label}</span>
         <span className="es-vf__count" data-vf-alpha={row.index === 0 ? '' : undefined}>
@@ -143,7 +143,7 @@ function GammaBars({ run }: { run: VerifierRun }) {
   // How far the walk reaches at each position: the product of the acceptances up to it.
   const reaches = alphas.map((_, at) => alphas.slice(0, at + 1).reduce((product, alpha) => (product * alpha) / 1000, 1))
   return (
-    <section className="es-vf__row" aria-label="Draft positions" data-vf-gamma="" data-vf-row="0">
+    <section className="es-vf__row" role="group" aria-label="Draft positions" data-vf-gamma="" data-vf-row="0">
       <h3 className="es-vf__label">
         <span className="es-vf__label-name">Draft positions 1 to {gamma.max}</span>
         <span className="es-vf__count">{gamma.pick >= 1 ? `drafting ${gamma.pick}` : 'no draft length chosen'}</span>

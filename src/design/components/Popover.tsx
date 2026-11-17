@@ -125,7 +125,8 @@ export function Popover({
     if (!open || !panel) return
     panel.style.removeProperty('--pop-shift')
     const overrun = panel.getBoundingClientRect().right - (document.documentElement.clientWidth - 16)
-    if (overrun > 0) panel.style.setProperty('--pop-shift', `${-Math.ceil(overrun)}px`)
+    // The exact overrun, not a whole pixel more: a sheet that stops a fraction short of the gutter leaves a sliver of the control under it, which is a target of its own.
+    if (overrun > 0) panel.style.setProperty('--pop-shift', `${-overrun}px`)
   }, [open])
 
   const Wrap = inline ? 'span' : 'div'

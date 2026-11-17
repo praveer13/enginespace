@@ -131,6 +131,49 @@ test.describe('the front page\'s game under reduced motion', () => {
   })
 })
 
+/*
+ * R-T48: under reduced motion every duration token is 0, and a state that a learner reaches by acting (a popover, a disclosure, a lesson's
+ * run played to its debrief, a game's first-run strip stepped through) is drawn at its end: nothing is styled to move and nothing runs.
+ */
+test.describe('R-T48: states reached by acting are drawn at their end', () => {
+  test('the duration tokens are 0, and a popover and a disclosure open with nothing moving', async ({ page, context }) => {
+    await withSettings(context, { view3d: false })
+    await open(page, '/m/tr1/l2-nano-vllm-in-one-sitting')
+    await quiet(page)
+    const tokens = await page.evaluate(() => {
+      const style = getComputedStyle(document.documentElement)
+      return ['quick', 'bell', 'feed', 'settle'].map((name) => style.getPropertyValue(`--es-dur-${name}`).trim())
+    })
+    expect(tokens, 'the duration tokens').toEqual(['0ms', '0ms', '0ms', '0ms'])
+    const mark = page.locator('.es-lesson .es-claimmark > a.es-pop__trigger').first()
+    await mark.focus()
+    await page.keyboard.press('Enter')
+    await expect(mark).toHaveAttribute('aria-expanded', 'true')
+    const summary = page.locator('.es-lesson details > summary').first()
+    if ((await summary.count()) > 0) {
+      await summary.focus()
+      await page.keyboard.press('Enter')
+    }
+    const found = await movingThings(page)
+    expect(found.styled, 'elements that are styled to move').toEqual([])
+    expect(found.running, 'animations that are running').toEqual([])
+  })
+
+  test("a game's first-run strip, stepped through to its end, and the page it leaves, hold nothing that moves", async ({ page, context }) => {
+    await withSettings(context, { view3d: false })
+    await open(page, '/play/pool')
+    await quiet(page)
+    for (let press = 0; press < 8; press++) {
+      const next = page.getByRole('button', { name: /^Next\b/ }).first()
+      if ((await next.count()) === 0 || !(await next.isVisible())) break
+      await next.click()
+    }
+    const found = await movingThings(page)
+    expect(found.styled, 'elements that are styled to move').toEqual([])
+    expect(found.running, 'animations that are running').toEqual([])
+  })
+})
+
 test.describe('the checks can fail', () => {
   test('a page that animates and transitions is found by the scan, and one that asks for frames is counted', async ({ page }) => {
     await page.evaluate(installCounter)

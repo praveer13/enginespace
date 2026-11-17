@@ -362,3 +362,31 @@ Rows that need watching: `/play/broken-bench` has 1,070 B under its gate and the
 | R-T50 | Not started: the finish review, DESIGN.md and the cold-test pack |
 
 The fixes that merged between tasks (`wr/fix-build-b`, `wr/fix-build-b-2`, `wr/fix-stage1-walk`, `wr/fix-stage3-specs`, `wr/fix-stage4-specs`, `wr/fix-look-decision` and `wr/fix-final-walk`) are in `git log wave-r`.
+
+## 5. The accessibility sweep (R-T48)
+
+R-T48 holds the redesigned surfaces to WCAG 2.2 AA with checks that run on every pull request (e2e/a11y.spec.ts, e2e/reduced-motion.spec.ts), and fixes what they found.
+
+**What is held, and where.**
+
+- **Axe at 320, 360 and 1280 px** on every route the wave touched (the pull-request routes, the W1 and W2 pages, the level pages). The 3D pass is audited at 360 and 1280. A lesson's and a game's page now also fail on a `landmark-unique` finding (before, a game's page alone).
+- **A Tab walk of a lesson of each opener** (A: TR5a lesson 1, B: TR1 lesson 1, C: TR2 lesson 7) at 1440 x 900 and 390 x 844: a ring at every stop, and none covered or off screen, with the strip and the foot bar present (the test fails if nothing is sticky).
+- **Claim marks and popovers:** every mark is a link to its entry, a tag is not a tab stop, no popover opens on focus alone, Escape closes one and hands focus back (a lesson's claim mark, a game's Parts). Axe also runs with each game's Parts sheet open at 320, 360 and 1280.
+- **The focus ring** is ink against the paper halo at each of the first thirty stops of fifteen surfaces, and is never a warm colour or the amber.
+- **Targets** (WCAG 2.5.8, the inline and the spacing exceptions as the criterion words them) at 360 and 1280 on fifteen surfaces, and a primary action of 44 px or more.
+- **Short viewport:** at 844 x 390 and 320 x 256 nothing is sticky or fixed, the page does not scroll sideways, no text is cut off and every heading is still there (the desk's dock, a second view of the run, is the one heading left out).
+- **Forced colours:** every control keeps an edge or an underline, and the ring is the system's (3 px, no halo). **More contrast:** axe finds no serious or critical violation under `prefers-contrast: more`, and `bun scripts/verify.ts tokens` holds the variant's pairs (passes).
+- **Reduced motion:** the four duration tokens are 0 ms, and a popover, a disclosure and a game's first-run strip stepped through leave nothing running.
+- Kept where earlier tasks wrote them: every level of every game by keys (walks.spec.ts), a lesson's sticky strip and foot bar (lesson-games.spec.ts), Review (today.spec.ts), reflow and the sticky rule per route (screens.spec.ts).
+
+**What the sweep found, and fixed.**
+
+1. Axe `landmark-unique` on lessons: a lesson with several guesses named each `Your guess for this run` as a region (e2e/a11y.spec.ts found it on TR1 lesson 5 and TR6 lesson 2); the Verifier's rows named a region each, and Request path's swimlane region appeared in the instrument and in the dock under one name. The guess and the Verifier's rows are `role="group"` now (the name stays); the dock's swimlane is named "Swimlane in the dock" (src/content/render/Predict.tsx, src/games/verifier/View2D.tsx, src/games/engine-floor/View2D.tsx: files of R-T09, R-T31 and R-T29).
+2. Axe `target-size` at 360 with a game's Parts sheet open: the 320 px sheet left 8 px of the frame's "more" control showing beside it. At 24 rem of width or less the sheet now spans gutter to gutter, and the sheet's slide back onto the screen is exact, not a pixel more (src/design/parts.css, src/design/components/Popover.tsx: R-T05's files).
+3. The focus walk reported a link that wraps over two lines as covered when a claim mark's 44 px box lay over its middle. It now judges each line of the link (e2e/support/front.ts, R-T07's helper).
+4. The Games index's level links were 23 px high; 24 now (src/games/specials/specials.css: R-T23's).
+
+**Left for W3-T11 and W3-T12.**
+
+- Standalone text links shorter than 24 px that pass 2.5.8 only by spacing: the breadcrumb ("Course", "Games", 16 to 18 px), the lesson's Sources list and a module's cites (17 px lines), the front page's "What this model leaves out" and the module links under the pitch, and the Course's `T5.L7`-style cites. Giving them a 24 px line is a change to the lesson and page templates' line height, and a look at each.
+- `src/design/base.css` and `components.css` needed no change: the forced-colours, more-contrast and ring rules held under the new checks.

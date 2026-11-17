@@ -462,6 +462,15 @@ button.es-parts__row:disabled .es-parts__sentence {
   width: min(36rem, calc(100vw - 2rem));
 }
 
+/* On a narrow phone the sheet takes the page's whole gutter-to-gutter width, so that it covers a control beside its trigger or leaves 24 px or
+   more of it (WCAG 2.5.8: a sliver of a button that a sheet half covers is a target of its own, and too small). */
+@media (max-width: 24rem) {
+  .es-pop__panel,
+  .es-pop__panel[data-width='wide'] {
+    width: calc(100vw - 2rem);
+  }
+}
+
 @keyframes es-pop-in {
   from {
     opacity: 0;
