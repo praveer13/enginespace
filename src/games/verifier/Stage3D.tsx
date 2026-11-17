@@ -5,14 +5,14 @@ import type { Shot } from './scene-shots'
 import type { VerifierRun } from './types'
 
 /*
- * The rejection sampler's 3D view, as it was before the frame: a Stage that paints the diagram first and keeps it as its fallback (A§6.7),
+ * The rejection sampler's 3D view, the skylines in a Stage that paints the diagram first and keeps it as its fallback (A§6.7),
  * with the scene behind it. The diagram is the default view (REDESIGN §2.9), so this module, and the Stage and the scene's tokens with it,
  * load only when the learner switches to 3D: the route that opens on the diagram carries none of it.
  *
- * The box is about 16:10, and on a phone a little taller than wide, the same shape from 320 to 479 px, so the portrait shot keeps the whole
- * round in it, at least 300 px and at most 60% of the screen's height [estimated].
+ * The box is about 16:10 and on a phone a little taller than wide, in a lesson's column; on the game's page it is the frame's view (verifier.css),
+ * so the skylines, the control and the readout share the first screen.
  */
-const STAGE_BOX = 'h-[clamp(18rem,min(56svh,34vw),32rem)] max-[479px]:h-[clamp(18.75rem,112vw,60svh)]'
+const STAGE_BOX = 'es-vf-stage'
 
 export interface VerifierStageProps {
   run: VerifierRun

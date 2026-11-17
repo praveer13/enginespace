@@ -16,7 +16,7 @@
  *   cursors   the now cursor: a thin amber sheet, the one thing that glows;
  *   labels    every word and number, as DOM over the canvas (D-021).
  *
- * `morphModel` moves one model toward another by id, for a scene's one authored move: a mark in both slides, a mark only in the first
+ * `morphModel` moves one model toward another by id, for a scene's one authored move: a mark in both slides (and rises or falls, where its height or its foot differs), a mark only in the first
  * shrinks to nothing at its left edge, and a mark only in the second grows from its own.
  */
 import type { ColorRoleName } from '@/design/tokens'
@@ -110,7 +110,15 @@ function morphList<T extends { readonly id: string; readonly x0: number; readonl
   return out.filter((item) => item.x1 - item.x0 > 1e-3)
 }
 
-const blendBox = (p: FlatBox, q: FlatBox, t: number): FlatBox => ({ ...q, x0: lerp(p.x0, q.x0, t), x1: lerp(p.x1, q.x1, t), z0: lerp(p.z0, q.z0, t), z1: lerp(p.z1, q.z1, t) })
+const blendBox = (p: FlatBox, q: FlatBox, t: number): FlatBox => ({
+  ...q,
+  x0: lerp(p.x0, q.x0, t),
+  x1: lerp(p.x1, q.x1, t),
+  z0: lerp(p.z0, q.z0, t),
+  z1: lerp(p.z1, q.z1, t),
+  y0: lerp(p.y0 ?? 0, q.y0 ?? 0, t),
+  height: lerp(p.height, q.height, t),
+})
 
 /**
  * The model a share `t` of the way from `a` to `b` (0 is `a`, 1 is `b`), by id. Plates, rules and labels are the end's: the authored move

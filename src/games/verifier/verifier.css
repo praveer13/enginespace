@@ -724,54 +724,77 @@
 }
 
 /*
- * The 3D scene's print (Scene3D.tsx): the dishes' and the courses' names in marker on masking tape, and the dishes' counts on paper tags in
- * the printer's dots, all DOM over the canvas (D-021). The scene's box is a size container, so print scales with the pass and not with
- * the window, and never below the size ramp's smallest step, whatever the box.
+ * The 3D scene's print (Scene3D.tsx): every word and number on the plate, as DOM over the canvas (D-021), set as the 2D diagram sets them,
+ * so a row's name, a token's number and a bar's count read the same in either view. Every colour, face and size is a token role.
  */
-.es-vf-scene {
-  container-type: size;
+.es-vf-stage {
+  height: clamp(18rem, min(56svh, 34vw), 32rem);
+}
+
+@media (max-width: 29.9rem) {
+  .es-vf-stage {
+    height: clamp(18.75rem, 112vw, 60svh);
+  }
+}
+
+/* On the game's page the box is the frame's view, which fits the first screen beside the dock at desk widths and over the pinned dock on
+   a phone (src/games/kit/frame.css), so the skylines, the control and the readout share the viewport (P5). */
+@media (min-width: 64rem) {
+  .es-frame[data-placement='page'] [data-surface='3d']:has(> .es-vf-stage),
+  .es-frame[data-placement='page'] .es-vf-stage {
+    height: 100%;
+    min-height: 20rem;
+  }
+}
+
+@media (max-width: 63.999rem) and (min-height: 700px) {
+  .es-frame[data-placement='page'] .es-vf-stage {
+    height: max(9rem, calc(67svh - 19.5rem));
+  }
+}
+
+.es-vf3d {
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
 .es-vf-label {
-  line-height: 1;
+  color: var(--es-text-1);
+  font-family: var(--es-font-label);
+  font-size: var(--es-size-caption);
+  font-weight: var(--es-font-label-weight);
+  line-height: 1.2;
   text-align: center;
   white-space: nowrap;
 }
 
-/* Marker on masking tape: the design system's tape (.es-tape), torn off at the size of the print, every word on its own strip. */
-.es-vf-label.es-tape {
-  padding: 0.22em 0.65em 0.16em;
-  font-size: clamp(var(--es-size-micro), 1.8cqi, var(--es-size-caption));
-  line-height: 1.15;
+/* A draft position's name in the label column: it wraps inside the column and never runs over its first bar. */
+.es-label.es-vf-label--row {
+  max-width: 6.5rem;
+  text-align: left;
+  white-space: normal;
 }
 
-/* A dish's counts, the commis's plates and then the chef's, on one paper tag in the printer's dots. */
-.es-vf-label--count {
-  padding: 0.2em 0.35em 0.15em;
-  border: 1px solid var(--es-paper-rule);
+/* A token's number under its pair of bars, in the numbers' face. */
+.es-vf-label--tick {
+  color: var(--es-text-2);
+  font-family: var(--es-font-numeric);
+  font-size: var(--es-size-caption);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--es-font-numeric-weight);
+}
+
+/* A bar's count over it, on a slip of paper so that it reads on blue, green, yellow and red alike. */
+.es-vf-label--slab {
+  padding: 0 0.25rem;
   background-color: var(--es-paper);
-  box-shadow: var(--es-shadow-paper);
   color: var(--es-paper-ink);
   font-family: var(--es-font-numeric);
-  font-weight: var(--es-font-numeric-weight);
+  font-size: var(--es-size-micro);
   font-variant-numeric: tabular-nums;
-  font-size: clamp(var(--es-size-micro), 1.15cqi, var(--es-size-print));
+  font-weight: var(--es-font-numeric-weight);
 }
-
-/* In a box narrower than the camera's portrait width (camera-rig.ts, 480 px), the strip of the courses' names stands outside the box. */
-@container (max-width: 479.98px) {
-  .es-vf-label--row {
-    display: none;
-  }
-}
-
-/* At a small phone's width, six names side by side keep their size and give up some of their tape. */
-@container (max-width: 299.98px) {
-  .es-vf-label.es-tape {
-    padding-inline: 0.4em;
-  }
-}
-
 
 /* While the first run names the parts, the words the "token" disc marks leave room after them. */
 .es-frame:is([data-intro='parts'], [data-intro='look']) [data-vf-tokens] {
