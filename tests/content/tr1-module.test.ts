@@ -52,6 +52,7 @@ import {
 import { read, repo } from './support.ts'
 import {
   CLAIMS_FILE,
+  IN_TEMPLATE,
   PIN_OF,
   codeSpans,
   excerptsOf,
@@ -87,6 +88,13 @@ describe('check 1: TR1 compiles with no diagnostic of any kind', () => {
     // R-T12: the pacing warnings are the worklist of the lesson tasks R-T34 to R-T39, so they are allowed here until each lesson is edited.
     expect(mine.map((d) => `${d.file}:${d.line} ${d.severity} ${d.code}`)).toEqual([])
   })
+
+  test('a lesson in the template has no pacing warning either: its opener, its parts and its Test keep the authoring rules', () => {
+    const files: readonly string[] = lessons.filter(({ lesson }) => IN_TEMPLATE.has(lesson.id)).map(({ file }) => file)
+    expect(files.length).toBe(IN_TEMPLATE.size)
+    const paced = result.diagnostics.filter((d) => files.includes(d.file) && PACING_CODES.includes(d.code))
+    expect(paced.map((d) => `${d.file}:${d.line} ${d.code}`)).toEqual([])
+  })
 })
 
 describe('check 2: every lesson has a prediction, a game or an item, and an exit check', () => {
@@ -117,7 +125,11 @@ describe('check 2: every lesson has a prediction, a game or an item, and an exit
       // The exit check is the end of the lesson: nothing else follows it but the blocks it is made of.
       for (const block of exit.blocks) expect(['item', 'game']).toContain(block.type)
       const named = new Set(exit.prose.flatMap((flow) => flowInlines(flow).flatMap((node) => codeSpans([node]).map((span) => span.text))))
-      for (const kc of lesson.kcs) expect([lesson.id, kc, named.has(kc)]).toEqual([lesson.id, kc, true])
+      // A lesson in the template says what its Test asks in words, and the page names the skill from the KC's sentence: no id reaches the learner.
+      if (IN_TEMPLATE.has(lesson.id)) {
+        for (const kc of lesson.kcs) expect([lesson.id, kc, named.has(kc)]).toEqual([lesson.id, kc, false])
+        expect(exit.prose.some((flow) => /\bpasses\b/.test(flowInlines(flow).map((node) => inlineText([node])).join('')))).toBe(true)
+      } else for (const kc of lesson.kcs) expect([lesson.id, kc, named.has(kc)]).toEqual([lesson.id, kc, true])
     })
   }
 })
@@ -675,7 +687,7 @@ describe('the numbers that the lessons compute', () => {
   test('lesson 1: the five mechanisms are what the model\'s nine come to, and lesson 1 names the nine', () => {
     expect(new Set(Object.values(MECHANISM_WORD))).toEqual(new Set(['compute', 'queue', 'IPC', 'copy', 'sync']))
     expect(Object.keys(MECHANISM_WORD).length).toBe(9)
-    mentions('tr1.l1', 'nine', 'The game\'s tiles use nine words for these five')
+    mentions('tr1.l1', 'nine', 'The stage list uses nine words for these five')
   })
 })
 
