@@ -35,6 +35,12 @@ body: A CPU runs ahead on a guess about a branch, checks the guess when the bran
 breaks: The CPU redoes its work after a wrong guess. A verify step redoes nothing, because the target's pass over the drafts was the verification, and the token that replaces the first rejected draft is drawn from the logits of that same pass. A wrong guess costs the positions after it and nothing else.
 :::
 
+:::item
+family: tr6.verify-shape
+level: 0
+count: 1
+:::
+
 ## What the step costs the scheduler
 
 The scheduler knows nothing about acceptance. It sees a request that wants `1 + k` tokens and counts them against the step's token budget, cutting the drafts to what is left of it. So speculation spends the budget that TR2's chunked prefill shares. A step of 64 decodes [estimated] with 4 drafts each [estimated] presents 320 tokens [derived] where plain decoding presents 64 [derived], and each token of the difference is a token that a prefill chunk did not get.
@@ -43,19 +49,27 @@ The scheduler knows nothing about acceptance. It sees a request that wants `1 + 
 
 Every decode row now has the same length, `1 + k`, and that sameness is the point. MRV2 calls a batch a uniform decode when every request has the same query length and none is still prefilling. {{claim:vllm.cudagraph.mrv2-uniform-count}} MRV1's dispatcher takes a decode row's query length to be one plus the number of speculative tokens. {{claim:vllm.cudagraph.mrv1-query-len}} A uniform decode is what a captured full decode graph replays, at the smallest captured size that holds it. Five requests [estimated] with three drafts each [estimated] present 20 tokens [derived]. vLLM captures graphs at {{claim:vllm.cudagraph.capture-sizes}}, so the step replays the graph captured at 24 tokens [derived] and computes 4 tokens [derived] that nobody asked for. {{claim:vllm.cudagraph.padding}}
 
+## What breaks a uniform batch
+
 One row of another length spoils it, and there are three ways to get one.
 
 - **A new request.** A request that has just joined the running set has one token to schedule, not `1 + k`. The scheduler pads it up to `1 + num_speculative_tokens` so that the batch stays uniform, and when the budget is too short for the padding it leaves the request out of the step and does not schedule it unpadded. {{claim:vllm.scheduler.spec-pad}}
 - **A prefill chunk.** A chunk of a prompt is a row of its own length, and a batch that holds one is not a uniform decode. It takes a piecewise graph, and the full decode graph stays idle.
 - **The backend.** With a decode query length above one, a mode that captures full decode graphs needs an attention backend whose support is at least UNIFORM_BATCH. Below that, vLLM drops the mode to PIECEWISE if attention is split out of the graph, and to NONE if it is not. {{claim:vllm.cudagraph.downgrade-spec-decode}}
 
-The graph that serves a step is therefore a fact about three numbers and one backend: the tokens the step presents, the largest size that was captured, whether any row differs in length, and what the backend can replay. The exit ticket asks you to read a batch that way.
+The graph that serves a step is therefore a fact about three numbers and one backend: the tokens the step presents, the largest size that was captured, whether any row differs in length, and what the backend can replay. The questions ask you to read a batch that way.
+
+:::item
+family: tr6.verify-shape
+level: 1
+count: 1
+:::
 
 ## How many tokens a round buys
 
 The first number to know about a speculative round is how many tokens it emits on average. Give every position the same chance α of being accepted, independently of the others, and let the draft have γ tokens. The round emits one token for sure, a second if the first draft is accepted, a third if the first two are, and so on up to the bonus. The expected number is the sum of those chances, `1 + α + α² + … + α^γ`, which the paper writes as a closed form. {{claim:spec.paper.expected-tokens}}
 
-Commit to one number before you read on.
+Commit to one number, then read on.
 
 :::predict
 id: tr6.l1.p1
@@ -65,7 +79,7 @@ reveal: at-commit
 kcs: [tr6.acceptance-length]
 :::
 
-Then play The Tasting's `chain` level on its practice seed. It draws a different acceptance at each position of the run, which is nearer to a real engine than one α, and it asks the same question.
+Then run the `chain` level on its practice seed. It draws a different acceptance at each position of the run, which is nearer to a real engine than one α, and it asks the same question.
 
 :::game
 id: verifier
@@ -94,7 +108,7 @@ Two things stand out. The sum has a ceiling, 1 ÷ (1 − α) tokens [derived], h
 | 7 | 3.14 | 1.7 | 1.85 |
 | 8 | 3.20 | 1.8 | 1.78 |
 
-The best draft here is four tokens, and a fifth costs more than it brings: it adds 0.17 tokens [derived] and 0.1 of a target step [derived]. The speedup is rounded to two places, with halves rounded up. Real acceptance also falls along the run, because a later draft is judged only if the ones before it were kept, which moves the best γ down. The Tasting's `gamma` level is that problem on an acceptance curve and a cost it draws for you, and its answer is the length with the largest speedup.
+The best draft here is four tokens, and a fifth costs more than it brings: it adds 0.17 tokens [derived] and 0.1 of a target step [derived]. The speedup is rounded to two places, with halves rounded up. Real acceptance also falls along the run, because a later draft is judged only if the ones before it were kept, which moves the best γ down. The `gamma` level is that problem on an acceptance curve and a cost it draws for you, and its answer is the length with the largest speedup.
 
 :::card
 kind: warning
@@ -107,15 +121,9 @@ kind: notional-machine
 id: spec
 :::
 
-## What to carry
-
-- A speculative step drafts `k` tokens, verifies `1 + k` positions for every request in one forward, and emits the accepted drafts and one more token.
-- Because every decode row presents `1 + k` tokens, the batch is a uniform decode, and a full graph can serve it. A prefill chunk, a request with fewer tokens, a backend that replays only single-token decodes or a step larger than the largest captured size each take that away.
-- With one acceptance α, a round emits `1 + α + … + α^γ` tokens, the last draft adds α^γ of them, and the best draft length is where that stops paying for the draft.
-
 ## Exit check
 
-This lesson tests two skills: reading what one speculative step computes and emits, and which graph serves it (`tr6.verify-shape`), and working out the tokens a round emits and where a longer draft stops paying (`tr6.acceptance-length`). The ticket is three items on fresh seeds, drawn from the positions a step computes, the tokens it emits and the graph that serves it, and it is passed with at least two right (ASSESSMENT §4.2). The graded `chain` and `gamma` levels of The Tasting earn `tr6.acceptance-length` on their own page, with the other graded levels.
+This lesson tests two skills: reading what one speculative step computes and emits, and which graph serves it (`tr6.verify-shape`), and working out the tokens a round emits and where a longer draft stops paying (`tr6.acceptance-length`). The question set is three items on fresh seeds, drawn from the positions a step computes, the tokens it emits and the graph that serves it, and it is passed with at least two right. The graded `chain` and `gamma` levels of the Rejection sampler earn `tr6.acceptance-length` on the game's own page, with the other graded levels.
 
 :::item
 family: tr6.verify-shape

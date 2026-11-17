@@ -1,14 +1,18 @@
 # The rejection sampler, exactly
 
-_Speculation and structure · lesson `tr6.l2` · review · about 50 minutes [estimated]_
+_Speculation and structure · lesson `tr6.l2` · review · about 70 minutes [estimated]_
 
 Builds on kernelspace: `ks:T5.L8`, `ks:T6.L6`, `ks:t5.speculative-decoding`.
 
 Knowledge components: `tr6.exact-acceptance`, `tr6.residual-recovery`.
 
-The last lesson counted tokens. This one is about which tokens. Speculative decoding is worth having only if it is exact: whatever the proposer guessed, the tokens that come out must be distributed as the target's own. The rule that makes it so is short enough to hold in your head and easy to get almost right. This lesson states it, proves it on a table small enough to read, shows what each way of getting it almost right puts out, and then reads how the two engines write it.
+The target model has a distribution p over the next token, and the draft model has q. The sampler keeps a drafted token with some chance and replaces it otherwise, and what comes out must be distributed exactly as p. Draw rounds on a pair and find how often the sampler keeps the draft.
+
+> **Play.** The game `verifier`, level `overlap`, in `practice` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.
 
 ## The rule
+
+Speculative decoding is worth having only if it is exact: whatever the proposer guessed, the tokens that come out are distributed as the target's own. The rule that makes it so is short enough to hold in your head and easy to get almost right. The parts below state it, prove it on a table small enough to read, show what each way of getting it almost right puts out, and read how the two engines write it.
 
 Call the target's distribution at a position p and the draft's q, both over the same tokens. The proposer drew a token x from q. The sampler then does three things.
 
@@ -16,15 +20,11 @@ Call the target's distribution at a position p and the draft's q, both over the 
 2. **Recover** if x is rejected. Stop the round there, and draw the replacement from the residual: the target's probability less the draft's, where that is positive, divided by its total. It is written (p − q)⁺ and normalised.
 3. **Bonus** if every draft was accepted. Draw one more token from the target alone.
 
-The paper says it in one sentence, and says the output is distributed as p. **min(1, p/q), then norm(max(0, p - q))** [measured] In The Tasting the commis plates the drafts and the chef is the target, which is why the game's verbs are keeping a plate and re-plating from what the commis under-plates. Commit to one number before you read the proof.
+The paper says it in one sentence, and says the output is distributed as p. **min(1, p/q), then norm(max(0, p - q))** [measured] Commit to one number before you read the proof.
 
 > **Predict `tr6.l2.p1`.** The target's distribution over three tokens is 0.6, 0.3 and 0.1 [estimated], and the draft's is 0.2, 0.3 and 0.5 [estimated]. The proposer draws a token from its own distribution, and the sampler accepts or rejects it by the rule above. What is the probability that it accepts?
 >
 > The learner commits to a number in `probability`, graded within a relative tolerance of `0.02` [estimated] before the reveal. Ask them to commit to an answer and say why before you discuss it.
-
-Play The Tasting's `overlap` level on its practice seed, which asks the same question for a pair it draws.
-
-> **Play.** The game `verifier`, level `overlap`, in `practice` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.
 
 ## Why it is exact
 
@@ -49,18 +49,38 @@ Here is what the same pair puts out under the exact rule and under six rules tha
 | Rule | `a` [derived] | `b` [derived] | `c` [derived] | Distance from p [derived] |
 |---|---|---|---|---|
 | The exact rule | 0.500 | 0.300 | 0.200 | 0.000 |
-| Re-plate from p | 0.350 | 0.390 | 0.260 | 0.150 |
-| Re-plate from q | 0.260 | 0.450 | 0.290 | 0.240 |
-| Re-plate from p with the rejected token taken out | 0.405 | 0.338 | 0.257 | 0.095 |
+| Resample from p | 0.350 | 0.390 | 0.260 | 0.150 |
+| Resample from q | 0.260 | 0.450 | 0.290 | 0.240 |
+| Resample from p with the rejected token taken out | 0.405 | 0.338 | 0.257 | 0.095 |
 | Walk the residual one token along | 0.200 | 0.600 | 0.200 | 0.300 |
 | Accept when p > q, with no coin | 1.000 | 0.000 | 0.000 | 0.500 |
 | Accept every draft | 0.200 | 0.500 | 0.300 | 0.300 |
 
-The first of them is the one that looks most natural. Re-plating from p feels right, since the target is the distribution you want. But the kept drafts have already served the target its share min(p, q) of each token, so a replacement drawn from all of p serves that share a second time, and `b`, which the kept drafts already served in full, comes out too often. The residual is the target less what has been served, and nothing else is.
+The first of them is the one that looks most natural. Resampling from p feels right, since the target is the distribution you want. But the kept drafts have already supplied each token's share min(p, q), so a replacement drawn from all of p counts that share a second time, and `b`, which the kept drafts already supplied in full, comes out too often. The residual is the target less what the kept drafts supplied, and nothing else is.
+
+Set the residual yourself. The `exact` level, on its practice pair, shows the output's distance from p as you move the weights, and the graded run at the end of this lesson hides it.
+
+> **Play.** The game `verifier`, level `exact`, in `practice` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.
 
 > **A fast path with a spillover.** A service puts a fast path in front of a slow one. For each kind of request the fast path takes up to its capacity, and the demand beyond it spills over to the slow path. The service serves exactly the demand if the slow path takes the spillover alone. The accept step is the fast path, serving min(p, q) of each token, and the residual is the spillover, the excess of demand over capacity.
 >
 > Where it breaks: A service knows its demand and its capacity as counts and routes each request. Here both are probabilities, and the fast path does not know the demand. It proposes a token from q, and a coin cuts the proposals down to p. What carries over is the accounting. Whatever the fast path under-serves the slow path serves, and nothing more.
+
+## The residual, and the drafts with no q
+
+The recovery has two forms in vLLM, and they are one rule. When the draft's probabilities are in hand, MRV2 draws from the residual r(x), the target's probability less the draft's where that is positive, **r(x) = max(p(x) - q(x), 0)** [measured] and MRV1 draws from the same excess without dividing by its sum, because it takes an argmax over the excess scaled by random numbers, and a scale does not move an argmax. **max(target_prob - draft_prob, 0)** [measured]
+
+Not every proposer has probabilities. An n-gram lookup names a token and no distribution, and MRV1's sampler takes the draft's probabilities as optional, with a docstring that says they are not provided for n-gram speculation. **draft_probs can be None** [measured] Without them the engine takes the draft's probability of the token to be one, **draft_prob = 1** [measured] so q is one-hot on the drafted token. The accept test becomes p(x) against the random draw, and the residual becomes the target with the rejected token removed. **the target with the draft token masked out** [measured] MRV2 says the same in a comment. **p with the rejected token zeroed** [measured] Put a one-hot q into the proof above and it still holds: a draft is kept with probability p(x), and the rejected ones are replaced from p without x.
+
+That is also what a draft model gets by default. vLLM's `draft_sample_method` is `greedy`, in which the draft always picks its argmax token and its probabilities are treated as one-hot, and only the `probabilistic` setting keeps the draft's distribution for the ratio test, at the cost of GPU memory. **greedy** [measured] The one-hot q is not an approximation there. A draft that always picks its argmax draws its token from a distribution that is one-hot, whatever its softmax looks like, and the softmax is not what it sampled from.
+
+At temperature zero the target's distribution is one-hot on its argmax, so `min(1, p ÷ q)` is one for the draft that equals the argmax and zero for any other: a draft is accepted if and only if it is the target's argmax. **accept if and only if the draft is the target's argmax** [measured] And before it verifies anything, vLLM runs the target's logits through temperature, top-k and top-p, **temperature, top-k and top-p on the target logits** [measured] so p in all of the above is the processed distribution, and exact means exact against what plain decoding would sample after those constraints.
+
+The `greedy-ngram` level deals this case: a draft with one drafted token and no probabilities. At temperature zero the target always sends back its most likely token, and then at full temperature you set the residual that keeps the output exactly p.
+
+> **Play.** The game `verifier`, level `greedy-ngram`, in `practice` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.
+
+> **Exactness belongs to the pair of rules.** The right recovery depends on the accept rule that goes with it. With the accept step above it is the residual. A residual behind an accept step that skips the random draw is biased, and so is an exact accept step with a recovery from p. Other pairs of rules are exact too, and they keep fewer drafts. The `exact` level fixes the accept rule and asks for the recovery, and the lab's bestiary breaks one half at a time.
 
 ## In integers, with a coin
 
@@ -71,34 +91,16 @@ The engines write the same test in floats, and each writes it its own way.
 | Runner | Keeps x when | The coin |
 |---|---|---|
 | MRV1, the legacy runner | the draft's probability of x is above zero and p ÷ q is at least the coin **target_prob / draft_prob >= uniform_prob** [measured] | a float64 between zero and one, because its authors saw that a float32 could be exactly zero **float64** [measured] |
-| MRV2, the default | p is greater than the coin times q, in log space **p(x) > u * q(x)** [measured] | drawn with `includes_zero=False` **includes_zero=False** [measured], which raises a draw to a floor **u = max(u, a minimum)** [measured] |
+| MRV2, the default | p is greater than the coin times q, in log space **p(x) > u * q(x)** [measured] | drawn with `includes_zero=False` **includes_zero=False** [measured], which lifts any draw below a minimum up to that minimum **u = max(u, a minimum)** [measured] |
 | The course | `u < p(x)` | an integer, below q(x) |
 
 A comparison that includes its boundary, and a coin that can be exactly zero, keep a token that the target forbids: `p(x) = 0`, `u = 0`, and zero over q is at least zero. MRV1's authors saw the risk and moved to float64, which makes it negligible and does not make it impossible. MRV2 compares strictly and keeps the coin off zero. One engine's sampler shipped with a boundary of this kind, and the next lesson reads it.
 
-## The residual, and the drafts with no q
-
-The recovery has two forms in vLLM, and they are one rule. When the draft's probabilities are in hand, MRV2 draws from the residual r(x), the target's probability less the draft's where that is positive, **r(x) = max(p(x) - q(x), 0)** [measured] and MRV1 draws from the same excess without dividing by its sum, because it takes an argmax over the excess scaled by random numbers, and a scale does not move an argmax. **max(target_prob - draft_prob, 0)** [measured]
-
-Not every proposer has probabilities. An n-gram lookup names a token and no distribution, and MRV1's sampler takes the draft's probabilities as optional, with a docstring that says they are not provided for n-gram speculation. **draft_probs can be None** [measured] Without them the engine takes the draft's probability of the token to be one, **draft_prob = 1** [measured] so q is one-hot on the drafted token. The accept test becomes p(x) against the coin, and the residual becomes the target with the rejected token removed. **the target with the draft token masked out** [measured] MRV2 says the same in a comment. **p with the rejected token zeroed** [measured] Put a one-hot q into the proof above and it still holds: a draft is kept with probability p(x), and the rejected ones are replaced from p without x.
-
-That is also what a draft model gets by default. vLLM's `draft_sample_method` is `greedy`, in which the draft always picks its argmax token and its probabilities are treated as one-hot, and only the `probabilistic` setting keeps the draft's distribution for the ratio test, at the cost of GPU memory. **greedy** [measured] The one-hot q is not an approximation there. A draft that always picks its argmax draws its token from a distribution that is one-hot, whatever its softmax looks like, and the softmax is not what it sampled from.
-
-At temperature zero the target's distribution is one-hot on its argmax, so `min(1, p ÷ q)` is one for the draft that equals the argmax and zero for any other: a draft is accepted if and only if it is the target's argmax. **accept if and only if the draft is the target's argmax** [measured] And before it verifies anything, vLLM runs the target's logits through temperature, top-k and top-p, **temperature, top-k and top-p on the target logits** [measured] so p in all of the above is the processed distribution, and exact means exact against what plain decoding would sample after those constraints.
-
-> **Exactness belongs to the pair of rules.** The right recovery depends on the accept rule that goes with it. With the accept step above it is the residual. A residual behind an accept step that skips the coin is biased, and so is an exact accept step with a recovery from p. Other pairs of rules are exact too, and they keep fewer drafts. The Tasting's exact level fixes the accept rule and asks for the recovery, and the lab's bestiary breaks one half at a time.
-
 > **Card.** The notional-machine card `spec`.
-
-## What to carry
-
-- A draft x from q is kept with probability `min(1, p ÷ q)`. The chance that a draft is kept is `α = Σ min(p, q)`, and the chance of a rejection is `1 − α`.
-- A rejected draft is replaced from the residual, the target less the draft where positive, normalised. The residual's total is the chance of a rejection, which is why the output is p exactly.
-- With no draft probabilities, as with an n-gram or a greedy draft, q is one-hot on the drafted token. A draft is kept with probability p(x), and a rejected one is replaced from p without x.
 
 ## Exit check
 
-This lesson tests two skills: computing the chance that a drafted token is accepted, and saying why the rule leaves the output exactly the target's (`tr6.exact-acceptance`), and drawing the replacement for a rejected token from the excess of p over q, and saying what any other choice does (`tr6.residual-recovery`). The graded `exact` level draws a fresh pair of distributions, hides the live meter and takes one submission. You pass it when what goes out is exactly the target's, on three fresh pairs [estimated] (ASSESSMENT §4.3). The lab, `rejection-sampler`, is the same skill in Rust, and its checks `accept`, `residual` and `pick` are this lesson's rule in whole numbers.
+This lesson tests two skills: computing the chance that a drafted token is accepted, and saying why the rule leaves the output exactly the target's (`tr6.exact-acceptance`), and drawing the replacement for a rejected token from the excess of p over q, and saying what any other choice does (`tr6.residual-recovery`). The graded `exact` level draws a fresh pair of distributions, hides the live meter and takes one submission. You pass it when what goes out is exactly the target's, on three fresh pairs [estimated]. The lab, `rejection-sampler`, is the same skill in Rust, and its checks `accept`, `residual` and `pick` are this lesson's rule in whole numbers.
 
 > **Play.** The game `verifier`, level `exact`, in `graded` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.
 

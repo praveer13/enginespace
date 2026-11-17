@@ -46,8 +46,8 @@ export const OPENERS: readonly OpenerRow[] = [
   { lesson: 'tr5a.l4', opener: 'B', first: ['play:pool/adapters'], graded: ['play:pool/adapters', 'play:pool/manager'] },
   // TR6, the rejection sampler
   { lesson: 'tr6.l1', opener: 'C', first: ['play:verifier/chain'], graded: [] },
-  { lesson: 'tr6.l2', opener: 'A', first: ['play:verifier/overlap'], graded: ['play:verifier/exact'], waiting: 'R-T38' },
-  { lesson: 'tr6.l3', opener: 'B', first: ['play:verifier/mutants'], graded: [], waiting: 'R-T38' },
+  { lesson: 'tr6.l2', opener: 'A', first: ['play:verifier/overlap'], graded: ['play:verifier/exact'] },
+  { lesson: 'tr6.l3', opener: 'B', first: ['play:verifier/mutants'], graded: [] },
   { lesson: 'tr6.l4', opener: 'C', first: ['play:verifier/greedy-ngram'], graded: [] },
   { lesson: 'tr6.l5', opener: 'C', first: ['play:loop/mask'], graded: [] },
   // TR8, the broken benchmark

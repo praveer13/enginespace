@@ -10,17 +10,11 @@ lanes: [B]
 games: [loop]
 ---
 
-Every step of an engine ends where a token is chosen, and the first four lessons did one thing to that choice: they verified it. This lesson does the other. A grammar forbids tokens, and the engine has to work out which, for each structured request, before the sampler can run. That work is the **mask**. It is CPU work on the engine's critical path, and the question an engine course owes it is where it falls in the step, and whether it hides under the GPU's forward. The grammar engine itself belongs to DP4. The first section recaps what you need of it, and the rest is TR6's.
+Every step of an engine ends where a token is chosen, and the first four lessons verified that choice. This lesson is about the other thing done to it. A grammar forbids tokens, and the engine has to work out which before the sampler can run. That work is the **mask**: CPU work on the engine's critical path. The grammar engine belongs to DP4, so the first part recaps what you need of it.
 
-## What the mask is, recapped from DP4
+## What the mask is, and its four phases
 
 A grammar mask answers one question: given what has been generated, which tokens of the vocabulary may come next? It is a token mask and not a string mask. A BPE token can contain several grammar terminals and several transitions in one model step, so the mask has to run a whole token's bytes through the parser from its current stack, and a check on the first character alone is wrong. {{claim:mask.kernelspace.token-mask}} The answer is a bitmask with one bit for each token of the vocabulary, and the sampler applies it to the logits so that a forbidden token cannot be drawn.
-
-XGrammar is one of the backends that vLLM can build masks with. {{claim:vllm.mask.backends}} It splits the vocabulary in two: the tokens whose validity does not depend on the parser's stack can be prechecked, and the context-dependent ones have to be interpreted at run time. {{claim:mask.paper.xgrammar-split}} So part of a row of the mask can be looked up and part has to be worked out, and how long a row takes is a property of the grammar and its state. The rest of the lesson treats it as one number, the grammar's weight per row. XGrammar's authors also co-designed the grammar engine with the inference engine so that the grammar computation overlaps with GPU executions, {{claim:mask.paper.xgrammar-overlap}} and that overlap is what this lesson times.
-
-Two facts about vLLM's side finish the recap. It takes five kinds of constraint: a choice among strings, a regex, a JSON schema, a context-free grammar and a structural tag. {{claim:vllm.mask.constraint-kinds}} And the backend matters to the output, because a different backend can change which tokens are allowed and so the generated text. {{claim:vllm.mask.backend-changes-tokens}} A benchmark or a bug report about structured output names its backend.
-
-## The four phases at the pin
 
 At v0.33.0 the mask has four phases in vLLM, and only two of them touch the step loop.
 
@@ -31,7 +25,19 @@ At v0.33.0 the mask has four phases in vLLM, and only two of them touch the step
 | apply | the GPU, in the sample step | The bitmask is applied to the logits in place, after the model has computed them and before the sampler runs. {{claim:vllm.mask.apply-in-place}} |
 | deferral | the scheduler and the engine's batch queue | Under async scheduling a step whose structured requests still have a token in flight is flagged `pending_structured_output_tokens`, {{claim:vllm.mask.pending-flag}} and its sampling waits until the previous step's output has been processed. {{claim:vllm.mask.deferred-sampling}} |
 
+:::item
+family: tr6.mask-phases
+level: 0
+count: 1
+:::
+
+## What the phases cost the step
+
 Compile is off the step loop altogether. It costs the request its time to first token and the GPU nothing. Apply is on the GPU, between the logits and the sampler, and the kernel that does it is the Kernels course's. Fill and deferral are the CPU's, they sit on the critical path of the loop, and they are what the rest of the lesson times.
+
+XGrammar is one of the backends that vLLM can build masks with. {{claim:vllm.mask.backends}} It splits the vocabulary in two: the tokens whose validity does not depend on the parser's stack can be prechecked, and the context-dependent ones have to be interpreted at run time. {{claim:mask.paper.xgrammar-split}} So part of a row of the mask can be looked up and part has to be worked out, and how long a row takes is a property of the grammar and its state. The rest of the lesson treats it as one number, the grammar's weight per row. XGrammar's authors also co-designed the grammar engine with the inference engine so that the grammar computation overlaps with GPU executions, {{claim:mask.paper.xgrammar-overlap}} and that overlap is what this lesson times.
+
+Two facts about vLLM's side finish the recap. It takes five kinds of constraint: a choice among strings, a regex, a JSON schema, a context-free grammar and a structural tag. {{claim:vllm.mask.constraint-kinds}} And the backend matters to the output, because a different backend can change which tokens are allowed and so the generated text. {{claim:vllm.mask.backend-changes-tokens}} A benchmark or a bug report about structured output names its backend.
 
 ## The mask-overlap timeline
 
@@ -55,7 +61,7 @@ reveal: at-commit
 kcs: [tr6.mask-overlap]
 :::
 
-Then play Service's `mask` level, the allergy card, on its practice seed. Before a course is chosen the expo strikes the dishes the table may not have, and the card is written during the fire. If it is not done when the fire ends, the line waits. The level asks whether the card fits inside the fire, and it runs the plain step.
+Then run the step loop's `mask` level on its practice seed. It draws a step's CPU lane and GPU lane with the grammar's bitmask on the CPU side. Before a token is chosen the CPU builds the bitmask, and it is built while the forward runs. If it is not done when the forward ends, the GPU waits. The level asks whether the fill fits inside the forward, and it runs the plain step.
 
 :::game
 id: loop
@@ -74,6 +80,12 @@ The course's step loop gives the gap for every case. Each cell is the GPU's idle
 Read each cell from the formulas. Overlapped and light is `100 + 60 + max(0, 240 − 500)` = 160 µs [derived], the same as with no grammar, so the card fits and costs the GPU nothing. Overlapped and heavy is `100 + 60 + (720 − 500)` = 380 µs [derived], and the 220 µs [derived] by which the fill outlasts the forward is the whole of what the mask adds. Serial adds the fill whole: 160 + 240 = 400 µs [derived] and 160 + 720 = 880 µs [derived]. Async scheduling with no grammar already idles for nothing, because the plan and the read hide under the forward, and with the light fill the chain of 400 µs [derived] still fits under it, so the gap stays 0 [derived]. The heavy chain is 880 µs [derived], and 880 − 500 = 380 µs [derived] is what does not fit.
 
 Look at the heavy column. Once the fill is longer than the forward, overlapped and async give the same gap, `P + R + M − F`, which is 380 µs [measured] in both. Async scheduling wins a bubble back from the plan and the read, and a fill that outlasts the forward takes it all out again.
+
+:::item
+family: tr6.mask-fits
+level: 0
+count: 1
+:::
 
 :::figure
 src: figures/tr6/l5-mask-timeline.svg
@@ -110,15 +122,9 @@ kind: notional-machine
 id: trace-room-steploop
 :::
 
-## What to carry
-
-- The mask has four phases at the pin. Compile is asynchronous and off the loop, fill is the CPU's after the forward launches, apply is on the GPU in the sampler, and deferral is what async scheduling does to a step whose structured requests still await a token.
-- The GPU's gap with a mask is `P + R + max(0, M − F)` when the fill overlaps the forward, `P + R + M` when it does not, and `max(0, P + R + M − F)` under async scheduling. The fill is `S × (1 + k) × c`, so drafts multiply it.
-- A fill that fits is free, and a fill that outlasts the forward costs the overhang. Under async scheduling the whole chain of plan, read and fill has to fit.
-
 ## Exit check
 
-This lesson tests two skills: naming the mask's four phases and where each runs (`tr6.mask-phases`), and predicting how long the GPU waits for a grammar mask, whether the fill hides or not (`tr6.mask-overlap`). The ticket is three items on fresh seeds, one on the phases and two on the gap, and it is passed with at least two right (ASSESSMENT §4.2). The two gap items are the course's graded task for the mask, `tr6.mask-fits`, which draws the model of Service's `mask` level on fresh numbers and holds an answer to ASSESSMENT's bar of within 10% [estimated] of the model's gap (§4.3).
+This lesson tests two skills: naming the mask's four phases and where each runs (`tr6.mask-phases`), and predicting how long the GPU waits for a grammar mask, whether the fill hides or not (`tr6.mask-overlap`). The question set is three items on fresh seeds, one on the phases and two on the gap, and it is passed with at least two right. The two gap items are the course's graded task for the mask, `tr6.mask-fits`, which draws the model of Service's `mask` level on fresh numbers and holds an answer to within 10% [estimated] of the model's gap.
 
 :::item
 family: tr6.mask-phases
