@@ -359,12 +359,14 @@ export type LevelNamer = (game: string, level: string) => string | undefined
 /**
  * Progress told back as one sentence (REDESIGN §2.4): what the learner did on their last day of work in the lesson last worked on.
  * "Last time: you ran KV page pool, One KV group (passed in practice) and tried 3 questions in TR5a lesson 1." Null with no lesson event.
- * It reads the events and stores nothing.
+ * It reads the events and the place last in view, and stores nothing.
  */
-export function lastTime(events: readonly LedgerEvent[], lessons: readonly MapLesson[], names: LevelNamer = () => undefined): string | null {
+export function lastTime(events: readonly LedgerEvent[], lessons: readonly MapLesson[], names: LevelNamer = () => undefined, bookmark: Bookmark | null = null): string | null {
   const index = indexLessons(lessons)
   const stand = standings(events, index)
-  const worked = lastWorked(events, index, stand, undefined)
+  // A question set several lessons list belongs to the lesson the learner was reading, as for the way on, and not to the earliest that is open.
+  const placed = bookmark === null ? undefined : lessons.find((lesson) => lesson.route === bookmark.route)
+  const worked = lastWorked(events, index, stand, placed)
   if (worked === null) return null
   const lesson = worked.lesson
   const own = (stand.get(lesson.id)?.events ?? []).slice().sort(byTime)

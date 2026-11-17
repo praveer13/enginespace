@@ -279,6 +279,40 @@ const floorNight = (id: (typeof WALKED)['engine-floor'][number]): Walker => asyn
   await walk.see()
 }
 
+/**
+ * The same level played with the pointer, as a first-time visitor does (R-T47's first-visit walk, which plays it once by the pointer and
+ * once by `floorNight`'s keys): the parts of the first run with Next, the prediction with a click on the count and on Commit, each stage of
+ * the path clicked in its tray, and the run. `hands` says how each control is pressed, so the walk is one script for both.
+ */
+export async function floorWithHands(
+  page: Page,
+  id: (typeof WALKED)['engine-floor'][number],
+  press: (target: Locator) => Promise<void>,
+  options: { intro?: boolean; onStage?: (laid: number) => Promise<void> } = {},
+): Promise<void> {
+  const level = floorLevel(id, practiceSeed('engine-floor', id))
+  const game = page.locator('[data-game="engine-floor"]')
+  if (options.intro !== false) {
+    const step = () => game.locator('.es-intro').first().getAttribute('data-intro', { timeout: 2_000 }).catch(() => null)
+    await game.locator(':is(.es-intro, [data-prediction])').first().waitFor()
+    for (let at = await step(), guard = 0; (at === 'parts' || at === 'look') && guard < 12; at = await step(), guard++) await press(game.locator('[data-intro-next]').first())
+  }
+  const n = floorGhost(level).prediction ?? 0
+  const count = page.getByRole('button', { name: `${n} ${n === 1 ? 'boundary' : 'boundaries'}` })
+  await press(count)
+  await expect(count).toHaveAttribute('aria-pressed', 'true')
+  await press(page.getByRole('button', { name: 'Commit the prediction' }))
+  for (const [at, stageId] of level.reference.entries()) {
+    await press(stageCard(page, stageId))
+    await expect(stageCard(page, stageId)).toHaveCount(0)
+    await options.onStage?.(at + 1)
+  }
+  await expect(game.locator('[data-floor-lanes] [data-lane-row]')).toHaveCount(level.reference.length)
+  await press(page.getByRole('button', { name: 'Run the path' }))
+  await expect(outcome(page)).toHaveText('The run is over. The result is in the dock.')
+  await expect(game.locator('[data-result] [data-result-heading]')).toHaveText(id === 'map' ? 'Passed' : 'Finished (practice)')
+}
+
 const FLOOR: Record<(typeof WALKED)['engine-floor'][number], Walker> = {
   nano: floorNight('nano'),
   'nano-tp': floorNight('nano-tp'),
@@ -397,7 +431,13 @@ async function take(page: Page, walk: Walk, action: PoolAction): Promise<void> {
   }
 }
 
-const poolNight = (level: PoolLevelId): Walker => async (page, walk) => {
+/** What a spec may do between the reference's actions of a pool level: before and after each (R-T47's keep-list reads the moments on the way). */
+export interface PoolHooks {
+  readonly before?: (action: PoolAction, at: number, page: Page) => Promise<void>
+  readonly after?: (action: PoolAction, at: number, page: Page) => Promise<void>
+}
+
+export const poolNightWith = (level: PoolLevelId, hooks: PoolHooks = {}): Walker => async (page, walk) => {
   const built = poolLevel(level, practiceSeed('pool', level))
   // A learner who has not met the parts gets the first run (R-T08): its Next, with the keys, walks the parts and the look, and the ask's
   // step puts focus in the guess's field. The game's own block finds it the same way inside a lesson.
@@ -415,7 +455,11 @@ const poolNight = (level: PoolLevelId): Walker => async (page, walk) => {
   await tabTo(walk, /^Commit$/, 3)
   await page.keyboard.press('Enter')
   await expect(liveLine(page)).not.toHaveText('')
-  for (const action of houseActions(built)) await take(page, walk, action)
+  for (const [at, action] of houseActions(built).entries()) {
+    await hooks.before?.(action, at, page)
+    await take(page, walk, action)
+    await hooks.after?.(action, at, page)
+  }
   // The instrument frame puts the result in the dock and focus on its verdict, which the grade gives: a graded level has a pass rule.
   await expect(outcome(page)).toHaveText('The run is over. The result is in the dock.')
   const verdict = page.locator('[data-result] [data-result-heading]')
@@ -423,6 +467,8 @@ const poolNight = (level: PoolLevelId): Walker => async (page, walk) => {
   await expect.poll(() => page.evaluate(() => document.activeElement?.hasAttribute('data-result-heading') ?? false)).toBe(true)
   await walk.see()
 }
+
+const poolNight = (level: PoolLevelId): Walker => poolNightWith(level)
 
 const POOL: Record<(typeof WALKED)['pool'][number], Walker> = {
   'one-group': poolNight('one-group'),

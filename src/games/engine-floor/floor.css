@@ -247,6 +247,13 @@
   font-weight: 400;
 }
 
+/* On a phone the label is on one line and the box is narrow: the dock's first step says the columns wait for the prediction, so the note goes. */
+@media (max-width: 40rem) {
+  .es-lanes__start-note {
+    display: none;
+  }
+}
+
 .es-lanes__rows {
   position: absolute;
   inset: 0;

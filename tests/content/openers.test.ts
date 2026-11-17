@@ -67,6 +67,10 @@ describe('the openers table of REDESIGN §2.5', () => {
     }
   })
 
+  test('no row is waiting on a task: wave R has edited every lesson to its row (R-T47)', () => {
+    expect(OPENERS.filter((row) => row.waiting !== undefined).map((row) => row.lesson)).toEqual([])
+  })
+
   for (const row of OPENERS) {
     if (row.waiting === undefined) test(`${row.lesson} is ${row.opener}${row.first === null ? '' : ` on ${row.first.join(', ') || 'no level before its Test'}`}`, () => holdsRow(row.lesson))
     else failing(`${row.lesson} is ${row.opener}: waiting on ${row.waiting}, which removes this mark`, () => holdsRow(row.lesson))

@@ -144,6 +144,10 @@ describe('the code that derives and shows progress', () => {
       expect(banned).toEqual(['@/settings/bookmark', '@/settings/store'])
       expect(/import \{ ([^}]+) \} from '@\/settings\/bookmark'/.exec(source)?.[1]).toBe('readPlace')
       expect(/import \{ ([^}]+) \} from '@\/settings\/store'/.exec(source)?.[1]).toBe('keepPointer')
+    } else if (file === 'src/progress/useProgress.ts') {
+      // The sentence that tells the last work back reads the place last in view, as the way on does, to say which lesson a shared question set was for.
+      expect(banned).toEqual(['@/settings/bookmark'])
+      expect(/import \{ ([^}]+) \} from '@\/settings\/bookmark'/.exec(source)?.[1]).toBe('readPlace')
     } else expect(banned).toEqual([])
   })
 

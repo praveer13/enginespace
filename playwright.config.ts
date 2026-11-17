@@ -53,7 +53,7 @@ const CI = Boolean(process.env.CI)
  * added belongs where its name sorts to: run the shards (`npx playwright test --project=smoke --shard=<i>/4`) and look at the four times
  * before it merges.
  */
-const SMOKE = ['a11y', 'keyboard-loop', 'network', 'reduced-motion', 'screenshots', 'walks'].map((name) => `**/${name}.spec.ts`)
+const SMOKE = ['a11y', 'first-visit', 'keep-list', 'keyboard-loop', 'network', 'reduced-motion', 'screenshots', 'screens', 'walks'].map((name) => `**/${name}.spec.ts`)
 /** W0-T20's lab profile: a measurement, which nightly.yml's lab-profile job runs on its own. */
 const LAB = '**/perf.spec.ts'
 

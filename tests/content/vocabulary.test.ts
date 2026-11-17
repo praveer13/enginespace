@@ -127,6 +127,12 @@ describe('the rule of P4: an opener level uses only terms its parts list or its 
     expect(mentions('The cost of preemption', 'preempt')).toBe(false)
   })
 
+  test('every game that a lesson opens on has a parts table, and none is waiting on a task (R-T47)', () => {
+    const opened = new Set(OPENERS.filter((one) => one.opener !== 'C').flatMap((one) => (one.first ?? []).map((ref) => /^play:([^/]+)\//.exec(ref)?.[1] ?? '')))
+    expect([...opened].filter((game) => PARTS[game] === undefined)).toEqual([])
+    expect(Object.entries(PARTS).filter(([, parts]) => parts.waiting !== undefined).map(([game]) => game)).toEqual([])
+  })
+
   for (const row of OPENERS.filter((one) => one.opener !== 'C')) {
     for (const ref of row.first ?? []) {
       const [, game, level] = /^play:([^/]+)\/(.+)$/.exec(ref) ?? []

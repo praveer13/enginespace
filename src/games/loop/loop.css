@@ -77,6 +77,12 @@
   list-style: none;
 }
 
+/* On a phone the chips are buttons, and where the track is wider than a very narrow box (320 px) the queue keeps to one row that scrolls inside
+   itself, so that no chip is cut. The dock draws its chips as marks, with nothing in them to focus, and keeps them clipped. */
+.es-lanes[data-size='phone'] .es-lanes__chips {
+  overflow: auto hidden;
+}
+
 .es-lanes[data-size='phone'] .es-lanes__chips,
 .es-lanes[data-size='dock'] .es-lanes__chips {
   gap: var(--es-space-1);

@@ -227,6 +227,21 @@ describe('lastTime', () => {
     expect(lastTime(events, COURSE, names)).toBe('Last time: you ran Step loop, CUDA graphs (passed in practice) and tried 3 questions in TR2 lesson 1.')
   })
 
+  test('a question set that two lessons list belongs to the lesson the learner was reading, as for the way on, and not to the earliest that is open (R-T47)', () => {
+    const shared = { family: 'x.shared', count: 3 }
+    const first = lesson('tr1.l1', 'l1-first', { test: { questions: [shared, { family: 'x.own', count: 3 }], graded: [] }, rev: REV(31) })
+    const second = lesson('tr1.l2', 'l2-second', { test: { questions: [shared], graded: [] }, rev: REV(32) })
+    const course = [first, second]
+    const events = passes('x.shared', 1)
+    // No place held: the set goes to the earliest lesson that is not done, as before.
+    expect(lastTime(events, course)).toBe('Last time: you passed 3 questions in TR1 lesson 1.')
+    // The learner was reading lesson 2 (it is done, and the first is not): the sentence names the lesson they were in.
+    const mark: Bookmark = { route: second.route, section: 'test', at: isoAt(2) }
+    expect(lastTime(events, course, undefined, mark)).toBe('Last time: you passed 3 questions in TR1 lesson 2.')
+    // A place that is not a lesson of the course changes nothing.
+    expect(lastTime(events, course, undefined, { route: '/m/tr9/l1', at: isoAt(2) })).toBe('Last time: you passed 3 questions in TR1 lesson 1.')
+  })
+
   test('says nothing with no lesson event, and never prints a ref or an id for a level it cannot name', () => {
     expect(lastTime([], COURSE)).toBeNull()
     expect(lastTime([made('review', 'review:tr2.bubble')], COURSE)).toBeNull()

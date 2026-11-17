@@ -138,3 +138,55 @@ test.describe('the 3D view of the front page', () => {
     expect(looksDrawn(await pixelStats(context, await page.screenshot()))).toBe(true)
   })
 })
+
+/*
+ * R-T47: the screens of the redesign (REDESIGN 5.2, "baselines exist for"), each at 1440 x 900 and at 390 x 844: the front page on a first
+ * visit and as a learner who has been here returns to it, TR5a lesson 1, TR1 lesson 1, KV page pool, Request path and Course. What is
+ * compared is the first screen, with the learner's "3D off" and reduced motion, every entrance finished and the faces in, at the same tolerance
+ * as the baselines above. A baseline that is blessed anew is blessed for an intended change and is listed in the task's report.
+ */
+const SCREENS = [
+  { width: 1440, height: 900 },
+  { width: 390, height: 844 },
+] as const
+
+/** What `es:next` and `es:intro` hold for a learner who has been here: the way on points into TR5a lesson 1, and the front page's parts were met. */
+const RETURNING = {
+  next: JSON.stringify({ href: '/m/tr5a/l1-why-one-model-needs-several-kv-caches', label: 'Continue: TR5a lesson 1, the run', word: 'Continue' }),
+  intro: JSON.stringify({ loop: ['waiting', 'slot', 'cpu', 'gpu', 'step', 'now'] }),
+}
+
+const REDESIGNED: { name: string; route: string; returning?: boolean }[] = [
+  { name: 'front-first-visit', route: '/' },
+  { name: 'front-returning', route: '/', returning: true },
+  { name: 'tr5a-lesson-1', route: '/m/tr5a/l1-why-one-model-needs-several-kv-caches' },
+  { name: 'tr1-lesson-1', route: '/m/tr1/l1-five-mechanisms' },
+  { name: 'kv-page-pool', route: '/play/pool' },
+  { name: 'request-path', route: '/play/engine-floor' },
+  { name: 'course', route: '/map' },
+]
+
+test.describe('the screens of the redesign', () => {
+  test.use({ reducedMotion: 'reduce' })
+
+  for (const screen of REDESIGNED) {
+    for (const size of SCREENS) {
+      test(`${screen.name} at ${size.width} x ${size.height} matches its baseline within ${TOLERANCE * 100}%`, async ({ page, context }) => {
+        test.skip(process.platform !== 'linux', 'the baselines are Linux Chromium renderings')
+        await withSettings(context, { view3d: false })
+        if (screen.returning === true) {
+          await context.addInitScript(([next, intro]) => {
+            window.localStorage.setItem('es:next', next)
+            window.localStorage.setItem('es:intro', intro)
+          }, [RETURNING.next, RETURNING.intro] as const)
+        }
+        await page.setViewportSize(size)
+        await open(page, screen.route)
+        await quiet(page)
+        await page.evaluate(() => document.fonts.ready)
+        await page.evaluate(() => window.scrollTo(0, 0))
+        await expect(page).toHaveScreenshot(`${screen.name}-${size.width}.png`, { maxDiffPixelRatio: TOLERANCE, timeout: CAPTURE_TIMEOUT })
+      })
+    }
+  }
+})

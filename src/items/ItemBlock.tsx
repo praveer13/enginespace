@@ -6,6 +6,7 @@ import { offeredAt } from '@es/play/items/draw'
 import { isLevel, LEVEL_NAMES } from '@es/play/items/types'
 import type { Gen, Level } from '@es/play/items/types'
 import { Icon } from '@/design/components/Glyph'
+import { Button } from '@/design/components/Button'
 import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { SheetLine } from '@/design/components/Sheet'
 import { freshEntropy } from './answer'
@@ -39,6 +40,11 @@ export interface ItemBlockProps {
   block: Of<'item'>
   /** The lesson or module the block belongs to, for the foot line. */
   scope: string
+  /**
+   * Another control is the move in hand (a checkpoint in Read, whose part has its way on; the Test's second set, under the first): this
+   * block's Start is an outline, so that one amber control stands in the viewport. The set it starts is the same.
+   */
+  quiet?: boolean
   /** The families to draw from, whole. The catalog's faces, with each family's code loaded when an attempt starts, unless a test gives its own. */
   families?: readonly Gen[]
 }
@@ -49,7 +55,7 @@ interface Run {
   entropy: readonly number[]
 }
 
-export function ItemBlock({ block, scope, families }: ItemBlockProps) {
+export function ItemBlock({ block, scope, families, quiet = false }: ItemBlockProps) {
   const [run, setRun] = useState<Run | null>(null)
   const gen = faceById(block.family, families)
   const level: Level | null = isLevel(block.level) ? block.level : null
@@ -81,7 +87,7 @@ export function ItemBlock({ block, scope, families }: ItemBlockProps) {
 
   if (run === null) {
     return (
-      <Frame scope={scope} family={block.family} phase="idle" stub={<PrimaryButton onClick={start}>Start questions</PrimaryButton>}>
+      <Frame scope={scope} family={block.family} phase="idle" stub={quiet ? <Button onClick={start}>Start questions</Button> : <PrimaryButton onClick={start}>Start questions</PrimaryButton>}>
         <p>
           {block.count} {block.count === 1 ? 'question' : 'questions'} on fresh numbers, drawn when you start. Answer, say how sure you are, and read why. Nothing is timed.
         </p>

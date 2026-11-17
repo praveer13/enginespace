@@ -15,6 +15,7 @@ import { useMemo } from 'react'
 import { GAMES } from '@es/play'
 import type { CourseMap } from '@es/schema/compiled'
 import { useEvidence } from '@/evidence/useEvidence'
+import { readPlace } from '@/settings/bookmark'
 import { deriveProgress } from './derive'
 import type { Progress } from './derive'
 import { indexLessons, lastTime, standings } from './next'
@@ -50,6 +51,6 @@ export function useProgress(map: CourseMap | null): ProgressState {
     if (map === null || !ready) return new Map<string, LessonState>()
     return new Map([...standings(events, indexLessons(map.lessons))].map(([id, standing]) => [id, standing.state]))
   }, [events, map, ready])
-  const last = useMemo(() => (map === null || !ready ? null : lastTime(events, map.lessons, levelName)), [events, map, ready])
+  const last = useMemo(() => (map === null || !ready ? null : lastTime(events, map.lessons, levelName, readPlace())), [events, map, ready])
   return { ready, progress, next, last, lessons }
 }
