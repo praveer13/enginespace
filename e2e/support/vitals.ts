@@ -17,7 +17,7 @@ export interface LargestPaint {
   startTime: number
   /** The painted area, in CSS px². */
   size: number
-  /** The element, as `h1.es-ticket__title`. */
+  /** The element, as `h1.es-sheet__title`. */
   element: string
 }
 

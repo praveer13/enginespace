@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { Icon } from '@/design/components/Glyph'
 import { ContinueLink } from '@/design/components/Board'
 import { TapeLabel } from '@/design/components/TapeLabel'
-import { Ticket, TicketLine } from '@/design/components/Ticket'
+import { Sheet, SheetLine } from '@/design/components/Sheet'
 import '@/pages/panels.css'
 import { usePointer } from '@/settings/usePlace'
 import type { UnbuiltCopy } from './copy'
@@ -43,7 +43,7 @@ export function Unbuilt({ title, lead, heading, holds, facts = [], tapes = [], c
         ) : null}
       </header>
       {children}
-      <Ticket
+      <Sheet
         as="section"
         width="wide"
         title={heading}
@@ -51,7 +51,7 @@ export function Unbuilt({ title, lead, heading, holds, facts = [], tapes = [], c
       >
         {facts.map((fact) => (
           <p key={fact}>
-            <TicketLine>{fact}</TicketLine>
+            <SheetLine>{fact}</SheetLine>
           </p>
         ))}
         <ul className="es-unbuilt__holds">
@@ -60,11 +60,11 @@ export function Unbuilt({ title, lead, heading, holds, facts = [], tapes = [], c
           ))}
         </ul>
         <p className="es-unbuilt__pending">
-          <TicketLine tone="ink-2" qty={<Icon name="lock" className="es-unbuilt__mark" />}>
+          <SheetLine tone="ink-2" qty={<Icon name="lock" className="es-unbuilt__mark" />}>
             Not published yet
-          </TicketLine>
+          </SheetLine>
         </p>
-      </Ticket>
+      </Sheet>
       <nav aria-label="The way on" className="es-unbuilt__next">
         <ContinueLink target={pointer} emphasis="primary" minutes={pointer.minutes} />
       </nav>

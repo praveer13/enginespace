@@ -1,7 +1,7 @@
 import { useId, type ReactNode } from 'react'
 import type { SlotNight, SlotRow } from '@es/sim'
 import { Readout } from '@/design/components/Readout'
-import { Ticket } from '@/design/components/Ticket'
+import { Sheet } from '@/design/components/Sheet'
 import { formatReadout } from '@/design/format'
 import type { ForgeLab } from './labs'
 import type { ReadoutState } from './readout'
@@ -62,7 +62,7 @@ function rowsOf(night: SlotNight, yours: SlotRow): Row[] {
 function NightTable({ night, yours }: { night: SlotNight; yours: SlotRow }) {
   const captionId = useId()
   return (
-    <Ticket as="section" width="full" hole={false} foot={['Slot readout']} className="es-mirror">
+    <Sheet as="section" width="full" hole={false} foot={['Slot readout']} className="es-mirror">
       <div role="region" aria-labelledby={captionId} tabIndex={0} className="es-mirror__region mt-2">
         <table role="table" className="es-mirror__table w-full border-collapse text-left">
           <caption id={captionId} className="es-mirror__caption pb-2 text-left font-bold">
@@ -94,7 +94,7 @@ function NightTable({ night, yours }: { night: SlotNight; yours: SlotRow }) {
           </tbody>
         </table>
       </div>
-    </Ticket>
+    </Sheet>
   )
 }
 
@@ -132,14 +132,14 @@ export function SlotReadoutSection({ lab, state }: { lab: ForgeLab; state: Forge
 
   let body = null
   if (readout?.status === 'running') {
-    body = <Ticket as="section" width="full" hole={false} head="Slot readout" state="loading" loadingLabel="Playing the request stream on your module" aria-label="The slot readout" />
+    body = <Sheet as="section" width="full" hole={false} head="Slot readout" state="loading" loadingLabel="Playing the request stream on your module" aria-label="The slot readout" />
   } else if (readout?.status === 'ready') {
     body = <Table night={readout.night} yours={readout.yours} differs={readout.yours.differs} />
   } else if (readout?.status === 'failed') {
     body = (
-      <Ticket as="section" width="full" hole={false} head="Slot readout" state="error" error={`The request stream could not be played on your module: ${readout.message}`} aria-label="The slot readout">
+      <Sheet as="section" width="full" hole={false} head="Slot readout" state="error" error={`The request stream could not be played on your module: ${readout.message}`} aria-label="The slot readout">
         <p>The checks above stand as they are. Your row is missing, and the slots&apos; rows need no module.</p>
-      </Ticket>
+      </Sheet>
     )
   } else if (done !== null && !passed) {
     body = <p className="es-forge-hint">This run did not pass check {checkAt + 1}, so there is nothing to play yet.</p>

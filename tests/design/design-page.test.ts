@@ -61,7 +61,7 @@ describe('/design', () => {
   test('shows every component of the design system', () => {
     for (const title of [
       ...PART_TITLES,
-      'Ticket',
+      'Sheet',
       'Stub',
       'Rail',
       'Printer tape',
@@ -141,8 +141,8 @@ describe('/design: the lesson\'s and the instrument\'s parts (R-T05)', () => {
   }
   const labels = (title: string) => [...specimen(title).matchAll(/<figcaption class="es-spec__state-label">([^<]+)<\/figcaption>/g)].map((match) => decode(match[1]))
 
-  test('shows each new component first, in the order of the brief, ahead of Ticket', () => {
-    const order = [...PART_TITLES, 'Ticket'].map((title) => html.indexOf(`<h3 class="es-spec__component-title">${title}</h3>`))
+  test('shows each new component first, in the order of the brief, ahead of Sheet', () => {
+    const order = [...PART_TITLES, 'Sheet'].map((title) => html.indexOf(`<h3 class="es-spec__component-title">${title}</h3>`))
     expect(order.every((at) => at > 0)).toBe(true)
     expect(order).toEqual([...order].sort((a, b) => a - b))
   })

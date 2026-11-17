@@ -6,7 +6,7 @@ import type { Answered } from '@es/play/items/attempt'
 import { LEVEL_NAMES } from '@es/play/items/types'
 import type { Confidence, Gen, Response } from '@es/play/items/types'
 import { Stub } from '@/design/components/Stub'
-import { Ticket } from '@/design/components/Ticket'
+import { Sheet } from '@/design/components/Sheet'
 import { useEvidence } from '@/evidence/useEvidence'
 import { Givens, Question, Reveal, SurePlates, Unsaved, Worked } from '../Attempt'
 import { parseNumber, seedLabel } from '../answer'
@@ -117,7 +117,7 @@ export default function Work({ line, index, total, entropy, met, card, today, la
 
   const revealed = answered !== null
   return (
-    <Ticket
+    <Sheet
       as="section"
       className="es-c-block es-prep__ticket es-prep__work"
       data-block="item"
@@ -173,6 +173,6 @@ export default function Work({ line, index, total, entropy, met, card, today, la
         />
       ) : null}
       {unsaved === null ? null : <Unsaved detail={unsaved} />}
-    </Ticket>
+    </Sheet>
   )
 }

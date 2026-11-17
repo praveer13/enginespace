@@ -193,7 +193,7 @@ test.describe('limits', () => {
     await open(page, '/labs/rejection-sampler')
     await page.locator('input[type="file"]').setInputFiles(fixture('solved', 'toy'))
     await expect(page.getByRole('heading', { name: 'Not graded' })).toBeVisible({ timeout: 15_000 })
-    await expect(page.locator('.es-ticket__void')).toContainText(/is the "toy" lab's, and this page grades "rejection-sampler"/)
+    await expect(page.locator('.es-sheet__void')).toContainText(/is the "toy" lab's, and this page grades "rejection-sampler"/)
     expect(await statusOf(page)).toEqual(['not run', 'not run', 'not run', 'not run', 'not run'])
   })
 })

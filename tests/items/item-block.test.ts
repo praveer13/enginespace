@@ -28,7 +28,7 @@ describe('the ticket that waits', () => {
     expect(html).toContain('data-block="item"')
     expect(html).toContain('data-phase="idle"')
     expect(html).toContain('3 questions on fresh numbers, drawn when you start.')
-    expect(html).toContain('<span class="es-ticket-line__qty">3x</span>')
+    expect(html).toContain('<span class="es-sheet-line__qty">3x</span>')
     expect(html).toContain('Bubble width')
     expect(html).toContain('on your own')
     expect(html).not.toContain('data-seed')
@@ -43,8 +43,8 @@ describe('the ticket that waits', () => {
   })
 
   test('is a sheet like the other blocks, titled Questions', () => {
-    expect(html).toContain('<h2 class="es-ticket__title">Questions</h2>')
-    expect(html).toContain('class="es-ticket es-c-block"')
+    expect(html).toContain('<h2 class="es-sheet__title">Questions</h2>')
+    expect(html).toContain('class="es-sheet es-c-block"')
   })
 
   test('says one question, in the singular', () => {

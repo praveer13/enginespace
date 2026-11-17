@@ -82,7 +82,7 @@ describe('/m/tr2/l0-sample, the lesson template (REDESIGN §2.5)', () => {
 
   test('no notional-machine card is inlined: the title block’s line opens it, and nothing else draws it', () => {
     expect(html).not.toContain('data-kind="notional-machine"')
-    expect(html).not.toContain('es-ticket')
+    expect(html).not.toContain('es-sheet')
   })
 
   test('no build-log word reaches the learner: no task id and no "not built yet"', () => {
@@ -364,8 +364,8 @@ describe('the blocks, one at a time', () => {
     const heading = (label: string): ProseFlow => ({ type: 'heading', depth: 2, children: [text(label)] })
     const html = drawnBlocks(prose(paragraph(text('Opening.')), heading('One'), paragraph(text('Body.')), heading('Two')))
     expect(opening(html, 'section').length).toBe(3)
-    expect(html).toContain('<h2 class="es-ticket__title">One</h2>')
-    expect(html).toContain('<h2 class="es-ticket__title">Two</h2>')
+    expect(html).toContain('<h2 class="es-sheet__title">One</h2>')
+    expect(html).toContain('<h2 class="es-sheet__title">Two</h2>')
     expect(html.match(/<h2/g)?.length).toBe(2)
     expect(opening(html, 'section').map((tag) => attribute(tag, 'id'))).toEqual([undefined, 'one', 'two'])
   })
@@ -451,12 +451,12 @@ describe('the blocks, one at a time', () => {
 
   test('cards: a warning and an isomorphism are drawn in full, a notional-machine card is printed when it loads, and the other cards kept in their own files wait for their tasks', () => {
     const iso = drawnBlocks({ type: 'card', kind: 'isomorphism', title: 'A queue', body: 'A ring buffer is a queue.', breaks: 'Eviction has no ring.' })
-    expect(iso).toContain('<h2 class="es-ticket__title">A queue</h2>')
+    expect(iso).toContain('<h2 class="es-sheet__title">A queue</h2>')
     expect(iso).toContain('where it breaks')
     expect(iso).toContain('Eviction has no ring.')
     expect(placeholders(iso)).toEqual({})
     // No title falls back to the kind's name.
-    expect(drawnBlocks({ type: 'card', kind: 'warning', body: 'Careful.' })).toContain('<h2 class="es-ticket__title">Warning</h2>')
+    expect(drawnBlocks({ type: 'card', kind: 'warning', body: 'Careful.' })).toContain('<h2 class="es-sheet__title">Warning</h2>')
     const kept = (kind: 'notional-machine' | 'in-production' | 'build-this' | 'change') => placeholders(drawnBlocks({ type: 'card', kind, id: 'trace-room-steploop' }))
     // A notional-machine card is no placeholder: it prints while it loads, and the next test draws it once it has.
     expect(kept('notional-machine')).toEqual({})
@@ -467,7 +467,7 @@ describe('the blocks, one at a time', () => {
 
   test('an item block of a family that is built waits for the learner: its count, its level and its stub, and no seed yet', () => {
     const html = drawnBlocks({ type: 'item', family: 'tr2.bubble-width', level: 1, count: 5 })
-    expect(html).toContain('<span class="es-ticket-line__qty">5x</span>')
+    expect(html).toContain('<span class="es-sheet-line__qty">5x</span>')
     expect(html).toContain('data-family="tr2.bubble-width"')
     expect(html).toContain('faded')
     expect(html).toContain('data-phase="idle"')
@@ -507,10 +507,10 @@ describe('a notional-machine card (W1-T07)', () => {
     expect(attribute(tickets[0], 'data-block')).toBe('card')
     expect(attribute(tickets[0], 'data-kind')).toBe('notional-machine')
     expect(attribute(tickets[0], 'data-placeholder')).toBeUndefined()
-    expect(html).toContain('<h2 class="es-ticket__title">Notional machine</h2>')
+    expect(html).toContain('<h2 class="es-sheet__title">Notional machine</h2>')
     // The title leads the paper: no head line over it, and the lesson's id and the card's on the foot line.
-    expect(html).not.toContain('es-ticket__head')
-    expect(html).toContain('<div class="es-ticket__foot"><span><span aria-hidden="true">tr2.l1</span></span><span>fixture-world</span></div>')
+    expect(html).not.toContain('es-sheet__head')
+    expect(html).toContain('<div class="es-sheet__foot"><span><span aria-hidden="true">tr2.l1</span></span><span>fixture-world</span></div>')
   })
 
   test('prints the card\'s name and its few words, then its three parts under tape, in order, one level under the ticket\'s title', () => {
@@ -554,7 +554,7 @@ describe('a notional-machine card (W1-T07)', () => {
     expect(loading).toContain('data-state="loading"')
     expect(loading).toContain('aria-busy="true"')
     expect(loading).toContain('Printing the card')
-    expect(loading).toContain('<h2 class="es-ticket__title">Notional machine</h2>')
+    expect(loading).toContain('<h2 class="es-sheet__title">Notional machine</h2>')
     expect(loading).toContain('fixture-world</span></div>')
     expect(placeholders(loading)).toEqual({})
   })

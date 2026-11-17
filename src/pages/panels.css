@@ -278,12 +278,12 @@
 
 /* ---------------------------------------------------------------------------------------------- the ledger's counts */
 
-.es-ledger-ticket .es-ticket__paper {
+.es-ledger-ticket .es-sheet__paper {
   padding-inline: var(--es-space-4);
 }
 
 @media (min-width: 40rem) {
-  .es-ledger-ticket .es-ticket__paper {
+  .es-ledger-ticket .es-sheet__paper {
     padding-inline: var(--es-space-6);
   }
 }

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Ticket, type TicketState } from '@/design/components/Ticket'
+import { Sheet, type SheetState } from '@/design/components/Sheet'
 import '@/content/render/content.css'
 import './items.css'
 
@@ -18,7 +18,7 @@ export interface FrameProps {
   phase: 'idle' | 'unbuilt' | 'loading' | 'asking' | 'revealed' | 'done'
   /** The sheet that waits for an answer is the place the next decision acts on: an ink rule across its top. */
   lamp?: boolean
-  state?: TicketState
+  state?: SheetState
   loadingLabel?: string
   /** The question's own facts for the foot line: its seed, and whether the numbers are new. */
   foot?: readonly [ReactNode, ReactNode?]
@@ -31,7 +31,7 @@ export interface FrameProps {
 export function Frame({ scope, family, phase, lamp = false, state = 'default', loadingLabel, foot, stub, data = {}, children }: FrameProps) {
   const attributes = Object.fromEntries(Object.entries(data).map(([name, value]) => [`data-${name}`, value]))
   return (
-    <Ticket
+    <Sheet
       as="section"
       className="es-c-block"
       data-block="item"
@@ -49,6 +49,6 @@ export function Frame({ scope, family, phase, lamp = false, state = 'default', l
       stub={stub}
     >
       {children}
-    </Ticket>
+    </Sheet>
   )
 }

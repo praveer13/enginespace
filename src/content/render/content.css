@@ -140,37 +140,37 @@
 
 /* ---------------------------------------------------------------------------------------------- a ticket's head and text */
 
-.es-c-block .es-ticket__body > * + :is(h3, h4) {
+.es-c-block .es-sheet__body > * + :is(h3, h4) {
   margin-top: var(--es-space-6);
 }
 
-.es-c-block .es-ticket__body h4 {
+.es-c-block .es-sheet__body h4 {
   font-size: var(--es-size-base);
   line-height: 1.4;
   font-weight: 700;
 }
 
-.es-c-block .es-ticket__body :is(ul, ol) {
+.es-c-block .es-sheet__body :is(ul, ol) {
   padding-left: 1.4em;
 }
 
-.es-c-block .es-ticket__body ul {
+.es-c-block .es-sheet__body ul {
   list-style: disc;
 }
 
-.es-c-block .es-ticket__body ol {
+.es-c-block .es-sheet__body ol {
   list-style: decimal;
 }
 
-.es-c-block .es-ticket__body li + li {
+.es-c-block .es-sheet__body li + li {
   margin-top: var(--es-space-1);
 }
 
-.es-c-block .es-ticket__body li :is(ul, ol) {
+.es-c-block .es-sheet__body li :is(ul, ol) {
   margin-top: var(--es-space-1);
 }
 
-.es-c-block .es-ticket__body :is(code, kbd) {
+.es-c-block .es-sheet__body :is(code, kbd) {
   padding: 0.05em 0.3em;
   border-radius: var(--es-radius-paper);
   background-color: color-mix(in srgb, var(--es-paper-rule) 26%, var(--es-paper));
@@ -178,7 +178,7 @@
   overflow-wrap: anywhere;
 }
 
-.es-c-block .es-ticket__body pre {
+.es-c-block .es-sheet__body pre {
   padding: var(--es-space-3) var(--es-space-4);
   overflow-x: auto;
   border-block: 2px dotted var(--es-paper-rule);
@@ -188,7 +188,7 @@
   tab-size: 4;
 }
 
-.es-c-block .es-ticket__body pre code {
+.es-c-block .es-sheet__body pre code {
   padding: 0;
   background: none;
   font-size: inherit;
@@ -323,7 +323,7 @@
 }
 
 /* The facts of a block, torn off the roll. */
-.es-c-block .es-ticket__body .es-c-tapes {
+.es-c-block .es-sheet__body .es-c-tapes {
   display: flex;
   flex-wrap: wrap;
   gap: var(--es-space-2) var(--es-space-3);
@@ -333,7 +333,7 @@
 
 /* ---------------------------------------------------------------------------------------------- the blocks */
 
-.es-c-pending .es-ticket-line__note {
+.es-c-pending .es-sheet-line__note {
   white-space: nowrap;
 }
 
@@ -342,7 +342,7 @@
   height: 1.1em;
 }
 
-.es-c-block .es-ticket__body .es-c-options {
+.es-c-block .es-sheet__body .es-c-options {
   list-style: upper-alpha;
 }
 
@@ -374,7 +374,7 @@
   font-weight: 700;
 }
 
-.es-c-block .es-ticket__body h3.es-c-part {
+.es-c-block .es-sheet__body h3.es-c-part {
   padding-top: var(--es-space-4);
   border-top: 2px dotted var(--es-paper-rule);
 }
@@ -407,7 +407,7 @@
   font-size: var(--es-size-note);
 }
 
-.es-c-block .es-ticket__body .es-c-artifacts {
+.es-c-block .es-sheet__body .es-c-artifacts {
   display: grid;
   gap: var(--es-space-4);
   padding: 0;
@@ -526,7 +526,7 @@
   font-weight: 700;
 }
 
-.es-c-block .es-ticket__body .es-c-game__elsewhere {
+.es-c-block .es-sheet__body .es-c-game__elsewhere {
   font-size: var(--es-size-print);
 }
 

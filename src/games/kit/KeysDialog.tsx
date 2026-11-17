@@ -3,7 +3,7 @@ import { Fragment, useEffect, useRef, type ReactNode } from 'react'
 import { COMMON_KEYS } from '@es/play'
 import type { KeyBinding } from '@es/play'
 import { Button } from '@/design/components/Button'
-import { Ticket } from '@/design/components/Ticket'
+import { Sheet } from '@/design/components/Sheet'
 
 /*
  * The help dialog (ARCHITECTURE §6.8): every key the game answers to, the ones common to every game and then the game's own.
@@ -91,7 +91,7 @@ export function KeysDialog({ keys, open, onOpenChange, children }: KeysDialogPro
             back.focus({ preventScroll: true })
           }}
         >
-          <Ticket
+          <Sheet
             as="div"
             width="full"
             hole={false}
@@ -112,7 +112,7 @@ export function KeysDialog({ keys, open, onOpenChange, children }: KeysDialogPro
                 <Button variant="ink">Close</Button>
               </Dialog.Close>
             </div>
-          </Ticket>
+          </Sheet>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

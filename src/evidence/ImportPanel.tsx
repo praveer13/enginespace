@@ -4,7 +4,7 @@ import { Button } from '@/design/components/Button'
 import { PrinterTape } from '@/design/components/PrinterTape'
 import { Readout } from '@/design/components/Readout'
 import { Stub } from '@/design/components/Stub'
-import { Ticket, TicketLine } from '@/design/components/Ticket'
+import { Sheet, SheetLine } from '@/design/components/Sheet'
 import { Choice } from '@/settings/Choice'
 import { commitImport, formatWhen, openImportFile, previewMode, undoImport } from './transfer'
 import type { ImportFlow, PreviewFlow, TransferApi } from './transfer'
@@ -53,7 +53,7 @@ export function PreviewTicket({
   const { summary } = preview
   const replace = preview.mode === 'replace'
   return (
-    <Ticket
+    <Sheet
       as="section"
       width="wide"
       hole={false}
@@ -73,31 +73,31 @@ export function PreviewTicket({
       </p>
       <Choice label="How to bring it in" options={MODES} value={preview.mode} onChange={onMode} disabled={busy} />
       <div className="es-xfer__lines">
-        <TicketLine note={count(summary.fileEvents)}>events in the file</TicketLine>
-        <TicketLine note={count(summary.newEvents)}>new here</TicketLine>
-        <TicketLine note={count(summary.sameEvents)}>here already</TicketLine>
-        <TicketLine note={count(summary.clashedEvents)} tone={summary.clashedEvents > 0 ? 'ink-2' : 'ink'}>
+        <SheetLine note={count(summary.fileEvents)}>events in the file</SheetLine>
+        <SheetLine note={count(summary.newEvents)}>new here</SheetLine>
+        <SheetLine note={count(summary.sameEvents)}>here already</SheetLine>
+        <SheetLine note={count(summary.clashedEvents)} tone={summary.clashedEvents > 0 ? 'ink-2' : 'ink'}>
           clash: same id, other content
-        </TicketLine>
+        </SheetLine>
         {replace ? (
-          <TicketLine note={count(summary.removedEvents)} tone={summary.removedEvents > 0 ? 'ink-2' : 'ink'}>
+          <SheetLine note={count(summary.removedEvents)} tone={summary.removedEvents > 0 ? 'ink-2' : 'ink'}>
             here, not in the file: removed
-          </TicketLine>
+          </SheetLine>
         ) : null}
-        <TicketLine note={count(summary.fileReceipts)}>receipts in the file</TicketLine>
+        <SheetLine note={count(summary.fileReceipts)}>receipts in the file</SheetLine>
         {replace && summary.removedReceipts > 0 ? (
-          <TicketLine note={count(summary.removedReceipts)} tone="ink-2">
+          <SheetLine note={count(summary.removedReceipts)} tone="ink-2">
             receipts removed
-          </TicketLine>
+          </SheetLine>
         ) : null}
-        {preview.duplicates > 0 ? <TicketLine note={count(preview.duplicates)}>repeated in the file, counted once</TicketLine> : null}
+        {preview.duplicates > 0 ? <SheetLine note={count(preview.duplicates)}>repeated in the file, counted once</SheetLine> : null}
       </div>
       <div className="es-xfer__row">
         <Button variant="quiet" onClick={onCancel} disabled={busy}>
           Cancel
         </Button>
       </div>
-    </Ticket>
+    </Sheet>
   )
 }
 
@@ -189,9 +189,9 @@ export function ImportPanel({
         />
       ) : null}
       {flow.step === 'refused' ? (
-        <Ticket as="section" width="wide" hole={false} head="Import refused" title="Nothing was changed" titleAs="h4" state="error" error={flow.detail}>
+        <Sheet as="section" width="wide" hole={false} head="Import refused" title="Nothing was changed" titleAs="h4" state="error" error={flow.detail}>
           <p>Choose another file, or export again from the device that made this one.</p>
-        </Ticket>
+        </Sheet>
       ) : null}
 
       <div role="status" className="es-xfer__status">

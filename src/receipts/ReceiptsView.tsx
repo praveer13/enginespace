@@ -4,7 +4,7 @@ import { PrinterTape } from '@/design/components/PrinterTape'
 import type { PrinterTapeLine } from '@/design/components/PrinterTape'
 import { Readout } from '@/design/components/Readout'
 import { Count } from '@/evidence/Count'
-import { Ticket } from '@/design/components/Ticket'
+import { Sheet } from '@/design/components/Sheet'
 import { CHALLENGE_TTL_DAYS, countChallenges } from './challenge'
 import type { HeldChallenge } from './challenge'
 import { CHALLENGES, LEAD, RECEIPTS, TAPE } from './copy'
@@ -79,13 +79,13 @@ function Lists({ props, held, records }: { props: ReceiptsViewProps; held: reado
           Every challenge this browser has issued. A token is open until a receipt file uses it, and expires <Readout value={CHALLENGE_TTL_DAYS} tag="estimated" size="sm" /> days after it is issued.
         </p>
         {!ready ? (
-          <Ticket as="div" width="full" hole={false} state="loading" loadingLabel={CHALLENGES.loading} />
+          <Sheet as="div" width="full" hole={false} state="loading" loadingLabel={CHALLENGES.loading} />
         ) : held.length === 0 ? (
-          <Ticket as="div" width="full" hole={false} state="empty" empty={CHALLENGES.empty} />
+          <Sheet as="div" width="full" hole={false} state="empty" empty={CHALLENGES.empty} />
         ) : (
-          <Ticket as="div" width="full" hole={false} className="es-held-ticket">
+          <Sheet as="div" width="full" hole={false} className="es-held-ticket">
             <ChallengeList held={held} />
-          </Ticket>
+          </Sheet>
         )}
       </section>
       <section aria-labelledby="rc-receipts" className="es-panel">
@@ -94,13 +94,13 @@ function Lists({ props, held, records }: { props: ReceiptsViewProps; held: reado
         </h2>
         <p className="es-panel__lead">{RECEIPTS.lead}</p>
         {!ready ? (
-          <Ticket as="div" width="full" hole={false} state="loading" loadingLabel={RECEIPTS.loading} />
+          <Sheet as="div" width="full" hole={false} state="loading" loadingLabel={RECEIPTS.loading} />
         ) : records.length === 0 ? (
-          <Ticket as="div" width="full" hole={false} state="empty" empty={RECEIPTS.empty} />
+          <Sheet as="div" width="full" hole={false} state="empty" empty={RECEIPTS.empty} />
         ) : (
-          <Ticket as="div" width="full" hole={false} className="es-held-ticket">
+          <Sheet as="div" width="full" hole={false} className="es-held-ticket">
             <ReceiptList held={records} />
-          </Ticket>
+          </Sheet>
         )}
       </section>
       <ImportPanel ready={ready} readOnly={props.readOnly} memoryOnly={props.backend === 'memory'} state={props.importer} onChoose={props.onChoose} onClear={props.onClear} />
@@ -115,11 +115,11 @@ function Opened({ hash, ready, held, records }: { hash: Sha256; ready: boolean; 
     <div className="es-page__main es-receipts__opened">
       <BackLink />
       {!ready ? (
-        <Ticket as="section" width="wide" state="loading" loadingLabel={RECEIPTS.loadingDetail} tabIndex={-1} data-opened="" />
+        <Sheet as="section" width="wide" state="loading" loadingLabel={RECEIPTS.loadingDetail} tabIndex={-1} data-opened="" />
       ) : found === undefined ? (
-        <Ticket as="section" width="wide" title={RECEIPTS.notFound} titleAs="h2" foot={[`Hash ${hash.slice(0, 8)}`]} tabIndex={-1} data-opened="">
+        <Sheet as="section" width="wide" title={RECEIPTS.notFound} titleAs="h2" foot={[`Hash ${hash.slice(0, 8)}`]} tabIndex={-1} data-opened="">
           <p>{RECEIPTS.notFoundNote}</p>
-        </Ticket>
+        </Sheet>
       ) : found.ok ? (
         <ReceiptDetail held={found} challenges={held} />
       ) : (

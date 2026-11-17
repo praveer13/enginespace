@@ -5,7 +5,7 @@ import { PrintingDots } from '@/design/components/PrintingDots'
 import { PrinterTape, type PrinterTapeLine } from '@/design/components/PrinterTape'
 import { Readout } from '@/design/components/Readout'
 import { Stub } from '@/design/components/Stub'
-import { Ticket } from '@/design/components/Ticket'
+import { Sheet } from '@/design/components/Sheet'
 import { Crate, CopyLine } from './Crate'
 import { CHECK_BUDGET_MS } from './protocol'
 import type { CheckResult, CheckStatus } from './invoke'
@@ -246,19 +246,19 @@ export function ForgeView({ lab, state, kit = { status: 'loading' }, onChoose, o
   let slip: ReactNode
   if (state.step === 'idle') {
     slip = (
-      <Ticket as="section" width="wide" lamp head="Your module" meta={lab.wasm} stub={<Stub onClick={pick}>Choose a file</Stub>}>
+      <Sheet as="section" width="wide" lamp head="Your module" meta={lab.wasm} stub={<Stub onClick={pick}>Choose a file</Stub>}>
         <p>Drop the file on this sheet, or choose it. It is read in this tab and never sent anywhere.</p>
-      </Ticket>
+      </Sheet>
     )
   } else if (state.step === 'reading') {
     slip = (
-      <Ticket as="section" width="wide" head="Your module" meta={state.file.name} state="loading" loadingLabel="Reading the module">
+      <Sheet as="section" width="wide" head="Your module" meta={state.file.name} state="loading" loadingLabel="Reading the module">
         <FileLine file={state.file} />
-      </Ticket>
+      </Sheet>
     )
   } else if (state.step === 'refused') {
     slip = (
-      <Ticket
+      <Sheet
         as="section"
         width="wide"
         lamp
@@ -272,11 +272,11 @@ export function ForgeView({ lab, state, kit = { status: 'loading' }, onChoose, o
       >
         <FileLine file={state.file} />
         {state.sha256 === undefined ? null : <Hash sha256={state.sha256} />}
-      </Ticket>
+      </Sheet>
     )
   } else {
     slip = (
-      <Ticket
+      <Sheet
         as="section"
         width="wide"
         head="Your module"
@@ -293,7 +293,7 @@ export function ForgeView({ lab, state, kit = { status: 'loading' }, onChoose, o
       >
         <FileLine file={state.file} />
         <Hash sha256={state.module.sha256} />
-      </Ticket>
+      </Sheet>
     )
   }
 
@@ -365,7 +365,7 @@ export function ForgeView({ lab, state, kit = { status: 'loading' }, onChoose, o
                   {reference ? '' : recorded}
                 </p>
               </aside>
-              <Ticket
+              <Sheet
                 as="section"
                 width="full"
                 hole={false}
@@ -408,7 +408,7 @@ export function ForgeView({ lab, state, kit = { status: 'loading' }, onChoose, o
                     <span className="es-forge-hint">A replay of seeds you have seen is never recorded.</span>
                   </div>
                 ) : null}
-              </Ticket>
+              </Sheet>
             </div>
           </Step>
         </ol>

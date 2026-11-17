@@ -9,7 +9,7 @@ import { Button } from '@/design/components/Button'
 import { Field } from '@/design/components/Field'
 import { Icon } from '@/design/components/Glyph'
 import { Stub } from '@/design/components/Stub'
-import { TicketLine } from '@/design/components/Ticket'
+import { SheetLine } from '@/design/components/Sheet'
 import { decimals } from '@/content/render/model'
 import { formatReadout } from '@/design/format'
 import { useEvidence } from '@/evidence/useEvidence'
@@ -430,9 +430,9 @@ function Tally({ gen, attempt }: { gen: Gen; attempt: Attempt }) {
           const ok = attempt.answered[at]?.grade.ok === true
           return (
             <li key={served.seed}>
-              <TicketLine qty={`${at + 1}`} note={ok ? 'right' : 'missed'} tone={ok ? 'ink' : 'ink-2'}>
+              <SheetLine qty={`${at + 1}`} note={ok ? 'right' : 'missed'} tone={ok ? 'ink' : 'ink-2'}>
                 {titles.get(served.item.variant) ?? served.item.variant}
-              </TicketLine>
+              </SheetLine>
             </li>
           )
         })}

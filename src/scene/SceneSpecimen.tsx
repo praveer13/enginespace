@@ -3,7 +3,7 @@ import { Button } from '@/design/components/Button'
 import { PrinterTape } from '@/design/components/PrinterTape'
 import { Readout } from '@/design/components/Readout'
 import { TapeLabel } from '@/design/components/TapeLabel'
-import { Ticket } from '@/design/components/Ticket'
+import { Sheet } from '@/design/components/Sheet'
 import { Toggle } from '@/design/components/Toggle'
 import { nextPreset } from './camera-rig'
 import { CameraButtons } from './CameraButtons'
@@ -232,7 +232,7 @@ export function SceneSpecimen() {
         </section>
       </div>
 
-      <Ticket head="THE KIT" meta="SRC/SCENE" title="What drew this" width="full" className="es-kit__parts">
+      <Sheet head="THE KIT" meta="SRC/SCENE" title="What drew this" width="full" className="es-kit__parts">
         <dl className="es-kit__part-list">
           {PARTS.map(([name, what]) => (
             <div key={name} className="es-kit__part">
@@ -241,7 +241,7 @@ export function SceneSpecimen() {
             </div>
           ))}
         </dl>
-      </Ticket>
+      </Sheet>
     </div>
   )
 }

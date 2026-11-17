@@ -28,7 +28,7 @@ import { StationLight } from '@/design/components/StationLight'
 import { Stub } from '@/design/components/Stub'
 import { TapeLabel } from '@/design/components/TapeLabel'
 import { TextLink } from '@/design/components/TextLink'
-import { Ticket, TicketLine } from '@/design/components/Ticket'
+import { Sheet, SheetLine } from '@/design/components/Sheet'
 import { Toggle } from '@/design/components/Toggle'
 import { SceneSpecimen } from '@/scene/SceneSpecimen'
 import { effectiveMotion } from '@/settings/rules'
@@ -358,9 +358,9 @@ function State({
 
 function railTicket(key: string, head: string, qty: string, item: string) {
   return (
-    <Ticket key={key} head={head} compact hole={false} width="full">
-      <TicketLine qty={qty}>{item}</TicketLine>
-    </Ticket>
+    <Sheet key={key} head={head} compact hole={false} width="full">
+      <SheetLine qty={qty}>{item}</SheetLine>
+    </Sheet>
   )
 }
 
@@ -795,44 +795,44 @@ function ComponentSpecimens() {
   return (
     <div className="es-spec__components">
       <Specimen
-        title="Ticket"
+        title="Sheet"
         about="A sheet: a plain paper panel, cut square, with a soft shadow and a title. The surface the text you read sits on."
       >
         <State label="default">
-          <Ticket head="No. 0042" meta="TBL 7" title="Fire the next step.">
-            <TicketLine qty="1x">PREFILL</TicketLine>
-            <TicketLine qty="3x">DECODE</TicketLine>
-          </Ticket>
+          <Sheet head="No. 0042" meta="TBL 7" title="Fire the next step.">
+            <SheetLine qty="1x">PREFILL</SheetLine>
+            <SheetLine qty="3x">DECODE</SheetLine>
+          </Sheet>
         </State>
         <State label="under the lamp">
-          <Ticket head="No. 0043" meta="TBL 2" title="On the pass" lamp>
-            <TicketLine qty="2x">DECODE</TicketLine>
-          </Ticket>
+          <Sheet head="No. 0043" meta="TBL 2" title="On the pass" lamp>
+            <SheetLine qty="2x">DECODE</SheetLine>
+          </Sheet>
         </State>
         {FORCED.map((force) => (
           <State key={force} label={`a ticket you pick up: ${force}`}>
-            <Ticket as="button" head={`No. 004${FORCED.indexOf(force) + 4}`} meta="TBL 5" data-force={force}>
-              <TicketLine qty="1x">PREFILL</TicketLine>
-            </Ticket>
+            <Sheet as="button" head={`No. 004${FORCED.indexOf(force) + 4}`} meta="TBL 5" data-force={force}>
+              <SheetLine qty="1x">PREFILL</SheetLine>
+            </Sheet>
           </State>
         ))}
         <State label="loading">
-          <Ticket head="No. 0047" state="loading">
-            <TicketLine qty="2x">DECODE</TicketLine>
-          </Ticket>
+          <Sheet head="No. 0047" state="loading">
+            <SheetLine qty="2x">DECODE</SheetLine>
+          </Sheet>
         </State>
         <State label="error">
-          <Ticket head="No. 0048" state="error" error="This sheet could not load. Reload the page to try again.">
-            <TicketLine qty="2x">DECODE</TicketLine>
-          </Ticket>
+          <Sheet head="No. 0048" state="error" error="This sheet could not load. Reload the page to try again.">
+            <SheetLine qty="2x">DECODE</SheetLine>
+          </Sheet>
         </State>
         <State label="empty">
-          <Ticket head="No. 0000" state="empty" empty="Nothing here yet" />
+          <Sheet head="No. 0000" state="empty" empty="Nothing here yet" />
         </State>
         <State label="disabled">
-          <Ticket as="button" head="No. 0049" state="disabled">
-            <TicketLine qty="1x">PREFILL</TicketLine>
-          </Ticket>
+          <Sheet as="button" head="No. 0049" state="disabled">
+            <SheetLine qty="1x">PREFILL</SheetLine>
+          </Sheet>
         </State>
       </Specimen>
 
@@ -860,9 +860,9 @@ function ComponentSpecimens() {
           </Stub>
         </State>
         <State label="on a ticket, as a link">
-          <Ticket head="No. 0050" meta="TBL 1" title="First service" stub={<Stub to="/play/loop">Start service</Stub>}>
-            <TicketLine qty="4">CLIPS ON THE RAIL</TicketLine>
-          </Ticket>
+          <Sheet head="No. 0050" meta="TBL 1" title="First service" stub={<Stub to="/play/loop">Start service</Stub>}>
+            <SheetLine qty="4">CLIPS ON THE RAIL</SheetLine>
+          </Sheet>
         </State>
       </Specimen>
 

@@ -2,7 +2,7 @@ import { useId, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import clsx from 'clsx'
 import { Button } from '@/design/components/Button'
-import { Ticket } from '@/design/components/Ticket'
+import { Sheet } from '@/design/components/Sheet'
 import { formatReadout } from '@/design/format'
 import { mirrorGroups, ROWS_PER_LANE, ROWS_PER_LANE_ALL } from './mirror'
 import { spanCat, spanName, styleName } from './model'
@@ -80,7 +80,7 @@ export function SpanMirror({ index, win, cursor, provenance, dispatch }: SpanMir
   }
 
   return (
-    <Ticket as="section" width="full" hole={false} foot={['Spans in the window']} className="es-mirror es-trace__spans" data-mirror="" data-trace-mirror="">
+    <Sheet as="section" width="full" hole={false} foot={['Spans in the window']} className="es-mirror es-trace__spans" data-mirror="" data-trace-mirror="">
       <p data-mirror-summary="">
         {num(touching)} spans touch the window, in {num(groups.length)} lanes. The table lists {num(listed)}
         {touching > listed ? <>: the first {num(ROWS_PER_LANE)} of each lane, and a button under a lane lists more</> : null}. Every ns is {provenance}.
@@ -201,6 +201,6 @@ export function SpanMirror({ index, win, cursor, provenance, dispatch }: SpanMir
           ))}
         </table>
       </div>
-    </Ticket>
+    </Sheet>
   )
 }

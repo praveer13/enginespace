@@ -7,7 +7,7 @@ import { isLevel, LEVEL_NAMES } from '@es/play/items/types'
 import type { Gen, Level } from '@es/play/items/types'
 import { Icon } from '@/design/components/Glyph'
 import { Stub } from '@/design/components/Stub'
-import { TicketLine } from '@/design/components/Ticket'
+import { SheetLine } from '@/design/components/Sheet'
 import { freshEntropy } from './answer'
 import { useFamily } from './families'
 import { Frame } from './Frame'
@@ -58,9 +58,9 @@ export function ItemBlock({ block, scope, families }: ItemBlockProps) {
     return (
       <Frame scope={scope} family={block.family} phase="unbuilt" stub={<Stub disabled>Start questions</Stub>}>
         <p className="es-c-pending">
-          <TicketLine tone="ink-2" qty={<Icon name="lock" className="es-c-pending__mark" />}>
+          <SheetLine tone="ink-2" qty={<Icon name="lock" className="es-c-pending__mark" />}>
             These questions are not published yet.
-          </TicketLine>
+          </SheetLine>
         </p>
       </Frame>
     )
@@ -69,9 +69,9 @@ export function ItemBlock({ block, scope, families }: ItemBlockProps) {
     return (
       <Frame scope={scope} family={block.family} phase="unbuilt" stub={<Stub disabled>Start questions</Stub>}>
         <p className="es-c-pending">
-          <TicketLine tone="ink-2" qty={<Icon name="lock" className="es-c-pending__mark" />}>
+          <SheetLine tone="ink-2" qty={<Icon name="lock" className="es-c-pending__mark" />}>
             There are no {LEVEL_NAMES[level]} questions on this topic yet.
-          </TicketLine>
+          </SheetLine>
         </p>
       </Frame>
     )
@@ -86,9 +86,9 @@ export function ItemBlock({ block, scope, families }: ItemBlockProps) {
           {block.count} {block.count === 1 ? 'question' : 'questions'} on fresh numbers, drawn when you start. Answer, say how sure you are, and read why. Nothing is timed.
         </p>
         <p className="es-c-line">
-          <TicketLine qty={`${block.count}x`} note={LEVEL_NAMES[level]}>
+          <SheetLine qty={`${block.count}x`} note={LEVEL_NAMES[level]}>
             {gen.title}
-          </TicketLine>
+          </SheetLine>
         </p>
       </Frame>
     )

@@ -32,7 +32,7 @@ import { StationLight } from '@/design/components/StationLight'
 import { Stub } from '@/design/components/Stub'
 import { TapeLabel } from '@/design/components/TapeLabel'
 import { TextLink } from '@/design/components/TextLink'
-import { Ticket, TicketLine } from '@/design/components/Ticket'
+import { Sheet, SheetLine } from '@/design/components/Sheet'
 import { Toggle } from '@/design/components/Toggle'
 import { SLOT_MARKS, slotOf, type ColorRoleName, type Slot } from '@/design/tokens'
 
@@ -40,29 +40,29 @@ const render = (element: ReactElement, location = '/map') =>
   renderToString(createElement(StaticRouter, { location }, element)).replaceAll('<!-- -->', '')
 const h = createElement
 
-describe('Ticket', () => {
+describe('Sheet', () => {
   test('a container ticket is an article with its head, stamped title and printed lines', () => {
-    const html = render(h(Ticket, { head: 'No. 0042', meta: 'TBL 7', title: 'Fire the next step.' }, h(TicketLine, { qty: '2x', children: 'DECODE' })))
-    expect(html).toMatch(/^<article class="es-ticket"/)
-    expect(html).toContain('<h3 class="es-ticket__title">Fire the next step.</h3>')
+    const html = render(h(Sheet, { head: 'No. 0042', meta: 'TBL 7', title: 'Fire the next step.' }, h(SheetLine, { qty: '2x', children: 'DECODE' })))
+    expect(html).toMatch(/^<article class="es-sheet"/)
+    expect(html).toContain('<h3 class="es-sheet__title">Fire the next step.</h3>')
     expect(html).toContain('data-hole="true"')
   })
 
   test('a ticket you pick up is a button of spans, disabled when the ticket is', () => {
-    const html = render(h(Ticket, { as: 'button', head: 'No. 1', state: 'disabled' }, h(TicketLine, null, 'PREFILL')))
-    expect(html).toMatch(/^<button class="es-ticket"[^>]*type="button"[^>]*disabled=""/)
+    const html = render(h(Sheet, { as: 'button', head: 'No. 1', state: 'disabled' }, h(SheetLine, null, 'PREFILL')))
+    expect(html).toMatch(/^<button class="es-sheet"[^>]*type="button"[^>]*disabled=""/)
     expect(html).not.toMatch(/<(div|h\d)[ >]/)
   })
 
   test('loading, error and empty say so in words', () => {
-    expect(render(h(Ticket, { state: 'loading' }, 'x'))).toContain('aria-busy="true"')
-    expect(render(h(Ticket, { state: 'loading' }, 'x'))).toContain('role="status"')
-    expect(render(h(Ticket, { state: 'error', error: 'Paper out.' }, 'x'))).toMatch(/role="alert"[^>]*>.*Paper out\./s)
-    expect(render(h(Ticket, { state: 'empty', empty: 'No tickets yet' }))).toContain('No tickets yet')
+    expect(render(h(Sheet, { state: 'loading' }, 'x'))).toContain('aria-busy="true"')
+    expect(render(h(Sheet, { state: 'loading' }, 'x'))).toContain('role="status"')
+    expect(render(h(Sheet, { state: 'error', error: 'Paper out.' }, 'x'))).toMatch(/role="alert"[^>]*>.*Paper out\./s)
+    expect(render(h(Sheet, { state: 'empty', empty: 'No tickets yet' }))).toContain('No tickets yet')
   })
 
   test('under the lamp is a state of its own', () => {
-    expect(render(h(Ticket, { lamp: true }, 'x'))).toContain('data-lamp="true"')
+    expect(render(h(Sheet, { lamp: true }, 'x'))).toContain('data-lamp="true"')
   })
 })
 
@@ -86,7 +86,7 @@ describe('Stub', () => {
 
 describe('Rail', () => {
   test('one clip per slot, and an empty clip says so in words', () => {
-    const html = render(h(Rail, { clips: 4, label: 'The rail: 4 clips', tickets: [h(Ticket, { key: 'a' }, 'x')] }))
+    const html = render(h(Rail, { clips: 4, label: 'The rail: 4 clips', tickets: [h(Sheet, { key: 'a' }, 'x')] }))
     expect(html).toContain('<ol class="es-rail__clips" aria-label="The rail: 4 clips">')
     expect([...html.matchAll(/<li class="es-rail__clip"/g)].length).toBe(4)
     expect([...html.matchAll(/clip paid for, empty/g)].length).toBe(3)

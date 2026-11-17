@@ -178,12 +178,12 @@
 
 /* ---------------------------------------------------------------------------------------------- the lists */
 
-.es-held-ticket .es-ticket__paper {
+.es-held-ticket .es-sheet__paper {
   padding-inline: var(--es-space-4);
 }
 
 @media (min-width: 40rem) {
-  .es-held-ticket .es-ticket__paper {
+  .es-held-ticket .es-sheet__paper {
     padding-inline: var(--es-space-6);
   }
 }
@@ -304,12 +304,12 @@
   margin: 0;
 }
 
-.es-receipt .es-ticket__paper {
+.es-receipt .es-sheet__paper {
   padding-inline: var(--es-space-4);
 }
 
 @media (min-width: 40rem) {
-  .es-receipt .es-ticket__paper {
+  .es-receipt .es-sheet__paper {
     padding-inline: var(--es-space-6);
   }
 }
@@ -439,7 +439,7 @@
  * row's header first and then each cell after its column's name, so that nothing is cut off at the edge of the paper (the mirror's table
  * does the same, src/design/components.css). The column heads stay in the document for a screen reader.
  */
-.es-receipt .es-ticket__body {
+.es-receipt .es-sheet__body {
   container-type: inline-size;
 }
 
@@ -625,12 +625,12 @@
   pointer-events: none;
 }
 
-.es-import__slip .es-ticket__paper {
+.es-import__slip .es-sheet__paper {
   padding-inline: var(--es-space-4);
 }
 
 @media (min-width: 40rem) {
-  .es-import__slip .es-ticket__paper {
+  .es-import__slip .es-sheet__paper {
     padding-inline: var(--es-space-6);
   }
 }

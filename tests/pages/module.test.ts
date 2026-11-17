@@ -54,7 +54,7 @@ describe('the order of the page', () => {
 
   test('no citation row and no metadata receipt sits above the lessons', () => {
     const above = html.slice(0, html.indexOf('id="lessons"'))
-    for (const word of ['printer', 'es-ticket', 'es-doc__tapes', 'data-tag="measured"', 'skills passed', 'claim']) expect(above, word).not.toContain(word)
+    for (const word of ['printer', 'es-sheet', 'es-doc__tapes', 'data-tag="measured"', 'skills passed', 'claim']) expect(above, word).not.toContain(word)
     expect(textOf(above)).not.toMatch(/\bstatus\b|\bpins\b|\bkept\b/)
   })
 

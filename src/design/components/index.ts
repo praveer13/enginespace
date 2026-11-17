@@ -1,8 +1,7 @@
 /*
  * Data Book's components (REDESIGN 2.8): the site's atoms. Pages and games build from these and from the token roles in
- * ../tokens.ts, and set no colour or face of their own. The old components keep their file and export names until R-T46's
- * rename: Ticket is the sheet, Stub the primary button, PrinterTape the readout strip, TapeLabel the plain label, Toggle the
- * switch, and Board the header and the footer.
+ * ../tokens.ts, and set no colour or face of their own. Sheet is the sheet, Stub the primary button, PrinterTape the readout strip,
+ * TapeLabel the plain label, Toggle the switch, and Board the header and the footer.
  */
 export { Bell, type BellProps } from './Bell'
 export { Board, MenuLink, type BoardLink, type BoardProps } from './Board'
@@ -18,7 +17,7 @@ export { Stub, type StubProps } from './Stub'
 export { TapeLabel, type TapeLabelProps } from './TapeLabel'
 export { TextLink, type TextLinkProps } from './TextLink'
 export { PrintingDots } from './PrintingDots'
-export { Ticket, TicketLine, type TicketProps, type TicketState } from './Ticket'
+export { Sheet, SheetLine, type SheetProps, type SheetState } from './Sheet'
 export { Toggle, type ToggleProps } from './Toggle'
 
 // Wave R's components (REDESIGN 2.8, stage 1): the parts the lesson template and the instrument frame are made of. They use the

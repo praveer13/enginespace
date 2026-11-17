@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { Stub } from '@/design/components/Stub'
 import { TapeLabel } from '@/design/components/TapeLabel'
 import { TextLink } from '@/design/components/TextLink'
-import { Ticket } from '@/design/components/Ticket'
+import { Sheet } from '@/design/components/Sheet'
 import { useDocumentTitle } from '../load'
 import './content.css'
 import { kernelspaceLabel, kernelspaceUrl, titled } from './model'
@@ -105,11 +105,11 @@ export function PageNotice(props: NoticeProps) {
       <h1 className="es-doc__title">{title}</h1>
       <div className="es-doc__tickets">
         {props.kind === 'loading' ? (
-          <Ticket as="section" width="wide" head={ticket} state="loading" loadingLabel={`Printing the ${props.what}`} />
+          <Sheet as="section" width="wide" head={ticket} state="loading" loadingLabel={`Printing the ${props.what}`} />
         ) : props.kind === 'missing' ? (
-          <Ticket as="section" width="wide" head={ticket} state="empty" empty={props.message} stub={<Stub to={props.back.to}>{props.back.label}</Stub>} />
+          <Sheet as="section" width="wide" head={ticket} state="empty" empty={props.message} stub={<Stub to={props.back.to}>{props.back.label}</Stub>} />
         ) : (
-          <Ticket
+          <Sheet
             as="section"
             width="wide"
             head={ticket}

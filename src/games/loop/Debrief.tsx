@@ -8,7 +8,7 @@ import { Button } from '@/design/components/Button'
 import { Readout } from '@/design/components/Readout'
 import { Stub } from '@/design/components/Stub'
 import { TextLink } from '@/design/components/TextLink'
-import { Ticket, TicketLine } from '@/design/components/Ticket'
+import { Sheet, SheetLine } from '@/design/components/Sheet'
 import { formatReadout } from '@/design/format'
 import { svgToReact } from './svg'
 import type { LoopOutcome, LoopRunCore } from './types'
@@ -139,7 +139,7 @@ function Compare({ seed, mine, clockUs, slots }: { seed: number; mine: readonly 
  */
 function RealAnchor(): ReactNode {
   return (
-    <Ticket as="section" width="full" hole={false} head="The real engine" meta="not this world" titleAs="h3" title="What a real engine does with more requests">
+    <Sheet as="section" width="full" hole={false} head="The real engine" meta="not this world" titleAs="h3" title="What a real engine does with more requests">
       <p>
         On H100 GPUs running Llama-3.3-70B in FP8 under vLLM, a heavier load made each token slower, and tokens per second still rose a great deal.
       </p>
@@ -175,12 +175,12 @@ function RealAnchor(): ReactNode {
           </tbody>
         </table>
       </div>
-      <TicketLine note={<Readout value={1.66} digits={2} unit="x" tag="derived" size="sm" />}>each token took this much longer</TicketLine>
-      <TicketLine note={<Readout value={9.7} digits={1} unit="x" tag="derived" size="sm" />}>tokens per second, estimated as concurrency over each token's time</TicketLine>
+      <SheetLine note={<Readout value={1.66} digits={2} unit="x" tag="derived" size="sm" />}>each token took this much longer</SheetLine>
+      <SheetLine note={<Readout value={9.7} digits={1} unit="x" tag="derived" size="sm" />}>tokens per second, estimated as concurrency over each token's time</SheetLine>
       <p className="text-text-2">
         Source: InferenceX official results for Llama-3.3-70B-Instruct-FP8 under vLLM, rows 41187 and 41821. The claims loop.anchor.tpot-conc-4 and loop.anchor.tpot-conc-64 hold the setup and the source's own words, and the two ratios are derived from them.
       </p>
-    </Ticket>
+    </Sheet>
   )
 }
 

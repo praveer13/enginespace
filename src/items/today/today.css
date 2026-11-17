@@ -23,7 +23,7 @@
 }
 
 /* The sheets are as wide as the column they stand in: 50rem, with the quiet column beside them from 64rem. */
-.es-prep .es-ticket {
+.es-prep .es-sheet {
   max-width: none;
 }
 
@@ -387,7 +387,7 @@
     scroll-padding-bottom: 6rem;
   }
 
-  .es-prep__work .es-ticket__stub {
+  .es-prep__work .es-sheet__stub {
     position: sticky;
     bottom: 0;
     z-index: 5;
