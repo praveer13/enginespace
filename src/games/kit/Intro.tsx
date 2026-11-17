@@ -49,7 +49,7 @@ export interface IntroCoachProps {
   moveWords: string
   /** What the pointed move is, where it is not the reference run's first move (a game whose reference moves are the answers): "a first move that gives no answer away". */
   moveKind?: string
-  /** Inside a lesson the column sets the room, and the list is shown whole. */
+  /** Inside a lesson. The list is shown whole on a wide screen and walked one part at a time on a phone, as on the game's page. */
   embedded: boolean
   /** On a phone, the part the list shows. */
   partAt: number
@@ -69,8 +69,8 @@ const TITLES: Readonly<Record<IntroStep, string>> = {
 }
 
 /** The coach strip. Focus follows its Next onto the step it opens, and leaves the strip alone otherwise. */
-export function IntroCoach({ title, step, parts, replay, look, ask, askLead, skip, moveWords, moveKind, embedded, partAt, onPartAt, onNext, onEnd, onAct }: IntroCoachProps) {
-  const wide = useWideFrame() || embedded
+export function IntroCoach({ title, step, parts, replay, look, ask, askLead, skip, moveWords, moveKind, partAt, onPartAt, onNext, onEnd, onAct }: IntroCoachProps) {
+  const wide = useWideFrame()
   const headingId = useId()
   const root = useRef<HTMLElement>(null)
   const walking = step === 'parts' && !wide && partAt < parts.length - 1
@@ -298,8 +298,8 @@ function useMeasured(host: RefObject<HTMLElement | null>, measure: () => void, k
 }
 
 /** The ink discs on the drawing, one for each part given (the frame gives at most five) that is drawn and in view. */
-export function IntroCallouts({ host, parts, partAt, embedded }: { host: RefObject<HTMLElement | null>; parts: readonly KitPart[]; partAt: number; embedded: boolean }) {
-  const current = useWideFrame() || embedded ? null : partAt
+export function IntroCallouts({ host, parts, partAt }: { host: RefObject<HTMLElement | null>; parts: readonly KitPart[]; partAt: number; embedded: boolean }) {
+  const current = useWideFrame() ? null : partAt
   const [placed, setPlaced] = useState<readonly Placed[]>([])
   const measure = () => {
     const frame = host.current

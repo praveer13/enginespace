@@ -106,6 +106,34 @@
   margin: 0;
 }
 
+/*
+ * At a desk the head spends no line of its own on "Builds on": it stands at the right of the breadcrumb's row, so the Run's instrument
+ * starts high enough that its first control is on the first screen (REDESIGN §3.4, P3).
+ */
+@media (min-width: 64rem) {
+  .es-lesson {
+    gap: var(--es-space-6);
+  }
+
+  .es-lesson__head {
+    grid-template-columns: minmax(0, 52rem) minmax(0, 1fr);
+    column-gap: var(--es-space-8);
+    max-width: none;
+  }
+
+  .es-lesson__head > * {
+    grid-column: 1;
+  }
+
+  .es-lesson__head > .es-lesson__builds {
+    grid-row: 1;
+    grid-column: 2;
+    align-self: center;
+    justify-self: end;
+    text-align: end;
+  }
+}
+
 /* ---------------------------------------------------------------------------------------------- rail and column */
 
 .es-lesson__body {
@@ -194,7 +222,31 @@
 
 @media (min-width: 64rem) {
   .es-lesson__main {
+    padding-top: var(--es-space-6);
     padding-inline: var(--es-space-12);
+  }
+
+  /*
+   * The Run's heading is set run-in, beside its setup, as a reference book sets a short head: the setup is read in the same glance and the
+   * instrument under it starts one line higher (REDESIGN §3.4: the instrument near y 356 at 1440 x 900).
+   */
+  .es-lesson__section[data-section='run'] {
+    grid-template-columns: max-content minmax(0, 1fr);
+    column-gap: var(--es-space-6);
+  }
+
+  .es-lesson__section[data-section='run'] > * {
+    grid-column: 1 / -1;
+  }
+
+  .es-lesson__section[data-section='run'] > .es-lesson__section-title:has(+ :is(.es-lesson__setup, .es-lesson__primer)) {
+    grid-column: 1;
+    align-self: baseline;
+  }
+
+  .es-lesson__section[data-section='run'] > .es-lesson__section-title + :is(.es-lesson__setup, .es-lesson__primer) {
+    grid-column: 2;
+    align-self: baseline;
   }
 }
 

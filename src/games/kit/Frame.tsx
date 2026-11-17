@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useId, useMemo, useRef, useState, type ComponentType, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { drawInBand, keymapOf } from '@es/play'
 import type { GameAction, GameFace, GameMode, KeyBinding, RunResult, Session } from '@es/play'
@@ -361,6 +361,35 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
     resultRef.current?.scrollIntoView({ block: 'nearest' })
   }, [outcome])
 
+  // A new phase of the dock (an intro step, the intro's end, the guess opening or closing) starts at its own top: the dock's scroll from
+  // the phase before is not carried over, and where the dock has grown off the top of the screen (a lesson's intro at a desk lets it grow
+  // with the page), its head is brought back into view, so the new phase's first words are read first.
+  const dockRef = useRef<HTMLDivElement>(null)
+  const dockPhase = `${intro === null ? '-' : step}|${askOpen}|${outcome === null}`
+  const lastPhase = useRef(dockPhase)
+  useLayoutEffect(() => {
+    if (lastPhase.current === dockPhase) return
+    lastPhase.current = dockPhase
+    const dock = dockRef.current
+    if (dock === null || outcome !== null) return
+    const main = dock.querySelector<HTMLElement>('[data-dock-main]')
+    if (main !== null) main.scrollTop = 0
+    if (dock.getBoundingClientRect().top < 0) dock.scrollIntoView({ block: 'start' })
+  }, [dockPhase, outcome])
+
+  // While the intro shows in a lesson at a desk, its Next row stands over the readout at the foot of the screen: the readout's height is
+  // the row's offset (frame.css), measured here as it changes.
+  const readoutRef = useRef<HTMLDivElement>(null)
+  const introOpen = intro !== null
+  useEffect(() => {
+    const readout = readoutRef.current
+    const frame = container.current
+    if (!embedded || !introOpen || readout === null || frame === null || typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(() => frame.style.setProperty('--es-frame-readout', `${readout.offsetHeight}px`))
+    observer.observe(readout)
+    return () => observer.disconnect()
+  }, [embedded, introOpen, container])
+
   const Heading = embedded ? 'h3' : 'h2'
   const modeWord = mode === 'practice' ? 'practice' : 'graded'
   const goal = props.goal(api)
@@ -483,7 +512,7 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
           </div>
           <div className="es-frame__legend">{props.legend(api)}</div>
         </div>
-        <div className="es-frame__dock" data-dock="" role="region" aria-label="Dock">
+        <div ref={dockRef} className="es-frame__dock" data-dock="" role="region" aria-label="Dock">
           <div className="es-frame__dock-main" data-dock-main="">
             {outcome === null ? (
               <>
@@ -536,7 +565,7 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
               </div>
             )}
           </div>
-          <div className="es-frame__readout" data-readout="">
+          <div ref={readoutRef} className="es-frame__readout" data-readout="">
             {props.readout(api)}
           </div>
         </div>

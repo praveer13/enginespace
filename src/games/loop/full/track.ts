@@ -109,7 +109,8 @@ export function fullDiagramModel(layout: FullLaneLayout, ox: number, oz: number)
   labels.push({ id: 'axis', at: [ox + 4, 0, oz + bottom + layout.geometry.axisHeight / 2], text: FULL_LANE_WORDS.axis, kind: 'axis', place: 'right' })
 
   const cursors = [{ id: 'now', x: ox + layout.now.x, z0: oz + layout.now.y0 - 7, z1: oz + layout.now.y1, height: RISE.cursor }]
-  labels.push({ id: 'now', at: [ox + layout.now.x, RISE.cursor, oz + layout.now.y0 - 7], text: 'now', kind: 'now', place: 'above' })
+  // The word under the axis's numbers, as on the demo levels (track-layout.ts): over the lanes the tilt carries it onto the row above.
+  labels.push({ id: 'now', at: [ox + layout.now.x, 0, oz + bottom + 6 + 14], text: 'now', kind: 'now', place: 'below' })
 
   return { plates: [], boxes, wires, rules, inks, cursors, labels, bounds: { x0: ox, x1: ox + layout.geometry.width, z0: oz, z1: oz + layout.height + layout.geometry.axisHeight } }
 }

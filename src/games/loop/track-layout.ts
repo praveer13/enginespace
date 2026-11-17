@@ -29,7 +29,7 @@ import { LONG_NIGHT_FIRES, specimenRun } from '@/scene/specimen-layout'
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /** How far each kind of mark stands off the paper, in the diagram's px [estimated, set by eye in Lifted]. */
-export const RISE = { cpu: 18, slot: 13, chip: 6, wire: 13, cursor: 26, plate: 10 } as const
+export const RISE = { cpu: 18, slot: 13, chip: 6, wire: 13, cursor: 22, plate: 10 } as const
 
 /** The figure's padding round the lanes, in px: the 2D view's (View2D.tsx), so the Side camera puts a tick where the 2D view does. */
 export const PAD = { desk: 12, phone: 8 } as const
@@ -37,6 +37,9 @@ export const PAD = { desk: 12, phone: 8 } as const
 export const NARROW = 560
 /** The rise over the lanes that the now cursor's word takes, in px: the 2D view's head room. */
 const HEAD = 14
+
+/** How far under the axis's numbers the now cursor's word stands, in px: one line of the numbers [estimated]. */
+const NOW_DROP = 14
 
 /** Whether words fit a width: the 2D view's rule [estimated: 6.5 px a character and a margin]. */
 const fits = (words: string, width: number): boolean => words.length * 6.5 + 8 <= width
@@ -130,7 +133,8 @@ export function diagramModel(layout: LaneLayout, options: DiagramOptions = {}): 
     const x1 = ox + box.x + box.width - 1
     if (x1 <= x0) continue
     wires.push({ id: `${p}${box.id}`, x0, x1, z0: oz + box.y + 1, z1: oz + box.y + box.height - 1, height: RISE.wire, role: 'lane-idle', form: 'hollow' })
-    if (fits(LANE_WORDS.idle, box.width)) labels.push({ id: `${p}${box.id}`, at: [x0 - 1, RISE.wire, oz + box.y + 10], text: LANE_WORDS.idle, kind: 'idle', place: 'right' })
+    // The word stands inside the gap, on the paper under the box's top, so no dashed edge runs through it.
+    if (fits(LANE_WORDS.idle, box.width)) labels.push({ id: `${p}${box.id}`, at: [(x0 + x1) / 2, 0, oz + box.y + 14], text: LANE_WORDS.idle, kind: 'idle', place: 'center' })
   }
   for (const dim of layout.dims) {
     const z = oz + dim.y
@@ -148,9 +152,10 @@ export function diagramModel(layout: LaneLayout, options: DiagramOptions = {}): 
   }
   if (options.rowLabels !== false) labels.push({ id: `${p}axis`, at: [ox + 4, 0, oz + axisY + g.axisHeight / 2], text: LANE_WORDS.axis, kind: 'axis', place: 'right' })
 
-  // Now: the amber sheet across the lanes, and its word over it.
+  // Now: the amber sheet across the lanes, and its word under the axis's numbers, at its foot. Over the lanes the tilt would carry the word
+  // up into the waiting queue's row, onto a tile or the row's name; under the axis nothing else is drawn, at any tick.
   const cursors = [{ id: `${p}now`, x: ox + layout.now.x, z0: oz + layout.now.y0 - HEAD / 2, z1: oz + layout.now.y1, height: RISE.cursor }]
-  labels.push({ id: `${p}now`, at: [ox + layout.now.x, RISE.cursor, oz + layout.now.y0 - HEAD / 2], text: LANE_WORDS.now, kind: 'now', place: 'above' })
+  labels.push({ id: `${p}now`, at: [ox + layout.now.x, 0, oz + axisY + 6 + NOW_DROP], text: LANE_WORDS.now, kind: 'now', place: 'below' })
 
   return {
     plates: [],
@@ -208,15 +213,15 @@ export function trackGeometry(canvasWidth: number): { geometry: LaneGeometry; pa
 /**
  * The learner's run on the demo levels as the 3D track: the 2D view's diagram, at the 2D view's geometry for a canvas this wide.
  *
- * With `reference`, the reference run's tokens up to the learner's now stand on the same plate as ink outlines at a token's height (REDESIGN
- * §2.6, "you against the reference, drawn"): where the learner's slab fills one, the outline is inside the solid and does not show; where
- * the learner left a slot empty or a step late, the hollow box stands in the gap. That is the job depth does here.
+ * With `reference`, the reference run's tokens up to the learner's now stand on the same plate as ink outlines (REDESIGN §2.6, "you against
+ * the reference, drawn"): where the learner matched a token, their slab stands there and no outline is drawn; where the learner left a slot
+ * empty or a step late, an outline a little taller than a slab stands in the gap, over the dashed idle box. That is the job depth does here.
  */
 export function demoTrack(source: LaneSource, canvasWidth: number, reference?: LaneSource): FlatModel {
   const { geometry, pad, narrow } = trackGeometry(canvasWidth)
   const layout = laneLayout(source, geometry)
   const marks = diagramModel(layout, { x: pad, z: pad, narrow })
-  const outlines = reference === undefined ? [] : referenceOutlines(laneLayout(referenceUntil(reference, source.clockUs), geometry), pad)
+  const outlines = reference === undefined ? [] : referenceOutlines(laneLayout(referenceUntil(reference, source.clockUs), geometry), layout, pad)
   return {
     ...marks,
     inks: [...marks.inks, ...outlines],
@@ -239,15 +244,28 @@ export function referenceUntil(reference: LaneSource, untilUs: Us): LaneSource {
   }
 }
 
-/** A token slab's outline at a slab's height: the four edges of its top and its four uprights, in the ink's solid line. */
-function referenceOutlines(layout: LaneLayout, pad: number): FlatSegment[] {
+/**
+ * How the reference's outlines stand apart from the learner's own marks [estimated, set by eye in Lifted]: a few px taller than a token's
+ * slab, so an outline never lies on the dashed idle box drawn in the same gap at a slab's height, and inset a little more than a slab.
+ */
+const OUTLINE = { rise: RISE.slot + 5, inset: 3 } as const
+
+/**
+ * The reference's tokens the learner has not matched, as outlines: the four edges of a box's top, taller than a slab, and its foot's near
+ * edge, in the ink's solid line, where the dashed idle box is a wire at a slab's height. A token the learner matched (a token of theirs on the
+ * same row over the same ticks) is left out: their slab already stands there.
+ */
+function referenceOutlines(layout: LaneLayout, own: LaneLayout, pad: number): FlatSegment[] {
   const out: FlatSegment[] = []
-  const y = RISE.slot
+  const y = OUTLINE.rise
+  const mine = own.slabs.filter((slab) => slab.row !== 'cpu' && slab.use === 'token')
   for (const slab of layout.slabs) {
     if (slab.row === 'cpu' || slab.use !== 'token') continue
-    const x0 = pad + slab.x + 1.5
-    const x1 = pad + slab.x + slab.width - 1.5
-    const inset = Math.min(2, slab.height / 6) + 1
+    const matched = mine.some((m) => m.row === slab.row && Math.min(m.x + m.width, slab.x + slab.width) - Math.max(m.x, slab.x) >= slab.width / 2)
+    if (matched) continue
+    const x0 = pad + slab.x + OUTLINE.inset
+    const x1 = pad + slab.x + slab.width - OUTLINE.inset
+    const inset = Math.min(2, slab.height / 6) + OUTLINE.inset
     const z0 = pad + slab.y + inset
     const z1 = pad + slab.y + slab.height - inset
     if (x1 <= x0 || z1 <= z0) continue

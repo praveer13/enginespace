@@ -8,7 +8,8 @@
  */
 
 .es-intro {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: var(--es-space-2);
   margin: 0 0 var(--es-space-3);
   padding-bottom: var(--es-space-3);
@@ -51,9 +52,19 @@
 }
 
 /*
- * On the game's page, Next and Skip intro stay in view at the foot of the dock while a long list scrolls under them. Inside a lesson the
- * dock does not scroll, so they stay in the flow and never ride over the page.
+ * Next and Skip intro stay in view at the foot of the dock while a long list runs on under them: on the game's page and in a phone's pinned
+ * dock, at the foot of the dock's own scroll; in a lesson's Run at a desk, where the dock grows with the page, at the foot of the screen, over
+ * the readout (frame.css). A rule over the row says the list goes on under it. At its own place, after the list, the row is in the flow, and
+ * where the dock neither scrolls nor stands beside the drawing (a narrow column at a desk), it never rides over anything.
  */
+.es-intro__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2) var(--es-space-4);
+  margin-top: auto;
+}
+
 .es-frame[data-placement='page'] .es-intro__actions {
   position: sticky;
   bottom: calc(-1 * var(--es-space-3));
@@ -61,13 +72,48 @@
   margin-inline: calc(-1 * var(--es-space-4));
   padding: var(--es-space-2) var(--es-space-4);
   background: var(--es-paper);
+  box-shadow: 0 -1px 0 var(--es-paper-rule);
 }
 
-.es-intro__actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--es-space-2) var(--es-space-4);
+@container es-frame (min-width: 56rem) {
+  .es-frame[data-placement='embed'] .es-intro__actions {
+    position: sticky;
+    bottom: var(--es-frame-readout, 0px);
+    z-index: 1;
+    margin-inline: calc(-1 * var(--es-space-4));
+    padding: var(--es-space-2) var(--es-space-4);
+    background: var(--es-paper);
+    box-shadow: 0 -1px 0 var(--es-paper-rule);
+  }
+}
+
+@media (max-width: 63.999rem) and (min-height: 700px) {
+  .es-frame[data-placement='embed'] .es-intro__actions {
+    position: sticky;
+    bottom: calc(-1 * var(--es-space-2));
+    z-index: 1;
+    margin-inline: calc(-1 * var(--es-space-4));
+    padding: var(--es-space-1) var(--es-space-4);
+    background: var(--es-paper);
+    box-shadow: 0 -1px 0 var(--es-paper-rule);
+  }
+}
+
+/* A control in the strip that the keyboard reaches (the look's trigger) is scrolled clear of the Next row riding over the dock's foot. */
+.es-frame__dock-main:has(> .es-intro) {
+  scroll-padding-bottom: 4rem;
+}
+
+/*
+ * On the game's page at a desk, the parts and the look fill the dock's box, with Next at its foot: what the dock holds under the intro (the
+ * level's opening line, its controls) starts past the box's edge, so no line of it shows cut in half under the list. The strip's lines sit
+ * a little closer, so five parts are read whole above Next at 1440 x 900.
+ */
+@media (min-width: 64rem) {
+  .es-frame[data-placement='page'] .es-intro:is([data-intro='parts'], [data-intro='look']) {
+    min-height: 100%;
+    gap: var(--es-space-1);
+  }
 }
 
 .es-intro__skip {
