@@ -105,7 +105,7 @@ describe('the drawing paints with token roles and nothing else', () => {
       for (const orientation of ORIENTATIONS) {
         for (const mark of marksOf(layoutMap(input, { orientation }))) {
           const roles = ['fill' in mark ? mark.fill : undefined, 'stroke' in mark ? mark.stroke : undefined].filter((role) => role !== undefined)
-          for (const role of roles) expect(role).toMatch(/^(?:none|surface-[123]|paper|paper-ink|paper-ink-2|paper-rule|lamp|text-2|lane-cpu|lane-gpu|cat-blue-edge|cat-green-edge|tape|slip-ink)$/)
+          for (const role of roles) expect(role).toMatch(/^(?:none|surface-[123]|paper|paper-ink|paper-ink-2|paper-rule|marker|text-2|lane-cpu|lane-gpu|cat-blue-edge|cat-green-edge|slip|slip-ink)$/)
           // Amber is the lamp's, and the lamp is drawn once, as light with no edge.
           if ('fill' in mark && mark.fill === 'marker') expect(mark.kind === 'rect' && mark.soft === true).toBe(true)
         }
