@@ -42,7 +42,6 @@ export type Walker = (page: Page, walk: Walk) => Promise<void>
 /** A walk's record of where focus went, from e2e/support/front.ts. */
 export type Walk = ReturnType<typeof walkOf>
 
-const OVER = 'The run is over. The debrief is ready.'
 
 const gameOf = (page: Page, id: string) => page.locator(`section[data-game="${id}"]`)
 const liveLine = (page: Page) => page.locator('[data-live="line"]')
