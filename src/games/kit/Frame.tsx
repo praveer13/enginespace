@@ -357,6 +357,9 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
     ended.current = now
     if (!now) return
     const target = resultRef.current?.querySelector<HTMLElement>('[data-result-heading]') ?? resultRef.current
+    // The dock's own scroll from the run is not carried over: the verdict is the head of the result, and it is in view where focus lands.
+    const main = resultRef.current?.closest<HTMLElement>('[data-dock-main]')
+    if (main) main.scrollTop = 0
     target?.focus({ preventScroll: true })
     resultRef.current?.scrollIntoView({ block: 'nearest' })
   }, [outcome])
