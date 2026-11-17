@@ -146,9 +146,12 @@ function BackToRun({ scope }: { scope: string }) {
   )
 }
 
-/** The id of the last place whose top has passed the upper third of the viewport, and every place passed on this visit. */
-function useCurrent(root: HTMLElement | null, ids: readonly string[]): { current: string; seen: ReadonlySet<string> } {
-  const [state, setState] = useState<{ current: string; seen: ReadonlySet<string> }>({ current: ids[0] ?? '', seen: new Set() })
+/**
+ * The id of the last place whose top has passed the upper third of the viewport, every place passed on this visit, and whether the Test's
+ * heading is on screen at all: its questions are then the move in hand, and a bar at the foot would stand over them.
+ */
+function useCurrent(root: HTMLElement | null, ids: readonly string[]): { current: string; seen: ReadonlySet<string>; testShown: boolean } {
+  const [state, setState] = useState<{ current: string; seen: ReadonlySet<string>; testShown: boolean }>({ current: ids[0] ?? '', seen: new Set(), testShown: false })
   useEffect(() => {
     if (root === null) return
     let frame = 0
@@ -159,11 +162,12 @@ function useCurrent(root: HTMLElement | null, ids: readonly string[]): { current
         const element = document.getElementById(id)
         if (element !== null && element.getBoundingClientRect().top <= window.innerHeight / 3) found = id
       }
+      const testShown = (document.getElementById('test')?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY) < window.innerHeight
       setState((previous) => {
-        if (previous.current === found) return previous
+        if (previous.current === found) return previous.testShown === testShown ? previous : { ...previous, testShown }
         const seen = new Set(previous.seen)
         seen.add(previous.current)
-        return { current: found, seen }
+        return { current: found, seen, testShown }
       })
     }
     const schedule = () => {
@@ -248,7 +252,7 @@ export function LessonView({ lesson, module, claims, today, map = null, reading:
     list.push('test', 'keep')
     return list
   }, [sections, env.headings])
-  const { current: here, seen } = useCurrent(article, places)
+  const { current: here, seen, testShown } = useCurrent(article, places)
   const partAt = sections.read.findIndex((_, index) => partId(index) === here)
   const current = here === 'read' && sections.read.length > 0 ? partId(0) : here
   const currentPart = here === 'read' && sections.read.length > 0 ? 0 : partAt
@@ -296,8 +300,9 @@ export function LessonView({ lesson, module, claims, today, map = null, reading:
   // The way to the next section from where the reader is: the foot bar's amber control below 64rem, while the reader is in Read. In Run the
   // instrument's dock holds the move in hand at the foot, and in Test the questions do, so the bar steps aside there and never covers them.
   const firstRead = sections.read.length > 0 ? `#${partId(0)}` : '#read'
-  const footWay: { href: string; label: string } | null =
-    currentPart >= 0 && currentPart < sections.read.length - 1
+  const footWay: { href: string; label: string } | null = testShown
+    ? null
+    : currentPart >= 0 && currentPart < sections.read.length - 1
       ? { href: `#${partId(currentPart + 1)}`, label: `Next part: ${headingText(sections.read[currentPart + 1].heading)}` }
       : currentPart === sections.read.length - 1 && currentPart >= 0
         ? { href: `#${testId}`, label: toTest }
@@ -385,12 +390,13 @@ export function LessonView({ lesson, module, claims, today, map = null, reading:
                       <Pieces pieces={part.pieces} {...pieceProps} />
                     </div>
                     {/* One amber control per screen (the One Marker Rule): the part being read has it, a part passed or still ahead has
-                        an outline; on a phone the current part's way on is the foot bar's, so it is not drawn twice. */}
+                        an outline; on a phone the current part's way on is the foot bar's, so it is not drawn twice. A part that ends in a
+                        checkpoint has the checkpoint as its move, and the last part's way on to the Test has the Test's own control just below. */}
                     {!wide && at === currentPart ? null : (
                       <WayOn
                         href={next === undefined ? `#${testId}` : `#${partId(at + 1)}`}
                         label={next === undefined ? toTest : `Next part: ${headingText(next.heading)}`}
-                        emphasis={wide && at === currentPart ? 'primary' : 'outline'}
+                        emphasis={wide && at === currentPart && next !== undefined && !part.pieces.some((piece) => piece.kind === 'block' && lesson.blocks[piece.at].type === 'item') ? 'primary' : 'outline'}
                       />
                     )}
                   </section>
@@ -419,9 +425,9 @@ export function LessonView({ lesson, module, claims, today, map = null, reading:
             {sections.test.graded.map((at) => (
               <Instrument key={at} block={lesson.blocks[at] as Of<'game'>} at={at} blocks={lesson.blocks} scope={lesson.id} rev={lesson.rev} kind="graded" />
             ))}
-            {sections.test.questions.map((at) => (
+            {sections.test.questions.map((at, nth) => (
               <Suspense key={at} fallback={<p className="es-lesson__meta">Setting up the questions…</p>}>
-                <ItemBlock block={lesson.blocks[at] as Of<'item'>} scope={lesson.id} />
+                <ItemBlock block={lesson.blocks[at] as Of<'item'>} scope={lesson.id} quiet={nth > 0} />
               </Suspense>
             ))}
           </section>
@@ -602,7 +608,7 @@ function BlockPiece({ at, lesson, env, whereOf, sections }: PieceProps & { at: n
     case 'item':
       return (
         <Suspense fallback={<p className="es-lesson__meta">Setting up the question…</p>}>
-          <ItemBlock block={block} scope={lesson.id} />
+          <ItemBlock block={block} scope={lesson.id} quiet />
         </Suspense>
       )
     case 'figure':
@@ -690,7 +696,8 @@ function Keep({ lesson, sections, kcs, reading, module, position, testHref, toTe
         ) : (
           <>
             <div className="es-next">
-              <a className="es-next__action" data-emphasis="primary" href={testHref}>
+              {/* The Test's own control, just above, is the move in hand: this way to it is an outline, so one amber fill stands in the viewport. */}
+              <a className="es-next__action" data-emphasis="outline" href={testHref}>
                 <span className="es-next__text">
                   <span className="es-next__label">{toTest}</span>
                 </span>

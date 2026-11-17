@@ -1022,8 +1022,8 @@ describe('check 3: the notional-machine card (content/cards/trace-room-steploop.
   const models = section('Models')
   const calibrated = section('Calibrated against')
 
-  test('models every v1 feature: the five modes and both dispatchers, the padding and the graph memory, the runner presets and the per-GPU defaults, the mask, speculation, adapters and D-044', () => {
-    for (const phrase of ['PIECEWISE', 'FULL_DECODE_ONLY', 'FULL_AND_PIECEWISE', 'BatchExecutionDescriptor', 'has_lora', 'runner', 'RTX 4090', 'H100', 'bitmask', 'speculat', 'adapter', 'D-044']) {
+  test('models every v1 feature: the five modes and both dispatchers, the padding and the graph memory, the runner presets and the per-GPU defaults, the mask, speculation, adapters and the host term (the decision is cited as WORLD §2.11, not as a decision id, which a learner never reads)', () => {
+    for (const phrase of ['PIECEWISE', 'FULL_DECODE_ONLY', 'FULL_AND_PIECEWISE', 'BatchExecutionDescriptor', 'has_lora', 'runner', 'RTX 4090', 'H100', 'bitmask', 'speculat', 'adapter', 'WORLD §2.11']) {
       expect(models, phrase).toContain(phrase)
     }
     expect(models.toLowerCase()).toContain('graph memory')

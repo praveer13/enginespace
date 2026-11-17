@@ -511,8 +511,8 @@ describe('check 5: the notional-machine card', () => {
     expect(items).toEqual(S5_LEAVES_OUT.map((x) => x.toLowerCase()))
   })
 
-  test('says what the model does with D-044, and that every host value is estimated, in the parts that carry those claims', () => {
-    expect(section(cardText, 'Models')).toContain('D-044')
+  test('says what the model does with the host term (WORLD §2.11), and that every host value is estimated, in the parts that carry those claims', () => {
+    expect(section(cardText, 'Models')).toContain('WORLD §2.11')
     expect(section(cardText, 'Models')).toContain('[estimated]')
     expect(section(cardText, 'Calibrated against')).toContain('[estimated]')
     expect(section(cardText, 'Calibrated against')).toContain('nothing yet')

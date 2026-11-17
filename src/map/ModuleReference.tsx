@@ -19,6 +19,9 @@ function valueText(claim: Claim): string {
   return claim.unit === undefined ? value : `${value} ${claim.unit}`
 }
 
+/** A claim's value in the line: a commit that names an engine's pin is set as code, like a path the reader opens in that tree. */
+const valueNode = (claim: Claim): ReactNode => (/^[0-9a-f]{7,40}$/.test(String(claim.value)) ? <code>{valueText(claim)}</code> : valueText(claim))
+
 const tagWord = (claim: Claim): string => (claim.synthetic === true ? 'synthetic' : claim.tag)
 
 /** The environment the Reference's prose is drawn with: a claim is its value and its tag word. */
@@ -29,7 +32,7 @@ function referenceEnv(env: RenderEnv): RenderEnv {
     if (claim === undefined) return <code data-claim={id}>{id}</code>
     return (
       <span className="es-module__claim" data-claim={id}>
-        {valueText(claim)} <span className="es-module__tag">{tagWord(claim)}</span>
+        {valueNode(claim)} <span className="es-module__tag">{tagWord(claim)}</span>
       </span>
     )
   }
@@ -169,7 +172,7 @@ function SourceLine({ claim, loaded, today }: { claim: Claim | undefined; loaded
     <>
       <span className="es-module__fact">{claim.text}</span>{' '}
       <span className="es-module__claim">
-        {valueText(claim)} <span className="es-module__tag">{tagWord(claim)}</span>
+        {valueNode(claim)} <span className="es-module__tag">{tagWord(claim)}</span>
       </span>
       <span className="es-module__origin">
         {claim.source !== undefined ? (

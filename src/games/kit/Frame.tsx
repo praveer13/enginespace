@@ -541,7 +541,7 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
                         look={look}
                         ask={kit.askWords?.(run.view) ?? null}
                         askLead={kit.askLead}
-                        skip={kit.firstAsk === 'optional' ? 'allowed' : 'The session needs this guess before the run, so it cannot be skipped.'}
+                        skip={kit.firstAsk === 'optional' ? 'allowed' : 'This guess has to be made before the run, so it cannot be skipped.'}
                         moveWords={kit.firstMoveWords}
                         moveKind={kit.firstMoveKind}
                         embedded={embedded}
@@ -563,9 +563,13 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
                 {props.dock(api)}
               </>
             ) : (
-              <div ref={resultRef} tabIndex={-1} className="es-frame__result" data-result="">
-                {props.result(api, outcome)}
-              </div>
+              <>
+                {/* A run that is one action (Request path's) ends on the move that made its rule felt, so the moment stands over its result and is not lost. */}
+                {moment === null ? null : <MomentNote moment={moment} />}
+                <div ref={resultRef} tabIndex={-1} className="es-frame__result" data-result="">
+                  {props.result(api, outcome)}
+                </div>
+              </>
             )}
           </div>
           <div ref={readoutRef} className="es-frame__readout" data-readout="">

@@ -65,25 +65,28 @@
   margin-top: auto;
 }
 
-.es-frame[data-placement='page'] .es-intro__actions {
-  position: sticky;
-  bottom: calc(-1 * var(--es-space-3));
-  z-index: 1;
-  margin-inline: calc(-1 * var(--es-space-4));
-  padding: var(--es-space-2) var(--es-space-4);
-  background: var(--es-paper);
-  box-shadow: 0 -1px 0 var(--es-paper-rule);
-}
-
-@container es-frame (min-width: 56rem) {
-  .es-frame[data-placement='embed'] .es-intro__actions {
+/* Under 600 px of height nothing is sticky (REDESIGN 5.2): a phone on its side and a desk at 400% zoom have the row in the flow, after the list. */
+@media (min-height: 600px) {
+  .es-frame[data-placement='page'] .es-intro__actions {
     position: sticky;
-    bottom: var(--es-frame-readout, 0px);
+    bottom: calc(-1 * var(--es-space-3));
     z-index: 1;
     margin-inline: calc(-1 * var(--es-space-4));
     padding: var(--es-space-2) var(--es-space-4);
     background: var(--es-paper);
     box-shadow: 0 -1px 0 var(--es-paper-rule);
+  }
+
+  @container es-frame (min-width: 56rem) {
+    .es-frame[data-placement='embed'] .es-intro__actions {
+      position: sticky;
+      bottom: var(--es-frame-readout, 0px);
+      z-index: 1;
+      margin-inline: calc(-1 * var(--es-space-4));
+      padding: var(--es-space-2) var(--es-space-4);
+      background: var(--es-paper);
+      box-shadow: 0 -1px 0 var(--es-paper-rule);
+    }
   }
 }
 

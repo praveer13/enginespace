@@ -96,13 +96,13 @@ Which mode runs is not always the mode you asked for. That is the sixth lesson's
 
 ## Play the launches and the sizes
 
-Open the `graphs` level, "CUDA graphs: launches against replay". It has three stages and `[` and `]` move between them. Play the first, `comb`, then the second, `sizes`, and leave the third to the next lesson. In the first stage you serve the same run with no graph captured and then with the default mode, and the diagram counts the calls of a step. In the second stage the engine has room to capture only a few sizes, and you pick them for a run of decode steps drawn from a histogram.
+Open the `graphs` level, "CUDA graphs: launches against replay". It has three stages and `[` and `]` move between them. Play the first, eager launches against graph replay, then the second, `sizes`, and leave the third to the next lesson. In the first stage you serve the same run with no graph captured and then with the default mode, and the diagram counts the calls of a step. In the second stage the engine has room to capture only a few sizes, and you pick them for a run of decode steps drawn from a histogram.
 
 > **Play.** The game `loop`, level `graphs`, in `practice` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.
 
-Here are the two stages on their practice seed, `0`, read on 2026-11-08 at `b5fb81a`. The `comb` stage is the small model's run, served with no graph and then with the default mode.
+Here are the two stages on their practice seed, `0`, read on 2026-11-08 at `b5fb81a`. The first stage is the small model's run, served with no graph and then with the default mode.
 
-| The `comb` stage's run | No graph [measured] | The default mode [measured] |
+| The first stage's run | No graph [measured] | The default mode [measured] |
 |---|---|---|
 | Calls to launch one steady step | 336 | 1 |
 | Clock, µs | 140,123 | 79,375 |

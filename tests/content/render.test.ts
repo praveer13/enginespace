@@ -166,15 +166,15 @@ describe('/m/tr2/l0-sample, the lesson template (REDESIGN §2.5)', () => {
     expect(html).toContain(`data-rev="${lesson.rev}"`)
   })
 
-  test('Keep: with the Test not passed, the amber control goes to the questions and the next lesson is an outline beside it', () => {
+  test('Keep: with the Test not passed, the way to the questions and the next lesson are both outlines: the Test\'s own control, just above, is the one amber fill (R-T47)', () => {
     const own = entry('tr2')
     if (own === undefined) throw new Error('the sample module is not in the index')
     const around = { ...own, lessons: [...own.lessons, { id: 'tr2.l9', slug: 'l9-after', title: 'The lesson after', route: '/m/tr2/l9-after', minutes: 10, status: 'draft' as const }] }
     const page = render(h(LessonView, { lesson, module: around, claims, today: TODAY }))
     const keep = /<section id="keep"[\s\S]*?<\/section>/.exec(page)?.[0] ?? ''
-    expect(keep).toMatch(/<a class="es-next__action" data-emphasis="primary" href="#the-bubble">[\s\S]*?Go to the 3 questions/)
+    expect(keep).toMatch(/<a class="es-next__action" data-emphasis="outline" href="#the-bubble">[\s\S]*?Go to the 3 questions/)
     expect(keep).toMatch(/<a class="es-next__action" data-emphasis="outline" href="\/m\/tr2\/l9-after"[\s\S]*?Next: lesson 2, The lesson after/)
-    expect(keep.match(/data-emphasis="primary"/g)?.length).toBe(1)
+    expect(keep.match(/data-emphasis="primary"/g)).toBeNull()
   })
 
   test('Keep: with the Test passed, the one amber control is nextStep’s answer', () => {

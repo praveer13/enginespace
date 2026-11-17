@@ -332,12 +332,12 @@ test.describe('the lesson template, at 1440 x 900', () => {
     await expect(page.locator('#sources li')).not.toHaveCount(0)
   })
 
-  test('Keep: with the Test not passed, the amber control goes to the questions and the next lesson is an outline', async ({ page }) => {
+  test('Keep: with the Test not passed, the way to the questions and the next lesson are both outlines, since the Test\'s own control is the one amber fill', async ({ page }) => {
     await open(page, REFERENCE)
     const keep = page.locator('#keep')
-    await expect(keep.locator('.es-next__action[data-emphasis="primary"]')).toHaveAttribute('href', '#exit-check')
-    await expect(keep.locator('.es-next__action[data-emphasis="primary"]')).toContainText('Go to the 3 questions')
-    await expect(keep.locator('.es-next__action[data-emphasis="outline"]')).toContainText('Next: lesson 2')
+    await expect(keep.locator('.es-next__action[data-emphasis="primary"]')).toHaveCount(0)
+    await expect(keep.locator('.es-next__action[href="#exit-check"][data-emphasis="outline"]')).toContainText('Go to the 3 questions')
+    await expect(keep.locator('.es-next__action[data-emphasis="outline"]').last()).toContainText('Next: lesson 2')
     await expect(keep.locator('[data-record]')).toContainText('TR5a lesson 1')
   })
 

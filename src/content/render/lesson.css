@@ -355,6 +355,11 @@
   font-size: 0.92em;
 }
 
+/* A long name in a line of prose breaks where it must, so that a phone's width at 320 px needs no sideways scroll. */
+.es-lesson__prose :not(pre) > code {
+  overflow-wrap: anywhere;
+}
+
 /* A table may break out of the measure, to the column's width; it and a code block scroll sideways when they are wider still. */
 .es-lesson__prose > :is(.es-table, pre, .es-run) {
   max-width: 100%;
@@ -433,6 +438,8 @@
 
 .es-claimvalue {
   font-variant-numeric: tabular-nums;
+  /* A symbol's name (`WAITING_FOR_STRUCTURED_OUTPUT_GRAMMAR`) breaks where it must at a phone's width, and is never cut off. */
+  overflow-wrap: anywhere;
 }
 
 .es-claimmark__n {
