@@ -45,13 +45,15 @@ const ONE_TRUE_THING =
 const figure = (value: number) => <span className="font-numeric">{formatReadout(value)}</span>
 
 function CountersTable({ mine, house, par }: { mine: LoopCounters; house: LoopCounters; par: number | null }) {
-  const rows: [string, number, number][] = [
+  const all: [string, number, number][] = [
     ['Clock (ticks, synthetic)', mine.clockUs, house.clockUs],
     ['Output tokens (synthetic)', mine.usefulTokens, house.usefulTokens],
     ['Ghost tokens (synthetic)', mine.ghostTokens, house.ghostTokens],
     ['Bubble (ticks, synthetic)', mine.bubbleUs, house.bubbleUs],
     ['Empty slots, paid for (synthetic)', mine.emptyClipSteps, house.emptyClipSteps],
   ]
+  // A counter that is nothing in both runs names a thing the level has not drawn yet (a ghost token, a bubble): it is left out.
+  const rows = all.filter(([, a, b], at) => at < 2 || a !== 0 || b !== 0)
   return (
     <div role="region" aria-label="Counters" tabIndex={0} className="overflow-x-auto">
       <table className="w-full border-collapse text-left">

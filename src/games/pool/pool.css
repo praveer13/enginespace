@@ -14,11 +14,8 @@
   min-width: 0;
   min-height: 100%;
   padding: var(--es-space-3);
+  /* Plain paper: a graticule here would be neither the cells' grid nor a value axis (REDESIGN 2.8). */
   background-color: var(--es-paper);
-  background-image:
-    linear-gradient(to right, color-mix(in srgb, var(--es-paper-rule) 45%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in srgb, var(--es-paper-rule) 45%, transparent) 1px, transparent 1px);
-  background-size: 2.5rem 2.5rem;
   color: var(--es-paper-ink);
 }
 
@@ -463,6 +460,14 @@
 .es-dock__option[aria-pressed='true'] {
   border-color: var(--es-cat-red-edge);
   background: color-mix(in srgb, var(--es-memory-evicted) 10%, var(--es-paper));
+}
+
+/* On a phone an option is its name and its words on one row, so three options and Admit none fit the pinned dock. */
+@media (max-width: 63.999rem) {
+  .es-dock__option:has(> .es-dock__option-meta) {
+    grid-template-columns: auto minmax(0, 1fr);
+    padding-block: 2px;
+  }
 }
 
 .es-dock__option-name {

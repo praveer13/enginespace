@@ -49,8 +49,8 @@ function useBox(ref: RefObject<HTMLDivElement | null>): { width: number; height:
   return box
 }
 
-/** A lesson's dock draws the same swimlane small: no names beside the nodes, only the marks [estimated from the dock's 24rem]. */
-const DOCK_LANES: LaneGeometry = { box: 340, gutter: 24, head: 22, start: 20, row: 20, threadMin: 22, threadMax: 70, pad: 8, tail: 8 }
+/** A lesson's dock draws the same swimlane small: no names beside the nodes, only the marks, and columns wide enough for their heads [estimated from the dock's 24rem]. */
+const DOCK_LANES: LaneGeometry = { box: 340, gutter: 24, head: 22, start: 20, row: 20, threadMin: 22, threadMax: 110, pad: 8, tail: 8 }
 
 /** The geometry for a box: a phone's under 480 px, the desk's otherwise, with the row fitted to the height so fourteen rows show. */
 function geometryOf(box: { width: number; height: number } | null, size: 'frame' | 'dock'): LaneGeometry {
@@ -205,10 +205,13 @@ function RowSheet({ stage, view, tools, up, left, onClose }: { stage: LaidView; 
 
 /** The arrow's mark and word, beside its last leg. */
 function Tag({ row, top }: { row: LaneRow; top: number }) {
+  // A hop inside one column whose word has no room at the arrow's left would share the name's side, under the name: it keeps its slot at
+  // the arrow's left as its mark alone, which the legend names.
+  const slot = row.tag.side === 'right' && row.side === 'right'
   return (
-    <span className="es-lanes__tag" data-side={row.tag.side} style={{ left: row.tag.x, top: row.tag.y - top }} aria-hidden="true">
+    <span className="es-lanes__tag" data-side={slot ? 'left' : row.tag.side} data-mark-only={slot || undefined} style={{ left: slot ? row.x - 6 : row.tag.x, top: row.tag.y - top }} aria-hidden="true">
       <HandoffGlyph mechanism={row.mechanism} className="es-lanes__tag-glyph" />
-      {ARROW_WORDS[row.mechanism]}
+      <span className="es-lanes__tag-word">{ARROW_WORDS[row.mechanism]}</span>
     </span>
   )
 }

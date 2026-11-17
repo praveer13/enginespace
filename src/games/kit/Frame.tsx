@@ -374,8 +374,13 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
       if (top < 0) window.scrollBy({ top: top - 8 })
       return
     }
-    const ways = resultRef.current?.querySelector<HTMLElement>('.es-debrief__actions, .es-loopdebrief__ways')
-    ;(ways ?? resultRef.current)?.scrollIntoView({ block: 'nearest' })
+    // A result whose chunk is still loading has no ways on yet: they are looked for again until they are drawn, for about two seconds.
+    const bring = (tries: number) => {
+      const ways = resultRef.current?.querySelector<HTMLElement>('.es-debrief__actions, .es-loopdebrief__ways')
+      if (ways || tries === 0) (ways ?? resultRef.current)?.scrollIntoView({ block: 'nearest' })
+      else setTimeout(() => bring(tries - 1), 100)
+    }
+    bring(20)
   }, [outcome, embedded])
 
   // A new phase of the dock (an intro step, the intro's end, the guess opening or closing) starts at its own top: the dock's scroll from

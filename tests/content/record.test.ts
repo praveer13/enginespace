@@ -83,6 +83,14 @@ describe('the rail’s answers and the Test’s tally', () => {
     expect(runLines(again, ROW.run, NAMES).map((line) => line.text)).toEqual(['One KV group: passed in practice', 'Full attention and a sliding window: passed in practice'])
   })
 
+  test('one of a unit is said in the singular: "you said 1 page", "guess 1 page", and a unit that is no plural noun stays as it is', () => {
+    const one = guessLines([guess(1, 2)])[0]
+    expect([one.said, one.record]).toEqual(['you said 1 page', 'guess 1 page, model 2 pages'])
+    const event = guess(1, 1) as unknown as { data: Record<string, unknown> }
+    const lines = guessLines([{ ...event, data: { ...event.data, unit: 'boundaries' } } as unknown as LedgerEvent])
+    expect(lines[0].said).toBe('you said 1 boundary')
+  })
+
   test('"3 of 3: passed", and before the pass the running count the rule reads, "1 of your last 3 answers right"', () => {
     expect(tallyWords(tally(ROW, own))).toBe('3 of 3: passed')
     const once = [made('item', 'item:gen/tr5a.blocks-held/v1', { ok: false }), made('item', 'item:gen/tr5a.blocks-held/v1', { day: 1 })]

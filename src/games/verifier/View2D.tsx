@@ -226,10 +226,11 @@ export function VerifierLegend({ run, scene = false }: { run: VerifierRun; scene
     ...(decomposed
       ? [
           { slot: SLOT_OF.accepted, word: <PartName id="accepted">accepted min(p, q)</PartName> },
-          { slot: SLOT_OF.residual, word: <PartName id="residual">residual (p − q)⁺</PartName> },
+          { slot: SLOT_OF.residual, word: scene ? <><PartName id="residual">residual (p − q)⁺</PartName>: grooved, its top pale</> : <PartName id="residual">residual (p − q)⁺</PartName> },
         ]
       : []),
-    ...(outs ? [{ slot: SLOT_OF.output, word: <PartName id="output">output of the sampler</PartName> }] : []),
+    // In 3D the output's mark is named in the row from the start, so the legend keeps its height and the scene's box never changes under a draw.
+    ...(outs || scene ? [{ slot: SLOT_OF.output, word: scene ? <><PartName id="output">output of the sampler</PartName>: the black collar on a target bar</> : <PartName id="output">output of the sampler</PartName> }] : []),
   ]
   return (
     <div className="es-vf__legend" data-vf-legend="">
@@ -244,8 +245,6 @@ export function VerifierLegend({ run, scene = false }: { run: VerifierRun; scene
           </>
         ) : null}
         {scene ? (view.rows.length > 1 ? ' The 3D view stands the same tokens in rows, one row for each draft position, the first in front.' : ' The 3D view stands the same bars up, at their heights.') : ''}
-        {/* Said from the start, so the legend keeps its height and the scene's box never changes under a draw. */}
-        {scene ? ' In 3D the output of the sampler, once drawn, is a black collar round the target bar at its height, and the residual is grooved, its top drawn pale.' : ''}
       </p>
     </div>
   )

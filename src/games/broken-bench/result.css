@@ -13,10 +13,6 @@
 
 .es-bench-debrief .es-debrief__verdict {
   margin: 0;
-  font-family: var(--es-font-heading);
-  font-size: var(--es-size-large);
-  font-weight: var(--es-font-heading-weight);
-  line-height: 1;
 }
 
 .es-bench-debrief[data-verdict='Not yet'] .es-debrief__verdict {

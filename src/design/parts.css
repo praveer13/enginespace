@@ -78,7 +78,10 @@
   left: -1px;
   width: 2px;
   background: var(--es-marker);
-  box-shadow: 0 0 0 1px var(--es-marker-edge);
+  /* A casing of the paper on each side parts the line from a slab that ends at it, so "now" never reads as the slab's edge. */
+  box-shadow:
+    0 0 0 1px var(--es-marker-edge),
+    0 0 0 4px var(--es-paper);
 }
 
 .es-marker[data-kind='cursor'] .es-marker__shape {

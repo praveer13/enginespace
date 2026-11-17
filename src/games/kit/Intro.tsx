@@ -12,9 +12,9 @@ import './intro.css'
  * The first run's coach strip and its callouts (REDESIGN §2.6, §3.5): a lazy chunk, loaded only when the intro shows, so the game's route
  * carries none of it. The frame owns the steps (first-move.ts); this file draws them.
  *
- *   The coach strip, at the top of the dock: "What you are looking at" and the parts as an ordered list, then the look, the ask and the
- *   pointed first move, each with its words. "Next" carries the amber ring while the intro leads; "Skip intro" ends it at any step. On a
- *   phone the list shows one part at a time, and Next walks it.
+ *   The coach strip, at the top of the dock: "What you are looking at", Next and Skip intro, and the parts as an ordered list, then the
+ *   look, the ask and the pointed first move, each with its words. "Next" carries the amber ring while the intro leads; "Skip intro" ends it
+ *   at any step. On a phone the list shows one part at a time, and Next walks it.
  *   The callouts: an ink disc on each listed part's object in the drawing, numbered as the list is. They are decoration for the list, hidden
  *   from assistive technology, and never take a press.
  *
@@ -110,13 +110,7 @@ export function IntroCoach({ title, step, parts, replay, look, ask, askLead, ski
     case 'parts':
       body = (
         <>
-          <p className="es-intro__lead">
-            {replay
-              ? 'Every part this level draws, the ones you have not met first.'
-              : parts.length === 1
-                ? 'One part is new on this level.'
-                : 'The numbers on the drawing match this list.'}
-          </p>
+          {replay || parts.length === 1 ? <p className="es-intro__lead">{replay ? 'Every part this level draws, the ones you have not met first.' : 'One part is new on this level.'}</p> : null}
           <PartsList
             parts={parts.map((part) => ({
               id: part.id,
@@ -189,13 +183,14 @@ export function IntroCoach({ title, step, parts, replay, look, ask, askLead, ski
       <h3 id={headingId} className="es-intro__title" tabIndex={-1} data-intro-focus="">
         {TITLES[step]}
       </h3>
-      {body}
+      {/* Next and Skip intro stand under the step's title, before what it lists, so a long list never runs under them. */}
       <div className="es-intro__actions">
         {primary}
         <button type="button" className="es-intro__skip" onClick={onEnd} data-intro-skip="">
           {step === 'point' ? 'Close the intro' : 'Skip intro'}
         </button>
       </div>
+      {body}
     </section>
   )
 }
@@ -242,7 +237,7 @@ const DISC = 30
 
 /**
  * Where a part's disc goes. A number in the readout keeps its digits clear: the disc stands over the middle of its item, in the strip's head
- * room, never over the item beside it. At a desk a part drawn on the diagram is marked in the diagram's own gutter at its left, level with
+ * room, never over the item beside it. A bar or a page of the pool is marked inside its own top. At a desk a part drawn on the diagram is marked in the diagram's own gutter at its left, level with
  * the part, as the front page marks its lanes: a disc never covers a word, a glyph or a mark of the drawing. Elsewhere (a phone, which calls
  * out one part at a time, or a part in the dock) the disc goes just after the part's own name, or the first line of its text; at the box's
  * top right where the line runs to the edge.
@@ -254,12 +249,13 @@ function discAt(host: Element, target: Element, whole: Box, wide: boolean): Box 
     return { top: at.top - DISC + 2, left: at.left + at.width / 2 - DISC / 2, width: DISC, height: DISC }
   }
   // A bar is marked inside its own top, under the count printed over it.
-  const bar = target.closest('[data-callout-in]')
+  const bar = target.closest('[data-callout-in], .es-pool__cell')
   if (bar !== null) {
     const at = boxIn(host, bar)
     return { top: at.top + 3, left: at.left + at.width / 2 - DISC / 2, width: DISC, height: DISC }
   }
-  const surface = wide ? target.closest('.es-frame__surface') : null
+  // A drawing whose parts keep room after their names (Broken benchmark's board) is marked there, beside each part, and not in the gutter.
+  const surface = wide && target.closest('[data-callout-after]') === null ? target.closest('.es-frame__surface') : null
   if (surface !== null) {
     const gutter = boxIn(host, surface)
     return { top: whole.top + Math.min(whole.height, DISC) / 2 - DISC / 2, left: gutter.left + 1, width: DISC, height: DISC }

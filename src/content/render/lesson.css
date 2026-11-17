@@ -343,6 +343,17 @@
   padding-inline-start: 1.4em;
 }
 
+/* A numbered list keeps its numbers: a text that says "the first four" and "the fifth" points at them. */
+.es-lesson__prose ol {
+  list-style: decimal;
+}
+
+.es-lesson__prose ol > li::marker {
+  color: var(--es-text-2);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
 .es-lesson__prose h3 {
   margin-top: var(--es-space-4);
   font-family: var(--es-font-body);
