@@ -4,6 +4,7 @@ import { FULL_COPY } from '@es/play/loop/full/copy'
 import { fullSession, leverWords, predictionClose, wordsOf } from '@es/play/loop/full/session'
 import type { LeverName, Levers } from '@es/play/loop/full/types'
 import { Button } from '@/design/components/Button'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { Stamp } from '@/design/components/Stamp'
 import { TextLink } from '@/design/components/TextLink'
 import { formatReadout } from '@/design/format'
@@ -76,13 +77,13 @@ export function FullDebrief({ run, outcome, next, onNext, onGraded = null, onPra
 
   const primary =
     onward !== null ? (
-      <Button variant="ink" onClick={() => onward.select()}>
+      <PrimaryButton onClick={() => onward.select()}>
         {onward.label}
-      </Button>
+      </PrimaryButton>
     ) : next !== null ? (
-      <Button variant="ink" onClick={onNext}>
+      <PrimaryButton onClick={onNext}>
         {`Next level: ${next.title}`}
-      </Button>
+      </PrimaryButton>
     ) : embedded ? null : (
       <TextLink to="/map">Open the course</TextLink>
     )

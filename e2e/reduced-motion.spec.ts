@@ -106,7 +106,8 @@ test.describe('a 3D pass asks for no frame once it has settled', () => {
     test(`${route}: a first frame is drawn, and then none is asked for`, async ({ page }) => {
       test.setTimeout(120_000)
       await countFrames(page)
-      await open(page, route)
+      // The sampler offers its 3D on the chain only, the level whose rows give depth something to carry (wave R's finish review).
+      await open(page, route === '/play/verifier' ? '/play/verifier?level=chain' : route)
       // The design page's specimen never says that it has settled (it is a demonstration, not a game), so it is waited for by its frames.
       await settled3d(page, { rested: route !== '/design' })
       const drawn = await framesAtRest(page)

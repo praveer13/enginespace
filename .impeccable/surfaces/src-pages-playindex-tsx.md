@@ -5,48 +5,34 @@ primary_target: "src/pages/PlayIndex.tsx"
 related_targets: ["src/games"]
 ---
 
-# Games
+# Games (`/play`)
 
 ## Scope
 
-- **Surface:** the games index (`/play`), in Operate mode.
-- **Visitor:** a learner who wants to play one rule of the engine, or to see which game goes with the module they are on.
-- **Action:** open a game.
-- **Proof:** each game's picture is its own 2D view's first frame, drawn by the same pure layout. A game that is not built yet shows nothing it does not have.
-- **Constraints:**
-  - the PRODUCT.md constraints;
-  - 320 px with no sideways scroll, keyboard, reduced motion;
-  - a game that is not built yet is never a link, and says which wave brings it.
+- **Surface:** the games index (`/play`), in Operate mode (REDESIGN §3.8).
+- **Visitor:** a learner who wants to play one rule of the engine, or to find the game that goes with the module they are on.
+- **Action:** open a game at one of its levels.
+- **Proof:** each row names the game by its engine title and role line, its levels with practice or graded, and the learner's best attempt in words, read from their own ledger.
+- **Constraints:** the PRODUCT.md constraints; 320 px with no sideways scroll; keyboard; reduced motion; a game that is not published is never a link.
 
 ## Direction contract
 
-THESIS: The games are the specials on the line's board: each a named line with its picture in a steel well and one stub to play it. The page refuses the grid of game cards, and a game that is not built hangs as a bare pan and not as a dead link.
+THESIS: A plain list of instruments: each game a row with its title, its role line ("You are the scheduler."), its rule in one line and its levels. It refuses the grid of game cards and the picture well.
 
-OWN-WORLD:
-- **Board:** a sheet of raised brushed stainless with a plate edge, its lines divided by machined grooves.
-- **Lines:** the display name stamped on a plate over its subtitle on masking tape; the module and the view (2D or 3D) on tape beside it.
-- **Wells:** recessed steel that holds the poster; an empty pan where the game is not built.
-- **Active state:** amber only on the control the keyboard is on.
+OWN-WORLD: Data Book (REDESIGN §2.8): flat paper cut square with one soft sheet shadow and no texture; ink text in Atkinson Hyperlegible, titles in Big Shoulders Display 800 in sentence case; numbers in the tabular mono face; one amber marker that means "now", only on the control to act on now, a diagram's now cursor and the current position in a rail or on the course track.
 
-STORY: The learner sees which games they can play now, which module each belongs to and whether it has a 3D view. They see what arrives with the next wave without being sent to a page that is not there, and they open Service or the game that matches their module.
+STORY: The learner sees each game as the engine part it puts them in charge of, and how far they have got on each level, and opens the one their lesson needs.
 
-FIRST VIEWPORT:
-- The stamped heading "Games" and a lede.
-- Under them the board: Service first, with its poster in the well, its name over "the step loop", TR2 and 3D on tape, and the Play stub at the right.
-- Below it, one line to a game that is built, then the lines of the games that arrive, each with a bare pan.
-- On a phone each line stacks: the well on top, then the name, the tape, and the stub.
+FIRST VIEWPORT: The h1 "Games", then the rows in course order: Step loop, Request path, KV page pool, Rejection sampler, Broken benchmark, and the games not published yet saying so. Traces is linked at the foot.
 
-FORM:
-- **Chosen form:** the specials board of the line kitchen, with the display names and subtitles of D-049 and the objects of GAMES.md §2.6. It is the specified surface, with no concept roll.
-- seed: none (specified surface, no roll)
-- **Signature move:** a game that is not built yet is a bare pan in its well, labelled with the wave that brings it.
+FORM: Data Book's plain list (REDESIGN §3.8). seed: none (a specified surface inside the established world, which the owner confirmed at the look gate; no roll)
 
-FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
-
-## Memorable moment
-
-Service's poster in its well: the same picture as the front page's first frame, now a line on the board with a stub beside it.
+FINISH: unreviewed and undocumented is unfinished; this surface ends with wave R's finish review (R-T50), its material fixes, and DESIGN.md written from the built world
 
 ## Unresolved
 
-- **Posters of the other games:** each game's task adds its poster file to scripts/posters.ts and a line to the table in src/games/specials/posters.ts, and the board shows a bare pan until it does. The board fetches the file and never imports a game's layout code, which would cost the front page's first-paint budget.
+- Tensor views and KV offload, the roster's other two 3D games, are not built.
+
+## The Pass's contract, superseded
+
+Until wave R this surface was specified in The Pass (D-047), the kitchen world. D-062 replaced it with Data Book, which the owner confirmed at the look gate on 2026-11-16, and stage 4 took the kitchen's files out of the tree. The superseded contract is in this file's git history; none of it applies to the built surface.

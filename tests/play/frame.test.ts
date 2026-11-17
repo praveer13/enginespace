@@ -105,9 +105,9 @@ describe('the verdict word comes from the grade', () => {
     expect(verdictOf({ score: 0.6, ok: false }, false)).toBe('Finished (practice)')
   })
 
-  test('the result prints the word as its heading, then the sentence, then the ways on, then what the game adds', () => {
+  test('the result prints the word as its heading, then the ways on, then the sentence, then what the game adds', () => {
     const markup = render(h(Debrief, { verdict: 'Not yet', sentence: 'You evicted a page.', actions: h('button', null, 'Next level: Two'), children: h('p', null, 'more') }))
-    expect(markup).toMatch(/<section class="es-debrief" data-verdict="Not yet" aria-label="Result"><h3 class="es-debrief__verdict" tabindex="-1" data-result-heading="">Not yet<\/h3><p class="es-debrief__sentence">You evicted a page.<\/p><div class="es-debrief__actions"><button>Next level: Two<\/button><\/div><div class="es-debrief__body"><p>more<\/p><\/div><\/section>/)
+    expect(markup).toMatch(/<section class="es-debrief" data-verdict="Not yet" aria-label="Result"><h3 class="es-debrief__verdict" tabindex="-1" data-result-heading="">Not yet<\/h3><div class="es-debrief__actions"><button>Next level: Two<\/button><\/div><p class="es-debrief__sentence">You evicted a page.<\/p><div class="es-debrief__body"><p>more<\/p><\/div><\/section>/)
   })
 })
 

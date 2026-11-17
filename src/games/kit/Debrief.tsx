@@ -1,10 +1,11 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import type { Verdict } from './verdict'
+import './debrief.css'
 
 /*
  * The debrief (REDESIGN §2.6), a component of its own, so a lesson can place it under the instrument and the game's page inside the dock.
- * It keeps its shape: the verdict word, one plain sentence that names the engine term in bold, then the ways on (the one primary control
- * first), and under them what the game adds: your guess beside the model's answer, yours against the reference, "In vLLM today" with the
+ * It keeps its parts: the verdict word, then the ways on straight under it (the one primary control first, so the move in hand is on the
+ * screen with the verdict at any width, P5), then one plain sentence that names the engine term in bold, and under it what the game adds: your guess beside the model's answer, yours against the reference, "In vLLM today" with the
  * source file and symbol.
  *
  * The verdict word comes from the grade's own data (REDESIGN §2.4): "Passed" or "Not yet" where the level has a pass rule, and
@@ -36,8 +37,8 @@ export function Debrief({ verdict, sentence, actions, children, className }: Deb
       <h3 ref={heading} className="es-debrief__verdict" tabIndex={-1} data-result-heading="">
         {verdict}
       </h3>
-      <p className="es-debrief__sentence">{sentence}</p>
       <div className="es-debrief__actions">{actions}</div>
+      <p className="es-debrief__sentence">{sentence}</p>
       {children === undefined ? null : <div className="es-debrief__body">{children}</div>}
     </section>
   )

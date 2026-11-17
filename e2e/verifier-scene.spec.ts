@@ -6,8 +6,9 @@
  *   2. The output's ring settles onto p as rounds are drawn, in one move: a hundred rounds drawn at once move the scene once, and it settles.
  *   3. Reduced motion shows each batch's end: a draw cuts to it, and then no animation frame is asked for.
  *   And the rest of the scene contract: `V` swaps 2D and 3D and keeps the run, `C` and the buttons reach every shot, the capture is not
- *   blank, the parts stand in their colours, all text is DOM, every label stands whole inside the box in every shot, and a bar picked in
- *   the scene hands focus to its token's weight.
+ *   blank, the parts stand in their colours, all text is DOM, and every label stands whole inside the box in every shot. Wave R's finish
+ *   review offers the 3D view on the chain only, the level whose rows give depth something to carry; a level of one draft position has
+ *   no 3D switch, so the recipe level's pick in the scene has no scene to be made in.
  *
  * How it runs, as e2e/loop-scene.spec.ts does: one test build with `VITE_ES_TEST_HOOKS=1` (it exposes `window.__esScene` and honours
  * `?es-tier=<0-3>`), served by `context.route` so no server runs, with any request off the origin failing the test. Chromium renders
@@ -113,7 +114,7 @@ const probe = (page: Page) => page.evaluate(() => window.__esScene?.probes.verif
 const camera = (page: Page) => page.getByRole('group', { name: 'Camera on the sampler' })
 const weight = (page: Page, dish: number) => page.locator(`[data-vf-dish="${dish}"]`)
 
-async function open(page: Page, level: string, tier: number) {
+async function open(page: Page, level: string, tier: number, to3d = true) {
   await page.addInitScript(() => {
     try {
       localStorage.setItem('es:intro', JSON.stringify({ verifier: ['draft', 'target', 'token', 'accepted', 'residual', 'alpha', 'round', 'output', 'position', 'bonus', 'gamma'] }))
@@ -124,7 +125,8 @@ async function open(page: Page, level: string, tier: number) {
   await page.goto(`${ORIGIN}/play/verifier?level=${level}&es-tier=${tier}`)
   await page.evaluate(() => document.fonts.ready)
   await expect(game(page)).toBeVisible()
-  // The diagram is the default view (R-T30, REDESIGN §2.9): 3D is one switch away.
+  if (!to3d) return
+  // The diagram is the default view (R-T30, REDESIGN §2.9): 3D is one switch away, on the chain, the level whose rows give depth something.
   await page.getByRole('button', { name: '3D', exact: true }).click()
   await expect(game(page)).toHaveAttribute('data-view', '3d')
 }
@@ -185,12 +187,28 @@ async function play(page: Page, level: string) {
   }
 }
 
-test.describe('the draw-call budget on every level (A§11.1)', () => {
+/** The levels with one draft position: depth would carry nothing there, so the 3D view is not offered (wave R's finish review). */
+const ONE_POSITION = ['overlap', 'exact', 'greedy-ngram', 'mutants', 'gamma'] as const
+
+test.describe('3D only where depth carries something', () => {
+  test('a level of one draft position offers no 3D switch, and the chain does', async ({ page }) => {
+    test.setTimeout(120_000)
+    for (const level of ONE_POSITION) {
+      await open(page, level, 2, false)
+      await expect(game(page).getByRole('button', { name: '3D', exact: true }), `${level}: no 3D switch`).toHaveCount(0)
+      await expect(game(page)).toHaveAttribute('data-view', '2d')
+    }
+    await open(page, 'chain', 2)
+    await settle(page)
+  })
+})
+
+test.describe('the draw-call budget on every level that has a scene (A§11.1)', () => {
   for (const tier of [1, 2]) {
-    test(`every level, played with its draws, draws in at most 100 calls, at T${tier}`, async ({ page }) => {
+    test(`the chain, played with its draws, draws in at most 100 calls, at T${tier}`, async ({ page }) => {
       test.setTimeout(600_000)
       let most: FrameStats | null = null
-      for (const level of ['overlap', 'exact', 'chain', 'greedy-ngram', 'mutants', 'gamma']) {
+      for (const level of ['chain']) {
         await open(page, level, tier)
         await settle(page)
         await play(page, level)
@@ -209,9 +227,9 @@ test.describe('the draw-call budget on every level (A§11.1)', () => {
 
 test.describe('batches: the output skyline settles once for a batch, not once a round', () => {
   test('a hundred rounds drawn at once move the scene once, and it settles', async ({ page }) => {
-    await open(page, 'overlap', 1)
+    await open(page, 'chain', 1)
     await settle(page)
-    await page.getByLabel('Accepted, in sixty-fourths').fill(String(keptPlates(buildLevel('overlap', 0))))
+    await page.getByLabel('Tokens per round').fill('2.4')
     await page.keyboard.press('Enter')
     await settle(page)
     // Every time the scene starts to move, the Stage takes its "settled" mark away: count those.
@@ -264,27 +282,29 @@ test.describe('reduced motion (A§6.9): a batch cuts to its end', () => {
 })
 
 test.describe('the views and the camera (A§6.8)', () => {
-  test('`V` swaps 2D and 3D and keeps the run: the weights and the rounds drawn', async ({ page }) => {
-    await open(page, 'exact', 2)
+  test('`V` swaps 2D and 3D and keeps the run: the prediction and the rounds drawn', async ({ page }) => {
+    await open(page, 'chain', 2)
     await settle(page)
     await expect(game(page)).toHaveAttribute('data-view', '3d')
-    await weight(page, 0).fill('7')
+    await page.getByLabel('Tokens per round').fill('2.4')
+    await page.keyboard.press('Enter')
     await draw(page)
     await settle(page)
     const rounds = () => page.locator('[data-readout-id="rounds"] dd').first().textContent()
-    const before = { recipe: await weight(page, 0).inputValue(), rounds: await rounds() }
-    expect(before.recipe).toBe('7')
+    const committed = () => page.locator('[data-verifier-controls]').getAttribute('data-ask')
+    const before = { recipe: await committed(), rounds: await rounds() }
+    expect(before.recipe).toBe('finish')
     await focusGame(page)
     await page.keyboard.press('KeyV')
     await expect(game(page)).toHaveAttribute('data-view', '2d')
     await expect(page.locator('[data-surface="2d"] [data-verifier-view] .es-vf__bar').first()).toBeVisible()
     await expect(stage(page)).toHaveCount(0)
-    expect({ recipe: await weight(page, 0).inputValue(), rounds: await rounds() }).toEqual(before)
+    expect({ recipe: await committed(), rounds: await rounds() }).toEqual(before)
     await focusGame(page)
     await page.keyboard.press('KeyV')
     await expect(game(page)).toHaveAttribute('data-view', '3d')
     await settle(page)
-    expect({ recipe: await weight(page, 0).inputValue(), rounds: await rounds() }).toEqual(before)
+    expect({ recipe: await committed(), rounds: await rounds() }).toEqual(before)
   })
 
   test('`C` cycles every shot and each button reaches its own', async ({ page }) => {
@@ -336,25 +356,6 @@ test.describe('labels: every one stands whole inside the box, in every shot', ()
   })
 })
 
-test.describe('picks (A§6.8): a bar picked in the scene hands focus to its token\'s weight', () => {
-  test('picking the target bar of token 2 focuses token 2\'s weight', async ({ page }) => {
-    // The frame's dock stands over the foot of a phone's screen; beside the scene, at a desk's width, it covers nothing.
-    await page.setViewportSize({ width: 1280, height: 900 })
-    await open(page, 'exact', 2)
-    await settle(page)
-    const { model } = skylineOf(buildView('exact'), { scaffold: true, outcome: true })
-    const bar = model.boxes.find((box) => box.id.startsWith('r0/p2/'))
-    if (!bar) throw new Error('no bar for token 2')
-    // The middle of the bar's top: a bar's top is the diagram's own colour, and the nearest thing to the camera there.
-    const at = await page.evaluate((point) => (window.__esScene as SceneHook).probes.verifier.project(point), [((bar.x0 + bar.x1) / 2) / PX, topOf(bar) / PX, ((bar.z0 + bar.z1) / 2) / PX] as [number, number, number])
-    if (!at) throw new Error('the bar is behind the camera')
-    const box = await stage(page).locator('canvas').boundingBox()
-    if (!box) throw new Error('no canvas')
-    await page.mouse.click(box.x + at.x, box.y + at.y)
-    await expect(weight(page, 2)).toBeFocused()
-  })
-})
-
 /** The canvas's colour at a scene point, read back from the test build's kept frame: the mean of a few pixels round it. */
 async function colourAt(page: Page, point: [number, number, number]): Promise<[number, number, number]> {
   const at = await page.evaluate((p) => (window.__esScene as SceneHook).probes.verifier.project(p), point)
@@ -378,11 +379,11 @@ async function colourAt(page: Page, point: [number, number, number]): Promise<[n
 
 test.describe('the parts (REDESIGN §3.5): the draft is yellow and the target blue, as the legend says', () => {
   test('before the decomposition prints, a q bar\'s top is the draft\'s yellow and a p bar\'s the target\'s blue', async ({ page }) => {
-    await open(page, 'overlap', 2)
+    await open(page, 'chain', 2)
     await settle(page)
     await page.addStyleTag({ content: '.es-labels { visibility: hidden !important; }' })
     await frame(page)
-    const view = buildView('overlap')
+    const view = buildView('chain')
     const { model } = skylineOf(view, { scaffold: true, outcome: true })
     const tops = (prefix: string) => model.boxes.filter((box) => box.id.startsWith(prefix)).sort((a, b) => b.height - a.height)[0]
     const q = tops('r0/q')
@@ -417,15 +418,15 @@ test.describe('the picture (A§10.1; GAMES.md §2.6 rule 7)', () => {
   })
 
   test('all text is DOM: the tokens\' numbers and the bars\' counts are page text over the canvas', async ({ page }) => {
-    await open(page, 'overlap', 2)
+    await open(page, 'chain', 2)
     await settle(page)
     const labels = stage(page).locator('.es-labels')
     // A token's number stands under its pair of bars; the legend says the columns are tokens 0 to 5.
     for (const token of ['0', '1', '2', '3', '4', '5']) await expect(labels.locator('.es-vf-label--tick', { hasText: new RegExp(`^${token}$`) })).toHaveCount(1)
     // Each bar's count over it: the draft's q and the target's p, out of 64.
-    const level = buildLevel('overlap', 0)
+    const level = buildLevel('chain', 1)
     const counts = (await labels.locator('.es-vf-label--slab').allTextContents()).map(Number).sort((a, b) => a - b)
-    expect(counts).toEqual([...level.p[0], ...level.q[0]].filter((n) => n > 0).sort((a, b) => a - b))
+    expect(counts).toEqual([...level.p.flat(), ...level.q.flat()].filter((n) => n > 0).sort((a, b) => a - b))
     // Every label is at the size ramp's smallest step at least.
     for (const size of await labels.locator('.es-vf-label').evaluateAll((nodes) => nodes.map((node) => parseFloat(getComputedStyle(node).fontSize)))) expect(size).toBeGreaterThanOrEqual(11)
     await expect(stage(page).locator('.es-stage__scene')).toHaveAttribute('aria-hidden', 'true')

@@ -38,9 +38,6 @@ export const NARROW = 560
 /** The rise over the lanes that the now cursor's word takes, in px: the 2D view's head room. */
 const HEAD = 14
 
-/** How far under the axis's numbers the now cursor's word stands, in px: one line of the numbers [estimated]. */
-const NOW_DROP = 14
-
 /** Whether words fit a width: the 2D view's rule [estimated: 6.5 px a character and a margin]. */
 const fits = (words: string, width: number): boolean => words.length * 6.5 + 8 <= width
 
@@ -112,11 +109,14 @@ export function diagramModel(layout: LaneLayout, options: DiagramOptions = {}): 
     const x1 = ox + slab.x + slab.width - gap
     if (x1 <= x0) continue
     if (slab.row === 'cpu') {
-      boxes.push({ id: `${p}${slab.id}`, x0, x1, z0: oz + slab.y + 1, z1: oz + slab.y + slab.height - 1, height: RISE.cpu, role: slab.kind === 'sync' ? 'lane-sync' : 'lane-cpu', form: 'solid' })
+      // A sync stops short of its end by a hair, so its yellow never fuses with now's amber sheet standing at the same tick.
+      const end = slab.kind === 'sync' && !options.tight ? x1 - 3 : x1
+      boxes.push({ id: `${p}${slab.id}`, x0, x1: end, z0: oz + slab.y + 1, z1: oz + slab.y + slab.height - 1, height: RISE.cpu, role: slab.kind === 'sync' ? 'lane-sync' : 'lane-cpu', form: 'solid' })
       if (fits(slab.kind, slab.width) && slab.height >= 14) labels.push({ id: `${p}${slab.id}`, at: [x0 - 1, RISE.cpu, oz + slab.y + slab.height / 2], text: slab.kind, kind: 'slab', place: 'right' })
       continue
     }
-    const inset = options.tight ? 0 : Math.min(2, slab.height / 6)
+    // Each slot's slab keeps a clear gap from the next slot's, so four slots read as four rows and not one block in the tilt.
+    const inset = options.tight ? 0 : Math.min(5, slab.height / 5)
     const footprint = { x0, x1, z0: oz + slab.y + inset, z1: oz + slab.y + slab.height - inset }
     if (slab.use === 'empty') {
       wires.push({ id: `${p}${slab.id}`, ...footprint, height: RISE.slot / 2, role: 'lane-idle', form: 'hollow' })
@@ -155,7 +155,8 @@ export function diagramModel(layout: LaneLayout, options: DiagramOptions = {}): 
   // Now: the amber sheet across the lanes, and its word under the axis's numbers, at its foot. Over the lanes the tilt would carry the word
   // up into the waiting queue's row, onto a tile or the row's name; under the axis nothing else is drawn, at any tick.
   const cursors = [{ id: `${p}now`, x: ox + layout.now.x, z0: oz + layout.now.y0 - HEAD / 2, z1: oz + layout.now.y1, height: RISE.cursor }]
-  labels.push({ id: `${p}now`, at: [ox + layout.now.x, 0, oz + axisY + 6 + NOW_DROP], text: LANE_WORDS.now, kind: 'now', place: 'below' })
+  // The now word stands where the 2D view puts it: over the lanes, at the cursor's head, to its right.
+  labels.push({ id: `${p}now`, at: [ox + layout.now.x + 3, RISE.cursor, oz + lanesTop - HEAD / 2], text: LANE_WORDS.now, kind: 'now', place: 'right' })
 
   return {
     plates: [],

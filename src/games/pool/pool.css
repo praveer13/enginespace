@@ -78,9 +78,12 @@
   font-weight: 400;
 }
 
-/* While the first run names the parts, a label's count stands back from its name to leave room for the intro's numbered disc. */
-.es-frame:is([data-intro='parts'], [data-intro='look']) .es-pool__label > .es-pool__count {
-  margin-inline-start: 2.25rem;
+/* On a phone, while the first run names the parts, a label's count stands back from its name to leave room for the intro's numbered disc;
+   at a desk the disc stands in the diagram's gutter (frame.css). */
+@media (max-width: 63.999rem) {
+  .es-frame:is([data-intro='parts'], [data-intro='look']) .es-pool__label > .es-pool__count {
+    margin-inline-start: 2.25rem;
+  }
 }
 
 /* The running batch: one slot to a batch slot, dashed while empty. */
@@ -209,6 +212,12 @@
   --es-fill: var(--es-memory-cached);
   --es-cell-edge: var(--es-cat-yellow-edge);
   --es-cell-ink: var(--es-cat-yellow-ink);
+}
+
+/* A cached page is hatched, as the 3D legend draws it: yellow stripes on paper, so a pool of cached pages never reads as a field of the
+   marker's amber (the Colour Is State Rule, the One Marker Rule). */
+.es-pool__cell[data-state='cached'] {
+  background: repeating-linear-gradient(135deg, var(--es-memory-cached) 0 3px, var(--es-paper) 3px 6px);
 }
 
 .es-pool__cell[data-state='shared'] {
@@ -376,6 +385,14 @@
   line-height: 1.45;
 }
 
+/* On a phone the pinned dock holds the decision and its options, whole: the rule the heading names is in Parts and How to play, and the
+   wide dock's sentence for it is left out, so the options and the pool they change share the screen. */
+@media (max-width: 63.999rem) {
+  .es-dock__text--wide {
+    display: none;
+  }
+}
+
 .es-dock__note {
   margin: 0 0 var(--es-space-2);
   color: var(--es-text-2);
@@ -509,17 +526,19 @@
   font-weight: 700;
 }
 
+/* Each number keeps its whole width and a fixed gap from the next ("15 of 15" never runs into "1296"); a narrow dock wraps the strip to a
+   second line, with the delta's band over it too. */
 .es-strip__list {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, auto));
+  display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
-  gap: 0 var(--es-space-2);
+  gap: 1.125rem var(--es-space-4);
   margin: 0;
 }
 
 .es-strip__item {
   display: flex;
-  min-width: 0;
+  flex: none;
   flex-direction: column-reverse;
 }
 
@@ -540,6 +559,11 @@
 @media (max-width: 63.999rem) {
   .es-strip__value {
     font-size: var(--es-size-base);
+  }
+
+  /* The readout keeps to one line on a phone. */
+  .es-strip__list {
+    column-gap: var(--es-space-2);
   }
 }
 
@@ -587,46 +611,6 @@
 
 /* ------------------------------------------------------------------------------------------------ the result */
 
-.es-debrief {
-  display: flex;
-  flex-direction: column;
-  gap: var(--es-space-2);
-}
-
-/* The verdict is a section head, not a title: the display face is for titles only (REDESIGN §2.8, Type). */
-.es-debrief__verdict {
-  margin: 0;
-  font-family: var(--es-font-label);
-  font-size: var(--es-size-title);
-  font-weight: var(--es-font-label-weight);
-  line-height: 1.2;
-}
-
-.es-debrief[data-verdict='Not yet'] .es-debrief__verdict {
-  color: var(--es-paper-ink-2);
-}
-
-.es-debrief__sentence {
-  max-width: 75ch;
-  margin: 0;
-  font-size: var(--es-size-note);
-  line-height: 1.45;
-}
-
-.es-debrief__actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--es-space-2);
-}
-
-.es-debrief__actions .es-button {
-  max-width: 100%;
-  white-space: normal;
-  text-align: left;
-}
-
-.es-debrief__body,
 .es-pool-debrief__body {
   max-width: 75ch;
   display: flex;
@@ -648,25 +632,6 @@
 .es-pool-debrief__body a {
   text-decoration: underline;
   text-underline-offset: 0.2em;
-}
-
-/* In a phone's pinned dock the ways on come straight under the verdict, so the move in hand is on the screen with it (P5). */
-@media (max-width: 63.999rem) {
-  .es-debrief__verdict {
-    order: 0;
-  }
-
-  .es-debrief__actions {
-    order: 1;
-  }
-
-  .es-debrief__sentence {
-    order: 2;
-  }
-
-  .es-debrief__body {
-    order: 3;
-  }
 }
 
 /* ------------------------------------------------------------------------------------------------ a selected page */

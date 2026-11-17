@@ -15,13 +15,13 @@ related_targets: ["src/front"]
 - **Proof:** the visitor runs a real step-loop model and sees what it does; it is not a description of one. All demonstration numbers are labelled synthetic.
 - **Constraints:**
   - the PRODUCT.md constraints (zero servers, nothing collected);
-  - the first paint is a static shell plus the 2D game, and the 3D scene loads after LCP; a phone opens in 2D, with 3D one tap away (D-065);
+  - the first paint is a static shell plus the 2D game, and the 3D scene loads after LCP on a desk; a phone stays in 2D, since the time track's scene has no legible layout in a 358 px box (REDESIGN §3.1 as amended at the finish review, 2026-11-17);
   - the page works at 360-390 px and by keyboard, with reduced motion;
   - the front page's first-paint gates (150 KB of JavaScript, 30 KB of CSS) are unchanged.
 
 ## Direction contract
 
-Data Book (D-062, proposed until the owner's look gate, R-T20). The brief is `docs/REDESIGN.md`: §1 for the decision, §2.8 for the visual system and §3.1 for this page's geometry. This contract says what the world is; the brief says how it is built.
+Data Book (D-062), which the owner chose at the look gate on 2026-11-16 in the words "data book for sure" (`docs/waves/WR-look.md` §6). The brief is `docs/REDESIGN.md`: §1 for the decision, §2.8 for the visual system and §3.1 for this page's geometry. This contract says what the world is; the brief says how it is built.
 
 THESIS: An inference engine is already drawn by the people who build it: timing diagrams, page maps, distribution bars, latency plots. The front page is one of those drawings, live, and the visitor runs one step of the loop it shows. The page names nothing with a metaphor, and it refuses the category's dark GPU-render landing and its row of feature cards.
 
@@ -45,8 +45,8 @@ FIRST VIEWPORT:
 - **On a phone:** the headline, a request to tap, the slots and Step are on the first screen, and the coach line steps through the parts one at a time.
 
 FORM:
-- **Chosen form:** Data Book, the visual world of wave R's brief ("You Are Here", `docs/REDESIGN.md`), which replaces The Pass (D-047) if the owner confirms it at the look gate. No concept roll was dealt for it; the brief's judges, directions and review chose it (REDESIGN §2.2).
-- **Seed:** none. Data Book has no seed reference, because no concept roll was dealt for it, and nothing corroborates one. This is a disclosed deviation from impeccable's direction round, kept in front of the owner at the look gate (R-T20): the owner accepts the brief's choice in place of a roll, or asks for a roll to be dealt and recorded here before DESIGN.md is written. The Pass's seed below belongs to The Pass and is not Data Book's.
+- **Chosen form:** Data Book, the visual world of wave R's brief ("You Are Here", `docs/REDESIGN.md`), which replaces The Pass (D-047). The brief's judges, directions and review chose it (REDESIGN §2.2), and the owner confirmed it at the look gate on 2026-11-16 (D-062).
+- **Seed:** none, accepted by the owner. No concept roll was dealt for Data Book. The look gate put that deviation in front of the owner, with the choice of accepting the brief's direction in place of a roll or asking for a roll before DESIGN.md is written. On 2026-11-16 the owner chose Data Book ("data book for sure", `docs/waves/WR-look.md` §6, D-062) and asked for no roll, so the brief's choice stands in place of one. The Pass's seed below belongs to The Pass and is not Data Book's.
 - **Signature interaction:** put a waiting request into a slot (tap it, drag it or press its key), then Step. The step draws its slabs across the lanes, the readout steps to its new value with its delta, and the first time the rule is felt it is named once beside the drawing: a step costs the GPU about the same for one request as for four.
 - **The authored moment:** on demo level 3, async scheduling goes on and the dashed idle boxes on the GPU rows close.
 - **Motion grammar:** things move on an action and are still between actions; 120 ms for the hand, 240 ms for a step and 640 ms for the one authored moment, and every duration is 0 under reduced motion.
@@ -136,5 +136,5 @@ The first service. A visitor fires two tickets; the stations sit half dark and t
 
 ## Unresolved
 
-- **The look gate:** whether Data Book or The Pass is this page's world is the owner's call at R-T20 (D-062). Until the gate, build A (stage 1) shows the new names, way on and frame under The Pass, and build B (stage 2) the same under Data Book.
+- **The look gate, settled:** the owner chose Data Book on 2026-11-16 (D-062), and the kitchen's files have left the tree (stage 4).
 - **Game name:** settled by D-063, which supersedes D-049: the front-page game (`loop`) is "Step loop", with the subtitle "Keep every slot live, and never make the GPU wait for the CPU." Its front-page levels are demo levels 1 to 4.

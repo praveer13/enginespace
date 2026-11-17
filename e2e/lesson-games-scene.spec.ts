@@ -146,7 +146,8 @@ const SCENES = [
   { route: ROUTE, block: FIRST, name: 'Step loop, demo', probe: 'loop' },
   { route: ROUTE, block: SECOND, name: 'Service, the full service', probe: 'loop' },
   { route: '/m/tr5a/l1-why-one-model-needs-several-kv-caches', block: { game: 'pool', level: 'one-group', mode: 'practice' }, name: 'KV page pool', probe: 'pool' },
-  { route: '/m/tr6/l2-the-rejection-sampler-exactly', block: { game: 'verifier', level: 'overlap', mode: 'practice' }, name: 'Rejection sampler', probe: 'verifier' },
+  // The sampler offers its 3D on the chain only, the level whose rows give depth something to carry (wave R's finish review).
+  { route: '/m/tr6/l1-where-speculation-lives-in-the-step', block: { game: 'verifier', level: 'chain', mode: 'practice' }, name: 'Rejection sampler', probe: 'verifier' },
 ] as const
 
 test.describe("an embedded scene's budget (D-023, frozen; A§11.1: 100 draw calls)", () => {

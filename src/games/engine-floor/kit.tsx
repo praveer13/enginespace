@@ -21,9 +21,9 @@ import { DockView } from './DockView'
 /** Where each part is drawn, inside the frame: the intro's callout sits on it. A part not drawn yet has no callout and is named in the list. */
 const ANCHORS: Readonly<Record<string, string>> = {
   request: '[data-lane-start]',
-  processes: '[data-lane-head] .es-lanes__proc',
+  processes: '[data-lane-head] .es-lanes__proc, [data-floor-specimen] [data-spec-proc]',
   'stage-list': '[data-floor-stages] .es-floor-stages__head',
-  hop: '[data-lane-row] .es-lanes__tag',
+  hop: '[data-lane-row] .es-lanes__tag, [data-floor-specimen] [data-spec-hop]',
   boundaries: '[data-floor-readout] [data-readout-id="boundaries"] dt',
   threads: '[data-lane-head] .es-lanes__thread',
   sync: '[data-legend-mechanism="sync"]',

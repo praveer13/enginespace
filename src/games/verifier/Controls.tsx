@@ -114,7 +114,9 @@ function Finish({ run }: { run: VerifierRun }) {
   return (
     <div className="es-vf-dock__stack">
       <p className="es-vf-dock__text">Your prediction is committed. Draw rounds to watch the accepted share settle, or finish.</p>
-      <div className="es-vf-dock__row">
+      {/* The draws and Finish, the control that ends the level, stand as one block of whole buttons, so a phone's dock never hides Finish
+          under the draws (P5, verifier.css). */}
+      <div className="es-vf-dock__row es-vf-dock__finish">
         {showDraws(run) ? <DrawBar run={run} /> : null}
         <Button variant="ink" size="lg" onClick={() => run.dispatch({ t: 'submit' })}>
           Finish

@@ -98,6 +98,18 @@
   font-weight: 400;
 }
 
+/* In a phone's 72 px column the process's name is read whole, on two lines if it needs them; its thread, under it, names the id. */
+.es-lanes[data-floor-lanes][data-size='phone'] .es-lanes__proc-name {
+  padding-inline: var(--es-space-1);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.1;
+}
+
+.es-lanes[data-floor-lanes][data-size='phone'] .es-lanes__proc-id {
+  display: none;
+}
+
 .es-lanes__threads {
   display: flex;
 }
@@ -252,6 +264,79 @@
   .es-lanes__start-note {
     display: none;
   }
+}
+
+/*
+ * The first run's example: two dashed process columns and one hop between them, under the request, while the parts are named and before the
+ * guess opens the real columns. It goes with the intro.
+ */
+.es-lanes__specimen {
+  position: absolute;
+  display: none;
+  flex-direction: column;
+  gap: var(--es-space-1);
+  width: min(18rem, calc(100% - 2rem));
+  color: var(--es-text-2);
+  font-family: var(--es-font-label);
+  font-size: var(--es-size-caption);
+}
+
+.es-frame:is([data-intro='parts'], [data-intro='look']) .es-lanes__specimen {
+  display: flex;
+}
+
+.es-lanes__spec-title {
+  font-weight: 400;
+}
+
+.es-lanes__spec-cols {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--es-space-12);
+  height: 6.5rem;
+}
+
+.es-lanes__spec-col {
+  padding: var(--es-space-1);
+  border: 1px dashed var(--es-edge);
+  color: var(--es-paper-ink);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* The hop: an arrow from one column to the other, its mechanism as a mark and a word over it. */
+/* In a phone's box the example is short, so it stands over the pinned dock with the request. */
+.es-lanes[data-size='phone'] .es-lanes__spec-cols {
+  gap: var(--es-space-8);
+  height: 3.5rem;
+}
+
+.es-lanes__spec-hop {
+  position: absolute;
+  top: 60%;
+  left: 25%;
+  right: 25%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 3px;
+  padding-bottom: 2px;
+  border-bottom: 2px solid var(--es-paper-ink);
+  color: var(--es-paper-ink);
+  font-weight: 700;
+  translate: 0 -100%;
+}
+
+.es-lanes__spec-hop::after {
+  content: '';
+  position: absolute;
+  right: -2px;
+  bottom: -6px;
+  width: 8px;
+  height: 10px;
+  background: var(--es-paper-ink);
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
 }
 
 .es-lanes__rows {
@@ -1014,9 +1099,10 @@
     font-size: var(--es-size-base);
   }
 
+  /* The delta stands after its number, never over it. */
   .es-floor-strip__delta {
-    bottom: auto;
-    top: -0.9em;
+    position: static;
+    margin-inline-start: 2px;
   }
 }
 

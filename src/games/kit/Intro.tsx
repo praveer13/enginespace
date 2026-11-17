@@ -241,12 +241,29 @@ function boxIn(host: Element, element: Element): Box {
 const DISC = 30
 
 /**
- * Where a part's disc goes: just after the part's own name, or the first line of its text, so the number reads as a mark on the word and
- * never covers it; at the box's top right where the line runs to the edge. A game leaves room after a name the intro marks (pool.css).
+ * Where a part's disc goes. A number in the readout keeps its digits clear: the disc stands over the middle of its item, in the strip's head
+ * room, never over the item beside it. At a desk a part drawn on the diagram is marked in the diagram's own gutter at its left, level with
+ * the part, as the front page marks its lanes: a disc never covers a word, a glyph or a mark of the drawing. Elsewhere (a phone, which calls
+ * out one part at a time, or a part in the dock) the disc goes just after the part's own name, or the first line of its text; at the box's
+ * top right where the line runs to the edge.
  */
-function discAt(host: Element, target: Element, whole: Box): Box {
-  // A number in a readout keeps its digits clear: the disc stands over the middle of its item, in the strip's head room.
-  if (target instanceof HTMLElement && target.dataset.calloutAbove !== undefined) return { top: whole.top - DISC + 2, left: whole.left + whole.width / 2 - DISC / 2, width: DISC, height: DISC }
+function discAt(host: Element, target: Element, whole: Box, wide: boolean): Box {
+  const item = target.closest('.es-frame__readout [data-readout-id], [data-callout-above]')
+  if (item !== null) {
+    const at = boxIn(host, item)
+    return { top: at.top - DISC + 2, left: at.left + at.width / 2 - DISC / 2, width: DISC, height: DISC }
+  }
+  // A bar is marked inside its own top, under the count printed over it.
+  const bar = target.closest('[data-callout-in]')
+  if (bar !== null) {
+    const at = boxIn(host, bar)
+    return { top: at.top + 3, left: at.left + at.width / 2 - DISC / 2, width: DISC, height: DISC }
+  }
+  const surface = wide ? target.closest('.es-frame__surface') : null
+  if (surface !== null) {
+    const gutter = boxIn(host, surface)
+    return { top: whole.top + Math.min(whole.height, DISC) / 2 - DISC / 2, left: gutter.left + 1, width: DISC, height: DISC }
+  }
   // A part whose drawing starts with its own name is marked after the name; else after the first line of everything it shows.
   const range = document.createRange()
   const name = target.firstChild
@@ -265,6 +282,16 @@ function discAt(host: Element, target: Element, whole: Box): Box {
     if (left <= room) return { top, left, width: DISC, height: DISC }
   }
   return { top: whole.top - DISC / 2, left: Math.min(room, whole.left + whole.width - DISC), width: DISC, height: DISC }
+}
+
+/** Discs that share the gutter keep a gap between them: one that would overlap the disc above it moves down past it. */
+function spread(placed: readonly Placed[]): Placed[] {
+  const out: Placed[] = []
+  for (const disc of [...placed].sort((a, b) => a.box.top - b.box.top)) {
+    const above = [...out].reverse().find((other) => Math.abs(other.box.left - disc.box.left) < DISC && disc.box.top < other.box.top + DISC + 2)
+    out.push(above === undefined ? disc : { n: disc.n, box: { ...disc.box, top: above.box.top + DISC + 2 } })
+  }
+  return out.sort((a, b) => a.n - b.n)
 }
 
 /** Runs `measure` now, and again when the frame resizes, when anything in it scrolls, and when the window does. */
@@ -299,7 +326,8 @@ function useMeasured(host: RefObject<HTMLElement | null>, measure: () => void, k
 
 /** The ink discs on the drawing, one for each part given (the frame gives at most five) that is drawn and in view. */
 export function IntroCallouts({ host, parts, partAt }: { host: RefObject<HTMLElement | null>; parts: readonly KitPart[]; partAt: number; embedded: boolean }) {
-  const current = useWideFrame() ? null : partAt
+  const wide = useWideFrame()
+  const current = wide ? null : partAt
   const [placed, setPlaced] = useState<readonly Placed[]>([])
   const measure = () => {
     const frame = host.current
@@ -311,7 +339,7 @@ export function IntroCallouts({ host, parts, partAt }: { host: RefObject<HTMLEle
       if (target === null) return
       const whole = boxIn(frame, target)
       if (whole.width === 0 && whole.height === 0) return
-      const box = discAt(frame, target, whole)
+      const box = discAt(frame, target, whole, wide)
       // A part scrolled out of its box is not called out over whatever lies past the box's edge.
       const clip = target.closest('.es-frame__view, .es-frame__dock-main')
       if (clip !== null) {
@@ -320,7 +348,8 @@ export function IntroCallouts({ host, parts, partAt }: { host: RefObject<HTMLEle
       }
       next.push({ n: index + 1, box })
     })
-    setPlaced((now) => (JSON.stringify(now) === JSON.stringify(next) ? now : next))
+    const spaced = spread(next)
+    setPlaced((now) => (JSON.stringify(now) === JSON.stringify(spaced) ? now : spaced))
   }
   useMeasured(host, measure, `${current}|${parts.map((part) => part.id).join(',')}`)
   return (

@@ -44,8 +44,8 @@ export interface InstrumentProps {
   /** An opening run that starts as the page loads. */
   autoStart?: boolean
   /**
-   * A second opening level: the block of the level before it. It waits under "Next level: <title>", which is the amber control once that
-   * run has ended, and an outline before.
+   * A second opening level: the block of the level before it. It waits under "Next level: <title>", an outline: once that run has ended,
+   * the amber "Next level" is the one its result leads with, beside the drawing, so the viewport holds one amber control.
    */
   after?: number
   /** Called when the learner starts this level, so the run before it can fold away. */
@@ -155,7 +155,7 @@ export function Instrument({ block, at, blocks, scope, rev, kind, guesses = [], 
         </div>
       ) : after !== undefined ? (
         <div className="es-next es-run__next">
-          <button type="button" className="es-next__action" data-emphasis={before !== null ? 'primary' : 'outline'} onClick={start}>
+          <button type="button" className="es-next__action" data-emphasis="outline" onClick={start}>
             <span className="es-next__text">
               <span className="es-next__label">Next level: {title}</span>
               <span className="es-next__minutes">{before !== null ? 'The run above has ended.' : 'Play it after the level above, or now.'}</span>

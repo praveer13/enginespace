@@ -78,10 +78,12 @@ describe('the rack: a page in every cell, each in its place for its whole life',
   test("a page never moves: through a whole night, every page's box is the same box, its state changing where it stands", () => {
     for (const id of ['two-kinds', 'adapters', 'state'] as const) {
       const states = night(id)
-      const first = rackOf(view(states[0]), NONE).model.boxes.filter((box) => box.id.startsWith('page/'))
+      // A page is a solid, or a dashed wire while it is free: either way one box per cell, at the same place.
+      const pagesOf = (model: ReturnType<typeof rackOf>['model']) => [...model.boxes, ...model.wires].filter((box) => box.id.startsWith('page/')).sort((a, b) => Number(a.id.slice(5)) - Number(b.id.slice(5)))
+      const first = pagesOf(rackOf(view(states[0]), NONE).model)
       for (const state of states) {
         const v = view(state)
-        const pages = rackOf(v, NONE).model.boxes.filter((box) => box.id.startsWith('page/'))
+        const pages = pagesOf(rackOf(v, NONE).model)
         expect(pages).toHaveLength(v.pans.length)
         pages.forEach((box, i) => {
           for (const key of ['id', 'x0', 'x1', 'z0', 'z1', 'y0', 'height'] as const) expect(box[key]).toBe(first[i][key])
@@ -121,8 +123,15 @@ describe('a page is a form as well as a colour (WCAG 1.4.1)', () => {
     for (const id of ['adapters', 'two-kinds'] as const) {
       for (const state of night(id)) {
         const v = view(state)
-        const boxes = rackOf(v, NONE).model.boxes
+        const { boxes, wires } = rackOf(v, NONE).model
         for (const page of v.pans) {
+          // A free page is empty, and empty in 3D is a dashed wire outline in the edge's colour (REDESIGN §2.8), never a solid.
+          if (page.state === 'free') {
+            expect(boxes.some((candidate) => candidate.id === `page/${page.id}`)).toBe(false)
+            expect(wires.find((candidate) => candidate.id === `page/${page.id}`)).toMatchObject({ form: 'hollow', role: 'edge' })
+            seen.add(page.state)
+            continue
+          }
           const box = boxes.find((candidate) => candidate.id === `page/${page.id}`)
           expect(box?.form).toBe(pageForm[page.state])
           expect(box?.role).toBe(pageRole[page.state])
@@ -316,13 +325,15 @@ describe('the queue and the batch', () => {
     }
   })
 
-  test("a request's tile can be picked, and so can a page; nothing else can", () => {
+  test("a request's tile can be picked, and so can a page that holds something; nothing else can", () => {
     const v = view(night('two-kinds')[6])
     const model = rackOf(v, NONE).model
     const picks = model.boxes.filter((box) => box.pick !== undefined).map((box) => box.pick as string)
-    expect(picks.filter((pick) => pick.startsWith('page:'))).toHaveLength(v.pans.length)
+    // A free page is an empty cell's wire, with nothing in it to pick.
+    const held = v.pans.filter((page) => page.state !== 'free').length
+    expect(picks.filter((pick) => pick.startsWith('page:'))).toHaveLength(held)
     expect(picks.filter((pick) => pick.startsWith('req:'))).toHaveLength(v.running.length)
-    expect(picks).toHaveLength(v.pans.length + v.running.length)
+    expect(picks).toHaveLength(held + v.running.length)
     expect(model.plates.every((box) => box.pick === undefined)).toBe(true)
   })
 })

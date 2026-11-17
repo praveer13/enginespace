@@ -214,6 +214,13 @@ button.es-lanes__chip:disabled {
   line-height: 1.2;
 }
 
+/* In a phone's narrow label column the axis's unit wraps inside the column and never runs into the axis's first number. */
+.es-lanes[data-size='phone'] .es-lanes__axis-name {
+  padding-inline-end: var(--es-space-1);
+  white-space: normal;
+  line-height: 1.05;
+}
+
 /* The time track: an SVG in a box that scrolls sideways when the track is wider than the room. */
 .es-lanes__track {
   min-width: 0;
@@ -377,6 +384,13 @@ button.es-lanes__chip:disabled {
 
 .es-lanes__now .es-marker {
   font-size: var(--es-size-micro);
+}
+
+/* A paper gap on each side of now's line parts it from a slab that ends at now (a sync's yellow is not the marker's amber). */
+.es-lanes__now .es-marker[data-kind='cursor']::before {
+  box-shadow:
+    0 0 0 1px var(--es-lamp-ring),
+    0 0 0 3px var(--es-paper);
 }
 
 /* The step's one authored moment: the newest forward draws across its rows from its start, on the step's duration. */

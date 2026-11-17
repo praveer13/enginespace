@@ -224,6 +224,8 @@ function PoolLevel({ levelId, levelTitle, seed, mode, embedded, rev, onFinish, l
       modeSwitch={modeSwitch}
       allow3d={scene.allow3d}
       unavailable3d={scene.unavailable3d}
+      // On a phone the rack's 44 cells and its threads do not read at the box's size: the pool is drawn in 2D there.
+      phone3d={false}
       view={view}
       onViewChange={scene.onView}
       onCommand={(command, run) => {

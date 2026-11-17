@@ -193,6 +193,10 @@ export default function Game({ level, mode, placement = 'page', rev, onFinish }:
           met: run.done ? 'Your answer is in.' : undefined,
         })}
         diagram={(run) => <View2D run={run} />}
+        // Depth is one row per draft position: on a level with one draft position it carries nothing, so the 3D view is offered on the
+        // chain only, and not on a phone, where the rows would not read.
+        phone3d={false}
+        level3d={entry.id === 'chain'}
         scene3d={(run) => (
           <Suspense fallback={<View2D run={run} />}>
             <VerifierStage
@@ -207,7 +211,7 @@ export default function Game({ level, mode, placement = 'page', rev, onFinish }:
           </Suspense>
         )}
         legend={(run) =>
-          view === '3d' ? (
+          view === '3d' && entry.id === 'chain' ? (
             <div className="es-vf__cameras">
               <CameraButtons presets={TASTING_SHOTS} value={preset} onChange={setPreset} label="Camera on the sampler" />
               <VerifierLegend run={run} scene />

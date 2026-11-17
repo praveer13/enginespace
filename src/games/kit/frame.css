@@ -64,6 +64,12 @@
   text-transform: none;
 }
 
+/* Inside a lesson the instrument's title is a heading under the lesson's own title, a step down from it, so two display titles never
+   compete on one screen. */
+.es-frame[data-placement='embed'] .es-frame__title {
+  font-size: clamp(1.375rem, 1.2rem + 0.6vw, 1.75rem);
+}
+
 .es-frame__name {
   display: flex;
   flex-wrap: wrap;
@@ -335,9 +341,49 @@
     overflow: hidden;
   }
 
+  /* The diagram's gutter, at its left: the first run's callout discs stand in it, level with the parts they name, as on the front page, so
+     a disc never covers a word or a mark of the drawing, and nothing moves when they go. */
+  .es-frame__surface {
+    padding-inline-start: 2rem;
+  }
+
   .es-frame[data-placement='page'] .es-frame__view {
     flex: 1 1 auto;
     overflow: auto;
+  }
+
+  /* At the result the dock takes its content's height, so no line and no button of the result is cut by a box's edge; the drawing keeps
+     its own height beside it, and the readout stands at the foot of the screen while the result runs on past it (P5). */
+  .es-frame[data-placement='page'][data-phase='result'] .es-frame__body {
+    height: auto;
+    align-items: start;
+  }
+
+  .es-frame[data-placement='page'][data-phase='result'] .es-frame__diagram {
+    height: clamp(26rem, 100svh - 23.5rem, 44rem);
+  }
+
+  .es-frame[data-placement='page'][data-phase='result'] .es-frame__dock-main {
+    overflow: visible;
+  }
+}
+
+/* The readout of a result that runs past the screen stands at its foot, and on the game's page at a desk the drawing stands at the screen's
+   top beside the result as it is read, so a control deep in the result and the drawing it changes share the screen (P5). Under 600 px of
+   height nothing is sticky. */
+@media (min-width: 64rem) and (min-height: 600px) {
+  .es-frame[data-placement='page'][data-phase='result'] .es-frame__diagram {
+    position: sticky;
+    top: var(--es-space-2);
+  }
+}
+
+@media (min-height: 600px) {
+  .es-frame[data-phase='result'] .es-frame__readout {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    background: var(--es-paper);
   }
 }
 
@@ -402,6 +448,8 @@
     overflow: auto;
   }
 
+  /* The dock takes its content's height, up to a third of the screen, where the diagram's box ends; only a long list of options scrolls
+     inside it, and each game keeps its decision whole in that room (the sampler's draws in two rows, the pool's options under its heading). */
   .es-frame:is([data-placement='page'], [data-placement='embed']) .es-frame__dock {
     position: sticky;
     bottom: 0;
@@ -422,21 +470,22 @@
   }
 
   /*
-   * In a lesson, once the run has ended, the result is read with the page and not through the pinned dock's window (the phone walk: the
-   * two engines' paths and the measured numbers sat at the bottom of 1,600 to 2,600 px inside a 140 to 230 px box). The dock lets go of the
-   * foot and takes its whole height, and the diagram over it keeps its own.
+   * Once the run has ended, on the game's page and in a lesson, the result is read with the page and not through the pinned dock's window
+   * (the phone walk: the two engines' paths and the measured numbers sat at the bottom of 1,600 to 2,600 px inside a 140 to 230 px box). The
+   * dock lets go of the foot and takes its whole height, the diagram over it keeps its own, the ways on come straight under the verdict,
+   * and the readout stands at the foot of the screen.
    */
-  .es-frame[data-placement='embed'][data-phase='result'] .es-frame__dock {
+  .es-frame[data-phase='result'] .es-frame__dock {
     position: static;
     max-height: none;
     box-shadow: var(--es-shadow-paper);
   }
 
-  .es-frame[data-placement='embed'][data-phase='result'] .es-frame__dock-main {
+  .es-frame[data-phase='result'] .es-frame__dock-main {
     overflow: visible;
   }
 
-  html:has(.es-frame[data-placement='embed'][data-phase='result']):not(:has(.es-frame[data-placement='embed'][data-phase='play'])) {
+  html:has(.es-frame[data-phase='result']):not(:has(.es-frame[data-phase='play'])) {
     scroll-padding-bottom: 0;
   }
 }

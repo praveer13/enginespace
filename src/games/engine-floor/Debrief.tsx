@@ -11,6 +11,7 @@ import type { StageNote } from '@es/play/engine-floor/types'
 import { entryOf } from '@es/sim/lifecycle'
 import type { Place, Scenario } from '@es/sim/lifecycle'
 import { Button } from '@/design/components/Button'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { NumberLine } from '@/design/components/NumberLine'
 import { Stamp } from '@/design/components/Stamp'
 import { TextLink } from '@/design/components/TextLink'
@@ -280,17 +281,17 @@ export function Debrief({ run, outcome, next, onNext, onGraded = null, embedded 
 
   const primary =
     onward !== null ? (
-      <Button variant="ink" onClick={() => onward.select()}>
+      <PrimaryButton onClick={() => onward.select()}>
         {onward.label}
-      </Button>
+      </PrimaryButton>
     ) : graded && onGraded !== null ? (
-      <Button variant="ink" onClick={onGraded}>
+      <PrimaryButton onClick={onGraded}>
         Another fresh scenario
-      </Button>
+      </PrimaryButton>
     ) : next !== null ? (
-      <Button variant="ink" onClick={onNext}>
+      <PrimaryButton onClick={onNext}>
         {`Next level: ${next.title}`}
-      </Button>
+      </PrimaryButton>
     ) : embedded ? null : (
       <TextLink to="/map">Open the course</TextLink>
     )
@@ -371,7 +372,6 @@ export function Debrief({ run, outcome, next, onNext, onGraded = null, embedded 
                 ...(predicted === null ? [] : [{ id: 'guess', kind: 'guess' as const, value: predicted, label: 'your prediction' }]),
                 { id: 'answer', kind: 'result', value: truth, label: 'the path' },
               ]}
-              stamp={<Stamp word="derived" />}
             />
             <p>{predicted === truth ? 'Your prediction was right.' : `The path has ${truth} process ${truth === 1 ? 'boundary' : 'boundaries'} there.`}</p>
             {/* What was counted, by name: the reveal says which stages cross, not a number alone. */}
