@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 import { useId, type HTMLAttributes, type ReactNode } from 'react'
 import { Icon } from './Glyph'
-import { PrintingDots } from './PrintingDots'
+import { LoadingDots } from './LoadingDots'
 
 /*
  * A sheet (REDESIGN 2.8): a plain paper panel, cut square, with the soft sheet shadow and a title. It is the surface reading
@@ -109,7 +109,7 @@ export function Sheet({
           ) : null}
           {state === 'loading' ? (
             <Box className="es-sheet__printing" role="status">
-              <PrintingDots />
+              <LoadingDots />
               <span>{loadingLabel}</span>
             </Box>
           ) : null}

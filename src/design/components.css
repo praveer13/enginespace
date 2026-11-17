@@ -11,25 +11,25 @@
   /* ---------------------------------------------------------------------------------------------- loading dots */
 
   /* Loading is a line of text: the dots sit still beside it, and the words say what is happening. */
-  .es-printing {
+  .es-loading {
     display: inline-flex;
     align-items: center;
     gap: 0.22em;
     margin-inline: 0.15em;
   }
 
-  .es-printing > span {
+  .es-loading > span {
     width: 0.3em;
     height: 0.3em;
     border-radius: var(--es-radius-round);
     background-color: currentColor;
   }
 
-  .es-printing > span:nth-child(2) {
+  .es-loading > span:nth-child(2) {
     opacity: 0.7;
   }
 
-  .es-printing > span:nth-child(3) {
+  .es-loading > span:nth-child(3) {
     opacity: 0.45;
   }
 
@@ -723,7 +723,7 @@
     transition: background-color var(--es-dur-quick) var(--es-ease-settle);
   }
 
-  .es-step-control__button > .es-printing {
+  .es-step-control__button > .es-loading {
     position: absolute;
     bottom: -0.65rem;
   }

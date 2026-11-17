@@ -2,7 +2,7 @@ import { Component, lazy, Suspense, useEffect, useRef, useState, type ReactNode,
 import type { CompiledBlock } from '@es/schema'
 import { rosterEntry } from '@es/play/roster'
 import { Button } from '@/design/components/Button'
-import { PrintingDots } from '@/design/components/PrintingDots'
+import { LoadingDots } from '@/design/components/LoadingDots'
 import { TextLink } from '@/design/components/TextLink'
 import { LessonGuessContext } from '@/games/kit/lessonGuess'
 import { LessonRunContext, type LessonOnward, type LessonRun } from '@/games/kit/lessonRun'
@@ -182,7 +182,7 @@ export function Instrument({ block, at, blocks, scope, rev, kind, guesses = [], 
 function Loading({ title, ref }: { title: string; ref?: Ref<HTMLParagraphElement> }) {
   return (
     <p className="es-run__loading" role="status" tabIndex={-1} ref={ref}>
-      <PrintingDots />
+      <LoadingDots />
       <span>Setting up {title}…</span>
     </p>
   )

@@ -1,7 +1,7 @@
 import { useRef, useState, type DragEvent, type ReactNode } from 'react'
 import { Button } from '@/design/components/Button'
 import { Icon, type IconName } from '@/design/components/Glyph'
-import { PrintingDots } from '@/design/components/PrintingDots'
+import { LoadingDots } from '@/design/components/LoadingDots'
 import { ReadoutStrip, type ReadoutStripLine } from '@/design/components/ReadoutStrip'
 import { Readout } from '@/design/components/Readout'
 import { PrimaryButton } from '@/design/components/PrimaryButton'
@@ -124,7 +124,7 @@ function CheckLine({ lab, index, row, lamp, same }: { lab: ForgeLab; index: numb
           </>
         ) : row.kind === 'running' ? (
           <>
-            <PrintingDots />
+            <LoadingDots />
             <span className="sr-only">running</span>
           </>
         ) : (

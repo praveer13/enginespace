@@ -1,6 +1,6 @@
 import clsx from 'clsx'
 import { useId, useState, type ReactNode } from 'react'
-import { PrintingDots } from './PrintingDots'
+import { LoadingDots } from './LoadingDots'
 import { Readout, type NumberTag } from './Readout'
 
 /*
@@ -94,7 +94,7 @@ export function StepControl({
           data-force={force}
         >
           <StepControlDrawing struck={struck} step={step} />
-          {loading ? <PrintingDots /> : null}
+          {loading ? <LoadingDots /> : null}
         </button>
         {count}
       </span>

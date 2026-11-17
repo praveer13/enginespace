@@ -13,7 +13,7 @@ export { BusyMark, type BusyMarkProps } from './BusyMark'
 export { PrimaryButton, type PrimaryButtonProps } from './PrimaryButton'
 export { Label, type LabelProps } from './Label'
 export { TextLink, type TextLinkProps } from './TextLink'
-export { PrintingDots } from './PrintingDots'
+export { LoadingDots } from './LoadingDots'
 export { Sheet, SheetLine, type SheetProps, type SheetState } from './Sheet'
 export { Toggle, type ToggleProps } from './Toggle'
 

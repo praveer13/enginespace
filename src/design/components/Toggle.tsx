@@ -2,7 +2,7 @@ import * as Switch from '@radix-ui/react-switch'
 import clsx from 'clsx'
 import { useId, type ReactNode } from 'react'
 import { Icon } from './Glyph'
-import { PrintingDots } from './PrintingDots'
+import { LoadingDots } from './LoadingDots'
 
 /*
  * A switch (REDESIGN 2.8): a flat track with a square thumb, and the state as a word in the open half, Off or On. On, the
@@ -72,7 +72,7 @@ export function Toggle({
       <span className="es-toggle__text">
         <label htmlFor={switchId} className="es-toggle__label">
           {label}
-          {loading ? <PrintingDots /> : null}
+          {loading ? <LoadingDots /> : null}
         </label>
         {hint ? (
           <span className="es-toggle__hint" id={hintId}>

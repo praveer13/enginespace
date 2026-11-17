@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 import type { ReactNode } from 'react'
 import { Icon } from './Glyph'
-import { PrintingDots } from './PrintingDots'
+import { LoadingDots } from './LoadingDots'
 
 /*
  * The readout strip (REDESIGN 2.8): terms and their values on one paper strip, a ruled row each, the values in the mono face.
@@ -53,7 +53,7 @@ export function ReadoutStrip({ lines, label, feed, state = 'default', error, emp
         <div className="es-readout-strip__feed" key={feed ?? 'still'} data-feeding={feed !== undefined || undefined}>
           {state === 'loading' ? (
             <p className="es-readout-strip__line es-readout-strip__line--status" role="status">
-              <PrintingDots />
+              <LoadingDots />
               <span>Warming up</span>
             </p>
           ) : null}

@@ -1,6 +1,6 @@
 import { Component, lazy, Suspense, useEffect, useRef, useState, type ReactNode, type Ref } from 'react'
 import { rosterEntry, type RosterEntry } from '@es/play/roster'
-import { PrintingDots } from '@/design/components/PrintingDots'
+import { LoadingDots } from '@/design/components/LoadingDots'
 import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { TextLink } from '@/design/components/TextLink'
 import { Frame, PendingLine, Tapes, type Of } from './BlockFrame'
@@ -127,7 +127,7 @@ function GameName({ entry }: { entry: RosterEntry }) {
 export function GameLoading({ title, ref }: { title: string; ref?: Ref<HTMLParagraphElement> }) {
   return (
     <p className="es-c-game__loading" role="status" tabIndex={-1} ref={ref}>
-      <PrintingDots />
+      <LoadingDots />
       <span>Setting up {title}…</span>
     </p>
   )

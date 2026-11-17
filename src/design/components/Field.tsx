@@ -2,7 +2,7 @@ import clsx from 'clsx'
 import { useId, type InputHTMLAttributes, type ReactNode } from 'react'
 import { Icon } from './Glyph'
 import { Label } from './Label'
-import { PrintingDots } from './PrintingDots'
+import { LoadingDots } from './LoadingDots'
 
 /*
  * A field (REDESIGN 2.8): a plain label over a paper slip with a 2 px foot line, the field's boundary at 3:1; the caret is
@@ -46,7 +46,7 @@ export function Field({ label, hint, error, loading = false, numeric = false, id
           inputMode={numeric ? 'decimal' : input.inputMode}
           {...input}
         />
-        {loading ? <PrintingDots /> : null}
+        {loading ? <LoadingDots /> : null}
       </span>
       {hint ? (
         <span className="es-field__hint" id={hintId}>
