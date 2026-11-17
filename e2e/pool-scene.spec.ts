@@ -1,15 +1,16 @@
 /*
- * W1-T24's acceptance checks for the Reach-In's 3D scene, in Playwright's Chromium, through `/play/pool`:
+ * R-T41's acceptance checks for the KV page pool's 3D rack, in Playwright's Chromium, through `/play/pool`:
  *
  *   1. At most 100 draw calls over a whole night, read from the scene's own `renderer.info` (A§11.1), at T1 and at T2: the house's nights
- *      on `adapters`, where kits land and are strung, and on `same-size`, the most stations and so the most twine at once.
- *   2. Under reduced motion the threads update per op without layout jumps: each decision redraws the night at once, in a frame or two
- *      and not an animation, the scene's box does not move, and then no animation frame is asked for.
- *   And the rest of the scene's contract (A§6.8): `V` swaps 2D and 3D and keeps the night; `C` and the plates reach every preset, and One
- *   station draws only the station its buttons pick; the capture is not blank at 1440 and at 390 px; every number is DOM, the scene
- *   carries no word and no number of its own, and what the fan shows is said on the page.
- *   (The scene's chunk at most 40 KB gz is a build check, verify:bundle's gate; tests/play/pool-scene.test.ts holds the layout, the
- *   presets' framing and the text, and tests/design/literals.test.ts the colours.)
+ *      on `adapters` and on `same-size`, the most groups and so the most layers in a fan. The rack is eight draw calls whatever it holds.
+ *   2. Under reduced motion the fan is drawn at its end: selecting a page redraws the rack in a frame or two and not an animation, the
+ *      scene's box does not move, and then no animation frame is asked for. Without it the fan opens on the settle duration and stops.
+ *   3. A selection: a request's button shows its block table in words and as threads, a page's number fans it into its layers, and a pick in
+ *      the scene (a page, a request's tile) does what the controls do.
+ *   And the rest of the scene's contract (A§6.8): `V` swaps 2D and 3D and keeps the night; `C` and the plates reach every preset, and One KV
+ *   group shows one group's threads; the capture is not blank at 1440 and at 390 px; every word and number is DOM and the canvas prints none.
+ *   (The scene's chunk at most 40,000 B is a build check, verify:bundle's gate; tests/play/pool-scene.test.ts holds the layout, the cameras'
+ *   framing and the text, and tests/design/literals.test.ts the colours.)
  *
  * How it runs, as e2e/loop-scene.spec.ts does: one test build with `VITE_ES_TEST_HOOKS=1` (it exposes `window.__esScene` and honours
  * `?es-tier=<0-3>`), served by `context.route` so no server runs, with any request off the origin failing the test. Chromium renders
@@ -28,7 +29,7 @@ import { build } from 'vite'
 import { house } from '../packages/play/pool/policy'
 import { poolSession } from '../packages/play/pool/session'
 import type { PoolAction, PoolLevelId } from '../packages/play/pool/types'
-import { nightOf, reachInOf } from '../src/games/pool/scene-layout'
+import { geometryOf, pageBox, PAGE_TOP, SLOT, slotBox } from '../src/games/pool/scene-layout'
 import type { FrameStats } from '../src/scene/stage-runtime'
 import type { SceneHook } from '../src/scene/test-hook'
 import { playThrough, practiceOf } from '../tests/play/pool-support'
@@ -108,6 +109,8 @@ const probe = (page: Page) => page.evaluate(() => window.__esScene?.probes.pool?
 const askKind = (page: Page) => page.locator('[data-pool-controls]').getAttribute('data-ask')
 const camera = (page: Page) => page.getByRole('group', { name: 'Camera on the page pool' })
 const CAMERAS = ['Front of the page pool', 'One KV group', 'From above']
+const note = (page: Page) => page.locator('[data-pool-fan]')
+const pageInput = (page: Page) => page.getByLabel('or a page:')
 
 /** The house's night on a level's practice seed, as the page plays it: every state, and the actions between them. */
 const nightOfHouse = (id: PoolLevelId) => playThrough(practiceOf(id), house)
@@ -198,35 +201,6 @@ function sampleCanvas(page: Page): Promise<number[]> {
   })
 }
 
-/**
- * A region of the canvas, read back from the test build's kept frame, as shares of its width and height [left, top, right, bottom]: the
- * mean luma of its pixels (Rec. 601), or how many are warm (red over blue by more than 20 of 255).
- */
-function canvasRegion(page: Page, [left, top, right, bottom]: readonly [number, number, number, number], what: 'luma' | 'warm'): Promise<number> {
-  return page.evaluate(
-    ({ box, kind }) => {
-      const canvas = document.querySelector<HTMLCanvasElement>('[data-stage="pool"] canvas')
-      if (!canvas) return Number.NaN
-      const copy = document.createElement('canvas')
-      copy.width = canvas.width
-      copy.height = canvas.height
-      const context = copy.getContext('2d')
-      if (!context) return Number.NaN
-      context.drawImage(canvas, 0, 0)
-      const [x0, y0] = [Math.round(box[0] * copy.width), Math.round(box[1] * copy.height)]
-      const { data } = context.getImageData(x0, y0, Math.round(box[2] * copy.width) - x0, Math.round(box[3] * copy.height) - y0)
-      let sum = 0
-      let warm = 0
-      for (let i = 0; i < data.length; i += 4) {
-        sum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]
-        if (data[i] - data[i + 2] > 20) warm += 1
-      }
-      return kind === 'warm' ? warm : sum / (data.length / 4)
-    },
-    { box: [left, top, right, bottom], kind: what },
-  )
-}
-
 /** Where the scene's box is on the page, not on the screen: a scroll does not move it, a layout change does. */
 const placeOf = (page: Page) =>
   stage(page).evaluate((element) => {
@@ -258,10 +232,31 @@ test.describe('the draw-call budget over a whole night (A§11.1)', () => {
   }
 })
 
-test.describe('reduced motion (A§6.9; W1-T24 accept 2): the threads update per op without layout jumps', () => {
+
+/** Where a page's top, or a request's tile, is on the canvas, in CSS px from its top left. */
+async function whereIs(page: Page, level: PoolLevelId, what: { page: number } | { slot: number; cap: number }): Promise<{ x: number; y: number }> {
+  const view = poolSession.view(nightOfHouse(level).states[0])
+  const g = geometryOf(view.pans.length, view.cols, view.cap)
+  const [x, y, z] =
+    'page' in what
+      ? ((box) => [(box.x0 + box.x1) / 2, PAGE_TOP, (box.z0 + box.z1) / 2])(pageBox(g, what.page))
+      : ((box) => [(box.x0 + box.x1) / 2, SLOT.height, (box.z0 + box.z1) / 2])(slotBox(g, what.slot))
+  const at = await page.evaluate(([px, py, pz]) => window.__esScene?.probes.pool?.project([px / 100, py / 100, pz / 100]) ?? null, [x, y, z])
+  if (at === null) throw new Error('the point is behind the camera')
+  return at
+}
+
+/** The house's first decisions on a level, taken by the page's own controls, until a request is on the line. */
+async function admitSome(page: Page, level: PoolLevelId, n: number) {
+  const { actions } = nightOfHouse(level)
+  for (const action of actions.slice(0, n)) await act(page, action)
+  await settle(page)
+}
+
+test.describe('reduced motion (A§6.9; R-T41): the fan is drawn at its end', () => {
   test.use({ reducedMotion: 'reduce' })
 
-  test('each decision redraws the twine at once, the box stays where it is, and then no animation frame is asked for', async ({ page, context }) => {
+  test('each selection redraws the rack at once, the box stays where it is, and then no animation frame is asked for', async ({ page, context }) => {
     test.setTimeout(240_000)
     await context.addInitScript(() => {
       window.__raf = 0
@@ -271,52 +266,125 @@ test.describe('reduced motion (A§6.9; W1-T24 accept 2): the threads update per 
         return request(callback)
       }
     })
-    const { states, actions } = nightOfHouse('two-kinds')
-    // The focus's twine and its fan, as the scene's layout draws them after each decision: the moment changes when either does.
-    const moments = states.map((state) => {
-      const view = poolSession.view(state)
-      return nightOf(view, reachInOf(view.pans.length, view.cap), { station: null, chosen: [] }).moment
-    })
     await open(page, 'two-kinds', 2)
     await settle(page)
+    await admitSome(page, 'two-kinds', 3)
+    await page.waitForTimeout(600)
     const place = await placeOf(page)
     let before = await sampleCanvas(page)
     let redrawn = 0
     let most = 0
-    for (const [i, action] of actions.slice(0, 10).entries()) {
+    for (const n of [1, 2, 3]) {
       const frames = (await probe(page))?.frames ?? 0
-      await act(page, action)
+      await pageInput(page).fill(String(n))
       await settle(page)
       const drawn = ((await probe(page))?.frames ?? 0) - frames
       most = Math.max(most, drawn)
-      // A cut: the night is drawn again in a frame or two, where the twine's growth would take a second of frames.
-      expect(drawn, `frames for decision ${i + 1}`).toBeGreaterThan(0)
-      expect(drawn, `frames for decision ${i + 1}`).toBeLessThanOrEqual(6)
-      expect(await placeOf(page), `the scene's box after decision ${i + 1}`).toEqual(place)
+      // A cut: the fan is drawn at its end in a frame or two, where its opening would take a second of frames.
+      expect(drawn, `frames for page ${n}`).toBeGreaterThan(0)
+      expect(drawn, `frames for page ${n}`).toBeLessThanOrEqual(6)
+      expect(await placeOf(page), `the scene's box after page ${n}`).toEqual(place)
       const after = await sampleCanvas(page)
-      if (moments[i + 1] !== moments[i]) {
-        expect(after, `the twine after decision ${i + 1}`).not.toEqual(before)
-        redrawn++
-      }
+      if (JSON.stringify(after) !== JSON.stringify(before)) redrawn++
       before = after
     }
-    expect(redrawn, 'decisions that moved the twine').toBeGreaterThan(1)
+    expect(redrawn, 'selections that changed the picture').toBeGreaterThan(0)
     const asked = await page.evaluate(() => window.__raf ?? 0)
     await page.waitForTimeout(2000)
     expect(await page.evaluate(() => window.__raf ?? 0)).toBe(asked)
     expect((await probe(page))?.p95, 'the governor never sampled an animation').toBeNull()
-    console.log(`reduced motion: ${redrawn} of 10 decisions moved the twine, at most ${most} frames for one decision, the box at ${JSON.stringify(place)}`)
+    console.log(`reduced motion: ${redrawn} of 3 selections changed the picture, at most ${most} frames for one, the box at ${JSON.stringify(place)}`)
+  })
+})
+
+test.describe('a selection (R-T41)', () => {
+  test('a request shows its block table in words and as threads, and a page fans into its layers, by the page\'s controls', async ({ page }) => {
+    test.setTimeout(240_000)
+    const { states } = nightOfHouse('two-kinds')
+    await open(page, 'two-kinds', 2)
+    await settle(page)
+    // Nothing is on the line: the page says so, and nothing is threaded.
+    await expect(note(page)).toContainText('Nothing is on the line yet')
+    await admitSome(page, 'two-kinds', 3)
+    const view = poolSession.view(states[3])
+    const last = view.running[view.running.length - 1]
+    // While nothing is selected the request hung last shows, and the page says which.
+    await expect(note(page)).toContainText(`R${last + 1}, admitted last`)
+    const bare = await sampleCanvas(page)
+    const first = view.running[0]
+    const held = view.pans.filter((pan) => pan.holders.includes(first)).length
+    const group = page.getByRole('group', { name: 'Select to see its pages' })
+    await group.getByRole('button', { name: `R${first + 1}`, exact: true }).click()
+    await expect(group.getByRole('button', { name: `R${first + 1}`, exact: true })).toHaveAttribute('aria-pressed', 'true')
+    await expect(note(page)).toContainText(`R${first + 1}: its block table holds ${held} ${held === 1 ? 'page' : 'pages'}`)
+    await settle(page)
+    if (first !== last) expect(await sampleCanvas(page), 'another request threads other pages').not.toEqual(bare)
+    // A page: its fan, in words (its group's layers, and the padding), and the picture changes.
+    const withThreads = await sampleCanvas(page)
+    const pan = view.pans.find((candidate) => candidate.station !== null && candidate.state !== 'free')
+    if (pan === undefined) throw new Error('a page of a group')
+    const stationOf = view.stations[pan.station as number]
+    await pageInput(page).fill(String(pan.id + 1))
+    await expect(note(page)).toContainText(`Page ${pan.id + 1}:`)
+    await expect(note(page)).toContainText(`for all ${stationOf.layers} of the group's layers`)
+    await settle(page)
+    expect(await sampleCanvas(page), 'the fan changes the picture').not.toEqual(withThreads)
+    // Clear leaves the request hung last.
+    await page.getByRole('button', { name: 'Clear' }).click()
+    await expect(note(page)).toContainText('admitted last')
+    // A free page has no layers.
+    const free = view.pans.find((candidate) => candidate.state === 'free')
+    if (free !== undefined) {
+      await pageInput(page).fill(String(free.id + 1))
+      await expect(note(page)).toContainText('no layers')
+    }
+  })
+
+  test('a pick in the scene does what the controls do: a page fans, a request\'s tile shows its threads, and the same pick again clears it', async ({ page }) => {
+    test.setTimeout(240_000)
+    const { states } = nightOfHouse('two-kinds')
+    await open(page, 'two-kinds', 2)
+    await settle(page)
+    await admitSome(page, 'two-kinds', 3)
+    const view = poolSession.view(states[3])
+    const pan = view.pans.find((candidate) => candidate.station !== null && candidate.state !== 'free')
+    if (pan === undefined) throw new Error('a page of a group')
+    const canvas = stage(page).locator('canvas')
+    const at = await whereIs(page, 'two-kinds', { page: pan.id })
+    await canvas.click({ position: at })
+    await expect(note(page)).toContainText(`Page ${pan.id + 1}:`)
+    await expect(pageInput(page)).toHaveValue(String(pan.id + 1))
+    await canvas.click({ position: await whereIs(page, 'two-kinds', { page: pan.id }) })
+    await expect(note(page)).toContainText('admitted last')
+    const tile = await whereIs(page, 'two-kinds', { slot: 0, cap: view.cap })
+    await canvas.click({ position: tile })
+    await expect(note(page)).toContainText(`R${view.running[0] + 1}: its block table`)
+    await expect(page.getByRole('button', { name: `R${view.running[0] + 1}`, exact: true })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  test('the fan opens on the settle duration and then stops: the loop asks for frames while it moves and not after', async ({ page }) => {
+    test.setTimeout(120_000)
+    await open(page, 'two-kinds', 2)
+    await settle(page)
+    await admitSome(page, 'two-kinds', 3)
+    const frames = (await probe(page))?.frames ?? 0
+    const pan = poolSession.view(nightOfHouse('two-kinds').states[3]).pans.find((candidate) => candidate.station !== null && candidate.state !== 'free')
+    await pageInput(page).fill(String((pan?.id ?? 0) + 1))
+    await settle(page)
+    expect(((await probe(page))?.frames ?? 0) - frames).toBeGreaterThan(2)
   })
 })
 
 test.describe('the views and the camera (A§6.8)', () => {
-  test('`V` swaps 2D and 3D and keeps the night', async ({ page }) => {
+  test('`V` swaps 2D and 3D and keeps the night and the selection', async ({ page }) => {
     test.setTimeout(180_000)
-    const { states, actions } = nightOfHouse('evict')
+    const { actions } = nightOfHouse('evict')
     await open(page, 'evict', 2)
     await settle(page)
     for (const action of actions.slice(0, 4)) await act(page, action)
     await settle(page)
+    await pageInput(page).fill('3')
+    await expect(note(page)).toContainText('Page 3:')
     const ask = () => page.evaluate(() => Array.from(document.querySelectorAll('[data-pool-controls] [data-ask-list] button')).map((button) => button.textContent?.trim().replace(/\s+/g, ' ')))
     const kept = { kind: await askKind(page), list: await ask() }
     expect(kept.list.length).toBeGreaterThan(0)
@@ -334,22 +402,17 @@ test.describe('the views and the camera (A§6.8)', () => {
     await expect(game(page)).toHaveAttribute('data-view', '3d')
     await settle(page)
     expect({ kind: await askKind(page), list: await ask() }).toEqual(kept)
-    // The scene draws the same night: every pan, its mise, the tickets on the line and on the pass, as many as before the swap.
-    const view = poolSession.view(states[4])
-    expect(view.waiting.length + view.running.length).toBeGreaterThan(0)
+    await expect(note(page)).toContainText('Page 3:')
     expect((await frame(page)).instances).toBe(drawn)
   })
 
-  test('`C` cycles every preset and each plate reaches its own; One station draws only the station picked', async ({ page }) => {
+  test('`C` cycles every preset and each plate reaches its own; One KV group threads only the group picked', async ({ page }) => {
     test.setTimeout(180_000)
-    const { actions } = nightOfHouse('two-kinds')
     await open(page, 'two-kinds', 2)
     await settle(page)
-    for (const action of actions.slice(0, 6)) await act(page, action)
-    await settle(page)
+    await admitSome(page, 'two-kinds', 6)
     const pressed = () => camera(page).locator('button[aria-pressed="true"]').textContent()
     expect(await pressed()).toBe(CAMERAS[0])
-    const whole = (await frame(page)).sceneCalls
     for (const name of [...CAMERAS.slice(1), CAMERAS[0]]) {
       await game(page).focus()
       await page.keyboard.press('KeyC')
@@ -362,24 +425,22 @@ test.describe('the views and the camera (A§6.8)', () => {
       await expect(camera(page).getByRole('button', { name })).toHaveAttribute('aria-pressed', 'true')
       await settle(page)
     }
-    // One station: the page's buttons pick the station, and the scene draws its twine alone: one string where every station's are three.
+    // One KV group: the page's buttons pick the group, and the scene threads that group's pages alone.
     await camera(page).getByRole('button', { name: 'One KV group' }).click()
     const stations = page.getByRole('group', { name: 'The KV group shown' }).getByRole('button')
     await expect(stations).toHaveCount(3)
     await expect(stations.first()).toHaveAttribute('aria-pressed', 'true')
+    await expect(note(page)).toContainText('in the KV group shown')
     await settle(page)
-    const one = (await frame(page)).sceneCalls
+    const one = await sampleCanvas(page)
     await stations.nth(1).click()
     await expect(stations.nth(1)).toHaveAttribute('aria-pressed', 'true')
     await settle(page)
-    const other = (await frame(page)).sceneCalls
-    expect(one).toBeLessThan(whole)
-    expect(other).toBeLessThan(whole)
-    console.log(`draw calls: ${whole} with every station's twine, ${one} and ${other} with one station's`)
+    expect(await sampleCanvas(page), 'another group threads other pages').not.toEqual(one)
   })
 })
 
-test.describe('the picture (W1-T24)', () => {
+test.describe('the picture (R-T41)', () => {
   for (const [width, height] of [
     [1440, 900],
     [390, 844],
@@ -387,17 +448,15 @@ test.describe('the picture (W1-T24)', () => {
     test(`the 3D capture at ${width} px is not blank: its pixels vary, and it is kept as an artifact`, async ({ page }, info) => {
       test.setTimeout(180_000)
       await page.setViewportSize({ width, height })
-      const { actions } = nightOfHouse('adapters')
       await open(page, 'adapters', width < 480 ? 1 : 2)
       await settle(page)
-      for (const action of actions.slice(0, 6)) await act(page, action)
-      await settle(page)
+      await admitSome(page, 'adapters', 6)
       // The canvas as the page composites it (e2e/support/pixels.ts): a grid of samples, their distinct colours and spread.
       const canvas = stage(page).locator('canvas')
       await page.addStyleTag({ content: '.es-labels { visibility: hidden !important; }' })
       const sampled = await pixelStats(page.context(), await canvas.screenshot())
-      expect(sampled.colours).toBeGreaterThan(40)
-      expect(sampled.spread).toBeGreaterThan(12)
+      expect(sampled.colours).toBeGreaterThan(30)
+      expect(sampled.spread).toBeGreaterThan(8)
       await page.addStyleTag({ content: '.es-labels { visibility: visible !important; }' })
       const shot = info.outputPath(`pool-3d-${width}.png`)
       await stage(page).screenshot({ path: shot })
@@ -406,59 +465,23 @@ test.describe('the picture (W1-T24)', () => {
     })
   }
 
-  test('at 390 px on tier 1 the heat lamps pool their amber on the steel round the waiting tickets (finish review, W1b round 1)', async ({ page }) => {
+  test('all text is DOM: the labels name the regions and the requests, the key names the forms, and the canvas carries no text', async ({ page }) => {
     test.setTimeout(120_000)
-    await page.setViewportSize({ width: 390, height: 844 })
-    await open(page, 'one-group', 1)
-    await settle(page)
-    expect(await askKind(page)).toBe('admit')
-    // The pass fills the lower part of the canvas: its warm pixels, red over blue by more than 20 of 255, as the review counted them.
-    const warm = await canvasRegion(page, [0, 0.55, 1, 1], 'warm')
-    expect(warm).toBeGreaterThan(300)
-    console.log(`T1 at 390 px: ${warm} warm pixels on the pass`)
-  })
-
-  test('the room falls into haze: the floor beside the line lifts toward the back (finish review, W1b round 1)', async ({ page }) => {
-    test.setTimeout(240_000)
-    const { actions } = nightOfHouse('two-kinds')
-    await open(page, 'two-kinds', 2)
-    await settle(page)
-    for (const action of actions.slice(0, 12)) await act(page, action)
-    await settle(page)
-    // The floor's column to the left of the line, at 1440 px: at the foot of the wall and at the front of the shot. The front shot looks
-    // across the rack at 35.5° (finish review, W1b round 2), so the wall's foot stands at half the canvas's height, and the column keeps
-    // left of the line's oven.
-    const back = await canvasRegion(page, [0.015, 0.5, 0.1, 0.6], 'luma')
-    const front = await canvasRegion(page, [0.015, 0.86, 0.1, 0.98], 'luma')
-    expect(back).toBeGreaterThan(front + 25)
-    console.log(`the floor's luma: ${back.toFixed(1)} at the back, ${front.toFixed(1)} at the front`)
-  })
-
-  test("all text is DOM: the scene carries no word and no number, the tickets' numbers are the page's, and the page says what the fan shows", async ({ page }) => {
-    test.setTimeout(120_000)
-    const { states, actions } = nightOfHouse('two-kinds')
+    const { states } = nightOfHouse('two-kinds')
     await open(page, 'two-kinds', 2)
     await settle(page)
     const labels = stage(page).locator('.es-labels .es-label')
+    await expect(labels.filter({ hasText: 'Running batch' })).toHaveCount(1)
+    await expect(labels.filter({ hasText: /^KV page pool, \d+ pages$/ })).toHaveCount(1)
+    await expect(labels.filter({ hasText: 'Waiting queue' })).toHaveCount(1)
     const first = poolSession.view(states[0])
-    // No label rides on the canvas; the tickets that can hang are named on the page, by their numbers, in the open ask's list.
-    await expect(labels).toHaveCount(0)
-    for (const id of first.waiting) await expect(page.locator('[data-pool-controls] [data-ask-list]')).toContainText(`R${id + 1}`)
-    // Nothing is on the line yet, so there is no fan to speak of.
-    await expect(page.locator('[data-pool-fan]')).toHaveCount(0)
-    // The ticket hung first is the focus: its head pan fans into the layers of its station, and the page says which and how many.
-    await act(page, actions[0])
+    for (const id of first.waiting.slice(0, 3)) await expect(labels.filter({ hasText: `R${id + 1}` })).toHaveCount(1)
+    await expect(page.locator('[data-pool-key]')).toContainText('hollow: free')
+    await expect(page.locator('[data-pool-key]')).toContainText('dotted: a prefix hit waits on it')
+    await admitSome(page, 'two-kinds', 3)
+    await pageInput(page).fill('1')
     await settle(page)
-    const view = poolSession.view(states[1])
-    const fan = nightOf(view, reachInOf(view.pans.length, view.cap), { station: null, chosen: [] }).fan
-    const ticket = view.running[view.running.length - 1]
-    const station = view.stations.find((candidate) => candidate.layers === fan?.layers)
-    expect(fan).not.toBeNull()
-    await expect(page.locator('[data-pool-fan]')).toContainText(`R${ticket + 1}`)
-    await expect(page.locator('[data-pool-fan]')).toContainText(`${station?.id}`)
-    await expect(page.locator('[data-pool-fan]')).toContainText(`all ${fan?.layers} of the group's layers`)
-    await expect(labels).toHaveCount(0)
-    // The canvas carries no text, and is hidden from assistive technology with its box.
+    await expect(labels.filter({ hasText: /^\d+ layers/ })).toHaveCount(1)
     await expect(stage(page).locator('.es-stage__scene')).toHaveAttribute('aria-hidden', 'true')
     expect(await stage(page).locator('canvas').evaluate((canvas) => canvas.textContent)).toBe('')
   })

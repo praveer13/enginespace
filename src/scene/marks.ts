@@ -10,9 +10,9 @@ import type { ColorRoleName } from '@/design/tokens'
 import type { Vec3 } from './camera-rig'
 import { trackZ, type TrackScale } from './time-axis'
 
-export type MarkForm = 'solid' | 'hollow' | 'groove' | 'marked'
+export type MarkForm = 'solid' | 'hollow' | 'groove' | 'marked' | 'dotted'
 /** The forms in the order the mark shader numbers them. */
-export const MARK_FORMS: readonly MarkForm[] = ['solid', 'hollow', 'groove', 'marked']
+export const MARK_FORMS: readonly MarkForm[] = ['solid', 'hollow', 'groove', 'marked', 'dotted']
 export const formIndex = (form: MarkForm): number => MARK_FORMS.indexOf(form)
 
 /** One mark: a box, its colour role and its form. */

@@ -5,7 +5,7 @@
  * through scene-tokens.ts; the physical numbers are [estimated], set by eye at 1440 and 390 in Lifted and Side.
  *
  *   solid     MeshLambertMaterial, flat-shaded, coloured per instance from a role. Each form is drawn in the shader as the kit's marks are
- *             (marks.ts): solid, hollow (a rim, see-through), groove (a pale recess inside a rim) and marked (hatched). Its sides carry
+ *             (marks.ts): solid, hollow (a rim, see-through), groove (a pale recess inside a rim), marked (hatched) and dotted (a grid of pale dots). Its sides carry
  *             baked occlusion: darker toward the foot, where the plate shades them, so a slab sits on the paper at every tier, with no
  *             shadow map.
  *   shadow    the contact shadow under each solid: a soft-edged footprint in `text-1`, its falloff in world units so a long slab and a
@@ -42,7 +42,7 @@ const UNTINTED = () => new Color(1, 1, 1)
 
 /** The forms and the baked occlusion, patched into the Lambert material's colour. */
 function patchSolid(material: MeshLambertMaterial) {
-  material.customProgramCacheKey = () => 'es-flat-solid-v2'
+  material.customProgramCacheKey = () => 'es-flat-solid-v3'
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uRim = { value: FLAT_RIM }
     shader.uniforms.uFoot = { value: FOOT_SHADE }
@@ -92,6 +92,10 @@ varying vec3 vBoxScale;`,
   if (form == 1.0 && inner > rim) discard;
   if (form == 2.0 && axis.y > 0.5 && inner > rim) diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0), 0.55);
   if (form == 3.0 && axis.y > 0.5 && fract((vFaceUv.x * extent.x + vFaceUv.y * extent.y) * 16.0) < 0.42) diffuseColor.rgb *= 0.55;
+  if (form == 4.0 && axis.y > 0.5) {
+    vec2 dot = fract(vFaceUv * extent * 14.0) - 0.5;
+    if (length(dot) < 0.2) diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0), 0.8);
+  }
   if (axis.y < 0.5) diffuseColor.rgb *= mix(uFoot, 1.0, smoothstep(0.0, 0.9, vFaceUv.y));
 }`,
       )

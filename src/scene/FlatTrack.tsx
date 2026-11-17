@@ -128,8 +128,9 @@ function segmentGeometry(segments: readonly FlatSegment[], lift: number): Buffer
   const distance = new Float32Array(Math.max(1, segments.length) * 2)
   segments.forEach((s, i) => {
     const y = (s.y ?? 0) / PX + lift
-    position.set([s.x0 / PX, y, s.z0 / PX, s.x1 / PX, y, s.z1 / PX], i * 6)
-    distance[i * 2 + 1] = Math.hypot(s.x1 - s.x0, s.z1 - s.z0) / PX
+    const y1 = (s.y1 ?? s.y ?? 0) / PX + lift
+    position.set([s.x0 / PX, y, s.z0 / PX, s.x1 / PX, y1, s.z1 / PX], i * 6)
+    distance[i * 2 + 1] = Math.hypot(s.x1 - s.x0, s.z1 - s.z0, (y1 - y) * PX) / PX
   })
   const geometry = new BufferGeometry()
   geometry.setAttribute('position', new BufferAttribute(position, 3))
