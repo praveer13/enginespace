@@ -443,6 +443,8 @@ for (const width of [360, 1280]) {
       test.setTimeout(120_000)
       await open(page, 'nano')
       const audit = async (label: string) => {
+        // A sheet that has just opened is fading in: axe reads the colours of what is on screen, so it waits for the end of every animation (R-T48: flaked once in three runs).
+        await page.evaluate(() => Promise.all(document.getAnimations().map((animation) => animation.finished.catch(() => undefined))))
         const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']).analyze()
         expect(results.passes.length + results.violations.length, `${label}: the rules axe ran`).toBeGreaterThan(20)
         const blocking = results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')

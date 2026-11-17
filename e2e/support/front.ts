@@ -43,8 +43,15 @@ export function focusOf(page: Page): Promise<Focus> {
     const right = Math.min(box.right, window.innerWidth)
     const bottom = Math.min(box.bottom, window.innerHeight)
     const offscreen = right <= left || bottom <= top
-    const hit = offscreen ? null : document.elementFromPoint((left + right) / 2, (top + bottom) / 2)
-    const covered = hit !== null && !active.contains(hit) && !hit.contains(active)
+    // A link that wraps has one box per line: it is covered when no line of it shows its own middle (R-T48: a claim's mark sits between lines).
+    const lines = [...active.getClientRects()].filter((line) => line.width > 0 && line.height > 0 && line.right > 0 && line.bottom > 0 && line.left < window.innerWidth && line.top < window.innerHeight)
+    const middles = lines.length > 1 ? lines : [{ left, top, right, bottom }]
+    const covered =
+      !offscreen &&
+      middles.every((line) => {
+        const hit = document.elementFromPoint((Math.max(line.left, 0) + Math.min(line.right, window.innerWidth)) / 2, (Math.max(line.top, 0) + Math.min(line.bottom, window.innerHeight)) / 2)
+        return hit !== null && !active.contains(hit) && !hit.contains(active)
+      })
     // `textContent`, not `innerText`: the site prints its labels in capitals with CSS, and the name is the words, as a reader says them.
     // A field is named by its label.
     const label = active.getAttribute('aria-label') ?? (active as HTMLInputElement).labels?.[0]?.textContent ?? active.textContent ?? ''

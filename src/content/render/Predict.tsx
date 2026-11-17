@@ -191,7 +191,7 @@ function Unsaved({ detail }: { detail: string }) {
 function GuessFrame({ block, label, data, children }: { block: PredictBlock; label: string; data: Record<string, string | undefined>; children: ReactNode }) {
   const attributes = Object.fromEntries(Object.entries(data).map(([name, value]) => [`data-${name}`, value]))
   return (
-    <section className="es-guess" data-block="predict" data-predict={block.id} aria-label={label} {...attributes}>
+    <section className="es-guess" data-block="predict" data-predict={block.id} role="group" aria-label={label} {...attributes}>
       <p className="es-guess__label">{label}</p>
       <p className="es-guess__ask">
         <Tagged text={block.prompt} />

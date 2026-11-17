@@ -311,7 +311,7 @@ export function Swimlane({ view, size = 'frame', tools = null }: SwimlaneProps) 
         className="es-lanes__scroll"
         data-lanes-scroll=""
         role="region"
-        aria-label="Swimlane"
+        aria-label={dock ? 'Swimlane in the dock' : 'Swimlane'}
         tabIndex={0}
         onScroll={(event) => {
           if (head.current !== null) head.current.style.transform = `translateX(${-event.currentTarget.scrollLeft}px)`
