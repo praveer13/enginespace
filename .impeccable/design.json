@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-16T00:00:00+00:00",
+  "generatedAt": "2026-11-17T00:00:00+00:00",
   "title": "Design System: enginespace",
   "extensions": {
     "colorMeta": {
@@ -182,7 +182,7 @@
       },
       "tape": {
         "role": "neutral",
-        "displayName": "Retired: Tape",
+        "displayName": "Left from The Pass: tape",
         "canonical": "#e6d6ad",
         "oklch": "oklch(87.9% 0.057 89.2)",
         "tonalRamp": [
@@ -198,7 +198,7 @@
       },
       "tape-ink": {
         "role": "neutral",
-        "displayName": "Retired: Tape Ink",
+        "displayName": "Left from The Pass: tape-ink",
         "canonical": "#1a1a1c",
         "oklch": "oklch(21.9% 0.004 286.1)",
         "tonalRamp": [
@@ -214,7 +214,7 @@
       },
       "light-fluorescent": {
         "role": "neutral",
-        "displayName": "Retired: Fluorescent Light",
+        "displayName": "Scene light",
         "canonical": "#eef4f8",
         "oklch": "oklch(96.4% 0.008 236.6)",
         "tonalRamp": [
@@ -230,7 +230,7 @@
       },
       "glint": {
         "role": "neutral",
-        "displayName": "Retired: Glint",
+        "displayName": "Left from The Pass: glint",
         "canonical": "#ffffff",
         "oklch": "oklch(100.0% 0.000 89.9)",
         "tonalRamp": [
@@ -488,11 +488,11 @@
     "typographyMeta": {
       "display": {
         "displayName": "Display: a page title",
-        "purpose": "Page, lesson and game titles only, in sentence case."
+        "purpose": "A page's title on Course, the panels and the document pages, in sentence case. The front page's title alone runs larger, to 4rem."
       },
       "heading": {
         "displayName": "Heading: a title one step down",
-        "purpose": "A game's title inside a lesson, a front-page section, in sentence case."
+        "purpose": "The face and weight of a lesson's, a module's and a game's title, each at its own fluid size under the page title's, in sentence case."
       },
       "body": {
         "displayName": "Body: reading",
@@ -617,19 +617,19 @@
         "purpose": "One step."
       },
       {
-        "name": "dur-feed",
-        "value": "420ms",
-        "purpose": "Retired with the printer's feed: no stylesheet uses it. The kitchen scene reads it until stage 4."
-      },
-      {
         "name": "dur-settle",
         "value": "640ms",
         "purpose": "The one authored moment of an instrument."
       },
       {
+        "name": "dur-feed",
+        "value": "420ms",
+        "purpose": "Declared as retired in tokens.ts; one line still takes it, the travel of the rejection sampler's output line. Not a step for new work."
+      },
+      {
         "name": "ease-settle",
         "value": "cubic-bezier(0.16, 1, 0.3, 1)",
-        "purpose": "Exponential ease-out: fast away, long rest."
+        "purpose": "Exponential ease-out: fast away, long rest. The easing of every state change."
       },
       {
         "name": "ease-strike",
@@ -639,7 +639,12 @@
       {
         "name": "ease-feed",
         "value": "steps(6, end)",
-        "purpose": "Retired with the printer's stepped feed: no stylesheet uses it."
+        "purpose": "Declared and taken by no stylesheet."
+      },
+      {
+        "name": "delta-hold",
+        "value": "1000ms",
+        "purpose": "A readout's delta stays for 640 + 240 + 120 ms, then fades over 240 ms; under reduced motion it stays until the next one."
       },
       {
         "name": "reduced-motion",
@@ -649,16 +654,28 @@
     ],
     "breakpoints": [
       {
+        "name": "sheet-padding",
+        "value": "40rem"
+      },
+      {
         "name": "shell-gutter",
         "value": "48rem"
       },
       {
-        "name": "lesson-two-column",
+        "name": "frame-and-lesson-two-column",
         "value": "64rem"
       },
       {
         "name": "lesson-dock",
         "value": "80rem"
+      },
+      {
+        "name": "short-viewport-height",
+        "value": "600px"
+      },
+      {
+        "name": "pinned-dock-height",
+        "value": "700px"
       }
     ],
     "schemes": {
@@ -724,194 +741,95 @@
       "grid": "24-unit viewBox, 1.5 stroke, currentColor fill, edge-colour stroke"
     },
     "sceneMaterials": {
-      "source": "src/design/scene-tokens.ts (MATERIAL_PARAMS, marked [estimated])",
-      "stainless": {
-        "color": "surface-1",
-        "roughness": 0.36,
-        "metalness": 0.92,
-        "anisotropy": 0.65,
-        "clearcoat": 0.12,
-        "clearcoatRoughness": 0.4,
-        "material": "MeshPhysicalMaterial"
+      "source": "src/scene/flat-materials.ts and src/scene/FlatLights.tsx (physical numbers marked [estimated] there)",
+      "solid": {
+        "material": "MeshLambertMaterial, flat-shaded",
+        "color": "a code role per instance",
+        "forms": [
+          "solid",
+          "hollow",
+          "groove",
+          "marked (hatched)",
+          "dotted"
+        ],
+        "rim": 0.015,
+        "footShade": 0.66,
+        "note": "Occlusion is baked into a solid's sides, darker toward the foot. No shadow map."
       },
-      "stainlessDeep": {
-        "color": "surface-3",
-        "roughness": 0.48,
-        "metalness": 0.85
+      "contactShadow": {
+        "color": "text-1",
+        "strength": 0.5,
+        "reach": 0.14
       },
-      "paper": {
-        "color": "paper",
-        "roughness": 0.95,
-        "metalness": 0,
-        "note": "Print on paper is DOM, never a texture."
+      "wire": {
+        "material": "LineDashedMaterial",
+        "color": "edge",
+        "dash": 0.04,
+        "gap": 0.03,
+        "note": "Idle and empty."
       },
-      "tape": {
-        "color": "tape",
-        "roughness": 0.82,
-        "metalness": 0
+      "graticule": {
+        "material": "LineBasicMaterial",
+        "color": "paper-rule"
       },
-      "heatLamp": {
+      "dimensionLines": {
+        "material": "LineBasicMaterial",
+        "color": "edge"
+      },
+      "cursor": {
+        "material": "MeshBasicMaterial, unlit and never tone-mapped",
         "color": "lamp",
-        "intensity": 2.4,
-        "distance": 6,
-        "decay": 2,
-        "angle": 0.62,
-        "penumbra": 0.7,
-        "light": "SpotLight over the present only"
+        "edge": "lamp-ring",
+        "note": "The now cursor: a thin amber sheet, the only thing that glows."
       },
-      "heatLampBulb": {
-        "color": "lamp",
-        "emissive": "lamp",
-        "emissiveIntensity": 1.8,
-        "roughness": 0.4,
-        "note": "A lit station's element on the line burns in the same glow."
-      },
-      "fluorescent": {
-        "skyColor": "light-fluorescent",
-        "groundColor": "surface-0",
-        "intensity": 1.15,
-        "light": "HemisphereLight"
-      },
-      "maps": "Normal and roughness maps are generated in code (brushed, crepe, paper fields); no image ships.",
-      "props": {
-        "source": "src/design/scene-tokens.ts (materials.props, PROP_PARAMS, marked [estimated]); tones in src/scene/props/palette.ts",
-        "roles": {
-          "steel": "surface-1",
-          "steelShaded": "surface-2",
-          "steelDeep": "surface-3",
-          "iron": "surface-3",
-          "ceramic": "paper",
-          "tile": "paper",
-          "grout": "paper-rule",
-          "floor": "surface-3",
-          "glow": "lamp",
-          "cold": "surface-3",
-          "tube": "light-fluorescent",
-          "shadow": "text-1",
-          "steam": "surface-1",
-          "paper": "paper",
-          "ink": "paper-ink",
-          "tape": "tape"
+      "light": {
+        "hemisphere": {
+          "sky": "light-fluorescent",
+          "ground": "surface-0",
+          "intensity": 1.15,
+          "power": 2.1
         },
-        "metal": {
-          "metalness": 0.92,
-          "anisotropy": 0.7,
-          "clearcoat": 0.12,
-          "clearcoatRoughness": 0.4
-        },
-        "finishes": {
-          "note": "[roughness x, grain x, metalness x] against brushed stainless",
-          "brushed": [
-            1,
-            1,
-            1
-          ],
-          "spun": [
-            0.78,
-            0.9,
-            1
-          ],
-          "chrome": [
-            0.16,
-            0,
-            1
-          ],
-          "iron": [
-            2.2,
-            0.14,
-            0.5
-          ],
-          "griddle": [
-            1.35,
-            0.32,
-            0.82
+        "key": {
+          "kind": "DirectionalLight",
+          "color": "light-fluorescent",
+          "share": 0.9,
+          "from": [
+            -3,
+            9,
+            6
           ]
         },
-        "ceramic": {
-          "roughness": 0.2,
-          "clearcoat": 0.85,
-          "clearcoatRoughness": 0.06
-        },
-        "tile": {
-          "roughness": 0.14,
-          "groutRoughness": 0.92
-        },
-        "floor": {
-          "roughness": 0.42
-        },
-        "glow": {
-          "emissiveIntensity": 5.76,
-          "note": "Amber, the active state alone: a lit station's element, a lamp's bulb, the heat strip."
-        },
-        "tube": {
-          "emissiveIntensity": 1.7,
-          "note": "Tube white, below bloom's threshold."
-        },
-        "opacities": {
-          "contactShadow": 0.62,
-          "cone": 0.24,
-          "steam": 0.45
-        },
-        "lamp": {
-          "intensity": 5.5,
-          "distance": 2.2,
-          "angle": 0.27,
-          "penumbra": 0.6,
-          "decay": 2,
-          "shadowRadius": 5,
-          "shadowMap": 1024,
-          "pool": 0.7,
-          "light": "SpotLight per heat lamp over the pass"
-        }
+        "note": "One key and one hemisphere. No spot, no environment map, no bloom."
       }
     },
     "sceneKit": {
-      "source": "src/scene/props (scene kit v1)",
-      "props": [
-        "pass",
-        "heat-lamp",
-        "rail",
-        "printer",
-        "bell-base",
-        "spike",
-        "pan (1/1, 1/2, 1/3)",
-        "plate-stack",
-        "griddle",
-        "burners",
-        "fryer",
-        "hood",
-        "tile-wall",
-        "floor",
-        "speed-rack",
-        "worktop",
-        "custom"
+      "source": "src/scene",
+      "primitives": [
+        "FlatTrack (plates, solids, contact shadows, dashed wires, graticule, cursor)",
+        "BlockGrid",
+        "SpanInstances",
+        "MarkInstances",
+        "TimeAxis",
+        "LabelLayer and LabelProjector (every word and number, as DOM)",
+        "SelectionMarker and SelectionList",
+        "CameraRig and CameraButtons"
       ],
-      "moving": [
-        "Tickets and RailClips: print, tear, hang",
-        "PrinterFeed: steps(6, end)",
-        "Plates: slide and rest on ease-settle over dur-settle",
-        "ServiceBell: dur-bell on ease-strike",
-        "LampLights",
-        "Steam: T2 only, never under reduced motion"
-      ],
-      "glowChannels": {
-        "stations": "0-27",
-        "lamp": 28,
-        "strip": 29,
-        "tube": 30
+      "cameras": {
+        "step-loop": [
+          "Lifted",
+          "Side",
+          "Along time",
+          "Top",
+          "Compare",
+          "Scale"
+        ]
       },
       "tiers": {
         "T0": "2D only",
-        "T1": "props, baked occlusion, contact shadows; no shadow maps, no post-processing",
-        "T2": "adds lamp shadow maps (3 lights), bloom at half resolution with FXAA in the final pass, cones, steam",
-        "T3": "governor only; 4 shadow lights, 2 post passes"
+        "T1": "a phone or a small machine: no shadow-casting lights",
+        "T2": "everything else"
       },
-      "atmosphere": {
-        "roomLight": "baked into tile and floor, falling away into a veil of deep steel",
-        "fog": "from past the camera's focus; games haze to surface-3, the /design kitchen to surface-0",
-        "environment": "procedural reflected room (tubes, lamps' glow, steel walls) in a PMREM cube; no image asset"
-      },
-      "print": "Every readable word and number is DOM over the canvas: marker on tape strips, Doto on paper tags, never below size-micro."
+      "rule": "3D is a model of the same diagram, offered only where depth shows something the diagram cannot; a phone opens in the diagram."
     }
   },
   "components": [
@@ -986,55 +904,99 @@
       "description": "The raised surface over a hairline; the page you are on in ink with an ink bar.",
       "html": "<nav class=\"ds-header\"><a class=\"ds-header__name\" href=\"/\">enginespace</a><a class=\"ds-header__link\" aria-current=\"page\" href=\"/map\">Course</a></nav>",
       "css": ".ds-header { display: flex; align-items: center; gap: var(--es-space-6); padding: var(--es-space-3) var(--es-space-4); border-bottom: 1px solid var(--es-edge); background-color: var(--es-surface-1); } .ds-header__name { font-family: var(--es-font-display); font-size: var(--es-size-large); font-weight: 800; color: var(--es-text-1); text-decoration: none; } .ds-header__link { position: relative; color: var(--es-text-2); font-weight: 700; text-decoration: none; } .ds-header__link[aria-current=\"page\"] { color: var(--es-text-1); box-shadow: inset 0 -3px 0 var(--es-text-1); }"
+    },
+    {
+      "name": "Stamp",
+      "kind": "chip",
+      "refersTo": "stamp",
+      "description": "Provenance, one per instrument, table or figure; it opens the tag legend.",
+      "html": "<button class=\"ds-stamp\" type=\"button\"><span class=\"ds-stamp__word\">synthetic</span></button>",
+      "css": ".ds-stamp { display: inline-flex; align-items: center; justify-content: center; min-width: 2.75rem; min-height: 2.75rem; padding: 0; border: 0; background: none; cursor: pointer; } .ds-stamp__word { padding: 0.0625rem var(--es-space-1); border: 1px solid currentColor; border-radius: var(--es-radius-trim); color: var(--es-text-2); font-family: var(--es-font-body); font-size: var(--es-size-stamp); font-weight: 700; letter-spacing: 0.04em; line-height: 1.25; transition: background-color var(--es-dur-quick) var(--es-ease-settle); } .ds-stamp:hover .ds-stamp__word { background-color: color-mix(in srgb, var(--es-surface-2) 30%, transparent); } .ds-stamp:active .ds-stamp__word { background-color: color-mix(in srgb, var(--es-surface-2) 50%, transparent); box-shadow: inset 0 0 0 1px currentColor; } .ds-stamp:focus-visible { outline: 3px solid var(--es-text-1); outline-offset: 2px; box-shadow: 0 0 0 7px var(--es-paper); }"
+    },
+    {
+      "name": "Callout",
+      "kind": "custom",
+      "refersTo": "callout",
+      "description": "An intro's numbered disc, in ink, standing in the diagram's gutter. Never amber.",
+      "html": "<button class=\"ds-callout\" type=\"button\" aria-label=\"Part 1: waiting queue\"><span class=\"ds-callout__disc\">1</span></button>",
+      "css": ".ds-callout { display: inline-grid; place-items: center; min-width: 2.75rem; min-height: 2.75rem; padding: 0; border: 0; border-radius: var(--es-radius-round); background: none; cursor: pointer; } .ds-callout__disc { display: inline-grid; place-items: center; width: 1.625rem; height: 1.625rem; border: 2px solid var(--es-text-1); border-radius: var(--es-radius-round); background: var(--es-text-1); box-shadow: 0 0 0 2px var(--es-paper); color: var(--es-paper); font-family: var(--es-font-body); font-size: var(--es-size-caption); font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; transition: background-color var(--es-dur-quick) var(--es-ease-settle), color var(--es-dur-quick) var(--es-ease-settle), box-shadow var(--es-dur-quick) var(--es-ease-settle); } .ds-callout:hover .ds-callout__disc { box-shadow: 0 0 0 2px var(--es-paper), 0 0 0 4px var(--es-text-1); } .ds-callout:active .ds-callout__disc { background: var(--es-paper); color: var(--es-text-1); } .ds-callout:focus-visible { outline: 3px solid var(--es-text-1); outline-offset: 2px; box-shadow: 0 0 0 2px var(--es-paper), 0 0 0 7px var(--es-paper); }"
+    },
+    {
+      "name": "Now Cursor",
+      "kind": "custom",
+      "description": "The marker on a diagram: a 2 px amber line with its edge and the word now on a paper slip.",
+      "html": "<div class=\"ds-now\"><span class=\"ds-now__line\"></span><span class=\"ds-now__word\">now</span></div>",
+      "css": ".ds-now { position: relative; width: 6rem; height: 5rem; margin-top: 1.25rem; background: var(--es-paper); border: 1px solid var(--es-edge); } .ds-now__line { position: absolute; top: 0; bottom: 0; left: 1.5rem; width: 2px; background: var(--es-lamp); box-shadow: 0 0 0 1px var(--es-lamp-ring); } .ds-now__word { position: absolute; bottom: 100%; left: 1.9rem; padding-inline: 0.2em; background: var(--es-paper); color: var(--es-paper-ink); font-family: var(--es-font-body); font-size: var(--es-size-caption); font-weight: 700; line-height: 1; }"
     }
   ],
   "narrative": {
     "northStar": "Data Book",
-    "overview": "**Creative North Star: \"Data Book\"**\n\nThe engine's own data book, printed on flat paper, with one amber mark. The site draws the engine as engineers already draw it: timing diagrams, page maps, distribution bars and latency plots, on paper over a flat ground. The look names nothing on screen: every object carries the engine's own name, and the picture is the engine's own diagram (REDESIGN 2.8).\n\nThe system is a bright one. It ships a single light scheme, paper under daylight, plus a more-contrast variant and a forced-colours mapping; there is no dark scheme. Density is a reference book's: a calm reading column, diagrams with a faint graticule, tables in tabular figures. Colour is spent as meaning only: amber for now, the second ink for what must not be missed, and six fills, each with its glyph, as the one colour code.\n\nMotion keeps to the action. Things move when the learner acts and are still between actions, and every duration is 0 under reduced motion, with the state drawn at its end.\n\nThis body describes the values R-T16 built. It is rewritten in full from the built world at the wave's finish (R-T50); until the owner's look gate (R-T20), the kitchen scene and its files stay in the tree, and the roles it reads (tape, tape ink, glint, the fluorescent light) stay in tokens.ts for it alone.",
+    "overview": "The engine's own data book, printed on flat paper, with one amber mark. The site draws the engine as its engineers already draw it: timing diagrams, page maps, distribution bars and latency plots, on paper over a flat ground. The look names nothing on screen: every object carries the engine's own name, and the picture is the engine's own diagram.\n\nThe system is a bright one. It ships a single light scheme, paper under daylight, plus a more-contrast variant and a forced-colours mapping; there is no dark scheme. Density is a reference book's: a calm reading column on one sheet, diagrams on a faint graticule, tables and readouts in tabular figures, a run-in head beside its first paragraph. Colour is spent as meaning only: amber for now, the second ink for what must not be missed, and six fills, each with its glyph or hatch, as the one colour code.\n\nMotion keeps to the action. Things move when the learner acts and are still between actions, and every duration is 0 under reduced motion, with the state drawn at its end. Data Book replaced The Pass, the kitchen world the course was first drawn in, on 2026-11-16 (D-062); nothing of that world is drawn any more.",
     "keyCharacteristics": [
       "A flat ground with no texture, and paper cut square with one soft sheet shadow.",
       "Amber means now: it has three carriers, always with its dark edge, a shape and a word.",
       "Focus is ink: 3 px of text-1 at a 2 px offset, with a paper halo.",
       "Three faces: Big Shoulders Display for titles, Atkinson Hyperlegible for reading and labels, Atkinson Hyperlegible Mono for code and every number.",
       "Sentence case everywhere: nothing is transformed to upper case, so vLLM, SGLang and v0.33.0 keep their casing.",
-      "Six fills with their glyphs are the one colour code, and appear only where the model's state is drawn."
+      "Six fills with their glyphs are the one colour code, and appear only where the model's state is drawn.",
+      "One instrument frame for every game and one template for every lesson, so the way on is always in the same place.",
+      "3D is a model of the same diagram: matte solids on a pale plate, with every word and number in DOM over it."
     ],
     "rules": [
       {
         "name": "The One Marker Rule",
-        "body": "Amber means now. It has three carriers and no others: the control to act on now, the \"now\" cursor on a diagram, and the current-position mark in the rail and on the course track. The header's Continue is an outline, and an intro's callouts are ink discs."
+        "body": "Amber means now. It has three carriers and no others: the control to act on now, the \"now\" cursor on a diagram, and the current-position mark in the rail and on the course track. The header's Continue is an outline wherever the page has a move in hand, and an intro's callouts are ink discs.",
+        "section": "colors"
       },
       {
         "name": "The Ink Focus Rule",
-        "body": "The focus ring is 3 px of text-1 at a 2 px offset, with a paper halo. It is never amber, so focus is not mistaken for now, and it reads against the amber button's own edge."
+        "body": "The focus ring is 3 px of text-1 at a 2 px offset, with a paper halo. It is never amber, so focus is not mistaken for now, and it reads against the amber button's own edge.",
+        "section": "colors"
       },
       {
         "name": "The Colour Is State Rule",
-        "body": "A code colour appears only where the model's state is drawn, and always with its glyph or hatch."
+        "body": "A code colour appears only where the model's state is drawn, and always with its glyph or hatch.",
+        "section": "colors"
       },
       {
         "name": "The Declared Pair Rule",
-        "body": "A foreground goes on a background only through a pair tokens.ts declares and verify-tokens checks: 4.5:1 for text, 3:1 for marks and edges, in both shipped schemes."
+        "body": "A foreground goes on a background only through a pair tokens.ts declares and verify-tokens checks: 4.5:1 for text, 3:1 for marks and edges, in both shipped schemes.",
+        "section": "colors"
       },
       {
         "name": "The Sentence Case Rule",
-        "body": "No text is transformed to upper case, anywhere. Engine names keep their own casing."
+        "body": "No text is transformed to upper case, anywhere. Engine names keep their own casing.",
+        "section": "typography"
       },
       {
         "name": "The Ramp Rule",
-        "body": "A size is a step of the ramp: `font-size` takes a `--es-size-*` token or a type role's own size, and a size outside the ramp is a one-off that keeps a one-line comment saying why."
+        "body": "A size is a step of the ramp: `font-size` takes a `--es-size-*` token or a type role's own size, and a size outside the ramp is a one-off that keeps a one-line comment saying why.",
+        "section": "typography"
+      },
+      {
+        "name": "The Short Viewport Rule",
+        "body": "Under 600 px of viewport height nothing is sticky or pinned. An instrument's dock on a narrow screen is pinned only from 700 px.",
+        "section": "layout"
       },
       {
         "name": "The Flat Paper Rule",
-        "body": "No texture anywhere. One shadow for a sheet and one for a popover. Paper is cut square."
+        "body": "No texture anywhere. One shadow for a sheet and one for a popover. Paper is cut square.",
+        "section": "elevation"
       },
       {
         "name": "The Moves On Step Rule",
-        "body": "Things move on an action and are still between actions: 120 ms for the hand, 240 ms for a step, 640 ms for the one authored moment of an instrument. A readout changes at once. Every duration is 0 under reduced motion, and the state is drawn at its end."
+        "body": "Things move on an action and are still between actions: 120 ms for the hand, 240 ms for a step, 640 ms for the one authored moment of an instrument. A readout changes at once and shows its delta for one second. Every duration is 0 under reduced motion, and the state is drawn at its end.",
+        "section": "elevation"
       },
       {
         "name": "The Words Are DOM Rule",
-        "body": "Every word or number a learner reads in a 3D scene is DOM over the canvas; a texture carries only marks nobody needs to read."
+        "body": "Every word or number a learner reads in a 3D scene is DOM over the canvas; a texture carries only marks nobody needs to read.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Quiet Provenance Rule",
+        "body": "One stamp per instrument, table or figure. A tag inside prose is a dotted underline.",
+        "section": "components"
       }
     ],
     "dos": [
@@ -1043,15 +1005,19 @@
       "**Do** draw focus as 3 px of text-1 at a 2 px offset, with a paper halo.",
       "**Do** set every number the learner compares in the mono face with tabular figures, with its tag.",
       "**Do** give every category its fill and its glyph, and carry yellow and white marks on their edge colour.",
-      "**Do** give every `font-size` a step of the size ramp and every radius a step of the rounded scale; a deliberate one-off keeps a one-line comment saying why."
+      "**Do** give every `font-size` a step of the size ramp and every radius a step of the rounded scale; a deliberate one-off keeps a one-line comment saying why.",
+      "**Do** put a game in the instrument frame and a lesson in the lesson template, with the diagram, the current control and the readout on one screen.",
+      "**Do** give every target 44 px on its short side, and draw a small mark small inside it."
     ],
     "donts": [
       "**Don't** add a dark scheme; the system ships light and more-contrast only.",
-      "**Don't** transform text to upper case, or track a label out as if it were.",
-      "**Don't** lay a texture, a glint or a gradient sheen on any surface.",
+      "**Don't** transform text to upper case.",
+      "**Don't** lay a texture, a glint or a gradient sheen on any surface; a gradient draws a graticule or a hatch and nothing else.",
       "**Don't** colour anything for decoration, or make a selected, current or focused thing amber.",
       "**Don't** fade text with opacity to show a state; use the quiet text role, which keeps 4.5:1.",
-      "**Don't** use Unicode characters or an icon font as icons; draw them on the 24-unit grid."
+      "**Don't** use Unicode characters or an icon font as icons; draw them on the 24-unit grid.",
+      "**Don't** put a word or a number a learner reads into a 3D texture, or light a scene with anything but its one key and its hemisphere.",
+      "**Don't** pin or stick anything under 600 px of viewport height."
     ]
   }
 }
