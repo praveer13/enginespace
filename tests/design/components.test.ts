@@ -6,7 +6,7 @@ import { describe, expect, test } from 'bun:test'
 import { createElement, type ReactElement } from 'react'
 import { renderToString } from 'react-dom/server'
 import { StaticRouter } from 'react-router'
-import { Bell } from '@/design/components/Bell'
+import { StepControl } from '@/design/components/StepControl'
 import { Header, MenuLink } from '@/design/components/Header'
 import { Button } from '@/design/components/Button'
 import { Callout } from '@/design/components/Callout'
@@ -105,7 +105,7 @@ describe('ReadoutStrip', () => {
   })
 })
 
-describe('BusyMark and Bell', () => {
+describe('BusyMark and StepControl', () => {
   test('a station says busy or dark in words', () => {
     expect(render(h(BusyMark, { lit: true, label: 'Station 1' }))).toContain('>busy<')
     expect(render(h(BusyMark, { lit: false, label: 'Station 2' }))).toContain('>dark<')
@@ -145,12 +145,12 @@ describe('BusyMark and Bell', () => {
   })
 
   test('the bell is a named button when it fires the step, and its count is tagged', () => {
-    const html = render(h(Bell, { step: 12, onRing: () => undefined }))
+    const html = render(h(StepControl, { step: 12, onRing: () => undefined }))
     expect(html).toContain('aria-label="Ring the bell: fire the next step"')
     expect(html).toContain('>0012<')
     expect(html).toContain('synthetic')
-    expect(render(h(Bell, { step: 12 }))).not.toContain('<button')
-    expect(render(h(Bell, { step: 12, onRing: () => undefined, disabled: true }))).toContain('disabled=""')
+    expect(render(h(StepControl, { step: 12 }))).not.toContain('<button')
+    expect(render(h(StepControl, { step: 12, onRing: () => undefined, disabled: true }))).toContain('disabled=""')
   })
 })
 

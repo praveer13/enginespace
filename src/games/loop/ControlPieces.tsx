@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 import type { ReactNode } from 'react'
 import { requestName } from '@es/play/loop/copy'
-import { Bell } from '@/design/components/Bell'
+import { StepControl } from '@/design/components/StepControl'
 import { Button } from '@/design/components/Button'
 import { Sheet, SheetLine } from '@/design/components/Sheet'
 import type { LoopControls } from './useLoopControls'
@@ -71,11 +71,11 @@ export function LoopTickets({
 }
 
 /** The Step control: it runs the next step. */
-export function LoopBell({ controls, size = 'lg', caption = 'Step' }: { controls: LoopControls; size?: 'md' | 'lg'; caption?: ReactNode }) {
+export function LoopStepControl({ controls, size = 'lg', caption = 'Step' }: { controls: LoopControls; size?: 'md' | 'lg'; caption?: ReactNode }) {
   const { view, bell, ring } = controls
   return (
     <div ref={bell}>
-      <Bell step={view.step} onRing={ring} disabled={!view.canFire} size={size} caption={caption} ringLabel="Step: run the next step" />
+      <StepControl step={view.step} onRing={ring} disabled={!view.canFire} size={size} caption={caption} ringLabel="Step: run the next step" />
     </div>
   )
 }

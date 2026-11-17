@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import '@/design/specimens.css'
 import { contrastRatio } from '@/design/contrast'
-import { Bell } from '@/design/components/Bell'
+import { StepControl } from '@/design/components/StepControl'
 import { Header, MenuLink } from '@/design/components/Header'
 import { Button } from '@/design/components/Button'
 import { Callout } from '@/design/components/Callout'
@@ -945,23 +945,23 @@ function ComponentSpecimens() {
         </State>
       </Specimen>
 
-      <Specimen title="Bell" about="The step mark. Each step strikes it once; with a handler it is the control that fires the next step.">
+      <Specimen title="Step control" about="The step mark. Each step strikes it once; with a handler it is the control that fires the next step.">
         <State label="ring it">
-          <Bell step={step} onRing={() => setStep((current) => current + 1)} />
+          <StepControl step={step} onRing={() => setStep((current) => current + 1)} />
         </State>
         {FORCED.map((force) => (
           <State key={force} label={force}>
-            <Bell step={12} onRing={() => undefined} data-force={force} />
+            <StepControl step={12} onRing={() => undefined} data-force={force} />
           </State>
         ))}
         <State label="still">
-          <Bell step={12} />
+          <StepControl step={12} />
         </State>
         <State label="disabled">
-          <Bell step={12} onRing={() => undefined} disabled />
+          <StepControl step={12} onRing={() => undefined} disabled />
         </State>
         <State label="loading">
-          <Bell step={12} onRing={() => undefined} loading />
+          <StepControl step={12} onRing={() => undefined} loading />
         </State>
       </Specimen>
 

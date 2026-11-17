@@ -685,16 +685,16 @@
     height: 0.75rem;
   }
 
-  /* ---------------------------------------------------------------------------------------------- step control (Bell) */
+  /* ---------------------------------------------------------------------------------------------- step control (StepControl) */
 
-  .es-bell {
+  .es-step-control {
     display: inline-flex;
     align-items: center;
     gap: var(--es-space-3);
   }
 
-  .es-bell__button,
-  .es-bell__still {
+  .es-step-control__button,
+  .es-step-control__still {
     position: relative;
     display: grid;
     place-items: center;
@@ -707,61 +707,61 @@
     color: inherit;
   }
 
-  .es-bell__still {
+  .es-step-control__still {
     border-color: transparent;
     background: none;
   }
 
-  .es-bell[data-size='lg'] :is(.es-bell__button, .es-bell__still) {
+  .es-step-control[data-size='lg'] :is(.es-step-control__button, .es-step-control__still) {
     width: 6rem;
     height: 5.25rem;
   }
 
-  .es-bell__button {
+  .es-step-control__button {
     cursor: pointer;
     touch-action: manipulation;
     transition: background-color var(--es-dur-quick) var(--es-ease-settle);
   }
 
-  .es-bell__button > .es-printing {
+  .es-step-control__button > .es-printing {
     position: absolute;
     bottom: -0.65rem;
   }
 
-  .es-bell__drawing {
+  .es-step-control__drawing {
     width: 100%;
     height: 100%;
     overflow: visible;
   }
 
-  .es-bell__dome {
+  .es-step-control__dome {
     stroke: var(--es-text-1);
     stroke-width: 1.25;
   }
 
-  .es-bell__chrome-hi,
-  .es-bell__chrome-mid,
-  .es-bell__chrome-lo {
+  .es-step-control__chrome-hi,
+  .es-step-control__chrome-mid,
+  .es-step-control__chrome-lo {
     stop-color: var(--es-surface-1);
   }
 
-  .es-bell__shine {
+  .es-step-control__shine {
     display: none;
   }
 
-  .es-bell__base {
+  .es-step-control__base {
     fill: var(--es-text-1);
   }
 
-  .es-bell__plunger,
-  .es-bell__knob {
+  .es-step-control__plunger,
+  .es-step-control__knob {
     fill: var(--es-surface-2);
     stroke: var(--es-text-1);
     stroke-width: 1.25;
     transition: transform var(--es-dur-quick) var(--es-ease-settle);
   }
 
-  .es-bell__waves {
+  .es-step-control__waves {
     fill: none;
     stroke: var(--es-edge);
     stroke-width: 2;
@@ -771,21 +771,21 @@
     transform-origin: 32px 30px;
   }
 
-  .es-bell__body {
+  .es-step-control__body {
     transform-box: view-box;
     transform-origin: 32px 46px;
   }
 
   /* One step: the plunger goes down and comes back, on the step's duration. */
-  .es-bell__body[data-struck] {
-    animation: es-bell-strike var(--es-dur-bell) var(--es-ease-strike) both;
+  .es-step-control__body[data-struck] {
+    animation: es-step-control-strike var(--es-dur-bell) var(--es-ease-strike) both;
   }
 
-  .es-bell__waves[data-struck] {
-    animation: es-bell-ring calc(var(--es-dur-bell) * 2) var(--es-ease-settle) both;
+  .es-step-control__waves[data-struck] {
+    animation: es-step-control-ring calc(var(--es-dur-bell) * 2) var(--es-ease-settle) both;
   }
 
-  @keyframes es-bell-strike {
+  @keyframes es-step-control-strike {
     0% {
       transform: none;
     }
@@ -797,7 +797,7 @@
     }
   }
 
-  @keyframes es-bell-ring {
+  @keyframes es-step-control-ring {
     0% {
       opacity: 0;
     }
@@ -809,44 +809,44 @@
     }
   }
 
-  .es-bell__button:is(:hover, [data-force='hover']):not(:disabled, [aria-disabled='true']) {
+  .es-step-control__button:is(:hover, [data-force='hover']):not(:disabled, [aria-disabled='true']) {
     background-color: var(--es-surface-1);
   }
 
-  .es-bell__button:is(:active, [data-force='active']):not(:disabled, [aria-disabled='true']) {
+  .es-step-control__button:is(:active, [data-force='active']):not(:disabled, [aria-disabled='true']) {
     background-color: var(--es-surface-2);
   }
 
-  .es-bell__button:is(:active, [data-force='active']):not(:disabled, [aria-disabled='true']) :is(.es-bell__knob, .es-bell__plunger) {
+  .es-step-control__button:is(:active, [data-force='active']):not(:disabled, [aria-disabled='true']) :is(.es-step-control__knob, .es-step-control__plunger) {
     transform: translateY(3px);
   }
 
-  .es-bell__button:is(:focus-visible, [data-force='focus']) {
+  .es-step-control__button:is(:focus-visible, [data-force='focus']) {
     outline: 3px solid var(--es-focus);
     outline-offset: 2px;
     box-shadow: 0 0 0 7px var(--es-paper);
   }
 
-  .es-bell__button:disabled {
+  .es-step-control__button:disabled {
     border-style: dashed;
     cursor: not-allowed;
   }
 
-  .es-bell[data-state='disabled'] .es-bell__dome {
+  .es-step-control[data-state='disabled'] .es-step-control__dome {
     fill: var(--es-surface-2);
     stroke-dasharray: 3 2;
   }
 
-  .es-bell[data-state='loading'] .es-bell__button {
+  .es-step-control[data-state='loading'] .es-step-control__button {
     cursor: progress;
   }
 
-  .es-bell__count {
+  .es-step-control__count {
     display: grid;
     gap: 0.15rem;
   }
 
-  .es-bell__caption {
+  .es-step-control__caption {
     font-size: var(--es-size-caption);
     font-weight: 700;
     color: var(--es-text-2);

@@ -358,7 +358,7 @@ Label is the plain label: Atkinson Hyperlegible 700 in sentence case, still and 
 - **Popover**: a bordered trigger that opens a paper sheet on the lift shadow; on a phone it is a bottom sheet between the gutters.
 - **Title block** (TitleBlock): one quiet line over a hairline that says what a drawing is, what its clock is and what the model leaves out.
 - **Number line** (NumberLine): pins on an axis, each label starting with its pin's shape.
-- **Busy mark, step control and loading dots** (BusyMark, Bell, PrintingDots): a solid ink disc for busy and an open ring for idle, a flat step control, and still dots beside a line of text that says what is loading.
+- **Busy mark, step control and loading dots** (BusyMark, StepControl, PrintingDots): a solid ink disc for busy and an open ring for idle, a flat step control, and still dots beside a line of text that says what is loading.
 
 ### Named Rules
 **The Quiet Provenance Rule.** One stamp per instrument, table or figure. A tag inside prose is a dotted underline.

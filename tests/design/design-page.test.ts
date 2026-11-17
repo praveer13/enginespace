@@ -67,7 +67,7 @@ describe('/design', () => {
       'Readout',
       'Label',
       'Station light',
-      'Bell',
+      'Step control',
       'Button',
       'Link',
       'Toggle',
@@ -231,7 +231,7 @@ describe('/design: landmarks, and what the lights say', () => {
     expect(text).not.toContain('burns green')
     expect(text).not.toContain("lit in its lane's colour")
     // The marks of the lanes shown: the line's is green's hexagon, the expo's blue's circle (REDESIGN §2.8, the one colour code).
-    const station = html.slice(html.indexOf('aria-label="Station light"'), html.indexOf('aria-label="Bell"'))
+    const station = html.slice(html.indexOf('aria-label="Station light"'), html.indexOf('aria-label="Step control"'))
     expect(station).toContain('data-lane="gpu"')
     expect(station).toContain('data-glyph="hexagon"')
     expect(station).toContain('data-lane="cpu"')
