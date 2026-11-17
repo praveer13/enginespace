@@ -1,7 +1,6 @@
 /**
  * Back of House's vocabulary (`engine-floor`, GAMES.md §5 "Simulation API", §2.6 "Back of House"): the levels of the practice run, the
- * actions a learner takes, the state that follows from them and the view that the 2D view, the DOM mirror and (W1-T18) the 3D scene all
- * draw.
+ * actions a learner takes, the state that follows from them and the view that the 2D view and the DOM mirror both draw.
  *
  * Everything here is data. The session is pure (D-017): the same seed and the same actions give the same state in Bun and in every
  * browser, and a state has a canonical JSON form, so it can be hashed, copied across a worker and replayed.

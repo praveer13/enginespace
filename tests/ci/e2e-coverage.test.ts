@@ -119,6 +119,6 @@ describe('the 3D scenes', () => {
     // `HAS_3D` is built from the registry's `has3d`, so a game that adds a scene is covered without being listed anywhere.
     expect(site).toContain('GAMES.games.filter((game) => game.has3d)')
     expect(read('e2e/reduced-motion.spec.ts')).toContain('ROUTES.filter(SCENE_IN_RUN)')
-    expect(GAMES.games.filter((game) => game.has3d).map((game) => game.id).sort()).toEqual(['engine-floor', 'loop', 'pool', 'verifier'])
+    expect(GAMES.games.filter((game) => game.has3d).map((game) => game.id).sort()).toEqual(['loop', 'pool', 'verifier'])
   })
 })
