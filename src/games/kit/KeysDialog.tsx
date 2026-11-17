@@ -35,7 +35,7 @@ export function KeysList({ keys }: { keys: readonly KeyBinding[] }) {
               {group.keys.map((key) => (
                 <Fragment key={key.id}>
                   <dt>
-                    <kbd className="inline-block min-w-8 rounded-plate border border-edge bg-surface-1 px-2 text-center">{key.label}</kbd>
+                    <kbd className="inline-block min-w-8 rounded-control border border-edge bg-surface-1 px-2 text-center">{key.label}</kbd>
                   </dt>
                   <dd>{key.description}</dd>
                 </Fragment>

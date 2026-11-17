@@ -31,7 +31,7 @@ export interface SceneTokens {
   materials: SceneMaterials
   /** The colour of each palette role, in `SCENE_PALETTE` order, for an instanced mesh's role index. */
   palette: readonly string[]
-  motion: { quickMs: number; bellMs: number; feedMs: number; settleMs: number; reduced: boolean }
+  motion: { quickMs: number; stepMs: number; feedMs: number; settleMs: number; reduced: boolean }
   contrastMore: boolean
   forcedColors: boolean
 }
@@ -84,21 +84,21 @@ export function sceneTokensFrom(
   const roles = Object.fromEntries(ROLE_NAMES.map((name) => [name, read(cssVar(name)).trim()])) as SceneRoles
   const color = (name: ColorRoleName) => sceneColor(name, roles[name])
   const { fluorescent } = MATERIAL_PARAMS
-  const bellMs = milliseconds(roles['dur-bell'])
+  const stepMs = milliseconds(roles['dur-step'])
   const colors = Object.fromEntries(COLOR_ROLE_NAMES.map((name) => [name, color(name)])) as Record<ColorRoleName, string>
   return {
     roles,
     colors,
     materials: {
-      fluorescent: { skyColor: color('light-fluorescent'), groundColor: color('surface-0'), ...fluorescent },
+      fluorescent: { skyColor: color('light-ambient'), groundColor: color('surface-0'), ...fluorescent },
     },
     palette: SCENE_PALETTE.map(color),
     motion: {
       quickMs: milliseconds(roles['dur-quick']),
-      bellMs,
+      stepMs,
       feedMs: milliseconds(roles['dur-feed']),
       settleMs: milliseconds(roles['dur-settle']),
-      reduced: flags.reduced ?? bellMs === 0,
+      reduced: flags.reduced ?? stepMs === 0,
     },
     contrastMore: flags.contrastMore ?? false,
     forcedColors: flags.forcedColors ?? false,

@@ -312,8 +312,8 @@ describe('what the scene is made of', () => {
     expect(materials).toMatch(/name: 'flat-cursor', color: UNTINTED\(\), toneMapped: false/)
     expect(materials).toMatch(/name: 'flat-cursor-edge', color: UNTINTED\(\), toneMapped: false/)
     const track = read('src/scene/FlatTrack.tsx')
-    expect(track).toContain("role: 'lamp',")
-    expect(track).toContain("role: 'lamp-ring',")
+    expect(track).toContain("role: 'marker',")
+    expect(track).toContain("role: 'marker-edge',")
   })
 
   test('the game\'s 3D switch points at the time track, which is the game\'s Scene3D.tsx, and the kitchen scene is gone', () => {

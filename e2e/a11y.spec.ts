@@ -218,7 +218,7 @@ function ringOf(page: Page) {
     }
     // The halo is the box-shadow's first colour when it spreads at least the ring's width and offset.
     const halo = /^(rgba?\([^)]*\)|color\([^)]*\))\s+0px 0px 0px (\d+)px/.exec(style.boxShadow)
-    const lamp = getComputedStyle(document.documentElement).getPropertyValue('--es-lamp').trim()
+    const lamp = getComputedStyle(document.documentElement).getPropertyValue('--es-marker').trim()
     const probe = document.createElement('span')
     probe.style.color = lamp
     document.body.append(probe)

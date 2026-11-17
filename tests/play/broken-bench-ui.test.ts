@@ -528,7 +528,7 @@ describe('the result reads the grade', () => {
     expect(exhibits).toMatch(/<path d="[^"]+" stroke="var\(--es-paper-ink-2\)"[^>]*stroke-dasharray/)
     expect(text(exhibits)).toContain("Each red dash is a request's wait between its due tick and its sent tick, and the report's timer, started at the send, counted none of it.")
     expect(text(exhibits)).toMatch(/Request \d{4} waited [\d,.]+ ms/)
-    expect(exhibits).not.toContain('var(--es-lamp)')
+    expect(exhibits).not.toContain('var(--es-marker)')
     expect(count(exhibits, /data-word="synthetic"/g)).toBe(2)
   })
 

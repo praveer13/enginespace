@@ -252,8 +252,8 @@ export function rackOf(view: PoolView, { station, chosen, pointed, pick }: RackO
     else boxes.push({ id: `page/${page.id}`, ...at, y0: WELL.height, height: PAGE.height, role: pageRole[state], form: pageForm[state], pick: `page:${page.id}` })
   }
   const lamp = (id: number, key: string) => {
-    ring(`${key}/${id}/lamp`, pageBox(g, id), 'lamp', RING.off, WELL.height, RING.height)
-    ring(`${key}/${id}/edge`, pageBox(g, id), 'lamp-ring', RING.off + 1.1, WELL.height, RING.edge)
+    ring(`${key}/${id}/lamp`, pageBox(g, id), 'marker', RING.off, WELL.height, RING.height)
+    ring(`${key}/${id}/edge`, pageBox(g, id), 'marker-edge', RING.off + 1.1, WELL.height, RING.edge)
   }
   for (const id of open) lamp(id, 'candidate')
   for (const id of pointed) if (!open.includes(id)) lamp(id, 'pointed')
@@ -270,7 +270,7 @@ export function rackOf(view: PoolView, { station, chosen, pointed, pick }: RackO
     }
     boxes.push({ id: `slot/${at}`, ...box, height: SLOT.height, role: 'paper', form: 'solid', pick: `req:${id}` })
     labels.push({ id: `chip/${id}`, at: [(box.x0 + box.x1) / 2, SLOT.height, (box.z0 + box.z1) / 2], text: reqName(id), kind: 'chip', place: 'center' })
-    if (id === request) ring(`ring/slot/${at}`, box, 'lamp-ring', RING.off, 0, RING.edge + 0.6)
+    if (id === request) ring(`ring/slot/${at}`, box, 'marker-edge', RING.off, 0, RING.edge + 0.6)
   }
 
   // The threads of the request shown: one from its tile to each page of its block table, a page two requests hold with a thread from each.
@@ -301,7 +301,7 @@ export function rackOf(view: PoolView, { station, chosen, pointed, pick }: RackO
     const page = view.pans[fan.page]
     page.holders.forEach((req, i) => throughSlot(req, [page], page.holders.length, i))
   }
-  for (const id of new Set(threaded)) ring(`held/${id}`, pageBox(g, id), 'lamp-ring', RING.off, WELL.height, RING.edge)
+  for (const id of new Set(threaded)) ring(`held/${id}`, pageBox(g, id), 'marker-edge', RING.off, WELL.height, RING.edge)
   if (pick?.kind === 'page' && view.pans[pick.id] !== undefined) lamp(pick.id, 'selected')
 
   // The waiting queue: requests not in the pool yet, as dashed wires.

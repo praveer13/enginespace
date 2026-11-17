@@ -67,8 +67,8 @@ describe('every role reaches CSS, Tailwind and the scenes', () => {
       'paper',
       'paper-ink',
       'paper-ink-2',
-      'lamp',
-      'tape',
+      'marker',
+      'slip',
       'text-1',
       'text-2',
       'text-3',
@@ -117,16 +117,16 @@ describe('every role reaches CSS, Tailwind and the scenes', () => {
   test('the scene materials are colours three can parse, taken from the roles', () => {
     const tokens = staticSceneTokens()
     const { fluorescent } = tokens.materials
-    expect(fluorescent.skyColor).toBe(resolveColor('light-fluorescent'))
+    expect(fluorescent.skyColor).toBe(resolveColor('light-ambient'))
     expect(fluorescent.groundColor).toBe(resolveColor('surface-0'))
     for (const color of [fluorescent.skyColor, fluorescent.groundColor, ...tokens.palette]) expect(color).toMatch(/^#[0-9a-f]{6}$/)
-    expect(tokens.motion.bellMs).toBe(240)
+    expect(tokens.motion.stepMs).toBe(240)
     expect(tokens.motion.reduced).toBe(false)
   })
 
   test('under reduced motion the scenes read zero durations', () => {
     const reduced = sceneTokensFrom((variable) => (variable.startsWith('--es-dur-') ? '0ms' : computedReader(tokensText)(variable)))
-    expect(reduced.motion).toMatchObject({ quickMs: 0, bellMs: 0, feedMs: 0, settleMs: 0, reduced: true })
+    expect(reduced.motion).toMatchObject({ quickMs: 0, stepMs: 0, feedMs: 0, settleMs: 0, reduced: true })
   })
 })
 
@@ -146,7 +146,7 @@ describe('contrast (ARCHITECTURE §11.2)', () => {
       'text-3',
       'paper-ink',
       'paper-ink-2',
-      'tape-ink',
+      'slip-ink',
       'focus',
       'edge',
       'status-ok',
@@ -262,7 +262,7 @@ describe('verify:tokens', () => {
       /system font stack/,
     ],
     ['empty-value', (css) => css.replace('--es-paper: #fafaf6;', '--es-paper: ;'), /empty value: --es-paper/],
-    ['marker', (css) => css.replace('--es-lamp: #ffb547;', '--es-lamp: #ffb547; /* placeholder until DESIGN.md */'), /placeholder/],
+    ['marker', (css) => css.replace('--es-marker: #ffb547;', '--es-marker: #ffb547; /* placeholder until DESIGN.md */'), /placeholder/],
   ]
 
   test.each(fixtures)('fails on a stylesheet with one placeholder: %s', (name, edit, message) => {

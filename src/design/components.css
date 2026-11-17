@@ -237,11 +237,11 @@
     display: flex;
     align-items: baseline;
     gap: 1ch;
-    font-family: var(--es-font-ticket);
-    font-size: var(--es-font-ticket-size);
-    line-height: var(--es-font-ticket-leading);
-    letter-spacing: var(--es-font-ticket-tracking);
-    font-weight: var(--es-font-ticket-weight);
+    font-family: var(--es-font-readout);
+    font-size: var(--es-font-readout-size);
+    line-height: var(--es-font-readout-leading);
+    letter-spacing: var(--es-font-readout-tracking);
+    font-weight: var(--es-font-readout-weight);
     font-variant-numeric: tabular-nums;
   }
 
@@ -371,9 +371,9 @@
     max-width: 100%;
     min-height: 2.75rem;
     padding: var(--es-space-2) var(--es-space-4);
-    border: 2px solid var(--es-lamp-ring);
-    border-radius: var(--es-radius-plate);
-    background-color: var(--es-lamp);
+    border: 2px solid var(--es-marker-edge);
+    border-radius: var(--es-radius-control);
+    background-color: var(--es-marker);
     color: var(--es-text-1);
     font-family: var(--es-font-body);
     font-size: var(--es-size-base);
@@ -399,7 +399,7 @@
   }
 
   .es-primary-button__pull:is(:hover, [data-force='hover']):not(:disabled, [aria-disabled='true']) {
-    background-color: color-mix(in srgb, var(--es-lamp) 80%, var(--es-lamp-ring));
+    background-color: color-mix(in srgb, var(--es-marker) 80%, var(--es-marker-edge));
   }
 
   .es-primary-button__pull:is(:hover, [data-force='hover']):not(:disabled, [aria-disabled='true']) .es-primary-button__arrow {
@@ -407,7 +407,7 @@
   }
 
   .es-primary-button__pull:is(:active, [data-force='active']):not(:disabled, [aria-disabled='true']) {
-    background-color: color-mix(in srgb, var(--es-lamp) 65%, var(--es-lamp-ring));
+    background-color: color-mix(in srgb, var(--es-marker) 65%, var(--es-marker-edge));
   }
 
   .es-primary-button__pull:is(:focus-visible, [data-force='focus']) {
@@ -633,9 +633,9 @@
   .es-busy[data-lamp] .es-busy__bezel {
     box-shadow:
       inset 0 0 0 1px var(--es-edge),
-      0 0 0 1px var(--es-lamp-ring),
-      0 0 0 4px var(--es-lamp),
-      0 0 0 5px var(--es-lamp-ring);
+      0 0 0 1px var(--es-marker-edge),
+      0 0 0 4px var(--es-marker),
+      0 0 0 5px var(--es-marker-edge);
   }
 
   .es-busy__text {
@@ -702,7 +702,7 @@
     height: 4rem;
     padding: 0.25rem;
     border: 1px solid var(--es-edge);
-    border-radius: var(--es-radius-plate);
+    border-radius: var(--es-radius-control);
     background: var(--es-paper);
     color: inherit;
   }
@@ -778,11 +778,11 @@
 
   /* One step: the plunger goes down and comes back, on the step's duration. */
   .es-step-control__body[data-struck] {
-    animation: es-step-control-strike var(--es-dur-bell) var(--es-ease-strike) both;
+    animation: es-step-control-strike var(--es-dur-step) var(--es-ease-strike) both;
   }
 
   .es-step-control__waves[data-struck] {
-    animation: es-step-control-ring calc(var(--es-dur-bell) * 2) var(--es-ease-settle) both;
+    animation: es-step-control-ring calc(var(--es-dur-step) * 2) var(--es-ease-settle) both;
   }
 
   @keyframes es-step-control-strike {
@@ -864,7 +864,7 @@
     min-height: 2.75rem;
     padding: var(--es-space-2) var(--es-space-4);
     border: 1px solid var(--es-edge);
-    border-radius: var(--es-radius-plate);
+    border-radius: var(--es-radius-control);
     background-color: transparent;
     color: var(--es-text-1);
     font-family: var(--es-font-body);
@@ -887,7 +887,7 @@
   .es-button[data-size='lg'] {
     min-height: 3.25rem;
     padding: var(--es-space-3) var(--es-space-6);
-    font-size: var(--es-size-plate);
+    font-size: var(--es-size-control);
   }
 
   .es-button__icon {
@@ -1043,7 +1043,7 @@
     height: 2.5rem;
     padding: 0;
     border: 1px solid var(--es-edge);
-    border-radius: var(--es-radius-plate);
+    border-radius: var(--es-radius-control);
     background-color: var(--es-surface-2);
     cursor: pointer;
     touch-action: manipulation;
@@ -1221,7 +1221,7 @@
 
   .es-field[data-numeric] .es-field__input {
     font-family: var(--es-font-numeric);
-    font-size: var(--es-size-plate);
+    font-size: var(--es-size-control);
     font-weight: var(--es-font-numeric-weight);
     font-variant-numeric: tabular-nums;
     /* A number is typed, never spun: the browser's spinner is no part of a slip. */
@@ -1490,7 +1490,7 @@
     min-height: 2.75rem;
     padding: var(--es-space-2) var(--es-space-4);
     border: 1px solid var(--es-edge);
-    border-radius: var(--es-radius-plate);
+    border-radius: var(--es-radius-control);
     color: var(--es-text-1);
     font-family: var(--es-font-body);
     font-size: var(--es-size-base);
@@ -1516,12 +1516,12 @@
 
   /* The amber fill, where the page has no move in hand: amber with its edge, the ink label (REDESIGN 2.4, "Which control is amber"). */
   .es-header__next[data-emphasis='primary'] {
-    border: 2px solid var(--es-lamp-ring);
-    background: var(--es-lamp);
+    border: 2px solid var(--es-marker-edge);
+    background: var(--es-marker);
   }
 
   .es-header__next[data-emphasis='primary']:is(:hover, [data-force='hover']) {
-    background-color: color-mix(in srgb, var(--es-lamp) 80%, var(--es-lamp-ring));
+    background-color: color-mix(in srgb, var(--es-marker) 80%, var(--es-marker-edge));
   }
 
   .es-header__next-minutes {
@@ -1613,7 +1613,7 @@
       min-height: 2.75rem;
       padding: 0 var(--es-space-2);
       border: 1px solid var(--es-edge);
-      border-radius: var(--es-radius-plate);
+      border-radius: var(--es-radius-control);
       background: transparent;
       color: var(--es-text-1);
       font-family: var(--es-font-body);

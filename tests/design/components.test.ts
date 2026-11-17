@@ -146,7 +146,7 @@ describe('BusyMark and StepControl', () => {
 
   test('the bell is a named button when it fires the step, and its count is tagged', () => {
     const html = render(h(StepControl, { step: 12, onRing: () => undefined }))
-    expect(html).toContain('aria-label="Ring the bell: fire the next step"')
+    expect(html).toContain('aria-label="Step: run the next step"')
     expect(html).toContain('>0012<')
     expect(html).toContain('synthetic')
     expect(render(h(StepControl, { step: 12 }))).not.toContain('<button')

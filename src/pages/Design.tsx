@@ -57,6 +57,8 @@ import {
 
 const ICON_NAMES: IconName[] = ['arrow', 'alert', 'check', 'lock', 'pin', 'hash', 'external', 'strike']
 const FORCED = ['hover', 'focus', 'active'] as const
+/** What each Button variant is called on the page: the outline button is the variant `plate` in code. */
+const VARIANT_NAME = { plate: 'outline', ink: 'ink', quiet: 'quiet' } as const
 
 export function Component() {
   return (
@@ -90,7 +92,7 @@ export function Component() {
         <h2 id="components">Components</h2>
         <p className="es-prose">
           First the parts a lesson and an instrument are made of: the marker, the callouts and the parts list, the legend, the notes, the
-          popover and the stamp, the title block, the section rail, the level menu, the goal line, the delta, the number line and the way
+          popover and the stamp, the title block, the section list, the level menu, the goal line, the delta, the number line and the way
           on. Each is shown in its states, and each works by keyboard. Then the components every page is drawn with today.
         </p>
         <PartSpecimens />
@@ -100,8 +102,8 @@ export function Component() {
       <section aria-labelledby="motion" className="es-spec__section">
         <h2 id="motion">Motion</h2>
         <p className="es-prose">
-          Everything on the pass moves on the bell, and between bells only the printer feeds. Ring it, and each of the four motions below runs once with
-          its own duration and its own easing, so the quick press is done before the course has left the pass. Nothing moves until you ring. Beside each
+          Everything moves on a step, and between steps nothing moves. Press Step, and each of the four motions below runs once with its own
+          duration and its own easing, so the quick press is done before the slide has come to rest. Nothing moves until you press it. Beside each
           is its twin: the curve it follows, which is all there is to see when motion is reduced.
         </p>
         <MotionBoard />
@@ -111,7 +113,7 @@ export function Component() {
         <h2 id="scene-kit">Scene kit</h2>
         <p className="es-prose">
           The parts every 3D game is built from, on the lanes: the step-loop model&apos;s own run of a short service, drawn as matte slabs on flat ground
-          under one key light, beside its 2D twin. Run the next step, turn overlap on, switch to the long run, and the tape prints what this browser measures.
+          under one key light, beside its 2D twin. Run the next step, turn overlap on, switch to the long run, and the readout strip prints what this browser measures.
         </p>
         <SceneSpecimen />
       </section>
@@ -214,13 +216,13 @@ function RoleSample({ name }: { name: RoleName }) {
     const sample =
       name === 'font-numeric'
         ? '0123 µs'
-        : name === 'font-ticket'
-          ? '2x FIRE'
+        : name === 'font-readout'
+          ? '2x STEP'
           : name === 'font-label'
             ? 'grp 2'
             : name === 'font-mono'
               ? 'step()'
-              : 'Fire'
+              : 'Step'
     return (
       <span
         className="es-spec__type"
@@ -423,7 +425,7 @@ function PartSpecimens() {
     <div className="es-spec__components" data-parts="">
       <Specimen
         title="Marker"
-        about="Amber means now, and nothing else. It is always the amber with its dark edge, a shape and a word: a pennant in a rail, a cursor on a diagram, or a ring on the one control an intro points at."
+        about="Amber means now, and nothing else. It is always the amber with its dark edge, a shape and a word: a pennant in a section list, a cursor on a diagram, or a ring on the one control an intro points at."
       >
         <State label="mark, the current place" ground="paper">
           <Marker />
@@ -626,14 +628,14 @@ function PartSpecimens() {
       </Specimen>
 
       <Specimen
-        title="Section rail"
+        title="Section list"
         about="Where you are in a lesson: a nav with an ordered list of its sections, each with its state and your own answers, Read's parts under it, and the minutes left. The current entry carries the marker and aria-current. Below 64rem it folds into a strip."
         wide
       >
-        <State label="the rail, reading part 2" ground="paper">
+        <State label="the list, reading part 2" ground="paper">
           <SectionRail label="This lesson" sections={RAIL} current="read-2" minutesLeft={40} />
         </State>
-        <State label="the rail, at its run" ground="paper">
+        <State label="the list, at its run" ground="paper">
           <SectionRail label="This lesson, at its run" sections={RAIL.map((section) => (section.id === 'run' ? { ...section, state: undefined, answers: undefined } : section))} current="run" minutesLeft={95} />
         </State>
         {FORCED.map((state) => (
@@ -788,38 +790,38 @@ function ComponentSpecimens() {
         about="A sheet: a plain paper panel, cut square, with a soft shadow and a title. The surface the text you read sits on."
       >
         <State label="default">
-          <Sheet head="No. 0042" meta="TBL 7" title="Fire the next step.">
+          <Sheet head="Request 42" meta="prefill" title="Run the next step.">
             <SheetLine qty="1x">PREFILL</SheetLine>
             <SheetLine qty="3x">DECODE</SheetLine>
           </Sheet>
         </State>
-        <State label="under the lamp">
-          <Sheet head="No. 0043" meta="TBL 2" title="On the pass" lamp>
+        <State label="marked now">
+          <Sheet head="Request 43" meta="decode" title="Next to admit" lamp>
             <SheetLine qty="2x">DECODE</SheetLine>
           </Sheet>
         </State>
         {FORCED.map((force) => (
-          <State key={force} label={`a ticket you pick up: ${force}`}>
-            <Sheet as="button" head={`No. 004${FORCED.indexOf(force) + 4}`} meta="TBL 5" data-force={force}>
+          <State key={force} label={`a sheet you pick up: ${force}`}>
+            <Sheet as="button" head={`Request 4${FORCED.indexOf(force) + 4}`} meta="decode" data-force={force}>
               <SheetLine qty="1x">PREFILL</SheetLine>
             </Sheet>
           </State>
         ))}
         <State label="loading">
-          <Sheet head="No. 0047" state="loading">
+          <Sheet head="Request 47" state="loading">
             <SheetLine qty="2x">DECODE</SheetLine>
           </Sheet>
         </State>
         <State label="error">
-          <Sheet head="No. 0048" state="error" error="This sheet could not load. Reload the page to try again.">
+          <Sheet head="Request 48" state="error" error="This sheet could not load. Reload the page to try again.">
             <SheetLine qty="2x">DECODE</SheetLine>
           </Sheet>
         </State>
         <State label="empty">
-          <Sheet head="No. 0000" state="empty" empty="Nothing here yet" />
+          <Sheet head="No requests" state="empty" empty="Nothing here yet" />
         </State>
         <State label="disabled">
-          <Sheet as="button" head="No. 0049" state="disabled">
+          <Sheet as="button" head="Request 49" state="disabled">
             <SheetLine qty="1x">PREFILL</SheetLine>
           </Sheet>
         </State>
@@ -829,28 +831,28 @@ function ComponentSpecimens() {
         {(['default', ...FORCED] as const).map((force) => (
           <State key={force} label={force}>
             <PrimaryButton standalone onClick={() => undefined} data-force={force === 'default' ? undefined : force}>
-              Start service
+              Run the check
             </PrimaryButton>
           </State>
         ))}
         <State label="disabled">
           <PrimaryButton standalone disabled>
-            Start service
+            Run the check
           </PrimaryButton>
         </State>
         <State label="loading">
           <PrimaryButton standalone loading>
-            Start service
+            Run the check
           </PrimaryButton>
         </State>
         <State label="error">
-          <PrimaryButton standalone onClick={() => undefined} error="The line did not answer. Pull the stub again.">
-            Start service
+          <PrimaryButton standalone onClick={() => undefined} error="The check did not run. Press the button to try again.">
+            Run the check
           </PrimaryButton>
         </State>
-        <State label="on a ticket, as a link">
-          <Sheet head="No. 0050" meta="TBL 1" title="First service" stub={<PrimaryButton to="/play/loop">Start service</PrimaryButton>}>
-            <SheetLine qty="4">CLIPS ON THE RAIL</SheetLine>
+        <State label="on a sheet, as a link">
+          <Sheet head="Request 50" meta="prefill" title="First run" stub={<PrimaryButton to="/play/loop">Open the step loop</PrimaryButton>}>
+            <SheetLine qty="4">REQUESTS WAITING</SheetLine>
           </Sheet>
         </State>
       </Specimen>
@@ -858,23 +860,23 @@ function ComponentSpecimens() {
       <Specimen title="Readout strip" about="The readout strip: terms and their values on one paper strip, a ruled row each. A value changes at once.">
         <State label="default">
           <ReadoutStrip
-            label="The printer"
+            label="The step clock"
             housing={<MenuLink />}
             lines={[
-              { id: 'step', label: 'fire', value: <Readout value={step} pad={4} tag="synthetic" size="sm" /> },
+              { id: 'step', label: 'step', value: <Readout value={step} pad={4} tag="synthetic" size="sm" /> },
               { id: 'clock', label: 'clock', value: <Readout value={7} unit="ticks" tag="synthetic" size="sm" /> },
-              { id: 'busy', label: 'busy', value: <Readout value={3} unit="stations" tag="synthetic" size="sm" /> },
+              { id: 'busy', label: 'busy', value: <Readout value={3} unit="slots" tag="synthetic" size="sm" /> },
             ]}
           />
         </State>
         <State label="loading">
-          <ReadoutStrip label="The printer, warming up" state="loading" lines={[]} />
+          <ReadoutStrip label="The step clock, loading" state="loading" lines={[]} />
         </State>
         <State label="error">
-          <ReadoutStrip label="The printer, jammed" state="error" error="Paper jam. Open the printer and pull the tape." lines={[]} />
+          <ReadoutStrip label="The step clock, failed" state="error" error="The clock did not load. Reload the page to try again." lines={[]} />
         </State>
         <State label="empty">
-          <ReadoutStrip label="The printer, idle" lines={[]} empty="No fires yet" />
+          <ReadoutStrip label="The step clock, idle" lines={[]} empty="No steps yet" />
         </State>
       </Specimen>
 
@@ -903,7 +905,7 @@ function ComponentSpecimens() {
         <State label="plain">
           <Label>prep · KV page</Label>
         </State>
-        <State label="with a station's code">
+        <State label="with a lane's code">
           <Label slot="green">grp 2 · 0x3f</Label>
         </State>
         <State label="tilted the other way">
@@ -919,34 +921,34 @@ function ComponentSpecimens() {
       </Specimen>
 
       <Specimen
-        title="Station light"
+        title="Busy mark"
         about="Busy or idle as a shape and a word: a solid ink disc while it works, an open ring while it waits. The lane it belongs to is a mark beside its name, the same either way."
       >
         <State label="busy">
-          <BusyMark lit label="Station 1" />
+          <BusyMark lit label="Slot 1" />
         </State>
-        <State label="busy, in the line's lane">
-          <BusyMark lit lane="gpu" label="The line" />
+        <State label="busy, in the GPU lane">
+          <BusyMark lit lane="gpu" label="GPU" />
         </State>
-        <State label="busy, in the expo's lane">
-          <BusyMark lit lane="cpu" label="The expo" words={{ lit: 'writing', dark: 'idle', fault: 'fault' }} />
+        <State label="busy, in the CPU lane">
+          <BusyMark lit lane="cpu" label="CPU thread" words={{ lit: 'scheduling', dark: 'idle', fault: 'fault' }} />
         </State>
         <State label="dark, the lane's mark stays">
-          <BusyMark lit={false} lane="gpu" label="The line" />
+          <BusyMark lit={false} lane="gpu" label="GPU" />
         </State>
         <State label="fault">
-          <BusyMark lit={false} fault label="Station 3" />
+          <BusyMark lit={false} fault label="Slot 3" />
         </State>
-        <State label="under the lamp">
-          <BusyMark lit lamp label="Station 4" />
+        <State label="marked now">
+          <BusyMark lit lamp label="Slot 4" />
         </State>
         <State label="disabled">
-          <BusyMark lit={false} disabled label="Station 5" />
+          <BusyMark lit={false} disabled label="Slot 5" />
         </State>
       </Specimen>
 
-      <Specimen title="Step control" about="The step mark. Each step strikes it once; with a handler it is the control that fires the next step.">
-        <State label="ring it">
+      <Specimen title="Step control" about="The step control. It counts the steps; with a handler it is the control that runs the next step.">
+        <State label="press it">
           <StepControl step={step} onRing={() => setStep((current) => current + 1)} />
         </State>
         {FORCED.map((force) => (
@@ -968,20 +970,20 @@ function ComponentSpecimens() {
       <Specimen title="Button" about="Flat, with a 1 px edge and a 3 px radius: the outline, the ink button an instrument leans on, and the quiet label alone." wide>
         {(['plate', 'ink', 'quiet'] as const).flatMap((variant) => [
           ...(['default', ...FORCED] as const).map((force) => (
-            <State key={`${variant}-${force}`} label={`${variant}, ${force}`}>
+            <State key={`${variant}-${force}`} label={`${VARIANT_NAME[variant]}, ${force}`}>
               <Button variant={variant} data-force={force === 'default' ? undefined : force}>
-                Ring the bell
+                Step
               </Button>
             </State>
           )),
-          <State key={`${variant}-disabled`} label={`${variant}, disabled`}>
+          <State key={`${variant}-disabled`} label={`${VARIANT_NAME[variant]}, disabled`}>
             <Button variant={variant} disabled>
-              Ring the bell
+              Step
             </Button>
           </State>,
-          <State key={`${variant}-loading`} label={`${variant}, loading`}>
+          <State key={`${variant}-loading`} label={`${VARIANT_NAME[variant]}, loading`}>
             <Button variant={variant} loading>
-              Ring the bell
+              Step
             </Button>
           </State>,
         ])}
@@ -1023,7 +1025,7 @@ function ComponentSpecimens() {
 
       <Specimen title="Toggle" about="A switch: a flat track, a square thumb, and the state as a word. On, the track is dark. No light.">
         <State label="live">
-          <Toggle label="Write the next call during this fire" hint="overlap (async scheduling)" checked={overlap} onCheckedChange={setOverlap} />
+          <Toggle label="Write the next call during this step" hint="overlap (async scheduling)" checked={overlap} onCheckedChange={setOverlap} />
         </State>
         <State label="off">
           <Toggle label="Overlap" defaultChecked={false} />
@@ -1069,13 +1071,13 @@ function ComponentSpecimens() {
       </Specimen>
 
       <Specimen
-        title="The board and the menu"
+        title="The header and the navigation"
         about="The navigation: the header along the top with the site's name, the page you are on marked in ink, and the footer below."
         wide
       >
-        <State label="the board" span>
+        <State label="the header" span>
           <Header
-            label="Specimen board"
+            label="Specimen header"
             brand={{ to: '/', label: 'enginespace' }}
             links={[
               { to: '/map', label: 'Map' },
@@ -1084,9 +1086,9 @@ function ComponentSpecimens() {
             ]}
           />
         </State>
-        <State label="the kick-plate" span>
+        <State label="the footer" span>
           <Header
-            label="Specimen kick-plate"
+            label="Specimen footer"
             variant="kickplate"
             links={[
               { to: '/about', label: 'About' },
@@ -1094,7 +1096,7 @@ function ComponentSpecimens() {
             ]}
           />
         </State>
-        <State label="the menu link" ground="paper">
+        <State label="the navigation button" ground="paper">
           <MenuLink />
         </State>
       </Specimen>
@@ -1119,10 +1121,10 @@ function ComponentSpecimens() {
 
 /** The four motions the roles name, in the order of their durations (tokens.ts: "Motion"). */
 const MOTIONS = [
-  { id: 'press', title: 'A press', about: 'A hand on a plate or a hover over a ticket: the system answers at once.', duration: 'dur-quick', easing: 'ease-settle' },
-  { id: 'strike', title: 'The bell strike', about: 'One step. The plunger drops, and the dome rings past its mark and settles.', duration: 'dur-bell', easing: 'ease-strike' },
-  { id: 'feed', title: "The printer's feed", about: 'One ticket line. The printer advances in steps and never glides.', duration: 'dur-feed', easing: 'ease-feed' },
-  { id: 'course', title: 'A course down the pass', about: 'A plate sliding to its place and coming to rest: fast away, long rest.', duration: 'dur-settle', easing: 'ease-settle' },
+  { id: 'press', title: 'A press', about: 'A press on a control or a hover over a sheet: the system answers at once.', duration: 'dur-quick', easing: 'ease-settle' },
+  { id: 'strike', title: 'A step', about: 'One step. The plunger drops, and the dome rings past its mark and settles.', duration: 'dur-step', easing: 'ease-strike' },
+  { id: 'feed', title: 'A reading settling', about: "A marker moving to a new reading, such as the verifier's output line, and coming to rest.", duration: 'dur-feed', easing: 'ease-settle' },
+  { id: 'course', title: 'A slide to place', about: 'A block sliding to its place and coming to rest: fast away, long rest.', duration: 'dur-settle', easing: 'ease-settle' },
 ] as const satisfies readonly { id: string; title: string; about: string; duration: RoleName; easing: RoleName }[]
 
 /** A role's value as a number of milliseconds: `240ms` is 240. */
@@ -1157,7 +1159,7 @@ function MotionBoard() {
     <div className="es-spec__motions">
       <div className="es-spec__motion-deck">
         <Button variant="ink" onClick={() => setRung((count) => count + 1)}>
-          Ring the bell
+          Step
         </Button>
         <MotionStatus />
         <p role="status" className="sr-only">
@@ -1195,7 +1197,7 @@ function MotionBoard() {
                   />
                 </span>
               </div>
-              <figcaption className="es-spec__state-label">live: rings with the bell</figcaption>
+              <figcaption className="es-spec__state-label">live: runs with Step</figcaption>
             </figure>
             <figure className="es-spec__motion-twin">
               <div className="es-spec__motion-stage" data-ground="paper">

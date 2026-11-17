@@ -339,7 +339,7 @@ test.describe('settings apply live (accept 1)', () => {
     await settle(page)
     // Slow the bell right down, so the slide the bell starts is still running when the setting changes: the scene reads the
     // role's value each time it starts a move, and a move that is running keeps the duration it began with.
-    await page.evaluate(() => document.documentElement.style.setProperty('--es-dur-bell', '60000ms'))
+    await page.evaluate(() => document.documentElement.style.setProperty('--es-dur-step', '60000ms'))
     await bell(page).click()
     await expect(stage(page)).not.toHaveAttribute('data-settled', 'true')
     // A software renderer draws a few frames a second, so the check is that frames keep coming, not how many.
@@ -592,7 +592,7 @@ test.describe('/design: the bell runs the four motions', () => {
   ] as const
   const puck = (page: Page, id: string) => page.locator(`[data-motion-row="${id}"] .es-spec__motion-puck`)
   const runner = (page: Page, id: string) => page.locator(`[data-motion-row="${id}"] .es-spec__motion-track`)
-  const ring = (page: Page) => page.locator('.es-spec__motion-deck').getByRole('button', { name: 'Ring the bell' }).click()
+  const ring = (page: Page) => page.locator('.es-spec__motion-deck').getByRole('button', { name: 'Step', exact: true }).click()
 
   /** How far along its runner a plate has come, from 0 to 1. */
   async function travelled(page: Page, id: string): Promise<number> {
@@ -1157,7 +1157,7 @@ test.describe('axe finds no serious or critical violation (A§11.2)', () => {
       await page.setViewportSize({ width, height: 900 })
       await open(page, '/design')
       await page.locator('#motion').scrollIntoViewIfNeeded()
-      await page.locator('.es-spec__motion-deck').getByRole('button', { name: 'Ring the bell' }).click()
+      await page.locator('.es-spec__motion-deck').getByRole('button', { name: 'Step', exact: true }).click()
       expect(await violations(page)).toEqual([])
     })
   }

@@ -176,13 +176,13 @@ function Cursors({ cursors, materials }: { cursors: readonly FlatCursor[]; mater
   const sheets = useMemo<FlatBox[]>(
     () =>
       cursors.flatMap((c) => [
-        { id: `${c.id}/top`, x0: c.x - e, x1: c.x + e, z0: c.z0, z1: c.z1, y0: c.height - CURSOR_EDGE, height: CURSOR_EDGE, role: 'lamp', form: 'solid', shadow: false },
-        { id: `${c.id}/post`, x0: c.x - e, x1: c.x + e, z0: c.z1 - CURSOR_EDGE, z1: c.z1, height: c.height, role: 'lamp', form: 'solid', shadow: false },
+        { id: `${c.id}/top`, x0: c.x - e, x1: c.x + e, z0: c.z0, z1: c.z1, y0: c.height - CURSOR_EDGE, height: CURSOR_EDGE, role: 'marker', form: 'solid', shadow: false },
+        { id: `${c.id}/post`, x0: c.x - e, x1: c.x + e, z0: c.z1 - CURSOR_EDGE, z1: c.z1, height: c.height, role: 'marker', form: 'solid', shadow: false },
       ]),
     [cursors, e],
   )
   const edges = useMemo<FlatBox[]>(
-    () => cursors.map((c) => ({ id: c.id, x0: c.x - e - 1, x1: c.x + e + 1, z0: c.z0 - 1, z1: c.z1 + 1, y0: c.height - CURSOR_EDGE - 1, height: 1, role: 'lamp-ring', form: 'solid', shadow: false })),
+    () => cursors.map((c) => ({ id: c.id, x0: c.x - e - 1, x1: c.x + e + 1, z0: c.z0 - 1, z1: c.z1 + 1, y0: c.height - CURSOR_EDGE - 1, height: 1, role: 'marker-edge', form: 'solid', shadow: false })),
     [cursors, e],
   )
   return (

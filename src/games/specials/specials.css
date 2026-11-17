@@ -112,7 +112,7 @@
   margin-top: var(--es-space-2);
   padding: var(--es-space-2) var(--es-space-4);
   border: 1px solid var(--es-edge);
-  border-radius: var(--es-radius-plate);
+  border-radius: var(--es-radius-control);
   color: var(--es-text-1);
   font-weight: 700;
   text-decoration: none;

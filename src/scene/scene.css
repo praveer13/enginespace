@@ -12,7 +12,7 @@
   display: grid;
   grid-template: 'view' minmax(0, 1fr) / minmax(0, 1fr);
   overflow: hidden;
-  border-radius: var(--es-radius-plate);
+  border-radius: var(--es-radius-control);
   background-color: var(--es-surface-0);
   isolation: isolate;
 }

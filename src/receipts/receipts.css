@@ -120,19 +120,19 @@
 .es-chit__label {
   margin: 0;
   color: var(--es-text-2);
-  font-family: var(--es-font-ticket);
+  font-family: var(--es-font-readout);
   font-size: var(--es-size-caption);
-  font-weight: var(--es-font-ticket-weight);
+  font-weight: var(--es-font-readout-weight);
 }
 
 /* The token is the thing on the ticket: the printer's dots at the readout's size, selected whole by one click, and broken at its colons. */
 .es-chit__token {
   margin: 0;
-  font-family: var(--es-font-ticket);
-  font-size: var(--es-size-plate);
-  font-weight: var(--es-font-ticket-weight);
+  font-family: var(--es-font-readout);
+  font-size: var(--es-size-control);
+  font-weight: var(--es-font-readout-weight);
   line-height: 1.4;
-  letter-spacing: var(--es-font-ticket-tracking);
+  letter-spacing: var(--es-font-readout-tracking);
   overflow-wrap: anywhere;
   user-select: all;
 }
@@ -166,9 +166,9 @@
   gap: var(--es-space-2);
   min-height: 1.5em;
   margin: 0;
-  font-family: var(--es-font-ticket);
+  font-family: var(--es-font-readout);
   font-size: var(--es-size-print);
-  font-weight: var(--es-font-ticket-weight);
+  font-weight: var(--es-font-readout-weight);
   line-height: 1.4;
 }
 
@@ -226,10 +226,10 @@
 
 /* A stage's id in the printer's dots, and under it the stage's name and what tells one challenge from another. */
 .es-held__id {
-  font-family: var(--es-font-ticket);
-  font-size: var(--es-size-plate);
-  font-weight: var(--es-font-ticket-weight);
-  letter-spacing: var(--es-font-ticket-tracking);
+  font-family: var(--es-font-readout);
+  font-size: var(--es-size-control);
+  font-weight: var(--es-font-readout-weight);
+  letter-spacing: var(--es-font-readout-tracking);
   line-height: 1.3;
   overflow-wrap: anywhere;
 }
@@ -278,9 +278,9 @@
 
 .es-held__token {
   flex: 1 0 100%;
-  font-family: var(--es-font-ticket);
+  font-family: var(--es-font-readout);
   font-size: var(--es-size-print);
-  font-weight: var(--es-font-ticket-weight);
+  font-weight: var(--es-font-readout-weight);
   line-height: 1.4;
   overflow-wrap: anywhere;
   user-select: all;
@@ -288,9 +288,9 @@
 
 .es-held__copied {
   min-width: 4ch;
-  font-family: var(--es-font-ticket);
+  font-family: var(--es-font-readout);
   font-size: var(--es-size-print);
-  font-weight: var(--es-font-ticket-weight);
+  font-weight: var(--es-font-readout-weight);
 }
 
 /* ---------------------------------------------------------------------------------------------- one receipt opened */
@@ -389,9 +389,9 @@
 
 .es-facts dt {
   color: var(--es-text-2);
-  font-family: var(--es-font-ticket);
+  font-family: var(--es-font-readout);
   font-size: var(--es-size-caption);
-  font-weight: var(--es-font-ticket-weight);
+  font-weight: var(--es-font-readout-weight);
 }
 
 .es-facts dd {
@@ -428,9 +428,9 @@
 }
 
 .es-receipt__token {
-  font-family: var(--es-font-ticket);
+  font-family: var(--es-font-readout);
   font-size: var(--es-size-print);
-  font-weight: var(--es-font-ticket-weight);
+  font-weight: var(--es-font-readout-weight);
   overflow-wrap: anywhere;
 }
 
@@ -466,9 +466,9 @@
 
 .es-receipt__table thead th {
   border-bottom: 2px dotted var(--es-paper-rule);
-  font-family: var(--es-font-ticket);
+  font-family: var(--es-font-readout);
   font-size: var(--es-size-caption);
-  font-weight: var(--es-font-ticket-weight);
+  font-weight: var(--es-font-readout-weight);
 }
 
 .es-receipt__table tbody th {
@@ -552,8 +552,8 @@
   display: inline-flex;
   align-items: center;
   gap: var(--es-space-1);
-  font-family: var(--es-font-ticket);
-  font-weight: var(--es-font-ticket-weight);
+  font-family: var(--es-font-readout);
+  font-weight: var(--es-font-readout-weight);
 }
 
 .es-receipt__result[data-fail] {
@@ -586,9 +586,9 @@
   align-items: flex-start;
   gap: var(--es-space-2);
   color: var(--es-paper-ink-2);
-  font-family: var(--es-font-ticket);
+  font-family: var(--es-font-readout);
   font-size: var(--es-size-print);
-  font-weight: var(--es-font-ticket-weight);
+  font-weight: var(--es-font-readout-weight);
   overflow-wrap: anywhere;
 }
 
@@ -621,7 +621,7 @@
   content: '';
   position: absolute;
   inset: -0.5rem;
-  border: 2px dashed var(--es-lamp-ring);
+  border: 2px dashed var(--es-marker-edge);
   pointer-events: none;
 }
 
@@ -717,10 +717,10 @@
 }
 
 .es-rule__n {
-  font-family: var(--es-font-ticket);
-  font-size: var(--es-size-plate);
-  font-weight: var(--es-font-ticket-weight);
-  letter-spacing: var(--es-font-ticket-tracking);
+  font-family: var(--es-font-readout);
+  font-size: var(--es-size-control);
+  font-weight: var(--es-font-readout-weight);
+  letter-spacing: var(--es-font-readout-tracking);
 }
 
 .es-rule__name {
@@ -732,8 +732,8 @@
   display: inline-flex;
   align-items: center;
   gap: var(--es-space-1);
-  font-family: var(--es-font-ticket);
-  font-weight: var(--es-font-ticket-weight);
+  font-family: var(--es-font-readout);
+  font-weight: var(--es-font-readout-weight);
 }
 
 .es-rule[data-status='fail'] .es-rule__result,
@@ -806,8 +806,8 @@
 }
 
 .es-check__id {
-  font-family: var(--es-font-ticket);
-  font-weight: var(--es-font-ticket-weight);
+  font-family: var(--es-font-readout);
+  font-weight: var(--es-font-readout-weight);
   overflow-wrap: anywhere;
 }
 
@@ -815,8 +815,8 @@
   display: inline-flex;
   align-items: center;
   gap: var(--es-space-1);
-  font-family: var(--es-font-ticket);
-  font-weight: var(--es-font-ticket-weight);
+  font-family: var(--es-font-readout);
+  font-weight: var(--es-font-readout-weight);
 }
 
 .es-check__bound,
@@ -848,8 +848,8 @@
 
 .es-verdict-checks__heading {
   margin: 0;
-  font-family: var(--es-font-ticket);
-  font-weight: var(--es-font-ticket-weight);
+  font-family: var(--es-font-readout);
+  font-weight: var(--es-font-readout-weight);
 }
 
 /* ---------------------------------------------------------------------------------------------- what it is worth now */

@@ -191,8 +191,8 @@
 /* The next lesson: the marker's edge as a bar at the row's start, a tint, and the word "Next", so it does not rest on colour. The one amber
    fill of the viewport stays the button above (tests/design/one-lamp.test.ts), so the row draws the marker's edge and never its fill. */
 .es-module__lesson[data-next] .es-module__lesson-link {
-  box-shadow: inset 0.25rem 0 0 var(--es-lamp-ring);
-  background: color-mix(in srgb, var(--es-lamp-ring) 9%, transparent);
+  box-shadow: inset 0.25rem 0 0 var(--es-marker-edge);
+  background: color-mix(in srgb, var(--es-marker-edge) 9%, transparent);
 }
 
 .es-module__n {
@@ -205,7 +205,7 @@
 
 .es-module__lesson-title {
   grid-area: title;
-  font-size: var(--es-size-plate);
+  font-size: var(--es-size-control);
   font-weight: 700;
   line-height: 1.25;
   text-wrap: pretty;
@@ -505,6 +505,6 @@
 
 @media (min-width: 40rem) {
   .es-module__sentences {
-    font-size: var(--es-size-plate);
+    font-size: var(--es-size-control);
   }
 }

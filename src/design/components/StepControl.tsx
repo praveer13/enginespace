@@ -62,7 +62,7 @@ export function StepControl({
   step,
   tag = 'synthetic',
   onRing,
-  ringLabel = 'Ring the bell: fire the next step',
+  ringLabel = 'Step: run the next step',
   caption = 'step',
   disabled = false,
   loading = false,

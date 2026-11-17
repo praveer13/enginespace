@@ -389,7 +389,7 @@ button.es-lanes__chip:disabled {
 /* A paper gap on each side of now's line parts it from a slab that ends at now (a sync's yellow is not the marker's amber). */
 .es-lanes__now .es-marker[data-kind='cursor']::before {
   box-shadow:
-    0 0 0 1px var(--es-lamp-ring),
+    0 0 0 1px var(--es-marker-edge),
     0 0 0 3px var(--es-paper);
 }
 
@@ -557,7 +557,7 @@ button.es-lanes__chip:disabled {
   position: relative;
   margin: 0;
   font-family: var(--es-font-numeric);
-  font-size: var(--es-size-plate);
+  font-size: var(--es-size-control);
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;

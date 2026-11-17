@@ -86,7 +86,7 @@ describe('the drawing paints with the design system\'s roles', () => {
   test('amber is the lamp\'s pool and ring over the present order, and nothing else is amber (One Lamp)', () => {
     for (const { name, sheet } of everySheet()) {
       for (const layer of sheet.layers) {
-        const lit = layer.marks.some((mark) => paintsOf(mark).some((paint) => paint === 'lamp' || paint === 'lamp-ring'))
+        const lit = layer.marks.some((mark) => paintsOf(mark).some((paint) => paint === 'marker' || paint === 'marker-edge'))
         expect([name, layer.part, lit && layer.part !== 'present']).toEqual([name, layer.part, false])
       }
       expect(sheet.layers.filter((layer) => layer.part === 'present')).toHaveLength(1)
@@ -154,7 +154,7 @@ describe('the histogram', () => {
         const tapes: { name: string; y: number; h: number }[] = []
         flags.forEach((mark, i) => {
           const next = flags[i + 1]
-          if (mark.kind === 'rect' && mark.fill === 'tape' && next?.kind === 'text' && next.text !== 'CUT') tapes.push({ name: next.text, y: mark.y, h: mark.h })
+          if (mark.kind === 'rect' && mark.fill === 'slip' && next?.kind === 'text' && next.text !== 'CUT') tapes.push({ name: next.text, y: mark.y, h: mark.h })
         })
         expect(tapes.map((tape) => tape.name).sort()).toEqual(['CORRECTED', 'MEASURED', 'REPORTED', 'YOURS'])
         tapes.sort((a, b) => a.y - b.y)

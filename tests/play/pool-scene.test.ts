@@ -154,9 +154,9 @@ describe('a page is a form as well as a colour (WCAG 1.4.1)', () => {
     // Every candidate is ringed, in the marker and its edge, and nothing else is.
     const ringed = new Set(model.boxes.filter((box) => box.id.startsWith('candidate/') && box.id.endsWith('/lamp')).map((box) => Number(box.id.split('/')[1])))
     expect([...ringed].sort((a, b) => a - b)).toEqual([...ask.candidates].sort((a, b) => a - b))
-    expect(model.boxes.filter((box) => box.id.startsWith('candidate/') && box.id.endsWith('/edge')).every((box) => box.role === 'lamp-ring')).toBe(true)
+    expect(model.boxes.filter((box) => box.id.startsWith('candidate/') && box.id.endsWith('/edge')).every((box) => box.role === 'marker-edge')).toBe(true)
     const none = rackOf(view(states[0]), NONE).model
-    expect(none.boxes.some((box) => box.role === 'lamp')).toBe(false)
+    expect(none.boxes.some((box) => box.role === 'marker')).toBe(false)
   })
 
   test('a row the dock points at is ringed too', () => {

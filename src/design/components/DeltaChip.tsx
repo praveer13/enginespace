@@ -6,7 +6,7 @@ import '../parts.css'
 /*
  * The delta: what an action just changed, beside the readout it changed (REDESIGN 2.6, "the change travels to the number"). The
  * readout steps to its new value at once; the delta ("+4 tokens", "idle +3 ticks") stays for one second and then fades out. One
- * second is the three short durations end to end (dur-settle, dur-bell and dur-quick), so it moves with the motion roles. Re-key it
+ * second is the three short durations end to end (dur-settle, dur-step and dur-quick), so it moves with the motion roles. Re-key it
  * to show a new delta. Under reduced motion it does not fade: it stays until the next delta replaces it.
  *
  * The sign is always printed (a true minus for a fall), so the direction never rests on colour. It is not a live region: the

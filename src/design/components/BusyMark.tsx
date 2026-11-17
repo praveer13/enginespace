@@ -19,7 +19,7 @@ const LANE_SLOTS: Record<Exclude<Lane, 'idle'>, Slot> = { cpu: 'blue', gpu: 'gre
  * colour and its drawn glyph, as a category mark beside the station's name. The mark is the same lit or dark. It is a second carrier
  * and never the only one: the name beside it says the lane in words ("The line", "The expo"), and a reader hears that.
  *
- * States: lit; dark; fault (the ribbon's red, with its mark); under the lamp (`lamp`: the station the next decision acts on);
+ * States: lit; dark; fault (the ribbon's red, with its mark); under the lamp (`marker`: the station the next decision acts on);
  * disabled (no power to the station: a dimmed bezel).
  */
 

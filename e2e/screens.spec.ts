@@ -16,7 +16,7 @@ import { amberByScroll, copyProblems, FIRST_VISIT, LESSONS, stuck, wayOnProblems
 import { clipped, expect, open, quiet, test, withSettings } from './support/site'
 
 /**
- * The design system's own page: a specimen sheet that no page links to. It prints the system's token names (`--es-lamp`, `--es-tape`) and each
+ * The design system's own page: a specimen sheet that no page links to. It prints the system's token names (`--es-marker`, `--es-slip`) and each
  * component in every state, amber buttons included, so the checks that read what a learner reads (the way on, the copy, the one amber fill)
  * are about the course's screens and not about it. Its layout is held like any other: no sideways scroll, nothing sticky when short.
  */
