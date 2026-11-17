@@ -6,7 +6,6 @@
  *   npx playwright test e2e/show-on-machine.spec.ts
  */
 import AxeBuilder from '@axe-core/playwright'
-import { startBlock } from './support/lessons'
 import { expect, open, test } from './support/site'
 
 const LESSON = '/m/tr2/l3-async-scheduling-closes-the-bubble'
