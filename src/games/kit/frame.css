@@ -165,34 +165,28 @@
   }
 
   /*
-   * Inside a lesson the column is narrower than a page, so the strip takes the phone's arrangement: the title and its role line on one
-   * line, the level's words under them, and the tools at the right of both. The instrument starts high enough that its first control is
-   * on the first screen (P3).
+   * Inside a lesson the strip is one row: the title and its role line, the level's words beside them, and the tools at the right, so the
+   * instrument spends no second line on its name and starts its drawing high on the first screen (P3, REDESIGN §3.4). Where the column is
+   * too narrow for one row, the tools wrap under the name.
    */
   .es-frame[data-placement='embed'] .es-frame__strip {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas:
-      'name tools'
-      'menu tools';
-    row-gap: var(--es-space-1);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--es-space-1) var(--es-space-4);
   }
 
   .es-frame[data-placement='embed'] .es-frame__name {
     display: flex;
-    grid-area: name;
   }
 
   .es-frame[data-placement='embed'] .es-frame__role {
     margin: 0;
   }
 
-  .es-frame[data-placement='embed'] .es-frame__menu {
-    grid-area: menu;
-  }
-
   .es-frame[data-placement='embed'] .es-frame__tools {
-    grid-area: tools;
     align-self: center;
+    margin-inline-start: auto;
   }
 }
 
@@ -350,8 +344,8 @@
 /*
  * Inside a lesson the column, not the screen, sets the room. Where the column is wide enough (the Run, which spans the content), the dock
  * stands beside the diagram while the run is played, so an Admit and what it did to the pool are in view together (P5); the result, which
- * is long, goes under the diagram at the column's width (REDESIGN §3.4). In a narrower column (Read beside the lesson's dock, a phone) the
- * diagram and the dock stand one under the other. Nothing scrolls inside.
+ * is long, goes under the diagram at the column's width (REDESIGN §3.4). In a narrower column (Read beside the lesson's dock) the diagram
+ * and the dock stand one under the other. On a phone the dock is pinned to the foot, as on the game's page (below).
  */
 .es-frame[data-placement='embed'] {
   container: es-frame / inline-size;
@@ -375,19 +369,40 @@
   .es-frame[data-phase='play'] > .es-frame__body > .es-frame__dock > .es-frame__dock-main {
     overflow-y: auto;
   }
+
+  /*
+   * The first run's parts list is read with the page, not inside a box: the dock grows to hold it whole, and while it runs past the foot of
+   * the screen its readout, and the intro's Next row over it (intro.css), stand at the screen's foot. So on arrival the intro's first
+   * control and the readout are on the first screen beside the drawing (P3, P5), and nothing hides in an inner scroll.
+   */
+  .es-frame[data-phase='play'][data-intro] > .es-frame__body > .es-frame__dock {
+    max-height: none;
+  }
+
+  .es-frame[data-phase='play'][data-intro] > .es-frame__body > .es-frame__dock > .es-frame__dock-main {
+    overflow: visible;
+  }
+
+  .es-frame[data-phase='play'][data-intro] > .es-frame__body > .es-frame__dock > .es-frame__readout {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    background: var(--es-paper);
+  }
 }
 
-/* Narrow and at least 700 px tall: the dock is pinned to the foot and holds the decision over one readout line. */
+/* Narrow and at least 700 px tall: the dock is pinned to the foot and holds the decision over one readout line, on the game's page and in a
+   lesson alike, so the drawing, the control and the readout share the screen (P5). */
 @media (max-width: 63.999rem) and (min-height: 700px) {
   /* Room for the whole page grid at 390 x 844, three rows of pages under the batch and the free queue [estimated]: the strip, the goal
      line and the pinned dock take the rest. */
-  .es-frame[data-placement='page'] .es-frame__view {
+  .es-frame:is([data-placement='page'], [data-placement='embed']) .es-frame__view {
     max-height: calc(67svh - 19.5rem);
     min-height: 9rem;
     overflow: auto;
   }
 
-  .es-frame[data-placement='page'] .es-frame__dock {
+  .es-frame:is([data-placement='page'], [data-placement='embed']) .es-frame__dock {
     position: sticky;
     bottom: 0;
     z-index: 20;
@@ -395,8 +410,23 @@
     box-shadow: var(--es-shadow-lift);
   }
 
-  .es-frame[data-placement='page'] .es-frame__dock-main {
+  .es-frame:is([data-placement='page'], [data-placement='embed']) .es-frame__dock-main {
+    overflow-y: auto;
     padding-block: var(--es-space-2);
+  }
+
+  /* In a lesson the page scrolls under the pinned dock: a control the keyboard reaches is scrolled clear of it, never left under it (WCAG
+     2.4.11). */
+  html:has(.es-frame[data-placement='embed']) {
+    scroll-padding-bottom: calc(33svh + var(--es-space-4));
+  }
+}
+
+/* The same in a lesson's Run at a desk while the intro's Next row and the readout stand at the foot of the screen [estimated: the two
+   rows' height, about 9.5rem at 1440 x 900, and a margin]. */
+@media (min-width: 64rem) {
+  html:has(.es-frame[data-placement='embed'][data-intro]) {
+    scroll-padding-bottom: 10.5rem;
   }
 }
 

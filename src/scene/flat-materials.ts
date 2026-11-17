@@ -20,7 +20,7 @@ import { roleColor } from './materials'
 /** A hollow or grooved box's rim, in world units [estimated]: about 1.5 px of the diagram. */
 export const FLAT_RIM = 0.015
 /** The contact shadow's darkest, and how far past a footprint it fades, in world units [estimated]. */
-export const SHADOW = { strength: 0.34, reach: 0.09 } as const
+export const SHADOW = { strength: 0.5, reach: 0.14 } as const
 /** Baked occlusion at a solid's foot, as a share of its colour [estimated]: the sides go from this at the foot to full at the top. */
 export const FOOT_SHADE = 0.66
 /** The dashes of a wire outline, in world units [estimated]: 4 px on, 3 px off, as the 2D diagram's dashed boxes. */

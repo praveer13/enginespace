@@ -7,6 +7,7 @@ import { SLOT_MARKS, type Slot } from '@/design/code'
 import { Glyph } from '@/design/components/Glyph'
 import { Legend } from '@/design/components/Legend'
 import { Marker } from '@/design/components/Marker'
+import { tickAnchor, wholeAxisLeft } from './axis'
 import type { LoopRunCore } from './types'
 import './loop.css'
 
@@ -146,8 +147,9 @@ export function Lanes({ view, size = 'page', onAdmit, ring = null, focusAfter, g
     if (element === null || !scrolls) return
     const visible = element.clientWidth
     const at = layout.now.x - layout.scale.x
-    element.scrollLeft = Math.max(0, Math.min(element.scrollWidth - visible, at - visible * NOW_IN_VIEW))
-  }, [layout.now.x, layout.scale.x, scrolls])
+    const left = Math.max(0, Math.min(element.scrollWidth - visible, at - visible * NOW_IN_VIEW))
+    element.scrollLeft = wholeAxisLeft(left, layout.axis.ticks.map((tick) => ({ x: tick.x - layout.scale.x, text: String(tick.t) })))
+  }, [layout.now.x, layout.scale.x, layout.axis.ticks, scrolls])
 
   return (
     <figure
@@ -462,14 +464,19 @@ function Track({ layout }: { layout: LaneLayout }) {
         ))}
       </g>
       <g data-lanes-axis="">
-        {layout.axis.ticks.map((tick) => (
-          <g key={tick.t}>
-            <line className="es-lanes__tick" x1={tick.x} x2={tick.x} y1={lanesBottom} y2={lanesBottom + 4} />
-            <text className="es-lanes__tick-label" x={tick.x} y={lanesBottom + 6} textAnchor={tick.x <= scale.x + 4 ? 'start' : tick.x >= scale.x + scale.width - 4 ? 'end' : 'middle'} dominantBaseline="hanging">
-              {tick.t}
-            </text>
-          </g>
-        ))}
+        {layout.axis.ticks.map((tick) => {
+          const anchor = tickAnchor(tick.x, String(tick.t), scale.x, scale.x + scale.width)
+          return (
+            <g key={tick.t}>
+              <line className="es-lanes__tick" x1={tick.x} x2={tick.x} y1={lanesBottom} y2={lanesBottom + 4} />
+              {anchor === null ? null : (
+                <text className="es-lanes__tick-label" x={tick.x} y={lanesBottom + 6} textAnchor={anchor} dominantBaseline="hanging">
+                  {tick.t}
+                </text>
+              )}
+            </g>
+          )
+        })}
       </g>
     </svg>
       {/* Now: the marker's cursor, 2 px of amber in its edge through every row, its word at the head. */}

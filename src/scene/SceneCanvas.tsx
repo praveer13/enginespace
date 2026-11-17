@@ -68,6 +68,12 @@ export interface SceneCanvasProps {
    * in which nothing glows but one unlit mark (Data Book's time track) turns it off, and keeps the final pass's anti-aliasing.
    */
   bloom?: boolean
+  /**
+   * Khronos PBR Neutral tone mapping, on by default. A flat model of a diagram turns it off: its colours are the code's own, and the
+   * curve's toe and shoulder would move them (#237a37 drew as #06762a), whether the scene goes straight to the canvas or through the
+   * final pass, which follows the renderer.
+   */
+  toneMapping?: boolean
   className?: string
 }
 
@@ -222,7 +228,7 @@ class RootBoundary extends Component<{ onError: (error: unknown) => void; childr
   }
 }
 
-export function SceneCanvas({ children, labels = [], background = 'surface-0', fog = null, exposure = 1, environment = true, environmentIntensity = 0.9, shadows = false, bloom = true, className }: SceneCanvasProps) {
+export function SceneCanvas({ children, labels = [], background = 'surface-0', fog = null, exposure = 1, environment = true, environmentIntensity = 0.9, shadows = false, bloom = true, toneMapping = true, className }: SceneCanvasProps) {
   const runtime = useStageRuntime()
   const tokens = useSceneTokens()
   const host = useRef<HTMLDivElement>(null)
@@ -263,6 +269,7 @@ export function SceneCanvas({ children, labels = [], background = 'surface-0', f
           environmentIntensity={environmentIntensity}
           shadows={shadows}
           bloom={bloom}
+          toneMapping={toneMapping}
         >
           {children}
         </KitRoot>
@@ -290,6 +297,7 @@ interface KitRootProps {
   environmentIntensity: number
   shadows: boolean
   bloom: boolean
+  toneMapping: boolean
   children: ReactNode
 }
 
@@ -313,7 +321,7 @@ function countShadows(scene: THREE.Scene, gl: THREE.WebGLRenderer): number {
 }
 
 /** Everything inside the root: renderer settings, materials, light from the environment, post-processing and the loop. */
-function KitRoot({ runtime, tokens, paused, store, bridge, background, fog, exposure, environment, environmentIntensity, shadows, bloom, children }: KitRootProps) {
+function KitRoot({ runtime, tokens, paused, store, bridge, background, fog, exposure, environment, environmentIntensity, shadows, bloom, toneMapping, children }: KitRootProps) {
   const gl = useThree((state) => state.gl)
   const scene = useThree((state) => state.scene)
   const size = useThree((state) => state.size)
@@ -328,13 +336,13 @@ function KitRoot({ runtime, tokens, paused, store, bridge, background, fog, expo
   // Shadow maps only where the scene asked and the tier allows: PCF with a Vogel disk, softened by each light's own radius.
   const shadowLights = shadows ? TIERS[tier].shadowLights : 0
   useLayoutEffect(() => {
-    gl.toneMapping = THREE.NeutralToneMapping
+    gl.toneMapping = toneMapping ? THREE.NeutralToneMapping : THREE.NoToneMapping
     gl.toneMappingExposure = exposure
     gl.info.autoReset = false
     gl.shadowMap.enabled = shadowLights > 0
     gl.shadowMap.type = THREE.PCFShadowMap
     invalidate()
-  }, [gl, exposure, shadowLights, invalidate])
+  }, [gl, exposure, shadowLights, toneMapping, invalidate])
 
   useEffect(() => {
     setDpr([1, TIERS[tier].dprCap])

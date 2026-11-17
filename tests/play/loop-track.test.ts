@@ -229,21 +229,44 @@ describe('the demo track draws the run', () => {
     for (const req of view.waiting.slice(0, layout.queue.chips.length)) expect(model.boxes.some((b) => b.pick === `req:${req}`)).toBe(true)
   })
 
-  test('the reference run stands among the slabs as ink outlines up to now: hidden in a slab where the learner matched it, standing in a gap where not', () => {
-    // A learner who ran one step fewer than the reference: the reference's later tokens stand as hollow outlines in the learner's gap.
-    const behind = demoNight([5, 9, 3, 7, 12, 4], 3)
-    const ahead = demoNight([5, 9, 3, 7, 12, 4], 4)
+  test('the reference run stands among the slabs as ink outlines up to now: left out where the learner matched it, standing in a gap where not', () => {
+    // A learner who admitted one request and ran three steps, against a reference that filled every slot: the reference's tokens on the
+    // three slots the learner left empty stand as outlines in the learner's gaps.
+    let lone: LoopState = hang(initState(handLevel([5, 9, 3, 7, 12, 4], { slots: 4, overlap: 'locked' })), 0)
+    for (let i = 0; i < 3; i++) lone = step(lone)
+    const behind = loopView(lone)
+    const full = demoNight([5, 9, 3, 7, 12, 4], 4)
     const plain = demoTrack(behind, 868)
-    const drawn = demoTrack(behind, 868, { ...ahead, clockUs: ahead.clockUs })
-    const extra = drawn.inks.length - plain.inks.length
+    const drawn = demoTrack(behind, 868, full)
+    const extra = drawn.inks.slice(plain.inks.length)
     // Five segments a token: the four edges of its top and its foot's near edge.
-    expect(extra).toBeGreaterThan(0)
-    expect(extra % 5).toBe(0)
+    expect(extra.length).toBeGreaterThan(0)
+    expect(extra.length % 5).toBe(0)
     // Nothing past the learner's now is drawn: the reference is cut at the learner's clock.
     const nowX = drawn.cursors[0].x
-    for (const ink of drawn.inks.slice(plain.inks.length)) expect(Math.max(ink.x0, ink.x1)).toBeLessThanOrEqual(nowX + 1)
+    for (const ink of extra) expect(Math.max(ink.x0, ink.x1)).toBeLessThanOrEqual(nowX + 1)
+    // An outline's top stands over a token's slab and over the dashed idle box in the same gap, so the two never draw as one line.
+    const tops = extra.filter((ink) => (ink.y ?? 0) > 1)
+    expect(tops.length).toBeGreaterThan(0)
+    for (const ink of tops) expect(ink.y).toBeGreaterThan(Math.max(...drawn.wires.map((wire) => (wire.y0 ?? 0) + wire.height)))
     expect(drawn.labels.some((label) => label.id === 'reference')).toBe(true)
     expect(plain.labels.some((label) => label.id === 'reference')).toBe(false)
+    // A learner who matched the reference token for token draws no outline at all: their slabs stand where the outlines would.
+    const same = demoTrack(full, 868, full)
+    expect(same.inks.length).toBe(demoTrack(full, 868).inks.length)
+  })
+
+  test('the now word stands under the axis\'s numbers at the cursor, so the tilt never sets it on the waiting queue\'s row', () => {
+    for (const steps of [0, 1, 3]) {
+      const night = demoNight([5, 9, 3, 7, 12, 4], steps)
+      const track = demoTrack(night, 868)
+      const now = track.labels.find((label) => label.kind === 'now')
+      const ticks = track.labels.filter((label) => label.kind === 'tick')
+      expect(now).toBeDefined()
+      expect(now?.place).toBe('below')
+      expect(now?.at[0]).toBe(track.cursors[0].x)
+      for (const tick of ticks) expect(now?.at[2] ?? 0).toBeGreaterThan(tick.at[2])
+    }
   })
 
   test('every word is a label, in the engine\'s terms', () => {

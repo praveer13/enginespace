@@ -4,7 +4,7 @@ import { BoxGeometry, BufferAttribute, BufferGeometry, Color, InstancedBufferAtt
 import type { ColorRoleName } from '@/design/tokens'
 import { useKit } from './kit'
 import { capacityFor, formIndex } from './marks'
-import { createFlatMaterials, type FlatMaterials } from './flat-materials'
+import { createFlatMaterials, SHADOW, type FlatMaterials } from './flat-materials'
 import { morphModel, MORPH_MS, PX, type FlatBox, type FlatCursor, type FlatModel, type FlatSegment } from './flat-track'
 import { roleColor } from './materials'
 import { pickedId } from './selection'
@@ -92,11 +92,17 @@ function Boxes({ boxes, material, name, onPick, forms = false }: { boxes: readon
   return <instancedMesh ref={mesh} name={name} args={[geometry, material, capacity]} onClick={pick} frustumCulled={false} />
 }
 
+/**
+ * How far the contact shadows lie over the sheet, in world units: half a pixel of the diagram [estimated]. At 0.15 px the depth buffer could
+ * not tell them from the sheet at the cameras' distance, and the sheet hid them.
+ */
+const SHADOW_LIFT = 0.005
+
 /** The contact shadows: a quad per solid, its footprint grown by the shadow's reach, lying just over the sheet. */
 function Shadows({ boxes, material }: { boxes: readonly FlatBox[]; material: Material }) {
   const kit = useKit()
   const footprints = useMemo<FlatBox[]>(() => {
-    const reach = 9
+    const reach = SHADOW.reach * PX
     return boxes
       .filter((box) => box.shadow !== false)
       .map((box) => ({ ...box, x0: box.x0 - reach, x1: box.x1 + reach, z0: box.z0 - reach, z1: box.z1 + reach, y0: box.y0 ?? 0, height: 0 }))
@@ -108,7 +114,7 @@ function Shadows({ boxes, material }: { boxes: readonly FlatBox[]; material: Mat
   useLayoutEffect(() => {
     const instanced = mesh.current
     if (!instanced) return
-    writeBoxes(footprints, instanced.instanceMatrix.array as Float32Array, 0.0015)
+    writeBoxes(footprints, instanced.instanceMatrix.array as Float32Array, SHADOW_LIFT)
     instanced.count = footprints.length
     instanced.instanceMatrix.needsUpdate = true
     kit.invalidate()
@@ -155,11 +161,29 @@ function wireSegments(wires: readonly FlatBox[]): FlatSegment[] {
   return out
 }
 
-/** The now cursor: an amber sheet standing on its edge, in a strip of the marker's dark edge on the paper. */
+/** How thick the cursor's amber edges are, in px: the 2D cursor's 2 px line, so its middle draws the marker's own colour [estimated, set by eye in Lifted]. */
+const CURSOR_EDGE = 2
+
+/**
+ * The now cursor: a thin amber sheet standing on its edge, drawn as its top edge across the rows, over every slab, with the marker's dark
+ * edge under it, and its near edge standing at the axis. Its faces are not filled, and nothing of it lies on the paper: a camera to one side
+ * (Lifted, at the first ticks) would see a filled face, or a top edge over a foot line, as a wedge of amber across the rows. One line, from
+ * every camera.
+ */
 function Cursors({ cursors, materials }: { cursors: readonly FlatCursor[]; materials: FlatMaterials }) {
-  // A thin sheet: 2 px of the marker, the 2D cursor's width, on a 1 px strip of its edge each side.
-  const sheets = useMemo<FlatBox[]>(() => cursors.map((c) => ({ id: c.id, x0: c.x - 0.75, x1: c.x + 0.75, z0: c.z0, z1: c.z1, height: c.height, role: 'lamp', form: 'solid', shadow: false })), [cursors])
-  const edges = useMemo<FlatBox[]>(() => cursors.map((c) => ({ id: c.id, x0: c.x - 1.75, x1: c.x + 1.75, z0: c.z0 - 1, z1: c.z1 + 1, height: 0.6, role: 'lamp-ring', form: 'solid', shadow: false })), [cursors])
+  const e = CURSOR_EDGE / 2
+  const sheets = useMemo<FlatBox[]>(
+    () =>
+      cursors.flatMap((c) => [
+        { id: `${c.id}/top`, x0: c.x - e, x1: c.x + e, z0: c.z0, z1: c.z1, y0: c.height - CURSOR_EDGE, height: CURSOR_EDGE, role: 'lamp', form: 'solid', shadow: false },
+        { id: `${c.id}/post`, x0: c.x - e, x1: c.x + e, z0: c.z1 - CURSOR_EDGE, z1: c.z1, height: c.height, role: 'lamp', form: 'solid', shadow: false },
+      ]),
+    [cursors, e],
+  )
+  const edges = useMemo<FlatBox[]>(
+    () => cursors.map((c) => ({ id: c.id, x0: c.x - e - 1, x1: c.x + e + 1, z0: c.z0 - 1, z1: c.z1 + 1, y0: c.height - CURSOR_EDGE - 1, height: 1, role: 'lamp-ring', form: 'solid', shadow: false })),
+    [cursors, e],
+  )
   return (
     <>
       <Boxes boxes={edges} material={materials.cursorEdge} name="cursor-edge" />
