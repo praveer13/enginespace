@@ -32,10 +32,10 @@ export const OPENERS: readonly OpenerRow[] = [
   { lesson: 'tr1.l6', opener: 'B', first: ['play:engine-floor/sglang'], graded: [], waiting: 'R-T35' },
   { lesson: 'tr1.l7', opener: 'B', first: ['play:engine-floor/abort'], graded: ['play:engine-floor/map'], waiting: 'R-T35' },
   // TR2, the step loop
-  { lesson: 'tr2.l1', opener: 'A', first: ['play:loop/first-3-gap'], graded: [], waiting: 'R-T36' },
+  { lesson: 'tr2.l1', opener: 'A', first: ['play:loop/first-3-gap'], graded: [] },
   { lesson: 'tr2.l2', opener: 'C', first: ['play:loop/first-2-slot'], graded: [] },
-  { lesson: 'tr2.l3', opener: 'A', first: ['play:loop/first-4-par', 'play:loop/async'], graded: [], waiting: 'R-T36' },
-  { lesson: 'tr2.l4', opener: 'B', first: ['play:loop/mrv2'], graded: [], waiting: 'R-T36' },
+  { lesson: 'tr2.l3', opener: 'A', first: ['play:loop/first-4-par', 'play:loop/async'], graded: [] },
+  { lesson: 'tr2.l4', opener: 'B', first: ['play:loop/mrv2'], graded: [] },
   { lesson: 'tr2.l5', opener: 'C', first: ['play:loop/graphs'], graded: [] },
   { lesson: 'tr2.l6', opener: 'C', first: null, graded: ['play:loop/close'] },
   { lesson: 'tr2.l7', opener: 'C', first: [], graded: [] },

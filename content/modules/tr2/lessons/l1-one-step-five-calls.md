@@ -2,7 +2,7 @@
 id: tr2.l1
 module: tr2
 title: "One step, five calls: vLLM's busy loop at v0.33.0"
-minutes: 35                       # [estimated]; the compiler recomputes reading minutes and warns past 20 %
+minutes: 33                       # [estimated]; the compiler recomputes reading minutes and warns past 20 %
 kcs: [tr2.step-calls, tr2.bubble]
 builds_on: [ks:T5.L7, ks:T0.L6]
 status: review                    # draft | review | live
@@ -10,11 +10,27 @@ lanes: [B]
 games: [loop]
 ---
 
-{{ks:T5.L7}} taught continuous batching as a scheduler's loop: pick the running set, check that the blocks hold, run one model step, sample, free what finished. That is the scheduler's view of the engine, and it is silent about time. This lesson takes the engine's view. It follows one step through the code that runs it at the pin, vLLM v0.33.0, names the calls, says which of them touch the GPU and which wait for it, and finds the place where the GPU sits idle.
+One engine step is five calls on one thread, and the GPU can sit idle between two forwards. Guess how busy the GPU is when nothing overlaps, then run the level: turn async scheduling on and watch the bubbles close. The five calls come next.
 
-{{ks:T0.L6}} told you that vLLM's V0 loop spent visible milliseconds an iteration in Python, and that the V1 rewrite exists because flame graphs showed the plateau. {{claim:loop.kernelspace.scheduler-tax}} V1 set out to fix it, and its guide lists near-zero CPU overhead among its aims. {{claim:vllm.v1.cpu-overhead-goal}} The rest of this module is about what that took, and about what it left: a step still has a CPU part, and the GPU still waits for it unless something hides it.
+:::predict
+id: tr2.l1.p1
+prompt: "In this level's step loop, a step plans for 2 ticks [estimated], runs its forward for 4 ticks [estimated] and reads the result for 1 tick [estimated]. Nothing overlaps: each step starts when the last one has been read. For what share of the clock is the GPU busy, in per cent?"
+answer: { kind: numeric, unit: percent, rel_tol: 0.05 }
+reveal: after-game
+kcs: [tr2.bubble]
+:::
+
+:::game
+id: loop
+level: first-3-gap
+mode: practice
+:::
 
 ## One thread, one loop
+
+{{ks:T5.L7}} taught continuous batching as the scheduler's loop, and that view is silent about time. This lesson takes the engine's view, the one the level showed. It follows one step through the code that runs it at the pin, vLLM v0.33.0, and says which calls touch the GPU and which wait for it.
+
+{{ks:T0.L6}} told you that vLLM's V0 loop spent visible milliseconds an iteration in Python, and that the V1 rewrite exists because flame graphs showed the plateau. {{claim:loop.kernelspace.scheduler-tax}} V1 set out to fix it, and its guide lists near-zero CPU overhead among its aims. {{claim:vllm.v1.cpu-overhead-goal}} A step still has a CPU part, and the GPU still waits for it unless something hides it.
 
 The engine core is a process whose main thread runs a busy loop. Each turn it polls its input queue until there is work, runs one engine step, and goes round again. {{claim:vllm.engine-core.busy-loop}} Requests reach it on a thread-safe `input_queue` and leave on an `output_queue`. {{claim:vllm.engine-core.queues}} When a step ran no model but requests remain, as when they wait for remote KV, the loop sleeps for a moment so that background threads can progress. {{claim:vllm.step.idle-sleep}}
 
@@ -29,6 +45,14 @@ Between a request's arrival and its token's departure the engine core schedules,
 3. `scheduler.get_grammar_bitmask(scheduler_output)` builds the structured-output mask on the CPU, while the forward is running. For a step with no grammar there is nothing to build. {{claim:vllm.mask.overlap}}
 4. `future.result()` hands back what `execute_model` returned, and in MRV2 that is no output yet: the runner has launched the forward and kept its state for a second call, so `step` goes on to `model_executor.sample_tokens(grammar_output)`. {{claim:vllm.step.two-phase}} {{claim:vllm.step.sample-if-none}} That call applies the mask, samples the next token of every request and copies the ids to the host, and the engine core does not go on until the copy has landed. {{claim:vllm.executor.uni-blocking-output}} {{claim:vllm.async-output.event-sync}} The copy waits for the forward on the GPU's own streams, so it cannot land before the forward has ended, and that is the wait for the forward. {{claim:vllm.async-output.copy-stream}}
 5. `scheduler.update_from_output(...)` appends the new tokens to their requests, checks for stops, frees what finished and builds the outputs. Aborts that arrived during the forward are taken just before it. {{claim:vllm.engine-core.aborts}}
+
+Check what a call does and what it waits for before you go on.
+
+:::item
+family: tr2.step-order
+level: 1
+count: 1
+:::
 
 Read as a rhythm, the CPU makes its calls, the GPU runs one forward, and the CPU reads the result and makes its calls again.
 
@@ -51,7 +75,7 @@ description: The CPU lane has two runs of boxes, one for each step, each run mad
 origin: generated
 :::
 
-The figure draws two steps of the small model with nothing overlapped, to scale, from the sim. Between two forwards the GPU lane is empty for exactly as long as the CPU lane is busy. That empty stretch is the lesson's subject, and it needs a name.
+The figure draws two steps of the small model with nothing overlapped, to scale, from the sim. Between two forwards the GPU lane is empty for exactly as long as the CPU lane is busy. You saw that empty stretch in the level, and it has a name.
 
 ## The gap, and its name
 
@@ -63,27 +87,20 @@ title: Idle is not the same as waiting
 body: A GPU that is idle because there is nothing to run and a GPU that is idle because the CPU has not finished the next call look the same on a lane. The first is a quiet server. The second is the bubble, and only the second is the engine's to fix. Check what the CPU lane is doing before you call a gap a bubble.
 :::
 
-Commit to a number before you look at the model's. The numbers in this question are round and made up.
 
-:::predict
-id: tr2.l1.p1
-prompt: "In the front page's step loop, a step plans for 2 ticks [estimated], runs its forward for 4 ticks [estimated] and reads the result for 1 tick [estimated]. Nothing overlaps: each step starts when the last one has been read. For what share of the clock is the GPU busy, in per cent?"
-answer: { kind: numeric, unit: percent, rel_tol: 0.05 }
-reveal: after-game
-kcs: [tr2.bubble]
-:::
+The level you ran, `first-3-gap`, has the same rule in a world of synthetic ticks. A step plans for 2 ticks, runs the forward for 4 and reads for 1 [estimated], so without overlap it takes 7 ticks [derived] and the GPU is busy for 4 of them. {{claim:loop.world.step-ticks-serial}} That is the answer to your guess. In the level each bubble is a dashed box on the GPU lane, and turning async scheduling on is what shrinks it.
 
-The front page's run, First service, has the same rule in a world of synthetic ticks. A step plans for 2 ticks, cooks for 4 and reads for 1 [estimated], so without overlap it takes 7 ticks [derived] and the line is busy for 4 of them. {{claim:loop.world.step-ticks-serial}} The game is Service (`loop`), and it dresses the loop as a line kitchen: a step is a **fire**, the CPU's work is the **expo** writing the next call and reading the last fire back, the GPU is the **line**, and a bubble is the line standing dark while the expo writes. The engine words come first everywhere else on the page. Play the third beat, `first-3-gap`, and count the dark stretches on the tape.
+Check what a bubble is before you go on.
 
-:::game
-id: loop
-level: first-3-gap
-mode: practice
+:::item
+family: tr2.step-order
+level: 1
+count: 1
 :::
 
 ## The same rule on two real-sized cards
 
-The full service runs the step loop in microseconds on two cost cards. `70B on H100` takes its forward from kernelspace's S5 fit, with S5's host term on the CPU lane (D-044), and the small model is a napkin on a `24 GB` card, synthetic. The table is one steady step of the `async` level's practice night, with the rail full and every row a decode, served with the next call written after the fire. Read on 2026-11-08 at `b5fb81a`.
+The levels after the first four run the step loop in microseconds on two cost cards. `70B on H100` takes its forward from kernelspace's S5 fit, with S5's host term on the CPU lane, and the small model is a napkin on a `24 GB` card, synthetic. The table is one steady step of the `async` level's practice run, with every batch slot full and every row a decode, and the next call written after the forward. Read on 2026-11-08 at `b5fb81a`.
 
 | The step's phase | 70B on H100, µs [measured] | Small model, µs [measured] |
 |---|---|---|
@@ -118,15 +135,9 @@ kind: notional-machine
 id: trace-room-steploop
 :::
 
-## What to carry
-
-- A step is five calls and a wait on one thread: `schedule`, a non-blocking `execute_model`, `get_grammar_bitmask`, the wait with `sample_tokens`, and `update_from_output`.
-- The GPU works only while the forward runs. With nothing overlapped, all the rest of the step is CPU work, and all of it is gap.
-- The gap per step is the CPU's work. Its share of the clock depends on the length of the forward, so it bites small models and small batches hardest.
-
 ## Exit check
 
-This lesson tests two skills: naming the calls of one step in order and saying which lane runs each (`tr2.step-calls`), and saying why the GPU idles between steps (`tr2.bubble`). The exit ticket is three items on fresh seeds, each a step of calls or a step with its times, asking for the order of the calls, the lane that runs one, or the idle time before a step. It is passed with at least two right, one of them numeric (ASSESSMENT §4.2).
+This lesson tests two skills: naming the calls of one step in order and saying which lane runs each (`tr2.step-calls`), and saying why the GPU idles between steps (`tr2.bubble`). The questions are three items on fresh seeds, each a step of calls or a step with its times, asking for the order of the calls, the lane that runs one, or the idle time before a step. Pass with at least two right, one of them numeric.
 
 :::item
 family: tr2.step-order

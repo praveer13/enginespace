@@ -1,14 +1,14 @@
 # The same loop in SGLang, Mini-SGLang and TRT-LLM
 
-_The step loop · lesson `tr2.l7` · review · about 21 minutes [estimated]_
+_The step loop · lesson `tr2.l7` · review · about 25 minutes [estimated]_
 
 Builds on kernelspace: `ks:T5.L7`, `ks:T0.L6`.
 
 Knowledge components: `tr2.bubble`, `tr2.async-overlap`, `tr2.capture-padding`.
 
-vLLM is the engine this module reads closely, and it is not the only one. Three more have met the same two problems, a GPU that waits while the CPU writes the next step and a launch that costs more than a small forward, and each gave the same two answers: write the next call while the last one runs, and replay a recorded launch. What differs is the default, the key and the list of sizes, and those are what you meet first when you change engines.
+vLLM is the engine this module reads closely, and it is not the only one. Three more have met the same two problems, a GPU that waits while the CPU writes the next step and a launch that costs more than a small forward, and each gave the same two answers: write the next call while the last one runs, and replay a recorded launch. What differs is the default, the key and the list of sizes.
 
-The four engines come with three kinds of evidence. vLLM and SGLang are pins of the course, read in their source at `v0.33.0` and `v0.5.23`. Mini-SGLang is read at one commit, `9a91cfa`. TensorRT-LLM is no pin: it is read in one overview document at the commit `b96ba43` of its tag `v1.4.0rc2`, and what this lesson says of it is what that page says.
+The evidence differs too. vLLM and SGLang are pins of the course, read at `v0.33.0` and `v0.5.23`. Mini-SGLang is read at one commit, `9a91cfa`. TensorRT-LLM is no pin: it is read in one overview document at the commit `b96ba43` of its tag `v1.4.0rc2`, and what this lesson says of it is what that page says.
 
 ## Overlap in four engines
 
@@ -21,7 +21,11 @@ The four engines come with three kinds of evidence. vLLM and SGLang are pins of 
 
 Each row is read from its engine, claim by claim. vLLM made async scheduling its default in **v0.14.0** [measured], and the third lesson read the rest. SGLang's overlap scheduler is on by default, **on** [measured], and its event loop does this: **launch batch N, then process batch N-1** [measured] Mini-SGLang's is on by default too. **on** [measured] TensorRT-LLM's overview describes its overlap scheduler in one sentence, **launch step n+1 without waiting for the results of step n** [measured], and says that it comes with **one extra decoding step** [measured].
 
-Read the SGLang row as the vLLM row under another name. The engine is always one batch behind, and the CPU work on one batch's results runs while the GPU computes the next. That work is the `read` of the third lesson, and the third lesson has SGLang's switch between two prefills. **overlap off between two prefills** [measured] The arithmetic of the bubble is the third lesson's for any engine that overlaps this way: with the next call written during the fire, the GPU idles for the CPU's work less the forward, and for nothing when the forward is the longer [derived]. The shape has a price that follows from it [derived]. An engine that is one batch behind learns of a stop one batch late, and the next batch is already on its way. TensorRT-LLM names its price in its overview, one extra decoding step in the pipeline, and calls the throughput gain a significant trade-off. Whether that step is the ghost token of a request that stopped is a question for its code, and the course has not read the code [unverified].
+Check the idle time on a new step before you read on.
+
+> **Practice.** Items from the generator family `tr2.bubble-width`, level `1`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+
+Read the SGLang row as the vLLM row under another name. The engine is always one batch behind, and the CPU work on one batch's results runs while the GPU computes the next. That work is the `read` of the third lesson, and the third lesson has SGLang's switch between two prefills. **overlap off between two prefills** [measured] The arithmetic of the bubble is the third lesson's for any engine that overlaps this way: with the next call written during the forward, the GPU idles for the CPU's work less the forward, and for nothing when the forward is the longer [derived]. The shape has a price that follows from it [derived]. An engine that is one batch behind learns of a stop one batch late, and the next batch is already on its way. TensorRT-LLM names its price in its overview, one extra decoding step in the pipeline, and calls the throughput gain a significant trade-off. Whether that step is the ghost token of a request that stopped is a question for its code, and the course has not read the code [unverified].
 
 > **One interface, several drivers.** JDBC is one interface with a driver for each database. The call is the same, and the dialect behind it is not. The loop is the interface, each engine has its own implementation of overlap and of replay, and the same words stand for different details.
 >
@@ -64,6 +68,10 @@ Mini-SGLang's cap is **256 requests** [measured] when more than `80 GiB` of GPU 
 
 Put the same card under two engines and the batches that have a graph are not the same batches. A cap you never set is a cap you are inheriting. SGLang's post on its graphs makes the same point about prefill: the largest captured shape matters more than how many shapes are captured, because a prefill above the ceiling runs eagerly and keeps the activation peak, while the graphs below it still take their memory. **the ceiling matters more than the count** [measured]
 
+Check the size a batch is padded to before you go on.
+
+> **Practice.** Items from the generator family `tr2.padding-waste`, level `1`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+
 ## Per phase, and a footnote on breaking
 
 SGLang names its choice differently. It configures graphs for each phase, decode and prefill, and each phase uses one backend of three, `full`, `breakable` or `disabled`. **full, breakable, disabled** [measured] Decode is `full` by default, and prefill is `breakable` on CUDA. **full** [measured] **breakable on CUDA** [measured] A `tc_piecewise` backend for prefill was removed in `v0.5.22`, and asking for it now raises an error. **removed in v0.5.22** [measured] vLLM has a breakable capture of its own behind an environment variable that is off by default, and it is not a sixth mode. **false** [measured] Breakable graphs are a footnote of this course because its model does not capture them. They matter to a reader of SGLang's prefill, and nothing in the games depends on them.
@@ -78,6 +86,10 @@ SGLang names its choice differently. It configures graphs for each phase, decode
 | TensorRT-LLM `v1.4.0rc2` | none named in the overview | none named: padding is described without a switch |
 
 vLLM's switches are the ones of the fourth to sixth lessons, each with its claim. SGLang's are claims of their own. It sets its graphs for each phase with **--cuda-graph-config** [measured], and the sizes of the decode graph with **cuda_graph_bs_decode** [measured]. A batch that would need padding can run eagerly instead: **disable_cuda_graph_padding** [measured] The decode graph alone can be turned off, **disable_decode_cuda_graph** [measured], a debugging switch sends every operation eagerly through the capture path, **debug_cuda_graph** [measured], and another profiles the capture. **enable_profile_cuda_graph** [measured] Mini-SGLang's graphs are on by default, and its one switch sets the largest batch: **true** [measured] TensorRT-LLM's overview describes padding and names no switch for it. **padded to the nearest larger size** [measured]
+
+Check how much a batch wastes before you go on.
+
+> **Practice.** Items from the generator family `tr2.padding-waste`, level `1`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
 A table of switches is not a table of behaviors. The same table for an engine you meet next year will have other names, and the questions to ask of it are the ones this lesson asked: what does it overlap, what is the key, what is the list, and where does the list stop.
 
@@ -95,17 +107,11 @@ Three short reads at the pins, each with one question. The answer to each is in 
 
 ## What the GPU will check
 
-Nothing in this lesson is run. The course's model follows vLLM's loop. SGLang's lists are data in it, and its scheduler and its overlap are not modelled, so everything above that is about timing is read from source and documents. TR3's lab profiles the pinned vLLM, and the one stage of it that runs another engine is optional: SGLang's decode throughput at four concurrencies around its cap of **48 requests** [measured] on a `24 GB` card, which settles whether that cap is a cliff. The lab arrives with the grader in W2 (D-039). Until then the claims about the other three engines are read and not measured.
-
-## What to carry
-
-- Every engine overlaps the CPU's work with the GPU's, one batch behind, and every engine replays graphs by size. The words differ and the details are the engine's own.
-- The lists differ near the bottom, and the caps differ by the card. The same command is not the same configuration across engines or across cards.
-- A claim about an engine is a claim about a version. Name the pin, or the commit, or say that the course has not read it.
+Nothing in this lesson is run. The course's model follows vLLM's loop. SGLang's lists are data in it, and its scheduler and its overlap are not modelled, so everything above that is about timing is read from source and documents. TR3's lab profiles the pinned vLLM, and the one stage of it that runs another engine is optional: SGLang's decode throughput at four concurrencies around its cap of **48 requests** [measured] on a `24 GB` card, which settles whether that cap is a cliff. The lab arrives with the grader. Until then the claims about the other three engines are read and not measured.
 
 ## Exit check
 
-This lesson revisits three skills in other engines: saying why the GPU idles between steps when the CPU's work for the next step is not ready (`tr2.bubble`), saying which CPU work an engine overlaps and what it leaves on the critical path (`tr2.async-overlap`), and working out the size a batch is padded to and what the padding wastes (`tr2.capture-padding`). The exit ticket is three items on fresh seeds: one on the idle time between steps with the next call written during the fire, and two on the size a batch is padded to and the rows it wastes. It is passed with at least two right, one of them numeric (ASSESSMENT §4.2).
+This lesson revisits three skills in other engines: saying why the GPU idles between steps when the CPU's work for the next step is not ready (`tr2.bubble`), saying which CPU work an engine overlaps and what it leaves on the critical path (`tr2.async-overlap`), and working out the size a batch is padded to and what the padding wastes (`tr2.capture-padding`). The questions are three items on fresh seeds: one on the idle time between steps with the next call written during the forward, and two on the size a batch is padded to and the rows it wastes. Pass with at least two right, one of them numeric.
 
 > **Practice.** Items from the generator family `tr2.bubble-width`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 

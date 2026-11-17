@@ -43,7 +43,7 @@ const DIMENSIONS: Record<string, number> = {
   'figures/tr2/l1-one-step.svg': 1,
   'figures/tr2/l2-budget.svg': 5,
   'figures/tr2/l3-overlap.svg': 4,
-  'figures/tr2/l5-comb.svg': 3,
+  'figures/tr2/l5-launches.svg': 3,
   'figures/tr2/l5-padding.svg': 1,
   'figures/tr2/l6-memory.svg': 5,
   'figures/tr2/l7-buckets.svg': 1,
