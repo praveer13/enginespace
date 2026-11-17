@@ -176,8 +176,8 @@ async function settingsRecord(page: Page): Promise<Record<string, unknown>> {
 }
 
 const stage = (page: Page) => page.locator('[data-stage="specimen"]')
-/** The scene kit's own bell, among the design page's many: the one that fires the specimen's next step. */
-const bell = (page: Page) => page.locator('.es-kit').getByRole('button', { name: /Ring the bell: fire the next step/ })
+/** The scene kit's own button, among the design page's many: the one that runs the specimen's next step. */
+const bell = (page: Page) => page.locator('.es-kit').getByRole('button', { name: /Run the next step/ })
 const probe = (page: Page) => page.evaluate(() => (window.__esScene as SceneHook | undefined)?.probes.specimen?.info() ?? null)
 
 /** Waits until the specimen is drawn, the Stage says it is settled, and no frame has been drawn for half a second. */
@@ -404,15 +404,14 @@ test.describe('settings apply live (accept 1)', () => {
     await page.locator('#scene-kit').scrollIntoViewIfNeeded()
     await settle(page)
     await expect(stage(page)).toHaveAttribute('data-tier', /[23]/)
-    const before = (await probe(page))?.passes
-    expect(before).toEqual(['scene', 'bloom', 'final'])
+    expect((await probe(page))?.passes).toEqual(['scene'])
 
     const settings = await context.newPage()
     await open(settings, '/settings')
     await plate(settings, 'Quality cap', /Tier 1/).click()
     await expect(stage(page)).toHaveAttribute('data-tier', '1', { timeout: 10_000 })
     await settle(page)
-    // T1 draws without post-processing: the bloom pass is gone from the frame.
+    // Nothing is post-processed at any tier: the frame is the scene pass alone.
     await expect.poll(async () => (await probe(page))?.passes, { timeout: 10_000 }).toEqual(['scene'])
     await settings.close()
   })
@@ -489,7 +488,7 @@ test.describe('settings decide before anything is fetched', () => {
     await page.waitForTimeout(1500)
     expect(requests.filter((request) => /three-vendor|SpecimenScene3D|postfx/.test(request))).toEqual([])
 
-    // Back on, with the cap at tier 1: the scene loads, and bloom, which belongs to tier 2 and up, never does.
+    // Back on, with the cap at tier 1: the scene loads, and no post-processing chunk is ever asked for.
     await open(page, '/settings')
     await switchNamed(page, 'Draw the games in 3D').click()
     await expect(switchNamed(page, 'Draw the games in 3D')).toHaveAttribute('aria-checked', 'true')

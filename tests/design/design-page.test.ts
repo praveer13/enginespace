@@ -346,7 +346,7 @@ describe('/design: each scene beside its 2D twin', () => {
     const views = html.slice(html.indexOf('class="es-kit__views"'), html.indexOf('class="es-kit__deck"'))
     expect(views.indexOf('data-view="3d"')).toBeLessThan(views.indexOf('data-view="2d"'))
     expect(decode(views)).toContain('2D twin')
-    expect(decode(views)).toContain('3D · the pass')
+    expect(decode(views)).toContain('3D · the lanes')
   })
 
   test('the 3D view paints its 2D twin first, so a device that cannot draw 3D loses nothing', () => {

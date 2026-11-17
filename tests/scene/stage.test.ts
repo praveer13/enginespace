@@ -67,11 +67,11 @@ describe('/design: the scene kit section', () => {
     expect(html.match(/role="option"[^>]*tabindex="0"|tabindex="0"[^>]*role="option"/g)?.length).toBe(1)
   })
 
-  test('has the controls: the bell, overlap, the rail, the three camera presets', () => {
-    for (const name of ['Ring the bell: fire the next step', 'Over the shoulder', 'Side of the pass', 'Under the lamps', '4 clips', '64 clips']) {
+  test('has the controls: the step button, overlap, the batch, the three camera presets', () => {
+    for (const name of ['Run the next step', 'Lifted', 'Side', 'Top', '4 slots', '64 slots']) {
       expect(html).toContain(name)
     }
-    expect(html).toContain('Write the next call during this fire')
+    expect(html).toContain('Plan the next step during this one')
   })
 
   test('labels its ticks synthetic', () => {

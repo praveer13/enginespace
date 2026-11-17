@@ -68,21 +68,12 @@ describe('the layout draws the run', () => {
     for (const fire of layout.fires) expect([4, 5]).toContain(fire.ticks)
   })
 
-  test("the rail holds one ticket per plate of the latest fire, each labelled with a request's number", () => {
-    const last = layout.fires.at(-1)
-    expect(layout.tickets).toHaveLength(last?.plates ?? 0)
-    const labels = layout.anchors.filter((anchor) => anchor.kind === 'ticket')
-    expect(labels).toHaveLength(layout.tickets.length)
-    for (const label of labels) expect(label.text).toMatch(/^\d{2,}$/)
-  })
-
   test('the legend tray holds the four forms', () => {
     expect(layout.legend.map((cell) => cell.form)).toEqual(['solid', 'groove', 'hollow', 'marked'])
   })
 
-  test('three heat lamps hang over the pass, above the rail, and the tick labels ride the track', () => {
-    expect(layout.lamps).toHaveLength(3)
-    for (const lamp of layout.lamps) expect(lamp.at[1]).toBeGreaterThan(1)
+  test('the lanes are named in the engine\'s terms, and the tick labels ride the track', () => {
+    expect(layout.anchors.filter((anchor) => anchor.kind === 'lane').map((anchor) => anchor.text)).toEqual(['CPU', 'GPU', 'Forms'])
     for (const tick of layout.anchors.filter((anchor) => anchor.kind === 'tick')) expect(tick.frame).toBe('track')
   })
 })
@@ -96,20 +87,16 @@ describe('the long night', () => {
     expect(layout.cells.length).toBe(LONG_NIGHT_FIRES * 64)
     expect(layout.cells.length + layout.spans.length).toBeGreaterThanOrEqual(10_000)
   })
-
-  test('hangs no tickets: 64 would not read, and the mirror lists every fire', () => {
-    expect(layout.tickets).toHaveLength(0)
-  })
 })
 
 describe('the camera presets', () => {
-  test("GAMES.md §2.6's three shots of Service, the Compare shot orthographic", () => {
-    expect(SPECIMEN_PRESETS.map((preset) => preset.label)).toEqual(['Over the shoulder', 'Side of the pass', 'Under the lamps'])
+  test("three shots of the lanes, the Side shot orthographic", () => {
+    expect(SPECIMEN_PRESETS.map((preset) => preset.label)).toEqual(['Lifted', 'Side', 'Top'])
     expect(SPECIMEN_PRESETS.map((preset) => preset.projection)).toEqual(['perspective', 'orthographic', 'perspective'])
     expect(SPECIMEN_PRESETS[0].shot).toBe('establish')
   })
 
-  test('the establishing shot looks down on the pass at about 25 degrees', () => {
+  test('the establishing shot looks down on the lanes at about 25 degrees', () => {
     const { position, target } = SPECIMEN_PRESETS[0]
     const elevation = (Math.atan2(position[1] - target[1], Math.hypot(position[0] - target[0], position[2] - target[2])) * 180) / Math.PI
     expect(elevation).toBeGreaterThan(20)

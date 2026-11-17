@@ -4,9 +4,9 @@ import './specimen.css'
 
 /*
  * The specimen's 2D twin (ARCHITECTURE §6.2: a first-class path, never a degraded one): the same layout as the 3D pass,
- * drawn as an SVG Gantt. Time runs left to right with the present at the right, the expo's lane above the line, one row of
- * places per clip on each fire, dark stretches as dashed outlines, and the rail at the present. The same forms carry the
- * same states: a plate is solid, an empty place an inset groove, a binned plate hollow. Text is SVG text, so it is real
+ * drawn as an SVG Gantt. Time runs left to right with the present at the right, the CPU's lane above the GPU's, one row of
+ * places per batch slot on each step, and idle stretches as dashed outlines. The same forms carry the same states: a token is
+ * solid, an empty place an inset groove, a ghost token hollow. Text is SVG text, so it is real
  * text; colours are the roles, through the classes in scene.css.
  */
 
@@ -23,6 +23,8 @@ const RIGHT = 576
 const CPU = { top: 52, height: 30 }
 const GPU = { top: 108, height: 120 }
 const AXIS = 252
+/** The legend's words for the forms a place takes. */
+const WORDS = { plate: 'token', empty: 'empty', binned: 'ghost' } as const
 
 export function SpecimenView2D({ layout, selected, onPick }: SpecimenView2DProps) {
   const { window, settings } = layout
@@ -38,20 +40,20 @@ export function SpecimenView2D({ layout, selected, onPick }: SpecimenView2DProps
   const fireOf = new Map(layout.fires.map((fire) => [fire.index, fire]))
 
   return (
-    <svg className="es-twin" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`2D view: ${layout.fires.length} fires on the line, the latest ending at tick ${window.now} (synthetic)`}>
+    <svg className="es-twin" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`2D view: ${layout.fires.length} steps on the GPU, the latest ending at tick ${window.now} (synthetic)`}>
       <rect className="es-twin__ground" x="0" y="0" width={W} height={H} rx="6" />
 
       <text className="es-twin__lane-name" x={LEFT - 12} y={CPU.top + CPU.height / 2 + 5} textAnchor="end">
-        the expo
+        CPU
       </text>
       <text className="es-twin__lane-term" x={LEFT - 12} y={CPU.top + CPU.height / 2 + 21} textAnchor="end">
-        cpu
+        lane
       </text>
       <text className="es-twin__lane-name" x={LEFT - 12} y={GPU.top + GPU.height / 2 - 3} textAnchor="end">
-        the line
+        GPU
       </text>
       <text className="es-twin__lane-term" x={LEFT - 12} y={GPU.top + GPU.height / 2 + 13} textAnchor="end">
-        gpu
+        lane
       </text>
 
       <rect className="es-twin__bed" x={LEFT} y={CPU.top - 4} width={RIGHT - LEFT} height={CPU.height + 8} />
@@ -118,14 +120,14 @@ export function SpecimenView2D({ layout, selected, onPick }: SpecimenView2DProps
           <g key={form} transform={`translate(${i * 108}, 0)`}>
             <rect className="es-twin__place" data-form={form} x="0" y="0" width="22" height="14" rx="2" />
             <text className="es-twin__legend-label" x="30" y="12">
-              {form}
+              {WORDS[form]}
             </text>
           </g>
         ))}
         <g transform="translate(324, 0)">
           <rect className="es-twin__dark" x="0" y="0" width="22" height="14" />
           <text className="es-twin__legend-label" x="30" y="12">
-            dark
+            idle
           </text>
         </g>
       </g>

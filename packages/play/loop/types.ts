@@ -198,8 +198,8 @@ export interface LoopCounters {
 }
 
 /**
- * What the kitchen draws, in the 2D view, the poster and the 3D scene: the rail and the fired rail, the waiting tickets, the fires and
- * the lanes. The front page's view is one (`LoopView`), and the full service's is another (full/types.ts), so one kitchen draws both.
+ * What the lanes draw, in the 2D view, the poster and the 3D scene: the batch slots, the waiting requests, the steps and the CPU's calls.
+ * The front page's view is one (`LoopView`), and the full service's is another (full/types.ts), so one layout draws both.
  */
 export interface KitchenView {
   readonly level: string

@@ -21,7 +21,7 @@ import { pendingGame } from './model'
  *   - A game that no task has built yet keeps its ticket, which names the open task that builds it.
  *
  * Once open, the block runs wider than a ticket: it takes the lesson's column, which the stylesheet widens on a wide screen while a game is
- * open (content.css), and the game lays its parts out for that column (GameShell's `embedded`).
+ * open (content.css), and the game lays its parts out for that column (the frame's `embedded`).
  */
 
 const GameEmbed = lazy(() => import('./GameEmbed'))

@@ -385,8 +385,8 @@ describe('the scene: the kit\'s flat track, and nothing from the kitchen', () =>
   test('the scene asks for no environment map, fog or bloom, and draws every word as a label', () => {
     const scene = read('src/games/verifier/Scene3D.tsx')
     expect(scene).toContain('fog={null}')
-    expect(scene).toContain('environment={false}')
-    expect(scene).toContain('bloom={false}')
+    // The kit has no environment map and no bloom to ask for (R-T44): the canvas takes neither prop, and the scene passes neither.
+    expect(scene).not.toMatch(/environment=|bloom=/)
     expect(scene).toContain('labels={labels}')
   })
 

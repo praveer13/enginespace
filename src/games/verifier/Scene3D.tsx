@@ -91,7 +91,7 @@ export default function Scene3D({ view, shots, preset, scaffold, outcome, onPick
   const pick = useMemo(() => onPick && ((id: string) => id.startsWith('col-') && onPick(Number(id.slice(4)))), [onPick])
   return (
     <div ref={box} className="es-vf3d" data-vf-rows={skyline.rows} data-roomy={canvas.width >= ROOMY || undefined}>
-      <SceneCanvas labels={labels} fog={null} environment={false} bloom={false} exposure={1}>
+      <SceneCanvas labels={labels} fog={null} exposure={1}>
         <CameraRig presets={presets} preset={preset} />
         <FlatLights />
         <FlatTrack model={skyline.model} from={from} onPick={pick} />

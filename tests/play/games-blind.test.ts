@@ -315,7 +315,7 @@ describe('the pool probe plays a night by the engine\'s loop, which is the sessi
 describe('a game\'s own shell, loaded on demand by Game.tsx, is read for its views', () => {
   /** A full service as a game writes it: its own shell, with a view of each kind named for it, in a folder of its own. */
   const SHELL = `import { lazy } from 'react'
-import { GameShell } from '@/games/kit/GameShell'
+import { Frame } from '@/games/kit/Frame'
 import { FullControls } from './full/FullControls'
 import { FullDebrief } from './full/FullDebrief'
 import { FullMirror } from './full/FullMirror'
@@ -324,7 +324,7 @@ const Scene3D = lazy(() => import('./Scene3D'))
 
 export default function FullService() {
   return (
-    <GameShell
+    <Frame
       view2d={(run) => <FullView2D run={run} />}
       scene3d={(run) => <Scene3D run={run} />}
       controls={(run) => <FullControls run={run} />}

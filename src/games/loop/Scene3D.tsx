@@ -117,7 +117,7 @@ export default function Scene3D({ view, full, preset, onHang, reference }: Scene
 
   return (
     <div ref={box} className="es-track3d" data-track-camera={camera}>
-      <SceneCanvas labels={labels} fog={null} environment={false} bloom={false} toneMapping={false} exposure={1}>
+      <SceneCanvas labels={labels} fog={null} toneMapping={false} exposure={1}>
         <CameraRig presets={presets} preset={camera} />
         <FlatLights />
         {shown ? <FlatTrack model={shown} from={camera === 'compare' ? compare?.from : null} onPick={showsOwnRun(camera) ? undefined : onPick} /> : null}

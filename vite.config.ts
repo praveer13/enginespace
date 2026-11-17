@@ -15,7 +15,7 @@ export const PACKAGES = ['sim', 'play', 'ledger', 'schema', 'verify'] as const
 
 /**
  * The 3D vendor chunk (D-023): three's core build and R3F. It loads with the first scene and never at first paint.
- * three's addons stay out of it: they belong to the chunk that uses them (postfx, a scene).
+ * three's addons stay out of it: they belong to the chunk that uses them (a scene).
  */
 const THREE_VENDOR = [/[\\/]node_modules[\\/]three[\\/]build[\\/]/, /[\\/]node_modules[\\/]@react-three[\\/]fiber[\\/]/]
 
@@ -25,16 +25,6 @@ const THREE_VENDOR = [/[\\/]node_modules[\\/]three[\\/]build[\\/]/, /[\\/]node_m
  * paint. A package the entry shares with R3F belongs on this list (tests/build.test.ts fails when one is missing).
  */
 const REACT_VENDOR = /[\\/]node_modules[\\/](react|react-dom|scheduler|zustand|use-sync-external-store)[\\/]/
-
-/**
- * Scene kit v1's props (src/scene/props): one chunk that every 3D game shares over three-vendor, measured by verify:bundle's
- * scene-kit row. A manual chunk pulls in every static dependency not assigned elsewhere, so the two modules the props share with
- * the rest of the app go in a small chunk of their own: the kit's context (kit.ts, which the kit's core imports too) and the props'
- * pure data (specs.ts, which the design page's notes read). Without it, a scene that uses no prop, or a page's first paint, would
- * load the props and three with them.
- */
-const SCENE_KIT_DATA = /[\\/]src[\\/]scene[\\/](?:kit\.ts|props[\\/]specs\.ts)$/
-const SCENE_KIT = /[\\/]src[\\/]scene[\\/]props[\\/]/
 
 /** What each lazy import preloads, and the route table beside the entry that preloads a route before it opens (D-059, A§6.10). */
 const routes = routeTable(root)
@@ -77,8 +67,6 @@ export default defineConfig({
         manualChunks(id) {
           if (THREE_VENDOR.some((pattern) => pattern.test(id))) return 'three-vendor'
           if (REACT_VENDOR.test(id)) return 'react-vendor'
-          if (SCENE_KIT_DATA.test(id)) return 'scene-kit-data'
-          if (SCENE_KIT.test(id)) return 'scene-kit'
         },
       },
     },

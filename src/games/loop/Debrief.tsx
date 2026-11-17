@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { drawInBand } from '@es/play'
 import { compareServices, firesOfRun } from '@es/play/loop/compare'
-import { frameSvg, layoutStrip } from '@es/play/loop/layout'
+import { layoutStrip, stripSvg } from '@es/play/loop/strip'
 import { loopSession } from '@es/play/loop/session'
 import type { FireView, LoopCounters } from '@es/play/loop/types'
 import { Button } from '@/design/components/Button'
@@ -89,7 +89,7 @@ function Compare({ seed, mine, clockUs, slots }: { seed: number; mine: readonly 
   const lanes = useMemo(() => {
     const services = compareServices(seed)
     const scaleTicks = Math.max(clockUs, ...services.map((service) => service.run.summary.clockUs))
-    const strip = (fires: readonly FireView[], label: string) => svgToReact(frameSvg(layoutStrip(fires, { slots, scaleTicks, label })))
+    const strip = (fires: readonly FireView[], label: string) => svgToReact(stripSvg(layoutStrip(fires, { slots, scaleTicks, label })))
     return [
       { id: 'mine', heading: 'Your run', gloss: 'the run you just played', clock: clockUs, dark: null as number | null, binned: null as number | null, drawing: strip(mine, 'Your run: the GPU lane, with bubbles between the steps') },
       ...services.map((service) => ({

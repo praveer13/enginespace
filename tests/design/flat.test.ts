@@ -1,11 +1,11 @@
 /*
  * R-T16: Data Book's flat paper and sentence case (REDESIGN 2.8).
- *   - Sentence case everywhere: no stylesheet under src/ outside the kitchen scene's own files transforms text to upper case, and no type
+ *   - Sentence case everywhere: no stylesheet under src/ outside the old kitchen scenes' own files transforms text to upper case, and no type
  *     role does, so vLLM, SGLang and v0.33.0 keep their casing.
  *   - The Flat Paper Rule: no texture role in tokens.ts, and none named in any stylesheet; two shadows, `paper` for a sheet and `lift` for
  *     a popover; paper cut square.
- *   - The kitchen's tape, tape ink, glint and fluorescent light are retired from every stylesheet. Their roles stay in tokens.ts for the
- *     kitchen scene, which reads them until stage 4 removes it.
+ *   - The kitchen's tape, tape ink, glint and fluorescent light are retired from every stylesheet. Their roles stay in tokens.ts: the
+ *     light and the paper still name them (a later task retires the roles).
  *   - The surface roles and paper-rule take the brief's new values, and every pair the brief names is declared.
  */
 import { describe, expect, test } from 'bun:test'
@@ -18,11 +18,11 @@ import { allSheets, kitchen, repo, sheets } from './sheets'
 const read = (file: string) => readFileSync(path.join(repo, file), 'utf8')
 
 describe('sentence case everywhere', () => {
-  test('the scan reads the stylesheets of the pages, the games and the design system, and leaves out only the kitchen scene', () => {
+  test('the scan reads the stylesheets of the pages, the games and the design system, and leaves out only the old kitchen scenes', () => {
     const read = sheets()
     expect(read.length).toBeGreaterThan(20)
     expect(allSheets().filter((file) => !read.includes(file))).toEqual(
-      expect.arrayContaining(['src/design/tokens.css', 'src/scene/kitchen.css']),
+      expect.arrayContaining(['src/design/tokens.css']),
     )
     expect(allSheets().filter((file) => !read.includes(file) && file !== 'src/design/tokens.css').every(kitchen)).toBe(true)
   })
