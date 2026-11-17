@@ -270,44 +270,36 @@ test.describe('progress from items and lab checks', () => {
 
     await open(page, '/m/tr2')
     await readTheLedger(page)
-    const tr2Kcs = page.locator('[data-block="kcs"]')
-    await expect(tr2Kcs.locator('[data-kc="tr2.bubble"]')).toHaveAttribute('data-state', 'earned')
-    await expect(tr2Kcs.locator('[data-kc="tr2.async-overlap"]')).toHaveAttribute('data-state', 'none')
-    await expect(tr2Kcs.locator('[data-kc="tr2.graph-replay"]')).toHaveAttribute('data-state', 'practised')
+    // One skill of TR2's first outcome is passed and the outcome rests on five, so no outcome is ticked yet.
+    await expect(page.locator('.es-module__tick[data-done]')).toHaveCount(0)
 
     await open(page, '/m/tr5a')
     await readTheLedger(page)
-    const tr5aKcs = page.locator('[data-block="kcs"]')
-    await expect(tr5aKcs.locator('[data-kc="tr5a.state-pages"]')).toHaveAttribute('data-state', 'earned')
-    await expect(tr5aKcs.locator('[data-kc="tr5a.adapter-pages"]')).toHaveAttribute('data-state', 'earned')
-    await expect(tr5aKcs.locator('[data-kc="tr5a.kv-groups"]')).toHaveAttribute('data-state', 'none')
-    // The lab run is the Build step of its module's loop (the third of the five).
-    await expect(page.locator('[data-block="loop"] .es-steps__item').nth(2)).toContainText('1 passed of 1 tried')
+    // The lab passes tr5a.hit-intersection, which is all that TR5a's third outcome rests on: that outcome is ticked, and says "You can".
+    await expect(page.locator('.es-module__tick[data-done]')).toHaveCount(1)
+    await expect(page.getByRole('heading', { name: 'You can', exact: true })).toBeVisible()
+    // The lab run is the Build row's: one credited of one tried.
+    await expect(page.locator('[data-row="build"]')).toContainText('1 passed of 1 tried')
   })
 })
 
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* A module's page: the loop and the progress                                                                          */
+/* A module's page: the rows and the progress                                                                          */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 test.describe('a module page', () => {
   test.use({ viewport: { width: 1280, height: 900 } })
 
-  test('runs the loop in five steps and lists the knowledge components with their states', async ({ page, context }) => {
+  test('says what you did in the Game and Keep rows, and what is passed under the lessons', async ({ page, context }) => {
     await withSettings(context, { view3d: false })
     await putIn(page, EVIDENCE)
     await open(page, '/m/tr2')
     await readTheLedger(page)
-    const loop = page.locator('[data-block="loop"]')
-    await expect(loop.locator('.es-steps__name')).toHaveText(['Predict', 'Play', 'Build', 'Prove', 'Keep'])
-    await expect(loop.locator('.es-steps__item').nth(4)).toContainText('3 passed of 4 tried')
-    await expect(loop.getByRole('link', { name: 'Step loop' })).toHaveAttribute('href', '/play/loop')
-    const kcs = page.locator('[data-block="kcs"]')
-    await expect(kcs.locator('[data-kc="tr2.one-budget"]')).toHaveAttribute('data-state', 'practised')
-    await expect(kcs.locator('[data-kc="tr2.async-overlap"]')).toHaveAttribute('data-state', 'earned')
-    await expect(kcs.locator('[data-kc="tr2.graph-replay"]')).toHaveAttribute('data-state', 'kept')
-    await expect(kcs.locator('[data-kc="tr2.step-calls"]')).toHaveAttribute('data-state', 'none')
-    await expect(page.getByRole('figure', { name: 'About this module' })).toContainText('passed')
+    const game = page.locator('[data-row="game"]')
+    await expect(game.getByRole('link', { name: 'Step loop' })).toHaveAttribute('href', '/play/loop')
+    await expect(page.locator('[data-row="keep"]')).toContainText('3 passed of 4 tried')
+    await expect(page.locator('[data-row="keep"]')).toContainText('1 of 11 skills kept')
+    await expect(page.locator('[data-lesson-state]').first()).toBeVisible()
   })
 })
 

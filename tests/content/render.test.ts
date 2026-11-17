@@ -211,31 +211,25 @@ describe('/m/tr2', () => {
     })
   })
 
-  test('draws the module\'s own words as tickets, then what you will be able to do, then its lessons, then its artifacts', () => {
-    const order = ['data-block="prose"', 'data-block="outcomes"', 'class="es-doc__lessons"', 'data-block="artifacts"'].map((marker) => html.indexOf(marker))
+  test('draws the first screen, then what you will be able to do, the rows, and the Reference last', () => {
+    const order = ['class="es-module__sentences"', 'class="es-module__way"', 'id="lessons"', 'data-block="outcomes"', 'class="es-module__rows"', 'id="reference"'].map((marker) => html.indexOf(marker))
     expect(order.every((at) => at >= 0)).toBe(true)
     expect([...order].sort((a, b) => a - b)).toEqual(order)
     for (const outcome of module.outcomes) expect(html).toContain(outcome)
-    for (const artifact of module.artifacts) {
-      expect(html).toContain(artifact.title)
-      expect(html).toContain(`<code>${artifact.id}</code>`)
-    }
   })
 
-  test('lists each lesson as a ticket with a stub that opens it, and the lesson\'s minutes as a tagged estimate', () => {
-    expect(html).toContain('<h3 class="es-ticket__title">A sample lesson that uses every block</h3>')
-    expect(html).toMatch(/<a class="es-stub__pull" href="\/m\/tr2\/l0-sample"[^>]*>[\s\S]*?Open lesson/)
-    expect(html).toContain('<data class="es-readout__value" value="45">45</data><span class="es-readout__tag" data-tag="estimated">estimated</span>')
+  test('lists each lesson as a row that opens it, with its minutes as a tagged estimate', () => {
+    expect(html).toContain('<a href="/m/tr2/l0-sample"')
+    expect(html).toContain('A sample lesson that uses every block')
+    expect(html).toMatch(/<span class="es-num" data-tag="estimated">45<span class="sr-only"> \(estimated\)<\/span><\/span>/)
   })
 
-  test('puts the hours, by lane, on the printer\'s tape as estimates, with the status, what to read first, the pins and the games', () => {
-    const tape = /<figure class="es-printer"[^>]*aria-label="About this module">[\s\S]*?<\/figure>/.exec(html)?.[0] ?? ''
-    expect(tape).toContain('<dt>hours</dt><dd><span class="es-readout" data-size="sm" data-tone="ink"><data class="es-readout__value" value="10">10</data><span class="es-readout__tag" data-tag="estimated">estimated</span>')
-    expect(tape).toContain('<dt>browser (B)</dt>')
-    expect(tape).toContain('<dt>status</dt><dd>draft</dd>')
-    for (const ref of ['kernelspace T5.L7', 'kernelspace T0.L6', 'kernelspace T4.L3']) expect(tape).toContain(ref)
-    expect(tape).toContain('<dt>pins</dt><dd>vllm, sglang</dd>')
-    expect(tape).toContain('href="/play/loop"')
+  test('holds the module\'s hours and sources in the Reference, as closed disclosures', () => {
+    const reference = html.slice(html.indexOf('id="reference"'))
+    expect(reference).toContain('<details class="es-module__part"')
+    expect(reference).not.toContain('<details open')
+    expect(reference).toContain('id="ref-hours"')
+    expect(html.slice(0, html.indexOf('id="reference"'))).not.toContain('data-tag="measured"')
   })
 
   test('is built from the design system alone', () => {
@@ -245,11 +239,10 @@ describe('/m/tr2', () => {
 
   test('a module that is only planned shows what the index knows of it, and says nobody has written it', () => {
     const planned = render(h(ModuleView, { id: 'tr0', module: null, entry: entry('tr0'), claims: null, today: TODAY }), '/m/tr0')
-    expect(planned).toContain('<h1 class="es-doc__title">PyTorch for the Rust-first, and reading Triton</h1>')
-    expect(planned).toContain('Planned: not written yet.')
+    expect(planned).toContain('<h1 class="es-module__title">PyTorch for the Rust-first, and reading Triton</h1>')
+    expect(planned).toContain('Not published yet.')
     expect(planned).toContain('No lessons yet.')
-    expect(planned).toContain('<dt>status</dt><dd>planned</dd>')
-    expect(planned).toContain('<dt>laptop (L)</dt>')
+    expect(planned).toContain('laptop')
     expect(planned).not.toContain('data-block="outcomes"')
   })
 

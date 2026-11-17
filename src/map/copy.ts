@@ -4,8 +4,6 @@
  * every count, hour and total is worked out from the course and the ledger when the page draws.
  */
 
-import { SKILL_WORDS } from '@/progress/words'
-
 export const MAP = {
   title: 'Course',
   modules: 'The modules, in order',
@@ -45,46 +43,18 @@ export const MAP = {
   },
 } as const
 
-/** A module page's loop (ARCHITECTURE §3.1: Predict, Play, Build, Prove, Keep) and what the learner holds of it. */
-export const LOOP = {
-  title: 'How this module runs',
-  term: 'the loop',
-  lede: 'Every module runs the same five steps. The counts are of the events in this browser, read when the page draws.',
-  steps: {
-    predict: { name: 'Predict', what: 'Commit your answer before each reveal. A guess counts toward no skill.' },
-    play: { name: 'Play', what: 'Play the games on practice seeds, then answer on fresh ones.' },
-    build: { name: 'Build', what: 'Write the lab, and run it against checks drawn when you start.' },
-    prove: { name: 'Prove', what: 'Do it again on fresh seeds with your agent closed.' },
-    /** Follows a link to Review, which is the first word of the sentence. */
-    keep: { name: 'Keep', what: 'brings back what you have passed, a few weeks on.' },
-  },
-  games: 'Games',
-  labs: 'Labs',
-  noGame: 'No game of its own.',
-  noLab: 'No lab to write in this module.',
-  arrives: 'arriving with',
-  today: 'Review',
-  made: 'made',
-  credited: 'passed',
-  of: 'of',
-  tried: 'tried',
-  partial: 'passed in practice',
-  nothing: 'nothing yet',
+/** A module page's own words (REDESIGN section 3.3). */
+export const MODULE = {
+  can: 'You can',
+  will: 'You will be able to',
+  waiting: 'not published yet',
+  rows: { game: 'Game', build: 'Build', prove: 'Prove', keep: 'Keep' },
+  review: 'Review',
+  keepWhat: 'Review brings back what you have passed, a few weeks on.',
   proved: 'proved',
   notYet: 'not yet',
-  kept: 'knowledge components kept',
+  lessons: 'Lessons',
   reading: 'Reading your ledger',
-} as const
-
-export const KCS = {
-  title: 'Knowledge components',
-  term: 'what you can do',
-  lede: 'Each one is something you can do once you hold it. A ring is one you have not started, a ringed dot one you have tried, a solid dot one you have passed, and a ticked dot one you have kept.',
-  states: SKILL_WORDS,
-  /** Printed once, when some of the module's KCs have no graded item behind them yet (ASSESSMENT §3.3: a practice level earns at most part credit). */
-  planned: 'Some of these cannot be passed yet: their first graded questions are not published yet.',
-  reading: 'Reading your ledger',
-  count: { of: 'of', earned: 'passed', kept: 'kept' },
 } as const
 
 /** Every string above, for the tests. */
@@ -95,6 +65,6 @@ export function mapCopy(): string[] {
     else if (Array.isArray(value)) value.forEach(walk)
     else if (value !== null && typeof value === 'object') Object.values(value).forEach(walk)
   }
-  walk([MAP, LOOP, KCS])
+  walk([MAP, MODULE])
   return out
 }

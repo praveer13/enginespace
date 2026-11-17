@@ -121,7 +121,7 @@ describe('routes against ARCHITECTURE §3.1', () => {
     '/': { h1: 'Run one step of an LLM inference engine.', title: 'enginespace' },
     '/map': { h1: 'Course' },
     // The module and lesson pages load their content in the browser (W0-T09), so the server renders the ticket that is still printing.
-    '/m/:module': { h1: 'Module', shows: 'Printing the module' },
+    '/m/:module': { h1: 'Module', shows: 'Loading the module' },
     '/m/:module/:lesson': { h1: 'Lesson', shows: 'Loading the lesson' },
     '/play': { h1: 'Games' },
     '/play/:game': { h1: 'Play Step loop', shows: 'Loading Step loop', title: 'Game · enginespace' },
