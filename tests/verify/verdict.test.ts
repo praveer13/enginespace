@@ -61,7 +61,7 @@ describe('assisted', () => {
   ])('is the replay of a learner who declared %s: every check still passes, and the receipt counts as assisted work', async (_name, provenance) => {
     const outcome = await run(edited(replayFixture(), (bundle) => (bundle.receipt.provenance = provenance)))
     expect(outcome.verdict.provenance).toBe('assisted')
-    expect(outcome.verdict.reasons[0]).toMatch(/^You declared that you had help with code or from an agent \(assisted: \w+, agent: (yes|no)\), so the receipt counts as assisted work \(ASSESSMENT §3\.2\)\.$/)
+    expect(outcome.verdict.reasons[0]).toMatch(/^You declared that you had help with code or from an agent \(assisted: \w+, agent: (yes|no)\), so the receipt counts as assisted work\.$/)
     expect(failed(outcome)).toEqual([])
   })
 })
@@ -70,7 +70,7 @@ describe('practice', () => {
   test('is the honest trace of an optional stage: the stage requires nothing, and what the receipt captured is consistent', async () => {
     const outcome = await run(traceFixture())
     expect(outcome.verdict.provenance).toBe('practice')
-    expect(outcome.verdict.reasons).toEqual(['tr3.profile.s5 asks nothing of a receipt, so this one earns practice credit only (ASSESSMENT §5.9).'])
+    expect(outcome.verdict.reasons).toEqual(['tr3.profile.s5 asks nothing of a receipt, so this one earns practice credit only.'])
   })
 
   test('is not the same receipt with a capture that is not consistent: a check that ran and failed takes it back to gpu-unverified', async () => {
@@ -129,7 +129,7 @@ describe('gpu-unverified', () => {
   test('is a check that a stage requires of the browser and nothing has run: not built yet, with the task that builds it', () => {
     const verdict = verdictOf(receiptOf('tr4.sweep.s2', { checks: [{ id: 'sdpa-tolerance', kind: 'correctness', pass: true, detail: '' }] }), results())
     expect(verdict.provenance).toBe('gpu-unverified')
-    expect(verdict.reasons).toEqual(['sweep-errors is not built yet: W2-T26 builds it, and a receipt of tr4.sweep.s2 does not count until it exists.'])
+    expect(verdict.reasons).toEqual(['sweep-errors is a check this site does not run yet, so a receipt of tr4.sweep.s2 does not count until it does.'])
   })
 
   test('is a check that the results do not hold at all: a stored report with no result for a check that the stage requires is not credited', () => {
@@ -170,7 +170,7 @@ describe('gpu-unverified', () => {
     expect(verdict.reasons).toEqual([`This check was made by an earlier version of the site that ran 6 of the ${RULES_IN_ALL} rules. Bring the receipt's file back, and it is checked by all of them.`])
     const pending = verdictOf(receiptOf('tr4.sweep.s2', { checks: [{ id: 'sdpa-tolerance', kind: 'correctness', pass: true, detail: '' }] }), results().slice(0, 6), 6)
     expect(pending.reasons).toHaveLength(2)
-    expect(pending.reasons[1]).toBe('sweep-errors is not built yet: W2-T26 builds it, and a receipt of tr4.sweep.s2 does not count until it exists.')
+    expect(pending.reasons[1]).toBe('sweep-errors is a check this site does not run yet, so a receipt of tr4.sweep.s2 does not count until it does.')
   })
 
   test('says at most eight reasons and counts the rest: a receipt cannot fill the page with them', () => {

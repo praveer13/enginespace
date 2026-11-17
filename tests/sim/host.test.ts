@@ -39,12 +39,12 @@ describe('the host presets', () => {
     for (const id of ids) expect(HOST_PRESETS[id].tag).toBe('estimated')
   })
 
-  test('carry a card line that says the values are [estimated], not fitted, and names the task that will fit them', () => {
+  test('carry a card line that says the values are [estimated], not fitted, and names no build-log id', () => {
     for (const id of ids) {
       const { cardLine } = HOST_PRESETS[id]
       expect(cardLine).toContain('[estimated]')
       expect(cardLine).toContain('not fitted')
-      expect(cardLine).toContain('W2-T22')
+      expect(cardLine).not.toMatch(/W\d+-T\d+/)
       expect(cardLine).toContain('estimated"')
     }
     // Each line names its own runner.

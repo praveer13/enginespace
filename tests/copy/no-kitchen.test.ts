@@ -44,7 +44,9 @@ import { FORGE_LABS } from '@/forge/labs'
 import { VERIFIER_COPY } from '@es/play/verifier/copy'
 import { BANNED_PHRASES, BANNED_WORDS, findBanned, isClean, stripCode } from '@/copy/banned'
 import { PRODUCT_WORDS, PROVENANCE_WORDS, STATE_WORDS, TERMS, VERDICT_WORDS } from '@/copy/terms'
+import ts from 'typescript'
 import { compileContent } from '../../scripts/content/build.ts'
+import { BUILD_LOG } from '../../scripts/content/pacing.ts'
 import { read, root } from '../ci/support'
 import { seeds } from '../seeds'
 
@@ -191,7 +193,8 @@ function itemWords(item: Item): string[] {
 function itemTexts(): Text[] {
   const out: Text[] = []
   for (const gen of FAMILIES) {
-    const words = new Set<string>([gen.title])
+    // A variant's title is printed on each line of a question set's tally (src/items/Attempt.tsx), as the family's is on its card.
+    const words = new Set<string>([gen.title, ...gen.variants.map((variant) => variant.title)])
     for (const level of LEVELS) {
       if (offeredAt(gen, level).length === 0) continue
       for (const seed of seeds(1)) {
@@ -234,8 +237,38 @@ function rustProse(source: string): string {
   return out.join('\n')
 }
 
+/** The string and template literals of a TypeScript source, with the line each starts on: the words a function can return or throw. */
+function literalsOf(file: string): { line: number; text: string }[] {
+  const source = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true)
+  const out: { line: number; text: string }[] = []
+  const visit = (node: ts.Node): void => {
+    if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node) || ts.isTemplateHead(node) || ts.isTemplateMiddle(node) || ts.isTemplateTail(node)) {
+      out.push({ line: source.getLineAndCharacterOfPosition(node.getStart()).line + 1, text: node.text })
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(source)
+  return out
+}
+
+/** The `.ts` files of a folder of the repository, one level or all the way down. */
+const tsFilesUnder = (dir: string): string[] => filesUnder(path.join(root, dir)).filter((file) => file.endsWith('.ts'))
+
+/**
+ * Every string an oracle can return (packages/sim/forge): a check's label, the sentence of a verdict, a case's note, and a thrown message.
+ * The oracles build these from literals, so the literals are read, each on its own: a template's fixed parts are read as the pieces they are.
+ * An oracle's comments are not text a learner sees, and are not read.
+ */
+function oracleTexts(): Text[] {
+  return tsFilesUnder('packages/sim/forge').map((file) => ({
+    area: 'labs',
+    where: `${path.relative(root, file)} (what the oracles return)`,
+    text: literalsOf(file).map((literal) => literal.text).join('\n'),
+  }))
+}
+
 function labTexts(): Text[] {
-  const out: Text[] = []
+  const out: Text[] = oracleTexts()
   for (const lab of Object.values(FORGE_LABS)) {
     out.push({ area: 'labs', where: `lab ${lab.id}`, text: [lab.title, lab.lead, lab.editNote ?? ''].join('\n') })
     out.push({ area: 'labs', where: `checks of ${lab.id}`, text: lab.checks.flatMap((check) => [check.label, check.catches]).join('\n') })
@@ -251,6 +284,18 @@ function labTexts(): Text[] {
     }
   }
   return out
+}
+
+/** The packages whose strings reach a learner: a receipt's verdict reasons, a card's label, a host preset's note (D-063). */
+const BUILD_LOG_FREE = ['packages/verify', 'packages/sim/host', 'packages/sim/steploop', 'packages/sim/forge']
+
+/** Every literal of those packages that is a sentence: a literal with no space is an id (a table of stages and the tasks that planned them), not prose. */
+function sentencesOf(dir: string): { where: string; text: string }[] {
+  return tsFilesUnder(dir).flatMap((file) =>
+    literalsOf(file)
+      .filter((literal) => /\s/.test(literal.text))
+      .map((literal) => ({ where: `${path.relative(root, file)}:${literal.line}`, text: literal.text })),
+  )
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -321,6 +366,38 @@ describe('what a learner reads', () => {
     const dirty = new Set(findings.map((f) => f.area))
     const stale = allows.filter((allow) => READ_AREAS.includes(allow.area) && !dirty.has(allow.area)).map((allow) => `tests/copy/allow/${allow.area}.json (${allow.task})`)
     expect(stale).toEqual([])
+  })
+
+  test('reads every string the oracles can return, and it fails on the sentences that the oracles had before wave R closed', () => {
+    const read = oracleTexts().map((t) => t.text).join('\n')
+    expect(read).toContain('the module answered')
+    expect(findBanned(read)).toEqual([])
+    // The sentences as they stood, from the three oracles that held kitchen words: each one is found by the same reader.
+    for (const old of [
+      'p is less than q, so p of the q coins keep the plate',
+      'the first plate is sent back for sure, whatever follows it: a round never keeps a dish that p rules out',
+      'The dish furthest from its share is token 5',
+      '2000 touches on 3 pans, every reply and every order as the model has them',
+      'the module did not start for the night',
+    ]) {
+      expect([old, isClean(old)]).toEqual([old, false])
+    }
+  })
+
+  test('holds no variant title that a learner could read as the kitchen: the guard reads every family variant', () => {
+    const titles = FAMILIES.flatMap((gen) => gen.variants.map((variant) => ({ where: `${gen.id}/${variant.id}`, title: variant.title })))
+    expect(titles.length).toBeGreaterThan(60)
+    expect(titles.filter((entry) => !isClean(entry.title))).toEqual([])
+    expect(isClean('The padding a night wastes')).toBe(false)
+  })
+
+  test('has no build-log id in a sentence that a learner can reach from the verifier, the host card, the step loop or the oracles (D-063)', () => {
+    const sentences = BUILD_LOG_FREE.flatMap(sentencesOf)
+    expect(sentences.length).toBeGreaterThan(100)
+    expect(sentences.filter((sentence) => BUILD_LOG.test(sentence.text) || /§\d/.test(sentence.text)).map((sentence) => `${sentence.where}: ${sentence.text}`)).toEqual([])
+    for (const old of ['W2-T26 builds it', 'A token is single-use (D-027)', 'arrives with the kit (W2-T10)', "W2-T22 fits them to the owner's traces", 'the cost card (D-044, proposed)']) {
+      expect([old, BUILD_LOG.test(old)]).toEqual([old, true])
+    }
   })
 
   test('is a sweep that would see a kitchen word in each kind of text, if one came back', () => {

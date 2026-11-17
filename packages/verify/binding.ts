@@ -67,7 +67,7 @@ export function checkBinding(receipt: Receipt, receiptSha256: string, book: Chal
   const booked = book.filter((entry) => entry.token === token).sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0))[0]
   if (booked === undefined) {
     return outcome('fail', "This browser's ledger holds no challenge with this token.", [
-      'A token binds to the browser that issued it (ARCHITECTURE §8.4). A receipt for a challenge from another browser or device is imported there, and a receipt for a token nobody issued here is not bound to anything.',
+      'A token binds to the browser that issued it. A receipt for a challenge from another browser or device is imported there, and a receipt for a token nobody issued here is not bound to anything.',
     ])
   }
   const problems: string[] = []
@@ -79,7 +79,7 @@ export function checkBinding(receipt: Receipt, receiptSha256: string, book: Chal
   const state = stateAt(booked.at, nowMs, booked.usedBy !== undefined)
   if (state === 'used' && booked.usedBy !== receiptSha256) {
     problems.push(
-      `The token was spent by receipt ${short(booked.usedBy ?? '')} already. A token is single-use (D-027): the first receipt that carries it counts for good, whatever its verdict, because the run's seeds were seen.`,
+      `The token was spent by receipt ${short(booked.usedBy ?? '')} already. A token is single-use: the first receipt that carries it counts for good, whatever its verdict, because the run's seeds were seen.`,
     )
   } else if (state === 'expired') {
     const expired = Date.parse(booked.at) + CHALLENGE_TTL_DAYS * DAY_MS

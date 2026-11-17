@@ -191,7 +191,7 @@ function clipsOf(rows: readonly (readonly number[])[], slots: number): (number |
     for (const req of reqs) {
       if (where.has(req)) continue
       const free = held.indexOf(null)
-      if (free < 0) throw new Error('internal: a fire with more rows than clips')
+      if (free < 0) throw new Error('internal: a step with more rows than slots')
       held[free] = req
       where.set(req, free)
     }

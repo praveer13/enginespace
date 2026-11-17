@@ -207,7 +207,7 @@ describe('a module is measured, not assumed', () => {
   test('a module that does not start for the night is told so, and one that answers too few commands is told how many', () => {
     const refusing = drive(slotNightPlan(night), () => 'err no')
     expect(refusing.ok).toBe(false)
-    expect(refusing.message).toContain('the module did not start for the night')
+    expect(refusing.message).toContain('the module did not start')
     const plan = slotNightPlan(night)
     const batch = plan.next()!
     expect(plan.judge(batch.slice(1).map(() => 'ok'))).toBe(`the module answered ${batch.length - 1} of the ${batch.length} commands sent`)

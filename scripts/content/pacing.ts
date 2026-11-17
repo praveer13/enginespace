@@ -55,7 +55,7 @@ export function headingLines(md: string, first: number): number[] {
 }
 
 /** Build-log ids: a task (`W2-T43`, `R-T09`), a decision (`D-016`, `O-3`) and a section of a design document (`A§5.3`, `GAMES.md §3`). */
-const BUILD_LOG = /\b(?:W\d+[a-z]?-T\d+|R-T\d+|D-\d{2,3}|O-\d+)\b|\bA§\d|\b(?:ARCHITECTURE|REDESIGN|TRACKER|GAMES\.md|ASSESSMENT|WORLD)\b/
+export const BUILD_LOG = /\b(?:W\d+[a-z]?-T\d+|R-T\d+|D-\d{2,3}|O-\d+)\b|\bA§\d|\b(?:ARCHITECTURE|REDESIGN|TRACKER|GAMES\.md|ASSESSMENT|WORLD)\b/
 
 /** Build-log ids in a prose segment: one warning for each line that holds one. Fenced code is not prose. */
 function buildLogIds(segment: Segment, file: string, out: Diagnostic[]): void {

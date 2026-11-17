@@ -74,10 +74,10 @@ export function predictionProblem(a: { readonly p99Us: number; readonly loUs: nu
 
 /** Applies one action. Throws on an illegal one: a flaw the court does not know, a range that does not hold the p99, or a filing with nothing to file. */
 export function benchReduce(s: BenchState, a: BenchAction): BenchState {
-  if (benchDone(s)) throw new RangeError('the court has risen, so no action can follow')
+  if (benchDone(s)) throw new RangeError('the run is over, so no action can follow')
   switch (a.t) {
     case 'flaw':
-      if (!(BENCH_FLAWS as readonly string[]).includes(a.flaw)) throw new RangeError(`the court knows no flaw "${String(a.flaw)}"`)
+      if (!(BENCH_FLAWS as readonly string[]).includes(a.flaw)) throw new RangeError(`the benchmark has no flaw "${String(a.flaw)}"`)
       return { ...s, picks: replaced(s.picks, s.at, a.flaw) }
     case 'predict': {
       const problem = predictionProblem(a)
@@ -123,7 +123,7 @@ function rulingViews(s: BenchState): RulingView[] {
   return s.level.slots.map((slot, i) => {
     const ruling = s.rulings[i]
     const prediction = s.predictions[i]
-    if (ruling === null || prediction === null) throw new Error('internal: a case of a finished run has no ruling')
+    if (ruling === null || prediction === null) throw new Error('internal: a case of a finished run has no verdict')
     const { c, scene, truth } = caseOf(slot)
     return {
       ...ruling,
@@ -227,7 +227,7 @@ export function benchDebrief(mine: BenchState, ghost: BenchState): Debrief {
   }
   const slot = mine.level.slots[miss]
   const ruling = mine.rulings[miss]
-  if (ruling === null) throw new Error('internal: a missed case has no ruling')
+  if (ruling === null) throw new Error('internal: a missed case has no verdict')
   const facts = FLAW_FACTS[slot.flaw]
   const which = cases === 1 ? 'this case' : `the ${ORDINAL[miss] ?? 'last'} case`
   // A court of five can pass with one report that did not stand: the sentence says so, so the verdict word and the body agree.

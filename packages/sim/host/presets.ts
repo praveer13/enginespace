@@ -36,7 +36,7 @@ const V1: HostCard = Object.freeze({ ...SHARED, prepPerTokenUs: 8, syncUs: 60, s
 const MRV2: HostCard = Object.freeze({ ...SHARED, prepPerTokenUs: 2, syncUs: 20, samplePerSeqUs: 15 })
 
 const line = (runner: string) =>
-  `Host phase costs for the ${runner} runner are [estimated] orders of magnitude, not fitted to any trace: W2-T22 fits them to the owner's reference traces, and until then every host µs on screen says "estimated".`
+  `Host phase costs for the ${runner} runner are [estimated] orders of magnitude, not fitted to any trace, and until they are fitted every host µs on screen says "estimated".`
 
 /** The presets are frozen: a model that wants other costs copies a card and changes the copy. */
 export const HOST_PRESETS: Readonly<Record<RunnerPresetId, HostPreset>> = Object.freeze({

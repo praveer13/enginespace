@@ -189,7 +189,7 @@ describe('what a failing check says', () => {
 
   test('residual says what it should be, and what the module answered', () => {
     const outcome = drive(checks.residual.plan(3), () => '0,0,0,0')
-    expect(outcome.message).toBe('residual 5,3,0,8 2,6,0,8 should answer "3,0,0,0", and the module answered "0,0,0,0": the excess is 3 for the first dish and 0 for every dish where q is as big as p or bigger')
+    expect(outcome.message).toBe('residual 5,3,0,8 2,6,0,8 should answer "3,0,0,0", and the module answered "0,0,0,0": the excess is 3 for the first token and 0 for every token where q is as big as p or bigger')
   })
 
   test('pick lets a walk from the end pass (every dish is still picked by its weight), and fails a dish of weight 0', () => {
@@ -218,13 +218,13 @@ describe('what a failing check says', () => {
   test('round names the draft, what it should emit, what the module emitted, and why', () => {
     const outcome = drive(checks.round.plan(3), emulate({ ...REFERENCE, verify: (...args) => ({ ...REFERENCE.verify(...args), tokens: [0] }) }))
     expect(outcome.ok).toBe(false)
-    expect(outcome.message).toMatch(/^round \d,\d,\d should answer "[\d,]+", and the module answered "0": the first plate is /)
+    expect(outcome.message).toMatch(/^round \d,\d,\d should answer "[\d,]+", and the module answered "0": the first draft token is /)
   })
 
   test('exact says which seed rejected, the statistic and its limit, and the dish furthest from its share', () => {
     const outcome = drive(checks.exact.plan(3), emulate(BESTIARY.find((m) => m.id === 'resample-from-q')))
     expect(outcome.ok).toBe(false)
-    expect(outcome.message).toMatch(/^over 20000 rounds the first token that goes out should follow p, and it does not: chi-square [\d.]+ on 5 degrees of freedom is over the limit 25\.745 \(α = 1e-4\), on seed 1 of 2\. The dish furthest from its share is token \d: \d+ of the 20000 rounds are expected to emit it first, and \d+ did\.$/)
+    expect(outcome.message).toMatch(/^over 20000 rounds the first token that goes out should follow p, and it does not: chi-square [\d.]+ on 5 degrees of freedom is over the limit 25\.745 \(α = 1e-4\), on seed 1 of 2\. The token furthest from its share is token \d: \d+ of the 20000 rounds are expected to emit it first, and \d+ did\.$/)
   })
 
   test('exact says that a statistic just over the limit may be chance, and that one far over it is not said to be', () => {

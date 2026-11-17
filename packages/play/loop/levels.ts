@@ -181,7 +181,7 @@ export const outputsOf = (seed: Seed, requests: number): number[] => frontPageWo
 
 /** The level `id` on `seed`. Throws for a level that Service does not have. */
 export function buildLevel(id: string, seed: Seed): LoopLevel {
-  if (!isLevelId(id)) throw new RangeError(`Service has no level "${id}"`)
+  if (!isLevelId(id)) throw new RangeError(`Step loop has no level "${id}"`)
   assertSeed(seed)
   const def = DEFS[id]
   return {

@@ -135,7 +135,7 @@ function positiveDist(rng: Rng): Dist {
     const d = drawDist(rng, 6, 1024)
     if (d.weights.every((w) => w > 0)) return d
   }
-  throw new Error('no six-token distribution without an empty dish after 1000 draws')
+  throw new Error('no six-token distribution without an empty token after 1000 draws')
 }
 
 /** The index of the smallest weight, and of the smallest of the others (the lowest index on a tie). */
@@ -161,11 +161,11 @@ const only = (token: number, size: number): Dist => ({ weights: Array.from({ len
 
 /** Plates that p and q give, by hand, and what is special about each. */
 const HAND_PLATES: readonly (readonly [number, number, string])[] = [
-  [3, 5, 'p is less than q, so p of the q coins keep the plate'],
-  [0, 5, 'p rules the dish out, so no coin keeps it, not even the coin 0'],
-  [5, 5, 'p equals q, so every coin keeps the plate'],
-  [9, 5, 'p is bigger than q, so every coin keeps the plate'],
-  [1, 1, 'one coin, and it keeps the plate'],
+  [3, 5, 'p is less than q, so p of the q coins accept the draft token'],
+  [0, 5, 'p rules the token out, so no coin accepts it, not even the coin 0'],
+  [5, 5, 'p equals q, so every coin accepts the draft token'],
+  [9, 5, 'p is bigger than q, so every coin accepts the draft token'],
+  [1, 1, 'one coin, and it accepts the draft token'],
   [0, 1, 'one coin, and it does not'],
 ]
 
@@ -193,10 +193,10 @@ function keepGroup(px: number, qx: number, why: string): Group {
 type Kind = 'zero' | 'below' | 'equal' | 'above'
 const KINDS: readonly Kind[] = ['zero', 'below', 'equal', 'above']
 const KIND_WORDS: Record<Kind, string> = {
-  zero: 'p rules the dish out, so no coin keeps the plate',
-  below: 'p is less than q, so p of the q coins keep the plate',
-  equal: 'p equals q, so every coin keeps the plate',
-  above: 'p is bigger than q, so every coin keeps the plate',
+  zero: 'p rules the token out, so no coin accepts the draft token',
+  below: 'p is less than q, so p of the q coins accept the draft token',
+  equal: 'p equals q, so every coin accepts the draft token',
+  above: 'p is bigger than q, so every coin accepts the draft token',
 }
 const kindOf = (px: number, qx: number): Kind => (px === 0 ? 'zero' : px < qx ? 'below' : px === qx ? 'equal' : 'above')
 
@@ -221,7 +221,7 @@ function acceptPlan(seed: Seed): CheckPlan {
     ...probes.map((x) => keepGroup(p.weights[x], q.weights[x], KIND_WORDS[kindOf(p.weights[x], q.weights[x])])),
   ]
   const coins = probes.reduce((sum, x) => sum + q.weights[x], 0)
-  return grouped(groups, `every coin of ${HAND_PLATES.length} hand plates and of the ${coins} coins of ${probes.length} plates of a seeded pair: exactly min(p, q) of them keep a plate`)
+  return grouped(groups, `every coin of ${HAND_PLATES.length} hand cases and of the ${coins} coins of ${probes.length} draft tokens of a seeded pair: exactly min(p, q) of them accept the draft token`)
 }
 
 /* ---------------------------------------------------------------------------------------------------------------------------------- */
@@ -229,8 +229,8 @@ function acceptPlan(seed: Seed): CheckPlan {
 /* ---------------------------------------------------------------------------------------------------------------------------------- */
 
 const HAND_RESIDUALS: readonly (readonly [readonly number[], readonly number[], string])[] = [
-  [[5, 3, 0, 8], [2, 6, 0, 8], 'the excess is 3 for the first dish and 0 for every dish where q is as big as p or bigger'],
-  [[0, 10], [10, 0], 'the excess of the second dish is all of its weight'],
+  [[5, 3, 0, 8], [2, 6, 0, 8], 'the excess is 3 for the first token and 0 for every token where q is as big as p or bigger'],
+  [[0, 10], [10, 0], 'the excess of the second token is all of its weight'],
   [[4, 4], [4, 4], 'p equals q, so there is no excess anywhere'],
 ]
 
@@ -241,9 +241,9 @@ function residualPlan(seed: Seed): CheckPlan {
   )
   for (const band of BANDS) {
     const { p, q } = drawPair(rng, band)
-    exchanges.push(say(`residual ${list(p.weights)} ${list(q.weights)}`, list(residualDist(p, q).weights), 'the excess is max(0, p − q) for every dish, and never below 0'))
+    exchanges.push(say(`residual ${list(p.weights)} ${list(q.weights)}`, list(residualDist(p, q).weights), 'the excess is max(0, p − q) for every token, and never below 0'))
   }
-  return scripted(exchanges, `the excess max(0, p − q) of ${HAND_RESIDUALS.length} hand cases and ${BANDS.length} seeded pairs, dish by dish`)
+  return scripted(exchanges, `the excess max(0, p − q) of ${HAND_RESIDUALS.length} hand cases and ${BANDS.length} seeded pairs, token by token`)
 }
 
 /* ---------------------------------------------------------------------------------------------------------------------------------- */
@@ -270,7 +270,7 @@ function pickGroup(weights: readonly number[]): Group {
       for (let token = 0; token < weights.length; token++) {
         if (seen[token] === weights[token]) continue
         const first = replies.findIndex((reply, draw) => Number(reply) !== walkCdf(weights, draw))
-        const where = first < 0 ? '' : ` The first draw where it parts from the walk "the first dish whose running total passes the draw" is ${first}: it picked ${replies[first]}, and the walk picks ${walkCdf(total.weights, first)}.`
+        const where = first < 0 ? '' : ` The first draw where it parts from the walk "the first token whose running total passes the draw" is ${first}: it picked ${replies[first]}, and the walk picks ${walkCdf(total.weights, first)}.`
         return `over the draws 0..${sum}, pick(${list(weights)}, draw) picked token ${token} ${seen[token]} times, and its weight is ${weights[token]}.${where}`
       }
       return null
@@ -304,7 +304,7 @@ function pickPlan(seed: Seed): CheckPlan {
   const lists = [...HAND_LISTS.map((w) => [...w]), residual, smallList(rng)]
   const groups = lists.flatMap((weights) => [setup(`weights ${list(weights)}`), pickGroup(weights)])
   const draws = lists.reduce((sum, weights) => sum + weights.reduce((a, b) => a + b, 0), 0)
-  return grouped(groups, `every draw of ${lists.length} lists of weights, one of them a seeded residual (${draws} draws): each dish is picked as often as its weight`)
+  return grouped(groups, `every draw of ${lists.length} lists of weights, one of them a seeded residual (${draws} draws): each token is picked as often as its weight`)
 }
 
 /* ---------------------------------------------------------------------------------------------------------------------------------- */
@@ -323,10 +323,10 @@ interface RoundCase {
 }
 
 const ROUND_CASES: readonly RoundCase[] = [
-  { sentBack: 0, flat: false, why: 'the first plate is sent back for sure, so the round stops there with the dish that replaces it, a dish of the residual' },
-  { sentBack: 1, flat: false, why: 'the first plate is kept for sure and the second is sent back for sure, so the round emits the first plate and then the dish that replaces the second' },
-  { sentBack: null, flat: false, why: 'every plate is kept for sure, so all of them go out and the bonus follows, picked from p after the last draft' },
-  { sentBack: 0, flat: true, why: 'the first plate is sent back for sure, whatever follows it: a round never keeps a dish that p rules out' },
+  { sentBack: 0, flat: false, why: 'the first draft token is rejected for sure, so the round stops there with the token that replaces it, a token of the residual' },
+  { sentBack: 1, flat: false, why: 'the first draft token is accepted for sure and the second is rejected for sure, so the round emits the first draft token and then the token that replaces the second' },
+  { sentBack: null, flat: false, why: 'every draft token is accepted for sure, so all of them go out and the bonus follows, picked from p after the last draft' },
+  { sentBack: 0, flat: true, why: 'the first draft token is rejected for sure, whatever follows it: a round never accepts a token that p rules out' },
 ]
 
 /** The drafts in a round-check chain. */
@@ -426,7 +426,7 @@ function farthest(counts: readonly number[], p: Dist): string {
     }
   }
   const want = (LAB_DRAWS * p.weights[worst]) / p.total
-  return `The dish furthest from its share is token ${worst}: ${Math.round(want)} of the ${LAB_DRAWS} rounds are expected to emit it first, and ${counts[worst]} did.`
+  return `The token furthest from its share is token ${worst}: ${Math.round(want)} of the ${LAB_DRAWS} rounds are expected to emit it first, and ${counts[worst]} did.`
 }
 
 /** A statistic to one decimal, and a limit as the table holds it (thousandths). */

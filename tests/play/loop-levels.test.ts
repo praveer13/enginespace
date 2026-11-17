@@ -51,10 +51,10 @@ describe('the levels and their pinned practice seeds', () => {
   })
 
   test('a level that Service does not have is refused, and so is a seed that is not an unsigned 32-bit integer', () => {
-    expect(() => loopLevel('async', 1)).toThrow('Service has no level "async"')
-    expect(() => loopInBand('close', 1)).toThrow('Service has no level "close"')
+    expect(() => loopLevel('async', 1)).toThrow('Step loop has no level "async"')
+    expect(() => loopInBand('close', 1)).toThrow('Step loop has no level "close"')
     expect(() => loopLevel('first-1-fill', -1)).toThrow('a seed is an unsigned 32-bit integer')
-    expect(() => loopLevel('constructor', 1)).toThrow('Service has no level')
+    expect(() => loopLevel('constructor', 1)).toThrow('Step loop has no level')
   })
 
   test('the rail has 4 clips [estimated], and the burst has 12 tickets against 6 in the beats before it (D-043)', () => {
@@ -188,7 +188,7 @@ describe('the beats of First service, on the practice seed', () => {
       expect(loopGrade(s, ghost).ok, `hung ${hung}`).toBe(hung === 4)
       expect(countersOf(s).emptyClipSteps).toBe(4 - hung)
     }
-    expect(() => step(initState(level))).toThrow('nothing is hung')
+    expect(() => step(initState(level))).toThrow('nothing is admitted')
   })
 
   test('beat 2: the loop runs until a ticket ends, its clip opens and the loop waits; refilling is the reference, ringing past it scores less', () => {

@@ -76,7 +76,7 @@ describe('the honest sample', () => {
     expect(reasons).toContain('T1: ')
     expect(reasons).toContain('T6: This site declares no step count for tr3.profile.s2.')
     expect(reasons).toContain('P1: The hardware atlas has no entry for "Example GPU 24GB"')
-    expect(reasons).toContain('X1 is not built yet: W2-T23 builds it')
+    expect(reasons).toContain('X1 is a check this site does not run yet')
     expect(outcome.rules[6].status).toBe('pass')
     expect(outcome.rules[7].status).toBe('fail')
     expect(outcome.rules[8].status).toBe('fail')

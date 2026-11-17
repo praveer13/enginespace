@@ -29,7 +29,7 @@ export const toDist = (plates: readonly number[]): Dist => ({ weights: plates.ma
 /** A sim distribution on the grid as counts of plates. */
 export function toPlates(d: Dist): Plates {
   return d.weights.map((w) => {
-    if (w % GRID !== 0) throw new RangeError(`weight ${w} is not a whole number of plates (a plate is ${GRID})`)
+    if (w % GRID !== 0) throw new RangeError(`weight ${w} is not a whole number of units of ${GRID}`)
     return w / GRID
   })
 }
@@ -84,7 +84,7 @@ const dealt = (seed: Seed): MutantId[] => shuffle(rngFor(seed, 'verifier/mutants
 
 /** The level `id` on `seed`. Throws for a level the game does not have. */
 export function buildLevel(id: string, seed: Seed): VerifierLevel {
-  if (!isLevelId(id)) throw new RangeError(`The Tasting has no level "${id}"`)
+  if (!isLevelId(id)) throw new RangeError(`The rejection sampler has no level "${id}"`)
   assertSeed(seed)
   const base = { seed }
   switch (id) {
@@ -189,7 +189,7 @@ export function mutantsBand(p: Dist, q: Dist): boolean {
 
 /** Whether a seed makes level `id` a fair question (GAMES.md §2.1). Throws for a level the game does not have. */
 export function inLevelBand(id: string, seed: Seed): boolean {
-  if (!isLevelId(id)) throw new RangeError(`The Tasting has no level "${id}"`)
+  if (!isLevelId(id)) throw new RangeError(`The rejection sampler has no level "${id}"`)
   assertSeed(seed)
   switch (id) {
     case 'overlap':

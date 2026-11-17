@@ -108,7 +108,7 @@ export function floorReduce(s: FloorState, a: FloorAction): FloorState {
     }
     case 'lay': {
       needPrediction(s)
-      if (!s.level.tray.includes(a.stage)) throw new RangeError(`the stage "${String(a.stage)}" is not in the tray`)
+      if (!s.level.tray.includes(a.stage)) throw new RangeError(`the stage "${String(a.stage)}" is not among the stages`)
       if (s.laid.includes(a.stage)) throw new RangeError(`the stage "${a.stage}" is already on the path`)
       return { ...s, laid: [...s.laid, a.stage], laidAt: [...s.laidAt, s.turns], turns: next }
     }
