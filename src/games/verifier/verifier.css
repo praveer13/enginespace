@@ -69,9 +69,12 @@
   font-weight: 400;
 }
 
-/* While the first run names the parts, the count stands back from the label to leave room for the intro's numbered disc. */
-.es-frame:is([data-intro='parts'], [data-intro='look']) .es-vf__label > .es-vf__count {
-  margin-inline-start: 2.25rem;
+/* On a phone, while the first run names the parts, the count stands back from the label to leave room for the intro's numbered disc; at a
+   desk the disc stands in the diagram's gutter (frame.css). */
+@media (max-width: 63.999rem) {
+  .es-frame:is([data-intro='parts'], [data-intro='look']) .es-vf__label > .es-vf__count {
+    margin-inline-start: 2.25rem;
+  }
 }
 
 .es-vf__tokens {
@@ -452,6 +455,28 @@
   gap: var(--es-space-2);
 }
 
+/* On a phone the decision is one block of whole controls over the readout: Finish and the three draws in two rows, and the sentence the
+   heading already says is left to the wide dock, so the pinned dock cuts no line and no button. */
+@media (max-width: 63.999rem) {
+  .es-vf-dock__stack > .es-vf-dock__text {
+    display: none;
+  }
+
+  .es-vf-dock__finish {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--es-space-2);
+  }
+
+  .es-vf-dock__finish > .es-vf-draws {
+    display: contents;
+  }
+
+  .es-vf-dock__finish .es-button {
+    width: 100%;
+  }
+}
+
 
 .es-vf-stepper {
   display: grid;
@@ -794,11 +819,6 @@
   font-size: var(--es-size-micro);
   font-variant-numeric: tabular-nums;
   font-weight: var(--es-font-numeric-weight);
-}
-
-/* While the first run names the parts, the words the "token" disc marks leave room after them. */
-.es-frame:is([data-intro='parts'], [data-intro='look']) [data-vf-tokens] {
-  margin-inline-end: 2.25rem;
 }
 
 /* On a phone the weights are typed or tapped on their columns: the number pad is the way, and the plus and minus buttons would take a third

@@ -243,10 +243,13 @@ export function rackOf(view: PoolView, { station, chosen, pointed, pick }: RackO
   const ring = (id: string, box: { x0: number; x1: number; z0: number; z1: number }, role: ColorRoleName, off: number, y0: number, height: number) =>
     rings.push({ id, x0: box.x0 - off, x1: box.x1 + off, z0: box.z0 - off, z1: box.z1 + off, y0, height, role, form: 'hollow', shadow: false })
   const chosenSet = new Set(chosen)
+  // A free page is empty: a dashed wire outline in its cell, as every empty thing is in 3D (REDESIGN §2.8), lighter than any page in use.
+  const wires: FlatBox[] = []
   for (const page of view.pans) {
     const at = pageBox(g, page.id)
     const state: PanState = chosenSet.has(page.id) ? 'evicted' : page.state
-    boxes.push({ id: `page/${page.id}`, ...at, y0: WELL.height, height: PAGE.height, role: pageRole[state], form: pageForm[state], pick: `page:${page.id}` })
+    if (state === 'free') wires.push({ id: `page/${page.id}`, ...at, y0: WELL.height, height: PAGE.height, role: 'edge', form: 'hollow' })
+    else boxes.push({ id: `page/${page.id}`, ...at, y0: WELL.height, height: PAGE.height, role: pageRole[state], form: pageForm[state], pick: `page:${page.id}` })
   }
   const lamp = (id: number, key: string) => {
     ring(`${key}/${id}/lamp`, pageBox(g, id), 'lamp', RING.off, WELL.height, RING.height)
@@ -256,7 +259,6 @@ export function rackOf(view: PoolView, { station, chosen, pointed, pick }: RackO
   for (const id of pointed) if (!open.includes(id)) lamp(id, 'pointed')
 
   // The running batch: a tile for each request on the line, a dashed wire for each empty slot.
-  const wires: FlatBox[] = []
   const labels: FlatLabel[] = []
   const inks: FlatSegment[] = []
   for (let at = 0; at < view.cap; at++) {
@@ -319,12 +321,13 @@ export function rackOf(view: PoolView, { station, chosen, pointed, pick }: RackO
   for (let c = 0; c <= g.cols; c++) rules.push({ x0: g.rack.x0 + c * PAGE.pitch, x1: g.rack.x0 + c * PAGE.pitch, z0: g.rack.z0, z1: g.rack.z1, y: WELL.height })
   for (let r = 0; r <= g.rows; r++) rules.push({ x0: g.rack.x0, x1: g.rack.x1, z0: g.rack.z0 + r * PAGE.pitch, z1: g.rack.z0 + r * PAGE.pitch, y: WELL.height })
 
-  // The words: each region's name, and the fan's.
-  const left = g.rack.x0
+  // The words: each region's name where no thread runs: the batch's and the queue's level with them at the left of the sheet (every thread
+  // goes from a slot to a page right of the rack's left edge), and the pool's under its front row; and the fan's.
+  const left = g.rack.x0 - 8
   labels.push(
-    { id: 'name/batch', at: [left, 0, g.slots.z0 - 38], text: 'Running batch', kind: 'band', place: 'right' },
-    { id: 'name/pool', at: [left, WELL.height, g.rack.z0 - 22], text: `KV page pool, ${view.pans.length} pages`, kind: 'band', place: 'right' },
-    { id: 'name/queue', at: [left, 0, g.queue.z0 - 18], text: 'Waiting queue', kind: 'band', place: 'right' },
+    { id: 'name/batch', at: [left, 0, (g.slots.z0 + g.slots.z1) / 2], text: 'Running batch', kind: 'band', place: 'left' },
+    { id: 'name/pool', at: [g.rack.x0, WELL.height, g.rack.z1 + 14], text: `KV page pool, ${view.pans.length} pages`, kind: 'band', place: 'right' },
+    { id: 'name/queue', at: [left, 0, (g.queue.z0 + g.queue.z1) / 2], text: 'Waiting queue', kind: 'band', place: 'left' },
   )
   const fanLabel = (n: number, f: Fan): FlatLabel => {
     const at = pageBox(g, f.page)

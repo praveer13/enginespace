@@ -347,6 +347,24 @@ export function Swimlane({ view, size = 'frame', tools = null }: SwimlaneProps) 
               {view.prediction === null ? <span className="es-lanes__start-note"> · the columns open once your boundaries guess is in</span> : null}
             </span>
           )}
+          {/* While the first run names the parts and the columns still wait for the guess, an example stands under the request: two process
+              columns and one hop between them, so the parts list's processes and hop are drawn where its discs mark them. It is not this
+              path and names none of its processes, so it gives no count away (REDESIGN §3.6), and it goes with the intro (floor.css). */}
+          {dock || view.prediction !== null || lanes.columns.length > 0 ? null : (
+            <div className="es-lanes__specimen" style={{ left: lanes.start.x - 4, top: lanes.start.y - g.head + g.row }} aria-hidden="true" data-floor-specimen="">
+              <span className="es-lanes__spec-title">An example, not this path</span>
+              <span className="es-lanes__spec-cols">
+                <span className="es-lanes__spec-col" data-spec-proc="">
+                  a process
+                </span>
+                <span className="es-lanes__spec-col">another process</span>
+                <span className="es-lanes__spec-hop" data-spec-hop="">
+                  <HandoffGlyph mechanism="ipc" className="es-lanes__tag-glyph" />
+                  IPC
+                </span>
+              </span>
+            </div>
+          )}
           <span
             className="es-lanes__moment"
             style={{ left: g.gutter, top: (lanes.rows.at(-1)?.y ?? lanes.start.y) + Math.round(g.row / 2) - g.head }}

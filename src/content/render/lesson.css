@@ -458,8 +458,34 @@
   display: block;
 }
 
+/* The claim is read at the body's weight, so the source's link leads the sheet. */
 .es-claimref__fact {
+  font-weight: 400;
+}
+
+.es-claimref__origin > a {
   font-weight: 700;
+}
+
+/*
+ * On a phone a source sheet is a bottom sheet over the foot bar: the whole width between the gutters, never past the screen's foot or over
+ * the bar's amber control, and as tall as it needs up to most of the screen, scrolling inside where a claim is long.
+ */
+@media (max-width: 63.99rem) and (min-height: 600px) {
+  .es-lesson .es-claimmark .es-pop__panel {
+    position: fixed;
+    z-index: 40;
+    top: auto;
+    right: var(--es-space-4);
+    bottom: calc(3.5rem + var(--es-space-2));
+    left: var(--es-space-4);
+    width: auto;
+    max-height: calc(100svh - 3.5rem - 7rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    translate: none;
+    animation: none;
+  }
 }
 
 .es-claimref__value {

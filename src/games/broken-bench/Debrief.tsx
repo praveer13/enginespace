@@ -4,8 +4,8 @@ import { benchSession } from '@es/play/broken-bench/session'
 import { FLAW_FACTS } from '@es/play/broken-bench/flaws'
 import type { RulingView } from '@es/play/broken-bench/types'
 import { Button } from '@/design/components/Button'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { NumberLine } from '@/design/components/NumberLine'
-import { Stamp } from '@/design/components/Stamp'
 import { TextLink } from '@/design/components/TextLink'
 import { useBest } from '@/games/kit/best'
 import { Debrief as Result } from '@/games/kit/Debrief'
@@ -118,13 +118,13 @@ export function Debrief({ run, outcome, next, onNext, shown, onShow, embedded = 
   const onward = lesson?.onward ?? null
   const primary =
     onward !== null ? (
-      <Button variant="ink" onClick={() => onward.select()}>
+      <PrimaryButton onClick={() => onward.select()}>
         {onward.label}
-      </Button>
+      </PrimaryButton>
     ) : next !== null ? (
-      <Button variant="ink" onClick={onNext}>
+      <PrimaryButton onClick={onNext}>
         {`Next level: ${next.title}`}
-      </Button>
+      </PrimaryButton>
     ) : embedded ? null : (
       <TextLink to="/m/tr8">Open module TR8</TextLink>
     )
@@ -173,7 +173,6 @@ export function Debrief({ run, outcome, next, onNext, shown, onShow, embedded = 
                 { id: 'yours', kind: 'guess', value: focus.prediction.p99Us / 1000, label: 'your p99' },
                 { id: 'reference', kind: 'result', value: focus.truth.p99Us / 1000, label: "the reference's p99" },
               ]}
-              stamp={<Stamp word="synthetic" />}
             />
             <RulingBody ruling={focus} />
           </>

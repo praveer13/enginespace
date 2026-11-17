@@ -751,7 +751,7 @@ Common geometry.
 - y 688 to 752: the coach line. It steps through the parts one at a time: "1 of 5 · Waiting queue: requests not yet in the batch.", with Next and Skip. After the fifth: "Tap R1 to put it in a slot."
 - y 764 to 808: "Start the course" as a text link.
 
-The headline, a request to tap, the slots and Step are on the first screen. It opens in 2D, with 3D one tap away.
+The headline, a request to tap, the slots and Step are on the first screen. It opens in 2D and stays in 2D: the time track's 3D scene has no legible layout in a 358 px box, so the view switch is offered from desk width (64rem) only, on this page and on `/play/loop` alike (amended at the finish review, 2026-11-17).
 
 ### 3.2 Course (`/map`)
 

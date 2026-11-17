@@ -17,7 +17,6 @@ import { useLevelNames } from '@/content/render/levelNames'
 import type { LedgerReading } from '@/content/render/LessonLedger'
 import { citedClaimIds, claimNumbers, kernelspaceLabel, kernelspaceUrl, labName, pendingLab, plainText, renderEnv, titled, todayIso, type RenderEnv } from '@/content/render/model'
 import { Prose } from '@/content/render/Prose'
-import { useBlockRun } from '@/content/render/runs'
 import type { LessonOnward } from '@/games/kit/lessonRun'
 import { useHasRun, useLatestRun } from '@/games/kit/RunContext'
 import { groupSections, proseWords, runAnchor, testLabel, type LessonSections, type Piece } from '@/content/render/sections'
@@ -387,7 +386,6 @@ export function LessonView({ lesson, module, claims, today, map = null, reading:
         : null
 
   const card = sections.cards.length > 0 ? (lesson.blocks[sections.cards[0]] as Of<'card'>) : undefined
-  const lastGame = sections.run === null ? -1 : (sections.run.games.at(-1) ?? -1)
   const pieceProps = { lesson, env, whereOf, sections }
 
   return (
@@ -441,7 +439,8 @@ export function LessonView({ lesson, module, claims, today, map = null, reading:
                 Run
               </h2>
               <RunSection {...pieceProps} readHref={firstRead} />
-              <WayOn href={firstRead} label="Read why" emphasis={wide ? 'after-run' : 'outline'} scope={lesson.id} game={lastGame} />
+              {/* An outline at every width: once the run has ended, the amber "Read why" is the one its result leads with (the One Marker Rule). */}
+              <WayOn href={firstRead} label="Read why" emphasis="outline" />
             </section>
           )}
 
@@ -610,13 +609,11 @@ function ModelLine({ id, env }: { id: string; env: RenderEnv }) {
   )
 }
 
-/** A way to the next place on the page. `after-run` is amber once the opening run has ended, and an outline before. */
-function WayOn({ href, label, emphasis, scope = '', game = -1 }: { href: string; label: string; emphasis: 'primary' | 'outline' | 'after-run'; scope?: string; game?: number }) {
-  const run = useBlockRun(scope, game)
-  const fill = emphasis === 'after-run' ? (run !== null ? 'primary' : 'outline') : emphasis
+/** A way to the next place on the page. */
+function WayOn({ href, label, emphasis }: { href: string; label: string; emphasis: 'primary' | 'outline' }) {
   return (
     <div className="es-next es-lesson__way">
-      <a className="es-next__action" data-emphasis={fill} href={href}>
+      <a className="es-next__action" data-emphasis={emphasis} href={href}>
         <span className="es-next__text">
           <span className="es-next__label">{label}</span>
         </span>

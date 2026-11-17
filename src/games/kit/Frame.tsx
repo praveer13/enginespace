@@ -115,6 +115,8 @@ export interface FrameProps<Level, State, Action extends GameAction, View, Score
   modeSwitch?: ReactNode
   goal: (run: FrameRun<Action, View, Score, Ask>) => FrameGoal
   diagram: (run: FrameRun<Action, View, Score, Ask>) => ReactNode
+  /** Whether this level offers the 3D view at all: false where depth carries nothing, and the switch is then withheld. */
+  level3d?: boolean
   /** The 3D view: a Stage, which paints the diagram first and keeps it as its fallback. */
   scene3d?: (run: FrameRun<Action, View, Score, Ask>) => ReactNode
   legend: (run: FrameRun<Action, View, Score, Ask>) => ReactNode
@@ -229,7 +231,9 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
   // The learner's settings reach the game through the frame: 3D off turns the 3D view off, and the keys setting turns the keys off.
   const limits = shellLimits(useSettings(), props)
   const phone = usePhone()
-  const withheld = props.phone3d === false && phone
+  // The 3D view is withheld, switch and all, on a level where depth carries nothing (a scene of one row is the 2D chart in perspective) and
+  // on a phone where its scene has no legible layout.
+  const withheld = (props.phone3d === false && phone) || props.level3d === false
   const can3d = game.has3d && props.scene3d !== undefined && limits.allow3d && !withheld
   const view: GameView = can3d ? (props.view ?? chosenView) : '2d'
 
@@ -361,8 +365,18 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
     const main = resultRef.current?.closest<HTMLElement>('[data-dock-main]')
     if (main) main.scrollTop = 0
     target?.focus({ preventScroll: true })
-    resultRef.current?.scrollIntoView({ block: 'nearest' })
-  }, [outcome])
+    // On the game's page at a desk the drawing and the dock stand side by side: the row's top is brought back into view if the run left it
+    // above the screen, so the drawing, the verdict and its ways on are read together (P5). Elsewhere the page moves only as far as the ways
+    // on under the verdict, clear of the readout at the screen's foot (debrief.css), and the drawing over a phone's dock stays in view.
+    const body = resultRef.current?.closest<HTMLElement>('[data-frame-body]')
+    const top = body?.getBoundingClientRect().top ?? 0
+    if (!embedded && body && window.matchMedia('(min-width: 64rem)').matches) {
+      if (top < 0) window.scrollBy({ top: top - 8 })
+      return
+    }
+    const ways = resultRef.current?.querySelector<HTMLElement>('.es-debrief__actions, .es-loopdebrief__ways')
+    ;(ways ?? resultRef.current)?.scrollIntoView({ block: 'nearest' })
+  }, [outcome, embedded])
 
   // A new phase of the dock (an intro step, the intro's end, the guess opening or closing) starts at its own top: the dock's scroll from
   // the phase before is not carried over, and where the dock has grown off the top of the screen (a lesson's intro at a desk lets it grow

@@ -121,7 +121,7 @@ function AdmitAsk({ run, mode, onPoint, guessing }: AskProps) {
   const graded = mode === 'graded'
   return (
     <>
-      <p className="es-dock__text">Admit one waiting request, or none this step. An admitted request pins the cached pages its prefix hit reuses.</p>
+      <p className="es-dock__text es-dock__text--wide">Admit one waiting request, or none this step. An admitted request pins the cached pages its prefix hit reuses.</p>
       <ul ref={list} onKeyDown={onKeyDown} data-native-keys="arrows" className="es-dock__list" data-ask-list="admit">
         {view.waiting.map((id) => {
           const ticket = view.tickets[id]

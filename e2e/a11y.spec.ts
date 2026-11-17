@@ -49,9 +49,14 @@ const AUDITED_IN_3D = (route: string) => SCENE_IN_RUN(route) && (NIGHTLY || rout
 
 /**
  * The step loop's time track has no 3D on a phone's width until it has a layout a phone can read (build B's finish review), on the front
- * page and on its own page: at those widths there is no 3D pass to audit, and its 2D pass is audited above. At a desk's width it is.
+ * page and on its own page, and neither have the pool's rack and the sampler's skylines (wave R's finish review): at those widths there is
+ * no 3D pass to audit, and its 2D pass is audited above. At a desk's width it is.
  */
-const NO_3D_ON_A_PHONE = (route: string, width: number) => width < 768 && (route === '/' || route.startsWith('/play/loop'))
+const NO_3D_ON_A_PHONE = (route: string, width: number) =>
+  width < 768 && (route === '/' || route.startsWith('/play/loop') || route.startsWith('/play/pool') || route.startsWith('/play/verifier'))
+
+/** Where a game's 3D pass is drawn: the sampler offers its 3D on the chain only, the level whose rows give depth something to carry. */
+const SCENE_ROUTE = (route: string) => (route === '/play/verifier' ? '/play/verifier?level=chain' : route)
 
 /**
  * Defects that this spec found and that no task has fixed yet, keyed by `<route> at <width>`. A test that is listed here is expected to
@@ -107,7 +112,7 @@ for (const route of ROUTES) {
       if (AUDITED_IN_3D(route) && !NO_3D_ON_A_PHONE(route, width) && (NIGHTLY || PR_WIDTHS.includes(width))) {
         test(`${route}, with its 3D pass drawn: axe finds no serious or critical violation`, async ({ page }) => {
           test.setTimeout(120_000)
-          await open(page, route)
+          await open(page, SCENE_ROUTE(route))
           // The design page's specimen is a scene that keeps moving to show its motion, so it is audited live and not at rest.
           await settled3d(page, { rested: route !== '/design' })
           await audit(page, `${route} (3D) at ${width} px`, route)

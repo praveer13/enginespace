@@ -5,8 +5,8 @@ import { POOL_COPY } from '@es/play/pool/copy'
 import { slotBaseline, poolSession } from '@es/play/pool/session'
 import type { PoolCounts, PoolLevelId } from '@es/play/pool/types'
 import { Button } from '@/design/components/Button'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { NumberLine } from '@/design/components/NumberLine'
-import { Stamp } from '@/design/components/Stamp'
 import { TextLink } from '@/design/components/TextLink'
 import { useBest } from '@/games/kit/best'
 import { Debrief as Result } from '@/games/kit/Debrief'
@@ -132,13 +132,13 @@ export function Debrief({ run, outcome, next, onNext, embedded = false }: Debrie
 
   const primary =
     onward !== null ? (
-      <Button variant="ink" onClick={() => onward.select()}>
+      <PrimaryButton onClick={() => onward.select()}>
         {onward.label}
-      </Button>
+      </PrimaryButton>
     ) : next !== null ? (
-      <Button variant="ink" onClick={onNext}>
+      <PrimaryButton onClick={onNext}>
         {`Next level: ${next.title}`}
-      </Button>
+      </PrimaryButton>
     ) : embedded ? null : (
       <TextLink to="/map">Open the course</TextLink>
     )
@@ -160,7 +160,6 @@ export function Debrief({ run, outcome, next, onNext, embedded = false }: Debrie
         { id: 'guess', kind: 'guess', value: guess, label: 'your guess' },
         { id: 'answer', kind: 'result', value: answer, label: 'the answer' },
       ]}
-      stamp={<Stamp word="synthetic" />}
     />
   )
 
@@ -204,7 +203,6 @@ export function Debrief({ run, outcome, next, onNext, embedded = false }: Debrie
         </p>
         <Versus
           caption="Yours and the reference's, on one axis, in tokens"
-          stamp={<Stamp word="synthetic" />}
           rows={[
             { id: 'cost', label: 'Cost', mine: view.counts.cost, reference: reference.cost },
             { id: 'recomputed', label: 'Recomputed tokens', mine: view.counts.recomputedTokens, reference: reference.recomputedTokens },

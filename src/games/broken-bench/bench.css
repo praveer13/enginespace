@@ -118,6 +118,15 @@
     height: clamp(26rem, 100svh - 24.5rem, 44rem);
   }
 
+  /* At the result the dock takes its content's height beside the drawing, which keeps the room it played in (frame.css). */
+  .es-frame[data-placement='page'][data-game='broken-bench'][data-phase='result'] .es-frame__body {
+    height: auto;
+  }
+
+  .es-frame[data-placement='page'][data-game='broken-bench'][data-phase='result'] .es-frame__diagram {
+    height: clamp(26rem, 100svh - 24.5rem, 44rem);
+  }
+
   .es-bench-board[data-done] {
     display: block;
     height: auto;

@@ -256,16 +256,17 @@ describe('the demo track draws the run', () => {
     expect(same.inks.length).toBe(demoTrack(full, 868).inks.length)
   })
 
-  test('the now word stands under the axis\'s numbers at the cursor, so the tilt never sets it on the waiting queue\'s row', () => {
+  test('the now word stands over the lanes at the cursor, where the 2D view puts it, and never under the axis', () => {
     for (const steps of [0, 1, 3]) {
       const night = demoNight([5, 9, 3, 7, 12, 4], steps)
       const track = demoTrack(night, 868)
       const now = track.labels.find((label) => label.kind === 'now')
       const ticks = track.labels.filter((label) => label.kind === 'tick')
       expect(now).toBeDefined()
-      expect(now?.place).toBe('below')
-      expect(now?.at[0]).toBe(track.cursors[0].x)
-      for (const tick of ticks) expect(now?.at[2] ?? 0).toBeGreaterThan(tick.at[2])
+      expect(now?.place).toBe('right')
+      expect(now?.at[0]).toBeGreaterThan(track.cursors[0].x)
+      expect(now?.at[0]).toBeLessThan(track.cursors[0].x + 6)
+      for (const tick of ticks) expect(now?.at[2] ?? 0).toBeLessThan(tick.at[2])
     }
   })
 

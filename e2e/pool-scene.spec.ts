@@ -8,7 +8,7 @@
  *   3. A selection: a request's button shows its block table in words and as threads, a page's number fans it into its layers, and a pick in
  *      the scene (a page, a request's tile) does what the controls do.
  *   And the rest of the scene's contract (A§6.8): `V` swaps 2D and 3D and keeps the night; `C` and the plates reach every preset, and One KV
- *   group shows one group's threads; the capture is not blank at 1440 and at 390 px; every word and number is DOM and the canvas prints none.
+ *   group shows one group's threads; the capture is not blank at 1440 px, and at 390 px no 3D is offered; every word and number is DOM and the canvas prints none.
  *   (The scene's chunk at most 40,000 B is a build check, verify:bundle's gate; tests/play/pool-scene.test.ts holds the layout, the cameras'
  *   framing and the text, and tests/design/literals.test.ts the colours.)
  *
@@ -441,10 +441,16 @@ test.describe('the views and the camera (A§6.8)', () => {
 })
 
 test.describe('the picture (R-T41)', () => {
-  for (const [width, height] of [
-    [1440, 900],
-    [390, 844],
-  ] as const) {
+  // At a phone's width the rack's cells and threads do not read in the box, so the pool offers no 3D there (wave R's finish review).
+  test('at 390 px no 3D switch is offered, and the page pool is its diagram', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto(`${ORIGIN}/play/pool?level=adapters&es-tier=1`)
+    await expect(game(page)).toBeVisible()
+    await expect(game(page).getByRole('button', { name: '3D', exact: true })).toHaveCount(0)
+    await expect(game(page)).toHaveAttribute('data-view', '2d')
+  })
+
+  for (const [width, height] of [[1440, 900]] as const) {
     test(`the 3D capture at ${width} px is not blank: its pixels vary, and it is kept as an artifact`, async ({ page }, info) => {
       test.setTimeout(180_000)
       await page.setViewportSize({ width, height })

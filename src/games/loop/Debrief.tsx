@@ -209,15 +209,14 @@ export function Debrief({ run, outcome, next, onNext }: DebriefProps) {
     run.restart(drawInBand(loopSession, 'first-4-par', entropy))
   }
 
-  // The verdict, its sentence and the one amber control head the dock, flat on its paper and never in a card of their own; the counters
-  // and the rest scroll under them (P5: the result and the way on on one screen).
+  // The verdict, the one amber control and the sentence head the dock, in that order, flat on its paper and never in a card of their own;
+  // the counters and the rest come under them (P5: the result and the way on on one screen).
   return (
     <div className="es-loopdebrief" data-loop-debrief="">
       <div className="es-loopdebrief__head">
         <h3 ref={heading} className="es-loopdebrief__verdict" tabIndex={-1} data-result-heading="" data-verdict={grade.ok ? 'passed' : 'not-yet'}>
           {grade.ok ? 'Passed.' : 'Not yet.'}
         </h3>
-        <p className="es-loopdebrief__sentence">{debrief.sentence}</p>
         <div className="es-loopdebrief__ways">
           {onward !== null ? (
             <PrimaryButton onClick={() => onward.select()}>{onward.label}</PrimaryButton>
@@ -229,6 +228,7 @@ export function Debrief({ run, outcome, next, onNext }: DebriefProps) {
             <PrimaryButton onClick={onNext}>{`Next: ${next.title}`}</PrimaryButton>
           )}
         </div>
+        <p className="es-loopdebrief__sentence">{debrief.sentence}</p>
       </div>
 
       <div className="es-loopdebrief__body">

@@ -6,8 +6,8 @@ import { fracText } from '@es/play/verifier/ratio'
 import { verifierSession } from '@es/play/verifier/session'
 import type { SweepRowView, VerifierView } from '@es/play/verifier/types'
 import { Button } from '@/design/components/Button'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { Readout } from '@/design/components/Readout'
-import { Stamp } from '@/design/components/Stamp'
 import { TextLink } from '@/design/components/TextLink'
 import { formatReadout } from '@/design/format'
 import { useBest } from '@/games/kit/best'
@@ -317,13 +317,13 @@ export function Debrief({ run, outcome, next, onNext, embedded = false, onGraded
 
   const primary =
     onward !== null ? (
-      <Button variant="ink" onClick={() => onward.select()}>
+      <PrimaryButton onClick={() => onward.select()}>
         {onward.label}
-      </Button>
+      </PrimaryButton>
     ) : next !== null ? (
-      <Button variant="ink" onClick={onNext}>
+      <PrimaryButton onClick={onNext}>
         {`Next level: ${next.title}`}
-      </Button>
+      </PrimaryButton>
     ) : embedded ? null : (
       <TextLink to="/map">Open the course</TextLink>
     )
@@ -355,9 +355,7 @@ export function Debrief({ run, outcome, next, onNext, embedded = false, onGraded
           <strong>Run again:</strong> the level asks the same question on {run.mode === 'graded' ? 'fresh numbers' : 'the same numbers'}; New numbers draws a fresh pair of distributions.
           {run.ledger ? <Best level={view.level} /> : null}
         </p>
-        <p className="es-vf-debrief__stamp">
-          <Stamp word="synthetic" /> <span>The figures below are of a made-up world.</span>
-        </p>
+        <p className="es-vf-debrief__stamp">The figures below are of a made-up world.</p>
         <Facts run={run} outcome={outcome} />
         <p className="es-type-body max-w-prose" data-vf-takeaway="">
           {TAKEAWAY[view.level]}

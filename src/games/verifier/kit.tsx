@@ -15,9 +15,9 @@ import { DockView } from './DockView'
 
 /** Where each part is drawn, inside the frame: the intro's callout sits on it. A part with none is named in the list only. */
 const ANCHORS: Readonly<Record<string, string>> = {
-  draft: '[data-vf-legend] [data-part="draft"]',
-  target: '[data-vf-legend] [data-part="target"]',
-  token: '[data-vf-tokens]',
+  draft: '[data-vf-row="0"] .es-vf__bar[data-kind="draft"][data-tallest], [data-vf-legend] [data-part="draft"]',
+  target: '[data-vf-row="0"] .es-vf__bar[data-kind="target"][data-tallest], [data-vf-legend] [data-part="target"]',
+  token: '[data-vf-row="0"] [data-vf-token="0"] .es-vf__name',
   accepted: '[data-vf-legend] [data-part="accepted"]',
   residual: '[data-vf-legend] [data-part="residual"]',
   alpha: '[data-vf-alpha]',

@@ -373,10 +373,16 @@ const pageWords = (page: Page) =>
   })
 
 test.describe('the diagram', () => {
-  test('2D is the default view and 3D is one switch away', async ({ page }) => {
+  test('2D is the default view; 3D is one switch away on the chain, and not offered where one draft position leaves depth empty', async ({ page }) => {
     await open(page, 'overlap')
     await expect(game(page)).toHaveAttribute('data-view', '2d')
     await expect(page.locator('[data-surface="2d"] [data-verifier-view]')).toBeVisible()
+    await expect(page.getByRole('button', { name: '3D', exact: true })).toHaveCount(0)
+    // On a phone's width the chain draws in 2D too; at a desk's its rows are one switch away.
+    await open(page, 'chain')
+    await expect(page.getByRole('button', { name: '3D', exact: true })).toHaveCount(0)
+    await page.setViewportSize({ width: 1280, height: 900 })
+    await expect(game(page)).toHaveAttribute('data-view', '2d')
     await expect(page.getByRole('button', { name: '3D', exact: true })).toBeVisible()
   })
 

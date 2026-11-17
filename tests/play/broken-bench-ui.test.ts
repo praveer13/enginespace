@@ -506,7 +506,8 @@ describe('the result reads the grade', () => {
     expect(markup.indexOf('es-numline')).toBeLessThan(markup.indexOf('data-ruling-body'))
     expect(markup).toContain('es-bench-ledger')
     expect(markup).not.toContain('data-exhibits')
-    expect(count(markup, /data-word="synthetic"/g)).toBe(1)
+    // One stamp per instrument (the Quiet Provenance Rule): the readout strip's, so the result's number line carries none.
+    expect(count(markup, /data-word="synthetic"/g)).toBe(0)
     expect(markup).toContain('The flags that would have made it admissible')
   })
 

@@ -71,11 +71,13 @@ describe('the frame stands in the order of REDESIGN §2.6, and the page names th
     expect(render(h(Game, { level: 'constructor' }))).toContain('Level 1 of 6')
   })
 
-  test('the diagram is the default view and 3D is one switch away', () => {
+  test('the diagram is the default view; 3D is one switch away on the chain, and not offered where one draft position leaves depth empty', () => {
     expect(markup).toContain('data-view="2d"')
     expect(markup).toContain('data-surface="2d"')
-    expect(markup).toMatch(/aria-pressed="true"[^>]*>Diagram<\/button>/)
-    expect(markup).toContain('>3D</button>')
+    expect(markup).not.toContain('>3D</button>')
+    const chain = render(h(Game, { level: 'chain' }))
+    expect(chain).toMatch(/aria-pressed="true"[^>]*>Diagram<\/button>/)
+    expect(chain).toContain('>3D</button>')
   })
 
   test('has Parts, How to play and Keyboard, and the model card under "What this model leaves out"', () => {
@@ -446,7 +448,9 @@ describe('the result says what the run did and what the arithmetic says', () => 
     expect(markup).toContain('133/1024')
     expect(markup).toContain('≈ 0.130')
     for (const rule of ['Resample from p, the whole target', 'Resample from q, the draft', 'with the rejected token taken out', 'one token along', 'Accept when p &gt; q, with no random draw', 'Accept every draft token']) expect(markup).toContain(rule)
-    expect(markup).toContain('es-stamp')
+    // One stamp per instrument (the Quiet Provenance Rule): the readout's, outside the result, and none in the result's sentences.
+    expect(markup).not.toContain('es-stamp')
+    expect(markup).toContain('The figures below are of a made-up world.')
   })
 
   test('`chain` prints the exact tokens per round as a fraction and a decimal, and the naive counts; `gamma` prints the whole sweep with the best marked', () => {
