@@ -276,9 +276,10 @@ describe('the lessons table', () => {
     }
   })
 
-  test('the openers read from the shape of each file today: TR8 lesson 3 and TR2 lesson 4 open on a primer and a run, TR5a lesson 1 and TR2 lessons 1 and 3 on a run, and the rest on reading', () => {
+  test('the openers read from the shape of each file today: TR8 lesson 3, TR2 lesson 4 and TR1 lesson 1 open on a primer and a run, TR5a lesson 1 and TR2 lessons 1 and 3 on a run, and the rest on reading', () => {
     const openers = Object.fromEntries(realMap.lessons.map((row) => [row.id, row.opener]))
     expect(openers['tr8.l3']).toBe('primer')
+    expect(openers['tr1.l1']).toBe('primer')
     expect(openers['tr5a.l1']).toBe('run')
     expect([openers['tr2.l1'], openers['tr2.l3'], openers['tr2.l4']]).toEqual(['run', 'run', 'primer'])
     // The openers table says which lessons open on reading: its C rows, and the A and B rows whose lesson is still waiting for its task.

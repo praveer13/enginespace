@@ -21,6 +21,12 @@ export const LESSON_FILES = [
   'content/modules/tr1/lessons/l7-abort-inside-the-engine.md',
 ] as const
 export const MODULE_FILE = 'content/modules/tr1/module.md'
+/**
+ * The lessons edited to the lesson template of wave R (REDESIGN §2.5): an opener from the table, checkpoints where a part ran long, and a Test
+ * whose lead-in says what passes in words and names no KC id. Their pacing is held, where the other lessons' warnings are still allowed. A
+ * content task that edits a lesson to the template adds it here.
+ */
+export const IN_TEMPLATE: ReadonlySet<string> = new Set(['tr1.l1'])
 export const CLAIMS_FILE = 'content/claims/tr1.yaml'
 
 export const result = compileContent({ root: repo })

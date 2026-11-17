@@ -24,7 +24,7 @@ export interface OpenerRow {
 
 export const OPENERS: readonly OpenerRow[] = [
   // TR1, the request path
-  { lesson: 'tr1.l1', opener: 'B', first: ['play:engine-floor/nano'], graded: [], waiting: 'R-T34' },
+  { lesson: 'tr1.l1', opener: 'B', first: ['play:engine-floor/nano'], graded: [] },
   { lesson: 'tr1.l2', opener: 'C', first: ['play:engine-floor/nano-tp'], graded: [] },
   { lesson: 'tr1.l3', opener: 'B', first: ['play:engine-floor/mini'], graded: [], waiting: 'R-T35' },
   { lesson: 'tr1.l4', opener: 'B', first: ['play:engine-floor/inside'], graded: [], waiting: 'R-T35' },
