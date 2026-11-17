@@ -82,7 +82,7 @@ export function visitorNight(level: LoopLevel, o: { refill: boolean; overlap: bo
   return state
 }
 
-/** A run as the pieces of Service's page receive it (GameShell's `RunApi`), for a state, with every action a no-op: for server-rendering the page. */
+/** A run as the pieces of Service's page receive it (the frame's `FrameRun`), for a state, with every action a no-op: for server-rendering the page. */
 export function fakeRun(state: LoopState, over: Partial<LoopRun> = {}): LoopRun {
   const view = loopView(state)
   return {
@@ -101,9 +101,11 @@ export function fakeRun(state: LoopState, over: Partial<LoopRun> = {}): LoopRun 
     announce: () => undefined,
     setAutoplay: () => undefined,
     mirrorId: 'mirror',
-    phase: 'play',
     restart: () => undefined,
-    goTo: () => undefined,
+    ledger: true,
+    intro: { askShown: true, ring: null },
+    guessSkipped: false,
+    skipGuess: () => undefined,
     ...over,
   }
 }

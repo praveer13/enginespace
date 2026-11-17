@@ -300,8 +300,9 @@ describe('what the scene is made of', () => {
   test('nothing glows but the cursor: no environment map, fog, bloom, steam, lamp or emissive', () => {
     const scene = read('src/games/loop/Scene3D.tsx')
     expect(scene).toContain('fog={null}')
-    expect(scene).toContain('environment={false}')
-    expect(scene).toContain('bloom={false}')
+    // The kit has no environment map and no bloom to ask for (R-T44): the canvas takes neither prop, and the scene passes neither.
+    expect(scene).not.toMatch(/environment=|bloom=/)
+    expect(read('src/scene/SceneCanvas.tsx')).not.toMatch(/environment|bloom|postfx/i)
     for (const file of files) expect([file, /Steam|HeatLamps|HeatElements|emissive|LampLights/.test(read(file))]).toEqual([file, false])
     // The one unlit material in the scene's own set is the marker's, amber with its edge. Its colour comes per instance from the roles
     // (FlatTrack.tsx's cursor), on a white material, so the sheet is the marker's own #ffb547 and not that colour multiplied by itself.

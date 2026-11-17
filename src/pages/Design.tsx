@@ -30,7 +30,6 @@ import { TapeLabel } from '@/design/components/TapeLabel'
 import { TextLink } from '@/design/components/TextLink'
 import { Ticket, TicketLine } from '@/design/components/Ticket'
 import { Toggle } from '@/design/components/Toggle'
-import { KitchenSpecimen } from '@/scene/KitchenSpecimen'
 import { SceneSpecimen } from '@/scene/SceneSpecimen'
 import { effectiveMotion } from '@/settings/rules'
 import { useSettings, useSystemReducedMotion } from '@/settings/useSettings'
@@ -114,21 +113,10 @@ export function Component() {
       <section aria-labelledby="scene-kit" className="es-spec__section">
         <h2 id="scene-kit">Scene kit</h2>
         <p className="es-prose">
-          The parts every 3D game is built from, on one pass: the step-loop model&apos;s own run of a short service, drawn in brushed steel under the heat
-          lamps, beside its 2D twin. Ring the bell, turn overlap on, switch to the long night, and the tapes print what this browser measures.
+          The parts every 3D game is built from, on the lanes: the step-loop model&apos;s own run of a short service, drawn as matte slabs on flat ground
+          under one key light, beside its 2D twin. Run the next step, turn overlap on, switch to the long run, and the tape prints what this browser measures.
         </p>
         <SceneSpecimen />
-        <section aria-labelledby="scene-kitchen" className="es-spec__group">
-          <h3 id="scene-kitchen" className="es-spec__group-title">
-            The kitchen
-          </h3>
-          <p className="es-prose">
-            The props, light and haze every 3D game is dressed in: each piece of the line&apos;s equipment alone on the bench, then the whole pass
-            assembled, in metres and in its own materials, beside the drawing a phone without 3D paints instead. Ring the bell for one fire, and
-            switch tiers to see what a phone keeps and a laptop adds.
-          </p>
-          <KitchenSpecimen />
-        </section>
       </section>
     </div>
   )

@@ -350,9 +350,9 @@ describe('every word is DOM', () => {
   test('the scene imports nothing from src/scene/props, and no kitchen file is left in the pool', () => {
     for (const source of sources) expect(source).not.toMatch(/scene\/props|scene\/Lights|scene\/materials|scene\/environment|scene\/textures/)
     expect(existsSync(path.join(root, 'src/games/pool/cabinet.ts'))).toBe(false)
-    expect(sources[0]).toMatch(/environment=\{false\}/)
+    // The kit has no environment map and no bloom to ask for (R-T44): the canvas takes neither prop, and the scene passes neither.
+    expect(sources[0]).not.toMatch(/environment=|bloom=/)
     expect(sources[0]).toMatch(/fog=\{null\}/)
-    expect(sources[0]).toMatch(/bloom=\{false\}/)
   })
 
   test('the scene reaches three only through the kit and its own lazy chunk, and the page holds it behind React.lazy', () => {

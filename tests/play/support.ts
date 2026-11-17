@@ -108,7 +108,7 @@ export const TOY_3D: GameEntry = { ...TOY, id: 'toy-3d', has3d: true }
 
 /** `Game.tsx` as a game writes it: it renders each part, and loads the 3D scene only through `import()`. */
 export const GAME_TSX = `import { lazy } from 'react'
-import { GameShell } from '@/games/kit/GameShell'
+import { Frame } from '@/games/kit/Frame'
 import { Controls } from './Controls'
 import { Debrief } from './Debrief'
 import { Mirror } from './Mirror'
@@ -117,7 +117,7 @@ const Scene3D = lazy(() => import('./Scene3D'))
 
 export default function Game() {
   return (
-    <GameShell
+    <Frame
       view2d={(run) => <View2D run={run} />}
       scene3d={(run) => <Scene3D run={run} />}
       controls={(run) => <Controls run={run} />}

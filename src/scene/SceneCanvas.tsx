@@ -4,7 +4,6 @@ import * as THREE from 'three'
 import { useSceneTokens, type SceneTokens } from '@/design/scene-tokens'
 import type { ColorRoleName } from '@/design/tokens'
 import { easingFrom } from './camera-rig'
-import { kitchenEnvironment } from './environment'
 import { createGovernor, type Governor } from './governor'
 import { KitContext, type Kit } from './kit'
 import { LabelStore } from './label-store'
@@ -12,11 +11,9 @@ import { LabelLayer } from './LabelLayer'
 import { LabelProjector } from './LabelProjector'
 import type { LabelSpec } from './labels'
 import { createMaterials, roleColor } from './materials'
-import { planFromId, planId, postFxPlan } from './postfx/plan'
-import type { PostFx } from './postfx/postfx'
 import { useStageRuntime, type FrameStats, type StageRuntime } from './stage-runtime'
 import { registerProbe, TEST_HOOKS } from './test-hook'
-import { TIERS } from './tiers'
+import { TIERS, type Tier } from './tiers'
 
 /*
  * SceneCanvas (ARCHITECTURE §6.4, `Stage`'s canvas half): the R3F root a scene draws into. A scene module renders it with
@@ -24,11 +21,11 @@ import { TIERS } from './tiers'
  *
  *   - WebGL2 only (D-020). The context is made here, so a failure to make it, a shader that does not compile, a render
  *     that throws and a lost context all reach the Stage as a failure, and the Stage shows the 2D view.
- *   - The pixel ratio is capped by the tier, and post-processing follows the tier's plan (postfx/plan.ts): at T2 and up the
- *     `postfx` chunk loads; below, it is never requested.
+ *   - The pixel ratio is capped by the tier, and the tier's anti-aliasing is the context's own (multisampling at T2 and up). There is
+ *     no post-processing: a scene draws straight to the canvas, so no chunk loads behind it.
  *   - The loop draws on demand. While something animates it runs at the tier's frame-rate cap, and the governor samples
  *     those frames. It stops when the page is hidden or the canvas is scrolled away.
- *   - Each mount gets a fresh <canvas>, and an unmount disposes the root, the materials, the environment and the composer,
+ *   - Each mount gets a fresh <canvas>, and an unmount disposes the root and the materials,
  *     so a remount (React's strict mode, a restore after a lost context) never shares a dying context.
  *   - Text is DOM: the labels ride over the canvas (LabelLayer), placed by a projector inside it.
  *
@@ -41,33 +38,21 @@ extend(THREE as unknown as Parameters<typeof extend>[0]) // a catalogue is const
 export interface SceneCanvasProps {
   children: ReactNode
   labels?: readonly LabelSpec[]
-  /** The colour behind the scene, and the fog's: the world beyond the far end of the line. Default the ground, `surface-0`. */
+  /** The colour behind the scene, and the fog's: the world beyond the far end of the lanes. Default the ground, `surface-0`. */
   background?: ColorRoleName
   /**
-   * Fog from `near` to `far` scene units beyond the camera's focus (its preset's target), so the night recedes into the
-   * ground's colour at the far end of the line from every shot, near or far; null for none. `color` gives the haze a role of its own
-   * where the room it fogs is the ground's own pale (a tiled kitchen), so that what lies far falls away from what lies near.
+   * Fog from `near` to `far` scene units beyond the camera's focus (its preset's target), so the run recedes into the
+   * ground's colour at the far end of the lanes from every shot, near or far; null for none. `color` gives the haze a role of its own
+   * where the ground is pale, so that what lies far falls away from what lies near.
    */
   fog?: { near: number; far: number; color?: ColorRoleName } | null
   /** Tone-mapping exposure [estimated]. */
   exposure?: number
   /**
-   * The kitchen the steel reflects (environment.ts): its tubes and its heat lamps' glow (the default), its tubes alone (`'tubes'`, for a
-   * scene whose lamps burn only over the present, so its steel warms under them and nowhere else), or none.
-   */
-  environment?: boolean | 'tubes'
-  /** How strongly the environment lights the scene [estimated]. */
-  environmentIntensity?: number
-  /**
    * Real-time shadow maps, where the tier allows them (tiers.ts's `shadowLights`: none at T1). Off by default, so a scene that
    * does not ask draws exactly as before. The lights that cast are the scene's to choose, through the kit's `shadowLights`.
    */
   shadows?: boolean
-  /**
-   * Bloom at T2 and up, where the tier's plan has it (postfx/plan.ts). On by default, so a scene that does not say draws as before; a scene
-   * in which nothing glows but one unlit mark (Data Book's time track) turns it off, and keeps the final pass's anti-aliasing.
-   */
-  bloom?: boolean
   /**
    * Khronos PBR Neutral tone mapping, on by default. A flat model of a diagram turns it off: its colours are the code's own, and the
    * curve's toe and shoulder would move them (#237a37 drew as #06762a), whether the scene goes straight to the canvas or through the
@@ -92,18 +77,20 @@ interface RootHandle {
 }
 
 /** Makes the WebGL2 renderer on a canvas, or throws: the configure call that runs it reports the failure. */
-function makeRenderer(canvas: HTMLCanvasElement, onShaderError: () => void): THREE.WebGLRenderer {
+function makeRenderer(canvas: HTMLCanvasElement, tier: Tier, onShaderError: () => void): THREE.WebGLRenderer {
+  // The tier's anti-aliasing is the context's own: multisampling at T2 and up, none below (tiers.ts).
+  const antialias = TIERS[tier].antialias === 'msaa'
   // A test build keeps the drawn frame, so e2e can sample its pixels (W0-T17's non-blank check); production never pays for it.
   const context = canvas.getContext('webgl2', {
     alpha: false,
-    antialias: false,
+    antialias,
     depth: true,
     stencil: false,
     powerPreference: 'high-performance',
     preserveDrawingBuffer: TEST_HOOKS,
   })
   if (!context) throw new Error('WebGL2 is not available')
-  const renderer = new THREE.WebGLRenderer({ canvas, context, antialias: false })
+  const renderer = new THREE.WebGLRenderer({ canvas, context, antialias })
   renderer.debug.onShaderError = () => onShaderError()
   return renderer
 }
@@ -131,7 +118,7 @@ function mountRoot(host: HTMLElement, latest: { current: { runtime: StageRuntime
   const tier = latest.current.runtime.tier
   const ready = root
     .configure({
-      gl: () => makeRenderer(canvas, () => fail('shader')),
+      gl: () => makeRenderer(canvas, tier, () => fail('shader')),
       size: { width: Math.max(1, rect.width), height: Math.max(1, rect.height), top: 0, left: 0 },
       dpr: [1, TIERS[tier].dprCap],
       frameloop: 'demand',
@@ -228,7 +215,7 @@ class RootBoundary extends Component<{ onError: (error: unknown) => void; childr
   }
 }
 
-export function SceneCanvas({ children, labels = [], background = 'surface-0', fog = null, exposure = 1, environment = true, environmentIntensity = 0.9, shadows = false, bloom = true, toneMapping = true, className }: SceneCanvasProps) {
+export function SceneCanvas({ children, labels = [], background = 'surface-0', fog = null, exposure = 1, shadows = false, toneMapping = true, className }: SceneCanvasProps) {
   const runtime = useStageRuntime()
   const tokens = useSceneTokens()
   const host = useRef<HTMLDivElement>(null)
@@ -265,10 +252,7 @@ export function SceneCanvas({ children, labels = [], background = 'surface-0', f
           background={background}
           fog={fog}
           exposure={exposure}
-          environment={environment}
-          environmentIntensity={environmentIntensity}
           shadows={shadows}
-          bloom={bloom}
           toneMapping={toneMapping}
         >
           {children}
@@ -293,10 +277,7 @@ interface KitRootProps {
   background: ColorRoleName
   fog: NonNullable<SceneCanvasProps['fog']> | null
   exposure: number
-  environment: boolean | 'tubes'
-  environmentIntensity: number
   shadows: boolean
-  bloom: boolean
   toneMapping: boolean
   children: ReactNode
 }
@@ -320,12 +301,39 @@ function countShadows(scene: THREE.Scene, gl: THREE.WebGLRenderer): number {
   return total
 }
 
-/** Everything inside the root: renderer settings, materials, light from the environment, post-processing and the loop. */
-function KitRoot({ runtime, tokens, paused, store, bridge, background, fog, exposure, environment, environmentIntensity, shadows, bloom, toneMapping, children }: KitRootProps) {
+/*
+ * The writes KitRoot makes to what R3F and its parent hand it (the renderer, the scene, the bridge). They are functions of their own so
+ * that the component never assigns into a value a hook returned, which the compiler's lint forbids.
+ */
+function configureRenderer(gl: THREE.WebGLRenderer, settings: { toneMapping: boolean; exposure: number; shadows: boolean }) {
+  gl.toneMapping = settings.toneMapping ? THREE.NeutralToneMapping : THREE.NoToneMapping
+  gl.toneMappingExposure = settings.exposure
+  gl.info.autoReset = false
+  gl.shadowMap.enabled = settings.shadows
+  gl.shadowMap.type = THREE.PCFShadowMap
+}
+
+function paintScene(scene: THREE.Scene, ground: THREE.Color, haze: THREE.Fog | null) {
+  scene.background = ground
+  scene.fog = haze
+}
+
+/** Moves the fog to start and end this far from where the camera looks (the CameraRig tells it). */
+function moveFog(scene: THREE.Scene, near: number, far: number) {
+  if (scene.fog instanceof THREE.Fog) {
+    scene.fog.near = near
+    scene.fog.far = far
+  }
+}
+
+function publish(bridge: { current: Bridge }, patch: Partial<Pick<Bridge, 'stats' | 'invalidate'>>) {
+  Object.assign(bridge.current, patch)
+}
+
+/** Everything inside the root: renderer settings, materials and the loop. */
+function KitRoot({ runtime, tokens, paused, store, bridge, background, fog, exposure, shadows, toneMapping, children }: KitRootProps) {
   const gl = useThree((state) => state.gl)
   const scene = useThree((state) => state.scene)
-  const size = useThree((state) => state.size)
-  const viewport = useThree((state) => state.viewport)
   const setFrameloop = useThree((state) => state.setFrameloop)
   const invalidate = useThree((state) => state.invalidate)
   const setDpr = useThree((state) => state.setDpr)
@@ -336,11 +344,7 @@ function KitRoot({ runtime, tokens, paused, store, bridge, background, fog, expo
   // Shadow maps only where the scene asked and the tier allows: PCF with a Vogel disk, softened by each light's own radius.
   const shadowLights = shadows ? TIERS[tier].shadowLights : 0
   useLayoutEffect(() => {
-    gl.toneMapping = toneMapping ? THREE.NeutralToneMapping : THREE.NoToneMapping
-    gl.toneMappingExposure = exposure
-    gl.info.autoReset = false
-    gl.shadowMap.enabled = shadowLights > 0
-    gl.shadowMap.type = THREE.PCFShadowMap
+    configureRenderer(gl, { toneMapping, exposure, shadows: shadowLights > 0 })
     invalidate()
   }, [gl, exposure, shadowLights, toneMapping, invalidate])
 
@@ -348,77 +352,23 @@ function KitRoot({ runtime, tokens, paused, store, bridge, background, fog, expo
     setDpr([1, TIERS[tier].dprCap])
   }, [tier, setDpr])
 
-  // The materials: made per tier class (T1 drops the steel's clearcoat) and again when a preference changes their colours.
-  const materialTier = tier >= 2 ? 2 : 1
-  const materials = useMemo(() => createMaterials(tokens, materialTier, gl.capabilities.getMaxAnisotropy()), [gl, materialTier, tokens])
+  // The materials: one for the marks, made once per renderer.
+  const materials = useMemo(() => createMaterials(), [])
   useEffect(() => {
     invalidate()
     return () => materials.dispose()
   }, [materials, invalidate])
 
-  // The kitchen the steel reflects, the ground behind the line, and the fog the night recedes into.
-  useEffect(() => {
-    if (!environment) return
-    const kitchen = kitchenEnvironment(gl, tokens, environment === true)
-    scene.environment = kitchen.target.texture
-    scene.environmentIntensity = environmentIntensity
-    invalidate()
-    return () => {
-      scene.environment = null
-      kitchen.dispose()
-    }
-  }, [gl, scene, tokens, environment, environmentIntensity, invalidate])
+  // The ground behind the track, and the fog it recedes into.
   const fogNear = fog?.near ?? null
   const fogFar = fog?.far ?? null
   const fogColor = fog?.color ?? background
   const focusDistance = useRef(0)
   useEffect(() => {
-    const ground = roleColor(tokens, background)
-    scene.background = ground
-    scene.fog = fogNear !== null && fogFar !== null ? new THREE.Fog(roleColor(tokens, fogColor), focusDistance.current + fogNear, focusDistance.current + fogFar) : null
+    const haze = fogNear !== null && fogFar !== null ? new THREE.Fog(roleColor(tokens, fogColor), focusDistance.current + fogNear, focusDistance.current + fogFar) : null
+    paintScene(scene, roleColor(tokens, background), haze)
     invalidate()
   }, [scene, tokens, background, fogNear, fogFar, fogColor, invalidate])
-
-  // Post-processing at T2 and up: the `postfx` chunk is imported here, and only here.
-  // Without bloom the plan is the one `prefers-contrast: more` gets: the final pass alone, with its anti-aliasing.
-  const plan = postFxPlan(tier, { contrastMore: runtime.contrastMore || !bloom, forcedColors: runtime.forcedColors })
-  const planKey = planId(plan)
-  const get = useThree((state) => state.get)
-  const postfx = useRef<PostFx | null>(null)
-  const sizeNow = useRef({ width: size.width, height: size.height, dpr: viewport.dpr })
-  useEffect(() => {
-    sizeNow.current = { width: size.width, height: size.height, dpr: viewport.dpr }
-    postfx.current?.setSize(size.width, size.height, viewport.dpr)
-    invalidate()
-  }, [size.width, size.height, viewport.dpr, invalidate])
-  // While the chunk loads the scene is not yet as it will be, so it is not yet still.
-  const loading = useRef(0)
-  useEffect(() => {
-    const wanted = planFromId(planKey)
-    if (!wanted.composer) return
-    let alive = true
-    let made: PostFx | null = null
-    loading.current += 1
-    import('./postfx/postfx')
-      .then(({ createPostFx }) => {
-        if (!alive) return
-        made = createPostFx(gl, scene, get().camera, wanted, sizeNow.current)
-        postfx.current = made
-      })
-      .catch(() => {
-        // Without the chunk the scene renders straight to the canvas, as it does at T1.
-      })
-      .finally(() => {
-        loading.current -= 1
-        invalidate()
-      })
-    return () => {
-      alive = false
-      made?.dispose()
-      postfx.current = null
-      invalidate()
-    }
-  }, [planKey, gl, scene, get, invalidate])
 
   // The loop: holds keep frames coming while something animates; nothing held, frames come only on demand.
   const holds = useRef(0)
@@ -447,7 +397,7 @@ function KitRoot({ runtime, tokens, paused, store, bridge, background, fog, expo
   useEffect(
     () =>
       addTail(() => {
-        if (holds.current === 0 && loading.current === 0 && pendings.current === 0) runtimeNow.current.settled()
+        if (holds.current === 0 && pendings.current === 0) runtimeNow.current.settled()
       }),
     [],
   )
@@ -495,10 +445,7 @@ function KitRoot({ runtime, tokens, paused, store, bridge, background, fog, expo
       registerFrame: (name, object) => store.registerFrame(name, object),
       focus(distance) {
         focusDistance.current = distance
-        if (scene.fog instanceof THREE.Fog && fogNear !== null && fogFar !== null) {
-          scene.fog.near = distance + fogNear
-          scene.fog.far = distance + fogFar
-        }
+        if (fogNear !== null && fogFar !== null) moveFog(scene, distance + fogNear, distance + fogFar)
       },
     }),
     [tokens, materials, tier, runtime.reducedMotion, shadowLights, setFrameloop, invalidate, store, governor, scene, fogNear, fogFar],
@@ -506,7 +453,7 @@ function KitRoot({ runtime, tokens, paused, store, bridge, background, fog, expo
 
   useEffect(() => {
     store.setInvalidate(() => invalidate())
-    bridge.current.invalidate = () => invalidate()
+    publish(bridge, { invalidate: () => invalidate() })
   }, [store, bridge, invalidate])
 
   const frames = useRef(0)
@@ -531,15 +478,8 @@ function KitRoot({ runtime, tokens, paused, store, bridge, background, fog, expo
     }
 
     gl.info.reset()
-    let sceneCounts: { calls: number; triangles: number }
-    const fx = postfx.current
-    if (fx) {
-      fx.setCamera(state.camera)
-      sceneCounts = fx.render(delta)
-    } else {
-      gl.render(state.scene, state.camera)
-      sceneCounts = { calls: gl.info.render.calls, triangles: gl.info.render.triangles }
-    }
+    gl.render(state.scene, state.camera)
+    const sceneCounts = { calls: gl.info.render.calls, triangles: gl.info.render.triangles }
     frames.current += 1
     lastDraw.current = now
     if (frames.current === 1) runtimeNow.current.ready()
@@ -557,11 +497,11 @@ function KitRoot({ runtime, tokens, paused, store, bridge, background, fog, expo
         textures: gl.info.memory.textures,
         programs: gl.info.programs?.length ?? 0,
         dpr: state.viewport.dpr,
-        passes: fx ? fx.plan.passes : ['scene'],
+        passes: ['scene'],
         p95: governor.state.p95,
         frames: frames.current,
       }
-      bridge.current.stats = stats
+      publish(bridge, { stats })
       runtimeNow.current.frameStats(stats)
       const waiters = bridge.current.waiters.splice(0)
       for (const resolve of waiters) resolve(stats)

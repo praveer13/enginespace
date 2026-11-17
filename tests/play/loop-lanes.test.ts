@@ -5,7 +5,6 @@
 import { describe, expect, test } from 'bun:test'
 import { hang, initState, step } from '@es/play/loop/engine'
 import { DESK, DOCK, FRAME_DESK, FRAME_PHONE, LANE_WORDS, MIN_LABELLED_ROW, MIN_PX_PER_TICK, PHONE, TABLE_TICKS, axisStep, fitGeometry, laneLayout, requestName, stepsWindow, windowStart, xOf } from '@es/play/loop/lanes'
-import { MIRROR_TICKS, windowOf } from '@es/play/loop/layout'
 import type { LaneGeometry, LaneLayout } from '@es/play/loop/lanes'
 import { buildLevel, LEVEL_IDS } from '@es/play/loop/levels'
 import { loopGhost, loopView } from '@es/play/loop/session'
@@ -311,17 +310,38 @@ describe('a dimension line across every closed idle box, and the sizes the pages
   })
 })
 
-describe("the state table's window", () => {
-  test('is the kitchen layout\'s window, on every state of every demo level, so the table reads the same on the front page', () => {
-    expect(TABLE_TICKS).toBe(MIRROR_TICKS)
-    for (const id of LEVEL_IDS) {
-      const level = buildLevel(id, 1)
-      for (const overlap of level.overlap === 'free' ? [false, true] : [false]) {
-        for (const state of statesOfHouseNight(level, { overlap })) {
-          const view = loopView(state)
-          expect(stepsWindow(view, TABLE_TICKS)).toEqual(windowOf(view, MIRROR_TICKS))
-        }
-      }
+describe("the state table's window moves by whole steps", () => {
+  const level = buildLevel('first-4-par', 1)
+  const states = [...statesOfHouseNight(level, { overlap: false })]
+  const last = loopView(states[states.length - 1])
+
+  test('the table lists the last 76 ticks of the run', () => {
+    expect(TABLE_TICKS).toBe(76)
+  })
+
+  test('while the run fits it starts at 0, and nothing is hidden', () => {
+    const early = loopView(states[6])
+    expect(early.clockUs).toBeLessThanOrEqual(TABLE_TICKS)
+    expect(stepsWindow(early, TABLE_TICKS)).toMatchObject({ startUs: 0, hidden: 0 })
+  })
+
+  test('after that it starts at the plan of the oldest step that lets the run end inside the window, and the older steps are counted, not listed', () => {
+    const shown = stepsWindow(last, TABLE_TICKS)
+    expect(last.clockUs).toBeGreaterThan(TABLE_TICKS)
+    expect(shown.hidden).toBeGreaterThan(0)
+    expect(shown.fires.length + shown.hidden).toBe(last.fires.length)
+    const plan = last.cpu.find((span) => span.step === shown.fires[0].index && span.kind === 'schedule')
+    expect(shown.startUs).toBe(plan?.startUs)
+    expect(last.clockUs - shown.startUs).toBeLessThanOrEqual(TABLE_TICKS)
+    const before = last.cpu.find((span) => span.step === shown.fires[0].index - 1 && span.kind === 'schedule')
+    expect(before === undefined || last.clockUs - before.startUs > TABLE_TICKS).toBe(true)
+  })
+
+  test("a step on the GPU that began before the window is kept: overlap's work runs into the window and is not cut away", () => {
+    for (const state of statesOfHouseNight(level, { overlap: true })) {
+      const view = loopView(state)
+      const shown = stepsWindow(view, TABLE_TICKS)
+      for (const fire of view.fires) if (fire.endUs > shown.startUs) expect(shown.fires).toContain(fire)
     }
   })
 })

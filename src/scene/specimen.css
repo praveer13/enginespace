@@ -30,11 +30,10 @@
   margin: 0;
 }
 
-/* The 3D view sits in a stainless bezel, as the pass does in its frame. */
+/* The 3D view sits on the page's paper, ruled round by its edge. */
 .es-kit__stage {
   aspect-ratio: 16 / 10;
   border: 1px solid var(--es-edge);
-  box-shadow: var(--es-shadow-shelf);
 }
 
 @media (max-width: 40rem) {
@@ -65,7 +64,7 @@
   line-height: 1.4;
 }
 
-/* The controls: a stainless panel under the pass, each control on its own plate. */
+/* The controls: a panel under the views, each control on its own plate. */
 .es-kit__deck {
   display: flex;
   flex-wrap: wrap;
@@ -75,9 +74,7 @@
   border: 1px solid var(--es-edge);
   border-radius: var(--es-radius-plate);
   background-color: var(--es-surface-1);
-  background-image: var(--es-texture-sheen), var(--es-texture-brushed);
-  background-size: 100% auto, 100% 720px;
-  box-shadow: var(--es-shadow-plate);
+  box-shadow: var(--es-shadow-paper);
 }
 
 .es-kit__clips {
@@ -117,7 +114,6 @@
   line-height: 1;
   letter-spacing: 0.03em;
   font-weight: 800;
-  text-transform: uppercase;
 }
 
 .es-kit__fires-note {
@@ -142,7 +138,6 @@
   font-family: var(--es-font-ticket);
   font-weight: var(--es-font-ticket-weight);
   letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
 .es-kit__fire-facts {
@@ -193,7 +188,7 @@
 }
 
 .es-kit-label--lane {
-  color: var(--es-tape-ink);
+  color: var(--es-text-1);
   font-family: var(--es-font-label);
   font-weight: var(--es-font-label-weight);
   letter-spacing: var(--es-font-label-tracking);
@@ -212,7 +207,6 @@
   background-color: var(--es-paper);
   box-shadow: var(--es-shadow-paper);
   font-size: var(--es-size-stamp);
-  text-transform: uppercase;
 }
 
 /* ---------------------------------------------------------------------------------------------- the 2D twin */

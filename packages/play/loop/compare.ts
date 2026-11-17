@@ -3,7 +3,7 @@
  *
  * Firing the rail as a set (static batching), refilling clips (continuous batching) and refilling while the next call is written
  * during the fire (continuous batching with overlap, par) are `runStepLoop` runs of the night's seed, so each is the sim's own number
- * and not a story. This file turns a run into the fires that `layout.ts` draws, and names the services.
+ * and not a story. This file turns a run into the fires that `strip.ts` draws, and names the services.
  */
 import type { Seed } from '@es/sim/core'
 import type { StepLoopRun } from '@es/sim/steploop'

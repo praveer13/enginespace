@@ -7,7 +7,7 @@ import type { Announcement } from './announcer'
 
 /*
  * A run of one game (ARCHITECTURE §6.3, D-018): the session, started on a level and a seed, with every action applied through
- * the pure reducer and kept in the action log. GameShell is built on it, and a page that wants a different frame around the
+ * the pure reducer and kept in the action log. The instrument frame (Frame.tsx) is built on it, and a page that wants a different frame around the
  * views (the front page) builds on it too, so each game records its run one way and a replay of the log is the grade.
  *
  * The state lives in the component that calls this hook, above the views. A 2D view, a 3D scene and a mirror all draw

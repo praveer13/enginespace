@@ -1,5 +1,4 @@
 import { lazy, useCallback, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent } from 'react'
-import { Bell } from '@/design/components/Bell'
 import { Button } from '@/design/components/Button'
 import { PrinterTape } from '@/design/components/PrinterTape'
 import { Readout } from '@/design/components/Readout'
@@ -22,10 +21,10 @@ import './specimen.css'
  * controls that move it. The specimen's session (the load, overlap, the fires shown, the camera, the selection) lives here,
  * outside both views, so a swap to 2D, a lost context or a restore keeps all of it.
  *
- *   - The bell fires the next step; the track slides back and the new fire extrudes out of the pass (cut under reduced
- *     motion). `.` rings it, `C` cycles the camera.
- *   - Overlap (async scheduling) re-runs the model: the dark stretches close and binned plates appear.
- *   - 64 clips is the long night: more than 10,000 instances, still nine draw calls.
+ *   - The step button runs the next step; the track slides back and the new step extrudes out of the present (cut under reduced
+ *     motion). `.` runs it, `C` cycles the camera.
+ *   - Overlap (async scheduling) re-runs the model: the idle stretches close and ghost tokens appear.
+ *   - 64 slots is the long run: more than 10,000 instances, still a handful of draw calls.
  *   - The kit's own tape prints what this browser measures of the frame: the tier, the pixel ratio, draw calls,
  *     instances and, while something animates, the frame-time p95 the governor holds.
  */
@@ -135,23 +134,23 @@ export function SceneSpecimen() {
   const latest = layout.fires.at(-1)
   const synthetic = 'synthetic' as const
   const printer = [
-    { id: 'fire', label: 'fire', value: <Readout value={fired} pad={3} tag={synthetic} size="sm" /> },
+    { id: 'fire', label: 'step', value: <Readout value={fired} pad={3} tag={synthetic} size="sm" /> },
     { id: 'clock', label: 'clock', value: <Readout value={layout.totals.clock} unit="ticks" tag={synthetic} size="sm" /> },
-    { id: 'step', label: 'this fire', value: <Readout value={latest?.ticks ?? 0} unit="ticks" tag={synthetic} size="sm" /> },
-    { id: 'busy', label: 'line busy', value: <Readout value={layout.totals.busy} unit="ticks" tag={synthetic} size="sm" /> },
-    { id: 'dark', label: 'line dark', value: <Readout value={layout.totals.dark} unit="ticks" tag={synthetic} size="sm" />, tone: layout.totals.dark > 0 ? ('ink-2' as const) : undefined },
-    { id: 'binned', label: 'binned plates', value: <Readout value={layout.totals.binned} unit="tokens" tag={synthetic} size="sm" /> },
+    { id: 'step', label: 'this step', value: <Readout value={latest?.ticks ?? 0} unit="ticks" tag={synthetic} size="sm" /> },
+    { id: 'busy', label: 'GPU busy', value: <Readout value={layout.totals.busy} unit="ticks" tag={synthetic} size="sm" /> },
+    { id: 'dark', label: 'GPU idle', value: <Readout value={layout.totals.dark} unit="ticks" tag={synthetic} size="sm" />, tone: layout.totals.dark > 0 ? ('ink-2' as const) : undefined },
+    { id: 'binned', label: 'ghost tokens', value: <Readout value={layout.totals.binned} unit="tokens" tag={synthetic} size="sm" /> },
   ]
 
   const fireItems = layout.fires.map((fire) => ({
     id: fire.id,
     label: (
       <span className="es-kit__fire">
-        <span className="es-kit__fire-name">fire {String(fire.index + 1).padStart(3, '0')}</span>
+        <span className="es-kit__fire-name">step {String(fire.index + 1).padStart(3, '0')}</span>
         <span className="es-kit__fire-facts">
-          {fire.ticks} ticks · {fire.plates} plates{fire.binned > 0 ? ` · ${fire.binned} binned` : ''}
+          {fire.ticks} ticks · {fire.plates} tokens{fire.binned > 0 ? ` · ${fire.binned} ghost` : ''}
           {fire.empty > 0 ? ` · ${fire.empty} empty` : ''}
-          {fire.dark > 0 ? ` · dark ${fire.dark} before` : ''}
+          {fire.dark > 0 ? ` · idle ${fire.dark} before` : ''}
         </span>
       </span>
     ),
@@ -173,9 +172,9 @@ export function SceneSpecimen() {
           />
           <figcaption className="es-kit__caption">
             <TapeLabel size="sm" tilt="none">
-              3D · the pass
+              3D · the lanes
             </TapeLabel>
-            <span>Drawn by the kit from the model&apos;s run; every tick is synthetic. The tray on the right holds a place&apos;s four forms: plate, empty, binned and padding.</span>
+            <span>Drawn by the kit from the model&apos;s run; every tick is synthetic. The legend on the right holds a place&apos;s four forms: token, empty, ghost and padding.</span>
           </figcaption>
         </figure>
         <figure className="es-kit__view" data-view="2d">
@@ -192,21 +191,16 @@ export function SceneSpecimen() {
       </div>
 
       <div className="es-kit__deck" role="group" aria-label="The specimen's controls">
-        <Bell
-          step={fired}
-          caption="fire"
-          onRing={ring}
-          ringLabel={fired >= last ? 'Ring the bell: start the service again' : 'Ring the bell: fire the next step'}
-          disabled={settings.clips === 64}
-          className="es-kit__bell"
-        />
+        <Button size="sm" variant="ink" onClick={ring} disabled={settings.clips === 64} className="es-kit__bell">
+          {fired >= last ? 'Run again from step 1' : 'Run the next step'}
+        </Button>
         <Toggle
-          label="Write the next call during this fire"
+          label="Plan the next step during this one"
           hint="overlap (async scheduling)"
           checked={settings.overlap}
           onCheckedChange={(overlap) => setSettings((current) => ({ ...current, overlap }))}
         />
-        <div role="group" aria-label="The rail" className="es-kit__clips">
+        <div role="group" aria-label="The batch" className="es-kit__clips">
           {([4, 64] as const satisfies readonly SpecimenClips[]).map((clips) => (
             <Button
               key={clips}
@@ -215,7 +209,7 @@ export function SceneSpecimen() {
               aria-pressed={settings.clips === clips}
               onClick={() => setSettings((current) => ({ ...current, clips }))}
             >
-              {clips === 4 ? '4 clips · a short service' : '64 clips · the long night'}
+              {clips === 4 ? '4 slots · a short run' : '64 slots · the long run'}
             </Button>
           ))}
         </div>
@@ -227,14 +221,14 @@ export function SceneSpecimen() {
       </div>
 
       <div className="es-kit__readouts">
-        <PrinterTape label="The printer: the service so far" lines={printer} className="es-kit__tape" />
+        <PrinterTape label="The run so far" lines={printer} className="es-kit__tape" />
         <KitTape store={stats} tier={tier} />
         <section className="es-kit__fires" aria-labelledby="es-kit-fires">
           <h3 id="es-kit-fires" className="es-kit__fires-title">
-            Fires on the line
+            Steps on the GPU
           </h3>
-          <p className="es-kit__fires-note">Ticks, synthetic. Pick a fire here, in 3D or in the 2D twin: one selection drives all three.</p>
-          <SelectionList label="Fires on the line" items={fireItems} selection={selection} className="es-kit__list" />
+          <p className="es-kit__fires-note">Ticks, synthetic. Pick a step here, in 3D or in the 2D twin: one selection drives all three.</p>
+          <SelectionList label="Steps on the GPU" items={fireItems} selection={selection} className="es-kit__list" />
         </section>
       </div>
 
@@ -254,13 +248,12 @@ export function SceneSpecimen() {
 
 const PARTS: ReadonlyArray<readonly [string, string]> = [
   ['Stage', 'The 2D twin paints first. The scene loads behind it and fades in, and any failure brings the 2D back in the same box.'],
-  ['Tiers', 'The device decides the pixel ratio, the anti-aliasing, the post passes and the frame cap. Nothing is fetched to decide.'],
-  ['Governor', 'While the pass animates, it holds the frame-time p95 to the tier and moves the tier when it cannot.'],
-  ['CameraRig', 'Three shots of the pass, a button each, and C to cycle them. A move eases out on the settle curve, and cuts under reduced motion.'],
-  ['SpanInstances', 'Every fire and every write of the expo: one draw call.'],
-  ['BlockGrid', 'Every place on every fire, in its form: plate, empty, binned, padding. One draw call.'],
-  ['LabelLayer', 'Every word on the pass is page text, placed over the canvas and moved only when the camera moves.'],
-  ['TimeAxis', 'The clock runs into the screen. On each bell the night slides back and the new fire extrudes out of the pass.'],
+  ['Tiers', 'The device decides the pixel ratio, the multisampling and the frame cap. Nothing is fetched to decide.'],
+  ['Governor', 'While the scene animates, it holds the frame-time p95 to the tier and moves the tier when it cannot.'],
+  ['CameraRig', 'Three shots of the lanes, a button each, and C to cycle them. A move eases out on the settle curve, and cuts under reduced motion.'],
+  ['SpanInstances', 'Every step and every CPU call: one draw call.'],
+  ['BlockGrid', 'Every place on every step, in its form: token, empty, ghost, padding. One draw call.'],
+  ['LabelLayer', 'Every word in the scene is page text, placed over the canvas and moved only when the camera moves.'],
+  ['TimeAxis', 'The clock runs into the screen. On each step the run slides back and the new step extrudes out of the present.'],
   ['Selection', 'A pick in the scene and a key in the list are the same selection.'],
-  ['PostFX', 'At tier 2 and up, bloom on the lamps’ housings and anti-aliasing in the final pass. Below, the chunk is never fetched.'],
 ]

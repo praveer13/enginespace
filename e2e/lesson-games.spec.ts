@@ -235,9 +235,9 @@ test.describe("the lesson's first paint holds none of a game", () => {
     await quiet(page)
     // The lesson reads the ledger after its first paint (its rail and its record), and the level titles from the games' data registry, which
     // shares its chunk's name with the component registry: neither is a game. No game's code, no scene and no three come before a level starts.
-    const before = /\/assets\/(GameEmbed|Game|GameShell|Scene3D|three-vendor|record)-[\w-]+\.(js|css)$/
+    const before = /\/assets\/(GameEmbed|Game|Scene3D|three-vendor|record)-[\w-]+\.(js|css)$/
     expect(watch.requests.filter((path) => before.test(path))).toEqual([])
-    const game = /\/assets\/(GameEmbed|Game|GameShell|registry|Scene3D|three-vendor|useEvidence|record)-[\w-]+\.(js|css)$/
+    const game = /\/assets\/(GameEmbed|Game|registry|Scene3D|three-vendor|useEvidence|record)-[\w-]+\.(js|css)$/
     await startBlock(page, { game: 'loop', level: 'first-4-par', mode: 'practice' })
     await expect(page.locator('.es-stage[data-stage-phase="live"]')).toHaveCount(1, { timeout: 90_000 })
     const asked = watch.requests.filter((path) => game.test(path)).map((path) => /\/assets\/([A-Za-z0-9]+)-/.exec(path)?.[1])

@@ -21,7 +21,7 @@ export interface GameProps {
   mode?: GameMode
   /**
    * `embed` inside a lesson, or `page` on its own page. Default `page`. Embedded, the game has a smaller heading, lays its parts out for
-   * the lesson's column (GameShell's `embedded`), and offers no other level: the lesson names the level, and its own blocks are the
+   * the lesson's column (the frame's `embedded`), and offers no other level: the lesson names the level, and its own blocks are the
    * order of the levels (W1b-T01).
    */
   placement?: 'embed' | 'page'

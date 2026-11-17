@@ -1,12 +1,12 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
-import { BoxGeometry, type InstancedMesh } from 'three'
+import { BoxGeometry, MeshBasicMaterial, type InstancedMesh } from 'three'
 import { useKit } from './kit'
 import { writeMatrix, type MarkBox } from './marks'
+import { roleColor } from './materials'
 
 /*
- * The selection in 3D (ARCHITECTURE §6.4, `Selection`): a frame of glowing bars around the selected mark's top, in the heat
- * lamp's material, because the lamp is how the world shows where the keyboard is (the focus ring is its filament). The
- * selection itself lives in selection.ts and the DOM list; this only draws it. It sits in the same frame as the mark (put
+ * The selection in 3D (ARCHITECTURE §6.4, `Selection`): a frame of bars around the selected mark's top, in the focus ink, because
+ * focus is ink in Data Book (REDESIGN §2.8) as it is in the page. The selection itself lives in selection.ts and the DOM list; this only draws it. It sits in the same frame as the mark (put
  * it inside the TimeTrack for a span).
  */
 
@@ -23,6 +23,8 @@ export function SelectionMarker({ box, inset = 0.03 }: SelectionMarkerProps) {
   const kit = useKit()
   const geometry = useMemo(() => new BoxGeometry(1, 1, 1), [])
   useEffect(() => () => geometry.dispose(), [geometry])
+  const material = useMemo(() => new MeshBasicMaterial({ color: roleColor(kit.tokens, 'focus') }), [kit.tokens])
+  useEffect(() => () => material.dispose(), [material])
   const mesh = useRef<InstancedMesh>(null)
 
   useLayoutEffect(() => {
@@ -52,5 +54,5 @@ export function SelectionMarker({ box, inset = 0.03 }: SelectionMarkerProps) {
     kit.invalidate()
   }, [box, inset, kit])
 
-  return <instancedMesh ref={mesh} name="selection" args={[geometry, kit.materials.lamp, 4]} raycast={() => null} />
+  return <instancedMesh ref={mesh} name="selection" args={[geometry, material, 4]} raycast={() => null} />
 }

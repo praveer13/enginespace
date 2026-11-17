@@ -7,14 +7,13 @@
  *   T2  everything else.
  *   T3  never a starting tier: only the governor reaches it.
  *
- * The anti-aliasing column is FXAA at T2 and at T3. A§6.6 first named SMAA at T3, and D-023 records the change: three's SMAAPass alone
- * is 35,631 bytes gzipped [measured 2026-11-04, three 0.185.1, `gzip -9`], over the 25 KB the `postfx` chunk may weigh (A§11.1), so T3
- * uses the same FXAA as T2, folded into the final pass, until that budget is revisited.
+ * The anti-aliasing column is the context's own multisampling at T2 and at T3, and none below. A§6.6 named FXAA in a post-processing pass
+ * (SMAA at T3), and the scene kit had one until R-T44; Data Book's scenes are flat solids with hard edges and no glow, so they need no
+ * composer, and no chunk loads behind them.
  *
- * The shadow column departs from A§6.6 too, which keeps real-time shadow maps off at T1 and T2 and allows one light at T3:
- * scene kit v1 (W1) gives the heat lamps soft shadow maps from T2, three lights at T2 (a pass's three lamps) and four at T3
- * [estimated], because a kitchen whose props cast nothing reads as grey geometry. T1 keeps none: its props sit on baked occlusion
- * and contact shadows. A scene casts only when it asks (`<SceneCanvas shadows>`), and A§6.6's row is to follow.
+ * The shadow column departs from A§6.6, which keeps real-time shadow maps off at T1 and T2 and allows one light at T3: a scene may
+ * ask for soft shadow maps from T2, three lights at T2 and four at T3 [estimated]. T1 keeps none. A scene casts only when it asks
+ * (`<SceneCanvas shadows>`); no scene does now, since Data Book's depth is its contact shadows' and baked occlusion's.
  *
  * This file imports nothing from three, so a page can ask for the tier before the 3D chunks load.
  */
@@ -29,25 +28,23 @@ export interface TierLimits {
   readonly view: '2d' | '3d'
   /** The highest device pixel ratio the canvas renders at. */
   readonly dprCap: number
-  readonly antialias: 'none' | 'fxaa'
-  /** Full-screen effect passes beyond the scene render and the final output pass (A§6.5). */
-  readonly postPasses: number
+  readonly antialias: 'none' | 'msaa'
   /** Instances one scene may draw. A layout aggregates above it (GAMES.md §2.3, "Adaptive quality"). */
   readonly maxInstances: number
   /** The most frames per second the scene renders while it animates. */
   readonly fpsCap: number
   /** The frame time the governor holds the tier to, in ms: 1,000 ÷ the cap [derived]. */
   readonly frameBudgetMs: number
-  /** Shadow-casting lights the tier allows: none at T1, the heat lamps from T2 (scene kit v1, departing from A§6.6). */
+  /** Shadow-casting lights the tier allows: none at T1, a scene's own from T2 (departing from A§6.6). */
   readonly shadowLights: number
 }
 
 /** A§6.6's table, every value [estimated]. */
 export const TIERS: Readonly<Record<Tier, TierLimits>> = {
-  0: { view: '2d', dprCap: 1, antialias: 'none', postPasses: 0, maxInstances: 0, fpsCap: 0, frameBudgetMs: 0, shadowLights: 0 },
-  1: { view: '3d', dprCap: 1, antialias: 'none', postPasses: 0, maxInstances: 10_000, fpsCap: 30, frameBudgetMs: 1000 / 30, shadowLights: 0 },
-  2: { view: '3d', dprCap: 1.5, antialias: 'fxaa', postPasses: 1, maxInstances: 30_000, fpsCap: 60, frameBudgetMs: 1000 / 60, shadowLights: 3 },
-  3: { view: '3d', dprCap: 2, antialias: 'fxaa', postPasses: 2, maxInstances: 50_000, fpsCap: 60, frameBudgetMs: 1000 / 60, shadowLights: 4 },
+  0: { view: '2d', dprCap: 1, antialias: 'none', maxInstances: 0, fpsCap: 0, frameBudgetMs: 0, shadowLights: 0 },
+  1: { view: '3d', dprCap: 1, antialias: 'none', maxInstances: 10_000, fpsCap: 30, frameBudgetMs: 1000 / 30, shadowLights: 0 },
+  2: { view: '3d', dprCap: 1.5, antialias: 'msaa', maxInstances: 30_000, fpsCap: 60, frameBudgetMs: 1000 / 60, shadowLights: 3 },
+  3: { view: '3d', dprCap: 2, antialias: 'msaa', maxInstances: 50_000, fpsCap: 60, frameBudgetMs: 1000 / 60, shadowLights: 4 },
 }
 
 /** What the device says about itself. Each field is read once, from the browser, by `probeDevice`. */

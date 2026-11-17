@@ -1,23 +1,21 @@
 import { useMemo } from 'react'
 import { BlockGrid } from './BlockGrid'
 import { CameraRig } from './CameraRig'
-import { Fixtures } from './Fixtures'
-import { HeatLamps, Fluorescent } from './Lights'
+import { FlatLights } from './FlatLights'
 import type { LabelSpec } from './labels'
 import { spanBox } from './marks'
 import { SceneCanvas } from './SceneCanvas'
 import { SelectionMarker } from './SelectionMarker'
-import { SheetInstances } from './SheetInstances'
 import { SpanInstances } from './SpanInstances'
 import { SPECIMEN_PRESETS, type SpecimenLayout } from './specimen-layout'
 import { TimeTicks, TimeTrack } from './TimeAxis'
 
 /*
- * The specimen's 3D scene: the kit's primitives on one pass, in The Pass's materials. A lazy chunk of its own, loaded by
- * the Stage on /design. It draws the layout and decides nothing: every mark comes from specimen-layout.ts.
+ * The specimen's 3D scene: the kit's primitives on the lanes, matte on the ground and lit by Data Book's one key and a hemisphere
+ * (FlatLights.tsx). A lazy chunk of its own, loaded by the Stage on /design. It draws the layout and decides nothing: every mark comes
+ * from specimen-layout.ts.
  *
- * Draw calls: the steel (1), the lamps' bulbs (1), the tickets (1), the tape (1), the legend tray (1), the slabs (1), the
- * places (1), the ticks (1) and the selection (1): nine, whatever the load.
+ * Draw calls: the legend (1), the slabs (1), the places (1), the ticks (1) and the selection (1): five, whatever the load.
  */
 
 export interface SpecimenScene3DProps {
@@ -32,7 +30,7 @@ export interface SpecimenScene3DProps {
 /** The night recedes from 2 to 22 units beyond what the camera looks at [estimated]. */
 const FOG = { near: 2, far: 22 }
 
-/** How far a fire's places stand above its slab (specimen-layout.ts's place height). */
+/** How far a step's places stand above its slab (specimen-layout.ts's place height). */
 const PLACES_RISE = 0.04
 
 /** Any mark of a fire (its slab, a place, its dark stretch, its CPU phases) selects the fire. */
@@ -69,13 +67,9 @@ export default function SpecimenScene3D({ layout, preset, orbit, selected, onPic
   const axisX = layout.lanes.gpuX + layout.lanes.gpuWidth / 2 + 0.14
 
   return (
-    <SceneCanvas labels={labels} fog={FOG} exposure={1} environmentIntensity={0.8}>
+    <SceneCanvas labels={labels} fog={FOG} exposure={1}>
       <CameraRig presets={SPECIMEN_PRESETS} preset={preset} orbit={orbit} />
-      <Fluorescent />
-      <HeatLamps lamps={layout.lamps} />
-      <Fixtures parts={layout.fixtures} />
-      <SheetInstances kind="paper" sheets={layout.tickets} curl={0.12} name="tickets" />
-      <SheetInstances kind="tape" sheets={layout.tapes} name="tape" />
+      <FlatLights />
       <BlockGrid cells={layout.legend} name="legend" />
       <TimeTrack now={layout.window.now} unitsPerTime={layout.unitsPerTime}>
         <SpanInstances spans={layout.spans} onPick={pick} />

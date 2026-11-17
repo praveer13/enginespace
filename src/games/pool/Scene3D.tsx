@@ -96,7 +96,7 @@ export default function Scene3D({ view, preset, station, chosen, pointed = [], p
   )
   return (
     <div ref={box} className="es-pool3d" data-pool-camera={preset}>
-      <SceneCanvas labels={labels} fog={null} environment={false} bloom={false} exposure={1}>
+      <SceneCanvas labels={labels} fog={null} exposure={1}>
         <CameraRig presets={presets} preset={preset} />
         <FlatLights />
         <FlatTrack model={rack.model} from={from} onPick={onPick ? onPicked : undefined} />

@@ -37,7 +37,7 @@ import './frame.css'
  *      clock, and "What this model leaves out".
  *   6. State as a table: a disclosure under the diagram that holds the DOM mirror, in the DOM whether it is open or not (D-018).
  *
- * The frame owns the run, through `useRun`, as the old shell does (GameShell.tsx, which stays for the games not yet in this frame): it
+ * The frame owns the run, through `useRun`, as the shell it replaced did: it
  * starts the session on a level and a seed, applies every action through the pure reducer and keeps the action log, so a replay of the
  * log is the grade. The game gives it its parts as slots that receive the run and draw `view(state)`.
  *

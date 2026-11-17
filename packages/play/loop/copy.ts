@@ -69,25 +69,6 @@ export const LOOP_COPY: Readonly<Record<LoopLevelId, LoopCopy>> = {
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /**
- * A request's name on screen: R1 for the first. The drawing's tags carry the layout's number (`ticketNo`, "01"), which is the layout's
- * and stays the layout's; the page prints this name over it, so the chips, the buttons, the table and the live region say one thing.
+ * A request's name on screen: R1 for the first. The chips, the buttons, the table and the live region all say it, so a request has one name.
  */
 export const requestName = (id: number): string => `R${id + 1}`
-
-/**
- * The words on the drawing's masking tape, by the layout's own text. The layout (and the 3D scene's) keep their strings, because they are
- * ids of a drawing that does not change in this task; the page prints these in their place, in the engine's terms: the line is the GPU's
- * lane, the expo is the CPU's, the fired rail is the step in flight and the bin holds the ghost tokens. A text with no entry is printed as it is.
- */
-const TAPE_WORDS: Readonly<Record<string, string>> = {
-  'the line · gpu': 'GPU lane',
-  'the expo · cpu': 'CPU lane',
-  'fired rail': 'step in flight',
-  'binned · ghost': 'ghost tokens',
-}
-
-/** The tape's words as the page prints them. */
-export const tapeWords = (text: string): string => TAPE_WORDS[text] ?? text
-
-/** The print on a ticket's paper: a request's number in the layout's form ("03") is printed as its name ("R3"); every other print stays. */
-export const tagWords = (kind: string, text: string): string => (/^(ticket|fired|waiting)$/.test(kind) && /^\d+$/.test(text) ? `R${+text}` : text)

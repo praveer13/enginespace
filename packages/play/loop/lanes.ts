@@ -1,6 +1,6 @@
 /**
  * The step loop's lanes on the demo levels (docs/REDESIGN.md §2.9, §3.1): a pure function from the loop's view to positioned boxes,
- * the timing diagram an engineer reads in a profiler. It replaces the kitchen drawn through a camera (layout.ts, kitchen.ts), and the
+ * the timing diagram an engineer reads in a profiler. It replaced the kitchen drawn through a camera, and the
  * 2D diagram, the poster and the 3D scene's Side camera all draw it, so a tick has the same x in each (§2.1, P7).
  *
  * Its start was the scene kit's specimen (src/scene/specimen-layout.ts): spans on a time track from the model's own run, a slab per
@@ -415,8 +415,8 @@ export function laneLayout(source: LaneSource, geometry: LaneGeometry = DESK): L
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /**
- * Ticks the state table lists step by step before it sums the older steps in one row [estimated]: the kitchen drawing's landscape window,
- * which the front page's table has always used, so the table reads the same on every page.
+ * Ticks the state table lists step by step before it sums the older steps in one row [estimated]: the window the front page's table has always
+ * used, so the table reads the same on every page.
  */
 export const TABLE_TICKS = 76
 
@@ -435,8 +435,7 @@ export interface StepsWindow {
 /**
  * The last part of the run, which the state table lists step by step. While the run fits it starts at 0. After that it starts at the
  * `schedule` of the oldest step that still lets the run end inside the window, so it moves by whole steps and never cuts one in half; a step
- * on the GPU whose forward runs into the window from before it is kept. (The kitchen layout's `windowOf` is the same rule; the table reads it
- * here so that a page with no kitchen drawing loads none of it.)
+ * on the GPU whose forward runs into the window from before it is kept.
  */
 export function stepsWindow(view: Pick<KitchenView, 'clockUs' | 'fires' | 'cpu'>, windowTicks: number): StepsWindow {
   const end = view.clockUs

@@ -116,13 +116,10 @@ describe('every role reaches CSS, Tailwind and the scenes', () => {
 
   test('the scene materials are colours three can parse, taken from the roles', () => {
     const tokens = staticSceneTokens()
-    const { stainless, paper, tape, heatLamp, fluorescent } = tokens.materials
-    expect(stainless.color).toBe(resolveColor('surface-1'))
-    expect(paper.color).toBe(resolveColor('paper'))
-    expect(tape.color).toBe(resolveColor('tape'))
-    expect(heatLamp.color).toBe(resolveColor('lamp'))
+    const { fluorescent } = tokens.materials
     expect(fluorescent.skyColor).toBe(resolveColor('light-fluorescent'))
-    for (const color of [stainless.color, paper.color, tape.color, heatLamp.color, ...tokens.palette]) expect(color).toMatch(/^#[0-9a-f]{6}$/)
+    expect(fluorescent.groundColor).toBe(resolveColor('surface-0'))
+    for (const color of [fluorescent.skyColor, fluorescent.groundColor, ...tokens.palette]) expect(color).toMatch(/^#[0-9a-f]{6}$/)
     expect(tokens.motion.bellMs).toBe(240)
     expect(tokens.motion.reduced).toBe(false)
   })

@@ -1,10 +1,10 @@
 /**
  * A small SVG tree and its two renderers' common ground (A§6.11, GAMES.md §3 "2D path").
  *
- * The 2D view and the poster are one drawing: `layout.ts` turns a view into marks, `frameSvg` turns the marks into this tree, and
- * the tree is rendered twice. The poster is its markup as text (`svgMarkup`, used by `scripts/posters.ts`), and the 2D view is the
- * same tree as React elements (src/games/loop/View2D.tsx). `tests/play/loop-layout.test.ts` requires the two to be byte for byte
- * the same, so the poster is the 2D view's first frame and cannot drift from it.
+ * The poster and the debrief's strips are drawings of one kind: a layout turns a run into marks, the mark writer (`poster.ts`, `strip.ts`)
+ * turns the marks into this tree, and the tree is rendered twice. The poster is its markup as text (`svgMarkup`, used by
+ * `scripts/posters.ts`), and the page draws the same tree as React elements (src/games/loop/svg.tsx). `tests/play/loop-poster.test.ts`
+ * requires the two to be byte for byte the same, so the poster cannot drift from the page.
  *
  * Attribute names are React's (camelCase), so the React side passes them as props and this side writes them as SVG does. The text
  * escaping is the one React's server renderer uses, which is what makes the two outputs equal.
