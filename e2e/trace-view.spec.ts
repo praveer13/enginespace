@@ -619,13 +619,13 @@ test.describe('the paper (DESIGN.md, "The One Lamp Rule")', () => {
   test('the lamp’s filament is drawn round the cursor, and moves with it', async ({ page }) => {
     await open(page)
     await settled(page)
-    const before = await inkBox(page, '--es-lamp-ring')
+    const before = await inkBox(page, '--es-marker-edge')
     expect(before, 'filament pixels on the paper').not.toBeNull()
     expect(before?.n ?? 0).toBeGreaterThan(40)
     await tabTo(page, 'zoom-out')
     for (let i = 0; i < 6; i++) await press(page, 'KeyK')
     await settled(page)
-    const after = await inkBox(page, '--es-lamp-ring')
+    const after = await inkBox(page, '--es-marker-edge')
     expect(after).not.toBeNull()
     expect(Math.abs((after?.x0 ?? 0) - (before?.x0 ?? 0)), 'the filament moved along the paper').toBeGreaterThan(5)
   })
@@ -633,7 +633,7 @@ test.describe('the paper (DESIGN.md, "The One Lamp Rule")', () => {
   test('draws every kind of span with its colour and its glyph, and the cursor in amber with its edge (R-T27)', async ({ page }) => {
     await open(page)
     await settled(page)
-    const marker = await inkBox(page, '--es-lamp')
+    const marker = await inkBox(page, '--es-marker')
     expect(marker, 'amber pixels on the paper').not.toBeNull()
     for (const role of ['--es-cat-blue', '--es-cat-green', '--es-cat-brown']) {
       expect(await inkBox(page, role), `${role} on the paper`).not.toBeNull()

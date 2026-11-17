@@ -35,7 +35,7 @@ export function checkGrader(receipt: Receipt, published: readonly PublishedGrade
   const build = `${name} ${cut(version, 40)}`
   if (published.length === 0) {
     return outcome('fail', `${build} is not a build this site knows.`, [
-      'This site build has published no grader yet, so it knows no build and credits no receipt (ARCHITECTURE §8.5 rule 5, §16). The list of published builds arrives with the kit and the grader wheel (W2-T10).',
+      'This site build has published no grader yet, so it knows no build and credits no receipt. The list of published builds arrives with the kit and the grader wheel.',
     ])
   }
   const same = published.find((entry) => entry.version === version)

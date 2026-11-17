@@ -102,7 +102,7 @@ export function passDrawing(view: LoopView, orientation: Orientation): SvgNode {
         el('g', { 'data-part': 'rows' }, rows),
         el('line', { x1: num(scale.x), x2: num(scale.x + scale.width), y1: num(layout.axis.y), y2: num(layout.axis.y), stroke: 'var(--es-edge)', strokeWidth: 1 }),
         el('g', { 'data-part': 'axis' }, axis),
-        el('rect', { x: num(layout.now.x - 1), y: num(layout.now.y0), width: 2, height: num(layout.now.y1 - layout.now.y0), fill: 'var(--es-lamp)', stroke: 'var(--es-lamp-ring)', strokeWidth: 0.5, 'data-part': 'now' }),
+        el('rect', { x: num(layout.now.x - 1), y: num(layout.now.y0), width: 2, height: num(layout.now.y1 - layout.now.y0), fill: 'var(--es-marker)', stroke: 'var(--es-marker-edge)', strokeWidth: 0.5, 'data-part': 'now' }),
       ]),
     ],
   )

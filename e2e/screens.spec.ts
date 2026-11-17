@@ -15,13 +15,6 @@ import { PR_ROUTES, W1_LEVEL_PAGES, W1_ROUTES, W2_ROUTES } from './routes'
 import { amberByScroll, copyProblems, FIRST_VISIT, LESSONS, stuck, wayOnProblems } from './support/screens'
 import { clipped, expect, open, quiet, test, withSettings } from './support/site'
 
-/**
- * The design system's own page: a specimen sheet that no page links to. It prints the system's token names (`--es-lamp`, `--es-tape`) and each
- * component in every state, amber buttons included, so the checks that read what a learner reads (the way on, the copy, the one amber fill)
- * are about the course's screens and not about it. Its layout is held like any other: no sideways scroll, nothing sticky when short.
- */
-const SPECIMEN = '/design'
-
 /** The routes of e2e/routes.ts, and every lesson and module the course has built (the lessons table of the compiled map): all 27 lessons, not a sample. */
 const ROUTES = [...new Set([...PR_ROUTES, ...W1_ROUTES, ...W2_ROUTES, ...W1_LEVEL_PAGES, ...LESSONS.map((lesson) => lesson.route), ...LESSONS.map((lesson) => `/m/${lesson.module}`)])]
 
@@ -45,19 +38,15 @@ test.describe('every route holds the checks of REDESIGN 5.2', () => {
       await page.setViewportSize({ width: 1440, height: 900 })
       await open(page, route)
       await quiet(page)
-      if (route !== SPECIMEN) {
-        note('the way on at 1440', await wayOnProblems(page, FIRST_VISIT))
-        note('copy at 1440', await copyProblems(page))
-        note('amber at 1440', await amberByScroll(page))
-      }
+      note('the way on at 1440', await wayOnProblems(page, FIRST_VISIT))
+      note('copy at 1440', await copyProblems(page))
+      note('amber at 1440', await amberByScroll(page))
 
       await page.setViewportSize({ width: 390, height: 844 })
       await quiet(page, 300)
-      if (route !== SPECIMEN) {
-        note('the way on at 390', await wayOnProblems(page, FIRST_VISIT))
-        note('copy at 390', await copyProblems(page))
-        note('amber at 390', await amberByScroll(page))
-      }
+      note('the way on at 390', await wayOnProblems(page, FIRST_VISIT))
+      note('copy at 390', await copyProblems(page))
+      note('amber at 390', await amberByScroll(page))
 
       for (const width of REFLOW) {
         await page.setViewportSize({ width, height: 800 })

@@ -131,14 +131,14 @@ describe('the rules of a hand', () => {
     s = hang(s, 0)
     expect(s.tray).toEqual([0, null, 3, null])
     expect(s.waiting).toEqual([1, 2, 4, 5])
-    expect(() => hang(s, 0)).toThrow('ticket 0 is not waiting')
-    expect(() => hang(s, 6)).toThrow('ticket 6 is not waiting')
-    expect(() => hang(s, 1, 2)).toThrow('clip 2 is taken')
-    expect(() => hang(s, 1, 4)).toThrow('there is no clip 4')
-    expect(() => hang(s, 1, -1)).toThrow('there is no clip -1')
-    expect(() => hang(s, 1, 0.5)).toThrow('there is no clip 0.5')
+    expect(() => hang(s, 0)).toThrow('request 0 is not waiting')
+    expect(() => hang(s, 6)).toThrow('request 6 is not waiting')
+    expect(() => hang(s, 1, 2)).toThrow('slot 2 is taken')
+    expect(() => hang(s, 1, 4)).toThrow('there is no slot 4')
+    expect(() => hang(s, 1, -1)).toThrow('there is no slot -1')
+    expect(() => hang(s, 1, 0.5)).toThrow('there is no slot 0.5')
     s = hang(hang(s, 1), 2)
-    expect(() => hang(s, 4)).toThrow('every clip is taken')
+    expect(() => hang(s, 4)).toThrow('every slot is taken')
     expect(askOf(s)).toBeNull()
   })
 
@@ -155,7 +155,7 @@ describe('the rules of a hand', () => {
   })
 
   test('the bell cannot ring on an empty rail with nothing on the line', () => {
-    expect(() => step(freshState(level))).toThrow('nothing is hung on the rail, and nothing is on the line')
+    expect(() => step(freshState(level))).toThrow('nothing is admitted to the batch, and nothing is running')
   })
 
   test('ringing the bell with a clip free and a ticket waiting leaves the clip empty, and counts the place the line paid for', () => {
@@ -177,7 +177,7 @@ describe('the rules of a hand', () => {
     // Tickets hung before the first bell are one batch: the rail takes more until it is fired.
     s = hang(s, 2)
     s = step(s)
-    expect(() => hang(s, 3)).toThrow('static batching hangs nothing until every clip has cleared')
+    expect(() => hang(s, 3)).toThrow('static batching admits nothing until every slot has cleared')
     expect(askOf(s)).toBeNull()
     expect(loopView(s).canHang).toBe(false)
     // Rung again, tickets 0 and 1 end and ticket 2 runs on alone: still nothing may be hung.
@@ -279,7 +279,7 @@ describe('a run is its log', () => {
 
   test('an action the rules refuse is not logged, and a log that does not replay says where it broke', () => {
     const run = startRun(loopSession, { game: 'loop', level: 'first-4-par', seed: 1 })
-    expect(() => applyAction(loopSession, run, { t: 'admit', req: 99 })).toThrow('ticket 99 is not waiting')
+    expect(() => applyAction(loopSession, run, { t: 'admit', req: 99 })).toThrow('request 99 is not waiting')
     const twice: LoopAction[] = [{ t: 'admit', req: 0 }, { t: 'admit', req: 0 }]
     const broken = replay(loopSession, { ...run.record, actions: twice })
     expect(broken).toMatchObject({ ok: false, at: 1 })

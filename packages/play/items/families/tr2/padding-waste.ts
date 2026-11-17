@@ -38,7 +38,7 @@ type VariantId = 'padded-size' | 'night-waste' | 'choose-sizes'
 
 const VARIANTS: readonly VariantSpec[] = [
   { id: 'padded-size', title: 'The size a step pads to', kcs: [KC], levels: [0, 1, 2, 3] },
-  { id: 'night-waste', title: 'The padding a night wastes', kcs: [KC], levels: [0, 1, 2, 3] },
+  { id: 'night-waste', title: 'The padding that a run of steps wastes', kcs: [KC], levels: [0, 1, 2, 3] },
   { id: 'choose-sizes', title: 'Sizes that waste the least', kcs: [KC], levels: [2, 3] },
 ]
 

@@ -134,7 +134,7 @@ export function verifierReduce(s: VerifierState, a: VerifierAction): VerifierSta
       return { ...s, submitted: true }
     }
     default:
-      throw new RangeError(`The Tasting has no action "${String((a as { t?: unknown }).t)}"`)
+      throw new RangeError(`The rejection sampler has no action "${String((a as { t?: unknown }).t)}"`)
   }
 }
 

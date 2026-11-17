@@ -14,12 +14,11 @@
   --es-paper-ink: #1d1b22;
   --es-paper-ink-2: #a30f1a;
   --es-paper-rule: #c2c8bd;
-  --es-lamp: #ffb547;
-  --es-lamp-ring: #9a3d00;
-  --es-tape: #e6d6ad;
-  --es-tape-ink: #1a1a1c;
-  --es-light-fluorescent: #eef4f8;
-  --es-glint: #ffffff;
+  --es-marker: #ffb547;
+  --es-marker-edge: #9a3d00;
+  --es-slip: #e6d6ad;
+  --es-slip-ink: #1a1a1c;
+  --es-light-ambient: #eef4f8;
   --es-text-1: #17191d;
   --es-text-2: #3b4148;
   --es-text-3: #4b525a;
@@ -65,17 +64,14 @@
   --es-shadow-paper: 0 1px 2px rgb(23 25 29 / 0.12), 0 6px 14px -8px rgb(23 25 29 / 0.28);
   --es-shadow-lift: 0 2px 4px rgb(23 25 29 / 0.14), 0 16px 32px -12px rgb(23 25 29 / 0.36);
   --es-dur-quick: 120ms;
-  --es-dur-bell: 240ms;
+  --es-dur-step: 240ms;
   --es-dur-feed: 420ms;
   --es-dur-settle: 640ms;
   --es-ease-settle: cubic-bezier(0.16, 1, 0.3, 1);
   --es-ease-strike: cubic-bezier(0.19, 1, 0.22, 1);
-  --es-ease-feed: steps(6, end);
   --es-radius-paper: 0px;
   --es-radius-trim: 2px;
-  --es-radius-plate: 3px;
-  --es-radius-shoulder: 8px;
-  --es-radius-pan: 10px;
+  --es-radius-control: 3px;
   --es-radius-round: 999px;
   --es-space-1: 0.25rem;
   --es-space-2: 0.5rem;
@@ -116,12 +112,12 @@
   --es-font-numeric-tracking: 0em;
   --es-font-numeric-weight: 500;
   --es-font-numeric-case: none;
-  --es-font-ticket: 'Atkinson Hyperlegible Mono', 'Atkinson Hyperlegible', monospace;
-  --es-font-ticket-size: 0.9375rem;
-  --es-font-ticket-leading: 1.45;
-  --es-font-ticket-tracking: 0em;
-  --es-font-ticket-weight: 400;
-  --es-font-ticket-case: none;
+  --es-font-readout: 'Atkinson Hyperlegible Mono', 'Atkinson Hyperlegible', monospace;
+  --es-font-readout-size: 0.9375rem;
+  --es-font-readout-leading: 1.45;
+  --es-font-readout-tracking: 0em;
+  --es-font-readout-weight: 400;
+  --es-font-readout-case: none;
   --es-font-label: 'Atkinson Hyperlegible', sans-serif;
   --es-font-label-size: 0.875rem;
   --es-font-label-leading: 1.25;
@@ -135,7 +131,7 @@
   --es-size-print: 0.9375rem;
   --es-size-base: 1rem;
   --es-size-body: 1.0625rem;
-  --es-size-plate: 1.125rem;
+  --es-size-control: 1.125rem;
   --es-size-title: 1.25rem;
   --es-size-action: 1.375rem;
   --es-size-large: 1.5rem;
@@ -152,7 +148,7 @@
     --es-text-3: #30353b;
     --es-edge: #3f454b;
     --es-paper-rule: #717869;
-    --es-lamp-ring: #7a2f00;
+    --es-marker-edge: #7a2f00;
     --es-cat-white-edge: #3f454b;
   }
 }
@@ -161,14 +157,14 @@
 @media (prefers-reduced-motion: reduce) {
   :root:not([data-motion='full']) {
     --es-dur-quick: 0ms;
-    --es-dur-bell: 0ms;
+    --es-dur-step: 0ms;
     --es-dur-feed: 0ms;
     --es-dur-settle: 0ms;
   }
 }
 :root[data-motion='reduce'] {
   --es-dur-quick: 0ms;
-  --es-dur-bell: 0ms;
+  --es-dur-step: 0ms;
   --es-dur-feed: 0ms;
   --es-dur-settle: 0ms;
 }
@@ -177,8 +173,8 @@
 @media (forced-colors: active) {
   :root {
     --es-focus: Highlight;
-    --es-lamp-ring: Highlight;
-    --es-lamp: Highlight;
+    --es-marker-edge: Highlight;
+    --es-marker: Highlight;
     --es-edge: CanvasText;
     --es-paper-rule: GrayText;
   }

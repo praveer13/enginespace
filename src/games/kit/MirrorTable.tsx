@@ -110,7 +110,7 @@ export function MirrorTable({ id, caption, columns, rows, summary, head = 'Mirro
                     aria-current={selected ? 'true' : undefined}
                     data-selected={selected || undefined}
                     data-lamp={row.lamp || undefined}
-                    className={clsx('border-b border-paper-rule', row.lamp && 'bg-lamp text-paper-ink')}
+                    className={clsx('border-b border-paper-rule', row.lamp && 'bg-marker text-paper-ink')}
                     role="row"
                   >
                     {columns.map((column, position) => {

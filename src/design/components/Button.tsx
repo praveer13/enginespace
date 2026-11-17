@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 import { useId, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { Icon, type IconName } from './Glyph'
-import { PrintingDots } from './PrintingDots'
+import { LoadingDots } from './LoadingDots'
 
 /*
  * A button (REDESIGN 2.8): flat, a 1 px edge at 3:1, a 3 px radius, and a label in sentence case that says what it does.
@@ -49,7 +49,7 @@ export function Button({
       onClick={loading ? undefined : onClick}
       {...rest}
     >
-      {loading ? <PrintingDots /> : icon ? <Icon name={icon} className="es-button__icon" /> : null}
+      {loading ? <LoadingDots /> : icon ? <Icon name={icon} className="es-button__icon" /> : null}
       {children}
     </button>
   )

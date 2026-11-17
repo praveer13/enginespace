@@ -86,7 +86,7 @@
 .es-lesson__promise {
   max-width: var(--lesson-measure);
   margin: 0;
-  font-size: var(--es-size-plate);
+  font-size: var(--es-size-control);
   line-height: 1.45;
   text-wrap: pretty;
 }
@@ -536,7 +536,7 @@
 
 .es-lesson__setup,
 .es-lesson__primer {
-  font-size: var(--es-size-plate);
+  font-size: var(--es-size-control);
 }
 
 .es-lesson__primer-title {
@@ -633,7 +633,7 @@
 }
 
 .es-guess__ask {
-  font-size: var(--es-size-plate);
+  font-size: var(--es-size-control);
   line-height: 1.45;
 }
 
@@ -828,9 +828,9 @@
   min-width: 0;
   min-height: 2.75rem;
   padding: var(--es-space-1) var(--es-space-3);
-  border: 2px solid var(--es-lamp-ring);
-  border-radius: var(--es-radius-plate);
-  background: var(--es-lamp);
+  border: 2px solid var(--es-marker-edge);
+  border-radius: var(--es-radius-control);
+  background: var(--es-marker);
   color: var(--es-text-1);
   font-size: var(--es-size-note);
   font-weight: 700;
@@ -855,7 +855,7 @@
 .es-lesson__keep-title {
   margin: var(--es-space-4) 0 0;
   font-family: var(--es-font-body);
-  font-size: var(--es-size-plate);
+  font-size: var(--es-size-control);
   font-weight: 700;
 }
 

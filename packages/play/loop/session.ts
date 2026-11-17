@@ -34,7 +34,7 @@ const isLevelId = (id: string): id is LoopLevelId => (LEVEL_IDS as readonly stri
  * opening must also leave the level open, so that the visitor has something to do.
  */
 export function loopInBand(id: string, seed: Seed): boolean {
-  if (!isLevelId(id)) throw new RangeError(`Service has no level "${id}"`)
+  if (!isLevelId(id)) throw new RangeError(`Step loop has no level "${id}"`)
   if (!inLevelBand(id, seed)) return false
   return id === 'first-4-par' || !levelDone(initState(buildLevel(id, seed)))
 }
@@ -57,9 +57,9 @@ export function loopReduce(s: LoopState, a: LoopAction): LoopState {
         if (a.value !== 'static' && a.value !== 'continuous') throw new RangeError('the batching lever is "static" or "continuous"')
         return setBatching(s, a.value)
       }
-      throw new RangeError(`Service has no lever "${String(a.name)}"`)
+      throw new RangeError(`Step loop has no lever "${String(a.name)}"`)
     default:
-      throw new RangeError(`Service has no action "${String((a as { t?: unknown }).t)}"`)
+      throw new RangeError(`Step loop has no action "${String((a as { t?: unknown }).t)}"`)
   }
 }
 
@@ -86,7 +86,7 @@ export function loopView(s: LoopState): LoopView {
     outcome === 'empty' || req === null ? { state: 'empty', req: null } : { state: outcome === 'binned' ? 'binned' : 'plate', req }
   const fires: FireView[] = s.fires.map((fire, index) => {
     const forward = fire.record.forward
-    if (forward === null) throw new Error('internal: a fire with no forward')
+    if (forward === null) throw new Error('internal: a step with no forward')
     return {
       index,
       startUs: forward.startUs,

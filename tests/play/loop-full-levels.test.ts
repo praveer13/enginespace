@@ -138,7 +138,7 @@ describe('the worlds', () => {
   })
 
   test('a level that the full service does not have is refused', () => {
-    expect(() => buildFullLevel('keys', 0)).toThrow('the full service has no level "keys"')
-    expect(() => buildFullLevel('no-such-level', 0)).toThrow('the full service has no level "no-such-level"')
+    expect(() => buildFullLevel('keys', 0)).toThrow('the full step loop has no level "keys"')
+    expect(() => buildFullLevel('no-such-level', 0)).toThrow('the full step loop has no level "no-such-level"')
   })
 })

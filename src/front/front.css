@@ -115,7 +115,7 @@
 
   .es-front-lede,
   .es-front-live {
-    font-size: var(--es-size-plate);
+    font-size: var(--es-size-control);
   }
 }
 
@@ -797,7 +797,7 @@
   min-height: 2.75rem;
   padding: var(--es-space-2) var(--es-space-4);
   border: 1px solid var(--es-edge);
-  border-radius: var(--es-radius-plate);
+  border-radius: var(--es-radius-control);
   color: var(--es-text-1);
   font-family: var(--es-font-label);
   font-size: var(--es-size-note);

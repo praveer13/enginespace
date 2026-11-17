@@ -167,7 +167,7 @@ function commit(level: FullLevelId, stage: StageState, world: StageWorld, predic
 function ring(stage: StageState, world: StageWorld, until: 'step' | 'decision'): StageState {
   if (until !== 'step' && until !== 'decision') throw new RangeError(`run until "step" or "decision", not ${JSON.stringify(until)}`)
   if (stageClosed(world, stage)) throw new RangeError('this stage is over')
-  if (stage.prediction === null) throw new RangeError('commit the prediction before the first night')
+  if (stage.prediction === null) throw new RangeError('commit the prediction before the first run')
   const shown = shownNight(world, stage)
   const fresh = shown === null || shown.fires >= shown.night.fires.length
   const levers = fresh ? stage.levers : shown.levers

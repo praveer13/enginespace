@@ -51,7 +51,7 @@ export function deltasOf(before: Readonly<Record<string, number>>, after: Readon
   return out
 }
 
-/** How long a delta stays: one second, then the chip's own fade (dur-bell). Under reduced motion the chip does not fade, and goes at once. */
+/** How long a delta stays: one second, then the chip's own fade (dur-step). Under reduced motion the chip does not fade, and goes at once. */
 export const DELTA_MS = 1000 + 240
 
 /**

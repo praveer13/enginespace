@@ -253,7 +253,7 @@ describe('the slip, with a receipt that was kept', () => {
   test('says what it is worth now: not counted, and why, in the words of the verifier and not in a number of the page\'s own', () => {
     expect(text(html)).toContain('not counted')
     expect(text(html)).toContain('What it is worth now')
-    expect(text(html)).toContain('X1 is not built yet: W2-T23 builds it, and a receipt of tr3.profile.s2 does not count until it exists.')
+    expect(text(html)).toContain('X1 is a check this site does not run yet, so a receipt of tr3.profile.s2 does not count until it does.')
     expect(html).toContain('data-rule="verdict"')
     expect(html).toMatch(/role="status" aria-live="polite">Kept in your record\. Not counted\.<\/p>/)
   })

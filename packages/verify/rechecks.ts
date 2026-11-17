@@ -46,7 +46,7 @@ function identityTally(run: Run): Outcome {
   if (bad !== null) return bad
   for (const parsed of all) {
     if (parsed.ok && parsed.value.first.length === 0) {
-      return fail('identity-tally', cut(`the artifact "${parsed.id}" holds no sequence, so no run was compared with another: an identity over no sequence is no identity (D-046).`, PROBLEM_CHARS))
+      return fail('identity-tally', cut(`the artifact "${parsed.id}" holds no sequence, so no run was compared with another: an identity over no sequence is no identity.`, PROBLEM_CHARS))
     }
   }
   let sequences = 0
@@ -105,7 +105,7 @@ function argmaxBank(run: Run): Outcome {
   const bad = unreadable('argmax-bank', all)
   if (bad !== null) return bad
   const bank = run.bank
-  if (bank === undefined) return fail('argmax-bank', cut(`this site holds no argmax bank for ${run.receipt.stage} yet (the owner records it, W2-T17), so the ids cannot be compared.`, PROBLEM_CHARS))
+  if (bank === undefined) return fail('argmax-bank', cut(`this site holds no argmax bank for ${run.receipt.stage} yet, so the ids cannot be compared.`, PROBLEM_CHARS))
   if (bank.positions.length === 0) return fail('argmax-bank', cut(`this site's argmax bank for ${run.receipt.stage} holds no position, so the ids cannot be compared: every id agrees with a bank of nothing.`, PROBLEM_CHARS))
   const parsed = all[0]
   if (!parsed.ok) return fail('argmax-bank', 'the ids could not be read.')

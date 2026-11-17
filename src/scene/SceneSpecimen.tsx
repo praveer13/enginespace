@@ -85,7 +85,7 @@ function KitTape({ store, tier }: { store: StatsStore; tier: Tier | null }) {
         ]
       : []),
   ]
-  return <ReadoutStrip label="The kit's tape: what this browser measures of the frame" lines={lines} empty="No 3D frame yet" className="es-kit__tape" />
+  return <ReadoutStrip label="What this browser measures of the frame" lines={lines} empty="No 3D frame yet" className="es-kit__tape" />
 }
 
 const isTyping = (target: EventTarget | null) =>

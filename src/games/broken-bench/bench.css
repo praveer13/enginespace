@@ -207,7 +207,7 @@
 }
 
 .es-bench-claim__unit {
-  font-size: var(--es-size-plate);
+  font-size: var(--es-size-control);
   color: var(--es-text-2);
 }
 
@@ -373,7 +373,7 @@
 
 .es-bench-dock__title {
   margin: 0;
-  font-size: var(--es-size-plate);
+  font-size: var(--es-size-control);
   font-weight: 700;
   line-height: 1.25;
 }
@@ -570,7 +570,7 @@
 .es-bench-strip__value {
   position: relative;
   margin: 0;
-  font-size: var(--es-size-plate);
+  font-size: var(--es-size-control);
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;

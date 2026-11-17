@@ -7,7 +7,7 @@
  *   3. the current position in the rail and on the course track.
  * Callouts are ink discs, never amber, and focus is ink (tests/design/focus.test.ts).
  *
- * The rule is read off the stylesheets, rule by rule: every rule under src/ that fills with the marker (`var(--es-lamp)`) must be one of
+ * The rule is read off the stylesheets, rule by rule: every rule under src/ that fills with the marker (`var(--es-marker)`) must be one of
  * the carriers below, each named with the carrier it is. The kitchen scene's own files are not read (tests/design/sheets.ts).
  */
 import { describe, expect, test } from 'bun:test'
@@ -19,7 +19,7 @@ import { resolveColor } from '@/design/tokens'
 import { kitchen, repo, sheets } from './sheets'
 
 const SHEETS = sheets()
-const MARKER = /var\(--es-lamp\)/
+const MARKER = /var\(--es-marker\)/
 
 /** The carriers, each with the carrier of the rule it is (1, 2 or 3) and what it is. */
 const CARRIERS: { carrier: 1 | 2 | 3; what: string; selector: RegExp }[] = [
@@ -29,7 +29,7 @@ const CARRIERS: { carrier: 1 | 2 | 3; what: string; selector: RegExp }[] = [
   { carrier: 1, what: "the lesson's foot bar: its way on", selector: /^\.es-lesson__foot-action$/ },
   { carrier: 1, what: 'the ring on the control an intro points at', selector: /^\.es-marker__ring$/ },
   { carrier: 2, what: 'the marker on a diagram: its shape and the cursor', selector: /^\.es-marker(?:__shape|\[data-kind='cursor'\]::before)$/ },
-  { carrier: 2, what: 'the page or the light the next move acts on', selector: /^\.es-station\[data-lamp\] / },
+  { carrier: 2, what: 'the page or the light the next move acts on', selector: /^\.es-busy\[data-lamp\] / },
   { carrier: 2, what: 'the pages an eviction is about to take', selector: /^\.es-pool__cell\[data-chosen\]$/ },
   { carrier: 3, what: 'the current section in the rail', selector: /^\.es-srail__segment\[data-at='now'\]$/ },
   { carrier: 3, what: 'the current position on the course: the mark on the way on, on the module\'s node and by the next lesson', selector: /^\.es-course__mark$/ },
@@ -75,14 +75,14 @@ describe('the One Marker Rule: amber means now, on its three carriers only', () 
   test('amber never stands alone: each carrier at rest draws the marker\'s edge with it', () => {
     const atRest = rules.filter(({ selector }) => !/:is\(|:hover|:active/.test(selector))
     expect(atRest.length).toBeGreaterThan(5)
-    for (const { file, selector, rule } of atRest) expect(rule.toString(), `${file}: ${selector}`).toContain('var(--es-lamp-ring)')
+    for (const { file, selector, rule } of atRest) expect(rule.toString(), `${file}: ${selector}`).toContain('var(--es-marker-edge)')
   })
 
   test('callouts are ink discs: no callout rule names the marker', () => {
     const callouts: string[] = []
     for (const file of SHEETS) {
       postcss.parse(readFileSync(path.join(repo, file), 'utf8')).walkRules((rule) => {
-        if (/\.es-callout/.test(rule.selector) && /--es-lamp/.test(rule.toString())) callouts.push(`${file}: ${rule.selector}`)
+        if (/\.es-callout/.test(rule.selector) && /--es-marker/.test(rule.toString())) callouts.push(`${file}: ${rule.selector}`)
       })
     }
     expect(callouts).toEqual([])
@@ -99,25 +99,25 @@ describe('the One Marker Rule: amber means now, on its three carriers only', () 
       })
       return found
     }
-    expect(text('.es-header__next')).not.toMatch(/--es-lamp/)
+    expect(text('.es-header__next')).not.toMatch(/--es-marker/)
     expect(text(".es-header__link[aria-current='page']::after")).toContain('var(--es-text-1)')
-    expect(text(".es-header__link[aria-current='page']::after")).not.toMatch(/--es-lamp/)
+    expect(text(".es-header__link[aria-current='page']::after")).not.toMatch(/--es-marker/)
   })
 
   test('a switch that is on and a busy light are not amber: the state is a shape and a word', () => {
     const components = readFileSync(path.join(repo, 'src/design/components.css'), 'utf8')
     const toggle = /\.es-toggle__switch\[data-state='checked'\] \{[^}]*\}/.exec(components)?.[0] ?? ''
     expect(toggle).toContain('var(--es-surface-3)')
-    expect(toggle).not.toMatch(/--es-lamp/)
+    expect(toggle).not.toMatch(/--es-marker/)
     expect(components).not.toContain('es-toggle__pilot')
-    const lit = /\.es-station\[data-state='lit'\] \.es-station__lens \{[^}]*\}/.exec(components)?.[0] ?? ''
+    const lit = /\.es-busy\[data-state='lit'\] \.es-busy__lens \{[^}]*\}/.exec(components)?.[0] ?? ''
     expect(lit).toContain('var(--es-text-1)')
   })
 
   test('the marker on paper is under 3:1, so it always carries its edge, which holds 3:1 on paper and on the marker', () => {
-    expect(contrastRatio(resolveColor('lamp'), resolveColor('paper'))).toBeLessThan(3)
-    expect(contrastRatio(resolveColor('lamp-ring'), resolveColor('paper'))).toBeGreaterThanOrEqual(3)
-    expect(contrastRatio(resolveColor('lamp-ring'), resolveColor('lamp'))).toBeGreaterThanOrEqual(3)
-    expect(contrastRatio(resolveColor('text-1'), resolveColor('lamp'))).toBeGreaterThanOrEqual(4.5)
+    expect(contrastRatio(resolveColor('marker'), resolveColor('paper'))).toBeLessThan(3)
+    expect(contrastRatio(resolveColor('marker-edge'), resolveColor('paper'))).toBeGreaterThanOrEqual(3)
+    expect(contrastRatio(resolveColor('marker-edge'), resolveColor('marker'))).toBeGreaterThanOrEqual(3)
+    expect(contrastRatio(resolveColor('text-1'), resolveColor('marker'))).toBeGreaterThanOrEqual(4.5)
   })
 })

@@ -25,7 +25,7 @@ describe('a stage, in order', () => {
   test('the prediction comes first: the bell does not ring before it, and it is called once', () => {
     const s = start('async')
     expect(fullSession.ask(s)).toEqual({ kind: 'predict', stage: '70b' })
-    expect(() => fullSession.reduce(s, { t: 'run', until: 'step' })).toThrow('commit the prediction before the first night')
+    expect(() => fullSession.reduce(s, { t: 'run', until: 'step' })).toThrow('commit the prediction before the first run')
     const called = play(s, { t: 'commit', prediction: 12000 })
     expect(fullSession.ask(called)).toEqual({ kind: 'serve', stage: '70b' })
     expect(() => fullSession.reduce(called, { t: 'commit', prediction: 1 })).toThrow('the prediction is committed already')

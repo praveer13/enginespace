@@ -2,18 +2,18 @@
  * Data Book's components (REDESIGN 2.8): the site's atoms. Pages and games build from these and from the token roles in
  * ../tokens.ts, and set no colour or face of their own.
  */
-export { Bell, type BellProps } from './Bell'
+export { StepControl, type StepControlProps } from './StepControl'
 export { Header, MenuLink, type HeaderLink, type HeaderProps } from './Header'
 export { Button, type ButtonProps } from './Button'
 export { Field, type FieldProps } from './Field'
 export { Glyph, Icon, type IconName } from './Glyph'
 export { ReadoutStrip, type ReadoutStripLine, type ReadoutStripProps } from './ReadoutStrip'
 export { Readout, type NumberTag, type ReadoutProps, type ReadoutUnit } from './Readout'
-export { StationLight, type StationLightProps } from './StationLight'
+export { BusyMark, type BusyMarkProps } from './BusyMark'
 export { PrimaryButton, type PrimaryButtonProps } from './PrimaryButton'
 export { Label, type LabelProps } from './Label'
 export { TextLink, type TextLinkProps } from './TextLink'
-export { PrintingDots } from './PrintingDots'
+export { LoadingDots } from './LoadingDots'
 export { Sheet, SheetLine, type SheetProps, type SheetState } from './Sheet'
 export { Toggle, type ToggleProps } from './Toggle'
 

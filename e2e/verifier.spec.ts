@@ -172,7 +172,7 @@ test.describe('a keyboard-only walk wins every level', () => {
     const residual = excessPlates(buildLevel('exact', 0))
     await typeRecipe(page, residual)
     await expect(live(page)).toContainText('The output is p exactly.')
-    await expect(page.locator('.es-station[data-state="lit"]')).toBeVisible()
+    await expect(page.locator('.es-busy[data-state="lit"]')).toBeVisible()
     await page.keyboard.press('Enter')
     await atTheResult(page, 'Passed')
     await expect(page.getByText("Your weights against the reference's")).toBeVisible()

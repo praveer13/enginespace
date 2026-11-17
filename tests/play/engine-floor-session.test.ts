@@ -110,7 +110,7 @@ describe('the actions', () => {
     expect(state.laidAt).toEqual([1, 2])
     expect(state.turns).toBe(3)
     expect(() => walk(level, { t: 'commit', prediction: 0 }, { t: 'lay', stage: first }, { t: 'lay', stage: first })).toThrow(/already on the path/)
-    expect(() => walk(level, { t: 'commit', prediction: 0 }, { t: 'lay', stage: 'vllm.http-request' })).toThrow(/not in the tray/)
+    expect(() => walk(level, { t: 'commit', prediction: 0 }, { t: 'lay', stage: 'vllm.http-request' })).toThrow(/not among the stages/)
   })
 
   test('unlay takes the last stage off, or takes the path back to a number of stages, and takes the verdict with it', () => {

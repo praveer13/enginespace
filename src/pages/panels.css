@@ -133,7 +133,7 @@
   min-width: 0;
   padding: var(--es-space-6);
   border: 1px solid var(--es-edge);
-  border-radius: var(--es-radius-plate);
+  border-radius: var(--es-radius-control);
   background-color: var(--es-surface-1);
   box-shadow: var(--es-shadow-paper);
   color: var(--es-text-1);
@@ -305,10 +305,10 @@
 .es-ledger thead th {
   padding-block: 0 var(--es-space-2);
   border-bottom: 2px dotted var(--es-paper-rule);
-  font-family: var(--es-font-ticket);
+  font-family: var(--es-font-readout);
   font-size: 0.9375rem;
-  font-weight: var(--es-font-ticket-weight);
-  letter-spacing: var(--es-font-ticket-tracking);
+  font-weight: var(--es-font-readout-weight);
+  letter-spacing: var(--es-font-readout-tracking);
 }
 
 .es-ledger tbody th {
@@ -319,9 +319,9 @@
 .es-ledger tfoot td {
   border-bottom: 0;
   border-top: 2px dotted var(--es-paper-rule);
-  font-family: var(--es-font-ticket);
-  font-weight: var(--es-font-ticket-weight);
-  letter-spacing: var(--es-font-ticket-tracking);
+  font-family: var(--es-font-readout);
+  font-weight: var(--es-font-readout-weight);
+  letter-spacing: var(--es-font-readout-tracking);
 }
 
 .es-ledger .es-ledger__n {

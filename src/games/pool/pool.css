@@ -246,8 +246,8 @@
 /* The pages an eviction is about to take carry the marker: now. A page a row points at takes the ink ring. */
 .es-pool__cell[data-chosen] {
   box-shadow:
-    0 0 0 1px var(--es-lamp-ring),
-    0 0 0 3px var(--es-lamp);
+    0 0 0 1px var(--es-marker-edge),
+    0 0 0 3px var(--es-marker);
   z-index: 1;
 }
 
@@ -374,7 +374,7 @@
 
 .es-dock__title {
   margin: 0 0 var(--es-space-1);
-  font-size: var(--es-size-plate);
+  font-size: var(--es-size-control);
   font-weight: 700;
   line-height: 1.25;
 }
@@ -437,7 +437,7 @@
   gap: 0 var(--es-space-2);
   padding: var(--es-space-1) var(--es-space-2);
   border: 1px solid var(--es-paper-rule);
-  border-radius: var(--es-radius-plate);
+  border-radius: var(--es-radius-control);
   background: var(--es-paper);
   color: var(--es-paper-ink);
   text-align: left;
@@ -550,7 +550,7 @@
 
 .es-strip__value {
   margin: 0;
-  font-size: var(--es-size-plate);
+  font-size: var(--es-size-control);
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;

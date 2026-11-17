@@ -1,7 +1,7 @@
 /*
  * The step-loop model at v1 (W1-T12; ARCHITECTURE §5.3, §5.10; WORLD §2.5 to §2.8; GAMES.md §3.2): the graph modes and dispatch keys of both
  * runners inside a run, capture-size padding, adapters and the cap on them, the structured-output mask with and without overlap, the
- * speculative step, the 70B card with its host term on the CPU lane (D-044, proposed), and the runner presets.
+ * speculative step, the 70B card with its host term on the CPU lane (a placement not yet confirmed), and the runner presets.
  *
  * The cases are small enough to work by hand on the front page's tick card (a step is 2 ticks of planning, 4 of forward with 1 more on an
  * admission, and 1 of reading), and each comment gives the arithmetic. 200 seeds then check what holds whatever is switched on. The v0 tests
@@ -583,8 +583,8 @@ describe('check 5: on the 70B card no host work is counted on both lanes (D-044,
     expect(D044).toEqual({ id: 'D-044', status: 'proposed', placement: 'on-cpu' })
     expect(DEFAULT_HOST_TERM).toBe('on-cpu')
     expect(s5Card('h100-vllm-0-10-2-fp8', 4).hostTerm).toBe('on-cpu')
-    expect(s5Card('h100-vllm-0-10-2-fp8', 4).label).toContain('D-044, proposed')
-    expect(s5Card('h100-vllm-0-10-2-fp8', 4, 'in-gpu').label).not.toContain('D-044')
+    expect(s5Card('h100-vllm-0-10-2-fp8', 4).label).toContain('a placement not yet confirmed')
+    expect(s5Card('h100-vllm-0-10-2-fp8', 4, 'in-gpu').label).not.toContain('not yet confirmed')
     expect(s5Card('h100-vllm-0-10-2-fp8', 4, 'in-gpu').hostTerm).toBe('in-gpu')
   })
 

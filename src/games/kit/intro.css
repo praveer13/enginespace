@@ -19,7 +19,7 @@
 
 .es-intro__title {
   margin: 0;
-  font-size: var(--es-size-plate);
+  font-size: var(--es-size-control);
   font-weight: 700;
   line-height: 1.25;
   outline: none;
@@ -190,7 +190,7 @@
 
 .es-intro-callouts__at {
   position: absolute;
-  animation: es-intro-in var(--es-dur-bell) var(--es-ease-settle) both;
+  animation: es-intro-in var(--es-dur-step) var(--es-ease-settle) both;
 }
 
 /* On a phone only the part the list shows is called out. */

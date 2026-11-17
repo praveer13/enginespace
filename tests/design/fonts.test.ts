@@ -75,7 +75,7 @@ describe('the self-hosted faces', () => {
       expect(notice).not.toContain(gone)
       expect(files.filter((file) => file.toLowerCase().includes(gone.toLowerCase().replace(' ', '')) || file.toLowerCase().includes(gone.toLowerCase().replace(' ', '-')))).toEqual([])
     }
-    for (const role of ['font-numeric', 'font-ticket', 'font-label'] as const) {
+    for (const role of ['font-numeric', 'font-readout', 'font-label'] as const) {
       const family = roleOf(role)
       expect(family.kind === 'font' ? family.family[0] : '', role).toMatch(/^Atkinson Hyperlegible/)
     }

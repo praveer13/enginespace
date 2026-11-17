@@ -318,13 +318,13 @@ function finish(draft: Draft): StageWorld {
   const probe = { ...draft, answer: 0, houseMetric: 0, houseTokens: 0 }
   const house = nightOf(probe, draft.house)
   const naive = nightOf(probe, draft.naive)
-  if (house === null || naive === null) throw new Error(`internal: the ${draft.id} stage's house or naive night is refused`)
+  if (house === null || naive === null) throw new Error(`internal: the ${draft.id} stage's reference or naive run is refused`)
   return { ...draft, answer: answerOf(draft, house, naive), houseMetric: house.metric, houseTokens: house.usefulTokens }
 }
 
 /** The level `id` on `seed`. Throws for a level the full service does not have. */
 export function buildFullLevel(id: string, seed: Seed): FullLevel {
-  if (!isLevelId(id)) throw new RangeError(`the full service has no level "${id}"`)
+  if (!isLevelId(id)) throw new RangeError(`the full step loop has no level "${id}"`)
   assertSeed(seed)
   return { id, seed, stages: draftsOf(id, seed).map(finish) }
 }

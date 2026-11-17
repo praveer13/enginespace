@@ -54,7 +54,7 @@ describe('flat paper', () => {
 
   test.each(sheets())('%s names no texture role, no retired shadow and no retired colour', (file) => {
     const text = read(file).replace(/\/\*[\s\S]*?\*\//g, '')
-    expect(text.match(/--es-texture-[a-z-]+|--es-shadow-(?:plate|press|shelf)\b|--es-(?:tape|tape-ink|glint|light-fluorescent)\b/g) ?? []).toEqual([])
+    expect(text.match(/--es-texture-[a-z-]+|--es-shadow-(?:plate|press|shelf)\b|--es-(?:tape|slip-ink|glint|light-ambient)\b/g) ?? []).toEqual([])
   })
 
   test('the ground carries no image: the page is a flat fill', () => {
@@ -77,8 +77,8 @@ describe("the brief's values and pairs (REDESIGN 2.8, Palette roles)", () => {
     expect(resolveColor('paper')).toBe('#fafaf6')
     expect(resolveColor('edge')).toBe('#5f666d')
     expect(resolveColor('paper-ink-2')).toBe('#a30f1a')
-    expect(resolveColor('lamp')).toBe('#ffb547')
-    expect(resolveColor('lamp-ring')).toBe('#9a3d00')
+    expect(resolveColor('marker')).toBe('#ffb547')
+    expect(resolveColor('marker-edge')).toBe('#9a3d00')
   })
 
   test.each([
@@ -87,9 +87,9 @@ describe("the brief's values and pairs (REDESIGN 2.8, Palette roles)", () => {
     ['text-3', 'surface-2', 'text'],
     ['edge', 'surface-0', 'non-text'],
     ['paper', 'surface-3', 'text'],
-    ['text-1', 'lamp', 'text'],
-    ['lamp-ring', 'paper', 'non-text'],
-    ['lamp-ring', 'lamp', 'non-text'],
+    ['text-1', 'marker', 'text'],
+    ['marker-edge', 'paper', 'non-text'],
+    ['marker-edge', 'marker', 'non-text'],
   ] as const)('%s on %s is a declared %s pair', (fg, bg, kind) => {
     expect(PAIRS.some((pair) => pair.fg === (fg as ColorRoleName) && pair.bg === (bg as ColorRoleName) && pair.kind === kind)).toBe(true)
   })

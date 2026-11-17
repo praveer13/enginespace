@@ -11,12 +11,11 @@ colors:
   paper-ink: "#1d1b22"
   paper-ink-2: "#a30f1a"
   paper-rule: "#c2c8bd"
-  lamp: "#ffb547"
-  lamp-ring: "#9a3d00"
-  tape: "#e6d6ad"
-  tape-ink: "#1a1a1c"
-  light-fluorescent: "#eef4f8"
-  glint: "#ffffff"
+  marker: "#ffb547"
+  marker-edge: "#9a3d00"
+  slip: "#e6d6ad"
+  slip-ink: "#1a1a1c"
+  light-ambient: "#eef4f8"
   text-1: "#17191d"
   text-2: "#3b4148"
   text-3: "#4b525a"
@@ -64,7 +63,7 @@ typography:
     lineHeight: 1.25
     letterSpacing: "0em"
     fontFeature: "'tnum'"
-  ticket:
+  readout:
     fontFamily: "'Atkinson Hyperlegible Mono', 'Atkinson Hyperlegible', monospace"
     fontSize: "0.9375rem"
     fontWeight: 400
@@ -79,9 +78,7 @@ typography:
 rounded:
   paper: "0px"
   trim: "2px"
-  plate: "3px"
-  shoulder: "8px"
-  pan: "10px"
+  control: "3px"
   round: "999px"
 spacing:
   "1": "0.25rem"
@@ -95,9 +92,9 @@ spacing:
   "24": "6rem"
 components:
   button-primary:
-    backgroundColor: "{colors.lamp}"
+    backgroundColor: "{colors.marker}"
     textColor: "{colors.text-1}"
-    rounded: "{rounded.plate}"
+    rounded: "{rounded.control}"
     padding: "0.5rem 1rem"
     height: "2.75rem"
   button-primary-disabled:
@@ -105,7 +102,7 @@ components:
     textColor: "{colors.text-3}"
   button-outline:
     textColor: "{colors.text-1}"
-    rounded: "{rounded.plate}"
+    rounded: "{rounded.control}"
     padding: "0.5rem 1rem"
     height: "2.75rem"
   button-outline-active:
@@ -114,12 +111,12 @@ components:
   button-ink:
     backgroundColor: "{colors.surface-3}"
     textColor: "{colors.paper}"
-    rounded: "{rounded.plate}"
+    rounded: "{rounded.control}"
     padding: "0.5rem 1rem"
     height: "2.75rem"
   button-quiet:
     textColor: "{colors.text-1}"
-    rounded: "{rounded.plate}"
+    rounded: "{rounded.control}"
     padding: "0.5rem 1rem"
   sheet:
     backgroundColor: "{colors.paper}"
@@ -146,7 +143,7 @@ components:
     padding: "0.75rem 1rem"
   switch:
     backgroundColor: "{colors.surface-2}"
-    rounded: "{rounded.plate}"
+    rounded: "{rounded.control}"
     width: "4.5rem"
     height: "2.5rem"
   switch-on:
@@ -188,11 +185,11 @@ components:
     padding: "0 0.25rem"
   popover-trigger:
     textColor: "{colors.text-1}"
-    rounded: "{rounded.plate}"
+    rounded: "{rounded.control}"
     padding: "0 0.75rem"
     height: "2.75rem"
   course-mark:
-    backgroundColor: "{colors.lamp}"
+    backgroundColor: "{colors.marker}"
     rounded: "{rounded.round}"
     size: "1.125rem"
 ---
@@ -217,15 +214,15 @@ Motion keeps to the action. Things move when the learner acts and are still betw
 - Sentence case everywhere: nothing is transformed to upper case, so vLLM, SGLang and v0.33.0 keep their casing.
 - Six fills with their glyphs are the one colour code, and appear only where the model's state is drawn.
 - One instrument frame for every game and one template for every lesson, so the way on is always in the same place.
-- 3D is a model of the same diagram: matte solids on a pale plate, with every word and number in DOM over it.
+- 3D is a model of the same diagram: matte solids on a pale base, with every word and number in DOM over it.
 
 ## Colors
 
 Pale paper greys, paper white, two inks, one amber mark, and six fills held in reserve for the model's state.
 
 ### Primary
-- **The Marker** (lamp): now, and only now. It has three carriers: the control to act on now (one amber-filled button per viewport, or one amber ring on the control an intro points at), the "now" cursor on a diagram (a 2 px line with the word "now", and the ring on the object the next move acts on), and the current-position mark in the rail and on the course track. On paper it is 1.68:1 [derived], so it never carries anything alone.
-- **The Marker's Edge** (lamp-ring): amber's dark edge, 6.60:1 on paper and 3.93:1 on the marker [derived]. Every amber fill draws it at 2 px. Alone, as a bar at a row's start with a faint tint and the word "Next", it marks the next lesson in a list without spending a second amber fill.
+- **The Marker** (marker): now, and only now. It has three carriers: the control to act on now (one amber-filled button per viewport, or one amber ring on the control an intro points at), the "now" cursor on a diagram (a 2 px line with the word "now", and the ring on the object the next move acts on), and the current-position mark in the rail and on the course track. On paper it is 1.68:1 [derived], so it never carries anything alone.
+- **The Marker's Edge** (marker-edge): amber's dark edge, 6.60:1 on paper and 3.93:1 on the marker [derived]. Every amber fill draws it at 2 px. Alone, as a bar at a row's start with a faint tint and the word "Next", it marks the next lesson in a list without spending a second amber fill.
 
 ### Secondary
 - **The Second Ink** (paper-ink-2): errors, "Not yet", "unverified". It is never the colour of an action.
@@ -249,8 +246,8 @@ The one colour code, shown in every diagram's legend. Each slot has a fill, an e
 - **Graticule** (paper-rule): faint lines inside diagrams and figures, and a sheet's rules; never the only carrier of anything.
 - **Edge** (edge): hairlines, control borders, dimension lines and dashed outlines, at 3:1.
 - **Text** (text-1, text-2, text-3): primary, secondary and quiet text. text-1 is also the focus ring and a callout's disc.
-- **Scene light** (light-fluorescent): the cool white of the 3D model's sky and key light. It colours no surface.
-- **Left from The Pass** (tape, tape-ink, glint): three roles tokens.ts still declares and nothing draws with.
+- **Scene light** (light-ambient): the cool white of the 3D model's sky and key light. It colours no surface.
+- **Label slip** (slip, slip-ink): the pale slip and its ink words that the broken benchmark's log sheet draws its order labels on.
 
 ### Named Rules
 **The One Marker Rule.** Amber means now. It has three carriers and no others: the control to act on now, the "now" cursor on a diagram, and the current-position mark in the rail and on the course track. The header's Continue is an outline wherever the page has a move in hand, and an intro's callouts are ink discs.
@@ -278,7 +275,7 @@ The one colour code, shown in every diagram's legend. Each slot has a fill, an e
 - **Numeric** (Atkinson Hyperlegible Mono 500, 1.125rem, tabular): every number the learner compares, falling back to Atkinson Hyperlegible for µ and ±.
 - **Ticket** (Atkinson Hyperlegible Mono 400, 0.9375rem, 1.45): a readout strip's values, a sheet's numbered lines.
 - **Mono** (Atkinson Hyperlegible Mono 400, 0.9375rem, 1.55): code from vLLM and SGLang, and identifiers.
-- **Size ramp** (`--es-size-*`): the sizes that a component's own lines take. Small: micro (0.6875rem), stamp (0.75rem), caption (0.8125rem), note (0.875rem), print (0.9375rem, the mono size) and base (1rem). Reading and controls: body (1.0625rem, the body size), plate (1.125rem, the numeric size), title (1.25rem), action (1.375rem) and large (1.5rem). Fluid: count (clamp(2rem, 1.4rem + 2.4vw, 3rem), the biggest readout), page (clamp(2rem, 1.2rem + 3.4vw, 3.5rem), a page's title) and course (clamp(2.5rem, 1.8rem + 3vw, 4.5rem), declared and taken by no stylesheet).
+- **Size ramp** (`--es-size-*`): the sizes that a component's own lines take. Small: micro (0.6875rem), stamp (0.75rem), caption (0.8125rem), note (0.875rem), print (0.9375rem, the mono size) and base (1rem). Reading and controls: body (1.0625rem, the body size), control (1.125rem, the numeric size), title (1.25rem), action (1.375rem) and large (1.5rem). Fluid: count (clamp(2rem, 1.4rem + 2.4vw, 3rem), the biggest readout), page (clamp(2rem, 1.2rem + 3.4vw, 3.5rem), a page's title) and course (clamp(2.5rem, 1.8rem + 3vw, 4.5rem), declared and taken by no stylesheet).
 
 ### Named Rules
 **The Sentence Case Rule.** No text is transformed to upper case, anywhere. Engine names keep their own casing.
@@ -313,11 +310,11 @@ Depth is paper on a flat ground. There are two shadows and no more, each with an
 
 ## Shapes
 
-Paper is cut square (0px): sheets, diagrams, fields, notes, the readout strip. Small parts take 2px: a stamp, a chip, a page cell, a rail's segment. Controls take 3px: buttons, switches, menus, a popover's trigger. Dots, discs and pills are round. The shoulder (8px) and pan (10px) steps are declared and drawn by nothing.
+Paper is cut square (0px): sheets, diagrams, fields, notes, the readout strip. Small parts take 2px: a stamp, a chip, a page cell, a section list segment. Controls take 3px: buttons, switches, menus, a popover's trigger. Dots, discs and pills are round. The shoulder (8px) and pan (10px) steps are declared and drawn by nothing.
 
 Inside a diagram the graticule runs in paper-rule: on a timing diagram a rule on every tick of the time axis and one at the top of each row, on a page map a 2.5rem square grid at under half strength. An interval is marked as an engineering drawing marks it, with end ticks and its value; an idle stretch or an empty slot is a dashed hollow box with its word in it; a fill that would read as its neighbour takes a hatch. A label on a drawing sits on a slip of paper so no line crosses its words. Icons and category glyphs are drawn SVG on one 24-unit grid with one stroke weight, inheriting currentColor.
 
-The 3D scenes are a model of the same diagram: matte, flat-shaded solids in the code's colours on a pale plate engraved with the graticule, lit by one directional light and a hemisphere. Idle and empty are dashed wire outlines, and "now" is a thin amber sheet with its edge. A game offers 3D only where depth shows something the diagram cannot, and a phone opens in the diagram.
+The 3D scenes are a model of the same diagram: matte, flat-shaded solids in the code's colours on a pale base engraved with the graticule, lit by one directional light and a hemisphere. Idle and empty are dashed wire outlines, and "now" is a thin amber sheet with its edge. A game offers 3D only where depth shows something the diagram cannot, and a phone opens in the diagram.
 
 ## Components
 
@@ -358,7 +355,7 @@ Label is the plain label: Atkinson Hyperlegible 700 in sentence case, still and 
 - **Popover**: a bordered trigger that opens a paper sheet on the lift shadow; on a phone it is a bottom sheet between the gutters.
 - **Title block** (TitleBlock): one quiet line over a hairline that says what a drawing is, what its clock is and what the model leaves out.
 - **Number line** (NumberLine): pins on an axis, each label starting with its pin's shape.
-- **Busy mark, step control and loading dots** (StationLight, Bell, PrintingDots): a solid ink disc for busy and an open ring for idle, a flat step control, and still dots beside a line of text that says what is loading.
+- **Busy mark, step control and loading dots** (BusyMark, StepControl, LoadingDots): a solid ink disc for busy and an open ring for idle, a flat step control, and still dots beside a line of text that says what is loading.
 
 ### Named Rules
 **The Quiet Provenance Rule.** One stamp per instrument, table or figure. A tag inside prose is a dotted underline.
@@ -378,7 +375,7 @@ Label is the plain label: Atkinson Hyperlegible 700 in sentence case, still and 
 ### Don't:
 - **Don't** add a dark scheme; the system ships light and more-contrast only.
 - **Don't** transform text to upper case.
-- **Don't** lay a texture, a glint or a gradient sheen on any surface; a gradient draws a graticule or a hatch and nothing else.
+- **Don't** lay a texture, a highlight or a gradient sheen on any surface; a gradient draws a graticule or a hatch and nothing else.
 - **Don't** colour anything for decoration, or make a selected, current or focused thing amber.
 - **Don't** fade text with opacity to show a state; use the quiet text role, which keeps 4.5:1.
 - **Don't** use Unicode characters or an icon font as icons; draw them on the 24-unit grid.

@@ -193,7 +193,7 @@ function Viewer({ trace, traceId, title, headingLevel = 2, initialWindow, defaul
         ))}
         <li>
           <svg className="es-trace__pennant" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-            <path d="M3 2.5 13.5 8 3 13.5Z" style={{ fill: 'var(--es-lamp)', stroke: 'var(--es-lamp-ring)' }} />
+            <path d="M3 2.5 13.5 8 3 13.5Z" style={{ fill: 'var(--es-marker)', stroke: 'var(--es-marker-edge)' }} />
           </svg>
           <span>
             <strong>now</strong> the cursor

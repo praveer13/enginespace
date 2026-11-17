@@ -143,7 +143,7 @@ test.describe('R-T48: states reached by acting are drawn at their end', () => {
     await quiet(page)
     const tokens = await page.evaluate(() => {
       const style = getComputedStyle(document.documentElement)
-      return ['quick', 'bell', 'feed', 'settle'].map((name) => style.getPropertyValue(`--es-dur-${name}`).trim())
+      return ['quick', 'step', 'feed', 'settle'].map((name) => style.getPropertyValue(`--es-dur-${name}`).trim())
     })
     expect(tokens, 'the duration tokens').toEqual(['0ms', '0ms', '0ms', '0ms'])
     const mark = page.locator('.es-lesson .es-claimmark > a.es-pop__trigger').first()

@@ -72,7 +72,7 @@
   gap: var(--es-space-4) var(--es-space-8);
   padding: var(--es-space-6);
   border: 1px solid var(--es-edge);
-  border-radius: var(--es-radius-plate);
+  border-radius: var(--es-radius-control);
   background-color: var(--es-surface-1);
   box-shadow: var(--es-shadow-paper);
 }
@@ -96,9 +96,9 @@
 }
 
 .es-kit__word {
-  font-family: var(--es-font-ticket);
-  font-weight: var(--es-font-ticket-weight);
-  letter-spacing: var(--es-font-ticket-tracking);
+  font-family: var(--es-font-readout);
+  font-weight: var(--es-font-readout-weight);
+  letter-spacing: var(--es-font-readout-tracking);
 }
 
 .es-kit__fires {
@@ -135,8 +135,8 @@
 }
 
 .es-kit__fire-name {
-  font-family: var(--es-font-ticket);
-  font-weight: var(--es-font-ticket-weight);
+  font-family: var(--es-font-readout);
+  font-weight: var(--es-font-readout-weight);
   letter-spacing: 0.04em;
 }
 
@@ -166,8 +166,8 @@
 }
 
 .es-kit__part dt {
-  font-family: var(--es-font-ticket);
-  font-weight: var(--es-font-ticket-weight);
+  font-family: var(--es-font-readout);
+  font-weight: var(--es-font-readout-weight);
   letter-spacing: 0.03em;
 }
 
@@ -180,8 +180,8 @@
 /* The specimen's scene labels: printed on tickets, written in marker on tape, the clock in dots. */
 .es-kit-label {
   color: var(--es-paper-ink);
-  font-family: var(--es-font-ticket);
-  font-weight: var(--es-font-ticket-weight);
+  font-family: var(--es-font-readout);
+  font-weight: var(--es-font-readout-weight);
   letter-spacing: 0.04em;
   font-size: var(--es-size-caption);
   line-height: 1;
@@ -234,8 +234,8 @@
 .es-twin__legend-label,
 .es-twin__present-name {
   fill: var(--es-text-1);
-  font-family: var(--es-font-ticket);
-  font-weight: var(--es-font-ticket-weight);
+  font-family: var(--es-font-readout);
+  font-weight: var(--es-font-readout-weight);
   font-size: 15px;
   letter-spacing: 0.02em;
 }
@@ -310,6 +310,6 @@
 }
 
 .es-twin__present {
-  stroke: var(--es-lamp-ring);
+  stroke: var(--es-marker-edge);
   stroke-width: 2;
 }

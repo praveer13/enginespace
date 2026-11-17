@@ -156,7 +156,7 @@ export interface Fill {
  */
 export function amberFills(page: Page): Promise<Fill[]> {
   return page.evaluate(() => {
-    const lamp = getComputedStyle(document.documentElement).getPropertyValue('--es-lamp').trim().toLowerCase()
+    const lamp = getComputedStyle(document.documentElement).getPropertyValue('--es-marker').trim().toLowerCase()
     const probe = document.createElement('span')
     probe.style.color = lamp
     document.body.append(probe)

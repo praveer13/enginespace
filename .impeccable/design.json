@@ -148,7 +148,7 @@
           "#ebf1e6"
         ]
       },
-      "lamp": {
+      "marker": {
         "role": "primary",
         "displayName": "The Marker",
         "canonical": "#ffb547",
@@ -164,7 +164,7 @@
           "#feebd5"
         ]
       },
-      "lamp-ring": {
+      "marker-edge": {
         "role": "primary",
         "displayName": "The Marker's Edge",
         "canonical": "#9a3d00",
@@ -180,9 +180,9 @@
           "#ffeae0"
         ]
       },
-      "tape": {
+      "slip": {
         "role": "neutral",
-        "displayName": "Left from The Pass: tape",
+        "displayName": "Label slip",
         "canonical": "#e6d6ad",
         "oklch": "oklch(87.9% 0.057 89.2)",
         "tonalRamp": [
@@ -196,9 +196,9 @@
           "#feedc4"
         ]
       },
-      "tape-ink": {
+      "slip-ink": {
         "role": "neutral",
-        "displayName": "Left from The Pass: tape-ink",
+        "displayName": "Label slip ink",
         "canonical": "#1a1a1c",
         "oklch": "oklch(21.9% 0.004 286.1)",
         "tonalRamp": [
@@ -212,7 +212,7 @@
           "#eeeef1"
         ]
       },
-      "light-fluorescent": {
+      "light-ambient": {
         "role": "neutral",
         "displayName": "Scene light",
         "canonical": "#eef4f8",
@@ -226,22 +226,6 @@
           "#979ca0",
           "#bfc5c9",
           "#e9eff3"
-        ]
-      },
-      "glint": {
-        "role": "neutral",
-        "displayName": "Left from The Pass: glint",
-        "canonical": "#ffffff",
-        "oklch": "oklch(100.0% 0.000 89.9)",
-        "tonalRamp": [
-          "#090909",
-          "#222222",
-          "#3d3d3d",
-          "#5b5b5b",
-          "#7a7a7a",
-          "#9b9b9b",
-          "#c4c4c4",
-          "#eeeeee"
         ]
       },
       "text-1": {
@@ -534,7 +518,7 @@
       {
         "name": "size-note",
         "value": "0.875rem",
-        "purpose": "A note: a table's heading, a label, a menu term."
+        "purpose": "A note: a table heading, a label, a menu term."
       },
       {
         "name": "size-print",
@@ -552,7 +536,7 @@
         "purpose": "Reading: the body size."
       },
       {
-        "name": "size-plate",
+        "name": "size-control",
         "value": "1.125rem",
         "purpose": "A large button and a count: the numeric size."
       },
@@ -612,7 +596,7 @@
         "purpose": "The hand: a press or a hover answering it."
       },
       {
-        "name": "dur-bell",
+        "name": "dur-step",
         "value": "240ms",
         "purpose": "One step."
       },
@@ -635,11 +619,6 @@
         "name": "ease-strike",
         "value": "cubic-bezier(0.19, 1, 0.22, 1)",
         "purpose": "A step that settles exponentially, with no overshoot."
-      },
-      {
-        "name": "ease-feed",
-        "value": "steps(6, end)",
-        "purpose": "Declared and taken by no stylesheet."
       },
       {
         "name": "delta-hold",
@@ -688,14 +667,14 @@
           "text-3": "#30353b",
           "edge": "#3f454b",
           "paper-rule": "#717869",
-          "lamp-ring": "#7a2f00",
+          "marker-edge": "#7a2f00",
           "cat-white-edge": "#3f454b"
         }
       },
       "forced-colors": {
         "focus": "Highlight",
-        "lamp-ring": "Highlight",
-        "lamp": "Highlight",
+        "marker-edge": "Highlight",
+        "marker": "Highlight",
         "edge": "CanvasText",
         "paper-rule": "GrayText"
       }
@@ -778,20 +757,20 @@
       },
       "cursor": {
         "material": "MeshBasicMaterial, unlit and never tone-mapped",
-        "color": "lamp",
-        "edge": "lamp-ring",
+        "color": "marker",
+        "edge": "marker-edge",
         "note": "The now cursor: a thin amber sheet, the only thing that glows."
       },
       "light": {
         "hemisphere": {
-          "sky": "light-fluorescent",
+          "sky": "light-ambient",
           "ground": "surface-0",
           "intensity": 1.15,
           "power": 2.1
         },
         "key": {
           "kind": "DirectionalLight",
-          "color": "light-fluorescent",
+          "color": "light-ambient",
           "share": 0.9,
           "from": [
             -3,
@@ -839,7 +818,7 @@
       "refersTo": "button-primary",
       "description": "The control to act on now: amber with its dark edge and an ink label.",
       "html": "<button class=\"ds-btn-primary\">Start: TR1 lesson 1</button>",
-      "css": ".ds-btn-primary { display: inline-flex; align-items: center; gap: var(--es-space-3); min-height: 2.75rem; padding: var(--es-space-2) var(--es-space-4); border: 2px solid var(--es-lamp-ring); border-radius: var(--es-radius-plate); background-color: var(--es-lamp); color: var(--es-text-1); font-family: var(--es-font-body); font-size: var(--es-size-base); font-weight: 700; cursor: pointer; } .ds-btn-primary:hover { background-color: color-mix(in srgb, var(--es-lamp) 80%, var(--es-lamp-ring)); } .ds-btn-primary:focus-visible { outline: 3px solid var(--es-focus); outline-offset: 2px; box-shadow: 0 0 0 7px var(--es-paper); }"
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; gap: var(--es-space-3); min-height: 2.75rem; padding: var(--es-space-2) var(--es-space-4); border: 2px solid var(--es-marker-edge); border-radius: var(--es-radius-control); background-color: var(--es-marker); color: var(--es-text-1); font-family: var(--es-font-body); font-size: var(--es-size-base); font-weight: 700; cursor: pointer; } .ds-btn-primary:hover { background-color: color-mix(in srgb, var(--es-marker) 80%, var(--es-marker-edge)); } .ds-btn-primary:focus-visible { outline: 3px solid var(--es-focus); outline-offset: 2px; box-shadow: 0 0 0 7px var(--es-paper); }"
     },
     {
       "name": "Outline Button",
@@ -847,7 +826,7 @@
       "refersTo": "button-outline",
       "description": "The default button: flat, a 1 px edge, a 3 px radius.",
       "html": "<button class=\"ds-btn\">Step</button>",
-      "css": ".ds-btn { display: inline-flex; align-items: center; min-height: 2.75rem; padding: var(--es-space-2) var(--es-space-4); border: 1px solid var(--es-edge); border-radius: var(--es-radius-plate); background: transparent; color: var(--es-text-1); font-family: var(--es-font-body); font-size: var(--es-size-base); font-weight: 700; cursor: pointer; } .ds-btn:hover { background-color: color-mix(in srgb, var(--es-surface-2) 55%, transparent); } .ds-btn:active { background-color: var(--es-surface-2); } .ds-btn:focus-visible { outline: 3px solid var(--es-focus); outline-offset: 2px; box-shadow: 0 0 0 7px var(--es-paper); }"
+      "css": ".ds-btn { display: inline-flex; align-items: center; min-height: 2.75rem; padding: var(--es-space-2) var(--es-space-4); border: 1px solid var(--es-edge); border-radius: var(--es-radius-control); background: transparent; color: var(--es-text-1); font-family: var(--es-font-body); font-size: var(--es-size-base); font-weight: 700; cursor: pointer; } .ds-btn:hover { background-color: color-mix(in srgb, var(--es-surface-2) 55%, transparent); } .ds-btn:active { background-color: var(--es-surface-2); } .ds-btn:focus-visible { outline: 3px solid var(--es-focus); outline-offset: 2px; box-shadow: 0 0 0 7px var(--es-paper); }"
     },
     {
       "name": "Ink Button",
@@ -855,7 +834,7 @@
       "refersTo": "button-ink",
       "description": "The control an instrument leans on: the dark surface, a paper-white label.",
       "html": "<button class=\"ds-btn-ink\">Check answer</button>",
-      "css": ".ds-btn-ink { display: inline-flex; align-items: center; min-height: 2.75rem; padding: var(--es-space-2) var(--es-space-4); border: 1px solid var(--es-surface-3); border-radius: var(--es-radius-plate); background-color: var(--es-surface-3); color: var(--es-paper); font-family: var(--es-font-body); font-weight: 700; cursor: pointer; } .ds-btn-ink:focus-visible { outline: 3px solid var(--es-focus); outline-offset: 2px; box-shadow: 0 0 0 7px var(--es-paper); }"
+      "css": ".ds-btn-ink { display: inline-flex; align-items: center; min-height: 2.75rem; padding: var(--es-space-2) var(--es-space-4); border: 1px solid var(--es-surface-3); border-radius: var(--es-radius-control); background-color: var(--es-surface-3); color: var(--es-paper); font-family: var(--es-font-body); font-weight: 700; cursor: pointer; } .ds-btn-ink:focus-visible { outline: 3px solid var(--es-focus); outline-offset: 2px; box-shadow: 0 0 0 7px var(--es-paper); }"
     },
     {
       "name": "Sheet",
@@ -895,7 +874,7 @@
       "refersTo": "switch",
       "description": "A flat track with a square thumb, and the state as a word. On, the track is dark.",
       "html": "<button class=\"ds-switch\" role=\"switch\" aria-checked=\"true\">On</button>",
-      "css": ".ds-switch { width: 4.5rem; height: 2.5rem; border: 1px solid var(--es-edge); border-radius: var(--es-radius-plate); background-color: var(--es-surface-2); font-family: var(--es-font-body); font-weight: 700; } .ds-switch[aria-checked=\"true\"] { background-color: var(--es-surface-3); color: var(--es-paper); } .ds-switch:focus-visible { outline: 3px solid var(--es-focus); outline-offset: 2px; box-shadow: 0 0 0 7px var(--es-paper); }"
+      "css": ".ds-switch { width: 4.5rem; height: 2.5rem; border: 1px solid var(--es-edge); border-radius: var(--es-radius-control); background-color: var(--es-surface-2); font-family: var(--es-font-body); font-weight: 700; } .ds-switch[aria-checked=\"true\"] { background-color: var(--es-surface-3); color: var(--es-paper); } .ds-switch:focus-visible { outline: 3px solid var(--es-focus); outline-offset: 2px; box-shadow: 0 0 0 7px var(--es-paper); }"
     },
     {
       "name": "Header",
@@ -926,7 +905,7 @@
       "kind": "custom",
       "description": "The marker on a diagram: a 2 px amber line with its edge and the word now on a paper slip.",
       "html": "<div class=\"ds-now\"><span class=\"ds-now__line\"></span><span class=\"ds-now__word\">now</span></div>",
-      "css": ".ds-now { position: relative; width: 6rem; height: 5rem; margin-top: 1.25rem; background: var(--es-paper); border: 1px solid var(--es-edge); } .ds-now__line { position: absolute; top: 0; bottom: 0; left: 1.5rem; width: 2px; background: var(--es-lamp); box-shadow: 0 0 0 1px var(--es-lamp-ring); } .ds-now__word { position: absolute; bottom: 100%; left: 1.9rem; padding-inline: 0.2em; background: var(--es-paper); color: var(--es-paper-ink); font-family: var(--es-font-body); font-size: var(--es-size-caption); font-weight: 700; line-height: 1; }"
+      "css": ".ds-now { position: relative; width: 6rem; height: 5rem; margin-top: 1.25rem; background: var(--es-paper); border: 1px solid var(--es-edge); } .ds-now__line { position: absolute; top: 0; bottom: 0; left: 1.5rem; width: 2px; background: var(--es-marker); box-shadow: 0 0 0 1px var(--es-marker-edge); } .ds-now__word { position: absolute; bottom: 100%; left: 1.9rem; padding-inline: 0.2em; background: var(--es-paper); color: var(--es-paper-ink); font-family: var(--es-font-body); font-size: var(--es-size-caption); font-weight: 700; line-height: 1; }"
     }
   ],
   "narrative": {
@@ -940,7 +919,7 @@
       "Sentence case everywhere: nothing is transformed to upper case, so vLLM, SGLang and v0.33.0 keep their casing.",
       "Six fills with their glyphs are the one colour code, and appear only where the model's state is drawn.",
       "One instrument frame for every game and one template for every lesson, so the way on is always in the same place.",
-      "3D is a model of the same diagram: matte solids on a pale plate, with every word and number in DOM over it."
+      "3D is a model of the same diagram: matte solids on a pale base, with every word and number in DOM over it."
     ],
     "rules": [
       {
@@ -1012,7 +991,7 @@
     "donts": [
       "**Don't** add a dark scheme; the system ships light and more-contrast only.",
       "**Don't** transform text to upper case.",
-      "**Don't** lay a texture, a glint or a gradient sheen on any surface; a gradient draws a graticule or a hatch and nothing else.",
+      "**Don't** lay a texture, a highlight or a gradient sheen on any surface; a gradient draws a graticule or a hatch and nothing else.",
       "**Don't** colour anything for decoration, or make a selected, current or focused thing amber.",
       "**Don't** fade text with opacity to show a state; use the quiet text role, which keeps 4.5:1.",
       "**Don't** use Unicode characters or an icon font as icons; draw them on the 24-unit grid.",

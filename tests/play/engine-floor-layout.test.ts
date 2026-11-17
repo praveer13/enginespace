@@ -105,9 +105,9 @@ describe('the drawing paints with token roles and nothing else', () => {
       for (const orientation of ORIENTATIONS) {
         for (const mark of marksOf(layoutMap(input, { orientation }))) {
           const roles = ['fill' in mark ? mark.fill : undefined, 'stroke' in mark ? mark.stroke : undefined].filter((role) => role !== undefined)
-          for (const role of roles) expect(role).toMatch(/^(?:none|surface-[123]|paper|paper-ink|paper-ink-2|paper-rule|lamp|text-2|lane-cpu|lane-gpu|cat-blue-edge|cat-green-edge|tape|tape-ink)$/)
+          for (const role of roles) expect(role).toMatch(/^(?:none|surface-[123]|paper|paper-ink|paper-ink-2|paper-rule|marker|text-2|lane-cpu|lane-gpu|cat-blue-edge|cat-green-edge|slip|slip-ink)$/)
           // Amber is the lamp's, and the lamp is drawn once, as light with no edge.
-          if ('fill' in mark && mark.fill === 'lamp') expect(mark.kind === 'rect' && mark.soft === true).toBe(true)
+          if ('fill' in mark && mark.fill === 'marker') expect(mark.kind === 'rect' && mark.soft === true).toBe(true)
         }
       }
     }
@@ -116,7 +116,7 @@ describe('the drawing paints with token roles and nothing else', () => {
   test('the lamp is drawn once while the run is open, and not at all once it is over', () => {
     for (const [name, input] of states) {
       for (const orientation of ORIENTATIONS) {
-        const lamps = marksOf(layoutMap(input, { orientation }), 'lamp')
+        const lamps = marksOf(layoutMap(input, { orientation }), 'marker')
         expect([name, orientation, lamps.length]).toEqual([name, orientation, name === 'over' ? 0 : 1])
       }
     }

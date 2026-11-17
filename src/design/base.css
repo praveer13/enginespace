@@ -223,12 +223,12 @@
   }
 
   .es-type-ticket {
-    font-family: var(--es-font-ticket);
-    font-size: var(--es-font-ticket-size);
-    line-height: var(--es-font-ticket-leading);
-    letter-spacing: var(--es-font-ticket-tracking);
-    font-weight: var(--es-font-ticket-weight);
-    text-transform: var(--es-font-ticket-case);
+    font-family: var(--es-font-readout);
+    font-size: var(--es-font-readout-size);
+    line-height: var(--es-font-readout-leading);
+    letter-spacing: var(--es-font-readout-tracking);
+    font-weight: var(--es-font-readout-weight);
+    text-transform: var(--es-font-readout-case);
   }
 
   .es-type-label {

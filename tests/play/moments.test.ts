@@ -89,7 +89,7 @@ describe('the delta', () => {
 
   test('it shows for one second, and under reduced motion it does not fade', () => {
     const css = readFileSync(path.join(repo, 'src/design/parts.css'), 'utf8')
-    expect(css).toMatch(/\.es-delta \{[^}]*animation: es-delta-out var\(--es-dur-bell\) var\(--es-ease-settle\) calc\(var\(--es-dur-settle\) \+ var\(--es-dur-bell\) \+ var\(--es-dur-quick\)\)/)
+    expect(css).toMatch(/\.es-delta \{[^}]*animation: es-delta-out var\(--es-dur-step\) var\(--es-ease-settle\) calc\(var\(--es-dur-settle\) \+ var\(--es-dur-step\) \+ var\(--es-dur-quick\)\)/)
     expect(css).toMatch(/:root\[data-motion='reduce'\] \.es-delta \{\s*animation: none;/)
   })
 })

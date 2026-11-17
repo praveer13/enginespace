@@ -475,7 +475,7 @@
   min-height: 2.75rem;
   padding: 0 var(--es-space-3);
   border: 1px solid var(--es-edge);
-  border-radius: var(--es-radius-plate);
+  border-radius: var(--es-radius-control);
   background: var(--es-paper);
   color: var(--es-text-1);
   font-family: var(--es-font-label);
@@ -736,7 +736,7 @@
   min-height: 2.5rem;
   padding: 0 var(--es-space-3);
   border: 1px solid var(--es-edge);
-  border-radius: var(--es-radius-plate);
+  border-radius: var(--es-radius-control);
   background: var(--es-paper);
   color: var(--es-paper-ink);
   font-family: var(--es-font-body);
@@ -766,7 +766,7 @@
   min-height: 2.25rem;
   padding: 0 var(--es-space-2);
   border: 1px solid var(--es-edge);
-  border-radius: var(--es-radius-plate);
+  border-radius: var(--es-radius-control);
   background: var(--es-paper);
   color: var(--es-text-1);
   font-family: var(--es-font-mono);
@@ -1001,7 +1001,7 @@
 .es-floor-strip__value {
   position: relative;
   margin: 0;
-  font-size: var(--es-size-plate);
+  font-size: var(--es-size-control);
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
   white-space: nowrap;

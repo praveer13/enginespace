@@ -140,7 +140,7 @@ export function stopOfMistake(sc: Scenario, mistake: Mistake): Stop {
     .slice(0, mistake.index)
     .map((stage) => stage.id)
   const found = runPath(sc, [...prefix, mistake.stage]).stop
-  if (found === null) throw new Error('internal: a mistake that does not stop the ticket')
+  if (found === null) throw new Error('internal: a mistake that does not stop the request')
   return found
 }
 

@@ -1,13 +1,13 @@
 import clsx from 'clsx'
 import { useId, type HTMLAttributes, type ReactNode } from 'react'
 import { Icon } from './Glyph'
-import { PrintingDots } from './PrintingDots'
+import { LoadingDots } from './LoadingDots'
 
 /*
  * A sheet (REDESIGN 2.8): a plain paper panel, cut square, with the soft sheet shadow and a title. It is the surface reading
  * text sits on. A sheet can be a container (article, section) or a thing you choose (`as="button"`). `hole` is accepted and draws nothing.
  *
- * States: default; `lamp` (the sheet the next decision acts on: an ink rule across its top); loading (a line of text); error
+ * States: default; `marker` (the sheet the next decision acts on: an ink rule across its top); loading (a line of text); error
  * (a line in the second ink); empty (a dashed blank); disabled (no shadow, a dashed edge). A button sheet also lifts under
  * the hand.
  */
@@ -109,7 +109,7 @@ export function Sheet({
           ) : null}
           {state === 'loading' ? (
             <Box className="es-sheet__printing" role="status">
-              <PrintingDots />
+              <LoadingDots />
               <span>{loadingLabel}</span>
             </Box>
           ) : null}

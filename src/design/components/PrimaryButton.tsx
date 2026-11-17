@@ -2,7 +2,7 @@ import clsx from 'clsx'
 import { useId, type MouseEventHandler, type ReactNode } from 'react'
 import { Link, type To } from 'react-router'
 import { Icon } from './Glyph'
-import { PrintingDots } from './PrintingDots'
+import { LoadingDots } from './LoadingDots'
 
 /*
  * The primary button (REDESIGN 2.8): amber with its 2 px edge and an ink label, 44 px or taller, and an arrow. It is the
@@ -43,7 +43,7 @@ export function PrimaryButton({
   const inner = (
     <>
       <span className="es-primary-button__label">{children}</span>
-      {loading ? <PrintingDots /> : <Icon name="arrow" className="es-primary-button__arrow" />}
+      {loading ? <LoadingDots /> : <Icon name="arrow" className="es-primary-button__arrow" />}
     </>
   )
   const shared = {

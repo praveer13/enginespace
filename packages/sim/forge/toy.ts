@@ -175,7 +175,7 @@ export function churnPlan(seed: Seed): CheckPlan {
       }
       return null
     },
-    passed: () => `${CHURN_TOUCHES} touches on ${capacity} pans, every reply and every order as the model has them`,
+    passed: () => `${CHURN_TOUCHES} touches on ${capacity} slots, every reply and every order as the model has them`,
   }
 }
 

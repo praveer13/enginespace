@@ -39,7 +39,7 @@ describe('the focus ring is ink', () => {
     for (const file of sheets()) {
       postcss.parse(readFileSync(path.join(repo, file), 'utf8'), { from: file }).walkRules((rule) => {
         if (!FOCUS.test(rule.selector)) return
-        if (/--es-lamp/.test(rule.toString())) amber.push(`${file}: ${rule.selector}`)
+        if (/--es-marker/.test(rule.toString())) amber.push(`${file}: ${rule.selector}`)
         rule.walkDecls(/^outline$/, (decl) => {
           if (/var\(--es-focus\)/.test(decl.value) && !/^3px solid/.test(decl.value.trim())) thin.push(`${file}: ${rule.selector}: ${decl.value}`)
         })
@@ -50,7 +50,7 @@ describe('the focus ring is ink', () => {
   })
 
   test('the ring holds 3:1 on every ground a control stands on, and on the marker, as declared pairs', () => {
-    for (const bg of ['surface-0', 'surface-1', 'surface-2', 'paper', 'lamp'] as const) {
+    for (const bg of ['surface-0', 'surface-1', 'surface-2', 'paper', 'marker'] as const) {
       expect(PAIRS.some((pair) => pair.fg === 'focus' && pair.bg === bg && pair.kind === 'non-text')).toBe(true)
       for (const scheme of SCHEME_NAMES) expect(contrastRatio(resolveColor('focus', scheme), resolveColor(bg, scheme))).toBeGreaterThanOrEqual(3)
     }

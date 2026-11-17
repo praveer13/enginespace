@@ -44,13 +44,13 @@ export type Paint =
   | 'paper-ink'
   | 'paper-ink-2'
   | 'paper-rule'
-  | 'lamp'
-  | 'lamp-ring'
-  | 'tape'
-  | 'tape-ink'
+  | 'marker'
+  | 'marker-edge'
+  | 'slip'
+  | 'slip-ink'
 
 /** The roles above, as a list, for the test that checks them against the design system. */
-export const PAINTS: readonly Paint[] = ['surface-2', 'edge', 'paper', 'paper-ink', 'paper-ink-2', 'paper-rule', 'lamp', 'lamp-ring', 'tape', 'tape-ink']
+export const PAINTS: readonly Paint[] = ['surface-2', 'edge', 'paper', 'paper-ink', 'paper-ink-2', 'paper-rule', 'marker', 'marker-edge', 'slip', 'slip-ink']
 
 /** The faces the drawing sets text in: the printer's dots for ticks and numbers, marker on masking tape for names. */
 export type Face = 'numeric' | 'label'
@@ -145,7 +145,7 @@ const text = (x: number, y: number, body: string, size: number, anchor: 'start' 
 function tapeLabel(x: number, y: number, body: string, size: number, anchor: 'start' | 'end' = 'start'): Mark[] {
   const w = body.length * size * 0.62 + 12
   const left = anchor === 'start' ? x : x - w
-  return [rect(left, y, w, size + 8, { fill: 'tape' }), text(left + 6, y + size + 1, body, size, 'start', 'tape-ink', 'label')]
+  return [rect(left, y, w, size + 8, { fill: 'slip' }), text(left + 6, y + size + 1, body, size, 'start', 'slip-ink', 'label')]
 }
 
 /** The sheet itself: paper with a hairline edge. */
@@ -358,7 +358,7 @@ export function layoutHistogram(o: HistogramOptions): Sheet {
     const y = yOf(latencies[o.selected])
     layers.push({
       part: 'present',
-      marks: [rect(x - 16, y - 10, 32, 20, { fill: 'lamp', opacity: 0.85 }, { soft: true }), circle(x, y, 5, { fill: 'lamp', stroke: 'lamp-ring', width: 1.75 })],
+      marks: [rect(x - 16, y - 10, 32, 20, { fill: 'marker', opacity: 0.85 }, { soft: true }), circle(x, y, 5, { fill: 'marker', stroke: 'marker-edge', width: 1.75 })],
     })
   }
 
@@ -478,8 +478,8 @@ export function layoutTimeline(o: TimelineOptions): Sheet {
     layers.push({
       part: 'present',
       marks: [
-        rect(g.x0 - 6, y - 2, g.x1 - g.x0 + 12, pitch + 4, { fill: 'lamp', opacity: 0.9 }, { soft: true }),
-        rect(g.label - 38, y, g.x1 - g.label + 42, pitch, { fill: 'none', stroke: 'lamp-ring', width: 1.5 }),
+        rect(g.x0 - 6, y - 2, g.x1 - g.x0 + 12, pitch + 4, { fill: 'marker', opacity: 0.9 }, { soft: true }),
+        rect(g.label - 38, y, g.x1 - g.label + 42, pitch, { fill: 'none', stroke: 'marker-edge', width: 1.5 }),
       ],
     })
   }

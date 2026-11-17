@@ -78,7 +78,7 @@ describe('an honest receipt', () => {
     expect(result.recheck).toBe(false)
     expect(result.verdict.provenance).toBe('gpu-unverified')
     expect(result.verdict.reasons.length).toBeGreaterThan(1)
-    expect(result.verdict.reasons.join(' ')).toContain('X1 is not built yet: W2-T23 builds it')
+    expect(result.verdict.reasons.join(' ')).toContain('X1 is a check this site does not run yet')
     expect(result.file).toEqual({ name: 'tr3.profile-s2-20261109T120000Z.es.json.gz', bytes: expect.any(Number) })
 
     const snapshot = tab.engine.getSnapshot()

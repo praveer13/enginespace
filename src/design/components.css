@@ -11,25 +11,25 @@
   /* ---------------------------------------------------------------------------------------------- loading dots */
 
   /* Loading is a line of text: the dots sit still beside it, and the words say what is happening. */
-  .es-printing {
+  .es-loading {
     display: inline-flex;
     align-items: center;
     gap: 0.22em;
     margin-inline: 0.15em;
   }
 
-  .es-printing > span {
+  .es-loading > span {
     width: 0.3em;
     height: 0.3em;
     border-radius: var(--es-radius-round);
     background-color: currentColor;
   }
 
-  .es-printing > span:nth-child(2) {
+  .es-loading > span:nth-child(2) {
     opacity: 0.7;
   }
 
-  .es-printing > span:nth-child(3) {
+  .es-loading > span:nth-child(3) {
     opacity: 0.45;
   }
 
@@ -237,11 +237,11 @@
     display: flex;
     align-items: baseline;
     gap: 1ch;
-    font-family: var(--es-font-ticket);
-    font-size: var(--es-font-ticket-size);
-    line-height: var(--es-font-ticket-leading);
-    letter-spacing: var(--es-font-ticket-tracking);
-    font-weight: var(--es-font-ticket-weight);
+    font-family: var(--es-font-readout);
+    font-size: var(--es-font-readout-size);
+    line-height: var(--es-font-readout-leading);
+    letter-spacing: var(--es-font-readout-tracking);
+    font-weight: var(--es-font-readout-weight);
     font-variant-numeric: tabular-nums;
   }
 
@@ -371,9 +371,9 @@
     max-width: 100%;
     min-height: 2.75rem;
     padding: var(--es-space-2) var(--es-space-4);
-    border: 2px solid var(--es-lamp-ring);
-    border-radius: var(--es-radius-plate);
-    background-color: var(--es-lamp);
+    border: 2px solid var(--es-marker-edge);
+    border-radius: var(--es-radius-control);
+    background-color: var(--es-marker);
     color: var(--es-text-1);
     font-family: var(--es-font-body);
     font-size: var(--es-size-base);
@@ -399,7 +399,7 @@
   }
 
   .es-primary-button__pull:is(:hover, [data-force='hover']):not(:disabled, [aria-disabled='true']) {
-    background-color: color-mix(in srgb, var(--es-lamp) 80%, var(--es-lamp-ring));
+    background-color: color-mix(in srgb, var(--es-marker) 80%, var(--es-marker-edge));
   }
 
   .es-primary-button__pull:is(:hover, [data-force='hover']):not(:disabled, [aria-disabled='true']) .es-primary-button__arrow {
@@ -407,7 +407,7 @@
   }
 
   .es-primary-button__pull:is(:active, [data-force='active']):not(:disabled, [aria-disabled='true']) {
-    background-color: color-mix(in srgb, var(--es-lamp) 65%, var(--es-lamp-ring));
+    background-color: color-mix(in srgb, var(--es-marker) 65%, var(--es-marker-edge));
   }
 
   .es-primary-button__pull:is(:focus-visible, [data-force='focus']) {
@@ -581,16 +581,16 @@
     color: var(--es-text-1);
   }
 
-  /* ---------------------------------------------------------------------------------------------- busy light (StationLight) */
+  /* ---------------------------------------------------------------------------------------------- busy light (BusyMark) */
 
   /* Busy or idle as a shape and a word: a solid ink disc when busy, a hollow ring when idle, a red disc with its mark on a fault. */
-  .es-station {
+  .es-busy {
     display: inline-flex;
     align-items: center;
     gap: var(--es-space-3);
   }
 
-  .es-station__bezel {
+  .es-busy__bezel {
     position: relative;
     display: grid;
     flex: none;
@@ -602,7 +602,7 @@
     box-shadow: inset 0 0 0 1px var(--es-edge);
   }
 
-  .es-station__lens {
+  .es-busy__lens {
     display: grid;
     place-items: center;
     width: 1rem;
@@ -611,44 +611,44 @@
     color: var(--es-paper);
   }
 
-  .es-station[data-state='dark'] .es-station__lens {
+  .es-busy[data-state='dark'] .es-busy__lens {
     background: transparent;
     box-shadow: inset 0 0 0 2px var(--es-edge);
   }
 
-  .es-station[data-state='lit'] .es-station__lens {
+  .es-busy[data-state='lit'] .es-busy__lens {
     background: var(--es-text-1);
   }
 
-  .es-station[data-state='fault'] .es-station__lens {
+  .es-busy[data-state='fault'] .es-busy__lens {
     background: var(--es-paper-ink-2);
   }
 
-  .es-station__fault {
+  .es-busy__fault {
     width: 0.7rem;
     height: 0.7rem;
   }
 
   /* The one the next move acts on: the marker's ring, the "now" mark on the drawing. */
-  .es-station[data-lamp] .es-station__bezel {
+  .es-busy[data-lamp] .es-busy__bezel {
     box-shadow:
       inset 0 0 0 1px var(--es-edge),
-      0 0 0 1px var(--es-lamp-ring),
-      0 0 0 4px var(--es-lamp),
-      0 0 0 5px var(--es-lamp-ring);
+      0 0 0 1px var(--es-marker-edge),
+      0 0 0 4px var(--es-marker),
+      0 0 0 5px var(--es-marker-edge);
   }
 
-  .es-station__text {
+  .es-busy__text {
     display: grid;
     line-height: 1.2;
   }
 
-  .es-station__label {
+  .es-busy__label {
     font-weight: 700;
   }
 
   /* The lane's mark: its fill and its glyph, the same busy or idle. */
-  .es-station__lane {
+  .es-busy__lane {
     display: inline-block;
     width: 0.8em;
     height: 0.8em;
@@ -656,45 +656,45 @@
     vertical-align: -0.05em;
   }
 
-  .es-station__word {
+  .es-busy__word {
     font-size: var(--es-size-caption);
     color: var(--es-text-2);
   }
 
-  .es-station[data-state='fault'] .es-station__word {
+  .es-busy[data-state='fault'] .es-busy__word {
     color: var(--es-paper-ink-2);
   }
 
-  .es-station[data-disabled] .es-station__lens {
+  .es-busy[data-disabled] .es-busy__lens {
     background: var(--es-surface-2);
     box-shadow: none;
   }
 
-  .es-station[data-disabled] .es-station__label,
-  .es-station[data-disabled] .es-station__word {
+  .es-busy[data-disabled] .es-busy__label,
+  .es-busy[data-disabled] .es-busy__word {
     color: var(--es-text-3);
   }
 
-  .es-station[data-size='sm'] .es-station__bezel {
+  .es-busy[data-size='sm'] .es-busy__bezel {
     width: 1.3rem;
     height: 1.3rem;
   }
 
-  .es-station[data-size='sm'] .es-station__lens {
+  .es-busy[data-size='sm'] .es-busy__lens {
     width: 0.75rem;
     height: 0.75rem;
   }
 
-  /* ---------------------------------------------------------------------------------------------- step control (Bell) */
+  /* ---------------------------------------------------------------------------------------------- step control (StepControl) */
 
-  .es-bell {
+  .es-step-control {
     display: inline-flex;
     align-items: center;
     gap: var(--es-space-3);
   }
 
-  .es-bell__button,
-  .es-bell__still {
+  .es-step-control__button,
+  .es-step-control__still {
     position: relative;
     display: grid;
     place-items: center;
@@ -702,66 +702,66 @@
     height: 4rem;
     padding: 0.25rem;
     border: 1px solid var(--es-edge);
-    border-radius: var(--es-radius-plate);
+    border-radius: var(--es-radius-control);
     background: var(--es-paper);
     color: inherit;
   }
 
-  .es-bell__still {
+  .es-step-control__still {
     border-color: transparent;
     background: none;
   }
 
-  .es-bell[data-size='lg'] :is(.es-bell__button, .es-bell__still) {
+  .es-step-control[data-size='lg'] :is(.es-step-control__button, .es-step-control__still) {
     width: 6rem;
     height: 5.25rem;
   }
 
-  .es-bell__button {
+  .es-step-control__button {
     cursor: pointer;
     touch-action: manipulation;
     transition: background-color var(--es-dur-quick) var(--es-ease-settle);
   }
 
-  .es-bell__button > .es-printing {
+  .es-step-control__button > .es-loading {
     position: absolute;
     bottom: -0.65rem;
   }
 
-  .es-bell__drawing {
+  .es-step-control__drawing {
     width: 100%;
     height: 100%;
     overflow: visible;
   }
 
-  .es-bell__dome {
+  .es-step-control__dome {
     stroke: var(--es-text-1);
     stroke-width: 1.25;
   }
 
-  .es-bell__chrome-hi,
-  .es-bell__chrome-mid,
-  .es-bell__chrome-lo {
+  .es-step-control__chrome-hi,
+  .es-step-control__chrome-mid,
+  .es-step-control__chrome-lo {
     stop-color: var(--es-surface-1);
   }
 
-  .es-bell__shine {
+  .es-step-control__shine {
     display: none;
   }
 
-  .es-bell__base {
+  .es-step-control__base {
     fill: var(--es-text-1);
   }
 
-  .es-bell__plunger,
-  .es-bell__knob {
+  .es-step-control__plunger,
+  .es-step-control__knob {
     fill: var(--es-surface-2);
     stroke: var(--es-text-1);
     stroke-width: 1.25;
     transition: transform var(--es-dur-quick) var(--es-ease-settle);
   }
 
-  .es-bell__waves {
+  .es-step-control__waves {
     fill: none;
     stroke: var(--es-edge);
     stroke-width: 2;
@@ -771,21 +771,21 @@
     transform-origin: 32px 30px;
   }
 
-  .es-bell__body {
+  .es-step-control__body {
     transform-box: view-box;
     transform-origin: 32px 46px;
   }
 
   /* One step: the plunger goes down and comes back, on the step's duration. */
-  .es-bell__body[data-struck] {
-    animation: es-bell-strike var(--es-dur-bell) var(--es-ease-strike) both;
+  .es-step-control__body[data-struck] {
+    animation: es-step-control-strike var(--es-dur-step) var(--es-ease-strike) both;
   }
 
-  .es-bell__waves[data-struck] {
-    animation: es-bell-ring calc(var(--es-dur-bell) * 2) var(--es-ease-settle) both;
+  .es-step-control__waves[data-struck] {
+    animation: es-step-control-ring calc(var(--es-dur-step) * 2) var(--es-ease-settle) both;
   }
 
-  @keyframes es-bell-strike {
+  @keyframes es-step-control-strike {
     0% {
       transform: none;
     }
@@ -797,7 +797,7 @@
     }
   }
 
-  @keyframes es-bell-ring {
+  @keyframes es-step-control-ring {
     0% {
       opacity: 0;
     }
@@ -809,44 +809,44 @@
     }
   }
 
-  .es-bell__button:is(:hover, [data-force='hover']):not(:disabled, [aria-disabled='true']) {
+  .es-step-control__button:is(:hover, [data-force='hover']):not(:disabled, [aria-disabled='true']) {
     background-color: var(--es-surface-1);
   }
 
-  .es-bell__button:is(:active, [data-force='active']):not(:disabled, [aria-disabled='true']) {
+  .es-step-control__button:is(:active, [data-force='active']):not(:disabled, [aria-disabled='true']) {
     background-color: var(--es-surface-2);
   }
 
-  .es-bell__button:is(:active, [data-force='active']):not(:disabled, [aria-disabled='true']) :is(.es-bell__knob, .es-bell__plunger) {
+  .es-step-control__button:is(:active, [data-force='active']):not(:disabled, [aria-disabled='true']) :is(.es-step-control__knob, .es-step-control__plunger) {
     transform: translateY(3px);
   }
 
-  .es-bell__button:is(:focus-visible, [data-force='focus']) {
+  .es-step-control__button:is(:focus-visible, [data-force='focus']) {
     outline: 3px solid var(--es-focus);
     outline-offset: 2px;
     box-shadow: 0 0 0 7px var(--es-paper);
   }
 
-  .es-bell__button:disabled {
+  .es-step-control__button:disabled {
     border-style: dashed;
     cursor: not-allowed;
   }
 
-  .es-bell[data-state='disabled'] .es-bell__dome {
+  .es-step-control[data-state='disabled'] .es-step-control__dome {
     fill: var(--es-surface-2);
     stroke-dasharray: 3 2;
   }
 
-  .es-bell[data-state='loading'] .es-bell__button {
+  .es-step-control[data-state='loading'] .es-step-control__button {
     cursor: progress;
   }
 
-  .es-bell__count {
+  .es-step-control__count {
     display: grid;
     gap: 0.15rem;
   }
 
-  .es-bell__caption {
+  .es-step-control__caption {
     font-size: var(--es-size-caption);
     font-weight: 700;
     color: var(--es-text-2);
@@ -864,7 +864,7 @@
     min-height: 2.75rem;
     padding: var(--es-space-2) var(--es-space-4);
     border: 1px solid var(--es-edge);
-    border-radius: var(--es-radius-plate);
+    border-radius: var(--es-radius-control);
     background-color: transparent;
     color: var(--es-text-1);
     font-family: var(--es-font-body);
@@ -887,7 +887,7 @@
   .es-button[data-size='lg'] {
     min-height: 3.25rem;
     padding: var(--es-space-3) var(--es-space-6);
-    font-size: var(--es-size-plate);
+    font-size: var(--es-size-control);
   }
 
   .es-button__icon {
@@ -1043,7 +1043,7 @@
     height: 2.5rem;
     padding: 0;
     border: 1px solid var(--es-edge);
-    border-radius: var(--es-radius-plate);
+    border-radius: var(--es-radius-control);
     background-color: var(--es-surface-2);
     cursor: pointer;
     touch-action: manipulation;
@@ -1221,7 +1221,7 @@
 
   .es-field[data-numeric] .es-field__input {
     font-family: var(--es-font-numeric);
-    font-size: var(--es-size-plate);
+    font-size: var(--es-size-control);
     font-weight: var(--es-font-numeric-weight);
     font-variant-numeric: tabular-nums;
     /* A number is typed, never spun: the browser's spinner is no part of a slip. */
@@ -1490,7 +1490,7 @@
     min-height: 2.75rem;
     padding: var(--es-space-2) var(--es-space-4);
     border: 1px solid var(--es-edge);
-    border-radius: var(--es-radius-plate);
+    border-radius: var(--es-radius-control);
     color: var(--es-text-1);
     font-family: var(--es-font-body);
     font-size: var(--es-size-base);
@@ -1516,12 +1516,12 @@
 
   /* The amber fill, where the page has no move in hand: amber with its edge, the ink label (REDESIGN 2.4, "Which control is amber"). */
   .es-header__next[data-emphasis='primary'] {
-    border: 2px solid var(--es-lamp-ring);
-    background: var(--es-lamp);
+    border: 2px solid var(--es-marker-edge);
+    background: var(--es-marker);
   }
 
   .es-header__next[data-emphasis='primary']:is(:hover, [data-force='hover']) {
-    background-color: color-mix(in srgb, var(--es-lamp) 80%, var(--es-lamp-ring));
+    background-color: color-mix(in srgb, var(--es-marker) 80%, var(--es-marker-edge));
   }
 
   .es-header__next-minutes {
@@ -1613,7 +1613,7 @@
       min-height: 2.75rem;
       padding: 0 var(--es-space-2);
       border: 1px solid var(--es-edge);
-      border-radius: var(--es-radius-plate);
+      border-radius: var(--es-radius-control);
       background: transparent;
       color: var(--es-text-1);
       font-family: var(--es-font-body);
@@ -1757,7 +1757,7 @@
    */
   @media (forced-colors: active) {
     .es-header__link[aria-current='page']::after,
-    .es-station[data-state='lit'] .es-station__lens {
+    .es-busy[data-state='lit'] .es-busy__lens {
       background: CanvasText;
     }
 
@@ -1772,7 +1772,7 @@
 @media (forced-colors: active) {
   .es-button,
 .es-toggle__switch,
-.es-station__bezel {
+.es-busy__bezel {
     border: 1px solid CanvasText;
   }
 }

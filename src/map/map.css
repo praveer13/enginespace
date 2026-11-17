@@ -28,9 +28,9 @@
   box-sizing: border-box;
   width: 1.125rem;
   height: 1.125rem;
-  border: 2px solid var(--es-lamp-ring);
+  border: 2px solid var(--es-marker-edge);
   border-radius: var(--es-radius-round);
-  background: var(--es-lamp);
+  background: var(--es-marker);
 }
 
 /* ---------------------------------------------------------------------------------------------- the way on */

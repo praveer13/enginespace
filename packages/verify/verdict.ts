@@ -85,7 +85,7 @@ export function verdictOf(receipt: Receipt, rules: readonly RuleResult[], ran: n
     if (task === undefined && ran < RULES_IN_ALL && CHECK_IDS.includes(id)) continue
     const bound =
       task !== undefined
-        ? `${id} is not built yet: ${task} builds it, and a receipt of ${receipt.stage} does not count until it exists.`
+        ? `${id} is a check this site does not run yet, so a receipt of ${receipt.stage} does not count until it does.`
         : CHECK_IDS.includes(id)
           ? `${id} is required, and the report holds no result for it, so it cannot be told whether the receipt passed it.`
           : `${id} is required, and this version of the site has no check of that name.`
@@ -111,11 +111,11 @@ export function verdictOf(receipt: Receipt, rules: readonly RuleResult[], ran: n
 
   const shown = firstProblems(reasons, 8)
   if (shown.length > 0 || row === undefined) return { provenance: 'gpu-unverified', reasons: shown, checks }
-  if (isPractice(row)) return { provenance: 'practice', reasons: [`${receipt.stage} asks nothing of a receipt, so this one earns practice credit only (ASSESSMENT §5.9).`], checks }
+  if (isPractice(row)) return { provenance: 'practice', reasons: [`${receipt.stage} asks nothing of a receipt, so this one earns practice credit only.`], checks }
   const assisted = receipt.provenance.assisted === 'code' || receipt.provenance.agent
   if (assisted) {
     const said = `assisted: ${receipt.provenance.assisted}, agent: ${receipt.provenance.agent ? 'yes' : 'no'}`
-    return { provenance: 'assisted', reasons: [`You declared that you had help with code or from an agent (${said}), so the receipt counts as assisted work (ASSESSMENT §3.2).`], checks }
+    return { provenance: 'assisted', reasons: [`You declared that you had help with code or from an agent (${said}), so the receipt counts as assisted work.`], checks }
   }
   return { provenance: 'gpu-verified', reasons: [], checks }
 }

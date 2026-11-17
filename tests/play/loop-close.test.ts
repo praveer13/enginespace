@@ -379,7 +379,7 @@ describe('the session: one night, closed-book, graded by replay', () => {
     expect(wordsOf('close', stage).prediction).toMatchObject({ kind: 'number', unit: '%' })
     const naive = nightOf(stage, stage.naive)!
     expect(stage.answer).toBe(Math.round((100 * naive.bubbleUs) / naive.clockUs))
-    expect(() => fullSession.reduce(s, { t: 'run', until: 'step' })).toThrow('commit the prediction before the first night')
+    expect(() => fullSession.reduce(s, { t: 'run', until: 'step' })).toThrow('commit the prediction before the first run')
     const called = play(s, { t: 'commit', prediction: stage.answer })
     expect(fullSession.ask(called)).toEqual({ kind: 'serve', stage: 'close' })
     // One ring, whether it asks for a fire or for the rest, serves the whole night.

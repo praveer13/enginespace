@@ -9,9 +9,8 @@
  *
  * The roles: a flat ground and surfaces 0-3, paper with its two inks and its graticule, the marker (amber, with its
  * edge) for now alone, ink for focus, and six fills with their glyphs as the one colour code. Lane, memory, probability
- * and status roles point at that code: nothing gets a colour of its own. Role names are the system's contract and stay
- * as they were; the kitchen's tape, glint and fluorescent light are retired from every stylesheet and kept here only for
- * the kitchen scene, which reads them until stage 4 of wave R removes it.
+ * and status roles point at that code: nothing gets a colour of its own. Role names are the system's contract, apart from the roles that were kitchen words
+ * (marker, marker-edge, slip, slip-ink, light-ambient, dur-step, radius-control, size-control, font-readout); the label slip and the ambient light are used by the broken benchmark's sheet and by the 3D view.
  *
  * Pure data and pure functions, with no DOM: tailwind.config.ts (Node) and the tests import it too.
  */
@@ -52,7 +51,7 @@ const COLORS = {
   // The ground and the surfaces: flat paper greys with no texture (REDESIGN 2.8, the Flat Paper Rule).
   'surface-0': hex('material', '#e9ece6', 'The ground: the page, flat.'),
   'surface-1': hex('material', '#f4f5f0', 'A raised surface: the header and the frame round an instrument.'),
-  'surface-2': hex('material', '#d9ddd4', 'A well: an empty slot, a pressed control, a selected row, the 3D base plate.'),
+  'surface-2': hex('material', '#d9ddd4', 'A well: an empty slot, a pressed control, a selected row, the 3D base.'),
   'surface-3': hex('material', '#2b3138', 'The dark surface: the footer and a selected tab. Paper-white text sits on it.'),
   edge: hex('material', '#5f666d', "Hairlines, a control's boundary and dimension lines, at 3:1 (WCAG 1.4.11)."),
   // Paper and its two inks.
@@ -61,13 +60,12 @@ const COLORS = {
   'paper-ink-2': hex('material', '#a30f1a', 'The second ink: errors, "Not yet", "unverified". Never the colour of an action.'),
   'paper-rule': hex('material', '#c2c8bd', 'The graticule inside diagrams and figures, and a sheet\'s rules. Never the only carrier of anything.'),
   // The marker: amber means now, and only now (the One Marker Rule).
-  lamp: hex('material', '#ffb547', 'The marker: amber means now. The control to act on now, the "now" cursor, and the current position in a rail.'),
-  'lamp-ring': hex('material', '#9a3d00', "The marker's edge: amber never stands alone, it always comes with this edge, a shape and a word."),
-  // Retired with the kitchen (REDESIGN 2.8): no stylesheet draws with these. The kitchen scene reads them until stage 4 removes it.
-  tape: hex('material', '#e6d6ad', 'Retired: the kitchen scene\'s masking tape, until stage 4.'),
-  'tape-ink': hex('material', '#1a1a1c', 'Retired: the kitchen scene\'s marker on tape, until stage 4.'),
-  'light-fluorescent': hex('material', '#eef4f8', "Retired: the kitchen scene's ambient light, until stage 4."),
-  glint: hex('material', '#ffffff', 'Retired: no stylesheet lays a glint any more. Kept for the kitchen scene until stage 4.'),
+  marker: hex('material', '#ffb547', 'The marker: amber means now. The control to act on now, the "now" cursor, and the current position in a lesson\'s section list.'),
+  'marker-edge': hex('material', '#9a3d00', "The marker's edge: amber never stands alone, it always comes with this edge, a shape and a word."),
+  // Used outside the type system's own roles: the broken benchmark's log sheet draws its label slips, and the 3D view takes its sky from the ambient light.
+  slip: hex('material', '#e6d6ad', 'A label slip on the broken benchmark\'s log sheet.'),
+  'slip-ink': hex('material', '#1a1a1c', 'The words on a label slip.'),
+  'light-ambient': hex('material', '#eef4f8', "The cool white of the 3D view's sky and key light. It colours no surface."),
 
   // Text on the ground, the surfaces and paper.
   'text-1': hex('text', '#17191d', 'Primary text. It is also the focus ring.'),
@@ -193,19 +191,16 @@ const OTHERS = {
 
   // Motion: things move on an action and are still between actions (the Moves On Step Rule).
   'dur-quick': { kind: 'duration', value: '120ms', note: 'The hand: a press or a hover answering it.' },
-  'dur-bell': { kind: 'duration', value: '240ms', note: 'One step.' },
-  'dur-feed': { kind: 'duration', value: '420ms', note: 'Retired with the printer\'s feed: no stylesheet uses it. The kitchen scene reads it until stage 4.' },
+  'dur-step': { kind: 'duration', value: '240ms', note: 'One step.' },
+  'dur-feed': { kind: 'duration', value: '420ms', note: 'A marker settling on a new reading, such as the verifier\'s output line.' },
   'dur-settle': { kind: 'duration', value: '640ms', note: "The one authored moment of an instrument." },
   'ease-settle': { kind: 'easing', value: 'cubic-bezier(0.16, 1, 0.3, 1)', note: 'Exponential ease-out: fast away, long rest.' },
   'ease-strike': { kind: 'easing', value: 'cubic-bezier(0.19, 1, 0.22, 1)', note: 'A step that settles exponentially, with no overshoot.' },
-  'ease-feed': { kind: 'easing', value: 'steps(6, end)', note: "Retired with the printer's stepped feed: no stylesheet uses it." },
 
   // Radii: paper is cut square, small parts take 2 px and controls 3 px.
   'radius-paper': { kind: 'radius', value: '0px', note: 'Paper is cut square: sheets, diagrams, fields.' },
   'radius-trim': { kind: 'radius', value: '2px', note: 'A small part: a stamp, a chip, a bar, a slot.' },
-  'radius-plate': { kind: 'radius', value: '3px', note: 'A control: a button, a switch, a menu.' },
-  'radius-shoulder': { kind: 'radius', value: '8px', note: 'Retired with the components that used it (stage 4).' },
-  'radius-pan': { kind: 'radius', value: '10px', note: 'Retired with the components that used it (stage 4).' },
+  'radius-control': { kind: 'radius', value: '3px', note: 'A control: a button, a switch, a menu.' },
   'radius-round': { kind: 'radius', value: '999px', note: 'A dot, a disc, a pill.' },
 
   // Spacing, on a 4 px step.
@@ -270,7 +265,7 @@ const OTHERS = {
     case: 'none',
     note: 'Every number the learner compares, with tabular figures. Atkinson Hyperlegible carries µ and ±.',
   },
-  'font-ticket': {
+  'font-readout': {
     kind: 'font',
     family: ['Atkinson Hyperlegible Mono', 'Atkinson Hyperlegible', 'monospace'],
     size: '0.9375rem',
@@ -293,15 +288,15 @@ const OTHERS = {
 
   // The size ramp: the sizes the type roles above leave to a component's own lines. Every `font-size` is a step of it, or a
   // documented one-off with its reason beside it. The mono, ticket and print sizes are `size-print`, the body size is
-  // `size-body`, and the numeric size is `size-plate`.
+  // `size-body`, and the numeric size is `size-control`.
   'size-micro': { kind: 'size', value: '0.6875rem', note: 'Fine print: a label on a dense diagram at its floor.' },
   'size-stamp': { kind: 'size', value: '0.75rem', note: 'A stamp: a provenance tag, a chip.' },
   'size-caption': { kind: 'size', value: '0.8125rem', note: "A caption or a state word: under a figure, beside a switch, an axis's name." },
-  'size-note': { kind: 'size', value: '0.875rem', note: "A note: a table's heading, a label, a menu term." },
+  'size-note': { kind: 'size', value: '0.875rem', note: "A note: a table heading, a label, a menu term." },
   'size-print': { kind: 'size', value: '0.9375rem', note: "A readout strip's line, a hint, an error. The mono size." },
   'size-base': { kind: 'size', value: '1rem', note: 'The root size: a footer link, a button.' },
   'size-body': { kind: 'size', value: '1.0625rem', note: 'Reading: the body size.' },
-  'size-plate': { kind: 'size', value: '1.125rem', note: 'A large button and a count: the numeric size.' },
+  'size-control': { kind: 'size', value: '1.125rem', note: 'A large button and a count: the numeric size.' },
   'size-title': { kind: 'size', value: '1.25rem', note: "A small section head, and a sheet's title." },
   'size-action': { kind: 'size', value: '1.375rem', note: 'A large label: the widest primary button.' },
   'size-large': { kind: 'size', value: '1.5rem', note: 'A section head, and a big readout.' },
@@ -384,7 +379,7 @@ export const SCHEMES = {
       'text-3': '#30353b',
       edge: '#3f454b',
       'paper-rule': '#717869',
-      'lamp-ring': '#7a2f00',
+      'marker-edge': '#7a2f00',
       'cat-white-edge': '#3f454b',
     },
   },
@@ -438,10 +433,10 @@ const CAT_EDGES = SLOTS.map((slot) => `cat-${slot}-edge` as ColorRoleName)
 export const PAIRS: readonly ContrastPair[] = [
   ...pairs('text', 'Text on the ground, the surfaces and paper', ['text-1', 'text-2'], ['surface-0', 'surface-1', 'surface-2', 'paper']),
   ...pairs('text', 'Quiet text on the ground, the surfaces, a well and paper', ['text-3'], [...GROUNDS, 'surface-2']),
-  ...pairs('text', 'Ink on paper, and the label of the amber button', ['paper-ink'], ['paper', 'lamp']),
-  ...pairs('text', 'Text on the marker: the primary button and the current position', ['text-1'], ['lamp']),
+  ...pairs('text', 'Ink on paper, and the label of the amber button', ['paper-ink'], ['paper', 'marker']),
+  ...pairs('text', 'Text on the marker: the primary button and the current position', ['text-1'], ['marker']),
   ...pairs('text', 'The second ink', ['paper-ink-2'], GROUNDS),
-  ...pairs('text', "The kitchen scene's marker on tape (retired, until stage 4)", ['tape-ink'], ['tape']),
+  ...pairs('text', 'The words on a label slip', ['slip-ink'], ['slip']),
   ...pairs('text', 'Paper-white text on the dark surface: the footer, a selected tab', ['paper'], ['surface-3']),
   ...pairs('text', 'Status text and its glyph', STATUS, GROUNDS),
   ...pairs(
@@ -459,8 +454,8 @@ export const PAIRS: readonly ContrastPair[] = [
   ...pairs(
     'non-text',
     "The focus ring, and the marker's edge on paper and on the marker",
-    ['focus', 'lamp-ring'],
-    ['surface-0', 'surface-1', 'surface-2', 'paper', 'lamp'],
+    ['focus', 'marker-edge'],
+    ['surface-0', 'surface-1', 'surface-2', 'paper', 'marker'],
   ),
   ...pairs('non-text', "A control's boundary, a hairline, a dimension line", ['edge'], [...GROUNDS, 'surface-2']),
   ...pairs('non-text', 'The dark surface as a mark: a switch that is on, a selected tab', ['surface-3'], ['surface-0', 'surface-1', 'surface-2', 'paper']),
@@ -568,8 +563,8 @@ function declarationsOf(name: RoleName): [string, string][] {
  */
 const FORCED_COLORS: Partial<Record<ColorRoleName, string>> = {
   focus: 'Highlight',
-  'lamp-ring': 'Highlight',
-  lamp: 'Highlight',
+  'marker-edge': 'Highlight',
+  marker: 'Highlight',
   edge: 'CanvasText',
   'paper-rule': 'GrayText',
 }

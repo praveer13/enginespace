@@ -226,7 +226,7 @@
 
 .es-prep[data-phase='work'] [data-line='done'] .es-prep__box svg path {
   stroke-dasharray: 24;
-  animation: es-prep-tick var(--es-dur-bell) var(--es-ease-strike) both;
+  animation: es-prep-tick var(--es-dur-step) var(--es-ease-strike) both;
 }
 
 /* ---------------------------------------------------------------------------------------------- the strip */

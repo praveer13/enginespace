@@ -127,7 +127,7 @@ export const CATALOG: readonly GenFace[] = [
     kcs: ['tr2.capture-padding'],
     variants: [
       { id: 'padded-size', title: 'The size a step pads to', kcs: ['tr2.capture-padding'], levels: [0, 1, 2, 3] },
-      { id: 'night-waste', title: 'The padding a night wastes', kcs: ['tr2.capture-padding'], levels: [0, 1, 2, 3] },
+      { id: 'night-waste', title: 'The padding that a run of steps wastes', kcs: ['tr2.capture-padding'], levels: [0, 1, 2, 3] },
       { id: 'choose-sizes', title: 'Sizes that waste the least', kcs: ['tr2.capture-padding'], levels: [2, 3] },
     ],
   },

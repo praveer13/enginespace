@@ -11,7 +11,7 @@
  *   shadow    the contact shadow under each solid: a soft-edged footprint in `text-1`, its falloff in world units so a long slab and a
  *             short chip darken the paper alike.
  *   wire      dashed lines in `edge`; `rule` the graticule in `paper-rule`; `ink` dimension lines and the axis in `edge`.
- *   cursor    the marker, unlit: amber with its edge (`lamp`, `lamp-ring`), never tone-mapped, so it reads as the one light in the scene.
+ *   cursor    the marker, unlit: amber with its edge (`marker`, `marker-edge`), never tone-mapped, so it reads as the one light in the scene.
  */
 import { Color, DoubleSide, LineBasicMaterial, LineDashedMaterial, MeshBasicMaterial, MeshLambertMaterial, ShaderMaterial } from 'three'
 import type { SceneTokens } from '@/design/scene-tokens'

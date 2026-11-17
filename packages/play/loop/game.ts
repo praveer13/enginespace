@@ -20,7 +20,7 @@ const FIRST: AnySession = loopSession
 function sessionOf(id: string): AnySession {
   if ((FULL_LEVEL_IDS as readonly string[]).includes(id)) return FULL
   if ((LEVEL_IDS as readonly string[]).includes(id)) return FIRST
-  throw new RangeError(`Service has no level "${id}"`)
+  throw new RangeError(`Step loop has no level "${id}"`)
 }
 
 /** Whose rules hold a level or a state: the full service's carry their stages. */
