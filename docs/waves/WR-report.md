@@ -390,3 +390,171 @@ R-T48 holds the redesigned surfaces to WCAG 2.2 AA with checks that run on every
 
 - Standalone text links shorter than 24 px that pass 2.5.8 only by spacing: the breadcrumb ("Course", "Games", 16 to 18 px), the lesson's Sources list and a module's cites (17 px lines), the front page's "What this model leaves out" and the module links under the pitch, and the Course's `T5.L7`-style cites. Giving them a 24 px line is a change to the lesson and page templates' line height, and a look at each.
 - `src/design/base.css` and `components.css` needed no change: the forced-colours, more-contrast and ring rules held under the new checks.
+
+---
+
+## 6. The finish (R-T50, 2026-11-17)
+
+R-T50 closes the wave: impeccable's finish review and its material fixes, DESIGN.md rewritten from the built world, the copy guard's allowlist, the record of the look gate, the cold-test pack the owner runs before the merge to `main`, the ten owner decisions of REDESIGN §6 with the default taken for each, and every gate against `wave-2`'s. The wave's pull request into `main` is opened by the coordinator, not by an agent, and it stays open for the owner: nothing of wave R reaches `main` without the owner's merge and the cold test.
+
+### 6.1 The look gate: the owner's answer, and what was built on it
+
+At the look gate (R-T20, [WR-look.md](WR-look.md)) the owner saw ten pairs of images, build A (The Pass) against build B (Data Book), and answered on 2026-11-16: **Data Book**, in the owner's words "data book for sure" (WR-look §6, D-062). The answer was given, so no default was taken for the look. The owner did not answer the gate's three questions (REDESIGN §5.4) and did not ask for a concept roll for Data Book. The three questions are asked again in the cold test (§6.7), and the skipped roll is recorded in the front page's surface brief.
+
+Built on that answer: the wave went on from build B. Stage 3 rolled the new system out to every page, game and lesson (R-T21 to R-T40); stage 4 re-skinned the pool's and the sampler's 3D in Data Book (R-T41, R-T42), removed Request path's 3D scene (R-T43), took the kitchen, its props, its three extra faces and its post-processing out of the tree (R-T44), let a lesson's figure load its state into the dock (R-T45) and named the components as the system names them (R-T46); stage 5 walked the first visit (R-T47), swept accessibility (R-T48), brought the documents in line (R-T49) and closes here. D-047 reads "superseded by D-062", and D-064 stands with D-062.
+
+### 6.2 The finish review: the verdict of each surface, in the reviewer's word
+
+impeccable's finish review ran in two rounds on the built site at 1440 x 900 and 390 x 844. Round 1's disposition was **fix**, with eight material fixes; the fix batch (`wr/fix-finish-1`, merged at 3e516ed) did them, and its own report lists what each left. Round 2's disposition was **recapture**: the reviewer judged no surface, because several captures did not show the state they were named for, and asked for them to be taken again. Two rounds is the ceiling, so these are the verdicts the wave ends with. They are recorded here as given, and under D-062.
+
+| Surface | Widths | Verdict | Open findings |
+|---|---|---|---|
+| Front page | 1440 and 390 | unjudged | `front-focus-main-control-1440.png` is byte-identical to `front-first-paint-1440.png` and shows no keyboard focus on R1; retake with focus kept. `front-focus-main-control-390.png` is byte-identical to `front-first-paint-390.png`; retake with focus kept. `header-focus-continue-1440.png` is byte-identical to `front-returning-1440.png`; the header Continue shows a 1 px outline and no focus ring; retake with focus kept. `header-focus-continue-390.png` is byte-identical to `front-returning-390.png`; retake with focus kept. No capture shows a dimension line in the diagram; add a state with a bubble (demo level 2 after the step that leaves the gap), Diagram at 1440 and 390 and 3D at 1440. |
+| TR1 lesson 1 | 1440 and 390 | unjudged | none |
+| TR5a lesson 1 | 1440 and 390 | unjudged | `tr5a-l1-game-intro-390.png` and `tr5a-l1-game-midlevel-390.png` show the dock over the KV page pool grid with cells cut at half height; retake at the scroll position the frame itself sets, and say so in capture-list.md, so the cut can be attributed to the page or to the driver. |
+| Step loop | 1440 and 390 | unjudged | `loop-result-390.png` shows the result with no diagram on screen; retake at the scroll position the page itself leaves after the last step, with no driver scroll. |
+| KV page pool | 1440 and 390 | unjudged | `pool-result-390.png` shows the result with no diagram on screen; retake at the page's own scroll position. |
+| Rejection sampler | 1440 and 390 | unjudged | `verifier-result-390.png` shows the result with no diagram on screen; retake at the page's own scroll position. |
+| Request path | 1440 and 390 | unjudged | `floor-result-390.png` shows the result with no diagram on screen; retake at the page's own scroll position. |
+| Tensor views and KV offload (`shape-shifter`, `switchyard`) | none | not built, no capture | none |
+| Course | 1440 and 390 | unjudged | none |
+
+Read with the table:
+- **Broken benchmark** (`/play/broken-bench`) is built but was not among the captured surfaces, so it has no verdict from this review.
+- **The 390 result captures.** The round-1 fix batch already said that its capture script scrolled `[data-result]` to the top of the screen, so at 390 a result capture showed no diagram while the page itself scrolls only as far as the result's ways on. Round 2's four result findings ask for exactly that retake. Until it is done, whether P5 holds at a phone's result rests on the e2e checks (`e2e/first-visit.spec.ts`, `e2e/lesson-games.spec.ts` and each game's spec), not on a judged image.
+- **The focus captures.** The keyboard focus ring itself is held by `e2e/a11y.spec.ts` (an ink ring at each of the first thirty stops of fifteen surfaces, §5); the finding is that the capture lost focus before the shot, which the e2e run does not judge.
+- **Material fixes of round 2:** none were asked for. Round 1's eight are done or listed in §6.3.
+
+### 6.3 What the fix batches left, for the owner
+
+From round 1's fix batch (`wr/fix-finish-1`):
+- the retakes of §6.2, and the states not re-captured after its second look: the pool's 3D label under the rack, the sampler's 3D legend sentence, Request path's intro example shortened on a phone, the phone dock back at a third of the screen, and the drawing kept in view at a desk's result;
+- a label slot for a hop between two stages in the same process column at 390 (Request path);
+- the sampler's recipe level lost its pick in the scene, since only the chain level offers 3D now;
+- the pool's 3D still uses about half its box at 1440.
+
+From the walks' fix batch (`wr/fix-final-walk`, §6.6), each an owner call:
+1. The pass bar of a question set: ASSESSMENT §4.2 says an exit ticket passes with at least 2 of 3 right, at least 1 of them numeric; the code requires the last 3 answers of each kind all right. ASSESSMENT owns pass bars, so either the code or that line changes; the graded mechanic was left alone.
+2. Question pools that reach past what has been taught: limiting a lesson's pool to the engines it has read needs an engine key on item blocks, which changes item generation.
+3. Content under an open guess that gives the answer away: hiding it contradicts "nothing collapsed and nothing locked" (REDESIGN §1, line 6).
+4. The front page's demo (stay in the chosen view, a legend, the number to beat, a line on what is assumed from kernelspace): its first-paint JavaScript is 131 B under its gate [measured 2026-11-17 at 1d69a0c], so this needs deferral work in the front page's closure first.
+5. A Keep rule or table per lesson, and "own night" for the brief's banned-phrase table.
+
+### 6.4 DESIGN.md and its sidecar
+
+impeccable's documenter rewrote DESIGN.md's body and `.impeccable/design.json` from the built world (merged at 1d69a0c). DESIGN.md's North Star is **"Data Book"**, and its eleven named rules are REDESIGN §2.8's: One Marker, Ink Focus, Colour Is State, Declared Pair, Sentence Case, Ramp, Short Viewport, Flat Paper, Moves On Step, Words Are DOM and Quiet Provenance. Its front matter's tokens did not change; eight component entries were added (stamp, stamp-unverified, callout, callout-pressed, note, delta-chip, popover-trigger, course-mark). The sidecar's narrative is DESIGN.md's word for word, the kitchen's scene materials are replaced by the flat 3D materials, lights, primitives, cameras and tiers, and the Stamp, Callout and Now Cursor components are added. `tests/design/design-md.test.ts` passes with no pin changed. The kitchen and The Pass appear once, as history.
+
+The page title's size is settled from the build: `clamp(2rem, 1.2rem + 3.4vw, 3.5rem)`, as `--es-font-display-size` and `--es-size-page`. The front page's title is the one difference from the brief that the documenter recorded: 4rem from 80rem (2.25rem on a phone, a clamp up to 4rem from 48rem), against the brief's 3rem, documented as that page's one-off and not as the page-title size. The build is what is documented.
+
+The surface briefs under `.impeccable/surfaces/` now state Data Book as the built world. Round 1's fix batch rewrote the front page's, the five games', Course's, the question block's and the games index's; R-T50 rewrote Review's, GPU lab results', the lab page's and the trace viewer's, settled the front page's superseded section, and deleted the brief of the kitchen's specimen on `/design`, whose surface left the tree with the kitchen.
+
+### 6.5 The copy guard's allowlist
+
+`tests/copy/allow/` is empty: no area of what a learner reads needs an allowance. Fourteen area files were deleted by the tasks that cleared their areas, from the pool's (R-T07) on 2026-11-15 to TR1's (R-T35), the last, on 2026-11-16. `tests/copy/no-kitchen.test.ts` passes, and from R-T50 it also fails if any file comes back into that folder.
+
+### 6.6 The two last walks: agents, not the cold test
+
+Two learner walk-throughs ran on the finished build before the finish review: one at a desk (1440 x 900) and one on a phone (390 x 844, by touch), each with an empty ledger from landing on `/`, through the front page's demo and TR1's first lessons, and on through the site. **They were agents, not people, and they are not the cold test. No agent simulated the cold test,** and none answered the three delight questions.
+
+What they found, most harmful first, and what became of it (the fix batch `wr/fix-final-walk`, merged at a564916):
+
+| Found | Became |
+|---|---|
+| Moving from one lesson to another by the site's own links stopped the page (both walks; React error #185, an update loop in the level-name hook), and the next game then blamed the connection | fixed; a lesson-to-lesson e2e test at 1440 and 390 fails on the old code; the error screen now says the answers are saved and offers a reload at the learner's place |
+| Lessons shown as started or done that were never opened, and answers counted in the wrong lesson | fixed: an answer counts in the lesson it was given in |
+| Two amber buttons on one screen in Read and after a Test pass | fixed |
+| A pass rule stated in 24 lessons that the code did not use | fixed: the Test states the rule the page reads; the bar itself is an owner call (§6.3) |
+| Request path's swimlane swallowing a thumb's scroll, and games played through a small window in a lesson on a phone | fixed in lessons; the game page's own stage list keeps its scroller |
+| Two guesses for one run under one title | fixed: "Guess 1 of 2" and "Guess 2 of 2" |
+| The Step loop's queue broken after Request path had loaded (a CSS collision) | fixed |
+| Continue landing at the top of a lesson, a rotation losing the reader's place, a committed guess blank after a reload | fixed |
+| Words not explained (nano-vllm, stage), ids shown raw, a kitchen leftover ("night") | fixed in TR1 lesson 1 and the reveal; the rest left |
+| Question pools beyond what has been taught; content under an open guess; the front demo's changes; diagram label collisions; a Keep rule per lesson | left (§6.3) |
+
+The desk walk's own report is not in the record this task could read; its findings reach this section through the fix batch's report, which numbers both walks' trips. The phone walk's verdict, in its own words: "The redesign fixed what the owner complained about. I always knew what the next step was called, the engine's own words are the only names, and the landing demo is a pleasure on a phone. I was no longer lost in a metaphor."
+
+### 6.7 The cold-test pack
+
+**Who and when.** The owner, or two or three kernelspace graduates, before wave R merges to `main` (REDESIGN §5.5, D-068). Each reader starts with an empty browser profile on the built site: once at a desk at about 1440 x 900, and once on a phone. The person running the test watches and writes down what the reader says; they do not help, and they do not answer for the reader. **Agents never simulate it.**
+
+**What to bring.** The built site, this page printed or on a second screen, and a watch for items 1 and 2.
+
+#### The script (REDESIGN §5.1)
+
+The same walk that `e2e/first-visit.spec.ts` runs. The reader does the "Do" column; the person running the test ticks "Seen" when the "Look for" column holds, and writes what happened when it does not.
+
+| # | Do | Look for | Seen |
+|---|---|---|---|
+| CP1 | Open `/` | The title, one waiting request and Step are on the first screen. One amber ring and no amber fill. No kitchen word anywhere. | |
+| CP2 | Look at the parts | At a desk: five ink callouts, each with an engine name, and the same five lines as a list. On a phone: the discs on the diagram, the coach line on part 1 of 5, and Parts opens the whole list. | |
+| CP3 | Put R1 into a slot | R1 sits in slot 1, the dock says what happened, and Step is the one amber-filled control. | |
+| CP4 | Press Step | The readout shows the tokens out, and a sentence with "batching" is on screen. | |
+| CP5 | Finish the demo level | "Next demo level" is amber with "Start the course" beside it; Start names TR1 lesson 1, its minutes and what it needs. | |
+| CP6 | Start the course | The breadcrumb shows titles; the primer sits under "Before you run" (200 words or fewer); at a desk the game's top edge is on the first screen. | |
+| CP7 | Look at the game before doing anything | The role line and the goal line are on screen before any guess, and the guess comes only after the parts list. | |
+| CP8 | Guess, then run | No more than two prompts before the first move; after the run the result shows the guess beside the model's answer and one sentence with the engine term. | |
+| CP9 | Look at the lesson's rail | The Run entry shows the reader's own answer. | |
+| CP10 | Go on into Read | One part in view with its title and "Part n of m"; no claim box inside a sentence. | |
+| CP11 | Take the Test | The tally reads "n of 3" with "passed" or "not yet". | |
+| CP12 | Reach Keep | The record lists what was done; with the Test passed, the one amber control names lesson 2 and is the same as the header's Continue. | |
+| CP13 | Open Course | A sentence names what was just done, with the same Continue as the header. | |
+| CP14 | Visit the header, `/`, Course, TR1's page, Review and Progress | Every one gives the same Continue. | |
+| CP15 | Reload `/` | It says where the reader left off and offers Continue to the same place. | |
+| CP16 | Open TR2 lesson 3 directly and run its opener; then pass its Test | Continue names TR2 lesson 3, then TR2 lesson 4; Course shows "earlier lessons not finished" as a quiet line. | |
+| CP17 | In TR2 lesson 7, commit the guess | Its reveal shows the answer with its working or its source; no lock, no disabled button, no task id anywhere. | |
+
+#### The sheet (REDESIGN §5.5)
+
+One sheet per reader. Write times in seconds and the reader's words as said.
+
+| # | Item | Where | Passes when | Result |
+|---|---|---|---|---|
+| 1 | States the game's goal in engine terms | Step loop, Request path, KV page pool, Rejection sampler, Broken benchmark: each game's first screen | within 15 s of the screen, in the engine's terms | one line per game: seconds, and the reader's words |
+| 2 | First action in a lesson | TR1 lesson 1 (and each lesson of item 3) | within 60 s of opening the lesson | seconds |
+| 3 | Finishes the first run without scrolling into Read | TR1 lesson 1 (opener B), TR2 lesson 1 (A), TR5a lesson 1 (A), TR6 lesson 2 (A), TR8 lesson 1 (B) | the reader finishes the first run of each of the five named lessons without scrolling into Read | one line per lesson: finished or not, and where they went |
+| 4 | Points at the way on | at any checkpoint of the script | asked "what is next?", the reader points at the amber control | yes or no, at which checkpoint |
+| 5 | The three delight questions | after the walk | answered in the reader's own words | the words, as said |
+
+The three delight questions, asked exactly so, and answered by the reader, never by the person running the test:
+1. "Which of these would you rather spend an hour in?"
+2. "Name one moment you would show someone."
+3. "Where did it feel like work with no payoff?"
+
+#### What happens to a lesson that fails
+
+A lesson of item 3 that a reader cannot finish without scrolling into Read **moves one opener down before the merge**: from A (run first) to B (primer, then run), or from B to C (read first) (REDESIGN §5.5). For the five lessons that means: TR2 lesson 1, TR5a lesson 1 and TR6 lesson 2 would move from A to B, and TR1 lesson 1 and TR8 lesson 1 from B to C. The move is a content change to the lesson's opening, held by its row in `tests/content/openers-table.ts`; it changes the lesson's `rev`, so the evidence earned on it shows "re-check" (REDESIGN §6, decision 7). Two notes from earlier tasks go with it: if TR1 lesson 1 fails, it moves to opener C (R-T34's note), and if readers guess blind in TR1 lesson 2's block manager part, its first part moves ahead of the code (R-T35's note). Items 1, 2 and 4 failing go to the owner as findings with the screen they were seen on; the three answers of item 5 go to the owner as said.
+
+### 6.8 The ten owner decisions, with the default taken
+
+| # | Decision (REDESIGN §6) | Default | Where it stands |
+|---|---|---|---|
+| 1 | The look: Data Book replaces The Pass | Data Book | **The owner answered**: Data Book, 2026-11-16 (D-062). No default was taken. |
+| 2 | One fewer 3D game: Request path loses its 3D scene | Cut it, at stage 4 | Default taken: cut by R-T43. Three built 3D games remain. |
+| 3 | Phones open the front page in 2D, with 3D one tap away | Yes | Default taken, and narrowed by the finish review's round 1: a phone gets no 3D switch on the front page, the Step loop, the pool or the sampler (REDESIGN §3.1 amended with the reason). |
+| 4 | Three faces leave (Doto, Handjet, Permanent Marker) | Drop them, with the look | Default taken: they left with the kitchen at stage 4 (D-064). |
+| 5 | Titles: Rejection sampler, KV page pool, Request path, labs titled "Build ..." | As tabled in §2.7 | Default taken. |
+| 6 | Predictions revealed at commit; a prediction earns no credit | Take it | Default taken (D-067, proposed). |
+| 7 | Lesson edits change `rev`, so evidence since 2026-11-09 shows "re-check" | Accept it | Default taken; nothing is deleted. |
+| 8 | Three keys in `localStorage`: the pointer, the bookmark and the intro flag | Add them | Default taken (D-066, proposed). |
+| 9 | The human cold test before the merge to `main` | The finish review hands the owner the script and a sheet; the merge waits for it | Default taken: the pack is §6.7, and the merge waits for it. |
+| 10 | Models: 16 tasks on opus and 2 on haiku | As planned | Default taken (D-068, proposed). |
+
+D-063, D-065, D-066, D-067 and D-068 stay **proposed** for the owner to confirm, as does the cut of one 3D game in D-065.
+
+### 6.9 The gates against wave-2's
+
+`scripts/verify-bundle.ts`'s `BUDGETS`, dumped flat from `wave-2` (25320d5) and from this branch, and compared by the merge script's guard: **15 gated numbers on each side, all 15 equal, none raised, none added, none removed** [measured 2026-11-17]. The screenshot tolerance is 1% on both (`e2e/screenshots.spec.ts`), and the `smoke` project that a pull request runs grew from six specs to nine (first-visit, keep-list and screens joined). No gate, budget, threshold or tolerance moved in wave R. `verify:bundle` on this branch: 60 budgets gated, all passing, 3 over a target, and the postfx row skipped because `src/scene/postfx` left the tree [measured 2026-11-17 at 1d69a0c's code]. The rows with the least room: the front page's first-paint JavaScript at 149,869 B, 131 B under its 150 KB gate; `/play/broken-bench` at 199,322 B, 678 B under its 200 KB gate; `/play/engine-floor` 6,534 B under and `/play/pool` 6,559 B under [measured 2026-11-17 at 1d69a0c's code].
+
+### 6.10 The full run
+
+On this branch [measured 2026-11-17, on 1d69a0c's code with R-T50's documents and tests]:
+
+- `npm run lint` and `npm run typecheck`: clean.
+- The unit suite in CI's output mode (`bun test`, as the merge gate runs it): 10,523 pass, 28 skip, 0 fail, in 381 files.
+- `npm run build` and `bun scripts/verify.ts all`: pass (§6.9 for the bundle).
+- **The whole e2e suite** (`npx playwright test`, both projects and the lab profile, two workers, the host's Chromium shell): 1,169 tests, 1,162 passed and 7 failed on the first run. Each of the seven, and what became of it:
+  - `e2e/network.spec.ts`, `/play/pool` and `/play/verifier` (2): the spec pressed the 3D switch at a phone's width, and since the finish review's round 1 the pool and the sampler offer no 3D on a phone, and the sampler offers it on its chain level only. The spec now draws those scenes at a desk's width and visits the sampler's chain level after its first; it still requires the scene to go live and every request to stay in the origin. Both pass.
+  - `e2e/trace-view.spec.ts`, "shows the marks as a trace-mark event's data" (1): a race in the spec. The viewer hands its marks to the page in an effect, a render after the click, and the spec read the export once, at once. It now waits for the export to hold the mark, then asserts as before; the spec's 21 tests pass.
+  - `e2e/ledger-conformance.spec.ts`, "the page runs the cases of the suite that Bun runs" (1): a 90 s timeout while the unit suite ran on the same machine; it passes when run alone.
+  - `e2e/lab-kits.spec.ts` (3): **left, with its cause.** `public/labs/manifest.json` lists the GPU kit and the grader wheel beside the three forge labs, and no page links them, so the spec's "the manifest lists forge labs and nothing else, so that a file of another kind must be given its page and its row here" fails as it was written to, and so do the two per-file checks (`/labs/undefined`). Both files came into the manifest on `wave-2`, so this fails there too; giving them a page and a row is W2's kit work, not wave R's.
+- The lab profile's front page (mobile, CPU 4x slower): LCP 904 ms on the h1, CLS 0, INP 48 ms, all within their targets [measured 2026-11-17].
