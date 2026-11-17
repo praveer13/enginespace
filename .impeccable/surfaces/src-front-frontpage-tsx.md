@@ -56,7 +56,7 @@ FORM:
   - the model's state is drawn, never decorated;
   - no neutral template regions.
 
-FINISH: unreviewed and undocumented is unfinished; this build ends with the look gate's comparison, the finish review and its verdict (R-T50), DESIGN.md written from the built world, and every shipping raster carrying its provenance
+FINISH: unreviewed and undocumented is unfinished; this build ends with the look gate's comparison (held on 2026-11-16), the finish review and its verdict (R-T50, recorded under D-062), DESIGN.md written from the built world, and every shipping raster carrying its provenance
 
 ## Memorable moment
 
@@ -64,7 +64,7 @@ The first step. The visitor puts four waiting requests into the four slots and p
 
 ## The Pass's contract, superseded
 
-The Pass (D-047) was this page's world from W0 to wave R. D-062 replaces it once the owner confirms Data Book at the look gate (R-T20), or once stage 4 of wave R starts on that default. Until then the kitchen's files stay in the tree, untouched and working, and if the owner keeps The Pass at the gate this contract returns, amended as D-062 says. It is kept here as it stood, with the record of its roll and its adaptations.
+The Pass (D-047) was this page's world from W0 to wave R. D-062 replaced it: the owner chose Data Book at the look gate (R-T20) on 2026-11-16, and stage 4 took the kitchen's files out of the tree. None of what follows applies to the built page. It is kept here as it stood, as history, with the record of its roll and its adaptations.
 
 THESIS: Continuous batching is a line kitchen, and the front page is the pass in the middle of service. You are the expediter firing each step; you are not a visitor reading about one. The page refuses the category's dark GPU-render landing and its row of feature cards.
 

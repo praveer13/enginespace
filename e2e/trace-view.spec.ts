@@ -688,6 +688,8 @@ test.describe('the specimen page', () => {
     await viewer(page).locator('[data-command="category-cpu-gap"]').click()
     await viewer(page).locator('[data-command="edge-next"]').click()
     await viewer(page).locator('[data-command="mark"]').click()
+    // The viewer hands its notes to the page in an effect, so the export is written a render after the click: wait for it.
+    await expect.poll(async () => (await exported(page)).length).toBe(1)
     const marks = (await exported(page)) as { kind: string; category: string }[]
     expect(marks).toHaveLength(1)
     expect(marks[0]).toMatchObject({ kind: 'range', category: 'cpu-gap' })

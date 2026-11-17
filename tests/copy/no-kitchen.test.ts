@@ -291,6 +291,10 @@ describe('the allow files', () => {
     expect(allows.map((allow) => allow.area)).not.toContain('copy')
     expect(allows.map((allow) => allow.area)).not.toContain('course')
   })
+
+  test('are all gone at the end of wave R: every area is clean, so tests/copy/allow/ holds no file (R-T50)', () => {
+    expect(allowFiles()).toEqual([])
+  })
 })
 
 /* ------------------------------------------------------------------------------------------------------------------ */

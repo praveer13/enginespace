@@ -5,54 +5,49 @@ primary_target: "src/forge/ForgeView.tsx"
 related_targets: ["src/forge","src/pages/Lab.tsx"]
 ---
 
-# The forge view
+# A lab (`/labs/:lab`)
 
 ## Scope
 
-- **Surface:** a forge lab's page (`/labs/:lab`), in Operate mode. A specified surface inside the established world: A§3.1 and A§8.3 specify it, so there is no concept roll.
-- **Visitor:** a kernelspace graduate who has built a lab's Rust crate to `wasm32-unknown-unknown` on their laptop and wants to know whether it is right.
-- **Task:** drop the `.wasm`; see which module was graded (its SHA-256); read each check's result, the seed it ran on, and why a red one is red; run again on new seeds, or tell the same seeds again; know whether the run counted.
+- **Surface:** a browser lab's page (`/labs/:lab`; A§3.1 and A§8.3 specify it), in Operate mode (REDESIGN §3.9). Its title is the lab's engine title, "Build ..." (`src/forge/titles.ts`).
+- **Visitor:** a learner who builds a lab's Rust crate to `wasm32-unknown-unknown` on their laptop and wants to know whether it is right.
+- **Task:** download the crate, edit the one file it names, build it, drop the `.wasm`, and read each check's result, the seed it ran on, and why a failed one failed; run again on new seeds; know whether the run counted.
 - **Proof:** the checks are the site's. The page sends the module seeded commands and compares every reply with its own model, in a worker, with a time limit per check. Nothing about the module is taken on trust, and the file never leaves the tab.
 - **Constraints:**
   - the PRODUCT.md constraints (zero servers, nothing collected);
   - laptop-first and read-only on a phone (A§3.1), but no sideways scroll at 390 px, and every control reachable by keyboard;
-  - reduced motion cuts the printer's feed;
+  - reduced motion cuts every change;
   - the toy lab (`/labs/toy`) is the first lab on it, and the real labs reuse the view unchanged.
 
 ## Direction contract
 
-THESIS: The forge is the pass inspection, and the page is a tool before it is a picture of one. The learner's module is the dish sent up; the page is the expo reading it back against the house recipe, command by command. It refuses the test runner's wall of green and red badges, and the upload card with a cloud on it.
+THESIS: The lab page is a numbered procedure that ends in a verdict the learner can audit: five steps, then the checks, each saying what it catches. The learner's module is read back against the site's own model, command by command. It refuses the test runner's wall of green and red badges, and the upload card with a cloud on it.
 
-OWN-WORLD:
-- **Controls:** plates and a stub on a brushed-stainless deck.
-- **What is read:** white bond ticket paper in the printer's dots, with the ribbon's red for what must be seen.
-- **The module's name:** its SHA-256 on masking tape, in marker.
-- **Numbers:** counts and seeds in the dot matrix, each with its tag.
-- **Status:** a drawn mark and a word, never a board colour.
-- **The one lamp:** amber falls only on the place the next decision acts on, which is the drop slip before a file and the first red check after a run.
+OWN-WORLD: Data Book (REDESIGN §2.8): flat paper cut square with one soft sheet shadow and no texture; ink text in Atkinson Hyperlegible, titles in Big Shoulders Display 800 in sentence case; the module's SHA-256, the seeds, the counts and the commands in the tabular mono face; a check's result a mark and a word, the second ink only for a failed reply; the step numbers dark squares, not amber; one amber marker that means "now", on the control to act on now.
 
-STORY: The learner trusts a verdict because they can see how it was reached: which bytes, which commands, which reply was wrong and what it should have been. They come to believe that a pass is earned: fresh seeds, a fresh instance for each check, a spin stopped at its limit. They drop, read the first red check, fix, rebuild and drop again. When the run is green and fresh, the page says plainly that it was written to the ledger on this device.
+STORY: The learner trusts a verdict because they can see how it was reached: which bytes, which commands, which reply was wrong and what it should have been. They come to believe that a pass is earned: fresh seeds, a fresh instance for each check, a spin stopped at its limit. They drop, read the first failed check, fix, rebuild and drop again. When the run passes on fresh seeds, the page says plainly that it was written to the ledger on this device.
 
 FIRST VIEWPORT:
-- **At 1440 px:** two columns under the page's plate.
-  - Left, 44rem: the lab's name over its lead, then the drop slip (tape label "your .wasm", a plate button to choose a file, the file's name and size once chosen), then the checks as one ticket, a printed line each with its stage, its label and its result.
-  - Right, 20rem: the printer's tape, "the run, printed": lab, module hash, seeds, and whether the run counted.
-- **At 390 px:** one column in the order slip, checks, tape.
-- **The primary action:** choosing a file. The run starts when the module has loaded, and "Run on new seeds" is the plate beside the result.
+- **At 1440 px:** the h1 (the lab's title) over its two-sentence lead, then one ordered list of five steps: 1 Download the crate (its link, size and SHA-256, the check line behind a disclosure), 2 Edit one file, 3 Build (the command with Copy, and the toolchain it needs), 4 Drop the .wasm here, 5 The checks, with the run's readout beside them.
+- **At 390 px:** the same five steps in one column, the readout above the checks.
+- **The primary action:** choosing the file in step 4. The run starts when the module has loaded, and "Run on new seeds" stands beside the result.
 
-FORM: The Pass, as GAMES.md §2.6 and DESIGN.md specify it: tickets for what is read, the printer's tape for the live readout, tape labels for names and plates for controls. seed: none (specified surface, no roll)
+FORM: Data Book's numbered procedure (REDESIGN §3.9). seed: none (a specified surface inside the established world, which the owner confirmed at the look gate; no roll)
 
-FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+FINISH: unreviewed and undocumented is unfinished; this surface ends with wave R's finish review (R-T50), its material fixes, and DESIGN.md written from the built world
 
 ## Memorable moment
 
-The first red check. The ticket prints the reply the module gave beside the reply it should have given, in the ribbon's red, with the seed that drew the commands, and the lamp falls on that line.
+The first failed check. Its row prints the reply the module gave beside the reply it should have given, with the seed that drew the commands and the line "Catches ..." that names the mistake it was written for.
 
-## Adaptations (W1b-T08, the crate and the slot readout)
+## Adaptations
 
-- **The crate.** The page hands over the lab's crate, the zip that the packer (W1-T11) makes. A wide ticket without a punched hole, "Take the crate", stands under the module slip while the slip waits for a file, and not above it, so that the slip's chooser stays in a phone's first screen. It holds the zip's name as a link to the file, with its size beside it as a measured readout, and one line on what the crate holds. The zip's SHA-256 is on masking tape in marker, and under it is the line that checks the download, `echo '<hash>  <name>' | sha256sum -c`, in a code box with a plate that copies it; when the browser refuses the clipboard, the plate selects the line and says so. While the site's manifest is on its way, or cannot be read, the ticket says that, leaves out the size and the hash, and still offers the link, because a zip's name is its lab's id.
-- **The slot readout** (`hybrid-kv` only). After the checks, a panel, "Measured against the slots", says that once the adapter stage passes the page plays one night of adapter churn on the learner's module and the same night on a model with fixed slots, as vLLM and SGLang keep adapters at their pins, and counts the tickets each admitted and the kits each brought in. Its table is the mirror kit's, on a ticket: the learner's module and a row for each count of slots, the engine's term leading each column head and the kitchen's word under it. It is a readout and not a check, so it carries no lamp and no verdict, says that it earns nothing and is not written to the ledger, and tags every figure as synthetic.
+- **The slot readout** (`hybrid-kv` only). After the checks, a panel, "Measured against the slots", plays one run of adapter churn on the learner's module and the same run on a model with fixed slots, as vLLM and SGLang keep adapters at their pins, and counts the requests each admitted and the adapters each loaded. It is a readout and not a check: it carries no marker and no verdict, says that it earns nothing and is not written to the ledger, and tags every figure as synthetic.
 
 ## Unresolved
 
-- **The learner's module has no kitchen word.** GAMES.md §2.6 names the engine's objects and not the learner's code, so the page says "your module".
+- The page does not say at its top that a lab needs a laptop with Rust, or about how long it takes, and has no breadcrumb back to its module (the phone walk of 2026-11-17).
+
+## The Pass's contract, superseded
+
+Until wave R this surface was specified in The Pass (D-047), the kitchen world: the pass inspection, with tickets and the printer's tape. D-062 replaced it with Data Book, which the owner confirmed at the look gate on 2026-11-16, and stage 4 took the kitchen's files out of the tree. The superseded contract is in this file's git history; none of it applies to the built surface.

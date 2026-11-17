@@ -5,49 +5,47 @@ primary_target: "src/pages/Today.tsx"
 related_targets: ["src/items/today"]
 ---
 
-# Today
+# Review (`/today`)
 
 ## Scope
 
-- **Surface:** `/today` (A§3.1: "Keep: spaced review of the KCs earned so far"), in Operate mode. A whole surface inside the established world, specified by A§3.1, ASSESSMENT §8 and D-037, so there is no concept roll.
-- **Visitor:** a kernelspace graduate on a phone, with ten minutes at the start of the day, who earned some ideas in a lesson or a game earlier in the week.
-- **Task:** see which of the ideas they earned are worth keeping today, work through them one ticket at a time on fresh numbers, say how sure they are, read why, and know when each idea comes back.
-- **Proof:** every ticket is a new draw (its seed is on the foot line), graded on the page and written to the ledger as a `review` with the FSRS grade. Nothing about the schedule is stored: the due list is read back from the ledger each time the page draws.
+- **Surface:** Review (`/today`), spaced review of the ideas a learner has passed, in Operate mode (REDESIGN §3.10; A§3.1, ASSESSMENT §8 and D-037 specify it).
+- **Visitor:** a learner on a phone, with ten minutes at the start of the day, who passed some ideas in a lesson or a game earlier in the week.
+- **Task:** see which ideas are due, answer one question on fresh numbers for each, say how sure they are, read why, and know when each idea comes back.
+- **Proof:** every question is a new draw (its seed is on the foot line), graded on the page and written to the ledger as a `review` with the FSRS grade. Nothing about the schedule is stored: the due list is read back from the ledger each time the page draws.
 - **Constraints:**
-  - the PRODUCT.md and DESIGN.md constraints (one lamp, only code, dots for numbers, no dark scheme);
+  - the PRODUCT.md and DESIGN.md constraints;
   - phone-first: 360 px, one column, controls at 44 px, no sideways scroll, every action by keyboard;
   - a session holds 10-12 nominal minutes [estimated] and nothing is timed;
   - the page never says how much is overdue and never locks anything: a learner can always review ahead.
 
 ## Direction contract
 
-THESIS: Today is the prep list pinned up at the start of a shift. Each line is an idea the learner has earned and is about to lose: they prep it on a fresh ticket, tick it off, and the list prints the day it will be needed again. The page refuses the flashcard app's backlog badge, the streak flame and the card flip.
+THESIS: Review is one sheet of questions with the way on beside it. Each row is an idea the learner passed and is about to lose, named by its own sentence from the course map; a question on new numbers keeps it, and the row says the day it comes back. It refuses the flashcard app's backlog badge, the streak flame and the card flip.
 
-OWN-WORLD:
-- **The list:** one bond-paper strip ruled in dots, a drawn tick box on every line, the idea's id on masking tape. On a phone, once the prep starts, it folds to a row of boxes under "about 6 min left" in the dot matrix.
-- **The work:** the same order ticket as a lesson's items, with an answer slip and three stamped plates for how sure.
-- **Numbers:** the minutes left and every count in the dot matrix, each with its tag.
-- **After an answer:** the box takes a tick drawn in ribbon black, or a strike in the second ink for a miss, and the line prints the day the idea comes back.
-- **The close:** the printer prints the prep's counts beside the ticket, as it prints the night's tape.
-- **The one lamp:** amber falls on the ticket the next decision acts on: the list until the prep starts, then the ticket being prepped. The finished list is history and takes none.
+OWN-WORLD: Data Book (REDESIGN §2.8): flat paper cut square with one soft sheet shadow and no texture; ink text in Atkinson Hyperlegible, titles in Big Shoulders Display 800 in sentence case; counts and dates in the tabular mono face, a tag as a dotted underline; each question's state a word (now, next, right, missed), never a colour alone; one amber marker that means "now", only on the control to act on now.
 
-STORY: The learner understands that these are ideas they earned, not tasks piling up, that every ticket is new numbers so recall cannot be faked, and that a miss is not a debt: it comes back sooner. They believe the schedule because every line prints its return day. They start, finish in about ten minutes, and read on the last ticket when the list will be pinned up again, with no count of what they did not do.
+STORY: The learner understands that these are ideas they passed, not tasks piling up, that every question is new numbers so recall cannot be faked, and that a miss is not a debt: it comes back sooner. They believe the schedule because every done row says its return day. They start, finish in about ten minutes, and read on the last question when the next review is, with no count of what they did not do.
 
 FIRST VIEWPORT:
-- **At 390 px:** under the board, the stamped title "Today" and one lead sentence; then the prep list as one ticket, its day on the head line and four to eight ruled lines (a tick box, the item's title, the idea on tape); the foot line says about how long it takes, tagged estimated; the stub "Start the prep" closes the ticket, inside thumb reach, and the lamp falls on it. Once the prep starts the lead goes, and the strip and the first ticket take the screen.
-- **At 1440 px:** two columns under the title. The list on the left at 24rem, its lines printing their tick and return day as the prep goes, and the ticket being prepped on the right at 36rem. Before the prep, a blank ticket stands where the first will print.
-- **The primary action** is the stub. The ticket that follows it takes focus.
+- **At 390 px:** the h1 "Review", then one sheet: its head "2 questions today, about 2 min" with the amber Start review in it, a row per idea (its sentence, its module code, when it was last seen). In a session the set folds to a strip of boxes over the question, and Check answer is the foot bar (from 600 px of height only).
+- **At 1440 px:** the sheet at reading width with a quiet column beside it ("Next after this", the count of ideas passed and its legend). In a session the set's questions stand at the right, each state a word.
+- **The primary action** is Start review, or, when nothing is due, the Continue that `nextStep` gives, with Review ahead quiet beside it.
 
-FORM: The Pass's prep list: a ticket of ruled lines with tick boxes, and the order ticket with an answer slip for the line being prepped (GAMES.md §2.6: a request is a ticket and the learner is the expediter; A§3.1: `/today` is Keep). Specified surface, so the form was not rolled. seed: none (specified surface, no roll)
+FORM: Data Book's question sheet, the same question frame as a lesson's Test (REDESIGN §3.10). seed: none (a specified surface inside the established world, which the owner confirmed at the look gate; no roll)
 
-FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+FINISH: unreviewed and undocumented is unfinished; this surface ends with wave R's finish review (R-T50), its material fixes, and DESIGN.md written from the built world
 
 ## Memorable moment
 
-The tick. Pull the stub on the last ticket: the box on the list takes its drawn tick, the line prints "back Thu 6 Nov", and the done ticket says what was kept and when the list is pinned up again.
+The done sheet: "5 of 6 right.", the day of the next review, one amber Continue, and under it what became of each idea and when it comes back.
 
 ## Unresolved
 
-- **Idea names:** a line names the idea by its id and its family's title. The compiled map (W1-T06) now carries each KC's description, so a line can say what the learner can do once the page reads the map. It does not carry the confusable set (that is in `content/kc/graph.yaml`), so the session can interleave only inside a set it is handed, and the page hands it none. The interleave is built and tested.
-- **Predictions:** a prediction may reschedule an earned idea (ASSESSMENT §4.7), but its KCs come from the compiled lessons, so the page does not read them yet.
-- **Past the due ones:** "Review ahead" serves the ideas nearest to fading once the due ones are done. Whether a longer "keep going" set deserves its own control waits for more families.
+- **Idea names:** a row names the idea by its sentence from the compiled map. The confusable sets are in `content/kc/graph.yaml` and the page hands the session none, so it interleaves only inside a set it is given. The interleave is built and tested.
+- **Predictions:** a prediction may reschedule a passed idea (ASSESSMENT §4.7), but its ideas come from the compiled lessons, so the page does not read them yet.
+- **Past the due ones:** Review ahead serves the ideas nearest to fading once the due ones are done. Whether a longer set deserves its own control waits for more question families.
+
+## The Pass's contract, superseded
+
+Until wave R this surface was specified in The Pass (D-047), the kitchen world: a prep list pinned up at the start of a shift. D-062 replaced it with Data Book, which the owner confirmed at the look gate on 2026-11-16, and stage 4 took the kitchen's files out of the tree. The superseded contract is in this file's git history; none of it applies to the built surface.

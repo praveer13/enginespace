@@ -77,13 +77,20 @@ test.describe('the routes', () => {
       test.setTimeout(120_000)
       // A level page whose scene this run does not look at (the full service's other levels) is visited in 2D, so it does not draw one for nothing.
       if (HAS_3D(route) && !SCENE_IN_RUN(route)) await withSettings(context, { view3d: false })
-      // The step loop's 3D pass is drawn at a desk's width: on a phone's it offers no 3D (build B's finish review).
-      if (SCENE_IN_RUN(route) && (route === '/' || route.startsWith('/play/loop'))) await page.setViewportSize({ width: 1280, height: 800 })
+      // The step loop's, the pool's and the sampler's 3D are drawn at a desk's width: on a phone's they offer no 3D (build B's finish review,
+      // and wave R's finish review, round 1, for the pool and the sampler).
+      const GAMES_2D_ON_A_PHONE = ['/play/loop', '/play/pool', '/play/verifier']
+      if (SCENE_IN_RUN(route) && (route === '/' || GAMES_2D_ON_A_PHONE.some((game) => route.startsWith(game)))) await page.setViewportSize({ width: 1280, height: 800 })
       await open(page, route)
       await page.waitForLoadState('networkidle')
       // A 3D pass loads its chunks and draws a first frame: all of it is part of the visit.
       // A game in the instrument frame opens on its diagram (REDESIGN §2.9): its 3D switch is pressed, so its scene's chunks are part of the visit too.
       if (SCENE_IN_RUN(route)) {
+        // The sampler offers 3D on its chain level only (wave R's finish review, round 1), so after its first level the visit goes on to that one.
+        if (route === '/play/verifier') {
+          await open(page, '/play/verifier?level=chain')
+          await page.waitForLoadState('networkidle')
+        }
         const switch3d = page.locator('section[data-view="2d"] :is(.es-frame__strip, .es-front-strip)').getByRole('button', { name: '3D', exact: true })
         if ((await page.locator('[data-stage]').count()) === 0 && (await switch3d.count()) > 0) await switch3d.first().click()
         await expect(page.locator('[data-stage][data-stage-phase="live"]').first()).toBeAttached({ timeout: 60_000 })
