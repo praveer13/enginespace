@@ -10,29 +10,16 @@ import type { Seed } from '@es/sim/core'
 import { Button } from '@/design/components/Button'
 import { LevelMenu } from '@/design/components/LevelMenu'
 import { Frame } from '@/games/kit/Frame'
-import type { GameView } from '@/games/kit/ViewSwitch'
 import type { GameProps } from '@/games/registry'
-import { unavailableReason, useDeviceTier } from '@/scene/tiers'
 import { WorldCard } from './Card'
 import { Controls, ReadoutStrip } from './Controls'
 import { floorKit, partRows, ringOf } from './kit'
 import { Mirror } from './Mirror'
-import type { Scene3DProps } from './Scene3D'
 import type { FloorRun } from './types'
 import { FloorLegend, View2D, type RowTools } from './View2D'
 
 // The result loads when a run ends, not before.
 const Debrief = lazy(() => import('./Debrief').then((module) => ({ default: module.Debrief })))
-// The 3D scene is its own chunk over three's (A§6.10), and the Stage that holds it loads only when the learner switches to 3D: the swimlane
-// is the default view (REDESIGN §2.9). Both leave the tree at R-T43.
-const Scene3D = lazy(() => import('./Scene3D'))
-const FloorStage = lazy(() => import('./Stage3D'))
-
-/** The scene as the Stage mounts it, inside the Stage's canvas box. */
-function FloorScene(props: Scene3DProps) {
-  return <Scene3D {...props} />
-}
-
 /*
  * Request path (`engine-floor`, D-063): the learner traces one request. The page is the instrument frame (src/games/kit/Frame.tsx) around
  * the swimlane, the dock, the readout and the table (D-018: one session, drawn by every view). The frame owns the run and its action log;
@@ -75,11 +62,6 @@ export default function Game({ level, mode: asked = 'practice', placement = 'pag
   const after = embedded ? null : (ENGINE_FLOOR.levels[at + 1] ?? null)
   const graded = mode === 'graded' && entry.graded
   const seed = graded ? (drawn !== null && drawn.level === entry.id ? drawn.seed : entry.practiceSeed) : entry.practiceSeed
-
-  // The swimlane is the default view; the learner's own choice wins from then on. 3D is offered where the device draws it.
-  const device = useDeviceTier()
-  const draws3d = device.known && device.tier >= 1
-  const [view, setView] = useState<GameView>('2d')
 
   function choose(next: string, nextMode: GameMode) {
     const target = levelOf(ENGINE_FLOOR, next) ?? ENGINE_FLOOR.levels[0]
@@ -158,7 +140,6 @@ export default function Game({ level, mode: asked = 'practice', placement = 'pag
               }
             : null
         }
-        scene={{ view, onView: setView, allow3d: draws3d, unavailable3d: device.known && !draws3d ? unavailableReason(device.reason) : undefined }}
       />
     </div>
   )
@@ -178,7 +159,6 @@ interface LevelProps {
   next: { id: string; title: string } | null
   onNext: () => void
   onGraded: (() => void) | null
-  scene: { view: GameView; onView: (view: GameView) => void; allow3d: boolean; unavailable3d: string | undefined }
 }
 
 /** The tools a row's popover offers while the run is open: move a stage, or take the path back to it. */
@@ -186,11 +166,9 @@ const toolsOf = (run: FloorRun): RowTools | null =>
   run.done ? null : { move: (index, by) => run.dispatch({ t: 'move', from: index, by }), takeBack: (to) => run.dispatch({ t: 'unlay', to }) }
 
 /** One level's frame. A new level starts it again. */
-function FloorLevel({ levelId, levelTitle, seed, mode, embedded, rev, onFinish, ledger, menu, modeSwitch, next, onNext, onGraded, scene }: LevelProps) {
+function FloorLevel({ levelId, levelTitle, seed, mode, embedded, rev, onFinish, ledger, menu, modeSwitch, next, onNext, onGraded }: LevelProps) {
   const copy = FLOOR_COPY[levelId]
   const kit = useCallback((at: number) => floorKit(levelId, at), [levelId])
-  const [cycle, setCycle] = useState(0)
-  const { view } = scene
   return (
     <Frame
       game={ENGINE_FLOOR}
@@ -207,10 +185,6 @@ function FloorLevel({ levelId, levelTitle, seed, mode, embedded, rev, onFinish, 
       kit={kit}
       menu={menu}
       modeSwitch={modeSwitch}
-      allow3d={scene.allow3d}
-      unavailable3d={scene.unavailable3d}
-      view={view}
-      onViewChange={scene.onView}
       onCommand={(command, run) => {
         if (command === 'run' || command === 'step') {
           if (!run.view.canRun) return false
@@ -220,11 +194,6 @@ function FloorLevel({ levelId, levelTitle, seed, mode, embedded, rev, onFinish, 
         if (command === 'unlay') {
           if (!run.view.canUnlay) return false
           run.dispatch({ t: 'unlay' })
-          return true
-        }
-        if (command === 'camera') {
-          if (view !== '3d') return false
-          setCycle((count) => count + 1)
           return true
         }
         return false
@@ -237,11 +206,6 @@ function FloorLevel({ levelId, levelTitle, seed, mode, embedded, rev, onFinish, 
         met: run.done ? (run.view.served ? 'The request reached the client.' : 'The run is over.') : undefined,
       })}
       diagram={(run) => <View2D run={run} tools={toolsOf(run)} />}
-      scene3d={(run) => (
-        <Suspense fallback={<View2D run={run} />}>
-          <FloorStage run={run} cycle={cycle} diagram={<View2D run={run} />} scene={FloorScene} />
-        </Suspense>
-      )}
       legend={(run) => <FloorLegend view={run.view} />}
       dock={(run) => <Controls run={run} ring={ringOf(run.intro.ring)} />}
       readout={(run) => <ReadoutStrip view={run.view} mode={run.mode} />}

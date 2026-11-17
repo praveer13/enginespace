@@ -81,7 +81,7 @@ describe('the page is the instrument frame', () => {
     expect(markup).toContain('data-floor-controls=""')
     expect(markup).toContain('data-floor-readout=""')
     expect(markup).toContain('State as a table')
-    // The swimlane is the view; 3D stays one switch away until it leaves the tree.
+    // The swimlane is the view, and the game has no 3D switch (R-T43 removed its scene).
     expect(markup).toContain('data-surface="2d"')
   })
 

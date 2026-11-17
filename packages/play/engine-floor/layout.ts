@@ -1,6 +1,6 @@
 /**
  * Back of House's layout (A§6.3, GAMES.md §5 "2D path", §2.6 "Back of House"): the house in section, turned into positioned marks. The
- * 2D view draws them as SVG (`frameSvg`), and W1-T18's 3D scene reads the same input for its own primitives.
+ * 2D view draws them as SVG (`frameSvg`).
  *
  * A mark is a rect, a line, a circle, a polygon, a hand-off glyph or a piece of text, painted with a token role of src/design/tokens.ts
  * and never a colour (rule 9, D-047). A role becomes `var(--es-<role>)` in the SVG, so the drawing changes with the design system and

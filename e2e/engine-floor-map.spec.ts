@@ -96,7 +96,7 @@ async function open(page: Page, entropy: number | null = null) {
       // No storage: the intro shows, and the walk Tabs past it.
     }
   }, JSON.stringify({ 'engine-floor': FLOOR_PARTS.map((part) => part.id) }))
-  // These walks are the graded map on its swimlane: the 3D view has its own spec, e2e/engine-floor-scene.spec.ts.
+  // These walks are the graded map on its swimlane, the game's one view (its 3D scene left the tree at R-T43).
   await withSettings(page.context(), { view3d: false })
   await page.goto(`${origin}/play/engine-floor?level=map`, { waitUntil: 'networkidle' })
   await page.evaluate(() => document.fonts.ready)

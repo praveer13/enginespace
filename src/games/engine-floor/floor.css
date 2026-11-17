@@ -53,25 +53,6 @@
   }
 }
 
-/* At desk width on the game's page the 3D view fills the frame's diagram box, the camera's buttons over the Stage. */
-@media (min-width: 64rem) {
-  .es-frame[data-placement='page'][data-game='engine-floor'] [data-surface='3d'] {
-    height: 100%;
-  }
-
-  .es-frame[data-placement='page'][data-game='engine-floor'] .es-floor-stage {
-    flex: 1 1 auto;
-    height: auto;
-    min-height: 0;
-  }
-}
-
-/* Inside the 3D view's Stage the swimlane is its fallback and fills the box. */
-[data-surface='3d'] .es-lanes,
-[data-surface='3d'] .es-lanes__scroll {
-  height: 100%;
-}
-
 .es-lanes__scroll:focus-visible {
   outline: 3px solid var(--es-text-1);
   outline-offset: -3px;

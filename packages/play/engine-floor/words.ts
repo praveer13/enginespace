@@ -3,8 +3,8 @@
  * mechanism has. All of it is data, so the swimlane, the stage list, the table and the result say the same things.
  *
  * What a learner reads is the engine's term. A stage list tile names its mechanism as TR1 lesson 1 names it, one of five, with the kind where
- * one of them splits ("IPC · socket", "copy · host to device"). The ids (`FloorKind`, `Mechanism`, the stage ids) stay as they are: the 3D
- * scene and a learner's stored runs read them.
+ * one of them splits ("IPC · socket", "copy · host to device"). The ids (`FloorKind`, `Mechanism`, the stage ids) stay as they are: a
+ * learner's stored runs read them.
  */
 import type { Mechanism, Place, Scenario, SourceRef } from '@es/sim/lifecycle'
 
@@ -79,7 +79,7 @@ export function stageName(label: string): string {
 /**
  * The kinds of process a path visits, by id: the client; the API server; a tokenizer or detokenizer that is a process of its own; the
  * engine core (or a rank's scheduler); a worker for another rank; a program that is one process end to end (nano-vllm's offline library);
- * and the GPU, whose streams have a column of their own. The ids are the old drawing's and stay, since the 3D scene reads them.
+ * and the GPU, whose streams have a column of their own. The ids are the old drawing's and stay, since a learner's stored runs read them.
  */
 export type FloorKind = 'dining' | 'host' | 'desk' | 'pass' | 'cooks' | 'kitchen' | 'line'
 

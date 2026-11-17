@@ -60,7 +60,7 @@ describe('the roster', () => {
       // The 3D column is a dash for a game with no 3D scene.
       expect([id, entry?.has3d]).toEqual([id, row[5].trim() !== '—'])
     }
-    expect(ROSTER.filter((entry) => entry.has3d).length).toBe(6)
+    expect(ROSTER.filter((entry) => entry.has3d).length).toBe(5)
   })
 
   test("carries the tracker's wave, the wave of the first task that builds the game, and every such task's title names the game by its title", () => {

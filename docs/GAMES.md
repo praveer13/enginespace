@@ -27,13 +27,13 @@ A table whose numbers share one tag says so in its header or caption.
 
 ## 0. The games on one screen
 
-Nine games: six in 3D, three in 2D. The Loop is one game that the front page opens and TR2 continues, so a visitor's first minute and TR2's graded levels run the same model.
+Nine games: five in 3D, four in 2D. The Loop is one game that the front page opens and TR2 continues, so a visitor's first minute and TR2's graded levels run the same model.
 
 | Id | Title · subtitle (D-063) | Game | Module | The rule (= the concept) | View | Graded levels (fresh seeds) | Size |
 |---|---|---|---|---|---|---|---|
 | `loop` | **Step loop** · *Keep every slot live, and never make the GPU wait for the CPU.* | **The Loop** | front page; TR2; TR6's mask lane | Adding a request to a decode step costs the GPU little, so the loop wins by keeping every slot live and never making the GPU wait for the CPU. CUDA graphs pad each step to a captured size or fall back to launches. | 3D, flagship | TR2: capture sizes, modes, "close the bubbles"; TR6: mask lane | L + L |
 | `shape-shifter` | **Tensor views** · *A view relabels the buffer. A copy moves every element.* | **Shape Shifter** | TR0 | A tensor is a buffer plus shape and strides: views move nothing, a copy moves everything. | 3D | fewest copies; grid coverage | M |
-| `engine-floor` | **Request path** · *Every queue, IPC hop, copy and sync between the API server and the GPU.* | **The Engine Floor** | TR1 | Data crosses a boundary only through the mechanism that crosses it: a queue between threads, IPC between processes, a copy between host and GPU, a sync before reading an async result. | 3D | the lifecycle map, span-checked | M |
+| `engine-floor` | **Request path** · *Every queue, IPC hop, copy and sync between the API server and the GPU.* | **The Engine Floor** | TR1 | Data crosses a boundary only through the mechanism that crosses it: a queue between threads, IPC between processes, a copy between host and GPU, a sync before reading an async result. | 2D | the lifecycle map, span-checked | M |
 | `gap-hunt` | **Trace attribution** · *Every nanosecond of a step belongs to a kernel, a copy, a CPU gap or idle.* | **Gap Hunt** | TR3; capstone | A GPU gap is an empty launch queue, and every ns of a step belongs to exactly one category. | 2D | attribution of synthetic, then pinned, traces | M |
 | `dispatch` | **Backend dispatch** · *The first attention backend that meets every requirement takes the call.* | **Dispatch** | TR4 | The engine takes the first backend in its order whose support covers the model and GPU. | 2D | backend picks on fresh feature cards | S |
 | `pool` | **KV page pool** · *One page pool serves every KV group and every adapter.* | **The Pool** | TR5a | One page pool serves every KV group and every adapter. A prefix hit counts only where every group holds it. | 3D, flagship | eviction, adapters, the full manager | L |
@@ -252,7 +252,7 @@ The first five role lines are REDESIGN §2.6's. The four games still to be built
 
 #### Request path (`engine-floor`)
 
-*A request's path.* In TR1. D-065 makes its swimlane the play surface; its 3D scene leaves at stage 4 of wave R if the owner confirms the cut.
+*A request's path.* In TR1. The swimlane is the play surface (D-065), and the 3D scene left the tree at R-T43 (wave R, the owner's look gate chose Data Book); the game is 2D.
 
 - **The present:** the end of the laid path, where the next stage starts.
 - **The diagram** (§5): processes as lanes or platforms (the client and the API server, the engine core, the workers) with the GPU below. Threads sit inside their process. A queue joins two threads, IPC joins two processes and shared memory is a buffer both map. A host-to-device copy goes down to the GPU and a device-to-host copy comes back. A sync is a blocking wait on the GPU. Tensor-parallel ranks are processes side by side, and a collective joins them. The stage list holds the stages, each with its mechanism's glyph and its engine label, such as "queue · `input_queue` (engine core)". The debrief lays two engines' paths side by side.
@@ -870,6 +870,8 @@ These rules hold in every engine. What differs is the engine's architecture, whi
 - **Camera.** Establish (a 3/4 cutaway), a Focus per platform, and Follow on the capsule (opt-in). Camera stops follow the request (ARCHITECTURE §6.1).
 - **Motion.** The capsule moves one stage per 300 ms [estimated] and waits visibly in queues. Under reduced motion it jumps from stage to stage.
 - **Legible:** platform and zone names (DOM), each stage's mechanism glyph, and the capsule's position.
+
+**Removed at R-T43 (wave R, 2026-11-16).** The scene and everything only it used (its layout, presets, props, route, stops, camera and CSS) left the tree. The bullets below are the scene's record as it was built, kept for its history, and describe no code now.
 
 **As built (W1-T18, rebuilt by the finish review's round 1 and finished in its round 2, W1b's finish round 1, and W1b's close-out).** The house in cutaway, `src/games/engine-floor/Scene3D.tsx`, drawn from scene kit v1's props and the game's own made the kit's way (`scene-props.ts`), in the house the page lays out of the 2D house's plan (`scene-layout.ts`, so the floors stand in the 2D order and a sealed graded run builds only the floors its route has reached), along the route its laid stages make (`scene-route.ts`).
 - **The kitchen it stands in.** The line stands at the house's foot whatever the prediction, because the GPU says nothing of how many floors a token crosses: the kit's burners, griddle and fryer (a station for each stream, and the kitchen's own after them) under a canopy, sloped out from the tile to a lip, its baffle filters inclined inside and its white tubes lit along the lip; a bench of pans and plates and a speed rack stand beside the house. The room's light is baked into the tile and the floor, full over the line and up to its canopy, and dimming toward the far corners and up the tile over the hood, so the lit lamp and its white ticket stand out against the tile behind them; past the house the room falls into a haze of deep steel.
