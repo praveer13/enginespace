@@ -103,7 +103,7 @@
   /* ---------------------------------------------------------------------------------------------- label */
 
   /* A plain label: the name of a part, a state word, a lane's name. The reading face at 700, sentence case, still and unlit. */
-  .es-tape {
+  .es-plain-label {
     display: inline-flex;
     align-items: center;
     gap: 0.4em;
@@ -116,17 +116,17 @@
     font-weight: var(--es-font-label-weight);
   }
 
-  .es-tape[data-size='sm'] {
+  .es-plain-label[data-size='sm'] {
     font-size: var(--es-size-caption);
   }
 
-  .es-tape__glyph {
+  .es-plain-label__glyph {
     flex: none;
     width: 0.95em;
     height: 0.95em;
   }
 
-  .es-tape__text {
+  .es-plain-label__text {
     min-width: 0;
     overflow-wrap: anywhere;
   }

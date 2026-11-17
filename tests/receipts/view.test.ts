@@ -134,7 +134,7 @@ describe('the challenges', () => {
       ['tr4.sweep.s1', 'expired'],
     ])
     expect(held.map((entry) => entry.event.id)).toEqual([open.id, used.id, expired.id])
-    expect([...html.matchAll(/class="es-tape es-held__state"[^>]*>.*?<span class="es-tape__text">(\w+)<\/span>/g)].map((match) => match[1])).toEqual(['open', 'used', 'expired'])
+    expect([...html.matchAll(/class="es-plain-label es-held__state"[^>]*>.*?<span class="es-plain-label__text">(\w+)<\/span>/g)].map((match) => match[1])).toEqual(['open', 'used', 'expired'])
     // The lists have no headings of their own: the only one below the panels' is the slip's.
     expect(headings(html, 3)).toEqual(['Drop a receipt file'])
   })

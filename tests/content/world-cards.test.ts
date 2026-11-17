@@ -163,7 +163,7 @@ describe('each card is drawn', () => {
   test.each(Object.keys(WORLDS))('%s: a ticket with its three parts in order, a chip for each claim it cites, and no claim the page does not know', (id) => {
     const json = card(id)
     const html = renderToString(h(StaticRouter, { location: '/' }, h(NotionalMachineView, { card: json, env, scope: 'tr2.l1' }))).replaceAll('<!-- -->', '')
-    const printed = [...html.matchAll(/data-part="\w+"><span class="es-tape"[^>]*><span class="es-tape__text">([^<]+)</g)].map((match) => match[1])
+    const printed = [...html.matchAll(/data-part="\w+"><span class="es-plain-label"[^>]*><span class="es-plain-label__text">([^<]+)</g)].map((match) => match[1])
     expect(printed).toEqual([...CARD_PARTS])
     expect(html).toContain(`<p class="es-c-card__name">${json.title.replaceAll("'", '&#x27;')}</p>`)
     expect(html).not.toContain('no such claim')

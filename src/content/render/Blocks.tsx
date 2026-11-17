@@ -5,7 +5,7 @@ import { useCard } from '../load-lessons'
 import { ItemBlock } from '@/items/ItemBlock'
 import { Icon } from '@/design/components/Glyph'
 import { PrimaryButton } from '@/design/components/PrimaryButton'
-import { TapeLabel } from '@/design/components/TapeLabel'
+import { Label } from '@/design/components/Label'
 import { ClaimChip } from './ClaimChip'
 import './content.css'
 import { Frame, PendingLine, Tapes, type Of } from './BlockFrame'
@@ -154,9 +154,9 @@ function CardTicket({ block, env, scope }: { block: Of<'card'>; env: RenderEnv; 
         <Frame block="card" kind="isomorphism" scope={scope} title={block.title ?? CARD_TITLES.isomorphism}>
           <p>{block.body}</p>
           <p className="es-c-breaks">
-            <TapeLabel size="sm" tilt="none">
+            <Label size="sm" tilt="none">
               where it breaks
-            </TapeLabel>
+            </Label>
             <span>{block.breaks}</span>
           </p>
         </Frame>
@@ -216,9 +216,9 @@ export function NotionalMachineView({ card, env: given, scope }: { card: Compile
       {CARD_PARTS.map(([part, field]) => (
         <Fragment key={part}>
           <h3 className="es-c-part" data-part={field}>
-            <TapeLabel size="sm" tilt="none">
+            <Label size="sm" tilt="none">
               {part}
-            </TapeLabel>
+            </Label>
           </h3>
           <Prose body={card[field]} env={env} />
         </Fragment>

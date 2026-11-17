@@ -369,7 +369,7 @@ describe('the list of receipts, in a word', () => {
   const checkedGood = { ...sampleRecord((r) => (r.createdAt = '2026-11-01T00:00:00Z')), reports: [{ at: '2026-11-09T12:00:00.000Z', report: JSON.parse(JSON.stringify(storedReport(good.rules))) as VerificationReport['report'] }] }
   const odd = { ...sampleRecord((r) => (r.createdAt = '2026-11-02T00:00:00Z')), reports: [{ at: '2026-11-09T10:00:00.000Z', report: { checks: [] } }] }
   const html = render(createElement(ReceiptList, { held: heldReceipts([unchecked, checkedGood, odd, { sha256: sha256('x'), receipt: { schema: 'else' }, reports: [] }]) }))
-  const words = [...html.matchAll(/class="es-tape es-held__worth"[^>]*>.*?<span class="es-tape__text">([^<]+)<\/span>/g)].map((match) => match[1])
+  const words = [...html.matchAll(/class="es-plain-label es-held__worth"[^>]*>.*?<span class="es-plain-label__text">([^<]+)<\/span>/g)].map((match) => match[1])
 
   test('names what the latest check made of each receipt, and that one was never checked', () => {
     // Newest first: the sample (9 Nov, never checked), the one checked and not credited, and the one whose report this build cannot read, which has no word.

@@ -66,7 +66,7 @@ describe('/design', () => {
       'Rail',
       'Readout strip',
       'Readout',
-      'Tape label',
+      'Label',
       'Pan',
       'Station light',
       'Bell',

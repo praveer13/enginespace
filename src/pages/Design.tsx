@@ -26,7 +26,7 @@ import { Rail } from '@/design/components/Rail'
 import { Readout } from '@/design/components/Readout'
 import { StationLight } from '@/design/components/StationLight'
 import { PrimaryButton } from '@/design/components/PrimaryButton'
-import { TapeLabel } from '@/design/components/TapeLabel'
+import { Label } from '@/design/components/Label'
 import { TextLink } from '@/design/components/TextLink'
 import { Sheet, SheetLine } from '@/design/components/Sheet'
 import { Toggle } from '@/design/components/Toggle'
@@ -939,22 +939,22 @@ function ComponentSpecimens() {
         </State>
       </Specimen>
 
-      <Specimen title="Tape label" about="A plain label: the name of a part, a state word, and the label of a field. It never moves and never lights.">
+      <Specimen title="Label" about="A plain label: the name of a part, a state word, and the label of a field. It never moves and never lights.">
         <State label="plain">
-          <TapeLabel>prep · KV page</TapeLabel>
+          <Label>prep · KV page</Label>
         </State>
         <State label="with a station's code">
-          <TapeLabel slot="green">grp 2 · 0x3f</TapeLabel>
+          <Label slot="green">grp 2 · 0x3f</Label>
         </State>
         <State label="tilted the other way">
-          <TapeLabel tilt="right" slot="yellow">
+          <Label tilt="right" slot="yellow">
             cached
-          </TapeLabel>
+          </Label>
         </State>
         <State label="small and straight">
-          <TapeLabel size="sm" tilt="none" slot="brown">
+          <Label size="sm" tilt="none" slot="brown">
             kit lora-7
-          </TapeLabel>
+          </Label>
         </State>
       </Specimen>
 

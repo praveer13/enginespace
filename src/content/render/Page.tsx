@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { PrimaryButton } from '@/design/components/PrimaryButton'
-import { TapeLabel } from '@/design/components/TapeLabel'
+import { Label } from '@/design/components/Label'
 import { TextLink } from '@/design/components/TextLink'
 import { Sheet } from '@/design/components/Sheet'
 import { useDocumentTitle } from '../load'
@@ -53,9 +53,9 @@ export function PageHeader({ crumbs, current, title, tapes = [] }: PageHeaderPro
       {tapes.length > 0 ? (
         <ul className="es-doc__tapes" aria-label="Status">
           {tapes.map((tape, at) => (
-            <TapeLabel key={tape} as="li" tilt={at % 2 === 0 ? 'left' : 'right'}>
+            <Label key={tape} as="li" tilt={at % 2 === 0 ? 'left' : 'right'}>
               {tape}
-            </TapeLabel>
+            </Label>
           ))}
         </ul>
       ) : null}

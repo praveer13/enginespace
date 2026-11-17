@@ -2,7 +2,7 @@ import { lazy, useCallback, useMemo, useRef, useState, useSyncExternalStore, typ
 import { Button } from '@/design/components/Button'
 import { ReadoutStrip } from '@/design/components/ReadoutStrip'
 import { Readout } from '@/design/components/Readout'
-import { TapeLabel } from '@/design/components/TapeLabel'
+import { Label } from '@/design/components/Label'
 import { Sheet } from '@/design/components/Sheet'
 import { Toggle } from '@/design/components/Toggle'
 import { nextPreset } from './camera-rig'
@@ -171,9 +171,9 @@ export function SceneSpecimen() {
             onFallback={() => stats.set(null)}
           />
           <figcaption className="es-kit__caption">
-            <TapeLabel size="sm" tilt="none">
+            <Label size="sm" tilt="none">
               3D · the lanes
-            </TapeLabel>
+            </Label>
             <span>Drawn by the kit from the model&apos;s run; every tick is synthetic. The legend on the right holds a place&apos;s four forms: token, empty, ghost and padding.</span>
           </figcaption>
         </figure>
@@ -182,9 +182,9 @@ export function SceneSpecimen() {
             <SpecimenView2D layout={layout} selected={selection.selected} onPick={onPick} />
           </div>
           <figcaption className="es-kit__caption">
-            <TapeLabel size="sm" tilt="none">
+            <Label size="sm" tilt="none">
               2D twin
-            </TapeLabel>
+            </Label>
             <span>The same layout as a timeline: the first paint, and the view when 3D cannot run.</span>
           </figcaption>
         </figure>

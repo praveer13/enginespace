@@ -110,7 +110,7 @@ describe('/m/tr2/l0-sample, the lesson template (REDESIGN §2.5)', () => {
     expect(html).not.toContain('class="es-claim"')
     expect(html).not.toContain('class="es-tag"')
     const paragraphs = [...html.matchAll(/<p[\s>][\s\S]*?<\/p>/g)].map((match) => match[0])
-    for (const paragraph of paragraphs) expect(paragraph).not.toMatch(/es-tape|es-claim\b|es-stamp/)
+    for (const paragraph of paragraphs) expect(paragraph).not.toMatch(/es-plain-label|es-claim\b|es-stamp/)
   })
 
   test('a tagged number carries a dotted underline and its tag as hidden text, and is not a tab stop', () => {
@@ -517,7 +517,7 @@ describe('a notional-machine card (W1-T07)', () => {
     expect(html).toContain('<p class="es-c-card__name">A fixture world</p>')
     expect(html).toContain('<p>A world for a test.</p>')
     expect(levels(html)).toEqual([2, 3, 3, 3])
-    const parts = [...html.matchAll(/<h3 class="es-c-part" data-part="(\w+)"><span class="es-tape"[^>]*><span class="es-tape__text">([^<]+)<\/span><\/span><\/h3>/g)].map((match) => [match[1], match[2]])
+    const parts = [...html.matchAll(/<h3 class="es-c-part" data-part="(\w+)"><span class="es-plain-label"[^>]*><span class="es-plain-label__text">([^<]+)<\/span><\/span><\/h3>/g)].map((match) => [match[1], match[2]])
     expect(parts).toEqual([
       ['models', 'Models'],
       ['ignores', 'Ignores'],
@@ -561,7 +561,7 @@ describe('a notional-machine card (W1-T07)', () => {
 
   test('the card parts the page prints are the parts the schema names, in its order', async () => {
     const { CARD_PARTS } = await import('@es/schema')
-    const printed = [...html.matchAll(/data-part="\w+"><span class="es-tape"[^>]*><span class="es-tape__text">([^<]+)</g)].map((match) => match[1])
+    const printed = [...html.matchAll(/data-part="\w+"><span class="es-plain-label"[^>]*><span class="es-plain-label__text">([^<]+)</g)].map((match) => match[1])
     expect(printed).toEqual([...CARD_PARTS])
   })
 })

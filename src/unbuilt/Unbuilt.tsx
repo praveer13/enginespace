@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Icon } from '@/design/components/Glyph'
 import { ContinueLink } from '@/design/components/Board'
-import { TapeLabel } from '@/design/components/TapeLabel'
+import { Label } from '@/design/components/Label'
 import { Sheet, SheetLine } from '@/design/components/Sheet'
 import '@/pages/panels.css'
 import { usePointer } from '@/settings/usePlace'
@@ -35,9 +35,9 @@ export function Unbuilt({ title, lead, heading, holds, facts = [], tapes = [], c
         {tapes.length > 0 ? (
           <ul className="es-unbuilt__tapes" aria-label="About this page">
             {tapes.map((tape) => (
-              <TapeLabel key={tape} as="li" size="sm" tilt="none">
+              <Label key={tape} as="li" size="sm" tilt="none">
                 {tape}
-              </TapeLabel>
+              </Label>
             ))}
           </ul>
         ) : null}

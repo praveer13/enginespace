@@ -280,6 +280,6 @@ describe('the viewer reads in the engine’s words (REDESIGN 2.7, R-T27)', () =>
     expect(slotOfStyle('copy')).toBe('brown')
     expect(slotOfStyle('sync')).toBe('yellow')
     expect(slotOfCategory('both-idle')).toBe('white')
-    expect(render()).toMatch(/es-tape__glyph[\s\S]*?<span class="es-tape__text">CPU lane/)
+    expect(render()).toMatch(/es-plain-label__glyph[\s\S]*?<span class="es-plain-label__text">CPU lane/)
   })
 })

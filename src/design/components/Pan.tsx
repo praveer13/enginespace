@@ -2,7 +2,7 @@ import clsx from 'clsx'
 import type { HTMLAttributes, ReactNode } from 'react'
 import { SLOT_MARKS, slotOf, type ColorRoleName, type MemoryState, type Slot } from '../tokens'
 import { Glyph, Icon } from './Glyph'
-import { TapeLabel } from './TapeLabel'
+import { Label } from './Label'
 
 /*
  * A hotel pan in the reach-in: one KV page (GAMES.md §2.6, The Reach-In). It keeps its slot for life, so it never
@@ -62,9 +62,9 @@ export function Pan({ state, name, tape, station, size = 'md', lamp = false, dis
         {mark}
       </span>
       {size === 'md' && state !== 'free' && (tape || stationSlot) ? (
-        <TapeLabel size="sm" slot={stationSlot} tilt="none" className="es-pan__tape">
+        <Label size="sm" slot={stationSlot} tilt="none" className="es-pan__tape">
           {tape ?? ''}
-        </TapeLabel>
+        </Label>
       ) : null}
       {size === 'sm' && stationSlot && state !== 'free' ? (
         <Glyph

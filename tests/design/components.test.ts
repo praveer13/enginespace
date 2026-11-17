@@ -30,7 +30,7 @@ import { Rail } from '@/design/components/Rail'
 import { Readout } from '@/design/components/Readout'
 import { StationLight } from '@/design/components/StationLight'
 import { PrimaryButton } from '@/design/components/PrimaryButton'
-import { TapeLabel } from '@/design/components/TapeLabel'
+import { Label } from '@/design/components/Label'
 import { TextLink } from '@/design/components/TextLink'
 import { Sheet, SheetLine } from '@/design/components/Sheet'
 import { Toggle } from '@/design/components/Toggle'
@@ -126,7 +126,7 @@ describe('Pan', () => {
   })
 
   test('a bare pan carries no tape', () => {
-    expect(render(h(Pan, { state: 'free', name: 'Pan 1', tape: 'x' }))).not.toContain('es-tape')
+    expect(render(h(Pan, { state: 'free', name: 'Pan 1', tape: 'x' }))).not.toContain('es-plain-label')
   })
 })
 
@@ -179,7 +179,7 @@ describe('StationLight and Bell', () => {
   })
 })
 
-describe('Button, TextLink, Toggle, Field and TapeLabel', () => {
+describe('Button, TextLink, Toggle, Field and Label', () => {
   test('a button holds its label directly, and says when it is busy or has failed', () => {
     expect(render(h(Button, null, 'Reload'))).toContain('>Reload</button>')
     expect(render(h(Button, { loading: true }, 'Export'))).toContain('aria-busy="true"')
@@ -216,14 +216,14 @@ describe('Button, TextLink, Toggle, Field and TapeLabel', () => {
   test('a field’s tape is its label, and an error marks it invalid and describes it', () => {
     const html = render(h(Field, { label: 'Your prediction', error: 'Enter a whole number of ticks.', numeric: true }))
     const inputId = /<input id="([^"]+)"/.exec(html)?.[1]
-    expect(html).toContain(`<label class="es-tape es-field__label" data-tilt="left" data-size="md" for="${inputId}"`)
+    expect(html).toContain(`<label class="es-plain-label es-field__label" data-tilt="left" data-size="md" for="${inputId}"`)
     expect(html).toContain('aria-invalid="true"')
     expect(html).toContain(`aria-describedby="${inputId}-error"`)
     expect(html).toContain(`id="${inputId}-error" role="alert"`)
   })
 
   test('a tape label with a station code draws the slot’s glyph', () => {
-    expect(render(h(TapeLabel, { slot: 'yellow', children: 'cached' }))).toContain('data-glyph="diamond"')
+    expect(render(h(Label, { slot: 'yellow', children: 'cached' }))).toContain('data-glyph="diamond"')
   })
 })
 

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { CompiledBlock } from '@es/schema'
 import { Icon } from '@/design/components/Glyph'
-import { TapeLabel } from '@/design/components/TapeLabel'
+import { Label } from '@/design/components/Label'
 import { Sheet, SheetLine, type SheetState } from '@/design/components/Sheet'
 import type { Pending } from './model'
 import { Scope } from './Page'
@@ -74,9 +74,9 @@ export function Tapes({ label, items }: { label: string; items: readonly string[
   return (
     <ul className="es-c-tapes" aria-label={label}>
       {items.map((item) => (
-        <TapeLabel key={item} as="li" size="sm" tilt="none">
+        <Label key={item} as="li" size="sm" tilt="none">
           {item}
-        </TapeLabel>
+        </Label>
       ))}
     </ul>
   )
