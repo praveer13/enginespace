@@ -29,7 +29,7 @@ const CARRIERS: { carrier: 1 | 2 | 3; what: string; selector: RegExp }[] = [
   { carrier: 1, what: "the lesson's foot bar: its way on", selector: /^\.es-lesson__foot-action$/ },
   { carrier: 1, what: 'the ring on the control an intro points at', selector: /^\.es-marker__ring$/ },
   { carrier: 2, what: 'the marker on a diagram: its shape and the cursor', selector: /^\.es-marker(?:__shape|\[data-kind='cursor'\]::before)$/ },
-  { carrier: 2, what: 'the page or the light the next move acts on', selector: /^\.es-(?:pan|station)\[data-lamp\] / },
+  { carrier: 2, what: 'the page or the light the next move acts on', selector: /^\.es-station\[data-lamp\] / },
   { carrier: 2, what: 'the pages an eviction is about to take', selector: /^\.es-pool__cell\[data-chosen\]$/ },
   { carrier: 3, what: 'the current section in the rail', selector: /^\.es-srail__segment\[data-at='now'\]$/ },
   { carrier: 3, what: 'the current position on the course: the mark on the way on, on the module\'s node and by the next lesson', selector: /^\.es-course__mark$/ },

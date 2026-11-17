@@ -20,7 +20,6 @@ import { SectionRail, type RailSection } from '@/design/components/SectionRail'
 import { Stamp } from '@/design/components/Stamp'
 import { TitleBlock } from '@/design/components/TitleBlock'
 import { Glyph, Icon, type IconName } from '@/design/components/Glyph'
-import { Pan } from '@/design/components/Pan'
 import { ReadoutStrip } from '@/design/components/ReadoutStrip'
 import { Rail } from '@/design/components/Rail'
 import { Readout } from '@/design/components/Readout'
@@ -36,7 +35,6 @@ import { useSettings, useSystemReducedMotion } from '@/settings/useSettings'
 import {
   cssVar,
   fontVar,
-  MEMORY_STATES,
   PAIRS,
   ROLE_GROUPS,
   resolveColor,
@@ -955,43 +953,6 @@ function ComponentSpecimens() {
           <Label size="sm" tilt="none" slot="brown">
             kit lora-7
           </Label>
-        </State>
-      </Specimen>
-
-      <Specimen title="Pan" about="A KV page as a square cell. It never moves; its state is its fill, its pattern, its glyph and its label." wide>
-        {MEMORY_STATES.map((state) => (
-          <State key={state} label={state}>
-            <Pan
-              state={state}
-              name={`Pan, ${state}`}
-              tape={state === 'free' ? undefined : state === 'adapter' ? 'kit 7' : '0x3f'}
-              station={state === 'free' || state === 'evicted' ? undefined : 'green'}
-            />
-          </State>
-        ))}
-        {FORCED.map((force) => (
-          <State key={force} label={force}>
-            <Pan state="used" name={`Pan, ${force}`} tape="0x40" station="blue" onSelect={() => undefined} data-force={force} />
-          </State>
-        ))}
-        <State label="under the lamp">
-          <Pan state="cached" name="Pan, a candidate" tape="0x41" station="yellow" lamp />
-        </State>
-        <State label="disabled">
-          <Pan state="used" name="Pan, disabled" tape="0x42" station="blue" onSelect={() => undefined} disabled />
-        </State>
-        <State label="sixteen to a row at phone width" span>
-          <span className="es-spec__pan-row">
-            {Array.from({ length: 16 }, (_, index) => (
-              <Pan
-                key={index}
-                size="sm"
-                state={MEMORY_STATES[index % MEMORY_STATES.length]}
-                name={`Pan ${index + 1}`}
-                station={index % 3 === 0 ? 'green' : undefined}
-              />
-            ))}
-          </span>
         </State>
       </Specimen>
 

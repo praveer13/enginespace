@@ -24,7 +24,6 @@ import { Popover } from '@/design/components/Popover'
 import { SectionRail } from '@/design/components/SectionRail'
 import { Stamp, TAG_LEGEND, TagLegend, UNVERIFIED_MEANS } from '@/design/components/Stamp'
 import { TitleBlock } from '@/design/components/TitleBlock'
-import { Pan } from '@/design/components/Pan'
 import { ReadoutStrip } from '@/design/components/ReadoutStrip'
 import { Rail } from '@/design/components/Rail'
 import { Readout } from '@/design/components/Readout'
@@ -113,20 +112,6 @@ describe('ReadoutStrip', () => {
     expect(render(h(ReadoutStrip, { label: 'p', lines: [], state: 'loading' }))).toContain('role="status"')
     expect(render(h(ReadoutStrip, { label: 'p', lines: [], state: 'error', error: 'Paper jam.' }))).toContain('role="alert"')
     expect(render(h(ReadoutStrip, { label: 'p', lines: [], empty: 'No fires yet' }))).toContain('No fires yet')
-  })
-})
-
-describe('Pan', () => {
-  test('says its state in words, and is a button only when it can be picked', () => {
-    const still = render(h(Pan, { state: 'cached', name: 'Pan 12', tape: '0x3f', station: 'green' }))
-    expect(still).toMatch(/^<span class="es-pan"/)
-    expect(still).toContain('Pan 12, cached: tape on, held by nobody')
-    const button = render(h(Pan, { state: 'used', name: 'Pan 3', onSelect: () => undefined, disabled: true }))
-    expect(button).toMatch(/^<button type="button" class="es-pan"[^>]*disabled=""/)
-  })
-
-  test('a bare pan carries no tape', () => {
-    expect(render(h(Pan, { state: 'free', name: 'Pan 1', tape: 'x' }))).not.toContain('es-plain-label')
   })
 })
 
