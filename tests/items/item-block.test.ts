@@ -37,7 +37,7 @@ describe('the ticket that waits', () => {
 
   test('shows no id, and has a button that is not held down: an item is called a question everywhere', () => {
     for (const id of ['tr2.bubble', 'tr2.async-overlap', 'tr2.l0', 'tr2.bubble-width']) expect(html.replace(/data-(?:scope|family)="[^"]*"/g, '')).not.toContain(id)
-    expect(html).toMatch(/<button type="button" class="es-stub__pull"(?![^>]*disabled)[^>]*>/)
+    expect(html).toMatch(/<button type="button" class="es-primary-button__pull"(?![^>]*disabled)[^>]*>/)
     expect(html).toContain('Start questions')
     expect(html.replace(/<[^>]*>/g, ' ')).not.toMatch(/\bitems?\b/i)
   })
@@ -59,7 +59,7 @@ describe('the ticket for a family that is not built, or a level it does not offe
     expect(html).toContain('These questions are not published yet.')
     expect(html).not.toContain('Not built yet')
     expect(html).not.toContain('tr2.no-such-family</')
-    expect(html).toMatch(/<button type="button" class="es-stub__pull"[^>]*disabled=""/)
+    expect(html).toMatch(/<button type="button" class="es-primary-button__pull"[^>]*disabled=""/)
   })
 
   test('a level the family offers no variant at says which levels it does', () => {

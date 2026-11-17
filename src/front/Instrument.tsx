@@ -12,7 +12,7 @@ import type { Seed } from '@es/sim/core'
 import { Button } from '@/design/components/Button'
 import { GoalLine } from '@/design/components/GoalLine'
 import { PartsList } from '@/design/components/PartsList'
-import { Stub } from '@/design/components/Stub'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { keepShown, readShown } from '@/games/kit/first-move'
 import { focusIsLost } from '@/games/kit/focus'
 import { LiveRegion } from '@/games/kit/LiveRegion'
@@ -561,9 +561,9 @@ function DockControls({ controls, view, intro, waitingButtons }: { controls: Ret
             </span>
           ) : null}
           {view.canFire ? (
-            <Stub standalone onClick={controls.ring}>
+            <PrimaryButton standalone onClick={controls.ring}>
               {DOCK.step}
-            </Stub>
+            </PrimaryButton>
           ) : (
             <Button variant="plate" size="lg" disabled>
               {view.done ? DOCK.stepOver : DOCK.stepWaits}
@@ -693,9 +693,9 @@ function Result({
       <div className="es-front-result__ways">
         {next !== null ? (
           <>
-            <Stub standalone onClick={onNext}>
+            <PrimaryButton standalone onClick={onNext}>
               {RESULT.nextDemo}: {next.title}
-            </Stub>
+            </PrimaryButton>
             {course === null ? null : (
               <Link to={course.href} className="es-front-out" data-front-course="">
                 {course.short}
@@ -703,9 +703,9 @@ function Result({
             )}
           </>
         ) : course === null ? null : (
-          <Stub standalone to={course.href}>
+          <PrimaryButton standalone to={course.href}>
             {course.label}
-          </Stub>
+          </PrimaryButton>
         )}
         <Button size="sm" variant="quiet" onClick={onAgain}>
           {RESULT.again}

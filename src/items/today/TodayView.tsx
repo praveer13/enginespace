@@ -2,7 +2,7 @@ import { Suspense, useCallback, useMemo, useState, type ComponentProps } from 'r
 // By path, not through the package's index, which brings the registry and every family's code with it (D-059).
 import { CATALOG } from '@es/play/items/catalog'
 import type { Gen } from '@es/play/items/types'
-import { Stub } from '@/design/components/Stub'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { useMap } from '@/content/load-map'
 import { useEvidence } from '@/evidence/useEvidence'
 import { moduleCode } from '@/progress/words'
@@ -191,7 +191,7 @@ export function TodayView({ families: given }: TodayViewProps) {
               rows={ideas(lineViews(plan.session.lines, [], null))}
               seconds={plan.session.seconds}
               phase="list"
-              start={<Stub onClick={() => start(plan.session)}>{START_PREP}</Stub>}
+              start={<PrimaryButton onClick={() => start(plan.session)}>{START_PREP}</PrimaryButton>}
             />
           </div>
           <div className="es-prep__side">

@@ -9,7 +9,7 @@ import { DeltaChip } from '@/design/components/DeltaChip'
 import { Icon } from '@/design/components/Glyph'
 import { Marker } from '@/design/components/Marker'
 import { Stamp } from '@/design/components/Stamp'
-import { Stub } from '@/design/components/Stub'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { LessonGuessContext } from '@/games/kit/lessonGuess'
 import { useDeltas } from '@/games/kit/moments'
 import { Cite } from './Cite'
@@ -114,9 +114,9 @@ function Prediction({ controls, shown }: { controls: FloorControls; shown: boole
       </div>
       {lesson?.sure}
       <div className="es-floor-predict__commit">
-        <Stub disabled={pick === null} onClick={commit}>
+        <PrimaryButton disabled={pick === null} onClick={commit}>
           Commit the prediction
-        </Stub>
+        </PrimaryButton>
       </div>
       <p className="es-floor-predict__why" data-floor-no-skip="">
         {NO_SKIP}
@@ -308,9 +308,9 @@ function PathActions({ controls }: { controls: FloorControls }) {
   return (
     <div className="es-floor-actions" data-floor-path="">
       <div className="es-floor-actions__row">
-        <Stub disabled={!view.canRun} onClick={sendIt}>
+        <PrimaryButton disabled={!view.canRun} onClick={sendIt}>
           Run the path
-        </Stub>
+        </PrimaryButton>
         <Button size="sm" variant="plate" disabled={!view.canUnlay} aria-keyshortcuts="Backspace" onClick={unlay}>
           Remove last
         </Button>

@@ -29,7 +29,7 @@ import { PrinterTape } from '@/design/components/PrinterTape'
 import { Rail } from '@/design/components/Rail'
 import { Readout } from '@/design/components/Readout'
 import { StationLight } from '@/design/components/StationLight'
-import { Stub } from '@/design/components/Stub'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { TapeLabel } from '@/design/components/TapeLabel'
 import { TextLink } from '@/design/components/TextLink'
 import { Sheet, SheetLine } from '@/design/components/Sheet'
@@ -66,18 +66,18 @@ describe('Sheet', () => {
   })
 })
 
-describe('Stub', () => {
+describe('PrimaryButton', () => {
   test('as a link it is the router’s link; as an action it is a button', () => {
-    expect(render(h(Stub, { to: '/play/loop', children: 'Start service' }))).toContain('href="/play/loop"')
-    expect(render(h(Stub, { onClick: () => undefined, children: 'Start service' }))).toContain('<button type="button" class="es-stub__pull"')
+    expect(render(h(PrimaryButton, { to: '/play/loop', children: 'Start service' }))).toContain('href="/play/loop"')
+    expect(render(h(PrimaryButton, { onClick: () => undefined, children: 'Start service' }))).toContain('<button type="button" class="es-primary-button__pull"')
   })
 
   test('disabled, loading and error are element states', () => {
-    expect(render(h(Stub, { disabled: true, children: 'Start service' }))).toContain('disabled=""')
-    const loading = render(h(Stub, { loading: true, to: '/play/loop', children: 'Start service' }))
+    expect(render(h(PrimaryButton, { disabled: true, children: 'Start service' }))).toContain('disabled=""')
+    const loading = render(h(PrimaryButton, { loading: true, to: '/play/loop', children: 'Start service' }))
     expect(loading).toContain('aria-busy="true"')
     expect(loading).not.toContain('href=')
-    const error = render(h(Stub, { error: 'The line did not answer.', onClick: () => undefined, children: 'Start service' }))
+    const error = render(h(PrimaryButton, { error: 'The line did not answer.', onClick: () => undefined, children: 'Start service' }))
     const describedBy = /aria-describedby="([^"]+)"/.exec(error)?.[1]
     expect(describedBy).toBeTruthy()
     expect(error).toContain(`id="${describedBy}" role="alert"`)

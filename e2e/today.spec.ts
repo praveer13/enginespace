@@ -436,7 +436,7 @@ test.describe('a phone, 390 x 844', () => {
 
   /** The one amber control of the screen is inside the first screen, whole. */
   async function primaryInFirstScreen(page: Page, label: string): Promise<void> {
-    const amber = page.locator('main .es-stub__pull, main .es-board__next[data-emphasis="primary"]').first()
+    const amber = page.locator('main .es-primary-button__pull, main .es-board__next[data-emphasis="primary"]').first()
     await expect(amber, `${label}: the amber control`).toBeVisible()
     const box = await amber.boundingBox()
     expect(box, label).not.toBeNull()

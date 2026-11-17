@@ -3,7 +3,7 @@
  * now. Every colour, face, duration and radius is a token role (tokens.css). The class names are the old components' own, so no page
  * changes to take the new drawing; R-T46 renames them. `[data-force]` shows a pointer state without a pointer, for /design.
  *
- * Amber (the marker) has three carriers and no others (the One Marker Rule): the control to act on now (`.es-stub__pull`, the primary
+ * Amber (the marker) has three carriers and no others (the One Marker Rule): the control to act on now (`.es-primary-button__pull`, the primary
  * `.es-board__next`), the "now" mark on a diagram (a pan or a station under `[data-lamp]`, a drawing's picked tag), and the current
  * position in a rail (parts.css). Focus is ink (base.css).
  */
@@ -461,16 +461,16 @@
     cursor: not-allowed;
   }
 
-  /* ---------------------------------------------------------------------------------------------- primary button (Stub) */
+  /* ---------------------------------------------------------------------------------------------- primary button */
 
   /* The primary button: amber with its 2 px edge and an ink label, 44 px or taller. It is the control to act on now. */
-  .es-stub {
+  .es-primary-button {
     position: relative;
     display: block;
     container-type: inline-size;
   }
 
-  .es-stub__pull {
+  .es-primary-button__pull {
     display: inline-flex;
     align-items: center;
     justify-content: space-between;
@@ -493,53 +493,53 @@
     transition: background-color var(--es-dur-quick) var(--es-ease-settle);
   }
 
-  .es-stub__label {
+  .es-primary-button__label {
     min-width: 0;
     text-wrap: balance;
   }
 
-  .es-stub__arrow {
+  .es-primary-button__arrow {
     flex: none;
     width: 1.125rem;
     height: 1.125rem;
     transition: translate var(--es-dur-quick) var(--es-ease-settle);
   }
 
-  .es-stub__pull:is(:hover, [data-force='hover']):not(:disabled, [aria-disabled='true']) {
+  .es-primary-button__pull:is(:hover, [data-force='hover']):not(:disabled, [aria-disabled='true']) {
     background-color: color-mix(in srgb, var(--es-lamp) 80%, var(--es-lamp-ring));
   }
 
-  .es-stub__pull:is(:hover, [data-force='hover']):not(:disabled, [aria-disabled='true']) .es-stub__arrow {
+  .es-primary-button__pull:is(:hover, [data-force='hover']):not(:disabled, [aria-disabled='true']) .es-primary-button__arrow {
     translate: 0.1875rem 0;
   }
 
-  .es-stub__pull:is(:active, [data-force='active']):not(:disabled, [aria-disabled='true']) {
+  .es-primary-button__pull:is(:active, [data-force='active']):not(:disabled, [aria-disabled='true']) {
     background-color: color-mix(in srgb, var(--es-lamp) 65%, var(--es-lamp-ring));
   }
 
-  .es-stub__pull:is(:focus-visible, [data-force='focus']) {
+  .es-primary-button__pull:is(:focus-visible, [data-force='focus']) {
     outline: 3px solid var(--es-focus);
     outline-offset: 2px;
     box-shadow: 0 0 0 7px var(--es-paper);
   }
 
   /* Held down: no amber, because there is nothing to act on now. A well with a dashed edge and quiet words. */
-  .es-stub[data-state='disabled'] .es-stub__pull {
+  .es-primary-button[data-state='disabled'] .es-primary-button__pull {
     border: 1px dashed var(--es-edge);
     background-color: var(--es-surface-2);
     color: var(--es-text-3);
     cursor: not-allowed;
   }
 
-  .es-stub[data-state='disabled'] .es-stub__arrow {
+  .es-primary-button[data-state='disabled'] .es-primary-button__arrow {
     visibility: hidden;
   }
 
-  .es-stub[data-state='loading'] .es-stub__pull {
+  .es-primary-button[data-state='loading'] .es-primary-button__pull {
     cursor: progress;
   }
 
-  .es-stub__error {
+  .es-primary-button__error {
     display: flex;
     align-items: flex-start;
     gap: var(--es-space-2);
@@ -550,7 +550,7 @@
     line-height: 1.45;
   }
 
-  .es-stub__error-mark {
+  .es-primary-button__error-mark {
     flex: none;
     width: 1.1em;
     height: 1.1em;
@@ -2099,7 +2099,7 @@
       background: CanvasText;
     }
 
-    .es-stub__pull,
+    .es-primary-button__pull,
     .es-board__next[data-emphasis='primary'] {
       border-color: Highlight;
     }

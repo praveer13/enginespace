@@ -25,7 +25,7 @@ import { PrinterTape } from '@/design/components/PrinterTape'
 import { Rail } from '@/design/components/Rail'
 import { Readout } from '@/design/components/Readout'
 import { StationLight } from '@/design/components/StationLight'
-import { Stub } from '@/design/components/Stub'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { TapeLabel } from '@/design/components/TapeLabel'
 import { TextLink } from '@/design/components/TextLink'
 import { Sheet, SheetLine } from '@/design/components/Sheet'
@@ -836,31 +836,31 @@ function ComponentSpecimens() {
         </State>
       </Specimen>
 
-      <Specimen title="Stub" about="The primary button: amber with its dark edge and an ink label, the control to act on now. Held down, it is a well with no amber.">
+      <Specimen title="Primary button" about="The primary button: amber with its dark edge and an ink label, the control to act on now. Held down, it is a well with no amber.">
         {(['default', ...FORCED] as const).map((force) => (
           <State key={force} label={force}>
-            <Stub standalone onClick={() => undefined} data-force={force === 'default' ? undefined : force}>
+            <PrimaryButton standalone onClick={() => undefined} data-force={force === 'default' ? undefined : force}>
               Start service
-            </Stub>
+            </PrimaryButton>
           </State>
         ))}
         <State label="disabled">
-          <Stub standalone disabled>
+          <PrimaryButton standalone disabled>
             Start service
-          </Stub>
+          </PrimaryButton>
         </State>
         <State label="loading">
-          <Stub standalone loading>
+          <PrimaryButton standalone loading>
             Start service
-          </Stub>
+          </PrimaryButton>
         </State>
         <State label="error">
-          <Stub standalone onClick={() => undefined} error="The line did not answer. Pull the stub again.">
+          <PrimaryButton standalone onClick={() => undefined} error="The line did not answer. Pull the stub again.">
             Start service
-          </Stub>
+          </PrimaryButton>
         </State>
         <State label="on a ticket, as a link">
-          <Sheet head="No. 0050" meta="TBL 1" title="First service" stub={<Stub to="/play/loop">Start service</Stub>}>
+          <Sheet head="No. 0050" meta="TBL 1" title="First service" stub={<PrimaryButton to="/play/loop">Start service</PrimaryButton>}>
             <SheetLine qty="4">CLIPS ON THE RAIL</SheetLine>
           </Sheet>
         </State>

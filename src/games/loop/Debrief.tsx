@@ -6,7 +6,7 @@ import { loopSession } from '@es/play/loop/session'
 import type { FireView, LoopCounters } from '@es/play/loop/types'
 import { Button } from '@/design/components/Button'
 import { Readout } from '@/design/components/Readout'
-import { Stub } from '@/design/components/Stub'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { TextLink } from '@/design/components/TextLink'
 import { Sheet, SheetLine } from '@/design/components/Sheet'
 import { formatReadout } from '@/design/format'
@@ -214,7 +214,7 @@ export function Debrief({ run, outcome, next, onNext }: DebriefProps) {
           {grade.ok ? 'Passed.' : 'Not yet.'}
         </h3>
         <p className="es-loopdebrief__sentence">{debrief.sentence}</p>
-        <div className="es-loopdebrief__ways">{last ? <Stub to="/map">Open the course</Stub> : <Stub onClick={onNext}>{`Next: ${next.title}`}</Stub>}</div>
+        <div className="es-loopdebrief__ways">{last ? <PrimaryButton to="/map">Open the course</PrimaryButton> : <PrimaryButton onClick={onNext}>{`Next: ${next.title}`}</PrimaryButton>}</div>
       </div>
 
       <div className="es-loopdebrief__body">

@@ -431,7 +431,7 @@ button.es-lanes__chip:disabled {
   gap: var(--es-space-2) var(--es-space-3);
 }
 
-.es-loopdock__step .es-stub,
+.es-loopdock__step .es-primary-button,
 .es-loopdock__step .es-button {
   min-width: 10rem;
 }
@@ -487,8 +487,8 @@ button.es-lanes__chip:disabled {
     flex: 1 1 10rem;
   }
 
-  .es-loopdock__step .es-stub,
-  .es-loopdock__step .es-stub__pull,
+  .es-loopdock__step .es-primary-button,
+  .es-loopdock__step .es-primary-button__pull,
   .es-loopdock__step .es-button {
     width: 100%;
   }
@@ -618,7 +618,7 @@ button.es-lanes__chip:disabled {
 }
 
 /* A stub measures no width from its words (its container query), so its box is given one. */
-.es-loopdebrief__ways .es-stub {
+.es-loopdebrief__ways .es-primary-button {
   flex: 1 1 15rem;
   max-width: 24rem;
 }

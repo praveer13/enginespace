@@ -3,7 +3,7 @@ import type { CheckpointMeta, ImportMode } from '@es/ledger'
 import { Button } from '@/design/components/Button'
 import { PrinterTape } from '@/design/components/PrinterTape'
 import { Readout } from '@/design/components/Readout'
-import { Stub } from '@/design/components/Stub'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { Sheet, SheetLine } from '@/design/components/Sheet'
 import { Choice } from '@/settings/Choice'
 import { commitImport, formatWhen, openImportFile, previewMode, undoImport } from './transfer'
@@ -63,9 +63,9 @@ export function PreviewTicket({
       titleAs="h4"
       aria-label="Import preview"
       stub={
-        <Stub onClick={onImport} loading={busy}>
+        <PrimaryButton onClick={onImport} loading={busy}>
           {replace ? 'Import and replace' : 'Import and merge'}
-        </Stub>
+        </PrimaryButton>
       }
     >
       <p className="es-xfer__made">

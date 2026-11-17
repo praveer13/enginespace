@@ -127,7 +127,7 @@ describe('the dock: what to do now, Step, and the levers', () => {
     const markup = render(h(Controls, { run: fakeRun(levelState('first-1-fill')) }))
     expect(markup).toContain('Tap R1 to admit it into slot 1.')
     expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>Step: fill a slot first<\/button>/)
-    expect(markup).not.toContain('es-stub')
+    expect(markup).not.toContain('es-primary-button')
     expect(markup).not.toContain('role="switch"')
     expect(markup).toMatch(/<button[^>]*aria-pressed="false"[^>]*aria-keyshortcuts="Space"[^>]*disabled=""[^>]*>Auto<\/button>/)
   })
@@ -135,14 +135,14 @@ describe('the dock: what to do now, Step, and the levers', () => {
   test('once a slot holds a request, Step is the amber primary button, the one control to act on now', () => {
     const markup = render(h(Controls, { run: fakeRun(fill(levelState('first-1-fill'), 4)) }))
     expect(markup).toContain('Press Step to run the next step.')
-    expect(markup).toMatch(/class="es-stub"[^]*?<span class="es-stub__label">Step<\/span>/)
-    expect(count(markup, /class="es-stub"/g)).toBe(1)
+    expect(markup).toMatch(/class="es-primary-button"[^]*?<span class="es-primary-button__label">Step<\/span>/)
+    expect(count(markup, /class="es-primary-button"/g)).toBe(1)
   })
 
   test('where the intro points at Step or the async switch, the marker\'s ring carries it and Step is not amber-filled', () => {
     const atStep = render(h(Controls, { run: fakeRun(levelState('first-2-slot')), ring: { t: 'run', until: 'step' } }))
     expect(atStep).toMatch(/data-kind="ring"[^]*?>Step<\/button>/)
-    expect(atStep).not.toContain('es-stub')
+    expect(atStep).not.toContain('es-primary-button')
     const atSwitch = render(h(Controls, { run: fakeRun(levelState('first-3-gap')), ring: { t: 'lever', name: 'async', value: true } }))
     expect(atSwitch).toMatch(/data-kind="ring"[^]*?role="switch"/)
   })

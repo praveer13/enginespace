@@ -4,7 +4,7 @@ import { Icon, type IconName } from '@/design/components/Glyph'
 import { PrintingDots } from '@/design/components/PrintingDots'
 import { PrinterTape, type PrinterTapeLine } from '@/design/components/PrinterTape'
 import { Readout } from '@/design/components/Readout'
-import { Stub } from '@/design/components/Stub'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { Sheet } from '@/design/components/Sheet'
 import { Crate, CopyLine } from './Crate'
 import { CHECK_BUDGET_MS } from './protocol'
@@ -246,7 +246,7 @@ export function ForgeView({ lab, state, kit = { status: 'loading' }, onChoose, o
   let slip: ReactNode
   if (state.step === 'idle') {
     slip = (
-      <Sheet as="section" width="wide" lamp head="Your module" meta={lab.wasm} stub={<Stub onClick={pick}>Choose a file</Stub>}>
+      <Sheet as="section" width="wide" lamp head="Your module" meta={lab.wasm} stub={<PrimaryButton onClick={pick}>Choose a file</PrimaryButton>}>
         <p>Drop the file on this sheet, or choose it. It is read in this tab and never sent anywhere.</p>
       </Sheet>
     )
@@ -268,7 +268,7 @@ export function ForgeView({ lab, state, kit = { status: 'loading' }, onChoose, o
         titleAs="h3"
         state="error"
         error={state.message}
-        stub={<Stub onClick={pick}>Choose another file</Stub>}
+        stub={<PrimaryButton onClick={pick}>Choose another file</PrimaryButton>}
       >
         <FileLine file={state.file} />
         {state.sha256 === undefined ? null : <Hash sha256={state.sha256} />}
@@ -286,9 +286,9 @@ export function ForgeView({ lab, state, kit = { status: 'loading' }, onChoose, o
         state={reference ? 'error' : 'default'}
         error={reference ? recorded : undefined}
         stub={
-          <Stub onClick={pick} disabled={busy}>
+          <PrimaryButton onClick={pick} disabled={busy}>
             Choose another file
-          </Stub>
+          </PrimaryButton>
         }
       >
         <FileLine file={state.file} />
@@ -381,9 +381,9 @@ export function ForgeView({ lab, state, kit = { status: 'loading' }, onChoose, o
                 ]}
                 stub={
                   state.step === 'done' ? (
-                    <Stub onClick={onRunAgain} disabled={night}>
+                    <PrimaryButton onClick={onRunAgain} disabled={night}>
                       Run on new seeds
-                    </Stub>
+                    </PrimaryButton>
                   ) : undefined
                 }
               >

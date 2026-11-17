@@ -10,7 +10,7 @@ import { PrintingDots } from './PrintingDots'
  *
  * States: hover (a faint well), focus (the ink ring), active or pressed (a well), disabled (a dashed edge, quiet words),
  * loading (dots beside the label; the press is ignored), error (a line in the second ink beside it, and that ink's edge).
- * The primary action is the amber Stub, not a Button.
+ * The primary action is the amber primary button, not a Button.
  */
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

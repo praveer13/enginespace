@@ -4,7 +4,7 @@ import type { LocalDay } from '@es/ledger'
 import { Button } from '@/design/components/Button'
 import { ContinueLink } from '@/design/components/Board'
 import { Readout } from '@/design/components/Readout'
-import { Stub } from '@/design/components/Stub'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { TextLink } from '@/design/components/TextLink'
 import { Sheet } from '@/design/components/Sheet'
 import type { Pointer } from '@/settings/store'
@@ -78,7 +78,7 @@ export function RestTicket({ next, ahead, onAhead, way }: { next: LocalDay | nul
       {ahead ? (
         <div className="es-prep__more">
           <p>{REST_AHEAD}</p>
-          {way === null ? <Stub onClick={onAhead}>{START_AHEAD}</Stub> : <Button onClick={onAhead}>{START_AHEAD}</Button>}
+          {way === null ? <PrimaryButton onClick={onAhead}>{START_AHEAD}</PrimaryButton> : <Button onClick={onAhead}>{START_AHEAD}</Button>}
         </div>
       ) : null}
       <Links>
@@ -116,7 +116,7 @@ export function DoneTicket({ rows, right, total, next, more, ahead, way }: DoneT
       </h2>
       {next === null ? null : <p className="es-prep__next">{nextReview(next)}</p>}
       {ahead ? <p>{AHEAD_NOTE}</p> : null}
-      {way === null && more !== null ? <Stub onClick={more.run}>{more.label}</Stub> : <Way way={way} />}
+      {way === null && more !== null ? <PrimaryButton onClick={more.run}>{more.label}</PrimaryButton> : <Way way={way} />}
       {way !== null && more !== null ? (
         <div className="es-prep__more">
           <Button onClick={more.run}>{more.label}</Button>

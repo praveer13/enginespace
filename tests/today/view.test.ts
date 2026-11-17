@@ -157,7 +157,7 @@ describe('the sheets that stand when there is nothing to start', () => {
     expect(html).toContain(WAY.label)
     expect(html).toContain('data-emphasis="primary"')
     expect(html).toContain('href="/map"')
-    expect(html).not.toContain('es-stub')
+    expect(html).not.toContain('es-primary-button')
     expect(html).not.toMatch(BACKLOG)
   })
 
@@ -174,7 +174,7 @@ describe('the sheets that stand when there is nothing to start', () => {
     expect(html).toContain(WAY.label)
     expect(html).toContain('Review ahead')
     expect((html.match(/data-emphasis="primary"/g) ?? []).length).toBe(1)
-    expect(html).not.toContain('es-stub')
+    expect(html).not.toContain('es-primary-button')
     expect(html).not.toContain('data-lamp')
     expect(html).not.toMatch(BACKLOG)
     const bare = render(h(RestTicket, { next: null, ahead: false, onAhead: () => undefined, way: WAY }))
@@ -184,7 +184,7 @@ describe('the sheets that stand when there is nothing to start', () => {
 
   test('with no way on of its own (every lesson done and Review the way), a review ahead is the one amber button', () => {
     const html = render(h(RestTicket, { next: null, ahead: true, onAhead: () => undefined, way: null }))
-    expect(html).toContain('es-stub')
+    expect(html).toContain('es-primary-button')
     expect(html).not.toContain('es-board__next')
   })
 
@@ -213,7 +213,7 @@ describe('the sheet that closes a review', () => {
   test('offers Continue as the one amber control and Review ahead as a quiet button, and is not under the lamp: it is history', () => {
     expect((html.match(/data-emphasis="primary"/g) ?? []).length).toBe(1)
     expect(html).toContain('Review ahead')
-    expect(html).not.toContain('es-stub')
+    expect(html).not.toContain('es-primary-button')
     expect(html).not.toContain('data-lamp')
     const last = render(h(DoneTicket, { rows: done, right: 2, total: 2, next: null, more: null, ahead: false, way: WAY }))
     expect(last).not.toContain('Review ahead')
@@ -222,7 +222,7 @@ describe('the sheet that closes a review', () => {
 
   test('with more due and Review the way on, the amber control is Review another set', () => {
     const more = render(h(DoneTicket, { rows: done, right: 1, total: 2, next: null, more: { label: 'Review another set', run: () => undefined }, ahead: false, way: null }))
-    expect(more).toContain('es-stub')
+    expect(more).toContain('es-primary-button')
     expect(more).toContain('Review another set')
     expect(more).not.toContain('es-board__next')
   })

@@ -2,7 +2,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { useState } from 'react'
 import { Button } from '@/design/components/Button'
 import { Readout } from '@/design/components/Readout'
-import { Stub } from '@/design/components/Stub'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { Sheet, SheetLine } from '@/design/components/Sheet'
 import { saveFile } from './export'
 import { eraseDevice, exportAndSave } from './transfer'
@@ -109,9 +109,9 @@ export function ResetPanel({ api, holds, onErased }: ResetPanelProps) {
               state={problem === null ? 'default' : 'error'}
               error={problem}
               stub={
-                <Stub onClick={() => void erase()} loading={erasing}>
+                <PrimaryButton onClick={() => void erase()} loading={erasing}>
                   Erase everything
-                </Stub>
+                </PrimaryButton>
               }
             >
               <Dialog.Description>

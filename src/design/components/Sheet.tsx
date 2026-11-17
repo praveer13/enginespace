@@ -25,7 +25,7 @@ export interface SheetProps extends Omit<HTMLAttributes<HTMLElement>, 'title'> {
   /** The stamped headline. */
   title?: ReactNode
   titleAs?: 'h1' | 'h2' | 'h3' | 'h4' | 'p'
-  /** The tear-off stub below the perforation (a Stub). */
+  /** The tear-off stub below the perforation (a primary button). */
   stub?: ReactNode
   /** The punched hole the rail's clip or the spike goes through. */
   hole?: boolean

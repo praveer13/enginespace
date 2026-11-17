@@ -3,7 +3,7 @@ import { Link, useLoaderData } from 'react-router'
 import type { ContentIndex } from '@es/schema'
 import { ContinueLink } from '@/design/components/Board'
 import { Readout } from '@/design/components/Readout'
-import { Stub } from '@/design/components/Stub'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { TextLink } from '@/design/components/TextLink'
 import { formatReadout } from '@/design/format'
 import { hearPointer, pointerSnapshot } from '@/settings/store'
@@ -154,9 +154,9 @@ function Below({ index, course }: { index: ContentIndex | null; course: { label:
 
       {course === null ? null : (
         <p className="es-front-below__start">
-          <Stub standalone to={course.href}>
+          <PrimaryButton standalone to={course.href}>
             {course.label}
-          </Stub>
+          </PrimaryButton>
         </p>
       )}
     </div>

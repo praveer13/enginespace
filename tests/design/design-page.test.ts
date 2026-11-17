@@ -62,7 +62,7 @@ describe('/design', () => {
     for (const title of [
       ...PART_TITLES,
       'Sheet',
-      'Stub',
+      'Primary button',
       'Rail',
       'Printer tape',
       'Readout',

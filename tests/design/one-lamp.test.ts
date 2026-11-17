@@ -23,7 +23,7 @@ const MARKER = /var\(--es-lamp\)/
 
 /** The carriers, each with the carrier of the rule it is (1, 2 or 3) and what it is. */
 const CARRIERS: { carrier: 1 | 2 | 3; what: string; selector: RegExp }[] = [
-  { carrier: 1, what: 'the primary button', selector: /^\.es-stub__pull(?::is\(|$)/ },
+  { carrier: 1, what: 'the primary button', selector: /^\.es-primary-button__pull(?::is\(|$)/ },
   { carrier: 1, what: "a page's way on, where it has no move in hand", selector: /^\.es-board__next\[data-emphasis='primary'\]/ },
   { carrier: 1, what: 'the way on beside a lesson (NextStep)', selector: /^a?\.es-next__action(?::is\(|$)/ },
   { carrier: 1, what: "the lesson's foot bar: its way on", selector: /^\.es-lesson__foot-action$/ },
@@ -62,7 +62,7 @@ describe('the One Marker Rule: amber means now, on its three carriers only', () 
     expect(SHEETS).toContain('src/front/front.css')
     expect(SHEETS.some(kitchen)).toBe(false)
     const selectors = rules.map(({ selector }) => selector)
-    expect(selectors).toContain('.es-stub__pull')
+    expect(selectors).toContain('.es-primary-button__pull')
     expect(selectors).toContain(".es-srail__segment[data-at='now']")
     expect(selectors).toContain(".es-marker[data-kind='cursor']::before")
     for (const carrier of [1, 2, 3]) expect(CARRIERS.some((entry) => entry.carrier === carrier)).toBe(true)

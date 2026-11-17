@@ -85,7 +85,7 @@ describe('the shell, rendered', () => {
     }
     expect(inst).toContain('data-callout="5"')
     // No amber fill: Step waits as an outline until a slot holds a request, and no other primary control is in the instrument.
-    expect(inst).not.toContain('es-stub')
+    expect(inst).not.toContain('es-primary-button')
     const coach = between(inst, 'data-coach-list=""', '</ol>')
     expect([...coach.matchAll(/<li data-part="([a-z]+)">/g)].map((match) => match[1])).toEqual(COACH_PARTS.map((part) => part.id))
     expect(textOf(inst)).toContain('Put R1 in a slot.')

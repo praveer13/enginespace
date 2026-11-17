@@ -1,7 +1,7 @@
 import { Component, lazy, Suspense, useEffect, useRef, useState, type ReactNode, type Ref } from 'react'
 import { rosterEntry, type RosterEntry } from '@es/play/roster'
 import { PrintingDots } from '@/design/components/PrintingDots'
-import { Stub } from '@/design/components/Stub'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { TextLink } from '@/design/components/TextLink'
 import { Frame, PendingLine, Tapes, type Of } from './BlockFrame'
 import { pendingGame } from './model'
@@ -62,7 +62,7 @@ export function GameBlock({ block, scope, at, rev }: GameBlockProps) {
   const pending = pendingGame(block.id)
   if (pending !== null) {
     return (
-      <Frame block="game" scope={scope} meta={meta} title="Play" pending={pending.task} data={data('unbuilt')} stub={<Stub disabled>Start level</Stub>}>
+      <Frame block="game" scope={scope} meta={meta} title="Play" pending={pending.task} data={data('unbuilt')} stub={<PrimaryButton disabled>Start level</PrimaryButton>}>
         <GameName entry={entry} />
         <Tapes label="About this game" items={facts} />
         <PendingLine {...pending} />
@@ -79,7 +79,7 @@ export function GameBlock({ block, scope, at, rev }: GameBlockProps) {
         data={data('failed')}
         state="error"
         error="The game would not load, or stopped. Check your connection and reload the page."
-        stub={<Stub onClick={() => window.location.reload()}>Reload page</Stub>}
+        stub={<PrimaryButton onClick={() => window.location.reload()}>Reload page</PrimaryButton>}
       >
         <GameName entry={entry} />
       </Frame>
@@ -89,7 +89,7 @@ export function GameBlock({ block, scope, at, rev }: GameBlockProps) {
   // its level and its mode.
   return (
     <div className="es-c-game" data-open={open ? '' : undefined}>
-      <Frame block="game" scope={scope} meta={meta} title="Play" data={data(open ? 'open' : 'waiting')} stub={open ? undefined : <Stub onClick={() => setOpen(true)}>Start level</Stub>}>
+      <Frame block="game" scope={scope} meta={meta} title="Play" data={data(open ? 'open' : 'waiting')} stub={open ? undefined : <PrimaryButton onClick={() => setOpen(true)}>Start level</PrimaryButton>}>
         {open ? null : (
           <>
             <GameName entry={entry} />

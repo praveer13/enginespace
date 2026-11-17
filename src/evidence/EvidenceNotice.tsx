@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { Stub } from '@/design/components/Stub'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { Sheet } from '@/design/components/Sheet'
 import { getReadOnlyNotice, subscribeReadOnlyNotice } from './notice'
 
@@ -24,7 +24,7 @@ export function EvidenceNotice() {
         error={notice.text}
         width="full"
         data-reason={notice.reason}
-        stub={<Stub onClick={() => window.location.reload()}>Reload</Stub>}
+        stub={<PrimaryButton onClick={() => window.location.reload()}>Reload</PrimaryButton>}
       />
     </div>
   )

@@ -165,7 +165,7 @@ describe('the stage list', () => {
   test('Run the path is the amber control once there is a stage to run, and Remove last takes one off', () => {
     expect(dock(laidTo(vllm, 0))).toMatch(/data-state="disabled".*Run the path/)
     const markup = dock(laidTo(vllm, 2))
-    expect(markup).toMatch(/class="es-stub" data-state="default".*?Run the path/)
+    expect(markup).toMatch(/class="es-primary-button" data-state="default".*?Run the path/)
     expect(markup).toContain('Remove last')
   })
 })

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { ChallengeEvent } from '@es/ledger'
 import { Button } from '@/design/components/Button'
 import { Icon } from '@/design/components/Glyph'
-import { Stub } from '@/design/components/Stub'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { TextLink } from '@/design/components/TextLink'
 import { Sheet, SheetLine } from '@/design/components/Sheet'
 import { expiryOf, gradeCommand } from './challenge'
@@ -57,13 +57,13 @@ export function ChallengeTicket({ event, durable, memoryOnly }: { event: Challen
       titleAs="h3"
       foot={[`Challenge ${seed}`, `issued ${formatWhen(event.at)}`]}
       stub={
-        <Stub
+        <PrimaryButton
           onClick={() => {
             void copy(token, TICKET.copiedToken, () => selectContents(tokenRef.current))
           }}
         >
           {TICKET.copyToken}
-        </Stub>
+        </PrimaryButton>
       }
     >
       <SheetLine qty="stage">{stage}</SheetLine>

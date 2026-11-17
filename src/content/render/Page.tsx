@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Stub } from '@/design/components/Stub'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { TapeLabel } from '@/design/components/TapeLabel'
 import { TextLink } from '@/design/components/TextLink'
 import { Sheet } from '@/design/components/Sheet'
@@ -107,7 +107,7 @@ export function PageNotice(props: NoticeProps) {
         {props.kind === 'loading' ? (
           <Sheet as="section" width="wide" head={ticket} state="loading" loadingLabel={`Printing the ${props.what}`} />
         ) : props.kind === 'missing' ? (
-          <Sheet as="section" width="wide" head={ticket} state="empty" empty={props.message} stub={<Stub to={props.back.to}>{props.back.label}</Stub>} />
+          <Sheet as="section" width="wide" head={ticket} state="empty" empty={props.message} stub={<PrimaryButton to={props.back.to}>{props.back.label}</PrimaryButton>} />
         ) : (
           <Sheet
             as="section"
@@ -115,7 +115,7 @@ export function PageNotice(props: NoticeProps) {
             head={ticket}
             state="error"
             error={props.message}
-            stub={<Stub onClick={() => window.location.reload()}>Reload page</Stub>}
+            stub={<PrimaryButton onClick={() => window.location.reload()}>Reload page</PrimaryButton>}
           />
         )}
       </div>

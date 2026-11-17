@@ -501,11 +501,11 @@
 }
 
 /* A stub measures no width from its words (its container query), so its box is given one. */
-.es-front-controls__step .es-stub {
+.es-front-controls__step .es-primary-button {
   width: 10rem;
 }
 
-.es-front-controls__step .es-stub__pull,
+.es-front-controls__step .es-primary-button__pull,
 .es-front-controls__step .es-button {
   min-width: 10rem;
   min-height: 3.5rem;
@@ -539,8 +539,8 @@
     min-width: 0;
   }
 
-  .es-front-controls__step .es-stub,
-  .es-front-controls__step .es-stub__pull,
+  .es-front-controls__step .es-primary-button,
+  .es-front-controls__step .es-primary-button__pull,
   .es-front-controls__step .es-button {
     width: 100%;
     min-width: 0;
@@ -555,7 +555,7 @@
   }
 
   /* Step at the phone's control height, so the coach line under the dock is on the first screen. */
-  .es-front-controls__step .es-stub__pull,
+  .es-front-controls__step .es-primary-button__pull,
   .es-front-controls__step .es-button[data-size] {
     min-height: 2.75rem;
     padding-block: 0.125rem;
@@ -769,12 +769,12 @@
   gap: var(--es-space-2) var(--es-space-3);
 }
 
-.es-front-result__ways .es-stub {
+.es-front-result__ways .es-primary-button {
   flex: 1 1 15rem;
   max-width: 28rem;
 }
 
-.es-front-below__start .es-stub {
+.es-front-below__start .es-primary-button {
   max-width: 40rem;
 }
 

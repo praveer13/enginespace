@@ -267,7 +267,7 @@ describe('the notices a page shows instead of its content', () => {
     expect(html).toContain('<h1 class="es-doc__title">Module not found</h1>')
     expect(html).toContain('data-state="empty"')
     expect(html).toContain('No module called nope.')
-    expect(html).toMatch(/<a class="es-stub__pull" href="\/map"/)
+    expect(html).toMatch(/<a class="es-primary-button__pull" href="\/map"/)
   })
 
   test('it did not load: a red line that is announced, and a stub that reloads the page', () => {
@@ -275,7 +275,7 @@ describe('the notices a page shows instead of its content', () => {
     expect(html).toContain('data-state="error"')
     expect(html).toContain('role="alert"')
     expect(html).toContain('The lesson would not print.')
-    expect(html).toContain('<button type="button" class="es-stub__pull"')
+    expect(html).toContain('<button type="button" class="es-primary-button__pull"')
     expect(html).toContain('Reload page')
   })
 })
@@ -405,8 +405,8 @@ describe('the blocks, one at a time', () => {
     for (const fact of ['level · evict', 'graded']) expect(html).toContain(fact)
     expect(html).toContain('Graded: new numbers drawn when you start, and no undo.')
     // The stub is live, and the way to every level is the game's own page.
-    expect(html).toMatch(/<button type="button" class="es-stub__pull"><span class="es-stub__label">Start level<\/span>/)
-    expect(html).not.toMatch(/<button type="button" class="es-stub__pull"[^>]*disabled=""/)
+    expect(html).toMatch(/<button type="button" class="es-primary-button__pull"><span class="es-primary-button__label">Start level<\/span>/)
+    expect(html).not.toMatch(/<button type="button" class="es-primary-button__pull"[^>]*disabled=""/)
     expect(html).toContain('href="/play/pool?level=evict"')
     // Nothing of the game is drawn until the learner starts it.
     expect(html).not.toContain('data-game=')
@@ -419,12 +419,12 @@ describe('the blocks, one at a time', () => {
     expect(placeholders(waiting)).toEqual({ game: 'W2-T30' })
     expect(waiting).toContain('Not built yet: the game')
     expect(waiting).toContain('<strong>KV offload</strong>')
-    expect(waiting).toMatch(/<button type="button" class="es-stub__pull"[^>]*disabled=""/)
+    expect(waiting).toMatch(/<button type="button" class="es-primary-button__pull"[^>]*disabled=""/)
     for (const id of ['not-a-game', 'constructor']) {
       const none = drawnBlocks(game(id))
       expect(placeholders(none)).toEqual({})
       expect(none).toContain(`No game is called ${id}.`)
-      expect(none).not.toContain('es-stub')
+      expect(none).not.toContain('es-primary-button')
     }
   })
 
@@ -481,7 +481,7 @@ describe('the blocks, one at a time', () => {
     const html = drawnBlocks({ type: 'item', family: 'tr2.no-such-family', level: 1, count: 5 })
     expect(html).toContain('data-phase="unbuilt"')
     expect(html).toContain('These questions are not published yet.')
-    expect(html).toMatch(/<button type="button" class="es-stub__pull"[^>]*disabled=""/)
+    expect(html).toMatch(/<button type="button" class="es-primary-button__pull"[^>]*disabled=""/)
   })
 
   test('an item block at a level its family does not offer says which levels it does', () => {

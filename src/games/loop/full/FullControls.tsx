@@ -6,7 +6,7 @@ import type { FullView, LeverName, Prediction } from '@es/play/loop/full/types'
 import { Button } from '@/design/components/Button'
 import { Field } from '@/design/components/Field'
 import { Marker } from '@/design/components/Marker'
-import { Stub } from '@/design/components/Stub'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { Toggle } from '@/design/components/Toggle'
 import { formatReadout } from '@/design/format'
 import { Us } from './FullView2D'
@@ -373,9 +373,9 @@ export function FullControls({ run, toggleAutoRef }: { run: FullRun; toggleAutoR
                 Run it
               </Button>
             ) : (
-              <Stub standalone onClick={controls.serve} disabled={!view.canFire}>
+              <PrimaryButton standalone onClick={controls.serve} disabled={!view.canFire}>
                 Run it
-              </Stub>
+              </PrimaryButton>
             )}
           </Ringed>
         </div>
@@ -396,9 +396,9 @@ export function FullControls({ run, toggleAutoRef }: { run: FullRun; toggleAutoR
                   Step
                 </Button>
               ) : (
-                <Stub standalone onClick={controls.ring}>
+                <PrimaryButton standalone onClick={controls.ring}>
                   Step
-                </Stub>
+                </PrimaryButton>
               )}
             </Ringed>
           </span>

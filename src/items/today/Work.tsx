@@ -5,7 +5,7 @@ import { seenKey } from '@es/play/items/attempt'
 import type { Answered } from '@es/play/items/attempt'
 import { LEVEL_NAMES } from '@es/play/items/types'
 import type { Confidence, Gen, Response } from '@es/play/items/types'
-import { Stub } from '@/design/components/Stub'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { Sheet } from '@/design/components/Sheet'
 import { useEvidence } from '@/evidence/useEvidence'
 import { Givens, Question, Reveal, SurePlates, Unsaved, Worked } from '../Attempt'
@@ -132,7 +132,7 @@ export default function Work({ line, index, total, entropy, met, card, today, la
       width="full"
       lamp={!revealed}
       foot={[`Seed ${seedLabel(item.seed)}`, 'new numbers']}
-      stub={revealed ? <Stub onClick={onNext}>{last ? FINISH_PREP : NEXT_TICKET}</Stub> : <Stub onClick={check}>{CHECK_TICKET}</Stub>}
+      stub={revealed ? <PrimaryButton onClick={onNext}>{last ? FINISH_PREP : NEXT_TICKET}</PrimaryButton> : <PrimaryButton onClick={check}>{CHECK_TICKET}</PrimaryButton>}
     >
       <h2 className="es-item__count" tabIndex={-1} ref={revealed ? undefined : count}>
         <span>{placeLine(index, total)}</span> <span className="es-item__level">{LEVEL_NAMES[item.level]}</span>

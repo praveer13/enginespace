@@ -75,8 +75,8 @@ describe('the slip, waiting for a file', () => {
     expect(text(html)).toContain('.es.json.gz')
     expect(html).toMatch(/<h3[^>]*>Drop a receipt file<\/h3>/)
     expect(text(html)).toContain('Choose a file')
-    expect(html).toMatch(/<button[^>]*class="es-stub__pull"[^>]*>/)
-    expect(html).not.toMatch(/<button[^>]*es-stub__pull[^>]*disabled/)
+    expect(html).toMatch(/<button[^>]*class="es-primary-button__pull"[^>]*>/)
+    expect(html).not.toMatch(/<button[^>]*es-primary-button__pull[^>]*disabled/)
   })
 
   test('has a file input that a keyboard and a reader reach through its name, hidden behind the stub, and accepts gzip', () => {
@@ -110,20 +110,20 @@ describe('the slip, waiting for a file', () => {
 describe('the slip, while the ledger opens and when the ledger cannot be written', () => {
   test('holds the stub until the ledger is open, and says so', () => {
     const html = panel({ step: 'idle' }, { ready: false })
-    expect(html).toMatch(/<button[^>]*es-stub__pull[^>]*disabled=""|<button[^>]*disabled=""[^>]*es-stub__pull/)
+    expect(html).toMatch(/<button[^>]*es-primary-button__pull[^>]*disabled=""|<button[^>]*disabled=""[^>]*es-primary-button__pull/)
     expect(text(html)).toContain('Your record is opening, and the page takes a file as soon as it has.')
   })
 
   test('holds the stub when a newer version of the site has the ledger, and says to reload', () => {
     const html = panel({ step: 'idle' }, { readOnly: true })
-    expect(html).toMatch(/<button[^>]*es-stub__pull[^>]*disabled=""|<button[^>]*disabled=""[^>]*es-stub__pull/)
+    expect(html).toMatch(/<button[^>]*es-primary-button__pull[^>]*disabled=""|<button[^>]*disabled=""[^>]*es-primary-button__pull/)
     expect(text(html)).toContain('has handed your record to a newer version of the site. Reload the page to bring a result back.')
   })
 
   test('warns when the ledger is in memory only, and still takes the file', () => {
     const html = panel({ step: 'idle' }, { memoryOnly: true })
     expect(text(html)).toContain('This browser is not keeping your record. A result kept now is lost when this tab closes.')
-    expect(html).not.toMatch(/<button[^>]*es-stub__pull[^>]*disabled/)
+    expect(html).not.toMatch(/<button[^>]*es-primary-button__pull[^>]*disabled/)
   })
 })
 

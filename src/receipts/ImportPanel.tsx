@@ -3,7 +3,7 @@ import type { DragEvent, ReactNode } from 'react'
 import { Button } from '@/design/components/Button'
 import { Icon } from '@/design/components/Glyph'
 import { Readout } from '@/design/components/Readout'
-import { Stub } from '@/design/components/Stub'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { Sheet } from '@/design/components/Sheet'
 import { MAX_COMPRESSED_BYTES, MAX_DECOMPRESSED_BYTES } from '@es/verify'
 import type { RuleResult } from '@es/verify'
@@ -121,9 +121,9 @@ export function ImportPanel({ ready, readOnly, memoryOnly, state, onChoose, onCl
         titleAs="h3"
         foot={[<Caps key="caps" />]}
         stub={
-          <Stub onClick={pick} disabled={blocked}>
+          <PrimaryButton onClick={pick} disabled={blocked}>
             {IMPORT.choose}
-          </Stub>
+          </PrimaryButton>
         }
       >
         <p>{IMPORT.dropNote}</p>
@@ -159,7 +159,7 @@ export function ImportPanel({ ready, readOnly, memoryOnly, state, onChoose, onCl
         titleAs="h3"
         state="error"
         error={firstFailure(state.rules)}
-        stub={<Stub onClick={pick}>{IMPORT.chooseAnother}</Stub>}
+        stub={<PrimaryButton onClick={pick}>{IMPORT.chooseAnother}</PrimaryButton>}
       >
         <FileLine file={state.file} />
         <p>{IMPORT.refusedNote}</p>
@@ -177,7 +177,7 @@ export function ImportPanel({ ready, readOnly, memoryOnly, state, onChoose, onCl
         titleAs="h3"
         state="error"
         error={state.message}
-        stub={<Stub onClick={pick}>{IMPORT.chooseAnother}</Stub>}
+        stub={<PrimaryButton onClick={pick}>{IMPORT.chooseAnother}</PrimaryButton>}
       >
         <FileLine file={state.file} />
         <p>{IMPORT.failedNote}</p>
@@ -194,7 +194,7 @@ export function ImportPanel({ ready, readOnly, memoryOnly, state, onChoose, onCl
         title={state.recheck ? IMPORT.recheckTitle : IMPORT.keptTitle}
         titleAs="h3"
         foot={[`Result ${shortHash(state.sha256)}`]}
-        stub={<Stub to={detailAddress(state.sha256)}>{IMPORT.open}</Stub>}
+        stub={<PrimaryButton to={detailAddress(state.sha256)}>{IMPORT.open}</PrimaryButton>}
       >
         <FileLine file={state.file} />
         <p>{state.recheck ? IMPORT.recheckNote : IMPORT.keptNote}</p>
