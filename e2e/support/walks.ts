@@ -42,7 +42,6 @@ export type Walker = (page: Page, walk: Walk) => Promise<void>
 /** A walk's record of where focus went, from e2e/support/front.ts. */
 export type Walk = ReturnType<typeof walkOf>
 
-const OVER = 'The run is over. The debrief is ready.'
 
 const gameOf = (page: Page, id: string) => page.locator(`section[data-game="${id}"]`)
 const liveLine = (page: Page) => page.locator('[data-live="line"]')
@@ -88,15 +87,6 @@ async function tabToLocator(walk: Walk, target: Locator, limit = 120): Promise<v
     await walk.press('Tab')
   }
   throw new Error(`Tab never reached ${String(target)} in ${limit} presses; it went through ${walk.trail.map((stop) => stop.name).join(' > ')}`)
-}
-
-/** Waits for the control that begins the way into the debrief to have focus, presses it, and waits for the verdict. */
-async function intoTheDebrief(page: Page, walk: Walk, verdict: Locator, title: string): Promise<void> {
-  // Focus has moved on its own to the way into the debrief, which is one key away.
-  await expect.poll(() => activeName(page)).toBe('See the debrief')
-  await walk.see()
-  await page.keyboard.press('Enter')
-  await expect(verdict).toHaveText(title)
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -443,7 +433,7 @@ const POOL: Record<(typeof WALKED)['pool'][number], Walker> = {
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* The Inspection (`broken-bench`)                                                                                    */
+/* Broken benchmark (`broken-bench`)                                                                                  */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 interface Ruling {
@@ -453,7 +443,7 @@ interface Ruling {
   hiUs: number
 }
 
-/** What a learner who has done the court's own arithmetic files: the true flaw, the recomputed p99 and the court's interval. */
+/** What a learner who has done the reference's own arithmetic files: the true flaw, the recomputed p99 and the reference's interval. */
 function rightRuling(slot: CaseSlot): Ruling {
   const { c, truth } = caseOf(slot)
   return { flaw: c.flaw, p99Us: truth.correction.p99Us, loUs: truth.interval.loUs, hiUs: truth.interval.hiUs }
@@ -462,9 +452,13 @@ function rightRuling(slot: CaseSlot): Ruling {
 /** Milliseconds as a person types them. */
 const ms = (us: number): string => String(us / 1000)
 
-/** A whole filing, by keys: Tab to the checklist, the arrows choose the flaw, digits write the p99 and its range, and Enter from the last field files it. */
+/**
+ * A whole filing, by keys: the radios take focus (from the first run's ask step, or Tab), the arrows choose the flaw, digits write the p99
+ * and its range, and Enter from the last field files it.
+ */
 async function fileRuling(page: Page, walk: Walk, ruling: Ruling): Promise<void> {
-  await tabTo(walk, new RegExp(`^${FLAW_FACTS[BENCH_FLAWS[0]].term}`))
+  const inFlaws = await page.evaluate(() => document.activeElement?.closest('[data-bench-flaws]') != null)
+  if (!inFlaws) await tabTo(walk, new RegExp(`^${FLAW_FACTS[BENCH_FLAWS[0]].term}`))
   const at = BENCH_FLAWS.indexOf(ruling.flaw)
   if (at === 0) await page.keyboard.press('Space')
   for (let press = 0; press < at; press++) await walk.press('ArrowDown')
@@ -481,17 +475,32 @@ async function fileRuling(page: Page, walk: Walk, ruling: Ruling): Promise<void>
   await page.keyboard.press('Enter')
 }
 
-/** The Inspection's level filed right, case by case: on its practice seed, or on the seed a graded run drew (e2e/lesson-games.spec.ts). */
+/** The first run's strip: Next through the parts and the look, with the keys. Whatever the page settles on first (the strip, or the form when every part was met). */
+async function passTheIntro(page: Page, walk: Walk): Promise<void> {
+  const step = () => page.locator('[data-game="broken-bench"] .es-intro').first().getAttribute('data-intro', { timeout: 2_000 }).catch(() => null)
+  await page.locator('[data-game="broken-bench"] :is(.es-intro, [data-bench-form])').first().waitFor()
+  for (let at = await step(), guard = 0; (at === 'parts' || at === 'look') && guard < 12; at = await step(), guard++) {
+    const focused = await page.evaluate(() => document.activeElement?.hasAttribute('data-intro-next') ?? false)
+    if (!focused) await tabTo(walk, /^(Next|Next part)$/, 60)
+    await page.keyboard.press('Enter')
+  }
+}
+
+/** Broken benchmark's level filed right, case by case: on its practice seed, or on the seed a graded run drew (e2e/lesson-games.spec.ts). */
 export const benchLevelWalk = (level: 'due' | 'warm' | 'sure' | 'court', seed = practiceSeed('broken-bench', level)): Walker => async (page, walk) => {
   const slots = benchLevel(level, seed).slots
+  await passTheIntro(page, walk)
   for (const [at, slot] of slots.entries()) {
-    if (at > 0) await expect.poll(() => activeName(page)).toBe(`Five reports, case ${at + 1} of ${slots.length}`)
+    if (at > 0) await expect.poll(() => activeName(page)).toBe(`Report form: report ${at + 1} of ${slots.length}`)
     await fileRuling(page, walk, rightRuling(slot))
-    if (at < slots.length - 1) await expect(liveLine(page)).toContainText(`Case ${at + 1} of ${slots.length} filed.`)
+    if (at < slots.length - 1) await expect(liveLine(page)).toContainText(`Report ${at + 1} of ${slots.length} filed.`)
   }
-  await expect(liveLine(page)).toContainText('The last ruling is filed.')
-  await expect(outcome(page)).toHaveText(OVER)
-  await intoTheDebrief(page, walk, page.locator('[data-bench-debrief] h3').first(), level === 'court' ? 'The court is satisfied.' : 'The ruling stands.')
+  await expect(liveLine(page)).toContainText('The last report is filed.')
+  // The instrument frame puts the result in the dock and focus on its verdict, which the grade gives.
+  await expect(outcome(page)).toHaveText('The run is over. The result is in the dock.')
+  await expect(page.locator('[data-result] [data-result-heading]')).toHaveText('Passed')
+  await expect.poll(() => page.evaluate(() => document.activeElement?.hasAttribute('data-result-heading') ?? false)).toBe(true)
+  await walk.see()
 }
 
 const BENCH: Record<(typeof WALKED)['broken-bench'][number], Walker> = {

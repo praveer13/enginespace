@@ -508,6 +508,7 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
                         replay={intro.replay}
                         look={look}
                         ask={kit.askWords?.(run.view) ?? null}
+                        askLead={kit.askLead}
                         skip={kit.firstAsk === 'optional' ? 'allowed' : 'The session needs this guess before the run, so it cannot be skipped.'}
                         moveWords={kit.firstMoveWords}
                         moveKind={kit.firstMoveKind}

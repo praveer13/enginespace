@@ -42,6 +42,8 @@ export interface IntroCoachProps {
   look: KitLook | null
   /** The session's first ask, in its own words. */
   ask: ReactNode
+  /** The ask step's own words, where the ask is not a guess. */
+  askLead?: ReactNode
   /** Whether the session lets the learner skip its ask, and if not, why. */
   skip: 'allowed' | string
   moveWords: string
@@ -67,7 +69,7 @@ const TITLES: Readonly<Record<IntroStep, string>> = {
 }
 
 /** The coach strip. Focus follows its Next onto the step it opens, and leaves the strip alone otherwise. */
-export function IntroCoach({ title, step, parts, replay, look, ask, skip, moveWords, moveKind, embedded, partAt, onPartAt, onNext, onEnd, onAct }: IntroCoachProps) {
+export function IntroCoach({ title, step, parts, replay, look, ask, askLead, skip, moveWords, moveKind, embedded, partAt, onPartAt, onNext, onEnd, onAct }: IntroCoachProps) {
   const wide = useWideFrame() || embedded
   const headingId = useId()
   const root = useRef<HTMLElement>(null)
@@ -133,7 +135,9 @@ export function IntroCoach({ title, step, parts, replay, look, ask, skip, moveWo
     case 'look':
       body = (
         <>
-          <p className="es-intro__lead">Select {look?.label ?? 'it'} and read what it holds. What you will guess is not on it: the run answers that.</p>
+          <p className="es-intro__lead">
+            {look?.lead ?? <>Select {look?.label ?? 'it'} and read what it holds. What you will guess is not on it: the run answers that.</>}
+          </p>
           {look === null ? null : (
             <Popover trigger={look.label} title={look.title} className="es-intro__look" triggerData={{ 'data-intro-look': '' }}>
               <p>{look.detail}</p>
@@ -147,8 +151,14 @@ export function IntroCoach({ title, step, parts, replay, look, ask, skip, moveWo
       body = (
         <>
           <p className="es-intro__lead es-intro__lead--wide">
-            {ask === null ? null : <>The guess below asks it in the words you just met. </>}
-            {skip === 'allowed' ? 'Commit a number, or skip the guess: either one uses the chance, since the guess comes before any move.' : skip}
+            {askLead !== undefined ? (
+              askLead
+            ) : (
+              <>
+                {ask === null ? null : <>The guess below asks it in the words you just met. </>}
+                {skip === 'allowed' ? 'Commit a number, or skip the guess: either one uses the chance, since the guess comes before any move.' : skip}
+              </>
+            )}
           </p>
         </>
       )

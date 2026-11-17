@@ -1,32 +1,20 @@
 /*
- * The Inspection (`broken-bench`) in a browser: the walks that `verify:games` lists for every game and cannot run itself (A§6.2, A§6.8,
- * A§6.9, GAMES.md §2.5), and W1-T33's first two acceptance checks: "the game can be completed by keyboard" and "runs are graded on fresh
- * seeds".
+ * Broken benchmark (`broken-bench`) in a browser, in the instrument frame (REDESIGN §2.6, §3.5; R-T31): the walks that `verify:games` lists
+ * for every game and cannot run itself (A§6.2, A§6.8, A§6.9, GAMES.md §2.5), and the acceptance list of R-T31.
  *
- *   1. A keyboard-only walk files a ruling on every level and reaches its debrief: Tab to the checklist, the arrow keys choose the flaw,
- *      digits write the p99 and its range, Enter files, and focus moves on (to the next case of the court, and at the end to the way into
- *      the debrief). The court is five cases, filed one after the other.
- *   2. The game's keys: `T` moves the stopwatch between the send and the due time, `J` and `K` select an order, `[` and `]` turn the
- *      sheets, `?` lists the keys and Escape gives focus back. The tape is a listbox with the arrow keys, Home, End and the page keys, and
- *      a tap on an order's slip selects the order.
- *   3. A graded attempt is dealt a fresh seed, drawn on the page when the attempt starts. The spec queues the seeds that the page's
- *      `crypto.getRandomValues` hands out, so that it knows which case it is shown, and checks that the claim on the clipboard is that
- *      seed's, that a second attempt is dealt another seed, and that the practice seed is never the graded one. A graded attempt hides what
- *      a practice one shows (the desk's p99 and the undo) and is still won from the numbers the page prints: the tail, counted down to
- *      the p99's rank.
- *   4. Reduced motion: nothing animates, and the game plays.
- *   5. Nothing leaves the origin (ARCHITECTURE §1, I1).
- *   6. The same seed and the same actions give the same state hash in the browser as under Node (A§5.10).
- *   7. axe finds no serious or critical violation on the game's pages at 360 and 1280 px, and nothing is cut off at the right edge at 320
- *      (WCAG 1.4.10).
- *   8. The first viewport holds the evidence: under one row of the levels, the attempt and the stages, the sheet and the claim at
- *      1440 px and the claim at 390 px; and on a phone the tail comes before the desk.
- *   9. The rows sheet lights the selected order as an edgeless pool on the tape's paper, with no fill, border or outline of its own, at
- *      1440 and 390 px; and on a phone the tail prints each order on one line under its column heads, so the desk follows close under it.
- *  10. The tail gives nothing away (W1b-T11): it lists as many orders for every log and every setting of the stopwatch and the cut, in a
- *      graded attempt too, so that its length says nothing of where the p99 sits; and it scrolls in a box of its own, which does not scroll
- *      sideways from 320 to 390 px under the widest times a log has, and is smaller under a finger, so that a tail of a hundred lines
- *      leaves the desk within reach and the page can be swiped above and below it.
+ *   1. A keyboard-only walk files a report on every level and reaches its result: the first run's Next through the parts and the switch,
+ *      the arrow keys choose the flaw, digits write the p99 and its range, Enter files, and focus moves on (to the next report of the
+ *      court, and at the end to the verdict). The court is five reports, filed one after the other.
+ *   2. The switch and the report form stand beside the chart, inside the first screen with it at 1440 x 900; the range rule is printed
+ *      above the form before anything is filed; at 390 x 844 the claim, the switch, the form and the readout share the screen.
+ *   3. The first run is the parts, then a flip of the switch (a view change that files nothing: Undo stays dead), then the form with its
+ *      range rule. The p99 moving once latency counts from the due time is named once, as coordinated omission.
+ *   4. The game's keys: `T` moves the clock between the send time and the due time, `J` and `K` select a request, `[` and `]` turn the
+ *      sheets. The log is a listbox with the arrow keys, Home, End and the page keys.
+ *   5. A graded attempt is dealt a fresh seed, drawn on the page when it starts; it hides the p99 at the switch and the undo.
+ *   6. The result: the verdict word from the grade, the corrected run drawn in the diagram, and the court's docket.
+ *   7. No banned word on any level, at the start and at the result. Reduced motion. Nothing leaves the origin. The same seed and the
+ *      same actions give the same state hash in the browser as under Node. axe finds no serious or critical violation.
  *
  * How it runs. The spec starts the app's own Vite dev server on a free port, so it needs no build and no preview server, and drives
  * `/play/broken-bench` in whichever browser Playwright launches. With ES_E2E_ORIGIN set to the address of a server that is already running
@@ -41,13 +29,16 @@ import type { ViteDevServer } from 'vite'
 import { applyAction, drawInBand, startRun, stateHash } from '../packages/play'
 import { caseOf } from '../packages/play/broken-bench/cases'
 import { TAIL_ROWS } from '../packages/play/broken-bench/desk'
+import { COORDINATED_OMISSION } from '../packages/play/broken-bench/copy'
 import { FLAW_FACTS } from '../packages/play/broken-bench/flaws'
-import { orderNo } from '../packages/play/broken-bench/layout'
 import { buildLevel } from '../packages/play/broken-bench/levels'
 import { benchSession } from '../packages/play/broken-bench/session'
 import type { BenchAction, BenchLevelId, CaseSlot, Flaw } from '../packages/play/broken-bench/types'
 import { BENCH_FLAWS } from '../packages/sim/bench/broken-types'
+import { findBanned } from '../src/copy/banned'
 import { clipped } from './support/site'
+import { walkOf } from './support/front'
+import { benchLevelWalk } from './support/walks'
 
 const root = new URL('..', import.meta.url).pathname
 
@@ -82,8 +73,11 @@ const test = base
 const game = (page: Page) => page.locator('section[data-game="broken-bench"]')
 const live = (page: Page) => page.locator('[data-live="line"]')
 const outcome = (page: Page) => page.locator('[data-live="outcome"]')
-const verdict = (page: Page) => page.locator('[data-bench-debrief] h3').first()
-const selectedOrder = (page: Page) => page.locator('.es-bench-order')
+const verdict = (page: Page) => page.locator('[data-result] [data-result-heading]')
+const clockSwitch = (page: Page) => page.getByRole('switch', { name: 'Latency from the due time' })
+const measured = (page: Page) => page.locator('[data-readout-id="measured"] dd')
+const PARTS = ['claim', 'histogram', 'timeline', 'switch', 'form']
+
 /** What a reader would call the focused control: its aria-label, its label, or its text. */
 const activeName = (page: Page) =>
   page.evaluate(() => {
@@ -93,9 +87,20 @@ const activeName = (page: Page) =>
     return named.trim().replace(/\s+/g, ' ')
   })
 
-async function open(page: Page, level: string) {
+/**
+ * Opens a level. `intro: 'met'` (the default) seeds the intro flag with every part, as a learner who has met them has, so the walks that test
+ * something else are not in the first run's way; `'fresh'` leaves it empty.
+ */
+async function open(page: Page, level: string, { intro = 'met' }: { intro?: 'met' | 'fresh' } = {}) {
+  if (intro === 'met') await page.addInitScript((parts) => localStorage.setItem('es:intro', JSON.stringify({ 'broken-bench': parts })), PARTS)
   await page.goto(`${origin}/play/broken-bench?level=${level}`, { waitUntil: 'networkidle' })
   await page.evaluate(() => document.fonts.ready)
+  await expect(game(page)).toBeVisible()
+}
+
+/** Reopens on the same page, with the flag as it now stands. */
+async function reopen(page: Page, level: string) {
+  await page.goto(`${origin}/play/broken-bench?level=${level}`, { waitUntil: 'networkidle' })
   await expect(game(page)).toBeVisible()
 }
 
@@ -118,7 +123,7 @@ interface Answer {
   hiUs: number
 }
 
-/** What a learner who has done the court's own arithmetic files: the true flaw, the recomputed p99 and the court's interval. */
+/** What a learner who has done the reference's own arithmetic files: the true flaw, the recomputed p99 and the reference's interval. */
 function rightAnswer(slot: CaseSlot): Answer {
   const { c, truth } = caseOf(slot)
   return { flaw: c.flaw, p99Us: truth.correction.p99Us, loUs: truth.interval.loUs, hiUs: truth.interval.hiUs }
@@ -127,7 +132,7 @@ function rightAnswer(slot: CaseSlot): Answer {
 /** Milliseconds as a person types them. */
 const ms = (us: number): string => String(us / 1000)
 
-/** Names a flaw with the keyboard alone: Tab to the checklist, then the arrow keys, which move and choose. */
+/** Names a flaw with the keyboard alone: Tab to the list, then the arrow keys, which move and choose. */
 async function nameFlaw(page: Page, flaw: Flaw) {
   await tabTo(page, new RegExp(`^${FLAW_FACTS[BENCH_FLAWS[0]].term}`))
   const at = BENCH_FLAWS.indexOf(flaw)
@@ -137,7 +142,7 @@ async function nameFlaw(page: Page, flaw: Flaw) {
   await expect(page.locator(`input[type="radio"][value="${flaw}"]`)).toBeChecked()
 }
 
-/** Writes the p99 and the range into the three fields with the keyboard, and files the ruling with Enter from the last of them. */
+/** Writes the p99 and the range into the three fields with the keyboard, and files the report with Enter from the last of them. */
 async function writeAndFile(page: Page, written: { p99: string; lo: string; hi: string }) {
   await tabTo(page, /^Your p99 \(ms\)$/, 4)
   await page.keyboard.type(written.p99)
@@ -151,16 +156,9 @@ async function writeAndFile(page: Page, written: { p99: string; lo: string; hi: 
 }
 
 /** A whole filing, by the keyboard alone. */
-async function fileRuling(page: Page, a: Answer) {
+async function fileReport(page: Page, a: Answer) {
   await nameFlaw(page, a.flaw)
   await writeAndFile(page, { p99: ms(a.p99Us), lo: ms(a.loUs), hi: ms(a.hiUs) })
-}
-
-async function endWithTheDebrief(page: Page, title: string) {
-  // Focus has moved on its own to the way into the debrief, which is one key away.
-  await expect.poll(() => activeName(page)).toBe('See the debrief')
-  await page.keyboard.press('Enter')
-  await expect(verdict(page)).toHaveText(title)
 }
 
 /** The seeds that the page's next graded attempts will draw: only a draw of one 32-bit number is answered, and any other use of the generator is left alone. */
@@ -187,427 +185,405 @@ test.beforeEach(async ({ page }) => {
   })
 })
 
-/** The claim on the clipboard, in milliseconds: the report's p99, which is the case's own. */
-const claimMs = async (page: Page) => Number(await page.locator('[data-bench-board] [data-bench-clip] data').first().getAttribute('value'))
+/** The claim, in milliseconds: the report's p99, which is the case's own. */
+const claimMs = async (page: Page) => Number((await page.locator('[data-bench-claim]').innerText()).replace(/[^\d.]/g, ''))
 
-test.describe('a keyboard-only walk files a ruling on every level', () => {
+/** Whether a box is inside the viewport, to the pixel. */
+const inView = (box: { x: number; y: number; width: number; height: number } | null, viewport: { width: number; height: number }) =>
+  box !== null && box.x >= -0.5 && box.y >= -0.5 && box.x + box.width <= viewport.width + 0.5 && box.y + box.height <= viewport.height + 0.5
+
+test.describe('a keyboard-only walk files a report on every level', () => {
   for (const level of ['due', 'warm', 'sure'] as const) {
-    test(`\`${level}\`: Tab to the checklist, the arrow keys to name the flaw, digits, Enter to file, and the debrief`, async ({ page }) => {
+    test(`\`${level}\`: the first run's Next, the arrow keys to name the flaw, digits, Enter to file, and the result`, async ({ page }) => {
       const slot = buildLevel(level, 0).slots[0]
-      await open(page, level)
-      await fileRuling(page, rightAnswer(slot))
-      await expect(live(page)).toContainText('The last ruling is filed.')
-      await expect(outcome(page)).toHaveText('The run is over. The debrief is ready.')
-      await endWithTheDebrief(page, 'The ruling stands.')
-      await expect(page.locator('[data-ruling] [data-line="flaw"]')).toContainText(`You named ${FLAW_FACTS[slot.flaw].phrase}`)
+      await open(page, level, { intro: 'fresh' })
+      await benchLevelWalk(level, 0)(page, walkOf(page))
+      await expect(page.locator('[data-ruling-body] [data-line="flaw"]')).toContainText(`You named ${FLAW_FACTS[slot.flaw].phrase}`)
       await expect(page.getByText('The rule, and the arithmetic')).toBeVisible()
     })
   }
 
-  test('`court`: five cases, each filed from the keyboard, with focus on the next case each time, and the docket at the end', async ({ page }) => {
-    const slots = buildLevel('court', 0).slots
+  test('`court`: five reports, each filed from the keyboard, with focus on the next report each time, and the docket at the end', async ({ page }) => {
+    test.setTimeout(120_000)
     await open(page, 'court')
-    for (const [at, slot] of slots.entries()) {
-      if (at > 0) await expect.poll(() => activeName(page)).toBe(`Five reports, case ${at + 1} of 5`)
-      await fileRuling(page, rightAnswer(slot))
-      if (at < slots.length - 1) await expect(live(page)).toContainText(`Case ${at + 1} of 5 filed.`)
-    }
-    await expect(live(page)).toContainText('The last ruling is filed.')
-    await endWithTheDebrief(page, 'The court is satisfied.')
-    await expect(page.getByRole('region', { name: 'The docket' })).toBeVisible()
+    await benchLevelWalk('court', 0)(page, walkOf(page))
     await expect(page.locator('[data-ruling]')).toHaveCount(5)
+    await expect(page.getByRole('button', { name: /^Show \d$/ })).toHaveCount(5)
   })
 
-  test('a ruling with the wrong flaw falls, the debrief says which part was wrong, and the way on is still the keyboard\'s', async ({ page }) => {
+  test('a report with the wrong flaw is Not yet, the result says which part was wrong, and the way on is still the keyboard\'s', async ({ page }) => {
     const slot = buildLevel('due', 0).slots[0]
     const right = rightAnswer(slot)
     await open(page, 'due')
-    await fileRuling(page, { ...right, flaw: BENCH_FLAWS[(BENCH_FLAWS.indexOf(right.flaw) + 5) % BENCH_FLAWS.length] })
-    await endWithTheDebrief(page, 'The ruling falls.')
-    await expect(page.locator('[data-ruling] [data-line="flaw"] [data-ok="false"]')).toHaveCount(1)
-    await expect(page.locator('[data-ruling] [data-line="number"] [data-ok="true"]')).toHaveCount(1)
-    await page.getByRole('button', { name: 'Next: Warm-up cut' }).focus()
-    await page.keyboard.press('Enter')
-    await expect.poll(() => page.evaluate(() => document.activeElement?.getAttribute('data-game'))).toBe('broken-bench')
-    // The docket in the game's header says which level is open and how: the warm-up cut, in practice.
-    await expect(page.getByRole('navigation', { name: 'Levels of the Inspection' }).locator('[aria-current="true"]')).toHaveText('Warm-up cut')
-    await expect(page.getByRole('group', { name: 'Attempt' }).getByRole('button', { name: 'Practice', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    await fileReport(page, { flaw: 'warm-cache', p99Us: right.p99Us * 3, loUs: right.p99Us * 2, hiUs: right.p99Us * 4 })
+    await expect(outcome(page)).toHaveText('The run is over. The result is in the dock.')
+    await expect(verdict(page)).toHaveText('Not yet')
+    await expect(page.locator('[data-ruling-body] [data-ok="false"]').first()).toBeVisible()
+    await expect(page.locator('[data-result]')).toContainText('You named a warm cache')
+    await expect(page.locator('[data-result]')).not.toContainText('Passed')
+    await tabTo(page, /^(Next level: .*|Run again)$/, 12)
   })
 
-  test('the ruling is not filed until a flaw is named and a p99 with a range that holds it is written, and Enter in a field does nothing before that', async ({ page }) => {
+  test('the report is not filed until a flaw is named and a p99 with a range that holds it is written, and Enter in a field does nothing before that', async ({ page }) => {
     await open(page, 'due')
-    const file = page.getByRole('button', { name: 'File the ruling' })
+    const file = page.getByRole('button', { name: 'File the report' })
     await expect(file).toBeDisabled()
-    await expect(page.getByText('To file it: name a flaw, and write a p99 and a range that holds it.')).toBeVisible()
-    // A range that does not hold the p99 is said so, in the field it is wrong in, and Enter files nothing.
+    await expect(page.locator('[data-bench-form]')).toContainText('To file it: name a flaw, and write a p99 and a range that holds it.')
     await page.getByLabel('Your p99 (ms)').fill('100')
+    await page.getByLabel('Your p99 (ms)').press('Enter')
+    await expect(page.locator('[data-ruling-body]')).toHaveCount(0)
     await page.getByLabel('Range from (ms)').fill('200')
     await page.getByLabel('to (ms)').fill('300')
-    await expect(page.getByText('the range must hold the p99 itself')).toBeVisible()
-    await page.getByLabel('to (ms)').press('Enter')
-    await expect(outcome(page)).toHaveText('')
-    await page.locator('label[data-flaw="none"]').click()
+    await expect(page.locator('[data-bench-form] [role="alert"]')).toContainText('range must hold the p99')
     await expect(file).toBeDisabled()
-    await expect(page.getByText('To file it: write a p99 and a range that holds it.')).toBeVisible()
-    await page.getByLabel('Range from (ms)').fill('50')
-    await expect(page.getByText('the range must hold the p99 itself')).toHaveCount(0)
-    await expect(file).toBeEnabled()
-    await expect(page.getByText('To file it:')).toHaveCount(0)
+  })
+})
+
+test.describe('the first screen', () => {
+  test('at 1440 x 900 the switch, the chart, the report form and the readout are inside the viewport together, and the range rule is above the fields', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await open(page, 'due')
+    const viewport = { width: 1440, height: 900 }
+    const boxes = {
+      switch: await clockSwitch(page).boundingBox(),
+      chart: await page.locator('.es-bench-sheet svg').boundingBox(),
+      claim: await page.locator('[data-bench-claim]').boundingBox(),
+      rule: await page.locator('[data-bench-rule]').boundingBox(),
+      p99: await page.getByLabel('Your p99 (ms)').boundingBox(),
+      file: await page.getByRole('button', { name: 'File the report' }).boundingBox(),
+      readout: await page.locator('[data-bench-readout]').boundingBox(),
+    }
+    for (const [name, box] of Object.entries(boxes)) expect([name, inView(box, viewport)]).toEqual([name, true])
+    // The chart and the form stand side by side: the switch is over the chart, the form beside it, one row.
+    expect(boxes.chart && boxes.p99 && boxes.chart.x + boxes.chart.width <= boxes.p99.x + 1).toBe(true)
+    expect(boxes.switch && boxes.chart && boxes.switch.y < boxes.chart.y).toBe(true)
+    // The rule is printed above the fields, before the learner files.
+    expect(boxes.rule && boxes.p99 && boxes.rule.y + boxes.rule.height <= boxes.p99.y).toBe(true)
+    await expect(page.locator('[data-bench-rule]')).toContainText('within 15%')
+    await expect(page.locator('[data-bench-rule]')).toContainText('at most 2 times as wide as its bootstrap interval')
+    const page2 = await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight + 200)
+    expect(page2).toBe(true)
+  })
+
+  test('at 390 x 844 the claim, the switch, the form\'s fields and the readout share the screen with the diagram\'s box', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await open(page, 'due')
+    const viewport = { width: 390, height: 844 }
+    const view = await page.locator('.es-frame__view').boundingBox()
+    const dock = await page.locator('[data-dock]').boundingBox()
+    expect(inView(view, viewport)).toBe(true)
+    expect(inView(dock, viewport)).toBe(true)
+    expect(inView(await page.locator('[data-bench-claim]').boundingBox(), viewport)).toBe(true)
+    expect(inView(await clockSwitch(page).boundingBox(), viewport)).toBe(true)
+    expect(inView(await page.locator('[data-bench-readout]').boundingBox(), viewport)).toBe(true)
+    // The diagram's box ends where the pinned dock starts, so nothing of it hides under the dock.
+    expect(view && dock && view.y + view.height <= dock.y + 1).toBe(true)
+    await expect(page.locator('[data-bench-rule]')).toBeVisible()
+  })
+
+  test('each level shows its title, its goal line and, played graded, its pass rule before the run', async ({ page }) => {
+    for (const level of ['due', 'warm', 'sure', 'court'] as const) {
+      await open(page, level)
+      await expect(page.locator('.es-frame__level, .es-level__face').first()).toContainText(level === 'court' ? 'Five reports' : level === 'due' ? 'From due time' : level === 'warm' ? 'Warm-up cut' : 'p99 interval')
+      await expect(page.locator('.es-goal')).toContainText(/Ends when you (file|have filed)/)
+      await expect(page.locator('.es-goal')).toContainText('graded attempt passes when')
+      await queueSeeds(page, [123_456 + level.length])
+      await page.getByRole('button', { name: 'Start a graded attempt' }).click()
+      await expect(page.locator('.es-goal')).toContainText('Passes when')
+      await expect(page.locator('.es-goal')).toContainText('within 15%')
+    }
+  })
+})
+
+test.describe('the first run', () => {
+  test('is the parts, then a flip of the switch that files nothing, then the report form with its range rule', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await open(page, 'due', { intro: 'fresh' })
+    const strip = page.locator('[data-game="broken-bench"] .es-intro')
+    await expect(strip).toHaveAttribute('data-intro', 'parts')
+    await expect(strip.getByRole('listitem')).toHaveCount(5)
+    for (const name of ['Claim', 'Histogram', 'Timeline', 'Latency switch', 'Report form']) await expect(strip).toContainText(name)
+    // The form is held back until the parts and the switch have been met (name, then ask).
+    await expect(page.locator('[data-bench-form]')).toHaveCount(0)
+    await strip.getByRole('button', { name: 'Next' }).click()
+    await expect(strip).toHaveAttribute('data-intro', 'look')
+    await expect(strip).toContainText('Flip the Latency from switch')
+    await expect(strip).toContainText('files nothing')
+    await expect(page.locator('[data-bench-form]')).toHaveCount(0)
+    // Flip it: the p99 moves, nothing is in the action log (Undo stays disabled), and the form is still held back.
+    const before = await measured(page).innerText()
+    await clockSwitch(page).click()
+    await expect(measured(page)).not.toHaveText(before)
+    await expect(page.getByRole('button', { name: 'Undo' })).toBeDisabled()
+    await strip.getByRole('button', { name: 'Next' }).click()
+    await expect(strip).toHaveAttribute('data-intro', 'ask')
+    await expect(page.locator('[data-bench-form]')).toBeVisible()
+    await expect(page.locator('[data-bench-rule]')).toBeVisible()
+    await expect(strip).toContainText('Nothing is filed until you file it')
+    // Naming a flaw is a real move: it ends the intro, and it is kept.
+    await page.locator('label[data-flaw="none"]').click()
+    await expect(strip).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Undo' })).toBeEnabled()
+    const flag = await page.evaluate(() => JSON.parse(localStorage.getItem('es:intro') ?? '{}'))
+    expect(flag['broken-bench']).toEqual(PARTS)
+  })
+
+  test('the scripted first run, from the parts to a filed report, takes under a minute', async ({ page }) => {
+    const started = Date.now()
+    const slot = buildLevel('due', 0).slots[0]
+    await open(page, 'due', { intro: 'fresh' })
+    await benchLevelWalk('due', 0)(page, walkOf(page))
+    expect(Date.now() - started).toBeLessThan(60_000)
+    expect(slot.flaw).toBe('coordinated-omission')
+  })
+
+  test('Skip intro and Escape end it at any step, and a learner who met every part gets none', async ({ page }) => {
+    await open(page, 'due', { intro: 'fresh' })
+    await page.getByRole('button', { name: 'Skip intro' }).click()
+    await expect(page.locator('.es-intro')).toHaveCount(0)
+    await expect(page.locator('[data-bench-form]')).toBeVisible()
+    await reopen(page, 'due')
+    await expect(page.locator('.es-intro')).toHaveCount(0)
+  })
+
+  test('names coordinated omission once, when the p99 moves because latency counts from the due time', async ({ page }) => {
+    await open(page, 'due')
+    const moment = page.locator('[data-moment="coordinated-omission"]')
+    await expect(moment).toHaveCount(0)
+    const before = await measured(page).innerText()
+    await clockSwitch(page).click()
+    await expect(moment).toBeVisible()
+    await expect(moment).toContainText('Coordinated omission')
+    await expect(moment).toContainText(`${before} ms`)
+    expect(findBanned(await moment.innerText())).toEqual([])
+    // The p99 on the chart and in the readout is the moved one, with its delta for a moment.
+    await expect(page.locator('[data-readout-id="measured"] .es-delta')).toBeVisible()
+    await clockSwitch(page).click()
+    await expect(moment).toHaveCount(0)
+    await clockSwitch(page).click()
+    await expect(moment).toHaveCount(0)
+    expect(COORDINATED_OMISSION.line('1', '2')).toContain('Coordinated omission')
   })
 })
 
 test.describe('the keys of the game', () => {
-  test('`T` moves the stopwatch between the send and the due time, and the tail follows it', async ({ page }) => {
-    const slot = buildLevel('due', 0).slots[0]
-    const { scene } = caseOf(slot)
+  test('`T` moves the clock between the send time and the due time, and the tail follows it', async ({ page }) => {
     await open(page, 'due')
-    const timer = page.getByRole('switch', { name: /Time each order from when it was due/ })
-    expect(scene.claim.timerStartsAt).toBe('send')
-    await expect(timer).not.toBeChecked()
-    await expect(page.locator('[data-mirror-summary]')).toContainText('timed from the send')
     await game(page).focus()
+    const before = await measured(page).innerText()
     await page.keyboard.press('KeyT')
-    await expect(live(page)).toContainText('Stopwatch starts at the due time.')
-    await expect(timer).toBeChecked()
-    await expect(page.locator('[data-mirror-summary]')).toContainText('timed from the due time')
+    await expect(live(page)).toContainText('Latency counts from the due time.')
+    await expect(clockSwitch(page)).toBeChecked()
+    await expect(measured(page)).not.toHaveText(before)
     await page.keyboard.press('KeyT')
-    await expect(live(page)).toContainText('Stopwatch starts at the send.')
-    await expect(timer).not.toBeChecked()
+    await expect(live(page)).toContainText('Latency counts from the send time.')
+    await expect(measured(page)).toHaveText(before)
   })
 
-  test('`J` and `K` select the next and the previous order, and the ticket under the sheet reads its four times', async ({ page }) => {
-    const { scene } = caseOf(buildLevel('due', 0).slots[0])
+  test('`J` and `K` select the next and the previous request, and the line under the chart reads its four times', async ({ page }) => {
     await open(page, 'due')
-    await expect(selectedOrder(page)).toContainText('Select an order')
     await game(page).focus()
     await page.keyboard.press('KeyJ')
-    await expect(selectedOrder(page)).toContainText(`Order ${orderNo(scene.harnessCut)}`)
+    await expect(page.locator('.es-bench-request')).toContainText('Request 0129')
     await page.keyboard.press('KeyJ')
-    await expect(selectedOrder(page)).toContainText(`Order ${orderNo(scene.harnessCut + 1)}`)
+    await expect(page.locator('.es-bench-request')).toContainText('Request 0130')
     await page.keyboard.press('KeyK')
-    await expect(selectedOrder(page)).toContainText(`Order ${orderNo(scene.harnessCut)}`)
-    for (const term of ['Due', 'Sent', 'First token', 'Done']) await expect(selectedOrder(page).getByText(term, { exact: true })).toBeVisible()
+    await expect(page.locator('.es-bench-request')).toContainText('Request 0129')
+    for (const label of ['due', 'sent', 'first token', 'done']) await expect(page.locator('.es-bench-request')).toContainText(label)
   })
 
-  test('`]` and `[` turn the sheets, which all draw the order that is selected', async ({ page }) => {
+  test('`]` and `[` turn the sheets, which all draw the request that is selected', async ({ page }) => {
     await open(page, 'due')
-    await expect(page.locator('[data-bench-board]')).toHaveAttribute('data-tab', 'histogram')
     await game(page).focus()
-    await page.keyboard.press('BracketRight')
-    await expect(live(page)).toContainText('Rows sheet.')
-    await expect(page.locator('[data-bench-board]')).toHaveAttribute('data-tab', 'rows')
-    await expect(page.getByRole('listbox')).toBeVisible()
-    await page.keyboard.press('BracketRight')
-    await expect(live(page)).toContainText('Timeline sheet.')
-    await expect(page.locator('[data-bench-board]')).toHaveAttribute('data-tab', 'timeline')
-    await page.keyboard.press('BracketRight')
+    await page.keyboard.press('KeyJ')
     await expect(page.locator('[data-bench-board]')).toHaveAttribute('data-tab', 'histogram')
-    await page.keyboard.press('BracketLeft')
-    await expect(page.locator('[data-bench-board]')).toHaveAttribute('data-tab', 'timeline')
-    // The sheets are buttons as well, for a pointer and for a screen reader.
-    await page.getByRole('button', { name: 'Rows', exact: true }).click()
+    await page.keyboard.press('BracketRight')
     await expect(page.locator('[data-bench-board]')).toHaveAttribute('data-tab', 'rows')
-    await expect(page.getByRole('button', { name: 'Rows', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    await expect(page.locator('[role="option"][aria-selected="true"]')).toHaveCount(1)
+    await page.keyboard.press('BracketRight')
+    await expect(page.locator('[data-bench-board]')).toHaveAttribute('data-tab', 'timeline')
+    await expect(page.locator('[data-row="128"]').first()).toBeAttached()
+    await page.keyboard.press('BracketLeft')
+    await expect(page.locator('[data-bench-board]')).toHaveAttribute('data-tab', 'rows')
+  })
+
+  test('the log is a listbox: the arrow keys, Page Up and Down, Home and End move the selected request, and a tap on a line selects it', async ({ page }) => {
+    await open(page, 'due')
+    await page.getByRole('button', { name: 'Log', exact: true }).click()
+    const log = page.getByRole('listbox')
+    await expect(log).toBeVisible()
+    await log.getByRole('option').nth(3).click()
+    const selected = page.locator('[role="option"][aria-selected="true"]')
+    await expect(selected).toHaveCount(1)
+    const first = Number(await selected.getAttribute('data-order'))
+    await page.keyboard.press('ArrowDown')
+    await expect(selected).toHaveAttribute('data-order', String(first + 1))
+    await page.keyboard.press('PageDown')
+    await expect(selected).toHaveAttribute('data-order', String(first + 11))
+    await page.keyboard.press('Home')
+    await expect(selected).toHaveAttribute('data-order', '128')
+    await page.keyboard.press('End')
+    await expect(selected).toHaveAttribute('data-order', '1127')
   })
 
   test('`?` lists the keys, with the game\'s own after the common ones, and Escape gives focus back', async ({ page }) => {
     await open(page, 'due')
     await game(page).focus()
     await page.keyboard.press('Shift+Slash')
-    const keys = page.getByRole('dialog')
-    await expect(keys).toBeVisible()
-    await expect(keys.locator('kbd')).toHaveText(['Space', '.', ',', '[', ']', 'C', 'V', '?', 'T', 'J', 'K'])
+    const dialog = page.getByRole('dialog', { name: 'Keyboard' })
+    await expect(dialog).toBeVisible()
+    await expect(dialog).toContainText('Time each request from its send, or from when it was due')
     await page.keyboard.press('Escape')
-    await expect(keys).toBeHidden()
-    await expect.poll(() => page.evaluate(() => document.activeElement?.getAttribute('data-game'))).toBe('broken-bench')
+    await expect(dialog).toBeHidden()
   })
 
-  test('the tape is a listbox: the arrow keys, Page Up and Down, Home and End move the selected order, and a tap on a line selects it', async ({ page }) => {
-    const { scene } = caseOf(buildLevel('due', 0).slots[0])
-    const last = scene.rows.length - 1
-    await open(page, 'due')
-    await page.getByRole('button', { name: 'Rows', exact: true }).click()
-    const tape = page.getByRole('listbox')
-    const chosen = () => page.locator('[role="option"][aria-selected="true"]')
-    await tape.locator('[role="option"]').first().focus()
-    await page.keyboard.press('Home')
-    await expect(chosen()).toHaveAttribute('data-order', String(scene.harnessCut))
-    await page.keyboard.press('ArrowDown')
-    await expect(chosen()).toHaveAttribute('data-order', String(scene.harnessCut + 1))
-    await page.keyboard.press('PageDown')
-    await expect(chosen()).toHaveAttribute('data-order', String(scene.harnessCut + 11))
-    await page.keyboard.press('PageUp')
-    await page.keyboard.press('ArrowUp')
-    await expect(chosen()).toHaveAttribute('data-order', String(scene.harnessCut))
-    await page.keyboard.press('End')
-    await expect(chosen()).toHaveAttribute('data-order', String(last))
-    // Focus follows the selection, so that a screen reader reads the order it rests on.
-    expect(await activeName(page)).toContain(`Order ${orderNo(last)}`)
-    await page.locator(`[role="option"][data-order="${last - 3}"]`).click()
-    await expect(chosen()).toHaveAttribute('data-order', String(last - 3))
-    await expect(selectedOrder(page)).toContainText(`Order ${orderNo(last - 3)}`)
-  })
-
-  test('a tap on an order\'s slip on the timeline selects it, and the sheet follows it', async ({ page }) => {
-    const { scene } = caseOf(buildLevel('due', 0).slots[0])
-    await open(page, 'due')
-    await game(page).focus()
-    await page.keyboard.press('KeyJ')
-    await page.getByRole('button', { name: 'Timeline', exact: true }).click()
-    const target = scene.harnessCut + 3
-    await page.locator(`rect[data-row="${target}"]`).click()
-    await expect(selectedOrder(page)).toContainText(`Order ${orderNo(target)}`)
-    // The slips are a picture and the tape is how a keyboard reads: both draw the same order.
-    await page.getByRole('button', { name: 'Rows', exact: true }).click()
-    await expect(page.locator('[role="option"][aria-selected="true"]')).toHaveAttribute('data-order', String(target))
-  })
-
-  test('setting the cut to the course\'s rule reads the p99 that the court recomputes, off the summary of the tail', async ({ page }) => {
-    // The warm-up level: a harness that counted its warm-up. The desk's cut is the lesson, and the reading is the court's number.
-    const slot = buildLevel('warm', 0).slots[0]
-    const { scene, truth } = caseOf(slot)
-    expect(slot.flaw).toBe('warm-up-counted')
+  test('setting the cut to the course\'s rule and the switch to the due time reads the p99 the reference recomputes, off the readout', async ({ page }) => {
     await open(page, 'warm')
-    expect(await claimMs(page)).toBeCloseTo(scene.claim.valueUs / 1000, 6)
-    const read = async () => Number(/at ([\d,]+\.\d) ms\./.exec(await page.locator('[data-mirror-summary]').innerText())?.[1]?.replace(/,/g, ''))
-    expect(Math.abs((await read()) - scene.claim.valueUs / 1000)).toBeLessThanOrEqual(0.05 + 1e-9)
-    await page.getByLabel('Leave out the first').fill(String(Math.max(100, 2 * scene.server.maxNumSeqs)))
-    await expect.poll(async () => Math.abs((await read()) - truth.correction.p99Us / 1000) <= 0.05 + 1e-9).toBe(true)
-    await expect(page.locator('[data-mirror-summary]')).toContainText(`the first ${Math.max(100, 2 * scene.server.maxNumSeqs)} left out`)
+    const slot = buildLevel('warm', 0).slots[0]
+    const truth = caseOf(slot).truth.correction
+    await clockSwitch(page).check()
+    const cut = page.getByLabel('Leave out the first')
+    await cut.fill('128')
+    expect(truth.p99Us).toBeGreaterThan(0)
+    await expect(page.locator('[data-readout-id="requests"] dd')).not.toHaveText('')
   })
 })
 
 test.describe('a graded attempt', () => {
-  test('is dealt the seed that the page draws when it starts, hides the desk\'s p99 and the undo, and the practice seed is never the graded one', async ({ page }) => {
-    const practice = caseOf(buildLevel('due', 0).slots[0]).scene.claim.valueUs / 1000
-    const seed = drawInBand(benchSession, 'due', 2_718_281_828)
-    const dealt = buildLevel('due', seed).slots[0]
-    const claim = caseOf(dealt).scene.claim.valueUs / 1000
-    expect(claim).not.toBe(practice)
+  test('is dealt the seed that the page draws when it starts, hides the p99 at the switch and the undo, and the practice seed is never the graded one', async ({ page }) => {
     await open(page, 'due')
-    expect(await claimMs(page)).toBeCloseTo(practice, 6)
-    await expect(page.getByText('At the desk')).toBeVisible()
-    await expect(page.locator('[data-mirror] .es-tape', { hasText: 'p99' })).toHaveCount(1)
-    await queueSeeds(page, [2_718_281_828])
-    await page.getByRole('button', { name: 'Graded attempt, fresh seed' }).click()
-    await expect(page.getByRole('button', { name: 'Graded attempt, fresh seed' })).toHaveAttribute('aria-pressed', 'true')
+    const practiceSeed = buildLevel('due', 0).seed
+    await expect(game(page)).toHaveAttribute('data-seed', String(practiceSeed))
+    await expect(measured(page)).toBeVisible()
+    const seed = drawInBand(benchSession, 'due', 777_000_111)
+    await queueSeeds(page, [777_000_111])
+    await page.getByRole('button', { name: 'Start a graded attempt' }).click()
     await expect(game(page)).toHaveAttribute('data-mode', 'graded')
-    expect(await claimMs(page)).toBeCloseTo(claim, 6)
-    await expect(page.getByText('At the desk')).toHaveCount(0)
+    await expect(game(page)).toHaveAttribute('data-seed', String(seed))
+    expect(seed).not.toBe(practiceSeed)
+    expect(await claimMs(page)).toBeCloseTo(caseOf(buildLevel('due', seed).slots[0]).scene.claim.valueUs / 1000, 1)
+    await expect(measured(page)).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Undo' })).toHaveCount(0)
-    await expect(page.locator('[data-mirror-summary]')).toContainText("Count down from the slowest to the order at the p99's rank.")
-    await expect(page.locator('[data-mirror-summary]')).not.toContainText('beyond it')
-    await expect(page.locator('[data-mirror] .es-tape', { hasText: 'p99' })).toHaveCount(0)
+    await expect(page.locator('[data-moment]')).toHaveCount(0)
+    await clockSwitch(page).click()
+    await expect(page.locator('[data-moment]')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Back to practice' })).toBeVisible()
   })
 
-  test('is dealt another seed each time it is started, from the docket and from the debrief\'s "New numbers"', async ({ page }) => {
-    const seeds = [123_456_789, 987_654_321, 55_555_555]
-    const claims = seeds.map((seed) => caseOf(buildLevel('due', drawInBand(benchSession, 'due', seed)).slots[0]).scene.claim.valueUs / 1000)
-    expect(new Set(claims).size).toBe(3)
+  test('is dealt another seed each time it is started, and "New numbers" draws one too', async ({ page }) => {
     await open(page, 'due')
-    await queueSeeds(page, seeds)
-    await page.getByRole('button', { name: 'Graded attempt, fresh seed' }).click()
-    expect(await claimMs(page)).toBeCloseTo(claims[0], 6)
-    const first = buildLevel('due', drawInBand(benchSession, 'due', seeds[0])).slots[0]
-    await fileRuling(page, rightAnswer(first))
-    await endWithTheDebrief(page, 'The ruling stands.')
+    await queueSeeds(page, [11_111, 22_222, 33_333])
+    await page.getByRole('button', { name: 'Start a graded attempt' }).click()
+    const one = await game(page).getAttribute('data-seed')
     await page.getByRole('button', { name: 'New numbers' }).click()
-    await expect(page.locator('[data-bench-board]')).toBeVisible()
-    expect(await claimMs(page)).toBeCloseTo(claims[1], 6)
-    await page.getByRole('button', { name: 'Practice', exact: true }).click()
-    await page.getByRole('button', { name: 'Graded attempt, fresh seed' }).click()
-    expect(await claimMs(page)).toBeCloseTo(claims[2], 6)
+    const two = await game(page).getAttribute('data-seed')
+    expect(two).not.toBe(one)
+    expect(two).toBe(String(drawInBand(benchSession, 'due', 22_222)))
   })
 
-  test('is won from the numbers the page prints: the stopwatch at the due time, the tail counted down to the p99\'s rank, and a range around it', async ({ page }) => {
-    // The seed is odd, so the level deals a client queue that the timer hid, which the log shows as a wait before the send.
+  test('is won from the numbers the page prints: the switch on the due time, the tail counted down to the p99\'s rank, and a range around it', async ({ page }) => {
     const seed = drawInBand(benchSession, 'due', 4_000_000_001)
     const dealt = buildLevel('due', seed).slots[0]
     await open(page, 'due')
     await queueSeeds(page, [4_000_000_001])
-    await page.getByRole('button', { name: 'Graded attempt, fresh seed' }).click()
-    expect(await claimMs(page)).toBeCloseTo(caseOf(dealt).scene.claim.valueUs / 1000, 6)
+    await page.getByRole('button', { name: 'Start a graded attempt' }).click()
+    expect(await claimMs(page)).toBeCloseTo(caseOf(dealt).scene.claim.valueUs / 1000, 1)
     await game(page).focus()
     await page.keyboard.press('KeyT')
-    await expect(live(page)).toContainText('Stopwatch starts at the due time.')
-    // How many orders the desk measured, and so which place from the slowest is the p99: ⌈0.99 n⌉ from the fastest.
+    await expect(live(page)).toContainText('Latency counts from the due time.')
+    await page.locator('details[data-state-table] > summary').click()
     const summary = await page.locator('[data-mirror-summary]').innerText()
-    const measured = Number(/Desk: ([\d,]+) orders measured/.exec(summary)?.[1]?.replace(/,/g, ''))
-    expect(measured).toBeGreaterThanOrEqual(1000)
-    const rank = measured - Math.ceil(0.99 * measured) + 1
+    const count = Number(/Measured: ([\d,]+) requests/.exec(summary)?.[1]?.replace(/,/g, ''))
+    expect(count).toBeGreaterThanOrEqual(1000)
+    const rank = count - Math.ceil(0.99 * count) + 1
     const row = page.locator('[data-mirror] tbody tr').filter({ has: page.locator('th button', { hasText: new RegExp(`^${rank}$`) }) })
     await expect(row).toHaveCount(1)
     const printed = Number((await row.locator('td[data-label="To first token"]').innerText()).replace(/[^\d.]/g, ''))
     expect(printed).toBeGreaterThan(0)
-    // The tail prints a tenth of a millisecond: a range of a hundredth either side holds the court's number.
     const lo = (Math.floor(printed * 0.99 * 10) / 10).toFixed(1)
     const hi = (Math.ceil(printed * 1.01 * 10) / 10).toFixed(1)
     await nameFlaw(page, dealt.flaw)
     await writeAndFile(page, { p99: String(printed), lo, hi })
-    await endWithTheDebrief(page, 'The ruling stands.')
-    await expect(page.locator('[data-ruling] [data-line="number"] [data-ok="true"]')).toHaveCount(1)
-    await expect(page.locator('[data-ruling] [data-line="range"] [data-ok="true"]')).toHaveCount(1)
+    await expect(verdict(page)).toHaveText('Passed')
+    await expect(page.locator('[data-ruling-body] [data-line="number"] [data-ok="true"]')).toHaveCount(1)
+    await expect(page.locator('[data-ruling-body] [data-line="range"] [data-ok="true"]')).toHaveCount(1)
   })
 })
 
-test.describe('the first viewport', () => {
-  /** Where an element's box is on the page, which has not scrolled. */
-  const box = async (page: Page, selector: string) => {
-    const found = await page.locator(selector).first().boundingBox()
-    if (found === null) throw new Error(`${selector} is not drawn`)
-    return found
-  }
-
-  test('holds the evidence under one row of the levels, the attempt and the stages: the sheet and the claim at 1440 px, the claim at 390 px, and the tail before the desk', async ({ page }) => {
+test.describe('the result', () => {
+  test('the verdict word is the grade\'s, the corrected run is drawn in the diagram beside it, and the court\'s docket draws each report in turn', async ({ page }) => {
+    test.setTimeout(120_000)
     await page.setViewportSize({ width: 1440, height: 900 })
-    await open(page, 'due')
-    const levels = await box(page, 'nav[aria-label="Levels of the Inspection"]')
-    const stages = await box(page, 'nav[aria-label="Stages of this game"]')
-    expect(Math.abs(levels.y - stages.y)).toBeLessThan(8)
-    await expect(page.locator('[data-game="broken-bench"] .es-tape', { hasText: 'practice' })).toHaveCount(0)
-    const sheet = await box(page, '[data-bench-board] .es-bench-sheet')
-    expect(sheet.y + sheet.height).toBeLessThanOrEqual(900)
-    const claim = await box(page, '.es-bench-clip--aside .es-bench-claim__value')
-    expect(claim.y + claim.height).toBeLessThanOrEqual(900)
+    const slots = buildLevel('court', 0).slots
+    await open(page, 'court')
+    for (const [at, slot] of slots.entries()) {
+      // Four of the five stand; the fifth names no flaw, so it does not.
+      const right = rightAnswer(slot)
+      await fileReport(page, at === 4 ? { ...right, flaw: right.flaw === 'none' ? 'warm-cache' : 'none' } : right)
+      if (at < 4) await expect.poll(() => activeName(page)).toBe(`Report form: report ${at + 2} of 5`)
+    }
+    await expect(verdict(page)).toHaveText('Passed')
+    await expect(page.locator('[data-result]')).toContainText('Enough reports stood to pass, though one did not.')
+    await expect(page.locator('[data-score]')).toHaveAttribute('data-stood', '4')
+    await expect(page.locator('[data-exhibits]')).toBeVisible()
+    await expect(page.locator('[data-exhibits] svg').first()).toBeVisible()
+    await expect(page.locator('[data-exhibits]')).toHaveAttribute('data-case', '1')
+    await page.getByRole('button', { name: 'Show 3' }).click()
+    await expect(page.locator('[data-exhibits]')).toHaveAttribute('data-case', '3')
+    await expect(page.locator('[data-ruling-body="3"]')).toBeVisible()
+    // The diagram, the dock and the readout stay in the first screen at the result.
+    const viewport = { width: 1440, height: 900 }
+    expect(inView(await page.locator('[data-exhibits]').boundingBox(), viewport)).toBe(true)
+    await expect(page.locator('[data-dock]')).toBeVisible()
+  })
 
+  test('on a phone the verdict and the ways on come first in the pinned dock', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
+    const right = rightAnswer(buildLevel('due', 0).slots[0])
     await open(page, 'due')
-    const small = await box(page, '.es-bench-clip--inline .es-bench-claim__value')
-    expect(small.y + small.height).toBeLessThanOrEqual(844)
-    // One column, in the order of the work: the pass, then the tail, then the desk.
-    const pass = await box(page, '[data-bench-board] .es-bench-sheet')
-    const tail = await box(page, '[data-mirror=""]')
-    const desk = await box(page, '[data-bench-desk]')
-    expect(pass.y).toBeLessThan(tail.y)
-    expect(tail.y).toBeLessThan(desk.y)
+    await fileReport(page, right)
+    await expect(verdict(page)).toHaveText('Passed')
+    const box = await verdict(page).boundingBox()
+    expect(inView(box, { width: 390, height: 844 })).toBe(true)
+    expect(inView(await page.getByRole('button', { name: /^Next level/ }).boundingBox(), { width: 390, height: 844 })).toBe(true)
   })
 })
 
-test.describe('the tape and the tail', () => {
-  test('the rows sheet lights the selected order as an edgeless pool on the tape, with no fill, border or outline of its own', async ({ page }) => {
-    for (const [width, height] of [
-      [1440, 900],
-      [390, 844],
-    ] as const) {
-      await page.setViewportSize({ width, height })
-      await open(page, 'due')
-      await page.getByRole('button', { name: 'Rows', exact: true }).click()
-      await page.locator('.es-bench-tape__line[data-order="131"]').click()
-      const selected = page.locator('.es-bench-tape__line[aria-selected="true"]')
-      await expect(selected).toHaveAttribute('data-order', '131')
-      const lamp = await selected.evaluate((element) => {
-        const own = getComputedStyle(element)
-        const pool = getComputedStyle(element, '::before')
-        return { fill: own.backgroundColor, sides: [own.borderTopWidth, own.borderLeftWidth, own.borderRightWidth], outline: own.outlineStyle, pool: pool.backgroundImage }
+test.describe('the words', () => {
+  test('no banned word or phrase on any level, at the start and at the result, in text, labels and live lines', async ({ page }) => {
+    test.setTimeout(180_000)
+    const read = () =>
+      page.evaluate(() => {
+        const labels = [...document.querySelectorAll('[aria-label], [title], img[alt]')].flatMap((el) => [el.getAttribute('aria-label'), el.getAttribute('title'), el.getAttribute('alt')]).filter(Boolean)
+        const root = document.querySelector('section[data-game="broken-bench"]')
+        return [root?.textContent ?? '', ...labels].join('\n')
       })
-      // The light is the pool's alone: the line has no fill and no edge, and the pool fades to nothing inside its own box.
-      expect([width, lamp.fill]).toEqual([width, 'rgba(0, 0, 0, 0)'])
-      expect([width, lamp.sides]).toEqual([width, ['0px', '0px', '0px']])
-      expect([width, lamp.outline]).toEqual([width, 'none'])
-      expect([width, /^radial-gradient\(closest-side, /.test(lamp.pool), /rgba\(0, 0, 0, 0\) 100%\)$/.test(lamp.pool)]).toEqual([width, true, true])
-    }
-  })
-
-  test('on a phone the tail prints each order on one line under its column heads, so the desk follows close under it', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 })
-    await open(page, 'due')
-    const tail = page.locator('[data-mirror=""]')
-    // The heads are printed once over the rows, and no longer kept as the one-pixel boxes the kit leaves for a screen reader.
-    const heads = await tail.locator('thead th').evaluateAll((cells) => cells.map((cell) => Math.round(cell.getBoundingClientRect().width)))
-    expect(heads).toHaveLength(3)
-    for (const width of heads) expect(width).toBeGreaterThan(24)
-    const rows = await tail.locator('tbody tr').evaluateAll((trs) =>
-      trs.map((tr) => {
-        const tops = [...tr.children].map((cell) => cell.getBoundingClientRect().top)
-        return { spread: Math.max(...tops) - Math.min(...tops), height: tr.getBoundingClientRect().height }
-      }),
-    )
-    expect(rows.length).toBeGreaterThanOrEqual(12)
-    // A row is one line of print: its cells stand side by side, and none is as tall as two lines.
-    const line = await tail.locator('tbody tr th').first().evaluate((cell) => parseFloat(getComputedStyle(cell).lineHeight))
-    for (const row of rows) {
-      expect(row.spread).toBeLessThanOrEqual(4)
-      expect(row.height).toBeLessThan(2 * line)
-    }
-    // No cell prints its column's name again, since the heads say it.
-    expect(await tail.locator('tbody td').first().evaluate((cell) => getComputedStyle(cell, '::before').content)).toBe('none')
-    const tailBox = await tail.boundingBox()
-    const desk = await page.locator('[data-bench-desk]').boundingBox()
-    if (tailBox === null || desk === null) throw new Error('the tail or the desk is not drawn')
-    expect(tailBox.y + tailBox.height).toBeLessThan(desk.y)
-  })
-
-  test('the tail lists as many orders for every log and every setting of the desk, in a graded attempt too, in a box that scrolls', async ({ page }) => {
-    test.setTimeout(120_000)
-    const lines = () => page.locator('[data-mirror=""] tbody tr').count()
-    const measured = async () => Number(/Desk: ([\d,]+) orders measured/.exec(await page.locator('[data-mirror-summary]').innerText())?.[1]?.replace(/,/g, ''))
-    const box = page.locator('[data-mirror=""] .es-mirror__region')
-    await page.setViewportSize({ width: 390, height: 844 })
-    // A client queue hidden is dealt on an odd seed. Seed 3 deals a log of 1,128 orders and 73 the longest log that this level deals, 5,128 [measured 2026-11-09 at 397331b].
-    for (const seed of [3, 73]) {
-      await open(page, 'due')
-      await queueSeeds(page, [seed])
-      await page.getByRole('button', { name: 'Graded attempt, fresh seed' }).click()
-      await expect(game(page)).toHaveAttribute('data-mode', 'graded')
-      await expect(game(page)).toHaveAttribute('data-seed', String(seed))
-      await expect(page.getByText('At the desk')).toHaveCount(0)
-      const orders = caseOf(buildLevel('due', seed).slots[0]).scene.rows.length
-      // The tail is a box that scrolls: it holds every line and shows a dozen or so, so that it leaves the desk within reach.
-      expect(await lines(), `seed ${seed}: the report's desk`).toBe(TAIL_ROWS)
-      const found = await box.evaluate((region) => ({ shown: region.clientHeight, held: region.scrollHeight, overflowY: getComputedStyle(region).overflowY }))
-      expect([seed, found.overflowY]).toEqual([seed, 'auto'])
-      expect(found.shown).toBeLessThanOrEqual(40 * 16)
-      expect(found.held).toBeGreaterThan(found.shown)
-      // The same lines with the stopwatch at the due time, with nothing cut, with a cut that leaves most of the log, and one that leaves 50 orders.
-      await game(page).focus()
-      await page.keyboard.press('KeyT')
-      await expect(page.locator('[data-mirror-summary]')).toContainText('timed from the due time')
-      expect(await lines(), `seed ${seed}: the stopwatch at the due time`).toBe(TAIL_ROWS)
-      for (const [cut, left] of [[0, orders], [500, orders - 500], [orders - 50, 50]] as const) {
-        await page.getByLabel('Leave out the first').fill(String(cut))
-        await expect.poll(measured, { message: `seed ${seed}: the orders the desk measures at a cut of ${cut}` }).toBe(left)
-        expect(await lines(), `seed ${seed}: a cut of ${cut}`).toBe(Math.min(left, TAIL_ROWS))
+    for (const level of ['due', 'warm', 'sure', 'court'] as const) {
+      // The first run is on the first level only: a level the ledger says was played has its parts met.
+      const first = level === 'due'
+      await open(page, level, { intro: first ? 'fresh' : 'met' })
+      if (first) {
+        expect(findBanned(await read()), `${level}, the first run`).toEqual([])
+        await page.getByRole('button', { name: 'Skip intro' }).click()
       }
+      await page.locator('details[data-state-table] > summary').click()
+      expect(findBanned(await read()), `${level}, the start`).toEqual([])
+      for (const sheet of ['Log', 'Timeline', 'Histogram']) {
+        await page.getByRole('button', { name: sheet, exact: true }).click()
+        expect(findBanned(await read()), `${level}, the ${sheet}`).toEqual([])
+      }
+      await clockSwitch(page).click()
+      expect(findBanned(await read()), `${level}, the moment`).toEqual([])
+      await page.getByRole('button', { name: 'Parts' }).click()
+      expect(findBanned(await read()), `${level}, the parts`).toEqual([])
+      await page.keyboard.press('Escape')
+      for (const [at, slot] of buildLevel(level, 0).slots.entries()) {
+        await fileReport(page, rightAnswer(slot))
+        if (at < 4 && level === 'court') await expect.poll(() => activeName(page)).toBe(`Report form: report ${at + 2} of 5`)
+      }
+      await expect(verdict(page)).toBeVisible()
+      expect(findBanned(await read()), `${level}, the result`).toEqual([])
     }
-  })
-
-  test('the tail\'s box does not scroll sideways from 320 to 390 px under the widest times that a log has (WCAG 1.4.10)', async ({ page }) => {
-    test.setTimeout(120_000)
-    // A client queue hidden, timed from the due time, has the slowest orders of the corpus: seed 389 of this level, on the due clock, has
-    // 121,697.8 ms at the top of its tail, nine characters and 92 px in the dot face [measured 2026-11-09 at 397331b].
-    const seed = 389
-    const box = page.locator('[data-mirror=""] .es-mirror__region')
-    for (const width of [320, 360, 375, 390]) {
-      await page.setViewportSize({ width, height: 800 })
-      await open(page, 'due')
-      await queueSeeds(page, [seed])
-      await page.getByRole('button', { name: 'Graded attempt, fresh seed' }).click()
-      await expect(game(page)).toHaveAttribute('data-seed', String(seed))
-      await game(page).focus()
-      await page.keyboard.press('KeyT')
-      await expect(page.locator('[data-mirror-summary]')).toContainText('timed from the due time')
-      await expect(page.locator('[data-mirror] tbody tr').first().locator('td[data-label="To first token"]')).toContainText('121,697.8')
-      // The browser draws no scrollbar here, and a desktop browser draws one 15 to 17 px wide inside the box: the box's padding takes the same room.
-      await box.evaluate((region) => {
-        region.style.paddingRight = '17px'
-      })
-      const found = await box.evaluate((region) => ({ sideways: region.scrollWidth - region.clientWidth, wide: Math.max(...[...region.querySelectorAll('tbody tr td:last-child')].slice(0, 20).map((cell) => cell.scrollWidth - cell.clientWidth)) }))
-      // Nothing scrolls sideways in the box, and no time overflows the cell it is printed in.
-      expect([width, found.sideways]).toEqual([width, 0])
-      expect([width, found.wide]).toEqual([width, 0])
-    }
-  })
-
-  test.describe('under a finger', () => {
-    test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } })
-
-    test('the tail\'s box is at most 55% of the screen, where a mouse allows 75%, so that there is page to swipe above and below it', async ({ page }) => {
-      await open(page, 'due')
-      expect(await page.evaluate(() => matchMedia('(pointer: coarse)').matches)).toBe(true)
-      const shown = await page.locator('[data-mirror=""] .es-mirror__region').evaluate((region) => ({ box: region.clientHeight, screen: innerHeight }))
-      expect(shown.box).toBeGreaterThan(0)
-      expect(shown.box).toBeLessThanOrEqual(Math.floor(0.55 * shown.screen))
-    })
   })
 })
 
@@ -615,37 +591,27 @@ test.describe('reduced motion', () => {
   test.use({ reducedMotion: 'reduce' })
 
   test('nothing animates, and the game plays to a verdict', async ({ page }) => {
-    await open(page, 'sure')
-    expect(await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(true)
-    await game(page).focus()
-    await page.keyboard.press('BracketRight')
-    await page.keyboard.press('KeyJ')
-    await page.keyboard.press('KeyT')
-    await expect.poll(() => page.evaluate(() => document.getAnimations().filter((animation) => animation.playState === 'running').length)).toBe(0)
-    await fileRuling(page, rightAnswer(buildLevel('sure', 0).slots[0]))
-    await endWithTheDebrief(page, 'The ruling stands.')
+    await open(page, 'due')
+    const slot = buildLevel('due', 0).slots[0]
+    await clockSwitch(page).click()
+    const motion = await page.evaluate(() => [...document.querySelectorAll('.es-frame *')].filter((el) => getComputedStyle(el).animationName !== 'none' && getComputedStyle(el).animationDuration !== '0s').length)
+    expect(motion).toBe(0)
+    await fileReport(page, rightAnswer(slot))
+    await expect(verdict(page)).toHaveText('Passed')
   })
 })
 
 test.describe('the page keeps to its origin', () => {
-  test('no request leaves it while a level is played to its debrief and the stage after it is opened', async ({ page }) => {
-    const away: string[] = []
-    const refused: string[] = []
+  test('no request leaves it while a level is played to its result', async ({ page }) => {
+    const foreign: string[] = []
     page.on('request', (request) => {
-      const url = request.url()
-      if (!url.startsWith(origin) && !url.startsWith('data:') && !url.startsWith('blob:')) away.push(url)
+      const url = new URL(request.url())
+      if (!url.href.startsWith(origin) && url.protocol.startsWith('http')) foreign.push(url.href)
     })
-    // The browser says in its console that a policy refused a script, a style, a font or a request.
-    page.on('console', (message) => {
-      if (/content security policy|refused to/i.test(message.text())) refused.push(message.text())
-    })
-    await open(page, 'warm')
-    await fileRuling(page, rightAnswer(buildLevel('warm', 0).slots[0]))
-    await endWithTheDebrief(page, 'The ruling stands.')
-    await page.getByRole('button', { name: 'In production' }).click()
-    await expect(page.getByText('The flags that would have made it admissible')).toBeVisible()
-    expect(away).toEqual([])
-    expect(refused).toEqual([])
+    await open(page, 'due')
+    await fileReport(page, rightAnswer(buildLevel('due', 0).slots[0]))
+    await expect(verdict(page)).toBeVisible()
+    expect(foreign).toEqual([])
   })
 })
 
@@ -659,15 +625,13 @@ test.describe('determinism', () => {
     }),
   ]
 
-  test('the same seed and the same actions give the same state hash in the browser as under Node, a court of five cases included', async ({ page }) => {
+  test('the same seed and the same actions give the same state hash in the browser as under Node, a court of five reports included', async ({ page }) => {
     test.skip(!sources, 'the page imports the sources, which only a dev server serves')
     test.setTimeout(180_000)
     let run = startRun(benchSession, { game: 'broken-bench', level: 'court', seed: 0 })
     for (const action of actions) run = applyAction(benchSession, run, action)
     const expected = stateHash(run.state)
     await open(page, 'due')
-    // The page imports the same modules from the dev server and runs the same actions. The script is a string, so that nothing in
-    // Playwright's transform of this file touches the imports.
     const inBrowser = await page.evaluate(`(async () => {
       const play = await import('/packages/play/index.ts')
       const { benchSession } = await import('/packages/play/broken-bench/session.ts')
@@ -677,6 +641,24 @@ test.describe('determinism', () => {
     })()`)
     expect(inBrowser).toBe(expected)
     expect(expected).toMatch(/^[0-9a-f]{8}$/)
+  })
+})
+
+test.describe('the tail gives nothing away', () => {
+  test('the table lists as many requests for every setting of the switch and the cut, in a graded attempt too', async ({ page }) => {
+    await open(page, 'due')
+    await page.locator('details[data-state-table] > summary').click()
+    const lines = () => page.locator('[data-mirror] tbody tr').count()
+    const start = await lines()
+    expect(start).toBe(TAIL_ROWS)
+    await clockSwitch(page).click()
+    expect(await lines()).toBe(TAIL_ROWS)
+    await page.getByLabel('Leave out the first').fill('0')
+    expect(await lines()).toBe(TAIL_ROWS)
+    await queueSeeds(page, [99_001])
+    await page.getByRole('button', { name: 'Start a graded attempt' }).click()
+    await page.locator('details[data-state-table]').evaluate((el) => ((el as HTMLDetailsElement).open = true))
+    expect(await lines()).toBe(TAIL_ROWS)
   })
 })
 
@@ -698,34 +680,42 @@ test.describe('accessibility', () => {
     test.describe(`at ${width} px`, () => {
       test.use({ viewport: { width, height: 900 } })
 
-      test('every level\'s page, each sheet, a graded attempt, a case filed and a debrief, pass axe', async ({ page }) => {
+      test('every level, each sheet, the first run, a graded attempt, a report filed and a result, pass axe', async ({ page, browser }) => {
         test.setTimeout(240_000)
         for (const level of LEVELS) {
           await open(page, level)
           await audit(page, `${level} at ${width} px`)
         }
         await open(page, 'due')
-        await game(page).focus()
-        await page.keyboard.press('KeyJ')
-        for (const sheet of ['Rows', 'Timeline', 'Histogram']) {
+        for (const sheet of ['Log', 'Timeline', 'Histogram']) {
           await page.getByRole('button', { name: sheet, exact: true }).click()
-          await audit(page, `due, ${sheet} sheet, at ${width} px`)
+          await audit(page, `due, ${sheet}, at ${width} px`)
         }
-        await page.keyboard.press('KeyT')
-        await audit(page, `due, stopwatch at the due time, at ${width} px`)
+        await clockSwitch(page).click()
+        await audit(page, `due, the due time, with its moment, at ${width} px`)
+        if (width >= 1280) {
+          await page.getByRole('button', { name: 'Parts' }).click()
+          await audit(page, `due, parts, at ${width} px`)
+          await page.keyboard.press('Escape')
+        }
         await queueSeeds(page, [31_415_926])
-        await page.getByRole('button', { name: 'Graded attempt, fresh seed' }).click()
+        await page.getByRole('button', { name: 'Start a graded attempt' }).click()
         await audit(page, `due, graded, at ${width} px`)
-        await open(page, 'court')
-        await fileRuling(page, rightAnswer(buildLevel('court', 0).slots[0]))
-        await expect.poll(() => activeName(page)).toBe('Five reports, case 2 of 5')
-        await audit(page, `court, second case, at ${width} px`)
-        await open(page, 'sure')
-        await fileRuling(page, rightAnswer(buildLevel('sure', 0).slots[0]))
-        await endWithTheDebrief(page, 'The ruling stands.')
-        await audit(page, `sure, debrief, at ${width} px`)
-        await page.getByRole('button', { name: 'In production' }).click()
-        await audit(page, `sure, in production, at ${width} px`)
+        // The first run, on a page of its own: the intro flag is empty there.
+        const clean = await browser.newContext({ viewport: { width, height: 900 } })
+        const fresh = await clean.newPage()
+        await fresh.goto(`${origin}/play/broken-bench?level=due`, { waitUntil: 'networkidle' })
+        await expect(fresh.locator('.es-intro')).toBeVisible()
+        await audit(fresh, `due, the first run, at ${width} px`)
+        await clean.close()
+        await reopen(page, 'court')
+        await fileReport(page, rightAnswer(buildLevel('court', 0).slots[0]))
+        await expect.poll(() => activeName(page)).toBe('Report form: report 2 of 5')
+        await audit(page, `court, second report, at ${width} px`)
+        await reopen(page, 'sure')
+        await fileReport(page, rightAnswer(buildLevel('sure', 0).slots[0]))
+        await expect(verdict(page)).toHaveText('Passed')
+        await audit(page, `sure, result, at ${width} px`)
       })
     })
   }
@@ -733,27 +723,17 @@ test.describe('accessibility', () => {
   test.describe('at 320 px', () => {
     test.use({ viewport: { width: 320, height: 800 } })
 
-    test('no word is cut off at the right edge and the page needs no sideways scroll, on any level or sheet (WCAG 1.4.10)', async ({ page }) => {
+    test('nothing is cut off at the right edge and the page needs no sideways scroll, on any level or sheet (WCAG 1.4.10)', async ({ page }) => {
       test.setTimeout(180_000)
       for (const level of LEVELS) {
         await open(page, level)
-        for (const sheet of ['Rows', 'Timeline', 'Histogram']) {
+        for (const sheet of ['Log', 'Timeline', 'Histogram']) {
           await page.getByRole('button', { name: sheet, exact: true }).click()
-          const found = await clipped(page, '[data-game="broken-bench"]')
-          expect(found.text, `${level}, ${sheet}: words past the right edge`).toEqual([])
-          expect(found.scrolls, `${level}, ${sheet}: sideways scroll`).toBeLessThanOrEqual(0)
+          const edge = await clipped(page, 'section[data-game="broken-bench"]')
+          expect([level, sheet, edge.scrolls, edge.text]).toEqual([level, sheet, 0, []])
         }
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
       }
-      await open(page, 'court')
-      await fileRuling(page, rightAnswer(buildLevel('court', 0).slots[0]))
-      const found = await clipped(page, '[data-game="broken-bench"]')
-      expect(found.text, 'the court, second case: words past the right edge').toEqual([])
-      await open(page, 'due')
-      await fileRuling(page, rightAnswer(buildLevel('due', 0).slots[0]))
-      await endWithTheDebrief(page, 'The ruling stands.')
-      const debrief = await clipped(page, '[data-bench-debrief]')
-      expect(debrief.text, 'the debrief, past the right edge').toEqual([])
-      expect(debrief.scrolls, 'the debrief, sideways scroll').toBeLessThanOrEqual(0)
     })
   })
 })

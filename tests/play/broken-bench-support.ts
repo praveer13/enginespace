@@ -38,7 +38,7 @@ export function play(level: BenchLevelId, seed: number, answerFor: (slot: CaseSl
   return run
 }
 
-/** A run as the pieces of the page receive it (GameShell's `RunApi`), for a state, with every action a no-op: for server-rendering the page. */
+/** A run as the pieces of the page receive it (the frame's `FrameRun`), for a state, with every action a no-op: for server-rendering the page. */
 export function fakeRun(state: BenchState, over: Partial<BenchRun> = {}): BenchRun {
   const view = benchView(state)
   return {
@@ -57,9 +57,11 @@ export function fakeRun(state: BenchState, over: Partial<BenchRun> = {}): BenchR
     announce: () => undefined,
     setAutoplay: () => undefined,
     mirrorId: 'mirror',
-    phase: 'play',
     restart: () => undefined,
-    goTo: () => undefined,
+    ledger: false,
+    intro: { askShown: true, ring: null },
+    guessSkipped: false,
+    skipGuess: () => undefined,
     ...over,
   }
 }

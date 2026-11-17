@@ -270,7 +270,7 @@ export function layoutHistogram(o: HistogramOptions): Sheet {
 
   // The flags, and so the ruler: it is cut to the log's own range, with the flags in it.
   const flagged: { us: Us; paint: Paint; dash?: string; name: string }[] = [{ us: o.claimUs, paint: 'paper-ink-2', dash: '6 3', name: 'REPORTED' }]
-  if (o.p99Us !== undefined && o.p99Us !== null) flagged.push({ us: o.p99Us, paint: 'paper-ink', name: 'AT DESK' })
+  if (o.p99Us !== undefined && o.p99Us !== null) flagged.push({ us: o.p99Us, paint: 'paper-ink', name: 'MEASURED' })
   if (o.correctedUs !== undefined && o.correctedUs !== null) flagged.push({ us: o.correctedUs, paint: 'paper-ink', name: 'CORRECTED' })
   if (o.yoursUs !== undefined && o.yoursUs !== null) flagged.push({ us: o.yoursUs, paint: 'edge', dash: '2 3', name: 'YOURS' })
   const { lowBin, highBin } = rulerOf([...latencies.map(placeOf), ...flagged.map((flag) => placeOf(flag.us))], bins)
@@ -370,7 +370,7 @@ export function layoutHistogram(o: HistogramOptions): Sheet {
     orientation,
     width: g.width,
     height: g.height,
-    label: `Graph paper. A dot for each of the ${n} orders in the log, in the order they were due, higher for a longer time to first token on a logarithmic ruler, beside stacks of slips that count the orders into the same ruler. The report's number is flagged across both.`,
+    label: `Histogram. A dot for each of the ${n} requests in the log, in the order they were due, higher for a longer time to first token on a logarithmic axis, beside stacks that count the requests into the same axis. The report's number is flagged across both.`,
     layers,
   }
 }
@@ -534,13 +534,13 @@ export function layoutTimeline(o: TimelineOptions): Sheet {
   layers.push({ part: 'key', marks: key })
 
   layers.push({ part: 'pins', marks: pins(g.width) })
-  layers.push({ part: 'name', marks: tapeLabel(orientation === 'landscape' ? 44 : 38, 5, o.caption ?? 'EACH ORDER, DUE TO DONE', 11) })
+  layers.push({ part: 'name', marks: tapeLabel(orientation === 'landscape' ? 44 : 38, 5, o.caption ?? 'EACH REQUEST, DUE TO DONE', 11) })
 
   return {
     orientation,
     width: g.width,
     height: g.height,
-    label: `Graph paper. ${shown.length} orders of the log, one slip each, in the order they came. A hollow notch marks when an order was due, a solid stub when it was sent, a dashed red line the wait between the two that a stopwatch started at the send never times, a hollow bar its wait in the server and a solid bar the reply.`,
+    label: `Timeline. ${shown.length} requests of the log, one row each, in the order they came. A hollow notch marks when a request was due, a solid stub when it was sent, a dashed red line the wait between the two that a timer started at the send never counts, a hollow bar its wait in the server and a solid bar the reply.`,
     layers,
   }
 }
