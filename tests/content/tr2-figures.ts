@@ -374,7 +374,7 @@ export const FIGURES: Readonly<Record<string, () => string>> = {
   'l1-one-step.svg': l1OneStep,
   'l2-budget.svg': l2Budget,
   'l3-overlap.svg': l3Overlap,
-  'l5-comb.svg': l5Comb,
+  'l5-launches.svg': l5Comb,
   'l5-padding.svg': l5Padding,
   'l6-memory.svg': l6Memory,
   'l7-buckets.svg': l7Buckets,

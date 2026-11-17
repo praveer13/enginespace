@@ -54,7 +54,7 @@
 - id: loop.world.step-ticks-serial
   value: 7
   unit: ticks
-  text: Without overlap, a step in the front page's world takes 7 ticks, which is its plan, its fire and its read added up, and the line is busy for 4 of them.
+  text: Without overlap, a step in the front page's world takes 7 ticks, which is its plan, its forward and its read added up, and the GPU is busy for 4 of them.
   tag: derived
   derived:
     formula: loop.world.plan-ticks + loop.world.forward-ticks + loop.world.read-ticks
@@ -65,7 +65,7 @@
 - id: loop.world.step-ticks-overlap
   value: 4
   unit: ticks
-  text: With overlap, a step in the front page's world takes 4 ticks, the larger of the line's 4 and the expo's 3 (its plan and its read).
+  text: With overlap, a step in the front page's world takes 4 ticks, the larger of the GPU's 4 and the CPU's 3 (its plan and its read).
   tag: derived
   derived:
     formula: max(loop.world.forward-ticks, loop.world.plan-ticks + loop.world.read-ticks)

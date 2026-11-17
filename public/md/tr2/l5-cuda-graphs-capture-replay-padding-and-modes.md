@@ -14,7 +14,7 @@ A forward pass is not one operation. It is a sequence of kernels, and an eager e
 
 A CUDA graph removes those launches. The GPU work is recorded once, as a graph of kernels with their arguments, and replayed later with much lower launch overhead. **record once, replay** [measured] TensorRT-LLM's overview says it as a count: a sequence of CUDA operations captured as one graph can be launched with one API call. **one API call** [measured] vLLM's compile guide gives the purpose in a line: it applies CUDA graphs to reduce CPU overheads. **to reduce CPU overheads** [measured] And its note on CUDA graphs for the vision encoder says when the overhead hurts most: the overhead is more significant when the batch or the image is small, and the cure is to capture the forward pass at several sizes when the model is initialized and replay the right graph at run time. **more significant when the batch is small** [measured]
 
-![The CPU's launch work for one step, launched kernel by kernel, in pieces and as one graph, to one time scale](../../figures/tr2/l5-comb.svg)
+![The CPU's launch work for one step, launched kernel by kernel, in pieces and as one graph, to one time scale](../../figures/tr2/l5-launches.svg)
 
 _Three rows on one time scale. The first has a tooth for each of the twenty-eight layers, each the twelve launches of that layer, three hundred and thirty-six calls in all. The second is twenty-nine short boxes for the replays of the pieces, with a thin launch between them for each layer's attention. The third is one box, a single replay, so short that it is barely a mark beside the others._
 
