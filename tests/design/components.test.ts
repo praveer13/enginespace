@@ -26,7 +26,7 @@ import { Stamp, TAG_LEGEND, TagLegend, UNVERIFIED_MEANS } from '@/design/compone
 import { TitleBlock } from '@/design/components/TitleBlock'
 import { ReadoutStrip } from '@/design/components/ReadoutStrip'
 import { Readout } from '@/design/components/Readout'
-import { StationLight } from '@/design/components/StationLight'
+import { BusyMark } from '@/design/components/BusyMark'
 import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { Label } from '@/design/components/Label'
 import { TextLink } from '@/design/components/TextLink'
@@ -105,33 +105,33 @@ describe('ReadoutStrip', () => {
   })
 })
 
-describe('StationLight and Bell', () => {
+describe('BusyMark and Bell', () => {
   test('a station says busy or dark in words', () => {
-    expect(render(h(StationLight, { lit: true, label: 'Station 1' }))).toContain('>busy<')
-    expect(render(h(StationLight, { lit: false, label: 'Station 2' }))).toContain('>dark<')
-    expect(render(h(StationLight, { lit: false, fault: true, label: 'Station 3' }))).toContain('>fault<')
+    expect(render(h(BusyMark, { lit: true, label: 'Station 1' }))).toContain('>busy<')
+    expect(render(h(BusyMark, { lit: false, label: 'Station 2' }))).toContain('>dark<')
+    expect(render(h(BusyMark, { lit: false, fault: true, label: 'Station 3' }))).toContain('>fault<')
   })
 
   test('a station names its lane with a category mark beside its name, lit or dark, and never in its lens', () => {
     for (const lit of [true, false]) {
-      const html = render(h(StationLight, { lit, lane: 'gpu', label: 'The line' }))
+      const html = render(h(BusyMark, { lit, lane: 'gpu', label: 'The line' }))
       // The line is the GPU lane, and the GPU lane is green, whose glyph is the hexagon (REDESIGN §2.8, the one colour code).
       expect(html).toContain('data-glyph="hexagon"')
       expect(html).toContain('color:var(--es-cat-green)')
       expect(html).toContain('data-lane="gpu"')
-      expect(html).toMatch(/<span class="es-station__label"><svg[^>]*class="es-station__lane"[^>]*>.*<\/svg>The line<\/span>/)
+      expect(html).toMatch(/<span class="es-busy__label"><svg[^>]*class="es-busy__lane"[^>]*>.*<\/svg>The line<\/span>/)
       // The lens carries the state alone: no colour rides the element for it to burn in.
-      expect(html).not.toContain('--es-station-light')
+      expect(html).not.toContain('--es-busy-light')
       expect(html).not.toContain('--es-lane-')
     }
-    expect(render(h(StationLight, { lit: true, lane: 'cpu', label: 'The expo' }))).toContain('data-glyph="circle"')
+    expect(render(h(BusyMark, { lit: true, lane: 'cpu', label: 'The expo' }))).toContain('data-glyph="circle"')
   })
 
   test('every lane draws the mark of the slot that tokens.ts gives it', () => {
     for (const lane of ['cpu', 'gpu', 'sync', 'copy'] as const) {
       const slot = slotOf(`lane-${lane}` as ColorRoleName)
       expect(slot, lane).toBeDefined()
-      const html = render(h(StationLight, { lit: true, lane, label: lane }))
+      const html = render(h(BusyMark, { lit: true, lane, label: lane }))
       expect(html, lane).toContain(`data-glyph="${SLOT_MARKS[slot as Slot].glyph}"`)
       expect(html, lane).toContain(`color:var(--es-cat-${slot})`)
       expect(html, lane).toContain(`stroke="var(--es-cat-${slot}-edge)"`)
@@ -139,8 +139,8 @@ describe('StationLight and Bell', () => {
   })
 
   test('a station with no lane has no mark', () => {
-    const html = render(h(StationLight, { lit: true, label: 'Station 1' }))
-    expect(html).not.toContain('es-station__lane')
+    const html = render(h(BusyMark, { lit: true, label: 'Station 1' }))
+    expect(html).not.toContain('es-busy__lane')
     expect(html).not.toContain('data-glyph')
   })
 

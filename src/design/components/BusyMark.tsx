@@ -23,7 +23,7 @@ const LANE_SLOTS: Record<Exclude<Lane, 'idle'>, Slot> = { cpu: 'blue', gpu: 'gre
  * disabled (no power to the station: a dimmed bezel).
  */
 
-export interface StationLightProps {
+export interface BusyMarkProps {
   lit: boolean
   /** The station's name, shown beside the light. */
   label: ReactNode
@@ -38,7 +38,7 @@ export interface StationLightProps {
   className?: string
 }
 
-export function StationLight({
+export function BusyMark({
   lit,
   label,
   lane,
@@ -48,34 +48,34 @@ export function StationLight({
   words = { lit: 'busy', dark: 'dark', fault: 'fault' },
   size = 'md',
   className,
-}: StationLightProps) {
+}: BusyMarkProps) {
   const state = fault ? 'fault' : lit ? 'lit' : 'dark'
   const slot = lane ? LANE_SLOTS[lane] : undefined
   return (
     <span
-      className={clsx('es-station', className)}
+      className={clsx('es-busy', className)}
       data-state={state}
       data-lamp={lamp || undefined}
       data-disabled={disabled || undefined}
       data-size={size}
       data-lane={lane}
     >
-      <span className="es-station__bezel" aria-hidden="true">
-        <span className="es-station__lens">{fault ? <Icon name="alert" className="es-station__fault" /> : null}</span>
+      <span className="es-busy__bezel" aria-hidden="true">
+        <span className="es-busy__lens">{fault ? <Icon name="alert" className="es-busy__fault" /> : null}</span>
       </span>
-      <span className="es-station__text">
-        <span className="es-station__label">
+      <span className="es-busy__text">
+        <span className="es-busy__label">
           {slot ? (
             <Glyph
               shape={SLOT_MARKS[slot].glyph}
-              className="es-station__lane"
+              className="es-busy__lane"
               style={{ color: `var(--es-cat-${slot})` }}
               edge={`var(--es-cat-${slot}-edge)`}
             />
           ) : null}
           {label}
         </span>
-        <span className="es-station__word">{words[state]}</span>
+        <span className="es-busy__word">{words[state]}</span>
       </span>
     </span>
   )

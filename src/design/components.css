@@ -581,16 +581,16 @@
     color: var(--es-text-1);
   }
 
-  /* ---------------------------------------------------------------------------------------------- busy light (StationLight) */
+  /* ---------------------------------------------------------------------------------------------- busy light (BusyMark) */
 
   /* Busy or idle as a shape and a word: a solid ink disc when busy, a hollow ring when idle, a red disc with its mark on a fault. */
-  .es-station {
+  .es-busy {
     display: inline-flex;
     align-items: center;
     gap: var(--es-space-3);
   }
 
-  .es-station__bezel {
+  .es-busy__bezel {
     position: relative;
     display: grid;
     flex: none;
@@ -602,7 +602,7 @@
     box-shadow: inset 0 0 0 1px var(--es-edge);
   }
 
-  .es-station__lens {
+  .es-busy__lens {
     display: grid;
     place-items: center;
     width: 1rem;
@@ -611,26 +611,26 @@
     color: var(--es-paper);
   }
 
-  .es-station[data-state='dark'] .es-station__lens {
+  .es-busy[data-state='dark'] .es-busy__lens {
     background: transparent;
     box-shadow: inset 0 0 0 2px var(--es-edge);
   }
 
-  .es-station[data-state='lit'] .es-station__lens {
+  .es-busy[data-state='lit'] .es-busy__lens {
     background: var(--es-text-1);
   }
 
-  .es-station[data-state='fault'] .es-station__lens {
+  .es-busy[data-state='fault'] .es-busy__lens {
     background: var(--es-paper-ink-2);
   }
 
-  .es-station__fault {
+  .es-busy__fault {
     width: 0.7rem;
     height: 0.7rem;
   }
 
   /* The one the next move acts on: the marker's ring, the "now" mark on the drawing. */
-  .es-station[data-lamp] .es-station__bezel {
+  .es-busy[data-lamp] .es-busy__bezel {
     box-shadow:
       inset 0 0 0 1px var(--es-edge),
       0 0 0 1px var(--es-lamp-ring),
@@ -638,17 +638,17 @@
       0 0 0 5px var(--es-lamp-ring);
   }
 
-  .es-station__text {
+  .es-busy__text {
     display: grid;
     line-height: 1.2;
   }
 
-  .es-station__label {
+  .es-busy__label {
     font-weight: 700;
   }
 
   /* The lane's mark: its fill and its glyph, the same busy or idle. */
-  .es-station__lane {
+  .es-busy__lane {
     display: inline-block;
     width: 0.8em;
     height: 0.8em;
@@ -656,31 +656,31 @@
     vertical-align: -0.05em;
   }
 
-  .es-station__word {
+  .es-busy__word {
     font-size: var(--es-size-caption);
     color: var(--es-text-2);
   }
 
-  .es-station[data-state='fault'] .es-station__word {
+  .es-busy[data-state='fault'] .es-busy__word {
     color: var(--es-paper-ink-2);
   }
 
-  .es-station[data-disabled] .es-station__lens {
+  .es-busy[data-disabled] .es-busy__lens {
     background: var(--es-surface-2);
     box-shadow: none;
   }
 
-  .es-station[data-disabled] .es-station__label,
-  .es-station[data-disabled] .es-station__word {
+  .es-busy[data-disabled] .es-busy__label,
+  .es-busy[data-disabled] .es-busy__word {
     color: var(--es-text-3);
   }
 
-  .es-station[data-size='sm'] .es-station__bezel {
+  .es-busy[data-size='sm'] .es-busy__bezel {
     width: 1.3rem;
     height: 1.3rem;
   }
 
-  .es-station[data-size='sm'] .es-station__lens {
+  .es-busy[data-size='sm'] .es-busy__lens {
     width: 0.75rem;
     height: 0.75rem;
   }
@@ -1757,7 +1757,7 @@
    */
   @media (forced-colors: active) {
     .es-header__link[aria-current='page']::after,
-    .es-station[data-state='lit'] .es-station__lens {
+    .es-busy[data-state='lit'] .es-busy__lens {
       background: CanvasText;
     }
 
@@ -1772,7 +1772,7 @@
 @media (forced-colors: active) {
   .es-button,
 .es-toggle__switch,
-.es-station__bezel {
+.es-busy__bezel {
     border: 1px solid CanvasText;
   }
 }

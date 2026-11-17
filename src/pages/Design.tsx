@@ -22,7 +22,7 @@ import { TitleBlock } from '@/design/components/TitleBlock'
 import { Glyph, Icon, type IconName } from '@/design/components/Glyph'
 import { ReadoutStrip } from '@/design/components/ReadoutStrip'
 import { Readout } from '@/design/components/Readout'
-import { StationLight } from '@/design/components/StationLight'
+import { BusyMark } from '@/design/components/BusyMark'
 import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { Label } from '@/design/components/Label'
 import { TextLink } from '@/design/components/TextLink'
@@ -923,25 +923,25 @@ function ComponentSpecimens() {
         about="Busy or idle as a shape and a word: a solid ink disc while it works, an open ring while it waits. The lane it belongs to is a mark beside its name, the same either way."
       >
         <State label="busy">
-          <StationLight lit label="Station 1" />
+          <BusyMark lit label="Station 1" />
         </State>
         <State label="busy, in the line's lane">
-          <StationLight lit lane="gpu" label="The line" />
+          <BusyMark lit lane="gpu" label="The line" />
         </State>
         <State label="busy, in the expo's lane">
-          <StationLight lit lane="cpu" label="The expo" words={{ lit: 'writing', dark: 'idle', fault: 'fault' }} />
+          <BusyMark lit lane="cpu" label="The expo" words={{ lit: 'writing', dark: 'idle', fault: 'fault' }} />
         </State>
         <State label="dark, the lane's mark stays">
-          <StationLight lit={false} lane="gpu" label="The line" />
+          <BusyMark lit={false} lane="gpu" label="The line" />
         </State>
         <State label="fault">
-          <StationLight lit={false} fault label="Station 3" />
+          <BusyMark lit={false} fault label="Station 3" />
         </State>
         <State label="under the lamp">
-          <StationLight lit lamp label="Station 4" />
+          <BusyMark lit lamp label="Station 4" />
         </State>
         <State label="disabled">
-          <StationLight lit={false} disabled label="Station 5" />
+          <BusyMark lit={false} disabled label="Station 5" />
         </State>
       </Specimen>
 

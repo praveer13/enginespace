@@ -6,7 +6,7 @@ import type { CardView, MutantId, VerifierAction, VerifierView } from '@es/play/
 import { Button } from '@/design/components/Button'
 import { Field } from '@/design/components/Field'
 import { Marker } from '@/design/components/Marker'
-import { StationLight } from '@/design/components/StationLight'
+import { BusyMark } from '@/design/components/BusyMark'
 import { formatReadout } from '@/design/format'
 import { sameAction } from '@/games/kit/first-move'
 import { changeLine } from './announce'
@@ -180,7 +180,7 @@ function Weights({ run }: { run: VerifierRun }) {
         <Button variant="ink" size="lg" disabled={view.weightTotal === 0} aria-keyshortcuts="Enter" onClick={submit}>
           Submit the weights
         </Button>
-        {meter && view.meter !== null ? <StationLight lit={view.meter.exact} label="The output is p" words={{ lit: 'exact', dark: 'not yet', fault: 'fault' }} size="sm" /> : null}
+        {meter && view.meter !== null ? <BusyMark lit={view.meter.exact} label="The output is p" words={{ lit: 'exact', dark: 'not yet', fault: 'fault' }} size="sm" /> : null}
       </div>
       <p className="es-vf-dock__note">Arrows move across the tokens; plus and minus change a weight. Only the proportions count.</p>
       <div className="es-vf-dock__row">
