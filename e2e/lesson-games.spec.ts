@@ -25,7 +25,7 @@ import { POOL_PARTS } from '../packages/play/pool/copy'
 import { benchSession } from '../packages/play/broken-bench/session'
 import { PR_WIDTHS } from './routes'
 import { walkOf } from './support/front'
-import { embedOf, lessonGames, playEvents, startBlock, ticketOf, type LessonGame, type StoredPlay } from './support/lessons'
+import { embedOf, lessonGames, openerOfRoute, playEvents, startBlock, ticketOf, type LessonGame, type StoredPlay } from './support/lessons'
 import { expect, open, quiet, test, withSettings } from './support/site'
 import { benchLevelWalk, WALKS, type Walk } from './support/walks'
 
@@ -116,7 +116,7 @@ for (const width of PR_WIDTHS) {
           for (let presses = 0; presses < 400 && !(await inGame()); presses++) await walk.press('Tab')
           expect(await inGame(), 'Tab reaches the opening run').toBe(true)
         } else {
-          await tabToLocator(walk, ticketOf(page, block).getByRole('button', { name: /^Play/ }), 400)
+          await tabToLocator(walk, ticketOf(page, block).getByRole('button', { name: /^(Play|Next level)/ }), 400)
           await page.keyboard.press('Enter')
           await expect(game).toBeVisible({ timeout: 60_000 })
           // The control has gone with the run's wait, and focus is on the game, so its keys work at once.
@@ -184,7 +184,7 @@ test.describe('a graded block writes the same play event as the game\'s own page
     await page.evaluate((entropy) => {
       window.__queue = [entropy]
     }, ENTROPY)
-    await page.getByRole('button', { name: 'Graded attempt, fresh seed' }).click()
+    await page.getByRole('button', { name: 'Start a graded attempt' }).click()
     await expect(page.locator('section[data-game="broken-bench"]')).toHaveAttribute('data-seed', String(seed))
     await benchLevelWalk('due', seed)(page, walkOf(page))
     await expect.poll(async () => (await playEvents(page)).length).toBe(2)
@@ -230,7 +230,12 @@ test.describe("the lesson's first paint holds none of a game", () => {
 
   test('no game, no scene and no three are asked for until a level starts; then the block loads them, 3D included where the device draws it', async ({ page, watch }) => {
     test.setTimeout(180_000)
-    const route = '/m/tr2/l3-async-scheduling-closes-the-bubble'
+    // A lesson that opens on a run (opener A or B) starts it with the page, so its game is on the first paint by design (REDESIGN §2.5). One
+    // that reads first (opener C) holds its game until the learner starts it. And a level opens on its diagram: the scene waits for the 3D switch.
+    const route = '/m/tr2/l2-one-token-budget'
+    const block = { game: 'loop', level: 'first-2-slot', mode: 'practice' } as const
+    expect(openerOfRoute(route)).toBe('C')
+    expect(BLOCKS).toContainEqual({ route, ...block })
     await open(page, route)
     await quiet(page)
     // The lesson reads the ledger after its first paint (its rail and its record), and the level titles from the games' data registry, which
@@ -238,10 +243,13 @@ test.describe("the lesson's first paint holds none of a game", () => {
     const before = /\/assets\/(GameEmbed|Game|Scene3D|three-vendor|record)-[\w-]+\.(js|css)$/
     expect(watch.requests.filter((path) => before.test(path))).toEqual([])
     const game = /\/assets\/(GameEmbed|Game|registry|Scene3D|three-vendor|useEvidence|record)-[\w-]+\.(js|css)$/
-    await startBlock(page, { game: 'loop', level: 'first-4-par', mode: 'practice' })
+    await startBlock(page, block)
+    const askedOf = () => watch.requests.filter((path) => game.test(path)).map((path) => /\/assets\/([A-Za-z0-9]+)-/.exec(path)?.[1])
+    for (const chunk of ['GameEmbed', 'registry', 'Game']) expect(askedOf(), chunk).toContain(chunk)
+    for (const chunk of ['Scene3D', 'three']) expect(askedOf(), `${chunk} before the 3D switch`).not.toContain(chunk)
+    await embedOf(page, block).getByRole('button', { name: '3D', exact: true }).click()
     await expect(page.locator('.es-stage[data-stage-phase="live"]')).toHaveCount(1, { timeout: 90_000 })
-    const asked = watch.requests.filter((path) => game.test(path)).map((path) => /\/assets\/([A-Za-z0-9]+)-/.exec(path)?.[1])
-    for (const chunk of ['GameEmbed', 'registry', 'Game', 'Scene3D', 'three']) expect(asked, chunk).toContain(chunk)
+    for (const chunk of ['Scene3D', 'three']) expect(askedOf(), chunk).toContain(chunk)
   })
 })
 

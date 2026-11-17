@@ -108,8 +108,14 @@
   .es-bench-board {
     grid-template-columns: minmax(0, 1fr) minmax(16rem, 19rem);
     grid-template-rows: auto minmax(0, 1fr);
-    height: calc(clamp(26rem, 100svh - 23.5rem, 44rem) - 2.75rem);
+    height: calc(clamp(26rem, 100svh - 24.5rem, 44rem) - 2.75rem);
     align-items: start;
+  }
+
+  /* The frame's chrome around this game's page is a row taller than the shared body allows for: one rem less keeps the page within a screen and
+     a fold's worth, with the chart, the switch, the form and the readout still in the first screen (P5). */
+  .es-frame[data-placement='page'][data-game='broken-bench'] .es-frame__body {
+    height: clamp(26rem, 100svh - 24.5rem, 44rem);
   }
 
   .es-bench-board[data-done] {

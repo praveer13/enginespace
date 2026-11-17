@@ -413,7 +413,8 @@ test.describe('a page that is not published yet', () => {
         // A browser without storage keeps the way on of an empty ledger.
       }
     })
-    for (const route of ['/trace-room', '/changes', '/labs/tr8.replay']) {
+    // /changes was on this list while it was unbuilt; it is the Sources and changes page now and is no longer unpublished.
+    for (const route of ['/trace-room', '/labs/tr8.replay']) {
       await open(page, route)
       await expect(page.getByText('Not published yet')).toBeVisible()
       await expect(page.getByText(/\bW\d(-T\d+)?\b|Arriving with|Not built yet/)).toHaveCount(0)

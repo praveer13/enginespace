@@ -176,7 +176,7 @@ export const LANES_MINI: LaneGeometry = { box: 184, gutter: 0, head: 0, start: 1
 
 /** The fewest rows a desk box shows without scrolling (REDESIGN §3.6: fourteen), and the row's bounds [estimated from the type's size]. */
 export const ROWS_IN_VIEW = 14
-export const ROW_MIN = 26
+export const ROW_MIN = 24
 export const ROW_MAX = 36
 
 /** The row height that fits `rows` stages under the heads in a box `height` px tall, between the bounds. */

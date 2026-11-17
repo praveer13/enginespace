@@ -181,8 +181,8 @@ test.describe('the draw-call budget at the practice seed (A§11.1)', () => {
       expect(most.sceneCalls).toBeLessThanOrEqual(100)
       expect(most.calls).toBeLessThanOrEqual(100)
       expect(most.instances).toBeLessThanOrEqual(tier === 1 ? 2500 : 6000)
-      // Nothing blooms: the frame is the scene, and at T2 the final pass's anti-aliasing.
-      expect(most.passes).toEqual(tier === 1 ? ['scene'] : ['scene', 'final'])
+      // Nothing blooms and no pass follows the scene: the frame is the scene at every tier (R-T44 took the composer out with the kitchen).
+      expect(most.passes).toEqual(['scene'])
       console.log(`T${tier}: at most ${most.sceneCalls} scene draw calls (${most.calls} in the frame, passes ${most.passes.join(' + ')}), ${most.instances} instances, ${most.triangles} triangles`)
     })
   }
