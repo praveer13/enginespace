@@ -7,7 +7,7 @@
 - id: loop.world.plan-ticks
   value: 2
   unit: ticks
-  text: In the front page's synthetic world, the expo plans a fire (schedule and prepare) in 2 ticks of the CPU's time.
+  text: In the front page's synthetic world, the CPU plans a step (schedule and prepare the inputs) in 2 ticks.
   tag: estimated
   synthetic: true
   verifiedAt: 2026-11-04
@@ -16,7 +16,7 @@
 - id: loop.world.forward-ticks
   value: 4
   unit: ticks
-  text: In the front page's synthetic world, the line cooks a fire (the GPU's forward) in 4 ticks, whether it holds one ticket or four.
+  text: In the front page's synthetic world, the GPU runs a step's forward pass in 4 ticks, whether the batch holds one request or four.
   tag: estimated
   synthetic: true
   verifiedAt: 2026-11-04
@@ -25,7 +25,7 @@
 - id: loop.world.admit-ticks
   value: 1
   unit: ticks
-  text: In the front page's synthetic world, a fire that hangs a ticket for the first time (an admission) takes 1 tick more on the line.
+  text: In the front page's synthetic world, a step that admits a request for the first time takes 1 tick more on the GPU.
   tag: estimated
   synthetic: true
   verifiedAt: 2026-11-04
@@ -34,7 +34,7 @@
 - id: loop.world.read-ticks
   value: 1
   unit: ticks
-  text: In the front page's synthetic world, the expo reads a fire back (sample, stop check and detokenize) in 1 tick of the CPU's time.
+  text: In the front page's synthetic world, the CPU reads a step's output back (sample, stop check and detokenize) in 1 tick.
   tag: estimated
   synthetic: true
   verifiedAt: 2026-11-04
@@ -43,7 +43,7 @@
 - id: loop.world.clips
   value: 4
   unit: clips
-  text: In the front page's synthetic world, the rail has 4 clips, one for each batch slot.
+  text: In the front page's synthetic world, the batch has 4 slots, and a slot holds one request.
   tag: estimated
   synthetic: true
   verifiedAt: 2026-11-04
@@ -54,7 +54,7 @@
 - id: loop.world.step-ticks-serial
   value: 7
   unit: ticks
-  text: Without overlap, a step in the front page's world takes 7 ticks, which is its plan, its fire and its read added up, and the line is busy for 4 of them.
+  text: Without overlap, a step in the front page's world takes 7 ticks, which is its plan, its forward and its read added up, and the GPU is busy for 4 of them.
   tag: derived
   derived:
     formula: loop.world.plan-ticks + loop.world.forward-ticks + loop.world.read-ticks
@@ -65,7 +65,7 @@
 - id: loop.world.step-ticks-overlap
   value: 4
   unit: ticks
-  text: With overlap, a step in the front page's world takes 4 ticks, the larger of the line's 4 and the expo's 3 (its plan and its read).
+  text: With overlap, a step in the front page's world takes 4 ticks, the larger of the GPU's 4 and the CPU's 3 (its plan and its read).
   tag: derived
   derived:
     formula: max(loop.world.forward-ticks, loop.world.plan-ticks + loop.world.read-ticks)

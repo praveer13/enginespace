@@ -79,7 +79,7 @@ describe('the family', () => {
 
   test('rests on claims that say what it says: the intersection, the loop, the window, the state, the last token and the alignment', () => {
     expect(claim('vllm.hybrid-kv.intersection').text).toContain('returns the intersection of the groups')
-    expect(claim('vllm.hybrid-kv.n-group-lookup').text).toContain('any shortening restarts the pass over all the types')
+    expect(claim('vllm.hybrid-kv.n-group-lookup').text).toContain('any shortening restarts the scan over all the types')
     expect(claim('vllm.hybrid-kv.sliding-hit-blocks').value).toBe('ceil((window - 1) / block size)')
     expect(claim('vllm.hybrid-kv.sliding-hit-prefix').text).toContain('still hits on the cached run that starts at the first block')
     expect(claim('vllm.hybrid-kv.mamba-hit').text).toContain('needs that one block')

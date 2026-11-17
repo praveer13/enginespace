@@ -73,7 +73,7 @@ describe('the registry\'s record of The Reach-In', () => {
   test('names the hybrid KV manager\'s card, which exists and says its numbers are synthetic', () => {
     expect(POOL.card).toBe('kv')
     const card = readFileSync(path.join(root, 'content/cards', `${POOL.card}.md`), 'utf8')
-    expect(card).toContain('The Reach-In')
+    expect(card).toContain('the KV page pool game (`pool`)')
     expect(card).toContain('synthetic')
   })
 

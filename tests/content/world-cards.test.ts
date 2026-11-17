@@ -178,13 +178,12 @@ describe('the words of the cards', () => {
     for (const id of CARD_IDS) expect(read(`content/cards/${id}.md`)).toContain('The real engine is authoritative: when it disagrees with this card, the card is wrong.')
   })
 
-  test('name the task that builds each model, and say whether the model is built or this card is its specification', () => {
-    for (const [id, { builtBy, built }] of Object.entries(WORLDS)) {
+  test('name no build-log id, wave or task of the project, and say whether the model is built or this card is its specification', () => {
+    for (const [id, { built }] of Object.entries(WORLDS)) {
       const text = read(`content/cards/${id}.md`)
-      expect(text).toContain(builtBy)
+      expect([id, text.match(/\b(?:W\d-T\d+|R-T\d+|Q-\d+|TR\d[ab]?)\b/g)]).toEqual([id, null])
       const specification = text.includes('this card is the specification that model is built to and checked against')
       expect([id, specification]).toEqual([id, !built])
-      if (built && id !== 'trace-room-steploop') expect([id, text.includes(`built by ${builtBy}`)]).toEqual([id, true])
     }
   })
 })

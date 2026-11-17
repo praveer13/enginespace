@@ -807,6 +807,6 @@ describe('the spec goldens (tests/fixtures/sim/spec.json)', () => {
     expect(SPEC_CARD_ID).toBe('spec')
     expect(card.split('---')[1]).toContain(`id: ${SPEC_CARD_ID}`)
     expect(card.split('---')[1]).toContain('world: spec')
-    expect(card).toContain('`packages/sim/spec`, built by W1-T26')
+    expect(card).toContain('`packages/sim/spec`. It verifies')
   })
 })
