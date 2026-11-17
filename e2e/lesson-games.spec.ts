@@ -56,8 +56,8 @@ async function tabToLocator(walk: Walk, target: Locator, limit: number): Promise
 }
 
 test.describe('the blocks', () => {
-  test('are the 40 that the tracker counts, in 26 of the 27 lessons', () => {
-    expect(BLOCKS.length).toBe(40)
+  test('are the 42 that the course holds, in 26 of the 27 lessons', () => {
+    expect(BLOCKS.length).toBe(42)
     expect(lessonsOf(BLOCKS).length).toBe(26)
   })
 })

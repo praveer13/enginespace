@@ -11,11 +11,10 @@
  *
  *   - The GPU part is announced and never faked (D-039): a Build card on the module page, and no lab or trace in a lesson.
  *   - Every number a lesson prints from a model is recomputed here from `tests/content/tr6-demos.ts`, which runs the course's own models (the
- *     speculation sampler, The Tasting's exact arithmetic, the step loop and the item families), so that when a model moves a number this file
+ *     speculation sampler, the Rejection sampler's exact arithmetic, the step loop and the item families), so that when a model moves a number this file
  *     names the lesson and the figure that went stale. The figure of lesson 5 is rebuilt from the step loop and held to its file.
  *   - The claims TR6 adds (content/claims/tr6.yaml) are read at the pins, at a tag or a commit, with the lines of their quotes.
  */
-import { PACING_CODES } from '../../scripts/content/pacing.ts'
 import { describe, expect, setDefaultTimeout, test } from 'bun:test'
 import { isAtCommit, planOf } from '@es/play/predictions/plan'
 import { spawnSync } from 'node:child_process'
@@ -167,8 +166,8 @@ describe('check 1: TR6 compiles with no diagnostic of any kind', () => {
   })
 
   test('nothing in the module, its lessons or its claims is reported', () => {
-    const mine = result.diagnostics.filter((d) => (d.file.startsWith('content/modules/tr6/') || d.file === CLAIMS_FILE) && !PACING_CODES.includes(d.code))
-    // R-T12: the pacing warnings are the worklist of the lesson tasks R-T34 to R-T39, so they are allowed here until each lesson is edited.
+    // R-T38: TR6 is edited to the authoring rules, so the pacing warnings (a gap, a slow opener, a build-log id) are not allowed here either.
+    const mine = result.diagnostics.filter((d) => d.file.startsWith('content/modules/tr6/') || d.file === CLAIMS_FILE)
     expect(mine.map((d) => `${d.file}:${d.line} ${d.severity} ${d.code}`)).toEqual([])
   })
 })
@@ -252,10 +251,10 @@ describe('what the lessons teach', () => {
       'Proposers: n-gram, suffix, draft model, EAGLE-3 and MTP, and what moved at v0.33.0',
       "The grammar mask's four phases, and its overlap with the forward (DP4's minimal recap inside)",
     ])
-    expect(lessons.map((l) => l.lesson.minutes)).toEqual([35, 50, 40, 35, 40])
+    expect(lessons.map((l) => l.lesson.minutes)).toEqual([35, 70, 40, 35, 40])
   })
 
-  test('every game block names a level of The Tasting or of Service, and a graded block names a level that grades', () => {
+  test('every game block names a level of the Rejection sampler or of the Step loop, and a graded block names a level that grades', () => {
     for (const { lesson } of lessons) {
       for (const block of lesson.blocks) {
         if (block.type !== 'game') continue
@@ -268,7 +267,7 @@ describe('what the lessons teach', () => {
     }
   })
 
-  test('the module names the two games that its lessons play, and every practice level of The Tasting is played in a lesson', () => {
+  test('the module names the two games that its lessons play, and every practice level of the Rejection sampler is played in a lesson', () => {
     const used = new Set(lessons.flatMap((l) => l.lesson.blocks.flatMap((block) => (block.type === 'game' ? [block.id] : []))))
     expect([...used].sort()).toEqual([...module_.games!].sort())
     const practiced = new Set(
@@ -298,7 +297,8 @@ describe('what the lessons teach', () => {
       for (const block of lesson.blocks) {
         if (block.type !== 'item') continue
         expect(block.family.startsWith('tr6.')).toBe(true)
-        expect(block.level).toBe(2)
+        // A checkpoint in the reading is an easier item (level 0 or 1) than the question set's level 2.
+        expect([0, 1, 2]).toContain(block.level)
         named.add(block.family)
         const gen = familyById(block.family)
         expect([lesson.id, block.family, gen !== undefined]).toEqual([lesson.id, block.family, true])
@@ -313,7 +313,7 @@ describe('what the lessons teach', () => {
       const items = exitCheck(lesson.blocks)?.blocks.flatMap((block) => (block.type === 'item' ? [block.count] : [])) ?? []
       if (items.length > 0) expect([lesson.id, items.reduce((a, b) => a + b, 0)]).toEqual([lesson.id, 3])
     }
-    // The second lesson's ticket is the graded `exact` level of The Tasting, on three fresh pairs.
+    // The second lesson's Test is the graded `exact` level of the Rejection sampler, on three fresh pairs.
     const exit = exitCheck(lessonOf('tr6.l2').lesson.blocks)
     expect(exit?.blocks).toEqual([{ type: 'game', id: 'verifier', level: 'exact', mode: 'graded' }])
   })
@@ -336,8 +336,9 @@ describe('the GPU part is announced and never faked (D-039)', () => {
     ])
   })
 
-  test('the module says that it arrives with the grader', () => {
-    expect(moduleText).toContain('It arrives with the grader (W2, D-039)')
+  test('the module says that the GPU part runs outside the browser and is not graded on its page, with no build-log id', () => {
+    expect(moduleText).toContain('It runs on a GPU, outside the browser, so this page shows what the lab asks and does not grade it.')
+    expect(moduleText).not.toMatch(/\b(?:W\d+|D-\d+|ASSESSMENT)\b/)
   })
 
   test('no lesson carries a lab or a trace, so none claims a GPU run or a real trace', () => {
@@ -559,9 +560,9 @@ describe('lesson 2: the rule on a pair of three tokens, and what each wrong rule
   test('the table of rules that look right: each token\'s share and the distance from p', () => {
     const titles: Record<string, string> = {
       exact: 'The exact rule',
-      'resample-from-p': 'Re-plate from p',
-      'resample-from-q': 'Re-plate from q',
-      'p-without-draft': 'Re-plate from p with the rejected token taken out',
+      'resample-from-p': 'Resample from p',
+      'resample-from-q': 'Resample from q',
+      'p-without-draft': 'Resample from p with the rejected token taken out',
       'residual-off-by-one': 'Walk the residual one token along',
       'accept-if-p-over-q': 'Accept when p > q, with no coin',
       'accept-everything': 'Accept every draft',
@@ -613,8 +614,8 @@ describe('lesson 3: the pooling rule, the level of the lab, the noise of a sampl
   test('the table of what each check finds in each member of the bestiary, 50 trials each', () => {
     const titles: Record<string, string> = {
       'accept-if-p-over-q': 'Accept when p > q, with no coin',
-      'resample-from-p': 'Re-plate from p',
-      'resample-from-q': 'Re-plate from q',
+      'resample-from-p': 'Resample from p',
+      'resample-from-q': 'Resample from q',
       'residual-off-by-one': 'A residual off by one',
       'boundary-inclusive': 'The boundary-inclusive comparison',
       'fly-lossy': 'A FLy-style lossy rule',
@@ -635,7 +636,7 @@ describe('lesson 3: the pooling rule, the level of the lab, the noise of a sampl
   test('the boundary-inclusive member on three bands: the chi-square check sees it only through a leak', () => {
     const rows = leakRows(100)
     const { dense, sparse, fine } = rows
-    mentions('tr6.l3', 'the dense band', `| Six tokens on a grid of 1/64, The Tasting's band | ${dense.leakable} | ${dense.chi} | ${dense.enumeration} |`)
+    mentions('tr6.l3', 'the dense band', `| Six tokens on a grid of 1/64, the level's band | ${dense.leakable} | ${dense.chi} | ${dense.enumeration} |`)
     mentions('tr6.l3', 'the sparse band', `| Sixteen tokens, with the target possible on three to six | ${sparse.leakable} | ${sparse.chi} | ${sparse.enumeration} |`)
     mentions('tr6.l3', 'the fine band', `| Sixty-four tokens, with weights down to 1/65,536 | ${fine.leakable} | ${fine.chi} | ${fine.enumeration} |`)
     // The three bands in the lab's own words agree with this run: the dense band is about one trial in nine (docs: labs/forge/README.md, 1,163 of 10,000).
@@ -646,7 +647,7 @@ describe('lesson 3: the pooling rule, the level of the lab, the noise of a sampl
     expect([dense.chiWithoutLeak, sparse.chiWithoutLeak, fine.chiWithoutLeak]).toEqual([0, 0, 0])
     expect(dense.enumerationWithoutLeak + sparse.enumerationWithoutLeak + fine.enumerationWithoutLeak).toBe(without)
     mentions('tr6.l3', 'the rejections', `Every one of the ${rejections} rejections [derived] is in a trial that has such a token. In the ${without} trials [derived] that have none, the chi-square check rejects 0 [measured] and the enumeration flags ${without} [measured].`)
-    mentions('tr6.l3', 'a quarter', 'In The Tasting\'s band a quarter of the trials [measured] do')
+    mentions('tr6.l3', 'a quarter', 'In the level\'s band a quarter of the trials [measured] do')
     expect(dense.leakable).toBe(25)
   })
 

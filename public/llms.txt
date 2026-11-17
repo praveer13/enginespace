@@ -62,7 +62,7 @@
 
 - [Overview](md/tr6/index.md): what the module teaches, and its lessons
 - [Where speculation lives in the step: draft, verify, the bonus token, the padded shape](md/tr6/l1-where-speculation-lives-in-the-step.md): lesson `tr6.l1`, about 35 minutes [estimated]
-- [The rejection sampler, exactly](md/tr6/l2-the-rejection-sampler-exactly.md): lesson `tr6.l2`, about 50 minutes [estimated]
+- [The rejection sampler, exactly](md/tr6/l2-the-rejection-sampler-exactly.md): lesson `tr6.l2`, about 70 minutes [estimated]
 - [Testing exactness: chi-square, power, and a real bug](md/tr6/l3-testing-exactness.md): lesson `tr6.l3`, about 40 minutes [estimated]
 - [Proposers: n-gram, suffix, draft model, EAGLE-3 and MTP, and what moved at v0.33.0](md/tr6/l4-proposers.md): lesson `tr6.l4`, about 35 minutes [estimated]
 - [The grammar mask's four phases, and its overlap with the forward (DP4's minimal recap inside)](md/tr6/l5-the-grammar-mask.md): lesson `tr6.l5`, about 40 minutes [estimated]
