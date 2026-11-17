@@ -83,7 +83,7 @@ One more stage, on your own this time: name the mechanism that joins its two pla
 
 ## The same three words in three engines
 
-Every engine you will read has a launch, a copy up and a wait. What differs is where it puts the wait. Mini-SGLang writes the three as separate pieces of code. [The engine](https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/engine/engine.py#L202-L206) samples, starts a non-blocking copy of the sampled ids to the host, records an event on its stream, and returns without reading anything.
+Every engine you will read has a launch, a copy up and a wait. What differs is where it puts the wait. Mini-SGLang writes the three as separate pieces of code. [The engine](https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/engine/engine.py#L202-L206) samples, starts a non-blocking copy of the sampled ids to the host, records an event on its stream, and returns without reading anything. **a non-blocking copy and an event** [measured]
 
 ```python
 # python/minisgl/engine/engine.py, lines 202 to 206 at 9a91cfa
@@ -94,7 +94,7 @@ copy_done_event.record(self.stream)
 return ForwardOutput(next_tokens_gpu, next_tokens_cpu, copy_done_event)
 ```
 
-**a non-blocking copy and an event** [measured] The wait is in another file, and it comes later. The scheduler's loop launches the current batch first and only then processes the previous one, and [processing it begins by waiting on that batch's event](https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/scheduler/scheduler.py#L142-L143). **launch this batch, then process the last one** [measured] **copy_done.synchronize() in the next turn** [measured]
+The wait is in another file, and it comes later. The scheduler's loop launches the current batch first and only then processes the previous one, and [processing it begins by waiting on that batch's event](https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/scheduler/scheduler.py#L142-L143). **launch this batch, then process the last one** [measured] **copy_done.synchronize() in the next turn** [measured]
 
 ```python
 # python/minisgl/scheduler/scheduler.py, lines 142 to 143 at 9a91cfa

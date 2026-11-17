@@ -126,9 +126,9 @@ test.describe('a guess is committed, played for, and revealed, by keys alone (ac
         await expect(second.getByLabel('Your number')).toHaveCount(0)
         expect(watch.requests.filter((path) => READING.test(path)), 'the reading is not asked for before the run has been played').toEqual([])
 
-        // The run: by keys, from where focus is to the run's control, then the level, whose slot asks the lesson's own question.
-        await tabToLocator(walk, page.getByRole('button', { name: /^Play: / }), 400)
-        await page.keyboard.press('Enter')
+        // The run: the lesson opens on it (opener B, a primer then the run), so the level has started on its own and has no Play control,
+        // and its slot asks the lesson's own question.
+        await expect(page.getByRole('button', { name: /^Play: / })).toHaveCount(0)
         await expect(page.locator('section[data-game="engine-floor"]')).toBeVisible({ timeout: 60_000 })
         // A first meeting with the game names its parts before the slot asks (R-T29, P4): Next walks them, then the slot holds the lesson's words.
         const floor = page.locator('section[data-game="engine-floor"]')
