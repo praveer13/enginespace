@@ -49,7 +49,7 @@ export function useProgress(map: CourseMap | null): ProgressState {
   const next = useWayOn(map?.lessons ?? null)
   const lessons = useMemo(() => {
     if (map === null || !ready) return new Map<string, LessonState>()
-    return new Map([...standings(events, indexLessons(map.lessons))].map(([id, standing]) => [id, standing.state]))
+    return new Map([...standings(events, indexLessons(map.lessons), readPlace())].map(([id, standing]) => [id, standing.state]))
   }, [events, map, ready])
   const last = useMemo(() => (map === null || !ready ? null : lastTime(events, map.lessons, levelName, readPlace())), [events, map, ready])
   return { ready, progress, next, last, lessons }

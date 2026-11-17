@@ -143,7 +143,7 @@ Read the document and the planner side by side. [The document](https://github.co
 
 ## Exit check
 
-Three questions on new numbers test one skill: working out how a model's layers become groups of one page size, and where the padding goes. Each gives a model by its layer counts and a request's length, and asks for the pages the request holds, so the groups have to be worked out first. Two right, one of them numeric, passes. The graded `manager` level of the fourth lesson draws its model from its seed, and on half the seeds that model is one of this lesson's two page-size cases, so it grades the skill on fresh seeds as well.
+Three questions on new numbers test one skill: working out how a model's layers become groups of one page size, and where the padding goes. Each gives a model by its layer counts and a request's length, and asks for the pages the request holds, so the groups have to be worked out first. The graded `manager` level of the fourth lesson draws its model from its seed, and on half the seeds that model is one of this lesson's two page-size cases, so it grades the skill on fresh seeds as well.
 
 :::item
 family: tr5a.blocks-held

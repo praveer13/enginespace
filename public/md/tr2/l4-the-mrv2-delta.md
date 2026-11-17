@@ -89,7 +89,7 @@ TR2 has no GPU stage, and TR3's lab toggles the graphs and async scheduling, not
 
 ## Exit check
 
-This lesson tests one skill: saying what the V2 model runner changes about the step, and when a configuration falls back to the older runner (`tr2.mrv2-delta`). The questions are three items on fresh seeds, each a configuration or a step. One asks which runner serves it, one which phase of the step MRV2 shortens, and one how many µs of the step it takes out. Pass with at least two right, one of them numeric. The graded `close` level earns the skill again.
+This lesson tests one skill: saying what the V2 model runner changes about the step, and when a configuration falls back to the older runner (`tr2.mrv2-delta`). The questions are three items on fresh seeds, each a configuration or a step. One asks which runner serves it, one which phase of the step MRV2 shortens, and one how many µs of the step it takes out. The graded `close` level earns the skill again.
 
 > **Practice.** Items from the generator family `tr2.runner-fallback`, level `2`, `3` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 

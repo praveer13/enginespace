@@ -83,7 +83,7 @@ Three sources settle a default, in order of authority: the source at the tag you
 
 ## Exit check
 
-This lesson tests two skills: reading what a tool's defaults do and naming the flag that changes each (`tr8.tool-defaults`), and finding the wait that a cap puts before the timer (`tr8.client-queue`). The question set is three items on fresh seeds. Each shows a harness and the symptom in its report, and asks which flag or default is at fault. It is passed with at least two right.
+This lesson tests two skills: reading what a tool's defaults do and naming the flag that changes each (`tr8.tool-defaults`), and finding the wait that a cap puts before the timer (`tr8.client-queue`). The question set is three items on fresh seeds. Each shows a harness and the symptom in its report, and asks which flag or default is at fault.
 
 > **Practice.** Items from the generator family `tr8.which-flag`, level `2`, `3` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 

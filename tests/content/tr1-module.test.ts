@@ -129,7 +129,9 @@ describe('check 2: every lesson has a prediction, a game or an item, and an exit
       // A lesson in the template says what its Test asks in words, and the page names the skill from the KC's sentence: no id reaches the learner.
       if (IN_TEMPLATE.has(lesson.id)) {
         for (const kc of lesson.kcs) expect([lesson.id, kc, named.has(kc)]).toEqual([lesson.id, kc, false])
-        expect(exit.prose.some((flow) => /\bpasses\b/.test(flowInlines(flow).map((node) => inlineText([node])).join('')))).toBe(true)
+        // The pass rule is stated once, by the page, from the rule it reads (Lesson.tsx `passRule`): the Test's prose gives no count of its own
+        // that the result could contradict ("Two right passes" while the result asked for three).
+        expect(exit.prose.some((flow) => /\b(one|two|three|at least \w+) right\b/i.test(flowInlines(flow).map((node) => inlineText([node])).join('')))).toBe(false)
       } else for (const kc of lesson.kcs) expect([lesson.id, kc, named.has(kc)]).toEqual([lesson.id, kc, true])
     })
   }

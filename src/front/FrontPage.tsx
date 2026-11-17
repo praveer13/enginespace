@@ -96,7 +96,9 @@ function Back({ returning, primary }: { returning: Returning; primary: boolean }
           </>
         ) : (
           <>
-            {RETURNING.leftOff} {returning.place}. {RETURNING.next} {returning.next}.
+            {/* A pointer to the start of a lesson (it carries the lesson's minutes) is the next lesson, which the learner has not opened. */}
+            {returning.pointer.minutes === undefined ? `${RETURNING.leftOff} ${returning.place}. ` : ''}
+            {RETURNING.next} {returning.pointer.minutes === undefined ? returning.next : `${returning.place}, ${returning.next}`}.
           </>
         )}
       </p>

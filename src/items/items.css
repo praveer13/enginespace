@@ -424,3 +424,11 @@
 .es-c-block .es-sheet__body .es-item__lines li + li {
   margin-top: 0;
 }
+
+/* After a passing Test set: the way on, then New numbers as an outline beside it, wrapping under it on a phone. */
+.es-item__onward {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-3);
+}

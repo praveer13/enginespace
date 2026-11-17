@@ -8,7 +8,7 @@
 
 /* ------------------------------------------------------------------------------------------------ the timing diagram */
 
-.es-lanes {
+.es-lanes:is([data-loop-view], .es-fl) {
   --es-lanes-label: 10.25rem;
   display: flex;
   flex-direction: column;
@@ -19,8 +19,8 @@
   color: var(--es-paper-ink);
 }
 
-.es-lanes[data-size='dock'],
-.es-lanes[data-size='phone'] {
+.es-lanes:is([data-loop-view], .es-fl)[data-size='dock'],
+.es-lanes:is([data-loop-view], .es-fl)[data-size='phone'] {
   gap: var(--es-space-1);
   padding: var(--es-space-2);
 }
@@ -36,7 +36,7 @@
   align-items: center;
 }
 
-.es-lanes__name {
+:is([data-loop-view], .es-fl) .es-lanes__name {
   display: flex;
   min-width: 0;
   align-items: center;
@@ -48,13 +48,13 @@
   line-height: 1.2;
 }
 
-.es-lanes[data-size='phone'] .es-lanes__name,
-.es-lanes[data-size='dock'] .es-lanes__name {
+.es-lanes:is([data-loop-view], .es-fl)[data-size='phone'] .es-lanes__name,
+.es-lanes:is([data-loop-view], .es-fl)[data-size='dock'] .es-lanes__name {
   font-size: var(--es-size-micro);
 }
 
 /* A part's name is its popover's trigger, drawn as the popover's own before its chunk loads: the label keeps its weight and line. */
-.es-lanes__name .es-partpop[data-variant='quiet'] > .es-pop__trigger {
+:is([data-loop-view], .es-fl) .es-lanes__name .es-partpop[data-variant='quiet'] > .es-pop__trigger {
   margin-block: -0.75rem;
   font-weight: inherit;
   vertical-align: baseline;
@@ -79,12 +79,12 @@
 
 /* On a phone the chips are buttons, and where the track is wider than a very narrow box (320 px) the queue keeps to one row that scrolls inside
    itself, so that no chip is cut. The dock draws its chips as marks, with nothing in them to focus, and keeps them clipped. */
-.es-lanes[data-size='phone'] .es-lanes__chips {
+.es-lanes:is([data-loop-view], .es-fl)[data-size='phone'] .es-lanes__chips {
   overflow: auto hidden;
 }
 
-.es-lanes[data-size='phone'] .es-lanes__chips,
-.es-lanes[data-size='dock'] .es-lanes__chips {
+.es-lanes:is([data-loop-view], .es-fl)[data-size='phone'] .es-lanes__chips,
+.es-lanes:is([data-loop-view], .es-fl)[data-size='dock'] .es-lanes__chips {
   gap: var(--es-space-1);
 }
 
@@ -152,8 +152,8 @@ button.es-lanes__chip:disabled {
   min-width: 0;
 }
 
-.es-lanes[data-size='phone'] .es-lanes__glyph,
-.es-lanes[data-size='dock'] .es-lanes__glyph {
+.es-lanes:is([data-loop-view], .es-fl)[data-size='phone'] .es-lanes__glyph,
+.es-lanes:is([data-loop-view], .es-fl)[data-size='dock'] .es-lanes__glyph {
   width: 0.625rem;
   height: 0.625rem;
 }
@@ -193,14 +193,14 @@ button.es-lanes__chip:disabled {
   font-weight: 400;
 }
 
-.es-lanes[data-size='phone'] .es-lanes__slotname,
-.es-lanes[data-size='dock'] .es-lanes__slotname {
+.es-lanes:is([data-loop-view], .es-fl)[data-size='phone'] .es-lanes__slotname,
+.es-lanes:is([data-loop-view], .es-fl)[data-size='dock'] .es-lanes__slotname {
   min-width: 0;
   margin-right: var(--es-space-1);
 }
 
-.es-lanes[data-size='phone'] .es-lanes__holds,
-.es-lanes[data-size='dock'] .es-lanes__holds {
+.es-lanes:is([data-loop-view], .es-fl)[data-size='phone'] .es-lanes__holds,
+.es-lanes:is([data-loop-view], .es-fl)[data-size='dock'] .es-lanes__holds {
   min-width: 0;
   font-size: var(--es-size-micro);
 }

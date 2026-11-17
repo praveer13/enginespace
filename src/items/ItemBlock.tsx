@@ -45,6 +45,10 @@ export interface ItemBlockProps {
    * block's Start is an outline, so that one amber control stands in the viewport. The set it starts is the same.
    */
   quiet?: boolean
+  /** A practice set in Read: every control of the set is an outline, not only its Start, since the part's way on is the amber one. */
+  practice?: boolean
+  /** The way on after a passing set (the lesson's Test): the result's amber control. */
+  onward?: { href: string; label: string } | null
   /** The families to draw from, whole. The catalog's faces, with each family's code loaded when an attempt starts, unless a test gives its own. */
   families?: readonly Gen[]
 }
@@ -55,7 +59,7 @@ interface Run {
   entropy: readonly number[]
 }
 
-export function ItemBlock({ block, scope, families, quiet = false }: ItemBlockProps) {
+export function ItemBlock({ block, scope, families, quiet = false, practice = false, onward = null }: ItemBlockProps) {
   const [run, setRun] = useState<Run | null>(null)
   const gen = faceById(block.family, families)
   const level: Level | null = isLevel(block.level) ? block.level : null
@@ -102,7 +106,7 @@ export function ItemBlock({ block, scope, families, quiet = false }: ItemBlockPr
 
   return (
     <Suspense fallback={<Frame scope={scope} family={block.family} phase="loading" state="loading" loadingLabel="Setting up the questions" />}>
-      <AttemptOf key={run.n} family={gen.id} {...(families === undefined ? {} : { families })} level={level} entropy={run.entropy} scope={scope} onRestart={start} />
+      <AttemptOf key={run.n} family={gen.id} {...(families === undefined ? {} : { families })} level={level} entropy={run.entropy} scope={scope} onRestart={start} quiet={practice} onward={onward} />
     </Suspense>
   )
 }

@@ -55,7 +55,8 @@ export const lastSeen = (day: LocalDay): string => `last seen ${formatDay(day)}`
 /** The word that says where a question of a set stands, as a reader sees it. */
 export const stateWord = (state: 'waiting' | 'now' | 'done', ok?: boolean): string => (state === 'done' ? (ok === true ? 'right' : 'missed') : state === 'now' ? 'now' : 'next')
 
-export const KEPT_LABEL = 'Kept'
+// Not "Kept": Course and Progress keep that word for an idea passed again 30 days or more later, which no first day has.
+export const KEPT_LABEL = 'Ideas passed'
 export const KEPT_LEGEND = 'Ideas you have passed, which this page brings back before they fade.'
 export const SET_LABEL = 'The questions in this review'
 

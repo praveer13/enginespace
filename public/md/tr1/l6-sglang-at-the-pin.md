@@ -180,7 +180,7 @@ The last stages of the path are a mailbox in both. SGLang's tokenizer manager ke
 
 ## Exit check
 
-Three questions on new numbers. Two ask in which process and on which thread or stream a stage of SGLang's path runs, and one asks which mechanism joins two of its stages. Two right passes. The graded map at the end of the module tests the same skill on a whole path.
+Three questions on new numbers. Two ask in which process and on which thread or stream a stage of SGLang's path runs, and one asks which mechanism joins two of its stages. The graded map at the end of the module tests the same skill on a whole path.
 
 > **Practice.** Items from the generator family `tr1.where-does-it-run`, level `2`, `2` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 

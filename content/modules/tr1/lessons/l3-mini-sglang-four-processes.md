@@ -183,7 +183,7 @@ id: lifecycle
 
 ## Exit check
 
-Three questions on new numbers. Each names a stage of Mini-SGLang's path, or of an engine that you have read so far, and asks in which process and on which thread or stream it runs. Two right passes. The graded map at the end of the module tests the same skill on a whole path.
+Three questions on new numbers. Each names a stage of a pinned engine's path and asks in which process and on which thread or stream it runs. The engine may be Mini-SGLang, or vLLM or SGLang, which the later lessons of this module read: the question gives the stage's code and its source, and a question on an engine you have not read yet is a preview of those lessons. The graded map at the end of the module tests the same skill on a whole path.
 
 :::item
 family: tr1.where-does-it-run

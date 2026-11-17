@@ -235,7 +235,7 @@ id: lifecycle
 
 ## Exit check
 
-Three questions on new numbers: two on the states of a request and one on what a step holds. Two right passes. The graded map at the end of the module tests the vLLM path on whole paths.
+Three questions on new numbers: two on the states of a request and one on what a step holds. The graded map at the end of the module tests the vLLM path on whole paths.
 
 :::item
 family: tr1.request-state

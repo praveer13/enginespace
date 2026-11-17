@@ -35,11 +35,17 @@ interface AttemptViewProps {
   scope: string
   /** Starts another attempt, on entropy read afresh. */
   onRestart: () => void
+  /**
+   * A practice set in Read: its controls are outlines, so the part's own way on stays the one amber control in view (REDESIGN §2.4).
+   */
+  quiet?: boolean
+  /** The way on after a passing set, as the lesson's Test gives it: then it is the amber control, and New numbers an outline. */
+  onward?: { href: string; label: string } | null
 }
 
 type Phase = 'asking' | 'revealed' | 'done'
 
-export default function AttemptView({ gen, level, entropy, scope, onRestart }: AttemptViewProps) {
+export default function AttemptView({ gen, level, entropy, scope, onRestart, quiet = false, onward = null }: AttemptViewProps) {
   const evidence = useEvidence()
   const [attempt, setAttempt] = useState<Attempt>(() => startAttempt(gen, level, entropy))
   const [shown, setShown] = useState(0)
@@ -107,9 +113,24 @@ export default function AttemptView({ gen, level, entropy, scope, onRestart }: A
     setProblem(null)
   }
 
+  const Stub = quiet ? Button : PrimaryButton
   if (phase === 'done') {
+    const count = tally(attempt)
+    const passed = count.right === count.total && attempt.provenance === 'unseen'
+    // One amber control: after a pass the way on, with New numbers beside it as an outline; before one, New numbers is the move in hand.
+    const stub =
+      passed && onward !== null ? (
+        <span className="es-item__onward">
+          <PrimaryButton to={onward.href}>{onward.label}</PrimaryButton>
+          <Button onClick={onRestart}>New numbers</Button>
+        </span>
+      ) : passed || quiet ? (
+        <Button onClick={onRestart}>New numbers</Button>
+      ) : (
+        <PrimaryButton onClick={onRestart}>New numbers</PrimaryButton>
+      )
     return (
-      <Frame scope={scope} family={gen.id} phase="done" stub={<PrimaryButton onClick={onRestart}>New numbers</PrimaryButton>}>
+      <Frame scope={scope} family={gen.id} phase="done" stub={stub}>
         <Tally gen={gen} attempt={attempt} />
         {unsaved === null ? null : <Unsaved detail={unsaved} />}
       </Frame>
@@ -126,9 +147,9 @@ export default function AttemptView({ gen, level, entropy, scope, onRestart }: A
       foot={[`Seed ${seedLabel(item.seed)}`, attempt.provenance === 'unseen' ? 'new numbers' : 'practice numbers']}
       stub={
         phase === 'asking' ? (
-          <PrimaryButton onClick={check}>Check answer</PrimaryButton>
+          <Stub onClick={check}>Check answer</Stub>
         ) : (
-          <PrimaryButton onClick={advance}>{last ? 'See the result' : 'Next question'}</PrimaryButton>
+          <Stub onClick={advance}>{last ? 'See the result' : 'Next question'}</Stub>
         )
       }
       data={{ seed: String(item.seed), level: String(item.level), variant: item.variant, kind: item.answer.kind, rev: item.rev, ...(revealed ? { ok: String(answered.grade.ok) } : {}) }}

@@ -259,7 +259,7 @@ test.describe('the prep list', () => {
     // The sheet the next decision acts on, with the amber button in its head, and the quiet column beside it.
     await expect(page.locator('.es-prep__list')).toHaveAttribute('data-lamp', 'true')
     await expect(page.locator('.es-prep__head').getByRole('button', { name: 'Start review' })).toBeVisible()
-    await expect(page.locator('.es-prep__aside')).toContainText('Kept')
+    await expect(page.locator('.es-prep__aside')).toContainText('Ideas passed')
     // The page's own words, not the course's sentences about the ideas (one of them says a plan runs "behind" a step).
     const text = (await root(page).evaluate((element) => {
       const copy = element.cloneNode(true) as HTMLElement
@@ -353,7 +353,7 @@ test.describe('a prep', () => {
     await expect(done.locator('.es-prep__line[data-line="done"][data-ok="false"]')).toHaveCount(1)
     await expect(done.locator('.es-prep__return')).toHaveCount(2)
     await expect(page.locator('.es-prep__next')).toContainText('Next review:')
-    await expect(page.locator('.es-prep__aside')).toContainText('Kept')
+    await expect(page.locator('.es-prep__aside')).toContainText('Ideas passed')
     await expect(stub(page, 'Review ahead')).toBeVisible()
 
     // The ledger holds one review for each ticket, with the model's grade, the seed that was drawn, the tap, and no key.

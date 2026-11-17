@@ -268,9 +268,10 @@ describe('routes against ARCHITECTURE §3.1', () => {
         { ...routes[0], children: [{ path: 'boom', lazy: () => Promise.reject(new Error('Failed to fetch dynamically imported module')) }] },
       ]
       const html = await render('/boom', '/', failing)
-      expect(h1sIn(html)).toEqual(['Something went wrong'])
+      expect(h1sIn(html)).toEqual(['This page stopped'])
       expect(html).toContain('Failed to fetch dynamically imported module')
-      expect(html).toContain('>Reload</button>')
+      expect(html).toContain('>Reload the page</button>')
+      expect(html).toContain('Your answers and runs are saved in this browser')
       expect(linksIn(html, 'Primary').length).toBeGreaterThan(1)
     })
 

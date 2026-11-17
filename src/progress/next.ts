@@ -192,13 +192,47 @@ export function ownersOf(event: LedgerEvent, index: LessonIndex): readonly MapLe
   return matching.length > 0 ? matching : listed
 }
 
+const byTime = (a: LedgerEvent, b: LedgerEvent): number => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0)
+
+/**
+ * Where each event goes, for a lesson's standing (REDESIGN §2.4). A prediction, and a run that one lesson lists or whose `rev` picks one
+ * out, place themselves: they name the lesson the learner was in. A question carries no lesson (its ref names a family that several
+ * lessons may ask, and its `rev` is the family's), so it goes to the lesson the learner was in when they answered it: the lesson of the
+ * last event before it that placed itself, when that lesson asks the family; for the answers after the last such event, the bookmark's
+ * lesson when it asks the family; and otherwise the first lesson, in course order, that asks it. So a question answered in TR1 lesson 1
+ * counts for lesson 1's skill and never starts or passes lesson 6, which asks the same family. A run with no matching `rev` still counts
+ * for every lesson that lists it (`ownersOf`).
+ */
+export function placeEvents(events: readonly LedgerEvent[], index: LessonIndex, bookmark: Bookmark | null = null): ReadonlyMap<LedgerEvent, readonly MapLesson[]> {
+  const placed = new Map<LedgerEvent, readonly MapLesson[]>()
+  const marked = bookmark === null ? undefined : index.lessons.find((lesson) => lesson.route === bookmark.route)
+  const sorted = [...events].sort(byTime)
+  let lastSelf = ''
+  for (const event of sorted) {
+    const owners = ownersOf(event, index)
+    if (owners.length === 1 && event.kind !== 'item') lastSelf = event.at
+  }
+  let here: MapLesson | undefined
+  for (const event of sorted) {
+    const owners = ownersOf(event, index)
+    if (event.kind !== 'item' || owners.length < 2) {
+      placed.set(event, owners)
+      if (owners.length === 1) here = owners[0]
+      continue
+    }
+    const trailing = marked !== undefined && event.at >= lastSelf && (bookmark?.at ?? '') >= lastSelf
+    const at = trailing && owners.includes(marked) ? marked : here !== undefined && owners.includes(here) ? here : owners[0]
+    placed.set(event, [at])
+  }
+  return placed
+}
+
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Where each lesson stands                                                                                           */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 const fullWeight = (event: LedgerEvent): boolean => 'provenance' in event && weightOf(event.provenance) === 1
 const passedAtFull = (event: LedgerEvent): boolean => 'ok' in event && event.ok && fullWeight(event)
-const byTime = (a: LedgerEvent, b: LedgerEvent): number => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0)
 
 /** The item events of one family, in time order. */
 function attemptsAt(events: readonly LedgerEvent[], family: string): LedgerEvent[] {
@@ -236,9 +270,10 @@ export function runDone(lesson: MapLesson, events: readonly LedgerEvent[]): bool
 }
 
 /** Every lesson's standing, from the events, in course order. */
-export function standings(events: readonly LedgerEvent[], index: LessonIndex): ReadonlyMap<string, Standing> {
+export function standings(events: readonly LedgerEvent[], index: LessonIndex, bookmark: Bookmark | null = null): ReadonlyMap<string, Standing> {
   const own = new Map<MapLesson, LedgerEvent[]>(index.lessons.map((lesson) => [lesson, []]))
-  for (const event of events) for (const lesson of ownersOf(event, index)) own.get(lesson)?.push(event)
+  const places = placeEvents(events, index, bookmark)
+  for (const event of events) for (const lesson of places.get(event) ?? []) own.get(lesson)?.push(event)
   const out = new Map<string, Standing>()
   for (const lesson of index.lessons) {
     const mine = own.get(lesson) ?? []
@@ -253,10 +288,10 @@ export function standings(events: readonly LedgerEvent[], index: LessonIndex): R
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /** The most recent event that some lesson owns, and the lesson it goes to for "last worked on". */
-function lastWorked(events: readonly LedgerEvent[], index: LessonIndex, stand: ReadonlyMap<string, Standing>, bookmarked: MapLesson | undefined): { lesson: MapLesson; at: string } | null {
+function lastWorked(events: readonly LedgerEvent[], index: LessonIndex, stand: ReadonlyMap<string, Standing>, bookmarked: MapLesson | undefined, places: ReadonlyMap<LedgerEvent, readonly MapLesson[]>): { lesson: MapLesson; at: string } | null {
   let latest: { event: LedgerEvent; owners: readonly MapLesson[] } | null = null
   for (const event of events) {
-    const owners = ownersOf(event, index)
+    const owners = places.get(event) ?? ownersOf(event, index)
     if (owners.length === 0) continue
     if (latest === null || event.at >= latest.event.at) latest = { event, owners }
   }
@@ -280,7 +315,8 @@ const hrefOf = (lesson: MapLesson, anchor?: string): string => (anchor === undef
  */
 export function nextStep(events: readonly LedgerEvent[], lessons: readonly MapLesson[], bookmark: Bookmark | null, options: NextOptions = {}): Step {
   const index = indexLessons(lessons)
-  const stand = standings(events, index)
+  const places = placeEvents(events, index, bookmark)
+  const stand = standings(events, index, bookmark)
   const done = (lesson: MapLesson) => stand.get(lesson.id)?.state === 'done'
   const skippedBefore = (lesson: MapLesson) => lessons.slice(0, index.order.get(lesson) ?? 0).filter((earlier) => !done(earlier)).length
   const name = (lesson: MapLesson) => lessonName(lesson, lessons)
@@ -318,7 +354,7 @@ export function nextStep(events: readonly LedgerEvent[], lessons: readonly MapLe
   if (events.length === 0 && mark === null) return start(first, 'Start')
 
   // Rule 2: the later of the most recent event and the bookmark.
-  const worked = lastWorked(events, index, stand, placed)
+  const worked = lastWorked(events, index, stand, placed, places)
   const current = mark !== null && placed !== undefined && (worked === null || mark.at >= worked.at) ? placed : worked?.lesson
   if (current === undefined) return fallback()
 
@@ -363,10 +399,10 @@ export type LevelNamer = (game: string, level: string) => string | undefined
  */
 export function lastTime(events: readonly LedgerEvent[], lessons: readonly MapLesson[], names: LevelNamer = () => undefined, bookmark: Bookmark | null = null): string | null {
   const index = indexLessons(lessons)
-  const stand = standings(events, index)
+  const stand = standings(events, index, bookmark)
   // A question set several lessons list belongs to the lesson the learner was reading, as for the way on, and not to the earliest that is open.
   const placed = bookmark === null ? undefined : lessons.find((lesson) => lesson.route === bookmark.route)
-  const worked = lastWorked(events, index, stand, placed)
+  const worked = lastWorked(events, index, stand, placed, placeEvents(events, index, bookmark))
   if (worked === null) return null
   const lesson = worked.lesson
   const own = (stand.get(lesson.id)?.events ?? []).slice().sort(byTime)

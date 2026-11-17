@@ -19,7 +19,7 @@ export function storageLines(
     {
       id: 'kept',
       label: 'kept in',
-      value: !ledger.ready ? 'opening' : memory ? 'memory only' : 'IndexedDB',
+      value: !ledger.ready ? 'opening' : memory ? 'memory only' : 'this browser',
       tone: memory ? 'ink-2' : 'ink',
     },
   ]
@@ -27,7 +27,7 @@ export function storageLines(
   if (ledger.ready && !memory) {
     lines.push({
       id: 'persisted',
-      label: 'kept safe',
+      label: 'safe from clearing',
       value: ledger.persisted === true ? 'yes' : ledger.persisted === false ? 'not yet' : 'unknown',
     })
   }

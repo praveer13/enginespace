@@ -130,7 +130,7 @@ The prediction this lesson makes about a real engine is tested in TR3's lab: its
 
 ## Exit check
 
-This lesson tests three skills: saying what one graph replay saves over launching the same kernels one by one, and why it holds only for the shapes that were captured (`tr2.graph-replay`), working out the size a batch is padded to and what the padding wastes (`tr2.capture-padding`), and naming the modes an engine offers (`tr2.graph-modes`). The questions are three items on fresh seeds, one on what a step launches, and two on the size a step is padded to or on the lists of sizes that waste the least. Pass with at least two right, one of them numeric. The skill with the modes is earned again by the graded `close` level at the end of the sixth lesson.
+This lesson tests three skills: saying what one graph replay saves over launching the same kernels one by one, and why it holds only for the shapes that were captured (`tr2.graph-replay`), working out the size a batch is padded to and what the padding wastes (`tr2.capture-padding`), and naming the modes an engine offers (`tr2.graph-modes`). The questions are three items on fresh seeds, one on what a step launches, and two on the size a step is padded to or on the lists of sizes that waste the least. The skill with the modes is earned again by the graded `close` level at the end of the sixth lesson.
 
 > **Practice.** Items from the generator family `tr2.graph-hit`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 

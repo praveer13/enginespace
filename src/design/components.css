@@ -1540,6 +1540,12 @@
     white-space: nowrap;
   }
 
+  /* In the header the way on keeps to one row beside the links: a long lesson title ends in an ellipsis there, and the page's own Continue
+     carries it whole. */
+  .es-header .es-header__next {
+    max-width: min(100%, 24rem);
+  }
+
   /* In a page, the way on and what it says: the sentence above the control. */
   .es-way {
     display: grid;

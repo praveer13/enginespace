@@ -290,7 +290,7 @@ export function EvidenceView({ ready, counts, rows, skills, attempts, modules, s
               <h2 id="ev-kind" className="es-panel__title">
                 Everything counted
               </h2>
-              <p className="es-panel__lead">Events written, not credit: what an event is worth depends on how it was made. A game run counts under the game&apos;s home module.</p>
+              <p className="es-panel__lead">What you did, counted. This is not credit: what each counts for depends on how it was made. A game run counts under the module the game belongs to.</p>
               <div className="es-wordsets">
                 <KindTable all={counts.all} />
                 <ModuleTable counts={counts} modules={modules} />

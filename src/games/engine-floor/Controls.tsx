@@ -101,6 +101,7 @@ function Prediction({ controls, shown }: { controls: FloorControls; shown: boole
   }
   return (
     <section className="es-floor-predict" aria-labelledby={question} data-prediction="">
+      {lesson?.label === undefined ? null : <p className="es-floor-predict__label">{lesson.label}</p>}
       <h3 id={question} className="es-floor-predict__ask">
         {lesson?.ask ?? FLOOR_QUESTION}
       </h3>

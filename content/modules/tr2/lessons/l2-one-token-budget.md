@@ -122,7 +122,7 @@ id: trace-room-steploop
 
 ## Exit check
 
-This lesson tests two skills: saying how a scheduler that spends one token budget on running and waiting requests together chooses what runs, and what it does when the KV pool runs out (`tr2.one-budget`), and saying why the same server command is a different configuration on two GPUs (`tr2.gpu-dependent-defaults`). The questions are three items on fresh seeds. One gives the order requests joined and asks which is preempted, and two give a card and a command and ask for the budget or the cap. Pass with at least two right, one of them numeric.
+This lesson tests two skills: saying how a scheduler that spends one token budget on running and waiting requests together chooses what runs, and what it does when the KV pool runs out (`tr2.one-budget`), and saying why the same server command is a different configuration on two GPUs (`tr2.gpu-dependent-defaults`). The questions are three items on fresh seeds. One gives the order requests joined and asks which is preempted, and two give a card and a command and ask for the budget or the cap.
 
 :::item
 family: tr2.preempt-victim

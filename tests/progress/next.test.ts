@@ -178,6 +178,38 @@ describe('an event that several lessons could own', () => {
   })
 })
 
+describe('a question set that several lessons ask', () => {
+  // TR1 lessons 1, 3 and 6 all ask tr1.which-mechanism; lesson 6's Test asks it too.
+  const map = JSON.parse(readFileSync(path.join(root, 'src/content/generated/map.json'), 'utf8')) as CourseMap
+  const index = indexLessons(map.lessons)
+  const byId = (id: string) => map.lessons.find((one) => one.id === id) as MapLesson
+  const l1 = byId('tr1.l1')
+  const l6 = byId('tr1.l6')
+  const guess = (lesson: MapLesson, day: number) => made('predict', lesson.predicts[0] ?? '', { day })
+
+  test('answers given in lesson 1 count for lesson 1 and never start or pass a later lesson that asks the same family', () => {
+    const events = [guess(l1, 0), ...passes('tr1.which-mechanism', 0)]
+    const stand = standings(events, index, { route: l1.route, at: isoAt(0) })
+    expect(stand.get('tr1.l1')?.state).toBe('done')
+    for (const id of ['tr1.l3', 'tr1.l5', 'tr1.l6', 'tr1.l7']) expect(stand.get(id)?.state, id).toBe('not-started')
+  })
+
+  test('answers given after a guess in lesson 6 go to lesson 6', () => {
+    const events = [guess(l1, 0), ...passes('tr1.which-mechanism', 0), guess(l6, 1), ...passes('tr1.where-does-it-run', 1), ...passes('tr1.which-mechanism', 1)]
+    const stand = standings(events, index, null)
+    expect(stand.get('tr1.l6')?.state).toBe('done')
+    expect(stand.get('tr1.l3')?.state).toBe('not-started')
+  })
+
+  test('answers after the last guess or run go to the bookmark lesson when it asks the family, else to the first lesson that asks it', () => {
+    const events = [guess(l1, 0), ...passes('tr1.where-does-it-run', 1), ...passes('tr1.which-mechanism', 1)]
+    expect(standings(events, index, { route: l6.route, at: isoAt(2) }).get('tr1.l6')?.state).toBe('done')
+    const away = standings(events, index, null)
+    expect(away.get('tr1.l6')?.state).toBe('not-started')
+    expect(away.get('tr1.l3')?.state).toBe('done')
+  })
+})
+
 describe('when a Test is passed', () => {
   const index = indexLessons(COURSE)
   const stateOf = (events: LedgerEvent[], id: string) => standings(events, index).get(id)
@@ -277,7 +309,8 @@ describe('on the compiled map', () => {
         ...one.test.questions.flatMap((row) => Array.from({ length: row.count }, () => made('item', `item:gen/${row.family}/v1`))),
         ...one.test.graded.map((ref) => ({ ...play(ref, { provenance: 'unseen' }), rev: one.rev }) as LedgerEvent),
       ]
-      const stand = standings(events, indexLessons(map.lessons))
+      // The answers were given in this lesson: the bookmark is in it (a question set several lessons ask goes to the lesson it was answered in).
+      const stand = standings(events, indexLessons(map.lessons), { route: one.route, at: isoAt(1) })
       expect(stand.get(one.id)?.state, one.id).toBe('done')
       // Worked on last (the bookmark is in it, after its events), a done lesson hands on to the next one after it that is not done.
       const next = map.lessons.slice(at + 1).find((candidate) => stand.get(candidate.id)?.state !== 'done') ?? map.lessons.find((candidate) => stand.get(candidate.id)?.state !== 'done')

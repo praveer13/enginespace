@@ -238,7 +238,7 @@ describe('the quiet column', () => {
   test('says the next review after this one, and how many ideas are kept through the readout with what kept means', () => {
     const html = render(h(Aside, { kept: 4, next: '2026-11-20' }))
     expect(html).toContain('Next after this: Fri 20 Nov')
-    expect(html).toContain('Kept')
+    expect(html).toContain('Ideas passed')
     expect(html).toMatch(/<data class="es-readout__value" value="4">4<\/data>.*?data-tag="measured">measured/)
     expect(html).toContain('Ideas you have passed')
     expect(render(h(Aside, { kept: 4, next: null }))).not.toContain('Next after this')
