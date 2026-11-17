@@ -35,13 +35,13 @@ The browser part is four lessons and a game, and none of it needs a GPU.
 3. The tools' defaults, flag by flag: vllm bench serve and sglang.bench_serving.
 4. Replay a trace in time, not just in shape, and name your goodput's denominator.
 
-The game is The Inspection (`broken-bench`). It has four levels, `due`, `warm`, `sure` and `court`. In each, a seeded report went wrong in one way, and you name the flaw and write down the p99 it should have had, with the range you stand behind. Every log in it is synthetic, drawn by the course's simulator and labelled as such. The real tools and the real engine are the judge. Each lesson ends in a check on fresh numbers, so recognizing last time's answer earns nothing.
+The game is Broken benchmark (`broken-bench`). It has four levels: From due time, Warm-up cut, p99 interval and Five reports. In each, a seeded report went wrong in one way, and you name the flaw and write down the p99 it should have had, with the range you stand behind. Every log in it is synthetic, drawn by the course's simulator and labelled as such. The real tools and the real engine are the judge. Each lesson ends in a Test on fresh numbers, so recognizing last time's answer earns nothing.
 
 ## The part that needs a GPU
 
-The GPU part is a lab, `tr8.replay`: a timestamp-faithful replay of a BurstGPT window against the pinned vLLM, open loop, whose receipt your browser re-checks from the raw rows. It arrives with the grader (W2, D-039). Until then the Build card below shows what the lab will ask and does not run it. The plan for its three stages is a smoke replay of about 60 s [estimated] that is practice, the graded replay of a seeded window with at least 1,000 measured requests [estimated], and an optional run of vLLM's own tool on the same window, which the lab labels length-shaped and not time-shaped.
+The GPU part is a lab, `tr8.replay`: a timestamp-faithful replay of a BurstGPT window against the pinned vLLM, open loop, whose receipt your browser re-checks from the raw rows. It runs on a GPU, outside the browser, so this page shows what the lab asks and does not grade it. The plan for its three stages is a smoke replay of about 60 s [estimated] that is practice, the graded replay of a seeded window with at least 1,000 measured requests [estimated], and an optional run of vLLM's own tool on the same window, which the lab labels length-shaped and not time-shaped.
 
-Credit follows the same line. The module is browser-complete when its exit tickets and the four levels of The Inspection are credited. It is complete when the replay's second stage is credited as well, and a Prove-it run with the agent closed is on record (ASSESSMENT §9).
+Credit follows the same line. The module is browser-complete when the lessons' Tests and the four levels of Broken benchmark are credited. It is complete when the replay's second stage is credited as well, and a Prove-it run with the agent closed is on record.
 
 :::lab
 id: tr8.replay

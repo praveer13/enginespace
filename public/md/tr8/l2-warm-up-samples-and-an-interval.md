@@ -16,9 +16,13 @@ The tools know this, and they do something small about it. vllm bench serve send
 
 One request, repeated, warms what one request touches: one prompt length, one output length, and the kernels and caches on that path. It does not warm the other lengths of the real traffic, and it says nothing about whether the engine has settled. A window and a check say that.
 
+Before the rule, see what a cold start does to a report. The first requests of a run are slow, and a report may count them. Leave them out with the warm-up cut, watch the p99 and the histogram move, and then file the report you would stand behind. Neither the cut nor the switch files anything.
+
+> **Play.** The game `broken-bench`, level `warm`, in `practice` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.
+
 ## The rule: a window, declared first
 
-The course states the warm-up before the run, as a window of requests counted by due time: the first W, with W = max(100, 2 × `max_num_seqs`) [estimated] (ASSESSMENT B8). The `max_num_seqs` setting is the number of sequences the engine runs at once, so a busier engine gets a longer window. Requests in the window stay in the log and are reported apart, and the statistics leave them out. The window is counted in requests by due time, so it means the same requests however slow the server turns out to be. The Inspection's server runs 64 sequences [estimated], so its W is 128 requests [derived].
+The course states the warm-up before the run, as a window of requests counted by due time: the first W, with W = max(100, 2 × `max_num_seqs`) [estimated]. The `max_num_seqs` setting is the number of sequences the engine runs at once, so a busier engine gets a longer window. Requests in the window stay in the log and are reported apart, and the statistics leave them out. The window is counted in requests by due time, so it means the same requests however slow the server turns out to be. Broken benchmark's server runs 64 sequences [estimated], so its W is 128 requests [derived].
 
 After the run, one check decides whether the window was long enough. The median time to first token of the first tenth of the measured requests must be at most 1.25 times [estimated] the median of the rest. If it is not, the run fails as still warming.
 
@@ -41,17 +45,13 @@ The second server shows what the check is for. Its warm-up outlasts the rule's w
 >
 > Where it breaks: A re-run draws new data, and a cut only throws data away, so a cut feels harmless. It is not. A cut chosen by looking at the result is chosen to improve it, and the number it produces carries that choice.
 
-> **Play.** The game `broken-bench`, level `warm`, in `practice` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.
-
 ## How many requests does a p99 need
 
-A percentile by nearest rank is the ceil(p × n)-th smallest of n values. For the p99 that is the `ceil(0.99 × n)`-th, and the requests beyond it are all the rest. Commit to a count, and then play The Inspection's `sure` level before you read the table.
+A percentile by nearest rank is the ceil(p × n)-th smallest of n values. For the p99 that is the `ceil(0.99 × n)`-th, and the requests beyond it are all the rest. Commit to a count before you read the table.
 
 > **Predict `tr8.l2.p1`.** A run of 250 requests [estimated] reports a p99 by nearest rank. How many of its requests lie beyond that p99?
 >
 > The learner commits to a number in `requests`, graded within a relative tolerance of `0` [estimated] before the reveal. Ask them to commit to an answer and say why before you discuss it.
-
-> **Play.** The game `broken-bench`, level `sure`, in `practice` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.
 
 | Requests, n [estimated] | The p99 is the nth smallest [derived] | Requests beyond it [derived] |
 |---|---|---|
@@ -60,13 +60,17 @@ A percentile by nearest rank is the ceil(p × n)-th smallest of n values. For th
 | 1,000 | 990th | 10 |
 | 5,000 | 4,950th | 50 |
 
-So the p99 of 100 requests is the second largest value, and the largest is all that lies beyond it [derived]. The p99 of 250 requests [estimated] is the third largest, with two beyond it [derived]. kernelspace T7.L2 puts it bluntly. **a p99 needs samples** [measured] The course asks for at least 1,000 measured requests [estimated], so that at least 10 lie beyond the p99 [derived] (ASSESSMENT B7).
+So the p99 of 100 requests is the second largest value, and the largest is all that lies beyond it [derived]. The p99 of 250 requests [estimated] is the third largest, with two beyond it [derived]. kernelspace T7.L2 puts it bluntly. **a p99 needs samples** [measured] The course asks for at least 1,000 measured requests [estimated], so that at least 10 lie beyond the p99 [derived].
 
-Neither tool enforces anything like it. vllm bench serve computes each percentile over however many requests completed, ten or ten thousand. **np.percentile** [measured] Its own guide opens with an example of ten prompts that prints a P99 line, which for ten values can only sit between the two largest. **79.49 ms** [measured] In that output the mean, the median and the p99 are consecutive lines, so a reader who skims for the latency can take the wrong one. **mean, median, p99** [measured] The court names that mistake a mean reported as a tail.
+Neither tool enforces anything like it. vllm bench serve computes each percentile over however many requests completed, ten or ten thousand. **np.percentile** [measured] Its own guide opens with an example of ten prompts that prints a P99 line, which for ten values can only sit between the two largest. **79.49 ms** [measured] In that output the mean, the median and the p99 are consecutive lines, so a reader who skims for the latency can take the wrong one. **mean, median, p99** [measured] Broken benchmark names that mistake a mean reported as a tail.
+
+Now play the `sure` level: it deals a report whose p99 may rest on too few requests, and it asks for an interval around the p99.
+
+> **Play.** The game `broken-bench`, level `sure`, in `practice` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.
 
 ## An interval on the p99
 
-A p99 from n requests is one draw. It depends on which requests the run happened to hold, and a second run would give another. A bootstrap interval says how far another draw might land. The course's recipe is the percentile bootstrap (A§5.6): resample the n latencies with replacement, take the p99 of the resample by nearest rank, repeat 1,000 times [estimated], and read the 2.5th and the 97.5th percentiles of those p99s as a 95% interval [estimated]. The resampler is seeded, so the same log always gives the same interval.
+A p99 from n requests is one draw. It depends on which requests the run happened to hold, and a second run would give another. A bootstrap interval says how far another draw might land. The course's method is the percentile bootstrap: resample the n latencies with replacement, take the p99 of the resample by nearest rank, repeat 1,000 times [estimated], and read the 2.5th and the 97.5th percentiles of those p99s as a 95% interval [estimated]. The resampler is seeded, so the same log always gives the same interval.
 
 The width of the interval says how many requests you needed. Here the latencies come from the course's exponential table, with a mean of 100 ms [estimated], and the table gives the median, over seeds, of the width of the 95% interval on the p99. Measured by the course's sim on 2026-11-04 at `fd168df`.
 
@@ -78,21 +82,15 @@ The width of the interval says how many requests you needed. Here the latencies 
 
 Four times the requests roughly halves the interval [derived]: the ratios of the widths are 197 ÷ 110 = 1.8 and 110 ÷ 57 = 1.9 [derived]. That is the square-root law, and it is the price of precision: to halve the interval, quadruple the run. Read the width before you read the number. A p99 of 900 ms [estimated] with an interval from 600 to 1,500 ms [estimated] cannot tell an engine that is really at 700 ms from one that is really at 1,300 ms.
 
-One more honest fact about the method. The textbook percentile bootstrap is a little short in the far tail. Its nominal 95% interval [estimated] on a p99 covers the true p99 92.6% of the time at 1,000 requests and 94.6% at 5,000 [measured]. These are exact coverages for any continuous distribution, averaged over 100 resampler seeds at 1,000 requests and over 20 at 5,000 [estimated], from the course's sim on 2026-11-04 at `fd168df`. So the floor of 1,000 requests [estimated] is a floor and not a comfort, and an interval from fewer requests should be read as wider than it looks.
+One more honest fact about the method. The textbook percentile bootstrap is a little short in the far tail. Its nominal 95% interval [estimated] on a p99 covers the true p99 92.6% of the time at 1,000 requests and 94.6% at 5,000 [measured]. These are exact coverages for any continuous distribution, averaged over 100 resampler seeds at 1,000 requests and over 20 at 5,000 [estimated], from the course's sim on 2026-11-04 at `fd168df`. So the minimum of 1,000 requests [estimated] is a minimum and not a comfort, and an interval from fewer requests should be read as wider than it looks.
 
 > **An interval covers noise, not mistakes.** A bootstrap interval says how far one run's own sampling noise could move the p99. It does not cover a server restarted between two runs, a GPU that throttled, or a flaw in the setup. Report the interval with the setup it belongs to, and compare two runs only when their setups are the same.
 
 > **Card.** The notional-machine card `trace-room-bench`.
 
-## What to carry
-
-- Declare the warm-up window before the run, check afterwards that the run had settled, and rerun with a longer window if it had not.
-- Count the requests beyond a percentile before you trust it. A p99 needs ten of them at the least.
-- Put an interval on the number and read its width first. Quadruple the run to halve the interval.
-
 ## Exit check
 
-This lesson tests three skills: fixing the warm-up by the rule and checking it (`tr8.warmup-rule`), counting what lies beyond a percentile (`tr8.min-n-tail`), and reading the width of a bootstrap interval (`tr8.bootstrap-p99`). The graded `warm` and `sure` levels draw a fresh report each time. Each asks you to name the flaw, or to say that the inspection is fair, and to write down the p99 that stands with the range you stand behind. The bar for each is all of it right on three fresh seeds [estimated] (ASSESSMENT §4.3).
+This lesson tests three skills: fixing the warm-up by the rule and checking it (`tr8.warmup-rule`), counting what lies beyond a percentile (`tr8.min-n-tail`), and reading the width of a bootstrap interval (`tr8.bootstrap-p99`). The graded `warm` and `sure` levels draw a fresh report each time. Each asks you to name the flaw, or to say that the report is fair, and to write down the p99 that stands with the range you stand behind. The bar for each is all of it right on three fresh seeds [estimated].
 
 > **Play.** The game `broken-bench`, level `warm`, in `graded` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.
 
