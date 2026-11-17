@@ -220,6 +220,32 @@ const labShape = {
   stages: uniqueList(z.string().regex(/^s[0-9]+$/, 'must be a stage such as s1')).min(1),
 }
 
+/** The games a figure's `replay` may name: those whose pure session the compiler replays itself (scripts/content/directives.ts). */
+export const REPLAY_GAMES = ['loop'] as const
+
+/**
+ * A figure's optional `replay` (R-T45): the game, the level, the seed and the actions that lead to the state the figure draws. The compiler replays
+ * the actions on the game's pure session and fails on a log that does not replay, so the unknown level and the illegal action are its to name; the schema
+ * holds the shape. An action is `{ t, ...fields }` with the fields the step loop's actions have (packages/play/loop/types.ts), as the action log stores it; a game added to REPLAY_GAMES adds its own fields.
+ */
+const replayAction = z.strictObject({
+  t: nonBlank,
+  req: z.int().min(0).optional(),
+  slot: z.int().min(0).optional(),
+  until: nonBlank.optional(),
+  name: nonBlank.optional(),
+  value: z.union([z.boolean(), nonBlank]).optional(),
+  prediction: z.number().optional(),
+  sizes: z.array(z.int().min(1)).optional(),
+  to: nonBlank.optional(),
+})
+const replayShape = z.strictObject({
+  game: z.enum(REPLAY_GAMES),
+  level: levelIdSchema,
+  seed: z.uint32(),
+  actions: z.array(replayAction).min(1).max(64),
+})
+
 /**
  * `figure` is a static SVG with alt text and a long description. `src` is a path to a file in the repo, never a URL, so a
  * figure cannot pull in a third-party request (D-033). It is rendered as an image, never as injected markup (D-016).
@@ -229,6 +255,7 @@ const figureShape = {
   alt: nonBlank,
   description: nonBlank,
   origin: z.enum(FIGURE_ORIGINS),
+  replay: replayShape.optional(),
 }
 
 /** The kinds of card (A§4.3). */

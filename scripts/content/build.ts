@@ -56,7 +56,7 @@ import { compileCard } from './cards.ts'
 import { isRegularFile } from './files.ts'
 import type { CardResult } from './cards.ts'
 import { blockLinks, blockMarkdown, blockMinutes, compileDirective, GAME_IDS, LAB_IDS, textFields, unknownGame, unknownKcs, unknownLab } from './directives.ts'
-import type { DirectiveBlock, LinkEnv, LinkProblem } from './directives.ts'
+import type { DirectiveBlock, LinkEnv, LinkProblem, ReplayCheck } from './directives.ts'
 import { formatDiagnostic, isRecord, loadYaml, locate, parseContentFile, problem, schemaDiagnostics } from './parse.ts'
 import type { ContentFile, Diagnostic, Gate } from './parse.ts'
 import { headingLines, pacingDiagnostics } from './pacing.ts'
@@ -927,7 +927,7 @@ function buildOutputs(course: Course, modules: ReadonlyMap<string, ModuleResult>
 }
 
 /** Compiles `content/` under `root`. It reads files and writes none. */
-export function compileContent({ root }: { root: string }): CompileResult {
+export function compileContent({ root, replay }: { root: string; replay?: ReplayCheck }): CompileResult {
   const out: Diagnostic[] = []
   const course = loadCourse(root, out)
   const claims = loadClaims(root, out)
@@ -950,6 +950,7 @@ export function compileContent({ root }: { root: string }): CompileResult {
       cards: cards.stems,
       cardKinds: new Map([...cards.compiled].map(([id, card]) => [id, card.front.kind])),
       figureExists: (src) => existsSync(path.join(root, 'public', src)),
+      replay,
     },
   }
 
@@ -1043,13 +1044,13 @@ export function printDiagnostics(diagnostics: readonly Diagnostic[]): void {
  * Runs the compiler and prints the diagnostics that belong to `gate`. `extra` adds the checks that only that gate makes.
  * The exit status is 0 when the gate found no error, 1 when it found one, and 2 for a usage error.
  */
-export function runGate(gate: Gate, argv: readonly string[], extra?: (result: CompileResult, root: string) => Diagnostic[]): number {
+export function runGate(gate: Gate, argv: readonly string[], extra?: (result: CompileResult, root: string) => Diagnostic[], replay?: ReplayCheck): number {
   const root = parseRoot(argv)
   if (root === null) {
     console.error(`usage: bun scripts/verify-${gate}.ts [--root <dir>]`)
     return 2
   }
-  const result = compileContent({ root })
+  const result = compileContent({ root, replay })
   const mine = [...result.diagnostics.filter((diagnostic) => diagnostic.gate === gate), ...(extra?.(result, root) ?? [])]
   printDiagnostics(mine)
   const errors = mine.filter((diagnostic) => diagnostic.severity === 'error').length

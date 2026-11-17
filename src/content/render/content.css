@@ -394,6 +394,19 @@
   color: var(--es-text-2);
 }
 
+.es-c-figure__machine {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2);
+  align-items: center;
+  margin: 0;
+}
+
+.es-c-figure__machine-note {
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+}
+
 .es-c-block .es-ticket__body .es-c-artifacts {
   display: grid;
   gap: var(--es-space-4);

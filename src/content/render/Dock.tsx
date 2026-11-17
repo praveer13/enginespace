@@ -69,13 +69,13 @@ export default function Dock({ scope }: DockProps) {
       className="es-ldock"
       aria-labelledby="dock-title"
       data-dock-lesson=""
-      data-dock-state={run === null ? 'empty' : run.done ? 'done' : 'live'}
+      data-dock-state={run === null ? 'empty' : run.figure !== undefined ? 'figure' : run.done ? 'done' : 'live'}
       data-covered={covered || undefined}
     >
       <h2 id="dock-title" className="es-ldock__title">
-        Your run
+        {run?.figure === undefined ? 'Your run' : 'On the machine'}
       </h2>
-      {run === null ? <EmptyDock /> : <LiveDock run={run} />}
+      {run === null ? <EmptyDock /> : run.figure === undefined ? <LiveDock run={run} /> : <FigureDock run={run} figure={run.figure} />}
     </aside>
   )
 }
@@ -86,6 +86,39 @@ function EmptyDock() {
       <p className="es-ldock__lead">Your run appears here.</p>
       <p className="es-ldock__note">Start a run in this lesson and it stays beside the text as you read: its diagram, its readout, and Step, Undo and Reset.</p>
     </div>
+  )
+}
+
+/**
+ * A figure's state on the machine (ShowOnMachine.tsx): the game's compact view of the figure's own run, which is the learner's to look at and never to
+ * move. It has no Step, Undo or Reset, because a move would be a run the learner did not make; "Back to my run" forgets it, and the dock goes back to the
+ * run the learner touched last, as it was.
+ */
+function FigureDock({ run, figure }: { run: LiveRun; figure: NonNullable<LiveRun['figure']> }) {
+  const View = run.DockView
+  return (
+    <>
+      <p className="es-ldock__what" data-dock-run={run.place.key}>
+        <span className="es-ldock__game">{run.gameTitle}</span> <span className="es-ldock__level">{run.levelTitle}</span>
+      </p>
+      <div className="es-ldock__view">
+        {View === null ? (
+          <p className="es-ldock__note">This game draws its run in the run itself.</p>
+        ) : (
+          <Suspense fallback={<p className="es-ldock__note">Drawing the figure&apos;s state…</p>}>
+            <View run={run} />
+          </Suspense>
+        )}
+      </div>
+      <p className="es-ldock__note" data-dock-figure="">
+        The state the figure draws: {figure.caption.charAt(0).toLowerCase() + figure.caption.slice(1)}. Your own run is kept as it was.
+      </p>
+      <p className="es-ldock__back">
+        <Button size="sm" variant="plate" onClick={figure.back}>
+          Back to my run
+        </Button>
+      </p>
+    </>
   )
 }
 
