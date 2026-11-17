@@ -118,10 +118,18 @@ describe("wave R's records", () => {
   }
 
   for (const id of WAVE_R) {
-    test(`${id} carries the six fields, is proposed, and has a row in the index`, () => {
+    // D-062 is the one record the owner has decided: 2026-11-16, at the look gate. The rest are still proposed.
+    const decided = id === 'D-062'
+    test(`${id} carries the six fields, is ${decided ? "the owner's decision of 2026-11-16" : 'proposed'}, and has a row in the index`, () => {
       const text = record(id)
       expect(text.length).toBeGreaterThan(0)
       for (const field of FIELDS) expect([field, text.includes(`- **${field}:**`)]).toEqual([field, true])
+      if (decided) {
+        expect(text).toMatch(/- \*\*Status:\*\* owner-decided 2026-11-16, at the look gate \(R-T20\)\. Proposed 2026-11-15 \(wave R\)/)
+        expect(text).toContain('"data book for sure"')
+        expect(decisions).toMatch(/^\| D-062 \| [^\n]* \| owner-decided 2026-11-16 at the look gate \(R-T20\)[^\n]*\|$/m)
+        return
+      }
       expect(text).toMatch(/- \*\*Status:\*\* proposed \(wave R, 2026-11-15\)/)
       expect(text).not.toMatch(/owner-decided|owner decided/)
       expect(decisions).toMatch(new RegExp(`^\\| ${id} \\| [^\\n]* \\| proposed \\(wave R\\)[^\\n]*\\|$`, 'm'))
@@ -131,7 +139,8 @@ describe("wave R's records", () => {
   test("each record that is the owner's to confirm gives the default and what the wave does on each answer", () => {
     for (const id of ['D-062', 'D-066', 'D-067', 'D-068']) {
       const text = record(id)
-      expect([id, text.includes("The owner's to confirm")]).toEqual([id, true])
+      // D-062 was answered on 2026-11-16: it keeps its default and its two answers, and no longer waits.
+      if (id !== 'D-062') expect([id, text.includes("The owner's to confirm")]).toEqual([id, true])
       expect([id, /- \*\*On (each|the owner's) answer[^\n]*\n( {2}- [^\n]*\n){2,}/.test(text)]).toEqual([id, true])
       expect([id, text.includes('(the default')]).toEqual([id, true])
     }
@@ -142,7 +151,9 @@ describe("wave R's records", () => {
 
   test("the Status paragraph names the records that are the owner's to confirm, and the cut in D-065", () => {
     const status = /^\*\*Status:\*\* [^\n]*$/m.exec(decisions)?.[0] ?? ''
-    expect(status).toContain("D-062, D-066, D-067 and D-068 are the owner's to confirm, and so is the cut of one 3D game (Request path's scene) in D-065")
+    expect(status).toContain("D-066, D-067 and D-068 are the owner's to confirm, and so is the cut of one 3D game (Request path's scene) in D-065")
+    expect(status).toContain("D-062 is the owner's decision of 2026-11-16 at the look gate")
+    expect(status).toContain('D-063, D-065, D-066, D-067 and D-068 are still **proposed**')
   })
 
   test('D-062 deletes nothing of the kitchen before the look gate, and says what the wave does if the owner keeps The Pass', () => {

@@ -43,7 +43,7 @@ The images come from `bun scripts/look-gate.ts shoot` with both serving (`ES_CHR
 - **The step loop, 3D.** A shows the kitchen scene. B shows the time track, the timing diagram stood up in 3D. B draws no kitchen for the step loop: the kitchen's scene left B's tree when the front page was rebuilt, since that page was its last importer. Every other kitchen file is still in B's tree until stage 4.
 - **The front page.** A is the kitchen with a panel over it. B is a heading and a live timing diagram beside it, in 2D first, with 3D one tap away on a desk and none on a phone.
 - **The pool and the lesson.** The same content, laid out alike. They differ mostly in surface and face, so their pairs are the closest.
-- **One disclosure.** No concept roll was dealt for Data Book; the brief's judges chose it. Accepting the brief's choice in its place, or asking for a roll to be dealt and recorded before the design file is written, is the owner's call.
+- **One disclosure.** No concept roll was dealt for Data Book; the brief's judges chose it. Accepting the brief's choice in its place, or asking for a roll to be dealt and recorded before the design file is written, is the owner's call. On 2026-11-16 the owner chose Data Book with this disclosure on the page and asked for no roll.
 
 ## 4. The ten pairs
 
@@ -129,6 +129,8 @@ Route `/play/loop?level=first-3-gap`. The intro skipped, then the async scheduli
 
 ## 5. The three questions
 
+The owner has not answered these three, and the cold test asks them again.
+
 Answer in your own words, after you have spent time in both. The same three are asked again in the cold test.
 
 1. **Which of these would you rather spend an hour in?**
@@ -157,4 +159,4 @@ Answer in your own words, after you have spent time in both. The same three are 
 
 **If you choose The Pass:** the wave restores from the tag `wave-r-stage1`. Stage 2's tokens, faces, time track and front page are not merged. The timing diagram stays as the step loop's 2D view. The kitchen stays as its 3D scene only, with engine words on every label. The pool and the sampler keep their 3D behind the switch, with 2D as the default. Stage 4 shrinks to three tasks.
 
-Your answer: &nbsp;
+Your answer: **Data Book**, given on 2026-11-16, in the owner's words: "data book for sure".

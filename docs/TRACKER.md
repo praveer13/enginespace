@@ -1327,14 +1327,14 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
 
 **Why there is a wave R.** On 2026-11-15 the owner found the site confusing and no delight to use: the kitchen's names and metaphors hide the engine's concepts, and it is unclear what to do next and why. [waves/WR-diagnosis.md](waves/WR-diagnosis.md) is the audit, [REDESIGN.md](REDESIGN.md) is the brief that answers it, and D-062 to D-068 are its records. This section carries every task of `docs/waves/wr-tasks.json` (R-T01 to R-T50) in the tracker's format, so that a task can be worked from here alone. If the two ever differ, `wr-tasks.json` holds.
 
-**Branch and order.** The wave runs on `wave-r`, stacked on `wave-2`, in six stages (D-068). The look gate, R-T20, closes stage 2: the owner compares build A (stage 1, under The Pass) with build B (stage 2, under Data Book), and no agent answers its questions or picks a build. Stage 3 does not wait for the gate. Stage 4 starts when the owner answers at the gate or when every stage 3 task has merged, whichever comes first, and nothing of the kitchen is deleted before then (D-062). W2's grader and receipts track (W2-T01 to W2-T12) continues alongside; W2's module, game and content tasks start after R-T15, and R-T13 rewrites them for the new design.
+**Branch and order.** The wave runs on `wave-r`, stacked on `wave-2`, in six stages (D-068). The look gate, R-T20, closes stage 2: the owner compares build A (stage 1, under The Pass) with build B (stage 2, under Data Book), and no agent answers its questions or picks a build. Stage 3 does not wait for the gate. Stage 4 starts when the owner answers at the gate or when every stage 3 task has merged, whichever comes first, and nothing of the kitchen is deleted before then (D-062). **The owner answered on 2026-11-16: Data Book, in the words "data book for sure" (D-062, `waves/WR-look.md` section 6).** The wave goes on from build B and no task of stage 4 is dropped. W2's grader and receipts track (W2-T01 to W2-T12) continues alongside; W2's module, game and content tasks start after R-T15, and R-T13 rewrites them for the new design.
 
 **Models** (D-068, a note on D-036): 16 tasks go to opus, 32 to sonnet and 2 to haiku. Sizes: 8 S, 28 M and 14 L. A task of size L writes its plan first.
 
 **Exit criteria:**
 - Every gate of REDESIGN §5.3 passes unchanged, and every gate table of `wave-r` holds `wave-2`'s values or stricter: no gate, budget, threshold or tolerance is raised or added.
 - The first-visit walk and the per-screen checks of REDESIGN §5.1 and §5.2 pass (R-T47).
-- The owner has answered at the look gate, or stage 3 has merged on the default (D-062).
+- The owner has answered at the look gate, or stage 3 has merged on the default (D-062). Met: the owner chose Data Book on 2026-11-16.
 - The human cold test of REDESIGN §5.5 waits for the owner before the wave merges to `main`, and agents never simulate it.
 
 ### Stage 0: records and safety
@@ -1623,6 +1623,7 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   12. The four baselines are re-shot and listed in the PR for the owner's review.
 
 #### [ ] R-T20 · The look gate: two builds, the same screens, three questions · S · sonnet · deps: R-T19
+- **Note (2026-11-16):** the owner answered the gate: Data Book, in the words "data book for sure". The three questions are unanswered and the cold test asks them again. No task's status changes with this note.
 - **Goal:** The gate between stage 2 and the deletions. The owner said they are not sure which style suits this course, and The Pass was chosen on paper and disliked when built. So show two built things. Build A is the tag wave-r-stage1: the new names, way on, lesson and frame, under The Pass. Build B is this stage's head: the same, under Data Book. Serve both, shoot the same five screens in each at 1440 x 900 and 390 x 844 (the front page at first paint; the front page after one step, in 3D; /play/pool at its first run; TR5a lesson 1 mid-way in Read; /play/loop on demo level 3 with async scheduling on), and write one page that sets each pair side by side with the three delight questions of the brief's section 5.4 and the decision the owner is asked for. No agent answers the questions or picks a build.
 - **Read:** REDESIGN.md §1 and §2.1, the sections the goal names, and the records it cites.
 - **Files:** `scripts/look-gate.ts`, `docs/waves/WR-look.md`, `docs/waves/wr-look/**`
