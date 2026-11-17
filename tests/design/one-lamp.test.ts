@@ -29,7 +29,6 @@ const CARRIERS: { carrier: 1 | 2 | 3; what: string; selector: RegExp }[] = [
   { carrier: 1, what: "the lesson's foot bar: its way on", selector: /^\.es-lesson__foot-action$/ },
   { carrier: 1, what: 'the ring on the control an intro points at', selector: /^\.es-marker__ring$/ },
   { carrier: 2, what: 'the marker on a diagram: its shape and the cursor', selector: /^\.es-marker(?:__shape|\[data-kind='cursor'\]::before)$/ },
-  { carrier: 2, what: "a drawing's picked size", selector: /^\.es-frame-labels__tag\[data-kind='pick'\]$|^\.es-loop-label\.es-loop-label--pick$/ },
   { carrier: 2, what: 'the page or the light the next move acts on', selector: /^\.es-(?:pan|station)\[data-lamp\] / },
   { carrier: 2, what: 'the pages an eviction is about to take', selector: /^\.es-pool__cell\[data-chosen\]$/ },
   { carrier: 3, what: 'the current section in the rail', selector: /^\.es-srail__segment\[data-at='now'\]$/ },
