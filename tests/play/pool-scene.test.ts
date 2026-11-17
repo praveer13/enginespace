@@ -21,7 +21,7 @@ import { findBanned } from '@/copy/banned'
 import { framingFor } from '@/scene/camera-rig'
 import { morphModel, PX } from '@/scene/flat-track'
 import { MARK_FORMS } from '@/scene/marks'
-import { PAGE_FORM, PAGE_ROLE, PAGE, PAGE_TOP, SHOTS, SLOT, THREAD, WAIT, WELL, fanOf, geometryOf, pageBox, presetsFor, rackOf, slotBox, threadedRequest, type Canvas } from '@/games/pool/scene-layout'
+import { pageForm, pageRole, PAGE, PAGE_TOP, SHOTS, SLOT, THREAD, WAIT, WELL, fanOf, geometryOf, pageBox, presetsFor, rackOf, slotBox, threadedRequest, type Canvas } from '@/games/pool/scene-layout'
 import { POOL_CAMERAS } from '@/games/pool/scene-presets'
 import { tableFor } from '@/games/pool/focus'
 import * as glyphWords from '@/games/pool/glyphs'
@@ -103,20 +103,20 @@ describe('the rack: a page in every cell, each in its place for its whole life',
 
 describe('a page is a form as well as a colour (WCAG 1.4.1)', () => {
   test('free is hollow, in use solid, cached hatched, shared dotted, an adapter\'s a groove: four different forms for the four states the brief names', () => {
-    expect(PAGE_FORM.free).toBe('hollow')
-    expect(PAGE_FORM.used).toBe('solid')
-    expect(PAGE_FORM.cached).toBe('marked')
-    expect(PAGE_FORM.shared).toBe('dotted')
-    expect(PAGE_FORM.adapter).toBe('groove')
-    expect(new Set([PAGE_FORM.free, PAGE_FORM.used, PAGE_FORM.cached, PAGE_FORM.shared, PAGE_FORM.adapter]).size).toBe(5)
-    for (const form of Object.values(PAGE_FORM)) expect(MARK_FORMS).toContain(form)
+    expect(pageForm.free).toBe('hollow')
+    expect(pageForm.used).toBe('solid')
+    expect(pageForm.cached).toBe('marked')
+    expect(pageForm.shared).toBe('dotted')
+    expect(pageForm.adapter).toBe('groove')
+    expect(new Set([pageForm.free, pageForm.used, pageForm.cached, pageForm.shared, pageForm.adapter]).size).toBe(5)
+    for (const form of Object.values(pageForm)) expect(MARK_FORMS).toContain(form)
   })
 
   test('colours are the memory roles of the design system, and a page is drawn in the form of its own state, through a whole night', () => {
-    expect(PAGE_ROLE.used).toBe('memory-used')
-    expect(PAGE_ROLE.cached).toBe('memory-cached')
-    expect(PAGE_ROLE.shared).toBe('memory-shared')
-    expect(PAGE_ROLE.adapter).toBe('memory-adapter')
+    expect(pageRole.used).toBe('memory-used')
+    expect(pageRole.cached).toBe('memory-cached')
+    expect(pageRole.shared).toBe('memory-shared')
+    expect(pageRole.adapter).toBe('memory-adapter')
     const seen = new Set<string>()
     for (const id of ['adapters', 'two-kinds'] as const) {
       for (const state of night(id)) {
@@ -124,8 +124,8 @@ describe('a page is a form as well as a colour (WCAG 1.4.1)', () => {
         const boxes = rackOf(v, NONE).model.boxes
         for (const page of v.pans) {
           const box = boxes.find((candidate) => candidate.id === `page/${page.id}`)
-          expect(box?.form).toBe(PAGE_FORM[page.state])
-          expect(box?.role).toBe(PAGE_ROLE[page.state])
+          expect(box?.form).toBe(pageForm[page.state])
+          expect(box?.role).toBe(pageRole[page.state])
           seen.add(page.state)
         }
       }
@@ -174,7 +174,7 @@ describe('a selected page fans into the layers it serves', () => {
     const layers = rack.model.boxes.filter((box) => box.id.startsWith('fan/'))
     expect(layers).toHaveLength(group.layers + group.padLayers)
     layers.forEach((box, k) => {
-      expect(box.form).toBe(k < group.layers ? PAGE_FORM[page.state] : 'hollow')
+      expect(box.form).toBe(k < group.layers ? pageForm[page.state] : 'hollow')
       expect(box.y0 ?? 0).toBeGreaterThan(PAGE_TOP)
       if (k > 0) expect(box.y0 ?? 0).toBeGreaterThan(layers[k - 1].y0 ?? 0)
       // Each layer is an even slab, over the page's own cell or beside it, never under another page's footprint on the sheet: it stands in the air.

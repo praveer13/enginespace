@@ -51,9 +51,9 @@ export const RING = { off: 1.5, edge: 1.4, height: 2.2 } as const
 export const SHOTS = ['front', 'station', 'top'] as const
 
 /** The form a page's state is drawn in: the shape that carries it besides its colour. */
-export const PAGE_FORM: Readonly<Record<PanState, MarkForm>> = { free: 'hollow', used: 'solid', cached: 'marked', shared: 'dotted', adapter: 'groove', evicted: 'marked' }
+export const pageForm: Readonly<Record<PanState, MarkForm>> = { free: 'hollow', used: 'solid', cached: 'marked', shared: 'dotted', adapter: 'groove', evicted: 'marked' }
 /** The colour role of a page's state: the design system's memory roles (free is drawn in its edge, since white would not show on paper). */
-export const PAGE_ROLE: Readonly<Record<PanState, ColorRoleName>> = {
+export const pageRole: Readonly<Record<PanState, ColorRoleName>> = {
   free: 'cat-white-edge',
   used: 'memory-used',
   cached: 'memory-cached',
@@ -166,8 +166,8 @@ function fanBoxes(g: Geometry, fan: Fan, open: boolean): FlatBox[] {
       z1: z + half,
       y0: open ? PAGE_TOP + FAN.rise + k * stepFor(n) : PAGE_TOP,
       height: FAN.thick,
-      role: padding ? 'cat-white-edge' : PAGE_ROLE[fan.state],
-      form: padding ? 'hollow' : PAGE_FORM[fan.state],
+      role: padding ? 'cat-white-edge' : pageRole[fan.state],
+      form: padding ? 'hollow' : pageForm[fan.state],
       // A pick on a layer is a pick on its page: the same pick again closes the fan.
       pick: `page:${fan.page}`,
     } satisfies FlatBox
@@ -246,7 +246,7 @@ export function rackOf(view: PoolView, { station, chosen, pointed, pick }: RackO
   for (const page of view.pans) {
     const at = pageBox(g, page.id)
     const state: PanState = chosenSet.has(page.id) ? 'evicted' : page.state
-    boxes.push({ id: `page/${page.id}`, ...at, y0: WELL.height, height: PAGE.height, role: PAGE_ROLE[state], form: PAGE_FORM[state], pick: `page:${page.id}` })
+    boxes.push({ id: `page/${page.id}`, ...at, y0: WELL.height, height: PAGE.height, role: pageRole[state], form: pageForm[state], pick: `page:${page.id}` })
   }
   const lamp = (id: number, key: string) => {
     ring(`${key}/${id}/lamp`, pageBox(g, id), 'lamp', RING.off, WELL.height, RING.height)
