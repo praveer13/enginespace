@@ -25,7 +25,6 @@ import { SectionRail } from '@/design/components/SectionRail'
 import { Stamp, TAG_LEGEND, TagLegend, UNVERIFIED_MEANS } from '@/design/components/Stamp'
 import { TitleBlock } from '@/design/components/TitleBlock'
 import { ReadoutStrip } from '@/design/components/ReadoutStrip'
-import { Rail } from '@/design/components/Rail'
 import { Readout } from '@/design/components/Readout'
 import { StationLight } from '@/design/components/StationLight'
 import { PrimaryButton } from '@/design/components/PrimaryButton'
@@ -80,15 +79,6 @@ describe('PrimaryButton', () => {
     const describedBy = /aria-describedby="([^"]+)"/.exec(error)?.[1]
     expect(describedBy).toBeTruthy()
     expect(error).toContain(`id="${describedBy}" role="alert"`)
-  })
-})
-
-describe('Rail', () => {
-  test('one clip per slot, and an empty clip says so in words', () => {
-    const html = render(h(Rail, { clips: 4, label: 'The rail: 4 clips', tickets: [h(Sheet, { key: 'a' }, 'x')] }))
-    expect(html).toContain('<ol class="es-rail__clips" aria-label="The rail: 4 clips">')
-    expect([...html.matchAll(/<li class="es-rail__clip"/g)].length).toBe(4)
-    expect([...html.matchAll(/clip paid for, empty/g)].length).toBe(3)
   })
 })
 

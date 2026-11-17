@@ -63,7 +63,6 @@ describe('/design', () => {
       ...PART_TITLES,
       'Sheet',
       'Primary button',
-      'Rail',
       'Readout strip',
       'Readout',
       'Label',

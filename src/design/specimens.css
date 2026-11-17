@@ -391,7 +391,6 @@
 
 .es-spec__state-stage > .es-sheet,
 .es-spec__state-stage > .es-primary-button,
-.es-spec__state-stage > .es-rail,
 .es-spec__state-stage > .es-readout-strip,
 .es-spec__state-stage > .es-header {
   flex: 1;

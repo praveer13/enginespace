@@ -21,7 +21,6 @@ import { Stamp } from '@/design/components/Stamp'
 import { TitleBlock } from '@/design/components/TitleBlock'
 import { Glyph, Icon, type IconName } from '@/design/components/Glyph'
 import { ReadoutStrip } from '@/design/components/ReadoutStrip'
-import { Rail } from '@/design/components/Rail'
 import { Readout } from '@/design/components/Readout'
 import { StationLight } from '@/design/components/StationLight'
 import { PrimaryButton } from '@/design/components/PrimaryButton'
@@ -351,14 +350,6 @@ function State({
       <div className="es-spec__state-stage">{children}</div>
       <figcaption className="es-spec__state-label">{label}</figcaption>
     </figure>
-  )
-}
-
-function railTicket(key: string, head: string, qty: string, item: string) {
-  return (
-    <Sheet key={key} head={head} compact hole={false} width="full">
-      <SheetLine qty={qty}>{item}</SheetLine>
-    </Sheet>
   )
 }
 
@@ -861,35 +852,6 @@ function ComponentSpecimens() {
           <Sheet head="No. 0050" meta="TBL 1" title="First service" stub={<PrimaryButton to="/play/loop">Start service</PrimaryButton>}>
             <SheetLine qty="4">CLIPS ON THE RAIL</SheetLine>
           </Sheet>
-        </State>
-      </Specimen>
-
-      <Specimen title="Rail" about="A row of slots under a hairline, one per batch slot. An empty slot is a dashed box that says so in words." wide>
-        <State label="two tickets hung, two clips paid for and empty" span>
-          <Rail
-            clips={4}
-            label="The rail: 4 clips"
-            tickets={[railTicket('a', 'No. 12', '2x', 'DECODE'), railTicket('b', 'No. 13', '1x', 'PREFILL')]}
-          />
-        </State>
-        <State label="under the lamp, every clip live" span>
-          <Rail
-            clips={4}
-            label="The rail under the lamp"
-            lamp
-            tickets={[
-              railTicket('a', 'No. 14', '1x', 'DECODE'),
-              railTicket('b', 'No. 15', '1x', 'DECODE'),
-              railTicket('c', 'No. 16', '1x', 'DECODE'),
-              railTicket('d', 'No. 17', '1x', 'DECODE'),
-            ]}
-          />
-        </State>
-        <State label="empty">
-          <Rail clips={2} label="An empty rail" />
-        </State>
-        <State label="disabled">
-          <Rail clips={2} label="A rail not taking tickets" state="disabled" />
         </State>
       </Specimen>
 
