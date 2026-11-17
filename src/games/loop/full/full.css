@@ -312,7 +312,7 @@
   gap: var(--es-space-2) var(--es-space-3);
 }
 
-.es-fd__row .es-loopdock__step .es-stub,
+.es-fd__row .es-loopdock__step .es-primary-button,
 .es-fd__row .es-loopdock__step .es-button {
   min-width: 8rem;
 }
@@ -843,7 +843,7 @@
     min-width: 0;
   }
 
-  .es-fd__row .es-loopdock__step .es-stub,
+  .es-fd__row .es-loopdock__step .es-primary-button,
   .es-fd__row .es-loopdock__step .es-button {
     min-width: 0;
   }

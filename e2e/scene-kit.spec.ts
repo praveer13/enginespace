@@ -182,7 +182,7 @@ test.describe('a lost context (A§6.7)', () => {
     await bell.click()
     await kit(page).getByRole('option').nth(2).click()
     const before = {
-      fire: await kit(page).locator('.es-printer').first().textContent(),
+      fire: await kit(page).locator('.es-readout-strip').first().textContent(),
       selected: await kit(page).getByRole('option', { selected: true }).textContent(),
       overlap: await kit(page).getByRole('switch', { name: /Plan the next step/ }).getAttribute('aria-checked'),
     }
@@ -196,7 +196,7 @@ test.describe('a lost context (A§6.7)', () => {
     await expect(stage(page).locator('[data-live="stage"]')).toHaveText(UNAVAILABLE)
     // The session lives outside the views: the swap lost none of it.
     expect({
-      fire: await kit(page).locator('.es-printer').first().textContent(),
+      fire: await kit(page).locator('.es-readout-strip').first().textContent(),
       selected: await kit(page).getByRole('option', { selected: true }).textContent(),
       overlap: await kit(page).getByRole('switch', { name: /Plan the next step/ }).getAttribute('aria-checked'),
     }).toEqual(before)

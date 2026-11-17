@@ -68,7 +68,7 @@ describe('before a file', () => {
   })
 
   test('puts the lamp on the slip and on no check, and has an empty tape', () => {
-    expect(html).toMatch(/class="es-ticket"[^>]*data-lamp="true"/)
+    expect(html).toMatch(/class="es-sheet"[^>]*data-lamp="true"/)
     expect(html).not.toMatch(/es-forge-check[^>]*data-lamp/)
     expect(text(html)).toContain('Nothing printed yet. Drop a module.')
   })
@@ -89,7 +89,7 @@ describe('reading, and a file that is refused', () => {
 
   test('a refusal puts the lamp back on the slip, because choosing another file is the next decision', () => {
     const html = render({ step: 'refused', file, message: 'no.' })
-    expect(html).toMatch(/class="es-ticket"[^>]*data-lamp="true"/)
+    expect(html).toMatch(/class="es-sheet"[^>]*data-lamp="true"/)
   })
 
   test('a refusal says why in the ribbon\'s red, offers another file, and runs nothing', () => {
@@ -176,7 +176,7 @@ describe('a run that is over', () => {
     expect(text(html)).toContain('toy@reference: no credit')
     expect(text(html)).toContain('ledger no credit')
     // The slip is the voided ticket, and the sentence is printed there once, with the tape's own line beside it.
-    expect(html).toMatch(/<section class="es-ticket"[^>]*data-state="error"/)
+    expect(html).toMatch(/<section class="es-sheet"[^>]*data-state="error"/)
     expect(html.match(/A reference build is shown and never recorded/g)).toHaveLength(2)
     expect(text(html)).not.toContain('Written to your ledger')
   })

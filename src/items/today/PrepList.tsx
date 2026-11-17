@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import type { LocalDay } from '@es/ledger'
 import { Icon } from '@/design/components/Glyph'
 import { Readout } from '@/design/components/Readout'
-import { Ticket } from '@/design/components/Ticket'
+import { Sheet } from '@/design/components/Sheet'
 import { backLine, lastSeen, lineStatus, listTitle, modeNote, SET_LABEL, stateWord } from './copy'
 import type { LineView } from './plan'
 import { minutesOf } from './session'
@@ -87,13 +87,13 @@ export function PrepList({ mode, rows, seconds, start, phase }: PrepListProps) {
   const label = `${listTitle(mode)}, ${rows.length} ${rows.length === 1 ? 'idea' : 'ideas'}`
   if (phase === 'work') {
     return (
-      <Ticket as="section" className="es-prep__list" data-phase="work" data-mode={mode} width="full" title={SET_LABEL} titleAs="h2">
+      <Sheet as="section" className="es-prep__list" data-phase="work" data-mode={mode} width="full" title={SET_LABEL} titleAs="h2">
         <PrepLines rows={rows} label={label} started />
-      </Ticket>
+      </Sheet>
     )
   }
   return (
-    <Ticket as="section" className="es-prep__list" data-phase="list" data-mode={mode} width="full" lamp>
+    <Sheet as="section" className="es-prep__list" data-phase="list" data-mode={mode} width="full" lamp>
       <div className="es-prep__head">
         <h2 className="es-prep__title" aria-label={`${listTitle(mode)}: ${rows.length} ${rows.length === 1 ? 'question' : 'questions'}`}>
           <span aria-hidden="true">
@@ -106,7 +106,7 @@ export function PrepList({ mode, rows, seconds, start, phase }: PrepListProps) {
       </div>
       {note === null ? null : <p className="es-prep__note">{note}</p>}
       <PrepLines rows={rows} label={label} />
-    </Ticket>
+    </Sheet>
   )
 }
 

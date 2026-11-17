@@ -276,35 +276,35 @@ Paper is cut square (0px): sheets, diagrams, fields, the readout strip. Small pa
 
 ## Components
 
-The old components keep their file and export names until R-T46's rename; each is drawn as its Data Book part.
+Each component is drawn as its Data Book part, under the name it has in src/design/components.
 
 ### Buttons
-- **Primary** (Stub): amber fill, a 2 px marker edge, a text-1 label in Atkinson Hyperlegible 700, 44 px or taller, and an arrow. Hover deepens the amber; held down it is a well with a dashed edge and no amber.
+- **Primary** (PrimaryButton): amber fill, a 2 px marker edge, a text-1 label in Atkinson Hyperlegible 700, 44 px or taller, and an arrow. Hover deepens the amber; held down it is a well with a dashed edge and no amber.
 - **Outline** (Button, the default): flat, a 1 px edge, a 3 px radius, a text-1 label. Hover lays a faint well; pressed is the well.
 - **Ink**: the dark surface with a paper-white label, for the control an instrument leans on.
 - **Quiet**: the label alone, underlined under the hand.
 
 ### Sheet
-Ticket is the sheet: a plain paper panel with a title in Atkinson Hyperlegible 700, no hole and no torn edge, a quiet head line and foot line over hairline rules. The sheet the next decision acts on takes an ink rule across its top.
+Sheet is the sheet: a plain paper panel with a title in Atkinson Hyperlegible 700, no hole and no torn edge, a quiet head line and foot line over hairline rules. The sheet the next decision acts on takes an ink rule across its top.
 
 ### Readout and readout strip
-A readout sets its number in the mono face with tabular figures, its unit at 0.8em and its tag as a quiet word under a dotted line; only "unverified" takes the second ink. A change's delta is DeltaChip, beside it. PrinterTape is the readout strip: terms and values on one paper strip, a hairline between rows, with one provenance stamp at its head.
+A readout sets its number in the mono face with tabular figures, its unit at 0.8em and its tag as a quiet word under a dotted line; only "unverified" takes the second ink. A change's delta is DeltaChip, beside it. ReadoutStrip is the readout strip: terms and values on one paper strip, a hairline between rows, with one provenance stamp at its head.
 
 ### Label and stamp
-TapeLabel is the plain label: Atkinson Hyperlegible 700 in sentence case, still and unlit, with a slot's glyph when it names a category. On a drawing it sits on a slip of paper so the lines never cross its words. Provenance is the Stamp: a small bordered word, one per instrument, table or figure, which opens the tag legend.
+Label is the plain label: Atkinson Hyperlegible 700 in sentence case, still and unlit, with a slot's glyph when it names a category. On a drawing it sits on a slip of paper so the lines never cross its words. Provenance is the Stamp: a small bordered word, one per instrument, table or figure, which opens the tag legend.
 
 ### Inputs
 - **Field**: a plain label over a paper slip with a 2 px foot line at 3:1; a number field types in the mono face and is never spun.
 - **Switch** (Toggle): a flat track with a square thumb, and the state as a word, Off or On, in the open half. On, the track is dark. No light.
 
 ### Header and footer
-Board is the header: the raised surface over a hairline, the site's name in the display face, the places in Atkinson Hyperlegible 700, the page you are on in ink with an ink bar under it, and Continue at the right as an outline. The kick-plate is the footer: the dark surface with paper-white links.
+Header is the header: the raised surface over a hairline, the site's name in the display face, the places in Atkinson Hyperlegible 700, the page you are on in ink with an ink bar under it, and Continue at the right as an outline. The kick-plate is the footer: the dark surface with paper-white links.
 
 ### The parts of a lesson and an instrument
 Marker, Callout, PartsList, Legend, Note, Popover, Stamp, TitleBlock, SectionRail, LevelMenu, GoalLine, DeltaChip, NumberLine and NextStep (stage 1, src/design/parts.css) draw in the same roles. Callouts are ink discs with a numeral; the marker and the rail's current section are the only amber among them.
 
 ### Retired with the kitchen
-Rail, Pan, StationLight, Bell and PrintingDots are drawn flat until stage 4 removes them: a row of slots under a hairline, a square page cell with its glyph, a solid ink disc for busy and an open ring for idle, a flat step control, and still dots beside a line of text that says what is loading.
+Rail and Pan have left the tree. StationLight, Bell and PrintingDots still draw the live controls and the loading dots: a solid ink disc for busy and an open ring for idle, a flat step control, and still dots beside a line of text that says what is loading.
 
 ## Do's and Don'ts
 

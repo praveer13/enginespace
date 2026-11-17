@@ -48,7 +48,7 @@ describe('Course is one column of modules in course order', () => {
     expect(rows).toEqual(INDEX.modules.map((module) => module.id))
     expect(rows).toEqual(['tr0', 'tr1', 'tr2', 'tr3', 'tr4', 'tr5a', 'tr5b', 'tr6', 'tr7', 'tr8', 'capstone'])
     expect(empty).toContain('<ol class="es-course__rows">')
-    expect(empty).not.toContain('es-ticket')
+    expect(empty).not.toContain('es-sheet')
   })
 
   test('the page has one h1, a hidden h2 for the list and an h3 for each module', () => {

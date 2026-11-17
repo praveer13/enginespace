@@ -4,7 +4,7 @@ import { busyGuess, openingLine } from '@es/play/loop/parts'
 import type { LoopAction, LoopView } from '@es/play/loop/types'
 import { Button } from '@/design/components/Button'
 import { Marker } from '@/design/components/Marker'
-import { Stub } from '@/design/components/Stub'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { LoopOverlap } from './LoopOverlap'
 import type { LoopRunCore } from './types'
 import { useLoopControls, type AutoToggleRef } from './useLoopControls'
@@ -132,9 +132,9 @@ function StepControl({ view, primary, onStep }: { view: LoopView; primary: boole
       </Button>
     )
   return (
-    <Stub standalone onClick={onStep}>
+    <PrimaryButton standalone onClick={onStep}>
       Step
-    </Stub>
+    </PrimaryButton>
   )
 }
 

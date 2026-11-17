@@ -192,8 +192,8 @@ test.describe('accept 2', () => {
 
     await start(page, watch)
     const first = await ticket(page)
-    await expect(block(page).locator('.es-ticket__foot')).toContainText(`Seed ${first.seed.toString(16).toUpperCase().padStart(8, '0')}`)
-    await expect(block(page).locator('.es-ticket__foot')).toContainText("new numbers")
+    await expect(block(page).locator('.es-sheet__foot')).toContainText(`Seed ${first.seed.toString(16).toUpperCase().padStart(8, '0')}`)
+    await expect(block(page).locator('.es-sheet__foot')).toContainText("new numbers")
     const attemptOne = await play(page, ['right', 'wrong', 'right'])
 
     await expect(block(page).getByRole('heading', { name: '2 of 3: not yet. New numbers when you retry.' })).toBeVisible()

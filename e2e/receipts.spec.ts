@@ -344,7 +344,7 @@ test.describe('a ledger with a challenge in each state', () => {
     await expect(rows(page).nth(0)).toContainText('good until')
     await expect(rows(page).nth(2)).toContainText('expired')
     await expect(rows(page).nth(1).getByRole('link')).toHaveAttribute('href', `/receipts#${ledger.record.sha256}`)
-    await expect(page.getByRole('figure', { name: 'Challenges and results, counted' }).locator('.es-printer__line')).toHaveText([/open\s*1/i, /used\s*1/i, /expired\s*1/i, /results\s*1/i])
+    await expect(page.getByRole('figure', { name: 'Challenges and results, counted' }).locator('.es-readout-strip__line')).toHaveText([/open\s*1/i, /used\s*1/i, /expired\s*1/i, /results\s*1/i])
   })
 
   test('leads from the used challenge to the receipt that used it, and says in the receipt that its challenge was used by it', async ({ page }) => {

@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { KINDS } from '@es/ledger'
-import { ContinueLink, type ContinueTarget } from '@/design/components/Board'
+import { ContinueLink, type ContinueTarget } from '@/design/components/Header'
 import { TextLink } from '@/design/components/TextLink'
 import { LEGENDS, ATTEMPT_WORDS, SKILL_WORDS } from '@/progress/words'
 import { Button } from '@/design/components/Button'

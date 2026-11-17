@@ -1,5 +1,5 @@
-import { PrinterTape } from '@/design/components/PrinterTape'
-import type { PrinterTapeLine } from '@/design/components/PrinterTape'
+import { ReadoutStrip } from '@/design/components/ReadoutStrip'
+import type { ReadoutStripLine } from '@/design/components/ReadoutStrip'
 import { Readout } from '@/design/components/Readout'
 import type { NumberTag } from '@/design/components/Readout'
 import { formatReadout } from '@/design/format'
@@ -21,13 +21,13 @@ export interface CursorTapeProps {
 }
 
 export function CursorTape({ index, cursor, tag, source }: CursorTapeProps) {
-  if (cursor === null) return <PrinterTape label="The event at the cursor" lines={[]} empty="No event at the cursor. The trace has none." />
+  if (cursor === null) return <ReadoutStrip label="The event at the cursor" lines={[]} empty="No event at the cursor. The trace has none." />
   const span = cursor.span
   const lane = index.lanes[index.spanLane[span]]
   const style = styleName(index, span)
   const ns = (value: number) => <Readout value={value} unit="ns" tag={tag} source={source} size="sm" />
   const corr = index.trace.spans.corr[span]
-  const lines: PrinterTapeLine[] = [
+  const lines: ReadoutStripLine[] = [
     {
       id: 'event',
       label: 'event',
@@ -61,5 +61,5 @@ export function CursorTape({ index, cursor, tag, source }: CursorTapeProps) {
     { id: 'duration', label: 'lasts', value: ns(index.trace.spans.durNs[span]) },
     { id: 'corr', label: 'correlation id', value: corr < 0 ? <span>none</span> : <span className="font-numeric">{formatReadout(corr)}</span> },
   ]
-  return <PrinterTape label="The event at the cursor" lines={lines} />
+  return <ReadoutStrip label="The event at the cursor" lines={lines} />
 }

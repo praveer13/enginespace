@@ -7,7 +7,7 @@ import { createElement, type ReactElement } from 'react'
 import { renderToString } from 'react-dom/server'
 import { StaticRouter } from 'react-router'
 import { Bell } from '@/design/components/Bell'
-import { Board, MenuLink } from '@/design/components/Board'
+import { Header, MenuLink } from '@/design/components/Header'
 import { Button } from '@/design/components/Button'
 import { Callout } from '@/design/components/Callout'
 import { DeltaChip } from '@/design/components/DeltaChip'
@@ -24,15 +24,13 @@ import { Popover } from '@/design/components/Popover'
 import { SectionRail } from '@/design/components/SectionRail'
 import { Stamp, TAG_LEGEND, TagLegend, UNVERIFIED_MEANS } from '@/design/components/Stamp'
 import { TitleBlock } from '@/design/components/TitleBlock'
-import { Pan } from '@/design/components/Pan'
-import { PrinterTape } from '@/design/components/PrinterTape'
-import { Rail } from '@/design/components/Rail'
+import { ReadoutStrip } from '@/design/components/ReadoutStrip'
 import { Readout } from '@/design/components/Readout'
 import { StationLight } from '@/design/components/StationLight'
-import { Stub } from '@/design/components/Stub'
-import { TapeLabel } from '@/design/components/TapeLabel'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
+import { Label } from '@/design/components/Label'
 import { TextLink } from '@/design/components/TextLink'
-import { Ticket, TicketLine } from '@/design/components/Ticket'
+import { Sheet, SheetLine } from '@/design/components/Sheet'
 import { Toggle } from '@/design/components/Toggle'
 import { SLOT_MARKS, slotOf, type ColorRoleName, type Slot } from '@/design/tokens'
 
@@ -40,63 +38,54 @@ const render = (element: ReactElement, location = '/map') =>
   renderToString(createElement(StaticRouter, { location }, element)).replaceAll('<!-- -->', '')
 const h = createElement
 
-describe('Ticket', () => {
+describe('Sheet', () => {
   test('a container ticket is an article with its head, stamped title and printed lines', () => {
-    const html = render(h(Ticket, { head: 'No. 0042', meta: 'TBL 7', title: 'Fire the next step.' }, h(TicketLine, { qty: '2x', children: 'DECODE' })))
-    expect(html).toMatch(/^<article class="es-ticket"/)
-    expect(html).toContain('<h3 class="es-ticket__title">Fire the next step.</h3>')
+    const html = render(h(Sheet, { head: 'No. 0042', meta: 'TBL 7', title: 'Fire the next step.' }, h(SheetLine, { qty: '2x', children: 'DECODE' })))
+    expect(html).toMatch(/^<article class="es-sheet"/)
+    expect(html).toContain('<h3 class="es-sheet__title">Fire the next step.</h3>')
     expect(html).toContain('data-hole="true"')
   })
 
   test('a ticket you pick up is a button of spans, disabled when the ticket is', () => {
-    const html = render(h(Ticket, { as: 'button', head: 'No. 1', state: 'disabled' }, h(TicketLine, null, 'PREFILL')))
-    expect(html).toMatch(/^<button class="es-ticket"[^>]*type="button"[^>]*disabled=""/)
+    const html = render(h(Sheet, { as: 'button', head: 'No. 1', state: 'disabled' }, h(SheetLine, null, 'PREFILL')))
+    expect(html).toMatch(/^<button class="es-sheet"[^>]*type="button"[^>]*disabled=""/)
     expect(html).not.toMatch(/<(div|h\d)[ >]/)
   })
 
   test('loading, error and empty say so in words', () => {
-    expect(render(h(Ticket, { state: 'loading' }, 'x'))).toContain('aria-busy="true"')
-    expect(render(h(Ticket, { state: 'loading' }, 'x'))).toContain('role="status"')
-    expect(render(h(Ticket, { state: 'error', error: 'Paper out.' }, 'x'))).toMatch(/role="alert"[^>]*>.*Paper out\./s)
-    expect(render(h(Ticket, { state: 'empty', empty: 'No tickets yet' }))).toContain('No tickets yet')
+    expect(render(h(Sheet, { state: 'loading' }, 'x'))).toContain('aria-busy="true"')
+    expect(render(h(Sheet, { state: 'loading' }, 'x'))).toContain('role="status"')
+    expect(render(h(Sheet, { state: 'error', error: 'Paper out.' }, 'x'))).toMatch(/role="alert"[^>]*>.*Paper out\./s)
+    expect(render(h(Sheet, { state: 'empty', empty: 'No tickets yet' }))).toContain('No tickets yet')
   })
 
   test('under the lamp is a state of its own', () => {
-    expect(render(h(Ticket, { lamp: true }, 'x'))).toContain('data-lamp="true"')
+    expect(render(h(Sheet, { lamp: true }, 'x'))).toContain('data-lamp="true"')
   })
 })
 
-describe('Stub', () => {
+describe('PrimaryButton', () => {
   test('as a link it is the router’s link; as an action it is a button', () => {
-    expect(render(h(Stub, { to: '/play/loop', children: 'Start service' }))).toContain('href="/play/loop"')
-    expect(render(h(Stub, { onClick: () => undefined, children: 'Start service' }))).toContain('<button type="button" class="es-stub__pull"')
+    expect(render(h(PrimaryButton, { to: '/play/loop', children: 'Start service' }))).toContain('href="/play/loop"')
+    expect(render(h(PrimaryButton, { onClick: () => undefined, children: 'Start service' }))).toContain('<button type="button" class="es-primary-button__pull"')
   })
 
   test('disabled, loading and error are element states', () => {
-    expect(render(h(Stub, { disabled: true, children: 'Start service' }))).toContain('disabled=""')
-    const loading = render(h(Stub, { loading: true, to: '/play/loop', children: 'Start service' }))
+    expect(render(h(PrimaryButton, { disabled: true, children: 'Start service' }))).toContain('disabled=""')
+    const loading = render(h(PrimaryButton, { loading: true, to: '/play/loop', children: 'Start service' }))
     expect(loading).toContain('aria-busy="true"')
     expect(loading).not.toContain('href=')
-    const error = render(h(Stub, { error: 'The line did not answer.', onClick: () => undefined, children: 'Start service' }))
+    const error = render(h(PrimaryButton, { error: 'The line did not answer.', onClick: () => undefined, children: 'Start service' }))
     const describedBy = /aria-describedby="([^"]+)"/.exec(error)?.[1]
     expect(describedBy).toBeTruthy()
     expect(error).toContain(`id="${describedBy}" role="alert"`)
   })
 })
 
-describe('Rail', () => {
-  test('one clip per slot, and an empty clip says so in words', () => {
-    const html = render(h(Rail, { clips: 4, label: 'The rail: 4 clips', tickets: [h(Ticket, { key: 'a' }, 'x')] }))
-    expect(html).toContain('<ol class="es-rail__clips" aria-label="The rail: 4 clips">')
-    expect([...html.matchAll(/<li class="es-rail__clip"/g)].length).toBe(4)
-    expect([...html.matchAll(/clip paid for, empty/g)].length).toBe(3)
-  })
-})
-
-describe('PrinterTape', () => {
+describe('ReadoutStrip', () => {
   test('lines are a description list, announced politely when live', () => {
     const html = render(
-      h(PrinterTape, {
+      h(ReadoutStrip, {
         label: 'The printer',
         live: true,
         housing: h(MenuLink),
@@ -110,23 +99,9 @@ describe('PrinterTape', () => {
   })
 
   test('loading, error and empty print a line', () => {
-    expect(render(h(PrinterTape, { label: 'p', lines: [], state: 'loading' }))).toContain('role="status"')
-    expect(render(h(PrinterTape, { label: 'p', lines: [], state: 'error', error: 'Paper jam.' }))).toContain('role="alert"')
-    expect(render(h(PrinterTape, { label: 'p', lines: [], empty: 'No fires yet' }))).toContain('No fires yet')
-  })
-})
-
-describe('Pan', () => {
-  test('says its state in words, and is a button only when it can be picked', () => {
-    const still = render(h(Pan, { state: 'cached', name: 'Pan 12', tape: '0x3f', station: 'green' }))
-    expect(still).toMatch(/^<span class="es-pan"/)
-    expect(still).toContain('Pan 12, cached: tape on, held by nobody')
-    const button = render(h(Pan, { state: 'used', name: 'Pan 3', onSelect: () => undefined, disabled: true }))
-    expect(button).toMatch(/^<button type="button" class="es-pan"[^>]*disabled=""/)
-  })
-
-  test('a bare pan carries no tape', () => {
-    expect(render(h(Pan, { state: 'free', name: 'Pan 1', tape: 'x' }))).not.toContain('es-tape')
+    expect(render(h(ReadoutStrip, { label: 'p', lines: [], state: 'loading' }))).toContain('role="status"')
+    expect(render(h(ReadoutStrip, { label: 'p', lines: [], state: 'error', error: 'Paper jam.' }))).toContain('role="alert"')
+    expect(render(h(ReadoutStrip, { label: 'p', lines: [], empty: 'No fires yet' }))).toContain('No fires yet')
   })
 })
 
@@ -179,7 +154,7 @@ describe('StationLight and Bell', () => {
   })
 })
 
-describe('Button, TextLink, Toggle, Field and TapeLabel', () => {
+describe('Button, TextLink, Toggle, Field and Label', () => {
   test('a button holds its label directly, and says when it is busy or has failed', () => {
     expect(render(h(Button, null, 'Reload'))).toContain('>Reload</button>')
     expect(render(h(Button, { loading: true }, 'Export'))).toContain('aria-busy="true"')
@@ -216,21 +191,21 @@ describe('Button, TextLink, Toggle, Field and TapeLabel', () => {
   test('a field’s tape is its label, and an error marks it invalid and describes it', () => {
     const html = render(h(Field, { label: 'Your prediction', error: 'Enter a whole number of ticks.', numeric: true }))
     const inputId = /<input id="([^"]+)"/.exec(html)?.[1]
-    expect(html).toContain(`<label class="es-tape es-field__label" data-tilt="left" data-size="md" for="${inputId}"`)
+    expect(html).toContain(`<label class="es-plain-label es-field__label" data-tilt="left" data-size="md" for="${inputId}"`)
     expect(html).toContain('aria-invalid="true"')
     expect(html).toContain(`aria-describedby="${inputId}-error"`)
     expect(html).toContain(`id="${inputId}-error" role="alert"`)
   })
 
   test('a tape label with a station code draws the slot’s glyph', () => {
-    expect(render(h(TapeLabel, { slot: 'yellow', children: 'cached' }))).toContain('data-glyph="diamond"')
+    expect(render(h(Label, { slot: 'yellow', children: 'cached' }))).toContain('data-glyph="diamond"')
   })
 })
 
-describe('Board', () => {
+describe('Header', () => {
   test('the page you are on is marked current, and the nameplate links home', () => {
     const html = render(
-      h(Board, {
+      h(Header, {
         label: 'Primary',
         brand: { to: '/', label: 'enginespace' },
         links: [
@@ -241,7 +216,7 @@ describe('Board', () => {
       '/map',
     )
     expect(html).toMatch(/^<nav aria-label="Primary"/)
-    expect(html).toMatch(/<a aria-current="page" class="es-board__link[^"]*" href="\/map"[^>]*>Map<\/a>/)
+    expect(html).toMatch(/<a aria-current="page" class="es-header__link[^"]*" href="\/map"[^>]*>Map<\/a>/)
     expect(html).toMatch(/href="\/"[^>]*>enginespace<\/a>/)
     expect(html).not.toMatch(/aria-current="page"[^>]*href="\/play"/)
   })

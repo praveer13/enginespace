@@ -222,7 +222,7 @@ test.describe('the swimlane', () => {
     expect(last).toBeLessThanOrEqual(box.bottom + 1)
     // The dock's list, its run control and the readout are on the same screen.
     expect(await inViewport(page, '[data-floor-tray] [data-stage]')).toBe(true)
-    expect(await inViewport(page, '[data-floor-path] .es-stub__pull')).toBe(true)
+    expect(await inViewport(page, '[data-floor-path] .es-primary-button__pull')).toBe(true)
     expect(await inViewport(page, '[data-floor-readout]')).toBe(true)
   })
 
@@ -341,7 +341,7 @@ test.describe('the stage list', () => {
       expect(shown.whole).toBeGreaterThanOrEqual(3)
       expect(shown.top).toBeGreaterThanOrEqual(0)
       expect(shown.bottom).toBeLessThanOrEqual(844)
-      expect(await inViewport(page, '[data-floor-path] .es-stub__pull')).toBe(true)
+      expect(await inViewport(page, '[data-floor-path] .es-primary-button__pull')).toBe(true)
       expect(await inViewport(page, '[data-floor-readout]')).toBe(true)
       // The current row: its node and the start of its name, inside the viewport and inside the swimlane's box.
       const row = await page.locator('[data-lane-row="8"] .es-lanes__name').evaluate((name) => {

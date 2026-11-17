@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { LoopView } from '@es/play/loop/types'
 import { DeltaChip } from '@/design/components/DeltaChip'
-import { PrinterTape, type PrinterTapeLine } from '@/design/components/PrinterTape'
+import { ReadoutStrip, type ReadoutStripLine } from '@/design/components/ReadoutStrip'
 import { Readout } from '@/design/components/Readout'
 import { Stamp } from '@/design/components/Stamp'
 import { formatReadout } from '@/design/format'
@@ -23,7 +23,7 @@ function stepTicksLine(view: LoopView): ReactNode {
   return clock === null ? <span>not yet</span> : <Readout value={clock} unit="ticks" tag="synthetic" size="sm" />
 }
 
-function linesOf(view: LoopView): PrinterTapeLine[] {
+function linesOf(view: LoopView): ReadoutStripLine[] {
   const c = view.counters
   const ticks = (value: number) => <Readout value={value} unit="ticks" tag="synthetic" size="sm" />
   return [
@@ -60,7 +60,7 @@ function linesOf(view: LoopView): PrinterTapeLine[] {
 }
 
 export function Tape({ view }: { view: LoopView }) {
-  return <PrinterTape label="Step readout, in synthetic ticks" lines={linesOf(view)} feed={view.step} empty="Nothing has run yet" stamp="synthetic ticks" />
+  return <ReadoutStrip label="Step readout, in synthetic ticks" lines={linesOf(view)} feed={view.step} empty="Nothing has run yet" stamp="synthetic ticks" />
 }
 
 /**

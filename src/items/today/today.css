@@ -23,7 +23,7 @@
 }
 
 /* The sheets are as wide as the column they stand in: 50rem, with the quiet column beside them from 64rem. */
-.es-prep .es-ticket {
+.es-prep .es-sheet {
   max-width: none;
 }
 
@@ -73,17 +73,17 @@
   margin-bottom: var(--es-space-4);
 }
 
-.es-prep__head .es-stub {
+.es-prep__head .es-primary-button {
   flex: none;
   width: 13rem;
 }
 
-.es-prep__head .es-stub__pull {
+.es-prep__head .es-primary-button__pull {
   width: 100%;
 }
 
 @media (max-width: 39.99rem) {
-  .es-prep__head .es-stub {
+  .es-prep__head .es-primary-button {
     width: 100%;
   }
 }
@@ -387,7 +387,7 @@
     scroll-padding-bottom: 6rem;
   }
 
-  .es-prep__work .es-ticket__stub {
+  .es-prep__work .es-sheet__stub {
     position: sticky;
     bottom: 0;
     z-index: 5;
@@ -399,8 +399,8 @@
 }
 
 @media (max-width: 63.99rem) {
-  .es-prep__work .es-stub,
-  .es-prep__work .es-stub__pull {
+  .es-prep__work .es-primary-button,
+  .es-prep__work .es-primary-button__pull {
     width: 100%;
   }
 }

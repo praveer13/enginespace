@@ -5,7 +5,7 @@ import { readStoredReport, RULES_IN_ALL, verdictOf } from '@es/verify'
 import { Icon } from '@/design/components/Glyph'
 import { Readout } from '@/design/components/Readout'
 import { TextLink } from '@/design/components/TextLink'
-import { Ticket } from '@/design/components/Ticket'
+import { Sheet } from '@/design/components/Sheet'
 import { Bytes } from './Bytes'
 import type { HeldChallenge } from './challenge'
 import { RECEIPTS, REPORTS } from './copy'
@@ -479,7 +479,7 @@ function Reports({ reports, receipt }: { reports: readonly VerificationReport[];
 /** A record that is not a receipt this build can read: its hash, and why. */
 export function UnreadableReceipt({ held }: { held: Extract<HeldReceipt, { ok: false }> }) {
   return (
-    <Ticket as="article" width="full" title={RECEIPTS.unreadable} titleAs="h2" foot={[`Record ${held.sha256.slice(0, 8)}`]} className="es-receipt" aria-label={`Record ${held.sha256.slice(0, 8)}, not a receipt this build can read`} tabIndex={-1} data-opened="" data-readable="false">
+    <Sheet as="article" width="full" title={RECEIPTS.unreadable} titleAs="h2" foot={[`Record ${held.sha256.slice(0, 8)}`]} className="es-receipt" aria-label={`Record ${held.sha256.slice(0, 8)}, not a receipt this build can read`} tabIndex={-1} data-opened="" data-readable="false">
       <p>This record is in your ledger, and it is not a receipt of the format this build reads, so it is not shown. Its first problems were:</p>
       <p className="es-receipt__problem">
         <Icon name="alert" className="es-receipt__mark" />
@@ -488,7 +488,7 @@ export function UnreadableReceipt({ held }: { held: Extract<HeldReceipt, { ok: f
       <p>
         Hash <code className="es-receipt__hash">{held.sha256}</code>
       </p>
-    </Ticket>
+    </Sheet>
   )
 }
 
@@ -497,7 +497,7 @@ export function ReceiptDetail({ held, challenges }: { held: Extract<HeldReceipt,
   const { receipt, sha256, reports } = held
   const challenge = challenges.find((entry) => entry.token === receipt.challenge.token)
   return (
-    <Ticket
+    <Sheet
       as="article"
       width="full"
       title={receipt.stage}
@@ -518,7 +518,7 @@ export function ReceiptDetail({ held, challenges }: { held: Extract<HeldReceipt,
       <Claimed receipt={receipt} />
       <Notes receipt={receipt} />
       <Reports reports={reports} receipt={receipt} />
-    </Ticket>
+    </Sheet>
   )
 }
 

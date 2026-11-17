@@ -28,7 +28,7 @@ describe('the ticket that waits', () => {
     expect(html).toContain('data-block="item"')
     expect(html).toContain('data-phase="idle"')
     expect(html).toContain('3 questions on fresh numbers, drawn when you start.')
-    expect(html).toContain('<span class="es-ticket-line__qty">3x</span>')
+    expect(html).toContain('<span class="es-sheet-line__qty">3x</span>')
     expect(html).toContain('Bubble width')
     expect(html).toContain('on your own')
     expect(html).not.toContain('data-seed')
@@ -37,14 +37,14 @@ describe('the ticket that waits', () => {
 
   test('shows no id, and has a button that is not held down: an item is called a question everywhere', () => {
     for (const id of ['tr2.bubble', 'tr2.async-overlap', 'tr2.l0', 'tr2.bubble-width']) expect(html.replace(/data-(?:scope|family)="[^"]*"/g, '')).not.toContain(id)
-    expect(html).toMatch(/<button type="button" class="es-stub__pull"(?![^>]*disabled)[^>]*>/)
+    expect(html).toMatch(/<button type="button" class="es-primary-button__pull"(?![^>]*disabled)[^>]*>/)
     expect(html).toContain('Start questions')
     expect(html.replace(/<[^>]*>/g, ' ')).not.toMatch(/\bitems?\b/i)
   })
 
   test('is a sheet like the other blocks, titled Questions', () => {
-    expect(html).toContain('<h2 class="es-ticket__title">Questions</h2>')
-    expect(html).toContain('class="es-ticket es-c-block"')
+    expect(html).toContain('<h2 class="es-sheet__title">Questions</h2>')
+    expect(html).toContain('class="es-sheet es-c-block"')
   })
 
   test('says one question, in the singular', () => {
@@ -59,7 +59,7 @@ describe('the ticket for a family that is not built, or a level it does not offe
     expect(html).toContain('These questions are not published yet.')
     expect(html).not.toContain('Not built yet')
     expect(html).not.toContain('tr2.no-such-family</')
-    expect(html).toMatch(/<button type="button" class="es-stub__pull"[^>]*disabled=""/)
+    expect(html).toMatch(/<button type="button" class="es-primary-button__pull"[^>]*disabled=""/)
   })
 
   test('a level the family offers no variant at says which levels it does', () => {

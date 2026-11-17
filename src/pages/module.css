@@ -99,7 +99,7 @@
   margin-top: var(--es-space-2);
 }
 
-.es-module__way .es-board__next {
+.es-module__way .es-header__next {
   width: fit-content;
 }
 
@@ -116,7 +116,7 @@
 }
 
 @media (max-width: 39.99rem) {
-  .es-module__way .es-board__next {
+  .es-module__way .es-header__next {
     width: 100%;
     justify-content: space-between;
   }

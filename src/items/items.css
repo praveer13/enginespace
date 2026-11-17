@@ -413,7 +413,7 @@
 }
 
 /* The block's own list rules beat the lesson's (content.css styles every ol of a ticket's body), so this names the whole path. */
-.es-c-block .es-ticket__body .es-item__lines {
+.es-c-block .es-sheet__body .es-item__lines {
   display: grid;
   gap: var(--es-space-1);
   margin: 0;
@@ -421,6 +421,6 @@
   list-style: none;
 }
 
-.es-c-block .es-ticket__body .es-item__lines li + li {
+.es-c-block .es-sheet__body .es-item__lines li + li {
   margin-top: 0;
 }

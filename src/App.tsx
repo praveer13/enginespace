@@ -1,8 +1,8 @@
 import { useEffect, useLayoutEffect, type ReactNode } from 'react'
 import { Outlet, isRouteErrorResponse, useLocation, useMatches, useNavigationType, useRouteError } from 'react-router'
-import { Board, ContinueLink } from '@/design/components/Board'
+import { Header, ContinueLink } from '@/design/components/Header'
 import { Button } from '@/design/components/Button'
-import { TapeLabel } from '@/design/components/TapeLabel'
+import { Label } from '@/design/components/Label'
 import { EvidenceNotice } from '@/evidence/EvidenceNotice'
 import { usePointer } from '@/settings/usePlace'
 
@@ -38,17 +38,17 @@ function Shell({ children }: { children: ReactNode }) {
   return (
     <>
       <a href="#main" className="es-skip">
-        <TapeLabel tilt="none">Skip to main content</TapeLabel>
+        <Label tilt="none">Skip to main content</Label>
       </a>
       <header>
-        <Board label="Primary" brand={BRAND} links={PRIMARY_LINKS} fold action={<ContinueLink target={pointer} />} />
+        <Header label="Primary" brand={BRAND} links={PRIMARY_LINKS} fold action={<ContinueLink target={pointer} />} />
       </header>
       <main id="main" tabIndex={-1} className="es-shell__main">
         <EvidenceNotice />
         {children}
       </main>
       <footer>
-        <Board label="Footer" links={FOOTER_LINKS} variant="kickplate" />
+        <Header label="Footer" links={FOOTER_LINKS} variant="kickplate" />
       </footer>
     </>
   )

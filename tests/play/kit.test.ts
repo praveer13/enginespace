@@ -71,15 +71,15 @@ describe('the mirror table', () => {
     expect(markup).toMatch(/<caption id="[^"]+"[^>]*>Every step so far<\/caption>/)
     expect(count(markup, /<th scope="col"/g)).toBe(3)
     expect(count(markup, /<th scope="row"/g)).toBe(3)
-    expect(markup).toMatch(/class="es-ticket[ "]/)
+    expect(markup).toMatch(/class="es-sheet[ "]/)
     expect(markup).toContain('Mirror')
   })
 
   test('prints the ticket\'s name on its foot line, under the table, and not as a row above it', () => {
     const markup = table({ head: 'Mirror · the night so far' })
-    expect(markup).not.toContain('es-ticket__head')
-    expect(markup.indexOf('es-ticket__foot')).toBeGreaterThan(markup.indexOf('</table>'))
-    expect(markup).toMatch(/class="es-ticket__foot"><span>Mirror · the night so far<\/span>/)
+    expect(markup).not.toContain('es-sheet__head')
+    expect(markup.indexOf('es-sheet__foot')).toBeGreaterThan(markup.indexOf('</table>'))
+    expect(markup).toMatch(/class="es-sheet__foot"><span>Mirror · the night so far<\/span>/)
   })
 
   test('keeps the table\'s roles on its elements, and gives every cell its column\'s name, for a row printed as a block', () => {

@@ -2,10 +2,10 @@ import { useRef, useState, type DragEvent, type ReactNode } from 'react'
 import { Button } from '@/design/components/Button'
 import { Icon, type IconName } from '@/design/components/Glyph'
 import { PrintingDots } from '@/design/components/PrintingDots'
-import { PrinterTape, type PrinterTapeLine } from '@/design/components/PrinterTape'
+import { ReadoutStrip, type ReadoutStripLine } from '@/design/components/ReadoutStrip'
 import { Readout } from '@/design/components/Readout'
-import { Stub } from '@/design/components/Stub'
-import { Ticket } from '@/design/components/Ticket'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
+import { Sheet } from '@/design/components/Sheet'
 import { Crate, CopyLine } from './Crate'
 import { CHECK_BUDGET_MS } from './protocol'
 import type { CheckResult, CheckStatus } from './invoke'
@@ -160,12 +160,12 @@ function CheckLine({ lab, index, row, lamp, same }: { lab: ForgeLab; index: numb
 }
 
 /** What the tape says of a run: which module, how many checks passed, which seeds were drawn, and what became of it in the ledger. */
-function tapeOf(lab: ForgeLab, state: ForgeState): PrinterTapeLine[] {
+function tapeOf(lab: ForgeLab, state: ForgeState): ReadoutStripLine[] {
   if (state.step !== 'running' && state.step !== 'done') return []
   const { module } = state
   const results = state.step === 'done' ? state.run.checks : state.results
   const passed = results.filter((result) => result.status === 'pass').length
-  const lines: PrinterTapeLine[] = [
+  const lines: ReadoutStripLine[] = [
     { id: 'lab', label: 'lab', value: module.list.lab, ...(module.reference ? { tone: 'ink-2' as const } : {}) },
     { id: 'module', label: 'module', value: `${module.sha256.slice(0, 12)}…` },
     {
@@ -246,19 +246,19 @@ export function ForgeView({ lab, state, kit = { status: 'loading' }, onChoose, o
   let slip: ReactNode
   if (state.step === 'idle') {
     slip = (
-      <Ticket as="section" width="wide" lamp head="Your module" meta={lab.wasm} stub={<Stub onClick={pick}>Choose a file</Stub>}>
+      <Sheet as="section" width="wide" lamp head="Your module" meta={lab.wasm} stub={<PrimaryButton onClick={pick}>Choose a file</PrimaryButton>}>
         <p>Drop the file on this sheet, or choose it. It is read in this tab and never sent anywhere.</p>
-      </Ticket>
+      </Sheet>
     )
   } else if (state.step === 'reading') {
     slip = (
-      <Ticket as="section" width="wide" head="Your module" meta={state.file.name} state="loading" loadingLabel="Reading the module">
+      <Sheet as="section" width="wide" head="Your module" meta={state.file.name} state="loading" loadingLabel="Reading the module">
         <FileLine file={state.file} />
-      </Ticket>
+      </Sheet>
     )
   } else if (state.step === 'refused') {
     slip = (
-      <Ticket
+      <Sheet
         as="section"
         width="wide"
         lamp
@@ -268,15 +268,15 @@ export function ForgeView({ lab, state, kit = { status: 'loading' }, onChoose, o
         titleAs="h3"
         state="error"
         error={state.message}
-        stub={<Stub onClick={pick}>Choose another file</Stub>}
+        stub={<PrimaryButton onClick={pick}>Choose another file</PrimaryButton>}
       >
         <FileLine file={state.file} />
         {state.sha256 === undefined ? null : <Hash sha256={state.sha256} />}
-      </Ticket>
+      </Sheet>
     )
   } else {
     slip = (
-      <Ticket
+      <Sheet
         as="section"
         width="wide"
         head="Your module"
@@ -286,14 +286,14 @@ export function ForgeView({ lab, state, kit = { status: 'loading' }, onChoose, o
         state={reference ? 'error' : 'default'}
         error={reference ? recorded : undefined}
         stub={
-          <Stub onClick={pick} disabled={busy}>
+          <PrimaryButton onClick={pick} disabled={busy}>
             Choose another file
-          </Stub>
+          </PrimaryButton>
         }
       >
         <FileLine file={state.file} />
         <Hash sha256={state.module.sha256} />
-      </Ticket>
+      </Sheet>
     )
   }
 
@@ -353,7 +353,7 @@ export function ForgeView({ lab, state, kit = { status: 'loading' }, onChoose, o
             </p>
             <div className="es-forge-checks-row">
               <aside className="es-forge-tape" aria-label="The run">
-                <PrinterTape
+                <ReadoutStrip
                   label="The run, printed"
                   lines={tapeOf(lab, state)}
                   state={state.step === 'reading' ? 'loading' : state.step === 'refused' ? 'error' : 'default'}
@@ -365,7 +365,7 @@ export function ForgeView({ lab, state, kit = { status: 'loading' }, onChoose, o
                   {reference ? '' : recorded}
                 </p>
               </aside>
-              <Ticket
+              <Sheet
                 as="section"
                 width="full"
                 hole={false}
@@ -381,9 +381,9 @@ export function ForgeView({ lab, state, kit = { status: 'loading' }, onChoose, o
                 ]}
                 stub={
                   state.step === 'done' ? (
-                    <Stub onClick={onRunAgain} disabled={night}>
+                    <PrimaryButton onClick={onRunAgain} disabled={night}>
                       Run on new seeds
-                    </Stub>
+                    </PrimaryButton>
                   ) : undefined
                 }
               >
@@ -408,7 +408,7 @@ export function ForgeView({ lab, state, kit = { status: 'loading' }, onChoose, o
                     <span className="es-forge-hint">A replay of seeds you have seen is never recorded.</span>
                   </div>
                 ) : null}
-              </Ticket>
+              </Sheet>
             </div>
           </Step>
         </ol>

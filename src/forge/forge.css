@@ -112,7 +112,7 @@
     column-gap: var(--es-space-12);
   }
 
-  .es-forge-checks-row > .es-ticket {
+  .es-forge-checks-row > .es-sheet {
     grid-column: 1;
     grid-row: 1;
   }

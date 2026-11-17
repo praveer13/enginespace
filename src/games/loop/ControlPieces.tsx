@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { requestName } from '@es/play/loop/copy'
 import { Bell } from '@/design/components/Bell'
 import { Button } from '@/design/components/Button'
-import { Ticket, TicketLine } from '@/design/components/Ticket'
+import { Sheet, SheetLine } from '@/design/components/Sheet'
 import type { LoopControls } from './useLoopControls'
 
 /*
@@ -47,7 +47,7 @@ export function LoopTickets({
         <ul ref={list} onKeyDown={onListKey} data-native-keys="arrows" className={listClassName}>
           {shown.map((id, index) => (
             <li key={id} className="min-w-0">
-              <Ticket
+              <Sheet
                 as="button"
                 compact
                 hole={false}
@@ -58,8 +58,8 @@ export function LoopTickets({
                 aria-label={`Admit request ${requestName(id)} into a batch slot`}
                 onClick={() => hang(id, index)}
               >
-                <TicketLine>admit</TicketLine>
-              </Ticket>
+                <SheetLine>admit</SheetLine>
+              </Sheet>
             </li>
           ))}
         </ul>

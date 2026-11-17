@@ -97,8 +97,8 @@ test.describe('the page before a file', () => {
     await expect(rows(page)).toHaveCount(5)
     expect(await statusOf(page)).toEqual(['not run', 'not run', 'not run', 'not run', 'not run'])
     await expect(page.locator('[data-lamp]')).toHaveCount(1)
-    await expect(page.locator('.es-ticket[data-lamp]')).toContainText('Your module')
-    await expect(page.locator('.es-printer')).toContainText('Nothing printed yet')
+    await expect(page.locator('.es-sheet[data-lamp]')).toContainText('Your module')
+    await expect(page.locator('.es-readout-strip')).toContainText('Nothing printed yet')
   })
 
   for (const width of [360, 1280]) {
@@ -137,13 +137,13 @@ test.describe('where things are', () => {
     // The first step is in the first screen, with its number beside it.
     expect(tops[0]).toBeLessThan(844)
     // Before a file the readout has nothing to say, and on a phone it is left out.
-    await expect(page.locator('.es-printer')).toBeHidden()
+    await expect(page.locator('.es-readout-strip')).toBeHidden()
 
     await drop(page, 'solved')
     await finished(page)
     const slip = await page.locator('.es-forge-slip').boundingBox()
     const tape = await page.locator('.es-forge-tape').boundingBox()
-    const sheet = await page.locator('.es-forge-checks-row > .es-ticket').boundingBox()
+    const sheet = await page.locator('.es-forge-checks-row > .es-sheet').boundingBox()
     expect(slip!.y).toBeLessThan(tape!.y)
     expect(tape!.y + tape!.height).toBeLessThanOrEqual(sheet!.y)
   })
@@ -154,7 +154,7 @@ test.describe('where things are', () => {
     await drop(page, 'fifo')
     await finished(page)
     const tape = await page.locator('.es-forge-tape').boundingBox()
-    const sheet = await page.locator('.es-forge-checks-row > .es-ticket').boundingBox()
+    const sheet = await page.locator('.es-forge-checks-row > .es-sheet').boundingBox()
     expect(tape!.x, 'beside the checks').toBeGreaterThanOrEqual(sheet!.x + sheet!.width)
     const rowTop = await page.locator('.es-forge-checks-row').evaluate((row) => row.getBoundingClientRect().top + window.scrollY)
     await page.evaluate((top) => window.scrollTo(0, top + 200), rowTop)
@@ -167,7 +167,7 @@ test.describe('where things are', () => {
     await page.setViewportSize({ width: 1440, height: 900 })
     await open(page, '/labs/toy')
     const zone = await page.locator('.es-forge-drop').boundingBox()
-    const paper = await page.locator('.es-forge-drop .es-ticket').boundingBox()
+    const paper = await page.locator('.es-forge-drop .es-sheet').boundingBox()
     expect(zone!.width).toBeCloseTo(paper!.width, 0)
   })
 })
@@ -181,8 +181,8 @@ test.describe('a solved module', () => {
 
     // The file, by its hash: on the slip, in full, and on the tape.
     await expect(page.locator('.es-forge-hash__digits')).toHaveText(sha256('solved'))
-    await expect(page.locator('.es-printer')).toContainText(`${sha256('solved').slice(0, 12)}…`)
-    await expect(page.locator('.es-printer')).toContainText('seed · churn')
+    await expect(page.locator('.es-readout-strip')).toContainText(`${sha256('solved').slice(0, 12)}…`)
+    await expect(page.locator('.es-readout-strip')).toContainText('seed · churn')
     await expect(page.locator('.es-forge-check').last()).toContainText('drawn when the run began')
 
     // Nothing is red, so the lamp is not on a check; the slip has lost it.
@@ -222,10 +222,10 @@ test.describe('a reference build', () => {
     await finished(page)
     expect(await statusOf(page)).toEqual(['pass', 'pass', 'pass', 'pass', 'pass'])
     await expect(page.getByText('toy@reference: no credit').first()).toBeVisible()
-    await expect(page.locator('.es-printer')).toContainText('toy@reference')
-    await expect(page.locator('.es-printer')).toContainText('no credit')
+    await expect(page.locator('.es-readout-strip')).toContainText('toy@reference')
+    await expect(page.locator('.es-readout-strip')).toContainText('no credit')
     // The slip is the voided ticket: the sentence is printed on it.
-    await expect(page.locator('.es-forge-drop .es-ticket__void')).toContainText('toy@reference: no credit')
+    await expect(page.locator('.es-forge-drop .es-sheet__void')).toContainText('toy@reference: no credit')
     await expect(page.getByRole('button', { name: 'Run on new seeds' })).toBeVisible()
     await quiet(page)
     expect((await ledger(page)).filter((event) => event.kind === 'lab-check')).toEqual([])
@@ -312,7 +312,7 @@ test.describe('a file that is not a lab module', () => {
   const refuse = async (page: Page, file: { name: string; mimeType: string; buffer: Buffer }, reason: RegExp) => {
     await page.locator('input[type="file"]').setInputFiles(file)
     await expect(page.getByRole('heading', { name: 'Not graded' })).toBeVisible({ timeout: 15_000 })
-    await expect(page.locator('.es-ticket__void')).toContainText(reason)
+    await expect(page.locator('.es-sheet__void')).toContainText(reason)
     await expect(page.getByRole('button', { name: 'Choose another file' })).toBeVisible()
     expect(await statusOf(page)).toEqual(['not run', 'not run', 'not run', 'not run', 'not run'])
     await quiet(page)

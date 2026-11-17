@@ -2,9 +2,9 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { ChallengeEvent } from '@es/ledger'
 import { Button } from '@/design/components/Button'
 import { Icon } from '@/design/components/Glyph'
-import { Stub } from '@/design/components/Stub'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { TextLink } from '@/design/components/TextLink'
-import { Ticket, TicketLine } from '@/design/components/Ticket'
+import { Sheet, SheetLine } from '@/design/components/Sheet'
 import { expiryOf, gradeCommand } from './challenge'
 import type { IssueOutcome } from './challenge'
 import { selectContents, useCopy } from './clipboard'
@@ -48,7 +48,7 @@ export function ChallengeTicket({ event, durable, memoryOnly }: { event: Challen
   const command = gradeCommand(stage, token)
   const seed = event.data.seed.toString(16).padStart(8, '0')
   return (
-    <Ticket
+    <Sheet
       as="section"
       width="wide"
       lamp
@@ -57,17 +57,17 @@ export function ChallengeTicket({ event, durable, memoryOnly }: { event: Challen
       titleAs="h3"
       foot={[`Challenge ${seed}`, `issued ${formatWhen(event.at)}`]}
       stub={
-        <Stub
+        <PrimaryButton
           onClick={() => {
             void copy(token, TICKET.copiedToken, () => selectContents(tokenRef.current))
           }}
         >
           {TICKET.copyToken}
-        </Stub>
+        </PrimaryButton>
       }
     >
-      <TicketLine qty="stage">{stage}</TicketLine>
-      <TicketLine qty="good until">{formatWhen(expiryOf(event.at))}</TicketLine>
+      <SheetLine qty="stage">{stage}</SheetLine>
+      <SheetLine qty="good until">{formatWhen(expiryOf(event.at))}</SheetLine>
       <div className="es-chit__block">
         <p className="es-chit__label">{TICKET.tokenLabel}</p>
         <p className="es-chit__token" data-token>
@@ -113,7 +113,7 @@ export function ChallengeTicket({ event, durable, memoryOnly }: { event: Challen
           <span>{TICKET.notSaved}</span>
         </p>
       ) : null}
-    </Ticket>
+    </Sheet>
   )
 }
 

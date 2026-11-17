@@ -8,8 +8,8 @@ import type { Confidence, Gen, Item, Level, Response } from '@es/play/items/type
 import { Button } from '@/design/components/Button'
 import { Field } from '@/design/components/Field'
 import { Icon } from '@/design/components/Glyph'
-import { Stub } from '@/design/components/Stub'
-import { TicketLine } from '@/design/components/Ticket'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
+import { SheetLine } from '@/design/components/Sheet'
 import { decimals } from '@/content/render/model'
 import { formatReadout } from '@/design/format'
 import { useEvidence } from '@/evidence/useEvidence'
@@ -109,7 +109,7 @@ export default function AttemptView({ gen, level, entropy, scope, onRestart }: A
 
   if (phase === 'done') {
     return (
-      <Frame scope={scope} family={gen.id} phase="done" stub={<Stub onClick={onRestart}>New numbers</Stub>}>
+      <Frame scope={scope} family={gen.id} phase="done" stub={<PrimaryButton onClick={onRestart}>New numbers</PrimaryButton>}>
         <Tally gen={gen} attempt={attempt} />
         {unsaved === null ? null : <Unsaved detail={unsaved} />}
       </Frame>
@@ -126,9 +126,9 @@ export default function AttemptView({ gen, level, entropy, scope, onRestart }: A
       foot={[`Seed ${seedLabel(item.seed)}`, attempt.provenance === 'unseen' ? 'new numbers' : 'practice numbers']}
       stub={
         phase === 'asking' ? (
-          <Stub onClick={check}>Check answer</Stub>
+          <PrimaryButton onClick={check}>Check answer</PrimaryButton>
         ) : (
-          <Stub onClick={advance}>{last ? 'See the result' : 'Next question'}</Stub>
+          <PrimaryButton onClick={advance}>{last ? 'See the result' : 'Next question'}</PrimaryButton>
         )
       }
       data={{ seed: String(item.seed), level: String(item.level), variant: item.variant, kind: item.answer.kind, rev: item.rev, ...(revealed ? { ok: String(answered.grade.ok) } : {}) }}
@@ -430,9 +430,9 @@ function Tally({ gen, attempt }: { gen: Gen; attempt: Attempt }) {
           const ok = attempt.answered[at]?.grade.ok === true
           return (
             <li key={served.seed}>
-              <TicketLine qty={`${at + 1}`} note={ok ? 'right' : 'missed'} tone={ok ? 'ink' : 'ink-2'}>
+              <SheetLine qty={`${at + 1}`} note={ok ? 'right' : 'missed'} tone={ok ? 'ink' : 'ink-2'}>
                 {titles.get(served.item.variant) ?? served.item.variant}
-              </TicketLine>
+              </SheetLine>
             </li>
           )
         })}

@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 import { useId, type ReactNode, type SelectHTMLAttributes, type Ref } from 'react'
 import { Icon } from '@/design/components/Glyph'
-import { TapeLabel } from '@/design/components/TapeLabel'
+import { Label } from '@/design/components/Label'
 
 /*
  * A choice from a list, written on a field's slip: masking tape over a slip of ticket paper, with the browser's own select in it. The
@@ -28,9 +28,9 @@ export function SlipSelect({ label, hint, error, describedBy: extra, id, classNa
   const describedBy = [hint ? hintId : null, error ? errorId : null, extra ?? null].filter(Boolean).join(' ') || undefined
   return (
     <div className={clsx('es-field es-slip', className)} data-state={disabled ? 'disabled' : error ? 'error' : 'default'}>
-      <TapeLabel as="label" htmlFor={selectId} tilt="left" className="es-field__label">
+      <Label as="label" htmlFor={selectId} tilt="left" className="es-field__label">
         {label}
-      </TapeLabel>
+      </Label>
       <span className="es-field__slip">
         <select id={selectId} ref={selectRef} className="es-field__input" disabled={disabled} aria-invalid={error ? true : undefined} aria-describedby={describedBy} {...select}>
           {children}

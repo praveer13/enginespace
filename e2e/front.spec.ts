@@ -163,7 +163,7 @@ const strips = (page: Page) =>
 const amberInView = (page: Page) =>
   page.evaluate(
     () =>
-      [...document.querySelectorAll('.es-stub__pull, [data-emphasis="primary"]')].filter((element) => {
+      [...document.querySelectorAll('.es-primary-button__pull, [data-emphasis="primary"]')].filter((element) => {
         const box = element.getBoundingClientRect()
         return box.width > 0 && box.height > 0 && box.bottom > 0 && box.top < window.innerHeight && box.right > 0 && box.left < window.innerWidth
       }).length,
@@ -379,7 +379,7 @@ test.describe('every button does what it says, and the way on is the brief\'s', 
     await expect(service(page)).not.toHaveAttribute('data-intro')
     await expect(page.locator('[data-callout]')).toHaveCount(0)
     await expect(step(page)).toHaveText('Step')
-    await expect(step(page)).toHaveClass(/es-stub__pull/)
+    await expect(step(page)).toHaveClass(/es-primary-button__pull/)
     expect(await amberInView(page), 'amber fills in the viewport').toBe(1)
     for (let n = 0; n < 3; n++) await chips(page).first().click()
     await step(page).click()
@@ -396,11 +396,11 @@ test.describe('every button does what it says, and the way on is the brief\'s', 
       await playLevel(page)
       const result = service(page).locator('[data-result]')
       const next = result.getByRole('button', { name: `Next demo level: ${title}` })
-      await expect(next).toHaveClass(/es-stub__pull/)
+      await expect(next).toHaveClass(/es-primary-button__pull/)
       const course = result.getByRole('link', { name: 'Start the course: TR1 lesson 1 (35 min, browser only)' })
       await expect(course).toHaveClass(/es-front-out/)
       await expect(course).toHaveAttribute('href', '/m/tr1/l1-five-mechanisms')
-      await expect(result.locator('.es-stub')).toHaveCount(1)
+      await expect(result.locator('.es-primary-button')).toHaveCount(1)
       await next.click()
       await expect(service(page)).toHaveAttribute('data-level', /first-[234]/)
     }
@@ -408,7 +408,7 @@ test.describe('every button does what it says, and the way on is the brief\'s', 
     const result = service(page).locator('[data-result]')
     await expect(result).toContainText('You just ran the step loop by hand.')
     const start = result.getByRole('link', { name: 'Start the course: TR1 lesson 1, Five mechanisms (35 min, browser only)' })
-    await expect(start).toHaveClass(/es-stub__pull/)
+    await expect(start).toHaveClass(/es-primary-button__pull/)
     await expect(start).toHaveAttribute('href', '/m/tr1/l1-five-mechanisms')
     await expect(result.getByRole('button', { name: /^Next demo level/ })).toHaveCount(0)
     // Every control that says Start or Continue goes where the empty ledger's way on goes.

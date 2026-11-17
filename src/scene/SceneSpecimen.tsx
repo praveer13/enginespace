@@ -1,9 +1,9 @@
 import { lazy, useCallback, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent } from 'react'
 import { Button } from '@/design/components/Button'
-import { PrinterTape } from '@/design/components/PrinterTape'
+import { ReadoutStrip } from '@/design/components/ReadoutStrip'
 import { Readout } from '@/design/components/Readout'
-import { TapeLabel } from '@/design/components/TapeLabel'
-import { Ticket } from '@/design/components/Ticket'
+import { Label } from '@/design/components/Label'
+import { Sheet } from '@/design/components/Sheet'
 import { Toggle } from '@/design/components/Toggle'
 import { nextPreset } from './camera-rig'
 import { CameraButtons } from './CameraButtons'
@@ -85,7 +85,7 @@ function KitTape({ store, tier }: { store: StatsStore; tier: Tier | null }) {
         ]
       : []),
   ]
-  return <PrinterTape label="The kit's tape: what this browser measures of the frame" lines={lines} empty="No 3D frame yet" className="es-kit__tape" />
+  return <ReadoutStrip label="The kit's tape: what this browser measures of the frame" lines={lines} empty="No 3D frame yet" className="es-kit__tape" />
 }
 
 const isTyping = (target: EventTarget | null) =>
@@ -171,9 +171,9 @@ export function SceneSpecimen() {
             onFallback={() => stats.set(null)}
           />
           <figcaption className="es-kit__caption">
-            <TapeLabel size="sm" tilt="none">
+            <Label size="sm" tilt="none">
               3D · the lanes
-            </TapeLabel>
+            </Label>
             <span>Drawn by the kit from the model&apos;s run; every tick is synthetic. The legend on the right holds a place&apos;s four forms: token, empty, ghost and padding.</span>
           </figcaption>
         </figure>
@@ -182,9 +182,9 @@ export function SceneSpecimen() {
             <SpecimenView2D layout={layout} selected={selection.selected} onPick={onPick} />
           </div>
           <figcaption className="es-kit__caption">
-            <TapeLabel size="sm" tilt="none">
+            <Label size="sm" tilt="none">
               2D twin
-            </TapeLabel>
+            </Label>
             <span>The same layout as a timeline: the first paint, and the view when 3D cannot run.</span>
           </figcaption>
         </figure>
@@ -221,7 +221,7 @@ export function SceneSpecimen() {
       </div>
 
       <div className="es-kit__readouts">
-        <PrinterTape label="The run so far" lines={printer} className="es-kit__tape" />
+        <ReadoutStrip label="The run so far" lines={printer} className="es-kit__tape" />
         <KitTape store={stats} tier={tier} />
         <section className="es-kit__fires" aria-labelledby="es-kit-fires">
           <h3 id="es-kit-fires" className="es-kit__fires-title">
@@ -232,7 +232,7 @@ export function SceneSpecimen() {
         </section>
       </div>
 
-      <Ticket head="THE KIT" meta="SRC/SCENE" title="What drew this" width="full" className="es-kit__parts">
+      <Sheet head="THE KIT" meta="SRC/SCENE" title="What drew this" width="full" className="es-kit__parts">
         <dl className="es-kit__part-list">
           {PARTS.map(([name, what]) => (
             <div key={name} className="es-kit__part">
@@ -241,7 +241,7 @@ export function SceneSpecimen() {
             </div>
           ))}
         </dl>
-      </Ticket>
+      </Sheet>
     </div>
   )
 }

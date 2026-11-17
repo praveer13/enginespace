@@ -2,11 +2,11 @@ import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import type { LocalDay } from '@es/ledger'
 import { Button } from '@/design/components/Button'
-import { ContinueLink } from '@/design/components/Board'
+import { ContinueLink } from '@/design/components/Header'
 import { Readout } from '@/design/components/Readout'
-import { Stub } from '@/design/components/Stub'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { TextLink } from '@/design/components/TextLink'
-import { Ticket } from '@/design/components/Ticket'
+import { Sheet } from '@/design/components/Sheet'
 import type { Pointer } from '@/settings/store'
 import {
   AHEAD_NOTE,
@@ -33,13 +33,13 @@ import type { IdeaRow } from './PrepList'
 /*
  * The sheets of the page that are not the set being asked and not the list that waits: the one that waits while the ledger is read, the
  * one that says nothing is passed yet, the one that says nothing is due, and the one that closes a review. Each is a sheet of the same
- * paper (src/design/components/Ticket.tsx), none says how much is overdue, and each offers the way on: the amber Continue, from
+ * paper (src/design/components/Sheet.tsx), none says how much is overdue, and each offers the way on: the amber Continue, from
  * `nextStep` (REDESIGN 2.4), the only amber control on its screen. A review that has more to do offers it as a quiet button beside.
  */
 
 /** A sheet still reading: while the ledger is read, or, with `label`, while the code of the family that serves the next question loads. */
 export function LoadingTicket({ label = LOAD_LABEL }: { label?: string }) {
-  return <Ticket as="section" className="es-prep__ticket" width="full" state="loading" loadingLabel={label} />
+  return <Sheet as="section" className="es-prep__ticket" width="full" state="loading" loadingLabel={label} />
 }
 
 /** The way on: Continue, or Start, from the pointer. Absent when the way on is this page (every lesson is done and something is due). */
@@ -59,32 +59,32 @@ function Links({ children }: { children: ReactNode }) {
 /** Nothing is passed yet, or what is passed has no review questions yet. The way on is Continue (REDESIGN 2.4). */
 export function EmptyTicket({ unserved, way }: { unserved: boolean; way: Pointer | null }) {
   return (
-    <Ticket as="section" className="es-prep__ticket" data-state="empty" width="full" title={unserved ? EMPTY_UNSERVED_TITLE : EMPTY_TITLE} titleAs="h2">
+    <Sheet as="section" className="es-prep__ticket" data-state="empty" width="full" title={unserved ? EMPTY_UNSERVED_TITLE : EMPTY_TITLE} titleAs="h2">
       <p>{unserved ? EMPTY_UNSERVED_BODY : EMPTY_BODY}</p>
       <Way way={way} />
       <Links>
         <TextLink to="/map">{LINK_MAP}</TextLink>
       </Links>
-    </Ticket>
+    </Sheet>
   )
 }
 
 /** Nothing is due that can be served: when the next review is, the way on, and a review ahead where there is something to look at. */
 export function RestTicket({ next, ahead, onAhead, way }: { next: LocalDay | null; ahead: boolean; onAhead: () => void; way: Pointer | null }) {
   return (
-    <Ticket as="section" className="es-prep__ticket" data-state="rest" width="full" title={REST_TITLE} titleAs="h2">
+    <Sheet as="section" className="es-prep__ticket" data-state="rest" width="full" title={REST_TITLE} titleAs="h2">
       {next === null ? null : <p className="es-prep__next">{nextPrep(next)}</p>}
       <Way way={way} />
       {ahead ? (
         <div className="es-prep__more">
           <p>{REST_AHEAD}</p>
-          {way === null ? <Stub onClick={onAhead}>{START_AHEAD}</Stub> : <Button onClick={onAhead}>{START_AHEAD}</Button>}
+          {way === null ? <PrimaryButton onClick={onAhead}>{START_AHEAD}</PrimaryButton> : <Button onClick={onAhead}>{START_AHEAD}</Button>}
         </div>
       ) : null}
       <Links>
         <TextLink to="/map">{LINK_MAP}</TextLink> <TextLink to="/evidence">{LINK_EVIDENCE}</TextLink>
       </Links>
-    </Ticket>
+    </Sheet>
   )
 }
 
@@ -110,13 +110,13 @@ export function DoneTicket({ rows, right, total, next, more, ahead, way }: DoneT
     heading.current?.focus()
   }, [])
   return (
-    <Ticket as="section" className="es-prep__ticket" data-state="done" width="full">
+    <Sheet as="section" className="es-prep__ticket" data-state="done" width="full">
       <h2 className="es-item__verdict es-prep__verdict" tabIndex={-1} ref={heading}>
         <span>{tallyLine(right, total)}</span>
       </h2>
       {next === null ? null : <p className="es-prep__next">{nextReview(next)}</p>}
       {ahead ? <p>{AHEAD_NOTE}</p> : null}
-      {way === null && more !== null ? <Stub onClick={more.run}>{more.label}</Stub> : <Way way={way} />}
+      {way === null && more !== null ? <PrimaryButton onClick={more.run}>{more.label}</PrimaryButton> : <Way way={way} />}
       {way !== null && more !== null ? (
         <div className="es-prep__more">
           <Button onClick={more.run}>{more.label}</Button>
@@ -126,7 +126,7 @@ export function DoneTicket({ rows, right, total, next, more, ahead, way }: DoneT
       <Links>
         <TextLink to="/map">{LINK_MAP}</TextLink> <TextLink to="/evidence">{LINK_EVIDENCE}</TextLink>
       </Links>
-    </Ticket>
+    </Sheet>
   )
 }
 

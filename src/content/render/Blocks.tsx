@@ -4,8 +4,8 @@ import { publicUrl, useClaims } from '../load'
 import { useCard } from '../load-lessons'
 import { ItemBlock } from '@/items/ItemBlock'
 import { Icon } from '@/design/components/Glyph'
-import { Stub } from '@/design/components/Stub'
-import { TapeLabel } from '@/design/components/TapeLabel'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
+import { Label } from '@/design/components/Label'
 import { ClaimChip } from './ClaimChip'
 import './content.css'
 import { Frame, PendingLine, Tapes, type Of } from './BlockFrame'
@@ -103,7 +103,7 @@ function TraceTicket({ block, scope }: { block: Of<'trace'>; scope: string }) {
   // A seed draws a synthetic trace, and the site labels every synthetic trace as one (PRODUCT.md, "Evidence on Hand").
   const origin = block.seed === undefined ? ['pinned'] : ['synthetic', `seed · ${block.seed}`]
   return (
-    <Frame block="trace" scope={scope} meta={block.id} title="Trace" pending={pending.task} stub={<Stub disabled>Open trace</Stub>}>
+    <Frame block="trace" scope={scope} meta={block.id} title="Trace" pending={pending.task} stub={<PrimaryButton disabled>Open trace</PrimaryButton>}>
       <Tapes label="About this trace" items={[...origin, ...block.tasks.map((task) => `task · ${task}`)]} />
       <PendingLine {...pending} />
     </Frame>
@@ -118,7 +118,7 @@ function LabTicket({ block, scope }: { block: Of<'lab'>; scope: string }) {
   // A lab with a page of its own prints no placeholder; one that W2 or W3 builds names the open task that does.
   const pending = pendingLab(block.id)
   return (
-    <Frame block="lab" scope={scope} meta={block.id} title="Build" pending={pending?.task} stub={<Stub to={`/labs/${block.id}`}>Open lab</Stub>}>
+    <Frame block="lab" scope={scope} meta={block.id} title="Build" pending={pending?.task} stub={<PrimaryButton to={`/labs/${block.id}`}>Open lab</PrimaryButton>}>
       <Tapes label="About this lab" items={[`lane · ${block.lane} ${laneName(block.lane)}`, ...block.stages.map((stage) => `stage · ${stage}`)]} />
       {pending === null ? null : <PendingLine {...pending} />}
     </Frame>
@@ -154,9 +154,9 @@ function CardTicket({ block, env, scope }: { block: Of<'card'>; env: RenderEnv; 
         <Frame block="card" kind="isomorphism" scope={scope} title={block.title ?? CARD_TITLES.isomorphism}>
           <p>{block.body}</p>
           <p className="es-c-breaks">
-            <TapeLabel size="sm" tilt="none">
+            <Label size="sm" tilt="none">
               where it breaks
-            </TapeLabel>
+            </Label>
             <span>{block.breaks}</span>
           </p>
         </Frame>
@@ -216,9 +216,9 @@ export function NotionalMachineView({ card, env: given, scope }: { card: Compile
       {CARD_PARTS.map(([part, field]) => (
         <Fragment key={part}>
           <h3 className="es-c-part" data-part={field}>
-            <TapeLabel size="sm" tilt="none">
+            <Label size="sm" tilt="none">
               {part}
-            </TapeLabel>
+            </Label>
           </h3>
           <Prose body={card[field]} env={env} />
         </Fragment>

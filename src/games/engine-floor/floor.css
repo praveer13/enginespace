@@ -549,7 +549,7 @@
   gap: var(--es-space-2);
 }
 
-.es-floor-predict__commit .es-stub__label {
+.es-floor-predict__commit .es-primary-button__label {
   white-space: normal;
 }
 
@@ -827,7 +827,7 @@
 }
 
 /* The primary button measures its own width (a size container), so in a row it is given its share. */
-.es-floor-actions__row .es-stub {
+.es-floor-actions__row .es-primary-button {
   flex: 1 1 11rem;
 }
 

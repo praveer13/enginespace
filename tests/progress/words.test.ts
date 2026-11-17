@@ -106,7 +106,7 @@ describe('the rendered strings', () => {
    * specimens, and its own states, with made-up links.
    */
   const WAY = /^(Continue(:|$)|Start(:| with\b| TR\d| the course\b))/
-  const MAKERS = new Set(['src/progress/next.ts', 'src/settings/store.ts', 'src/pages/Design.tsx', 'src/design/components/NextStep.tsx', 'src/design/components/Board.tsx'])
+  const MAKERS = new Set(['src/progress/next.ts', 'src/settings/store.ts', 'src/pages/Design.tsx', 'src/design/components/NextStep.tsx', 'src/design/components/Header.tsx'])
 
   test('Continue and Start, as the way on, are said only where nextStep is answered or shown', () => {
     const hits = SAID.filter((one) => WAY.test(one.text) && !MAKERS.has(one.file)).map((one) => `${one.file}:${one.line} ${one.text}`)

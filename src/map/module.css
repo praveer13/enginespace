@@ -66,7 +66,7 @@
 /* ---------------------------------------------------------------------------------------------- a module page: the loop */
 
 /* These tickets are blocks of the page (content.css bullets their lists, and the selectors here are as specific as its own). */
-.es-c-block .es-ticket__body .es-steps {
+.es-c-block .es-sheet__body .es-steps {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   row-gap: var(--es-space-4);
@@ -75,7 +75,7 @@
   list-style: none;
 }
 
-.es-c-block .es-ticket__body .es-steps > li {
+.es-c-block .es-sheet__body .es-steps > li {
   margin: 0;
 }
 
@@ -166,7 +166,7 @@
 
 /* ---------------------------------------------------------------------------------------------- a module page: the knowledge components */
 
-.es-c-block .es-ticket__body .es-kcs {
+.es-c-block .es-sheet__body .es-kcs {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   row-gap: var(--es-space-3);
@@ -182,7 +182,7 @@
   line-height: 1.5;
 }
 
-.es-c-block .es-ticket__body .es-kcs > li {
+.es-c-block .es-sheet__body .es-kcs > li {
   margin: 0;
 }
 

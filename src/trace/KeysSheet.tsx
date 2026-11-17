@@ -2,7 +2,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { Fragment, useRef } from 'react'
 import type { KeyBinding } from '@es/play'
 import { Button } from '@/design/components/Button'
-import { Ticket } from '@/design/components/Ticket'
+import { Sheet } from '@/design/components/Sheet'
 import { KEY_GROUPS } from './keys'
 
 /*
@@ -37,7 +37,7 @@ export function KeysSheet({ keys, open, onOpenChange }: KeysSheetProps) {
             back.focus({ preventScroll: true })
           }}
         >
-          <Ticket
+          <Sheet
             as="div"
             width="full"
             hole={false}
@@ -91,7 +91,7 @@ export function KeysSheet({ keys, open, onOpenChange }: KeysSheetProps) {
                 <Button variant="ink">Close</Button>
               </Dialog.Close>
             </div>
-          </Ticket>
+          </Sheet>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

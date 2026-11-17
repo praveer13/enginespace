@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 import { useId, type InputHTMLAttributes, type ReactNode } from 'react'
 import { Icon } from './Glyph'
-import { TapeLabel } from './TapeLabel'
+import { Label } from './Label'
 import { PrintingDots } from './PrintingDots'
 
 /*
@@ -32,9 +32,9 @@ export function Field({ label, hint, error, loading = false, numeric = false, id
   const state = disabled ? 'disabled' : loading ? 'loading' : error ? 'error' : 'default'
   return (
     <div className={clsx('es-field', className)} data-state={state} data-numeric={numeric || undefined}>
-      <TapeLabel as="label" htmlFor={inputId} tilt="left" className="es-field__label">
+      <Label as="label" htmlFor={inputId} tilt="left" className="es-field__label">
         {label}
-      </TapeLabel>
+      </Label>
       <span className="es-field__slip" data-force={force}>
         <input
           id={inputId}

@@ -101,7 +101,7 @@ test.describe('a solved module', () => {
     // Five checks inside 2 s each; the whole run is a few seconds on a quiet machine, and the bound is a backstop for a loaded one [estimated].
     expect(spent, 'the run, from the drop to the last check').toBeLessThan(30_000)
     await expect(page.locator('.es-forge-hash__digits')).toHaveText(sha256('solved'))
-    await expect(page.locator('.es-printer')).toContainText('seed · exact')
+    await expect(page.locator('.es-readout-strip')).toContainText('seed · exact')
     await expect(page.locator('.es-forge-check[data-lamp]')).toHaveCount(0)
     await wrote(page)
     await expect(page.locator('.es-forge-recorded')).toContainText('Written to your ledger on this device')
@@ -193,7 +193,7 @@ test.describe('limits', () => {
     await open(page, '/labs/rejection-sampler')
     await page.locator('input[type="file"]').setInputFiles(fixture('solved', 'toy'))
     await expect(page.getByRole('heading', { name: 'Not graded' })).toBeVisible({ timeout: 15_000 })
-    await expect(page.locator('.es-ticket__void')).toContainText(/is the "toy" lab's, and this page grades "rejection-sampler"/)
+    await expect(page.locator('.es-sheet__void')).toContainText(/is the "toy" lab's, and this page grades "rejection-sampler"/)
     expect(await statusOf(page)).toEqual(['not run', 'not run', 'not run', 'not run', 'not run'])
   })
 })

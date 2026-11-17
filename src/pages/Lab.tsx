@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router'
 import { useDocumentTitle } from '@/content/load'
 import { labName, laneName, titled } from '@/content/render/model'
 import { TextLink } from '@/design/components/TextLink'
-import { Ticket } from '@/design/components/Ticket'
+import { Sheet } from '@/design/components/Sheet'
 import { isForgeLab } from '@/forge/ids'
 import { printedId } from '@/map/summary'
 import { labById } from '@/receipts/labs'
@@ -53,7 +53,7 @@ export function Component() {
   useDocumentTitle(titled(forge || stub !== undefined ? labName(labId) : 'Lab not found'))
   if (forge) {
     return (
-      <Suspense fallback={<Ticket as="section" width="wide" head="The forge" state="loading" loadingLabel="Printing the lab" />}>
+      <Suspense fallback={<Sheet as="section" width="wide" head="The forge" state="loading" loadingLabel="Printing the lab" />}>
         <ForgeLabPage labId={labId} />
       </Suspense>
     )

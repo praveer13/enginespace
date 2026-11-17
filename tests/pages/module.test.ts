@@ -54,7 +54,7 @@ describe('the order of the page', () => {
 
   test('no citation row and no metadata receipt sits above the lessons', () => {
     const above = html.slice(0, html.indexOf('id="lessons"'))
-    for (const word of ['printer', 'es-ticket', 'es-doc__tapes', 'data-tag="measured"', 'skills passed', 'claim']) expect(above, word).not.toContain(word)
+    for (const word of ['printer', 'es-sheet', 'es-doc__tapes', 'data-tag="measured"', 'skills passed', 'claim']) expect(above, word).not.toContain(word)
     expect(textOf(above)).not.toMatch(/\bstatus\b|\bpins\b|\bkept\b/)
   })
 
@@ -77,7 +77,7 @@ describe('the order of the page', () => {
 describe('the amber button', () => {
   test('is Start from nothing, as the way on words it, and never Continue from an empty ledger', () => {
     const tr1 = way(page('tr1', []))
-    expect(tr1).toContain('es-board__next')
+    expect(tr1).toContain('es-header__next')
     expect(tr1).toContain('data-emphasis="primary"')
     expect(textOf(tr1)).not.toContain('Continue')
   })
@@ -107,7 +107,7 @@ describe('the amber button', () => {
   test('waits for the ledger and says so, and offers no place it has not read', () => {
     const html = page('tr2', null)
     expect(way(html)).toContain('role="status"')
-    expect(way(html)).not.toContain('es-board__next')
+    expect(way(html)).not.toContain('es-header__next')
   })
 })
 

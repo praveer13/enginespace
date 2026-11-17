@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Button } from '@/design/components/Button'
-import { PrinterTape } from '@/design/components/PrinterTape'
+import { ReadoutStrip } from '@/design/components/ReadoutStrip'
 import { Readout } from '@/design/components/Readout'
 import { Toggle } from '@/design/components/Toggle'
 import { saveFile } from './export'
@@ -18,7 +18,7 @@ type State = { kind: 'idle' } | { kind: 'busy' } | { kind: 'saved'; saved: Saved
 /** The tape that says what an export saved. Exported for the tests, which cannot press the button. */
 export function SavedTape({ saved }: { saved: Saved }) {
   return (
-    <PrinterTape
+    <ReadoutStrip
       label="The export, printed"
       lines={[
         { id: 'file', label: 'file', value: saved.filename },

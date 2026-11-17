@@ -5,11 +5,10 @@ import { Glyph } from './Glyph'
 
 /*
  * A plain label (REDESIGN 2.8): the name of a part, a state word or a lane, in the reading face at 700, sentence case. It
- * never moves and never lights. `tilt` is accepted and draws nothing. The name stays TapeLabel until R-T46's rename; the
- * provenance stamp is Stamp.
+ * never moves and never lights. `tilt` is accepted and draws nothing. The provenance stamp is Stamp.
  */
 
-export interface TapeLabelProps {
+export interface LabelProps {
   children: ReactNode
   /** `label` makes the strip a form control's label. */
   as?: 'span' | 'label' | 'p' | 'li'
@@ -25,19 +24,19 @@ export interface TapeLabelProps {
   className?: string
 }
 
-export function TapeLabel({ children, as: Element = 'span', htmlFor, id, tilt = 'left', slot, glyph, size = 'md', className }: TapeLabelProps) {
+export function Label({ children, as: Element = 'span', htmlFor, id, tilt = 'left', slot, glyph, size = 'md', className }: LabelProps) {
   const shape = glyph ?? (slot ? SLOT_MARKS[slot].glyph : undefined)
   return (
-    <Element className={clsx('es-tape', className)} data-tilt={tilt} data-size={size} htmlFor={Element === 'label' ? htmlFor : undefined} id={id}>
+    <Element className={clsx('es-plain-label', className)} data-tilt={tilt} data-size={size} htmlFor={Element === 'label' ? htmlFor : undefined} id={id}>
       {shape ? (
         <Glyph
           shape={shape}
-          className="es-tape__glyph"
+          className="es-plain-label__glyph"
           style={slot ? { color: `var(--es-cat-${slot})` } : undefined}
           edge={slot ? `var(--es-cat-${slot}-edge)` : 'none'}
         />
       ) : null}
-      <span className="es-tape__text">{children}</span>
+      <span className="es-plain-label__text">{children}</span>
     </Element>
   )
 }

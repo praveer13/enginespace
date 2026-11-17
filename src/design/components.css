@@ -1,10 +1,9 @@
 /*
  * Data Book's components (REDESIGN 2.8): flat paper on a flat ground, ink for text, rules and focus, and one amber mark that means
- * now. Every colour, face, duration and radius is a token role (tokens.css). The class names are the old components' own, so no page
- * changes to take the new drawing; R-T46 renames them. `[data-force]` shows a pointer state without a pointer, for /design.
+ * now. Every colour, face, duration and radius is a token role (tokens.css). `[data-force]` shows a pointer state without a pointer, for /design.
  *
- * Amber (the marker) has three carriers and no others (the One Marker Rule): the control to act on now (`.es-stub__pull`, the primary
- * `.es-board__next`), the "now" mark on a diagram (a pan or a station under `[data-lamp]`, a drawing's picked tag), and the current
+ * Amber (the marker) has three carriers and no others (the One Marker Rule): the control to act on now (`.es-primary-button__pull`, the primary
+ * `.es-header__next`), the "now" mark on a diagram (a pan or a station under `[data-lamp]`, a drawing's picked tag), and the current
  * position in a rail (parts.css). Focus is ink (base.css).
  */
 
@@ -103,7 +102,7 @@
   /* ---------------------------------------------------------------------------------------------- label */
 
   /* A plain label: the name of a part, a state word, a lane's name. The reading face at 700, sentence case, still and unlit. */
-  .es-tape {
+  .es-plain-label {
     display: inline-flex;
     align-items: center;
     gap: 0.4em;
@@ -116,131 +115,25 @@
     font-weight: var(--es-font-label-weight);
   }
 
-  .es-tape[data-size='sm'] {
+  .es-plain-label[data-size='sm'] {
     font-size: var(--es-size-caption);
   }
 
-  .es-tape__glyph {
+  .es-plain-label__glyph {
     flex: none;
     width: 0.95em;
     height: 0.95em;
   }
 
-  .es-tape__text {
+  .es-plain-label__text {
     min-width: 0;
     overflow-wrap: anywhere;
   }
 
-  /*
-   * Words on a drawing: a 2D view's words and numbers, laid over its SVG as the frame lies in its box (filling a box of the frame's
-   * own shape, covering the box and cut at its sides, or fitted inside it), each piece placed on its object's point
-   * (src/games/loop/FrameLabels.tsx). They scale with the drawing's box, a size container, between the ramp's smallest step and its
-   * caption step, and words that need room show only in a box at least 520 px wide.
-   */
-  .es-frame-labels {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-  }
-
-  .es-frame-labels:not([data-fit='fill']) {
-    inset: auto;
-    top: 50%;
-    left: 50%;
-    width: max(100cqw, 100cqh * var(--es-frame-ratio, 1));
-    aspect-ratio: var(--es-frame-ratio, 1);
-    translate: -50% -50%;
-  }
-
-  .es-frame-labels[data-fit='contain'] {
-    width: min(100cqw, 100cqh * var(--es-frame-ratio, 1));
-  }
-
-  .es-frame-labels__tape {
-    position: absolute;
-    width: max-content;
-    translate: -50% -50%;
-  }
-
-  .es-frame-labels__tape[data-place='left'] {
-    translate: -100% -50%;
-  }
-
-  .es-frame-labels__tape[data-place='right'] {
-    translate: 0 -50%;
-  }
-
-  /* A label on a drawing sits on a slip of paper, so the drawing's lines never cross its words. */
-  .es-frame-labels__tape > .es-tape {
-    padding: 0.15em 0.4em;
-    background-color: var(--es-paper);
-    box-shadow: 0 0 0 1px var(--es-paper-rule);
-  }
-
-  .es-frame-labels__tape > .es-tape[data-size],
-  .es-frame-labels__tag {
-    font-size: clamp(var(--es-size-micro), 1.5cqi, var(--es-size-caption));
-  }
-
-  /* A number on a drawing, on paper of its own that keeps it whole on a shape drawn narrower than the number. */
-  .es-frame-labels__tag {
-    position: absolute;
-    translate: -50% -50%;
-    background-color: var(--es-paper);
-    color: var(--es-paper-ink);
-    font-family: var(--es-font-numeric);
-    font-weight: var(--es-font-numeric-weight);
-    font-variant-numeric: tabular-nums;
-    line-height: 1;
-    white-space: nowrap;
-  }
-
-  /* An empty slot: a dashed hollow box with its word in the second ink. */
-  .es-frame-labels__tag[data-kind='empty'] {
-    translate: -50% 0;
-    padding: 0.2em 0.25em 0.15em;
-    border: 1px dashed var(--es-edge);
-    color: var(--es-paper-ink-2);
-    font-family: var(--es-font-label);
-    font-weight: var(--es-font-label-weight);
-  }
-
-  .es-frame-labels__tag[data-kind='waiting'] {
-    background: none;
-  }
-
-  /* A count of what is still held: paper-white on a chip of the dark surface. */
-  .es-frame-labels__tag[data-kind='more'] {
-    padding: 0.2em 0.35em;
-    border-radius: var(--es-radius-trim);
-    background-color: var(--es-surface-3);
-    color: var(--es-paper);
-  }
-
-  .es-frame-labels__tag[data-kind='mold'] {
-    background: none;
-    color: var(--es-text-1);
-  }
-
-  /* The size picked now: the marker, with its edge (the "now" mark on a drawing). */
-  .es-frame-labels__tag[data-kind='pick'] {
-    padding: 0.15em 0.4em 0.1em;
-    border: 1px solid var(--es-lamp-ring);
-    border-radius: var(--es-radius-round);
-    background-color: var(--es-lamp);
-    color: var(--es-text-1);
-  }
-
-  @container (width < 520px) {
-    .es-frame-labels__tag[data-room] {
-      display: none;
-    }
-  }
-
-  /* ---------------------------------------------------------------------------------------------- sheet (Ticket) */
+  /* ---------------------------------------------------------------------------------------------- sheet */
 
   /* A sheet: a plain paper panel, cut square, with the soft sheet shadow and a title. No hole, no torn edge. */
-  .es-ticket {
+  .es-sheet {
     position: relative;
     display: block;
     width: 100%;
@@ -254,22 +147,22 @@
     text-align: left;
   }
 
-  .es-ticket[data-width='wide'] {
+  .es-sheet[data-width='wide'] {
     max-width: 36rem;
   }
 
-  .es-ticket[data-width='full'] {
+  .es-sheet[data-width='full'] {
     max-width: none;
   }
 
-  .es-ticket__sheet {
+  .es-sheet__sheet {
     display: block;
     border-radius: var(--es-radius-paper);
     box-shadow: var(--es-shadow-paper);
     transition: box-shadow var(--es-dur-quick) var(--es-ease-settle);
   }
 
-  .es-ticket__paper {
+  .es-sheet__paper {
     position: relative;
     display: block;
     padding: var(--es-space-6) var(--es-space-6) var(--es-space-4);
@@ -279,11 +172,11 @@
   }
 
   /* The sheet the next decision acts on: an ink rule across its top. Amber is kept for the control itself. */
-  .es-ticket[data-lamp] .es-ticket__paper {
+  .es-sheet[data-lamp] .es-sheet__paper {
     box-shadow: inset 0 3px 0 var(--es-text-1);
   }
 
-  .es-ticket__head {
+  .es-sheet__head {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
@@ -298,7 +191,7 @@
     font-weight: 700;
   }
 
-  .es-ticket__title {
+  .es-sheet__title {
     display: block;
     margin: 0 0 var(--es-space-3);
     font-family: var(--es-font-body);
@@ -308,7 +201,7 @@
     text-wrap: balance;
   }
 
-  .es-ticket__body {
+  .es-sheet__body {
     display: block;
     font-family: var(--es-font-body);
     font-size: var(--es-font-body-size);
@@ -316,7 +209,7 @@
   }
 
   /* The foot: a quiet line under the body. */
-  .es-ticket__foot {
+  .es-sheet__foot {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
@@ -330,17 +223,17 @@
     line-height: 1.35;
   }
 
-  .es-ticket__body > * + * {
+  .es-sheet__body > * + * {
     margin-top: var(--es-space-3);
   }
 
-  .es-ticket__stub {
+  .es-sheet__stub {
     display: block;
     margin-top: var(--es-space-4);
   }
 
   /* A numbered line: a quantity, the item and a note, in the mono face so the numbers line up. */
-  .es-ticket-line {
+  .es-sheet-line {
     display: flex;
     align-items: baseline;
     gap: 1ch;
@@ -352,41 +245,41 @@
     font-variant-numeric: tabular-nums;
   }
 
-  .es-ticket-line[data-tone='ink-2'] {
+  .es-sheet-line[data-tone='ink-2'] {
     color: var(--es-paper-ink-2);
   }
 
-  .es-ticket-line__qty {
+  .es-sheet-line__qty {
     flex: none;
     min-width: 3ch;
   }
 
-  .es-ticket-line__note {
+  .es-sheet-line__note {
     margin-left: auto;
     text-align: right;
   }
 
-  .es-ticket[data-size='compact'] .es-ticket__paper {
+  .es-sheet[data-size='compact'] .es-sheet__paper {
     padding: var(--es-space-3) clamp(0.4rem, 2vw, 0.75rem) var(--es-space-3);
   }
 
-  .es-ticket[data-size='compact'] .es-ticket-line,
-  .es-ticket[data-size='compact'] .es-ticket__head {
+  .es-sheet[data-size='compact'] .es-sheet-line,
+  .es-sheet[data-size='compact'] .es-sheet__head {
     flex-wrap: wrap;
     column-gap: 0.6ch;
     font-size: clamp(var(--es-size-micro), 0.55rem + 0.6vw, var(--es-size-caption));
   }
 
-  .es-ticket[data-size='compact'] .es-ticket__head {
+  .es-sheet[data-size='compact'] .es-sheet__head {
     margin-bottom: var(--es-space-2);
   }
 
   /* States. Loading holds its words in the quiet text role, which keeps 4.5:1 on paper (opacity would blend it down to 2:1). */
-  .es-ticket[data-state='loading'] .es-ticket__body {
+  .es-sheet[data-state='loading'] .es-sheet__body {
     color: var(--es-text-3);
   }
 
-  .es-ticket__printing {
+  .es-sheet__printing {
     display: flex;
     align-items: center;
     gap: var(--es-space-2);
@@ -395,7 +288,7 @@
     color: var(--es-text-2);
   }
 
-  .es-ticket__void {
+  .es-sheet__void {
     display: flex;
     align-items: flex-start;
     gap: var(--es-space-2);
@@ -408,14 +301,14 @@
     font-weight: 700;
   }
 
-  .es-ticket__void-mark {
+  .es-sheet__void-mark {
     flex: none;
     width: 1.1em;
     height: 1.1em;
     margin-top: 0.1em;
   }
 
-  .es-ticket__blank {
+  .es-sheet__blank {
     display: block;
     padding: var(--es-space-8) var(--es-space-4);
     border: 1px dashed var(--es-paper-rule);
@@ -424,53 +317,53 @@
     font-size: var(--es-size-print);
   }
 
-  .es-ticket[data-state='disabled'] .es-ticket__paper {
+  .es-sheet[data-state='disabled'] .es-sheet__paper {
     color: var(--es-text-3);
   }
 
-  .es-ticket[data-state='disabled'] .es-ticket__sheet {
+  .es-sheet[data-state='disabled'] .es-sheet__sheet {
     box-shadow: none;
     outline: 1px dashed var(--es-edge);
   }
 
   /* A sheet you choose: it lifts under the hand and settles back on press. It never jumps under reduced motion. */
-  .es-ticket[data-interactive] {
+  .es-sheet[data-interactive] {
     cursor: pointer;
     touch-action: manipulation;
   }
 
-  .es-ticket[data-interactive]:focus-visible {
+  .es-sheet[data-interactive]:focus-visible {
     outline: none;
     box-shadow: none;
   }
 
-  .es-ticket[data-interactive]:is(:hover, [data-force='hover']):not(:disabled) .es-ticket__sheet {
+  .es-sheet[data-interactive]:is(:hover, [data-force='hover']):not(:disabled) .es-sheet__sheet {
     box-shadow: var(--es-shadow-lift);
   }
 
-  .es-ticket[data-interactive]:is(:active, [data-force='active']):not(:disabled) .es-ticket__paper {
+  .es-sheet[data-interactive]:is(:active, [data-force='active']):not(:disabled) .es-sheet__paper {
     background-color: var(--es-surface-2);
   }
 
-  .es-ticket[data-interactive]:is(:focus-visible, [data-force='focus']) .es-ticket__sheet {
+  .es-sheet[data-interactive]:is(:focus-visible, [data-force='focus']) .es-sheet__sheet {
     outline: 3px solid var(--es-focus);
     outline-offset: 2px;
   }
 
-  .es-ticket[data-interactive]:disabled {
+  .es-sheet[data-interactive]:disabled {
     cursor: not-allowed;
   }
 
-  /* ---------------------------------------------------------------------------------------------- primary button (Stub) */
+  /* ---------------------------------------------------------------------------------------------- primary button */
 
   /* The primary button: amber with its 2 px edge and an ink label, 44 px or taller. It is the control to act on now. */
-  .es-stub {
+  .es-primary-button {
     position: relative;
     display: block;
     container-type: inline-size;
   }
 
-  .es-stub__pull {
+  .es-primary-button__pull {
     display: inline-flex;
     align-items: center;
     justify-content: space-between;
@@ -493,53 +386,53 @@
     transition: background-color var(--es-dur-quick) var(--es-ease-settle);
   }
 
-  .es-stub__label {
+  .es-primary-button__label {
     min-width: 0;
     text-wrap: balance;
   }
 
-  .es-stub__arrow {
+  .es-primary-button__arrow {
     flex: none;
     width: 1.125rem;
     height: 1.125rem;
     transition: translate var(--es-dur-quick) var(--es-ease-settle);
   }
 
-  .es-stub__pull:is(:hover, [data-force='hover']):not(:disabled, [aria-disabled='true']) {
+  .es-primary-button__pull:is(:hover, [data-force='hover']):not(:disabled, [aria-disabled='true']) {
     background-color: color-mix(in srgb, var(--es-lamp) 80%, var(--es-lamp-ring));
   }
 
-  .es-stub__pull:is(:hover, [data-force='hover']):not(:disabled, [aria-disabled='true']) .es-stub__arrow {
+  .es-primary-button__pull:is(:hover, [data-force='hover']):not(:disabled, [aria-disabled='true']) .es-primary-button__arrow {
     translate: 0.1875rem 0;
   }
 
-  .es-stub__pull:is(:active, [data-force='active']):not(:disabled, [aria-disabled='true']) {
+  .es-primary-button__pull:is(:active, [data-force='active']):not(:disabled, [aria-disabled='true']) {
     background-color: color-mix(in srgb, var(--es-lamp) 65%, var(--es-lamp-ring));
   }
 
-  .es-stub__pull:is(:focus-visible, [data-force='focus']) {
+  .es-primary-button__pull:is(:focus-visible, [data-force='focus']) {
     outline: 3px solid var(--es-focus);
     outline-offset: 2px;
     box-shadow: 0 0 0 7px var(--es-paper);
   }
 
   /* Held down: no amber, because there is nothing to act on now. A well with a dashed edge and quiet words. */
-  .es-stub[data-state='disabled'] .es-stub__pull {
+  .es-primary-button[data-state='disabled'] .es-primary-button__pull {
     border: 1px dashed var(--es-edge);
     background-color: var(--es-surface-2);
     color: var(--es-text-3);
     cursor: not-allowed;
   }
 
-  .es-stub[data-state='disabled'] .es-stub__arrow {
+  .es-primary-button[data-state='disabled'] .es-primary-button__arrow {
     visibility: hidden;
   }
 
-  .es-stub[data-state='loading'] .es-stub__pull {
+  .es-primary-button[data-state='loading'] .es-primary-button__pull {
     cursor: progress;
   }
 
-  .es-stub__error {
+  .es-primary-button__error {
     display: flex;
     align-items: flex-start;
     gap: var(--es-space-2);
@@ -550,91 +443,24 @@
     line-height: 1.45;
   }
 
-  .es-stub__error-mark {
+  .es-primary-button__error-mark {
     flex: none;
     width: 1.1em;
     height: 1.1em;
     margin-top: 0.15em;
   }
 
-  /* ---------------------------------------------------------------------------------------------- rail */
-
-  /* A row of slots under a hairline: each slot holds a sheet or stands empty as a dashed box. */
-  .es-rail {
-    position: relative;
-    padding: var(--es-space-3) 0 0;
-  }
-
-  .es-rail__bar {
-    position: absolute;
-    inset: 0 0 auto;
-    height: 1px;
-    background-color: var(--es-edge);
-  }
-
-  .es-rail[data-lamp] .es-rail__bar {
-    height: 3px;
-    background-color: var(--es-text-1);
-  }
-
-  .es-rail__clips {
-    position: relative;
-    display: grid;
-    grid-template-columns: repeat(var(--es-rail-clips, 4), minmax(0, 1fr));
-    gap: var(--es-space-3);
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .es-rail__clip {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-width: 0;
-  }
-
-  .es-rail__grip {
-    display: block;
-    width: 1px;
-    height: var(--es-space-3);
-    margin-top: calc(-1 * var(--es-space-3));
-    background-color: var(--es-edge);
-  }
-
-  .es-rail__clip > .es-ticket {
-    max-width: 100%;
-  }
-
-  .es-rail__open {
-    display: grid;
-    place-items: center;
-    width: 100%;
-    min-height: 7rem;
-    padding: var(--es-space-4) var(--es-space-2) var(--es-space-3);
-    border: 1px dashed var(--es-edge);
-    color: var(--es-text-2);
-    font-size: var(--es-size-caption);
-    line-height: 1.35;
-    text-align: center;
-  }
-
-  .es-rail[data-state='disabled'] .es-rail__open {
-    color: var(--es-text-3);
-  }
-
-  /* ---------------------------------------------------------------------------------------------- readout strip (PrinterTape) */
+  /* ---------------------------------------------------------------------------------------------- readout strip */
 
   /* The readout strip: terms and their values on one paper strip, a ruled row each, numbers in the mono face. */
-  .es-printer {
+  .es-readout-strip {
     display: grid;
     width: 100%;
     max-width: 20rem;
     margin: 0;
   }
 
-  .es-printer__housing {
+  .es-readout-strip__housing {
     display: flex;
     align-items: center;
     justify-content: flex-end;
@@ -642,21 +468,21 @@
     padding-bottom: var(--es-space-2);
   }
 
-  .es-printer__housing:not(:has(.es-printer__housing-items)) {
+  .es-readout-strip__housing:not(:has(.es-readout-strip__housing-items)) {
     display: none;
   }
 
-  .es-printer__slot {
+  .es-readout-strip__slot {
     display: none;
   }
 
-  .es-printer__housing-items {
+  .es-readout-strip__housing-items {
     display: flex;
     gap: var(--es-space-3);
     align-items: center;
   }
 
-  .es-printer__tape {
+  .es-readout-strip__tape {
     position: relative;
     padding: var(--es-space-3) var(--es-space-4);
     background-color: var(--es-paper);
@@ -665,7 +491,7 @@
   }
 
   /* The provenance stamp: one per strip, a small bordered word that the tag legend explains. */
-  .es-printer__stamp {
+  .es-readout-strip__stamp {
     width: fit-content;
     margin: 0 0 var(--es-space-2);
     padding: 0 0.35rem;
@@ -679,7 +505,7 @@
   }
 
   /* Under a stamp each figure's own tag is kept for a screen reader and left off the strip. */
-  .es-printer[data-stamped] .es-readout__tag {
+  .es-readout-strip[data-stamped] .es-readout__tag {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -688,12 +514,12 @@
     white-space: nowrap;
   }
 
-  .es-printer__lines {
+  .es-readout-strip__lines {
     display: grid;
     margin: 0;
   }
 
-  .es-printer__line {
+  .es-readout-strip__line {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
@@ -704,225 +530,55 @@
     line-height: 1.35;
   }
 
-  .es-printer__lines > .es-printer__line + .es-printer__line {
+  .es-readout-strip__lines > .es-readout-strip__line + .es-readout-strip__line {
     border-top: 1px solid var(--es-paper-rule);
   }
 
-  .es-printer__line dt {
+  .es-readout-strip__line dt {
     color: var(--es-text-2);
     font-family: var(--es-font-body);
     font-weight: 700;
   }
 
-  .es-printer__line dd {
+  .es-readout-strip__line dd {
     margin: 0;
     font-family: var(--es-font-numeric);
     font-variant-numeric: tabular-nums;
     text-align: right;
   }
 
-  .es-printer__line dd > .es-readout {
+  .es-readout-strip__line dd > .es-readout {
     justify-content: flex-end;
   }
 
-  .es-printer__line[data-tone='ink-2'],
-  .es-printer__line[data-tone='ink-2'] dt {
+  .es-readout-strip__line[data-tone='ink-2'],
+  .es-readout-strip__line[data-tone='ink-2'] dt {
     color: var(--es-paper-ink-2);
   }
 
-  .es-printer__line--status,
-  .es-printer__line--blank {
+  .es-readout-strip__line--status,
+  .es-readout-strip__line--blank {
     justify-content: flex-start;
     color: var(--es-text-2);
   }
 
-  .es-printer__line--error {
+  .es-readout-strip__line--error {
     justify-content: flex-start;
     color: var(--es-paper-ink-2);
   }
 
-  .es-printer__mark {
+  .es-readout-strip__mark {
     flex: none;
     width: 1.1em;
     height: 1.1em;
   }
 
-  .es-printer__tear {
+  .es-readout-strip__tear {
     display: none;
   }
 
-  .es-printer__housing .es-menu-link {
+  .es-readout-strip__housing .es-menu-link {
     color: var(--es-text-1);
-  }
-
-  /* ---------------------------------------------------------------------------------------------- page cell (Pan) */
-
-  /* A KV page: a square cell with its fill and its glyph. Cells never move (a moving page would misteach copying). */
-  .es-pan {
-    --fill: var(--es-surface-2);
-    --edge: var(--es-edge);
-    position: relative;
-    display: inline-grid;
-    justify-items: center;
-    gap: var(--es-space-2);
-    margin: 0;
-    padding: 0;
-    border: 0;
-    background: none;
-    color: inherit;
-    font: inherit;
-    vertical-align: top;
-  }
-
-  .es-pan[data-state='used'] {
-    --fill: var(--es-memory-used);
-    --edge: var(--es-cat-blue-edge);
-  }
-
-  .es-pan[data-state='cached'] {
-    --fill: var(--es-memory-cached);
-    --edge: var(--es-cat-yellow-edge);
-  }
-
-  .es-pan[data-state='shared'] {
-    --fill: var(--es-memory-shared);
-    --edge: var(--es-cat-green-edge);
-  }
-
-  .es-pan[data-state='adapter'] {
-    --fill: var(--es-memory-adapter);
-    --edge: var(--es-cat-brown-edge);
-  }
-
-  .es-pan[data-state='evicted'] {
-    --fill: transparent;
-    --edge: var(--es-cat-red-edge);
-  }
-
-  .es-pan__rim {
-    position: relative;
-    display: block;
-    width: 3.4rem;
-    height: 3.4rem;
-    padding: 3px;
-    border-radius: var(--es-radius-trim);
-    background-color: var(--es-paper);
-    box-shadow: inset 0 0 0 1px var(--es-edge);
-    transition: box-shadow var(--es-dur-quick) var(--es-ease-settle);
-  }
-
-  .es-pan__well {
-    display: block;
-    width: 100%;
-    height: 100%;
-    border-radius: var(--es-radius-trim);
-    background-color: var(--es-paper);
-    box-shadow: inset 0 0 0 1px var(--es-paper-rule);
-  }
-
-  .es-pan__well[data-pattern='solid'] {
-    background: var(--fill);
-    box-shadow: inset 0 0 0 1.5px var(--edge);
-  }
-
-  .es-pan__well[data-pattern='hatch'] {
-    background: repeating-linear-gradient(45deg, var(--fill) 0 3px, var(--es-paper) 3px 6px);
-    box-shadow: inset 0 0 0 2px var(--edge);
-  }
-
-  .es-pan__well[data-pattern='dots'] {
-    background:
-      radial-gradient(circle, color-mix(in srgb, var(--fill) 45%, var(--es-paper)) 0 1.3px, transparent 1.8px) 0 0 / 6px 6px,
-      var(--fill);
-    box-shadow: inset 0 0 0 1.5px var(--edge);
-  }
-
-  .es-pan[data-state='evicted'] .es-pan__well {
-    background: var(--es-paper);
-    box-shadow: none;
-    outline: 2px dashed var(--edge);
-    outline-offset: -2px;
-  }
-
-  .es-pan__mark {
-    position: absolute;
-    inset: 0;
-    width: 1.35rem;
-    height: 1.35rem;
-    margin: auto;
-  }
-
-  .es-pan[data-state='cached'] .es-pan__mark {
-    color: var(--es-cat-yellow-edge);
-  }
-
-  .es-pan[data-state='adapter'] .es-pan__mark {
-    color: var(--es-cat-brown-ink);
-  }
-
-  .es-pan[data-state='evicted'] .es-pan__mark {
-    color: var(--es-cat-red-edge);
-  }
-
-  .es-pan__tape {
-    max-width: 6.5rem;
-  }
-
-  .es-pan__glyph {
-    position: absolute;
-    right: -0.2rem;
-    top: -0.2rem;
-    width: 0.6rem;
-    height: 0.6rem;
-  }
-
-  .es-pan[data-size='sm'] .es-pan__rim {
-    width: 1.1rem;
-    height: 1.1rem;
-    padding: 2px;
-  }
-
-  .es-pan[data-size='sm'] .es-pan__mark {
-    width: 0.7rem;
-    height: 0.7rem;
-  }
-
-  button.es-pan {
-    cursor: pointer;
-  }
-
-  button.es-pan:focus-visible {
-    outline: none;
-    box-shadow: none;
-  }
-
-  button.es-pan:is(:hover, [data-force='hover']):not(:disabled) .es-pan__rim {
-    box-shadow: inset 0 0 0 2px var(--es-text-1);
-  }
-
-  button.es-pan:is(:active, [data-force='active']):not(:disabled) .es-pan__rim {
-    background-color: var(--es-surface-2);
-    box-shadow: inset 0 0 0 2px var(--es-text-1);
-  }
-
-  button.es-pan:is(:focus-visible, [data-force='focus']) .es-pan__rim {
-    outline: 3px solid var(--es-focus);
-    outline-offset: 2px;
-  }
-
-  /* The page the next move acts on: the marker's ring, the "now" mark on the drawing. */
-  .es-pan[data-lamp] .es-pan__rim {
-    box-shadow:
-      inset 0 0 0 1px var(--es-edge),
-      0 0 0 1px var(--es-lamp-ring),
-      0 0 0 4px var(--es-lamp),
-      0 0 0 5px var(--es-lamp-ring);
-  }
-
-  button.es-pan:disabled,
-  .es-pan[data-disabled] {
-    cursor: not-allowed;
-    opacity: 0.5;
   }
 
   /* ---------------------------------------------------------------------------------------------- busy light (StationLight) */
@@ -1705,9 +1361,9 @@
     }
   }
 
-  /* ---------------------------------------------------------------------------------------------- header (Board) and footer */
+  /* ---------------------------------------------------------------------------------------------- header and footer */
 
-  .es-board {
+  .es-header {
     position: relative;
     z-index: 1;
     overflow: clip;
@@ -1719,19 +1375,19 @@
   }
 
   /* The header: the raised surface over a hairline. */
-  .es-board[data-variant='board'] {
+  .es-header[data-variant='board'] {
     border-bottom: 1px solid var(--es-edge);
     background-color: var(--es-surface-1);
   }
 
   /* The footer: the dark surface, with paper-white words. */
-  .es-board[data-variant='kickplate'] {
+  .es-header[data-variant='kickplate'] {
     background-color: var(--es-surface-3);
     color: var(--es-paper);
   }
 
   /* The site's name, in the display face, linking home. */
-  .es-board__plate {
+  .es-header__plate {
     position: relative;
     display: inline-flex;
     align-items: center;
@@ -1745,13 +1401,13 @@
     text-decoration: none;
   }
 
-  .es-board__plate:is(:hover, [data-force='hover']) {
+  .es-header__plate:is(:hover, [data-force='hover']) {
     text-decoration: underline;
     text-decoration-thickness: 2px;
     text-underline-offset: 0.2em;
   }
 
-  .es-board__links {
+  .es-header__links {
     display: flex;
     flex-wrap: wrap;
     gap: 0 clamp(0.75rem, 2.4vw, 1.75rem);
@@ -1760,7 +1416,7 @@
     list-style: none;
   }
 
-  .es-board__link {
+  .es-header__link {
     position: relative;
     display: inline-flex;
     align-items: center;
@@ -1774,23 +1430,23 @@
     text-decoration: none;
   }
 
-  .es-board__link:is(:hover, [data-force='hover']) {
+  .es-header__link:is(:hover, [data-force='hover']) {
     color: var(--es-text-1);
     text-decoration: underline;
     text-decoration-thickness: 2px;
     text-underline-offset: 0.35em;
   }
 
-  .es-board__link:is(:active, [data-force='active']) {
+  .es-header__link:is(:active, [data-force='active']) {
     background-color: var(--es-surface-2);
   }
 
   /* The page you are on: ink, with an ink bar under it. Amber is kept for now; where you are is not an action. */
-  .es-board__link[aria-current='page'] {
+  .es-header__link[aria-current='page'] {
     color: var(--es-text-1);
   }
 
-  .es-board__link[aria-current='page']::after {
+  .es-header__link[aria-current='page']::after {
     content: '';
     position: absolute;
     inset: auto 0.1rem 0.3rem;
@@ -1798,35 +1454,35 @@
     background-color: var(--es-text-1);
   }
 
-  .es-board[data-variant='kickplate'] .es-board__link {
+  .es-header[data-variant='kickplate'] .es-header__link {
     min-height: 2.75rem;
     color: var(--es-paper);
     font-weight: 400;
   }
 
-  .es-board[data-variant='kickplate'] .es-board__link:is(:hover, [data-force='hover']) {
+  .es-header[data-variant='kickplate'] .es-header__link:is(:hover, [data-force='hover']) {
     color: var(--es-paper);
   }
 
-  .es-board[data-variant='kickplate'] .es-board__link:is(:active, [data-force='active']) {
+  .es-header[data-variant='kickplate'] .es-header__link:is(:active, [data-force='active']) {
     background-color: transparent;
   }
 
-  .es-board[data-variant='kickplate'] .es-board__link[aria-current='page'] {
+  .es-header[data-variant='kickplate'] .es-header__link[aria-current='page'] {
     font-weight: 700;
   }
 
-  .es-board[data-variant='kickplate'] .es-board__link[aria-current='page']::after {
+  .es-header[data-variant='kickplate'] .es-header__link[aria-current='page']::after {
     background-color: var(--es-paper);
   }
 
   /* The way on, at the right of the header: an outline control, never the amber fill (REDESIGN 2.4, "Which control is amber"). */
-  .es-board__action {
+  .es-header__action {
     margin-inline-start: auto;
     min-width: 0;
   }
 
-  .es-board__next {
+  .es-header__next {
     display: inline-flex;
     align-items: center;
     gap: var(--es-space-2);
@@ -1844,41 +1500,41 @@
     transition: background-color var(--es-dur-quick) var(--es-ease-settle);
   }
 
-  .es-board__next:is(:hover, [data-force='hover']) {
+  .es-header__next:is(:hover, [data-force='hover']) {
     background-color: color-mix(in srgb, var(--es-surface-2) 55%, transparent);
   }
 
-  .es-board__next:is(:active, [data-force='active']) {
+  .es-header__next:is(:active, [data-force='active']) {
     background-color: var(--es-surface-2);
   }
 
-  .es-board__next:is(:focus-visible, [data-force='focus']) {
+  .es-header__next:is(:focus-visible, [data-force='focus']) {
     outline: 3px solid var(--es-focus);
     outline-offset: 2px;
     box-shadow: 0 0 0 7px var(--es-paper);
   }
 
   /* The amber fill, where the page has no move in hand: amber with its edge, the ink label (REDESIGN 2.4, "Which control is amber"). */
-  .es-board__next[data-emphasis='primary'] {
+  .es-header__next[data-emphasis='primary'] {
     border: 2px solid var(--es-lamp-ring);
     background: var(--es-lamp);
   }
 
-  .es-board__next[data-emphasis='primary']:is(:hover, [data-force='hover']) {
+  .es-header__next[data-emphasis='primary']:is(:hover, [data-force='hover']) {
     background-color: color-mix(in srgb, var(--es-lamp) 80%, var(--es-lamp-ring));
   }
 
-  .es-board__next-minutes {
+  .es-header__next-minutes {
     font-size: var(--es-size-note);
     font-weight: 400;
     white-space: nowrap;
   }
 
-  .es-board__next-label {
+  .es-header__next-label {
     min-width: 0;
   }
 
-  .es-board .es-board__next-label {
+  .es-header .es-header__next-label {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1905,22 +1561,22 @@
     line-height: 1.5;
   }
 
-  .es-board__next-word {
+  .es-header__next-word {
     display: none;
   }
 
-  .es-board__next-arrow {
+  .es-header__next-arrow {
     flex: none;
     width: 1.125rem;
     height: 1.125rem;
     transition: translate var(--es-dur-quick) var(--es-ease-settle);
   }
 
-  .es-board__next:is(:hover, [data-force='hover']) .es-board__next-arrow {
+  .es-header__next:is(:hover, [data-force='hover']) .es-header__next-arrow {
     translate: 0.1875rem 0;
   }
 
-  .es-board__toggle {
+  .es-header__toggle {
     display: none;
   }
 
@@ -1929,21 +1585,21 @@
    * Continue stays its accessible name, clipped out of sight, and the first word shows.
    */
   @media (max-width: 47.99rem) {
-    .es-board[data-fold] {
+    .es-header[data-fold] {
       flex-wrap: wrap;
       gap: var(--es-space-2);
       padding-block: var(--es-space-2);
     }
 
-    .es-board[data-fold] .es-board__plate {
+    .es-header[data-fold] .es-header__plate {
       font-size: var(--es-size-title);
     }
 
-    .es-board[data-fold] .es-board__action {
+    .es-header[data-fold] .es-header__action {
       order: 1;
     }
 
-    .es-board[data-fold] .es-board__toggle {
+    .es-header[data-fold] .es-header__toggle {
       order: 2;
       display: inline-flex;
       align-items: center;
@@ -1960,22 +1616,22 @@
       cursor: pointer;
     }
 
-    .es-board__toggle[aria-expanded='true'] {
+    .es-header__toggle[aria-expanded='true'] {
       background-color: var(--es-surface-2);
     }
 
-    .es-board__toggle:is(:focus-visible, [data-force='focus']) {
+    .es-header__toggle:is(:focus-visible, [data-force='focus']) {
       outline: 3px solid var(--es-focus);
       outline-offset: 2px;
       box-shadow: 0 0 0 7px var(--es-paper);
     }
 
-    .es-board__toggle-icon {
+    .es-header__toggle-icon {
       width: 1.125rem;
       height: 1.125rem;
     }
 
-    .es-board[data-fold] .es-board__links {
+    .es-header[data-fold] .es-header__links {
       order: 3;
       flex-basis: 100%;
       flex-direction: column;
@@ -1983,19 +1639,19 @@
       border-top: 1px solid var(--es-edge);
     }
 
-    .es-board[data-fold='closed'] .es-board__links {
+    .es-header[data-fold='closed'] .es-header__links {
       display: none;
     }
 
-    .es-board[data-fold] .es-board__next {
+    .es-header[data-fold] .es-header__next {
       padding-inline: var(--es-space-2);
     }
 
-    .es-board[data-fold] .es-board__action {
+    .es-header[data-fold] .es-header__action {
       margin-inline-start: auto;
     }
 
-    .es-board[data-fold] .es-board__next-label {
+    .es-header[data-fold] .es-header__next-label {
       position: absolute;
       width: 1px;
       height: 1px;
@@ -2004,14 +1660,14 @@
       white-space: nowrap;
     }
 
-    .es-board[data-fold] .es-board__next-word {
+    .es-header[data-fold] .es-header__next-word {
       display: inline;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .es-board__next,
-    .es-board__next-arrow {
+    .es-header__next,
+    .es-header__next-arrow {
       transition: none;
     }
   }
@@ -2084,7 +1740,7 @@
       padding-inline: var(--es-space-8);
     }
 
-    .es-board {
+    .es-header {
       padding-inline: var(--es-space-8);
     }
   }
@@ -2094,13 +1750,13 @@
    * Highlight, where tokens.ts maps it. The block sits in the layer, after the rules it overrides.
    */
   @media (forced-colors: active) {
-    .es-board__link[aria-current='page']::after,
+    .es-header__link[aria-current='page']::after,
     .es-station[data-state='lit'] .es-station__lens {
       background: CanvasText;
     }
 
-    .es-stub__pull,
-    .es-board__next[data-emphasis='primary'] {
+    .es-primary-button__pull,
+    .es-header__next[data-emphasis='primary'] {
       border-color: Highlight;
     }
   }
@@ -2109,9 +1765,8 @@
 /* Forced colours: shapes keep their edges when the system replaces the palette. */
 @media (forced-colors: active) {
   .es-button,
-  .es-toggle__switch,
-  .es-pan__rim,
-  .es-station__bezel {
+.es-toggle__switch,
+.es-station__bezel {
     border: 1px solid CanvasText;
   }
 }

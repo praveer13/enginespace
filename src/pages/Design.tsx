@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import '@/design/specimens.css'
 import { contrastRatio } from '@/design/contrast'
 import { Bell } from '@/design/components/Bell'
-import { Board, MenuLink } from '@/design/components/Board'
+import { Header, MenuLink } from '@/design/components/Header'
 import { Button } from '@/design/components/Button'
 import { Callout } from '@/design/components/Callout'
 import { DeltaChip } from '@/design/components/DeltaChip'
@@ -20,15 +20,13 @@ import { SectionRail, type RailSection } from '@/design/components/SectionRail'
 import { Stamp } from '@/design/components/Stamp'
 import { TitleBlock } from '@/design/components/TitleBlock'
 import { Glyph, Icon, type IconName } from '@/design/components/Glyph'
-import { Pan } from '@/design/components/Pan'
-import { PrinterTape } from '@/design/components/PrinterTape'
-import { Rail } from '@/design/components/Rail'
+import { ReadoutStrip } from '@/design/components/ReadoutStrip'
 import { Readout } from '@/design/components/Readout'
 import { StationLight } from '@/design/components/StationLight'
-import { Stub } from '@/design/components/Stub'
-import { TapeLabel } from '@/design/components/TapeLabel'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
+import { Label } from '@/design/components/Label'
 import { TextLink } from '@/design/components/TextLink'
-import { Ticket, TicketLine } from '@/design/components/Ticket'
+import { Sheet, SheetLine } from '@/design/components/Sheet'
 import { Toggle } from '@/design/components/Toggle'
 import { SceneSpecimen } from '@/scene/SceneSpecimen'
 import { effectiveMotion } from '@/settings/rules'
@@ -36,7 +34,6 @@ import { useSettings, useSystemReducedMotion } from '@/settings/useSettings'
 import {
   cssVar,
   fontVar,
-  MEMORY_STATES,
   PAIRS,
   ROLE_GROUPS,
   resolveColor,
@@ -353,14 +350,6 @@ function State({
       <div className="es-spec__state-stage">{children}</div>
       <figcaption className="es-spec__state-label">{label}</figcaption>
     </figure>
-  )
-}
-
-function railTicket(key: string, head: string, qty: string, item: string) {
-  return (
-    <Ticket key={key} head={head} compact hole={false} width="full">
-      <TicketLine qty={qty}>{item}</TicketLine>
-    </Ticket>
   )
 }
 
@@ -795,109 +784,80 @@ function ComponentSpecimens() {
   return (
     <div className="es-spec__components">
       <Specimen
-        title="Ticket"
+        title="Sheet"
         about="A sheet: a plain paper panel, cut square, with a soft shadow and a title. The surface the text you read sits on."
       >
         <State label="default">
-          <Ticket head="No. 0042" meta="TBL 7" title="Fire the next step.">
-            <TicketLine qty="1x">PREFILL</TicketLine>
-            <TicketLine qty="3x">DECODE</TicketLine>
-          </Ticket>
+          <Sheet head="No. 0042" meta="TBL 7" title="Fire the next step.">
+            <SheetLine qty="1x">PREFILL</SheetLine>
+            <SheetLine qty="3x">DECODE</SheetLine>
+          </Sheet>
         </State>
         <State label="under the lamp">
-          <Ticket head="No. 0043" meta="TBL 2" title="On the pass" lamp>
-            <TicketLine qty="2x">DECODE</TicketLine>
-          </Ticket>
+          <Sheet head="No. 0043" meta="TBL 2" title="On the pass" lamp>
+            <SheetLine qty="2x">DECODE</SheetLine>
+          </Sheet>
         </State>
         {FORCED.map((force) => (
           <State key={force} label={`a ticket you pick up: ${force}`}>
-            <Ticket as="button" head={`No. 004${FORCED.indexOf(force) + 4}`} meta="TBL 5" data-force={force}>
-              <TicketLine qty="1x">PREFILL</TicketLine>
-            </Ticket>
+            <Sheet as="button" head={`No. 004${FORCED.indexOf(force) + 4}`} meta="TBL 5" data-force={force}>
+              <SheetLine qty="1x">PREFILL</SheetLine>
+            </Sheet>
           </State>
         ))}
         <State label="loading">
-          <Ticket head="No. 0047" state="loading">
-            <TicketLine qty="2x">DECODE</TicketLine>
-          </Ticket>
+          <Sheet head="No. 0047" state="loading">
+            <SheetLine qty="2x">DECODE</SheetLine>
+          </Sheet>
         </State>
         <State label="error">
-          <Ticket head="No. 0048" state="error" error="This sheet could not load. Reload the page to try again.">
-            <TicketLine qty="2x">DECODE</TicketLine>
-          </Ticket>
+          <Sheet head="No. 0048" state="error" error="This sheet could not load. Reload the page to try again.">
+            <SheetLine qty="2x">DECODE</SheetLine>
+          </Sheet>
         </State>
         <State label="empty">
-          <Ticket head="No. 0000" state="empty" empty="Nothing here yet" />
+          <Sheet head="No. 0000" state="empty" empty="Nothing here yet" />
         </State>
         <State label="disabled">
-          <Ticket as="button" head="No. 0049" state="disabled">
-            <TicketLine qty="1x">PREFILL</TicketLine>
-          </Ticket>
+          <Sheet as="button" head="No. 0049" state="disabled">
+            <SheetLine qty="1x">PREFILL</SheetLine>
+          </Sheet>
         </State>
       </Specimen>
 
-      <Specimen title="Stub" about="The primary button: amber with its dark edge and an ink label, the control to act on now. Held down, it is a well with no amber.">
+      <Specimen title="Primary button" about="The primary button: amber with its dark edge and an ink label, the control to act on now. Held down, it is a well with no amber.">
         {(['default', ...FORCED] as const).map((force) => (
           <State key={force} label={force}>
-            <Stub standalone onClick={() => undefined} data-force={force === 'default' ? undefined : force}>
+            <PrimaryButton standalone onClick={() => undefined} data-force={force === 'default' ? undefined : force}>
               Start service
-            </Stub>
+            </PrimaryButton>
           </State>
         ))}
         <State label="disabled">
-          <Stub standalone disabled>
+          <PrimaryButton standalone disabled>
             Start service
-          </Stub>
+          </PrimaryButton>
         </State>
         <State label="loading">
-          <Stub standalone loading>
+          <PrimaryButton standalone loading>
             Start service
-          </Stub>
+          </PrimaryButton>
         </State>
         <State label="error">
-          <Stub standalone onClick={() => undefined} error="The line did not answer. Pull the stub again.">
+          <PrimaryButton standalone onClick={() => undefined} error="The line did not answer. Pull the stub again.">
             Start service
-          </Stub>
+          </PrimaryButton>
         </State>
         <State label="on a ticket, as a link">
-          <Ticket head="No. 0050" meta="TBL 1" title="First service" stub={<Stub to="/play/loop">Start service</Stub>}>
-            <TicketLine qty="4">CLIPS ON THE RAIL</TicketLine>
-          </Ticket>
+          <Sheet head="No. 0050" meta="TBL 1" title="First service" stub={<PrimaryButton to="/play/loop">Start service</PrimaryButton>}>
+            <SheetLine qty="4">CLIPS ON THE RAIL</SheetLine>
+          </Sheet>
         </State>
       </Specimen>
 
-      <Specimen title="Rail" about="A row of slots under a hairline, one per batch slot. An empty slot is a dashed box that says so in words." wide>
-        <State label="two tickets hung, two clips paid for and empty" span>
-          <Rail
-            clips={4}
-            label="The rail: 4 clips"
-            tickets={[railTicket('a', 'No. 12', '2x', 'DECODE'), railTicket('b', 'No. 13', '1x', 'PREFILL')]}
-          />
-        </State>
-        <State label="under the lamp, every clip live" span>
-          <Rail
-            clips={4}
-            label="The rail under the lamp"
-            lamp
-            tickets={[
-              railTicket('a', 'No. 14', '1x', 'DECODE'),
-              railTicket('b', 'No. 15', '1x', 'DECODE'),
-              railTicket('c', 'No. 16', '1x', 'DECODE'),
-              railTicket('d', 'No. 17', '1x', 'DECODE'),
-            ]}
-          />
-        </State>
-        <State label="empty">
-          <Rail clips={2} label="An empty rail" />
-        </State>
-        <State label="disabled">
-          <Rail clips={2} label="A rail not taking tickets" state="disabled" />
-        </State>
-      </Specimen>
-
-      <Specimen title="Printer tape" about="The readout strip: terms and their values on one paper strip, a ruled row each. A value changes at once.">
+      <Specimen title="Readout strip" about="The readout strip: terms and their values on one paper strip, a ruled row each. A value changes at once.">
         <State label="default">
-          <PrinterTape
+          <ReadoutStrip
             label="The printer"
             housing={<MenuLink />}
             lines={[
@@ -908,13 +868,13 @@ function ComponentSpecimens() {
           />
         </State>
         <State label="loading">
-          <PrinterTape label="The printer, warming up" state="loading" lines={[]} />
+          <ReadoutStrip label="The printer, warming up" state="loading" lines={[]} />
         </State>
         <State label="error">
-          <PrinterTape label="The printer, jammed" state="error" error="Paper jam. Open the printer and pull the tape." lines={[]} />
+          <ReadoutStrip label="The printer, jammed" state="error" error="Paper jam. Open the printer and pull the tape." lines={[]} />
         </State>
         <State label="empty">
-          <PrinterTape label="The printer, idle" lines={[]} empty="No fires yet" />
+          <ReadoutStrip label="The printer, idle" lines={[]} empty="No fires yet" />
         </State>
       </Specimen>
 
@@ -939,59 +899,22 @@ function ComponentSpecimens() {
         </State>
       </Specimen>
 
-      <Specimen title="Tape label" about="A plain label: the name of a part, a state word, and the label of a field. It never moves and never lights.">
+      <Specimen title="Label" about="A plain label: the name of a part, a state word, and the label of a field. It never moves and never lights.">
         <State label="plain">
-          <TapeLabel>prep · KV page</TapeLabel>
+          <Label>prep · KV page</Label>
         </State>
         <State label="with a station's code">
-          <TapeLabel slot="green">grp 2 · 0x3f</TapeLabel>
+          <Label slot="green">grp 2 · 0x3f</Label>
         </State>
         <State label="tilted the other way">
-          <TapeLabel tilt="right" slot="yellow">
+          <Label tilt="right" slot="yellow">
             cached
-          </TapeLabel>
+          </Label>
         </State>
         <State label="small and straight">
-          <TapeLabel size="sm" tilt="none" slot="brown">
+          <Label size="sm" tilt="none" slot="brown">
             kit lora-7
-          </TapeLabel>
-        </State>
-      </Specimen>
-
-      <Specimen title="Pan" about="A KV page as a square cell. It never moves; its state is its fill, its pattern, its glyph and its label." wide>
-        {MEMORY_STATES.map((state) => (
-          <State key={state} label={state}>
-            <Pan
-              state={state}
-              name={`Pan, ${state}`}
-              tape={state === 'free' ? undefined : state === 'adapter' ? 'kit 7' : '0x3f'}
-              station={state === 'free' || state === 'evicted' ? undefined : 'green'}
-            />
-          </State>
-        ))}
-        {FORCED.map((force) => (
-          <State key={force} label={force}>
-            <Pan state="used" name={`Pan, ${force}`} tape="0x40" station="blue" onSelect={() => undefined} data-force={force} />
-          </State>
-        ))}
-        <State label="under the lamp">
-          <Pan state="cached" name="Pan, a candidate" tape="0x41" station="yellow" lamp />
-        </State>
-        <State label="disabled">
-          <Pan state="used" name="Pan, disabled" tape="0x42" station="blue" onSelect={() => undefined} disabled />
-        </State>
-        <State label="sixteen to a row at phone width" span>
-          <span className="es-spec__pan-row">
-            {Array.from({ length: 16 }, (_, index) => (
-              <Pan
-                key={index}
-                size="sm"
-                state={MEMORY_STATES[index % MEMORY_STATES.length]}
-                name={`Pan ${index + 1}`}
-                station={index % 3 === 0 ? 'green' : undefined}
-              />
-            ))}
-          </span>
+          </Label>
         </State>
       </Specimen>
 
@@ -1151,7 +1074,7 @@ function ComponentSpecimens() {
         wide
       >
         <State label="the board" span>
-          <Board
+          <Header
             label="Specimen board"
             brand={{ to: '/', label: 'enginespace' }}
             links={[
@@ -1162,7 +1085,7 @@ function ComponentSpecimens() {
           />
         </State>
         <State label="the kick-plate" span>
-          <Board
+          <Header
             label="Specimen kick-plate"
             variant="kickplate"
             links={[

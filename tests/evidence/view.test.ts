@@ -406,7 +406,7 @@ describe('import', () => {
     expect(text(render(createElement(ImportStatus, { flow: finished({ checkpointId: 'cp-1' }) })))).toMatch(/new events 120 measured/)
     const nothing = render(createElement(ImportStatus, { flow: finished({ checkpointId: null, summary: { newEvents: 0, newReceipts: 0 } }) }))
     expect(text(nothing)).toBe('Nothing changed: everything in backup.json was here already.')
-    expect(nothing).not.toContain('es-printer')
+    expect(nothing).not.toContain('es-readout-strip')
   })
 
   test('an import that only replaced events, with the same ids and other content, still changed the ledger and says so', () => {

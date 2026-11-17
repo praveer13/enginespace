@@ -191,10 +191,10 @@ test.describe('where the crate stands', () => {
   test('on a laptop the crate stands above the sheet that takes the module, in the same column, and the readout beside the checks', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 })
     await open(page, '/labs/hybrid-kv')
-    const slip = await page.locator('.es-forge-drop .es-ticket').boundingBox()
+    const slip = await page.locator('.es-forge-drop .es-sheet').boundingBox()
     const crate = await page.locator('.es-forge-crate').boundingBox()
     const tape = await page.locator('.es-forge-tape').boundingBox()
-    const sheet = await page.locator('.es-forge-checks-row > .es-ticket').boundingBox()
+    const sheet = await page.locator('.es-forge-checks-row > .es-sheet').boundingBox()
     expect(crate!.x).toBeCloseTo(slip!.x, 0)
     expect(crate!.y + crate!.height).toBeLessThanOrEqual(slip!.y)
     expect(tape!.x).toBeGreaterThanOrEqual(sheet!.x + sheet!.width)

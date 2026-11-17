@@ -112,7 +112,7 @@ export function Toolbar({ state, readOnly, onCommand }: ToolbarProps) {
                 data-command={`category-${category}`}
                 aria-pressed={tagged === category}
                 aria-keyshortcuts={String(at + 1)}
-                aria-label={`${CATEGORY_WORDS[category].term}, ${CATEGORY_WORDS[category].kitchen}`}
+                aria-label={`${CATEGORY_WORDS[category].term}, ${CATEGORY_WORDS[category].meaning}`}
                 disabled={!making && !hasActive}
                 onClick={() => onCommand(`category-${category}`)}
               >

@@ -1,6 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { Dispatch, PointerEvent as ReactPointerEvent } from 'react'
-import { TapeLabel } from '@/design/components/TapeLabel'
+import { Label } from '@/design/components/Label'
 import { useSceneTokens } from '@/design/scene-tokens'
 import { rowAt, tapeGeometry, timeToX, xToTime } from './geometry'
 import { CATEGORY_WORDS } from './marks'
@@ -252,16 +252,16 @@ export function Tape({ index, state, dispatch, rail }: TapeProps) {
             const box = g.lanes[lane.index]
             return (
               <div key={lane.index} className="es-trace__lane" data-kind={lane.kind} style={{ top: box.y, height: box.h, width: g.stacked ? g.width : g.gutter }}>
-                <TapeLabel size="sm" slot={slotOfLane(lane.kind)}>
+                <Label size="sm" slot={slotOfLane(lane.kind)}>
                   {LANE_WORDS[lane.kind]}
-                </TapeLabel>
+                </Label>
                 <span className="es-trace__lane-name">{lane.name}</span>
               </div>
             )
           })}
           {rail && !g.stacked ? (
             <div className="es-trace__lane" data-kind="rail" style={{ top: g.rail.y, height: g.rail.h, width: g.gutter }}>
-              <TapeLabel size="sm">Your marks</TapeLabel>
+              <Label size="sm">Your marks</Label>
             </div>
           ) : null}
         </div>
@@ -306,9 +306,9 @@ export function Tape({ index, state, dispatch, rail }: TapeProps) {
               className="es-trace__cause"
               style={{ top: g.rail.y + g.rail.h - 8, ...(causeAt < g.plotW / 2 ? { left: Math.max(0, causeAt - 6) } : { right: Math.max(0, g.plotW - causeAt - 6) }) }}
             >
-              <TapeLabel size="sm">
+              <Label size="sm">
                 cause: {cause === null ? '' : spanName(index, cause)}
-              </TapeLabel>
+              </Label>
             </span>
           )}
         </div>

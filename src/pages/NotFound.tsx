@@ -1,4 +1,4 @@
-import { ContinueLink } from '@/design/components/Board'
+import { ContinueLink } from '@/design/components/Header'
 import { usePointer } from '@/settings/usePlace'
 
 /*

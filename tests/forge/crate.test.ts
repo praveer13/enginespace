@@ -170,7 +170,7 @@ describe('the crate on the page', () => {
     for (const id of FORGE_LAB_IDS) {
       const html = render(id, IDLE, ready(id))
       expect((html.match(/data-lamp="true"/g) ?? []).length, id).toBe(1)
-      expect(html).toMatch(/class="es-ticket"[^>]*data-lamp="true"/)
+      expect(html).toMatch(/class="es-sheet"[^>]*data-lamp="true"/)
       expect((html.match(/<h1[ >]/g) ?? []).length, id).toBe(1)
       // The five steps are the h2s; a lab with a readout has a sixth, for the readout.
       expect((html.match(/<h2[ >]/g) ?? []).length, id).toBe(FORGE_LABS[id].readout === undefined ? 5 : 6)
@@ -183,6 +183,6 @@ describe('the crate on the page', () => {
     const html = render('toy', { step: 'refused', file, message: 'no.', sha256: 'c'.repeat(64) }, ready('toy'))
     expect((html.match(/es-forge-hash__digits/g) ?? []).length).toBe(1)
     expect((html.match(/es-forge-crate__digits/g) ?? []).length).toBe(1)
-    expect(html.match(/class="es-ticket__void"/g) ?? []).toHaveLength(1)
+    expect(html.match(/class="es-sheet__void"/g) ?? []).toHaveLength(1)
   })
 })

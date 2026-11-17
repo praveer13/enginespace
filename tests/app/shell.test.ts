@@ -42,7 +42,7 @@ describe('the chrome of every route', () => {
       ])
       // Continue: the empty ledger's answer on the server, with its full label as the link's name and the first word for a phone.
       expect(links[5]).toEqual([START_POINTER.href, `${START_POINTER.label}${START_POINTER.word}`])
-      expect(header).toMatch(/<a [^>]*class="es-board__next"[^>]*data-way="continue"/)
+      expect(header).toMatch(/<a [^>]*class="es-header__next"[^>]*data-way="continue"/)
       expect(links).toHaveLength(6)
       expect(linksOf(navOf(html, 'Footer'))).toEqual([
         ['/about', 'About'],
@@ -59,16 +59,16 @@ describe('the chrome of every route', () => {
   test('on a phone the links sit behind a button labelled Navigation, which says it is closed and names the list it opens', async () => {
     const html = await render('/map')
     const header = navOf(html, 'Primary')
-    const button = /<button [^>]*class="es-board__toggle"[^>]*>([\s\S]*?)<\/button>/.exec(header)
+    const button = /<button [^>]*class="es-header__toggle"[^>]*>([\s\S]*?)<\/button>/.exec(header)
     expect(button?.[1].replace(/<[^>]+>/g, '')).toBe('Navigation')
     expect(button?.[0]).toContain('aria-expanded="false"')
     const controls = /aria-controls="([^"]+)"/.exec(button?.[0] ?? '')?.[1]
-    expect(header).toContain(`<ul id="${controls}" class="es-board__links">`)
+    expect(header).toContain(`<ul id="${controls}" class="es-header__links">`)
     expect(html).toMatch(/<nav aria-label="Primary"[^>]*data-fold="closed"/)
   })
 
   test("the first word of Continue is hidden from assistive technology, so the link's name is its full label", async () => {
     const header = navOf(await render('/'), 'Primary')
-    expect(header).toContain(`<span class="es-board__next-label">${START_POINTER.label}</span><span class="es-board__next-word" aria-hidden="true">${START_POINTER.word}</span>`)
+    expect(header).toContain(`<span class="es-header__next-label">${START_POINTER.label}</span><span class="es-header__next-word" aria-hidden="true">${START_POINTER.word}</span>`)
   })
 })

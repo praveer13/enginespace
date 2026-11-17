@@ -345,7 +345,7 @@ describe('the item blocks, as the lessons print them (W1b-T06)', () => {
       expect(html).not.toContain('not published yet')
       expect(html).toContain(`${block.count} ${block.count === 1 ? 'question' : 'questions'} on fresh numbers, drawn when you start.`)
       expect(html).toContain(escaped(face.title))
-      expect(html).toMatch(/<button type="button" class="es-stub__pull"(?![^>]*disabled)[^>]*>/)
+      expect(html).toMatch(/<button type="button" class="es-primary-button__pull"(?![^>]*disabled)[^>]*>/)
       expect(html).toContain('Start questions')
     })
 

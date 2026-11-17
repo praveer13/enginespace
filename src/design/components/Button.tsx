@@ -6,11 +6,11 @@ import { PrintingDots } from './PrintingDots'
 /*
  * A button (REDESIGN 2.8): flat, a 1 px edge at 3:1, a 3 px radius, and a label in sentence case that says what it does.
  * `plate` (the default) is the outline; `ink` is the dark surface with a paper-white label, for the control an instrument
- * leans on; `quiet` is the label alone. The variant names stay until R-T46's rename.
+ * leans on; `quiet` is the label alone. The variant names stay.
  *
  * States: hover (a faint well), focus (the ink ring), active or pressed (a well), disabled (a dashed edge, quiet words),
  * loading (dots beside the label; the press is ignored), error (a line in the second ink beside it, and that ink's edge).
- * The primary action is the amber Stub, not a Button.
+ * The primary action is the amber primary button, not a Button.
  */
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

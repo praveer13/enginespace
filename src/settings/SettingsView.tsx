@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import { ContinueLink, type ContinueTarget } from '@/design/components/Board'
-import { PrinterTape, type PrinterTapeLine } from '@/design/components/PrinterTape'
+import { ContinueLink, type ContinueTarget } from '@/design/components/Header'
+import { ReadoutStrip, type ReadoutStripLine } from '@/design/components/ReadoutStrip'
 import { Readout } from '@/design/components/Readout'
 import { Stamp } from '@/design/components/Stamp'
 import { Toggle } from '@/design/components/Toggle'
@@ -65,7 +65,7 @@ export function EffectTape({ settings, device, systemReduces }: Pick<SettingsVie
   const threeD = device.known && device.tier >= 1
   const motion = effectiveMotion(settings.motion, systemReduces)
   const why = device.known && !threeD ? unavailableReason(device.reason) : undefined
-  const lines: PrinterTapeLine[] = [{ id: 'view', label: 'view', value: !device.known ? 'checking' : threeD ? '3D' : '2D' }]
+  const lines: ReadoutStripLine[] = [{ id: 'view', label: 'view', value: !device.known ? 'checking' : threeD ? '3D' : '2D' }]
   if (why !== undefined) lines.push({ id: 'why', label: 'because', value: why })
   if (threeD) {
     const limits = TIERS[device.tier]
@@ -79,7 +79,7 @@ export function EffectTape({ settings, device, systemReduces }: Pick<SettingsVie
     { id: 'motion', label: 'motion', value: `${motion.reduced ? 'reduced' : 'full'} · ${motion.source === 'settings' ? 'your choice' : 'your system'}` },
     { id: 'keys', label: 'game keys', value: settings.gameKeys ? 'on' : 'off', tone: settings.gameKeys ? 'ink' : 'ink-2' },
   )
-  return <PrinterTape label="What these settings do now" lines={lines} stamp={threeD ? <Stamp word="estimated" /> : undefined} state={device.known ? 'default' : 'loading'} />
+  return <ReadoutStrip label="What these settings do now" lines={lines} stamp={threeD ? <Stamp word="estimated" /> : undefined} state={device.known ? 'default' : 'loading'} />
 }
 
 export function SettingsView({ settings, device, systemReduces, onChange, problem, data, way }: SettingsViewProps) {
