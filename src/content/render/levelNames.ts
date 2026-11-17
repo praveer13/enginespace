@@ -8,10 +8,15 @@ import { useEffect, useState } from 'react'
 type Namer = (game: string, level: string) => string | undefined
 
 let loaded: Namer | null = null
+
+/** Until the titles load: a namer that names nothing, the same function on every render, so a hook that depends on it does not rerun. */
+const none: Namer = () => undefined
 let loading: Promise<Namer> | null = null
 
 export function useLevelNames(): Namer {
-  const [namer, setNamer] = useState<Namer | null>(loaded)
+  // The initializer form: handed the namer itself, useState would call it as an initializer and keep its result, undefined, so a second
+  // lesson opened in the same visit got a new fallback on every render and the ledger's reading looped (React's maximum update depth).
+  const [namer, setNamer] = useState<Namer | null>(() => loaded)
   useEffect(() => {
     if (namer !== null) return
     let live = true
@@ -23,5 +28,5 @@ export function useLevelNames(): Namer {
       live = false
     }
   }, [namer])
-  return namer ?? (() => undefined)
+  return namer ?? none
 }

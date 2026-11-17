@@ -7,7 +7,7 @@
 /* ------------------------------------------------------------------------------------------------ the swimlane */
 
 /* The heads, then the box that scrolls both ways; on a phone and in a lesson it has a height of its own, on the game's page at desk width it fills the frame's. */
-.es-lanes {
+.es-lanes[data-floor-lanes] {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -35,13 +35,13 @@
   scrollbar-width: thin;
 }
 
-.es-frame[data-placement='embed'] .es-lanes {
+.es-frame[data-placement='embed'] .es-lanes[data-floor-lanes] {
   height: clamp(16rem, 60svh, 34rem);
 }
 
 /* On a phone tall enough to pin the dock, the box is the frame's diagram box, so only the swimlane scrolls. */
 @media (max-width: 63.999rem) and (min-height: 700px) {
-  .es-frame[data-placement='page'] .es-lanes {
+  .es-frame[data-placement='page'] .es-lanes[data-floor-lanes] {
     height: max(9rem, calc(67svh - 21rem));
   }
 }
@@ -58,7 +58,7 @@
   outline-offset: -3px;
 }
 
-.es-lanes[data-size='dock'] .es-lanes__scroll {
+.es-lanes[data-floor-lanes][data-size='dock'] .es-lanes__scroll {
   height: auto;
   max-height: 15rem;
 }
@@ -146,7 +146,7 @@
   height: 1px;
 }
 
-.es-lanes[data-size='dock'] .es-lanes__proc-name {
+.es-lanes[data-floor-lanes][data-size='dock'] .es-lanes__proc-name {
   padding-inline: var(--es-space-1);
   font-size: var(--es-size-micro);
 }
@@ -309,7 +309,7 @@
   color: var(--es-paper-ink);
 }
 
-.es-lanes__name {
+[data-floor-lanes] .es-lanes__name {
   position: absolute;
   top: 50%;
   display: inline-flex;
@@ -334,28 +334,28 @@
   pointer-events: auto;
 }
 
-.es-lanes__name code {
+[data-floor-lanes] .es-lanes__name code {
   overflow: hidden;
   font-family: var(--es-font-body);
   font-size: inherit;
   text-overflow: ellipsis;
 }
 
-.es-lanes__name:hover {
+[data-floor-lanes] .es-lanes__name:hover {
   background: var(--es-surface-2);
 }
 
-.es-lanes__name:focus-visible {
+[data-floor-lanes] .es-lanes__name:focus-visible {
   outline: 3px solid var(--es-text-1);
   outline-offset: 2px;
   box-shadow: 0 0 0 2px var(--es-paper);
 }
 
-.es-lanes__row[data-state='pending'] .es-lanes__name {
+[data-floor-lanes] .es-lanes__row[data-state='pending'] .es-lanes__name {
   color: var(--es-text-2);
 }
 
-.es-lanes__row[data-state='struck'] .es-lanes__name {
+[data-floor-lanes] .es-lanes__row[data-state='struck'] .es-lanes__name {
   color: var(--es-paper-ink-2);
 }
 
@@ -663,6 +663,7 @@
   color: var(--es-text-3);
 }
 
+/* The field and the chips share one row; the chips scroll sideways inside it (in a lesson at a desk they wrap: below). */
 .es-floor-chips {
   display: flex;
   flex-wrap: nowrap;
@@ -807,6 +808,38 @@
   line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/*
+ * At a desk the dock itself is the one box that scrolls: the stage list is laid out whole in it, rather than through a slit of its own
+ * inside it, and the path's actions (Run the path, Remove last) stay pinned at the dock's foot while the list moves under them.
+ */
+@media (min-width: 64rem) {
+  .es-frame[data-placement='embed'][data-game='engine-floor'] .es-floor-tiles {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .es-frame[data-placement='embed'][data-game='engine-floor'] .es-floor-actions {
+    position: sticky;
+    z-index: 1;
+    margin-inline: calc(var(--es-space-4) * -1);
+    padding: var(--es-space-2) var(--es-space-4) var(--es-space-3);
+    border-top: 1px solid var(--es-paper-rule);
+    background: var(--es-paper);
+  }
+
+  /* Every place to filter by is in view, and a stage's name and places read whole. */
+  .es-frame[data-placement='embed'][data-game='engine-floor'] :is(.es-floor-filters, .es-floor-chips) {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+
+  .es-frame[data-placement='embed'][data-game='engine-floor'] :is(.es-floor-tile__name, .es-floor-tile__where) {
+    overflow: visible;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
 }
 
 .es-floor-ring {
@@ -1091,4 +1124,59 @@
 
 .es-floor-pair__differs {
   font-weight: 700;
+}
+
+/* "Guess 2 of 2, in the level": which of a run's guesses this is, in the guess label's small caps line. */
+.es-floor-predict__label {
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/*
+ * On a phone in a lesson the swimlane is not boxed into the frame's short diagram slot: it takes the height of a screen's worth of rows, the
+ * page scrolls past it by thumb, and its own box only scrolls sideways (the phone walk: a drag on the diagram moved neither it nor the page,
+ * and rows 6 to 10, the stop and the finish were never seen).
+ */
+@media (max-width: 63.999rem) {
+  .es-frame[data-placement='embed'][data-game='engine-floor'] .es-frame__view {
+    max-height: none;
+  }
+
+  .es-frame[data-placement='embed'] .es-lanes[data-floor-lanes] {
+    height: clamp(16rem, 55svh, 30rem);
+  }
+
+  [data-floor-lanes] .es-lanes__scroll {
+    overscroll-behavior: auto;
+  }
+}
+
+
+/*
+ * In a lesson's Run at a desk the stage list is read with the page, as the first run's parts list is: the dock grows to hold every stage,
+ * the readout stands at the screen's foot, and Run the path stands just over it, so the list, the move and the counts are in view together
+ * (the final walk: fourteen stages through a slit of four, with Run the path under it).
+ */
+@container es-frame (min-width: 56rem) {
+  .es-frame[data-game='engine-floor'][data-phase='play'] > .es-frame__body > .es-frame__dock {
+    max-height: none;
+  }
+
+  .es-frame[data-game='engine-floor'][data-phase='play'] > .es-frame__body > .es-frame__dock > .es-frame__dock-main {
+    overflow: visible;
+  }
+
+  .es-frame[data-game='engine-floor'][data-phase='play'] > .es-frame__body > .es-frame__dock > .es-frame__readout {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    background: var(--es-paper);
+  }
+
+  .es-frame[data-placement='embed'][data-game='engine-floor'] .es-floor-actions {
+    bottom: 4.5rem;
+  }
 }

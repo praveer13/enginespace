@@ -94,7 +94,7 @@ In the lab you write these rules in Rust. `one_group` (`s1`) is the full group a
 
 ## Exit check
 
-Three questions on new numbers, each a request and a model, ask for the pages it holds in one group or across the groups: what each kind of layer needs of the cache, the pages a sliding group still holds, and why a state group's pages stay fixed. Two right, one of them numeric, passes. The lab's stages `sliding` and `state` then test the last two on seeds drawn when you run them.
+Three questions on new numbers, each a request and a model, ask for the pages it holds in one group or across the groups: what each kind of layer needs of the cache, the pages a sliding group still holds, and why a state group's pages stay fixed. The lab's stages `sliding` and `state` then test the last two on seeds drawn when you run them.
 
 > **Practice.** Items from the generator family `tr5a.blocks-held`, level `2`, `3` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 

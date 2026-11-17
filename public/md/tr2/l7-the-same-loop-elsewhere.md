@@ -111,7 +111,7 @@ Nothing in this lesson is run. The course's model follows vLLM's loop. SGLang's 
 
 ## Exit check
 
-This lesson revisits three skills in other engines: saying why the GPU idles between steps when the CPU's work for the next step is not ready (`tr2.bubble`), saying which CPU work an engine overlaps and what it leaves on the critical path (`tr2.async-overlap`), and working out the size a batch is padded to and what the padding wastes (`tr2.capture-padding`). The questions are three items on fresh seeds: one on the idle time between steps with the next call written during the forward, and two on the size a batch is padded to and the rows it wastes. Pass with at least two right, one of them numeric.
+This lesson revisits three skills in other engines: saying why the GPU idles between steps when the CPU's work for the next step is not ready (`tr2.bubble`), saying which CPU work an engine overlaps and what it leaves on the critical path (`tr2.async-overlap`), and working out the size a batch is padded to and what the padding wastes (`tr2.capture-padding`). The questions are three items on fresh seeds: one on the idle time between steps with the next call written during the forward, and two on the size a batch is padded to and the rows it wastes.
 
 > **Practice.** Items from the generator family `tr2.bubble-width`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 

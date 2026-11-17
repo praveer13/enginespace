@@ -3,6 +3,7 @@ import type { MapLesson } from '@es/schema/compiled'
 import { useEvidence } from '@/evidence/useEvidence'
 import { runDone, testState, type Bookmark, type Step } from '@/progress/next'
 import { useWayOn } from '@/progress/useWayOn'
+import { readPlace } from '@/settings/bookmark'
 import { guessLines, lessonEvents, lessonRecord, runLines, tally, tallyWords } from './record'
 
 /*
@@ -43,7 +44,8 @@ export default function LessonLedger({ row, lessons, place, names, onRead }: Les
   const step = useWayOn(lessons, place)
   useEffect(() => {
     if (!ready || step === null) return
-    const own = lessonEvents(events, lessons, row.id)
+    const here = place ?? readPlace()
+    const own = lessonEvents(events, lessons, row.id, here)
     const count = tally(row, own)
     const test = testState(row, own)
     const graded = runLines(own, row.test.graded, names)
@@ -54,8 +56,8 @@ export default function LessonLedger({ row, lessons, place, names, onRead }: Les
       runAnswers: [...guessLines(own).map((guess) => guess.said), ...runLines(own, row.run, names).map((run) => run.text)],
       readAnswers: runLines(own, row.inline, names).map((run) => run.text),
       testWords: row.test.questions.length > 0 ? (count.tried ? tallyWords(count) : null) : graded.length > 0 ? graded.map((run) => run.text).join(', ') : null,
-      record: lessonRecord(row, lessons, events, names),
+      record: lessonRecord(row, lessons, events, names, here),
     })
-  }, [ready, step, events, lessons, row, names, onRead])
+  }, [ready, step, events, lessons, row, names, onRead, place])
   return null
 }

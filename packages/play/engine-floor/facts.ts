@@ -41,11 +41,16 @@ const isDetokenize = (stage: StageDef): boolean => /\.(?:detokenize|process-outp
  * follows it is not counted. For an offline library, where the request begins in the process that samples, there are none.
  */
 export function boundariesOut(path: readonly StageDef[], entry: Place): number {
+  return boundaryStagesOut(path, entry).length
+}
+
+/** The stages that `boundariesOut` counts, in path order: what a reveal names beside the number. */
+export function boundaryStagesOut(path: readonly StageDef[], entry: Place): StageDef[] {
   const sampler = path.findIndex(isSample)
-  if (sampler < 0) return 0
-  let crossed = 0
+  if (sampler < 0) return []
+  const crossed: StageDef[] = []
   for (const stage of path.slice(sampler + 1)) {
-    if (boundaryOf(stage.from, stage.to) === 'process') crossed += 1
+    if (boundaryOf(stage.from, stage.to) === 'process') crossed.push(stage)
     if (stage.to.process === entry.process && stage.to.thread === entry.thread) break
   }
   return crossed

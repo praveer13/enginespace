@@ -9,6 +9,8 @@ import { createContext, type ReactNode } from 'react'
 export interface LessonGuess {
   /** The lesson's question, which stands in for the level's own. */
   readonly ask: ReactNode
+  /** "Guess 2 of 2": where the run asks more than one guess, which one this is, so two boxes never read as the same question. */
+  readonly label?: string
   /** What the slot shows under the field: how sure the learner is. */
   readonly sure?: ReactNode
   /** Takes the committed value, before the level's own commit is dispatched. */

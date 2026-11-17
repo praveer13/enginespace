@@ -429,3 +429,74 @@ test.describe('CP17 over every lesson: no lock, no disabled commit and no task i
     })
   }
 })
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* Lesson to lesson, in one visit                                                                                     */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/*
+ * The final walks' first trip: a lesson opened from another in the same visit (a client-side navigation, not a load) replaced the whole
+ * page with React's "maximum update depth" error, because the level names' hook handed back a new function on every render once they had
+ * loaded. A load never failed, so every other spec missed it. This follows the site's own links through three TR1 lessons and on to TR5a
+ * lesson 1 and TR2 lesson 1 (the KV page pool and the step loop after Request path), presses each lesson's first Play, and holds that the
+ * page never stops and that each gate names its own level.
+ */
+for (const size of SIZES) {
+  test.describe(`lesson to lesson by the site's links at ${size.width} x ${size.height}`, () => {
+    test.use({ viewport: size })
+
+    test('three TR1 lessons by their Continue, then TR5a lesson 1 and TR2 lesson 1 through Course: no page stops, and every Play opens its level', async ({ page, context, watch }) => {
+      test.setTimeout(240_000)
+      await withSettings(context, { view3d: false })
+      const stopped = page.getByRole('heading', { level: 1, name: 'This page stopped' })
+      // Follows the first link in the page's main landmark whose address matches: a client-side navigation, as a click on it is.
+      const go = async (href: RegExp) => {
+        await page.locator('main a[href]').first().waitFor()
+        const found = await page.locator('main a[href]').evaluateAll((links, source) => {
+          const pattern = new RegExp(source)
+          return links.map((a) => a.getAttribute('href') ?? '').find((h) => pattern.test(h)) ?? null
+        }, href.source)
+        expect(found, `a link on the page to ${href.source}`).not.toBeNull()
+        await page.locator(`main a[href="${found}"]`).first().click()
+        await page.waitForURL(href)
+        await quiet(page)
+        await expect(stopped).toHaveCount(0)
+      }
+      // A lesson whose Run opens on the level has no gate to press; elsewhere the first "Play: <level>" opens it.
+      const play = async () => {
+        const gate = page.getByRole('button', { name: /^Play: / }).first()
+        if (!(await gate.isVisible({ timeout: 5_000 }).catch(() => false)) && (await gate.count()) === 0) {
+          await expect(page.locator('section[data-game]').first()).toBeAttached({ timeout: 60_000 })
+          await expect(stopped).toHaveCount(0)
+          return ''
+        }
+        await gate.scrollIntoViewIfNeeded()
+        const label = ((await gate.textContent()) ?? '').trim()
+        await gate.click()
+        await expect(page.locator('section[data-game]').first()).toBeVisible({ timeout: 60_000 })
+        await expect(stopped).toHaveCount(0)
+        return label
+      }
+
+      await open(page, TR1_L1)
+      await play()
+      await go(/\/m\/tr1\/l2-/)
+      // The gate names the lesson's own level, not the game alone: the level names loaded and did not loop.
+      expect(await play()).not.toBe('Play: Request path')
+      await go(/\/m\/tr1\/l3-/)
+      await play()
+      // The lesson's breadcrumb, which a phone shows as a desk does.
+      await go(/\/map$/)
+      await go(/\/m\/tr5a$/)
+      await go(/\/m\/tr5a\/l1-/)
+      await play()
+      // The lesson's breadcrumb, which a phone shows as a desk does.
+      await go(/\/map$/)
+      await go(/\/m\/tr2$/)
+      await go(/\/m\/tr2\/l1-/)
+      await play()
+      await expect(page.getByText('The game stopped.')).toHaveCount(0)
+      expect(watch.errors.filter((line) => /Maximum update depth|185/.test(line))).toEqual([])
+    })
+  })
+}

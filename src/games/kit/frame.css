@@ -420,6 +420,25 @@
   html:has(.es-frame[data-placement='embed']) {
     scroll-padding-bottom: calc(33svh + var(--es-space-4));
   }
+
+  /*
+   * In a lesson, once the run has ended, the result is read with the page and not through the pinned dock's window (the phone walk: the
+   * two engines' paths and the measured numbers sat at the bottom of 1,600 to 2,600 px inside a 140 to 230 px box). The dock lets go of the
+   * foot and takes its whole height, and the diagram over it keeps its own.
+   */
+  .es-frame[data-placement='embed'][data-phase='result'] .es-frame__dock {
+    position: static;
+    max-height: none;
+    box-shadow: var(--es-shadow-paper);
+  }
+
+  .es-frame[data-placement='embed'][data-phase='result'] .es-frame__dock-main {
+    overflow: visible;
+  }
+
+  html:has(.es-frame[data-placement='embed'][data-phase='result']):not(:has(.es-frame[data-placement='embed'][data-phase='play'])) {
+    scroll-padding-bottom: 0;
+  }
 }
 
 /* The same in a lesson's Run at a desk while the intro's Next row and the readout stand at the foot of the screen [estimated: the two

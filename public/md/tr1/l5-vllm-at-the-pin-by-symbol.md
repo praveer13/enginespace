@@ -190,7 +190,7 @@ The answer is 302 tokens [derived]. The scheduler serves the running requests fi
 
 ## Exit check
 
-Three questions on new numbers: two on the states of a request and one on what a step holds. Two right passes. The graded map at the end of the module tests the vLLM path on whole paths.
+Three questions on new numbers: two on the states of a request and one on what a step holds. The graded map at the end of the module tests the vLLM path on whole paths.
 
 > **Practice.** Items from the generator family `tr1.request-state`, level `2`, `2` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 

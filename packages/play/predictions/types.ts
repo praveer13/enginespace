@@ -29,6 +29,8 @@ export interface Reference {
   readonly reads: string
   /** The model's answer for this run. Throws for a run of another game or another level than the one the reference answers. */
   readonly truth: (run: RunRecord) => Truth
+  /** What a count counted, by name, in order (the stages, for Request path): the reveal names them beside the number. */
+  readonly counted?: (run: RunRecord) => readonly string[]
 }
 
 /** Checks that a run is of the game block a reference answers, so that a run of any other level cannot answer it by accident. */

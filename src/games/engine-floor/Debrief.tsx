@@ -2,7 +2,7 @@ import { useContext, useMemo, type ReactNode } from 'react'
 import { drawInBand } from '@es/play'
 import { FLOOR_COPY } from '@es/play/engine-floor/copy'
 import { ENGINE_NAMES } from '@es/play/engine-floor/engine'
-import { factsOf, MAX_PREDICTION, type PathFacts } from '@es/play/engine-floor/facts'
+import { boundaryStagesOut, factsOf, MAX_PREDICTION, type PathFacts } from '@es/play/engine-floor/facts'
 import { rivalScenario } from '@es/play/engine-floor/levels'
 import { floorSession } from '@es/play/engine-floor/session'
 import { referenceOf } from '@es/play/engine-floor/stages'
@@ -300,7 +300,15 @@ export function Debrief({ run, outcome, next, onNext, onGraded = null, embedded 
     <Result
       className="es-floor-debrief"
       verdict={verdict}
-      sentence={<Spans text={debrief.sentence} />}
+      sentence={
+        mistake !== null && view.served ? (
+          <>
+            The request reached the client on run <span className="font-numeric">{view.runs}</span>.
+          </>
+        ) : (
+          <Spans text={debrief.sentence} />
+        )
+      }
       actions={
         <>
           {primary}
@@ -333,10 +341,17 @@ export function Debrief({ run, outcome, next, onNext, onGraded = null, embedded 
             )}
           </p>
         ) : null}
+        {/* A run that reached the client after an earlier one stopped: this run's outcome first, then the one rule that keeps it from a pass. */}
+        {mistake !== null && view.served ? (
+          <p className="es-floor-debrief__clean" data-floor-clean-rule="">
+            <strong>This run reached the client.</strong> A pass needs a path that holds with no stop on the way, and an earlier run stopped: Run again
+            for a clean one.
+          </p>
+        ) : null}
         {mistake === null ? null : (
           <section className="es-floor-debrief__wrong" aria-label="The first stage that did not hold" data-floor-first-wrong="">
             <p>
-              <strong>The first stage that did not hold</strong> was stage <span className="font-numeric">{mistake.at + 1}</span>, laid as{' '}
+              <strong>{view.served ? 'Where the earlier run stopped' : 'The first stage that did not hold'}</strong>: stage <span className="font-numeric">{mistake.at + 1}</span>, laid as{' '}
               <strong>{handoffWords(mistake.laid.mechanism)}</strong>
               {mistake.expected === null ? '.' : <>, where {ENGINE_NAMES[view.pin.engine]} has {handoffWords(mistake.expected.mechanism)}.</>}
             </p>
@@ -359,11 +374,31 @@ export function Debrief({ run, outcome, next, onNext, onGraded = null, embedded 
               stamp={<Stamp word="derived" />}
             />
             <p>{predicted === truth ? 'Your prediction was right.' : `The path has ${truth} process ${truth === 1 ? 'boundary' : 'boundaries'} there.`}</p>
+            {/* What was counted, by name: the reveal says which stages cross, not a number alone. */}
+            <p data-floor-counted="">
+              {(() => {
+                const crossing = boundaryStagesOut(referenceOf(scenario), entryOf(scenario.engine))
+                return crossing.length === 0 ? (
+                  'Counted from the stage that samples the token to the client: no stage on that stretch crosses into another process.'
+                ) : (
+                  <>
+                    Counted from the stage that samples the token to the client:{' '}
+                    {crossing.map((stage, at) => (
+                      <span key={stage.id}>
+                        {at > 0 ? '; ' : ''}
+                        <Spans text={stage.label} />
+                      </span>
+                    ))}
+                    .
+                  </>
+                )
+              })()}
+            </p>
           </div>
         )}
         <p className="es-floor-debrief__counts" data-floor-counts="">
-          Stages that held before the first that did not: <span className="font-numeric">{run.score.survived}</span> of {count(view.stages)}. Runs:{' '}
-          <span className="font-numeric">{view.runs}</span>.
+          {mistake === null ? 'Stages that held: ' : 'Stages that held before the first stop: '}
+          <span className="font-numeric">{run.score.survived}</span> of {count(view.stages)}. Runs: <span className="font-numeric">{view.runs}</span>.
         </p>
         <TapeCheck view={view} />
         <PathPair scenario={scenario} />

@@ -101,7 +101,7 @@ The last piece is [`postprocess`](https://github.com/GeeeekExplorer/nano-vllm/bl
 
 The answer is 300 tokens [derived]. The waiting prompt is admitted first, and a prefill step is returned before the running sequences are looked at, so the step holds only the new prompt and the two decoders get no token from it. The next step is a decode of three sequences, which holds three tokens [derived]. That is the whole of what the phrase "prefill or decode in a step" means, and it has a cost you can name: while a long prompt is being prefilled, every running sequence waits, so their inter-token latency includes the full prefill. kernelspace T5.L8 had a name for the cure.
 
-One question on what a step holds, before the next part.
+One question on what a step holds, before the next part. It names its engine. For nano-vllm the rule is the one above. vLLM has no phases, only one token budget: it serves the running requests first, one token each, and then the waiting prompts out of what is left, cutting a prompt to fit. **one token budget** [measured] **running first, then waiting** [measured] The part "One budget, not two phases" shows why.
 
 > **Practice.** Items from the generator family `tr1.step-budget`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
@@ -244,7 +244,7 @@ Every gap in the list below is a stage you will add to the path in the next less
 
 ## Exit check
 
-Three questions on new numbers. Each gives a queue of running and waiting requests and a budget, names the engine, and asks what its next step holds. Two right passes. The graded map at the end of the module tests what each part owns, on its nano-vllm scenarios.
+Three questions on new numbers. Each gives a queue of running and waiting requests and a budget, names the engine, and asks what its next step holds. The graded map at the end of the module tests what each part owns, on its nano-vllm scenarios.
 
 > **Practice.** Items from the generator family `tr1.step-budget`, level `2`, `3` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 

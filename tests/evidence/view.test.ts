@@ -194,7 +194,7 @@ describe('the page', () => {
   test('says that it stays on this device, and that a count is a count of events and not credit', () => {
     const body = decode(view())
     expect(body).toContain('nothing here is sent anywhere, and nothing is collected')
-    expect(body).toContain('Events written, not credit:')
+    expect(body).toContain('What you did, counted. This is not credit:')
   })
 
   test('is read without a build-log word, a kind id or an old name of the page', () => {
@@ -241,7 +241,7 @@ describe('the tape that says where the evidence is kept', () => {
   test('an ordinary ledger: IndexedDB, kept safe, the counts, and when it was last exported', () => {
     const lines = storageLines(ledger({ lastExportAt: '2026-11-04T09:30:00.000Z' }))
     expect(lines.map((candidate) => candidate.id)).toEqual(['kept', 'persisted', 'events', 'receipts', 'export'])
-    expect(line(lines, 'kept')?.value).toBe('IndexedDB')
+    expect(line(lines, 'kept')?.value).toBe('this browser')
     expect(line(lines, 'persisted')?.value).toBe('yes')
     expect(typeof line(lines, 'export')?.value).toBe('string')
   })

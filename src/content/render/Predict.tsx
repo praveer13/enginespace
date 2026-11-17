@@ -11,7 +11,8 @@ import { Field } from '@/design/components/Field'
 import { Icon } from '@/design/components/Glyph'
 import type { Of } from './BlockFrame'
 import { answeringBlock, decimals } from './model'
-import { commitPrediction, phaseOf, revealPrediction, usePrediction } from './predicted'
+import { useEvidence } from '@/evidence/useEvidence'
+import { commitPrediction, phaseOf, restorePrediction, revealPrediction, usePrediction } from './predicted'
 import type { Commitment, Phase, Revealed } from './predicted'
 import { latestSeq, useBlockRun } from './runs'
 import { optionText, readSlip, unitName } from './slip'
@@ -52,9 +53,40 @@ export interface PredictTicketProps {
   slot?: GuessSlot
   /** For a guess left where it was written: the run that answers it, in words ("the run in part 4"). */
   where?: string
+  /** The box's title where the run asks more than one guess: "Guess 1 of 2, before this run". */
+  label?: string
 }
 
-export function PredictTicket({ block, scope, at, blocks, rev, slot = 'written', where }: PredictTicketProps) {
+/**
+ * A guess revealed on an earlier visit is read back from its `predict` event once the ledger is open: the box shows what was written and the
+ * answer, as the lesson record lists them, and does not ask again. The event holds no working and no run, so the reveal says where it came from.
+ */
+function useRestored(block: PredictBlock, scope: string) {
+  const { ready, events } = useEvidence()
+  useEffect(() => {
+    if (!ready) return
+    const ref = `predict:${scope}#${block.id}`
+    let last: (typeof events)[number] | undefined
+    for (const event of events) if (event.kind === 'predict' && event.ref === ref && (last === undefined || event.at >= last.at)) last = event
+    if (last === undefined || last.kind !== 'predict') return
+    const { value, truth } = last.data
+    // The ledger keeps an interval's truth as the degenerate interval at the true value (reveal.ts), and the reveal prints the value.
+    const shown = typeof truth === 'object' ? truth.lo : truth
+    restorePrediction(
+      scope,
+      block.id,
+      { value, conf: last.conf ?? null, after: Number.POSITIVE_INFINITY },
+      { truth: shown, ok: last.ok, score: last.score, reads: '', run: null, working: [], sources: [], tag: null, unsaved: null, restored: true },
+    )
+  }, [ready, events, block, scope])
+}
+
+export function PredictTicket(props: PredictTicketProps) {
+  useRestored(props.block, props.scope)
+  return <Ticket {...props} />
+}
+
+function Ticket({ block, scope, at, blocks, rev, slot = 'written', where, label }: PredictTicketProps) {
   const plan = planOf(block.id)
   if (isAtCommit(plan)) return <AtCommitTicket block={block} scope={scope} rev={rev} />
   if (!isAnswered(plan)) return <HeldTicket block={block} held={plan} />
@@ -62,7 +94,7 @@ export function PredictTicket({ block, scope, at, blocks, rev, slot = 'written',
   // A row that names a block the lesson does not have cannot be revealed after a run: the question is held, until the table is put right.
   if (place < 0) return <HeldTicket block={block} held={NO_BLOCK} />
   const mode = (blocks[place] as Of<'game'>).mode
-  return <AnsweredTicket block={block} scope={scope} rev={rev} plan={plan} place={place} mode={mode} slot={slot} where={where} />
+  return <AnsweredTicket block={block} scope={scope} rev={rev} plan={plan} place={place} mode={mode} slot={slot} where={where} title={label} />
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -341,6 +373,15 @@ interface RevealViewProps {
   headingRef: Ref<HTMLParagraphElement>
 }
 
+/** A stage's label, with its code in backticks set in the code face: "sampled ids to the host (`.tolist()`)". */
+function RichName({ text }: { text: string }) {
+  return (
+    <>
+      {text.split('`').map((piece, at) => (at % 2 === 1 ? <code key={at}>{piece}</code> : piece))}
+    </>
+  )
+}
+
 /** What the reveal shows: the verdict, what was written beside the answer, and the run or the working it came from. */
 function RevealView({ block, committed, revealed, headingRef }: RevealViewProps) {
   const { answer } = block
@@ -365,11 +406,31 @@ function RevealView({ block, committed, revealed, headingRef }: RevealViewProps)
           </div>
         }
       />
-      {run === null ? (
+      {revealed.restored === true ? (
+        <p className="es-guess__run">Your answer from an earlier visit, as your record keeps it.</p>
+      ) : run === null ? (
         <Working revealed={revealed} />
       ) : (
         <>
           <p className="es-guess__reads">{revealed.reads}</p>
+          {revealed.counted === undefined || (revealed.counted.length === 0 && typeof revealed.truth !== 'number') ? null : (
+            <p className="es-guess__counted" data-counted="">
+              {revealed.counted.length === 0 ? (
+                'Counted: none on this path.'
+              ) : (
+                <>
+                  Counted:{' '}
+                  {revealed.counted.map((name, at) => (
+                    <span key={name}>
+                      {at > 0 ? '; ' : ''}
+                      <RichName text={name} />
+                    </span>
+                  ))}
+                  .
+                </>
+              )}
+            </p>
+          )}
           <p className="es-guess__run">
             Read from your run of {rosterEntry(run.game)?.title ?? run.game}, on seed {run.seed.toString(16).toUpperCase().padStart(8, '0')}.
           </p>
@@ -411,13 +472,14 @@ interface AnsweredTicketProps {
   mode?: 'practice' | 'graded'
   slot?: GuessSlot
   where?: string
+  title?: string
 }
 
 /**
  * A guess that a run answers: asking, locked in while the run is played, and revealed when a run of its level ends after the commit. The
  * reveal opens by itself: the run's end is the learner's action, and the answer belongs beside it.
  */
-export function AnsweredTicket({ block, scope, rev, plan, place, mode = 'practice', slot = 'written', where }: AnsweredTicketProps) {
+export function AnsweredTicket({ block, scope, rev, plan, place, mode = 'practice', slot = 'written', where, title: named }: AnsweredTicketProps) {
   const state = usePrediction(scope, block.id)
   const { committed, revealed } = state
   const run = useBlockRun(scope, place)
@@ -451,7 +513,7 @@ export function AnsweredTicket({ block, scope, rev, plan, place, mode = 'practic
   // Paired with the level's own guess: the instrument's slot asks it, and this shows what follows the commit.
   if (slot === 'paired' && committed === null) return null
   const title = rosterEntry(plan.game)?.title ?? plan.game
-  const label = slot === 'written' ? 'Your guess' : 'Your guess for this run'
+  const label = named ?? (slot === 'written' ? 'Your guess' : 'Your guess for this run')
   const data = { phase, slot, ...(revealed === null ? {} : { ok: String(revealed.ok) }) }
   const then =
     phase === 'ready'

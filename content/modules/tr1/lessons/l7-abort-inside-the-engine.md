@@ -185,7 +185,7 @@ id: lifecycle
 
 ## Exit check
 
-Three questions on new numbers. Two ask which state a request is in, or which status it ends in, after an abort, and one asks in which process a stage of an abort's path runs. Two right passes.
+Three questions on new numbers. Two ask which state a request is in, or which status it ends in, after an abort, and one asks in which process a stage of an abort's path runs.
 
 :::item
 family: tr1.request-state

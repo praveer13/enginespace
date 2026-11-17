@@ -83,12 +83,12 @@ describe('the rail’s answers and the Test’s tally', () => {
     expect(runLines(again, ROW.run, NAMES).map((line) => line.text)).toEqual(['One KV group: passed in practice', 'Full attention and a sliding window: passed in practice'])
   })
 
-  test('"3 of 3: passed", and "1 of 3: not yet. New numbers when you retry."', () => {
+  test('"3 of 3: passed", and before the pass the running count the rule reads, "1 of your last 3 answers right"', () => {
     expect(tallyWords(tally(ROW, own))).toBe('3 of 3: passed')
     const once = [made('item', 'item:gen/tr5a.blocks-held/v1', { ok: false }), made('item', 'item:gen/tr5a.blocks-held/v1', { day: 1 })]
     const count = tally(ROW, once)
     expect(count).toEqual({ right: 1, of: 3, passed: false, tried: true })
-    expect(tallyWords(count)).toBe('1 of 3: not yet. New numbers when you retry.')
+    expect(tallyWords(count)).toBe('1 of your last 3 answers right')
   })
 
   test('a practice pass is not a pass of the Test', () => {

@@ -76,6 +76,17 @@ function Marked({ nodes, env }: { nodes: readonly ProseInline[]; env: RenderEnv 
     }
     if (node.type === 'claim') {
       if (prev?.type === 'text' && SENTENCE_END.test(prev.text) && LAST_WORD.test(prev.text)) return
+      // A claim that follows another claim's mark, with only a space between, is a second source of the same sentence: a mark too, and never
+      // its value set loose after the stop (the walks' trip: "...once the data is there. 1 a copy between the CPU and the GPU synchronizes 2").
+      const before = prev?.type === 'text' && /^\s*$/.test(prev.text) ? nodes[at - 2] : prev
+      if (before?.type === 'claim') {
+        out.push(
+          <span key={at} className="es-claimchain">
+            {env.claim?.(node.id, false)}
+          </span>,
+        )
+        return
+      }
       out.push(<span key={at}>{env.claim?.(node.id, true)}</span>)
       return
     }

@@ -19,7 +19,7 @@ import { citedClaimIds, claimNumbers, kernelspaceLabel, kernelspaceUrl, labName,
 import { Prose } from '@/content/render/Prose'
 import { useBlockRun } from '@/content/render/runs'
 import type { LessonOnward } from '@/games/kit/lessonRun'
-import { useLatestRun } from '@/games/kit/RunContext'
+import { useHasRun, useLatestRun } from '@/games/kit/RunContext'
 import { groupSections, proseWords, runAnchor, testLabel, type LessonSections, type Piece } from '@/content/render/sections'
 import '@/content/render/lesson.css'
 import { moduleCode } from '@/progress/words'
@@ -69,7 +69,8 @@ export function Component() {
   if (lesson.status === 'loading' || index.status === 'loading' || (cites && claims.status === 'loading')) return <Notice title="Lesson" message="Loading the lesson…" loading />
   if (loaded === null) return <Notice title="Lesson not found" message={`No lesson called ${slug} in module ${module}.`} back={{ to: `/m/${module}`, label: 'Open module' }} />
   const entry = index.status === 'ready' ? index.value.modules.find((candidate) => candidate.id === module) : undefined
-  return <LessonView lesson={loaded} module={entry} claims={claims.status === 'ready' ? claims.value : null} today={today} map={map.status === 'ready' ? map.value : null} />
+  // Keyed by the lesson: a lesson opened from another starts with its own state (where the reader is, the minutes, the runs), never the last one's.
+  return <LessonView key={loaded.id} lesson={loaded} module={entry} claims={claims.status === 'ready' ? claims.value : null} today={today} map={map.status === 'ready' ? map.value : null} />
 }
 
 /** The page while the lesson loads, when there is none at the address, and when it did not load: its name as the `h1`, and a sentence. */
@@ -133,6 +134,70 @@ function useDocked(): boolean {
     return () => list.removeEventListener('change', change)
   }, [])
   return docked
+}
+
+/**
+ * The reader's place survives what moves the page under it (the walks' trips: a Continue to "read why" opened at the top, and turning a
+ * phone put Read part 3 back at Run).
+ *   - Arriving with a fragment, the page goes to it, and again while the lesson's late parts (a game's chunk, a figure) lay out above it,
+ *     for two seconds or until the reader scrolls, taps or presses a key: the browser's own jump ran before the lesson was drawn.
+ *   - When the width changes (a phone turned), the heading that was at the top of the screen is put back there once the text has reflowed.
+ *     A height-only change, the address bar hiding, is left to the browser.
+ */
+function useKeepPlace(root: HTMLElement | null) {
+  useEffect(() => {
+    if (root === null) return
+    let user = false
+    let timer = 0
+    const stop = () => {
+      user = true
+    }
+    const id = decodeURIComponent(window.location.hash.slice(1))
+    let tries = 0
+    const go = () => {
+      if (user || id === '') return
+      document.getElementById(id)?.scrollIntoView({ block: 'start' })
+      tries += 1
+      if (tries < 8) timer = window.setTimeout(go, 250)
+    }
+    go()
+    const stops = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const
+    for (const name of stops) window.addEventListener(name, stop, { passive: true, once: true })
+
+    // The heading nearest the top of the screen, kept as the reader scrolls, for a change of width to put back.
+    let top: Element | null = null
+    let width = window.innerWidth
+    const headings = () => [...root.querySelectorAll('h2[id]')]
+    const note = () => {
+      let found: Element | null = null
+      for (const heading of headings()) if (heading.getBoundingClientRect().top <= 80) found = heading
+      top = found
+    }
+    let frame = 0
+    const scroll = () => {
+      if (frame === 0)
+        frame = window.requestAnimationFrame(() => {
+          frame = 0
+          note()
+        })
+    }
+    const resize = () => {
+      if (window.innerWidth === width) return
+      width = window.innerWidth
+      const keep = top
+      if (keep === null) return
+      window.setTimeout(() => keep.scrollIntoView({ block: 'start' }), 120)
+    }
+    window.addEventListener('scroll', scroll, { passive: true })
+    window.addEventListener('resize', resize)
+    return () => {
+      window.clearTimeout(timer)
+      if (frame !== 0) window.cancelAnimationFrame(frame)
+      for (const name of stops) window.removeEventListener(name, stop)
+      window.removeEventListener('scroll', scroll)
+      window.removeEventListener('resize', resize)
+    }
+  }, [root])
 }
 
 /** "Back to my run", under a part's title where there is no dock: to the instrument of the run touched last in this lesson. */
@@ -222,13 +287,16 @@ export function LessonView({ lesson, module, claims, today, map = null, reading:
   const kcs = lesson.kcs.map((id) => map?.kcs.find((kc) => kc.id === id)?.description).filter((text): text is string => text !== undefined)
   const [article, setArticle] = useState<HTMLElement | null>(null)
   const place = useBookmark(route, article, row?.anchors.test)
+  useKeepPlace(article)
   const [read, setRead] = useState<LedgerReading | null>(null)
   const reading = given ?? read
   const onRead = useCallback((next: LedgerReading) => setRead(next), [])
   const names = useLevelNames()
   const levelTitle = (game: string, level: string) => names(game, level) ?? rosterEntry(game)?.title ?? 'A level'
   const wide = useWide()
-  const docked = useDocked()
+  // The dock stands beside Read only once there is a run to show: an empty "Your run appears here" box would narrow the text for nothing.
+  const hasRun = useHasRun(lesson.id)
+  const docked = useDocked() && hasRun
 
   const partId = (at: number) => env.headings.get(sections.read[at].heading) ?? `part-${at + 1}`
   const testId = sections.test.heading === null ? 'test-title' : (env.headings.get(sections.test.heading) ?? 'test-title')
@@ -257,12 +325,22 @@ export function LessonView({ lesson, module, claims, today, map = null, reading:
   const current = here === 'read' && sections.read.length > 0 ? partId(0) : here
   const currentPart = here === 'read' && sections.read.length > 0 ? 0 : partAt
 
-  // Minutes left: the lesson's minutes, in proportion to the words still ahead [estimated].
+  // Minutes left: the lesson's minutes, in proportion to the words of what is still to do [estimated]. A section is done when it is: the
+  // Run once its run has ended, a part once the reader has passed it on this visit, the Test once it is passed. Scrolling back up adds
+  // nothing back, and a lesson that is done shows no count.
   const partWords = sections.read.map((part) => piecesWords(part.pieces))
   const testWords = piecesWords(sections.test.pieces)
-  const total = piecesWords(sections.run?.pieces ?? []) + piecesWords(sections.intro) + partWords.reduce((a, b) => a + b, 0) + testWords
-  const ahead = currentPart >= 0 ? partWords.slice(currentPart).reduce((a, b) => a + b, 0) + testWords : here === 'test' || here === 'keep' ? testWords : total
-  const minutesLeft = total === 0 ? lesson.minutes : Math.max(1, Math.round((lesson.minutes * ahead) / total))
+  const runWords = piecesWords(sections.run?.pieces ?? []) + piecesWords(sections.intro)
+  const total = runWords + partWords.reduce((a, b) => a + b, 0) + testWords
+  const passedTo = here === 'test' || here === 'keep' ? sections.read.length : currentPart
+  const ahead =
+    (reading?.runDone === true || passedTo >= 0 ? 0 : runWords) +
+    partWords.reduce((sum, words, at) => (at < passedTo || seen.has(partId(at)) ? sum : sum + words), 0) +
+    (reading?.passed === true ? 0 : testWords)
+  const counted = total === 0 ? lesson.minutes : Math.max(1, Math.round((lesson.minutes * ahead) / total))
+  const [fewest, setFewest] = useState(counted)
+  if (counted < fewest) setFewest(counted)
+  const minutesLeft = reading?.passed === true ? undefined : Math.min(fewest, counted)
 
   const rail: RailSection[] = []
   const numbered = (n: number, title: string) => (
@@ -396,7 +474,7 @@ export function LessonView({ lesson, module, claims, today, map = null, reading:
                       <WayOn
                         href={next === undefined ? `#${testId}` : `#${partId(at + 1)}`}
                         label={next === undefined ? toTest : `Next part: ${headingText(next.heading)}`}
-                        emphasis={wide && at === currentPart && next !== undefined && !part.pieces.some((piece) => piece.kind === 'block' && lesson.blocks[piece.at].type === 'item') ? 'primary' : 'outline'}
+                        emphasis={wide && at === currentPart && next !== undefined ? 'primary' : 'outline'}
                       />
                     )}
                   </section>
@@ -411,14 +489,16 @@ export function LessonView({ lesson, module, claims, today, map = null, reading:
           </section>
 
           <section id="test" className="es-lesson__section" aria-labelledby={testId} data-section="test">
+            {/* One name per section: the rail says Test, so the heading does too, whatever the lesson's own heading was. */}
             <h2 id={testId} className="es-lesson__part-title">
-              {sections.test.heading === null ? 'Test' : headingText(sections.test.heading)}
+              Test
             </h2>
             <p className="es-lesson__meta">
-              {testName}
+              {testName.replace(/^Test · /, '').replace(/^./, (first) => first.toUpperCase())}
               {questions > 0 ? ', on new numbers' : ''}
               {reading?.testWords ? `. ${reading.testWords}` : ''}
             </p>
+            {questions > 0 ? <p className="es-lesson__rule">{passRule(lesson, sections)}</p> : null}
             <div className="es-lesson__prose">
               <Pieces pieces={sections.test.pieces} {...pieceProps} />
             </div>
@@ -427,7 +507,12 @@ export function LessonView({ lesson, module, claims, today, map = null, reading:
             ))}
             {sections.test.questions.map((at, nth) => (
               <Suspense key={at} fallback={<p className="es-lesson__meta">Setting up the questions…</p>}>
-                <ItemBlock block={lesson.blocks[at] as Of<'item'>} scope={lesson.id} quiet={nth > 0} />
+                <ItemBlock
+                  block={lesson.blocks[at] as Of<'item'>}
+                  scope={lesson.id}
+                  quiet={nth > 0}
+                  onward={nth === sections.test.questions.length - 1 && reading?.passed === true ? { href: reading.step.href, label: reading.step.label } : null}
+                />
               </Suspense>
             ))}
           </section>
@@ -446,6 +531,31 @@ export function LessonView({ lesson, module, claims, today, map = null, reading:
       )}
     </div>
   )
+}
+
+const COUNT_WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six'] as const
+const countWord = (n: number): string => COUNT_WORDS[n] ?? String(n)
+
+/**
+ * The Test's pass rule, stated once and in the words of the rule the page reads (`familyPassed` in progress/next.ts): the last answers of
+ * each kind the Test asks must all be right, on new numbers. The practice questions in Read draw from the same kinds, so they count too,
+ * and the line says so where the lesson has one.
+ */
+function passRule(lesson: CompiledLesson, sections: LessonSections): string {
+  const counts = new Map<string, number>()
+  for (const at of sections.test.questions) {
+    const block = lesson.blocks[at] as Of<'item'>
+    counts.set(block.family, (counts.get(block.family) ?? 0) + block.count)
+  }
+  const testAt = new Set(sections.test.questions)
+  const practice = lesson.blocks.some((block, at) => block.type === 'item' && !testAt.has(at) && counts.has(block.family))
+  const each = [...counts.values()]
+  const order = ['first', 'second', 'third', 'fourth']
+  const rule =
+    each.length === 1
+      ? `It is passed when your last ${countWord(each[0])} answers to this kind of question are all right.`
+      : `It asks ${countWord(each.length)} kinds of question, and it is passed when your last answers to each are all right: ${each.map((n, at) => `${countWord(n)} of the ${order[at] ?? 'next'}`).join(' and ')}.`
+  return practice ? `${rule} The practice questions in the reading ask the same kinds, and they count.` : rule
 }
 
 /** "Builds on kernelspace T5.L5, T5.L4": the lessons this one builds on, linked out. A kernelspace KC has no page, so it is left out. */
@@ -478,7 +588,7 @@ function ModelLine({ id, env }: { id: string; env: RenderEnv }) {
   return (
     <TitleBlock
       className="es-lesson__model"
-      model={`Model of ${loaded.title.replace(/^The /, 'the ')}`}
+      model={`Model of ${loaded.title.replace(/^(The|An|A) /, (word) => word.toLowerCase())}`}
       leavesOut={
         <div className="es-lesson__card" data-card={loaded.id}>
           <Prose body={loaded.intro} env={plain} />
@@ -608,7 +718,7 @@ function BlockPiece({ at, lesson, env, whereOf, sections }: PieceProps & { at: n
     case 'item':
       return (
         <Suspense fallback={<p className="es-lesson__meta">Setting up the question…</p>}>
-          <ItemBlock block={block} scope={lesson.id} quiet />
+          <ItemBlock block={block} scope={lesson.id} quiet practice />
         </Suspense>
       )
     case 'figure':

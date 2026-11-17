@@ -84,7 +84,7 @@ TR2 has no GPU stage of its own. The prediction that this lesson makes about a r
 
 ## Exit check
 
-This lesson tests two skills: saying why the GPU idles between engine steps when the CPU's work for the next step is not ready (`tr2.bubble`), and saying which CPU work async scheduling plans behind the running step and what it leaves on the critical path (`tr2.async-overlap`). The questions are three items on fresh seeds, each a step with its times, asking for the idle time with overlap off or on, or for the smallest change that closes it. Pass with at least two right, one of them numeric. The graded `close` level at the end of the sixth lesson earns both skills again, with the other levers.
+This lesson tests two skills: saying why the GPU idles between engine steps when the CPU's work for the next step is not ready (`tr2.bubble`), and saying which CPU work async scheduling plans behind the running step and what it leaves on the critical path (`tr2.async-overlap`). The questions are three items on fresh seeds, each a step with its times, asking for the idle time with overlap off or on, or for the smallest change that closes it. The graded `close` level at the end of the sixth lesson earns both skills again, with the other levers.
 
 > **Practice.** Items from the generator family `tr2.bubble-width`, level `2`, `3` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 

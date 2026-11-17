@@ -77,13 +77,15 @@ export function Instrument({ block, at, blocks, scope, rev, kind, guesses = [], 
   const own = useBlockRun(scope, at)
   const paired = guesses.find((guess) => guess.paired)
   const pairedBlock = paired === undefined ? undefined : (blocks[paired.at] as Of<'predict'>)
-  const lessonGuess = usePairedGuess(pairedBlock, scope)
+  // A run that asks two guesses numbers them, the ones above it first and the level's own slot last: two boxes with one title read as one.
+  const many = guesses.length > 1
+  const lessonGuess = usePairedGuess(pairedBlock, scope, many ? `Guess ${guesses.length} of ${guesses.length}, in the level` : undefined)
   const above = guesses.filter((guess) => !guess.paired)
   const loading = useRef<HTMLParagraphElement>(null)
   const pairedTicket =
     pairedBlock === undefined ? null : (
       <Suspense fallback={null}>
-        <PredictTicket block={pairedBlock} scope={scope} at={paired?.at ?? 0} blocks={blocks} rev={rev} slot="paired" />
+        <PredictTicket block={pairedBlock} scope={scope} at={paired?.at ?? 0} blocks={blocks} rev={rev} slot="paired" {...(many ? { label: `Guess ${guesses.length} of ${guesses.length}` } : {})} />
       </Suspense>
     )
   const lessonRun: LessonRun = { onward, reveal: pairedTicket, showsReveal: setRevealShown }
@@ -125,8 +127,8 @@ export function Instrument({ block, at, blocks, scope, rev, kind, guesses = [], 
       {kind === 'graded' ? <p className="es-run__rule">New numbers are drawn when you start, and there is no undo. The level states its pass rule before the run.</p> : null}
       {above.length === 0 ? null : (
         <Suspense fallback={null}>
-          {above.map((guess) => (
-            <PredictTicket key={guess.at} block={blocks[guess.at] as Of<'predict'>} scope={scope} at={guess.at} blocks={blocks} rev={rev} slot="above" />
+          {above.map((guess, nth) => (
+            <PredictTicket key={guess.at} block={blocks[guess.at] as Of<'predict'>} scope={scope} at={guess.at} blocks={blocks} rev={rev} slot="above" {...(many ? { label: `Guess ${nth + 1} of ${guesses.length}, before this run` } : {})} />
           ))}
         </Suspense>
       )}
@@ -134,7 +136,7 @@ export function Instrument({ block, at, blocks, scope, rev, kind, guesses = [], 
         <p className="es-run__note">This game is not published yet.</p>
       ) : failed ? (
         <p className="es-run__note" role="alert">
-          The game would not load, or stopped. Check your connection and reload the page.{' '}
+          The game stopped. Your runs and answers so far are saved in this browser: reload the page to start it again.{' '}
           <Button variant="quiet" onClick={() => window.location.reload()}>
             Reload page
           </Button>

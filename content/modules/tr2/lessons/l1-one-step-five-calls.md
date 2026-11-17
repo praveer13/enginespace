@@ -144,7 +144,7 @@ id: trace-room-steploop
 
 ## Exit check
 
-This lesson tests two skills: naming the calls of one step in order and saying which lane runs each (`tr2.step-calls`), and saying why the GPU idles between steps (`tr2.bubble`). The questions are three items on fresh seeds, each a step of calls or a step with its times, asking for the order of the calls, the lane that runs one, or the idle time before a step. Pass with at least two right, one of them numeric.
+This lesson tests two skills: naming the calls of one step in order and saying which lane runs each (`tr2.step-calls`), and saying why the GPU idles between steps (`tr2.bubble`). The questions are three items on fresh seeds, each a step of calls or a step with its times, asking for the order of the calls, the lane that runs one, or the idle time before a step.
 
 :::item
 family: tr2.step-order

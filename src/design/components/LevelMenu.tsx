@@ -37,13 +37,29 @@ function levelWords(levels: readonly LevelOption[], index: number): string {
   return `Level ${index + 1} of ${levels.length} · ${level.title} · ${level.unavailable ? 'not published yet' : level.mode}`
 }
 
+/** On a game's own page the address names the level picked, so a reload or a shared link opens it (`?level=`, ARCHITECTURE §3.1). */
+function syncAddress(level: string) {
+  if (!/\/play\/[^/]+\/?$/.test(window.location.pathname)) return
+  const url = new URL(window.location.href)
+  url.searchParams.set('level', level)
+  window.history.replaceState(window.history.state, '', url)
+}
+
 export function LevelMenu({ levels, value, onChange, label = 'Level', disabled = false, className, 'data-force': force }: LevelMenuProps) {
   const id = useId()
   const [shown, setShown] = useState(value)
   const current = onChange ? value : shown
   const index = levels.findIndex((level) => level.id === current)
   const face = index >= 0 ? { index, level: levels[index] } : null
-  const choice = onChange ? { value, onChange: (event: { target: { value: string } }) => onChange(event.target.value) } : { defaultValue: value, onChange: (event: { target: { value: string } }) => setShown(event.target.value) }
+  const choice = onChange
+    ? {
+        value,
+        onChange: (event: { target: { value: string } }) => {
+          onChange(event.target.value)
+          syncAddress(event.target.value)
+        },
+      }
+    : { defaultValue: value, onChange: (event: { target: { value: string } }) => setShown(event.target.value) }
   return (
     <span className={clsx('es-level', className)}>
       <label htmlFor={id} className="sr-only">

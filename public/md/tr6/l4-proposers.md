@@ -89,7 +89,7 @@ The hook and the fallback list are the facts on this page most likely to change 
 
 ## Exit check
 
-This lesson tests one skill: telling the proposers of the pinned engines apart by what each needs, and saying which runner a configuration runs on (`tr6.proposer-families`). The question set is three items on fresh seeds, drawn from what a method drafts from, which method fits what a team has, and the runner and async setting that a configuration ends up with. It is passed with at least two right.
+This lesson tests one skill: telling the proposers of the pinned engines apart by what each needs, and saying which runner a configuration runs on (`tr6.proposer-families`). The question set is three items on fresh seeds, drawn from what a method drafts from, which method fits what a team has, and the runner and async setting that a configuration ends up with.
 
 > **Practice.** Items from the generator family `tr6.which-runner`, level `2`, `3` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 

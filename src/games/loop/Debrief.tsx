@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, type ReactNode } from 'react'
+import { useContext, useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { drawInBand } from '@es/play'
 import { compareServices, firesOfRun } from '@es/play/loop/compare'
 import { layoutStrip, stripSvg } from '@es/play/loop/strip'
@@ -10,6 +10,7 @@ import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { TextLink } from '@/design/components/TextLink'
 import { Sheet, SheetLine } from '@/design/components/Sheet'
 import { formatReadout } from '@/design/format'
+import { LessonRunContext } from '@/games/kit/lessonRun'
 import { svgToReact } from './svg'
 import type { LoopOutcome, LoopRunCore } from './types'
 
@@ -191,6 +192,9 @@ export function Debrief({ run, outcome, next, onNext }: DebriefProps) {
   const house = outcome.ghostView.counters
   const lever = debrief.names !== null && 'lever' in debrief.names ? LEVER_NAME[debrief.names.lever] : null
   const last = next === null
+  // In a lesson the run's way on is the lesson's ("Read why", or its next level), and a run there never offers to leave the lesson.
+  const lesson = useContext(LessonRunContext)
+  const onward = lesson?.onward ?? null
   // The frame moves focus to the result when the run ends; this chunk loads after that, so it takes focus on to its verdict, unless the
   // learner's focus is already elsewhere.
   const heading = useRef<HTMLHeadingElement>(null)
@@ -214,7 +218,17 @@ export function Debrief({ run, outcome, next, onNext }: DebriefProps) {
           {grade.ok ? 'Passed.' : 'Not yet.'}
         </h3>
         <p className="es-loopdebrief__sentence">{debrief.sentence}</p>
-        <div className="es-loopdebrief__ways">{last ? <PrimaryButton to="/map">Open the course</PrimaryButton> : <PrimaryButton onClick={onNext}>{`Next: ${next.title}`}</PrimaryButton>}</div>
+        <div className="es-loopdebrief__ways">
+          {onward !== null ? (
+            <PrimaryButton onClick={() => onward.select()}>{onward.label}</PrimaryButton>
+          ) : last ? (
+            lesson === null ? (
+              <PrimaryButton to="/map">Open the course</PrimaryButton>
+            ) : null
+          ) : (
+            <PrimaryButton onClick={onNext}>{`Next: ${next.title}`}</PrimaryButton>
+          )}
+        </div>
       </div>
 
       <div className="es-loopdebrief__body">
@@ -242,7 +256,7 @@ export function Debrief({ run, outcome, next, onNext }: DebriefProps) {
               New numbers
             </Button>
           ) : null}
-          {last ? <TextLink to="/m/tr2">Play the full loop (TR2)</TextLink> : null}
+          {last && lesson === null ? <TextLink to="/m/tr2">Play the full loop (TR2)</TextLink> : null}
         </div>
       </div>
     </div>

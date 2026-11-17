@@ -139,7 +139,7 @@ That last check is about events. Every block that enters or leaves the cache is 
 
 ## Exit check
 
-Three questions on new numbers test three skills: working out how many pages an adapter takes, and what must be resident for a request to run; comparing slots with pages and saying when slots are enough; and saying why an admit or a load takes all of its pages or none, and what a refused one leaves behind. Two are on the pages an adapter takes and one on slots against pages. Two right, one of them numeric, passes. The graded `adapters` level then plays the pool against the shelf, and the graded `manager` level draws its model from its seed and plays everything in the module at once. Each passes when the reference run's cost divided by yours is at least 0.95 [estimated], on 3 fresh seeds [estimated].
+Three questions on new numbers test three skills: working out how many pages an adapter takes, and what must be resident for a request to run; comparing slots with pages and saying when slots are enough; and saying why an admit or a load takes all of its pages or none, and what a refused one leaves behind. Two are on the pages an adapter takes and one on slots against pages. The graded `adapters` level then plays the pool against the shelf, and the graded `manager` level draws its model from its seed and plays everything in the module at once. Each passes when the reference run's cost divided by yours is at least 0.95 [estimated], on 3 fresh seeds [estimated].
 
 > **Practice.** Items from the generator family `tr5a.pages-for-adapter`, level `2`, `2` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 

@@ -344,7 +344,7 @@ export function Swimlane({ view, size = 'frame', tools = null }: SwimlaneProps) 
           {dock ? null : (
             <span className="es-lanes__start-label" style={{ left: lanes.start.x + 12, top: lanes.start.y - g.head }} data-lane-start="">
               request
-              {view.prediction === null ? <span className="es-lanes__start-note"> · the columns open once your prediction is in</span> : null}
+              {view.prediction === null ? <span className="es-lanes__start-note"> · the columns open once your boundaries guess is in</span> : null}
             </span>
           )}
           <span

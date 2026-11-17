@@ -143,7 +143,7 @@ stages: [s4]
 
 ## Exit check
 
-Three questions on new numbers test one skill: working out the longest prefix hit when every group must hold it, and saying why the answer is an intersection and not a union. Each is a prompt with the blocks that every group holds, and asks for the tokens the hit covers. Two right, one of them numeric, passes. The graded `evict` level then asks you to use the rule under pressure. It passes when the reference run's cost divided by yours is at least 0.95 [estimated], on 3 fresh seeds [estimated]. The lab's stage `hit_all_groups` grades the skill again on seeds drawn when you run it.
+Three questions on new numbers test one skill: working out the longest prefix hit when every group must hold it, and saying why the answer is an intersection and not a union. Each is a prompt with the blocks that every group holds, and asks for the tokens the hit covers. The graded `evict` level then asks you to use the rule under pressure. It passes when the reference run's cost divided by yours is at least 0.95 [estimated], on 3 fresh seeds [estimated]. The lab's stage `hit_all_groups` grades the skill again on seeds drawn when you run it.
 
 :::item
 family: tr5a.hit-length

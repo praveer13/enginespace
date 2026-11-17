@@ -144,7 +144,7 @@ id: spec
 
 ## Exit check
 
-This lesson tests one skill: testing a sampler for exactness with a chi-square goodness-of-fit test, and saying what its level and its power tell you (`tr6.exactness-testing`). The question set is three items on fresh seeds, drawn from the degrees of freedom of a test, the chance that it fails an exact sampler, which check sees a bug of a given size and place, and the draws until a bias shows. It is passed with at least two right. The lab's `exact` check is the same skill on your Rust code.
+This lesson tests one skill: testing a sampler for exactness with a chi-square goodness-of-fit test, and saying what its level and its power tell you (`tr6.exactness-testing`). The question set is three items on fresh seeds, drawn from the degrees of freedom of a test, the chance that it fails an exact sampler, which check sees a bug of a given size and place, and the draws until a bias shows. The lab's `exact` check is the same skill on your Rust code.
 
 :::item
 family: tr6.exactness-test

@@ -144,7 +144,7 @@ A client that leaves is not the only reason to abort a request. vLLM's engine co
 
 ## Exit check
 
-Three questions on new numbers. Two ask which state a request is in, or which status it ends in, after an abort, and one asks in which process a stage of an abort's path runs. Two right passes.
+Three questions on new numbers. Two ask which state a request is in, or which status it ends in, after an abort, and one asks in which process a stage of an abort's path runs.
 
 > **Practice.** Items from the generator family `tr1.request-state`, level `2`, `2` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 

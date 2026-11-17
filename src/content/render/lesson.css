@@ -376,6 +376,10 @@
 }
 
 .es-lesson__prose > pre {
+  /* Lines wrap rather than run under the edge with no sign that they scroll: every character of a quoted line is on screen at 390 px and
+     beside the dock at a desk (the walks' trip: `.tolist()` was off screen). A wrapped line keeps the indentation it started with. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   padding: var(--es-space-3) var(--es-space-4);
   border: 1px solid var(--es-paper-rule);
   background: color-mix(in srgb, var(--es-surface-1) 45%, var(--es-paper));
@@ -956,4 +960,17 @@
   position: relative;
   max-width: 100%;
   overflow-x: auto;
+}
+
+/* The Test's pass rule: one sentence, stated once, above the questions it governs. */
+.es-lesson__rule {
+  margin: var(--es-space-3) 0 0;
+  max-width: 68ch;
+  color: var(--es-text-1);
+}
+
+/* A second source of the same sentence: far enough from the first that their 44 px boxes do not overlap (WCAG 2.5.8), so each can be
+   reached and seen. */
+.es-claimchain {
+  margin-inline-start: 2rem;
 }

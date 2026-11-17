@@ -12,13 +12,13 @@ import { weightOf } from '@es/ledger/provenance'
 import type { LedgerEvent } from '@es/ledger/types'
 import type { MapLesson } from '@es/schema/compiled'
 import { CONFIDENCE_NAMES } from '@es/play/items/types'
-import { attemptWord, indexLessons, lessonName, ownersOf, testState, type LevelNamer } from '@/progress/next'
+import { attemptWord, indexLessons, lessonName, placeEvents, testState, type Bookmark, type LevelNamer } from '@/progress/next'
 import { unitName } from './slip'
 
-/** The events that belong to one lesson, by the way on's rule (an event several lessons list goes to the one whose `rev` it carries). */
-export function lessonEvents(events: readonly LedgerEvent[], lessons: readonly MapLesson[], id: string): LedgerEvent[] {
-  const index = indexLessons(lessons)
-  return events.filter((event) => ownersOf(event, index).some((lesson) => lesson.id === id))
+/** The events that belong to one lesson, by the way on's rule (`placeEvents`: a question goes to the lesson it was answered in). */
+export function lessonEvents(events: readonly LedgerEvent[], lessons: readonly MapLesson[], id: string, bookmark: Bookmark | null = null): LedgerEvent[] {
+  const places = placeEvents(events, indexLessons(lessons), bookmark)
+  return events.filter((event) => (places.get(event) ?? []).some((lesson) => lesson.id === id))
 }
 
 const byTime = (a: LedgerEvent, b: LedgerEvent): number => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0)
@@ -93,18 +93,22 @@ export function tally(row: MapLesson, own: readonly LedgerEvent[]): Tally {
   return { right, of, passed: testState(row, own) === 'passed', tried }
 }
 
-/** "3 of 3: passed", or "1 of 3: not yet. New numbers when you retry." */
+/**
+ * The rail's Test line: "3 of 3: passed", or, before the pass, the running count the rule reads, "1 of your last 3 answers right". The
+ * practice questions in Read ask the same kinds as the Test and count toward it, so before the Test is started this line already reads
+ * them: it is the skill's count, and says so, never a Test result the learner did not take.
+ */
 export function tallyWords(count: Tally): string {
   if (count.passed && count.of > 0) return `${count.right} of ${count.of}: passed`
-  return `${count.right} of ${count.of}: not yet. New numbers when you retry.`
+  return `${count.right} of your last ${count.of} answers right`
 }
 
 /**
  * The lesson record: "TR5a lesson 1", then a line for each guess, each run and the Test. It is what the ledger holds for this lesson and
  * nothing more, so a lesson with no events has one line, its name, and the line that says so.
  */
-export function lessonRecord(row: MapLesson, lessons: readonly MapLesson[], events: readonly LedgerEvent[], names: LevelNamer): string[] {
-  const own = lessonEvents(events, lessons, row.id)
+export function lessonRecord(row: MapLesson, lessons: readonly MapLesson[], events: readonly LedgerEvent[], names: LevelNamer, bookmark: Bookmark | null = null): string[] {
+  const own = lessonEvents(events, lessons, row.id, bookmark)
   const lines = [lessonName(row, lessons)]
   for (const guess of guessLines(own)) lines.push(guess.record)
   for (const run of runLines(own, [...row.run, ...row.inline, ...row.test.graded], names)) lines.push(run.text)

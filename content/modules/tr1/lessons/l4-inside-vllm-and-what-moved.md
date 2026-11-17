@@ -225,7 +225,7 @@ id: lifecycle
 
 ## Exit check
 
-Three questions on new numbers. Each gives a name or a statement from the post and asks where it is at the pin, or whether it still holds. Two right passes. The graded map at the end of the module tests the vLLM path on whole paths.
+Three questions on new numbers. Each gives a name or a statement from the post and asks where it is at the pin, or whether it still holds. The graded map at the end of the module tests the vLLM path on whole paths.
 
 :::item
 family: tr1.what-moved

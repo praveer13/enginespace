@@ -5,6 +5,7 @@ import { Button } from '@/design/components/Button'
 import { Label } from '@/design/components/Label'
 import { EvidenceNotice } from '@/evidence/EvidenceNotice'
 import { usePointer } from '@/settings/usePlace'
+import { PLACE_KEYS, readJson } from '@/settings/store'
 
 /** What a route's `handle` carries: the text of the page's `<title>`. */
 export interface RouteHandle {
@@ -92,15 +93,34 @@ export function AppLoading() {
   )
 }
 
-/** The root route's error boundary, for example a route chunk that fails to load. */
+/**
+ * Reloads at the part of the lesson last in view (the bookmark, D-066), so the learner comes back to their place and not to the top. Read
+ * here through the store, which the entry has: the bookmark's own module is not in the entry, and a page that failed must not need more
+ * code to recover.
+ */
+function reload() {
+  try {
+    const here = readJson(PLACE_KEYS.here) as { route?: unknown; part?: unknown } | null
+    if (here?.route === location.pathname && typeof here.part === 'string') history.replaceState(history.state, '', `#${here.part}`)
+  } catch {
+    // No storage: the page reloads where it is.
+  }
+  location.reload()
+}
+
+/** The root route's error boundary, for example a route chunk that fails to load: what happened, that nothing is lost, and the one way on. */
 export function AppError() {
   const error = useRouteError()
   const message = isRouteErrorResponse(error) ? `${error.status} ${error.statusText}` : error instanceof Error ? error.message : 'Unknown error'
   return (
     <Shell>
-      <h1>Something went wrong</h1>
-      <p>{message}</p>
-      <Button onClick={() => window.location.reload()}>Reload</Button>
+      <h1>This page stopped</h1>
+      <p>Your answers and runs are saved in this browser. Reload the page to carry on from where you were.</p>
+      <Button onClick={reload}>Reload the page</Button>
+      <details>
+        <summary>What failed</summary>
+        <p>{message}</p>
+      </details>
     </Shell>
   )
 }

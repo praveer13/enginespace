@@ -123,7 +123,7 @@ id: spec
 
 ## Exit check
 
-This lesson tests two skills: reading what one speculative step computes and emits, and which graph serves it (`tr6.verify-shape`), and working out the tokens a round emits and where a longer draft stops paying (`tr6.acceptance-length`). The question set is three items on fresh seeds, drawn from the positions a step computes, the tokens it emits and the graph that serves it, and it is passed with at least two right. The graded `chain` and `gamma` levels of the Rejection sampler earn `tr6.acceptance-length` on the game's own page, with the other graded levels.
+This lesson tests two skills: reading what one speculative step computes and emits, and which graph serves it (`tr6.verify-shape`), and working out the tokens a round emits and where a longer draft stops paying (`tr6.acceptance-length`). The question set is three items on fresh seeds, drawn from the positions a step computes, the tokens it emits and the graph that serves it. The graded `chain` and `gamma` levels of the Rejection sampler earn `tr6.acceptance-length` on the game's own page, with the other graded levels.
 
 :::item
 family: tr6.verify-shape

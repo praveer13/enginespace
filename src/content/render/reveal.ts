@@ -75,7 +75,8 @@ export async function reveal(input: RevealInput): Promise<Revealed> {
   const truth = reference.truth(record)
   const verdict = gradePrediction(input.block.answer, input.committed.value, truth)
   const unsaved = await writeEvent(predictDraft(input, truth, verdict))
-  return { truth, ok: verdict.ok, score: verdict.score, reads: reference.reads, run: { game: record.game, level: record.level, seed: record.seed }, working: [], sources: [], tag: null, unsaved }
+  const counted = reference.counted?.(record) ?? []
+  return { truth, ok: verdict.ok, score: verdict.score, reads: reference.reads, counted, run: { game: record.game, level: record.level, seed: record.seed }, working: [], sources: [], tag: null, unsaved }
 }
 
 /**

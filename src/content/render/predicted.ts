@@ -34,6 +34,8 @@ export interface Revealed {
   readonly score: number
   /** The model's sentence about what it read. */
   readonly reads: string
+  /** What the count counted, by name: the stages, for Request path. Empty where the model names nothing. */
+  readonly counted?: readonly string[]
   /** The run the answer was read from, or null for an answer revealed at commit (D-067), which reads no run. */
   readonly run: { readonly game: string; readonly level: string; readonly seed: number } | null
   /** The working of an answer revealed at commit, a line each: the arithmetic on the question's own numbers, or the claim in words. Empty after a run. */
@@ -44,6 +46,8 @@ export interface Revealed {
   readonly tag: 'derived' | 'measured' | null
   /** Why the ledger would not take the event, or null when it did. The reveal stands either way. */
   readonly unsaved: string | null
+  /** Read back from the ledger's event on a later visit: the value and the answer are the event's, and there is no working to show. */
+  readonly restored?: boolean
 }
 
 export interface PredictionState {
@@ -94,6 +98,18 @@ export function revealPrediction(scope: string, id: string, revealed: Revealed):
   states.set(key, { committed: state.committed, revealed })
   notify()
   return revealed
+}
+
+/**
+ * A prediction this tab has not seen, read back from the ledger's `predict` event of an earlier visit: committed and revealed at once, so a
+ * reload shows the learner's answer and the model's beside it, as the lesson record does, and never an empty box (REDESIGN §2.5). A tab that
+ * holds the prediction already keeps its own state.
+ */
+export function restorePrediction(scope: string, id: string, committed: Commitment, revealed: Revealed): void {
+  const key = keyOf(scope, id)
+  if (states.has(key)) return
+  states.set(key, { committed, revealed })
+  notify()
 }
 
 /** Calls `listener` after every commit and every reveal. Returns the way to stop. */

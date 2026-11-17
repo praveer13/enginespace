@@ -5,7 +5,7 @@
  * serves with, the batch slots it serves on and the sizes it drills. A question that the lesson asks about those is answered by the course's
  * own functions on that world, and the level builds the same stage whatever the learner does, so the reading is of the stage and not of the
  * learner's nights. The first lesson's question is asked in the ticks of the front page's level `first-3-gap`, and its reading is a step of
- * that level's own night, played with async scheduling off.
+ * that level's own run, played with async scheduling off.
  */
 import { hostOf, CARDS } from '../loop/full/night'
 import { buildFullLevel } from '../loop/full/levels'
@@ -39,7 +39,7 @@ function steadyBusyPercent(run: RunRecord): number {
 export const REFERENCES: Readonly<Record<string, Reference>> = {
   'tr2.l1.p1': {
     says: ['2 ticks', '4 ticks', '1 tick', 'Nothing overlaps'],
-    reads: "Read from a steady step of this level's own night with async scheduling off: the forward, over the forward and the idle time before it.",
+    reads: "Read from a steady step of this level's own run with async scheduling off: the forward, over the forward and the idle time before it.",
     truth: steadyBusyPercent,
   },
   'tr2.l4.p1': {

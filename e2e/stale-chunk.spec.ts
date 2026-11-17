@@ -40,7 +40,7 @@ function watchLoads(page: Page): { loads: () => number } {
 }
 const flag = (page: Page) => page.evaluate((key) => sessionStorage.getItem(key), FLAG)
 const footerLink = (page: Page, name: string) => page.getByRole('navigation', { name: 'Footer' }).getByRole('link', { name, exact: true })
-const failed = (page: Page) => page.getByRole('heading', { level: 1, name: 'Something went wrong' })
+const failed = (page: Page) => page.getByRole('heading', { level: 1, name: 'This page stopped' })
 
 /**
  * The page stays quiet about the chunk that the network refuses: the failed request is the thing under test. Anything else the page logs

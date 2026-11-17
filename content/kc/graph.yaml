@@ -52,7 +52,7 @@
   confusable: [tr1.sglang-lifecycle]
 
 - id: tr1.sglang-lifecycle
-  description: You can trace a request through SGLang at the pinned version, through the tokenizer manager, the scheduler and the detokenizer, naming each queue, process boundary, copy and sync.
+  description: You can trace a request through Mini-SGLang and through SGLang at the pinned version, through the tokenizer manager, the scheduler and the detokenizer, naming each queue, process boundary, copy and sync.
   requires: [tr1.five-mechanisms]
   confusable: [tr1.vllm-lifecycle]
 

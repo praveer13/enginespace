@@ -104,6 +104,16 @@ export function useLatestRun(scope: string): LiveRun | null {
   return useSyncExternalStore(subscribe, read, read)
 }
 
+/**
+ * Whether the lesson has a run at all, as React state: a boolean, so a page that only needs to know (the lesson's layout, which stands the
+ * dock beside Read once there is one) draws again when a run appears or leaves, and not on every frame the run publishes, which would draw
+ * the run's own frame again and publish again.
+ */
+export function useHasRun(scope: string): boolean {
+  const read = () => latestRun(scope) !== null
+  return useSyncExternalStore(subscribe, read, read)
+}
+
 /** Forgets every run. For tests. */
 export function forgetRuns(): void {
   runs.clear()

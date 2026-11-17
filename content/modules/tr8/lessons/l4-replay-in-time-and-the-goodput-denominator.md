@@ -113,7 +113,7 @@ id: trace-room-bench
 
 ## Exit check
 
-This lesson tests three skills: telling a replay that keeps a trace's times from one that keeps only its shape (`tr8.time-shaped-replay`), naming the denominator of a goodput (`tr8.goodput-denominator`), and checking a log with Little's law (`tr8.littles-law`). The question set is three items on fresh seeds, two on denominators and one on the law, passed with at least two right. The graded level then puts every skill of the module in front of you at once: five reports, of which four [estimated] must stand with the flaw and the number right.
+This lesson tests three skills: telling a replay that keeps a trace's times from one that keeps only its shape (`tr8.time-shaped-replay`), naming the denominator of a goodput (`tr8.goodput-denominator`), and checking a log with Little's law (`tr8.littles-law`). The question set is three items on fresh seeds, two on denominators and one on the law. The graded level then puts every skill of the module in front of you at once: five reports, of which four [estimated] must stand with the flaw and the number right.
 
 :::item
 family: tr8.goodput-denominator

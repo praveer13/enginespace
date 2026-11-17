@@ -14,7 +14,7 @@ A request is always in a **process**, on a **thread**, on the host or a GPU. Fiv
 - **A copy**: between the host and a GPU, down before the work and up after it.
 - **A sync**: the host waits for a value that the GPU is still producing, before it reads it.
 
-As a library, nano-vllm is one process with one thread. It samples a token in [one line](https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/model_runner.py#L218):
+nano-vllm is a small inference engine written from scratch that borrows vLLM's names. As a library it is one process with one thread, and it samples a token in [one line](https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/model_runner.py#L218):
 
 ```python
 # nanovllm/engine/model_runner.py, line 218 at bb823b3
@@ -25,7 +25,7 @@ token_ids = self.sampler(logits, temperatures).tolist() if self.rank == 0 else N
 >
 > The learner commits to a number in `boundaries`, graded within a relative tolerance of `0` [estimated] before the reveal. Ask them to commit to an answer and say why before you discuss it.
 
-> **Predict `tr1.l1.p2`.** The line of nano-vllm's model runner shown above samples a token and hands it to the Python caller. How many stages of the lifecycle model's path for one request does that single line hold?
+> **Predict `tr1.l1.p2`.** The line of nano-vllm's model runner shown above samples a token and hands it to the Python caller. The game below lays a request's path as a list of stages, one mechanism each. How many stages of that path does that single line hold?
 >
 > The learner commits to a number in `stages`, graded within a relative tolerance of `0` [estimated] before the reveal. Ask them to commit to an answer and say why before you discuss it.
 
@@ -33,13 +33,13 @@ token_ids = self.sampler(logits, temperatures).tolist() if self.rank == 0 else N
 
 ## A request is data in a place
 
-kernelspace T5.L10 drew vLLM and SGLang as boxes joined by arrows, and named each box's design centre. Every arrow in a picture like that hides a decision, and this module is about those decisions. The skill it teaches first is small, and everything else hangs on it: given two adjacent steps of a request's life, say which of five mechanisms joins them. A queue, IPC, a copy, a sync, or compute. With that vocabulary an engine's request path stops being a diagram and becomes a list, and a list can be checked line by line against the source. The module's graded map does exactly that.
+kernelspace T5.L10 drew vLLM and SGLang as boxes joined by arrows, and named each box's design centre. Every arrow in a picture like that hides a decision, and this module is about those decisions. The skill it teaches first is small, and everything else hangs on it: given two adjacent steps of a request's life, say which of five mechanisms joins them. A queue, IPC, a copy, a sync, or compute. With that vocabulary an engine's request path stops being a diagram and becomes a list, and a list can be checked line by line against the source. The module's graded level, the map, does exactly that.
 
 It is also how you find the time. kernelspace T0.L6 gave the recurring cast of an LLM-serving profile: the Python scheduler tax, the detokenizer drip, the NCCL stall and the KV-copy surprise. Each of the four hides in one kind of arrow. The scheduler tax is the host's work between two launches. The drip is the hops that tokens make on their way out. The NCCL stall is a wait on a collective between GPUs, and the KV-copy surprise is a copy that took a detour. Name the arrow and you have named the suspect.
 
 Where a request is has three parts: a **process**, a **thread** inside it, and a **device**, which is the host or a GPU. kernelspace T2.L1 gave you the first two. A process is an address space with resources of its own, and the threads of a process share that space. The third part is the new one. A GPU is a second processor with memory of its own, and a host thread drives it by launching work and going on before the work is done.
 
-The course's lifecycle model (`packages/sim/lifecycle`, the machine under this module's game) writes a request's path as a list of stages. A stage says where the request is when it starts, where it is when it ends, and how it got from one to the other. If the two places are the same, the stage is work done where the request stands. If they differ, they differ in one of a few ways, and each way has one kind of bridge.
+The course's lifecycle model, the machine under this module's game, writes a request's path as a list of stages. A stage says where the request is when it starts, where it is when it ends, and how it got from one to the other. If the two places are the same, the stage is work done where the request stands. If they differ, they differ in one of a few ways, and each way has one kind of bridge.
 
 | The mechanism | What it joins | You know it as | In code it looks like |
 |---|---|---|---|
@@ -49,7 +49,7 @@ The course's lifecycle model (`packages/sim/lifecycle`, the machine under this m
 | A copy | The host and a GPU: down before the work, up after it | A call to a machine with memory of its own | `.cuda(non_blocking=True)`, `.tolist()` |
 | A sync | A value that is still being produced, and the code that wants to read it | A `future.get()`, an `await` | `event.synchronize()`, `future.result()` |
 
-The stage list uses nine words for these five, because three of them split. IPC is a socket or shared memory, a copy is host to device or device to host, and compute is a call on the host, a launch on a GPU, or a collective between the GPUs of two ranks. In Request path (`engine-floor`), a stage names the mechanism first and the kind after it: "IPC · socket" is the table's IPC row, over a socket.
+The stage list uses nine words for these five, because three of them split. IPC is a socket or shared memory, a copy is host to device or device to host, and compute is a call on the host, a launch on a GPU, or a collective between the GPUs of two ranks. In Request path, the game above, a stage names the mechanism first and the kind after it: "IPC · socket" is the table's IPC row, over a socket.
 
 Try one stage of a real engine's path on your own: it shows where the stage starts and where it ends, and asks which mechanism joins the two.
 
@@ -116,7 +116,7 @@ _Three host threads in a row. Thread A hands the request to thread B through a q
 
 ## Exit check
 
-Three questions on new numbers. Each shows one stage of a real engine's path, with the place it starts and the place it ends, and asks which mechanism joins them. Two right passes. The graded map at the end of the module tests the same skill on a whole path.
+Three questions on new numbers. Each shows one stage of a real engine's path, with the place it starts and the place it ends, and asks which mechanism joins them. The graded map at the end of the module tests the same skill on a whole path.
 
 > **Practice.** Items from the generator family `tr1.which-mechanism`, level `2`, `3` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 

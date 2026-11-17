@@ -78,7 +78,7 @@ export function GameBlock({ block, scope, at, rev }: GameBlockProps) {
         title="Play"
         data={data('failed')}
         state="error"
-        error="The game would not load, or stopped. Check your connection and reload the page."
+        error="The game stopped. Your runs and answers so far are saved in this browser: reload the page to start it again."
         stub={<PrimaryButton onClick={() => window.location.reload()}>Reload page</PrimaryButton>}
       >
         <GameName entry={entry} />
