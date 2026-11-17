@@ -35,7 +35,7 @@ mode: practice
 
 ## What the next token reads
 
-{{ks:T5.L5}} gave a request one block table, a list of physical blocks that the attention kernel followed in every layer, and `lab 02` had you write the manager behind it: a pool of blocks, a table for each request, a free queue. That design assumes that every layer reads every token. The second run's model mixes in layers that do not, and the manager that serves it keeps several tables for one request and draws all of them from one pool. The parts below say why, and how many pages each table holds.
+{{ks:T5.L5}} gave a request one block table, a list of physical blocks that the attention kernel followed in every layer, and `lab 02` had you write the manager behind it: a pool of blocks, a table for each request, a free queue. That design assumes that every layer reads every token. The second run's model mixes in layers that do not, and the manager that serves it keeps several tables for one request and draws all of them from one pool. The parts below say why, and how many pages each group's table holds.
 
 A layer needs a token's key and value in the cache only if a later token will read them. {{ks:T5.L4}} counted what one token costs in a full-attention layer. This lesson asks how many tokens a layer has to pay for, and the answer depends on the kind of layer.
 
@@ -50,6 +50,14 @@ A model that mixes the kinds is a hybrid, and they are common. vLLM's design doc
 A **KV cache group** is a set of layers of one kind. They need the same blocks for a request, so they share one block table, and a block id names one block-sized piece in every layer of the group. A request on a hybrid model holds one table for each group. {{claim:vllm.hybrid-kv.group-rules}} vLLM has a manager class for each kind of group. {{claim:vllm.hybrid-kv.manager-per-spec}}
 
 The design document's example model has 10 full-attention layers and 20 sliding-window layers, with 16-token blocks and a 32-token window [measured]. {{claim:vllm.hybrid-kv.doc-example-blocks}} Its layers make three groups: one full group and two sliding groups of equal size. Why two sliding groups and not one is the next lesson's question, so take the grouping as given.
+
+Check what each kind of layer keeps before you read on.
+
+:::item
+family: tr5a.blocks-held
+level: 2
+count: 1
+:::
 
 ## What the two runs showed
 
@@ -86,6 +94,14 @@ The sliding groups stop growing and the full group does not, so the saving grows
 kind: warning
 title: A window is not a block count
 body: A window of two blocks' length holds two blocks at some lengths and three at others. The document's request is the best case, because its length is a multiple of the block size. One token more changes the count, so that at 113 tokens each sliding group holds 3 pages and the request 14, not 11 [derived]. Plan a window as its blocks plus one.
+:::
+
+Check the pages of a request on a new model before you read on.
+
+:::item
+family: tr5a.blocks-held
+level: 2
+count: 1
 :::
 
 ## A state group holds a fixed number

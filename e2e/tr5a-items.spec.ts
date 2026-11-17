@@ -35,13 +35,13 @@ interface Block {
   readonly count: number
 }
 
-/** The item blocks of TR5a's four lessons, as the lessons print them (content/modules/tr5a/lessons). */
+/** The Test's item blocks of TR5a's four lessons, as the lessons print them (content/modules/tr5a/lessons): `at` counts the checkpoints in Read before them. */
 const BLOCKS: readonly Block[] = [
-  { route: '/m/tr5a/l1-why-one-model-needs-several-kv-caches', at: 0, family: 'tr5a.blocks-held', level: 2, count: 3 },
-  { route: '/m/tr5a/l2-one-pool-one-page-size', at: 0, family: 'tr5a.blocks-held', level: 3, count: 3 },
-  { route: '/m/tr5a/l3-a-prefix-hit-must-hold-in-every-group', at: 0, family: 'tr5a.hit-length', level: 2, count: 3 },
-  { route: '/m/tr5a/l4-adapters-as-pages-and-upstreams-slots', at: 0, family: 'tr5a.pages-for-adapter', level: 2, count: 2 },
-  { route: '/m/tr5a/l4-adapters-as-pages-and-upstreams-slots', at: 1, family: 'tr5a.slots-vs-pages', level: 2, count: 1 },
+  { route: '/m/tr5a/l1-why-one-model-needs-several-kv-caches', at: 2, family: 'tr5a.blocks-held', level: 2, count: 3 },
+  { route: '/m/tr5a/l2-one-pool-one-page-size', at: 1, family: 'tr5a.blocks-held', level: 3, count: 3 },
+  { route: '/m/tr5a/l3-a-prefix-hit-must-hold-in-every-group', at: 1, family: 'tr5a.hit-length', level: 2, count: 3 },
+  { route: '/m/tr5a/l4-adapters-as-pages-and-upstreams-slots', at: 2, family: 'tr5a.pages-for-adapter', level: 2, count: 2 },
+  { route: '/m/tr5a/l4-adapters-as-pages-and-upstreams-slots', at: 3, family: 'tr5a.slots-vs-pages', level: 2, count: 1 },
 ]
 
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']
@@ -186,7 +186,7 @@ for (const width of [360, 1280]) {
     test.use({ viewport: { width, height: 900 } })
 
     for (const block of BLOCKS) {
-      test(`${block.family} at level ${block.level}, in ${block.route.split('/').pop()}: every variant is on a ticket that the family makes, and answers are marked`, async ({ page }) => {
+      test(`${block.family} at level ${block.level}, in ${block.route.split('/').pop()} (item block ${block.at + 1}): every variant is on a ticket that the family makes, and answers are marked`, async ({ page }) => {
         test.setTimeout(240_000)
         const attempts = plan(block)
         await open(page, block.route)

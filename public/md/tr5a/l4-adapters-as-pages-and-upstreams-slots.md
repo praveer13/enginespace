@@ -6,30 +6,33 @@ Builds on kernelspace: `ks:T6.L9`, `ks:t6.multi-lora-batching`, `ks:t6.lora-adap
 
 Knowledge components: `tr5a.adapter-pages`, `tr5a.slots-vs-pages`, `tr5a.all-or-nothing`.
 
-A phrase from descriptions of this topic, "adapter pages in the same pool", sounds like something the engines do. They do not. At the pins, vLLM keeps LoRA adapters in `max_loras` GPU slots outside the KV pool, with a CPU LRU behind them and an admission cap on the distinct adapters of a batch, and SGLang keeps them in a fixed-slot `LoRAMemoryPool`. **lora_slots = max_loras** [measured] **max_cpu_loras = max_loras** [measured] **LRU caches of max_cpu_loras and max_loras** [measured] **distinct adapters at most max_loras** [measured] **a fixed-slot pool** [measured] One pool for both is S-LoRA's design, from a paper, and it is the design you build in the lab. This lesson builds it, and then measures it against the slots that the engines actually use.
+A LoRA adapter is a set of extra weights that a request needs on the GPU before it can run. In S-LoRA's design the adapters live in the same pool as the cached KV pages, and this level asks you to load an adapter before its request is admitted, and to mind what the load costs the cached pages. The engines you read in this course do not do this, and the lesson ends by measuring the difference.
 
-## S-LoRA's design
-
-kernelspace T6.L9 introduced S-LoRA, which serves many LoRA adapters from one base model. It keeps all the adapters in main memory and fetches the ones that running requests use into GPU memory. **all adapters in main memory** [measured] Its answer to where the GPU copies live is **Unified Paging**: one pool, with the adapters and the KV cache both kept in it as pages. **Unified Paging** [measured] Four rules make it a design and not a slogan, and the lab tests each.
-
-1. **An adapter is a number of pages.** In the paper a page is one vector of the hidden size, so a KV tensor of `S` tokens takes `S` pages and an adapter of rank `R` takes `R`. **a page is one vector of the hidden size** [measured] The course's pool has one page for a block of a group (D-045), which is a coarser grain, so an adapter takes `ceil(adapter bytes / page bytes)` pages. The other rules do not depend on the grain.
-2. **The pages need not be together.** The KV caches and the adapter weights sit in the pool interleaved and non-contiguous, so an adapter of any rank fits wherever the free pages are. **interleaved and non-contiguous** [measured]
-3. **An adapter is shared and stays while it is used.** Every request on an adapter shares its pages, the adapter cannot be unloaded while one runs, and a request can run only when its adapter is resident. Unloading it returns its pages to the pool and touches no KV page.
-4. **An admit or a load takes all of its pages or none.** A load needs every page of the adapter, and an admit needs a page for each block that its request holds in each group. If the pool can supply some but not all, the operation is refused and the pool is left exactly as it was.
-
-The last two rules are the course's own. They are what makes the pool correct, and the lab's checks test them. S-LoRA also prefetches: while one batch runs it predicts the adapters of the next from the waiting queue and loads them into available memory. **predict the next batch from the waiting queue** [measured] That is the game's `prefetch` action, bringing a recipe kit in before its ticket hangs.
-
-## What an adapter costs in pages
-
-A LoRA adapter has a down matrix and an up matrix for each projection it adapts, `rank × hidden` weights each, so its bytes are `2 × rank × hidden × projections × layers × bytes per weight`. The course's synthetic adapter has a hidden size of 256, 16 layers, 4 projections and 2-byte weights [estimated], which makes 65,536 bytes for each unit of rank [derived]. Commit to one prediction before you play `adapters`.
+- An adapter takes `ceil(adapter bytes / page bytes)` pages of the pool, from wherever pages are free.
+- A request runs only when its adapter is loaded, and an adapter stays loaded while a request on it is running.
+- A load or an admit takes all of its pages or none, and a refusal leaves the pool as it was.
+- Bringing an adapter in too early can evict cached pages that a waiting request stood on.
 
 > **Predict `tr5a.l4.p1`.** The pool's pages are 163,840 bytes each [estimated], and an adapter weighs 65,536 bytes for each unit of its rank [estimated]. How many pages does an adapter of rank 16 [estimated] take from the pool?
 >
 > The learner commits to a number in `pages`, graded within a relative tolerance of `0` [estimated] before the reveal. Ask them to commit to an answer and say why before you discuss it.
 
-In The Reach-In an adapter is a **recipe kit**, whose pans come from the same reach-in as the tickets', and a kit stays while a ticket that uses it is waiting or on the line. Bringing a kit in is `prefetch`, and a ticket hangs only when its kit has landed.
-
 > **Play.** The game `pool`, level `adapters`, in `practice` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.
+
+## S-LoRA's design
+
+kernelspace T6.L9 introduced S-LoRA, which serves many LoRA adapters from one base model. It keeps all the adapters in main memory and fetches the ones that running requests use into GPU memory. **all adapters in main memory** [measured] Its answer to where the GPU copies live is **Unified Paging**: one pool, with the adapters and the KV cache both kept in it as pages. **Unified Paging** [measured] Four rules make it a design and not a slogan, and the lab tests each.
+
+1. **An adapter is a number of pages.** In the paper a page is one vector of the hidden size, so a KV tensor of `S` tokens takes `S` pages and an adapter of rank `R` takes `R`. **a page is one vector of the hidden size** [measured] The course's pool has one page for a block of a group, which is a coarser grain, so an adapter takes `ceil(adapter bytes / page bytes)` pages. The other rules do not depend on the grain.
+2. **The pages need not be together.** The KV caches and the adapter weights sit in the pool interleaved and non-contiguous, so an adapter of any rank fits wherever the free pages are. **interleaved and non-contiguous** [measured]
+3. **An adapter is shared and stays while it is used.** Every request on an adapter shares its pages, the adapter cannot be unloaded while one runs, and a request can run only when its adapter is resident. Unloading it returns its pages to the pool and touches no KV page.
+4. **An admit or a load takes all of its pages or none.** A load needs every page of the adapter, and an admit needs a page for each block that its request holds in each group. If the pool can supply some but not all, the operation is refused and the pool is left exactly as it was.
+
+The last two rules are the course's own. They are what makes the pool correct, and the lab's checks test them. S-LoRA also prefetches: while one batch runs it predicts the adapters of the next from the waiting queue and loads them into available memory. **predict the next batch from the waiting queue** [measured] That is the level's `prefetch` action: loading an adapter before the request that needs it is admitted.
+
+## What an adapter costs in pages
+
+A LoRA adapter has a down matrix and an up matrix for each projection it adapts, `rank × hidden` weights each, so its bytes are `2 × rank × hidden × projections × layers × bytes per weight`. The course's synthetic adapter has a hidden size of 256, 16 layers, 4 projections and 2-byte weights [estimated], which makes 65,536 bytes for each unit of rank [derived].
 
 The model of `two-kinds` has pages of 10 layers × 16 tokens × 1,024 bytes, which is 163,840 bytes [derived], and these are the adapters of the level and of the lab:
 
@@ -41,6 +44,10 @@ The model of `two-kinds` has pages of 10 layers × 16 tokens × 1,024 bytes, whi
 
 An adapter wastes at most the empty part of its last page, however large it is. Its pages are shared by every request on it, and its identity is an extra key in the hashes of those requests' blocks, in vLLM and in the course's model alike, so the same tokens under two adapters are two blocks and never share a hit. **("lora", name, path)** [measured]
 
+Check the pages of an adapter on a new pool before you read on.
+
+> **Practice.** Items from the generator family `tr5a.pages-for-adapter`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+
 ## All or nothing
 
 Two operations take many pages at once. A load takes every page of an adapter, and an admit takes a page for each block that the request holds in each of its groups, and only when the adapter it names is resident. Both are all or nothing, which is the rule of kernelspace's `lab 02`, and its optional adapter check is what this module extends. **adapter_unified_paging** [measured] Work out everything that the operation needs first, refuse it if the pool cannot supply that, and only then take a page. **all or nothing** [measured] A refusal says why, `no-pages` when the pool is short and `no-adapter` when the adapter is not resident, and it leaves the state as it was, so a retry sees the same pool. The reason is that a half-done operation leaks: the pages it took before it failed belong to no request, and every retry finds a smaller pool.
@@ -48,6 +55,8 @@ Two operations take many pages at once. A load takes every page of an adapter, a
 The model is stricter than the engine in one place that matters here. vLLM frees the blocks that a sliding window has left behind before it checks whether the new blocks fit, and keeps them freed when the request does not fit, so its allocation as a whole is not all or nothing. **before the capacity check** [measured] The model does not copy that, because a lab that let a refused operation change the pool could not tell a leak from a design.
 
 ## Upstream's slots
+
+The phrase "adapter pages in the same pool" sounds like something the engines do. They do not. At the pins, vLLM keeps LoRA adapters in `max_loras` GPU slots outside the KV pool, with a CPU LRU behind them and an admission cap on the distinct adapters of a batch, and SGLang keeps them in a fixed-slot `LoRAMemoryPool`. **lora_slots = max_loras** [measured] **max_cpu_loras = max_loras** [measured] **LRU caches of max_cpu_loras and max_loras** [measured] **distinct adapters at most max_loras** [measured] **a fixed-slot pool** [measured] One pool for both is S-LoRA's design, from a paper, and it is the design you build in the lab.
 
 vLLM at v0.33.0:
 
@@ -59,17 +68,19 @@ vLLM at v0.33.0:
 - The scheduler skips a waiting request whose adapter is not already in the batch once the distinct adapters of the batch reach `max_loras`, so a cap on adapters is part of admission. **distinct adapters at most max_loras** [measured]
 - With the active-adapter specialization, which is off by default, it also captures a graph for each count of active adapters up to `max_loras`, so the slot count reaches TR2's dispatch keys as well. **false** [measured]
 
+Commit to this number before you read on.
+
+> **Predict `tr5a.l4.p2`.** A deployment sets `max_lora_rank` to 64 [estimated], so every slot is sized for rank 64. An adapter of rank 8 [estimated] sits in one of the slots. What share of that slot is unused, in percent?
+>
+> The learner commits to a number in `percent`, graded within a relative tolerance of `0.02` [estimated] before the reveal. Ask them to commit to an answer and say why before you discuss it.
+
 SGLang at v0.5.23 has the same shape:
 
 - Its pool has `max_loras_per_batch` slots, which default to **8 slots** [measured].
 - It allocates the buffer of each module as zeros at the pool's `max_lora_rank`, with the slots as the first dimension, and it does not support an adapter whose rank is above that. **(max_loras_per_batch, max_lora_dim x c, input_dim)** [measured] **allocated at max_lora_rank** [measured] **rank at most max_lora_rank** [measured]
 - It takes an empty slot first, and when the pool is full it evicts by a policy, which is `lru` by default. **empty slot first, then evict** [measured] **lru** [measured]
 
-Both engines provision memory up front, sized for the largest adapter they will accept, and share it out in a fixed number of slots. The price of fixing it is the part of a slot that its adapter does not fill. Commit to this number before you read on.
-
-> **Predict `tr5a.l4.p2`.** A deployment sets `max_lora_rank` to 64 [estimated], so every slot is sized for rank 64. An adapter of rank 8 [estimated] sits in one of the slots. What share of that slot is unused, in percent?
->
-> The learner commits to a number in `percent`, graded within a relative tolerance of `0.02` [estimated] before the reveal. Ask them to commit to an answer and say why before you discuss it.
+Both engines provision memory up front, sized for the largest adapter they will accept, and share it out in a fixed number of slots. The price of fixing it is the part of a slot that its adapter does not fill.
 
 ![Three adapters of different ranks drawn as the pages they take, each beside the width of a slot sized for the largest rank](../../figures/tr5a/l4-slot-width.svg)
 
@@ -77,11 +88,11 @@ _Three rows of small squares, one for each rank, each as wide as a slot sized fo
 
 ## Measured against the slots
 
-The Reach-In's `adapters` level plays one night four ways, all by the house. The adapters are pages in the pool, or they sit on a shelf of fixed slots outside it, as the engines keep them: one slot, as vLLM's default, or two, enough for both adapters.
+The `adapters` level plays one run four ways, all with the reference policy's choices. The adapters are pages in the pool, or they sit on a shelf of fixed slots outside it, as the engines keep them: one slot, as vLLM's default, or two, enough for both adapters.
 
-The shelf as the debrief draws it costs no pages, and a real slot does cost memory. It is as wide as the biggest adapter, which is 26 pages here [derived], and it comes out of the same GPU, so the fourth way takes two such slots out of the pool before the night starts.
+The shelf as the debrief draws it costs no pages, and a real slot does cost memory. It is as wide as the biggest adapter, which is 26 pages here [derived], and it comes out of the same GPU, so the fourth way takes two such slots out of the pool before the run starts.
 
-The price of a night is the tokens recomputed, plus 24 for each step that a request stalled for its adapter [estimated]. The debrief's words for the same counts are tokens prepped again and steps waited for a kit. Measured by the course's sim on 2026-11-05 at `c98a353`, with the level's practice seed `0`.
+The price of a run is the tokens recomputed, plus 24 for each step that a request stalled for its adapter [estimated]. Measured by the course's sim on 2026-11-05 at `c98a353`, with the level's practice seed `0`.
 
 | The adapters are | Pages left [measured] | Tokens recomputed [measured] | Stall steps [measured] | Price [measured] |
 |---|---|---|---|---|
@@ -90,19 +101,23 @@ The price of a night is the tokens recomputed, plus 24 for each step that a requ
 | two slots, outside it | 160 | 1,018 | 2 | 1,066 |
 | two slots, paid for first | 108 | 1,322 | 2 | 1,370 |
 
-On the first eight seeds that the level's band accepts [estimated], the prices of the eight nights add up to 11,031 for pages, 12,759 for one slot, 9,799 for two free slots and 14,951 for two slots that are paid for first [measured]. One slot costs less than pages on 0 of the eight nights, two free slots on 7, and the paid pair on 0 [measured]. A pair of slots that has to be paid for costs 36% more than pages over the eight [derived]. It is a synthetic world, and it measures the ideas and no engine. The S-LoRA paper has a headline of its own, a throughput gain over the baselines of its day. **up to 4 times** [measured]
+On the first eight seeds that the level's band accepts [estimated], the prices of the eight runs add up to 11,031 for pages, 12,759 for one slot, 9,799 for two free slots and 14,951 for two slots that are paid for first [measured]. One slot costs less than pages on 0 of the eight runs, two free slots on 7, and the paid pair on 0 [measured]. A pair of slots that has to be paid for costs 36% more than pages over the eight [derived]. It is a synthetic world, and it measures the ideas and no engine. The S-LoRA paper has a headline of its own, a throughput gain over the baselines of its day. **up to 4 times** [measured]
 
 > **The paper's baseline is not the pin.** The S-LoRA paper reports up to 4 times the throughput of vLLM with naive support for LoRA serving [measured]. That is the authors' own run, against a vLLM with naive support for LoRA and not the pinned one, and the course has not reproduced it. The baseline here is the slot design of the pinned engines, in a synthetic world.
 
+Check the slots on a new deployment before you read on.
+
+> **Practice.** Items from the generator family `tr5a.slots-vs-pages`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+
 ## When slots are enough
 
-Slots win when they are enough and they are free. With as many slots as the batch has distinct adapters, an adapter costs no pages and never waits for a slot, and that is the third row. They lose in three ways, and each is in the table.
+Slots win when they are enough and free. With as many slots as the batch has distinct adapters, an adapter costs no pages and never waits for a slot, and that is the third row. They lose in three ways, and each is in the table.
 
 - **Too few slots.** One slot and two adapters means that a request for the other adapter stalls while an adapter is swapped in, 9 steps against 2 [measured].
 - **Slots are as wide as the widest adapter.** A rank-8 adapter in a slot sized for rank 64 uses an eighth of it, and the slot's other 87.5% [derived] is idle, so a deployment that mixes ranks pays for the largest in every slot. **max_loras x max_lora_rank** [measured]
 - **Slots are paid for before the first request.** The memory they hold is memory the KV pool never has, whether or not an adapter is loaded, which is the fourth row.
 
-A pool pays for what is loaded, and gives it back. It costs something too. Its adapters compete with cached prefix blocks, and bringing an adapter in too early can evict pages that a waiting request stood on, which is what the debrief of `adapters` says when the cached pans paid for a kit. S-LoRA's pool takes all the space except for the weights and the activations, and lets the cache and the adapters share it. **one buffer, everything but the weights and the activations** [measured] So slots are enough when the distinct adapters of a batch are few, near each other in rank, and known in advance. Pages pay when the adapters are many, their ranks differ, and the load moves.
+A pool pays for what is loaded, and gives it back, but its adapters compete with cached prefix blocks, and bringing an adapter in too early can evict pages that a waiting request stood on, which is what the debrief of `adapters` says when the cached pages paid for an adapter. S-LoRA's pool takes all the space except for the weights and the activations, and lets the cache and the adapters share it. **one buffer, everything but the weights and the activations** [measured] So slots are enough when the distinct adapters of a batch are few, near each other in rank, and known in advance. Pages pay when the adapters are many, their ranks differ, and the load moves.
 
 > **A fixed thread pool and a shared heap.** A fixed number of worker threads, each with a stack sized for the worst case, is a slot design. A shared heap that gives out what a request needs and takes it back when the request ends is a page design. The thread pool is simple and predictable, and wastes most of every stack. The heap uses what is asked and has to answer for fragmentation and for a request that cannot be served.
 >
@@ -112,7 +127,7 @@ A pool pays for what is loaded, and gives it back. It costs something too. Its a
 
 ## Read it at the pin
 
-The paper's section on [Unified Paging](https://arxiv.org/html/2311.03285v3#S5.SS1) is short and worth reading beside this lesson, with [prefetching](https://arxiv.org/html/2311.03285v3#S5.SS2) after it. The slots are in a few files at the pins. vLLM's are [`config/lora.py`](https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/lora.py) for the defaults, [`lora/model_manager.py`](https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/lora/model_manager.py) for the two LRU caches and [`lora/layers/base_linear.py`](https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/lora/layers/base_linear.py) for the stacks, and its cap on the adapters of a batch is in [`scheduler.py`](https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/sched/scheduler.py). SGLang's pool is [`lora/mem_pool.py`](https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/lora/mem_pool.py). Search each for `max_lora_rank` and see where it sizes a tensor.
+The paper's section on [Unified Paging](https://arxiv.org/html/2311.03285v3#S5.SS1) is short and worth reading beside this lesson, with [prefetching](https://arxiv.org/html/2311.03285v3#S5.SS2) after it. The slots are in a few files at the pins. vLLM's are [`config/lora.py`](https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/lora.py) for the defaults, [`lora/model_manager.py`](https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/lora/model_manager.py) for the two LRU caches and [`lora/layers/base_linear.py`](https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/lora/layers/base_linear.py) for the stacks, and its cap on the adapters of a batch is in [`scheduler.py`](https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/sched/scheduler.py). SGLang's pool is [`lora/mem_pool.py`](https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/lora/mem_pool.py). Search each for `max_lora_rank`.
 
 ## Build
 
@@ -122,16 +137,9 @@ That last check is about events. Every block that enters or leaves the cache is 
 
 > **Build.** The lab `hybrid-kv` (lane B), stages `s5`, `s6`. The lab page grades it.
 
-## What to carry
-
-- An adapter takes `ceil(bytes / page bytes)` pages of the same pool, stored anywhere, shared by its requests, and kept while one runs.
-- An admit or a load takes everything it needs or nothing, and a refusal leaves the pool as it was.
-- Upstream does not do this. vLLM and SGLang keep adapters in fixed slots outside the KV pool, sized for the largest rank they accept.
-- Slots are enough when the adapters in play are few, alike in rank and known. Pages pay when they are many, differ, and change.
-
 ## Exit check
 
-This lesson tests three skills: working out how many pages an adapter takes, and what must be resident for a request to run (`tr5a.adapter-pages`), comparing slots with pages and saying when slots are enough (`tr5a.slots-vs-pages`), and saying why an admit or a load takes all of its pages or none, and what a refused one leaves behind (`tr5a.all-or-nothing`). The exit ticket is three items on fresh seeds, two on the pages an adapter takes and one on slots against pages. It is passed with at least two right, one of them numeric (ASSESSMENT §4.2). The graded `adapters` level then plays the pool against the shelf, and the graded `manager` level draws its model from its seed and plays everything in the module at once. Each asks for a score of at least 0.95 [estimated] of the house's, on 3 fresh seeds [estimated] (ASSESSMENT §4.3).
+Three questions on new numbers test three skills: working out how many pages an adapter takes, and what must be resident for a request to run; comparing slots with pages and saying when slots are enough; and saying why an admit or a load takes all of its pages or none, and what a refused one leaves behind. Two are on the pages an adapter takes and one on slots against pages. Two right, one of them numeric, passes. The graded `adapters` level then plays the pool against the shelf, and the graded `manager` level draws its model from its seed and plays everything in the module at once. Each passes when the reference run's cost divided by yours is at least 0.95 [estimated], on 3 fresh seeds [estimated].
 
 > **Practice.** Items from the generator family `tr5a.pages-for-adapter`, level `2`, `2` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 

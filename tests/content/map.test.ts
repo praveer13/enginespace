@@ -280,7 +280,7 @@ describe('the lessons table', () => {
     expect(openers['tr8.l3']).toBe('primer')
     expect(openers['tr5a.l1']).toBe('run')
     expect([openers['tr2.l1'], openers['tr2.l3'], openers['tr2.l4']]).toEqual(['run', 'run', 'primer'])
-    expect(Object.values(openers).filter((opener) => opener === 'read')).toHaveLength(22)
+    expect(Object.values(openers).filter((opener) => opener === 'read')).toHaveLength(19)
   })
 
   test('a lesson whose last part holds no question and no graded level has no Test, and the compiler warns', () => {
