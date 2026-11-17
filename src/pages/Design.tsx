@@ -355,6 +355,29 @@ function State({
   )
 }
 
+/**
+ * The amber control is one per screen (the One Marker Rule), and this page obeys it: the states of an amber control are shown one at a time,
+ * chosen with a group of radio buttons, so that however far the page is scrolled it holds one amber fill.
+ */
+function StatePicker({ name, states, children }: { name: string; states: readonly string[]; children: (state: string) => ReactNode }) {
+  const [state, setState] = useState(states[0])
+  return (
+    <figure className="es-spec__state" data-ground="steel" data-span>
+      <fieldset className="es-spec__picker">
+        <legend className="es-spec__state-label">{name}: one state at a time</legend>
+        {states.map((option) => (
+          <label key={option} className="es-spec__picker-option">
+            <input type="radio" name={name} value={option} checked={state === option} onChange={() => setState(option)} />
+            <span>{option}</span>
+          </label>
+        ))}
+      </fieldset>
+      <div className="es-spec__state-stage">{children(state)}</div>
+      <figcaption className="es-spec__state-label">{state}</figcaption>
+    </figure>
+  )
+}
+
 // ------------------------------------------------------------------------------------------------ the lesson's and the instrument's parts
 
 const STATES = ['default', ...FORCED] as const
@@ -377,7 +400,6 @@ const POOL_LEVELS: LevelOption[] = [
   { id: 'manager', title: 'The whole manager', mode: 'graded', unavailable: true },
 ]
 
-const LESSON = '/m/tr5a/l1-why-one-model-needs-several-kv-caches'
 const RAIL: RailSection[] = [
   { id: 'run', title: 'Run', href: '#run', state: 'done', answers: ['you said 300 pages', 'recomputed 93 tokens, reference 93'] },
   {
@@ -751,26 +773,25 @@ function PartSpecimens() {
         about="What to do next, from one function: the amber button where a page has no move in hand, an outline beside a local way on, and the sentence that tells your progress back. Reviews due sit beside it and never replace it."
         wide
       >
-        <State label="first visit" ground="paper" span>
-          <NextStep to="/m/tr1/l1-five-mechanisms" label="Start: TR1 lesson 1" minutes={35} />
-        </State>
-        <State label="returning, with progress told back" ground="paper" span>
-          <NextStep
-            to={LESSON}
-            lastTime="Last time: you ran KV page pool, One KV group (passed in practice) and tried 3 questions in TR5a lesson 1."
-            label="Continue: retry the questions"
-            minutes={5}
-            reviews="3 reviews due, about 4 min"
-            skipped="2 earlier lessons not finished"
-          />
-        </State>
-        {STATES.map((state) => (
-          <State key={state} label={state} ground="paper">
-            <NextStep to="/m/tr2/l1-one-step-five-calls" label="Continue: TR2 lesson 1, read why" data-force={forced(state)} />
-          </State>
-        ))}
+        <StatePicker name="The way on" states={['first visit', 'with reviews and a note', 'hover', 'focus', 'active']}>
+          {(state) => (
+            <NextStep
+              to="/m/tr1/l1-five-mechanisms"
+              label="Start: TR1 lesson 1"
+              minutes={35}
+              {...(state === 'with reviews and a note'
+                ? {
+                    lastTime: 'Last time: you ran KV page pool, One KV group (passed in practice) and tried 3 questions in TR5a lesson 1.',
+                    reviews: '3 reviews due, about 4 min',
+                    skipped: '2 earlier lessons not finished',
+                  }
+                : {})}
+              data-force={state === 'hover' || state === 'focus' || state === 'active' ? state : undefined}
+            />
+          )}
+        </StatePicker>
         <State label="outline" ground="paper">
-          <NextStep to="/m/tr2/l1-one-step-five-calls" label="Continue: TR2 lesson 1, read why" emphasis="outline" />
+          <NextStep to="/m/tr1/l1-five-mechanisms" label="Start: TR1 lesson 1" emphasis="outline" />
         </State>
         <State label="unavailable" ground="paper">
           <NextStep to="/m/tr3" label="TR3 lesson 1" unavailable />
@@ -828,33 +849,26 @@ function ComponentSpecimens() {
       </Specimen>
 
       <Specimen title="Primary button" about="The primary button: amber with its dark edge and an ink label, the control to act on now. Held down, it is a well with no amber.">
-        {(['default', ...FORCED] as const).map((force) => (
-          <State key={force} label={force}>
-            <PrimaryButton standalone onClick={() => undefined} data-force={force === 'default' ? undefined : force}>
-              Run the check
-            </PrimaryButton>
-          </State>
-        ))}
-        <State label="disabled">
-          <PrimaryButton standalone disabled>
-            Run the check
-          </PrimaryButton>
-        </State>
-        <State label="loading">
-          <PrimaryButton standalone loading>
-            Run the check
-          </PrimaryButton>
-        </State>
-        <State label="error">
-          <PrimaryButton standalone onClick={() => undefined} error="The check did not run. Press the button to try again.">
-            Run the check
-          </PrimaryButton>
-        </State>
-        <State label="on a sheet, as a link">
-          <Sheet head="Request 50" meta="prefill" title="First run" stub={<PrimaryButton to="/play/loop">Open the step loop</PrimaryButton>}>
-            <SheetLine qty="4">REQUESTS WAITING</SheetLine>
-          </Sheet>
-        </State>
+        <StatePicker name="Primary button" states={['default', 'hover', 'focus', 'active', 'disabled', 'loading', 'error', 'on a sheet, as a link']}>
+          {(state) =>
+            state === 'on a sheet, as a link' ? (
+              <Sheet head="Request 50" meta="prefill" title="First run" stub={<PrimaryButton to="/play/loop">Open the step loop</PrimaryButton>}>
+                <SheetLine qty="4">REQUESTS WAITING</SheetLine>
+              </Sheet>
+            ) : (
+              <PrimaryButton
+                standalone
+                onClick={() => undefined}
+                disabled={state === 'disabled' || undefined}
+                loading={state === 'loading' || undefined}
+                error={state === 'error' ? 'The check did not run. Press the button to try again.' : undefined}
+                data-force={state === 'hover' || state === 'focus' || state === 'active' ? state : undefined}
+              >
+                Run the check
+              </PrimaryButton>
+            )
+          }
+        </StatePicker>
       </Specimen>
 
       <Specimen title="Readout strip" about="The readout strip: terms and their values on one paper strip, a ruled row each. A value changes at once.">
@@ -885,7 +899,7 @@ function ComponentSpecimens() {
           <Readout value={7} unit="ticks" tag="synthetic" size="lg" />
         </State>
         <State label="measured, with date and SHA" ground="paper">
-          <Readout value={340} unit="µs" tag="measured" source="2026-11-03 at 8f8fbe1" />
+          <Readout value={340} unit="µs" tag="measured" source="2026-11-03, one local run" />
         </State>
         <State label="estimated, in red ink" ground="paper">
           <Readout value={1.2} digits={1} unit="ms" tag="estimated" tone="ink-2" />

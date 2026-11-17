@@ -11,6 +11,7 @@ import { renderToString } from 'react-dom/server'
 import { createStaticHandler, createStaticRouter, StaticRouterProvider } from 'react-router'
 import { routes } from '@/routes'
 import { cssVar, PAIRS, resolveColor, ROLE_NAMES, roleOf, rolesIn, type ColorRoleName } from '@/design/tokens'
+import { findBanned } from '@/copy/banned'
 import { read } from '../ci/support'
 
 async function render(url: string): Promise<string> {
@@ -152,15 +153,32 @@ describe('/design: the lesson\'s and the instrument\'s parts (R-T05)', () => {
     ['Stamp', ['hover', 'focus', 'active', 'disabled', 'open: the tag legend']],
     ['Section list', ['an entry: hover', 'an entry: focus', 'an entry: active', 'the strip, closed', 'the strip, open']],
     ['Level menu', ['live', 'hover', 'focus', 'active', 'disabled']],
-    ['The way on', ['default', 'hover', 'focus', 'active', 'outline', 'unavailable']],
+    ['The way on', ['first visit', 'outline', 'unavailable']],
   ] as const)('%s is shown in its states', (title, states) => {
     const shown = labels(title)
     for (const state of states) expect([state, shown.includes(state)]).toEqual([state, true])
   })
 
   test('each forced state reaches its control: a pointer state is drawn without a pointer', () => {
-    for (const title of ['Callout', 'Popover', 'Stamp', 'Level menu', 'The way on', 'Section list', 'Parts list'])
+    for (const title of ['Callout', 'Popover', 'Stamp', 'Level menu', 'Section list', 'Parts list'])
       for (const state of ['hover', 'focus', 'active']) expect([title, state, specimen(title).includes(`data-force="${state}"`)]).toEqual([title, state, true])
+  })
+
+  test('the amber controls show one state at a time, each state a radio button of its group, so a screen holds one amber fill', () => {
+    for (const [title, states] of [
+      ['The way on', ['first visit', 'with reviews and a note', 'hover', 'focus', 'active']],
+      ['Primary button', ['default', 'hover', 'focus', 'active', 'disabled', 'loading', 'error', 'on a sheet, as a link']],
+    ] as const) {
+      const shown = specimen(title)
+      expect([title, [...shown.matchAll(/type="radio"/g)].length]).toEqual([title, states.length])
+      for (const state of states) expect([title, state, shown.includes(`<span>${state}</span>`)]).toEqual([title, state, true])
+      expect([title, [...shown.matchAll(/es-primary-button__pull|data-emphasis="primary"/g)].length > 0]).toEqual([title, true])
+    }
+  })
+
+  test('has no kitchen word in what it says: the guard reads the page as a learner would', () => {
+    const words = html.replace(/<style[\s\S]*?<\/style>/g, ' ').replace(/<[^>]+>/g, '\n') + [...html.matchAll(/(?:aria-label|alt|title)="([^"]*)"/g)].map((match) => match[1]).join('\n')
+    expect(findBanned(decode(words)).map((found) => `"${found.match}" (${found.rule})`)).toEqual([])
   })
 
   test('every section rail on the page is a nav with its own name, and holds one current step', () => {
