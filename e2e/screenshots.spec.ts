@@ -116,6 +116,12 @@ test.describe('the 3D view of the front page', () => {
       const stage = page.locator('section.es-front-service [data-stage]')
       const canvas = stage.locator('canvas')
       await expect(canvas).toBeVisible()
+      // The scene with something in it: two requests admitted and one step run, so the time track holds the step drawn and not only its
+      // empty rows. A device of four cores or fewer starts at tier 1 (no MSAA; src/scene/tiers.ts), where the empty track alone is flat
+      // enough to draw 40 colours and no more; the bar below is unchanged and is met by the scene a learner sees after the first step.
+      for (const no of ['R1', 'R2']) await page.getByRole('button', { name: `Admit request ${no} into a batch slot` }).click()
+      await page.locator('[data-front-step]').getByRole('button', { name: 'Step', exact: true }).click()
+      await settled3d(page)
 
       // The artifact: the time track as the learner sees it, with its labels over it.
       await info.attach(`front-3d-${width}.png`, { body: await stage.screenshot(), contentType: 'image/png' })

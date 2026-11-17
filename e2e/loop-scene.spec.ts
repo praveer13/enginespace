@@ -260,7 +260,7 @@ test.describe('the picture', () => {
       const canvas = stage(page).locator('canvas')
       await page.addStyleTag({ content: '.es-labels { visibility: hidden !important; }' })
       const sampled = await pixelStats(page.context(), await canvas.screenshot())
-      expect(sampled.colours).toBeGreaterThan(20)
+      expect(sampled.colours).toBeGreaterThan(40)
       expect(sampled.spread).toBeGreaterThan(12)
       await page.addStyleTag({ content: '.es-labels { visibility: visible !important; }' })
       const shot = info.outputPath(`loop-track-t${tier}.png`)
