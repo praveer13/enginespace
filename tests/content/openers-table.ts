@@ -51,7 +51,7 @@ export const OPENERS: readonly OpenerRow[] = [
   { lesson: 'tr6.l4', opener: 'C', first: ['play:verifier/greedy-ngram'], graded: [] },
   { lesson: 'tr6.l5', opener: 'C', first: ['play:loop/mask'], graded: [] },
   // TR8, the broken benchmark
-  { lesson: 'tr8.l1', opener: 'B', first: ['play:broken-bench/due'], graded: ['play:broken-bench/due'], waiting: 'R-T39' },
+  { lesson: 'tr8.l1', opener: 'B', first: ['play:broken-bench/due'], graded: ['play:broken-bench/due'] },
   { lesson: 'tr8.l2', opener: 'C', first: ['play:broken-bench/warm'], graded: ['play:broken-bench/warm', 'play:broken-bench/sure'] },
   { lesson: 'tr8.l3', opener: 'B', first: ['play:broken-bench/court'], graded: [] },
   { lesson: 'tr8.l4', opener: 'C', first: [], graded: ['play:broken-bench/court'] },

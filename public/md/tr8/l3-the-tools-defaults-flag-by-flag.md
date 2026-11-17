@@ -6,15 +6,13 @@ Builds on kernelspace: `ks:T7.L2`, `ks:t7.benchmark-hygiene`.
 
 Knowledge components: `tr8.tool-defaults`, `tr8.client-queue`.
 
-A benchmark tool is a harness, and a harness is a pile of defaults. Each default is a decision that someone made for you: how fast to send, how many requests to allow at once, whether to warm up, which percentiles to print. Run a tool with no flags and you have run a benchmark designed by its author's habits. This lesson reads two tools flag by flag, at the versions the course pins: vllm bench serve at v0.33.0 and sglang.bench_serving at v0.5.23. Every fact in it is a claim with a source line, because a default belongs to a version. It needs no GPU, because the behaviour is in the source.
+Five benchmark reports are dealt, each with one flaw or none. For each, name the flaw or say it is fair, write the p99 it should have had, and give a range. Four of the five must stand.
 
-Start with one piece of arithmetic, and commit to it before you read on.
-
-> **Predict `tr8.l3.p1`.** You run vllm bench serve with a request rate of 10 a second [estimated] and a cap of 8 requests in flight [estimated], against a server that answers each request in 1.2 s [estimated], whatever the load. In steady state, at what rate in requests a second does the run send?
->
-> The learner commits to a number in `requests/s`, graded within a relative tolerance of `0.05` [estimated] before the reveal. Ask them to commit to an answer and say why before you discuss it.
-
-Then play the court on its practice seed before you read on, so that you meet each ruling first. The debrief cites each flaw's real-world instance, and the In production card lists the flags that would have made a number admissible. The rest of the lesson reads those flags one by one.
+- A default is a decision someone made for you, and it belongs to a version. The course pins vllm bench serve at v0.33.0 and sglang.bench_serving at v0.5.23.
+- Both tools default the request rate to infinity, so every request is due at time zero: a burst.
+- `--max-concurrency` caps the requests in flight with a semaphore, which makes a capped closed loop. A request waits for a permit before its timer starts.
+- vLLM sends no warm-up requests unless asked, and SGLang sends one. Neither checks that the engine has settled.
+- Both tools print a p99 over however many requests completed.
 
 > **Play.** The game `broken-bench`, level `court`, in `practice` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.
 
@@ -24,9 +22,13 @@ Both tools default the request rate to infinity, and with it every request is du
 
 ## Cap: a closed loop with a schedule on top
 
-vLLM's `--max-concurrency` is unset by default, so nothing caps the requests in flight. **none** [measured] Set it, and in both tools it is a semaphore around each request: the run becomes a capped closed loop, and its real rate can fall below the one you asked for. **a semaphore** [measured] **a semaphore** [measured]
+vLLM's `--max-concurrency` is unset by default, so nothing caps the requests in flight. **none** [measured] Set it, and in both tools it is a semaphore around each request: the run becomes a capped closed loop, and its real rate can fall below the one you asked for. **a semaphore** [measured] **a semaphore** [measured] Commit to the arithmetic before you read on.
 
-That is the prediction's arithmetic, for `--request-rate 10 --max-concurrency 8`. With 8 permits [estimated] held for 1.2 s [estimated] each, the run can send 8 ÷ 1.2 = 6.7 requests a second [derived], whatever the rate flag says, and the wait for a permit grows for as long as 10 requests a second [estimated] keep falling due. The same law, concurrency equals rate times latency, checks whole logs in the fourth lesson.
+> **Predict `tr8.l3.p1`.** You run vllm bench serve with a request rate of 10 a second [estimated] and a cap of 8 requests in flight [estimated], against a server that answers each request in 1.2 s [estimated], whatever the load. In steady state, at what rate in requests a second does the run send?
+>
+> The learner commits to a number in `requests/s`, graded within a relative tolerance of `0.05` [estimated] before the reveal. Ask them to commit to an answer and say why before you discuss it.
+
+That is the guess's arithmetic, for `--request-rate 10 --max-concurrency 8`. With 8 permits [estimated] held for 1.2 s [estimated] each, the run can send 8 ÷ 1.2 = 6.7 requests a second [derived], whatever the rate flag says, and the wait for a permit grows for as long as 10 requests a second [estimated] keep falling due. The same law, concurrency equals rate times latency, checks whole logs in the fourth lesson.
 
 The two tools disagree about whether you will ever see that wait. SGLang's timer starts inside its request function, after the semaphore, so the wait is in no latency it reports. **st = time.perf_counter()** [measured] vLLM's timer starts inside its request function too, so its TTFT counts from the send. **output.ttft = timestamp - st** [measured] What vLLM adds is a term for the wait: `client_queue_time`, and with a finite rate `e2el_including_client_queue`, a schedule-relative end-to-end latency. **client_queue_time** [measured] **e2el_including_client_queue** [measured] The guide tells you to add `client_queue_time` to `--percentile-metrics` to see it, and the default list does not name it. **--percentile-metrics** [measured] **ttft,tpot,itl** [measured]
 
@@ -44,6 +46,8 @@ vLLM warms up with no requests unless asked, and SGLang with one. **0 requests**
 
 A second run against the same server is not a fresh run. vLLM's own guide warns that repeating the benchmark can reuse prompts left in the prefix cache and inflate throughput, and it names the ways out: vary the seed, restart or reset the server, or use `vllm bench sweep serve`, which resets the caches between runs. **repeat runs can inflate throughput** [measured] SGLang flushes its server's cache after the warm-up only when it is told to. **--flush-cache** [measured] The seeds make the trap easy to fall into: the default is fixed in both tools, so two runs draw the same prompts. **0** [measured] **42** [measured]
 
+> **Practice.** Items from the generator family `tr8.which-flag`, level `0`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+
 ## What the tools print
 
 For each metric it reports, vLLM prints the mean and the median, and then one percentile, the 99th, unless you ask for more percentiles. **99** [measured] It computes that percentile over however many requests completed, as the second lesson showed, and its guide lists the mean, the median and the p99 on consecutive lines. **np.percentile** [measured] **mean, median, p99** [measured] Both tools take goodput as a list of objectives in milliseconds. **ms** [measured] SGLang counts a request only if it meets every one, and it has had the flag only since v0.5.23. **every SLO met** [measured] **v0.5.23** [measured]
@@ -52,11 +56,13 @@ Two settings change what a request is. vLLM sends `max_tokens` equal to the outp
 
 Last, the client is part of the system. SGLang's own Rust client documents that its Python predecessor, at high request counts, set the throughput it measured. Its figures for one mock server are the authors' own and the course has not reproduced them. **the client, not the server, sets the measured throughput** [measured] **106.8 s with the Python client, 13.2 s with the Rust client** [unverified]
 
+> **Practice.** Items from the generator family `tr8.which-flag`, level `1`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+
 ## The map
 
-Each ruling of the court is a default or a flag that someone left alone. Four of the ten are kernelspace's own broken-bench exercise, a closed loop, a capped output, a warm cache and a counted warm-up. **closed-loop, capped-output, warm-cache, warm-up** [measured] The Inspection adds six more, and a control with no flaw. This table sets each ruling beside the fix that the court accepts.
+Each flaw in Broken benchmark is a default or a flag that someone left alone. Four of the ten are kernelspace's own broken-bench exercise, a closed loop, a capped output, a warm cache and a counted warm-up. **closed-loop, capped-output, warm-cache, warm-up** [measured] Broken benchmark adds six more, and a control with no flaw. This table sets each flaw beside the fix that the report form accepts.
 
-| The ruling | The default or flag that commits it | What fixes it |
+| The flaw | The default or flag that commits it | What fixes it |
 |---|---|---|
 | Closed loop past capacity | an infinite rate with `--max-concurrency` | an open loop: a finite `--request-rate` and no cap |
 | Coordinated omission | any client that waits for a reply before it sends | time every request from its due time |
@@ -75,15 +81,9 @@ Three sources settle a default, in order of authority: the source at the tag you
 
 > **Defaults move.** A default belongs to a version. The flags and numbers in this lesson are those of vLLM v0.33.0 and SGLang v0.5.23. Before you trust one on another version, read that version's source or its --help, and cite the version beside the number.
 
-## What to carry
-
-- A default is a decision. Read the ones that set the rate, the cap, the warm-up and the percentiles before you read a result.
-- A cap makes a closed loop, and the rate it sends is the cap divided by the latency, whatever the rate flag says.
-- Cite the version. A default is a fact about a version.
-
 ## Exit check
 
-This lesson tests two skills: reading what a tool's defaults do and naming the flag that changes each (`tr8.tool-defaults`), and finding the wait that a cap puts before the timer (`tr8.client-queue`). The exit ticket is three items on fresh seeds. Each shows a harness and the symptom in its report, and asks which flag or default is at fault. It is passed with at least two right (ASSESSMENT §4.2).
+This lesson tests two skills: reading what a tool's defaults do and naming the flag that changes each (`tr8.tool-defaults`), and finding the wait that a cap puts before the timer (`tr8.client-queue`). The question set is three items on fresh seeds. Each shows a harness and the symptom in its report, and asks which flag or default is at fault. It is passed with at least two right.
 
 > **Practice.** Items from the generator family `tr8.which-flag`, level `2`, `3` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 

@@ -14,7 +14,6 @@
  *     generator, so when the generator moves a number, this file names the lesson and the figure that went stale.
  *   - The claims TR8 adds (content/claims/tr8.yaml) are read at the pins, at a tag or a commit, with the lines of their quotes.
  */
-import { PACING_CODES } from '../../scripts/content/pacing.ts'
 import { describe, expect, test } from 'bun:test'
 import { isAtCommit, planOf } from '@es/play/predictions/plan'
 import { spawnSync } from 'node:child_process'
@@ -168,9 +167,11 @@ describe('check 1: TR8 compiles with no diagnostic of any kind', () => {
   })
 
   test('nothing in the module, its lessons or its claims is reported', () => {
-    const mine = result.diagnostics.filter((d) => (d.file.startsWith('content/modules/tr8/') || d.file === CLAIMS_FILE) && !PACING_CODES.includes(d.code))
-    // R-T12: the pacing warnings are the worklist of the lesson tasks R-T34 to R-T39, so they are allowed here until each lesson is edited.
-    expect(mine.map((d) => `${d.file}:${d.line} ${d.severity} ${d.code}`)).toEqual([])
+    // R-T39: TR8 is edited to the authoring rules, so a pacing warning (a slow opener, a build-log id) is not allowed here, with one exception that
+    // is named and not waved through: lesson 1 has one guess and one level to practise, and no question family assesses its three KCs, so the
+    // stretch from the guess to its Test cannot hold a second thing to do (no lesson names a game, a level and a mode twice).
+    const mine = result.diagnostics.filter((d) => d.file.startsWith('content/modules/tr8/') || d.file === CLAIMS_FILE)
+    expect(mine.map((d) => `${d.file.split('/').pop()} ${d.severity} ${d.code}`)).toEqual(['l1-due-time-not-send-time.md warning pacing-gap'])
   })
 })
 
@@ -250,7 +251,7 @@ describe('what the lessons teach', () => {
     ])
   })
 
-  test('every game block names a level of the Inspection, and a graded block names a level that grades', () => {
+  test('every game block names a level of Broken benchmark, and a graded block names a level that grades', () => {
     for (const { lesson } of lessons) {
       for (const block of lesson.blocks) {
         if (block.type !== 'game') continue
@@ -276,7 +277,8 @@ describe('what the lessons teach', () => {
       for (const block of lesson.blocks) {
         if (block.type !== 'item') continue
         expect(block.family.startsWith('tr8.')).toBe(true)
-        expect([block.level, block.count]).toEqual([2, block.count])
+        // A checkpoint in the reading is an easier item (level 0 or 1) than the question set's level 2.
+        expect([0, 1, 2]).toContain(block.level)
         named.add(block.family)
         const gen = familyById(block.family)
         expect([lesson.id, block.family, gen !== undefined]).toEqual([lesson.id, block.family, true])
@@ -302,11 +304,11 @@ describe('what the lessons teach', () => {
         drawn += block.count
       }
     }
-    // Lesson 3's ticket is three items of one family, and lesson 4's is two of one and one of another.
-    expect(drawn).toBe(6)
+    // Lesson 3: two checkpoints and a question set of three, one family. Lesson 4: two checkpoints, and a question set of two and one.
+    expect(drawn).toBe(10)
   })
 
-  test('an exit ticket is three items on fresh seeds (ASSESSMENT §4.2)', () => {
+  test('a question set is three items on fresh seeds', () => {
     for (const { lesson } of lessons) {
       const items = exitCheck(lesson.blocks)?.blocks.flatMap((block) => (block.type === 'item' ? [block.count] : [])) ?? []
       if (items.length > 0) expect([lesson.id, items.reduce((a, b) => a + b, 0)]).toEqual([lesson.id, 3])
@@ -319,9 +321,13 @@ describe('the item blocks, as the lessons print them (W1b-T06)', () => {
   const escaped = (value: string): string => value.replace(/'/g, '&#x27;')
   const blocks = lessons.flatMap(({ lesson }) => lesson.blocks.flatMap((block) => (block.type === 'item' ? [{ lesson, block }] : [])))
 
-  test('there are three, and they are lesson 3\'s ticket and the two of lesson 4\'s', () => {
+  test('there are seven: lesson 3\'s two checkpoints and its question set, lesson 4\'s two checkpoints and its question set of two and one', () => {
     expect(blocks.map(({ lesson, block }) => [lesson.id, block.family, block.level, block.count])).toEqual([
+      ['tr8.l3', 'tr8.which-flag', 0, 1],
+      ['tr8.l3', 'tr8.which-flag', 1, 1],
       ['tr8.l3', 'tr8.which-flag', 2, 3],
+      ['tr8.l4', 'tr8.goodput-denominator', 0, 1],
+      ['tr8.l4', 'tr8.littles-law', 0, 1],
       ['tr8.l4', 'tr8.goodput-denominator', 2, 2],
       ['tr8.l4', 'tr8.littles-law', 2, 1],
     ])
@@ -333,7 +339,7 @@ describe('the item blocks, as the lessons print them (W1b-T06)', () => {
     if (gen === undefined || face === undefined || !isLevel(block.level)) throw new Error(`${block.family} cannot be drawn`)
     const level = block.level
 
-    test(`${lesson.id}, ${block.family}: the sheet waits with the family's title and its level, and a button that can be pressed, and is not "not published yet"`, () => {
+    test(`${lesson.id}, ${block.family} at level ${block.level}: the sheet waits with the family's title and its level, and a button that can be pressed, and is not "not published yet"`, () => {
       const html = render(h(ItemBlock, { block, scope: lesson.id }))
       expect(html).toContain('data-phase="idle"')
       expect(html).not.toContain('not published yet')
@@ -343,7 +349,7 @@ describe('the item blocks, as the lessons print them (W1b-T06)', () => {
       expect(html).toContain('Start questions')
     })
 
-    test(`${lesson.id}, ${block.family}: the first ticket of an attempt holds a seed and the question, and no key and no solution`, () => {
+    test(`${lesson.id}, ${block.family} at level ${block.level}: the first ticket of an attempt holds a seed and the question, and no key, and no solution at level 2`, () => {
       for (const entropy of [[3, 4, 5], [100, 200, 300], [0x9e3779b9, 7, 0xffffffff]]) {
         const page = render(h(Attempt, { gen, level, entropy: entropy.slice(0, block.count), scope: lesson.id, onRestart: () => undefined }))
         const first = startAttempt(gen, level, entropy.slice(0, block.count)).served[0].item
@@ -356,7 +362,8 @@ describe('the item blocks, as the lessons print them (W1b-T06)', () => {
           if (part.t === 'code') expect(page).toContain(`<code>${escaped(part.code)}</code>`)
         }
         for (const given of first.givens) expect(page).toContain(escaped(given.label))
-        for (const step of gen.solution(first)) {
+        // A checkpoint at level 0 or 1 shows the solution's first steps by design (a worked example, a faded step); the question set at level 2 shows none.
+        for (const step of level >= 2 ? gen.solution(first) : []) {
           const sentence = plain(step.text.filter((part) => part.t === 'text'))
           for (const piece of sentence.split(/(?<=\.)\s/).filter((text) => text.length > 30)) expect(page).not.toContain(escaped(piece))
         }
@@ -441,8 +448,9 @@ describe('the GPU part is announced and never faked (D-039)', () => {
     expect(labs).toEqual([{ type: 'lab', id: 'tr8.replay', lane: 'F', stages: ['s1', 's2', 's3'] }])
   })
 
-  test('the module says that it arrives with the grader', () => {
-    expect(moduleText).toContain('It arrives with the grader (W2, D-039)')
+  test('the module says that the GPU part runs outside the browser and is not graded on its page, with no build-log id', () => {
+    expect(moduleText).toContain('It runs on a GPU, outside the browser, so this page shows what the lab asks and does not grade it.')
+    expect(moduleText).not.toMatch(/\b(?:W\d+|D-\d+|ASSESSMENT)\b/)
   })
 
   test('no lesson carries a lab or a trace, so none claims a GPU run or a real trace', () => {
@@ -654,7 +662,7 @@ describe('lesson 1: the toy log, the pause and the cap', () => {
 describe('lesson 2: the cold start, the p99\'s requests beyond it, and the interval', () => {
   test('the window is 128 requests on a server of 64 sequences', () => {
     expect([CORPUS_SERVER.maxNumSeqs, BENCH_WARMUP_ROWS]).toEqual([64, 128])
-    mentions('tr8.l2', 'the sequences', 'The Inspection\'s server runs 64 sequences [estimated], so its W is 128 requests [derived].')
+    mentions('tr8.l2', 'the sequences', 'Broken benchmark\'s server runs 64 sequences [estimated], so its W is 128 requests [derived].')
   })
 
   test('the cold start of 12 s and of 20 s, seed 5', () => {
