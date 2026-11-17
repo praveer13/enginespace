@@ -73,6 +73,13 @@ src: figures/tr2/l1-one-step.svg
 alt: Two engine steps on a CPU lane and a GPU lane, with an open gap on the GPU lane between the forwards
 description: The CPU lane has two runs of boxes, one for each step, each run made of schedule, prepare, launch, sync and sample in that order. The GPU lane has one box for each step, the forward, which starts when the launch ends. Between the first forward and the second the GPU lane is empty, drawn as a dashed box, for as long as the CPU lane is busy with the sync, the sample and the next step's schedule, prepare and launch.
 origin: generated
+replay:
+  game: loop
+  level: first-3-gap
+  seed: 1
+  actions:
+    - { t: run, until: step }
+    - { t: run, until: step }
 :::
 
 The figure draws two steps of the small model with nothing overlapped, to scale, from the sim. Between two forwards the GPU lane is empty for exactly as long as the CPU lane is busy. You saw that empty stretch in the level, and it has a name.

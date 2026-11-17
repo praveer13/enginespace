@@ -72,7 +72,7 @@ const bodies: Record<string, { directive: (typeof DIRECTIVES)[number]; value: Re
   'card (warning)': { directive: 'card', value: { kind: 'warning', title: 'A model', body: 'The browser world is a model.' } },
   figure: {
     directive: 'figure',
-    value: { src: 'figures/tr2/bubble.svg', alt: 'Two steps with a gap between them', description: 'The GPU lane idles while the CPU lane prepares the next step.', origin: 'generated' },
+    value: { src: 'figures/tr2/bubble.svg', alt: 'Two steps with a gap between them', description: 'The GPU lane idles while the CPU lane prepares the next step.', origin: 'generated', replay: { game: 'loop', level: 'first-3-gap', seed: 1, actions: [{ t: 'run', until: 'step' }] } },
   },
 }
 
@@ -183,7 +183,7 @@ describe('which keys are required', () => {
     'card (notional-machine)': { required: ['id', 'kind'], optional: [] },
     'card (isomorphism)': { required: ['body', 'breaks', 'kind'], optional: ['title'] },
     'card (warning)': { required: ['body', 'kind'], optional: ['title'] },
-    figure: { required: ['alt', 'description', 'origin', 'src'], optional: [] },
+    figure: { required: ['alt', 'description', 'origin', 'src'], optional: ['replay'] },
   }
   for (const [name, expected] of Object.entries(roles)) {
     test(`a ${name} block`, () => {

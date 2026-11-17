@@ -262,6 +262,8 @@
   - `verify:content` caps the block types.
 - **Revisit when:** a lesson needs a ninth block type. Adding one reopens this record.
 
+- **Note (R-T45, wave R):** the block types are still eight. A figure takes an optional `replay` (a game, a level, a seed and a list of actions), an optional key on the block that already exists and not a ninth type. The compiler replays the actions on the game's pure session and fails on a log that does not replay, and in a lesson with a dock the figure gains a "Show on the machine" button that loads the state into the dock, with "Back to my run". `REPLAY_GAMES` in `packages/schema/content.ts` lists the games whose sessions the compiler replays: `loop` only.
+
 ### D-017 · A pure, seeded simulation package
 
 - **Status:** proposed.

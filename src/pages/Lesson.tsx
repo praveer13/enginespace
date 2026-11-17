@@ -50,6 +50,7 @@ import { useBookmark } from '@/settings/bookmark'
 const LessonLedger = lazy(() => import('@/content/render/LessonLedger'))
 /** The dock beside Read (Dock.tsx): its own chunk, loaded only where it is drawn, from 80rem wide and 44rem tall. */
 const Dock = lazy(() => import('@/content/render/Dock'))
+const ShowOnMachine = lazy(() => import('@/content/render/ShowOnMachine'))
 const PredictTicket = lazy(() => import('@/content/render/Predict').then((module) => ({ default: module.PredictTicket })))
 const ItemBlock = lazy(() => import('@/items/ItemBlock').then((module) => ({ default: module.ItemBlock })))
 
@@ -609,6 +610,12 @@ function BlockPiece({ at, lesson, env, whereOf, sections }: PieceProps & { at: n
         <figure className="es-lesson__figure">
           <img src={publicUrl(block.src)} alt={block.alt} loading="lazy" decoding="async" />
           <figcaption>{block.description}</figcaption>
+          {/* A figure with a replay can load its state into the dock (R-T45): the button is drawn only where the dock is, and its code loads with this figure. */}
+          {block.replay === undefined ? null : (
+            <Suspense fallback={null}>
+              <ShowOnMachine game={block.replay.game} replay={block.replay} scope={lesson.id} at={at} caption={block.alt} />
+            </Suspense>
+          )}
         </figure>
       )
     case 'card':

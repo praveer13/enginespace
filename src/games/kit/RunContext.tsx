@@ -52,6 +52,11 @@ export interface LiveRun<View = unknown> {
   readonly DockView: ComponentType<DockViewProps<View>> | null
   /** Grows each time the learner starts or moves this run: the dock follows the largest. */
   readonly touched: number
+  /**
+   * Set when this is not a run of the learner's but the state a figure replays ("Show on the machine", ShowOnMachine.tsx): the dock draws it with no
+   * controls of its own and a way back, which forgets it and leaves the learner's run as it was. The replay never touches that run.
+   */
+  readonly figure?: { readonly caption: string; back(): void }
 }
 
 const runs = new Map<string, LiveRun>()

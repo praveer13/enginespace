@@ -61,6 +61,19 @@ src: figures/tr2/l3-overlap.svg
 alt: Three engine steps drawn twice to one scale, with async scheduling off and then on
 description: Two pairs of lanes, one pair for async scheduling off and one for on, with three steps in each. With it off, the GPU lane has an empty stretch, drawn dashed, between every two forwards, because the next step's schedule, prepare and launch wait for the last step to be read. With it on, the CPU lane writes each step's schedule, prepare and launch while the previous forward runs, the forwards follow one another with no stretch between them, and the three steps end sooner.
 origin: generated
+replay:
+  game: loop
+  level: first-4-par
+  seed: 1
+  actions:
+    - { t: lever, name: async, value: true }
+    - { t: admit, req: 0 }
+    - { t: admit, req: 1 }
+    - { t: admit, req: 2 }
+    - { t: admit, req: 3 }
+    - { t: run, until: step }
+    - { t: run, until: step }
+    - { t: run, until: step }
 :::
 
 :::card
