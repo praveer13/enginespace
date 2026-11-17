@@ -214,7 +214,7 @@ function lessonFigure(id: string): number | string {
 describe('a prediction revealed at commit (D-067)', () => {
   test('is every prediction that no level of its game answers: 21 of them, in every module that has a lesson of its own question', () => {
     expect(atCommit.map(({ block }) => block.id)).toEqual([
-      'tr1.l2.p1', 'tr1.l2.p2', 'tr1.l4.p2', 'tr1.l5.p2', 'tr1.l5.p3', 'tr1.l7.p2',
+      'tr1.l2.p2', 'tr1.l2.p1', 'tr1.l4.p2', 'tr1.l5.p3', 'tr1.l5.p2', 'tr1.l7.p2',
       'tr2.l2.p1', 'tr2.l3.p1', 'tr2.l6.p2', 'tr2.l7.p1',
       'tr5a.l2.p1', 'tr5a.l3.p2',
       'tr6.l1.p1', 'tr6.l2.p1', 'tr6.l3.p1', 'tr6.l4.p1', 'tr6.l5.p1',

@@ -24,7 +24,7 @@
 - [Mini-SGLang: one request through four processes](md/tr1/l3-mini-sglang-four-processes.md): lesson `tr1.l3`, about 40 minutes [estimated]
 - ["Inside vLLM" and what moved by v0.33.0](md/tr1/l4-inside-vllm-and-what-moved.md): lesson `tr1.l4`, about 40 minutes [estimated]
 - [vLLM at the pin, by symbol: from create_completion to sample_tokens](md/tr1/l5-vllm-at-the-pin-by-symbol.md): lesson `tr1.l5`, about 40 minutes [estimated]
-- [SGLang at the pin: the overlap loop, result_queue, FutureMap, three streams and the Rust pieces](md/tr1/l6-sglang-at-the-pin.md): lesson `tr1.l6`, about 40 minutes [estimated]
+- [SGLang at the pin: the overlap loop, result_queue, FutureMap, three streams and the Rust pieces](md/tr1/l6-sglang-at-the-pin.md): lesson `tr1.l6`, about 48 minutes [estimated]
 - [Abort inside the engine: where the news goes and who frees the blocks](md/tr1/l7-abort-inside-the-engine.md): lesson `tr1.l7`, about 60 minutes [estimated]
 
 ### The step loop (`tr2`)

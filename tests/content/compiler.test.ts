@@ -708,9 +708,11 @@ describe('the pacing warnings (REDESIGN §2.5, the authoring rules)', () => {
   })
 
   test('a warning never changes the exit status of verify:content, whatever the repo holds', () => {
-    const run = spawnSync('bun', ['scripts/verify-content.ts'], { cwd: repo, encoding: 'utf8', env: { ...process.env, CI: '1' } })
+    // A fixture that earns one warning, and not the repo: once every lesson keeps the rules, the repo earns none.
+    const root = project({ [LESSON]: edited(opening(250)) })
+    const run = spawnSync('bun', ['scripts/verify-content.ts', '--root', root], { cwd: repo, encoding: 'utf8', env: { ...process.env, CI: '1' } })
     expect(run.stdout).toContain('warning')
-    expect(run.stdout).toMatch(/verify:content passed: .*\d+ warnings/)
+    expect(run.stdout).toMatch(/verify:content passed: .*\d+ warnings?/)
     expect(run.status).toBe(0)
   })
 })

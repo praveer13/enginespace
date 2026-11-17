@@ -6,31 +6,38 @@ Builds on kernelspace: `ks:T5.L10`, `ks:T5.L7`, `ks:T5.L5`.
 
 Knowledge components: `tr1.read-at-the-pin`, `tr1.vllm-lifecycle`.
 
+This lesson reads "Inside vLLM", a post that maps vLLM's V1 engine at one commit, against v0.33.0, the version the course pins. The `inside` level draws the post's engine:
+
+- **API server** and **engine core**: two processes, joined by a ZeroMQ socket.
+- **Input thread**: in the engine core, blocks on the socket and puts each request on `input_queue`.
+- **Main thread**: takes from `input_queue` and runs the engine's step.
+- **Output thread**: takes results from `output_queue` and sends them to the API server.
+
+New here: the post is a commit and not a release. The level has no `aborts_queue`, no `sample_tokens`, and no step that is launched before the last is read.
+
+> **Predict `tr1.l4.p1`.** In the engine that the post describes, serving a streamed answer at one rank, how many process boundaries does a sampled token cross on its way to the client?
+>
+> The learner commits to a number in `boundaries`, graded within a relative tolerance of `0` [estimated] before the reveal. Ask them to commit to an answer and say why before you discuss it.
+
+> **Play.** The game `engine-floor`, level `inside`, in `practice` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.
+
+## An old map, a new pin
+
 "Inside vLLM" is the most-read map of vLLM's V1 engine. It walks one engine from the offline `LLM` class to a multi-node server, **from the offline engine to multi-GPU, multi-node serving** [measured] and it says on its first page which code it read, as a commit. **42172ad** [measured] That commit is dated 2025-08-09. **2025-08-09** [measured] The version this course pins, v0.33.0, was uploaded to PyPI on 2026-11-02, which is 450 days after the commit [derived]. **2026-11-02** [measured]
 
 The post is worth reading because most of what it says is still true. What changes between the post and the pin is the code's address and its detail. A learner who reads the post as a description of v0.33.0 will name a file that is now a shim, a state that is now called something else, and a feature the post lists as experimental that is now on by default. This lesson teaches the skill of reading an old map at a new pin: take a name from the post, find it at the pin, and when it is not there, find what took its place. The same skill applies to every blog post, conference talk and design document you will ever use to find your way into a fast-moving code base.
 
 ## What the post draws
 
-The post builds in layers. It starts with the synchronous engine, the `LLM` class driving an `EngineCore` in the caller's process. It adds the scheduler, the KV cache manager, prefix caching, structured output, speculation and KV transfer. Then it moves the engine core into a process of its own, with a `MultiProcExecutor` for more than one GPU. Last it puts an `AsyncLLM` in front, with a ZeroMQ socket between the two. The last picture is the one the game's `inside` level draws.
+The post builds in layers. It starts with the synchronous engine, the `LLM` class driving an `EngineCore` in the caller's process. It adds the scheduler, the KV cache manager, prefix caching, structured output, speculation and KV transfer. Then it moves the engine core into a process of its own, with a `MultiProcExecutor` for more than one GPU. Last it puts an `AsyncLLM` in front, with a ZeroMQ socket between the two. The last picture is the one that Request path's `inside` level draws.
 
 The engine core process of that picture has three threads, and the post names them. An input thread blocks on the socket and puts each decoded request on `input_queue`. A main thread takes from it and runs the engine's step. An output thread takes results from `output_queue` and sends them to the API server. **input thread, main thread, output thread** [measured] The post also says what the V1 scheduler can do that its predecessor could not: it mixes prefill and decode requests in the same step. **both kinds in the same step** [measured] You read the other side of that sentence in the second lesson.
 
-## Before you play
-
-Two questions, to commit to before you lay the post's path. The first is the game's own, and the engine is the one the post describes. The second asks how much the file you will spend most of your time in has grown, and you can estimate it from the age of the post.
-
-> **Predict `tr1.l4.p1`.** In the engine that the post describes, serving a streamed answer at one rank, how many process boundaries does a sampled token cross on its way to the client?
->
-> The learner commits to a number in `boundaries`, graded within a relative tolerance of `0` [estimated] before the reveal. Ask them to commit to an answer and say why before you discuss it.
+One number to guess. The post's scheduler file is the file you will spend most of your time in, and the post is a commit of 2025-08-09.
 
 > **Predict `tr1.l4.p2`.** The post's vllm/v1/core/sched/scheduler.py has 1,163 lines [measured] at commit 42172ad. By what factor has the file grown by v0.33.0?
 >
 > The learner commits to a number in `x`, graded within a relative tolerance of `0.15` [estimated] before the reveal. Ask them to commit to an answer and say why before you discuss it.
-
-Then play the `inside` level on its practice seed. It lays the post's world: an API server and an engine core as two processes, and in the engine core an input thread, the busy loop and an output thread passing the ticket on spikes. Notice what is not in it. There is no `aborts_queue`, no `sample_tokens`, and no step that is launched before it is read.
-
-> **Play.** The game `engine-floor`, level `inside`, in `practice` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.
 
 ## The step, then and now
 
@@ -86,6 +93,10 @@ Four things were added, and each one is a lesson of its own later. The forward i
 
 There is a second step method beside it, `step_with_batch_queue`, and its history is the neatest example of a name that outlived its purpose. At the post's commit the engine core builds a batch queue only when the executor allows more than one batch in flight, and its comment says it is there for pipeline parallelism, to remove pipeline bubbles. **a batch queue for pipeline parallelism** [measured] At the pin the engine core uses it whenever async scheduling is on, and that is the default: it schedules a new batch whenever the queue has room and blocks on the oldest batch's result only when it is full. **the batch queue first** [measured] **on** [measured]
 
+One question on what became of a box of the post.
+
+> **Practice.** Items from the generator family `tr1.what-moved`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+
 ## Where did the post's boxes go
 
 Take a box from the post's pictures and find it at the pin. The table gives the post's name, the line it was at in the post's commit, the line it is at in v0.33.0, and what happened. Every address in it is a permalink.
@@ -112,6 +123,10 @@ Five kinds of change show up, and each tells you what to do next. **Same file** 
 
 The default runner row deserves a second look. The post reads Model Runner V1. Since v0.29.0 the default is Model Runner V2, which is a different file with a different shape, and V1 is still shipped as the runner a configuration falls back to. **v0.29.0** [measured] **present** [measured] Whenever the post says "the model runner", the pin's answer is the other file.
 
+One more, on a box.
+
+> **Practice.** Items from the generator family `tr1.what-moved`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+
 ## How much grew
 
 Counted on 2026-11-05 at `42172ad` and at v0.33.0, the files that a request crosses grew a lot, and the two that shrank did so because their contents were moved out.
@@ -127,7 +142,7 @@ Counted on 2026-11-05 at `42172ad` and at v0.33.0, the files that a request cros
 | [`vllm/entrypoints/openai/api_server.py`](https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/entrypoints/openai/api_server.py) | [1,918](https://github.com/vllm-project/vllm/blob/42172ad18fbc22c89d0063184e4570cc84186e16/vllm/entrypoints/openai/api_server.py) | 59 | 0.03 |
 | [`vllm/config/__init__.py`](https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/config/__init__.py) | [4,501](https://github.com/vllm-project/vllm/blob/42172ad18fbc22c89d0063184e4570cc84186e16/vllm/config/__init__.py) | 160 | 0.04 |
 
-The first answer is two. The engine core's output thread sends a token to the API server, and the API server sends it to the client, so a token crosses two process boundaries [derived], and at two ranks it crosses three, because the worker's result reaches the engine core through shared memory first. The second answer is 3.3 [derived]: the scheduler is more than three times the size it was in the post, and it is the file you will spend the most time in. Notice too that the sizes of the engine files barely changed what the post is about. They changed how much of the post is incomplete.
+The engine core's output thread sends a token to the API server, and the API server sends it to the client, so a token crosses two process boundaries [derived], and at two ranks it crosses three, because the worker's result reaches the engine core through shared memory first. The scheduler grew by a factor of 3.3 [derived]: it is more than three times the size it was in the post, and it is the file you will spend the most time in. Notice too that the sizes of the engine files barely changed what the post is about. They changed how much of the post is incomplete.
 
 ## What the post says that is stale
 
@@ -140,6 +155,10 @@ Take the statements of the post, one at a time, with the pin's side of each.
 - **The API server is [`openai/api_server.py`](https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/entrypoints/openai/api_server.py).** That module is a shim at the pin, and the live entry points are under `launchers/`. **deprecated shim** [measured]
 
 Several statements did not go stale, and a good reader keeps them. The three threads and the two queues that join them still have those names. **input_queue, output_queue** [measured] The scheduler still serves the running requests before the waiting ones, from one budget. **running first, then waiting** [measured] Prefix caching is still on by default, and the block is still sixteen tokens. **on** [measured] **true** [measured] **16 tokens** [measured] **16 tokens** [measured] And the shared-memory queue that carries a step to the workers is still `rpc_broadcast_mq`. **rpc_broadcast_mq** [measured]
+
+One question on whether a statement of the post still holds.
+
+> **Practice.** Items from the generator family `tr1.what-moved`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
 ## How to read a post at a pin
 
@@ -165,15 +184,9 @@ git grep -n "WAITING_FOR_FSM" v0.33.0 -- vllm || echo "gone: search for what it 
 
 > **Card.** The notional-machine card `lifecycle`.
 
-## What to carry
-
-- Read a post at its commit and then at your pin. The loop it draws is probably still the loop, and the file it names is probably not still the file.
-- Five kinds of change: same file, moved, renamed, replaced and new. Say which kind each box is before you cite it.
-- The statements to distrust first are the ones about defaults and about experimental features, because those are what a project changes on purpose.
-
 ## Exit check
 
-This lesson tests two skills: finding where a box of an older post lives in the pinned code and saying which of the post's statements are stale (`tr1.read-at-the-pin`), and tracing a request through vLLM's engine core (`tr1.vllm-lifecycle`). The exit ticket is three items on fresh seeds, and it tests the first skill: each gives a name or a statement from the post and asks where it is at the pin, or whether it still holds. It is passed with at least two right (ASSESSMENT §4.2). The graded map tests the second skill on a whole path.
+Three questions on new numbers. Each gives a name or a statement from the post and asks where it is at the pin, or whether it still holds. Two right passes. The graded map at the end of the module tests the vLLM path on whole paths.
 
 > **Practice.** Items from the generator family `tr1.what-moved`, level `2`, `3` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 

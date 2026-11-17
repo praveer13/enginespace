@@ -10,6 +10,39 @@ lanes: [B]
 games: [engine-floor]
 ---
 
+Mini-SGLang is nano-vllm's loop behind a server. Its processes:
+
+- **API server**: speaks HTTP, and launched the others.
+- **Tokenizer and detokenizer**: one worker by default, so a default launch runs three processes, not four.
+- **Scheduler**: one process for each GPU. It builds a batch, launches it and reads results.
+- **Between them**: ZeroMQ sockets for messages, and NCCL between GPUs for tensors.
+
+New next to nano-vllm: the hops over sockets, and a scheduler that launches this turn's batch before it reads the last one's result.
+
+:::predict
+id: tr1.l3.p1
+prompt: In Mini-SGLang at one rank, serving a streamed answer, how many process boundaries does a sampled token cross on its way to the client?
+answer: { kind: numeric, unit: boundaries, rel_tol: 0 }
+reveal: after-game
+kcs: [tr1.sglang-lifecycle]
+:::
+
+:::predict
+id: tr1.l3.p2
+prompt: Mini-SGLang is launched on two GPUs instead of one. How many stages does one request's path gain, counting the request's trip through the second rank?
+answer: { kind: numeric, unit: stages, rel_tol: 0 }
+reveal: after-game
+kcs: [tr1.sglang-lifecycle]
+:::
+
+:::game
+id: engine-floor
+level: mini
+mode: practice
+:::
+
+## A server around the same loop
+
 nano-vllm had no front. A caller, a loop and a GPU shared one thread, and a request crossed nothing but the host-to-GPU boundary. Mini-SGLang is what the same engine looks like once it is a server. It has an API server that speaks HTTP, a tokenizer, a detokenizer, and a scheduler for each GPU, joined by ZeroMQ for control messages and by NCCL for the tensors the GPUs exchange. {{claim:mini-sglang.processes}} {{claim:mini-sglang.transport}} It is the smallest honest example of the shape that vLLM and SGLang share, and {{ks:T5.L10}} drew that shape from far away. Here you stand next to it.
 
 The README calls the codebase about {{claim:mini-sglang.readme-lines}} of Python. The Python files under `python/minisgl` have 8,090 physical lines [measured] at `9a91cfa`, counted on 2026-11-05. The part you need for a request's path is much smaller: the scheduler package is 846 lines [measured] and the server package is 840 [measured]. Every link in this lesson is a permalink at that commit, and the lines were read from its tarball.
@@ -31,32 +64,12 @@ description: "Four boxes in a row: the client, the API server, a box for the tok
 origin: authored
 :::
 
-## Before you play
+One question on where a stage runs, before the path.
 
-Two questions about the shape, to commit to before you lay a path. The first is the game's own. The second asks what a second GPU adds.
-
-:::predict
-id: tr1.l3.p1
-prompt: In Mini-SGLang at one rank, serving a streamed answer, how many process boundaries does a sampled token cross on its way to the client?
-answer: { kind: numeric, unit: boundaries, rel_tol: 0 }
-reveal: after-game
-kcs: [tr1.sglang-lifecycle]
-:::
-
-:::predict
-id: tr1.l3.p2
-prompt: Mini-SGLang is launched on two GPUs instead of one. How many stages does one request's path gain, counting the request's trip through the second rank?
-answer: { kind: numeric, unit: stages, rel_tol: 0 }
-reveal: after-game
-kcs: [tr1.sglang-lifecycle]
-:::
-
-Then play the `mini` level on its practice seed. It is a streamed request through four processes, and the scheduler overlaps, so the sync on a copy comes in the next turn of its loop. A path that sends the ticket through the wrong window stops where it goes wrong, and the debrief cites the file and the line.
-
-:::game
-id: engine-floor
-level: mini
-mode: practice
+:::item
+family: tr1.where-does-it-run
+level: 2
+count: 1
 :::
 
 ## The path, hand-off by hand-off
@@ -83,7 +96,15 @@ Here is the whole path of one streamed request at one rank. The first column is 
 | `mini.ack-mailbox` | the listener task wakes the handler | queue | [`listen`](https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/server/api_server.py#L123) |
 | `mini.sse-chunk` | the handler streams a chunk to the client | IPC | [`stream_chat_completions`](https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/server/api_server.py#L175) |
 
-Read the table's mechanisms down the page and the path has a rhythm. Six hand-offs between processes, which are HTTP in, four hops over ZeroMQ and the stream out. A queue where the request waits in the scheduler and a queue where the reply wakes its handler in the API server. A copy down, two launches, a copy up, and a sync that belongs to the next turn. Two of the hand-offs are quieter than the rest. The first is the API server's mailbox. Each request gets a uid, a list and an `asyncio.Event`, and a listener task reads every reply off the socket, appends it to its request's list and sets its event. The handler that is waiting on the event wakes and streams the chunk, and it waits with a bare `await` and no timeout. {{claim:mini-sglang.wait-no-deadline}} That is a queue between two tasks of one event loop, and it is where `mini.ack-mailbox` sits. {{claim:mini-sglang.api-mailbox}} The second is the scheduler's own waiting list, `pending_list`, a plain Python list. The loop below reads the messages that add to it and schedules from it in one thread, so it is a queue between two steps of one thread and not between two threads.
+Read the table's mechanisms down the page and the path has a rhythm. Six hand-offs between processes, which are HTTP in, four hops over ZeroMQ and the stream out. A queue where the request waits in the scheduler and a queue where the reply wakes its handler in the API server. A copy down, two launches, a copy up, and a sync that belongs to the next turn. Two of the hand-offs are quieter than the rest. The first is the API server's mailbox. Each request gets a uid, a list and an `asyncio.Event`, and a listener task reads every reply off the socket, appends it to its request's list and sets its event. The handler that is waiting on the event wakes and streams the chunk, and it waits with a bare `await` and no timeout. {{claim:mini-sglang.wait-no-deadline}} That is a queue between two tasks of one event loop, and it is where `mini.ack-mailbox` sits. {{claim:mini-sglang.api-mailbox}} The second is the scheduler's own waiting list, `pending_list`, a plain Python list. The scheduler's loop reads the messages that add to it and schedules from it in one thread, so it is a queue between two steps of one thread and not between two threads.
+
+One question on the mechanism between two stages of the path.
+
+:::item
+family: tr1.which-mechanism
+level: 2
+count: 1
+:::
 
 ## The scheduler's loop
 
@@ -112,7 +133,7 @@ def overlap_loop(self, last_data: ForwardData | None) -> ForwardData | None:
     return ongoing_data
 ```
 
-One turn does five things in this order. It reads messages from the socket, and blocks only if there is nothing else to do. It schedules a batch. It launches the batch on the engine's stream. It processes the previous turn's data, whose first act is the wait on that batch's copy event. And it hands this turn's data to the next one. {{claim:mini-sglang.overlap-loop-order}} The queue between the copy and the sync, which you met as a stage in vLLM and SGLang, is here a single argument: `last_data` is a one-slot buffer that carries a launched batch across one turn of the loop. {{claim:mini-sglang.copy-done-sync}}
+One turn does five things in this order. It reads messages from the socket, and blocks only if there is nothing else to do. It schedules a batch. It launches the batch on the engine's stream. It processes the previous turn's data, whose first act is the wait on that batch's copy event. And it hands this turn's data to the next one. {{claim:mini-sglang.overlap-loop-order}} The queue between the copy and the sync, which vLLM and SGLang keep as a stage of their own, is here a single argument: `last_data` is a one-slot buffer that carries a launched batch across one turn of the loop. {{claim:mini-sglang.copy-done-sync}}
 
 Overlap has a price, and the authors wrote it into a comment. A request that finishes in one batch may already have been scheduled into the next, because the next was launched before the first was read. The scheduler keeps a set of the requests it finished last turn so that it does not free a request twice. {{claim:mini-sglang.finished-twice}} The switch that turns overlap off is an environment variable, and it is on by default. {{claim:mini-sglang.overlap-default}}
 
@@ -124,9 +145,17 @@ The cache is a radix cache by default, and the match is made one token short of 
 
 With more than one GPU, each rank has its own scheduler process, and the schedulers must agree on what to run. Rank zero is the only one that talks to the tokenizer. It receives the messages, publishes each raw message to the other ranks on a ZeroMQ publish socket, and broadcasts how many messages there are over the CPU process group, so that every rank handles the same list in the same turn. {{claim:mini-sglang.rank0-broadcast}} Every rank then schedules, copies and launches, and the GPUs join their partial results with a collective inside the model. Only rank zero sends results on to the detokenizer. {{claim:mini-sglang.rank0-replies}}
 
-So the second prediction has a short answer. The path gains the publish to the second rank, a hop over a socket, and the collective between the two GPUs. That is two stages [measured by the course's sim on 2026-11-05 at `905b782`]. The model follows the request through rank one's side of the pair, where the engine runs every rank in parallel, until the collective brings the result back to rank zero, which samples and replies.
+A second GPU adds a short list. The path gains the publish to the second rank, a hop over a socket, and the collective between the two GPUs. That is two stages [measured by the course's sim on 2026-11-05 at `905b782`]. The model follows the request through rank one's side of the pair, where the engine runs every rank in parallel, until the collective brings the result back to rank zero, which samples and replies.
 
-## Back to the first prediction
+One question on where a stage runs, now that the loop and the ranks are read.
+
+:::item
+family: tr1.where-does-it-run
+level: 2
+count: 1
+:::
+
+## Why a token crosses three boundaries
 
 A sampled token leaves the scheduler's process for the detokenizer's, leaves the detokenizer's for the API server's, and leaves the API server for the client. That is three process boundaries [derived], and the number is the same whether the tokenizer and the detokenizer are one process or two, because the hop from the scheduler to the shared process and the hop back from it are still two hops. Keep the number for the contrast with vLLM, where the engine core sends its tokens to the API server, which turns them into text, so the same trip crosses two boundaries. {{claim:vllm.request.engine-core-process}} {{claim:vllm.frontend.output-processor-detokenizes}}
 
@@ -152,15 +181,9 @@ kind: notional-machine
 id: lifecycle
 :::
 
-## What to carry
-
-- Mini-SGLang is a request's path with every hop visible: HTTP in, a socket to the tokenizer, a socket to the scheduler, a socket to the detokenizer, a socket to the API server, HTTP out. Each hop is a boundary the sampled token crosses on its way out.
-- The overlap is one argument. The scheduler launches this turn's batch and then waits on last turn's copy, and `last_data` is the whole queue between them.
-- Read the launcher before you trust a diagram. A flag can turn two boxes into one process without changing the path.
-
 ## Exit check
 
-This lesson tests one skill: tracing a request through an engine that has a front end, and saying where each stage runs (`tr1.sglang-lifecycle`). The exit ticket is three items on fresh seeds. Each names a stage of Mini-SGLang's path, or of an engine that you have read so far, and asks in which process and on which thread or stream it runs. It is passed with at least two right (ASSESSMENT §4.2). The graded map at the end of the module tests the same skill on a whole path.
+Three questions on new numbers. Each names a stage of Mini-SGLang's path, or of an engine that you have read so far, and asks in which process and on which thread or stream it runs. Two right passes. The graded map at the end of the module tests the same skill on a whole path.
 
 :::item
 family: tr1.where-does-it-run
