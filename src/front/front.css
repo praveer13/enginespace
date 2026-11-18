@@ -221,7 +221,7 @@
   font-size: var(--es-size-caption);
 }
 
-/* On a phone: the name with the switch and Parts on the first line, the role line and the demo's place on the second. */
+/* On a phone: the name and its role line with Parts at the right on the first line, the demo's place on the second. */
 @media (max-width: 47.999rem) {
   .es-front-strip {
     column-gap: var(--es-space-2);
@@ -254,8 +254,11 @@
     white-space: nowrap;
   }
 
-  .es-front-strip__role {
+  /* The demo's place starts a line of its own under the name, its role line and Parts: a break the width of the strip. */
+  .es-front-strip::after {
+    content: '';
     order: 2;
+    flex-basis: 100%;
   }
 
   .es-front-strip__level {
@@ -269,7 +272,12 @@
   }
 }
 
-/* The goal line: whole at a desk; two lines on a phone, with "more" for the rest (the whole sentence is in the page either way). */
+/* The goal line: whole at a desk; on a phone the number to beat and the end, with "more" for the rest (the whole sentence is in the page
+   either way). Once the level is over, the line's end says so in its place. */
+.es-front-goal .es-goal[data-met] [data-part='ends'] {
+  display: none;
+}
+
 .es-front-goal {
   display: flex;
   align-items: flex-start;
@@ -308,21 +316,47 @@
     display: inline-block;
   }
 
-  /* Closed, the goal leads with the number to beat: the headline names the task, and the aim and what the learner controls wait behind
-     "more" (P4). */
-  .es-front-goal:not([data-open]) .es-front-goal__line {
-    display: -webkit-box;
-    overflow: hidden;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-  }
-
+  /* Closed, the goal shows the number to beat and when the level ends, whole: the headline names the task, and the aim and what the
+     learner controls wait behind "more" (P4), which runs on at the sentence's end, as the game frame's does. */
   .es-front-goal:not([data-open]) :is([data-part='aim'], [data-part='control']) {
     display: none;
   }
 
-  .es-front-goal__line {
+  .es-front-goal {
+    display: block;
     font-size: var(--es-size-caption);
+    line-height: 1.4;
+  }
+
+  .es-front-goal__line {
+    display: inline;
+    font-size: inherit;
+    line-height: inherit;
+  }
+
+  /* A button laid inline keeps the line's height; a ring of room round it takes the press. */
+  .es-front-goal__more {
+    position: relative;
+    min-height: 0;
+    margin: 0;
+    padding: 0 var(--es-space-1);
+    line-height: inherit;
+  }
+
+  .es-front-goal__more::after {
+    content: '';
+    position: absolute;
+    inset: -0.75rem -0.25rem;
+  }
+  /* Once the level is over, its end runs on in the sentence, "more" after it. */
+  .es-front-goal .es-goal__met {
+    display: inline;
+  }
+
+  .es-front-goal .es-goal__met svg {
+    display: inline;
+    margin-inline-end: var(--es-space-1);
+    vertical-align: -0.125em;
   }
 }
 
@@ -596,6 +630,19 @@
     gap: var(--es-space-2);
   }
 
+  /* Tighter steps between the instrument's strips, so the coach line is on the phone's first screen under the whole goal line. */
+  .es-front-service {
+    gap: 0.375rem;
+  }
+
+  .es-front-first {
+    gap: var(--es-space-2);
+  }
+
+  .es-front-lede {
+    line-height: 1.4;
+  }
+
 
   .es-front-first {
     padding-top: var(--es-space-2);
@@ -799,6 +846,27 @@
 .es-front-result__ways .es-primary-button {
   flex: 1 1 15rem;
   max-width: 28rem;
+}
+
+/* At a desk the next level and Run again share a row and the course stands under them, so the result fits the first screen with the
+   diagram over it and the page need not move (P5); the coach strip beside it gives up a little width for that. */
+@media (min-width: 64rem) {
+  .es-front-service[data-phase='result'] .es-front-dock {
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 21rem);
+  }
+
+  .es-front-result__ways {
+    column-gap: var(--es-space-2);
+  }
+
+  .es-front-result__ways:has(.es-front-out) .es-primary-button {
+    max-width: 19rem;
+  }
+
+  .es-front-result__ways .es-front-out {
+    flex-basis: 100%;
+    max-width: max-content;
+  }
 }
 
 .es-front-below__start .es-primary-button {

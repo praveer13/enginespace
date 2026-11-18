@@ -19,8 +19,12 @@ export const HERO = {
   range: 'TR0 to the capstone',
   hours: 'hours',
   estimated: 'estimated',
+  /** What the course takes as read from kernelspace's serving track (T5, lessons 3 to 6), after the lede at a desk. */
+  assumes: 'It takes as read what that track taught: prefill and decode, the KV cache, PagedAttention and prefix caching.',
   /** The way past the demo: a text link to Course, which says where it goes. */
   skip: 'Skip the demo and see the course',
+  /** The same link for a returning learner, who has Continue. */
+  course: 'See the whole course',
 } as const
 
 /** A returning learner: where they left off, read from the pointer, and Continue. */

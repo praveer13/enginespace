@@ -91,6 +91,20 @@ describe('the shell, rendered', () => {
     expect(textOf(inst)).toContain('Put R1 in a slot.')
   })
 
+  test('the plot is not empty at first paint: the reference run, the number to beat, is drawn as outlines at both geometries', () => {
+    const inst = between(shell, 'class="es-front-service"', 'class="es-front-below"')
+    for (const fit of ['wide', 'narrow']) {
+      const drawing = fit === 'wide' ? between(inst, 'data-fit="wide"', 'data-fit="narrow"') : between(inst, 'data-fit="narrow"', 'data-loop-readout')
+      expect([...drawing.matchAll(/data-ref-slab="slot-\d\/0"/g)], fit).toHaveLength(4)
+      expect(drawing, fit).toContain('class="es-lanes__ref-text"')
+    }
+  })
+
+  test('a desk reads what the course takes as read from kernelspace, after the lede', () => {
+    const left = between(shell, 'class="es-front-intro"', 'class="es-front-service"')
+    expect(textOf(left)).toContain(HERO.assumes)
+  })
+
   test("the goal line of demo level 1 does not say how many tokens a step produces", () => {
     const goal = between(shell, 'class="es-front-goal"', 'class="es-front-diagram"')
     expect(textOf(goal)).toContain('Goal:')

@@ -14,7 +14,7 @@ import { Glyph } from '@/design/components/Glyph'
 import { fullTrack } from './full/track'
 import { compareTrack, demoTrack, scaleTrack } from './track-layout'
 import { DEFAULT_CAMERA, LIFT_DEG, LIFT_NARROW_DEG, showsOwnRun, trackPresets, type Canvas } from './track-presets'
-import { LoopLegend } from './View2D'
+import { LoopLegend } from './Legend'
 import './track3d.css'
 
 /*
