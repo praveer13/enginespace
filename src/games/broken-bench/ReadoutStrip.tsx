@@ -7,7 +7,7 @@ import type { BenchRun } from './types'
 
 /*
  * Broken benchmark's readout strip (REDESIGN §2.6, §3.5): the reported p99, the p99 the log gives at the switch's and the cut's settings,
- * the requests measured, and the requests sent late; one stamp for the strip. Each changes at once when the learner moves the switch or the
+ * the requests measured, and the requests sent late; one stamp for the strip, at the right of its numbers, as the other games' readouts carry theirs. Each changes at once when the learner moves the switch or the
  * cut, and the change sits beside it for one second (the kit's delta). A graded attempt does not say where the p99 sits (ASSESSMENT §4.3):
  * the measured p99 is left out, and so is its delta, and the learner finds the p99 by counting down the tail.
  */
@@ -41,10 +41,6 @@ export function ReadoutStrip({ run, desk }: { run: BenchRun; desk: DeskApi | nul
   if (items.length === 0) return null
   return (
     <div className="es-bench-strip" data-bench-readout="">
-      <div className="es-bench-strip__head">
-        <span>Readout</span>
-        <Stamp word="synthetic" />
-      </div>
       <dl className="es-bench-strip__list">
         {items.map((item) => (
           <div key={item.id} className="es-bench-strip__item" data-readout-id={item.id}>
@@ -58,6 +54,7 @@ export function ReadoutStrip({ run, desk }: { run: BenchRun; desk: DeskApi | nul
           </div>
         ))}
       </dl>
+      <Stamp word="synthetic" />
     </div>
   )
 }

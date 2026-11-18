@@ -26,8 +26,10 @@ export interface BenchCopy {
 const STANDS = 'the flaw named right, a p99 within 15% of the recomputed value, and a range that holds it and is at most 2 times as wide as the bootstrap interval'
 const ONE_PASS = `Passes when the 1 case stands: ${STANDS}.`
 const COURT_PASS = `Passes when at least 4 of the 5 reports stand, each with ${STANDS}.`
-const ONE_PRACTICE = `Practice is not graded. A graded attempt passes when the 1 case stands: ${STANDS}.`
-const COURT_PRACTICE = `Practice is not graded. A graded attempt passes when at least 4 of the 5 reports stand, each with ${STANDS}.`
+/** In practice the goal line names the pass rule and the dock prints its numbers (the range rule, over the fields), so the goal stays short. */
+const KEPT = 'the flaw named right, and the range rule kept'
+const ONE_PRACTICE = `Practice is not graded. A graded attempt passes when the 1 case stands: ${KEPT}.`
+const COURT_PRACTICE = `Practice is not graded. A graded attempt passes when at least 4 of the 5 reports stand: ${KEPT}.`
 
 const CONTROLS = 'You name the flaw, or say the benchmark is fair, and write down a p99 with a range.'
 const ENDS = 'Ends when you file the report.'

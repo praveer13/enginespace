@@ -225,10 +225,10 @@ describe('the chart is the diagram', () => {
     expect(markup).toContain('aria-label="Histogram.')
   })
 
-  test('says the report\'s claim with its tag once, and the setup and the counts off the log', () => {
+  test('says the report\'s claim, and the setup and the counts off the log, and leaves the one stamp to the readout strip', () => {
     const words = text(markup)
     expect(words).toContain('Reported p99 time to first token')
-    expect(count(markup, /data-word="synthetic"/g)).toBe(1)
+    expect(count(markup, /data-word="synthetic"/g)).toBe(0)
     expect(markup).toContain('data-line="timer"')
     expect(words).toContain('Counted off the log')
     expect(markup).toContain('data-line="late"')
@@ -401,7 +401,7 @@ describe('the report is the claim on trial, and not the answer', () => {
     const built = caseOf(slot)
     const markup = render(h('div', null, h(Claim, { scene: built.scene, caseNo: 1, cases: 1 }), h(Setup, { scene: built.scene })))
     const words = text(markup)
-    expect(count(markup, /data-word="synthetic"/g)).toBe(1)
+    expect(count(markup, /data-word="synthetic"/g)).toBe(0)
     for (const fact of Object.values(FLAW_FACTS)) {
       expect([flaw, words.includes(fact.term)]).toEqual([flaw, false])
       expect([flaw, words.toLowerCase().includes(fact.phrase.toLowerCase())]).toEqual([flaw, false])
@@ -523,13 +523,14 @@ describe('the result reads the grade', () => {
     const ruling = fakeRun(done.state).view.rulings?.[0]
     if (ruling === undefined) throw new Error('no ruling')
     const exhibits = render(h(Exhibits, { ruling, tools }))
-    expect(exhibits).toMatch(/<text[^>]*>THE CORRECTED RUN<\/text>/)
-    expect(exhibits).toMatch(/<text[^>]*>YOUR LOG, AROUND ITS LONGEST WAIT<\/text>/)
+    expect(exhibits).toMatch(/<text[^>]*>The corrected run<\/text>/)
+    expect(exhibits).toMatch(/<text[^>]*>Your log, around its longest wait<\/text>/)
     expect(exhibits).toMatch(/<path d="[^"]+" stroke="var\(--es-paper-ink-2\)"[^>]*stroke-dasharray/)
     expect(text(exhibits)).toContain("Each red dash is a request's wait between its due tick and its sent tick, and the report's timer, started at the send, counted none of it.")
     expect(text(exhibits)).toMatch(/Request \d{4} waited [\d,.]+ ms/)
     expect(exhibits).not.toContain('var(--es-marker)')
-    expect(count(exhibits, /data-word="synthetic"/g)).toBe(2)
+    // One stamp per instrument: the readout strip beside the exhibits carries it, and the exhibits none.
+    expect(count(exhibits, /data-word="synthetic"/g)).toBe(0)
   })
 
   test('the flags that would have made it admissible are three ledgers of claims', () => {
