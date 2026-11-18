@@ -662,15 +662,16 @@
   font-weight: 700;
 }
 
-/* A guess's chunk loads after the page is laid out. Its place holds the stem, which is already known, and the room the rule, the field, the
-   sureness and Commit take under it [measured 2026-11-18: 316 px at 1440 and 346 px at 390 for a number], so nothing below it moves. */
+/* A guess's chunk loads after the page is laid out. Its place holds the stem, which is already known, and the room that the rule, the field,
+   the sureness and Commit take under it, so nothing below it moves [measured 2026-11-18: a number's guess is 421 px tall at 1440 and 556 px at
+   390, and the placeholder at 250 and 278 px of reserve matches it to within a pixel]. */
 .es-guess__reserve {
-  min-height: 19.75rem;
+  min-height: 15.625rem;
 }
 
 @media (max-width: 40rem) {
   .es-guess__reserve {
-    min-height: 21.75rem;
+    min-height: 17.375rem;
   }
 }
 
