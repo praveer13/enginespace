@@ -183,6 +183,55 @@ for (const [width, height] of [
   })
 }
 
+/*
+ * The first run's frame, in every game at 1440 x 900 and 390 x 844: one amber ring in view and no "now" tab beside Next (the One Marker
+ * Rule); a row of the parts list wears a disc only where the drawing has a disc with its number; and the goal line's number to beat and its
+ * end are on the screen, whole, without a tap on "more" (P4).
+ */
+for (const [width, height] of [
+  [1440, 900],
+  [390, 844],
+] as const) {
+  test.describe(`a game's first run at ${width} x ${height}`, () => {
+    test.use({ viewport: { width, height } })
+
+    for (const game of GAMES.games) {
+      const level = smoke[game.id]
+      if (level === undefined) continue
+      test(`${game.title} (${game.id}), "${level}": one ring, a disc in the list only where one is drawn, and the goal's number and end in view`, async ({ page }) => {
+        await openLevel(page, game.id, level)
+        const frame = page.locator(`section[data-game="${game.id}"]`)
+        await expect(frame.locator('.es-intro[data-intro="parts"]')).toBeVisible()
+        const rings = await frame.locator('.es-marker[data-kind="ring"]').evaluateAll(
+          (all) =>
+            all.filter((ring) => {
+              const box = ring.getBoundingClientRect()
+              return box.width > 0 && box.bottom > 0 && box.top < window.innerHeight
+            }).length,
+        )
+        expect(rings, 'amber rings in view during the intro').toBe(1)
+        await expect(frame.locator('.es-intro .es-marker__tab')).toBeHidden()
+        await expect
+          .poll(() =>
+            frame.evaluate((root) => {
+              const drawn = new Set([...root.querySelectorAll('.es-intro-callouts__at')].map((disc) => disc.textContent))
+              const rows = [...root.querySelectorAll('.es-intro__parts > .es-parts__item')]
+              return rows.flatMap((row, index) => (row.hasAttribute('data-undrawn') === drawn.has(String(index + 1)) ? [`row ${index + 1}`] : []))
+            }),
+          )
+          .toEqual([])
+        const box = await frame.locator('.es-frame__goal-box').boundingBox()
+        for (const part of ['target', 'ends']) {
+          const at = frame.locator(`.es-frame__goal [data-part="${part}"]`)
+          await expect(at, `the goal's ${part}`).toBeInViewport({ ratio: 1 })
+          const end = await at.evaluate((element) => Math.max(...[...element.getClientRects()].map((line) => line.bottom)))
+          expect(end, `the goal's ${part} ends inside the goal line`).toBeLessThanOrEqual((box?.y ?? 0) + (box?.height ?? 0) + 0.5)
+        }
+      })
+    }
+  })
+}
+
 /** Every level that has a pass rule, with its words: the games' copy tables are the list, so a level that gains a rule is held to showing it. */
 const RULES: { game: string; level: string; rule: string }[] = [
   ...Object.entries(FLOOR_COPY).flatMap(([level, copy]) => (copy.passRule === undefined ? [] : [{ game: 'engine-floor', level, rule: copy.passRule }])),
