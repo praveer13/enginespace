@@ -230,7 +230,7 @@ export function VerifierLegend({ run, scene = false }: { run: VerifierRun; scene
         ]
       : []),
     // In 3D the output's mark is named in the row from the start, so the legend keeps its height and the scene's box never changes under a draw.
-    ...(outs || scene ? [{ slot: SLOT_OF.output, word: scene ? <><PartName id="output">output of the sampler</PartName>: the black collar on a target bar</> : <PartName id="output">output of the sampler</PartName> }] : []),
+    ...(outs || scene ? [{ slot: SLOT_OF.output, word: scene ? <><PartName id="output">output of the sampler</PartName>: the black collar on a target bar, dashed up to it where it stands over p</> : <PartName id="output">output of the sampler</PartName> }] : []),
   ]
   return (
     <div className="es-vf__legend" data-vf-legend="">
@@ -244,7 +244,7 @@ export function VerifierLegend({ run, scene = false }: { run: VerifierRun; scene
             <span className="es-vf__dotkey" aria-hidden="true" /> rejected above it.
           </>
         ) : null}
-        {scene ? (view.rows.length > 1 ? ' The 3D view stands the same tokens in rows, one row for each draft position, the first in front.' : ' The 3D view stands the same bars up, at their heights.') : ''}
+        {scene ? ' The 3D view stands the same tokens in rows, one row for each draft position, the first in front, and the scale at the right reads their heights.' : ''}
       </p>
     </div>
   )

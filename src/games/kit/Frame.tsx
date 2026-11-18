@@ -307,6 +307,8 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
   /** New numbers: a fresh seed that the level's band accepts, from the browser's entropy (unseen, not secret). */
   const newNumbers = () => onRestart(drawInBand(session, level, crypto.getRandomValues(new Uint32Array(1))[0]))
 
+  // Every key the game answers to. The Keyboard list leaves out the view and camera keys where the 3D view is not offered (a level of
+  // one draft position, a phone, a game with no scene), since neither does anything there.
   const keymap = useMemo(() => keymapOf(game), [game])
   const container = useGameInput({
     keys: keymap,
@@ -513,7 +515,7 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
           {keyboardButton('strip')}
           {keysWanted ? (
             <Suspense fallback={null}>
-              <KeysDialog keys={keymap} open={keysOpen} onOpenChange={setKeysOpen} />
+              <KeysDialog keys={can3d ? keymap : keymap.filter((key) => key.id !== 'view' && key.id !== 'camera')} open={keysOpen} onOpenChange={setKeysOpen} />
             </Suspense>
           ) : null}
         </div>

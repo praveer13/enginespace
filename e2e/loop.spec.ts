@@ -169,7 +169,8 @@ test.describe('a keyboard-only walk', () => {
     await page.keyboard.press('Shift+Slash')
     const keys = page.getByRole('dialog')
     await expect(keys).toBeVisible()
-    await expect(keys.locator('kbd')).toHaveText(['Space', '.', ',', '[', ']', 'C', 'V', '?', 'O'])
+    // At the phone's width the 3D view is not offered, so the list has no view or camera key.
+    await expect(keys.locator('kbd')).toHaveText(['Space', '.', ',', '[', ']', '?', 'O'])
     await page.keyboard.press('Escape')
     await expect(keys).toBeHidden()
     await expect.poll(() => page.evaluate(() => document.activeElement?.getAttribute('data-game'))).toBe('loop')
