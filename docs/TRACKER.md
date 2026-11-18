@@ -42,7 +42,7 @@ Paste this brief above the task text when dispatching a task. AGENTS.md (W0-T23)
 6. **Dependencies.** Add none without a DECISIONS record and an exact pin (A§14). Use no `^` and no `~`.
 7. **Numbers.** Tag every number in content and docs as [measured], [derived], [estimated] or [unverified], and date every upstream fact. In content, put facts in claims (A§4.4). Never invent a fact. If one cannot be sourced, mark it [unverified] and list it in the PR.
 8. **Web requests.** Send a generic User-Agent, and never send the owner's name or email in a header, URL or payload. The site itself makes no third-party request.
-9. **Look.** The visual identity is Data Book (D-062). Use only the token roles in `src/design/tokens.ts` and the components in `src/design/components`. Put no literal colour or font name outside `src/design`. Names follow GAMES.md §2.6: the engine's term is the only name (D-063). D-062 is proposed until the owner's look gate (R-T20), and until stage 4 of wave R the kitchen's files stay in the tree, untouched.
+9. **Look.** The visual identity is Data Book (D-062). Use only the token roles in `src/design/tokens.ts` and the components in `src/design/components`. Put no literal colour or font name outside `src/design`. Names follow GAMES.md §2.6: the engine's term is the only name (D-063). D-062 is the owner's decision (the look gate, 2026-11-16, "data book for sure"), and the kitchen's files left the tree at stage 4 of wave R (R-T44).
 10. **Done means:**
     - `npm run lint`, `npm run typecheck`, `bun test`, `npm run build` and every `verify:*` the task touches pass;
     - the PR lists each acceptance check with its evidence;

@@ -57,7 +57,9 @@ export interface Screen {
 /** The largest a committed image may be (the task's limit), and where `shrink` starts. */
 export const MAX_BYTES = 300 * 1024
 
+/** Build A is this tag, which exists in the clone that made it; its commit is in the branch's history, so a clone without the tag uses that. */
 const BUILD_A_REF = 'wave-r-stage1'
+const BUILD_A_COMMIT = '094089c'
 const BUILD_B_REF = 'wave-r'
 
 const settle = async (page: Page, ms = 3000): Promise<void> => {
@@ -316,11 +318,22 @@ const git = (...args: string[]): string => execFileSync('git', ['-C', root, ...a
 
 const worktree = (build: Build): string => path.join(scratch, build)
 
+/** A ref that resolves in this clone; build A's tag falls back to its commit when the clone has no tag. */
+function resolvable(ref: string): string {
+  if (ref !== BUILD_A_REF) return ref
+  try {
+    execFileSync('git', ['-C', root, 'rev-parse', '--verify', '--quiet', `${ref}^{commit}`], { stdio: 'ignore' })
+    return ref
+  } catch {
+    return BUILD_A_COMMIT
+  }
+}
+
 function prepare(build: Build, ref: string): string {
   const dir = worktree(build)
   mkdirSync(scratch, { recursive: true })
   if (!existsSync(dir)) {
-    git('worktree', 'add', '--detach', dir, ref)
+    git('worktree', 'add', '--detach', dir, resolvable(ref))
     // The packages are hard-linked, never symlinked; a checkout with none installs its own.
     if (existsSync(path.join(root, 'node_modules'))) execFileSync('cp', ['-al', path.join(root, 'node_modules'), path.join(dir, 'node_modules')])
     else execFileSync('npm', ['ci'], { cwd: dir, stdio: 'inherit' })
