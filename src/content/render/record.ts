@@ -116,7 +116,7 @@ export function lessonRecord(row: MapLesson, lessons: readonly MapLesson[], even
   for (const guess of guessLines(own)) lines.push(guess.record)
   for (const run of runLines(own, [...row.run, ...row.inline, ...row.test.graded], names)) lines.push(run.text)
   const count = tally(row, own)
-  if (row.test.questions.length > 0 && count.tried) lines.push(`questions ${count.right} of ${count.of} ${count.passed ? 'passed' : 'not yet'}`)
+  if (row.test.questions.length > 0 && count.tried) lines.push(`questions ${tallyWords(count)}`)
   if (lines.length === 1) lines.push('nothing yet: a run, a guess and the questions each add a line')
   return lines
 }
