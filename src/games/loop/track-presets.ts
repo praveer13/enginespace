@@ -117,7 +117,7 @@ export function trackPresets(model: FlatModel, canvas: Canvas, nowX: number): Ca
 
   const narrow = canvas.width < 560
   // The margin keeps the near edge's last tick and its number in the canvas: the tilt draws the near edge wider than the far one.
-  const lift = lifted(wide.x0, wide.x1, z0, z1, canvas, narrow ? LIFT_NARROW_DEG : LIFT_DEG, 'lifted', label('lifted'), 1.2)
+  const lift = lifted(wide.x0, wide.x1, z0, z1, canvas, narrow ? LIFT_NARROW_DEG : LIFT_DEG, 'lifted', label('lifted'), 1.16)
 
   // Along time: from past now and a little toward the viewer, low, looking back toward the run's start.
   const depth = (z1 - z0) / PX

@@ -27,10 +27,33 @@
   }
 }
 
+/* The box: the 2D view's legend over the canvas, so the colour code reads in either view, and the canvas in the rest. */
 .es-track3d {
-  position: relative;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   height: 100%;
+}
+
+.es-track3d__legend {
+  flex: none;
+  padding: var(--es-space-2) var(--es-space-3) 0;
+  font-size: var(--es-size-caption);
+}
+
+.es-track3d__canvas {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* A row's or a slab's colour glyph, before its words: the 2D view's shapes, at the label's cap height. */
+.es-track-label__glyph {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  margin-right: 0.25rem;
+  vertical-align: -0.0625rem;
 }
 
 .es-track-label {
@@ -106,9 +129,10 @@
   font-size: var(--es-size-micro);
 }
 
-/* Compare's three schedulers, each over its band, and the line that says what a camera of the model's own runs shows. */
+/* Each run's name over its band: Compare's three schedulers, and the reference run and the learner's on the demo levels. */
 .es-track-label--band {
-  font-size: var(--es-size-note);
+  font-size: var(--es-size-caption);
+  white-space: nowrap;
 }
 
 .es-track-label--caption {

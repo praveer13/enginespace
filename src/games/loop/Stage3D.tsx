@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, type ComponentType, type MutableRefObject, type ReactNode } from 'react'
+import { useEffect, useMemo, type ComponentType, type MutableRefObject, type ReactNode } from 'react'
 import { loopGhost, loopLevel, loopView } from '@es/play/loop/session'
 import { CameraButtons } from '@/scene/CameraButtons'
 import { Stage } from '@/scene/Stage'
@@ -27,18 +27,12 @@ export interface LoopStage3DProps {
   diagram: ReactNode
 }
 
-/** The 3D view's box. A waiting request picked in the scene is admitted, as a tap on it in the dock admits it. */
+/** The 3D view's box. The waiting queue is the dock's, whose chips a tap admits: the scene does not draw it a second time. */
 export default function LoopStage3D({ run, preset, scene, diagram }: LoopStage3DProps) {
-  const { dispatch, view } = run
-  const onHang = useCallback(
-    (req: number) => {
-      if (view.canHang && view.waiting.includes(req)) dispatch({ t: 'admit', req })
-    },
-    [dispatch, view.canHang, view.waiting],
-  )
-  // The reference run of this level and seed, played to its end once: the scene draws its tokens up to the learner's now.
+  const { view } = run
+  // The reference run of this level and seed, played to its end once: the scene stands it behind the learner's run, on one clock.
   const reference = useMemo(() => loopView(loopGhost(loopLevel(view.level, run.seed))), [view.level, run.seed])
-  return <Stage id="loop" className={`${STAGE_BOX} border border-edge`} view2d={diagram} scene={scene} sceneProps={{ view, preset: shown(preset), onHang, reference }} announce={run.announce} />
+  return <Stage id="loop" className={`${STAGE_BOX} border border-edge`} view2d={diagram} scene={scene} sceneProps={{ view, preset: shown(preset), reference }} announce={run.announce} />
 }
 
 /** The camera's presets, a button each; and `C`, through `cycle`, steps to the next and says which. */
