@@ -140,11 +140,11 @@ export function Lanes({ view, size = 'page', onAdmit, ring = null, focusAfter, g
   const pad = narrow ? PAD_NARROW : PAD
   const room = Math.max(boxWidth - pad * 2, base.labelWidth + 1)
   const geometry = useMemo(() => fitGeometry(base, room), [base, room])
-  const layout = useMemo(() => laneLayout(view, geometry), [view, geometry])
   // The reference on the learner's clock, so its window and rows are the learner's: only its slabs are drawn.
   const outlines = reference && laneLayout({ ...reference.view, clockUs: view.clockUs, waiting: [] }, geometry).slabs.filter((slab) => slab.use !== 'empty' && (reference.ahead || slab.endUs <= view.clockUs))
-  const track = useRef<HTMLDivElement>(null)
   const scrolls = geometry.width > room + 1
+  const layout = useMemo(() => laneLayout(view, geometry, scrolls ? room - geometry.labelWidth : undefined), [view, geometry, room, scrolls])
+  const track = useRef<HTMLDivElement>(null)
 
   // Keep now in view: after every change, the track is scrolled so that now stands a little past the middle of what shows.
   useLayoutEffect(() => {

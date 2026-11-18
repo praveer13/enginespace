@@ -308,7 +308,7 @@ export function axisStep(pxPerTick: number, gap: number): number {
 
 const useOf = (place: PlaceView | undefined): SlabUse => (place === undefined || place.state === 'empty' ? 'empty' : place.state === 'binned' ? 'ghost' : 'token')
 
-export function laneLayout(source: LaneSource, geometry: LaneGeometry = DESK): LaneLayout {
+export function laneLayout(source: LaneSource, geometry: LaneGeometry = DESK, visibleTrack?: number): LaneLayout {
   const g = geometry
   if (!Number.isInteger(source.slots) || source.slots < 1) throw new RangeError(`a step loop has at least one slot, not ${source.slots}`)
 
@@ -319,8 +319,15 @@ export function laneLayout(source: LaneSource, geometry: LaneGeometry = DESK): L
   const trackWidth = g.width - g.labelWidth
   const scale: TimeScale = { start, end: start + g.windowTicks, x: trackX, width: trackWidth, pxPerTick: trackWidth / g.windowTicks }
 
-  // The queue: as many chips as fit across the track, and a count of the rest.
-  const fit = Math.max(0, Math.floor((trackWidth + g.chipGap) / (g.chipWidth + g.chipGap)))
+  // The queue: as many chips as fit across the track, and a count of the rest. A track that scrolls inside a narrower box (a phone) passes
+  // the width that shows (`visibleTrack`): the chips are counted across that, with one place kept for the count, so that no chip stands cut
+  // at the box's edge with nothing to say that more are waiting.
+  const chipFit = (width: number) => Math.max(0, Math.floor((width + g.chipGap) / (g.chipWidth + g.chipGap)))
+  let fit = chipFit(trackWidth)
+  if (visibleTrack !== undefined && visibleTrack < trackWidth) {
+    fit = chipFit(visibleTrack)
+    if (source.waiting.length > fit && fit > 1) fit -= 1
+  }
   const shown = source.waiting.slice(0, fit)
   const chips: QueueChip[] = shown.map((req, i) => ({ req, label: requestName(req), x: trackX + i * (g.chipWidth + g.chipGap), y: 0, width: g.chipWidth, height: g.queueHeight }))
 
