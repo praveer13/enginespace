@@ -5,8 +5,8 @@
  *   1. A keyboard-only walk files a report on every level and reaches its result: the first run's Next through the parts and the switch,
  *      the arrow keys choose the flaw, digits write the p99 and its range, Enter files, and focus moves on (to the next report of the
  *      court, and at the end to the verdict). The court is five reports, filed one after the other.
- *   2. The switch and the report form stand beside the chart, inside the first screen with it at 1440 x 900; the range rule is printed
- *      above the form before anything is filed; at 390 x 844 the claim, the switch, the form and the readout share the screen.
+ *   2. P5 at 1440 x 900 and at 390 x 844: the chart, the control in hand and the readout are whole on the screen, without page scroll, at
+ *      the start, while a flaw is chosen, and at the result, with one stamp in view; the range rule is printed above the fields.
  *   3. The first run is the parts, then a flip of the switch (a view change that files nothing: Undo stays dead), then the form with its
  *      range rule. The p99 moving once latency counts from the due time is named once, as coordinated omission.
  *   4. The game's keys: `T` moves the clock between the send time and the due time, `J` and `K` select a request, `[` and `]` turn the
@@ -239,59 +239,88 @@ test.describe('a keyboard-only walk files a report on every level', () => {
   })
 })
 
-test.describe('the first screen', () => {
-  test('at 1440 x 900 the switch, the chart, the claim, the flaws and the readout are inside the viewport together, the form is whole at its own height, and the range rule is above the fields', async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 900 })
-    await open(page, 'due')
-    const viewport = { width: 1440, height: 900 }
-    // The form takes its content's height (the second finish review: no field, flaw or row cut by a box's edge), so its fields and File the
-    // report are read on down the page, and the readout stands whole at the screen's foot over them.
-    const boxes = {
-      switch: await clockSwitch(page).boundingBox(),
-      chart: await page.locator('.es-bench-sheet svg').boundingBox(),
-      claim: await page.locator('[data-bench-claim]').boundingBox(),
-      flaws: await page.locator('[data-bench-form] fieldset').first().boundingBox(),
-      readout: await page.locator('[data-bench-readout]').boundingBox(),
-    }
-    for (const [name, box] of Object.entries(boxes)) expect([name, inView(box, viewport)]).toEqual([name, true])
-    const readout = boxes.readout
-    expect(readout && readout.y + readout.height <= viewport.height + 1 && readout.y >= 0).toBe(true)
-    const list = await page.locator('.es-bench-flaws__list').evaluate((element) => element.scrollHeight <= element.clientHeight + 1)
-    expect(list, 'every flaw is in the list whole, with no inner scroll').toBe(true)
-    await page.getByRole('button', { name: 'File the report' }).scrollIntoViewIfNeeded()
-    const file = await page.getByRole('button', { name: 'File the report' }).boundingBox()
-    const pinned = await page.locator('[data-bench-readout]').boundingBox()
-    expect(file && pinned && file.y + file.height <= pinned.y + 1, 'File the report scrolls clear of the pinned readout').toBe(true)
-    await page.evaluate(() => window.scrollTo(0, 0))
-    const rule = await page.locator('[data-bench-rule]').boundingBox()
-    const p99 = await page.getByLabel('Your p99 (ms)').boundingBox()
-    // The chart and the form stand side by side: the switch is over the chart, the form beside it, one row.
-    expect(boxes.chart && p99 && boxes.chart.x + boxes.chart.width <= p99.x + 1).toBe(true)
-    expect(boxes.switch && boxes.chart && boxes.switch.y < boxes.chart.y).toBe(true)
-    // The rule is printed above the fields, before the learner files.
-    expect(rule && p99 && rule.y + rule.height <= p99.y).toBe(true)
-    await expect(page.locator('[data-bench-rule]')).toContainText('within 15%')
-    await expect(page.locator('[data-bench-rule]')).toContainText('at most 2 times as wide as its bootstrap interval')
-  })
+/**
+ * P5 (REDESIGN §2.1): the chart's current region, the current control and the readout are whole inside the viewport, without page scroll, at
+ * the start of a level, while a flaw is chosen, and at the result. The chart is whole inside the diagram's own box too, so no edge of the
+ * box cuts it; a long list of options may scroll inside the dock, and then it says so.
+ */
+async function wholeOnScreen(page: Page, viewport: { width: number; height: number }, parts: Record<string, string>, chart: string) {
+  const view = await page.locator('.es-frame__view').boundingBox()
+  const sheet = await page.locator(chart).first().boundingBox()
+  expect(['chart', inView(sheet, viewport)]).toEqual(['chart', true])
+  expect(['chart inside the diagram\'s box', sheet !== null && view !== null && sheet.y >= view.y - 0.5 && sheet.y + sheet.height <= view.y + view.height + 0.5]).toEqual([
+    'chart inside the diagram\'s box',
+    true,
+  ])
+  for (const [name, selector] of Object.entries({ ...parts, readout: '[data-bench-readout]' })) {
+    const box = await page.locator(selector).first().boundingBox()
+    expect([name, inView(box, viewport)]).toEqual([name, true])
+    // Nothing pinned lies over it: the point at its middle is its own.
+    const own = await page
+      .locator(selector)
+      .first()
+      .evaluate((element) => {
+        const r = element.getBoundingClientRect()
+        const at = document.elementFromPoint(r.left + r.width / 2, r.top + Math.min(r.height / 2, 12))
+        return at !== null && (element.contains(at) || at.contains(element))
+      })
+    expect([name, 'not covered', own]).toEqual([name, 'not covered', true])
+  }
+}
 
-  test('at 390 x 844 the switch, the chart at its floor, the form\'s fields and the readout share the screen with the diagram\'s box', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 })
-    await open(page, 'due')
-    const viewport = { width: 390, height: 844 }
-    const view = await page.locator('.es-frame__view').boundingBox()
-    const dock = await page.locator('[data-dock]').boundingBox()
-    expect(inView(view, viewport)).toBe(true)
-    expect(inView(dock, viewport)).toBe(true)
-    // The chart leads the diagram's box (the second finish review: it was a 65 px strip under the claim): at least 8rem of the sheet shows
-    // over the pinned dock. The claim follows it in the box, and its number is the readout's first.
-    const sheet = await page.locator('.es-bench-sheet svg').boundingBox()
-    expect(sheet && view && Math.min(sheet.y + sheet.height, view.y + view.height) - sheet.y >= 128).toBe(true)
-    expect(inView(await clockSwitch(page).boundingBox(), viewport)).toBe(true)
-    expect(inView(await page.locator('[data-bench-readout]').boundingBox(), viewport)).toBe(true)
-    // The diagram's box ends where the pinned dock starts, so nothing of it hides under the dock.
-    expect(view && dock && view.y + view.height <= dock.y + 1).toBe(true)
-    await expect(page.locator('[data-bench-rule]')).toBeVisible()
-  })
+test.describe('the first screen', () => {
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 390, height: 844 },
+  ]) {
+    test(`at ${viewport.width} x ${viewport.height} the chart, the control in hand and the readout share the screen at the start, while a flaw is chosen, and at the result`, async ({ page }) => {
+      await page.setViewportSize(viewport)
+      // The start: a first visit, the intro's Next is the control in hand.
+      await open(page, 'due', { intro: 'fresh' })
+      await expect(page.locator('[data-intro-next]')).toBeVisible()
+      expect(await page.evaluate(() => window.scrollY)).toBe(0)
+      await wholeOnScreen(page, viewport, { next: '[data-intro-next]', switch: '[data-bench-switch] [role="switch"]' }, '[data-sheet="histogram"] .es-bench-sheet svg')
+      await page.locator('[data-intro-skip]').click()
+
+      // A flaw chosen: the chosen row is in view, and at a desk the fields and File the report are too, the list scrolling inside the dock.
+      // A tap on the row, as the learner makes it: no scroll of the test's own.
+      await page.locator('[data-bench-flaws] input[value="coordinated-omission"]').evaluate((input: HTMLInputElement) => input.click())
+      await expect(page.locator('[data-bench-flaws] input[value="coordinated-omission"]')).toBeChecked()
+      expect(await page.evaluate(() => window.scrollY)).toBe(0)
+      const flaw = { flaw: '[data-bench-flaws] label[data-checked]' }
+      const desk = viewport.width >= 1024 ? { fields: '.es-bench-form__fields', file: '.es-bench-form__file button' } : {}
+      await wholeOnScreen(page, viewport, { ...flaw, ...desk }, '[data-sheet="histogram"] .es-bench-sheet svg')
+      if (viewport.width >= 1024) {
+        const rule = await page.locator('[data-bench-rule]').boundingBox()
+        const p99 = await page.getByLabel('Your p99 (ms)').boundingBox()
+        const chart = await page.locator('.es-bench-sheet svg').boundingBox()
+        // The rule is printed above the fields; the chart and the form stand side by side, the switch over the chart.
+        expect(rule && p99 && rule.y + rule.height <= p99.y).toBe(true)
+        expect(chart && p99 && chart.x + chart.width <= p99.x + 1).toBe(true)
+        expect(inView(p99, viewport)).toBe(true)
+      }
+      await expect(page.locator('[data-bench-rule]')).toContainText('within 15%')
+      await expect(page.locator('[data-bench-rule]')).toContainText('at most 2 times as wide as its bootstrap interval')
+
+      // The result, where the page leaves it: the corrected run, the verdict with its way on, and the readout.
+      const right = rightAnswer(buildLevel('due', 0).slots[0])
+      await page.locator(`[data-bench-flaws] input[value="${right.flaw}"]`).check()
+      await page.getByLabel('Your p99 (ms)').fill(ms(right.p99Us))
+      await page.getByLabel('Range from (ms)').fill(ms(right.loUs))
+      await page.getByLabel('to (ms)').fill(ms(right.hiUs))
+      await page.getByRole('button', { name: 'File the report' }).click()
+      await expect(verdict(page)).toHaveText('Passed')
+      await expect(page.locator('[data-exhibit="run"] svg')).toBeVisible()
+      await expect.poll(() => page.getByRole('button', { name: /^Next level/ }).evaluate((element) => element.getBoundingClientRect().bottom <= window.innerHeight)).toBe(true)
+      await wholeOnScreen(page, viewport, { verdict: '[data-result] [data-result-heading]', next: '[data-result] .es-debrief__actions a, [data-result] .es-debrief__actions button' }, '[data-exhibit="run"] svg')
+      // One stamp in view: the readout strip's (the Quiet Provenance Rule).
+      const stamps = await page.locator('.es-stamp').evaluateAll((all) => all.filter((element) => {
+        const r = element.getBoundingClientRect()
+        return r.width > 0 && r.bottom > 0 && r.top < window.innerHeight
+      }).length)
+      expect(stamps).toBe(1)
+    })
+  }
 
   test('each level shows its title, its goal line and, played graded, its pass rule before the run', async ({ page }) => {
     for (const level of ['due', 'warm', 'sure', 'court'] as const) {

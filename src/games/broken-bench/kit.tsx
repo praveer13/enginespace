@@ -15,11 +15,14 @@ import { DockView } from './DockView'
  * page's and not the session's, so the table the frame reads is empty and Game.tsx says the moment itself from `COORDINATED_OMISSION`.
  */
 
-/** Where each part is drawn, inside the frame: the intro's callout sits on it. */
+/**
+ * Where each part is drawn, inside the frame: the intro's callout sits on it. A sheet is called out on its own drawing, inside its top, and
+ * only while it is the sheet on the board: a sheet that is not drawn has no disc beside a tab, and its row in the list says so.
+ */
 const ANCHORS: Readonly<Record<string, string>> = {
   claim: '[data-bench-claim]',
-  histogram: '[data-bench-tab="histogram"]',
-  timeline: '[data-bench-tab="timeline"]',
+  histogram: '[data-sheet="histogram"] .es-bench-sheet',
+  timeline: '[data-sheet="timeline"] .es-bench-sheet',
   switch: '[data-bench-switch] label',
   form: '[data-bench-form] h3',
 }

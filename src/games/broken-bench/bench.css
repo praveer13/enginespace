@@ -25,35 +25,16 @@
   color: var(--es-paper-ink);
 }
 
-/* On a phone the claim comes first, then the evidence, then the setup it was measured with. */
-.es-bench-claimbox {
-  order: 0;
-}
-
-.es-bench-chart {
-  order: 1;
-}
-
-.es-bench-setupbox {
-  order: 2;
-}
-
-.es-bench-claimbox,
-.es-bench-chart,
 .es-bench-setupbox {
   min-width: 0;
 }
 
-.es-bench-claimbox {
-  display: flex;
-  flex-direction: column;
-  gap: var(--es-space-2);
-}
-
+.es-bench-claimbox,
 .es-bench-chart {
   display: flex;
   flex-direction: column;
   gap: var(--es-space-2);
+  min-width: 0;
 }
 
 .es-bench-chart__head {
@@ -72,6 +53,7 @@
 .es-bench-tabs {
   display: flex;
   flex: none;
+  flex-wrap: wrap;
   gap: var(--es-space-1);
 }
 
@@ -88,7 +70,6 @@
   display: block;
   width: 100%;
   height: auto;
-  max-width: 100%;
 }
 
 /* The legend's longer words, where the row has room for them. */
@@ -103,41 +84,21 @@
 }
 
 /*
- * At a desk the drawing keeps the room it plays in, and the report form beside it takes its content's height, as every dock does at a
- * result: no field, flaw or row of the setup is cut by a box's edge, the drawing stands at the screen's top while the form is read on
- * down the page, and the readout stands at the screen's foot (P5).
+ * At a desk on the game's page the drawing and the dock share one height, sized to the screen under the goal line, so the chart, the control
+ * in hand and the readout are in view together at the start, while a flaw is chosen, and at the result (P5). The chart takes the drawing's
+ * left; the claim, the cut and the setup stand in a column at its right, and the setup, which is read for reference, scrolls in its own box
+ * with a cue. In the dock the report form fills the room down to the readout: the flaw list gives up its height first and scrolls with a
+ * cue, so the fields and File the report stay in view.
  */
 @media (min-width: 64rem) {
   .es-bench-board {
-    grid-template-columns: minmax(0, 1fr) minmax(16rem, 19rem);
+    grid-template-columns: minmax(0, 1fr) 17rem;
     grid-template-rows: auto minmax(0, 1fr);
-    min-height: calc(clamp(26rem, 100svh - 24.5rem, 44rem) - 2.75rem);
     align-items: start;
-  }
-
-  .es-frame[data-placement='page'][data-game='broken-bench'] .es-frame__body {
-    height: auto;
-    align-items: start;
-  }
-
-  .es-frame[data-placement='page'][data-game='broken-bench'] .es-frame__dock-main {
-    overflow: visible;
-  }
-
-  .es-frame[data-placement='page'][data-game='broken-bench'] .es-frame__readout {
-    position: sticky;
-    bottom: 0;
-    z-index: 2;
-    background: var(--es-paper);
-  }
-
-  .es-frame[data-placement='page'][data-game='broken-bench'][data-phase='result'] .es-frame__diagram {
-    height: clamp(26rem, 100svh - 24.5rem, 44rem);
   }
 
   .es-bench-board[data-done] {
     display: block;
-    height: auto;
   }
 
   .es-bench-claimbox {
@@ -148,13 +109,6 @@
   .es-bench-chart {
     grid-column: 1;
     grid-row: 1 / span 2;
-    min-height: 0;
-  }
-
-  /* The flaws are a short list: the form shows every one of them whole. */
-  .es-bench-flaws .es-bench-flaws__list {
-    max-height: none;
-    overflow: visible;
   }
 
   .es-bench-setupbox {
@@ -162,6 +116,68 @@
     grid-row: 2;
   }
 
+  .es-frame[data-placement='page'][data-game='broken-bench'][data-phase='play'] .es-frame__body {
+    height: clamp(26rem, 100svh - 19rem, 46rem);
+  }
+
+  .es-frame[data-placement='page'][data-game='broken-bench'][data-phase='play'] :is(.es-frame__surface, .es-bench-board) {
+    height: 100%;
+  }
+
+  .es-frame[data-placement='page'][data-phase='play'] .es-bench-setupbox {
+    align-self: stretch;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .es-frame[data-placement='page'][data-game='broken-bench'][data-phase='play'] :is(.es-frame__dock-main, .es-bench-dock, .es-bench-form, .es-bench-flaws) {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+  }
+
+  .es-frame[data-placement='page'][data-game='broken-bench'][data-phase='play'] :is(.es-bench-dock, .es-bench-form) {
+    min-height: 0;
+  }
+
+  .es-frame[data-placement='page'][data-phase='play'] .es-bench-flaws__list {
+    flex: 1 1 0;
+    min-height: 6.75rem;
+    overflow-y: auto;
+  }
+}
+
+/* A box that scrolls says so at its foot, in words over the line it would cut, until its end is reached (as the frame's dock does). */
+@supports (container-type: scroll-state) {
+  .es-bench-flaws__list,
+  .es-bench-setupbox {
+    container-type: scroll-state;
+  }
+
+  :is(.es-bench-flaws__list, .es-bench-setupbox)::after {
+    content: 'More below' / '';
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    display: block;
+    height: 1.5rem;
+    margin-top: -1.5rem;
+    padding: 0.125rem var(--es-space-2);
+    border-top: 1px solid var(--es-edge);
+    background: var(--es-paper);
+    color: var(--es-text-2);
+    font-size: var(--es-size-caption);
+    font-weight: 700;
+    line-height: 1.4;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  @container scroll-state(scrollable: bottom) {
+    :is(.es-bench-flaws__list, .es-bench-setupbox)::after {
+      visibility: visible;
+    }
+  }
 }
 
 /* ------------------------------------------------------------------------------------------------ the claim and the setup */
@@ -170,13 +186,6 @@
   display: grid;
   gap: var(--es-space-1);
   align-content: start;
-}
-
-.es-bench-claim__head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--es-space-2);
 }
 
 .es-bench-claim__what {
@@ -303,10 +312,6 @@
   border-top: 2px dashed var(--es-paper-ink-2);
 }
 
-.es-bench-legend {
-  flex-wrap: wrap;
-}
-
 .es-bench-request {
   display: flex;
   flex-wrap: wrap;
@@ -315,12 +320,7 @@
   margin: 0;
   padding: var(--es-space-1) var(--es-space-2);
   border: 1px solid var(--es-paper-rule);
-  border-left-width: 1px;
   font-size: var(--es-size-caption);
-}
-
-.es-bench-request[data-empty] {
-  color: var(--es-text-2);
 }
 
 .es-bench-request > div {
@@ -404,9 +404,7 @@
 .es-bench-flaws__list {
   display: flex;
   flex-direction: column;
-  max-height: 8.5rem;
   margin-top: var(--es-space-1);
-  overflow-y: auto;
   overscroll-behavior: contain;
   border: 1px solid var(--es-paper-rule);
 }
@@ -523,26 +521,21 @@
 
 /* ------------------------------------------------------------------------------------------------ the readout strip */
 
+/* The strip's one stamp stands at the right of its numbers, as the other games' readouts carry theirs; on a screen too narrow for both, under them. */
 .es-bench-strip {
   display: flex;
-  flex-direction: column;
-  gap: var(--es-space-1);
-}
-
-.es-bench-strip__head {
-  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--es-space-2);
-  color: var(--es-text-2);
-  font-size: var(--es-size-caption);
-  font-weight: 700;
+  justify-content: flex-end;
+  gap: var(--es-space-1) var(--es-space-2);
 }
 
 .es-bench-strip__list {
+  flex: 1 1 12rem;
+  min-width: 0;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-  gap: 0 var(--es-space-2);
+  gap: 0 var(--es-space-3);
   margin: 0;
   padding-top: 1.125rem;
 }
@@ -570,7 +563,7 @@
 
 @media (max-width: 63.999rem) {
   .es-bench-strip__value {
-    font-size: var(--es-size-base);
+    font-size: var(--es-size-print);
   }
 }
 
@@ -724,8 +717,16 @@
   max-height: 22rem;
 }
 
-/* On a phone the claim is one compact block, the switch's words are shorter, and the diagram's box holds the chart over the pinned dock. */
+/*
+ * On a phone the chart leads the diagram's box, its switch and sheets over it, and the claim, the cut and the setup follow it in the box. The
+ * box is as tall as the short histogram with its switch and sheets, and the pinned dock takes the rest over a readout of one line, its stamp
+ * at the line's right: the chart, the control in hand and the readout share the screen (P5).
+ */
 @media (max-width: 63.999rem) {
+  .es-bench-chart {
+    order: -1;
+  }
+
   .es-bench-claimbox {
     display: contents;
   }
@@ -737,14 +738,13 @@
     gap: 0 var(--es-space-2);
   }
 
-  .es-bench-claim__head {
+  .es-bench-claim__what {
     flex: 1 0 100%;
   }
 
   .es-bench-claim__value .font-numeric {
     font-size: var(--es-size-large);
   }
-
 
   .es-bench-switch .es-toggle__hint {
     display: none;
@@ -756,29 +756,22 @@
   }
 }
 
-/* On a phone the chart leads the diagram's box, its switch and sheets over it, at a floor height that shows the sheet's shape over the pinned
-   dock; the claim, the cut and the setup follow it in the box. */
-@media (max-width: 63.999rem) {
-  .es-bench-chart {
-    order: -1;
+@media (max-width: 63.999rem) and (min-height: 700px) {
+  /* A row the keys reach in the pinned dock is scrolled clear of the dock's "More below" line at its foot. */
+  .es-frame[data-game='broken-bench'] .es-frame__dock-main {
+    scroll-padding-bottom: 2rem;
   }
 
-  .es-bench-sheetbox {
-    min-height: 11rem;
+  .es-frame[data-placement='page'][data-game='broken-bench'][data-phase='play'] .es-frame__view {
+    max-height: calc(75svh - 20.75rem);
+  }
+
+  .es-frame[data-placement='page'][data-game='broken-bench'][data-phase='play'] .es-frame__dock {
+    max-height: calc(25svh + 1.25rem);
   }
 }
 
-.es-bench-tabs {
-  flex-wrap: wrap;
-}
-
-/* While the first run names the parts, a disc sits after each tab's name: the tabs keep room for it. */
-.es-frame:is([data-intro='parts'], [data-intro='look']) .es-bench-tabs [data-bench-tab] {
-  margin-right: 1.5rem;
-}
-
-/* The first run's disc sits after a part's own name: room for it on the claim and the switch's label. */
-.es-bench-claim__what,
+/* The first run's disc sits after the switch's own name: room for it there. */
 .es-bench-switch .es-toggle__label {
   padding-right: 1.9rem;
 }
