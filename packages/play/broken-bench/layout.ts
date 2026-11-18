@@ -8,11 +8,11 @@
  * (rule 9, D-047). A role becomes `var(--es-<role>)`, so the drawing changes with the design system and carries no literal colour or
  * face. tests/play/broken-bench-layout.test.ts checks that every role used exists.
  *
- * The drawing is the inspector's own work, not a chart (the finish review of W0 turned a chart away): graph paper with a fine grid, two
- * pins in its top corners, orders drawn as the slips they are, and masking-tape labels for what is named on it.
+ * The drawing is the inspector's own work, not a chart (the finish review of W0 turned a chart away): graph paper with a fine grid,
+ * orders drawn as the slips they are, and names in ink on the paper for what is named on it (flat paper: no pins, no tape).
  *   - The `histogram` sheet is the whole log in one picture. Left, a dot for every order in the order it was due, high for slow, on a
  *     logarithmic ruler: a warm-up is a slope at the start, a stall is a spike. Right, the same orders counted into stacks of slips
- *     against the same ruler. Across both, the report's number on a tape flag, and (in practice) the p99 the desk reads. The cut is a
+ *     against the same ruler. Across both, the report's number on a named flag, and (in practice) the p99 the desk reads. The cut is a
  *     dashed line, and orders the cut leaves out are drawn hollow.
  *   - The `timeline` sheet is a stretch of the log, one slip to an order, in the order they came: a hollow notch where the order was
  *     due, a solid stub where it was sent, the wait between them in the ribbon's red (the wait a stopwatch that starts at the send never
@@ -89,7 +89,7 @@ export type Mark =
       readonly face: Face
     }
 
-/** Marks that belong together, drawn as one group: `part` names the object (`paper`, `pins`, `dots`, `stacks`, `flags`, `slips`). */
+/** Marks that belong together, drawn as one group: `part` names the object (`paper`, `dots`, `stacks`, `flags`, `slips`). */
 export interface Layer {
   readonly part: string
   readonly marks: readonly Mark[]
@@ -141,20 +141,16 @@ const text = (x: number, y: number, body: string, size: number, anchor: 'start' 
   face,
 })
 
-/** A masking-tape label: a strip of tape with its words in marker. The width is a guess at the marker's, so a strip is a little loose. */
+/** A name on the sheet: its words in ink on a patch of the sheet's own paper, which keeps the rules behind them clear. The width is a guess at the face's, so a patch is a little loose. */
 function tapeLabel(x: number, y: number, body: string, size: number, anchor: 'start' | 'end' = 'start'): Mark[] {
   const w = body.length * size * 0.62 + 12
   const left = anchor === 'start' ? x : x - w
-  return [rect(left, y, w, size + 8, { fill: 'slip' }), text(left + 6, y + size + 1, body, size, 'start', 'slip-ink', 'label')]
+  return [rect(left, y, w, size + 8, { fill: 'paper' }), text(left + 6, y + size + 1, body, size, 'start', 'paper-ink', 'label')]
 }
 
 /** The sheet itself: paper with a hairline edge. */
 const paper = (width: number, height: number): Mark => rect(0.5, 0.5, width - 1, height - 1, { fill: 'paper', stroke: 'paper-rule', width: 1 })
 
-/** Two pins in the top corners: a steel head and its glint. */
-function pins(width: number): Mark[] {
-  return [22, width - 22].flatMap((x) => [circle(x, 15, 6, { fill: 'surface-2', stroke: 'edge', width: 1.25 }), circle(x - 1.8, 13.2, 1.7, { fill: 'paper' })])
-}
 
 /** A tick of a ruler is written the way the printer prints a time: seconds, to as many places as the tick's step needs. */
 function seconds(us: Us, stepUs: Us): string {
@@ -362,8 +358,7 @@ export function layoutHistogram(o: HistogramOptions): Sheet {
     })
   }
 
-  // The pins and the tape that names the sheet.
-  layers.push({ part: 'pins', marks: pins(g.width) })
+  // The name of the sheet.
   layers.push({ part: 'name', marks: tapeLabel(orientation === 'landscape' ? 44 : 38, 5, o.caption ?? 'TIME TO FIRST TOKEN', 11) })
 
   return {
@@ -533,7 +528,6 @@ export function layoutTimeline(o: TimelineOptions): Sheet {
   ]
   layers.push({ part: 'key', marks: key })
 
-  layers.push({ part: 'pins', marks: pins(g.width) })
   layers.push({ part: 'name', marks: tapeLabel(orientation === 'landscape' ? 44 : 38, 5, o.caption ?? 'EACH REQUEST, DUE TO DONE', 11) })
 
   return {

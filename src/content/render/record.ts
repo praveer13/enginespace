@@ -24,9 +24,12 @@ export function lessonEvents(events: readonly LedgerEvent[], lessons: readonly M
 const byTime = (a: LedgerEvent, b: LedgerEvent): number => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0)
 const figure = (value: number): string => value.toLocaleString('en-US', { maximumFractionDigits: 2 })
 
+/** A unit's name for one of it: "1 stage", "1 boundary"; a unit that is not a plural noun ("µs", "ms") is left as it is. */
+const one = (name: string): string => (/[a-z]{2,}ies$/.test(name) ? `${name.slice(0, -3)}y` : /[a-z]{2,}[^su]s$/.test(name) ? name.slice(0, -1) : name)
+
 /** A guess's value in words: "300 pages", "120 to 200 µs", or the option's id. */
 function valueWords(value: unknown, unit: string | undefined): string {
-  const tail = unit === undefined ? '' : unit === '%' ? '%' : ` ${unitName(unit)}`
+  const tail = unit === undefined ? '' : unit === '%' ? '%' : ` ${value === 1 ? one(unitName(unit)) : unitName(unit)}`
   if (typeof value === 'number') return `${figure(value)}${tail}`
   if (typeof value === 'object' && value !== null && 'lo' in value && 'hi' in value) return `${figure(Number(value.lo))} to ${figure(Number(value.hi))}${tail}`
   return String(value)

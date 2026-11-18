@@ -154,7 +154,7 @@ describe('the histogram', () => {
         const tapes: { name: string; y: number; h: number }[] = []
         flags.forEach((mark, i) => {
           const next = flags[i + 1]
-          if (mark.kind === 'rect' && mark.fill === 'slip' && next?.kind === 'text' && next.text !== 'CUT') tapes.push({ name: next.text, y: mark.y, h: mark.h })
+          if (mark.kind === 'rect' && mark.fill === 'paper' && next?.kind === 'text' && next.face === 'label' && next.text !== 'CUT') tapes.push({ name: next.text, y: mark.y, h: mark.h })
         })
         expect(tapes.map((tape) => tape.name).sort()).toEqual(['CORRECTED', 'MEASURED', 'REPORTED', 'YOURS'])
         tapes.sort((a, b) => a.y - b.y)

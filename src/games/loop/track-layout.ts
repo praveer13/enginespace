@@ -155,8 +155,9 @@ export function diagramModel(layout: LaneLayout, options: DiagramOptions = {}): 
   // Now: the amber sheet across the lanes, and its word under the axis's numbers, at its foot. Over the lanes the tilt would carry the word
   // up into the waiting queue's row, onto a tile or the row's name; under the axis nothing else is drawn, at any tick.
   const cursors = [{ id: `${p}now`, x: ox + layout.now.x, z0: oz + layout.now.y0 - HEAD / 2, z1: oz + layout.now.y1, height: RISE.cursor }]
-  // The now word stands where the 2D view puts it: over the lanes, at the cursor's head, to its right.
-  labels.push({ id: `${p}now`, at: [ox + layout.now.x + 3, RISE.cursor, oz + lanesTop - HEAD / 2], text: LANE_WORDS.now, kind: 'now', place: 'right' })
+  // The now word stands to the cursor's right just inside the first lane, where nothing is drawn yet (the lanes right of now are the
+  // future): at the cursor's head the tilt set it on the waiting queue's first tile.
+  labels.push({ id: `${p}now`, at: [ox + layout.now.x + 3, RISE.cursor, oz + lanesTop + 10], text: LANE_WORDS.now, kind: 'now', place: 'right' })
 
   return {
     plates: [],

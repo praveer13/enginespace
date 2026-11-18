@@ -240,32 +240,41 @@ test.describe('a keyboard-only walk files a report on every level', () => {
 })
 
 test.describe('the first screen', () => {
-  test('at 1440 x 900 the switch, the chart, the report form and the readout are inside the viewport together, and the range rule is above the fields', async ({ page }) => {
+  test('at 1440 x 900 the switch, the chart, the claim, the flaws and the readout are inside the viewport together, the form is whole at its own height, and the range rule is above the fields', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 })
     await open(page, 'due')
     const viewport = { width: 1440, height: 900 }
+    // The form takes its content's height (the second finish review: no field, flaw or row cut by a box's edge), so its fields and File the
+    // report are read on down the page, and the readout stands whole at the screen's foot over them.
     const boxes = {
       switch: await clockSwitch(page).boundingBox(),
       chart: await page.locator('.es-bench-sheet svg').boundingBox(),
       claim: await page.locator('[data-bench-claim]').boundingBox(),
-      rule: await page.locator('[data-bench-rule]').boundingBox(),
-      p99: await page.getByLabel('Your p99 (ms)').boundingBox(),
-      file: await page.getByRole('button', { name: 'File the report' }).boundingBox(),
+      flaws: await page.locator('[data-bench-form] fieldset').first().boundingBox(),
       readout: await page.locator('[data-bench-readout]').boundingBox(),
     }
     for (const [name, box] of Object.entries(boxes)) expect([name, inView(box, viewport)]).toEqual([name, true])
+    const readout = boxes.readout
+    expect(readout && readout.y + readout.height <= viewport.height + 1 && readout.y >= 0).toBe(true)
+    const list = await page.locator('.es-bench-flaws__list').evaluate((element) => element.scrollHeight <= element.clientHeight + 1)
+    expect(list, 'every flaw is in the list whole, with no inner scroll').toBe(true)
+    await page.getByRole('button', { name: 'File the report' }).scrollIntoViewIfNeeded()
+    const file = await page.getByRole('button', { name: 'File the report' }).boundingBox()
+    const pinned = await page.locator('[data-bench-readout]').boundingBox()
+    expect(file && pinned && file.y + file.height <= pinned.y + 1, 'File the report scrolls clear of the pinned readout').toBe(true)
+    await page.evaluate(() => window.scrollTo(0, 0))
+    const rule = await page.locator('[data-bench-rule]').boundingBox()
+    const p99 = await page.getByLabel('Your p99 (ms)').boundingBox()
     // The chart and the form stand side by side: the switch is over the chart, the form beside it, one row.
-    expect(boxes.chart && boxes.p99 && boxes.chart.x + boxes.chart.width <= boxes.p99.x + 1).toBe(true)
+    expect(boxes.chart && p99 && boxes.chart.x + boxes.chart.width <= p99.x + 1).toBe(true)
     expect(boxes.switch && boxes.chart && boxes.switch.y < boxes.chart.y).toBe(true)
     // The rule is printed above the fields, before the learner files.
-    expect(boxes.rule && boxes.p99 && boxes.rule.y + boxes.rule.height <= boxes.p99.y).toBe(true)
+    expect(rule && p99 && rule.y + rule.height <= p99.y).toBe(true)
     await expect(page.locator('[data-bench-rule]')).toContainText('within 15%')
     await expect(page.locator('[data-bench-rule]')).toContainText('at most 2 times as wide as its bootstrap interval')
-    const page2 = await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight + 200)
-    expect(page2).toBe(true)
   })
 
-  test('at 390 x 844 the claim, the switch, the form\'s fields and the readout share the screen with the diagram\'s box', async ({ page }) => {
+  test('at 390 x 844 the switch, the chart at its floor, the form\'s fields and the readout share the screen with the diagram\'s box', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await open(page, 'due')
     const viewport = { width: 390, height: 844 }
@@ -273,7 +282,10 @@ test.describe('the first screen', () => {
     const dock = await page.locator('[data-dock]').boundingBox()
     expect(inView(view, viewport)).toBe(true)
     expect(inView(dock, viewport)).toBe(true)
-    expect(inView(await page.locator('[data-bench-claim]').boundingBox(), viewport)).toBe(true)
+    // The chart leads the diagram's box (the second finish review: it was a 65 px strip under the claim): at least 8rem of the sheet shows
+    // over the pinned dock. The claim follows it in the box, and its number is the readout's first.
+    const sheet = await page.locator('.es-bench-sheet svg').boundingBox()
+    expect(sheet && view && Math.min(sheet.y + sheet.height, view.y + view.height) - sheet.y >= 128).toBe(true)
     expect(inView(await clockSwitch(page).boundingBox(), viewport)).toBe(true)
     expect(inView(await page.locator('[data-bench-readout]').boundingBox(), viewport)).toBe(true)
     // The diagram's box ends where the pinned dock starts, so nothing of it hides under the dock.

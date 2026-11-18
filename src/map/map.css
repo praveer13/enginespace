@@ -263,7 +263,7 @@
   text-decoration: none;
 }
 
-.es-course__name {
+.es-course__link .es-course__name {
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 0.25em;

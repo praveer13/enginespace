@@ -227,13 +227,18 @@
   outline-offset: 2px;
 }
 
-/* On a phone the goal line keeps to two lines until "more" opens it. */
+/* On a phone the goal line leads with the number to beat and the end, in two lines, until "more" opens the aim and what the learner
+   controls: the title and the role line over it name the task, and the number to beat is never the part cut off (P4). */
 @media (max-width: 63.999rem) {
   .es-frame__goal-box:not([data-open]) .es-goal {
     display: -webkit-box;
     overflow: hidden;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
+  }
+
+  .es-frame__goal-box:not([data-open]) :is([data-part='aim'], [data-part='control']) {
+    display: none;
   }
 
   .es-frame__goal-box .es-goal {
@@ -304,6 +309,11 @@
   flex: none;
   padding: var(--es-space-2) var(--es-space-4);
   border-top: 1px solid var(--es-paper-rule);
+}
+
+/* A readout with nothing to read (Broken benchmark's once the log has left the desk) is not drawn as an empty box. */
+.es-frame__readout:empty {
+  display: none;
 }
 
 .es-frame__result {
@@ -401,6 +411,15 @@
   overflow: visible;
 }
 
+/* Inside a lesson the instrument already stands on the lesson's paper: its diagram and its dock are ruled sheets on it, with no shadow of
+   their own (the Flat Paper Rule: one shadow for a sheet). A phone's pinned dock keeps its lift. */
+@media (min-width: 64rem) {
+  .es-frame[data-placement='embed'] :is(.es-frame__diagram, .es-frame__dock) {
+    box-shadow: none;
+    outline: 1px solid var(--es-paper-rule);
+  }
+}
+
 @container es-frame (min-width: 56rem) {
   .es-frame[data-phase='play'] > .es-frame__body {
     grid-template-columns: minmax(0, 1fr) minmax(19rem, 22rem);
@@ -418,8 +437,8 @@
 
   /*
    * The first run's parts list is read with the page, not inside a box: the dock grows to hold it whole, and while it runs past the foot of
-   * the screen its readout, and the intro's Next row over it (intro.css), stand at the screen's foot. So on arrival the intro's first
-   * control and the readout are on the first screen beside the drawing (P3, P5), and nothing hides in an inner scroll.
+   * the screen its readout stands at the screen's foot, and the intro's Next row stands under its title (intro.css). So on arrival the
+   * intro's first control and the readout are on the first screen beside the drawing (P3, P5), and nothing hides in an inner scroll.
    */
   .es-frame[data-phase='play'][data-intro] > .es-frame__body > .es-frame__dock {
     max-height: none;
@@ -435,6 +454,7 @@
     z-index: 2;
     background: var(--es-paper);
   }
+
 }
 
 /* Narrow and at least 700 px tall: the dock is pinned to the foot and holds the decision over one readout line, on the game's page and in a
@@ -485,13 +505,14 @@
     overflow: visible;
   }
 
+  /* At the result the page keeps clear of the readout standing at its foot, so a way on that is brought into view is never under it. */
   html:has(.es-frame[data-phase='result']):not(:has(.es-frame[data-phase='play'])) {
-    scroll-padding-bottom: 0;
+    scroll-padding-bottom: 6rem;
   }
 }
 
-/* The same in a lesson's Run at a desk while the intro's Next row and the readout stand at the foot of the screen [estimated: the two
-   rows' height, about 9.5rem at 1440 x 900, and a margin]. */
+/* The same in a lesson's Run at a desk while the readout, and a game's own row of actions over it, stand at the foot of the screen
+   [estimated: the two rows' height, about 9.5rem at 1440 x 900, and a margin]. */
 @media (min-width: 64rem) {
   html:has(.es-frame[data-placement='embed'][data-intro]) {
     scroll-padding-bottom: 10.5rem;

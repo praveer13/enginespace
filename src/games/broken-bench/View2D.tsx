@@ -149,7 +149,7 @@ export function View2D({ run, desk, moment, exhibits }: View2DProps) {
   }
 
   return (
-    <div className="es-bench-board" data-bench-board="" data-tab={view.tab} data-orientation={orientation}>
+    <div className="es-bench-board" data-bench-board="" data-tab={view.tab} data-orientation={orientation} data-callout-after="">
       <div className="es-bench-claimbox">
         <Claim key={`claim-${view.caseNo}`} scene={scene} caseNo={view.caseNo} cases={view.cases} />
         <Cut key={`cut-${view.caseNo}`} desk={desk} />

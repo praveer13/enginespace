@@ -28,6 +28,8 @@ export function ReadoutStrip({ run, desk }: { run: BenchRun; desk: DeskApi | nul
           { id: 'late', label: 'sent late', count: scene.facts.lateSends, shown: <>{formatReadout(scene.facts.lateSends)}</>, digits: 0 },
         ]
   const deltas = useDeltas(Object.fromEntries(items.map((item) => [item.id, item.count])))
+  // Once the court has risen there is no log at the desk to read: the result's figures carry the numbers, and an empty strip is not drawn.
+  if (items.length === 0) return null
   return (
     <div className="es-bench-strip" data-bench-readout="">
       <div className="es-bench-strip__head">

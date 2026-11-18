@@ -174,9 +174,10 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Below 64rem: the strip under the header, sticky while the viewport is tall enough to spare it. */
+/* Below 64rem: the strip under the header, sticky while the viewport is tall enough to spare it, over an instrument's own heads (the
+   swimlane's process row) that the page scrolls under it. */
 .es-lesson__strip {
-  z-index: 3;
+  z-index: 25;
   margin-inline: calc(var(--es-space-4) * -1);
   padding: var(--es-space-1) var(--es-space-4);
   background: var(--es-surface-0);
@@ -341,6 +342,17 @@
   grid-template-columns: minmax(0, 1fr);
   gap: var(--es-space-2);
   padding-inline-start: 1.4em;
+}
+
+/* A numbered list keeps its numbers: a text that says "the first four" and "the fifth" points at them. */
+.es-lesson__prose ol {
+  list-style: decimal;
+}
+
+.es-lesson__prose ol > li::marker {
+  color: var(--es-text-2);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
 }
 
 .es-lesson__prose h3 {

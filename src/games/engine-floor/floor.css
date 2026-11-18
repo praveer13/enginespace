@@ -232,6 +232,11 @@
   pointer-events: none;
 }
 
+/* While the first run names the parts, Next carries the one ring in view (the One Marker Rule): the request's node keeps the now line. */
+.es-frame[data-intro] .es-lanes__nowring {
+  display: none;
+}
+
 .es-lanes__now-word {
   position: absolute;
   z-index: 2;
@@ -385,6 +390,10 @@
 
 .es-lanes__tag[data-side='left'] {
   translate: -100% -50%;
+}
+
+.es-lanes__tag[data-mark-only] .es-lanes__tag-word {
+  display: none;
 }
 
 .es-lanes__tag-glyph {
@@ -1264,5 +1273,81 @@
 
   .es-frame[data-placement='embed'][data-game='engine-floor'] .es-floor-actions {
     bottom: 4.5rem;
+  }
+}
+
+/*
+ * On the game's page at a desk, once the parts are named, the stage list is read with the page as it is in a lesson: the dock takes its
+ * content's height beside the swimlane, which keeps its own box and stands at the screen's top, the filter field and every process to
+ * filter by stand whole over the list, and Run the path and the readout stand at the screen's foot (P5). No row and no tab is cut by an
+ * inner box's edge.
+ */
+@media (min-width: 64rem) {
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro]) .es-frame__body {
+    height: auto;
+    align-items: start;
+  }
+
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro]) .es-frame__diagram {
+    position: sticky;
+    top: var(--es-space-2);
+    height: clamp(26rem, 100svh - 23.5rem, 44rem);
+  }
+
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro]) .es-frame__dock-main {
+    overflow: visible;
+  }
+
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro]) .es-frame__readout {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    background: var(--es-paper);
+  }
+
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro]) .es-floor-tiles {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro]) .es-floor-actions {
+    position: sticky;
+    bottom: 4.5rem;
+    z-index: 1;
+    margin-inline: calc(var(--es-space-4) * -1);
+    padding: var(--es-space-2) var(--es-space-4) var(--es-space-3);
+    border-top: 1px solid var(--es-paper-rule);
+    background: var(--es-paper);
+  }
+
+  /* A stage the keyboard reaches is scrolled clear of Run the path and the readout standing at the screen's foot (WCAG 2.4.11). */
+  html:has(.es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro])),
+  html:has(.es-frame[data-placement='embed'][data-game='engine-floor'][data-phase='play']) {
+    scroll-padding-bottom: 10.5rem;
+  }
+
+  .es-frame[data-placement='page'][data-game='engine-floor'] :is(.es-floor-filters, .es-floor-chips) {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+}
+
+/* On a phone the readout's four counts are cells, each parted from the next by a rule, so no count runs into the next one's word. */
+@media (max-width: 63.999rem) {
+  .es-floor-strip__list {
+    gap: 0;
+  }
+
+  .es-floor-strip__item + .es-floor-strip__item {
+    padding-inline-start: var(--es-space-2);
+    border-inline-start: 1px solid var(--es-paper-rule);
+  }
+}
+
+/* The swimlane's legend runs to three rows on a phone, a row more than the frame's room under the pinned dock allows for: the box gives
+   that row back, so the legend is whole over the dock. */
+@media (max-width: 63.999rem) and (min-height: 700px) {
+  .es-frame[data-placement='page'][data-game='engine-floor'] .es-frame__view {
+    max-height: calc(67svh - 22.5rem);
   }
 }

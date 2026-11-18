@@ -102,25 +102,33 @@
   }
 }
 
-/* A sheet taller than the room scales down to the room, so the chart, the switch and the form are on one screen (P5). */
+/*
+ * At a desk the drawing keeps the room it plays in, and the report form beside it takes its content's height, as every dock does at a
+ * result: no field, flaw or row of the setup is cut by a box's edge, the drawing stands at the screen's top while the form is read on
+ * down the page, and the readout stands at the screen's foot (P5).
+ */
 @media (min-width: 64rem) {
-  /* The room is the frame's body less the legend's row: the chart, the switch and the report stand in it without a page scroll (P5). */
   .es-bench-board {
     grid-template-columns: minmax(0, 1fr) minmax(16rem, 19rem);
     grid-template-rows: auto minmax(0, 1fr);
-    height: calc(clamp(26rem, 100svh - 24.5rem, 44rem) - 2.75rem);
+    min-height: calc(clamp(26rem, 100svh - 24.5rem, 44rem) - 2.75rem);
     align-items: start;
   }
 
-  /* The frame's chrome around this game's page is a row taller than the shared body allows for: one rem less keeps the page within a screen and
-     a fold's worth, with the chart, the switch, the form and the readout still in the first screen (P5). */
   .es-frame[data-placement='page'][data-game='broken-bench'] .es-frame__body {
-    height: clamp(26rem, 100svh - 24.5rem, 44rem);
+    height: auto;
+    align-items: start;
   }
 
-  /* At the result the dock takes its content's height beside the drawing, which keeps the room it played in (frame.css). */
-  .es-frame[data-placement='page'][data-game='broken-bench'][data-phase='result'] .es-frame__body {
-    height: auto;
+  .es-frame[data-placement='page'][data-game='broken-bench'] .es-frame__dock-main {
+    overflow: visible;
+  }
+
+  .es-frame[data-placement='page'][data-game='broken-bench'] .es-frame__readout {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    background: var(--es-paper);
   }
 
   .es-frame[data-placement='page'][data-game='broken-bench'][data-phase='result'] .es-frame__diagram {
@@ -140,36 +148,20 @@
   .es-bench-chart {
     grid-column: 1;
     grid-row: 1 / span 2;
-    height: 100%;
     min-height: 0;
+  }
+
+  /* The flaws are a short list: the form shows every one of them whole. */
+  .es-bench-flaws .es-bench-flaws__list {
+    max-height: none;
+    overflow: visible;
   }
 
   .es-bench-setupbox {
     grid-column: 2;
     grid-row: 2;
-    min-height: 0;
-    height: 100%;
   }
 
-  .es-bench-sheetbox {
-    flex: 1 1 auto;
-    overflow: hidden;
-  }
-
-  .es-bench-sheetbox .es-bench-sheet,
-  .es-bench-sheetbox .es-bench-log {
-    height: 100%;
-  }
-
-  .es-bench-sheet svg {
-    height: 100%;
-  }
-
-  .es-bench-setup {
-    max-height: 100%;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-  }
 }
 
 /* ------------------------------------------------------------------------------------------------ the claim and the setup */
@@ -764,9 +756,15 @@
   }
 }
 
-@media (max-width: 63.999rem) and (min-height: 700px) {
-  .es-frame[data-placement='page'][data-game='broken-bench'] .es-frame__view {
-    max-height: calc(67svh - 19.5rem);
+/* On a phone the chart leads the diagram's box, its switch and sheets over it, at a floor height that shows the sheet's shape over the pinned
+   dock; the claim, the cut and the setup follow it in the box. */
+@media (max-width: 63.999rem) {
+  .es-bench-chart {
+    order: -1;
+  }
+
+  .es-bench-sheetbox {
+    min-height: 11rem;
   }
 }
 

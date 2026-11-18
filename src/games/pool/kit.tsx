@@ -12,7 +12,7 @@ import { DockView } from './DockView'
 /** Where each part is drawn, inside the frame: the intro's callout sits on it. A part with none is named in the list only. */
 const ANCHORS: Readonly<Record<string, string>> = {
   pool: '[data-pool-grid] .es-pool__label',
-  page: '[data-pool-legend] .es-legend, [data-pool-legend]',
+  page: '[data-pool-grid] .es-pool__cell:nth-child(3), [data-pool-legend] .es-legend',
   waiting: '[data-pool-waiting] .es-pool__label, [data-ask-list="admit"]',
   batch: '[data-pool-batch] .es-pool__label',
   cost: '[data-pool-readout] [data-readout-id="recomputed"], [data-pool-readout] [data-readout-id="cost"]',

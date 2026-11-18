@@ -308,11 +308,17 @@
     display: inline-block;
   }
 
+  /* Closed, the goal leads with the number to beat: the headline names the task, and the aim and what the learner controls wait behind
+     "more" (P4). */
   .es-front-goal:not([data-open]) .es-front-goal__line {
     display: -webkit-box;
     overflow: hidden;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
+  }
+
+  .es-front-goal:not([data-open]) :is([data-part='aim'], [data-part='control']) {
+    display: none;
   }
 
   .es-front-goal__line {
@@ -411,15 +417,15 @@
   translate: none;
 }
 
-/* On a phone the label column has no room left of it: a row's disc stands in the place of the row's colour mark while the intro names the
-   row, so it never covers the mark; the legend under the drawing keeps the code. */
+/* On a phone the diagram keeps a narrow room at its left for the discs, as at a desk, so a disc never stands in the place of a row's colour
+   mark while the coach line explains the marks. */
 @media (max-width: 47.999rem) {
-  .es-front .es-lanes__name:has(.es-front-disc) > .es-lanes__glyph {
-    visibility: hidden;
+  .es-front-diagram {
+    padding-inline-start: 1.5rem;
   }
 
-  .es-front .es-lanes__row-label .es-front-disc {
-    inset-inline-start: -0.5rem;
+  .es-front-disc {
+    inset-inline-start: -1.625rem;
   }
 }
 
@@ -486,6 +492,15 @@
     grid-template-columns: minmax(0, 1fr) minmax(18rem, 23rem);
     align-items: start;
     min-height: 8.75rem;
+  }
+
+  /* Step, Undo and Auto-step keep one row beside the coach strip (REDESIGN §3.1). */
+  .es-front-controls__row {
+    flex-wrap: nowrap;
+  }
+
+  .es-front-controls__row > .es-button {
+    padding-inline: var(--es-space-2);
   }
 }
 
