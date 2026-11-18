@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { useId, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { LoadingDots } from './LoadingDots'
 import { Readout, type NumberTag } from './Readout'
 
