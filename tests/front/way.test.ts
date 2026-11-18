@@ -12,9 +12,10 @@ import { LOOP } from '@es/play/loop/entry'
 import { FRAME } from '@/front/copy'
 import { courseHours, FIRST_PARTS, introOpens, returningOf, startLabel } from '@/front/way'
 import { START_POINTER } from '@/settings/store'
+import { repo, repoOutput } from '../content/support.ts'
 
-const root = path.resolve(import.meta.dirname, '../..')
-const index = JSON.parse(readFileSync(path.join(root, 'src/content/generated/index.json'), 'utf8')) as ContentIndex
+const root = repo
+const index = JSON.parse(repoOutput('src/content/generated/index.json')) as ContentIndex
 
 describe('a returning learner, from the pointer', () => {
   test('no pointer, or one that says Start, is a first visit', () => {

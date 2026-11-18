@@ -166,6 +166,16 @@ export const swap =
 
 export const compile = (edits: Record<string, Edit> = {}): CompileResult => compileContent({ root: project(edits) })
 
+let repoCompiled: CompileResult | undefined
+/**
+ * The repo's own content, compiled in memory once for the test file: what a build would write into `src/content/generated/` and
+ * `public/`, without a build having run. A test reads the compiled course through this, never from those folders, which `.gitignore`
+ * lists and which CI's unit job does not make (tests/ci/pristine.test.ts holds the suite to it).
+ */
+export const repoOutput = (file: string): string => output((repoCompiled ??= compileContent({ root: repo })), file)
+/** The compiled outputs of the repo's own content whose path starts with `prefix`, as text. */
+export const repoOutputsUnder = (prefix: string): string[] => ((repoCompiled ??= compileContent({ root: repo })).outputs.filter((one) => one.path.startsWith(prefix)).map((one) => one.text))
+
 export const read = (relative: string, root = repo): string => readFileSync(path.join(root, relative), 'utf8')
 
 /** A file of the sample course, by its path in a project: `readSample(LESSON)` is the text that `project()` copies. */

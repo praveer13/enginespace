@@ -1,15 +1,13 @@
 /*
- * R-T24: a set never shows the same stem twice. Over the seed count of tests/seeds.ts, no question set that a built lesson draws holds
+ * R-T24: a set never shows the same stem twice. Over the seed count of tests/seeds.ts, no question set that a compiled lesson draws holds
  * two questions with the same stem, and each item's answer key is the one its own seed makes (the key is a function of the seed that was used).
  */
 import { describe, expect, test } from 'bun:test'
-import { readdirSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { FAMILIES, startAttempt, stemKey } from '@es/play/items'
 import type { Level } from '@es/play/items'
+import { repoOutputsUnder } from '../content/support.ts'
 import { seeds } from '../seeds.ts'
 
-const dir = join(import.meta.dir, '../../src/content/generated/lessons')
 interface Block {
   type: string
   family?: string
@@ -17,8 +15,9 @@ interface Block {
   count?: number
 }
 const sets = new Map<string, { family: string; level: Level; count: number }>()
-for (const name of readdirSync(dir).filter((file) => file.endsWith('.json'))) {
-  const lesson = JSON.parse(readFileSync(join(dir, name), 'utf8')) as { blocks: Block[] }
+// The compiled lessons come from the compiler, in memory, as in tests/content/openers.test.ts: no build has to have run.
+for (const text of repoOutputsUnder('src/content/generated/lessons/')) {
+  const lesson = JSON.parse(text) as { blocks: Block[] }
   for (const block of lesson.blocks) {
     if (block.type === 'item' && block.family !== undefined && block.level !== undefined && block.count !== undefined) {
       sets.set(`${block.family}@${block.level}x${block.count}`, { family: block.family, level: block.level as Level, count: block.count })
