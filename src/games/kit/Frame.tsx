@@ -388,6 +388,14 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
       // The verdict stays on the screen over its ways on: a long moment over it is not allowed to push it off the top.
       const head = result.querySelector('[data-result-heading]')?.getBoundingClientRect().top ?? 0
       if (head < 0) window.scrollBy({ top: head - 8 })
+      // The drawing stands over the result here: where its top, the verdict and the ways on fit on the screen together, the page shows
+      // them together, so the path or the run laid and its result are read at once (P5). It only ever moves the page back up.
+      const drawing = body?.querySelector<HTMLElement>('[data-frame-diagram]')
+      if (!ways || !drawing) return
+      const above = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0
+      const foot = body?.querySelector('.es-frame__readout')?.getBoundingClientRect().height ?? 0
+      const from = drawing.getBoundingClientRect().top
+      if (from < above && ways.getBoundingClientRect().bottom - from <= window.innerHeight - above - foot) window.scrollBy({ top: from - above })
     }
     bring(20)
   }, [outcome, embedded])

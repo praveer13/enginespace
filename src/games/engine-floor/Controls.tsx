@@ -200,6 +200,12 @@ export function StageList({ controls, ring }: { controls: FloorControls; ring: s
   const { view, platforms, filter, setFilter, query, setQuery, tiles, tabStop, tray, chips, onTrayKey, lay } = controls
   const headId = useId()
   const fieldId = useId()
+  // The stage the first run points at is brought into view where the list or the page has it out of sight: the ring is the move to make.
+  const laying = view.step === 'lay'
+  useEffect(() => {
+    if (ring === null || !laying) return
+    tray.current?.querySelector('.es-floor-ring')?.scrollIntoView({ block: 'nearest' })
+  }, [ring, laying, tray])
   if (view.step !== 'lay') {
     return (
       <section aria-labelledby={headId} className="es-floor-stages" data-floor-stages="" data-floor-tray="" data-count={view.tray.length}>
