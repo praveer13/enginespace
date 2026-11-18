@@ -542,13 +542,14 @@ From round 1's fix batch (`wr/fix-finish-1`), what round 2's batch closed: the r
 From round 2's batch (`wr/fix-finish-2`, merged at 64fd895; its report is `fix-finish-2.md`). Done: Broken benchmark's form at its content height with the readout pinned and no empty readout at the result, the chart leading the box with an 11rem floor at 390; Request path's dock at its content height at a desk and its legend whole at 390; the three pool options whole at 390; the sampler's result ways on found once their chunk has drawn them; Next and Skip intro above the parts list, and no "now" tab beside Next; one amber ring in the Request path and TR1 intros; a paper casing on the now line; the front page's discs given a gutter at 390; the phone goal line leading with the number to beat; the front page's Step, Undo and Auto-step on one row; 3D "now" clear of the queue and the sampler's legend naming the collar and the pale top; singular units; the five rules numbered; TR0's title not underlined; no zero counters in the level 1 table; the bench sheets without tape labels or pins; no graticule in the pool and the sampler. Not done, each with its reason in that report:
 - the sampler's chain scene: value tags overprinting and collars without bars;
 - the loop's 3D queue drawn twice and its box half empty; the pool's 3D box half empty, threads through "R1" and its square swatches in the legend (each needs layout work in scene models that two 3D specs pin);
-- the Step loop's axis label 16 cut to "1" at 390 (a fix is in the front page's first-paint closure, 157 B under its gate at the time);
 - "Admit none this step" at the readout's edge on the pool at 390;
 - TR5a lesson 1 at 390: the pinned dock lies over the pool grid, and at 1440 the parts list's lines pass under the readout as the page scrolls;
 - Request path's intro disc 3 (Stage list) has no target in view;
 - the front page's empty plot until the fifth action, with no reference run drawn (JavaScript in the front page's first-paint closure, which has 150 B of room);
 - TR1 lesson 1's first viewport has no instrument edge (a content-order decision);
 - DESIGN.md's description of "a 2.5rem square grid at under half strength" on a page map is stale, since that grid was removed.
+
+From the second final check's fix (`wr/fix-close-2`): the Step loop's axis label at 390 is closed (the least spacing of a tick went from 16 to 15 px, so the axis reads 0 5 10 15 whole; the front page's first-paint JavaScript is now 119 B under its gate [measured 2026-11-17 at bd82401]); two defects found in the new baselines' diffs were fixed (the axis's last label cut to "1", and Request path's example hop label crossing a column edge at 390). Left from it: at 360 px the phone goal line, clamped, ends "step.…", and the queue shows the edge of a cut chip as a scroll cue.
 
 Two choices where the brief is silent, for the owner: the parts list's foot fades into the dock's edge with a mask where the dock scrolls (delete the two `mask-image` rules in `src/games/kit/intro.css` for a hard edge), and the phone goal line leads with the number to beat, not the aim.
 
