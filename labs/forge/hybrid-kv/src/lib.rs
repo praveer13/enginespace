@@ -1304,7 +1304,7 @@ static HIT_STEPS: &[Step] = &[
     Step { line: "finish 2", reply: "ok 40", note: "" },
     Step { line: "admit 3 - 0+80,2000+20", reply: "ok 27 hit 80", note: "this prompt shares only its first 80 tokens with the others, and every group holds them" },
     Step { line: "finish 3", reply: "ok 40", note: "" },
-    Step { line: "admit 4 - 9000+401", reply: "ok 8 hit 0", note: "it takes every free page and dumps the twelve oldest cached ones: the windows' older blocks and the tail of the full group" },
+    Step { line: "admit 4 - 9000+401", reply: "ok 8 hit 0", note: "it takes every free page and evicts the twelve oldest cached ones: the windows' older blocks and the tail of the full group" },
     Step { line: "finish 4", reply: "ok 40", note: "" },
     Step { line: "admit 5 - 0+112", reply: "ok 29 hit 0", note: "the full group still holds 64 tokens of this prompt and the windows hold none of them: the prefix every group holds is none" },
     Step { line: "finish 5", reply: "ok 40", note: "" },

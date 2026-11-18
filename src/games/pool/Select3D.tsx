@@ -117,7 +117,7 @@ function Note({ view, pick, station }: { view: PoolView; pick: PoolPick | null; 
   if (request === undefined) {
     return (
       <p className="es-pool3d-note" data-pool-fan="">
-        {view.running.length === 0 ? 'Nothing is on the line yet. Once a request is admitted, its block table shows as threads from its tile to its pages. Select a page to fan it into its layers.' : 'Select a request to see its pages, or a page to fan it into its layers.'}
+        {view.running.length === 0 ? 'No request is running yet. Once a request is admitted, its block table shows as threads from its tile to its pages. Select a page to fan it into its layers.' : 'Select a request to see its pages, or a page to fan it into its layers.'}
       </p>
     )
   }

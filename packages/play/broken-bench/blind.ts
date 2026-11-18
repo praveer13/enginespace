@@ -138,7 +138,7 @@ function levelProbe(id: string, defaultSeeds: number, numbers: boolean): BlindPr
       const passed = deals.filter((deal) => deal.filter((c, place) => c.flaw === modal[place]).length >= needed).length
       rows.push({
         strategy: 'per-place',
-        describe: 'told only the place of a case in the court, always naming the flaw most often dealt there, and the number of every case taken as right',
+        describe: 'told only the place of a case in the level, always naming the flaw most often dealt there, and the number of every case taken as right',
         rate: deals.length === 0 ? 0 : passed / deals.length,
         of: deals.length,
       })

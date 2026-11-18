@@ -313,7 +313,6 @@
 /* The hop: an arrow from one column to the other, its mechanism as a mark and a word over it. */
 /* In a phone's box the example is short, so it stands over the pinned dock with the request. */
 .es-lanes[data-size='phone'] .es-lanes__spec-cols {
-  gap: var(--es-space-8);
   height: 3.5rem;
 }
 

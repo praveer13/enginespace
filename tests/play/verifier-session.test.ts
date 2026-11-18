@@ -95,12 +95,12 @@ describe('the reducer refuses what a level does not allow', () => {
   }
 
   test('a recipe is sculpted only where there is one, within 0 to 64 plates, on a dish that exists', () => {
-    refuses('overlap', 0, [{ t: 'sculpt', token: 0, delta: 1 }], 'no recipe to sculpt')
+    refuses('overlap', 0, [{ t: 'sculpt', token: 0, delta: 1 }], 'no residual weights to set')
     refuses('exact', 0, [{ t: 'sculpt', token: 0, delta: -1 }], 'stays within 0 to 64')
     refuses('exact', 0, [{ t: 'sculpt', token: 0, delta: 65 }], 'stays within 0 to 64')
-    refuses('exact', 0, [{ t: 'sculpt', token: 6, delta: 1 }], 'there is no dish 6')
+    refuses('exact', 0, [{ t: 'sculpt', token: 6, delta: 1 }], 'there is no token 6')
     refuses('exact', 0, [{ t: 'sculpt', token: 0, delta: 1.5 }], 'whole number')
-    refuses('greedy-ngram', 0, [{ t: 'sculpt', token: 0, delta: 1 }], 'no recipe to sculpt')
+    refuses('greedy-ngram', 0, [{ t: 'sculpt', token: 0, delta: 1 }], 'no residual weights to set')
     refuses('exact', 0, [{ t: 'preset', from: 'z' as 'p' }], 'p or from q')
   })
 

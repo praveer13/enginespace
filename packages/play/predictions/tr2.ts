@@ -32,7 +32,7 @@ function steadyBusyPercent(run: RunRecord): number {
   const workload = frontPageWorkload(run.seed)
   const night = simNight({ ...workload, reqs: workload.reqs.slice(0, 6) }, 'continuous', false)
   const step = night.steps.find((candidate) => candidate.index > 0 && candidate.prefillSeqs === 0 && candidate.bubbleUs > 0)
-  if (step === undefined) throw new RangeError('the night of first-3-gap has no steady step')
+  if (step === undefined) throw new RangeError('the run of first-3-gap has no steady step')
   return (100 * step.gpuUs) / (step.gpuUs + step.bubbleUs)
 }
 

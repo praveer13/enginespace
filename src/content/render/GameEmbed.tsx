@@ -78,7 +78,7 @@ export default function GameEmbed({ block, scope, at, rev, title, autoFocus = tr
     <div ref={box} className="es-c-game__embed">
       <ClaimLease.Provider value>
         <RunPlaceContext.Provider value={place}>
-          <Suspense fallback={<GameLoading title={title} />}>
+          <Suspense fallback={<GameLoading title={title} reserve />}>
             <Game level={block.level} mode={block.mode} placement="embed" rev={rev} onFinish={finish} />
           </Suspense>
         </RunPlaceContext.Provider>

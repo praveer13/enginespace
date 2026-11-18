@@ -146,9 +146,10 @@ export const DOCK: LaneGeometry = {
 
 /**
  * The narrowest a tick is drawn [estimated]: a track whose box would draw a tick narrower than this is laid out wider than the box, and
- * the box scrolls sideways (REDESIGN §3.1 at 390: "the track scrolls sideways inside its box and keeps now in view").
+ * the box scrolls sideways (REDESIGN §3.1 at 360: "the track scrolls sideways inside its box and keeps now in view"). 15 px, and not 16, so that a
+ * phone 390 px wide, whose room the callout discs' gutter took 24 px of, still draws the whole axis to its last number instead of cutting it.
  */
-export const MIN_PX_PER_TICK = 16
+export const MIN_PX_PER_TICK = 15
 
 /** A geometry fitted to the room a page has: the width it is given, or wider where a tick would fall under `MIN_PX_PER_TICK`. */
 export function fitGeometry(base: LaneGeometry, width: number): LaneGeometry {

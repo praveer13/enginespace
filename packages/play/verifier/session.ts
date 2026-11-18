@@ -56,22 +56,22 @@ const whole = (value: unknown, what: string): number => {
 /** The pending decision, or null when the run is over. */
 export const verifierAsk = askOf
 
-/** Applies one action. Throws on an illegal one: a recipe that is not open, a weight out of range, a prediction made twice. */
+/** Applies one action. Throws on an illegal one: residual weights that are not open, a weight out of range, a prediction made twice. */
 export function verifierReduce(s: VerifierState, a: VerifierAction): VerifierState {
   need(!s.submitted, 'the run is over, so no action can follow')
   const level = s.level
   switch (a.t) {
     case 'sculpt': {
-      need(recipeOpen(s), 'there is no recipe to sculpt now')
-      const token = whole(a.token, 'the dish')
-      need(token >= 0 && token < VOCAB, `there is no dish ${token}`)
+      need(recipeOpen(s), 'there are no residual weights to set now')
+      const token = whole(a.token, 'the token')
+      need(token >= 0 && token < VOCAB, `there is no token ${token}`)
       const next = s.weights[token] + whole(a.delta, 'the change')
       need(next >= 0 && next <= PLATES, `the weight of ${DISHES[token]} stays within 0 to ${PLATES}`)
       return withRecipe(s, s.weights.map((w, x) => (x === token ? next : w)))
     }
     case 'preset': {
-      need(recipeOpen(s), 'there is no recipe to start now')
-      need(a.from === 'p' || a.from === 'q', 'a recipe starts from p or from q')
+      need(recipeOpen(s), 'there are no residual weights to start now')
+      need(a.from === 'p' || a.from === 'q', 'the weights start from p or from q')
       return withRecipe(s, [...level[a.from === 'p' ? 'p' : 'q'][0]])
     }
     case 'draw': {
@@ -91,7 +91,7 @@ export function verifierReduce(s: VerifierState, a: VerifierAction): VerifierSta
     }
     case 'judge': {
       need(level.id === 'greedy-ngram' && s.judged === null, 'there is no temperature-0 question to answer')
-      need(typeof a.kept === 'boolean', 'the plate is kept or sent back')
+      need(typeof a.kept === 'boolean', 'the drafted token is kept or sent back')
       return { ...s, judged: a.kept }
     }
     case 'gamma': {

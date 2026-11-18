@@ -123,10 +123,10 @@ function GameName({ entry }: { entry: RosterEntry }) {
   )
 }
 
-/** The line that stands where the game will be while its code loads: the printer's dots, and what is coming. It takes focus while it waits. */
-export function GameLoading({ title, ref }: { title: string; ref?: Ref<HTMLParagraphElement> }) {
+/** The line that stands where the game will be while its code loads: the printer's dots, and what is coming. It takes focus while it waits. `reserve` holds the room the game will take, so the page below does not jump when it arrives. */
+export function GameLoading({ title, ref, reserve = false }: { title: string; ref?: Ref<HTMLParagraphElement>; reserve?: boolean }) {
   return (
-    <p className="es-c-game__loading" role="status" tabIndex={-1} ref={ref}>
+    <p className="es-c-game__loading" data-reserve={reserve ? '' : undefined} role="status" tabIndex={-1} ref={ref}>
       <LoadingDots />
       <span>Setting up {title}…</span>
     </p>

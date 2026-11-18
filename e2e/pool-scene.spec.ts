@@ -33,6 +33,7 @@ import { geometryOf, pageBox, PAGE_TOP, SLOT, slotBox } from '../src/games/pool/
 import type { FrameStats } from '../src/scene/stage-runtime'
 import type { SceneHook } from '../src/scene/test-hook'
 import { playThrough, practiceOf } from '../tests/play/pool-support'
+import { bannedOn } from './support/copy-scan'
 import { pixelStats } from './support/pixels'
 
 declare global {
@@ -303,8 +304,8 @@ test.describe('a selection (R-T41)', () => {
     const { states } = nightOfHouse('two-kinds')
     await open(page, 'two-kinds', 2)
     await settle(page)
-    // Nothing is on the line: the page says so, and nothing is threaded.
-    await expect(note(page)).toContainText('Nothing is on the line yet')
+    // No request is running: the page says so, and nothing is threaded.
+    await expect(note(page)).toContainText('No request is running yet')
     await admitSome(page, 'two-kinds', 3)
     const view = poolSession.view(states[3])
     const last = view.running[view.running.length - 1]
@@ -490,5 +491,15 @@ test.describe('the picture (R-T41)', () => {
     await expect(labels.filter({ hasText: /^\d+ layers/ })).toHaveCount(1)
     await expect(stage(page).locator('.es-stage__scene')).toHaveAttribute('aria-hidden', 'true')
     expect(await stage(page).locator('canvas').evaluate((canvas) => canvas.textContent)).toBe('')
+  })
+})
+
+// The copy guard over the 3D view (REDESIGN 2.7): the route sweep reads every page with 3D off, so the words that only 3D shows are read here, at a desk.
+test.describe('the words of the 3D view (R-T14)', () => {
+  test('no banned word or phrase on the page pool with 3D on, before a move', async ({ page }) => {
+    test.setTimeout(120_000)
+    await open(page, 'one-group', 1)
+    await page.waitForTimeout(500)
+    expect(await bannedOn(page), 'banned words on the page in 3D').toEqual([])
   })
 })

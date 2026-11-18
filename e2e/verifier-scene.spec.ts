@@ -32,6 +32,7 @@ import { skylineOf } from '../src/games/verifier/scene-layout'
 import { PX } from '../src/scene/flat-track'
 import type { FrameStats } from '../src/scene/stage-runtime'
 import type { SceneHook } from '../src/scene/test-hook'
+import { bannedOn } from './support/copy-scan'
 import { pixelStats } from './support/pixels'
 
 declare global {
@@ -431,5 +432,15 @@ test.describe('the picture (A§10.1; GAMES.md §2.6 rule 7)', () => {
     for (const size of await labels.locator('.es-vf-label').evaluateAll((nodes) => nodes.map((node) => parseFloat(getComputedStyle(node).fontSize)))) expect(size).toBeGreaterThanOrEqual(11)
     await expect(stage(page).locator('.es-stage__scene')).toHaveAttribute('aria-hidden', 'true')
     expect(await stage(page).locator('canvas').evaluate((canvas) => canvas.textContent)).toBe('')
+  })
+})
+
+// The copy guard over the 3D view (REDESIGN 2.7): the route sweep reads every page with 3D off, so the words that only 3D shows are read here, at a desk.
+test.describe('the words of the 3D view (R-T14)', () => {
+  test('no banned word or phrase on the verifier with 3D on, before a move', async ({ page }) => {
+    test.setTimeout(120_000)
+    await open(page, 'chain', 1)
+    await page.waitForTimeout(500)
+    expect(await bannedOn(page), 'banned words on the page in 3D').toEqual([])
   })
 })
