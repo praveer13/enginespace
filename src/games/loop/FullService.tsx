@@ -260,6 +260,7 @@ export default function FullService({ level, mode, placement = 'page', rev, onFi
       }
       allow3d={draws3d}
       unavailable3d={unavailable3d}
+      phone3d={false}
       view={view}
       onViewChange={setChosenView}
       onCommand={(command, run) => {

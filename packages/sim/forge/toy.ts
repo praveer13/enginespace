@@ -98,13 +98,13 @@ const dumpPlan = (): CheckPlan =>
     [
       say('init 3', 'ok'),
       ...fillTo(3),
-      say('touch 4', 'miss dump 1', 'a full rotation dumps its front'),
+      say('touch 4', 'miss dump 1', 'a full queue evicts its front'),
       say('order', '2,3,4'),
-      say('len', '3', 'the rotation stays full'),
-      say('touch 1', 'miss dump 2', 'a dumped key is gone, so touching it again is a miss'),
+      say('len', '3', 'the queue stays full'),
+      say('touch 1', 'miss dump 2', 'an evicted key is gone, so touching it again is a miss'),
       say('order', '3,4,1'),
     ],
-    'the front is dumped, and the rotation stays full',
+    'the front is evicted, and the queue stays full',
   )
 
 const recencyPlan = (): CheckPlan =>
@@ -113,7 +113,7 @@ const recencyPlan = (): CheckPlan =>
       say('init 3', 'ok'),
       ...fillTo(3),
       say('touch 1', 'hit'),
-      say('touch 4', 'miss dump 2', 'the dump goes by the last touch, not by arrival'),
+      say('touch 4', 'miss dump 2', 'the eviction goes by the last touch, not by arrival'),
       say('order', '3,1,4'),
     ],
     'the key touched most recently outlives the one that came later',
