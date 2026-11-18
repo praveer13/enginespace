@@ -662,6 +662,18 @@
   font-weight: 700;
 }
 
+/* A guess's chunk loads after the page is laid out. Its place holds the stem, which is already known, and the room the rule, the field, the
+   sureness and Commit take under it [measured 2026-11-18: 316 px at 1440 and 346 px at 390 for a number], so nothing below it moves. */
+.es-guess__reserve {
+  min-height: 19.75rem;
+}
+
+@media (max-width: 40rem) {
+  .es-guess__reserve {
+    min-height: 21.75rem;
+  }
+}
+
 .es-guess__ask {
   font-size: var(--es-size-control);
   line-height: 1.45;

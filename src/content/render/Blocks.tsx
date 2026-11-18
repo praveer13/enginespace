@@ -52,13 +52,26 @@ function withChips(env: RenderEnv): RenderEnv {
   return chips
 }
 
+/** Where a guess will be while its chunk loads: its frame and its stem, as they will stand, and the room the rest takes. */
+function PredictLoading({ block }: { block: Of<'predict'> }) {
+  return (
+    <section className="es-guess" data-block="predict" data-predict={block.id} data-phase="loading" role="group" aria-label="Your guess" aria-busy="true">
+      <p className="es-guess__label">Your guess</p>
+      <p className="es-guess__ask">
+        <Tagged text={block.prompt} />
+      </p>
+      <div className="es-guess__reserve" aria-hidden="true" />
+    </section>
+  )
+}
+
 function BlockTicket({ block, at, blocks, env, scope, rev }: { block: CompiledBlock; at: number; blocks: readonly CompiledBlock[]; env: RenderEnv; scope: string; rev?: string }) {
   switch (block.type) {
     case 'prose':
       return <ProseTickets block={block} env={env} scope={scope} />
     case 'predict':
       return (
-        <Suspense fallback={<p>{block.prompt}</p>}>
+        <Suspense fallback={<PredictLoading block={block} />}>
           <PredictTicket block={block} scope={scope} at={at} blocks={blocks} rev={rev} />
         </Suspense>
       )
