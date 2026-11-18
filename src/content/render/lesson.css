@@ -619,6 +619,11 @@
   min-width: 0;
 }
 
+/* While the game's code loads, its place is the height it will take (content.css, .es-c-game__loading[data-reserve]). */
+.es-run__loading {
+  min-height: clamp(30rem, 100svh - 6rem, 52rem);
+}
+
 /* ---------------------------------------------------------------------------------------------- a guess */
 
 .es-guess {

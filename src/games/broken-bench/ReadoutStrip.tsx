@@ -18,9 +18,19 @@ const tenths = (us: number): number => Math.round(us / 100)
 export function ReadoutStrip({ run, desk }: { run: BenchRun; desk: DeskApi | null }) {
   const scene = run.view.scene
   const practice = run.mode === 'practice'
+  const { score } = run
+  const of = (n: number) => `${formatReadout(n)} of ${formatReadout(score.cases)}`
+  // Once the report is filed the case leaves the desk, and the strip reads the result's counts: what the learner's run measured, case by case.
   const items =
     scene === null || desk === null
-      ? []
+      ? run.view.rulings === null
+        ? []
+        : [
+            { id: 'stood', label: 'reports stood', count: score.casesRight, shown: <>{of(score.casesRight)}</>, digits: 0 },
+            { id: 'flaws', label: 'flaw right', count: score.flawsRight, shown: <>{of(score.flawsRight)}</>, digits: 0 },
+            { id: 'numbers', label: 'p99 right', count: score.numbersRight, shown: <>{of(score.numbersRight)}</>, digits: 0 },
+            { id: 'ranges', label: 'range right', count: score.intervalsRight, shown: <>{of(score.intervalsRight)}</>, digits: 0 },
+          ]
       : [
           { id: 'reported', label: 'reported p99, ms', count: tenths(scene.claim.valueUs), shown: <>{formatReadout(scene.claim.valueUs / 1000, 1)}</>, digits: 1 },
           ...(practice ? [{ id: 'measured', label: 'p99 now, ms', count: tenths(desk.reading.p99Us), shown: <>{formatReadout(desk.reading.p99Us / 1000, 1)}</>, digits: 1 }] : []),
@@ -28,7 +38,6 @@ export function ReadoutStrip({ run, desk }: { run: BenchRun; desk: DeskApi | nul
           { id: 'late', label: 'sent late', count: scene.facts.lateSends, shown: <>{formatReadout(scene.facts.lateSends)}</>, digits: 0 },
         ]
   const deltas = useDeltas(Object.fromEntries(items.map((item) => [item.id, item.count])))
-  // Once the court has risen there is no log at the desk to read: the result's figures carry the numbers, and an empty strip is not drawn.
   if (items.length === 0) return null
   return (
     <div className="es-bench-strip" data-bench-readout="">

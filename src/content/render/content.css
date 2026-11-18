@@ -540,6 +540,14 @@
   outline: none;
 }
 
+/* The game of a lesson arrives in a chunk of its own, after the page below it has been laid out and often scrolled to. Its place is held at about
+   the height it takes (a frame is 850 to 1400 px tall [measured 2026-11-17 at 390 and 1440 px]), so what the reader is on does not jump away. */
+.es-c-game__loading[data-reserve] {
+  padding: var(--es-space-4);
+  border: 1px dashed var(--es-edge);
+  min-height: clamp(30rem, 100svh - 6rem, 52rem);
+}
+
 /*
  * On a wide screen a game the learner has opened takes the room the lesson leaves beside its tape: the tickets keep their measure, and the
  * game's view gets about the width it has on its own page.

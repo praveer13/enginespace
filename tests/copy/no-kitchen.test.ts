@@ -251,6 +251,35 @@ function literalsOf(file: string): { line: number; text: string }[] {
   return out
 }
 
+/**
+ * The text a component writes to a page: its JSX text, and every string or template literal that holds a space (a sentence; a literal with no
+ * space is an id, a class or a route). A `className`, a `data-*` or an `import` is no text, and is not read.
+ */
+function componentWords(file: string, code: string = readFileSync(file, 'utf8')): { line: number; text: string }[] {
+  const source = ts.createSourceFile(file, code, ts.ScriptTarget.Latest, true)
+  const out: { line: number; text: string }[] = []
+  const at = (node: ts.Node) => source.getLineAndCharacterOfPosition(node.getStart()).line + 1
+  const visit = (node: ts.Node): void => {
+    if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) return
+    if (ts.isJsxAttribute(node)) {
+      const name = node.name.getText(source)
+      if (name === 'className' || name.startsWith('data-') || name === 'id' || name === 'key' || name === 'href' || name === 'to' || name === 'style') return
+    }
+    if (ts.isJsxText(node)) {
+      const text = node.text.replace(/\s+/g, ' ').trim()
+      if (text !== '') out.push({ line: at(node), text })
+    } else if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node) || ts.isTemplateHead(node) || ts.isTemplateMiddle(node) || ts.isTemplateTail(node)) {
+      if (/\s/.test(node.text.trim())) out.push({ line: at(node), text: node.text })
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(source)
+  return out
+}
+
+/** The `.ts` and `.tsx` files of the components: the games and the front page. */
+const componentFiles = (): string[] => ['src/games', 'src/front'].flatMap((dir) => filesUnder(path.join(root, dir)).filter((file) => /\.tsx?$/.test(file)))
+
 /** The `.ts` files of a folder of the repository, one level or all the way down. */
 const tsFilesUnder = (dir: string): string[] => filesUnder(path.join(root, dir)).filter((file) => file.endsWith('.ts'))
 
@@ -398,6 +427,22 @@ describe('what a learner reads', () => {
     for (const old of ['W2-T26 builds it', 'A token is single-use (D-027)', 'arrives with the kit (W2-T10)', "W2-T22 fits them to the owner's traces", 'the cost card (D-044, proposed)']) {
       expect([old, BUILD_LOG.test(old)]).toEqual([old, true])
     }
+  })
+
+  test('holds no banned word or phrase in the text of a component of src/games or src/front: its JSX text and its sentences, with no allowance', () => {
+    const words = componentFiles().flatMap((file) => componentWords(file).map((literal) => ({ where: `${path.relative(root, file)}:${literal.line}`, text: literal.text })))
+    expect(words.length).toBeGreaterThan(500)
+    expect(words.flatMap((word) => findBanned(word.text).map((found) => `${word.where}: "${found.match}" (${found.rule}) in "${word.text.slice(0, 80)}"`))).toEqual([])
+  })
+
+  test('would have caught the page pool\'s 3D note: the sentence it had is read, and found', () => {
+    const old = 'Nothing is on the line yet. Once a request is admitted, its block table shows as threads from its tile to its pages.'
+    expect(findBanned(old).map((found) => found.rule)).toEqual(['on the line'])
+    // The component's own line, as it stood, is read through the same reader and fails.
+    const line = `export const Note = ({ n }: { n: number }) => <p>{n === 0 ? '${old}' : 'Select a request.'}</p>`
+    const found = componentWords('Note.tsx', line).flatMap((word) => findBanned(word.text).map((hit) => hit.rule))
+    expect(found).toEqual(['on the line'])
+    expect(componentWords('Note.tsx', '<p>Nothing is on the line yet.</p>').flatMap((word) => findBanned(word.text).map((hit) => hit.rule))).toEqual(['on the line'])
   })
 
   test('is a sweep that would see a kitchen word in each kind of text, if one came back', () => {

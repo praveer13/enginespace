@@ -139,7 +139,7 @@ export const GRADED: readonly PoolLevelId[] = ['evict', 'adapters', 'manager']
 
 /** The level `id` on `seed`. Throws for a level that The Reach-In does not have. */
 export function buildLevel(id: string, seed: Seed): PoolLevel {
-  if (!isLevelId(id)) throw new RangeError(`The Reach-In has no level "${id}"`)
+  if (!isLevelId(id)) throw new RangeError(`KV page pool has no level "${id}"`)
   assertSeed(seed)
   const shape = id === 'manager' ? managerShape(seed) : SHAPES[id]
   const spec = kvPreset(shape.preset, shape.pool, { prefixCaching: true })

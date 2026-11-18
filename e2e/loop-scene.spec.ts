@@ -25,6 +25,7 @@ import { test as base, expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { build } from 'vite'
 import type { FrameStats } from '../src/scene/stage-runtime'
+import { bannedOn } from './support/copy-scan'
 import { pixelStats } from './support/pixels'
 import type { SceneHook } from '../src/scene/test-hook'
 
@@ -337,5 +338,15 @@ test.describe('reduced motion (A§6.9): changes cut, and nothing moves without i
     await page.waitForTimeout(2000)
     expect(await page.evaluate(() => window.__raf ?? 0)).toBe(after)
     expect((await probe(page))?.p95, 'the governor never sampled an animation').toBeNull()
+  })
+})
+
+// The copy guard over the 3D view (REDESIGN 2.7): the route sweep reads every page with 3D off, so the words that only 3D shows are read here, at a desk.
+test.describe('the words of the 3D view (R-T14)', () => {
+  test('no banned word or phrase on the step loop with 3D on, before a move', async ({ page }) => {
+    test.setTimeout(120_000)
+    await open(page, 'async', 1)
+    await page.waitForTimeout(500)
+    expect(await bannedOn(page), 'banned words on the page in 3D').toEqual([])
   })
 })

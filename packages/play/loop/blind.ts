@@ -40,13 +40,13 @@ const HABITS: readonly Habit[] = [
     RACKS.filter((rack) => mode !== 'NONE' || rack.length === 0).map(
       (rack): Habit => ({
         id: `${mode}[${rack.join(',')}]`,
-        describe: `async scheduling, the ids from the device and MRV2, graph mode ${mode}${rack.length === 0 ? ' with no molds' : ` with molds of ${rack.join(', ')}`}`,
+        describe: `async scheduling, the ids from the device and MRV2, graph mode ${mode}${rack.length === 0 ? ' with no captured sizes' : ` with captured sizes ${rack.join(', ')}`}`,
         mode,
         rack,
       }),
     ),
   ),
-  { id: 'everything-on', describe: 'every switch on: graph mode FULL_AND_PIECEWISE and a mold at every size the panel offers', mode: 'FULL_AND_PIECEWISE', rack: null },
+  { id: 'everything-on', describe: 'every switch on: graph mode FULL_AND_PIECEWISE and a graph captured at every size the panel offers', mode: 'FULL_AND_PIECEWISE', rack: null },
 ]
 
 /** The actions of a habit on a level, as a learner takes them: the prediction, the levers, the rack, and the bell that serves the night. */
