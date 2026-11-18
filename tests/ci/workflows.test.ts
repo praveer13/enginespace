@@ -21,6 +21,7 @@ import path from 'node:path'
 import { load } from 'js-yaml'
 import { GATE_NAMES, GATES } from '../../scripts/verify'
 import { checkBoundaries } from '../../scripts/verify-boundaries'
+import { readersWithoutProducer, SAMPLES, testSources } from './pristine'
 import { BUN_FALLBACK, TASK_ID, UV_FALLBACK, backticked, between, ciTestShards, markedTasks, read, root, tableRows, taskHeadings, trackerTasks } from './support'
 
 interface Step {
@@ -695,5 +696,21 @@ describe('reserved steps', () => {
       ])
       expect(reservedIn(stale).filter(({ task }) => MERGED.includes(task))).toEqual([{ job: 'labs', task: 'W1b-T08' }])
     })
+  })
+})
+
+describe('no test file reads a build output that the unit job never makes (tests/ci/pristine.ts)', () => {
+  test('every file under tests/ that reads one makes it first', () => {
+    expect(readersWithoutProducer(testSources())).toEqual([])
+  })
+
+  test('it fails on the stems test as it was: a readdirSync of src/content/generated/lessons and nothing that makes it', () => {
+    expect(readersWithoutProducer({ 'tests/items/stems.test.ts': SAMPLES.stems })).toEqual(['tests/items/stems.test.ts'])
+  })
+
+  test('it fails on a read of public/claims.json or of dist/ from the repo root, and passes on one that builds, or compiles in memory, or only mentions it', () => {
+    expect(readersWithoutProducer({ a: SAMPLES.claims, b: SAMPLES.dist })).toEqual(['a', 'b'])
+    expect(readersWithoutProducer({ a: `${SAMPLES.claims}\nviteBuild(out, '/')`, b: `${SAMPLES.dist}\nconst scratch = mkdtempSync('x')` })).toEqual([])
+    expect(readersWithoutProducer({ a: SAMPLES.inMemory, b: SAMPLES.commented })).toEqual([])
   })
 })

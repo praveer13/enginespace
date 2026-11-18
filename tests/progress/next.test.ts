@@ -7,14 +7,12 @@
  * own first step is held: TR1 lesson 1, and the header's pointer before any page has written one (START_POINTER) is that answer.
  */
 import { describe, expect, test } from 'bun:test'
-import { readFileSync } from 'node:fs'
-import path from 'node:path'
 import type { LedgerEvent } from '@es/ledger'
 import type { CourseMap, MapLesson } from '@es/schema'
 import { attemptWord, indexLessons, lastTime, nextStep, ownersOf, standings } from '@/progress/next'
 import type { Bookmark } from '@/progress/next'
 import { START_POINTER } from '@/settings/store'
-import { root } from '../ci/support'
+import { repoOutput } from '../content/support'
 import { isoAt, made } from './support'
 
 const REV = (n: number) => n.toString(16).padStart(64, '0')
@@ -158,7 +156,7 @@ describe('an event that several lessons could own', () => {
   })
 
   test('the same holds on the compiled map: broken-bench/court in TR8 lessons 3 and 4', () => {
-    const map = JSON.parse(readFileSync(path.join(root, 'src/content/generated/map.json'), 'utf8')) as CourseMap
+    const map = JSON.parse(repoOutput('src/content/generated/map.json')) as CourseMap
     const real = indexLessons(map.lessons)
     const l3 = map.lessons.find((one) => one.id === 'tr8.l3') as MapLesson
     const l4 = map.lessons.find((one) => one.id === 'tr8.l4') as MapLesson
@@ -180,7 +178,7 @@ describe('an event that several lessons could own', () => {
 
 describe('a question set that several lessons ask', () => {
   // TR1 lessons 1, 3 and 6 all ask tr1.which-mechanism; lesson 6's Test asks it too.
-  const map = JSON.parse(readFileSync(path.join(root, 'src/content/generated/map.json'), 'utf8')) as CourseMap
+  const map = JSON.parse(repoOutput('src/content/generated/map.json')) as CourseMap
   const index = indexLessons(map.lessons)
   const byId = (id: string) => map.lessons.find((one) => one.id === id) as MapLesson
   const l1 = byId('tr1.l1')
@@ -291,7 +289,7 @@ describe('lastTime', () => {
 })
 
 describe('on the compiled map', () => {
-  const map = JSON.parse(readFileSync(path.join(root, 'src/content/generated/map.json'), 'utf8')) as CourseMap
+  const map = JSON.parse(repoOutput('src/content/generated/map.json')) as CourseMap
 
   test('an empty ledger gives the first section of TR1 lesson 1', () => {
     const step = nextStep([], map.lessons, null)
