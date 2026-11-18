@@ -11,12 +11,14 @@
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
-import { createElement } from 'react'
+import { createElement, lazy } from 'react'
 import { renderToString } from 'react-dom/server'
 import { createStaticHandler, createStaticRouter, matchRoutes, StaticRouter, StaticRouterProvider } from 'react-router'
 import type { RouteObject } from 'react-router'
 import { AppLoading } from '@/App'
 import type { RouteHandle } from '@/App'
+import { GAME_COMPONENTS } from '@/games/registry'
+import type { GameComponent } from '@/games/registry'
 import { routes } from '@/routes'
 
 const root = path.resolve(import.meta.dirname, '..')
@@ -190,10 +192,26 @@ describe('routes against ARCHITECTURE §3.1', () => {
     expect(leafPatterns(routes).sort()).toEqual([...patterns].sort())
   })
 
+  /**
+   * Runs `run` while the game's chunk has not arrived: the state a first visit renders in. A React lazy component keeps what it resolved
+   * to, and a test file that renders the game resolves it for every file after it in the same process, so a test that asserts on the
+   * fallback makes its own state: it stands a lazy component that never resolves in the game's place, and puts the real one back.
+   */
+  async function whileChunkIsOut<T>(game: string, run: () => Promise<T>): Promise<T> {
+    const components = GAME_COMPONENTS as Record<string, GameComponent>
+    const real = components[game]
+    components[game] = lazy(() => new Promise<never>(() => undefined))
+    try {
+      return await run()
+    } finally {
+      components[game] = real
+    }
+  }
+
   for (const pattern of patterns) {
     const { h1, shows, title } = stubs[pattern] ?? { h1: '(no stub listed)' }
     test(`${pattern} renders a stub whose only <h1> is "${h1}", under the title "${title ?? `${h1} · enginespace`}"`, async () => {
-      const html = await render(urlFor(pattern))
+      const html = pattern === '/play/:game' ? await whileChunkIsOut(params.game, () => render(urlFor(pattern))) : await render(urlFor(pattern))
       expect(h1sIn(html)).toEqual([h1])
       expect(html).toContain('<main id="main"')
       if (shows) expect(html).toContain(shows)

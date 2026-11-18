@@ -170,7 +170,7 @@ let repoCompiled: CompileResult | undefined
 /**
  * The repo's own content, compiled in memory once for the test file: what a build would write into `src/content/generated/` and
  * `public/`, without a build having run. A test reads the compiled course through this, never from those folders, which `.gitignore`
- * lists and which CI's unit job does not make (tests/ci/pristine.test.ts holds the suite to it).
+ * lists and which CI's unit job does not make (the rule of tests/ci/pristine.ts holds the suite to it, and tests/ci/workflows.test.ts tests the rule).
  */
 export const repoOutput = (file: string): string => output((repoCompiled ??= compileContent({ root: repo })), file)
 /** The compiled outputs of the repo's own content whose path starts with `prefix`, as text. */
