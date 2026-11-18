@@ -511,11 +511,11 @@
   }
 }
 
-/* The same in a lesson's Run at a desk while the readout stands at the foot of the screen [estimated: its height, about 4.5rem at 1440 x
-   900, and a margin]. */
+/* The same in a lesson's Run at a desk while the readout, and a game's own row of actions over it, stand at the foot of the screen
+   [estimated: the two rows' height, about 9.5rem at 1440 x 900, and a margin]. */
 @media (min-width: 64rem) {
   html:has(.es-frame[data-placement='embed'][data-intro]) {
-    scroll-padding-bottom: 5.5rem;
+    scroll-padding-bottom: 10.5rem;
   }
 }
 

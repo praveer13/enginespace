@@ -347,7 +347,10 @@ describe('the debrief and the end card', () => {
     expect(markup).toContain('Next: A clip empties')
     expect(markup).toContain('Your run against the reference run&#x27;s')
     expect(count(markup, /<tbody>[^]*?<\/tbody>/g)).toBe(1)
-    expect(count(markup, /<tr class="border-b border-paper-rule">/g)).toBe(5)
+    // Level 1 draws no ghost token, bubble or paid-for empty slot: a counter that is nothing in both runs is left out of the table.
+    expect(count(markup, /<tr class="border-b border-paper-rule">/g)).toBe(2)
+    expect(markup).toContain('Clock (ticks, synthetic)')
+    expect(markup).not.toContain('Ghost tokens')
     expect(markup).not.toContain('The same requests, served three ways')
     expect(markup).not.toContain('The real engine')
     expect(markup).not.toContain('New numbers')

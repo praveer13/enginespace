@@ -1320,6 +1320,12 @@
     background: var(--es-paper);
   }
 
+  /* A stage the keyboard reaches is scrolled clear of Run the path and the readout standing at the screen's foot (WCAG 2.4.11). */
+  html:has(.es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro])),
+  html:has(.es-frame[data-placement='embed'][data-game='engine-floor'][data-phase='play']) {
+    scroll-padding-bottom: 10.5rem;
+  }
+
   .es-frame[data-placement='page'][data-game='engine-floor'] :is(.es-floor-filters, .es-floor-chips) {
     flex-wrap: wrap;
     overflow-x: visible;
